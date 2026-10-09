@@ -1,0 +1,61 @@
+name: B0.5 R90-Q5 SHA-pinned Merge Rehearsal (no writes)
+on:
+  push:
+    branches:
+      - quest/b0-5-r90-responsive-integration-rehearsal
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  forensic-three-way:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Frozen R90 and Quest diff and true three-way dry-run
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/integration-b05
+          RESPONSIVE_BRANCH='arena/r90-independent-hud-gate-audit'
+          RESP_SHA='19a780dfa7880db418330f324ff0d1bc98f84869'
+          QUEST_BRANCH='quest/q5y-e05-charge-from-q5x'
+          QUEST_SHA='799b80820ef0a6e9cce7563258da66dfa0db3519'
+          git fetch origin "refs/heads/$RESPONSIVE_BRANCH:refs/remotes/origin/$RESPONSIVE_BRANCH"
+          git fetch origin "refs/heads/$QUEST_BRANCH:refs/remotes/origin/$QUEST_BRANCH"
+          R_ACTUAL="$(git rev-parse "refs/remotes/origin/$RESPONSIVE_BRANCH")"
+          Q_ACTUAL="$(git rev-parse "refs/remotes/origin/$QUEST_BRANCH")"
+          test "$R_ACTUAL" = "$RESP_SHA" || { echo "::error::Responsive moved; repeat pinned research"; exit 1; }
+          test "$Q_ACTUAL" = "$QUEST_SHA" || { echo "::error::Quest moved; repeat pinned research"; exit 1; }
+          COMMON="$(git merge-base "$QUEST_SHA" "$RESP_SHA")"
+          git diff --name-only "$COMMON" "$QUEST_SHA" | LC_ALL=C sort > reports/integration-b05/quest-changed.txt
+          git diff --name-only "$COMMON" "$RESP_SHA" | LC_ALL=C sort > reports/integration-b05/responsive-changed.txt
+          comm -12 reports/integration-b05/quest-changed.txt reports/integration-b05/responsive-changed.txt > reports/integration-b05/overlap.txt
+          # merge-tree writes to the local Actions object database only.
+          set +e
+          git merge-tree --write-tree --messages "$QUEST_SHA" "$RESP_SHA" > reports/integration-b05/merge-tree.txt 2>&1
+          MERGE_EXIT=$?
+          set -e
+          {
+            echo "responsive=$RESP_SHA"
+            echo "quest=$QUEST_SHA"
+            echo "common=$COMMON"
+            echo "merge_tree_exit=$MERGE_EXIT"
+            echo 'overlap='
+            cat reports/integration-b05/overlap.txt
+            echo "status=$([ "$MERGE_EXIT" = 0 ] && echo CLEAN_UNREVIEWED || echo MANUAL_RECONCILIATION_REQUIRED)"
+          } | tee reports/integration-b05/summary.txt
+          test "$COMMON" = '53cb5b48b14d24d2bcc596a3ca5e4a54704a44dc'
+          test "$(wc -l < reports/integration-b05/overlap.txt)" -eq 2
+          grep -qx 'public/gold/shell.html' reports/integration-b05/overlap.txt
+          grep -qx 'public/gold/battle-hud.html' reports/integration-b05/overlap.txt
+          # Conflicts are expected; dry-run success is NOT merged product success.
+      - name: Store real merge-tree report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b05-q5-r90-read-only-three-way-report
+          path: reports/integration-b05/
+          if-no-files-found: warn
