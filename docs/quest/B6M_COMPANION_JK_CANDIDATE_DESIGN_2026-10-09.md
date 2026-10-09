@@ -1,3 +1,9 @@
+# RETIRED — B6m candidate (never integrated)
+
+**SUPERSEDED BY THE OWNER'S B6n DESIGN:** See [B6N_OWNER_REVISED_COMPANION_JK_NATIVE_2026-10-09.md](B6N_OWNER_REVISED_COMPANION_JK_NATIVE_2026-10-09.md). All four B6m abilities below were rejected or revised by the owner. This document is historical design provenance ONLY. The unused implementation and preflight were removed from the active B6n tree; B6n uses native E06 capabilities.
+
+---
+
 # Quest 01 · B6m — Candidate J/K for T.O.T and RIVET (NOT CANON, NOT LIVE)
 
 **Parent:** B6l HEAD `063f92e07d95a973809ba9b4d8375bc13cab4a29`.
