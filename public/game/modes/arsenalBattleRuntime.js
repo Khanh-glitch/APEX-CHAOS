@@ -1660,6 +1660,10 @@
     const goldHosted = opts.goldHosted === true || window.__apexGoldBattleHosted === true;
     const state = AQ.state;
     if (state) {
+      // Story listeners/surfaces are match-owned. No ghost E02 panel after
+      // a retry, voluntary exit or successful Quest chapter handoff.
+      state.questFirstWakeStoryView?.close?.();
+      state.questFirstWakeStoryView=null;
       for (const f of fighters || []) if (f && f.data) f.data.arsenal = null;
       state.active = false;
       state.slots = [];
