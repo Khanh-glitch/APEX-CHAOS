@@ -126,6 +126,16 @@
     return resolved;
   }
 
+  // OWNER LOCK 2026-10-09: only THREE hostile species throughout Quest.
+  // Independent of balancing wave HP and from the Free Battle Hero roster.
+  const ENEMY_SPECIES=Object.freeze({
+    scout:Object.freeze({level:1,visual:'scout',speedFactor:1.2,contactDamage:0,laser:null}),
+    reaver:Object.freeze({level:2,visual:'reaver',speedFactor:1.2,contactDamage:50,laser:null}),
+    sentinel:Object.freeze({level:3,visual:'sentinel',speedFactor:1,contactDamage:0,
+      laser:Object.freeze({chargeSeconds:1,damage:100,stunSeconds:2,cooldownSeconds:9})})
+  });
+  function enemySpecies(kind){return ENEMY_SPECIES[String(kind||'')]||null;}
+
   // Q2 — general actor-contract and immutable *test-only* compositions.
   // No independent combat physics or synthetic HP; actual Fighters are
   // instantiated and advanced by the existing Arsenal battle runtime.
@@ -139,7 +149,7 @@
       { questId:'NEWBOT', questTeam:'ALLY', hp:1000, x:220, y:310, kind:'newbot' },
       { questId:'SCRAP-A', questTeam:'HOSTILE', hp:350, x:780, y:310, kind:'scout' },
       { questId:'T.O.T', questTeam:'ALLY', hp:1000, x:220, y:690, kind:'tot' },
-      { questId:'SCRAP-B', questTeam:'HOSTILE', hp:350, x:780, y:690, kind:'bulwark' },
+      { questId:'SCRAP-B', questTeam:'HOSTILE', hp:350, x:780, y:690, kind:'scout' },
     ]),
     '3v4': Object.freeze([
       { questId:'NEWBOT', questTeam:'ALLY', hp:1000, x:210, y:240, kind:'newbot' },
@@ -209,12 +219,9 @@
     return { status: 'ACTIVE', reason: 'combat-live' };
   }
 
-  // Q5 encounter tuning is data, not a second physics implementation.
-  // These factors affect only the physical Scrap Fighters' movement speeds:
-  // no change to base hit damage, cooldowns, original weapon cadence or HP.
+  // Encounter staging only: hostile speeds/skills MUST come from species,
+  // never a per-wave slowdown that secretly changes the enemy's identity.
   const SWARM_TUNING=Object.freeze({
-    A:Object.freeze({enemySpeedFactor:0.44}),
-    B:Object.freeze({enemySpeedFactor:0.50}),
     interludeSeconds:1.8,
     openingGun:'PISTOL',
     openingGunAhead:65
@@ -226,13 +233,13 @@
   const SWARM_WAVES=Object.freeze({
     A:Object.freeze([
       Object.freeze({questId:'SWARM-A1',questTeam:'HOSTILE',hp:280,x:760,y:220,kind:'scout'}),
-      Object.freeze({questId:'SWARM-A2',questTeam:'HOSTILE',hp:280,x:785,y:500,kind:'bulwark'}),
-      Object.freeze({questId:'SWARM-A3',questTeam:'HOSTILE',hp:280,x:760,y:780,kind:'sentinel'}),
+      Object.freeze({questId:'SWARM-A2',questTeam:'HOSTILE',hp:280,x:785,y:500,kind:'scout'}),
+      Object.freeze({questId:'SWARM-A3',questTeam:'HOSTILE',hp:280,x:760,y:780,kind:'scout'}),
     ]),
     B:Object.freeze([
       Object.freeze({questId:'SWARM-B1',questTeam:'HOSTILE',hp:220,x:760,y:150,kind:'scout'}),
-      Object.freeze({questId:'SWARM-B2',questTeam:'HOSTILE',hp:220,x:810,y:375,kind:'bulwark'}),
-      Object.freeze({questId:'SWARM-B3',questTeam:'HOSTILE',hp:220,x:810,y:625,kind:'sentinel'}),
+      Object.freeze({questId:'SWARM-B2',questTeam:'HOSTILE',hp:220,x:810,y:375,kind:'scout'}),
+      Object.freeze({questId:'SWARM-B3',questTeam:'HOSTILE',hp:220,x:810,y:625,kind:'reaver'}),
       Object.freeze({questId:'SWARM-B4',questTeam:'HOSTILE',hp:220,x:760,y:850,kind:'scout'}),
     ])
   });
@@ -282,7 +289,7 @@
     return [
       {questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:195,y:500,kind:'newbot'},
       {questId:'RAIN-A',questTeam:'HOSTILE',hp:450,x:785,y:280,kind:'scout'},
-      {questId:'RAIN-B',questTeam:'HOSTILE',hp:450,x:785,y:740,kind:'bulwark'}
+      {questId:'RAIN-B',questTeam:'HOSTILE',hp:450,x:785,y:740,kind:'reaver'}
     ];
   }
   function validateWeaponRain(actors){
@@ -457,6 +464,7 @@
     alive, hostile, livingEnemies, nearestEnemy, sweptEntry,
     firstProjectileHit, splashEnemies, closestEligiblePickup, separateBodyOverlaps,
     firstWakeOutcome, validateFirstWake, fixtureRoster, validateRoster, teamsOutcome,
+    ENEMY_SPECIES,enemySpecies,
     scrapSwarmRoster,validateScrapSwarmWave,scrapSwarmOutcome,SWARM_TUNING,
     RAIN_SPEC,weaponRainRoster,validateWeaponRain,weaponRainOutcome,createWeaponRainSequence,
     BREAKER_SPEC,breakerChargeRoster,validateBreakerCharge,
