@@ -712,6 +712,14 @@
                   shake: spec.shake != null ? spec.shake : 15,
                   hitStop: spec.hitStop != null ? spec.hitStop : 0.08,
                 });
+                // E08 causal receipt must be committed immediately after the
+                // REAL swept hit + native damage, before any VFX/SFX callback
+                // can re-enter presentation or clear a transient projectile.
+                // E08's native Fighter-realized damage hook signs a true hit.
+                // This collision callback is idempotent for the same original
+                // projectile and resolution; no second Storm receipt is issued.
+                if(p.questTotArtifactId&&p.questTotCommitResolution?.('HIT')!==true)
+                  throw Error('E08 real Stormbreaker confirmed impact receipt denied');
                 if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.onImpact) {
                   window.APEX_ARSENAL_STORM.onImpact(hit.x, hit.y, target);
                 }
@@ -1093,7 +1101,7 @@
     const radius = weaponId === 'STORMBREAKER'
       ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.thrownRadius) || Math.max(10, long * 0.14))
       : Math.max(10, long * 0.14);
-    projectiles.push({
+    const nativeThrow={
       type: 'aq_thrown',
       aq: true,
       owner: f,
@@ -1135,13 +1143,20 @@
       questRivetSuppression: weaponId === 'STORMBREAKER'
         && AQ.state?.questRivetPreview?.operator === f,
       __hr: __hrTag,
-    });
+    };
+    projectiles.push(nativeThrow);
+    if(weaponId==='STORMBREAKER'&&AQ.state?.questTotProgression===true
+      &&f.questId==='T.O.T'
+      &&AQ.state.questTotStormNative?.onThrow?.(f,nativeThrow)!==true)
+      throw Error('E08 real STORMBREAKER projectile identity denied');
     window.avCue('melee_throw', { weapon: weaponId, x: f.x, y: f.y, angle });
     log('THROW', `fighter=${f.name} weapon=${weaponId} ricochets=${t.ricochets}`);
   }
   function thrownExit(p) {
     // Physical exit: the sprite tumbles away under gravity; alpha cleanup
     // only in the final moments (presentation), never as the primary exit.
+    if(p.questTotArtifactId&&p.questTotCommitResolution?.('MISS')!==true)
+      throw Error('E08 Stormbreaker missed projectile exit receipt denied');
     p.state = 'exit';
     p.vx *= 0.35;
     p.vy = -140;

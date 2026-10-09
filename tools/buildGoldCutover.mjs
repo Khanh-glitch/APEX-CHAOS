@@ -48,6 +48,7 @@ import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
 import { adaptGoldShellR83 } from './goldShellR83.mjs';
 import { adaptBreachGoldShellB6i } from './questB6iGoldShell.mjs';
 import { adaptRivetGoldShellB7 } from './questB7GoldShell.mjs';
+import { adaptTotGoldShellB8 } from './questB8GoldShell.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
@@ -2434,7 +2435,7 @@ function main() {
   log('battle-hud.html built (production-bridged donor)');
   outputs.set('lucky-draw.html', Buffer.from(buildLuckyDonor(), 'utf8'));
   log('lucky-draw.html built (localized + production-bridged donor)');
-  outputs.set('shell.html', Buffer.from(adaptRivetGoldShellB7(adaptBreachGoldShellB6i(applyQuestMobileTouchRelease(applyB05Overlay('shell.html', buildShell(outputs.get('battle-hud.html').toString('utf8')))))), 'utf8'));
+  outputs.set('shell.html', Buffer.from(adaptTotGoldShellB8(adaptRivetGoldShellB7(adaptBreachGoldShellB6i(applyQuestMobileTouchRelease(applyB05Overlay('shell.html', buildShell(outputs.get('battle-hud.html').toString('utf8'))))))), 'utf8'));
   log('shell.html built (canonical shell + production patches)');
 
   const manifestFiles = {};

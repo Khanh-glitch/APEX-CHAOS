@@ -167,7 +167,13 @@
       &&state.questReflexHold?.phase==='AWAIT_RIVET'
       &&opts?.questStage==='E01_GROUND_SUPPRESSION'
       &&opts?.questWeaponId==='STORMBREAKER';
-    const forcedQuest=(forcedReflex||forcedSwarm||forcedCharge||forcedStoryStorm)
+    const forcedTotStorm=state.questTotProgression===true
+      &&state.questTotStormNative?.snapshot?.().phase==='STORM_ELIGIBLE'
+      &&opts?.questStage==='E08_STORMBREAKER'
+      &&opts?.questPickupOwner==='T.O.T'
+      &&opts?.questWeaponId==='STORMBREAKER'
+      &&state.questTotStormNative?.snapshot?.().spawned===false;
+    const forcedQuest=(forcedReflex||forcedSwarm||forcedCharge||forcedStoryStorm||forcedTotStorm)
       && Number.isFinite(opts?.questPoint?.x)&&Number.isFinite(opts?.questPoint?.y);
     const point=forcedQuest
       ? {x:Math.max(120,Math.min(880,opts.questPoint.x)),
@@ -180,7 +186,7 @@
       phase: 'TELEGRAPH',
       weaponId: null,
       forceFirearm: !!(opts && opts.forceFirearm),
-      questWeaponId:forcedQuest?(forcedStoryStorm?'STORMBREAKER':'PISTOL'):null,
+      questWeaponId:forcedQuest?((forcedStoryStorm||forcedTotStorm)?'STORMBREAKER':'PISTOL'):null,
       questStage:forcedQuest?opts.questStage:null,
       questPickupOwner:forcedQuest?opts.questPickupOwner:null,
       questNarrativeOnly:!!forcedStoryStorm,
@@ -262,8 +268,12 @@
       : (slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon()));
     // This is a SECOND authority barrier on the actual visible slot, so
     // newly added reveal pathways can never display blue+ Quest loot.
+    const e08NativeStorm=AQ.state?.questTotProgression===true
+      &&slot.questStage==='E08_STORMBREAKER'
+      &&slot.questPickupOwner==='T.O.T'
+      &&AQ.state.questTotStormNative?.snapshot?.().slotId===slot.id;
     if(isQuestWeaponContext()&&!slot.questNarrativeOnly
-      &&!questTierAllowed(slot.weaponId)){
+      &&!e08NativeStorm&&!questTierAllowed(slot.weaponId)){
       log('QUEST_RARITY_DENIED',String(slot.weaponId));
       slot.weaponId='PISTOL';
     }
@@ -271,6 +281,8 @@
     slot.revealedFor = 0;
     const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
     const who = fighter?.name || 'TIMEOUT';
+    if(e08NativeStorm&&AQ.state.questTotStormNative?.onReveal?.(slot)!==true)
+      throw Error('E08 real floor Stormbreaker reveal receipt denied');
     log('REVEAL', `id=${slot.id} weapon=${slot.weaponId} eta=${etaText} lead=${slot.revealLeadSeconds.toFixed(2)} fighter=${who} force=${force}`);
     spawnShockwave(slot.x, slot.y, '#e8d9a0', 120);
     emitParticles(slot.x, slot.y, '#e8d9a0', 14, 260, 4, 0.45, 'square');
@@ -411,6 +423,8 @@
         // materializes close enough to be immediately collected.
         if (slot.questStage&&state.questReflex===true
           &&state.time-slot.spawnTime<0.55)continue;
+      if(slot.questStage==='E08_STORMBREAKER'
+          &&state.time-slot.spawnTime<0.35)continue;
         if (questDirected && state.time-slot.spawnTime<0.65)continue;
         if (earliest && earliest.eta <= slot.revealLeadSeconds + 1e-6) {
           revealSlot(slot, earliest.eta, earliest.fighter, false);
@@ -539,7 +553,8 @@
         // hidden ownership/eligibility gate. Truly revealed guns follow the
         // exact normal Arsenal physical pickup rules for EVERY Fighter.
         if ((state.questScrapSwarmProgression===true
-          ||state.questBreakerChargeProgression===true)
+          ||state.questBreakerChargeProgression===true
+          ||(state.questTotProgression===true&&slot.questStage==='E08_STORMBREAKER'))
           &&slot.questPickupOwner&&f.questId!==slot.questPickupOwner) continue;
         // FROST V1 (authority §4.3): a Frozen firearm denies non-Frost
         // collectors. Dynamic denial only — never a rejected/blacklist mark.
@@ -590,6 +605,9 @@
         if (slot.boundOwnerId != null) hold.meta.boundOwnerId = slot.boundOwnerId;
         if (slot.tier) hold.meta.tier = slot.tier;
       }
+      if(state.questTotProgression===true&&slot.questStage==='E08_STORMBREAKER'
+         &&state.questTotStormNative?.onPickup?.(closest,slot,hold)!==true)
+        throw Error('E08 actual floor pickup/Arsenal holder receipt denied');
       // Exactly one E06 owner-authorized storage seam: the genuine physical
       // pickup has already equipped a real holder, but no auto-fire tick has run.
       // A reserved gun goes dormant by OBJECT identity, not by cloned weaponId.

@@ -1,0 +1,93 @@
+name: B8 E08 Last Choice Native Gold
+on:
+  push:
+    branches: ['quest/b7-e08-last-choice-native-from-b7']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: New native J-K adversarial tests
+        run: node tools/testQuestCompanionNativeB6n.mjs
+      - name: Owner-approved passive rig remains exact
+        run: node tools/testQuestBreachRigAuthorityB6.mjs
+      - name: Authentic 3-wave native Fighter regression
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - name: RIVET & T.O.T boss damage barriers
+        run: |
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-retry-native
+          node tools/testQuestTotLastChoiceB8a.mjs
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-tot-native
+      - name: Full unmodified Free Battle/Arsenal product regression
+        run: pnpm test:arsenal:headless:product
+      - name: Collision, render-HUD, and source graph isolation
+        run: |
+          pnpm test:arsenal:current-collision
+          pnpm test:arsenal:current-render-hud
+          pnpm test:source-hygiene
+      - name: Gold source provenance
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Build
+        run: pnpm build
+  gold-browser:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [desktop, mobile]
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Gold/Vite host
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b8-vite.log 2>&1 &
+          for i in $(seq 1 100); do
+            curl -fsS http://127.0.0.1:5173/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/b8-vite.log
+          exit 1
+      - name: Chrome binary
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Gold full Quest E01–E08 + OUTSIDE native Stormbreaker
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b8-${{ matrix.device }}
+        shell: bash
+        run: |
+          if [ "${{ matrix.device }}" = mobile ]; then
+            node tools/testQuestDirectorQ1Browser.mjs --mobile --verify-breach-entry --verify-breach-three-waves --verify-rivet-gold --verify-tot-gold
+          else
+            node tools/testQuestDirectorQ1Browser.mjs --verify-breach-entry --verify-breach-three-waves --verify-rivet-gold --verify-tot-gold
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: b8-gold-${{ matrix.device }}
+          path: |
+            /tmp/b8-${{ matrix.device }}/
+            /tmp/b8-vite.log
+          if-no-files-found: warn

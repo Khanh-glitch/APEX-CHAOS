@@ -1406,9 +1406,9 @@ try{
             // the slot is born through real SPAWN.trySpawnSlot, then moved and
             // revealed for CI determinism. Real Arsenal.resolvePickups/equip
             // and Gold pressSkill own the actual holder transaction.
-            const skills=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN,G=window.APEX_GOLD,W=A.weaponApi,Q=A.state.questBreachCompanionSkills,roster=window.fighters,[n,t,r]=roster;const start={nWithdrawn:n.withdrawn,tWithdrawn:t.withdrawn,tx:t.x,ty:t.y};if(!Q||!S||!G||!W)return{ok:false,reason:'missing-native-entry'};n.withdrawn=true;A.state.slots=[];t.x=320;t.y=480;if(W.getHolder(t))W.consume(t,'b6n-probe-clear');const recipient=Q.currentRecipient();G.pressSkill(0,1,{source:'B6N_CHROME'});const primed=Q.snapshot().tot.phase;const slot=S.trySpawnSlot({forceFirearm:true});if(!slot)return{ok:false,reason:'native-slot-unavailable'};slot.phase='REVEALED';slot.weaponId='PISTOL';slot.kind='GUN';slot.x=t.x;slot.y=t.y;S.resolvePickups();const stored=Q.snapshot().tot,unarmed=W.getHolder(t)===null,slotRemoved=slot.phase==='REMOVED';G.pressSkill(0,1,{source:'B6N_CHROME'});const drawn=W.getHolder(t),after=Q.snapshot().tot;const sameGun=drawn?.weaponId==='PISTOL'&&drawn.shotsFired===0;const cooldown=after.kCooldown;W.consume(t,'b6n-probe-finished');t.x=start.tx;t.y=start.ty;n.withdrawn=true;t.withdrawn=true;const rivetOwner=Q.currentRecipient();G.pressSkill(0,1,{source:'B6N_CHROME'});const nativeArmor=Q.mitigate(r,100);n.withdrawn=start.nWithdrawn;t.withdrawn=start.tWithdrawn;A.state.slots=[];return{ok:true,recipient,primed,stored:stored.phase,storedGun:stored.storedWeapon,unarmed,slotRemoved,sameGun,after:after.phase,cooldown,rivetOwner,nativeArmor,survived:roster.slice(0,3).every(f=>f.hp>0),realSlotId:slot.id}})()");
+            const skills=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN,G=window.APEX_GOLD,W=A.weaponApi,Q=A.state.questBreachCompanionSkills,roster=window.fighters,[n,t,r]=roster;const start={nWithdrawn:n.withdrawn,tWithdrawn:t.withdrawn,tx:t.x,ty:t.y};if(!Q||!S||!G||!W)return{ok:false,reason:'missing-native-entry'};n.withdrawn=true;A.state.slots=[];t.x=320;t.y=480;if(W.getHolder(t))W.consume(t,'b6n-probe-clear');const prior=Q.snapshot().tot;if(prior.phase==='STORED'){G.pressSkill(0,1,{source:'B6N_PROBE_REAL_DRAW_EXISTING'});if(W.getHolder(t))W.consume(t,'b6n-probe-clear-real-draw');}Q.tick(3);Q.tick(12);const ready=Q.snapshot().tot;const recipient=Q.currentRecipient();const pressed=G.pressSkill(0,1,{source:'B6N_CHROME'});const primed=Q.snapshot().tot.phase;const slot=S.trySpawnSlot({forceFirearm:true});if(!slot)return{ok:false,reason:'native-slot-unavailable'};slot.phase='REVEALED';slot.weaponId='PISTOL';slot.kind='GUN';slot.x=t.x;slot.y=t.y;S.resolvePickups();const stored=Q.snapshot().tot,unarmed=W.getHolder(t)===null,slotRemoved=slot.phase==='REMOVED';G.pressSkill(0,1,{source:'B6N_CHROME'});const drawn=W.getHolder(t),after=Q.snapshot().tot;const sameGun=drawn?.weaponId==='PISTOL'&&drawn.shotsFired===0;const cooldown=after.kCooldown;W.consume(t,'b6n-probe-finished');t.x=start.tx;t.y=start.ty;n.withdrawn=true;t.withdrawn=true;const rivetOwner=Q.currentRecipient();G.pressSkill(0,1,{source:'B6N_CHROME'});const nativeArmor=Q.mitigate(r,100);n.withdrawn=start.nWithdrawn;t.withdrawn=start.tWithdrawn;A.state.slots=[];return{ok:true,priorK:prior.phase,priorCooldown:prior.kCooldown,readyK:ready.phase,readyCooldown:ready.kCooldown,pressed,recipient,primed,stored:stored.phase,storedGun:stored.storedWeapon,unarmed,slotRemoved,sameGun,after:after.phase,cooldown,rivetOwner,nativeArmor,survived:roster.slice(0,3).every(f=>f.hp>0),realSlotId:slot.id}})()");
             gate('B6n Gold touch K primes native T.O.T and stores true Arsenal floor gun',
-              skills?.ok&&skills?.recipient==='T.O.T'&&skills?.primed==='CAPTURE'
+              skills?.ok&&skills?.recipient==='T.O.T'&&skills?.readyK==='READY'&&skills?.readyCooldown===0&&skills?.primed==='CAPTURE'
               &&skills?.stored==='STORED'&&skills?.storedGun==='PISTOL'
               &&skills?.unarmed&&skills?.slotRemoved&&Number.isInteger(skills?.realSlotId),skills);
             gate('B6n Gold second K retrieves real pistol without firing or duplication',
@@ -1562,6 +1562,76 @@ try{
               const permanent=await poll("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId)()",
                 x=>x==='TOT_LAST_CHOICE',160);
               gate('B7 Gold reload preserves actual completed E07 without rerunning boss',permanent==='TOT_LAST_CHOICE',permanent);
+              if(process.argv.includes('--verify-tot-gold')){
+                const boot=await poll("(()=>({start:document.getElementById('apex-boot-start')?.getBoundingClientRect()?.width>0,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                  x=>x?.start&&x.save==='TOT_LAST_CHOICE',320);
+                gate('B8 E08 after reload must re-enter via genuine Gold START',boot?.start&&boot?.save==='TOT_LAST_CHOICE',boot);
+                await click('#apex-boot-start');
+                await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true&&window.APEX_SCENE_TRANSITION?.active?.()===false)()",Boolean,320);
+                await click('#continueStory');
+                const chapter=await poll("(()=>({stage:document.getElementById('apexQuest01Stage')?.hidden===false,e08:document.getElementById('q8TotPlay')?.hidden===false,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",x=>x?.stage&&x?.e08,160);
+                gate('B8 real Gold Continue Story exposes signed E08 entry only after native E07',chapter?.stage&&chapter?.e08&&chapter.save==='TOT_LAST_CHOICE',chapter);
+                await click('#q8TotPlay');
+                const begin=await poll("(()=>{const A=window.APEX_ARSENAL,fs=window.fighters||[];return{active:A?.state?.active,cue:A?.state?.questTotStoryView?.snapshot?.().current,hero:fs[0]?.questId,hp0:fs[0]?.hp,boss:fs[1]?.questId,hp1:fs[1]?.hp,tag:A?.state?.questTotProgression}})()",
+                  x=>x?.active&&x?.cue==='E08_START',180);
+                gate('B8 E08 opens two repaired real 1000HP Fighters without synthetic boss',begin?.active&&begin?.tag&&begin?.hero==='NEWBOT'&&begin?.boss==='T.O.T'&&begin?.hp0===1000&&begin?.hp1===1000,begin);
+                const denied=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E08_L13'))()");
+                gate('B8 OUTSIDE cannot be signed before combat + owner-canon lines',denied?.ok===false,denied);
+                await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+                const first=await evalPage("(()=>{const A=window.APEX_ARSENAL,W=A.weaponApi,[n,t]=window.fighters;A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];n.x=145;n.y=500;t.x=660;t.y=500;n.baseSpeed=t.baseSpeed=0;n.data.__hrHoldBody=t.data.__hrHoldBody=true;W.fireBullet({owner:n,x:250,y:500,angle:0,speed:2800,damage:1200,weapon:'PISTOL'});for(let i=0;i<16;i++)A.step(.025);let snap=A.state.questTotStormNative.snapshot();return{hero:n.hp,boss:t.hp,phase:snap.phase,events:snap.events,spawned:snap.spawned,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()");
+                gate('B8 actual native bullet caps T.O.T at first nonlethal 700HP threshold',
+                  first?.boss===700&&first?.phase==='STORM_ELIGIBLE'
+                  &&first?.events?.length===1&&!first.spawned&&first.save==='TOT_LAST_CHOICE',first);
+                const eligible=await poll("(()=>window.APEX_ARSENAL?.state?.questTotStoryView?.snapshot?.().current)()",x=>x==='E08_STORMBREAKER_ELIGIBLE',80);
+                gate('B8 owner story responds only to real accepted 700HP crossing',eligible==='E08_STORMBREAKER_ELIGIBLE',eligible);
+                await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+                const storm=await poll("(()=>{const A=window.APEX_ARSENAL;if(A?.state?.active&&!A.state.questTotStoryView?.active())A.step(.025);const n=A?.state?.questTotStormNative?.snapshot?.();return{boss:window.fighters?.[1]?.hp,hero:window.fighters?.[0]?.hp,phase:n?.phase,storm:n?.stormReceipts,returned:n?.returned,slot:n?.slotId,cradle:n?.cradle,receipts:n?.receipts,slots:A?.state?.slots?.map(s=>({id:s.id,phase:s.phase,kind:s.questStage})),flying:window.projectiles?.filter(p=>p.weapon==='STORMBREAKER').map(p=>({tag:p.questTotArtifactId,kind:p.type,state:p.state,owner:p.owner?.questId,life:p.life})),logs:A?.logs?.slice?.(-7),view:A?.state?.questTotStoryView?.snapshot?.().current}})()",
+                  x=>x?.returned&&x?.phase==='DUEL_TO_120'&&x?.view==='E08_STORMBREAKER_RESOLVED',280);
+                gate('B8 ONE real slot reveal→T.O.T pickup→native aq_thrown→physical hit/miss→same cradle',
+                  storm?.returned&&storm?.phase==='DUEL_TO_120'
+                  &&storm?.storm?.map(x=>x.event).join('|')==='SPAWN|PICKUP|RESOLVED'
+                  &&storm?.receipts?.filter(x=>x.native==='THROW')?.length===1
+                  &&storm?.cradle?.slotId===storm?.slot,storm);
+                if(!storm?.returned){
+                  const forensic=await evalPage("(()=>{const A=window.APEX_ARSENAL;return {slots:A?.state?.slots?.map(s=>({id:s.id,phase:s.phase,kind:s.questStage})),projectiles:window.projectiles?.map(p=>({weapon:p.weapon,type:p.type,state:p.state,tag:p.questTotArtifactId,owner:p.owner?.questId})),storm:A?.state?.questTotStormNative?.snapshot?.(),events:A?.events?.filter(x=>/STORM|QUEST_E08|MODE_ENTER/.test(x)).slice(-50)}})()");
+                  gate('B8 blocked STORM native lifecycle forensic capture',true,forensic);
+                  throw Error('B8 real STORM projectile did not close its authenticated lifecycle');
+                }
+                const uniqueness=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questTotStormNative,S=Q.snapshot();const retry=Q.trySpawn();return{retry,slotId:S.slotId,returned:S.returned,cradleCount:A.state.slots.filter(s=>s.questStage==='E08_CRADLE_RETURN'&&s.id===S.slotId).length,originalReceipts:S.stormReceipts.map(x=>x.event)}})()");
+                gate('B8 one Stormbreaker cannot spawn twice or be collected from sealed returned cradle',
+                  uniqueness?.retry===false&&uniqueness?.returned
+                  &&uniqueness?.cradleCount===1
+                  &&uniqueness?.originalReceipts?.join('|')==='SPAWN|PICKUP|RESOLVED',uniqueness);
+                await image('35-e08-physical-stormbreaker-return');
+                await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+                const finalHit=await evalPage("(()=>{const A=window.APEX_ARSENAL,W=A.weaponApi,[n,t]=window.fighters;W.fireBullet({owner:n,x:250,y:500,angle:0,speed:2800,damage:1200,weapon:'PISTOL'});for(let i=0;i<16;i++)A.step(.025);let s=A.state.questTotStormNative.snapshot();return{hero:n.hp,boss:t.hp,phase:s.phase,outcome:A.state.questOutcome,over:A.state.over,events:s.events,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()");
+                gate('B8 real second hit caps T.O.T at 120HP without KO or auto-ending',
+                  finalHit?.hero>0&&finalHit?.boss===120
+                  &&finalHit?.phase==='SAFE_CHOICE'&&finalHit?.outcome==='COMPLETE'
+                  &&finalHit?.save==='TOT_LAST_CHOICE',finalHit);
+                const choice=await poll("(()=>window.APEX_ARSENAL?.state?.questTotStoryView?.snapshot?.().current)()",x=>x==='E08_TOT_NONLETHAL_CHOICE',80);
+                gate('B8 canonical choice gate appears only after actual 120HP',choice==='E08_TOT_NONLETHAL_CHOICE',choice);
+                await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+                for(const id of ["E08_L02","E08_L03","E08_L04","E08_L05","E08_L06","E08_L07","E08_L08","E08_L09","E08_L10","E08_L11","E08_L12","E08_L13"]){
+                  const scene=await poll("(()=>window.APEX_ARSENAL?.state?.questTotStoryView?.snapshot?.().current)()",v=>v===id,90);
+                  gate('B8 exact owner-locked dialogue acknowledged once: '+id,scene===id,scene);
+                  const before=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId)()");
+                  gate('B8 dialogue cannot skip to OUTSIDE before last choice: '+id,before==='TOT_LAST_CHOICE',before);
+                  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+                }
+                const end=await poll("(()=>({save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,stage:document.getElementById('apexQuest01Stage')?.hidden===false,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",v=>v?.save==='OUTSIDE'&&v?.stage&&!v?.hud,160);
+                gate('B8 nonlethal T.O.T voluntary last line signs OUTSIDE and closes Gold combat',
+                  end?.save==='OUTSIDE'&&end?.stage&&!end?.hud,end);
+                const closing=await evalPage("(()=>({chapter:document.getElementById('q1Title')?.textContent,copy:document.getElementById('q1Copy')?.textContent,e08Hidden:document.getElementById('q8TotPlay')?.hidden===true,context:document.getElementById('q1Context')?.textContent}))()");
+                gate('B8 OUTSIDE chapter presents canon conclusion without replaying E08 or placeholder UI',
+                  closing?.chapter==='OUTSIDE'&&closing?.copy?.includes('T.O.T chose to stop.')
+                  &&closing?.e08Hidden===true&&closing?.context?.includes('RIVET survives'),closing);
+                await image('36-e08-canonical-outside-signed');
+                await reloadAndReattach();
+                const persisted=await poll("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId)()",v=>v==='OUTSIDE',180);
+                gate('B8 OUTSIDE survives actual browser reload with no synthetic reward or K.O.',
+                  persisted==='OUTSIDE',persisted);
+              }
             }
           }
 
