@@ -43,12 +43,27 @@ async function connect(endpoint) {
     if (!msg.id || !pending.has(msg.id)) return;
     const p = pending.get(msg.id);
     pending.delete(msg.id);
+    clearTimeout(p.timer);
     msg.error ? p.reject(new Error(msg.error.message)) : p.resolve(msg.result);
+  });
+  socket.addEventListener('close', () => {
+    for (const [id, p] of pending) {
+      clearTimeout(p.timer);
+      p.reject(new Error('CDP socket closed while waiting for command ' + id));
+    }
+    pending.clear();
   });
   const command = (method, params = {}) => {
     const id = ++serial;
-    socket.send(JSON.stringify({ id, method, params }));
-    return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error('CDP command timed out after 25s: ' + method));
+      }, 25000);
+      pending.set(id, { resolve, reject, timer });
+      try { socket.send(JSON.stringify({ id, method, params })); }
+      catch (error) { clearTimeout(timer); pending.delete(id); reject(error); }
+    });
   };
   const evaluate = async (expression) => {
     const r = await command('Runtime.evaluate', {
@@ -119,7 +134,9 @@ async function runHero(hero, index) {
   await rm(profileDir, { recursive:true, force:true });
   let chrome = null;
   let cdp = null;
+  let phase = 'launch';
   try {
+    console.log('[CORE-SIX-COLD] START', hero);
     chrome = spawn(chromePath, [
       '--headless=new','--disable-gpu','--disable-dev-shm-usage','--no-sandbox',
       '--no-first-run','--no-default-browser-check','--autoplay-policy=no-user-gesture-required',
@@ -128,6 +145,8 @@ async function runHero(hero, index) {
     ], { stdio:'ignore', detached:false });
 
     cdp = await connect(endpoint);
+    phase='CDP-connected';
+    console.log('[CORE-SIX-COLD] CDP',hero);
     await cdp.command('Runtime.enable');
     await cdp.command('Page.enable');
     await cdp.command('Page.addScriptToEvaluateOnNewDocument', { source:`
@@ -146,6 +165,7 @@ async function runHero(hero, index) {
     }))()`, (v) => v?.engine && v.stage && v.state === 'DONE' && v.blackout && v.telemetry,
     { attempts:2400, interval:75 });
 
+    phase='Home-ready'; console.log('[CORE-SIX-COLD] HOME',hero);
     await cdp.physicalClick('#freeBattle');
     await cdp.poll(`document.getElementById('stage')?.classList.contains('screen-mode')||false`,
       Boolean, { attempts:1200, interval:75 });
@@ -169,6 +189,7 @@ async function runHero(hero, index) {
       Boolean, { attempts:400, interval:50 });
 
     await cdp.physicalClick('#lockIn');
+    phase='first-complete-frame'; console.log('[CORE-SIX-COLD] BATTLE',hero);
     const sample = await cdp.poll(`(() => {
       const p=window.apexHeroLoadTelemetry?.profile?.(${JSON.stringify(hero)})||null;
       return {
@@ -193,6 +214,8 @@ async function runHero(hero, index) {
       throw new Error('window errors: ' + JSON.stringify(sample.errors));
     }
     return summarize(sample.profile);
+  } catch (error) {
+    throw new Error('Core Six '+hero+' at '+phase+': '+String(error?.stack||error));
   } finally {
     try { cdp?.socket?.close(); } catch {}
     if (chrome) {
