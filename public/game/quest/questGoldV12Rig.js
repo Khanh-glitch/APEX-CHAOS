@@ -2555,7 +2555,12 @@ function draw(ctx,real) {
     // anywhere they recur in Quest. Do not alter physical Fighter radius,
     // weapon muzzle, pathfinding or other Gold variants not yet approved.
     const ownerCompact=(variant==='operator'||variant==='scout'||variant==='bulwark');
-    const ratio=canonicalScale*(ownerCompact?0.82:1);
+    // Canon visual hierarchy: every generic hostile visibly smaller than NEWBOT;
+    // T.O.T (white operator) smaller; RIVET (iron bulwark) slightly bigger.
+    const ratio=canonicalScale*(real.questId==='RIVET'?1.07:
+      real.questId==='T.O.T'?0.82:
+      ['scout','reaver','sentinel'].includes(real.questSpecies)?0.77:
+      ownerCompact?0.82:1);
     record.scale=ratio;
     record.scaleFactor=ownerCompact?0.82:1;
     ctx.scale(ratio,ratio);

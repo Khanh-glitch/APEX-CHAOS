@@ -1595,7 +1595,10 @@
         const spec = NPC_TYPES[kind];
         if (!spec) return null;
         const def = makeArsenalFighterType(spec[0], spec[1], -1, 0.5);
-        def.arsenalBlank = true; // No fabricated skills or passive.
+        def.arsenalBlank = true;
+        // Species movement is canon, not a wave-specific handicap.
+        const species=questCore?.enemySpecies?.(kind);
+        if(species)def.speed=CFG.FIGHTER_SPEED*species.speedFactor;
         if(kind==='accumulator'){
           def.speed=0;
           def.draw=function(c,f){
@@ -1630,14 +1633,8 @@
       };
       const makeQuestFighter=(spec,id)=>{
         const type = spec.kind === 'newbot' ? t1 : makeNpc(spec.kind);
-        // E03 scavenger chassis have a slower, legible approach than Core Six
-        // Heroes; their weapons still use the exact original Arsenal physics.
-        // Copy is match-local; no mutation of the shared fighter definitions.
-        if(questScrapSwarm&&spec.questTeam==='HOSTILE'){
-          const wave=String(spec.questId).startsWith('SWARM-B')?'B':'A';
-          const factor=questCore.SWARM_TUNING?.[wave]?.enemySpeedFactor??1;
-          type.speed=CFG.FIGHTER_SPEED*factor;
-        }
+        // All Quest species own their single movement law from ENEMY_SPECIES.
+        // Never reduce a Scout's 1.2× speed merely because it is wave A/B.
         const f = new Fighter(id, spec.x, spec.y, type);
         f.questId = spec.questId;
         f.questTeam = spec.questTeam;
@@ -1646,12 +1643,15 @@
           f.baseSpeed=0;
           if(f.data)f.data.__hrHoldBody=true;
         }
-        if (spec.kind === 'scout' || spec.kind === 'bulwark' ||
-            spec.kind === 'reaver' || spec.kind === 'sentinel')
-          f.questVisualId = spec.kind;
+        const enemyKind=questCore.enemySpecies?.(spec.kind);
+        if(enemyKind&&spec.questTeam==='HOSTILE'){
+          f.questSpecies=spec.kind;
+          f.questVisualId=enemyKind.visual;
+        }
         // T.O.T gets the owner's Gold V12 fifth "OPERATOR" chassis for now.
         // Quest still owns T.O.T identity, HP, allegiance, AI and no skills.
         if (spec.kind === 'tot') f.questVisualId = 'operator';
+        if (spec.kind === 'rivet') f.questVisualId = 'bulwark';
         f.maxHp = spec.hp;
         f.hp = spec.hp;
         return f;
