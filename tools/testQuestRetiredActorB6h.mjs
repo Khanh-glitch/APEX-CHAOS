@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const s=fs.readFileSync(new URL('../public/game/modes/arsenalBattleRuntime.js',import.meta.url),'utf8');
+const begin=s.indexOf('      // A withdrawn E06 ally is still a physical Fighter');
+const end=s.indexOf('      if (weaponApi.tickDetachedWeapons)',begin);
+assert.ok(begin>0&&end>begin);
+const code=s.slice(begin,end);
+const f=(withdrawn,world=false)=>({hp:100,withdrawn,questWorldObject:world});
+const a=f(false),b=f(true),c=f(false,true);
+const calls=[];const weaponApi={updateHolder(actor){calls.push(actor);}};
+const invoke=new Function('fighters','state','weaponApi','dt',code);
+invoke([a,b,c],{questMultiActor:true},weaponApi,.05);
+assert.deepEqual(calls,[a]);console.log('PASS B6h active Quest Fighter only');
+calls.length=0;invoke([a,b,c],{questMultiActor:false},weaponApi,.05);
+assert.deepEqual(calls,[a,b,c]);console.log('PASS B6h normal Free Battle path unchanged');
+assert.ok(s.includes('f.withdrawn===true || !f.applyStatus'));
+console.log('PASS B6h floor lightning cannot stun retired Fighter');

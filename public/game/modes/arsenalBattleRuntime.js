@@ -661,7 +661,13 @@
         handleCollisions(dt);
       }
       SPAWN.resolvePickups();
-      for (const f of fighters) if (f) weaponApi.updateHolder(f, dt);
+      // A withdrawn E06 ally is still a physical Fighter preserving its gun,
+      // cooldowns, HP and identity, but cannot fire/reload/cycle the holder.
+      // No mutation to standard Free Battle's holder scheduler.
+      for (const f of fighters)
+        if (f && !(state.questMultiActor&&f.withdrawn===true)
+            &&!(state.questMultiActor&&f.questWorldObject===true))
+          weaponApi.updateHolder(f, dt);
       if (weaponApi.tickDetachedWeapons) weaponApi.tickDetachedWeapons(dt);
       updateProjectiles(dt);                     // engine lifecycle + cleanup
       weaponApi.updateArsenalProjectiles(dt);    // aq_* movement + hits
@@ -691,7 +697,7 @@
       const stormTargets = (H && H.environmentTargets) ? H.environmentTargets() : fighters;
       for (const c of window.APEX_ARSENAL_STORM.floorContacts(stormTargets)) {
         const f = c.fighter;
-        if (!f || f.hp <= 0 || !f.applyStatus) continue;
+        if (!f || f.hp <= 0 || f.withdrawn===true || !f.applyStatus) continue;
         const cur = f.statuses && f.statuses.stun;
         if (!cur || cur.timer <= 0 || cur.timer < stunSeconds) {
           f.applyStatus('stun', stunSeconds, {});

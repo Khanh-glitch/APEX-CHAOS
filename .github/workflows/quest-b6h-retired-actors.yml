@@ -1,0 +1,33 @@
+name: B6h Real Fighter Withdrawal Lifecycle
+on:
+  push:
+    branches: ['quest/b6h-retirement-lifecycle-from-b6g']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  retirement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Retired Fighter cannot tick holder or absorb storm floor stun
+        run: node tools/testQuestRetiredActorB6h.mjs
+      - name: Actual Arsenal three wave and living team targeting
+        run: |
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-targeting
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - name: E06 pure contracts
+        run: |
+          node tools/testQuestBreachPolicyQ6.mjs
+          node tools/testQuestBreachLifecycleB6d.mjs
+          node tools/testQuestBreachRetreatB6e.mjs
+      - name: Quest and Gold source regression
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          pnpm build
