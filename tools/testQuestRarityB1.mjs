@@ -28,8 +28,17 @@ gate('Quest excludes non-gun from emergency firearm',Array.from({length:80},
   (_,i)=>fire(()=>i/80)).every(id=>cfg.isGun(id)));
 AQ.state={questMultiActor:false,questReflex:false};
 gate('Free Battle original T6 selection left unchanged',pick(()=>0.7)==='STORMBREAKER');
-gate('physical reveal has secondary T1/T2 barrier',
-  s.includes("if(isQuestWeaponContext()&&!questTierAllowed(slot.weaponId))"));
+gate('physical reveal keeps T1/T2 barrier for ordinary Quest weapons',
+  s.includes("if(isQuestWeaponContext()&&!slot.questNarrativeOnly")
+  &&s.includes("&& !questTierAllowed(slot.weaponId))"));
+gate('only E01 safe hold may create narrative Stormbreaker T6 exception',
+  s.includes("state.questReflexHold?.phase==='AWAIT_RIVET'")
+  &&s.includes("opts?.questStage==='E01_GROUND_SUPPRESSION'")
+  &&s.includes("opts?.questWeaponId==='STORMBREAKER'")
+  &&s.includes("questNarrativeOnly:!!forcedStoryStorm"));
+gate('Quest narrative T6 cannot be physically picked up by any fighter',
+  (s.match(/if\(slot\.questNarrativeOnly===true\)continue;/g)||[]).length>=2);
+
 gate('Quest auto-counter cannot create untiered shield',
   s.includes("state.questReflex!==true&&state.questMultiActor!==true"));
 console.log('B1 Quest rarity '+n+' PASS / 0 FAIL');
