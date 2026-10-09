@@ -1429,26 +1429,40 @@ try{
               &&Math.abs(intercept?.nearEnd?.r?.[1]-intercept?.plantedState?.r?.[1])<1
               &&intercept?.live&&intercept?.save==='BREACH_WAVES',intercept);
             await image('31c-e06-real-rivet-interceptor');
-            const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:A.state.questBreachCompanionSkills.currentRecipient()}})()");
+            const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN,Q=A.state.questBreachCompanionSkills;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;A.state.slots=[];Q.tick(12);const before=Q.snapshot();const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=650;p.y=650;window.__B8KeyJSpawnRestore={spawnHeld:A.state.spawnHeld,spawnTimer:A.state.spawnTimer};A.state.spawnHeld=true;A.state.spawnTimer=1e6;return{ok:true,id:p.id,recipient:Q.currentRecipient(),jBefore:before.tot.jCooldown,priorDashes:before.events.filter(e=>e.kind==='DASH_LOCK').length,rig:A.state.questBreachRig?.snapshot?.().phase,live:A.state.active,over:A.state.over,actor:{hp:t.hp,withdrawn:t.withdrawn,questTeam:t.questTeam,x:t.x,y:t.y,stun:t.hasStatus?.('stun'),freeze:t.hasStatus?.('freeze'),disabled:t.hasStatus?.('abilityDisabled')},floor:A.state.slots.map(p=>({id:p.id,phase:p.phase,kind:p.kind,weaponId:p.weaponId,x:p.x,y:p.y}))}})()");
             gate('B6n KeyJ probe has real revealed floor pistol and T.O.T skill lease',
-              inputSetup?.ok&&inputSetup?.recipient==='T.O.T',inputSetup);
+              inputSetup?.ok&&inputSetup?.recipient==='T.O.T'&&inputSetup?.jBefore===0,inputSetup);
             if(!isMobile){
               // Desktop physical keyboard; foreground the renderer first.
               // Mobile uses the ACTUAL Gold touch K probe below instead.
               await cmd('Page.bringToFront');
-              await evalPage("(()=>{window.focus();return{state:window.gameState,focus:document.hasFocus()}})()");
-              await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
-              await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+              await evalPage("(()=>{window.focus();window.__B8KEYJ_EVENTS=[];window.addEventListener('keydown',e=>{if(e.code==='KeyJ')window.__B8KEYJ_EVENTS.push({code:e.code,repeat:e.repeat,focused:document.hasFocus(),time:performance.now()})},true);return{state:window.gameState,focus:document.hasFocus()}})()");
+              // Hold only the *background spawn clock* during this one physical input
+              // probe, so the native nearest-floor pickup cannot be silently
+              // replaced by a newly spawned gun. Restore the clock afterwards.
+              // The spawned pistol is still a genuine Arsenal floor slot.
+              // The Gold story overlay can suspend companion casts for a few
+              // real-time frames. Retry only real CDP keydown/up gestures;
+              // NEVER call the native skill API from the test.
+              let acceptedKey=null;
+              for(let attempt=0;attempt<6;attempt++){
+                await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+                await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+                await sleep(180);
+                acceptedKey=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1);return{ok:!!last&&snap.tot.jCooldown>0,receipt:last||null,cooldown:snap.tot.jCooldown,recipient:snap.currentRecipient,keys:window.__B8KEYJ_EVENTS,storyActive:A.state.questBreachStoryView?.active?.(),questActive:A.state.questBreachEncounter,gameState:window.gameState,focused:document.hasFocus(),rig:A.state.questBreachRig?.snapshot?.().phase,live:A.state.active,over:A.state.over,actor:{hp:window.fighters[1]?.hp,withdrawn:window.fighters[1]?.withdrawn,stun:window.fighters[1]?.hasStatus?.('stun'),freeze:window.fighters[1]?.hasStatus?.('freeze'),disabled:window.fighters[1]?.hasStatus?.('abilityDisabled')},floor:A.state.slots.map(p=>({id:p.id,phase:p.phase,kind:p.kind,weaponId:p.weaponId}))}})()");
+                if(acceptedKey?.ok&&acceptedKey.receipt.slotId===inputSetup?.id)break;
+              }
               // Real-time battle may complete/cancel a 0.55s dash before CDP
               // reads it. The authoritative proof of physical keyboard input
-              // is the exact accepted DASH_LOCK receipt + a consumed real J
+              // is a NEW slot-bound accepted DASH_LOCK receipt + consumed real J
               // cooldown; an instantaneous "dashing=true" read is a race.
-              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1),ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10&&!!last;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus()}})()");
-              gate('B6n desktop real KeyJ dispatch creates native DASH_LOCK receipt for actual floor slot',
+              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1);window.fighters[0].withdrawn=false;A.state.slots=[];if(window.__B8KeyJSpawnRestore){A.state.spawnHeld=window.__B8KeyJSpawnRestore.spawnHeld;A.state.spawnTimer=window.__B8KeyJSpawnRestore.spawnTimer;delete window.__B8KeyJSpawnRestore;}return{ok:!!last&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,keyboardDashCount:events.length,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus(),keys:window.__B8KEYJ_EVENTS}})()");
+              gate('B6n desktop physical KeyJ generates NEW native keyboard DASH_LOCK for exact floor slot',
                 keyResult?.ok&&keyResult?.receipt?.slotId===inputSetup?.id&&
-                keyResult?.receipt?.source==='keyboard'&&keyResult?.focused,keyResult);
+                keyResult?.receipt?.source==='keyboard'&&keyResult?.focused&&
+                keyResult?.keys?.length>=1,{...keyResult,setup:inputSetup,attempt:acceptedKey});
             }else{
-              await evalPage("(()=>{window.fighters[0].withdrawn=false;window.APEX_ARSENAL.state.slots=[];return true})()");
+              await evalPage("(()=>{const A=window.APEX_ARSENAL;window.fighters[0].withdrawn=false;A.state.slots=[];if(window.__B8KeyJSpawnRestore){A.state.spawnHeld=window.__B8KeyJSpawnRestore.spawnHeld;A.state.spawnTimer=window.__B8KeyJSpawnRestore.spawnTimer;delete window.__B8KeyJSpawnRestore;}return true})()");
             }
             const pointerReady=await evalPage("(()=>{const A=window.APEX_ARSENAL,G=window.APEX_GOLD,Q=A.state.questBreachCompanionSkills,W=A.weaponApi;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const k=Q.snapshot().tot;if(k.phase==='STORED'){if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');G.pressSkill(0,1,{source:'b6n-test-reset-stored-holder'});}if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');A.state.slots=[];Q.tick(12);Q.tick(4);const now=Q.snapshot();return{recipient:now.currentRecipient,phase:now.tot.phase,kCooldown:now.tot.kCooldown,ui:!!document.querySelector('#battleHudHost #p1Side .skill[data-i=\\\"1\\\"]')}})()");
             gate('B6n true Gold skill button is present and T.O.T K is ready',

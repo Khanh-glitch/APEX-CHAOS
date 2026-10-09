@@ -1093,19 +1093,15 @@ kbd{font:inherit}
 /* B3: Quest-only view profile layered AFTER R90. No Free Battle rules altered.
    Arena wins available square space. P1 controls stay physical, P2 is an
    informational threat strip, not a duplicated human control territory. */
-#hud[data-quest="1"][data-layout="desk"]{
-  --q-right:clamp(52px,7vw,90px);
-  --q-left:clamp(165px,15vw,225px);
-  --arena:min(calc(var(--availW) - var(--q-left) - var(--q-right) - 2 * var(--gx)),calc(var(--availH) - var(--railH) - var(--g)));
-  --cr:var(--q-right);
-  --cl:calc(var(--availW) - var(--arena) - var(--cr) - 2 * var(--gx));
-}
-#hud[data-quest="1"][data-layout="land"]{
-  --q-right:clamp(36px,6vw,56px);
-  --q-left:clamp(138px,22vw,188px);
-  --arena:min(calc(var(--availW) - var(--q-left) - var(--q-right) - 2 * var(--gx)),calc(var(--availH) - var(--railH) - var(--g)));
-  --cr:var(--q-right);
-  --cl:calc(var(--availW) - var(--arena) - var(--cr) - 2 * var(--gx));
+/* B8qd OWNER GOLD: DESK uses the R90 arena exactly; LAND-only BOT
+   is deliberately asymmetric in the Gold donor (200px P1 vs 156px P2).
+   Quest has no P2 controls, so allocate an equal margin on both sides
+   while retaining the largest square and the real P1 J/K target area. */
+#hud[data-quest="1"][data-layout="land"][data-mode="1p"]{
+  --quest-side-floor:clamp(148px,17.3cqw,188px);
+  --arena:min(calc(var(--availW) - 2 * var(--quest-side-floor) - 2 * var(--gx)),calc(var(--availH) - var(--railH) - var(--g)));
+  --cl:calc((var(--availW) - var(--arena) - 2 * var(--gx)) / 2);
+  --cr:var(--cl);
 }
 #hud[data-quest="1"][data-layout="port"][data-mode="1p"]{
   --stripH:clamp(32px,5dvh,44px);
@@ -1113,17 +1109,46 @@ kbd{font:inherit}
   --arena:min(var(--availW),calc(var(--availH) - var(--stripH) - var(--railH) - var(--p1Min) - 3 * var(--g)));
   grid-template-rows:var(--stripH) var(--railH) var(--arena) minmax(0,1fr);
 }
-#hud[data-quest="1"][data-layout="desk"] #p1Side{
-  --tileH:clamp(74px,10.5cqh,118px);
-  --artW:var(--tileH);
-  --skNF:clamp(12px,1.7cqh,17px);
-  --infoPad:6px 9px;
-  --wpIW:clamp(62px,8.5cqh,105px);
+/* Preserve full Gold J/K cards, icons, labels, and meter/READY regions.
+   Long Quest names may wrap but tile sizing remains the original donor. */
+/* Shorter DESK height: conserve vertical INFO spacing without shrinking
+   the actual Gold tile, icon, key, name or truthful READY/CD meter. */
+/* B8qe LAND family: the donor BOT uses percent-based media cells.
+   Inside very narrow Quest side rails, applying that percentage AGAIN to
+   the media child makes a 512px source look like a 30px thumbnail. Use
+   a bounded, actual CSS length and finite-height original Gold cards.
+   Do not touch normal BOT/Local or the portrait Gold donor. */
+#hud[data-quest="1"][data-layout="land"][data-mode="1p"] #p1Side{
+  --artW:clamp(64px,8cqw,100px);
+  --quest-skill-tile:clamp(102px,18cqh,138px);
 }
-#hud[data-quest="1"][data-layout="desk"] #p1Side>.ident,
-#hud[data-quest="1"][data-layout="desk"] #p1Side>.skills,
-#hud[data-quest="1"][data-layout="desk"] #p1Side>.weapon{width:min(100%,265px)}
-#hud[data-quest="1"][data-layout="land"] #p1Side{--artW:min(70%,106px);--skNF:12px}
+#hud[data-quest="1"][data-layout="land"][data-mode="1p"] #p1Side .skills{
+  grid-template-rows:repeat(2,var(--quest-skill-tile));
+  align-self:center;
+}
+#hud[data-quest="1"][data-layout="desk"] #p1Side{
+  --infoPad:6px 12px 6px 11px;
+  --infoGap:3px;
+}
+#hud[data-quest="1"][data-layout="desk"] #p1Side .sk-state{
+  min-width:0;font-size:clamp(9px,1.3cqh,10.5px);letter-spacing:.02em;
+}
+#hud[data-quest="1"][data-layout="desk"] #p1Side .sk-name{
+  white-space:normal;overflow:visible;text-overflow:clip;
+  overflow-wrap:normal;line-height:1.1;
+}
+/* Narrow Gold LAND side: keep original media well; put real cooldown text
+   below the meter rather than allowing the status to be cut horizontally. */
+#hud[data-quest="1"][data-layout="land"] #p1Side .sk-meter{
+  flex-direction:column;align-items:stretch;gap:3px;
+}
+#hud[data-quest="1"][data-layout="land"] #p1Side .sk-state{
+  min-width:0;width:100%;text-align:start;
+  white-space:normal;overflow-wrap:anywhere;letter-spacing:.025em;
+  line-height:1.15;font-size:clamp(8px,1.25cqh,10px);
+}
+/* R70 eliminates animated masks; E01 LOCKED still dims actual skill art. */
+#hud[data-quest="1"] .skill[data-state="locked"] .sk-art>.apex-skill-icon{opacity:.35}
 #hud[data-quest="1"][data-layout="desk"] #p2Side,
 #hud[data-quest="1"][data-layout="land"] #p2Side{min-width:0;overflow:hidden}
 #hud[data-quest="1"][data-layout="desk"] #p2Side .ident,

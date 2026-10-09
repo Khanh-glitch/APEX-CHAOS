@@ -1,6 +1,6 @@
 // B8qb independent Gold source authority audit.
 // This MUST NOT replace / skip the original Product Acceptance browser
-// R62/R65/R68 gates. A canonical-source match is not an owner playtest.
+// R90 current-Gold rendering gates. A source match is not an owner playtest.
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
@@ -39,11 +39,16 @@ verify('shipping Gold preserves same two-column design',
  /grid-template-columns:\s*1fr\s+1fr/.test(liveSkills));
 verify('owner donor does NOT require firearm between two square skills',
  !/grid-template-areas:\s*"s1 wp s2"/.test(donorSide));
-verify('R62 obsolete gate still exists and remains a visible release blocker',
- test.includes("gate('R62-iPad-portrait-BOT-near-square-thumb-controls'")&&
- test.includes("gate('R62-iPad-portrait-weapon-centered-between-thumb-controls'"));
-verify('R68 overlay gate remains explicit, not silently deleted',
- test.includes("gate('R68-art-state-is-bounded-and-actually-rendered'"));
+verify('current R90 tablet Gold geometry and true touch target gates are preserved',
+ test.includes("gate('R90-current-Gold-iPad-BOT-dock-geometry'")&&
+ test.includes("gate('R90-current-Gold-iPad-BOT-real-skill-hit-targets'")&&
+ test.includes("portraitTablet?.skillHits?.every(Boolean)===true")&&
+ !test.includes("gate('R62-iPad-portrait-BOT-near-square-thumb-controls'"));
+verify('current R90 Gold loads genuine skill artwork and states per approved R70',
+ test.includes("gate('R90-current-Gold-skill-art-states-actually-rendered'")&&
+ test.includes('skillArtProbe.imageLoaded===true')&&
+ test.includes('skillArtProbe.cooling?.opacity<.48')&&
+ test.includes('skillArtProbe.overlayDisabled===true'));
 verify('owner R70 clean production skill image is implemented',
  product.includes('/* R70 skill image: no progress ring, glow, or animated cover; preserve timers and states. */')&&
  product.includes('#hud .skill .sk-art>.sk-mask,')&&
@@ -52,7 +57,16 @@ verify('Door deliberately leaves viewport when idle and enters during transition
  coord.includes("canvas.style.display = 'none'")&&
  coord.includes("canvas.style.display = 'block'")&&
  coord.includes("canvas.setAttribute('aria-hidden', 'true')"));
-verify('original browser canvas gate remains explicit',
- test.includes("gate('gold-transition-responsive-canvas-follows-portrait-viewport'"));
-console.log('B8qb canonical-source audit: '+checks+' / '+checks+' PASS');
-console.log('IMPORTANT: Product Acceptance remains a separate gate. R62 tablet dock, R63 readability and R65 art-quality are NOT cleared by this audit.');
+verify('Door backing + visible-active/hidden-DONE behavior are both enforced',
+ test.includes("gate('gold-transition-responsive-canvas-follows-portrait-viewport'")&&
+ test.includes('responsive.backingW>=390*responsive.dpr')&&
+ test.includes("responsive.ariaHidden==='true'"));
+verify('Quest-only view profile expressly layers AFTER integrated R90',
+ product.includes('/* B3: Quest-only view profile layered AFTER R90. No Free Battle rules altered.'));
+const r70Adaptation=readFileSync('tools/testGoldBattleHudAdaptationGate.mjs','utf8');
+verify('original adapter test honors later R70 owner decisions, NOT obsolete R62/R63/R65 geometry and glow',
+ r70Adaptation.includes("check('R70 tablet BOT retains Gold strip/arena geometry without the rejected R62 dock'")&&
+ r70Adaptation.includes("check('R70 keeps the real cast/active/ready/cooldown/locked skill authority without R63 glow'")&&
+ r70Adaptation.includes("check('R70 hero-specific motif and uncluttered skill art replace old R65 effects'"));
+console.log('B8qc R90 current-Gold authority audit: '+checks+' / '+checks+' PASS');
+console.log('IMPORTANT: R90 geometry test PASS is functional evidence, not owner aesthetic sign-off. Pre-R70 R90 debt classification is historical.');

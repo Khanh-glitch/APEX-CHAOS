@@ -29,7 +29,7 @@ async function pageTarget(endpoint) {
   throw new Error('CDP page target did not become ready');
 }
 
-async function connect(endpoint) {
+async function connect(endpoint, deadlineAt) {
   const target = await pageTarget(endpoint);
   const socket = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
@@ -43,12 +43,27 @@ async function connect(endpoint) {
     if (!msg.id || !pending.has(msg.id)) return;
     const p = pending.get(msg.id);
     pending.delete(msg.id);
+    clearTimeout(p.timer);
     msg.error ? p.reject(new Error(msg.error.message)) : p.resolve(msg.result);
+  });
+  socket.addEventListener('close', () => {
+    for (const [id, p] of pending) {
+      clearTimeout(p.timer);
+      p.reject(new Error('CDP socket closed while waiting for command ' + id));
+    }
+    pending.clear();
   });
   const command = (method, params = {}) => {
     const id = ++serial;
-    socket.send(JSON.stringify({ id, method, params }));
-    return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error('CDP command timed out after 25s: ' + method));
+      }, 25000);
+      pending.set(id, { resolve, reject, timer });
+      try { socket.send(JSON.stringify({ id, method, params })); }
+      catch (error) { clearTimeout(timer); pending.delete(id); reject(error); }
+    });
   };
   const evaluate = async (expression) => {
     const r = await command('Runtime.evaluate', {
@@ -86,6 +101,7 @@ async function connect(endpoint) {
   const poll = async (expression, predicate = Boolean, { attempts = 1800, interval = 80 } = {}) => {
     let value = null;
     for (let i = 0; i < attempts; i++) {
+      if (Date.now() > deadlineAt) throw new Error('hero cold-load exceeded 120s budget; last='+JSON.stringify(value)+'; poll='+expression.slice(0,150));
       value = await evaluate(expression);
       if (predicate(value)) return value;
       await sleep(interval);
@@ -113,13 +129,16 @@ function summarize(profile) {
 }
 
 async function runHero(hero, index) {
+  const deadlineAt = Date.now() + 120000;
   const port = 9320 + index;
   const endpoint = 'http://127.0.0.1:' + port;
   const profileDir = path.join('/tmp', `apex-core-six-cold-${hero}-${process.pid}`);
   await rm(profileDir, { recursive:true, force:true });
   let chrome = null;
   let cdp = null;
+  let phase = 'launch';
   try {
+    console.log('[CORE-SIX-COLD] START', hero);
     chrome = spawn(chromePath, [
       '--headless=new','--disable-gpu','--disable-dev-shm-usage','--no-sandbox',
       '--no-first-run','--no-default-browser-check','--autoplay-policy=no-user-gesture-required',
@@ -127,7 +146,9 @@ async function runHero(hero, index) {
       '--user-data-dir=' + profileDir, appUrl,
     ], { stdio:'ignore', detached:false });
 
-    cdp = await connect(endpoint);
+    cdp = await connect(endpoint, deadlineAt);
+    phase='CDP-connected';
+    console.log('[CORE-SIX-COLD] CDP',hero);
     await cdp.command('Runtime.enable');
     await cdp.command('Page.enable');
     await cdp.command('Page.addScriptToEvaluateOnNewDocument', { source:`
@@ -136,6 +157,18 @@ async function runHero(hero, index) {
       addEventListener('unhandledrejection',e=>window.__APEX_COLD_ERRORS.push('rejection:'+String(e.reason||'')));
     `});
     await cdp.command('Page.navigate', { url:appUrl });
+
+    // The current R90 Mechanical Door requires one REAL Start press before
+    // the Home HUD becomes interactive. SEALED is correct pre-start, not a
+    // stuck load. The previous profiler waited for DONE before this press,
+    // timing out all six cold sessions without ever selecting a fighter.
+    phase='boot-start';
+    await cdp.poll(`(() => ({
+      engine:!!window.__apexEngineReady,
+      start:!!document.getElementById('apex-boot-start'),
+      telemetry:!!window.apexHeroLoadTelemetry
+    }))()`, v=>v?.engine&&v.start&&v.telemetry, {attempts:1500,interval:75});
+    await cdp.physicalClick('#apex-boot-start');
 
     await cdp.poll(`(() => ({
       engine:!!window.__apexEngineReady,
@@ -146,6 +179,7 @@ async function runHero(hero, index) {
     }))()`, (v) => v?.engine && v.stage && v.state === 'DONE' && v.blackout && v.telemetry,
     { attempts:2400, interval:75 });
 
+    phase='Home-ready'; console.log('[CORE-SIX-COLD] HOME',hero);
     await cdp.physicalClick('#freeBattle');
     await cdp.poll(`document.getElementById('stage')?.classList.contains('screen-mode')||false`,
       Boolean, { attempts:1200, interval:75 });
@@ -169,6 +203,7 @@ async function runHero(hero, index) {
       Boolean, { attempts:400, interval:50 });
 
     await cdp.physicalClick('#lockIn');
+    phase='first-complete-frame'; console.log('[CORE-SIX-COLD] BATTLE',hero);
     const sample = await cdp.poll(`(() => {
       const p=window.apexHeroLoadTelemetry?.profile?.(${JSON.stringify(hero)})||null;
       return {
@@ -193,6 +228,8 @@ async function runHero(hero, index) {
       throw new Error('window errors: ' + JSON.stringify(sample.errors));
     }
     return summarize(sample.profile);
+  } catch (error) {
+    throw new Error('Core Six '+hero+' at '+phase+': '+String(error?.stack||error));
   } finally {
     try { cdp?.socket?.close(); } catch {}
     if (chrome) {

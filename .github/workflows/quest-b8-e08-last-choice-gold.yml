@@ -1,8 +1,12 @@
 name: B8 E08 Last Choice Native Gold
 on:
   push:
-    branches: ['quest/b7-e08-last-choice-native-from-b7', 'quest/b8qa-runtime-integrity-from-b8', 'quest/b8qb-product-acceptance-from-b8qa']
+    branches: ['quest/b7-e08-last-choice-native-from-b7', 'quest/b8qa-runtime-integrity-from-b8', 'quest/b8qb-product-acceptance-from-b8qa', 'quest/b8qc-owner-gold-product-preplaytest']
   workflow_dispatch:
+# Only the latest exact Quest SHA is authoritative for pre-playtest.
+concurrency:
+  group: quest-b8-acceptance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -35,8 +39,12 @@ jobs:
           pnpm test:arsenal:current-collision
           pnpm test:arsenal:current-render-hud
           pnpm test:source-hygiene
-      - name: Owner original Gold vs current production (audit only, not visual sign-off)
-        run: node tools/testB8CanonicalGoldParity.mjs
+      - name: R90 integrated Gold and owner-approved R70 regressions (non-visual)
+        run: |
+          node tools/testR89GoldResolver.mjs
+          node tools/testGoldPickBandLawGate.mjs
+          node tools/testGoldBattleHudAdaptationGate.mjs
+          node tools/testB8CanonicalGoldParity.mjs
       - name: Gold source provenance
         run: node tools/buildGoldCutover.mjs --check
       - name: Build
@@ -73,6 +81,12 @@ jobs:
           BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BIN"
           echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: B8qd Quest arena-centering and skill-family Chrome matrix
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b8-${{ matrix.device }}
+        run: node tools/testQuestBattleHudFamilyBrowser.mjs
       - name: Gold full Quest E01–E08 + OUTSIDE native Stormbreaker
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
