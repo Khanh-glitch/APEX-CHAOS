@@ -193,10 +193,11 @@ try{
   };
   for(const v of intermediate){
     await resize(v.w,v.h);
-    const link=new URL('/gold-fidelity-lab.html',url);
+    const link=new URL(v.name==='iphone-se'?'/?goldViewport=1':'/gold-fidelity-lab.html',url);
     link.searchParams.set('goldDevice',v.device);
     await command('Page.navigate',{url:link.href});
     if(!(await wait(childReady)))throw Error('R89 intermediate START unavailable '+v.name);
+    if(v.name==='iphone-se')check('R89 opt-in entry redirects exactly once',await evalJS("location.pathname==='/gold-fidelity-lab.html'&&window.__apexGoldFidelity.child().location.search.includes('goldViewport=native')"));
     const meta=await evalJS('window.__apexGoldFidelity?.snapshot()');
     check(v.name+' aspect-fit/zero-letterbox',
       meta?.deviceClass===v.device&&
