@@ -121,7 +121,7 @@ function create({actors,policy,weaponApi,state,log}={}){
    const k=states['T.O.T'].K;
    if(k.phase!=='CAPTURE'||k.captureLeft<=0||k.stored)return false;
    if(holder.weaponId!==slot.weaponId||holder.consumed===true||
-     holder.def?.category!=='ranged'||root.APEX_ARSENAL_CFG?.isGun?.(holder.weaponId)===false)
+     holder.def?.category!=='ranged'||root.APEX_ARSENAL_CONFIG?.isGun?.(holder.weaponId)!==true)
      return false;
    // Physical Arsenal equip happened in the actual REVEALED-slot pickup
    // transaction. Remove holder immediately, BEFORE updateHolder can shoot.
