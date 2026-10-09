@@ -2557,12 +2557,13 @@ function draw(ctx,real) {
     const ownerCompact=(variant==='operator'||variant==='scout'||variant==='bulwark');
     // Canon visual hierarchy: every generic hostile visibly smaller than NEWBOT;
     // T.O.T (white operator) smaller; RIVET (iron bulwark) slightly bigger.
-    const ratio=canonicalScale*(real.questId==='RIVET'?1.07:
+    const speciesFactor=real.questId==='RIVET'?1.07:
       real.questId==='T.O.T'?0.82:
       ['scout','reaver','sentinel'].includes(real.questSpecies)?0.77:
-      ownerCompact?0.82:1);
+      ownerCompact?0.82:1;
+    const ratio=canonicalScale*speciesFactor;
     record.scale=ratio;
-    record.scaleFactor=ownerCompact?0.82:1;
+    record.scaleFactor=speciesFactor;
     ctx.scale(ratio,ratio);
     const m=ctx.getTransform();
     // Measured from the actual canvas matrix AFTER undoing engine movement
