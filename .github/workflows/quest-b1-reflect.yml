@@ -29,6 +29,8 @@ jobs:
         run: node tools/testQuestRarityB1.mjs
       - name: Owner LV2 contact and LV3 physical swept laser
         run: node tools/testQuestEnemyAbilitiesB1.mjs
+      - name: Actual Arena Fighter LV2 contact and LV3 swept laser
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-enemy-native
       - name: Prior Quest and source generation regression
         run: |
           node tools/testQuestGenericRosterQ2.mjs
