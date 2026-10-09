@@ -33,6 +33,21 @@ export function chooseGoldProfile(width,height,forcedId=null) {
     return best;
   },null)?.profile??null;
 }
+// Gold itself owns responsive layout *within* each authored family.
+// Keep a canonical height for that family, but derive its width from the
+// real layout viewport aspect. This is continuous aspect adaptation, not
+// a closest-size screenshot/letterbox and not a new HUD design.
+export function deriveGoldDesignSpace(profile,layoutWidth,layoutHeight) {
+  if(!profile||![layoutWidth,layoutHeight].every(Number.isFinite)||
+    layoutWidth<=0||layoutHeight<=0)return null;
+  const width=Math.max(1,Math.round(profile.height*layoutWidth/layoutHeight));
+  return Object.freeze({
+    ...profile,
+    width,
+    height:profile.height,
+    anchor:Object.freeze({width:profile.width,height:profile.height})
+  });
+}
 export function fitGoldProfile(profile,width,height,offsetLeft=0,offsetTop=0) {
   if(!profile||![width,height].every(Number.isFinite)||width<=0||height<=0)return null;
   const scale=Math.min(width/profile.width,height/profile.height);
