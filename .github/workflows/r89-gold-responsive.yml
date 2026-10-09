@@ -1,0 +1,24 @@
+name: R89 Gold Responsive Resolver
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/r89-gold-responsive-runtime
+    paths:
+      - 'public/gold-fidelity-profiles.mjs'
+      - 'public/gold-fidelity-lab.html'
+      - 'tools/testR89GoldResolver.mjs'
+      - '.github/workflows/r89-gold-responsive.yml'
+permissions:
+  contents: read
+jobs:
+  gold-resolution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify R89 selector and supported Gold breakpoint envelopes
+        run: node tools/testR89GoldResolver.mjs
