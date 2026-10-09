@@ -34,8 +34,13 @@ b.roster.slice(3).forEach(x=>x.hp=0);
 gate('B physical four-KO receipt is not full E06 completion',
  controller.observe(b.roster).status==='INTERLUDE'&&controller.snapshot().completed===2);
 controller.tick(1.8);
+allies[1].hp-=1;
+const blocked=controller.prepareNext(b.roster,actor);
+gate('B receipt rejects physical ally HP changes during the interlude',
+ blocked.ok===false&&blocked.reason==='ally-HP-or-withdrawal-changed-in-interlude');
+allies[1].hp+=1;
 const poisoned=controller.prepareNext(b.roster,actor);
-gate('B receipt refuses ally HP mutation during hold',poisoned.ok===true);
+gate('B accepts correctly preserved ally HP once restored',poisoned.ok===true);
 gate('prepare C retains withdrawn NEWBOT physically and faithfully',
  poisoned.roster[0]===allies[0]&&poisoned.roster[0].withdrawn===true);
 gate('C commit needs actual physical roster reference',controller.commitNext(poisoned.roster,poisoned.ticket).ok);
