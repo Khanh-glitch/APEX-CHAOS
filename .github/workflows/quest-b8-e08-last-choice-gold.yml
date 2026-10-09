@@ -3,6 +3,10 @@ on:
   push:
     branches: ['quest/b7-e08-last-choice-native-from-b7', 'quest/b8qa-runtime-integrity-from-b8', 'quest/b8qb-product-acceptance-from-b8qa', 'quest/b8qc-owner-gold-product-preplaytest']
   workflow_dispatch:
+# Only the latest exact Quest SHA is authoritative for pre-playtest.
+concurrency:
+  group: quest-b8-acceptance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

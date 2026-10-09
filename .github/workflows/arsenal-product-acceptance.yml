@@ -8,6 +8,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Cancel stale PR-branch Chrome profilers; concurrent cold-loads distort measurements.
+concurrency:
+  group: arsenal-product-acceptance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

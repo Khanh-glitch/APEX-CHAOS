@@ -61,7 +61,6 @@ verify('Door backing + visible-active/hidden-DONE behavior are both enforced',
  test.includes("gate('gold-transition-responsive-canvas-follows-portrait-viewport'")&&
  test.includes('responsive.backingW>=390*responsive.dpr')&&
  test.includes("responsive.ariaHidden==='true'"));
-console.log('B8qb canonical-source audit: '+checks+' / '+checks+' PASS');
 verify('Quest-only view profile expressly layers AFTER integrated R90',
  product.includes('/* B3: Quest-only view profile layered AFTER R90. No Free Battle rules altered.'));
 const r70Adaptation=readFileSync('tools/testGoldBattleHudAdaptationGate.mjs','utf8');
@@ -69,4 +68,5 @@ verify('original adapter test honors later R70 owner decisions, NOT obsolete R62
  r70Adaptation.includes("check('R70 tablet BOT retains Gold strip/arena geometry without the rejected R62 dock'")&&
  r70Adaptation.includes("check('R70 keeps the real cast/active/ready/cooldown/locked skill authority without R63 glow'")&&
  r70Adaptation.includes("check('R70 hero-specific motif and uncluttered skill art replace old R65 effects'"));
+console.log('B8qc R90 current-Gold authority audit: '+checks+' / '+checks+' PASS');
 console.log('IMPORTANT: R90 geometry test PASS is functional evidence, not owner aesthetic sign-off. Pre-R70 R90 debt classification is historical.');
