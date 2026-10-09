@@ -1507,7 +1507,16 @@ try{
               // After a real browser reload Gold correctly boots HOME first.
               // Continue Story is the ONLY authorized way to display the
               // current Director chapter; never invoke its hidden button.
-              await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true)()",Boolean,300);
+              // Same physical boot reopening already verified for E02/E06.
+              // A browser reload returns to the real mechanical START screen.
+              // Waiting on a stale DONE attribute does NOT release the #root
+              // boot overlay, and the protected Home CTA is deliberately occluded.
+              const reentryBoot=await poll("(()=>({present:document.getElementById('apex-boot-start')?.getBoundingClientRect()?.width>0,stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                v=>v?.present&&v?.stage==='RIVET_OVERRIDDEN',320);
+              gate('B7 real browser reload requires physical Gold START before E07 Home',
+                reentryBoot?.present&&reentryBoot?.stage==='RIVET_OVERRIDDEN',reentryBoot);
+              await click('#apex-boot-start');
+              await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true&&window.APEX_SCENE_TRANSITION?.active?.()===false)()",Boolean,320);
               const beforeEntry=await poll("(()=>{const d=document.getElementById('apexQuest01Stage'),b=document.getElementById('q7RivetPlay'),e=document.getElementById('continueStory'),r=e?.getBoundingClientRect(),top=r?document.elementFromPoint(r.left+r.width/2,r.top+r.height/2):null;return{open:d?.hidden===false,button:b?.hidden===false,cta:!!e,ctaHittable:!!e&&(top===e||e.contains(top)),obstruction:top?.id||top?.className||top?.tagName,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()",
                 v=>v?.save==='RIVET_OVERRIDDEN'&&((v.open&&v.button)||v.ctaHittable),250);
               gate('B7 post-reload Gold navigation has an accessible stage or real Continue Story',
