@@ -316,6 +316,10 @@
       weaponApi.tickVisuals(dt);
       window.APEX_ARSENAL_AV?.tick?.(dt);
       if(rig)window.APEX_ARSENAL_STORM?.tick?.(dt);
+      // Q4E: event observation only, never Story save or combat mutation.
+      state.questStory?.observeReflex?.(
+        state.questReflexGate?.snapshot?.(),
+        window.__apexQuestReflexTechnicalRead?.());
       if(AQ.feel?.tick)AQ.feel.tick(dt);
       for(let i=particles.length-1;i>=0;i--){
         const p=particles[i];p.update(dt);
@@ -522,6 +526,7 @@
       // E01 can only reach the RIVET hold after genuine PISTOL + J/K receipts;
       // no two-team KO rule may auto-complete this tutorial encounter.
       const pilot = state.questReflex ? state.questReflexGate?.poll() : null;
+      if(pilot)state.questStory?.observeReflex?.(pilot,null);
       const outcome = state.questReflex
         ? {status:fighters.some(f=>f?.hp<=0)?'RETRY':'ACTIVE',reason:'reflex-pilot-'+(pilot?.phase||'closed')}
         : state.questFirstWake ? Q.firstWakeOutcome(fighters)
@@ -1092,6 +1097,8 @@
     if(AQ.state){
       AQ.state.questReflexGate?.close?.();
       AQ.state.questReflexGate=null;
+      AQ.state.questStory?.close?.();
+      AQ.state.questStory=null;
       AQ.state.questReflex=false;
     }
   }
@@ -1258,6 +1265,8 @@
           gate.close(); AQ.state.active=false; return false;
         }
         AQ.state.questReflexGate=gate;
+        AQ.state.questStory=window.APEX_QUEST_STORY_BEATS?.create?.()||null;
+        AQ.state.questStory?.observeReflex?.(gate.snapshot(),null);
         // Only scripted R1/R2 spawn at first. The normal Arsenal cadence
         // resumes when J needs a real revealed pickup after R2.
         AQ.state.spawnTimer=1e6;
@@ -1372,6 +1381,10 @@
   window.__apexQuestRivetPreviewRelease=beginQuestRivetPreview;
   // Read-only, no save transitions or Stage mutation. A valid response still
   // means TECHNICAL PREVIEW ONLY, not a canonical rescue or WORKSHOP unlock.
+  window.__apexQuestStoryBeatsRead=function(){
+    const s=AQ.state;
+    return s?.active&&s.questReflex===true?s.questStory?.snapshot?.()||null:null;
+  };
   window.__apexQuestReflexTechnicalRead=function(){
     const s=AQ.state;
     if(!s?.active||s.questReflex!==true)return {
