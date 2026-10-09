@@ -10,13 +10,14 @@
  '#apexQuestStoryView{position:fixed;inset:0;z-index:11000;display:grid;place-items:end center;color:#f4eee1;isolation:isolate;font-family:Bahnschrift,"Arial Narrow",Arial,sans-serif;overflow:hidden;background:linear-gradient(0deg,#030506e8 0%,#05070ad1 34%,#05070a88 100%);pointer-events:auto}',
  '#apexQuestStoryView[hidden]{display:none!important}',
  '#apexQuestStoryView::before{content:"";pointer-events:none;position:absolute;inset:0;opacity:.43;background:repeating-linear-gradient(0deg,transparent 0,transparent 3px,#ffffff08 4px);mix-blend-mode:screen}',
- '#apexQuestStoryView .qs-body{position:relative;width:min(1120px,100%);max-height:100%;padding:clamp(12px,2.3vw,32px) max(14px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom));display:grid;grid-template-rows:auto minmax(100px,1fr) auto;gap:clamp(9px,1.7vh,20px);transform-origin:center bottom;animation:qsRise .42s cubic-bezier(.16,.88,.25,1) both}',
- '@keyframes qsRise{from{opacity:0;transform:translateY(25px) scale(.99)}to{opacity:1;transform:translateY(0)}}',
+ '#apexQuestStoryView .qs-body{position:relative;width:min(1120px,100%);max-height:100%;padding:clamp(12px,2.3vw,32px) max(14px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom));display:grid;grid-template-rows:auto minmax(100px,1fr) auto;gap:clamp(9px,1.7vh,20px);animation:qsFade .42s ease-out both}',
+ '@keyframes qsFade{from{opacity:.2}to{opacity:1}}',
  '#apexQuestStoryView .qs-top{display:flex;align-items:end;justify-content:space-between;gap:14px;padding:0 2px}',
  '#apexQuestStoryView .qs-episode{font:900 clamp(10px,1vw,12px)/1.1 Arial,sans-serif;letter-spacing:.27em;color:#e8a855}',
  '#apexQuestStoryView .qs-chapter{margin-top:6px;font:900 clamp(22px,4vw,40px)/.9 Impact,"Arial Narrow",sans-serif;letter-spacing:.04em;text-transform:uppercase}',
  '#apexQuestStoryView .qs-marker{font:700 11px/1.2 Arial,sans-serif;letter-spacing:.2em;color:#b6b0a4;text-align:right}',
- '#apexQuestStoryView .qs-comic{min-height:0;display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(5px,1vw,12px);height:clamp(138px,42vh,435px);max-height:42dvh}',
+ '#apexQuestStoryView .qs-comic{min-height:0;display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(5px,1vw,12px);height:clamp(138px,42vh,435px);max-height:42dvh;animation:qsArtRise .42s cubic-bezier(.16,.88,.25,1) both}',
+ '@keyframes qsArtRise{from{transform:translateY(20px) scale(.99)}to{transform:translateY(0) scale(1)}}',
  '#apexQuestStoryView .qs-shot{min-width:0;min-height:0;position:relative;overflow:hidden;border:1px solid #ac7d45;background:radial-gradient(circle at 55% 70%,#38312a,#080c10 70%);box-shadow:0 4px 28px #000b;clip-path:polygon(0 0,100% 0,100% 96%,97% 100%,0 100%)}',
  '#apexQuestStoryView .qs-shot canvas{width:100%;height:100%;object-fit:cover;filter:contrast(1.16) saturate(.8) brightness(.77);display:block}',
  '#apexQuestStoryView .qs-shot--detail canvas{transform:scale(1.6) rotate(-1deg);filter:contrast(1.25) saturate(.6) brightness(.9)}',
@@ -36,7 +37,7 @@
  '#apexQuestStoryView button:focus-visible{outline:3px solid #f8d29c;outline-offset:3px}',
  '@media(max-width:620px){#apexQuestStoryView .qs-body{width:100%;padding:12px max(10px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));gap:9px}#apexQuestStoryView .qs-comic{height:clamp(125px,30dvh,310px);max-height:30dvh;grid-template-columns:1.3fr .8fr}#apexQuestStoryView .qs-footer{grid-template-columns:1fr;gap:12px;padding:14px}#apexQuestStoryView .qs-controls{justify-content:flex-end}#apexQuestStoryView button{min-height:44px;min-width:98px}#apexQuestStoryView .qs-chip{font-size:15px}}',
  '@media(max-height:470px){#apexQuestStoryView .qs-body{grid-template-rows:auto minmax(68px,1fr) auto;padding:7px max(9px,env(safe-area-inset-right)) 7px max(9px,env(safe-area-inset-left));gap:6px}#apexQuestStoryView .qs-comic{height:24dvh;max-height:24dvh}#apexQuestStoryView .qs-footer{padding:9px;gap:8px}#apexQuestStoryView .qs-chapter{font-size:21px}#apexQuestStoryView .qs-line{font-size:18px}#apexQuestStoryView button{min-height:37px}}',
- '@media(prefers-reduced-motion:reduce){#apexQuestStoryView .qs-body,#apexQuestStoryView.qs-workshop::after{animation:none}#apexQuestStoryView.qs-workshop::after{opacity:0}}'
+ '@media(prefers-reduced-motion:reduce){#apexQuestStoryView .qs-body,#apexQuestStoryView .qs-comic,#apexQuestStoryView.qs-workshop::after{animation:none}#apexQuestStoryView.qs-workshop::after{opacity:0}}'
  ].join('\n');
  const LABEL=Object.freeze({
   E01_R1_IMPACT:{title:'REFLEX',left:'NEWBOT',right:'T.O.T',line:'FIRST IMPACT',kicker:'PISTOL // CONTACT'},
