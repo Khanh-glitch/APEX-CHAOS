@@ -209,6 +209,58 @@
     return { status: 'ACTIVE', reason: 'combat-live' };
   }
 
+  // Q5 E03 authored two-wave *roster contract*. Only the real Arsenal
+  // creates Fighters and inflicts damage. Never use this as a KO setter.
+  // Three Gold Scrap chassis may be reused; no invented hero skill kit.
+  const SWARM_WAVES=Object.freeze({
+    A:Object.freeze([
+      Object.freeze({questId:'SWARM-A1',questTeam:'HOSTILE',hp:280,x:760,y:220,kind:'scout'}),
+      Object.freeze({questId:'SWARM-A2',questTeam:'HOSTILE',hp:280,x:785,y:500,kind:'bulwark'}),
+      Object.freeze({questId:'SWARM-A3',questTeam:'HOSTILE',hp:280,x:760,y:780,kind:'sentinel'}),
+    ]),
+    B:Object.freeze([
+      Object.freeze({questId:'SWARM-B1',questTeam:'HOSTILE',hp:220,x:760,y:150,kind:'scout'}),
+      Object.freeze({questId:'SWARM-B2',questTeam:'HOSTILE',hp:220,x:810,y:375,kind:'bulwark'}),
+      Object.freeze({questId:'SWARM-B3',questTeam:'HOSTILE',hp:220,x:810,y:625,kind:'sentinel'}),
+      Object.freeze({questId:'SWARM-B4',questTeam:'HOSTILE',hp:220,x:760,y:850,kind:'scout'}),
+    ])
+  });
+  function scrapSwarmRoster(wave) {
+    const hostile=SWARM_WAVES[String(wave||'')];
+    if(!hostile)return null;
+    return [{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:205,y:500,kind:'newbot'},
+      ...hostile.map(a=>({...a}))];
+  }
+  function validateScrapSwarmWave(actors,wave) {
+    const spec=SWARM_WAVES[String(wave||'')];
+    if(!spec||!Array.isArray(actors)||actors.length!==spec.length+1)
+      return {ok:false,reason:'wrong-wave-count'};
+    const common=validateRoster(actors);
+    if(!common.ok)return common;
+    const player=actors.find(a=>a.questId==='NEWBOT');
+    if(!player||team(player)!=='ALLY'||player.maxHp!==1000)
+      return {ok:false,reason:'wrong-protagonist'};
+    if(common.allies!==1||common.hostiles!==spec.length)
+      return {ok:false,reason:'wrong-wave-team'};
+    for(const e of spec){
+      const actor=actors.find(a=>a.questId===e.questId);
+      if(!actor||team(actor)!=='HOSTILE'||actor.maxHp!==e.hp)
+        return {ok:false,reason:'wrong-wave-identity-or-hp'};
+    }
+    return {ok:true,reason:'real-wave-roster',wave:String(wave),count:actors.length};
+  }
+  function scrapSwarmOutcome(actors,wave) {
+    const valid=validateScrapSwarmWave(actors,wave);
+    if(!valid.ok)return {status:'INVALID',reason:valid.reason};
+    const player=actors.find(a=>a.questId==='NEWBOT');
+    if(!alive(player))return {status:'RETRY',reason:'newbot-ko'};
+    const foes=actors.filter(a=>team(a)==='HOSTILE');
+    if(!foes.every(a=>!alive(a)))return {status:'ACTIVE',reason:'hostiles-alive'};
+    return wave==='A'
+      ?{status:'NEXT_WAVE',reason:'wave-a-real-KO'}
+      :{status:'COMPLETE',reason:'wave-b-real-KO'};
+  }
+
   // Strong preflight: multiple bodies cannot borrow the same fighter identity;
   // two teams and one controllable protagonist are required.
   function validateFirstWake(actors) {
@@ -235,5 +287,6 @@
     alive, hostile, livingEnemies, nearestEnemy, sweptEntry,
     firstProjectileHit, splashEnemies, closestEligiblePickup, separateBodyOverlaps,
     firstWakeOutcome, validateFirstWake, fixtureRoster, validateRoster, teamsOutcome,
+    scrapSwarmRoster,validateScrapSwarmWave,scrapSwarmOutcome,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,34 @@
+name: Quest Q5 E03 Scrap Swarm native wave integration
+on:
+  push:
+    branches:
+      - 'quest/q5-e03-scrap-swarm-from-q4i'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  q5-scrap-swarm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Q5 authored two-wave contract (NOT runtime acceptance)
+        run: node tools/testQuestScrapSwarmQ5.mjs
+      - name: Q1 director hostile save regression
+        run: node tools/testQuestDirectorQ1.mjs
+      - name: Q2 team roster and physical-target policy
+        run: node tools/testQuestGenericRosterQ2.mjs
+      - name: E02 real Arsenal and Bot/Local regressions
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-first-wake
+      - name: Production build
+        run: pnpm build
