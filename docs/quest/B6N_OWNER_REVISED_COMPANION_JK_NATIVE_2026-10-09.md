@@ -13,7 +13,7 @@ RIVET is an engineer/researcher robot, not an offense-oriented hero. J is a **ph
 |---|---|---|
 | NEWBOT | Original Robot Weapon Dash, unchanged | Original Robot Virtual Armor, unchanged |
 | T.O.T | Robot Weapon Dash **10s CD / 3400 speed / .55s dash / 11 turn rate / 34 arrival radius / .26s start**; native floor pickup still required | **2s pickup window**, single real ranged gun stored; second press redraws exact native holder; **no cooldown while stashed**. Provisional balance: 8s cooldown after drawing and 3s failed-capture retry |
-| RIVET | **Research Intercept**: plant & wait 2.4s, catch first *newly entering* hostile inside radius 145, lock 1.15s, then release; 12s provisional cooldown | Robot Virtual Armor **10s cooldown / 3s duration / incoming damage ×0.45 / not CC immune** |
+| RIVET | **Research Intercept**: plant & wait 2.4s, catch first *newly entering* hostile inside radius 190 (outside 150px natural Fighter collision threshold), lock 1.15s, then release; 12s provisional cooldown | Robot Virtual Armor **10s cooldown / 3s duration / incoming damage ×0.45 / not CC immune** |
 
 ### T.O.T's tactical AI — no instant store/redraw loop
 
