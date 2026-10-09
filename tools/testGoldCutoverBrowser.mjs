@@ -300,8 +300,11 @@ try {
     {p1Pick,p1Selected,p1Lock,p2Turn,p2Pick,p2Selected,lock:lockClick,states:fighterBattleStates,battle});
   report.evidence.push(await screenshot('r50k-battle'));
 
-  // R62 physical BOT portrait inspection: exactly the user's iPad Pro 13
-  // viewport. Verify actual DOM hit-target geometry, not CSS source tokens.
+  // R62 canonical-owner Gold tablet: test the physical DOM and hit targets
+  // AGAINST the actual authored two-row identity/weapon + two-skill layout.
+  // The superseded square-buttons/center-weapon expectation conflicts with
+  // the owner's archived Gold donor (verified independently by B8 parity).
+  // This is functional acceptance; owner visual judgement remains separate.
   await command('Emulation.setDeviceMetricsOverride',{
     width:1032,height:1376,deviceScaleFactor:1,mobile:true,
     screenWidth:1032,screenHeight:1376
@@ -313,57 +316,87 @@ try {
     const a=hud?.querySelector('#arena');
     const weapon=p1?.querySelector('.weapon');
     const skills=[...(p1?.querySelectorAll('.skill')||[])];
-    const rect=(node)=>{const r=node?.getBoundingClientRect();return r?
-      {x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom}:null};
+    const rect=node=>{const r=node?.getBoundingClientRect();return r?
+      {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}:null};
+    const hit=node=>{
+      const r=node?.getBoundingClientRect();if(!r)return false;
+      const top=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+      return !!top&&(top===node||node.contains(top));
+    };
+    const stage=rect(document.getElementById('battleHudHost'));
     return {layout:hud?.dataset.layout,size:hud?.dataset.size,
-      mode:hud?.dataset.mode,arena:rect(a),weapon:rect(weapon),
-      skills:skills.map(rect),panel:rect(p1)};
+      mode:hud?.dataset.mode,areas:p1?getComputedStyle(p1).gridTemplateAreas:'',
+      arena:rect(a),weapon:rect(weapon),skills:skills.map(rect),
+      skillHits:skills.map(hit),weaponHit:hit(weapon),panel:rect(p1),stage};
   })()`);
   const shapes=portraitTablet?.skills||[];
-  gate('R62-iPad-portrait-BOT-near-square-thumb-controls',
+  const dock=portraitTablet?.panel;
+  const weapon=portraitTablet?.weapon;
+  const inPanel=r=>!!(r&&dock&&r.x>=dock.x-2&&r.right<=dock.right+2&&
+    r.y>=dock.y-2&&r.bottom<=dock.bottom+2);
+  gate('R62-iPad-owner-Gold-portrait-BOT-dock-geometry',
     portraitTablet?.layout==='port'&&portraitTablet?.size==='tablet'&&
-    portraitTablet?.mode==='1p'&&shapes.length===2&&
-    shapes.every(r=>r&&r.w>=115&&r.h>=115&&r.w/r.h>=.65&&r.w/r.h<=1.45),
+    portraitTablet?.mode==='1p'&&
+    portraitTablet?.areas?.replace(/\s+/g,' ')==='"id wp" "sk sk"'&&
+    shapes.length===2&&shapes.every(inPanel)&&inPanel(weapon)&&
+    shapes[0].y>=weapon.bottom+2&&
+    Math.abs(shapes[0].y-shapes[1].y)<2&&
+    Math.abs(shapes[0].h-shapes[1].h)<2&&
+    Math.abs(shapes[0].w-shapes[1].w)<3&&
+    weapon.x>=shapes[0].x+shapes[0].w-3&&
+    portraitTablet?.arena?.w>=.65*1032&&
+    Math.abs(portraitTablet.arena.w-portraitTablet.arena.h)<3,
     portraitTablet);
-  gate('R62-iPad-portrait-weapon-centered-between-thumb-controls',
-    portraitTablet?.weapon?.w>=150&&
-    portraitTablet?.weapon?.x>shapes[0]?.x+shapes[0]?.w-3&&
-    portraitTablet?.weapon?.x+portraitTablet.weapon.w<shapes[1]?.x+3&&
-    portraitTablet?.arena?.w>=.65*1032,
-    portraitTablet);
+  gate('R62-iPad-owner-Gold-portrait-BOT-real-skill-hit-targets',
+    shapes.length===2&&
+    shapes.every(r=>r&&r.w>=115&&r.h>=115)&&
+    portraitTablet?.skillHits?.every(Boolean)===true&&
+    portraitTablet?.weaponHit===true,portraitTablet);
   report.evidence.push(await screenshot('r62-ipad-portrait-bot'));
 
-  // R68 runtime render probe: sample the true image-bound state layers, not
-  // string-presence gates. Temporarily toggle presentation only, then restore.
+  // R68/R70 production visual proof: images and cooldown state must really
+  // render, never depend on the retired conic ring / shade DOM or overlays.
+  // Exercise ONLY the visual dataset state, restoring live authority.
   const skillArtProbe=await evaluate(`(async () => {
     const node=document.querySelector('#battleHudHost #p1Side .skill');
     const art=node?.querySelector('.sk-art');
-    const ring=art?.querySelector('.apex-state-ring');
-    const shade=art?.querySelector('.apex-state-shade');
-    if(!node||!art||!ring||!shade)return {found:false};
+    const icon=art?.querySelector('img.apex-skill-icon');
+    const state=node?.querySelector('.sk-state');
+    const cdn=art?.querySelector('.sk-cdn');
+    if(!node||!art||!icon||!state||!cdn)return {found:false};
     const original=node.dataset.state;
-    const originalProgress=art.style.getPropertyValue('--apex-active-progress');
-    const originalShade=art.style.getPropertyValue('--apex-cd-shade');
-    const bounds=(el)=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}};
-    const artBounds=bounds(art),ringBounds=bounds(ring),shadeBounds=bounds(shade);
-    node.dataset.state='active';art.style.setProperty('--apex-active-progress','.5');
-    await new Promise(resolve=>setTimeout(resolve,160));
-    const active={opacity:getComputedStyle(ring).opacity,gradient:getComputedStyle(ring).backgroundImage};
-    node.dataset.state='cd';art.style.setProperty('--apex-cd-shade','.75');
-    await new Promise(resolve=>setTimeout(resolve,160));
-    const cooling={opacity:getComputedStyle(shade).opacity,transform:getComputedStyle(shade).transform};
+    const bounds=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:r.width,h:r.height}};
+    const within=(parent,child)=>child.x>=parent.x-2&&child.y>=parent.y-2&&child.right<=parent.right+2&&child.bottom<=parent.bottom+2;
+    const box=bounds(node),a=bounds(art),i=bounds(icon),textBox=bounds(state);
+    node.dataset.state='ready';
+    await new Promise(resolve=>setTimeout(resolve,260));
+    const ready={opacity:Number(getComputedStyle(icon).opacity)};
+    node.dataset.state='active';
+    await new Promise(resolve=>setTimeout(resolve,260));
+    const active={opacity:Number(getComputedStyle(icon).opacity),stateColor:getComputedStyle(state).color};
+    node.dataset.state='cd';
+    await new Promise(resolve=>setTimeout(resolve,260));
+    const cooling={opacity:Number(getComputedStyle(icon).opacity),
+      cdOpacity:Number(getComputedStyle(cdn).opacity),
+      stateColor:getComputedStyle(state).color};
     node.dataset.state=original;
-    if(originalProgress)art.style.setProperty('--apex-active-progress',originalProgress);else art.style.removeProperty('--apex-active-progress');
-    if(originalShade)art.style.setProperty('--apex-cd-shade',originalShade);else art.style.removeProperty('--apex-cd-shade');
-    const same=(a,b)=>Math.abs(a.x-b.x)<2&&Math.abs(a.y-b.y)<2&&Math.abs(a.w-b.w)<2&&Math.abs(a.h-b.h)<2;
-    return {found:true,bounded:same(artBounds,ringBounds)&&same(artBounds,shadeBounds),active,cooling};
+    return {found:true,imageLoaded:icon.complete&&icon.naturalWidth>0,
+      naturalWidth:icon.naturalWidth,imageFit:getComputedStyle(icon).objectFit,
+      imageBounds:within(a,i),stateBounds:within(box,textBox),
+      stateFont:parseFloat(getComputedStyle(state).fontSize),
+      overlayDisabled:[...art.querySelectorAll('.sk-mask,.sk-sweep')].every(e=>getComputedStyle(e).display==='none'),
+      noRetiredRings:!art.querySelector('.apex-state-ring,.apex-state-shade'),
+      ready,active,cooling};
   })()`);
   gate('R68-art-state-is-bounded-and-actually-rendered',
-    skillArtProbe.found&&skillArtProbe.bounded&&
-    Number(skillArtProbe.active?.opacity)>.85&&
-    skillArtProbe.active?.gradient?.includes('conic-gradient')&&
-    Number(skillArtProbe.cooling?.opacity)>.85&&
-    skillArtProbe.cooling?.transform!=='none',
+    skillArtProbe?.found===true&&skillArtProbe.imageLoaded===true&&
+    skillArtProbe.imageFit==='contain'&&
+    skillArtProbe.imageBounds===true&&skillArtProbe.stateBounds===true&&
+    skillArtProbe.stateFont>=10&&
+    skillArtProbe.overlayDisabled===true&&skillArtProbe.noRetiredRings===true&&
+    skillArtProbe.ready?.opacity>.90&&skillArtProbe.active?.opacity>.90&&
+    skillArtProbe.cooling?.opacity<.48&&skillArtProbe.cooling?.opacity>.20&&
+    skillArtProbe.cooling?.cdOpacity>.9,
     skillArtProbe);
   // Capture visually inspectable evidence of the actual image-only treatment.
   // Restore the live gameplay state immediately after each screenshot.
@@ -397,16 +430,27 @@ try {
     }
     delete window.__APEX_R69_ART_RESTORE;
   })()`);
-  // Responsive contract: Gold transition canvas tracks the real viewport after
-  // a portrait resize; donor DPR/geometry logic remains runtime authority.
+  // The Door canvas MUST be viewport-sized when visible and MUST leave the
+  // compositor after DONE. Measuring CSS rects of display:none after DONE
+  // produces 0x0 by design; still enforce full native backing resolution.
   await command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true,screenWidth:390,screenHeight:844});
   await sleep(260);
   const responsive=await evaluate(`(() => {
-    const c=document.getElementById('apex-scene-transition'),r=c?.getBoundingClientRect();
-    return {w:r?.width||0,h:r?.height||0,backingW:c?.width||0,backingH:c?.height||0,dpr:devicePixelRatio||1};
+    const c=document.getElementById('apex-scene-transition');
+    const r=c?.getBoundingClientRect(),visible=c&&getComputedStyle(c).display!=='none';
+    const active=window.APEX_SCENE_TRANSITION?.active?.()||false;
+    return {w:r?.width||0,h:r?.height||0,
+      backingW:c?.width||0,backingH:c?.height||0,
+      visible,active,ariaHidden:c?.getAttribute('aria-hidden')||'',
+      state:document.body?.dataset?.apexSceneTransition||'',
+      dpr:devicePixelRatio||1};
   })()`);
   gate('gold-transition-responsive-canvas-follows-portrait-viewport',
-    Math.abs(responsive.w-390)<2&&Math.abs(responsive.h-844)<2&&responsive.backingW>=390&&responsive.backingH>=844,responsive);
+    responsive.backingW>=390*responsive.dpr&&responsive.backingH>=844*responsive.dpr&&
+    (responsive.active
+      ? responsive.visible&&Math.abs(responsive.w-390)<2&&Math.abs(responsive.h-844)<2
+      : !responsive.visible&&responsive.ariaHidden==='true'&&responsive.state==='DONE'),
+    responsive);
 
   const errors=await evaluate('window.__APEX_R50K_ERRORS.slice()');
   gate('transition-flow-no-window-errors',errors.length===0,errors);
