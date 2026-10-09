@@ -7,6 +7,17 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>Apex Chaos</title>
+    <!-- Reversible R89 fidelity entry. The native game remains the default. -->
+    <script>
+      (() => {
+        const q = new URLSearchParams(location.search);
+        if (window.top === window && q.get('goldViewport') === '1') {
+          const target = new URL('/gold-fidelity-lab.html', location.origin);
+          target.search = q.toString();
+          location.replace(target.href);
+        }
+      })();
+    </script>
     <link rel="icon" type="image/png" href="/gold/assets/gold/favicon-r72-owner.png?v=r72" />
   </head>
   <body>
