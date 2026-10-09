@@ -206,7 +206,10 @@
       && isFirearm(slot.weaponId);
   }
   function isEligibleBullet(p) {
-    return !!p && p.aq === true && p.type === 'aq_bullet' && p.life !== 0
+    // Shield A2 bends ordinary kinetic objects, NEVER flame/plasma energy.
+    const kinetic=p?.type==='aq_bullet'||(p?.type==='aq_v43'&&
+      ['bolt','ball','rocket','fragment'].includes(p.kind));
+    return !!p && p.aq === true && kinetic && p.life !== 0
       && isFirearm(p.weapon) && !(p.__hr && p.__hr.cryHold);
   }
   function hostileTo(p, ct, combatantOfBody) {

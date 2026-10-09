@@ -202,7 +202,10 @@ function firstWithin(dx, dy, wx, wy, R) {
 
 // Why a projectile is NOT a K threat at all (no telemetry, no bookkeeping).
 function notAThreat(st, p) {
-  if (!p || !p.aq || p.type !== 'aq_bullet' || !(p.life > 0)) return true;
+  // Crystal can refract V43 physical/energy projectiles, Magnet only kinetic.
+  const v43=p?.type==='aq_v43'&&!['burn','fragment'].includes(p.kind)&&
+    !(p.kind==='mine'&&p.phase!=='flight');
+  if (!p || !p.aq || (p.type!=='aq_bullet'&&!v43) || !(p.life > 0)) return true;
   if (isT6(p)) return true;                                   // T6 never reflectable
   const hr = p.__hr;
   if (hr && (hr.crystalReflected || hr.cryHold)) return true; // one reflection, ever

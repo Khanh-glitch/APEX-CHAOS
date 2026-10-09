@@ -649,7 +649,7 @@
       const off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-dir),
         Math.cos(Math.atan2(dy,dx)-dir)));
       if(d<=c.range+(f.radius||75)*.2&&off<=c.cone+Math.asin(v43min((f.radius||75)*.35/Math.max(d,1),0,1)))
-        aqDamage(f,c.tickDamage,p.owner,p.weapon,{knockback:40});
+        aqDamage(f,p.damage||c.tickDamage,p.owner,p.weapon,{knockback:40});
     }
     p.ticks++;
     if(p.ticks>=c.ticks)p.life=0;
@@ -657,6 +657,7 @@
   function v43Step(p,dt){
     const c=V43[p.weapon];
     if(!c||!p.owner||p.owner.hp<=0||AQ.state?.over){p.life=0;return;}
+    if(p.__hr?.cryHold)return;
     p.age+=dt;p.life-=dt;
     if(p.kind==='flame'){v43FlameHit(p,dt);return;}
     if(p.kind==='mine'&&p.phase==='armed'){
@@ -720,12 +721,12 @@
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
       if(p.kind==='rocket'||p.kind==='ball'){
-        v43Splash(p,c.peak,p.kind==='ball'?c.blastRadius:c.blastRadius);
+        v43Splash(p,p.damage||c.peak,c.blastRadius);
         p.life=0;return;
       }
       if(p.kind==='mine'){
-        if(p.phase==='armed')v43Splash(p,c.peak,c.blastRadius);
-        else v43Splash(p,c.peak*.75,c.blastRadius);
+        if(p.phase==='armed')v43Splash(p,p.damage||c.peak,c.blastRadius);
+        else v43Splash(p,(p.damage||c.peak)*.75,c.blastRadius);
         p.life=0;return;
       }
       aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
@@ -744,7 +745,7 @@
       if(p.kind==='boomerang'){
         p.hits.add(hit.actor);v43Pulse(p.x,p.y,'strike');
         // Once per outward and once per return; this is one real flying object.
-        if(p.phase==='out'){p.phase='return';p.hits=new Set();}
+        if(p.phase==='out'){p.phase='return';p.damage=c.returning;p.hits=new Set();}
         p.x+=p.vx*dt*.3;p.y+=p.vy*dt*.3;return;
       }
       if(p.kind==='fragment'){
@@ -774,13 +775,13 @@
       for(const da of c.spread){
         const angle=Math.atan2(p.vy,p.vx)+da;
         v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
-          radius:c.radius,damage:c.shardDamage,vx:Math.cos(angle)*c.shardSpeed,
+          radius:c.radius,damage:p.damage||c.shardDamage,vx:Math.cos(angle)*c.shardSpeed,
           vy:Math.sin(angle)*c.shardSpeed,life:1.7});
       }
       v43Pulse(p.x,p.y,'split');p.life=0;
     }
     if(p.life<=0&&(p.kind==='rocket'||p.kind==='ball')){
-      v43Splash(p,p.kind==='rocket'?c.peak:(p.bounces?c.ricochetPeak:c.peak),c.blastRadius);
+      v43Splash(p,p.damage||(p.kind==='rocket'?c.peak:(p.bounces?c.ricochetPeak:c.peak)),c.blastRadius);
     }
   }
   function v43TickBurn(p,dt){
@@ -820,10 +821,10 @@
         if(!kind)throw Error('V43 executor not implemented '+c.kind);
         const x=v43Spawn(f,id,kind,a,{phase:kind==='boomerang'?'out':'flight',
           life:kind==='flame'?c.duration:kind==='boomerang'?c.flightSeconds:3.2,
-          radius:c.radius||8});
-        if(kind==='flame'){x.ticks=0;x.damage=0;}
-        if(kind==='plasma-core'){x.damage=0;}
-        if(kind==='boomerang')x.spin=0;
+          radius:c.radius||8,damage:c.direct??c.peak??c.outgoing??c.shardDamage??c.tickDamage??0});
+        if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;}
+        if(kind==='plasma-core'){x.damage=c.shardDamage;}
+        if(kind==='boomerang'){x.spin=0;x.damage=c.outgoing;}
         consume(f,'v43-fired');
       }
     };
