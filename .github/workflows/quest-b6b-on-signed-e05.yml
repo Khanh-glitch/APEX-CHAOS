@@ -1,0 +1,28 @@
+name: B6b Three Allies Owner Canon on Signed Quest E05 Base
+on:
+  push:
+    branches: ['quest/b6b-breach-contract-on-signed-e05']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  pure-owner-canon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Verify real E01 story cue and 3-second floor discharge contract
+        run: node tools/testQuestStoryInterludesQ4E.mjs
+      - name: Verify E03 120/90 exact active roster, no fake KO
+        run: node tools/testQuestScrapSwarmQ5.mjs
+      - name: Verify E06 approved three-wave/retreat/J-K pure contract
+        run: node tools/testQuestBreachPolicyQ6.mjs
+      - name: Verify Gold generator and product compilation
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          pnpm build
