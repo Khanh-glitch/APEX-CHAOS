@@ -81,7 +81,17 @@ try{
  gate('Gold loaded real Quest Director',ready);
  const fixture=await exec('(()=>{const D=window.APEX_QUEST01_DIRECTOR,p=D.checkpoint();const s={...p,checkpointId:"CHARGE_THE_BREAKER",encounterId:"E05",phaseId:"ENTRY",stormbreakerArtifactPhase:"SEALED",completedCueIds:["WAKE_OPEN","WORKSHOP_ARRIVAL","E02_FIRST_WAKE_ENTRY","E02_FIRST_WAKE_CLEAR","E03_SCRAP_SWARM_CLEAR","E04_WEAPON_RAIN_CLEAR"]};localStorage.setItem(D.STORAGE_KEY,JSON.stringify(s));return s.checkpointId})()');
  gate('Only browser test fixture seeds previously unlocked E05',fixture==='CHARGE_THE_BREAKER',{fixture});
- await cmd('Page.reload',{ignoreCache:true});
+ // Gold first boot can replace the renderer while Page.reload is still
+ // awaiting its CDP reply. Reacquire the actual page target every time.
+ try{await cmd('Page.reload',{ignoreCache:true})}
+ catch(e){if(!String(e).includes('Inspected target navigated or closed'))throw e;}
+ await sleep(400);
+ const pages=await fetch('http://127.0.0.1:'+port+'/json/list').then(x=>x.json());
+ const latest=pages.find(x=>x.type==='page');
+ if(!latest)throw Error('Reload lost Gold page');
+ try{socket?.close()}catch{}
+ await connect(latest);
+ await cmd('Runtime.enable');
  const boot=await poll('!!document.querySelector("#apex-boot-start")?.getBoundingClientRect().width&&!!document.querySelector("#continueStory")',Boolean,400);
  gate('Gold START and Continue Story loaded',boot);
  await click('#apex-boot-start');
