@@ -30,3 +30,56 @@ jobs:
         run: node tools/buildGoldCutover.mjs --check
       - name: Production build
         run: pnpm build
+  browser-story:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [desktop, mobile]
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Start genuine Gold/Vite browser runtime
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b6l-vite.log 2>&1 &
+          for i in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b6l-vite.log
+          exit 1
+      - name: Locate Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Actual E01-E06 native Gold + ordered post-wave story
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b6l-${{ matrix.target }}
+        shell: bash
+        run: |
+          if [ "${{ matrix.target }}" = mobile ]; then
+            node tools/testQuestDirectorQ1Browser.mjs --mobile --verify-breach-entry --verify-breach-three-waves
+          else
+            node tools/testQuestDirectorQ1Browser.mjs --verify-breach-entry --verify-breach-three-waves
+          fi
+      - name: Preserve real Gold screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b6l-gold-post-wave-${{ matrix.target }}
+          path: |
+            /tmp/b6l-${{ matrix.target }}/
+            /tmp/b6l-vite.log
+          if-no-files-found: warn
