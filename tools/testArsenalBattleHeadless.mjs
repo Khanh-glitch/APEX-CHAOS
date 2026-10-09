@@ -6475,34 +6475,31 @@ if(process.argv.includes('--quest-reflex-real')){
           const first=A.beginQuestRivetPreview(),second=A.beginQuestRivetPreview();
           const frozen={hp:f.map(x=>x.hp),pos:f.map(x=>[x.x,x.y]),
             slots:A.state.slots.map(x=>[x.id,x.phase]),clock:A.state.time};
-          let launches=0,maxLive=0,authentic=false;
-          // A.step retains pre-rescue REAL hitStop; it can scale dt by 0.1.
-          // Give ready/windup/maxFlight/physical exit sufficient bounded
-          // wall frames without falsifying the original weapon cadence.
+          let electricVisibleFrames=0,peakBolts=0,maxNarrativeSlots=0,maxLive=0;
           for(let i=0;i<320;i++){
             A.step(.05);
-            const bolts=window.projectiles.filter(x=>x.questRivetSuppression===true);
-            if(bolts.length)launches++;
-            maxLive=Math.max(maxLive,bolts.length);
-            if(bolts.some(x=>x.aq===true&&x.type==='aq_thrown'
-              &&x.weapon==='STORMBREAKER'&&x.owner?.questId==='RIVET'))authentic=true;
+            const storm=window.APEX_ARSENAL_STORM;
+            const count=storm?.boltCount?.()||0;
+            peakBolts=Math.max(peakBolts,count);
+            if((storm?.spawnCount?.()||0)>0&&count>0)electricVisibleFrames++;
+            maxNarrativeSlots=Math.max(maxNarrativeSlots,
+              (A.state.slots||[]).filter(x=>x.questNarrativeOnly===true).length);
+            maxLive=Math.max(maxLive,window.projectiles.filter(x=>x.questRivetSuppression===true).length);
           }
           const afterRig={hp:f.map(x=>x.hp),pos:f.map(x=>[x.x,x.y]),
             slots:A.state.slots.map(x=>[x.id,x.phase]),clock:A.state.time};
-          const q=A.state.questRivetPreview;
-          rivetPreview={first,second,frozen,afterRig,launches,maxLive,authentic,
-            phase:q?.phase,settled:q?.settled,peak:q?.peakFlight,
-            birth:q?.birth||null,
+          const q=A.state.questRivetPreview,storySlot=A.state.slots.find(x=>x.id===q?.slotId);
+          rivetPreview={first,second,frozen,afterRig,
+            electricVisibleFrames,peakBolts,maxNarrativeSlots,maxLive,
+            phase:q?.phase,settled:q?.settled,elapsed:q?.elapsed,
+            storedElectricFrames:q?.electricFrames,storedPeakBolts:q?.peakBolts,
+            slot:storySlot&&{id:storySlot.id,phase:storySlot.phase,
+              tier:storySlot.tier,weapon:storySlot.weaponId,
+              narrative:storySlot.questNarrativeOnly,
+              x:storySlot.x,y:storySlot.y},
             technical:window.__apexQuestReflexTechnicalRead?.(),
             storyBeats:window.__apexQuestStoryBeatsRead?.(),
             rigGround:q?.aimPoint&&{x:q.aimPoint.x,y:q.aimPoint.y},
-            rigHolder:W.getHolder(q?.operator)&&{
-              phase:W.getHolder(q.operator).phase,
-              elapsed:W.getHolder(q.operator).elapsed,
-              windup:W.getHolder(q.operator).meta?.windupLeft,
-              canActivate:W.getHolder(q.operator).def?.canActivate?.(W.makeCtx(q.operator)),
-              enemy:W.makeCtx(q.operator)?.enemy?.hp
-            },
             live:window.projectiles.filter(x=>x.questRivetSuppression).length,
             story:snap()?.storyProgress,complete:snap()?.complete,over:A.state.over};
         }
@@ -6555,19 +6552,20 @@ if(process.argv.includes('--quest-reflex-real')){
           &&h.beforeHold.projectiles===0&&h.afterHold.projectiles===0
           &&Number.isInteger(h.holdRecord.interruptedProjectiles);
       }),trials.slice(0,8).map(x=>x?.halfHp?.holdProbe));
-    gate('q4c-rivet-one-authentic-stormbreaker-flight-while-combat-frozen',
+    gate('b2c-owner-ground-stormbreaker-three-second-Gold-lightning-real-slot',
       trials.slice(0,8).length===8&&trials.slice(0,8).every(x=>{
         const v=x?.halfHp?.rivetPreview;
         return v?.first?.ok===true&&v?.second?.ok===false
           &&v?.second?.reason==='already-released'
-          &&v?.authentic===true&&v?.launches>0&&v?.maxLive===1&&v?.peak===1
-          &&v?.birth?.owner==='RIVET'&&v?.birth?.weapon==='STORMBREAKER'
-          &&v?.birth?.kind==='aq_thrown'
-          &&Number.isFinite(v.birth.x)&&Number.isFinite(v.birth.y)
-          &&Number.isFinite(v.birth.vy)&&Math.abs(v.birth.vy)>1000
-          &&v?.phase==='SETTLED'&&v?.settled===true&&v?.live===0
+          &&v?.electricVisibleFrames>=10&&v?.peakBolts>0
+          &&v?.storedElectricFrames>=10&&v?.storedPeakBolts>0
+          &&v?.maxNarrativeSlots===1&&v?.maxLive===0
+          &&v?.slot?.narrative===true&&v?.slot?.phase==='REVEALED'
+          &&v?.slot?.weapon==='STORMBREAKER'&&v?.slot?.tier==='T6'
+          &&v?.phase==='SETTLED'&&v?.settled===true&&v?.elapsed>=3
           &&v?.technical?.ready===true
-          &&v?.technical?.groundImpact?.kind==='REAL_ARSENAL_FLOOR_CONTACT'
+          &&v?.technical?.groundImpact?.kind==='REAL_ARSENAL_FLOOR_SPAWN'
+          &&v?.technical?.groundImpact?.slotId===v?.slot?.id
           &&v?.technical?.groundImpact?.x===v?.rigGround?.x
           &&v?.technical?.groundImpact?.y===v?.rigGround?.y
           &&v?.storyBeats?.emitted?.join('|')===

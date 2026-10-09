@@ -29,3 +29,5 @@ jobs:
           node tools/testQuestEnemyAbilitiesB1.mjs
       - name: Production build
         run: pnpm build
+      - name: Actual 12-trial Arsenal E01 Stormbreaker Gold floor discharge
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic
