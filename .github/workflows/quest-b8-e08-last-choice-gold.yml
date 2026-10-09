@@ -35,8 +35,12 @@ jobs:
           pnpm test:arsenal:current-collision
           pnpm test:arsenal:current-render-hud
           pnpm test:source-hygiene
-      - name: Owner original Gold vs current production (audit only, not visual sign-off)
-        run: node tools/testB8CanonicalGoldParity.mjs
+      - name: R90 integrated Gold and owner-approved R70 regressions (non-visual)
+        run: |
+          node tools/testR89GoldResolver.mjs
+          node tools/testGoldPickBandLawGate.mjs
+          node tools/testGoldBattleHudAdaptationGate.mjs
+          node tools/testB8CanonicalGoldParity.mjs
       - name: Gold source provenance
         run: node tools/buildGoldCutover.mjs --check
       - name: Build

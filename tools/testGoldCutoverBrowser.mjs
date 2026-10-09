@@ -300,7 +300,7 @@ try {
     {p1Pick,p1Selected,p1Lock,p2Turn,p2Pick,p2Selected,lock:lockClick,states:fighterBattleStates,battle});
   report.evidence.push(await screenshot('r50k-battle'));
 
-  // R62 canonical-owner Gold tablet: test the physical DOM and hit targets
+  // R90 current owner-Gold tablet (supersedes the abandoned R62 dock): test the physical DOM and hit targets
   // AGAINST the actual authored two-row identity/weapon + two-skill layout.
   // The superseded square-buttons/center-weapon expectation conflicts with
   // the owner's archived Gold donor (verified independently by B8 parity).
@@ -334,7 +334,7 @@ try {
   const weapon=portraitTablet?.weapon;
   const inPanel=r=>!!(r&&dock&&r.x>=dock.x-2&&r.right<=dock.right+2&&
     r.y>=dock.y-2&&r.bottom<=dock.bottom+2);
-  gate('R62-iPad-owner-Gold-portrait-BOT-dock-geometry',
+  gate('R90-current-Gold-iPad-BOT-dock-geometry',
     portraitTablet?.layout==='port'&&portraitTablet?.size==='tablet'&&
     portraitTablet?.mode==='1p'&&
     portraitTablet?.areas?.replace(/\s+/g,' ')==='"id wp" "sk sk"'&&
@@ -347,14 +347,14 @@ try {
     portraitTablet?.arena?.w>=.65*1032&&
     Math.abs(portraitTablet.arena.w-portraitTablet.arena.h)<3,
     portraitTablet);
-  gate('R62-iPad-owner-Gold-portrait-BOT-real-skill-hit-targets',
+  gate('R90-current-Gold-iPad-BOT-real-skill-hit-targets',
     shapes.length===2&&
     shapes.every(r=>r&&r.w>=115&&r.h>=115)&&
     portraitTablet?.skillHits?.every(Boolean)===true&&
     portraitTablet?.weaponHit===true,portraitTablet);
   report.evidence.push(await screenshot('r62-ipad-portrait-bot'));
 
-  // R68/R70 production visual proof: images and cooldown state must really
+  // R90 current Gold / approved R70 production visual proof: images and cooldown state must really
   // render, never depend on the retired conic ring / shade DOM or overlays.
   // Exercise ONLY the visual dataset state, restoring live authority.
   const skillArtProbe=await evaluate(`(async () => {
@@ -390,7 +390,7 @@ try {
       noRetiredRings:!art.querySelector('.apex-state-ring,.apex-state-shade'),
       ready,active,cooling};
   })()`);
-  gate('R68-art-state-is-bounded-and-actually-rendered',
+  gate('R90-current-Gold-skill-art-states-actually-rendered',
     skillArtProbe?.found===true&&skillArtProbe.imageLoaded===true&&
     skillArtProbe.imageFit==='contain'&&
     skillArtProbe.imageClipped===true&&skillArtProbe.imageArea===true&&
