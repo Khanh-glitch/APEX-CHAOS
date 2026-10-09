@@ -6104,6 +6104,24 @@ if(process.argv.includes('--quest-breaker-native')){
   }catch(e){gate('E05 real Arsenal integration',false,{error:String(e?.stack||e)});}
 }
 
+// B1 actual Arsenal Fighter transactions (not pure fake-body simulation).
+if(process.argv.includes('--quest-enemy-native')){
+  try {
+    const p=run("const ok=window.__apexQuestTestRosterStart('3v4')===true;\nif(!ok)return {ok};\nconst AQ=window.APEX_ARSENAL, fs=window.fighters;\nconst get=id=>fs.find(x=>x.questId===id);\nconst robot=get('NEWBOT'),sentinel=get('SCRAP-D'),reaver=get('SCRAP-C'),tot=get('T.O.T'),rivet=get('RIVET');\nconst abilities=AQ.state.questEnemyAbilities;\nAQ.state.spawnHeld=true; AQ.state.spawnTimer=9999; AQ.state.slots=[];\nfor(const f of fs){f.baseSpeed=0;f.data.__hrHoldBody=true;f.x=930;f.y=910;}\nsentinel.x=200;sentinel.y=470;robot.x=710;robot.y=470;\nreaver.x=880;reaver.y=880;tot.x=900;tot.y=830;rivet.x=970;rivet.y=830;\nfor(let i=0;i<32;i++)AQ.step(.05);\nconst laser={hp:robot.hp,shots:abilities.snapshot().shots,hits:abilities.snapshot().hits,\nstun:robot.statuses.stun?.timer||0,damage:robot.damageLabels['quest-sentinel-blue-laser']||0};\nsentinel.hp=0;robot.x=150;robot.y=930;reaver.x=520;reaver.y=500;tot.x=620;tot.y=500;\nconst before=tot.hp;\nAQ.step(.016);\nconst contact={damage:before-tot.hp,hp:tot.hp,bumps:abilities.snapshot().bumps,\nseparation:Math.hypot(reaver.x-tot.x,reaver.y-tot.y)};\nAQ.step(.016);\nconst hold={hp:tot.hp,bumps:abilities.snapshot().bumps};\nreaver.x=250;reaver.y=250;tot.x=870;tot.y=870;AQ.step(.016);\nreaver.x=520;reaver.y=500;tot.x=620;tot.y=500;AQ.step(.016);\nconst next={hp:tot.hp,bumps:abilities.snapshot().bumps};\nwindow.exitArsenalBattleMode();\nreturn {ok,laser,contact,hold,next,closed:abilities.snapshot().rays===0};");
+    gate('B1 native Sentinel physically hits and stuns NEWBOT',
+      p?.ok===true&&p.laser.shots>=1&&p.laser.hits>=1
+      &&p.laser.damage===100&&p.laser.hp===900&&p.laser.stun>0,p?.laser);
+    gate('B1 native Reaver reflects and inflicts 50 per new contact',
+      p?.contact?.damage===50&&p.contact.separation>=140,p?.contact);
+    gate('B1 native Reaver does not re-hit each overlap frame',
+      p?.hold?.hp===p?.contact?.hp,p?.hold);
+    gate('B1 native separation and re-contact reapplies 50 with no timer',
+      p?.next?.hp===p?.contact?.hp-50
+      &&p?.next?.bumps===p?.contact?.bumps+1,p?.next);
+    gate('B1 encounter teardown clears skill projectiles',p?.closed===true,p?.closed);
+  }catch(e){gate('B1 native Quest enemy skills',false,{error:String(e?.stack||e)})}
+}
+
 // Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
 // Test-only start does not write Quest Director completion.
 if (process.argv.includes('--quest-n-actors')) {
