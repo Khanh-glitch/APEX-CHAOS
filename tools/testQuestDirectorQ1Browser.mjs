@@ -1435,6 +1435,17 @@ try{
             const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot();const ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>9&&snap.tot.dashing;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dash:snap.tot.dashing,recipient:snap.currentRecipient}})()");
             gate('B6n physical keyboard J dispatch reaches the same T.O.T native dash',
               keyResult?.ok&&keyResult?.cooldown>9,keyResult);
+            const pointerReady=await evalPage("(()=>{const A=window.APEX_ARSENAL,G=window.APEX_GOLD,Q=A.state.questBreachCompanionSkills,W=A.weaponApi;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const k=Q.snapshot().tot;if(k.phase==='STORED'){if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');G.pressSkill(0,1,{source:'b6n-test-reset-stored-holder'});}if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');A.state.slots=[];Q.tick(12);Q.tick(4);const now=Q.snapshot();return{recipient:now.currentRecipient,phase:now.tot.phase,kCooldown:now.tot.kCooldown,ui:!!document.querySelector('#battleHudHost #p1Side .skill[data-i=\\\"1\\\"]')}})()");
+            gate('B6n true Gold skill button is present and T.O.T K is ready',
+              pointerReady?.recipient==='T.O.T'&&pointerReady?.phase==='READY'
+              &&pointerReady?.kCooldown===0&&pointerReady?.ui,pointerReady);
+            await click('#battleHudHost #p1Side .skill[data-i="1"]');
+            const physicalK=await poll("(()=>({phase:window.APEX_ARSENAL?.state?.questBreachCompanionSkills?.snapshot?.().tot?.phase,recipient:window.APEX_ARSENAL?.state?.questBreachCompanionSkills?.currentRecipient?.()}))()",
+              v=>v?.phase==='CAPTURE'&&v?.recipient==='T.O.T',60);
+            gate('B6n actual Gold pointer/touch K press primes 2s native gun reserve',
+              physicalK?.phase==='CAPTURE'&&physicalK?.recipient==='T.O.T',physicalK);
+            await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;Q.tick(3);Q.tick(4);window.fighters[0].withdrawn=false;return{restored:true}})()");
+
           }
           if(process.argv.includes('--verify-breach-three-waves')){
             // ENGINE-INSTRUMENTED acceptance: projectiles and HP/KO authority
