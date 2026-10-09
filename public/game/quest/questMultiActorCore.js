@@ -272,6 +272,76 @@
       :{status:'COMPLETE',reason:'wave-b-real-KO'};
   }
 
+  // E04 native rain: the spectacle comes from real cap-aware Arsenal slots.
+  // All phase timing and loss-safe observation are isolated from combat.
+  const RAIN_SPEC=Object.freeze({
+    cadenceEarly:3.0,cadenceHeavy:1.6,heavyAt:11,burstAt:22,
+    burstOffsets:Object.freeze([0,0.36,0.72]),observeHold:1.3
+  });
+  function weaponRainRoster(){
+    return [
+      {questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:195,y:500,kind:'newbot'},
+      {questId:'RAIN-A',questTeam:'HOSTILE',hp:450,x:785,y:280,kind:'scout'},
+      {questId:'RAIN-B',questTeam:'HOSTILE',hp:450,x:785,y:740,kind:'bulwark'}
+    ];
+  }
+  function validateWeaponRain(actors){
+    if(!Array.isArray(actors)||actors.length!==3)
+      return {ok:false,reason:'requires-1v2'};
+    const common=validateRoster(actors);
+    if(!common.ok||common.allies!==1||common.hostiles!==2)
+      return {ok:false,reason:'invalid-rain-teams'};
+    for(const spec of weaponRainRoster()){
+      const match=actors.find(a=>a.questId===spec.questId);
+      if(!match||team(match)!==spec.questTeam||match.maxHp!==spec.hp)
+        return {ok:false,reason:'invalid-rain-actor-or-hp'};
+    }
+    return {ok:true,reason:'true-rain-roster'};
+  }
+  function weaponRainOutcome(actors,observed){
+    const valid=validateWeaponRain(actors);
+    if(!valid.ok)return {status:'INVALID',reason:valid.reason};
+    const hero=actors.find(x=>x.questId==='NEWBOT');
+    if(!alive(hero))return {status:'RETRY',reason:'newbot-ko'};
+    if(actors.some(x=>team(x)==='HOSTILE'&&alive(x)))
+      return {status:'ACTIVE',reason:'hostiles-alive'};
+    return observed===true
+      ?{status:'COMPLETE',reason:'real-hostile-KO-and-rain-observed'}
+      :{status:'AWAIT_OBSERVATION',reason:'real-KO-before-final-rain'};
+  }
+  function createWeaponRainSequence(){
+    let phase='DRIZZLE',attempted=0,accepted=0,rejected=0;
+    let observed=false,lastBurstAt=null,closed=false;
+    const requestTimes=[];
+    function tick(time,requestSlot){
+      if(closed||!finite(time)||time<0||typeof requestSlot!=='function')
+        return {phase,observed};
+      if(time>=RAIN_SPEC.burstAt)phase='BURST';
+      else if(time>=RAIN_SPEC.heavyAt)phase='DOWNPOUR';
+      while(phase==='BURST'&&attempted<RAIN_SPEC.burstOffsets.length
+        &&time+EPS>=RAIN_SPEC.burstAt+RAIN_SPEC.burstOffsets[attempted]){
+        const slot=requestSlot();
+        requestTimes.push(time);attempted++;
+        if(slot)accepted++;else rejected++;
+        lastBurstAt=time;
+      }
+      if(phase==='BURST'&&attempted===RAIN_SPEC.burstOffsets.length
+         &&lastBurstAt!=null
+         &&time-lastBurstAt+EPS>=RAIN_SPEC.observeHold){
+        observed=true;phase='OBSERVED';
+      }
+      return {phase,observed};
+    }
+    function snapshot(){return Object.freeze({
+      phase,attempted,accepted,rejected,observed,
+      burstTimes:requestTimes.slice(),lastBurstAt,closed
+    });}
+    function cadence(){return phase==='DRIZZLE'
+      ?RAIN_SPEC.cadenceEarly:RAIN_SPEC.cadenceHeavy;}
+    function close(){closed=true;}
+    return Object.freeze({tick,cadence,snapshot,close});
+  }
+
   // Strong preflight: multiple bodies cannot borrow the same fighter identity;
   // two teams and one controllable protagonist are required.
   function validateFirstWake(actors) {
@@ -299,5 +369,6 @@
     firstProjectileHit, splashEnemies, closestEligiblePickup, separateBodyOverlaps,
     firstWakeOutcome, validateFirstWake, fixtureRoster, validateRoster, teamsOutcome,
     scrapSwarmRoster,validateScrapSwarmWave,scrapSwarmOutcome,SWARM_TUNING,
+    RAIN_SPEC,weaponRainRoster,validateWeaponRain,weaponRainOutcome,createWeaponRainSequence,
   });
 })(typeof window !== 'undefined' ? window : globalThis);
