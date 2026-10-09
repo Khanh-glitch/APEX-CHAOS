@@ -1593,10 +1593,15 @@ try{
                   &&storm?.receipts?.filter(x=>x.native==='THROW')?.length===1
                   &&storm?.cradle?.slotId===storm?.slot,storm);
                 if(!storm?.returned){
-                  const forensic=await evalPage("(()=>{const A=window.APEX_ARSENAL;return {slots:A?.state?.slots?.map(s=>({id:s.id,phase:s.phase,kind:s.questStage})),projectiles:window.projectiles?.map(p=>({weapon:p.weapon,type:p.type,state:p.state,tag:p.questTotArtifactId,owner:p.owner?.questId})),storm:A?.state?.questTotStormNative?.snapshot?.(),events:A?.events?.filter(x=>/B8_TRACE|STORM|QUEST_E08|MODE_ENTER/.test(x)).slice(-50)}})()");
+                  const forensic=await evalPage("(()=>{const A=window.APEX_ARSENAL;return {slots:A?.state?.slots?.map(s=>({id:s.id,phase:s.phase,kind:s.questStage})),projectiles:window.projectiles?.map(p=>({weapon:p.weapon,type:p.type,state:p.state,tag:p.questTotArtifactId,owner:p.owner?.questId})),storm:A?.state?.questTotStormNative?.snapshot?.(),events:A?.events?.filter(x=>/STORM|QUEST_E08|MODE_ENTER/.test(x)).slice(-50)}})()");
                   gate('B8 blocked STORM native lifecycle forensic capture',true,forensic);
                   throw Error('B8 real STORM projectile did not close its authenticated lifecycle');
                 }
+                const uniqueness=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questTotStormNative,S=Q.snapshot();const retry=Q.trySpawn();return{retry,slotId:S.slotId,returned:S.returned,cradleCount:A.state.slots.filter(s=>s.questStage==='E08_CRADLE_RETURN'&&s.id===S.slotId).length,originalReceipts:S.stormReceipts.map(x=>x.event)}})()");
+                gate('B8 one Stormbreaker cannot spawn twice or be collected from sealed returned cradle',
+                  uniqueness?.retry===false&&uniqueness?.returned
+                  &&uniqueness?.cradleCount===1
+                  &&uniqueness?.originalReceipts?.join('|')==='SPAWN|PICKUP|RESOLVED',uniqueness);
                 await image('35-e08-physical-stormbreaker-return');
                 await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
                 const finalHit=await evalPage("(()=>{const A=window.APEX_ARSENAL,W=A.weaponApi,[n,t]=window.fighters;W.fireBullet({owner:n,x:250,y:500,angle:0,speed:2800,damage:1200,weapon:'PISTOL'});for(let i=0;i<16;i++)A.step(.025);let s=A.state.questTotStormNative.snapshot();return{hero:n.hp,boss:t.hp,phase:s.phase,outcome:A.state.questOutcome,over:A.state.over,events:s.events,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()");
@@ -1617,6 +1622,10 @@ try{
                 const end=await poll("(()=>({save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,stage:document.getElementById('apexQuest01Stage')?.hidden===false,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",v=>v?.save==='OUTSIDE'&&v?.stage&&!v?.hud,160);
                 gate('B8 nonlethal T.O.T voluntary last line signs OUTSIDE and closes Gold combat',
                   end?.save==='OUTSIDE'&&end?.stage&&!end?.hud,end);
+                const closing=await evalPage("(()=>({chapter:document.getElementById('q1Title')?.textContent,copy:document.getElementById('q1Copy')?.textContent,e08Hidden:document.getElementById('q8TotPlay')?.hidden===true,context:document.getElementById('q1Context')?.textContent}))()");
+                gate('B8 OUTSIDE chapter presents canon conclusion without replaying E08 or placeholder UI',
+                  closing?.chapter==='OUTSIDE'&&closing?.copy?.includes('T.O.T chose to stop.')
+                  &&closing?.e08Hidden===true&&closing?.context?.includes('RIVET survives'),closing);
                 await image('36-e08-canonical-outside-signed');
                 await reloadAndReattach();
                 const persisted=await poll("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId)()",v=>v==='OUTSIDE',180);

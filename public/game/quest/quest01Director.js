@@ -17,8 +17,8 @@
     { id:'CHARGE_THE_BREAKER', label:'CHARGE THE BREAKER', type:'ENCOUNTER', encounterId:'E05', status:'PENDING_IMPLEMENTATION', copy:'Charge the impact accumulator with genuine weapon damage. Hold until the relay answers.' },
     { id:'BREACH_WAVES', label:'BREACH WAVES', type:'ENCOUNTER', encounterId:'E06', status:'B6_NATIVE_ACCEPTANCE', copy:'Three allies defend the basin in three real waves. RIVET secures the rig before joining the front.' },
     { id:'RIVET_OVERRIDDEN', label:'RIVET OVERRIDDEN', type:'ENCOUNTER', encounterId:'E07', status:'B7_GOLD_NATIVE_PILOT' },
-    { id:'TOT_LAST_CHOICE', label:'T.O.T — LAST CHOICE', type:'ENCOUNTER', encounterId:'E08', status:'B8_NATIVE_LAST_CHOICE' },
-    { id:'OUTSIDE', label:'OUTSIDE', type:'STORY', status:'B8_CLOSING_STORY' }
+    { id:'TOT_LAST_CHOICE', label:'T.O.T — LAST CHOICE', type:'ENCOUNTER', encounterId:'E08', status:'B8_NATIVE_LAST_CHOICE', copy:'NEWBOT faces T.O.T. Only one of them can make the final choice.' },
+    { id:'OUTSIDE', label:'OUTSIDE', type:'STORY', status:'B8_CLOSING_STORY', copy:'T.O.T chose to stop. NEWBOT steps beyond the workshop.' }
   ]);
   // Stage signposts are SYSTEM/NARRATOR information, not character speech.
   // They make each change in gameplay causal without inventing canon dialogue.
@@ -32,7 +32,8 @@
     WEAPON_RAIN:'The supply rhythm accelerates while two hostiles remain active. Every weapon is a real Arsenal pickup, not falling scenery.',
     CHARGE_THE_BREAKER:'The inert accumulator accepts weapon impacts. Filling its charge sends one infrastructure pulse toward the relay.',
     BREACH_WAVES:'The accumulator signal draws three waves. RIVET must stop operating the rig before joining NEWBOT and T.O.T in physical defense.',
-    RIVET_OVERRIDDEN:'The relay identified RIVET and T.O.T; NEWBOT remains unidentified. RIVET returned to the passive rig and lost control of its body.'
+    RIVET_OVERRIDDEN:'The relay identified RIVET and T.O.T; NEWBOT remains unidentified. RIVET returned to the passive rig and lost control of its body.',
+    OUTSIDE:'RIVET survives the override. T.O.T voluntarily shuts down, leaving NEWBOT to find what lies beyond the Scrap Basin.'
   });
   const NODE_IDS = NODES.map(n => n.id);
   const byId = id => NODES.find(n => n.id === id) || null;
