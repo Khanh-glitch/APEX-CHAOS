@@ -55,3 +55,9 @@ Likewise, Q5 gameplay has not yet adopted the new collision, enemy skill/speed, 
 - Shared modified files: **exactly `public/gold/battle-hud.html` and `public/gold/shell.html`**, unchanged from static REST comparison.
 - Therefore B0.5 is a **required** merge-resolution stage before any B1/B3 Quest changes; do not claim R90 integrated or Q5+Responsive tests complete.
 - Workflow deliberately exits success on expected conflict to preserve evidence; next gate must demand a clean resolved *integrated* tree and visual/browser tests.
+
+### Hunk-level confirmation (run 37902246306)
+- `Auto-merging public/gold/battle-hud.html`: Git could structurally auto-merge its text, **NOT** proof of coherent Quest HP semantics or responsive geometry.
+- `CONFLICT (content): Merge conflict in public/gold/shell.html`: the only **textual** conflict at Q5z6/R90 pinned snapshots.
+- The `shell.html` conflict includes the generated embedded Battle HUD content seam described in R89's earlier rehearsal, so proper resolution starts in canonical `battle-hud.html` and `tools/buildGoldCutover.mjs` source, then regenerates the Shell payload.
+- This second read-only audit SUCCESS means accurate conflict evidence has been saved, not that merge succeeded. Evidence: https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/37902246306
