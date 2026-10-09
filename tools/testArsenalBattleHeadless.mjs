@@ -6185,6 +6185,13 @@ if(process.argv.includes('--quest-reflex-real')){
           const q=A.state.questRivetPreview;
           rivetPreview={first,second,frozen,afterRig,launches,maxLive,authentic,
             phase:q?.phase,settled:q?.settled,peak:q?.peakFlight,
+            rigHolder:W.getHolder(q?.operator)&&{
+              phase:W.getHolder(q.operator).phase,
+              elapsed:W.getHolder(q.operator).elapsed,
+              windup:W.getHolder(q.operator).meta?.windupLeft,
+              canActivate:W.getHolder(q.operator).def?.canActivate?.(W.makeCtx(q.operator)),
+              enemy:W.makeCtx(q.operator)?.enemy?.hp
+            },
             live:window.projectiles.filter(x=>x.questRivetSuppression).length,
             story:snap()?.storyProgress,complete:snap()?.complete,over:A.state.over};
         }
