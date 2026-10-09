@@ -228,10 +228,16 @@ try{
     if(!(await wait("(()=>{const c=window.__apexGoldFidelity?.child();return c?.document.querySelector('#stage')?.classList.contains('screen-fighter')&&c.document.querySelectorAll('#fighterRoster .rosterCard').length>=6})()")))
       throw Error(v.name+' pick unavailable');
     const fighter=await evalJS('('+screenAudit.toString()+')(".rosterCard[data-hero=newbot]")');
-    const lock=await evalJS('('+screenAudit.toString()+')("#lockIn")');
-    check(v.name+' Fighter roster and LOCK on screen',fighter.within&&lock.within&&!fighter.hidden&&!lock.hidden,{fighter,lock});
+    check(v.name+' Fighter roster on screen',fighter.within&&fighter.hittable&&!fighter.hidden,fighter);
     await click('.rosterCard[data-hero="newbot"]');
-    await sleep(230);await click('#lockIn');
+    // Gold's flowUp starts 300ms after stage change, lasting another 380ms.
+    // Clicking LOCK before it finishes is testing an intentionally hidden
+    // transition frame, not a usable live-control layout.
+    const lockReady=await wait("(()=>{const c=window.__apexGoldFidelity?.child();const n=c?.document.querySelector('#lockIn');if(!n)return false;const s=c.getComputedStyle(n);return s.visibility!=='hidden'&&s.display!=='none'&&Number(s.opacity)>.95&&s.pointerEvents!=='none'})()");
+    const lock=await evalJS('('+screenAudit.toString()+')("#lockIn")');
+    check(v.name+' LOCK fully revealed and hittable',
+      lockReady&&lock.within&&lock.hittable&&!lock.hidden,{lockReady,lock});
+    await click('#lockIn');
     if(!(await wait("(()=>window.__apexGoldFidelity?.child()?.document.querySelector('#stage')?.classList.contains('fighter-active-p2'))()")))throw Error(v.name+' P2 handoff failed');
     await click('.rosterCard[data-hero="newbot"]');
     await sleep(230);await click('#lockIn');
