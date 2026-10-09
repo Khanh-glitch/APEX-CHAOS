@@ -14,7 +14,7 @@ const gate=(name,ok)=>{console.log((ok?'PASS':'FAIL')+' Q5 '+name);assert.ok(ok,
 const A=build('A'),B=build('B');
 gate('exact two-wave counts',A.length===4&&B.length===5);
 gate('exact HP and protagonist',A[0].maxHp===1000&&B[0].maxHp===1000
-  &&A.slice(1).every(x=>x.maxHp===280)&&B.slice(1).every(x=>x.maxHp===220));
+  &&A.slice(1).every(x=>x.maxHp===120)&&B.slice(1).every(x=>x.maxHp===90));
 gate('single allied NEWBOT; no T.O.T in field',A.concat(B).filter(a=>a.questTeam==='ALLY').every(a=>a.questId==='NEWBOT'));
 gate('wave A authored roster valid',Q.validateScrapSwarmWave(A,'A').ok);
 gate('wave B authored roster valid',Q.validateScrapSwarmWave(B,'B').ok);
@@ -35,7 +35,7 @@ gate('duplicate physical body denied',!Q.validateScrapSwarmWave(clone,'A').ok);
 const tamper=build('A');tamper[1].maxHp=999;
 gate('wrong enemy max HP denied',!Q.validateScrapSwarmWave(tamper,'A').ok);
 const original=Q.scrapSwarmRoster('B');original[1].hp=1;
-gate('roster specs not mutated by caller',Q.scrapSwarmRoster('B')[1].hp===220);
+gate('roster specs not mutated by caller',Q.scrapSwarmRoster('B')[1].hp===90);
 gate('no third wave',Q.scrapSwarmRoster('C')===null);
 gate('owner species motion law is invariant across waves',
   Q.enemySpecies('scout')?.speedFactor===1.2

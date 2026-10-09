@@ -1,0 +1,60 @@
+name: B5d Integrated Owner Canon E01-E05 Chrome
+on:
+  push:
+    branches: ['quest/b5d-integrate-owner-canon-and-viable-e03']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Quest and Gold immutable contracts
+        run: |
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestReplayHubB4.mjs
+          node tools/buildGoldCutover.mjs --check
+          pnpm build
+      - name: Start real Gold
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b5d-gold.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b5d-gold.log; exit 1
+      - name: Chrome locator
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"; echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Signed real Gold E01-E05 Desktop
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b5d-native
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: Signed real Gold E01-E05 Mobile
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b5d-native
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Save real Gold screenshots and signed checkpoints
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b5d-e03-balance-and-current-canon
+          path: |
+            /tmp/b5d-native/
+            /tmp/b5d-gold.log
+          if-no-files-found: warn
