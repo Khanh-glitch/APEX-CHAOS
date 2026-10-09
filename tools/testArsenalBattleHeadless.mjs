@@ -6096,8 +6096,29 @@ if(process.argv.includes('--quest-reflex-real')){
         spawnFlags:A.state.questReflexSpawns,
         positions:f.map(x=>({id:x.questId,x:Math.round(x.x),y:Math.round(x.y)})),
         actualStagePickups:(A.state.questReflexPickupLog||[]).map(x=>({...x}))};
+      // A normal player's J/K request must be ACCEPTED by HeroRework after
+      // the R2 physical hit. This tests opportunity availability; no
+      // synthetic pickup, cooldown overwrite, key receipt or fake Cast.
+      const HR=window.APEX_HERO_REWORK;
+      let j=null,k=null,jAttempts=0,waitTicks=0;
+      if(done?.phase==='J_CAST'){
+        for(;waitTicks<900;waitTicks++){
+          A.step(.05);
+          if(waitTicks%10!==0)continue;
+          jAttempts++;
+          const attempt=HR.pressAbility(f[0],'A1',{side:'p1',source:'keyboard',key:'KeyJ'});
+          if(attempt?.ok===true){j=attempt;break;}
+        }
+        if(j?.ok===true){
+          for(let x=0;x<20;x++)A.step(.05); // real post-J combat interval
+          k=HR.pressAbility(f[0],'A2',{side:'p1',source:'keyboard',key:'KeyK'});
+        }
+      }
+      const postJK=snap(),skillPilot={j:j?.ok===true,k:k?.ok===true,
+        phase:postJK?.phase,receipts:postJK?.receipts||[],
+        waitSeconds:+(waitTicks*.05).toFixed(2),jAttempts};
       window.exitArsenalBattleMode();
-      return {entered,ready:true,...after,clean:window.__apexQuestReflexRead?.()==null};
+      return {entered,ready:true,...after,skillPilot,clean:window.__apexQuestReflexRead?.()==null};
     `);
     trials.push(natural);
     }
@@ -6117,6 +6138,16 @@ if(process.argv.includes('--quest-reflex-real')){
       &&natural.receipts[1].from==='T.O.T'
       &&natural.receipts[1].to==='NEWBOT'),
       trials);
+    gate('q4a-organic-reflex-j-k-real-accepted-casts-without-synthetic-pickup',
+      trials.length===12&&trials.every(x=>x?.skillPilot?.j===true
+        &&x.skillPilot.k===true
+        &&x.skillPilot.phase==='BOTH_HALF'
+        &&x.skillPilot.receipts?.some(y=>y.kind==='CAST'&&y.slot==='A1')
+        &&x.skillPilot.receipts?.some(y=>y.kind==='CAST'&&y.slot==='A2')
+        &&x.skillPilot.waitSeconds<=45),
+      trials.map(x=>({phase:x?.skillPilot?.phase,j:x?.skillPilot?.j,
+        k:x?.skillPilot?.k,waitSeconds:x?.skillPilot?.waitSeconds,
+        attempts:x?.skillPilot?.jAttempts})));
   }catch(error){
     gate('q4a-organic-reflex-runner',false,{error:String(error?.stack||error)});
   }
