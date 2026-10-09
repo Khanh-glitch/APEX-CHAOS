@@ -1,0 +1,35 @@
+name: Quest Q5p E04 Weapon Rain genuine integration
+on:
+  push:
+    branches: ['quest/q5p-e04-weapon-rain-from-e03']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  e04-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Original Quest Q1 and Q2 authority gates
+        run: |
+          node tools/testQuestDirectorQ1.mjs
+          node tools/testQuestGenericRosterQ2.mjs
+      - name: E03 physical roster and no-fake KO regression
+        run: node tools/testQuestScrapSwarmQ5.mjs
+      - name: E04 1v2 real outcome and rain phase scheduler
+        run: node tools/testQuestWeaponRainQ5.mjs
+      - name: E04 real Arsenal gun and cap integration
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-weapon-rain-native
+      - name: Production build
+        run: pnpm build

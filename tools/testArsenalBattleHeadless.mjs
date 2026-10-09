@@ -5937,6 +5937,86 @@ if (process.argv.includes('--quest-scrap-swarm-native')) {
   }
 }
 
+// E04 genuine Arsenal integration: no artificial damage/HP writes,
+// no unsourced chest or sixth pickup. Only the real weapon API may KO.
+if(process.argv.includes('--quest-weapon-rain-native')){
+  let out;
+  try{
+    out=run(`
+      const beforeDirector=window.APEX_QUEST01_DIRECTOR;
+      window.APEX_QUEST01_DIRECTOR={
+        checkpoint:()=>({checkpointId:'WEAPON_RAIN'}),
+        acceptNativeBeat:()=>({ok:false,reason:'headless-has-no-save'})
+      };
+      window.__APEX_QUEST_DEV=true;window.__apexGoldBattleHosted=true;
+      const started=window.__apexQuestWeaponRainStoryStart?.()===true;
+      delete window.__APEX_QUEST_DEV;
+      const A=window.APEX_ARSENAL,W=A?.weaponApi,Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
+      if(!started||!A?.state?.questWeaponRainProgression)return {started,ready:false};
+      const f=window.fighters,hero=f[0];
+      f.forEach((a,i)=>{a.baseSpeed=0;a.data.__hrHoldBody=true;
+        a.x=220+i*260;a.y=890});
+      const initial=Q.validateWeaponRain(f),begin=A.state.questRainSequence.snapshot();
+      let steps=0,maxLive=0;
+      while(!A.state.questRainSequence.snapshot().observed&&steps++<900){
+        A.step(.05);
+        const live=A.state.slots.filter(x=>x.kind!=='HEAL'&&x.phase!=='REMOVED').length;
+        maxLive=Math.max(maxLive,live);
+      }
+      const rain=A.state.questRainSequence.snapshot();
+      const beforeKO=Q.weaponRainOutcome(f,rain.observed);
+      let hits=0;
+      function realKO(target){
+        const others=f.filter(x=>x!==hero&&x!==target);
+        hero.x=170;hero.y=500;target.x=610;target.y=500;
+        others.forEach((x,i)=>{x.y=900;x.x=400+i*180});
+        let fired=0;
+        while(target.hp>0&&fired++<30){
+          const hp=target.hp;
+          W.fireBullet({owner:hero,x:220,y:500,angle:0,
+            speed:2600,damage:10,weapon:'PISTOL'});
+          A.step(.18);
+          if(target.hp<hp)hits++;
+        }
+        return target.hp<=0;
+      }
+      const first=realKO(f[1]);
+      const halfway=Q.weaponRainOutcome(f,rain.observed);
+      const second=realKO(f[2]);
+      const outcome=Q.weaponRainOutcome(f,rain.observed);
+      const result={started,initial,begin,rain,steps,maxLive,
+        beforeKO,first,halfway,second,hits,outcome,
+        stateOutcome:A.state.questOutcome,over:A.state.over,
+        realView:A.state.questRainStoryView?.snapshot?.(),
+        node:window.APEX_QUEST01_DIRECTOR.checkpoint().checkpointId};
+      window.exitArsenalBattleMode();
+      window.APEX_QUEST01_DIRECTOR=beforeDirector;
+      window.__apexGoldBattleHosted=false;
+      return result;
+    `);
+    gate('E04 native Gold authorized actual 1v2',out?.started===true&&out.initial?.ok===true,
+      {started:out?.started,roster:out?.initial});
+    gate('E04 three real cap-aware burst attempts and final observation',
+      out?.rain?.observed===true&&out?.rain?.attempted===3
+      &&out.rain.accepted+out.rain.rejected===3&&out?.maxLive<=5
+      &&out?.rain?.phase==='OBSERVED'&&out?.steps<900,
+      {rain:out?.rain,steps:out?.steps,maxLive:out?.maxLive});
+    gate('E04 requires TWO genuine Arsenal KOs for result',
+      out?.beforeKO?.status==='ACTIVE'&&out?.first===true&&out?.second===true
+      &&out?.halfway?.status==='ACTIVE'&&out?.hits>=8
+      &&out?.outcome?.status==='COMPLETE',
+      {before:out?.beforeKO,first:out?.first,halfway:out?.halfway,
+        second:out?.second,hits:out?.hits,final:out?.outcome});
+    gate('E04 physical result scene awaits acknowledgement without fake save',
+      out?.over==='QUEST_WEAPON_RAIN_COMPLETE'
+      &&out?.stateOutcome==='COMPLETE'
+      &&out?.realView?.active===true
+      &&out?.realView?.current==='E04_WEAPON_RAIN_CLEAR'
+      &&out?.node==='WEAPON_RAIN',
+      {over:out?.over,scene:out?.realView,node:out?.node});
+  }catch(e){gate('E04 native integration test failed',false,{error:String(e?.stack||e)});}
+}
+
 // Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
 // Test-only start does not write Quest Director completion.
 if (process.argv.includes('--quest-n-actors')) {
