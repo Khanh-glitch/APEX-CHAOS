@@ -835,6 +835,63 @@ try{
     &&afterContinue.view.shown.join('|')==='E01_R1_IMPACT'
     &&afterContinue?.checkpoint==='WAKE'&&afterContinue?.live===true
     &&afterContinue?.phase==='R2_PISTOL',afterContinue);
+
+  // Q4G: one FULL STORY-PREVIEW rescue, no prototype-only manual rig launch.
+  // Every transition is earned by real Arsenal damage/casts and real clicks.
+  const q4gR2=await evalPage("(()=>{const A=window.APEX_ARSENAL;let n=0;for(;n<2200;n++){A.step(.05);if(window.__apexQuestStoryViewRead?.()?.active)break;}return {steps:n,scene:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase}})()");
+  gate('Q4G real retaliatory R2 impact opens its own story scene',
+    q4gR2?.scene==='E01_R2_IMPACT'&&q4gR2?.phase==='J_CAST',q4gR2);
+  const r2Continue=await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  gate('Q4G physical R2 scene Continue',r2Continue.hit,r2Continue);
+  const jNotice=await evalPage("(()=>({scene:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase}))()");
+  gate('Q4G first routine reveal stays behind R2 impact',jNotice?.scene==='E01_J_REVEAL'&&jNotice?.phase==='J_CAST',jNotice);
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const q4gJ=await evalPage("(()=>{const A=window.APEX_ARSENAL,H=window.APEX_HERO_REWORK;let n=0,accepted=false;for(;n<1600;n++){A.step(.05);const phase=window.__apexQuestReflexRead?.()?.phase;if(phase==='J_CAST'&&n%10===0)accepted=H.pressAbility(window.fighters[0],'A1',{side:'p1',source:'keyboard',key:'KeyJ'})?.ok===true||accepted;if(window.__apexQuestStoryViewRead?.()?.active)break;}return {steps:n,accepted,scene:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase}})()");
+  gate('Q4G accepted real J cast unlocks next narrative K cue',
+    q4gJ?.accepted===true&&q4gJ?.scene==='E01_K_REVEAL'&&q4gJ?.phase==='K_CAST',q4gJ);
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const q4gHold=await evalPage("(()=>{const A=window.APEX_ARSENAL,H=window.APEX_HERO_REWORK;let n=0,accepted=false;for(;n<6200;n++){A.step(.05);const phase=window.__apexQuestReflexRead?.()?.phase;if(phase==='K_CAST'&&n%10===0)accepted=H.pressAbility(window.fighters[0],'A2',{side:'p1',source:'keyboard',key:'KeyK'})?.ok===true||accepted;if(window.__apexQuestStoryViewRead?.()?.active)break;}const s=A.state;return {steps:n,kAccepted:accepted,scene:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase,hp:window.fighters.map(f=>f.hp),rig:s.questRivetPreview?.phase||null,clock:s.time,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
+  gate('Q4G real K + both HP thresholds reach guarded RIVET story hold',
+    q4gHold?.kAccepted===true&&q4gHold?.scene==='E01_RIVET_HOLD'
+    &&q4gHold?.phase==='AWAIT_RIVET'
+    &&q4gHold.hp?.every(h=>h>=250&&h<=500)
+    &&q4gHold?.rig==null&&q4gHold?.checkpoint==='WAKE',q4gHold);
+  const holdClick=await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const auto=await evalPage("(()=>({start:window.APEX_ARSENAL?.state?.questStoryRescueStart,phase:window.APEX_ARSENAL?.state?.questRivetPreview?.phase,view:window.__apexQuestStoryViewRead?.()}))()");
+  gate('Q4G physical Continue triggers exactly one authorized genuine rig equip',
+    holdClick.hit&&auto?.start?.ok===true&&auto?.phase==='READY'
+    &&auto?.view?.active===false,auto);
+  const q4gGround=await evalPage("(()=>{const A=window.APEX_ARSENAL;let n=0;for(;n<450;n++){A.step(.05);if(window.__apexQuestStoryViewRead?.()?.active)break;}const rig=A.state.questRivetPreview,proof=window.__apexQuestReflexTechnicalRead?.();return {steps:n,scene:window.__apexQuestStoryViewRead?.()?.current,rig:rig?.phase,contact:rig?.groundImpact,proof,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,hp:window.fighters.map(f=>f.hp),storySave:window.__apexQuestReflexRead?.()?.storyProgress,visualImpacts:window.APEX_ARSENAL_STORM?.stats?.impacts}})()");
+  gate('Q4G actual ground-struck Stormbreaker opens cinematic, no 446 HP or save',
+    q4gGround?.scene==='E01_RIVET_SUPPRESSION_TECH'
+    &&q4gGround?.rig==='SETTLED'
+    &&q4gGround?.contact?.kind==='REAL_ARSENAL_FLOOR_CONTACT'
+    &&q4gGround?.proof?.ready===true
+    &&q4gGround?.checkpoint==='WAKE'
+    &&q4gGround?.storySave===false
+    &&JSON.stringify(q4gGround?.hp)===JSON.stringify(q4gHold?.hp),q4gGround);
+  await image('14-q4g-real-stormbreaker-ground-story');
+  const groundClick=await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const workshop=await evalPage("(()=>({scene:window.__apexQuestStoryViewRead?.()?.current,shown:window.__apexQuestStoryViewRead?.()?.shown,workshop:window.APEX_ARSENAL?.state?.questWorkshopPreview,node:document.getElementById('apexQuestStoryView')?.dataset.beat,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()");
+  gate('Q4G verified ground cue triggers blackout WORKSHOP preview only',
+    groundClick.hit&&workshop?.scene==='WORKSHOP_ARRIVAL'
+    &&workshop?.node==='WORKSHOP_ARRIVAL'
+    &&workshop?.workshop===true&&workshop?.checkpoint==='WAKE',workshop);
+  await image('15-q4g-workshop-preview-blackout');
+  await cmd('Emulation.setDeviceMetricsOverride',{width:360,height:640,
+    deviceScaleFactor:2,mobile:true,screenOrientation:{type:'portraitPrimary',angle:0}});
+  await sleep(80);
+  const workshopMobile=await evalPage("(()=>{const e=document.getElementById('apexQuestStoryView'),footer=e?.querySelector('.qs-footer'),btn=e?.querySelector('.qs-controls button:not(.qs-skip)');const inside=x=>{const r=x?.getBoundingClientRect();return !!r&&r.left>=-2&&r.top>=-2&&r.right<=innerWidth+2&&r.bottom<=innerHeight+2};return {scene:e?.dataset.beat,inside:[footer,btn].every(inside),overflow:document.documentElement.scrollWidth>innerWidth+2}})()");
+  gate('Q4G WORKSHOP blackout preview controls remain inside compact phone',
+    workshopMobile?.scene==='WORKSHOP_ARRIVAL'
+    &&workshopMobile?.inside===true&&workshopMobile?.overflow===false,workshopMobile);
+  await image('16-q4g-workshop-phone');
+  const workshopClick=await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const finalPreview=await evalPage("(()=>({view:window.__apexQuestStoryViewRead?.(),phase:window.__apexQuestReflexRead?.()?.phase,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()");
+  gate('Q4G finish preview leaves E01 safe-hold and does not forge Director save',
+    workshopClick.hit&&finalPreview?.view?.active===false
+    &&finalPreview?.phase==='AWAIT_RIVET'
+    &&finalPreview?.checkpoint==='WAKE',finalPreview);
   await pressEscape();
   const afterStoryExit=await poll("(()=>({open:document.getElementById('battleHudHost')?.classList.contains('is-open'),view:window.__apexQuestStoryViewRead?.(),node:document.getElementById('apexQuestStoryView'),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
     x=>x?.open===false,150);
