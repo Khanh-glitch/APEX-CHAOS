@@ -6169,7 +6169,10 @@ if(process.argv.includes('--quest-reflex-real')){
           const frozen={hp:f.map(x=>x.hp),pos:f.map(x=>[x.x,x.y]),
             slots:A.state.slots.map(x=>[x.id,x.phase]),clock:A.state.time};
           let launches=0,maxLive=0,authentic=false;
-          for(let i=0;i<120;i++){
+          // A.step retains pre-rescue REAL hitStop; it can scale dt by 0.1.
+          // Give ready/windup/maxFlight/physical exit sufficient bounded
+          // wall frames without falsifying the original weapon cadence.
+          for(let i=0;i<320;i++){
             A.step(.05);
             const bolts=window.projectiles.filter(x=>x.questRivetSuppression===true);
             if(bolts.length)launches++;
