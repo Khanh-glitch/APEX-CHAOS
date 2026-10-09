@@ -1432,11 +1432,19 @@ try{
             const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:A.state.questBreachCompanionSkills.currentRecipient()}})()");
             gate('B6n KeyJ probe has real revealed floor pistol and T.O.T skill lease',
               inputSetup?.ok&&inputSetup?.recipient==='T.O.T',inputSetup);
-            await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
-            await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
-            const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot();const ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>9&&snap.tot.dashing;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dash:snap.tot.dashing,recipient:snap.currentRecipient}})()");
-            gate('B6n physical keyboard J dispatch reaches the same T.O.T native dash',
-              keyResult?.ok&&keyResult?.cooldown>9,keyResult);
+            if(!isMobile){
+              // Desktop physical keyboard; foreground the renderer first.
+              // Mobile uses the ACTUAL Gold touch K probe below instead.
+              await cmd('Page.bringToFront');
+              await evalPage("(()=>{window.focus();return{state:window.gameState,focus:document.hasFocus()}})()");
+              await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+              await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot();const ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>9&&snap.tot.dashing;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dash:snap.tot.dashing,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus()}})()");
+              gate('B6n desktop physical KeyJ dispatch reaches the same T.O.T native dash',
+                keyResult?.ok&&keyResult?.cooldown>9,keyResult);
+            }else{
+              await evalPage("(()=>{window.fighters[0].withdrawn=false;window.APEX_ARSENAL.state.slots=[];return true})()");
+            }
             const pointerReady=await evalPage("(()=>{const A=window.APEX_ARSENAL,G=window.APEX_GOLD,Q=A.state.questBreachCompanionSkills,W=A.weaponApi;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const k=Q.snapshot().tot;if(k.phase==='STORED'){if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');G.pressSkill(0,1,{source:'b6n-test-reset-stored-holder'});}if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');A.state.slots=[];Q.tick(12);Q.tick(4);const now=Q.snapshot();return{recipient:now.currentRecipient,phase:now.tot.phase,kCooldown:now.tot.kCooldown,ui:!!document.querySelector('#battleHudHost #p1Side .skill[data-i=\\\"1\\\"]')}})()");
             gate('B6n true Gold skill button is present and T.O.T K is ready',
               pointerReady?.recipient==='T.O.T'&&pointerReady?.phase==='READY'
@@ -1486,15 +1494,75 @@ try{
             gate('B6l RIVET return is not prematurely certified as E07',
               beforeFinal?.phase==='RIVET_RETURNED'&&beforeFinal?.stage==='BREACH_WAVES',beforeFinal);
             await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
-            const done=await poll("(()=>({stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,hudClosed:document.getElementById('battleHudHost')?.classList.contains('is-open')===false}))()",
-              x=>x?.stage==='BREACH_WAVES'&&x?.open&&x?.hudClosed,180);
-            gate('B6k final cinematic acknowledgment closes old Gold surface without fabricating E07 progress',
-              done?.stage==='BREACH_WAVES'&&done?.open&&done?.hudClosed,done);
-            await image('33-e06-preview-back-to-chapter');
+            const done=await poll("(()=>({stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,hudClosed:document.getElementById('battleHudHost')?.classList.contains('is-open')===false,e07:document.getElementById('q7RivetPlay')?.hidden===false}))()",
+              x=>x?.stage==='RIVET_OVERRIDDEN'&&x?.open&&x?.hudClosed&&x?.e07,180);
+            gate('B7 genuine signed E06 KOs and ordered rig beats unlock E07 Gold chapter',
+              done?.stage==='RIVET_OVERRIDDEN'&&done?.open&&done?.hudClosed&&done?.e07,done);
+            await image('33-e06-signed-rivet-chapter');
             await reloadAndReattach();
             const retained=await poll("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId)()",
-              x=>x==='BREACH_WAVES',180);
-            gate('B6k reload preserves legitimately signed E06 checkpoint after preview',retained==='BREACH_WAVES',retained);
+              x=>x==='RIVET_OVERRIDDEN',180);
+            gate('B7 reload preserves signed E07 checkpoint, not E06 preview',retained==='RIVET_OVERRIDDEN',retained);
+            if(process.argv.includes('--verify-rivet-gold')){
+              // After a real browser reload Gold correctly boots HOME first.
+              // Continue Story is the ONLY authorized way to display the
+              // current Director chapter; never invoke its hidden button.
+              // Same physical boot reopening already verified for E02/E06.
+              // A browser reload returns to the real mechanical START screen.
+              // Waiting on a stale DONE attribute does NOT release the #root
+              // boot overlay, and the protected Home CTA is deliberately occluded.
+              const reentryBoot=await poll("(()=>({present:document.getElementById('apex-boot-start')?.getBoundingClientRect()?.width>0,stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                v=>v?.present&&v?.stage==='RIVET_OVERRIDDEN',320);
+              gate('B7 real browser reload requires physical Gold START before E07 Home',
+                reentryBoot?.present&&reentryBoot?.stage==='RIVET_OVERRIDDEN',reentryBoot);
+              await click('#apex-boot-start');
+              await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true&&window.APEX_SCENE_TRANSITION?.active?.()===false)()",Boolean,320);
+              const beforeEntry=await poll("(()=>{const d=document.getElementById('apexQuest01Stage'),b=document.getElementById('q7RivetPlay'),e=document.getElementById('continueStory'),r=e?.getBoundingClientRect(),top=r?document.elementFromPoint(r.left+r.width/2,r.top+r.height/2):null;return{open:d?.hidden===false,button:b?.hidden===false,cta:!!e,ctaHittable:!!e&&(top===e||e.contains(top)),obstruction:top?.id||top?.className||top?.tagName,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()",
+                v=>v?.save==='RIVET_OVERRIDDEN'&&((v.open&&v.button)||v.ctaHittable),250);
+              gate('B7 post-reload Gold navigation has an accessible stage or real Continue Story',
+                beforeEntry?.save==='RIVET_OVERRIDDEN'&&
+                ((beforeEntry?.open&&beforeEntry?.button)||beforeEntry?.ctaHittable),beforeEntry);
+              if(!(beforeEntry?.open&&beforeEntry?.button))await click('#continueStory');
+              const stage=await poll("(()=>({open:document.getElementById('apexQuest01Stage')?.hidden===false,button:document.getElementById('q7RivetPlay')?.hidden===false,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                v=>v?.open&&v?.button&&v?.save==='RIVET_OVERRIDDEN',150);
+              gate('B7 Gold Home Continue Story exposes only genuinely unlocked E07',stage?.open&&stage?.button,stage);
+              await click('#q7RivetPlay');
+              const entry=await poll("(()=>({game:window.APEX_ARSENAL?.state?.active,story:window.APEX_ARSENAL?.state?.questRivetStoryView?.snapshot?.(),boss:(window.fighters||[]).find(x=>x.questId==='RIVET')?.hp,hero:(window.fighters||[]).find(x=>x.questId==='NEWBOT')?.hp,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                x=>x?.game&&x?.story?.current==='E07_START'&&x?.boss===1000&&x?.hero===1000,180);
+              gate('B7 E07 Gold opens genuine repaired 1000-HP NEWBOT + hostile RIVET Fighter',
+                entry?.game&&entry?.boss===1000&&entry?.hero===1000
+                &&entry?.save==='RIVET_OVERRIDDEN',entry);
+              const early=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E07_RECOVERY'))()");
+              gate('B7 early E07 continuation never skips physical nonlethal boss fight',
+                early?.ok===false,early);
+              await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+              const combat=await evalPage("(()=>{const A=window.APEX_ARSENAL,W=A.weaponApi,[n,r]=window.fighters;if(!A.state.questRivetProgression)return{ok:false};A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];n.x=145;n.y=500;r.x=660;r.y=500;n.baseSpeed=r.baseSpeed=0;n.data.__hrHoldBody=r.data.__hrHoldBody=true;W.fireBullet({owner:n,x:250,y:500,angle:0,speed:2800,damage:900,weapon:'PISTOL'});for(let i=0;i<16;i++)A.step(.025);const snap=A.state.questRivetAdapter?.snapshot?.();return{ok:true,hp:r.hp,heroHp:n.hp,outcome:A.state.questOutcome,over:A.state.over,stop:snap?.stopped,cues:snap?.cues?.map(x=>x.threshold),remaining:A.state.questRivetCueQueue?.slice(),save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()");
+              gate('B7 native Arsenal projectile hits the real RIVET and stops at exactly 180 HP',
+                combat?.ok&&combat?.hp===180&&combat?.heroHp>0
+                &&combat?.outcome==='COMPLETE'&&combat?.stop===true
+                &&combat?.cues?.join('|')==='750|450|180'
+                &&combat?.save==='RIVET_OVERRIDDEN',combat);
+              for(const beat of ['E07_RIVET_COMMAND_750','E07_RIVET_COMMAND_450','E07_RIVET_NONLETHAL_STOP']){
+                const scene=await poll("(()=>{window.APEX_ARSENAL?.step?.(.025);return window.APEX_ARSENAL?.state?.questRivetStoryView?.snapshot?.().current})()",
+                  x=>x===beat,150);
+                gate('B7 physical threshold story displayed only after real accepted HP: '+beat,scene===beat,scene);
+                await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+              }
+              const recover=await poll("(()=>({cue:window.APEX_ARSENAL?.state?.questRivetStoryView?.snapshot?.().current,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                x=>x?.cue==='E07_RECOVERY'&&x?.save==='RIVET_OVERRIDDEN',90);
+              gate('B7 E07 survival and recovery narrative before saving E08',
+                recover?.cue==='E07_RECOVERY'&&recover?.save==='RIVET_OVERRIDDEN',recover);
+              await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+              const final=await poll("(()=>({save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",
+                x=>x?.save==='TOT_LAST_CHOICE'&&x?.open&&!x?.hud,180);
+              gate('B7 real E07 nonlethal RIVET + complete causal story saves E08 chapter',
+                final?.save==='TOT_LAST_CHOICE'&&final?.open&&!final?.hud,final);
+              await image('34-e07-signed-tot-next-chapter');
+              await reloadAndReattach();
+              const permanent=await poll("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId)()",
+                x=>x==='TOT_LAST_CHOICE',160);
+              gate('B7 Gold reload preserves actual completed E07 without rerunning boss',permanent==='TOT_LAST_CHOICE',permanent);
+            }
           }
 
         }
