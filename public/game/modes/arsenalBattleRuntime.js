@@ -260,6 +260,13 @@
   function presentNextRealStoryBeat(state){
     const view=state?.questStoryView;
     if(!view||view.active())return;
+    // The final accepted HP crossing is published during the NORMAL frame.
+    // The authoritative Q4B safe-hold record is established by the NEXT
+    // stepSimulation tick. Never show the RIVET hold modal before that tick,
+    // or a modal pause would stop that tick and the genuine rescue release
+    // could never obtain its original safe-hold authority.
+    if(state.questReflexGate?.snapshot()?.awaitingRivet===true
+       &&state.questReflexHold?.phase!=='AWAIT_RIVET')return;
     // take() is presentation-only. It cannot advance Director or spoof a Cast.
     let cue;
     while((cue=state.questStory?.take?.())){
