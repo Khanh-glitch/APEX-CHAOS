@@ -1015,12 +1015,15 @@ try{
   gate('Q4I WORKSHOP exposes first real E02, not the retired REFLEX opening',
     stage?.node==='WORKSHOP'&&stage?.play===false&&stage?.opening===true,stage);
   const begin=await click('#q4iFirstWakePlay');
-  let started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,first:window.APEX_ARSENAL?.state?.questFirstWake,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp}))}))()",
-    v=>v?.node==='FIRST_WAKE'&&v?.route===true&&v?.active===true,160);
-  gate('Q4I physical entry authenticates exact native 2v2 and saves FIRST_WAKE',
-    begin.hit&&started?.first===true&&started?.roster?.length===4
+  let started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,first:window.APEX_ARSENAL?.state?.questFirstWake,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,step:typeof window.APEX_ARSENAL?.step==='function',roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp}))}))()",
+    v=>v?.node==='FIRST_WAKE'&&v?.route===true&&v?.active===true&&v.gold&&v.hud&&v.step,420);
+  gate('Q4I Gold-owned entry authenticates actual HUD plus native 2v2',
+    begin.hit&&started?.gold===true&&started?.hud===true&&started?.step===true
+    &&started?.first===true&&started?.roster?.length===4
     &&started.roster.map(x=>x.id).join('|')==='NEWBOT|SCRAP-A|T.O.T|SCRAP-B'
     &&started.roster.map(x=>x.hp).join('|')==='1000|350|1000|350',started);
+  if(!started?.step||!started?.hud)
+    throw new Error('Q4I genuine Gold READY absent: '+JSON.stringify(started));
   const premature=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E02_FIRST_WAKE_CLEAR'))()");
   gate('Q4I cannot sign E02 win before real enemy KO or Story result',
     premature?.ok===false,premature);
