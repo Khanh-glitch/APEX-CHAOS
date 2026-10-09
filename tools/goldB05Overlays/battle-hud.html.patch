@@ -1,0 +1,226 @@
+diff --git a/public/gold/battle-hud.html b/public/gold/battle-hud.html
+--- a/public/gold/battle-hud.html
++++ b/public/gold/battle-hud.html
+@@ -85,6 +85,42 @@
+ .vr-ghost,.vr-fill{transform-origin:0 50%;will-change:transform}
+ .vr-ghost{background:linear-gradient(90deg,#5c0a0a,#e52a2a 85%,#ffc9b8)}
+ .vr-fill{background:linear-gradient(180deg,rgba(255,255,255,.4) 0,rgba(255,255,255,.4) 2px,rgba(255,255,255,0) 2px,rgba(255,255,255,0) 55%,rgba(0,0,0,.25) 100%),linear-gradient(90deg,var(--fill0),var(--fill1) 58%,var(--fill2) 93%,#fff 100%)}
++/* Q3 Quest-only segmentation INSIDE the original Gold rail footprint.
++   Each fixed slot shows one physical Fighter's own HP fraction. */
++.vr-quest-slots{position:absolute;inset:0;display:none;direction:ltr;pointer-events:none;z-index:3;gap:2px}
++.vr-quest-slots>span{position:relative;flex:1 1 0;min-width:0;background:#090d11}
++.vr-quest-slots>span>i{position:absolute;inset:0;display:block;transform-origin:0 50%;transform:scaleX(var(--qhp,1));
++  background:linear-gradient(180deg,rgba(255,255,255,.38) 0,transparent 44%,rgba(0,0,0,.25) 100%),
++  linear-gradient(90deg,var(--fill0),var(--fill1) 78%,var(--fill2))}
++#hud[data-quest="1"] .vr-quest-slots{display:flex}
++#hud[data-quest="1"] .vr-clip>.vr-fill,#hud[data-quest="1"] .vr-clip>.vr-ghost{visibility:hidden}
++#hud[data-quest="1"] .vr-name{letter-spacing:.06em;font-size:calc(var(--nmF)*.93)}
++#hud[data-quest="1"] .vr-cur{font-size:calc(var(--hpF)*.9)}
++/* Quest enemies are blank Arsenal NPCs, not player-two heroes. The donor's
++   A1/A2 READY tiles, hero avatar and first-enemy UNARMED slot are invented
++   1v1 information here; avoid advertising abilities/equipment not owned
++   by the hostile SQUAD. Retain Gold framing, faction caption and HP rail. */
++#hud[data-quest="1"] #p2Side .skills,
++#hud[data-quest="1"] #p2Side .weapon,
++#hud[data-quest="1"] #p2Side .portrait,
++#hud[data-quest="1"] #p2Side .id-ctrl{display:none}
++#hud[data-quest="1"] #p2Side .ident{grid-template-columns:minmax(0,1fr)}
++/* Gold QA/template captions and "P2" rival badge are not Quest fiction.
++   Faction labels + real team HP already supply the useful information. */
++#hud[data-quest="1"] .vr-sub,
++#hud[data-quest="1"] .id-sub,
++#hud[data-quest="1"] #p2Side .id-tag,
++#hud[data-quest="1"] #p2Rail .vr-tag{display:none}
++
++/* Quest narrow rails: team identities already appear in both side panels.
++   Keep aggregate digits readable by removing only the redundant rail label. */
++#hud[data-quest="1"]:is([data-layout="port"],[data-layout="land"]) .vr-lbl{display:none}
++#hud[data-quest="1"]:is([data-layout="port"],[data-layout="land"]) .vrail{
++  grid-template-columns:minmax(0,1fr);grid-template-areas:"hp" "bar" "acc"
++}
++#hud[data-quest="1"]:is([data-layout="port"],[data-layout="land"]) .vr-hp{
++  min-width:0;justify-self:center;align-self:center;direction:ltr;padding:0
++}
+ .vr-heal{background:var(--heal);opacity:0}
+ .vr-low{background:linear-gradient(90deg,rgba(255,40,40,.55),transparent 40%);opacity:0}
+ .vrail.low .vr-low{animation:lowPulse .9s ease-in-out infinite alternate}
+@@ -95,6 +131,32 @@
+ .vr-acc::before{content:"";position:absolute;top:0;height:2px;left:var(--tail);right:var(--taper);background:linear-gradient(90deg,var(--acc),transparent 80%);opacity:.6}
+ #p2Rail .vr-acc::before{left:var(--taper);right:var(--tail);background:linear-gradient(270deg,var(--acc),transparent 80%)}
+ 
++/* Q3v: retain the original Gold skill CARD positions, but allow the REAL
++   Quest J/K names to wrap within their existing landscape tablet name column.
++   No arena, grid, panel, icon size, or BOT/Local selector is changed. */
++#hud[data-quest="1"][data-layout="land"] #p1Side .sk-name{
++  white-space:normal;overflow:visible;text-overflow:clip;
++  overflow-wrap:normal;word-break:normal;
++  letter-spacing:.015em;line-height:1.12;
++  font-size:clamp(11px,1.56cqh,12px)
++}
++
++/* Q3v Quest-only compact portrait text. Full J/K names may flow to a
++   second line inside their existing authored cards; never grow the card,
++   shift battle zones, or change normal BOT/Local composition. */
++#hud[data-quest="1"][data-layout="port"] #p1Side .sk-name{
++  white-space:normal;overflow:visible;text-overflow:clip;
++  overflow-wrap:normal;word-break:normal;
++  line-height:1.1;letter-spacing:.025em;
++}
++
++/* Q4A Quest actors are not LOCAL P1/P2 UI metadata. The real NEWBOT and
++   T.O.T names plus segmented HP already identify the combatants. */
++#hud[data-quest="1"] #p1Side .id-ctrl{display:none}
++
++/* Quest E01 only: dim locked card CONTENT, never move original Gold cells. */
++#hud[data-quest="1"] .skill[data-state="locked"] .sk-art{filter:grayscale(.7) brightness(.43)}
++#hud[data-quest="1"] .skill[data-state="locked"] .sk-state{opacity:.8}
+ /* --- Match center / timer --- */
+ #matchCenter{grid-column:2 / 4;grid-row:1;justify-self:center;position:relative;width:var(--mcW);height:100%;z-index:2;cursor:pointer}
+ .mc-plate{position:absolute;left:0;right:0;top:0;height:calc(100% + var(--notch));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:var(--notch);
+@@ -812,6 +874,50 @@
+     if(side.portrait&&avatar&&side.avatarSrc!==avatar){let img=side.portrait.querySelector(':scope > .apex-battle-avatar');if(!img){img=document.createElement('img');img.className='apex-battle-avatar';img.alt='';img.draggable=false;side.portrait.insertBefore(img,side.portrait.firstChild);}img.onerror=()=>{if(side.avatarSrc===avatar){side.avatarSrc='';side.portrait.classList.remove('has-production-avatar');img.remove();}};img.src=avatar;side.avatarSrc=avatar;side.portrait.classList.add('has-production-avatar');}
+   }
+ 
++  function syncQuestRailSlots(teams) {
++    const quest=Array.isArray(teams) && teams.length===2;
++    if(R.hud)R.hud.dataset.quest=quest?'1':'0';
++    for(let i=0;i<2;i++){
++      const clip=R.rail[i]?.bar?.querySelector('.vr-clip');
++      if(!clip)continue;
++      let lane=clip.querySelector('.vr-quest-slots');
++      if(!quest||!Array.isArray(teams[i])||!teams[i].length){
++        if(lane)lane.remove();
++        continue;
++      }
++      const actors=teams[i];
++      // The Gold template prints /1000 statically; its original renderRail
++      // only updates the numerator. Quest must show the REAL sum of max HP.
++      const maxLabel=R.rail[i].root.querySelector('.vr-max');
++      const teamMax=actors.reduce((n,f)=>n+Math.max(0,Number(f.maxHp)||0),0);
++      const maxCopy='/'+Math.round(teamMax);
++      if(maxLabel&&maxLabel.textContent!==maxCopy)maxLabel.textContent=maxCopy;
++      if(!lane){
++        lane=document.createElement('div');
++        lane.className='vr-quest-slots';
++        clip.appendChild(lane);
++      }
++      if(lane.children.length!==actors.length){
++        lane.replaceChildren(...actors.map(()=>{
++          const segment=document.createElement('span');
++          segment.appendChild(document.createElement('i'));
++          return segment;
++        }));
++      }
++      actors.forEach((actor,k)=>{
++        const slot=lane.children[k];
++        const max=Math.max(1,Number(actor.maxHp)||1);
++        const ratio=Math.max(0,Math.min(1,(Number(actor.hp)||0)/max));
++        const ident=String(actor.id||'');
++        if(slot.dataset.actor!==ident)slot.dataset.actor=ident;
++        const value=ratio.toFixed(4);
++        if(slot.style.getPropertyValue('--qhp')!==value)slot.style.setProperty('--qhp',value);
++        slot.title=ident+' '+Math.round(Number(actor.hp)||0)+'/'+Math.round(max);
++      });
++    }
++    if(quest)renderTimer(); // Gold demo timer must not survive the first real Quest frame
++  }
++
+   // Per-frame production projection -> canonical renderers.
+   seam.applyState=function applyState(st){
+     if(!st)return;
+@@ -847,7 +953,16 @@
+       if(Array.isArray(s.keyLabels))applyKeyLabels(i,s.keyLabels);
+       if(Number.isFinite(s.hp)){
+         const hp=Math.max(0,Number(s.hp));
+-        if(Math.abs(p.hp-hp)>0.01){
++        // Q4A: Gold's initial DOM rails start at "0" while the cached
++        // internal HP and REAL first projection both start at 1000. A
++        // numeric-only delta silently skips the first render forever.
++        // Reconcile actual DOM digits AND bar transform on first/live frames;
++        // never mutate the true Fighter HP or fabricate a damage event.
++        const rail=R.rail[i],label=String(Math.round(hp));
++        const fill=`scaleX(${(hp/p.max).toFixed(4)})`;
++        const visualStale=rail&&(rail.cur.textContent!==label
++          ||rail.fill.style.transform!==fill);
++        if(Math.abs(p.hp-hp)>0.01||visualStale){
+           if(hp<p.hp){p.ghost=Math.max(p.ghost,p.hp);p.hold=now+650;}
+           p.hp=hp;renderRail(i);
+         }
+@@ -895,10 +1010,12 @@
+           // increments charges or fabricates its own cooldown completion.
+           a.next=Number.isFinite(sk.nextIn)&&sk.nextIn>0?now+sk.nextIn*1000:0;
+           a.__truth=!!sk.truth;
++          a.locked=sk.locked===true;
+           if(sk.castUntil)a.castUntil=now+380;
+         }
+       }
+     }
++    syncQuestRailSlots(st.questTeams);
+   };
+ 
+   // Discrete production events -> canonical presentation (real values).
+@@ -1261,12 +1378,12 @@
+   const frac=a.next?clamp(remaining/Math.max(.05,a.cd),0,1):0;
+   const activeRemaining=a.activeUntil?Math.max(0,(a.activeUntil-now)/1000):0;
+   const activeFrac=a.duration>0?clamp(activeRemaining/a.duration,0,1):0;
+-  const st=now<a.castUntil?'cast':activeRemaining>0?'active':a.charges>0?'ready':'cd';
++  const st=a.locked===true?'locked':now<a.castUntil?'cast':activeRemaining>0?'active':a.charges>0?'ready':'cd';
+   const prevSt=u.st;
+   if(st!==prevSt){
+    if(prevSt==='cd'&&st==='ready'){u.readyAgainUntil=now+720;readyPop(u,i,k);}
+    else if(st!=='ready')u.readyAgainUntil=0;
+-   u.el.dataset.state=st;u.st=st;
++   u.el.dataset.state=st;u.el.disabled=st==='locked';u.st=st;
+   }
+   u.el.dataset.kind=a.kind||'cooldown';
+   const maskFrac=(st==='cd'&&a.charges<=0)?frac:0;
+@@ -1275,7 +1392,8 @@
+   const b=`scaleX(${meter.toFixed(3)})`;if(u.k.b!==b){u.bar.style.transform=b;u.k.b=b;}
+   const secs=remaining.toFixed(1),activeSecs=activeRemaining.toFixed(1);
+   let txt='READY';
+-  if(st==='cast')txt='PRESS-CAST';
++  if(st==='locked')txt='LOCKED';
++  else if(st==='cast')txt='PRESS-CAST';
+   else if(activeRemaining>0)txt='ACTIVE '+activeSecs+'s';
+   else if(st==='ready'&&now<(u.readyAgainUntil||0))txt='READY AGAIN';
+   else if(st==='cd')txt='COOLDOWN '+secs+'s';
+@@ -1376,7 +1494,14 @@
+  sweep(a,v,'crit');chromaSweep(a,v);
+  queueFx(()=>{
+   flash('crit',v,impactAccent);railSurge(v,1);if(!RM.matches)railJolt(v,6);sideRecoil(v,10);edgeShock(v,'crit',impactAccent);sideLight(v,0.45,240);
+-  popup(v,amt,'c',impactAccent);bigNumber(v,amt,'c',impactAccent);stamp(v,'CRITICAL','crit',impactAccent);
++  popup(v,amt,'c',impactAccent);
++  // Quest many-Fighter combat already displays the REAL numeric popup on the
++  // victim in the arena. Gold's second enormous panel copy sits on the
++  // faction name/HP in compact landscape; retain the original twin-copy
++  // sequence for BOT/Local ONLY.
++  if(R.hud.dataset.quest!=='1'){
++    bigNumber(v,amt,'c',impactAccent);stamp(v,'CRITICAL','crit',impactAccent);
++  }
+  },RM.matches?0:120);
+ }
+ function fxHeavy(a,v,amt,impactAccent){
+@@ -1397,7 +1522,10 @@
+   const panel=R.ruptures[v];
+   if(panel){panel.cells=voronoiPanel(panel.w,panel.h,panel.hit);fracture(v,panel);shatterPanel(panel);}
+   sideRecoil(v,14);railSurge(v,2);if(!RM.matches)railJolt(v,10);
+-  popup(v,amt,'h',impactAccent);bigNumber(v,amt,'h',impactAccent);stamp(v,'DEVASTATING','heavy',impactAccent);
++  popup(v,amt,'h',impactAccent);
++  if(R.hud.dataset.quest!=='1'){
++    bigNumber(v,amt,'h',impactAccent);stamp(v,'DEVASTATING','heavy',impactAccent);
++  }
+  },RM.matches?80:174);
+  queueFx(()=>{
+   if(S.fx.heavyToken[v]!==token)return;
+@@ -1412,7 +1540,10 @@
+  thunderStrike(a,v);flash('thunder',v);sideLight(0,.62,310);sideLight(1,.62,310);
+  railSurge(a,1);railSurge(v,1);if(!RM.matches){railJolt(v,7);sideRecoil(v,8);edgeShock(v,'crit',impactAccent);}
+  queueFx(()=>{
+-  popup(v,amt,'c',impactAccent);bigNumber(v,amt,'c',impactAccent);stamp(v,'THUNDER','crit',impactAccent);
++  popup(v,amt,'c',impactAccent);
++  if(R.hud.dataset.quest!=='1'){
++    bigNumber(v,amt,'c',impactAccent);stamp(v,'THUNDER','crit',impactAccent);
++  }
+  },88);
+ }
+ function sideLight(i,peak,duration){
