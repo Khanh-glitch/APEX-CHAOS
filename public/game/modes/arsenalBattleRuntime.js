@@ -1335,7 +1335,7 @@
             window.APEX_QUEST01_DIRECTOR?.show?.({
               onReflexPreview:window.__apexQuestReflexStart,
               onPreview:window.__apexQuestFirstWakeStart,
-              onFirstWakeStory:window.__apexQuestFirstWakeStoryStart
+              onFirstWakeStory:window.__apexGoldQuestFirstWakeStoryEntry
             });
           }
         });

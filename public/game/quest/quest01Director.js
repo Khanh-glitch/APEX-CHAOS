@@ -227,7 +227,9 @@
     overlay.querySelector('#q4iFirstWakePlay').addEventListener('click',()=>{
       if(!['WORKSHOP','FIRST_WAKE'].includes(core.checkpoint().checkpointId))return;
       const opts=callbacks;
-      const cb=callbacks?.onFirstWakeStory||root.__apexQuestFirstWakeStoryStart;
+      // Never bypass Gold composer: only it mounts the real battle surface
+      // and grants a short-lived Quest launch authority.
+      const cb=callbacks?.onFirstWakeStory||root.__apexGoldQuestFirstWakeStoryEntry;
       if(typeof cb!=='function')return;
       hide();const started=cb();
       if(started!==true)show(opts);
