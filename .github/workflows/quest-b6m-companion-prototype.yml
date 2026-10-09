@@ -1,0 +1,29 @@
+name: B6m Companion J-K Concept Preflight
+on:
+  push:
+    branches: ['quest/b6m-companion-jk-candidates-from-b6l']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Candidate J-K adverse targeting and withdrawal proof
+        run: node tools/testQuestCompanionKitCandidateB6m.mjs
+      - name: B6l passive rig authority stays green
+        run: node tools/testQuestBreachRigAuthorityB6.mjs
+      - name: Real E06 native Fighter regression
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - name: Gold source integrity
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Production build
+        run: pnpm build
