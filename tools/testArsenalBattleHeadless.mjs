@@ -6062,6 +6062,54 @@ if(process.argv.includes('--quest-reflex-real')){
   }
 }
 
+// Q4A natural-flow acceptance: NO synthetic projectile spawn, direct
+// damage, forced position, manual equip, skill cast or fake clock. This test
+// actually lets the production bot/pickup/fire pipeline play out R1 then R2.
+if(process.argv.includes('--quest-reflex-real')){
+  try{
+    const natural=run(`
+      const entered=window.__apexQuestReflexStart?.()===true;
+      const A=window.APEX_ARSENAL, W=A?.weaponApi,f=window.fighters||[];
+      if(!entered||!A?.state?.questReflex||f.length!==2)return {entered,ready:false};
+      const phases=[],seen={NEWBOT:false,'T.O.T':false},snap=()=>window.__apexQuestReflexRead?.();
+      let lastPhase='',ticks=0;
+      for(;ticks<1800;ticks++){
+        A.step(.05);
+        for(const body of f){
+          if(W.getHolder(body)?.weaponId==='PISTOL')seen[body.questId]=true;
+        }
+        const state=snap(),phase=state?.phase||'NO_SESSION';
+        if(phase!==lastPhase){
+          phases.push({t:Math.round(A.state.time*10)/10,phase,
+            hp:f.map(x=>Math.round(x.hp)),
+            slots:A.state.slots.filter(x=>x.questWeaponId).map(x=>({phase:x.phase,weapon:x.weaponId})),
+            holders:f.map(x=>W.getHolder(x)?.weaponId||null)});
+          lastPhase=phase;
+        }
+        if(phase==='J_CAST'||phase==='K_CAST'||phase==='BOTH_HALF'||phase==='AWAIT_RIVET'||A.state.over)break;
+      }
+      const done=snap(),after={phase:done?.phase,receipts:done?.receipts||[],
+        hp:f.map(x=>x.hp),over:A.state.over,seen,ticks,phases};
+      window.exitArsenalBattleMode();
+      return {entered,ready:true,...after,clean:window.__apexQuestReflexRead?.()==null};
+    `);
+    gate('q4a-organic-reflex-R1-R2-from-real-bot-pickups-no-test-bullets',
+      natural?.ready===true&&natural?.clean===true
+      &&natural?.seen?.NEWBOT===true&&natural?.seen?.['T.O.T']===true
+      &&natural?.phase==='J_CAST'&&natural?.over===null
+      &&natural?.receipts?.length>=2
+      &&natural.receipts[0].kind==='PISTOL_HIT'
+      &&natural.receipts[0].from==='NEWBOT'
+      &&natural.receipts[0].to==='T.O.T'
+      &&natural.receipts[1].kind==='PISTOL_HIT'
+      &&natural.receipts[1].from==='T.O.T'
+      &&natural.receipts[1].to==='NEWBOT',
+      natural);
+  }catch(error){
+    gate('q4a-organic-reflex-runner',false,{error:String(error?.stack||error)});
+  }
+}
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
