@@ -97,8 +97,12 @@ try{
  await click('#apex-boot-start');
  const home=await poll('document.body.dataset.apexSceneTransition==="DONE"&&document.querySelector("#apex-boot-blackout")?.hidden===true',Boolean,420);
  gate('Gold home actually opened after door',home);
+ const beforeClick=await exec('(()=>{const e=document.querySelector("#continueStory"),r=e?.getBoundingClientRect();return{buttonRect:r?{x:r.x,y:r.y,width:r.width,height:r.height}:null,door:document.body.dataset.apexSceneTransition,transitionActive:window.APEX_SCENE_TRANSITION?.active?.(),blackout:document.querySelector("#apex-boot-blackout")?.hidden,open:document.querySelector("#apexQuest01Stage")?.hidden===false,hasDirector:!!window.APEX_QUEST01_DIRECTOR,screen:document.body.dataset.apexScreen||null}})()');
+ console.log('B5_HOME_PRECLICK '+JSON.stringify(beforeClick));
  await click('#continueStory');
- const stage=await poll('(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,shown:document.querySelector("#apexQuest01Stage")?.hidden===false}))()',x=>x?.shown&&x.node==='CHARGE_THE_BREAKER',110);
+ const stage=await poll('(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,shown:document.querySelector("#apexQuest01Stage")?.hidden===false,door:document.body.dataset.apexSceneTransition,transitionActive:window.APEX_SCENE_TRANSITION?.active?.(),blackout:document.querySelector("#apex-boot-blackout")?.hidden,buttonPresent:!!document.querySelector("#continueStory"),hubExists:!!document.querySelector("#q1StageHub")}))()',x=>x?.shown&&x.node==='CHARGE_THE_BREAKER',110);
+ console.log('B5_HOME_POSTCLICK '+JSON.stringify(stage));
+ if(!stage?.shown)await picture('missed-continue-story');
  gate('Quest hub shows saved E05',stage?.shown&&stage.node==='CHARGE_THE_BREAKER',stage);
  const causeE05=await exec('document.querySelector("#q1Context")?.textContent');
  gate('E05 chapter explains impact objective and relay cause',
@@ -138,7 +142,8 @@ try{
     waves:profile?.wave,outcome:profile?.outcome,steps:profile?.steps,
     gunUptime:profile?.weaponHoldPercent,gunVisibility:profile?.visibleGunPercent,
     slotCount:profile?.uniqueOffensiveSlots,firstB:profile?.firstB,
-    reaverBumps:profile?.reaverBumps}));
+    reaverBumps:profile?.reaverBumps,weaponTransitions:profile?.weaponTransitions,
+    samples:profile?.samples}));
   await picture('b5-after-organic-play');
   const cleanup=await exec('(()=>{const d=window.APEX_QUEST01_DIRECTOR;window.exitArsenalBattleMode();return{closed:window.APEX_ARSENAL.state.active===false,exit:d.exitReplay(),node:d.checkpoint().checkpointId,primary:JSON.parse(localStorage.getItem(d.STORAGE_KEY)).checkpointId}})()');
   gate('B5 diagnostic battle cleanup cannot alter permanent E05 checkpoint',
