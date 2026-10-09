@@ -16,6 +16,10 @@ assert('Q4H no native transition without live Arsenal Story authority',
   &&publicApi.acceptNativeBeat('WORKSHOP_ARRIVAL').ok===false
   &&publicApi.acceptNativeBeat('BAD_BEAT').ok===false
   &&publicApi.checkpoint().checkpointId==='WAKE');
+assert('Q4I rejects FIRST WAKE enter and clear without live four-body Arsenal',
+  publicApi.acceptNativeBeat('FIRST_WAKE_ENTER').ok===false
+  &&publicApi.acceptNativeBeat('E02_FIRST_WAKE_CLEAR').ok===false
+  &&publicApi.checkpoint().checkpointId==='WAKE');
 assert('Current story nodes do not claim finished encounter',module.NODES.filter(n=>n.type==='ENCOUNTER').every(n=>n.status!=='IMPLEMENTED'));
 const first=d.checkpoint();
 assert('Versioned canonical checkpoint fields',first.schemaVersion===1&&first.questId==='THE_ONES_THROWN_AWAY'&&first.stormbreakerArtifactPhase==='SEALED'&&first.phaseId==='ENTRY');
