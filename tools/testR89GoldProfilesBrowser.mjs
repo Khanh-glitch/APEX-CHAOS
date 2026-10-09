@@ -23,8 +23,17 @@ const pending=new Map();
 let serial=0;
 const command=(method,params={})=>{
   const id=++serial;
-  socket.send(JSON.stringify({id,method,params}));
-  return new Promise((resolve,reject)=>pending.set(id,{resolve,reject}));
+  return new Promise((resolve,reject)=>{
+    const ms=method==='Page.captureScreenshot'?60000:20000;
+    const timeout=setTimeout(()=>{
+      pending.delete(id);
+      reject(new Error('Chrome CDP '+method+' timed out after '+ms+' ms'));
+    },ms);
+    pending.set(id,{resolve:value=>{clearTimeout(timeout);resolve(value)},
+      reject:error=>{clearTimeout(timeout);reject(error)}});
+    try{socket.send(JSON.stringify({id,method,params}))}
+    catch(error){clearTimeout(timeout);pending.delete(id);reject(error)}
+  });
 };
 const evalJS=async expression=>{
   const r=await command('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
