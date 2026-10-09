@@ -1,0 +1,31 @@
+name: B7d Native E07 Rivet Boss Fixture
+on:
+  push:
+    branches: ['quest/b7d-rivet-real-boss-fixture-from-b7c']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rivet-boss:
+    runs-on: ubuntu-latest
+    timeout-minutes: 36
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: E07 separate physical RIVET boss, threshold stop and teardown
+        run: node tools/testRivetStandaloneB7d.mjs
+      - name: B7c native realized damage threshold regression
+        run: |
+          node tools/testQuestRivetThresholdB7a.mjs
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-native
+      - name: E06 actual three-wave physical gameplay regression
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - name: Canonical Gold provenance and production build
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          pnpm build
