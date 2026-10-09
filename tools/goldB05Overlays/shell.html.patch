@@ -3,9 +3,9 @@ diff --git a/public/gold/shell.html b/public/gold/shell.html
 +++ b/public/gold/shell.html
 @@ -1410,12 +1410,73 @@
  
- <script src="/game/ui/uiSfxAuthority.js?v=20261008-r76-shell-cache-boundary"></script>
- <script src="/game/gold/goldProductBridge.js?v=20261008-r76-shell-cache-boundary"></script>
-+<script src="/game/quest/quest01Director.js?v=20261008-q1-director-01"></script>
+ <script src="/game/ui/uiSfxAuthority.js?v=20261010-q1-b8-native-runtime"></script>
+ <script src="/game/gold/goldProductBridge.js?v=20261010-q1-b8-native-runtime"></script>
++<script src="/game/quest/quest01Director.js?v=20261010-q1-b8-director"></script>
  <script>
  (() => {
    'use strict';
@@ -18,7 +18,7 @@ diff --git a/public/gold/shell.html b/public/gold/shell.html
 +    if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
 +    const director=window.APEX_QUEST01_DIRECTOR;
 +    if(!director){console.warn('[quest-q1] director unavailable; refusing to skip WAKE');return;}
-+    uiSfx('ui.screen.transition');
++    uiSfx('ui.button.press');
 +    director.show({onPreview:()=>{
 +      if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
 +      questPreview=true;questPreviewKind='first-wake';

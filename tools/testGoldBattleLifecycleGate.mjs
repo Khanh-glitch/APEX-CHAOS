@@ -83,8 +83,18 @@ check('generator carries remount-safe donor RAF and Escape laws',
 // Runtime-created legacy Arsenal DOM HUD appears after startMatch; recapture it.
 check('legacy runtime DOM HUD ids are in the suppression set',
   /'aq-dom-hud'.*'aq-battle-exit'/s.test(bridge));
+// The selected-runtime Gold entry has TWO legitimate start paths now:
+ // Quest fixtures use their native, chapter-signed opener, ordinary battles
+ // await window.startMatch(). Neither path may reveal the donor before READY.
+const startAt=bridge.indexOf('const started = questPreview ?');
+const readyGuardAt=bridge.indexOf('if (started !== true || sessionToken !== battleSessionToken',startAt);
+const liveCaptureAt=bridge.indexOf('captureLegacyBattleUi(false);',readyGuardAt);
+const liveHideAt=bridge.indexOf('hideLegacyBattleUi();',liveCaptureAt);
 check('legacy refs are recaptured only after awaited production match READY and hidden before live paint',
-  /const started = await Promise\.resolve\(window\.startMatch\(\)\);[\s\S]*?started !== true[\s\S]*?captureLegacyBattleUi\(false\);[\s\S]*?hideLegacyBattleUi\(\);/.test(bridge));
+  startAt>=0&&bridge.includes(': await Promise.resolve(window.startMatch());')
+  &&readyGuardAt>startAt&&liveCaptureAt>readyGuardAt
+  &&bridge.slice(readyGuardAt,liveCaptureAt).includes('return false;')
+  &&liveHideAt>liveCaptureAt);
 
 check('Gold-hosted Arsenal DOM HUD is suppressed at source even if match launch is async',
   /window\.__apexGoldBattleHosted === true\) el\.style\.display = 'none'/.test(battle));
@@ -105,10 +115,17 @@ check('legacy product screens are deleted from the shipped surface, not merely s
   !/id="(menu|select)-screen"/.test(read('index.html'))
   && !/id="(menu|select)-screen"/.test(shell));
 
+// The old gate assumed eager loadDeferredRuntimes('arsenalProduct').
+ // Current lazy selected-fighter loader (fallback: complete Arsenal group)
+ // still owns readiness BEFORE any selection or pending state is written.
+const selectedReadyAt=bridge.indexOf('const loaded = await ensureSelectedBattleRuntimes([p1Shell, p2Shell]);');
+const shellsAt=bridge.indexOf('const shells = window.APEX_ARSENAL_SHELLS;',selectedReadyAt);
+const pendingAt=bridge.indexOf('window.__apexArsenalSelectPending = !questPreview;');
 check('cold-load handoff writes selection/pending state only AFTER arsenalProduct runtime exists',
-  bridge.indexOf("const loaded = await ensureDeferredRuntimes('arsenalProduct');")
-    < bridge.indexOf('window.__apexArsenalSelectPending = true;')
-  && /const shells = window\.APEX_ARSENAL_SHELLS;[\s\S]*?const p1Type = shells\.typeFor\(p1\);[\s\S]*?window\.p1Selection = p1Type;/.test(bridge));
+  selectedReadyAt>=0&&shellsAt>selectedReadyAt&&pendingAt>shellsAt
+  &&bridge.slice(selectedReadyAt,shellsAt).includes('if (!loaded || sessionToken !== battleSessionToken')
+  &&bridge.includes("return ensureDeferredRuntimes('arsenalProduct');")
+  &&/const p1Type = shells\.typeFor\(p1\);[\s\S]*?window\.p1Selection = p1Type;/.test(bridge));
 
 check('Gold-hosted select runtime never resurrects the legacy picker on failure',
   /const goldHosted = window\.__apexGoldBattleHosted === true;/.test(selectRuntime)

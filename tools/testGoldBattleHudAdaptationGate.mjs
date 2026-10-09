@@ -170,17 +170,30 @@ check('R60 Heavy reuses one sanitized DOM snapshot for independent Voronoi shard
   hud.includes('const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);') &&
   !hud.includes('const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);') &&
   r55Adapter.includes("'Heavy shards reuse sanitized template'"));
-check('R65 artwork-level state and geometric hero motifs replace portrait watermark',
- hud.includes('R65 — skill artwork carries live authority') &&
- hud.includes('.skill[data-state="active"] .sk-art') &&
- hud.includes('.skill[data-state="cd"] .sk-art') &&
- hud.includes('const patterns={') &&
- hud.includes("art.classList.add('apex-hero-motif')") &&
- !hud.includes("art.classList.add('apex-hero-watermark')"));
-check('R63 solo portrait iPad skill states use existing runtime authority',
- hud.includes('R63 skill readability: emphasize actual Gold runtime') &&
- ['cast','active','cd','ready'].every(state => hud.includes('#p1Side .skill[data-state="'+state+'"]')) &&
- hud.includes('const st=now<a.castUntil?\'cast\':activeRemaining>0?\'active\':a.charges>0?\'ready\':\'cd\''));
+// R70 owner-approved Gold appearance supersedes the abandoned R65
+// artwork-overlay treatment. Actual cooldown data still exists, but skill
+// art is never covered by a giant progress mask/glow; hero motifs are retained.
+check('R70 hero-specific motif and uncluttered skill art replace old R65 effects',
+  hud.includes('R65 geometric field floats behind readable controls')
+  && hud.includes('const patterns={')
+  && hud.includes("art.classList.add('apex-hero-motif')")
+  && !hud.includes("art.classList.add('apex-hero-watermark')")
+  && hud.includes('/* R70 skill image: no progress ring, glow, or animated cover; preserve timers and states. */')
+  && hud.includes('#hud .skill .sk-art{filter:none!important;box-shadow:none!important;outline:none!important}')
+  && hud.includes('#hud .skill .sk-art::after{display:none!important}')
+  && hud.includes('#hud .skill .sk-art>.sk-sweep{display:none!important}')
+  && r55Adapter.includes("'R70 scoped visual removal'"));
+// R63 per-tile glow was intentionally retired. Preserve the native runtime
+// state machine and visible timer text on EVERY aspect ratio, not its old CSS.
+check('R70 keeps the real cast/active/ready/cooldown/locked skill authority without R63 glow',
+  hud.includes("const st=a.locked===true?'locked':now<a.castUntil?'cast':activeRemaining>0?'active':a.charges>0?'ready':'cd';")
+  && hud.includes('u.el.dataset.state=st;u.el.disabled=st===\'locked\'')
+  && hud.includes("u.el.dataset.kind=a.kind||'cooldown'")
+  && hud.includes("txt='COOLDOWN '+secs+'s'")
+  && hud.includes("txt='ACTIVE '+activeSecs+'s'")
+  && hud.includes("#hud .skill .sk-art>.sk-mask,")
+  && hud.includes("#hud .skill .sk-art>.sk-sweep{display:none!important}")
+  && !hud.includes('R63 skill readability: emphasize actual Gold runtime'));
 check('R62 simultaneous Crit/Heavy preserves all shards but mounts in one batch',
   hud.includes('const shardBatch=document.createDocumentFragment(),shardAnimations=[];') &&
   hud.includes('shardBatch.appendChild(piece);') &&
@@ -196,11 +209,16 @@ check('R65 landscape panels use hero-specific vector motifs instead of avatar en
  hud.includes("motif=heroId.includes('frost')") &&
  r55Adapter.includes("'hero-specific vector motif'") &&
  !hud.includes("art.classList.add('apex-hero-watermark')"));
-check('R62 tablet BOT portrait dock keeps arena and Local untouched',
-  hud.includes('R62 tablet portrait BOT: hero-control dock') &&
-  hud.includes('grid-template-areas:"id id id" "s1 wp s2"') &&
-  hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skills{display:contents}') &&
-  !hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="2p"] #p1Side .skills{display:contents}'));
+// The old R62 1P skill dock was rejected by subsequent Gold iterations.
+ // The actual tablet BOT composition reserves the existing enemy strip/arena
+ // and controls without spilling display:contents into Local 2P.
+check('R70 tablet BOT retains Gold strip/arena geometry without the rejected R62 dock',
+  hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"]{--stripH:64px;--p1Min:240px;')
+  && hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p2Side .skills{height:50px}')
+  && hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] .weapon{overflow:visible;box-sizing:border-box}')
+  && !hud.includes('grid-template-areas:"id id id" "s1 wp s2"')
+  && !hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skills{display:contents}')
+  && !hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="2p"] #p1Side .skills{display:contents}'));
 check('R61 compact Local does not reduce arena for panel fit',
  hud.includes('R61 compact Local: keep arena sizing') &&
  !hud.includes('--zoneMin:clamp(158px,24cqh,174px)') &&
