@@ -173,6 +173,23 @@ try{
       GoldenCardHeight:pick.card?.h,
       GoldenArenaWidth:battle.arena?.w,pointer:evt}));
   }
+  // Same live iframe, same match, different physical viewport: the game must
+  // NOT reboot or update world coordinates when the phone window resizes.
+  const beforeResize=await evalJS("(()=>{const f=window.__apexGoldFidelity;const c=f.child();return{state:c.document.body.className,scene:c.document.querySelector('#stage')?.className,frame:c.document.querySelector('#battleHudHost #arena')?.getBoundingClientRect().width,session:c.performance.timeOrigin}})()");
+  await command('Emulation.setDeviceMetricsOverride',{width:330,height:514,
+    deviceScaleFactor:2,mobile:true,screenWidth:330,screenHeight:514});
+  await sleep(500);
+  const resized=await evalJS("(()=>{const f=window.__apexGoldFidelity;const c=f.child();return{meta:f.snapshot(),state:c.document.body.className,scene:c.document.querySelector('#stage')?.className,frame:c.document.querySelector('#battleHudHost #arena')?.getBoundingClientRect().width,session:c.performance.timeOrigin}})()");
+  test('live resize keeps EXACT same running game instance',
+    resized.session===beforeResize.session&&resized.scene===beforeResize.scene&&
+    Math.abs(resized.frame-beforeResize.frame)<.1,
+    {beforeResize,resized});
+  test('live resize recomputes only the compositing scale',
+    resized.meta.child.width===550&&resized.meta.child.height===857&&
+    Math.abs(resized.meta.scale-Math.min(330/550,514/857))<.00001,resized.meta);
+  const sameGameAfterResize=await capture('live-battle-resized-330x514');
+  test('live resized arena retains exact original design width',
+    Math.abs(sameGameAfterResize.arena?.w-529)<.1,{arena:sameGameAfterResize.arena});
   await writeFile(dir+'/report.json',JSON.stringify({design:{width:550,height:857},baseline,states,failures},null,2));
   console.log('R87 FINAL '+JSON.stringify({cases:sizes.length,failures:failures.length}));
   if(failures.length)throw Error('R87 virtual Gold fidelity failed '+failures.length+' checks');
