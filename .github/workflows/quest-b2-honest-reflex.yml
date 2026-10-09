@@ -1,0 +1,36 @@
+name: Quest B2 Transparent E01 Training
+on:
+  push:
+    branches: ['quest/b2-reflex-honest-onboarding-from-b1']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-physical-tutorial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: node tools/buildGoldCutover.mjs --check
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: E01 true actor pickup, no hidden reservation or erased floor guns
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-honest-reflex
+      - name: Stage receipt integrity & Quest E02–E05 regression
+        run: |
+          node tools/testQuestReflexReceiptsQ4.mjs
+          node tools/testQuestDirectorQ1.mjs
+          node tools/testQuestGenericRosterQ2.mjs
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestWeaponRainQ5.mjs
+          node tools/testQuestBreakerChargeQ5.mjs
+      - name: Production build
+        run: pnpm build
