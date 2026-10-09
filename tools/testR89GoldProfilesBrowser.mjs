@@ -213,11 +213,11 @@ try{
     // The first case validates automatic mobile routing from the real game
     // entry, without manually selecting goldViewport or goldDevice.
     await command('Emulation.setUserAgentOverride',{userAgent:v.name==='iphone-se'?iPhoneUA:originalUA});
-    const link=new URL(v.name==='iphone-se'?'/':'/gold-fidelity-lab.html',url);
+    const link=new URL(v.name==='iphone-se'?'/?apexR89PassThrough=1':'/gold-fidelity-lab.html',url);
     if(v.name!=='iphone-se')link.searchParams.set('goldDevice',v.device);
     await command('Page.navigate',{url:link.href});
     if(!(await wait(childReady)))throw Error('R89 intermediate START unavailable '+v.name);
-    if(v.name==='iphone-se')check('R89 mobile auto-entry redirects exactly once',await evalJS("location.pathname==='/gold-fidelity-lab.html'&&window.__apexGoldFidelity.child().location.search.includes('goldViewport=native')"));
+    if(v.name==='iphone-se')check('R89 mobile auto-entry retains real-game query and redirects once',await evalJS("location.pathname==='/gold-fidelity-lab.html'&&window.__apexGoldFidelity.child().location.search.includes('goldViewport=native')&&window.__apexGoldFidelity.child().location.search.includes('apexR89PassThrough=1')"));
     const meta=await evalJS('window.__apexGoldFidelity?.snapshot()');
     check(v.name+' aspect-fit/zero-letterbox',
       meta?.deviceClass===v.device&&
