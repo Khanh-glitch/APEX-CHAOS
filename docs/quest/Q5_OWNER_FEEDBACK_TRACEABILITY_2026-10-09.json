@@ -1,0 +1,147 @@
+{
+  "schema": "quest01_owner_feedback_2026_10_09_v1",
+  "base": "799b80820ef0a6e9cce7563258da66dfa0db3519",
+  "audit_only": true,
+  "production_untouched": true,
+  "owners": {
+    "combat": "Arsenal engine adapter",
+    "npc": "Quest enemy species configuration",
+    "render": "Gold V12 per-species motion bridge",
+    "layout": "Quest profile reconciled with R90",
+    "story": "Story Director/Quest presentation",
+    "weapons": "Arsenal spawn authority scoped by mode",
+    "testing": "headless physics + Gold Chrome + perceptual owner"
+  },
+  "locked": {
+    "visual": {
+      "tot": "operator/white",
+      "rivet": "bulwark/iron",
+      "level1": "scout",
+      "level2": "reaver",
+      "level3": "sentinel"
+    },
+    "species": {
+      "LV1": {
+        "speedMult": 1.2,
+        "skill": "none"
+      },
+      "LV2": {
+        "speedMult": 1.2,
+        "contactDamage": 50,
+        "cooldownSeconds": 0,
+        "trigger": "contact-edge"
+      },
+      "LV3": {
+        "speedMult": 1,
+        "chargeSeconds": 1,
+        "laserDamage": 100,
+        "stunSeconds": 2
+      }
+    },
+    "rarity": [
+      "T1",
+      "T2"
+    ],
+    "stormbreaker": "narrative-only exception",
+    "reflect": "all physical fighter contacts except active approved NEWBOT J/A1 dash",
+    "q5RainVfx": "remove fake streak overlay"
+  },
+  "issues": [
+    {
+      "id": "C-01",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "T-01",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "T-02",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "T-03",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "H-01",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "H-02",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "V-01",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "V-02",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "V-03",
+      "status": "confirmed",
+      "severity": "P1"
+    },
+    {
+      "id": "V-04",
+      "status": "owner-observed_visual-quality_pending",
+      "severity": "P1"
+    },
+    {
+      "id": "W-01",
+      "status": "confirmed",
+      "severity": "P0"
+    },
+    {
+      "id": "W-02",
+      "status": "confirmed",
+      "severity": "P1"
+    },
+    {
+      "id": "S-01",
+      "status": "confirmed",
+      "severity": "P1"
+    },
+    {
+      "id": "S-02",
+      "status": "authored-e08-missing",
+      "severity": "P1"
+    },
+    {
+      "id": "Q-01",
+      "status": "confirmed",
+      "severity": "P1"
+    },
+    {
+      "id": "D-01",
+      "status": "confirmed",
+      "severity": "P1"
+    }
+  ],
+  "implementation_phases": [
+    "B0 Canon",
+    "B1 Shared combat/species/rarity",
+    "B2 E01 onboarding",
+    "B3 Quest HUD",
+    "B4 Story director",
+    "B5 E02-E05 recut",
+    "B6 E06",
+    "B7 E07-E08 Ending",
+    "B8 QA merge"
+  ],
+  "blockers": [
+    "X-01 rig duty",
+    "X-02 retreat crossing detail",
+    "X-03 companion skill kits"
+  ]
+}
