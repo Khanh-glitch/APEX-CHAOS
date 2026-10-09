@@ -1,0 +1,32 @@
+name: B6f Native E06 Three-wave Fighter Fixture
+on:
+  push:
+    branches: ['quest/b6f-native-breach-physical-fixture']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: E06 native physical bullet KO, three same-allied references and withdrawal
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - name: E06 pure contract + transfer receipt + 100HP transaction
+        run: |
+          node tools/testQuestBreachPolicyQ6.mjs
+          node tools/testQuestBreachLifecycleB6d.mjs
+          node tools/testQuestBreachRetreatB6e.mjs
+      - name: Prior five-encounter Quest physical contract regression
+        run: |
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestWeaponRainQ5.mjs
+          node tools/testQuestBreakerChargeQ5.mjs
+          node tools/buildGoldCutover.mjs --check
+          pnpm build

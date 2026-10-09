@@ -6122,6 +6122,37 @@ if(process.argv.includes('--quest-enemy-native')){
   }catch(e){gate('B1 native enemy abilities integration',false,{error:String(e?.stack||e)})}
 }
 
+// B6f internal native physical proof: enemy HP can only reach zero via
+// actual Arsenal gun projectiles. This is NOT a natural survival-rate test.
+if(process.argv.includes('--quest-breach-native')){
+  try{
+    const out=run("\nwindow.__APEX_TEST_MODE=true;\nconst started=window.__apexQuestBreachFixtureStart?.()===true;\nconst A=window.APEX_ARSENAL,W=A?.weaponApi,policy=window.APEX_QUEST_BREACH_POLICY;\nif(!started||!A?.state?.questBreachTest)return {started,active:false};\nconst fighterList=window.fighters,allies=fighterList.slice(0,3);\nconst initial=policy.waveOutcome(fighterList,'A');\nconst hero=allies[0],facts=[],shots=[];\nA.state.spawnHeld=true;\nA.state.slots=[];\nfunction neutralize(){\n for(let i=0;i<fighterList.length;i++){\n  const f=fighterList[i];f.baseSpeed=0;f.data.__hrHoldBody=true;\n  if(i<3){f.x=120;f.y=730+i*64;}else {f.x=930;f.y=840;}\n }\n hero.x=145;hero.y=500;\n}\nneutralize();\nfunction killCurrentWave(id){\n const targets=fighterList.filter(f=>f.questTeam==='HOSTILE');\n const countStart=targets.length;\n for(const target of targets){\n  neutralize();target.x=660;target.y=500;\n  let fired=0,confirmed=0;\n  while(target.hp>0&&fired++<50){\n   const before=target.hp;\n   W.fireBullet({owner:hero,x:250,y:500,angle:0,speed:2800,\n    damage:20,weapon:'PISTOL'});\n   for(let k=0;k<9;k++)A.step(.025);\n   if(target.hp<before)confirmed++;\n  }\n  shots.push({wave:id,id:target.questId,max:target.maxHp,\n   hp:target.hp,shots:fired,hits:confirmed});\n }\n const snap=A.state.questBreachLifecycle.snapshot();\n facts.push({wave:id,actorCount:fighterList.length,\n  phase:snap.phase,receipts:snap.completed,\n  hp:allies.map(x=>x.hp),sameAllies:allies.every((a,i)=>fighterList[i]===a),\n  slotCap:A.state.slots.filter(x=>x.kind!=='HEAL'&&x.phase!=='REMOVED').length});\n return {snap,countStart,targets};\n}\nconst resultA=killCurrentWave('A');\nlet advancedA=false,advancedB=false;\nfor(let n=0;n<70;n++){A.step(.05);if(A.state.questBreachLifecycle.snapshot().wave==='B'){advancedA=true;break;}}\nif(advancedA){neutralize();const resultB=killCurrentWave('B');}\nfor(let n=0;n<70;n++){A.step(.05);if(A.state.questBreachLifecycle.snapshot().wave==='C'){advancedB=true;break;}}\nif(advancedB){neutralize();killCurrentWave('C');}\nconst stage=A.state.questBreachLifecycle.snapshot();\nconst final=A.state.questOutcome,over=A.state.over;\nconst rifle=allies[0].data.arsenal;\nconst liveEnemy=fighterList.find(x=>x.questTeam==='HOSTILE');\nconst beforeRetreat=allies[1].hp;\nallies[1].takeDamage(2000,liveEnemy,'physical-fixture-retreat',false);\nconst retreat={before:beforeRetreat,after:allies[1].hp,\n withdraw:allies[1].withdrawn,recipient:policy.abilityRecipient(allies),\n receipts:A.state.questBreachRetreat.snapshot().events};\nconst same=allies.every((a,i)=>fighterList[i]===a);\nwindow.exitArsenalBattleMode();\nreturn{started,initial,resultA:resultA.snap,advancedA,advancedB,\n facts,shots,stage,final,over,same,retreat,closed:A.state.questBreachLifecycle==null,\n saved:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId??null};\n");
+    gate('B6f actual Arsenal creates native 3 allies + 3 canonical A enemies',
+      out?.started===true&&out?.initial?.status==='ACTIVE'
+       &&out?.resultA?.receipts?.length===1,
+      {started:out?.started,initial:out?.initial,receipt:out?.resultA});
+    gate('B6f A and B physically advance once, preserving EXACT Fighter identities',
+      out?.advancedA===true&&out?.advancedB===true&&out?.same===true
+      &&out.facts?.every(x=>x.sameAllies===true)
+      &&out.facts.map(x=>x.actorCount).join('|')==='6|7|6',
+      {facts:out?.facts,advancedA:out?.advancedA,advancedB:out?.advancedB});
+    gate('B6f A/B/C hostile HP reaches zero via actual physical Arsenal bullets',
+      out?.shots?.length===10&&out.shots.every(x=>x.hp===0&&x.hits>0)
+       &&out.stage?.completed===3&&out.stage?.phase==='COMPLETE',
+      {shots:out?.shots,stage:out?.stage});
+    gate('B6f native game completes the THIRD wave only, no fabricated Chapter save',
+      out?.final==='COMPLETE'&&out?.over==='QUEST_BREACH_WAVES_COMPLETE'
+      &&out?.saved!=='RIVET_OVERRIDDEN',
+      {final:out?.final,over:out?.over,saved:out?.saved});
+    gate('B6f native 100HP retreat through Fighter.takeDamage switches J/K owner',
+      out?.retreat?.withdraw===true&&out?.retreat?.after===100
+      &&out?.retreat?.recipient==='NEWBOT'&&out?.retreat?.receipts?.length===1,
+      out?.retreat);
+    gate('B6f native mode disposal removes match-owned retreat & wave authority',
+      out?.closed===true,out?.closed);
+  }catch(e){gate('B6f native integration could not complete',false,{error:String(e?.stack||e)});}
+}
+
 // Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
 // Test-only start does not write Quest Director completion.
 if (process.argv.includes('--quest-n-actors')) {
