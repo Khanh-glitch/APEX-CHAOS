@@ -1361,7 +1361,7 @@
           // replaying an already-acknowledged opening. The old non-saving
           // Story preview still begins at the real R1 hit as before.
           if(storyCompletion&&directorCheckpoint==='WAKE')
-            AQ.state.questStoryView.offer({id:'WAKE_OPEN'});
+            AQ.state.questWakeEntryPending=true;
         }
         // Only scripted R1/R2 spawn at first. The normal Arsenal cadence
         // resumes when J needs a real revealed pickup after R2.
@@ -1419,6 +1419,12 @@
     }
     AQ.log('MODE_ENTER', `mode=ARSENAL_BATTLE profile=${(AQ.state && AQ.state.battleMode) || 'LOCAL'}`);
     try { draw(); } catch (error) { console.warn('[ARSENAL] initial draw failed', error); }
+    // Screenshot live NEW MATCH pixels, never a stale previous-match frame.
+    // The scene then owns the simulation lease until physically acknowledged.
+    if(AQ.state?.questWakeEntryPending===true&&AQ.state.questStoryView){
+      AQ.state.questWakeEntryPending=false;
+      AQ.state.questStoryView.offer({id:'WAKE_OPEN'});
+    }
     return true;
   }
   window.startArsenalBattleMode = function startProductArsenalBattle(p1Name, p2Name, options) {
