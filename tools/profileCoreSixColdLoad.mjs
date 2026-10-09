@@ -158,6 +158,18 @@ async function runHero(hero, index) {
     `});
     await cdp.command('Page.navigate', { url:appUrl });
 
+    // The current R90 Mechanical Door requires one REAL Start press before
+    // the Home HUD becomes interactive. SEALED is correct pre-start, not a
+    // stuck load. The previous profiler waited for DONE before this press,
+    // timing out all six cold sessions without ever selecting a fighter.
+    phase='boot-start';
+    await cdp.poll(`(() => ({
+      engine:!!window.__apexEngineReady,
+      start:!!document.getElementById('apex-boot-start'),
+      telemetry:!!window.apexHeroLoadTelemetry
+    }))()`, v=>v?.engine&&v.start&&v.telemetry, {attempts:1500,interval:75});
+    await cdp.physicalClick('#apex-boot-start');
+
     await cdp.poll(`(() => ({
       engine:!!window.__apexEngineReady,
       stage:!!document.getElementById('stage'),
