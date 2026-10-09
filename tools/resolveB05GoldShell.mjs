@@ -12,7 +12,7 @@ const hud='public/gold/battle-hud.html';
 const root=process.cwd();
 const get=(stage)=>execFileSync('git',['show',':'+stage+':'+shell],{encoding:'utf8',maxBuffer:12*1024*1024});
 const marker='__B05_CANONICAL_GOLD_BATTLE_HUD_BASE64_PLACEHOLDER__';
-const re=/(<script id="battleHudPayload" type="text\\/plain">)([\\s\\S]*?)(<\\/script>)/g;
+const re=/(<script id="battleHudPayload" type="text\/plain">)([\s\S]*?)(<\/script>)/g;
 function strip(label,s){
  let n=0;
  const out=s.replace(re,(_,start,old,end)=>{n++;return start+marker+end;});
