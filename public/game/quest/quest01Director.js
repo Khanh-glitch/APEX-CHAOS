@@ -8,12 +8,12 @@
   const QUEST_ID = 'THE_ONES_THROWN_AWAY';
   const CONTENT_REVISION = 'q1-director-20261008';
   const NODES = Object.freeze([
-    { id:'WAKE', label:'WAKE', type:'STORY', status:'PENDING_IMPLEMENTATION', copy:'NEWBOT awakens in SCRAP BASIN. The opening scene is not yet implemented.' },
-    { id:'REFLEX', label:'REFLEX', type:'ENCOUNTER', encounterId:'E01', status:'PENDING_IMPLEMENTATION', copy:'The first J/K tutorial must use real accepted casts. This encounter is not yet implemented.' },
-    { id:'WORKSHOP', label:'WORKSHOP — THREE FAILURES', type:'STORY', status:'PENDING_IMPLEMENTATION', copy:'NEWBOT, T.O.T and RIVET meet in the workshop. This story scene is not yet implemented.' },
-    { id:'FIRST_WAKE', label:'FIRST WAKE', type:'ENCOUNTER', encounterId:'E02', status:'CP04_PREVIEW_ONLY', copy:'The isolated four-Fighter combat prototype can be played separately from Quest progression.' },
-    { id:'SCRAP_SWARM', label:'SCRAP SWARM', type:'ENCOUNTER', encounterId:'E03', status:'PENDING_IMPLEMENTATION' },
-    { id:'WEAPON_RAIN', label:'WEAPON RAIN', type:'ENCOUNTER', encounterId:'E04', status:'PENDING_IMPLEMENTATION' },
+    { id:'WAKE', label:'WAKE', type:'STORY', status:'PENDING_IMPLEMENTATION', copy:'No valid network ID. One machine wakes in the Scrap Basin.' },
+    { id:'REFLEX', label:'REFLEX', type:'ENCOUNTER', encounterId:'E01', status:'PENDING_IMPLEMENTATION', copy:'Two routines wake beneath the scrap. Learn the controls through a real encounter.' },
+    { id:'WORKSHOP', label:'WORKSHOP — THREE FAILURES', type:'STORY', status:'PENDING_IMPLEMENTATION', copy:'Three discarded units take shelter together. The workshop is their last safe place.' },
+    { id:'FIRST_WAKE', label:'FIRST WAKE', type:'ENCOUNTER', encounterId:'E02', status:'CP04_PREVIEW_ONLY', copy:'NEWBOT and T.O.T stand together against two approaching scrap hunters.' },
+    { id:'SCRAP_SWARM', label:'SCRAP SWARM', type:'ENCOUNTER', encounterId:'E03', status:'PENDING_IMPLEMENTATION', copy:'Two waves. Seven hostiles. Hold the basin without losing NEWBOT.' },
+    { id:'WEAPON_RAIN', label:'WEAPON RAIN', type:'ENCOUNTER', encounterId:'E04', status:'PENDING_IMPLEMENTATION', copy:'Metal falls from above. Survive two hostiles and the final rain of weapons.' },
     { id:'CHARGE_THE_BREAKER', label:'CHARGE THE BREAKER', type:'ENCOUNTER', encounterId:'E05', status:'PENDING_IMPLEMENTATION' },
     { id:'BREACH_WAVES', label:'BREACH WAVES', type:'ENCOUNTER', encounterId:'E06', status:'PENDING_IMPLEMENTATION' },
     { id:'RIVET_OVERRIDDEN', label:'RIVET OVERRIDDEN', type:'ENCOUNTER', encounterId:'E07', status:'PENDING_IMPLEMENTATION' },
@@ -237,15 +237,23 @@
     style.textContent=[
       '#apexQuest01Stage{position:fixed;inset:0;z-index:9200;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:rgba(3,5,8,.95);color:#e8e9e5;font-family:Arial,sans-serif;}',
       '#apexQuest01Stage[hidden]{display:none;}',
-      '#apexQuest01Stage .q1-panel{width:min(580px,100%);max-height:90vh;overflow:auto;border:1px solid #665536;background:linear-gradient(140deg,#171b20,#0a0d12);box-shadow:0 18px 70px #000a;padding:clamp(20px,5vw,42px);}',
+      '#apexQuest01Stage .q1-panel{position:relative;width:min(620px,100%);max-height:min(88dvh,900px);overflow:auto;border:1px solid #84613b;border-top:3px solid #e4a858;background:radial-gradient(ellipse at 95% 6%,#48321b77,transparent 43%),linear-gradient(145deg,#1a1d21,#080c10 78%);box-shadow:0 18px 75px #000d,0 0 55px #b16a1a12;padding:clamp(20px,5vw,42px);animation:q1Enter .42s cubic-bezier(.18,.82,.25,1) both;}',
+      '@keyframes q1Enter{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}',
+      '#apexQuest01Stage .q1-panel::before{content:"";pointer-events:none;position:absolute;inset:0;opacity:.09;background:repeating-linear-gradient(0deg,transparent 0 3px,#ddd 4px 4.5px)}',
+      '#apexQuest01Stage .q1-progress{height:3px;background:#34312b;margin:18px 0 4px;position:relative;overflow:hidden}',
+      '#apexQuest01Stage .q1-progress::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--quest-progress,9.1%);background:linear-gradient(90deg,#8d5926,#ffc174);box-shadow:0 0 12px #efa448}'
       '#apexQuest01Stage .q1-eyebrow{font-size:11px;letter-spacing:.22em;color:#c5a069;font-weight:700;}',
-      '#apexQuest01Stage h2{font-size:clamp(36px,7vw,72px);line-height:1;margin:22px 0 10px;letter-spacing:.045em;}',
+      '#apexQuest01Stage h2{font-family:Impact,"Arial Narrow",Arial,sans-serif;font-size:clamp(36px,7vw,72px);line-height:.93;margin:18px 0 16px;letter-spacing:.045em;text-transform:uppercase;text-shadow:0 4px 19px #0008;}',
       '#apexQuest01Stage .q1-sub{font-size:13px;line-height:1.7;color:#c9cbd0;max-width:48ch;}',
       '#apexQuest01Stage .q1-status{margin:24px 0 12px;color:#c4a777;font-size:11px;letter-spacing:.13em;}',
       '#apexQuest01Stage .q1-actions{display:grid;gap:10px;margin-top:22px;}',
       '#apexQuest01Stage button{font:700 13px Arial,sans-serif;letter-spacing:.1em;min-height:48px;padding:12px 15px;border:1px solid #9a8259;color:#f6eee0;background:#403725;cursor:pointer;}',
       '#apexQuest01Stage button:focus-visible{outline:3px solid #f6c981;outline-offset:3px;}',
-      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;}',
+      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay,#apexQuest01Stage #q5ScrapSwarmPlay,#apexQuest01Stage #q5WeaponRainPlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;transition:transform .18s,filter .18s,box-shadow .18s;}',
+      '#apexQuest01Stage button:where(:hover,:focus-visible){filter:brightness(1.13);box-shadow:0 8px 24px #b9742644;}',
+      '#apexQuest01Stage button:active{transform:scale(.985)}',
+      '@media(max-height:520px){#apexQuest01Stage{padding:8px}#apexQuest01Stage .q1-panel{padding:14px;max-height:calc(100dvh - 16px)}#apexQuest01Stage h2{font-size:clamp(28px,7vh,48px);margin:8px 0}#apexQuest01Stage .q1-status{margin:10px 0 4px}}',
+      '@media(prefers-reduced-motion:reduce){#apexQuest01Stage .q1-panel,#apexQuest01Stage button{animation:none;transition:none}}'
       '#apexQuest01Stage button.q1-back{background:transparent;border-color:#61666b;color:#d1d1cf;}',
       '#apexQuest01Stage .q1-fine{margin-top:16px;font-size:11px;color:#9fa5ad;line-height:1.5;}'
     ].join('\n');
@@ -255,7 +263,7 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. Neither preview completes story checkpoints; The preview reaches the real RIVET floor suppression and WORKSHOP but does not save. START QUEST runs the signed opening with checkpoint progression to WORKSHOP.</div></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div></div>';
     d.body.appendChild(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',hide);
     overlay.querySelector('#q1Preview').addEventListener('click',()=>{const cb=callbacks && callbacks.onPreview;hide(); if(typeof cb==='function')cb();});
@@ -312,12 +320,27 @@
     const node=byId(state.checkpointId);
     el.dataset.node=node.id;
     el.querySelector('#q1Title').textContent=node.label;
-    el.querySelector('#q1Copy').textContent=node.copy || 'This story chapter has not yet been implemented.';
-    el.querySelector('#q1Status').textContent='CHECKPOINT ' + String(NODE_IDS.indexOf(node.id)+1).padStart(2,'0') + ' / 11 · ' + node.status.replaceAll('_',' ');
+    el.querySelector('#q1Copy').textContent=node.copy||'Another chapter waits beyond the scrap.';
+    const index=NODE_IDS.indexOf(node.id);
+    el.querySelector('#q1Status').textContent='CHAPTER '+String(index+1).padStart(2,'0')+' / 11';
+    el.querySelector('.q1-panel').style.setProperty('--quest-progress',((index+1)/NODE_IDS.length*100).toFixed(2)+'%');
+    const objective={
+      REFLEX:'ROUTINE J / K · REAL COMBAT',
+      FIRST_WAKE:'FIGHT TOGETHER · E02',
+      SCRAP_SWARM:'SURVIVE TWO WAVES · E03',
+      WEAPON_RAIN:'TWO HOSTILES · FINAL RAIN · E04'
+    };
+    el.querySelector('#q1Objective').textContent=objective[node.id]||'THE ONES THROWN AWAY';
     el.querySelector('#q4hQuestPlay').hidden=!['WAKE','REFLEX'].includes(node.id);
     el.querySelector('#q4iFirstWakePlay').hidden=!['WORKSHOP','FIRST_WAKE'].includes(node.id);
     el.querySelector('#q5ScrapSwarmPlay').hidden=node.id!=='SCRAP_SWARM';
     el.querySelector('#q5WeaponRainPlay').hidden=node.id!=='WEAPON_RAIN';
+    // Playtest-only probes remain discoverable on localhost but cannot
+    // appear as unfinished developer chrome on the Cloudflare production UI.
+    const diagnostic=['localhost','127.0.0.1','::1'].includes(String(root.location?.hostname||''))||
+      root.__APEX_TEST_MODE===true;
+    for(const id of ['q1Preview','q4ReflexPreview','q4eStoryPreview'])
+      el.querySelector('#'+id).hidden=!diagnostic;
     previousFocus=root.document.activeElement;
     el.hidden=false;
     const start=!el.querySelector('#q5WeaponRainPlay').hidden
