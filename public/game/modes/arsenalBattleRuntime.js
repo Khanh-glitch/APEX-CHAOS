@@ -263,7 +263,10 @@
     // take() is presentation-only. It cannot advance Director or spoof a Cast.
     let cue;
     while((cue=state.questStory?.take?.())){
-      if(view.offer(cue))return;
+      // Q4E ledger intentionally queues immutable scene ID strings. The
+      // compositor requires an object with an id; adapt here, not in combat.
+      const scene=typeof cue==='string'?{id:cue}:cue;
+      if(view.offer(scene))return;
     }
   }
 
