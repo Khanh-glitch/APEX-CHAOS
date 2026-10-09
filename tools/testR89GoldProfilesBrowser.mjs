@@ -282,7 +282,12 @@ try{
     await click('.modeCard[data-mode="bot"]');
     if(!(await wait("(()=>window.__apexGoldFidelity.child().document.querySelector('#stage')?.classList.contains('screen-fighter'))()")))throw Error(v.name+' Fighter Pick failed');
     await click('.rosterCard[data-hero="newbot"]');
-    await sleep(230);
+    await sleep(750);
+    await click('#lockIn');
+    // BOT Gold uses TWO locks: player fighter, then CPU opponent fighter.
+    if(!(await wait("(()=>window.__apexGoldFidelity.child().document.querySelector('#stage')?.classList.contains('fighter-active-p2'))()")))throw Error(v.name+' BOT opponent handoff failed');
+    await click('.rosterCard[data-hero="newbot"]');
+    await sleep(700);
     await click('#lockIn');
     if(!(await wait("(()=>{const c=window.__apexGoldFidelity.child(),d=c.document;return d.body.classList.contains('battle-hud-open')&&d.querySelector('#battleHudHost #arena')?.getBoundingClientRect().width>0})()")))throw Error(v.name+' Battle failed');
     const before=await capture(v.name+'-Battle');
