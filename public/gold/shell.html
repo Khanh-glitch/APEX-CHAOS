@@ -1440,7 +1440,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       battleMode='bot';
       p1Hero='newbot';p2Hero='newbot';
       void launchBattleHud();
-    },onFirstWakeStory:launchQuestFirstWakeStory,onScrapSwarmStory:launchQuestScrapSwarmStory,onWeaponRainStory:launchQuestWeaponRainStory,onBreakerChargeStory:launchQuestBreakerChargeStory,onBreachStory:launchQuestBreachStory});
+    },onFirstWakeStory:launchQuestFirstWakeStory,onScrapSwarmStory:launchQuestScrapSwarmStory,onWeaponRainStory:launchQuestWeaponRainStory,onBreakerChargeStory:launchQuestBreakerChargeStory,onBreachStory:launchQuestBreachStory,onRivetStory:launchQuestRivetStory});
   };
   story?.addEventListener('click',openQuestFromHome);
   let questTouchStart=null;
@@ -1512,6 +1512,14 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     return true;
   }
   window.__apexGoldQuestBreachStoryEntry=launchQuestBreachStory;
+  function launchQuestRivetStory(){
+    if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return false;
+    if(window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='RIVET_OVERRIDDEN')return false;
+    questPreview=true;questPreviewKind='rivet-overridden-story';
+    battleMode='bot';p1Hero='newbot';p2Hero='newbot';
+    void launchBattleHud();return true;
+  }
+  window.__apexGoldQuestRivetStoryEntry=launchQuestRivetStory;
   const battle = document.getElementById('freeBattle');
   const modeScreen = document.getElementById('modeSelectScreen');
   const fighterScreen = document.getElementById('fighterSelectScreen');
@@ -1814,7 +1822,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   async function setBattleLive(){
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
     const ready=APEX_GOLD.onBattleLive
-      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:questPreview?(questPreviewKind==='reflex'?'quest-reflex-preview':questPreviewKind==='first-wake-story'?'quest-first-wake-story':questPreviewKind==='scrap-swarm-story'?'quest-scrap-swarm-story':questPreviewKind==='weapon-rain-story'?'quest-weapon-rain-story':questPreviewKind==='breaker-charge-story'?'quest-breaker-charge-story':questPreviewKind==='breach-waves-story'?'quest-breach-story':'quest-first-wake'):battleMode,p1:p1Hero,p2:p2Hero}))
+      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:questPreview?(questPreviewKind==='reflex'?'quest-reflex-preview':questPreviewKind==='first-wake-story'?'quest-first-wake-story':questPreviewKind==='scrap-swarm-story'?'quest-scrap-swarm-story':questPreviewKind==='weapon-rain-story'?'quest-weapon-rain-story':questPreviewKind==='breaker-charge-story'?'quest-breaker-charge-story':questPreviewKind==='breach-waves-story'?'quest-breach-story':questPreviewKind==='rivet-overridden-story'?'quest-rivet-story':'quest-first-wake'):battleMode,p1:p1Hero,p2:p2Hero}))
       : false;
     if(ready!==true||!window.APEX_GOLD_HUD)return false;
     // Production projection is now authoritative. Mark the preview handoff
@@ -1848,14 +1856,14 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     battleTransition.querySelector('[data-bt-state="p2"]').textContent=bot?'TARGET ACQUIRED':'COMBAT LOCK';
     battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=bot?'CPU // TARGET':'P2 // FIGHTER';
     battleTransition.querySelector('[data-bt-core]').textContent=questPreview
-      ? (questPreviewKind==='reflex'?'QUEST 01 // REFLEX PLAYTEST':questPreviewKind==='first-wake-story'?'QUEST 01 // FIRST WAKE':questPreviewKind==='scrap-swarm-story'?'QUEST 01 // SCRAP SWARM':questPreviewKind==='weapon-rain-story'?'QUEST 01 // WEAPON RAIN':questPreviewKind==='breaker-charge-story'?'QUEST 01 // CHARGE THE BREAKER':questPreviewKind==='breach-waves-story'?'QUEST 01 // BREACH WAVES':'QUEST 01 // FIRST WAKE PLAYTEST')
+      ? (questPreviewKind==='reflex'?'QUEST 01 // REFLEX PLAYTEST':questPreviewKind==='first-wake-story'?'QUEST 01 // FIRST WAKE':questPreviewKind==='scrap-swarm-story'?'QUEST 01 // SCRAP SWARM':questPreviewKind==='weapon-rain-story'?'QUEST 01 // WEAPON RAIN':questPreviewKind==='breaker-charge-story'?'QUEST 01 // CHARGE THE BREAKER':questPreviewKind==='breach-waves-story'?'QUEST 01 // BREACH WAVES':questPreviewKind==='rivet-overridden-story'?'QUEST 01 // RIVET OVERRIDDEN':'QUEST 01 // FIRST WAKE PLAYTEST')
       : bot?'SOLO COMBAT CHANNEL':'DUEL COMBAT CHANNEL';
     if(questPreview){
-      battleTransition.querySelector('[data-bt-name="p1"]').textContent=questPreviewKind==='reflex'||questPreviewKind==='scrap-swarm-story'||questPreviewKind==='weapon-rain-story'?'NEWBOT':questPreviewKind==='breach-waves-story'?'NEWBOT + T.O.T + RIVET':'NEWBOT + T.O.T';
-      battleTransition.querySelector('[data-bt-name="p2"]').textContent=questPreviewKind==='reflex'?'T.O.T':questPreviewKind==='scrap-swarm-story'?'SCRAP SWARM':questPreviewKind==='weapon-rain-story'?'SCRAP HOSTILES':questPreviewKind==='breaker-charge-story'?'IMPACT ACCUMULATOR':questPreviewKind==='breach-waves-story'?'THREE SCRAP WAVES':'SCRAP A + SCRAP B';
-      battleTransition.querySelector('[data-bt-state="p1"]').textContent=questPreviewKind==='reflex'?'REFLEX // R1':questPreviewKind==='scrap-swarm-story'||questPreviewKind==='weapon-rain-story'||questPreviewKind==='breaker-charge-story'?'ONE SURVIVOR':questPreviewKind==='breach-waves-story'?'THREE ALLIES':'TWO ALLIES';
-      battleTransition.querySelector('[data-bt-state="p2"]').textContent=questPreviewKind==='reflex'?'REFLEX // R2':questPreviewKind==='scrap-swarm-story'?'TWO WAVES':questPreviewKind==='weapon-rain-story'?'WEAPON RAIN':questPreviewKind==='breaker-charge-story'?'6000 IMPACT':questPreviewKind==='breach-waves-story'?'WAVES A / B / C':'TWO HOSTILES';
-      battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=questPreviewKind==='reflex'?'REFLEX // 1v1':questPreviewKind==='scrap-swarm-story'?'SCRAP SWARM // WAVES':questPreviewKind==='weapon-rain-story'?'WEAPON RAIN // SURVIVE':questPreviewKind==='breaker-charge-story'?'CHARGE // IMPACT':questPreviewKind==='breach-waves-story'?'BREACH // DEFEND':'FIRST WAKE // 2v2';
+      battleTransition.querySelector('[data-bt-name="p1"]').textContent=questPreviewKind==='reflex'||questPreviewKind==='scrap-swarm-story'||questPreviewKind==='weapon-rain-story'?'NEWBOT':questPreviewKind==='breach-waves-story'?'NEWBOT + T.O.T + RIVET':questPreviewKind==='rivet-overridden-story'?'NEWBOT':'NEWBOT + T.O.T';
+      battleTransition.querySelector('[data-bt-name="p2"]').textContent=questPreviewKind==='reflex'?'T.O.T':questPreviewKind==='scrap-swarm-story'?'SCRAP SWARM':questPreviewKind==='weapon-rain-story'?'SCRAP HOSTILES':questPreviewKind==='breaker-charge-story'?'IMPACT ACCUMULATOR':questPreviewKind==='breach-waves-story'?'THREE SCRAP WAVES':questPreviewKind==='rivet-overridden-story'?'RIVET':'SCRAP A + SCRAP B';
+      battleTransition.querySelector('[data-bt-state="p1"]').textContent=questPreviewKind==='reflex'?'REFLEX // R1':questPreviewKind==='scrap-swarm-story'||questPreviewKind==='weapon-rain-story'||questPreviewKind==='breaker-charge-story'?'ONE SURVIVOR':questPreviewKind==='breach-waves-story'?'THREE ALLIES':questPreviewKind==='rivet-overridden-story'?'ONE SURVIVOR':'TWO ALLIES';
+      battleTransition.querySelector('[data-bt-state="p2"]').textContent=questPreviewKind==='reflex'?'REFLEX // R2':questPreviewKind==='scrap-swarm-story'?'TWO WAVES':questPreviewKind==='weapon-rain-story'?'WEAPON RAIN':questPreviewKind==='breaker-charge-story'?'6000 IMPACT':questPreviewKind==='breach-waves-story'?'WAVES A / B / C':questPreviewKind==='rivet-overridden-story'?'OVERRIDE · NONLETHAL':'TWO HOSTILES';
+      battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=questPreviewKind==='reflex'?'REFLEX // 1v1':questPreviewKind==='scrap-swarm-story'?'SCRAP SWARM // WAVES':questPreviewKind==='weapon-rain-story'?'WEAPON RAIN // SURVIVE':questPreviewKind==='breaker-charge-story'?'CHARGE // IMPACT':questPreviewKind==='breach-waves-story'?'BREACH // DEFEND':questPreviewKind==='rivet-overridden-story'?'RIVET // NONLETHAL':'FIRST WAKE // 2v2';
     }
     const horizontal=!bot&&matchMedia('(orientation:portrait)').matches;
     battleTransition.classList.toggle('is-horizontal',horizontal);

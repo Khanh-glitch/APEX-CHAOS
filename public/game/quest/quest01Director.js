@@ -15,8 +15,8 @@
     { id:'SCRAP_SWARM', label:'SCRAP SWARM', type:'ENCOUNTER', encounterId:'E03', status:'PENDING_IMPLEMENTATION', copy:'Two waves. Seven hostiles. Hold the basin without losing NEWBOT.' },
     { id:'WEAPON_RAIN', label:'WEAPON RAIN', type:'ENCOUNTER', encounterId:'E04', status:'PENDING_IMPLEMENTATION', copy:'Metal falls from above. Survive two hostiles and the final rain of weapons.' },
     { id:'CHARGE_THE_BREAKER', label:'CHARGE THE BREAKER', type:'ENCOUNTER', encounterId:'E05', status:'PENDING_IMPLEMENTATION', copy:'Charge the impact accumulator with genuine weapon damage. Hold until the relay answers.' },
-    { id:'BREACH_WAVES', label:'BREACH WAVES', type:'ENCOUNTER', encounterId:'E06', status:'PILOT_UNAPPROVED_KITS', copy:'Three allies defend the basin in three real waves. RIVET secures the rig before joining the front.' },
-    { id:'RIVET_OVERRIDDEN', label:'RIVET OVERRIDDEN', type:'ENCOUNTER', encounterId:'E07', status:'PENDING_IMPLEMENTATION' },
+    { id:'BREACH_WAVES', label:'BREACH WAVES', type:'ENCOUNTER', encounterId:'E06', status:'B6_NATIVE_ACCEPTANCE', copy:'Three allies defend the basin in three real waves. RIVET secures the rig before joining the front.' },
+    { id:'RIVET_OVERRIDDEN', label:'RIVET OVERRIDDEN', type:'ENCOUNTER', encounterId:'E07', status:'B7_GOLD_NATIVE_PILOT' },
     { id:'TOT_LAST_CHOICE', label:'T.O.T — LAST CHOICE', type:'ENCOUNTER', encounterId:'E08', status:'PENDING_IMPLEMENTATION' },
     { id:'OUTSIDE', label:'OUTSIDE', type:'STORY', status:'PENDING_IMPLEMENTATION' }
   ]);
@@ -31,7 +31,8 @@
     SCRAP_SWARM:'The basin is not secure. Two successive enemy waves now force NEWBOT to hold the ground without a free reset.',
     WEAPON_RAIN:'The supply rhythm accelerates while two hostiles remain active. Every weapon is a real Arsenal pickup, not falling scenery.',
     CHARGE_THE_BREAKER:'The inert accumulator accepts weapon impacts. Filling its charge sends one infrastructure pulse toward the relay.',
-    BREACH_WAVES:'The accumulator signal draws three waves. RIVET must stop operating the rig before joining NEWBOT and T.O.T in physical defense.'
+    BREACH_WAVES:'The accumulator signal draws three waves. RIVET must stop operating the rig before joining NEWBOT and T.O.T in physical defense.',
+    RIVET_OVERRIDDEN:'The relay identified RIVET and T.O.T; NEWBOT remains unidentified. RIVET returned to the passive rig and lost control of its body.'
   });
   const NODE_IDS = NODES.map(n => n.id);
   const byId = id => NODES.find(n => n.id === id) || null;
@@ -186,6 +187,49 @@
   function acceptNativeBeat(beat) {
     const no=reason=>Object.freeze({ok:false,reason});
     const A=root.APEX_ARSENAL,q=A?.state,actors=root.fighters;
+    if(beat==='E06_OVERRIDE_BUILDUP'){
+      const p=root.APEX_QUEST_BREACH_POLICY;
+      const live=q?.questBreachLifecycle?.snapshot?.();
+      const rig=q?.questBreachRig?.snapshot?.();
+      const view=q?.questBreachStoryView?.snapshot?.();
+      const stages=['E06_RIG_LOCK','E06_BREACH_CLEAR','E06_RELAY_REPLY',
+        'E06_NETWORK_SCAN','E06_RIG_RETURN','E06_OVERRIDE_BUILDUP'];
+      if(core.checkpoint().checkpointId!=='BREACH_WAVES'||!q?.active
+        ||q.questBreachProgression!==true||q.questBreachEncounter!==true
+        ||q.over!=='QUEST_BREACH_WAVES_COMPLETE'||q.questOutcome!=='COMPLETE'
+        ||p?.waveOutcome?.(actors,'C')?.status!=='COMPLETE'
+        ||live?.phase!=='COMPLETE'||live.wave!=='C'||live.completed!==3
+        ||live.receipts?.length!==3
+        ||live.receipts.reduce((n,w)=>n+(w.physicalKOs?.length||0),0)!==10
+        ||live.receipts.some((w,i)=>w.wave!=='ABC'[i]||
+          w.physicalKOs?.some(k=>k.hp!==0||k.maxHp<=0))
+        ||rig?.readyForE07!==true||rig.closed!==false
+        ||rig.receipts?.map(x=>x.cue).join('|')!==stages.join('|')
+        ||!view||view.active!==false||view.closed!==false
+        ||view.shown.join('|')!==stages.join('|'))
+        return no('e06-ten-native-KO-passive-rig-and-ordered-cinematic-required');
+      return commitSignedBeat('RIVET_OVERRIDDEN',stages);
+    }
+    if(beat==='E07_RECOVERY'){
+      const a=root.APEX_QUEST_RIVET_THRESHOLDS;
+      const v=q?.questRivetStoryView?.snapshot?.();
+      const sig=q?.questRivetAdapter?.snapshot?.();
+      const needs=['E07_START','E07_RIVET_COMMAND_750',
+        'E07_RIVET_COMMAND_450','E07_RIVET_NONLETHAL_STOP','E07_RECOVERY'];
+      if(core.checkpoint().checkpointId!=='RIVET_OVERRIDDEN'||!q?.active
+        ||q.questRivetProgression!==true||q.questRivetTest!==true
+        ||q.over!=='QUEST_RIVET_OVERRIDDEN_COMPLETE'
+        ||q.questOutcome!=='COMPLETE'
+        ||actors?.length!==2||actors[0]?.questId!=='NEWBOT'||actors[0].hp<=0
+        ||actors[1]?.questId!=='RIVET'||actors[1].questTeam!=='HOSTILE'
+        ||actors[1].hp!==a?.STOP_HP||actors[1].maxHp!==a?.START_HP
+        ||!sig?.stopped||sig.closed||sig.pending||sig.observed!==a.STOP_HP
+        ||sig.cues?.map(x=>x.threshold).join('|')!=='750|450|180'
+        ||q.questRivetReceipts?.map(x=>x.threshold).join('|')!=='750|450|180'
+        ||!v||v.active||v.closed||v.shown.join('|')!==needs.join('|'))
+        return no('e07-real-nonlethal-rivet-and-all-stories-required');
+      return commitSignedBeat('TOT_LAST_CHOICE',needs);
+    }
     if(beat==='E05_BREAKER_CHARGE_CLEAR'){
       const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
       const pulse=q?.questBreakerSequence?.snapshot?.();
@@ -354,7 +398,7 @@
       '#apexQuest01Stage .q1-actions{display:grid;gap:10px;margin-top:22px;}',
       '#apexQuest01Stage button{font:700 13px Arial,sans-serif;letter-spacing:.1em;min-height:48px;padding:12px 15px;border:1px solid #9a8259;color:#f6eee0;background:#403725;cursor:pointer;}',
       '#apexQuest01Stage button:focus-visible{outline:3px solid #f6c981;outline-offset:3px;}',
-      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay,#apexQuest01Stage #q5ScrapSwarmPlay,#apexQuest01Stage #q5WeaponRainPlay,#apexQuest01Stage #q5BreakerChargePlay,#apexQuest01Stage #q6BreachPlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;transition:transform .18s,filter .18s,box-shadow .18s;}',
+      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay,#apexQuest01Stage #q5ScrapSwarmPlay,#apexQuest01Stage #q5WeaponRainPlay,#apexQuest01Stage #q5BreakerChargePlay,#apexQuest01Stage #q6BreachPlay,#apexQuest01Stage #q7RivetPlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;transition:transform .18s,filter .18s,box-shadow .18s;}',
       '#apexQuest01Stage button:where(:hover,:focus-visible){filter:brightness(1.13);box-shadow:0 8px 24px #b9742644;}',
       '#apexQuest01Stage button:active{transform:scale(.985)}',
       '@media(max-height:520px){#apexQuest01Stage{padding:8px}#apexQuest01Stage .q1-panel{padding:14px;max-height:calc(100dvh - 16px)}#apexQuest01Stage h2{font-size:clamp(28px,7vh,48px);margin:8px 0}#apexQuest01Stage .q1-status{margin:10px 0 4px}}',
@@ -374,7 +418,7 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><div class="q1-cause" id="q1Cause" hidden><div class="q1-cause-kicker">WHY THIS CHAPTER</div><div class="q1-cause-text" id="q1Context"></div></div><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q6BreachPlay">DEFEND THE BREACH · E06 PILOT</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div><nav class="q1-hub" aria-label="Quest encounter replay"><h3>QUEST STAGES / REPLAY</h3><div class="q1-hub-grid" id="q1StageHub"></div><div class="q1-replay-note" id="q1ReplayNotice"></div></nav></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><div class="q1-cause" id="q1Cause" hidden><div class="q1-cause-kicker">WHY THIS CHAPTER</div><div class="q1-cause-text" id="q1Context"></div></div><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q6BreachPlay">DEFEND THE BREACH · E06</button><button type="button" id="q7RivetPlay">FACE RIVET · E07</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div><nav class="q1-hub" aria-label="Quest encounter replay"><h3>QUEST STAGES / REPLAY</h3><div class="q1-hub-grid" id="q1StageHub"></div><div class="q1-replay-note" id="q1ReplayNotice"></div></nav></div>';
     d.body.appendChild(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',()=>{
       if(replaySession)exitReplay();else hide();
@@ -395,6 +439,14 @@
       if(core.checkpoint().checkpointId!=='BREACH_WAVES')return;
       const opts=callbacks;
       const cb=callbacks?.onBreachStory||root.__apexGoldQuestBreachStoryEntry;
+      if(typeof cb!=='function')return;
+      hide();const started=cb();
+      if(started!==true)show(opts);
+    });
+    overlay.querySelector('#q7RivetPlay').addEventListener('click',()=>{
+      if(core.checkpoint().checkpointId!=='RIVET_OVERRIDDEN')return;
+      const opts=callbacks;
+      const cb=callbacks?.onRivetStory||root.__apexGoldQuestRivetStoryEntry;
       if(typeof cb!=='function')return;
       hide();const started=cb();
       if(started!==true)show(opts);
@@ -437,7 +489,7 @@
       delete root.__APEX_QUEST_STORY_FULL;
       if(typeof cb==='function')cb();
     });
-    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();if(replaySession)exitReplay();else hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q6BreachPlay'),overlay.querySelector('#q5BreakerChargePlay'),overlay.querySelector('#q5WeaponRainPlay'),overlay.querySelector('#q5ScrapSwarmPlay'),overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();if(replaySession)exitReplay();else hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q7RivetPlay'),overlay.querySelector('#q6BreachPlay'),overlay.querySelector('#q5BreakerChargePlay'),overlay.querySelector('#q5WeaponRainPlay'),overlay.querySelector('#q5ScrapSwarmPlay'),overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
     return overlay;
   }
   function show(options) {
@@ -505,6 +557,7 @@
     el.querySelector('#q5WeaponRainPlay').hidden=node.id!=='WEAPON_RAIN';
     el.querySelector('#q5BreakerChargePlay').hidden=node.id!=='CHARGE_THE_BREAKER';
     el.querySelector('#q6BreachPlay').hidden=node.id!=='BREACH_WAVES';
+    el.querySelector('#q7RivetPlay').hidden=node.id!=='RIVET_OVERRIDDEN';
     // Playtest-only probes remain discoverable on localhost but cannot
     // appear as unfinished developer chrome on the Cloudflare production UI.
     const diagnostic=['localhost','127.0.0.1','::1'].includes(String(root.location?.hostname||''))||
@@ -513,7 +566,9 @@
       el.querySelector('#'+id).hidden=!diagnostic;
     previousFocus=root.document.activeElement;
     el.hidden=false;
-    const start=!el.querySelector('#q6BreachPlay').hidden
+    const start=!el.querySelector('#q7RivetPlay').hidden
+      ?el.querySelector('#q7RivetPlay')
+      :!el.querySelector('#q6BreachPlay').hidden
       ?el.querySelector('#q6BreachPlay')
       :!el.querySelector('#q5BreakerChargePlay').hidden
       ?el.querySelector('#q5BreakerChargePlay')

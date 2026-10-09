@@ -301,6 +301,14 @@
        &&state.questBreakerStoryView?.active())return;
     if(state.questBreachProgression===true
        &&state.questBreachStoryView?.active())return;
+    if(state.questRivetProgression===true){
+      if(state.questRivetStoryView?.active())return;
+      if(state.questRivetCueQueue?.length){
+        const id=state.questRivetCueQueue[0];
+        if(!state.questRivetStoryView?.offer?.({id}))return;
+        state.questRivetCueQueue.shift();return;
+      }
+    }
     if(state.questBreachProgression===true
        &&state.questBreachRig?.snapshot?.().phase==='AWAIT_RIG_LOCK')return;
     if(state.questBreachEncounter===true){
@@ -807,6 +815,8 @@
            &&outcome.status==='COMPLETE'&&state.questBreakerStoryView){
           state.questBreakerStoryView.offer({id:'E05_BREAKER_CHARGE_CLEAR'});
         }
+        if(state.questRivetProgression===true&&outcome.status==='RETRY')
+          state.questRivetStoryView?.offer({id:'E07_RETRY'});
         if(state.questBreachProgression===true&&state.questBreachStoryView){
           if(outcome.status==='COMPLETE'){
             const signed=state.questBreachRig?.acceptNativeWaveClear(fighters,state.questBreachLifecycle);
@@ -1589,6 +1599,17 @@
       &&typeof window.APEX_QUEST_RIVET_THRESHOLDS?.create==='function'
       &&typeof window.APEX_QUEST_RIVET_DAMAGE_ADAPTER?.create==='function';
     if(options.questRivetTest===true&&!rivetTest)return false;
+    const rivetStory=options.questRivetProgression===true
+      &&options.questRivetOverridden===true
+      &&types[0]?.name==='ROBOT'
+      &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
+      &&window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId==='RIVET_OVERRIDDEN'
+      &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
+      &&typeof window.APEX_QUEST_RIVET_THRESHOLDS?.create==='function'
+      &&typeof window.APEX_QUEST_RIVET_DAMAGE_ADAPTER?.create==='function'
+      &&!!window.APEX_QUEST_STORY_PRESENTATION;
+    if((options.questRivetProgression||options.questRivetOverridden)&&!rivetStory)return false;
+    const rivetActive=rivetTest||rivetStory;
     if (options.questFixture && !questFixture) return false;
     // Q4A native REFLEX pilot is loopback TEST ONLY, never a story skip.
     const reflexAuthorized=(window.__APEX_TEST_MODE===true&&localTestHost)
@@ -1677,7 +1698,7 @@
     const questScrapSwarm=scrapSwarmStory;
     const questWeaponRain=rainStory;
     const questBreakerCharge=breakerStory;
-    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || rivetTest || !!questFixture || questReflex;
+    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || rivetActive || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
@@ -1689,7 +1710,7 @@
           ...breachPolicy.resolveWave('A').hostiles.map((e,i)=>({
             questId:e.id,questTeam:'HOSTILE',hp:e.hp,
             x:e.entry==='WEST'?145:855,y:220+i*250,kind:e.kind}))] :null;
-      const specs = rivetTest
+      const specs = rivetActive
         ? [{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:210,y:500,kind:'newbot'},
            {questId:'RIVET',questTeam:'HOSTILE',hp:1000,x:790,y:500,kind:'rivet'}]
         : questReflex
@@ -1790,7 +1811,7 @@
           ||(questWeaponRain&&!questCore.validateWeaponRain(fighters).ok)
           ||(questBreakerCharge&&!questCore.validateBreakerCharge(fighters).ok)
           ||(breachActive&&breachPolicy.waveOutcome(fighters,'A').status!=='ACTIVE')
-          ||(rivetTest&&(validated.count!==2||validated.allies!==1
+          ||(rivetActive&&(validated.count!==2||validated.allies!==1
             ||validated.hostiles!==1
             ||fighters[0]?.questId!=='NEWBOT'||fighters[0]?.maxHp!==1000
             ||fighters[1]?.questId!=='RIVET'||fighters[1]?.maxHp!==1000
@@ -1813,18 +1834,48 @@
       AQ.state.questBreachTest=breachTest;
       AQ.state.questBreachEncounter=breachActive;
       AQ.state.questBreachProgression=breachStory;
-      AQ.state.questRivetTest=rivetTest;
-      if(rivetTest){
+      AQ.state.questRivetTest=rivetActive;
+      AQ.state.questRivetProgression=rivetStory;
+      if(rivetStory)AQ.state.questRivetCueQueue=[];
+      if(rivetActive){
         const boss=fighters[1],receipts=[];
         const adapter=window.APEX_QUEST_RIVET_DAMAGE_ADAPTER.create({
           thresholds:window.APEX_QUEST_RIVET_THRESHOLDS,
-          onCue:(cue)=>{receipts.push(cue);AQ.log('QUEST_E07_NATIVE_CROSSING',cue.beat);}
+          onCue:(cue)=>{receipts.push(cue);if(rivetStory)AQ.state.questRivetCueQueue.push(cue.beat);AQ.log('QUEST_E07_NATIVE_CROSSING',cue.beat);}
         });
         const bound=adapter.attach(boss);
         if(!bound.ok){adapter.close();AQ.state.active=false;
           AQ.log('QUEST_E07_NATIVE_ATTACH_DENIED',bound.reason);return false;}
         AQ.state.questRivetAdapter=adapter;
         AQ.state.questRivetReceipts=receipts;
+      }
+      if(rivetStory){
+        const ownerState=AQ.state;
+        ownerState.questRivetStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
+          onAdvance:(beatId)=>{
+            if(AQ.state!==ownerState||!ownerState.active||!ownerState.questRivetProgression)return;
+            if(beatId==='E07_START')return;
+            if(beatId==='E07_RETRY'){
+              window.exitArsenalBattleMode?.();
+              window.APEX_QUEST01_DIRECTOR?.show?.({
+                onRivetStory:window.__apexGoldQuestRivetStoryEntry
+              });return;
+            }
+            if(beatId==='E07_RIVET_NONLETHAL_STOP'){
+              if(ownerState.questOutcome==='COMPLETE'
+                &&ownerState.questRivetAdapter?.snapshot?.().stopped===true)
+                ownerState.questRivetStoryView.offer({id:'E07_RECOVERY'});
+              return;
+            }
+            if(beatId!=='E07_RECOVERY')return;
+            const signed=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.(beatId);
+            if(signed?.ok!==true){AQ.log('QUEST_E07_SAVE_DENIED',String(signed?.reason));return;}
+            window.exitArsenalBattleMode?.();
+            window.APEX_QUEST01_DIRECTOR?.show?.({
+              onRivetStory:window.__apexGoldQuestRivetStoryEntry
+            });
+          }
+        });
       }
       if(breachActive){
         if(breachStory){
@@ -1914,10 +1965,12 @@
                 ownerState.questBreachStoryView.offer({id:handoff[i+1]});
                 return;
               }
-              // X-03 still pending: preserve saved BREACH_WAVES,
-              // never treat the pending E07 fixture as an unlocked chapter.
+              const signed=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.(beatId);
+              if(signed?.ok!==true){
+                AQ.log('QUEST_E06_SAVE_DENIED',String(signed?.reason));return;
+              }
             }else if(beatId!=='E06_BREACH_RETRY')return;
-            AQ.log('QUEST_E06_PREVIEW_RESULT',beatId);
+            AQ.log('QUEST_E06_STORY_RESULT',beatId);
             window.exitArsenalBattleMode?.();
             window.APEX_QUEST01_DIRECTOR?.show?.({
               onBreachStory:window.__apexGoldQuestBreachStoryEntry
@@ -2140,6 +2193,9 @@
     if(AQ.state?.questBreachProgression===true&&AQ.state.questBreachStoryView){
       AQ.state.questBreachStoryView.offer({id:'E06_RIG_LOCK'});
     }
+    if(AQ.state?.questRivetProgression===true&&AQ.state.questRivetStoryView){
+      AQ.state.questRivetStoryView.offer({id:'E07_START'});
+    }
     if(AQ.state?.questWakeEntryPending===true&&AQ.state.questStoryView){
       AQ.state.questWakeEntryPending=false;
       AQ.state.questStoryView.offer({id:'WAKE_OPEN'});
@@ -2155,6 +2211,14 @@
       return false;
     return window.startArsenalBattleMode('ROBOT','ROBOT',{
       questBreachWaves:true,questBreachProgression:true
+    })===true;
+  };
+  window.__apexQuestRivetStoryStart=function startE07FromSignedDirector(){
+    if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
+      ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='RIVET_OVERRIDDEN')
+      return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
+      questRivetOverridden:true,questRivetProgression:true
     })===true;
   };
   window.__apexQuestRivetFixtureStart=function startB7dRealRivetEncounter(){
@@ -2396,6 +2460,8 @@
       state.questEnemyAbilities?.close?.();
       state.questEnemyAbilities=null;
       state.questBreachStoryView?.close?.();state.questBreachStoryView=null;
+      state.questRivetStoryView?.close?.();state.questRivetStoryView=null;
+      state.questRivetCueQueue=null;
     state.questBreachRig?.close?.();state.questBreachRig=null;
       state.questBreachCompanionSkills?.close?.();state.questBreachCompanionSkills=null;
       state.questBreachRetreat?.close?.();state.questBreachRetreat=null;
