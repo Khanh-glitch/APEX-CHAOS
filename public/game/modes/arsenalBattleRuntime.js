@@ -286,6 +286,42 @@
     if(state.questReflex===true&&state.questStoryView?.active())return;
     if(state.questFirstWakeProgression===true
        &&state.questFirstWakeStoryView?.active())return;
+    if(state.questScrapSwarmProgression===true){
+      // E03 interlude is NOT a second match. Freeze physics/cooldowns, retain
+      // existing NEWBOT instance, pickups, weapon ownership and projectiles.
+      if(state.questSwarmStoryView?.active())return;
+      if(state.questSwarmPhase==='INTERLUDE'){
+        state.questSwarmInterludeElapsed+=dt;
+        weaponApi.tickVisuals(dt);
+        window.APEX_ARSENAL_AV?.tick?.(dt);
+        if(AQ.feel?.tick)AQ.feel.tick(dt);
+        if(state.questSwarmInterludeElapsed>=1.8){
+          const Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
+          const next=Q?.scrapSwarmRoster?.('B');
+          const create=state.questSwarmCreateFighter;
+          const original=fighters[0];
+          if(!state.questSwarmWaveAReceipt
+             ||!Array.isArray(next)||next.length!==5
+             ||typeof create!=='function'||original?.questId!=='NEWBOT'){
+            state.questSwarmPhase='FAILED';
+            AQ.log('QUEST_E03_WAVE_SEAM_DENIED','invalid real A receipt or factory');
+            return;
+          }
+          const newHostiles=next.slice(1).map((spec,i)=>create(spec,6+i));
+          for(const old of fighters.slice(1))if(old?.data)old.data.arsenal=null;
+          fighters.splice(1,fighters.length-1,...newHostiles);
+          const check=Q.validateScrapSwarmWave(fighters,'B');
+          if(!check.ok){state.questSwarmPhase='FAILED';AQ.log('QUEST_E03_ROSTER_DENIED',check.reason);return;}
+          state.questSwarmWave='B';
+          state.questSwarmPhase='COMBAT';
+          state.questSwarmWaveBCreated=true;
+          AQ.log('QUEST_E03_WAVE_B','four real Fighters entered, NEWBOT/slots retained');
+          updateHUD();
+        }
+        return;
+      }
+      if(state.questSwarmPhase==='FAILED')return;
+    }
     // Q4B: once all four actual REFLEX receipts and BOTH true <=500 HP
     // crossings have been accepted, stop the training exchange. The next
     // authorized story action belongs to RIVET (NOT a generic winner/KO).
@@ -557,10 +593,24 @@
       if(pilot)presentNextRealStoryBeat(state);
       const outcome = state.questReflex
         ? {status:fighters.some(f=>f?.hp<=0)?'RETRY':'ACTIVE',reason:'reflex-pilot-'+(pilot?.phase||'closed')}
+        : state.questScrapSwarmProgression ? Q.scrapSwarmOutcome(fighters,state.questSwarmWave)
         : state.questFirstWake ? Q.firstWakeOutcome(fighters)
         : Q.teamsOutcome(fighters);
+      if(state.questScrapSwarmProgression===true&&outcome.status==='NEXT_WAVE'
+         &&state.questSwarmWave==='A'&&state.questSwarmPhase==='COMBAT'){
+        const killed=fighters.slice(1);
+        // The only source of this receipt is real fully-dead Arsenal actors.
+        state.questSwarmWaveAReceipt=Object.freeze(killed.map(f=>Object.freeze({
+          questId:f.questId,hp:f.hp,maxHp:f.maxHp
+        })));
+        state.questSwarmPhase='INTERLUDE';
+        state.questSwarmInterludeElapsed=0;
+        window.apexUiSfx?.play?.('ui.screen.transition');
+        AQ.log('QUEST_E03_WAVE_A_CLEAR','physical hostile KO, cinematic seam');
+      }
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
-        state.over = 'QUEST_' + (state.questFirstWake ? 'FIRST_WAKE_' : 'FIXTURE_') + outcome.status;
+        state.over = 'QUEST_' + (state.questScrapSwarmProgression?'SCRAP_SWARM_':
+          state.questFirstWake ? 'FIRST_WAKE_' : 'FIXTURE_') + outcome.status;
         state.questOutcome = outcome.status;
         // No economy award, no 1v1 winnerSide or Gold result transition.
         AQ.log('QUEST_OUTCOME', outcome.status + ' reason=' + outcome.reason);
@@ -570,6 +620,10 @@
            &&state.questFirstWakeStoryView){
           state.questFirstWakeStoryView.offer({id:outcome.status==='COMPLETE'
             ?'E02_FIRST_WAKE_CLEAR':'E02_FIRST_WAKE_RETRY'});
+        }
+        if(state.questScrapSwarmProgression===true&&state.questSwarmStoryView){
+          state.questSwarmStoryView.offer({id:outcome.status==='COMPLETE'
+            ?'E03_SCRAP_SWARM_CLEAR':'E03_SCRAP_SWARM_RETRY'});
         }
         updateHUD();
       }
@@ -1047,6 +1101,45 @@
     aqPerfMark('hud', performance.now() - t0);
   }
 
+  function drawQuestSwarmInterlude(c,s){
+    if(!s?.questScrapSwarmProgression)return;
+    const wave=s.questSwarmWave==='B'?2:1;
+    c.save();
+    c.textAlign='left';
+    c.font='900 15px Bahnschrift, Arial, sans-serif';
+    c.fillStyle='rgba(242,215,168,.78)';
+    c.fillText('SWARM  /  '+String(wave).padStart(2,'0')+'—02',40,57);
+    c.fillStyle='#e2a04c';
+    c.fillRect(40,69,32,3);
+    c.fillStyle=wave===2?'#e2a04c':'#444c52';
+    c.fillRect(76,69,32,3);
+    if(s.questSwarmPhase==='INTERLUDE'){
+      const t=Math.min(1,(s.questSwarmInterludeElapsed||0)/1.8);
+      const enter=Math.min(1,t*3),leave=Math.min(1,Math.max(0,(1-t)*3));
+      c.fillStyle='rgba(2,5,8,'+(0.65*enter*leave).toFixed(3)+')';
+      c.fillRect(0,0,GAME_SIZE,GAME_SIZE);
+      // Four spawn beacons represent precise upcoming Fighter positions,
+      // never simulated damage or invisible already-spawned enemies.
+      const spots=window.APEX_QUEST_MULTI_ACTOR_CORE?.scrapSwarmRoster?.('B')?.slice(1)||[];
+      for(let i=0;i<spots.length;i++){
+        const a=spots[i],beat=(t*1.5+i*.22)%1;
+        c.save();c.translate(a.x,a.y);c.rotate(Math.PI/4);
+        c.strokeStyle='rgba(255,164,73,'+(.23+.6*(1-beat)).toFixed(2)+')';
+        c.lineWidth=3;c.strokeRect(-28-beat*9,-28-beat*9,56+beat*18,56+beat*18);
+        c.restore();
+      }
+      c.textAlign='center';c.fillStyle='#fff0d4';
+      c.shadowColor='rgba(233,143,44,.65)';c.shadowBlur=23;
+      c.font='900 64px Impact, Bahnschrift, sans-serif';
+      c.fillText('WAVE 02',500,455);
+      c.shadowBlur=0;c.font='900 17px Bahnschrift, Arial, sans-serif';
+      c.fillStyle='#ffbd75';c.fillText('FOUR CONTACTS INBOUND',500,491);
+      c.fillStyle='rgba(255,180,90,.65)';
+      c.fillRect(356,514,288*t,3);
+    }
+    c.restore();
+  }
+
   function drawForeground() {
     const t0 = performance.now();
     const view = window.__apexCameraView || { shakeX: 0, shakeY: 0, zoom: 1 };
@@ -1074,7 +1167,9 @@
       }
       if (AQ.state.questOutcome) {
         ctx.font='900 48px sans-serif';ctx.fillStyle='#ffdf9e';
-        ctx.fillText(AQ.state.questOutcome==='COMPLETE'?(AQ.state.questFirstWake?'FIRST WAKE CLEAR':'QUEST TEST CLEAR'):'NEWBOT KO — RETRY',GAME_SIZE/2,148);
+        ctx.fillText(AQ.state.questOutcome==='COMPLETE'
+          ?(AQ.state.questScrapSwarmProgression?'SCRAP SWARM CLEAR':AQ.state.questFirstWake?'FIRST WAKE CLEAR':'QUEST TEST CLEAR')
+          :'NEWBOT KO — RETRY',GAME_SIZE/2,148);
       }
       ctx.restore();
     }
@@ -1094,6 +1189,7 @@
     aqPerfMark('stormVfxDraw', performance.now() - tStorm);
     drawHolderTags(ctx);
     if (AQ.feel && AQ.feel.drawForeground) AQ.feel.drawForeground(ctx);
+    drawQuestSwarmInterlude(ctx,AQ.state);
     ctx.restore();
     syncDomHud();
     aqPerfMark('foregroundTotal', performance.now() - t0);
@@ -1243,6 +1339,16 @@
       &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
       &&!!window.APEX_QUEST_STORY_PRESENTATION;
     if(options.questFirstWakeProgression===true&&!firstWakeStory)return false;
+    const scrapSwarmStory=options.questScrapSwarmProgression===true
+      &&options.questScrapSwarm===true
+      &&types[0]?.name==='ROBOT'
+      &&!questReflex&&!questFirstWake&&!!questCore
+      &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
+      &&directorCheckpoint==='SCRAP_SWARM'
+      &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
+      &&!!window.APEX_QUEST_STORY_PRESENTATION;
+    if(options.questScrapSwarm===true&&!scrapSwarmStory)return false;
+    if(options.questScrapSwarmProgression===true&&!scrapSwarmStory)return false;
     detachReflexReceipt();
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
@@ -1260,7 +1366,8 @@
     const questFirstWake = options.questFirstWake === true
       && t1.name === 'ROBOT'
       && !!questCore;
-    const questMultiActor = questFirstWake || !!questFixture || questReflex;
+    const questScrapSwarm=scrapSwarmStory;
+    const questMultiActor = questFirstWake || questScrapSwarm || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
@@ -1268,7 +1375,8 @@
       const specs = questReflex
         ? [{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:230,y:500,kind:'newbot'},
            {questId:'T.O.T',questTeam:'HOSTILE',hp:1000,x:770,y:500,kind:'tot'}]
-        : (questFirstWake ? questCore.fixtureRoster('2v2') : questFixture);
+        : (questFirstWake ? questCore.fixtureRoster('2v2') :
+          questScrapSwarm ? questCore.scrapSwarmRoster('A') : questFixture);
       const NPC_TYPES = Object.freeze({
         scout:['SCRAP SCOUT','#c88d48'],bulwark:['IRON BULWARK','#6f7f90'],
         tot:['T.O.T','#e8e2d2'],rivet:['RIVET','#c39f76'],
@@ -1286,9 +1394,9 @@
         };
         return def;
       };
-      fighters = specs.map((spec, i) => {
+      const makeQuestFighter=(spec,id)=>{
         const type = spec.kind === 'newbot' ? t1 : makeNpc(spec.kind);
-        const f = new Fighter(i+1, spec.x, spec.y, type);
+        const f = new Fighter(id, spec.x, spec.y, type);
         f.questId = spec.questId;
         f.questTeam = spec.questTeam;
         if (spec.kind === 'scout' || spec.kind === 'bulwark' ||
@@ -1300,10 +1408,12 @@
         f.maxHp = spec.hp;
         f.hp = spec.hp;
         return f;
-      });
+      };
+      fighters = specs.map((spec,i)=>makeQuestFighter(spec,i+1));
       // Fail closed before a simulation frame can run on bad Quest inputs.
       const validated = questCore.validateRoster(fighters);
-      if (!validated.ok || (questFirstWake && !questCore.validateFirstWake(fighters).ok)) {
+      if (!validated.ok || (questFirstWake && !questCore.validateFirstWake(fighters).ok)
+          ||(questScrapSwarm&&!questCore.validateScrapSwarmWave(fighters,'A').ok)) {
         AQ.log('QUEST_ROSTER_INVALID', validated.reason);
         AQ.state.active=false;
         return false;
@@ -1311,11 +1421,44 @@
       AQ.state.questMultiActor = true;
       AQ.state.questFirstWake = questFirstWake;
       AQ.state.questFirstWakeProgression = firstWakeStory;
+      AQ.state.questScrapSwarmProgression=questScrapSwarm;
+      if(questScrapSwarm){
+        AQ.state.questSwarmWave='A';
+        AQ.state.questSwarmPhase='COMBAT';
+        AQ.state.questSwarmWaveBCreated=false;
+        AQ.state.questSwarmWaveAReceipt=null;
+        AQ.state.questSwarmInterludeElapsed=0;
+        AQ.state.questSwarmCreateFighter=makeQuestFighter;
+      }
       AQ.state.questReflex = questReflex;
       AQ.state.questStoryCompletion = storyCompletion;
       AQ.state.questTestFixture = questReflex||questFirstWake ? null : String(options.questFixture);
       AQ.state.questActorCount = validated.count;
       AQ.state.questOutcome = null;
+      if(questScrapSwarm){
+        const ownerState=AQ.state;
+        AQ.state.questSwarmStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
+          onAdvance:(beatId)=>{
+            if(AQ.state!==ownerState||!ownerState.active
+              ||ownerState.questScrapSwarmProgression!==true)return;
+            if(beatId==='E03_SCRAP_SWARM_CLEAR'){
+              const result=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.(beatId);
+              if(result?.ok!==true){AQ.log('QUEST_E03_SAVE_DENIED',String(result?.reason));return;}
+              AQ.log('QUEST_E03_CLEAR','checkpoint=WEAPON_RAIN');
+            }else if(beatId==='E03_SCRAP_SWARM_RETRY'){
+              if(ownerState.questOutcome!=='RETRY')return;
+              AQ.log('QUEST_E03_RETRY','checkpoint remains SCRAP_SWARM');
+            }else return;
+            window.exitArsenalBattleMode?.();
+            window.APEX_QUEST01_DIRECTOR?.show?.({
+              onReflexPreview:window.__apexQuestReflexStart,
+              onPreview:window.__apexQuestFirstWakeStart,
+              onFirstWakeStory:window.__apexGoldQuestFirstWakeStoryEntry,
+              onScrapSwarmStory:window.__apexGoldQuestScrapSwarmStoryEntry
+            });
+          }
+        });
+      }
       if(questFirstWake&&firstWakeStory){
         const ownerState=AQ.state;
         AQ.state.questFirstWakeStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
@@ -1498,6 +1641,14 @@
     }
     return true;
   };
+  window.__apexQuestScrapSwarmStoryStart=function startRealE03FromDirector(){
+    if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
+       ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='SCRAP_SWARM')
+      return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
+      questScrapSwarm:true,questScrapSwarmProgression:true
+    })===true;
+  };
   window.__apexQuestReflexStart = function startQ4ARealReflexPilot() {
     if(!((window.__APEX_TEST_MODE===true
       && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
@@ -1664,6 +1815,9 @@
       // a retry, voluntary exit or successful Quest chapter handoff.
       state.questFirstWakeStoryView?.close?.();
       state.questFirstWakeStoryView=null;
+      state.questSwarmStoryView?.close?.();
+      state.questSwarmStoryView=null;
+      state.questSwarmCreateFighter=null;
       for (const f of fighters || []) if (f && f.data) f.data.arsenal = null;
       state.active = false;
       state.slots = [];

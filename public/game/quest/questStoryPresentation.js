@@ -54,7 +54,11 @@
   E02_FIRST_WAKE_CLEAR:{title:'FIRST WAKE',left:'NEWBOT + T.O.T',right:'SCRAP BOTS',
     line:'SURVIVED',kicker:'TWO HOSTILES // KO CONFIRMED'},
   E02_FIRST_WAKE_RETRY:{title:'FIRST WAKE',left:'NEWBOT',right:'SCRAP BOTS',
-    line:'NEWBOT DOWN',kicker:'RETRY // CHECKPOINT'}
+    line:'NEWBOT DOWN',kicker:'RETRY // CHECKPOINT'},
+  E03_SCRAP_SWARM_CLEAR:{title:'SCRAP SWARM',left:'NEWBOT',right:'SCRAP BASIN',
+    line:'SEVEN CONTACTS CLEARED',kicker:'WAVE 02 / 02 · REAL KO VERIFIED'},
+  E03_SCRAP_SWARM_RETRY:{title:'SCRAP SWARM',left:'NEWBOT',right:'SCRAP BASIN',
+    line:'SIGNAL LOST',kicker:'NEWBOT KO · RETRY CHECKPOINT'}
  });
  const singleton={style:null};
  function ensureStyle(doc){

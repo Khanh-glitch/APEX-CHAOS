@@ -896,9 +896,10 @@
     // Story FIRST WAKE uses the exact same prepared Gold battle compositor
     // as CP04, but enters through the separately signed E02 Story route.
     const questFirstWakeStory=pick && pick.mode==='quest-first-wake-story';
+    const questScrapSwarmStory=pick && pick.mode==='quest-scrap-swarm-story';
     const questFirstWake = pick && pick.mode === 'quest-first-wake';
     const questReflexPreview=pick && pick.mode==='quest-reflex-preview';
-    const questPreview=questFirstWake||questFirstWakeStory||questReflexPreview;
+    const questPreview=questFirstWake||questFirstWakeStory||questScrapSwarmStory||questReflexPreview;
     const mode = questPreview || (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
     const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
     // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
@@ -981,9 +982,11 @@
         window.__APEX_QUEST_DEV = true;
         try { return (questReflexPreview
           ? window.__apexQuestReflexStart?.()
-          : questFirstWakeStory
-            ? window.__apexQuestFirstWakeStoryStart?.()
-            : window.__apexQuestFirstWakeStart?.()) === true; }
+          : questScrapSwarmStory
+            ? window.__apexQuestScrapSwarmStoryStart?.()
+            : questFirstWakeStory
+              ? window.__apexQuestFirstWakeStoryStart?.()
+              : window.__apexQuestFirstWakeStart?.()) === true; }
         finally { delete window.__APEX_QUEST_DEV; }
       })() : await Promise.resolve(window.startMatch());
       if (started !== true || sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {

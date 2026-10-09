@@ -11,3 +11,11 @@ The Q5 pure module implements read-only authored roster/validation and a NEXT_WA
 **Pending before E03 can PASS**: Gold-hosted E03 entry, native physical A→B seam keeping the same NEWBOT instance and Arsenal state, B's four true KOs, authenticated story acknowledgement to WEAPON_RAIN, desktop/mobile Chrome receipts, and owner visual sign-off. DO NOT mark E03 as implemented on the strength of the pure test.
 
 Visual kinds `scout`, `bulwark`, `sentinel` provisionally reuse three original Gold families; final separation from the approved ROBOT PUNK RIVET requires source-image sign-off. No invented hero abilities or lore.
+
+## Q5b implementation (feature cutover candidate, pending CI)
+- Gold-owned checkpoint entry: SCRAP_SWARM -> mounted real Arsenal -> first real 1v3 roster.
+- Wave A transitions ONLY after all three physical hostiles reach KO; no second match is started.
+- 1.8 s authored alert/pulse/amber warning telegraphs the four wave-B spawn positions. Simulation freezes through the interlude (HP, weapon holders, cooldown, floor slots and active projectiles retained).
+- Replaces only defeated A Fighter objects with four B Fighter instances. The original NEWBOT and real Arsenal match state, gun slots and projectiles remain unchanged.
+- Wave B genuine last KO emits a real Quest result comic and only its acknowledgement can commit WEAPON_RAIN. NEWBOT KO leaves SCRAP_SWARM for retry. No fabricated story dialogue.
+- Pending before FINAL: natural Chrome win+retry and actual-device visual/audio signoff; E04–E08 remain untouched.
