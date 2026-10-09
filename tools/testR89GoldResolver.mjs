@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {GOLD_PROFILES,chooseGoldProfile,deriveGoldDesignSpace,fitGoldProfile,detectGoldDeviceClass} from '../public/gold-fidelity-profiles.mjs';
 const cases=[
-  ['iPhone-SE-portrait',375,667,'phone','portrait-tall','port','compact'],
+  ['iPhone-SE-portrait',375,667,'phone','portrait-standard','port','compact'],
   ['iPhone-SE-landscape',667,375,'phone','landscape-phone','land','compact'],
   ['phone-16-9-landscape',640,360,'phone','landscape-phone','land','compact'],
   ['phone-ultrawide',844,390,'phone','landscape-ultrawide','land','compact'],
