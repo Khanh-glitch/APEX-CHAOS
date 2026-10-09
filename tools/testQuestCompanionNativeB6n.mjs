@@ -40,6 +40,7 @@ pass(SK.CONFIG.RIVET.K.cooldown===10,'RIVET copies exact Robot K cooldown');
 pass(SK.CONFIG.RIVET.K.duration===3,'RIVET copies exact Robot K duration');
 pass(SK.CONFIG.RIVET.K.incomingMult===.45,'RIVET copies exact Robot K armor multiplier');
 pass(SK.CONFIG.RIVET.K.ccImmunity===false,'RIVET K does not invent crowd-control immunity');
+pass(SK.CONFIG.RIVET.J.catchRadius>=150+25,'RIVET J catch band extends beyond two real 75px Fighter collision radii');
 
 {
  const s=session();
@@ -123,7 +124,7 @@ pass(SK.CONFIG.RIVET.K.ccImmunity===false,'RIVET K does not invent crowd-control
  s.kit.tick(.1);
  pass(s.r.data.positionLocked===true,'RIVET anchors at physical location while waiting');
  pass(!s.e.statusCalls.length,'enemy outside entry radius is not auto-stunned');
- s.e.x=520;s.e.y=180;
+ s.e.x=575;s.e.y=180; // distance 175: OUTSIDE 150 body contact, INSIDE 190 intercept
  s.kit.tick(.1);
  pass(s.e.statusCalls.some(c=>c.name==='stun'&&c.seconds===1.15),
    'only physical entry triggers one real native stun');
@@ -148,7 +149,7 @@ pass(SK.CONFIG.RIVET.K.ccImmunity===false,'RIVET K does not invent crowd-control
  s.kit.tick(.1);
  pass(!s.e.statusCalls.length,'no instant cast-on-occupied-square cheat');
  s.e.x=780;s.kit.tick(.1);
- s.e.x=450;s.kit.tick(.1);
+ s.e.x=575;s.kit.tick(.1); // native non-overlap reentry at distance 175
  pass(s.e.statusCalls.length===1,'must leave and re-enter the actual zone');
 }
 console.log('B6n native companion contract checks:',count);
