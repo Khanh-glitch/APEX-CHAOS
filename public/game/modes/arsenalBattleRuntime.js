@@ -299,7 +299,9 @@
        &&state.questRainStoryView?.active())return;
     if(state.questBreakerChargeProgression===true
        &&state.questBreakerStoryView?.active())return;
-    if(state.questBreachTest===true){
+    if(state.questBreachProgression===true
+       &&state.questBreachStoryView?.active())return;
+    if(state.questBreachEncounter===true){
       const lifecycle=state.questBreachLifecycle;
       if(!lifecycle){AQ.log('B6F_MISSING_WAVE_CONTROLLER','');return;}
       const now=lifecycle.snapshot();
@@ -549,7 +551,7 @@
       if (!state.labMode) state.spawnTimer -= dt;
       let guard = 0;
       while (!state.labMode && state.spawnTimer <= 0 && guard++ < 4) {
-        state.spawnTimer += state.questBreachTest===true
+        state.spawnTimer += state.questBreachEncounter===true
           ?window.APEX_QUEST_BREACH_POLICY.resolveWave(
             state.questBreachLifecycle.snapshot().wave).cadence
           :state.questWeaponRainProgression===true
@@ -732,7 +734,7 @@
       const pilot = state.questReflex ? state.questReflexGate?.poll() : null;
       if(pilot)state.questStory?.observeReflex?.(pilot,null);
       if(pilot)presentNextRealStoryBeat(state);
-      const outcome = state.questBreachTest===true
+      const outcome = state.questBreachEncounter===true
         ?state.questBreachLifecycle.observe(fighters)
         :state.questReflex
         ? {status:fighters.some(f=>f?.hp<=0)?'RETRY':'ACTIVE',reason:'reflex-pilot-'+(pilot?.phase||'closed')}
@@ -756,7 +758,7 @@
         AQ.log('QUEST_E03_WAVE_A_CLEAR','physical hostile KO, cinematic seam');
       }
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
-        state.over = 'QUEST_' + (state.questBreachTest?'BREACH_WAVES_':
+        state.over = 'QUEST_' + (state.questBreachEncounter?'BREACH_WAVES_':
           state.questScrapSwarmProgression?'SCRAP_SWARM_':
           state.questWeaponRainProgression?'WEAPON_RAIN_':
           state.questBreakerChargeProgression?'BREAKER_CHARGE_':
@@ -769,7 +771,8 @@
         // game-canvas now otherwise freezes the PREVIOUS (often 0%) frame.
         // Quest-specific one-off draw, without stepping time/HP or damage.
         if(state.questFirstWakeProgression||state.questScrapSwarmProgression
-          ||state.questWeaponRainProgression||state.questBreakerChargeProgression){
+          ||state.questWeaponRainProgression||state.questBreakerChargeProgression
+          ||state.questBreachProgression){
           try{draw()}catch(e){AQ.log('QUEST_RESULT_STILL_WARN',String(e));}
         }
         // Story panel is earned ONLY by real Arsenal team KO outcome. Q4I
@@ -790,6 +793,10 @@
         if(state.questBreakerChargeProgression===true
            &&outcome.status==='COMPLETE'&&state.questBreakerStoryView){
           state.questBreakerStoryView.offer({id:'E05_BREAKER_CHARGE_CLEAR'});
+        }
+        if(state.questBreachProgression===true&&state.questBreachStoryView){
+          state.questBreachStoryView.offer({id:outcome.status==='COMPLETE'
+             ?'E06_BREACH_CLEAR':'E06_BREACH_RETRY'});
         }
         updateHUD();
       }
@@ -1605,6 +1612,17 @@
       &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
       &&!!window.APEX_QUEST_STORY_PRESENTATION;
     if((options.questBreakerCharge||options.questBreakerChargeProgression)&&!breakerStory)return false;
+    const breachStory=options.questBreachProgression===true
+      &&options.questBreachWaves===true
+      &&types[0]?.name==='ROBOT'&&!!breachPolicy
+      &&typeof breachPolicy.createWaveLifecycle==='function'
+      &&typeof window.APEX_QUEST_BREACH_RETREAT?.create==='function'
+      &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
+      &&directorCheckpoint==='BREACH_WAVES'
+      &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
+      &&!!window.APEX_QUEST_STORY_PRESENTATION;
+    if((options.questBreachWaves||options.questBreachProgression)&&!breachStory)return false;
+    const breachActive=breachTest||breachStory;
     detachReflexReceipt();
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
@@ -1625,12 +1643,12 @@
     const questScrapSwarm=scrapSwarmStory;
     const questWeaponRain=rainStory;
     const questBreakerCharge=breakerStory;
-    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachTest || !!questFixture || questReflex;
+    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
       // isolated from the story Director and makes NO progress/save changes.
-      const breachOpening=breachTest
+      const breachOpening=breachActive
         ?[{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:205,y:215,kind:'newbot'},
           {questId:'T.O.T',questTeam:'ALLY',hp:1000,x:205,y:505,kind:'tot'},
           {questId:'RIVET',questTeam:'ALLY',hp:1000,x:205,y:790,kind:'rivet'},
@@ -1644,7 +1662,7 @@
           questScrapSwarm ? questCore.scrapSwarmRoster('A') :
           questWeaponRain ? questCore.weaponRainRoster() :
           questBreakerCharge ? questCore.breakerChargeRoster()
-          :breachTest?breachOpening:questFixture);
+          :breachActive?breachOpening:questFixture);
       const NPC_TYPES = Object.freeze({
         scout:['SCRAP SCOUT','#c88d48'],bulwark:['IRON BULWARK','#6f7f90'],
         accumulator:['IMPACT ACCUMULATOR','#e1b66f'],
@@ -1725,7 +1743,7 @@
           ||(questScrapSwarm&&!questCore.validateScrapSwarmWave(fighters,'A').ok)
           ||(questWeaponRain&&!questCore.validateWeaponRain(fighters).ok)
           ||(questBreakerCharge&&!questCore.validateBreakerCharge(fighters).ok)
-          ||(breachTest&&breachPolicy.waveOutcome(fighters,'A').status!=='ACTIVE')) {
+          ||(breachActive&&breachPolicy.waveOutcome(fighters,'A').status!=='ACTIVE')) {
         AQ.log('QUEST_ROSTER_INVALID', validated.reason);
         AQ.state.active=false;
         return false;
@@ -1742,7 +1760,9 @@
       AQ.state.questWeaponRainProgression=questWeaponRain;
       AQ.state.questBreakerChargeProgression=questBreakerCharge;
       AQ.state.questBreachTest=breachTest;
-      if(breachTest){
+      AQ.state.questBreachEncounter=breachActive;
+      AQ.state.questBreachProgression=breachStory;
+      if(breachActive){
         AQ.state.questBreachLifecycle=breachPolicy.createWaveLifecycle();
         AQ.state.questBreachPhase='ACTIVE';
         AQ.state.questBreachCreateFighter=makeQuestFighter;
@@ -1785,6 +1805,24 @@
       AQ.state.questTestFixture = questReflex||questFirstWake ? null : String(options.questFixture);
       AQ.state.questActorCount = validated.count;
       AQ.state.questOutcome = null;
+      if(breachStory){
+        const ownerState=AQ.state;
+        AQ.state.questBreachStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
+          onAdvance:(beatId)=>{
+            if(AQ.state!==ownerState||!ownerState.active
+              ||ownerState.questBreachProgression!==true)return;
+            if(beatId==='E06_RIG_LOCK')return;
+            if(!['E06_BREACH_CLEAR','E06_BREACH_RETRY'].includes(beatId))return;
+            // Preview only: no invented E07 save before the owner resolves
+            // rig handoff and approved companion J/K kits.
+            AQ.log('QUEST_E06_PREVIEW_RESULT',beatId);
+            window.exitArsenalBattleMode?.();
+            window.APEX_QUEST01_DIRECTOR?.show?.({
+              onBreachStory:window.__apexGoldQuestBreachStoryEntry
+            });
+          }
+        });
+      }
       if(questBreakerCharge){
         const ownerState=AQ.state;
         AQ.state.questBreakerStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
@@ -1997,6 +2035,9 @@
     try { draw(); } catch (error) { console.warn('[ARSENAL] initial draw failed', error); }
     // Screenshot live NEW MATCH pixels, never a stale previous-match frame.
     // The scene then owns the simulation lease until physically acknowledged.
+    if(AQ.state?.questBreachProgression===true&&AQ.state.questBreachStoryView){
+      AQ.state.questBreachStoryView.offer({id:'E06_RIG_LOCK'});
+    }
     if(AQ.state?.questWakeEntryPending===true&&AQ.state.questStoryView){
       AQ.state.questWakeEntryPending=false;
       AQ.state.questStoryView.offer({id:'WAKE_OPEN'});
@@ -2005,6 +2046,14 @@
   }
   window.startArsenalBattleMode = function startProductArsenalBattle(p1Name, p2Name, options) {
     return startArsenalBattleMode(p1Name, p2Name, options);
+  };
+  window.__apexQuestBreachStoryStart=function startRealE06FromDirector(){
+    if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
+      ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='BREACH_WAVES')
+      return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
+      questBreachWaves:true,questBreachProgression:true
+    })===true;
   };
   window.__apexQuestBreachFixtureStart=function startB6fTrueArsenalFixture(){
     const local=['localhost','127.0.0.1','::1']
@@ -2238,6 +2287,7 @@
       state.questRainStoryView=null;
       state.questEnemyAbilities?.close?.();
       state.questEnemyAbilities=null;
+      state.questBreachStoryView?.close?.();state.questBreachStoryView=null;
       state.questBreachRetreat?.close?.();state.questBreachRetreat=null;
       state.questBreachLifecycle?.close?.();state.questBreachLifecycle=null;
       state.questBreachCreateFighter=null;
