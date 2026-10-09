@@ -704,6 +704,10 @@
               // in the opponent). The VFX consumer gets the REAL swept
               // collision point (visual only — damage is already resolved).
               if (p.weapon === 'STORMBREAKER') {
+                if(p.questTotArtifactId)AQ.log('B8_TRACE_COLLISION_ENTER',
+                  JSON.stringify({tag:p.questTotArtifactId,callback:typeof p.questTotCommitResolution,
+                    phase:AQ.state?.questTotStormNative?.snapshot?.().phase,
+                    owner:p.owner?.questId,target:target?.questId,pickups:AQ.state?.slots?.map(s=>[s.id,s.phase])}));
                 const hit=questHit||
                   sweptSegmentCircleHit(p.px,p.py,p.x,p.y,target.x,target.y,hitR)||
                   {x:p.x,y:p.y};
@@ -715,8 +719,15 @@
                 // E08 causal receipt must be committed immediately after the
                 // REAL swept hit + native damage, before any VFX/SFX callback
                 // can re-enter presentation or clear a transient projectile.
-                if(p.questTotArtifactId&&p.questTotCommitResolution?.('HIT')!==true)
-                  throw Error('E08 real Stormbreaker confirmed impact receipt denied');
+                if(p.questTotArtifactId){
+                  AQ.log('B8_TRACE_POST_REAL_DAMAGE',JSON.stringify({tag:p.questTotArtifactId,
+                    hp:target.hp,phase:AQ.state?.questTotStormNative?.snapshot?.().phase,
+                    callback:typeof p.questTotCommitResolution}));
+                  const nativeResolved=p.questTotCommitResolution?.('HIT');
+                  AQ.log('B8_TRACE_RESOLUTION',JSON.stringify({nativeResolved,
+                    phase:AQ.state?.questTotStormNative?.snapshot?.().phase}));
+                  if(nativeResolved!==true)throw Error('E08 real Stormbreaker confirmed impact receipt denied');
+                }
                 if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.onImpact) {
                   window.APEX_ARSENAL_STORM.onImpact(hit.x, hit.y, target);
                 }

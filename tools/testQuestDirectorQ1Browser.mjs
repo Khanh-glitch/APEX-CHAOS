@@ -1593,7 +1593,7 @@ try{
                   &&storm?.receipts?.filter(x=>x.native==='THROW')?.length===1
                   &&storm?.cradle?.slotId===storm?.slot,storm);
                 if(!storm?.returned){
-                  const forensic=await evalPage("(()=>{const A=window.APEX_ARSENAL;return {slots:A?.state?.slots?.map(s=>({id:s.id,phase:s.phase,kind:s.questStage})),projectiles:window.projectiles?.map(p=>({weapon:p.weapon,type:p.type,state:p.state,tag:p.questTotArtifactId,owner:p.owner?.questId})),storm:A?.state?.questTotStormNative?.snapshot?.(),logs:A?.logs?.slice?.(-20)}})()");
+                  const forensic=await evalPage("(()=>{const A=window.APEX_ARSENAL;return {slots:A?.state?.slots?.map(s=>({id:s.id,phase:s.phase,kind:s.questStage})),projectiles:window.projectiles?.map(p=>({weapon:p.weapon,type:p.type,state:p.state,tag:p.questTotArtifactId,owner:p.owner?.questId})),storm:A?.state?.questTotStormNative?.snapshot?.(),events:A?.events?.filter(x=>/B8_TRACE|STORM|QUEST_E08|MODE_ENTER/.test(x)).slice(-50)}})()");
                   gate('B8 blocked STORM native lifecycle forensic capture',true,forensic);
                   throw Error('B8 real STORM projectile did not close its authenticated lifecycle');
                 }
