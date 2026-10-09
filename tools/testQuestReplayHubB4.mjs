@@ -55,3 +55,43 @@ gate('no unauthorized replay of last locked mission',
 gate('no normal progression modified as side effect of replay tests',
  writes===0&&JSON.stringify(JSON.parse(raw))===JSON.stringify(saved));
 console.log('B4 safe Quest hub '+n+' PASS / 0 FAIL');
+
+// B4a: simulated native *authorized-result shape* for replay lifecycle only.
+// This checks correct Director RAM/permanent switching; physical KO legitimacy
+// is independently checked by E01-E05 real-Arsenal regression tests.
+{
+  const original={...saved,checkpointId:'BREACH_WAVES',encounterId:'E06'};
+  let raw2=JSON.stringify(original),changes=0;
+  const holder={
+    localStorage:{getItem:()=>raw2,setItem:(_,v)=>{raw2=v;changes++;}},
+    APEX_ARSENAL:{state:{active:false}},
+    APEX_QUEST_MULTI_ACTOR_CORE:{breakerChargeOutcome:()=>({status:'COMPLETE'})},
+    fighters:[{questId:'NEWBOT',hp:1000},{questId:'BREAKER-CORE',hp:0}]
+  };
+  vm.runInNewContext(source,{window:holder,Date,Math,Number,Object,Array,Set,JSON});
+  const h=holder.APEX_QUEST01_DIRECTOR;
+  gate('E05 is replayable only because actual checkpoint is E06',
+    h.startReplay('CHARGE_THE_BREAKER').ok===true
+    &&h.checkpoint().checkpointId==='CHARGE_THE_BREAKER');
+  const q=holder.APEX_ARSENAL.state;
+  q.active=true;q.questBreakerChargeProgression=true;
+  q.questOutcome='COMPLETE';q.over='QUEST_BREAKER_CHARGE_COMPLETE';
+  q.questBreakerSequence={snapshot:()=>({pulseObserved:true,phase:'PULSE',
+    requested:3,accepted:2,suppressed:1,milestones:[.25,.5,.75,.9,1]})};
+  q.questBreakerStoryView={snapshot:()=>({active:false,closed:false,
+    shown:['E05_BREAKER_CHARGE_CLEAR']})};
+  gate('cannot leave isolated replay while battle still active',
+    h.exitReplay()===false&&h.replayStatus().active===true
+    &&h.checkpoint().checkpointId==='CHARGE_THE_BREAKER');
+  const signature=h.acceptNativeBeat('E05_BREAKER_CHARGE_CLEAR');
+  gate('signed E05 result moves only the virtual core into E06',
+    signature.ok===true&&h.checkpoint().checkpointId==='BREACH_WAVES'
+    &&JSON.parse(raw2).checkpointId==='BREACH_WAVES');
+  q.active=false;
+  const restored=h.show();
+  gate('show after real Arsenal exit automatically restores permanent core',
+    restored.checkpointId==='BREACH_WAVES'
+    &&h.replayStatus().active===false&&h.checkpoint().checkpointId==='BREACH_WAVES');
+  gate('signed replay never writes to permanent localStorage',
+    raw2===JSON.stringify(original)&&changes===0);
+}

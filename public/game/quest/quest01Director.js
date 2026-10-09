@@ -111,6 +111,7 @@
   // Quest checkpoint and receives the same strict engine/scene receipt laws.
   let core=permanentCore;
   let replaySession=null;
+  let lastReplayCompletion=null;
   function replayStatus(){
     return replaySession?Object.freeze({
       active:true,stageId:replaySession.stageId,
@@ -142,17 +143,32 @@
     };
     const opts=options||callbacks||{};
     core=create(memory);
-    replaySession={stageId,originalCheckpoint:actual.checkpointId};
+    lastReplayCompletion=null;
+    replaySession={stageId,originalCheckpoint:actual.checkpointId,completed:false};
     hide();
     const state=show(opts);
     return {ok:true,stageId,entryId,state,ephemeral:true};
   }
   function exitReplay(){
     if(!replaySession)return false;
+    // Never swap authority back to the permanent save while a live Arsenal
+    // battle still holds Quest receipts/callbacks from the replay instance.
+    if(root.APEX_ARSENAL?.state?.active===true)return false;
     core=permanentCore;
     replaySession=null;
+    lastReplayCompletion=null;
     hide();
     return true;
+  }
+  function commitSignedBeat(target,cues){
+    const result=core._commitNativeTransition(target,cues);
+    if(result?.ok===true&&replaySession){
+      // A replay is ONE encounter, not a second campaign whose next
+      // encounter can spill past the user's saved unlock boundary.
+      replaySession.completed=NODE_IDS.indexOf(target)>
+        NODE_IDS.indexOf(replaySession.stageId);
+    }
+    return result;
   }
   function acceptNativeBeat(beat) {
     const no=reason=>Object.freeze({ok:false,reason});
@@ -172,7 +188,7 @@
          ||!view||view.active!==false||view.closed!==false
          ||view.shown.join('|')!=='E05_BREAKER_CHARGE_CLEAR')
         return no('e05-real-damage-pulse-and-panel-required');
-      return core._commitNativeTransition('BREACH_WAVES',['E05_BREAKER_CHARGE_CLEAR']);
+      return commitSignedBeat('BREACH_WAVES',['E05_BREAKER_CHARGE_CLEAR']);
     }
     if(beat==='E04_WEAPON_RAIN_CLEAR'){
       const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
@@ -187,7 +203,7 @@
         ||!view||view.active!==false||view.closed!==false
         ||view.shown.join('|')!=='E04_WEAPON_RAIN_CLEAR')
         return no('e04-real-KO-rain-and-panel-required');
-      return core._commitNativeTransition('CHARGE_THE_BREAKER',['E04_WEAPON_RAIN_CLEAR']);
+      return commitSignedBeat('CHARGE_THE_BREAKER',['E04_WEAPON_RAIN_CLEAR']);
     }
     if(beat==='E03_SCRAP_SWARM_CLEAR'){
       const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
@@ -208,7 +224,7 @@
       if(!v||v.active!==false||v.closed!==false
         ||v.shown.join('|')!=='E03_SCRAP_SWARM_CLEAR')
         return no('e03-result-panel-not-acknowledged');
-      return core._commitNativeTransition('WEAPON_RAIN',['E03_SCRAP_SWARM_CLEAR']);
+      return commitSignedBeat('WEAPON_RAIN',['E03_SCRAP_SWARM_CLEAR']);
     }
     if(beat==='FIRST_WAKE_ENTER'||beat==='E02_FIRST_WAKE_CLEAR'){
       const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
@@ -230,7 +246,7 @@
           ||q.over!=null||q.questOutcome!=null
           ||n.hp!==1000||t.hp!==1000||a.hp!==350||bb.hp!==350)
           return no('first-wake-entry-not-earned');
-        return core._commitNativeTransition('FIRST_WAKE',['E02_FIRST_WAKE_ENTRY']);
+        return commitSignedBeat('FIRST_WAKE',['E02_FIRST_WAKE_ENTRY']);
       }
       const view=q.questFirstWakeStoryView?.snapshot?.();
       if(checkpoint.checkpointId!=='FIRST_WAKE'
@@ -240,7 +256,7 @@
         ||!view||view.active!==false||view.closed!==false
         ||view.shown.join('|')!=='E02_FIRST_WAKE_CLEAR')
         return no('first-wake-KO-or-scene-not-earned');
-      return core._commitNativeTransition('SCRAP_SWARM',['E02_FIRST_WAKE_CLEAR']);
+      return commitSignedBeat('SCRAP_SWARM',['E02_FIRST_WAKE_CLEAR']);
     }
     if(!q?.active||q.questReflex!==true||q.questStoryCompletion!==true
       ||!Array.isArray(actors)||actors.length!==2
@@ -258,7 +274,7 @@
          ||gate.phase!=='R1_PISTOL'||gate.receipts?.length!==0
          ||!actors.every(f=>f.hp===1000&&f.maxHp===1000)
          ||q.questRivetPreview)return no('wake-not-earned');
-      return core._commitNativeTransition('REFLEX',['WAKE_OPEN']);
+      return commitSignedBeat('REFLEX',['WAKE_OPEN']);
     }
     if(beat==='WORKSHOP_ARRIVAL'){
       if(checkpoint!=='REFLEX'||q.questWorkshopPreview!==true
@@ -281,7 +297,7 @@
         ||ground?.x!==proof.groundImpact.x||ground?.y!==proof.groundImpact.y
         ||!Array.isArray(root.projectiles)||root.projectiles.length!==0
         ||q.over!=null)return no('no-physical-rescue-proof');
-      return core._commitNativeTransition('WORKSHOP',[
+      return commitSignedBeat('WORKSHOP',[
         'E01_R1_IMPACT','E01_R2_IMPACT','E01_J_REVEAL','E01_K_REVEAL',
         'E01_RIVET_HOLD','E01_RIVET_SUPPRESSION_TECH','WORKSHOP_ARRIVAL']);
     }
@@ -392,6 +408,14 @@
     return overlay;
   }
   function show(options) {
+    // Story callback order is acceptNativeBeat -> exitArsenalBattleMode ->
+    // Director.show. Restore only AFTER the true battle has been disposed.
+    if(replaySession?.completed===true
+       &&root.APEX_ARSENAL?.state?.active!==true){
+      lastReplayCompletion=replaySession.stageId;
+      core=permanentCore;
+      replaySession=null;
+    }
     const el=ensureView();
     const state=core.beginOrResume();
     if (!el) return state;
@@ -431,7 +455,9 @@
     }
     el.querySelector('#q1ReplayNotice').textContent=replaySession
       ?'REPLAY MODE · progress and results are temporary. Return Home to restore your saved chapter.'
-      :'Previously completed encounters can be replayed without changing the saved chapter.';
+      :lastReplayCompletion
+        ?('REPLAY '+lastReplayCompletion+' COMPLETE · Original chapter restored. No permanent progress or rewards were changed.')
+        :'Previously completed encounters can be replayed without changing the saved chapter.';
     el.querySelector('#q4hQuestPlay').hidden=!['WAKE','REFLEX'].includes(node.id);
     el.querySelector('#q4iFirstWakePlay').hidden=!['WORKSHOP','FIRST_WAKE'].includes(node.id);
     el.querySelector('#q5ScrapSwarmPlay').hidden=node.id!=='SCRAP_SWARM';
