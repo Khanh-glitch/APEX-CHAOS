@@ -1342,7 +1342,7 @@
     const scrapSwarmStory=options.questScrapSwarmProgression===true
       &&options.questScrapSwarm===true
       &&types[0]?.name==='ROBOT'
-      &&!questReflex&&!questFirstWake&&!!questCore
+      &&!questReflex&&options.questFirstWake!==true&&!!questCore
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&directorCheckpoint==='SCRAP_SWARM'
       &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'

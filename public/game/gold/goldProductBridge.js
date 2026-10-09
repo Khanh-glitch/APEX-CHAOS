@@ -1500,7 +1500,7 @@
       timer: elapsed,
       timeSemantics: 'elapsed',
       roundAuthority: false,
-      ko: !!(state && state.over && !state.questFirstWake),
+      ko: !!(state && state.over && !state.questMultiActor),
       sides,
       // Metadata only: the live Gold HUD still has TWO original rails.
       // Q3 segmentation will use these independent real actor HP entries.
@@ -1567,7 +1567,7 @@
     const state = arsenal && arsenal.state ? arsenal.state : null;
     // Quest result is owned by the Quest Director, not Gold's 1v1 win
     // counter or 2600 ms auto-return. The two systems must not race.
-    const over = state && !state.questFirstWake && state.over ? String(state.over) : null;
+    const over = state && !state.questMultiActor && state.over ? String(state.over) : null;
     if (over && over !== lastKo) {
       lastKo = over;
       // ONE result signal for the shell: the match is over, so the backdrop tap
