@@ -8,13 +8,14 @@ on:
       - 'public/gold-fidelity-profiles.mjs'
       - 'public/gold-fidelity-lab.html'
       - 'tools/testR89GoldResolver.mjs'
+      - 'tools/testR89GoldProfilesBrowser.mjs'
       - '.github/workflows/r89-gold-responsive.yml'
 permissions:
   contents: read
 jobs:
   gold-resolution:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,3 +23,29 @@ jobs:
           node-version: '22'
       - name: Verify R89 selector and supported Gold breakpoint envelopes
         run: node tools/testR89GoldResolver.mjs
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm install --frozen-lockfile
+      - name: Verify native Gold layouts in real Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort >/tmp/r89-vite.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/gold-fidelity-profiles.mjs >/dev/null; then break; fi
+            sleep 1
+          done
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR89GoldProfilesBrowser.mjs
+      - name: Save browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r89-gold-browser-evidence
+          path: docs/acceptance/r89-gold-profiles/
+          if-no-files-found: warn
