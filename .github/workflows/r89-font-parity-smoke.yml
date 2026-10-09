@@ -55,6 +55,9 @@ jobs:
           done
           test "$READY" = 1
           R89_ONLY_INTERMEDIATE=1 CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR89GoldProfilesBrowser.mjs
+          # A font can be loaded correctly yet alter vertical line-box metrics.
+          # Preserve the original R77/R81 Gold Story/CTA non-overlap law.
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testHomePortraitBrowser.mjs
       - name: Build and verify localized typeface assets in shipped bundle
         run: |
           pnpm build
