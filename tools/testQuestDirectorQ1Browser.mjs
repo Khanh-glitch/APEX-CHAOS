@@ -509,6 +509,29 @@ try{
   gate('Q4A REFLEX Gold displays T.O.T, never generic SCRAP or LOCAL meta',
     reflex?.names?.[0]==='NEWBOT'&&reflex?.names?.[1]==='T.O.T'
     &&reflex.playerMeta==='none',reflex);
+  // Q4A visual regression: the prior screenshot showed 0/1000 while
+  // both genuine Fighters and bridge projection were 1000/1000.
+  // Gate the ACTUAL RENDERED Gold digits and bar transforms, not only
+  // the engine, an abstract JS state or an offscreen fixture.
+  const q4HpTruth=await evalPage(`(()=>{
+    const host=document.getElementById('battleHudHost');
+    const projected=window.APEX_GOLD_PROJECTION?.()?.state?.sides||[];
+    const actors=window.fighters||[];
+    const rails=[host?.querySelector('#p1Rail'),host?.querySelector('#p2Rail')];
+    return rails.map((rail,i)=>({
+      actorHp:actors[i]?.hp,actorMax:actors[i]?.maxHp,
+      projectedHp:projected[i]?.hp,projectedMax:projected[i]?.maxHp,
+      rendered:rail?.querySelector('.vr-cur')?.textContent?.trim(),
+      renderedMax:rail?.querySelector('.vr-max')?.textContent?.trim(),
+      visibleFill:rail?.querySelector('.vr-fill')?.style.transform||''
+    }));
+  })()`);
+  gate('Q4A first real Gold frame shows TRUE 1000/1000 for both Fighters',
+    Array.isArray(q4HpTruth)&&q4HpTruth.length===2
+    &&q4HpTruth.every(x=>x.actorHp===1000&&x.actorMax===1000
+      &&x.projectedHp===x.actorHp&&x.projectedMax===x.actorMax
+      &&Number(x.rendered)===x.actorHp&&x.renderedMax==='/1000'
+      &&x.visibleFill==='scaleX(1.0000)'),q4HpTruth);
   await image('08-q4a-reflex-gold-real');
   await pressEscape();
   const afterReflex=await poll(`(()=>({
