@@ -500,11 +500,14 @@
           const pending=state.slots.some(slot=>slot.questStage===stage
             &&slot.phase!=='REMOVED');
           const lastAt=q.lastAt?.[stage]??-1e9;
-          if(owner&&!held&&!pending&&state.time-lastAt>=1.75){
-            const towardCenter=owner.x>500?-65:65;
+          if(owner&&!held&&!pending&&state.time-lastAt>=0.8){
+            // Fast spatial tutorial retry: materialize a weapon directly
+            // along the actual movement vector; both Fighters can collect.
+            const dx=Number.isFinite(owner.dir?.x)?owner.dir.x:(owner.x>500?-1:1);
+            const dy=Number.isFinite(owner.dir?.y)?owner.dir.y:0;
             const slot=SPAWN.trySpawnSlot({
               questWeaponId:'PISTOL',questStage:stage,questPickupOwner:wanted,
-              questPoint:{x:owner.x+towardCenter,y:owner.y}
+              questPoint:{x:owner.x+dx*82,y:owner.y+dy*82}
             });
             if(slot){(q.lastAt||(q.lastAt={}))[stage]=state.time;}
           }

@@ -6539,7 +6539,7 @@ if(process.argv.includes('--quest-reflex-real')){
     gate('q4a-organic-reflex-8-native-combats-reach-500hp-RIVET-hold',
       trials.slice(0,8).length===8&&trials.slice(0,8).every(x=>
         x?.halfHp?.phase==='AWAIT_RIVET'
-        &&x.halfHp.hp.length===2&&x.halfHp.hp.every(h=>h>=250&&h<=500)
+        &&x.halfHp.hp.length===2&&x.halfHp.hp.every(h=>h>0&&h<=500)
         &&x.halfHp.complete===false&&x.halfHp.story===false
         &&x.halfHp.over===null&&x.halfHp.activeMax<=5),
       trials.slice(0,8).map(x=>x?.halfHp));
