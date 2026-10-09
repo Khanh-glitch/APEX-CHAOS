@@ -734,7 +734,15 @@
       const pilot = state.questReflex ? state.questReflexGate?.poll() : null;
       if(pilot)state.questStory?.observeReflex?.(pilot,null);
       if(pilot)presentNextRealStoryBeat(state);
-      const outcome = state.questBreachEncounter===true
+      const outcome = state.questRivetTest===true
+        ?(fighters[0]?.hp<=0
+          ?{status:'RETRY',reason:'true-newbot-KO'}
+          :state.questRivetAdapter?.snapshot()?.stopped===true
+           &&fighters[1]?.hp===180
+           &&state.questRivetReceipts?.map(r=>r.threshold).join('|')==='750|450|180'
+          ?{status:'COMPLETE',reason:'authentic-nonlethal-rivet-settled'}
+          :{status:'ACTIVE',reason:'rivet-overridden-in-combat'})
+        :state.questBreachEncounter===true
         ?state.questBreachLifecycle.observe(fighters)
         :state.questReflex
         ? {status:fighters.some(f=>f?.hp<=0)?'RETRY':'ACTIVE',reason:'reflex-pilot-'+(pilot?.phase||'closed')}
@@ -758,7 +766,8 @@
         AQ.log('QUEST_E03_WAVE_A_CLEAR','physical hostile KO, cinematic seam');
       }
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
-        state.over = 'QUEST_' + (state.questBreachEncounter?'BREACH_WAVES_':
+        state.over = 'QUEST_' + (state.questRivetTest?'RIVET_OVERRIDDEN_':
+          state.questBreachEncounter?'BREACH_WAVES_':
           state.questScrapSwarmProgression?'SCRAP_SWARM_':
           state.questWeaponRainProgression?'WEAPON_RAIN_':
           state.questBreakerChargeProgression?'BREAKER_CHARGE_':
@@ -1555,6 +1564,13 @@
       &&typeof breachPolicy?.createWaveLifecycle==='function'
       &&typeof window.APEX_QUEST_BREACH_RETREAT?.create==='function'; 
     if(options.questBreachTest===true&&!breachTest)return false;
+    // B7d: isolated E07 acceptance encounter. Never a Director route,
+    // never available outside localhost with explicit test authority.
+    const rivetTest=options.questRivetTest===true
+      &&window.__APEX_TEST_MODE===true&&localTestHost
+      &&typeof window.APEX_QUEST_RIVET_THRESHOLDS?.create==='function'
+      &&typeof window.APEX_QUEST_RIVET_DAMAGE_ADAPTER?.create==='function';
+    if(options.questRivetTest===true&&!rivetTest)return false;
     if (options.questFixture && !questFixture) return false;
     // Q4A native REFLEX pilot is loopback TEST ONLY, never a story skip.
     const reflexAuthorized=(window.__APEX_TEST_MODE===true&&localTestHost)
@@ -1643,7 +1659,7 @@
     const questScrapSwarm=scrapSwarmStory;
     const questWeaponRain=rainStory;
     const questBreakerCharge=breakerStory;
-    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || !!questFixture || questReflex;
+    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || rivetTest || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
@@ -1655,7 +1671,10 @@
           ...breachPolicy.resolveWave('A').hostiles.map((e,i)=>({
             questId:e.id,questTeam:'HOSTILE',hp:e.hp,
             x:e.entry==='WEST'?145:855,y:220+i*250,kind:e.kind}))] :null;
-      const specs = questReflex
+      const specs = rivetTest
+        ? [{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:210,y:500,kind:'newbot'},
+           {questId:'RIVET',questTeam:'HOSTILE',hp:1000,x:790,y:500,kind:'rivet'}]
+        : questReflex
         ? [{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:230,y:500,kind:'newbot'},
            {questId:'T.O.T',questTeam:'HOSTILE',hp:1000,x:770,y:500,kind:'tot'}]
         : (questFirstWake ? questCore.fixtureRoster('2v2') :
@@ -1743,7 +1762,12 @@
           ||(questScrapSwarm&&!questCore.validateScrapSwarmWave(fighters,'A').ok)
           ||(questWeaponRain&&!questCore.validateWeaponRain(fighters).ok)
           ||(questBreakerCharge&&!questCore.validateBreakerCharge(fighters).ok)
-          ||(breachActive&&breachPolicy.waveOutcome(fighters,'A').status!=='ACTIVE')) {
+          ||(breachActive&&breachPolicy.waveOutcome(fighters,'A').status!=='ACTIVE')
+          ||(rivetTest&&(validated.count!==2||validated.allies!==1
+            ||validated.hostiles!==1
+            ||fighters[0]?.questId!=='NEWBOT'||fighters[0]?.maxHp!==1000
+            ||fighters[1]?.questId!=='RIVET'||fighters[1]?.maxHp!==1000
+            ||fighters[1]?.questVisualId!=='bulwark'))) {
         AQ.log('QUEST_ROSTER_INVALID', validated.reason);
         AQ.state.active=false;
         return false;
@@ -1762,6 +1786,19 @@
       AQ.state.questBreachTest=breachTest;
       AQ.state.questBreachEncounter=breachActive;
       AQ.state.questBreachProgression=breachStory;
+      AQ.state.questRivetTest=rivetTest;
+      if(rivetTest){
+        const boss=fighters[1],receipts=[];
+        const adapter=window.APEX_QUEST_RIVET_DAMAGE_ADAPTER.create({
+          thresholds:window.APEX_QUEST_RIVET_THRESHOLDS,
+          onCue:(cue)=>{receipts.push(cue);AQ.log('QUEST_E07_NATIVE_CROSSING',cue.beat);}
+        });
+        const bound=adapter.attach(boss);
+        if(!bound.ok){adapter.close();AQ.state.active=false;
+          AQ.log('QUEST_E07_NATIVE_ATTACH_DENIED',bound.reason);return false;}
+        AQ.state.questRivetAdapter=adapter;
+        AQ.state.questRivetReceipts=receipts;
+      }
       if(breachActive){
         AQ.state.questBreachLifecycle=breachPolicy.createWaveLifecycle();
         AQ.state.questBreachPhase='ACTIVE';
@@ -2055,6 +2092,12 @@
       questBreachWaves:true,questBreachProgression:true
     })===true;
   };
+  window.__apexQuestRivetFixtureStart=function startB7dRealRivetEncounter(){
+    const local=['localhost','127.0.0.1','::1']
+      .includes(String(window.location?.hostname||''));
+    if(window.__APEX_TEST_MODE!==true||!local)return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{questRivetTest:true})===true;
+  };
   window.__apexQuestBreachFixtureStart=function startB6fTrueArsenalFixture(){
     const local=['localhost','127.0.0.1','::1']
       .includes(String(window.location?.hostname||''));
@@ -2289,6 +2332,7 @@
       state.questEnemyAbilities=null;
       state.questBreachStoryView?.close?.();state.questBreachStoryView=null;
       state.questBreachRetreat?.close?.();state.questBreachRetreat=null;
+      state.questRivetAdapter?.close?.();state.questRivetAdapter=null;
       state.questBreachLifecycle?.close?.();state.questBreachLifecycle=null;
       state.questBreachCreateFighter=null;
       state.questRainSequence?.close?.();
@@ -2398,6 +2442,8 @@
       aqProjectiles: projectiles.filter(p => p && p.aq).length,
       hero: fighterSnapshot(fighters[0]),
       rival: fighterSnapshot(fighters[1]),
+      questRivetTest: !!state.questRivetTest,
+      questRivetThresholds: state.questRivetAdapter?.snapshot?.() || null,
       questFirstWake: !!state.questFirstWake,
       questMultiActor: !!state.questMultiActor,
       questTestFixture: state.questTestFixture || null,

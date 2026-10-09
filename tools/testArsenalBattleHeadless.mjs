@@ -6176,6 +6176,35 @@ if(process.argv.includes('--quest-breach-targeting')){
   }catch(e){gate('B6g native team-targeted projectiles',false,{error:String(e?.stack||e)})}
 }
 
+
+if(process.argv.includes('--quest-rivet-encounter-native')){
+  try{
+    const result=run("\nconst unauthorized=window.startArsenalBattleMode('ROBOT','ROBOT',{questRivetTest:true});\nwindow.__APEX_TEST_MODE=true;\nconst started=window.__apexQuestRivetFixtureStart?.()===true;\nconst A=window.APEX_ARSENAL, W=A?.weaponApi;\nif(!started||!A?.state?.questRivetTest)return {unauthorized,started,ready:false};\nconst f=window.fighters,hero=f[0],boss=f[1],authority=A.state.questRivetAdapter;\nconst initial={hero:hero.questId,boss:boss.questId,team:boss.questTeam,\n  visual:boss.questVisualId,max:boss.maxHp,\n  items:(A.state.slots||[]).length};\nfor(const x of f){x.baseSpeed=0;x.data.__hrHoldBody=true;}\nhero.x=165;hero.y=500;boss.x=650;boss.y=500;\nA.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];\nlet bullets=0,realHits=0,damage=0,steps=0,maxSlots=0;\nwhile(!A.state.over&&bullets++<160){\n  const before=boss.hp;\n  W.fireBullet({owner:hero,x:220,y:500,angle:0,\n    speed:2600,damage:20,weapon:'PISTOL'});\n  for(let i=0;i<5;i++){A.step(.04);steps++;\n    maxSlots=Math.max(maxSlots,A.state.slots.filter(s=>\n      s.kind!=='HEAL'&&s.phase!=='REMOVED').length);}\n  if(boss.hp<before){realHits++;damage+=before-boss.hp;}\n}\nconst final={bossHp:boss.hp,heroHp:hero.hp,\n  hits:realHits,shots:bullets,damage,steps,maxSlots,\n  cueHp:A.state.questRivetReceipts?.map(x=>x.threshold),\n  observations:A.state.questRivetReceipts?.map(x=>[x.before,x.after,x.damage]),\n  outcome:A.state.questOutcome,over:A.state.over,\n  stopped:authority.snapshot().stopped,\n  checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId??null};\nboss.takeDamage(999999,hero,'e07-post-stop');\nfinal.afterExtra=boss.hp;final.receiptsAfter=A.state.questRivetReceipts?.length;\nwindow.exitArsenalBattleMode();\nfinal.detached=!boss.__apexQuestBeforeAcceptedDamage&&!boss.__apexQuestAfterAcceptedDamage;\nfinal.closed=authority.snapshot().closed;\nreturn {unauthorized,started,initial,final};\n");
+    gate('B7d denies E07 without localhost test authority',
+      result?.unauthorized===false&&result?.started===true&&result?.initial?.visual==='bulwark'
+       &&result?.initial?.max===1000&&result?.initial?.team==='HOSTILE',result);
+    gate('B7d real Arsenal gun/projectile hits stop at exactly 180 HP',
+      result?.final?.bossHp===180&&result?.final?.heroHp===1000
+        &&result?.final?.hits>0&&result?.final?.damage===820
+        &&result?.final?.shots<160,result?.final);
+    gate('B7d three actual HP downward crossings and single nonlethal settlement',
+      result?.final?.cueHp?.join('|')==='750|450|180'
+        &&result?.final?.observations?.length===3
+        &&result?.final?.stopped===true,result?.final);
+    gate('B7d physical Arsenal ends encounter without boss KO or extra spawn',
+      result?.final?.outcome==='COMPLETE'
+        &&result?.final?.over==='QUEST_RIVET_OVERRIDDEN_COMPLETE'
+        &&result?.final?.maxSlots<=5
+        &&result?.final?.afterExtra===180&&result?.final?.receiptsAfter===3,
+      result?.final);
+    gate('B7d exit restores hooks and never mutates Director checkpoint',
+      result?.final?.detached===true&&result?.final?.closed===true
+        &&result?.final?.checkpoint!=='T.O.T_LAST_CHOICE',
+      result?.final);
+  }catch(e){gate('B7d true native E07 isolated encounter',false,
+    {error:String(e?.stack||e)})}
+}
+
 // B7c — direct authentic Fighter.takeDamage transaction with an explicitly
 // separate hostile RIVET instance. NOT a simulated E07 story encounter.
 if(process.argv.includes('--quest-rivet-native')){

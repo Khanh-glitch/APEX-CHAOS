@@ -21,6 +21,8 @@ jobs:
         run: node tools/testQuestRivetThresholdB7a.mjs
       - name: Actual native Fighter 1000→400→375→180, terminal protection
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-native
+      - name: E07 isolated actual 1v1 Arsenal bullet threshold battle
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-encounter-native
       - name: Regression of E06 three-wave physical battle and retreat
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
       - name: Canonical Gold provenance
