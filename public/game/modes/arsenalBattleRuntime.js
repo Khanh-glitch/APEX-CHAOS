@@ -473,7 +473,7 @@
         } else {
           const slot = SPAWN.trySpawnSlot({ forceFirearm: true });
           if (slot) {
-            state.spawnTimer = CFG.SPAWN_CADENCE_SECONDS;
+            state.spawnTimer = state.questReflex===true?2.6:CFG.SPAWN_CADENCE_SECONDS;
             state.unarmedFastConsumed = true;
             state.unarmedFastPending = false;
             emergencySpawned = true;
@@ -490,9 +490,8 @@
       if(state.questReflex && state.questReflexGate){
         const stage=state.questReflexGate.snapshot().phase;
         const q=state.questReflexSpawns||(state.questReflexSpawns={lastAt:{},jDrop:false});
-        for(const slot of state.slots){
-          if(slot.questStage && slot.questStage!==stage)slot.phase='REMOVED';
-        }
+        // Never erase a physical gun merely because the tutorial advances.
+        // Expiry, actual pickup and consumption remain engine-controlled.
         if(stage==='R1_PISTOL'||stage==='R2_PISTOL'){
           const wanted=stage==='R1_PISTOL'?'NEWBOT':'T.O.T';
           const owner=(fighters||[]).find(f=>f?.questId===wanted&&f.hp>0);
@@ -501,10 +500,17 @@
             &&slot.phase!=='REMOVED');
           const lastAt=q.lastAt?.[stage]??-1e9;
           if(owner&&!held&&!pending&&state.time-lastAt>=1.75){
-            const towardCenter=owner.x>500?-65:65;
+            // Position the next REAL visible gun in the fighter's current
+            // travel direction, not directly in their hand or behind a
+            // hidden ownership restriction.
+            const fx=Number.isFinite(owner.dir?.x)?owner.dir.x:(owner.x>500?-1:1);
+            const fy=Number.isFinite(owner.dir?.y)?owner.dir.y:0;
             const slot=SPAWN.trySpawnSlot({
               questWeaponId:'PISTOL',questStage:stage,questPickupOwner:wanted,
-              questPoint:{x:owner.x+towardCenter,y:owner.y}
+              questPoint:{
+                x:Math.max(120,Math.min(880,owner.x+fx*108)),
+                y:Math.max(120,Math.min(880,owner.y+fy*108))
+              }
             });
             if(slot){(q.lastAt||(q.lastAt={}))[stage]=state.time;}
           }
@@ -524,7 +530,7 @@
           :state.questBreakerChargeProgression===true
             ?state.questBreakerSequence.cadence(
               window.APEX_QUEST_MULTI_ACTOR_CORE?.breakerChargeProgress(fighters)||0)
-            :CFG.SPAWN_CADENCE_SECONDS;
+            :(state.questReflex===true?2.6:CFG.SPAWN_CADENCE_SECONDS);
         if (emergencySpawned) continue;
         if(state.questBreakerChargeProgression===true
           &&state.questBreakerOpeningDropPending===true){
@@ -561,17 +567,14 @@
           }
           continue;
         }
-        // E01 post-J/K is still a REAL physical Arsenal gun cycle. The
-        // 4.5s cadence, live-slot cap 5, reveal and pickup all remain intact.
-        // Direct each trial's PISTOL to an unarmed Fighter whose opponent
-        // still needs to cross 500 HP; no damage or equip is injected.
+        // E01 tutorial exception: 2.6s visible gun rhythm, real cap 5,
+        // no HP-dependent allowance, no invisible pickup reservation.
+        // R1/R2 remain factual receipts, never permission to use a gun.
         if(state.questReflex===true
           &&state.questReflexGate?.snapshot()?.phase==='BOTH_HALF'){
           const newbot=(fighters||[]).find(f=>f?.questId==='NEWBOT'&&f.hp>0);
           const tot=(fighters||[]).find(f=>f?.questId==='T.O.T'&&f.hp>0);
-          const wants=[];
-          if(newbot&&tot&&tot.hp>500)wants.push(newbot);
-          if(newbot&&tot&&newbot.hp>500)wants.push(tot);
+          const wants=[newbot,tot].filter(f=>f&&f.hp>0);
           const q=state.questReflexSpawns||(state.questReflexSpawns={lastAt:{},jDrop:true});
           const eligible=wants.filter(f=>!weaponApi.getHolder(f)
             &&!state.slots.some(slot=>slot.questStage==='BOTH_HALF'
@@ -582,7 +585,10 @@
             SPAWN.trySpawnSlot({
               questWeaponId:'PISTOL',questStage:'BOTH_HALF',
               questPickupOwner:selected.questId,
-              questPoint:{x:selected.x+(selected.x>500?-65:65),y:selected.y}
+              questPoint:{
+                x:Math.max(120,Math.min(880,selected.x+(selected.dir?.x||0)*95)),
+                y:Math.max(120,Math.min(880,selected.y+(selected.dir?.y||0)*95))
+              }
             });
           }
           continue;
