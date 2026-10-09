@@ -604,8 +604,14 @@
         if(state.questBreakerChargeProgression!==true){
           if(!state.questContactState)
             state.questContactState={activePairs:new Set(),contacts:0};
+          state.questContactState.onEnter=(a,b)=>{
+            state.questEnemyAbilities?.onContactEnter(a,b);
+          };
           handleQuestCollisions(dt,fighters,state.questContactState);
         }
+        // Abilities use real engine Fighter.takeDamage/status and swept
+        // collision; they never modify HP directly.
+        state.questEnemyAbilities?.tick(dt,fighters);
       } else if (fighters[0] && fighters[1]) {
         if (gate && gate.preUpdate) gate.preUpdate(fighters[0], dt);
         fighters[0].update(dt, fighters[1]);
@@ -1372,6 +1378,7 @@
     if (AQ.feel && AQ.feel.drawForeground) AQ.feel.drawForeground(ctx);
     drawQuestSwarmInterlude(ctx,AQ.state);
     drawWeaponRainCinematic(ctx,AQ.state);
+    AQ.state?.questEnemyAbilities?.draw(ctx,fighters);
     drawBreakerProgress(ctx,AQ.state);
     ctx.restore();
     syncDomHud();
@@ -1670,6 +1677,11 @@
         return false;
       }
       AQ.state.questMultiActor = true;
+      if(window.APEX_QUEST_ENEMY_ABILITIES?.create)
+        AQ.state.questEnemyAbilities=window.APEX_QUEST_ENEMY_ABILITIES.create({
+          core:questCore,log:(event,value)=>AQ.log(event,value)
+        });
+      else return false; // Fail closed rather than silently blank enemy kits.
       AQ.state.questFirstWake = questFirstWake;
       AQ.state.questFirstWakeProgression = firstWakeStory;
       AQ.state.questScrapSwarmProgression=questScrapSwarm;
@@ -2144,6 +2156,8 @@
       state.questSwarmCreateFighter=null;
       state.questRainStoryView?.close?.();
       state.questRainStoryView=null;
+      state.questEnemyAbilities?.close?.();
+      state.questEnemyAbilities=null;
       state.questRainSequence?.close?.();
       state.questRainSequence=null;
       state.questBreakerStoryView?.close?.();
