@@ -6185,6 +6185,7 @@ if(process.argv.includes('--quest-reflex-real')){
           const q=A.state.questRivetPreview;
           rivetPreview={first,second,frozen,afterRig,launches,maxLive,authentic,
             phase:q?.phase,settled:q?.settled,peak:q?.peakFlight,
+            birth:q?.birth||null,
             rigHolder:W.getHolder(q?.operator)&&{
               phase:W.getHolder(q.operator).phase,
               elapsed:W.getHolder(q.operator).elapsed,
@@ -6250,6 +6251,10 @@ if(process.argv.includes('--quest-reflex-real')){
         return v?.first?.ok===true&&v?.second?.ok===false
           &&v?.second?.reason==='already-released'
           &&v?.authentic===true&&v?.launches>0&&v?.maxLive===1&&v?.peak===1
+          &&v?.birth?.owner==='RIVET'&&v?.birth?.weapon==='STORMBREAKER'
+          &&v?.birth?.kind==='aq_thrown'
+          &&Number.isFinite(v.birth.x)&&Number.isFinite(v.birth.y)
+          &&Number.isFinite(v.birth.vy)&&v.birth.vy>0
           &&v?.phase==='SETTLED'&&v?.settled===true&&v?.live===0
           &&JSON.stringify(v?.frozen)===JSON.stringify(v?.afterRig)
           &&v?.story===false&&v?.complete===false&&v?.over===null;

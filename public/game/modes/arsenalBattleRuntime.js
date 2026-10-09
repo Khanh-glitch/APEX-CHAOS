@@ -286,8 +286,23 @@
       // projectile, never resume fighters, spawns, time, skills or pickups.
       const rig=state.questRivetPreview;
       if(rig && rig.phase!=='SETTLED'){
+        // A real thrown weapon can be created inside updateHolder. Never
+        // simulate and remove it in its birth frame before a Gold frame
+        // has a chance to see the actual STORMBREAKER flight. This is an
+        // isolated rig handoff, not synthetic projectile creation.
+        const before=projectiles.filter(p=>p.questRivetSuppression===true);
         weaponApi.updateHolder(rig.operator,dt);
-        weaponApi.updateArsenalProjectiles(dt);
+        const born=projectiles.filter(p=>p.questRivetSuppression===true);
+        const justLaunched=!rig.sawFlight&&before.length===0&&born.length>0;
+        if(justLaunched){
+          rig.birth=Object.freeze({
+            x:born[0].x,y:born[0].y,vx:born[0].vx,vy:born[0].vy,
+            weapon:born[0].weapon,owner:born[0].owner?.questId,
+            kind:born[0].type
+          });
+        }else{
+          weaponApi.updateArsenalProjectiles(dt);
+        }
         const live=projectiles.filter(p=>p.questRivetSuppression===true);
         if(live.length){
           rig.sawFlight=true;
