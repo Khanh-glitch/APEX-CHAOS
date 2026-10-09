@@ -1,0 +1,32 @@
+name: B6l Owner-Approved Passive Rig Authority
+on:
+  push:
+    branches: ['quest/b6-rig-passive-owner-approved-from-b8b']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rig-and-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Owner-approved passive rig + adversarial handoff gates
+        run: node tools/testQuestBreachRigAuthorityB6.mjs
+      - name: Genuine native 3-wave Fighter, retirement and projectiles
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - name: E07 boss and E08 real-damage regression
+        run: |
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-retry-native
+          node tools/testQuestTotLastChoiceB8a.mjs
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-tot-native
+      - name: Gold donor generated source consistency
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Production build
+        run: pnpm build
