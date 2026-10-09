@@ -5869,12 +5869,18 @@ if (process.argv.includes('--quest-scrap-swarm-native')) {
       const hpBefore=player.hp,slotsBefore=A.state.slots,holderBefore=W.getHolder(player);
       for(let time=0;time<1.85-1e-9;time+=.05)A.step(.05);
       const waveBInit=Q.validateScrapSwarmWave(all(),'B');
+      const seamDiagnosis={phase:A.state.questSwarmPhase,
+        elapsed:A.state.questSwarmInterludeElapsed,
+        wave:A.state.questSwarmWave,
+        hasFactory:typeof A.state.questSwarmCreateFighter==='function',
+        receiptCount:A.state.questSwarmWaveAReceipt?.length,
+        eventTail:A.events.slice(-14)};
       const sameHero=all()[0]===player,slotsSame=A.state.slots===slotsBefore;
       const hpAfter=player.hp,holderSame=W.getHolder(player)===holderBefore;
       const bIds=all().filter(x=>x.questTeam==='HOSTILE').map(x=>x.questId);
       const bHits=bIds.map(physicalKo);
       const result={started,waveAInit,phaseAfterA,receipt,aIds,aHits,
-        waveBInit,sameHero,slotsSame,hpBefore,hpAfter,holderSame,
+        waveBInit,seamDiagnosis,sameHero,slotsSame,hpBefore,hpAfter,holderSame,
         bIds,bHits,totalHits,
         outcome:A.state.questOutcome,over:A.state.over,
         canonical:Q.scrapSwarmOutcome(all(),'B'),
@@ -5897,7 +5903,7 @@ if (process.argv.includes('--quest-scrap-swarm-native')) {
       output?.waveBInit?.ok===true&&output?.sameHero===true
       &&output?.slotsSame===true&&output?.holderSame===true
       &&output?.hpBefore===output?.hpAfter,
-      {roster:output?.waveBInit,sameHero:output?.sameHero,slotsSame:output?.slotsSame,
+      {roster:output?.waveBInit,diagnosis:output?.seamDiagnosis,sameHero:output?.sameHero,slotsSame:output?.slotsSame,
         hp:[output?.hpBefore,output?.hpAfter],holderSame:output?.holderSame});
     gate('Q5 wave B four real physical KOs author true result panel, no fake save',
       output?.bHits?.length===4&&output.bHits.every(Boolean)
