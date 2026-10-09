@@ -262,12 +262,95 @@ function create({actors,policy,weaponApi,state,log}={}){
    if(!CONFIG[id])return null;
    return ['J','K'].map(slot=>{
      const cfg=CONFIG[id][slot],s=states[id][slot];
-     return {name:cfg.name,cd:cfg.cooldown||cfg.afterDrawCooldown||10,
+     const phase=id==='T.O.T'&&slot==='K'?s.phase:null;
+     const label=phase==='STORED'?'DRAW '+s.stored.weaponId:
+       phase==='CAPTURE'?'RESERVE · '+Math.ceil(s.captureLeft*10)/10+'S':
+       id==='RIVET'&&slot==='J'&&s.phase!=='READY'?'INTERCEPT · '+s.phase:
+       cfg.name;
+     return {name:label,cd:cfg.cooldown||cfg.afterDrawCooldown||10,
        nextIn:s.cd,charges:1,max:1,truth:true,
-       kind:slot==='K'&&id==='T.O.T'&&s.phase==='STORED'?'stored':'cooldown',
-       duration:cfg.duration||0,storedWeapon:slot==='K'&&id==='T.O.T'?
-         (s.stored?.weaponId||null):null};
+       kind:phase==='STORED'?'stored':'cooldown',
+       duration:cfg.duration||0,storedWeapon:phase==='STORED'?
+         s.stored.weaponId:null};
    });
+ }
+ function draw(ctx){
+   if(closed||!ctx||!living())return;
+   const t=states['T.O.T'],v=states.RIVET;
+   ctx.save();
+   // T.O.T's reserve is a tiny mechanical chest tray, not an arena-wide
+   // magical circle. The presentation follows ONLY a genuine holder state.
+   if(active(tot)&&(t.K.phase==='CAPTURE'||t.K.phase==='STORED')){
+     ctx.save();ctx.translate(tot.x,tot.y);
+     ctx.rotate(Math.atan2(tot.dir?.y||0,tot.dir?.x||1));
+     const glow=t.K.phase==='STORED'?.9:.45+.4*Math.sin(time*17)**2;
+     ctx.strokeStyle='#fff4cf';ctx.lineWidth=2.6;
+     ctx.fillStyle='rgba(240,166,44,'+(glow*.42)+')';
+     ctx.shadowColor='#f5cb72';ctx.shadowBlur=t.K.phase==='STORED'?11:5;
+     ctx.fillRect(-15,12,30,15);ctx.strokeRect(-15,12,30,15);
+     ctx.beginPath();ctx.moveTo(-21,15);ctx.lineTo(-16,11);
+     ctx.moveTo(21,15);ctx.lineTo(16,11);ctx.stroke();
+     if(t.K.phase==='STORED'){
+       ctx.beginPath();ctx.moveTo(-8,19);ctx.lineTo(8,19);ctx.stroke();
+     }else{
+       const span=Math.max(0,t.K.captureLeft)/CONFIG['T.O.T'].K.window;
+       ctx.fillStyle='#fff5d6';ctx.fillRect(-12,29,24*span,2.5);
+     }
+     ctx.restore();
+   }
+   if(active(tot)&&t.J.dash?.launched){
+     const dir=tot.dir||{x:1,y:0};
+     ctx.strokeStyle='rgba(250,231,179,.68)';ctx.lineWidth=5;
+     for(const side of [-1,1]){
+       ctx.beginPath();
+       ctx.moveTo(tot.x-dir.x*32+dir.y*side*18,
+         tot.y-dir.y*32-dir.x*side*18);
+       ctx.lineTo(tot.x-dir.x*65+dir.y*side*22,
+         tot.y-dir.y*65-dir.x*side*22);ctx.stroke();
+     }
+   }
+   // Rivet deploys compact grounded hardware and a scanner, never a tower.
+   if(active(rivet)&&v.J.phase!=='READY'){
+     ctx.save();ctx.translate(rivet.x,rivet.y);
+     ctx.strokeStyle='#e7b758';ctx.lineWidth=5;
+     const rv=Math.max(27,rivet.radius||72);
+     for(const side of [-1,1]){
+       ctx.beginPath();ctx.moveTo(-rv*.34,side*rv*.64);
+       ctx.lineTo(-rv*.58,side*(rv*.64+17));
+       ctx.lineTo(-rv*.76,side*(rv*.64+17));ctx.stroke();
+     }
+     const sweep=.45+Math.sin(time*11)*.15;
+     ctx.strokeStyle='rgba(255,204,109,'+(v.J.phase==='WAITING'?.25:sweep)+')';
+     ctx.lineWidth=v.J.phase==='WAITING'?2.5:4;
+     ctx.beginPath();ctx.arc(0,0,CONFIG.RIVET.J.catchRadius,
+       -Math.PI*.23,Math.PI*.23);ctx.stroke();
+     ctx.restore();
+     if(v.J.phase==='CLAMPED'&&viable(v.J.target)){
+       const f=v.J.target;
+       ctx.save();ctx.translate(f.x,f.y);
+       ctx.strokeStyle='#f2ca82';ctx.lineWidth=7;
+       const radius=(f.radius||70)+12;
+       for(const side of [-1,1]){
+         ctx.beginPath();
+         ctx.arc(0,0,radius,side===1?.15:Math.PI+.15,
+           side===1?1.1:Math.PI+1.1);ctx.stroke();
+       }
+       ctx.restore();
+     }
+   }
+   if(active(rivet)&&v.K.armorLeft>0){
+     const f=rivet,rad=(f.radius||72)+14;
+     const remaining=v.K.armorLeft/CONFIG.RIVET.K.duration;
+     ctx.save();ctx.translate(f.x,f.y);
+     ctx.strokeStyle='rgba(254,209,125,'+(.34+.58*remaining)+')';
+     ctx.lineWidth=6;
+     for(let i=0;i<4;i++){
+       const a=(i+.5)*Math.PI/2;
+       ctx.beginPath();ctx.arc(0,0,rad,a-.24,a+.24);ctx.stroke();
+     }
+     ctx.restore();
+   }
+   ctx.restore();
  }
  function snapshot(){
    const t=states['T.O.T'],v=states.RIVET;
@@ -284,7 +367,7 @@ function create({actors,policy,weaponApi,state,log}={}){
    states.RIVET.J.phase='READY';states.RIVET.J.target=null;
    states.RIVET.K.armorLeft=0;
  }
- return Object.freeze({press,tick,onRealPickup,mitigate,skillProjection,snapshot,close,
+ return Object.freeze({press,tick,onRealPickup,mitigate,skillProjection,draw,snapshot,close,
    currentRecipient:getId});
 }
 root.APEX_QUEST_COMPANION_NATIVE=Object.freeze({CONFIG,create});
