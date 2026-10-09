@@ -2180,9 +2180,19 @@ report.r59FrostTactical = run(`
   fighters[0].x=470;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;fighters[1].setDir(-1,0);
   ctl=HR.abilityController(p2); ctl.setCooldown('A1',999);
   W.equip(fighters[0],'PISTOL');
+  // Tactical AI must observe a STILL-HELD real gun. Without this fixture
+  // isolation the opponent may exhaust the PISTOL before Frost's scheduled
+  // decision, correctly choosing "lay-control-trail" and causing a false
+  // failure. Keep the real Arsenal holder, but silence ONLY its discharge
+  // timer in this headless scenario. Do not synthesize an AI choice/cast.
+  const stealTarget=W.getHolder(fighters[0]);
+  if(stealTarget){
+    stealTarget.phase='FIRING';
+    stealTarget.meta.nextShot=999;
+  }
   const stealMark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
-  const steal={a2:p2.telemetry.bySkill.A2||0,
+  const steal={held:!!stealTarget,a2:p2.telemetry.bySkill.A2||0,
     decisions:HR.AIL.bus.since(stealMark).filter(e=>e.payload&&e.payload.hero==='ICE')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
 
@@ -2204,7 +2214,8 @@ gate('r59-frost-a2-holds-when-target-already-controlled',
   && report.r59FrostTactical.controlledHold.decisions.some(e=>e.type==='AICastReject'&&e.slot==='A2'&&e.reason==='reachable-only'),
   report.r59FrostTactical.controlledHold);
 gate('r59-frost-a2-prioritizes-stealable-weapon',
-  report.r59FrostTactical.steal.a2>=1
+  report.r59FrostTactical.steal.held===true
+  && report.r59FrostTactical.steal.a2>=1
   && report.r59FrostTactical.steal.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='steal-frozen-gun'),
   report.r59FrostTactical.steal);
 gate('r59-frost-a1-builds-frozen-gun-setup-when-unarmed',
