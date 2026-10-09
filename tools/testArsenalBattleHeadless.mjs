@@ -6205,6 +6205,85 @@ if(process.argv.includes('--quest-rivet-encounter-native')){
     {error:String(e?.stack||e)})}
 }
 
+// B7e adversarial native encounter: real NEWBOT death/retry, abandonment,
+// and restart. Do not mutate any Fighter.hp directly or sign a story node.
+if(process.argv.includes('--quest-rivet-retry-native')){
+  try{
+    const v=run(`
+const previouslyAuthorized=window.__APEX_TEST_MODE;
+window.__APEX_TEST_MODE=true;
+const A=window.APEX_ARSENAL;
+const savedBefore=window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId??null;
+const first=window.__apexQuestRivetFixtureStart?.()===true;
+if(!first)return {first};
+const firstHero=window.fighters[0],firstBoss=window.fighters[1];
+const firstAuthority=A.state.questRivetAdapter;
+firstHero.takeDamage(100000,firstBoss,'e07-authentic-player-KO');
+A.step(.04);
+const lost={hp:firstHero.hp,bossHp:firstBoss.hp,
+  status:A.state.questOutcome,over:A.state.over,
+  cues:A.state.questRivetReceipts?.map(x=>x.threshold)};
+window.exitArsenalBattleMode();
+const clearedLoss={detached:!firstBoss.__apexQuestBeforeAcceptedDamage
+  &&!firstBoss.__apexQuestAfterAcceptedDamage,
+  closed:firstAuthority.snapshot().closed};
+const second=window.__apexQuestRivetFixtureStart?.()===true;
+if(!second)return {first,lost,clearedLoss,second};
+const hero=window.fighters[0],boss=window.fighters[1],adapter=A.state.questRivetAdapter;
+hero.baseSpeed=0;boss.baseSpeed=0;
+hero.data.__hrHoldBody=true;boss.data.__hrHoldBody=true;
+hero.x=165;hero.y=500;boss.x=650;boss.y=500;
+A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];
+for(let shot=0;shot<2;shot++){
+  A.weaponApi.fireBullet({owner:hero,x:220,y:500,angle:0,
+    speed:2600,damage:20,weapon:'PISTOL'});
+  for(let step=0;step<5;step++)A.step(.04);
+}
+const abandoned={bossHp:boss.hp,heroHp:hero.hp,
+  cues:A.state.questRivetReceipts?.map(x=>x.threshold),
+  status:A.state.questOutcome,over:A.state.over};
+window.exitArsenalBattleMode();
+const clearedAbandon={detached:!boss.__apexQuestBeforeAcceptedDamage
+  &&!boss.__apexQuestAfterAcceptedDamage,closed:adapter.snapshot().closed};
+const third=window.__apexQuestRivetFixtureStart?.()===true;
+const fresh=third?{newInstance:window.fighters[1]!==boss,
+  bossHp:window.fighters[1].hp,heroHp:window.fighters[0].hp,
+  receipts:A.state.questRivetReceipts?.length,
+  owner:A.state.questRivetAdapter?.snapshot()?.stopped}:null;
+if(third)window.exitArsenalBattleMode();
+const savedAfter=window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId??null;
+if(previouslyAuthorized===undefined)delete window.__APEX_TEST_MODE;
+else window.__APEX_TEST_MODE=previouslyAuthorized;
+return {first,lost,clearedLoss,second,abandoned,clearedAbandon,
+  third,fresh,savedBefore,savedAfter};
+`);
+    gate('B7e NEWBOT genuine fatal hit produces RETRY, not RIVET victory',
+      v?.first===true&&v?.lost?.hp<=0&&v?.lost?.bossHp===1000
+        &&v?.lost?.status==='RETRY'
+        &&v?.lost?.over==='QUEST_RIVET_OVERRIDDEN_RETRY'
+        &&v?.lost?.cues?.length===0,v?.lost);
+    gate('B7e retry exit detaches RIVET accepted-damage hooks',
+      v?.clearedLoss?.detached===true&&v?.clearedLoss?.closed===true,v?.clearedLoss);
+    gate('B7e real bullet hits before voluntary exit do not complete E07',
+      v?.second===true&&v?.abandoned?.bossHp<1000
+        &&v?.abandoned?.bossHp>180
+        &&v?.abandoned?.heroHp===1000
+        &&v?.abandoned?.status!== 'COMPLETE'
+        &&v?.abandoned?.cues?.join('|')==='750',v?.abandoned);
+    gate('B7e abandoned live encounter restores hooks and fresh restart state',
+      v?.clearedAbandon?.detached===true
+        &&v?.clearedAbandon?.closed===true
+        &&v?.third===true&&v?.fresh?.newInstance===true
+        &&v?.fresh?.bossHp===1000&&v?.fresh?.heroHp===1000
+        &&v?.fresh?.receipts===0&&v?.fresh?.owner===false,
+      {abandon:v?.clearedAbandon,restart:v?.fresh});
+    gate('B7e no retry, exit or restart advances Story Director',
+      v?.savedAfter===v?.savedBefore,
+      {before:v?.savedBefore,after:v?.savedAfter});
+  }catch(e){gate('B7e adversarial native RIVET scenarios',false,
+    {error:String(e?.stack||e)})}
+}
+
 // B7c — direct authentic Fighter.takeDamage transaction with an explicitly
 // separate hostile RIVET instance. NOT a simulated E07 story encounter.
 if(process.argv.includes('--quest-rivet-native')){

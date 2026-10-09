@@ -1,0 +1,31 @@
+name: B7e RIVET E07 Retry and Lifecycle
+on:
+  push:
+    branches: ['quest/b7e-adversarial-rivet-retry-from-b7d']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-adversarial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: B7d immutable actual bullet/HP receipts
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-encounter-native
+      - name: B7e actual NEWBOT KO, abandon, replay and cleanup
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-retry-native
+      - name: B7c native accepted-mitigation regression
+        run: node tools/testQuestRivetThresholdB7a.mjs
+      - name: E06 authentic three-wave engine regression
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - name: Gold source byte-for-byte provenance
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Production build
+        run: pnpm build
