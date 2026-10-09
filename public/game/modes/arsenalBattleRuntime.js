@@ -1237,7 +1237,7 @@
         : (questFirstWake ? questCore.fixtureRoster('2v2') : questFixture);
       const NPC_TYPES = Object.freeze({
         scout:['SCRAP SCOUT','#c88d48'],bulwark:['IRON BULWARK','#6f7f90'],
-        tot:['T.O.T','#80b4c2'],rivet:['RIVET','#c39f76'],
+        tot:['T.O.T','#e8e2d2'],rivet:['RIVET','#c39f76'],
         reaver:['CLAW REAVER','#b07e6b'],sentinel:['CORE SENTINEL','#8898a5'],
       });
       const makeNpc = (kind) => {
@@ -1292,9 +1292,27 @@
           && window.APEX_QUEST_STORY_PRESENTATION){
           const ownerState=AQ.state;
           AQ.state.questStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
-            onAdvance:()=>{
-              if(AQ.state===ownerState&&ownerState.active
-                &&ownerState.questReflex===true)presentNextRealStoryBeat(ownerState);
+            onAdvance:(beatId)=>{
+              if(AQ.state!==ownerState||!ownerState.active
+                 ||ownerState.questReflex!==true)return;
+              if(beatId==='E01_RIVET_HOLD'){
+                // Only the real four receipts + safe hold can enter this
+                // Story-owned path. Skip/Continue affects presentation only:
+                // the ONE canonical Arsenal throw still has to fly and HIT
+                // the arena floor. No checkpoint can advance from the click.
+                ownerState.questStoryRescueStart=beginQuestRivetPreview(true);
+              }else if(beatId==='E01_RIVET_SUPPRESSION_TECH'){
+                const proof=window.__apexQuestReflexTechnicalRead?.();
+                if(proof?.ready===true && proof?.groundImpact?.kind===
+                   'REAL_ARSENAL_FLOOR_CONTACT'
+                   &&proof.checkpointAuthorized===false){
+                  // A genuine settled E01 may preview the next cinematic
+                  // storytelling PANEL, but there is NO WORKSHOP save/write.
+                  ownerState.questWorkshopPreview=true;
+                  ownerState.questStoryView?.offer({id:'WORKSHOP_ARRIVAL'});
+                }
+              }
+              presentNextRealStoryBeat(ownerState);
             }
           });
         }
@@ -1377,11 +1395,15 @@
   // One-shot RIVET engineering preview. Owner has NOT approved the rescue
   // choreography, final model, target or Story progression. The weapon must
   // actually equip, wind up, throw and exit via Arsenal; no synthetic bolt.
-  function beginQuestRivetPreview(){
+  function beginQuestRivetPreview(internalStory=false){
     const state=AQ.state;
-    const authorized=(window.__APEX_TEST_MODE===true
+    const storyAuthorized=internalStory===true
+      &&state?.active===true&&state?.questReflex===true
+      &&state?.questStoryView
+      &&window.__apexGoldBattleHosted===true;
+    const authorized=storyAuthorized||(window.__APEX_TEST_MODE===true
       && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
-      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true);
+      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true));
     if(!authorized)return {ok:false,reason:'preview-only'};
     if(!state?.active||state.questReflex!==true
        ||state.questReflexGate?.snapshot()?.awaitingRivet!==true
@@ -1425,8 +1447,10 @@
     AQ.log('QUEST_RIVET_PREVIEW_START','real Stormbreaker equipped off roster');
     return {ok:true,phase:'READY'};
   }
-  AQ.beginQuestRivetPreview=beginQuestRivetPreview;
-  window.__apexQuestRivetPreviewRelease=beginQuestRivetPreview;
+  // Public engineering preview deliberately receives no internalStory
+  // capability. Passing arbitrary arguments cannot promote it to Story.
+  AQ.beginQuestRivetPreview=()=>beginQuestRivetPreview(false);
+  window.__apexQuestRivetPreviewRelease=()=>beginQuestRivetPreview(false);
   // Read-only, no save transitions or Stage mutation. A valid response still
   // means TECHNICAL PREVIEW ONLY, not a canonical rescue or WORKSHOP unlock.
   window.__apexQuestStoryBeatsRead=function(){
