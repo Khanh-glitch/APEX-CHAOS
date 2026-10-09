@@ -778,6 +778,66 @@ try{
     &&afterReflex?.storyBeats==null
     &&afterReflex?.checkpoint==='WAKE',afterReflex);
 
+  // Q4E3: separate OWNER-VISIBLE Story version of the genuine REFLEX.
+  // The existing technical REFLEX preview above must remain untouched.
+  await click('#continueStory');
+  const storyButton=await evalPage("(()=>({button:!!document.getElementById('q4eStoryPreview'),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()");
+  gate('Q4E3 Quest WAKE exposes opt-in story preview without progressing save',
+    storyButton?.button===true&&storyButton?.checkpoint==='WAKE',storyButton);
+  const storyClick=await click('#q4eStoryPreview');
+  gate('Q4E3 story version selected by real physical click',storyClick.hit,storyClick);
+  const storyLive=await poll("(()=>({open:document.getElementById('battleHudHost')?.classList.contains('is-open'),quest:window.APEX_ARSENAL?.state?.questReflex,view:window.__apexQuestStoryViewRead?.(),actors:(window.fighters||[]).length}))()",
+    v=>v?.open===true&&v?.quest===true&&v?.view?.active===false&&v?.actors===2,450);
+  gate('Q4E3 Story preview uses same two actual Arsenal Fighters and mounts presentation',
+    storyLive?.open===true&&storyLive.quest===true&&storyLive.actors===2
+    &&storyLive.view?.active===false,storyLive);
+  const firstImpact=await evalPage("(()=>{const A=window.APEX_ARSENAL;let n=0;for(;n<1800;n++){if(window.__apexQuestStoryViewRead?.()?.active)break;A.step(.05)}const v=window.__apexQuestStoryViewRead?.();const e=document.getElementById('apexQuestStoryView');const s=A.state;return {steps:n,view:v,phase:s.questReflexGate?.snapshot()?.phase,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,pausedScene:e?.dataset.beat,canvas:[...e?.querySelectorAll('canvas')||[]].map(x=>({w:x.width,h:x.height})),hp:(window.fighters||[]).map(x=>x.hp),clock:s.time,pos:(window.fighters||[]).map(x=>[x.x,x.y])}})()");
+  gate('Q4E3 first real R1 PISTOL hit pauses in cinematic story panel',
+    firstImpact?.view?.active===true
+    &&firstImpact?.view?.current==='E01_R1_IMPACT'
+    &&firstImpact?.pausedScene==='E01_R1_IMPACT'
+    &&firstImpact?.phase==='R2_PISTOL'
+    &&firstImpact?.canvas?.length===2
+    &&firstImpact.canvas.every(x=>x.w>0&&x.h>0)
+    &&firstImpact?.checkpoint==='WAKE',firstImpact);
+  await sleep(60);
+  await image('12-q4e3-r1-real-impact-story-panel');
+  const storyFreeze=await evalPage("(()=>{const A=window.APEX_ARSENAL;const f=window.fighters||[];const pre={hp:f.map(x=>x.hp),pos:f.map(x=>[x.x,x.y]),clock:A.state.time,slots:A.state.slots.map(x=>[x.id,x.phase])};for(let i=0;i<50;i++)A.step(.05);const post={hp:f.map(x=>x.hp),pos:f.map(x=>[x.x,x.y]),clock:A.state.time,slots:A.state.slots.map(x=>[x.id,x.phase])};return {pre,post,view:window.__apexQuestStoryViewRead?.()}})()");
+  gate('Q4E3 story input lease freezes canonical HP, position, slots and clock',
+    storyFreeze?.view?.active===true
+    &&JSON.stringify(storyFreeze?.pre)===JSON.stringify(storyFreeze?.post),
+    storyFreeze);
+  const layouts=[
+    {name:'phone-compact',w:360,h:640,angle:0,type:'portraitPrimary'},
+    {name:'tablet-landscape',w:1024,h:768,angle:90,type:'landscapePrimary'}
+  ];
+  for(const l of layouts){
+    await cmd('Emulation.setDeviceMetricsOverride',{width:l.w,height:l.h,
+      deviceScaleFactor:2,mobile:true,
+      screenOrientation:{type:l.type,angle:l.angle}});
+    await sleep(95);
+    const visual=await evalPage("(()=>{const e=document.getElementById('apexQuestStoryView'),body=e?.querySelector('.qs-body'),comic=e?.querySelector('.qs-comic'),footer=e?.querySelector('.qs-footer'),btn=e?.querySelector('.qs-controls button:not(.qs-skip)');const rect=x=>{const r=x?.getBoundingClientRect();return r?{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}:null};const inside=r=>r&&r.left>=-2&&r.top>=-2&&r.right<=innerWidth+2&&r.bottom<=innerHeight+2;return {viewport:[innerWidth,innerHeight],beat:e?.dataset.beat,body:rect(body),comic:rect(comic),footer:rect(footer),button:rect(btn),inside:[body,comic,footer,btn].every(x=>inside(rect(x))),overflow:document.documentElement.scrollWidth>innerWidth+3}})()");
+    gate('Q4E3 '+l.name+' comic and Continue button remain viewport-contained',
+      visual?.inside===true&&visual?.overflow===false
+      &&visual?.beat==='E01_R1_IMPACT',visual);
+    await image('13-q4e3-'+l.name+'-real-story-panel');
+  }
+  const continueClick=await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  gate('Q4E3 physical Continue advances the story panel, not Story save',continueClick.hit,continueClick);
+  const afterContinue=await evalPage("(()=>({view:window.__apexQuestStoryViewRead?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,phase:window.__apexQuestReflexRead?.()?.phase,live:window.APEX_ARSENAL?.state?.active}))()");
+  gate('Q4E3 Continue releases R1 pause while preserving real R2 combat gate',
+    afterContinue?.view?.active===false
+    &&afterContinue.view.shown.join('|')==='E01_R1_IMPACT'
+    &&afterContinue?.checkpoint==='WAKE'&&afterContinue?.live===true
+    &&afterContinue?.phase==='R2_PISTOL',afterContinue);
+  await pressEscape();
+  const afterStoryExit=await poll("(()=>({open:document.getElementById('battleHudHost')?.classList.contains('is-open'),view:window.__apexQuestStoryViewRead?.(),node:document.getElementById('apexQuestStoryView'),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+    x=>x?.open===false,150);
+  gate('Q4E3 Exit destroys cinematic DOM and leaves WAKE save unmodified',
+    afterStoryExit?.open===false&&afterStoryExit?.view==null
+    &&afterStoryExit?.node==null&&afterStoryExit?.checkpoint==='WAKE',afterStoryExit);
+
+
 }catch(err){
   gate('Browser route execution',false,{error:String(err.stack||err)});
 }finally{
