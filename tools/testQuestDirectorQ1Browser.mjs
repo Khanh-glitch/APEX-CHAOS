@@ -533,13 +533,14 @@ try{
   gate('Q4A real Gold rails numerically match live fighter HP and fill ratios',
     Array.isArray(q4HpTruth)&&q4HpTruth.length===2
     &&q4HpTruth.every(x=>{
-      const fill=Number((x.visibleFill||'').match(/^scaleX\\(([-0-9.]+)\\)$/)?.[1]);
+      const fill=Number((x.visibleFill||'').slice(7,-1));
+      const fillShape=(x.visibleFill||'').startsWith('scaleX(')&&x.visibleFill.endsWith(')');
       return Number.isFinite(x.actorHp)&&x.actorHp>0
         &&x.actorMax===1000
         &&x.projectedHp===x.actorHp&&x.projectedMax===x.actorMax
         &&Number(x.rendered)===Math.round(x.actorHp)
         &&x.renderedMax==='/1000'
-        &&Number.isFinite(fill)&&Math.abs(fill-x.actorHp/x.actorMax)<0.001;
+        &&fillShape&&Number.isFinite(fill)&&Math.abs(fill-x.actorHp/x.actorMax)<0.001;
     }),q4HpTruth);
   await image('08-q4a-reflex-gold-real');
   await pressEscape();
