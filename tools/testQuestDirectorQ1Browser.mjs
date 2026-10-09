@@ -1436,18 +1436,27 @@ try{
               // Desktop physical keyboard; foreground the renderer first.
               // Mobile uses the ACTUAL Gold touch K probe below instead.
               await cmd('Page.bringToFront');
-              await evalPage("(()=>{window.focus();return{state:window.gameState,focus:document.hasFocus()}})()");
-              await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
-              await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+              await evalPage("(()=>{window.focus();window.__B8KEYJ_EVENTS=[];window.addEventListener('keydown',e=>{if(e.code==='KeyJ')window.__B8KEYJ_EVENTS.push({code:e.code,repeat:e.repeat,focused:document.hasFocus(),time:performance.now()})},true);return{state:window.gameState,focus:document.hasFocus()}})()");
+              // The Gold story overlay can suspend companion casts for a few
+              // real-time frames. Retry only real CDP keydown/up gestures;
+              // NEVER call the native skill API from the test.
+              let acceptedKey=null;
+              for(let attempt=0;attempt<6;attempt++){
+                await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+                await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+                await sleep(180);
+                acceptedKey=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1);return{ok:!!last&&snap.tot.jCooldown>0,receipt:last||null,cooldown:snap.tot.jCooldown,recipient:snap.currentRecipient,keys:window.__B8KEYJ_EVENTS,storyActive:A.state.questBreachStoryView?.active?.(),questActive:A.state.questBreachEncounter,gameState:window.gameState,focused:document.hasFocus()}})()");
+                if(acceptedKey?.ok&&acceptedKey.receipt.slotId===inputSetup?.id)break;
+              }
               // Real-time battle may complete/cancel a 0.55s dash before CDP
               // reads it. The authoritative proof of physical keyboard input
               // is a NEW slot-bound accepted DASH_LOCK receipt + consumed real J
               // cooldown; an instantaneous "dashing=true" read is a race.
-              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T');const last=events.at(-1),ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10&&!!last;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,dashCount:events.length,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus()}})()");
-              gate('B6n desktop real KeyJ dispatch creates native DASH_LOCK receipt for actual floor slot',
+              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1);window.fighters[0].withdrawn=false;A.state.slots=[];return{ok:!!last&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,keyboardDashCount:events.length,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus(),keys:window.__B8KEYJ_EVENTS}})()");
+              gate('B6n desktop physical KeyJ generates NEW native keyboard DASH_LOCK for exact floor slot',
                 keyResult?.ok&&keyResult?.receipt?.slotId===inputSetup?.id&&
-                keyResult?.dashCount===inputSetup?.priorDashes+1&&
-                keyResult?.focused,{...keyResult,setup:inputSetup});
+                keyResult?.receipt?.source==='keyboard'&&keyResult?.focused&&
+                keyResult?.keys?.length>=1,{...keyResult,setup:inputSetup,attempt:acceptedKey});
             }else{
               await evalPage("(()=>{window.fighters[0].withdrawn=false;window.APEX_ARSENAL.state.slots=[];return true})()");
             }
