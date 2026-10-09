@@ -19,6 +19,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Verify Gold source reproducibility before ephemeral test fixtures
+        run: node tools/buildGoldCutover.mjs --check
       - run: pnpm install --frozen-lockfile
       - run: pnpm arsenal:sfx:materialize
       - name: B1 real engine reflectDir and contact event law
@@ -29,6 +31,5 @@ jobs:
           node tools/testQuestScrapSwarmQ5.mjs
           node tools/testQuestWeaponRainQ5.mjs
           node tools/testQuestBreakerChargeQ5.mjs
-          node tools/buildGoldCutover.mjs --check
       - name: Production build
         run: pnpm build
