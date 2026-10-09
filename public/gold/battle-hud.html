@@ -852,7 +852,16 @@ kbd{font:inherit}
       if(Array.isArray(s.keyLabels))applyKeyLabels(i,s.keyLabels);
       if(Number.isFinite(s.hp)){
         const hp=Math.max(0,Number(s.hp));
-        if(Math.abs(p.hp-hp)>0.01){
+        // Q4A: Gold's initial DOM rails start at "0" while the cached
+        // internal HP and REAL first projection both start at 1000. A
+        // numeric-only delta silently skips the first render forever.
+        // Reconcile actual DOM digits AND bar transform on first/live frames;
+        // never mutate the true Fighter HP or fabricate a damage event.
+        const rail=R.rail[i],label=String(Math.round(hp));
+        const fill=`scaleX(${(hp/p.max).toFixed(4)})`;
+        const visualStale=rail&&(rail.cur.textContent!==label
+          ||rail.fill.style.transform!==fill);
+        if(Math.abs(p.hp-hp)>0.01||visualStale){
           if(hp<p.hp){p.ghost=Math.max(p.ghost,p.hp);p.hold=now+650;}
           p.hp=hp;renderRail(i);
         }
