@@ -1,0 +1,65 @@
+name: Quest B1b E03 True 1.2x Scout Balance Chrome
+on:
+  push:
+    branches: ['quest/b1b-swarm-balance']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-gold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Verify generated source parity
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Build merged production Quest + R90
+        run: pnpm build
+      - name: Start real Gold Vite
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b1b-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b1b-vite.log
+          exit 1
+      - name: Find Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Actual E01–E05 signed Gold desktop route
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b1b-swarm-balance
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: Actual E01–E05 Gold mobile/touch route
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b1b-swarm-balance
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Preserve screenshot, frame and actual combat receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quest-b1b-wave-health-real-chrome
+          path: |
+            /tmp/b1b-swarm-balance/
+            /tmp/b1b-vite.log
+          if-no-files-found: warn
