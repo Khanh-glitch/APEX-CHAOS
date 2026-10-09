@@ -130,10 +130,12 @@
     // the canonical TELEGRAPH → REVEALED → actual pickup/equip pipeline.
     // Never let public normal/Local modes request a fixed weapon or point.
     const forcedQuest=state.questReflex===true && opts?.questWeaponId==='PISTOL'
+      && (opts?.questStage==='R1_PISTOL'||opts?.questStage==='R2_PISTOL')
+      && (opts?.questPickupOwner==='NEWBOT'||opts?.questPickupOwner==='T.O.T')
       && Number.isFinite(opts?.questPoint?.x)&&Number.isFinite(opts?.questPoint?.y);
     const point=forcedQuest
-      ? {x:Math.max(180,Math.min(820,opts.questPoint.x)),
-         y:Math.max(180,Math.min(820,opts.questPoint.y))}
+      ? {x:Math.max(120,Math.min(880,opts.questPoint.x)),
+         y:Math.max(120,Math.min(880,opts.questPoint.y))}
       : pickSpawnPoint(state.slots);
     const slot = {
       id: state.nextSlotId++,
@@ -143,6 +145,8 @@
       weaponId: null,
       forceFirearm: !!(opts && opts.forceFirearm),
       questWeaponId: forcedQuest ? 'PISTOL' : null,
+      questStage: forcedQuest ? opts.questStage : null,
+      questPickupOwner: forcedQuest ? opts.questPickupOwner : null,
       // V2 B-handoff A-CORR-2: fixed 2.0s whole-circle reveal lead per slot.
       revealLeadSeconds: Number(CFG.REVEAL_LEAD_SECONDS ?? 2.0),
       revealedFor: 0,
@@ -459,6 +463,11 @@
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
         if (d > pickupTouchRadius(f)) continue;
+        // E01 REFLEX stage gun is collected only by its named physical
+        // participant. Still real floor pickup / Arsenal equip; this guard
+        // never applies to normal, LAB, BOT, Local or other Quest slots.
+        if (state.questReflex===true && slot.questPickupOwner
+          && f.questId!==slot.questPickupOwner) continue;
         // FROST V1 (authority §4.3): a Frozen firearm denies non-Frost
         // collectors. Dynamic denial only — never a rejected/blacklist mark.
         if (slot.__frostFrozen) {

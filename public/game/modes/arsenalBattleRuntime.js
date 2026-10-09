@@ -291,19 +291,36 @@
           }
         }
       }
-      // E01 only: stage-directed placement of the two approved R1/R2
-      // PISTOL DROPS. All reveal and pickup physics stay in Arsenal SPAWN.
-      // A third post-R2 drop, when needed for Weapon Dash, comes from the
-      // NORMAL 4.5-second Arsenal drop cadence rather than a fake equip.
+      // E01 only: a directed PISTOL spawns near the STAGE'S true Fighter,
+      // never teleports into their hand. If it expires or is fully discharged
+      // without a valid hit, re-telegraph a new REAL pickup. Prevents the
+      // observed R2 soft-lock (T.O.T remained unarmed for 90s), while leaving
+      // the production Arsenal pool, collision and max-five cap untouched.
       if(state.questReflex && state.questReflexGate){
         const stage=state.questReflexGate.snapshot().phase;
-        const q=state.questReflexSpawns||(state.questReflexSpawns={});
-        if(stage==='R1_PISTOL'&&!q.r1) {
-          q.r1=!!SPAWN.trySpawnSlot({questWeaponId:'PISTOL',questPoint:{x:330,y:500}});
-        }else if(stage==='R2_PISTOL'&&!q.r2) {
-          q.r2=!!SPAWN.trySpawnSlot({questWeaponId:'PISTOL',questPoint:{x:670,y:500}});
-        }else if(stage==='J_CAST'&&!q.jDrop) {
+        const q=state.questReflexSpawns||(state.questReflexSpawns={lastAt:{},jDrop:false});
+        for(const slot of state.slots){
+          if(slot.questStage && slot.questStage!==stage)slot.phase='REMOVED';
+        }
+        if(stage==='R1_PISTOL'||stage==='R2_PISTOL'){
+          const wanted=stage==='R1_PISTOL'?'NEWBOT':'T.O.T';
+          const owner=(fighters||[]).find(f=>f?.questId===wanted&&f.hp>0);
+          const held=owner&&weaponApi.getHolder(owner)?.weaponId==='PISTOL';
+          const pending=state.slots.some(slot=>slot.questStage===stage
+            &&slot.phase!=='REMOVED');
+          const lastAt=q.lastAt?.[stage]??-1e9;
+          if(owner&&!held&&!pending&&state.time-lastAt>=1.75){
+            const towardCenter=owner.x>500?-65:65;
+            const slot=SPAWN.trySpawnSlot({
+              questWeaponId:'PISTOL',questStage:stage,questPickupOwner:wanted,
+              questPoint:{x:owner.x+towardCenter,y:owner.y}
+            });
+            if(slot){(q.lastAt||(q.lastAt={}))[stage]=state.time;}
+          }
+        }else if(stage==='J_CAST'&&!q.jDrop){
           q.jDrop=true;
+          // Real Arsenal cadence restarts after BOTH real gun hits. Never
+          // fake an eligible J pickup or claim an A1 cast from keydown alone.
           state.spawnTimer=Math.min(state.spawnTimer,0);
         }
       }
@@ -1148,7 +1165,7 @@
         // resumes when J needs a real revealed pickup after R2.
         AQ.state.spawnTimer=1e6;
         AQ.state.spawnHeld=true;
-        AQ.state.questReflexSpawns={r1:false,r2:false,jDrop:false};
+        AQ.state.questReflexSpawns={lastAt:{},jDrop:false};
       }
     } else {
       fighters = [

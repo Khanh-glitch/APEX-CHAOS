@@ -6067,6 +6067,8 @@ if(process.argv.includes('--quest-reflex-real')){
 // actually lets the production bot/pickup/fire pipeline play out R1 then R2.
 if(process.argv.includes('--quest-reflex-real')){
   try{
+    const trials=[];
+    for(let trial=0;trial<3;trial++){
     const natural=run(`
       const entered=window.__apexQuestReflexStart?.()===true;
       const A=window.APEX_ARSENAL, W=A?.weaponApi,f=window.fighters||[];
@@ -6089,11 +6091,17 @@ if(process.argv.includes('--quest-reflex-real')){
         if(phase==='J_CAST'||phase==='K_CAST'||phase==='BOTH_HALF'||phase==='AWAIT_RIVET'||A.state.over)break;
       }
       const done=snap(),after={phase:done?.phase,receipts:done?.receipts||[],
-        hp:f.map(x=>x.hp),over:A.state.over,seen,ticks,phases};
+        hp:f.map(x=>x.hp),over:A.state.over,seen,ticks,phases,
+        slots:A.state.slots.filter(x=>x.questWeaponId).map(x=>({id:x.id,stage:x.questStage,phase:x.phase,owner:x.questPickupOwner})),
+        spawnFlags:A.state.questReflexSpawns,
+        positions:f.map(x=>({id:x.questId,x:Math.round(x.x),y:Math.round(x.y)}))};
       window.exitArsenalBattleMode();
       return {entered,ready:true,...after,clean:window.__apexQuestReflexRead?.()==null};
     `);
-    gate('q4a-organic-reflex-R1-R2-from-real-bot-pickups-no-test-bullets',
+    trials.push(natural);
+    }
+    gate('q4a-organic-reflex-3-of-3-r1-r2-real-pickups-no-synthetic-shots',
+      trials.length===3&&trials.every(natural=>
       natural?.ready===true&&natural?.clean===true
       &&natural?.seen?.NEWBOT===true&&natural?.seen?.['T.O.T']===true
       &&natural?.phase==='J_CAST'&&natural?.over===null
@@ -6103,8 +6111,8 @@ if(process.argv.includes('--quest-reflex-real')){
       &&natural.receipts[0].to==='T.O.T'
       &&natural.receipts[1].kind==='PISTOL_HIT'
       &&natural.receipts[1].from==='T.O.T'
-      &&natural.receipts[1].to==='NEWBOT',
-      natural);
+      &&natural.receipts[1].to==='NEWBOT'),
+      trials);
   }catch(error){
     gate('q4a-organic-reflex-runner',false,{error:String(error?.stack||error)});
   }
