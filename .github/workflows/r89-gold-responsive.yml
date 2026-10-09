@@ -44,6 +44,25 @@ jobs:
           done
           R89_ONLY_INTERMEDIATE=1 CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR89GoldProfilesBrowser.mjs
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR89GoldProfilesBrowser.mjs
+      - name: Build isolated R89 shipping candidate
+        run: pnpm build
+      - name: Verify shipped Gold entry, native fallback and base game assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/index.html
+          test -s dist/gold-fidelity-lab.html
+          test -s dist/gold-fidelity-profiles.mjs
+          grep -q 'goldViewport' dist/index.html
+          grep -q 'goldViewport' dist/gold-fidelity-lab.html
+          node tools/testShippingDist.mjs
+      - name: Publish independent R89 preview bundle (NOT production deploy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: r89-gold-responsive-preview-dist
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
