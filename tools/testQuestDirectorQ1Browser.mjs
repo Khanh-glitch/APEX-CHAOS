@@ -1496,6 +1496,14 @@ try{
               x=>x==='RIVET_OVERRIDDEN',180);
             gate('B7 reload preserves signed E07 checkpoint, not E06 preview',retained==='RIVET_OVERRIDDEN',retained);
             if(process.argv.includes('--verify-rivet-gold')){
+              // After a real browser reload Gold correctly boots HOME first.
+              // Continue Story is the ONLY authorized way to display the
+              // current Director chapter; never invoke its hidden button.
+              await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true)()",Boolean,300);
+              await click('#continueStory');
+              const stage=await poll("(()=>({open:document.getElementById('apexQuest01Stage')?.hidden===false,button:document.getElementById('q7RivetPlay')?.hidden===false,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                v=>v?.open&&v?.button&&v?.save==='RIVET_OVERRIDDEN',150);
+              gate('B7 Gold Home Continue Story exposes only genuinely unlocked E07',stage?.open&&stage?.button,stage);
               await click('#q7RivetPlay');
               const entry=await poll("(()=>({game:window.APEX_ARSENAL?.state?.active,story:window.APEX_ARSENAL?.state?.questRivetStoryView?.snapshot?.(),boss:(window.fighters||[]).find(x=>x.questId==='RIVET')?.hp,hero:(window.fighters||[]).find(x=>x.questId==='NEWBOT')?.hp,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
                 x=>x?.game&&x?.story?.current==='E07_START'&&x?.boss===1000&&x?.hero===1000,180);
