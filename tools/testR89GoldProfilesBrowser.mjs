@@ -163,8 +163,94 @@ try{
     }
     output.push({id:profile.id,donor,samples});
   }
+
+  // Intermediate viewport coverage: these ARE NOT authored anchor aspects.
+  // Each case boots the real application, exercises Home -> Mode -> Pick ->
+  // Local Battle and measures real (not screenshot-only) DOM/hit regions.
+  const intermediate=[
+    {name:'iphone-se',w:375,h:667,device:'phone',hud:'port',size:'compact'},
+    {name:'iphone-portrait-tall',w:430,h:932,device:'phone',hud:'port',size:'compact'},
+    {name:'phone-landscape-16-9',w:667,h:375,device:'phone',hud:'land',size:'compact'},
+    {name:'phone-landscape-ultrawide',w:852,h:393,device:'phone',hud:'land',size:'compact'},
+    {name:'tablet-landscape-4-3',w:1024,h:768,device:'tablet',hud:'land',size:'tablet'},
+    {name:'desktop-mid-size',w:1280,h:800,device:'desktop',hud:'desk',size:'desktop'}
+  ];
+  const screenAudit=(selector)=>{
+    const lab=window.__apexGoldFidelity,child=lab.child(),d=child.document;
+    const n=d.querySelector(selector);
+    if(!n)return {reason:'missing'};
+    const style=child.getComputedStyle(n),rect=n.getBoundingClientRect();
+    const frame=d.defaultView.frameElement.getBoundingClientRect();
+    const scale=frame.width/child.innerWidth;
+    const center={x:frame.left+(rect.left+rect.width/2)*scale,
+                  y:frame.top+(rect.top+rect.height/2)*scale};
+    const hit=d.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);
+    const view={w:window.innerWidth,h:window.innerHeight};
+    return {rect:{x:rect.x,y:rect.y,w:rect.width,h:rect.height},
+      center,view,hidden:style.display==='none'||style.visibility==='hidden'||Number(style.opacity)<.01,
+      within:center.x>=0&&center.x<=view.w&&center.y>=0&&center.y<=view.h,
+      hittable:Boolean(hit&&(hit===n||n.contains(hit)))};
+  };
+  for(const v of intermediate){
+    await resize(v.w,v.h);
+    const link=new URL('/gold-fidelity-lab.html',url);
+    link.searchParams.set('goldDevice',v.device);
+    await command('Page.navigate',{url:link.href});
+    if(!(await wait(childReady)))throw Error('R89 intermediate START unavailable '+v.name);
+    const meta=await evalJS('window.__apexGoldFidelity?.snapshot()');
+    check(v.name+' aspect-fit/zero-letterbox',
+      meta?.deviceClass===v.device&&
+      Math.abs(meta.design.width/meta.design.height-v.w/v.h)<.00001&&
+      Math.abs(meta.letterboxX)<.1&&Math.abs(meta.letterboxY)<.1,meta);
+    const start=await evalJS('('+screenAudit.toString()+')("#apex-boot-start")');
+    check(v.name+' START center visible and hittable',start.within&&start.hittable&&!start.hidden,start);
+    await click('#apex-boot-start');
+    if(!(await wait(homeDone)))throw Error('R89 intermediate Home not ready '+v.name);
+    const free=await evalJS('('+screenAudit.toString()+')("#freeBattle")');
+    check(v.name+' Free Battle center visible/hittable',free.within&&free.hittable&&!free.hidden,free);
+    await click('#freeBattle');
+    if(!(await wait("(()=>{const c=window.__apexGoldFidelity?.child();return c?.document.querySelector('#stage')?.classList.contains('screen-mode')})()")))
+      throw Error(v.name+' mode unavailable');
+    const mode=await evalJS('('+screenAudit.toString()+')(".modeCard[data-mode=local1v1]")');
+    check(v.name+' Local 1v1 center visible/hittable',mode.within&&mode.hittable&&!mode.hidden,mode);
+    await click('.modeCard[data-mode="local1v1"]');
+    if(!(await wait("(()=>{const c=window.__apexGoldFidelity?.child();return c?.document.querySelector('#stage')?.classList.contains('screen-fighter')&&c.document.querySelectorAll('#fighterRoster .rosterCard').length>=6})()")))
+      throw Error(v.name+' pick unavailable');
+    const fighter=await evalJS('('+screenAudit.toString()+')(".rosterCard[data-hero=newbot]")');
+    const lock=await evalJS('('+screenAudit.toString()+')("#lockIn")');
+    check(v.name+' Fighter roster and LOCK on screen',fighter.within&&lock.within&&!fighter.hidden&&!lock.hidden,{fighter,lock});
+    await click('.rosterCard[data-hero="newbot"]');
+    await sleep(230);await click('#lockIn');
+    if(!(await wait("(()=>window.__apexGoldFidelity?.child()?.document.querySelector('#stage')?.classList.contains('fighter-active-p2'))()")))throw Error(v.name+' P2 handoff failed');
+    await click('.rosterCard[data-hero="newbot"]');
+    await sleep(230);await click('#lockIn');
+    if(!(await wait("(()=>{const d=window.__apexGoldFidelity?.child()?.document;return d?.body.classList.contains('battle-hud-open')&&d.querySelector('#battleHudHost #arena')?.getBoundingClientRect().width>0})()")))throw Error(v.name+' Battle failed');
+    const battle=await capture(v.name+'-intermediate-Battle');
+    check(v.name+' native Battle Gold layout',
+      battle.battle.layout===v.hud&&battle.battle.size===v.size&&battle.battle.mode==='2p',
+      battle.battle);
+    const arena=await evalJS('('+screenAudit.toString()+')("#battleHudHost #arena")');
+    check(v.name+' arena center on screen',arena.within&&!arena.hidden,arena);
+    if(v.name==='iphone-se'){
+      // This checks CDP native touch routing through BOTH sides of the scaled
+      // iframe, not synthetic Event dispatch inside the child document.
+      await command('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
+      const points=await evalJS("(()=>{const w=window.__apexGoldFidelity.child(),f=document.querySelector('#gold-document').getBoundingClientRect(),s=f.width/w.innerWidth;return ['#p1Side .skill','#p2Side .skill'].map(selector=>{const n=w.document.querySelector(selector);if(!n)return null;const r=n.getBoundingClientRect();return{x:f.x+(r.x+r.width/2)*s,y:f.y+(r.y+r.height/2)*s}})})()");
+      const touchReady=await evalJS("(()=>{const w=window.__apexGoldFidelity.child();w.__r89Pointers=[];w.document.addEventListener('pointerdown',e=>w.__r89Pointers.push({id:e.pointerId,type:e.pointerType}),true);return true})()");
+      if(points?.every(Boolean)&&touchReady){
+        await command('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:points.map((p,i)=>({...p,id:i+11}))});
+        await sleep(150);
+        await command('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+        const actual=await evalJS("window.__apexGoldFidelity.child().__r89Pointers");
+        check('iPhone SE two simultaneous native touch pointers',
+          new Set(actual.filter(x=>x.type==='touch').map(x=>x.id)).size>=2,{actual,points});
+      }else check('iPhone SE two simultaneous native touch pointers',false,{points});
+    }
+    output.push({id:v.name,intermediate:true,viewport:v,meta,battle,arena});
+  }
+
   await writeFile(dir+'/report.json',JSON.stringify({output,failures},null,2));
-  console.log('R89 FINAL '+JSON.stringify({profiles:output.length,cases:output.length*2,failures:failures.length}));
+  console.log('R89 FINAL '+JSON.stringify({profiles:GOLD_PROFILES.length,cases:GOLD_PROFILES.length*2+intermediate.length,failures:failures.length}));
   if(failures.length)throw Error('R89 native Gold profile invariance failed '+failures.length);
 }finally{
   try{socket?.close()}catch{}
