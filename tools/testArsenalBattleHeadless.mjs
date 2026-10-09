@@ -6191,6 +6191,7 @@ if(process.argv.includes('--quest-reflex-real')){
             rigGround:q?.aimPoint&&{x:q.aimPoint.x,y:q.aimPoint.y},
             minApproach:q?.minApproach,contactTrace:q?.contactTrace?.slice(0,12),
             calls:q?.weaponUpdateCalls,thrownSeen:q?.thrownSeen,ownerMatched:q?.ownerMatched,lastThrownState:q?.lastThrownState,
+            branchCalls:q?.updateCalls,updateFn:q?.updateFn,
             rigHolder:W.getHolder(q?.operator)&&{
               phase:W.getHolder(q.operator).phase,
               elapsed:W.getHolder(q.operator).elapsed,
