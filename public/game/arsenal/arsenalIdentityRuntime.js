@@ -40,7 +40,7 @@
   // STORMBREAKER is offensive spawn pool material but is NOT a regular melee:
   // it keeps full base weight (no 0.5x melee penalty) and only ever rolls as
   // the T6 red tier.
-  const OFFENSIVE_IDS = [...GUN_IDS, 'GRENADE', ...MELEE_IDS, 'STORMBREAKER'];
+  const OFFENSIVE_IDS = [...GUN_IDS, ...(CFG.V43_SPECIAL_IDS||[]), 'GRENADE', ...MELEE_IDS, 'STORMBREAKER'];
 
   // P0 is the complete EQUIPMENT catalogue (including counter shields) for
   // Arsenal Lab. OFFENSIVE_IDS remains the separate, unchanged random spawn

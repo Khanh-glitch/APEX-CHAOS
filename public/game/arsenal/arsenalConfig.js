@@ -248,12 +248,15 @@
   // Disabled handoff concepts stay OUT of the catalogue by owner decision:
   // CHAIN_WHIP, HARPOON_LAUNCHER, RAILGUN, TWIN_REAPER_SCYTHES.
   CONFIG.V43_WEAPONS=V43;
+  CONFIG.V43_SPECIAL_IDS=Object.freeze(Object.keys(V43));
   for(const [id,s] of Object.entries(V43)){
     if(CONFIG.WEAPONS[id]||GUN_REGISTRY.some(e=>e.id===id))
       throw Error('V43 duplicate weapon registry ID: '+id);
     // GUN_REGISTRY is the generic ranged/equipment pool; SPECIAL variants
     // override their executor below and are never emitted as default bullets.
-    GUN_REGISTRY.push({id,art:s.art,family:'SPECIAL',special:true,tier:s.tier});
+    // SPECIAL is NOT one of the 24 conventional firearms; keep that family
+    // stable for critical-hit/headless and Magnet mechanics. It remains a
+    // ranged offensive pickup through the master tier pool.
     CONFIG.WEAPONS[id]={...s,finalDamage:true,sfx:'skill',longSide:s.worldWidth,
       recoilPx:11,recoilRot:.1,recoilTau:.09};
     CONFIG.FIREARM_DISPLAY_MODE=CONFIG.FIREARM_DISPLAY_MODE||{};
@@ -437,7 +440,7 @@
   // Spawn roster (POST-C §3): all 24 staged Senko v9 guns are separately
   // spawnable, plus GRENADE, the 5 melee weapons and the 2 shields.
   CONFIG.P0_WEAPON_IDS = [
-    ...GUN_REGISTRY.map((e) => e.id),
+    ...GUN_REGISTRY.map((e) => e.id),...CONFIG.V43_SPECIAL_IDS,
     'GRENADE', 'SABRE', 'BATTLE_AXE', 'DAGGER', 'SPEAR', 'SPIKED_CLUB',
     'STORMBREAKER',
     'SWIRL_SHIELD', 'TOWER_SHIELD',

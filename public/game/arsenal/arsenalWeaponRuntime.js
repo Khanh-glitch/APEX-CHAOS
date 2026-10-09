@@ -2224,6 +2224,10 @@
     else WEAPONS[entry.id] = makeGun(entry.id, null, color);
   }
 
+  // V4.3 special devices use the same equip/update loop but a separate
+  // executor, NEVER a fake default firearm family.
+  for(const id of (CFG.V43_SPECIAL_IDS||[]))WEAPONS[id]=makeV43Special(id);
+
   // ---------------------------------------------------------------------------
   // Per-frame holder driver — called by the mode runtime for each fighter.
   // ---------------------------------------------------------------------------
