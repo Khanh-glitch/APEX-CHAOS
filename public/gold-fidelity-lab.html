@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="theme-color" content="#080b0e">
-  <title>APEX CHAOS — Gold Fidelity Laboratory</title>
+  <title>APEX CHAOS — Multi-Profile Gold Fidelity Laboratory</title>
   <style>
     :root {color-scheme:dark}
     *,*::before,*::after {box-sizing:border-box}
@@ -25,8 +25,8 @@
 <body>
   <!--
     R87 faithful design-space rendering experiment:
-    a SAME-ORIGIN REAL game document receives exactly a 550x857 CSS-pixel
-    layout viewport at every physical phone size. The browser scales the
+    a SAME-ORIGIN REAL game document receives the matching existing Gold
+    design-space composition (portrait, tablet, landscape or desktop). The browser scales the
     iframe composited result uniformly, including pointer hit-testing.
     Gold, Hero Pick, modes, gameplay and engine remain unchanged.
     This is a laboratory, NOT a default app bootstrap, NOT a production
@@ -35,11 +35,16 @@
   <div id="gold-viewport">
     <iframe id="gold-document" title="APEX CHAOS Gold design viewport" loading="eager" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
   </div>
-  <script>
+  <script type="module">
+    import { GOLD_PROFILES, chooseGoldProfile, fitGoldProfile } from '/gold-fidelity-profiles.mjs';
     (() => {
       'use strict';
-      const DESIGN = Object.freeze({width:550,height:857});
       const frame = document.getElementById('gold-document');
+      const forcedId = new URLSearchParams(location.search).get('goldProfile') || null;
+      if (forcedId && !GOLD_PROFILES.some(p=>p.id===forcedId)) {
+        document.body.textContent = 'Unknown Gold profile: '+forcedId;
+        throw new Error('Unknown Gold profile: '+forcedId);
+      }
       const viewport = document.getElementById('gold-viewport');
       // Always boot the REAL application on the same origin at /.
       // Deliberately exclude any R82/R85/R86 opt-in reflow experiments.
@@ -55,17 +60,28 @@
         const ox = v?.offsetLeft ?? 0;
         const oy = v?.offsetTop ?? 0;
         if (!(w>0&&h>0)) return;
-        const scale = Math.min(w / DESIGN.width, h / DESIGN.height);
-        const left = ox + (w - DESIGN.width * scale) / 2;
-        const top = oy + (h - DESIGN.height * scale) / 2;
-        viewport.style.transform = 'translate3d('+left.toFixed(5)+'px,'+
-          top.toFixed(5)+'px,0) scale('+scale.toFixed(9)+')';
+        // Choose a native Gold reference from the *layout* viewport, which
+        // does not fluctuate when Android browser chrome collapses.
+        // Fit it inside the actual visual viewport. Neither is device-model
+        // detection, and both work for arbitrary physical pixel dimensions.
+        const selected = chooseGoldProfile(window.innerWidth,window.innerHeight,forcedId);
+        const fit = fitGoldProfile(selected,w,h,ox,oy);
+        if (!fit) return;
+        // Switch native Gold profile without replacing the iframe document.
+        // The actual game's own media queries and HUD layout resolver react
+        // to the child resize; its ongoing match is not restarted.
+        if (frame.style.width !== selected.width+'px') {
+          viewport.style.width = selected.width+'px';
+          frame.style.width = selected.width+'px';
+        }
+        if (frame.style.height !== selected.height+'px') {
+          viewport.style.height = selected.height+'px';
+          frame.style.height = selected.height+'px';
+        }
+        viewport.style.transform = 'translate3d('+fit.left.toFixed(5)+'px,'+
+          fit.top.toFixed(5)+'px,0) scale('+fit.scale.toFixed(9)+')';
         metrics = Object.freeze({
-          design:{...DESIGN},outer:{width:w,height:h,offsetLeft:ox,offsetTop:oy},
-          scale,left,top,scaledWidth:DESIGN.width*scale,
-          scaledHeight:DESIGN.height*scale,
-          letterboxX:(w-DESIGN.width*scale)/2,
-          letterboxY:(h-DESIGN.height*scale)/2,
+          ...fit,profileFamily:selected.family,forcedProfile:Boolean(forcedId),
           child:{
             width:frame.contentWindow?.innerWidth??null,
             height:frame.contentWindow?.innerHeight??null
@@ -84,6 +100,7 @@
         configurable:false,
         value:Object.freeze({
           snapshot:()=>metrics,
+          availableProfiles:()=>GOLD_PROFILES.map(({id,width,height,label})=>({id,width,height,label})),
           child:()=>frame.contentWindow,
           remeasure:queue
         })
