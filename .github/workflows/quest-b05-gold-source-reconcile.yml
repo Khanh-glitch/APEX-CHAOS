@@ -4,6 +4,7 @@ on:
     branches: ['quest/b05-r90-q5-real-integration']
     paths:
       - 'tools/createB05GoldOverlays.mjs'
+      - '.github/workflows/quest-b05-gold-source-reconcile.yml'
   workflow_dispatch:
 permissions:
   contents: write
@@ -47,6 +48,9 @@ jobs:
           git config user.name "apex-chaos-integration"
           git config user.email "apex-chaos-integration@users.noreply.github.com"
           git add tools/goldB05Overlays public/gold/battle-hud.html public/gold/shell.html tools/buildGoldCutover.mjs
-          git diff --cached --check
+          # Canonical Gold source retains whitespace authored by the donor.
+          # Unified patch files must preserve that exact whitespace to apply.
+          # Inspect only our JS source for new whitespace errors.
+          git diff --cached --check -- tools/buildGoldCutover.mjs
           git commit -m "B0.5 make R90+Q5 Gold generator reproduce merged authored HUD and Shell"
           git push origin HEAD:refs/heads/quest/b05-r90-q5-real-integration
