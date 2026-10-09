@@ -1098,7 +1098,7 @@ kbd{font:inherit}
    Quest has no P2 controls, so allocate an equal margin on both sides
    while retaining the largest square and the real P1 J/K target area. */
 #hud[data-quest="1"][data-layout="land"][data-mode="1p"]{
-  --quest-side-floor:clamp(150px,15cqw,176px);
+  --quest-side-floor:clamp(148px,19cqw,200px);
   --arena:min(calc(var(--availW) - 2 * var(--quest-side-floor) - 2 * var(--gx)),calc(var(--availH) - var(--railH) - var(--g)));
   --cl:calc((var(--availW) - var(--arena) - 2 * var(--gx)) / 2);
   --cr:var(--cl);
@@ -1113,6 +1113,19 @@ kbd{font:inherit}
    Long Quest names may wrap but tile sizing remains the original donor. */
 /* Shorter DESK height: conserve vertical INFO spacing without shrinking
    the actual Gold tile, icon, key, name or truthful READY/CD meter. */
+/* B8qe LAND family: the donor BOT uses percent-based media cells.
+   Inside very narrow Quest side rails, applying that percentage AGAIN to
+   the media child makes a 512px source look like a 30px thumbnail. Use
+   a bounded, actual CSS length and finite-height original Gold cards.
+   Do not touch normal BOT/Local or the portrait Gold donor. */
+#hud[data-quest="1"][data-layout="land"][data-mode="1p"] #p1Side{
+  --artW:clamp(64px,8cqw,100px);
+  --quest-skill-tile:clamp(102px,18cqh,138px);
+}
+#hud[data-quest="1"][data-layout="land"][data-mode="1p"] #p1Side .skills{
+  grid-template-rows:repeat(2,var(--quest-skill-tile));
+  align-self:center;
+}
 #hud[data-quest="1"][data-layout="desk"] #p1Side{
   --infoPad:6px 12px 6px 11px;
   --infoGap:3px;

@@ -53,8 +53,10 @@ function measure(){
   });
   hud.dataset.quest='0';const native=box(document.querySelector('#arena'));
   hud.dataset.quest='1';
+  const p1Title=document.querySelector('#p1Side .id-name');
+  const p1TitleFits=!!p1Title&&p1Title.scrollWidth<=p1Title.clientWidth+1.5;
   return {mode:hud.dataset.mode,quest:hud.dataset.quest,layout:hud.dataset.layout,
-    viewport:{width:innerWidth,height:innerHeight},stage,arena,native,left,right,names,
+    viewport:{width:innerWidth,height:innerHeight},stage,arena,native,left,right,names,p1TitleFits,
     centeringError:Math.abs(arena.cx-stage.cx),
     sideAsymmetry:Math.abs(left.width-right.width),
     goldParity:Math.abs(native.cx-arena.cx)+Math.abs(native.width-arena.width)};
@@ -124,6 +126,9 @@ try{
           &&snap.names[1].title==='VIRTUAL ARMOR'
           &&snap.names.every(n=>n.phase===phase&&n.textFits&&n.allInside&&n.physicallyHittable),
         snap.names);
+      if(c.layout==='land')gate(id+' LAND visual density: full NEWBOT and normal-size skill artwork, no tall empty cards',
+        snap.p1TitleFits&&snap.names.every(n=>n.tile.height<=155&&n.icon.height>=n.tile.height*.42),
+        {p1TitleFits:snap.p1TitleFits,tiles:snap.names.map(n=>({h:n.tile.height,iconH:n.icon.height}))});
       if(phase==='ready'&&['desktop-owner-1560','tablet-land-1024','phone-port-390'].includes(c.name)){
         const img=await cmd('Page.captureScreenshot',{format:'png'});
         await writeFile(path.join(dir,'b8qd-'+c.name+'.png'),Buffer.from(img.data,'base64'));

@@ -14,8 +14,12 @@ gate('Quest desk keeps R90 arena unchanged, land explicitly centers square',
   &&css.includes('--cr:var(--cl)'));
 
 gate('Quest cannot miniaturize original Gold J/K skills',
-  !/--(?:tileH|artW|skNF|wpIW)\s*:/.test(css)
+  !/#[^\n{]*data-quest="1"\]\[data-layout="desk"\][^{}]*\{[^}]*--(?:tileH|artW|skNF|wpIW)\s*:/.test(css)
   &&!css.includes('width:min(100%,265px)'));
+gate('Quest tablet LAND prevents tall empty skill towers and percent-squared thumbnails',
+  css.includes('--quest-skill-tile:clamp(102px,18cqh,138px)')
+  && css.includes('--artW:clamp(64px,8cqw,100px)')
+  && css.includes('grid-template-rows:repeat(2,var(--quest-skill-tile))'));
 gate('Quest land preserves visible real skill status',
   css.includes('#p1Side .sk-meter')&&css.includes('flex-direction:column')
   &&css.includes('#p1Side .sk-state'));
