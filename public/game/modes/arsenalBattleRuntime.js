@@ -1389,13 +1389,21 @@
       return {ok:false,reason:'real-safe-hold-required'};
     if(state.questRivetPreview)return {ok:false,reason:'already-released'};
     if(projectiles.length)return {ok:false,reason:'unsettled-projectiles'};
+    // Recalculate the world-ground target only AFTER real HP/skill hold.
+    // This is a non-combatant floor point, never a Fighter or dummy HP pool.
+    const alive=(fighters||[]).filter(f=>f?.hp>0);
+    if(alive.length!==2)return {ok:false,reason:'wrong-fighter-pair'};
+    const floorX=Math.max(45,Math.min(955,(alive[0].x+alive[1].x)/2));
+    const floorY=Math.max(45,Math.min(955,(alive[0].y+alive[1].y)/2));
     const operator={id:'Q01-RIVET-RIG-PREVIEW',name:'RIVET',questId:'RIVET',
       questTeam:'RIG_OPERATOR',hp:1000,maxHp:1000,
-      x:500,y:72,radius:8,dir:{x:0,y:1},data:{}};
-    // Coordinates below are experimental, NOT an art/Story decision.
+      x:floorX,y:Math.max(12,Math.min(988,floorY-300)),radius:8,
+      dir:{x:0,y:1},data:{}};
+    // Suppression reaches the computed midpoint via the original weapon's
+    // real throw lifecycle; neither friend becomes a target or loses HP.
     state.questRivetPreview={
-      phase:'READY',operator,aimPoint:{x:500,y:925,hp:1},
-      sawFlight:false,peakFlight:0,settled:false,
+      phase:'READY',operator,aimPoint:{x:floorX,y:floorY,hp:1},
+      sawFlight:false,peakFlight:0,settled:false,groundImpact:null,
       storyComplete:false,authority:'ARSENAL_STORMBREAKER_EQUIP_PREVIEW',
       freeze:{
         time:state.time,

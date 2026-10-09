@@ -639,6 +639,32 @@
           p.x += p.vx * dt;
           p.y += p.vy * dt;
           p.rot += p.spin * dt;
+          // Q4F: the OWNER-chosen RIVET suppression is a physical floor
+          // strike between the TWO real Fighter positions, not a fake VFX at
+          // throw timeout and not 446HP delivered to a training participant.
+          // This in-weapon swept contact owns the single real projectile exit.
+          if(p.weapon==='STORMBREAKER'&&p.questRivetSuppression===true){
+            const rig=AQ.state?.questRivetPreview;
+            const floor=rig?.aimPoint;
+            if(rig?.operator===p.owner && floor && !rig.groundImpact
+               && Number.isFinite(floor.x)&&Number.isFinite(floor.y)
+               && distPointToSegment(floor.x,floor.y,p.px,p.py,p.x,p.y)
+                  <=p.radius+10){
+              const point={x:floor.x,y:floor.y};
+              rig.groundImpact=Object.freeze({
+                x:point.x,y:point.y,owner:p.owner.questId,
+                weapon:p.weapon,projectileType:p.type,
+                flightTime:p.flightTime,
+                kind:'REAL_ARSENAL_FLOOR_CONTACT'
+              });
+              window.APEX_ARSENAL_STORM?.onImpact?.(point.x,point.y,null);
+              window.avCue('storm_impact',{weapon:'STORMBREAKER',x:point.x,y:point.y,
+                questFloorSuppression:true});
+              log('QUEST_RIVET_FLOOR_STRIKE',`x=${Math.round(point.x)} y=${Math.round(point.y)}`);
+              projectiles.splice(i,1);
+              continue;
+            }
+          }
           // Swept segment vs fighter circle — damage exactly once, on hit.
           const target = fighters.find(f => f && f !== p.owner && f.hp > 0);
           // Never manufacture a 446HP impact on the paused friends;

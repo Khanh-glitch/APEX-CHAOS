@@ -737,6 +737,8 @@ try{
       complete:window.__apexQuestReflexRead?.()?.complete,
       technical:window.__apexQuestReflexTechnicalRead?.(),
       storyBeats:window.__apexQuestStoryBeatsRead?.(),
+      rigGround:s?.questRivetPreview?.aimPoint&&
+        {x:s.questRivetPreview.aimPoint.x,y:s.questRivetPreview.aimPoint.y},
       over:s?.over||null};
   })()`);
   gate('Q4C4 Stormbreaker naturally resolves with no HP/time/slot/cast/save drift',
@@ -750,6 +752,9 @@ try{
     &&q4cSettle?.checkpoint==='WAKE'
     &&q4cSettle?.storyProgress===false&&q4cSettle?.complete===false
     &&q4cSettle?.technical?.ready===true
+    &&q4cSettle?.technical?.groundImpact?.kind==='REAL_ARSENAL_FLOOR_CONTACT'
+    &&q4cSettle?.technical?.groundImpact?.x===q4cSettle?.rigGround?.x
+    &&q4cSettle?.technical?.groundImpact?.y===q4cSettle?.rigGround?.y
     &&q4cSettle?.storyBeats?.emitted?.join('|')===
       'E01_R1_IMPACT|E01_R2_IMPACT|E01_J_REVEAL|E01_K_REVEAL|E01_RIVET_HOLD|E01_RIVET_SUPPRESSION_TECH'
     &&q4cSettle.storyBeats.checkpointAuthorized===false

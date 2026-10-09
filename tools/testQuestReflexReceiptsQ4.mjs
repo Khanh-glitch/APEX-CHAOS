@@ -31,6 +31,10 @@ const hold={phase:'AWAIT_RIVET',at:72,hp:[{id:'NEWBOT',hp:500},{id:'T.O.T',hp:45
 const b={kind:'aq_thrown',weapon:'STORMBREAKER',owner:'RIVET',x:500,y:78.24,vx:0,vy:1350};
 const rig={authority:'ARSENAL_STORMBREAKER_EQUIP_PREVIEW',phase:'SETTLED',settled:true,
   sawFlight:true,peakFlight:1,storyComplete:false,birth:b,
+  aimPoint:{x:((n.x+t.x)/2),y:((n.y+t.y)/2)},
+  groundImpact:{kind:'REAL_ARSENAL_FLOOR_CONTACT',weapon:'STORMBREAKER',
+    owner:'RIVET',projectileType:'aq_thrown',flightTime:0.36,
+    x:(n.x+t.x)/2,y:(n.y+t.y)/2},
   freeze:{time:72,hp:actors.map(a=>[a.questId,a.hp]),
     pos:actors.map(a=>[a.questId,a.x,a.y]),slots:[]},
   getSlots:()=>[]};
@@ -41,6 +45,11 @@ check('Q4D exact settled rig/receipts yields technical-only signal',
   proof().ready===true&&proof().checkpointAuthorized===false&&proof().storyComplete===false);
 check('Q4D real flight mandatory; must not certify READY rig',
   proof({rigValue:{...rig,phase:'READY'}}).ready===false);
+check('Q4F missing, forged and off-midpoint floor strike fails closed',
+  proof({rigValue:{...rig,groundImpact:null}}).ready===false
+  &&proof({rigValue:{...rig,groundImpact:{...rig.groundImpact,owner:'NEWBOT'}}}).ready===false
+  &&proof({rigValue:{...rig,groundImpact:{...rig.groundImpact,x:rig.groundImpact.x+15}}}).ready===false
+  &&proof({rigValue:{...rig,aimPoint:{...rig.aimPoint,y:rig.aimPoint.y+10}}}).ready===false);
 check('Q4D no fabricated Story completion, no duplicate projected projectile',
   proof({rigValue:{...rig,storyComplete:true}}).ready===false
   &&proof({projectiles:[{weapon:'STORMBREAKER'}]}).ready===false);

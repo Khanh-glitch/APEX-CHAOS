@@ -90,6 +90,20 @@
       ||rig.phase!=='SETTLED'||rig.settled!==true
       ||rig.sawFlight!==true||rig.peakFlight!==1||rig.storyComplete!==false)
       return no('preview-not-settled');
+    const strike=rig.groundImpact;
+    const point=rig.aimPoint;
+    if(!strike||strike.kind!=='REAL_ARSENAL_FLOOR_CONTACT'
+      ||strike.weapon!=='STORMBREAKER'||strike.owner!=='RIVET'
+      ||strike.projectileType!=='aq_thrown'
+      ||!Number.isFinite(strike.x)||!Number.isFinite(strike.y)
+      ||!point||strike.x!==point.x||strike.y!==point.y
+      ||!Number.isFinite(strike.flightTime)||strike.flightTime<0)
+      return no('missing-physical-floor-contact');
+    const expectedX=(actors[0].x+actors[1].x)/2;
+    const expectedY=(actors[0].y+actors[1].y)/2;
+    if(Math.abs(strike.x-Math.max(45,Math.min(955,expectedX)))>0.001
+      ||Math.abs(strike.y-Math.max(45,Math.min(955,expectedY)))>0.001)
+      return no('strike-not-between-fighters');
     const b=rig.birth;
     if(b?.kind!=='aq_thrown'||b.weapon!=='STORMBREAKER'||b.owner!=='RIVET'
       ||![b.x,b.y,b.vx,b.vy].every(Number.isFinite)
@@ -109,6 +123,7 @@
       ready:true,kind:'E01_RIVET_TECHNICAL_PREVIEW',
       phase:'PREVIEW_SETTLED',storyComplete:false,
       checkpointAuthorized:false,weapon:b.weapon,operator:b.owner,
+      groundImpact:Object.freeze({x:strike.x,y:strike.y,kind:strike.kind}),
       receipts:4,liveFighters:2,projectiles:0
     });
   }
