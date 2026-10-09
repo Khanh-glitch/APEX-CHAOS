@@ -1432,11 +1432,19 @@ try{
             const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:A.state.questBreachCompanionSkills.currentRecipient()}})()");
             gate('B6n KeyJ probe has real revealed floor pistol and T.O.T skill lease',
               inputSetup?.ok&&inputSetup?.recipient==='T.O.T',inputSetup);
-            await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
-            await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
-            const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot();const ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>9&&snap.tot.dashing;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dash:snap.tot.dashing,recipient:snap.currentRecipient}})()");
-            gate('B6n physical keyboard J dispatch reaches the same T.O.T native dash',
-              keyResult?.ok&&keyResult?.cooldown>9,keyResult);
+            if(!isMobile){
+              // Desktop physical keyboard; foreground the renderer first.
+              // Mobile uses the ACTUAL Gold touch K probe below instead.
+              await cmd('Page.bringToFront');
+              await evalPage("(()=>{window.focus();return{state:window.gameState,focus:document.hasFocus()}})()");
+              await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+              await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot();const ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>9&&snap.tot.dashing;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dash:snap.tot.dashing,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus()}})()");
+              gate('B6n desktop physical KeyJ dispatch reaches the same T.O.T native dash',
+                keyResult?.ok&&keyResult?.cooldown>9,keyResult);
+            }else{
+              await evalPage("(()=>{window.fighters[0].withdrawn=false;window.APEX_ARSENAL.state.slots=[];return true})()");
+            }
             const pointerReady=await evalPage("(()=>{const A=window.APEX_ARSENAL,G=window.APEX_GOLD,Q=A.state.questBreachCompanionSkills,W=A.weaponApi;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const k=Q.snapshot().tot;if(k.phase==='STORED'){if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');G.pressSkill(0,1,{source:'b6n-test-reset-stored-holder'});}if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');A.state.slots=[];Q.tick(12);Q.tick(4);const now=Q.snapshot();return{recipient:now.currentRecipient,phase:now.tot.phase,kCooldown:now.tot.kCooldown,ui:!!document.querySelector('#battleHudHost #p1Side .skill[data-i=\\\"1\\\"]')}})()");
             gate('B6n true Gold skill button is present and T.O.T K is ready',
               pointerReady?.recipient==='T.O.T'&&pointerReady?.phase==='READY'
@@ -1500,7 +1508,12 @@ try{
               // Continue Story is the ONLY authorized way to display the
               // current Director chapter; never invoke its hidden button.
               await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true)()",Boolean,300);
-              await click('#continueStory');
+              const beforeEntry=await poll("(()=>{const d=document.getElementById('apexQuest01Stage'),b=document.getElementById('q7RivetPlay'),e=document.getElementById('continueStory'),r=e?.getBoundingClientRect(),top=r?document.elementFromPoint(r.left+r.width/2,r.top+r.height/2):null;return{open:d?.hidden===false,button:b?.hidden===false,cta:!!e,ctaHittable:!!e&&(top===e||e.contains(top)),obstruction:top?.id||top?.className||top?.tagName,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()",
+                v=>v?.save==='RIVET_OVERRIDDEN'&&((v.open&&v.button)||v.ctaHittable),250);
+              gate('B7 post-reload Gold navigation has an accessible stage or real Continue Story',
+                beforeEntry?.save==='RIVET_OVERRIDDEN'&&
+                ((beforeEntry?.open&&beforeEntry?.button)||beforeEntry?.ctaHittable),beforeEntry);
+              if(!(beforeEntry?.open&&beforeEntry?.button))await click('#continueStory');
               const stage=await poll("(()=>({open:document.getElementById('apexQuest01Stage')?.hidden===false,button:document.getElementById('q7RivetPlay')?.hidden===false,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
                 v=>v?.open&&v?.button&&v?.save==='RIVET_OVERRIDDEN',150);
               gate('B7 Gold Home Continue Story exposes only genuinely unlocked E07',stage?.open&&stage?.button,stage);
