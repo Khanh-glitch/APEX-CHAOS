@@ -857,7 +857,10 @@ try{
     &&q4gHold.hp?.every(h=>h>=250&&h<=500)
     &&q4gHold?.rig==null&&q4gHold?.checkpoint==='WAKE',q4gHold);
   const holdClick=await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
-  const auto=await evalPage("(()=>({start:window.APEX_ARSENAL?.state?.questStoryRescueStart,phase:window.APEX_ARSENAL?.state?.questRivetPreview?.phase,view:window.__apexQuestStoryViewRead?.()}))()");
+  // CDP touchEnd is delivered asynchronously. Observe the result of the
+  // PHYSICAL tap; do not direct-call any rescue function to fake success.
+  const auto=await poll("(()=>({start:window.APEX_ARSENAL?.state?.questStoryRescueStart,phase:window.APEX_ARSENAL?.state?.questRivetPreview?.phase,view:window.__apexQuestStoryViewRead?.()}))()",
+    v=>v?.start?.ok===true&&v?.phase==='READY'&&v?.view?.active===false,90);
   gate('Q4G physical Continue triggers exactly one authorized genuine rig equip',
     holdClick.hit&&auto?.start?.ok===true&&auto?.phase==='READY'
     &&auto?.view?.active===false,auto);
@@ -872,7 +875,8 @@ try{
     &&JSON.stringify(q4gGround?.hp)===JSON.stringify(q4gHold?.hp),q4gGround);
   await image('14-q4g-real-stormbreaker-ground-story');
   const groundClick=await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
-  const workshop=await evalPage("(()=>({scene:window.__apexQuestStoryViewRead?.()?.current,shown:window.__apexQuestStoryViewRead?.()?.shown,workshop:window.APEX_ARSENAL?.state?.questWorkshopPreview,node:document.getElementById('apexQuestStoryView')?.dataset.beat,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()");
+  const workshop=await poll("(()=>({scene:window.__apexQuestStoryViewRead?.()?.current,shown:window.__apexQuestStoryViewRead?.()?.shown,workshop:window.APEX_ARSENAL?.state?.questWorkshopPreview,node:document.getElementById('apexQuestStoryView')?.dataset.beat,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+    v=>v?.scene==='WORKSHOP_ARRIVAL'&&v?.workshop===true,90);
   gate('Q4G verified ground cue triggers blackout WORKSHOP preview only',
     groundClick.hit&&workshop?.scene==='WORKSHOP_ARRIVAL'
     &&workshop?.node==='WORKSHOP_ARRIVAL'
@@ -887,7 +891,8 @@ try{
     &&workshopMobile?.inside===true&&workshopMobile?.overflow===false,workshopMobile);
   await image('16-q4g-workshop-phone');
   const workshopClick=await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
-  const finalPreview=await evalPage("(()=>({view:window.__apexQuestStoryViewRead?.(),phase:window.__apexQuestReflexRead?.()?.phase,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()");
+  const finalPreview=await poll("(()=>({view:window.__apexQuestStoryViewRead?.(),phase:window.__apexQuestReflexRead?.()?.phase,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+    v=>v?.view?.active===false,90);
   gate('Q4G finish preview leaves E01 safe-hold and does not forge Director save',
     workshopClick.hit&&finalPreview?.view?.active===false
     &&finalPreview?.phase==='AWAIT_RIVET'
