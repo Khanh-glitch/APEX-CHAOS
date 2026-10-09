@@ -1060,6 +1060,17 @@
 
   // ── mobile skill cards / weapon panel through the production adapter ────
   BRIDGE.pressSkill = function pressSkill(pi, ai, sourceMeta) {
+    const quest=window.APEX_ARSENAL?.state;
+    if(quest?.questBreachEncounter===true){
+      // Only one human skill pair during Quest. Gold touch cards follow the
+      // same recipient/skill executor as keyboard J/K after a withdrawal.
+      if(pi!==0)return;
+      const kit=quest.questBreachCompanionSkills;
+      if(kit?.currentRecipient?.()!=='NEWBOT'){
+        kit?.press?.(ai===1?'K':'J','pointer');
+        return;
+      }
+    }
     const heroRework = window.APEX_HERO_REWORK;
     const fighters = window.fighters;
     if (!heroRework || typeof heroRework.pressAbility !== 'function') return;
@@ -1365,6 +1376,11 @@
     };
   }
   function skillProjection(fighter) {
+    const quest=window.APEX_ARSENAL?.state;
+    if(quest?.questBreachEncounter===true&&fighter===window.fighters?.[0]){
+      const companion=quest.questBreachCompanionSkills?.skillProjection?.();
+      if(companion)return companion;
+    }
     const heroId = heroIdOf(fighter);
     const out = [];
     for (let k = 0; k < 2; k++) {

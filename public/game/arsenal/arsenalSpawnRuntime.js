@@ -590,6 +590,11 @@
         if (slot.boundOwnerId != null) hold.meta.boundOwnerId = slot.boundOwnerId;
         if (slot.tier) hold.meta.tier = slot.tier;
       }
+      // Exactly one E06 owner-authorized storage seam: the genuine physical
+      // pickup has already equipped a real holder, but no auto-fire tick has run.
+      // A reserved gun goes dormant by OBJECT identity, not by cloned weaponId.
+      if (state.questBreachEncounter===true && hold)
+        state.questBreachCompanionSkills?.onRealPickup?.(closest,slot,hold);
       log('PICKUP', `id=${slot.id} fighter=${closest.name} weapon=${slot.weaponId}`);
       emitParticles(slot.x, slot.y, PLACEHOLDER_ART[slot.weaponId]?.color || '#ffffff', 22, 360, 5, 0.5, 'square');
       spawnShockwave(slot.x, slot.y, '#ffffff', 140);

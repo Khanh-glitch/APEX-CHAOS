@@ -7,7 +7,7 @@
 if(root.APEX_QUEST_BREACH_RETREAT)return;
 const BEFORE='__apexQuestBeforeAcceptedDamage';
 const AFTER='__apexQuestAfterAcceptedDamage';
-function create({policy,onRetreat,threshold}={}){
+function create({policy,onRetreat,threshold,mitigate}={}){
  if(!policy?.authorizedRetreatImpact)throw Error('missing physical E06 policy');
  const limit=Number.isFinite(threshold)?threshold:policy.RULES.retreatHpProvisional;
  const originals=new Map(),pending=new Map(),events=[];
@@ -35,7 +35,12 @@ function create({policy,onRetreat,threshold}={}){
    f[BEFORE]=function(amount,source,label){
     if(!active) return amount;
     if(this.withdrawn===true){pending.delete(this);return 0;}
-    const proposal=policy.authorizedRetreatImpact(this,amount,limit);
+    // RIVET may inherit exactly Robot K / Virtual Armor while E06 active.
+    // Native pre-HP boundary still remains the one authority for retreat.
+    const adjusted=typeof mitigate==='function'?mitigate(this,amount,source,label):amount;
+    if(!Number.isFinite(adjusted)||adjusted<0||adjusted>amount)
+      throw Error('invalid Quest companion native mitigation');
+    const proposal=policy.authorizedRetreatImpact(this,adjusted,limit);
     if(!proposal.ok)throw Error('invalid E06 realized damage: '+proposal.reason);
     pending.set(this,{proposal,source,label});
     return proposal.apply;
