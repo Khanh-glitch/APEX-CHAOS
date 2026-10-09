@@ -20,6 +20,7 @@ import {
 } from './game/performanceMetrics.js';
 import { GOLD_SHELL_URL, HERO_BATTLE_RIGS, HERO_BATTLE_RIG_ASSETS } from './game/goldAssetManifest.js';
 import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
+import goldFontParityCSS from './game/goldFontParity.css?raw';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
@@ -475,6 +476,39 @@ export default function App() {
 
         for (const node of [...doc.head.children]) host.appendChild(document.importNode(node, true));
         for (const node of [...doc.body.children]) host.appendChild(document.importNode(node, true));
+
+        // Typeface must not drift between desktop and mobile platform font
+        // fallbacks. The Gold source is generated; do NOT edit donor CSS.
+        // Mount the localized font faces + single parity layer AFTER donor
+        // styles so both shell and embedded battle use the same WOFF2 bytes.
+        const faceSheet = document.createElement('link');
+        faceSheet.rel = 'stylesheet';
+        faceSheet.href = '/gold/fonts.css';
+        faceSheet.id = 'apex-gold-font-faces';
+        const fontSheetReady = new Promise((resolve) => {
+          faceSheet.onload = () => resolve(true);
+          faceSheet.onerror = () => resolve(false);
+        });
+        host.appendChild(faceSheet);
+        const paritySheet = document.createElement('style');
+        paritySheet.id = 'apex-gold-font-parity';
+        paritySheet.textContent = goldFontParityCSS;
+        host.appendChild(paritySheet);
+        const facesLoaded = await fontSheetReady;
+        if (facesLoaded) {
+          try {
+            await Promise.all([
+              document.fonts.load('400 16px Oswald'),
+              document.fonts.load('700 36px Oswald'),
+            ]);
+          } catch (error) {
+            console.warn('[apex-gold-font-parity] localized face unavailable', error);
+          }
+        } else {
+          // Font failure is visible to diagnostics, never a permanent
+          // boot/transition block if an asset server is temporarily down.
+          console.warn('[apex-gold-font-parity] font stylesheet failed');
+        }
 
         // The background deferred-runtime queue can race the Gold mount. Match
         // script identity by resolved URL (relative/absolute spellings are the
