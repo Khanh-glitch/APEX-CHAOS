@@ -717,6 +717,8 @@
                 }
                 window.avCue('storm_impact', { weapon: 'STORMBREAKER', x: hit.x, y: hit.y });
                 log('STORM_IMPACT', `target=${target.name} x=${Math.round(hit.x)} y=${Math.round(hit.y)}`);
+                if(p.questTotArtifactId&&AQ.state?.questTotStormNative?.onResolve?.(p,'HIT')!==true)
+                  throw Error('E08 real Stormbreaker confirmed impact receipt denied');
                 projectiles.splice(i, 1);
                 continue;
               }
@@ -1093,7 +1095,7 @@
     const radius = weaponId === 'STORMBREAKER'
       ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.thrownRadius) || Math.max(10, long * 0.14))
       : Math.max(10, long * 0.14);
-    projectiles.push({
+    const nativeThrow={
       type: 'aq_thrown',
       aq: true,
       owner: f,
@@ -1135,13 +1137,20 @@
       questRivetSuppression: weaponId === 'STORMBREAKER'
         && AQ.state?.questRivetPreview?.operator === f,
       __hr: __hrTag,
-    });
+    };
+    projectiles.push(nativeThrow);
+    if(weaponId==='STORMBREAKER'&&AQ.state?.questTotProgression===true
+      &&f.questId==='T.O.T'
+      &&AQ.state.questTotStormNative?.onThrow?.(f,nativeThrow)!==true)
+      throw Error('E08 real STORMBREAKER projectile identity denied');
     window.avCue('melee_throw', { weapon: weaponId, x: f.x, y: f.y, angle });
     log('THROW', `fighter=${f.name} weapon=${weaponId} ricochets=${t.ricochets}`);
   }
   function thrownExit(p) {
     // Physical exit: the sprite tumbles away under gravity; alpha cleanup
     // only in the final moments (presentation), never as the primary exit.
+    if(p.questTotArtifactId&&AQ.state?.questTotStormNative?.onResolve?.(p,'MISS')!==true)
+      throw Error('E08 Stormbreaker missed projectile exit receipt denied');
     p.state = 'exit';
     p.vx *= 0.35;
     p.vy = -140;

@@ -301,6 +301,12 @@
        &&state.questBreakerStoryView?.active())return;
     if(state.questBreachProgression===true
        &&state.questBreachStoryView?.active())return;
+    if(state.questTotProgression===true){
+      if(state.questTotStoryView?.active())return;
+      const cue=state.questTotStormNative?.takeScene?.();
+      if(cue){state.questTotStoryView?.offer?.({id:cue});return;}
+      state.questTotStormNative?.trySpawn?.();
+    }
     if(state.questRivetProgression===true){
       if(state.questRivetStoryView?.active())return;
       if(state.questRivetCueQueue?.length){
@@ -746,7 +752,13 @@
       const pilot = state.questReflex ? state.questReflexGate?.poll() : null;
       if(pilot)state.questStory?.observeReflex?.(pilot,null);
       if(pilot)presentNextRealStoryBeat(state);
-      const outcome = state.questRivetTest===true
+      const outcome = state.questTotProgression===true
+        ?(fighters[0]?.hp<=0?{status:'RETRY',reason:'newbot-actual-KO'}
+          :state.questTotStormNative?.snapshot?.().phase==='SAFE_CHOICE'
+            &&fighters[1]?.hp===120&&state.questTotStormNative?.snapshot?.().returned===true
+          ?{status:'COMPLETE',reason:'genuine-TOT-nonlethal-choice'}
+          :{status:'ACTIVE',reason:'tot-native-duel'})
+        :state.questRivetTest===true
         ?(fighters[0]?.hp<=0
           ?{status:'RETRY',reason:'true-newbot-KO'}
           :state.questRivetAdapter?.snapshot()?.stopped===true
@@ -778,7 +790,8 @@
         AQ.log('QUEST_E03_WAVE_A_CLEAR','physical hostile KO, cinematic seam');
       }
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
-        state.over = 'QUEST_' + (state.questRivetTest?'RIVET_OVERRIDDEN_':
+        state.over = 'QUEST_' + (state.questTotProgression?'TOT_LAST_CHOICE_':
+          state.questRivetTest?'RIVET_OVERRIDDEN_':
           state.questBreachEncounter?'BREACH_WAVES_':
           state.questScrapSwarmProgression?'SCRAP_SWARM_':
           state.questWeaponRainProgression?'WEAPON_RAIN_':
@@ -815,6 +828,8 @@
            &&outcome.status==='COMPLETE'&&state.questBreakerStoryView){
           state.questBreakerStoryView.offer({id:'E05_BREAKER_CHARGE_CLEAR'});
         }
+        if(state.questTotProgression===true&&outcome.status==='RETRY')
+          state.questTotStoryView?.offer?.({id:'E08_RETRY'});
         if(state.questRivetProgression===true&&outcome.status==='RETRY')
           state.questRivetStoryView?.offer({id:'E07_RETRY'});
         if(state.questBreachProgression===true&&state.questBreachStoryView){
@@ -1610,6 +1625,15 @@
       &&!!window.APEX_QUEST_STORY_PRESENTATION;
     if((options.questRivetProgression||options.questRivetOverridden)&&!rivetStory)return false;
     const rivetActive=rivetTest||rivetStory;
+    const totStory=options.questTotLastChoice===true
+      &&options.questTotProgression===true
+      &&types[0]?.name==='ROBOT'
+      &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
+      &&window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId==='TOT_LAST_CHOICE'
+      &&typeof window.APEX_QUEST_TOT_NATIVE_STORM?.create==='function'
+      &&typeof window.APEX_QUEST_TOT_LAST_CHOICE?.create==='function'
+      &&!!window.APEX_QUEST_STORY_PRESENTATION;
+    if((options.questTotLastChoice||options.questTotProgression)&&!totStory)return false;
     if (options.questFixture && !questFixture) return false;
     // Q4A native REFLEX pilot is loopback TEST ONLY, never a story skip.
     const reflexAuthorized=(window.__APEX_TEST_MODE===true&&localTestHost)
@@ -1698,7 +1722,7 @@
     const questScrapSwarm=scrapSwarmStory;
     const questWeaponRain=rainStory;
     const questBreakerCharge=breakerStory;
-    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || rivetActive || !!questFixture || questReflex;
+    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || rivetActive || totStory || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
@@ -1710,7 +1734,10 @@
           ...breachPolicy.resolveWave('A').hostiles.map((e,i)=>({
             questId:e.id,questTeam:'HOSTILE',hp:e.hp,
             x:e.entry==='WEST'?145:855,y:220+i*250,kind:e.kind}))] :null;
-      const specs = rivetActive
+      const specs = totStory
+        ?[{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:210,y:500,kind:'newbot'},
+          {questId:'T.O.T',questTeam:'HOSTILE',hp:1000,x:790,y:500,kind:'tot'}]
+        :rivetActive
         ? [{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:210,y:500,kind:'newbot'},
            {questId:'RIVET',questTeam:'HOSTILE',hp:1000,x:790,y:500,kind:'rivet'}]
         : questReflex
@@ -1811,6 +1838,10 @@
           ||(questWeaponRain&&!questCore.validateWeaponRain(fighters).ok)
           ||(questBreakerCharge&&!questCore.validateBreakerCharge(fighters).ok)
           ||(breachActive&&breachPolicy.waveOutcome(fighters,'A').status!=='ACTIVE')
+          ||(totStory&&(validated.count!==2||validated.allies!==1
+            ||validated.hostiles!==1||fighters[0]?.questId!=='NEWBOT'
+            ||fighters[0]?.maxHp!==1000||fighters[1]?.questId!=='T.O.T'
+            ||fighters[1]?.maxHp!==1000||fighters[1]?.questTeam!=='HOSTILE'))
           ||(rivetActive&&(validated.count!==2||validated.allies!==1
             ||validated.hostiles!==1
             ||fighters[0]?.questId!=='NEWBOT'||fighters[0]?.maxHp!==1000
@@ -1834,6 +1865,16 @@
       AQ.state.questBreachTest=breachTest;
       AQ.state.questBreachEncounter=breachActive;
       AQ.state.questBreachProgression=breachStory;
+      AQ.state.questTotProgression=totStory;
+      if(totStory){
+        const native=window.APEX_QUEST_TOT_NATIVE_STORM.create({
+          state:AQ.state,hero:fighters[0],tot:fighters[1],
+          weaponApi,spawn:SPAWN,authority:window.APEX_QUEST_TOT_LAST_CHOICE,
+          onCue:cue=>AQ.log('QUEST_E08_NATIVE_CROSSING',cue.cue)
+        });
+        AQ.state.questTotStormNative=native;
+        AQ.state.questTotAdapter=native.adapter;
+      }
       AQ.state.questRivetTest=rivetActive;
       AQ.state.questRivetProgression=rivetStory;
       if(rivetStory)AQ.state.questRivetCueQueue=[];
@@ -2193,6 +2234,9 @@
     if(AQ.state?.questBreachProgression===true&&AQ.state.questBreachStoryView){
       AQ.state.questBreachStoryView.offer({id:'E06_RIG_LOCK'});
     }
+    if(AQ.state?.questTotProgression===true&&AQ.state.questTotStoryView){
+      AQ.state.questTotStoryView.offer({id:'E08_START'});
+    }
     if(AQ.state?.questRivetProgression===true&&AQ.state.questRivetStoryView){
       AQ.state.questRivetStoryView.offer({id:'E07_START'});
     }
@@ -2219,6 +2263,13 @@
       return false;
     return window.startArsenalBattleMode('ROBOT','ROBOT',{
       questRivetOverridden:true,questRivetProgression:true
+    })===true;
+  };
+  window.__apexQuestTotStoryStart=function startRealE08FromDirector(){
+    if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
+      ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='TOT_LAST_CHOICE')return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
+      questTotLastChoice:true,questTotProgression:true
     })===true;
   };
   window.__apexQuestRivetFixtureStart=function startB7dRealRivetEncounter(){
@@ -2460,6 +2511,9 @@
       state.questEnemyAbilities?.close?.();
       state.questEnemyAbilities=null;
       state.questBreachStoryView?.close?.();state.questBreachStoryView=null;
+      state.questTotStoryView?.close?.();state.questTotStoryView=null;
+      state.questTotStormNative?.close?.();state.questTotStormNative=null;
+      state.questTotAdapter=null;
       state.questRivetStoryView?.close?.();state.questRivetStoryView=null;
       state.questRivetCueQueue=null;
     state.questBreachRig?.close?.();state.questBreachRig=null;

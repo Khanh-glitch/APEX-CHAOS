@@ -115,6 +115,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/quest/questRivetRealDamageAdapter.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestRivetDamageAdapter'],
   ['/game/quest/questTotLastChoiceAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestTotLastChoice'],
   ['/game/quest/questTotRealDamageAdapter.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestTotDamageAdapter'],
+  ['/game/quest/questTotNativeStormRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestTotNativeStorm'],
   ['/game/quest/questEnemyAbilities.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestEnemyAbilities'],
   ['/game/quest/questReflexReceipts.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestReflexReceipts'],
   ['/game/quest/questStoryInterludes.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestStoryInterludes'],
