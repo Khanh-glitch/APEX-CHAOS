@@ -129,9 +129,14 @@
     // E01 REFLEX only: authored R1/R2 PISTOL locations. This still enters
     // the canonical TELEGRAPH → REVEALED → actual pickup/equip pipeline.
     // Never let public normal/Local modes request a fixed weapon or point.
-    const forcedQuest=state.questReflex===true && opts?.questWeaponId==='PISTOL'
+    const forcedReflex=state.questReflex===true && opts?.questWeaponId==='PISTOL'
       && (['R1_PISTOL','R2_PISTOL','BOTH_HALF'].includes(opts?.questStage))
-      && (opts?.questPickupOwner==='NEWBOT'||opts?.questPickupOwner==='T.O.T')
+      && (opts?.questPickupOwner==='NEWBOT'||opts?.questPickupOwner==='T.O.T');
+    const forcedSwarm=state.questScrapSwarmProgression===true
+      && state.questSwarmPhase==='COMBAT'
+      && opts?.questWeaponId==='PISTOL'
+      && opts?.questStage==='E03_OPENING'&&opts?.questPickupOwner==='NEWBOT';
+    const forcedQuest=(forcedReflex||forcedSwarm)
       && Number.isFinite(opts?.questPoint?.x)&&Number.isFinite(opts?.questPoint?.y);
     const point=forcedQuest
       ? {x:Math.max(120,Math.min(880,opts.questPoint.x)),
@@ -219,9 +224,9 @@
     // E01 restricted training pool never rolls a late Stormbreaker or a
     // surprise melee while waiting on accepted J/K and both half-HP gates.
     // No changes to normal Arsenal or other Quest encounters.
-    slot.weaponId=AQ.state?.questReflex===true
+    slot.weaponId=slot.questWeaponId || (AQ.state?.questReflex===true
       ? 'PISTOL'
-      : (slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon());
+      : (slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon()));
     slot.tier = CFG.tierOf ? CFG.tierOf(slot.weaponId) : null;
     slot.revealedFor = 0;
     const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
@@ -314,10 +319,12 @@
         // REFLEX R1/R2 stage pickups are authored PISTOL trials, not
         // generic Arsenal counter drops. Only their REAL designated Fighter
         // can trigger a reveal and later collect the floor weapon.
-        const stageOwner=state.questReflex===true && slot.questPickupOwner
+        const questDirected=slot.questPickupOwner&&
+          (state.questReflex===true||state.questScrapSwarmProgression===true);
+        const stageOwner=questDirected
           ? (fighters||[]).find(f=>f&&f.hp>0&&f.questId===slot.questPickupOwner)
           : null;
-        const predictionActors=slot.questPickupOwner && state.questReflex===true
+        const predictionActors=questDirected
           ? (stageOwner?[stageOwner]:[])
           : state.questMultiActor
             ? (fighters || []).filter(f => f && f.hp > 0) : [hero, rival];
@@ -358,8 +365,7 @@
         }
         // Keep at least a brief visible telegraph when the authored pickup
         // materializes close enough to be immediately collected.
-        if (state.questReflex===true && slot.questPickupOwner
-          && state.time-slot.spawnTime<0.65)continue;
+        if (questDirected && state.time-slot.spawnTime<0.65)continue;
         if (earliest && earliest.eta <= slot.revealLeadSeconds + 1e-6) {
           revealSlot(slot, earliest.eta, earliest.fighter, false);
         } else if (state.time - slot.spawnTime >= Number(CFG.FORCE_REVEAL_AGE_SECONDS ?? 3.0)) {
@@ -484,8 +490,8 @@
         // E01 REFLEX stage gun is collected only by its named physical
         // participant. Still real floor pickup / Arsenal equip; this guard
         // never applies to normal, LAB, BOT, Local or other Quest slots.
-        if (state.questReflex===true && slot.questPickupOwner
-          && f.questId!==slot.questPickupOwner) continue;
+        if ((state.questReflex===true||state.questScrapSwarmProgression===true)
+          && slot.questPickupOwner&&f.questId!==slot.questPickupOwner) continue;
         // FROST V1 (authority §4.3): a Frozen firearm denies non-Frost
         // collectors. Dynamic denial only — never a rejected/blacklist mark.
         if (slot.__frostFrozen) {
