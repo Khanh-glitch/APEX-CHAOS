@@ -53,6 +53,21 @@ jobs:
           pnpm arsenal:sfx:materialize
           git diff --exit-code -- public/assets/arsenal/av
 
+      - name: R77 Chrome Home portrait hitbox regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort >/tmp/r77-vite.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:5173/gold/shell.html >/dev/null; then break; fi
+            sleep 1
+          done
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testHomePortraitBrowser.mjs
+
       - name: Run targeted Hero Rework smoke
         run: AQ_EVIDENCE_DIR=/tmp/arsenal-closure-smoke node tools/smokeHeroReworkHeadless.mjs
 

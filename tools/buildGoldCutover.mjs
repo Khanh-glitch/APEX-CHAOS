@@ -41,8 +41,10 @@ import { fileURLToPath } from 'node:url';
 import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
+import { adaptGoldBattleHudR83 } from './goldBattleHudR83.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
+import { adaptGoldShellR83 } from './goldShellR83.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
@@ -863,6 +865,8 @@ const seamPatches = [
   log('  R50C (battle-hud): live identity/rarity + full-panel impact ownership adapted');
   out = adaptGoldBattleHudR55(out);
   log('  R55 (battle-hud): phone panel law + held-gun plate adapted');
+  out = adaptGoldBattleHudR83(out);
+  log('  R83 (battle-hud): short Local portrait geometry solver candidate');
   return out;
 }
 
@@ -2251,6 +2255,25 @@ function buildShell(hudProductionHtml) {
   out = adaptGoldShellR52PickBand(out);
   log('  R52 (shell): Fighter-Pick bottom band law derived from the canonical deck/lock rules');
 
+
+  // R77: shipping source and generated shell must carry the same
+  // conditional portrait collision bound. It never changes the normal layout.
+  const r77Anchor = '@media(prefers-reduced-motion:reduce){';
+  const r77CSS = "/* R77 portrait interaction safety: at non-colliding heights min() retains 65.4vh.\n   Route band = 2 * 42px + 5px; actions = 60px + 8px + 46px. */\n@media (orientation:portrait) and (max-height:700px){\n  .actions{top:min(65.4vh,calc(100% - var(--safeB) - .7vh - 89px - 8px - 114px))}\n}\n\n";
+  if (!out.includes('R77 portrait interaction safety')) {
+    if (!out.includes(r77Anchor)) throw new Error('R77 reduced-motion CSS anchor missing');
+    out = out.replace(r77Anchor, r77CSS + r77Anchor);
+  }
+
+  // R81: keep generated Shell consistent with checked-in short-portrait law.
+  const r81Style = "<style id=\"r81-portrait-compact\">\n@media (orientation:portrait) and (max-width:420px) and (max-height:650px) {\n#stage.ready:not(.screen-mode):not(.screen-fighter) .story{top:37.5vh;transition-property:opacity,transform,translate,filter}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .storyTitle{font-size:clamp(30px,9.5vw,36px);line-height:.82}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .actions{gap:6px}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .actions .cta{height:45px}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .actions .secondary{height:35px}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .routes .route{height:34px}\n#stage.screen-fighter .selectionDeckV6{top:70.8vh!important}\n}\n</style>\n";
+  if (!out.includes('r81-portrait-compact')) {
+    if (!out.includes('</head>')) throw new Error('R81 shell head missing');
+    out = out.replace('</head>', r81Style + '</head>');
+  }
+
+  out = adaptGoldShellR83(out);
+  log('  R83 (shell): short Mode Select portrait geometry');
 
   // ── S12: embed the production-bridged battle HUD payload (same canonical
   // base64 payload mechanism, so loading/transition timing does not drift).

@@ -1,0 +1,40 @@
+/*
+ * APEX CHAOS — one shipping typography authority for every browser/OS.
+ * The original Gold design-space, rules, positions and transitions stay native.
+ * Bahnschrift/Impact/Arial Narrow are platform-installed fonts: iOS and Android
+ * may not include them. Use the SAME already-shipped Oswald WOFF2 on ALL devices
+ * instead of substituting an unrelated platform fallback on a phone.
+ *
+ * This isolated stylesheet is deliberately mounted AFTER the canonical Gold
+ * donor styles (never change generated public/gold/shell.html or Battle HUD).
+ * The donor font declarations otherwise win by cascade order.
+ */
+#gold-shell-host #stage {
+  --fDisplay: 'Oswald', sans-serif;
+  --fAction: 'Oswald', sans-serif;
+  --fUi: 'Oswald', sans-serif;
+  --fBody: 'Oswald', sans-serif;
+}
+#gold-shell-host #stage .storyTitle {
+  font-family: 'Oswald', sans-serif;
+}
+#gold-shell-host #battleHudHost {
+  --fd: 'Oswald', sans-serif;
+  font-family: 'Oswald', sans-serif;
+}
+#gold-shell-host #battleTransition {
+  font-family: 'Oswald', sans-serif;
+}
+
+/* Gold R81 portrait vertical law: the platform-neutral Oswald normal metrics
+ * otherwise add +4px to the QUEST kicker and +3px to the location caption at
+ * 360x560. Keep the original Gold story height WITHOUT moving the Story/CTA,
+ * changing text size, breaking transitions, or introducing device-model CSS. */
+@media (orientation: portrait) {
+  #gold-shell-host #stage .story .quest {
+    line-height: 1.1;
+  }
+  #gold-shell-host #stage .story .location {
+    line-height: 1.1666667;
+  }
+}

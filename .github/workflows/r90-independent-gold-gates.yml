@@ -1,0 +1,61 @@
+name: R90 Independent Gold Gate Attribution
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/r90-independent-hud-gate-audit
+    paths:
+      - 'tools/testGoldPickBandLawGate.mjs'
+      - 'tools/testHomePortraitBrowser.mjs'
+      - 'tools/auditR90BattleHudGate.mjs'
+      - '.github/workflows/r90-independent-gold-gates.yml'
+      - 'docs/integration/R90_GOLD_GATE_DEBT.md'
+permissions:
+  contents: read
+jobs:
+  r52-r81-pick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify canonical R52 Pick band and guarded R81 top-only edit
+        run: node tools/testGoldPickBandLawGate.mjs
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm install --frozen-lockfile
+      - name: Validate 360/550 Home and Fighter lock clearance in real Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort >/tmp/r90-vite.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testHomePortraitBrowser.mjs
+      - name: Save R90 actual phone portrait evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r90-r52-r81-chromium-evidence
+          path: docs/acceptance/arsenal-product/browser/viewport-comparison/
+          if-no-files-found: warn
+  r62-r63-r65-hud-debt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Report original unmodified HUD gate failures; fail on any NEW failure
+        run: node tools/auditR90BattleHudGate.mjs

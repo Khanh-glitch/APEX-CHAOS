@@ -54,15 +54,33 @@ check('portrait law owns the grid roster height (ambient floor cannot decide it)
     + 'grid-template-rows:repeat(2,minmax(0,1fr))!important;grid-auto-rows:0!important;overflow:hidden!important}') === 1);
 check('ambient floors the law defeats are documented',
   adapter.includes('min-height:44px') && adapter.includes('min-height:230px'));
-check('the law is the only writer of the deck geometry after the canonical cascade', (() => {
+// R81's short-portrait Fighter Pick adjusts ONLY the roster's TOP edge to
+// keep two card rows legible at 360x560. It comes after the R52 cutover law in
+// a separate, guarded stylesheet. The legacy test rejected any later selector,
+ // even when it never touched R52's lock clearance (bottom/height).
+ // Keep the *real* no-new-writer invariant instead of hiding R81 or
+ // weakening the lock-band geometry checks below.
+check('R52 remains the sole LOCK-safe bottom/height authority; R81 is guarded and top-only', (() => {
   const tail = shell.slice(shell.indexOf(PICK_BAND_MARKER));
-  const decls = [];
-  let at = -1;
-  while ((at = tail.indexOf('.selectionDeckV6{', at + 1)) >= 0) {
-    decls.push(tail.slice(Math.max(0, at - 7), at));
-  }
-  // every deck rule after the marker must be one of the law's `#stage ` rules
-  return decls.length === law.bands.length && decls.every((prefix) => prefix === '#stage ');
+  const firstStyleEnd = tail.indexOf('</style>');
+  if (firstStyleEnd < 0) return false;
+  const lawCSS = tail.slice(0, firstStyleEnd);
+  const emittedDeck = [...lawCSS.matchAll(/#stage \.selectionDeckV6\{([^{}]*)\}/g)];
+  if (emittedDeck.length !== law.bands.length
+      || (lawCSS.match(/\.selectionDeckV6\{/g) || []).length !== law.bands.length
+      || !emittedDeck.every(([, body]) => /top:/.test(body) && /bottom:max\(/.test(body)
+        && /height:auto!important/.test(body))) return false;
+
+  const later = tail.slice(firstStyleEnd + '</style>'.length);
+  const r81 = later.match(/<style id="r81-portrait-compact">([\s\S]*?)<\/style>/);
+  if (!r81 || !/@media\s*\(orientation:portrait\)\s*and\s*\(max-width:420px\)\s*and\s*\(max-height:650px\)/.test(r81[1])) return false;
+  const permitted = '#stage.screen-fighter .selectionDeckV6{top:70.8vh!important}';
+  if ((r81[1].split(permitted).length - 1) !== 1) return false;
+  // R81 can change top only; another late writer to bottom, height or
+  // min-height would silently bypass R52 and MUST fail this gate.
+  const allLate = [...later.matchAll(/\.selectionDeckV6\{([^{}]*)\}/g)];
+  if (allLate.length !== 1 || allLate[0][0] !== '.selectionDeckV6{top:70.8vh!important}') return false;
+  return true;
 })());
 check('no rule after the law re-declares the lock min-height',
   shell.slice(shell.indexOf(PICK_BAND_MARKER)).split('#stage .lockMechanismV6{min-height:var(--apexLockH)!important}').join('')

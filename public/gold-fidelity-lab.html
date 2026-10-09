@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#080b0e">
+  <title>APEX CHAOS — Multi-Profile Gold Fidelity Laboratory</title>
+  <style>
+    :root {color-scheme:dark}
+    *,*::before,*::after {box-sizing:border-box}
+    html,body {margin:0;width:100%;height:100%;overflow:hidden;background:#080b0e}
+    #gold-viewport {
+      position:fixed;top:0;left:0;width:550px;height:857px;
+      transform-origin:0 0;overflow:hidden;
+      contain:layout paint style;
+      background:#080b0e;
+      will-change:transform;
+    }
+    #gold-document {
+      display:block;width:550px;height:857px;border:0;margin:0;padding:0;
+      background:#080b0e;overflow:hidden;touch-action:auto;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    R87 faithful design-space rendering experiment:
+    a SAME-ORIGIN REAL game document receives the matching existing Gold
+    design-space composition (portrait, tablet, landscape or desktop). The browser scales the
+    iframe composited result uniformly, including pointer hit-testing.
+    Gold, Hero Pick, modes, gameplay and engine remain unchanged.
+    This is a laboratory, NOT a default app bootstrap, NOT a production
+    change, and NOT an endorsement of tiny touch targets after shrinking.
+  -->
+  <div id="gold-viewport">
+    <iframe id="gold-document" title="APEX CHAOS Gold design viewport" loading="eager" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
+  </div>
+  <script type="module">
+    import { GOLD_PROFILES, chooseGoldProfile, detectGoldDeviceClass, deriveGoldDesignSpace, fitGoldProfile } from '/gold-fidelity-profiles.mjs';
+    (() => {
+      'use strict';
+      const frame = document.getElementById('gold-document');
+      const search = new URLSearchParams(location.search);
+      const forcedId = search.get('goldProfile') || null;
+      const forcedDevice = search.get('goldDevice') || null;
+      if(forcedDevice && !['phone','tablet','desktop'].includes(forcedDevice)) {
+        document.body.textContent = 'Unknown Gold device class: '+forcedDevice;
+        throw new Error('Unknown Gold device class: '+forcedDevice);
+      }
+      const deviceClass = detectGoldDeviceClass({userAgent:navigator.userAgent,
+        mobileHint:navigator.userAgentData?.mobile??false,
+        coarsePointer:matchMedia('(pointer:coarse)').matches,
+        touchPoints:navigator.maxTouchPoints||0,
+        screenWidth:screen.width,screenHeight:screen.height,override:forcedDevice});
+      if (forcedId && !GOLD_PROFILES.some(p=>p.id===forcedId)) {
+        document.body.textContent = 'Unknown Gold profile: '+forcedId;
+        throw new Error('Unknown Gold profile: '+forcedId);
+      }
+      const viewport = document.getElementById('gold-viewport');
+      // Always boot the REAL application on the same origin at /.
+      // Deliberately exclude any R82/R85/R86 opt-in reflow experiments.
+      const target = new URL('/', location.origin);
+      // Preserve ALL existing game/debug/deep-link parameters for the real
+      // child game. Only compositor-specific parameters stay in this parent.
+      for (const [key,value] of search) {
+        if (!['goldViewport','goldDevice','goldProfile'].includes(key))
+          target.searchParams.append(key,value);
+      }
+      // The embedded child always runs the native Gold game: no recursion.
+      target.searchParams.set('goldViewport','native');
+      target.hash=location.hash;
+      frame.src = target.href;
+      let metrics = null;
+      let pending = 0;
+      const resize = () => {
+        pending = 0;
+        const v = window.visualViewport;
+        const w = v?.width ?? window.innerWidth;
+        const h = v?.height ?? window.innerHeight;
+        const ox = v?.offsetLeft ?? 0;
+        const oy = v?.offsetTop ?? 0;
+        if (!(w>0&&h>0)) return;
+        // Choose a native Gold reference from the *layout* viewport, which
+        // does not fluctuate when Android browser chrome collapses.
+        // Fit it inside the actual visual viewport. Neither is device-model
+        // detection, and both work for arbitrary physical pixel dimensions.
+        const selected = chooseGoldProfile(window.innerWidth,window.innerHeight,forcedId,{deviceClass});
+        const design = deriveGoldDesignSpace(selected,window.innerWidth,window.innerHeight);
+        const fit = fitGoldProfile(design,w,h,ox,oy);
+        if(!design){
+          document.body.dataset.goldFidelityError='unsupported-profile-aspect';
+          return;
+        }
+        delete document.body.dataset.goldFidelityError;
+        if (!fit) return;
+        // Switch native Gold profile without replacing the iframe document.
+        // The actual game's own media queries and HUD layout resolver react
+        // to the child resize; its ongoing match is not restarted.
+        if (frame.style.width !== design.width+'px') {
+          viewport.style.width = design.width+'px';
+          frame.style.width = design.width+'px';
+        }
+        if (frame.style.height !== design.height+'px') {
+          viewport.style.height = design.height+'px';
+          frame.style.height = design.height+'px';
+        }
+        viewport.style.transform = 'translate3d('+fit.left.toFixed(5)+'px,'+
+          fit.top.toFixed(5)+'px,0) scale('+fit.scale.toFixed(9)+')';
+        metrics = Object.freeze({
+          ...fit,profileFamily:selected.family,deviceClass,anchor:design.anchor,forcedProfile:Boolean(forcedId),
+          child:{
+            width:frame.contentWindow?.innerWidth??null,
+            height:frame.contentWindow?.innerHeight??null
+          }
+        });
+      };
+      const queue = () => {
+        if (!pending) pending = requestAnimationFrame(resize);
+      };
+      window.addEventListener('resize',queue,{passive:true});
+      window.addEventListener('orientationchange',queue,{passive:true});
+      window.visualViewport?.addEventListener('resize',queue,{passive:true});
+      window.visualViewport?.addEventListener('scroll',queue,{passive:true});
+      frame.addEventListener('load',queue);
+      Object.defineProperty(window,'__apexGoldFidelity',{
+        configurable:false,
+        value:Object.freeze({
+          snapshot:()=>metrics,
+          availableProfiles:()=>GOLD_PROFILES.map(({id,width,height,label,device})=>({id,width,height,label,device})),
+          child:()=>frame.contentWindow,
+          remeasure:queue
+        })
+      });
+      queue();
+    })();
+  </script>
+</body>
+</html>

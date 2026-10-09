@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { attachBootStartViewportGuard } from './game/bootStartViewportGuard.js';
 import {
   loadBattleGameRuntimes,
   loadDeferredGameRuntimes,
@@ -19,6 +20,7 @@ import {
 } from './game/performanceMetrics.js';
 import { GOLD_SHELL_URL, HERO_BATTLE_RIGS, HERO_BATTLE_RIG_ASSETS } from './game/goldAssetManifest.js';
 import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
+import goldFontParityCSS from './game/goldFontParity.css?raw';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
@@ -475,6 +477,39 @@ export default function App() {
         for (const node of [...doc.head.children]) host.appendChild(document.importNode(node, true));
         for (const node of [...doc.body.children]) host.appendChild(document.importNode(node, true));
 
+        // Typeface must not drift between desktop and mobile platform font
+        // fallbacks. The Gold source is generated; do NOT edit donor CSS.
+        // Mount the localized font faces + single parity layer AFTER donor
+        // styles so both shell and embedded battle use the same WOFF2 bytes.
+        const faceSheet = document.createElement('link');
+        faceSheet.rel = 'stylesheet';
+        faceSheet.href = '/gold/fonts.css';
+        faceSheet.id = 'apex-gold-font-faces';
+        const fontSheetReady = new Promise((resolve) => {
+          faceSheet.onload = () => resolve(true);
+          faceSheet.onerror = () => resolve(false);
+        });
+        host.appendChild(faceSheet);
+        const paritySheet = document.createElement('style');
+        paritySheet.id = 'apex-gold-font-parity';
+        paritySheet.textContent = goldFontParityCSS;
+        host.appendChild(paritySheet);
+        const facesLoaded = await fontSheetReady;
+        if (facesLoaded) {
+          try {
+            await Promise.all([
+              document.fonts.load('400 16px Oswald'),
+              document.fonts.load('700 36px Oswald'),
+            ]);
+          } catch (error) {
+            console.warn('[apex-gold-font-parity] localized face unavailable', error);
+          }
+        } else {
+          // Font failure is visible to diagnostics, never a permanent
+          // boot/transition block if an asset server is temporarily down.
+          console.warn('[apex-gold-font-parity] font stylesheet failed');
+        }
+
         // The background deferred-runtime queue can race the Gold mount. Match
         // script identity by resolved URL (relative/absolute spellings are the
         // same resource), and share the data-apex-loaded contract so neither
@@ -578,6 +613,127 @@ export default function App() {
           document.addEventListener('pointerdown',tap,{capture:true,passive:true});
           requestAnimationFrame(measure);
         }
+        // R78: production-only Home geometry authority.
+        // The donor shell is imported into React's document, so viewport units
+        // observed by a standalone /gold/shell.html test are not authoritative.
+        // Measure the ACTUAL two button bands after mount instead of assuming
+        // that a particular phone aspect ratio predicts their hit rectangles.
+        if (!window.__apexHomeGeometryGuard) {
+          const stage = document.getElementById('stage');
+          const actions = stage?.querySelector('.actions');
+          const routes = stage?.querySelector('.routes');
+          const story = stage?.querySelector('.story');
+          // R86: evaluate the existing geometry authority in an opt-in lab.
+          // No effect at all on ordinary Gold URLs.
+          const homeSolverLab = new URLSearchParams(window.location.search).get('apexHomeSolver') === '1';
+          if (stage && actions && routes) {
+            let scheduled = false;
+            let last = null;
+            const layout = () => {
+              scheduled = false;
+              if (!stage.isConnected) return;
+              const portrait = matchMedia('(orientation: portrait)').matches;
+              const home = !stage.classList.contains('screen-mode')
+                && !stage.classList.contains('screen-fighter')
+                && !stage.classList.contains('screen-battle');
+              if (!portrait || !home) {
+                actions.style.removeProperty('top');
+                actions.style.removeProperty('transition-property');
+                if (homeSolverLab && story) {
+                  story.style.removeProperty('top');
+                  story.style.removeProperty('transition-property');
+                }
+                return;
+              }
+              // Gold flow animations include "top" in their transition list.
+              // During Chrome mobile viewport changes that interpolates HITBOXES
+              // toward stale coordinates for 380ms. Preserve scene fades/slide
+              // but make all measured Home geometry changes atomic.
+              actions.style.transitionProperty = 'opacity, transform, translate, filter';
+              const stageRect = stage.getBoundingClientRect();
+              const bandRect = routes.getBoundingClientRect();
+              const actionRect = actions.getBoundingClientRect();
+              if (!(stageRect.height > 0 && actionRect.height > 0)) return;
+              const compact = matchMedia('(max-height: 700px)').matches;
+              const authoredTop = stageRect.height * (compact ? .654 : .671);
+              // R86 opt-in: the painted route bar can still be translating
+              // after Home readiness. getBoundingClientRect() includes that
+              // temporary transform and yields a stale, too-low ceiling.
+              // offsetTop is the layout position before transitions. The
+              // routes live directly under #stage, so their offset is stable.
+              const stableRouteTop = homeSolverLab && routes.offsetParent === stage
+                ? routes.offsetTop
+                : bandRect.top - stageRect.top;
+              const ceiling = stableRouteTop - actionRect.height - 10;
+              const top = Math.max(0, Math.min(authoredTop, ceiling));
+              actions.style.top = top.toFixed(2) + 'px';
+              let storyGeometry = null;
+              if (homeSolverLab && story) {
+                // One authority for both stacked content islands. Always
+                // remeasure the donor's *authored* story top, never the last
+                // corrective value (prevents cumulative resize drift).
+                story.style.transitionProperty = 'opacity, transform, translate, filter';
+                story.style.removeProperty('top');
+                const sr = story.getBoundingClientRect();
+                const authoredStoryTop = sr.top - stageRect.top;
+                const storyCeiling = top - sr.height - 12;
+                const minStoryTop = stageRect.height * .18;
+                const storyTop = Math.max(minStoryTop, Math.min(authoredStoryTop, storyCeiling));
+                if (storyTop < authoredStoryTop - .5) {
+                  story.style.top = storyTop.toFixed(2) + 'px';
+                }
+                storyGeometry = {
+                  authoredStoryTop, storyTop, storyHeight: sr.height,
+                  storyCeiling, storyToActions: top - storyTop - sr.height,
+                  feasible: storyCeiling >= minStoryTop
+                };
+              }
+              last = { stageHeight: stageRect.height, authoredTop, top,
+                ceiling, shifted: top < authoredTop - .5,
+                gap: bandRect.top - (stageRect.top + top + actionRect.height),
+                story: storyGeometry };
+              if (last.shifted) {
+                console.info('[apex-home-geometry] short portrait safety constraint', last);
+              }
+            };
+            const request = () => {
+              if (scheduled) return;
+              scheduled = true;
+              requestAnimationFrame(layout);
+            };
+            const observer = new ResizeObserver(request);
+            observer.observe(stage);
+            observer.observe(actions);
+            observer.observe(routes);
+            if (homeSolverLab && story) observer.observe(story);
+            const mutation = new MutationObserver(request);
+            mutation.observe(stage, { attributes:true, attributeFilter:['class'] });
+            window.addEventListener('resize', request, { passive:true });
+            window.addEventListener('orientationchange', request, { passive:true });
+            window.visualViewport?.addEventListener('resize', request, { passive:true });
+            window.visualViewport?.addEventListener('scroll', request, { passive:true });
+            window.__apexHomeGeometryGuard = {
+              snapshot: () => ({ ...last, visualHeight: window.visualViewport?.height ?? null }),
+              remeasure: request,
+              dispose: () => {
+                observer.disconnect();
+                mutation.disconnect();
+                window.removeEventListener('resize', request);
+                window.removeEventListener('orientationchange', request);
+                window.visualViewport?.removeEventListener('resize', request);
+                window.visualViewport?.removeEventListener('scroll', request);
+                actions.style.removeProperty('top');
+                actions.style.removeProperty('transition-property');
+                if (homeSolverLab && story) {
+                  story.style.removeProperty('top');
+                  story.style.removeProperty('transition-property');
+                }
+                delete window.__apexHomeGeometryGuard;
+              },
+            };
+            request();
+          }
+        }
         host.dataset.apexGoldMounted = '1';
         document.body.classList.add('apex-gold-mounted');
         // Boot READY includes the explicit Home Core asset set (including CSS
@@ -610,9 +766,11 @@ export default function App() {
           start.setAttribute('aria-label', 'Start APEX CHAOS');
           start.className = 'apex-boot-start-plate';
           let activated = false;
+          let stopStartGuard = () => {};
           const activateStart = () => {
             if (activated) return;
             activated = true;
+            stopStartGuard();
             // Hide in the same trusted input event, before requesting Door OPEN.
             // Do not defer this to transition timing or any async audio callback.
             start.remove();
@@ -630,6 +788,7 @@ export default function App() {
           // Enter/Space and assistive activation use click.
           start.addEventListener('click', activateStart);
           document.body.appendChild(start);
+          stopStartGuard = attachBootStartViewportGuard(start);
         });
         if (cancelled) return;
         await window.APEX_SCENE_TRANSITION?.signalBootReady?.();

@@ -1,0 +1,193 @@
+// R77 Home layout browser regression. Uses actual Blink layout/hit testing at
+// CSS-pixel portrait viewports; does not claim to emulate Android browser chrome.
+import { spawn } from 'node:child_process';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+
+const url=process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
+const chromePath=process.env.CHROME_PATH;
+if(!chromePath)throw new Error('CHROME_PATH not set');
+const port=9235;
+const chrome=spawn(chromePath,[
+  '--headless=new','--no-sandbox','--disable-gpu','--no-first-run',
+  '--remote-debugging-port='+port,'--user-data-dir=/tmp/apex-r77-cdp-'+process.pid,
+  'about:blank',
+],{stdio:'ignore'});
+let socket;
+const pending=new Map();
+let serial=0;
+const command=(method,params={})=>{
+  const id=++serial;
+  socket.send(JSON.stringify({id,method,params}));
+  return new Promise((resolve,reject)=>pending.set(id,{resolve,reject}));
+};
+const evalJS=async expression=>{
+  const r=await command('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
+  if(r.exceptionDetails)throw new Error(r.exceptionDetails.text||'Browser evaluation failed');
+  return r.result?.value;
+};
+try{
+  let target;
+  for(let i=0;i<120;i++){
+    try{
+      const pages=await fetch('http://127.0.0.1:'+port+'/json/list').then(r=>r.json());
+      target=pages.find(x=>x.type==='page');
+      if(target)break;
+    }catch{}
+    await sleep(100);
+  }
+  if(!target)throw new Error('Chrome CDP page unavailable');
+  socket=new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((resolve,reject)=>{
+    socket.addEventListener('open',resolve,{once:true});
+    socket.addEventListener('error',reject,{once:true});
+  });
+  socket.addEventListener('message',e=>{
+    const data=JSON.parse(e.data);if(!pending.has(data.id))return;
+    const p=pending.get(data.id);pending.delete(data.id);
+    data.error?p.reject(new Error(data.error.message)):p.resolve(data.result);
+  });
+  await command('Page.enable');
+  await command('Runtime.enable');
+  // Test the production Vite document, NOT standalone shell.html.
+  await command('Page.navigate',{url});
+  let homeMounted=false;
+  for(let i=0;i<400;i++){
+    const value=await evalJS("Boolean(document.querySelector('#gold-shell-host #stage') && document.getElementById('gold-shell-host')?.dataset.apexGoldMounted==='1' && document.querySelector('#apex-boot-start'))").catch(()=>false);
+    if(value){homeMounted=true;break}
+    await sleep(75);
+  }
+  if(!homeMounted)throw new Error('React-mounted Home/boot START unavailable');
+  const startRect=await evalJS(`(() => {const r=document.querySelector('#apex-boot-start').getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+  await command('Input.dispatchMouseEvent',{type:'mousePressed',x:startRect.x,y:startRect.y,button:'left',clickCount:1});
+  await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:startRect.x,y:startRect.y,button:'left',clickCount:1});
+  let bootDone=false;
+  for(let i=0;i<300;i++){
+    bootDone=await evalJS("document.body?.dataset?.apexSceneTransition==='DONE'&&document.getElementById('apex-scene-transition')?.style?.display==='none'").catch(()=>false);
+    if(bootDone)break;
+    await sleep(75);
+  }
+  if(!bootDone)throw new Error('Real boot transition did not complete');
+  const cases=[[480,0],[540,0],[568,0],[600,0],[640,0],[700,0],[844,0],[568,24],[640,24]];
+  console.log('R78 full React-mounted Home booted; testing '+cases.length+' viewports');
+
+  const failures=[];
+  for(const [height,safeB] of cases){
+    await command('Emulation.setDeviceMetricsOverride',{
+      width:360,height,deviceScaleFactor:1,mobile:true,screenWidth:360,screenHeight:height,
+    });
+    // Resize the SAME mounted production Home without resetting state.
+    let loaded=false;
+    for(let i=0;i<100;i++){
+      const found=await evalJS("Boolean(document.querySelector('#stage .actions')&&document.querySelector('#stage .routes')&&document.querySelector('#freeBattle'))").catch(()=>false);
+      if(found){loaded=true;break}
+      await sleep(100);
+    }
+    if(!loaded)throw new Error('Gold Shell Home DOM missing at height '+height);
+    await evalJS("document.documentElement.style.setProperty('--safeB',"+JSON.stringify(safeB+'px')+")");
+    await sleep(250);
+    const sample=await evalJS(`(() => {
+      const actions=document.querySelector('#stage .actions');
+      const routes=document.querySelector('#stage .routes');
+      const battle=document.querySelector('#freeBattle');
+      const a=actions.getBoundingClientRect(),r=routes.getBoundingClientRect(),b=battle.getBoundingClientRect();
+      const centerX=b.left+b.width/2,centerY=b.top+b.height/2;
+      const hit=document.elementFromPoint(centerX,centerY);
+      return {width:innerWidth,height:innerHeight,stageHeight:document.querySelector('#stage')?.getBoundingClientRect().height,guardPresent:!!window.__apexHomeGeometryGuard,guard:window.__apexHomeGeometryGuard?.snapshot()??null,inlineTop:actions.style.top,computedTop:getComputedStyle(actions).top,transitionProperty:getComputedStyle(actions).transitionProperty,animationName:getComputedStyle(actions).animationName,inlinePriority:actions.style.getPropertyPriority('top'),styleSheetTopRules:[...document.styleSheets].flatMap(sheet=>{try{return [...sheet.cssRules].filter(rule=>rule.cssText?.includes('.actions')&&rule.cssText?.includes('top:')).slice(-4).map(rule=>rule.cssText.slice(0,250))}catch{return[]}}).slice(-8),stageClass:document.querySelector('#stage')?.className,visualHeight:visualViewport?.height??null,battleY:b.y,battleHeight:b.height,gap:r.top-a.bottom,actionsTop:a.top,
+        hit:!!hit?.closest?.('#freeBattle'),hitName:hit?.id||hit?.className||'',hitTag:hit?.tagName||null,hitStack:document.elementsFromPoint(centerX,centerY).slice(0,9).map(el=>({tag:el.tagName,id:el.id||'',className:typeof el.className==='string'?el.className:'',pointerEvents:getComputedStyle(el).pointerEvents,opacity:getComputedStyle(el).opacity})),battleRect:{x:b.x,y:b.y,w:b.width,h:b.height},center:{x:centerX,y:centerY}};
+    })()`);
+    const unchanged=height<640||Math.abs(sample.actionsTop-(height<=700?.654:.671)*height)<3;
+    const ok=sample.gap>=7&&sample.hit&&unchanged;
+    console.log((ok?'PASS':'FAIL')+' R77 '+height+'px safe='+safeB+'px '+JSON.stringify(sample));
+    if(!ok)failures.push({height,safeB,...sample,unchanged});
+  }
+  if(failures.length)throw new Error('R77 Chrome viewport regressions: '+JSON.stringify(failures));
+  console.log('R77 Chrome portrait geometry and hit testing: PASS '+cases.length+'/9');
+
+  // R80: compare the two near-identical aspect ratios in the REAL mounted
+  // product. This is observation-only: do not change any accepted layout.
+  const evidenceDir='docs/acceptance/arsenal-product/browser/viewport-comparison';
+  await mkdir(evidenceDir,{recursive:true});
+  const captures=[];
+  const inspect=async (label,width,height) => {
+    await command('Emulation.setDeviceMetricsOverride',{width,height,
+      deviceScaleFactor:2,mobile:true,screenWidth:width,screenHeight:height});
+    await sleep(650);
+    const datum=await evalJS(`(() => {
+      const rect=sel=>{const el=document.querySelector(sel);
+        if(!el)return null;
+        const r=el.getBoundingClientRect(),c=getComputedStyle(el);
+        return {x:r.x,y:r.y,w:r.width,h:r.height,visible:c.visibility,
+          display:c.display,overflow:c.overflow,font:c.fontSize}};
+      const stage=document.querySelector('#stage');
+      return {window:{w:innerWidth,h:innerHeight,dpr:devicePixelRatio},
+        visual:visualViewport?{w:visualViewport.width,h:visualViewport.height,scale:visualViewport.scale}:null,
+        media:{max360:matchMedia('(max-width:360px)').matches,
+          max700h:matchMedia('(max-height:700px)').matches,portrait:matchMedia('(orientation:portrait)').matches},
+        stageClass:stage?.className,
+        rects:{story:rect('.story'),storyTitle:rect('.storyTitle'),
+          actions:rect('.actions'),routes:rect('.routes'),
+          fighterArena:rect('.fighterArena'),selectionDeck:rect('.selectionDeckV6'),lock:rect('#lockIn'),
+          roster:rect('#fighterRoster'),firstCard:rect('#fighterRoster .rosterCard')},
+        nodes:{rosterCount:document.querySelectorAll('#fighterRoster .rosterCard').length}};
+    })()`);
+    const shot=await command('Page.captureScreenshot',{format:'png',fromSurface:true});
+    await writeFile(evidenceDir+'/'+label+'.png',Buffer.from(shot.data,'base64'));
+    captures.push({label,...datum});
+    console.log('R80 COMPARISON '+label+' '+JSON.stringify(datum));
+  };
+  await inspect('home-550x857',550,857);
+  await inspect('home-360x560',360,560);
+  // Navigate via the real Gold product UI. No bypass of the screen lifecycle.
+  const click=async selector=>{
+    const pos=await evalJS(`(() => {const el=document.querySelector(${JSON.stringify(selector)});
+      if(!el)return null;const r=el.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+    if(!pos)throw new Error('R80 expected click target missing '+selector);
+    await command('Input.dispatchMouseEvent',{type:'mousePressed',x:pos.x,y:pos.y,button:'left',clickCount:1});
+    await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:pos.x,y:pos.y,button:'left',clickCount:1});
+  };
+  await click('#freeBattle');
+  for(let i=0;i<100;i++){
+    if(await evalJS("document.querySelector('#stage')?.classList.contains('screen-mode')"))break;
+    await sleep(80);
+  }
+  await click('.modeCard[data-mode="bot"]');
+  for(let i=0;i<100;i++){
+    if(await evalJS("document.querySelector('#stage')?.classList.contains('screen-fighter')"))break;
+    await sleep(80);
+  }
+  if(!(await evalJS("document.querySelector('#stage')?.classList.contains('screen-fighter')"))) {
+    throw new Error('R80 real mode-to-fighter navigation did not complete');
+  }
+  await inspect('fighter-360x560',360,560);
+  await inspect('fighter-550x857',550,857);
+  await writeFile(evidenceDir+'/comparison.json',JSON.stringify(captures,null,2));
+  // R81 visual geometry acceptance: compare the actual two UI surfaces.
+  const byLabel=Object.fromEntries(captures.map(x=>[x.label,x]));
+  const smallHome=byLabel['home-360x560']?.rects,largeHome=byLabel['home-550x857']?.rects;
+  const smallPick=byLabel['fighter-360x560']?.rects,largePick=byLabel['fighter-550x857']?.rects;
+  const rules=[
+    ['R81 Home Story separated from CTA',smallHome?.story?.y+smallHome?.story?.h <= smallHome?.actions?.y-10],
+    ['R81 Home CTA separated from route band',smallHome?.actions?.y+smallHome?.actions?.h <= smallHome?.routes?.y-8],
+    ['R81 Fighter roster gets legible short-portrait area',smallPick?.firstCard?.h >= 35 && smallPick?.roster?.h >= 95],
+    // Geometry authority after R81 top-only override: R52 still clears
+    // LOCK without clipping either roster. A CSS string assertion alone
+    // cannot prove this when a higher-specificity rule follows the R52 law.
+    ['R90 360px Fighter deck clears LOCK in real Blink',
+      smallPick?.selectionDeck && smallPick?.lock &&
+      smallPick.selectionDeck.y + smallPick.selectionDeck.h <= smallPick.lock.y - 1],
+    ['R90 550px Fighter deck clears LOCK in real Blink',
+      largePick?.selectionDeck && largePick?.lock &&
+      largePick.selectionDeck.y + largePick.selectionDeck.h <= largePick.lock.y - 1],
+    ['R81 550px Home story retains approved geometry',Math.abs((largeHome?.story?.y??0)-370.2)<3 && Math.abs((largeHome?.actions?.y??0)-575)<3],
+    ['R81 550px Fighter roster retains approved geometry',Math.abs((largePick?.roster?.h??0)-135.4)<3],
+  ];
+  for(const [name,ok] of rules)console.log((ok?'PASS ':'FAIL ')+name);
+  if(rules.some(([,ok])=>!ok))throw new Error('R81 viewport design regression: '+JSON.stringify(captures));
+
+
+
+}finally{
+  try{socket?.close()}catch{}
+  chrome.kill('SIGTERM');
+}

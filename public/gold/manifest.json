@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261008-r59-cp7-feedback-polish",
+  "runtimeRevision": "20261008-r76-shell-cache-boundary",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -10,6 +10,10 @@
     "assets/gold/favicon-apex-chaos.png": {
       "bytes": 32526,
       "sha256": "6782e49177fcd86c363455288335b2ea2c1ea88e4e973aa6754e8cd69cff3888"
+    },
+    "assets/gold/favicon-r72-owner.png": {
+      "bytes": 3481,
+      "sha256": "6d38b63ee577a291a578c6859edb8070bd615f68eb69ae753386aa2473693d3e"
     },
     "assets/gold/favicon-tab-apex.svg": {
       "bytes": 5283,
@@ -196,8 +200,8 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 124187,
-      "sha256": "acbe0bf2ed6b4c5bc1d289667a7fd306cfcec363bd59169b033292e12bef8cbf"
+      "bytes": 132573,
+      "sha256": "a1dfa7e65b13c4bccdc75efed1d1a20bf9883f19a7f20cac15efeb0f9c096cbe"
     },
     "fonts.css": {
       "bytes": 6552,
@@ -272,8 +276,8 @@
       "sha256": "bd1e4d828101da94d773fb108d3c8dfca170280464bd153b66a0e321597f4b2e"
     },
     "shell.html": {
-      "bytes": 390530,
-      "sha256": "9c95c1f4bb5a150188ce82e210bbb5931e3786f937e55f446a52e180a022faa7"
+      "bytes": 403625,
+      "sha256": "2df7229d12ab7b84633d5865cbabab24dc855c9723e302e7fbc3486c402042f8"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,

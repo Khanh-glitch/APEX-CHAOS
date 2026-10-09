@@ -71,6 +71,8 @@ class FakeDoorEngine {
     this.callbacks.onDone?.();
   }
   destroy() { this.destroyCount += 1; }
+  // R69/R72 production adapter queries the real donor pose; model that API.
+  pose() { return { logoA: 1, cover: 1, revealR: 1, vignette: 1 }; }
   getDebug() {
     return { state: this.state, openCount: this.openCount, readyCount: this.readyCount };
   }
@@ -148,7 +150,8 @@ await flush();
 check('fast load commits under cover', fastCommit === 1);
 check('fast load re-arms one final READY after covered settle', engine.readyCount === 4 && engine.state === 'OPENING');
 engine.reveal(0.5);
-check('Gold target reveal scale is applied progressively', root.style.transform === 'scale(1.0600)', root.style.transform);
+check('R62 target stays at final size behind Gold opening', root.style.transform !== 'scale(1.0600)', root.style.transform);
+check('R69 opening pose suppresses donor backing and R72 title', (() => { const p=engine.pose(); return p.cover===0 && p.revealR===0 && p.vignette===0 && p.logoA===0; })());
 engine.done();
 const fastResult = await fast;
 check('fast transaction resolves success', fastResult?.ok === true && fastResult?.name === 'fast');
