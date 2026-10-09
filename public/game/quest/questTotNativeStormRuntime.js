@@ -76,6 +76,7 @@ function create({state,hero,tot,weaponApi,spawn,authority,onCue}={}){
    slot.questStage='E08_CRADLE_RETURN';slot.revealedFor=0;
    state.slots.push(slot);
    const result=physical('RESOLVED',{returnedToCradle:true,resolution});
+   if(result.ok)queue.push('E08_STORMBREAKER_RESOLVED');
    if(!result.ok){state.slots=state.slots.filter(s=>s!==slot);returned=false;cradle=null;}
    return result.ok===true;
  }

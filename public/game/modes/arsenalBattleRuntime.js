@@ -1890,6 +1890,48 @@
         AQ.state.questRivetAdapter=adapter;
         AQ.state.questRivetReceipts=receipts;
       }
+      if(totStory){
+        const ownerState=AQ.state;
+        const ending=["E08_L02","E08_L03","E08_L04","E08_L05","E08_L06","E08_L07","E08_L08","E08_L09","E08_L10","E08_L11","E08_L12","E08_L13"];
+        ownerState.questTotStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
+          onAdvance:beatId=>{
+            if(AQ.state!==ownerState||!ownerState.active
+              ||ownerState.questTotProgression!==true)return;
+            if(beatId==='E08_START'||beatId==='E08_STORMBREAKER_ELIGIBLE'
+              ||beatId==='E08_STORMBREAKER_RESOLVED')return;
+            if(beatId==='E08_RETRY'){
+              window.exitArsenalBattleMode?.();
+              window.APEX_QUEST01_DIRECTOR?.show?.({
+                onTotStory:window.__apexGoldQuestTotStoryEntry
+              });return;
+            }
+            if(beatId==='E08_TOT_NONLETHAL_CHOICE'){
+              if(ownerState.questOutcome==='COMPLETE'
+                &&ownerState.questTotStormNative?.snapshot?.().phase==='SAFE_CHOICE')
+                ownerState.questTotStoryView.offer({id:ending[0]});
+              return;
+            }
+            const i=ending.indexOf(beatId);
+            if(i<0)return;
+            if(i<ending.length-1){
+              ownerState.questTotStoryView.offer({id:ending[i+1]});
+              return;
+            }
+            // The voluntary decision belongs to T.O.T's owner-locked
+            // last line, NOT an auto-KO or 120HP counter event.
+            ownerState.questTotVoluntaryChoice=true;
+            const signed=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.(beatId);
+            if(signed?.ok!==true){
+              ownerState.questTotVoluntaryChoice=false;
+              AQ.log('QUEST_E08_SAVE_DENIED',String(signed?.reason));return;
+            }
+            window.exitArsenalBattleMode?.();
+            window.APEX_QUEST01_DIRECTOR?.show?.({
+              onTotStory:window.__apexGoldQuestTotStoryEntry
+            });
+          }
+        });
+      }
       if(rivetStory){
         const ownerState=AQ.state;
         ownerState.questRivetStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
