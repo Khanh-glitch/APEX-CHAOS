@@ -130,7 +130,7 @@
     // the canonical TELEGRAPH → REVEALED → actual pickup/equip pipeline.
     // Never let public normal/Local modes request a fixed weapon or point.
     const forcedQuest=state.questReflex===true && opts?.questWeaponId==='PISTOL'
-      && (opts?.questStage==='R1_PISTOL'||opts?.questStage==='R2_PISTOL')
+      && (['R1_PISTOL','R2_PISTOL','BOTH_HALF'].includes(opts?.questStage))
       && (opts?.questPickupOwner==='NEWBOT'||opts?.questPickupOwner==='T.O.T')
       && Number.isFinite(opts?.questPoint?.x)&&Number.isFinite(opts?.questPoint?.y);
     const point=forcedQuest
@@ -216,7 +216,10 @@
 
   function revealSlot(slot, eta, fighter, force = false) {
     slot.phase = 'REVEALED';
-    slot.weaponId= AQ.state?.questReflex===true && slot.questWeaponId==='PISTOL'
+    // E01 restricted training pool never rolls a late Stormbreaker or a
+    // surprise melee while waiting on accepted J/K and both half-HP gates.
+    // No changes to normal Arsenal or other Quest encounters.
+    slot.weaponId=AQ.state?.questReflex===true
       ? 'PISTOL'
       : (slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon());
     slot.tier = CFG.tierOf ? CFG.tierOf(slot.weaponId) : null;
@@ -335,7 +338,7 @@
         // The generic automatic counter system may transform a floor gun
         // into SWIRL_SHIELD. Never let it replace the E01 authored PISTOL;
         // otherwise R2 can be armed with a shield and soft-lock indefinitely.
-        if (!slot.questPickupOwner && earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
+        if (state.questReflex!==true && !slot.questPickupOwner && earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
           const opponents = state.questMultiActor && window.APEX_QUEST_MULTI_ACTOR_CORE
             ? window.APEX_QUEST_MULTI_ACTOR_CORE.livingEnemies(earliest.fighter, fighters)
             : [earliest.fighter === hero ? rival : hero];

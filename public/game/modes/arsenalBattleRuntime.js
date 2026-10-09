@@ -330,6 +330,32 @@
       while (!state.labMode && state.spawnTimer <= 0 && guard++ < 4) {
         state.spawnTimer += CFG.SPAWN_CADENCE_SECONDS;
         if (emergencySpawned) continue;
+        // E01 post-J/K is still a REAL physical Arsenal gun cycle. The
+        // 4.5s cadence, live-slot cap 5, reveal and pickup all remain intact.
+        // Direct each trial's PISTOL to an unarmed Fighter whose opponent
+        // still needs to cross 500 HP; no damage or equip is injected.
+        if(state.questReflex===true
+          &&state.questReflexGate?.snapshot()?.phase==='BOTH_HALF'){
+          const newbot=(fighters||[]).find(f=>f?.questId==='NEWBOT'&&f.hp>0);
+          const tot=(fighters||[]).find(f=>f?.questId==='T.O.T'&&f.hp>0);
+          const wants=[];
+          if(newbot&&tot&&tot.hp>500)wants.push(newbot);
+          if(newbot&&tot&&newbot.hp>500)wants.push(tot);
+          const q=state.questReflexSpawns||(state.questReflexSpawns={lastAt:{},jDrop:true});
+          const eligible=wants.filter(f=>!weaponApi.getHolder(f)
+            &&!state.slots.some(slot=>slot.questStage==='BOTH_HALF'
+              &&slot.questPickupOwner===f.questId&&slot.phase!=='REMOVED'));
+          if(eligible.length){
+            const selected=eligible[(q.assaultTurn||0)%eligible.length];
+            q.assaultTurn=(q.assaultTurn||0)+1;
+            SPAWN.trySpawnSlot({
+              questWeaponId:'PISTOL',questStage:'BOTH_HALF',
+              questPickupOwner:selected.questId,
+              questPoint:{x:selected.x+(selected.x>500?-65:65),y:selected.y}
+            });
+          }
+          continue;
+        }
         SPAWN.trySpawnSlot();
       }
       SPAWN.updateSlots(dt);
