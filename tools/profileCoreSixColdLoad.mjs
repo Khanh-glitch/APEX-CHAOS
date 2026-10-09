@@ -29,7 +29,7 @@ async function pageTarget(endpoint) {
   throw new Error('CDP page target did not become ready');
 }
 
-async function connect(endpoint) {
+async function connect(endpoint, deadlineAt) {
   const target = await pageTarget(endpoint);
   const socket = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
@@ -101,6 +101,7 @@ async function connect(endpoint) {
   const poll = async (expression, predicate = Boolean, { attempts = 1800, interval = 80 } = {}) => {
     let value = null;
     for (let i = 0; i < attempts; i++) {
+      if (Date.now() > deadlineAt) throw new Error('hero cold-load exceeded 120s budget; last='+JSON.stringify(value)+'; poll='+expression.slice(0,150));
       value = await evaluate(expression);
       if (predicate(value)) return value;
       await sleep(interval);
@@ -128,6 +129,7 @@ function summarize(profile) {
 }
 
 async function runHero(hero, index) {
+  const deadlineAt = Date.now() + 120000;
   const port = 9320 + index;
   const endpoint = 'http://127.0.0.1:' + port;
   const profileDir = path.join('/tmp', `apex-core-six-cold-${hero}-${process.pid}`);
@@ -144,7 +146,7 @@ async function runHero(hero, index) {
       '--user-data-dir=' + profileDir, appUrl,
     ], { stdio:'ignore', detached:false });
 
-    cdp = await connect(endpoint);
+    cdp = await connect(endpoint, deadlineAt);
     phase='CDP-connected';
     console.log('[CORE-SIX-COLD] CDP',hero);
     await cdp.command('Runtime.enable');
