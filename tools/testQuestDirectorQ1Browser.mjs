@@ -997,6 +997,19 @@ try{
   }
 
   { // Q4I: real E02 2v2 outcome path, isolated from prior test locals.
+  // Q4H deliberately reloaded the Gold document to verify persistent
+  // WORKSHOP. Boot START is an actual re-entry door, not a removable
+  // overlay: physically acknowledge it again before Continue Story.
+  const returningBoot=await poll("(()=>({start:document.getElementById('apex-boot-start')?.getBoundingClientRect()?.width>0,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,blackout:document.getElementById('apex-boot-blackout')?.hidden===true}))()",
+    v=>v?.start===true&&v?.checkpoint==='WORKSHOP',320);
+  gate('Q4I reload preserves WORKSHOP before new physical Gold boot',
+    returningBoot?.start===true&&returningBoot?.checkpoint==='WORKSHOP',returningBoot);
+  const returningStart=await click('#apex-boot-start');
+  const returningHome=await poll("(()=>({done:document.body.dataset.apexSceneTransition==='DONE',blackout:document.getElementById('apex-boot-blackout')?.hidden===true,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+    v=>v?.done&&v?.blackout&&v?.checkpoint==='WORKSHOP',320);
+  gate('Q4I physical boot START reopens Gold Home without resetting WORKSHOP',
+    returningStart.hit&&returningHome?.done&&returningHome?.blackout
+    &&returningHome?.checkpoint==='WORKSHOP',returningHome);
   await click('#continueStory');
   const stage=await evalPage("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,play:document.getElementById('q4iFirstWakePlay')?.hidden,opening:document.getElementById('q4hQuestPlay')?.hidden}))()");
   gate('Q4I WORKSHOP exposes first real E02, not the retired REFLEX opening',
