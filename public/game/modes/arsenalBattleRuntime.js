@@ -734,7 +734,20 @@
       const pilot = state.questReflex ? state.questReflexGate?.poll() : null;
       if(pilot)state.questStory?.observeReflex?.(pilot,null);
       if(pilot)presentNextRealStoryBeat(state);
-      const outcome = state.questBreachEncounter===true
+      const outcome = state.questRivetBossTest===true
+        ?(()=>{
+          const hero=fighters.find(f=>f.questId==='NEWBOT');
+          const boss=fighters.find(f=>f.questId==='RIVET'&&f.questTeam==='HOSTILE');
+          const receipt=state.questRivetBossAuthority?.snapshot?.();
+          if(!hero||!boss||!receipt?.started)
+            return {status:'INVALID',reason:'no-valid-E07-native-boss'};
+          if(hero.hp<=0)return {status:'RETRY',reason:'real-newbot-KO'};
+          if(boss.hp===180&&receipt.observed===180&&receipt.stopped
+              &&receipt.cues.map(x=>x.threshold).join('|')==='750|450|180')
+            return {status:'COMPLETE',reason:'real-nonlethal-boss-stop'};
+          return {status:'ACTIVE',reason:'physical-threshold-pending'};
+        })()
+        :state.questBreachEncounter===true
         ?state.questBreachLifecycle.observe(fighters)
         :state.questReflex
         ? {status:fighters.some(f=>f?.hp<=0)?'RETRY':'ACTIVE',reason:'reflex-pilot-'+(pilot?.phase||'closed')}
@@ -758,7 +771,7 @@
         AQ.log('QUEST_E03_WAVE_A_CLEAR','physical hostile KO, cinematic seam');
       }
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
-        state.over = 'QUEST_' + (state.questBreachEncounter?'BREACH_WAVES_':
+        state.over = 'QUEST_' + (state.questRivetBossTest?'RIVET_BOSS_TEST_':state.questBreachEncounter?'BREACH_WAVES_':
           state.questScrapSwarmProgression?'SCRAP_SWARM_':
           state.questWeaponRainProgression?'WEAPON_RAIN_':
           state.questBreakerChargeProgression?'BREAKER_CHARGE_':
@@ -1555,6 +1568,12 @@
       &&typeof breachPolicy?.createWaveLifecycle==='function'
       &&typeof window.APEX_QUEST_BREACH_RETREAT?.create==='function'; 
     if(options.questBreachTest===true&&!breachTest)return false;
+    // A separate, localhost-only E07 research fight: no Director writes.
+    const rivetBossTest=options.questRivetBossTest===true
+      &&window.__APEX_TEST_MODE===true&&localTestHost&&!!questCore
+      &&typeof window.APEX_QUEST_RIVET_THRESHOLDS?.create==='function'
+      &&typeof window.APEX_QUEST_RIVET_DAMAGE_ADAPTER?.create==='function';
+    if(options.questRivetBossTest===true&&!rivetBossTest)return false;
     if (options.questFixture && !questFixture) return false;
     // Q4A native REFLEX pilot is loopback TEST ONLY, never a story skip.
     const reflexAuthorized=(window.__APEX_TEST_MODE===true&&localTestHost)
@@ -1643,7 +1662,7 @@
     const questScrapSwarm=scrapSwarmStory;
     const questWeaponRain=rainStory;
     const questBreakerCharge=breakerStory;
-    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || !!questFixture || questReflex;
+    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || breachActive || rivetBossTest || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
@@ -1662,7 +1681,11 @@
           questScrapSwarm ? questCore.scrapSwarmRoster('A') :
           questWeaponRain ? questCore.weaponRainRoster() :
           questBreakerCharge ? questCore.breakerChargeRoster()
-          :breachActive?breachOpening:questFixture);
+          :breachActive?breachOpening
+          :rivetBossTest?[
+            {questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:180,y:500,kind:'newbot'},
+            {questId:'RIVET',questTeam:'HOSTILE',hp:1000,x:750,y:500,kind:'rivet'}
+          ]:questFixture);
       const NPC_TYPES = Object.freeze({
         scout:['SCRAP SCOUT','#c88d48'],bulwark:['IRON BULWARK','#6f7f90'],
         accumulator:['IMPACT ACCUMULATOR','#e1b66f'],
@@ -1759,6 +1782,27 @@
       AQ.state.questScrapSwarmProgression=questScrapSwarm;
       AQ.state.questWeaponRainProgression=questWeaponRain;
       AQ.state.questBreakerChargeProgression=questBreakerCharge;
+      AQ.state.questRivetBossTest=rivetBossTest;
+      if(rivetBossTest){
+        const boss=fighters.find(f=>f.questId==='RIVET'&&f.questTeam==='HOSTILE');
+        const cues=[];
+        const authority=window.APEX_QUEST_RIVET_DAMAGE_ADAPTER.create({
+          thresholds:window.APEX_QUEST_RIVET_THRESHOLDS,
+          onCue:e=>{
+            cues.push(e);
+            AQ.log('E07_REAL_RIVET_CROSSING',e.beat+
+              ' hp='+e.after+' actualDamage='+e.damage);
+          }
+        });
+        const attached=authority.attach(boss);
+        if(!attached.ok){
+          authority.close();AQ.state.active=false;
+          AQ.log('E07_BOSS_ATTACH_REJECTED',attached.reason);
+          return false;
+        }
+        AQ.state.questRivetBossAuthority=authority;
+        AQ.state.questRivetBossCues=cues;
+      }
       AQ.state.questBreachTest=breachTest;
       AQ.state.questBreachEncounter=breachActive;
       AQ.state.questBreachProgression=breachStory;
@@ -2055,6 +2099,14 @@
       questBreachWaves:true,questBreachProgression:true
     })===true;
   };
+  window.__apexQuestRivetBossFixtureStart=function startB7dRealRivetBossFixture(){
+    const local=['localhost','127.0.0.1','::1']
+      .includes(String(window.location?.hostname||''));
+    if(window.__APEX_TEST_MODE!==true||!local)return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
+      questRivetBossTest:true
+    })===true;
+  };
   window.__apexQuestBreachFixtureStart=function startB6fTrueArsenalFixture(){
     const local=['localhost','127.0.0.1','::1']
       .includes(String(window.location?.hostname||''));
@@ -2287,6 +2339,9 @@
       state.questRainStoryView=null;
       state.questEnemyAbilities?.close?.();
       state.questEnemyAbilities=null;
+      state.questRivetBossAuthority?.close?.();
+      state.questRivetBossAuthority=null;
+      state.questRivetBossCues=null;
       state.questBreachStoryView?.close?.();state.questBreachStoryView=null;
       state.questBreachRetreat?.close?.();state.questBreachRetreat=null;
       state.questBreachLifecycle?.close?.();state.questBreachLifecycle=null;
