@@ -7,6 +7,8 @@ export const GOLD_PROFILES=Object.freeze([
   Object.freeze({id:'portrait-standard',width:550,height:857,family:'portrait',device:'phone',hud:'port',size:'compact',label:'Gold standard portrait'}),
   Object.freeze({id:'portrait-tablet',width:820,height:1180,family:'portrait',device:'tablet',hud:'port',size:'tablet',label:'Gold tablet portrait'}),
   Object.freeze({id:'landscape-tablet',width:960,height:720,family:'landscape',device:'tablet',hud:'land',size:'tablet',label:'Gold tablet landscape'}),
+  // Existing native Gold breakpoint: Shell >980px and Battle land/tablet.
+  Object.freeze({id:'landscape-tablet-wide',width:1180,height:820,family:'landscape',device:'tablet',hud:'land',size:'tablet',label:'Gold wide tablet landscape'}),
   Object.freeze({id:'landscape-phone',width:900,height:550,family:'landscape',device:'phone',hud:'land',size:'compact',label:'Gold compact landscape'}),
   Object.freeze({id:'landscape-ultrawide',width:960,height:440,family:'landscape',device:'phone',hud:'land',size:'compact',label:'Gold ultra-wide mobile landscape'}),
   Object.freeze({id:'desktop',width:1440,height:900,family:'landscape',device:'desktop',hud:'desk',size:'desktop',label:'Gold desktop'}),
@@ -54,10 +56,10 @@ export function chooseGoldProfile(width,height,forcedId=null,{deviceClass=null}=
   if(deviceClass==='phone') {
     candidates=candidates.filter(p=>p.device==='phone');
   } else if(deviceClass==='tablet') {
-    // Gold's landscape tablet rules require a 700px minimum short side
-    // while Shell's mobile landscape CSS requires <=980px wide. There is
-    // NO native tablet-landscape Gold at an aspect above 980/700.
-    candidates=candidates.filter(p=>p.device===(family==='portrait'||ratio<=980/700+1e-9?'tablet':'phone'));
+    // Shell CSS switches at 980px, but Battle Gold still offers land/tablet
+    // above 980px while min(W,H)>=700 and no desk HUD gate is active.
+    // The largest possible land/tablet aspect is below 1180/700.
+    candidates=candidates.filter(p=>p.device===(family==='portrait'||ratio<1180/700?'tablet':'phone'));
   } else if(deviceClass==='desktop') {
     // Gold's desktop Battle HUD begins at aspect >=1.5; narrower desktop
     // windows natively use Gold's landscape composition.
@@ -77,9 +79,13 @@ export function deriveGoldDesignSpace(profile,layoutWidth,layoutHeight) {
   const ratio=layoutWidth/layoutHeight;
   let height=profile.height;
   if(profile.hud==='land'&&profile.size==='tablet'){
-    if(ratio>980/700+1e-9||ratio<=1)return null;
-    height=Math.min(height,980/ratio);
-    if(height<700-1e-8)return null;
+    if(ratio>=1180/700||ratio<=1)return null;
+    // At aspect >=1.5, W must remain under 1180 or Gold switches to desk.
+    // Below 1.5, wide tablet is the authored Shell desktop CSS + Battle
+    // landscape/tablet pairing. Do NOT force its width below 980.
+    if(ratio>=1.5)height=Math.min(height,1179/ratio);
+    height=Math.max(height,700);
+    if(height*ratio>=1180&&ratio>=1.5)return null;
   } else if(profile.hud==='land') {
     height=Math.min(height,980/ratio);
   } else if(profile.size==='compact') {
