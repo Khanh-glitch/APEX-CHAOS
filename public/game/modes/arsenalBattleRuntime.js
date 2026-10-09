@@ -318,6 +318,8 @@
             kind:born[0].type
           });
         }else{
+          rig.updateCalls=(rig.updateCalls||0)+1;
+          rig.updateFn=String(weaponApi.updateArsenalProjectiles).slice(0,135);
           weaponApi.updateArsenalProjectiles(dt);
         }
         const live=projectiles.filter(p=>p.questRivetSuppression===true);
