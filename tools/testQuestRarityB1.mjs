@@ -30,7 +30,7 @@ AQ.state={questMultiActor:false,questReflex:false};
 gate('Free Battle original T6 selection left unchanged',pick(()=>0.7)==='STORMBREAKER');
 gate('physical reveal keeps T1/T2 barrier for ordinary Quest weapons',
   s.includes("if(isQuestWeaponContext()&&!slot.questNarrativeOnly")
-  &&s.includes("&& !questTierAllowed(slot.weaponId))"));
+  &&/&&\s*!questTierAllowed\(slot\.weaponId\)\)/.test(s));
 gate('only E01 safe hold may create narrative Stormbreaker T6 exception',
   s.includes("state.questReflexHold?.phase==='AWAIT_RIVET'")
   &&s.includes("opts?.questStage==='E01_GROUND_SUPPRESSION'")
