@@ -81,7 +81,7 @@ jobs:
           if [ "${{ matrix.device }}" = mobile ]; then
             node tools/testQuestDirectorQ1Browser.mjs --mobile --verify-breach-entry --verify-breach-three-waves --verify-rivet-gold --verify-tot-gold
           else
-            node tools/testQuestDirectorQ1Browser.mjs --verify-breach-entry --verify-breach-three-waves --verify-rivet-gold
+            node tools/testQuestDirectorQ1Browser.mjs --verify-breach-entry --verify-breach-three-waves --verify-rivet-gold --verify-tot-gold
           fi
       - uses: actions/upload-artifact@v4
         if: always()
