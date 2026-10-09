@@ -163,7 +163,12 @@
     const forcedCharge=state.questBreakerChargeProgression===true
       &&opts?.questStage==='E05_OPENING'
       &&opts?.questPickupOwner==='NEWBOT'&&opts?.questWeaponId==='PISTOL';
-    const forcedQuest=(forcedReflex||forcedSwarm||forcedCharge)
+    // Story-only ground manifestation after earned E01 safe hold.
+    const forcedStoryStorm=state.questReflex===true
+      &&state.questReflexHold?.phase==='AWAIT_RIVET'
+      &&opts?.questStage==='E01_GROUND_SUPPRESSION'
+      &&opts?.questWeaponId==='STORMBREAKER';
+    const forcedQuest=(forcedReflex||forcedSwarm||forcedCharge||forcedStoryStorm)
       && Number.isFinite(opts?.questPoint?.x)&&Number.isFinite(opts?.questPoint?.y);
     const point=forcedQuest
       ? {x:Math.max(120,Math.min(880,opts.questPoint.x)),
@@ -176,9 +181,10 @@
       phase: 'TELEGRAPH',
       weaponId: null,
       forceFirearm: !!(opts && opts.forceFirearm),
-      questWeaponId: forcedQuest ? 'PISTOL' : null,
-      questStage: forcedQuest ? opts.questStage : null,
-      questPickupOwner: forcedQuest ? opts.questPickupOwner : null,
+      questWeaponId:forcedQuest?(forcedStoryStorm?'STORMBREAKER':'PISTOL'):null,
+      questStage:forcedQuest?opts.questStage:null,
+      questPickupOwner:forcedQuest?opts.questPickupOwner:null,
+      questNarrativeOnly:!!forcedStoryStorm,
       // V2 B-handoff A-CORR-2: fixed 2.0s whole-circle reveal lead per slot.
       revealLeadSeconds: Number(CFG.REVEAL_LEAD_SECONDS ?? 2.0),
       revealedFor: 0,
@@ -257,7 +263,8 @@
       : (slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon()));
     // This is a SECOND authority barrier on the actual visible slot, so
     // newly added reveal pathways can never display blue+ Quest loot.
-    if(isQuestWeaponContext()&&!questTierAllowed(slot.weaponId)){
+    if(isQuestWeaponContext()&&!slot.questNarrativeOnly
+      &&!questTierAllowed(slot.weaponId)){
       log('QUEST_RARITY_DENIED',String(slot.weaponId));
       slot.weaponId='PISTOL';
     }
@@ -333,6 +340,8 @@
     trySpawnHealSupport();
 
     for (const slot of state.slots) {
+      // Story-only Stormbreaker is a visible scene object, never collectible.
+      if(slot.questNarrativeOnly===true)continue;
       if (slot.kind === 'HEAL') {
         if (slot.phase === 'REVEALED') {
           slot.revealedFor += dt;
@@ -477,6 +486,8 @@
       let closest = null;
       let closestDist = Infinity;
 
+      // Story-only Stormbreaker is a visible scene object, never collectible.
+      if(slot.questNarrativeOnly===true)continue;
       if (slot.kind === 'HEAL') {
         const maxHp = CFG.MATCH_HP || 100;
         for (const f of actors) { // HERO REWORK doc-06 body-aware actors
