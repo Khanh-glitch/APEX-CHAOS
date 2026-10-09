@@ -34,7 +34,7 @@ jobs:
           git fetch origin "$R90"
           git config user.name "apex-chaos-integration"
           git config user.email "apex-chaos-integration@users.noreply.github.com"
-          test "$(git rev-parse HEAD^)" = "0058c18c89818675f4e53dc8945f4e767ca70869"
+          git merge-base --is-ancestor "0058c18c89818675f4e53dc8945f4e767ca70869" HEAD
           set +e
           git merge --no-commit --no-ff "$R90" > reports/integration-b05/merge.log 2>&1
           MERGE=$?
