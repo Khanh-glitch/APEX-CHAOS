@@ -1383,8 +1383,21 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       battleMode='bot';
       p1Hero='newbot';p2Hero='newbot';
       void launchBattleHud();
-    }});
+    },onFirstWakeStory:launchQuestFirstWakeStory});
   });
+  // Q4I: the Gold composer, not the Director or Arsenal, owns a live
+  // E02's battle transition, HUD mounting and runtime readiness. This is
+  // also the canonical retry entry after a real NEWBOT KO.
+  function launchQuestFirstWakeStory(){
+    if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return false;
+    if(!['WORKSHOP','FIRST_WAKE'].includes(
+      window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId))return false;
+    questPreview=true;questPreviewKind='first-wake-story';
+    battleMode='bot';p1Hero='newbot';p2Hero='newbot';
+    void launchBattleHud();
+    return true; // The bridge still validates the ACTUAL async readiness.
+  }
+  window.__apexGoldQuestFirstWakeStoryEntry=launchQuestFirstWakeStory;
   const battle = document.getElementById('freeBattle');
   const modeScreen = document.getElementById('modeSelectScreen');
   const fighterScreen = document.getElementById('fighterSelectScreen');
@@ -1689,7 +1702,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   async function setBattleLive(){
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
     const ready=APEX_GOLD.onBattleLive
-      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:questPreview?(questPreviewKind==='reflex'?'quest-reflex-preview':'quest-first-wake'):battleMode,p1:p1Hero,p2:p2Hero}))
+      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:questPreview?(questPreviewKind==='reflex'?'quest-reflex-preview':questPreviewKind==='first-wake-story'?'quest-first-wake-story':'quest-first-wake'):battleMode,p1:p1Hero,p2:p2Hero}))
       : false;
     if(ready!==true||!window.APEX_GOLD_HUD)return false;
     // Production projection is now authoritative. Mark the preview handoff
@@ -1723,7 +1736,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     battleTransition.querySelector('[data-bt-state="p2"]').textContent=bot?'TARGET ACQUIRED':'COMBAT LOCK';
     battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=bot?'CPU // TARGET':'P2 // FIGHTER';
     battleTransition.querySelector('[data-bt-core]').textContent=questPreview
-      ? (questPreviewKind==='reflex'?'QUEST 01 // REFLEX PLAYTEST':'QUEST 01 // FIRST WAKE PLAYTEST')
+      ? (questPreviewKind==='reflex'?'QUEST 01 // REFLEX PLAYTEST':questPreviewKind==='first-wake-story'?'QUEST 01 // FIRST WAKE':'QUEST 01 // FIRST WAKE PLAYTEST')
       : bot?'SOLO COMBAT CHANNEL':'DUEL COMBAT CHANNEL';
     if(questPreview){
       battleTransition.querySelector('[data-bt-name="p1"]').textContent=questPreviewKind==='reflex'?'NEWBOT':'NEWBOT + T.O.T';
