@@ -19,3 +19,6 @@ Visual kinds `scout`, `bulwark`, `sentinel` provisionally reuse three original G
 - Replaces only defeated A Fighter objects with four B Fighter instances. The original NEWBOT and real Arsenal match state, gun slots and projectiles remain unchanged.
 - Wave B genuine last KO emits a real Quest result comic and only its acknowledgement can commit WEAPON_RAIN. NEWBOT KO leaves SCRAP_SWARM for retry. No fabricated story dialogue.
 - Pending before FINAL: natural Chrome win+retry and actual-device visual/audio signoff; E04–E08 remain untouched.
+
+## Q5o balancing iteration
+A/B HP, unique real Fighter KOs, gun cap 5, fixed 4.5s cadence and NEWBOT status persistence are unchanged. One Quest-only immutable tuning object specifies slower scavenger body movement A=0.52, B=0.61 relative to normal Hero speed, one genuine PISTOL pickup on the first regular spawn cadence, and 1.8s Gold wave interlude. This is a readability and encounter-difficulty iteration; it must still pass natural Chrome victories and owner audiovisual signoff. It is not a license for forced KO or fake heals.

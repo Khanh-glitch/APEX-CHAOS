@@ -209,6 +209,17 @@
     return { status: 'ACTIVE', reason: 'combat-live' };
   }
 
+  // Q5 encounter tuning is data, not a second physics implementation.
+  // These factors affect only the physical Scrap Fighters' movement speeds:
+  // no change to base hit damage, cooldowns, original weapon cadence or HP.
+  const SWARM_TUNING=Object.freeze({
+    A:Object.freeze({enemySpeedFactor:0.52}),
+    B:Object.freeze({enemySpeedFactor:0.61}),
+    interludeSeconds:1.8,
+    openingGun:'PISTOL',
+    openingGunAhead:65
+  });
+
   // Q5 E03 authored two-wave *roster contract*. Only the real Arsenal
   // creates Fighters and inflicts damage. Never use this as a KO setter.
   // Three Gold Scrap chassis may be reused; no invented hero skill kit.
@@ -287,6 +298,6 @@
     alive, hostile, livingEnemies, nearestEnemy, sweptEntry,
     firstProjectileHit, splashEnemies, closestEligiblePickup, separateBodyOverlaps,
     firstWakeOutcome, validateFirstWake, fixtureRoster, validateRoster, teamsOutcome,
-    scrapSwarmRoster,validateScrapSwarmWave,scrapSwarmOutcome,
+    scrapSwarmRoster,validateScrapSwarmWave,scrapSwarmOutcome,SWARM_TUNING,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

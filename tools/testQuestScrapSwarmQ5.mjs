@@ -37,4 +37,12 @@ gate('wrong enemy max HP denied',!Q.validateScrapSwarmWave(tamper,'A').ok);
 const original=Q.scrapSwarmRoster('B');original[1].hp=1;
 gate('roster specs not mutated by caller',Q.scrapSwarmRoster('B')[1].hp===220);
 gate('no third wave',Q.scrapSwarmRoster('C')===null);
+gate('E03 wave pacing data is positive and wave B slightly faster',
+  Q.SWARM_TUNING.A.enemySpeedFactor>0
+  &&Q.SWARM_TUNING.A.enemySpeedFactor<Q.SWARM_TUNING.B.enemySpeedFactor
+  &&Q.SWARM_TUNING.B.enemySpeedFactor<1);
+gate('E03 real pickup target and interlude defined centrally',
+  Q.SWARM_TUNING.openingGun==='PISTOL'
+  &&Q.SWARM_TUNING.openingGunAhead>0
+  &&Q.SWARM_TUNING.interludeSeconds>=1.5);
 console.log('Q5 E03 pure contract: '+passed+' PASS / 0 FAIL');

@@ -295,7 +295,7 @@
         weaponApi.tickVisuals(dt);
         window.APEX_ARSENAL_AV?.tick?.(dt);
         if(AQ.feel?.tick)AQ.feel.tick(dt);
-        if(state.questSwarmInterludeElapsed>=1.8){
+        if(state.questSwarmInterludeElapsed>=(window.APEX_QUEST_MULTI_ACTOR_CORE?.SWARM_TUNING?.interludeSeconds??1.8)){
           const Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
           const next=Q?.scrapSwarmRoster?.('B');
           const create=state.questSwarmCreateFighter;
@@ -480,7 +480,12 @@
             const slot=SPAWN.trySpawnSlot({
               questWeaponId:'PISTOL',questStage:'E03_OPENING',
               questPickupOwner:'NEWBOT',
-              questPoint:{x:Math.max(95,Math.min(905,pilot.x+65)),y:pilot.y}
+              questPoint:{
+                x:Math.max(120,Math.min(880,pilot.x+
+                  (pilot.dir?.x||1)*(window.APEX_QUEST_MULTI_ACTOR_CORE?.SWARM_TUNING?.openingGunAhead??65))),
+                y:Math.max(120,Math.min(880,pilot.y+
+                  (pilot.dir?.y||0)*(window.APEX_QUEST_MULTI_ACTOR_CORE?.SWARM_TUNING?.openingGunAhead??65)))
+              }
             });
             if(slot){
               state.questSwarmOpeningDropPending=false;
@@ -1417,6 +1422,14 @@
       };
       const makeQuestFighter=(spec,id)=>{
         const type = spec.kind === 'newbot' ? t1 : makeNpc(spec.kind);
+        // E03 scavenger chassis have a slower, legible approach than Core Six
+        // Heroes; their weapons still use the exact original Arsenal physics.
+        // Copy is match-local; no mutation of the shared fighter definitions.
+        if(questScrapSwarm&&spec.questTeam==='HOSTILE'){
+          const wave=String(spec.questId).startsWith('SWARM-B')?'B':'A';
+          const factor=questCore.SWARM_TUNING?.[wave]?.enemySpeedFactor??1;
+          type.speed=CFG.FIGHTER_SPEED*factor;
+        }
         const f = new Fighter(id, spec.x, spec.y, type);
         f.questId = spec.questId;
         f.questTeam = spec.questTeam;
