@@ -7,11 +7,18 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>Apex Chaos</title>
-    <!-- Reversible R89 fidelity entry. The native game remains the default. -->
+    <!-- R89 candidate: mobile Gold virtual viewport; ?goldViewport=native rolls back. -->
     <script>
       (() => {
         const q = new URLSearchParams(location.search);
-        if (window.top === window && q.get('goldViewport') === '1') {
+        const mode = q.get('goldViewport');
+        // Default only on handheld/tablet devices; the original desktop game
+        // and all native/rollback links remain untouched. No model-size list.
+        const ua = navigator.userAgent || '';
+        const handheld = /iPhone|iPod|iPad|Android|Windows Phone|Kindle|Silk/i.test(ua) ||
+          (/Macintosh/i.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+        const native = mode === 'native' || mode === '0';
+        if (window.top === window && !native && (mode === '1' || handheld)) {
           const target = new URL('/gold-fidelity-lab.html', location.origin);
           target.search = q.toString();
           location.replace(target.href);
