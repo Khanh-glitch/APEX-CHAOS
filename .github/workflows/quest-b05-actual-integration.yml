@@ -1,0 +1,86 @@
+name: B05 Q5+R90 actual integration candidate
+on:
+  push:
+    branches: ['quest/b05-r90-q5-real-integration']
+    paths:
+      - 'tools/resolveB05GoldShell.mjs'
+      - '.github/workflows/quest-b05-actual-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  three-way-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Check SHAs and merge R90 on ephemeral checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/integration-b05
+          R90=19a780dfa7880db418330f324ff0d1bc98f84869
+          git fetch origin "$R90"
+          git config user.name "apex-chaos-integration"
+          git config user.email "apex-chaos-integration@users.noreply.github.com"
+          test "$(git rev-parse HEAD^)" = "0058c18c89818675f4e53dc8945f4e767ca70869"
+          set +e
+          git merge --no-commit --no-ff "$R90" > reports/integration-b05/merge.log 2>&1
+          MERGE=$?
+          set -e
+          echo "Initial native merge exit: $MERGE"
+          cat reports/integration-b05/merge.log
+          git diff --name-only --diff-filter=U | tee reports/integration-b05/unmerged-files.txt
+          test "$(wc -l < reports/integration-b05/unmerged-files.txt)" -eq 1
+          grep -qx 'public/gold/shell.html' reports/integration-b05/unmerged-files.txt
+      - name: Resolve only generated HUD payload from exact merged HUD
+        run: node tools/resolveB05GoldShell.mjs
+      - name: Install and test integrated sources
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm arsenal:sfx:materialize
+          node tools/testR89GoldResolver.mjs
+          node tools/testQuestDirectorQ1.mjs
+          node tools/testQuestGenericRosterQ2.mjs
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestWeaponRainQ5.mjs
+          node tools/testQuestBreakerChargeQ5.mjs
+          node tools/testGoldEmbeddedHudParity.mjs
+          pnpm build
+      - name: Verify canonical cutover source does not erase merged HUD
+        shell: bash
+        run: |
+          set +e
+          node tools/buildGoldCutover.mjs --check > reports/integration-b05/generator-check.log 2>&1
+          RES=$?
+          set -e
+          echo "GOLD_GENERATOR_CHECK_EXIT=$RES"
+          tail -60 reports/integration-b05/generator-check.log
+          echo "$RES" > reports/integration-b05/generator-exit.txt
+      - name: Record candidate merge in integration branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git ls-files -u)"
+          git add -A public/gold/shell.html public/gold/battle-hud.html
+          git commit -m "B0.5 integrate Q5 and R90, reconcile Shell payload from merged Gold HUD"
+          git push origin HEAD:refs/heads/quest/b05-r90-q5-real-integration
+          echo "B05_CANDIDATE_SHA=$(git rev-parse HEAD)"
+      - name: Preserve merge and generator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b05-real-integration-evidence
+          path: reports/integration-b05/
+          if-no-files-found: warn
