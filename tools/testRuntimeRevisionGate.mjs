@@ -12,7 +12,7 @@ const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261008-r76-shell-cache-boundary';
+const expectedRevision = '20261010-q1-b8-native-runtime';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
