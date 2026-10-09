@@ -83,7 +83,9 @@
   E04_WEAPON_RAIN_CLEAR:{title:'WEAPON RAIN',left:'NEWBOT',right:'TWO HOSTILES',
     line:'THE STORM HAS PASSED',kicker:'FINAL DESCENT · TWO HOSTILES DOWN'},
   E04_WEAPON_RAIN_RETRY:{title:'WEAPON RAIN',left:'NEWBOT',right:'SCRAP BASIN',
-    line:'SIGNAL LOST',kicker:'RETRY · CHECKPOINT PRESERVED'}
+    line:'SIGNAL LOST',kicker:'RETRY · CHECKPOINT PRESERVED'},
+  E05_BREAKER_CHARGE_CLEAR:{title:'CHARGE THE BREAKER',left:'NEWBOT',right:'IMPACT ACCUMULATOR',
+    line:'CHARGE COMPLETE',kicker:'RELAY SIGNAL · OUTBOUND'}
  });
  const singleton={style:null};
  function ensureStyle(doc){

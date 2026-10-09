@@ -898,9 +898,10 @@
     const questFirstWakeStory=pick && pick.mode==='quest-first-wake-story';
     const questScrapSwarmStory=pick && pick.mode==='quest-scrap-swarm-story';
     const questWeaponRainStory=pick && pick.mode==='quest-weapon-rain-story';
+    const questBreakerChargeStory=pick && pick.mode==='quest-breaker-charge-story';
     const questFirstWake = pick && pick.mode === 'quest-first-wake';
     const questReflexPreview=pick && pick.mode==='quest-reflex-preview';
-    const questPreview=questFirstWake||questFirstWakeStory||questScrapSwarmStory||questWeaponRainStory||questReflexPreview;
+    const questPreview=questFirstWake||questFirstWakeStory||questScrapSwarmStory||questWeaponRainStory||questBreakerChargeStory||questReflexPreview;
     const mode = questPreview || (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
     const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
     // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
@@ -983,8 +984,10 @@
         window.__APEX_QUEST_DEV = true;
         try { return (questReflexPreview
           ? window.__apexQuestReflexStart?.()
-          : questWeaponRainStory
-            ? window.__apexQuestWeaponRainStoryStart?.()
+          : questBreakerChargeStory
+            ? window.__apexQuestBreakerChargeStoryStart?.()
+            : questWeaponRainStory
+              ? window.__apexQuestWeaponRainStoryStart?.()
             : questScrapSwarmStory
               ? window.__apexQuestScrapSwarmStoryStart?.()
             : questFirstWakeStory

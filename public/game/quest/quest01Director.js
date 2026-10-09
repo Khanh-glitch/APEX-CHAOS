@@ -14,7 +14,7 @@
     { id:'FIRST_WAKE', label:'FIRST WAKE', type:'ENCOUNTER', encounterId:'E02', status:'CP04_PREVIEW_ONLY', copy:'NEWBOT and T.O.T stand together against two approaching scrap hunters.' },
     { id:'SCRAP_SWARM', label:'SCRAP SWARM', type:'ENCOUNTER', encounterId:'E03', status:'PENDING_IMPLEMENTATION', copy:'Two waves. Seven hostiles. Hold the basin without losing NEWBOT.' },
     { id:'WEAPON_RAIN', label:'WEAPON RAIN', type:'ENCOUNTER', encounterId:'E04', status:'PENDING_IMPLEMENTATION', copy:'Metal falls from above. Survive two hostiles and the final rain of weapons.' },
-    { id:'CHARGE_THE_BREAKER', label:'CHARGE THE BREAKER', type:'ENCOUNTER', encounterId:'E05', status:'PENDING_IMPLEMENTATION' },
+    { id:'CHARGE_THE_BREAKER', label:'CHARGE THE BREAKER', type:'ENCOUNTER', encounterId:'E05', status:'PENDING_IMPLEMENTATION', copy:'Charge the impact accumulator with genuine weapon damage. Hold until the relay answers.' },
     { id:'BREACH_WAVES', label:'BREACH WAVES', type:'ENCOUNTER', encounterId:'E06', status:'PENDING_IMPLEMENTATION' },
     { id:'RIVET_OVERRIDDEN', label:'RIVET OVERRIDDEN', type:'ENCOUNTER', encounterId:'E07', status:'PENDING_IMPLEMENTATION' },
     { id:'TOT_LAST_CHOICE', label:'T.O.T — LAST CHOICE', type:'ENCOUNTER', encounterId:'E08', status:'PENDING_IMPLEMENTATION' },
@@ -110,6 +110,23 @@
   function acceptNativeBeat(beat) {
     const no=reason=>Object.freeze({ok:false,reason});
     const A=root.APEX_ARSENAL,q=A?.state,actors=root.fighters;
+    if(beat==='E05_BREAKER_CHARGE_CLEAR'){
+      const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
+      const pulse=q?.questBreakerSequence?.snapshot?.();
+      const view=q?.questBreakerStoryView?.snapshot?.();
+      const genuine=Q?.breakerChargeOutcome?.(actors,pulse?.pulseObserved===true);
+      if(core.checkpoint().checkpointId!=='CHARGE_THE_BREAKER'
+         ||!q?.active||q.questBreakerChargeProgression!==true
+         ||q.questOutcome!=='COMPLETE'||q.over!=='QUEST_BREAKER_CHARGE_COMPLETE'
+         ||genuine?.status!=='COMPLETE'||pulse?.phase!=='PULSE'
+         ||pulse?.requested!==3
+         ||pulse?.accepted+pulse?.suppressed!==3
+         ||pulse?.milestones?.join('|')!=='0.25|0.5|0.75|0.9|1'
+         ||!view||view.active!==false||view.closed!==false
+         ||view.shown.join('|')!=='E05_BREAKER_CHARGE_CLEAR')
+        return no('e05-real-damage-pulse-and-panel-required');
+      return core._commitNativeTransition('BREACH_WAVES',['E05_BREAKER_CHARGE_CLEAR']);
+    }
     if(beat==='E04_WEAPON_RAIN_CLEAR'){
       const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
       const view=q?.questRainStoryView?.snapshot?.();
@@ -249,7 +266,7 @@
       '#apexQuest01Stage .q1-actions{display:grid;gap:10px;margin-top:22px;}',
       '#apexQuest01Stage button{font:700 13px Arial,sans-serif;letter-spacing:.1em;min-height:48px;padding:12px 15px;border:1px solid #9a8259;color:#f6eee0;background:#403725;cursor:pointer;}',
       '#apexQuest01Stage button:focus-visible{outline:3px solid #f6c981;outline-offset:3px;}',
-      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay,#apexQuest01Stage #q5ScrapSwarmPlay,#apexQuest01Stage #q5WeaponRainPlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;transition:transform .18s,filter .18s,box-shadow .18s;}',
+      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay,#apexQuest01Stage #q5ScrapSwarmPlay,#apexQuest01Stage #q5WeaponRainPlay,#apexQuest01Stage #q5BreakerChargePlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;transition:transform .18s,filter .18s,box-shadow .18s;}',
       '#apexQuest01Stage button:where(:hover,:focus-visible){filter:brightness(1.13);box-shadow:0 8px 24px #b9742644;}',
       '#apexQuest01Stage button:active{transform:scale(.985)}',
       '@media(max-height:520px){#apexQuest01Stage{padding:8px}#apexQuest01Stage .q1-panel{padding:14px;max-height:calc(100dvh - 16px)}#apexQuest01Stage h2{font-size:clamp(28px,7vh,48px);margin:8px 0}#apexQuest01Stage .q1-status{margin:10px 0 4px}}',
@@ -263,7 +280,7 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div></div>';
     d.body.appendChild(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',hide);
     overlay.querySelector('#q1Preview').addEventListener('click',()=>{const cb=callbacks && callbacks.onPreview;hide(); if(typeof cb==='function')cb();});
@@ -277,6 +294,13 @@
       if(typeof cb!=='function')return;
       hide();const started=cb();
       if(started!==true)show(opts);
+    });
+    overlay.querySelector('#q5BreakerChargePlay').addEventListener('click',()=>{
+      if(core.checkpoint().checkpointId!=='CHARGE_THE_BREAKER')return;
+      const opts=callbacks;
+      const cb=callbacks?.onBreakerChargeStory||root.__apexGoldQuestBreakerChargeStoryEntry;
+      if(typeof cb!=='function')return;
+      hide();const started=cb();if(started!==true)show(opts);
     });
     overlay.querySelector('#q5WeaponRainPlay').addEventListener('click',()=>{
       if(core.checkpoint().checkpointId!=='WEAPON_RAIN')return;
@@ -309,7 +333,7 @@
       delete root.__APEX_QUEST_STORY_FULL;
       if(typeof cb==='function')cb();
     });
-    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q5WeaponRainPlay'),overlay.querySelector('#q5ScrapSwarmPlay'),overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q5BreakerChargePlay'),overlay.querySelector('#q5WeaponRainPlay'),overlay.querySelector('#q5ScrapSwarmPlay'),overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
     return overlay;
   }
   function show(options) {
@@ -325,6 +349,7 @@
     el.querySelector('#q1Status').textContent='CHAPTER '+String(index+1).padStart(2,'0')+' / 11';
     el.querySelector('.q1-panel').style.setProperty('--quest-progress',((index+1)/NODE_IDS.length*100).toFixed(2)+'%');
     const objective={
+      CHARGE_THE_BREAKER:'6000 DAMAGE · ONE ACCUMULATOR · REAL WEAPON CONTACT',
       REFLEX:'ROUTINE J / K · REAL COMBAT',
       FIRST_WAKE:'FIGHT TOGETHER · E02',
       SCRAP_SWARM:'SURVIVE TWO WAVES · E03',
@@ -335,6 +360,7 @@
     el.querySelector('#q4iFirstWakePlay').hidden=!['WORKSHOP','FIRST_WAKE'].includes(node.id);
     el.querySelector('#q5ScrapSwarmPlay').hidden=node.id!=='SCRAP_SWARM';
     el.querySelector('#q5WeaponRainPlay').hidden=node.id!=='WEAPON_RAIN';
+    el.querySelector('#q5BreakerChargePlay').hidden=node.id!=='CHARGE_THE_BREAKER';
     // Playtest-only probes remain discoverable on localhost but cannot
     // appear as unfinished developer chrome on the Cloudflare production UI.
     const diagnostic=['localhost','127.0.0.1','::1'].includes(String(root.location?.hostname||''))||
@@ -343,7 +369,9 @@
       el.querySelector('#'+id).hidden=!diagnostic;
     previousFocus=root.document.activeElement;
     el.hidden=false;
-    const start=!el.querySelector('#q5WeaponRainPlay').hidden
+    const start=!el.querySelector('#q5BreakerChargePlay').hidden
+      ?el.querySelector('#q5BreakerChargePlay')
+      :!el.querySelector('#q5WeaponRainPlay').hidden
       ?el.querySelector('#q5WeaponRainPlay')
       :!el.querySelector('#q5ScrapSwarmPlay').hidden
       ?el.querySelector('#q5ScrapSwarmPlay')
