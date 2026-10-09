@@ -41,6 +41,10 @@
   }
 
   function pickupTouchRadius(f) {
+    // Match the Quest hostile collision silhouette instead of collecting
+    // guns while their pincers are still visibly a body-width away.
+    if(f?.questTeam==='HOSTILE'&&['scout','reaver','sentinel'].includes(f?.questSpecies))
+      return (f.radius||75)*.52+CFG.PICKUP_RADIUS+23;
     return (f?.radius || 75) * 0.6 + CFG.PICKUP_RADIUS + CFG.PICKUP_TOUCH_BONUS;
   }
 

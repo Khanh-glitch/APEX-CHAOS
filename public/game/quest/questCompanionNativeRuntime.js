@@ -40,10 +40,18 @@ function create({actors,policy,weaponApi,state,log}={}){
      initialInside:new Set(),target:null},K:{cd:0,armorLeft:0}}
  };
  let closed=false,time=0;
- const events=[];
+ const events=[],visualBursts=[],dashTrail=[];
+ const maxBurst=24;
  function emit(id,kind,more={}){
    const entry=Object.freeze({id,kind,at:time,...more});
-   events.push(entry);log?.('QUEST_COMPANION_'+kind,id);return entry;
+   events.push(entry);log?.('QUEST_COMPANION_'+kind,id);
+   if(['DASH_LOCK','DASH_LAUNCH','STORE_REAL_GUN','DRAW_STORED','RESERVE_WINDOW',
+     'INTERCEPT_PLANT','PHYSICAL_INTERCEPT','INTERCEPT_RELEASE','ARMOR_ON','ARMOR_END'].includes(kind)){
+     const actor=id==='T.O.T'?tot:rivet;
+     visualBursts.push({x:actor.x,y:actor.y,kind,age:0});
+     if(visualBursts.length>maxBurst)visualBursts.shift();
+   }
+   return entry;
  }
  function getId(){return closed?null:policy.abilityRecipient(actors);}
  function candidates(owner){return actors.filter(viable).sort((a,b)=>
@@ -162,6 +170,7 @@ function create({actors,policy,weaponApi,state,log}={}){
    tot.setDir?.(dx,dy);
    // Same native-world body movement and wall resolution as Robot A1.
    tot.x+=dx*cfg.dashSpeed*dt;tot.y+=dy*cfg.dashSpeed*dt;
+   dashTrail.push({x:tot.x,y:tot.y,dx,dy,age:0});if(dashTrail.length>12)dashTrail.shift();
    if(dist(tot,slot)<=cfg.arriveRadius||d.elapsed>=cfg.maxDashTime)s.dash=null;
  }
  function tickIntercept(dt){
@@ -252,6 +261,8 @@ function create({actors,policy,weaponApi,state,log}={}){
  function tick(dt){
    if(!living()||!finite(dt)||dt<=0)return;
    time+=dt;cooldowns(dt);
+   for(let i=visualBursts.length-1;i>=0;i--){visualBursts[i].age+=dt;if(visualBursts[i].age>.48)visualBursts.splice(i,1);}
+   for(let i=dashTrail.length-1;i>=0;i--){dashTrail[i].age+=dt;if(dashTrail[i].age>.28)dashTrail.splice(i,1);}
    const k=states['T.O.T'].K;
    if(k.phase==='CAPTURE'){
      k.captureLeft=Math.max(0,k.captureLeft-dt);
@@ -293,76 +304,93 @@ function create({actors,policy,weaponApi,state,log}={}){
    if(closed||!ctx||!living())return;
    const t=states['T.O.T'],v=states.RIVET;
    ctx.save();
-   // T.O.T's reserve is a tiny mechanical chest tray, not an arena-wide
-   // magical circle. The presentation follows ONLY a genuine holder state.
+   // Ivory/amber exhaust ribbons are the REAL T.O.T dash sample positions.
+   // No separate dash silhouette, virtual hitbox, or synthetic gun pickup.
+   for(const s of dashTrail){
+     const k=Math.max(0,1-s.age/.28);ctx.save();ctx.globalAlpha=k*.65;
+     ctx.translate(s.x,s.y);ctx.rotate(Math.atan2(s.dy,s.dx));
+     for(const side of [-1,1]){
+       ctx.strokeStyle=side===1?'#ffe0a4':'#f7aa46';ctx.lineWidth=2+3*k;
+       ctx.beginPath();ctx.moveTo(-18,side*17);
+       ctx.quadraticCurveTo(-42-19*k,side*(23+7*k),-95*k,side*11);ctx.stroke();
+     }
+     ctx.restore();
+   }
    if(active(tot)&&(t.K.phase==='CAPTURE'||t.K.phase==='STORED')){
      ctx.save();ctx.translate(tot.x,tot.y);
      ctx.rotate(Math.atan2(tot.dir?.y||0,tot.dir?.x||1));
-     const glow=t.K.phase==='STORED'?.9:.45+.4*Math.sin(time*17)**2;
-     ctx.strokeStyle='#fff4cf';ctx.lineWidth=2.6;
-     ctx.fillStyle='rgba(240,166,44,'+(glow*.42)+')';
-     ctx.shadowColor='#f5cb72';ctx.shadowBlur=t.K.phase==='STORED'?11:5;
-     ctx.fillRect(-15,12,30,15);ctx.strokeRect(-15,12,30,15);
-     ctx.beginPath();ctx.moveTo(-21,15);ctx.lineTo(-16,11);
-     ctx.moveTo(21,15);ctx.lineTo(16,11);ctx.stroke();
-     if(t.K.phase==='STORED'){
-       ctx.beginPath();ctx.moveTo(-8,19);ctx.lineTo(8,19);ctx.stroke();
-     }else{
-       const span=Math.max(0,t.K.captureLeft)/CONFIG['T.O.T'].K.window;
-       ctx.fillStyle='#fff5d6';ctx.fillRect(-12,29,24*span,2.5);
+     const held=t.K.phase==='STORED',u=held?1:1-t.K.captureLeft/CONFIG['T.O.T'].K.window;
+     ctx.shadowColor='#f4b756';ctx.shadowBlur=held?11:7;ctx.lineWidth=2.8;
+     ctx.strokeStyle='#ffe3ae';ctx.fillStyle='rgba(128,76,25,.72)';
+     ctx.beginPath();ctx.moveTo(-20,10);ctx.lineTo(20,10);
+     ctx.lineTo(17,31);ctx.lineTo(-17,31);ctx.closePath();ctx.fill();ctx.stroke();
+     ctx.shadowBlur=0;
+     // Sliding magnetic jaws close on genuine stored holder.
+     const open=held?0:8*(1-u);
+     for(const side of [-1,1]){
+       ctx.strokeStyle='#ffdb91';ctx.lineWidth=3.2;
+       ctx.beginPath();ctx.moveTo(side*(19+open),8);
+       ctx.lineTo(side*(11+open),17);ctx.lineTo(side*(10+open),25);ctx.stroke();
      }
+     ctx.fillStyle=held?'#fff4d7':'#ffa94c';ctx.globalAlpha=.65+.35*Math.sin(time*12)**2;
+     ctx.fillRect(-12,19,24*(held?1:Math.max(.08,1-u)),3);
      ctx.restore();
    }
-   if(active(tot)&&t.J.dash?.launched){
-     const dir=tot.dir||{x:1,y:0};
-     ctx.strokeStyle='rgba(250,231,179,.68)';ctx.lineWidth=5;
-     for(const side of [-1,1]){
-       ctx.beginPath();
-       ctx.moveTo(tot.x-dir.x*32+dir.y*side*18,
-         tot.y-dir.y*32-dir.x*side*18);
-       ctx.lineTo(tot.x-dir.x*65+dir.y*side*22,
-         tot.y-dir.y*65-dir.x*side*22);ctx.stroke();
-     }
-   }
-   // Rivet deploys compact grounded hardware and a scanner, never a tower.
    if(active(rivet)&&v.J.phase!=='READY'){
+     const c=v.J,waiting=c.phase==='WAITING';
+     const u=waiting?1-c.waitLeft/CONFIG.RIVET.J.waitSeconds:1;
      ctx.save();ctx.translate(rivet.x,rivet.y);
-     ctx.strokeStyle='#e7b758';ctx.lineWidth=5;
-     const rv=Math.max(27,rivet.radius||72);
-     for(const side of [-1,1]){
-       ctx.beginPath();ctx.moveTo(-rv*.34,side*rv*.64);
-       ctx.lineTo(-rv*.58,side*(rv*.64+17));
-       ctx.lineTo(-rv*.76,side*(rv*.64+17));ctx.stroke();
+     const angle=time*(waiting?1.5:.25),radius=CONFIG.RIVET.J.catchRadius;
+     // Bolted jaws, not an oversized magical disk. Ground radius is the real catch radius.
+     for(let i=0;i<4;i++){
+       const a=i*Math.PI/2+angle,outer=radius*(.88+.12*u);
+       ctx.save();ctx.rotate(a);ctx.strokeStyle=waiting?'rgba(244,188,98,.69)':'#fce1a1';
+       ctx.lineWidth=2.6+u;ctx.beginPath();ctx.arc(0,0,outer,-.31,.31);ctx.stroke();
+       ctx.beginPath();ctx.moveTo(outer-18,-8);ctx.lineTo(outer+4,0);ctx.lineTo(outer-18,8);ctx.stroke();
+       ctx.restore();
      }
-     const sweep=.45+Math.sin(time*11)*.15;
-     ctx.strokeStyle='rgba(255,204,109,'+(v.J.phase==='WAITING'?.25:sweep)+')';
-     ctx.lineWidth=v.J.phase==='WAITING'?2.5:4;
-     ctx.beginPath();ctx.arc(0,0,CONFIG.RIVET.J.catchRadius,
-       -Math.PI*.23,Math.PI*.23);ctx.stroke();
+     for(const side of [-1,1]){
+       const rr=Math.max(26,rivet.radius||68),yy=side*rr*.64;
+       ctx.strokeStyle='#e6b56b';ctx.lineWidth=5;
+       ctx.beginPath();ctx.moveTo(-rr*.3,yy);ctx.lineTo(-rr*.53,yy+side*17);
+       ctx.lineTo(-rr*.86,yy+side*17);ctx.stroke();
+     }
      ctx.restore();
-     if(v.J.phase==='CLAMPED'&&viable(v.J.target)){
-       const f=v.J.target;
-       ctx.save();ctx.translate(f.x,f.y);
-       ctx.strokeStyle='#f2ca82';ctx.lineWidth=7;
-       const radius=(f.radius||70)+12;
-       for(const side of [-1,1]){
-         ctx.beginPath();
-         ctx.arc(0,0,radius,side===1?.15:Math.PI+.15,
-           side===1?1.1:Math.PI+1.1);ctx.stroke();
+     if(c.phase==='CLAMPED'&&viable(c.target)){
+       ctx.save();ctx.translate(c.target.x,c.target.y);
+       const rr=(c.target.radius||68)+13;
+       for(let i=0;i<4;i++){
+         const a=i*Math.PI/2+Math.PI/4;
+         ctx.save();ctx.rotate(a);ctx.strokeStyle='#ffcf86';ctx.lineWidth=6;
+         ctx.beginPath();ctx.moveTo(rr-14,-15);ctx.lineTo(rr+2,-9);
+         ctx.lineTo(rr+2,9);ctx.lineTo(rr-14,15);ctx.stroke();ctx.restore();
        }
        ctx.restore();
      }
    }
    if(active(rivet)&&v.K.armorLeft>0){
-     const f=rivet,rad=(f.radius||72)+14;
-     const remaining=v.K.armorLeft/CONFIG.RIVET.K.duration;
-     ctx.save();ctx.translate(f.x,f.y);
-     ctx.strokeStyle='rgba(254,209,125,'+(.34+.58*remaining)+')';
-     ctx.lineWidth=6;
-     for(let i=0;i<4;i++){
-       const a=(i+.5)*Math.PI/2;
-       ctx.beginPath();ctx.arc(0,0,rad,a-.24,a+.24);ctx.stroke();
+     const remaining=Math.max(0,v.K.armorLeft/CONFIG.RIVET.K.duration),r=(rivet.radius||72)+13;
+     ctx.save();ctx.translate(rivet.x,rivet.y);
+     const sway=(1-remaining)*.13;
+     for(let i=0;i<6;i++){
+       const a=(i+.5)*Math.PI/3+sway,half=.34;
+       ctx.strokeStyle=i%2?'rgba(255,209,120,.88)':'rgba(244,232,208,.92)';
+       ctx.lineWidth=5;ctx.shadowColor='#e9a951';ctx.shadowBlur=7;
+       ctx.beginPath();ctx.arc(0,0,r,a-half,a+half);ctx.stroke();
+       ctx.shadowBlur=0;ctx.lineWidth=1;
+       ctx.beginPath();ctx.arc(0,0,r+8,a-half*.8,a+half*.8);ctx.stroke();
      }
+     ctx.restore();
+   }
+   for(const b of visualBursts){
+     const q=Math.max(0,1-b.age/.48),t=1-q,isArmor=b.kind.indexOf('ARMOR')>=0;
+     const isLock=b.kind.indexOf('INTERCEPT')>=0,rad=(isLock?90:isArmor?65:36)+t*(isLock?140:70);
+     ctx.save();ctx.translate(b.x,b.y);ctx.globalAlpha=q*q*.65;
+     ctx.strokeStyle=isArmor?'#8cddff':isLock?'#f2c079':'#ffda99';
+     ctx.lineWidth=2.5+q*3;
+     // Broken arcs signal finite gameplay windows, not a continuous collision volume.
+     for(let i=0;i<4;i++){const a=i*Math.PI/2+time*.35;
+       ctx.beginPath();ctx.arc(0,0,rad,a-.22,a+.22);ctx.stroke();}
      ctx.restore();
    }
    ctx.restore();

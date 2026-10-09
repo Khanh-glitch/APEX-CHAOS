@@ -1810,6 +1810,10 @@
         if(enemyKind&&spec.questTeam==='HOSTILE'){
           f.questSpecies=spec.kind;
           f.questVisualId=enemyKind.visual;
+          // Quest-only compact physical bodies: fewer air-contact pickups,
+          // nearer visible silhouettes. Same radius owns physics + shots.
+          const scale={scout:.93,reaver:.90,sentinel:.92}[spec.kind];
+          if(scale&&Number.isFinite(f.radius))f.radius=Math.max(54,Math.round(f.radius*scale));
         }
         // T.O.T gets the owner's Gold V12 fifth "OPERATOR" chassis for now.
         // Quest still owns T.O.T identity, HP, allegiance, AI and no skills.
