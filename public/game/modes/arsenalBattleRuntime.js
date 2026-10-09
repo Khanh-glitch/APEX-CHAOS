@@ -415,6 +415,11 @@
         if(prior!==status.phase){
           AQ.log('QUEST_E05_CHARGE_PHASE',status.phase);
           window.apexUiSfx?.play?.('ui.screen.transition');
+          if(status.phase==='PULSE'&&!state.questBreakerPulseStartedAt){
+            state.questBreakerPulseStartedAt=Math.max(0,state.time-0.3);
+            state.questBreakerPulseCount=(state.questBreakerPulseCount||0)+1;
+            AQ.log('QUEST_E05_ONE_INFRASTRUCTURE_PULSE','visual only, no weapon hit');
+          }
           state.spawnTimer=Math.min(state.spawnTimer,state.questBreakerSequence.cadence(p||0));
         }
       }
@@ -700,6 +705,14 @@
         state.questOutcome = outcome.status;
         // No economy award, no 1v1 winnerSide or Gold result transition.
         AQ.log('QUEST_OUTCOME', outcome.status + ' reason=' + outcome.reason);
+        // Capture the ACTUAL just-completed physical state before opening
+        // the story. RAF normally paints AFTER stepSimulation, so copying
+        // game-canvas now otherwise freezes the PREVIOUS (often 0%) frame.
+        // Quest-specific one-off draw, without stepping time/HP or damage.
+        if(state.questFirstWakeProgression||state.questScrapSwarmProgression
+          ||state.questWeaponRainProgression||state.questBreakerChargeProgression){
+          try{draw()}catch(e){AQ.log('QUEST_RESULT_STILL_WARN',String(e));}
+        }
         // Story panel is earned ONLY by real Arsenal team KO outcome. Q4I
         // does not own combat HP, attack scheduling or projectile production.
         if(state.questFirstWakeProgression===true
@@ -1287,6 +1300,18 @@
       c.fillStyle=v>=m?'#fff3cb':'#61616a';
       c.beginPath();c.arc(x,y,5,0,Math.PI*2);c.fill();
     }
+    if(s.questBreakerPhase==='PULSE'){
+      const t=Math.max(0,s.time-(s.questBreakerPulseStartedAt??s.time));
+      const fade=Math.max(0,1-t/1.8);
+      c.globalAlpha=fade;
+      for(let i=0;i<3;i++){
+        const radius=r+25+t*155-i*18;
+        if(radius<r)continue;
+        c.beginPath();c.arc(target.x,target.y,radius,0,Math.PI*2);
+        c.lineWidth=6-i;c.strokeStyle=i===0?'#ffe8a3':'#e5a34c';c.stroke();
+      }
+      c.globalAlpha=1;
+    }
     c.restore();
   }
 
@@ -1315,7 +1340,10 @@
         ctx.fillStyle=f.questTeam==='ALLY'?'#65cfc4':'#df7859';
         ctx.fillRect(x-26,y+1,52*ratio,3);
       }
-      if (AQ.state.questOutcome) {
+      if (AQ.state.questOutcome && !AQ.state.questFirstWakeProgression
+        && !AQ.state.questScrapSwarmProgression
+        && !AQ.state.questWeaponRainProgression
+        && !AQ.state.questBreakerChargeProgression) {
         ctx.font='900 48px sans-serif';ctx.fillStyle='#ffdf9e';
         ctx.fillText(AQ.state.questOutcome==='COMPLETE'
           ?(AQ.state.questWeaponRainProgression?'WEAPON RAIN CLEAR':AQ.state.questScrapSwarmProgression?'SCRAP SWARM CLEAR':AQ.state.questFirstWake?'FIRST WAKE CLEAR':'QUEST TEST CLEAR')
@@ -1648,6 +1676,8 @@
         AQ.state.questBreakerSequence=questCore.createBreakerChargeSequence();
         AQ.state.questBreakerPhase='CHARGING';
         AQ.state.questBreakerOpeningDropPending=true;
+        AQ.state.questBreakerPulseStartedAt=null;
+        AQ.state.questBreakerPulseCount=0;
         AQ.state.spawnTimer=0;
       }
       if(questWeaponRain){

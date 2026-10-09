@@ -109,20 +109,32 @@
    if(!src||!ctx||!src.width||!src.height)return false;
    canvas.width=src.width;canvas.height=src.height;
    const actors=Array.isArray(root.fighters)?root.fighters:[];
-   const target=focus==='ALLY'
-     ?actors.find(a=>a?.questId==='NEWBOT')
+   const ally=actors.find(a=>a?.questId==='NEWBOT');
+   const world=actors.find(a=>a?.questWorldObject===true);
+   const target=focus==='ALLY'?ally
+     :focus==='TARGET'?world
      :actors.find(a=>a?.questTeam==='HOSTILE'&&a.hp<=0)||
       actors.find(a=>a?.questTeam==='HOSTILE');
    // Compose two DIFFERENT authentic physical camera angles of the real
    // paused scene. Never generate characters, damage or a fake background.
    try{
-     if(target&&Number.isFinite(target.x)&&Number.isFinite(target.y)){
+     if(focus==='DUO'&&ally&&world
+       &&Number.isFinite(ally.x)&&Number.isFinite(world.x)){
+       // Include BOTH genuine actors in the mobile one-panel variant;
+       // previously a 0% target was clipped at frame-right.
+       const spreadX=Math.abs(ally.x-world.x)+220;
+       const spreadY=Math.abs(ally.y-world.y)+220;
+       const factor=Math.min(1,Math.max(.86,spreadX/src.width,spreadY/src.height));
+       const sxSize=src.width*factor,sySize=src.height*factor;
+       const midX=(ally.x+world.x)/2,midY=(ally.y+world.y)/2;
+       const sx=Math.max(0,Math.min(src.width-sxSize,midX-sxSize/2));
+       const sy=Math.max(0,Math.min(src.height-sySize,midY-sySize/2));
+       ctx.drawImage(src,sx,sy,sxSize,sySize,0,0,canvas.width,canvas.height);
+     }else if(target&&Number.isFinite(target.x)&&Number.isFinite(target.y)){
        const sxSize=src.width*(focus==='ALLY'?.67:.58);
        const sySize=src.height*(focus==='ALLY'?.67:.58);
-       const sx=Math.max(0,Math.min(src.width-sxSize,
-         target.x/src.width*src.width-sxSize/2));
-       const sy=Math.max(0,Math.min(src.height-sySize,
-         target.y/src.height*src.height-sySize/2));
+       const sx=Math.max(0,Math.min(src.width-sxSize,target.x-sxSize/2));
+       const sy=Math.max(0,Math.min(src.height-sySize,target.y-sySize/2));
        ctx.drawImage(src,sx,sy,sxSize,sySize,0,0,canvas.width,canvas.height);
      }else ctx.drawImage(src,0,0);
      return true;
@@ -150,7 +162,9 @@
    for(const [i,name] of [meta.left,meta.right].entries()){
     const shot=e('div','qs-shot'+(i===1?' qs-shot--detail':''));
     const picture=e('canvas','');picture.setAttribute('aria-hidden','true');
-    still(picture,i===0?'ALLY':'HOSTILE');
+    const focus=cue.id==='E05_BREAKER_CHARGE_CLEAR'
+      ?(i===0?'DUO':'TARGET'):(i===0?'ALLY':'HOSTILE');
+    still(picture,focus);
     shot.append(picture,e('div','qs-chip',name),e('span','qs-frame','0'+(i+1)));
     comic.appendChild(shot);
    }
@@ -158,6 +172,13 @@
    words.append(e('div','qs-kicker',meta.kicker),e('div','qs-line',meta.line));
    if(/_CLEAR$/.test(cue.id)){
      const roster=Array.isArray(root.fighters)?root.fighters:[];
+     if(cue.id==='E05_BREAKER_CHARGE_CLEAR'){
+       const accepted=root.APEX_QUEST_MULTI_ACTOR_CORE?.breakerAcceptedDamage?.(roster);
+       const hero=roster.find(x=>x.questId==='NEWBOT');
+       if(Number.isFinite(accepted)&&hero)
+         words.append(e('div','qs-stats',Math.round(accepted).toLocaleString('en-US')+
+           ' IMPACT · NEWBOT '+Math.round(hero.hp)+' HP'));
+     }
      const hero=roster.find(f=>f?.questId==='NEWBOT');
      const state=root.APEX_ARSENAL?.state;
      const defeated=roster.filter(f=>f?.questTeam==='HOSTILE'&&f.hp<=0).length+
