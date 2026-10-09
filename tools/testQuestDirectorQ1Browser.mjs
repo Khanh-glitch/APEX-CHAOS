@@ -732,6 +732,7 @@ try{
       checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,
       storyProgress:window.__apexQuestReflexRead?.()?.storyProgress,
       complete:window.__apexQuestReflexRead?.()?.complete,
+      technical:window.__apexQuestReflexTechnicalRead?.(),
       over:s?.over||null};
   })()`);
   gate('Q4C4 Stormbreaker naturally resolves with no HP/time/slot/cast/save drift',
@@ -744,6 +745,10 @@ try{
     &&q4cSettle?.stage==='AWAIT_RIVET'
     &&q4cSettle?.checkpoint==='WAKE'
     &&q4cSettle?.storyProgress===false&&q4cSettle?.complete===false
+    &&q4cSettle?.technical?.ready===true
+    &&q4cSettle.technical.kind==='E01_RIVET_TECHNICAL_PREVIEW'
+    &&q4cSettle.technical.checkpointAuthorized===false
+    &&q4cSettle.technical.storyComplete===false
     &&q4cSettle?.over===null,q4cSettle);
   await sleep(30);
   await image('11-q4c-gold-stormbreaker-safe-settle');

@@ -1,0 +1,87 @@
+name: Quest Q4D E01 technical handoff evidence acceptance
+
+on:
+  push:
+    branches:
+      - 'quest/q4d-e01-handoff-evidence-from-q4c4'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  q1-director:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install locked tooling
+        run: pnpm install --frozen-lockfile
+      - name: Materialize sound assets
+        run: pnpm arsenal:sfx:materialize
+      - name: Verify Q1 pure Director and hostile storage cases
+        run: node tools/testQuestDirectorQ1.mjs
+      - name: Verify CP04 real multi-actor core unchanged
+        run: node tools/testQuestMultiActorCore.mjs
+      - name: Verify Q2 generalized roster policy
+        run: node tools/testQuestGenericRosterQ2.mjs
+      - name: Q4A pure E01 acceptance receipts
+        run: node tools/testQuestReflexReceiptsQ4.mjs
+      - name: Q4A real E01 and Arsenal 1v2 2v2 3v4 integration
+        env:
+          APEX_EVIDENCE_DIR: /tmp/quest-q2-multi
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-n-actors --quest-reflex-real
+      - name: Real Arsenal FIRST WAKE and production regressions
+        env:
+          APEX_EVIDENCE_DIR: /tmp/quest-q2-real-combat
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-first-wake
+      - name: Production build
+        run: pnpm build
+      - name: Start Vite for real Chrome physical click/touch acceptance
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/quest-q2-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/quest-q2-vite.log
+          exit 1
+      - name: Locate Chrome
+        id: chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+      - name: Desktop real click WAKE/preview/reload contract
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/quest-q2-browser
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: Mobile Chrome touch WAKE/preview/reload contract
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/quest-q2-browser
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Archive Quest Q1 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quest-q2-real-n-actors-and-browser
+          path: |
+            /tmp/quest-q2-real-combat/
+            /tmp/quest-q2-multi/
+            /tmp/quest-q2-browser/
+            /tmp/quest-q2-vite.log
+          if-no-files-found: warn

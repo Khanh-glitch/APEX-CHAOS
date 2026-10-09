@@ -1352,7 +1352,14 @@
     state.questRivetPreview={
       phase:'READY',operator,aimPoint:{x:500,y:925,hp:1},
       sawFlight:false,peakFlight:0,settled:false,
-      storyComplete:false,authority:'ARSENAL_STORMBREAKER_EQUIP_PREVIEW'
+      storyComplete:false,authority:'ARSENAL_STORMBREAKER_EQUIP_PREVIEW',
+      freeze:{
+        time:state.time,
+        hp:(fighters||[]).map(f=>[f.questId,f.hp]),
+        pos:(fighters||[]).map(f=>[f.questId,f.x,f.y]),
+        slots:(state.slots||[]).map(s=>[s.id,s.phase])
+      },
+      getSlots:()=>state.slots||[]
     };
     if(!weaponApi.equip(operator,'STORMBREAKER')){
       state.questRivetPreview=null;
@@ -1363,6 +1370,20 @@
   }
   AQ.beginQuestRivetPreview=beginQuestRivetPreview;
   window.__apexQuestRivetPreviewRelease=beginQuestRivetPreview;
+  // Read-only, no save transitions or Stage mutation. A valid response still
+  // means TECHNICAL PREVIEW ONLY, not a canonical rescue or WORKSHOP unlock.
+  window.__apexQuestReflexTechnicalRead=function(){
+    const s=AQ.state;
+    if(!s?.active||s.questReflex!==true)return {
+      ready:false,reason:'no-active-reflex',storyComplete:false
+    };
+    return window.APEX_QUEST_REFLEX_RECEIPTS.technicalHandoff({
+      gate:s.questReflexGate,hold:s.questReflexHold,rig:s.questRivetPreview,
+      actors:typeof fighters!=='undefined'?fighters:[],
+      projectiles:typeof projectiles!=='undefined'?projectiles:[],
+      time:s.time,over:s.over
+    });
+  };
   // Read-only pilot receipt snapshot; no mission advance, no fake HP setter.
   window.__apexQuestReflexRead = function readQ4ARealReflexPilot() {
     return AQ.state?.active&&AQ.state?.questReflex

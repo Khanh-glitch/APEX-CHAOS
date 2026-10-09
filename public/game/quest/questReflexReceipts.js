@@ -60,6 +60,58 @@
     function close(){closed=true;}
     return Object.freeze({acceptDamage,acceptCast,poll,snapshot,close});
   }
-  root.APEX_QUEST_REFLEX_RECEIPTS=Object.freeze({create,PHASES});
+  // Q4D: strictly READ-ONLY technical acceptance of the already demonstrated
+  // Q4C4 test rig. This is NOT an authorization to complete E01, save REFLEX
+  // or trigger WORKSHOP. There is no substitute for a signed cinematic beat.
+  // Inputs are LIVE Quest/Arsenal references, never a fabricated combat step.
+  function technicalHandoff({gate,hold,rig,actors,projectiles,time,over} = {}){
+    const no=reason=>Object.freeze({ready:false,reason,storyComplete:false});
+    const snap=gate?.snapshot?.();
+    if(!snap?.active||snap.phase!=='AWAIT_RIVET'||snap.awaitingRivet!==true
+      ||snap.complete!==false||snap.storyProgress!==false)return no('missing-real-e01-gate');
+    const rs=snap.receipts||[];
+    if(rs.length!==4
+      ||rs[0]?.kind!=='PISTOL_HIT'||rs[0].from!=='NEWBOT'||rs[0].to!=='T.O.T'
+      ||rs[1]?.kind!=='PISTOL_HIT'||rs[1].from!=='T.O.T'||rs[1].to!=='NEWBOT'
+      ||rs[2]?.kind!=='CAST'||rs[2].slot!=='A1'
+      ||rs[3]?.kind!=='CAST'||rs[3].slot!=='A2'
+      ||!Number.isSafeInteger(rs[2].seq)||!Number.isSafeInteger(rs[3].seq)
+      ||rs[3].seq<=rs[2].seq)return no('invalid-real-receipts');
+    if(!Array.isArray(actors)||actors.length!==2)return no('wrong-live-roster');
+    const n=actors.find(x=>x?.questId==='NEWBOT'&&x.questTeam==='ALLY');
+    const t=actors.find(x=>x?.questId==='T.O.T'&&x.questTeam==='HOSTILE');
+    if(!n||!t||n===t||n.hp<=0||t.hp<=0||n.hp>500||t.hp>500
+      ||n.hp<250||t.hp<250
+      ||snap.hp?.newbot!==n.hp||snap.hp?.tot!==t.hp)return no('inconsistent-fighter-hp');
+    if(hold?.phase!=='AWAIT_RIVET'||hold.hp?.length!==2||hold.at!==time
+      ||hold.hp.some(h=>!actors.some(a=>a.questId===h.id&&a.hp===h.hp)))
+      return no('safe-hold-changed');
+    if(!rig||rig.authority!=='ARSENAL_STORMBREAKER_EQUIP_PREVIEW'
+      ||rig.phase!=='SETTLED'||rig.settled!==true
+      ||rig.sawFlight!==true||rig.peakFlight!==1||rig.storyComplete!==false)
+      return no('preview-not-settled');
+    const b=rig.birth;
+    if(b?.kind!=='aq_thrown'||b.weapon!=='STORMBREAKER'||b.owner!=='RIVET'
+      ||![b.x,b.y,b.vx,b.vy].every(Number.isFinite)
+      ||Math.hypot(b.vx,b.vy)<100)return no('unproven-arsenal-throw');
+    // Safely fail if any physical training-state field drifted during the rig
+    // flight. Comparison uses a snapshot captured BEFORE the real equip.
+    const frozen=rig.freeze;
+    if(!frozen||frozen.time!==time
+      ||JSON.stringify(frozen.hp)!==JSON.stringify(actors.map(a=>[a.questId,a.hp]))
+      ||JSON.stringify(frozen.pos)!==JSON.stringify(actors.map(a=>[a.questId,a.x,a.y]))
+      ||JSON.stringify(frozen.slots)!==JSON.stringify(
+        (rig.getSlots?.()||[]).map(s=>[s.id,s.phase]))
+      ||!Array.isArray(frozen.slots))return no('combat-state-drift');
+    if(!Array.isArray(projectiles)||projectiles.length!==0||over!=null)
+      return no('unresolved-combat');
+    return Object.freeze({
+      ready:true,kind:'E01_RIVET_TECHNICAL_PREVIEW',
+      phase:'PREVIEW_SETTLED',storyComplete:false,
+      checkpointAuthorized:false,weapon:b.weapon,operator:b.owner,
+      receipts:4,liveFighters:2,projectiles:0
+    });
+  }
+  root.APEX_QUEST_REFLEX_RECEIPTS=Object.freeze({create,PHASES,technicalHandoff});
   root.apexQuestReflexReceipts='ready';
 })(typeof window!=='undefined'?window:globalThis);
