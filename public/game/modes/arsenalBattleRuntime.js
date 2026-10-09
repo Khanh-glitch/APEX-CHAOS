@@ -1267,21 +1267,8 @@
     c.fillStyle=phase==='DRIZZLE'?'#41494d':'#db9952';c.fillRect(85,66,41,3);
     c.fillStyle=(phase==='BURST'||phase==='OBSERVED')?'#db9952':'#41494d';
     c.fillRect(130,66,41,3);
-    if(phase==='BURST'){
-      // Atmospheric streaks only, NOT extra physical floor pickups.
-      const t=Math.max(0,s.time-(window.APEX_QUEST_MULTI_ACTOR_CORE?.RAIN_SPEC?.burstAt??22));
-      const a=Math.max(0,Math.min(1,1-t/2));
-      c.globalAlpha=a;
-      c.strokeStyle='#f4b970';c.lineWidth=4;
-      c.shadowColor='#ee9841';c.shadowBlur=14;
-      for(let i=0;i<3;i++){
-        const x=300+i*240,dy=(t*400+i*60)%950;
-        c.beginPath();c.moveTo(x-28,dy-126);c.lineTo(x,dy);c.stroke();
-      }
-      c.shadowBlur=0;c.globalAlpha=Math.min(1,a);
-      c.textAlign='center';c.font='900 48px Impact,Bahnschrift,Arial,sans-serif';
-      c.fillStyle='#ffe9cb';c.fillText('FINAL RAIN',500,185);
-    }
+    // No decorative rain: real telegraphed weapon slots carry E04 spectacle.
+
     c.restore();
   }
 
