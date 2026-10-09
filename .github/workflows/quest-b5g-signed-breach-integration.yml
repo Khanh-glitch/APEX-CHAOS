@@ -1,0 +1,64 @@
+name: B5g Signed Real Gold E01-E05 plus Breach Pure Owner Canon
+on:
+  push:
+    branches: ['quest/b5g-signed-route-plus-breach-canon']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Existing Gold and new E06 owner contract
+        run: |
+          node tools/testQuestBreachPolicyQ6.mjs
+          node tools/testQuestStoryInterludesQ4E.mjs
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestWeaponRainQ5.mjs
+          node tools/testQuestReplayHubB4.mjs
+          node tools/buildGoldCutover.mjs --check
+          pnpm build
+      - name: Gold Vite for native signed gameplay
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b5g-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b5g-vite.log; exit 1
+      - name: Find Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"; echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Genuine Desktop E01-E05 Gold victory through signed checkpoint
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b5g-gold
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: Genuine mobile touch E01-E05 Gold victory through signed checkpoint
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b5g-gold
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Artifacts and log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b5g-quest-signed-five-encounters
+          path: |
+            /tmp/b5g-gold/
+            /tmp/b5g-vite.log
+          if-no-files-found: warn
