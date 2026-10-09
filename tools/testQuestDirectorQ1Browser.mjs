@@ -553,6 +553,76 @@ try{
         &&fillShape&&Number.isFinite(fill)&&Math.abs(fill-x.actorHp/x.actorMax)<0.001;
     }),q4HpTruth);
   await image('08-q4a-reflex-gold-real');
+  // Q4B: keep the Gold scene ACTUALLY VISIBLE, then fast-forward only
+  // canonical Arsenal physics and accepted HeroRework input. No fake HP,
+  // direct projectile creation, position warp or checkpoint mutation.
+  // Evidence includes a full-frame screenshot at the rescue hold.
+  const q4bSoak=await evalPage(`(()=>{
+    const A=window.APEX_ARSENAL,H=window.APEX_HERO_REWORK;
+    const actors=window.fighters||[];
+    if(!A?.state?.questReflex||actors.length!==2)return {ready:false};
+    let j=false,k=false,jAttempts=0,kAttempts=0,frames=0;
+    for(;frames<7100;frames++){
+      A.step(.05);
+      const phase=window.__apexQuestReflexRead?.()?.phase;
+      if(phase==='J_CAST'&&frames%10===0){
+        jAttempts++;j=H.pressAbility(actors[0],'A1',
+          {side:'p1',source:'keyboard',key:'KeyJ'})?.ok===true||j;
+      }
+      if(phase==='K_CAST'&&frames%10===0){
+        kAttempts++;k=H.pressAbility(actors[0],'A2',
+          {side:'p1',source:'keyboard',key:'KeyK'})?.ok===true||k;
+      }
+      if(phase==='AWAIT_RIVET'||A.state.over)break;
+    }
+    A.step(.05); // arms the safe-hold transition without altering HP
+    const before={hp:actors.map(f=>f.hp),time:A.state.time,
+      pos:actors.map(f=>[f.x,f.y]),proj:window.projectiles.length};
+    for(let t=0;t<80;t++)A.step(.05);
+    const after={hp:actors.map(f=>f.hp),time:A.state.time,
+      pos:actors.map(f=>[f.x,f.y]),proj:window.projectiles.length};
+    return {ready:true,phase:window.__apexQuestReflexRead?.()?.phase,
+      awaiting:window.__apexQuestReflexRead?.()?.awaitingRivet,
+      complete:window.__apexQuestReflexRead?.()?.complete,
+      j,k,jAttempts,kAttempts,frames,before,after,
+      hold:A.state.questReflexHold,over:A.state.over,
+      checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId};
+  })()`);
+  gate('Q4B real Chrome Gold reaches RIVET hold by organic Arsenal + accepted J/K',
+    q4bSoak?.ready===true&&q4bSoak?.phase==='AWAIT_RIVET'
+    &&q4bSoak?.j===true&&q4bSoak?.k===true
+    &&q4bSoak?.awaiting===true&&q4bSoak?.complete===false
+    &&q4bSoak?.over===null&&q4bSoak?.checkpoint==='WAKE'
+    &&q4bSoak?.before?.hp?.every(h=>h>=250&&h<=500),q4bSoak);
+  gate('Q4B rescued actors, clock and active projectiles settle safely on Gold',
+    JSON.stringify(q4bSoak?.before)===JSON.stringify(q4bSoak?.after)
+    &&q4bSoak?.before?.proj===0
+    &&q4bSoak?.hold?.phase==='AWAIT_RIVET'
+    &&Number.isInteger(q4bSoak?.hold?.interruptedProjectiles),q4bSoak);
+  await sleep(350); // permit real Gold projection to present the frozen HP
+  const q4bGold=await evalPage(`(()=>{
+    const host=document.getElementById('battleHudHost');
+    const hud=host?.querySelector('#hud'),f=window.fighters||[];
+    const rows=[1,2].map((n,i)=>({
+      actorHp:f[i]?.hp,readHp:Number(host?.querySelector('#p'+n+'Rail .vr-cur')?.textContent?.trim()),
+      max:host?.querySelector('#p'+n+'Rail .vr-max')?.textContent?.trim()
+    }));
+    const abilities=[...(hud?.querySelectorAll('#p1Side .skill')||[])].map(el=>({
+      locked:el.dataset.state==='locked',disabled:el.disabled,
+      meter:el.querySelector('.sk-state')?.textContent?.trim()
+    }));
+    return {rows,abilities,visible:host?.classList.contains('is-open'),
+      node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId};
+  })()`);
+  gate('Q4B full Gold rescue-hold frame shows true HP and LOCKED J/K, no fake checkpoint',
+    q4bGold?.visible===true&&q4bGold?.node==='WAKE'
+    &&q4bGold.rows?.length===2&&q4bGold.rows.every(r=>
+      Number.isFinite(r.actorHp)&&r.actorHp>0
+      &&r.readHp===Math.round(r.actorHp)&&r.max==='/1000')
+    &&q4bGold.abilities?.length===2
+    &&q4bGold.abilities.every(x=>x.locked&&x.disabled&&x.meter==='LOCKED'),
+    q4bGold);
+  await image('09-q4b-real-gold-rivet-hold');
   await pressEscape();
   const afterReflex=await poll(`(()=>({
     opened:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
