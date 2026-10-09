@@ -1440,6 +1440,7 @@
     drawQuestSwarmInterlude(ctx,AQ.state);
     drawWeaponRainCinematic(ctx,AQ.state);
     AQ.state?.questEnemyAbilities?.draw(ctx,fighters);
+    AQ.state?.questBreachCompanionSkills?.draw?.(ctx);
     drawBreakerProgress(ctx,AQ.state);
     ctx.restore();
     syncDomHud();
