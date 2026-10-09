@@ -12,7 +12,10 @@ function create({state,hero,tot,weaponApi,spawn,authority,onCue}={}){
    ||typeof weaponApi?.getHolder!=='function'
    ||typeof authority?.create!=='function')throw Error('E08 real engine dependencies required');
  let alive=true,slot=null,projectile=null,cradle=null,spawned=false,returned=false;
- let pendingReceipt=null,approvedReceipt=null;
+ let approvedReceipt=null;
+ const HERO_AFTER='__apexQuestAfterAcceptedDamage';
+ const heroPriorAfter=hero[HERO_AFTER];
+ if(typeof heroPriorAfter==='function')throw Error('E08 hero already owns native post-damage hook');
  const receipts=[],queue=[];
  const adapter=root.APEX_QUEST_TOT_DAMAGE_ADAPTER.create({
    authority,
@@ -23,6 +26,21 @@ function create({state,hero,tot,weaponApi,spawn,authority,onCue}={}){
  });
  const bound=adapter.attach(hero,tot);
  if(!bound.ok){adapter.close();throw Error('E08 native boss attach: '+bound.reason);}
+ // The engine calls this AFTER an actual accepted Fighter HP deduction,
+ // inside the STORMBREAKER swept collision transaction. This is the unique
+ // authoritative hit receipt, even if an AV/runtime layer later removes
+ // the transient projectile before E08's normal post-collision callback.
+ hero[HERO_AFTER]=function e08AcceptedStormHit(real,source,label){
+   if(!alive||source!==tot||label!=='arsenal-stormbreaker'||!(real>0))return;
+   if(!projectile||returned||!slot||slot.phase!=='REMOVED'
+      ||projectile.type!=='aq_thrown'||projectile.state!=='flight'
+      ||projectile.owner!==tot||projectile.weapon!=='STORMBREAKER'
+      ||projectile.questTotArtifactId!==String(slot.id)
+      ||!root.projectiles?.includes(projectile))
+     throw Error('E08 accepted hit without original live single Stormbreaker');
+   if(onResolve(projectile,'HIT')!==true)
+     throw Error('E08 authentic accepted Stormbreaker damage denied by artifact phase');
+ };
  function physical(event,extras={}){
    if(!alive||!slot)return {ok:false,reason:'no-live-native-slot'};
    approvedReceipt=Object.freeze({event,artifactId:String(slot.id),
@@ -70,12 +88,18 @@ function create({state,hero,tot,weaponApi,spawn,authority,onCue}={}){
    return true;
  }
  function onResolve(p,resolution){
-   if(!alive||p!==projectile||returned||!['HIT','MISS','GROUND'].includes(resolution))return false;
+   if(!alive||p!==projectile||!['HIT','MISS','GROUND'].includes(resolution))return false;
+   // The native accepted-damage hook can settle the actual hit before
+   // the weapon's post-VFX callback runs. Repeated confirmation of the
+   // SAME projectile+resolution is idempotent, never a second receipt.
+   if(returned)return cradle?.resolution===resolution;
    if(p.weapon!=='STORMBREAKER'||p.type!=='aq_thrown'
      ||p.owner!==tot||p.questTotArtifactId!==String(slot.id))return false;
    // Move the SAME floor artifact back to its cradle only after the native
    // projectile has physically hit or exited. It can never be picked up twice.
-   if(state.slots.some(s=>s.id===slot.id))return false;
+   if(slot.phase!=='REMOVED')return false;
+   if(state.slots.some(s=>s.id===slot.id&&s!==slot&&s.phase!=='REMOVED'))return false;
+   state.slots=state.slots.filter(s=>s!==slot);
    returned=true;cradle=Object.freeze({slotId:slot.id,x:slot.x,y:slot.y,resolution});
    slot.phase='REVEALED';slot.questNarrativeOnly=true;
    slot.questStage='E08_CRADLE_RETURN';slot.revealedFor=0;
@@ -98,7 +122,10 @@ function create({state,hero,tot,weaponApi,spawn,authority,onCue}={}){
    receipts:receipts.map(r=>({...r})),pendingScenes:queue.slice()
  });}
  function takeScene(){return queue.shift()||null;}
- function close(){if(!alive)return;alive=false;adapter.close();projectile=null;slot=null;queue.length=0;}
+ function close(){if(!alive)return;alive=false;
+   if(heroPriorAfter===undefined)delete hero[HERO_AFTER];else hero[HERO_AFTER]=heroPriorAfter;
+   adapter.close();projectile=null;slot=null;queue.length=0;
+ }
  return Object.freeze({trySpawn,onReveal,onPickup,onThrow,onResolve,
    snapshot,takeScene,close,adapter});
 }
