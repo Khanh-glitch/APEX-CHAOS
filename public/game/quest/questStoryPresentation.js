@@ -68,10 +68,12 @@
   }
   function keyDown(ev){
    if(!activeId)return;
-   if(['Enter',' ','Escape'].includes(ev.key)){
-    ev.preventDefault();ev.stopImmediatePropagation?.();
-    if(ev.key==='Escape')skip();else next();
-   }
+   // The entire scene owns input until acknowledgement. J/K, Escape to
+   // battle exit and all other hotkeys must not reach the combat executor.
+   if(ev.key==='Tab')return;
+   ev.preventDefault();ev.stopImmediatePropagation?.();
+   if(ev.key==='Escape')skip();
+   else if(ev.key==='Enter'||ev.key===' ')next();
   }
   function createUI(cue){
    const meta=LABEL[cue.id];if(!meta)return null;
