@@ -6094,7 +6094,8 @@ if(process.argv.includes('--quest-reflex-real')){
         hp:f.map(x=>x.hp),over:A.state.over,seen,ticks,phases,
         slots:A.state.slots.filter(x=>x.questWeaponId).map(x=>({id:x.id,stage:x.questStage,phase:x.phase,owner:x.questPickupOwner})),
         spawnFlags:A.state.questReflexSpawns,
-        positions:f.map(x=>({id:x.questId,x:Math.round(x.x),y:Math.round(x.y)}))};
+        positions:f.map(x=>({id:x.questId,x:Math.round(x.x),y:Math.round(x.y)})),
+        actualStagePickups:(A.state.questReflexPickupLog||[]).map(x=>({...x}))};
       window.exitArsenalBattleMode();
       return {entered,ready:true,...after,clean:window.__apexQuestReflexRead?.()==null};
     `);
@@ -6104,6 +6105,8 @@ if(process.argv.includes('--quest-reflex-real')){
       trials.length===3&&trials.every(natural=>
       natural?.ready===true&&natural?.clean===true
       &&natural?.seen?.NEWBOT===true&&natural?.seen?.['T.O.T']===true
+      &&natural?.actualStagePickups?.some(p=>p.stage==='R1_PISTOL'&&p.owner==='NEWBOT'&&p.weapon==='PISTOL')
+      &&natural?.actualStagePickups?.some(p=>p.stage==='R2_PISTOL'&&p.owner==='T.O.T'&&p.weapon==='PISTOL')
       &&natural?.phase==='J_CAST'&&natural?.over===null
       &&natural?.receipts?.length>=2
       &&natural.receipts[0].kind==='PISTOL_HIT'

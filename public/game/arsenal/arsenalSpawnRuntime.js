@@ -308,8 +308,16 @@
 
         // Quest may have N independent canonical Fighters. Ordinary BOT/LOCAL still
         // uses the exact original two entries, including HUD telemetry.
-        const predictionActors = state.questMultiActor
-          ? (fighters || []).filter(f => f && f.hp > 0) : [hero, rival];
+        // REFLEX R1/R2 stage pickups are authored PISTOL trials, not
+        // generic Arsenal counter drops. Only their REAL designated Fighter
+        // can trigger a reveal and later collect the floor weapon.
+        const stageOwner=state.questReflex===true && slot.questPickupOwner
+          ? (fighters||[]).find(f=>f&&f.hp>0&&f.questId===slot.questPickupOwner)
+          : null;
+        const predictionActors=slot.questPickupOwner && state.questReflex===true
+          ? (stageOwner?[stageOwner]:[])
+          : state.questMultiActor
+            ? (fighters || []).filter(f => f && f.hp > 0) : [hero, rival];
         const candidates = [];
         for (const actor of predictionActors) {
           const eta = actor === hero ? slot.predictedHeroETA
@@ -324,7 +332,10 @@
         slot.predictedFighter = earliest?.fighter?.name || null;
 
         const weaponApi = AQ.weaponApi;
-        if (earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
+        // The generic automatic counter system may transform a floor gun
+        // into SWIRL_SHIELD. Never let it replace the E01 authored PISTOL;
+        // otherwise R2 can be armed with a shield and soft-lock indefinitely.
+        if (!slot.questPickupOwner && earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
           const opponents = state.questMultiActor && window.APEX_QUEST_MULTI_ACTOR_CORE
             ? window.APEX_QUEST_MULTI_ACTOR_CORE.livingEnemies(earliest.fighter, fighters)
             : [earliest.fighter === hero ? rival : hero];
@@ -342,6 +353,10 @@
             continue;
           }
         }
+        // Keep at least a brief visible telegraph when the authored pickup
+        // materializes close enough to be immediately collected.
+        if (state.questReflex===true && slot.questPickupOwner
+          && state.time-slot.spawnTime<0.65)continue;
         if (earliest && earliest.eta <= slot.revealLeadSeconds + 1e-6) {
           revealSlot(slot, earliest.eta, earliest.fighter, false);
         } else if (state.time - slot.spawnTime >= Number(CFG.FORCE_REVEAL_AGE_SECONDS ?? 3.0)) {
@@ -496,6 +511,16 @@
       slot.pickedBy = closest.name;
       weaponApi.equip(closest, slot.weaponId);
       const hold = weaponApi.getHolder(closest);
+      // Stage receipt is derived ONLY from a genuine REVEALED floor pickup
+      // completed by Arsenal. It is not synthesized from HP or skill presses.
+      if (state.questReflex===true && slot.questStage && slot.questPickupOwner
+        && hold?.weaponId===slot.questWeaponId
+        && closest.questId===slot.questPickupOwner) {
+        (state.questReflexPickupLog||(state.questReflexPickupLog=[])).push({
+          stage:slot.questStage,owner:closest.questId,weapon:hold.weaponId,
+          slotId:slot.id,time:state.time
+        });
+      }
       // FROST V1 (authority §4.3/§5): Frozen state carries onto the real
       // holder and persists until that holder is consumed.
       if (slot.__frostFrozen && hold) {
