@@ -6121,7 +6121,7 @@ if(process.argv.includes('--quest-reflex-real')){
       // assign HP or spawn projectiles; only the existing normal Arsenal AI
       // and pickup/fire/healing pipeline may move the real HP thresholds.
       let halfHp=null;
-      if(trial<3 && postJK?.phase==='BOTH_HALF'){
+      if(${trial}<3 && postJK?.phase==='BOTH_HALF'){
         let frames=0,lowest=[f[0].hp,f[1].hp],t6=0,activeMax=0;
         for(;frames<4800;frames++){
           A.step(.05);
