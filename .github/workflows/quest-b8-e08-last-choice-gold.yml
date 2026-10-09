@@ -1,7 +1,7 @@
 name: B8 E08 Last Choice Native Gold
 on:
   push:
-    branches: ['quest/b7-e08-last-choice-native-from-b7', 'quest/b8qa-runtime-integrity-from-b8', 'quest/b8qb-product-acceptance-from-b8qa']
+    branches: ['quest/b7-e08-last-choice-native-from-b7', 'quest/b8qa-runtime-integrity-from-b8', 'quest/b8qb-product-acceptance-from-b8qa', 'quest/b8qc-owner-gold-product-preplaytest']
   workflow_dispatch:
 permissions:
   contents: read
