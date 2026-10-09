@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#080b0e">
+  <title>APEX CHAOS — Gold Fidelity Laboratory</title>
+  <style>
+    :root {color-scheme:dark}
+    *,*::before,*::after {box-sizing:border-box}
+    html,body {margin:0;width:100%;height:100%;overflow:hidden;background:#080b0e}
+    #gold-viewport {
+      position:fixed;top:0;left:0;width:550px;height:857px;
+      transform-origin:0 0;overflow:hidden;
+      contain:layout paint style;
+      background:#080b0e;
+      will-change:transform;
+    }
+    #gold-document {
+      display:block;width:550px;height:857px;border:0;margin:0;padding:0;
+      background:#080b0e;overflow:hidden;touch-action:auto;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    R87 faithful design-space rendering experiment:
+    a SAME-ORIGIN REAL game document receives exactly a 550x857 CSS-pixel
+    layout viewport at every physical phone size. The browser scales the
+    iframe composited result uniformly, including pointer hit-testing.
+    Gold, Hero Pick, modes, gameplay and engine remain unchanged.
+    This is a laboratory, NOT a default app bootstrap, NOT a production
+    change, and NOT an endorsement of tiny touch targets after shrinking.
+  -->
+  <div id="gold-viewport">
+    <iframe id="gold-document" title="APEX CHAOS Gold design viewport" loading="eager" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
+  </div>
+  <script>
+    (() => {
+      'use strict';
+      const DESIGN = Object.freeze({width:550,height:857});
+      const frame = document.getElementById('gold-document');
+      const viewport = document.getElementById('gold-viewport');
+      // Always boot the REAL application on the same origin at /.
+      // Deliberately exclude any R82/R85/R86 opt-in reflow experiments.
+      const target = new URL('/', location.origin);
+      frame.src = target.href;
+      let metrics = null;
+      let pending = 0;
+      const resize = () => {
+        pending = 0;
+        const v = window.visualViewport;
+        const w = v?.width ?? window.innerWidth;
+        const h = v?.height ?? window.innerHeight;
+        const ox = v?.offsetLeft ?? 0;
+        const oy = v?.offsetTop ?? 0;
+        if (!(w>0&&h>0)) return;
+        const scale = Math.min(w / DESIGN.width, h / DESIGN.height);
+        const left = ox + (w - DESIGN.width * scale) / 2;
+        const top = oy + (h - DESIGN.height * scale) / 2;
+        viewport.style.transform = 'translate3d('+left.toFixed(5)+'px,'+
+          top.toFixed(5)+'px,0) scale('+scale.toFixed(9)+')';
+        metrics = Object.freeze({
+          design:{...DESIGN},outer:{width:w,height:h,offsetLeft:ox,offsetTop:oy},
+          scale,left,top,scaledWidth:DESIGN.width*scale,
+          scaledHeight:DESIGN.height*scale,
+          letterboxX:(w-DESIGN.width*scale)/2,
+          letterboxY:(h-DESIGN.height*scale)/2,
+          child:{
+            width:frame.contentWindow?.innerWidth??null,
+            height:frame.contentWindow?.innerHeight??null
+          }
+        });
+      };
+      const queue = () => {
+        if (!pending) pending = requestAnimationFrame(resize);
+      };
+      window.addEventListener('resize',queue,{passive:true});
+      window.addEventListener('orientationchange',queue,{passive:true});
+      window.visualViewport?.addEventListener('resize',queue,{passive:true});
+      window.visualViewport?.addEventListener('scroll',queue,{passive:true});
+      frame.addEventListener('load',queue);
+      Object.defineProperty(window,'__apexGoldFidelity',{
+        configurable:false,
+        value:Object.freeze({
+          snapshot:()=>metrics,
+          child:()=>frame.contentWindow,
+          remeasure:queue
+        })
+      });
+      queue();
+    })();
+  </script>
+</body>
+</html>
