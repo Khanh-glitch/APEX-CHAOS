@@ -81,6 +81,12 @@ jobs:
           BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BIN"
           echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: B8qd Quest arena-centering and skill-family Chrome matrix
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b8-${{ matrix.device }}
+        run: node tools/testQuestBattleHudFamilyBrowser.mjs
       - name: Gold full Quest E01–E08 + OUTSIDE native Stormbreaker
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
