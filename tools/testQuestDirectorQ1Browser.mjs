@@ -681,12 +681,13 @@ try{
       stage:window.__apexQuestReflexRead?.()?.phase,
       checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId};
   })()`);
-  gate('Q4C4 Gold starts exactly one RIVET authentic Arsenal equip after proven hold',
-    q4cKick?.first?.ok===true&&q4cKick?.duplicate?.ok===false
+  gate('Q4C4 exactly one authorized physical floor Stormbreaker (not thrown/equipped)',
+    q4cKick?.first?.ok===true&&q4cKick?.first?.phase==='FLOOR_CHARGING'
+    &&q4cKick?.duplicate?.ok===false
     &&q4cKick?.duplicate?.reason==='already-released'
-    &&q4cKick?.holder==='STORMBREAKER'
+    &&q4cKick?.holder!=='STORMBREAKER'
     &&q4cKick?.premature?.ready===false
-    &&q4cKick?.premature?.reason==='preview-not-settled'
+    &&q4cKick?.premature?.reason==='gold-floor-lightning-incomplete'
     &&q4cKick?.liveRoster?.join(',')==='NEWBOT,T.O.T'
     &&q4cKick?.stage==='AWAIT_RIVET'&&q4cKick?.checkpoint==='WAKE',q4cKick);
   const q4cFlight=await evalPage(`(()=>{
@@ -710,15 +711,10 @@ try{
       hudVisible:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
       phase:A?.state?.questRivetPreview?.phase};
   })()`);
-  gate('Q4C4 physical Gold displays real flying Stormbreaker and V9 VFX owner',
-    q4cFlight?.proj?.aq===true&&q4cFlight?.proj?.type==='aq_thrown'
-    &&q4cFlight?.proj?.weapon==='STORMBREAKER'
-    &&q4cFlight?.proj?.owner==='RIVET'
-    &&q4cFlight?.proj?.maxFlight>0
-    &&q4cFlight?.visual?.ghostCount===3
-    &&q4cFlight?.vfxOwner===true
-    &&q4cFlight?.artLoaded===true
-    &&q4cFlight?.hudVisible===true&&q4cFlight?.phase==='FLIGHT',q4cFlight);
+  gate('Q4C4 floor manifestation produces NO thrown projectile and preserves Gold HUD',
+    q4cFlight?.proj===null
+    &&q4cFlight?.hudVisible===true&&q4cFlight?.artLoaded===true
+    &&q4cFlight?.phase==='SETTLED',q4cFlight);
   // Let rAF render the actual frame before capturing screenshot evidence.
   await sleep(30);
   await image('10-q4c-gold-real-stormbreaker-flight');
@@ -748,22 +744,26 @@ try{
         {x:s.questRivetPreview.aimPoint.x,y:s.questRivetPreview.aimPoint.y},
       over:s?.over||null};
   })()`);
-  gate('Q4C4 Stormbreaker naturally resolves with no HP/time/slot/cast/save drift',
+  gate('Q4C4 real floor discharge >=3s and >=10 lightning frames, zero fake damage/save',
     q4cSettle?.phase==='SETTLED'&&q4cSettle?.settled===true
-    &&q4cSettle?.peak===1&&q4cSettle?.projectileCount===0
+    &&q4cSettle?.projectileCount===0
     &&q4cSettle?.hold==='AWAIT_RIVET'
-    &&JSON.stringify(q4cKick?.before)===JSON.stringify(q4cSettle?.after)
+    &&JSON.stringify(q4cKick?.before?.hp)===JSON.stringify(q4cSettle?.after?.hp)
+    &&JSON.stringify(q4cKick?.before?.pos)===JSON.stringify(q4cSettle?.after?.pos)
+    &&q4cKick?.before?.time===q4cSettle?.after?.time
     &&q4cSettle?.skills?.length===2
     &&q4cSettle.skills.every(x=>x.locked&&x.disabled)
     &&q4cSettle?.stage==='AWAIT_RIVET'
     &&q4cSettle?.checkpoint==='WAKE'
     &&q4cSettle?.storyProgress===false&&q4cSettle?.complete===false
     &&q4cSettle?.technical?.ready===true
-    &&q4cSettle?.technical?.groundImpact?.kind==='REAL_ARSENAL_FLOOR_CONTACT'
-    &&q4cSettle?.technical?.groundImpact?.x===q4cSettle?.rigGround?.x
-    &&q4cSettle?.technical?.groundImpact?.y===q4cSettle?.rigGround?.y
+    &&q4cSettle?.technical?.phase==='FLOOR_DISCHARGED'
+    &&q4cSettle?.technical?.groundImpact?.kind==='REAL_ARSENAL_FLOOR_SPAWN'
+    &&q4cSettle?.technical?.electricFrames>=10
+    &&q4cSettle?.technical?.peakBolts>0
+    &&q4cSettle?.technical?.elapsed>=3
     &&q4cSettle?.storyBeats?.emitted?.join('|')===
-      'E01_R1_IMPACT|E01_R2_IMPACT|E01_J_REVEAL|E01_K_REVEAL|E01_RIVET_HOLD|E01_RIVET_SUPPRESSION_TECH'
+      'E01_R1_IMPACT|E01_R2_IMPACT|E01_J_REVEAL|E01_K_REVEAL|E01_RIVET_HOLD'
     &&q4cSettle.storyBeats.checkpointAuthorized===false
     &&q4cSettle.storyBeats.storyComplete===false
     &&q4cSettle.technical.kind==='E01_RIVET_TECHNICAL_PREVIEW'

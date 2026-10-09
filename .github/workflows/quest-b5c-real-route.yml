@@ -1,0 +1,59 @@
+name: B5c Current Owner Gold Chrome Route
+on:
+  push:
+    branches: ['quest/b5c-modernize-native-chrome-oracle']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  current-canon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Source unchanged and build
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          node tools/testQuestScrapSwarmQ5.mjs
+          pnpm build
+      - name: Gold Vite
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b5c-gold.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b5c-gold.log; exit 1
+      - name: Find Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"; echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Real Gold desktop E01-E05 acceptance
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_EVIDENCE_DIR: /tmp/b5c-evidence
+          APEX_APP_URL: http://127.0.0.1:5173
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: Real Gold mobile E01-E05 acceptance
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_EVIDENCE_DIR: /tmp/b5c-evidence
+          APEX_APP_URL: http://127.0.0.1:5173
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Preserve real scene evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b5c-current-owner-canon-real-chrome
+          path: |
+            /tmp/b5c-evidence/
+            /tmp/b5c-gold.log
+          if-no-files-found: warn
