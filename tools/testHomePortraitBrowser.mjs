@@ -127,7 +127,7 @@ try{
         stageClass:stage?.className,
         rects:{story:rect('.story'),storyTitle:rect('.storyTitle'),
           actions:rect('.actions'),routes:rect('.routes'),
-          fighterArena:rect('.fighterArena'),selectionDeck:rect('.selectionDeckV6'),
+          fighterArena:rect('.fighterArena'),selectionDeck:rect('.selectionDeckV6'),lock:rect('#lockIn'),
           roster:rect('#fighterRoster'),firstCard:rect('#fighterRoster .rosterCard')},
         nodes:{rosterCount:document.querySelectorAll('#fighterRoster .rosterCard').length}};
     })()`);
@@ -170,6 +170,15 @@ try{
     ['R81 Home Story separated from CTA',smallHome?.story?.y+smallHome?.story?.h <= smallHome?.actions?.y-10],
     ['R81 Home CTA separated from route band',smallHome?.actions?.y+smallHome?.actions?.h <= smallHome?.routes?.y-8],
     ['R81 Fighter roster gets legible short-portrait area',smallPick?.firstCard?.h >= 35 && smallPick?.roster?.h >= 95],
+    // Geometry authority after R81 top-only override: R52 still clears
+    // LOCK without clipping either roster. A CSS string assertion alone
+    // cannot prove this when a higher-specificity rule follows the R52 law.
+    ['R90 360px Fighter deck clears LOCK in real Blink',
+      smallPick?.selectionDeck && smallPick?.lock &&
+      smallPick.selectionDeck.y + smallPick.selectionDeck.h <= smallPick.lock.y - 1],
+    ['R90 550px Fighter deck clears LOCK in real Blink',
+      largePick?.selectionDeck && largePick?.lock &&
+      largePick.selectionDeck.y + largePick.selectionDeck.h <= largePick.lock.y - 1],
     ['R81 550px Home story retains approved geometry',Math.abs((largeHome?.story?.y??0)-370.2)<3 && Math.abs((largeHome?.actions?.y??0)-575)<3],
     ['R81 550px Fighter roster retains approved geometry',Math.abs((largePick?.roster?.h??0)-135.4)<3],
   ];
