@@ -99,6 +99,8 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
   // CP04 branch-only: side-effect-free Quest selectors, inactive in BOT/LOCAL.
   ['/game/quest/questMultiActorCore.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestMultiActorCore'],
+  ['/game/quest/questBreachWavesCore.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestBreachPolicy'],
+  ['/game/quest/questBreachRetreatAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestBreachRetreat'],
   ['/game/quest/questEnemyAbilities.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestEnemyAbilities'],
   ['/game/quest/questReflexReceipts.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestReflexReceipts'],
   ['/game/quest/questStoryInterludes.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestStoryInterludes'],

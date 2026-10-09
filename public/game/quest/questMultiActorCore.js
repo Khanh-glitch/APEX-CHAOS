@@ -9,7 +9,9 @@
 
   const EPS = 1e-9;
   const finite = Number.isFinite;
-  const alive = (a) => !!(a && finite(a.hp) && a.hp > 0);
+  // Physical E06 ally withdrawal leaves remaining HP visible as a retreat
+  // receipt; it is NOT an active target, projectile body or pickup claimant.
+  const alive = (a) => !!(a && finite(a.hp) && a.hp > 0 && a.withdrawn!==true);
   const identity = (a) => String(a && a.id != null ? a.id : '');
   const team = (a) => a && typeof a.questTeam === 'string' ? a.questTeam : '';
   function hostile(a, b) {

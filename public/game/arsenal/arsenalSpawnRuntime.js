@@ -479,7 +479,7 @@
       ? window.APEX_HERO_REWORK.pickupActors()
       : undefined;
     const actors = state.questMultiActor
-      ? (fighters || []).filter(f => f && f.hp > 0 && f.questWorldObject!==true)
+      ? (fighters || []).filter(f => f && f.hp > 0 && f.withdrawn!==true && f.questWorldObject!==true)
       : (pickupActorList || fighters);
 
     for (const slot of state.slots) {

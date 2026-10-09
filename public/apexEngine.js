@@ -2090,10 +2090,10 @@ function handleQuestCollisions(dt, actors, contactState) {
     let resolved=0,entered=0;
     for(let i=0;i<actors.length;i++){
         const a=actors[i];
-        if(!a||a.hp<=0||a.questWorldObject===true)continue;
+        if(!a||a.hp<=0||a.withdrawn===true||a.questWorldObject===true)continue;
         for(let j=i+1;j<actors.length;j++){
             const b=actors[j];
-            if(!b||b.hp<=0||b.questWorldObject===true)continue;
+            if(!b||b.hp<=0||b.withdrawn===true||b.questWorldObject===true)continue;
             const minD=(Number(a.radius)||0)+(Number(b.radius)||0);
             if(!(minD>0))continue;
             const dx=b.x-a.x,dy=b.y-a.y,realD=Math.hypot(dx,dy);
