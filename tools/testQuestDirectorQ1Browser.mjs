@@ -496,6 +496,10 @@ try{
       roster:f.map(x=>({id:x.questId,team:x.questTeam,maxHp:x.maxHp})),
       phase:window.__apexQuestReflexRead?.()?.phase||null,
       receipts:window.__apexQuestReflexRead?.()?.receipts||[],
+      locks:[...(hud?.querySelectorAll('#p1Side .skill')||[])].map(x=>({
+        state:x.dataset.state,disabled:x.disabled,
+        meter:x.querySelector('.sk-state')?.textContent?.trim()
+      })),
       names:[hud?.querySelector('#p1Side .id-name')?.textContent?.trim(),
              hud?.querySelector('#p2Side .id-name')?.textContent?.trim()],
       questHud:hud?.dataset.quest,
@@ -514,6 +518,11 @@ try{
   gate('Q4A REFLEX Gold displays T.O.T, never generic SCRAP or LOCAL meta',
     reflex?.names?.[0]==='NEWBOT'&&reflex?.names?.[1]==='T.O.T'
     &&reflex.playerMeta==='none',reflex);
+  gate('Q4A before J the actual Quest J/K cards show LOCKED',
+    ['R1_PISTOL','R2_PISTOL'].includes(reflex?.phase)
+    &&reflex?.locks?.length===2
+    &&reflex.locks.every(x=>x.state==='locked'&&x.disabled===true&&x.meter==='LOCKED'),
+    reflex?.locks);
   // Q4A visual regression: the prior screenshot showed 0/1000 while
   // both genuine Fighters and bridge projection were 1000/1000.
   // Gate the ACTUAL RENDERED Gold digits and bar transforms, not only

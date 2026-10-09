@@ -231,6 +231,15 @@
         const input = normalizeCastInput(ct, source);
         const s = ct.skills[slot];
         if (!s) return { ok: false, reason: 'no-skill' };
+        // E01 stage lock lives in the actual executor, never the HUD only.
+        const quest=globalScope.APEX_ARSENAL?.state;
+        if(quest?.questReflex===true&&ct.anchor?.questId==='NEWBOT'){
+          const phase=quest.questReflexGate?.snapshot()?.phase;
+          const allowJ=['J_CAST','K_CAST','BOTH_HALF','AWAIT_RIVET'].includes(phase);
+          const allowK=['K_CAST','BOTH_HALF','AWAIT_RIVET'].includes(phase);
+          if((slot==='A1'&&!allowJ)||(slot==='A2'&&!allowK))
+            return {ok:false,reason:'quest-stage-locked'};
+        }
         const a = ct.anchor;
         if (!a || a.hp <= 0) return { ok: false, reason: 'dead' };
         if (typeof a.hardCC === 'function' && a.hardCC()) return { ok: false, reason: 'cc' };

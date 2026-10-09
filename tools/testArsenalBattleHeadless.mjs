@@ -6074,6 +6074,12 @@ if(process.argv.includes('--quest-reflex-real')){
       const A=window.APEX_ARSENAL, W=A?.weaponApi,f=window.fighters||[];
       if(!entered||!A?.state?.questReflex||f.length!==2)return {entered,ready:false};
       const phases=[],seen={NEWBOT:false,'T.O.T':false},snap=()=>window.__apexQuestReflexRead?.();
+      const HR=window.APEX_HERO_REWORK;
+      const earlyJ=HR.pressAbility(f[0],'A1',{side:'p1',source:'keyboard',key:'KeyJ'});
+      const earlyK=HR.pressAbility(f[0],'A2',{side:'p1',source:'keyboard',key:'KeyK'});
+      const earlyBlocked=earlyJ?.ok===false&&earlyK?.ok===false
+        &&earlyJ.reason==='quest-stage-locked'&&earlyK.reason==='quest-stage-locked'
+        &&snap()?.receipts?.length===0;
       let lastPhase='',ticks=0;
       for(;ticks<1800;ticks++){
         A.step(.05);
@@ -6114,7 +6120,7 @@ if(process.argv.includes('--quest-reflex-real')){
           k=HR.pressAbility(f[0],'A2',{side:'p1',source:'keyboard',key:'KeyK'});
         }
       }
-      const postJK=snap(),skillPilot={j:j?.ok===true,k:k?.ok===true,
+      const postJK=snap(),skillPilot={earlyBlocked,j:j?.ok===true,k:k?.ok===true,
         phase:postJK?.phase,receipts:postJK?.receipts||[],
         waitSeconds:+(waitTicks*.05).toFixed(2),jAttempts};
       // Three full-duration combat trials after BOTH genuine casts. Do not
@@ -6165,7 +6171,8 @@ if(process.argv.includes('--quest-reflex-real')){
         &&x.halfHp.over===null&&x.halfHp.activeMax<=5),
       trials.slice(0,3).map(x=>x?.halfHp));
     gate('q4a-organic-reflex-j-k-real-accepted-casts-without-synthetic-pickup',
-      trials.length===12&&trials.every(x=>x?.skillPilot?.j===true
+      trials.length===12&&trials.every(x=>x?.skillPilot?.earlyBlocked===true
+        &&x?.skillPilot?.j===true
         &&x.skillPilot.k===true
         &&x.skillPilot.phase==='BOTH_HALF'
         &&x.skillPilot.receipts?.some(y=>y.kind==='CAST'&&y.slot==='A1')

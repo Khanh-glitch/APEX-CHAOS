@@ -154,6 +154,9 @@ kbd{font:inherit}
    T.O.T names plus segmented HP already identify the combatants. */
 #hud[data-quest="1"] #p1Side .id-ctrl{display:none}
 
+/* Quest E01 only: dim locked card CONTENT, never move original Gold cells. */
+#hud[data-quest="1"] .skill[data-state="locked"] .sk-art{filter:grayscale(.7) brightness(.43)}
+#hud[data-quest="1"] .skill[data-state="locked"] .sk-state{opacity:.8}
 /* --- Match center / timer --- */
 #matchCenter{grid-column:2 / 4;grid-row:1;justify-self:center;position:relative;width:var(--mcW);height:100%;z-index:2;cursor:pointer}
 .mc-plate{position:absolute;left:0;right:0;top:0;height:calc(100% + var(--notch));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:var(--notch);
@@ -909,6 +912,7 @@ kbd{font:inherit}
           // increments charges or fabricates its own cooldown completion.
           a.next=Number.isFinite(sk.nextIn)&&sk.nextIn>0?now+sk.nextIn*1000:0;
           a.__truth=!!sk.truth;
+          a.locked=sk.locked===true;
           if(sk.castUntil)a.castUntil=now+380;
         }
       }
@@ -1276,12 +1280,12 @@ function renderSkills(now){
   const frac=a.next?clamp(remaining/Math.max(.05,a.cd),0,1):0;
   const activeRemaining=a.activeUntil?Math.max(0,(a.activeUntil-now)/1000):0;
   const activeFrac=a.duration>0?clamp(activeRemaining/a.duration,0,1):0;
-  const st=now<a.castUntil?'cast':activeRemaining>0?'active':a.charges>0?'ready':'cd';
+  const st=a.locked===true?'locked':now<a.castUntil?'cast':activeRemaining>0?'active':a.charges>0?'ready':'cd';
   const prevSt=u.st;
   if(st!==prevSt){
    if(prevSt==='cd'&&st==='ready'){u.readyAgainUntil=now+720;readyPop(u,i,k);}
    else if(st!=='ready')u.readyAgainUntil=0;
-   u.el.dataset.state=st;u.st=st;
+   u.el.dataset.state=st;u.el.disabled=st==='locked';u.st=st;
   }
   u.el.dataset.kind=a.kind||'cooldown';
   const maskFrac=(st==='cd'&&a.charges<=0)?frac:0;
@@ -1290,7 +1294,8 @@ function renderSkills(now){
   const b=`scaleX(${meter.toFixed(3)})`;if(u.k.b!==b){u.bar.style.transform=b;u.k.b=b;}
   const secs=remaining.toFixed(1),activeSecs=activeRemaining.toFixed(1);
   let txt='READY';
-  if(st==='cast')txt='PRESS-CAST';
+  if(st==='locked')txt='LOCKED';
+  else if(st==='cast')txt='PRESS-CAST';
   else if(activeRemaining>0)txt='ACTIVE '+activeSecs+'s';
   else if(st==='ready'&&now<(u.readyAgainUntil||0))txt='READY AGAIN';
   else if(st==='cd')txt='COOLDOWN '+secs+'s';
