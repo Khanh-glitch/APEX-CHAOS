@@ -102,6 +102,7 @@ try{
   const layoutExpected={
     'portrait-tall':['port','compact'],'portrait-standard':['port','compact'],
     'portrait-tablet':['port','tablet'],'landscape-tablet':['land','tablet'],
+    'landscape-tablet-wide':['land','tablet'],
     'landscape-phone':['land','compact'],'landscape-ultrawide':['land','compact'],
     'desktop':['desk','desktop'],'desktop-wide':['desk','wide']
   };
