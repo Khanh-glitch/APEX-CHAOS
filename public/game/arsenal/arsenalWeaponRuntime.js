@@ -558,6 +558,7 @@
 
   // Per-frame movement/hit resolution for aq_* projectiles.
   function updateArsenalProjectiles(dt) {
+    if(AQ.state?.questRivetPreview){const q=AQ.state.questRivetPreview;q.weaponUpdateCalls=(q.weaponUpdateCalls||0)+1;}
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       if (!p || !p.aq) continue;
@@ -609,6 +610,10 @@
         continue;
       }
       if (p.type === 'aq_thrown') {
+        if(p.questRivetSuppression===true&&AQ.state?.questRivetPreview){
+          const q=AQ.state.questRivetPreview;q.thrownSeen=(q.thrownSeen||0)+1;
+          q.lastThrownState=p.state;q.ownerMatched=q.operator===p.owner;
+        }
         // POST-C §5 thrown-melee lifecycle: flight -> pinned -> exit.
         p.grace = Math.max(0, (p.grace || 0) - dt);
         if (p.state === 'flight') {
