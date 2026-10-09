@@ -251,8 +251,40 @@ try{
     output.push({id:v.name,intermediate:true,viewport:v,meta,battle,arena});
   }
 
+
+  // SOLO BOT is a different authored Gold HUD layout law from Local 1v1.
+  for(const v of [
+    {name:'bot-phone',w:390,h:844,device:'phone',size:'compact'},
+    {name:'bot-tablet',w:820,h:1180,device:'tablet',size:'tablet'}
+  ]){
+    await resize(v.w,v.h);
+    const link=new URL('/gold-fidelity-lab.html',url);
+    link.searchParams.set('goldDevice',v.device);
+    await command('Page.navigate',{url:link.href});
+    await boot();
+    await click('#freeBattle');
+    if(!(await wait("(()=>window.__apexGoldFidelity.child().document.querySelector('#stage')?.classList.contains('screen-mode'))()")))throw Error(v.name+' Mode failed');
+    await click('.modeCard[data-mode="bot"]');
+    if(!(await wait("(()=>window.__apexGoldFidelity.child().document.querySelector('#stage')?.classList.contains('screen-fighter'))()")))throw Error(v.name+' Fighter Pick failed');
+    await click('.rosterCard[data-hero="newbot"]');
+    await sleep(230);
+    await click('#lockIn');
+    if(!(await wait("(()=>{const c=window.__apexGoldFidelity.child(),d=c.document;return d.body.classList.contains('battle-hud-open')&&d.querySelector('#battleHudHost #arena')?.getBoundingClientRect().width>0})()")))throw Error(v.name+' Battle failed');
+    const before=await capture(v.name+'-Battle');
+    check(v.name+' native BOT battle layout',
+      before.battle.mode==='1p'&&before.battle.layout==='port'&&before.battle.size===v.size,before.battle);
+    const oldSession=before.child.session;
+    await resize(Math.round(v.w*.77),Math.round(v.h*.77));
+    await sleep(450);
+    const after=await capture(v.name+'-resized-Battle');
+    check(v.name+' live resize preserves real match instance',
+      after.child.session===oldSession&&after.battle.mode==='1p'&&
+      after.battle.arena?.w>0,{before,after});
+    output.push({id:v.name,solo:true,before,after});
+  }
+
   await writeFile(dir+'/report.json',JSON.stringify({output,failures},null,2));
-  console.log('R89 FINAL '+JSON.stringify({profiles:GOLD_PROFILES.length,cases:GOLD_PROFILES.length*2+intermediate.length,failures:failures.length}));
+  console.log('R89 FINAL '+JSON.stringify({profiles:GOLD_PROFILES.length,cases:GOLD_PROFILES.length*2+intermediate.length+2,failures:failures.length}));
   if(failures.length)throw Error('R89 native Gold profile invariance failed '+failures.length);
 }finally{
   try{socket?.close()}catch{}
