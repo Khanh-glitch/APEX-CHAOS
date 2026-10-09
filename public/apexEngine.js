@@ -2079,6 +2079,61 @@ function drawProjectiles(ctx) {
         ctx.restore();
     }
 }
+// Quest: N-body extension of Free Battle's reflectDir, not a second law.
+// Contact-enter receipts are separate from continuous overlap callbacks so
+// skills may distinguish distinct physical bumps without artificial cooldown.
+function handleQuestCollisions(dt, actors, contactState) {
+    if (!Array.isArray(actors)) return {resolved:0,entered:0};
+    const previous=contactState?.activePairs instanceof Set
+        ?contactState.activePairs:new Set();
+    const current=new Set();
+    let resolved=0,entered=0;
+    for(let i=0;i<actors.length;i++){
+        const a=actors[i];
+        if(!a||a.hp<=0||a.questWorldObject===true)continue;
+        for(let j=i+1;j<actors.length;j++){
+            const b=actors[j];
+            if(!b||b.hp<=0||b.questWorldObject===true)continue;
+            const minD=(Number(a.radius)||0)+(Number(b.radius)||0);
+            if(!(minD>0))continue;
+            const dx=b.x-a.x,dy=b.y-a.y,realD=Math.hypot(dx,dy);
+            if(realD>=minD)continue;
+            const nx=realD>1e-8?dx/realD:1;
+            const ny=realD>1e-8?dy/realD:0;
+            const aId=String(a.questId??a.id),bId=String(b.questId??b.id);
+            const key=aId<bId?aId+'|'+bId:bId+'|'+aId;
+            current.add(key);
+            const hostile=a.questTeam&&b.questTeam&&a.questTeam!==b.questTeam;
+            // Only the actual active robot disarm-dash may pass through a
+            // body. The property has to be set by the skill authority.
+            const dash=(a.questId==='NEWBOT'&&a.data?.questRobotDisarmDashActive===true)
+                ||(b.questId==='NEWBOT'&&b.data?.questRobotDisarmDashActive===true);
+            if(!dash){
+                const overlap=minD-realD;
+                a.x-=nx*overlap*.5;a.y-=ny*overlap*.5;
+                b.x+=nx*overlap*.5;b.y+=ny*overlap*.5;
+                if(a.dir)a.dir=reflectDir(a.dir,-nx,-ny);
+                if(b.dir)b.dir=reflectDir(b.dir,nx,ny);
+            }
+            resolved++;
+            if(hostile){
+                if(!a.hasStatus?.('abilityDisabled')&&a.type?.onCollide)
+                    a.type.onCollide(a,b,dt,{x:nx,y:ny});
+                if(!b.hasStatus?.('abilityDisabled')&&b.type?.onCollide)
+                    b.type.onCollide(b,a,dt,{x:-nx,y:-ny});
+                if(!previous.has(key)){
+                    entered++;
+                    contactState?.onEnter?.(a,b,{key,x:nx,y:ny});
+                }
+            }
+        }
+    }
+    if(contactState){
+        contactState.activePairs=current;
+        contactState.contacts=current.size;
+    }
+    return {resolved,entered};
+}
 function handleCollisions(dt) {
     const a=fighters[0], b=fighters[1]; if(!a||!b||a.hp<=0||b.hp<=0)return;
     const aNinjaProtected = a.name === 'NINJA' && a.data && (a.data.ninjaImmuneUntil || 0) > matchClock;

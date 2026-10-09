@@ -601,8 +601,11 @@
           fighter.update(dt, enemy);
           if (fighter === fighters[0] && gate?.postUpdate) gate.postUpdate(fighter);
         }
-        if(state.questBreakerChargeProgression!==true)
-          Q.separateBodyOverlaps(fighters);
+        if(state.questBreakerChargeProgression!==true){
+          if(!state.questContactState)
+            state.questContactState={activePairs:new Set(),contacts:0};
+          handleQuestCollisions(dt,fighters,state.questContactState);
+        }
       } else if (fighters[0] && fighters[1]) {
         if (gate && gate.preUpdate) gate.preUpdate(fighters[0], dt);
         fighters[0].update(dt, fighters[1]);

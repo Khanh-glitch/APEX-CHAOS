@@ -1,0 +1,34 @@
+name: Quest B1 Shared Reflection Physics
+on:
+  push:
+    branches: ['quest/b1-contact-reflect-from-b05']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fighter-contact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: B1 real engine reflectDir and contact event law
+        run: node tools/testQuestContactReflectionB1.mjs
+      - name: Prior Quest and source generation regression
+        run: |
+          node tools/testQuestGenericRosterQ2.mjs
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestWeaponRainQ5.mjs
+          node tools/testQuestBreakerChargeQ5.mjs
+          node tools/buildGoldCutover.mjs --check
+      - name: Production build
+        run: pnpm build
