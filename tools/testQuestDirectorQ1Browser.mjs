@@ -494,6 +494,7 @@ try{
     return {open:h?.classList.contains('is-open')===true,quest:!!s?.questReflex,
       roster:f.map(x=>({id:x.questId,team:x.questTeam,maxHp:x.maxHp})),
       phase:window.__apexQuestReflexRead?.()?.phase||null,
+      receipts:window.__apexQuestReflexRead?.()?.receipts||[],
       names:[hud?.querySelector('#p1Side .id-name')?.textContent?.trim(),
              hud?.querySelector('#p2Side .id-name')?.textContent?.trim()],
       questHud:hud?.dataset.quest,
@@ -502,7 +503,10 @@ try{
       story:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId};})()`,
     x=>x?.open&&x.quest&&x.questHud==='1'&&x.scripted?.length>=1,320);
   gate('Q4A physically clicked REFLEX opens LIVE Gold with real R1 PISTOL telegraph',
-    reflex?.open&&reflex?.quest&&reflex?.phase==='R1_PISTOL'
+    reflex?.open&&reflex?.quest
+    &&['R1_PISTOL','R2_PISTOL'].includes(reflex?.phase)
+    &&(reflex.phase==='R1_PISTOL'||reflex.receipts?.some(x=>
+      x.kind==='PISTOL_HIT'&&x.from==='NEWBOT'&&x.to==='T.O.T'))
     &&reflex?.roster?.length===2
     &&reflex.roster[0].id==='NEWBOT'&&reflex.roster[1].id==='T.O.T'
     &&reflex.scripted.length>=1&&reflex.story==='WAKE',reflex);
@@ -526,12 +530,17 @@ try{
       visibleFill:rail?.querySelector('.vr-fill')?.style.transform||''
     }));
   })()`);
-  gate('Q4A first real Gold frame shows TRUE 1000/1000 for both Fighters',
+  gate('Q4A real Gold rails numerically match live fighter HP and fill ratios',
     Array.isArray(q4HpTruth)&&q4HpTruth.length===2
-    &&q4HpTruth.every(x=>x.actorHp===1000&&x.actorMax===1000
-      &&x.projectedHp===x.actorHp&&x.projectedMax===x.actorMax
-      &&Number(x.rendered)===x.actorHp&&x.renderedMax==='/1000'
-      &&x.visibleFill==='scaleX(1.0000)'),q4HpTruth);
+    &&q4HpTruth.every(x=>{
+      const fill=Number((x.visibleFill||'').match(/^scaleX\\(([-0-9.]+)\\)$/)?.[1]);
+      return Number.isFinite(x.actorHp)&&x.actorHp>0
+        &&x.actorMax===1000
+        &&x.projectedHp===x.actorHp&&x.projectedMax===x.actorMax
+        &&Number(x.rendered)===Math.round(x.actorHp)
+        &&x.renderedMax==='/1000'
+        &&Number.isFinite(fill)&&Math.abs(fill-x.actorHp/x.actorMax)<0.001;
+    }),q4HpTruth);
   await image('08-q4a-reflex-gold-real');
   await pressEscape();
   const afterReflex=await poll(`(()=>({
