@@ -132,7 +132,9 @@
 
   function selectFirearmWeapon(rng) {
     const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
-    if(isQuestWeaponContext())return chooseQuestWeapon(random,true);
+    // Quest E01–E08 remains T1/T2-only, but now selects from registry
+    // rather than excluding valid V4.3 specials on a fake handgun-only list.
+    if(isQuestWeaponContext())return chooseQuestWeapon(random,false);
     const ids = (CFG.GUN_REGISTRY || []).map((e) => e.id);
     if (!ids.length) return 'PISTOL';
     if (CFG.selectOffensiveWeapon) {
