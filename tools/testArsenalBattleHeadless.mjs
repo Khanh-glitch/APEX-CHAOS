@@ -6105,7 +6105,6 @@ if(process.argv.includes('--quest-reflex-real')){
       // A normal player's J/K request must be ACCEPTED by HeroRework after
       // the R2 physical hit. This tests opportunity availability; no
       // synthetic pickup, cooldown overwrite, key receipt or fake Cast.
-      const HR=window.APEX_HERO_REWORK;
       let j=null,k=null,jAttempts=0,waitTicks=0;
       if(done?.phase==='J_CAST'){
         for(;waitTicks<900;waitTicks++){
