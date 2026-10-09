@@ -123,6 +123,14 @@ try{
    questStage:document.querySelector('#apexQuest01Stage')?.outerHTML?.slice(0,250)
  }))()`);
  console.log('B5_TOUCH_DISPATCH '+JSON.stringify(touchEvidence));
+ if(mobile){
+   const events=touchEvidence.events||[];
+   const released=events.some(e=>e.scope==='button'&&e.type==='touchend'&&e.trusted===true);
+   const ghost=events.some(e=>e.scope==='document'&&e.type==='click'&&e.target==='freeBattle');
+   gate('Mobile physical Continue Story touch releases into Quest, never ghost-opens Free Battle',
+     released&&stage?.shown===true&&!ghost,
+     {released,ghost,stageOpen:stage?.shown,events:events.map(e=>e.scope+':'+e.type+':'+e.target)});
+ }
  if(!stage?.shown)await picture('missed-continue-story');
  gate('Quest hub shows saved E05',stage?.shown&&stage.node==='CHARGE_THE_BREAKER',stage);
  const causeE05=await exec('document.querySelector("#q1Context")?.textContent');
