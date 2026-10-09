@@ -1,0 +1,27 @@
+name: Quest Q6A Breach roster contract
+on:
+  push:
+    branches: ['quest/q6a-breach-policy-from-e05']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pure-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Q6A pure policy
+        run: node tools/testQuestBreachPolicyQ6.mjs
+      - name: E05 pure regression
+        run: node tools/testQuestBreakerChargeQ5.mjs
+      - name: Build
+        run: pnpm build
