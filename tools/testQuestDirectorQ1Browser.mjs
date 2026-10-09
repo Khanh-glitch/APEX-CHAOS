@@ -553,6 +553,14 @@ try{
         &&fillShape&&Number.isFinite(fill)&&Math.abs(fill-x.actorHp/x.actorMax)<0.001;
     }),q4HpTruth);
   await image('08-q4a-reflex-gold-real');
+  // Q4C.4 RED-LAW: no rig release may be granted merely because E01 began.
+  const deniedEarly=await evalPage(`(()=>{
+    return window.__apexQuestRivetPreviewRelease?.() || null;
+  })()`);
+  gate('Q4C4 real Gold rejects RIVET before R1/R2/J/K and HP gates',
+    deniedEarly?.ok===false&&deniedEarly?.reason==='real-safe-hold-required',
+    deniedEarly);
+
   // Q4B: keep the Gold scene ACTUALLY VISIBLE, then fast-forward only
   // canonical Arsenal physics and accepted HeroRework input. No fake HP,
   // direct projectile creation, position warp or checkpoint mutation.
@@ -623,6 +631,98 @@ try{
     &&q4bGold.abilities.every(x=>x.locked&&x.disabled&&x.meter==='LOCKED'),
     q4bGold);
   await image('09-q4b-real-gold-rivet-hold');
+  // Q4C.4: prove the real STORMBREAKER projectile is present in the
+  // Gold-mounted *rendered* Chrome scene, not merely the native VM. The
+  // preview is test-only: it does NOT create a rig character asset,
+  // resolve story dialogue, hit either friend or advance WORKSHOP.
+  const q4cKick=await evalPage(`(()=>{
+    const A=window.APEX_ARSENAL,s=A?.state,actors=window.fighters||[];
+    const before={hp:actors.map(f=>f.hp),time:s?.time,
+      pos:actors.map(f=>[f.x,f.y]),
+      slots:s?.slots?.map(x=>[x.id,x.phase])};
+    const first=window.__apexQuestRivetPreviewRelease?.();
+    const duplicate=window.__apexQuestRivetPreviewRelease?.();
+    const holder=A?.weaponApi?.getHolder(s?.questRivetPreview?.operator);
+    return {first,duplicate,before,holder:holder?.weaponId,
+      liveRoster:actors.map(f=>f.questId),
+      stage:window.__apexQuestReflexRead?.()?.phase,
+      checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId};
+  })()`);
+  gate('Q4C4 Gold starts exactly one RIVET authentic Arsenal equip after proven hold',
+    q4cKick?.first?.ok===true&&q4cKick?.duplicate?.ok===false
+    &&q4cKick?.duplicate?.reason==='already-released'
+    &&q4cKick?.holder==='STORMBREAKER'
+    &&q4cKick?.liveRoster?.join(',')==='NEWBOT,T.O.T'
+    &&q4cKick?.stage==='AWAIT_RIVET'&&q4cKick?.checkpoint==='WAKE',q4cKick);
+  const q4cFlight=await evalPage(`(()=>{
+    const A=window.APEX_ARSENAL,storm=window.APEX_ARSENAL_STORM;
+    const art=window.APEX_ARSENAL_AV?.weaponImage?.('STORMBREAKER');
+    let proj=null,frames=0;
+    for(;frames<360;frames++){
+      A?.step?.(.05);
+      proj=(window.projectiles||[]).find(p=>p.questRivetSuppression===true);
+      if(proj)break;
+    }
+    const visual=storm?.flightPresentationProbe?.();
+    return {frames,proj:proj?{aq:proj.aq,type:proj.type,
+      weapon:proj.weapon,owner:proj.owner?.questId,
+      radius:proj.radius,x:proj.x,y:proj.y,vx:proj.vx,vy:proj.vy,
+      maxFlight:proj.maxFlight}:null,
+      visual:visual?{x:visual.x,y:visual.y,long:visual.long,
+        ghostCount:visual.ghosts?.length,mirror:visual.mirror}:null,
+      vfxOwner:storm?.ownsFlightSprite,
+      artLoaded:!!(art?.img?.complete&&art?.img?.naturalWidth>0),
+      hudVisible:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
+      phase:A?.state?.questRivetPreview?.phase};
+  })()`);
+  gate('Q4C4 physical Gold displays real flying Stormbreaker and V9 VFX owner',
+    q4cFlight?.proj?.aq===true&&q4cFlight?.proj?.type==='aq_thrown'
+    &&q4cFlight?.proj?.weapon==='STORMBREAKER'
+    &&q4cFlight?.proj?.owner==='RIVET'
+    &&q4cFlight?.proj?.maxFlight>0
+    &&q4cFlight?.visual?.ghostCount===3
+    &&q4cFlight?.vfxOwner===true
+    &&q4cFlight?.artLoaded===true
+    &&q4cFlight?.hudVisible===true&&q4cFlight?.phase==='FLIGHT',q4cFlight);
+  // Let rAF render the actual frame before capturing screenshot evidence.
+  await sleep(30);
+  await image('10-q4c-gold-real-stormbreaker-flight');
+  const q4cSettle=await evalPage(`(()=>{
+    const A=window.APEX_ARSENAL,s=A?.state,actors=window.fighters||[];
+    for(let i=0;i<400&&s?.questRivetPreview?.phase!=='SETTLED';i++){
+      A?.step?.(.05);
+    }
+    // Additional frames catch late projectiles and accidental second release.
+    for(let i=0;i<40;i++)A?.step?.(.05);
+    const after={hp:actors.map(f=>f.hp),time:s?.time,
+      pos:actors.map(f=>[f.x,f.y]),
+      slots:s?.slots?.map(x=>[x.id,x.phase])};
+    return {after,phase:s?.questRivetPreview?.phase,
+      settled:s?.questRivetPreview?.settled,peak:s?.questRivetPreview?.peakFlight,
+      projectileCount:(window.projectiles||[]).length,
+      hold:s?.questReflexHold?.phase,
+      skills:[...(document.querySelectorAll('#battleHudHost #p1Side .skill')||[])]
+        .map(x=>({locked:x.dataset.state==='locked',disabled:x.disabled})),
+      stage:window.__apexQuestReflexRead?.()?.phase,
+      checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,
+      storyProgress:window.__apexQuestReflexRead?.()?.storyProgress,
+      complete:window.__apexQuestReflexRead?.()?.complete,
+      over:s?.over||null};
+  })()`);
+  gate('Q4C4 Stormbreaker naturally resolves with no HP/time/slot/cast/save drift',
+    q4cSettle?.phase==='SETTLED'&&q4cSettle?.settled===true
+    &&q4cSettle?.peak===1&&q4cSettle?.projectileCount===0
+    &&q4cSettle?.hold==='AWAIT_RIVET'
+    &&JSON.stringify(q4cKick?.before)===JSON.stringify(q4cSettle?.after)
+    &&q4cSettle?.skills?.length===2
+    &&q4cSettle.skills.every(x=>x.locked&&x.disabled)
+    &&q4cSettle?.stage==='AWAIT_RIVET'
+    &&q4cSettle?.checkpoint==='WAKE'
+    &&q4cSettle?.storyProgress===false&&q4cSettle?.complete===false
+    &&q4cSettle?.over===null,q4cSettle);
+  await sleep(30);
+  await image('11-q4c-gold-stormbreaker-safe-settle');
+
   await pressEscape();
   const afterReflex=await poll(`(()=>({
     opened:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
