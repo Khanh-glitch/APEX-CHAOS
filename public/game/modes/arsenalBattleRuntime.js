@@ -266,12 +266,37 @@
     // This is a reversible pilot hold, not an invented Stormbreaker release.
     if(state.questReflex===true && state.questReflexGate?.snapshot()?.awaitingRivet===true){
       if(!state.questReflexHold){
+        // Resolve the last Arsenal projectiles harmlessly at cinematic
+        // interception. A frozen bullet would otherwise hang in the arena
+        // indefinitely while genuine RIVET choreography is pending.
+        // Do not apply damage or generate an imitation Stormbreaker impact.
+        const interruptedProjectiles=projectiles.length;
+        projectiles.length=0;
         state.questReflexHold={
           phase:'AWAIT_RIVET',at:state.time,
-          hp:(fighters||[]).map(f=>({id:f.questId,hp:f.hp}))
+          hp:(fighters||[]).map(f=>({id:f.questId,hp:f.hp})),
+          interruptedProjectiles
         };
         AQ.log('QUEST_REFLEX_SAFE_HOLD','accepted real J/K + both real HP<=500; awaiting RIVET');
       }
+      // Preserve the cinematic freeze of game physics while allowing
+      // noncombat visuals to decay and camera shake to settle naturally.
+      // No actor movement, pickup updates, damage or weapon cooldown tick.
+      weaponApi.tickVisuals(dt);
+      window.APEX_ARSENAL_AV?.tick?.(dt);
+      if(AQ.feel?.tick)AQ.feel.tick(dt);
+      for(let i=particles.length-1;i>=0;i--){
+        const p=particles[i];p.update(dt);
+        if(p.life<=0)particles.splice(i,1);
+      }
+      for(let i=shockwaves.length-1;i>=0;i--){
+        const s=shockwaves[i];s.r+=420*dt;s.alpha=Math.max(0,1-s.r/s.maxR);
+        if(s.alpha<=0)shockwaves.splice(i,1);
+      }
+      floatingTexts.length=0;
+      if(arenaFlash.a>0)arenaFlash.a=Math.max(0,arenaFlash.a-dt*1.6);
+      if(cameraShake>0)cameraShake=Math.max(0,cameraShake-dt*22);
+      cameraZoom=lerp(cameraZoom,1,dt*2);
       return;
     }
     matchClock += dt;

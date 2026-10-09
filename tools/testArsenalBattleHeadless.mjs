@@ -6208,7 +6208,9 @@ if(process.argv.includes('--quest-reflex-real')){
           &&h?.lateJ==='quest-stage-locked'&&h?.lateK==='quest-stage-locked'
           &&h?.lateJok===false&&h?.lateKok===false
           &&h?.rejectedImpact===0
-          &&h?.holdRecord?.phase==='AWAIT_RIVET';
+          &&h?.holdRecord?.phase==='AWAIT_RIVET'
+          &&h.beforeHold.projectiles===0&&h.afterHold.projectiles===0
+          &&Number.isInteger(h.holdRecord.interruptedProjectiles);
       }),trials.slice(0,8).map(x=>x?.halfHp?.holdProbe));
     gate('q4a-organic-reflex-j-k-real-accepted-casts-without-synthetic-pickup',
       trials.length===12&&trials.every(x=>x?.skillPilot?.earlyBlocked===true
