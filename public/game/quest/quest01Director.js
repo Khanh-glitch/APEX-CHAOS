@@ -410,14 +410,18 @@
   function show(options) {
     // Story callback order is acceptNativeBeat -> exitArsenalBattleMode ->
     // Director.show. Restore only AFTER the true battle has been disposed.
+    let restoredFromReplay=false;
     if(replaySession?.completed===true
        &&root.APEX_ARSENAL?.state?.active!==true){
       lastReplayCompletion=replaySession.stageId;
       core=permanentCore;
       replaySession=null;
+      restoredFromReplay=true;
     }
     const el=ensureView();
-    const state=core.beginOrResume();
+    // Inspecting the permanent chapter immediately after replay must NOT
+    // write localStorage, even a byte-identical redundant save.
+    const state=restoredFromReplay?core.checkpoint():core.beginOrResume();
     if (!el) return state;
     callbacks=options||{};
     const node=byId(state.checkpointId);
