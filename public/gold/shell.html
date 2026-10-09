@@ -1418,7 +1418,12 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   const story = document.getElementById('continueStory');
   // Q1: story entry always restores the earliest genuine Quest checkpoint.
   // CP04 FIRST WAKE remains an explicitly labelled, non-progressing preview.
-  story?.addEventListener('click',()=>{
+  // Mobile Gold: preserve the SAME authorized Quest callback for both mouse
+  // and touch. Chrome touchend on the animated home CTA was synthesizing its
+  // click onto Free Battle after a layout shift (B5 evidence 37919063772).
+  // Handle a real short, completed touch here and cancel only its ghost click.
+  const openQuestFromHome=()=>{
+
     if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
     const director=window.APEX_QUEST01_DIRECTOR;
     if(!director){console.warn('[quest-q1] director unavailable; refusing to skip WAKE');return;}
@@ -1436,7 +1441,28 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       p1Hero='newbot';p2Hero='newbot';
       void launchBattleHud();
     },onFirstWakeStory:launchQuestFirstWakeStory,onScrapSwarmStory:launchQuestScrapSwarmStory,onWeaponRainStory:launchQuestWeaponRainStory,onBreakerChargeStory:launchQuestBreakerChargeStory});
-  });
+  };
+  story?.addEventListener('click',openQuestFromHome);
+  let questTouchStart=null;
+  story?.addEventListener('touchstart',e=>{
+    const t=e.touches?.[0];
+    questTouchStart=e.touches?.length===1&&t
+      ?{id:t.identifier,x:t.clientX,y:t.clientY,at:performance.now()}:null;
+  },{passive:true});
+  story?.addEventListener('touchcancel',()=>{questTouchStart=null;},{passive:true});
+  story?.addEventListener('touchend',e=>{
+    const origin=questTouchStart;
+    questTouchStart=null;
+    if(!origin||e.changedTouches?.length!==1)return;
+    const t=e.changedTouches[0];
+    if(t.identifier!==origin.id
+       ||Math.hypot(t.clientX-origin.x,t.clientY-origin.y)>18
+       ||performance.now()-origin.at>1300)return;
+    // This is the real touch's release on Continue Story, NOT scripted
+    // checkpoint advancement. Prevent accidental synthesized Free Battle click.
+    e.preventDefault();
+    openQuestFromHome();
+  },{passive:false});
   // Q4I: the Gold composer, not the Director or Arsenal, owns a live
   // E02's battle transition, HUD mounting and runtime readiness. This is
   // also the canonical retry entry after a real NEWBOT KO.

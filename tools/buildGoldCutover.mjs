@@ -2370,6 +2370,20 @@ function applyQuestGoldPresentation(html) {
   next=next.replace('</head>','<style id="apexQuestArenaFirstProfile">\n'+style+'\n</style>\n</head>');
   return next;
 }
+// B5 input authority overlay: intentionally applied AFTER B0.5's source
+// overlay. Preserve exact callback body and fail closed on donor drift.
+function applyQuestMobileTouchRelease(html) {
+  const begin="  story?.addEventListener('click',()=>{";
+  const end="  });\n  // Q4I: the Gold composer";
+  if(html.split(begin).length!==2||html.split(end).length!==2)
+    throw new Error('B5 real mobile Quest touch source anchor drift');
+  const a=html.indexOf(begin),b=html.indexOf(end,a);
+  const replaceStart="  // Mobile Gold: preserve the SAME authorized Quest callback for both mouse\n  // and touch. Chrome touchend on the animated home CTA was synthesizing its\n  // click onto Free Battle after a layout shift (B5 evidence 37919063772).\n  // Handle a real short, completed touch here and cancel only its ghost click.\n  const openQuestFromHome=()=>{\n";
+  const replaceEnd="  };\n  story?.addEventListener('click',openQuestFromHome);\n  let questTouchStart=null;\n  story?.addEventListener('touchstart',e=>{\n    const t=e.touches?.[0];\n    questTouchStart=e.touches?.length===1&&t\n      ?{id:t.identifier,x:t.clientX,y:t.clientY,at:performance.now()}:null;\n  },{passive:true});\n  story?.addEventListener('touchcancel',()=>{questTouchStart=null;},{passive:true});\n  story?.addEventListener('touchend',e=>{\n    const origin=questTouchStart;\n    questTouchStart=null;\n    if(!origin||e.changedTouches?.length!==1)return;\n    const t=e.changedTouches[0];\n    if(t.identifier!==origin.id\n       ||Math.hypot(t.clientX-origin.x,t.clientY-origin.y)>18\n       ||performance.now()-origin.at>1300)return;\n    // This is the real touch's release on Continue Story, NOT scripted\n    // checkpoint advancement. Prevent accidental synthesized Free Battle click.\n    e.preventDefault();\n    openQuestFromHome();\n  },{passive:false});\n  // Q4I: the Gold composer";
+  return html.slice(0,a)+replaceStart+html.slice(a+begin.length,b)
+    +replaceEnd+html.slice(b+end.length);
+}
+
 function main() {
   verifyAuthority();
   materializeTheme();
@@ -2418,7 +2432,7 @@ function main() {
   log('battle-hud.html built (production-bridged donor)');
   outputs.set('lucky-draw.html', Buffer.from(buildLuckyDonor(), 'utf8'));
   log('lucky-draw.html built (localized + production-bridged donor)');
-  outputs.set('shell.html', Buffer.from(applyB05Overlay('shell.html', buildShell(outputs.get('battle-hud.html').toString('utf8'))), 'utf8'));
+  outputs.set('shell.html', Buffer.from(applyQuestMobileTouchRelease(applyB05Overlay('shell.html', buildShell(outputs.get('battle-hud.html').toString('utf8')))), 'utf8'));
   log('shell.html built (canonical shell + production patches)');
 
   const manifestFiles = {};
