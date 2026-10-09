@@ -1864,9 +1864,29 @@
               else AQ.log('E06_PASSIVE_HOLD','RIVET frontline, no automatic rig');
               return;
             }
-            if(!['E06_BREACH_CLEAR','E06_BREACH_RETRY'].includes(beatId))return;
-            // Preview only: no invented E07 save before the owner resolves
-            // rig handoff and approved companion J/K kits.
+            if(beatId==='E06_BREACH_CLEAR'){
+              // Physical three-wave receipts were already validated before
+              // presenting this scene. Now narrate the canonical consequences
+              // in strict order; nothing here creates a victory or E07 save.
+              ownerState.questBreachStoryView.offer({id:'E06_RELAY_REPLY'});
+              return;
+            }
+            const handoff=['E06_RELAY_REPLY','E06_NETWORK_SCAN',
+              'E06_RIG_RETURN','E06_OVERRIDE_BUILDUP'];
+            const i=handoff.indexOf(beatId);
+            if(i>=0){
+              const receipt=ownerState.questBreachRig?.acknowledgeBeat(beatId);
+              if(receipt?.ok!==true){
+                AQ.log('E06_CAUSAL_BEAT_DENIED',String(receipt?.reason));
+                return;
+              }
+              if(i<handoff.length-1){
+                ownerState.questBreachStoryView.offer({id:handoff[i+1]});
+                return;
+              }
+              // X-03 still pending: preserve saved BREACH_WAVES,
+              // never treat the pending E07 fixture as an unlocked chapter.
+            }else if(beatId!=='E06_BREACH_RETRY')return;
             AQ.log('QUEST_E06_PREVIEW_RESULT',beatId);
             window.exitArsenalBattleMode?.();
             window.APEX_QUEST01_DIRECTOR?.show?.({
