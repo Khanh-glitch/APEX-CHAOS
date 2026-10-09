@@ -5867,7 +5867,7 @@ if (process.argv.includes('--quest-scrap-swarm-native')) {
       const phaseAfterA=A.state.questSwarmPhase;
       const receipt=A.state.questSwarmWaveAReceipt;
       const hpBefore=player.hp,slotsBefore=A.state.slots,holderBefore=W.getHolder(player);
-      A.step(1.81);
+      for(let time=0;time<1.85-1e-9;time+=.05)A.step(.05);
       const waveBInit=Q.validateScrapSwarmWave(all(),'B');
       const sameHero=all()[0]===player,slotsSame=A.state.slots===slotsBefore;
       const hpAfter=player.hp,holderSame=W.getHolder(player)===holderBefore;

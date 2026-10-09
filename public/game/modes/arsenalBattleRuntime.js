@@ -313,6 +313,7 @@
           const check=Q.validateScrapSwarmWave(fighters,'B');
           if(!check.ok){state.questSwarmPhase='FAILED';AQ.log('QUEST_E03_ROSTER_DENIED',check.reason);return;}
           state.questSwarmWave='B';
+          state.questSwarmOpeningDropPending=!weaponApi.getHolder(original);
           state.questSwarmPhase='COMBAT';
           state.questSwarmWaveBCreated=true;
           AQ.log('QUEST_E03_WAVE_B','four real Fighters entered, NEWBOT/slots retained');
@@ -407,7 +408,11 @@
         return !!(h && CFG.isGun && CFG.isGun(h.weaponId));
       };
       const revealedGuns = (state.slots || []).filter((s) => s.phase === 'REVEALED' && s.kind !== 'HEAL' && CFG.isGun && CFG.isGun(s.weaponId)).length;
-      const emergencyGunNeeded = !state.labMode && living.length >= 2 && living.every((f) => !holdsGun(f)) && revealedGuns === 0;
+      const emergencyGunNeeded = !state.labMode && living.length >= 2
+        && living.every((f) => !holdsGun(f)) && revealedGuns === 0
+        // E03 allocates its regular first 4.5s-cycle slot to a REAL nearby
+        // protagonist firearm, instead of spawning two competing guns at t=0.
+        && !(state.questScrapSwarmProgression && state.questSwarmOpeningDropPending);
       let emergencySpawned = false;
       if (!emergencyGunNeeded) {
         state.unarmedFastConsumed = false;
@@ -468,6 +473,22 @@
       while (!state.labMode && state.spawnTimer <= 0 && guard++ < 4) {
         state.spawnTimer += CFG.SPAWN_CADENCE_SECONDS;
         if (emergencySpawned) continue;
+        if(state.questScrapSwarmProgression===true
+          &&state.questSwarmOpeningDropPending===true){
+          const pilot=(fighters||[]).find(f=>f?.questId==='NEWBOT'&&f.hp>0);
+          if(pilot){
+            const slot=SPAWN.trySpawnSlot({
+              questWeaponId:'PISTOL',questStage:'E03_OPENING',
+              questPickupOwner:'NEWBOT',
+              questPoint:{x:Math.max(95,Math.min(905,pilot.x+65)),y:pilot.y}
+            });
+            if(slot){
+              state.questSwarmOpeningDropPending=false;
+              AQ.log('QUEST_E03_REAL_PICKUP_OFFER','one physical PISTOL at native cadence, no equip');
+            }
+          }
+          continue;
+        }
         // E01 post-J/K is still a REAL physical Arsenal gun cycle. The
         // 4.5s cadence, live-slot cap 5, reveal and pickup all remain intact.
         // Direct each trial's PISTOL to an unarmed Fighter whose opponent
@@ -1425,6 +1446,8 @@
       if(questScrapSwarm){
         AQ.state.questSwarmWave='A';
         AQ.state.questSwarmPhase='COMBAT';
+        AQ.state.questSwarmOpeningDropPending=true;
+        AQ.state.spawnTimer=0; // First regular slot falls on match entry; 4.5s afterward.
         AQ.state.questSwarmWaveBCreated=false;
         AQ.state.questSwarmWaveAReceipt=null;
         AQ.state.questSwarmInterludeElapsed=0;
