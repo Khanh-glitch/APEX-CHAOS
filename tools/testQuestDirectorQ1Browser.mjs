@@ -1079,13 +1079,16 @@ try{
   if(!stage?.exists||stage?.panel!==true)
     throw new Error('Q4I Gold Home has not opened actual Quest Director: '+JSON.stringify(stage));
   const begin=await click('#q4iFirstWakePlay');
-  let started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,first:window.APEX_ARSENAL?.state?.questFirstWake,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,step:typeof window.APEX_ARSENAL?.step==='function',roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp}))}))()",
+  let started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,first:window.APEX_ARSENAL?.state?.questFirstWake,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,step:typeof window.APEX_ARSENAL?.step==='function',spawnReceipt:window.APEX_ARSENAL?.state?.questFirstWakeSpawnReceipt,roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp}))}))()",
     v=>v?.node==='FIRST_WAKE'&&v?.route===true&&v?.active===true&&v.gold&&v.hud&&v.step,420);
   gate('Q4I Gold-owned entry authenticates actual HUD plus native 2v2',
     begin.hit&&started?.gold===true&&started?.hud===true&&started?.step===true
     &&started?.first===true&&started?.roster?.length===4
     &&started.roster.map(x=>x.id).join('|')==='NEWBOT|SCRAP-A|T.O.T|SCRAP-B'
-    &&started.roster.map(x=>x.hp).join('|')==='1000|350|1000|350',started);
+    &&started.spawnReceipt?.map(x=>x.questId).join('|')==='NEWBOT|SCRAP-A|T.O.T|SCRAP-B'
+    &&started.spawnReceipt.map(x=>x.hp).join('|')==='1000|350|1000|350'
+    &&started.spawnReceipt.every((x,i)=>x.maxHp===x.hp
+      &&started.roster[i].hp>=0&&started.roster[i].hp<=x.hp),started);
   if(!started?.step||!started?.hud)
     throw new Error('Q4I genuine Gold READY absent: '+JSON.stringify(started));
   const premature=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E02_FIRST_WAKE_CLEAR'))()");
@@ -1398,6 +1401,54 @@ try{
           gate('B6j no fake E06 completion or E07 save on first frame',
             progressed?.checkpoint==='BREACH_WAVES',progressed);
           await image('31-e06-native-wave-a-gold');
+          if(process.argv.includes('--verify-breach-three-waves')){
+            // B6n ENGINE-INSTRUMENTED skill integration test:
+            // the slot is born through real SPAWN.trySpawnSlot, then moved and
+            // revealed for CI determinism. Real Arsenal.resolvePickups/equip
+            // and Gold pressSkill own the actual holder transaction.
+            const skills=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN,G=window.APEX_GOLD,W=A.weaponApi,Q=A.state.questBreachCompanionSkills,roster=window.fighters,[n,t,r]=roster;const start={nWithdrawn:n.withdrawn,tWithdrawn:t.withdrawn,tx:t.x,ty:t.y};if(!Q||!S||!G||!W)return{ok:false,reason:'missing-native-entry'};n.withdrawn=true;A.state.slots=[];t.x=320;t.y=480;if(W.getHolder(t))W.consume(t,'b6n-probe-clear');const recipient=Q.currentRecipient();G.pressSkill(0,1,{source:'B6N_CHROME'});const primed=Q.snapshot().tot.phase;const slot=S.trySpawnSlot({forceFirearm:true});if(!slot)return{ok:false,reason:'native-slot-unavailable'};slot.phase='REVEALED';slot.weaponId='PISTOL';slot.kind='GUN';slot.x=t.x;slot.y=t.y;S.resolvePickups();const stored=Q.snapshot().tot,unarmed=W.getHolder(t)===null,slotRemoved=slot.phase==='REMOVED';G.pressSkill(0,1,{source:'B6N_CHROME'});const drawn=W.getHolder(t),after=Q.snapshot().tot;const sameGun=drawn?.weaponId==='PISTOL'&&drawn.shotsFired===0;const cooldown=after.kCooldown;W.consume(t,'b6n-probe-finished');t.x=start.tx;t.y=start.ty;n.withdrawn=true;t.withdrawn=true;const rivetOwner=Q.currentRecipient();G.pressSkill(0,1,{source:'B6N_CHROME'});const nativeArmor=Q.mitigate(r,100);n.withdrawn=start.nWithdrawn;t.withdrawn=start.tWithdrawn;A.state.slots=[];return{ok:true,recipient,primed,stored:stored.phase,storedGun:stored.storedWeapon,unarmed,slotRemoved,sameGun,after:after.phase,cooldown,rivetOwner,nativeArmor,survived:roster.slice(0,3).every(f=>f.hp>0),realSlotId:slot.id}})()");
+            gate('B6n Gold touch K primes native T.O.T and stores true Arsenal floor gun',
+              skills?.ok&&skills?.recipient==='T.O.T'&&skills?.primed==='CAPTURE'
+              &&skills?.stored==='STORED'&&skills?.storedGun==='PISTOL'
+              &&skills?.unarmed&&skills?.slotRemoved&&Number.isInteger(skills?.realSlotId),skills);
+            gate('B6n Gold second K retrieves real pistol without firing or duplication',
+              skills?.sameGun&&skills?.after==='READY'&&skills?.cooldown>0,skills);
+            gate('B6n Gold touch priority activates original-stat RIVET armor when two withdrew',
+              skills?.rivetOwner==='RIVET'&&Math.abs(skills?.nativeArmor-45)<1e-5
+              &&skills?.survived,skills);
+            await image('31b-e06-real-companion-skill-handoff');
+            // The live RIVET AI may already have deployed J and caught a real
+            // hostile before the owner presses it; that cooldown is intentional.
+            // Engine-instrumented skill-clock fast-forward (without changing
+            // actor HP, weapon inventory or cooldown law) isolates manual J.
+            const intercept=await evalPage("(()=>{const A=window.APEX_ARSENAL,G=window.APEX_GOLD,Q=A.state.questBreachCompanionSkills;const [n,t,r,e]=window.fighters;const saved={nw:n.withdrawn,tw:t.withdrawn,rx:r.x,ry:r.y,ex:e.x,ey:e.y};n.withdrawn=t.withdrawn=true;const priorNativeAI=Q.snapshot().events.filter(x=>x.kind==='PHYSICAL_INTERCEPT').length;r.x=400;r.y=500;e.x=750;e.y=500;Q.tick(13);Q.tick(13);const cleared=Q.snapshot().rivet;G.pressSkill(0,0,{source:'B6N_CHROME_INTERCEPT'});const planted=Q.snapshot().rivet.phase;const plantedState={r:[r.x,r.y,r.hp,r.withdrawn],e:[e.x,e.y,e.hp,e.questId],q:Q.snapshot().rivet,time:Q.snapshot().time};A.step(.025);const early=e.hasStatus('stun');const farState={r:[r.x,r.y,r.hp,r.withdrawn],e:[e.x,e.y,e.hp],q:Q.snapshot().rivet,time:Q.snapshot().time};e.x=575;e.y=500;const nearStart={r:[r.x,r.y],e:[e.x,e.y]};A.step(.025);const nearEnd={r:[r.x,r.y],e:[e.x,e.y],q:Q.snapshot().rivet,time:Q.snapshot().time};const hit=e.hasStatus('stun');const clamped=Q.snapshot().rivet.phase;const event=Q.snapshot().events.some(x=>x.kind==='PHYSICAL_INTERCEPT'&&x.victim===e.questId);if(e.statuses?.stun)e.statuses.stun.timer=0;n.withdrawn=saved.nw;t.withdrawn=saved.tw;r.x=saved.rx;r.y=saved.ry;e.x=saved.ex;e.y=saved.ey;return{planted,early,hit,clamped,event,priorNativeAI,cleared,plantedState,farState,nearStart,nearEnd,live:A.state.active,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()");
+            gate('B6n real Rivet J waits for native enemy body to physically enter trap',
+              intercept?.planted==='WAITING'&&!intercept?.early&&intercept?.hit
+              &&intercept?.clamped==='CLAMPED'&&intercept?.event
+              &&Math.abs(intercept?.nearEnd?.r?.[0]-intercept?.plantedState?.r?.[0])<1
+              &&Math.abs(intercept?.nearEnd?.r?.[1]-intercept?.plantedState?.r?.[1])<1
+              &&intercept?.live&&intercept?.save==='BREACH_WAVES',intercept);
+            await image('31c-e06-real-rivet-interceptor');
+            const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:A.state.questBreachCompanionSkills.currentRecipient()}})()");
+            gate('B6n KeyJ probe has real revealed floor pistol and T.O.T skill lease',
+              inputSetup?.ok&&inputSetup?.recipient==='T.O.T',inputSetup);
+            await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+            await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+            const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot();const ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>9&&snap.tot.dashing;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dash:snap.tot.dashing,recipient:snap.currentRecipient}})()");
+            gate('B6n physical keyboard J dispatch reaches the same T.O.T native dash',
+              keyResult?.ok&&keyResult?.cooldown>9,keyResult);
+            const pointerReady=await evalPage("(()=>{const A=window.APEX_ARSENAL,G=window.APEX_GOLD,Q=A.state.questBreachCompanionSkills,W=A.weaponApi;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const k=Q.snapshot().tot;if(k.phase==='STORED'){if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');G.pressSkill(0,1,{source:'b6n-test-reset-stored-holder'});}if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');A.state.slots=[];Q.tick(12);Q.tick(4);const now=Q.snapshot();return{recipient:now.currentRecipient,phase:now.tot.phase,kCooldown:now.tot.kCooldown,ui:!!document.querySelector('#battleHudHost #p1Side .skill[data-i=\\\"1\\\"]')}})()");
+            gate('B6n true Gold skill button is present and T.O.T K is ready',
+              pointerReady?.recipient==='T.O.T'&&pointerReady?.phase==='READY'
+              &&pointerReady?.kCooldown===0&&pointerReady?.ui,pointerReady);
+            await click('#battleHudHost #p1Side .skill[data-i="1"]');
+            const physicalK=await poll("(()=>({phase:window.APEX_ARSENAL?.state?.questBreachCompanionSkills?.snapshot?.().tot?.phase,recipient:window.APEX_ARSENAL?.state?.questBreachCompanionSkills?.currentRecipient?.()}))()",
+              v=>v?.phase==='CAPTURE'&&v?.recipient==='T.O.T',60);
+            gate('B6n actual Gold pointer/touch K press primes 2s native gun reserve',
+              physicalK?.phase==='CAPTURE'&&physicalK?.recipient==='T.O.T',physicalK);
+            await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;Q.tick(3);Q.tick(4);window.fighters[0].withdrawn=false;return{restored:true}})()");
+
+          }
           if(process.argv.includes('--verify-breach-three-waves')){
             // ENGINE-INSTRUMENTED acceptance: projectiles and HP/KO authority
             // are real. Fighter positions are controlled to make CI reliable.

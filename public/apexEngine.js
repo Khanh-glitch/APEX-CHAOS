@@ -2125,8 +2125,24 @@ function handleQuestCollisions(dt, actors, contactState) {
                 ||(b.questId==='NEWBOT'&&b.data?.questRobotDisarmDashActive===true);
             if(!dash){
                 const overlap=minD-realD;
-                a.x-=nx*overlap*.5;a.y-=ny*overlap*.5;
-                b.x+=nx*overlap*.5;b.y+=ny*overlap*.5;
+                // E06 research RIVET must stay planted while its REAL
+                // Fighter intercept is active; standard dynamic-dynamic
+                // collisions split 50/50, but a static chassis transfers
+                // the entire overlap to the mobile body. BOT/LOCAL, boss
+                // RIVET E07 and ordinary Quest bodies are unchanged.
+                const e06Pinned=window.APEX_ARSENAL?.state?.questBreachEncounter===true;
+                const anchoredA=e06Pinned&&a.questId==='RIVET'
+                    &&a.questTeam==='ALLY'&&a.data?.questResearchAnchored===true;
+                const anchoredB=e06Pinned&&b.questId==='RIVET'
+                    &&b.questTeam==='ALLY'&&b.data?.questResearchAnchored===true;
+                if(anchoredA&&!anchoredB){
+                    b.x+=nx*overlap;b.y+=ny*overlap;
+                }else if(anchoredB&&!anchoredA){
+                    a.x-=nx*overlap;a.y-=ny*overlap;
+                }else{
+                    a.x-=nx*overlap*.5;a.y-=ny*overlap*.5;
+                    b.x+=nx*overlap*.5;b.y+=ny*overlap*.5;
+                }
                 if(a.dir)a.dir=reflectDir(a.dir,-nx,-ny);
                 if(b.dir)b.dir=reflectDir(b.dir,nx,ny);
             }

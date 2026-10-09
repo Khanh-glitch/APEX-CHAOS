@@ -633,6 +633,8 @@
       // POST-C §6: P1 cooldown-only skills wait for J. Gate wraps P1 update
       // only; P2 keeps automatic kit behavior.
       const gate = window.APEX_ARSENAL_SKILL_GATE;
+      if(state.questBreachEncounter===true)
+        state.questBreachCompanionSkills?.tick?.(dt);
       if (state.questMultiActor && window.APEX_QUEST_MULTI_ACTOR_CORE) {
         const Q = window.APEX_QUEST_MULTI_ACTOR_CORE;
         // Quest actor update follows the SAME Fighter.update and holder pipeline.
@@ -1438,6 +1440,7 @@
     drawQuestSwarmInterlude(ctx,AQ.state);
     drawWeaponRainCinematic(ctx,AQ.state);
     AQ.state?.questEnemyAbilities?.draw(ctx,fighters);
+    AQ.state?.questBreachCompanionSkills?.draw?.(ctx);
     drawBreakerProgress(ctx,AQ.state);
     ctx.restore();
     syncDomHud();
@@ -1511,6 +1514,15 @@
       return;
     }
     if (gameState !== 'ARSENAL') return;
+    if((e.code==='KeyJ'||e.code==='KeyK')&&!e.repeat
+       &&AQ.state?.questBreachEncounter===true
+       &&AQ.state?.questBreachCompanionSkills?.currentRecipient?.()!=='NEWBOT'){
+      // Companion J/K is a single lease after NEWBOT withdraws.
+      // Global Hero Rework K listener sees the withdrawn anchor and refuses.
+      AQ.state.questBreachCompanionSkills.press(e.code==='KeyJ'?'J':'K','keyboard');
+      e.preventDefault();
+      return;
+    }
     if (e.code === 'KeyJ' && !e.repeat) {
       const gate = window.APEX_ARSENAL_SKILL_GATE;
       if (gate && fighters[0] && !(AQ.state?.questMultiActor && fighters[0].withdrawn===true)) gate.pressJ(fighters[0]);
@@ -1760,6 +1772,15 @@
         return f;
       };
       fighters = specs.map((spec,i)=>makeQuestFighter(spec,i+1));
+      // Native actor CONSTRUCTION receipt is immutable before the first
+      // physical simulation frame. Mobile may take damage while Gold is
+      // asynchronously mounting the HUD; don't confuse a later HP read with
+      // an illegal starting HP or silently weaken the 1000/350/1000/350 law.
+      if(questFirstWake)AQ.state.questFirstWakeSpawnReceipt=Object.freeze(
+        fighters.map(a=>Object.freeze({
+          questId:a.questId,hp:a.hp,maxHp:a.maxHp,team:a.questTeam
+        }))
+      );
       // Fail closed before a simulation frame can run on bad Quest inputs.
       const validated = questBreakerCharge
         ?questCore.validateBreakerCharge(fighters)
@@ -1814,8 +1835,17 @@
         AQ.state.questBreachPhase='ACTIVE';
         AQ.state.questBreachCreateFighter=makeQuestFighter;
         AQ.state.questBreachNextId=10;
+        if(breachStory){
+          const kit=window.APEX_QUEST_COMPANION_NATIVE;
+          if(typeof kit?.create!=='function')return false;
+          AQ.state.questBreachCompanionSkills=kit.create({
+            actors:fighters,policy:breachPolicy,weaponApi,state:AQ.state,
+            log:(event,value)=>AQ.log(event,value)
+          });
+        }
         AQ.state.questBreachRetreat=window.APEX_QUEST_BREACH_RETREAT.create({
           policy:breachPolicy,
+          mitigate:(fighter,amount,source,label)=>AQ.state.questBreachCompanionSkills?.mitigate?.(fighter,amount,source,label)??amount,
           onRetreat:(fighter,receipt)=>{
             AQ.log('B6F_PHYSICAL_WITHDRAWAL',JSON.stringify(receipt));
             updateHUD();
@@ -2367,6 +2397,7 @@
       state.questEnemyAbilities=null;
       state.questBreachStoryView?.close?.();state.questBreachStoryView=null;
     state.questBreachRig?.close?.();state.questBreachRig=null;
+      state.questBreachCompanionSkills?.close?.();state.questBreachCompanionSkills=null;
       state.questBreachRetreat?.close?.();state.questBreachRetreat=null;
       state.questRivetAdapter?.close?.();state.questRivetAdapter=null;
       state.questBreachLifecycle?.close?.();state.questBreachLifecycle=null;

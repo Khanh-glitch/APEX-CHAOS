@@ -36,6 +36,14 @@ export const MENU_INTERACTIVE_RUNTIMES = [
   ['/game/product/productAssetRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'productAssetRuntime'],
 ];
 
+// Quest Director is a distinct Gold HOME/STORY shell script, deliberately
+// loaded by public/gold/shell.html (not by the deferred Arsenal combat graph).
+// Inventory it here for strict production source-hygiene ownership without
+// duplicating its load, changing Gold readiness or affecting BOT/Local boot.
+export const GOLD_QUEST_SHELL_RUNTIMES = Object.freeze([
+  ['/game/quest/quest01Director.js?v=20261008-q1-director-01', 'apexQuest01Director'],
+]);
+
 // Current-neutral combat services shared by Arsenal and the generic engine.
 export const CURRENT_COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
@@ -102,6 +110,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/quest/questBreachWavesCore.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestBreachPolicy'],
   ['/game/quest/questBreachRetreatAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestBreachRetreat'],
   ['/game/quest/questBreachRigAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestBreachRig'],
+  ['/game/quest/questCompanionNativeRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestCompanionNative'],
   ['/game/quest/questRivetThresholdAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestRivetThresholds'],
   ['/game/quest/questRivetRealDamageAdapter.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestRivetDamageAdapter'],
   ['/game/quest/questTotLastChoiceAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestTotLastChoice'],
