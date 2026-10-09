@@ -227,10 +227,19 @@
         ||!Array.isArray(actors)||Q?.scrapSwarmOutcome?.(actors,'B')?.status!=='COMPLETE')
         return no('e03-native-combat-not-earned');
       const first=q.questSwarmWaveAReceipt;
-      if(!Array.isArray(first)||first.length!==3
-        ||first.some(x=>!['SWARM-A1','SWARM-A2','SWARM-A3'].includes(x.questId)
-          ||x.hp>0||x.maxHp!==280)
-        ||new Set(first.map(x=>x.questId)).size!==3)
+      // Single authority: Gold's physically created wave and the Director
+      // MUST read one canonical roster. Balancing 280 -> 120 must not turn
+      // genuine three-KO proof into an impossible hidden checkpoint gate.
+      const expected=Q?.scrapSwarmRoster?.('A')?.filter(x=>x.questTeam==='HOSTILE');
+      const expectedIds=new Set((expected||[]).map(x=>x.questId));
+      if(!Array.isArray(expected)||expected.length!==3
+        ||expectedIds.size!==3||!Array.isArray(first)
+        ||first.length!==expected.length
+        ||new Set(first.map(x=>x.questId)).size!==expected.length
+        ||first.some(x=>{
+          const authored=expected.find(e=>e.questId===x.questId);
+          return !authored||x.hp!==0||x.maxHp!==authored.hp;
+        }))
         return no('e03-prior-wave-unverified');
       const v=q.questSwarmStoryView?.snapshot?.();
       if(!v||v.active!==false||v.closed!==false
