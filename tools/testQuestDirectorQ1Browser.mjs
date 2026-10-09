@@ -904,6 +904,96 @@ try{
     afterStoryExit?.open===false&&afterStoryExit?.view==null
     &&afterStoryExit?.node==null&&afterStoryExit?.checkpoint==='WAKE',afterStoryExit);
 
+  // Q4H: ACTUAL Quest opening/save lane, separate from non-saving previews.
+  // Entry and ALL scene acknowledgements are native CDP mouse or touch.
+  // Only production Arsenal shots/casts/Stormbreaker can authorize progress.
+  await click('#continueStory');
+  const q4hButton=await click('#q4hQuestPlay');
+  const wake=await poll("(()=>({beat:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase,node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,mode:window.APEX_ARSENAL?.state?.questStoryCompletion,hp:(window.fighters||[]).map(x=>x.hp)}))()",
+    v=>v?.beat==='WAKE_OPEN'&&v?.node==='WAKE'&&v?.mode===true,150);
+  gate('Q4H physical Quest START presents true fresh-match WAKE, no auto-advance',
+    q4hButton.hit&&wake?.beat==='WAKE_OPEN'&&wake.phase==='R1_PISTOL'
+    &&wake.node==='WAKE'&&wake.mode===true
+    &&wake.hp?.length===2&&wake.hp.every(x=>x===1000),wake);
+  const early=await evalPage("(()=>({invalid:window.APEX_QUEST01_DIRECTOR.acceptNativeBeat('WORKSHOP_ARRIVAL'),blocked:window.APEX_QUEST01_DIRECTOR.acceptNativeBeat('WAKE_OPEN'),node:window.APEX_QUEST01_DIRECTOR.checkpoint().checkpointId}))()");
+  gate('Q4H deny checkpoint writes while any narrative panel owns input',
+    early?.invalid?.ok===false&&early?.blocked?.ok===false&&early?.node==='WAKE',early);
+  await image('17-q4h-live-wake-comic');
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const entered=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,phase:window.__apexQuestReflexRead?.()?.phase,active:window.__apexQuestStoryViewRead?.()?.active,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds}))()",
+    v=>v?.node==='REFLEX'&&v?.active===false,100);
+  gate('Q4H first true Story acknowledgement saves adjacent WAKE to REFLEX only',
+    entered?.node==='REFLEX'&&entered?.phase==='R1_PISTOL'
+    &&entered?.cues?.join('|')==='WAKE_OPEN',entered);
+  const deniedRepeat=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('WAKE_OPEN'))()");
+  gate('Q4H repeated WAKE acknowledgement cannot grant a second checkpoint',
+    deniedRepeat?.ok===false,deniedRepeat);
+  const first=await evalPage("(()=>{const A=window.APEX_ARSENAL;let n=0;for(;n<2400;n++){A.step(.05);if(window.__apexQuestStoryViewRead?.()?.active)break;}return {steps:n,scene:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase}})()");
+  gate('Q4H REFLEX continues from genuine R1 PISTOL, not a Story timer',
+    first?.scene==='E01_R1_IMPACT'&&first?.phase==='R2_PISTOL',first);
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  await poll("window.__apexQuestStoryViewRead?.()?.active",v=>v===false,100);
+  const second=await evalPage("(()=>{const A=window.APEX_ARSENAL;let n=0;for(;n<2400;n++){A.step(.05);if(window.__apexQuestStoryViewRead?.()?.active)break;}return {steps:n,scene:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase}})()");
+  gate('Q4H real T.O.T retaliation R2 gates actual J reveal',
+    second?.scene==='E01_R2_IMPACT'&&second?.phase==='J_CAST',second);
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const jTitle=await poll("window.__apexQuestStoryViewRead?.()?.current",v=>v==='E01_J_REVEAL',100);
+  gate('Q4H genuine R2 cue precedes J introduction',jTitle==='E01_J_REVEAL',{scene:jTitle});
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  await poll("window.__apexQuestStoryViewRead?.()?.active",v=>v===false,100);
+  const jCast=await evalPage("(()=>{const A=window.APEX_ARSENAL,H=window.APEX_HERO_REWORK;let n=0,cast=false;for(;n<1900;n++){A.step(.05);if(window.__apexQuestReflexRead?.()?.phase==='J_CAST'&&n%10===0)cast=H.pressAbility(window.fighters[0],'A1',{side:'p1',source:'keyboard',key:'KeyJ'})?.ok===true||cast;if(window.__apexQuestStoryViewRead?.()?.active)break;}return {steps:n,cast,scene:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase}})()");
+  gate('Q4H only actual HeroRework J Cast yields K reveal',
+    jCast?.cast===true&&jCast?.scene==='E01_K_REVEAL'&&jCast?.phase==='K_CAST',jCast);
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  await poll("window.__apexQuestStoryViewRead?.()?.active",v=>v===false,100);
+  const kCast=await evalPage("(()=>{const A=window.APEX_ARSENAL,H=window.APEX_HERO_REWORK;let n=0,cast=false;for(;n<6800;n++){A.step(.05);if(window.__apexQuestReflexRead?.()?.phase==='K_CAST'&&n%10===0)cast=H.pressAbility(window.fighters[0],'A2',{side:'p1',source:'keyboard',key:'KeyK'})?.ok===true||cast;if(window.__apexQuestStoryViewRead?.()?.active)break;}return {steps:n,cast,scene:window.__apexQuestStoryViewRead?.()?.current,phase:window.__apexQuestReflexRead?.()?.phase,hp:(window.fighters||[]).map(x=>x.hp),node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
+  gate('Q4H native K and both actual <=500 HP earn RIVET entry, save stays REFLEX',
+    kCast?.cast===true&&kCast?.scene==='E01_RIVET_HOLD'
+    &&kCast?.phase==='AWAIT_RIVET'
+    &&kCast.hp?.length===2&&kCast.hp.every(x=>x>=250&&x<=500)
+    &&kCast?.node==='REFLEX',kCast);
+  const deniedBefore=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('WORKSHOP_ARRIVAL'))()");
+  gate('Q4H prevent WORKSHOP save before actual Stormbreaker floor hit',
+    deniedBefore?.ok===false,deniedBefore);
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const rig=await poll("(()=>({ok:window.APEX_ARSENAL?.state?.questStoryRescueStart?.ok,phase:window.APEX_ARSENAL?.state?.questRivetPreview?.phase}))()",
+    v=>v?.ok===true&&v.phase==='READY',100);
+  gate('Q4H physical rescue acknowledgement equips one genuine Stormbreaker',
+    rig?.ok===true&&rig.phase==='READY',rig);
+  const struck=await evalPage("(()=>{const A=window.APEX_ARSENAL;let n=0;for(;n<550;n++){A.step(.05);if(window.__apexQuestStoryViewRead?.()?.active)break;}return {steps:n,scene:window.__apexQuestStoryViewRead?.()?.current,hit:A.state.questRivetPreview?.groundImpact,proof:window.__apexQuestReflexTechnicalRead?.(),node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,hp:(window.fighters||[]).map(x=>x.hp)}})()");
+  gate('Q4H one swept Arsenal floor strike is necessary, and not a save trigger',
+    struck?.scene==='E01_RIVET_SUPPRESSION_TECH'
+    &&struck?.hit?.kind==='REAL_ARSENAL_FLOOR_CONTACT'
+    &&struck?.proof?.ready===true&&struck?.node==='REFLEX'
+    &&JSON.stringify(struck?.hp)===JSON.stringify(kCast?.hp),struck);
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const atWorkshop=await poll("(()=>({scene:window.__apexQuestStoryViewRead?.()?.current,node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+    v=>v?.scene==='WORKSHOP_ARRIVAL',100);
+  gate('Q4H WORKSHOP comic visible after grounded rescue, save still REFLEX',
+    atWorkshop?.scene==='WORKSHOP_ARRIVAL'&&atWorkshop?.node==='REFLEX',atWorkshop);
+  const deniedScene=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('WORKSHOP_ARRIVAL'))()");
+  gate('Q4H WORKSHOP cannot save while its required Story panel is open',
+    deniedScene?.ok===false,deniedScene);
+  await image('18-q4h-verified-workshop-pending-save');
+  await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+  const saved=await poll("(()=>({checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint(),battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open'),stageOpen:document.getElementById('apexQuest01Stage')?.hidden===false,stage:document.getElementById('apexQuest01Stage')?.dataset.node}))()",
+    v=>v?.checkpoint?.checkpointId==='WORKSHOP'&&v?.stageOpen===true&&v?.battleOpen===false,125);
+  gate('Q4H physical WORKSHOP acknowledgement alone saves native REFLEX completion',
+    saved?.checkpoint?.checkpointId==='WORKSHOP'
+    &&saved?.checkpoint?.encounterId===null
+    &&saved?.checkpoint?.completedCueIds?.length===8
+    &&saved?.checkpoint?.completedCueIds?.[0]==='WAKE_OPEN'
+    &&saved?.checkpoint?.completedCueIds?.at(-1)==='WORKSHOP_ARRIVAL'
+    &&saved?.stage==='WORKSHOP'&&saved?.stageOpen===true
+    &&saved?.battleOpen===false,saved);
+  await image('19-q4h-real-workshop-saved');
+  await cmd('Page.reload',{ignoreCache:true});
+  const reloaded=await poll("(()=>({id:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length,phase:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.phaseId,artifact:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.stormbreakerArtifactPhase}))()",
+    v=>v?.id==='WORKSHOP',160);
+  gate('Q4H real browser reload resumes signed WORKSHOP checkpoint, not a combat frame',
+    reloaded?.id==='WORKSHOP'&&reloaded?.cues===8
+    &&reloaded?.phase==='ENTRY'&&reloaded?.artifact==='SEALED',reloaded);
+
 
 }catch(err){
   gate('Browser route execution',false,{error:String(err.stack||err)});
