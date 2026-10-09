@@ -36,11 +36,22 @@
     <iframe id="gold-document" title="APEX CHAOS Gold design viewport" loading="eager" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
   </div>
   <script type="module">
-    import { GOLD_PROFILES, chooseGoldProfile, deriveGoldDesignSpace, fitGoldProfile } from '/gold-fidelity-profiles.mjs';
+    import { GOLD_PROFILES, chooseGoldProfile, detectGoldDeviceClass, deriveGoldDesignSpace, fitGoldProfile } from '/gold-fidelity-profiles.mjs';
     (() => {
       'use strict';
       const frame = document.getElementById('gold-document');
-      const forcedId = new URLSearchParams(location.search).get('goldProfile') || null;
+      const search = new URLSearchParams(location.search);
+      const forcedId = search.get('goldProfile') || null;
+      const forcedDevice = search.get('goldDevice') || null;
+      if(forcedDevice && !['phone','tablet','desktop'].includes(forcedDevice)) {
+        document.body.textContent = 'Unknown Gold device class: '+forcedDevice;
+        throw new Error('Unknown Gold device class: '+forcedDevice);
+      }
+      const deviceClass = detectGoldDeviceClass({userAgent:navigator.userAgent,
+        mobileHint:navigator.userAgentData?.mobile??false,
+        coarsePointer:matchMedia('(pointer:coarse)').matches,
+        touchPoints:navigator.maxTouchPoints||0,
+        screenWidth:screen.width,screenHeight:screen.height,override:forcedDevice});
       if (forcedId && !GOLD_PROFILES.some(p=>p.id===forcedId)) {
         document.body.textContent = 'Unknown Gold profile: '+forcedId;
         throw new Error('Unknown Gold profile: '+forcedId);
@@ -64,9 +75,14 @@
         // does not fluctuate when Android browser chrome collapses.
         // Fit it inside the actual visual viewport. Neither is device-model
         // detection, and both work for arbitrary physical pixel dimensions.
-        const selected = chooseGoldProfile(window.innerWidth,window.innerHeight,forcedId);
+        const selected = chooseGoldProfile(window.innerWidth,window.innerHeight,forcedId,{deviceClass});
         const design = deriveGoldDesignSpace(selected,window.innerWidth,window.innerHeight);
         const fit = fitGoldProfile(design,w,h,ox,oy);
+        if(!design){
+          document.body.dataset.goldFidelityError='unsupported-profile-aspect';
+          return;
+        }
+        delete document.body.dataset.goldFidelityError;
         if (!fit) return;
         // Switch native Gold profile without replacing the iframe document.
         // The actual game's own media queries and HUD layout resolver react
@@ -82,7 +98,7 @@
         viewport.style.transform = 'translate3d('+fit.left.toFixed(5)+'px,'+
           fit.top.toFixed(5)+'px,0) scale('+fit.scale.toFixed(9)+')';
         metrics = Object.freeze({
-          ...fit,profileFamily:selected.family,anchor:design.anchor,forcedProfile:Boolean(forcedId),
+          ...fit,profileFamily:selected.family,deviceClass,anchor:design.anchor,forcedProfile:Boolean(forcedId),
           child:{
             width:frame.contentWindow?.innerWidth??null,
             height:frame.contentWindow?.innerHeight??null
@@ -101,7 +117,7 @@
         configurable:false,
         value:Object.freeze({
           snapshot:()=>metrics,
-          availableProfiles:()=>GOLD_PROFILES.map(({id,width,height,label})=>({id,width,height,label})),
+          availableProfiles:()=>GOLD_PROFILES.map(({id,width,height,label,device})=>({id,width,height,label,device})),
           child:()=>frame.contentWindow,
           remeasure:queue
         })
