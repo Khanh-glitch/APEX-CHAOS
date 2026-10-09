@@ -1403,7 +1403,7 @@
       &&window.__apexGoldBattleHosted===true;
     const authorized=storyAuthorized||(window.__APEX_TEST_MODE===true
       && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
-      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true));
+      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true);
     if(!authorized)return {ok:false,reason:'preview-only'};
     if(!state?.active||state.questReflex!==true
        ||state.questReflexGate?.snapshot()?.awaitingRivet!==true
