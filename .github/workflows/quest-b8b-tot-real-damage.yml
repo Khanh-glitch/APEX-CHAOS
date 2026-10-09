@@ -1,0 +1,31 @@
+name: B8b Actual T.O.T Native Damage Barrier
+on:
+  push:
+    branches: ['quest/b8b-native-tot-damage-from-b8a']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-tot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: E08 pure owner-authorized two thresholds and Storm receipt
+        run: node tools/testQuestTotLastChoiceB8a.mjs
+      - name: Genuine Fighter.takeDamage to 700 with no fake Storm
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-tot-native
+      - name: E07 native Boss actual KO/retry regression
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-retry-native
+      - name: E06 physical wave lifecycle regression
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - name: Source Gold provenance
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Production build
+        run: pnpm build

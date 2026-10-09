@@ -6284,6 +6284,64 @@ return {first,lost,clearedLoss,second,abandoned,clearedAbandon,
     {error:String(e?.stack||e)})}
 }
 
+// B8b accepted real HP transactions on a newly constructed Gold T.O.T
+// Fighter, NOT a synthetic HP object and NOT an unlocked E08 story route.
+if(process.argv.includes('--quest-tot-native')){
+  try{
+    const v=run(`
+const prev=window.__APEX_TEST_MODE;
+window.__APEX_TEST_MODE=true;
+const fixture=window.__apexQuestBreachFixtureStart?.()===true;
+const A=window.APEX_ARSENAL,Q=window.APEX_QUEST_TOT_LAST_CHOICE;
+const adapter=window.APEX_QUEST_TOT_DAMAGE_ADAPTER;
+if(!fixture||!A?.state?.questBreachTest||!Q||!adapter)return {fixture,ready:false};
+const fighters=window.fighters,hero=fighters.find(f=>f.questId==='NEWBOT');
+const allyTot=fighters.find(f=>f.questId==='T.O.T');
+const boss=A.state.questBreachCreateFighter({
+ questId:'T.O.T',questTeam:'HOSTILE',hp:1000,x:660,y:500,kind:'tot'
+},107);
+const cues=[];
+const control=adapter.create({authority:Q,onCue:c=>cues.push(c),verifyNativeStorm:()=>false});
+const denied=control.attach(hero,allyTot);
+const attached=control.attach(hero,boss);
+const oldMethod=boss.takeDamage;
+boss.takeDamage(100000,hero,'e08-native-to-700');
+const first={hp:boss.hp,damage:hero.damageLabels?.['e08-native-to-700']||0,
+ cues:cues.map(c=>c.cue),phase:control.snapshot().phase};
+boss.takeDamage(5000,hero,'e08-native-locked-until-storm');
+const held={hp:boss.hp,postHit:hero.damageLabels?.['e08-native-locked-until-storm']||0,
+ phase:control.snapshot().phase};
+const fake=control.physicalStorm({
+ artifactId:'fake-slot',event:'SPAWN',weaponId:'STORMBREAKER',ownerQuestId:'T.O.T'
+});
+const story=window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId??null;
+control.close();
+const detached=!boss.__apexQuestBeforeAcceptedDamage&&!boss.__apexQuestAfterAcceptedDamage;
+const methodIntact=boss.takeDamage===oldMethod;
+const closed=control.snapshot().active===false;
+window.exitArsenalBattleMode();
+if(prev===undefined)delete window.__APEX_TEST_MODE;
+else window.__APEX_TEST_MODE=prev;
+return {fixture,denied,attached,first,held,fake,story,
+  detached,methodIntact,closed,visual:boss.questVisualId};
+`);
+    gate('B8b physical enemy T.O.T is separate from the real allied T.O.T',
+      v?.fixture===true&&v?.denied?.ok===false&&v?.attached?.ok===true
+       &&v?.visual==='operator',v);
+    gate('B8b 100000 native damage still stops at exact first 700HP',
+      v?.first?.hp===700&&v?.first?.damage===300
+       &&v?.first?.cues?.join('|')==='E08_STORMBREAKER_ELIGIBLE'
+       &&v?.first?.phase==='STORM_ELIGIBLE',v?.first);
+    gate('B8b second real hit is blocked before a physical Stormbreaker',
+      v?.held?.hp===700&&v?.held?.postHit===0
+       &&v?.fake?.ok===false,v?.held);
+    gate('B8b restores original Fighter method and drops hooks on exit',
+      v?.methodIntact===true&&v?.detached===true&&v?.closed===true,v);
+    gate('B8b isolated native phase does not grant an E08 story checkpoint',
+      v?.story!=='OUTSIDE',v?.story);
+  }catch(e){gate('B8b actual T.O.T Fighter.damage adapter',false,{error:String(e?.stack||e)})}
+}
+
 // B7c — direct authentic Fighter.takeDamage transaction with an explicitly
 // separate hostile RIVET instance. NOT a simulated E07 story encounter.
 if(process.argv.includes('--quest-rivet-native')){
