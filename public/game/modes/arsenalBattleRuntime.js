@@ -284,6 +284,8 @@
     // while a physically earned story panel is visible. BOT/Local unchanged.
     // No internal clocks, weapon projectiles or cooldowns advance here.
     if(state.questReflex===true&&state.questStoryView?.active())return;
+    if(state.questFirstWakeProgression===true
+       &&state.questFirstWakeStoryView?.active())return;
     // Q4B: once all four actual REFLEX receipts and BOTH true <=500 HP
     // crossings have been accepted, stop the training exchange. The next
     // authorized story action belongs to RIVET (NOT a generic winner/KO).
@@ -562,6 +564,13 @@
         state.questOutcome = outcome.status;
         // No economy award, no 1v1 winnerSide or Gold result transition.
         AQ.log('QUEST_OUTCOME', outcome.status + ' reason=' + outcome.reason);
+        // Story panel is earned ONLY by real Arsenal team KO outcome. Q4I
+        // does not own combat HP, attack scheduling or projectile production.
+        if(state.questFirstWakeProgression===true
+           &&state.questFirstWakeStoryView){
+          state.questFirstWakeStoryView.offer({id:outcome.status==='COMPLETE'
+            ?'E02_FIRST_WAKE_CLEAR':'E02_FIRST_WAKE_RETRY'});
+        }
         updateHUD();
       }
     } else if (!state.questFirstWake && !state.labMode && !state.over && fighters[0] && fighters[1] && (aqKO(fighters[0]) || aqKO(fighters[1]))) {
@@ -1225,6 +1234,15 @@
       &&['WAKE','REFLEX'].includes(directorCheckpoint)
       &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function';
     if(options.questStoryCompletion===true&&!storyCompletion)return false;
+    const firstWakeStory=options.questFirstWakeProgression===true
+      &&options.questFirstWake===true
+      &&types[0]?.name==='ROBOT'
+      &&!questReflex&&!!questCore
+      &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
+      &&['WORKSHOP','FIRST_WAKE'].includes(directorCheckpoint)
+      &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
+      &&!!window.APEX_QUEST_STORY_PRESENTATION;
+    if(options.questFirstWakeProgression===true&&!firstWakeStory)return false;
     detachReflexReceipt();
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
@@ -1292,11 +1310,36 @@
       }
       AQ.state.questMultiActor = true;
       AQ.state.questFirstWake = questFirstWake;
+      AQ.state.questFirstWakeProgression = firstWakeStory;
       AQ.state.questReflex = questReflex;
       AQ.state.questStoryCompletion = storyCompletion;
       AQ.state.questTestFixture = questReflex||questFirstWake ? null : String(options.questFixture);
       AQ.state.questActorCount = validated.count;
       AQ.state.questOutcome = null;
+      if(questFirstWake&&firstWakeStory){
+        const ownerState=AQ.state;
+        AQ.state.questFirstWakeStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
+          onAdvance:(beatId)=>{
+            if(AQ.state!==ownerState||!ownerState.active
+               ||ownerState.questFirstWakeProgression!==true)return;
+            if(beatId==='E02_FIRST_WAKE_CLEAR'){
+              const out=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.(beatId);
+              if(!out?.ok){AQ.log('QUEST_E02_SAVE_DENIED',String(out?.reason));return;}
+              AQ.log('QUEST_E02_COMPLETE','checkpoint=SCRAP_SWARM');
+            }else if(beatId==='E02_FIRST_WAKE_RETRY'){
+              if(ownerState.questOutcome!=='RETRY')return;
+              AQ.log('QUEST_E02_RETRY','checkpoint remains FIRST_WAKE');
+            }else return;
+            // No fabricated winner/award. Return to the REAL saved Director.
+            window.exitArsenalBattleMode?.();
+            window.APEX_QUEST01_DIRECTOR?.show?.({
+              onReflexPreview:window.__apexQuestReflexStart,
+              onPreview:window.__apexQuestFirstWakeStart,
+              onFirstWakeStory:window.__apexQuestFirstWakeStoryStart
+            });
+          }
+        });
+      }
       if(questReflex){
         const gate=window.APEX_QUEST_REFLEX_RECEIPTS.create(()=>fighters);
         if(!attachReflexReceipt(gate)){
@@ -1434,6 +1477,26 @@
     // Explicit feature opt-in on the disposable Quest branch only.
     if (window.__APEX_QUEST_DEV !== true) return false;
     return window.startArsenalBattleMode('ROBOT', 'ROBOT', { questFirstWake: true });
+  };
+  window.__apexQuestFirstWakeStoryStart=function startRealE02FromDirector(){
+    if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true)
+      return false;
+    const D=window.APEX_QUEST01_DIRECTOR;
+    const before=D?.checkpoint?.()?.checkpointId;
+    if(!['WORKSHOP','FIRST_WAKE'].includes(before))return false;
+    const started=window.startArsenalBattleMode('ROBOT','ROBOT',{
+      questFirstWake:true,questFirstWakeProgression:true
+    });
+    if(!started)return false;
+    if(before==='WORKSHOP'){
+      // Physical 2v2 MUST be live before advancing a checkpoint.
+      const proof=D.acceptNativeBeat('FIRST_WAKE_ENTER');
+      if(proof?.ok!==true){
+        window.exitArsenalBattleMode?.();
+        return false;
+      }
+    }
+    return true;
   };
   window.__apexQuestReflexStart = function startQ4ARealReflexPilot() {
     if(!((window.__APEX_TEST_MODE===true
