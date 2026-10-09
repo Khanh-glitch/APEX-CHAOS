@@ -342,6 +342,95 @@
     return Object.freeze({tick,cadence,snapshot,close});
   }
 
+  // E05 is an inert world IMPACT ACCUMULATOR, not an opponent Bot.
+  // Internally it borrows an Arsenal Fighter collider so actual bullets,
+  // crit and weapon collision remain engine-owned. It NEVER gains AI, guns,
+  // heroic abilities or hostile-team victory logic.
+  const BREAKER_SPEC=Object.freeze({
+    goal:6000,earlyCadence:3.0,chargedCadence:2.2,
+    fasterAt:0.50,burstAt:0.85,
+    burstOffsets:Object.freeze([0,0.35,0.70]),
+    observationHold:1.25,
+    milestones:Object.freeze([0.25,0.5,0.75,0.9,1])
+  });
+  function breakerChargeRoster(){
+    return [
+      {questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:190,y:500,kind:'newbot'},
+      {questId:'BREAKER-CORE',questTeam:'TARGET',hp:BREAKER_SPEC.goal,
+        x:660,y:500,kind:'accumulator',questWorldObject:true}
+    ];
+  }
+  function validateBreakerCharge(actors){
+    if(!Array.isArray(actors)||actors.length!==2)
+      return {ok:false,reason:'exact-one-hero-one-prop'};
+    const hero=actors.find(x=>x?.questId==='NEWBOT');
+    const target=actors.find(x=>x?.questId==='BREAKER-CORE');
+    if(!hero||team(hero)!=='ALLY'||hero.maxHp!==1000
+       ||!target||team(target)!=='TARGET'
+       ||target.questWorldObject!==true||target.maxHp!==BREAKER_SPEC.goal
+       ||target.id===hero.id||!finite(target.hp)||target.hp<0
+       ||target.hp>target.maxHp||!finite(target.x)||!finite(target.y)
+       ||!finite(target.radius)||target.radius<=0)
+       return {ok:false,reason:'invalid-real-world-collider'};
+    return {ok:true,reason:'inert-real-collider'};
+  }
+  function breakerAcceptedDamage(actors){
+    const valid=validateBreakerCharge(actors);
+    if(!valid.ok)return null;
+    const target=actors.find(x=>x.questId==='BREAKER-CORE');
+    return BREAKER_SPEC.goal-target.hp;
+  }
+  function breakerChargeProgress(actors){
+    const damage=breakerAcceptedDamage(actors);
+    return damage==null?null:Math.max(0,Math.min(1,damage/BREAKER_SPEC.goal));
+  }
+  function breakerChargeOutcome(actors,pulseObserved){
+    const progress=breakerChargeProgress(actors);
+    if(progress==null)return {status:'INVALID',reason:'missing-real-accumulator'};
+    if(progress<1)return {status:'ACTIVE',reason:'accepted-damage-incomplete'};
+    if(pulseObserved!==true)return {status:'AWAIT_PULSE',reason:'charging-cinematic-not-settled'};
+    return {status:'COMPLETE',reason:'actual-6000-damage-and-infrastructure-pulse'};
+  }
+  function createBreakerChargeSequence(){
+    let phase='CHARGING',firstBurstAt=null,lastBurstAt=null;
+    let requested=0,accepted=0,suppressed=0,pulseObserved=false,closed=false;
+    const milestones=[];
+    function tick(time,progress,request){
+      if(closed||!finite(time)||time<0||!finite(progress)
+        ||progress<0||progress>1||typeof request!=='function')
+        return {phase,pulseObserved};
+      for(const m of BREAKER_SPEC.milestones)
+        if(progress+EPS>=m&&!milestones.includes(m))milestones.push(m);
+      if(progress>=BREAKER_SPEC.burstAt){
+        if(firstBurstAt===null)firstBurstAt=time;
+        phase='BURST';
+        while(requested<BREAKER_SPEC.burstOffsets.length
+          &&time+EPS>=firstBurstAt+BREAKER_SPEC.burstOffsets[requested]){
+          const drop=request();requested++;lastBurstAt=time;
+          if(drop)accepted++;else suppressed++;
+        }
+      }else{
+        phase=progress>=BREAKER_SPEC.fasterAt?'OVERDRIVE':'CHARGING';
+      }
+      if(progress>=1&&requested===BREAKER_SPEC.burstOffsets.length
+         &&lastBurstAt!==null
+         &&time-lastBurstAt+EPS>=BREAKER_SPEC.observationHold){
+        pulseObserved=true;phase='PULSE';
+      }
+      return {phase,pulseObserved};
+    }
+    function cadence(progress){
+      return progress>=BREAKER_SPEC.fasterAt
+        ?BREAKER_SPEC.chargedCadence:BREAKER_SPEC.earlyCadence;
+    }
+    function snapshot(){return Object.freeze({
+      phase,firstBurstAt,lastBurstAt,requested,accepted,suppressed,
+      pulseObserved,milestones:milestones.slice(),closed
+    });}
+    function close(){closed=true;}
+    return Object.freeze({tick,cadence,snapshot,close});
+  }
+
   // Strong preflight: multiple bodies cannot borrow the same fighter identity;
   // two teams and one controllable protagonist are required.
   function validateFirstWake(actors) {
@@ -370,5 +459,7 @@
     firstWakeOutcome, validateFirstWake, fixtureRoster, validateRoster, teamsOutcome,
     scrapSwarmRoster,validateScrapSwarmWave,scrapSwarmOutcome,SWARM_TUNING,
     RAIN_SPEC,weaponRainRoster,validateWeaponRain,weaponRainOutcome,createWeaponRainSequence,
+    BREAKER_SPEC,breakerChargeRoster,validateBreakerCharge,
+    breakerAcceptedDamage,breakerChargeProgress,breakerChargeOutcome,createBreakerChargeSequence,
   });
 })(typeof window !== 'undefined' ? window : globalThis);
