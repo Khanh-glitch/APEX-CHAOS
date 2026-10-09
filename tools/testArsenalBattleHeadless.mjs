@@ -6187,6 +6187,7 @@ if(process.argv.includes('--quest-reflex-real')){
             phase:q?.phase,settled:q?.settled,peak:q?.peakFlight,
             birth:q?.birth||null,
             technical:window.__apexQuestReflexTechnicalRead?.(),
+            storyBeats:window.__apexQuestStoryBeatsRead?.(),
             rigHolder:W.getHolder(q?.operator)&&{
               phase:W.getHolder(q.operator).phase,
               elapsed:W.getHolder(q.operator).elapsed,
@@ -6258,6 +6259,10 @@ if(process.argv.includes('--quest-reflex-real')){
           &&Number.isFinite(v.birth.vy)&&v.birth.vy>0
           &&v?.phase==='SETTLED'&&v?.settled===true&&v?.live===0
           &&v?.technical?.ready===true
+          &&v?.storyBeats?.emitted?.join('|')===
+            'E01_R1_IMPACT|E01_R2_IMPACT|E01_J_REVEAL|E01_K_REVEAL|E01_RIVET_HOLD|E01_RIVET_SUPPRESSION_TECH'
+          &&v.storyBeats.checkpointAuthorized===false
+          &&v.storyBeats.storyComplete===false
           &&v.technical.kind==='E01_RIVET_TECHNICAL_PREVIEW'
           &&v.technical.checkpointAuthorized===false
           &&v.technical.storyComplete===false
