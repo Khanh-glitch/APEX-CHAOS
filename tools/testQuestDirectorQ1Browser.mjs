@@ -255,9 +255,9 @@ try{
     id:q3tIdentifiers[i],samples:frames.length,
     radii:[...new Set(frames.map(f=>f.radius))],
     scales:frames.map(f=>f.spr?.scaleFactor),
-    drawable:frames.every(f=>f.spr?.scaleFactor===.82&&f.spr?.scale>0)
+    drawable:frames.every(f=>f.spr?.scaleFactor===(i===0?.82:.77)&&f.spr?.scale>0)
   }));
-  gate('Q3t exactly three non-NEWBOT bodies scaled 0.82 visually without collider edits',
+  gate('Q3t actor scale is T.O.T 0.82 and Scouts 0.77 with unchanged physical radius',
     q3tSizing.every(g=>g.samples===9&&g.drawable&&g.radii.length===1)
     &&q3tSamples.every(frame=>frame.actors.find(f=>f.id==='NEWBOT')?.spr===null),
     {size:q3tSizing,unchangedNewbot:q3tSamples[0]?.actors?.find(f=>f.id==='NEWBOT')});
@@ -296,7 +296,7 @@ try{
       &&q3RealShot.after.target<q3RealShot.before.target,
     {before:q3RealShot?.before?.hitEvents,after:q3RealShot?.after?.hitEvents,
       physicalDamage:q3RealShot?.before?.target-q3RealShot?.after?.target});
-  const q3PostHit=await poll("(()=>{\n  const host=document.getElementById('battleHudHost'),f=window.fighters||[];\n  return ['ALLY','HOSTILE'].map((team,i)=>{\n    const actors=f.filter(x=>x.questTeam===team),rail=host?.querySelector('#p'+(i+1)+'Rail');\n    const segments=[...(rail?.querySelectorAll('.vr-quest-slots > span')||[])];\n    return {\n      team,hp:Math.round(actors.reduce((n,a)=>n+Math.max(0,a.hp),0)),\n      shown:Number(rail?.querySelector('.vr-cur')?.textContent),\n      max:actors.reduce((n,a)=>n+Math.max(0,a.maxHp),0),\n      maxShown:Number((rail?.querySelector('.vr-max')?.textContent||'').replace(/[^0-9.]/g,'')),\n      slots:segments.map(s=>({id:s.dataset.actor,value:Number(s.style.getPropertyValue('--qhp'))})),\n      match:segments.length===actors.length&&segments.every((s,j)=>\n        s.dataset.actor===actors[j].questId&&\n        Math.abs(Number(s.style.getPropertyValue('--qhp'))-actors[j].hp/actors[j].maxHp)<.002)\n    };\n  });\n})()",
+  const q3PostHit=await poll("(()=>{\n  const host=document.getElementById('battleHudHost'),f=window.fighters||[];\n  return ['ALLY','HOSTILE'].map((team,i)=>{\n    const actors=f.filter(x=>x.questTeam===team),rail=host?.querySelector('#p'+(i+1)+'Rail');\n    const segments=[...(rail?.querySelectorAll('.vr-quest-slots > span')||[])];\n    return {\n      team,hp:Math.round(actors.reduce((n,a)=>n+Math.max(0,a.hp),0)),\n      shown:Number(rail?.querySelector('.vr-cur')?.textContent),\n      max:actors.reduce((n,a)=>n+Math.max(0,a.maxHp),0),\n      maxShown:Number((rail?.querySelector('.vr-max')?.textContent||'').replace(/[^0-9.]/g,'')),\n      slots:segments.map(s=>({id:s.dataset.actor,value:(parseFloat(s.style.flexBasis)||0)/100})),\n      match:segments.length===actors.length&&segments.every((s,j)=>\n        s.dataset.actor===actors[j].questId&&\n        Math.abs((parseFloat(s.style.flexBasis)||0)/100-actors[j].hp/Math.max(1,actors.reduce((total,a)=>total+a.maxHp,0)))<.002)\n    };\n  });\n})()",
     v=>v?.length===2&&v.every(x=>x.match&&x.hp===x.shown&&x.max===x.maxShown),120);
   gate('Q3 Gold team totals and only damaged actor segment track real projectile HP',
     !!q3PostHit?.[1]?.slots?.[1]&&
@@ -305,9 +305,9 @@ try{
      // Exactly one controlled PISTOL hit means the other bot's ratio stays
      // equal to its PRE-SHOT real HP, not a fabricated full-health 100%.
      &&Math.abs(q3PostHit[1].slots[0].value-
-       q3RealShot.after.target/q3RealShot.before.targetMax)<.002
+       q3RealShot.after.target/(q3RealShot.before.targetMax+q3RealShot.before.otherMax))<.002
      &&Math.abs(q3PostHit[1].slots[1].value-
-       q3RealShot.before.other/q3RealShot.before.otherMax)<.002
+       q3RealShot.before.other/(q3RealShot.before.targetMax+q3RealShot.before.otherMax))<.002
      &&q3PostHit.every(x=>x.match&&x.hp===x.shown&&x.max===x.maxShown),
      {segments:q3PostHit,physical:q3RealShot});
   const q3RailGeometry=await evalPage("(()=>{\n  const h=document.getElementById('battleHudHost'),hud=h?.querySelector('#hud'),layout=hud?.dataset.layout;\n  const rails=[1,2].map(i=>{\n    const rail=h?.querySelector('#p'+i+'Rail'),hp=rail?.querySelector('.vr-hp'),label=rail?.querySelector('.vr-lbl');\n    const a=rail?.getBoundingClientRect(),b=hp?.getBoundingClientRect();\n    return {label:getComputedStyle(label).display,\n      fit:!!a&&!!b&&b.left>=a.left-1&&b.right<=a.right+1};\n  });\n  return {layout,quest:hud?.dataset.quest,rails};\n})()");
@@ -357,7 +357,7 @@ try{
       &&q3tNativeRecoil.maxNativeFirePulses>0
       &&q3tNativeRecoil.after>q3tNativeRecoil.before
       &&q3tNativeRecoil.springKickChanged>.005
-      &&q3tNativeRecoil.modelScale===.82,q3tNativeRecoil);
+      &&q3tNativeRecoil.modelScale===.77,q3tNativeRecoil);
   // Q3u: capture the REAL draw transform of a native Arsenal PISTOL sprite.
   // The visible gun must follow its smaller Gold chassis, but Arsenal's
   // ballistic muzzle must remain unchanged; no fake holder/hitbox.
@@ -367,9 +367,9 @@ try{
   gate('Q3u original PISTOL PNG is ready before sampling held-gun artwork',
     q3uAsset?.ready===true&&q3uAsset?.meta?.file?.endsWith('PISTOL.png')
       &&q3uAsset.image?.w>0,q3uAsset);
-  const q3uGrip=await evalPage("(()=>{\n const A=window.APEX_ARSENAL,W=A?.weaponApi,AV=window.APEX_ARSENAL_AV,R=window.APEX_QUEST_V12_RIG;\n const actor=(window.fighters||[]).find(f=>f.questId==='SCRAP-B');\n if(!A?.state?.questMultiActor||!actor||!W?.equip||!AV?.drawEquippedWeapon||!R?.inspect)return {ready:false};\n if(!W.equip(actor,'PISTOL'))return {ready:false,reason:'real native equip failed'};\n const h=W.getHolder(actor);\n if(!h)return {ready:false,reason:'native holder absent'};\n h.meta.aimAngle=0;\n Object.assign(h.meta.pose,{localX:0,localY:0,recoil:0,rotKick:0,flourish:0,scaleX:1});\n const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1000;\n const ctx=canvas.getContext('2d');\n actor.draw(ctx); // Actual V12 rig scale, no mock visual.\n const rig=R.inspect(actor);\n const physicsBefore=W.worldAnchor(actor,'PISTOL','muzzle',0);\n const source=AV.weaponImage('PISTOL');\n const drawsBefore=AV.stats.equippedSpriteDraws;\n const proto=CanvasRenderingContext2D.prototype,originalDraw=proto.drawImage;\n let captured=null;\n try{\n   // Chamber Palette intentionally calls the true weapon artist on a\n   // 256x256 offscreen source canvas and returns UNDEFINED from its wrapper.\n   // Intercept only actual PISTOL pixels and restore the native prototype\n   // synchronously; never bypass palette effects or inject fake art.\n   proto.drawImage=function(...args){\n     const img=args[0],path=img?.src||'';\n     if(args.length===9&&typeof path==='string'&&path.includes('/weapons/c/PISTOL.png')){\n       const m=this.getTransform(),palette=this.canvas?.width===256&&this.canvas?.height===256;\n       captured={offset:m.e-(palette?128:actor.x),\n         sourceCanvas:{width:this.canvas.width,height:this.canvas.height},\n         sprite:{width:args[7],height:args[8]},\n         realImage:img.complete&&img.naturalWidth>0,\n         palette};\n     }\n     return originalDraw.apply(this,args);\n   };\n   AV.drawEquippedWeapon(ctx,actor,h);\n }finally{proto.drawImage=originalDraw;}\n const physicsAfter=W.worldAnchor(actor,'PISTOL','muzzle',0);\n return {ready:true,assetReady:!!source,holderId:h.weaponId,\n   rigFactor:rig?.scaleFactor,offset:captured?.offset,\n   expectedOffset:actor.radius*.78*.82,\n   drawCaptured:!!captured,\n   sourceCanvas:captured?.sourceCanvas,\n   sprite:captured?.sprite,\n   palette:captured?.palette,\n   realImage:captured?.realImage,\n   drawsBefore,drawsAfter:AV.stats.equippedSpriteDraws,\n   muzzleUnchanged:physicsBefore.x===physicsAfter.x&&physicsBefore.y===physicsAfter.y,\n   physicsDistance:Math.hypot(physicsBefore.x-actor.x,physicsBefore.y-actor.y)};\n})()");
-  gate('Q3u real offscreen Gold PISTOL sprite follows compact 82% grip',
-    q3uGrip?.ready===true&&q3uGrip?.rigFactor===.82
+  const q3uGrip=await evalPage("(()=>{\n const A=window.APEX_ARSENAL,W=A?.weaponApi,AV=window.APEX_ARSENAL_AV,R=window.APEX_QUEST_V12_RIG;\n const actor=(window.fighters||[]).find(f=>f.questId==='SCRAP-B');\n if(!A?.state?.questMultiActor||!actor||!W?.equip||!AV?.drawEquippedWeapon||!R?.inspect)return {ready:false};\n if(!W.equip(actor,'PISTOL'))return {ready:false,reason:'real native equip failed'};\n const h=W.getHolder(actor);\n if(!h)return {ready:false,reason:'native holder absent'};\n h.meta.aimAngle=0;\n Object.assign(h.meta.pose,{localX:0,localY:0,recoil:0,rotKick:0,flourish:0,scaleX:1});\n const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1000;\n const ctx=canvas.getContext('2d');\n actor.draw(ctx); // Actual V12 rig scale, no mock visual.\n const rig=R.inspect(actor);\n const physicsBefore=W.worldAnchor(actor,'PISTOL','muzzle',0);\n const source=AV.weaponImage('PISTOL');\n const drawsBefore=AV.stats.equippedSpriteDraws;\n const proto=CanvasRenderingContext2D.prototype,originalDraw=proto.drawImage;\n let captured=null;\n try{\n   // Chamber Palette intentionally calls the true weapon artist on a\n   // 256x256 offscreen source canvas and returns UNDEFINED from its wrapper.\n   // Intercept only actual PISTOL pixels and restore the native prototype\n   // synchronously; never bypass palette effects or inject fake art.\n   proto.drawImage=function(...args){\n     const img=args[0],path=img?.src||'';\n     if(args.length===9&&typeof path==='string'&&path.includes('/weapons/c/PISTOL.png')){\n       const m=this.getTransform(),palette=this.canvas?.width===256&&this.canvas?.height===256;\n       captured={offset:m.e-(palette?128:actor.x),\n         sourceCanvas:{width:this.canvas.width,height:this.canvas.height},\n         sprite:{width:args[7],height:args[8]},\n         realImage:img.complete&&img.naturalWidth>0,\n         palette};\n     }\n     return originalDraw.apply(this,args);\n   };\n   AV.drawEquippedWeapon(ctx,actor,h);\n }finally{proto.drawImage=originalDraw;}\n const physicsAfter=W.worldAnchor(actor,'PISTOL','muzzle',0);\n return {ready:true,assetReady:!!source,holderId:h.weaponId,\n   rigFactor:rig?.scaleFactor,offset:captured?.offset,\n   expectedOffset:actor.radius*.78*.77,\n   drawCaptured:!!captured,\n   sourceCanvas:captured?.sourceCanvas,\n   sprite:captured?.sprite,\n   palette:captured?.palette,\n   realImage:captured?.realImage,\n   drawsBefore,drawsAfter:AV.stats.equippedSpriteDraws,\n   muzzleUnchanged:physicsBefore.x===physicsAfter.x&&physicsBefore.y===physicsAfter.y,\n   physicsDistance:Math.hypot(physicsBefore.x-actor.x,physicsBefore.y-actor.y)};\n})()");
+  gate('Q3u Gold Scout PISTOL sprite follows owner-authored 77% grip',
+    q3uGrip?.ready===true&&q3uGrip?.rigFactor===.77
        &&q3uGrip.drawCaptured===true&&q3uGrip.realImage===true
        &&Math.abs(q3uGrip.offset-q3uGrip.expectedOffset)<.05
        &&q3uGrip.drawsAfter>q3uGrip.drawsBefore
