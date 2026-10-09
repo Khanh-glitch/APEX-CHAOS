@@ -25,3 +25,16 @@
 #gold-shell-host #battleTransition {
   font-family: 'Oswald', sans-serif;
 }
+
+/* Gold R81 portrait vertical law: the platform-neutral Oswald normal metrics
+ * otherwise add +4px to the QUEST kicker and +3px to the location caption at
+ * 360x560. Keep the original Gold story height WITHOUT moving the Story/CTA,
+ * changing text size, breaking transitions, or introducing device-model CSS. */
+@media (orientation: portrait) {
+  #gold-shell-host #stage .story .quest {
+    line-height: 1.1;
+  }
+  #gold-shell-host #stage .story .location {
+    line-height: 1.1666667;
+  }
+}
