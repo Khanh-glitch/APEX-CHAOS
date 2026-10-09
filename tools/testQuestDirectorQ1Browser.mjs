@@ -996,6 +996,79 @@ try{
     &&reloaded?.phase==='ENTRY'&&reloaded?.artifact==='SEALED',reloaded);
   }
 
+  { // Q4I: real E02 2v2 outcome path, isolated from prior test locals.
+  await click('#continueStory');
+  const stage=await evalPage("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,play:document.getElementById('q4iFirstWakePlay')?.hidden,opening:document.getElementById('q4hQuestPlay')?.hidden}))()");
+  gate('Q4I WORKSHOP exposes first real E02, not the retired REFLEX opening',
+    stage?.node==='WORKSHOP'&&stage?.play===false&&stage?.opening===true,stage);
+  const begin=await click('#q4iFirstWakePlay');
+  let started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,first:window.APEX_ARSENAL?.state?.questFirstWake,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp}))}))()",
+    v=>v?.node==='FIRST_WAKE'&&v?.route===true&&v?.active===true,160);
+  gate('Q4I physical entry authenticates exact native 2v2 and saves FIRST_WAKE',
+    begin.hit&&started?.first===true&&started?.roster?.length===4
+    &&started.roster.map(x=>x.id).join('|')==='NEWBOT|SCRAP-A|T.O.T|SCRAP-B'
+    &&started.roster.map(x=>x.hp).join('|')==='1000|350|1000|350',started);
+  const premature=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E02_FIRST_WAKE_CLEAR'))()");
+  gate('Q4I cannot sign E02 win before real enemy KO or Story result',
+    premature?.ok===false,premature);
+  const organic=[];
+  let complete=false;
+  for(let turn=0;turn<5;turn++){
+    const one=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=window.APEX_QUEST_MULTI_ACTOR_CORE;const f=window.fighters||[];let n=0;for(;n<7200;n++){A.step(.05);if(A.state.questOutcome||A.state.over)break;}return {frames:n,seconds:n*.05,outcome:A.state.questOutcome,over:A.state.over,canon:Q.firstWakeOutcome(f),actors:f.map(a=>({id:a.questId,team:a.questTeam,hp:a.hp,max:a.maxHp})),scene:A.state.questFirstWakeStoryView?.snapshot?.(),node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,winnerSide:A.state.winnerSide}})()");
+    organic.push(one);
+    if(one?.outcome==='COMPLETE'){
+      gate('Q4I real 2v2 Arsenal outcome with both hostile KOs and living NEWBOT',
+        one?.canon?.status==='COMPLETE'
+        &&one?.over==='QUEST_FIRST_WAKE_COMPLETE'
+        &&one?.actors?.filter(x=>x.team==='HOSTILE').length===2
+        &&one.actors.filter(x=>x.team==='HOSTILE').every(x=>x.hp<=0)
+        &&one.actors.find(x=>x.id==='NEWBOT')?.hp>0
+        &&one?.scene?.active===true
+        &&one?.scene?.current==='E02_FIRST_WAKE_CLEAR'
+        &&one?.node==='FIRST_WAKE'&&one?.winnerSide==null,one);
+      const deniedOpen=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E02_FIRST_WAKE_CLEAR'))()");
+      gate('Q4I no E02 checkpoint save while winning Story frame is open',
+        deniedOpen?.ok===false,deniedOpen);
+      await image('20-q4i-first-wake-native-ko-result');
+      await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+      const cleared=await poll("(()=>({checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint(),stage:document.getElementById('apexQuest01Stage')?.dataset.node,stageOpen:document.getElementById('apexQuest01Stage')?.hidden===false,battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",
+        v=>v?.checkpoint?.checkpointId==='SCRAP_SWARM'&&v?.stageOpen===true,160);
+      gate('Q4I physical E02 victory acknowledgment saves SCRAP_SWARM, no match reward',
+        cleared?.checkpoint?.checkpointId==='SCRAP_SWARM'
+        &&cleared?.checkpoint?.encounterId==='E03'
+        &&cleared?.checkpoint?.completedCueIds?.length===10
+        &&cleared?.checkpoint?.completedCueIds?.at(-1)==='E02_FIRST_WAKE_CLEAR'
+        &&cleared?.stage==='SCRAP_SWARM'&&cleared?.battleOpen===false,cleared);
+      await image('21-q4i-scrap-swarm-checkpoint');
+      complete=true;break;
+    }
+    if(one?.outcome!=='RETRY'||one?.scene?.current!=='E02_FIRST_WAKE_RETRY'
+       ||one?.canon?.status!=='RETRY')break;
+    gate('Q4I NEWBOT true KO offers retry without Story progression',
+      one?.node==='FIRST_WAKE'
+      &&one.actors.find(x=>x.id==='NEWBOT')?.hp<=0
+      &&one?.scene?.active===true
+      &&one?.over==='QUEST_FIRST_WAKE_RETRY',one);
+    await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+    const again=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,stage:document.getElementById('apexQuest01Stage')?.dataset.node,open:document.getElementById('apexQuest01Stage')?.hidden===false}))()",
+      v=>v?.node==='FIRST_WAKE'&&v?.open===true,150);
+    gate('Q4I retry only resumes existing FIRST_WAKE checkpoint',
+      again?.node==='FIRST_WAKE'&&again?.stage==='FIRST_WAKE',again);
+    await click('#q4iFirstWakePlay');
+    started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression}))()",
+      v=>v?.active===true&&v?.route===true,120);
+  }
+  gate('Q4I at least one full natural two-vs-two match completed without synthetic HP',
+    complete&&organic.length<=5,{complete,attempts:organic.map(x=>({frames:x?.frames,outcome:x?.outcome,node:x?.node,hp:x?.actors?.map(a=>a.hp)}))});
+  if(complete){
+    await cmd('Page.reload',{ignoreCache:true});
+    const restored=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
+      x=>x?.node==='SCRAP_SWARM',160);
+    gate('Q4I reload resumes real E03 checkpoint without replaying defeated E02',
+      restored?.node==='SCRAP_SWARM'&&restored?.cues===10,restored);
+  }
+  }
+
 
 }catch(err){
   gate('Browser route execution',false,{error:String(err.stack||err)});
