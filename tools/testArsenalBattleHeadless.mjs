@@ -6129,7 +6129,7 @@ if(process.argv.includes('--quest-reflex-real')){
       // assign HP or spawn projectiles; only the existing normal Arsenal AI
       // and pickup/fire/healing pipeline may move the real HP thresholds.
       let halfHp=null;
-      if(${trial}<3 && postJK?.phase==='BOTH_HALF'){
+      if(${trial}<8 && postJK?.phase==='BOTH_HALF'){
         let frames=0,lowest=[f[0].hp,f[1].hp],t6=0,activeMax=0;
         for(;frames<4800;frames++){
           A.step(.05);
@@ -6142,7 +6142,11 @@ if(process.argv.includes('--quest-reflex-real')){
         halfHp={phase:final?.phase,hp:f.map(x=>x.hp),lowest,
           complete:final?.complete,story:final?.storyProgress,
           over:A.state.over,frames,seconds:+(frames*.05).toFixed(2),
-          activeMax,stormPoolObserved:t6,receipts:final?.receipts?.map(x=>x.kind==='CAST'?x.slot:x.from+'>'+x.to)};
+          activeMax,stormPoolObserved:t6,
+          stagePickups:(A.state.questReflexPickupLog||[]).length,
+          activeSlots:(A.state.slots||[]).filter(x=>x.phase!=='REMOVED').map(x=>({weapon:x.weaponId,phase:x.phase,owner:x.questPickupOwner||null})),
+          holders:f.map(x=>W.getHolder(x)?.weaponId||null),
+          receipts:final?.receipts?.map(x=>x.kind==='CAST'?x.slot:x.from+'>'+x.to)};
       }
       window.exitArsenalBattleMode();
       return {entered,ready:true,...after,skillPilot,halfHp,clean:window.__apexQuestReflexRead?.()==null};
@@ -6165,13 +6169,13 @@ if(process.argv.includes('--quest-reflex-real')){
       &&natural.receipts[1].from==='T.O.T'
       &&natural.receipts[1].to==='NEWBOT'),
       trials);
-    gate('q4a-organic-reflex-3-native-combats-reach-500hp-RIVET-hold',
-      trials.slice(0,3).length===3&&trials.slice(0,3).every(x=>
+    gate('q4a-organic-reflex-8-native-combats-reach-500hp-RIVET-hold',
+      trials.slice(0,8).length===8&&trials.slice(0,8).every(x=>
         x?.halfHp?.phase==='AWAIT_RIVET'
         &&x.halfHp.hp.length===2&&x.halfHp.hp.every(h=>h>=250&&h<=500)
         &&x.halfHp.complete===false&&x.halfHp.story===false
         &&x.halfHp.over===null&&x.halfHp.activeMax<=5),
-      trials.slice(0,3).map(x=>x?.halfHp));
+      trials.slice(0,8).map(x=>x?.halfHp));
     gate('q4a-organic-reflex-j-k-real-accepted-casts-without-synthetic-pickup',
       trials.length===12&&trials.every(x=>x?.skillPilot?.earlyBlocked===true
         &&x?.skillPilot?.j===true
