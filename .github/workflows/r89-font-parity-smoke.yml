@@ -11,6 +11,7 @@ on:
       - 'src/game/homeLayoutLab.js'
       - 'src/game/shortPortraitPickRuntime.js'
       - 'tools/testR89GoldProfilesBrowser.mjs'
+      - 'tools/testGoldEmbeddedHudParity.mjs'
       - '.github/workflows/r89-font-parity-smoke.yml'
 permissions:
   contents: read
@@ -31,6 +32,8 @@ jobs:
           ! grep -q "homeLayoutLab.js" src/main.jsx
           ! grep -q "shortPortraitPickRuntime.js" src/main.jsx
           test -s src/game/goldFontParity.css
+      - name: Verify Gold embedded Battle HUD provenance
+        run: node tools/testGoldEmbeddedHudParity.mjs
       - name: Install locked dependencies
         run: |
           corepack enable
