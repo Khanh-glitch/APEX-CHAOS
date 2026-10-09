@@ -10,3 +10,13 @@ Director denies forged native save requests outside a live questStoryCompletion 
 Q4H checks Node/Q1 hostile storage, the separate 8-native Arsenal E01 and FIRST WAKE/Bot/Local regressions, production build, desktop and mobile Chrome physical full Story progression, missing-proof negative gates, saved checkpoint and real reload.
 
 Scope remains DEVELOPMENT ONLY. WORKSHOP's screenplay/dialogue is incomplete. E02–E08 remain future work. Gold responsive overhaul is owned on another branch. T.O.T Gold OPERATOR confirmed white; RIVET owner selected ROBOT PUNK but exact sprite source mapping awaits verification.
+## Q4H owner-visible engineering acceptance
+
+- Runtime SHA: `07a553eef487a49e091dc227b7b5069f2c3e72fa`.
+- Full Actions run: https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/37883702699 — SUCCESS desktop Chrome + touch-mobile Chrome, Node corrupt-save + early-skip gates, eight genuine E01 trials, CP04/BOT/Local, production build.
+- Browser screen/JSON evidence: GitHub Actions artifact `quest-q2-real-n-actors-and-browser`, ID `11595711030`, 54,938,699 bytes. Story samples include `17-q4h-live-wake-comic`, `18-q4h-verified-workshop-pending-save`, `19-q4h-real-workshop-saved` (desktop and mobile variants).
+- Actual click/touch acknowledged WAKE only after true live Quest fighters existed; Director persisted exactly `WAKE → REFLEX`. Attempts to sign the scene while open, or to jump directly to WORKSHOP, failed.
+- R1/R2 PISTOL, actual J/A1, actual K/A2, both true half-HP thresholds, one original Stormbreaker floor impact and subsequent Story acknowledgment were required. Negative WORKSHOP attempts before the floor contact or while its panel was open failed. Final physical scene Continue persisted `REFLEX → WORKSHOP` with eight completed cue IDs.
+- Browser reload returned WORKSHOP with `phaseId=ENTRY`, `stormbreakerArtifactPhase=SEALED`, no persisted Fighter/projectile frames. The preview-only Q4G choice still cannot write Story progress.
+- Developer Stage START QUEST was moved to the first position and given a stable primary control; no Gold global layout/breakpoint changes.
+- No direct owner visual playtest yet: technical Chrome/mobile pass is NOT aesthetic approval. WORKSHOP script, RIVET artwork and E02–E08 still need production completion.
