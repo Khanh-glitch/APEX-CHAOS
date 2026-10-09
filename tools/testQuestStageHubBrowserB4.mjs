@@ -28,15 +28,18 @@ try{
    await sleep(150);
  }
  if(!target)throw Error('No Chrome DevTools page');
- socket=new WebSocket(target.webSocketDebuggerUrl);
- await new Promise((ok,fail)=>{socket.addEventListener('open',ok,{once:true});
- socket.addEventListener('error',fail,{once:true})});
- socket.addEventListener('message',event=>{
-  const msg=JSON.parse(event.data);
-  if(!waiters.has(msg.id))return;
-  const r=waiters.get(msg.id);waiters.delete(msg.id);
-  if(msg.error)r.fail(Error(msg.error.message));else r.ok(msg.result);
- });
+ const connect=async page=>{
+  socket=new WebSocket(page.webSocketDebuggerUrl);
+  await new Promise((ok,fail)=>{socket.addEventListener('open',ok,{once:true});
+    socket.addEventListener('error',fail,{once:true})});
+  socket.addEventListener('message',event=>{
+    const msg=JSON.parse(event.data);
+    if(!waiters.has(msg.id))return;
+    const r=waiters.get(msg.id);waiters.delete(msg.id);
+    if(msg.error)r.fail(Error(msg.error.message));else r.ok(msg.result);
+  });
+ };
+ await connect(target);
  const cmd=(method,params={})=>new Promise((ok,fail)=>{
   const id=++serial;waiters.set(id,{ok,fail});
   socket.send(JSON.stringify({id,method,params}));
@@ -104,11 +107,24 @@ try{
  const exit=await exec('(()=>{const D=window.APEX_QUEST01_DIRECTOR;window.exitArsenalBattleMode();return {ended:window.APEX_ARSENAL.state.active===false,exit:D.exitReplay(),node:D.checkpoint().checkpointId,save:JSON.parse(localStorage.getItem(D.STORAGE_KEY)).checkpointId}})()');
  gate('After disposal replay exits and original permanent save is restored',
    exit.ended&&exit.exit&&exit.node==='CHARGE_THE_BREAKER'&&exit.save==='CHARGE_THE_BREAKER',exit);
- // Chrome may reject the pending Page.reload response after swapping the
- // renderer target; the subsequent checkpoint poll is the actual authority.
+ // Renderer can swap the DevTools target on reload; reconnect to the
+ // actual new Chrome page and demand a fresh Director read after navigation.
+ const restoreExpr='(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,replay:window.APEX_QUEST01_DIRECTOR?.replayStatus()?.active}))()';
  try{await cmd('Page.reload',{ignoreCache:true})}
  catch(e){if(!String(e).includes('Inspected target navigated or closed'))throw e;}
- const restored=await poll('(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,replay:window.APEX_QUEST01_DIRECTOR?.replayStatus()?.active}))()',v=>v?.node==='CHARGE_THE_BREAKER',210);
+ let restored;
+ try{restored=await poll(restoreExpr,v=>v?.node==='CHARGE_THE_BREAKER',210)}
+ catch(e){
+  if(!String(e).includes('Inspected target navigated or closed'))throw e;
+  await sleep(500);
+  const listing=await fetch('http://127.0.0.1:'+port+'/json/list').then(r=>r.json());
+  const page=listing.find(t=>t.type==='page');
+  if(!page)throw Error('Chrome reload lost all page targets');
+  try{socket?.close()}catch{}
+  await connect(page);
+  await cmd('Runtime.enable');
+  restored=await poll(restoreExpr,v=>v?.node==='CHARGE_THE_BREAKER',210);
+ }
  gate('After reload no temporary chapter survives',restored?.replay===false,restored);
 }catch(e){gate('Gold replay real-browser execution',false,{error:String(e.stack||e).slice(0,1200)})}
 finally{
