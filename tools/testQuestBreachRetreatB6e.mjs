@@ -1,55 +1,63 @@
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
-const window={};
-for(const p of ['../public/game/quest/questBreachWavesCore.js',
- '../public/game/quest/questBreachRetreatAuthority.js']){
- vm.runInNewContext(fs.readFileSync(new URL(p,import.meta.url),'utf8'),
-  {window,Number,Math,Object,Array,Set,Map});
+const root={};for(const p of ['../public/game/quest/questBreachWavesCore.js',
+'../public/game/quest/questBreachRetreatAuthority.js'])
+vm.runInNewContext(fs.readFileSync(new URL(p,import.meta.url),'utf8'),
+ {window:root,Number,Math,Object,Array,Set,Map});
+const P=root.APEX_QUEST_BREACH_POLICY,C=root.APEX_QUEST_BREACH_RETREAT.create;
+const source=fs.readFileSync(new URL('../public/apexEngine.js',import.meta.url),'utf8');
+assert.ok(source.includes("typeof this.__apexQuestBeforeAcceptedDamage === 'function'")&&
+ source.includes("typeof this.__apexQuestAfterAcceptedDamage === 'function'"));
+let tested=0;const gate=(name,cond)=>{assert.ok(cond,name);tested++;console.log('PASS B6e '+name);};
+const calls=[];
+function ally(id,immunity=false){
+ const a={questId:id,questTeam:'ALLY',hp:1000,maxHp:1000,
+  data:{},damageTaken:0,immune:immunity};
+ a.takeDamage=function(raw,source,label,statusDamage){
+  if(this.immune)return; // ordinary native defense/early return.
+  let accepted=raw*.65; // an adversarial native defense reduction BEFORE seam.
+  if(this.__apexQuestBeforeAcceptedDamage)
+    accepted=this.__apexQuestBeforeAcceptedDamage(accepted,source,label,statusDamage);
+  if(!(accepted>0))return;
+  const before=this.hp;
+  this.hp=Math.max(0,this.hp-accepted);this.damageTaken+=accepted;
+  this.__apexQuestAfterAcceptedDamage?.(before-this.hp,source,label,statusDamage);
+  calls.push({raw,accepted,owner:this.questId});
+ };
+ return a;
 }
-const policy=window.APEX_QUEST_BREACH_POLICY,create=window.APEX_QUEST_BREACH_RETREAT.create;
-const events=[],session=create({policy,onRetreat:(f,e)=>events.push({f,e})});
-const own=(id)=>({questId:id,questTeam:'ALLY',hp:1000,maxHp:1000,data:{},damageTaken:0,
- takeDamage(amount,source,label){this.hp=Math.max(0,this.hp-amount);this.damageTaken+=amount;
-  this.last={amount,source,label};}});
-const actors=policy.ALLY_IDS.map(own);
-let total=0;const gate=(name,ok)=>{assert.ok(ok,name);total++;console.log('PASS B6e '+name);};
-gate('E06 attach requires EXACT three 1000HP eligible Fighter delegates',
- session.attach(actors).ok===true&&session.snapshot().attached===3);
-const attacker={questId:'LV2_REAVER'};
-actors[0].takeDamage(700,attacker,'arsenal-pistol',false);
-gate('genuine direct hit still uses unmodified delegate damage',
- actors[0].hp===300&&actors[0].damageTaken===700&&events.length===0);
-actors[0].takeDamage(500,attacker,'reaver-contact',false);
-gate('lethal overflow stops at truthful threshold before KO, never heals',
- actors[0].hp===100&&actors[0].damageTaken===900
- &&actors[0].last.amount===200&&actors[0].withdrawn===true);
-gate('one observed NEWBOT retreat event carries source and overflow',
- events.length===1&&events[0].e.id==='NEWBOT'
- &&events[0].e.sourceId==='LV2_REAVER'
- &&events[0].e.unabsorbed===300);
-actors[0].takeDamage(100,attacker,'extra-bullet',false);
-gate('withdrawn actor cannot absorb further damage or duplicate a retreat',
- actors[0].hp===100&&events.length===1);
-gate('control priority moves J/K to real T.O.T, not a fabricated copy',
- policy.abilityRecipient(actors)==='T.O.T');
-actors[1].takeDamage(900,attacker,'laser',false);
-gate('exact threshold causes actual T.O.T withdrawal',
- actors[1].hp===100&&actors[1].withdrawn&&events.length===2);
-actors[2].takeDamage(1200,attacker,'laser',false);
-gate('all three real withdrawals yield authentic RETRY policy',
- actors[2].hp===100&&actors[2].withdrawn
- &&policy.abilityRecipient(actors)===null&&events.length===3);
-const dead=actors.map((a)=>({ ...a })),enemy=policy.resolveWave('A').hostiles.map(s=>({
+const allies=P.ALLY_IDS.map(id=>ally(id)),events=[],session=C({policy:P,onRetreat:(f,receipt)=>events.push(receipt)});
+gate('attach exactly 3 real native delegates',session.attach(allies).ok&&session.snapshot().attached===3);
+const reaver={questId:'LV2_REAVER'};
+allies[0].takeDamage(600,reaver,'melee');
+gate('first hit keeps authentic defense at 65%',allies[0].hp===610&&events.length===0);
+allies[0].takeDamage(1000,reaver,'melee');
+gate('second post-mitigation hit reaches 100HP without resurrecting KO',
+ allies[0].hp===100&&allies[0].damageTaken===900&&allies[0].withdrawn);
+gate('damage beyond real accepted withdrawal point is not credited',
+ calls.at(-1).accepted===510&&events.length===1&&events[0].unabsorbed===140);
+allies[0].takeDamage(200,reaver,'extra');
+gate('once withdrawn cannot lose any more HP or re-trigger event',
+ allies[0].hp===100&&events.length===1);
+gate('abilityRecipient respects physical voluntary withdrawal',
+ P.abilityRecipient(allies)==='T.O.T');
+allies[1].takeDamage(5000,reaver,'laser');
+allies[2].takeDamage(5000,reaver,'laser');
+gate('three threshold withdrawals are RETRY, not 0-HP fabricated death',
+ allies.every(a=>a.hp===100&&a.withdrawn)&&P.abilityRecipient(allies)===null
+ &&events.length===3);
+const hostiles=P.resolveWave('A').hostiles.map(s=>({
  questId:s.id,questTeam:'HOSTILE',hp:s.hp,maxHp:s.hp}));
-gate('wave predicate sees RETRY only when all allies physically withdrew',
- policy.waveOutcome([...actors,...enemy],'A').status==='RETRY');
+gate('wave RETRY authentic even with three living hostiles',
+ P.waveOutcome([...allies,...hostiles],'A').status==='RETRY');
 session.close();
-gate('lifecycle restores every original Fighter.takeDamage delegate',
- session.snapshot().attached===0&&session.snapshot().active===false);
-const immunity=create({policy});
-const fresh=policy.ALLY_IDS.map(own);
-fresh[0].takeDamage=function(){};
-gate('immune target is not falsely withdrawn by a rejected damage hit',
- immunity.attach(fresh).ok&& (fresh[0].takeDamage(2000,attacker,'immune'),fresh[0].hp===1000)
- &&fresh[0].withdrawn===false);
-immunity.close();
-console.log('B6e physical retreat authority '+total+' PASS / 0 FAIL');
+gate('close disposes instance hooks and restores ordinary Fighter method',
+ allies.every(a=>a.__apexQuestBeforeAcceptedDamage===undefined
+ &&a.__apexQuestAfterAcceptedDamage===undefined)&&session.snapshot().attached===0);
+const immune=P.ALLY_IDS.map(id=>ally(id)),protectedSession=C({policy:P});
+immune[0].immune=true;protectedSession.attach(immune);
+immune[0].takeDamage(9000,reaver,'immune');
+gate('immune Fighter does not withdraw on an unaccepted raw attack',
+ immune[0].hp===1000&&immune[0].withdrawn===false
+ &&protectedSession.snapshot().events.length===0);
+protectedSession.close();
+console.log('B6e realized boundary '+tested+' PASS / 0 FAIL');

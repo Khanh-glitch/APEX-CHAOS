@@ -12,3 +12,6 @@ This commit supplies **only** the isolated, tested damage adapter. E06 Gold batt
 - refuse E06 signed checkpoint without three true wave clears and a result-panel acknowledgment
 
 No autoplay, invented ally abilities or E07/E08 ending introduced by B6e.
+
+## B6f native correction — accepted damage, not raw input
+The full Arsenal test caught a critical engine mitigation ordering error: a 2,000 raw hit was reduced by Fighter to 585 HP loss, so the previous outer-method wrapper never reached 100 HP. That previous B6e model was **not valid** for production. This branch replaces it with two optional callbacks at the native **accepted damage** transaction: `__apexQuestBeforeAcceptedDamage` and `__apexQuestAfterAcceptedDamage`, installed only on E06 allies. Existing mitigation/immune status executes first; the final accepted damage is capped at the allowed threshold, and withdrawal is signed only AFTER physical HP actually falls to 100. No direct HP writes or state-only KO. CI must prove this on real Arsenal, not just a simplified mock.

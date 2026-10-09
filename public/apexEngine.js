@@ -569,9 +569,24 @@ var Fighter = class Fighter {
         // PASS B §14: realized-damage transaction point — the engine's central
         // choke point AFTER all mitigation/defense/early-return resolutions.
         // The HUD observes actual HP loss only; this never changes the result.
+        // Quest E06 native physical withdrawal: apply the owner 100HP floor
+        // only AFTER the engine's existing defensive reductions above, and
+        // BEFORE the accepted transaction. Fighter.thp is not written by Quest.
+        // Non-E06 Fighter instances do not install either callback.
+        if (typeof this.__apexQuestBeforeAcceptedDamage === 'function') {
+            const authorized = this.__apexQuestBeforeAcceptedDamage(
+                amount,source,label,statusDamage);
+            if (!Number.isFinite(authorized) || authorized < 0 || authorized > amount)
+                throw new Error('Invalid E06 accepted-damage boundary decision');
+            amount=authorized;
+        }
+        if (!(amount > 0)) return;
         const apexCombatHudHpBefore = this.hp;
         this.hp = Math.max(0, this.hp - amount);
         this.damageTaken += amount;
+        if (typeof this.__apexQuestAfterAcceptedDamage === 'function')
+            this.__apexQuestAfterAcceptedDamage(
+                Math.max(0,apexCombatHudHpBefore-this.hp),source,label,statusDamage);
         if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onRealizedDamage) {
             try {
                 window.APEX_COMBAT_HUD.onRealizedDamage({
