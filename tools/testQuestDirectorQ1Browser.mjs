@@ -1462,7 +1462,7 @@ try{
                 keyResult?.receipt?.source==='keyboard'&&keyResult?.focused&&
                 keyResult?.keys?.length>=1,{...keyResult,setup:inputSetup,attempt:acceptedKey});
             }else{
-              await evalPage("(()=>{window.fighters[0].withdrawn=false;window.APEX_ARSENAL.state.slots=[];return true})()");
+              await evalPage("(()=>{const A=window.APEX_ARSENAL;window.fighters[0].withdrawn=false;A.state.slots=[];if(window.__B8KeyJSpawnRestore){A.state.spawnHeld=window.__B8KeyJSpawnRestore.spawnHeld;A.state.spawnTimer=window.__B8KeyJSpawnRestore.spawnTimer;delete window.__B8KeyJSpawnRestore;}return true})()");
             }
             const pointerReady=await evalPage("(()=>{const A=window.APEX_ARSENAL,G=window.APEX_GOLD,Q=A.state.questBreachCompanionSkills,W=A.weaponApi;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const k=Q.snapshot().tot;if(k.phase==='STORED'){if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');G.pressSkill(0,1,{source:'b6n-test-reset-stored-holder'});}if(W.getHolder(t))W.consume(t,'b6n-touch-probe-empty-hand');A.state.slots=[];Q.tick(12);Q.tick(4);const now=Q.snapshot();return{recipient:now.currentRecipient,phase:now.tot.phase,kCooldown:now.tot.kCooldown,ui:!!document.querySelector('#battleHudHost #p1Side .skill[data-i=\\\"1\\\"]')}})()");
             gate('B6n true Gold skill button is present and T.O.T K is ready',
