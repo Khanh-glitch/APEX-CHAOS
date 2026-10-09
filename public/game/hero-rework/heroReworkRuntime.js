@@ -2613,7 +2613,10 @@
       if (p.type === 'aq_thrown') {
         p.grace = Math.max(0, (p.grace || 0) - dt);
         if (p.state === 'flight') {
-          if (p.weapon === 'STORMBREAKER') {
+          // Quest RIVET's owner-approved floor-suppression throw must not
+          // home onto either live training Fighter. All ordinary hero
+          // Stormbreaker homing, including E08, remains unchanged.
+          if (p.weapon === 'STORMBREAKER' && p.questRivetSuppression !== true) {
             const tgt = thrownHomingTarget(p);
             if (tgt) {
               let cur = Math.atan2(p.vy, p.vx);
@@ -2632,6 +2635,31 @@
           p.x += p.vx * dt;
           p.y += p.vy * dt;
           p.rot += p.spin * dt;
+          // Q4F E01 FLOOR CONTACT: Hero Rework owns the live projectile
+          // pass when active. Adjudicate the actual swept path of ONE
+          // authentic RIVET aq_thrown before other HR body/surface routing.
+          // No damageable dummy, no manufactured bolt, no ally HP damage.
+          if(p.weapon==='STORMBREAKER'&&p.questRivetSuppression===true){
+            const rig=globalScope.APEX_ARSENAL?.state?.questRivetPreview;
+            const floor=rig?.aimPoint;
+            if(rig?.operator===p.owner && !rig.groundImpact && floor
+               && Number.isFinite(floor.x)&&Number.isFinite(floor.y)
+               && pointToSegmentDist(floor.x,floor.y,p.px,p.py,p.x,p.y)<=p.radius+10){
+              rig.groundImpact=Object.freeze({
+                x:floor.x,y:floor.y,owner:p.owner.questId,weapon:p.weapon,
+                projectileType:p.type,flightTime:p.flightTime,
+                kind:'REAL_ARSENAL_FLOOR_CONTACT'
+              });
+              globalScope.APEX_ARSENAL_STORM?.onImpact?.(floor.x,floor.y,null);
+              globalScope.avCue?.('storm_impact',{
+                weapon:'STORMBREAKER',x:floor.x,y:floor.y,questFloorSuppression:true
+              });
+              globalScope.APEX_ARSENAL?.log?.('QUEST_RIVET_FLOOR_STRIKE',
+                `x=${Math.round(floor.x)} y=${Math.round(floor.y)}`);
+              projectiles.splice(i,1);
+              continue;
+            }
+          }
           // F2 routes normal thrown-melee FLIGHT projectiles through the
           // real F1 node surface (doc 08 §7 eligible family; T6 already
           // capability-denied). Ordered against the body contact exactly
@@ -2642,7 +2670,8 @@
           // bounce always wins and no surface event beyond it is presented.
           // While escrowed the thrown object's grace/flight/maxFlight/life
           // timers do not tick.
-          const tBodyHit = p.grace <= 0 ? earliestToiBodyT(p, BULLET_HIT_SCALE) : null;
+          const tBodyHit = p.questRivetSuppression===true ? null
+            : p.grace <= 0 ? earliestToiBodyT(p, BULLET_HIT_SCALE) : null;
           const tCrySweep = CRY ? CRY.thrownSurface(p) : null;
           const tWallSweep = sweepThrownWall(p);
           const tBoundToi = arenaBoundToi(p, GAME_SIZE);
@@ -2676,7 +2705,8 @@
               p.ricochetsLeft -= 1; p.spin *= -1;
             }
           }
-          const target = earliestToiBody(p, BULLET_HIT_SCALE, i);
+          const target = p.questRivetSuppression===true ? null
+            : earliestToiBody(p, BULLET_HIT_SCALE, i);
           if (target && p.grace <= 0) {
             const hitR = target.radius * BULLET_HIT_SCALE + p.radius;
             if (pointToSegmentDist(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
