@@ -311,7 +311,17 @@ try{
     check(v.name+' live resize preserves real match instance',
       after.child.session===oldSession&&after.battle.mode==='1p'&&
       after.battle.arena?.w>0,{before,after});
-    output.push({id:v.name,solo:true,before,after});
+    const rotatedViewport=v.device==='tablet'?{w:1024,h:768,size:'tablet'}:
+      {w:844,h:390,size:'compact'};
+    await resize(rotatedViewport.w,rotatedViewport.h);
+    await sleep(650);
+    const rotated=await capture(v.name+'-rotated-Battle');
+    check(v.name+' portrait-to-landscape keeps match and chooses native Gold',
+      rotated.child.session===oldSession&&
+      rotated.battle.mode==='1p'&&rotated.battle.layout==='land'&&
+      rotated.battle.size===rotatedViewport.size&&rotated.battle.arena?.w>0,
+      {after,rotated});
+    output.push({id:v.name,solo:true,before,after,rotated});
   }
 
   // Safe rollback must load the genuine top-level Gold game, even with an
