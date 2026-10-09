@@ -8,7 +8,7 @@ const equal=(a,b,msg)=>{assert.equal(a,b,msg);console.log('PASS '+msg);};
 const actor=(id,team,x,y,hp=1000)=>({questId:id,questTeam:team,x,y,hp,maxHp:1000,withdrawn:false,dir:{x:1,y:0}});
 const n=actor('NEWBOT','ALLY',100,100,510);
 const t=actor('T.O.T','ALLY',180,120);
-const v=actor('RIVET','ALLY',320,120,350);
+const v=actor('RIVET','ALLY',320,120,820);
 const e1=actor('BREACH-A1','HOSTILE',395,120,300);
 const e2=actor('BREACH-A2','HOSTILE',399,175,300);
 const e3=actor('BREACH-A3','HOSTILE',290,480,300);
