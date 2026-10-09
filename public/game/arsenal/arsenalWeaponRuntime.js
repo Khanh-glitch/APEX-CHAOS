@@ -646,10 +646,15 @@
           if(p.weapon==='STORMBREAKER'&&p.questRivetSuppression===true){
             const rig=AQ.state?.questRivetPreview;
             const floor=rig?.aimPoint;
+            const approach=floor?distPointToSegment(floor.x,floor.y,p.px,p.py,p.x,p.y):Infinity;
+            if(rig&&rig.operator===p.owner){
+              rig.minApproach=Math.min(rig.minApproach??Infinity,approach);
+              if(!rig.contactTrace)rig.contactTrace=[];
+              if(rig.contactTrace.length<12)rig.contactTrace.push({x:p.x,y:p.y,px:p.px,py:p.py,dist:approach,r:p.radius,dt});
+            }
             if(rig?.operator===p.owner && floor && !rig.groundImpact
                && Number.isFinite(floor.x)&&Number.isFinite(floor.y)
-               && distPointToSegment(floor.x,floor.y,p.px,p.py,p.x,p.y)
-                  <=p.radius+10){
+               && approach<=p.radius+10){
               const point={x:floor.x,y:floor.y};
               rig.groundImpact=Object.freeze({
                 x:point.x,y:point.y,owner:p.owner.questId,
