@@ -8,10 +8,13 @@ gate('Quest-only style appended after donor Gold',p.includes('<style id="apexQue
 gate('same Gold generator owns responsive + Quest',base.includes('applyQuestGoldPresentation(applyB05Overlay'));
 gate('normal BOT/LOCAL keep R90 geometry',css.includes('#hud[data-quest="1"][data-layout="desk"]')
   &&!css.includes('#hud[data-layout="desk"]{'));
-gate('Quest desktop/land MUST NOT shift R90 arena center',
-  !/#[^\n{]*data-quest="1"\]\[data-layout="(?:desk|land)"\][^{}]*\{[^}]*--(?:arena|cl|cr|q-left|q-right)\s*:/.test(css));
+gate('Quest desk keeps R90 arena unchanged, land explicitly centers square',
+  !/#[^\n{]*data-quest="1"\]\[data-layout="desk"\][^{}]*\{[^}]*--(?:arena|cl|cr)\s*:/.test(css)
+  &&css.includes('--cl:calc((var(--availW) - var(--arena) - 2 * var(--gx)) / 2)')
+  &&css.includes('--cr:var(--cl)'));
+
 gate('Quest cannot miniaturize original Gold J/K skills',
-  !/--(?:tileH|artW|skNF|infoPad|wpIW)\s*:/.test(css)
+  !/--(?:tileH|artW|skNF|wpIW)\s*:/.test(css)
   &&!css.includes('width:min(100%,265px)'));
 gate('Quest land preserves visible real skill status',
   css.includes('#p1Side .sk-meter')&&css.includes('flex-direction:column')

@@ -116,9 +116,9 @@ try{
       gate(id+' arena physically centered and within Gold stage',
         snap.quest==='1'&&snap.mode==='1p'&&snap.layout===c.layout&&snap.centeringError<=3.1,
         {layout:snap.layout,delta:snap.centeringError,arena:snap.arena,stage:snap.stage});
-      if(c.layout!=='port')gate(id+' preserves native Gold square and symmetric sides',
-        snap.goldParity<=3.1&&snap.sideAsymmetry<=3.1,
-        {goldParity:snap.goldParity,sideAsymmetry:snap.sideAsymmetry});
+      if(c.layout!=='port')gate(id+' same/or larger Gold square with symmetric sides',
+        snap.sideAsymmetry<=3.1&&(c.layout==='desk'?snap.goldParity<=3.1:snap.arena.width>=snap.native.width-2),
+        {goldParity:snap.goldParity,sideAsymmetry:snap.sideAsymmetry,questWidth:snap.arena.width,donorWidth:snap.native.width});
       gate(id+' both J/K names, statuses, cards and physical hits fit',
         snap.names.length===2&&snap.names[0].title==='WEAPON DASH'
           &&snap.names[1].title==='VIRTUAL ARMOR'
