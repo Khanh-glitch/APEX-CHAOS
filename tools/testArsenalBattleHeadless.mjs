@@ -6257,7 +6257,7 @@ if(process.argv.includes('--quest-reflex-real')){
           &&v?.birth?.owner==='RIVET'&&v?.birth?.weapon==='STORMBREAKER'
           &&v?.birth?.kind==='aq_thrown'
           &&Number.isFinite(v.birth.x)&&Number.isFinite(v.birth.y)
-          &&Number.isFinite(v.birth.vy)&&v.birth.vy>0
+          &&Number.isFinite(v.birth.vy)&&Math.abs(v.birth.vy)>1000
           &&v?.phase==='SETTLED'&&v?.settled===true&&v?.live===0
           &&v?.technical?.ready===true
           &&v?.technical?.groundImpact?.kind==='REAL_ARSENAL_FLOOR_CONTACT'
