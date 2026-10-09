@@ -73,6 +73,10 @@ async function poll(expression,predicate,attempts=240){
 }
 async function click(selector){
   const probe=JSON.stringify(selector);
+  // Gold Quest chapter has a deliberately scrollable story panel. A real
+  // user scrolls to controls below the fold before clicking. Keep CDP
+  // physical pointer/touch for activation; never invoke element.click().
+  await evalPage(`(()=>{const e=document.querySelector(${probe});e?.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});return !!e})()`);
   let p=await poll(`(()=>{
     const e=document.querySelector(${probe});
     if(!e)return {exists:false};
