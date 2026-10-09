@@ -351,11 +351,10 @@
 
         // Quest may have N independent canonical Fighters. Ordinary BOT/LOCAL still
         // uses the exact original two entries, including HUD telemetry.
-        // REFLEX R1/R2 stage pickups are authored PISTOL trials, not
-        // generic Arsenal counter drops. Only their REAL designated Fighter
-        // can trigger a reveal and later collect the floor weapon.
+        // The E01 training marker is spatial story intent, never ownership.
+        // All physical Fighters can reveal and collect any exposed gun.
         const questDirected=slot.questPickupOwner&&
-          (state.questReflex===true||state.questScrapSwarmProgression===true
+          (state.questScrapSwarmProgression===true
             ||state.questBreakerChargeProgression===true);
         const stageOwner=questDirected
           ? (fighters||[]).find(f=>f&&f.hp>0&&f.questId===slot.questPickupOwner)
@@ -524,12 +523,9 @@
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
         if (d > pickupTouchRadius(f)) continue;
-        // E01 REFLEX stage gun is collected only by its named physical
-        // participant. Still real floor pickup / Arsenal equip; this guard
-        // never applies to normal, LAB, BOT, Local or other Quest slots.
-        if ((state.questReflex===true||state.questScrapSwarmProgression===true
-          ||state.questBreakerChargeProgression===true)
-          &&slot.questPickupOwner&&f.questId!==slot.questPickupOwner) continue;
+        // questPickupOwner records who a scene intends to teach. It is
+        // NOT a permission and never prevents real physical pickup.
+        // Frost/counter/armed limitations below remain visible engine laws.
         // FROST V1 (authority §4.3): a Frozen firearm denies non-Frost
         // collectors. Dynamic denial only — never a rejected/blacklist mark.
         if (slot.__frostFrozen) {
