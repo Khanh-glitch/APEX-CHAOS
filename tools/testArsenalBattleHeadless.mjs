@@ -5839,6 +5839,14 @@ if (process.argv.includes('--quest-scrap-swarm-native')) {
         return {started,initial:false};
       }
       const player=window.fighters[0],all=()=>window.fighters;
+      A.step(1/60); // Real first E03 Arsenal spawn-cadence tick.
+      const authoredPickup=A.state.slots.find(s=>s.questStage==='E03_OPENING');
+      const authoredPickupProof=authoredPickup&&{
+        slotId:authoredPickup.id,stage:authoredPickup.questStage,
+        weapon:authoredPickup.questWeaponId,owner:authoredPickup.questPickupOwner,
+        physical:authoredPickup.phase==='TELEGRAPH',
+        near:Math.hypot(authoredPickup.x-player.x,authoredPickup.y-player.y)<100
+      };
       A.state.spawnHeld=true;A.state.spawnTimer=1e8;
       A.state.slots=[];
       player.baseSpeed=0;
@@ -5883,7 +5891,7 @@ if (process.argv.includes('--quest-scrap-swarm-native')) {
       const hpAfter=player.hp,holderSame=W.getHolder(player)===holderBefore;
       const bIds=all().filter(x=>x.questTeam==='HOSTILE').map(x=>x.questId);
       const bHits=bIds.map(physicalKo);
-      const result={started,waveAInit,phaseAfterA,receipt,aIds,aHits,
+      const result={started,authoredPickupProof,waveAInit,phaseAfterA,receipt,aIds,aHits,
         waveBInit,seamDiagnosis,sameHero,slotsSame,hpBefore,hpAfter,holderSame,
         bIds,bHits,totalHits,
         outcome:A.state.questOutcome,over:A.state.over,
@@ -5897,6 +5905,11 @@ if (process.argv.includes('--quest-scrap-swarm-native')) {
     `);
     gate('Q5 native physical hit test boots real Arsenal E03 (fixture authorization)',
       output?.started===true&&output?.waveAInit?.ok===true,output);
+    gate('Q5 E03 first slot is directed real PISTOL, not synthetic equip',
+      output?.authoredPickupProof?.physical===true
+      &&output.authoredPickupProof.weapon==='PISTOL'
+      &&output.authoredPickupProof.owner==='NEWBOT'
+      &&output.authoredPickupProof.near===true,output?.authoredPickupProof);
     gate('Q5 wave A consists of THREE real physical Arsenal KOs',
       output?.aHits?.length===3&&output.aHits.every(Boolean)
       &&output?.totalHits>=7&&output?.receipt?.length===3
