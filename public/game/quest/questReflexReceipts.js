@@ -81,7 +81,8 @@
     const n=actors.find(x=>x?.questId==='NEWBOT'&&x.questTeam==='ALLY');
     const t=actors.find(x=>x?.questId==='T.O.T'&&x.questTeam==='HOSTILE');
     if(!n||!t||n===t||n.hp<=0||t.hp<=0||n.hp>500||t.hp>500
-      ||n.hp<250||t.hp<250
+      // Being injured below 250 HP must not silently veto a proven rescue.
+      // Only real KO (hp<=0) denies the handoff.
       ||snap.hp?.newbot!==n.hp||snap.hp?.tot!==t.hp)return no('inconsistent-fighter-hp');
     if(hold?.phase!=='AWAIT_RIVET'||hold.hp?.length!==2||hold.at!==time
       ||hold.hp.some(h=>!actors.some(a=>a.questId===h.id&&a.hp===h.hp)))
