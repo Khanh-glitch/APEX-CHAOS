@@ -40,6 +40,10 @@
  '@media(prefers-reduced-motion:reduce){#apexQuestStoryView .qs-body,#apexQuestStoryView .qs-comic,#apexQuestStoryView.qs-workshop::after{animation:none}#apexQuestStoryView.qs-workshop::after{opacity:0}}'
  ].join('\n');
  const LABEL=Object.freeze({
+  // Canon only: SCRAP BASIN is the approved disposal site. No invented
+  // RIVET dialogue, new network exposition or false combat receipt.
+  WAKE_OPEN:{title:'WAKE',left:'NEWBOT',right:'SCRAP BASIN',
+    line:'SCRAP BASIN',kicker:'THE ONES THROWN AWAY'},
   E01_R1_IMPACT:{title:'REFLEX',left:'NEWBOT',right:'T.O.T',line:'FIRST IMPACT',kicker:'PISTOL // CONTACT'},
   E01_R2_IMPACT:{title:'REFLEX',left:'T.O.T',right:'NEWBOT',line:'RETURN FIRE',kicker:'PISTOL // RETALIATION'},
   E01_J_REVEAL:{title:'UNKNOWN ROUTINE',left:'NEWBOT',right:'A1',line:'UNKNOWN ROUTINE — J',kicker:'ROUTINE DETECTED'},
