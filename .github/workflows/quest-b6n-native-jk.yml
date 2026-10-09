@@ -28,6 +28,13 @@ jobs:
           node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-retry-native
           node tools/testQuestTotLastChoiceB8a.mjs
           node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-tot-native
+      - name: Full unmodified Free Battle/Arsenal product regression
+        run: pnpm test:arsenal:headless:product
+      - name: Collision, render-HUD, and source graph isolation
+        run: |
+          pnpm test:arsenal:current-collision
+          pnpm test:arsenal:current-render-hud
+          pnpm test:source-hygiene
       - name: Gold source provenance
         run: node tools/buildGoldCutover.mjs --check
       - name: Build
