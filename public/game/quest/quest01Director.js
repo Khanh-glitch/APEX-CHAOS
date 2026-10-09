@@ -110,6 +110,38 @@
   function acceptNativeBeat(beat) {
     const no=reason=>Object.freeze({ok:false,reason});
     const A=root.APEX_ARSENAL,q=A?.state,actors=root.fighters;
+    if(beat==='FIRST_WAKE_ENTER'||beat==='E02_FIRST_WAKE_CLEAR'){
+      const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
+      if(!q?.active||q.questFirstWake!==true||q.questFirstWakeProgression!==true
+         ||!Array.isArray(actors)||actors.length!==4
+         ||Q?.validateFirstWake?.(actors)?.ok!==true)
+        return no('no-authorized-first-wake');
+      const checkpoint=core.checkpoint();
+      const byQuestId=id=>actors.find(x=>x.questId===id);
+      const n=byQuestId('NEWBOT'),t=byQuestId('T.O.T');
+      const a=byQuestId('SCRAP-A'),bb=byQuestId('SCRAP-B');
+      if(!n||!t||!a||!bb
+         ||n.questTeam!=='ALLY'||t.questTeam!=='ALLY'
+         ||a.questTeam!=='HOSTILE'||bb.questTeam!=='HOSTILE')
+        return no('incorrect-first-wake-roster');
+      if(beat==='FIRST_WAKE_ENTER'){
+        if(checkpoint.checkpointId!=='WORKSHOP'
+          ||!checkpoint.completedCueIds.includes('WORKSHOP_ARRIVAL')
+          ||q.over!=null||q.questOutcome!=null
+          ||n.hp!==1000||t.hp!==1000||a.hp!==350||bb.hp!==350)
+          return no('first-wake-entry-not-earned');
+        return core._commitNativeTransition('FIRST_WAKE',['E02_FIRST_WAKE_ENTRY']);
+      }
+      const view=q.questFirstWakeStoryView?.snapshot?.();
+      if(checkpoint.checkpointId!=='FIRST_WAKE'
+        ||q.questOutcome!=='COMPLETE'||q.over!=='QUEST_FIRST_WAKE_COMPLETE'
+        ||Q.firstWakeOutcome(actors).status!=='COMPLETE'
+        ||n.hp<=0||a.hp>0||bb.hp>0
+        ||!view||view.active!==false||view.closed!==false
+        ||view.shown.join('|')!=='E02_FIRST_WAKE_CLEAR')
+        return no('first-wake-KO-or-scene-not-earned');
+      return core._commitNativeTransition('SCRAP_SWARM',['E02_FIRST_WAKE_CLEAR']);
+    }
     if(!q?.active||q.questReflex!==true||q.questStoryCompletion!==true
       ||!Array.isArray(actors)||actors.length!==2
       ||actors[0]?.questId!=='NEWBOT'||actors[1]?.questId!=='T.O.T'
@@ -177,7 +209,7 @@
       '#apexQuest01Stage .q1-actions{display:grid;gap:10px;margin-top:22px;}',
       '#apexQuest01Stage button{font:700 13px Arial,sans-serif;letter-spacing:.1em;min-height:48px;padding:12px 15px;border:1px solid #9a8259;color:#f6eee0;background:#403725;cursor:pointer;}',
       '#apexQuest01Stage button:focus-visible{outline:3px solid #f6c981;outline-offset:3px;}',
-      '#apexQuest01Stage #q4hQuestPlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;}',
+      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;}',
       '#apexQuest01Stage button.q1-back{background:transparent;border-color:#61666b;color:#d1d1cf;}',
       '#apexQuest01Stage .q1-fine{margin-top:16px;font-size:11px;color:#9fa5ad;line-height:1.5;}'
     ].join('\n');
@@ -187,11 +219,19 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. Neither preview completes story checkpoints; The preview reaches the real RIVET floor suppression and WORKSHOP but does not save. START QUEST runs the signed opening with checkpoint progression to WORKSHOP.</div></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. Neither preview completes story checkpoints; The preview reaches the real RIVET floor suppression and WORKSHOP but does not save. START QUEST runs the signed opening with checkpoint progression to WORKSHOP.</div></div>';
     d.body.appendChild(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',hide);
     overlay.querySelector('#q1Preview').addEventListener('click',()=>{const cb=callbacks && callbacks.onPreview;hide(); if(typeof cb==='function')cb();});
     overlay.querySelector('#q4ReflexPreview').addEventListener('click',()=>{const cb=callbacks && callbacks.onReflexPreview;hide();root.__APEX_QUEST_STORY_PLAYBACK=false;if(typeof cb==='function')cb();});
+    overlay.querySelector('#q4iFirstWakePlay').addEventListener('click',()=>{
+      if(!['WORKSHOP','FIRST_WAKE'].includes(core.checkpoint().checkpointId))return;
+      const opts=callbacks;
+      const cb=callbacks?.onFirstWakeStory||root.__apexQuestFirstWakeStoryStart;
+      if(typeof cb!=='function')return;
+      hide();const started=cb();
+      if(started!==true)show(opts);
+    });
     overlay.querySelector('#q4hQuestPlay').addEventListener('click',()=>{
       if(!['WAKE','REFLEX'].includes(core.checkpoint().checkpointId))return;
       const cb=callbacks&&callbacks.onReflexPreview;hide();
@@ -208,7 +248,7 @@
       delete root.__APEX_QUEST_STORY_FULL;
       if(typeof cb==='function')cb();
     });
-    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
     return overlay;
   }
   function show(options) {
@@ -222,9 +262,13 @@
     el.querySelector('#q1Copy').textContent=node.copy || 'This story chapter has not yet been implemented.';
     el.querySelector('#q1Status').textContent='CHECKPOINT ' + String(NODE_IDS.indexOf(node.id)+1).padStart(2,'0') + ' / 11 · ' + node.status.replaceAll('_',' ');
     el.querySelector('#q4hQuestPlay').hidden=!['WAKE','REFLEX'].includes(node.id);
+    el.querySelector('#q4iFirstWakePlay').hidden=!['WORKSHOP','FIRST_WAKE'].includes(node.id);
     previousFocus=root.document.activeElement;
     el.hidden=false;
-    (el.querySelector('#q4hQuestPlay').hidden?el.querySelector('#q1Exit'):el.querySelector('#q4hQuestPlay')).focus({preventScroll:true});
+    const start=el.querySelector('#q4iFirstWakePlay').hidden
+      ? (el.querySelector('#q4hQuestPlay').hidden?el.querySelector('#q1Exit'):el.querySelector('#q4hQuestPlay'))
+      :el.querySelector('#q4iFirstWakePlay');
+    start.focus({preventScroll:true});
     return state;
   }
   function hide() {
