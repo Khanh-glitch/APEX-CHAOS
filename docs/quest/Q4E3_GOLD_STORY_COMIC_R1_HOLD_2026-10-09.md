@@ -1,0 +1,12 @@
+# Quest Q4E3 — Real in-engine story compositor and physical REFLEX R1 hold
+Base green `4af7cb1ef1f6580c5ce6e2fcbfc0575dd00185ff` (Q4E2). Branch `quest/q4e3-story-compositor-from-q4e2`.
+
+Q4E.3 is an opt-in, owner-visible, non-shipping Story preview through the existing Quest WAKE menu. Selecting `STORY + REFLEX · Q4E3` starts the same native Arsenal E01 mode with a genuine per-match Story presenter. Regular `PLAYTEST REFLEX · Q4A`, Bot Battle, Local 1v1 and FIRST WAKE remain intact.
+
+The real R1 PISTOL damage receipt creates one story frame; Arsenal simulation stops until Continue or Skip Beat, freezing genuine Fighter HP, positions, floor pickups, timer and gun scheduling. Acknowledging consumes only the presentation cue, resumes combat at the authentic R2 state, and never adjusts checkpoint/skill/cooldown. Later cues reuse the same presenter. Leaving the match destroys the entire surface/event listeners; no stale Story state.
+
+The comic compositor displays **actual pixels captured from the live Arsenal canvas** in a split-panel layout, with scalable cinema typography, Gold-adjacent warm metal palette, touch-sized buttons, safe-area-aware responsive CSS and reduced-motion support. Titles are neutral system labels, **NOT fabricated dialogue**. No missing/unauthorized character speech has been filled. Once art anchors are verified RIVET should map to owner's Gold ROBOT PUNK, T.O.T to milky-white OPERATOR and only the remaining three Gold monsters should be enemy families. No unrelated Gold global breakpoints changed.
+
+The presentation is not a Director. Every panel, Continue, Skip and Escape is powerless to complete E01 or save Story. The post-RIVET floor suppression and actual WORKSHOP transition remain separately gated work, as do approved dialogue, genuine speaker portraits, SFX and voice. The current Stormbreaker scene is still a no-damage engineering flyby, NOT the final authorized ground-impact beat.
+
+Chrome gates: physical Q4E3 menu click, real R1 impact triggering panel, frozen combat when panel open, physically click Continue, recover R2 and still WAKE, physical exit and cleanup. Capture actual screenshots at original viewport, compact 360×640 phone and 1024×768 landscape tablet. All earlier native 8/8 Arsenal soaks, FIRST WAKE, BOT/Local production regressions and Chrome both device modes are required. CI SUCCESS is a technical gate, never owner artistic approval.
