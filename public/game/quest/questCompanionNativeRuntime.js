@@ -14,7 +14,10 @@ const CONFIG=Object.freeze({
  }),
  RIVET:Object.freeze({
   J:Object.freeze({name:'FIELD INTERCEPT',cooldown:12,waitSeconds:2.4,
-    catchRadius:145,lockSeconds:1.15}),
+    // Real Fighter radii are 75+75; a 145 center-distance catch is
+    // unreachable after native body collision separation. Keep a 40px
+    // arrival band OUTSIDE the solid 150px combined collision diameter.
+    catchRadius:190,lockSeconds:1.15}),
   K:Object.freeze({name:'VIRTUAL ARMOR',cooldown:10,duration:3,incomingMult:.45,
     ccImmunity:false})
  })
