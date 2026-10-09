@@ -1398,6 +1398,40 @@ try{
           gate('B6j no fake E06 completion or E07 save on first frame',
             progressed?.checkpoint==='BREACH_WAVES',progressed);
           await image('31-e06-native-wave-a-gold');
+          if(process.argv.includes('--verify-breach-three-waves')){
+            // ENGINE-INSTRUMENTED acceptance: projectiles and HP/KO authority
+            // are real. Fighter positions are controlled to make CI reliable.
+            // This is NOT a substitute for an unassisted owner balance test.
+            const three=await evalPage("(()=>{const A=window.APEX_ARSENAL,W=A.weaponApi,roster=window.fighters,allies=roster.slice(0,3),hero=allies[0],data=[],shots=[];A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];const neutralize=()=>{for(let i=0;i<roster.length;i++){const f=roster[i];f.baseSpeed=0;f.data.__hrHoldBody=true;if(i<3){f.x=120;f.y=730+i*64}else{f.x=930;f.y=840;}}hero.x=145;hero.y=500;};const take=wave=>{const targets=roster.filter(f=>f.questTeam==='HOSTILE');for(const target of targets){neutralize();target.x=660;target.y=500;let fired=0,hits=0;while(target.hp>0&&fired++<50){const hp=target.hp;W.fireBullet({owner:hero,x:250,y:500,angle:0,speed:2800,damage:20,weapon:'PISTOL'});for(let k=0;k<9;k++)A.step(.025);if(target.hp<hp)hits++;}shots.push({wave,id:target.questId,hp:target.hp,maxHp:target.maxHp,fired,hits});}const snap=A.state.questBreachLifecycle.snapshot();data.push({wave,phase:snap.phase,complete:snap.completed,allies:allies.map(a=>({id:a.questId,hp:a.hp,withdrawn:a.withdrawn===true})),sameAllies:allies.every((a,i)=>roster[i]===a),actors:roster.length,slots:A.state.slots.filter(s=>s.kind!=='HEAL'&&s.phase!=='REMOVED').length});return snap;};neutralize();const A0=take('A');let B=false,C=false;for(let i=0;i<70;i++){A.step(.05);if(A.state.questBreachLifecycle.snapshot().wave==='B'){B=true;break;}}if(B){neutralize();take('B');}for(let i=0;i<70;i++){A.step(.05);if(A.state.questBreachLifecycle.snapshot().wave==='C'){C=true;break;}}if(C){neutralize();take('C');}const last=A.state.questBreachLifecycle.snapshot();return{advancedB:B,advancedC:C,shots,data,snapshot:last,outcome:A.state.questOutcome,over:A.state.over,scene:A.state.questBreachStoryView?.snapshot?.(),saved:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId};})()");
+            gate('B6k Gold keeps ALL three ally Fighter identities through 3 authentic wave KO transactions',
+              three?.advancedB&&three?.advancedC
+              &&three?.data?.length===3
+              &&three.data.every(d=>d.sameAllies&&d.allies.length===3)
+              &&three.data.map(d=>d.actors).join('|')==='6|7|6',
+              {waves:three?.data,advancedB:three?.advancedB,advancedC:three?.advancedC});
+            gate('B6k ten real Arsenal projectile KOs yield three immutable wave receipts',
+              three?.shots?.length===10&&three.shots.every(x=>x.hp===0&&x.hits>0)
+              &&three?.snapshot?.phase==='COMPLETE'&&three?.snapshot?.completed===3
+              &&three?.snapshot?.receipts?.length===3, 
+              {shots:three?.shots,phase:three?.snapshot?.phase,receipts:three?.snapshot?.receipts});
+            gate('B6k only earned final wave opens real story, no premature E07 checkpoint',
+              three?.outcome==='COMPLETE'&&three?.over==='QUEST_BREACH_WAVES_COMPLETE'
+              &&three?.scene?.active===true&&three?.scene?.current==='E06_BREACH_CLEAR'
+              &&three?.saved==='BREACH_WAVES',
+              {outcome:three?.outcome,over:three?.over,story:three?.scene,saved:three?.saved});
+            await image('32-e06-real-ten-KO-result');
+            await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+            const done=await poll("(()=>({stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,hudClosed:document.getElementById('battleHudHost')?.classList.contains('is-open')===false}))()",
+              x=>x?.stage==='BREACH_WAVES'&&x?.open&&x?.hudClosed,180);
+            gate('B6k final cinematic acknowledgment closes old Gold surface without fabricating E07 progress',
+              done?.stage==='BREACH_WAVES'&&done?.open&&done?.hudClosed,done);
+            await image('33-e06-preview-back-to-chapter');
+            await reloadAndReattach();
+            const retained=await poll("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId)()",
+              x=>x==='BREACH_WAVES',180);
+            gate('B6k reload preserves legitimately signed E06 checkpoint after preview',retained==='BREACH_WAVES',retained);
+          }
+
         }
       }
     }
