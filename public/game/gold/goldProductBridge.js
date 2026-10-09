@@ -1061,6 +1061,10 @@
     const fighters = window.fighters;
     if (!heroRework || typeof heroRework.pressAbility !== 'function') return;
     if (!Array.isArray(fighters) || !fighters[pi]) return;
+    // A withdrawn 100HP Quest ally is still a Fighter for the HP rail,
+    // but neither it nor an old Gold touch lease may activate a skill.
+    if(window.APEX_ARSENAL?.state?.questMultiActor===true
+       &&fighters[pi].withdrawn===true)return;
     const side = pi === 1 ? 'p2' : 'p1';
     const meta = Object.assign({ side, source: 'pointer' }, sourceMeta || {});
     meta.side = side; // caller may describe the pointer, never reassign ownership
