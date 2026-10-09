@@ -1,0 +1,27 @@
+name: B7a Rivet Nonlethal Native Downcross Contract
+on:
+  push:
+    branches: ['quest/b7a-rivet-nonlethal-thresholds-from-b6f']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  e07-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - name: Rivet physical nonlethal threshold policy
+        run: node tools/testQuestRivetThresholdB7a.mjs
+      - name: Prior E06 retirement and E01-E05 guarantees
+        run: |
+          node tools/testQuestBreachPolicyQ6.mjs
+          node tools/testQuestBreachLifecycleB6d.mjs
+          node tools/testQuestBreachRetreatB6e.mjs
+          node tools/buildGoldCutover.mjs --check
+      - name: Production compilation
+        run: pnpm build
