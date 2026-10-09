@@ -1021,10 +1021,21 @@ try{
   gate('Q4I physical boot START reopens Gold Home without resetting WORKSHOP',
     returningStart.hit&&returningHome?.done&&returningHome?.blackout
     &&returningHome?.checkpoint==='WORKSHOP',returningHome);
-  await click('#continueStory');
-  const stage=await evalPage("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,play:document.getElementById('q4iFirstWakePlay')?.hidden,opening:document.getElementById('q4hQuestPlay')?.hidden}))()");
+  // Gold's transition can report DONE while the input lease is still
+  // finishing. Wait until that REAL lease releases before a trusted tap.
+  const inputReady=await poll("(()=>({ready:window.APEX_SCENE_TRANSITION?.active?.()===false,done:document.body.dataset.apexSceneTransition==='DONE',blackout:document.getElementById('apex-boot-blackout')?.hidden===true}))()",
+    v=>v?.ready&&v.done&&v.blackout,180);
+  gate('Q4I entrance touch lease releases before Quest chapter action',
+    inputReady?.ready===true,inputReady);
+  const storyTap=await click('#continueStory');
+  const stage=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,exists:!!document.getElementById('q4iFirstWakePlay'),panel:document.getElementById('apexQuest01Stage')?.hidden===false,play:document.getElementById('q4iFirstWakePlay')?.hidden,opening:document.getElementById('q4hQuestPlay')?.hidden,transition:window.APEX_SCENE_TRANSITION?.active?.()===true,stageClass:document.getElementById('stage')?.className}))()",
+    v=>v?.exists===true&&v.panel===true&&v.node==='WORKSHOP',160);
   gate('Q4I WORKSHOP exposes first real E02, not the retired REFLEX opening',
-    stage?.node==='WORKSHOP'&&stage?.play===false&&stage?.opening===true,stage);
+    storyTap.hit&&stage?.node==='WORKSHOP'&&stage?.exists===true
+    &&stage?.panel===true&&stage?.play===false&&stage?.opening===true,
+    {tap:storyTap,...stage});
+  if(!stage?.exists||stage?.panel!==true)
+    throw new Error('Q4I Gold Home has not opened actual Quest Director: '+JSON.stringify(stage));
   const begin=await click('#q4iFirstWakePlay');
   let started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,first:window.APEX_ARSENAL?.state?.questFirstWake,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,step:typeof window.APEX_ARSENAL?.step==='function',roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp}))}))()",
     v=>v?.node==='FIRST_WAKE'&&v?.route===true&&v?.active===true&&v.gold&&v.hud&&v.step,420);

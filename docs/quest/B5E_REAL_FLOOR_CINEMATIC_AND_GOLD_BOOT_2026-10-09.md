@@ -1,0 +1,6 @@
+# B5e – verified E01 native floor Stormbreaker after crash
+Date 2026-10-09
+
+B5d had two independently false assertions after adopting OWNER 2026-10-09 floor manifestation rather than old thrown projectile: `questStoryInterludes.js` required `PREVIEW_SETTLED` even though `questReflexReceipts.js` returns `FLOOR_DISCHARGED`, and Director expected `REAL_ARSENAL_FLOOR_CONTACT` despite authentic named `REAL_ARSENAL_FLOOR_SPAWN`. Old Q4G/Q4H Chrome oracle also still waited for `READY` and swept ground projectile hit, now explicitly forbidden. Updated owner correct receipts, never fabricate damage, projectile, or save.
+
+GitHub Chrome run 37922368959 provided independently grounded evidence: Q4G real 3-second discharge, Q4H single 3-second discharge, seven cue acknowledgements, exactly eight signed completedCueIds, Gold HUD actually closed and persistent WORKSHOP checkpoint recovered after reload. This demonstrates E01 now works physically. The same Chrome run failed after boot at Q4I because the test sent a Continue tap without confirming Gold transition INPUT lease had ended. B5e next gate polls the real lease and actual Quest Director panel, with a hard failure if panel doesn't open. Do not skip the tap, create the director via script, or claim UI success from checkpoint alone.
