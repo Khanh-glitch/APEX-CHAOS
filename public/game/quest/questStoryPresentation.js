@@ -58,7 +58,11 @@
   E03_SCRAP_SWARM_CLEAR:{title:'SCRAP SWARM',left:'NEWBOT',right:'SCRAP BASIN',
     line:'SEVEN CONTACTS CLEARED',kicker:'WAVE 02 / 02 · REAL KO VERIFIED'},
   E03_SCRAP_SWARM_RETRY:{title:'SCRAP SWARM',left:'NEWBOT',right:'SCRAP BASIN',
-    line:'SIGNAL LOST',kicker:'NEWBOT KO · RETRY CHECKPOINT'}
+    line:'SIGNAL LOST',kicker:'NEWBOT KO · RETRY CHECKPOINT'},
+  E04_WEAPON_RAIN_CLEAR:{title:'WEAPON RAIN',left:'NEWBOT',right:'TWO HOSTILES',
+    line:'STORM OF STEEL',kicker:'TWO REAL KOs · FINAL RAIN OBSERVED'},
+  E04_WEAPON_RAIN_RETRY:{title:'WEAPON RAIN',left:'NEWBOT',right:'SCRAP BASIN',
+    line:'SIGNAL LOST',kicker:'RETRY · CHECKPOINT PRESERVED'}
  });
  const singleton={style:null};
  function ensureStyle(doc){

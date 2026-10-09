@@ -110,6 +110,21 @@
   function acceptNativeBeat(beat) {
     const no=reason=>Object.freeze({ok:false,reason});
     const A=root.APEX_ARSENAL,q=A?.state,actors=root.fighters;
+    if(beat==='E04_WEAPON_RAIN_CLEAR'){
+      const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
+      const view=q?.questRainStoryView?.snapshot?.();
+      const rain=q?.questRainSequence?.snapshot?.();
+      if(core.checkpoint().checkpointId!=='WEAPON_RAIN'
+        ||!q?.active||q.questWeaponRainProgression!==true
+        ||q.questOutcome!=='COMPLETE'||q.over!=='QUEST_WEAPON_RAIN_COMPLETE'
+        ||Q?.weaponRainOutcome?.(actors,rain?.observed===true)?.status!=='COMPLETE'
+        ||rain?.attempted!==3||rain.accepted+rain.rejected!==3
+        ||rain.phase!=='OBSERVED'
+        ||!view||view.active!==false||view.closed!==false
+        ||view.shown.join('|')!=='E04_WEAPON_RAIN_CLEAR')
+        return no('e04-real-KO-rain-and-panel-required');
+      return core._commitNativeTransition('CHARGE_THE_BREAKER',['E04_WEAPON_RAIN_CLEAR']);
+    }
     if(beat==='E03_SCRAP_SWARM_CLEAR'){
       const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
       const checkpoint=core.checkpoint();
@@ -240,7 +255,7 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. Neither preview completes story checkpoints; The preview reaches the real RIVET floor suppression and WORKSHOP but does not save. START QUEST runs the signed opening with checkpoint progression to WORKSHOP.</div></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. Neither preview completes story checkpoints; The preview reaches the real RIVET floor suppression and WORKSHOP but does not save. START QUEST runs the signed opening with checkpoint progression to WORKSHOP.</div></div>';
     d.body.appendChild(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',hide);
     overlay.querySelector('#q1Preview').addEventListener('click',()=>{const cb=callbacks && callbacks.onPreview;hide(); if(typeof cb==='function')cb();});
@@ -254,6 +269,13 @@
       if(typeof cb!=='function')return;
       hide();const started=cb();
       if(started!==true)show(opts);
+    });
+    overlay.querySelector('#q5WeaponRainPlay').addEventListener('click',()=>{
+      if(core.checkpoint().checkpointId!=='WEAPON_RAIN')return;
+      const opts=callbacks;
+      const cb=callbacks?.onWeaponRainStory||root.__apexGoldQuestWeaponRainStoryEntry;
+      if(typeof cb!=='function')return;
+      hide();const started=cb();if(started!==true)show(opts);
     });
     overlay.querySelector('#q5ScrapSwarmPlay').addEventListener('click',()=>{
       if(core.checkpoint().checkpointId!=='SCRAP_SWARM')return;
@@ -279,7 +301,7 @@
       delete root.__APEX_QUEST_STORY_FULL;
       if(typeof cb==='function')cb();
     });
-    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q5ScrapSwarmPlay'),overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q5WeaponRainPlay'),overlay.querySelector('#q5ScrapSwarmPlay'),overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
     return overlay;
   }
   function show(options) {
@@ -295,9 +317,12 @@
     el.querySelector('#q4hQuestPlay').hidden=!['WAKE','REFLEX'].includes(node.id);
     el.querySelector('#q4iFirstWakePlay').hidden=!['WORKSHOP','FIRST_WAKE'].includes(node.id);
     el.querySelector('#q5ScrapSwarmPlay').hidden=node.id!=='SCRAP_SWARM';
+    el.querySelector('#q5WeaponRainPlay').hidden=node.id!=='WEAPON_RAIN';
     previousFocus=root.document.activeElement;
     el.hidden=false;
-    const start=!el.querySelector('#q5ScrapSwarmPlay').hidden
+    const start=!el.querySelector('#q5WeaponRainPlay').hidden
+      ?el.querySelector('#q5WeaponRainPlay')
+      :!el.querySelector('#q5ScrapSwarmPlay').hidden
       ?el.querySelector('#q5ScrapSwarmPlay')
       :el.querySelector('#q4iFirstWakePlay').hidden
         ?(el.querySelector('#q4hQuestPlay').hidden?el.querySelector('#q1Exit'):el.querySelector('#q4hQuestPlay'))

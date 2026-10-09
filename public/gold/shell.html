@@ -1383,7 +1383,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       battleMode='bot';
       p1Hero='newbot';p2Hero='newbot';
       void launchBattleHud();
-    },onFirstWakeStory:launchQuestFirstWakeStory,onScrapSwarmStory:launchQuestScrapSwarmStory});
+    },onFirstWakeStory:launchQuestFirstWakeStory,onScrapSwarmStory:launchQuestScrapSwarmStory,onWeaponRainStory:launchQuestWeaponRainStory});
   });
   // Q4I: the Gold composer, not the Director or Arsenal, owns a live
   // E02's battle transition, HUD mounting and runtime readiness. This is
@@ -1407,6 +1407,15 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     return true;
   }
   window.__apexGoldQuestScrapSwarmStoryEntry=launchQuestScrapSwarmStory;
+  function launchQuestWeaponRainStory(){
+    if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return false;
+    if(window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='WEAPON_RAIN')return false;
+    questPreview=true;questPreviewKind='weapon-rain-story';
+    battleMode='bot';p1Hero='newbot';p2Hero='newbot';
+    void launchBattleHud();
+    return true;
+  }
+  window.__apexGoldQuestWeaponRainStoryEntry=launchQuestWeaponRainStory;
   const battle = document.getElementById('freeBattle');
   const modeScreen = document.getElementById('modeSelectScreen');
   const fighterScreen = document.getElementById('fighterSelectScreen');
@@ -1711,7 +1720,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   async function setBattleLive(){
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
     const ready=APEX_GOLD.onBattleLive
-      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:questPreview?(questPreviewKind==='reflex'?'quest-reflex-preview':questPreviewKind==='first-wake-story'?'quest-first-wake-story':questPreviewKind==='scrap-swarm-story'?'quest-scrap-swarm-story':'quest-first-wake'):battleMode,p1:p1Hero,p2:p2Hero}))
+      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:questPreview?(questPreviewKind==='reflex'?'quest-reflex-preview':questPreviewKind==='first-wake-story'?'quest-first-wake-story':questPreviewKind==='scrap-swarm-story'?'quest-scrap-swarm-story':questPreviewKind==='weapon-rain-story'?'quest-weapon-rain-story':'quest-first-wake'):battleMode,p1:p1Hero,p2:p2Hero}))
       : false;
     if(ready!==true||!window.APEX_GOLD_HUD)return false;
     // Production projection is now authoritative. Mark the preview handoff
@@ -1745,14 +1754,14 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     battleTransition.querySelector('[data-bt-state="p2"]').textContent=bot?'TARGET ACQUIRED':'COMBAT LOCK';
     battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=bot?'CPU // TARGET':'P2 // FIGHTER';
     battleTransition.querySelector('[data-bt-core]').textContent=questPreview
-      ? (questPreviewKind==='reflex'?'QUEST 01 // REFLEX PLAYTEST':questPreviewKind==='first-wake-story'?'QUEST 01 // FIRST WAKE':questPreviewKind==='scrap-swarm-story'?'QUEST 01 // SCRAP SWARM':'QUEST 01 // FIRST WAKE PLAYTEST')
+      ? (questPreviewKind==='reflex'?'QUEST 01 // REFLEX PLAYTEST':questPreviewKind==='first-wake-story'?'QUEST 01 // FIRST WAKE':questPreviewKind==='scrap-swarm-story'?'QUEST 01 // SCRAP SWARM':questPreviewKind==='weapon-rain-story'?'QUEST 01 // WEAPON RAIN':'QUEST 01 // FIRST WAKE PLAYTEST')
       : bot?'SOLO COMBAT CHANNEL':'DUEL COMBAT CHANNEL';
     if(questPreview){
-      battleTransition.querySelector('[data-bt-name="p1"]').textContent=questPreviewKind==='reflex'||questPreviewKind==='scrap-swarm-story'?'NEWBOT':'NEWBOT + T.O.T';
-      battleTransition.querySelector('[data-bt-name="p2"]').textContent=questPreviewKind==='reflex'?'T.O.T':questPreviewKind==='scrap-swarm-story'?'SCRAP SWARM':'SCRAP A + SCRAP B';
-      battleTransition.querySelector('[data-bt-state="p1"]').textContent=questPreviewKind==='reflex'?'REFLEX // R1':questPreviewKind==='scrap-swarm-story'?'ONE SURVIVOR':'TWO ALLIES';
-      battleTransition.querySelector('[data-bt-state="p2"]').textContent=questPreviewKind==='reflex'?'REFLEX // R2':questPreviewKind==='scrap-swarm-story'?'TWO WAVES':'TWO HOSTILES';
-      battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=questPreviewKind==='reflex'?'REFLEX // 1v1':questPreviewKind==='scrap-swarm-story'?'SCRAP SWARM // WAVES':'FIRST WAKE // 2v2';
+      battleTransition.querySelector('[data-bt-name="p1"]').textContent=questPreviewKind==='reflex'||questPreviewKind==='scrap-swarm-story'||questPreviewKind==='weapon-rain-story'?'NEWBOT':'NEWBOT + T.O.T';
+      battleTransition.querySelector('[data-bt-name="p2"]').textContent=questPreviewKind==='reflex'?'T.O.T':questPreviewKind==='scrap-swarm-story'?'SCRAP SWARM':questPreviewKind==='weapon-rain-story'?'SCRAP HOSTILES':'SCRAP A + SCRAP B';
+      battleTransition.querySelector('[data-bt-state="p1"]').textContent=questPreviewKind==='reflex'?'REFLEX // R1':questPreviewKind==='scrap-swarm-story'||questPreviewKind==='weapon-rain-story'?'ONE SURVIVOR':'TWO ALLIES';
+      battleTransition.querySelector('[data-bt-state="p2"]').textContent=questPreviewKind==='reflex'?'REFLEX // R2':questPreviewKind==='scrap-swarm-story'?'TWO WAVES':questPreviewKind==='weapon-rain-story'?'WEAPON RAIN':'TWO HOSTILES';
+      battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=questPreviewKind==='reflex'?'REFLEX // 1v1':questPreviewKind==='scrap-swarm-story'?'SCRAP SWARM // WAVES':questPreviewKind==='weapon-rain-story'?'WEAPON RAIN // SURVIVE':'FIRST WAKE // 2v2';
     }
     const horizontal=!bot&&matchMedia('(orientation:portrait)').matches;
     battleTransition.classList.toggle('is-horizontal',horizontal);

@@ -897,9 +897,10 @@
     // as CP04, but enters through the separately signed E02 Story route.
     const questFirstWakeStory=pick && pick.mode==='quest-first-wake-story';
     const questScrapSwarmStory=pick && pick.mode==='quest-scrap-swarm-story';
+    const questWeaponRainStory=pick && pick.mode==='quest-weapon-rain-story';
     const questFirstWake = pick && pick.mode === 'quest-first-wake';
     const questReflexPreview=pick && pick.mode==='quest-reflex-preview';
-    const questPreview=questFirstWake||questFirstWakeStory||questScrapSwarmStory||questReflexPreview;
+    const questPreview=questFirstWake||questFirstWakeStory||questScrapSwarmStory||questWeaponRainStory||questReflexPreview;
     const mode = questPreview || (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
     const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
     // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
@@ -982,8 +983,10 @@
         window.__APEX_QUEST_DEV = true;
         try { return (questReflexPreview
           ? window.__apexQuestReflexStart?.()
-          : questScrapSwarmStory
-            ? window.__apexQuestScrapSwarmStoryStart?.()
+          : questWeaponRainStory
+            ? window.__apexQuestWeaponRainStoryStart?.()
+            : questScrapSwarmStory
+              ? window.__apexQuestScrapSwarmStoryStart?.()
             : questFirstWakeStory
               ? window.__apexQuestFirstWakeStoryStart?.()
               : window.__apexQuestFirstWakeStart?.()) === true; }

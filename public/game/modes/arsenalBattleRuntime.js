@@ -286,6 +286,8 @@
     if(state.questReflex===true&&state.questStoryView?.active())return;
     if(state.questFirstWakeProgression===true
        &&state.questFirstWakeStoryView?.active())return;
+    if(state.questWeaponRainProgression===true
+       &&state.questRainStoryView?.active())return;
     if(state.questScrapSwarmProgression===true){
       // E03 interlude is NOT a second match. Freeze physics/cooldowns, retain
       // existing NEWBOT instance, pickups, weapon ownership and projectiles.
@@ -402,6 +404,22 @@
     matchClock += dt;
     state.time += dt;
     if (!state.over) {
+      if(state.questWeaponRainProgression===true&&state.questRainSequence){
+        // All three burst requests go through SPAWN.trySpawnSlot, including
+        // ordinary cap suppression. An unseen 6th slot is never manufactured.
+        const before=state.questRainSequence.snapshot().phase;
+        const cue=state.questRainSequence.tick(state.time,()=>SPAWN.trySpawnSlot());
+        state.questRainPhase=cue.phase;
+        if(before!==cue.phase){
+          if(cue.phase==='DOWNPOUR')
+            state.spawnTimer=Math.min(state.spawnTimer,state.questRainSequence.cadence());
+          if(cue.phase==='BURST')state.spawnTimer=1e6;
+          if(cue.phase==='OBSERVED')
+            state.spawnTimer=state.questRainSequence.cadence();
+          window.apexUiSfx?.play?.('ui.screen.transition');
+          AQ.log('QUEST_E04_RAIN_PHASE',cue.phase);
+        }
+      }
       const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) => f && f.hp > 0);
       const holdsGun = (f) => {
         const h = weaponApi.getHolder(f);
@@ -412,7 +430,8 @@
         && living.every((f) => !holdsGun(f)) && revealedGuns === 0
         // E03 allocates its regular first 4.5s-cycle slot to a REAL nearby
         // protagonist firearm, instead of spawning two competing guns at t=0.
-        && !(state.questScrapSwarmProgression && state.questSwarmOpeningDropPending);
+        && !(state.questScrapSwarmProgression && state.questSwarmOpeningDropPending)
+        && state.questWeaponRainProgression!==true;
       let emergencySpawned = false;
       if (!emergencyGunNeeded) {
         state.unarmedFastConsumed = false;
@@ -471,7 +490,8 @@
       if (!state.labMode) state.spawnTimer -= dt;
       let guard = 0;
       while (!state.labMode && state.spawnTimer <= 0 && guard++ < 4) {
-        state.spawnTimer += CFG.SPAWN_CADENCE_SECONDS;
+        state.spawnTimer += state.questWeaponRainProgression===true
+          ?state.questRainSequence.cadence():CFG.SPAWN_CADENCE_SECONDS;
         if (emergencySpawned) continue;
         if(state.questScrapSwarmProgression===true
           &&state.questSwarmOpeningDropPending===true){
@@ -620,6 +640,8 @@
       const outcome = state.questReflex
         ? {status:fighters.some(f=>f?.hp<=0)?'RETRY':'ACTIVE',reason:'reflex-pilot-'+(pilot?.phase||'closed')}
         : state.questScrapSwarmProgression ? Q.scrapSwarmOutcome(fighters,state.questSwarmWave)
+        : state.questWeaponRainProgression ? Q.weaponRainOutcome(fighters,
+          state.questRainSequence?.snapshot()?.observed===true)
         : state.questFirstWake ? Q.firstWakeOutcome(fighters)
         : Q.teamsOutcome(fighters);
       if(state.questScrapSwarmProgression===true&&outcome.status==='NEXT_WAVE'
@@ -636,6 +658,7 @@
       }
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
         state.over = 'QUEST_' + (state.questScrapSwarmProgression?'SCRAP_SWARM_':
+          state.questWeaponRainProgression?'WEAPON_RAIN_':
           state.questFirstWake ? 'FIRST_WAKE_' : 'FIXTURE_') + outcome.status;
         state.questOutcome = outcome.status;
         // No economy award, no 1v1 winnerSide or Gold result transition.
@@ -650,6 +673,10 @@
         if(state.questScrapSwarmProgression===true&&state.questSwarmStoryView){
           state.questSwarmStoryView.offer({id:outcome.status==='COMPLETE'
             ?'E03_SCRAP_SWARM_CLEAR':'E03_SCRAP_SWARM_RETRY'});
+        }
+        if(state.questWeaponRainProgression===true&&state.questRainStoryView){
+          state.questRainStoryView.offer({id:outcome.status==='COMPLETE'
+            ?'E04_WEAPON_RAIN_CLEAR':'E04_WEAPON_RAIN_RETRY'});
         }
         updateHUD();
       }
@@ -1166,6 +1193,35 @@
     c.restore();
   }
 
+  function drawWeaponRainCinematic(c,s){
+    if(!s?.questWeaponRainProgression||!s.questRainSequence)return;
+    const phase=s.questRainSequence.snapshot().phase;
+    c.save();c.textAlign='left';
+    c.font='900 14px Bahnschrift,Arial,sans-serif';
+    c.fillStyle='rgba(246,207,143,.87)';
+    c.fillText('WEAPON RAIN',40,56);
+    c.fillStyle='#db9952';c.fillRect(40,66,41,3);
+    c.fillStyle=phase==='DRIZZLE'?'#41494d':'#db9952';c.fillRect(85,66,41,3);
+    c.fillStyle=(phase==='BURST'||phase==='OBSERVED')?'#db9952':'#41494d';
+    c.fillRect(130,66,41,3);
+    if(phase==='BURST'){
+      // Atmospheric streaks only, NOT extra physical floor pickups.
+      const t=Math.max(0,s.time-(window.APEX_QUEST_MULTI_ACTOR_CORE?.RAIN_SPEC?.burstAt??22));
+      const a=Math.max(0,Math.min(1,1-t/2));
+      c.globalAlpha=a;
+      c.strokeStyle='#f4b970';c.lineWidth=4;
+      c.shadowColor='#ee9841';c.shadowBlur=14;
+      for(let i=0;i<3;i++){
+        const x=300+i*240,dy=(t*400+i*60)%950;
+        c.beginPath();c.moveTo(x-28,dy-126);c.lineTo(x,dy);c.stroke();
+      }
+      c.shadowBlur=0;c.globalAlpha=Math.min(1,a);
+      c.textAlign='center';c.font='900 48px Impact,Bahnschrift,Arial,sans-serif';
+      c.fillStyle='#ffe9cb';c.fillText('FINAL RAIN',500,185);
+    }
+    c.restore();
+  }
+
   function drawForeground() {
     const t0 = performance.now();
     const view = window.__apexCameraView || { shakeX: 0, shakeY: 0, zoom: 1 };
@@ -1194,7 +1250,7 @@
       if (AQ.state.questOutcome) {
         ctx.font='900 48px sans-serif';ctx.fillStyle='#ffdf9e';
         ctx.fillText(AQ.state.questOutcome==='COMPLETE'
-          ?(AQ.state.questScrapSwarmProgression?'SCRAP SWARM CLEAR':AQ.state.questFirstWake?'FIRST WAKE CLEAR':'QUEST TEST CLEAR')
+          ?(AQ.state.questWeaponRainProgression?'WEAPON RAIN CLEAR':AQ.state.questScrapSwarmProgression?'SCRAP SWARM CLEAR':AQ.state.questFirstWake?'FIRST WAKE CLEAR':'QUEST TEST CLEAR')
           :'NEWBOT KO — RETRY',GAME_SIZE/2,148);
       }
       ctx.restore();
@@ -1216,6 +1272,7 @@
     drawHolderTags(ctx);
     if (AQ.feel && AQ.feel.drawForeground) AQ.feel.drawForeground(ctx);
     drawQuestSwarmInterlude(ctx,AQ.state);
+    drawWeaponRainCinematic(ctx,AQ.state);
     ctx.restore();
     syncDomHud();
     aqPerfMark('foregroundTotal', performance.now() - t0);
@@ -1375,6 +1432,16 @@
       &&!!window.APEX_QUEST_STORY_PRESENTATION;
     if(options.questScrapSwarm===true&&!scrapSwarmStory)return false;
     if(options.questScrapSwarmProgression===true&&!scrapSwarmStory)return false;
+    const rainStory=options.questWeaponRainProgression===true
+      &&options.questWeaponRain===true
+      &&types[0]?.name==='ROBOT'&&!questReflex
+      &&options.questFirstWake!==true&&options.questScrapSwarm!==true
+      &&!!questCore&&typeof questCore.createWeaponRainSequence==='function'
+      &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
+      &&directorCheckpoint==='WEAPON_RAIN'
+      &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
+      &&!!window.APEX_QUEST_STORY_PRESENTATION;
+    if((options.questWeaponRain||options.questWeaponRainProgression)&&!rainStory)return false;
     detachReflexReceipt();
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
@@ -1393,7 +1460,8 @@
       && t1.name === 'ROBOT'
       && !!questCore;
     const questScrapSwarm=scrapSwarmStory;
-    const questMultiActor = questFirstWake || questScrapSwarm || !!questFixture || questReflex;
+    const questWeaponRain=rainStory;
+    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
@@ -1402,7 +1470,8 @@
         ? [{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:230,y:500,kind:'newbot'},
            {questId:'T.O.T',questTeam:'HOSTILE',hp:1000,x:770,y:500,kind:'tot'}]
         : (questFirstWake ? questCore.fixtureRoster('2v2') :
-          questScrapSwarm ? questCore.scrapSwarmRoster('A') : questFixture);
+          questScrapSwarm ? questCore.scrapSwarmRoster('A') :
+          questWeaponRain ? questCore.weaponRainRoster() :questFixture);
       const NPC_TYPES = Object.freeze({
         scout:['SCRAP SCOUT','#c88d48'],bulwark:['IRON BULWARK','#6f7f90'],
         tot:['T.O.T','#e8e2d2'],rivet:['RIVET','#c39f76'],
@@ -1447,7 +1516,8 @@
       // Fail closed before a simulation frame can run on bad Quest inputs.
       const validated = questCore.validateRoster(fighters);
       if (!validated.ok || (questFirstWake && !questCore.validateFirstWake(fighters).ok)
-          ||(questScrapSwarm&&!questCore.validateScrapSwarmWave(fighters,'A').ok)) {
+          ||(questScrapSwarm&&!questCore.validateScrapSwarmWave(fighters,'A').ok)
+          ||(questWeaponRain&&!questCore.validateWeaponRain(fighters).ok)) {
         AQ.log('QUEST_ROSTER_INVALID', validated.reason);
         AQ.state.active=false;
         return false;
@@ -1456,6 +1526,12 @@
       AQ.state.questFirstWake = questFirstWake;
       AQ.state.questFirstWakeProgression = firstWakeStory;
       AQ.state.questScrapSwarmProgression=questScrapSwarm;
+      AQ.state.questWeaponRainProgression=questWeaponRain;
+      if(questWeaponRain){
+        AQ.state.questRainSequence=questCore.createWeaponRainSequence();
+        AQ.state.questRainPhase='DRIZZLE';
+        AQ.state.spawnTimer=0;
+      }
       if(questScrapSwarm){
         AQ.state.questSwarmWave='A';
         AQ.state.questSwarmPhase='COMBAT';
@@ -1471,6 +1547,28 @@
       AQ.state.questTestFixture = questReflex||questFirstWake ? null : String(options.questFixture);
       AQ.state.questActorCount = validated.count;
       AQ.state.questOutcome = null;
+      if(questWeaponRain){
+        const ownerState=AQ.state;
+        AQ.state.questRainStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
+          onAdvance:(beatId)=>{
+            if(AQ.state!==ownerState||!ownerState.active
+              ||ownerState.questWeaponRainProgression!==true)return;
+            if(beatId==='E04_WEAPON_RAIN_CLEAR'){
+              const signed=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.(beatId);
+              if(signed?.ok!==true){AQ.log('QUEST_E04_SAVE_DENIED',String(signed?.reason));return;}
+              AQ.log('QUEST_E04_COMPLETE','checkpoint=CHARGE_THE_BREAKER');
+            }else if(beatId==='E04_WEAPON_RAIN_RETRY'){
+              if(ownerState.questOutcome!=='RETRY')return;
+            }else return;
+            window.exitArsenalBattleMode?.();
+            window.APEX_QUEST01_DIRECTOR?.show?.({
+              onFirstWakeStory:window.__apexGoldQuestFirstWakeStoryEntry,
+              onScrapSwarmStory:window.__apexGoldQuestScrapSwarmStoryEntry,
+              onWeaponRainStory:window.__apexGoldQuestWeaponRainStoryEntry
+            });
+          }
+        });
+      }
       if(questScrapSwarm){
         const ownerState=AQ.state;
         AQ.state.questSwarmStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
@@ -1685,6 +1783,14 @@
       questScrapSwarm:true,questScrapSwarmProgression:true
     })===true;
   };
+  window.__apexQuestWeaponRainStoryStart=function startRealE04FromDirector(){
+    if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
+       ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='WEAPON_RAIN')
+      return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
+      questWeaponRain:true,questWeaponRainProgression:true
+    })===true;
+  };
   window.__apexQuestReflexStart = function startQ4ARealReflexPilot() {
     if(!((window.__APEX_TEST_MODE===true
       && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
@@ -1854,6 +1960,10 @@
       state.questSwarmStoryView?.close?.();
       state.questSwarmStoryView=null;
       state.questSwarmCreateFighter=null;
+      state.questRainStoryView?.close?.();
+      state.questRainStoryView=null;
+      state.questRainSequence?.close?.();
+      state.questRainSequence=null;
       for (const f of fighters || []) if (f && f.data) f.data.arsenal = null;
       state.active = false;
       state.slots = [];
