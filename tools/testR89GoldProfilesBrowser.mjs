@@ -178,6 +178,8 @@ try{
   // Intermediate viewport coverage: these ARE NOT authored anchor aspects.
   // Each case boots the real application, exercises Home -> Mode -> Pick ->
   // Local Battle and measures real (not screenshot-only) DOM/hit regions.
+  const originalUA=await evalJS('navigator.userAgent');
+  const iPhoneUA='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
   const intermediate=[
     {name:'iphone-se',w:375,h:667,device:'phone',hud:'port',size:'compact'},
     {name:'iphone-portrait-tall',w:430,h:932,device:'phone',hud:'port',size:'compact'},
@@ -208,11 +210,14 @@ try{
   };
   for(const v of intermediate){
     await resize(v.w,v.h);
-    const link=new URL(v.name==='iphone-se'?'/?goldViewport=1':'/gold-fidelity-lab.html',url);
-    link.searchParams.set('goldDevice',v.device);
+    // The first case validates automatic mobile routing from the real game
+    // entry, without manually selecting goldViewport or goldDevice.
+    await command('Emulation.setUserAgentOverride',{userAgent:v.name==='iphone-se'?iPhoneUA:originalUA});
+    const link=new URL(v.name==='iphone-se'?'/':'/gold-fidelity-lab.html',url);
+    if(v.name!=='iphone-se')link.searchParams.set('goldDevice',v.device);
     await command('Page.navigate',{url:link.href});
     if(!(await wait(childReady)))throw Error('R89 intermediate START unavailable '+v.name);
-    if(v.name==='iphone-se')check('R89 opt-in entry redirects exactly once',await evalJS("location.pathname==='/gold-fidelity-lab.html'&&window.__apexGoldFidelity.child().location.search.includes('goldViewport=native')"));
+    if(v.name==='iphone-se')check('R89 mobile auto-entry redirects exactly once',await evalJS("location.pathname==='/gold-fidelity-lab.html'&&window.__apexGoldFidelity.child().location.search.includes('goldViewport=native')"));
     const meta=await evalJS('window.__apexGoldFidelity?.snapshot()');
     check(v.name+' aspect-fit/zero-letterbox',
       meta?.deviceClass===v.device&&
@@ -272,6 +277,7 @@ try{
   }
 
 
+  await command('Emulation.setUserAgentOverride',{userAgent:originalUA});
   // SOLO BOT is a different authored Gold HUD layout law from Local 1v1.
   for(const v of [
     {name:'bot-phone',w:390,h:844,device:'phone',size:'compact'},
