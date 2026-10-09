@@ -492,8 +492,11 @@ report.telegraphLaw = run(`
   __APEX_TEST.holdSpawns();
   __APEX_TEST.place(400, 500, 900, 900); // frozen by default
   const id = __APEX_TEST.pushSlot({
+    // This fixture tests 3s telegraph timing and real floor pickup, NOT
+    // random-T6 Stormbreaker floor lightning. Select a real firearm via
+    // Arsenal's own reveal selector so pickup timing stays comparable.
     x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null,
-    revealLeadSeconds: 2.0
+    forceFirearm: true, revealLeadSeconds: 2.0
   });
 
   // Age 2.9s, nobody approaching: still hidden, still identity-null.
