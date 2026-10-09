@@ -106,7 +106,54 @@
       _transitionForNodeTest:transitionForTest };
   }
   const storage = root.localStorage || null;
-  const core = create(storage);
+  const permanentCore=create(storage);
+  // Replay runs in a private in-memory copy. It can NEVER mutate the saved
+  // Quest checkpoint and receives the same strict engine/scene receipt laws.
+  let core=permanentCore;
+  let replaySession=null;
+  function replayStatus(){
+    return replaySession?Object.freeze({
+      active:true,stageId:replaySession.stageId,
+      originalCheckpoint:replaySession.originalCheckpoint
+    }):Object.freeze({active:false});
+  }
+  function startReplay(stageId,options){
+    const actual=permanentCore.checkpoint();
+    const node=byId(stageId);
+    const current=NODE_IDS.indexOf(actual.checkpointId);
+    const target=NODE_IDS.indexOf(stageId);
+    if(!node?.encounterId||target<0||target>=current)
+      return {ok:false,reason:'replay-not-unlocked'};
+    if(root.APEX_ARSENAL?.state?.active===true)
+      return {ok:false,reason:'battle-already-active'};
+    const entryId=stageId==='FIRST_WAKE'?'WORKSHOP':
+      stageId==='REFLEX'?'WAKE':stageId;
+    const entry=byId(entryId);
+    const snapshot={
+      ...actual,checkpointId:entryId,
+      encounterId:entry.encounterId||null,
+      phaseId:'ENTRY',updatedAt:Date.now(),
+      sessionId:'quest01-replay-'+Date.now()+'-'+(++nextSession)
+    };
+    let raw=JSON.stringify(snapshot);
+    const memory={
+      getItem:key=>key===STORAGE_KEY?raw:null,
+      setItem:(key,value)=>{if(key===STORAGE_KEY)raw=String(value);}
+    };
+    const opts=options||callbacks||{};
+    core=create(memory);
+    replaySession={stageId,originalCheckpoint:actual.checkpointId};
+    hide();
+    const state=show(opts);
+    return {ok:true,stageId,entryId,state,ephemeral:true};
+  }
+  function exitReplay(){
+    if(!replaySession)return false;
+    core=permanentCore;
+    replaySession=null;
+    hide();
+    return true;
+  }
   function acceptNativeBeat(beat) {
     const no=reason=>Object.freeze({ok:false,reason});
     const A=root.APEX_ARSENAL,q=A?.state,actors=root.fighters;
@@ -272,7 +319,13 @@
       '@media(max-height:520px){#apexQuest01Stage{padding:8px}#apexQuest01Stage .q1-panel{padding:14px;max-height:calc(100dvh - 16px)}#apexQuest01Stage h2{font-size:clamp(28px,7vh,48px);margin:8px 0}#apexQuest01Stage .q1-status{margin:10px 0 4px}}',
       '@media(prefers-reduced-motion:reduce){#apexQuest01Stage .q1-panel,#apexQuest01Stage button{animation:none;transition:none}}',
       '#apexQuest01Stage button.q1-back{background:transparent;border-color:#61666b;color:#d1d1cf;}',
-      '#apexQuest01Stage .q1-fine{margin-top:16px;font-size:11px;color:#9fa5ad;line-height:1.5;}'
+      '#apexQuest01Stage .q1-fine{margin-top:16px;font-size:11px;color:#9fa5ad;line-height:1.5;}',
+      '#apexQuest01Stage .q1-hub{margin-top:16px;padding-top:14px;border-top:1px solid #6e5535;display:grid;gap:8px}',
+      '#apexQuest01Stage .q1-hub h3{font:800 11px/1.4 Arial,sans-serif;letter-spacing:.17em;color:#caa674;margin:0 0 4px}',
+      '#apexQuest01Stage .q1-hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:7px}',
+      '#apexQuest01Stage .q1-hub button{min-height:40px;text-align:left;padding:8px 10px;font-size:10px;letter-spacing:.05em}',
+      '#apexQuest01Stage .q1-hub button[disabled]{opacity:.42;cursor:default;filter:none}',
+      '#apexQuest01Stage .q1-replay-note{font:600 11px/1.55 Arial,sans-serif;color:#cbb18a}'
     ].join('\n');
     d.head.appendChild(style);
     overlay = d.createElement('section');
@@ -280,9 +333,11 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div><nav class="q1-hub" aria-label="Quest encounter replay"><h3>QUEST STAGES / REPLAY</h3><div class="q1-hub-grid" id="q1StageHub"></div><div class="q1-replay-note" id="q1ReplayNotice"></div></nav></div>';
     d.body.appendChild(overlay);
-    overlay.querySelector('#q1Exit').addEventListener('click',hide);
+    overlay.querySelector('#q1Exit').addEventListener('click',()=>{
+      if(replaySession)exitReplay();else hide();
+    });
     overlay.querySelector('#q1Preview').addEventListener('click',()=>{const cb=callbacks && callbacks.onPreview;hide(); if(typeof cb==='function')cb();});
     overlay.querySelector('#q4ReflexPreview').addEventListener('click',()=>{const cb=callbacks && callbacks.onReflexPreview;hide();root.__APEX_QUEST_STORY_PLAYBACK=false;if(typeof cb==='function')cb();});
     overlay.querySelector('#q4iFirstWakePlay').addEventListener('click',()=>{
@@ -333,7 +388,7 @@
       delete root.__APEX_QUEST_STORY_FULL;
       if(typeof cb==='function')cb();
     });
-    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q5BreakerChargePlay'),overlay.querySelector('#q5WeaponRainPlay'),overlay.querySelector('#q5ScrapSwarmPlay'),overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();if(replaySession)exitReplay();else hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q5BreakerChargePlay'),overlay.querySelector('#q5WeaponRainPlay'),overlay.querySelector('#q5ScrapSwarmPlay'),overlay.querySelector('#q4iFirstWakePlay'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')].filter(x=>!x.hidden);const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
     return overlay;
   }
   function show(options) {
@@ -356,6 +411,27 @@
       WEAPON_RAIN:'TWO HOSTILES · FINAL RAIN · E04'
     };
     el.querySelector('#q1Objective').textContent=objective[node.id]||'THE ONES THROWN AWAY';
+    const saved=permanentCore.checkpoint();
+    const furthest=NODE_IDS.indexOf(saved.checkpointId);
+    const hub=el.querySelector('#q1StageHub');
+    hub.replaceChildren();
+    for(const stage of NODES.filter(n=>n.encounterId)){
+      const at=NODE_IDS.indexOf(stage.id);
+      const completed=at<furthest;
+      const current=at===furthest;
+      const action=root.document.createElement('button');
+      action.type='button';action.dataset.stage=stage.id;
+      action.textContent=stage.encounterId+' · '+stage.label+
+        (completed?'  / REPLAY':current?'  / CURRENT':'  / LOCKED');
+      action.disabled=!completed;
+      action.title=completed?'Replay in isolated session — permanent checkpoint unchanged':
+        current?'Continue using the current chapter button':'Complete earlier encounters to unlock';
+      if(completed)action.addEventListener('click',()=>startReplay(stage.id,callbacks||{}));
+      hub.appendChild(action);
+    }
+    el.querySelector('#q1ReplayNotice').textContent=replaySession
+      ?'REPLAY MODE · progress and results are temporary. Return Home to restore your saved chapter.'
+      :'Previously completed encounters can be replayed without changing the saved chapter.';
     el.querySelector('#q4hQuestPlay').hidden=!['WAKE','REFLEX'].includes(node.id);
     el.querySelector('#q4iFirstWakePlay').hidden=!['WORKSHOP','FIRST_WAKE'].includes(node.id);
     el.querySelector('#q5ScrapSwarmPlay').hidden=node.id!=='SCRAP_SWARM';
@@ -388,8 +464,9 @@
     return true;
   }
   const api=Object.freeze({
-    beginOrResume:core.beginOrResume, checkpoint:core.checkpoint,
-    diagnostics:core.diagnostics, acceptNativeBeat, show, hide,
+    beginOrResume:()=>core.beginOrResume(), checkpoint:()=>core.checkpoint(),
+    diagnostics:()=>core.diagnostics(), acceptNativeBeat, show, hide,
+    startReplay,exitReplay,replayStatus,
     isVisible:()=>!!(overlay&&!overlay.hidden),
     sequence:()=>NODES.map(({id,label,type,status,encounterId})=>({id,label,type,status,encounterId:encounterId||null})),
     STORAGE_KEY
