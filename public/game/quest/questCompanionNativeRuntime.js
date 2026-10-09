@@ -197,12 +197,22 @@ function create({actors,policy,weaponApi,state,log}={}){
      const k=states['T.O.T'].K;
      if(k.phase==='STORED'){
        const nearest=candidates(tot)[0];
-       const enemyNear=nearest&&dist(tot,nearest)<560;
-       const wounded=tot.hp<440;
-       // Never immediately draw after storage; wait for a true threat
-       // and an empty hand, preserving the reserve across safe waves.
-       if(!weaponApi.getHolder(tot)&&time-(k.storedAt||0)>=CONFIG['T.O.T'].K.minimumAiHold
-         &&enemyNear&&(wounded||nearest.hp>0))cast(tot,'K','ai');
+       const enemyDistance=nearest?dist(tot,nearest):Infinity;
+       const age=time-(k.storedAt??time);
+       const nearFreshWeapon=floor&&dist(tot,floor)<=300;
+       const teamDanger=actors.slice(0,3).some(a=>a!==tot&&
+         active(a)&&a.hp/Math.max(1,a.maxHp)<=.28);
+       const enemyArmed=nearest&&!!weaponApi.getHolder(nearest);
+       const imminent=enemyDistance<=270&&enemyArmed;
+       const emergency=tot.hp<=390||teamDanger;
+       const drought=age>=6&&enemyDistance<=470&&!nearFreshWeapon;
+       // Tactical reserve: keep the genuine gun across calm moments and
+       // future waves, try picking an ordinary floor gun first. Early draw
+       // is reserved for credible danger, never elapsed-time spam.
+       const shouldDraw=(emergency&&enemyDistance<650)||
+         (age>=CONFIG['T.O.T'].K.minimumAiHold&&imminent&&!nearFreshWeapon)||
+         drought;
+       if(!weaponApi.getHolder(tot)&&shouldDraw)cast(tot,'K','ai');
      }else{
        if(k.phase==='READY'&&k.cd<=0&&!weaponApi.getHolder(tot)&&
          floor&&dist(tot,floor)<540)cast(tot,'K','ai');
