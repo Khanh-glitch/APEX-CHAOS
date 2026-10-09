@@ -1,0 +1,37 @@
+name: Quest B2 Transparent Reflex
+on:
+  push:
+    branches: ['quest/b2-transparent-reflex-from-b1']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  b2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 34
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: node tools/buildGoldCutover.mjs --check
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Prove E01 has no secret pickup ownership or 250HP floor
+        run: node tools/testQuestTransparentReflexB2.mjs
+      - name: Authentic native Arsenal E01 receipt regression
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-reflex-real
+      - name: Native battle, enemy, rarity and Quest regression
+        run: |
+          node tools/testQuestContactReflectionB1.mjs
+          node tools/testQuestRarityB1.mjs
+          node tools/testQuestEnemyAbilitiesB1.mjs
+          node tools/testQuestDirectorQ1.mjs
+          node tools/testQuestReflexReceiptsQ4.mjs
+      - name: Production build
+        run: pnpm build

@@ -351,11 +351,11 @@
 
         // Quest may have N independent canonical Fighters. Ordinary BOT/LOCAL still
         // uses the exact original two entries, including HUD telemetry.
-        // REFLEX R1/R2 stage pickups are authored PISTOL trials, not
-        // generic Arsenal counter drops. Only their REAL designated Fighter
-        // can trigger a reveal and later collect the floor weapon.
+        // E01 design authority: authored position does NOT confer pickup
+        // rights. Every unarmed real Fighter can reveal / collect a floor gun.
+        // E03/E05 retained directed opening arrangements, explicitly scoped.
         const questDirected=slot.questPickupOwner&&
-          (state.questReflex===true||state.questScrapSwarmProgression===true
+          (state.questScrapSwarmProgression===true
             ||state.questBreakerChargeProgression===true);
         const stageOwner=questDirected
           ? (fighters||[]).find(f=>f&&f.hp>0&&f.questId===slot.questPickupOwner)
@@ -402,6 +402,8 @@
         }
         // Keep at least a brief visible telegraph when the authored pickup
         // materializes close enough to be immediately collected.
+        if (slot.questStage&&state.questReflex===true
+          &&state.time-slot.spawnTime<0.55)continue;
         if (questDirected && state.time-slot.spawnTime<0.65)continue;
         if (earliest && earliest.eta <= slot.revealLeadSeconds + 1e-6) {
           revealSlot(slot, earliest.eta, earliest.fighter, false);
@@ -524,10 +526,10 @@
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
         if (d > pickupTouchRadius(f)) continue;
-        // E01 REFLEX stage gun is collected only by its named physical
-        // participant. Still real floor pickup / Arsenal equip; this guard
-        // never applies to normal, LAB, BOT, Local or other Quest slots.
-        if ((state.questReflex===true||state.questScrapSwarmProgression===true
+        // A 'suggested' E01 receiver is a spawn-position hint only, not a
+        // hidden ownership/eligibility gate. Truly revealed guns follow the
+        // exact normal Arsenal physical pickup rules for EVERY Fighter.
+        if ((state.questScrapSwarmProgression===true
           ||state.questBreakerChargeProgression===true)
           &&slot.questPickupOwner&&f.questId!==slot.questPickupOwner) continue;
         // FROST V1 (authority §4.3): a Frozen firearm denies non-Frost

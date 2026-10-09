@@ -490,9 +490,9 @@
       if(state.questReflex && state.questReflexGate){
         const stage=state.questReflexGate.snapshot().phase;
         const q=state.questReflexSpawns||(state.questReflexSpawns={lastAt:{},jDrop:false});
-        for(const slot of state.slots){
-          if(slot.questStage && slot.questStage!==stage)slot.phase='REMOVED';
-        }
+        // E01 never deletes a genuine unused pickup because a tutorial
+        // receipt advanced. Earlier guns remain on the arena floor until
+        // Arsenal's real pickup / expiry / cap lifecycle removes them.
         if(stage==='R1_PISTOL'||stage==='R2_PISTOL'){
           const wanted=stage==='R1_PISTOL'?'NEWBOT':'T.O.T';
           const owner=(fighters||[]).find(f=>f?.questId===wanted&&f.hp>0);
@@ -515,7 +515,9 @@
           state.spawnTimer=Math.min(state.spawnTimer,0);
         }
       }
-      // Fixed spawn cadence — independent of collection state (handoff §5).
+      // Quest tutorial may create *more* readable opportunities than a
+      // standard match. E01 only; ordinary Arsenal / other Quests retain
+      // the unchanged 4.5-second cadence.
       if (!state.labMode) state.spawnTimer -= dt;
       let guard = 0;
       while (!state.labMode && state.spawnTimer <= 0 && guard++ < 4) {
@@ -524,7 +526,7 @@
           :state.questBreakerChargeProgression===true
             ?state.questBreakerSequence.cadence(
               window.APEX_QUEST_MULTI_ACTOR_CORE?.breakerChargeProgress(fighters)||0)
-            :CFG.SPAWN_CADENCE_SECONDS;
+            :state.questReflex===true?2.25:CFG.SPAWN_CADENCE_SECONDS;
         if (emergencySpawned) continue;
         if(state.questBreakerChargeProgression===true
           &&state.questBreakerOpeningDropPending===true){
@@ -561,30 +563,29 @@
           }
           continue;
         }
-        // E01 post-J/K is still a REAL physical Arsenal gun cycle. The
-        // 4.5s cadence, live-slot cap 5, reveal and pickup all remain intact.
-        // Direct each trial's PISTOL to an unarmed Fighter whose opponent
-        // still needs to cross 500 HP; no damage or equip is injected.
+        // E01 no longer gates weapon supply by the opponent's HP. Rotate
+        // visible PISTOL offers in front of an UNARMED participant. If both
+        // already hold a weapon, ordinary physical Arsenal loot continues.
+        // The tagged receiver is a POSITION suggestion only; any unarmed
+        // opponent can reach the revealed gun and take it.
         if(state.questReflex===true
           &&state.questReflexGate?.snapshot()?.phase==='BOTH_HALF'){
-          const newbot=(fighters||[]).find(f=>f?.questId==='NEWBOT'&&f.hp>0);
-          const tot=(fighters||[]).find(f=>f?.questId==='T.O.T'&&f.hp>0);
-          const wants=[];
-          if(newbot&&tot&&tot.hp>500)wants.push(newbot);
-          if(newbot&&tot&&newbot.hp>500)wants.push(tot);
-          const q=state.questReflexSpawns||(state.questReflexSpawns={lastAt:{},jDrop:true});
-          const eligible=wants.filter(f=>!weaponApi.getHolder(f)
+          const unarmed=(fighters||[]).filter(f=>f?.hp>0
+            &&!weaponApi.getHolder(f)
             &&!state.slots.some(slot=>slot.questStage==='BOTH_HALF'
               &&slot.questPickupOwner===f.questId&&slot.phase!=='REMOVED'));
-          if(eligible.length){
-            const selected=eligible[(q.assaultTurn||0)%eligible.length];
+          if(unarmed.length){
+            const q=state.questReflexSpawns||(state.questReflexSpawns={lastAt:{},jDrop:true});
+            const selected=unarmed[(q.assaultTurn||0)%unarmed.length];
             q.assaultTurn=(q.assaultTurn||0)+1;
+            const dx=selected.dir?.x|| (selected.x>500?-1:1);
+            const dy=selected.dir?.y||0;
             SPAWN.trySpawnSlot({
               questWeaponId:'PISTOL',questStage:'BOTH_HALF',
               questPickupOwner:selected.questId,
-              questPoint:{x:selected.x+(selected.x>500?-65:65),y:selected.y}
+              questPoint:{x:selected.x+dx*78,y:selected.y+dy*78}
             });
-          }
+          }else SPAWN.trySpawnSlot();
           continue;
         }
         SPAWN.trySpawnSlot();
