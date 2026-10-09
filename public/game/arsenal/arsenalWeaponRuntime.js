@@ -558,7 +558,6 @@
 
   // Per-frame movement/hit resolution for aq_* projectiles.
   function updateArsenalProjectiles(dt) {
-    if(AQ.state?.questRivetPreview){const q=AQ.state.questRivetPreview;q.weaponUpdateCalls=(q.weaponUpdateCalls||0)+1;}
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       if (!p || !p.aq) continue;
@@ -610,10 +609,6 @@
         continue;
       }
       if (p.type === 'aq_thrown') {
-        if(p.questRivetSuppression===true&&AQ.state?.questRivetPreview){
-          const q=AQ.state.questRivetPreview;q.thrownSeen=(q.thrownSeen||0)+1;
-          q.lastThrownState=p.state;q.ownerMatched=q.operator===p.owner;
-        }
         // POST-C §5 thrown-melee lifecycle: flight -> pinned -> exit.
         p.grace = Math.max(0, (p.grace || 0) - dt);
         if (p.state === 'flight') {
@@ -651,15 +646,9 @@
           if(p.weapon==='STORMBREAKER'&&p.questRivetSuppression===true){
             const rig=AQ.state?.questRivetPreview;
             const floor=rig?.aimPoint;
-            const approach=floor?distPointToSegment(floor.x,floor.y,p.px,p.py,p.x,p.y):Infinity;
-            if(rig&&rig.operator===p.owner){
-              rig.minApproach=Math.min(rig.minApproach??Infinity,approach);
-              if(!rig.contactTrace)rig.contactTrace=[];
-              if(rig.contactTrace.length<12)rig.contactTrace.push({x:p.x,y:p.y,px:p.px,py:p.py,dist:approach,r:p.radius,dt});
-            }
             if(rig?.operator===p.owner && floor && !rig.groundImpact
                && Number.isFinite(floor.x)&&Number.isFinite(floor.y)
-               && approach<=p.radius+10){
+               && distPointToSegment(floor.x,floor.y,p.px,p.py,p.x,p.y)<=p.radius+10){
               const point={x:floor.x,y:floor.y};
               rig.groundImpact=Object.freeze({
                 x:point.x,y:point.y,owner:p.owner.questId,
