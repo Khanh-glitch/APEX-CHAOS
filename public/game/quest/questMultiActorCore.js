@@ -372,7 +372,7 @@
        ||target.hp>target.maxHp||!finite(target.x)||!finite(target.y)
        ||!finite(target.radius)||target.radius<=0)
        return {ok:false,reason:'invalid-real-world-collider'};
-    return {ok:true,reason:'inert-real-collider'};
+    return {ok:true,reason:'inert-real-collider',count:2,allies:1,hostiles:0};
   }
   function breakerAcceptedDamage(actors){
     const valid=validateBreakerCharge(actors);

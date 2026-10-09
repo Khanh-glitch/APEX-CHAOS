@@ -136,7 +136,10 @@
       && state.questSwarmPhase==='COMBAT'
       && opts?.questWeaponId==='PISTOL'
       && opts?.questStage==='E03_OPENING'&&opts?.questPickupOwner==='NEWBOT';
-    const forcedQuest=(forcedReflex||forcedSwarm)
+    const forcedCharge=state.questBreakerChargeProgression===true
+      &&opts?.questStage==='E05_OPENING'
+      &&opts?.questPickupOwner==='NEWBOT'&&opts?.questWeaponId==='PISTOL';
+    const forcedQuest=(forcedReflex||forcedSwarm||forcedCharge)
       && Number.isFinite(opts?.questPoint?.x)&&Number.isFinite(opts?.questPoint?.y);
     const point=forcedQuest
       ? {x:Math.max(120,Math.min(880,opts.questPoint.x)),
@@ -266,7 +269,8 @@
     if ((state.healCooldown || 0) > 0) return null;
     const activeHeal = state.slots.filter((s) => s.kind === 'HEAL' && s.phase !== 'REMOVED');
     if (activeHeal.length >= (CFG.HEAL_MAX_ACTIVE || 1)) return null;
-    const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) => f && f.hp > 0);
+    const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) =>
+      f && f.hp > 0 && f.questWorldObject!==true);
     const eligible = living.some((f) => f.hp <= (CFG.HEAL_ELIGIBLE_HP || 80));
     if (!eligible) return null;
     const point = pickSpawnPoint(state.slots);
@@ -320,7 +324,8 @@
         // generic Arsenal counter drops. Only their REAL designated Fighter
         // can trigger a reveal and later collect the floor weapon.
         const questDirected=slot.questPickupOwner&&
-          (state.questReflex===true||state.questScrapSwarmProgression===true);
+          (state.questReflex===true||state.questScrapSwarmProgression===true
+            ||state.questBreakerChargeProgression===true);
         const stageOwner=questDirected
           ? (fighters||[]).find(f=>f&&f.hp>0&&f.questId===slot.questPickupOwner)
           : null;
@@ -433,7 +438,7 @@
       ? window.APEX_HERO_REWORK.pickupActors()
       : undefined;
     const actors = state.questMultiActor
-      ? (fighters || []).filter(f => f && f.hp > 0)
+      ? (fighters || []).filter(f => f && f.hp > 0 && f.questWorldObject!==true)
       : (pickupActorList || fighters);
 
     for (const slot of state.slots) {
@@ -490,8 +495,9 @@
         // E01 REFLEX stage gun is collected only by its named physical
         // participant. Still real floor pickup / Arsenal equip; this guard
         // never applies to normal, LAB, BOT, Local or other Quest slots.
-        if ((state.questReflex===true||state.questScrapSwarmProgression===true)
-          && slot.questPickupOwner&&f.questId!==slot.questPickupOwner) continue;
+        if ((state.questReflex===true||state.questScrapSwarmProgression===true
+          ||state.questBreakerChargeProgression===true)
+          &&slot.questPickupOwner&&f.questId!==slot.questPickupOwner) continue;
         // FROST V1 (authority §4.3): a Frozen firearm denies non-Frost
         // collectors. Dynamic denial only — never a rejected/blacklist mark.
         if (slot.__frostFrozen) {
