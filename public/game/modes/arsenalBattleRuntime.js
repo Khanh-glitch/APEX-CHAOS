@@ -1216,6 +1216,15 @@
       && reflexAuthorized
       && !!questCore && !!window.APEX_QUEST_REFLEX_RECEIPTS;
     if(options.questReflex && !questReflex)return false;
+    const directorCheckpoint=window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId;
+    const storyCompletion=questReflex===true
+      &&options.questStoryCompletion===true
+      &&options.questStoryPresentation===true
+      &&window.__APEX_QUEST_DEV===true
+      &&window.__apexGoldBattleHosted===true
+      &&['WAKE','REFLEX'].includes(directorCheckpoint)
+      &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function';
+    if(options.questStoryCompletion===true&&!storyCompletion)return false;
     detachReflexReceipt();
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
@@ -1284,6 +1293,7 @@
       AQ.state.questMultiActor = true;
       AQ.state.questFirstWake = questFirstWake;
       AQ.state.questReflex = questReflex;
+      AQ.state.questStoryCompletion = storyCompletion;
       AQ.state.questTestFixture = questReflex||questFirstWake ? null : String(options.questFixture);
       AQ.state.questActorCount = validated.count;
       AQ.state.questOutcome = null;
@@ -1302,7 +1312,13 @@
             onAdvance:(beatId)=>{
               if(AQ.state!==ownerState||!ownerState.active
                  ||ownerState.questReflex!==true)return;
-              if(beatId==='E01_RIVET_HOLD'){
+              if(beatId==='WAKE_OPEN'){
+                if(ownerState.questStoryCompletion===true){
+                  const out=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.('WAKE_OPEN');
+                  ownerState.questWakeAuthorized=out?.ok===true;
+                  if(!out?.ok)AQ.log('QUEST_WAKE_DENIED',String(out?.reason||'unknown'));
+                }
+              }else if(beatId==='E01_RIVET_HOLD'){
                 // Only the real four receipts + safe hold can enter this
                 // Story-owned path. Skip/Continue affects presentation only:
                 // the ONE canonical Arsenal throw still has to fly and HIT
@@ -1318,10 +1334,34 @@
                   ownerState.questWorkshopPreview=true;
                   ownerState.questStoryView?.offer({id:'WORKSHOP_ARRIVAL'});
                 }
+              }else if(beatId==='WORKSHOP_ARRIVAL'){
+                if(ownerState.questStoryCompletion===true){
+                  const out=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.('WORKSHOP_ARRIVAL');
+                  ownerState.questWorkshopAuthorized=out?.ok===true;
+                  if(!out?.ok)AQ.log('QUEST_WORKSHOP_DENIED',String(out?.reason||'unknown'));
+                  else{
+                    AQ.log('QUEST_E01_AUTHENTIC_COMPLETE','checkpoint=WORKSHOP');
+                    ownerState.questOutcome='E01_RESCUED_WORKSHOP';
+                    // Battle has already been legitimately frozen after the
+                    // physical Stormbreaker floor hit. Normal match victory
+                    // and fake KO counters are NOT involved.
+                    window.exitArsenalBattleMode?.();
+                    window.APEX_QUEST01_DIRECTOR?.show?.({
+                      onReflexPreview:window.__apexQuestReflexStart,
+                      onPreview:window.__apexQuestFirstWakeStart
+                    });
+                    return;
+                  }
+                }
               }
               presentNextRealStoryBeat(ownerState);
             }
           });
+          // A full Quest starts at WAKE; resume begins at REFLEX without
+          // replaying an already-acknowledged opening. The old non-saving
+          // Story preview still begins at the real R1 hit as before.
+          if(storyCompletion&&directorCheckpoint==='WAKE')
+            AQ.state.questStoryView.offer({id:'WAKE_OPEN'});
         }
         // Only scripted R1/R2 spawn at first. The normal Arsenal cadence
         // resumes when J needs a real revealed pickup after R2.
@@ -1395,9 +1435,12 @@
       ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true)))return false;
     const withStory=window.__APEX_QUEST_STORY_PLAYBACK===true
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true;
+    const withFull=withStory&&window.__APEX_QUEST_STORY_FULL===true;
     delete window.__APEX_QUEST_STORY_PLAYBACK;
+    delete window.__APEX_QUEST_STORY_FULL;
     return window.startArsenalBattleMode('ROBOT','ROBOT',
-      {questReflex:true,questStoryPresentation:withStory});
+      {questReflex:true,questStoryPresentation:withStory,
+       questStoryCompletion:withFull});
   };
   // One-shot RIVET engineering preview. Owner has NOT approved the rescue
   // choreography, final model, target or Story progression. The weapon must
