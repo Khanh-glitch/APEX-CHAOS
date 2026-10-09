@@ -904,6 +904,7 @@ try{
     afterStoryExit?.open===false&&afterStoryExit?.view==null
     &&afterStoryExit?.node==null&&afterStoryExit?.checkpoint==='WAKE',afterStoryExit);
 
+  { // Q4H isolated lexical scope: prevent collisions with prior browser gates
   // Q4H: ACTUAL Quest opening/save lane, separate from non-saving previews.
   // Entry and ALL scene acknowledgements are native CDP mouse or touch.
   // Only production Arsenal shots/casts/Stormbreaker can authorize progress.
@@ -993,6 +994,7 @@ try{
   gate('Q4H real browser reload resumes signed WORKSHOP checkpoint, not a combat frame',
     reloaded?.id==='WORKSHOP'&&reloaded?.cues===8
     &&reloaded?.phase==='ENTRY'&&reloaded?.artifact==='SEALED',reloaded);
+  }
 
 
 }catch(err){
