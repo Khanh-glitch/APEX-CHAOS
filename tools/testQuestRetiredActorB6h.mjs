@@ -15,3 +15,12 @@ calls.length=0;invoke([a,b,c],{questMultiActor:false},weaponApi,.05);
 assert.deepEqual(calls,[a,b,c]);console.log('PASS B6h normal Free Battle path unchanged');
 assert.ok(s.includes('f.withdrawn===true || !f.applyStatus'));
 console.log('PASS B6h floor lightning cannot stun retired Fighter');
+
+const heroRework=fs.readFileSync(new URL('../public/game/hero-rework/heroReworkRuntime.js',import.meta.url),'utf8');
+const goldBridge=fs.readFileSync(new URL('../public/game/gold/goldProductBridge.js',import.meta.url),'utf8');
+assert.ok(s.includes('fighters[0].withdrawn===true'));
+console.log('PASS B6h withdrawn NEWBOT cannot repeat J');
+assert.ok(heroRework.includes('f.withdrawn===true')&&heroRework.includes("key: 'KeyK'"));
+console.log('PASS B6h HeroRework K blocked after retreat');
+assert.ok(goldBridge.includes('fighters[pi].withdrawn===true'));
+console.log('PASS B6h Gold touch blocked after retreat');
