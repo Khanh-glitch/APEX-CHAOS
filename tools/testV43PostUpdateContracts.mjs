@@ -6,6 +6,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const read=path=>readFileSync(path,'utf8');
 const runtime=read('public/game/arsenal/arsenalWeaponRuntime.js');
+const config=read('public/game/arsenal/arsenalConfig.js');
 const battle=read('public/game/modes/arsenalBattleRuntime.js');
 const laser=read('public/game/quest/questEnemyAbilities.js');
 const donor=read('public/game/quest/questGoldV12Rig.js');
@@ -66,16 +67,36 @@ assert.match(runtime,/distPointToSegment\(p\.launchOwner\.x,p\.launchOwner\.y/);
 assert.match(runtime,/equip\(p\.launchOwner,p\.weapon\)/);
 assert.match(runtime,/p\.hits\.size<\(c\.maxHitsPerLeg\?\?1\)/);
 console.log('PASS post Boomerang empty hand, physical swept catch, multi-actor per-leg budget');
-// Flame V1 keeps original native muzzle but renders the actual gameplay cone.
-assert.match(runtime,/const muzzle=v43Muzzle\(p\.owner,p\.weapon,p\.angle\)/);
-assert.match(runtime,/const dx=f\.x-p\.x,dy=f\.y-p\.y/);
-assert.match(runtime,/function v43LabFlameField\(ctx,p\)/);
-assert.match(runtime,/const range=c\.range,cone=c\.cone/);
-assert.match(runtime,/520\)/);
-assert.match(runtime,/v43LabFlameField\(ctx,p\)/);
-assert.match(runtime,/if\(p\.kind==='flare'\)/);
+// Owner's original V4.3 Lab fire-only VFX, with halved cone/range/cadence.
+assert.ok(config.includes('duration:.325,ticks:5,tickStart:.05,tickInterval:.06'));
+assert.ok(config.includes('tickDamage:18,range:325,cone:.18,burnTicks:5,burnInterval:.25,burnDamage:13,idealRange:265'));
+assert.ok(runtime.includes('const muzzle=v43Muzzle(p.owner,p.weapon,p.angle)'));
+assert.ok(runtime.includes('function v43GoldFlamethrowerParticles(ctx,p)'));
+assert.ok(runtime.includes('v43GoldFlamethrowerParticles(ctx,p);'));
+assert.ok(runtime.includes('Math.min(p.age,V43.FLAMETHROWER.duration)*470'));
+assert.ok(runtime.includes('const travel=Math.min(V43.FLAMETHROWER.range,'));
+assert.doesNotMatch(runtime,/v43LabFlameField|damageReach\*scale|fuel lanes fill its DAMAGE/);
 assert.match(runtime,/v43GoldTongue\(ctx,pt\.x,pt\.y,ang/);
-console.log('PASS post owner Flame V1 & Gold Flare uses native muzzle/field history');
+// Run the actual native hit evaluator: five near hits, zero far/off-axis hits.
+const hitActors=[],owner={hp:1000};
+const near={x:300,y:100,radius:75,hp:1000},
+ far={x:550,y:100,radius:75,hp:1000},
+ off={x:300,y:260,radius:75,hp:1000};
+const flameVM=vm.createContext({Math,Set,
+ V43:{FLAMETHROWER:{duration:.325,ticks:5,tickStart:.05,tickInterval:.06,
+  tickDamage:18,range:325,cone:.18,burnTicks:5,burnInterval:.25,burnDamage:13}},
+ getHolder:()=>({meta:{aimAngle:0}}),v43Muzzle:()=>({x:100,y:100}),
+ v43Enemies:()=>[near,far,off],v43min:(x,a,b)=>Math.max(a,Math.min(b,x)),
+ v43Deal:(p,f,d)=>hitActors.push({f,d}),v43ApplyBurn:()=>{},
+ AQ:{state:{visuals:false}},pushVisual:()=>{throw Error('Unexpected flame FX');}
+});
+vm.runInContext(fn(runtime,'v43FlameHit')+'\nthis.hit=v43FlameHit;',flameVM);
+const shot={owner,weapon:'FLAMETHROWER',angle:0,age:0,life:.325,ticks:0,flameOrigins:[]};
+for(let i=1;i<=20&&shot.life>0;i++){shot.age=i*.016;flameVM.hit(shot,.016);}
+assert.equal(shot.ticks,5);
+assert.equal(hitActors.length,5);
+assert.ok(hitActors.every(h=>h.f===near&&h.d===18));
+console.log('PASS original Lab fire only, halved 325px / .18rad / .325s, 5 real close hits');
 // Quest enemy laser is physically swept, visually attached to the live
 // Gold donor's actual optic, and the source reanchors every render.
 assert.match(donor,/function opticWorld\(real\)/);
@@ -83,27 +104,25 @@ assert.match(laser,/drawGoldLabLaserCharge\(ctx,optic\.x,optic\.y,t,visualClock\
 assert.match(laser,/root\.APEX_QUEST_V12_RIG\?\.opticWorld\?\.\(ray\.owner\)/);
 assert.match(laser,/firstProjectileHit\(\{/);
 console.log('PASS post Sentinel laser: source Gold 3 rings/14 sparks/4 beam layers, live optic');
-// Quest NPC gun acquisition remains an actual floor collector; selection is
-// signed and uses the native hero kit without rebasing narrative IDs.
+// Quest fighter stays NEWBOT/ROBOT. No UI picker, global override or substituted kit.
 assert.match(battle,/fighter\.setDir\(\(best\.x-fighter\.x\)\/bestD/);
-assert.match(battle,/function questChosenBattleId\(\)/);
-assert.match(bridge,/const questShell=questPreview\?/);
-assert.match(director,/id="q1HeroCards"/);
+assert.ok(battle.includes("const questHeroEligible=types[0]?.name==='ROBOT'"));
+assert.doesNotMatch(battle,/questChosenBattleId|__apexQuestHeroChoice/);
+assert.doesNotMatch(bridge,/questShell|__apexQuestHeroChoice/);
+assert.ok(bridge.includes("const p1Shell = questPreview ? 'newbot'"));
+assert.doesNotMatch(director,/q1HeroCards|q1-hero-pick|populateQuestHeroPicker|__apexQuestHeroChoice/);
 for(const key of ['questBreachWaves','questRivetOverridden','questTotLastChoice',
  'questFirstWake','questScrapSwarm','questWeaponRain',
- 'questBreakerCharge','questReflex']){
- assert.match(battle,new RegExp("questChosenBattleId\\(\\)[\\s\\S]{0,170}"+key));
-}
+ 'questBreakerCharge','questReflex'])
+ assert.ok(battle.includes(key),'missing Quest route '+key);
 assert.match(donor,/drawAftermath\(ctx,realActors=\[\],state=null\)/);
 assert.match(donor,/const max=fx\.special\?1\.55:3\.25/);
-console.log('PASS post Quest selectable real-kit story, real pistol pickup, true donor motion/part cleanup');
+console.log('PASS fixed Quest NEWBOT/ROBOT, native PISTOL pickups and Gold rig motion');
 
-// Execute the actual E01 ordered-receipt authority with every selectable
-// Gold kit. A forged Cast from another hero or side cannot advance Story.
+// Real E01 ordered-receipt authority: ROBOT only; forged casts fail.
 const QCTX={window:{},Math,Number,Object,Array,String};
 vm.runInNewContext(read('public/game/quest/questReflexReceipts.js'),QCTX);
-for(const [name,hero] of [['ROBOT','ROBOT'],['HUNTER','HUNTER'],
- ['CRYSTALA','CRYSTAL'],['MAGNET','MAGNET'],['FROST','ICE'],['MIRROR','MIRROR']]){
+for(const [name,hero] of [['ROBOT','ROBOT']]){
  const n={id:1,questId:'NEWBOT',questTeam:'ALLY',hp:1000,maxHp:1000,
   type:{name}},tot={id:2,questId:'T.O.T',questTeam:'HOSTILE',hp:1000,maxHp:1000};
  const g=QCTX.window.APEX_QUEST_REFLEX_RECEIPTS.create(()=>[n,tot]);
@@ -115,9 +134,9 @@ for(const [name,hero] of [['ROBOT','ROBOT'],['HUNTER','HUNTER'],
   hero, fighterId:2,side:'p1',slot:'A1'}}),false);
  assert.equal(g.acceptCast({type:'Cast',seq:3,payload:{
   hero,fighterId:1,side:'p1',slot:'A1'}}),true,
-  name+' must accept native selected-hero A1 after the real pistol exchanges');
+  name+' must accept native ROBOT A1 after the real pistol exchanges');
  assert.equal(g.acceptCast({type:'Cast',seq:4,payload:{
   hero,fighterId:1,side:'p1',slot:'A2'}}),true);
  assert.equal(g.snapshot().phase,'BOTH_HALF');
 }
-console.log('PASS post Quest E01 ordered native J/K Cast for six selectable kits; forged casts rejected');
+console.log('PASS Quest E01 native ROBOT J/K Cast; forged casts rejected');

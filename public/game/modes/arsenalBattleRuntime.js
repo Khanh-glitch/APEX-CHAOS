@@ -1641,16 +1641,8 @@
     }
 
     // Quest playtest chooses among the REAL public selectable Core Six.
-    // The narrative role remains questId NEWBOT; only its combat kit changes.
-    // Production Battle and test-fixture authorization are unaffected.
-    const questChoiceId={
-      newbot:'ROBOT',hunter:'HUNTER',crystala:'CRYSTAL',
-      magnet:'MAGNET',frost:'ICE',mirror:'MIRROR'
-    }[String(window.__apexQuestHeroChoice||'newbot').toLowerCase()]||'ROBOT';
-    const questHeroEligible=types[0]?.name==='ROBOT'
-      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
-        &&types[0]===shells?.typeFor?.(questChoiceId)
-        &&shells?.canPublicSelect?.(questChoiceId));
+    // Quest always pilots NEWBOT with ROBOT's canonical native combat kit.
+    const questHeroEligible=types[0]?.name==='ROBOT';
     // Q2 internal-only N-actor fixtures are never public Quest progression.
     // Public Gold Continue Story retains exact CP04 FIRST WAKE composition.
     const questCore = window.APEX_QUEST_MULTI_ACTOR_CORE;
@@ -2361,21 +2353,11 @@
   window.startArsenalBattleMode = function startProductArsenalBattle(p1Name, p2Name, options) {
     return startArsenalBattleMode(p1Name, p2Name, options);
   };
-  function questChosenBattleId(){
-    // Gold Quest picker sets a cosmetic shell key. Verify actual playable
-    // product authorization HERE, at native encounter start, never rely on
-    // an untrusted window string to gain a locked kit.
-    const ids={newbot:'ROBOT',hunter:'HUNTER',crystala:'CRYSTAL',
-      magnet:'MAGNET',frost:'ICE',mirror:'MIRROR'};
-    const key=String(window.__apexQuestHeroChoice||'newbot').toLowerCase();
-    const id=ids[key]||'ROBOT';
-    return window.APEX_ARSENAL_SHELLS?.canPublicSelect?.(id)?id:'ROBOT';
-  }
   window.__apexQuestBreachStoryStart=function startRealE06FromDirector(){
     if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
       ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='BREACH_WAVES')
       return false;
-    return window.startArsenalBattleMode(questChosenBattleId(),'ROBOT',{
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
       questBreachWaves:true,questBreachProgression:true
     })===true;
   };
@@ -2383,14 +2365,14 @@
     if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
       ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='RIVET_OVERRIDDEN')
       return false;
-    return window.startArsenalBattleMode(questChosenBattleId(),'ROBOT',{
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
       questRivetOverridden:true,questRivetProgression:true
     })===true;
   };
   window.__apexQuestTotStoryStart=function startRealE08FromDirector(){
     if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
       ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='TOT_LAST_CHOICE')return false;
-    return window.startArsenalBattleMode(questChosenBattleId(),'ROBOT',{
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
       questTotLastChoice:true,questTotProgression:true
     })===true;
   };
@@ -2409,7 +2391,7 @@
   window.__apexQuestFirstWakeStart = function startQuestFirstWakeSpike() {
     // Explicit feature opt-in on the disposable Quest branch only.
     if (window.__APEX_QUEST_DEV !== true) return false;
-    return window.startArsenalBattleMode(questChosenBattleId(), 'ROBOT', { questFirstWake: true });
+    return window.startArsenalBattleMode('ROBOT', 'ROBOT', { questFirstWake: true });
   };
   window.__apexQuestFirstWakeStoryStart=function startRealE02FromDirector(){
     if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true)
@@ -2417,7 +2399,7 @@
     const D=window.APEX_QUEST01_DIRECTOR;
     const before=D?.checkpoint?.()?.checkpointId;
     if(!['WORKSHOP','FIRST_WAKE'].includes(before))return false;
-    const started=window.startArsenalBattleMode(questChosenBattleId(),'ROBOT',{
+    const started=window.startArsenalBattleMode('ROBOT','ROBOT',{
       questFirstWake:true,questFirstWakeProgression:true
     });
     if(!started)return false;
@@ -2435,7 +2417,7 @@
     if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
        ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='SCRAP_SWARM')
       return false;
-    return window.startArsenalBattleMode(questChosenBattleId(),'ROBOT',{
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
       questScrapSwarm:true,questScrapSwarmProgression:true
     })===true;
   };
@@ -2443,7 +2425,7 @@
     if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
        ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='WEAPON_RAIN')
       return false;
-    return window.startArsenalBattleMode(questChosenBattleId(),'ROBOT',{
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
       questWeaponRain:true,questWeaponRainProgression:true
     })===true;
   };
@@ -2451,7 +2433,7 @@
     if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
        ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='CHARGE_THE_BREAKER')
       return false;
-    return window.startArsenalBattleMode(questChosenBattleId(),'ROBOT',{
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
       questBreakerCharge:true,questBreakerChargeProgression:true
     })===true;
   };
@@ -2464,7 +2446,7 @@
     const withFull=withStory&&window.__APEX_QUEST_STORY_FULL===true;
     delete window.__APEX_QUEST_STORY_PLAYBACK;
     delete window.__APEX_QUEST_STORY_FULL;
-    return window.startArsenalBattleMode(questChosenBattleId(),'ROBOT',
+    return window.startArsenalBattleMode('ROBOT','ROBOT',
       {questReflex:true,questStoryPresentation:withStory,
        questStoryCompletion:withFull});
   };

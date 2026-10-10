@@ -409,48 +409,6 @@
   let callbacks = null;
   let previousFocus = null;
   const HAS_DOM = !!(root.document && root.document.createElement);
-  // Quest-only adaptation of the Gold hero pick roster/portrait authority.
-  // This is a combat-kit choice, not a new hero economy or story identity.
-  const QUEST_HEROES=Object.freeze([
-    ['newbot','ROBOT','ROBOT'],['hunter','HUNTER','HUNTER'],
-    ['crystala','CRYSTAL','CRYSTALA'],['magnet','MAGNET','MAGNET'],
-    ['frost','ICE','FROST'],['mirror','MIRROR','MIRROR']
-  ]);
-  function populateQuestHeroPicker(overlay){
-    const host=overlay?.querySelector('#q1HeroCards');
-    if(!host)return;
-    const allowed=root.APEX_PRODUCT_SURFACE?.roster?.playableIds;
-    const accepted=Array.isArray(allowed)&&allowed.length
-      ?new Set(allowed):new Set(['ROBOT']);
-    const canChoose=id=>accepted.has(id)
-      &&root.APEX_ARSENAL_META?.canPublicSelect?.(id)!==false;
-    const requested=String(root.__apexQuestHeroChoice||'newbot');
-    const match=QUEST_HEROES.find(x=>x[0]===requested&&canChoose(x[1]));
-    const picked=match?match[0]:'newbot';
-    root.__apexQuestHeroChoice=picked;
-    host.replaceChildren();
-    for(const [key,id,label] of QUEST_HEROES){
-      const available=canChoose(id),selected=key===picked;
-      const card=root.document.createElement('button');
-      card.type='button';card.className='q1-hero-card';
-      card.disabled=!available;card.setAttribute('aria-pressed',String(selected));
-      card.setAttribute('aria-label',label+(available?'':' locked'));
-      const img=root.document.createElement('img');
-      // EXACT Gold product roster card asset path, never the old Quest
-      // placeholder or a copied weapon illustration.
-      img.src='/assets/gold-ui/heroes/'+key+'/pick_roster_cover.webp';
-      img.alt='';img.loading='lazy';
-      const title=root.document.createElement('span');
-      title.textContent=label;
-      card.append(img,title);
-      card.addEventListener('click',()=>{
-        if(!available)return;
-        root.__apexQuestHeroChoice=key;
-        populateQuestHeroPicker(overlay);
-      });
-      host.appendChild(card);
-    }
-  }
   function ensureView() {
     if (!HAS_DOM || overlay) return overlay;
     const d = root.document;
@@ -471,14 +429,6 @@
       '#apexQuest01Stage .q1-cause-kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#d7ac72;}',
       '#apexQuest01Stage .q1-cause-text{font:500 12px/1.6 Arial,sans-serif;color:#d4d6d5;max-width:52ch;}',
       '#apexQuest01Stage .q1-status{margin:24px 0 12px;color:#c4a777;font-size:11px;letter-spacing:.13em;}',
-      '#apexQuest01Stage .q1-hero-pick{margin:17px 0 10px;padding:14px;border:1px solid #5b4f3b;background:linear-gradient(145deg,#111922,#111112)}',
-      '#apexQuest01Stage .q1-hero-pick strong{display:block;color:#eec48a;font:800 11px/1.4 Arial;letter-spacing:.14em;margin-bottom:12px}',
-      '#apexQuest01Stage .q1-hero-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}',
-      '#apexQuest01Stage .q1-hero-card{position:relative;display:flex;align-items:center;gap:8px;min-height:62px;overflow:hidden;text-align:left;padding:5px!important;border:1px solid #48525c!important;background:#101922!important;color:#f8eac9!important;font:800 10px/1.2 Arial;letter-spacing:.025em!important}',
-      '#apexQuest01Stage .q1-hero-card img{width:53px;height:53px;flex:none;object-fit:cover}',
-      '#apexQuest01Stage .q1-hero-card[aria-pressed="true"]{border-color:#ffc26d!important;box-shadow:0 0 0 1px #df9b42 inset,0 0 15px #a4711c33}',
-      '#apexQuest01Stage .q1-hero-card:disabled{opacity:.30;filter:grayscale(1)}',
-      '@media(max-width:600px){#apexQuest01Stage .q1-hero-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}',
       '#apexQuest01Stage .q1-actions{display:grid;gap:10px;margin-top:22px;}',
       '#apexQuest01Stage button{font:700 13px Arial,sans-serif;letter-spacing:.1em;min-height:48px;padding:12px 15px;border:1px solid #9a8259;color:#f6eee0;background:#403725;cursor:pointer;}',
       '#apexQuest01Stage button:focus-visible{outline:3px solid #f6c981;outline-offset:3px;}',
@@ -502,9 +452,8 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><div class="q1-cause" id="q1Cause" hidden><div class="q1-cause-kicker">WHY THIS CHAPTER</div><div class="q1-cause-text" id="q1Context"></div></div><p class="q1-status" id="q1Status"></p><section class="q1-hero-pick" aria-label="Quest hero selection"><strong>QUEST · CHOOSE YOUR COMBAT HERO</strong><div class="q1-hero-cards" id="q1HeroCards"></div></section><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q6BreachPlay">DEFEND THE BREACH · E06</button><button type="button" id="q7RivetPlay">FACE RIVET · E07</button><button type="button" id="q8TotPlay">T.O.T · LAST CHOICE · E08</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div><nav class="q1-hub" aria-label="Quest encounter replay"><h3>QUEST STAGES / REPLAY</h3><div class="q1-hub-grid" id="q1StageHub"></div><div class="q1-replay-note" id="q1ReplayNotice"></div></nav></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><div class="q1-cause" id="q1Cause" hidden><div class="q1-cause-kicker">WHY THIS CHAPTER</div><div class="q1-cause-text" id="q1Context"></div></div><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q6BreachPlay">DEFEND THE BREACH · E06</button><button type="button" id="q7RivetPlay">FACE RIVET · E07</button><button type="button" id="q8TotPlay">T.O.T · LAST CHOICE · E08</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div><nav class="q1-hub" aria-label="Quest encounter replay"><h3>QUEST STAGES / REPLAY</h3><div class="q1-hub-grid" id="q1StageHub"></div><div class="q1-replay-note" id="q1ReplayNotice"></div></nav></div>';
     d.body.appendChild(overlay);
-    populateQuestHeroPicker(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',()=>{
       if(replaySession)exitReplay();else hide();
     });
@@ -586,7 +535,6 @@
     return overlay;
   }
   function show(options) {
-    if(overlay)populateQuestHeroPicker(overlay);
     // Story callback order is acceptNativeBeat -> exitArsenalBattleMode ->
     // Director.show. Restore only AFTER the true battle has been disposed.
     let restoredFromReplay=false;

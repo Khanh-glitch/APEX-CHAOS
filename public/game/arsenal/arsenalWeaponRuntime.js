@@ -763,7 +763,7 @@
       const dir=p.angle;
       for(const f of v43Enemies(p.owner)){
         // The exact same live muzzle origin / cone / reach powers both
-        // the damage envelope and the Lab-V1 fire field below.
+        // the damage envelope and original Lab particle system.
         const dx=f.x-p.x,dy=f.y-p.y,d=Math.hypot(dx,dy);
         const off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-dir),
           Math.cos(Math.atan2(dy,dx)-dir)));
@@ -780,13 +780,11 @@
       p.ticks++;
     }
     if(p.ticks>=c.ticks){
-      // Snapshot only the emitted fire-field presentation; the physical cone
-      // stops damaging immediately. Existing heat/smoke can dissipate for
-      // .36s, instead of blinking off on the last damage tick.
+      // Stop physical damage; let only the emitted original Lab particles fade.
       if(AQ.state?.visuals)pushVisual({
         kind:'v43_flame_tail',x:p.x,y:p.y,angle:p.angle,
         flameOrigins:(p.flameOrigins||[]).slice(),baseAge:p.age,
-        life:.36,maxLife:.36
+        life:.65,maxLife:.65
       });
       p.life=0;
     }
@@ -1533,115 +1531,10 @@
     }
     ctx.restore();
   }
-  // Direct authoring transfer from the Gold V4.3 Lab's flamethrower:
-  // 470 emitted particles/s, spread ±.22 rad, 280-555 px/s, fast
-  // 0.20-0.45s flame and 10% 0.42-0.65s smoke. Here a deterministic
-  // particle field is sampled from projectile age, so game logic, target
-  // collision and pause-time remain completely native and reproducible.
-  // Owner attachment: APEX_FANTASY_WEAPON_LAB_V4_1_FIXED — Flame V1.
-  // ONLY the three-layer flame/ember/smoke recipe is transferred; the
-  // illustration of its gun and its misplaced 158px nozzle are discarded.
-  // Native v43Muzzle is still the sole flame position and the exact physical
-  // c.range/c.cone also bound the visible luminous damage envelope.
-  function v43LabFlameField(ctx,p){
-    const c=V43.FLAMETHROWER;
-    const range=c.range,cone=c.cone;
-    const origins=p.flameOrigins||[];
-    const sampleOrigin=t=>{
-      for(let k=origins.length-1;k>=0;k--)
-        if(origins[k].time<=t+.02)return origins[k];
-      return {x:p.x,y:p.y,angle:p.angle};
-    };
-    // A soft but full-size fan: every damaging cone direction visibly glows.
-    // The glow is presentation-only and cannot add HP damage.
-    if(!p.isTail){
-      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);
-      ctx.globalCompositeOperation='lighter';
-      // The GAME checks surface-radius forgiveness too: a radius-75 enemy
-      // can be contacted at range+15 and cone+asin(.35*75/d).
-      // Visually enclose that same silhouette, not merely the centre ray.
-      const damageReach=range+75*.20;
-      const damageCone=cone+Math.asin(Math.min(1,75*.35/damageReach));
-      const ignite=Math.min(1,Math.max(0,p.age)/Math.max(.01,c.tickStart));
-      const phi=.97+.03*Math.sin(p.age*29);
-      for(const [scale,col,alpha] of [
-        [1,'255,57,10',.12],[.76,'255,132,20',.18],
-        [.48,'255,229,112',.16]]){
-        const r=damageReach*scale,edge=Math.tan(damageCone)*r;
-        ctx.fillStyle='rgba('+col+','+(alpha*ignite)+')';
-        ctx.beginPath();ctx.moveTo(0,0);
-        ctx.lineTo(r,-edge*phi);ctx.quadraticCurveTo(r*1.02,0,r,edge*phi);
-        ctx.closePath();ctx.fill();
-      }
-      // V1 flame is a broken turbulent plume, not a flat attack wedge.
-      // Seven glowing, phase-shifted fuel lanes fill its DAMAGE silhouette
-      // at the very first accepted 0.1s tick. The authentic 520 Hz embers,
-      // smoke and 3-pass hot cores remain layered above these lanes.
-      ctx.lineCap='round';
-      for(const [band,n] of [[-.91,0],[-.62,1],[-.31,2],[0,3],[.31,4],[.62,5],[.91,6]]){
-        for(const [width,col,alpha] of [
-          [23,'255,57,10',.16],[11,'255,132,20',.21],
-          [3.5,'255,229,112',.19]]){
-          ctx.strokeStyle='rgba('+col+','+(alpha*ignite)+')';
-          ctx.lineWidth=width;
-          ctx.beginPath();ctx.moveTo(0,0);
-          for(let j=1;j<=14;j++){
-            const u=j/14,d=damageReach*u;
-            const bend=Math.sin(p.age*24+u*19+n*1.37)*Math.min(9,6*u+1.5);
-            ctx.lineTo(d,Math.tan(damageCone)*d*band+bend);
-          }
-          ctx.stroke();
-        }
-      }
-      ctx.restore();
-    }
-    const frac=x=>x-Math.floor(x);
-    const rnd=(i,k)=>frac(Math.sin((i+1)*127.1+k*311.7)*43758.5453123);
-    const count=Math.min(310,Math.floor(Math.min(p.age,c.duration)*520));
-    ctx.save();ctx.globalCompositeOperation='lighter';
-    for(let i=0;i<count;i++){
-      const born=i/520,age=p.age-born;
-      if(age<0)continue;
-      const type=rnd(i,7),smoke=type<.10,ember=type>=.10&&type<.26;
-      const maxLife=smoke?.62:.46;
-      const life=(smoke?.38+rnd(i,8)*.24:.24+rnd(i,9)*.22)-age;
-      if(life<=0)continue;
-      const o=sampleOrigin(born),heading=o.angle||0;
-      const angularOffset=(rnd(i,1)*2-1)*cone;
-      const a=heading+angularOffset;
-      const speed=360+rnd(i,2)*200;
-      // Lab's three translucent flame passes with distance stretched to
-      // the real 650px envelope; no change to damage/range/shot duration.
-      const reach=Math.min(range,speed*age*(range/220));
-      const turn=Math.sin(p.age*18+i*.8+age*8)*85*age*age;
-      const lateral=Math.min(Math.tan(cone)*reach,Math.abs(turn));
-      const side=(i%2?1:-1);
-      const x=o.x+Math.cos(a)*reach-Math.sin(a)*side*lateral*.18;
-      const y=o.y+Math.sin(a)*reach+Math.cos(a)*side*lateral*.18-(smoke?15*age*age:0);
-      const L=Math.max(0,Math.min(1,life/maxLife));
-      const size=(smoke?9+rnd(i,5)*8:5+rnd(i,5)*9)*(.55+.75*L);
-      if(smoke){
-        ctx.fillStyle='rgba(80,88,94,'+Math.min(.12,L*.10)+')';
-        ctx.beginPath();ctx.arc(x,y,size*(1.2-L*.2),0,TAU);ctx.fill();
-      }else if(ember){
-        ctx.fillStyle='rgba(255,94,18,'+Math.min(.75,L*.75)+')';
-        ctx.beginPath();ctx.arc(x,y,Math.max(1,size*.25),0,TAU);ctx.fill();
-      }else{
-        // Exact V1 palette, 1.30 / .86 / .42 radii and alpha curves.
-        for(const [mul,col,alpha] of [
-          [1.30,'255,57,10',Math.min(.22,L*.18)],
-          [.86,'255,132,20',Math.min(.42,L*.36)],
-          [.42,'255,229,112',Math.min(.55,Math.max(0,(L-.22)*.70))]
-        ]){
-          ctx.fillStyle='rgba('+col+','+alpha+')';
-          ctx.beginPath();ctx.arc(x,y,size*mul,0,TAU);ctx.fill();
-        }
-      }
-    }
-    ctx.restore();
-  }
+  // Flame Gun visuals exclusively use the owner's uploaded original V4.3 Lab.
+  // No invented polygon fan, fuel-lanes, overlay or competing plume.
   function v43GoldFlamethrowerParticles(ctx,p) {
-    const total=Math.min(310,Math.floor(Math.min(p.age,.65)*470));
+    const total=Math.min(310,Math.floor(Math.min(p.age,V43.FLAMETHROWER.duration)*470));
     const originX=Number.isFinite(p.ox)?p.ox:p.x,
       originY=Number.isFinite(p.oy)?p.oy:p.y;
     const heading=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
@@ -1659,9 +1552,9 @@
            if(p.flameOrigins[j].time<=birth+.02){pose=p.flameOrigins[j];break;}
          }
        }
-       const a=pose.angle+(rnd(i,1)*2-1)*.22;
+       const a=pose.angle+(rnd(i,1)*2-1)*(.22*(V43.FLAMETHROWER.cone/.36));
       const v=280+rnd(i,2)*275;
-      const travel=v*age*(1-.13*age);
+      const travel=Math.min(V43.FLAMETHROWER.range,v*age*(1-.13*age));
       const px=pose.x+Math.cos(a)*travel+(rnd(i,3)-.5)*6;
       const py=pose.y+Math.sin(a)*travel+(rnd(i,4)-.5)*10-
         (type<.10?11*age*age:Math.sin(p.age*19+i*.74)*4*age);
@@ -1834,9 +1727,8 @@
     const angle=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
     v43GoldRibbon(ctx,p,life);
     if(p.kind==='flame'){
-      // Gold V4.3 emits ~470 short-lived particles/sec for .65s.
-      // Presentation reads p.age only; no projectile/HP mutations.
-      v43LabFlameField(ctx,p);
+      // Original owner Lab: smoke, ember and 4-layer flame tongues only.
+      v43GoldFlamethrowerParticles(ctx,p);
       return;
     }
     if(p.kind==='burn'){
@@ -3163,7 +3055,7 @@
         ctx.stroke();
       } else if(v.kind==='v43_flame_tail'){
         const age=v.baseAge+(v.maxLife-v.life);
-        v43LabFlameField(ctx,{age,x:v.x,y:v.y,angle:v.angle,
+        v43GoldFlamethrowerParticles(ctx,{age,x:v.x,y:v.y,angle:v.angle,
           flameOrigins:v.flameOrigins,isTail:true});
       } else if(v.kind?.startsWith?.('v43_')){
         v43GoldImpact(ctx,v,a);
