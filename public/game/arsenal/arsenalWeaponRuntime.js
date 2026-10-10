@@ -658,12 +658,17 @@
     v43Pulse(p.x,p.y,'blast',radius/95);
   }
   function v43Muzzle(f,weaponId,angle){
-    const c=V43[weaponId],p=getHolder(f)?.meta?.pose||{},rr=f.radius||75;
-    const along=rr*.68+c.worldWidth*((c.muzzleU||.9)-.55)*.52+
-      (c.muzzleDx||0)+(p.localX||0)*.5;
-    const lateral=(c.muzzleV-.5)*c.worldWidth*.32+(c.muzzleDy||0);
-    return {x:f.x+Math.cos(angle)*along-Math.sin(angle)*lateral,
-      y:f.y+Math.sin(angle)*along+Math.cos(angle)*lateral};
+    // One owner-authored Gold muzzle follows the exact rendered held art.
+    // The former radial estimate was off the sprite, especially when left.
+    const h=getHolder(f);
+    const sameArt=window.APEX_ARSENAL_AV?.weaponMuzzleWorld?.(f,h,angle);
+    if(sameArt&&Number.isFinite(sameArt.x)&&Number.isFinite(sameArt.y))
+      return {x:sameArt.x,y:sameArt.y};
+    // AV must normally be preloaded by Arsenal's gameplay barrier.
+    // Missing art is never permission to fabricate an independent muzzle:
+    // retain a deterministic fighter source only for cold-boot resilience.
+    const dir=Math.cos(angle),side=Math.sin(angle),r=f.radius||75;
+    return {x:f.x+dir*r*.78,y:f.y+side*r*.78};
   }
   function v43Spawn(f,id,kind,angle,extra={}){
     const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;

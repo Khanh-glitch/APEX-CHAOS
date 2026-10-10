@@ -786,6 +786,35 @@
     });
   }
 
+  // V4.3 Gold authored muzzle: compute from the ACTUAL held-art transform,
+  // not a second approximation from the Fighter center. Shares the exact
+  // weaponDrawParams, Q3u artScale, pose, angle and left-facing flip used by
+  // drawWeaponWithPose, then applies the owner's per-weapon calibrated UV/dx/dy.
+  function weaponMuzzleWorld(fighter, holder, aimAngle) {
+    const id=holder?.weaponId, c=window.APEX_ARSENAL_CONFIG?.V43_WEAPONS?.[id];
+    const meta=weaponMeta(id);
+    if(!fighter||!c||!meta)return null;
+    const params=weaponDrawParams(id,'ranged',fighter.radius||75);
+    const p=holder?.meta?.pose||{};
+    const questRigScale=window.APEX_ARSENAL?.state?.questMultiActor&&fighter.questVisualId
+      ?window.APEX_QUEST_V12_RIG?.inspect?.(fighter)?.scaleFactor:null;
+    const artScale=Number.isFinite(questRigScale)&&questRigScale>=.5&&questRigScale<=1?questRigScale:1;
+    const offset=(params.offset+(p.localX||0)-(p.recoil||0))*artScale;
+    const lateral=(p.localY||0)*artScale;
+    const theta=aimAngle+params.drawOffset+(p.rotKick||0)+(p.flourish||0);
+    const cx=fighter.x+Math.cos(aimAngle)*offset-Math.sin(aimAngle)*lateral;
+    const cy=fighter.y+Math.sin(aimAngle)*offset+Math.cos(aimAngle)*lateral;
+    const width=params.targetLongSide*(p.scaleX||1)*artScale;
+    const height=width*meta.h/meta.w;
+    const localX=(c.muzzleU-.5)*width+(c.muzzleDx||0);
+    // drawWeaponSprite uses keepUpright scale(1,-1) after rotate when left.
+    const orientation=Math.cos(theta)<0?-1:1;
+    const localY=((c.muzzleV-.5)*height+(c.muzzleDy||0))*orientation;
+    return {x:cx+Math.cos(theta)*localX-Math.sin(theta)*localY,
+      y:cy+Math.sin(theta)*localX+Math.cos(theta)*localY,centerX:cx,centerY:cy,
+      width,height,theta};
+  }
+
   function drawEquippedWeapon(ctx, fighter, holder) {
     if (!fighter || !holder || !holder.weaponId) return false;
     if (holder.weaponId === 'COMBAT_BOOMERANG' && holder.phase === 'IN_FLIGHT') return false;
@@ -963,6 +992,7 @@
     activeVfx: () => vfx.length,
     drawWeaponSprite,
     weaponDrawParams,
+    weaponMuzzleWorld,
     drawEquippedWeapon,
     drawPoseGhost,
     drawDetachedWeapon,
