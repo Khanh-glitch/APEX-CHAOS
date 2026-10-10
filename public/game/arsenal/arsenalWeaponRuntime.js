@@ -779,7 +779,17 @@
       }
       p.ticks++;
     }
-    if(p.ticks>=c.ticks)p.life=0;
+    if(p.ticks>=c.ticks){
+      // Snapshot only the emitted fire-field presentation; the physical cone
+      // stops damaging immediately. Existing heat/smoke can dissipate for
+      // .36s, instead of blinking off on the last damage tick.
+      if(AQ.state?.visuals)pushVisual({
+        kind:'v43_flame_tail',x:p.x,y:p.y,angle:p.angle,
+        flameOrigins:(p.flameOrigins||[]).slice(),baseAge:p.age,
+        life:.36,maxLife:.36
+      });
+      p.life=0;
+    }
   }
   // A fast, physically legible, TARGET-AIMED throw. Launch direction is fixed
   // at release (no cheating homing); outward leg crosses the enemy's recorded
@@ -1544,17 +1554,19 @@
     };
     // A soft but full-size fan: every damaging cone direction visibly glows.
     // The glow is presentation-only and cannot add HP damage.
-    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);
-    ctx.globalCompositeOperation='lighter';
-    const phi=.95+.05*Math.sin(p.age*29);
-    for(const [scale,color] of [[1,'rgba(255,57,10,.09)'],
-       [.76,'rgba(255,132,20,.12)'],[.48,'rgba(255,229,112,.10)']]){
-      const r=range*scale,edge=Math.tan(cone)*r;
-      ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,0);
-      ctx.lineTo(r,-edge*phi);ctx.quadraticCurveTo(r*1.02,0,r,edge*phi);
-      ctx.closePath();ctx.fill();
+    if(!p.isTail){
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);
+      ctx.globalCompositeOperation='lighter';
+      const phi=.95+.05*Math.sin(p.age*29);
+      for(const [scale,color] of [[1,'rgba(255,57,10,.09)'],
+         [.76,'rgba(255,132,20,.12)'],[.48,'rgba(255,229,112,.10)']]){
+        const r=range*scale,edge=Math.tan(cone)*r;
+        ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,0);
+        ctx.lineTo(r,-edge*phi);ctx.quadraticCurveTo(r*1.02,0,r,edge*phi);
+        ctx.closePath();ctx.fill();
+      }
+      ctx.restore();
     }
-    ctx.restore();
     const frac=x=>x-Math.floor(x);
     const rnd=(i,k)=>frac(Math.sin((i+1)*127.1+k*311.7)*43758.5453123);
     const count=Math.min(310,Math.floor(Math.min(p.age,c.duration)*520));
@@ -3121,6 +3133,10 @@
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 4 * a + 1;
         ctx.stroke();
+      } else if(v.kind==='v43_flame_tail'){
+        const age=v.baseAge+(v.maxLife-v.life);
+        v43LabFlameField(ctx,{age,x:v.x,y:v.y,angle:v.angle,
+          flameOrigins:v.flameOrigins,isTail:true});
       } else if(v.kind?.startsWith?.('v43_')){
         v43GoldImpact(ctx,v,a);
       } else if (v.kind === 'aimline') {
