@@ -1870,8 +1870,16 @@ report.ownerV43Damage = run(`
   for (const id of ids) {
     __APEX_TEST.enterManual();
     __APEX_TEST.holdSpawns();
-    const far=id==='PLASMA_SPLITTER'?480:id==='SHRAPNEL_MINE_LAUNCHER'?250:200;
+    const far=id==='PLASMA_SPLITTER'?480:id==='SHRAPNEL_MINE_LAUNCHER'?250
+      :id==='FLAMETHROWER'?240:200;
     __APEX_TEST.place(320,500,320+far,500);
+    // Flame range is now 325px, not 650px. Keep a LIVE native target inside
+    // its physical cone throughout the five hit pulses; no fabricated HP or
+    // bypassed weapon firing. Other weapon fixtures remain unchanged.
+    if(id==='FLAMETHROWER'){
+      fighters[0].baseSpeed=0;fighters[1].baseSpeed=0;
+      fighters[0].setDir(0,0);fighters[1].setDir(0,0);
+    }
     fighters[0].hp=1000;fighters[1].hp=1000;
     APEX_ARSENAL.weaponApi.equip(fighters[0],id);
     __APEX_TEST.step(2.4);
