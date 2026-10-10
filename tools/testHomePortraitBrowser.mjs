@@ -7,13 +7,16 @@ import { mkdir, writeFile } from 'node:fs/promises';
 const url=process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
 const chromePath=process.env.CHROME_PATH;
 if(!chromePath)throw new Error('CHROME_PATH not set');
-const port=9235;
+const port=20000+(process.pid%20000);
 const chrome=spawn(chromePath,[
   '--headless=new','--no-sandbox','--disable-gpu','--no-first-run',
+  '--disable-dev-shm-usage','--remote-allow-origins=*',
   '--remote-debugging-port='+port,'--user-data-dir=/tmp/apex-r77-cdp-'+process.pid,
   'about:blank',
 ],{stdio:'ignore'});
 let socket;
+let chromeExit=null;
+chrome.once('exit',(code,signal)=>{chromeExit={code,signal};});
 const pending=new Map();
 let serial=0;
 const command=(method,params={})=>{
@@ -28,15 +31,16 @@ const evalJS=async expression=>{
 };
 try{
   let target;
-  for(let i=0;i<120;i++){
+  for(let i=0;i<240;i++){
     try{
       const pages=await fetch('http://127.0.0.1:'+port+'/json/list').then(r=>r.json());
       target=pages.find(x=>x.type==='page');
       if(target)break;
     }catch{}
+    if(chromeExit)throw new Error('Chrome process exited before CDP bootstrap: '+JSON.stringify(chromeExit));
     await sleep(100);
   }
-  if(!target)throw new Error('Chrome CDP page unavailable');
+  if(!target)throw new Error('Chrome CDP page unavailable after 24s bootstrap at '+port);
   socket=new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve,reject)=>{
     socket.addEventListener('open',resolve,{once:true});
