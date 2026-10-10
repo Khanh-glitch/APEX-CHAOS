@@ -19,8 +19,12 @@ for (const id of eight){
 }
 assert.match(w,/h\.shotsFired\+=1/,'holder shot counter must track special shots');
 assert.match(w,/h\.phase='FOLLOW_THROUGH'/,'special shot must complete native holder');
-assert.match(w,/h\.phase='IN_FLIGHT'/,'physical Boomerang must own holder');
-assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,a\)/,'Gold boomerang fixes natural flight path at the launch angle');
+assert.match(w,/f\.data\.arsenal=null;/,
+  'physical Boomerang must leave thrower hand immediately for genuine floor pickups');
+assert.match(w,/equip\(p\.launchOwner,p\.weapon\)/,
+  'only a real swept return catch may re-equip an unarmed thrower');
+assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,throwAngle,foe\)/,
+  'boomerang must aim muzzle toward target position and lock distance at release');
 assert.doesNotMatch(w,/v43MakeFlightPath\(x\.x,x\.y,a,ctx\.enemy\)/,'Gold boomerang must never derive post-throw waypoints from opponent position');
 assert.doesNotMatch(w,/p\.owner\.x-p\.x|p\.owner\.y-p\.y/,'boomerang may not home to moving owner');
 assert.doesNotMatch(w,/p\.age\+=dt;p\.life-=dt/,'the engine alone ages projectile life');
@@ -46,7 +50,8 @@ assert.ok(auditPresentation.includes('function drawV43GoldPlasmaCharge('),'V43 G
 assert.match(w,/const fromN=\{x:seg\.x0\+leadX,y:seg\.y0\+leadY\}/,'long bolt/rocket must apply tip offset to real curved path');
 assert.match(w,/kind==='plasma-core'\?c\.coreSpeed/,'plasma core has independent speed');
 assert.match(cfg,/projectileWidth:78/,'mine artwork must be legible independently of collision size');
-assert.match(p,/holder\.weaponId === 'COMBAT_BOOMERANG' && holder\.phase === 'IN_FLIGHT'/,'no fake duplicate boomerang');
+assert.match(w,/f\.data\.arsenal=null;/,
+  'throwing must remove the holder before the shared weapon foreground pass');
 assert.match(f,/function drawQueuedA1Floor\(ctx,S\)/,'delayed A1 must receive gameplay-authoritative immediate visual feedback');
 assert.match(f,/drawQueuedA1Floor\(ctx,S\)/,'the pending A1 feedback must actually render');
 assert.match(f,/pumpCastQueue\(S, now, insp\)/,'Gold A1 deferred authored choreography must remain owned by the original queue');
@@ -118,7 +123,7 @@ const robot=rd('public/game/hero-rework/robotPresentationRuntime.js');
 assert.match(battle,/av\.drawV43GoldPlasmaCharge\?\.\(c,f,h/,
   'one shared Arsenal foreground pass must render plasma after any hero-held-art override');
 assert.match(battle,/if\(h\.weaponId!=='COMBAT_BOOMERANG'\|\|h\.phase!=='IN_FLIGHT'\)\s*av\.drawEquippedWeapon\(c, f, h\)/,
-  'shared foreground must hide throw-owned boomerang BEFORE ROBOT draws an extra held copy');
+  'legacy extra guard stays defensive; actual re-equipped Boomerang is a newly caught holder');
 assert.match(p,/drawV43GoldPlasmaCharge,\s*drawPoseGhost/,
   'Gold plasma presentation helper must be available to the shared foreground');
 assert.match(p,/robot\.getRobotWeaponSocketWorld\?\.\(fighter\)/,
