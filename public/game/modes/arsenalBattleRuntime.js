@@ -1049,7 +1049,15 @@
     for (const f of fighters.concat(extras)) {
       if (!f) continue;
       const h = weaponApi.getHolder(f);
-      if (h) av.drawEquippedWeapon(c, f, h);
+      if (h) {
+        av.drawEquippedWeapon(c, f, h);
+        // V4.3 Gold plasma charge is a WORLD presentation layer, *not* a
+        // child of held-art drawing: ROBOT's curated Gold socket override
+        // short-circuits that function and previously hid the entire charge.
+        // Exactly one call per physical holder in the shared foreground pass.
+        if(h.weaponId==='PLASMA_SPLITTER'&&h.phase==='WINDUP')
+          av.drawV43GoldPlasmaCharge?.(c,f,h,h.meta?.aimAngle??Math.atan2(f.dir?.y||0,f.dir?.x||1));
+      }
       // Checkpoint B pose ghost: recoil settle / throw / thrust return keeps
       // animating for a beat after the weapon is consumed.
       if (f.data && f.data.arsenalFade && !f.data.arsenalFade.detached && av.drawPoseGhost) av.drawPoseGhost(c, f, f.data.arsenalFade);
