@@ -1,14 +1,14 @@
 {
-  "schema": "apex-chaos-branch-snapshot-v1",
+  "schema": "apex-chaos-branch-snapshot-v2",
   "repo": "Khanh-glitch/APEX-CHAOS",
   "asOf": "2026-10-10",
   "canonicalDevelopment": "development/v43",
   "canonicalSha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
-  "note": "Snapshot only; never infer deletion safety from role. Live SHA/PR/deployment/workflow/ancestry checks are mandatory. Diverged classification from full Git compare audit conducted October 10.",
+  "note": "Snapshot evidence, not deletion permission. 171 live ref names as of read; cleanup branch self-SHA becomes stale on updating this file, and is reserved regardless. All external deployment relationships remain unverified. Live checks and independent exact-SHA approval are mandatory before deletion.",
   "summary": {
     "ancestor-review-candidate": 120,
     "diverged-preserve": 35,
-    "open-pr-dependency": 11,
+    "open-pr-dependency": 12,
     "staged-cleanup": 1,
     "v43-development": 1,
     "active-pr24": 1,
@@ -92,6 +92,22 @@
       "head": "fix/v43-owner-round2-weapon-control-20261010",
       "headSha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
       "base": "fix/owner-v43-native-lifecycle-frost-result-20261010",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 25,
+      "head": "cleanup/v43-repository-hygiene-20261010",
+      "headSha": "1d94bd4446596a948c6aa978f285d248a3cc356b",
+      "base": "development/v43",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 26,
+      "head": "fix/v43-runtime-integrity-20261010",
+      "headSha": "ce137b19be2fe516003e3b6dcab8613db91a7e19",
+      "base": "development/v43",
       "draft": true,
       "state": "open"
     }
@@ -423,7 +439,7 @@
     },
     {
       "name": "cleanup/v43-repository-hygiene-20261010",
-      "sha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
+      "sha": "1d94bd4446596a948c6aa978f285d248a3cc356b",
       "protected": false,
       "role": "staged-cleanup"
     },
@@ -588,6 +604,12 @@
       "sha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
       "protected": false,
       "role": "active-pr24"
+    },
+    {
+      "name": "fix/v43-runtime-integrity-20261010",
+      "sha": "ce137b19be2fe516003e3b6dcab8613db91a7e19",
+      "protected": false,
+      "role": "open-pr-dependency"
     },
     {
       "name": "gold/wave2-authority-20261005",
