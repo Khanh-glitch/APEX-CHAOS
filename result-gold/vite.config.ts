@@ -11,6 +11,8 @@ const __dirname = path.dirname(__filename);
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(), viteSingleFile()],
+  base: './',
+  build: { outDir: '../public/result-gold', emptyOutDir: true, assetsInlineLimit: 20_000_000, reportCompressedSize: false },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

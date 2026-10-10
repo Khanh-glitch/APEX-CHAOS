@@ -5,8 +5,8 @@
   "packageManager": "pnpm@9.15.9",
   "type": "module",
   "scripts": {
-    "dev": "pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
-    "dev:lan": "pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
+    "dev": "node tools/buildResultGold.mjs && pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
+    "dev:lan": "node tools/buildResultGold.mjs && pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
     "test:arsenal": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleBrowser.mjs",
     "test:arsenal:browser": "pnpm arsenal:sfx:materialize && node tools/testGoldCutoverBrowser.mjs",
     "test:arsenal:headless": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleHeadless.mjs",
@@ -47,7 +47,7 @@
     "test:hero-rework:headless": "node tools/smokeHeroReworkHeadless.mjs && node tools/testHeroReworkGoldens.mjs && node tools/testHeroReworkLocomotionGates.mjs && node tools/testHeroReworkRobotGates.mjs && node tools/testHeroReworkRobotPresentationGates.mjs && node tools/testHeroReworkRobotRecoilGate.mjs && node tools/testHeroReworkHunterOwnerFixGates.mjs && node tools/testFrostV1Gates.mjs && node tools/testMagnetV1GameplayGates.mjs && node tools/testMagnetV1PresentationGates.mjs && node tools/testMirrorA1A2Gameplay.mjs && node tools/testMirrorCoreSixInterop.mjs && node tools/testMirrorPresentationBridge.mjs && node tools/testMirrorPresentationG2A2.mjs",
     "test:owner-playtest-candidate": "node tools/runOwnerPlaytestCandidate.mjs",
     "assets:verify": "node tools/assetAudit.mjs && node tools/generateAudioWarmBanks.mjs",
-    "build": "pnpm arsenal:sfx:materialize && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs",
+    "build": "node tools/buildResultGold.mjs && pnpm arsenal:sfx:materialize && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "arsenal:sfx:materialize": "node tools/materializeArsenalFinalSfx.mjs",
     "test:shipping-dist": "node tools/testShippingDist.mjs",
@@ -56,7 +56,8 @@
     "test:scene-input-lock": "node tools/testSceneInputLockLawGate.mjs",
     "test:hero-rig-delivery": "node tools/testHeroBattleRigDeliveryGate.mjs",
     "test:hero-accent-language": "node tools/testHeroAccentLanguageGate.mjs",
-    "test:hero-rework:robot-gates": "node tools/testHeroReworkRobotPresentationGates.mjs"
+    "test:hero-rework:robot-gates": "node tools/testHeroReworkRobotPresentationGates.mjs",
+    "test:result-gold": "node tools/testResultGoldAuthority.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
