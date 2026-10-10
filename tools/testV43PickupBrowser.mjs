@@ -230,6 +230,48 @@ try{
       &&q.pickup===1&&q.fire===1&&q.kinds.length>0
       &&(id==='COMBAT_BOOMERANG'?q.kinds.includes('boomerang'):q.damage>0),q);
   }
+  // Owner R3 visual regression: full source->safe-core transformation at the
+  // most hostile screen corner, captured at three Gold charge phases.
+  // The real Chrome canvas must contain a brighter complete charged core,
+  // not only a JS function name. This uses direct equip ONLY as a visual
+  // probe; above eight gameplay cases still use real floor pickup.
+  const plasmaVisual=await ev(`(()=>{
+    window.exitArsenalBattleMode?.();window.__APEX_TEST_MODE=false;
+    window.__apexArsenalBattleProfile='LOCAL';window.__apexArsenalFreeBattle=true;
+    if(!window.startArsenalBattleMode('ROBOT','ROBOT',{}))throw Error('Plasma visual battle failed');
+    if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
+    const a=fighters[0],b=fighters[1],wa=window.APEX_ARSENAL.weaponApi;
+    a.x=943;a.y=58;b.x=200;b.y=490;a.baseSpeed=0;b.baseSpeed=0;
+    if(typeof cameraZoom!=='undefined')cameraZoom=1;
+    wa.equip(a,'PLASMA_SPLITTER');
+    const h=wa.getHolder(a);if(!h)throw Error('Visual probe failed to equip');
+    h.meta.aimAngle=0;h.phase='READY';
+    const canvas=document.getElementById('game-canvas'),ctx=canvas.getContext('2d');
+    const point=window.APEX_ARSENAL_AV.weaponMuzzleWorld(a,h,0);
+    const pixel=()=>{const d=ctx.getImageData(Math.round(point.x),Math.round(point.y),1,1).data;
+      return d[0]+d[1]+d[2];};
+    draw();const baseline=pixel(),frames=[];
+    for(const time of [.10,.32,.48]){
+      h.phase='WINDUP';h.meta.v43Wait=.5;h.meta.v43Time=time;
+      draw();frames.push({time,brightness:pixel(),png:canvas.toDataURL('image/png')});
+    }
+    return {point,baseline,frames,width:canvas.width,height:canvas.height};
+  })()`);
+  for(const f of plasmaVisual.frames){
+    if(f.png?.startsWith('data:image/png;base64,')){
+      await writeFile(join(out,'v43-plasma-edge-charge-'+String(f.time).replace('.','_')+'.png'),
+        Buffer.from(f.png.slice(22),'base64'));
+      delete f.png;
+    }
+  }
+  const margin=104,pos=plasmaVisual.point;
+  check('R3-PLASMA-CHARGE-EDGE-INSET',pos.x>=margin&&pos.y>=margin
+    &&pos.x<=1000-margin&&pos.y<=1000-margin
+    &&Math.hypot(pos.x-pos.sourceX,pos.y-pos.sourceY)>5,
+    {point:pos,width:plasmaVisual.width,height:plasmaVisual.height});
+  check('R3-PLASMA-CORE-BRIGHTENS-THROUGH-CHARGE',
+    plasmaVisual.frames.every(f=>f.brightness>plasmaVisual.baseline+35),
+    {baseline:plasmaVisual.baseline,frames:plasmaVisual.frames});
   await writeFile(join(out,'v43-browser-real-pickup.json'),JSON.stringify({base,results,productCases},null,2));
   const capture=await cd('Page.captureScreenshot',{format:'png'});
   await writeFile(join(out,'v43-browser-last-weapon.png'),Buffer.from(capture.data,'base64'));
