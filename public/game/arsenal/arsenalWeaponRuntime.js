@@ -2512,6 +2512,64 @@
     if (h.def.update) h.def.update(ctx, dt);
   }
 
+  // V4.3 Gold authored impact mass. Gold blasts use layered soft pressure,
+  // staggering billows, discontinuous arcs and sparks, never a generic solid
+  // explosion circle or repeating five-segment ring for every weapon.
+  function v43GoldImpact(ctx,v,life){
+    const kind=v.kind.slice(4),age=1-life,blast=kind==='blast';
+    const plasma=kind==='plasma'||kind==='split';
+    const radius=(blast?120:plasma?62:40)*(v.scale||1);
+    ctx.save();ctx.translate(v.x,v.y);
+    ctx.globalCompositeOperation='lighter';
+    if(blast){
+      const flash=Math.pow(life,1.25),r=radius*(.32+1.15*age);
+      const g=ctx.createRadialGradient(0,0,4,0,0,r);
+      g.addColorStop(0,'rgba(255,249,212,'+(.95*flash)+')');
+      g.addColorStop(.13,'rgba(255,205,102,'+(.70*flash)+')');
+      g.addColorStop(.41,'rgba(238,113,39,'+(.37*flash)+')');
+      g.addColorStop(.74,'rgba(173,58,40,'+(.16*flash)+')');
+      g.addColorStop(1,'rgba(94,51,38,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.fill();
+      for(let i=0;i<17;i++){
+        const theta=i*2.399963+(v.x*13+v.y*.3)*.002;
+        const variation=.72+.27*Math.sin(i*4.7+v.y*.09);
+        const dist=radius*(.10+.45*age)*variation;
+        const x=Math.cos(theta)*dist,y=Math.sin(theta)*dist*.77;
+        const puff=radius*(.22+.14*(i%4)/4+.23*age);
+        const alpha=(.17+(i%4)*.035)*life;
+        ctx.save();ctx.translate(x,y);ctx.rotate(theta);ctx.scale(1.24,.82);
+        const smoke=ctx.createRadialGradient(-puff*.2,0,puff*.04,0,0,puff);
+        smoke.addColorStop(0,i%3===0?'rgba(255,189,107,'+(alpha*1.4)+')':'rgba(120,84,78,'+alpha+')');
+        smoke.addColorStop(.57,i%3===0?'rgba(210,93,39,'+(alpha*.8)+')':'rgba(94,86,88,'+(alpha*.64)+')');
+        smoke.addColorStop(1,'rgba(48,55,65,0)');
+        ctx.fillStyle=smoke;ctx.beginPath();ctx.arc(0,0,puff,0,TAU);ctx.fill();
+        ctx.restore();
+      }
+    }
+    const tone=plasma?'#cf92ff':blast?'#ffe3b6':'#f3d4a4';
+    ctx.strokeStyle=tone;ctx.lineCap='round';
+    // Metal contact emits two asymmetric glints; explosive pressure uses
+    // partial arcs that expand and dissipate, not complete circular stamps.
+    const n=blast?5:2;
+    for(let i=0;i<n;i++){
+      const theta=v.x*.043+i*(blast?TAU/n:Math.PI*.91)+age*.45;
+      ctx.globalAlpha=life*(blast?.28:.7);
+      ctx.lineWidth=Math.max(1.1,(blast?3.8:3-i*.7)*(1-age*.62));
+      ctx.beginPath();ctx.arc(0,0,radius*(.18+age*(blast?.82:.42)),
+        theta,theta+(blast?.32:.45+age*.17));ctx.stroke();
+    }
+    if(plasma){
+      const r=radius*(.45+age*.85);
+      const gl=ctx.createRadialGradient(0,0,0,0,0,r);
+      gl.addColorStop(0,'rgba(249,226,255,'+(life*.6)+')');
+      gl.addColorStop(.4,'rgba(178,96,248,'+(life*.28)+')');
+      gl.addColorStop(1,'rgba(74,30,118,0)');
+      ctx.fillStyle=gl;ctx.globalAlpha=1;
+      ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // World-space presentation for transient weapon visuals (slashes, aim lines).
   function drawArsenalVisuals(ctx) {
     const state = AQ.state;
@@ -2532,13 +2590,7 @@
         ctx.lineWidth = 4 * a + 1;
         ctx.stroke();
       } else if(v.kind?.startsWith?.('v43_')){
-        const t=1-a,r=(v.scale||1)*(26+140*t);
-        ctx.strokeStyle=v.kind==='v43_plasma'?'#cb92ff':v.kind==='v43_blast'?'#ffce7f':'#f3b874';
-        ctx.lineWidth=3*a+1;
-        for(let n=0;n<5;n++){
-          const angle=n*TAU/5;
-          ctx.beginPath();ctx.arc(v.x,v.y,r,angle-.26,angle+.26);ctx.stroke();
-        }
+        v43GoldImpact(ctx,v,a);
       } else if (v.kind === 'aimline') {
         ctx.strokeStyle = v.color;
         ctx.lineWidth = 2.5;
