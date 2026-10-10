@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/owner-v43-native-lifecycle-frost-result-20261010
+      - fix/v43-owner-round2-weapon-control-20261010
     paths:
       - '.github/workflows/v43-owner-real-browser.yml'
       - 'tools/testV43PickupBrowser.mjs'

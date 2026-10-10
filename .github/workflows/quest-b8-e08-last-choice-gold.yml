@@ -1,7 +1,7 @@
 name: B8 E08 Last Choice Native Gold
 on:
   push:
-    branches: ['quest/b7-e08-last-choice-native-from-b7', 'quest/b8qa-runtime-integrity-from-b8', 'quest/b8qb-product-acceptance-from-b8qa', 'quest/b8qc-owner-gold-product-preplaytest', 'integration/quest-vfx-arsenal-v43-results-gold', 'fix/owner-v43-native-lifecycle-frost-result-20261010']
+    branches: ['quest/b7-e08-last-choice-native-from-b7', 'quest/b8qa-runtime-integrity-from-b8', 'quest/b8qb-product-acceptance-from-b8qa', 'quest/b8qc-owner-gold-product-preplaytest', 'integration/quest-vfx-arsenal-v43-results-gold', 'fix/owner-v43-native-lifecycle-frost-result-20261010', 'fix/v43-owner-round2-weapon-control-20261010']
   workflow_dispatch:
 # Only the latest exact Quest SHA is authoritative for pre-playtest.
 concurrency:

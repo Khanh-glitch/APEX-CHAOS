@@ -130,7 +130,14 @@
     return ids[ids.length-1];
   }
 
+  function ownerBotForcedWeapon(){
+    const owner=window.APEX_ARSENAL_OWNER_TEST,st=AQ.state;
+    if(!owner?.active||!owner.selectedWeaponId||st?.battleMode!=='BOT'
+      ||st?.labMode||isQuestWeaponContext())return null;
+    return CFG.P0_WEAPON_IDS.includes(owner.selectedWeaponId)?owner.selectedWeaponId:null;
+  }
   function selectFirearmWeapon(rng) {
+    const forced=ownerBotForcedWeapon();if(forced)return forced;
     const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
     // Quest E01–E08 remains T1/T2-only, but now selects from registry
     // rather than excluding valid V4.3 specials on a fake handgun-only list.
@@ -250,6 +257,7 @@
     return (CFG.MELEE_WEAPON_IDS || []).includes(weaponId) ? w.melee : w.base;
   }
   function selectSpawnWeapon(rng) {
+    const forced=ownerBotForcedWeapon();if(forced)return forced;
     const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
     if(isQuestWeaponContext())return chooseQuestWeapon(random,false);
     if (CFG.selectOffensiveWeapon) return CFG.selectOffensiveWeapon(random).id;

@@ -79,8 +79,35 @@ jobs:
       - name: V43 kinetic-vs-energy and automatic Quest T1/T2 regression
         run: node tools/testV43KineticHeroInteractions.mjs
 
+      - name: V43 post-update rocket, boomerang, owner Lab VFX and Quest integration regression
+        run: node tools/testV43PostUpdateContracts.mjs
+
+      - name: V43 Gold natural-flight boomerang 30-60-120Hz reference check
+        run: node tools/testOwnerV43BoomerangNaturalFlight.mjs
+
+      - name: V43 Gold airfoil 3-phase exact reference Canvas commands
+        run: node tools/testOwnerV43GoldAirfoilParity.mjs
+
+      - name: V43 Gold explosion 17-billow and five-arc exact trace
+        run: node tools/testOwnerV43GoldBlastParity.mjs
+
+      - name: V43 Gold flame-tongue four-layer exact trace
+        run: node tools/testOwnerV43GoldFlameParity.mjs
+
+      - name: V43 Gold plasma-tail three-layer exact trace
+        run: node tools/testOwnerV43GoldPlasmaParity.mjs
+
+      - name: V43 Gold exact flight ribbons of Flare Rocket Bolt and Steel Ball
+        run: node tools/testOwnerV43GoldFlightRibbons.mjs
+
+      - name: V43 Gold world-space armed mine animation exact traces
+        run: node tools/testOwnerV43GoldMineArming.mjs
+
       - name: Owner V43 unified lifecycle, Frost A1, Result Gold invariant guard
         run: node tools/testOwnerV43LifecycleInvariants.mjs
+
+      - name: Owner V43 hidden BOT keyboard and catalogue real script contract
+        run: node tools/testOwnerV43Keyboard.mjs
 
       - name: Run targeted Hero Rework smoke
         run: AQ_EVIDENCE_DIR=/tmp/arsenal-closure-smoke node tools/smokeHeroReworkHeadless.mjs

@@ -1,0 +1,28 @@
+name: V43 GOLD Fidelity Certification
+
+on:
+  pull_request:
+    paths:
+      - 'public/game/arsenal/**'
+      - 'public/game/modes/arsenalBattleRuntime.js'
+      - 'public/game/hero-rework/**'
+      - 'tools/testOwnerV43Gold*.mjs'
+      - 'tools/testOwnerV43BoomerangNaturalFlight.mjs'
+      - 'tools/testOwnerV43GoldCertification.mjs'
+      - '.github/workflows/v43-gold-fidelity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gold-fidelity:
+    name: Gold visual and motion evidence (fail-closed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check all source-trace proofs and Gold phase coverage
+        run: node tools/testOwnerV43GoldCertification.mjs --strict

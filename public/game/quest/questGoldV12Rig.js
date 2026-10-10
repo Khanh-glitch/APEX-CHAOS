@@ -2483,10 +2483,22 @@ const {LAYOUTS}=__req('/layouts');
 const {buildRigArt}=__req('/art/robots');
 let actors=new WeakMap();
 let faulty=new WeakSet();
+let departed=new WeakSet();
+let aftermath=[];
 const stats={attempts:0,draws:0,instances:0,failed:0,realHitEvents:0,realRecoilEvents:0,operatorDraws:0,facingByQuestId:{},lastError:null};
 function draw(ctx,real) {
   const variant=real?.questVisualId;
   if(!variant||!['scout','bulwark','reaver','sentinel','operator'].includes(variant)||!ctx?.getTransform)return false;
+  // Quest E06 temporary retreat is reversible. If an authorized Fighter
+  // re-enters this very encounter, clear its old phase-out and redraw the
+  // same original Gold rig; no permanently invisible allies.
+  if(real.hp>0&&real.withdrawn!==true&&departed.has(real)){
+    departed.delete(real);
+    aftermath=aftermath.filter(fx=>fx.f!==real);
+  }
+  // Only the V12 exit pass may draw a defeated/withdrawn Quest character.
+  // Leaving the live body visible creates an inert duplicate behind debris.
+  if(real.hp<=0||real.withdrawn===true||departed.has(real))return true;
   if(faulty.has(real))return false;
   stats.attempts++;
   try {
@@ -2505,9 +2517,21 @@ function draw(ctx,real) {
       actors.set(real,record);stats.instances++;
     }
     const {shadow,presentation}=record;
+    // Feed actual Fighter motion, aim and impacts into the donor's existing
+    // Gold spring rig. Previously x/y were synchronized but all velocity
+    // channels and heading/aim stayed at their constructor defaults.
+    const delta=Math.max(0,Math.min(.1,now-record.lastNow));
+    const prevX=shadow.x,prevY=shadow.y;
+    const oldHeading=shadow.heading;
     const pulses=Number(holder?.meta?.pose?.pulses);
     const equipped=!!holder?.weaponId;
     shadow.x=Number(real.x)||0;shadow.y=Number(real.y)||0;
+    shadow.vx=delta>1e-5?Math.max(-1800,Math.min(1800,(shadow.x-prevX)/delta)):0;
+    shadow.vy=delta>1e-5?Math.max(-1800,Math.min(1800,(shadow.y-prevY)/delta)):0;
+    const dx=Number(real.dir?.x)||0,dy=Number(real.dir?.y)||0;
+    shadow.heading=Math.atan2(dy,dx||1);
+    shadow.aim=Number.isFinite(holder?.meta?.aimAngle)
+      ?holder.meta.aimAngle:shadow.heading;
     shadow.weapon=equipped?{type:'pistol'}:null; // presence only: never an invented Arsenal weapon
     shadow.alive=Number(real.hp)>0;
     if(Number.isFinite(real.hp)&&real.hp<record.lastHp){
@@ -2522,6 +2546,49 @@ function draw(ctx,real) {
       });
       stats.realHitEvents++;record.hitEvents++;
     }
+    // An actual wall-direction reversal is a structural collision cue,
+    // not a decorative periodic wobble.
+    const hitWall=(shadow.x<=(real.radius||75)+4||
+      shadow.x>=1000-(real.radius||75)-4||
+      shadow.y<=(real.radius||75)+4||
+      shadow.y>=1000-(real.radius||75)-4);
+    if(delta>0&&hitWall&&Math.cos(shadow.heading-oldHeading)<-.25){
+      presentation.enqueue({type:'FighterWallImpact',fighterId:shadow.id,
+        data:{direction:{x:dx,y:dy},strength:Math.max(.3,Math.min(1.3,Math.hypot(shadow.vx,shadow.vy)/520))}});
+    }
+    const stunned=!!(real.hasStatus?.('stun')||real.hasStatus?.('freeze'));
+    if(stunned&&!record.wasStunned)
+      presentation.enqueue({type:'FighterStunned',fighterId:shadow.id,data:{}});
+    record.wasStunned=stunned;
+    const charging=real.questSpecies==='sentinel'&&real.data?.questSentinelLock===true;
+    if(charging&&!record.wasCharging){
+      presentation.springs.coreY.kick(-25);
+      presentation.springs.cheekX.kick(20);
+      presentation.springs.lid.kick(-.22);
+      presentation.springs.glow.kick(.40);
+    }
+    record.wasCharging=charging;
+    const clawPulse=Number(real.data?.__questClawPulse||0);
+    if(clawPulse>Number(record.lastClawPulse||0)){
+      // Gold attack windup / contact recovery uses original shoulder,
+      // gripper and counter-rotation springs, not added fake limbs.
+      const S=presentation.springs;
+      S.calTh[0].kick(-.24);S.calTh[1].kick(.19);
+      S.calDx[0].kick(48);S.calDx[1].kick(-35);
+      S.spin[0].kick(.68);S.spin[1].kick(-.42);
+      S.rootX.kick((dx||1)*-35);S.coreY.kick(-18);
+      presentation.fingerMotors[0].kick(.22);
+      presentation.fingerMotors[1].kick(-.17);
+    }
+    record.lastClawPulse=clawPulse;
+    const laserPulse=Number(real.data?.__questLaserPulse||0);
+    if(laserPulse>Number(record.lastLaserPulse||0)){
+      const S=presentation.springs;
+      S.coreY.kick(25);S.rootX.kick(-(dx||1)*33);
+      S.crest.kick(-18);S.lid.kick(.34);S.glow.kick(.25);
+      S.calTh[0].kick(-.065);S.calTh[1].kick(.065);
+    }
+    record.lastLaserPulse=laserPulse;
     if(Number.isFinite(pulses)&&record.lastPulses!=null&&pulses>record.lastPulses&&equipped){
       // Arsenal's actual pose pulse count is the firing authority.
       presentation.enqueue({
@@ -2537,7 +2604,6 @@ function draw(ctx,real) {
     record.lastHp=real.hp;record.lastAlive=shadow.alive;
     record.lastPulses=Number.isFinite(pulses)?pulses:null;
     // Never run a second combat loop; step presentation once per authoritative frame.
-    const delta=Math.max(0,Math.min(0.1,now-record.lastNow));
     record.lastNow=now;
     if(delta>0)presentation.step(delta);
     ctx.save();
@@ -2575,6 +2641,21 @@ function draw(ctx,real) {
     // One source of physical pose, one source of world transform. Arsenal still
     // paints the REAL weapon on top after this fighter-body pass.
     presentation.drawBody(ctx,cam);
+    // The Sentinel optic exists in the donor's spring-deformed ROOT
+    // transform, not the Fighter centre. Export a world-space socket AFTER
+    // the actual pose is solved, without inferring it from an old frame.
+    if(variant==='sentinel'){
+      const eye=presentation.layout.eyes[0],rootM=presentation.xf.root;
+      const springs=presentation.springs;
+      const ex=eye.x+springs.coreX.x*.25;
+      const ey=eye.y+springs.coreY.x*.15;
+      const rx=rootM[0]*ex+rootM[2]*ey+rootM[4];
+      const ry=rootM[1]*ex+rootM[3]*ey+rootM[5];
+      record.opticWorld={
+        x:shadow.x+ratio*(rx-shadow.x),
+        y:shadow.y+ratio*(ry-shadow.y)
+      };
+    }else record.opticWorld=null;
     ctx.restore();
     stats.draws++;
     if(variant==='operator')stats.operatorDraws++;
@@ -2588,6 +2669,113 @@ function draw(ctx,real) {
 }
 // Read-only diagnostic: Chrome acceptance can check the REAL donor springs
 // without overlaying the arena, mutating the actor or inventing event cues.
+// Physical Quest exit staging is PRESENTATION ONLY: retain real Fighter
+// and quest result ledgers. Render actual donor chassis/shell/limb sprites
+// as independent fallen parts, with no persistent wreckage after 3 seconds.
+// RIVET and T.O.T have a nonviolent mechanical phase-out instead.
+const AFTER_PARTS=[
+ ['rearL','rearL'],['rearR','rearR'],['antenna','ant'],
+ ['armL','armL'],['armR','armR'],['fingerL','fingL'],['fingerR','fingR'],
+ ['chassis','root'],['core','core'],['cheekL','cheekL'],['cheekR','cheekR'],
+ ['armorL','armorL'],['armorR','armorR'],['shell','shell'],
+ ['jawL','jawL'],['jawR','jawR'],['rotorL','rotL'],['rotorR','rotR']
+];
+function drawAftermath(ctx,realActors=[],state=null){
+  if(!ctx)return;
+  const now=typeof performance!=='undefined'?performance.now()/1000:0;
+  for(const f of realActors){
+    if(!f||departed.has(f))continue;
+    const rec=actors.get(f);
+    if(!rec||!rec.presentation?.xf)continue;
+    const scripted=(f.questId==='RIVET'&&state?.questRivetProgression
+        &&state?.questOutcome==='COMPLETE')
+      ||(f.questId==='T.O.T'&&state?.questTotVoluntaryChoice===true);
+    if(f.hp>0&&f.withdrawn!==true&&!scripted)continue;
+    departed.add(f);
+    const special=f.questId==='RIVET'||f.questId==='T.O.T';
+    const p=rec.presentation;
+    const pieces=special?[]:AFTER_PARTS.map(([artKey,poseKey],i)=>{
+      const art=p.art?.[artKey],mat=p.xf?.[poseKey];
+      if(!art||!Array.isArray(mat))return null;
+      // Freeze the REAL last living donor pose, not a synthetic body clone.
+      const ang=i*2.399963;
+      return {art,m:mat.slice(),vx:Math.cos(ang)*(56+(i%4)*16),
+        vy:Math.sin(ang)*(36+(i%3)*12)-44,spin:(i%2?1:-1)*(1.2+(i%5)*.42)};
+    }).filter(Boolean);
+    aftermath.push({f,x:f.x,y:f.y,ratio:rec.scale||.65,
+      parts:pieces,special,clock:now,color:f.questId==='T.O.T'?'#ffca65':'#7dcff4'});
+  }
+  ctx.save();
+  const base=ctx.getTransform();
+  for(let i=aftermath.length-1;i>=0;i--){
+    const fx=aftermath[i],age=Math.max(0,now-fx.clock);
+    const max=fx.special?1.55:3.25;
+    if(age>=max){aftermath.splice(i,1);continue;}
+    if(fx.special){
+      // Mechanical energy transfer: a collapsing aperture with angular
+      // motes. No body-sized afterimage is left on the battlefield.
+      const remain=1-age/max;
+      ctx.save();ctx.globalCompositeOperation='lighter';
+      ctx.strokeStyle=fx.color;ctx.globalAlpha=remain;
+      ctx.lineWidth=2+3*remain;ctx.beginPath();
+      ctx.ellipse(fx.x,fx.y,12+70*remain,18+88*remain,
+        age*1.6,0,Math.PI*2);ctx.stroke();
+      for(let k=0;k<36;k++){
+        const a=k*2.399963+age*(k%2?2:-2);
+        const radius=(9+k%6*11)*(.5+age*.55);
+        const x=fx.x+Math.cos(a)*radius;
+        const y=fx.y+Math.sin(a)*radius-age*24;
+        const width=1.2+(k%3)*1.3;
+        ctx.fillStyle=fx.color;ctx.globalAlpha=remain*(.35+(k%5)*.12);
+        ctx.fillRect(x-width/2,y-width/2,width,width);
+      }
+      ctx.restore();continue;
+    }
+    const opacity=age<1.85?1:Math.max(0,1-(age-1.85)/1.4);
+    // Use current camera matrix but the pose and center frozen on death.
+    const ratio=fx.ratio;
+    const cam=[
+      base.a*ratio,base.b*ratio,base.c*ratio,base.d*ratio,
+      base.e+base.a*(1-ratio)*fx.x+base.c*(1-ratio)*fx.y,
+      base.f+base.b*(1-ratio)*fx.x+base.d*(1-ratio)*fx.y
+    ];
+    // Gold mechanical shutdown first (all LEDs/extremities powered off),
+    // THEN independent shoulder/head/arm assembly falls onto the floor.
+    const time=Math.min(Math.max(0,age-.16),.67);
+    for(const part of fx.parts){
+      const angle=part.spin*time,c=Math.cos(angle),sn=Math.sin(angle);
+      const m=part.m,mm=[
+        m[0]*c+m[2]*sn,m[1]*c+m[3]*sn,
+        -m[0]*sn+m[2]*c,-m[1]*sn+m[3]*c,
+        m[4]+part.vx*time/ratio,
+        m[5]+(part.vy*time+85*time*time)/ratio
+      ];
+      ctx.save();ctx.globalAlpha=opacity;
+      ctx.filter='saturate(.20) brightness(.62)';
+      // Inactive power: the donor's optical glow is deliberately not drawn.
+      const t=[
+        cam[0]*mm[0]+cam[2]*mm[1],cam[1]*mm[0]+cam[3]*mm[1],
+        cam[0]*mm[2]+cam[2]*mm[3],cam[1]*mm[2]+cam[3]*mm[3],
+        cam[0]*mm[4]+cam[2]*mm[5]+cam[4],
+        cam[1]*mm[4]+cam[3]*mm[5]+cam[5]
+      ];
+      ctx.setTransform(...t);
+      ctx.drawImage(part.art.canvas,-part.art.ox,-part.art.oy,part.art.w,part.art.h);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+function opticWorld(real){
+  const record=real&&actors.get(real);
+  if(!record?.opticWorld)return null;
+  // Ability tick precedes canvas draw. Project the CURRENT authoritative
+  // Fighter translation onto the last spring-resolved socket so a moving
+  // Sentinel never fires from last frame's eye coordinates.
+  const dx=(Number(real.x)||0)-record.shadow.x;
+  const dy=(Number(real.y)||0)-record.shadow.y;
+  return {x:record.opticWorld.x+dx,y:record.opticWorld.y+dy};
+}
 function inspect(real){
   const record=real&&actors.get(real);
   if(!record)return null;
@@ -2608,7 +2796,7 @@ function inspect(real){
     position:{x:record.shadow.x,y:record.shadow.y}
   };
 }
-function reset(){actors=new WeakMap();faulty=new WeakSet();stats.instances=0;stats.facingByQuestId={};}
-root.APEX_QUEST_V12_RIG=Object.freeze({draw,inspect,reset,stats,sourceSha256:'3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685'});
+function reset(){actors=new WeakMap();faulty=new WeakSet();departed=new WeakSet();aftermath=[];stats.instances=0;stats.facingByQuestId={};}
+root.APEX_QUEST_V12_RIG=Object.freeze({draw,drawAftermath,opticWorld,inspect,reset,stats,sourceSha256:'3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685'});
 root.apexQuestV12Rig='ready';
 })(typeof window!=='undefined'?window:globalThis);

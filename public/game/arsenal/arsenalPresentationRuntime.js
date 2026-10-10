@@ -802,17 +802,32 @@
     const offset=(params.offset+(p.localX||0)-(p.recoil||0))*artScale;
     const lateral=(p.localY||0)*artScale;
     const theta=aimAngle+params.drawOffset+(p.rotKick||0)+(p.flourish||0);
-    const cx=fighter.x+Math.cos(aimAngle)*offset-Math.sin(aimAngle)*lateral;
-    const cy=fighter.y+Math.sin(aimAngle)*offset+Math.cos(aimAngle)*lateral;
+    // ROBOT has its own Gold held-weapon socket; the generic Arsenal grip
+    // is not where its override renders the gun. Sharing the robot socket
+    // here keeps charge VFX, launch point and held art on the same origin.
+    const robot=window.APEX_ROBOT_PRESENTATION;
+    const robotSocket=robot?.isRobotFighter?.(fighter)
+      ?robot.getRobotWeaponSocketWorld?.(fighter):null;
+    const cx=robotSocket?.x??(fighter.x+Math.cos(aimAngle)*offset-Math.sin(aimAngle)*lateral);
+    const cy=robotSocket?.y??(fighter.y+Math.sin(aimAngle)*offset+Math.cos(aimAngle)*lateral);
     const width=params.targetLongSide*(p.scaleX||1)*artScale;
     const height=width*meta.h/meta.w;
     const localX=(c.muzzleU-.5)*width+(c.muzzleDx||0);
     // drawWeaponSprite uses keepUpright scale(1,-1) after rotate when left.
     const orientation=Math.cos(theta)<0?-1:1;
     const localY=((c.muzzleV-.5)*height+(c.muzzleDy||0))*orientation;
-    return {x:cx+Math.cos(theta)*localX-Math.sin(theta)*localY,
-      y:cy+Math.sin(theta)*localX+Math.cos(theta)*localY,centerX:cx,centerY:cy,
-      width,height,theta};
+    const sourceX=cx+Math.cos(theta)*localX-Math.sin(theta)*localY;
+    const sourceY=cy+Math.sin(theta)*localX+Math.cos(theta)*localY;
+    // Plasma requires ~104px of Gold glow/ring/mote overhang. A world-edge
+    // actor must not crop half the charging core. Both rendering and the
+    // projectile launcher consume this ONE corrected world-space anchor.
+    // Only the plasma charge changes origin; other weapon calibration stays
+    // bit-for-bit intact. Preserve raw source for an energy-tether cue.
+    const margin=id==='PLASMA_SPLITTER'?c.chargeClipMargin||0:0;
+    const bound=window.GAME_SIZE||1000;
+    const x=margin?Math.max(margin,Math.min(bound-margin,sourceX)):sourceX;
+    const y=margin?Math.max(margin,Math.min(bound-margin,sourceY)):sourceY;
+    return {x,y,sourceX,sourceY,centerX:cx,centerY:cy,width,height,theta};
   }
 
   // Direct V4.3 Gold Lab charge authoring: radial compression,
@@ -825,7 +840,17 @@
     const compress=Math.max(0,Math.min(1,(t-.72)/.28));
     const outerR=(31+t*13)*(1-.42*compress);
     const clock=holder.elapsed||0;
-    ctx.save();ctx.translate(m.x,m.y);ctx.globalCompositeOperation='lighter';
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    // If an edge would crop the charge, a thin umbilical arc visibly connects
+    // the weapon's true barrel to the inset core, avoiding a floating effect.
+    if(Math.hypot(m.x-m.sourceX,m.y-m.sourceY)>1){
+      ctx.save();ctx.strokeStyle='#ca84fc';ctx.lineWidth=4.2;
+      ctx.globalAlpha=.28+t*.52;ctx.shadowColor='#c781ff';ctx.shadowBlur=16;
+      ctx.beginPath();ctx.moveTo(m.sourceX,m.sourceY);
+      ctx.quadraticCurveTo((m.sourceX+m.x)/2,(m.sourceY+m.y)/2-13*t,m.x,m.y);
+      ctx.stroke();ctx.restore();
+    }
+    ctx.translate(m.x,m.y);
     const glow=ctx.createRadialGradient(0,0,0,0,0,55*(1-.18*compress));
     glow.addColorStop(0,'rgba(255,255,255,'+(.25+t*.45)+')');
     glow.addColorStop(.14,'rgba(223,176,255,'+(.3+t*.4)+')');
@@ -857,17 +882,18 @@
 
   function drawEquippedWeapon(ctx, fighter, holder) {
     if (!fighter || !holder || !holder.weaponId) return false;
-    if (holder.weaponId === 'COMBAT_BOOMERANG' && holder.phase === 'IN_FLIGHT') return false;
+    // TRUE = handled by this renderer. Returning false made the host fallback
+    // paint the weapon again even while the thrown projectile owned the art.
+    if (holder.weaponId === 'COMBAT_BOOMERANG' && holder.phase === 'IN_FLIGHT') return true;
     // V2 §A2: equipped weapons continuously face the opponent through the
     // independent aim angle — never through the fighter movement direction.
     const angle = (holder.meta && holder.meta.aimAngle != null)
       ? holder.meta.aimAngle
       : Math.atan2(fighter.dir?.y || 0, fighter.dir?.x || 1);
     const drawn=drawWeaponWithPose(ctx, fighter, holder.weaponId, holder.def?.category || '', angle, holder.meta && holder.meta.pose, 0.98);
-    // The original V4.3 Gold Plasma Splitter visibly accumulates energy
-    // BEFORE the carrier is released, not after. This is a cosmetic pass only.
-    if(holder.weaponId==='PLASMA_SPLITTER'&&holder.phase==='WINDUP')
-      drawV43GoldPlasmaCharge(ctx,fighter,holder,angle);
+    // Charge VFX is drawn by the ONE foreground pass, *after* every
+    // hero-specific held-art override (including ROBOT). Do not draw it here:
+    // ROBOT's override returns before this function can run at all.
     return drawn;
   }
 
@@ -1039,6 +1065,7 @@
     weaponDrawParams,
     weaponMuzzleWorld,
     drawEquippedWeapon,
+    drawV43GoldPlasmaCharge,
     drawPoseGhost,
     drawDetachedWeapon,
     weaponImage,

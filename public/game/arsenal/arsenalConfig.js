@@ -206,43 +206,45 @@
   const V43 = Object.freeze({
     FLARE_GUN:Object.freeze({tier:'T2',name:'Flare Gun',kind:'flare',family:'SPECIAL',
       art:'/assets/arsenal/v43/FLARE_GUN.webp',worldWidth:150,muzzleU:.96,muzzleV:.34,
-      muzzleDx:3,muzzleDy:-8,speed:490,radius:10,drag:.23,
+      reflectableKinds:['flare'],magnetizableKinds:[],muzzleDx:3,muzzleDy:-8,speed:490,radius:10,drag:.23,
       direct:63,burnTicks:4,burnInterval:.3,burnDamage:14}),
     TACTICAL_CROSSBOW:Object.freeze({tier:'T2',name:'Tactical Crossbow',kind:'bolt',family:'SPECIAL',
       art:'/assets/arsenal/v43/TACTICAL_CROSSBOW.webp',projectile:'/assets/arsenal/v43/BOLT.webp',
-      worldWidth:178,muzzleU:.96,muzzleV:.5,muzzleDx:0,muzzleDy:-10,
-      speed:830,maxSpeed:900,acceleration:90,radius:7,projectileWidth:121,tipOffset:47,
+      worldWidth:178,muzzleU:.96,muzzleV:.5,reflectableKinds:['bolt'],magnetizableKinds:['bolt'],muzzleDx:0,muzzleDy:-10,
+      speed:1480,maxSpeed:1700,acceleration:180,radius:7,projectileWidth:121,tipOffset:47,
       direct:112,slowSeconds:.3,slowMult:.85}),
     STEEL_BALL_LAUNCHER:Object.freeze({tier:'T2',name:'Steel Ball Launcher',kind:'ball',family:'SPECIAL',
       art:'/assets/arsenal/v43/STEEL_BALL_LAUNCHER.webp',projectile:'/assets/arsenal/v43/STEEL_BALL.webp',
-      worldWidth:153,muzzleU:.95,muzzleV:.39,muzzleDx:6,muzzleDy:-7,
-      speed:700,radius:12,projectileWidth:31,peak:98,ricochetPeak:109.76,
+      worldWidth:153,muzzleU:.95,muzzleV:.39,reflectableKinds:['ball'],magnetizableKinds:['ball'],muzzleDx:6,muzzleDy:-7,
+      speed:1400,radius:12,projectileWidth:31,peak:98,ricochetPeak:109.76,
       blastRadius:90,restitution:.86,horizontalRetention:.94,maxBounces:1}),
     COMBAT_BOOMERANG:Object.freeze({tier:'T2',name:'Combat Boomerang',kind:'boomerang',family:'SPECIAL',
       art:'/assets/arsenal/v43/COMBAT_BOOMERANG.webp',worldWidth:124,
-      muzzleU:.92,muzzleV:.5,muzzleDx:-60,muzzleDy:-11,
-      windup:.2,spin:38,spinEnd:.8,flightSeconds:5.8,
-      speed:475,minTurnSpeed:300,maxTurnSpeed:625,accelLimit:850,
+      muzzleU:.92,muzzleV:.5,reflectableKinds:['boomerang'],magnetizableKinds:['boomerang'],muzzleDx:-60,muzzleDy:-11,
+      windup:.20,spin:38,maxFlightSeconds:5.8,
+      speed:475,cruise:565,curveDrag:12500,accelLimit:850,
+      minTurnSpeed:300,maxTurnSpeed:625,
       outgoing:63,returning:63,radius:13,maxHitsPerLeg:1}),
     RPG_7:Object.freeze({tier:'T3',name:'RPG-7',kind:'rocket',family:'SPECIAL',
       art:'/assets/arsenal/v43/RPG_7.webp',projectile:'/assets/arsenal/v43/RPG_ROCKET.webp',
-      worldWidth:190,muzzleU:.89,muzzleV:.5,muzzleDx:-12,muzzleDy:-6,
+      worldWidth:190,muzzleU:.89,muzzleV:.5,reflectableKinds:['rocket'],magnetizableKinds:['rocket'],muzzleDx:-12,muzzleDy:-6,
       speed:420,acceleration:760,maxSpeed:990,radius:15,projectileWidth:98,
       tipOffset:39,peak:161,blastRadius:126}),
     FLAMETHROWER:Object.freeze({tier:'T3',name:'Flamethrower',kind:'flame',family:'SPECIAL',
       art:'/assets/arsenal/v43/FLAMETHROWER.webp',worldWidth:174,muzzleU:.96,muzzleV:.37,
-      muzzleDx:-1,muzzleDy:6,duration:.65,ticks:5,tickStart:.1,tickInterval:.13,
-      tickDamage:31.5,range:460,cone:.28}),
+      reflectableKinds:[],magnetizableKinds:[],muzzleDx:-1,muzzleDy:6,duration:.325,ticks:5,tickStart:.05,tickInterval:.06,
+      tickDamage:18,range:325,cone:.18,burnTicks:5,burnInterval:.25,burnDamage:13,idealRange:265}),
     PLASMA_SPLITTER:Object.freeze({tier:'T4',name:'Plasma Splitter',kind:'plasma',family:'SPECIAL',
       art:'/assets/arsenal/v43/PLASMA_SPLITTER.webp',worldWidth:189,muzzleU:.95,muzzleV:.5,
-      muzzleDx:-14,muzzleDy:-13,charge:.5,coreSpeed:625,splitAfter:.34,shards:3,
-      shardSpeed:735,spread:[-.18,0,.18],shardDamage:70,radius:9}),
+      reflectableKinds:['plasma-core','plasma'],magnetizableKinds:[],muzzleDx:-14,muzzleDy:-13,
+      chargeClipMargin:104,charge:.5,coreSpeed:525,splitAfter:.47,shards:3,
+      shardSpeed:660,shardTurnRate:4.5,spread:[-.22,0,.22],shardDamage:67,coreDamage:76,radius:9}),
     SHRAPNEL_MINE_LAUNCHER:Object.freeze({tier:'T4',name:'Shrapnel Mine Launcher',kind:'mine',family:'SPECIAL',
       art:'/assets/arsenal/v43/SHRAPNEL_MINE_LAUNCHER.webp',
       projectile:'/assets/arsenal/v43/SHRAPNEL_MINE.webp',
-      worldWidth:175,projectileWidth:78,muzzleU:.95,muzzleV:.44,muzzleDx:2,muzzleDy:-8,
+      worldWidth:175,projectileWidth:78,muzzleU:.95,muzzleV:.44,reflectableKinds:['mine'],magnetizableKinds:['mine','fragment'],muzzleDx:2,muzzleDy:-8,
       deployDelay:.16,speed:540,drag:460,flightMax:.62,armSeconds:.48,
-      triggerRadius:135,triggerAge:1.5,peak:140,blastRadius:150,
+      triggerRadius:135,triggerAge:12,peak:140,blastRadius:150,
       fragments:8,fragmentSpeed:480,maxFragmentHits:2,fragmentDamage:31.5}),
   });
   // Disabled handoff concepts stay OUT of the catalogue by owner decision:
@@ -448,6 +450,90 @@
     'STORMBREAKER',
     'SWIRL_SHIELD', 'TOWER_SHIELD',
   ];
+
+  // Owner-only, keyboard-gated BOT weapon selector. OFF by default on
+  // every page load. This is an ergonomic live-playtest tool, not an
+  // alternate damage/spawn engine or public menu option.
+  // All equipable offensive AND defensive weapons are addressable by ID.
+  const ownerCatalog=Object.freeze(CONFIG.P0_WEAPON_IDS.filter((id,i,ids)=>
+    ids.indexOf(id)===i));
+  const ownerTest={
+    active:false,selectedWeaponId:null,catalog:ownerCatalog,
+    idForNumber(number){return ownerCatalog[number-1]||null;},
+    numberForId(id){const i=ownerCatalog.indexOf(id);return i<0?null:i+1;},
+    roster(){return ownerCatalog.map((id,i)=>({number:i+1,id,name:
+      CONFIG.V43_WEAPONS?.[id]?.name||CONFIG.WEAPONS?.[id]?.name||
+      CONFIG.GUN_REGISTRY?.find(g=>g.id===id)?.name||id}));},
+    popup(message,showRoster=false){
+      let el=document.getElementById('aq-owner-keyboard-overlay');
+      if(!el){el=document.createElement('div');el.id='aq-owner-keyboard-overlay';
+        el.setAttribute('aria-live','polite');document.body.appendChild(el);}
+      Object.assign(el.style,{position:'fixed',right:'16px',top:'16px',zIndex:'2147482000',
+        width:showRoster?'min(680px,calc(100vw - 32px))':'min(440px,calc(100vw - 32px))',
+        maxHeight:'65vh',overflowY:'auto',pointerEvents:'none',
+        padding:'14px 18px',background:'rgba(8,13,21,.93)',color:'#f6e3b8',
+        border:'1px solid rgba(244,183,85,.65)',borderRadius:'9px',
+        boxShadow:'0 12px 42px #000a',font:'600 13px/1.6 ui-monospace,Consolas,monospace',
+        whiteSpace:'normal'});
+      const title=document.createElement('div');title.textContent=message;title.style.marginBottom='8px';
+      el.replaceChildren(title);
+      if(showRoster){
+        const body=document.createElement('div');
+        Object.assign(body.style,{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:'0 10px',
+          fontWeight:'400',fontSize:'12px'});
+        for(const {number,id} of ownerTest.roster()){
+          const row=document.createElement('div');row.textContent=String(number).padStart(2,'0')+' · '+id;
+          if(id===ownerTest.selectedWeaponId)row.style.color='#83f1d0';body.appendChild(row);
+        }el.appendChild(body);
+      }
+      if(ownerTest._hide)clearTimeout(ownerTest._hide);
+      ownerTest._hide=setTimeout(()=>{el?.remove();ownerTest._hide=null;},showRoster?14000:3200);
+    }
+  };
+  window.APEX_ARSENAL_OWNER_TEST=ownerTest;
+  let ownerDigits='';
+  window.addEventListener('keydown',ev=>{
+    const editable=ev.target?.closest?.('input,textarea,select,[contenteditable="true"]');
+    if(editable)return;
+    // Ctrl+Shift+F8 is deliberately uncommon in Chrome/Windows. A browser
+    // cannot override a shortcut reserved by the host OS.
+    if(ev.ctrlKey&&ev.shiftKey&&!ev.altKey&&!ev.metaKey&&ev.code==='F8'&&!ev.repeat){
+      ev.preventDefault();ev.stopPropagation();
+      if(!ownerTest.active&&window.APEX_ARSENAL?.state?.active){
+        ownerTest.popup('OWNER BOT TEST: exit the current match before activation');return;
+      }
+      ownerTest.active=!ownerTest.active;ownerDigits='';
+      ownerTest.selectedWeaponId=null;
+      if(ownerTest.active){
+        ownerTest.popup('OWNER BOT TEST ON · chọn tướng bình thường · giữ SHIFT, gõ ID, thả SHIFT',true);
+        window.APEX_ARSENAL_META?.openBotPick?.();
+      }else ownerTest.popup('OWNER BOT TEST OFF · chế độ spawn bình thường');
+      return;
+    }
+    if(!ownerTest.active||!window.APEX_ARSENAL?.state?.active
+      ||window.APEX_ARSENAL.state.battleMode!=='BOT'
+      ||ev.altKey||ev.ctrlKey||ev.metaKey)return;
+    if(ev.code==='ShiftLeft'||ev.code==='ShiftRight'){if(!ev.repeat)ownerDigits='';return;}
+    const match=/^(?:Digit|Numpad)([0-9])$/.exec(ev.code||'');
+    if(ev.shiftKey&&match&&!ev.repeat){
+      ev.preventDefault();ev.stopPropagation();
+      if(ownerDigits.length<3)ownerDigits+=match[1];
+    }
+  },true);
+  window.addEventListener('keyup',ev=>{
+    if(!ownerTest.active||!(ev.code==='ShiftLeft'||ev.code==='ShiftRight')||!ownerDigits)return;
+    const number=Number(ownerDigits);ownerDigits='';
+    const state=window.APEX_ARSENAL?.state;
+    if(!state?.active||state.battleMode!=='BOT'||state.labMode)return;
+    const id=ownerTest.idForNumber(number);
+    if(!id){ownerTest.popup('ID '+number+' không tồn tại · hợp lệ 1–'+ownerCatalog.length);return;}
+    ownerTest.selectedWeaponId=id;
+    // Only the next ordinary native TELEGRAPH->REVEALED slot is overridden.
+    // Do not forge pickup ownership, mutate Fighter equipment or Quest loot.
+    state.spawnTimer=Math.min(state.spawnTimer,.45);
+    ownerTest.popup('NEXT BOT SPAWN · #'+number+' · '+id);
+    window.APEX_ARSENAL?.log?.('OWNER_TEST_WEAPON', 'id='+number+' weapon='+id);
+  },true);
 
   const API = {
     config: CONFIG,

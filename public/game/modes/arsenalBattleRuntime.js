@@ -664,6 +664,26 @@
         for (const fighter of fighters) {
           if (!fighter || fighter.hp <= 0 || fighter.withdrawn===true || fighter.questWorldObject===true) continue;
           const enemy = Q.nearestEnemy(fighter, fighters);
+          // Quest-only unarmed hostile pickup navigation. Generic Arsenal
+          // blank Fighters drift on their current direction and previously
+          // could pass a PISTOL without ever steering into its real pickup
+          // circle. Move ONLY the actual Fighter, do not teleport/equip it.
+          const seekPistol=!!fighter.questSpecies
+            ||(fighter.questId==='T.O.T'&&state.questReflex===true);
+          if(seekPistol&&!weaponApi.getHolder(fighter)){
+            let best=null,bestD=Infinity;
+            for(const slot of state.slots||[]){
+              if(slot.phase!=='REVEALED'||slot.weaponId!=='PISTOL'
+                ||slot.questNarrativeOnly
+                ||(slot.questPickupOwner&&slot.questPickupOwner!==fighter.questId))
+                continue;
+              const d=Math.hypot(slot.x-fighter.x,slot.y-fighter.y);
+              if(d<bestD){best=slot;bestD=d;}
+            }
+            if(best&&bestD>1){
+              fighter.setDir((best.x-fighter.x)/bestD,(best.y-fighter.y)/bestD);
+            }
+          }
           if (fighter === fighters[0] && gate?.preUpdate) gate.preUpdate(fighter, dt);
           fighter.update(dt, enemy);
           if (fighter === fighters[0] && gate?.postUpdate) gate.postUpdate(fighter);
@@ -1049,7 +1069,20 @@
     for (const f of fighters.concat(extras)) {
       if (!f) continue;
       const h = weaponApi.getHolder(f);
-      if (h) av.drawEquippedWeapon(c, f, h);
+      if (h) {
+        // The thrown boomerang is the SAME physical art now owned by its
+        // projectile. Suppress held-art BEFORE any hero presentation override:
+        // ROBOT's curated socket renderer previously short-circuited Arsenal's
+        // own IN_FLIGHT guard and drew a second boomerang in the hand.
+        if(h.weaponId!=='COMBAT_BOOMERANG'||h.phase!=='IN_FLIGHT')
+          av.drawEquippedWeapon(c, f, h);
+        // V4.3 Gold plasma charge is a WORLD presentation layer, *not* a
+        // child of held-art drawing: ROBOT's curated Gold socket override
+        // short-circuits that function and previously hid the entire charge.
+        // Exactly one call per physical holder in the shared foreground pass.
+        if(h.weaponId==='PLASMA_SPLITTER'&&h.phase==='WINDUP')
+          av.drawV43GoldPlasmaCharge?.(c,f,h,h.meta?.aimAngle??Math.atan2(f.dir?.y||0,f.dir?.x||1));
+      }
       // Checkpoint B pose ghost: recoil settle / throw / thrust return keeps
       // animating for a beat after the weapon is consumed.
       if (f.data && f.data.arsenalFade && !f.data.arsenalFade.detached && av.drawPoseGhost) av.drawPoseGhost(c, f, f.data.arsenalFade);
@@ -1474,6 +1507,11 @@
     drawQuestSwarmInterlude(ctx,AQ.state);
     drawWeaponRainCinematic(ctx,AQ.state);
     AQ.state?.questEnemyAbilities?.draw(ctx,fighters);
+    // Alive bodies come from the donor rig's normal Fighter.draw; the
+    // death/withdrawal sprites are rendered once from frozen donor part
+    // matrices in this independent world pass until they fully fade.
+    if(AQ.state?.questMultiActor)
+      window.APEX_QUEST_V12_RIG?.drawAftermath?.(ctx,fighters,AQ.state);
     AQ.state?.questBreachCompanionSkills?.draw?.(ctx);
     drawBreakerProgress(ctx,AQ.state);
     ctx.restore();
@@ -1602,6 +1640,9 @@
       types = [p1, p2];
     }
 
+    // Quest playtest chooses among the REAL public selectable Core Six.
+    // Quest always pilots NEWBOT with ROBOT's canonical native combat kit.
+    const questHeroEligible=types[0]?.name==='ROBOT';
     // Q2 internal-only N-actor fixtures are never public Quest progression.
     // Public Gold Continue Story retains exact CP04 FIRST WAKE composition.
     const questCore = window.APEX_QUEST_MULTI_ACTOR_CORE;
@@ -1625,7 +1666,7 @@
     if(options.questRivetTest===true&&!rivetTest)return false;
     const rivetStory=options.questRivetProgression===true
       &&options.questRivetOverridden===true
-      &&types[0]?.name==='ROBOT'
+      &&questHeroEligible
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId==='RIVET_OVERRIDDEN'
       &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
@@ -1636,7 +1677,7 @@
     const rivetActive=rivetTest||rivetStory;
     const totStory=options.questTotLastChoice===true
       &&options.questTotProgression===true
-      &&types[0]?.name==='ROBOT'
+      &&questHeroEligible
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId==='TOT_LAST_CHOICE'
       &&typeof window.APEX_QUEST_TOT_NATIVE_STORM?.create==='function'
@@ -1662,7 +1703,7 @@
     if(options.questStoryCompletion===true&&!storyCompletion)return false;
     const firstWakeStory=options.questFirstWakeProgression===true
       &&options.questFirstWake===true
-      &&types[0]?.name==='ROBOT'
+      &&questHeroEligible
       &&!questReflex&&!!questCore
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&['WORKSHOP','FIRST_WAKE'].includes(directorCheckpoint)
@@ -1671,7 +1712,7 @@
     if(options.questFirstWakeProgression===true&&!firstWakeStory)return false;
     const scrapSwarmStory=options.questScrapSwarmProgression===true
       &&options.questScrapSwarm===true
-      &&types[0]?.name==='ROBOT'
+      &&questHeroEligible
       &&!questReflex&&options.questFirstWake!==true&&!!questCore
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&directorCheckpoint==='SCRAP_SWARM'
@@ -1681,7 +1722,7 @@
     if(options.questScrapSwarmProgression===true&&!scrapSwarmStory)return false;
     const rainStory=options.questWeaponRainProgression===true
       &&options.questWeaponRain===true
-      &&types[0]?.name==='ROBOT'&&!questReflex
+      &&questHeroEligible&&!questReflex
       &&options.questFirstWake!==true&&options.questScrapSwarm!==true
       &&!!questCore&&typeof questCore.createWeaponRainSequence==='function'
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
@@ -1691,7 +1732,7 @@
     if((options.questWeaponRain||options.questWeaponRainProgression)&&!rainStory)return false;
     const breakerStory=options.questBreakerChargeProgression===true
       &&options.questBreakerCharge===true
-      &&types[0]?.name==='ROBOT'&&!questReflex
+      &&questHeroEligible&&!questReflex
       &&options.questFirstWake!==true&&options.questScrapSwarm!==true
       &&options.questWeaponRain!==true
       &&!!questCore&&typeof questCore.createBreakerChargeSequence==='function'
@@ -1702,7 +1743,7 @@
     if((options.questBreakerCharge||options.questBreakerChargeProgression)&&!breakerStory)return false;
     const breachStory=options.questBreachProgression===true
       &&options.questBreachWaves===true
-      &&types[0]?.name==='ROBOT'&&!!breachPolicy
+      &&questHeroEligible&&!!breachPolicy
       &&typeof breachPolicy.createWaveLifecycle==='function'
       &&typeof window.APEX_QUEST_BREACH_RETREAT?.create==='function'
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
@@ -1726,7 +1767,7 @@
     const [t1, t2] = types;
     lastShells = [t1.name, t2.name];
     const questFirstWake = options.questFirstWake === true
-      && t1.name === 'ROBOT'
+      && questHeroEligible
       && !!questCore;
     const questScrapSwarm=scrapSwarmStory;
     const questWeaponRain=rainStory;

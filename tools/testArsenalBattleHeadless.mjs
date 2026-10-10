@@ -1755,18 +1755,45 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
      __APEX_TEST.step(.20);
      const before=__APEX_TEST.holder('HERO');
      const premature=APEX_ARSENAL.events.some(e=>e.includes('weapon='+id)&&e.includes('CONSUME'));
-     // One and only one physical projectile transaction.
-     __APEX_TEST.step(1.20);
+     // At .70s the physical Boomerang has left the muzzle but has not
+     // completed its Gold loop. Capture actual EMPTY HAND / flying body
+     // before any legitimate return catch re-equips a second holder.
+     let releasedHand=null,realOutwardFlight=false;
+     if(id==='COMBAT_BOOMERANG'){
+       __APEX_TEST.step(.50);
+       releasedHand=__APEX_TEST.holder('HERO');
+       realOutwardFlight=projectiles.some(p=>p.kind==='boomerang'
+         &&p.launchOwner===fighters[0]&&p.phase==='out'&&p.life>0);
+       __APEX_TEST.step(.70);
+     }else __APEX_TEST.step(1.20);
      const recorded=APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id));
      const uses=recorded.filter(e=>e.includes(' USE ')).length;
      const interim=__APEX_TEST.holder('HERO');
      const hits=recorded.filter(e=>e.includes(' HIT ')).length;
+     const boomerangOut=id==='COMBAT_BOOMERANG'
+       ?projectiles.some(p=>p.kind==='boomerang'&&p.launchOwner===fighters[0]&&p.life>0)
+       :false;
      // Allow the full 5.8s non-homing Boomerang flight and recovery.
      __APEX_TEST.step(6.6);
      const after=__APEX_TEST.holder('HERO');
      const completed=APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id)&&e.includes('CONSUME')).length;
+     // A mine MUST remain armed with zero impact until a real fighter steps on it.
+     // Then the same native projectile resolver owns splash/shrapnel (no mocked hit).
+     let mineContact=null;
+     if(id==='SHRAPNEL_MINE_LAUNCHER'){
+       const mine=projectiles.find(p=>p.aq&&p.weapon===id&&p.kind==='mine');
+       const hpBefore=fighters[1].hp;
+       const armedWaiting=mine?.phase==='armed' && hits===0;
+       if(mine){fighters[1].x=mine.x;fighters[1].y=mine.y;}
+       __APEX_TEST.step(1.0);
+       mineContact={armedWaiting,hpBefore,hpAfter:fighters[1].hp,
+         mineGone:!projectiles.some(p=>p.aq&&p.weapon===id&&p.kind==='mine'&&p.life>0),
+         hitsAfterContact:APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id)&&e.includes(' HIT ')).length};
+     }
      const projectilesRemaining=projectiles.filter(p=>p.aq&&p.weapon===id).length;
-     findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature};
+     findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature,mineContact,
+       boomerangOut,releasedHand,realOutwardFlight,
+       catchCount:APEX_ARSENAL.events.filter(e=>e.includes(' CATCH ')&&e.includes('weapon='+id)).length};
    }
    return {ids,findings};
  `);
@@ -1774,9 +1801,65 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
  gate('owner-v43-real-8-weapons-native-use',
    ownerV43.ids.length===8 && ownerV43.ids.every(id=>{
      const x=ownerV43.findings[id];
+     if(id==='COMBAT_BOOMERANG'){
+       // Post-update boomerang no longer consumes on release: the hand is
+       // empty immediately and a real return catch may generate an extra
+       // USE, or the owner may miss it. Both are legal.
+       return x.before?.weapon===id&&!x.premature&&x.uses>=1
+         &&x.releasedHand===null&&x.realOutwardFlight===true
+         &&(x.interim===null||x.interim.weapon===id)
+         // The native holder may automatically rethrow after each genuine
+         // catch. A still-airborne projectile after 6.6s is NOT a leak.
+         &&(x.projectilesRemaining===0||x.projectilesRemaining===1);
+     }
      return x.before?.weapon===id && x.uses===1 && !x.premature
-       && x.after===null && x.completed===1 && x.projectilesRemaining===0;
+       && x.after===null && x.completed===1
+       && (id==='SHRAPNEL_MINE_LAUNCHER'
+         ? x.mineContact?.armedWaiting && x.mineContact?.hpAfter<x.mineContact?.hpBefore
+           && x.mineContact?.mineGone && x.mineContact?.hitsAfterContact>0
+         : x.projectilesRemaining===0);
    }),ownerV43);
+
+// P0 post-audit: never settle an RPG blast by only a mocked helper.
+// Launch the REAL Arsenal holder/rocket twice, induce a true wall AOE and
+// an otherwise unreachable fuse timeout, and inspect real Fighter HP/ledger.
+report.ownerV43RpgBlastOnce=run(`
+  function trial(mode){
+    __APEX_TEST.enterManual();__APEX_TEST.holdSpawns();
+    __APEX_TEST.place(400,500,810,500);
+    const A=APEX_ARSENAL,W=A.weaponApi;
+    const attacker=fighters[0],victim=fighters[1];
+    attacker.baseSpeed=0;victim.baseSpeed=0;
+    attacker.hp=1000;victim.hp=1000;
+    A.events.length=0;
+    W.equip(attacker,'RPG_7');
+    let rocket=null;
+    for(let i=0;i<72;i++){
+      __APEX_TEST.step(1/60);
+      rocket=projectiles.find(p=>p.aq&&p.kind==='rocket'
+        &&p.weapon==='RPG_7'&&p.owner===attacker&&p.life>0);
+      if(rocket)break;
+    }
+    if(!rocket)return {launched:false,mode};
+    if(mode==='wall'){victim.x=925;victim.y=620;}
+    else {victim.x=rocket.x+80;victim.y=rocket.y+92;rocket.life=.08;}
+    const startHp=victim.hp;
+    for(let i=0;i<180;i++){
+      __APEX_TEST.step(1/60);
+      if(!projectiles.includes(rocket)||rocket.life<=0)break;
+    }
+    const hits=A.events.filter(e=>e.includes(' HIT ')
+      &&e.includes('weapon=RPG_7')).length;
+    return {launched:true,mode,damage:startHp-victim.hp,hits,
+      detonated:rocket.exploded===true,retired:rocket.life<=0};
+  }
+  return {wall:trial('wall'),fuse:trial('fuse')};
+`);
+gate('post-v43-rpg-wall-and-fuse-explode-exactly-once-real-hp',
+  Object.values(report.ownerV43RpgBlastOnce).every(x=>x.launched
+    &&x.detonated&&x.retired&&x.hits===1
+    &&x.damage>0&&x.damage<=161.01),
+  report.ownerV43RpgBlastOnce);
 
 // Owner V43 DAMAGE tests: a normal native Fighter must lose the README amount
 // from a real hit, not merely log USE/CONSUME. No Lab-dummy simulated HP.
@@ -1801,7 +1884,8 @@ gate('owner-v43-direct-ball-98-not-aoe',Math.abs(owD.STEEL_BALL_LAUNCHER-98)<1.1
 gate('owner-v43-crossbow-112',Math.abs(owD.TACTICAL_CROSSBOW-112)<1.1,owD);
 gate('owner-v43-flare-direct-plus-4burn',Math.abs(owD.FLARE_GUN-119)<1.1,owD);
 gate('owner-v43-rpg-direct-blast-near-161',owD.RPG_7>140&&owD.RPG_7<=161.1,owD);
-gate('owner-v43-flamethrower-5-contact-ticks',Math.abs(owD.FLAMETHROWER-157.5)<1.1,owD);
+// Rebalanced: contact + nonstacking burn; old 157.5 direct-only contract is retired.
+gate('owner-v43-flamethrower-contact-plus-burn',Math.abs(owD.FLAMETHROWER-155)<1.1,owD);
 gate('owner-v43-plasma-real-shards',owD.PLASMA_SPLITTER>=70&&owD.PLASMA_SPLITTER<=210.1,owD);
 gate('owner-v43-mine-armed-aoe',owD.SHRAPNEL_MINE_LAUNCHER>50&&owD.SHRAPNEL_MINE_LAUNCHER<=203.1,owD);
 

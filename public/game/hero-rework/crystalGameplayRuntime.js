@@ -203,8 +203,12 @@ function firstWithin(dx, dy, wx, wy, R) {
 // Why a projectile is NOT a K threat at all (no telemetry, no bookkeeping).
 function notAThreat(st, p) {
   // Crystal can refract V43 physical/energy projectiles, Magnet only kinetic.
-  const v43=p?.type==='aq_v43'&&!['burn','fragment'].includes(p.kind)&&
-    !(p.kind==='mine'&&p.phase!=='flight');
+  // One registry-owned capability policy for every special projectile.
+  // Flames, status burn, spent mine/fragment bodies and future nonphysical
+  // variants cannot be treated as kinetic K threats by coincidence.
+  const eligible=CFG()?.V43_WEAPONS?.[p?.weapon]?.reflectableKinds;
+  const v43=p?.type==='aq_v43'&&Array.isArray(eligible)
+    &&eligible.includes(p.kind)&&!(p.kind==='mine'&&p.phase!=='flight');
   if (!p || !p.aq || (p.type!=='aq_bullet'&&!v43) || !(p.life > 0)) return true;
   if (isT6(p)) return true;                                   // T6 never reflectable
   const hr = p.__hr;

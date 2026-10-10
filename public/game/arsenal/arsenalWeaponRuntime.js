@@ -426,8 +426,10 @@
     // event. Every set is paired with this synchronous clear.
     if (target){target.__aqImpact = null;target.__aqResultSource=null;}
     if (opts.knockback && source && source !== target && target.hp > 0) {
-      const n = norm(target.x - source.x || 1, target.y - source.y);
-      target.applyStatus('push', 0.18, { x: n.x, y: n.y, strength: opts.knockback });
+      const n = opts.impactDirection && Number.isFinite(opts.impactDirection.x)
+        ? norm(opts.impactDirection.x,opts.impactDirection.y)
+        : norm(target.x - source.x || 1, target.y - source.y);
+      target.applyStatus('push', opts.knockbackSeconds || 0.18, { x: n.x, y: n.y, strength: opts.knockback });
     }
     if (opts.stun && target.hp > 0) target.applyStatus('stun', opts.stun, {});
     if(actual>0&&target.hp>0&&(opts.knockback||opts.stun))
@@ -600,37 +602,82 @@
     return (list||[]).filter(f=>f&&f.hp>0&&f.withdrawn!==true
       &&(!AQ.state?.questMultiActor||f.questTeam!==owner?.questTeam));
   }
+  // All collision consumers (Fighter + Crystal + Magnet) observe the ONE
+  // ordered frame path. A kinetic V4.3 bullet bent by Magnet A2 cannot test
+  // the fake straight frame-start -> endpoint chord (which tunnels barriers).
   function v43Hit(p,from,to){
-    if(AQ.state?.questMultiActor===true){
-      return window.APEX_QUEST_MULTI_ACTOR_CORE?.firstProjectileHit?.({
-        owner:p.owner,actors:fighters,from,to,
-        projectileRadius:p.radius||8,bodyRadiusScale:CFG.BULLET_HIT_RADIUS_SCALE
-      })||null;
-    }
-    let best=null,bestSq=Infinity;
-    // Long projectile artwork leads its center: collision follows the nose.
+    const geom=window.APEX_HERO_REWORK?.geom;
+    const curved=!!(p.__hr?.pathPoly||p.__hr?.pathVia);
+    const segs=curved&&geom?.pathSegments?.(p)||[{
+      x0:from.x,y0:from.y,x1:to.x,y1:to.y,t0:0,t1:1
+    }];
     const tip=(V43[p.weapon]?.tipOffset)||0;
-    const a=Math.atan2(p.vy,p.vx);
-    const leadX=Math.cos(a)*tip,leadY=Math.sin(a)*tip;
-    const noseFrom={x:from.x+leadX,y:from.y+leadY};
-    const noseTo={x:to.x+leadX,y:to.y+leadY};
-    for(const f of v43Enemies(p.owner)){
-      const rad=f.radius*CFG.BULLET_HIT_RADIUS_SCALE+(p.radius||8);
-      const hit=sweptSegmentCircleHit(noseFrom.x,noseFrom.y,noseTo.x,noseTo.y,f.x,f.y,rad);
-      if(hit){
-        const d=(hit.x-noseFrom.x)**2+(hit.y-noseFrom.y)**2;
-        if(d<bestSq){bestSq=d;best={actor:f,x:hit.x,y:hit.y};}
+    let best=null,bestT=Infinity;
+    for(const seg of segs){
+      const ang=Math.atan2(seg.y1-seg.y0,seg.x1-seg.x0);
+      const leadX=Math.cos(ang)*tip,leadY=Math.sin(ang)*tip;
+      const fromN={x:seg.x0+leadX,y:seg.y0+leadY};
+      const toN={x:seg.x1+leadX,y:seg.y1+leadY};
+      const length=Math.hypot(toN.x-fromN.x,toN.y-fromN.y)||1;
+      const consider=(hit)=>{
+        if(!hit?.actor)return;
+        const sx=hit.x??toN.x,sy=hit.y??toN.y;
+        const frac=v43min(Math.hypot(sx-fromN.x,sy-fromN.y)/length,0,1);
+        const t=(seg.t0??0)+frac*((seg.t1??1)-(seg.t0??0));
+        if(t<bestT){bestT=t;best={actor:hit.actor,x:sx,y:sy,t};}
+      };
+      if(AQ.state?.questMultiActor===true){
+        consider(window.APEX_QUEST_MULTI_ACTOR_CORE?.firstProjectileHit?.({
+          owner:p.owner,actors:fighters,from:fromN,to:toN,
+          projectileRadius:p.radius||8,bodyRadiusScale:CFG.BULLET_HIT_RADIUS_SCALE
+        }));
+      }else{
+        for(const fighter of v43Enemies(p.owner)){
+          const radius=fighter.radius*CFG.BULLET_HIT_RADIUS_SCALE+(p.radius||8);
+          const hit=sweptSegmentCircleHit(fromN.x,fromN.y,toN.x,toN.y,
+            fighter.x,fighter.y,radius);
+          if(hit)consider({actor:fighter,x:hit.x,y:hit.y});
+        }
       }
     }
     return best;
   }
-  function v43Pulse(x,y,kind,scale=1){
+  function v43Pulse(x,y,kind,scale=1,weapon=null){
+    const duration=kind==='blast'?.85:kind==='split'?.58:.40;
     if(AQ.state?.visuals) pushVisual({kind:'v43_'+kind,x,y,
-      life:.40,maxLife:.40,scale});
+      life:duration,maxLife:duration,scale,weapon});
     // Kinetic impact, metal wall bounce and return are NOT 400px orange
     // grenade detonations. Reserve the native explosion atlas for actual AOE.
     if(kind==='blast')window.avCue?.('explosion',{x,y,weapon:'V43_'+kind});
     else if(kind==='ricochet')window.avCue?.('ricochet',{x,y,weapon:'STEEL_BALL_LAUNCHER'});
+  }
+  // One resolved projectile carries one damage scalar through reflection,
+  // ricochet, delayed split, ignite and fragment offspring. Never restore a
+  // pre-reflection config peak after Crystal's passive already reduced it.
+  function v43Redirected(p){return !!(p.__hr?.crystalReflected||p.aqReflected);}
+  function v43DamageScale(p,base){return p.__hr?.crystalReflected
+    ?v43min((p.damage||0)/Math.max(1e-6,base),0,2):1;}
+  // Single V4.3 post-hit adapter: the ONLY damage authority remains
+  // aqDamage -> Fighter.takeDamage. This receipt reports REAL hp loss through
+  // the exact Crystal afterBodyHit/notBodyHit route ordinary aq_bullet uses.
+  // The source marker also makes Gold result-ledger reflected damage visible.
+  function v43Deal(p,target,amount,opts={}){
+    const before=target?.hp??0;
+    const applied=aqDamage(target,amount,p.owner,p.weapon,{
+      ...opts,
+      resultSource:opts.resultSource||{
+        crystal:!!p.__hr?.crystalReflected,
+        mirror:!!p.resultMirrorCopy,magnet:!!p.resultMagnetPulled,
+        final:!!p.resultFinalShot
+      }
+    });
+    const realized=Math.max(0,before-(target?.hp??0));
+    if(realized>0){
+      const crystal=window.APEX_CRYSTAL;
+      crystal?.noteBodyHit?.(p,target);
+      crystal?.afterBodyHit?.(p,target,realized);
+    }
+    return applied;
   }
   function v43Splash(p,peak,radius){
     const targets=v43Enemies(p.owner);
@@ -647,15 +694,22 @@
       const rocketFactor=v43min(1-surfaceGap/range,0,1);
       if(p.kind==='rocket'){
         if(rocketFactor<=0)continue;
-        aqDamage(f,peak*rocketFactor,p.owner,p.weapon,{
+        v43Deal(p,f,peak*rocketFactor,{
           knockback:320*rocketFactor,shake:5*rocketFactor,hitStop:.012});
       }else{
         if(factor<=0)continue;
-        aqDamage(f,peak*factor,p.owner,p.weapon,{
+        v43Deal(p,f,peak*factor,{
           knockback:320*factor,shake:5*factor,hitStop:.012});
       }
     }
-    v43Pulse(p.x,p.y,'blast',radius/95);
+    v43Pulse(p.x,p.y,'blast',radius/95,p.weapon);
+  }
+  // One AOE authority for impact, wall and natural fuse: never detonate twice.
+  function v43DetonateRocket(p){
+    if(p.exploded)return false;
+    p.exploded=true;
+    v43Splash(p,p.damage??V43[p.weapon].peak,V43[p.weapon].blastRadius);
+    p.life=0;return true;
   }
   function v43Muzzle(f,weaponId,angle){
     // One owner-authored Gold muzzle follows the exact rendered held art.
@@ -672,85 +726,176 @@
   }
   function v43Spawn(f,id,kind,angle,extra={}){
     const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;
-    const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,
+    const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,launchOwner:f,
       x:m.x,y:m.y,px:m.x,py:m.y,ox:m.x,oy:m.y,
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       angle,spin:0,age:0,life:extra.life??3,maxLife:extra.life??3,
       radius:extra.radius??c.radius??8,damage:extra.damage??c.direct??0,
-      phase:extra.phase||'flight',hits:new Set(),bounces:0,visual:[{x:m.x,y:m.y}],
+      phase:extra.phase||'flight',hits:new Set(),bounces:0,visual:[{x:m.x,y:m.y,t:0}],
       ...extra};
     projectiles.push(p);return p;
   }
+  function v43ApplyBurn(target, owner, weapon, ticks, interval, damage, parent=null) {
+    if (!target || target.hp <= 0) return;
+    const burn={aq:true,type:'aq_v43',kind:'burn',owner,weapon,victim:target,
+      x:target.x,y:target.y,age:0,life:ticks*interval+.15,
+      maxLife:ticks*interval+.15,tickCount:0,burnTicks:ticks,
+      burnInterval:interval,burnDamage:damage};
+    if(parent?.__hr?.crystalReflected)burn.__hr={
+      crystalReflected:true,cryOwner:parent.__hr.cryOwner,neutral:false};
+    projectiles.push(burn);
+  }
   function v43FlameHit(p,dt){
     const c=V43.FLAMETHROWER;
-    // 5 timed contact samples, each bounded to real owner heading/cone.
+    // Continuous weapon-relative emission: each particle records the live
+    // muzzle pose at birth; old particles keep their original world positions.
+    const h=getHolder(p.owner),aim=h?.meta?.aimAngle;
+    if(Number.isFinite(aim))p.angle=aim;
+    const muzzle=v43Muzzle(p.owner,p.weapon,p.angle);
+    p.x=muzzle.x;p.y=muzzle.y;
+    if(!p.flameOrigins)p.flameOrigins=[];
+    p.flameOrigins.push({time:p.age,x:p.x,y:p.y,angle:p.angle});
+    if(p.flameOrigins.length>90)p.flameOrigins.shift();
     p.ticks=p.ticks||0;
-    if(p.ticks>=c.ticks)return;
-    const due=c.tickStart+p.ticks*c.tickInterval;
-    if(p.age+1e-6<due)return;
-    const dir=p.angle;
-    for(const f of v43Enemies(p.owner)){
-      const dx=f.x-p.owner.x,dy=f.y-p.owner.y,d=Math.hypot(dx,dy);
-      const off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-dir),
-        Math.cos(Math.atan2(dy,dx)-dir)));
-      if(d<=c.range+(f.radius||75)*.2&&off<=c.cone+Math.asin(v43min((f.radius||75)*.35/Math.max(d,1),0,1)))
-        aqDamage(f,p.damage||c.tickDamage,p.owner,p.weapon,{knockback:40});
+    while(p.ticks<c.ticks){
+      const due=c.tickStart+p.ticks*c.tickInterval;
+      if(p.age+1e-6<due)break;
+      const dir=p.angle;
+      for(const f of v43Enemies(p.owner)){
+        // The exact same live muzzle origin / cone / reach powers both
+        // the damage envelope and original Lab particle system.
+        const dx=f.x-p.x,dy=f.y-p.y,d=Math.hypot(dx,dy);
+        const off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-dir),
+          Math.cos(Math.atan2(dy,dx)-dir)));
+        if(d<=c.range+(f.radius||75)*.2
+          &&off<=c.cone+Math.asin(v43min((f.radius||75)*.35/Math.max(d,1),0,1))){
+          v43Deal(p,f,c.tickDamage,{knockback:26});
+          if(!p.burnRecipients)p.burnRecipients=new Set();
+          if(!p.burnRecipients.has(f)){
+            p.burnRecipients.add(f);
+            v43ApplyBurn(f,p.owner,p.weapon,c.burnTicks,c.burnInterval,c.burnDamage,p);
+          }
+        }
+      }
+      p.ticks++;
     }
-    p.ticks++;
-    if(p.ticks>=c.ticks)p.life=0;
+    if(p.ticks>=c.ticks){
+      // Stop physical damage; let only the emitted original Lab particles fade.
+      if(AQ.state?.visuals)pushVisual({
+        kind:'v43_flame_tail',x:p.x,y:p.y,angle:p.angle,
+        flameOrigins:(p.flameOrigins||[]).slice(),baseAge:p.age,
+        life:.65,maxLife:.65
+      });
+      p.life=0;
+    }
   }
-  // Arc-length lookup table: one physical Boomerang body; NO opponent homing.
-  // Separate outward/return lobes form a readable throw curve while retaining
-  // the launch angle and release point as the only trajectory inputs.
-  function v43MakeFlightPath(x,y,angle){
-    const dx=Math.cos(angle),dy=Math.sin(angle),nx=-dy,ny=dx;
-    const reach=380,bend=150;
-    const apex={x:x+dx*reach+nx*bend,y:y+dy*reach+ny*bend};
-    const points=[],samples=80;
-    const bez=(a,b,c,d,t)=>{const u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d;};
-    for(let leg=0;leg<2;leg++)for(let i=0;i<=samples;i++){
-      if(leg&&i===0)continue;
-      const t=i/samples;
-      const p0=leg?apex:{x,y},p3=leg?{x,y}:apex;
-      const p1=leg?{x:apex.x+dx*110-nx*120,y:apex.y+dy*110-ny*120}
-                  :{x:x+dx*145-nx*35,y:y+dy*145-ny*35};
-      const p2=leg?{x:x-dx*110-nx*135,y:y-dy*110-ny*135}
-                  :{x:apex.x-dx*35+nx*75,y:apex.y-dy*35+ny*75};
-      const pt={x:bez(p0.x,p1.x,p2.x,p3.x,t),y:bez(p0.y,p1.y,p2.y,p3.y,t)};
+  // A fast, physically legible, TARGET-AIMED throw. Launch direction is fixed
+  // at release (no cheating homing); outward leg crosses the enemy's recorded
+  // center. Return bends around the target, then reconnects to launch origin.
+  function v43MakeFlightPath(x,y,angle,target=null){
+    // Ported from owner's *actual* V4.3 NATURAL_FLIGHT Gold HTML.
+    // Target contributes to the INITIAL aiming angle only; trajectory shape
+    // and tangential speed NEVER sample the opponent after release.
+    const direction={x:Math.cos(angle),y:Math.sin(angle)};
+    const cross={x:-direction.y,y:direction.x};
+    const size=typeof GAME_SIZE==='number'?GAME_SIZE:1000;
+    // Bend into the roomier perpendicular half-plane for all aim angles,
+    // not merely based on Y (the latter flips incorrectly for left throws).
+    const normX=-direction.y,normY=direction.x;
+    const sideRoom=(sgn)=>{
+      const ux=normX*sgn,uy=normY*sgn;
+      const ax=Math.abs(ux)>.01?(ux>0?(size-30-x)/ux:(30-x)/ux):1e6;
+      const ay=Math.abs(uy)>.01?(uy>0?(size-30-y)/uy:(30-y)/uy):1e6;
+      return Math.max(0,Math.min(ax,ay));
+    };
+    // Negative local lateral is Gold's looping bank.
+    const bank=sideRoom(-1)>=sideRoom(1)?1:-1;
+    const lateralRoom=sideRoom(-bank);
+    // The Gold Lab runs left-to-right; generalize available forward arena
+    // distance along the shot direction so BOTH Arena players get the same
+    // Gold 400..490px aerodynamic loop when their positions are mirrored.
+    const dx=direction.x,dy=direction.y;
+    const forwardX=Math.abs(dx)>.05?(dx>0?(size-x)/dx:-x/dx):1e6;
+    const forwardY=Math.abs(dy)>.05?(dy>0?(size-y)/dy:-y/dy):1e6;
+    const available=Math.max(0,Math.min(forwardX,forwardY));
+    // Freeze opponent distance at release; extend the first leg up
+    // to 760px, but reserve space at world edges rather than forcing 400px.
+    const targetDistance=target?Math.hypot(target.x-x,target.y-y):Math.min(650,available);
+    const reach=Math.max(90,Math.min(targetDistance+(target?.radius||75)*.3,760));
+    // Cubic leg 2 overshoots longitudinal apex by about 4-6%, reserve
+    // 12% against border rather than letting the visible body clip out.
+    const distance=Math.min(reach,Math.max(30,(available-30)/1.12));
+    const turn=Math.min(Math.max(20,lateralRoom*.70),
+      Math.min(160,Math.max(34,distance*.31)));
+    const world=(u,v)=>({x:x+direction.x*u+cross.x*v*bank,
+      y:y+direction.y*u+cross.y*v*bank});
+    const a=world(0,0),b=world(distance,0),c=world(distance*.49,-turn);
+    // Preserve Gold's 3 cubic segments and banking/spin, while using a
+    // real straight outgoing intercept followed by its signature loop.
+    const legs=[
+      [a,world(distance*.24,0),world(distance*.75,0),b],
+      [b,world(distance*1.23,-turn*.5),world(distance*1.03,-turn),c],
+      [c,world(-distance*.05,-turn),world(distance*.15,-turn*.12),a],
+    ];
+    const cubic=(v0,v1,v2,v3,t)=>{
+      const u=1-t;return u*u*u*v0+3*u*u*t*v1+3*u*t*t*v2+t*t*t*v3;
+    };
+    const points=[{...a,s:0}],samples=80;
+    let length=0,far=0,farX=-Infinity;
+    for(const leg of legs)for(let i=1;i<=samples;i++){
+      const t=i/samples,p={x:cubic(leg[0].x,leg[1].x,leg[2].x,leg[3].x,t),
+        y:cubic(leg[0].y,leg[1].y,leg[2].y,leg[3].y,t)};
       const prior=points[points.length-1];
-      pt.s=(prior?.s||0)+(prior?Math.hypot(pt.x-prior.x,pt.y-prior.y):0);
-      points.push(pt);
+      length+=Math.hypot(p.x-prior.x,p.y-prior.y);
+      points.push({...p,s:length});
+      const longitudinal=(p.x-x)*direction.x+(p.y-y)*direction.y;
+      if(longitudinal>farX){farX=longitudinal;far=length;}
     }
-    return {points,total:points[points.length-1].s,
-      apexProgress:points[samples].s/Math.max(1e-6,points[points.length-1].s)};
+    return {points,total:length,far,farX,origin:{x,y},launchAngle:angle,
+      bank,distance,apexProgress:far/Math.max(1e-6,length),
+      revision:'NO_TARGET_WAYPOINTS_V43'};
   }
-  function v43PathAt(path,progress){
-    const pts=path.points,target=path.total*progress;
+  function v43PathAt(path,distance){
+    const pts=path.points,d=v43min(distance,0,path.total);
     let lo=0,hi=pts.length-1;
-    while(lo<hi){const mid=(lo+hi)>>1;if(pts[mid].s<target)lo=mid+1;else hi=mid;}
-    const b=pts[lo],a=pts[Math.max(0,lo-1)];
-    const t=(target-a.s)/Math.max(1e-6,b.s-a.s);
-    return {x:a.x+(b.x-a.x)*Math.min(1,t),y:a.y+(b.y-a.y)*Math.min(1,t)};
+    while(lo+1<hi){const mid=(lo+hi)>>1;if(pts[mid].s<d)lo=mid;else hi=mid;}
+    const a=pts[lo],b=pts[hi],t=(d-a.s)/Math.max(1e-6,b.s-a.s);
+    return {x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,
+      heading:Math.atan2(b.y-a.y,b.x-a.x)};
+  }
+  function v43BoomerangCurvature(path,travel){
+    const a=v43PathAt(path,travel-18),b=v43PathAt(path,travel+18);
+    return Math.abs(Math.atan2(Math.sin(b.heading-a.heading),
+      Math.cos(b.heading-a.heading)))/36;
   }
   function v43Step(p,dt){
     const c=V43[p.weapon];
     if(!c||!p.owner||p.owner.hp<=0||AQ.state?.over){p.life=0;return;}
     if(p.__hr?.cryHold)return;
     p.age+=dt; // Engine updateProjectiles owns every projectile's lifetime.
+    // Magnet publishes a swept, force-integrated A2 path for kinetic specials.
+    // Consume it once (normal bullets already consume theirs in Hero Rework).
+    const magnetPlan=window.APEX_MAGNET?.consumeMovementPlan?.(p)||null;
+    if(!magnetPlan&&p.__hr){p.__hr.pathVia=null;p.__hr.pathPoly=null;}
+    if(p.kind==='boomerang'&&magnetPlan)p.magnetReleased=true;
     if(p.kind==='flame'){v43FlameHit(p,dt);return;}
     if(p.kind==='mine'&&p.phase==='armed'){
       p.armAge=(p.armAge||0)+dt;
-      if(p.armAge>=c.triggerAge||v43Enemies(p.owner).some(f=>
-        Math.hypot(f.x-p.x,f.y-p.y)<c.triggerRadius+(f.radius||75)*.25)){
-        v43Splash(p,c.peak,c.blastRadius);
+      // Floor mine waits for a true opponent contact; timer only limits idle lifetime.
+      if(v43Enemies(p.owner).some(f=>
+        Math.hypot(f.x-p.x,f.y-p.y)<=c.triggerRadius+(f.radius||75)*.25)){
+        v43Splash(p,p.damage??c.peak,c.blastRadius);
         // One explosion, one shared per-victim fragment budget: no target
         // can ever receive more than 2 of the 8 shrapnel impacts.
         const fragmentGroup={victimHits:new Map()};
         for(let i=0;i<c.fragments;i++){
           const angle=i*Math.PI*2/c.fragments;
-          v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
-            px:p.x,py:p.y,radius:4,damage:c.fragmentDamage,fragmentGroup,
+          const child=v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
+            px:p.x,py:p.y,radius:4,
+            damage:c.fragmentDamage*v43DamageScale(p,c.peak),fragmentGroup,
             life:.55,vx:Math.cos(angle)*c.fragmentSpeed,vy:Math.sin(angle)*c.fragmentSpeed});
+          if(p.__hr?.crystalReflected)child.__hr={
+            crystalReflected:true,cryOwner:p.__hr.cryOwner,neutral:false};
         }
         p.life=0;
       }
@@ -764,12 +909,34 @@
       if(p.age>=c.armSeconds){p.phase='armed';p.armAge=0;}
       return;
     }
+    if(p.kind==='plasma'&&p.homing&&!v43Redirected(p)){
+      const target=v43Enemies(p.owner).reduce((best,f)=>!best||
+        Math.hypot(f.x-p.x,f.y-p.y)<Math.hypot(best.x-p.x,best.y-p.y)?f:best,null);
+      if(target){
+        const want=Math.atan2(target.y-p.y,target.x-p.x),now=Math.atan2(p.vy,p.vx);
+        const diff=Math.atan2(Math.sin(want-now),Math.cos(want-now));
+        const aim=now+v43min(diff,-c.shardTurnRate*dt,c.shardTurnRate*dt);
+        p.vx=Math.cos(aim)*c.shardSpeed;p.vy=Math.sin(aim)*c.shardSpeed;
+      }
+    }
+    // Crystal reflected boomerang is now a free ballistic projectile: the
+    // original owner's precomputed return spline cannot override Crystal's
+    // outgoing vector or magically change the new owner's trajectory.
+    if(p.kind==='boomerang'&&(v43Redirected(p)||p.magnetReleased)){
+      p.phase='redirected';p.homing=false;p.spin=(p.spin||0)+c.spin*dt;
+      const original=getHolder(p.launchOwner);
+      if(original?.weaponId===p.weapon)original.meta.v43Interrupted=true;
+    }
     if(p.kind==='bolt'){
       const sp=Math.hypot(p.vx,p.vy)||1;
       const ns=Math.min(c.maxSpeed,sp+c.acceleration*dt);
       p.vx=p.vx/sp*ns;p.vy=p.vy/sp*ns;
     }
     if(p.kind==='rocket'){
+      const dir=Math.atan2(p.vy,p.vx);
+      if(AQ.state?.visuals&&p.age<3.3)pushVisual({kind:'v43_smoke',
+        x:p.x-Math.cos(dir)*35,y:p.y-Math.sin(dir)*35,
+        angle:dir,seed:p.age*41,life:.68,maxLife:.68,scale:.88});
       const sp=Math.hypot(p.vx,p.vy)||1;
       const ns=Math.min(c.maxSpeed,sp+c.acceleration*dt);
       p.vx=p.vx/sp*ns;p.vy=p.vy/sp*ns;
@@ -778,71 +945,129 @@
       const m=Math.max(0,1-c.drag*dt);
       p.vx*=m;p.vy*=m;
     }
-    if(p.kind==='boomerang'){
-      // World path is sampled once from RELEASE geometry, never re-steered to
-      // the target or owner's later position. Time advances along arc length.
+    if(p.kind==='boomerang'&&!v43Redirected(p)&&!p.magnetReleased){
+      // Gold V4.3 NATURAL_FLIGHT: three cubic legs, true arc-length
+      // integration, centrifugal curve-drag and bounded acceleration.
+      // No opponent tracking, no constant-time spline teleport.
       const path=p.flightPath;
       if(!path){p.life=0;return;}
-      const q=v43PathAt(path,Math.min(1,p.age/c.flightSeconds));
+      const u=p.travel/Math.max(1e-6,path.total);
+      const curvature=v43BoomerangCurvature(path,p.travel);
+      const desired=v43min(c.cruise+65*Math.sin(Math.PI*v43min(u,0,1))
+        -curvature*c.curveDrag-100*u,c.minTurnSpeed,c.maxTurnSpeed);
+      p.speed+=v43min(desired-p.speed,-c.accelLimit*dt,c.accelLimit*dt);
+      const lastTravel=p.travel;
+      p.travel=Math.min(path.total,p.travel+p.speed*dt);
+      const q=v43PathAt(path,p.travel);
       p.px=p.x;p.py=p.y;
-      p.x=q.x;p.y=q.y;
+      p.x=q.x;p.y=q.y;p.angle=q.heading;
       p.vx=(p.x-p.px)/Math.max(dt,1e-5);
       p.vy=(p.y-p.py)/Math.max(dt,1e-5);
-      p.spin+=c.spin*dt*(1-.20*Math.min(1,p.age/c.flightSeconds));
-      if(p.phase==='out'&&p.age/c.flightSeconds>=path.apexProgress){
+      p.spinRate=c.spin*(1-.20*v43min(u,0,1));
+      p.spin+=p.spinRate*dt;
+      if(p.phase==='out'&&lastTravel<path.far&&p.travel>=path.far){
         p.phase='return';p.damage=c.returning;p.hits=new Set();
       }
-      if(p.age>=c.flightSeconds){
-        const h=getHolder(p.owner);
-        if(h?.weaponId===p.weapon&&h.phase==='IN_FLIGHT'){
-          h.phase='RETRIEVED';h.meta.v43Time=0;
-        }
+      // Catch the REAL return projectile, if and only if the hand is empty.
+      if(p.phase==='return'&&p.launchOwner?.hp>0
+        &&!getHolder(p.launchOwner)
+        &&distPointToSegment(p.launchOwner.x,p.launchOwner.y,
+          p.px,p.py,p.x,p.y)
+          <=(p.launchOwner.radius||75)+(p.radius||13)+15){
+        equip(p.launchOwner,p.weapon);
+        log('CATCH','fighter='+p.launchOwner.name+' weapon='+p.weapon);
         v43Pulse(p.x,p.y,'retrieve');p.life=0;return;
       }
-      p.visual.push({x:p.x,y:p.y});if(p.visual.length>24)p.visual.shift();
+      if(p.travel>=path.total-.01||p.age>=c.maxFlightSeconds){
+        // No phantom replacement sprite at the origin on a missed catch.
+        v43Pulse(p.x,p.y,'retrieve');p.life=0;return;
+      }
+      const previous=p.visual[p.visual.length-1];
+      if(!previous||Math.hypot(p.x-previous.x,p.y-previous.y)>4){
+        p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
+      }
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
-      if(hit&&!p.hits.has(hit.actor)){
+      // Every physical SPECIAL flight must pass through Crystal's single
+      // swept surface authority BEFORE native body damage. A K intercept
+      // may hold/re-own the exact projectile; never apply the stale body hit.
+      const crystal=window.APEX_CRYSTAL;
+      if(crystal?.resolveBullet){
+        const bodyT=hit?.t??2;
+        const outcome=crystal.resolveBullet(p,bodyT,dt);
+        if(outcome?.consumed){
+          if(v43Redirected(p)){
+            const original=getHolder(p.launchOwner);
+            if(original?.weaponId===p.weapon)original.meta.v43Interrupted=true;
+          }
+          return;
+        }
+      }
+      // One real Fighter contact per outward/return leg. The same actor
+      // cannot be struck repeatedly during a lingering swept overlap.
+      if(hit&&!p.hits.has(hit.actor)
+        &&p.hits.size<(c.maxHitsPerLeg??1)){
         p.hits.add(hit.actor);
-        aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
+        v43Deal(p,hit.actor,p.damage,{
           knockback:100,impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
         v43Pulse(hit.x,hit.y,'strike');
       }
       return;
     }
     p.px=p.x;p.py=p.y;
-    p.x+=p.vx*dt;p.y+=p.vy*dt;
-    p.visual.push({x:p.x,y:p.y});if(p.visual.length>24)p.visual.shift();
+    if(magnetPlan){
+      const ex=magnetPlan.entryX??(p.px+magnetPlan.preVx*dt*magnetPlan.entryT);
+      const ey=magnetPlan.entryY??(p.py+magnetPlan.preVy*dt*magnetPlan.entryT);
+      p.vx=magnetPlan.postVx;p.vy=magnetPlan.postVy;
+      p.x=magnetPlan.finalX??(ex+p.vx*dt*(1-magnetPlan.entryT));
+      p.y=magnetPlan.finalY??(ey+p.vy*dt*(1-magnetPlan.entryT));
+      p.__hr=p.__hr||{};
+      p.__hr.pathVia={x:ex,y:ey,t:magnetPlan.entryT,
+        preVx:magnetPlan.preVx,preVy:magnetPlan.preVy,
+        postVx:magnetPlan.postVx,postVy:magnetPlan.postVy};
+      p.__hr.pathPoly=magnetPlan.poly?.length?magnetPlan.poly:null;
+    }else{p.x+=p.vx*dt;p.y+=p.vy*dt;}
+    p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
     // Plasma core is a charged carrier, not a damaging early projectile.
     // Mine must land and arm first: an in-flight collision cannot bypass
     // the explicit 0.48s arming gate.
-    const hit=(p.kind==='plasma-core'||p.kind==='mine')?null
+    const hit=p.kind==='mine'?null
       :v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+    // CRYSTALA K / J: same real swept segment, wall/shard BEFORE fighter.
+    // Only mobile damage-bearing bodies are routed: an armed floor mine,
+    // flame cone and timed burn never masquerade as reflectable bullets.
+    const crystalEligible=V43[p.weapon]?.reflectableKinds?.includes(p.kind)
+      &&(p.kind!=='mine'||p.phase==='flight');
+    if(crystalEligible&&window.APEX_CRYSTAL?.resolveBullet){
+      const bodyT=hit?.t??2;
+      const outcome=window.APEX_CRYSTAL.resolveBullet(p,bodyT,dt);
+      if(outcome?.consumed)return;
+    }
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
+      if(p.kind==='plasma-core'){
+        v43Deal(p,hit.actor,p.damage??c.coreDamage,{knockback:80,
+          impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
+        v43Pulse(hit.x,hit.y,'plasma');p.life=0;return;
+      }
       if(p.kind==='rocket'){
-        v43Splash(p,p.damage||c.peak,c.blastRadius);
-        p.life=0;return;
+        v43DetonateRocket(p);return;
       }
       if(p.kind==='ball'){
         // Steel Ball is a direct kinetic collision, NEVER a scaled AOE.
         // Straight 98, one wall-bounce 109.76 (native Fighter.takeDamage).
-        aqDamage(hit.actor,p.damage??c.peak,p.owner,p.weapon,{
-          knockback:180,impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
+        v43Deal(p,hit.actor,p.damage??c.peak,{
+          knockback:720,knockbackSeconds:.29,
+          impactDirection:{x:p.vx,y:p.vy},impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
         v43Pulse(hit.x,hit.y,'strike');
         p.life=0;return;
       }
-      if(p.kind==='mine'){
-        if(p.phase==='armed')v43Splash(p,p.damage||c.peak,c.blastRadius);
-        else v43Splash(p,(p.damage||c.peak)*.75,c.blastRadius);
-        p.life=0;return;
-      }
-      if(p.kind==='fragment'&&p.fragmentGroup){
+            if(p.kind==='fragment'&&p.fragmentGroup){
         const counts=p.fragmentGroup.victimHits;
         const n=counts.get(hit.actor)||0;
         if(n>=c.maxFragmentHits){p.hits.add(hit.actor);p.life=0;return;}
         counts.set(hit.actor,n+1);
       }
-      aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
+      v43Deal(p,hit.actor,p.damage,{
         knockback:p.kind==='bolt'?180:100,
         ...(p.kind==='bolt'?{stun:0}:{}),
         impact:{x:p.x,y:p.y,vx:p.vx,vy:p.vy}});
@@ -850,9 +1075,8 @@
         const t=hit.actor;let burnCount=0;
         // Apply actual future burn ticks through game-time status via a world
         // projectile, not an interval (pauses with match engine).
-        projectiles.push({aq:true,type:'aq_v43',kind:'burn',owner:p.owner,weapon:p.weapon,
-          victim:t,x:t.x,y:t.y,age:0,life:c.burnTicks*c.burnInterval+.05,
-          maxLife:c.burnTicks*c.burnInterval+.05,tickCount:burnCount});
+        v43ApplyBurn(t,p.owner,p.weapon,c.burnTicks,c.burnInterval,
+          c.burnDamage*v43DamageScale(p,c.direct),p);
       }
       if(p.kind==='bolt')hit.actor.applyStatus?.('slow',c.slowSeconds,{mult:c.slowMult});
       if(p.kind==='fragment'){
@@ -867,7 +1091,8 @@
       const wall=p.x<=p.radius||p.x>=GAME_SIZE-p.radius||
         p.y<=p.radius||p.y>=GAME_SIZE-p.radius;
       if(wall&&p.bounces<c.maxBounces){
-        p.bounces++;p.damage=c.ricochetPeak;
+        const currentScale=v43DamageScale(p,p.bounces?c.ricochetPeak:c.peak);
+        p.bounces++;p.damage=c.ricochetPeak*currentScale;
         if(p.x<=p.radius||p.x>=GAME_SIZE-p.radius)p.vx=-p.vx*c.restitution;
         if(p.y<=p.radius||p.y>=GAME_SIZE-p.radius)p.vy=-p.vy*c.restitution;
         p.vx*=c.horizontalRetention;p.vy*=c.horizontalRetention;
@@ -876,29 +1101,41 @@
     }
     if(p.kind==='rocket'&&(p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
       p.x=v43min(p.x,0,GAME_SIZE);p.y=v43min(p.y,0,GAME_SIZE);
-      v43Splash(p,c.peak,c.blastRadius);p.life=0;
+      v43DetonateRocket(p);
+    }
+    if(p.kind==='plasma-core'&&
+      (p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
+      p.life=0;return; // A missed core outside the arena never divides.
     }
     if(p.kind==='plasma-core'&&p.age>=c.splitAfter){
       for(const da of c.spread){
         const angle=Math.atan2(p.vy,p.vx)+da;
-        v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
-          radius:c.radius,damage:p.damage||c.shardDamage,vx:Math.cos(angle)*c.shardSpeed,
-          vy:Math.sin(angle)*c.shardSpeed,life:1.7});
+        const child=v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
+          radius:c.radius,damage:c.shardDamage*v43DamageScale(p,c.coreDamage),
+          vx:Math.cos(angle)*c.shardSpeed,vy:Math.sin(angle)*c.shardSpeed,
+          life:2.3,homing:!v43Redirected(p)});
+        if(v43Redirected(p)){
+          child.aqReflected=!!p.aqReflected;
+          child.__hr={crystalReflected:!!p.__hr?.crystalReflected,
+            cryOwner:p.__hr?.cryOwner,neutral:false};
+        }
       }
       v43Pulse(p.x,p.y,'split');p.life=0;
     }
-    if(p.life<=0&&p.kind==='rocket'){
-      v43Splash(p,p.damage||c.peak,c.blastRadius);
+    // The base engine removes expired projectiles before this step.
+    if(p.kind==='rocket'&&p.life<=Math.max(.04,dt*1.5)){
+      v43DetonateRocket(p);
     }
   }
   function v43TickBurn(p,dt){
-    const c=V43.FLARE_GUN,t=p.victim;
+    const c=V43[p.weapon],t=p.victim;
     if(!t||t.hp<=0||t.withdrawn===true){p.life=0;return;}
     p.age+=dt;p.x=t.x;p.y=t.y; // Engine owns p.life.
-    while((p.tickCount||0)<c.burnTicks
-      &&p.age+1e-7>=((p.tickCount||0)+1)*c.burnInterval){
+    const ticks=p.burnTicks??c.burnTicks,interval=p.burnInterval??c.burnInterval;
+    while((p.tickCount||0)<ticks
+      &&p.age+1e-7>=((p.tickCount||0)+1)*interval){
       p.tickCount=(p.tickCount||0)+1;
-      aqDamage(t,c.burnDamage,p.owner,p.weapon,{statusDamage:true});
+      v43Deal(p,t,p.burnDamage??c.burnDamage,{statusDamage:true});
     }
   }
   // Native Arsenal holder driver owns equip/READY/ammo/pose/consume for all
@@ -913,7 +1150,9 @@
       onEquip(ctx){ctx.holder.phase='READY';},
       canActivate(ctx){return ctx.holder.phase==='READY'
         &&ctx.holder.elapsed>=(c.readyDelaySeconds??CFG.RANGED_READY_DELAY_SECONDS)
-        &&enemyAlive(ctx);},
+        &&enemyAlive(ctx)
+        &&(id!=='FLAMETHROWER'||Math.hypot(ctx.enemy.x-ctx.fighter.x,ctx.enemy.y-ctx.fighter.y)
+          <=c.idealRange+(ctx.enemy.radius||75)*.25);},
       activate(ctx){
         const f=ctx.fighter,h=ctx.holder,a=angleToEnemy(ctx);
         h.phase='WINDUP';h.meta.v43Time=0;
@@ -939,31 +1178,42 @@
           // A lifecycle interruption must never strand a permanently armed
           // holder if a projectile was destroyed by external effects.
           if(!projectiles.some(p=>p?.aq&&p.weapon===id&&p.owner===f&&p.kind==='boomerang'&&p.life>0)){
-            h.phase='RETRIEVED';h.meta.v43Time=0;
+            if(h.meta.v43Interrupted)consume(f,'boomerang-redirected-away');
+            else{h.phase='RETRIEVED';h.meta.v43Time=0;}
           }
           return;
         }
         if(h.phase!=='WINDUP')return;
         h.meta.v43Time+=dt;
         if(h.meta.v43Time<h.meta.v43Wait)return;
-        const a=h.meta.v43Angle;
+        const a=id==='COMBAT_BOOMERANG'?angleToEnemy(ctx):h.meta.v43Angle;
         const kind={flare:'flare',bolt:'bolt',ball:'ball',boomerang:'boomerang',
           rocket:'rocket',flame:'flame',plasma:'plasma-core',mine:'mine'}[c.kind];
         if(!kind)throw Error('special executor not implemented '+c.kind);
         const x=v43Spawn(f,id,kind,a,{phase:kind==='boomerang'?'out':'flight',
           speed:kind==='plasma-core'?c.coreSpeed:undefined,
-          life:kind==='flame'?c.duration:kind==='boomerang'?c.flightSeconds+.16:3.2,
+          life:kind==='flame'?c.duration:kind==='mine'?12.5:
+            kind==='boomerang'?c.flightSeconds+.16:3.2,
           radius:c.radius||8,damage:c.direct??c.peak??c.outgoing??c.shardDamage??c.tickDamage??0});
         h.shotsFired+=1; // Same holder ammo/telemetry law as normal Arsenal guns.
         AQ.state?.resultLedger?.onShot?.(f,id);
         poseKick(h,poseRecipe(id));
         window.avCue?.('fire',{weapon:id,family:'SPECIAL',x:f.x,y:f.y,angle:a});
-        if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;}
-        if(kind==='plasma-core'){x.damage=c.shardDamage;}
+        if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;x.flameOrigins=[];}
+        if(kind==='plasma-core'){x.damage=c.coreDamage;}
         if(kind==='boomerang'){
-          x.spin=0;x.damage=c.outgoing;
-          x.flightPath=v43MakeFlightPath(x.x,x.y,a);
-          h.phase='IN_FLIGHT';h.meta.v43Time=0;
+          x.spin=0;x.spinRate=c.spin;x.damage=c.outgoing;
+          // Aim from actual muzzle to the opponent; no further tracking.
+          const foe=ctx.enemy;
+          const throwAngle=foe?Math.atan2(foe.y-x.y,foe.x-x.x):a;
+          x.flightPath=v43MakeFlightPath(x.x,x.y,throwAngle,foe);
+          x.angle=throwAngle;
+          x.vx=Math.cos(throwAngle)*c.speed;
+          x.vy=Math.sin(throwAngle)*c.speed;
+          x.travel=0;x.speed=c.speed;
+          x.life=x.maxLife=c.maxFlightSeconds+.35;
+          // Free the hand immediately; collecting another gun is legal.
+          f.data.arsenal=null;
         }else{
           h.phase='FOLLOW_THROUGH';h.meta.v43Time=0;
         }
@@ -980,6 +1230,11 @@
       if (!p || !p.aq) continue;
       if (dispatch === 'v43-only' && p.type !== 'aq_v43') continue;
       if(p.type==='aq_v43'){
+        // The global updateProjectiles(dt) already owns lifetime and cleanup.
+        // NEVER subtract life a second time: that silently truncates burn,
+        // shortens plasma/flame motion and destroys mine arming state.
+        // Crystal's held body can refresh its own refraction escrow lifetime.
+        if(p.__hr?.cryHold){window.APEX_CRYSTAL?.holdStep?.(p);continue;}
         if(p.kind==='burn')v43TickBurn(p,dt);else v43Step(p,dt);
         if(p.life<=0)projectiles.splice(i,1);
         continue;
@@ -1260,10 +1515,11 @@
   // Owner V4.3 Gold visual recipe: ribbon geometry and layered flame are
   // PRESENTATION ONLY. The actual projectile path and Fighter damage remain
   // owned by the native Arsenal / Hero Rework engine.
-  function v43GoldTongue(ctx,x,y,angle,size,time,alpha=1){
+  function v43GoldTongue(ctx,x,y,angle,size,seed,alpha=1,now=seed){
     ctx.save();ctx.translate(x,y);ctx.rotate(angle);
     ctx.globalCompositeOperation='lighter';ctx.lineJoin='round';
-    const yy=Math.sin(time*24)*size*.18;
+    // Gold fireTongue samples absolute simulation time AND per-particle seed.
+    const yy=Math.sin(now*24+seed*2)*size*.18;
     for(const [k,color,opacity] of [[1.5,'#bd2418',.20],[1.06,'#ff521a',.42],[.68,'#ffad3c',.58],[.32,'#fff7c9',.65]]){
       ctx.globalAlpha=opacity*alpha;ctx.fillStyle=color;ctx.beginPath();
       ctx.moveTo(-size*.65*k,0);
@@ -1275,13 +1531,10 @@
     }
     ctx.restore();
   }
-  // Direct authoring transfer from the Gold V4.3 Lab's flamethrower:
-  // 470 emitted particles/s, spread ±.22 rad, 280-555 px/s, fast
-  // 0.20-0.45s flame and 10% 0.42-0.65s smoke. Here a deterministic
-  // particle field is sampled from projectile age, so game logic, target
-  // collision and pause-time remain completely native and reproducible.
+  // Flame Gun visuals exclusively use the owner's uploaded original V4.3 Lab.
+  // No invented polygon fan, fuel-lanes, overlay or competing plume.
   function v43GoldFlamethrowerParticles(ctx,p) {
-    const total=Math.min(310,Math.floor(Math.min(p.age,.65)*470));
+    const total=Math.min(310,Math.floor(Math.min(p.age,V43.FLAMETHROWER.duration)*470));
     const originX=Number.isFinite(p.ox)?p.ox:p.x,
       originY=Number.isFinite(p.oy)?p.oy:p.y;
     const heading=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
@@ -1293,11 +1546,17 @@
       if(age<0)continue;
       const type=rnd(i,7),life=type<.10?.42+rnd(i,8)*.23:.20+rnd(i,9)*.25;
       if(age>=life)continue;
-      const a=heading+(rnd(i,1)*2-1)*.22;
+      let pose={x:originX,y:originY,angle:heading};
+       if(p.flameOrigins?.length){
+         for(let j=p.flameOrigins.length-1;j>=0;j--){
+           if(p.flameOrigins[j].time<=birth+.02){pose=p.flameOrigins[j];break;}
+         }
+       }
+       const a=pose.angle+(rnd(i,1)*2-1)*(.22*(V43.FLAMETHROWER.cone/.36));
       const v=280+rnd(i,2)*275;
-      const travel=v*age*(1-.13*age);
-      const px=originX+Math.cos(a)*travel+(rnd(i,3)-.5)*6;
-      const py=originY+Math.sin(a)*travel+(rnd(i,4)-.5)*10-
+      const travel=Math.min(V43.FLAMETHROWER.range,v*age*(1-.13*age));
+      const px=pose.x+Math.cos(a)*travel+(rnd(i,3)-.5)*6;
+      const py=pose.y+Math.sin(a)*travel+(rnd(i,4)-.5)*10-
         (type<.10?11*age*age:Math.sin(p.age*19+i*.74)*4*age);
       const opacity=Math.pow(1-age/life,.70);
       const size=type<.10?8+rnd(i,5)*9:5+rnd(i,5)*9;
@@ -1321,13 +1580,68 @@
         ctx.lineTo(px,py);ctx.stroke();ctx.restore();
       } else {
         v43GoldTongue(ctx,px,py,a,size*(.56+opacity*.7),
-          p.age+i*.038,opacity*.72);
+          i*.038,opacity*.72,p.age);
       }
     }
+  }
+  // Faithful Gold Lab airfoil wake: time-gated path samples, twin rolling
+  // wingtip vortices and two spinning local hook cuts. No static halos.
+  // The time history lives on the same authoritative projectile positions;
+  // Crystal re-direction therefore bends the VFX with the real trajectory.
+  function v43GoldBoomerangAirflow(ctx,p,life){
+    const q=p.visual,now=p.age;
+    if(!q||q.length<3)return;
+    const tail=q.filter(a=>now-(a.t??0)<.31);
+    if(tail.length<3)return;
+    const velocity=Math.hypot(p.vx||0,p.vy||0)||1;
+    const strength=v43min((v43Redirected(p)?velocity:(p.speed||velocity))/600,.35,1.1);
+    ctx.save();ctx.globalCompositeOperation='screen';ctx.lineCap='round';ctx.lineJoin='round';
+    for(let layer=0;layer<3;layer++){
+      const side=layer===0?-1:layer===1?1:0,points=[];
+      for(let j=0;j<tail.length;j++){
+        const a=tail[j],pr=tail[Math.max(0,j-1)],ne=tail[Math.min(tail.length-1,j+1)];
+        const dx=ne.x-pr.x,dy=ne.y-pr.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
+        const age=v43min((now-(a.t??0))/.31,0,1),old=age*age;
+        const twist=side*(11+old*15)
+          +Math.sin((a.t??0)*(p.spinRate||V43[p.weapon]?.spin||38)*.65+layer*2.1)
+            *old*(5+8*old);
+        points.push({x:a.x+nx*twist,y:a.y+ny*twist});
+      }
+      for(let pass=0;pass<2;pass++){
+        const core=pass===1,t=points[0],h=points[points.length-1];
+        const grad=ctx.createLinearGradient(t.x,t.y,h.x,h.y);
+        const tint=layer===0?'169,232,254':layer===1?'109,201,238':'213,247,255';
+        grad.addColorStop(0,'rgba('+tint+',0)');
+        grad.addColorStop(.32,'rgba('+tint+','+(core?.06:.09)+')');
+        grad.addColorStop(.75,'rgba('+tint+','+(core?.28:.17)+')');
+        grad.addColorStop(1,'rgba('+tint+','+(core?.48:.28)+')');
+        ctx.strokeStyle=grad;ctx.globalAlpha=strength*(core?.85:.80)*life;
+        ctx.lineWidth=core?(layer===2?1.4:1.7):(layer===2?7:10);
+        ctx.beginPath();ctx.moveTo(t.x,t.y);
+        for(let j=1;j<points.length-1;j++){
+          const a=points[j],b=points[j+1];
+          ctx.quadraticCurveTo(a.x,a.y,(a.x+b.x)*.5,(a.y+b.y)*.5);
+        }
+        ctx.lineTo(h.x,h.y);ctx.stroke();
+      }
+    }
+    const tx=p.vx/velocity,ty=p.vy/velocity,nx=-ty,ny=tx;
+    for(let j=0;j<2;j++){
+      const phase=p.spin+j*Math.PI,side=Math.sin(phase),radius=16+Math.cos(phase)*5;
+      ctx.globalAlpha=(.20+.16*(.5+.5*side))*strength*life;
+      ctx.strokeStyle=j===0?'#d3f6ff':'#8fd9f2';ctx.lineWidth=1.8+j*.7;
+      const x=p.x-tx*20+nx*side*radius,y=p.y-ty*20+ny*side*radius;
+      ctx.beginPath();ctx.moveTo(x-tx*19,y-ty*19);
+      ctx.quadraticCurveTo(x-tx*9+nx*side*9,y-ty*9+ny*side*9,
+        x+tx*13+nx*side*5,y+ty*13+ny*side*5);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
   function v43GoldRibbon(ctx,p,life){
     const q=p.visual;if(!q||q.length<3)return;
     const boom=p.kind==='boomerang';
+    if(boom){v43GoldBoomerangAirflow(ctx,p,life);return;}
     const color={flare:'#ff6530',rocket:'#e3b186',bolt:'#cfe5e9',ball:'#c6a87a'}[p.kind];
     if(!color&&!boom)return;
     const maxWidth=boom?30:p.kind==='flare'?18:p.kind==='rocket'?20:p.kind==='ball'?7:5;
@@ -1377,13 +1691,43 @@
     }
     ctx.restore();
   }
+  // Exact owner Gold drawPremiumLayer plasma transport ribbons. This layer
+  // reads the same physical carrier position/velocity as the native attack;
+  // it NEVER creates a second projectile or extra damage authority.
+  function v43GoldPlasmaTrail(ctx,p,life=1){
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    const a=Math.atan2(p.vy,p.vx);ctx.translate(p.x,p.y);ctx.rotate(a);
+    for(let j=0;j<3;j++){
+      ctx.strokeStyle=['#793cc8','#bd83f8','#f1d7ff'][j];
+      ctx.globalAlpha=[.15,.40,.73][j]*life;ctx.lineWidth=[23,8,1.5][j];
+      ctx.lineCap='round';ctx.beginPath();
+      ctx.moveTo(-72+j*12,Math.sin(p.age*18+j)*3);
+      ctx.quadraticCurveTo(-40,Math.sin(p.age*15+j)*10,0,0);ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // The exact owner Gold Lab's eight animated mine-arming spokes are
+  // drawn in WORLD space after the sprite. The former version rotated this
+  // halo with the image/velocity, producing a different motion signature.
+  function v43GoldMineArming(ctx,p,life=1){
+    const t=p.age*10;
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.translate(p.x,p.y);
+    ctx.strokeStyle='#ffa44f';ctx.lineWidth=2;
+    for(let i=0;i<8;i++){
+      const a=i*TAU/8,r=38+Math.sin(t+i)*4;
+      ctx.globalAlpha=(.15+.23*(.5+.5*Math.sin(t)))*life;
+      ctx.beginPath();ctx.moveTo(Math.cos(a)*27,Math.sin(a)*27);
+      ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.stroke();
+    }
+    ctx.restore();
+  }
   function v43GoldProjectile(ctx,p){
-    const c=V43[p.weapon]||{},life=v43min(p.life/Math.max(.1,p.maxLife),0,1);
+    const c=V43[p.weapon]||{},life=p.kind==='boomerang'
+      ?v43min(p.life/.25,0,1):v43min(p.life/Math.max(.1,p.maxLife),0,1);
     const angle=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
     v43GoldRibbon(ctx,p,life);
     if(p.kind==='flame'){
-      // Gold V4.3 emits ~470 short-lived particles/sec for .65s.
-      // Presentation reads p.age only; no projectile/HP mutations.
+      // Original owner Lab: smoke, ember and 4-layer flame tongues only.
       v43GoldFlamethrowerParticles(ctx,p);
       return;
     }
@@ -1393,39 +1737,68 @@
         const x=t.x+Math.sin(p.age*19+i*3.4)*24,y=t.y+
           Math.cos(p.age*23+i*7)*18-(p.age*18+i*13)%48;
         v43GoldTongue(ctx,x,y,-Math.PI/2+Math.sin(p.age*4+i)*.24,
-          9+i*.8,p.age+i*.5,.67*life);
+          9+i*.8,i*.5,.67*life,p.age);
       }
       return;
     }
     if(p.kind==='plasma'||p.kind==='plasma-core'){
+      // Gold's 3 ribbons are immutable; the 7 finer current-arcs below
+      // are additive V4.3 detail, never a substitute for Gold transport.
+      v43GoldPlasmaTrail(ctx,p,life);
+      const heading=Math.atan2(p.vy||0,p.vx||1);
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(heading);
+      ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+      const distance=p.kind==='plasma-core'?92:73;
+      ctx.lineWidth=1.2;ctx.strokeStyle='#f7e8ff';ctx.globalAlpha=.38*life;
+      for(let j=0;j<7;j++){
+        const phase=p.age*27+j*1.91;
+        ctx.beginPath();ctx.moveTo(-distance*.9+Math.sin(phase)*8,Math.cos(phase)*12);
+        ctx.quadraticCurveTo(-distance*.5,Math.sin(phase*1.4)*21,-3,Math.cos(phase)*7);
+        ctx.stroke();
+      }
+      ctx.restore();
+      // Exact Gold Lab concentric energized core: four luminous passes with
+      // individual bloom, not flat gradients that hide the inner ring.
       const radius=p.kind==='plasma-core'?18:10;
       ctx.save();ctx.translate(p.x,p.y);ctx.globalCompositeOperation='lighter';
       for(let i=3;i>=0;i--){
-        const r=radius*(1.75-i*.26)+Math.sin(p.age*14+i)*1.5;
-        const g=ctx.createRadialGradient(-r*.2,0,0,0,0,r);
-        g.addColorStop(0,i>1?'rgba(255,249,255,.88)':'rgba(210,156,255,.44)');
-        g.addColorStop(.45,i>1?'rgba(198,138,255,.47)':'rgba(122,49,219,.32)');
-        g.addColorStop(1,'rgba(86,29,178,0)');
-        ctx.globalAlpha=life*(.48+i*.12);ctx.fillStyle=g;
-        ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.fill();
+        ctx.globalAlpha=(.28+i*.18)*life;
+        ctx.fillStyle=['#7125db','#9a52f5','#c69aff','#fff9ff'][i];
+        ctx.shadowColor='#a65bff';ctx.shadowBlur=26-i*5;
+        ctx.beginPath();ctx.arc(0,0,radius*(1.75-i*.26)+Math.sin(p.age*14+i)*1.5,0,TAU);ctx.fill();
       }
-      ctx.strokeStyle='#edccff';ctx.lineWidth=1.4;ctx.globalAlpha=.77*life;
+      ctx.shadowBlur=0;ctx.globalAlpha=.88*life;
+      ctx.strokeStyle='#edccff';ctx.lineWidth=2;
       for(let i=0;i<5;i++){
-        const a=p.age*23+i*TAU/5;ctx.beginPath();
-        ctx.moveTo(Math.cos(a)*(radius+3),Math.sin(a)*(radius+3));
+        const a=p.age*25.2+i*TAU/5;
+        ctx.beginPath();ctx.moveTo(Math.cos(a)*(radius+3),Math.sin(a)*(radius+3));
         ctx.lineTo(Math.cos(a)*(radius+9),Math.sin(a)*(radius+9));ctx.stroke();
       }
       ctx.restore();return;
     }
     if(p.kind==='flare'){
-      const a=Math.atan2(p.vy||0,p.vx||1);
-      v43GoldTongue(ctx,p.x,p.y,a,20,p.age,life);
-      ctx.save();ctx.globalCompositeOperation='lighter';
-      ctx.translate(p.x,p.y);ctx.rotate(a);
-      const glow=ctx.createRadialGradient(0,0,0,0,0,35);
-      glow.addColorStop(0,'rgba(255,245,199,.92)');glow.addColorStop(.35,'rgba(255,112,50,.44)');
-      glow.addColorStop(1,'rgba(220,46,11,0)');
-      ctx.globalAlpha=life;ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,35,0,TAU);ctx.fill();ctx.restore();
+      const a=Math.atan2(p.vy||0,p.vx||1),clock=p.age;
+      const pulse=1+Math.sin(clock*19)*.12;
+      v43GoldTongue(ctx,p.x,p.y,a+.1,19*pulse,clock*19,life,clock);
+      // The original Gold path ribbon remains unchanged, augmented only by
+      // short-lived flame tongues following its TRUE historical positions.
+      // Unlike billboard circles these filaments bend with the flight path.
+      const q=p.visual||[];
+      for(let j=1;j<=Math.min(5,q.length-2);j++){
+        const i=q.length-1-j,pt=q[i],nx=q[i+1];
+        const ang=Math.atan2(nx.y-pt.y,nx.x-pt.x);
+        const age=Math.max(0,clock-(pt.t||0));
+        const alpha=life*Math.max(0,.34-age*.7)*(1-j*.085);
+        if(alpha<=0)continue;
+        v43GoldTongue(ctx,pt.x,pt.y,ang,12+j*.9,
+          (pt.t||0)*19+j*.7,alpha,clock);
+      }
+      // Gold drawFlareHead's focused white elliptical spearhead, not the
+      // former featureless 35px radial disk over the flame animation.
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(a);
+      ctx.globalCompositeOperation='lighter';ctx.fillStyle='#fff6e1';
+      ctx.shadowColor='#ff7140';ctx.shadowBlur=19;ctx.globalAlpha=life;
+      ctx.beginPath();ctx.ellipse(4,0,9,4,0,0,TAU);ctx.fill();ctx.restore();
       return;
     }
     if(p.kind==='fragment'){
@@ -1462,7 +1835,8 @@
       const h=w*img.naturalHeight/img.naturalWidth;
       ctx.drawImage(img,-w/2,-h/2,w,h);
     }
-    // Mine's tiny arming LED and Gold corner brackets, not a large target ring.
+    // Sprite-specific LED and corner brackets stay with the mine body;
+    // its Gold arming halo is added after restoring world-space coordinates.
     if(p.kind==='mine'&&p.phase==='armed'){
       const beat=.3+.35*(1+Math.sin(p.age*14))/2;
       ctx.globalCompositeOperation='lighter';
@@ -1473,6 +1847,8 @@
       ctx.fillStyle='#ffd4a1';ctx.beginPath();ctx.arc(0,0,4,0,TAU);ctx.fill();
     }
     ctx.restore();
+    // Render world-aligned GOLD eight-spoke halo AFTER the physical mine sprite.
+    if(p.kind==='mine'&&p.phase==='armed')v43GoldMineArming(ctx,p,life);
   }
 
   function drawArsenalProjectiles(ctx) {
@@ -2448,7 +2824,11 @@
           if (h.meta.pose) h.meta.pose.rotKick = poseRecipe('SWIRL_SHIELD').idleSettle * Math.sin(h.elapsed * 8.4);
           // Reflect the first eligible hostile projectile that comes close.
           for (const p of projectiles) {
-            if (!p || p.type !== 'aq_bullet' || !p.owner || p.owner === f || p.aqReflected) continue;
+            const reflectable=p?.type==='aq_bullet'||(p?.type==='aq_v43'
+              &&V43[p.weapon]?.reflectableKinds?.includes(p.kind)
+              &&(p.kind!=='mine'||p.phase==='flight'));
+            if(!p||!reflectable||!p.owner||p.owner===f||p.aqReflected
+              ||p.__hr?.crystalReflected||p.__hr?.cryHold)continue;
             if (dist(p.x, p.y, f.x, f.y) > spec.reflectRadius + p.radius) continue;
             const toHolder = { x: f.x - p.x, y: f.y - p.y };
             if (p.vx * toHolder.x + p.vy * toHolder.y <= 0) continue; // moving away
@@ -2456,6 +2836,11 @@
             const speed = Math.hypot(p.vx, p.vy) || 700;
             p.owner = f; // ownership switches to the reflector
             p.aqReflected = true;
+            if(p.kind==='boomerang'){
+              const thrownHolder=getHolder(originalOwner);
+              if(thrownHolder?.weaponId===p.weapon)
+                thrownHolder.meta.v43Interrupted=true;
+            }
             const back = norm(originalOwner.x - p.x || 1, originalOwner.y - p.y);
             p.vx = back.x * speed * 1.08;
             p.vy = back.y * speed * 1.08;
@@ -2561,6 +2946,21 @@
   // explosion circle or repeating five-segment ring for every weapon.
   function v43GoldImpact(ctx,v,life){
     const kind=v.kind.slice(4),age=1-life,blast=kind==='blast';
+    if(kind==='smoke'){
+      ctx.save();ctx.translate(v.x,v.y);ctx.rotate((v.angle||0)+Math.sin(v.seed||0)*.3);
+      ctx.scale(1.35,.78);
+      for(let i=0;i<4;i++){
+        const x=-i*11*age+(i-2)*7,y=Math.sin((v.seed||0)+i*2.1)*11;
+        const radius=(20+i*5)*(1+age*1.45);
+        const g=ctx.createRadialGradient(x-radius*.22,y,2,x,y,radius);
+        const alpha=(.21-i*.023)*Math.sin(Math.PI*Math.pow(age,.65));
+        g.addColorStop(0,'rgba(138,143,149,'+alpha+')');
+        g.addColorStop(.62,'rgba(88,93,105,'+(alpha*.68)+')');
+        g.addColorStop(1,'rgba(37,43,51,0)');
+        ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,radius,0,TAU);ctx.fill();
+      }
+      ctx.restore();return;
+    }
     const plasma=kind==='plasma'||kind==='split';
     const radius=(blast?120:plasma?62:40)*(v.scale||1);
     ctx.save();ctx.translate(v.x,v.y);
@@ -2590,17 +2990,37 @@
         ctx.restore();
       }
     }
-    const tone=plasma?'#cf92ff':blast?'#ffe3b6':'#f3d4a4';
-    ctx.strokeStyle=tone;ctx.lineCap='round';
-    // Metal contact emits two asymmetric glints; explosive pressure uses
-    // partial arcs that expand and dissipate, not complete circular stamps.
-    const n=blast?5:2;
-    for(let i=0;i<n;i++){
-      const theta=v.x*.043+i*(blast?TAU/n:Math.PI*.91)+age*.45;
-      ctx.globalAlpha=life*(blast?.28:.7);
-      ctx.lineWidth=Math.max(1.1,(blast?3.8:3-i*.7)*(1-age*.62));
-      ctx.beginPath();ctx.arc(0,0,radius*(.18+age*(blast?.82:.42)),
-        theta,theta+(blast?.32:.45+age*.17));ctx.stroke();
+    if(blast){
+      // Exact GOLD drawBlast pressure arcs: 5 broken arcs with per-arc
+      // asymmetry, light falloff and stroke mass tied to the blast radius.
+      // Match the owner Lab's Canvas trace BEFORE variant debris is added.
+      for(let i=0;i<5;i++){
+        const rot=v.x*.043+i*TAU/5;
+        ctx.strokeStyle=i%2?'#ffe3b6':'#d88562';ctx.globalAlpha=Math.pow(life,1.25)*.28;
+        ctx.lineWidth=Math.max(.7,3*life);ctx.lineCap='round';ctx.beginPath();
+        ctx.arc(0,0,radius*(.22+.78*age)*(1+.018*Math.sin(i+v.y)),
+          rot,rot+.50+age*.42);ctx.stroke();
+      }
+    }else{
+      ctx.strokeStyle=plasma?'#cf92ff':'#f3d4a4';ctx.lineCap='round';
+      for(let i=0;i<2;i++){
+        const theta=v.x*.043+i*Math.PI*.91+age*.45;
+        ctx.globalAlpha=life*.7;
+        ctx.lineWidth=Math.max(1.1,(3-i*.7)*(1-age*.62));
+        ctx.beginPath();ctx.arc(0,0,radius*(.18+age*.42),
+          theta,theta+.45+age*.17);ctx.stroke();
+      }
+    }
+    if(blast){
+      const mine=v.weapon==='SHRAPNEL_MINE_LAUNCHER';
+      for(let i=0;i<(mine?32:21);i++){
+        const a=i*2.399963+v.x*.017;
+        const reach=radius*(.22+age*(mine?1.55:1.1))*(.55+.45*Math.sin(i*17.1)**2);
+        ctx.globalAlpha=life*(i%3===0?.8:.48);ctx.lineWidth=Math.max(1,3.4*(1-age));
+        ctx.strokeStyle=mine?(i%2?'#ffe2a0':'#f0a34e'):(i%2?'#ffe9cf':'#f2a56b');
+        ctx.beginPath();ctx.moveTo(Math.cos(a)*reach*.43,Math.sin(a)*reach*.43);
+        ctx.lineTo(Math.cos(a)*reach,Math.sin(a)*reach);ctx.stroke();
+      }
     }
     if(plasma){
       const r=radius*(.45+age*.85);
@@ -2633,6 +3053,10 @@
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 4 * a + 1;
         ctx.stroke();
+      } else if(v.kind==='v43_flame_tail'){
+        const age=v.baseAge+(v.maxLife-v.life);
+        v43GoldFlamethrowerParticles(ctx,{age,x:v.x,y:v.y,angle:v.angle,
+          flameOrigins:v.flameOrigins,isTail:true});
       } else if(v.kind?.startsWith?.('v43_')){
         v43GoldImpact(ctx,v,a);
       } else if (v.kind === 'aimline') {

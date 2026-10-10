@@ -19,10 +19,22 @@ for (const id of eight){
 }
 assert.match(w,/h\.shotsFired\+=1/,'holder shot counter must track special shots');
 assert.match(w,/h\.phase='FOLLOW_THROUGH'/,'special shot must complete native holder');
-assert.match(w,/h\.phase='IN_FLIGHT'/,'physical Boomerang must own holder');
-assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,a\)/,'boomerang depends on launch geometry');
+assert.match(w,/f\.data\.arsenal=null;/,
+  'physical Boomerang must leave thrower hand immediately for genuine floor pickups');
+assert.match(w,/equip\(p\.launchOwner,p\.weapon\)/,
+  'only a real swept return catch may re-equip an unarmed thrower');
+assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,throwAngle,foe\)/,
+  'boomerang must aim muzzle toward target position and lock distance at release');
+assert.doesNotMatch(w,/v43MakeFlightPath\(x\.x,x\.y,a,ctx\.enemy\)/,'Gold boomerang must never derive post-throw waypoints from opponent position');
 assert.doesNotMatch(w,/p\.owner\.x-p\.x|p\.owner\.y-p\.y/,'boomerang may not home to moving owner');
 assert.doesNotMatch(w,/p\.age\+=dt;p\.life-=dt/,'the engine alone ages projectile life');
+assert.doesNotMatch(w,/if\(p\.life>0\)p\.life=Math\.max\(0,p\.life-dt\)/,
+  'native V4.3 must never double-age engine-owned projectile lifetime');
+const mode=rd('public/game/modes/arsenalBattleRuntime.js');
+assert.match(mode,/updateProjectiles\(dt\);\s*\/\/ engine lifecycle \+ cleanup/,
+  'global engine must advance all projectile lifetimes before special collision');
+assert.match(w,/if\(p\.__hr\?\.cryHold\)\{window\.APEX_CRYSTAL\?\.holdStep/,
+  'Crystal held projectile must pause V4.3 lifetime during refract');
 assert.match(hr,/baseUpdateArsenalProjectiles\(dt, 'v43-only'\)/,
   'REAL Core Six projectile override must delegate eight V4.3 weapons exactly once');
 assert.match(w,/dispatch === 'v43-only' && p\.type !== 'aq_v43'/,
@@ -35,10 +47,11 @@ for(const part of ['v43GoldTongue','v43GoldRibbon','v43GoldProjectile','v43GoldI
   assert.ok(w.includes('function '+part+'('),'original Gold V4.3 visual layer missing: '+part);
 assert.ok(w.includes('function v43GoldFlamethrowerParticles('),'V43 Gold flamethrower needs its 470 particles/s plume, not ten static tongues');
 assert.ok(auditPresentation.includes('function drawV43GoldPlasmaCharge('),'V43 Gold plasma charge must be visible before release');
-assert.match(w,/noseFrom/,'long bolt/rocket must use tip collision');
+assert.match(w,/const fromN=\{x:seg\.x0\+leadX,y:seg\.y0\+leadY\}/,'long bolt/rocket must apply tip offset to real curved path');
 assert.match(w,/kind==='plasma-core'\?c\.coreSpeed/,'plasma core has independent speed');
 assert.match(cfg,/projectileWidth:78/,'mine artwork must be legible independently of collision size');
-assert.match(p,/holder\.weaponId === 'COMBAT_BOOMERANG' && holder\.phase === 'IN_FLIGHT'/,'no fake duplicate boomerang');
+assert.match(w,/f\.data\.arsenal=null;/,
+  'throwing must remove the holder before the shared weapon foreground pass');
 assert.match(f,/function drawQueuedA1Floor\(ctx,S\)/,'delayed A1 must receive gameplay-authoritative immediate visual feedback');
 assert.match(f,/drawQueuedA1Floor\(ctx,S\)/,'the pending A1 feedback must actually render');
 assert.match(f,/pumpCastQueue\(S, now, insp\)/,'Gold A1 deferred authored choreography must remain owned by the original queue');
@@ -46,4 +59,76 @@ assert.match(result,/APEX_COMBAT_HUD\?\.projection/,'Result must use Battle HUD 
 assert.match(result,/cfg\.TIER_COLORS\?\.\[tier\]/,'Result must use actual weapon tier palette');
 assert.match(weapon,/weapon__rarity/,'Weapon Gold must visibly show tier');
 assert.match(css,/--weapon-tier-rgb/,'Weapon Gold must illuminate by rarity');
+assert.match(w,/const curvature=v43BoomerangCurvature\(path,p\.travel\)/,'Gold boomerang speed responds to physical spline curvature');
+assert.match(w,/p\.travel=Math\.min\(path\.total,p\.travel\+p\.speed\*dt\)/,'Gold boomerang movement integrates actual arc distance and speed');
+assert.match(w,/revision:'NO_TARGET_WAYPOINTS_V43'/,'Gold boomerang is a 3-leg non-homing aerodynamic loop');
+assert.doesNotMatch(w,/p\.age\/flightSeconds/,'boomerang cannot move by a constant normalized time spline');
+const spawn=rd('public/game/arsenal/arsenalSpawnRuntime.js');
+assert.match(spawn,/ownerBotForcedWeapon/,'owner BOT test must use true spawn authority');
+assert.match(cfg,/Ctrl\+Shift\+F8/,'hidden owner keyboard chord exists');
+assert.match(cfg,/selectedWeaponId=id/,'owner numeric selection resolves to catalog weapon');
+assert.match(w,/burnRecipients=new Set\(\)/,'flamethrower burn once per contact source');
+assert.match(w,/p\.kind==='plasma'&&p\.homing/,'only released split plasma shards chase');
+assert.match(w,/kind==='smoke'/,'RPG smoke must have native world VFX');
+
+// Round 3: the V4.3 flight pass must honor Crystal's *real* swept K/J
+// contact surface before Fighter damage, without introducing a second
+// projectile integrator or allowing reflected homing/spline takeover.
+const cry=rd('public/game/hero-rework/crystalGameplayRuntime.js');
+assert.match(cry,/p\?\.type==='aq_v43'/,'Crystal recognizes mobile V4.3 threats');
+assert.match(cry,/hr\.crystalReflected = true/,'Crystal reflect preserves one-reflect provenance');
+assert.match(w,/crystal\.resolveBullet\(p,bodyT,dt\)/,'Boomerang return path must traverse Crystal contact');
+assert.match(w,/APEX_CRYSTAL\.resolveBullet\(p,bodyT,dt\)/,'Other V4.3 mobile projectiles must traverse Crystal contact');
+assert.match(w,/p\.kind==='boomerang'&&!v43Redirected\(p\)&&!p\.magnetReleased/,'Reflected or Magnet-bent boomerang cannot snap back onto stale Gold path');
+assert.match(w,/p\.kind==='plasma'&&p\.homing&&!v43Redirected\(p\)/,"Reflected plasma shards cannot home toward the original owner's foe");
+assert.match(w,/if\(outcome\?\.consumed\)/,'Crystal contact must supersede a stale body hit');
+// R3: shared interaction policies, preserving reflected damage to descendants,
+// and distinct Gold motion are release-blocking source contracts.
+for(const [id,kind] of [['FLARE_GUN','flare'],['TACTICAL_CROSSBOW','bolt'],
+  ['STEEL_BALL_LAUNCHER','ball'],['COMBAT_BOOMERANG','boomerang'],
+  ['RPG_7','rocket'],['SHRAPNEL_MINE_LAUNCHER','mine']]){
+  const start=cfg.indexOf(id+':Object.freeze(');
+  assert.ok(start>=0,'missing special '+id);
+  const record=cfg.slice(start,start+550);
+  assert.ok(record.includes("reflectableKinds:['"+kind+"']"),
+    'registry reflection capability missing: '+id);
+}
+assert.match(cfg,/reflectableKinds:\['plasma-core','plasma'\]/,
+  'plasma core and released shards share one reflected-particle law');
+assert.match(cfg,/reflectableKinds:\[\],magnetizableKinds:\[\],muzzleDx:-1/,'flame cone must not masquerade as a moving bullet');
+assert.match(cry,/eligible\.includes\(p\.kind\)/,'Crystal K must query authoritative registry capabilities');
+assert.match(rd('public/game/hero-rework/magnetGameplayRuntime.js'),/special\.magnetizableKinds\.includes\(p\.kind\)/,'Magnet must use shared kinetic registry');
+assert.match(w,/v43DamageScale\(p,c\.coreDamage\)/,'plasma child damage must inherit the parent reflection scalar');
+assert.match(w,/function v43Deal\(p,target,amount,opts=\{\}\)/,
+  'specials must have one post-hit observer, not a second HP authority');
+assert.match(w,/const applied=aqDamage\(target,amount,p.owner,p.weapon/,
+  'V43 receipt adapter must delegate to native Fighter damage authority');
+assert.match(w,/crystal\?\.afterBodyHit\?\.\(p,target,realized\)/,
+  'Crystal telemetry must receive REAL reflected HP loss, not config peak');
+assert.match(w,/crystal\?\.noteBodyHit\?\.\(p,target\)/,
+  'Crystal overload and contact telemetry must use the same body hit');
+assert.match(w,/resultSource:opts\.resultSource\|\|\{/,
+  'Gold result ledger must be told when an actual Crystal-reflected projectile hits');
+assert.match(w,/if\(parent\?\.__hr\?\.crystalReflected\)burn\.__hr=/,
+  'flare burn must retain real Crystal reflection provenance');
+assert.match(w,/if\(p\.__hr\?\.crystalReflected\)child\.__hr=/,
+  'mine shrapnel must retain parent Crystal reflection provenance');
+
+assert.match(w,/child\.aqReflected=!!p\.aqReflected/,'shards must inherit Swirl reflection provenance');
+assert.match(w,/v43GoldBoomerangAirflow\(ctx,p,life\)/,'boomerang must render the Gold wingtip vortices');
+assert.match(w,/ctx\.shadowBlur=26-i\*5/,'plasma core must have four-layer Gold bloom');
+assert.match(p,/chargeClipMargin/,'plasma charged core must reserve full glow overhang');
+const battle=rd('public/game/modes/arsenalBattleRuntime.js');
+const robot=rd('public/game/hero-rework/robotPresentationRuntime.js');
+assert.match(battle,/av\.drawV43GoldPlasmaCharge\?\.\(c,f,h/,
+  'one shared Arsenal foreground pass must render plasma after any hero-held-art override');
+assert.match(battle,/if\(h\.weaponId!=='COMBAT_BOOMERANG'\|\|h\.phase!=='IN_FLIGHT'\)\s*av\.drawEquippedWeapon\(c, f, h\)/,
+  'legacy extra guard stays defensive; actual re-equipped Boomerang is a newly caught holder');
+assert.match(p,/drawV43GoldPlasmaCharge,\s*drawPoseGhost/,
+  'Gold plasma presentation helper must be available to the shared foreground');
+assert.match(p,/robot\.getRobotWeaponSocketWorld\?\.\(fighter\)/,
+  'plasma muzzle and charge must honor the actual ROBOT-held-art socket');
+assert.match(robot,/if \(ok\) return true;/,
+  'regression fixture: ROBOT-held-art override short-circuits default drawer');
+
 console.log('PASS owner V43 source integration invariants: 8 weapon entries + native holder/pose/projectile/Frost/result gates');

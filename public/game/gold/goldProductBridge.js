@@ -907,7 +907,10 @@
     const questReflexPreview=pick && pick.mode==='quest-reflex-preview';
     const questPreview=questFirstWake||questFirstWakeStory||questScrapSwarmStory||questWeaponRainStory||questBreakerChargeStory||questBreachStory||questRivetStory||questTotStory||questReflexPreview;
     const mode = questPreview || (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
-    const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
+    // Quest story pilots canonical NEWBOT/ROBOT, never a chosen combat hero.
+    // Free Battle still uses its ordinary separate character picker.
+    const p1Shell = questPreview ? 'newbot'
+      : String((pick && pick.p1) || 'newbot').toLowerCase();
     // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
     // hardcoded presentation identity.
     const p2Shell = questPreview ? 'newbot'

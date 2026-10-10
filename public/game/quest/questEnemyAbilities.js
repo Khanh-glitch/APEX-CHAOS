@@ -26,7 +26,14 @@
         if(!core.enemySpecies('reaver')||typeof to.takeDamage!=='function')continue;
         const before=to.hp;
         to.takeDamage(core.enemySpecies('reaver').contactDamage,from,'quest-reaver-contact');
-        if(to.hp<before){applied++;bumps++;impacts.push({x:to.x,y:to.y,dx:to.x-from.x,dy:to.y-from.y,age:0,kind:'claw'});if(impacts.length>18)impacts.shift();}
+        if(to.hp<before){
+          // The accepted native 50HP contact is also the attack animation
+          // receipt. No idle loop pretends a claw strike occurred.
+          if(from.data)from.data.__questClawPulse=(from.data.__questClawPulse||0)+1;
+          applied++;bumps++;
+          impacts.push({x:to.x,y:to.y,dx:to.x-from.x,dy:to.y-from.y,age:0,kind:'claw'});
+          if(impacts.length>18)impacts.shift();
+        }
       }
       return applied;
     }
@@ -88,11 +95,15 @@
           release(f,c);
           c.cooldown=spec.cooldownSeconds;
           if(!target)continue;
-          const dist=Math.hypot(target.x-f.x,target.y-f.y);
-          const dx=dist>1e-6?(target.x-f.x)/dist:1;
-          const dy=dist>1e-6?(target.y-f.y)/dist:0;
-          rays.push({owner:f,originX:f.x,originY:f.y,x:f.x,y:f.y,
+          const optic=root.APEX_QUEST_V12_RIG?.opticWorld?.(f)||{x:f.x,y:f.y};
+          const dist=Math.hypot(target.x-optic.x,target.y-optic.y);
+          const dx=dist>1e-6?(target.x-optic.x)/dist:1;
+          const dy=dist>1e-6?(target.y-optic.y)/dist:0;
+          rays.push({owner:f,originX:optic.x,originY:optic.y,x:optic.x,y:optic.y,
             dx,dy,remaining:1400,done:false,fade:0});
+          // Physical laser release owns one animation impulse. The
+          // V12 spring rig responds to this receipt, not a fabricated timer.
+          if(f.data)f.data.__questLaserPulse=(f.data.__questLaserPulse||0)+1;
           shots++;
           log?.('QUEST_SENTINEL_LASER_FIRE',f.questId);
           continue;
@@ -110,6 +121,63 @@
       for(const [id,c] of casters)
         if(!actors.includes(c.owner)){release(c.owner,c);casters.delete(id);}
     }
+    // Transcribed from the owner's uploaded FANTASY_WEAPON_LAB_V4_1_FIXED:
+    // cyan 3-ring charge, 14 deterministic convergence motes and bright core.
+    // Source ART ASSETS are deliberately ignored. Native Sentinel's animated
+    // optic socket is the sole placement authority.
+    function drawGoldLabLaserCharge(ctx,x,y,t,clock){
+      const TAU=Math.PI*2,k=.68;
+      const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+      const lerp=(a,b,u)=>a+(b-a)*u;
+      const easeOut=u=>1-Math.pow(1-u,3);
+      const compress=clamp((t-.76)/.24,0,1),shell=1-easeOut(compress);
+      ctx.save();ctx.translate(x,y);ctx.scale(k,k);
+      ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+      const outerR=lerp(28,44,t)*(.94+.06*Math.sin(clock*11));
+      const rg=ctx.createRadialGradient(0,0,0,0,0,outerR*1.35);
+      rg.addColorStop(0,'rgba(255,255,255,'+(.34+.42*t)+')');
+      rg.addColorStop(.13,'rgba(164,246,255,'+(.28+.34*t)+')');
+      rg.addColorStop(.34,'rgba(48,208,255,'+(.18+.25*t)+')');
+      rg.addColorStop(.70,'rgba(0,109,255,'+(.08+.14*t)+')');
+      rg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=rg;ctx.beginPath();ctx.arc(0,0,outerR*1.35,0,TAU);ctx.fill();
+      const base=lerp(31,46,t)*lerp(1,.58,compress);
+      for(let i=0;i<3;i++){
+        const r=base-i*5.5,rot=clock*(2.2+i*.72)+(i*2.1);
+        const sweep=Math.PI*lerp(.72,1.18,t);
+        ctx.strokeStyle=i===0
+          ?'rgba(126,235,255,'+((.38+.18*t)*shell)+')'
+          :'rgba(34,167,255,'+((.24+.11*t)*shell)+')';
+        ctx.lineWidth=i===0?1.45:1;
+        ctx.beginPath();ctx.ellipse(0,0,r,r*.52,rot,rot,rot+sweep);ctx.stroke();
+        ctx.beginPath();ctx.ellipse(0,0,r*.82,r*.42,-rot*.7,rot+Math.PI,rot+Math.PI+sweep*.82);ctx.stroke();
+      }
+      for(let i=0;i<14;i++){
+        const seed=i*2.3999632297,u=(t*1.45+i/14)%1,eased=u*u;
+        const start=52+(i%4)*6,r=lerp(start,5,eased);
+        const a=seed-clock*(.55+(i%3)*.13);
+        const sx=Math.cos(a)*r,sy=Math.sin(a)*r*.58;
+        const before=Math.min(start,r+10+eased*8);
+        const alpha=(.16+.54*eased)*t;
+        ctx.strokeStyle='rgba(120,235,255,'+alpha+')';ctx.lineWidth=.7+eased*.75;
+        ctx.beginPath();ctx.moveTo(Math.cos(a+.05)*before,Math.sin(a+.05)*before*.58);
+        ctx.lineTo(sx,sy);ctx.stroke();
+        ctx.fillStyle='rgba(235,254,255,'+(alpha*.86)+')';
+        ctx.beginPath();ctx.arc(sx,sy,.8+eased*1.25,0,TAU);ctx.fill();
+      }
+      const r=lerp(5.5,12.5,t)*lerp(1,.72,compress);
+      const cg=ctx.createRadialGradient(0,0,0,0,0,r*2.4);
+      cg.addColorStop(0,'rgba(255,255,255,'+(.88+.10*t)+')');
+      cg.addColorStop(.28,'rgba(170,249,255,'+(.72+.20*t)+')');
+      cg.addColorStop(.62,'rgba(41,198,255,'+(.26+.26*t)+')');
+      cg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=cg;ctx.beginPath();ctx.arc(0,0,r*2.4,0,TAU);ctx.fill();
+      if(compress>0){
+        ctx.strokeStyle='rgba(255,255,255,'+(compress*.74)+')';ctx.lineWidth=1.3;
+        ctx.beginPath();ctx.arc(0,0,lerp(26,10,compress),0,TAU);ctx.stroke();
+      }
+      ctx.restore();
+    }
     // Render-only: charge is driven by the actual one-second timer, laser
     // by its actual swept projectile, sparks by accepted Fighter HP changes.
     // No particles/hit geometry have their own damage or timer authority.
@@ -122,10 +190,13 @@
         const target=actors.find(x=>x.questId===c.lockedTarget&&x.hp>0)
           ||core.nearestEnemy(f,actors);
         const t=Math.max(0,Math.min(1,1-c.charge/spec.chargeSeconds));
-        const pulse=.5+.5*Math.sin(visualClock*28),r=(f.radius||70)+13;
-        ctx.save();ctx.translate(f.x,f.y);
-        const dir=target?Math.atan2(target.y-f.y,target.x-f.x):0;
+        const optic=root.APEX_QUEST_V12_RIG?.opticWorld?.(f)||{x:f.x,y:f.y};
+        drawGoldLabLaserCharge(ctx,optic.x,optic.y,t,visualClock);
+        const dir=target?Math.atan2(target.y-optic.y,target.x-optic.x):0;
+        // Native lock-on telegraph stays readable but starts at the optic.
+        ctx.save();ctx.translate(optic.x,optic.y);
         ctx.rotate(dir);
+        const pulse=.5+.5*Math.sin(visualClock*28),r=20;
         // Three inward-locking, segmented cyan capacitors.
         for(let i=0;i<3;i++){
           const rr=r+(1-t)*26+i*9;
@@ -140,7 +211,7 @@
           ctx.beginPath();ctx.arc(Math.cos(a)*rr,Math.sin(a)*rr,1.6+1.3*t,0,Math.PI*2);ctx.fill();
         }
         if(target){
-          const d=Math.hypot(target.x-f.x,target.y-f.y);
+          const d=Math.hypot(target.x-optic.x,target.y-optic.y);
           ctx.strokeStyle='rgba(87,189,247,'+(.23+.36*t)+')';
           ctx.lineWidth=1.6+1.1*t;
           ctx.setLineDash([16,8]);ctx.lineDashOffset=-visualClock*30;
@@ -156,17 +227,24 @@
       for(const ray of rays){
         const a=ray.done?Math.max(0,ray.fade/lifetime):1;
         if(a<=0)continue;
-        const x0=ray.originX,y0=ray.originY,dx=ray.x-x0,dy=ray.y-y0;
+        // Dynamic source: never leave a detached beam behind a moving
+        // Sentinel body. Destination remains the REAL swept projectile tip.
+        const optic=root.APEX_QUEST_V12_RIG?.opticWorld?.(ray.owner);
+        const x0=optic?.x??ray.originX,y0=optic?.y??ray.originY;
+        const dx=ray.x-x0,dy=ray.y-y0;
         const length=Math.hypot(dx,dy);
         if(length<1)continue;
         const ux=dx/length,uy=dy/length;
-        ctx.save();ctx.globalAlpha=.9*a;ctx.lineCap='round';
-        ctx.strokeStyle='#2773b3';ctx.lineWidth=18;ctx.shadowColor='#1da3ff';ctx.shadowBlur=13;
-        ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(ray.x,ray.y);ctx.stroke();
-        ctx.shadowBlur=0;ctx.strokeStyle='#68cbff';ctx.lineWidth=8;
-        ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(ray.x,ray.y);ctx.stroke();
-        ctx.strokeStyle='#f4feff';ctx.lineWidth=2.8;
-        ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(ray.x,ray.y);ctx.stroke();
+        ctx.save();ctx.globalCompositeOperation='lighter';
+        ctx.globalAlpha=a;ctx.lineCap='round';
+        // Owner Lab V1: four additive beam passes 24/12/5/1.7px.
+        for(const [width,color,alpha] of [
+          [24,'0,91,255',.16],[12,'0,196,255',.34],
+          [5,'83,235,255',.86],[1.7,'255,255,255',.98]]){
+          ctx.strokeStyle='rgba('+color+','+(alpha*a)+')';
+          ctx.lineWidth=width;ctx.beginPath();
+          ctx.moveTo(x0,y0);ctx.lineTo(ray.x,ray.y);ctx.stroke();
+        }
         // Finite traveling shards: follow actual beam segment only.
         for(let k=0;k<12;k++){
           const d=(k/12*length+visualClock*380) % Math.max(1,length);

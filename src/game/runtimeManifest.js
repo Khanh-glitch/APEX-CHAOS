@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261010-q1-b8-native-runtime';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261010-v43-post-update-01';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -41,7 +41,7 @@ export const MENU_INTERACTIVE_RUNTIMES = [
 // Inventory it here for strict production source-hygiene ownership without
 // duplicating its load, changing Gold readiness or affecting BOT/Local boot.
 export const GOLD_QUEST_SHELL_RUNTIMES = Object.freeze([
-  ['/game/quest/quest01Director.js?v=20261010-q1-b8-director', 'apexQuest01Director'],
+  ['/game/quest/quest01Director.js?v=20261010-quest-hero-post-01', 'apexQuest01Director'],
 ]);
 
 // Current-neutral combat services shared by Arsenal and the generic engine.
@@ -92,13 +92,13 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ...ARSENAL_SHARED_ENGINE_RUNTIMES,
   ['/game/gold/goldProductBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGoldProductBridge'],
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
-  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
+  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
   ['/game/results/ownerAwards.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexResultOwnerCatalog'],
   ['/game/results/matchResultAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMatchResultAuthority'],
   ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],
-  ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalWeaponRuntime'],
-  ['/game/arsenal/arsenalSpawnRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalSpawnRuntime'],
-  ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalPresentationRuntime'],
+  ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalWeaponRuntime'],
+  ['/game/arsenal/arsenalSpawnRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalSpawnRuntime'],
+  ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalPresentationRuntime'],
   ['/game/arsenal/arsenalFeelRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalFeelRuntime'],
   ['/game/arsenal/arsenalStormbreakerVfxRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalStormbreakerVfxRuntime'],
   ['/game/arsenal/arsenalManualSkillGate.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalManualSkillGate'],
@@ -126,9 +126,9 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/quest/questGoldEnemyVisuals.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestGoldEnemyVisuals'],
   ['/game/modes/arsenalBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalBattleRuntime'],
   ['/game/hero-rework/crystalaGoldV6.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaGoldV6'],
-  ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalGameplayRuntime'],
+  ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexCrystalGameplayRuntime'],
   ['/game/hero-rework/frostGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGameplayRuntime'],
-  ['/game/hero-rework/magnetGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGameplayRuntime'],
+  ['/game/hero-rework/magnetGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexMagnetGameplayRuntime'],
   ['/game/hero-rework/magnetGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGoldV1'],
   ['/game/hero-rework/mirrorGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorGoldV1'],
   ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
@@ -243,7 +243,7 @@ export const WARMUP_GROUP_SEQUENCE = [];
 // Product meta's critical path. Shop/Draw/selection needs save/config/shell
 // scripts; combat presentation and AV remain lazy until the battle is entered.
 export const ARSENAL_HUB_RUNTIMES = [
-  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
+  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],

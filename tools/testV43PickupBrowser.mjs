@@ -2,6 +2,7 @@
 // We explicitly disallow direct weaponApi.equip() in this gate. The earlier
 // headless PASS bypassed pickup, skipped browser rendering, and did not verify deployment.
 import {spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
@@ -50,6 +51,31 @@ try{
     if(i===179)throw Error('Production Apex engine failed to load in Chrome');
     await sleep(120);
   }
+  // Real Home smoke, BEFORE eager loading the full battle product.
+  // Gold boot must already have brought up Arsenal Hub/config and META so
+  // Ctrl+Shift+F8 actually works at Home, not just inside a synthetic VM.
+  let homeLoaded=false;
+  for(let i=0;i<100;i++){
+    homeLoaded=await ev('Boolean(window.APEX_ARSENAL_OWNER_TEST && window.APEX_ARSENAL_META?.openBotPick)').catch(()=>false);
+    if(homeLoaded)break;
+    await sleep(100);
+  }
+  check('owner-hidden-keyboard-loaded-at-real-Gold-Home',homeLoaded,{homeLoaded});
+  const homeChord=await ev(`(()=>{
+    const owner=window.APEX_ARSENAL_OWNER_TEST;
+    const before={active:owner.active,mode:window.__apexArsenalSelectionMode||null};
+    window.dispatchEvent(new KeyboardEvent('keydown',{
+      key:'F8',code:'F8',ctrlKey:true,shiftKey:true,bubbles:true}));
+    const opened={active:owner.active,mode:window.__apexArsenalSelectionMode||null,
+      pending:window.__apexArsenalSelectPending===true};
+    window.dispatchEvent(new KeyboardEvent('keydown',{
+      key:'F8',code:'F8',ctrlKey:true,shiftKey:true,bubbles:true}));
+    return {before,opened,off:!owner.active,selected:owner.selectedWeaponId};
+  })()`);
+  check('owner-keyboard-opens-real-Gold-BOT-pick-before-battle',
+    homeChord.before.active===false&&homeChord.opened.active===true
+      &&homeChord.opened.mode==='bot'&&homeChord.opened.pending===true
+      &&homeChord.off===true&&homeChord.selected===null,homeChord);
   const ready=await ev(`(async()=>{
     await window.__apexEnsureDeferredRuntimes('arsenalProduct');
     // Arsenal product manifest already includes battle mode; the generic
@@ -120,7 +146,14 @@ try{
         errors:window.apexEarlyErrors?.slice(-3)||[]};
     })()`);
     results.push(rec);
-    check(id+'-floor-pickup-use',rec.picked&&rec.maxShots===1&&rec.fire===1&&rec.pickup>=1,rec);
+    // Boomerang physically LEAVES the holder on release: shotsFired on a
+    // vanished held slot cannot be the firing witness. The native USE event
+    // and an airborne Boomerang are the authoritative facts, and catches
+    // can legitimately lead to a second USE without another floor pickup.
+    const boomerang=id==='COMBAT_BOOMERANG';
+    check(id+'-floor-pickup-use',rec.picked&&rec.pickup>=1
+      &&(boomerang?(rec.fire>=1&&rec.seen.some(k=>k==='boomerang:out'))
+        :(rec.maxShots===1&&rec.fire===1)),rec);
     check(id+'-real-projectile-reached-browser',rec.seen.length>0,rec);
     check(id+'-canvas-drew-weapon-art',rec.visible.includes(id+'.webp'),rec);
     if(['TACTICAL_CROSSBOW','STEEL_BALL_LAUNCHER','RPG_7','SHRAPNEL_MINE_LAUNCHER'].includes(id))
@@ -155,7 +188,9 @@ try{
       st.slots.push({id:st.nextSlotId++,x:320,y:500,phase:'REVEALED',
         weaponId:${JSON.stringify(id)},revealLeadSeconds:0,revealedFor:0,
         pickedBy:null,rejectedFor:{},spawnTime:st.time});
-      const states=[],used=new Set();
+      const states=[],used=new Set(),phaseFrames=[];
+      const captureAt=${JSON.stringify(id)}==='COMBAT_BOOMERANG'
+        ?[20,42,75,110,180,260]:[20,42,65,95,130,170];
       const snapAt=${JSON.stringify(id)}==='COMBAT_BOOMERANG'?75:
         ${JSON.stringify(id)}==='PLASMA_SPLITTER'?61:
         ${JSON.stringify(id)}==='SHRAPNEL_MINE_LAUNCHER'?70:38;
@@ -168,6 +203,9 @@ try{
         if(i%2===0)draw();
         if(i===snapAt){
           draw();renderedFrame=document.getElementById('game-canvas').toDataURL('image/png');
+        }
+        if(captureAt.includes(i)){
+          draw();phaseFrames.push({step:i,png:document.getElementById('game-canvas').toDataURL('image/png')});
         }
         for(const x of projectiles)if(x.aq&&x.weapon===${JSON.stringify(id)})used.add(x.kind);
         if(i===18||i===35||i===80||i===160){
@@ -192,19 +230,130 @@ try{
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
         fire:events.filter(e=>e.includes(' USE ')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
-        states,renderedFrame};
+        states,renderedFrame,phaseFrames};
     })()`);
     if(q.renderedFrame?.startsWith('data:image/png;base64,')){
       await writeFile(join(out,'core-six-'+id+'.png'),
         Buffer.from(q.renderedFrame.slice('data:image/png;base64,'.length),'base64'));
       delete q.renderedFrame;
     }
+    const phaseHashes=[];
+    for(const frame of q.phaseFrames||[]){
+      const raw=Buffer.from((frame.png||'').split(',')[1]||'','base64');
+      phaseHashes.push(createHash('sha256').update(raw).digest('hex'));
+      await writeFile(join(out,'r3-motion-'+id+'-step'+frame.step+'.png'),raw);
+    }
+    q.phaseHashes=phaseHashes;q.phaseSteps=(q.phaseFrames||[]).map(f=>f.step);
+    delete q.phaseFrames;
+    check('R3-'+id+'-six-real-motion-frames',phaseHashes.length===6
+      &&new Set(phaseHashes).size>=2,{steps:q.phaseSteps,unique:new Set(phaseHashes).size});
     productCases.push(q);
     check('CORE-SIX-PUBLIC-'+id+'-pickup-shot-damage',
       q.started===true&&q.p1==='ROBOT'&&q.p2==='ROBOT'
-      &&q.pickup===1&&q.fire===1&&q.kinds.length>0
-      &&(id==='COMBAT_BOOMERANG'?q.kinds.includes('boomerang'):q.damage>0),q);
+      &&q.pickup===1&&q.kinds.length>0
+      &&(id==='COMBAT_BOOMERANG'
+        ?(q.fire>=1&&q.kinds.includes('boomerang')
+           &&q.states.some(s=>s.projectile.some(p=>p.kind==='boomerang'))
+           &&q.states.some(s=>s.weapon===null))
+        :(q.fire===1&&q.damage>0)),q);
   }
+  // Owner R3 visual regression: full source->safe-core transformation at the
+  // most hostile screen corner, captured at three Gold charge phases.
+  // The real Chrome canvas must contain a brighter complete charged core,
+  // not only a JS function name. This uses direct equip ONLY as a visual
+  // probe; above eight gameplay cases still use real floor pickup.
+  const plasmaVisual=await ev(`(()=>{
+    window.exitArsenalBattleMode?.();window.__APEX_TEST_MODE=false;
+    window.__apexArsenalBattleProfile='LOCAL';window.__apexArsenalFreeBattle=true;
+    if(!window.startArsenalBattleMode('ROBOT','ROBOT',{}))throw Error('Plasma visual battle failed');
+    if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
+    const a=fighters[0],b=fighters[1],wa=window.APEX_ARSENAL.weaponApi;
+    a.x=943;a.y=58;b.x=200;b.y=490;a.baseSpeed=0;b.baseSpeed=0;
+    if(typeof cameraZoom!=='undefined')cameraZoom=1;
+    wa.equip(a,'PLASMA_SPLITTER');
+    const h=wa.getHolder(a);if(!h)throw Error('Visual probe failed to equip');
+    h.meta.aimAngle=0;h.phase='READY';
+    const canvas=document.getElementById('game-canvas'),ctx=canvas.getContext('2d');
+    const point=window.APEX_ARSENAL_AV.weaponMuzzleWorld(a,h,0);
+    const pixel=()=>{const d=ctx.getImageData(Math.round(point.x),Math.round(point.y),1,1).data;
+      return d[0]+d[1]+d[2];};
+    draw();const baseline=pixel(),frames=[];
+    for(const time of [.10,.32,.48]){
+      h.phase='WINDUP';h.meta.v43Wait=.5;h.meta.v43Time=time;
+      draw();frames.push({time,brightness:pixel(),png:canvas.toDataURL('image/png')});
+    }
+    return {point,baseline,frames,width:canvas.width,height:canvas.height};
+  })()`);
+  for(const f of plasmaVisual.frames){
+    if(f.png?.startsWith('data:image/png;base64,')){
+      const raw=Buffer.from(f.png.split(',')[1],'base64');
+      f.hash=createHash('sha256').update(raw).digest('hex');
+      await writeFile(join(out,'v43-plasma-edge-charge-'+String(f.time).replace('.','_')+'.png'),raw);
+      delete f.png;
+    }
+  }
+  const margin=104,pos=plasmaVisual.point;
+  check('R3-PLASMA-CHARGE-EDGE-INSET',pos.x>=margin&&pos.y>=margin
+    &&pos.x<=1000-margin&&pos.y<=1000-margin
+    &&Math.hypot(pos.x-pos.sourceX,pos.y-pos.sourceY)>5,
+    {point:pos,width:plasmaVisual.width,height:plasmaVisual.height});
+  check('R3-PLASMA-CORE-BRIGHTENS-THROUGH-CHARGE',
+    plasmaVisual.frames.every(f=>f.brightness>plasmaVisual.baseline+35),
+    {baseline:plasmaVisual.baseline,frames:plasmaVisual.frames});
+  check('R3-PLASMA-RING-COMPRESSION-CHANGES-REAL-CHROME-PIXELS',
+    new Set(plasmaVisual.frames.map(f=>f.hash)).size===3,
+    plasmaVisual.frames.map(f=>({time:f.time,hash:f.hash?.slice(0,12)})));
+
+  // R3 Crystal K integration smoke: REAL Core Six Crystal vs real ROBOT,
+  // three distinct special physics families (linear, split energy, return).
+  // Standalone direct equip is used only for countermechanic verification;
+  // the eight public-floor-pickup checks above remain unchanged.
+  const crystalResults=[];
+  for(const id of ['TACTICAL_CROSSBOW','PLASMA_SPLITTER','COMBAT_BOOMERANG']){
+    const rec=await ev((()=>{return `(()=>{
+      window.exitArsenalBattleMode?.();
+      window.__APEX_TEST_MODE=false;
+      window.__apexArsenalBattleProfile='LOCAL';window.__apexArsenalFreeBattle=true;
+      const started=window.startArsenalBattleMode('ROBOT','CRYSTAL',{});
+      if(!started)return {id:__V43_ID__,started:false};
+      if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
+      const A=window.APEX_ARSENAL,wa=A.weaponApi,HR=window.APEX_HERO_REWORK,CR=window.APEX_CRYSTAL;
+      const a=fighters[0],b=fighters[1];a.x=270;a.y=500;b.x=730;b.y=500;
+      a.setDir(1,0);b.setDir(-1,0);a.baseSpeed=0;b.baseSpeed=0;
+      if(a.data)a.data.__hrHoldBody=true;if(b.data)b.data.__hrHoldBody=true;
+      a.hp=1000;b.hp=1000;A.state.spawnTimer=1e6;A.state.spawnHeld=true;
+      A.state.slots.length=0;A.state.unarmedFastConsumed=true;projectiles.length=0;
+      const ct=HR.byCombatant(b),k=ct&&CR.castAwakening({combatant:ct,cfg:ct.skills.A2.cfg});
+      wa.equip(a,__V43_ID__);
+      let seen=false,seenReflected=false,maxObjects=0;
+      for(let i=0;i<255;i++){
+        A.step(1/60);
+        if(i%8===0)draw();
+        for(const p of projectiles)if(p.type==='aq_v43'&&p.weapon===__V43_ID__){
+          seen=true;
+          if(p.__hr?.crystalReflected||p.aqReflected)seenReflected=true;
+        }
+        maxObjects=Math.max(maxObjects,projectiles.filter(p=>p.aq).length);
+      }
+      const inspected=ct?CR.inspect(ct):null;
+      return {id:__V43_ID__,started,cast:!!k,kindCount:maxObjects,seen,
+        seenReflected,hpA:a.hp,hpB:b.hp,
+        kActive:inspected?.k?.active,shards:inspected?.available,
+        intercepts:inspected?.telemetry?.intercepts||0,
+        reflectedDamage:inspected?.telemetry?.reflectedDamage||0,
+        errors:window.apexEarlyErrors?.slice(-2)||[]};
+    })()`})().replaceAll('__V43_ID__',JSON.stringify(id)));
+    crystalResults.push(rec);
+    const plausible={TACTICAL_CROSSBOW:112,PLASMA_SPLITTER:201,COMBAT_BOOMERANG:126}[id];
+    check('R3-CRYSTAL-K-'+id+'-REAL-CORE-SIX-BOUNDED-CONTACT',
+      rec.started===true&&rec.cast===true&&rec.seen
+      &&Number.isFinite(rec.hpA)&&Number.isFinite(rec.hpB)
+      &&rec.hpA>=0&&rec.hpB>=0&&rec.hpB>=1000-plausible-1,
+      rec);
+  }
+  await writeFile(join(out,'r3-crystal-three-family-integration.json'),
+    JSON.stringify(crystalResults,null,2));
+
   await writeFile(join(out,'v43-browser-real-pickup.json'),JSON.stringify({base,results,productCases},null,2));
   const capture=await cd('Page.captureScreenshot',{format:'png'});
   await writeFile(join(out,'v43-browser-last-weapon.png'),Buffer.from(capture.data,'base64'));
