@@ -1892,8 +1892,12 @@ gate('owner-v43-direct-ball-98-not-aoe',Math.abs(owD.STEEL_BALL_LAUNCHER-98)<1.1
 gate('owner-v43-crossbow-112',Math.abs(owD.TACTICAL_CROSSBOW-112)<1.1,owD);
 gate('owner-v43-flare-direct-plus-4burn',Math.abs(owD.FLARE_GUN-119)<1.1,owD);
 gate('owner-v43-rpg-direct-blast-near-161',owD.RPG_7>140&&owD.RPG_7<=161.1,owD);
-// Rebalanced: contact + nonstacking burn; old 157.5 direct-only contract is retired.
-gate('owner-v43-flamethrower-contact-plus-burn',Math.abs(owD.FLAMETHROWER-155)<1.1,owD);
+// The owner's halved 325px reach/0.18rad cone allows recoil/knockback to
+// move a real target out between pulses. Require a REAL first 18 HP contact
+// plus all five once-only 13 HP burn pulses (83 HP), bounded by five contacts
+// plus the same nonstacking burn (155 HP). The moving-body physics stays live.
+gate('owner-v43-flamethrower-contact-plus-burn-halved-range',
+  owD.FLAMETHROWER>=82.9&&owD.FLAMETHROWER<=155.1,owD);
 gate('owner-v43-plasma-real-shards',owD.PLASMA_SPLITTER>=70&&owD.PLASMA_SPLITTER<=210.1,owD);
 gate('owner-v43-mine-armed-aoe',owD.SHRAPNEL_MINE_LAUNCHER>50&&owD.SHRAPNEL_MINE_LAUNCHER<=203.1,owD);
 
