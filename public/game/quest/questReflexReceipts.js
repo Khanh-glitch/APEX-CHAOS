@@ -35,8 +35,15 @@
       const p=!closed&&pair();if(!p||!event||event.type!=='Cast'||(phase!==2&&phase!==3))return false;
       const payload=event.payload;
       const seq=Number(event.seq);
-      if(!payload||!Number.isSafeInteger(seq)||seq<=lastCastSeq
-        ||payload.hero!=='ROBOT'||payload.fighterId!==p.newbot.id
+      // Quest GOLD picker swaps the REAL combat kit while retaining the
+      // narrative NEWBOT slot. Only a Cast receipt from THAT authenticated
+      // Fighter/kit may unlock J/K; never accept a synthetic side-only Cast.
+      const type=String(p.newbot.type?.name||p.newbot.name||'').toUpperCase();
+      const kit={ROBOT:'ROBOT',HUNTER:'HUNTER',CRYSTAL:'CRYSTAL',
+        CRYSTALA:'CRYSTAL',MAGNET:'MAGNET',FROST:'ICE',ICE:'ICE',
+        MIRROR:'MIRROR'}[type];
+      if(!payload||!kit||!Number.isSafeInteger(seq)||seq<=lastCastSeq
+        ||payload.hero!==kit||payload.fighterId!==p.newbot.id
         ||payload.side!=='p1'||payload.slot!==(phase===2?'A1':'A2'))return false;
       lastCastSeq=seq;
       accepted.push({kind:'CAST',slot:payload.slot,seq});
