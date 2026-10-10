@@ -1557,13 +1557,41 @@
     if(!p.isTail){
       ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);
       ctx.globalCompositeOperation='lighter';
-      const phi=.95+.05*Math.sin(p.age*29);
-      for(const [scale,color] of [[1,'rgba(255,57,10,.09)'],
-         [.76,'rgba(255,132,20,.12)'],[.48,'rgba(255,229,112,.10)']]){
-        const r=range*scale,edge=Math.tan(cone)*r;
-        ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,0);
+      // The GAME checks surface-radius forgiveness too: a radius-75 enemy
+      // can be contacted at range+15 and cone+asin(.35*75/d).
+      // Visually enclose that same silhouette, not merely the centre ray.
+      const damageReach=range+75*.20;
+      const damageCone=cone+Math.asin(Math.min(1,75*.35/damageReach));
+      const ignite=Math.min(1,Math.max(0,p.age)/Math.max(.01,c.tickStart));
+      const phi=.97+.03*Math.sin(p.age*29);
+      for(const [scale,col,alpha] of [
+        [1,'255,57,10',.12],[.76,'255,132,20',.18],
+        [.48,'255,229,112',.16]]){
+        const r=damageReach*scale,edge=Math.tan(damageCone)*r;
+        ctx.fillStyle='rgba('+col+','+(alpha*ignite)+')';
+        ctx.beginPath();ctx.moveTo(0,0);
         ctx.lineTo(r,-edge*phi);ctx.quadraticCurveTo(r*1.02,0,r,edge*phi);
         ctx.closePath();ctx.fill();
+      }
+      // V1 flame is a broken turbulent plume, not a flat attack wedge.
+      // Seven glowing, phase-shifted fuel lanes fill its DAMAGE silhouette
+      // at the very first accepted 0.1s tick. The authentic 520 Hz embers,
+      // smoke and 3-pass hot cores remain layered above these lanes.
+      ctx.lineCap='round';
+      for(const [band,n] of [[-.91,0],[-.62,1],[-.31,2],[0,3],[.31,4],[.62,5],[.91,6]]){
+        for(const [width,col,alpha] of [
+          [23,'255,57,10',.16],[11,'255,132,20',.21],
+          [3.5,'255,229,112',.19]]){
+          ctx.strokeStyle='rgba('+col+','+(alpha*ignite)+')';
+          ctx.lineWidth=width;
+          ctx.beginPath();ctx.moveTo(0,0);
+          for(let j=1;j<=14;j++){
+            const u=j/14,d=damageReach*u;
+            const bend=Math.sin(p.age*24+u*19+n*1.37)*Math.min(9,6*u+1.5);
+            ctx.lineTo(d,Math.tan(damageCone)*d*band+bend);
+          }
+          ctx.stroke();
+        }
       }
       ctx.restore();
     }
