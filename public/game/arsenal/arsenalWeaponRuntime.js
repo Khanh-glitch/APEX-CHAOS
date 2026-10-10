@@ -602,26 +602,42 @@
     return (list||[]).filter(f=>f&&f.hp>0&&f.withdrawn!==true
       &&(!AQ.state?.questMultiActor||f.questTeam!==owner?.questTeam));
   }
+  // All collision consumers (Fighter + Crystal + Magnet) observe the ONE
+  // ordered frame path. A kinetic V4.3 bullet bent by Magnet A2 cannot test
+  // the fake straight frame-start -> endpoint chord (which tunnels barriers).
   function v43Hit(p,from,to){
-    if(AQ.state?.questMultiActor===true){
-      return window.APEX_QUEST_MULTI_ACTOR_CORE?.firstProjectileHit?.({
-        owner:p.owner,actors:fighters,from,to,
-        projectileRadius:p.radius||8,bodyRadiusScale:CFG.BULLET_HIT_RADIUS_SCALE
-      })||null;
-    }
-    let best=null,bestSq=Infinity;
-    // Long projectile artwork leads its center: collision follows the nose.
+    const geom=window.APEX_HERO_REWORK?.geom;
+    const curved=!!(p.__hr?.pathPoly||p.__hr?.pathVia);
+    const segs=curved&&geom?.pathSegments?.(p)||[{
+      x0:from.x,y0:from.y,x1:to.x,y1:to.y,t0:0,t1:1
+    }];
     const tip=(V43[p.weapon]?.tipOffset)||0;
-    const a=Math.atan2(p.vy,p.vx);
-    const leadX=Math.cos(a)*tip,leadY=Math.sin(a)*tip;
-    const noseFrom={x:from.x+leadX,y:from.y+leadY};
-    const noseTo={x:to.x+leadX,y:to.y+leadY};
-    for(const f of v43Enemies(p.owner)){
-      const rad=f.radius*CFG.BULLET_HIT_RADIUS_SCALE+(p.radius||8);
-      const hit=sweptSegmentCircleHit(noseFrom.x,noseFrom.y,noseTo.x,noseTo.y,f.x,f.y,rad);
-      if(hit){
-        const d=(hit.x-noseFrom.x)**2+(hit.y-noseFrom.y)**2;
-        if(d<bestSq){bestSq=d;best={actor:f,x:hit.x,y:hit.y};}
+    let best=null,bestT=Infinity;
+    for(const seg of segs){
+      const ang=Math.atan2(seg.y1-seg.y0,seg.x1-seg.x0);
+      const leadX=Math.cos(ang)*tip,leadY=Math.sin(ang)*tip;
+      const fromN={x:seg.x0+leadX,y:seg.y0+leadY};
+      const toN={x:seg.x1+leadX,y:seg.y1+leadY};
+      const length=Math.hypot(toN.x-fromN.x,toN.y-fromN.y)||1;
+      const consider=(hit)=>{
+        if(!hit?.actor)return;
+        const sx=hit.x??toN.x,sy=hit.y??toN.y;
+        const frac=v43min(Math.hypot(sx-fromN.x,sy-fromN.y)/length,0,1);
+        const t=(seg.t0??0)+frac*((seg.t1??1)-(seg.t0??0));
+        if(t<bestT){bestT=t;best={actor:hit.actor,x:sx,y:sy,t};}
+      };
+      if(AQ.state?.questMultiActor===true){
+        consider(window.APEX_QUEST_MULTI_ACTOR_CORE?.firstProjectileHit?.({
+          owner:p.owner,actors:fighters,from:fromN,to:toN,
+          projectileRadius:p.radius||8,bodyRadiusScale:CFG.BULLET_HIT_RADIUS_SCALE
+        }));
+      }else{
+        for(const fighter of v43Enemies(p.owner)){
+          const radius=fighter.radius*CFG.BULLET_HIT_RADIUS_SCALE+(p.radius||8);
+          const hit=sweptSegmentCircleHit(fromN.x,fromN.y,toN.x,toN.y,
+            fighter.x,fighter.y,radius);
+          if(hit)consider({actor:fighter,x:hit.x,y:hit.y});
+        }
       }
     }
     return best;
@@ -864,7 +880,7 @@
       const crystal=window.APEX_CRYSTAL;
       if(crystal?.resolveBullet){
         const len=Math.hypot(p.x-p.px,p.y-p.py)||1;
-        const bodyT=hit?Math.max(0,Math.min(1,Math.hypot(hit.x-p.px,hit.y-p.py)/len)):2;
+        const bodyT=hit?.t??2;
         const outcome=crystal.resolveBullet(p,bodyT,dt);
         if(outcome?.consumed)return;
       }
@@ -891,7 +907,7 @@
       &&(p.kind!=='mine'||p.phase==='flight');
     if(crystalEligible&&window.APEX_CRYSTAL?.resolveBullet){
       const span=Math.hypot(p.x-p.px,p.y-p.py)||1;
-      const bodyT=hit?Math.max(0,Math.min(1,Math.hypot(hit.x-p.px,hit.y-p.py)/span)):2;
+      const bodyT=hit?.t??2;
       const outcome=window.APEX_CRYSTAL.resolveBullet(p,bodyT,dt);
       if(outcome?.consumed)return;
     }
