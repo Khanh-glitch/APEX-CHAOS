@@ -52,7 +52,8 @@ try{
   }
   const ready=await ev(`(async()=>{
     await window.__apexEnsureDeferredRuntimes('arsenalProduct');
-    await apexEnsureBattleRuntimes();
+    // Arsenal product manifest already includes battle mode; the generic
+    // deferred loader has no standalone 'battle' group on this surface.
     return {product:window.apexArsenalBattleRuntime,
       start:typeof window.startArsenalBattleMode,asset:!!window.APEX_ARSENAL_AV,
       atlas:typeof window.APEX_ARSENAL?.weaponApi?.drawArsenalProjectiles};
