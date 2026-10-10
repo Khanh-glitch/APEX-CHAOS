@@ -495,14 +495,24 @@
       case 'fire': {
         const w = o.weapon;
         const fam = o.family || (w === 'PISTOL' ? 'SEMI' : w === 'SMG' ? 'AUTO' : w === 'SHOTGUN' ? 'SHOTGUN' : 'SEMI');
-        const sfx = o.sfx || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
+        // SPECIAL previously had no SFX family: every new gun fired silently.
+        // Reuse already-authorized material cues until a delivered pack provides
+        // a dedicated key; no second audio engine or undocumented asset path.
+        const specialSfx = {
+          FLARE_GUN: 'pistol_shot', TACTICAL_CROSSBOW: 'spear_swing',
+          STEEL_BALL_LAUNCHER: 'shotgun_shot', COMBAT_BOOMERANG: 'sabre_swing',
+          RPG_7: 'sniper_shot', FLAMETHROWER: 'smg_shot',
+          PLASMA_SPLITTER: 'sniper_shot', SHRAPNEL_MINE_LAUNCHER: 'shotgun_shot',
+        };
+        const sfx = o.sfx || specialSfx[w] || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
         const recipes = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.VFX_RECIPES) || {};
         const rec = recipes[o.vfx] || null;
         playAll(sfx, { rate: o.sfxRate || 1 });
         const scale = rec ? rec.scale : (fam === 'AUTO' ? 0.5 : fam === 'SHOTGUN' ? 1.5 : fam === 'AUTOSHOT' ? 1.15 : fam === 'BURST' ? 0.62 : 0.7);
         const stretch = rec ? rec.stretch : (fam === 'SHOTGUN' || fam === 'AUTOSHOT' ? 1.35 : 1);
         const frames = fam === 'AUTO' ? [2 + (smgSliceCursor % 2), 3] : (fam === 'SHOTGUN' || fam === 'AUTOSHOT') ? [4, 0] : fam === 'BURST' ? [0, 2] : [0, 1];
-        muzzle(o.x, o.y, o.angle, scale, frames, rec ? 0.08 + (rec.smokeLife || 0) * 0.15 : 0.09, stretch);
+        // A physical throw (Boomerang) must not create a firearm muzzle.
+        if (w !== 'COMBAT_BOOMERANG') muzzle(o.x, o.y, o.angle, scale, frames, rec ? 0.08 + (rec.smokeLife || 0) * 0.15 : 0.09, stretch);
         if (rec ? rec.smoke > 0.05 : (fam === 'SHOTGUN' || fam === 'AUTOSHOT')) {
           const smokeScale = rec ? (0.7 + rec.smoke * 0.6) : 1.1;
           pushVfx({ kind: 'smoke', x: o.x, y: o.y, angle: o.angle, scale: smokeScale, life: rec ? rec.smokeLife : 0.5, file: SMOKE('01') });
