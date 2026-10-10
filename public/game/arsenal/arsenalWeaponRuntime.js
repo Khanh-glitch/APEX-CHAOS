@@ -888,7 +888,13 @@
       if(crystal?.resolveBullet){
         const bodyT=hit?.t??2;
         const outcome=crystal.resolveBullet(p,bodyT,dt);
-        if(outcome?.consumed)return;
+        if(outcome?.consumed){
+          if(v43Redirected(p)){
+            const original=getHolder(p.launchOwner);
+            if(original?.weaponId===p.weapon)original.meta.v43Interrupted=true;
+          }
+          return;
+        }
       }
       if(hit&&!p.hits.has(hit.actor)){
         p.hits.add(hit.actor);
@@ -2678,6 +2684,11 @@
             const speed = Math.hypot(p.vx, p.vy) || 700;
             p.owner = f; // ownership switches to the reflector
             p.aqReflected = true;
+            if(p.kind==='boomerang'){
+              const thrownHolder=getHolder(originalOwner);
+              if(thrownHolder?.weaponId===p.weapon)
+                thrownHolder.meta.v43Interrupted=true;
+            }
             const back = norm(originalOwner.x - p.x || 1, originalOwner.y - p.y);
             p.vx = back.x * speed * 1.08;
             p.vy = back.y * speed * 1.08;
