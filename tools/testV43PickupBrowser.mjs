@@ -169,7 +169,7 @@ try{
             weapon:h?.weaponId||null,atk:a.hp,def:b.hp,
             projectileCount:projectiles.filter(p=>p.aq).length,
             projectile:projectiles.filter(p=>p.aq&&p.weapon===${JSON.stringify(id)})
-              .map(p=>({kind:p.kind,x:+p.x.toFixed(2),y:+p.y.toFixed(2),
+              .map(p=>({type:p.type,aq:p.aq,kind:p.kind,x:+p.x.toFixed(2),y:+p.y.toFixed(2),
                 vx:+p.vx.toFixed(2),vy:+p.vy.toFixed(2),angle:+p.angle.toFixed(3),
                 life:+p.life.toFixed(2),age:p.age,hr:p.__hr||null,ownerId:p.owner?.id})),
             position:{x:a.x,y:a.y,tx:b.x,ty:b.y},
