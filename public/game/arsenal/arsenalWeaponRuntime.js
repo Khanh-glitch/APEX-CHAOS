@@ -1654,6 +1654,21 @@
     }
     ctx.restore();
   }
+  // The exact owner Gold Lab's eight animated mine-arming spokes are
+  // drawn in WORLD space after the sprite. The former version rotated this
+  // halo with the image/velocity, producing a different motion signature.
+  function v43GoldMineArming(ctx,p,life=1){
+    const t=p.age*10;
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.translate(p.x,p.y);
+    ctx.strokeStyle='#ffa44f';ctx.lineWidth=2;
+    for(let i=0;i<8;i++){
+      const a=i*TAU/8,r=38+Math.sin(t+i)*4;
+      ctx.globalAlpha=(.15+.23*(.5+.5*Math.sin(t)))*life;
+      ctx.beginPath();ctx.moveTo(Math.cos(a)*27,Math.sin(a)*27);
+      ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.stroke();
+    }
+    ctx.restore();
+  }
   function v43GoldProjectile(ctx,p){
     const c=V43[p.weapon]||{},life=p.kind==='boomerang'
       ?v43min(p.life/.25,0,1):v43min(p.life/Math.max(.1,p.maxLife),0,1);
@@ -1756,18 +1771,9 @@
       const h=w*img.naturalHeight/img.naturalWidth;
       ctx.drawImage(img,-w/2,-h/2,w,h);
     }
-    // The eight authored Gold charge spokes breathe independently during
-    // armed waiting. They cannot change trigger area or detonation timing.
+    // Sprite-specific LED and corner brackets stay with the mine body;
+    // its Gold arming halo is added after restoring world-space coordinates.
     if(p.kind==='mine'&&p.phase==='armed'){
-      const pulse=p.age*10;
-      ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='#ffa44f';ctx.lineWidth=2;
-      for(let i=0;i<8;i++){
-        const a=i*TAU/8,r=38+Math.sin(pulse+i)*4;
-        ctx.globalAlpha=.15+.23*(.5+.5*Math.sin(pulse));
-        ctx.beginPath();ctx.moveTo(Math.cos(a)*27,Math.sin(a)*27);
-        ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.stroke();
-      }
-      ctx.restore();
       const beat=.3+.35*(1+Math.sin(p.age*14))/2;
       ctx.globalCompositeOperation='lighter';
       ctx.strokeStyle='rgba(255,105,43,'+beat+')';ctx.lineWidth=2;
@@ -2960,6 +2966,7 @@
       ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.fill();
     }
     ctx.restore();
+    if(p.kind==='mine'&&p.phase==='armed')v43GoldMineArming(ctx,p,life);
   }
 
   // World-space presentation for transient weapon visuals (slashes, aim lines).
