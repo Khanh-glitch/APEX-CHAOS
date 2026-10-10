@@ -3621,7 +3621,12 @@
       W.updateArsenalProjectiles = function updateArsenalProjectilesHR(dt) {
         if (HR._forceBasePass) return baseUpdateArsenalProjectiles(dt);
         if (!M) return baseUpdateArsenalProjectiles(dt);
-        return reworkUpdateProjectiles(dt);
+        // Owner Chrome reproduction: reworkUpdateProjectiles only dispatches
+        // aq_bullet/grenade/thrown. V43 shots otherwise remain at the muzzle
+        // with age=0 until base engine lifetime removes them, causing 0 HP.
+        const outcome = reworkUpdateProjectiles(dt);
+        baseUpdateArsenalProjectiles(dt, 'v43-only');
+        return outcome;
       };
       W.__hrPassSwapped = true;
     }

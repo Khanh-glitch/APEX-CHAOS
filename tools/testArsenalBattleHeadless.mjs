@@ -1739,6 +1739,72 @@ report.postCGuns = run(`
 gate('postc-24-senko-guns-registered', report.postCGuns.count === 24 && report.postCGuns.missing.length === 0, report.postCGuns);
 gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fired);
 
+ // Owner V43 regression — drive actual Fighter/holder/projectile scheduler
+ // for all eight approved special weapons, rather than testing only their
+ // registry definitions or classifying projectile names.
+ report.ownerV43Native = run(`
+   const ids = APEX_ARSENAL_CONFIG.V43_SPECIAL_IDS;
+   const findings = {};
+   for (const id of ids) {
+     __APEX_TEST.enterManual();
+     __APEX_TEST.holdSpawns();
+     __APEX_TEST.place(320, 500, 520, 500);
+     APEX_ARSENAL.weaponApi.equip(fighters[0], id);
+     APEX_ARSENAL.events.length = 0;
+     // No special gun may fire or be removed before ready delay.
+     __APEX_TEST.step(.20);
+     const before=__APEX_TEST.holder('HERO');
+     const premature=APEX_ARSENAL.events.some(e=>e.includes('weapon='+id)&&e.includes('CONSUME'));
+     // One and only one physical projectile transaction.
+     __APEX_TEST.step(1.20);
+     const recorded=APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id));
+     const uses=recorded.filter(e=>e.includes(' USE ')).length;
+     const interim=__APEX_TEST.holder('HERO');
+     const hits=recorded.filter(e=>e.includes(' HIT ')).length;
+     // Allow the full 5.8s non-homing Boomerang flight and recovery.
+     __APEX_TEST.step(6.6);
+     const after=__APEX_TEST.holder('HERO');
+     const completed=APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id)&&e.includes('CONSUME')).length;
+     const projectilesRemaining=projectiles.filter(p=>p.aq&&p.weapon===id).length;
+     findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature};
+   }
+   return {ids,findings};
+ `);
+ const ownerV43 = report.ownerV43Native;
+ gate('owner-v43-real-8-weapons-native-use',
+   ownerV43.ids.length===8 && ownerV43.ids.every(id=>{
+     const x=ownerV43.findings[id];
+     return x.before?.weapon===id && x.uses===1 && !x.premature
+       && x.after===null && x.completed===1 && x.projectilesRemaining===0;
+   }),ownerV43);
+
+// Owner V43 DAMAGE tests: a normal native Fighter must lose the README amount
+// from a real hit, not merely log USE/CONSUME. No Lab-dummy simulated HP.
+report.ownerV43Damage = run(`
+  const ids = ['STEEL_BALL_LAUNCHER','TACTICAL_CROSSBOW','FLARE_GUN',
+    'RPG_7','FLAMETHROWER','PLASMA_SPLITTER','SHRAPNEL_MINE_LAUNCHER'];
+  const damages={};
+  for (const id of ids) {
+    __APEX_TEST.enterManual();
+    __APEX_TEST.holdSpawns();
+    const far=id==='PLASMA_SPLITTER'?480:id==='SHRAPNEL_MINE_LAUNCHER'?250:200;
+    __APEX_TEST.place(320,500,320+far,500);
+    fighters[0].hp=1000;fighters[1].hp=1000;
+    APEX_ARSENAL.weaponApi.equip(fighters[0],id);
+    __APEX_TEST.step(2.4);
+    damages[id]=+(1000-fighters[1].hp).toFixed(3);
+  }
+  return damages;
+`);
+const owD=report.ownerV43Damage;
+gate('owner-v43-direct-ball-98-not-aoe',Math.abs(owD.STEEL_BALL_LAUNCHER-98)<1.1,owD);
+gate('owner-v43-crossbow-112',Math.abs(owD.TACTICAL_CROSSBOW-112)<1.1,owD);
+gate('owner-v43-flare-direct-plus-4burn',Math.abs(owD.FLARE_GUN-119)<1.1,owD);
+gate('owner-v43-rpg-direct-blast-near-161',owD.RPG_7>140&&owD.RPG_7<=161.1,owD);
+gate('owner-v43-flamethrower-5-contact-ticks',Math.abs(owD.FLAMETHROWER-157.5)<1.1,owD);
+gate('owner-v43-plasma-real-shards',owD.PLASMA_SPLITTER>=70&&owD.PLASMA_SPLITTER<=210.1,owD);
+gate('owner-v43-mine-armed-aoe',owD.SHRAPNEL_MINE_LAUNCHER>50&&owD.SHRAPNEL_MINE_LAUNCHER<=203.1,owD);
+
 report.postCWeights = run(`
   const SPAWN = APEX_ARSENAL_SPAWN;
   const CFG = APEX_ARSENAL_CONFIG;

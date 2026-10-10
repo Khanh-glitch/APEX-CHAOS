@@ -240,7 +240,7 @@
     SHRAPNEL_MINE_LAUNCHER:Object.freeze({tier:'T4',name:'Shrapnel Mine Launcher',kind:'mine',family:'SPECIAL',
       art:'/assets/arsenal/v43/SHRAPNEL_MINE_LAUNCHER.webp',
       projectile:'/assets/arsenal/v43/SHRAPNEL_MINE.webp',
-      worldWidth:175,muzzleU:.95,muzzleV:.44,muzzleDx:2,muzzleDy:-8,
+      worldWidth:175,projectileWidth:78,muzzleU:.95,muzzleV:.44,muzzleDx:2,muzzleDy:-8,
       deployDelay:.16,speed:540,drag:460,flightMax:.62,armSeconds:.48,
       triggerRadius:135,triggerAge:1.5,peak:140,blastRadius:150,
       fragments:8,fragmentSpeed:480,maxFragmentHits:2,fragmentDamage:31.5}),
@@ -257,7 +257,7 @@
     // SPECIAL is NOT one of the 24 conventional firearms; keep that family
     // stable for critical-hit/headless and Magnet mechanics. It remains a
     // ranged offensive pickup through the master tier pool.
-    CONFIG.WEAPONS[id]={...s,finalDamage:true,sfx:'skill',longSide:s.worldWidth,
+    CONFIG.WEAPONS[id]={...s,shots:1,finalDamage:true,sfx:'skill',longSide:s.worldWidth,
       recoilPx:11,recoilRot:.1,recoilTau:.09};
     CONFIG.FIREARM_DISPLAY_MODE=CONFIG.FIREARM_DISPLAY_MODE||{};
   }

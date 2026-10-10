@@ -223,12 +223,21 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const shots=tracks.reduce((n,t)=>n+(t.weaponShots.get(id)||0),0);
      const hits=tracks.reduce((n,t)=>n+(t.weaponHits.get(id)||0),0);
      const best=tracks.reduce((n,t)=>Math.max(n,t.weaponMax.get(id)||0),0);
+     const tier=cfg.tierOf?.(id)||cfg.WEAPON_TIER?.[id]||'T1';
+     const tierColor=cfg.TIER_COLORS?.[tier]||'#C9D0D7';
      weapons.push({id,name:id.replaceAll('_',' '),weaponClass:category,classLabel:fam,
-       tierLabel:cfg.tierOf?.(id)||'T1',tagline:'APEX ARSENAL',ownerId:tracks[0].id,
+       tierLabel:tier,tierColor,tierRgb:rgb(tierColor),
+       tagline:'APEX ARSENAL',ownerId:tracks[0].id,
        silhouette:'generic',artSrc:art,stats:{shotsFired:shots,shotsHit:hits,bestHit:Math.round(best)}});
    }
    const players=tracks.map((t,i)=>{
-     const slug=heroSlug(t.hero),color=accent[t.hero]||'#dddddd';
+     const slug=heroSlug(t.hero);
+     // Result Gold must consume the EXACT live HUD identity, never a
+     // second hero palette. A fallback only serves non-visual test fixtures.
+     const hud=root.APEX_COMBAT_HUD?.projection?.()?.sides?.[i]?.identity;
+     const projected=root.APEX_HERO_REWORK?.hudIdentity?.(t.f);
+     const liveColor=(hud?.heroId===t.hero&&hud?.color)||projected?.color||t.f?.color;
+     const color=/^#[0-9a-fA-F]{6}$/.test(liveColor||'')?liveColor:(accent[t.hero]||'#dddddd');
      const list=[...t.sourceMap.values()];
      const awards=[];
      for(const def of catalog){if(def.heroId&&def.heroId!==t.hero)continue;

@@ -495,14 +495,24 @@
       case 'fire': {
         const w = o.weapon;
         const fam = o.family || (w === 'PISTOL' ? 'SEMI' : w === 'SMG' ? 'AUTO' : w === 'SHOTGUN' ? 'SHOTGUN' : 'SEMI');
-        const sfx = o.sfx || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
+        // SPECIAL previously had no SFX family: every new gun fired silently.
+        // Reuse already-authorized material cues until a delivered pack provides
+        // a dedicated key; no second audio engine or undocumented asset path.
+        const specialSfx = {
+          FLARE_GUN: 'pistol_shot', TACTICAL_CROSSBOW: 'spear_swing',
+          STEEL_BALL_LAUNCHER: 'shotgun_shot', COMBAT_BOOMERANG: 'sabre_swing',
+          RPG_7: 'sniper_shot', FLAMETHROWER: 'smg_shot',
+          PLASMA_SPLITTER: 'sniper_shot', SHRAPNEL_MINE_LAUNCHER: 'shotgun_shot',
+        };
+        const sfx = o.sfx || specialSfx[w] || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
         const recipes = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.VFX_RECIPES) || {};
         const rec = recipes[o.vfx] || null;
         playAll(sfx, { rate: o.sfxRate || 1 });
         const scale = rec ? rec.scale : (fam === 'AUTO' ? 0.5 : fam === 'SHOTGUN' ? 1.5 : fam === 'AUTOSHOT' ? 1.15 : fam === 'BURST' ? 0.62 : 0.7);
         const stretch = rec ? rec.stretch : (fam === 'SHOTGUN' || fam === 'AUTOSHOT' ? 1.35 : 1);
         const frames = fam === 'AUTO' ? [2 + (smgSliceCursor % 2), 3] : (fam === 'SHOTGUN' || fam === 'AUTOSHOT') ? [4, 0] : fam === 'BURST' ? [0, 2] : [0, 1];
-        muzzle(o.x, o.y, o.angle, scale, frames, rec ? 0.08 + (rec.smokeLife || 0) * 0.15 : 0.09, stretch);
+        // A physical throw (Boomerang) must not create a firearm muzzle.
+        if (w !== 'COMBAT_BOOMERANG') muzzle(o.x, o.y, o.angle, scale, frames, rec ? 0.08 + (rec.smokeLife || 0) * 0.15 : 0.09, stretch);
         if (rec ? rec.smoke > 0.05 : (fam === 'SHOTGUN' || fam === 'AUTOSHOT')) {
           const smokeScale = rec ? (0.7 + rec.smoke * 0.6) : 1.1;
           pushVfx({ kind: 'smoke', x: o.x, y: o.y, angle: o.angle, scale: smokeScale, life: rec ? rec.smokeLife : 0.5, file: SMOKE('01') });
@@ -776,14 +786,89 @@
     });
   }
 
+  // V4.3 Gold authored muzzle: compute from the ACTUAL held-art transform,
+  // not a second approximation from the Fighter center. Shares the exact
+  // weaponDrawParams, Q3u artScale, pose, angle and left-facing flip used by
+  // drawWeaponWithPose, then applies the owner's per-weapon calibrated UV/dx/dy.
+  function weaponMuzzleWorld(fighter, holder, aimAngle) {
+    const id=holder?.weaponId, c=window.APEX_ARSENAL_CONFIG?.V43_WEAPONS?.[id];
+    const meta=weaponMeta(id);
+    if(!fighter||!c||!meta)return null;
+    const params=weaponDrawParams(id,'ranged',fighter.radius||75);
+    const p=holder?.meta?.pose||{};
+    const questRigScale=window.APEX_ARSENAL?.state?.questMultiActor&&fighter.questVisualId
+      ?window.APEX_QUEST_V12_RIG?.inspect?.(fighter)?.scaleFactor:null;
+    const artScale=Number.isFinite(questRigScale)&&questRigScale>=.5&&questRigScale<=1?questRigScale:1;
+    const offset=(params.offset+(p.localX||0)-(p.recoil||0))*artScale;
+    const lateral=(p.localY||0)*artScale;
+    const theta=aimAngle+params.drawOffset+(p.rotKick||0)+(p.flourish||0);
+    const cx=fighter.x+Math.cos(aimAngle)*offset-Math.sin(aimAngle)*lateral;
+    const cy=fighter.y+Math.sin(aimAngle)*offset+Math.cos(aimAngle)*lateral;
+    const width=params.targetLongSide*(p.scaleX||1)*artScale;
+    const height=width*meta.h/meta.w;
+    const localX=(c.muzzleU-.5)*width+(c.muzzleDx||0);
+    // drawWeaponSprite uses keepUpright scale(1,-1) after rotate when left.
+    const orientation=Math.cos(theta)<0?-1:1;
+    const localY=((c.muzzleV-.5)*height+(c.muzzleDy||0))*orientation;
+    return {x:cx+Math.cos(theta)*localX-Math.sin(theta)*localY,
+      y:cy+Math.sin(theta)*localX+Math.cos(theta)*localY,centerX:cx,centerY:cy,
+      width,height,theta};
+  }
+
+  // Direct V4.3 Gold Lab charge authoring: radial compression,
+  // four rotating elliptical rings and thirteen converging motes.
+  function drawV43GoldPlasmaCharge(ctx,fighter,holder,aimAngle) {
+    const m=weaponMuzzleWorld(fighter,holder,aimAngle);
+    if(!m)return;
+    const wait=holder.meta?.v43Wait||.5;
+    const t=Math.max(0,Math.min(1,(holder.meta?.v43Time||0)/wait));
+    const compress=Math.max(0,Math.min(1,(t-.72)/.28));
+    const outerR=(31+t*13)*(1-.42*compress);
+    const clock=holder.elapsed||0;
+    ctx.save();ctx.translate(m.x,m.y);ctx.globalCompositeOperation='lighter';
+    const glow=ctx.createRadialGradient(0,0,0,0,0,55*(1-.18*compress));
+    glow.addColorStop(0,'rgba(255,255,255,'+(.25+t*.45)+')');
+    glow.addColorStop(.14,'rgba(223,176,255,'+(.3+t*.4)+')');
+    glow.addColorStop(.46,'rgba(139,57,236,'+(.16+t*.16)+')');
+    glow.addColorStop(1,'rgba(74,13,118,0)');
+    ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,60,0,TAU);ctx.fill();
+    for(let k=0;k<4;k++){
+      const rot=clock*(1.9+k*.3)+k*TAU/4;
+      ctx.save();ctx.rotate(rot);
+      ctx.strokeStyle=['#a45afb','#ddafff','#7c33d4','#f8eaff'][k];
+      ctx.globalAlpha=.36+t*.18;ctx.lineWidth=2.7-k*.35;
+      ctx.setLineDash([outerR*.9,outerR*.42]);
+      ctx.beginPath();ctx.ellipse(0,0,Math.max(2,outerR-k*4),
+        Math.max(2,outerR*.55-k*2),0,0,TAU);ctx.stroke();ctx.restore();
+    }
+    for(let k=0;k<13;k++){
+      const rad=k*TAU/13+clock*.74,rr=69*(1-t)+5;
+      const r=Math.max(2.5,1.5+2*(1-t)),sx=Math.cos(rad)*rr,sy=Math.sin(rad)*rr;
+      ctx.globalAlpha=.35+t*.57;ctx.strokeStyle='#dba5ff';ctx.lineWidth=1.3;
+      ctx.beginPath();ctx.moveTo(sx*1.13,sy*1.13);
+      ctx.lineTo(sx*.67,sy*.67);ctx.stroke();
+      ctx.fillStyle=k%3===0?'#fff4ff':'#c084ff';
+      ctx.beginPath();ctx.arc(sx,sy,r,0,TAU);ctx.fill();
+    }
+    ctx.globalAlpha=.7+t*.3;ctx.fillStyle='#f8edff';
+    ctx.shadowBlur=22;ctx.shadowColor='#dca4ff';
+    ctx.beginPath();ctx.arc(0,0,5+t*9,0,TAU);ctx.fill();ctx.restore();
+  }
+
   function drawEquippedWeapon(ctx, fighter, holder) {
     if (!fighter || !holder || !holder.weaponId) return false;
+    if (holder.weaponId === 'COMBAT_BOOMERANG' && holder.phase === 'IN_FLIGHT') return false;
     // V2 §A2: equipped weapons continuously face the opponent through the
     // independent aim angle — never through the fighter movement direction.
     const angle = (holder.meta && holder.meta.aimAngle != null)
       ? holder.meta.aimAngle
       : Math.atan2(fighter.dir?.y || 0, fighter.dir?.x || 1);
-    return drawWeaponWithPose(ctx, fighter, holder.weaponId, holder.def?.category || '', angle, holder.meta && holder.meta.pose, 0.98);
+    const drawn=drawWeaponWithPose(ctx, fighter, holder.weaponId, holder.def?.category || '', angle, holder.meta && holder.meta.pose, 0.98);
+    // The original V4.3 Gold Plasma Splitter visibly accumulates energy
+    // BEFORE the carrier is released, not after. This is a cosmetic pass only.
+    if(holder.weaponId==='PLASMA_SPLITTER'&&holder.phase==='WINDUP')
+      drawV43GoldPlasmaCharge(ctx,fighter,holder,angle);
+    return drawn;
   }
 
   // Pose ghost (Checkpoint C §3.2): the consumed weapon exits PHYSICALLY —
@@ -952,6 +1037,7 @@
     activeVfx: () => vfx.length,
     drawWeaponSprite,
     weaponDrawParams,
+    weaponMuzzleWorld,
     drawEquippedWeapon,
     drawPoseGhost,
     drawDetachedWeapon,

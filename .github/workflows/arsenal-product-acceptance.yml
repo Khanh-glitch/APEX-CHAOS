@@ -79,6 +79,9 @@ jobs:
       - name: V43 kinetic-vs-energy and automatic Quest T1/T2 regression
         run: node tools/testV43KineticHeroInteractions.mjs
 
+      - name: Owner V43 unified lifecycle, Frost A1, Result Gold invariant guard
+        run: node tools/testOwnerV43LifecycleInvariants.mjs
+
       - name: Run targeted Hero Rework smoke
         run: AQ_EVIDENCE_DIR=/tmp/arsenal-closure-smoke node tools/smokeHeroReworkHeadless.mjs
 
@@ -171,6 +174,13 @@ jobs:
           echo "path=$CHROME" >> "$GITHUB_OUTPUT"
           "$CHROME" --version
 
+      - name: V43 owner reproduction - real Chrome floor pickup, rendered assets and native HP
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/v43-true-pickup
+        run: node tools/testV43PickupBrowser.mjs
+
       - name: Result Gold native-ledger React browser, real art and multi-viewport
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
@@ -199,6 +209,7 @@ jobs:
           name: arsenal-product-acceptance
           path: |
             dist/
+            release/arsenal-product-windows/
             docs/acceptance/arsenal-product/browser/
             /tmp/arsenal-vite.log
             /tmp/arsenal-launcher-1.log

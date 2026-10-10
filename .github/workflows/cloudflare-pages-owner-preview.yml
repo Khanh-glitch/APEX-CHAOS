@@ -3,7 +3,7 @@ name: Cloudflare Pages Owner Preview
 on:
   push:
     branches:
-      - arena/01a0dc5e-apex-chaos
+      - fix/owner-v43-native-lifecycle-frost-result-20261010
     paths:
       - '.github/workflows/cloudflare-pages-owner-preview.yml'
       - 'src/**'
@@ -11,6 +11,8 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'vite.config.js'
+      - 'tools/**'
+      - 'result-gold/**'
 
 permissions:
   contents: read
@@ -51,14 +53,35 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Embed immutable build identity
+        run: |
+          printf '%s\n' "$GITHUB_SHA" > dist/V43_OWNER_BUILD_SHA.txt
+
       - name: Deploy owner preview to Cloudflare Pages
         id: deploy
         shell: bash
         run: |
-          npx --yes wrangler@4 pages deploy dist             --project-name=apex-chaos             --branch=stormbreaker-v9-owner-playtest             --commit-dirty=true 2>&1 | tee /tmp/cf-pages-deploy.log
+          npx --yes wrangler@4 pages deploy dist             --project-name=apex-chaos             --branch=owner-v43-fix-20261010             --commit-dirty=true 2>&1 | tee /tmp/cf-pages-deploy.log
 
       - name: Print expected branch URL
         if: always()
         run: |
           echo "Expected stable branch URL:"
-          echo "https://stormbreaker-v9-owner-playtest.apex-chaos.pages.dev"
+          echo "https://owner-v43-fix-20261010.apex-chaos.pages.dev"
+
+      - name: Verify Cloudflare is serving this exact reviewed commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://owner-v43-fix-20261010.apex-chaos.pages.dev/V43_OWNER_BUILD_SHA.txt"
+          for i in $(seq 1 20); do
+            GOT="$(curl -fLsS --max-time 15 "$URL" || true)"
+            if [ "$GOT" = "$GITHUB_SHA" ]; then
+              echo "PLAYTEST PREVIEW MATCHES GITHUB SHA: $GOT"
+              exit 0
+            fi
+            echo "Preview not yet propagated ($i/20): $GOT"
+            sleep 3
+          done
+          echo "::error::Live owner preview SHA did not match exact candidate!"
+          exit 1
