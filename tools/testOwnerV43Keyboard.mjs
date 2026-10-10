@@ -21,7 +21,9 @@ const ctx=vm.createContext({window,document,console,setTimeout:()=>1,clearTimeou
 vm.runInContext(fs.readFileSync('public/game/arsenal/arsenalConfig.js','utf8'),ctx);
 const owner=window.APEX_ARSENAL_OWNER_TEST, AQ=window.APEX_ARSENAL;
 assert.equal(owner.active,false,'must default OFF');
-assert.equal(owner.catalog.length,39);
+assert.equal(owner.catalog.length,41);
+assert.equal(owner.idForNumber(40),'SWIRL_SHIELD');
+assert.equal(owner.idForNumber(41),'TOWER_SHIELD');
 assert.equal(owner.idForNumber(25),'FLARE_GUN');
 assert.equal(owner.idForNumber(26),'TACTICAL_CROSSBOW');
 assert.equal(owner.idForNumber(27),'STEEL_BALL_LAUNCHER');
