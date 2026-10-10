@@ -697,7 +697,7 @@
   }
   function v43Spawn(f,id,kind,angle,extra={}){
     const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;
-    const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,
+    const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,launchOwner:f,
       x:m.x,y:m.y,px:m.x,py:m.y,ox:m.x,oy:m.y,
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       angle,spin:0,age:0,life:extra.life??3,maxLife:extra.life??3,
@@ -787,6 +787,11 @@
     if(!c||!p.owner||p.owner.hp<=0||AQ.state?.over){p.life=0;return;}
     if(p.__hr?.cryHold)return;
     p.age+=dt; // Engine updateProjectiles owns every projectile's lifetime.
+    // Magnet publishes a swept, force-integrated A2 path for kinetic specials.
+    // Consume it once (normal bullets already consume theirs in Hero Rework).
+    const magnetPlan=window.APEX_MAGNET?.consumeMovementPlan?.(p)||null;
+    if(!magnetPlan&&p.__hr){p.__hr.pathVia=null;p.__hr.pathPoly=null;}
+    if(p.kind==='boomerang'&&magnetPlan)p.magnetReleased=true;
     if(p.kind==='flame'){v43FlameHit(p,dt);return;}
     if(p.kind==='mine'&&p.phase==='armed'){
       p.armAge=(p.armAge||0)+dt;
@@ -829,8 +834,10 @@
     // Crystal reflected boomerang is now a free ballistic projectile: the
     // original owner's precomputed return spline cannot override Crystal's
     // outgoing vector or magically change the new owner's trajectory.
-    if(p.kind==='boomerang'&&v43Redirected(p)){
-      p.phase='reflected';p.homing=false;p.spin=(p.spin||0)+c.spin*dt;
+    if(p.kind==='boomerang'&&(v43Redirected(p)||p.magnetReleased)){
+      p.phase='redirected';p.homing=false;p.spin=(p.spin||0)+c.spin*dt;
+      const original=getHolder(p.launchOwner);
+      if(original?.weaponId===p.weapon)original.meta.v43Interrupted=true;
     }
     if(p.kind==='bolt'){
       const sp=Math.hypot(p.vx,p.vy)||1;
@@ -850,7 +857,7 @@
       const m=Math.max(0,1-c.drag*dt);
       p.vx*=m;p.vy*=m;
     }
-    if(p.kind==='boomerang'&&!v43Redirected(p)){
+    if(p.kind==='boomerang'&&!v43Redirected(p)&&!p.magnetReleased){
       // World path is sampled once from RELEASE geometry, never re-steered to
       // the target or owner's later position. Time advances along arc length.
       const path=p.flightPath;
@@ -879,7 +886,6 @@
       // may hold/re-own the exact projectile; never apply the stale body hit.
       const crystal=window.APEX_CRYSTAL;
       if(crystal?.resolveBullet){
-        const len=Math.hypot(p.x-p.px,p.y-p.py)||1;
         const bodyT=hit?.t??2;
         const outcome=crystal.resolveBullet(p,bodyT,dt);
         if(outcome?.consumed)return;
@@ -893,7 +899,18 @@
       return;
     }
     p.px=p.x;p.py=p.y;
-    p.x+=p.vx*dt;p.y+=p.vy*dt;
+    if(magnetPlan){
+      const ex=magnetPlan.entryX??(p.px+magnetPlan.preVx*dt*magnetPlan.entryT);
+      const ey=magnetPlan.entryY??(p.py+magnetPlan.preVy*dt*magnetPlan.entryT);
+      p.vx=magnetPlan.postVx;p.vy=magnetPlan.postVy;
+      p.x=magnetPlan.finalX??(ex+p.vx*dt*(1-magnetPlan.entryT));
+      p.y=magnetPlan.finalY??(ey+p.vy*dt*(1-magnetPlan.entryT));
+      p.__hr=p.__hr||{};
+      p.__hr.pathVia={x:ex,y:ey,t:magnetPlan.entryT,
+        preVx:magnetPlan.preVx,preVy:magnetPlan.preVy,
+        postVx:magnetPlan.postVx,postVy:magnetPlan.postVy};
+      p.__hr.pathPoly=magnetPlan.poly?.length?magnetPlan.poly:null;
+    }else{p.x+=p.vx*dt;p.y+=p.vy*dt;}
     p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
     // Plasma core is a charged carrier, not a damaging early projectile.
     // Mine must land and arm first: an in-flight collision cannot bypass
@@ -906,7 +923,6 @@
     const crystalEligible=V43[p.weapon]?.reflectableKinds?.includes(p.kind)
       &&(p.kind!=='mine'||p.phase==='flight');
     if(crystalEligible&&window.APEX_CRYSTAL?.resolveBullet){
-      const span=Math.hypot(p.x-p.px,p.y-p.py)||1;
       const bodyT=hit?.t??2;
       const outcome=window.APEX_CRYSTAL.resolveBullet(p,bodyT,dt);
       if(outcome?.consumed)return;
@@ -1047,7 +1063,8 @@
           // A lifecycle interruption must never strand a permanently armed
           // holder if a projectile was destroyed by external effects.
           if(!projectiles.some(p=>p?.aq&&p.weapon===id&&p.owner===f&&p.kind==='boomerang'&&p.life>0)){
-            h.phase='RETRIEVED';h.meta.v43Time=0;
+            if(h.meta.v43Interrupted)consume(f,'boomerang-redirected-away');
+            else{h.phase='RETRIEVED';h.meta.v43Time=0;}
           }
           return;
         }
