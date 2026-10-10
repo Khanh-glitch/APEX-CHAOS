@@ -146,7 +146,14 @@ try{
         errors:window.apexEarlyErrors?.slice(-3)||[]};
     })()`);
     results.push(rec);
-    check(id+'-floor-pickup-use',rec.picked&&rec.maxShots===1&&rec.fire===1&&rec.pickup>=1,rec);
+    // Boomerang physically LEAVES the holder on release: shotsFired on a
+    // vanished held slot cannot be the firing witness. The native USE event
+    // and an airborne Boomerang are the authoritative facts, and catches
+    // can legitimately lead to a second USE without another floor pickup.
+    const boomerang=id==='COMBAT_BOOMERANG';
+    check(id+'-floor-pickup-use',rec.picked&&rec.pickup>=1
+      &&(boomerang?(rec.fire>=1&&rec.seen.some(k=>k==='boomerang:out'))
+        :(rec.maxShots===1&&rec.fire===1)),rec);
     check(id+'-real-projectile-reached-browser',rec.seen.length>0,rec);
     check(id+'-canvas-drew-weapon-art',rec.visible.includes(id+'.webp'),rec);
     if(['TACTICAL_CROSSBOW','STEEL_BALL_LAUNCHER','RPG_7','SHRAPNEL_MINE_LAUNCHER'].includes(id))
@@ -243,8 +250,12 @@ try{
     productCases.push(q);
     check('CORE-SIX-PUBLIC-'+id+'-pickup-shot-damage',
       q.started===true&&q.p1==='ROBOT'&&q.p2==='ROBOT'
-      &&q.pickup===1&&q.fire===1&&q.kinds.length>0
-      &&(id==='COMBAT_BOOMERANG'?q.kinds.includes('boomerang'):q.damage>0),q);
+      &&q.pickup===1&&q.kinds.length>0
+      &&(id==='COMBAT_BOOMERANG'
+        ?(q.fire>=1&&q.kinds.includes('boomerang')
+           &&q.states.some(s=>s.projectile.some(p=>p.kind==='boomerang'))
+           &&q.states.some(s=>s.weapon===null))
+        :(q.fire===1&&q.damage>0)),q);
   }
   // Owner R3 visual regression: full source->safe-core transformation at the
   // most hostile screen corner, captured at three Gold charge phases.
