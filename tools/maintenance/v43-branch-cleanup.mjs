@@ -61,6 +61,11 @@ for(const old of audit.branches){
   }
   if(prRefs.has(old.name))reasons.push('live-open-PR');
   if(old.name===audit.canonicalDevelopment||old.name==='main')reasons.push('core-ref');
+  // Broad CI patterns such as arena/** must protect their entire namespace.
+  if(old.name.startsWith('arena/'))reasons.push('workflow-glob:arena/**');
+  // Human-approved rollback/deploy/checkpoint refs never go through bulk prune.
+  if(/^(safety|owner|playtest|release|production|preview|backup|archive|checkpoint|hotfix)\//.test(old.name))
+    reasons.push('rollback-or-deployment-namespace');
   if(workflowSources.some(w=>w.body.includes(old.name)))reasons.push('workflow-reference');
   // History comparisons happen only when every cheaper live guard passed.
   if(reasons.length===0&&!isAncestor(old.sha,audit.canonicalSha))
@@ -90,6 +95,9 @@ for(const branch of todo){
     throw Error('New PR dependency: '+branch.name);
   if(!isAncestor(branch.sha,audit.canonicalSha))
     throw Error('No longer an ancestor: '+branch.name);
+  if(branch.name.startsWith('arena/')||
+    /^(safety|owner|playtest|release|production|preview|backup|archive|checkpoint|hotfix)\//.test(branch.name))
+    throw Error('Reserved by workflow glob / rollback policy: '+branch.name);
   if(workflowSources.some(w=>w.body.includes(branch.name)))
     throw Error('Active workflow dependency: '+branch.name);
   if(!/^[a-zA-Z0-9._/-]+$/.test(branch.name))
