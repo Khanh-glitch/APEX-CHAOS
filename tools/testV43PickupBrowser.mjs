@@ -292,6 +292,57 @@ try{
   check('R3-PLASMA-RING-COMPRESSION-CHANGES-REAL-CHROME-PIXELS',
     new Set(plasmaVisual.frames.map(f=>f.hash)).size===3,
     plasmaVisual.frames.map(f=>({time:f.time,hash:f.hash?.slice(0,12)})));
+
+  // R3 Crystal K integration smoke: REAL Core Six Crystal vs real ROBOT,
+  // three distinct special physics families (linear, split energy, return).
+  // Standalone direct equip is used only for countermechanic verification;
+  // the eight public-floor-pickup checks above remain unchanged.
+  const crystalResults=[];
+  for(const id of ['TACTICAL_CROSSBOW','PLASMA_SPLITTER','COMBAT_BOOMERANG']){
+    const rec=await ev((()=>{return \`(()=>{
+      window.exitArsenalBattleMode?.();
+      window.__APEX_TEST_MODE=false;
+      window.__apexArsenalBattleProfile='LOCAL';window.__apexArsenalFreeBattle=true;
+      const started=window.startArsenalBattleMode('ROBOT','CRYSTAL',{});
+      if(!started)return {id:__V43_ID__,started:false};
+      if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
+      const A=window.APEX_ARSENAL,wa=A.weaponApi,HR=window.APEX_HERO_REWORK,CR=window.APEX_CRYSTAL;
+      const a=fighters[0],b=fighters[1];a.x=270;a.y=500;b.x=730;b.y=500;
+      a.setDir(1,0);b.setDir(-1,0);a.baseSpeed=0;b.baseSpeed=0;
+      if(a.data)a.data.__hrHoldBody=true;if(b.data)b.data.__hrHoldBody=true;
+      a.hp=1000;b.hp=1000;A.state.spawnTimer=1e6;A.state.spawnHeld=true;
+      A.state.slots.length=0;A.state.unarmedFastConsumed=true;projectiles.length=0;
+      const ct=HR.byCombatant(b),k=ct&&CR.castAwakening({combatant:ct,cfg:ct.skills.A2.cfg});
+      wa.equip(a,__V43_ID__);
+      let seen=false,seenReflected=false,maxObjects=0;
+      for(let i=0;i<255;i++){
+        A.step(1/60);
+        if(i%8===0)draw();
+        for(const p of projectiles)if(p.type==='aq_v43'&&p.weapon===__V43_ID__){
+          seen=true;
+          if(p.__hr?.crystalReflected||p.aqReflected)seenReflected=true;
+        }
+        maxObjects=Math.max(maxObjects,projectiles.filter(p=>p.aq).length);
+      }
+      const inspected=ct?CR.inspect(ct):null;
+      return {id:__V43_ID__,started,cast:!!k,kindCount:maxObjects,seen,
+        seenReflected,hpA:a.hp,hpB:b.hp,
+        kActive:inspected?.k?.active,shards:inspected?.available,
+        intercepts:inspected?.telemetry?.intercepts||0,
+        reflectedDamage:inspected?.telemetry?.reflectedDamage||0,
+        errors:window.apexEarlyErrors?.slice(-2)||[]};
+    })()\`})().replaceAll('__V43_ID__',JSON.stringify(id)));
+    crystalResults.push(rec);
+    const plausible={TACTICAL_CROSSBOW:112,PLASMA_SPLITTER:201,COMBAT_BOOMERANG:126}[id];
+    check('R3-CRYSTAL-K-'+id+'-REAL-CORE-SIX-BOUNDED-CONTACT',
+      rec.started===true&&rec.cast===true&&rec.seen
+      &&Number.isFinite(rec.hpA)&&Number.isFinite(rec.hpB)
+      &&rec.hpA>=0&&rec.hpB>=0&&rec.hpB>=1000-plausible-1,
+      rec);
+  }
+  await writeFile(join(out,'r3-crystal-three-family-integration.json'),
+    JSON.stringify(crystalResults,null,2));
+
   await writeFile(join(out,'v43-browser-real-pickup.json'),JSON.stringify({base,results,productCases},null,2));
   const capture=await cd('Page.captureScreenshot',{format:'png'});
   await writeFile(join(out,'v43-browser-last-weapon.png'),Buffer.from(capture.data,'base64'));
