@@ -797,7 +797,11 @@
     p.px=p.x;p.py=p.y;
     p.x+=p.vx*dt;p.y+=p.vy*dt;
     p.visual.push({x:p.x,y:p.y});if(p.visual.length>11)p.visual.shift();
-    const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+    // Plasma core is a charged carrier, not a damaging early projectile.
+    // Mine must land and arm first: an in-flight collision cannot bypass
+    // the explicit 0.48s arming gate.
+    const hit=(p.kind==='plasma-core'||p.kind==='mine')?null
+      :v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
       if(p.kind==='rocket'){
