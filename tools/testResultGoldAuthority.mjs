@@ -15,8 +15,8 @@ assert.equal(new Set(defs.map(d=>d.id)).size,47);
 assert.ok(!defs.some(d=>d.id==='bullet-storm'),'Owner dropped titles must not exist');
 assert.ok(scope.APEX_MATCH_RESULT_AUTHORITY?.create);
 function duel(name1='ROBOT',name2='ROBOT'){
- const f1={name:name1,x:200,y:500,hp:1000,maxHp:1000};
- const f2={name:name2,x:800,y:500,hp:1000,maxHp:1000};
+ const f1={id:1,name:name1,x:200,y:500,hp:1000,maxHp:1000};
+ const f2={id:2,name:name2,x:800,y:500,hp:1000,maxHp:1000};
  const C={WEAPONS:{PISTOL:{family:'SEMI'},GLOCK_17:{family:'SEMI'}},tierOf:()=> 'T1'};
  const ledger=scope.APEX_MATCH_RESULT_AUTHORITY.create({actors:[f1,f2],mode:'LOCAL',weaponConfig:C,startedAt:10000});
  return {f1,f2,ledger};
@@ -107,6 +107,44 @@ function duel(name1='ROBOT',name2='ROBOT'){
    'three distinct accepted cast-refund cycles signed by real Robot events');
  assert.equal(subscriptions.size,0,'per-match listeners always unsubscribe on KO');
  if(oldBus===undefined)delete scope.APEX_HERO_REWORK_AIL;else scope.APEX_HERO_REWORK_AIL=oldBus;
+}
+{
+ const off=new Map();
+ const previous=scope.APEX_HERO_REWORK_AIL;
+ scope.APEX_HERO_REWORK_AIL={bus:{on(k,fn){off.set(k,fn);return()=>off.delete(k)}}};
+ const {f1,f2,ledger}=duel('HUNTER','FROST');
+ // Actual enemy-body snare contact is the receipt; placement alone is not.
+ off.get('SnareTriggered')?.({payload:{ownerFighterId:f1.id,target:f2.id}});
+ f2.hp=950;ledger.onDamage(f2,f1,'arsenal-pistol',50);
+ off.get('SnareTriggered')?.({payload:{ownerFighterId:f1.id,target:f2.id}});
+ f2.hp=890;ledger.onDamage(f2,f1,'arsenal-pistol',60);
+ off.get('FrostFreezeRefresh')?.({payload:{shooterFighterId:f2.id}});
+ off.get('FrostFreezeRefresh')?.({payload:{shooterFighterId:f2.id}});
+ const res=ledger.seal('P1');
+ assert.ok(res.players[0].awards.some(a=>a.achievementId==='signature-hunter'),
+   'two independently triggered Hunter trap-to-accepted-hit sequences');
+ assert.ok(res.players[1].awards.some(a=>a.achievementId==='signature-frost'),
+   'only native Frost freeze timer refresh receipts');
+ assert.equal(off.size,0);
+ if(previous===undefined)delete scope.APEX_HERO_REWORK_AIL;else scope.APEX_HERO_REWORK_AIL=previous;
+}
+{
+ const {f1,f2,ledger}=duel('MAGNET','MIRROR');
+ const genuine={__resultMagnetA1Owners:new Set([f1.id])},holder={weaponId:'PISTOL'};
+ ledger.onPickup(f1,'PISTOL',genuine,holder);
+ assert.equal(ledger.onMagnetQualifiedHolder(f1,holder),true,
+  'Magnet A1 must act on the ACTUAL recovered holder object');
+ assert.equal(ledger.onMagnetQualifiedHolder(f2,holder),false);
+ f2.hp=790;ledger.onDamage(f2,f1,'arsenal-pistol',210,false,null,{magnet:true});
+ f1.hp=830;ledger.onDamage(f1,f2,'arsenal-pistol',170,false,null,{mirror:true});
+ const res=ledger.seal('P1');
+ assert.ok(res.players[0].awards.some(a=>a.achievementId==='signature-magnet'));
+ assert.ok(res.players[1].awards.some(a=>a.achievementId==='signature-mirror'));
+}
+{
+ const {f1,f2,ledger}=duel('CRYSTALA','ROBOT');
+ f2.hp=800;ledger.onDamage(f2,f1,'arsenal-sniper',200,false,null,{crystal:true});
+ assert.ok(ledger.seal('P1').players[0].awards.some(a=>a.achievementId==='signature-crystala'));
 }
 const battle=readFileSync('public/game/modes/arsenalBattleRuntime.js','utf8');
 const bridge=readFileSync('public/game/gold/goldProductBridge.js','utf8');
