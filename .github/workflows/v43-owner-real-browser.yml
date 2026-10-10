@@ -1,0 +1,67 @@
+name: V43 Owner Real Browser Reproduction
+
+on:
+  push:
+    branches:
+      - fix/owner-v43-native-lifecycle-frost-result-20261010
+    paths:
+      - '.github/workflows/v43-owner-real-browser.yml'
+      - 'tools/testV43PickupBrowser.mjs'
+      - 'public/**'
+      - 'src/**'
+      - 'result-gold/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chrome-real-pickup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Start real Vite gameplay
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm dev:lan >/tmp/v43-real-vite.log 2>&1 &
+          for i in $(seq 1 70); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v43-real-vite.log
+          exit 1
+      - name: Select real Chrome
+        id: chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+      - name: Eight real pickups; rendered weapon/art; projectile; Fighter damage
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: v43-owner-evidence
+        run: node tools/testV43PickupBrowser.mjs
+      - name: Upload exact-SHA browser reproduction and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v43-owner-chrome-visual-proof
+          path: |
+            v43-owner-evidence/
+            /tmp/v43-real-vite.log
+          if-no-files-found: warn
