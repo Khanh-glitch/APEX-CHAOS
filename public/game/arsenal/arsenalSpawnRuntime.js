@@ -591,7 +591,7 @@
       slot.pickedBy = closest.name;
       weaponApi.equip(closest, slot.weaponId);
       if(weaponApi.getHolder?.(closest)?.weaponId===slot.weaponId)
-        state.resultLedger?.onPickup?.(closest,slot.weaponId);
+        state.resultLedger?.onPickup?.(closest,slot.weaponId,slot,weaponApi.getHolder?.(closest));
       const hold = weaponApi.getHolder(closest);
       // Stage receipt is derived ONLY from a genuine REVEALED floor pickup
       // completed by Arsenal. It is not synthesized from HP or skill presses.

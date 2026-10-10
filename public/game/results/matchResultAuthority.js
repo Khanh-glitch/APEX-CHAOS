@@ -32,7 +32,9 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    ricochetHits:0,damageWhileBehind:0,comboChains:0,lastComboAt:-Infinity,
    lastAttack:{weapon:null,skill:null},chaosEvents:[],chaosQualified:false,
    pendingControls:new Map(),refundCycles:new Set(),cooldownCycle:{A1:0,A2:0},
-   heroCycles:0,traps:0,trapPending:new Map(),refreshes:0
+   heroCycles:0,traps:0,trapPending:new Map(),refreshes:0,
+   finalRound:false,crystalDamage:0,mirrorDamage:0,magnetDamage:0,
+   magnetHolders:new WeakSet()
  }));
  const track=f=>tracks.find(t=>t.f===f)||null;
  function now(){return elapsed}
@@ -63,11 +65,15 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
  function close(){if(!live&&cleanups.length===0)return;live=false;
    while(cleanups.length){const off=cleanups.pop();try{off()}catch(_){}}}
 
- function onDamage(victim,source,label,actual,critical=false,impact=null){
+ function onDamage(victim,source,label,actual,critical=false,impact=null,resultTags=null){
    if(!live||!finite(actual)||actual<=0)return;
    const v=track(victim),a=track(source);
    if(v){v.taken+=actual;v.minHp=Math.min(v.minHp,100*victim.hp/Math.max(1,victim.maxHp));v.lastDamageAt=now()}
    if(!a||a===v)return;
+   if(resultTags?.crystal&&a.hero==='CRYSTALA')a.crystalDamage+=actual;
+   if(resultTags?.mirror&&a.hero==='MIRROR')a.mirrorDamage+=actual;
+   if(resultTags?.magnet&&a.hero==='MAGNET')a.magnetDamage+=actual;
+   if(resultTags?.final&&victim.hp<=0)a.finalRound=true;
    const weapon=String(label||'').startsWith('arsenal-');
    const id=weapon?String(label).slice(8).toUpperCase().replaceAll('-','_'):String(label||'SKILL');
    const key=(weapon?'W:':'S:')+id;
@@ -121,10 +127,13 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    x.weaponShots.set(String(weaponId),(x.weaponShots.get(String(weaponId))||0)+1);
    x.lastShotAt=now();x.lastWeapon=weaponId}
  function onMiss(f){const x=track(f);if(x&&live)x.hitStreak=0}
- function onPickup(f,weaponId){const x=track(f);if(!live||!x)return; x.pickups++;x.weapons.add(String(weaponId));
-   if(x.lastPickupAt!==null&&now()-x.lastPickupAt<=2)x.swapFast++;x.lastPickupAt=now();x.lastPickupWeapon=String(weaponId)}
+ function onPickup(f,weaponId,slot,holder){const x=track(f);if(!live||!x)return; x.pickups++;x.weapons.add(String(weaponId));
+   if(x.lastPickupAt!==null&&now()-x.lastPickupAt<=2)x.swapFast++;x.lastPickupAt=now();x.lastPickupWeapon=String(weaponId);
+   if(x.hero==='MAGNET'&&slot?.__resultMagnetA1Owners?.size===1
+      &&slot.__resultMagnetA1Owners.has(f.id)&&holder)x.magnetHolders.add(holder)}
  function onHeal(f,actual){const x=track(f);if(!live||!x||!(actual>0))return;x.healing+=actual;
    if(f.hp/Math.max(1,f.maxHp)<=.25+actual/Math.max(1,f.maxHp))x.healsFromDanger+=actual}
+ function onMagnetQualifiedHolder(f,holder){const t=track(f);return !!(live&&t?.hero==='MAGNET'&&holder&&t.magnetHolders.has(holder));}
  function onCast(f,slot){const x=track(f);if(x&&live){x.casts++;
    if(slot==='A1'||slot==='A2')x.cooldownCycle[slot]++;}}
  function onRicochet(f){const x=track(f);if(x&&live)x.ricochets++}
@@ -157,10 +166,10 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      cycles:0,traps:0,refreshes:0
    };
    // No metric is fabricated. Unsupported measures never pass a predicate.
-   const unsupported=new Set(['signature-crystala','signature-magnet','signature-mirror']);
+   const unsupported=new Set();
    if(unsupported.has(def.id))return null;
    if(def.id==='first-blood')return t.firstBlood?{__event:1}:null;
-   if(def.id==='final-round')return null; // lacks final-ammo accepted-hit event
+   if(def.id==='final-round')return t.finalRound?{__event:1}:null;
    if(def.id==='executioner')generic.hp=t.executionerPreHp??Infinity;
    if(def.id==='overkill')generic.hit=t.maxHit;
    if(def.id==='burst-king')generic.damage=t.maxBurst3;
@@ -177,6 +186,9 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(def.id==='signature-newbot')generic.cycles=t.heroCycles;
    if(def.id==='signature-hunter'){generic.traps=t.traps;generic.window=2;}
    if(def.id==='signature-frost')generic.refreshes=t.refreshes;
+   if(def.id==='signature-crystala')generic.damage=t.crystalDamage;
+   if(def.id==='signature-magnet')generic.damage=t.magnetDamage;
+   if(def.id==='signature-mirror')generic.damage=t.mirrorDamage;
    if(def.id==='untouchable')generic.duration=elapsed;
    if(def.id==='pacifist')generic.seconds=t.noDamageTime;
    if(def.id==='adrenaline'){generic.damage=t.damageAtLow;generic.hp=t.minHp;}
@@ -247,7 +259,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        :{weaponId:'',ownerId:'',damage:0}};
    sealed=Object.freeze(result);close();return sealed;
  }
- return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onRicochet,onRicochetHit,onControl,onBlocked,tick,seal,close,
+ return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onMagnetQualifiedHolder,onRicochet,onRicochetHit,onControl,onBlocked,tick,seal,close,
    snapshot:()=>({live,elapsed,players:tracks.map(t=>({id:t.id,dealt:t.dealt,shots:t.shots,pickups:t.pickups}))})});
 }
 root.APEX_MATCH_RESULT_AUTHORITY=Object.freeze({create});

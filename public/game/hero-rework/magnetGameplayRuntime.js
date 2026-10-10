@@ -654,6 +654,14 @@
         st.vx *= drag; st.vy *= drag;
       }
       slot.x += st.vx * dt; slot.y += st.vy * dt;
+      // Result-only provenance: remember which genuine A1 moved this gun.
+      // If BOTH Magnets pulled it, neither may claim unique ownership.
+      if(Math.hypot(st.vx,st.vy)>1){for(const source of by){
+        if(source.kind==='a1'&&source.owner?.anchor?.id!=null){
+          if(!slot.__resultMagnetA1Owners)slot.__resultMagnetA1Owners=new Set();
+          slot.__resultMagnetA1Owners.add(source.owner.anchor.id);
+        }
+      }}
       resolveFloorWalls(slot, st, size);
       resolveFloorBodies(slot, st, bodies, pickupEligible);
       const speed = Math.hypot(st.vx, st.vy);

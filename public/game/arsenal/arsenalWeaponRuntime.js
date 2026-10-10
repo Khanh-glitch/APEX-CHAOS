@@ -403,20 +403,26 @@
       // V1 blood port §6: real firearm impact metadata rides next to the crit
       // flag (null for melee / grenade / native — they keep accepted behavior).
       target.__aqImpact = opts.impact || null;
+      target.__aqResultSource=opts.resultSource||null;
     }
+    const hpBefore=target.hp;
     target.takeDamage(dealt, source && source !== target ? source : null, `arsenal-${(weaponId || 'unknown').toLowerCase()}`, !!opts.statusDamage);
+    const actual=Math.max(0,hpBefore-target.hp);
+    if(actual>0&&mult<1)AQ.state?.resultLedger?.onBlocked?.(target,amount*(1-mult));
     // F1 PROVENANCE CORRECTION: __aqImpact is a TRANSIENT, transaction-scoped
     // marker. It is set immediately above and consumed synchronously inside
     // takeDamage (Robot armored-hit direction/point, MIRROR shard provenance,
     // AQ feel note). Clear it exactly once when the transaction unwinds so a
     // stale impact can never leak into a later direct/status/non-impact damage
     // event. Every set is paired with this synchronous clear.
-    if (target) target.__aqImpact = null;
+    if (target){target.__aqImpact = null;target.__aqResultSource=null;}
     if (opts.knockback && source && source !== target && target.hp > 0) {
       const n = norm(target.x - source.x || 1, target.y - source.y);
       target.applyStatus('push', 0.18, { x: n.x, y: n.y, strength: opts.knockback });
     }
     if (opts.stun && target.hp > 0) target.applyStatus('stun', opts.stun, {});
+    if(actual>0&&target.hp>0&&(opts.knockback||opts.stun))
+      AQ.state?.resultLedger?.onControl?.(source,target);
     if (opts.shake) cameraShake = Math.max(cameraShake, opts.shake);
     if (opts.hitStop) hitStop = Math.max(hitStop, opts.hitStop);
     log('HIT', `source=${(source && source.name) || 'world'} target=${target.name} weapon=${weaponId || 'world'} damage=${dealt.toFixed(1)}`);
@@ -482,6 +488,9 @@
       knockback: spec.knockback || 0,
       stun: spec.stun || 0,
       color: spec.color || (owner && owner.color) || '#ffffff',
+      resultFinalShot:!!spec.finalShot,
+      resultMirrorCopy:!!getHolder(owner)?.__hrMirrorCopy,
+      resultMagnetPulled:!!AQ.state?.resultLedger?.onMagnetQualifiedHolder?.(owner,getHolder(owner)),
       __hr: __hrTag,
     });
   }
@@ -871,6 +880,9 @@
             aqDamage(target, p.damage, p.owner, p.weapon, {
               knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0, critical: !!p.critical,
               impact: { x: hit.x, y: hit.y, vx: p.vx, vy: p.vy },
+              resultSource:{crystal:!!p.__hr?.crystalReflected,
+                mirror:!!p.resultMirrorCopy,magnet:!!p.resultMagnetPulled,
+                final:!!p.resultFinalShot},
             });
             // C §5.4 impact hierarchy, generalized to firing families (POST-C
             // §3): pistol tiny snap, SMG minimal repeated, shotgun broad
@@ -1621,6 +1633,7 @@
           knockback: pellets > 1 ? spec.knockback / pellets : spec.knockback,
           stun: spec.stun,
           color,
+          finalShot:ctx.holder.shotsFired+1===spec.shots,
         });
       }
       window.avCue('fire', {
@@ -1943,6 +1956,7 @@
                 weapon: 'SNIPER',
                 knockback: spec.knockback,
                 color: '#f4f4f4',
+                finalShot:true,
               });
               cameraShake = Math.max(cameraShake, 8);
               triggerFlash(255, 250, 235, 0.12);

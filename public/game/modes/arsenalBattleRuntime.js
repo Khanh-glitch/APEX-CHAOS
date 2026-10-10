@@ -236,7 +236,8 @@
       // Result ledger observes ACCEPTED native HP deltas, never a theoretical
       // projectile's base damage or an expired shield/immune hit.
       if(!st.labMode&&!st.questMultiActor&&dealt>0)st.resultLedger?.onDamage?.(
-        this,source,label,dealt,!!this.__aqHitCrit,this.__aqImpact||null);
+        this,source,label,dealt,!!this.__aqHitCrit,this.__aqImpact||null,
+        this.__aqResultSource||null);
       if (st.labMode) {
         st.labDamage += dealt;
         st.labHits += dealt > 0 ? 1 : 0;
@@ -2582,6 +2583,7 @@
       state.questBreachCompanionSkills?.close?.();state.questBreachCompanionSkills=null;
       state.questBreachRetreat?.close?.();state.questBreachRetreat=null;
       state.questRivetAdapter?.close?.();state.questRivetAdapter=null;
+      state.resultLedger?.close?.();
       state.questBreachLifecycle?.close?.();state.questBreachLifecycle=null;
       state.questBreachCreateFighter=null;
       state.questRainSequence?.close?.();
