@@ -1761,6 +1761,9 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
      const uses=recorded.filter(e=>e.includes(' USE ')).length;
      const interim=__APEX_TEST.holder('HERO');
      const hits=recorded.filter(e=>e.includes(' HIT ')).length;
+     const boomerangOut=id==='COMBAT_BOOMERANG'
+       ?projectiles.some(p=>p.kind==='boomerang'&&p.launchOwner===fighters[0]&&p.life>0)
+       :false;
      // Allow the full 5.8s non-homing Boomerang flight and recovery.
      __APEX_TEST.step(6.6);
      const after=__APEX_TEST.holder('HERO');
@@ -1779,7 +1782,8 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
          hitsAfterContact:APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id)&&e.includes(' HIT ')).length};
      }
      const projectilesRemaining=projectiles.filter(p=>p.aq&&p.weapon===id).length;
-     findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature,mineContact};
+     findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature,mineContact,
+       boomerangOut,catchCount:APEX_ARSENAL.events.filter(e=>e.includes(' CATCH ')&&e.includes('weapon='+id)).length};
    }
    return {ids,findings};
  `);
@@ -1787,6 +1791,13 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
  gate('owner-v43-real-8-weapons-native-use',
    ownerV43.ids.length===8 && ownerV43.ids.every(id=>{
      const x=ownerV43.findings[id];
+     if(id==='COMBAT_BOOMERANG'){
+       // Post-update boomerang no longer consumes on release: the hand is
+       // empty immediately and a real return catch may generate an extra
+       // USE, or the owner may miss it. Both are legal.
+       return x.before?.weapon===id&&!x.premature&&x.uses>=1
+         &&x.interim===null&&x.boomerangOut===true;
+     }
      return x.before?.weapon===id && x.uses===1 && !x.premature
        && x.after===null && x.completed===1
        && (id==='SHRAPNEL_MINE_LAUNCHER'
