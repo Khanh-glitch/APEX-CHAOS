@@ -898,7 +898,8 @@
       p.x=q.x;p.y=q.y;p.angle=q.heading;
       p.vx=(p.x-p.px)/Math.max(dt,1e-5);
       p.vy=(p.y-p.py)/Math.max(dt,1e-5);
-      p.spin+=c.spin*dt*(1-.20*v43min(u,0,1));
+      p.spinRate=c.spin*(1-.20*v43min(u,0,1));
+      p.spin+=p.spinRate*dt;
       if(p.phase==='out'&&lastTravel<path.far&&p.travel>=path.far){
         p.phase='return';p.damage=c.returning;p.hits=new Set();
       }
@@ -909,7 +910,10 @@
         }
         v43Pulse(p.x,p.y,'retrieve');p.life=0;return;
       }
-      p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
+      const previous=p.visual[p.visual.length-1];
+      if(!previous||Math.hypot(p.x-previous.x,p.y-previous.y)>4){
+        p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
+      }
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
       // Every physical SPECIAL flight must pass through Crystal's single
       // swept surface authority BEFORE native body damage. A K intercept
@@ -1123,7 +1127,7 @@
         if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;x.flameOrigins=[];}
         if(kind==='plasma-core'){x.damage=c.coreDamage;}
         if(kind==='boomerang'){
-          x.spin=0;x.damage=c.outgoing;
+          x.spin=0;x.spinRate=c.spin;x.damage=c.outgoing;
           x.flightPath=v43MakeFlightPath(x.x,x.y,a);
           x.travel=0;x.speed=c.speed;
           x.life=x.maxLife=c.maxFlightSeconds+.35;
@@ -1510,7 +1514,7 @@
     const tail=q.filter(a=>now-(a.t??0)<.31);
     if(tail.length<3)return;
     const velocity=Math.hypot(p.vx||0,p.vy||0)||1;
-    const strength=v43min(velocity/600,.35,1.1);
+    const strength=v43min((v43Redirected(p)?velocity:(p.speed||velocity))/600,.35,1.1);
     ctx.save();ctx.globalCompositeOperation='screen';ctx.lineCap='round';ctx.lineJoin='round';
     for(let layer=0;layer<3;layer++){
       const side=layer===0?-1:layer===1?1:0,points=[];
@@ -1518,7 +1522,9 @@
         const a=tail[j],pr=tail[Math.max(0,j-1)],ne=tail[Math.min(tail.length-1,j+1)];
         const dx=ne.x-pr.x,dy=ne.y-pr.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
         const age=v43min((now-(a.t??0))/.31,0,1),old=age*age;
-        const twist=side*(11+old*15)+Math.sin((a.t??0)*54*.65+layer*2.1)*old*(5+8*old);
+        const twist=side*(11+old*15)
+          +Math.sin((a.t??0)*(p.spinRate||V43[p.weapon]?.spin||38)*.65+layer*2.1)
+            *old*(5+8*old);
         points.push({x:a.x+nx*twist,y:a.y+ny*twist});
       }
       for(let pass=0;pass<2;pass++){
