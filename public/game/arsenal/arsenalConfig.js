@@ -449,6 +449,89 @@
     'SWIRL_SHIELD', 'TOWER_SHIELD',
   ];
 
+  // Owner-only, keyboard-gated BOT weapon selector. OFF by default on
+  // every page load. This is an ergonomic live-playtest tool, not an
+  // alternate damage/spawn engine or public menu option.
+  const ownerCatalog=Object.freeze(CONFIG.P0_WEAPON_IDS.filter((id,i,ids)=>
+    ids.indexOf(id)===i && id!=='SWIRL_SHIELD' && id!=='TOWER_SHIELD'));
+  const ownerTest={
+    active:false,selectedWeaponId:null,catalog:ownerCatalog,
+    idForNumber(number){return ownerCatalog[number-1]||null;},
+    numberForId(id){const i=ownerCatalog.indexOf(id);return i<0?null:i+1;},
+    roster(){return ownerCatalog.map((id,i)=>({number:i+1,id,name:
+      CONFIG.V43_WEAPONS?.[id]?.name||CONFIG.WEAPONS?.[id]?.name||
+      CONFIG.GUN_REGISTRY?.find(g=>g.id===id)?.name||id}));},
+    popup(message,showRoster=false){
+      let el=document.getElementById('aq-owner-keyboard-overlay');
+      if(!el){el=document.createElement('div');el.id='aq-owner-keyboard-overlay';
+        el.setAttribute('aria-live','polite');document.body.appendChild(el);}
+      Object.assign(el.style,{position:'fixed',right:'16px',top:'16px',zIndex:'2147482000',
+        width:showRoster?'min(680px,calc(100vw - 32px))':'min(440px,calc(100vw - 32px))',
+        maxHeight:'65vh',overflowY:'auto',pointerEvents:'none',
+        padding:'14px 18px',background:'rgba(8,13,21,.93)',color:'#f6e3b8',
+        border:'1px solid rgba(244,183,85,.65)',borderRadius:'9px',
+        boxShadow:'0 12px 42px #000a',font:'600 13px/1.6 ui-monospace,Consolas,monospace',
+        whiteSpace:'normal'});
+      const title=document.createElement('div');title.textContent=message;title.style.marginBottom='8px';
+      el.replaceChildren(title);
+      if(showRoster){
+        const body=document.createElement('div');
+        Object.assign(body.style,{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:'0 10px',
+          fontWeight:'400',fontSize:'12px'});
+        for(const {number,id} of ownerTest.roster()){
+          const row=document.createElement('div');row.textContent=String(number).padStart(2,'0')+' · '+id;
+          if(id===ownerTest.selectedWeaponId)row.style.color='#83f1d0';body.appendChild(row);
+        }el.appendChild(body);
+      }
+      if(ownerTest._hide)clearTimeout(ownerTest._hide);
+      ownerTest._hide=setTimeout(()=>{el?.remove();ownerTest._hide=null;},showRoster?14000:3200);
+    }
+  };
+  window.APEX_ARSENAL_OWNER_TEST=ownerTest;
+  let ownerDigits='';
+  window.addEventListener('keydown',ev=>{
+    const editable=ev.target?.closest?.('input,textarea,select,[contenteditable="true"]');
+    if(editable)return;
+    // Ctrl+Shift+F8 is deliberately uncommon in Chrome/Windows. A browser
+    // cannot override a shortcut reserved by the host OS.
+    if(ev.ctrlKey&&ev.shiftKey&&!ev.altKey&&!ev.metaKey&&ev.code==='F8'&&!ev.repeat){
+      ev.preventDefault();ev.stopPropagation();
+      if(!ownerTest.active&&window.APEX_ARSENAL?.state?.active){
+        ownerTest.popup('OWNER BOT TEST: exit the current match before activation');return;
+      }
+      ownerTest.active=!ownerTest.active;ownerDigits='';
+      ownerTest.selectedWeaponId=null;
+      if(ownerTest.active){
+        ownerTest.popup('OWNER BOT TEST ON · chọn tướng bình thường · giữ SHIFT, gõ ID, thả SHIFT',true);
+        window.APEX_ARSENAL_META?.openBotPick?.();
+      }else ownerTest.popup('OWNER BOT TEST OFF · chế độ spawn bình thường');
+      return;
+    }
+    if(!ownerTest.active||!window.APEX_ARSENAL?.state?.active
+      ||window.APEX_ARSENAL.state.battleMode!=='BOT'
+      ||ev.altKey||ev.ctrlKey||ev.metaKey)return;
+    if(ev.code==='ShiftLeft'||ev.code==='ShiftRight'){if(!ev.repeat)ownerDigits='';return;}
+    const match=/^(?:Digit|Numpad)([0-9])$/.exec(ev.code||'');
+    if(ev.shiftKey&&match&&!ev.repeat){
+      ev.preventDefault();ev.stopPropagation();
+      if(ownerDigits.length<3)ownerDigits+=match[1];
+    }
+  },true);
+  window.addEventListener('keyup',ev=>{
+    if(!ownerTest.active||!(ev.code==='ShiftLeft'||ev.code==='ShiftRight')||!ownerDigits)return;
+    const number=Number(ownerDigits);ownerDigits='';
+    const state=window.APEX_ARSENAL?.state;
+    if(!state?.active||state.battleMode!=='BOT'||state.labMode)return;
+    const id=ownerTest.idForNumber(number);
+    if(!id){ownerTest.popup('ID '+number+' không tồn tại · hợp lệ 1–'+ownerCatalog.length);return;}
+    ownerTest.selectedWeaponId=id;
+    // Only the next ordinary native TELEGRAPH->REVEALED slot is overridden.
+    // Do not forge pickup ownership, mutate Fighter equipment or Quest loot.
+    state.spawnTimer=Math.min(state.spawnTimer,.45);
+    ownerTest.popup('NEXT BOT SPAWN · #'+number+' · '+id);
+    window.APEX_ARSENAL?.log?.('OWNER_TEST_WEAPON', 'id='+number+' weapon='+id);
+  },true);
+
   const API = {
     config: CONFIG,
     // Installed by the neutral Arsenal Battle core on mode entry; spawn/weapon runtimes read it.
