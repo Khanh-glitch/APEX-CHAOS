@@ -2913,7 +2913,7 @@
       // Match the owner Lab's Canvas trace BEFORE variant debris is added.
       for(let i=0;i<5;i++){
         const rot=v.x*.043+i*TAU/5;
-        ctx.strokeStyle=i%2?'#ffe3b6':'#d88562';ctx.globalAlpha=life*.28;
+        ctx.strokeStyle=i%2?'#ffe3b6':'#d88562';ctx.globalAlpha=Math.pow(life,1.25)*.28;
         ctx.lineWidth=Math.max(.7,3*life);ctx.lineCap='round';ctx.beginPath();
         ctx.arc(0,0,radius*(.22+.78*age)*(1+.018*Math.sin(i+v.y)),
           rot,rot+.50+age*.42);ctx.stroke();
