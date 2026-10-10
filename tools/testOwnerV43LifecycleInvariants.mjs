@@ -95,4 +95,15 @@ assert.match(w,/child\.aqReflected=!!p\.aqReflected/,'shards must inherit Swirl 
 assert.match(w,/v43GoldBoomerangAirflow\(ctx,p,life\)/,'boomerang must render the Gold wingtip vortices');
 assert.match(w,/ctx\.shadowBlur=26-i\*5/,'plasma core must have four-layer Gold bloom');
 assert.match(p,/chargeClipMargin/,'plasma charged core must reserve full glow overhang');
+const battle=rd('public/game/modes/arsenalBattleRuntime.js');
+const robot=rd('public/game/hero-rework/robotPresentationRuntime.js');
+assert.match(battle,/av\.drawV43GoldPlasmaCharge\?\.\(c,f,h/,
+  'one shared Arsenal foreground pass must render plasma after any hero-held-art override');
+assert.match(p,/drawV43GoldPlasmaCharge,\s*drawPoseGhost/,
+  'Gold plasma presentation helper must be available to the shared foreground');
+assert.match(p,/robot\.getRobotWeaponSocketWorld\?\.\(fighter\)/,
+  'plasma muzzle and charge must honor the actual ROBOT-held-art socket');
+assert.match(robot,/if \(ok\) return true;/,
+  'regression fixture: ROBOT-held-art override short-circuits default drawer');
+
 console.log('PASS owner V43 source integration invariants: 8 weapon entries + native holder/pose/projectile/Frost/result gates');
