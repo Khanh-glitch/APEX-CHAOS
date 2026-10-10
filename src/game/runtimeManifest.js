@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261010-q1-b8-native-runtime';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261010-v43-post-update-01';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -41,7 +41,7 @@ export const MENU_INTERACTIVE_RUNTIMES = [
 // Inventory it here for strict production source-hygiene ownership without
 // duplicating its load, changing Gold readiness or affecting BOT/Local boot.
 export const GOLD_QUEST_SHELL_RUNTIMES = Object.freeze([
-  ['/game/quest/quest01Director.js?v=20261010-q1-b8-director', 'apexQuest01Director'],
+  ['/game/quest/quest01Director.js?v=20261010-quest-hero-post-01', 'apexQuest01Director'],
 ]);
 
 // Current-neutral combat services shared by Arsenal and the generic engine.
