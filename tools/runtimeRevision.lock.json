@@ -1,5 +1,5 @@
 {
-  "revision": "20261010-v43-owner-r2-native-runtime",
+  "revision": "20261010-q1-b8-native-runtime",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
