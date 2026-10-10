@@ -88,7 +88,7 @@ console.log('PASS post Sentinel laser: source Gold 3 rings/14 sparks/4 beam laye
 assert.match(battle,/fighter\.setDir\(\(best\.x-fighter\.x\)\/bestD/);
 assert.match(battle,/function questChosenBattleId\(\)/);
 assert.match(bridge,/const questShell=questPreview\?/);
-assert.match(director,/id='q1HeroCards'/);
+assert.match(director,/id="q1HeroCards"/);
 for(const key of ['questBreachWaves','questRivetOverridden','questTotLastChoice',
  'questFirstWake','questScrapSwarm','questWeaponRain',
  'questBreakerCharge','questReflex']){
