@@ -728,12 +728,15 @@
       ...extra};
     projectiles.push(p);return p;
   }
-  function v43ApplyBurn(target, owner, weapon, ticks, interval, damage) {
+  function v43ApplyBurn(target, owner, weapon, ticks, interval, damage, parent=null) {
     if (!target || target.hp <= 0) return;
-    projectiles.push({aq:true,type:'aq_v43',kind:'burn',owner,weapon,victim:target,
+    const burn={aq:true,type:'aq_v43',kind:'burn',owner,weapon,victim:target,
       x:target.x,y:target.y,age:0,life:ticks*interval+.15,
       maxLife:ticks*interval+.15,tickCount:0,burnTicks:ticks,
-      burnInterval:interval,burnDamage:damage});
+      burnInterval:interval,burnDamage:damage};
+    if(parent?.__hr?.crystalReflected)burn.__hr={
+      crystalReflected:true,cryOwner:parent.__hr.cryOwner,neutral:false};
+    projectiles.push(burn);
   }
   function v43FlameHit(p,dt){
     const c=V43.FLAMETHROWER;
@@ -761,7 +764,7 @@
           if(!p.burnRecipients)p.burnRecipients=new Set();
           if(!p.burnRecipients.has(f)){
             p.burnRecipients.add(f);
-            v43ApplyBurn(f,p.owner,p.weapon,c.burnTicks,c.burnInterval,c.burnDamage);
+            v43ApplyBurn(f,p.owner,p.weapon,c.burnTicks,c.burnInterval,c.burnDamage,p);
           }
         }
       }
@@ -849,10 +852,12 @@
         const fragmentGroup={victimHits:new Map()};
         for(let i=0;i<c.fragments;i++){
           const angle=i*Math.PI*2/c.fragments;
-          v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
+          const child=v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
             px:p.x,py:p.y,radius:4,
             damage:c.fragmentDamage*v43DamageScale(p,c.peak),fragmentGroup,
             life:.55,vx:Math.cos(angle)*c.fragmentSpeed,vy:Math.sin(angle)*c.fragmentSpeed});
+          if(p.__hr?.crystalReflected)child.__hr={
+            crystalReflected:true,cryOwner:p.__hr.cryOwner,neutral:false};
         }
         p.life=0;
       }
@@ -1024,7 +1029,7 @@
         // Apply actual future burn ticks through game-time status via a world
         // projectile, not an interval (pauses with match engine).
         v43ApplyBurn(t,p.owner,p.weapon,c.burnTicks,c.burnInterval,
-          c.burnDamage*v43DamageScale(p,c.direct));
+          c.burnDamage*v43DamageScale(p,c.direct),p);
       }
       if(p.kind==='bolt')hit.actor.applyStatus?.('slow',c.slowSeconds,{mult:c.slowMult});
       if(p.kind==='fragment'){
