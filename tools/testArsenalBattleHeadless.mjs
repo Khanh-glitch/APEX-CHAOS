@@ -1778,6 +1778,33 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
        && x.after===null && x.completed===1 && x.projectilesRemaining===0;
    }),ownerV43);
 
+// Owner V43 DAMAGE tests: a normal native Fighter must lose the README amount
+// from a real hit, not merely log USE/CONSUME. No Lab-dummy simulated HP.
+report.ownerV43Damage = run(\`
+  const ids = ['STEEL_BALL_LAUNCHER','TACTICAL_CROSSBOW','FLARE_GUN',
+    'RPG_7','FLAMETHROWER','PLASMA_SPLITTER','SHRAPNEL_MINE_LAUNCHER'];
+  const damages={};
+  for (const id of ids) {
+    __APEX_TEST.enterManual();
+    __APEX_TEST.holdSpawns();
+    const far=id==='PLASMA_SPLITTER'?480:id==='SHRAPNEL_MINE_LAUNCHER'?250:200;
+    __APEX_TEST.place(320,500,320+far,500);
+    fighters[0].hp=1000;fighters[1].hp=1000;
+    APEX_ARSENAL.weaponApi.equip(fighters[0],id);
+    __APEX_TEST.step(2.4);
+    damages[id]=+(1000-fighters[1].hp).toFixed(3);
+  }
+  return damages;
+\`);
+const owD=report.ownerV43Damage;
+gate('owner-v43-direct-ball-98-not-aoe',Math.abs(owD.STEEL_BALL_LAUNCHER-98)<1.1,owD);
+gate('owner-v43-crossbow-112',Math.abs(owD.TACTICAL_CROSSBOW-112)<1.1,owD);
+gate('owner-v43-flare-direct-plus-4burn',Math.abs(owD.FLARE_GUN-119)<1.1,owD);
+gate('owner-v43-rpg-direct-blast-near-161',owD.RPG_7>140&&owD.RPG_7<=161.1,owD);
+gate('owner-v43-flamethrower-5-contact-ticks',Math.abs(owD.FLAMETHROWER-157.5)<1.1,owD);
+gate('owner-v43-plasma-real-shards',owD.PLASMA_SPLITTER>=70&&owD.PLASMA_SPLITTER<=210.1,owD);
+gate('owner-v43-mine-armed-aoe',owD.SHRAPNEL_MINE_LAUNCHER>50&&owD.SHRAPNEL_MINE_LAUNCHER<=203.1,owD);
+
 report.postCWeights = run(`
   const SPAWN = APEX_ARSENAL_SPAWN;
   const CFG = APEX_ARSENAL_CONFIG;
