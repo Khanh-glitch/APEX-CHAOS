@@ -64,15 +64,18 @@ assert.match(cry,/p\?\.type==='aq_v43'/,'Crystal recognizes mobile V4.3 threats'
 assert.match(cry,/hr\.crystalReflected = true/,'Crystal reflect preserves one-reflect provenance');
 assert.match(w,/crystal\.resolveBullet\(p,bodyT,dt\)/,'Boomerang return path must traverse Crystal contact');
 assert.match(w,/APEX_CRYSTAL\.resolveBullet\(p,bodyT,dt\)/,'Other V4.3 mobile projectiles must traverse Crystal contact');
-assert.match(w,/p\.kind==='boomerang'&&!p\.__hr\?\.crystalReflected/,'Reflected boomerang cannot override its new trajectory with the old return path');
-assert.match(w,/p\.kind==='plasma'&&p\.homing&&!p\.__hr\?\.crystalReflected/,'Reflected plasma shards cannot home toward the original owner's foe');
+assert.match(w,/p\.kind==='boomerang'&&!v43Redirected\(p\)/,'Reflected boomerang cannot override its new trajectory with the old return path');
+assert.match(w,/p\.kind==='plasma'&&p\.homing&&!v43Redirected\(p\)/,'Reflected plasma shards cannot home toward the original owner's foe');
 assert.match(w,/if\(outcome\?\.consumed\)return;/,'Crystal contact must supersede a stale body hit');
 // R3: shared interaction policies, preserving reflected damage to descendants,
 // and distinct Gold motion are release-blocking source contracts.
 for(const [id,kind] of [['FLARE_GUN','flare'],['TACTICAL_CROSSBOW','bolt'],
   ['STEEL_BALL_LAUNCHER','ball'],['COMBAT_BOOMERANG','boomerang'],
   ['RPG_7','rocket'],['SHRAPNEL_MINE_LAUNCHER','mine']]){
-  assert.match(cfg,new RegExp(id+':Object\.freeze\([\s\S]{0,230}reflectableKinds:\[\''+kind+'\'\]'),
+  const start=cfg.indexOf(id+':Object.freeze(');
+  assert.ok(start>=0,'missing special '+id);
+  const record=cfg.slice(start,start+550);
+  assert.ok(record.includes("reflectableKinds:['"+kind+"']"),
     'registry reflection capability missing: '+id);
 }
 assert.match(cfg,/reflectableKinds:\['plasma-core','plasma'\]/,
