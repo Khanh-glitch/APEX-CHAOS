@@ -94,6 +94,21 @@ assert.match(cfg,/reflectableKinds:\[\],magnetizableKinds:\[\],muzzleDx:-1/,'fla
 assert.match(cry,/eligible\.includes\(p\.kind\)/,'Crystal K must query authoritative registry capabilities');
 assert.match(rd('public/game/hero-rework/magnetGameplayRuntime.js'),/special\.magnetizableKinds\.includes\(p\.kind\)/,'Magnet must use shared kinetic registry');
 assert.match(w,/v43DamageScale\(p,c\.coreDamage\)/,'plasma child damage must inherit the parent reflection scalar');
+assert.match(w,/function v43Deal\(p,target,amount,opts=\{\}\)/,
+  'specials must have one post-hit observer, not a second HP authority');
+assert.match(w,/const applied=aqDamage\(target,amount,p.owner,p.weapon/,
+  'V43 receipt adapter must delegate to native Fighter damage authority');
+assert.match(w,/crystal\?\.afterBodyHit\?\.\(p,target,realized\)/,
+  'Crystal telemetry must receive REAL reflected HP loss, not config peak');
+assert.match(w,/crystal\?\.noteBodyHit\?\.\(p,target\)/,
+  'Crystal overload and contact telemetry must use the same body hit');
+assert.match(w,/resultSource:opts\.resultSource\|\|\{/,
+  'Gold result ledger must be told when an actual Crystal-reflected projectile hits');
+assert.match(w,/if\(parent\?\.__hr\?\.crystalReflected\)burn\.__hr=/,
+  'flare burn must retain real Crystal reflection provenance');
+assert.match(w,/if\(p\.__hr\?\.crystalReflected\)child\.__hr=/,
+  'mine shrapnel must retain parent Crystal reflection provenance');
+
 assert.match(w,/child\.aqReflected=!!p\.aqReflected/,'shards must inherit Swirl reflection provenance');
 assert.match(w,/v43GoldBoomerangAirflow\(ctx,p,life\)/,'boomerang must render the Gold wingtip vortices');
 assert.match(w,/ctx\.shadowBlur=26-i\*5/,'plasma core must have four-layer Gold bloom');
