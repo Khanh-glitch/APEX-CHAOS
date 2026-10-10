@@ -649,6 +649,7 @@
     battleLiveRunning = false;
     window.__apexGoldBattleHosted = false;
     cancelResultReturn();
+    clearGoldResult();
     try { delete window.APEX_GOLD_HUD; } catch (error) { window.APEX_GOLD_HUD = undefined; }
   };
 
@@ -915,6 +916,7 @@
     const p1 = PRODUCTION_ID_BY_SHELL_KEY[p1Shell] || 'ROBOT';
     const p2 = PRODUCTION_ID_BY_SHELL_KEY[p2Shell] || 'ROBOT';
     if (window.APEX_GOLD_LOCKED && (window.APEX_GOLD_LOCKED(p1Shell) || window.APEX_GOLD_LOCKED(p2Shell))) return false;
+    clearGoldResult();
     battleLiveRunning = true;
     try {
       // Suppress only engine battle chrome before deferred runtime work. The
@@ -1049,6 +1051,7 @@
     // Always invalidate a deferred launch, even when startMatch has not been
     // reached yet. This makes ESC-during-load a real cancellation.
     battleSessionToken += 1;
+    clearGoldResult();
     if (!hadBattle) return false;
     if (pumpId) {
       if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pumpId);
@@ -1570,15 +1573,56 @@
   // the fighter screen. Nothing synthetic is invented; the engine stays the
   // only match authority, and the whole sequence is idempotent per match.
   const RESULT_HOLD_MS = 2600; // donor K.O. stamp (1700ms) + read-out margin
+  let resultFrame=null,resultData=null,resultReady=false,resultTimeout=0;
+  // No route guessed: the real game bridge owns the only 1v1 outcome and
+  // keeps the six-phase owner Gold inside an isolated iframe.
+  function clearGoldResult(){
+    if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=0;}
+    if(resultFrame){resultFrame.remove();resultFrame=null;}
+    resultData=null;resultReady=false;
+  }
+  function returnFromGoldResult(){
+    clearGoldResult();
+    try{window.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');}catch(_){}
+  }
+  function showGoldResult(data){
+    if(!data||resultFrame||!battleLiveRunning||!hudMounted)return false;
+    const frame=document.createElement('iframe');
+    frame.id='apex-real-match-result';
+    frame.title='APEX CHAOS — Kết quả trận đấu';
+    frame.setAttribute('aria-label','Kết quả trận đấu');
+    frame.style.cssText='position:fixed;inset:0;width:100vw;height:100dvh;'+
+      'border:0;background:#07080b;z-index:2147483600;display:block';
+    frame.src='/result-gold/index.html';
+    resultFrame=frame;resultData=data;resultReady=false;
+    document.body.appendChild(frame);
+    // A missing build must not trap users in a black screen forever.
+    resultTimeout=setTimeout(()=>{if(!resultReady&&resultFrame===frame)returnFromGoldResult()},9000);
+    return true;
+  }
+  window.addEventListener('message',function onGoldResultMessage(event){
+    if(!resultFrame||event.source!==resultFrame.contentWindow
+        ||event.origin!==window.location.origin)return;
+    if(event.data?.type==='APEX_RESULT_GOLD_READY'){
+      resultReady=true;
+      if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=0;}
+      resultFrame.contentWindow.postMessage({
+        type:'APEX_RESULT_GOLD_PAYLOAD',match:resultData
+      },window.location.origin);
+    }else if(event.data?.type==='APEX_RESULT_GOLD_CONTINUE'
+      &&resultReady&&event.data.matchId===resultData?.meta?.id){
+      returnFromGoldResult();
+    }
+  });
+
   let resultReturnTimer = 0;
   function scheduleResultReturn() {
     if (resultReturnTimer) return;
     resultReturnTimer = setTimeout(() => {
       resultReturnTimer = 0;
       if (!hudMounted) return;
-      try {
-        window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }, '*');
-      } catch (error) { /* same-document mount; parent === window */ }
+      const resolved=window.APEX_ARSENAL?.state?.resultGold||null;
+      if(!showGoldResult(resolved))returnFromGoldResult();
     }, RESULT_HOLD_MS);
   }
   function cancelResultReturn() {

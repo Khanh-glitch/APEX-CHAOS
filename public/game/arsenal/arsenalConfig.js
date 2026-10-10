@@ -196,8 +196,75 @@
       bulletSpeed: 2400, bulletLife: 0.16, bulletRadius: 6.5, triggerRange: 420, longSide: 150 },
   ];
 
+
+  // V4.3 OWNER HANDOFF — ONE authoritative special-weapon catalogue.
+  // These ID records are shared by Free Battle and Quest. New T1/T2 records
+  // auto-enter Quest through the ordinary CFG.BY_TIER pool; no quest ID list.
+  // Art paths refer to faithful PNG-derived runtime sprite assets from the
+  // user's handoff. Lab pixel values are 1000HP-world reference values;
+  // 'finalDamage' prevents accidental second ×7 scaling on port.
+  const V43 = Object.freeze({
+    FLARE_GUN:Object.freeze({tier:'T2',name:'Flare Gun',kind:'flare',family:'SPECIAL',
+      art:'/assets/arsenal/v43/FLARE_GUN.webp',worldWidth:150,muzzleU:.96,muzzleV:.34,
+      muzzleDx:3,muzzleDy:-8,speed:490,radius:10,drag:.23,
+      direct:63,burnTicks:4,burnInterval:.3,burnDamage:14}),
+    TACTICAL_CROSSBOW:Object.freeze({tier:'T2',name:'Tactical Crossbow',kind:'bolt',family:'SPECIAL',
+      art:'/assets/arsenal/v43/TACTICAL_CROSSBOW.webp',projectile:'/assets/arsenal/v43/BOLT.webp',
+      worldWidth:178,muzzleU:.96,muzzleV:.5,muzzleDx:0,muzzleDy:-10,
+      speed:830,maxSpeed:900,acceleration:90,radius:7,projectileWidth:121,tipOffset:47,
+      direct:112,slowSeconds:.3,slowMult:.85}),
+    STEEL_BALL_LAUNCHER:Object.freeze({tier:'T2',name:'Steel Ball Launcher',kind:'ball',family:'SPECIAL',
+      art:'/assets/arsenal/v43/STEEL_BALL_LAUNCHER.webp',projectile:'/assets/arsenal/v43/STEEL_BALL.webp',
+      worldWidth:153,muzzleU:.95,muzzleV:.39,muzzleDx:6,muzzleDy:-7,
+      speed:700,radius:12,projectileWidth:31,peak:98,ricochetPeak:109.76,
+      blastRadius:90,restitution:.86,horizontalRetention:.94,maxBounces:1}),
+    COMBAT_BOOMERANG:Object.freeze({tier:'T2',name:'Combat Boomerang',kind:'boomerang',family:'SPECIAL',
+      art:'/assets/arsenal/v43/COMBAT_BOOMERANG.webp',worldWidth:124,
+      muzzleU:.92,muzzleV:.5,muzzleDx:-60,muzzleDy:-11,
+      windup:.2,spin:38,spinEnd:.8,flightSeconds:5.8,
+      speed:475,minTurnSpeed:300,maxTurnSpeed:625,accelLimit:850,
+      outgoing:63,returning:63,radius:13,maxHitsPerLeg:1}),
+    RPG_7:Object.freeze({tier:'T3',name:'RPG-7',kind:'rocket',family:'SPECIAL',
+      art:'/assets/arsenal/v43/RPG_7.webp',projectile:'/assets/arsenal/v43/RPG_ROCKET.webp',
+      worldWidth:190,muzzleU:.89,muzzleV:.5,muzzleDx:-12,muzzleDy:-6,
+      speed:420,acceleration:760,maxSpeed:990,radius:15,projectileWidth:98,
+      tipOffset:39,peak:161,blastRadius:126}),
+    FLAMETHROWER:Object.freeze({tier:'T3',name:'Flamethrower',kind:'flame',family:'SPECIAL',
+      art:'/assets/arsenal/v43/FLAMETHROWER.webp',worldWidth:174,muzzleU:.96,muzzleV:.37,
+      muzzleDx:-1,muzzleDy:6,duration:.65,ticks:5,tickStart:.1,tickInterval:.13,
+      tickDamage:31.5,range:460,cone:.28}),
+    PLASMA_SPLITTER:Object.freeze({tier:'T4',name:'Plasma Splitter',kind:'plasma',family:'SPECIAL',
+      art:'/assets/arsenal/v43/PLASMA_SPLITTER.webp',worldWidth:189,muzzleU:.95,muzzleV:.5,
+      muzzleDx:-14,muzzleDy:-13,charge:.5,coreSpeed:625,splitAfter:.34,shards:3,
+      shardSpeed:735,spread:[-.18,0,.18],shardDamage:70,radius:9}),
+    SHRAPNEL_MINE_LAUNCHER:Object.freeze({tier:'T4',name:'Shrapnel Mine Launcher',kind:'mine',family:'SPECIAL',
+      art:'/assets/arsenal/v43/SHRAPNEL_MINE_LAUNCHER.webp',
+      projectile:'/assets/arsenal/v43/SHRAPNEL_MINE.webp',
+      worldWidth:175,muzzleU:.95,muzzleV:.44,muzzleDx:2,muzzleDy:-8,
+      deployDelay:.16,speed:540,drag:460,flightMax:.62,armSeconds:.48,
+      triggerRadius:135,triggerAge:1.5,peak:140,blastRadius:150,
+      fragments:8,fragmentSpeed:480,maxFragmentHits:2,fragmentDamage:31.5}),
+  });
+  // Disabled handoff concepts stay OUT of the catalogue by owner decision:
+  // CHAIN_WHIP, HARPOON_LAUNCHER, RAILGUN, TWIN_REAPER_SCYTHES.
+  CONFIG.V43_WEAPONS=V43;
+  CONFIG.V43_SPECIAL_IDS=Object.freeze(Object.keys(V43));
+  for(const [id,s] of Object.entries(V43)){
+    if(CONFIG.WEAPONS[id]||GUN_REGISTRY.some(e=>e.id===id))
+      throw Error('V43 duplicate weapon registry ID: '+id);
+    // GUN_REGISTRY is the generic ranged/equipment pool; SPECIAL variants
+    // override their executor below and are never emitted as default bullets.
+    // SPECIAL is NOT one of the 24 conventional firearms; keep that family
+    // stable for critical-hit/headless and Magnet mechanics. It remains a
+    // ranged offensive pickup through the master tier pool.
+    CONFIG.WEAPONS[id]={...s,finalDamage:true,sfx:'skill',longSide:s.worldWidth,
+      recoilPx:11,recoilRot:.1,recoilTau:.09};
+    CONFIG.FIREARM_DISPLAY_MODE=CONFIG.FIREARM_DISPLAY_MODE||{};
+  }
+
   // Materialize WEAPONS entries for every non-compat registry gun.
   for (const e of GUN_REGISTRY) {
+    if (e.special) continue; // V4.3 bespoke physics, one shared catalogue
     if (e.compat) { CONFIG.WEAPONS[e.id].family = e.family; continue; }
     const fam = GUN_FAMILIES[e.family];
     CONFIG.WEAPONS[e.id] = {
@@ -355,6 +422,7 @@
   // compact pistols (124-130) < heavy pistols (136-138) < SMG family
   // (140-145) < rifle baseline (152-154); shotguns/LMG/precision larger
   // where their silhouettes justify it (156-188).
+  // Display scale for data-driven V4.3 special equipment is in V43 itself.
   CONFIG.FIREARM_LONG_SIDE = {
     PISTOL: 126, GLOCK_17: 124, TEC_9: 140, BERETTA_93R: 130, DESERT_DEAGLE: 136, MAGNUM_500: 138,
     MAC_10: 141, SMG: 145, P90: 143, AK_47: 154, M16: 154,
@@ -363,6 +431,9 @@
     MOSSBERG_500: 158, SHOTGUN: 160, SAWED_OFF: 132, JACKHAMMER: 156,
     STORMBREAKER: 150, // red-tier floor read (x0.92 display mode ≈ 138px)
   };
+  for(const [id,spec] of Object.entries(CONFIG.V43_WEAPONS||{})){
+    CONFIG.FIREARM_LONG_SIDE[id]=spec.worldWidth;
+  }
   CONFIG.HEAL_WEIGHTS = {
     HEAL_H1: 7, HEAL_H2: 5, HEAL_H3: 3, HEAL_H4: 2, HEAL_H5: 1,
   };
@@ -372,7 +443,7 @@
   // Spawn roster (POST-C §3): all 24 staged Senko v9 guns are separately
   // spawnable, plus GRENADE, the 5 melee weapons and the 2 shields.
   CONFIG.P0_WEAPON_IDS = [
-    ...GUN_REGISTRY.map((e) => e.id),
+    ...GUN_REGISTRY.map((e) => e.id),...CONFIG.V43_SPECIAL_IDS,
     'GRENADE', 'SABRE', 'BATTLE_AXE', 'DAGGER', 'SPEAR', 'SPIKED_CLUB',
     'STORMBREAKER',
     'SWIRL_SHIELD', 'TOWER_SHIELD',

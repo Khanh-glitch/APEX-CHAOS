@@ -358,7 +358,9 @@
     // exempt from the x7 Arsenal equipment scale. Regular STORMBREAKER is
     // still equipment (red-tier, deliberately not a MELEE_IDS entry), so the
     // scale applies to every weapon EXCEPT the final-authority set.
-    const finalAuthority = !!(CFG.WEAPONS[weaponId] && CFG.WEAPONS[weaponId].confirmedHitDamage != null);
+    const finalAuthority = !!(CFG.WEAPONS[weaponId] &&
+      (CFG.WEAPONS[weaponId].confirmedHitDamage != null ||
+       CFG.WEAPONS[weaponId].finalDamage === true));
     if (!finalAuthority && (gun || melee || weaponId === 'GRENADE' || weaponId === 'STORMBREAKER')) dmg *= (CFG.ARSENAL_DAMAGE_SCALE || 1);
     if (critical && gun) dmg *= (CFG.CRIT_DAMAGE_MULTIPLIER || 1.5);
     return dmg;
@@ -401,20 +403,26 @@
       // V1 blood port §6: real firearm impact metadata rides next to the crit
       // flag (null for melee / grenade / native — they keep accepted behavior).
       target.__aqImpact = opts.impact || null;
+      target.__aqResultSource=opts.resultSource||null;
     }
+    const hpBefore=target.hp;
     target.takeDamage(dealt, source && source !== target ? source : null, `arsenal-${(weaponId || 'unknown').toLowerCase()}`, !!opts.statusDamage);
+    const actual=Math.max(0,hpBefore-target.hp);
+    if(actual>0&&mult<1)AQ.state?.resultLedger?.onBlocked?.(target,amount*(1-mult));
     // F1 PROVENANCE CORRECTION: __aqImpact is a TRANSIENT, transaction-scoped
     // marker. It is set immediately above and consumed synchronously inside
     // takeDamage (Robot armored-hit direction/point, MIRROR shard provenance,
     // AQ feel note). Clear it exactly once when the transaction unwinds so a
     // stale impact can never leak into a later direct/status/non-impact damage
     // event. Every set is paired with this synchronous clear.
-    if (target) target.__aqImpact = null;
+    if (target){target.__aqImpact = null;target.__aqResultSource=null;}
     if (opts.knockback && source && source !== target && target.hp > 0) {
       const n = norm(target.x - source.x || 1, target.y - source.y);
       target.applyStatus('push', 0.18, { x: n.x, y: n.y, strength: opts.knockback });
     }
     if (opts.stun && target.hp > 0) target.applyStatus('stun', opts.stun, {});
+    if(actual>0&&target.hp>0&&(opts.knockback||opts.stun))
+      AQ.state?.resultLedger?.onControl?.(source,target);
     if (opts.shake) cameraShake = Math.max(cameraShake, opts.shake);
     if (opts.hitStop) hitStop = Math.max(hitStop, opts.hitStop);
     log('HIT', `source=${(source && source.name) || 'world'} target=${target.name} weapon=${weaponId || 'world'} damage=${dealt.toFixed(1)}`);
@@ -460,6 +468,7 @@
     if (!Number.isFinite(angle) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(speed)) return;
     const wspec = CFG.WEAPONS[weapon] || {};
     const family = wspec.family || (weapon === 'SNIPER' ? 'PRECISION' : weapon === 'SHOTGUN' ? 'SHOTGUN' : weapon === 'SMG' ? 'AUTO' : 'SEMI');
+    AQ.state?.resultLedger?.onShot?.(owner,weapon);
     projectiles.push({
       type: 'aq_bullet',
       aq: true,
@@ -479,6 +488,9 @@
       knockback: spec.knockback || 0,
       stun: spec.stun || 0,
       color: spec.color || (owner && owner.color) || '#ffffff',
+      resultFinalShot:!!spec.finalShot,
+      resultMirrorCopy:!!getHolder(owner)?.__hrMirrorCopy,
+      resultMagnetPulled:!!AQ.state?.resultLedger?.onMagnetQualifiedHolder?.(owner,getHolder(owner)),
       __hr: __hrTag,
     });
   }
@@ -562,11 +574,283 @@
     p.life = 0;
   }
 
+
+  // ---------------------------------------------------------------------------
+  // V4.3 SPECIAL PHYSICS — single engine authority; never Lab/fixture damage.
+  // All eight handlers inherit identity/tier/pool from CFG.V43_WEAPONS.
+  // aq_v43 projectile bodies use real swept collision; hits ALWAYS pass
+  // through aqDamage/Fighter.takeDamage, never virtual HP.
+  // ---------------------------------------------------------------------------
+  const V43=CFG.V43_WEAPONS||{};
+  const v43min=(n,a,b)=>Math.max(a,Math.min(b,n));
+  const v43Normalize=(x,y)=>{const d=Math.hypot(x,y)||1;return {x:x/d,y:y/d};};
+  function v43Enemies(owner){
+    const list=AQ.state?.questMultiActor===true
+      ?window.APEX_QUEST_MULTI_ACTOR_CORE?.livingEnemies?.(owner,fighters)
+      :fighters.filter(f=>f&&f!==owner&&f.hp>0);
+    return (list||[]).filter(f=>f&&f.hp>0&&f.withdrawn!==true
+      &&(!AQ.state?.questMultiActor||f.questTeam!==owner?.questTeam));
+  }
+  function v43Hit(p,from,to){
+    if(AQ.state?.questMultiActor===true){
+      return window.APEX_QUEST_MULTI_ACTOR_CORE?.firstProjectileHit?.({
+        owner:p.owner,actors:fighters,from,to,
+        projectileRadius:p.radius||8,bodyRadiusScale:CFG.BULLET_HIT_RADIUS_SCALE
+      })||null;
+    }
+    let best=null,bestSq=Infinity;
+    for(const f of v43Enemies(p.owner)){
+      const rad=f.radius*CFG.BULLET_HIT_RADIUS_SCALE+(p.radius||8);
+      const hit=sweptSegmentCircleHit(from.x,from.y,to.x,to.y,f.x,f.y,rad);
+      if(hit){
+        const d=(hit.x-from.x)**2+(hit.y-from.y)**2;
+        if(d<bestSq){bestSq=d;best={actor:f,x:hit.x,y:hit.y};}
+      }
+    }
+    return best;
+  }
+  function v43Pulse(x,y,kind,scale=1){
+    if(AQ.state?.visuals) pushVisual({kind:'v43_'+kind,x,y,
+      life:.40,maxLife:.40,scale});
+    window.avCue?.('explosion',{x,y,weapon:'V43_'+kind});
+  }
+  function v43Splash(p,peak,radius){
+    const targets=v43Enemies(p.owner);
+    for(const f of targets){
+      const d=Math.hypot(f.x-p.x,f.y-p.y);
+      // Nearest surface counts as in-blast; center is max, outer edge zero.
+      const range=radius+(f.radius||75)*.25;
+      const factor=v43min(1-d/range,0,1);
+      if(factor<=0)continue;
+      aqDamage(f,peak*factor,p.owner,p.weapon,{
+        knockback:320*factor,shake:5*factor,hitStop:.012});
+    }
+    v43Pulse(p.x,p.y,'blast',radius/95);
+  }
+  function v43Muzzle(f,weaponId,angle){
+    const c=V43[weaponId],p=getHolder(f)?.meta?.pose||{},rr=f.radius||75;
+    const along=rr*.68+c.worldWidth*((c.muzzleU||.9)-.55)*.52+
+      (c.muzzleDx||0)+(p.localX||0)*.5;
+    const lateral=(c.muzzleV-.5)*c.worldWidth*.32+(c.muzzleDy||0);
+    return {x:f.x+Math.cos(angle)*along-Math.sin(angle)*lateral,
+      y:f.y+Math.sin(angle)*along+Math.cos(angle)*lateral};
+  }
+  function v43Spawn(f,id,kind,angle,extra={}){
+    const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;
+    const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,
+      x:m.x,y:m.y,px:m.x,py:m.y,
+      vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+      angle,spin:0,age:0,life:extra.life??3,maxLife:extra.life??3,
+      radius:extra.radius??c.radius??8,damage:extra.damage??c.direct??0,
+      phase:extra.phase||'flight',hits:new Set(),bounces:0,visual:[{x:m.x,y:m.y}],
+      ...extra};
+    projectiles.push(p);return p;
+  }
+  function v43FlameHit(p,dt){
+    const c=V43.FLAMETHROWER;
+    // 5 timed contact samples, each bounded to real owner heading/cone.
+    p.ticks=p.ticks||0;
+    if(p.ticks>=c.ticks)return;
+    const due=c.tickStart+p.ticks*c.tickInterval;
+    if(p.age+1e-6<due)return;
+    const dir=p.angle;
+    for(const f of v43Enemies(p.owner)){
+      const dx=f.x-p.owner.x,dy=f.y-p.owner.y,d=Math.hypot(dx,dy);
+      const off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-dir),
+        Math.cos(Math.atan2(dy,dx)-dir)));
+      if(d<=c.range+(f.radius||75)*.2&&off<=c.cone+Math.asin(v43min((f.radius||75)*.35/Math.max(d,1),0,1)))
+        aqDamage(f,p.damage||c.tickDamage,p.owner,p.weapon,{knockback:40});
+    }
+    p.ticks++;
+    if(p.ticks>=c.ticks)p.life=0;
+  }
+  function v43Step(p,dt){
+    const c=V43[p.weapon];
+    if(!c||!p.owner||p.owner.hp<=0||AQ.state?.over){p.life=0;return;}
+    if(p.__hr?.cryHold)return;
+    p.age+=dt;p.life-=dt;
+    if(p.kind==='flame'){v43FlameHit(p,dt);return;}
+    if(p.kind==='mine'&&p.phase==='armed'){
+      p.armAge=(p.armAge||0)+dt;
+      if(p.armAge>=c.triggerAge||v43Enemies(p.owner).some(f=>
+        Math.hypot(f.x-p.x,f.y-p.y)<c.triggerRadius+(f.radius||75)*.25)){
+        v43Splash(p,c.peak,c.blastRadius);
+        for(let i=0;i<c.fragments;i++){
+          const angle=i*Math.PI*2/c.fragments;
+          v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
+            px:p.x,py:p.y,radius:4,damage:c.fragmentDamage,
+            life:.55,vx:Math.cos(angle)*c.fragmentSpeed,vy:Math.sin(angle)*c.fragmentSpeed});
+        }
+        p.life=0;
+      }
+      return;
+    }
+    if(p.kind==='mine'&&p.phase==='flight'){
+      const v=Math.hypot(p.vx,p.vy),next=Math.max(0,v-c.drag*dt);
+      if(v>0){p.vx*=next/v;p.vy*=next/v;}
+      if(p.age>=c.flightMax||next<=40){p.vx=0;p.vy=0;p.phase='arming';p.age=0;}
+    }else if(p.kind==='mine'&&p.phase==='arming'){
+      if(p.age>=c.armSeconds){p.phase='armed';p.armAge=0;}
+      return;
+    }
+    if(p.kind==='bolt'){
+      const sp=Math.hypot(p.vx,p.vy)||1;
+      const ns=Math.min(c.maxSpeed,sp+c.acceleration*dt);
+      p.vx=p.vx/sp*ns;p.vy=p.vy/sp*ns;
+    }
+    if(p.kind==='rocket'){
+      const sp=Math.hypot(p.vx,p.vy)||1;
+      const ns=Math.min(c.maxSpeed,sp+c.acceleration*dt);
+      p.vx=p.vx/sp*ns;p.vy=p.vy/sp*ns;
+    }
+    if(p.kind==='flare'){
+      const m=Math.max(0,1-c.drag*dt);
+      p.vx*=m;p.vy*=m;
+    }
+    if(p.kind==='boomerang'){
+      p.spin+=c.spin*dt;
+      if(p.phase==='out'&&(p.age>c.flightSeconds*.46
+        ||Math.hypot(p.x-p.owner.x,p.y-p.owner.y)>Math.min(680,c.speed*2.4))){
+        p.phase='return';
+      }
+      if(p.phase==='return'){
+        const n=v43Normalize(p.owner.x-p.x,p.owner.y-p.y);
+        const targetX=n.x*c.maxTurnSpeed,targetY=n.y*c.maxTurnSpeed;
+        const dvx=targetX-p.vx,dvy=targetY-p.vy,dmag=Math.hypot(dvx,dvy);
+        const gain=Math.min(dmag,c.accelLimit*dt);
+        if(dmag>0){p.vx+=dvx/dmag*gain;p.vy+=dvy/dmag*gain;}
+        if(Math.hypot(p.x-p.owner.x,p.y-p.owner.y)<(p.owner.radius||75)*.6){
+          p.life=0;v43Pulse(p.x,p.y,'retrieve');return;
+        }
+      }
+    }
+    p.px=p.x;p.py=p.y;
+    p.x+=p.vx*dt;p.y+=p.vy*dt;
+    p.visual.push({x:p.x,y:p.y});if(p.visual.length>11)p.visual.shift();
+    const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+    if(hit&&!p.hits.has(hit.actor)){
+      p.x=hit.x;p.y=hit.y;
+      if(p.kind==='rocket'||p.kind==='ball'){
+        v43Splash(p,p.damage||c.peak,c.blastRadius);
+        p.life=0;return;
+      }
+      if(p.kind==='mine'){
+        if(p.phase==='armed')v43Splash(p,p.damage||c.peak,c.blastRadius);
+        else v43Splash(p,(p.damage||c.peak)*.75,c.blastRadius);
+        p.life=0;return;
+      }
+      aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
+        knockback:p.kind==='bolt'?180:100,
+        ...(p.kind==='bolt'?{stun:0}:{}),
+        impact:{x:p.x,y:p.y,vx:p.vx,vy:p.vy}});
+      if(p.kind==='flare'){
+        const t=hit.actor;let burnCount=0;
+        // Apply actual future burn ticks through game-time status via a world
+        // projectile, not an interval (pauses with match engine).
+        projectiles.push({aq:true,type:'aq_v43',kind:'burn',owner:p.owner,weapon:p.weapon,
+          victim:t,x:t.x,y:t.y,age:0,life:c.burnTicks*c.burnInterval+.05,
+          maxLife:c.burnTicks*c.burnInterval+.05,tickCount:burnCount});
+      }
+      if(p.kind==='bolt')hit.actor.applyStatus?.('slow',c.slowSeconds,{mult:c.slowMult});
+      if(p.kind==='boomerang'){
+        p.hits.add(hit.actor);v43Pulse(p.x,p.y,'strike');
+        // Once per outward and once per return; this is one real flying object.
+        if(p.phase==='out'){p.phase='return';p.damage=c.returning;p.hits=new Set();}
+        p.x+=p.vx*dt*.3;p.y+=p.vy*dt*.3;return;
+      }
+      if(p.kind==='fragment'){
+        p.hits.add(hit.actor);if(p.hits.size>=c.maxFragmentHits)p.life=0;
+        return;
+      }
+      v43Pulse(p.x,p.y,p.kind==='plasma'?'plasma':'strike');
+      p.life=0;return;
+    }
+    if(p.kind==='ball'){
+      // One true ricochet; on hit/ground bounce, later explosion gains 12%.
+      const wall=p.x<=p.radius||p.x>=GAME_SIZE-p.radius||
+        p.y<=p.radius||p.y>=GAME_SIZE-p.radius;
+      if(wall&&p.bounces<c.maxBounces){
+        p.bounces++;p.damage=c.ricochetPeak;
+        if(p.x<=p.radius||p.x>=GAME_SIZE-p.radius)p.vx=-p.vx*c.restitution;
+        if(p.y<=p.radius||p.y>=GAME_SIZE-p.radius)p.vy=-p.vy*c.restitution;
+        p.vx*=c.horizontalRetention;p.vy*=c.horizontalRetention;
+        v43Pulse(p.x,p.y,'ricochet');
+      }else if(wall){v43Splash(p,p.bounces?c.ricochetPeak:c.peak,c.blastRadius);p.life=0;}
+    }
+    if(p.kind==='rocket'&&(p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
+      p.x=v43min(p.x,0,GAME_SIZE);p.y=v43min(p.y,0,GAME_SIZE);
+      v43Splash(p,c.peak,c.blastRadius);p.life=0;
+    }
+    if(p.kind==='plasma-core'&&p.age>=c.splitAfter){
+      for(const da of c.spread){
+        const angle=Math.atan2(p.vy,p.vx)+da;
+        v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
+          radius:c.radius,damage:p.damage||c.shardDamage,vx:Math.cos(angle)*c.shardSpeed,
+          vy:Math.sin(angle)*c.shardSpeed,life:1.7});
+      }
+      v43Pulse(p.x,p.y,'split');p.life=0;
+    }
+    if(p.life<=0&&(p.kind==='rocket'||p.kind==='ball')){
+      v43Splash(p,p.damage||(p.kind==='rocket'?c.peak:(p.bounces?c.ricochetPeak:c.peak)),c.blastRadius);
+    }
+  }
+  function v43TickBurn(p,dt){
+    const c=V43.FLARE_GUN,t=p.victim;
+    if(!t||t.hp<=0||t.withdrawn===true){p.life=0;return;}
+    p.age+=dt;p.life-=dt;p.x=t.x;p.y=t.y;
+    while((p.tickCount||0)<c.burnTicks
+      &&p.age+1e-7>=((p.tickCount||0)+1)*c.burnInterval){
+      p.tickCount=(p.tickCount||0)+1;
+      aqDamage(t,c.burnDamage,p.owner,p.weapon,{statusDamage:true});
+    }
+  }
+  function makeV43Special(id){
+    const c=V43[id];
+    if(!c)throw Error('unknown V43 '+id);
+    return {
+      id,category:'ranged',spriteKey:id,
+      onEquip(ctx){ctx.holder.phase='READY';},
+      canActivate(ctx){return ctx.holder.phase==='READY'
+        &&ctx.holder.elapsed>=CFG.RANGED_READY_DELAY_SECONDS
+        &&enemyAlive(ctx);},
+      activate(ctx){
+        const f=ctx.fighter,h=ctx.holder,a=angleToEnemy(ctx);
+        h.phase='WINDUP';h.meta.v43Time=0;
+        h.meta.v43Angle=a;
+        h.meta.v43Wait=c.windup||c.deployDelay||c.charge||0;
+        log('USE', 'fighter='+f.name+' weapon='+id+' kind='+c.kind);
+        window.avCue?.('fire',{weapon:id,family:'SPECIAL',
+          x:f.x,y:f.y,angle:a});
+      },
+      update(ctx,dt){
+        const h=ctx.holder;if(h.phase!=='WINDUP')return;
+        h.meta.v43Time+=dt;if(h.meta.v43Time<h.meta.v43Wait)return;
+        const f=ctx.fighter,a=h.meta.v43Angle;
+        const kind={flare:'flare',bolt:'bolt',ball:'ball',boomerang:'boomerang',
+          rocket:'rocket',flame:'flame',plasma:'plasma-core',mine:'mine'}[c.kind];
+        if(!kind)throw Error('V43 executor not implemented '+c.kind);
+        AQ.state?.resultLedger?.onShot?.(f,id);
+        const x=v43Spawn(f,id,kind,a,{phase:kind==='boomerang'?'out':'flight',
+          life:kind==='flame'?c.duration:kind==='boomerang'?c.flightSeconds:3.2,
+          radius:c.radius||8,damage:c.direct??c.peak??c.outgoing??c.shardDamage??c.tickDamage??0});
+        if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;}
+        if(kind==='plasma-core'){x.damage=c.shardDamage;}
+        if(kind==='boomerang'){x.spin=0;x.damage=c.outgoing;}
+        consume(f,'v43-fired');
+      }
+    };
+  }
+
   // Per-frame movement/hit resolution for aq_* projectiles.
   function updateArsenalProjectiles(dt) {
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       if (!p || !p.aq) continue;
+      if(p.type==='aq_v43'){
+        if(p.kind==='burn')v43TickBurn(p,dt);else v43Step(p,dt);
+        if(p.life<=0)projectiles.splice(i,1);
+        continue;
+      }
       if (p.type === 'aq_bullet') {
         // C §5.2: swept segment vs fighter circle — speeds are tracer-grade and
         // tunneling is solved by continuous testing, never by bigger bullets.
@@ -596,6 +880,9 @@
             aqDamage(target, p.damage, p.owner, p.weapon, {
               knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0, critical: !!p.critical,
               impact: { x: hit.x, y: hit.y, vx: p.vx, vy: p.vy },
+              resultSource:{crystal:!!p.__hr?.crystalReflected,
+                mirror:!!p.resultMirrorCopy,magnet:!!p.resultMagnetPulled,
+                final:!!p.resultFinalShot},
             });
             // C §5.4 impact hierarchy, generalized to firing families (POST-C
             // §3): pistol tiny snap, SMG minimal repeated, shotgun broad
@@ -707,11 +994,14 @@
                 const hit=questHit||
                   sweptSegmentCircleHit(p.px,p.py,p.x,p.y,target.x,target.y,hitR)||
                   {x:p.x,y:p.y};
+                const hpBeforeImpact=target.hp;
                 aqDamage(target, CFG.meleeDamage('STORMBREAKER'), p.owner, 'STORMBREAKER', {
                   knockback: spec.knockback, stun: spec.stun,
                   shake: spec.shake != null ? spec.shake : 15,
                   hitStop: spec.hitStop != null ? spec.hitStop : 0.08,
                 });
+                if(p.__resultRicochet>0&&target.hp<hpBeforeImpact)
+                  AQ.state?.resultLedger?.onRicochetHit?.(p.owner);
                 // E08 causal receipt must be committed immediately after the
                 // REAL swept hit + native damage, before any VFX/SFX callback
                 // can re-enter presentation or clear a transient projectile.
@@ -730,9 +1020,12 @@
               }
               p.pinAngle = Math.atan2(p.vy, p.vx);
               // ONE melee damage authority: thrown hits read the same x1.5.
+              const hpBeforeThrow=target.hp;
               aqDamage(target, CFG.meleeDamage(p.weapon), p.owner, p.weapon, {
                 knockback: spec.knockback, stun: spec.stun, shake: 8, hitStop: 0.05,
               });
+              if(p.__resultRicochet>0&&target.hp<hpBeforeThrow)
+                AQ.state?.resultLedger?.onRicochetHit?.(p.owner);
               window.avCue('melee_hit', { weapon: p.weapon, x: target.x, y: target.y, angle: p.pinAngle });
               p.state = 'pinned';
               p.pinnedTo = target;
@@ -752,6 +1045,8 @@
               thrownExit(p);
             } else {
               p.ricochetsLeft -= 1;
+              p.__resultRicochet=(p.__resultRicochet||0)+1;
+              AQ.state?.resultLedger?.onRicochet?.(p.owner);
               p.spin *= -1;
               window.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });
               emitParticles(p.x, p.y, '#ffe6a8', 10, 320, 4, 0.3, 'square');
@@ -822,11 +1117,93 @@
     const fam = (CFG.WEAPONS[weaponId] || {}).family;
     return FAMILY_TRACER[fam] || TRACER.PISTOL;
   }
+  const v43SpriteCache=new Map();
+  function v43Sprite(url){
+    if(!v43SpriteCache.has(url)&&typeof Image==='function'){
+      const image=new Image();image.src=url;v43SpriteCache.set(url,image);
+    }
+    return (window.APEX_ARSENAL_AV?.imageByPath?.(url))||v43SpriteCache.get(url)||null;
+  }
   function drawArsenalProjectiles(ctx) {
     const av = window.APEX_ARSENAL_AV;
     for (const p of projectiles) {
       if (!p || !p.aq) continue;
       ctx.save();
+      if(p.type==='aq_v43'){
+        const c=V43[p.weapon]||{},life=v43min(p.life/Math.max(.1,p.maxLife),0,1);
+        ctx.save();
+        const acid=p.kind==='plasma'||p.kind==='plasma-core',fire=p.kind==='flame'||p.kind==='burn';
+        const tone=acid?'#cf8eff':fire?'#ff9e46':p.kind==='rocket'?'#ffcc7e':'#e1e8ee';
+        if(fire){
+          const age=p.age||0;
+          if(p.kind==='flame'){
+            const f=p.owner;if(f&&f.hp>0){
+              const a=p.angle,max=V43.FLAMETHROWER.range*.8+Math.sin(age*27)*13;
+              const ox=f.x+Math.cos(a)*(f.radius||70)*.8,oy=f.y+Math.sin(a)*(f.radius||70)*.8;
+              for(let i=0;i<12;i++){
+                const d=(i+.8)/12*max,off=Math.sin(i*14.3+age*33)*(.16+.28*i/12);
+                const x=ox+Math.cos(a+off)*d,y=oy+Math.sin(a+off)*d;
+                ctx.globalAlpha=.12+.28*(1-i/12);
+                ctx.fillStyle=i%3?'#ff7c22':'#ffe2a0';ctx.beginPath();
+                ctx.arc(x,y,11+i*.85+Math.sin(age*28+i)*3,0,TAU);ctx.fill();
+              }
+            }
+          }else if(p.victim){
+            for(let i=0;i<4;i++){
+              const x=p.victim.x+Math.sin(p.age*19+i*3.4)*24,y=p.victim.y+
+                Math.cos(p.age*23+i*7)*18-(p.age*14+i*11)%43;
+              ctx.globalAlpha=life*(.3+.1*i);ctx.fillStyle=i%2?'#ffd488':'#f2641c';
+              ctx.beginPath();ctx.arc(x,y,6+i,0,TAU);ctx.fill();
+            }
+          }
+        }else if(p.visual?.length>1){
+          ctx.lineCap='round';ctx.lineWidth=acid?6:3;
+          ctx.strokeStyle=tone;ctx.globalAlpha=.30*life;
+          ctx.beginPath();
+          for(let i=0;i<p.visual.length;i++){
+            const pt=p.visual[i];if(!i)ctx.moveTo(pt.x,pt.y);
+            else ctx.lineTo(pt.x,pt.y);
+          }
+          ctx.stroke();ctx.globalAlpha=1;
+        }
+        if(!fire){
+          // The Combat Boomerang is the SAME full-size held weapon body in
+          // flight: no abstract V substitute and no scale-pop on release.
+          const projectileKind={bolt:'BOLT',ball:'STEEL_BALL',rocket:'RPG_ROCKET',
+            mine:'SHRAPNEL_MINE',boomerang:'COMBAT_BOOMERANG'}[p.kind];
+          const imgUrl=projectileKind?'/assets/arsenal/v43/'+projectileKind+'.webp':null;
+          const image=imgUrl? v43Sprite(imgUrl):null;
+          ctx.translate(p.x,p.y);
+          ctx.rotate(p.kind==='boomerang'?(p.spin||0):Math.atan2(p.vy,p.vx));
+          if(image?.complete&&image.naturalWidth>0){
+            const w=p.kind==='boomerang'?c.worldWidth:(c.projectileWidth||Math.max(26,(p.radius||8)*3));
+            const scale=w/Math.max(image.naturalWidth,image.naturalHeight);
+            ctx.drawImage(image,-image.naturalWidth*scale*.5,-image.naturalHeight*scale*.5,
+              image.naturalWidth*scale,image.naturalHeight*scale);
+          }else{
+            const rr=p.radius||8;
+            ctx.globalAlpha=.8;ctx.shadowColor=tone;ctx.shadowBlur=6;
+            ctx.fillStyle=tone;ctx.strokeStyle='#f9f1dc';ctx.lineWidth=2;
+            ctx.beginPath();
+            if(p.kind==='bolt'||p.kind==='rocket'){
+              ctx.moveTo(rr*1.8,0);ctx.lineTo(-rr,-rr*.67);
+              ctx.lineTo(-rr*.8,rr*.67);ctx.closePath();
+            }else if(p.kind==='boomerang'){
+              ctx.moveTo(-rr*1.7,-rr*.7);ctx.lineTo(0,rr*.5);
+              ctx.lineTo(rr*1.7,-rr*.7);ctx.lineWidth=5;ctx.stroke();
+            }else ctx.arc(0,0,rr,0,TAU);
+            if(p.kind!=='boomerang'){ctx.fill();ctx.stroke();}
+            ctx.shadowBlur=0;
+          }
+          if(p.kind==='mine'&&p.phase==='armed'){
+            const R=c.triggerRadius||135;
+            ctx.strokeStyle='#ffb36b';ctx.globalAlpha=.32;
+            ctx.lineWidth=2;ctx.setLineDash([10,8]);
+            ctx.beginPath();ctx.arc(0,0,R,0,TAU);ctx.stroke();ctx.setLineDash([]);
+          }
+        }
+        ctx.restore();ctx.restore();continue;
+      }
       if (p.type === 'aq_bullet') {
         const t = tracerFor(p.weapon);
         const a = clamp(p.life / p.maxLife, 0.4, 1);
@@ -1258,6 +1635,7 @@
           knockback: pellets > 1 ? spec.knockback / pellets : spec.knockback,
           stun: spec.stun,
           color,
+          finalShot:ctx.holder.shotsFired+1===spec.shots,
         });
       }
       window.avCue('fire', {
@@ -1580,6 +1958,7 @@
                 weapon: 'SNIPER',
                 knockback: spec.knockback,
                 color: '#f4f4f4',
+                finalShot:true,
               });
               cameraShake = Math.max(cameraShake, 8);
               triggerFlash(255, 250, 235, 0.12);
@@ -1864,11 +2243,16 @@
   };
   for (const entry of (CFG.GUN_REGISTRY || [])) {
     if (entry.compat || WEAPONS[entry.id]) continue;
+    if(entry.special){WEAPONS[entry.id]=makeV43Special(entry.id);continue;}
     const color = REGISTRY_COLORS[entry.family] || '#ffe08a';
     if (entry.family === 'PRECISION') WEAPONS[entry.id] = makePrecisionGun(entry.id, color);
     else if (entry.family === 'SHOTGUN') WEAPONS[entry.id] = makeBlastGun(entry.id, color);
     else WEAPONS[entry.id] = makeGun(entry.id, null, color);
   }
+
+  // V4.3 special devices use the same equip/update loop but a separate
+  // executor, NEVER a fake default firearm family.
+  for(const id of (CFG.V43_SPECIAL_IDS||[]))WEAPONS[id]=makeV43Special(id);
 
   // ---------------------------------------------------------------------------
   // Per-frame holder driver — called by the mode runtime for each fighter.
@@ -1910,6 +2294,14 @@
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 4 * a + 1;
         ctx.stroke();
+      } else if(v.kind?.startsWith?.('v43_')){
+        const t=1-a,r=(v.scale||1)*(26+140*t);
+        ctx.strokeStyle=v.kind==='v43_plasma'?'#cb92ff':v.kind==='v43_blast'?'#ffce7f':'#f3b874';
+        ctx.lineWidth=3*a+1;
+        for(let n=0;n<5;n++){
+          const angle=n*TAU/5;
+          ctx.beginPath();ctx.arc(v.x,v.y,r,angle-.26,angle+.26);ctx.stroke();
+        }
       } else if (v.kind === 'aimline') {
         ctx.strokeStyle = v.color;
         ctx.lineWidth = 2.5;

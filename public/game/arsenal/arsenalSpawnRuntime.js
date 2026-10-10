@@ -41,6 +41,10 @@
   }
 
   function pickupTouchRadius(f) {
+    // Match the Quest hostile collision silhouette instead of collecting
+    // guns while their pincers are still visibly a body-width away.
+    if(f?.questTeam==='HOSTILE'&&['scout','reaver','sentinel'].includes(f?.questSpecies))
+      return (f.radius||75)*.52+CFG.PICKUP_RADIUS+23;
     return (f?.radius || 75) * 0.6 + CFG.PICKUP_RADIUS + CFG.PICKUP_TOUCH_BONUS;
   }
 
@@ -128,7 +132,9 @@
 
   function selectFirearmWeapon(rng) {
     const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
-    if(isQuestWeaponContext())return chooseQuestWeapon(random,true);
+    // Quest E01–E08 remains T1/T2-only, but now selects from registry
+    // rather than excluding valid V4.3 specials on a fake handgun-only list.
+    if(isQuestWeaponContext())return chooseQuestWeapon(random,false);
     const ids = (CFG.GUN_REGISTRY || []).map((e) => e.id);
     if (!ids.length) return 'PISTOL';
     if (CFG.selectOffensiveWeapon) {
@@ -525,6 +531,7 @@
         const actual = Math.min(nominal, Math.max(0, cap - closest.hp));
         closest.hp = Math.min(cap, closest.hp + actual);
         closest.healingDone = (closest.healingDone || 0) + actual;
+        state.resultLedger?.onHeal?.(closest,actual);
         slot.phase = 'PICKED_UP';
         slot.pickedBy = closest.name;
         log('PICKUP_HEAL', `id=${slot.id} fighter=${closest.name} restore=${actual}`);
@@ -583,6 +590,8 @@
       slot.phase = 'PICKED_UP';
       slot.pickedBy = closest.name;
       weaponApi.equip(closest, slot.weaponId);
+      if(weaponApi.getHolder?.(closest)?.weaponId===slot.weaponId)
+        state.resultLedger?.onPickup?.(closest,slot.weaponId,slot,weaponApi.getHolder?.(closest));
       const hold = weaponApi.getHolder(closest);
       // Stage receipt is derived ONLY from a genuine REVEALED floor pickup
       // completed by Arsenal. It is not synthesized from HP or skill presses.

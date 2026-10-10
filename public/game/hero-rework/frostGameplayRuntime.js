@@ -570,6 +570,7 @@ const FR = {
     st.freeze[target.id] = { until: now + freezeSecs };
     busEmit(wasFrozen ? 'FrostFreezeRefresh' : 'FrostFreezeStart', {
       body: target.id, group: tag.group, roll: +roll.toFixed(4),
+      shooterFighterId: shooter.anchor.id,
     });
     return true;
   },

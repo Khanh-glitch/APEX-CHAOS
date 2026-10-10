@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'arena/**'
+      - 'integration/quest-vfx-arsenal-v43-results-gold'
   pull_request:
   workflow_dispatch:
 
@@ -44,6 +45,8 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Owner Gold result engine and secure iframe contract
+        run: node tools/testResultGoldAuthority.mjs
       - name: Verify product graph, source hygiene, runtime revision, and generated audio bank
         run: |
           pnpm test:product-graph
@@ -72,6 +75,9 @@ jobs:
             sleep 1
           done
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testHomePortraitBrowser.mjs
+
+      - name: V43 kinetic-vs-energy and automatic Quest T1/T2 regression
+        run: node tools/testV43KineticHeroInteractions.mjs
 
       - name: Run targeted Hero Rework smoke
         run: AQ_EVIDENCE_DIR=/tmp/arsenal-closure-smoke node tools/smokeHeroReworkHeadless.mjs
@@ -164,6 +170,13 @@ jobs:
           test -n "$CHROME"
           echo "path=$CHROME" >> "$GITHUB_OUTPUT"
           "$CHROME" --version
+
+      - name: Result Gold native-ledger React browser, real art and multi-viewport
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/result-gold
+        run: node tools/testResultGoldBrowser.mjs
 
       - name: Run physical-pointer browser acceptance
         env:

@@ -206,8 +206,17 @@
       && isFirearm(slot.weaponId);
   }
   function isEligibleBullet(p) {
-    return !!p && p.aq === true && p.type === 'aq_bullet' && p.life !== 0
-      && isFirearm(p.weapon) && !(p.__hr && p.__hr.cryHold);
+    // Ordinary firearm bullets and V4.3 PHYSICAL projectiles are kinetic.
+    // V43 devices are NOT in CFG.isGun(): requiring isFirearm here silently
+    // let rockets/steel balls pass through Magnet A2. Flame, flare, plasma,
+    // and post-impact burns are NOT deflectable by a magnetic field.
+    const normal=p?.type==='aq_bullet'&&isFirearm(p.weapon);
+    const special=globalScope.APEX_ARSENAL_CONFIG?.V43_WEAPONS?.[p?.weapon];
+    const physical=p?.type==='aq_v43'&&!!special&&special.tier!=='T6'
+      &&(['bolt','ball','rocket','boomerang','fragment'].includes(p.kind)
+        ||(p.kind==='mine'&&p.phase==='flight'));
+    return !!p && p.aq===true && p.life>0 && !isT6Weapon(p.weapon)
+      && (normal||physical) && !(p.__hr && p.__hr.cryHold);
   }
   function hostileTo(p, ct, combatantOfBody) {
     if (p.__hr && p.__hr.neutral) return true;
@@ -651,6 +660,14 @@
         st.vx *= drag; st.vy *= drag;
       }
       slot.x += st.vx * dt; slot.y += st.vy * dt;
+      // Result-only provenance: remember which genuine A1 moved this gun.
+      // If BOTH Magnets pulled it, neither may claim unique ownership.
+      if(Math.hypot(st.vx,st.vy)>1){for(const source of by){
+        if(source.kind==='a1'&&source.owner?.anchor?.id!=null){
+          if(!slot.__resultMagnetA1Owners)slot.__resultMagnetA1Owners=new Set();
+          slot.__resultMagnetA1Owners.add(source.owner.anchor.id);
+        }
+      }}
       resolveFloorWalls(slot, st, size);
       resolveFloorBodies(slot, st, bodies, pickupEligible);
       const speed = Math.hypot(st.vx, st.vy);

@@ -25,6 +25,12 @@
     SNIPER: 'T5', JACKHAMMER: 'T5', BATTLE_AXE: 'T5',
     STORMBREAKER: 'T6',
   };
+  // Derive new tier entries from the SAME owner weapon catalogue that owns
+  // executors and art. This is what makes future Quest T1/T2 automatic.
+  for(const [id,s] of Object.entries(CFG.V43_WEAPONS||{})){
+    if(WEAPON_TIER[id])throw Error('V43 tier collision: '+id);
+    WEAPON_TIER[id]=s.tier;
+  }
   const BY_TIER = { T1: [], T2: [], T3: [], T4: [], T5: [], T6: [] };
   for (const [id, t] of Object.entries(WEAPON_TIER)) BY_TIER[t].push(id);
 
@@ -34,7 +40,7 @@
   // STORMBREAKER is offensive spawn pool material but is NOT a regular melee:
   // it keeps full base weight (no 0.5x melee penalty) and only ever rolls as
   // the T6 red tier.
-  const OFFENSIVE_IDS = [...GUN_IDS, 'GRENADE', ...MELEE_IDS, 'STORMBREAKER'];
+  const OFFENSIVE_IDS = [...GUN_IDS, ...(CFG.V43_SPECIAL_IDS||[]), 'GRENADE', ...MELEE_IDS, 'STORMBREAKER'];
 
   // P0 is the complete EQUIPMENT catalogue (including counter shields) for
   // Arsenal Lab. OFFENSIVE_IDS remains the separate, unchanged random spawn

@@ -1756,7 +1756,9 @@ report.postCWeights = run(`
     counts[id] = (counts[id] || 0) + 1;
   }
   const meleeAvg = CFG.MELEE_WEAPON_IDS.reduce((a, id) => a + counts[id], 0) / CFG.MELEE_WEAPON_IDS.length;
-  const nonMelee = CFG.P0_WEAPON_IDS.filter(id => !melee.has(id));
+  // Shields remain in P0 for Lab but are NOT offensive spawn candidates.
+  // V43 also expands the offence roster: count only the live selectable pool.
+  const nonMelee = CFG.OFFENSIVE_WEAPON_IDS.filter(id => !melee.has(id));
   const nonAvg = nonMelee.reduce((a, id) => a + counts[id], 0) / nonMelee.length;
   const ratio = meleeAvg / nonAvg;
   return { ratio, meleeAvg, nonAvg, sample: 20000 };
@@ -3601,13 +3603,14 @@ report.v3Visual = run(`
   const src = (draw.toString() + '');
   return {
     minL: Math.min.apply(null, longs), maxL: Math.max.apply(null, longs),
+    authoredMax:Math.max(188,...Object.values(CFG.V43_WEAPONS||{}).map(w=>w.worldWidth)),
     pistolLong: params.targetLongSide, snLong: sn.targetLongSide, useWorld: params.useWorld,
     kinds, pal: feel.palettes, bands: (feel.sizeBands || []).map(b => b.id),
     muted: src.indexOf('muteArenaGlyphs(ctx)') >= 0,
     blood: feel.blood && feel.blood.main,
   };
 `);
-gate('v3-gun-longside-table', report.v3Visual.minL >= 108 && report.v3Visual.maxL <= 188
+gate('v3-gun-longside-table', report.v3Visual.minL >= 108 && report.v3Visual.maxL <= report.v3Visual.authoredMax
   && report.v3Visual.pistolLong === 126 && report.v3Visual.snLong === 188 && report.v3Visual.useWorld === false, report.v3Visual);
 gate('v3-popup-kinds', report.v3Visual.kinds.includes('dmg') && report.v3Visual.kinds.includes('crit') && report.v3Visual.kinds.includes('heal'), report.v3Visual);
 gate('v3-popup-palette', report.v3Visual.pal.dmg.fill === '#F2382F' && report.v3Visual.pal.crit.fill === '#FF8A24' && report.v3Visual.pal.heal.fill === '#37D96B', report.v3Visual);
@@ -5697,7 +5700,7 @@ const battleRuntimeSrc = fs.readFileSync(path.join(REPO, 'public/game/modes/arse
 const goldShellSrc = fs.readFileSync(path.join(REPO, 'public/gold/shell.html'), 'utf8');
 gate('gold-battle-exit-returns-directly-to-fighter-pick',
   battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY')
-  && battleRuntimeSrc.includes("window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }")
+  && fs.readFileSync(path.join(REPO,'public/game/gold/goldProductBridge.js'),'utf8').includes("type:'APEX_CHAOS_BATTLE_EXIT'")
   && !battleRuntimeSrc.includes("['menu-screen', 'select-screen'].forEach")
   && !goldShellSrc.includes("name:'battle->fighter'")
   && goldShellSrc.includes('Battle is NOT a Mechanical Door route')
@@ -5705,7 +5708,7 @@ gate('gold-battle-exit-returns-directly-to-fighter-pick',
   && goldShellSrc.includes("APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter')"),
   {
     goldEngineTeardownOnly: battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY'),
-    hostExitMessage: battleRuntimeSrc.includes("window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }"),
+    hostExitMessage: fs.readFileSync(path.join(REPO,'public/game/gold/goldProductBridge.js'),'utf8').includes("type:'APEX_CHAOS_BATTLE_EXIT'"),
     legacySelectMutationAbsent: !battleRuntimeSrc.includes("['menu-screen', 'select-screen'].forEach"),
     battleUsesMechanicalDoor: goldShellSrc.includes("name:'battle->fighter'"),
     fighterCommit: goldShellSrc.includes("screen='fighter'"),

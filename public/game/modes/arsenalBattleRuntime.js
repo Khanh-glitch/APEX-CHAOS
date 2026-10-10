@@ -233,6 +233,11 @@
       const before = this.hp;
       const out = baseTakeDamage.call(this, scaled, source, label, statusDamage);
       const dealt = Math.max(0, before - this.hp);
+      // Result ledger observes ACCEPTED native HP deltas, never a theoretical
+      // projectile's base damage or an expired shield/immune hit.
+      if(!st.labMode&&!st.questMultiActor&&dealt>0)st.resultLedger?.onDamage?.(
+        this,source,label,dealt,!!this.__aqHitCrit,this.__aqImpact||null,
+        this.__aqResultSource||null);
       if (st.labMode) {
         st.labDamage += dealt;
         st.labHits += dealt > 0 ? 1 : 0;
@@ -457,6 +462,7 @@
     }
     matchClock += dt;
     state.time += dt;
+    state.resultLedger?.tick?.(dt);
     if (!state.over) {
       if(state.questBreakerChargeProgression===true&&state.questBreakerSequence){
         const Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
@@ -849,6 +855,9 @@
       // copy only, because Local may legally use the same hero on both sides.
       state.winnerSide = winnerSide;
       state.over = winner.name;
+      // Commit once, while BOTH real Fighters and native hit telemetry exist.
+      // Quest and Lab never create this ledger or acquire a match result.
+      state.resultGold=state.resultLedger?.seal?.(winnerSide)||null;
       AQ.log('KO', `winnerSide=${winnerSide} winner=${winner.name}`);
       window.APEX_ARSENAL_META?.awardBattleResult?.(winnerSide, state);
       updateHUD();
@@ -1810,6 +1819,10 @@
         if(enemyKind&&spec.questTeam==='HOSTILE'){
           f.questSpecies=spec.kind;
           f.questVisualId=enemyKind.visual;
+          // Quest-only compact physical bodies: fewer air-contact pickups,
+          // nearer visible silhouettes. Same radius owns physics + shots.
+          const scale={scout:.93,reaver:.90,sentinel:.92}[spec.kind];
+          if(scale&&Number.isFinite(f.radius))f.radius=Math.max(54,Math.round(f.radius*scale));
         }
         // T.O.T gets the owner's Gold V12 fifth "OPERATOR" chassis for now.
         // Quest still owns T.O.T identity, HP, allegiance, AI and no skills.
@@ -2243,6 +2256,14 @@
     shockwaves = [];
     timeScale = 1.0;
     cameraZoom = 1.0;
+    // Ledger is match-owned; existing Quest actors, Lab and training fixtures
+    // are never eligible for the public Free Battle result screen.
+    if(!AQ.state.questMultiActor&&!AQ.state.labMode&&!options?.testFixture
+       &&window.APEX_MATCH_RESULT_AUTHORITY?.create){
+      AQ.state.resultLedger=window.APEX_MATCH_RESULT_AUTHORITY.create({
+        actors:fighters,mode:AQ.state.battleMode,weaponConfig:CFG
+      });
+    }
     cameraShake = 0;
     hitStop = 0;
     matchClock = 0;
@@ -2562,6 +2583,7 @@
       state.questBreachCompanionSkills?.close?.();state.questBreachCompanionSkills=null;
       state.questBreachRetreat?.close?.();state.questBreachRetreat=null;
       state.questRivetAdapter?.close?.();state.questRivetAdapter=null;
+      state.resultLedger?.close?.();
       state.questBreachLifecycle?.close?.();state.questBreachLifecycle=null;
       state.questBreachCreateFighter=null;
       state.questRainSequence?.close?.();
