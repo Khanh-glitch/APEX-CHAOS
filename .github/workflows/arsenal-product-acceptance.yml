@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - development/v43
       - 'arena/**'
       - 'integration/quest-vfx-arsenal-v43-results-gold'
   pull_request:

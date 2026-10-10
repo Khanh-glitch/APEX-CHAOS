@@ -3,6 +3,7 @@ name: V43 Owner Real Browser Reproduction
 on:
   push:
     branches:
+      - development/v43
       - fix/owner-v43-native-lifecycle-frost-result-20261010
       - fix/v43-owner-round2-weapon-control-20261010
     paths:
