@@ -6,7 +6,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const base=(process.env.APEX_APP_URL||'http://127.0.0.1:5173').replace(/\\/$/,'');
+const base=(process.env.APEX_APP_URL||'http://127.0.0.1:5173').replace(/\/$/,'');
 const bin=process.env.CHROME_PATH||'google-chrome';
 const out=process.env.APEX_EVIDENCE_DIR||'/tmp/apex-v43-chrome';
 const port=9427,serial=()=>++counter;let counter=0,ws;
