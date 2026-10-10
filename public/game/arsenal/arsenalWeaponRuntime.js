@@ -635,6 +635,11 @@
     if(kind==='blast')window.avCue?.('explosion',{x,y,weapon:'V43_'+kind});
     else if(kind==='ricochet')window.avCue?.('ricochet',{x,y,weapon:'STEEL_BALL_LAUNCHER'});
   }
+  // One resolved projectile carries one damage scalar through reflection,
+  // ricochet, delayed split, ignite and fragment offspring. Never restore a
+  // pre-reflection config peak after Crystal's passive already reduced it.
+  function v43DamageScale(p,base){return p.__hr?.crystalReflected
+    ?v43min((p.damage||0)/Math.max(1e-6,base),0,2):1;}
   function v43Splash(p,peak,radius){
     const targets=v43Enemies(p.owner);
     for(const f of targets){
@@ -771,14 +776,15 @@
       // Floor mine waits for a true opponent contact; timer only limits idle lifetime.
       if(v43Enemies(p.owner).some(f=>
         Math.hypot(f.x-p.x,f.y-p.y)<=c.triggerRadius+(f.radius||75)*.25)){
-        v43Splash(p,c.peak,c.blastRadius);
+        v43Splash(p,p.damage??c.peak,c.blastRadius);
         // One explosion, one shared per-victim fragment budget: no target
         // can ever receive more than 2 of the 8 shrapnel impacts.
         const fragmentGroup={victimHits:new Map()};
         for(let i=0;i<c.fragments;i++){
           const angle=i*Math.PI*2/c.fragments;
           v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
-            px:p.x,py:p.y,radius:4,damage:c.fragmentDamage,fragmentGroup,
+            px:p.x,py:p.y,radius:4,
+            damage:c.fragmentDamage*v43DamageScale(p,c.peak),fragmentGroup,
             life:.55,vx:Math.cos(angle)*c.fragmentSpeed,vy:Math.sin(angle)*c.fragmentSpeed});
         }
         p.life=0;
@@ -880,7 +886,9 @@
     // CRYSTALA K / J: same real swept segment, wall/shard BEFORE fighter.
     // Only mobile damage-bearing bodies are routed: an armed floor mine,
     // flame cone and timed burn never masquerade as reflectable bullets.
-    if(p.kind!=='mine'&&p.kind!=='fragment'&&window.APEX_CRYSTAL?.resolveBullet){
+    const crystalEligible=V43[p.weapon]?.reflectableKinds?.includes(p.kind)
+      &&(p.kind!=='mine'||p.phase==='flight');
+    if(crystalEligible&&window.APEX_CRYSTAL?.resolveBullet){
       const span=Math.hypot(p.x-p.px,p.y-p.py)||1;
       const bodyT=hit?Math.max(0,Math.min(1,Math.hypot(hit.x-p.px,hit.y-p.py)/span)):2;
       const outcome=window.APEX_CRYSTAL.resolveBullet(p,bodyT,dt);
@@ -889,7 +897,7 @@
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
       if(p.kind==='plasma-core'){
-        aqDamage(hit.actor,c.coreDamage,p.owner,p.weapon,{knockback:80,
+        aqDamage(hit.actor,p.damage??c.coreDamage,p.owner,p.weapon,{knockback:80,
           impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
         v43Pulse(hit.x,hit.y,'plasma');p.life=0;return;
       }
@@ -920,7 +928,8 @@
         const t=hit.actor;let burnCount=0;
         // Apply actual future burn ticks through game-time status via a world
         // projectile, not an interval (pauses with match engine).
-        v43ApplyBurn(t,p.owner,p.weapon,c.burnTicks,c.burnInterval,c.burnDamage);
+        v43ApplyBurn(t,p.owner,p.weapon,c.burnTicks,c.burnInterval,
+          c.burnDamage*v43DamageScale(p,c.direct));
       }
       if(p.kind==='bolt')hit.actor.applyStatus?.('slow',c.slowSeconds,{mult:c.slowMult});
       if(p.kind==='fragment'){
@@ -935,7 +944,8 @@
       const wall=p.x<=p.radius||p.x>=GAME_SIZE-p.radius||
         p.y<=p.radius||p.y>=GAME_SIZE-p.radius;
       if(wall&&p.bounces<c.maxBounces){
-        p.bounces++;p.damage=c.ricochetPeak;
+        const currentScale=v43DamageScale(p,p.bounces?c.ricochetPeak:c.peak);
+        p.bounces++;p.damage=c.ricochetPeak*currentScale;
         if(p.x<=p.radius||p.x>=GAME_SIZE-p.radius)p.vx=-p.vx*c.restitution;
         if(p.y<=p.radius||p.y>=GAME_SIZE-p.radius)p.vy=-p.vy*c.restitution;
         p.vx*=c.horizontalRetention;p.vy*=c.horizontalRetention;
@@ -953,9 +963,12 @@
     if(p.kind==='plasma-core'&&p.age>=c.splitAfter){
       for(const da of c.spread){
         const angle=Math.atan2(p.vy,p.vx)+da;
-        v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
-          radius:c.radius,damage:c.shardDamage,vx:Math.cos(angle)*c.shardSpeed,
-          vy:Math.sin(angle)*c.shardSpeed,life:2.3,homing:true});
+        const child=v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
+          radius:c.radius,damage:c.shardDamage*v43DamageScale(p,c.coreDamage),
+          vx:Math.cos(angle)*c.shardSpeed,vy:Math.sin(angle)*c.shardSpeed,
+          life:2.3,homing:!p.__hr?.crystalReflected});
+        if(p.__hr?.crystalReflected)child.__hr={crystalReflected:true,
+          cryOwner:p.__hr.cryOwner,neutral:false};
       }
       v43Pulse(p.x,p.y,'split');p.life=0;
     }
