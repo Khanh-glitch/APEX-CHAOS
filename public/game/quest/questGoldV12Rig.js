@@ -2575,6 +2575,21 @@ function draw(ctx,real) {
     // One source of physical pose, one source of world transform. Arsenal still
     // paints the REAL weapon on top after this fighter-body pass.
     presentation.drawBody(ctx,cam);
+    // The Sentinel optic exists in the donor's spring-deformed ROOT
+    // transform, not the Fighter centre. Export a world-space socket AFTER
+    // the actual pose is solved, without inferring it from an old frame.
+    if(variant==='sentinel'){
+      const eye=presentation.layout.eyes[0],rootM=presentation.xf.root;
+      const springs=presentation.springs;
+      const ex=eye.x+springs.coreX.x*.25;
+      const ey=eye.y+springs.coreY.x*.15;
+      const rx=rootM[0]*ex+rootM[2]*ey+rootM[4];
+      const ry=rootM[1]*ex+rootM[3]*ey+rootM[5];
+      record.opticWorld={
+        x:shadow.x+ratio*(rx-shadow.x),
+        y:shadow.y+ratio*(ry-shadow.y)
+      };
+    }else record.opticWorld=null;
     ctx.restore();
     stats.draws++;
     if(variant==='operator')stats.operatorDraws++;
@@ -2588,6 +2603,11 @@ function draw(ctx,real) {
 }
 // Read-only diagnostic: Chrome acceptance can check the REAL donor springs
 // without overlaying the arena, mutating the actor or inventing event cues.
+function opticWorld(real){
+  const record=real&&actors.get(real);
+  if(!record?.opticWorld)return null;
+  return {x:record.opticWorld.x,y:record.opticWorld.y};
+}
 function inspect(real){
   const record=real&&actors.get(real);
   if(!record)return null;
@@ -2609,6 +2629,6 @@ function inspect(real){
   };
 }
 function reset(){actors=new WeakMap();faulty=new WeakSet();stats.instances=0;stats.facingByQuestId={};}
-root.APEX_QUEST_V12_RIG=Object.freeze({draw,inspect,reset,stats,sourceSha256:'3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685'});
+root.APEX_QUEST_V12_RIG=Object.freeze({draw,opticWorld,inspect,reset,stats,sourceSha256:'3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685'});
 root.apexQuestV12Rig='ready';
 })(typeof window!=='undefined'?window:globalThis);
