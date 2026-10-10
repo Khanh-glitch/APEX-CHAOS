@@ -1823,7 +1823,7 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
 // P0 post-audit: never settle an RPG blast by only a mocked helper.
 // Launch the REAL Arsenal holder/rocket twice, induce a true wall AOE and
 // an otherwise unreachable fuse timeout, and inspect real Fighter HP/ledger.
-report.ownerV43RpgBlastOnce=run(\`
+report.ownerV43RpgBlastOnce=run(`
   function trial(mode){
     __APEX_TEST.enterManual();__APEX_TEST.holdSpawns();
     __APEX_TEST.place(400,500,810,500);
@@ -1854,7 +1854,7 @@ report.ownerV43RpgBlastOnce=run(\`
       detonated:rocket.exploded===true,retired:rocket.life<=0};
   }
   return {wall:trial('wall'),fuse:trial('fuse')};
-\`);
+`);
 gate('post-v43-rpg-wall-and-fuse-explode-exactly-once-real-hp',
   Object.values(report.ownerV43RpgBlastOnce).every(x=>x.launched
     &&x.detonated&&x.retired&&x.hits===1
