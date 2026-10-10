@@ -2489,6 +2489,13 @@ const stats={attempts:0,draws:0,instances:0,failed:0,realHitEvents:0,realRecoilE
 function draw(ctx,real) {
   const variant=real?.questVisualId;
   if(!variant||!['scout','bulwark','reaver','sentinel','operator'].includes(variant)||!ctx?.getTransform)return false;
+  // Quest E06 temporary retreat is reversible. If an authorized Fighter
+  // re-enters this very encounter, clear its old phase-out and redraw the
+  // same original Gold rig; no permanently invisible allies.
+  if(real.hp>0&&real.withdrawn!==true&&departed.has(real)){
+    departed.delete(real);
+    aftermath=aftermath.filter(fx=>fx.f!==real);
+  }
   // Only the V12 exit pass may draw a defeated/withdrawn Quest character.
   // Leaving the live body visible creates an inert duplicate behind debris.
   if(real.hp<=0||real.withdrawn===true||departed.has(real))return true;
