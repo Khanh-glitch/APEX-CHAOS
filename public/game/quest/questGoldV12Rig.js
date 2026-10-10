@@ -2505,9 +2505,21 @@ function draw(ctx,real) {
       actors.set(real,record);stats.instances++;
     }
     const {shadow,presentation}=record;
+    // Feed actual Fighter motion, aim and impacts into the donor's existing
+    // Gold spring rig. Previously x/y were synchronized but all velocity
+    // channels and heading/aim stayed at their constructor defaults.
+    const delta=Math.max(0,Math.min(.1,now-record.lastNow));
+    const prevX=shadow.x,prevY=shadow.y;
+    const oldHeading=shadow.heading;
     const pulses=Number(holder?.meta?.pose?.pulses);
     const equipped=!!holder?.weaponId;
     shadow.x=Number(real.x)||0;shadow.y=Number(real.y)||0;
+    shadow.vx=delta>1e-5?Math.max(-1800,Math.min(1800,(shadow.x-prevX)/delta)):0;
+    shadow.vy=delta>1e-5?Math.max(-1800,Math.min(1800,(shadow.y-prevY)/delta)):0;
+    const dx=Number(real.dir?.x)||0,dy=Number(real.dir?.y)||0;
+    shadow.heading=Math.atan2(dy,dx||1);
+    shadow.aim=Number.isFinite(holder?.meta?.aimAngle)
+      ?holder.meta.aimAngle:shadow.heading;
     shadow.weapon=equipped?{type:'pistol'}:null; // presence only: never an invented Arsenal weapon
     shadow.alive=Number(real.hp)>0;
     if(Number.isFinite(real.hp)&&real.hp<record.lastHp){
@@ -2522,6 +2534,28 @@ function draw(ctx,real) {
       });
       stats.realHitEvents++;record.hitEvents++;
     }
+    // An actual wall-direction reversal is a structural collision cue,
+    // not a decorative periodic wobble.
+    const hitWall=(shadow.x<=(real.radius||75)+4||
+      shadow.x>=1000-(real.radius||75)-4||
+      shadow.y<=(real.radius||75)+4||
+      shadow.y>=1000-(real.radius||75)-4);
+    if(delta>0&&hitWall&&Math.cos(shadow.heading-oldHeading)<-.25){
+      presentation.enqueue({type:'FighterWallImpact',fighterId:shadow.id,
+        data:{direction:{x:dx,y:dy},strength:Math.max(.3,Math.min(1.3,Math.hypot(shadow.vx,shadow.vy)/520))}});
+    }
+    const stunned=!!(real.hasStatus?.('stun')||real.hasStatus?.('freeze'));
+    if(stunned&&!record.wasStunned)
+      presentation.enqueue({type:'FighterStunned',fighterId:shadow.id,data:{}});
+    record.wasStunned=stunned;
+    const charging=real.questSpecies==='sentinel'&&real.data?.questSentinelLock===true;
+    if(charging&&!record.wasCharging){
+      presentation.springs.coreY.kick(-25);
+      presentation.springs.cheekX.kick(20);
+      presentation.springs.lid.kick(-.22);
+      presentation.springs.glow.kick(.40);
+    }
+    record.wasCharging=charging;
     if(Number.isFinite(pulses)&&record.lastPulses!=null&&pulses>record.lastPulses&&equipped){
       // Arsenal's actual pose pulse count is the firing authority.
       presentation.enqueue({
@@ -2537,7 +2571,6 @@ function draw(ctx,real) {
     record.lastHp=real.hp;record.lastAlive=shadow.alive;
     record.lastPulses=Number.isFinite(pulses)?pulses:null;
     // Never run a second combat loop; step presentation once per authoritative frame.
-    const delta=Math.max(0,Math.min(0.1,now-record.lastNow));
     record.lastNow=now;
     if(delta>0)presentation.step(delta);
     ctx.save();
