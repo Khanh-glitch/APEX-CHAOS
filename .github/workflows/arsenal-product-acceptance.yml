@@ -168,6 +168,13 @@ jobs:
           echo "path=$CHROME" >> "$GITHUB_OUTPUT"
           "$CHROME" --version
 
+      - name: Result Gold native-ledger React browser, real art and multi-viewport
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/result-gold
+        run: node tools/testResultGoldBrowser.mjs
+
       - name: Run physical-pointer browser acceptance
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
