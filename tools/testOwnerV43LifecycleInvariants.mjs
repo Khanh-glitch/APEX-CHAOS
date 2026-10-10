@@ -23,6 +23,10 @@ assert.match(w,/h\.phase='IN_FLIGHT'/,'physical Boomerang must own holder');
 assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,a,ctx\.enemy\)/,'boomerang path depends on real opponent position at release');
 assert.doesNotMatch(w,/p\.owner\.x-p\.x|p\.owner\.y-p\.y/,'boomerang may not home to moving owner');
 assert.doesNotMatch(w,/p\.age\+=dt;p\.life-=dt/,'the engine alone ages projectile life');
+assert.match(w,/if\(p\.life>0\)p\.life=Math\.max\(0,p\.life-dt\)/,
+  'every non-held V4.3 projectile must share exactly one bounded lifetime');
+assert.match(w,/if\(p\.__hr\?\.cryHold\)\{window\.APEX_CRYSTAL\?\.holdStep/,
+  'Crystal held projectile must pause V4.3 lifetime during refract');
 assert.match(hr,/baseUpdateArsenalProjectiles\(dt, 'v43-only'\)/,
   'REAL Core Six projectile override must delegate eight V4.3 weapons exactly once');
 assert.match(w,/dispatch === 'v43-only' && p\.type !== 'aq_v43'/,
