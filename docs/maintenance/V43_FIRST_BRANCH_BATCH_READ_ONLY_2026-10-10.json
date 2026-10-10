@@ -1,0 +1,56 @@
+{
+  "schema": "apex-chaos-v43-first-batch-review-v1",
+  "status": "READ_ONLY_HOLD",
+  "canonicalSha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
+  "explanation": "These five historic CI-base refs are ancestors of V4.3 and duplicate SHA tips already referenced by other branches. That does not prove they are free from CI/deployment links; no deletion is approved. The server must recheck SHA, default, open PRs, all workflow exact/glob refs and outside Cloudflare/manual-preview/rollback dependencies before applying any batch.",
+  "batchSize": 5,
+  "deleted": 0,
+  "requiresExternallyReviewedApprovalFile": true,
+  "refs": [
+    {
+      "name": "cleanup-phase2a3-ci-base-20261004",
+      "sha": "a1f846c998d4c9bda8e5b075321a3dcfbd40a671",
+      "alsoPointsToSameCommit": "cleanup-phase2a2-staging-20261004",
+      "codeReachableFromCanonical": true,
+      "workflowDependencies": "NOT_YET_VERIFIED",
+      "externalDeployments": "NOT_YET_VERIFIED",
+      "decision": "REVIEW_ONLY_NOT_DELETE_APPROVED"
+    },
+    {
+      "name": "cleanup-phase2b-v2-ci-base-20261004",
+      "sha": "44167225863346755999c377229b3c417ccfbdd6",
+      "alsoPointsToSameCommit": "cleanup-phase2a3-staging-20261004",
+      "codeReachableFromCanonical": true,
+      "workflowDependencies": "NOT_YET_VERIFIED",
+      "externalDeployments": "NOT_YET_VERIFIED",
+      "decision": "REVIEW_ONLY_NOT_DELETE_APPROVED"
+    },
+    {
+      "name": "cleanup-phase2c-ci-base-20261004",
+      "sha": "2d42bc70de8a911dd3b91e939646a5df1010da0e",
+      "alsoPointsToSameCommit": "cleanup-phase2b-v2-staging-20261004",
+      "codeReachableFromCanonical": true,
+      "workflowDependencies": "NOT_YET_VERIFIED",
+      "externalDeployments": "NOT_YET_VERIFIED",
+      "decision": "REVIEW_ONLY_NOT_DELETE_APPROVED"
+    },
+    {
+      "name": "cleanup-phase2d-ci-base-20261004",
+      "sha": "02982a664963ef7be9c6bf0837f5841e8ec1a176",
+      "alsoPointsToSameCommit": "cleanup-phase2c-staging-20261004",
+      "codeReachableFromCanonical": true,
+      "workflowDependencies": "NOT_YET_VERIFIED",
+      "externalDeployments": "NOT_YET_VERIFIED",
+      "decision": "REVIEW_ONLY_NOT_DELETE_APPROVED"
+    },
+    {
+      "name": "cleanup-phase2e-ci-base-20261004",
+      "sha": "1ed6caea5f4458ccbf209f42c91e75d4ac63d1f7",
+      "alsoPointsToSameCommit": "cleanup-phase2d-staging-20261004",
+      "codeReachableFromCanonical": true,
+      "workflowDependencies": "NOT_YET_VERIFIED",
+      "externalDeployments": "NOT_YET_VERIFIED",
+      "decision": "REVIEW_ONLY_NOT_DELETE_APPROVED"
+    }
+  ]
+}
