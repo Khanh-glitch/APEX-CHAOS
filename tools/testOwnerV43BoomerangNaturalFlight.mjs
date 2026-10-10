@@ -37,8 +37,16 @@ for(const [x,y,angle] of [[270,500,0],[730,500,Math.PI],[500,270,Math.PI/2],
   assert.ok(a.total>950&&a.total<2200,'arc length should represent full returning flight');
   assert.ok(a.far>0&&a.far<a.total);
   assert.ok(a.apexProgress>.15&&a.apexProgress<.85);
-  assert.equal(JSON.stringify(a.points),JSON.stringify(b.points),
-    'no enemy/target positional input may reshape the throw');
+  // Post-update: the initially acquired target distance is now allowed
+  // to change reach, but never changes direction again after release.
+  const reachable=path(150,500,0,{x:830,y:500,radius:75});
+  assert.ok(reachable.distance>600,'long-distance opponent must be within outward throw');
+  assert.ok(reachable.distance<=760,'throw must have a finite range cap');
+  const near=path(150,500,0,{x:330,y:500,radius:75});
+  assert.ok(near.distance<reachable.distance,'close opponent cannot force same tiny/fixed loop');
+  assert.equal(JSON.stringify(reachable.points),
+    JSON.stringify(path(150,500,0,{x:830,y:500,radius:75}).points),
+    'locked target at release yields deterministic repeatable arc');
   const first=at(a,0),last=at(a,a.total);
   assert.ok(Math.hypot(first.x-x,first.y-y)<1e-7);
   assert.ok(Math.hypot(last.x-x,last.y-y)<1e-6,'Gold body must return to LAUNCH point');
@@ -68,7 +76,7 @@ for(const r of [r30,r60,r120]){
 }
 assert.ok(Math.abs(r30.time-r120.time)<.11,
   'curved flight duration must converge at 30/60/120Hz');
-assert.doesNotMatch(code,/target\.x|target\.y|ctx\.enemy/,
-  'Gold natural flight cannot have target waypoints');
+assert.doesNotMatch(code,/ctx\.enemy|target\.x\s*\+=|target\.y\s*\+=/,
+  'post-update Gold loop must not track a moving enemy after release');
 console.log('PASS GOLD V4.3 BOOMERANG: 3 natural cubic legs, target-independent return, curvature drag and 30/60/120Hz timing',
   JSON.stringify({r30,r60,r120}));
