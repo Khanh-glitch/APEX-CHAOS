@@ -85,6 +85,15 @@ jobs:
       - name: V43 Gold airfoil 3-phase exact reference Canvas commands
         run: node tools/testOwnerV43GoldAirfoilParity.mjs
 
+      - name: V43 Gold explosion 17-billow and five-arc exact trace
+        run: node tools/testOwnerV43GoldBlastParity.mjs
+
+      - name: V43 Gold flame-tongue four-layer exact trace
+        run: node tools/testOwnerV43GoldFlameParity.mjs
+
+      - name: V43 Gold plasma-tail three-layer exact trace
+        run: node tools/testOwnerV43GoldPlasmaParity.mjs
+
       - name: Owner V43 unified lifecycle, Frost A1, Result Gold invariant guard
         run: node tools/testOwnerV43LifecycleInvariants.mjs
 
