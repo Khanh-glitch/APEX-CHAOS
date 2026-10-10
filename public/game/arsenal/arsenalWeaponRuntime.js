@@ -1827,6 +1827,19 @@
       const a=Math.atan2(p.vy||0,p.vx||1),clock=p.age;
       const pulse=1+Math.sin(clock*19)*.12;
       v43GoldTongue(ctx,p.x,p.y,a+.1,19*pulse,clock*19,life,clock);
+      // The original Gold path ribbon remains unchanged, augmented only by
+      // short-lived flame tongues following its TRUE historical positions.
+      // Unlike billboard circles these filaments bend with the flight path.
+      const q=p.visual||[];
+      for(let j=1;j<=Math.min(5,q.length-2);j++){
+        const i=q.length-1-j,pt=q[i],nx=q[i+1];
+        const ang=Math.atan2(nx.y-pt.y,nx.x-pt.x);
+        const age=Math.max(0,clock-(pt.t||0));
+        const alpha=life*Math.max(0,.34-age*.7)*(1-j*.085);
+        if(alpha<=0)continue;
+        v43GoldTongue(ctx,pt.x,pt.y,ang,12+j*.9,
+          (pt.t||0)*19+j*.7,alpha,clock);
+      }
       // Gold drawFlareHead's focused white elliptical spearhead, not the
       // former featureless 35px radial disk over the flame animation.
       ctx.save();ctx.translate(p.x,p.y);ctx.rotate(a);
