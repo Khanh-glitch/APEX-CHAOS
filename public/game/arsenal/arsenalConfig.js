@@ -452,8 +452,9 @@
   // Owner-only, keyboard-gated BOT weapon selector. OFF by default on
   // every page load. This is an ergonomic live-playtest tool, not an
   // alternate damage/spawn engine or public menu option.
+  // All equipable offensive AND defensive weapons are addressable by ID.
   const ownerCatalog=Object.freeze(CONFIG.P0_WEAPON_IDS.filter((id,i,ids)=>
-    ids.indexOf(id)===i && id!=='SWIRL_SHIELD' && id!=='TOWER_SHIELD'));
+    ids.indexOf(id)===i));
   const ownerTest={
     active:false,selectedWeaponId:null,catalog:ownerCatalog,
     idForNumber(number){return ownerCatalog[number-1]||null;},
