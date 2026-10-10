@@ -1,0 +1,425 @@
+/* ═══════════════════════════════════════════════════════════════
+   APEX CHAOS — MOTION CHOREOGRAPHY
+
+   Phase 1  Match Conclusion   blast-door closes the screen, "MATCH CONCLUDED", doors split open
+   Phase 2  Player Reveal      winner SLAMS in (shockwave, flash, letter-stamp), loser DRIFTS in (scan wipe)
+   Phase 3  Damage Clash       numbers roll, two bodies rush from the edges, collide at 50 %, winner pushes the seam
+   Phase 4  Weapon Spotlight   light cone → title opens from centre → parts assemble → scan-lock → core ignites
+   Phase 5  Commendations      featured cards stamp in (legendary: foil sweep), chips pop in rhythm
+   Phase 6  Interactive        loops settle (float, dials, sheen), Continue unlocks
+
+   Rules
+   • base styles are the FINAL state; entrances use `backwards` fill → hover transforms still work
+   • only transform / opacity are animated on moving things (clip-path only on tiny items)
+   • SKIP: a negative delay on every animation jumps each one to its end state at once; loops simply
+     change phase. REDUCED MOTION: same jump + loops/particles disabled.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───────────────── shared keyframes ───────────────── */
+@keyframes sec-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-up { from { opacity: 0; transform: translate3d(0, 12px, 0); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.55); } 60% { opacity: 1; transform: scale(1.08); } to { opacity: 1; transform: none; } }
+@keyframes sheen {
+  0%, 55% { transform: translateX(-170%) skewX(-18deg); }
+  80%, 100% { transform: translateX(330%) skewX(-18deg); }
+}
+@keyframes embers {
+  0% { transform: translateY(8px); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-36px); opacity: 0; }
+}
+@keyframes ready-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.14); }
+}
+@keyframes swap { from { opacity: 0; transform: translate3d(0, 6px, 0); } to { opacity: 1; transform: none; } }
+@keyframes sheet-in { from { transform: translate3d(0, 100%, 0); } to { transform: none; } }
+@keyframes panel-in { from { opacity: 0; transform: translate3d(0, 26px, 0) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes row-in { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: none; } }
+
+/* section frames fade in once their phase is reached */
+.hero.is-in,
+.weapon.is-in,
+.clash.is-in,
+.rack.is-in,
+.inspect.is-in,
+.dock.is-in {
+  animation: sec-in 0.35s ease-out backwards;
+}
+.inspect__body {
+  animation: swap 0.28s var(--ease-expo);
+}
+
+/* ───────────────── PHASE 1 · blast door ───────────────── */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  overflow: hidden;
+}
+.intro__door {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50.2%;
+  will-change: transform;
+}
+.intro__door--top {
+  top: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 159px, rgb(255 255 255 / 0.045) 159px 160px),
+    linear-gradient(180deg, #06070a, #0e1116);
+}
+.intro__door--bottom {
+  bottom: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 159px, rgb(255 255 255 / 0.045) 159px 160px),
+    linear-gradient(0deg, #06070a, #0e1116);
+}
+.intro__door::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: repeating-linear-gradient(-45deg, var(--hazard) 0 12px, #0b0c0e 12px 24px);
+  opacity: 0.85;
+}
+.intro__door--top::after { bottom: 0; }
+.intro__door--bottom::after { top: 0; }
+.intro__seam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: linear-gradient(90deg, transparent, rgb(var(--p1-rgb)), #fff 50%, rgb(var(--p2-rgb)), transparent);
+  box-shadow: 0 0 22px 3px rgb(255 226 170 / 0.4);
+  transform: scaleX(0);
+}
+.intro__copy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 20px;
+  text-align: center;
+}
+.intro__kicker {
+  font: 700 12px/1 var(--font-ui);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  opacity: 0;
+}
+.intro__title {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  font: 900 clamp(34px, 9vw, 112px) / 0.92 var(--font-display);
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+.intro__ch {
+  display: inline-block;
+  opacity: 0;
+}
+.intro__sub {
+  font: 600 12px/1 var(--font-ui);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--hazard);
+  opacity: 0;
+}
+.is-skip .intro { display: none; }
+
+.is-started .intro__seam {
+  animation: seam-draw 0.55s var(--ease-expo) 0.05s forwards, seam-out 0.3s ease-in 0.8s forwards;
+}
+.is-started .intro__kicker { animation: kicker-in 0.5s var(--ease-expo) 0.15s forwards; }
+.is-started .intro__ch { animation: intro-ch 0.5s var(--ease-slam) calc(0.12s + var(--i) * 28ms) forwards; }
+.is-started .intro__sub { animation: kicker-in 0.5s var(--ease-expo) 0.55s forwards; }
+.is-started .intro__copy { animation: copy-out 0.32s ease-in 0.8s forwards; }
+.is-started .intro__door--top { animation: door-up 0.78s var(--ease-mech) 0.84s forwards; }
+.is-started .intro__door--bottom { animation: door-down 0.78s var(--ease-mech) 0.84s forwards; }
+.is-started .intro { animation: intro-gone 0.01s linear 1.7s forwards; }
+
+@keyframes seam-draw { to { transform: scaleX(1); } }
+@keyframes seam-out { to { opacity: 0; } }
+@keyframes kicker-in { from { opacity: 0; transform: translate3d(0, 8px, 0); } to { opacity: 1; transform: none; } }
+@keyframes intro-ch {
+  from { opacity: 0; transform: translate3d(0, -0.45em, 0) scale(1.35); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes copy-out { to { opacity: 0; transform: scale(1.07); } }
+@keyframes door-up { to { transform: translate3d(0, -101%, 0); } }
+@keyframes door-down { to { transform: translate3d(0, 101%, 0); } }
+@keyframes intro-gone { to { visibility: hidden; } }
+
+/* ───────────────── PHASE 2 · player reveal ───────────────── */
+.hero.is-in .hero__slot { animation: fade-up 0.5s var(--ease-expo) 0.05s backwards; }
+.hero.is-in .hero__halo { animation: halo-in 1.1s var(--ease-expo) backwards; }
+
+/* winner: heavy slam + shockwave + flash + micro-shake + stamped letters */
+.hero--win.is-in .hero__art { animation: slam 0.9s var(--ease-slam) backwards; }
+.hero--win.is-in .hero__shock { animation: shock 0.95s cubic-bezier(0.1, 0.7, 0.2, 1) 0.28s backwards; }
+.hero--win.is-in .hero__stage { animation: shake 0.4s linear 0.3s backwards; }
+.hero--win.is-in .hero__stage::after { animation: flash 0.75s ease-out 0.26s backwards; }
+.hero--win.is-in .ch { animation: stamp 0.6s var(--ease-slam) calc(0.2s + var(--i) * 50ms) backwards; }
+.hero--win.is-in .hero__sub { animation: fade-up 0.6s var(--ease-expo) 0.85s backwards; }
+.hero--win.is-in .hero__plate { animation: plate-in 0.8s var(--ease-expo) 0.55s backwards; }
+
+/* loser: late, slower, scan-wipe — present and readable, just quieter */
+.hero--lose.is-in .hero__halo { animation-delay: 0.4s; }
+.hero--lose.is-in .hero__art { animation: drift 1.25s var(--ease-expo) 0.4s backwards; }
+.hero--lose.is-in .ch { animation: scan-in 0.8s var(--ease-expo) calc(0.65s + var(--i) * 70ms) backwards; }
+.hero--lose.is-in .hero__sub { animation: fade-up 0.6s var(--ease-expo) 1.15s backwards; }
+.hero--lose.is-in .hero__plate { animation: plate-in 0.9s var(--ease-expo) 0.95s backwards; }
+
+@keyframes halo-in { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
+@keyframes slam {
+  from { opacity: 0; transform: translate3d(calc(var(--dir) * 24%), 0, 0) scale(1.16); }
+  55% { opacity: 1; transform: translate3d(calc(var(--dir) * -1.6%), 0, 0) scale(0.985); }
+  78% { transform: translate3d(calc(var(--dir) * 0.5%), 0, 0) scale(1.004); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes drift {
+  from { opacity: 0; transform: translate3d(calc(var(--dir) * 16%), 0, 0) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shock {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  12% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.75); }
+}
+@keyframes flash { 0% { opacity: 0; } 22% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes shake {
+  0% { transform: translate3d(0, 0, 0); }
+  18% { transform: translate3d(-4px, 2px, 0); }
+  36% { transform: translate3d(4px, -2px, 0); }
+  54% { transform: translate3d(-2px, 1px, 0); }
+  72% { transform: translate3d(2px, -1px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+@keyframes stamp {
+  from { opacity: 0; transform: translate3d(0, -45%, 0) scale(1.6); }
+  55% { opacity: 1; transform: translate3d(0, 2%, 0) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scan-in {
+  from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translate3d(0, -10%, 0); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); transform: none; }
+}
+@keyframes plate-in {
+  from { opacity: 0; transform: translate3d(calc(var(--dir) * 28px), 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ───────────────── PHASE 3 · damage clash ───────────────── */
+.clash.is-in .clash__who,
+.clash.is-in .clash__pct,
+.clash.is-in .clash__title { animation: fade-up 0.5s var(--ease-expo) backwards; }
+.clash.is-in .clash__num { animation: fade-up 0.5s var(--ease-expo) 0.05s backwards; }
+.clash.is-in .clash__track { animation: sec-in 0.4s ease-out 0.1s backwards; }
+.clash.is-in .clash__seg--1 { animation: seg1 1.75s linear 0.25s backwards; }
+.clash.is-in .clash__seg--2 { animation: seg2 1.75s linear 0.25s backwards; }
+.clash.is-in .clash__fx { animation: seam 1.75s linear 0.25s backwards; }
+.clash.is-in .clash__bar { animation: kick 0.34s ease-out 1.12s backwards; }
+.clash.is-in .clash__blade { animation: blade-flash 0.8s ease-out 1.12s backwards; }
+.clash.is-in .clash__spark { animation: spark 0.65s cubic-bezier(0.1, 0.8, 0.3, 1) calc(1.12s + var(--si) * 14ms) backwards; }
+.clash.is-in .clash__tag,
+.clash.is-in .clash__lead { animation: pop-in 0.55s var(--ease-slam) 1.9s backwards; }
+
+/* P1 rushes from the left, stops at 50 %, then pushes the seam to its true ratio */
+@keyframes seg1 {
+  0% { transform: translate3d(-100%, 0, 0); animation-timing-function: cubic-bezier(0.5, 0, 0.85, 0.45); }
+  50% { transform: translate3d(-50%, 0, 0); animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1); }
+  72% { transform: translate3d(calc((var(--p) + var(--o)) * 1% - 100%), 0, 0); animation-timing-function: ease-in-out; }
+  100% { transform: translate3d(calc(var(--p) * 1% - 100%), 0, 0); }
+}
+/* P2 mirrors it from the right */
+@keyframes seg2 {
+  0% { transform: translate3d(100%, 0, 0); animation-timing-function: cubic-bezier(0.5, 0, 0.85, 0.45); }
+  50% { transform: translate3d(calc(50% - var(--slash)), 0, 0); animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1); }
+  72% { transform: translate3d(calc((var(--p) + var(--o)) * 1% - var(--slash)), 0, 0); animation-timing-function: ease-in-out; }
+  100% { transform: translate3d(calc(var(--p) * 1% - var(--slash)), 0, 0); }
+}
+/* seam blade + sparks ride the collision point */
+@keyframes seam {
+  0%, 49.9% { opacity: 0; transform: translate3d(50%, 0, 0); }
+  50% { opacity: 1; transform: translate3d(50%, 0, 0); animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1); }
+  72% { transform: translate3d(calc((var(--p) + var(--o)) * 1%), 0, 0); animation-timing-function: ease-in-out; }
+  100% { opacity: 1; transform: translate3d(calc(var(--p) * 1%), 0, 0); }
+}
+@keyframes kick {
+  0% { transform: none; }
+  30% { transform: translate3d(0, -3px, 0) scaleY(1.1); }
+  62% { transform: translate3d(0, 1px, 0) scaleY(0.98); }
+  100% { transform: none; }
+}
+@keyframes blade-flash {
+  from { box-shadow: 0 0 48px 16px rgb(255 236 190 / 1); width: 16px; }
+  to { box-shadow: 0 0 14px 2px rgb(255 226 170 / 0.8); width: 5px; }
+}
+@keyframes spark {
+  from { opacity: 1; transform: translate3d(0, -50%, 0) scale(1); }
+  to { opacity: 0; transform: translate3d(var(--dx), var(--dy), 0) scale(0.2); }
+}
+
+/* ───────────────── PHASE 4 · weapon spotlight ───────────────── */
+.weapon.is-in .weapon__cone { animation: cone-on 1.1s ease-out backwards; }
+.weapon.is-in .weapon__floor { animation: fade-up 0.9s ease-out 0.3s backwards; }
+.weapon.is-in .weapon__rule { animation: rule-grow 0.9s var(--ease-expo) 0.1s backwards; }
+.weapon.is-in .weapon__title span { animation: title-open 0.85s var(--ease-expo) 0.15s backwards; }
+.weapon.is-in .weapon__rings { animation: ring-on 1.15s var(--ease-expo) 0.2s backwards; }
+
+/* mechanical assembly: each SVG part arrives from its own direction (--ax/--ay) on its own beat (--ad) */
+.weapon.is-in .wp { animation: wp-in 0.78s var(--ease-mech) calc(0.35s + var(--ad) * 1ms) backwards; }
+.weapon.is-in .wart--img { animation: wp-img 0.9s var(--ease-expo) 0.45s backwards; }
+.weapon.is-in .wp-channel { animation: core-on 0.6s ease-out 1.5s backwards; }
+.weapon.is-in .weapon__sweep::before { animation: sweep 0.95s ease-in-out 2s backwards; }
+.weapon.is-in .wp-core {
+  animation: core-on 0.6s ease-out 2s backwards, core-pulse 2.8s ease-in-out 2.6s infinite;
+}
+
+.weapon.is-in .weapon__dmg { animation: fade-up 0.6s var(--ease-expo) 1.25s backwards; }
+.weapon.is-in .weapon__name .mask > span { animation: name-up 0.8s var(--ease-expo) 1.35s backwards; }
+.weapon.is-in .weapon__class { animation: fade-up 0.6s var(--ease-expo) 1.6s backwards; }
+.weapon.is-in .weapon__facts li { animation: fade-up 0.6s var(--ease-expo) 1.9s backwards; }
+.weapon.is-in .weapon__facts li:nth-child(2) { animation-delay: 2s; }
+.weapon.is-in .weapon__facts li:nth-child(3) { animation-delay: 2.1s; }
+.weapon.is-in .weapon__owner { animation: owner-in 0.7s var(--ease-slam) 2.15s backwards; }
+
+/* idle loops (after the intro): float + counter-rotating dials */
+.weapon.is-in .weapon__float.ac-loop { animation: float 7s ease-in-out 2.8s infinite; }
+.weapon.is-in .weapon__ring--a { animation: spin 80s linear infinite; }
+.weapon.is-in .weapon__ring--b { animation: spin 52s linear infinite reverse; }
+
+@keyframes cone-on {
+  from { opacity: 0; transform: translateX(-50%) scaleY(0.45); }
+  to { opacity: 1; transform: translateX(-50%) scaleY(1); }
+}
+@keyframes rule-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes title-open {
+  from { opacity: 0; clip-path: inset(0 50% 0 50%); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+@keyframes ring-on {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.6) rotate(-50deg); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+@keyframes wp-in {
+  from { opacity: 0; transform: translate(var(--ax), var(--ay)); }
+  70% { opacity: 1; }
+  to { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes wp-img {
+  from { opacity: 0; transform: translate3d(0, 20px, 0) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sweep {
+  0% { opacity: 0; transform: translateX(-140%) skewX(-18deg); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(480%) skewX(-18deg); }
+}
+@keyframes core-on { from { opacity: 0.12; } to { opacity: 1; } }
+@keyframes core-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+@keyframes name-up {
+  from { transform: translate3d(0, 112%, 0) skewX(-6deg); }
+  to { transform: translate3d(0, 0, 0) skewX(-6deg); }
+}
+@keyframes owner-in {
+  from { opacity: 0; transform: translate3d(-22px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -6px, 0) rotate(-0.6deg); }
+}
+
+/* ───────────────── PHASE 5 · commendations ───────────────── */
+.rack--1 { --base: 0s; }
+.rack--2 { --base: 0.24s; }
+.rack.is-in .rack__head { animation: fade-up 0.5s var(--ease-expo) var(--base) backwards; }
+.rack.is-in .acard {
+  animation: stamp-card 0.65s var(--ease-slam) calc(var(--base) + 0.12s + var(--i) * 0.15s) backwards;
+}
+.rack.is-in .chip {
+  animation: chip-pop 0.4s var(--ease-slam) calc(var(--base) + 0.12s + var(--i) * 0.055s) backwards;
+}
+.acard--legendary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 32%, rgb(255 232 196 / 0.7) 50%, transparent 68%);
+  transform: translateX(-130%);
+}
+.rack.is-in .acard--legendary::before {
+  animation: card-sweep 1s ease-out calc(var(--base) + 0.4s + var(--i) * 0.15s) backwards;
+}
+.rack.is-in .acard--epic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 38%, rgb(255 224 150 / 0.4) 50%, transparent 62%);
+  transform: translateX(-130%);
+  animation: card-sweep 1s ease-out calc(var(--base) + 0.4s + var(--i) * 0.15s) backwards;
+}
+@keyframes stamp-card {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(1.14); }
+  60% { opacity: 1; transform: translate3d(0, 0, 0) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes chip-pop {
+  from { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1.08); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes card-sweep {
+  from { transform: translateX(-130%); }
+  to { transform: translateX(130%); }
+}
+
+/* ───────────────── SKIP: jump every animation to its end state ───────────────── */
+.is-skip *:not(.inspect__body):not(.btn--primary),
+.is-skip *:not(.inspect__body):not(.btn--primary)::before,
+.is-skip *:not(.inspect__body):not(.btn--primary)::after {
+  animation-delay: -30s !important;
+}
+.is-skip .btn--primary { animation-delay: -30s; }
+
+/* ───────────────── REDUCED MOTION ───────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ac-loop,
+  .ac-loop::before,
+  .ac-loop::after,
+  .wp-core,
+  .wp-channel,
+  .medal--legendary .medal__rim::before,
+  .medal__sheen::before,
+  .acard__embers,
+  .dock.is-ready .btn--primary {
+    animation: none !important;
+  }
+  .fx { display: none; }
+  .weapon__tilt { transition: none; transform: none; }
+  .inspect__body,
+  .arch__panel,
+  .arch__scrim,
+  .arow { animation: none !important; }
+  .arow__panel,
+  .arow__chev,
+  .btn,
+  .acard,
+  .chip { transition: none !important; }
+  html { scroll-behavior: auto; }
+}
