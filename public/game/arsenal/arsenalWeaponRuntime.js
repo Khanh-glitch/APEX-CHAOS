@@ -1573,21 +1573,21 @@
         ctx.stroke();
       }
       ctx.restore();
+      // Exact Gold Lab concentric energized core: four luminous passes with
+      // individual bloom, not flat gradients that hide the inner ring.
       const radius=p.kind==='plasma-core'?18:10;
       ctx.save();ctx.translate(p.x,p.y);ctx.globalCompositeOperation='lighter';
       for(let i=3;i>=0;i--){
-        const r=radius*(1.75-i*.26)+Math.sin(p.age*14+i)*1.5;
-        const g=ctx.createRadialGradient(-r*.2,0,0,0,0,r);
-        g.addColorStop(0,i>1?'rgba(255,249,255,.88)':'rgba(210,156,255,.44)');
-        g.addColorStop(.45,i>1?'rgba(198,138,255,.47)':'rgba(122,49,219,.32)');
-        g.addColorStop(1,'rgba(86,29,178,0)');
-        ctx.globalAlpha=life*(.48+i*.12);ctx.fillStyle=g;
-        ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.fill();
+        ctx.globalAlpha=(.28+i*.18)*life;
+        ctx.fillStyle=['#7125db','#9a52f5','#c69aff','#fff9ff'][i];
+        ctx.shadowColor='#a65bff';ctx.shadowBlur=26-i*5;
+        ctx.beginPath();ctx.arc(0,0,radius*(1.75-i*.26)+Math.sin(p.age*14+i)*1.5,0,TAU);ctx.fill();
       }
-      ctx.strokeStyle='#edccff';ctx.lineWidth=1.4;ctx.globalAlpha=.77*life;
+      ctx.shadowBlur=0;ctx.globalAlpha=.88*life;
+      ctx.strokeStyle='#edccff';ctx.lineWidth=2;
       for(let i=0;i<5;i++){
-        const a=p.age*23+i*TAU/5;ctx.beginPath();
-        ctx.moveTo(Math.cos(a)*(radius+3),Math.sin(a)*(radius+3));
+        const a=p.age*25.2+i*TAU/5;
+        ctx.beginPath();ctx.moveTo(Math.cos(a)*(radius+3),Math.sin(a)*(radius+3));
         ctx.lineTo(Math.cos(a)*(radius+9),Math.sin(a)*(radius+9));ctx.stroke();
       }
       ctx.restore();return;
@@ -1637,8 +1637,18 @@
       const h=w*img.naturalHeight/img.naturalWidth;
       ctx.drawImage(img,-w/2,-h/2,w,h);
     }
-    // Mine's tiny arming LED and Gold corner brackets, not a large target ring.
+    // The eight authored Gold charge spokes breathe independently during
+    // armed waiting. They cannot change trigger area or detonation timing.
     if(p.kind==='mine'&&p.phase==='armed'){
+      const pulse=p.age*10;
+      ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='#ffa44f';ctx.lineWidth=2;
+      for(let i=0;i<8;i++){
+        const a=i*TAU/8,r=38+Math.sin(pulse+i)*4;
+        ctx.globalAlpha=.15+.23*(.5+.5*Math.sin(pulse));
+        ctx.beginPath();ctx.moveTo(Math.cos(a)*27,Math.sin(a)*27);
+        ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.stroke();
+      }
+      ctx.restore();
       const beat=.3+.35*(1+Math.sin(p.age*14))/2;
       ctx.globalCompositeOperation='lighter';
       ctx.strokeStyle='rgba(255,105,43,'+beat+')';ctx.lineWidth=2;
