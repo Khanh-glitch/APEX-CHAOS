@@ -12,7 +12,7 @@
 
 ## Ref inventory
 
-See docs/maintenance/V43_BRANCH_INVENTORY_2026-10-10.json. It pins SHA for **all 170 refs observed after adding two maintenance refs** (168 original + development/v43 + this cleanup branch), as well as head/base refs for the 10 open PRs.
+See docs/maintenance/V43_BRANCH_INVENTORY_2026-10-10.json. Initial inventory contained 170 refs; the refreshed October 10 snapshot contains **171 refs**, including the subsequent PR #26 repair branch. All 12 current open PR head/base refs are classified as reserved. The cleanup branch SHA changes as this document is committed, so its recorded own SHA is informational only; that ref is *never* eligible for deletion.
 
 Historical graph relationship to V4.3 before those two new refs:
 - 131 of the original refs are ancestors (including main and numerous open-PR bases).
@@ -60,14 +60,26 @@ Default mode is **read-only**. Every candidate must satisfy ALL:
 1. Identified as an ancestor-review candidate in pinned audit.
 2. Current GitHub SHA matches pinned SHA; no intervening work.
 3. Current Git ancestry confirms branch HEAD is reachable from canonical V4.3.
-4. Not a default, canonical, protected, PR head or PR base.
-5. Name does not appear in workflow YAML on the checkout; all arena/* refs are blocked because acceptance currently has the arena/** wildcard trigger.
+4. Not the **live GitHub default branch**, canonical development ref, protected ref, PR head or PR base.
+5. Name does not appear in workflow YAML, including broad namespace globs; all arena/* refs are blocked because acceptance currently has the arena/** wildcard trigger.
 6. Any safety/, owner/, playtest/, backup/, archive/, preview/, production/, release/, checkpoint/ and hotfix/ namespace is excluded from bulk deletion.
 7. External deployment, release references and rollback points are reviewed before apply.
 
-Optional deletion mode REQUIRES a separate explicit operator command:
+Optional deletion mode requires **both** a human-reviewed external exact-SHA allowlist (never committed to this repository) and an explicit operator command. A sample approval file, created only after Cloudflare/rollback checks, has this shape:
 
-    node tools/maintenance/v43-branch-cleanup.mjs --apply --confirm=DELETE-VERIFIED-ANCESTORS --limit=5
+    {
+      "repo": "Khanh-glitch/APEX-CHAOS",
+      "canonicalSha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
+      "reviewedExternalDeployments": true,
+      "approvedBy": "owner-approved-manual-review",
+      "branches": [{"name": "EXACT-REVIEWED-NAME", "sha": "EXACT-40-CHARACTER-SHA"}]
+    }
+
+Do not set `reviewedExternalDeployments` to true without actually verifying Cloudflare Pages, domain mapping, manual uploads and rollback dependencies. The placeholder above is **not** an approval.
+
+    node tools/maintenance/v43-branch-cleanup.mjs --apply --confirm=DELETE-VERIFIED-ANCESTORS --approved-sha-file=/secure/reviewed-v43-refs.json --limit=5
+
+Without the approval file, application refuses to run. Even if supplied, only independently approved names with exactly matching SHA in the safe live planner are eligible. The planner also reads the **current remote default branch** rather than hardcoding `main`, rejects CI branch glob namespaces (including `arena/**`), and rechecks SHA, PR relationships and default branch immediately before each deletion.
 
 This is **not run** by CI. Each batch is limited to at most 20, rechecks GitHub PRs, SHA and protection before individual deletion, and stops on drift/failure.
 
