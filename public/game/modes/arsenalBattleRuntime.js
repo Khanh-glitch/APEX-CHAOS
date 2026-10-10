@@ -1050,7 +1050,12 @@
       if (!f) continue;
       const h = weaponApi.getHolder(f);
       if (h) {
-        av.drawEquippedWeapon(c, f, h);
+        // The thrown boomerang is the SAME physical art now owned by its
+        // projectile. Suppress held-art BEFORE any hero presentation override:
+        // ROBOT's curated socket renderer previously short-circuited Arsenal's
+        // own IN_FLIGHT guard and drew a second boomerang in the hand.
+        if(h.weaponId!=='COMBAT_BOOMERANG'||h.phase!=='IN_FLIGHT')
+          av.drawEquippedWeapon(c, f, h);
         // V4.3 Gold plasma charge is a WORLD presentation layer, *not* a
         // child of held-art drawing: ROBOT's curated Gold socket override
         // short-circuits that function and previously hid the entire charge.
