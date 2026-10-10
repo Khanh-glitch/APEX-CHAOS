@@ -1114,16 +1114,12 @@
       if (!p || !p.aq) continue;
       if (dispatch === 'v43-only' && p.type !== 'aq_v43') continue;
       if(p.type==='aq_v43'){
-        // One authoritative V4.3 lifetime clock, including non-damaging
-        // timed burn and the 12.5s mine cleanup. A projectile held in a
-        // Crystal shard is frozen; Crystal maintains its reserve lifetime
-        // until the real refract-release edge.
+        // The global updateProjectiles(dt) already owns lifetime and cleanup.
+        // NEVER subtract life a second time: that silently truncates burn,
+        // shortens plasma/flame motion and destroys mine arming state.
+        // Crystal's held body can refresh its own refraction escrow lifetime.
         if(p.__hr?.cryHold){window.APEX_CRYSTAL?.holdStep?.(p);continue;}
         if(p.kind==='burn')v43TickBurn(p,dt);else v43Step(p,dt);
-        const timeout=p.life>0&&p.life-dt<=0;
-        if(p.life>0)p.life=Math.max(0,p.life-dt);
-        if(timeout&&p.kind==='rocket')
-          v43Splash(p,(p.damage??V43[p.weapon]?.peak??0),V43[p.weapon]?.blastRadius||120);
         if(p.life<=0)projectiles.splice(i,1);
         continue;
       }
