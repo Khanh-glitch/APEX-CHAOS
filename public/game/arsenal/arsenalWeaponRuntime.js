@@ -799,7 +799,7 @@
         }
         v43Pulse(p.x,p.y,'retrieve');p.life=0;return;
       }
-      p.visual.push({x:p.x,y:p.y});if(p.visual.length>11)p.visual.shift();
+      p.visual.push({x:p.x,y:p.y});if(p.visual.length>24)p.visual.shift();
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
       if(hit&&!p.hits.has(hit.actor)){
         p.hits.add(hit.actor);
@@ -811,7 +811,7 @@
     }
     p.px=p.x;p.py=p.y;
     p.x+=p.vx*dt;p.y+=p.vy*dt;
-    p.visual.push({x:p.x,y:p.y});if(p.visual.length>11)p.visual.shift();
+    p.visual.push({x:p.x,y:p.y});if(p.visual.length>24)p.visual.shift();
     // Plasma core is a charged carrier, not a damaging early projectile.
     // Mine must land and arm first: an in-flight collision cannot bypass
     // the explicit 0.48s arming gate.
@@ -1257,95 +1257,189 @@
     }
     return (window.APEX_ARSENAL_AV?.imageByPath?.(url))||v43SpriteCache.get(url)||null;
   }
+  // Owner V4.3 Gold visual recipe: ribbon geometry and layered flame are
+  // PRESENTATION ONLY. The actual projectile path and Fighter damage remain
+  // owned by the native Arsenal / Hero Rework engine.
+  function v43GoldTongue(ctx,x,y,angle,size,time,alpha=1){
+    ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+    ctx.globalCompositeOperation='lighter';ctx.lineJoin='round';
+    const yy=Math.sin(time*24)*size*.18;
+    for(const [k,color,opacity] of [[1.5,'#bd2418',.20],[1.06,'#ff521a',.42],[.68,'#ffad3c',.58],[.32,'#fff7c9',.65]]){
+      ctx.globalAlpha=opacity*alpha;ctx.fillStyle=color;ctx.beginPath();
+      ctx.moveTo(-size*.65*k,0);
+      ctx.bezierCurveTo(-size*.38*k,-size*.65*k,-size*.06*k,-size*.56*k,size*.22*k,yy*.5);
+      ctx.bezierCurveTo(size*.54*k,-size*.53*k,size*.9*k,-size*.16*k,size*1.5*k,yy);
+      ctx.bezierCurveTo(size*.48*k,size*.16*k,size*.42*k,size*.60*k,size*.20*k,size*.48*k);
+      ctx.bezierCurveTo(-size*.05*k,size*.35*k,-size*.42*k,size*.35*k,-size*.65*k,0);
+      ctx.closePath();ctx.fill();
+    }
+    ctx.restore();
+  }
+  function v43GoldRibbon(ctx,p,life){
+    const q=p.visual;if(!q||q.length<3)return;
+    const boom=p.kind==='boomerang';
+    const color={flare:'#ff6530',rocket:'#e3b186',bolt:'#cfe5e9',ball:'#c6a87a'}[p.kind];
+    if(!color&&!boom)return;
+    const maxWidth=boom?30:p.kind==='flare'?18:p.kind==='rocket'?20:p.kind==='ball'?7:5;
+    ctx.save();ctx.globalCompositeOperation=boom?'screen':'lighter';
+    for(const k of (boom?[2.3,1.35,.55]:[1.9,1,.28])){
+      ctx.beginPath();
+      for(let i=0;i<q.length;i++){
+        const pt=q[i],pr=q[Math.max(0,i-1)],ne=q[Math.min(q.length-1,i+1)];
+        const dx=ne.x-pr.x,dy=ne.y-pr.y,ll=Math.hypot(dx,dy)||1;
+        const radius=maxWidth*Math.pow(i/(q.length-1),boom?1.12:1.35)*k*.5;
+        if(i)ctx.lineTo(pt.x-dy/ll*radius,pt.y+dx/ll*radius);
+        else ctx.moveTo(pt.x-dy/ll*radius,pt.y+dx/ll*radius);
+      }
+      for(let i=q.length-1;i>=0;i--){
+        const pt=q[i],pr=q[Math.max(0,i-1)],ne=q[Math.min(q.length-1,i+1)];
+        const dx=ne.x-pr.x,dy=ne.y-pr.y,ll=Math.hypot(dx,dy)||1;
+        const radius=maxWidth*Math.pow(i/(q.length-1),boom?1.12:1.35)*k*.5;
+        ctx.lineTo(pt.x+dy/ll*radius,pt.y-dx/ll*radius);
+      }
+      ctx.closePath();
+      if(boom){
+        const a=q[0],b=q[q.length-1],g=ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+        g.addColorStop(0,'rgba(108,173,196,0)');
+        g.addColorStop(.22,'rgba(109,201,228,.18)');
+        g.addColorStop(.65,'rgba(170,236,255,.24)');
+        g.addColorStop(1,'rgba(239,251,255,.34)');
+        ctx.fillStyle=g;ctx.globalAlpha=.82*life/k;
+      }else {ctx.fillStyle=color;ctx.globalAlpha=.16*life/k;}
+      ctx.fill();
+    }
+    if(boom){
+      ctx.lineWidth=1.35;ctx.strokeStyle='rgba(234,252,255,.78)';
+      ctx.globalAlpha=.85*life;ctx.beginPath();
+      for(let i=0;i<q.length;i++){if(!i)ctx.moveTo(q[i].x,q[i].y);else ctx.lineTo(q[i].x,q[i].y);}
+      ctx.stroke();
+      // Gold's airfoil wake follows the actual curved sample path (no halos).
+      for(let j=0;j<3;j++){
+        const i=Math.max(1,q.length-2-j*Math.max(2,Math.floor(q.length/5)));
+        const pt=q[i],pr=q[Math.max(0,i-1)],ne=q[Math.min(q.length-1,i+1)];
+        const dx=ne.x-pr.x,dy=ne.y-pr.y,ll=Math.hypot(dx,dy)||1,nx=-dy/ll,ny=dx/ll;
+        const bend=10+j*8,reach=20+j*14;
+        ctx.lineWidth=Math.max(.8,2.6-j*.45);
+        ctx.strokeStyle=j===0?'rgba(245,254,255,.74)':'rgba(132,215,239,.38)';
+        ctx.beginPath();ctx.moveTo(pt.x-dx/ll*reach+nx*5,pt.y-dy/ll*reach+ny*5);
+        ctx.quadraticCurveTo(pt.x+nx*bend,pt.y+ny*bend,pt.x+dx/ll*10,pt.y+dy/ll*10);ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+  function v43GoldProjectile(ctx,p){
+    const c=V43[p.weapon]||{},life=v43min(p.life/Math.max(.1,p.maxLife),0,1);
+    const angle=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
+    v43GoldRibbon(ctx,p,life);
+    if(p.kind==='flame'){
+      const f=p.owner;if(!f||f.hp<=0)return;
+      const range=V43.FLAMETHROWER.range;
+      for(let i=0;i<10;i++){
+        const d=(i+.7)/10*range,off=Math.sin(i*14.3+p.age*29)*(.12+.25*i/10);
+        const a=angle+off,ox=f.x+Math.cos(angle)*(f.radius||70)*.72,
+          oy=f.y+Math.sin(angle)*(f.radius||70)*.72;
+        v43GoldTongue(ctx,ox+Math.cos(a)*d,oy+Math.sin(a)*d,a,
+          13+i*.85,p.age+i*.13,(.75-i*.044)*life);
+      }
+      return;
+    }
+    if(p.kind==='burn'){
+      const t=p.victim;if(!t)return;
+      for(let i=0;i<5;i++){
+        const x=t.x+Math.sin(p.age*19+i*3.4)*24,y=t.y+
+          Math.cos(p.age*23+i*7)*18-(p.age*18+i*13)%48;
+        v43GoldTongue(ctx,x,y,-Math.PI/2+Math.sin(p.age*4+i)*.24,
+          9+i*.8,p.age+i*.5,.67*life);
+      }
+      return;
+    }
+    if(p.kind==='plasma'||p.kind==='plasma-core'){
+      const radius=p.kind==='plasma-core'?18:10;
+      ctx.save();ctx.translate(p.x,p.y);ctx.globalCompositeOperation='lighter';
+      for(let i=3;i>=0;i--){
+        const r=radius*(1.75-i*.26)+Math.sin(p.age*14+i)*1.5;
+        const g=ctx.createRadialGradient(-r*.2,0,0,0,0,r);
+        g.addColorStop(0,i>1?'rgba(255,249,255,.88)':'rgba(210,156,255,.44)');
+        g.addColorStop(.45,i>1?'rgba(198,138,255,.47)':'rgba(122,49,219,.32)');
+        g.addColorStop(1,'rgba(86,29,178,0)');
+        ctx.globalAlpha=life*(.48+i*.12);ctx.fillStyle=g;
+        ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.fill();
+      }
+      ctx.strokeStyle='#edccff';ctx.lineWidth=1.4;ctx.globalAlpha=.77*life;
+      for(let i=0;i<5;i++){
+        const a=p.age*23+i*TAU/5;ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*(radius+3),Math.sin(a)*(radius+3));
+        ctx.lineTo(Math.cos(a)*(radius+9),Math.sin(a)*(radius+9));ctx.stroke();
+      }
+      ctx.restore();return;
+    }
+    if(p.kind==='flare'){
+      const a=Math.atan2(p.vy||0,p.vx||1);
+      v43GoldTongue(ctx,p.x,p.y,a,20,p.age,life);
+      ctx.save();ctx.globalCompositeOperation='lighter';
+      ctx.translate(p.x,p.y);ctx.rotate(a);
+      const glow=ctx.createRadialGradient(0,0,0,0,0,35);
+      glow.addColorStop(0,'rgba(255,245,199,.92)');glow.addColorStop(.35,'rgba(255,112,50,.44)');
+      glow.addColorStop(1,'rgba(220,46,11,0)');
+      ctx.globalAlpha=life;ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,35,0,TAU);ctx.fill();ctx.restore();
+      return;
+    }
+    if(p.kind==='fragment'){
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(p.vy||0,p.vx||1));
+      ctx.fillStyle='#d9e0dc';ctx.strokeStyle='#4c687c';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(-7,-4);ctx.lineTo(-3,0);
+      ctx.lineTo(-7,4);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();return;
+    }
+    const id={bolt:'BOLT',ball:'STEEL_BALL',rocket:'RPG_ROCKET',
+      mine:'SHRAPNEL_MINE',boomerang:'COMBAT_BOOMERANG'}[p.kind];
+    const img=id?v43Sprite('/assets/arsenal/v43/'+id+'.webp'):null;
+    let lift=0;
+    if(p.kind==='mine'&&p.phase==='flight'){
+      lift=Math.sin(Math.PI*Math.min(1,p.age/(c.flightMax||.7)))*62;
+      ctx.save();ctx.globalAlpha=.19;ctx.fillStyle='#16191f';
+      ctx.translate(p.x,p.y+10);ctx.scale(1,.35);
+      ctx.beginPath();ctx.arc(0,0,26,0,TAU);ctx.fill();ctx.restore();
+    }
+    ctx.save();ctx.translate(p.x,p.y-lift);
+    ctx.rotate(p.kind==='boomerang'?p.spin||0:
+      p.kind==='ball'?Math.atan2(p.vy,p.vx)+p.age*5:
+      p.kind==='mine'?Math.atan2(p.vy,p.vx)+p.age*3.2:Math.atan2(p.vy,p.vx));
+    if(p.kind==='rocket'){
+      const g=ctx.createRadialGradient(-45,0,0,-45,0,36);
+      g.addColorStop(0,'rgba(255,246,180,.82)');g.addColorStop(.3,'rgba(255,154,52,.42)');
+      g.addColorStop(1,'rgba(255,70,0,0)');
+      ctx.globalCompositeOperation='lighter';ctx.fillStyle=g;
+      ctx.beginPath();ctx.arc(-45,0,36,0,TAU);ctx.fill();
+      ctx.globalCompositeOperation='source-over';
+    }
+    if(img?.complete&&img.naturalWidth>0){
+      const w=p.kind==='boomerang'?c.worldWidth:
+        p.kind==='mine'&&p.phase==='flight'?47:(c.projectileWidth||Math.max(26,(p.radius||8)*3));
+      const h=w*img.naturalHeight/img.naturalWidth;
+      ctx.drawImage(img,-w/2,-h/2,w,h);
+    }
+    // Mine's tiny arming LED and Gold corner brackets, not a large target ring.
+    if(p.kind==='mine'&&p.phase==='armed'){
+      const beat=.3+.35*(1+Math.sin(p.age*14))/2;
+      ctx.globalCompositeOperation='lighter';
+      ctx.strokeStyle='rgba(255,105,43,'+beat+')';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(-29,-15);ctx.lineTo(-21,-18);
+      ctx.moveTo(29,15);ctx.lineTo(21,18);ctx.stroke();
+      ctx.shadowColor='#fa7c3e';ctx.shadowBlur=11;
+      ctx.fillStyle='#ffd4a1';ctx.beginPath();ctx.arc(0,0,4,0,TAU);ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawArsenalProjectiles(ctx) {
     const av = window.APEX_ARSENAL_AV;
     for (const p of projectiles) {
       if (!p || !p.aq) continue;
       ctx.save();
-      if(p.type==='aq_v43'){
-        const c=V43[p.weapon]||{},life=v43min(p.life/Math.max(.1,p.maxLife),0,1);
-        ctx.save();
-        const acid=p.kind==='plasma'||p.kind==='plasma-core',fire=p.kind==='flame'||p.kind==='burn';
-        const tone=acid?'#cf8eff':fire?'#ff9e46':p.kind==='rocket'?'#ffcc7e':'#e1e8ee';
-        if(fire){
-          const age=p.age||0;
-          if(p.kind==='flame'){
-            const f=p.owner;if(f&&f.hp>0){
-              const a=p.angle,max=V43.FLAMETHROWER.range*.8+Math.sin(age*27)*13;
-              const ox=f.x+Math.cos(a)*(f.radius||70)*.8,oy=f.y+Math.sin(a)*(f.radius||70)*.8;
-              for(let i=0;i<12;i++){
-                const d=(i+.8)/12*max,off=Math.sin(i*14.3+age*33)*(.16+.28*i/12);
-                const x=ox+Math.cos(a+off)*d,y=oy+Math.sin(a+off)*d;
-                ctx.globalAlpha=.12+.28*(1-i/12);
-                ctx.fillStyle=i%3?'#ff7c22':'#ffe2a0';ctx.beginPath();
-                ctx.arc(x,y,11+i*.85+Math.sin(age*28+i)*3,0,TAU);ctx.fill();
-              }
-            }
-          }else if(p.victim){
-            for(let i=0;i<4;i++){
-              const x=p.victim.x+Math.sin(p.age*19+i*3.4)*24,y=p.victim.y+
-                Math.cos(p.age*23+i*7)*18-(p.age*14+i*11)%43;
-              ctx.globalAlpha=life*(.3+.1*i);ctx.fillStyle=i%2?'#ffd488':'#f2641c';
-              ctx.beginPath();ctx.arc(x,y,6+i,0,TAU);ctx.fill();
-            }
-          }
-        }else if(p.visual?.length>1){
-          ctx.lineCap='round';ctx.lineWidth=acid?6:3;
-          ctx.strokeStyle=tone;ctx.globalAlpha=.30*life;
-          ctx.beginPath();
-          for(let i=0;i<p.visual.length;i++){
-            const pt=p.visual[i];if(!i)ctx.moveTo(pt.x,pt.y);
-            else ctx.lineTo(pt.x,pt.y);
-          }
-          ctx.stroke();ctx.globalAlpha=1;
-        }
-        if(!fire){
-          // The Combat Boomerang is the SAME full-size held weapon body in
-          // flight: no abstract V substitute and no scale-pop on release.
-          const projectileKind={bolt:'BOLT',ball:'STEEL_BALL',rocket:'RPG_ROCKET',
-            mine:'SHRAPNEL_MINE',boomerang:'COMBAT_BOOMERANG'}[p.kind];
-          const imgUrl=projectileKind?'/assets/arsenal/v43/'+projectileKind+'.webp':null;
-          const image=imgUrl? v43Sprite(imgUrl):null;
-          // Ground-projected mine physics remains untouched. Only the sprite
-          // follows the authored flight dome before it visibly lands/arms.
-          let arcLift=0;
-          if(p.kind==='mine'&&p.phase==='flight'){
-            const u=Math.max(0,Math.min(1,p.age/c.flightMax));
-            arcLift=Math.sin(Math.PI*u)*62;
-            ctx.save();ctx.translate(p.x,p.y+10);ctx.scale(1,.35);
-            ctx.globalAlpha=.24;ctx.fillStyle='#16191f';
-            ctx.beginPath();ctx.arc(0,0,28,0,TAU);ctx.fill();ctx.restore();
-          }
-          ctx.translate(p.x,p.y-arcLift);
-          ctx.rotate(p.kind==='boomerang'?(p.spin||0):Math.atan2(p.vy,p.vx));
-          if(image?.complete&&image.naturalWidth>0){
-            const w=p.kind==='boomerang'?c.worldWidth:(c.projectileWidth||Math.max(26,(p.radius||8)*3));
-            const scale=w/Math.max(image.naturalWidth,image.naturalHeight);
-            ctx.drawImage(image,-image.naturalWidth*scale*.5,-image.naturalHeight*scale*.5,
-              image.naturalWidth*scale,image.naturalHeight*scale);
-          }else{
-            const rr=p.radius||8;
-            ctx.globalAlpha=.8;ctx.shadowColor=tone;ctx.shadowBlur=6;
-            ctx.fillStyle=tone;ctx.strokeStyle='#f9f1dc';ctx.lineWidth=2;
-            ctx.beginPath();
-            if(p.kind==='bolt'||p.kind==='rocket'){
-              ctx.moveTo(rr*1.8,0);ctx.lineTo(-rr,-rr*.67);
-              ctx.lineTo(-rr*.8,rr*.67);ctx.closePath();
-            }else if(p.kind==='boomerang'){
-              ctx.moveTo(-rr*1.7,-rr*.7);ctx.lineTo(0,rr*.5);
-              ctx.lineTo(rr*1.7,-rr*.7);ctx.lineWidth=5;ctx.stroke();
-            }else ctx.arc(0,0,rr,0,TAU);
-            if(p.kind!=='boomerang'){ctx.fill();ctx.stroke();}
-            ctx.shadowBlur=0;
-          }
-          if(p.kind==='mine'&&p.phase==='armed'){
-            const R=c.triggerRadius||135;
-            ctx.strokeStyle='#ffb36b';ctx.globalAlpha=.32;
-            ctx.lineWidth=2;ctx.setLineDash([10,8]);
-            ctx.beginPath();ctx.arc(0,0,R,0,TAU);ctx.stroke();ctx.setLineDash([]);
-          }
-        }
-        ctx.restore();ctx.restore();continue;
+      if (p.type === 'aq_v43') {
+        v43GoldProjectile(ctx,p);
+        ctx.restore();
+        continue;
       }
       if (p.type === 'aq_bullet') {
         const t = tracerFor(p.weapon);
