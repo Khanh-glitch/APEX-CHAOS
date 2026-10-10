@@ -664,6 +664,26 @@
         for (const fighter of fighters) {
           if (!fighter || fighter.hp <= 0 || fighter.withdrawn===true || fighter.questWorldObject===true) continue;
           const enemy = Q.nearestEnemy(fighter, fighters);
+          // Quest-only unarmed hostile pickup navigation. Generic Arsenal
+          // blank Fighters drift on their current direction and previously
+          // could pass a PISTOL without ever steering into its real pickup
+          // circle. Move ONLY the actual Fighter, do not teleport/equip it.
+          const seekPistol=!!fighter.questSpecies
+            ||(fighter.questId==='T.O.T'&&state.questReflex===true);
+          if(seekPistol&&!weaponApi.getHolder(fighter)){
+            let best=null,bestD=Infinity;
+            for(const slot of state.slots||[]){
+              if(slot.phase!=='REVEALED'||slot.weaponId!=='PISTOL'
+                ||slot.questNarrativeOnly
+                ||(slot.questPickupOwner&&slot.questPickupOwner!==fighter.questId))
+                continue;
+              const d=Math.hypot(slot.x-fighter.x,slot.y-fighter.y);
+              if(d<bestD){best=slot;bestD=d;}
+            }
+            if(best&&bestD>1){
+              fighter.setDir((best.x-fighter.x)/bestD,(best.y-fighter.y)/bestD);
+            }
+          }
           if (fighter === fighters[0] && gate?.preUpdate) gate.preUpdate(fighter, dt);
           fighter.update(dt, enemy);
           if (fighter === fighters[0] && gate?.postUpdate) gate.postUpdate(fighter);
