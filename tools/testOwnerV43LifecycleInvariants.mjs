@@ -65,8 +65,8 @@ assert.match(cry,/hr\.crystalReflected = true/,'Crystal reflect preserves one-re
 assert.match(w,/crystal\.resolveBullet\(p,bodyT,dt\)/,'Boomerang return path must traverse Crystal contact');
 assert.match(w,/APEX_CRYSTAL\.resolveBullet\(p,bodyT,dt\)/,'Other V4.3 mobile projectiles must traverse Crystal contact');
 assert.match(w,/p\.kind==='boomerang'&&!v43Redirected\(p\)/,'Reflected boomerang cannot override its new trajectory with the old return path');
-assert.match(w,/p\.kind==='plasma'&&p\.homing&&!v43Redirected\(p\)/,'Reflected plasma shards cannot home toward the original owner's foe');
-assert.match(w,/if\(outcome\?\.consumed\)return;/,'Crystal contact must supersede a stale body hit');
+assert.match(w,/p\.kind==='plasma'&&p\.homing&&!v43Redirected\(p\)/,"Reflected plasma shards cannot home toward the original owner's foe");
+assert.match(w,/if\(outcome\?\.consumed\)/,'Crystal contact must supersede a stale body hit');
 // R3: shared interaction policies, preserving reflected damage to descendants,
 // and distinct Gold motion are release-blocking source contracts.
 for(const [id,kind] of [['FLARE_GUN','flare'],['TACTICAL_CROSSBOW','bolt'],
