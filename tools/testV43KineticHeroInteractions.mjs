@@ -61,7 +61,8 @@ assert.doesNotMatch(spawn,/const questWeaponPool\s*=\s*\[[^\]]*FLARE_GUN/);
 const weapons=fs.readFileSync('public/game/arsenal/arsenalWeaponRuntime.js','utf8');
 assert.match(weapons,/function v43Splash\(p,peak,radius\)/);
 assert.match(weapons,/const factor=v43min\(1-d\/range,0,1\)/);
-assert.match(weapons,/aqDamage\(f,peak\*factor,p\.owner,p\.weapon/);
+assert.match(weapons,/v43Deal\(p,f,peak\*factor,\{/);
+assert.match(weapons,/function v43Deal\(p,target,amount,opts=\{\}\)/);
 // Same physical boomerang in hand and in flight — never a tiny fallback V.
 assert.match(weapons,/boomerang:'COMBAT_BOOMERANG'/);
 assert.match(weapons,/p\.kind==='boomerang'\?c\.worldWidth/);
