@@ -13,8 +13,8 @@
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalConfig.js": "4e382ca21550cd4d1a3eafe4df857a35d7c7b6c3016bceb5637b9f36c1473f1e",
     "public/game/arsenal/arsenalIdentityRuntime.js": "3c29a9c0b854b31e80f896617376b4fee60f8c6596a31cccc95df73b43b5a397",
-    "public/game/arsenal/arsenalWeaponRuntime.js": "745b8f4e985160508a42ba9509e33df97c6cbf2f2544c94a99da9b004f9a8c69",
-    "public/game/arsenal/arsenalSpawnRuntime.js": "04de93dc0df4f11dc6170fcf49ff6a3f86a7df4cec7f91280d49633c116acbe0",
+    "public/game/arsenal/arsenalWeaponRuntime.js": "67c6ce483c731f378c0e49432e923b7a92de054e7a82183562256b6b8513fe7d",
+    "public/game/arsenal/arsenalSpawnRuntime.js": "1d2643d892c0e78ef9c712ea5dd50dceb9a454e8dc04184d1c5647fa61b9e729",
     "public/game/arsenal/arsenalPresentationRuntime.js": "af665805731a6073242404fd5ea9450102e79ef9f88d952f554084500bba0cab",
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
     "public/game/arsenal/arsenalStormbreakerVfxRuntime.js": "f5862f8e002958c967ab5a5796caef33962bdcf5eaafa183c30a90b55caaed8d",
@@ -40,15 +40,15 @@
     "public/game/quest/questStoryPresentation.js": "c96ffda01088698fea5739092acae08d2cb5e56be6bcd2e8bb6c7f16cfb804b7",
     "public/game/quest/questGoldV12Rig.js": "9a0d1ed0be2d893d2d1696894908f62397eae781d5269051d0df41c5c6b0ea72",
     "public/game/quest/questGoldEnemyVisuals.js": "48ea964484252a0477eec340498fbfff5a3ff2a5b5cde30ddd53cdc777006274",
-    "public/game/modes/arsenalBattleRuntime.js": "c5d78f3f4abd0243278bec8d19836f26aa63d1d38d3bffd520100f69ce33caa4",
+    "public/game/modes/arsenalBattleRuntime.js": "19948f167a6c25cece81628d2cf64165ea64c0981710e849de1c377bf9bd4049",
     "public/game/hero-rework/crystalaGoldV6.js": "cea96dc2b58f5c41fb482e196ec0cf9a2b9c25bb21f2b7df37afc2787b67ab2f",
     "public/game/hero-rework/crystalGameplayRuntime.js": "0e05f82c455479b637b879c9c92537430b17351bbc65a052fbfb1f62e35d72c9",
-    "public/game/hero-rework/frostGameplayRuntime.js": "be7d2dfd8153c71f001278abf56a43bd9790d24e5ce317b04e8039fef69a51de",
-    "public/game/hero-rework/magnetGameplayRuntime.js": "e83afb9438fca890d4bb215f022c632b2ded750f95148341ea9d1644e8394faf",
+    "public/game/hero-rework/frostGameplayRuntime.js": "8c62a169efc3966ef7027da6b6b31fb56fcc0310c048af9a64dd63cc18a116b4",
+    "public/game/hero-rework/magnetGameplayRuntime.js": "f8914fe9b796aca4a04b030b3160c5150598cc55f3863b15618b396710a323ad",
     "public/game/hero-rework/magnetGoldV1.js": "fa1b2bed4705cc85bff6a449cd1f013483c5c0c07eae0589913540d2708e5b90",
     "public/game/hero-rework/mirrorGoldV1.js": "f7d1817064ca87997050e2f07acd60d98edfd575fbcffbc2ecd08597366f13e7",
     "public/game/hero-rework/heroMechanicsRuntime.js": "10f81d7458d453bec6a82ddfd7ca8383a6c06487bf9f62f07219ed305647f609",
-    "public/game/hero-rework/heroReworkRuntime.js": "738dfcc92d83c5351d84c77ceb9a3ad0c4b5d2dbff376977e60577fe12b3debc",
+    "public/game/hero-rework/heroReworkRuntime.js": "f71d19268cc710b2a75434ec45bc10b6a5865e39ed60079be8a93691385a11db",
     "public/game/hero-rework/robotPresentationRuntime.js": "210c44377192fd4c2031a4f28e1cb8b626128b9f341ec6e3919cd0ae976eb605",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "4c18e797dbb365282147c03355be7876f35d86ce4c59c603b2640236578e8ac5",
@@ -59,6 +59,6 @@
     "public/game/hero-rework/mirrorPresentationRuntime.js": "3713f25305cb588042898e6137ae1c0c7d1b7214b92e32f0393a4cdf4bf96155",
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
     "public/game/results/ownerAwards.generated.js": "bf1214feb289ade27e97c382b33e87a2ecf230f54c3e673cec004b0e824d25bb",
-    "public/game/results/matchResultAuthority.js": "2c181b3a93447a29b96977cc2f79d4eabc50769e45c37aaa891a608b2e171936"
+    "public/game/results/matchResultAuthority.js": "addc588bdd3b45797136b2990b25d963ccd851e8690482ad69a83f93a7e395a9"
   }
 }
