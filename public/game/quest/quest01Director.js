@@ -422,12 +422,15 @@
     const allowed=root.APEX_PRODUCT_SURFACE?.roster?.playableIds;
     const accepted=Array.isArray(allowed)&&allowed.length
       ?new Set(allowed):new Set(['ROBOT']);
-    const picked=QUEST_HEROES.some(x=>x[0]===root.__apexQuestHeroChoice)
-      ?root.__apexQuestHeroChoice:'newbot';
+    const canChoose=id=>accepted.has(id)
+      &&root.APEX_ARSENAL_META?.canPublicSelect?.(id)!==false;
+    const requested=String(root.__apexQuestHeroChoice||'newbot');
+    const match=QUEST_HEROES.find(x=>x[0]===requested&&canChoose(x[1]));
+    const picked=match?match[0]:'newbot';
     root.__apexQuestHeroChoice=picked;
     host.replaceChildren();
     for(const [key,id,label] of QUEST_HEROES){
-      const available=accepted.has(id),selected=key===picked;
+      const available=canChoose(id),selected=key===picked;
       const card=root.document.createElement('button');
       card.type='button';card.className='q1-hero-card';
       card.disabled=!available;card.setAttribute('aria-pressed',String(selected));
