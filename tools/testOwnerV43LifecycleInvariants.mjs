@@ -20,7 +20,7 @@ for (const id of eight){
 assert.match(w,/h\.shotsFired\+=1/,'holder shot counter must track special shots');
 assert.match(w,/h\.phase='FOLLOW_THROUGH'/,'special shot must complete native holder');
 assert.match(w,/h\.phase='IN_FLIGHT'/,'physical Boomerang must own holder');
-assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,a\)/,'boomerang depends on launch geometry');
+assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,a,ctx\.enemy\)/,'boomerang path depends on real opponent position at release');
 assert.doesNotMatch(w,/p\.owner\.x-p\.x|p\.owner\.y-p\.y/,'boomerang may not home to moving owner');
 assert.doesNotMatch(w,/p\.age\+=dt;p\.life-=dt/,'the engine alone ages projectile life');
 assert.match(hr,/baseUpdateArsenalProjectiles\(dt, 'v43-only'\)/,
@@ -46,4 +46,13 @@ assert.match(result,/APEX_COMBAT_HUD\?\.projection/,'Result must use Battle HUD 
 assert.match(result,/cfg\.TIER_COLORS\?\.\[tier\]/,'Result must use actual weapon tier palette');
 assert.match(weapon,/weapon__rarity/,'Weapon Gold must visibly show tier');
 assert.match(css,/--weapon-tier-rgb/,'Weapon Gold must illuminate by rarity');
+assert.match(w,/flightSeconds=x\.flightPath\.total\/c\.speed/,'boomerang duration must vary by real flight distance');
+assert.match(w,/const flightSeconds=p\.flightSeconds\|\|c\.flightSeconds/,'boomerang must tick per-throw duration');
+const spawn=rd('public/game/arsenal/arsenalSpawnRuntime.js');
+assert.match(spawn,/ownerBotForcedWeapon/,'owner BOT test must use true spawn authority');
+assert.match(cfg,/Ctrl\+Shift\+F8/,'hidden owner keyboard chord exists');
+assert.match(cfg,/selectedWeaponId=id/,'owner numeric selection resolves to catalog weapon');
+assert.match(w,/burnRecipients=new Set\(\)/,'flamethrower burn once per contact source');
+assert.match(w,/p\.kind==='plasma'&&p\.homing/,'only released split plasma shards chase');
+assert.match(w,/kind==='smoke'/,'RPG smoke must have native world VFX');
 console.log('PASS owner V43 source integration invariants: 8 weapon entries + native holder/pose/projectile/Frost/result gates');
