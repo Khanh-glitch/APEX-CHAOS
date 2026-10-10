@@ -1820,6 +1820,47 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
          : x.projectilesRemaining===0);
    }),ownerV43);
 
+// P0 post-audit: never settle an RPG blast by only a mocked helper.
+// Launch the REAL Arsenal holder/rocket twice, induce a true wall AOE and
+// an otherwise unreachable fuse timeout, and inspect real Fighter HP/ledger.
+report.ownerV43RpgBlastOnce=run(\`
+  function trial(mode){
+    __APEX_TEST.enterManual();__APEX_TEST.holdSpawns();
+    __APEX_TEST.place(400,500,810,500);
+    const A=APEX_ARSENAL,W=A.weaponApi;
+    const attacker=fighters[0],victim=fighters[1];
+    attacker.baseSpeed=0;victim.baseSpeed=0;
+    attacker.hp=1000;victim.hp=1000;
+    A.events.length=0;
+    W.equip(attacker,'RPG_7');
+    let rocket=null;
+    for(let i=0;i<72;i++){
+      __APEX_TEST.step(1/60);
+      rocket=projectiles.find(p=>p.aq&&p.kind==='rocket'
+        &&p.weapon==='RPG_7'&&p.owner===attacker&&p.life>0);
+      if(rocket)break;
+    }
+    if(!rocket)return {launched:false,mode};
+    if(mode==='wall'){victim.x=925;victim.y=620;}
+    else {victim.x=rocket.x+80;victim.y=rocket.y+92;rocket.life=.08;}
+    const startHp=victim.hp;
+    for(let i=0;i<180;i++){
+      __APEX_TEST.step(1/60);
+      if(!projectiles.includes(rocket)||rocket.life<=0)break;
+    }
+    const hits=A.events.filter(e=>e.includes(' HIT ')
+      &&e.includes('weapon=RPG_7')).length;
+    return {launched:true,mode,damage:startHp-victim.hp,hits,
+      detonated:rocket.exploded===true,retired:rocket.life<=0};
+  }
+  return {wall:trial('wall'),fuse:trial('fuse')};
+\`);
+gate('post-v43-rpg-wall-and-fuse-explode-exactly-once-real-hp',
+  Object.values(report.ownerV43RpgBlastOnce).every(x=>x.launched
+    &&x.detonated&&x.retired&&x.hits===1
+    &&x.damage>0&&x.damage<=161.01),
+  report.ownerV43RpgBlastOnce);
+
 // Owner V43 DAMAGE tests: a normal native Fighter must lose the README amount
 // from a real hit, not merely log USE/CONSUME. No Lab-dummy simulated HP.
 report.ownerV43Damage = run(`
