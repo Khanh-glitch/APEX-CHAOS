@@ -71,10 +71,14 @@ try{
   for(const id of ['FLARE_GUN','TACTICAL_CROSSBOW','STEEL_BALL_LAUNCHER',
     'COMBAT_BOOMERANG','RPG_7','FLAMETHROWER','PLASMA_SPLITTER','SHRAPNEL_MINE_LAUNCHER']){
     const rec=await ev(`(()=>{
+      // The production fixture is deliberately gated by localhost + this flag.
+      // Without it the product rightly refuses HERO/RIVAL and state remains null.
+      window.__APEX_TEST_MODE=true;
       window.__apexArsenalBattleProfile='LOCAL';
       window.__apexArsenalBotBattle=false;
       window.__apexArsenalFreeBattle=false;
-      window.startArsenalBattleMode('HERO','RIVAL',{testFixture:true});
+      const launched=window.startArsenalBattleMode('HERO','RIVAL',{testFixture:true});
+      if(launched!==true)throw Error('Local HERO/RIVAL start refused: '+launched);
       if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
       const S=window.APEX_ARSENAL.state,W=window.APEX_ARSENAL.weaponApi;
       S.spawnTimer=1e6;S.slots.length=0;S.spawnHeld=true;S.unarmedFastConsumed=true;
