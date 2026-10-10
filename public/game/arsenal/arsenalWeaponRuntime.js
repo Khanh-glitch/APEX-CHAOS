@@ -657,6 +657,28 @@
   function v43Redirected(p){return !!(p.__hr?.crystalReflected||p.aqReflected);}
   function v43DamageScale(p,base){return p.__hr?.crystalReflected
     ?v43min((p.damage||0)/Math.max(1e-6,base),0,2):1;}
+  // Single V4.3 post-hit adapter: the ONLY damage authority remains
+  // aqDamage -> Fighter.takeDamage. This receipt reports REAL hp loss through
+  // the exact Crystal afterBodyHit/notBodyHit route ordinary aq_bullet uses.
+  // The source marker also makes Gold result-ledger reflected damage visible.
+  function v43Deal(p,target,amount,opts={}){
+    const before=target?.hp??0;
+    const applied=aqDamage(target,amount,p.owner,p.weapon,{
+      ...opts,
+      resultSource:opts.resultSource||{
+        crystal:!!p.__hr?.crystalReflected,
+        mirror:!!p.resultMirrorCopy,magnet:!!p.resultMagnetPulled,
+        final:!!p.resultFinalShot
+      }
+    });
+    const realized=Math.max(0,before-(target?.hp??0));
+    if(realized>0){
+      const crystal=window.APEX_CRYSTAL;
+      crystal?.noteBodyHit?.(p,target);
+      crystal?.afterBodyHit?.(p,target,realized);
+    }
+    return applied;
+  }
   function v43Splash(p,peak,radius){
     const targets=v43Enemies(p.owner);
     for(const f of targets){
@@ -672,11 +694,11 @@
       const rocketFactor=v43min(1-surfaceGap/range,0,1);
       if(p.kind==='rocket'){
         if(rocketFactor<=0)continue;
-        aqDamage(f,peak*rocketFactor,p.owner,p.weapon,{
+        v43Deal(p,f,peak*rocketFactor,{
           knockback:320*rocketFactor,shake:5*rocketFactor,hitStop:.012});
       }else{
         if(factor<=0)continue;
-        aqDamage(f,peak*factor,p.owner,p.weapon,{
+        v43Deal(p,f,peak*factor,{
           knockback:320*factor,shake:5*factor,hitStop:.012});
       }
     }
@@ -735,7 +757,7 @@
           Math.cos(Math.atan2(dy,dx)-dir)));
         if(d<=c.range+(f.radius||75)*.2
           &&off<=c.cone+Math.asin(v43min((f.radius||75)*.35/Math.max(d,1),0,1))){
-          aqDamage(f,c.tickDamage,p.owner,p.weapon,{knockback:26});
+          v43Deal(p,f,c.tickDamage,{knockback:26});
           if(!p.burnRecipients)p.burnRecipients=new Set();
           if(!p.burnRecipients.has(f)){
             p.burnRecipients.add(f);
@@ -932,7 +954,7 @@
       }
       if(hit&&!p.hits.has(hit.actor)){
         p.hits.add(hit.actor);
-        aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
+        v43Deal(p,hit.actor,p.damage,{
           knockback:100,impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
         v43Pulse(hit.x,hit.y,'strike');
       }
@@ -970,18 +992,18 @@
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
       if(p.kind==='plasma-core'){
-        aqDamage(hit.actor,p.damage??c.coreDamage,p.owner,p.weapon,{knockback:80,
+        v43Deal(p,hit.actor,p.damage??c.coreDamage,{knockback:80,
           impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
         v43Pulse(hit.x,hit.y,'plasma');p.life=0;return;
       }
       if(p.kind==='rocket'){
-        v43Splash(p,p.damage||c.peak,c.blastRadius);
+        v43Splash(p,p.damage??c.peak,c.blastRadius);
         p.life=0;return;
       }
       if(p.kind==='ball'){
         // Steel Ball is a direct kinetic collision, NEVER a scaled AOE.
         // Straight 98, one wall-bounce 109.76 (native Fighter.takeDamage).
-        aqDamage(hit.actor,p.damage??c.peak,p.owner,p.weapon,{
+        v43Deal(p,hit.actor,p.damage??c.peak,{
           knockback:720,knockbackSeconds:.29,
           impactDirection:{x:p.vx,y:p.vy},impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
         v43Pulse(hit.x,hit.y,'strike');
@@ -993,7 +1015,7 @@
         if(n>=c.maxFragmentHits){p.hits.add(hit.actor);p.life=0;return;}
         counts.set(hit.actor,n+1);
       }
-      aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
+      v43Deal(p,hit.actor,p.damage,{
         knockback:p.kind==='bolt'?180:100,
         ...(p.kind==='bolt'?{stun:0}:{}),
         impact:{x:p.x,y:p.y,vx:p.vx,vy:p.vy}});
@@ -1027,7 +1049,7 @@
     }
     if(p.kind==='rocket'&&(p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
       p.x=v43min(p.x,0,GAME_SIZE);p.y=v43min(p.y,0,GAME_SIZE);
-      v43Splash(p,c.peak,c.blastRadius);p.life=0;
+      v43Splash(p,p.damage??c.peak,c.blastRadius);p.life=0;
     }
     if(p.kind==='plasma-core'&&
       (p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
@@ -1049,7 +1071,7 @@
       v43Pulse(p.x,p.y,'split');p.life=0;
     }
     if(p.life<=0&&p.kind==='rocket'){
-      v43Splash(p,p.damage||c.peak,c.blastRadius);
+      v43Splash(p,p.damage??c.peak,c.blastRadius);
     }
   }
   function v43TickBurn(p,dt){
@@ -1060,7 +1082,7 @@
     while((p.tickCount||0)<ticks
       &&p.age+1e-7>=((p.tickCount||0)+1)*interval){
       p.tickCount=(p.tickCount||0)+1;
-      aqDamage(t,p.burnDamage??c.burnDamage,p.owner,p.weapon,{statusDamage:true});
+      v43Deal(p,t,p.burnDamage??c.burnDamage,{statusDamage:true});
     }
   }
   // Native Arsenal holder driver owns equip/READY/ammo/pose/consume for all
