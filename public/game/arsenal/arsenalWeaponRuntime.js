@@ -750,37 +750,60 @@
   // A fast, physically legible, TARGET-AIMED throw. Launch direction is fixed
   // at release (no cheating homing); outward leg crosses the enemy's recorded
   // center. Return bends around the target, then reconnects to launch origin.
-  function v43MakeFlightPath(x,y,angle,target){
-    const dx=Math.cos(angle),dy=Math.sin(angle),nx=-dy,ny=dx;
-    const distance=target?Math.hypot(target.x-x,target.y-y):380;
-    const reach=v43min(distance+35,180,680);
-    const bend=v43min(distance*.18,36,105);
-    const apex={x:x+dx*reach,y:y+dy*reach};
-    const points=[],samples=80;
-    const bez=(a,b,c,d,t)=>{const u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d;};
-    for(let leg=0;leg<2;leg++)for(let i=0;i<=samples;i++){
-      if(leg&&i===0)continue;
-      const t=i/samples;
-      const p0=leg?apex:{x,y},p3=leg?{x,y}:apex;
-      const p1=leg?{x:apex.x+dx*reach*.2+nx*bend,y:apex.y+dy*reach*.2+ny*bend}
-                  :{x:x+dx*reach*.34,y:y+dy*reach*.34};
-      const p2=leg?{x:x+dx*reach*.32+nx*bend*1.8,y:y+dy*reach*.32+ny*bend*1.8}
-                  :{x:x+dx*reach*.76,y:y+dy*reach*.76};
-      const pt={x:bez(p0.x,p1.x,p2.x,p3.x,t),y:bez(p0.y,p1.y,p2.y,p3.y,t)};
+  function v43MakeFlightPath(x,y,angle){
+    // Ported from owner's *actual* V4.3 NATURAL_FLIGHT Gold HTML.
+    // Target contributes to the INITIAL aiming angle only; trajectory shape
+    // and tangential speed NEVER sample the opponent after release.
+    const direction={x:Math.cos(angle),y:Math.sin(angle)};
+    const cross={x:-direction.y,y:direction.x};
+    const size=typeof GAME_SIZE==='number'?GAME_SIZE:1000;
+    const bank=y>size*.45?1:-1;
+    // The Gold Lab runs left-to-right; generalize available forward arena
+    // distance along the shot direction so BOTH Arena players get the same
+    // Gold 400..490px aerodynamic loop when their positions are mirrored.
+    const dx=direction.x,dy=direction.y;
+    const forwardX=Math.abs(dx)>.05?(dx>0?(size-x)/dx:-x/dx):1e6;
+    const forwardY=Math.abs(dy)>.05?(dy>0?(size-y)/dy:-y/dy):1e6;
+    const available=Math.max(0,Math.min(forwardX,forwardY));
+    const distance=v43min(available*.77,400,490);
+    const world=(u,v)=>({x:x+direction.x*u+cross.x*v*bank,
+      y:y+direction.y*u+cross.y*v*bank});
+    const a=world(0,0),b=world(distance,-50),c=world(distance*.49,-160);
+    const legs=[
+      [a,world(distance*.24,-1),world(distance*.73,-10),b],
+      [b,world(distance*1.27,-92),world(distance*1.03,-167),c],
+      [c,world(distance*-.05,-153),world(distance*.15,-19),a],
+    ];
+    const cubic=(v0,v1,v2,v3,t)=>{
+      const u=1-t;return u*u*u*v0+3*u*u*t*v1+3*u*t*t*v2+t*t*t*v3;
+    };
+    const points=[{...a,s:0}],samples=80;
+    let length=0,far=0,farX=-Infinity;
+    for(const leg of legs)for(let i=1;i<=samples;i++){
+      const t=i/samples,p={x:cubic(leg[0].x,leg[1].x,leg[2].x,leg[3].x,t),
+        y:cubic(leg[0].y,leg[1].y,leg[2].y,leg[3].y,t)};
       const prior=points[points.length-1];
-      pt.s=(prior?.s||0)+(prior?Math.hypot(pt.x-prior.x,pt.y-prior.y):0);
-      points.push(pt);
+      length+=Math.hypot(p.x-prior.x,p.y-prior.y);
+      points.push({...p,s:length});
+      const longitudinal=(p.x-x)*direction.x+(p.y-y)*direction.y;
+      if(longitudinal>farX){farX=longitudinal;far=length;}
     }
-    return {points,total:points[points.length-1].s,
-      apexProgress:points[samples].s/Math.max(1e-6,points[points.length-1].s)};
+    return {points,total:length,far,farX,origin:{x,y},launchAngle:angle,
+      bank,distance,apexProgress:far/Math.max(1e-6,length),
+      revision:'NO_TARGET_WAYPOINTS_V43'};
   }
-  function v43PathAt(path,progress){
-    const pts=path.points,target=path.total*progress;
+  function v43PathAt(path,distance){
+    const pts=path.points,d=v43min(distance,0,path.total);
     let lo=0,hi=pts.length-1;
-    while(lo<hi){const mid=(lo+hi)>>1;if(pts[mid].s<target)lo=mid+1;else hi=mid;}
-    const b=pts[lo],a=pts[Math.max(0,lo-1)];
-    const t=(target-a.s)/Math.max(1e-6,b.s-a.s);
-    return {x:a.x+(b.x-a.x)*Math.min(1,t),y:a.y+(b.y-a.y)*Math.min(1,t)};
+    while(lo+1<hi){const mid=(lo+hi)>>1;if(pts[mid].s<d)lo=mid;else hi=mid;}
+    const a=pts[lo],b=pts[hi],t=(d-a.s)/Math.max(1e-6,b.s-a.s);
+    return {x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,
+      heading:Math.atan2(b.y-a.y,b.x-a.x)};
+  }
+  function v43BoomerangCurvature(path,travel){
+    const a=v43PathAt(path,travel-18),b=v43PathAt(path,travel+18);
+    return Math.abs(Math.atan2(Math.sin(b.heading-a.heading),
+      Math.cos(b.heading-a.heading)))/36;
   }
   function v43Step(p,dt){
     const c=V43[p.weapon];
@@ -858,22 +881,29 @@
       p.vx*=m;p.vy*=m;
     }
     if(p.kind==='boomerang'&&!v43Redirected(p)&&!p.magnetReleased){
-      // World path is sampled once from RELEASE geometry, never re-steered to
-      // the target or owner's later position. Time advances along arc length.
+      // Gold V4.3 NATURAL_FLIGHT: three cubic legs, true arc-length
+      // integration, centrifugal curve-drag and bounded acceleration.
+      // No opponent tracking, no constant-time spline teleport.
       const path=p.flightPath;
       if(!path){p.life=0;return;}
-      const flightSeconds=p.flightSeconds||c.flightSeconds;
-      const q=v43PathAt(path,Math.min(1,p.age/flightSeconds));
+      const u=p.travel/Math.max(1e-6,path.total);
+      const curvature=v43BoomerangCurvature(path,p.travel);
+      const desired=v43min(565+65*Math.sin(Math.PI*v43min(u,0,1))
+        -curvature*12500-100*u,300,625);
+      p.speed+=v43min(desired-p.speed,-850*dt,850*dt);
+      const lastTravel=p.travel;
+      p.travel=Math.min(path.total,p.travel+p.speed*dt);
+      const q=v43PathAt(path,p.travel);
       p.px=p.x;p.py=p.y;
-      p.x=q.x;p.y=q.y;
+      p.x=q.x;p.y=q.y;p.angle=q.heading;
       p.vx=(p.x-p.px)/Math.max(dt,1e-5);
       p.vy=(p.y-p.py)/Math.max(dt,1e-5);
-      p.spin+=c.spin*dt*(1-.20*Math.min(1,p.age/flightSeconds));
-      if(p.phase==='out'&&p.age/flightSeconds>=path.apexProgress){
+      p.spin+=c.spin*dt*(1-.20*v43min(u,0,1));
+      if(p.phase==='out'&&lastTravel<path.far&&p.travel>=path.far){
         p.phase='return';p.damage=c.returning;p.hits=new Set();
       }
-      if(p.age>=flightSeconds){
-        const h=getHolder(p.owner);
+      if(p.travel>=path.total-.01||p.age>=c.maxFlightSeconds){
+        const h=getHolder(p.launchOwner);
         if(h?.weaponId===p.weapon&&h.phase==='IN_FLIGHT'){
           h.phase='RETRIEVED';h.meta.v43Time=0;
         }
@@ -1094,9 +1124,9 @@
         if(kind==='plasma-core'){x.damage=c.coreDamage;}
         if(kind==='boomerang'){
           x.spin=0;x.damage=c.outgoing;
-          x.flightPath=v43MakeFlightPath(x.x,x.y,a,ctx.enemy);
-          x.flightSeconds=x.flightPath.total/c.speed;
-          x.life=x.maxLife=x.flightSeconds+.2;
+          x.flightPath=v43MakeFlightPath(x.x,x.y,a);
+          x.travel=0;x.speed=c.speed;
+          x.life=x.maxLife=c.maxFlightSeconds+.35;
           h.phase='IN_FLIGHT';h.meta.v43Time=0;
         }else{
           h.phase='FOLLOW_THROUGH';h.meta.v43Time=0;
@@ -1576,7 +1606,8 @@
     ctx.restore();
   }
   function v43GoldProjectile(ctx,p){
-    const c=V43[p.weapon]||{},life=v43min(p.life/Math.max(.1,p.maxLife),0,1);
+    const c=V43[p.weapon]||{},life=p.kind==='boomerang'
+      ?v43min(p.life/.25,0,1):v43min(p.life/Math.max(.1,p.maxLife),0,1);
     const angle=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
     v43GoldRibbon(ctx,p,life);
     if(p.kind==='flame'){
