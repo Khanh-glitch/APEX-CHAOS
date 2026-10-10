@@ -1074,18 +1074,6 @@ function tickA1(S, ct, insp, now, dt) {
       if (L && L.frontStartAt != null) {
         q.lane = { ox: L.ox, oy: L.oy, dx: L.dx, dy: L.dy, len: L.len,
           frontStartAt: L.frontStartAt, frontDoneAt: L.frontDoneAt, expireAt: L.expireAt };
-        if (!canAcceptCast(S)) {
-          // Mechanical ice is ALREADY present on the authoritative gameplay
-          // frame. Gold serializes A1/A2; leaving the cast queued makes the
-          // floor appear seconds after it actually slowed the opponent.
-          // Recover its Gold material NOW at the real origin/front/expiry.
-          // Preserve the incumbent A2 mode and A1 pose: we are hydrating
-          // only the existing Gold ice geometry, not launching another ability.
-          const oldA1=e.a1;
-          try { replayA1Lane(S,q,now); }
-          finally { e.a1=oldA1; }
-          dropQueued(S,'a1'); // no delayed second floor or out-of-sync breath
-        }
       }
     }
   }
@@ -1555,6 +1543,44 @@ api.tick = function (dt) {
 // World-surface layer only: ice/wet/front/floor support. Arsenal invokes this
 // after the chamber floor but before pickup sprites, guaranteeing guns remain
 // readable without moving the Frost actor/head out of its normal body order.
+// Mechanical A1 lane becomes true at the native release even if Gold is
+// busy animating A2. Preview that ALREADY EXISTING surface immediately, but
+// keep the canonical Gold A1 admission/0.25s beat and ice nodes untouched.
+// This is not a second gameplay floor; the native lane is its only authority.
+function drawQueuedA1Floor(ctx,S){
+  const q=S.castQ.find(v=>v.kind==='a1'&&v.lane);
+  if(!q || S.engine.mode==='a1')return;
+  const L=q.lane,now=clock();
+  if(now<L.frontStartAt || now>=L.expireAt)return;
+  const progress=Math.max(0,Math.min(1,(now-L.frontStartAt)/Math.max(.05,L.frontDoneAt-L.frontStartAt)));
+  const len=L.len*progress, half=L.len>0?((S.cfg.a1.width||160)/2):0;
+  if(len<4||!half)return;
+  // Graphic follows the native front, local-axis jagged ice, not an arbitrary
+  // screen-space rectangle. At Gold admission it yields instantly to the
+  // original fully articulated release/front.
+  ctx.save();
+  try{
+    ctx.translate(L.ox,L.oy);ctx.rotate(Math.atan2(L.dy,L.dx));
+    const fade=Math.min(1,(L.expireAt-now)/.35);
+    ctx.globalAlpha=.72*Math.max(0,fade);
+    const grad=ctx.createLinearGradient(0,-half,len,half);
+    grad.addColorStop(0,'rgba(110,213,248,.50)');
+    grad.addColorStop(.48,'rgba(192,246,255,.57)');
+    grad.addColorStop(1,'rgba(62,155,232,.58)');
+    ctx.fillStyle=grad;
+    ctx.beginPath();ctx.moveTo(0,-half*.72);
+    const step=22;
+    for(let x=0;x<len;x+=step)ctx.lineTo(x,-half*(.86+.12*Math.sin(x*.063+1.1)));
+    ctx.lineTo(len,-half*.45);
+    ctx.lineTo(len,half*.45);
+    for(let x=len;x>0;x-=step)ctx.lineTo(x,half*(.85+.13*Math.sin(x*.07+2.3)));
+    ctx.lineTo(0,half*.72);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(201,247,255,.45)';ctx.lineWidth=3;ctx.stroke();
+    ctx.strokeStyle='rgba(220,253,255,.20)';ctx.lineWidth=2;
+    for(let k=1;k<6;k++){const x=len*k/6;if(x<5)continue;
+      ctx.beginPath();ctx.moveTo(x,-half*.66);ctx.lineTo(Math.max(0,x-24),half*.55);ctx.stroke();}
+  } finally {ctx.restore();}
+}
 function renderSurfaceUnderWeapons(ctx) {
   if (!api.ready || !liveStates.size || !ctx) return;
   const px = pxFromCtx(ctx);
@@ -1562,6 +1588,7 @@ function renderSurfaceUnderWeapons(ctx) {
     isolated(ctx, () => {
       S.engine.ice.drawWet(ctx, S.engine.t);
       drawIceComposite(S, ctx, px);
+      drawQueuedA1Floor(ctx,S);
       S.engine.drawA1MacroFront(ctx, px);
     });
   }
