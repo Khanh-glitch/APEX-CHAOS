@@ -156,6 +156,9 @@ try{
         weaponId:${JSON.stringify(id)},revealLeadSeconds:0,revealedFor:0,
         pickedBy:null,rejectedFor:{},spawnTime:st.time});
       const states=[],used=new Set();
+      const originalTick=wa.updateArsenalProjectiles;
+      let tickCalls=0;
+      wa.updateArsenalProjectiles=function(dt){tickCalls++;return originalTick.call(wa,dt);};
       for(let i=0;i<300;i++){
         window.APEX_ARSENAL.step(1/60);
         if(i%2===0)draw();
@@ -174,8 +177,13 @@ try{
             });
         }
       }
+      const probe=projectiles.find(p=>p.aq&&p.weapon===${JSON.stringify(id)});
+      const manualBefore=probe?.age??null;
+      if(probe)originalTick.call(wa,1/60);
+      const manualAfter=probe?.age??null;
+      wa.updateArsenalProjectiles=originalTick;
       const events=window.APEX_ARSENAL.events;
-      return {id:${JSON.stringify(id)},started,permitted,
+      return {id:${JSON.stringify(id)},started,permitted,tickCalls,manualBefore,manualAfter,
         p1:a.name,p2:b.name,damage:1000-b.hp,
         kinds:[...used],pickup:events.filter(e=>e.includes('PICKUP')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
