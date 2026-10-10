@@ -1739,6 +1739,45 @@ report.postCGuns = run(`
 gate('postc-24-senko-guns-registered', report.postCGuns.count === 24 && report.postCGuns.missing.length === 0, report.postCGuns);
 gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fired);
 
+ // Owner V43 regression — drive actual Fighter/holder/projectile scheduler
+ // for all eight approved special weapons, rather than testing only their
+ // registry definitions or classifying projectile names.
+ report.ownerV43Native = run(`
+   const ids = APEX_ARSENAL_CONFIG.V43_SPECIAL_IDS;
+   const findings = {};
+   for (const id of ids) {
+     __APEX_TEST.enterManual();
+     __APEX_TEST.holdSpawns();
+     __APEX_TEST.place(320, 500, 520, 500);
+     APEX_ARSENAL.weaponApi.equip(fighters[0], id);
+     APEX_ARSENAL.events.length = 0;
+     // No special gun may fire or be removed before ready delay.
+     __APEX_TEST.step(.20);
+     const before=__APEX_TEST.holder('HERO');
+     const premature=APEX_ARSENAL.events.some(e=>e.includes('weapon='+id)&&e.includes('CONSUME'));
+     // One and only one physical projectile transaction.
+     __APEX_TEST.step(1.20);
+     const recorded=APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id));
+     const uses=recorded.filter(e=>e.includes(' USE ')).length;
+     const interim=__APEX_TEST.holder('HERO');
+     const hits=recorded.filter(e=>e.includes(' HIT ')).length;
+     // Allow the full 5.8s non-homing Boomerang flight and recovery.
+     __APEX_TEST.step(6.6);
+     const after=__APEX_TEST.holder('HERO');
+     const completed=APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id)&&e.includes('CONSUME')).length;
+     const projectilesRemaining=projectiles.filter(p=>p.aq&&p.weapon===id).length;
+     findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature};
+   }
+   return {ids,findings};
+ `);
+ const ownerV43 = report.ownerV43Native;
+ gate('owner-v43-real-8-weapons-native-use',
+   ownerV43.ids.length===8 && ownerV43.ids.every(id=>{
+     const x=ownerV43.findings[id];
+     return x.before?.weapon===id && x.uses===1 && !x.premature
+       && x.after===null && x.completed===1 && x.projectilesRemaining===0;
+   }),ownerV43);
+
 report.postCWeights = run(`
   const SPAWN = APEX_ARSENAL_SPAWN;
   const CFG = APEX_ARSENAL_CONFIG;
