@@ -209,6 +209,7 @@ jobs:
           name: arsenal-product-acceptance
           path: |
             dist/
+            release/arsenal-product-windows/
             docs/acceptance/arsenal-product/browser/
             /tmp/arsenal-vite.log
             /tmp/arsenal-launcher-1.log

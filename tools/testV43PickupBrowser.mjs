@@ -58,14 +58,15 @@ try{
       atlas:typeof window.APEX_ARSENAL?.weaponApi?.drawArsenalProjectiles};
   })()`);
   check('actual-browser-runtimes-ready',ready?.product==='ready'&&ready.start==='function'&&ready.atlas==='function',ready);
-  const paths=['COMBAT_BOOMERANG','TACTICAL_CROSSBOW','STEEL_BALL_LAUNCHER',
-    'RPG_7','SHRAPNEL_MINE_LAUNCHER','BOLT','STEEL_BALL','RPG_ROCKET','SHRAPNEL_MINE'];
+  const paths=['FLARE_GUN','TACTICAL_CROSSBOW','STEEL_BALL_LAUNCHER',
+    'COMBAT_BOOMERANG','RPG_7','FLAMETHROWER','PLASMA_SPLITTER',
+    'SHRAPNEL_MINE_LAUNCHER','BOLT','STEEL_BALL','RPG_ROCKET','SHRAPNEL_MINE'];
   const images=await ev(`(async()=>await Promise.all(${JSON.stringify(paths)}.map(async id=>{
     const img=new Image(),src='/assets/arsenal/v43/'+id+'.webp';
     img.src=src;try{await img.decode();return{id,ok:img.naturalWidth>0,width:img.naturalWidth};}
     catch{return{id,ok:false,width:0};}
   })))()`);
-  check('nine-real-v43-art-files-decode',images.every(x=>x.ok),images);
+  check('all-twelve-real-v43-art-files-decode',images.every(x=>x.ok),images);
   for(const id of ['FLARE_GUN','TACTICAL_CROSSBOW','STEEL_BALL_LAUNCHER',
     'COMBAT_BOOMERANG','RPG_7','FLAMETHROWER','PLASMA_SPLITTER','SHRAPNEL_MINE_LAUNCHER']){
     const rec=await ev(`(()=>{
@@ -76,7 +77,7 @@ try{
       if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
       const S=window.APEX_ARSENAL.state,W=window.APEX_ARSENAL.weaponApi;
       S.spawnTimer=1e6;S.slots.length=0;S.spawnHeld=true;S.unarmedFastConsumed=true;
-      const f=fighters[0],t=fighters[1];f.x=320;f.y=500;t.x=800;t.y=500;
+      const f=fighters[0],t=fighters[1];f.x=320;f.y=500;t.x=700;t.y=500;
       f.setDir(1,0);t.setDir(-1,0);f.baseSpeed=0;t.baseSpeed=0;f.hp=1000;t.hp=1000;
       projectiles.length=0;window.APEX_ARSENAL.events.length=0;
       const slot={id:S.nextSlotId++,x:f.x,y:f.y,phase:'REVEALED',weaponId:${JSON.stringify(id)},
