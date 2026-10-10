@@ -31,8 +31,7 @@ assert.match(p,/function weaponMuzzleWorld\(fighter, holder, aimAngle\)/,
 assert.match(w,/weaponMuzzleWorld\?\.\(f,h,angle\)/,
   'firing muzzle must use authored V4.3 sprite calibration, not radius estimate');
 for(const part of ['v43GoldTongue','v43GoldRibbon','v43GoldProjectile','v43GoldImpact'])
-  assert.match(w,new RegExp('function '+part+'\\\\('),
-    'original Gold V4.3 visual layer missing: '+part);
+  assert.ok(w.includes('function '+part+'('),'original Gold V4.3 visual layer missing: '+part);
 assert.match(w,/noseFrom/,'long bolt/rocket must use tip collision');
 assert.match(w,/kind==='plasma-core'\?c\.coreSpeed/,'plasma core has independent speed');
 assert.match(cfg,/projectileWidth:78/,'mine artwork must be legible independently of collision size');
