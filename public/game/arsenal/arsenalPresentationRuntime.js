@@ -815,6 +815,46 @@
       width,height,theta};
   }
 
+  // Direct V4.3 Gold Lab charge authoring: radial compression,
+  // four rotating elliptical rings and thirteen converging motes.
+  function drawV43GoldPlasmaCharge(ctx,fighter,holder,aimAngle) {
+    const m=weaponMuzzleWorld(fighter,holder,aimAngle);
+    if(!m)return;
+    const wait=holder.meta?.v43Wait||.5;
+    const t=Math.max(0,Math.min(1,(holder.meta?.v43Time||0)/wait));
+    const compress=Math.max(0,Math.min(1,(t-.72)/.28));
+    const outerR=(31+t*13)*(1-.42*compress);
+    const clock=holder.elapsed||0;
+    ctx.save();ctx.translate(m.x,m.y);ctx.globalCompositeOperation='lighter';
+    const glow=ctx.createRadialGradient(0,0,0,0,0,55*(1-.18*compress));
+    glow.addColorStop(0,'rgba(255,255,255,'+(.25+t*.45)+')');
+    glow.addColorStop(.14,'rgba(223,176,255,'+(.3+t*.4)+')');
+    glow.addColorStop(.46,'rgba(139,57,236,'+(.16+t*.16)+')');
+    glow.addColorStop(1,'rgba(74,13,118,0)');
+    ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,60,0,TAU);ctx.fill();
+    for(let k=0;k<4;k++){
+      const rot=clock*(1.9+k*.3)+k*TAU/4;
+      ctx.save();ctx.rotate(rot);
+      ctx.strokeStyle=['#a45afb','#ddafff','#7c33d4','#f8eaff'][k];
+      ctx.globalAlpha=.36+t*.18;ctx.lineWidth=2.7-k*.35;
+      ctx.setLineDash([outerR*.9,outerR*.42]);
+      ctx.beginPath();ctx.ellipse(0,0,Math.max(2,outerR-k*4),
+        Math.max(2,outerR*.55-k*2),0,0,TAU);ctx.stroke();ctx.restore();
+    }
+    for(let k=0;k<13;k++){
+      const rad=k*TAU/13+clock*.74,rr=69*(1-t)+5;
+      const r=Math.max(2.5,1.5+2*(1-t)),sx=Math.cos(rad)*rr,sy=Math.sin(rad)*rr;
+      ctx.globalAlpha=.35+t*.57;ctx.strokeStyle='#dba5ff';ctx.lineWidth=1.3;
+      ctx.beginPath();ctx.moveTo(sx*1.13,sy*1.13);
+      ctx.lineTo(sx*.67,sy*.67);ctx.stroke();
+      ctx.fillStyle=k%3===0?'#fff4ff':'#c084ff';
+      ctx.beginPath();ctx.arc(sx,sy,r,0,TAU);ctx.fill();
+    }
+    ctx.globalAlpha=.7+t*.3;ctx.fillStyle='#f8edff';
+    ctx.shadowBlur=22;ctx.shadowColor='#dca4ff';
+    ctx.beginPath();ctx.arc(0,0,5+t*9,0,TAU);ctx.fill();ctx.restore();
+  }
+
   function drawEquippedWeapon(ctx, fighter, holder) {
     if (!fighter || !holder || !holder.weaponId) return false;
     if (holder.weaponId === 'COMBAT_BOOMERANG' && holder.phase === 'IN_FLIGHT') return false;
@@ -823,7 +863,12 @@
     const angle = (holder.meta && holder.meta.aimAngle != null)
       ? holder.meta.aimAngle
       : Math.atan2(fighter.dir?.y || 0, fighter.dir?.x || 1);
-    return drawWeaponWithPose(ctx, fighter, holder.weaponId, holder.def?.category || '', angle, holder.meta && holder.meta.pose, 0.98);
+    const drawn=drawWeaponWithPose(ctx, fighter, holder.weaponId, holder.def?.category || '', angle, holder.meta && holder.meta.pose, 0.98);
+    // The original V4.3 Gold Plasma Splitter visibly accumulates energy
+    // BEFORE the carrier is released, not after. This is a cosmetic pass only.
+    if(holder.weaponId==='PLASMA_SPLITTER'&&holder.phase==='WINDUP')
+      drawV43GoldPlasmaCharge(ctx,fighter,holder,angle);
+    return drawn;
   }
 
   // Pose ghost (Checkpoint C §3.2): the consumed weapon exits PHYSICALLY —

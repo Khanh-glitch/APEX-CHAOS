@@ -6,6 +6,7 @@ const rd=(p)=>fs.readFileSync(p,'utf8');
 const w=rd('public/game/arsenal/arsenalWeaponRuntime.js');
 const cfg=rd('public/game/arsenal/arsenalConfig.js');
 const p=rd('public/game/arsenal/arsenalPresentationRuntime.js');
+const auditPresentation=p;
 const f=rd('public/game/hero-rework/frostPresentationRuntime.js');
 const hr=rd('public/game/hero-rework/heroReworkRuntime.js');
 const result=rd('public/game/results/matchResultAuthority.js');
@@ -32,6 +33,8 @@ assert.match(w,/weaponMuzzleWorld\?\.\(f,h,angle\)/,
   'firing muzzle must use authored V4.3 sprite calibration, not radius estimate');
 for(const part of ['v43GoldTongue','v43GoldRibbon','v43GoldProjectile','v43GoldImpact'])
   assert.ok(w.includes('function '+part+'('),'original Gold V4.3 visual layer missing: '+part);
+assert.ok(w.includes('function v43GoldFlamethrowerParticles('),'V43 Gold flamethrower needs its 470 particles/s plume, not ten static tongues');
+assert.ok(auditPresentation.includes('function drawV43GoldPlasmaCharge('),'V43 Gold plasma charge must be visible before release');
 assert.match(w,/noseFrom/,'long bolt/rocket must use tip collision');
 assert.match(w,/kind==='plasma-core'\?c\.coreSpeed/,'plasma core has independent speed');
 assert.match(cfg,/projectileWidth:78/,'mine artwork must be legible independently of collision size');

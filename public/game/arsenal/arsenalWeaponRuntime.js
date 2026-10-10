@@ -673,7 +673,7 @@
   function v43Spawn(f,id,kind,angle,extra={}){
     const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;
     const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,
-      x:m.x,y:m.y,px:m.x,py:m.y,
+      x:m.x,y:m.y,px:m.x,py:m.y,ox:m.x,oy:m.y,
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       angle,spin:0,age:0,life:extra.life??3,maxLife:extra.life??3,
       radius:extra.radius??c.radius??8,damage:extra.damage??c.direct??0,
@@ -1275,6 +1275,56 @@
     }
     ctx.restore();
   }
+  // Direct authoring transfer from the Gold V4.3 Lab's flamethrower:
+  // 470 emitted particles/s, spread ±.22 rad, 280-555 px/s, fast
+  // 0.20-0.45s flame and 10% 0.42-0.65s smoke. Here a deterministic
+  // particle field is sampled from projectile age, so game logic, target
+  // collision and pause-time remain completely native and reproducible.
+  function v43GoldFlamethrowerParticles(ctx,p) {
+    const total=Math.min(310,Math.floor(Math.min(p.age,.65)*470));
+    const originX=Number.isFinite(p.ox)?p.ox:p.x,
+      originY=Number.isFinite(p.oy)?p.oy:p.y;
+    const heading=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
+    const frac=x=>x-Math.floor(x);
+    // Stable pseudorandom field; never generate flickering per-frame noise.
+    const rnd=(i,s)=>frac(Math.sin(i*127.1+s*311.7)*43758.5453123);
+    for(let i=0;i<total;i++){
+      const birth=i/470,age=p.age-birth;
+      if(age<0)continue;
+      const type=rnd(i,7),life=type<.10?.42+rnd(i,8)*.23:.20+rnd(i,9)*.25;
+      if(age>=life)continue;
+      const a=heading+(rnd(i,1)*2-1)*.22;
+      const v=280+rnd(i,2)*275;
+      const travel=v*age*(1-.13*age);
+      const px=originX+Math.cos(a)*travel+(rnd(i,3)-.5)*6;
+      const py=originY+Math.sin(a)*travel+(rnd(i,4)-.5)*10-
+        (type<.10?11*age*age:Math.sin(p.age*19+i*.74)*4*age);
+      const opacity=Math.pow(1-age/life,.70);
+      const size=type<.10?8+rnd(i,5)*9:5+rnd(i,5)*9;
+      if(type<.10){
+        ctx.save();ctx.translate(px,py);
+        ctx.rotate(rnd(i,6)*6.28+p.age*.1);
+        ctx.scale(1.28,.72);
+        const radius=size*(.9+age*1.5);
+        const g=ctx.createRadialGradient(-radius*.23,0,radius*.12,0,0,radius);
+        g.addColorStop(0,'rgba(111,125,139,'+(opacity*.18)+')');
+        g.addColorStop(.66,'rgba(82,94,108,'+(opacity*.1)+')');
+        g.addColorStop(1,'rgba(44,48,56,0)');
+        ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,radius,0,TAU);ctx.fill();
+        ctx.restore();
+      } else if(type<.28){
+        const len=7+v*.022;
+        ctx.save();ctx.globalCompositeOperation='lighter';
+        ctx.strokeStyle=rnd(i,11)<.5?'#ffae4b':'#ff6d21';
+        ctx.globalAlpha=opacity*.78;ctx.lineCap='round';ctx.lineWidth=Math.max(1,size*.35);
+        ctx.beginPath();ctx.moveTo(px-Math.cos(a)*len,py-Math.sin(a)*len);
+        ctx.lineTo(px,py);ctx.stroke();ctx.restore();
+      } else {
+        v43GoldTongue(ctx,px,py,a,size*(.56+opacity*.7),
+          p.age+i*.038,opacity*.72);
+      }
+    }
+  }
   function v43GoldRibbon(ctx,p,life){
     const q=p.visual;if(!q||q.length<3)return;
     const boom=p.kind==='boomerang';
@@ -1332,15 +1382,9 @@
     const angle=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
     v43GoldRibbon(ctx,p,life);
     if(p.kind==='flame'){
-      const f=p.owner;if(!f||f.hp<=0)return;
-      const range=V43.FLAMETHROWER.range;
-      for(let i=0;i<10;i++){
-        const d=(i+.7)/10*range,off=Math.sin(i*14.3+p.age*29)*(.12+.25*i/10);
-        const a=angle+off,ox=f.x+Math.cos(angle)*(f.radius||70)*.72,
-          oy=f.y+Math.sin(angle)*(f.radius||70)*.72;
-        v43GoldTongue(ctx,ox+Math.cos(a)*d,oy+Math.sin(a)*d,a,
-          13+i*.85,p.age+i*.13,(.75-i*.044)*life);
-      }
+      // Gold V4.3 emits ~470 short-lived particles/sec for .65s.
+      // Presentation reads p.age only; no projectile/HP mutations.
+      v43GoldFlamethrowerParticles(ctx,p);
       return;
     }
     if(p.kind==='burn'){
