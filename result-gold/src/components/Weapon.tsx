@@ -7,7 +7,7 @@ import { WeaponArt } from "./art";
 import { teamVars } from "./Medal";
 
 interface WeaponProps {
-  spot: WeaponSpotlight;
+  spot: WeaponSpotlight | null;
   phase: number;
   force: boolean;
 }
@@ -20,7 +20,7 @@ interface WeaponProps {
  */
 export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
   const { ref, revealed } = useReveal<HTMLElement>(phase, 4, force);
-  const { weapon, owner, damage, shareOfOwner, leadOverRunnerUp, runnerUp } = spot;
+
   const tiltRef = useRef<HTMLDivElement>(null);
   const raf = useRef(0);
 
@@ -44,6 +44,20 @@ export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
     el.style.setProperty("--ry", "0deg");
     el.style.setProperty("--rx", "0deg");
   };
+
+  if (!spot) return (
+    <section ref={ref} className={`weapon${revealed ? " is-in" : ""}`} aria-labelledby="wob-title">
+      <header className="weapon__banner"><span className="weapon__rule weapon__rule--l" aria-hidden="true" />
+        <h2 id="wob-title" className="weapon__title"><span>WEAPON OF THE BATTLE</span></h2>
+        <span className="weapon__rule weapon__rule--r" aria-hidden="true" /></header>
+      <div className="weapon__dais"><div className="weapon__cone" aria-hidden="true" />
+        <div className="weapon__floor" aria-hidden="true" />
+        <span className="art-tag">Không có sát thương từ vũ khí</span></div>
+      <div className="weapon__info"><h3 className="weapon__name">KHÔNG CÓ VŨ KHÍ NỔI BẬT</h3>
+        <p className="weapon__class">Trận đấu chưa ghi nhận sát thương vũ khí.</p></div>
+    </section>
+  );
+  const { weapon, owner, damage, shareOfOwner, leadOverRunnerUp, runnerUp } = spot;
 
   return (
     <section
@@ -109,7 +123,7 @@ export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
         <ul className="weapon__facts">
           <li>
             <b>{shareOfOwner.toFixed(1)}%</b>
-            <span>tổng sát thương của chủ sở hữu</span>
+            <span>tổng sát thương cả trận</span>
           </li>
           {runnerUp && (
             <li>
@@ -123,9 +137,9 @@ export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
           </li>
         </ul>
 
-        <p className="weapon__owner" aria-label={`Chủ sở hữu: ${owner.handle}`}>
+        <p className="weapon__owner" aria-label={`Đóng góp cao nhất: ${owner.handle}`}>
           <span className="weapon__owner-dot" aria-hidden="true" />
-          <span className="weapon__owner-label">Chủ sở hữu</span>
+          <span className="weapon__owner-label">Đóng góp cao nhất</span>
           <b>{owner.handle}</b>
         </p>
       </div>

@@ -68,38 +68,47 @@ export interface WeaponSpotlight {
 }
 
 function weaponDamageList(match: MatchResult) {
-  const out: { weapon: WeaponDef; owner: PlayerResult; damage: number }[] = [];
+  const byId = new Map<string, {weapon: WeaponDef; owner: PlayerResult; damage: number; ownerDamage: number}>();
   for (const p of match.players) {
-    for (const s of p.damage.sources) {
-      if (s.kind !== "weapon" || !s.weaponId) continue;
-      const weapon = match.weapons.find((w) => w.id === s.weaponId);
-      if (weapon) out.push({ weapon, owner: p, damage: s.damage });
+    for (const src of p.damage.sources) {
+      if (src.kind !== "weapon" || !src.weaponId || !(src.damage > 0)) continue;
+      const weapon = match.weapons.find(w => w.id === src.weaponId);
+      if (!weapon) continue;
+      let entry = byId.get(src.weaponId);
+      if (!entry) { entry = { weapon, owner: p, damage: 0, ownerDamage: 0 }; byId.set(src.weaponId, entry); }
+      entry.damage += src.damage;
     }
   }
-  return out.sort((x, y) => y.damage - x.damage);
+  // The same ID across BOTH players is ONE candidate. Owner field means the
+  // side that actually contributed the most weapon damage, NOT the winner.
+  for (const entry of byId.values()) {
+    const sums = match.players.map(p => p.damage.sources.filter(src => src.kind === "weapon" &&
+      src.weaponId === entry!.weapon.id).reduce((total, src) => total + src.damage, 0));
+    const ownerSide = sums[1] > sums[0] ? 1 : 0;
+    entry.owner = match.players[ownerSide];
+    entry.ownerDamage = sums[ownerSide];
+  }
+  return [...byId.values()].sort((x, y) => y.damage - x.damage || x.weapon.id.localeCompare(y.weapon.id));
 }
 
-/** Derive (never trust blindly) which weapon dealt the most damage in the match. */
+/** One Weapon ID across both fighters, ranked only by real HP damage. */
 export function deriveWeaponOfTheBattle(match: MatchResult) {
-  return weaponDamageList(match)[0];
+  return weaponDamageList(match)[0] ?? null;
 }
 
-export function getWeaponSpotlight(match: MatchResult): WeaponSpotlight {
+export function getWeaponSpotlight(match: MatchResult): WeaponSpotlight | null {
   const ranked = weaponDamageList(match);
-  const explicit = match.weaponOfTheBattle;
-  const top =
-    ranked.find((r) => r.weapon.id === explicit.weaponId) ?? ranked[0];
-  const second = ranked.find((r) => r !== top) ?? null;
+  const top = ranked[0];
+  if (!top) return null; // Zero weapon damage is a genuine empty result.
+  const second = ranked[1] ?? null;
   const total = match.players[0].damage.dealt + match.players[1].damage.dealt;
   return {
     weapon: top.weapon,
     owner: top.owner,
     damage: top.damage,
-    shareOfOwner: (top.damage / top.owner.damage.dealt) * 100,
-    shareOfMatch: (top.damage / total) * 100,
-    runnerUp: second
-      ? { weapon: second.weapon, damage: second.damage, owner: second.owner }
-      : null,
+    shareOfOwner: total > 0 ? 100 * top.damage / total : 0,
+    shareOfMatch: total > 0 ? 100 * top.damage / total : 0,
+    runnerUp: second ? { weapon: second.weapon, damage: second.damage, owner: second.owner } : null,
     leadOverRunnerUp: second ? top.damage - second.damage : top.damage,
   };
 }

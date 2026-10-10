@@ -1,38 +1,31 @@
-import { useState } from "react";
-import { ArrowLeft, DoorOpen } from "lucide-react";
-import { Dialog } from "./components/Dialog";
+import { useEffect, useState } from "react";
 import { MatchResults } from "./components/MatchResults";
 import { ACHIEVEMENTS } from "./data/achievements";
-import { MATCH_FIXTURE } from "./data/fixture";
+import type { MatchResult } from "./data/types";
 
 /**
- * Standalone prototype shell. In the game, replace MATCH_FIXTURE / ACHIEVEMENTS with the
- * engine's payload and route `onContinue` to the lobby.
+ * Production-only data seam: the Gold source owns every visual and animation.
+ * It never fabricates match state, assigns economy, or reads the demo fixture.
+ * Parent origin AND parent window identity are checked on every message.
  */
 export default function App() {
-  const [left, setLeft] = useState(false);
+  const [match, setMatch] = useState<MatchResult | null>(null);
+  useEffect(() => {
+    const origin = window.location.origin;
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent || event.origin !== origin) return;
+      if (event.data?.type !== "APEX_RESULT_GOLD_PAYLOAD") return;
+      const incoming = event.data.match as MatchResult | null;
+      if (!incoming || !Array.isArray(incoming.players) || incoming.players.length !== 2 ||
+          !incoming.meta?.id || !Array.isArray(incoming.weapons)) return;
+      setMatch(incoming);
+    };
+    window.addEventListener("message", onMessage);
+    window.parent.postMessage({ type: "APEX_RESULT_GOLD_READY" }, origin);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
-  return (
-    <>
-      <MatchResults match={MATCH_FIXTURE} catalog={ACHIEVEMENTS} onContinue={() => setLeft(true)} />
-
-      {left && (
-        <Dialog id="handoff" titleId="handoff-title" className="handoff-modal" onClose={() => setLeft(false)}>
-          <div className="handoff__card">
-            <DoorOpen size={30} aria-hidden="true" />
-            <p className="handoff__kicker">Prototype · onContinue()</p>
-            <h2 id="handoff-title">Đã rời màn hình kết quả</h2>
-            <p>
-              Trong game, hành động này sẽ chuyển người chơi về sảnh hoặc bước tiếp theo. Dữ liệu trận đấu vẫn giữ
-              nguyên để bạn có thể quay lại đánh giá.
-            </p>
-            <button type="button" className="btn btn--primary" onClick={() => setLeft(false)} autoFocus>
-              <ArrowLeft size={18} aria-hidden="true" />
-              <span className="btn__label">Quay lại kết quả</span>
-            </button>
-          </div>
-        </Dialog>
-      )}
-    </>
-  );
+  if (!match) return <div className="ac-root" role="status" aria-label="Đang nhận kết quả trận đấu" />;
+  return <MatchResults key={match.meta.id} match={match} catalog={ACHIEVEMENTS}
+    onContinue={() => window.parent.postMessage({ type: "APEX_RESULT_GOLD_CONTINUE", matchId: match.meta.id }, window.location.origin)} />;
 }
