@@ -1,0 +1,1136 @@
+{
+  "schema": "apex-chaos-branch-snapshot-v3",
+  "repo": "Khanh-glitch/APEX-CHAOS",
+  "asOf": "2026-10-10",
+  "canonicalDevelopment": "development/v43",
+  "canonicalSha": "01633971cd2b014dd726d38f965705b9fca8b24f",
+  "note": "Reviewed post-PR26 development SHA checkpoint, 171 live refs and 11 open PRs. This snapshot is not an authorization to delete. PR #25's own branch SHA changes as documents evolve and must not be used as an approval. The planner tolerates a descendant development HEAD in read-only mode but disables apply until the audited exact SHA is restored/refreshed. External deployment provenance remains UNKNOWN.",
+  "summary": {
+    "ancestor-review-candidate": 120,
+    "diverged-preserve": 35,
+    "open-pr-dependency": 11,
+    "staged-cleanup": 1,
+    "v43-development": 1,
+    "active-pr24": 1,
+    "merged-pr-preserve": 1,
+    "default-branch": 1
+  },
+  "openPullRequests": [
+    {
+      "number": 15,
+      "head": "audit/cp2-d032-readiness-lifecycle",
+      "headSha": "c54a19ecf2b4d8eb7eda8af9880bc0dafa6cc900",
+      "base": "audit/cp2-base-d032",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 16,
+      "head": "quest/b6n-owner-revised-native-companion-jk",
+      "headSha": "da2d055be67af7239645c21097674134a71d6798",
+      "base": "quest/b6-rig-passive-owner-approved-from-b8b",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 17,
+      "head": "quest/b7-e06-signed-e07-gold-from-b6n",
+      "headSha": "16d3ab63e37aed3597e5f7deefb5cf46ee3f04f5",
+      "base": "quest/b6n-owner-revised-native-companion-jk",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 18,
+      "head": "quest/b7-e08-last-choice-native-from-b7",
+      "headSha": "0152b7e55d81be91273af530586aea6596795395",
+      "base": "quest/b7-e06-signed-e07-gold-from-b6n",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 19,
+      "head": "quest/b8qa-runtime-integrity-from-b8",
+      "headSha": "9c637d2f2b26ec9d23018d1f5e22dea0645f5845",
+      "base": "quest/b7-e08-last-choice-native-from-b7",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 20,
+      "head": "quest/b8qb-product-acceptance-from-b8qa",
+      "headSha": "78b2265bf89d8d406a8a9944eead8d523b337b94",
+      "base": "quest/b8qa-runtime-integrity-from-b8",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 21,
+      "head": "quest/b8qc-owner-gold-product-preplaytest",
+      "headSha": "9ffefd9f3d4a6692604e79fbd08c799714b207de",
+      "base": "quest/b8qb-product-acceptance-from-b8qa",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 22,
+      "head": "integration/quest-vfx-arsenal-v43-results-gold",
+      "headSha": "7eabb12b2e15d4bef5dcf8c5bed06c673ecdb6e2",
+      "base": "quest/b8qc-owner-gold-product-preplaytest",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 23,
+      "head": "fix/owner-v43-native-lifecycle-frost-result-20261010",
+      "headSha": "f2f3507c0327c2f5ec7e9c6bb97ffbaed8b9c2dc",
+      "base": "integration/quest-vfx-arsenal-v43-results-gold",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 24,
+      "head": "fix/v43-owner-round2-weapon-control-20261010",
+      "headSha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
+      "base": "fix/owner-v43-native-lifecycle-frost-result-20261010",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "number": 25,
+      "head": "cleanup/v43-repository-hygiene-20261010",
+      "headSha": "8d699f334fc7e97c11096d49f7684d95f4d225a1",
+      "base": "development/v43",
+      "draft": true,
+      "state": "open"
+    }
+  ],
+  "branches": [
+    {
+      "name": "arena/arsenal-lab-splatter-control",
+      "sha": "1a5c90ec9b0b05aacda03bee98ed49d4fa209f6c",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/arsenal-uiux-overhaul",
+      "sha": "3b73352c59dbff7ee756e8de33f5a8b2b981ff62",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/crystala-v2-minimal-20260930",
+      "sha": "810f58b39f492515f0739cccc4b803009e027c24",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/direct-stormbreaker-v9-parity",
+      "sha": "e590922e33dbdbdb9e4f33af577e71a9ed15697c",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/mobile-sfx-fix",
+      "sha": "5dbb5ba1e801ef95bba8e864c8addec62e1108cd",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/r59-recovery-d032880",
+      "sha": "b301d81429db489fbd9a81070ef1ee809b33892d",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r82-responsive-preservation-lab",
+      "sha": "edbad2c6c97f727f74c4f58c4df168f5ae8a1650",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r83-local-portrait-layout-solver",
+      "sha": "1e7767d35067d3ce14f6fcb9b58eb6f7f0ac5429",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r84-responsive-root-cause-audit",
+      "sha": "362d55e9f4d5118544aa6c02434b24398e98b4b1",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r85-responsive-preservation-candidate",
+      "sha": "fdb29d409f7a78bff101f92e79c2cf0c7aecb2d8",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r86-home-geometry-solver-lab",
+      "sha": "60282432276c11a76f8f704f922ccfe70598e26b",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r87-gold-fidelity-virtual-viewport",
+      "sha": "b4eb8718cb3ed64e34c3e3cde034b9abd2f560bb",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r88-gold-profile-fidelity",
+      "sha": "03d44dc1e1663a5a1d41af66e7e1194078c7a592",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r89-font-parity-quest-merge-prep",
+      "sha": "60fec477997d913e04cd3f3a1441b90465aacf62",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r89-gold-responsive-runtime",
+      "sha": "c941ecf0ad7df321265ac69d21a6e8493a49d567",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/r90-independent-hud-gate-audit",
+      "sha": "19a780dfa7880db418330f324ff0d1bc98f84869",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/stormbreaker-red-tier",
+      "sha": "f2edd36781ff7a74235c24dca22474e06e5abcd2",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0cf5e-apex-chaos",
+      "sha": "30e4529f84048d86627df5b804ff9ec3f1737cca",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0d8f4-apex-chaos",
+      "sha": "61fce6cf068badc9bdf10f1187dde55623e16820",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0d9b8-apex-chaos",
+      "sha": "90275a12d1af3c81083ca1f0482d4e424f077262",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a0da42-apex-chaos",
+      "sha": "8453e413f10e744b8ea027d6d8aa5179f911b08f",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a0dc5e-apex-chaos",
+      "sha": "f65a7c2ac9cead88e94a29c05f5970049c9c752b",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0e9c1-apex-chaos",
+      "sha": "061435adf386094e5ae92f3cafd925c5b0c311f8",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a0e086-apex-chaos",
+      "sha": "2071dcf34acc4fed6f92fee3ea72a0e5d00fb2d7",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0e90e-apex-chaos",
+      "sha": "870bd37f1c497858f14de624223cedf335ee3812",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a0e749-apex-chaos",
+      "sha": "84d386337d97ed4575a0cf476ecf05ec54321660",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0e751-apex-chaos",
+      "sha": "717498939139debf32844d13574e0acadcee049e",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a0e912-apex-chaos",
+      "sha": "1e9bdd107f6dbc4c89659b07f9eef89996b123a9",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a0ead6-apex-chaos",
+      "sha": "12613d893e517c742eb77f3a27226219c2839026",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0ee80-apex-chaos",
+      "sha": "810f58b39f492515f0739cccc4b803009e027c24",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0f1e7-apex-chaos",
+      "sha": "6b83fc6502eb8e23e4bd122074fc7fdfb47441ae",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0f2c6-apex-chaos",
+      "sha": "7b7efa298abb8e02bebbea6bced365b7b12dd29c",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a0f2eb-apex-chaos",
+      "sha": "9a44c9dc228808f61f4ff6f7d9d9693b34ac5ed7",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a0f581-apex-chaos",
+      "sha": "5411906a741f87d637ee20535c82e96b866d4ab2",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0f736-apex-chaos",
+      "sha": "df3f9fbaaadef80c5c276c47dd96fc8d55857173",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0f862-apex-chaos",
+      "sha": "37b2ca92f40666625c150b85d2a207c41bf8a951",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0fbae-apex-chaos",
+      "sha": "b3d474ab22f9536cb1a4568c677333bcf22a8ee8",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0fbef-apex-chaos",
+      "sha": "2d2cc21ae67d2069f7583499dde7c10d3161fbc2",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0ff5d-apex-chaos",
+      "sha": "7e3f0b9fb9d63c53d9461181df9beda40ed82de2",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0ff36-apex-chaos",
+      "sha": "2d2cc21ae67d2069f7583499dde7c10d3161fbc2",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a0ffd1-apex-chaos",
+      "sha": "549716a46716c0aefade7f81af548ed7ca0a510c",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a10c3e-apex-chaos",
+      "sha": "f6d942293d2a693c33e6b6eac12936ebabd80ced",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a105cb-apex-chaos",
+      "sha": "67895af21b74b711fc6edcde1449f75dffd0ed38",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a107b9-apex-chaos",
+      "sha": "5cc129a6f826c2129ee839b082c814da0745a26b",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a107d2-apex-chaos",
+      "sha": "a1427dcd19a2f9428b61bace57adab8b89eb56ac",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "arena/01a1025a-apex-chaos",
+      "sha": "63622a42fa235fe2cc60b9f2d14d63fcf65a658a",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a10020-apex-chaos",
+      "sha": "0348694ddea3842c98842fd5398d60fb65874c57",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a10202-apex-chaos",
+      "sha": "e81caf0be86364fa1ef014d11733bf182ed57b89",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "arena/01a10805-apex-chaos",
+      "sha": "f8be073654bdc7d3518274747dd280518cd764d5",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "audit/cp1-d032-truth-probes",
+      "sha": "a92fe7848a21257f6b0c88c3a35f760426335656",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "audit/cp2-base-d032",
+      "sha": "d0328808da80fbfad673ce32c757287490e7ef6f",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "audit/cp2-d032-readiness-lifecycle",
+      "sha": "c54a19ecf2b4d8eb7eda8af9880bc0dafa6cc900",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "chatgpt/mirror-f3-20261002",
+      "sha": "0ad80dad6f4e1ec355def5687d17ca7c2194f0cc",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "chatgpt/pass-b-v6-hud-correction",
+      "sha": "9e54c914329234aadf48f1224bf6e247602c845c",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "cleanup/v43-repository-hygiene-20261010",
+      "sha": "8d699f334fc7e97c11096d49f7684d95f4d225a1",
+      "protected": false,
+      "role": "staged-cleanup"
+    },
+    {
+      "name": "cleanup-phase2a2-ci-base-20261004",
+      "sha": "b28048201ba5054ce557472d6ed0a5cd7cd8928b",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2a2-staging-20261004",
+      "sha": "a1f846c998d4c9bda8e5b075321a3dcfbd40a671",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2a3-ci-base-20261004",
+      "sha": "a1f846c998d4c9bda8e5b075321a3dcfbd40a671",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2a3-staging-20261004",
+      "sha": "44167225863346755999c377229b3c417ccfbdd6",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2b-staging-20261004",
+      "sha": "eb37d269420a70b65b1e14e0fb7ab9beb663f0ff",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "cleanup-phase2b-v2-ci-base-20261004",
+      "sha": "44167225863346755999c377229b3c417ccfbdd6",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2b-v2-staging-20261004",
+      "sha": "2d42bc70de8a911dd3b91e939646a5df1010da0e",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2c-ci-base-20261004",
+      "sha": "2d42bc70de8a911dd3b91e939646a5df1010da0e",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2c-staging-20261004",
+      "sha": "02982a664963ef7be9c6bf0837f5841e8ec1a176",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2d-ci-base-20261004",
+      "sha": "02982a664963ef7be9c6bf0837f5841e8ec1a176",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2d-staging-20261004",
+      "sha": "1ed6caea5f4458ccbf209f42c91e75d4ac63d1f7",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2e-ci-base-20261004",
+      "sha": "1ed6caea5f4458ccbf209f42c91e75d4ac63d1f7",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "cleanup-phase2e-staging-20261004",
+      "sha": "b60ed7c2747c4901182f6e6fdfbedabe1ac0fe96",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "development/v43",
+      "sha": "01633971cd2b014dd726d38f965705b9fca8b24f",
+      "protected": false,
+      "role": "v43-development"
+    },
+    {
+      "name": "direct/stormbreaker-v9-parity",
+      "sha": "8c379a00c668d2d2bb79ba9eee7e596c07b800ba",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "director/frost-v1-preload-20260930",
+      "sha": "9b6cc8093794442e9834c06210d977f7a63335a0",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "director/hero-rework-owner-fail-audit-20260928",
+      "sha": "e96d9c17231dcd44e4c466b2da0a1dd4fb40351a",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "director/hero-rework-roster-correction-20260927",
+      "sha": "59cfda6e520ccc3713d2a1a42d0cf77527481715",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "director/robot-final-integration-20260929",
+      "sha": "4c4e369614fd92df6e172d4b6b449d0837393823",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "director/robot-owner-visual-correction-20260929",
+      "sha": "2026fbbf70687d0ecb682774ef3bb03b96b8478d",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "director/robot-slime-model-qualification-20260928",
+      "sha": "10ad43799394d1f514aba7dcbc45066ff2c2dcb7",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "director/robot-visual-cleanup-diagnostic-20260929",
+      "sha": "bdf29a75770e2013e08bd2b005b8c4eae371b229",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "director/slime-crash-recovery-20260929",
+      "sha": "696170b004e90585ea65a93a493037ab9533ba32",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "director/slime-owner-correction-20260928",
+      "sha": "a7521108a2bf45d5124aeff3ced0ee492b95d8e6",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "docs/story-world-bible-20261001",
+      "sha": "94427ddad881c7d13c73e9e91ed53b970ebd8791",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "fix/owner-v43-native-lifecycle-frost-result-20261010",
+      "sha": "f2f3507c0327c2f5ec7e9c6bb97ffbaed8b9c2dc",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "fix/v43-owner-round2-weapon-control-20261010",
+      "sha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
+      "protected": false,
+      "role": "active-pr24"
+    },
+    {
+      "name": "fix/v43-runtime-integrity-20261010",
+      "sha": "ce137b19be2fe516003e3b6dcab8613db91a7e19",
+      "protected": false,
+      "role": "merged-pr-preserve"
+    },
+    {
+      "name": "gold/wave2-authority-20261005",
+      "sha": "395e9ac59acf1dda0cc7351d34e6a6c5d59d5953",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "integration/quest-vfx-arsenal-v43-results-gold",
+      "sha": "7eabb12b2e15d4bef5dcf8c5bed06c673ecdb6e2",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "magnet-v1-preload-20261001",
+      "sha": "0897108387b29bc8332c5f23994dd8f5b4859890",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "main",
+      "sha": "ac280791b51eb6093d24bbdf398dc97938f61455",
+      "protected": false,
+      "role": "default-branch"
+    },
+    {
+      "name": "mirror-v1-preload-20261001",
+      "sha": "618c86780ceadb2f53d6f9b49e29cceca7ddcc80",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "owner/hero-rework-phase1-playtest-20260928",
+      "sha": "9b091f98e69b91b04cacd2bd9e70ec5c8238c115",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "phase2/hero-visual-feel-20260928",
+      "sha": "2e186bde42af1e941ff814b28d9c57b5066be292",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "playtest/arsenal",
+      "sha": "430ac5269031d5b72938df16427d16bb55743155",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "prototype/aftermath-32",
+      "sha": "40359f693f8a0d98dc091c408d058ae89f24bbda",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "prototype/combat-hud-pass-b",
+      "sha": "bf2bb42293c9c4bb5ec61568c26470cca21f8bcc",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b0-5-r90-responsive-integration-rehearsal",
+      "sha": "5e0482bbc70626796cf9f3a837b6516ccf57ee77",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b1-contact-reflect-from-b05",
+      "sha": "905184f0cff1a99b94c379d2975da53743c3d43d",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b1-shared-contact-law-from-audit",
+      "sha": "0058c18c89818675f4e53dc8945f4e767ca70869",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b1b-swarm-balance",
+      "sha": "fdd650d1f42b2af3dff47d76b516ad809cb1df84",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b2-reflex-honest-onboarding-from-b1",
+      "sha": "dc3743bfdafa1fd2c6d0082d5b46effe43428421",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b2-transparent-reflex-from-b1",
+      "sha": "1ea5fcd9a06088c61c454e726a6c3804c4656087",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b2b-stormbreaker-floor-from-b2",
+      "sha": "3f750d420446a666ab9c19e1356cdaae40bb1837",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b2c-floor-stormbreaker-from-b3b",
+      "sha": "2e4377eb209495bbf5134a777b129de742458df0",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b3-arena-first-hud-from-b1",
+      "sha": "dd47d3fc36818d2ba7e3079a16eb01d82e9c17f1",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b3b-integrated-hud-reflex-from-b1",
+      "sha": "4b34e7708e66a920e61407da70ab3113342fd9ce",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b4-temporary-stage-hub-from-b2c",
+      "sha": "efe3f5b5ba6cf7d91bc401c733fbf2c3a3855e0a",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b4a-replay-lifecycle-from-b4",
+      "sha": "9a65cf32721448e818f2d2d9dea739106e76d09b",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b4b-causal-story-from-b4a",
+      "sha": "eeabe7303a14f6122bf7b730309dd9e834c71af9",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b05-r90-q5-real-integration",
+      "sha": "43a8823262c5a1c2c0bba78334014d12cfe937f7",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b5a-real-swarm-telemetry-from-b4b",
+      "sha": "6992b85a1f6a129919fe8ccd7075715ad2a167a2",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b5b-e03-open-hp-pilot-from-b5a",
+      "sha": "5e7b92dcad2e245ad05b496dabe099050f0eb3fd",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b5c-modernize-native-chrome-oracle",
+      "sha": "0d24d86af19371cb3dc311b7e527914e0087ae3c",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b5d-integrate-owner-canon-and-viable-e03",
+      "sha": "57bda25d362406c4b965aa3f923b7da2dca9a73e",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b5e-e01-floor-cinematic-unblock-from-b5d",
+      "sha": "5a5ee90c00b5eaa0b2efa5d34756bea3c29745e9",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b5f-e04-natural-survival-pilot",
+      "sha": "c47b7c38a532fb1c6f8b4f8d32d1c53027ad82b9",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b5g-signed-route-plus-breach-canon",
+      "sha": "4b4d0a692f17b8124edf922df68cbc63dc98e707",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6-rig-passive-owner-approved-from-b8b",
+      "sha": "063f92e07d95a973809ba9b4d8375bc13cab4a29",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "quest/b6a-breach-wave-runtime-from-b5a",
+      "sha": "ee0aa3289d7e0fea37b6d69b3b67c449347cfa56",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6b-breach-contract-on-signed-e05",
+      "sha": "13edb101361eb63930aa5b6bcbe14e0ac7e644df",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6c-signed-gold-owner-breach-lineage",
+      "sha": "62f5dc2eb65c323697bf5ccc4a172e711c060477",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6d-breach-wave-lifecycle-from-b5g",
+      "sha": "cf7ce9757b10803626146c72f390666028190e94",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6e-retreat-damage-boundary-from-b6d",
+      "sha": "77fe7ad114037e40914c7feaf518b1299f8d3048",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6f-native-breach-physical-fixture",
+      "sha": "ffe29e9bb5c93e90dce68ee463b4b8193b0b4f44",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6g-team-true-projectile-from-b6f",
+      "sha": "d31d505bd9fc6db380a324adf5735d3f8d451921",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6h-retirement-lifecycle-from-b6g",
+      "sha": "952062de8f19b37400cdea5d1d0e7c41046a1044",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6i-gold-breach-entry-from-b6h",
+      "sha": "d63716ab3acd3855508cbc51517a7ad27ec73299",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6j-e06-gold-chrome-gates-from-b6i",
+      "sha": "566954261058e94851a9181df60c90d816ca6006",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6k-three-wave-real-gold-from-b7b",
+      "sha": "c6a7c2fc51c9b83517a6efb0f76825b1957f0837",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6m-companion-jk-candidates-from-b6l",
+      "sha": "b8f83666ba8a374ba433b1f30154b563c8831198",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b6n-owner-revised-native-companion-jk",
+      "sha": "da2d055be67af7239645c21097674134a71d6798",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "quest/b7-e06-signed-e07-gold-from-b6n",
+      "sha": "16d3ab63e37aed3597e5f7deefb5cf46ee3f04f5",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "quest/b7-e08-last-choice-native-from-b7",
+      "sha": "0152b7e55d81be91273af530586aea6596795395",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "quest/b7a-rivet-nonlethal-thresholds-from-b6f",
+      "sha": "4663faafdb27c7e8a11f71eb261fb994bb33acc6",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b7b-rivet-threshold-contract-from-b6j",
+      "sha": "faaf1fa144f34be6cc1d3a44ff027e27d928200f",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b7c-native-rivet-damage-from-b6k",
+      "sha": "4ba27cb76b50d6b9df3b59c75d89a88e6e5c174e",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b7d-isolated-native-rivet-encounter-from-b7c",
+      "sha": "e0dcd7dc6cfa674b0500b4e64d393666ac5ead9b",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b7d-rivet-real-boss-fixture-from-b7c",
+      "sha": "2d7c844f55937050f3a504a283a5f5e05bde9e53",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b7e-adversarial-rivet-retry-from-b7d",
+      "sha": "37d7b81f3402c5de728ddd8cbf55aaf9cf8b137b",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b8a-tot-last-choice-contract-from-b7e",
+      "sha": "08a4af8d2e081a0447585afc71103cacfc16c83f",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b8b-native-tot-damage-from-b8a",
+      "sha": "90f3788684e82f6eee8d152361bf7264eaa5856b",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/b8qa-runtime-cutover-from-b8",
+      "sha": "4243cc31b5358fde668473e1a5faf828fc77ba25",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/b8qa-runtime-integrity-from-b8",
+      "sha": "9c637d2f2b26ec9d23018d1f5e22dea0645f5845",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "quest/b8qb-product-acceptance-from-b8qa",
+      "sha": "78b2265bf89d8d406a8a9944eead8d523b337b94",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "quest/b8qc-owner-gold-product-preplaytest",
+      "sha": "9ffefd9f3d4a6692604e79fbd08c799714b207de",
+      "protected": false,
+      "role": "open-pr-dependency"
+    },
+    {
+      "name": "quest/cp04-multi-actor-spike-r59",
+      "sha": "350b9e234a165d3626cd388be7e66ebbd8c1f91c",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q0-canon-contract-from-cp04",
+      "sha": "b8a18e5540218a1800749b6afe2a9196dbac3e77",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q1-director-from-q0",
+      "sha": "68165f24871cc78cadf65b30efa6064e088cedea",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q2-generic-actors-from-q1",
+      "sha": "7b2c64ff54717e7b12ab6afe540713f56cfd2871",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q3-gold-v12-presentation-from-q2",
+      "sha": "c7e272cdaefb6339c6033480c72e083a9fc1cf49",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q3v-scope-safe-readability-from-q3u",
+      "sha": "a67cb9ff48072ffe71d56bbb765985a661d63603",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4a-reflex-native-receipts-from-q3v",
+      "sha": "c4003117af2d546f9a4b190d5ec7c31121a1d338",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4b-rivet-handoff-from-q4a",
+      "sha": "1d32751d6b8da756beb3aae269f8394b46d19f6a",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4c4-rivet-gold-flight-proof-from-q4c3",
+      "sha": "94de6260fa646dbe0a45ad20f83cbecf34797d31",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4c-rivet-suppression-preview-from-q4b",
+      "sha": "c80ac43d2913bb15876950391676dfef4aebf89c",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4d-e01-handoff-evidence-from-q4c4",
+      "sha": "afe591287e0a0a527f4913a5afd43fa2ed6e0ba8",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4e3-story-compositor-from-q4e2",
+      "sha": "18ca67c43f5253b7e72f22626cd489612f56e341",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4e-story-interludes-from-q4d",
+      "sha": "4af7cb1ef1f6580c5ce6e2fcbfc0575dd00185ff",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4f-ground-stormbreaker-from-q4e3",
+      "sha": "25e0d2b0881a1972f5d4f2b568afd682159e7a55",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4g-e01-rescue-story-from-q4f",
+      "sha": "0e936d6edd2bcc45ba4ce5410e74d0ed3fae5a56",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4h-director-verified-opening-from-q4g",
+      "sha": "9634f3b284c82459e3be837b7130c5cdf1d28c4c",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q4i-first-wake-story-cutover-from-q4h",
+      "sha": "972c97ffa6bac2392e8b33d3c54e6faa3e95d36d",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q5-e03-scrap-swarm-from-q4i",
+      "sha": "2cf3996e37b6f44d0f9c912a91397b98b2898dca",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q5-owner-feedback-audit-20261009",
+      "sha": "0058c18c89818675f4e53dc8945f4e767ca70869",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q5p-e04-weapon-rain-from-e03",
+      "sha": "005116906e6bffc0361848e55892eadd570f5298",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q5w-e05-charge-from-e04",
+      "sha": "5696324ebce961a4a19cf3017a1593ba063e8d56",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "quest/q5y-e05-charge-from-q5x",
+      "sha": "799b80820ef0a6e9cce7563258da66dfa0db3519",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "quest/q6a-breach-policy-from-e05",
+      "sha": "c076751856323cd22bf4cb1799f3178aa17d5c84",
+      "protected": false,
+      "role": "diverged-preserve"
+    },
+    {
+      "name": "safety/hero-rework-owner-failed-20260928",
+      "sha": "2071dcf34acc4fed6f92fee3ea72a0e5d00fb2d7",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "safety/hero-rework-phase1-final-20260928",
+      "sha": "2e186bde42af1e941ff814b28d9c57b5066be292",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "safety/pre-hero-rework-implementation-20260927",
+      "sha": "8ca566b378c48cfb6b81ec17711a7c8e6e16d139",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "safety/pre-rework-agent-baseline-20260927",
+      "sha": "00422e367d03a8607459b72440f06a11fd8e3fba",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "safety/pre-slime-crash-recovery-20260929",
+      "sha": "af649ab63a9b933c40280bd9f6a9f4a670616a70",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    },
+    {
+      "name": "safety/pre-slime-owner-correction-20260928",
+      "sha": "2a5c666dc14bfb708b89d83657993679eaa6be33",
+      "protected": false,
+      "role": "ancestor-review-candidate"
+    }
+  ]
+}

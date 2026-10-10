@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - development/v43
       - 'arena/**'
       - 'integration/quest-vfx-arsenal-v43-results-gold'
   pull_request:
@@ -44,6 +45,19 @@ jobs:
 
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Validate read-only V43 maintenance inventory and GOLD evidence backlog
+        run: |
+          node --check tools/maintenance/v43-branch-cleanup.mjs
+          node tools/maintenance/verifyV43AuditSnapshot.mjs
+
+      - name: Audit current remote branches in strictly read-only mode
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node tools/maintenance/v43-branch-cleanup.mjs > /tmp/apex-v43-branch-dryrun.json.log
+          grep -F 'READ ONLY: zero refs deleted.' /tmp/apex-v43-branch-dryrun.json.log
+          echo 'PASS GitHub branch dry-run: no delete mode invoked; full report saved in artifact.'
 
       - name: Owner Gold result engine and secure iframe contract
         run: node tools/testResultGoldAuthority.mjs
@@ -243,6 +257,7 @@ jobs:
             dist/
             release/arsenal-product-windows/
             docs/acceptance/arsenal-product/browser/
+            /tmp/apex-v43-branch-dryrun.json.log
             /tmp/arsenal-vite.log
             /tmp/arsenal-launcher-1.log
             /tmp/arsenal-launcher-2.log
