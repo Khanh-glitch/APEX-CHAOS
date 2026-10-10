@@ -750,8 +750,21 @@
     // Continuous weapon-relative emission: each particle records the live
     // muzzle pose at birth; old particles keep their original world positions.
     const h=getHolder(p.owner),aim=h?.meta?.aimAngle;
-    if(Number.isFinite(aim))p.angle=aim;
-    const muzzle=v43Muzzle(p.owner,p.weapon,p.angle);
+    let direction=Number.isFinite(aim)?aim:p.angle;
+    let muzzle=v43Muzzle(p.owner,p.weapon,direction);
+    // The Gold gun socket can sit far below the Fighter center (ROBOT).
+    // With the owner-requested half-width cone, center-to-center steering
+    // misses even a live target straight ahead. Align the ACTUAL gun muzzle
+    // and the same damaging cone to the real Fighter selected at release.
+    const target=p.flameTarget;
+    if(target?.hp>0&&Number.isFinite(target.x)&&Number.isFinite(target.y)){
+      for(let i=0;i<4;i++){
+        direction=Math.atan2(target.y-muzzle.y,target.x-muzzle.x);
+        muzzle=v43Muzzle(p.owner,p.weapon,direction);
+      }
+      if(h?.meta)h.meta.aimAngle=direction;
+    }
+    p.angle=direction;
     p.x=muzzle.x;p.y=muzzle.y;
     if(!p.flameOrigins)p.flameOrigins=[];
     p.flameOrigins.push({time:p.age,x:p.x,y:p.y,angle:p.angle});
@@ -1199,7 +1212,7 @@
         AQ.state?.resultLedger?.onShot?.(f,id);
         poseKick(h,poseRecipe(id));
         window.avCue?.('fire',{weapon:id,family:'SPECIAL',x:f.x,y:f.y,angle:a});
-        if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;x.flameOrigins=[];}
+        if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;x.flameOrigins=[];x.flameTarget=ctx.enemy;}
         if(kind==='plasma-core'){x.damage=c.coreDamage;}
         if(kind==='boomerang'){
           x.spin=0;x.spinRate=c.spin;x.damage=c.outgoing;
