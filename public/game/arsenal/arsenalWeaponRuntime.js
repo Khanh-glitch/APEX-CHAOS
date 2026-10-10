@@ -791,7 +791,18 @@
     const direction={x:Math.cos(angle),y:Math.sin(angle)};
     const cross={x:-direction.y,y:direction.x};
     const size=typeof GAME_SIZE==='number'?GAME_SIZE:1000;
-    const bank=y>size*.45?1:-1;
+    // Bend into the roomier perpendicular half-plane for all aim angles,
+    // not merely based on Y (the latter flips incorrectly for left throws).
+    const normX=-direction.y,normY=direction.x;
+    const sideRoom=(sgn)=>{
+      const ux=normX*sgn,uy=normY*sgn;
+      const ax=Math.abs(ux)>.01?(ux>0?(size-30-x)/ux:(30-x)/ux):1e6;
+      const ay=Math.abs(uy)>.01?(uy>0?(size-30-y)/uy:(30-y)/uy):1e6;
+      return Math.max(0,Math.min(ax,ay));
+    };
+    // Negative local lateral is Gold's looping bank.
+    const bank=sideRoom(-1)>=sideRoom(1)?1:-1;
+    const lateralRoom=sideRoom(-bank);
     // The Gold Lab runs left-to-right; generalize available forward arena
     // distance along the shot direction so BOTH Arena players get the same
     // Gold 400..490px aerodynamic loop when their positions are mirrored.
@@ -803,8 +814,11 @@
     // to 760px, but reserve space at world edges rather than forcing 400px.
     const targetDistance=target?Math.hypot(target.x-x,target.y-y):Math.min(650,available);
     const reach=Math.max(90,Math.min(targetDistance+(target?.radius||75)*.3,760));
-    const distance=Math.min(reach,Math.max(30,available-30));
-    const turn=Math.min(160,Math.max(34,distance*.31));
+    // Cubic leg 2 overshoots longitudinal apex by about 4-6%, reserve
+    // 12% against border rather than letting the visible body clip out.
+    const distance=Math.min(reach,Math.max(30,(available-30)/1.12));
+    const turn=Math.min(Math.max(20,lateralRoom*.70),
+      Math.min(160,Math.max(34,distance*.31)));
     const world=(u,v)=>({x:x+direction.x*u+cross.x*v*bank,
       y:y+direction.y*u+cross.y*v*bank});
     const a=world(0,0),b=world(distance,0),c=world(distance*.49,-turn);
@@ -949,7 +963,8 @@
       // Catch the REAL return projectile, if and only if the hand is empty.
       if(p.phase==='return'&&p.launchOwner?.hp>0
         &&!getHolder(p.launchOwner)
-        &&Math.hypot(p.x-p.launchOwner.x,p.y-p.launchOwner.y)
+        &&distPointToSegment(p.launchOwner.x,p.launchOwner.y,
+          p.px,p.py,p.x,p.y)
           <=(p.launchOwner.radius||75)+(p.radius||13)+15){
         equip(p.launchOwner,p.weapon);
         log('CATCH','fighter='+p.launchOwner.name+' weapon='+p.weapon);
@@ -1184,7 +1199,10 @@
           const foe=ctx.enemy;
           const throwAngle=foe?Math.atan2(foe.y-x.y,foe.x-x.x):a;
           x.flightPath=v43MakeFlightPath(x.x,x.y,throwAngle,foe);
-          x.angle=throwAngle;x.travel=0;x.speed=c.speed;
+          x.angle=throwAngle;
+          x.vx=Math.cos(throwAngle)*c.speed;
+          x.vy=Math.sin(throwAngle)*c.speed;
+          x.travel=0;x.speed=c.speed;
           x.life=x.maxLife=c.maxFlightSeconds+.35;
           // Free the hand immediately; collecting another gun is legal.
           f.data.arsenal=null;
