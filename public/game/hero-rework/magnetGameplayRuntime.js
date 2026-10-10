@@ -213,8 +213,9 @@
     const normal=p?.type==='aq_bullet'&&isFirearm(p.weapon);
     const special=globalScope.APEX_ARSENAL_CONFIG?.V43_WEAPONS?.[p?.weapon];
     const physical=p?.type==='aq_v43'&&!!special&&special.tier!=='T6'
-      &&(['bolt','ball','rocket','boomerang','fragment'].includes(p.kind)
-        ||(p.kind==='mine'&&p.phase==='flight'));
+      &&Array.isArray(special.magnetizableKinds)
+      &&special.magnetizableKinds.includes(p.kind)
+      &&(p.kind!=='mine'||p.phase==='flight');
     return !!p && p.aq===true && p.life>0 && !isT6Weapon(p.weapon)
       && (normal||physical) && !(p.__hr && p.__hr.cryHold);
   }
