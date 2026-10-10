@@ -2769,7 +2769,12 @@ function drawAftermath(ctx,realActors=[],state=null){
 function opticWorld(real){
   const record=real&&actors.get(real);
   if(!record?.opticWorld)return null;
-  return {x:record.opticWorld.x,y:record.opticWorld.y};
+  // Ability tick precedes canvas draw. Project the CURRENT authoritative
+  // Fighter translation onto the last spring-resolved socket so a moving
+  // Sentinel never fires from last frame's eye coordinates.
+  const dx=(Number(real.x)||0)-record.shadow.x;
+  const dy=(Number(real.y)||0)-record.shadow.y;
+  return {x:record.opticWorld.x+dx,y:record.opticWorld.y+dy};
 }
 function inspect(real){
   const record=real&&actors.get(real);
