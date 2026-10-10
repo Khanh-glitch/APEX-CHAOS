@@ -1649,7 +1649,8 @@
     }[String(window.__apexQuestHeroChoice||'newbot').toLowerCase()]||'ROBOT';
     const questHeroEligible=types[0]?.name==='ROBOT'
       ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
-        &&types[0]?.name===questChoiceId&&shells?.canPublicSelect?.(questChoiceId));
+        &&types[0]===shells?.typeFor?.(questChoiceId)
+        &&shells?.canPublicSelect?.(questChoiceId));
     // Q2 internal-only N-actor fixtures are never public Quest progression.
     // Public Gold Continue Story retains exact CP04 FIRST WAKE composition.
     const questCore = window.APEX_QUEST_MULTI_ACTOR_CORE;
