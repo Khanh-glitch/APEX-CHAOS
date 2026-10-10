@@ -117,6 +117,8 @@ const battle=rd('public/game/modes/arsenalBattleRuntime.js');
 const robot=rd('public/game/hero-rework/robotPresentationRuntime.js');
 assert.match(battle,/av\.drawV43GoldPlasmaCharge\?\.\(c,f,h/,
   'one shared Arsenal foreground pass must render plasma after any hero-held-art override');
+assert.match(battle,/if\(h\.weaponId!=='COMBAT_BOOMERANG'\|\|h\.phase!=='IN_FLIGHT'\)\s*av\.drawEquippedWeapon\(c, f, h\)/,
+  'shared foreground must hide throw-owned boomerang BEFORE ROBOT draws an extra held copy');
 assert.match(p,/drawV43GoldPlasmaCharge,\s*drawPoseGhost/,
   'Gold plasma presentation helper must be available to the shared foreground');
 assert.match(p,/robot\.getRobotWeaponSocketWorld\?\.\(fighter\)/,
