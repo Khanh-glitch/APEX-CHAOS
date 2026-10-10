@@ -1,0 +1,792 @@
+{
+  "schema": "apex-chaos-v43-gold-40-phase-backlog-v1",
+  "status": "EVIDENCE_ONLY_NOT_CERTIFICATION",
+  "ownerBaselineGoldHtmlSha256": "8db9ce58c0a61171ab76bcd5b18dea21564b45c76663d93fc28e61eaefdcd38d",
+  "canonicalV43BaseCommit": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
+  "testedV43Commit": "ce137b19be2fe516003e3b6dcab8613db91a7e19",
+  "productAcceptance": {
+    "runId": 38062924615,
+    "status": "SUCCESS",
+    "artifactName": "arsenal-product-acceptance",
+    "artifactId": 11673294462,
+    "archiveSha256": "c237d758477d98cc2b9f2f99cb7ed42aac9193aecb31a0a3d81e56ef7d6bf5a3",
+    "warning": "Artifacts are candidate captures, not owner Gold appearance verification."
+  },
+  "goldCert": {
+    "runId": 38062924750,
+    "sourcePassed": 7,
+    "sourceTotal": 7,
+    "phasePassed": 0,
+    "phaseTotal": 40,
+    "strictStatus": "BLOCKED"
+  },
+  "captureRequirements": {
+    "prerequisites": [
+      "Use exact reference Gold baseline SHA, not a moving website",
+      "Both baseline and candidate render identical Fighter/weapon state, Gold world units, camera, viewport and times",
+      "Use live floor pickup, genuine native projectile + HP/physics, not a manually painted frame"
+    ],
+    "perPhase": [
+      "READY: held pose, recoil preparation/charge movement",
+      "ATTACK: emission/projectile motion across several frames, with native USE receipt",
+      "CONTACT: actual collider/interception and first HP/contact response",
+      "AFTERGLOW: smoke, burn, recoil and decaying particles with finite lifetime",
+      "COUNTER: real Crystal/Magnet defensive interaction with native event and visual evidence"
+    ],
+    "objectiveComparison": [
+      "Capture original Gold and candidate frame sequence with frame timestamps/event IDs",
+      "Compare full sequence, trajectory/phase timing, masking and allowed tolerances",
+      "Collect reference and candidate SHA256 and failing-frame evidence",
+      "Only after independent verified probe may testOwnerV43GoldCertification.mjs gain a verified gold: proof executor"
+    ]
+  },
+  "pendingPhases": [
+    {
+      "weapon": "FLARE_GUN",
+      "phase": "ready",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:held-motion"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLARE_GUN",
+      "phase": "attack",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:flare-ignition-release-motion"
+      ],
+      "preexistingSourceChecks": [
+        "source:flame",
+        "source:ribbons"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLARE_GUN",
+      "phase": "contact",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:flare-impact"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLARE_GUN",
+      "phase": "afterglow",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:burn-particles"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLARE_GUN",
+      "phase": "counter",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:flare-Crystal-Magnet-motion"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "TACTICAL_CROSSBOW",
+      "phase": "ready",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:crossbow-recoil"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "TACTICAL_CROSSBOW",
+      "phase": "attack",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:bolt-accelerating-motion"
+      ],
+      "preexistingSourceChecks": [
+        "source:ribbons"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "TACTICAL_CROSSBOW",
+      "phase": "contact",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:bolt-tip-and-impact"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "TACTICAL_CROSSBOW",
+      "phase": "afterglow",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:bolt-decay"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "TACTICAL_CROSSBOW",
+      "phase": "counter",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:bolt-Crystal-Magnet-motion"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "STEEL_BALL_LAUNCHER",
+      "phase": "ready",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:steelball-recoil"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "STEEL_BALL_LAUNCHER",
+      "phase": "attack",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:physical-ball-launch-motion"
+      ],
+      "preexistingSourceChecks": [
+        "source:ribbons"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "STEEL_BALL_LAUNCHER",
+      "phase": "contact",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:bank-ricochet"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "STEEL_BALL_LAUNCHER",
+      "phase": "afterglow",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:steelball-contact"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "STEEL_BALL_LAUNCHER",
+      "phase": "counter",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:steelball-Crystal-Magnet-motion"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "COMBAT_BOOMERANG",
+      "phase": "ready",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:throw-release"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        75,
+        110,
+        180,
+        260
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "COMBAT_BOOMERANG",
+      "phase": "attack",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:complete-release-flight-and-catch"
+      ],
+      "preexistingSourceChecks": [
+        "source:airfoil",
+        "source:natural-flight"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        75,
+        110,
+        180,
+        260
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "COMBAT_BOOMERANG",
+      "phase": "contact",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:two-leg-hit-and-catch"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        75,
+        110,
+        180,
+        260
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "COMBAT_BOOMERANG",
+      "phase": "afterglow",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:weapon-return-pose"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        75,
+        110,
+        180,
+        260
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "COMBAT_BOOMERANG",
+      "phase": "counter",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:boomerang-redirect-motion"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        75,
+        110,
+        180,
+        260
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "RPG_7",
+      "phase": "ready",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:rpg-recoil"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "RPG_7",
+      "phase": "attack",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:rpg-thrust-and-smoke-motion"
+      ],
+      "preexistingSourceChecks": [
+        "source:ribbons"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "RPG_7",
+      "phase": "contact",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:rpg-impact-and-debris"
+      ],
+      "preexistingSourceChecks": [
+        "source:blast"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "RPG_7",
+      "phase": "afterglow",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:rpg-soft-smoke"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "RPG_7",
+      "phase": "counter",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:rpg-Crystal-Magnet-motion"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLAMETHROWER",
+      "phase": "ready",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:flame-held-animation"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLAMETHROWER",
+      "phase": "attack",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:470-rate-emission-field"
+      ],
+      "preexistingSourceChecks": [
+        "source:flame"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLAMETHROWER",
+      "phase": "contact",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:flame-contact"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLAMETHROWER",
+      "phase": "afterglow",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:470-particles-and-burn"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "FLAMETHROWER",
+      "phase": "counter",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:flame-counter-identity"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "PLASMA_SPLITTER",
+      "phase": "ready",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:charge-rings-and-crop"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "PLASMA_SPLITTER",
+      "phase": "attack",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:core-flight-and-three-split-motion"
+      ],
+      "preexistingSourceChecks": [
+        "source:plasma-transport"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "PLASMA_SPLITTER",
+      "phase": "contact",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:core-and-three-split"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "PLASMA_SPLITTER",
+      "phase": "afterglow",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:plasma-impact"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "PLASMA_SPLITTER",
+      "phase": "counter",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:plasma-Crystal-split-motion"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "SHRAPNEL_MINE_LAUNCHER",
+      "phase": "ready",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:mine-recoil"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "SHRAPNEL_MINE_LAUNCHER",
+      "phase": "attack",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:mine-flight"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "SHRAPNEL_MINE_LAUNCHER",
+      "phase": "contact",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:mine-arm-to-contact-transition"
+      ],
+      "preexistingSourceChecks": [
+        "source:armed-mine",
+        "source:blast"
+      ],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "SHRAPNEL_MINE_LAUNCHER",
+      "phase": "afterglow",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:mine-pressure-and-shrapnel"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    },
+    {
+      "weapon": "SHRAPNEL_MINE_LAUNCHER",
+      "phase": "counter",
+      "status": "UNVERIFIED",
+      "goldProofsMissing": [
+        "gold:mine-Crystal-Magnet-motion"
+      ],
+      "preexistingSourceChecks": [],
+      "candidateFramesOnly": [
+        20,
+        42,
+        65,
+        95,
+        130,
+        170
+      ],
+      "captureTimeBasis": "simulation frames 60fps; NOT phase-event-aligned"
+    }
+  ],
+  "summary": {
+    "weapons": 8,
+    "phases": 40,
+    "verifiedGoldPhases": 0,
+    "unverifiedGoldPhases": 40
+  }
+}
