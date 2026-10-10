@@ -979,7 +979,10 @@
           return;
         }
       }
-      if(hit&&!p.hits.has(hit.actor)){
+      // One real Fighter contact per outward/return leg. The same actor
+      // cannot be struck repeatedly during a lingering swept overlap.
+      if(hit&&!p.hits.has(hit.actor)
+        &&p.hits.size<(c.maxHitsPerLeg??1)){
         p.hits.add(hit.actor);
         v43Deal(p,hit.actor,p.damage,{
           knockback:100,impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
