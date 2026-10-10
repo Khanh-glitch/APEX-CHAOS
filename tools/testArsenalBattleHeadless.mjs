@@ -1780,7 +1780,7 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
 
 // Owner V43 DAMAGE tests: a normal native Fighter must lose the README amount
 // from a real hit, not merely log USE/CONSUME. No Lab-dummy simulated HP.
-report.ownerV43Damage = run(\`
+report.ownerV43Damage = run(`
   const ids = ['STEEL_BALL_LAUNCHER','TACTICAL_CROSSBOW','FLARE_GUN',
     'RPG_7','FLAMETHROWER','PLASMA_SPLITTER','SHRAPNEL_MINE_LAUNCHER'];
   const damages={};
@@ -1795,7 +1795,7 @@ report.ownerV43Damage = run(\`
     damages[id]=+(1000-fighters[1].hp).toFixed(3);
   }
   return damages;
-\`);
+`);
 const owD=report.ownerV43Damage;
 gate('owner-v43-direct-ball-98-not-aoe',Math.abs(owD.STEEL_BALL_LAUNCHER-98)<1.1,owD);
 gate('owner-v43-crossbow-112',Math.abs(owD.TACTICAL_CROSSBOW-112)<1.1,owD);
