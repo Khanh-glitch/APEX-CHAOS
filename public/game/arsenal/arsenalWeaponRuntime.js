@@ -1783,6 +1783,8 @@
       ctx.fillStyle='#ffd4a1';ctx.beginPath();ctx.arc(0,0,4,0,TAU);ctx.fill();
     }
     ctx.restore();
+    // Render world-aligned GOLD eight-spoke halo AFTER the physical mine sprite.
+    if(p.kind==='mine'&&p.phase==='armed')v43GoldMineArming(ctx,p,life);
   }
 
   function drawArsenalProjectiles(ctx) {
@@ -2966,7 +2968,6 @@
       ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.fill();
     }
     ctx.restore();
-    if(p.kind==='mine'&&p.phase==='armed')v43GoldMineArming(ctx,p,life);
   }
 
   // World-space presentation for transient weapon visuals (slashes, aim lines).
