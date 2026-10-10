@@ -146,7 +146,7 @@ try{
       if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
       const st=window.APEX_ARSENAL.state,wa=window.APEX_ARSENAL.weaponApi;
       const a=fighters[0],b=fighters[1];
-      a.x=320;a.y=500;b.x=${id==='SHRAPNEL_MINE_LAUNCHER'?570:700};b.y=500;
+      a.x=320;a.y=500;b.x=570;b.y=500;
       a.setDir(1,0);b.setDir(-1,0);a.baseSpeed=0;b.baseSpeed=0;
       a.hp=1000;b.hp=1000;
       st.spawnTimer=1e6;st.spawnHeld=true;st.slots.length=0;
