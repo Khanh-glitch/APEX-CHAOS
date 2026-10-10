@@ -967,10 +967,13 @@
   }
 
   // Per-frame movement/hit resolution for aq_* projectiles.
-  function updateArsenalProjectiles(dt) {
+  // A live Core Six match delegates aq_bullet/grenade/thrown to Hero Rework,
+  // but its replacement must still advance V4.3 aq_v43 exactly once.
+  function updateArsenalProjectiles(dt, dispatch = 'all') {
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       if (!p || !p.aq) continue;
+      if (dispatch === 'v43-only' && p.type !== 'aq_v43') continue;
       if(p.type==='aq_v43'){
         if(p.kind==='burn')v43TickBurn(p,dt);else v43Step(p,dt);
         if(p.life<=0)projectiles.splice(i,1);
