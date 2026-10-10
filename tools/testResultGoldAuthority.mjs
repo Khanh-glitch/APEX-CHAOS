@@ -3,6 +3,9 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const context={window:{},console};context.globalThis=context.window;
 vm.createContext(context);
+// Load the REAL committed C-art catalogue used before match selection. The
+// Result renderer must never silently fall back to invented silhouette art.
+vm.runInContext(readFileSync('public/game/arsenal/arsenalCWeaponSet.generated.js','utf8'),context,{filename:'arsenalCWeaponSet.generated.js'});
 for(const p of ['public/game/results/ownerAwards.generated.js','public/game/results/matchResultAuthority.js'])
   vm.runInContext(readFileSync(p,'utf8'),context,{filename:p,timeout:7000});
 const scope=context.window;
