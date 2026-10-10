@@ -1765,8 +1765,21 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
      __APEX_TEST.step(6.6);
      const after=__APEX_TEST.holder('HERO');
      const completed=APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id)&&e.includes('CONSUME')).length;
+     // A mine MUST remain armed with zero impact until a real fighter steps on it.
+     // Then the same native projectile resolver owns splash/shrapnel (no mocked hit).
+     let mineContact=null;
+     if(id==='SHRAPNEL_MINE_LAUNCHER'){
+       const mine=projectiles.find(p=>p.aq&&p.weapon===id&&p.kind==='mine');
+       const hpBefore=fighters[1].hp;
+       const armedWaiting=mine?.phase==='armed' && hits===0;
+       if(mine){fighters[1].x=mine.x;fighters[1].y=mine.y;}
+       __APEX_TEST.step(1.0);
+       mineContact={armedWaiting,hpBefore,hpAfter:fighters[1].hp,
+         mineGone:!projectiles.some(p=>p.aq&&p.weapon===id&&p.kind==='mine'&&p.life>0),
+         hitsAfterContact:APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id)&&e.includes(' HIT ')).length};
+     }
      const projectilesRemaining=projectiles.filter(p=>p.aq&&p.weapon===id).length;
-     findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature};
+     findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature,mineContact};
    }
    return {ids,findings};
  `);
@@ -1775,7 +1788,11 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
    ownerV43.ids.length===8 && ownerV43.ids.every(id=>{
      const x=ownerV43.findings[id];
      return x.before?.weapon===id && x.uses===1 && !x.premature
-       && x.after===null && x.completed===1 && x.projectilesRemaining===0;
+       && x.after===null && x.completed===1
+       && (id==='SHRAPNEL_MINE_LAUNCHER'
+         ? x.mineContact?.armedWaiting && x.mineContact?.hpAfter<x.mineContact?.hpBefore
+           && x.mineContact?.mineGone && x.mineContact?.hitsAfterContact>0
+         : x.projectilesRemaining===0);
    }),ownerV43);
 
 // Owner V43 DAMAGE tests: a normal native Fighter must lose the README amount
@@ -1801,7 +1818,8 @@ gate('owner-v43-direct-ball-98-not-aoe',Math.abs(owD.STEEL_BALL_LAUNCHER-98)<1.1
 gate('owner-v43-crossbow-112',Math.abs(owD.TACTICAL_CROSSBOW-112)<1.1,owD);
 gate('owner-v43-flare-direct-plus-4burn',Math.abs(owD.FLARE_GUN-119)<1.1,owD);
 gate('owner-v43-rpg-direct-blast-near-161',owD.RPG_7>140&&owD.RPG_7<=161.1,owD);
-gate('owner-v43-flamethrower-5-contact-ticks',Math.abs(owD.FLAMETHROWER-157.5)<1.1,owD);
+// Rebalanced: contact + nonstacking burn; old 157.5 direct-only contract is retired.
+gate('owner-v43-flamethrower-contact-plus-burn',Math.abs(owD.FLAMETHROWER-155)<1.1,owD);
 gate('owner-v43-plasma-real-shards',owD.PLASMA_SPLITTER>=70&&owD.PLASMA_SPLITTER<=210.1,owD);
 gate('owner-v43-mine-armed-aoe',owD.SHRAPNEL_MINE_LAUNCHER>50&&owD.SHRAPNEL_MINE_LAUNCHER<=203.1,owD);
 
