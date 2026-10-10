@@ -4,10 +4,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const specials={
- TACTICAL_CROSSBOW:{tier:'T2'},STEEL_BALL_LAUNCHER:{tier:'T2'},
- COMBAT_BOOMERANG:{tier:'T2'},RPG_7:{tier:'T3'},
- SHRAPNEL_MINE_LAUNCHER:{tier:'T4'},FLAMETHROWER:{tier:'T3'},
- FLARE_GUN:{tier:'T2'},PLASMA_SPLITTER:{tier:'T4'}
+ TACTICAL_CROSSBOW:{tier:'T2',magnetizableKinds:['bolt']},
+ STEEL_BALL_LAUNCHER:{tier:'T2',magnetizableKinds:['ball']},
+ COMBAT_BOOMERANG:{tier:'T2',magnetizableKinds:['boomerang']},
+ RPG_7:{tier:'T3',magnetizableKinds:['rocket']},
+ SHRAPNEL_MINE_LAUNCHER:{tier:'T4',magnetizableKinds:['mine','fragment']},
+ FLAMETHROWER:{tier:'T3',magnetizableKinds:[]},
+ FLARE_GUN:{tier:'T2',magnetizableKinds:[]},
+ PLASMA_SPLITTER:{tier:'T4',magnetizableKinds:[]}
 };
 const root={APEX_ARSENAL_CONFIG:{isGun:id=>id==='PISTOL',V43_WEAPONS:specials}};
 const ctx=vm.createContext({window:root,globalThis:root,console});
@@ -38,6 +42,14 @@ for(const [name,projectile,expected] of tests){
  const got=A.isEligibleBullet(projectile);
  assert.equal(got,expected,name);
  console.log('PASS MAGNET KINETIC '+name);
+}
+const cfg=fs.readFileSync('public/game/arsenal/arsenalConfig.js','utf8');
+for(const [id,spec] of Object.entries(specials)){
+ const i=cfg.indexOf(id+':Object.freeze(');
+ assert.ok(i>=0,'registry must define '+id);
+ const record=cfg.slice(i,i+630).replace(/\s+/g,'');
+ const serialized="magnetizableKinds:["+spec.magnetizableKinds.map(x=>"'"+x+"'").join(',')+"]";
+ assert.ok(record.includes(serialized),'actual registry kinetic policy drift: '+id);
 }
 const c=fs.readFileSync('public/game/hero-rework/crystalGameplayRuntime.js','utf8');
 assert.match(c,/p\?\.type==='aq_v43'/,'Crystala remains V43-aware');
