@@ -2907,17 +2907,26 @@
         ctx.restore();
       }
     }
-    const tone=plasma?'#cf92ff':blast?'#ffe3b6':'#f3d4a4';
-    ctx.strokeStyle=tone;ctx.lineCap='round';
-    // Metal contact emits two asymmetric glints; explosive pressure uses
-    // partial arcs that expand and dissipate, not complete circular stamps.
-    const n=blast?5:2;
-    for(let i=0;i<n;i++){
-      const theta=v.x*.043+i*(blast?TAU/n:Math.PI*.91)+age*.45;
-      ctx.globalAlpha=life*(blast?.28:.7);
-      ctx.lineWidth=Math.max(1.1,(blast?3.8:3-i*.7)*(1-age*.62));
-      ctx.beginPath();ctx.arc(0,0,radius*(.18+age*(blast?.82:.42)),
-        theta,theta+(blast?.32:.45+age*.17));ctx.stroke();
+    if(blast){
+      // Exact GOLD drawBlast pressure arcs: 5 broken arcs with per-arc
+      // asymmetry, light falloff and stroke mass tied to the blast radius.
+      // Match the owner Lab's Canvas trace BEFORE variant debris is added.
+      for(let i=0;i<5;i++){
+        const rot=v.x*.043+i*TAU/5;
+        ctx.strokeStyle=i%2?'#ffe3b6':'#d88562';ctx.globalAlpha=life*.28;
+        ctx.lineWidth=Math.max(.7,3*life);ctx.lineCap='round';ctx.beginPath();
+        ctx.arc(0,0,radius*(.22+.78*age)*(1+.018*Math.sin(i+v.y)),
+          rot,rot+.50+age*.42);ctx.stroke();
+      }
+    }else{
+      ctx.strokeStyle=plasma?'#cf92ff':'#f3d4a4';ctx.lineCap='round';
+      for(let i=0;i<2;i++){
+        const theta=v.x*.043+i*Math.PI*.91+age*.45;
+        ctx.globalAlpha=life*.7;
+        ctx.lineWidth=Math.max(1.1,(3-i*.7)*(1-age*.62));
+        ctx.beginPath();ctx.arc(0,0,radius*(.18+age*.42),
+          theta,theta+.45+age*.17);ctx.stroke();
+      }
     }
     if(blast){
       const mine=v.weapon==='SHRAPNEL_MINE_LAUNCHER';
