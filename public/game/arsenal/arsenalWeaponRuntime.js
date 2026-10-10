@@ -686,7 +686,7 @@
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       angle,spin:0,age:0,life:extra.life??3,maxLife:extra.life??3,
       radius:extra.radius??c.radius??8,damage:extra.damage??c.direct??0,
-      phase:extra.phase||'flight',hits:new Set(),bounces:0,visual:[{x:m.x,y:m.y}],
+      phase:extra.phase||'flight',hits:new Set(),bounces:0,visual:[{x:m.x,y:m.y,t:0}],
       ...extra};
     projectiles.push(p);return p;
   }
@@ -814,7 +814,7 @@
     // original owner's precomputed return spline cannot override Crystal's
     // outgoing vector or magically change the new owner's trajectory.
     if(p.kind==='boomerang'&&v43Redirected(p)){
-      p.phase='reflected';p.homing=false;
+      p.phase='reflected';p.homing=false;p.spin=(p.spin||0)+c.spin*dt;
     }
     if(p.kind==='bolt'){
       const sp=Math.hypot(p.vx,p.vy)||1;
@@ -856,7 +856,7 @@
         }
         v43Pulse(p.x,p.y,'retrieve');p.life=0;return;
       }
-      p.visual.push({x:p.x,y:p.y});if(p.visual.length>24)p.visual.shift();
+      p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
       // Every physical SPECIAL flight must pass through Crystal's single
       // swept surface authority BEFORE native body damage. A K intercept
@@ -878,7 +878,7 @@
     }
     p.px=p.x;p.py=p.y;
     p.x+=p.vx*dt;p.y+=p.vy*dt;
-    p.visual.push({x:p.x,y:p.y});if(p.visual.length>24)p.visual.shift();
+    p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
     // Plasma core is a charged carrier, not a damaging early projectile.
     // Mine must land and arm first: an in-flight collision cannot bypass
     // the explicit 0.48s arming gate.
@@ -1426,9 +1426,62 @@
       }
     }
   }
+  // Faithful Gold Lab airfoil wake: time-gated path samples, twin rolling
+  // wingtip vortices and two spinning local hook cuts. No static halos.
+  // The time history lives on the same authoritative projectile positions;
+  // Crystal re-direction therefore bends the VFX with the real trajectory.
+  function v43GoldBoomerangAirflow(ctx,p,life){
+    const q=p.visual,now=p.age;
+    if(!q||q.length<3)return;
+    const tail=q.filter(a=>now-(a.t??0)<.31);
+    if(tail.length<3)return;
+    const velocity=Math.hypot(p.vx||0,p.vy||0)||1;
+    const strength=v43min(velocity/600,.35,1.1);
+    ctx.save();ctx.globalCompositeOperation='screen';ctx.lineCap='round';ctx.lineJoin='round';
+    for(let layer=0;layer<3;layer++){
+      const side=layer===0?-1:layer===1?1:0,points=[];
+      for(let j=0;j<tail.length;j++){
+        const a=tail[j],pr=tail[Math.max(0,j-1)],ne=tail[Math.min(tail.length-1,j+1)];
+        const dx=ne.x-pr.x,dy=ne.y-pr.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
+        const age=v43min((now-(a.t??0))/.31,0,1),old=age*age;
+        const twist=side*(11+old*15)+Math.sin((a.t??0)*54*.65+layer*2.1)*old*(5+8*old);
+        points.push({x:a.x+nx*twist,y:a.y+ny*twist});
+      }
+      for(let pass=0;pass<2;pass++){
+        const core=pass===1,t=points[0],h=points[points.length-1];
+        const grad=ctx.createLinearGradient(t.x,t.y,h.x,h.y);
+        const tint=layer===0?'169,232,254':layer===1?'109,201,238':'213,247,255';
+        grad.addColorStop(0,'rgba('+tint+',0)');
+        grad.addColorStop(.32,'rgba('+tint+','+(core?.06:.09)+')');
+        grad.addColorStop(.75,'rgba('+tint+','+(core?.28:.17)+')');
+        grad.addColorStop(1,'rgba('+tint+','+(core?.48:.28)+')');
+        ctx.strokeStyle=grad;ctx.globalAlpha=strength*(core?.85:.80)*life;
+        ctx.lineWidth=core?(layer===2?1.4:1.7):(layer===2?7:10);
+        ctx.beginPath();ctx.moveTo(t.x,t.y);
+        for(let j=1;j<points.length-1;j++){
+          const a=points[j],b=points[j+1];
+          ctx.quadraticCurveTo(a.x,a.y,(a.x+b.x)*.5,(a.y+b.y)*.5);
+        }
+        ctx.lineTo(h.x,h.y);ctx.stroke();
+      }
+    }
+    const tx=p.vx/velocity,ty=p.vy/velocity,nx=-ty,ny=tx;
+    for(let j=0;j<2;j++){
+      const phase=p.spin+j*Math.PI,side=Math.sin(phase),radius=16+Math.cos(phase)*5;
+      ctx.globalAlpha=(.20+.16*(.5+.5*side))*strength*life;
+      ctx.strokeStyle=j===0?'#d3f6ff':'#8fd9f2';ctx.lineWidth=1.8+j*.7;
+      const x=p.x-tx*20+nx*side*radius,y=p.y-ty*20+ny*side*radius;
+      ctx.beginPath();ctx.moveTo(x-tx*19,y-ty*19);
+      ctx.quadraticCurveTo(x-tx*9+nx*side*9,y-ty*9+ny*side*9,
+        x+tx*13+nx*side*5,y+ty*13+ny*side*5);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   function v43GoldRibbon(ctx,p,life){
     const q=p.visual;if(!q||q.length<3)return;
     const boom=p.kind==='boomerang';
+    if(boom){v43GoldBoomerangAirflow(ctx,p,life);return;}
     const color={flare:'#ff6530',rocket:'#e3b186',bolt:'#cfe5e9',ball:'#c6a87a'}[p.kind];
     if(!color&&!boom)return;
     const maxWidth=boom?30:p.kind==='flare'?18:p.kind==='rocket'?20:p.kind==='ball'?7:5;
