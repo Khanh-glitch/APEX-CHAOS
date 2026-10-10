@@ -94,6 +94,12 @@ jobs:
       - name: V43 Gold plasma-tail three-layer exact trace
         run: node tools/testOwnerV43GoldPlasmaParity.mjs
 
+      - name: V43 Gold exact flight ribbons of Flare Rocket Bolt and Steel Ball
+        run: node tools/testOwnerV43GoldFlightRibbons.mjs
+
+      - name: V43 Gold world-space armed mine animation exact traces
+        run: node tools/testOwnerV43GoldMineArming.mjs
+
       - name: Owner V43 unified lifecycle, Frost A1, Result Gold invariant guard
         run: node tools/testOwnerV43LifecycleInvariants.mjs
 
