@@ -4061,6 +4061,11 @@ report.v1Blood = run(`
   // 6) sustained/high-rate combat (20 shots/s incl. forced crits every 8th):
   //    every shot lands, live workload stays bounded, stain stays one surface.
   __APEX_TEST.place(240, 500, 780, 500);
+  // sprayPeak is an ALL-PREVIOUS-EVENTS high-water mark: reset only its
+  // telemetry window for this 24-real-shot stress proof, never the live spray.
+  // Restore the cumulative high-water value afterwards for other consumers.
+  const priorGlobalSprayPeak = feel.stats.sprayPeak;
+  feel.stats.sprayPeak = feel.liveSpray().length;
   const sustainedBefore = snap();
   const v1HitsBeforeSustained = feel.stats.v1Hits;
   for (let b = 0; b < 24; b++) {
@@ -4070,16 +4075,19 @@ report.v1Blood = run(`
     __APEX_TEST.step(0.05);
   }
   __APEX_TEST.step(0.35); // let the last in-flight bullets reach the target (travel ≈ 0.2 s)
+  const sustainedWindowPeak = feel.stats.sprayPeak;
+  feel.stats.sprayPeak = Math.max(priorGlobalSprayPeak, sustainedWindowPeak);
   out.sustained = {
     hits: feel.stats.v1Hits - v1HitsBeforeSustained,
-    sprayPeak: feel.stats.sprayPeak,
+    sprayPeak: sustainedWindowPeak,
+    globalPeakBefore: priorGlobalSprayPeak,
     decals: feel.stats.v1Decals - sustainedBefore.decals,
     lands: feel.stats.v1LandMarks,
     dropsSkipped: feel.stats.v1DropsSkipped,
     microSkipped: feel.stats.v1MicroSkipped,
   };
   out.sustainedAllHit = out.sustained.hits === 24;
-  out.sustainedBounded = feel.stats.sprayPeak <= 600;
+  out.sustainedBounded = sustainedWindowPeak <= 600;
   out.sustainedLands = feel.stats.v1LandMarks > 0;
   out.stainSingleSurface = !!feel.stainSurface();
 
