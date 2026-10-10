@@ -37,7 +37,10 @@ if(apply){
   approvals.shaSet=new Set(keys);
 }
 const json=(path)=>{
-  const out=execFileSync('gh',['api',base+path],{encoding:'utf8',maxBuffer:32*1024*1024});
+  // GitHub repository GET uses /repos/owner/repo (without a trailing slash).
+  // GitHub Actions returns HTTP 404 for /repos/owner/repo/ on this endpoint.
+  const endpoint=path?base+path:base.slice(0,-1);
+  const out=execFileSync('gh',['api',endpoint],{encoding:'utf8',maxBuffer:32*1024*1024});
   return JSON.parse(out);
 };
 const paged=(segment)=>{
