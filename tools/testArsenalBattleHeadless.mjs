@@ -1729,8 +1729,20 @@ report.postCGuns = run(`
     fighters[0].x = 350; fighters[0].y = 500;
     fighters[1].x = 520; fighters[1].y = 500;
     APEX_ARSENAL.weaponApi.equip(fighters[0], id);
-    for (let i = 0; i < 90; i++) APEX_ARSENAL.step(1 / 60);
-    fired[id] = projectiles.some(p => p.aq && p.weapon === id) || APEX_ARSENAL.events.some(e => e.includes('weapon=' + id) && /USE|CONSUME|THROW/.test(e));
+    // Some shotguns spawn short-lived pellets and emit their native USE
+    // before the 90-frame observation window ends. Preserve evidence when it
+    // actually occurs, instead of inspecting only the final projectile list
+    // or a bounded event buffer that may have already rotated that receipt.
+    let observedNativeFire = false;
+    for (let i = 0; i < 90; i++) {
+      APEX_ARSENAL.step(1 / 60);
+      if (!observedNativeFire) {
+        observedNativeFire = projectiles.some(p => p.aq && p.weapon === id)
+          || APEX_ARSENAL.events.some(e => e.includes('weapon=' + id)
+            && e.includes('fighter=HERO') && /USE|SHOT|THROW/.test(e));
+      }
+    }
+    fired[id] = observedNativeFire;
     APEX_ARSENAL.weaponApi.consume(fighters[0], 'test');
     projectiles.length = 0;
   }
