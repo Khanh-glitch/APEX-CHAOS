@@ -55,4 +55,16 @@ assert.match(cfg,/selectedWeaponId=id/,'owner numeric selection resolves to cata
 assert.match(w,/burnRecipients=new Set\(\)/,'flamethrower burn once per contact source');
 assert.match(w,/p\.kind==='plasma'&&p\.homing/,'only released split plasma shards chase');
 assert.match(w,/kind==='smoke'/,'RPG smoke must have native world VFX');
+
+// Round 3: the V4.3 flight pass must honor Crystal's *real* swept K/J
+// contact surface before Fighter damage, without introducing a second
+// projectile integrator or allowing reflected homing/spline takeover.
+const cry=rd('public/game/hero-rework/crystalGameplayRuntime.js');
+assert.match(cry,/p\?\.type==='aq_v43'/,'Crystal recognizes mobile V4.3 threats');
+assert.match(cry,/hr\.crystalReflected = true/,'Crystal reflect preserves one-reflect provenance');
+assert.match(w,/crystal\.resolveBullet\(p,bodyT,dt\)/,'Boomerang return path must traverse Crystal contact');
+assert.match(w,/APEX_CRYSTAL\.resolveBullet\(p,bodyT,dt\)/,'Other V4.3 mobile projectiles must traverse Crystal contact');
+assert.match(w,/p\.kind==='boomerang'&&!p\.__hr\?\.crystalReflected/,'Reflected boomerang cannot override its new trajectory with the old return path');
+assert.match(w,/p\.kind==='plasma'&&p\.homing&&!p\.__hr\?\.crystalReflected/,'Reflected plasma shards cannot home toward the original owner's foe');
+assert.match(w,/if\(outcome\?\.consumed\)return;/,'Crystal contact must supersede a stale body hit');
 console.log('PASS owner V43 source integration invariants: 8 weapon entries + native holder/pose/projectile/Frost/result gates');
