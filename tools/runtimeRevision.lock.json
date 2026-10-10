@@ -59,6 +59,6 @@
     "public/game/hero-rework/mirrorPresentationRuntime.js": "3713f25305cb588042898e6137ae1c0c7d1b7214b92e32f0393a4cdf4bf96155",
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
     "public/game/results/ownerAwards.generated.js": "bf1214feb289ade27e97c382b33e87a2ecf230f54c3e673cec004b0e824d25bb",
-    "public/game/results/matchResultAuthority.js": "addc588bdd3b45797136b2990b25d963ccd851e8690482ad69a83f93a7e395a9"
+    "public/game/results/matchResultAuthority.js": "2a14d78e29a120efcf9cc663c05c6c1ea36e93911188b287895405e6dc65462f"
   }
 }
