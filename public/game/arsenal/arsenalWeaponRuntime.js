@@ -1460,10 +1460,11 @@
   // Owner V4.3 Gold visual recipe: ribbon geometry and layered flame are
   // PRESENTATION ONLY. The actual projectile path and Fighter damage remain
   // owned by the native Arsenal / Hero Rework engine.
-  function v43GoldTongue(ctx,x,y,angle,size,time,alpha=1){
+  function v43GoldTongue(ctx,x,y,angle,size,seed,alpha=1,now=seed){
     ctx.save();ctx.translate(x,y);ctx.rotate(angle);
     ctx.globalCompositeOperation='lighter';ctx.lineJoin='round';
-    const yy=Math.sin(time*24)*size*.18;
+    // Gold fireTongue samples absolute simulation time AND per-particle seed.
+    const yy=Math.sin(now*24+seed*2)*size*.18;
     for(const [k,color,opacity] of [[1.5,'#bd2418',.20],[1.06,'#ff521a',.42],[.68,'#ffad3c',.58],[.32,'#fff7c9',.65]]){
       ctx.globalAlpha=opacity*alpha;ctx.fillStyle=color;ctx.beginPath();
       ctx.moveTo(-size*.65*k,0);
@@ -1527,7 +1528,7 @@
         ctx.lineTo(px,py);ctx.stroke();ctx.restore();
       } else {
         v43GoldTongue(ctx,px,py,a,size*(.56+opacity*.7),
-          p.age+i*.038,opacity*.72);
+          i*.038,opacity*.72,p.age);
       }
     }
   }
@@ -1655,7 +1656,7 @@
         const x=t.x+Math.sin(p.age*19+i*3.4)*24,y=t.y+
           Math.cos(p.age*23+i*7)*18-(p.age*18+i*13)%48;
         v43GoldTongue(ctx,x,y,-Math.PI/2+Math.sin(p.age*4+i)*.24,
-          9+i*.8,p.age+i*.5,.67*life);
+          9+i*.8,i*.5,.67*life,p.age);
       }
       return;
     }
@@ -1701,14 +1702,15 @@
       ctx.restore();return;
     }
     if(p.kind==='flare'){
-      const a=Math.atan2(p.vy||0,p.vx||1);
-      v43GoldTongue(ctx,p.x,p.y,a,20,p.age,life);
-      ctx.save();ctx.globalCompositeOperation='lighter';
-      ctx.translate(p.x,p.y);ctx.rotate(a);
-      const glow=ctx.createRadialGradient(0,0,0,0,0,35);
-      glow.addColorStop(0,'rgba(255,245,199,.92)');glow.addColorStop(.35,'rgba(255,112,50,.44)');
-      glow.addColorStop(1,'rgba(220,46,11,0)');
-      ctx.globalAlpha=life;ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,35,0,TAU);ctx.fill();ctx.restore();
+      const a=Math.atan2(p.vy||0,p.vx||1),clock=p.age;
+      const pulse=1+Math.sin(clock*19)*.12;
+      v43GoldTongue(ctx,p.x,p.y,a+.1,19*pulse,clock*19,life,clock);
+      // Gold drawFlareHead's focused white elliptical spearhead, not the
+      // former featureless 35px radial disk over the flame animation.
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(a);
+      ctx.globalCompositeOperation='lighter';ctx.fillStyle='#fff6e1';
+      ctx.shadowColor='#ff7140';ctx.shadowBlur=19;ctx.globalAlpha=life;
+      ctx.beginPath();ctx.ellipse(4,0,9,4,0,0,TAU);ctx.fill();ctx.restore();
       return;
     }
     if(p.kind==='fragment'){
