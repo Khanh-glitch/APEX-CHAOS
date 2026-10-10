@@ -1640,6 +1640,16 @@
       types = [p1, p2];
     }
 
+    // Quest playtest chooses among the REAL public selectable Core Six.
+    // The narrative role remains questId NEWBOT; only its combat kit changes.
+    // Production Battle and test-fixture authorization are unaffected.
+    const questChoiceId={
+      newbot:'ROBOT',hunter:'HUNTER',crystala:'CRYSTAL',
+      magnet:'MAGNET',frost:'ICE',mirror:'MIRROR'
+    }[String(window.__apexQuestHeroChoice||'newbot').toLowerCase()]||'ROBOT';
+    const questHeroEligible=types[0]?.name==='ROBOT'
+      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
+        &&types[0]?.name===questChoiceId&&shells?.canPublicSelect?.(questChoiceId));
     // Q2 internal-only N-actor fixtures are never public Quest progression.
     // Public Gold Continue Story retains exact CP04 FIRST WAKE composition.
     const questCore = window.APEX_QUEST_MULTI_ACTOR_CORE;
@@ -1663,7 +1673,7 @@
     if(options.questRivetTest===true&&!rivetTest)return false;
     const rivetStory=options.questRivetProgression===true
       &&options.questRivetOverridden===true
-      &&types[0]?.name==='ROBOT'
+      &&questHeroEligible
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId==='RIVET_OVERRIDDEN'
       &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
@@ -1674,7 +1684,7 @@
     const rivetActive=rivetTest||rivetStory;
     const totStory=options.questTotLastChoice===true
       &&options.questTotProgression===true
-      &&types[0]?.name==='ROBOT'
+      &&questHeroEligible
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId==='TOT_LAST_CHOICE'
       &&typeof window.APEX_QUEST_TOT_NATIVE_STORM?.create==='function'
@@ -1700,7 +1710,7 @@
     if(options.questStoryCompletion===true&&!storyCompletion)return false;
     const firstWakeStory=options.questFirstWakeProgression===true
       &&options.questFirstWake===true
-      &&types[0]?.name==='ROBOT'
+      &&questHeroEligible
       &&!questReflex&&!!questCore
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&['WORKSHOP','FIRST_WAKE'].includes(directorCheckpoint)
@@ -1709,7 +1719,7 @@
     if(options.questFirstWakeProgression===true&&!firstWakeStory)return false;
     const scrapSwarmStory=options.questScrapSwarmProgression===true
       &&options.questScrapSwarm===true
-      &&types[0]?.name==='ROBOT'
+      &&questHeroEligible
       &&!questReflex&&options.questFirstWake!==true&&!!questCore
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
       &&directorCheckpoint==='SCRAP_SWARM'
@@ -1719,7 +1729,7 @@
     if(options.questScrapSwarmProgression===true&&!scrapSwarmStory)return false;
     const rainStory=options.questWeaponRainProgression===true
       &&options.questWeaponRain===true
-      &&types[0]?.name==='ROBOT'&&!questReflex
+      &&questHeroEligible&&!questReflex
       &&options.questFirstWake!==true&&options.questScrapSwarm!==true
       &&!!questCore&&typeof questCore.createWeaponRainSequence==='function'
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
@@ -1729,7 +1739,7 @@
     if((options.questWeaponRain||options.questWeaponRainProgression)&&!rainStory)return false;
     const breakerStory=options.questBreakerChargeProgression===true
       &&options.questBreakerCharge===true
-      &&types[0]?.name==='ROBOT'&&!questReflex
+      &&questHeroEligible&&!questReflex
       &&options.questFirstWake!==true&&options.questScrapSwarm!==true
       &&options.questWeaponRain!==true
       &&!!questCore&&typeof questCore.createBreakerChargeSequence==='function'
@@ -1740,7 +1750,7 @@
     if((options.questBreakerCharge||options.questBreakerChargeProgression)&&!breakerStory)return false;
     const breachStory=options.questBreachProgression===true
       &&options.questBreachWaves===true
-      &&types[0]?.name==='ROBOT'&&!!breachPolicy
+      &&questHeroEligible&&!!breachPolicy
       &&typeof breachPolicy.createWaveLifecycle==='function'
       &&typeof window.APEX_QUEST_BREACH_RETREAT?.create==='function'
       &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
@@ -1764,7 +1774,7 @@
     const [t1, t2] = types;
     lastShells = [t1.name, t2.name];
     const questFirstWake = options.questFirstWake === true
-      && t1.name === 'ROBOT'
+      && questHeroEligible
       && !!questCore;
     const questScrapSwarm=scrapSwarmStory;
     const questWeaponRain=rainStory;
