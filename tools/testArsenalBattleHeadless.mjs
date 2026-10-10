@@ -1755,8 +1755,17 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
      __APEX_TEST.step(.20);
      const before=__APEX_TEST.holder('HERO');
      const premature=APEX_ARSENAL.events.some(e=>e.includes('weapon='+id)&&e.includes('CONSUME'));
-     // One and only one physical projectile transaction.
-     __APEX_TEST.step(1.20);
+     // At .70s the physical Boomerang has left the muzzle but has not
+     // completed its Gold loop. Capture actual EMPTY HAND / flying body
+     // before any legitimate return catch re-equips a second holder.
+     let releasedHand=null,realOutwardFlight=false;
+     if(id==='COMBAT_BOOMERANG'){
+       __APEX_TEST.step(.50);
+       releasedHand=__APEX_TEST.holder('HERO');
+       realOutwardFlight=projectiles.some(p=>p.kind==='boomerang'
+         &&p.launchOwner===fighters[0]&&p.phase==='out'&&p.life>0);
+       __APEX_TEST.step(.70);
+     }else __APEX_TEST.step(1.20);
      const recorded=APEX_ARSENAL.events.filter(e=>e.includes('weapon='+id));
      const uses=recorded.filter(e=>e.includes(' USE ')).length;
      const interim=__APEX_TEST.holder('HERO');
@@ -1783,7 +1792,8 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
      }
      const projectilesRemaining=projectiles.filter(p=>p.aq&&p.weapon===id).length;
      findings[id]={before,uses,interim,hits,after,completed,projectilesRemaining,premature,mineContact,
-       boomerangOut,catchCount:APEX_ARSENAL.events.filter(e=>e.includes(' CATCH ')&&e.includes('weapon='+id)).length};
+       boomerangOut,releasedHand,realOutwardFlight,
+       catchCount:APEX_ARSENAL.events.filter(e=>e.includes(' CATCH ')&&e.includes('weapon='+id)).length};
    }
    return {ids,findings};
  `);
@@ -1796,7 +1806,11 @@ gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fir
        // empty immediately and a real return catch may generate an extra
        // USE, or the owner may miss it. Both are legal.
        return x.before?.weapon===id&&!x.premature&&x.uses>=1
-         &&x.interim===null&&x.boomerangOut===true;
+         &&x.releasedHand===null&&x.realOutwardFlight===true
+         &&(x.interim===null||x.interim.weapon===id)
+         // The native holder may automatically rethrow after each genuine
+         // catch. A still-airborne projectile after 6.6s is NOT a leak.
+         &&(x.projectilesRemaining===0||x.projectilesRemaining===1);
      }
      return x.before?.weapon===id && x.uses===1 && !x.premature
        && x.after===null && x.completed===1
