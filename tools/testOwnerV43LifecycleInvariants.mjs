@@ -20,7 +20,8 @@ for (const id of eight){
 assert.match(w,/h\.shotsFired\+=1/,'holder shot counter must track special shots');
 assert.match(w,/h\.phase='FOLLOW_THROUGH'/,'special shot must complete native holder');
 assert.match(w,/h\.phase='IN_FLIGHT'/,'physical Boomerang must own holder');
-assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,a,ctx\.enemy\)/,'boomerang path depends on real opponent position at release');
+assert.match(w,/v43MakeFlightPath\(x\.x,x\.y,a\)/,'Gold boomerang fixes natural flight path at the launch angle');
+assert.doesNotMatch(w,/v43MakeFlightPath\(x\.x,x\.y,a,ctx\.enemy\)/,'Gold boomerang must never derive post-throw waypoints from opponent position');
 assert.doesNotMatch(w,/p\.owner\.x-p\.x|p\.owner\.y-p\.y/,'boomerang may not home to moving owner');
 assert.doesNotMatch(w,/p\.age\+=dt;p\.life-=dt/,'the engine alone ages projectile life');
 assert.doesNotMatch(w,/if\(p\.life>0\)p\.life=Math\.max\(0,p\.life-dt\)/,
@@ -53,8 +54,10 @@ assert.match(result,/APEX_COMBAT_HUD\?\.projection/,'Result must use Battle HUD 
 assert.match(result,/cfg\.TIER_COLORS\?\.\[tier\]/,'Result must use actual weapon tier palette');
 assert.match(weapon,/weapon__rarity/,'Weapon Gold must visibly show tier');
 assert.match(css,/--weapon-tier-rgb/,'Weapon Gold must illuminate by rarity');
-assert.match(w,/flightSeconds=x\.flightPath\.total\/c\.speed/,'boomerang duration must vary by real flight distance');
-assert.match(w,/const flightSeconds=p\.flightSeconds\|\|c\.flightSeconds/,'boomerang must tick per-throw duration');
+assert.match(w,/const curvature=v43BoomerangCurvature\(path,p\.travel\)/,'Gold boomerang speed responds to physical spline curvature');
+assert.match(w,/p\.travel=Math\.min\(path\.total,p\.travel\+p\.speed\*dt\)/,'Gold boomerang movement integrates actual arc distance and speed');
+assert.match(w,/revision:'NO_TARGET_WAYPOINTS_V43'/,'Gold boomerang is a 3-leg non-homing aerodynamic loop');
+assert.doesNotMatch(w,/p\.age\/flightSeconds/,'boomerang cannot move by a constant normalized time spline');
 const spawn=rd('public/game/arsenal/arsenalSpawnRuntime.js');
 assert.match(spawn,/ownerBotForcedWeapon/,'owner BOT test must use true spawn authority');
 assert.match(cfg,/Ctrl\+Shift\+F8/,'hidden owner keyboard chord exists');
@@ -71,7 +74,7 @@ assert.match(cry,/p\?\.type==='aq_v43'/,'Crystal recognizes mobile V4.3 threats'
 assert.match(cry,/hr\.crystalReflected = true/,'Crystal reflect preserves one-reflect provenance');
 assert.match(w,/crystal\.resolveBullet\(p,bodyT,dt\)/,'Boomerang return path must traverse Crystal contact');
 assert.match(w,/APEX_CRYSTAL\.resolveBullet\(p,bodyT,dt\)/,'Other V4.3 mobile projectiles must traverse Crystal contact');
-assert.match(w,/p\.kind==='boomerang'&&!v43Redirected\(p\)/,'Reflected boomerang cannot override its new trajectory with the old return path');
+assert.match(w,/p\.kind==='boomerang'&&!v43Redirected\(p\)&&!p\.magnetReleased/,'Reflected or Magnet-bent boomerang cannot snap back onto stale Gold path');
 assert.match(w,/p\.kind==='plasma'&&p\.homing&&!v43Redirected\(p\)/,"Reflected plasma shards cannot home toward the original owner's foe");
 assert.match(w,/if\(outcome\?\.consumed\)/,'Crystal contact must supersede a stale body hit');
 // R3: shared interaction policies, preserving reflected damage to descendants,
