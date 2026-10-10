@@ -127,7 +127,62 @@ try{
       check(id+'-canvas-drew-real-projectile-asset',rec.visible.some(x=>x!==(id+'.webp')),rec);
     if(id!=='COMBAT_BOOMERANG')check(id+'-native-HP-damage',rec.damage>0,rec);
   }
-  await writeFile(join(out,'v43-browser-real-pickup.json'),JSON.stringify({base,results},null,2));
+  // ADVERSE REAL PRODUCT CASE: Core Six hero actor + public roster path.
+  // The earlier passing blank HERO/RIVAL fixture was NOT the battle played
+  // by the owner. Check the public shell authorization and real actor damage.
+  const productCases=[];
+  for(const id of ['FLARE_GUN','TACTICAL_CROSSBOW','RPG_7','PLASMA_SPLITTER']){
+    const q=await ev(`(()=>{
+      window.exitArsenalBattleMode?.();
+      window.__APEX_TEST_MODE=false;
+      window.__apexArsenalBattleProfile='LOCAL';
+      window.__apexArsenalBotBattle=false;
+      window.__apexArsenalFreeBattle=true;
+      const permitted=window.APEX_ARSENAL_SHELLS?.isPlayable?.('ROBOT');
+      const started=window.startArsenalBattleMode('ROBOT','ROBOT',{});
+      if(!started)return {id:${JSON.stringify(id)},started,permitted,
+        reason:'public ROBOT shell not playable or not selectable',
+        shell:window.APEX_ARSENAL_SHELLS?.describe?.()};
+      if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
+      const st=window.APEX_ARSENAL.state,wa=window.APEX_ARSENAL.weaponApi;
+      const a=fighters[0],b=fighters[1];
+      a.x=320;a.y=500;b.x=700;b.y=500;
+      a.setDir(1,0);b.setDir(-1,0);a.baseSpeed=0;b.baseSpeed=0;
+      a.hp=1000;b.hp=1000;
+      st.spawnTimer=1e6;st.spawnHeld=true;st.slots.length=0;
+      st.unarmedFastConsumed=true;
+      projectiles.length=0;window.APEX_ARSENAL.events.length=0;
+      st.slots.push({id:st.nextSlotId++,x:320,y:500,phase:'REVEALED',
+        weaponId:${JSON.stringify(id)},revealLeadSeconds:0,revealedFor:0,
+        pickedBy:null,rejectedFor:{},spawnTime:st.time});
+      const states=[],used=new Set();
+      for(let i=0;i<300;i++){
+        window.APEX_ARSENAL.step(1/60);
+        if(i%2===0)draw();
+        for(const x of projectiles)if(x.aq&&x.weapon===${JSON.stringify(id)})used.add(x.kind);
+        if(i===18||i===35||i===80||i===160){
+          const h=wa.getHolder(a);
+          states.push({time:+(i/60).toFixed(2),phase:h?.phase||null,
+            weapon:h?.weaponId||null,atk:a.hp,def:b.hp,
+            projectileCount:projectiles.filter(p=>p.aq).length,
+            position:{x:a.x,y:a.y,tx:b.x,ty:b.y}});
+        }
+      }
+      const events=window.APEX_ARSENAL.events;
+      return {id:${JSON.stringify(id)},started,permitted,
+        p1:a.name,p2:b.name,damage:1000-b.hp,
+        kinds:[...used],pickup:events.filter(e=>e.includes('PICKUP')
+          &&e.includes('weapon='+${JSON.stringify(id)})).length,
+        fire:events.filter(e=>e.includes(' USE ')
+          &&e.includes('weapon='+${JSON.stringify(id)})).length,
+        states};
+    })()`);
+    productCases.push(q);
+    check('CORE-SIX-PUBLIC-'+id+'-pickup-shot-damage',
+      q.started===true&&q.p1==='ROBOT'&&q.p2==='ROBOT'
+      &&q.pickup===1&&q.fire===1&&q.kinds.length>0&&q.damage>0,q);
+  }
+  await writeFile(join(out,'v43-browser-real-pickup.json'),JSON.stringify({base,results,productCases},null,2));
   const capture=await cd('Page.captureScreenshot',{format:'png'});
   await writeFile(join(out,'v43-browser-last-weapon.png'),Buffer.from(capture.data,'base64'));
   console.log('PASS REAL-V43-CHROME EIGHT REAL FLOOR PICKUPS AND DRAWN PROJECTILES');
