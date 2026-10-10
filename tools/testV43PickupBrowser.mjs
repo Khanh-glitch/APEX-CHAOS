@@ -299,7 +299,7 @@ try{
   // the eight public-floor-pickup checks above remain unchanged.
   const crystalResults=[];
   for(const id of ['TACTICAL_CROSSBOW','PLASMA_SPLITTER','COMBAT_BOOMERANG']){
-    const rec=await ev((()=>{return \`(()=>{
+    const rec=await ev((()=>{return `(()=>{
       window.exitArsenalBattleMode?.();
       window.__APEX_TEST_MODE=false;
       window.__apexArsenalBattleProfile='LOCAL';window.__apexArsenalFreeBattle=true;
@@ -331,7 +331,7 @@ try{
         intercepts:inspected?.telemetry?.intercepts||0,
         reflectedDamage:inspected?.telemetry?.reflectedDamage||0,
         errors:window.apexEarlyErrors?.slice(-2)||[]};
-    })()\`})().replaceAll('__V43_ID__',JSON.stringify(id)));
+    })()`})().replaceAll('__V43_ID__',JSON.stringify(id)));
     crystalResults.push(rec);
     const plausible={TACTICAL_CROSSBOW:112,PLASMA_SPLITTER:201,COMBAT_BOOMERANG:126}[id];
     check('R3-CRYSTAL-K-'+id+'-REAL-CORE-SIX-BOUNDED-CONTACT',
