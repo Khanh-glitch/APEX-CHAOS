@@ -961,7 +961,9 @@
       onEquip(ctx){ctx.holder.phase='READY';},
       canActivate(ctx){return ctx.holder.phase==='READY'
         &&ctx.holder.elapsed>=(c.readyDelaySeconds??CFG.RANGED_READY_DELAY_SECONDS)
-        &&enemyAlive(ctx);},
+        &&enemyAlive(ctx)
+        &&(id!=='FLAMETHROWER'||Math.hypot(ctx.enemy.x-ctx.fighter.x,ctx.enemy.y-ctx.fighter.y)
+          <=c.idealRange+(ctx.enemy.radius||75)*.25);},
       activate(ctx){
         const f=ctx.fighter,h=ctx.holder,a=angleToEnemy(ctx);
         h.phase='WINDUP';h.meta.v43Time=0;
@@ -994,7 +996,7 @@
         if(h.phase!=='WINDUP')return;
         h.meta.v43Time+=dt;
         if(h.meta.v43Time<h.meta.v43Wait)return;
-        const a=h.meta.v43Angle;
+        const a=id==='COMBAT_BOOMERANG'?angleToEnemy(ctx):h.meta.v43Angle;
         const kind={flare:'flare',bolt:'bolt',ball:'ball',boomerang:'boomerang',
           rocket:'rocket',flame:'flame',plasma:'plasma-core',mine:'mine'}[c.kind];
         if(!kind)throw Error('special executor not implemented '+c.kind);
