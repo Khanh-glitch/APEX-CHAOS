@@ -61,8 +61,9 @@ Default mode is **read-only**. Every candidate must satisfy ALL:
 2. Current GitHub SHA matches pinned SHA; no intervening work.
 3. Current Git ancestry confirms branch HEAD is reachable from canonical V4.3.
 4. Not a default, canonical, protected, PR head or PR base.
-5. Name does not appear in workflow YAML on the checkout.
-6. External deployment, release references and rollback points are reviewed before apply.
+5. Name does not appear in workflow YAML on the checkout; all arena/* refs are blocked because acceptance currently has the arena/** wildcard trigger.
+6. Any safety/, owner/, playtest/, backup/, archive/, preview/, production/, release/, checkpoint/ and hotfix/ namespace is excluded from bulk deletion.
+7. External deployment, release references and rollback points are reviewed before apply.
 
 Optional deletion mode REQUIRES a separate explicit operator command:
 
