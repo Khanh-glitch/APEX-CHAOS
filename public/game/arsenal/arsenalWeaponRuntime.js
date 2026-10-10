@@ -627,7 +627,10 @@
   function v43Pulse(x,y,kind,scale=1){
     if(AQ.state?.visuals) pushVisual({kind:'v43_'+kind,x,y,
       life:.40,maxLife:.40,scale});
-    window.avCue?.('explosion',{x,y,weapon:'V43_'+kind});
+    // Kinetic impact, metal wall bounce and return are NOT 400px orange
+    // grenade detonations. Reserve the native explosion atlas for actual AOE.
+    if(kind==='blast')window.avCue?.('explosion',{x,y,weapon:'V43_'+kind});
+    else if(kind==='ricochet')window.avCue?.('ricochet',{x,y,weapon:'STEEL_BALL_LAUNCHER'});
   }
   function v43Splash(p,peak,radius){
     const targets=v43Enemies(p.owner);
@@ -639,12 +642,12 @@
       // The outgoing rocket must still deal its ~161 HP direct-hit peak;
       // a centre-distance falloff previously halved a perfectly landed hit.
       // Mines retain their authored centre-to-centre AOE/falloff.
-      const surfaceGap=p.kind==='rocket'
-        ?Math.max(0,d-(f.radius||75)*CFG.BULLET_HIT_RADIUS_SCALE):d;
-      const factor=v43min(1-surfaceGap/range,0,1);
-      if(factor<=0)continue;
-      aqDamage(f,peak*factor,p.owner,p.weapon,{
-        knockback:320*factor,shake:5*factor,hitStop:.012});
+      const factor=v43min(1-d/range,0,1); // Original mine centre-falloff law
+      const surfaceGap=Math.max(0,d-(f.radius||75)*CFG.BULLET_HIT_RADIUS_SCALE);
+      const applied=p.kind==='rocket'?v43min(1-surfaceGap/range,0,1):factor;
+      if(applied<=0)continue;
+      aqDamage(f,peak*applied,p.owner,p.weapon,{
+        knockback:320*applied,shake:5*applied,hitStop:.012});
     }
     v43Pulse(p.x,p.y,'blast',radius/95);
   }
@@ -707,7 +710,8 @@
       pt.s=(prior?.s||0)+(prior?Math.hypot(pt.x-prior.x,pt.y-prior.y):0);
       points.push(pt);
     }
-    return {points,total:points[points.length-1].s};
+    return {points,total:points[points.length-1].s,
+      apexProgress:points[samples].s/Math.max(1e-6,points[points.length-1].s)};
   }
   function v43PathAt(path,progress){
     const pts=path.points,target=path.total*progress;
@@ -774,7 +778,7 @@
       p.vx=(p.x-p.px)/Math.max(dt,1e-5);
       p.vy=(p.y-p.py)/Math.max(dt,1e-5);
       p.spin+=c.spin*dt*(1-.20*Math.min(1,p.age/c.flightSeconds));
-      if(p.phase==='out'&&p.age>=c.flightSeconds*.5){
+      if(p.phase==='out'&&p.age/c.flightSeconds>=path.apexProgress){
         p.phase='return';p.damage=c.returning;p.hits=new Set();
       }
       if(p.age>=c.flightSeconds){
@@ -1288,7 +1292,17 @@
             mine:'SHRAPNEL_MINE',boomerang:'COMBAT_BOOMERANG'}[p.kind];
           const imgUrl=projectileKind?'/assets/arsenal/v43/'+projectileKind+'.webp':null;
           const image=imgUrl? v43Sprite(imgUrl):null;
-          ctx.translate(p.x,p.y);
+          // Ground-projected mine physics remains untouched. Only the sprite
+          // follows the authored flight dome before it visibly lands/arms.
+          let arcLift=0;
+          if(p.kind==='mine'&&p.phase==='flight'){
+            const u=Math.max(0,Math.min(1,p.age/c.flightMax));
+            arcLift=Math.sin(Math.PI*u)*62;
+            ctx.save();ctx.translate(p.x,p.y+10);ctx.scale(1,.35);
+            ctx.globalAlpha=.24;ctx.fillStyle='#16191f';
+            ctx.beginPath();ctx.arc(0,0,28,0,TAU);ctx.fill();ctx.restore();
+          }
+          ctx.translate(p.x,p.y-arcLift);
           ctx.rotate(p.kind==='boomerang'?(p.spin||0):Math.atan2(p.vy,p.vx));
           if(image?.complete&&image.naturalWidth>0){
             const w=p.kind==='boomerang'?c.worldWidth:(c.projectileWidth||Math.max(26,(p.radius||8)*3));
