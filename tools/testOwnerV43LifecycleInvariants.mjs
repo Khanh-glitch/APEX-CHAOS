@@ -39,7 +39,7 @@ for(const part of ['v43GoldTongue','v43GoldRibbon','v43GoldProjectile','v43GoldI
   assert.ok(w.includes('function '+part+'('),'original Gold V4.3 visual layer missing: '+part);
 assert.ok(w.includes('function v43GoldFlamethrowerParticles('),'V43 Gold flamethrower needs its 470 particles/s plume, not ten static tongues');
 assert.ok(auditPresentation.includes('function drawV43GoldPlasmaCharge('),'V43 Gold plasma charge must be visible before release');
-assert.match(w,/noseFrom/,'long bolt/rocket must use tip collision');
+assert.match(w,/const fromN=\{x:seg\.x0\+leadX,y:seg\.y0\+leadY\}/,'long bolt/rocket must apply tip offset to real curved path');
 assert.match(w,/kind==='plasma-core'\?c\.coreSpeed/,'plasma core has independent speed');
 assert.match(cfg,/projectileWidth:78/,'mine artwork must be legible independently of collision size');
 assert.match(p,/holder\.weaponId === 'COMBAT_BOOMERANG' && holder\.phase === 'IN_FLIGHT'/,'no fake duplicate boomerang');
