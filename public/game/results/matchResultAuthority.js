@@ -115,7 +115,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(def.id==='clutch')return null; // last 30s hit window not yet signed
    if(def.id==='never-surrender')return null; // last HP comeback authority absent
    if(def.id==='chaos-bringer')return null; // source diversity window not signed
-   if(['last-stand','comeback'].includes(def.id)&&!winner)return null;
+   if(['last-stand','comeback','speed-win'].includes(def.id)&&!winner)return null;
    return generic;
  }
  function seal(winnerSide){
