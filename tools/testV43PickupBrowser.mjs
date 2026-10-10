@@ -159,7 +159,7 @@ try{
       const originalTick=wa.updateArsenalProjectiles;
       let tickCalls=0;
       wa.updateArsenalProjectiles=function(dt){tickCalls++;return originalTick.call(wa,dt);};
-      for(let i=0;i<(id==='COMBAT_BOOMERANG'?420:300);i++){
+      for(let i=0;i<(${JSON.stringify(id)}==='COMBAT_BOOMERANG'?420:300);i++){
         window.APEX_ARSENAL.step(1/60);
         if(i%2===0)draw();
         for(const x of projectiles)if(x.aq&&x.weapon===${JSON.stringify(id)})used.add(x.kind);
