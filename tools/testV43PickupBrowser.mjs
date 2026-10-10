@@ -50,6 +50,31 @@ try{
     if(i===179)throw Error('Production Apex engine failed to load in Chrome');
     await sleep(120);
   }
+  // Real Home smoke, BEFORE eager loading the full battle product.
+  // Gold boot must already have brought up Arsenal Hub/config and META so
+  // Ctrl+Shift+F8 actually works at Home, not just inside a synthetic VM.
+  let homeLoaded=false;
+  for(let i=0;i<100;i++){
+    homeLoaded=await ev('Boolean(window.APEX_ARSENAL_OWNER_TEST && window.APEX_ARSENAL_META?.openBotPick)').catch(()=>false);
+    if(homeLoaded)break;
+    await sleep(100);
+  }
+  check('owner-hidden-keyboard-loaded-at-real-Gold-Home',homeLoaded,{homeLoaded});
+  const homeChord=await ev(`(()=>{
+    const owner=window.APEX_ARSENAL_OWNER_TEST;
+    const before={active:owner.active,mode:window.__apexArsenalSelectionMode||null};
+    window.dispatchEvent(new KeyboardEvent('keydown',{
+      key:'F8',code:'F8',ctrlKey:true,shiftKey:true,bubbles:true}));
+    const opened={active:owner.active,mode:window.__apexArsenalSelectionMode||null,
+      pending:window.__apexArsenalSelectPending===true};
+    window.dispatchEvent(new KeyboardEvent('keydown',{
+      key:'F8',code:'F8',ctrlKey:true,shiftKey:true,bubbles:true}));
+    return {before,opened,off:!owner.active,selected:owner.selectedWeaponId};
+  })()`);
+  check('owner-keyboard-opens-real-Gold-BOT-pick-before-battle',
+    homeChord.before.active===false&&homeChord.opened.active===true
+      &&homeChord.opened.mode==='bot'&&homeChord.opened.pending===true
+      &&homeChord.off===true&&homeChord.selected===null,homeChord);
   const ready=await ev(`(async()=>{
     await window.__apexEnsureDeferredRuntimes('arsenalProduct');
     // Arsenal product manifest already includes battle mode; the generic
