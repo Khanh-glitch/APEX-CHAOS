@@ -2,6 +2,7 @@
 // We explicitly disallow direct weaponApi.equip() in this gate. The earlier
 // headless PASS bypassed pickup, skipped browser rendering, and did not verify deployment.
 import {spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
@@ -180,7 +181,9 @@ try{
       st.slots.push({id:st.nextSlotId++,x:320,y:500,phase:'REVEALED',
         weaponId:${JSON.stringify(id)},revealLeadSeconds:0,revealedFor:0,
         pickedBy:null,rejectedFor:{},spawnTime:st.time});
-      const states=[],used=new Set();
+      const states=[],used=new Set(),phaseFrames=[];
+      const captureAt=${JSON.stringify(id)}==='COMBAT_BOOMERANG'
+        ?[20,42,75,110,180,260]:[20,42,65,95,130,170];
       const snapAt=${JSON.stringify(id)}==='COMBAT_BOOMERANG'?75:
         ${JSON.stringify(id)}==='PLASMA_SPLITTER'?61:
         ${JSON.stringify(id)}==='SHRAPNEL_MINE_LAUNCHER'?70:38;
@@ -193,6 +196,9 @@ try{
         if(i%2===0)draw();
         if(i===snapAt){
           draw();renderedFrame=document.getElementById('game-canvas').toDataURL('image/png');
+        }
+        if(captureAt.includes(i)){
+          draw();phaseFrames.push({step:i,png:document.getElementById('game-canvas').toDataURL('image/png')});
         }
         for(const x of projectiles)if(x.aq&&x.weapon===${JSON.stringify(id)})used.add(x.kind);
         if(i===18||i===35||i===80||i===160){
@@ -217,13 +223,23 @@ try{
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
         fire:events.filter(e=>e.includes(' USE ')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
-        states,renderedFrame};
+        states,renderedFrame,phaseFrames};
     })()`);
     if(q.renderedFrame?.startsWith('data:image/png;base64,')){
       await writeFile(join(out,'core-six-'+id+'.png'),
         Buffer.from(q.renderedFrame.slice('data:image/png;base64,'.length),'base64'));
       delete q.renderedFrame;
     }
+    const phaseHashes=[];
+    for(const frame of q.phaseFrames||[]){
+      const raw=Buffer.from((frame.png||'').split(',')[1]||'','base64');
+      phaseHashes.push(createHash('sha256').update(raw).digest('hex'));
+      await writeFile(join(out,'r3-motion-'+id+'-step'+frame.step+'.png'),raw);
+    }
+    q.phaseHashes=phaseHashes;q.phaseSteps=(q.phaseFrames||[]).map(f=>f.step);
+    delete q.phaseFrames;
+    check('R3-'+id+'-six-real-motion-frames',phaseHashes.length===6
+      &&new Set(phaseHashes).size>=2,{steps:q.phaseSteps,unique:new Set(phaseHashes).size});
     productCases.push(q);
     check('CORE-SIX-PUBLIC-'+id+'-pickup-shot-damage',
       q.started===true&&q.p1==='ROBOT'&&q.p2==='ROBOT'
@@ -259,8 +275,9 @@ try{
   })()`);
   for(const f of plasmaVisual.frames){
     if(f.png?.startsWith('data:image/png;base64,')){
-      await writeFile(join(out,'v43-plasma-edge-charge-'+String(f.time).replace('.','_')+'.png'),
-        Buffer.from(f.png.slice(22),'base64'));
+      const raw=Buffer.from(f.png.split(',')[1],'base64');
+      f.hash=createHash('sha256').update(raw).digest('hex');
+      await writeFile(join(out,'v43-plasma-edge-charge-'+String(f.time).replace('.','_')+'.png'),raw);
       delete f.png;
     }
   }
@@ -272,6 +289,9 @@ try{
   check('R3-PLASMA-CORE-BRIGHTENS-THROUGH-CHARGE',
     plasmaVisual.frames.every(f=>f.brightness>plasmaVisual.baseline+35),
     {baseline:plasmaVisual.baseline,frames:plasmaVisual.frames});
+  check('R3-PLASMA-RING-COMPRESSION-CHANGES-REAL-CHROME-PIXELS',
+    new Set(plasmaVisual.frames.map(f=>f.hash)).size===3,
+    plasmaVisual.frames.map(f=>({time:f.time,hash:f.hash?.slice(0,12)})));
   await writeFile(join(out,'v43-browser-real-pickup.json'),JSON.stringify({base,results,productCases},null,2));
   const capture=await cd('Page.captureScreenshot',{format:'png'});
   await writeFile(join(out,'v43-browser-last-weapon.png'),Buffer.from(capture.data,'base64'));
