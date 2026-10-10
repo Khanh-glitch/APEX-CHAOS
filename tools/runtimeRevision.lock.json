@@ -1,5 +1,5 @@
 {
-  "revision": "20261010-q1-b8-native-runtime",
+  "revision": "20261010-v43-post-update-01",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -38,7 +38,7 @@
     "public/game/quest/questReflexReceipts.js": "38648b2327ba838befadc4198b48a2f4df6ce12ecf7c03787d16a9acd88884cf",
     "public/game/quest/questStoryInterludes.js": "c3b9d6886c63b003a5ba05d1d54c1ced21e4ddf3266e069138887f25d48172ac",
     "public/game/quest/questStoryPresentation.js": "c96ffda01088698fea5739092acae08d2cb5e56be6bcd2e8bb6c7f16cfb804b7",
-    "public/game/quest/questGoldV12Rig.js": "9f9125ab0efd2556a01e5523474fafe2269dea64161880184cf1ca446092559d",
+    "public/game/quest/questGoldV12Rig.js": "f039b5033263a223d9daa76ad7989bea5180ca6a3b5c9777269feaf3be7f9a39",
     "public/game/quest/questGoldEnemyVisuals.js": "48ea964484252a0477eec340498fbfff5a3ff2a5b5cde30ddd53cdc777006274",
     "public/game/modes/arsenalBattleRuntime.js": "87a241203c88bf66dee00c323c36282d9cfeddb595c8b7cef6fb192a2a3e7757",
     "public/game/hero-rework/crystalaGoldV6.js": "cea96dc2b58f5c41fb482e196ec0cf9a2b9c25bb21f2b7df37afc2787b67ab2f",
