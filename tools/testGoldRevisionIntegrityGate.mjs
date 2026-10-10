@@ -13,6 +13,13 @@ function digest(path){const buf=fs.readFileSync(path);return {bytes:buf.length,s
 
 check('Gold manifest revision matches runtime authority', manifest.runtimeRevision===revision);
 check('Gold shell URL carries current revision', urls.includes(`/gold/shell.html?v=${revision}`));
+const shell=fs.readFileSync('public/gold/shell.html','utf8');
+const questSource=fs.readFileSync('public/game/quest/quest01Director.js','utf8');
+check('Quest script URL matches fixed-ROBOT director',
+  shell.includes('/game/quest/quest01Director.js?v=20261010-quest-fixed-robot-02')
+  &&runtime.includes('/game/quest/quest01Director.js?v=20261010-quest-fixed-robot-02'));
+check('Quest UI has no hero picker',
+  !/q1HeroCards|populateQuestHeroPicker|__apexQuestHeroChoice/.test(questSource));
 check('Gold Lucky URL carries current revision', urls.includes(`/gold/lucky-draw.html?v=${revision}`));
 check('Gold HUD URL carries current revision', urls.includes(`/gold/battle-hud.html?v=${revision}`));
 check('Gold transition URL carries current revision', urls.includes(`/gold/transition/mechanical-door-v4.gold.js?v=${revision}`));
