@@ -156,12 +156,19 @@ try{
         weaponId:${JSON.stringify(id)},revealLeadSeconds:0,revealedFor:0,
         pickedBy:null,rejectedFor:{},spawnTime:st.time});
       const states=[],used=new Set();
+      const snapAt=${JSON.stringify(id)}==='COMBAT_BOOMERANG'?75:
+        ${JSON.stringify(id)}==='PLASMA_SPLITTER'?61:
+        ${JSON.stringify(id)}==='SHRAPNEL_MINE_LAUNCHER'?70:38;
+      let renderedFrame=null;
       const originalTick=wa.updateArsenalProjectiles;
       let tickCalls=0;
       wa.updateArsenalProjectiles=function(dt){tickCalls++;return originalTick.call(wa,dt);};
       for(let i=0;i<(${JSON.stringify(id)}==='COMBAT_BOOMERANG'?420:300);i++){
         window.APEX_ARSENAL.step(1/60);
         if(i%2===0)draw();
+        if(i===snapAt){
+          draw();renderedFrame=document.getElementById('game-canvas').toDataURL('image/png');
+        }
         for(const x of projectiles)if(x.aq&&x.weapon===${JSON.stringify(id)})used.add(x.kind);
         if(i===18||i===35||i===80||i===160){
           const h=wa.getHolder(a);
@@ -185,8 +192,13 @@ try{
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
         fire:events.filter(e=>e.includes(' USE ')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
-        states};
+        states,renderedFrame};
     })()`);
+    if(q.renderedFrame?.startsWith('data:image/png;base64,')){
+      await writeFile(join(out,'core-six-'+id+'.png'),
+        Buffer.from(q.renderedFrame.slice('data:image/png;base64,'.length),'base64'));
+      delete q.renderedFrame;
+    }
     productCases.push(q);
     check('CORE-SIX-PUBLIC-'+id+'-pickup-shot-damage',
       q.started===true&&q.p1==='ROBOT'&&q.p2==='ROBOT'
