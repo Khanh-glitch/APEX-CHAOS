@@ -82,6 +82,9 @@ jobs:
       - name: V43 Gold natural-flight boomerang 30-60-120Hz reference check
         run: node tools/testOwnerV43BoomerangNaturalFlight.mjs
 
+      - name: V43 Gold airfoil 3-phase exact reference Canvas commands
+        run: node tools/testOwnerV43GoldAirfoilParity.mjs
+
       - name: Owner V43 unified lifecycle, Frost A1, Result Gold invariant guard
         run: node tools/testOwnerV43LifecycleInvariants.mjs
 
