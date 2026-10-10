@@ -635,7 +635,13 @@
       const d=Math.hypot(f.x-p.x,f.y-p.y);
       // Nearest surface counts as in-blast; center is max, outer edge zero.
       const range=radius+(f.radius||75)*.25;
-      const factor=v43min(1-d/range,0,1);
+      // RPG nose-contact is on a fighter's *surface*, not its centre.
+      // The outgoing rocket must still deal its ~161 HP direct-hit peak;
+      // a centre-distance falloff previously halved a perfectly landed hit.
+      // Mines retain their authored centre-to-centre AOE/falloff.
+      const surfaceGap=p.kind==='rocket'
+        ?Math.max(0,d-(f.radius||75)*CFG.BULLET_HIT_RADIUS_SCALE):d;
+      const factor=v43min(1-surfaceGap/range,0,1);
       if(factor<=0)continue;
       aqDamage(f,peak*factor,p.owner,p.weapon,{
         knockback:320*factor,shake:5*factor,hitStop:.012});
@@ -722,10 +728,13 @@
       if(p.armAge>=c.triggerAge||v43Enemies(p.owner).some(f=>
         Math.hypot(f.x-p.x,f.y-p.y)<c.triggerRadius+(f.radius||75)*.25)){
         v43Splash(p,c.peak,c.blastRadius);
+        // One explosion, one shared per-victim fragment budget: no target
+        // can ever receive more than 2 of the 8 shrapnel impacts.
+        const fragmentGroup={victimHits:new Map()};
         for(let i=0;i<c.fragments;i++){
           const angle=i*Math.PI*2/c.fragments;
           v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
-            px:p.x,py:p.y,radius:4,damage:c.fragmentDamage,
+            px:p.x,py:p.y,radius:4,damage:c.fragmentDamage,fragmentGroup,
             life:.55,vx:Math.cos(angle)*c.fragmentSpeed,vy:Math.sin(angle)*c.fragmentSpeed});
         }
         p.life=0;
@@ -791,14 +800,28 @@
     const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
-      if(p.kind==='rocket'||p.kind==='ball'){
+      if(p.kind==='rocket'){
         v43Splash(p,p.damage||c.peak,c.blastRadius);
+        p.life=0;return;
+      }
+      if(p.kind==='ball'){
+        // Steel Ball is a direct kinetic collision, NEVER a scaled AOE.
+        // Straight 98, one wall-bounce 109.76 (native Fighter.takeDamage).
+        aqDamage(hit.actor,p.damage??c.peak,p.owner,p.weapon,{
+          knockback:180,impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
+        v43Pulse(hit.x,hit.y,'strike');
         p.life=0;return;
       }
       if(p.kind==='mine'){
         if(p.phase==='armed')v43Splash(p,p.damage||c.peak,c.blastRadius);
         else v43Splash(p,(p.damage||c.peak)*.75,c.blastRadius);
         p.life=0;return;
+      }
+      if(p.kind==='fragment'&&p.fragmentGroup){
+        const counts=p.fragmentGroup.victimHits;
+        const n=counts.get(hit.actor)||0;
+        if(n>=c.maxFragmentHits){p.hits.add(hit.actor);p.life=0;return;}
+        counts.set(hit.actor,n+1);
       }
       aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
         knockback:p.kind==='bolt'?180:100,
@@ -830,7 +853,7 @@
         if(p.y<=p.radius||p.y>=GAME_SIZE-p.radius)p.vy=-p.vy*c.restitution;
         p.vx*=c.horizontalRetention;p.vy*=c.horizontalRetention;
         v43Pulse(p.x,p.y,'ricochet');
-      }else if(wall){v43Splash(p,p.bounces?c.ricochetPeak:c.peak,c.blastRadius);p.life=0;}
+      }else if(wall){v43Pulse(p.x,p.y,'ricochet');p.life=0;}
     }
     if(p.kind==='rocket'&&(p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
       p.x=v43min(p.x,0,GAME_SIZE);p.y=v43min(p.y,0,GAME_SIZE);
@@ -845,8 +868,8 @@
       }
       v43Pulse(p.x,p.y,'split');p.life=0;
     }
-    if(p.life<=0&&(p.kind==='rocket'||p.kind==='ball')){
-      v43Splash(p,p.damage||(p.kind==='rocket'?c.peak:(p.bounces?c.ricochetPeak:c.peak)),c.blastRadius);
+    if(p.life<=0&&p.kind==='rocket'){
+      v43Splash(p,p.damage||c.peak,c.blastRadius);
     }
   }
   function v43TickBurn(p,dt){
