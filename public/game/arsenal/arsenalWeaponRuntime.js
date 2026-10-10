@@ -681,41 +681,66 @@
       ...extra};
     projectiles.push(p);return p;
   }
+  function v43ApplyBurn(target, owner, weapon, ticks, interval, damage) {
+    if (!target || target.hp <= 0) return;
+    projectiles.push({aq:true,type:'aq_v43',kind:'burn',owner,weapon,victim:target,
+      x:target.x,y:target.y,age:0,life:ticks*interval+.15,
+      maxLife:ticks*interval+.15,tickCount:0,burnTicks:ticks,
+      burnInterval:interval,burnDamage:damage});
+  }
   function v43FlameHit(p,dt){
     const c=V43.FLAMETHROWER;
-    // 5 timed contact samples, each bounded to real owner heading/cone.
+    // Continuous weapon-relative emission: each particle records the live
+    // muzzle pose at birth; old particles keep their original world positions.
+    const h=getHolder(p.owner),aim=h?.meta?.aimAngle;
+    if(Number.isFinite(aim))p.angle=aim;
+    const muzzle=v43Muzzle(p.owner,p.weapon,p.angle);
+    p.x=muzzle.x;p.y=muzzle.y;
+    if(!p.flameOrigins)p.flameOrigins=[];
+    p.flameOrigins.push({time:p.age,x:p.x,y:p.y,angle:p.angle});
+    if(p.flameOrigins.length>90)p.flameOrigins.shift();
     p.ticks=p.ticks||0;
-    if(p.ticks>=c.ticks)return;
-    const due=c.tickStart+p.ticks*c.tickInterval;
-    if(p.age+1e-6<due)return;
-    const dir=p.angle;
-    for(const f of v43Enemies(p.owner)){
-      const dx=f.x-p.owner.x,dy=f.y-p.owner.y,d=Math.hypot(dx,dy);
-      const off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-dir),
-        Math.cos(Math.atan2(dy,dx)-dir)));
-      if(d<=c.range+(f.radius||75)*.2&&off<=c.cone+Math.asin(v43min((f.radius||75)*.35/Math.max(d,1),0,1)))
-        aqDamage(f,p.damage||c.tickDamage,p.owner,p.weapon,{knockback:40});
+    while(p.ticks<c.ticks){
+      const due=c.tickStart+p.ticks*c.tickInterval;
+      if(p.age+1e-6<due)break;
+      const dir=p.angle;
+      for(const f of v43Enemies(p.owner)){
+        const dx=f.x-p.owner.x,dy=f.y-p.owner.y,d=Math.hypot(dx,dy);
+        const off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-dir),
+          Math.cos(Math.atan2(dy,dx)-dir)));
+        if(d<=c.range+(f.radius||75)*.2
+          &&off<=c.cone+Math.asin(v43min((f.radius||75)*.35/Math.max(d,1),0,1))){
+          aqDamage(f,c.tickDamage,p.owner,p.weapon,{knockback:26});
+          if(!p.burnRecipients)p.burnRecipients=new Set();
+          if(!p.burnRecipients.has(f)){
+            p.burnRecipients.add(f);
+            v43ApplyBurn(f,p.owner,p.weapon,c.burnTicks,c.burnInterval,c.burnDamage);
+          }
+        }
+      }
+      p.ticks++;
     }
-    p.ticks++;
     if(p.ticks>=c.ticks)p.life=0;
   }
-  // Arc-length lookup table: one physical Boomerang body; NO opponent homing.
-  // Separate outward/return lobes form a readable throw curve while retaining
-  // the launch angle and release point as the only trajectory inputs.
-  function v43MakeFlightPath(x,y,angle){
+  // A fast, physically legible, TARGET-AIMED throw. Launch direction is fixed
+  // at release (no cheating homing); outward leg crosses the enemy's recorded
+  // center. Return bends around the target, then reconnects to launch origin.
+  function v43MakeFlightPath(x,y,angle,target){
     const dx=Math.cos(angle),dy=Math.sin(angle),nx=-dy,ny=dx;
-    const reach=380,bend=150;
-    const apex={x:x+dx*reach+nx*bend,y:y+dy*reach+ny*bend};
+    const distance=target?Math.hypot(target.x-x,target.y-y):380;
+    const reach=v43min(distance+35,180,680);
+    const bend=v43min(distance*.18,36,105);
+    const apex={x:x+dx*reach,y:y+dy*reach};
     const points=[],samples=80;
     const bez=(a,b,c,d,t)=>{const u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d;};
     for(let leg=0;leg<2;leg++)for(let i=0;i<=samples;i++){
       if(leg&&i===0)continue;
       const t=i/samples;
       const p0=leg?apex:{x,y},p3=leg?{x,y}:apex;
-      const p1=leg?{x:apex.x+dx*110-nx*120,y:apex.y+dy*110-ny*120}
-                  :{x:x+dx*145-nx*35,y:y+dy*145-ny*35};
-      const p2=leg?{x:x-dx*110-nx*135,y:y-dy*110-ny*135}
-                  :{x:apex.x-dx*35+nx*75,y:apex.y-dy*35+ny*75};
+      const p1=leg?{x:apex.x+dx*reach*.2+nx*bend,y:apex.y+dy*reach*.2+ny*bend}
+                  :{x:x+dx*reach*.34,y:y+dy*reach*.34};
+      const p2=leg?{x:x+dx*reach*.32+nx*bend*1.8,y:y+dy*reach*.32+ny*bend*1.8}
+                  :{x:x+dx*reach*.76,y:y+dy*reach*.76};
       const pt={x:bez(p0.x,p1.x,p2.x,p3.x,t),y:bez(p0.y,p1.y,p2.y,p3.y,t)};
       const prior=points[points.length-1];
       pt.s=(prior?.s||0)+(prior?Math.hypot(pt.x-prior.x,pt.y-prior.y):0);
