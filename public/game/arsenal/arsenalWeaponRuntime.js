@@ -1639,6 +1639,21 @@
     }
     ctx.restore();
   }
+  // Exact owner Gold drawPremiumLayer plasma transport ribbons. This layer
+  // reads the same physical carrier position/velocity as the native attack;
+  // it NEVER creates a second projectile or extra damage authority.
+  function v43GoldPlasmaTrail(ctx,p,life=1){
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    const a=Math.atan2(p.vy,p.vx);ctx.translate(p.x,p.y);ctx.rotate(a);
+    for(let j=0;j<3;j++){
+      ctx.strokeStyle=['#793cc8','#bd83f8','#f1d7ff'][j];
+      ctx.globalAlpha=[.15,.40,.73][j]*life;ctx.lineWidth=[23,8,1.5][j];
+      ctx.lineCap='round';ctx.beginPath();
+      ctx.moveTo(-72+j*12,Math.sin(p.age*18+j)*3);
+      ctx.quadraticCurveTo(-40,Math.sin(p.age*15+j)*10,0,0);ctx.stroke();
+    }
+    ctx.restore();
+  }
   function v43GoldProjectile(ctx,p){
     const c=V43[p.weapon]||{},life=p.kind==='boomerang'
       ?v43min(p.life/.25,0,1):v43min(p.life/Math.max(.1,p.maxLife),0,1);
@@ -1661,19 +1676,13 @@
       return;
     }
     if(p.kind==='plasma'||p.kind==='plasma-core'){
+      // Gold's 3 ribbons are immutable; the 7 finer current-arcs below
+      // are additive V4.3 detail, never a substitute for Gold transport.
+      v43GoldPlasmaTrail(ctx,p,life);
       const heading=Math.atan2(p.vy||0,p.vx||1);
       ctx.save();ctx.translate(p.x,p.y);ctx.rotate(heading);
       ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
       const distance=p.kind==='plasma-core'?92:73;
-      for(let j=0;j<3;j++){
-        const wiggle=Math.sin(p.age*18+j*2.1)*5;
-        ctx.strokeStyle=['#7834cd','#bd83f8','#f6d7ff'][j];
-        ctx.globalAlpha=[.25,.58,.92][j]*life;
-        ctx.lineWidth=[23,8,1.6][j];ctx.beginPath();
-        ctx.moveTo(-distance+j*12,wiggle);
-        ctx.quadraticCurveTo(-distance*.48,Math.sin(p.age*15+j)*13,0,0);
-        ctx.stroke();
-      }
       ctx.lineWidth=1.2;ctx.strokeStyle='#f7e8ff';ctx.globalAlpha=.38*life;
       for(let j=0;j<7;j++){
         const phase=p.age*27+j*1.91;
