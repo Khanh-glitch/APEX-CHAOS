@@ -1,0 +1,1599 @@
+{
+  "schema": "apex-chaos-commendations-5-fields-v2",
+  "origin": "Gold Result 2026-10-09 • 1000 HP / 4.5 s Arsenal cadence / x7 weapon damage • thiết kế, chưa nối game",
+  "countGeneral": 44,
+  "countSignature": 6,
+  "categories": {
+    "offense": "Hỏa Lực",
+    "precision": "Chính Xác",
+    "weapon": "Vũ Khí",
+    "survival": "Sinh Tồn",
+    "tactics": "Chiến Thuật",
+    "chaos": "Hỗn Loạn",
+    "signature": "Signature (để trống)"
+  },
+  "items": [
+    {
+      "id": "no-escape",
+      "slot": 1,
+      "type": "general",
+      "heroId": null,
+      "name": "Không Thể Trốn Thoát",
+      "category": "offense",
+      "rarity": "legendary",
+      "rule": "Tạo một chuỗi sát thương thực tế ≥ {damage} DMG; khoảng cách giữa các lần gây damage không quá {gap} giây.",
+      "explain": "Chuỗi kết thúc nếu vượt quá giới hạn giữa hai lần gây sát thương. Chỉ tính HP thực sự đã trừ.",
+      "metric": "max_damage_chain",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Sát thương chuỗi",
+          "value": 500,
+          "unit": "DMG",
+          "compare": "gte"
+        },
+        {
+          "key": "gap",
+          "label": "Khoảng ngắt tối đa",
+          "value": 1.2,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "locked_rule",
+      "note": "Mốc 500 DMG đã chốt. Cửa sổ chain dùng logic 1,2 giây của engine, cần khóa con số.",
+      "oldGold": "no-escape",
+      "icon": "Radar",
+      "decision": "keep",
+      "designNote": "Mốc 500 DMG đã chốt. 1,5 giây là đề xuất trong cửa sổ chain 1–2 giây, chưa phải cấu hình khóa.",
+      "basis": "owner_locked"
+    },
+    {
+      "id": "first-blood",
+      "slot": 2,
+      "type": "general",
+      "heroId": null,
+      "name": "Máu Đầu Tiên",
+      "category": "offense",
+      "rarity": "common",
+      "rule": "Là bên đầu tiên gây ra lượng sát thương thực tế lớn hơn 0 lên đối thủ.",
+      "explain": "Một trận chỉ có tối đa một người đạt; không giới hạn thời gian.",
+      "metric": "first_realized_damage",
+      "params": [],
+      "telemetry": "event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "first-blood",
+      "icon": "Droplet",
+      "decision": "keep",
+      "designNote": "Mốc do mình đề xuất từ nhịp Arsenal; cần playtest và ghi telemetry trước khi trao thưởng thật.",
+      "basis": "proposed"
+    },
+    {
+      "id": "overkill",
+      "slot": 3,
+      "type": "general",
+      "heroId": null,
+      "name": "Dư Chấn",
+      "category": "offense",
+      "rarity": "rare",
+      "rule": "Gây ≥ {hit} DMG thực tế trong một lần trúng đích.",
+      "explain": "Đo một damage transaction, không cộng các pellet của shotgun thành một hit trừ khi combat định nghĩa như vậy.",
+      "metric": "max_single_hit",
+      "params": [
+        {
+          "key": "hit",
+          "label": "Đòn mạnh nhất",
+          "value": 250,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "event",
+      "review": "draft",
+      "note": "1 đòn để dễ định nghĩa cứ dùng cửa sổ 0,1 giây thay vì cố định nghĩa thế nào là 1 đòn",
+      "oldGold": "overkill",
+      "icon": "Hammer",
+      "decision": "keep",
+      "designNote": "Một hit 250 DMG đủ nổi bật với HP ban đầu 1.000. Chỉ tính HP thực trừ, không tính overkill.",
+      "basis": "proposed"
+    },
+    {
+      "id": "burst-king",
+      "slot": 4,
+      "type": "general",
+      "heroId": null,
+      "name": "Vua Bùng Nổ",
+      "category": "offense",
+      "rarity": "epic",
+      "rule": "Gây ≥ {damage} DMG thực trong một cửa sổ trượt {window} giây.",
+      "explain": "Dùng timeline damage thực tế và sliding window, không phụ thuộc frame rate.",
+      "metric": "rolling_burst_damage",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage burst",
+          "value": 350,
+          "unit": "DMG",
+          "compare": "gte"
+        },
+        {
+          "key": "window",
+          "label": "Thời gian cửa sổ",
+          "value": 3,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "burst-king",
+      "icon": "Zap",
+      "decision": "keep",
+      "designNote": "350 DMG trong 3 giây: phù hợp burst lớn, khó hơn súng thường; cần thống kê rolling window.",
+      "basis": "proposed"
+    },
+    {
+      "id": "relentless",
+      "slot": 5,
+      "type": "general",
+      "heroId": null,
+      "name": "Không Ngừng Nghỉ",
+      "category": "offense",
+      "rarity": "rare",
+      "rule": "Gây damage thành công {hits} lần liên tục; giữa các lần không được gián đoạn quá {gap} giây.",
+      "explain": "Mỗi hit hợp lệ là một event gây HP loss; không đếm frame tồn tại của DOT thành nhiều hit giả.",
+      "metric": "damage_event_streak",
+      "params": [
+        {
+          "key": "hits",
+          "label": "Số hit liên tục",
+          "value": 20,
+          "unit": "lần",
+          "compare": "gte"
+        },
+        {
+          "key": "gap",
+          "label": "Ngắt chuỗi tối đa",
+          "value": -20,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Khác Không Thể Trốn Thoát: đếm nhịp hit, không đo tổng damage.",
+      "oldGold": "relentless",
+      "icon": "Activity",
+      "decision": "drop",
+      "designNote": "ĐỀ NGHỊ BỎ: trùng ý tưởng chuỗi damage với Không Thể Trốn Thoát và Tay Súng Vững.",
+      "basis": "proposed"
+    },
+    {
+      "id": "executioner",
+      "slot": 6,
+      "type": "general",
+      "heroId": null,
+      "name": "Đao Phủ",
+      "category": "offense",
+      "rarity": "rare",
+      "rule": "Tung đòn kết liễu khi đối thủ trước đòn đánh còn ≤ {hp} % HP tối đa.",
+      "explain": "Một duel chỉ có một KO; không dùng ngưỡng 3 lần kết liễu.",
+      "metric": "execute_low_hp",
+      "params": [
+        {
+          "key": "hp",
+          "label": "HP đối thủ trước KO",
+          "value": 20,
+          "unit": "%",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "executioner",
+      "icon": "Axe",
+      "decision": "keep",
+      "designNote": "Mốc do mình đề xuất từ nhịp Arsenal; cần playtest và ghi telemetry trước khi trao thưởng thật.",
+      "basis": "proposed"
+    },
+    {
+      "id": "glass-cannon",
+      "slot": 7,
+      "type": "general",
+      "heroId": null,
+      "name": "Pháo Thủy Tinh",
+      "category": "offense",
+      "rarity": "epic",
+      "rule": "Gây ít nhất {ratio} lần damage đã nhận, đồng thời tổng damage gây ra ≥ {min} DMG.",
+      "explain": "Nếu damage nhận vào bằng 0, chỉ xét điều kiện damage tối thiểu; không chia cho 0.",
+      "metric": "dealt_to_taken_ratio",
+      "params": [
+        {
+          "key": "ratio",
+          "label": "Tỷ lệ gây / nhận",
+          "value": 2,
+          "unit": "lần",
+          "compare": "gte"
+        },
+        {
+          "key": "min",
+          "label": "Damage tối thiểu",
+          "value": 450,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "aggregate",
+      "review": "draft",
+      "note": "",
+      "oldGold": "glass-cannon",
+      "icon": "Gem",
+      "decision": "keep",
+      "designNote": "Tỷ lệ 2:1, tối thiểu 450 DMG để tránh đạt do chỉ gây vài sát thương nhỏ.",
+      "basis": "proposed"
+    },
+    {
+      "id": "bullet-storm",
+      "slot": 8,
+      "type": "general",
+      "heroId": null,
+      "name": "Mưa Đạn",
+      "category": "offense",
+      "rarity": "common",
+      "rule": "Có ít nhất {triggers} lượt bóp cò vũ khí tầm xa gây trúng đích.",
+      "explain": "Một lượt shotgun trúng nhiều pellet vẫn chỉ tính một lượt bắn hiệu quả.",
+      "metric": "successful_firing_triggers",
+      "params": [
+        {
+          "key": "triggers",
+          "label": "Lượt bắn có trúng",
+          "value": 12,
+          "unit": "lượt",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Thay Phản Ứng Dây Chuyền không hợp phạm vi 1v1.",
+      "oldGold": "chain-reaction",
+      "icon": "CloudHail",
+      "decision": "drop",
+      "designNote": "ĐỀ NGHỊ BỎ: ưu ái vũ khí nhiều phát, ít ý nghĩa thành tích; giữ slot để bạn quyết.",
+      "basis": "proposed"
+    },
+    {
+      "id": "sure-shot",
+      "slot": 9,
+      "type": "general",
+      "heroId": null,
+      "name": "Bách Phát Bách Trúng",
+      "category": "precision",
+      "rarity": "epic",
+      "rule": "Tỷ lệ lượt bắn trúng ≥ {accuracy} %, với tối thiểu {shots} lượt bắn hợp lệ.",
+      "explain": "Thống nhất một trigger = một attempt; Shotgun tính hit nếu có ≥1 pellet trúng.",
+      "metric": "ranged_trigger_accuracy",
+      "params": [
+        {
+          "key": "accuracy",
+          "label": "Độ chính xác",
+          "value": 65,
+          "unit": "%",
+          "compare": "gte"
+        },
+        {
+          "key": "shots",
+          "label": "Số lượt bắn tối thiểu",
+          "value": 10,
+          "unit": "lượt",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Cần tách shot trigger / pellet; tránh 1/1 phát đạt danh hiệu.",
+      "oldGold": "sure-shot",
+      "icon": "Target",
+      "decision": "keep",
+      "designNote": "Một lượt bóp cò có ít nhất 1 viên/pellet trúng tính là một lượt bắn trúng. Tối thiểu 10 lượt tránh lách bằng 1 phát.",
+      "basis": "proposed"
+    },
+    {
+      "id": "assassin",
+      "slot": 10,
+      "type": "general",
+      "heroId": null,
+      "name": "Sát Thủ",
+      "category": "precision",
+      "rarity": "epic",
+      "rule": "Tỷ lệ crit ≥ {crit} % trên ít nhất {hits} lượt trúng có khả năng crit.",
+      "explain": "Chỉ các hit đủ điều kiện crit được đưa vào mẫu số.",
+      "metric": "eligible_crit_rate",
+      "params": [
+        {
+          "key": "crit",
+          "label": "Crit rate",
+          "value": 25,
+          "unit": "%",
+          "compare": "gte"
+        },
+        {
+          "key": "hits",
+          "label": "Hit hợp lệ tối thiểu",
+          "value": 8,
+          "unit": "hit",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "assassin",
+      "icon": "Skull",
+      "decision": "keep",
+      "designNote": "Chỉ các hit đủ điều kiện crit mới vào mẫu số. Tối thiểu 8 hit để tránh tỷ lệ 100% từ 1 crit.",
+      "basis": "proposed"
+    },
+    {
+      "id": "eagle-eye",
+      "slot": 11,
+      "type": "general",
+      "heroId": null,
+      "name": "Mắt Đại Bàng",
+      "category": "precision",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG từ khoảng cách ít nhất {distance} đơn vị đấu trường.",
+      "explain": "Đo khoảng cách nguồn→mục tiêu lúc va chạm trong hệ tọa độ arena 1000×1000.",
+      "metric": "long_range_damage",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage từ xa",
+          "value": 250,
+          "unit": "DMG",
+          "compare": "gte"
+        },
+        {
+          "key": "distance",
+          "label": "Khoảng cách tối thiểu",
+          "value": 500,
+          "unit": "px",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Không dùng m (mét) hư cấu khi game đo theo px.",
+      "oldGold": "eagle-eye",
+      "icon": "Eye",
+      "decision": "keep",
+      "designNote": "Arena 1000×1000 px: 500 px là cự ly xa. Tính khoảng cách tại impact.",
+      "basis": "proposed"
+    },
+    {
+      "id": "steady-hand",
+      "slot": 12,
+      "type": "general",
+      "heroId": null,
+      "name": "Tay Súng Vững",
+      "category": "precision",
+      "rarity": "rare",
+      "rule": "Có chuỗi ≥ {streak} lượt bắn tầm xa liên tiếp trúng mục tiêu.",
+      "explain": "Mỗi lượt bóp cò tính một, dù súng bắn nhiều pellet/burst; chuỗi reset khi miss.",
+      "metric": "firing_trigger_hit_streak",
+      "params": [
+        {
+          "key": "streak",
+          "label": "Chuỗi lượt trúng",
+          "value": 6,
+          "unit": "lượt",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "cần cho 1 đơn vị cho xa",
+      "oldGold": "steady-hand",
+      "icon": "Hand",
+      "decision": "keep",
+      "designNote": "Chuỗi 6 trigger liên tiếp trúng; shotgun nhiều pellet chỉ là 1 trigger.",
+      "basis": "proposed"
+    },
+    {
+      "id": "point-blank",
+      "slot": 13,
+      "type": "general",
+      "heroId": null,
+      "name": "Cận Chiến Tử Thần",
+      "category": "precision",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG khi khoảng cách tới đối thủ ≤ {distance} đơn vị arena.",
+      "explain": "Dùng khoảng cách tâm Fighter tại thời điểm gây damage; tính cả súng và melee.",
+      "metric": "close_range_damage",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage cận chiến",
+          "value": 300,
+          "unit": "DMG",
+          "compare": "gte"
+        },
+        {
+          "key": "distance",
+          "label": "Cự ly tối đa",
+          "value": 240,
+          "unit": "px",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "point-blank",
+      "icon": "Flame",
+      "decision": "keep",
+      "designNote": "Cự ly 240px so với kích thước đấu trường; dùng vị trí tại thời điểm damage.",
+      "basis": "proposed"
+    },
+    {
+      "id": "final-round",
+      "slot": 14,
+      "type": "general",
+      "heroId": null,
+      "name": "Viên Đạn Cuối",
+      "category": "precision",
+      "rarity": "rare",
+      "rule": "Hạ gục đối thủ bằng lượt bắn cuối cùng của một vũ khí có số lượt bắn hữu hạn.",
+      "explain": "KO phải phát sinh từ lượt bắn cuối của vũ khí; không tính cú nổ/hiệu ứng độc lập.",
+      "metric": "last_round_ko",
+      "params": [],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Thay Thợ Tháo Giáp vì game chưa có armor break tổng quát.",
+      "oldGold": "armor-break",
+      "icon": "CircleDot",
+      "decision": "keep",
+      "designNote": "Phải ghi số lượt bắn còn lại ở thời điểm cú hạ gục. Chỉ áp dụng vũ khí tiêu hao theo lượt.",
+      "basis": "proposed"
+    },
+    {
+      "id": "ricochet",
+      "slot": 15,
+      "type": "general",
+      "heroId": null,
+      "name": "Đạn Nảy Thần Sầu",
+      "category": "precision",
+      "rarity": "rare",
+      "rule": "Có ít nhất {hits} lần ném vũ khí trúng mục tiêu sau khi vũ khí nảy tường.",
+      "explain": "Cần lưu bounceCount trên projectile vũ khí ném (SABRE, DAGGER, SPEAR...).",
+      "metric": "ricochet_melee_hit",
+      "params": [
+        {
+          "key": "hits",
+          "label": "Lượt ném nảy trúng",
+          "value": 1,
+          "unit": "lượt",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Đạn nảy trong tên là cách nói; sự kiện thật có thể là vũ khí ném.",
+      "oldGold": "ricochet",
+      "icon": "Waypoints",
+      "decision": "keep",
+      "designNote": "Arsenal đã có ném vũ khí nảy tường; cần event va chạm tường gắn với cùng projectile.",
+      "basis": "proposed"
+    },
+    {
+      "id": "mastery-shotgun",
+      "slot": 16,
+      "type": "general",
+      "heroId": null,
+      "name": "Thông Tạo Shotgun",
+      "category": "weapon",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG bằng vũ khí family SHOTGUN hoặc AUTOSHOT.",
+      "explain": "Phân nhóm dựa trên Weapon ID→family của registry; không dựa trên text tên vũ khí.",
+      "metric": "weapon_family_damage:SHOTGUN|AUTOSHOT",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage Shotgun",
+          "value": 400,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "mastery-shotgun",
+      "icon": "Shell",
+      "decision": "keep",
+      "designNote": "Chỉ sát thương từ family SHOTGUN/AUTOSHOT; cần record damage by family.",
+      "basis": "proposed"
+    },
+    {
+      "id": "mastery-auto",
+      "slot": 17,
+      "type": "general",
+      "heroId": null,
+      "name": "Thông Tạo Liên Thanh",
+      "category": "weapon",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG bằng vũ khí family AUTO.",
+      "explain": "Súng AUTO trong registry bao gồm một số SMG/rifle, không gọi nhầm tất cả là tiểu liên.",
+      "metric": "weapon_family_damage:AUTO",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage AUTO",
+          "value": 400,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "mastery-smg",
+      "icon": "Gauge",
+      "decision": "keep",
+      "designNote": "Chỉ sát thương từ family AUTO; cần record damage by family.",
+      "basis": "proposed"
+    },
+    {
+      "id": "mastery-burst",
+      "slot": 18,
+      "type": "general",
+      "heroId": null,
+      "name": "Thông Tạo Bắn Loạt",
+      "category": "weapon",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG bằng vũ khí family BURST.",
+      "explain": "Không nhầm nhịp burst của skill Fighter với súng family BURST.",
+      "metric": "weapon_family_damage:BURST",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage BURST",
+          "value": 350,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "mastery-rail",
+      "icon": "List",
+      "decision": "keep",
+      "designNote": "Chỉ sát thương từ family BURST; cần record damage by family.",
+      "basis": "proposed"
+    },
+    {
+      "id": "mastery-precision",
+      "slot": 19,
+      "type": "general",
+      "heroId": null,
+      "name": "Thông Tạo Bắn Tỉa",
+      "category": "weapon",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG bằng vũ khí family PRECISION.",
+      "explain": "Bao gồm các súng có aim-then-release, không bắt buộc tên có Sniper.",
+      "metric": "weapon_family_damage:PRECISION",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage PRECISION",
+          "value": 350,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "mastery-marksman",
+      "icon": "Binoculars",
+      "decision": "keep",
+      "designNote": "Chỉ family PRECISION, không suy từ loại đạn.",
+      "basis": "proposed"
+    },
+    {
+      "id": "mastery-semi",
+      "slot": 20,
+      "type": "general",
+      "heroId": null,
+      "name": "Thông Tạo Bán Tự Động",
+      "category": "weapon",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG bằng vũ khí family SEMI.",
+      "explain": "Áp dụng đúng tag SEMI; tên theo family thay vì suy đoán loại súng.",
+      "metric": "weapon_family_damage:SEMI",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage SEMI",
+          "value": 350,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "mastery-plasma",
+      "icon": "Focus",
+      "decision": "keep",
+      "designNote": "Chỉ family SEMI.",
+      "basis": "proposed"
+    },
+    {
+      "id": "mastery-melee",
+      "slot": 21,
+      "type": "general",
+      "heroId": null,
+      "name": "Thông Tạo Cận Chiến",
+      "category": "weapon",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG bằng vũ khí cận chiến thật của Arsenal.",
+      "explain": "Tính damage vũ khí melee cầm tay hoặc ném trúng; không tính skill melee không có vũ khí.",
+      "metric": "weapon_family_damage:MELEE",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage melee weapon",
+          "value": 400,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "mastery-launcher",
+      "icon": "Sword",
+      "decision": "keep",
+      "designNote": "Tính weapon melee thật, không gom native skill melee.",
+      "basis": "proposed"
+    },
+    {
+      "id": "weapon-swap",
+      "slot": 22,
+      "type": "general",
+      "heroId": null,
+      "name": "Vừa Nhặt Đã Bắn",
+      "category": "weapon",
+      "rarity": "common",
+      "rule": "Sau khi nhặt một vũ khí, gây damage bằng nó trong ≤ {delay} giây; thực hiện {count} lần trong trận.",
+      "explain": "Ghép pickup owner + weapon instance + first realized hit; không đo việc chuyển một menu slot.",
+      "metric": "fast_pickup_to_damage",
+      "params": [
+        {
+          "key": "delay",
+          "label": "Độ trễ tối đa",
+          "value": 2,
+          "unit": "giây",
+          "compare": "lte"
+        },
+        {
+          "key": "count",
+          "label": "Lần thành công",
+          "value": 2,
+          "unit": "lần",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Thay tên Đổi Súng Thần Tốc cho khớp vòng lặp nhặt/tiêu hao vũ khí.",
+      "oldGold": "weapon-swap",
+      "icon": "Repeat",
+      "decision": "keep",
+      "designNote": "2 lần dùng khẩu mới nhặt gây sát thương trong ≤2s; phân biệt pickup ID.",
+      "basis": "proposed"
+    },
+    {
+      "id": "arsenal",
+      "slot": 23,
+      "type": "general",
+      "heroId": null,
+      "name": "Kho Vũ Khí Di Động",
+      "category": "weapon",
+      "rarity": "epic",
+      "rule": "Gây damage bằng ít nhất {weapons} Weapon ID khác nhau trong trận.",
+      "explain": "Đếm ID khác nhau khi có damage thật >0, không tính việc nhặt rồi không dùng.",
+      "metric": "distinct_damaging_weapon_ids",
+      "params": [
+        {
+          "key": "weapons",
+          "label": "Số loại súng/vũ khí",
+          "value": 10,
+          "unit": "ID",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "arsenal",
+      "icon": "Package",
+      "decision": "keep",
+      "designNote": "3 Weapon ID đã gây damage; không chỉ tính số nhặt được.",
+      "basis": "proposed"
+    },
+    {
+      "id": "legend-survivor",
+      "slot": 24,
+      "type": "general",
+      "heroId": null,
+      "name": "Sống Dai Thành Huyền Thoại",
+      "category": "survival",
+      "rarity": "epic",
+      "rule": "Hồi phục tổng cộng ≥ {healing} HP thực trong một trận.",
+      "explain": "Chỉ đếm HP tăng thực tế, không đếm phần hồi vượt maxHp.",
+      "metric": "realized_healing",
+      "params": [
+        {
+          "key": "healing",
+          "label": "HP hồi thực",
+          "value": 500,
+          "unit": "HP",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "aggregate",
+      "review": "locked_rule",
+      "note": "Mốc 500 HP đã chốt.",
+      "oldGold": "legend-survivor",
+      "icon": "HeartPulse",
+      "decision": "keep",
+      "designNote": "Mốc 500 HP đã chốt. Healing thực tế không tính phần hồi vượt max HP.",
+      "basis": "owner_locked"
+    },
+    {
+      "id": "iron-wall",
+      "slot": 25,
+      "type": "general",
+      "heroId": null,
+      "name": "Bức Tường Thép",
+      "category": "survival",
+      "rarity": "rare",
+      "rule": "Ngăn chặn ≥ {blocked} DMG nhờ cơ chế giảm/hấp thụ damage của Fighter.",
+      "explain": "Damage được chặn = sát thương đủ điều kiện trước phòng thủ − HP loss sau xử lý; không tính đòn miss.",
+      "metric": "mitigated_damage",
+      "params": [
+        {
+          "key": "blocked",
+          "label": "Damage ngăn chặn",
+          "value": 250,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Cần instrument BEFORE/AFTER mitigation mà không làm đổi combat.",
+      "oldGold": "iron-wall",
+      "icon": "Shield",
+      "decision": "keep",
+      "designNote": "Chỉ tính chênh lệch damage bị ngăn nhờ shield/absorb; không tính miss hoặc dodge.",
+      "basis": "proposed"
+    },
+    {
+      "id": "last-stand",
+      "slot": 26,
+      "type": "general",
+      "heroId": null,
+      "name": "Đứng Vững Phút Cuối",
+      "category": "survival",
+      "rarity": "epic",
+      "rule": "Giành chiến thắng với HP còn lại ≤ {hp} % HP tối đa.",
+      "explain": "Chỉ người thắng; đo sau khi KO được xác nhận.",
+      "metric": "winner_final_hp_percent",
+      "params": [
+        {
+          "key": "hp",
+          "label": "HP sau trận tối đa",
+          "value": 10,
+          "unit": "%",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "aggregate",
+      "review": "draft",
+      "note": "Gold dùng 10% như gợi ý; chưa xem là chốt.",
+      "oldGold": "last-stand",
+      "icon": "Mountain",
+      "decision": "keep",
+      "designNote": "Giành chiến thắng với ≤10% HP. Không được suy từ damage gây ra.",
+      "basis": "proposed"
+    },
+    {
+      "id": "untouchable",
+      "slot": 27,
+      "type": "general",
+      "heroId": null,
+      "name": "Bất Khả Xâm Phạm",
+      "category": "survival",
+      "rarity": "rare",
+      "rule": "Thắng sau ít nhất {duration} giây giao đấu, với tổng damage nhận vào ≤ {taken} DMG.",
+      "explain": "Không tự nhận vì trận vừa bắt đầu rồi kết thúc; cần thời gian tối thiểu.",
+      "metric": "win_low_damage_taken",
+      "params": [
+        {
+          "key": "duration",
+          "label": "Thời gian trận tối thiểu",
+          "value": 60,
+          "unit": "giây",
+          "compare": "gte"
+        },
+        {
+          "key": "taken",
+          "label": "Damage nhận tối đa",
+          "value": 100,
+          "unit": "DMG",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "aggregate",
+      "review": "draft",
+      "note": "Không giả định engine có tính năng né crit.",
+      "oldGold": "untouchable",
+      "icon": "Ghost",
+      "decision": "keep",
+      "designNote": "Thắng trận ≥60s, nhận tối đa 100 DMG thực. Chống trận kết thúc quá sớm.",
+      "basis": "proposed"
+    },
+    {
+      "id": "scavenger",
+      "slot": 28,
+      "type": "general",
+      "heroId": null,
+      "name": "Kẻ Nhặt Nhạnh",
+      "category": "survival",
+      "rarity": "common",
+      "rule": "Nhặt ≥ {pickups} vật phẩm trên sàn trong trận.",
+      "explain": "Đếm pickup thành công (vũ khí/heal), không tính telegraph chưa được nhặt.",
+      "metric": "successful_pickups",
+      "params": [
+        {
+          "key": "pickups",
+          "label": "Số vật phẩm đã nhặt",
+          "value": 20,
+          "unit": "món",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "scavenger",
+      "icon": "Recycle",
+      "decision": "keep",
+      "designNote": "Tính pickup hợp lệ, không tính đứng gần hoặc chạm telegraph chưa nhặt.",
+      "basis": "proposed"
+    },
+    {
+      "id": "second-wind",
+      "slot": 29,
+      "type": "general",
+      "heroId": null,
+      "name": "Hơi Thở Thứ Hai",
+      "category": "survival",
+      "rarity": "rare",
+      "rule": "Sau khi HP tụt xuống ≤ {danger} %, hồi thực ≥ {heal} HP trước khi trận kết thúc.",
+      "explain": "Xét recovery sau mốc nguy kịch trong cùng trận; không cộng hồi trước khi xuống ngưỡng.",
+      "metric": "near_death_recovery",
+      "params": [
+        {
+          "key": "danger",
+          "label": "HP nguy kịch",
+          "value": 25,
+          "unit": "%",
+          "compare": "lte"
+        },
+        {
+          "key": "heal",
+          "label": "HP hồi sau nguy kịch",
+          "value": 140,
+          "unit": "HP",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "second-wind",
+      "icon": "Wind",
+      "decision": "keep",
+      "designNote": "Một lần xuống ≤25% HP và sau đó hồi thực ≥140 HP (mức H2); cùng một episode.",
+      "basis": "proposed"
+    },
+    {
+      "id": "thick-skin",
+      "slot": 30,
+      "type": "general",
+      "heroId": null,
+      "name": "Da Dày Thịt Chắc",
+      "category": "survival",
+      "rarity": "rare",
+      "rule": "Chịu tổng cộng ≥ {taken} DMG thực tế rồi vẫn thắng trận.",
+      "explain": "Có thể chịu nhiều hơn HP gốc nhờ heal; không đặt 4.000 DMG mặc định.",
+      "metric": "win_after_damage_taken",
+      "params": [
+        {
+          "key": "taken",
+          "label": "Damage đã nhận",
+          "value": 600,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "aggregate",
+      "review": "draft",
+      "note": "",
+      "oldGold": "thick-skin",
+      "icon": "Layers",
+      "decision": "keep",
+      "designNote": "Vì có hồi máu nên tổng damage taken có thể vượt 1.000; cần còn sống lúc thắng.",
+      "basis": "proposed"
+    },
+    {
+      "id": "one-breath",
+      "slot": 31,
+      "type": "general",
+      "heroId": null,
+      "name": "Còn Một Hơi",
+      "category": "survival",
+      "rarity": "rare",
+      "rule": "Sau khi HP chạm ≤ {hp} %, vẫn sống thêm ít nhất {seconds} giây.",
+      "explain": "Không cần thắng; đo từ lúc chạm ngưỡng đến KO hoặc hết trận.",
+      "metric": "survival_after_low_hp",
+      "params": [
+        {
+          "key": "hp",
+          "label": "HP kích hoạt",
+          "value": 10,
+          "unit": "%",
+          "compare": "lte"
+        },
+        {
+          "key": "seconds",
+          "label": "Thời gian sống thêm",
+          "value": 8,
+          "unit": "giây",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Thay Thanh Tẩy chưa có nguồn telemetry chung.",
+      "oldGold": "cleanser",
+      "icon": "HeartCrack",
+      "decision": "keep",
+      "designNote": "Từng còn ≤10% HP nhưng không bị KO trong 8 giây tiếp theo.",
+      "basis": "proposed"
+    },
+    {
+      "id": "comeback",
+      "slot": 32,
+      "type": "general",
+      "heroId": null,
+      "name": "Lội Ngược Dòng",
+      "category": "tactics",
+      "rarity": "legendary",
+      "rule": "Giành chiến thắng sau khi từng bị dẫn trước ít nhất {deficit} HP.",
+      "explain": "Dẫn trước đo HP đối thủ − HP bản thân trong trận; không dùng tổng damage.",
+      "metric": "win_after_hp_deficit",
+      "params": [
+        {
+          "key": "deficit",
+          "label": "Chênh lệch HP từng bị dẫn",
+          "value": 300,
+          "unit": "HP",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "comeback",
+      "icon": "TrendingUp",
+      "decision": "keep",
+      "designNote": "Chênh lệch HP 300 là ngưỡng dự thảo; ghi nhận chênh HP thật trong trận.",
+      "basis": "proposed"
+    },
+    {
+      "id": "pacifist",
+      "slot": 33,
+      "type": "general",
+      "heroId": null,
+      "name": "Yêu Chuộng Hòa Bình",
+      "category": "tactics",
+      "rarity": "common",
+      "rule": "Có một đoạn ≥ {seconds} giây không gây damage, đồng thời di chuyển được ≥ {travel} px trong đoạn đó.",
+      "explain": "Chống AFK đứng yên; có thể nhận cả khi thua.",
+      "metric": "active_no_damage_window",
+      "params": [
+        {
+          "key": "seconds",
+          "label": "Khoảng lặng",
+          "value": 30,
+          "unit": "giây",
+          "compare": "gte"
+        },
+        {
+          "key": "travel",
+          "label": "Quãng đường tối thiểu",
+          "value": 500,
+          "unit": "px",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Mốc X giây từ quyết định trước.",
+      "oldGold": "pacifist",
+      "icon": "Feather",
+      "decision": "keep",
+      "designNote": "30s không gây damage nhưng phải di chuyển ≥500px để không thưởng vì AFK.",
+      "basis": "proposed"
+    },
+    {
+      "id": "skill-focus",
+      "slot": 34,
+      "type": "general",
+      "heroId": null,
+      "name": "Kỹ Năng Là Chính",
+      "category": "tactics",
+      "rarity": "epic",
+      "rule": "Sử dụng thành công ít nhất {casts} lần kỹ năng trong trận.",
+      "explain": "Đếm cast hợp lệ; không đếm bấm phím khi đang cooldown.",
+      "metric": "successful_skill_casts",
+      "params": [
+        {
+          "key": "casts",
+          "label": "Số lượt dùng skill",
+          "value": 30,
+          "unit": "lần",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "aggregate",
+      "review": "locked_rule",
+      "note": "Mốc 30 lần đã chốt.",
+      "oldGold": "skill-focus",
+      "icon": "Cpu",
+      "decision": "keep",
+      "designNote": "Mốc 30 lần dùng skill đã chốt, chỉ tính cast thực sự thành công, không spam input.",
+      "basis": "owner_locked"
+    },
+    {
+      "id": "kiter",
+      "slot": 35,
+      "type": "general",
+      "heroId": null,
+      "name": "Đả Kích Di Động",
+      "category": "tactics",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG khi tốc độ di chuyển tại thời điểm gây damage ≥ {speed} px/s.",
+      "explain": "Cần lấy vận tốc Fighter thật trong combat khi hit được xác nhận.",
+      "metric": "damage_while_moving",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage khi di chuyển",
+          "value": 250,
+          "unit": "DMG",
+          "compare": "gte"
+        },
+        {
+          "key": "speed",
+          "label": "Tốc độ tối thiểu",
+          "value": 150,
+          "unit": "px/s",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "kiter",
+      "icon": "Footprints",
+      "decision": "keep",
+      "designNote": "Damage 250 khi đang chạy ≥150px/s; lấy vận tốc thực tại impact.",
+      "basis": "proposed"
+    },
+    {
+      "id": "trickster",
+      "slot": 36,
+      "type": "general",
+      "heroId": null,
+      "name": "Bậc Thầy Mưu Mẹo",
+      "category": "tactics",
+      "rarity": "rare",
+      "rule": "Có {followups} lần gây damage trong vòng {window} giây sau khi gây hiệu ứng đẩy, khống chế hoặc tước súng thành công.",
+      "explain": "Kích hoạt từ control event có hiệu lực thật; dùng cả hiệu ứng súng và kỹ năng, không độc quyền Hunter.",
+      "metric": "control_to_damage_followups",
+      "params": [
+        {
+          "key": "followups",
+          "label": "Đòn nối sau khống chế",
+          "value": 3,
+          "unit": "lần",
+          "compare": "gte"
+        },
+        {
+          "key": "window",
+          "label": "Cửa sổ follow-up",
+          "value": 2.5,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Cần định nghĩa event control được phép và chống đếm trùng.",
+      "oldGold": "trickster",
+      "icon": "Puzzle",
+      "decision": "keep",
+      "designNote": "Sau CC/push/disarm, có 3 follow-up hits trong 2,5s. Cần nguồn effect owner để không nhầm.",
+      "basis": "proposed"
+    },
+    {
+      "id": "cooldown-king",
+      "slot": 37,
+      "type": "general",
+      "heroId": null,
+      "name": "Hồi Chiêu Chớp Nhoáng",
+      "category": "tactics",
+      "rarity": "common",
+      "rule": "Kích hoạt skill trong vòng {delay} giây kể từ khi skill sẵn sàng, ít nhất {casts} lần.",
+      "explain": "Dùng skillReady timestamp + skillCast; không gọi đó là hiệu suất 85% thiếu định nghĩa.",
+      "metric": "quick_skill_reuse",
+      "params": [
+        {
+          "key": "delay",
+          "label": "Độ trễ dùng lại",
+          "value": 1.5,
+          "unit": "giây",
+          "compare": "lte"
+        },
+        {
+          "key": "casts",
+          "label": "Lượt dùng kịp",
+          "value": 5,
+          "unit": "lần",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "cooldown-king",
+      "icon": "Timer",
+      "decision": "drop",
+      "designNote": "ĐỀ NGHỊ BỎ: thưởng việc dùng skill quá nhanh khi sẵn sàng, dễ biến thành spam.",
+      "basis": "proposed"
+    },
+    {
+      "id": "combo-artist",
+      "slot": 38,
+      "type": "general",
+      "heroId": null,
+      "name": "Nghệ Sĩ Combo",
+      "category": "tactics",
+      "rarity": "epic",
+      "rule": "Có {chains} chuỗi mà skill và súng đều gây damage trong cùng cửa sổ {window} giây.",
+      "explain": "Một chuỗi chỉ được tính khi có ít nhất 1 hit skill và 1 hit vũ khí từ cùng Fighter; không đếm theo số frame.",
+      "metric": "skill_weapon_combo_chains",
+      "params": [
+        {
+          "key": "chains",
+          "label": "Số chuỗi combo",
+          "value": 3,
+          "unit": "chuỗi",
+          "compare": "gte"
+        },
+        {
+          "key": "window",
+          "label": "Cửa sổ combo",
+          "value": 2,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "combo-artist",
+      "icon": "Link",
+      "decision": "keep",
+      "designNote": "3 chuỗi kết hợp nguồn skill và weapon trong cửa sổ 2 giây; không phải chỉ đếm hit.",
+      "basis": "proposed"
+    },
+    {
+      "id": "adrenaline",
+      "slot": 39,
+      "type": "general",
+      "heroId": null,
+      "name": "Cơn Sốt Adrenaline",
+      "category": "chaos",
+      "rarity": "rare",
+      "rule": "Gây ≥ {damage} DMG khi HP bản thân ≤ {hp} % tối đa.",
+      "explain": "Đo HP ngay trước damage event của người tấn công.",
+      "metric": "damage_at_low_hp",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage lúc thấp máu",
+          "value": 250,
+          "unit": "DMG",
+          "compare": "gte"
+        },
+        {
+          "key": "hp",
+          "label": "HP tối đa để tính",
+          "value": 25,
+          "unit": "%",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "adrenaline",
+      "icon": "Syringe",
+      "decision": "keep",
+      "designNote": "250 DMG khi bản thân còn ≤25% HP, tính theo HP ngay trước damage.",
+      "basis": "proposed"
+    },
+    {
+      "id": "clutch",
+      "slot": 40,
+      "type": "general",
+      "heroId": null,
+      "name": "Phút Chốt Hạ",
+      "category": "chaos",
+      "rarity": "epic",
+      "rule": "Gây ≥ {damage} DMG trong {window} giây cuối trước khi trận kết thúc.",
+      "explain": "Đo ngược từ thời điểm trận KO/TIME, không yêu cầu trước trận phải biết thời điểm kết thúc.",
+      "metric": "damage_before_match_end",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage cuối trận",
+          "value": 350,
+          "unit": "DMG",
+          "compare": "gte"
+        },
+        {
+          "key": "window",
+          "label": "Thời gian hồi tố",
+          "value": 30,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "clutch",
+      "icon": "Hourglass",
+      "decision": "keep",
+      "designNote": "350 DMG trong 15s cuối trận; không giả định trước thời điểm trận kết thúc.",
+      "basis": "proposed"
+    },
+    {
+      "id": "never-surrender",
+      "slot": 41,
+      "type": "general",
+      "heroId": null,
+      "name": "Không Bao Giờ Bỏ Cuộc",
+      "category": "chaos",
+      "rarity": "epic",
+      "rule": "Gây ≥ {damage} DMG trong những thời điểm HP bản thân thấp hơn HP đối thủ.",
+      "explain": "Cộng các damage event khi Fighter đang bị dẫn HP, không phụ thuộc ai thắng.",
+      "metric": "damage_while_behind",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Damage khi bị dẫn",
+          "value": 400,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "",
+      "oldGold": "never-surrender",
+      "icon": "Swords",
+      "decision": "keep",
+      "designNote": "400 DMG khi đang bị dẫn HP, có thể đạt dù cuối cùng thua.",
+      "basis": "proposed"
+    },
+    {
+      "id": "speed-win",
+      "slot": 42,
+      "type": "general",
+      "heroId": null,
+      "name": "Tốc Chiến Tốc Thắng",
+      "category": "chaos",
+      "rarity": "rare",
+      "rule": "Giành chiến thắng khi tổng thời lượng trận ≤ {time} giây.",
+      "explain": "Tính theo thời gian combat có authority, không tính intro/loading.",
+      "metric": "winner_duration",
+      "params": [
+        {
+          "key": "time",
+          "label": "Thời gian thắng tối đa",
+          "value": 45,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "aggregate",
+      "review": "draft",
+      "note": "Gold đề xuất 150s nhưng cần cân lại theo nhịp trận thật.",
+      "oldGold": "speed-win",
+      "icon": "Rabbit",
+      "decision": "keep",
+      "designNote": "Thắng trong 45s khá khó với cadence 4,5s; đề xuất rarity Hiếm.",
+      "basis": "proposed"
+    },
+    {
+      "id": "fate-hand",
+      "slot": 43,
+      "type": "general",
+      "heroId": null,
+      "name": "Bàn Tay Định Mệnh",
+      "category": "chaos",
+      "rarity": "epic",
+      "rule": "Kết liễu đối thủ bằng một vũ khí vừa nhặt trong ≤ {delay} giây trước đó.",
+      "explain": "Yêu cầu match weapon instance giữa pickup, damage gây KO và thời điểm nhặt.",
+      "metric": "fast_pickup_ko",
+      "params": [
+        {
+          "key": "delay",
+          "label": "Thời gian từ pickup đến KO",
+          "value": 0,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Thay Chúa Tể Phế Liệu vì 1v1 hiện chưa dùng scrap currency theo trận.",
+      "oldGold": "scrap-lord",
+      "icon": "Dices",
+      "decision": "keep",
+      "designNote": "Hạ gục trong 2s kể từ khi vừa nhặt chính khẩu súng kết liễu.",
+      "basis": "proposed"
+    },
+    {
+      "id": "chaos-bringer",
+      "slot": 44,
+      "type": "general",
+      "heroId": null,
+      "name": "Sứ Giả Hỗn Loạn",
+      "category": "chaos",
+      "rarity": "legendary",
+      "rule": "Trong {window} giây, gây damage từ ≥ {sources} Weapon ID khác nhau VÀ ít nhất một kỹ năng.",
+      "explain": "Tối thiểu hai nguồn vũ khí nếu chọn X≥2; cần theo dõi source ID và skill riêng, không thưởng từ cosmetic effect.",
+      "metric": "multi_source_chaos_window",
+      "params": [
+        {
+          "key": "window",
+          "label": "Cửa sổ hỗn loạn",
+          "value": 20,
+          "unit": "giây",
+          "compare": "lte"
+        },
+        {
+          "key": "sources",
+          "label": "Số Weapon ID gây damage",
+          "value": 3,
+          "unit": "ID",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "draft",
+      "note": "Đổi điều kiện 8 vụ nổ liên hoàn không khả thi trong một duel thông thường.",
+      "oldGold": "chaos-bringer",
+      "icon": "Siren",
+      "decision": "keep",
+      "designNote": "Trong 20s dùng 3 Weapon ID và có skill hit; rất hiếm nhưng có thể xảy ra ở trận nhiều pickup.",
+      "basis": "proposed"
+    },
+    {
+      "id": "signature-newbot",
+      "slot": 45,
+      "type": "signature",
+      "heroId": "NEWBOT",
+      "name": "Cỗ Máy Không Ngủ",
+      "category": "signature",
+      "rarity": "epic",
+      "rule": "Kích hoạt hiệu ứng giảm hồi chiêu của Rolling Burst trong ít nhất {cycles} chu kỳ kỹ năng khác nhau.",
+      "explain": "Đếm ba chu kỳ bị passive Rolling Burst giảm CD. Cần hook hero-specific.",
+      "metric": "robot_rolling_burst_cycles",
+      "params": [
+        {
+          "key": "cycles",
+          "label": "Chu kỳ thành công",
+          "value": 3,
+          "unit": "lần",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "proposed",
+      "note": "nhớ này code vào cho kĩ đừng để trừu tượng quá nhé",
+      "oldGold": "",
+      "icon": "Bot",
+      "decision": "keep",
+      "designNote": "Đếm ba chu kỳ bị passive Rolling Burst giảm CD. Cần hook hero-specific.",
+      "basis": "proposed"
+    },
+    {
+      "id": "signature-hunter",
+      "slot": 46,
+      "type": "signature",
+      "heroId": "HUNTER",
+      "name": "Con Mồi Đã Định",
+      "category": "signature",
+      "rarity": "epic",
+      "rule": "Kẹp trúng đối thủ và gây sát thương tiếp nối trong {window} giây, ít nhất {traps} lần.",
+      "explain": "Hai pha trap clamp có damage follow-up trong 2s; cần trap ownership.",
+      "metric": "hunter_trap_followups",
+      "params": [
+        {
+          "key": "traps",
+          "label": "Pha trap nối tiếp",
+          "value": 2,
+          "unit": "lần",
+          "compare": "gte"
+        },
+        {
+          "key": "window",
+          "label": "Thời hạn nối tiếp",
+          "value": 2,
+          "unit": "giây",
+          "compare": "lte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "proposed",
+      "note": "",
+      "oldGold": "",
+      "icon": "Bug",
+      "decision": "keep",
+      "designNote": "Hai pha trap clamp có damage follow-up trong 2s; cần trap ownership.",
+      "basis": "proposed"
+    },
+    {
+      "id": "signature-crystala",
+      "slot": 47,
+      "type": "signature",
+      "heroId": "CRYSTALA",
+      "name": "Ý Chí Tử Tinh",
+      "category": "signature",
+      "rarity": "epic",
+      "rule": "Gây ≥ {damage} DMG thực tế bằng bộ kỹ năng tinh thể của Crystala.",
+      "explain": "Tạm chọn damage thực từ kỹ năng tinh thể ≥180; phải xác nhận nhãn kỹ năng và gameplay Crystala trước release.",
+      "metric": "crystala_skill_damage",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Skill damage",
+          "value": 180,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "proposed",
+      "note": "",
+      "oldGold": "",
+      "icon": "Diamond",
+      "decision": "keep",
+      "designNote": "Tạm chọn damage thực từ kỹ năng tinh thể ≥180; phải xác nhận nhãn kỹ năng và gameplay Crystala trước release.",
+      "basis": "proposed"
+    },
+    {
+      "id": "signature-magnet",
+      "slot": 48,
+      "type": "signature",
+      "heroId": "MAGNET",
+      "name": "Vạn Vật Quy Tâm",
+      "category": "signature",
+      "rarity": "epic",
+      "rule": "Dùng Attraction kéo súng, tự nhặt rồi gây ≥ {damage} DMG thực tế bằng khẩu súng đó.",
+      "explain": "Attraction kéo gun → chính Magnet nhặt → gây ≥100 DMG. Cần track slot ID xuyên suốt.",
+      "metric": "magnet_attraction_pickup_damage",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Sát thương súng kéo về",
+          "value": 200,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "proposed",
+      "note": "nên cho phép tính mọi khẩu súng bị kéo và cầm lên trong 1 chiêu thay vì chỉ cây đầu tiên được cầm ",
+      "oldGold": "",
+      "icon": "Magnet",
+      "decision": "keep",
+      "designNote": "Attraction kéo gun → chính Magnet nhặt → gây ≥100 DMG. Cần track slot ID xuyên suốt.",
+      "basis": "proposed"
+    },
+    {
+      "id": "signature-frost",
+      "slot": 49,
+      "type": "signature",
+      "heroId": "FROST",
+      "name": "Kỷ Băng Hà",
+      "category": "signature",
+      "rarity": "epic",
+      "rule": "Làm mới thời gian đóng băng bằng Frozen Bullets ít nhất {refreshes} lần.",
+      "explain": "Frozen Bullets làm mới freeze timer ít nhất hai lần, không tính lần đóng băng đầu.",
+      "metric": "frost_freeze_timer_refresh",
+      "params": [
+        {
+          "key": "refreshes",
+          "label": "Lần làm mới freeze",
+          "value": 2,
+          "unit": "lần",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "proposed",
+      "note": "",
+      "oldGold": "",
+      "icon": "Snowflake",
+      "decision": "keep",
+      "designNote": "Frozen Bullets làm mới freeze timer ít nhất hai lần, không tính lần đóng băng đầu.",
+      "basis": "proposed"
+    },
+    {
+      "id": "signature-mirror",
+      "slot": 50,
+      "type": "signature",
+      "heroId": "MIRROR",
+      "name": "Gậy Ông Đập Lưng Ông",
+      "category": "signature",
+      "rarity": "epic",
+      "rule": "Dùng phản chiếu gây ≥ {damage} DMG thực tế lên đối thủ bằng đòn tấn công của họ.",
+      "explain": "Đòn phản chiếu gây ≥150 HP loss, phải xác định đúng original shooter.",
+      "metric": "mirror_reflected_damage",
+      "params": [
+        {
+          "key": "damage",
+          "label": "Sát thương phản chiếu",
+          "value": 150,
+          "unit": "DMG",
+          "compare": "gte"
+        }
+      ],
+      "telemetry": "new_event",
+      "review": "proposed",
+      "note": "",
+      "oldGold": "",
+      "icon": "ScanFace",
+      "decision": "keep",
+      "designNote": "Đòn phản chiếu gây ≥150 HP loss, phải xác định đúng original shooter.",
+      "basis": "proposed"
+    }
+  ],
+  "exportedAt": "2026-10-09T13:04:38.328Z"
+}
