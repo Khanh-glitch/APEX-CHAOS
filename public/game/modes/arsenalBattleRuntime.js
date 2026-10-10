@@ -1507,6 +1507,11 @@
     drawQuestSwarmInterlude(ctx,AQ.state);
     drawWeaponRainCinematic(ctx,AQ.state);
     AQ.state?.questEnemyAbilities?.draw(ctx,fighters);
+    // Alive bodies come from the donor rig's normal Fighter.draw; the
+    // death/withdrawal sprites are rendered once from frozen donor part
+    // matrices in this independent world pass until they fully fade.
+    if(AQ.state?.questMultiActor)
+      window.APEX_QUEST_V12_RIG?.drawAftermath?.(ctx,fighters,AQ.state);
     AQ.state?.questBreachCompanionSkills?.draw?.(ctx);
     drawBreakerProgress(ctx,AQ.state);
     ctx.restore();
