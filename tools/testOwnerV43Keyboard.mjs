@@ -17,7 +17,7 @@ const stubNode=()=>({
 const element=stubNode();
 const document={body:{appendChild(){}},getElementById(){return element;},
   createElement(){return stubNode();}};
-const ctx=vm.createContext({window,document,console,setTimeout,clearTimeout});
+const ctx=vm.createContext({window,document,console,setTimeout:()=>1,clearTimeout:()=>{}});
 vm.runInContext(fs.readFileSync('public/game/arsenal/arsenalConfig.js','utf8'),ctx);
 const owner=window.APEX_ARSENAL_OWNER_TEST, AQ=window.APEX_ARSENAL;
 assert.equal(owner.active,false,'must default OFF');
