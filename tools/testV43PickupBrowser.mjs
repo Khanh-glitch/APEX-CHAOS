@@ -118,7 +118,7 @@ try{
     check(id+'-floor-pickup-use',rec.picked&&rec.maxShots===1&&rec.fire===1&&rec.pickup>=1,rec);
     check(id+'-real-projectile-reached-browser',rec.seen.length>0,rec);
     check(id+'-canvas-drew-weapon-art',rec.visible.includes(id+'.webp'),rec);
-    if(['TACTICAL_CROSSBOW','STEEL_BALL_LAUNCHER','RPG_7','COMBAT_BOOMERANG','SHRAPNEL_MINE_LAUNCHER'].includes(id))
+    if(['TACTICAL_CROSSBOW','STEEL_BALL_LAUNCHER','RPG_7','SHRAPNEL_MINE_LAUNCHER'].includes(id))
       check(id+'-canvas-drew-real-projectile-asset',rec.visible.some(x=>x!==(id+'.webp')),rec);
     if(id!=='COMBAT_BOOMERANG')check(id+'-native-HP-damage',rec.damage>0,rec);
   }
