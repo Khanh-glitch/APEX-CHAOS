@@ -46,8 +46,10 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Syntax-check guarded repository cleanup planner
-        run: node --check tools/maintenance/v43-branch-cleanup.mjs
+      - name: Validate read-only V43 maintenance inventory and GOLD evidence backlog
+        run: |
+          node --check tools/maintenance/v43-branch-cleanup.mjs
+          node tools/maintenance/verifyV43AuditSnapshot.mjs
 
       - name: Owner Gold result engine and secure iframe contract
         run: node tools/testResultGoldAuthority.mjs
