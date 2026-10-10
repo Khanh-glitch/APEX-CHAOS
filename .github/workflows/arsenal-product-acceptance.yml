@@ -79,6 +79,9 @@ jobs:
       - name: V43 kinetic-vs-energy and automatic Quest T1/T2 regression
         run: node tools/testV43KineticHeroInteractions.mjs
 
+      - name: V43 Gold natural-flight boomerang 30-60-120Hz reference check
+        run: node tools/testOwnerV43BoomerangNaturalFlight.mjs
+
       - name: Owner V43 unified lifecycle, Frost A1, Result Gold invariant guard
         run: node tools/testOwnerV43LifecycleInvariants.mjs
 
