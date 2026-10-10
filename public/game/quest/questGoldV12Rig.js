@@ -2568,6 +2568,27 @@ function draw(ctx,real) {
       presentation.springs.glow.kick(.40);
     }
     record.wasCharging=charging;
+    const clawPulse=Number(real.data?.__questClawPulse||0);
+    if(clawPulse>Number(record.lastClawPulse||0)){
+      // Gold attack windup / contact recovery uses original shoulder,
+      // gripper and counter-rotation springs, not added fake limbs.
+      const S=presentation.springs;
+      S.calTh[0].kick(-.24);S.calTh[1].kick(.19);
+      S.calDx[0].kick(48);S.calDx[1].kick(-35);
+      S.spin[0].kick(.68);S.spin[1].kick(-.42);
+      S.rootX.kick((dx||1)*-35);S.coreY.kick(-18);
+      presentation.fingerMotors[0].kick(.22);
+      presentation.fingerMotors[1].kick(-.17);
+    }
+    record.lastClawPulse=clawPulse;
+    const laserPulse=Number(real.data?.__questLaserPulse||0);
+    if(laserPulse>Number(record.lastLaserPulse||0)){
+      const S=presentation.springs;
+      S.coreY.kick(25);S.rootX.kick(-(dx||1)*33);
+      S.crest.kick(-18);S.lid.kick(.34);S.glow.kick(.25);
+      S.calTh[0].kick(-.065);S.calTh[1].kick(.065);
+    }
+    record.lastLaserPulse=laserPulse;
     if(Number.isFinite(pulses)&&record.lastPulses!=null&&pulses>record.lastPulses&&equipped){
       // Arsenal's actual pose pulse count is the firing authority.
       presentation.enqueue({
@@ -2718,7 +2739,9 @@ function drawAftermath(ctx,realActors=[],state=null){
       base.e+base.a*(1-ratio)*fx.x+base.c*(1-ratio)*fx.y,
       base.f+base.b*(1-ratio)*fx.x+base.d*(1-ratio)*fx.y
     ];
-    const time=Math.min(age,.67);
+    // Gold mechanical shutdown first (all LEDs/extremities powered off),
+    // THEN independent shoulder/head/arm assembly falls onto the floor.
+    const time=Math.min(Math.max(0,age-.16),.67);
     for(const part of fx.parts){
       const angle=part.spin*time,c=Math.cos(angle),sn=Math.sin(angle);
       const m=part.m,mm=[
@@ -2728,6 +2751,7 @@ function drawAftermath(ctx,realActors=[],state=null){
         m[5]+(part.vy*time+85*time*time)/ratio
       ];
       ctx.save();ctx.globalAlpha=opacity;
+      ctx.filter='saturate(.20) brightness(.62)';
       // Inactive power: the donor's optical glow is deliberately not drawn.
       const t=[
         cam[0]*mm[0]+cam[2]*mm[1],cam[1]*mm[0]+cam[3]*mm[1],
