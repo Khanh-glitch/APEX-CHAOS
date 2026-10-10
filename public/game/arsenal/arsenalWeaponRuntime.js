@@ -644,10 +644,16 @@
       // Mines retain their authored centre-to-centre AOE/falloff.
       const factor=v43min(1-d/range,0,1); // Original mine centre-falloff law
       const surfaceGap=Math.max(0,d-(f.radius||75)*CFG.BULLET_HIT_RADIUS_SCALE);
-      const applied=p.kind==='rocket'?v43min(1-surfaceGap/range,0,1):factor;
-      if(applied<=0)continue;
-      aqDamage(f,peak*applied,p.owner,p.weapon,{
-        knockback:320*applied,shake:5*applied,hitStop:.012});
+      const rocketFactor=v43min(1-surfaceGap/range,0,1);
+      if(p.kind==='rocket'){
+        if(rocketFactor<=0)continue;
+        aqDamage(f,peak*rocketFactor,p.owner,p.weapon,{
+          knockback:320*rocketFactor,shake:5*rocketFactor,hitStop:.012});
+      }else{
+        if(factor<=0)continue;
+        aqDamage(f,peak*factor,p.owner,p.weapon,{
+          knockback:320*factor,shake:5*factor,hitStop:.012});
+      }
     }
     v43Pulse(p.x,p.y,'blast',radius/95);
   }
