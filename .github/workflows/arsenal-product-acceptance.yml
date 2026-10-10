@@ -82,6 +82,9 @@ jobs:
       - name: Owner V43 unified lifecycle, Frost A1, Result Gold invariant guard
         run: node tools/testOwnerV43LifecycleInvariants.mjs
 
+      - name: Owner V43 hidden BOT keyboard and catalogue real script contract
+        run: node tools/testOwnerV43Keyboard.mjs
+
       - name: Run targeted Hero Rework smoke
         run: AQ_EVIDENCE_DIR=/tmp/arsenal-closure-smoke node tools/smokeHeroReworkHeadless.mjs
 
