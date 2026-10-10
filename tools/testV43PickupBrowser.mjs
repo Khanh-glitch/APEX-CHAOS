@@ -181,7 +181,7 @@ try{
             projectileCount:projectiles.filter(p=>p.aq).length,
             projectile:projectiles.filter(p=>p.aq&&p.weapon===${JSON.stringify(id)})
               .map(p=>({type:p.type,aq:p.aq,kind:p.kind,x:+p.x.toFixed(2),y:+p.y.toFixed(2),
-                vx:+p.vx.toFixed(2),vy:+p.vy.toFixed(2),angle:+p.angle.toFixed(3),
+                vx:Number.isFinite(p.vx)?+p.vx.toFixed(2):null,vy:Number.isFinite(p.vy)?+p.vy.toFixed(2):null,angle:Number.isFinite(p.angle)?+p.angle.toFixed(3):null,
                 life:+p.life.toFixed(2),age:p.age,hr:p.__hr||null,ownerId:p.owner?.id})),
             position:{x:a.x,y:a.y,tx:b.x,ty:b.y},
             state:{active:st.active,over:st.over,gameState,simTime:st.time,quest:st.questMultiActor},ids:{a:a.id,b:b.id},rework:window.APEX_HERO_REWORK?.resolveEnemyBody?.(a,b)?.id||null
