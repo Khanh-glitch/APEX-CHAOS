@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import type { CSSProperties } from "react";
 import type { PointerEvent } from "react";
 import type { WeaponSpotlight } from "../lib/match";
 import { fmt } from "../lib/match";
@@ -63,7 +64,8 @@ export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
     <section
       ref={ref}
       className={`weapon${revealed ? " is-in" : ""}`}
-      style={teamVars(owner)}
+      style={{ ...teamVars(owner), "--weapon-tier": weapon.tierColor || "var(--team)",
+        "--weapon-tier-rgb": weapon.tierRgb || owner.accentRgb } as CSSProperties}
       aria-labelledby="wob-title"
     >
       <header className="weapon__banner">
@@ -105,7 +107,10 @@ export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
           </span>
         </h3>
         <p className="weapon__class">
-          {weapon.classLabel} · {weapon.tierLabel}
+          {weapon.classLabel}
+          <span className="weapon__rarity" aria-label={`Độ hiếm ${weapon.tierLabel}`}>
+            <i aria-hidden="true" />{weapon.tierLabel}
+          </span>
         </p>
 
         <p className="weapon__dmg">

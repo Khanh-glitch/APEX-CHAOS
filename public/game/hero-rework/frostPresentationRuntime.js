@@ -1074,6 +1074,18 @@ function tickA1(S, ct, insp, now, dt) {
       if (L && L.frontStartAt != null) {
         q.lane = { ox: L.ox, oy: L.oy, dx: L.dx, dy: L.dy, len: L.len,
           frontStartAt: L.frontStartAt, frontDoneAt: L.frontDoneAt, expireAt: L.expireAt };
+        if (!canAcceptCast(S)) {
+          // Mechanical ice is ALREADY present on the authoritative gameplay
+          // frame. Gold serializes A1/A2; leaving the cast queued makes the
+          // floor appear seconds after it actually slowed the opponent.
+          // Recover its Gold material NOW at the real origin/front/expiry.
+          // Preserve the incumbent A2 mode and A1 pose: we are hydrating
+          // only the existing Gold ice geometry, not launching another ability.
+          const oldA1=e.a1;
+          try { replayA1Lane(S,q,now); }
+          finally { e.a1=oldA1; }
+          dropQueued(S,'a1'); // no delayed second floor or out-of-sync breath
+        }
       }
     }
   }

@@ -81,6 +81,9 @@ export interface WeaponDef {
   weaponClass: WeaponClass;
   classLabel: string;
   tierLabel: string;
+  /** Exact Arsenal tier identity from CFG.TIER_COLORS (not trophy rarity). */
+  tierColor?: string;
+  tierRgb?: string;
   tagline: string;
   ownerId: string;
   /** Which built-in placeholder silhouette to draw when no artSrc is given. */
