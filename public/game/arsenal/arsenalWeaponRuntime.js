@@ -1167,14 +1167,16 @@
           ctx.stroke();ctx.globalAlpha=1;
         }
         if(!fire){
+          // The Combat Boomerang is the SAME full-size held weapon body in
+          // flight: no abstract V substitute and no scale-pop on release.
           const projectileKind={bolt:'BOLT',ball:'STEEL_BALL',rocket:'RPG_ROCKET',
-            mine:'SHRAPNEL_MINE'}[p.kind];
+            mine:'SHRAPNEL_MINE',boomerang:'COMBAT_BOOMERANG'}[p.kind];
           const imgUrl=projectileKind?'/assets/arsenal/v43/'+projectileKind+'.webp':null;
           const image=imgUrl? v43Sprite(imgUrl):null;
           ctx.translate(p.x,p.y);
           ctx.rotate(p.kind==='boomerang'?(p.spin||0):Math.atan2(p.vy,p.vx));
           if(image?.complete&&image.naturalWidth>0){
-            const w=c.projectileWidth||Math.max(26,(p.radius||8)*3);
+            const w=p.kind==='boomerang'?c.worldWidth:(c.projectileWidth||Math.max(26,(p.radius||8)*3));
             const scale=w/Math.max(image.naturalWidth,image.naturalHeight);
             ctx.drawImage(image,-image.naturalWidth*scale*.5,-image.naturalHeight*scale*.5,
               image.naturalWidth*scale,image.naturalHeight*scale);

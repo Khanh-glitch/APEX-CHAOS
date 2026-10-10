@@ -50,4 +50,9 @@ const weapons=fs.readFileSync('public/game/arsenal/arsenalWeaponRuntime.js','utf
 assert.match(weapons,/function v43Splash\(p,peak,radius\)/);
 assert.match(weapons,/const factor=v43min\(1-d\/range,0,1\)/);
 assert.match(weapons,/aqDamage\(f,peak\*factor,p\.owner,p\.weapon/);
+// Same physical boomerang in hand and in flight — never a tiny fallback V.
+assert.match(weapons,/boomerang:'COMBAT_BOOMERANG'/);
+assert.match(weapons,/p\.kind==='boomerang'\?c\.worldWidth/);
+assert.ok(fs.existsSync('public/assets/arsenal/v43/COMBAT_BOOMERANG.webp'),
+  'boomerang flight must load the actual delivered art');
 console.log('V43 INTERACTION CONTRACT PASS '+tests.length+' kinetic/energy cases + Crystal + auto-Quest T1/T2 + radial AoE');
