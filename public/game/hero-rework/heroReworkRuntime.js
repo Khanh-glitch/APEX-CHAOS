@@ -262,7 +262,7 @@
         ct.telemetry.casts += 1;
         ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
         if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
-        globalScope.APEX_ARSENAL?.state?.resultLedger?.onCast?.(bodyOfCombatant(ct));
+        globalScope.APEX_ARSENAL?.state?.resultLedger?.onCast?.(bodyOfCombatant(ct),slot);
         AIL.bus.emit('Cast', { hero: ct.heroId, slot, mechanic: s.def.mechanicId, side: input.side, combatantId: input.combatantId, fighterId: bodyOfCombatant(ct)?.id ?? null, source: input.source, input });
         return { ok: true };
       },
@@ -2104,7 +2104,8 @@
         for(const b of livingBodies(enemyOf(s.owner)||{})) if(dist(b.x,b.y,s.x,s.y)<=s.radius) {
           s.consumed=true;s.prey=b;s.triggeredAt=now;M.api.applyRootTo(b,s.rootDuration);
           M.api.applyWeakCombatant(combatantOfBody(b), (s.owner.skills.A1.cfg.weakDuration ?? 1.0));phase('tension');
-          AIL.bus.emit('SnareTriggered',{id:s.id,target:b.id,root:s.rootDuration});break;
+          AIL.bus.emit('SnareTriggered',{id:s.id,target:b.id,root:s.rootDuration,
+            ownerFighterId:s.owner?.anchor?.id});break;
         }
       }
       globalScope.APEX_HUNTER_PRESENTATION?.trapTick(s,dt);

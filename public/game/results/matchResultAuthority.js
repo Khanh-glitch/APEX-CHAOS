@@ -31,10 +31,38 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    executionerPreHp:null,fateHandDelay:null,lastPickupWeapon:null,
    ricochetHits:0,damageWhileBehind:0,comboChains:0,lastComboAt:-Infinity,
    lastAttack:{weapon:null,skill:null},chaosEvents:[],chaosQualified:false,
-   pendingControls:new Map()
+   pendingControls:new Map(),refundCycles:new Set(),cooldownCycle:{A1:0,A2:0},
+   heroCycles:0,traps:0,trapPending:new Map(),refreshes:0
  }));
  const track=f=>tracks.find(t=>t.f===f)||null;
  function now(){return elapsed}
+ const cleanups=[];
+ const bus=root.APEX_HERO_REWORK_AIL?.bus;
+ if(bus?.on){
+   // Only the owner's ACTUAL cooldown refund can sign one distinct cycle.
+   cleanups.push(bus.on('RobotPassiveUpgrade',ev=>{
+     if(!live||!(ev.payload?.refund>0))return;
+     const t=tracks.find(t=>t.f?.id===ev.payload.fighterId&&t.hero==='NEWBOT');
+     const slot=ev.payload.slot,cycle=t?.cooldownCycle?.[slot]||0;
+     if(!t||!cycle)return;
+     const key=slot+':'+cycle;
+     if(!t.refundCycles.has(key)){t.refundCycles.add(key);t.heroCycles++;}
+   }));
+   cleanups.push(bus.on('FrostFreezeRefresh',ev=>{
+     if(!live)return;
+     const t=tracks.find(t=>t.f?.id===ev.payload?.shooterFighterId&&t.hero==='FROST');
+     if(t)t.refreshes++;
+   }));
+   // Trigger owner & prey both come from actual Hunter snare collision.
+   cleanups.push(bus.on('SnareTriggered',ev=>{
+     if(!live)return;
+     const t=tracks.find(t=>t.f?.id===ev.payload?.ownerFighterId&&t.hero==='HUNTER');
+     if(t)t.trapPending.set(ev.payload.target,now()+2);
+   }));
+ }
+ function close(){if(!live&&cleanups.length===0)return;live=false;
+   while(cleanups.length){const off=cleanups.pop();try{off()}catch(_){}}}
+
  function onDamage(victim,source,label,actual,critical=false,impact=null){
    if(!live||!finite(actual)||actual<=0)return;
    const v=track(victim),a=track(source);
@@ -56,6 +84,10 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(a.lastAttack[other]!==null&&now()-a.lastAttack[other]<=2
      &&now()-a.lastComboAt>=2){a.comboChains++;a.lastComboAt=now();}
    a.lastAttack[type]=now();
+   const hunterExpiry=a.trapPending.get(victim.id);
+   if(a.hero==='HUNTER'&&hunterExpiry!==undefined&&now()<=hunterExpiry){
+     a.traps++;a.trapPending.delete(victim.id);
+   }
    const controlUntil=a.pendingControls.get(victim.id);
    if(controlUntil!==undefined&&now()<=controlUntil){a.followups++;a.pendingControls.delete(victim.id)}
    a.chaosEvents.push({t:now(),kind:type,id});
@@ -93,7 +125,8 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(x.lastPickupAt!==null&&now()-x.lastPickupAt<=2)x.swapFast++;x.lastPickupAt=now();x.lastPickupWeapon=String(weaponId)}
  function onHeal(f,actual){const x=track(f);if(!live||!x||!(actual>0))return;x.healing+=actual;
    if(f.hp/Math.max(1,f.maxHp)<=.25+actual/Math.max(1,f.maxHp))x.healsFromDanger+=actual}
- function onCast(f){const x=track(f);if(x&&live)x.casts++}
+ function onCast(f,slot){const x=track(f);if(x&&live){x.casts++;
+   if(slot==='A1'||slot==='A2')x.cooldownCycle[slot]++;}}
  function onRicochet(f){const x=track(f);if(x&&live)x.ricochets++}
  function onRicochetHit(f){const x=track(f);if(x&&live)x.ricochetHits++}
  function onControl(source,victim){const a=track(source),v=track(victim);
@@ -124,8 +157,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      cycles:0,traps:0,refreshes:0
    };
    // No metric is fabricated. Unsupported measures never pass a predicate.
-   const unsupported=new Set(['signature-newbot',
-     'signature-hunter','signature-crystala','signature-magnet','signature-frost','signature-mirror']);
+   const unsupported=new Set(['signature-crystala','signature-magnet','signature-mirror']);
    if(unsupported.has(def.id))return null;
    if(def.id==='first-blood')return t.firstBlood?{__event:1}:null;
    if(def.id==='final-round')return null; // lacks final-ammo accepted-hit event
@@ -142,6 +174,9 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(def.id==='mastery-semi')generic.damage=t.familyDamage.get('SEMI')||0;
    if(def.id==='mastery-melee')generic.damage=t.familyDamage.get('MELEE')||0;
    if(def.id==='ricochet')generic.hits=t.ricochetHits;
+   if(def.id==='signature-newbot')generic.cycles=t.heroCycles;
+   if(def.id==='signature-hunter'){generic.traps=t.traps;generic.window=2;}
+   if(def.id==='signature-frost')generic.refreshes=t.refreshes;
    if(def.id==='untouchable')generic.duration=elapsed;
    if(def.id==='pacifist')generic.seconds=t.noDamageTime;
    if(def.id==='adrenaline'){generic.damage=t.damageAtLow;generic.hp=t.minHp;}
@@ -210,9 +245,9 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        durationSec:Math.round(elapsed),playedAt:new Date(startedAt).toISOString()},
      players,weapons,weaponOfTheBattle:best?{weaponId:best.weaponId,ownerId:best.ownerId,damage:best.damage}
        :{weaponId:'',ownerId:'',damage:0}};
-   sealed=Object.freeze(result);return sealed;
+   sealed=Object.freeze(result);close();return sealed;
  }
- return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onRicochet,onRicochetHit,onControl,onBlocked,tick,seal,
+ return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onRicochet,onRicochetHit,onControl,onBlocked,tick,seal,close,
    snapshot:()=>({live,elapsed,players:tracks.map(t=>({id:t.id,dealt:t.dealt,shots:t.shots,pickups:t.pickups}))})});
 }
 root.APEX_MATCH_RESULT_AUTHORITY=Object.freeze({create});

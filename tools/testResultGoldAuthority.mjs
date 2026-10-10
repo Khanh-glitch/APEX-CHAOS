@@ -90,6 +90,24 @@ function duel(name1='ROBOT',name2='ROBOT'){
  assert.ok(res.players[0].awards.some(a=>a.achievementId==='ricochet'),
    'native confirmed wall-bounced thrown impact is the only medal receipt');
 }
+{
+ // The exact owner badge counters must not be inferred from damage totals.
+ const subscriptions=new Map();
+ const oldBus=scope.APEX_HERO_REWORK_AIL;
+ scope.APEX_HERO_REWORK_AIL={bus:{on(type,fn){subscriptions.set(type,fn);return()=>subscriptions.delete(type)}}};
+ const {f1,f2,ledger}=duel('ROBOT','HUNTER');
+ ledger.onCast(f1,'A1');
+ subscriptions.get('RobotPassiveUpgrade')?.({payload:{fighterId:f1.id,slot:'A1',refund:.5}});
+ ledger.onCast(f1,'A2');
+ subscriptions.get('RobotPassiveUpgrade')?.({payload:{fighterId:f1.id,slot:'A2',refund:.8}});
+ ledger.onCast(f1,'A1');
+ subscriptions.get('RobotPassiveUpgrade')?.({payload:{fighterId:f1.id,slot:'A1',refund:.5}});
+ const data=ledger.seal('P1');
+ assert.ok(data.players[0].awards.some(a=>a.achievementId==='signature-newbot'),
+   'three distinct accepted cast-refund cycles signed by real Robot events');
+ assert.equal(subscriptions.size,0,'per-match listeners always unsubscribe on KO');
+ if(oldBus===undefined)delete scope.APEX_HERO_REWORK_AIL;else scope.APEX_HERO_REWORK_AIL=oldBus;
+}
 const battle=readFileSync('public/game/modes/arsenalBattleRuntime.js','utf8');
 const bridge=readFileSync('public/game/gold/goldProductBridge.js','utf8');
 const runtime=readFileSync('src/game/runtimeManifest.js','utf8');
