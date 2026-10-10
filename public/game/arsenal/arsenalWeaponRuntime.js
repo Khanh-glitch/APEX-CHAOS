@@ -638,6 +638,7 @@
   // One resolved projectile carries one damage scalar through reflection,
   // ricochet, delayed split, ignite and fragment offspring. Never restore a
   // pre-reflection config peak after Crystal's passive already reduced it.
+  function v43Redirected(p){return !!(p.__hr?.crystalReflected||p.aqReflected);}
   function v43DamageScale(p,base){return p.__hr?.crystalReflected
     ?v43min((p.damage||0)/Math.max(1e-6,base),0,2):1;}
   function v43Splash(p,peak,radius){
@@ -799,7 +800,7 @@
       if(p.age>=c.armSeconds){p.phase='armed';p.armAge=0;}
       return;
     }
-    if(p.kind==='plasma'&&p.homing&&!p.__hr?.crystalReflected){
+    if(p.kind==='plasma'&&p.homing&&!v43Redirected(p)){
       const target=v43Enemies(p.owner).reduce((best,f)=>!best||
         Math.hypot(f.x-p.x,f.y-p.y)<Math.hypot(best.x-p.x,best.y-p.y)?f:best,null);
       if(target){
@@ -812,7 +813,7 @@
     // Crystal reflected boomerang is now a free ballistic projectile: the
     // original owner's precomputed return spline cannot override Crystal's
     // outgoing vector or magically change the new owner's trajectory.
-    if(p.kind==='boomerang'&&p.__hr?.crystalReflected){
+    if(p.kind==='boomerang'&&v43Redirected(p)){
       p.phase='reflected';p.homing=false;
     }
     if(p.kind==='bolt'){
@@ -833,7 +834,7 @@
       const m=Math.max(0,1-c.drag*dt);
       p.vx*=m;p.vy*=m;
     }
-    if(p.kind==='boomerang'&&!p.__hr?.crystalReflected){
+    if(p.kind==='boomerang'&&!v43Redirected(p)){
       // World path is sampled once from RELEASE geometry, never re-steered to
       // the target or owner's later position. Time advances along arc length.
       const path=p.flightPath;
@@ -966,9 +967,12 @@
         const child=v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
           radius:c.radius,damage:c.shardDamage*v43DamageScale(p,c.coreDamage),
           vx:Math.cos(angle)*c.shardSpeed,vy:Math.sin(angle)*c.shardSpeed,
-          life:2.3,homing:!p.__hr?.crystalReflected});
-        if(p.__hr?.crystalReflected)child.__hr={crystalReflected:true,
-          cryOwner:p.__hr.cryOwner,neutral:false};
+          life:2.3,homing:!v43Redirected(p)});
+        if(v43Redirected(p)){
+          child.aqReflected=!!p.aqReflected;
+          child.__hr={crystalReflected:!!p.__hr?.crystalReflected,
+            cryOwner:p.__hr?.cryOwner,neutral:false};
+        }
       }
       v43Pulse(p.x,p.y,'split');p.life=0;
     }
@@ -2566,7 +2570,11 @@
           if (h.meta.pose) h.meta.pose.rotKick = poseRecipe('SWIRL_SHIELD').idleSettle * Math.sin(h.elapsed * 8.4);
           // Reflect the first eligible hostile projectile that comes close.
           for (const p of projectiles) {
-            if (!p || p.type !== 'aq_bullet' || !p.owner || p.owner === f || p.aqReflected) continue;
+            const reflectable=p?.type==='aq_bullet'||(p?.type==='aq_v43'
+              &&V43[p.weapon]?.reflectableKinds?.includes(p.kind)
+              &&(p.kind!=='mine'||p.phase==='flight'));
+            if(!p||!reflectable||!p.owner||p.owner===f||p.aqReflected
+              ||p.__hr?.crystalReflected||p.__hr?.cryHold)continue;
             if (dist(p.x, p.y, f.x, f.y) > spec.reflectRadius + p.radius) continue;
             const toHolder = { x: f.x - p.x, y: f.y - p.y };
             if (p.vx * toHolder.x + p.vy * toHolder.y <= 0) continue; // moving away
