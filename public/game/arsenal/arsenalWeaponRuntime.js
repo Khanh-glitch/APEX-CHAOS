@@ -793,7 +793,7 @@
       if(p.age>=c.armSeconds){p.phase='armed';p.armAge=0;}
       return;
     }
-    if(p.kind==='plasma'&&p.homing){
+    if(p.kind==='plasma'&&p.homing&&!p.__hr?.crystalReflected){
       const target=v43Enemies(p.owner).reduce((best,f)=>!best||
         Math.hypot(f.x-p.x,f.y-p.y)<Math.hypot(best.x-p.x,best.y-p.y)?f:best,null);
       if(target){
@@ -802,6 +802,12 @@
         const aim=now+v43min(diff,-c.shardTurnRate*dt,c.shardTurnRate*dt);
         p.vx=Math.cos(aim)*c.shardSpeed;p.vy=Math.sin(aim)*c.shardSpeed;
       }
+    }
+    // Crystal reflected boomerang is now a free ballistic projectile: the
+    // original owner's precomputed return spline cannot override Crystal's
+    // outgoing vector or magically change the new owner's trajectory.
+    if(p.kind==='boomerang'&&p.__hr?.crystalReflected){
+      p.phase='reflected';p.homing=false;
     }
     if(p.kind==='bolt'){
       const sp=Math.hypot(p.vx,p.vy)||1;
@@ -821,7 +827,7 @@
       const m=Math.max(0,1-c.drag*dt);
       p.vx*=m;p.vy*=m;
     }
-    if(p.kind==='boomerang'){
+    if(p.kind==='boomerang'&&!p.__hr?.crystalReflected){
       // World path is sampled once from RELEASE geometry, never re-steered to
       // the target or owner's later position. Time advances along arc length.
       const path=p.flightPath;
@@ -845,6 +851,16 @@
       }
       p.visual.push({x:p.x,y:p.y});if(p.visual.length>24)p.visual.shift();
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+      // Every physical SPECIAL flight must pass through Crystal's single
+      // swept surface authority BEFORE native body damage. A K intercept
+      // may hold/re-own the exact projectile; never apply the stale body hit.
+      const crystal=window.APEX_CRYSTAL;
+      if(crystal?.resolveBullet){
+        const len=Math.hypot(p.x-p.px,p.y-p.py)||1;
+        const bodyT=hit?Math.max(0,Math.min(1,Math.hypot(hit.x-p.px,hit.y-p.py)/len)):2;
+        const outcome=crystal.resolveBullet(p,bodyT,dt);
+        if(outcome?.consumed)return;
+      }
       if(hit&&!p.hits.has(hit.actor)){
         p.hits.add(hit.actor);
         aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
@@ -861,6 +877,15 @@
     // the explicit 0.48s arming gate.
     const hit=p.kind==='mine'?null
       :v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+    // CRYSTALA K / J: same real swept segment, wall/shard BEFORE fighter.
+    // Only mobile damage-bearing bodies are routed: an armed floor mine,
+    // flame cone and timed burn never masquerade as reflectable bullets.
+    if(p.kind!=='mine'&&p.kind!=='fragment'&&window.APEX_CRYSTAL?.resolveBullet){
+      const span=Math.hypot(p.x-p.px,p.y-p.py)||1;
+      const bodyT=hit?Math.max(0,Math.min(1,Math.hypot(hit.x-p.px,hit.y-p.py)/span)):2;
+      const outcome=window.APEX_CRYSTAL.resolveBullet(p,bodyT,dt);
+      if(outcome?.consumed)return;
+    }
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
       if(p.kind==='plasma-core'){
