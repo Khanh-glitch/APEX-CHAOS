@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "./styles/base.css";
+@import "./styles/components.css";
+@import "./styles/viewport.css";
+@import "./styles/motion.css";
+@import "./styles/dialog.css";
+
+/* SVG presentation attributes written as var(--team) are not resolved by every engine; mirror them in CSS. */
+svg [fill="var(--team)"] { fill: var(--team); }
+svg [stroke="var(--team)"] { stroke: var(--team); }
