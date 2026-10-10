@@ -165,7 +165,13 @@ try{
           states.push({time:+(i/60).toFixed(2),phase:h?.phase||null,
             weapon:h?.weaponId||null,atk:a.hp,def:b.hp,
             projectileCount:projectiles.filter(p=>p.aq).length,
-            position:{x:a.x,y:a.y,tx:b.x,ty:b.y}});
+            projectile:projectiles.filter(p=>p.aq&&p.weapon===${JSON.stringify(id)})
+              .map(p=>({kind:p.kind,x:+p.x.toFixed(2),y:+p.y.toFixed(2),
+                vx:+p.vx.toFixed(2),vy:+p.vy.toFixed(2),angle:+p.angle.toFixed(3),
+                life:+p.life.toFixed(2),ownerId:p.owner?.id})),
+            position:{x:a.x,y:a.y,tx:b.x,ty:b.y},
+            ids:{a:a.id,b:b.id},rework:window.APEX_HERO_REWORK?.resolveEnemyBody?.(a,b)?.id||null
+            });
         }
       }
       const events=window.APEX_ARSENAL.events;
