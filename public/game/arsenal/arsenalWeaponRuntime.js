@@ -426,8 +426,10 @@
     // event. Every set is paired with this synchronous clear.
     if (target){target.__aqImpact = null;target.__aqResultSource=null;}
     if (opts.knockback && source && source !== target && target.hp > 0) {
-      const n = norm(target.x - source.x || 1, target.y - source.y);
-      target.applyStatus('push', 0.18, { x: n.x, y: n.y, strength: opts.knockback });
+      const n = opts.impactDirection && Number.isFinite(opts.impactDirection.x)
+        ? norm(opts.impactDirection.x,opts.impactDirection.y)
+        : norm(target.x - source.x || 1, target.y - source.y);
+      target.applyStatus('push', opts.knockbackSeconds || 0.18, { x: n.x, y: n.y, strength: opts.knockback });
     }
     if (opts.stun && target.hp > 0) target.applyStatus('stun', opts.stun, {});
     if(actual>0&&target.hp>0&&(opts.knockback||opts.stun))
@@ -765,8 +767,9 @@
     if(p.kind==='flame'){v43FlameHit(p,dt);return;}
     if(p.kind==='mine'&&p.phase==='armed'){
       p.armAge=(p.armAge||0)+dt;
-      if(p.armAge>=c.triggerAge||v43Enemies(p.owner).some(f=>
-        Math.hypot(f.x-p.x,f.y-p.y)<c.triggerRadius+(f.radius||75)*.25)){
+      // Floor mine waits for a true opponent contact; timer only limits idle lifetime.
+      if(v43Enemies(p.owner).some(f=>
+        Math.hypot(f.x-p.x,f.y-p.y)<=c.triggerRadius+(f.radius||75)*.25)){
         v43Splash(p,c.peak,c.blastRadius);
         // One explosion, one shared per-victim fragment budget: no target
         // can ever receive more than 2 of the 8 shrapnel impacts.
@@ -789,6 +792,16 @@
       if(p.age>=c.armSeconds){p.phase='armed';p.armAge=0;}
       return;
     }
+    if(p.kind==='plasma'&&p.homing){
+      const target=v43Enemies(p.owner).reduce((best,f)=>!best||
+        Math.hypot(f.x-p.x,f.y-p.y)<Math.hypot(best.x-p.x,best.y-p.y)?f:best,null);
+      if(target){
+        const want=Math.atan2(target.y-p.y,target.x-p.x),now=Math.atan2(p.vy,p.vx);
+        const diff=Math.atan2(Math.sin(want-now),Math.cos(want-now));
+        const aim=now+v43min(diff,-c.shardTurnRate*dt,c.shardTurnRate*dt);
+        p.vx=Math.cos(aim)*c.shardSpeed;p.vy=Math.sin(aim)*c.shardSpeed;
+      }
+    }
     if(p.kind==='bolt'){
       const sp=Math.hypot(p.vx,p.vy)||1;
       const ns=Math.min(c.maxSpeed,sp+c.acceleration*dt);
@@ -808,16 +821,17 @@
       // the target or owner's later position. Time advances along arc length.
       const path=p.flightPath;
       if(!path){p.life=0;return;}
-      const q=v43PathAt(path,Math.min(1,p.age/c.flightSeconds));
+      const flightSeconds=p.flightSeconds||c.flightSeconds;
+      const q=v43PathAt(path,Math.min(1,p.age/flightSeconds));
       p.px=p.x;p.py=p.y;
       p.x=q.x;p.y=q.y;
       p.vx=(p.x-p.px)/Math.max(dt,1e-5);
       p.vy=(p.y-p.py)/Math.max(dt,1e-5);
-      p.spin+=c.spin*dt*(1-.20*Math.min(1,p.age/c.flightSeconds));
-      if(p.phase==='out'&&p.age/c.flightSeconds>=path.apexProgress){
+      p.spin+=c.spin*dt*(1-.20*Math.min(1,p.age/flightSeconds));
+      if(p.phase==='out'&&p.age/flightSeconds>=path.apexProgress){
         p.phase='return';p.damage=c.returning;p.hits=new Set();
       }
-      if(p.age>=c.flightSeconds){
+      if(p.age>=flightSeconds){
         const h=getHolder(p.owner);
         if(h?.weaponId===p.weapon&&h.phase==='IN_FLIGHT'){
           h.phase='RETRIEVED';h.meta.v43Time=0;
@@ -840,10 +854,15 @@
     // Plasma core is a charged carrier, not a damaging early projectile.
     // Mine must land and arm first: an in-flight collision cannot bypass
     // the explicit 0.48s arming gate.
-    const hit=(p.kind==='plasma-core'||p.kind==='mine')?null
+    const hit=p.kind==='mine'?null
       :v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
+      if(p.kind==='plasma-core'){
+        aqDamage(hit.actor,c.coreDamage,p.owner,p.weapon,{knockback:80,
+          impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
+        v43Pulse(hit.x,hit.y,'plasma');p.life=0;return;
+      }
       if(p.kind==='rocket'){
         v43Splash(p,p.damage||c.peak,c.blastRadius);
         p.life=0;return;
@@ -852,16 +871,12 @@
         // Steel Ball is a direct kinetic collision, NEVER a scaled AOE.
         // Straight 98, one wall-bounce 109.76 (native Fighter.takeDamage).
         aqDamage(hit.actor,p.damage??c.peak,p.owner,p.weapon,{
-          knockback:180,impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
+          knockback:720,knockbackSeconds:.29,
+          impactDirection:{x:p.vx,y:p.vy},impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
         v43Pulse(hit.x,hit.y,'strike');
         p.life=0;return;
       }
-      if(p.kind==='mine'){
-        if(p.phase==='armed')v43Splash(p,p.damage||c.peak,c.blastRadius);
-        else v43Splash(p,(p.damage||c.peak)*.75,c.blastRadius);
-        p.life=0;return;
-      }
-      if(p.kind==='fragment'&&p.fragmentGroup){
+            if(p.kind==='fragment'&&p.fragmentGroup){
         const counts=p.fragmentGroup.victimHits;
         const n=counts.get(hit.actor)||0;
         if(n>=c.maxFragmentHits){p.hits.add(hit.actor);p.life=0;return;}
@@ -875,9 +890,7 @@
         const t=hit.actor;let burnCount=0;
         // Apply actual future burn ticks through game-time status via a world
         // projectile, not an interval (pauses with match engine).
-        projectiles.push({aq:true,type:'aq_v43',kind:'burn',owner:p.owner,weapon:p.weapon,
-          victim:t,x:t.x,y:t.y,age:0,life:c.burnTicks*c.burnInterval+.05,
-          maxLife:c.burnTicks*c.burnInterval+.05,tickCount:burnCount});
+        v43ApplyBurn(t,p.owner,p.weapon,c.burnTicks,c.burnInterval,c.burnDamage);
       }
       if(p.kind==='bolt')hit.actor.applyStatus?.('slow',c.slowSeconds,{mult:c.slowMult});
       if(p.kind==='fragment'){
@@ -903,12 +916,16 @@
       p.x=v43min(p.x,0,GAME_SIZE);p.y=v43min(p.y,0,GAME_SIZE);
       v43Splash(p,c.peak,c.blastRadius);p.life=0;
     }
+    if(p.kind==='plasma-core'&&
+      (p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
+      p.life=0;return; // A missed core outside the arena never divides.
+    }
     if(p.kind==='plasma-core'&&p.age>=c.splitAfter){
       for(const da of c.spread){
         const angle=Math.atan2(p.vy,p.vx)+da;
         v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
-          radius:c.radius,damage:p.damage||c.shardDamage,vx:Math.cos(angle)*c.shardSpeed,
-          vy:Math.sin(angle)*c.shardSpeed,life:1.7});
+          radius:c.radius,damage:c.shardDamage,vx:Math.cos(angle)*c.shardSpeed,
+          vy:Math.sin(angle)*c.shardSpeed,life:2.3,homing:true});
       }
       v43Pulse(p.x,p.y,'split');p.life=0;
     }
@@ -917,13 +934,14 @@
     }
   }
   function v43TickBurn(p,dt){
-    const c=V43.FLARE_GUN,t=p.victim;
+    const c=V43[p.weapon],t=p.victim;
     if(!t||t.hp<=0||t.withdrawn===true){p.life=0;return;}
     p.age+=dt;p.x=t.x;p.y=t.y; // Engine owns p.life.
-    while((p.tickCount||0)<c.burnTicks
-      &&p.age+1e-7>=((p.tickCount||0)+1)*c.burnInterval){
+    const ticks=p.burnTicks??c.burnTicks,interval=p.burnInterval??c.burnInterval;
+    while((p.tickCount||0)<ticks
+      &&p.age+1e-7>=((p.tickCount||0)+1)*interval){
       p.tickCount=(p.tickCount||0)+1;
-      aqDamage(t,c.burnDamage,p.owner,p.weapon,{statusDamage:true});
+      aqDamage(t,p.burnDamage??c.burnDamage,p.owner,p.weapon,{statusDamage:true});
     }
   }
   // Native Arsenal holder driver owns equip/READY/ammo/pose/consume for all
@@ -977,17 +995,20 @@
         if(!kind)throw Error('special executor not implemented '+c.kind);
         const x=v43Spawn(f,id,kind,a,{phase:kind==='boomerang'?'out':'flight',
           speed:kind==='plasma-core'?c.coreSpeed:undefined,
-          life:kind==='flame'?c.duration:kind==='boomerang'?c.flightSeconds+.16:3.2,
+          life:kind==='flame'?c.duration:kind==='mine'?12.5:
+            kind==='boomerang'?c.flightSeconds+.16:3.2,
           radius:c.radius||8,damage:c.direct??c.peak??c.outgoing??c.shardDamage??c.tickDamage??0});
         h.shotsFired+=1; // Same holder ammo/telemetry law as normal Arsenal guns.
         AQ.state?.resultLedger?.onShot?.(f,id);
         poseKick(h,poseRecipe(id));
         window.avCue?.('fire',{weapon:id,family:'SPECIAL',x:f.x,y:f.y,angle:a});
-        if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;}
-        if(kind==='plasma-core'){x.damage=c.shardDamage;}
+        if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;x.flameOrigins=[];}
+        if(kind==='plasma-core'){x.damage=c.coreDamage;}
         if(kind==='boomerang'){
           x.spin=0;x.damage=c.outgoing;
-          x.flightPath=v43MakeFlightPath(x.x,x.y,a);
+          x.flightPath=v43MakeFlightPath(x.x,x.y,a,ctx.enemy);
+          x.flightSeconds=x.flightPath.total/c.speed;
+          x.life=x.maxLife=x.flightSeconds+.2;
           h.phase='IN_FLIGHT';h.meta.v43Time=0;
         }else{
           h.phase='FOLLOW_THROUGH';h.meta.v43Time=0;
