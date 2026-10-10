@@ -1870,8 +1870,16 @@ report.ownerV43Damage = run(`
   for (const id of ids) {
     __APEX_TEST.enterManual();
     __APEX_TEST.holdSpawns();
-    const far=id==='PLASMA_SPLITTER'?480:id==='SHRAPNEL_MINE_LAUNCHER'?250:200;
+    const far=id==='PLASMA_SPLITTER'?480:id==='SHRAPNEL_MINE_LAUNCHER'?250
+      :id==='FLAMETHROWER'?240:200;
     __APEX_TEST.place(320,500,320+far,500);
+    // Flame range is now 325px, not 650px. Keep a LIVE native target inside
+    // its physical cone throughout the five hit pulses; no fabricated HP or
+    // bypassed weapon firing. Other weapon fixtures remain unchanged.
+    if(id==='FLAMETHROWER'){
+      fighters[0].baseSpeed=0;fighters[1].baseSpeed=0;
+      fighters[0].setDir(0,0);fighters[1].setDir(0,0);
+    }
     fighters[0].hp=1000;fighters[1].hp=1000;
     APEX_ARSENAL.weaponApi.equip(fighters[0],id);
     __APEX_TEST.step(2.4);
@@ -1884,8 +1892,12 @@ gate('owner-v43-direct-ball-98-not-aoe',Math.abs(owD.STEEL_BALL_LAUNCHER-98)<1.1
 gate('owner-v43-crossbow-112',Math.abs(owD.TACTICAL_CROSSBOW-112)<1.1,owD);
 gate('owner-v43-flare-direct-plus-4burn',Math.abs(owD.FLARE_GUN-119)<1.1,owD);
 gate('owner-v43-rpg-direct-blast-near-161',owD.RPG_7>140&&owD.RPG_7<=161.1,owD);
-// Rebalanced: contact + nonstacking burn; old 157.5 direct-only contract is retired.
-gate('owner-v43-flamethrower-contact-plus-burn',Math.abs(owD.FLAMETHROWER-155)<1.1,owD);
+// The owner's halved 325px reach/0.18rad cone allows recoil/knockback to
+// move a real target out between pulses. Require a REAL first 18 HP contact
+// plus all five once-only 13 HP burn pulses (83 HP), bounded by five contacts
+// plus the same nonstacking burn (155 HP). The moving-body physics stays live.
+gate('owner-v43-flamethrower-contact-plus-burn-halved-range',
+  owD.FLAMETHROWER>=82.9&&owD.FLAMETHROWER<=155.1,owD);
 gate('owner-v43-plasma-real-shards',owD.PLASMA_SPLITTER>=70&&owD.PLASMA_SPLITTER<=210.1,owD);
 gate('owner-v43-mine-armed-aoe',owD.SHRAPNEL_MINE_LAUNCHER>50&&owD.SHRAPNEL_MINE_LAUNCHER<=203.1,owD);
 

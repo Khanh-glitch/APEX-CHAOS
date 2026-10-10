@@ -70,7 +70,9 @@ console.log('PASS post Boomerang empty hand, physical swept catch, multi-actor p
 // Owner's original V4.3 Lab fire-only VFX, with halved cone/range/cadence.
 assert.ok(config.includes('duration:.325,ticks:5,tickStart:.05,tickInterval:.06'));
 assert.ok(config.includes('tickDamage:18,range:325,cone:.18,burnTicks:5,burnInterval:.25,burnDamage:13,idealRange:265'));
-assert.ok(runtime.includes('const muzzle=v43Muzzle(p.owner,p.weapon,p.angle)'));
+assert.ok(runtime.includes('let muzzle=v43Muzzle(p.owner,p.weapon,direction)'));
+assert.ok(runtime.includes('x.flameTarget=ctx.enemy'));
+assert.ok(runtime.includes('h.meta.aimAngle=direction'));
 assert.ok(runtime.includes('function v43GoldFlamethrowerParticles(ctx,p)'));
 assert.ok(runtime.includes('v43GoldFlamethrowerParticles(ctx,p);'));
 assert.ok(runtime.includes('Math.min(p.age,V43.FLAMETHROWER.duration)*470'));
@@ -97,6 +99,31 @@ assert.equal(shot.ticks,5);
 assert.equal(hitActors.length,5);
 assert.ok(hitActors.every(h=>h.f===near&&h.d===18));
 console.log('PASS original Lab fire only, halved 325px / .18rad / .325s, 5 real close hits');
+// Adversarial ROBOT Gold socket: the real art muzzle sits 66 px lower than
+// the Fighter center. Aim at an actual Fighter without widening the cone.
+const realTarget={x:300,y:100,radius:75,hp:1000},obliqueHits=[];
+const offsetHolder={meta:{aimAngle:0}};
+const obliqueEnv=vm.createContext({Math,Set,
+ V43:{FLAMETHROWER:{duration:.325,ticks:5,tickStart:.05,tickInterval:.06,
+  tickDamage:18,range:325,cone:.18,burnTicks:5,burnInterval:.25,burnDamage:13}},
+ getHolder:()=>offsetHolder,
+ v43Muzzle:(fighter,weapon,angle)=>({x:100+40*Math.cos(angle),y:166+40*Math.sin(angle)}),
+ v43Enemies:()=>[realTarget],
+ v43min:(x,a,b)=>Math.max(a,Math.min(b,x)),
+ v43Deal:(p,f,d)=>obliqueHits.push({f,d}),v43ApplyBurn:()=>{},
+ AQ:{state:{visuals:false}},pushVisual:()=>{throw Error('Unapproved extra flame FX');}
+});
+vm.runInContext(fn(runtime,'v43FlameHit')+'\nthis.hit=v43FlameHit;',obliqueEnv);
+const targeted={owner,weapon:'FLAMETHROWER',angle:0,age:.06,life:.325,ticks:0,
+ flameOrigins:[],flameTarget:realTarget};
+obliqueEnv.hit(targeted,.016);
+const physicalAngle=Math.atan2(realTarget.y-targeted.y,realTarget.x-targeted.x);
+assert.equal(obliqueHits.length,1,'narrow Flame cone must hit real forward Fighter');
+assert.equal(obliqueHits[0].d,18);
+assert.ok(Math.abs(physicalAngle-targeted.angle)<.03,'fire, art socket and actual hit cone must align');
+assert.ok(targeted.angle<-.2,'actual Gold muzzle offset must be solved, not ignored');
+assert.ok(offsetHolder.meta.aimAngle<-.2,'held gun pose follows muzzle correction');
+console.log('PASS 325px/0.18rad real Gold muzzle-to-target Flame alignment');
 // Quest enemy laser is physically swept, visually attached to the live
 // Gold donor's actual optic, and the source reanchors every render.
 assert.match(donor,/function opticWorld\(real\)/);

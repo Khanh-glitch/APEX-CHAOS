@@ -61,6 +61,11 @@ jobs:
           pnpm arsenal:sfx:materialize
           git diff --exit-code -- public/assets/arsenal/av
 
+      - name: Verify Gold generator source provenance and immutable runtime URLs
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          pnpm test:gold-revision-integrity
+
       - name: R77 Chrome Home portrait hitbox regression
         shell: bash
         run: |
