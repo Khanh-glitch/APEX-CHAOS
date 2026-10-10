@@ -262,6 +262,7 @@
         ct.telemetry.casts += 1;
         ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
         if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
+        globalScope.APEX_ARSENAL?.state?.resultLedger?.onCast?.(bodyOfCombatant(ct));
         AIL.bus.emit('Cast', { hero: ct.heroId, slot, mechanic: s.def.mechanicId, side: input.side, combatantId: input.combatantId, fighterId: bodyOfCombatant(ct)?.id ?? null, source: input.source, input });
         return { ok: true };
       },

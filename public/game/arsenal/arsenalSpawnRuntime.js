@@ -531,6 +531,7 @@
         const actual = Math.min(nominal, Math.max(0, cap - closest.hp));
         closest.hp = Math.min(cap, closest.hp + actual);
         closest.healingDone = (closest.healingDone || 0) + actual;
+        state.resultLedger?.onHeal?.(closest,actual);
         slot.phase = 'PICKED_UP';
         slot.pickedBy = closest.name;
         log('PICKUP_HEAL', `id=${slot.id} fighter=${closest.name} restore=${actual}`);
@@ -589,6 +590,8 @@
       slot.phase = 'PICKED_UP';
       slot.pickedBy = closest.name;
       weaponApi.equip(closest, slot.weaponId);
+      if(weaponApi.getHolder?.(closest)?.weaponId===slot.weaponId)
+        state.resultLedger?.onPickup?.(closest,slot.weaponId);
       const hold = weaponApi.getHolder(closest);
       // Stage receipt is derived ONLY from a genuine REVEALED floor pickup
       // completed by Arsenal. It is not synthesized from HP or skill presses.

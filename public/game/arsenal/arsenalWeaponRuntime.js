@@ -462,6 +462,7 @@
     if (!Number.isFinite(angle) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(speed)) return;
     const wspec = CFG.WEAPONS[weapon] || {};
     const family = wspec.family || (weapon === 'SNIPER' ? 'PRECISION' : weapon === 'SHOTGUN' ? 'SHOTGUN' : weapon === 'SMG' ? 'AUTO' : 'SEMI');
+    AQ.state?.resultLedger?.onShot?.(owner,weapon);
     projectiles.push({
       type: 'aq_bullet',
       aq: true,
@@ -1025,6 +1026,7 @@
               thrownExit(p);
             } else {
               p.ricochetsLeft -= 1;
+              AQ.state?.resultLedger?.onRicochet?.(p.owner);
               p.spin *= -1;
               window.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });
               emitParticles(p.x, p.y, '#ffe6a8', 10, 320, 4, 0.3, 'square');
