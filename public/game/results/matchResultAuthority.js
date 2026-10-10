@@ -18,10 +18,11 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
  let live=true,elapsed=0,sealed=null,firstBlood=false;
  const tracks=actors.map((f,i)=>({
    f,index:i,id:'P'+(i+1),hero:heroId(f),dealt:0,taken:0,healing:0,blocked:0,
+   weaponShots:new Map(),weaponHits:new Map(),weaponMax:new Map(),
    shots:0,hits:0,critHits:0,hitStreak:0,maxStreak:0,critMax:0,
    casts:0,pickups:0,sourceMap:new Map(),weapons:new Set(),familyDamage:new Map(),
    hitsTimeline:[],maxHit:0,longDamage:0,closeDamage:0,
-   minHp:100,damageAtLow:0,secondsLow:0,distance:0,
+   minHp:100,damageAtLow:0,secondsLow:0,distance:0,longMaxRange:0,closeMaxRange:0,
    lastX:f.x,lastY:f.y,lastDamageAt:0,lastShotAt:-1,
    noDamageTime:0,maxNoDamage:0,ricochets:0,trapHits:0,
    healsFromDanger:0,followups:0,damageWindow:0,maxBurst1:0,maxBurst3:0,
@@ -45,9 +46,12 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(family)a.familyDamage.set(family,(a.familyDamage.get(family)||0)+actual);
    a.maxHit=Math.max(a.maxHit,actual);
    if(critical)a.critHits++;
-   if(weapon){a.hits++;a.hitStreak++;a.maxStreak=Math.max(a.maxStreak,a.hitStreak)}
+   if(weapon){a.hits++;a.hitStreak++;a.maxStreak=Math.max(a.maxStreak,a.hitStreak);
+     a.weaponHits.set(id,(a.weaponHits.get(id)||0)+1);a.weaponMax.set(id,Math.max(a.weaponMax.get(id)||0,actual));}
+   else a.hitStreak=0;
    const d=Math.hypot(source.x-victim.x,source.y-victim.y);
-   if(d>=500)a.longDamage+=actual;if(d<=240)a.closeDamage+=actual;
+   if(d>=500){a.longDamage+=actual;a.longMaxRange=Math.max(a.longMaxRange,d)}
+   if(d<=240){a.closeDamage+=actual;a.closeMaxRange=Math.max(a.closeMaxRange,d)}
    if(source.hp/Math.max(1,source.maxHp)<=.25)a.damageAtLow+=actual;
    a.hitsTimeline.push({t:now(),damage:actual,weapon:id});
    while(a.hitsTimeline.length>250)a.hitsTimeline.shift();
@@ -58,7 +62,9 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(!firstBlood){firstBlood=true;a.firstBlood=true}
    if(v&&victim.hp<=0)a.kills++;
  }
- function onShot(f,weaponId){const x=track(f);if(!live||!x)return;x.shots++;x.lastShotAt=now();x.lastWeapon=weaponId}
+ function onShot(f,weaponId){const x=track(f);if(!live||!x)return;x.shots++;
+   x.weaponShots.set(String(weaponId),(x.weaponShots.get(String(weaponId))||0)+1);
+   x.lastShotAt=now();x.lastWeapon=weaponId}
  function onMiss(f){const x=track(f);if(x&&live)x.hitStreak=0}
  function onPickup(f,weaponId){const x=track(f);if(!live||!x)return; x.pickups++;x.weapons.add(String(weaponId));
    if(x.lastPickupAt!==null&&now()-x.lastPickupAt<=2)x.swapFast++;x.lastPickupAt=now()}
@@ -82,7 +88,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
  function observed(t,def,winner){const h=t.f.hp/Math.max(1,t.f.maxHp)*100;
    const generic={
      damage:t.dealt,hit:t.maxHit,window:3,gap:1.2,ratio:t.taken>0?t.dealt/t.taken:0,ming:t.dealt,
-     accuracy:t.shots>0?100*t.hits/t.shots:0,shots:t.shots,crit:t.hits>0?100*t.critHits/t.hits:0,
+     accuracy:t.shots>0?Math.min(100,100*t.hits/t.shots):0,shots:t.shots,crit:t.hits>0?100*t.critHits/t.hits:0,
      hits:t.hits,distance:t.distance,streak:t.maxStreak,delay:t.swapFast>0?0:Infinity,
      count:t.swapFast,weapons:t.weapons.size,healing:t.healing,blocked:t.blocked,
      hp:h,duration:elapsed,taken:t.taken,pickups:t.pickups,danger:t.healsFromDanger>0?t.minHp:Infinity,
@@ -101,17 +107,19 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(def.id==='overkill')generic.hit=t.maxHit;
    if(def.id==='burst-king')generic.damage=t.maxBurst3;
    if(def.id==='no-escape')generic.damage=t.maxBurst1;
-   if(def.id==='eagle-eye')generic.damage=t.longDamage;
-   if(def.id==='point-blank')generic.damage=t.closeDamage;
+   if(def.id==='eagle-eye'){generic.damage=t.longDamage;generic.distance=t.longMaxRange;}
+   if(def.id==='point-blank'){generic.damage=t.closeDamage;generic.distance=t.closeMaxRange||Infinity;}
    if(def.id==='mastery-shotgun')generic.damage=t.familyDamage.get('SHOTGUN')||0;
    if(def.id==='mastery-auto')generic.damage=t.familyDamage.get('AUTO')||0;
    if(def.id==='mastery-burst')generic.damage=t.familyDamage.get('BURST')||0;
    if(def.id==='mastery-precision')generic.damage=t.familyDamage.get('PRECISION')||0;
    if(def.id==='mastery-semi')generic.damage=t.familyDamage.get('SEMI')||0;
    if(def.id==='mastery-melee')generic.damage=t.familyDamage.get('MELEE')||0;
+   if(def.id==='ricochet')generic.hits=t.ricochets;
    if(def.id==='untouchable')generic.duration=elapsed;
    if(def.id==='pacifist')generic.seconds=t.noDamageTime;
-   if(def.id==='adrenaline')generic.damage=t.damageAtLow;
+   if(def.id==='adrenaline'){generic.damage=t.damageAtLow;generic.hp=t.minHp;}
+   if(def.id==='glass-cannon')generic.min=t.dealt;
    if(def.id==='clutch')return null; // last 30s hit window not yet signed
    if(def.id==='never-surrender')return null; // last HP comeback authority absent
    if(def.id==='chaos-bringer')return null; // source diversity window not signed
@@ -130,10 +138,16 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const fam=String(spec.family||'SEMI');
      const known=['SHOTGUN','AUTO','BURST','PRECISION','SEMI'].includes(fam)?fam:'SEMI';
      const category=known==='SHOTGUN'?'shotgun':known==='AUTO'?'smg':known==='PRECISION'?'marksman':'railgun';
-     const art=(cfg.V43_WEAPONS&&cfg.V43_WEAPONS[id])?'/assets/arsenal/v43/'+id+'.webp':undefined;
+     const atlas=root.APEX_ARSENAL_C_SET?.weapons?.[id]?.file;
+     const art=(cfg.V43_WEAPONS&&cfg.V43_WEAPONS[id])
+       ?'/assets/arsenal/v43/'+id+'.webp'
+       :atlas?'/assets/arsenal/'+String(atlas).replace(/^\/+/,''):undefined;
+     const shots=tracks.reduce((n,t)=>n+(t.weaponShots.get(id)||0),0);
+     const hits=tracks.reduce((n,t)=>n+(t.weaponHits.get(id)||0),0);
+     const best=tracks.reduce((n,t)=>Math.max(n,t.weaponMax.get(id)||0),0);
      weapons.push({id,name:id.replaceAll('_',' '),weaponClass:category,classLabel:fam,
        tierLabel:cfg.tierOf?.(id)||'T1',tagline:'APEX ARSENAL',ownerId:tracks[0].id,
-       silhouette:'generic',artSrc:art,stats:{shotsFired:0,shotsHit:0,bestHit:0}});
+       silhouette:'generic',artSrc:art,stats:{shotsFired:shots,shotsHit:hits,bestHit:Math.round(best)}});
    }
    const players=tracks.map((t,i)=>{
      const slug=heroSlug(t.hero),color=accent[t.hero]||'#dddddd';
@@ -151,7 +165,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        character:{name:t.hero,className:'APEX FIGHTER',tagline:'',artKind:'generic',
          heroId:t.hero,portraitSrc:'/assets/gold-ui/heroes/'+slug+'/'+(t.hero==='MIRROR'?'pick_roster_cover.webp':'pick_selected_large.webp')},
        damage:{dealt:t.dealt,taken:t.taken,sources:list},stats:{
-         accuracy:t.shots>0?Math.round(t.hits/t.shots*100):0,
+         accuracy:t.shots>0?Math.min(100,Math.round(t.hits/t.shots*100)):0,
          critRate:t.hits>0?Math.round(t.critHits/t.hits*100):0,
          healing:t.healing,skillCasts:t.casts},awards};
    });

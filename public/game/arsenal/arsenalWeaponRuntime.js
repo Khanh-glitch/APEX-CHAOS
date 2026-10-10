@@ -820,6 +820,7 @@
         const kind={flare:'flare',bolt:'bolt',ball:'ball',boomerang:'boomerang',
           rocket:'rocket',flame:'flame',plasma:'plasma-core',mine:'mine'}[c.kind];
         if(!kind)throw Error('V43 executor not implemented '+c.kind);
+        AQ.state?.resultLedger?.onShot?.(f,id);
         const x=v43Spawn(f,id,kind,a,{phase:kind==='boomerang'?'out':'flight',
           life:kind==='flame'?c.duration:kind==='boomerang'?c.flightSeconds:3.2,
           radius:c.radius||8,damage:c.direct??c.peak??c.outgoing??c.shardDamage??c.tickDamage??0});

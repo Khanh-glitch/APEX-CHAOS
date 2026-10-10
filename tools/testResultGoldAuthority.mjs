@@ -34,6 +34,9 @@ function duel(name1='ROBOT',name2='ROBOT'){
  assert.equal(res.players[1].damage.dealt,120);
  assert.equal(res.weaponOfTheBattle.weaponId,'PISTOL');
  assert.equal(res.weaponOfTheBattle.damage,490,'ONE weapon ID summed across both real sides');
+ assert.equal(res.weapons.find(w=>w.id==='PISTOL').artSrc,'/assets/arsenal/weapons/c/PISTOL.png');
+ assert.equal(res.weapons.find(w=>w.id==='PISTOL').stats.shotsFired,1);
+ assert.equal(res.weapons.find(w=>w.id==='PISTOL').stats.shotsHit,3);
  assert.equal(res.players[0].damage.sources.find(s=>s.weaponId==='PISTOL').damage,370);
  assert.ok(res.players[0].awards.some(a=>a.achievementId==='first-blood'));
  assert.ok(!res.players[1].awards.some(a=>a.achievementId==='first-blood'));
