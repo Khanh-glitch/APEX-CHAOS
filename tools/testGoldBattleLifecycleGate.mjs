@@ -158,10 +158,15 @@ check('Gold bridge exposes one engine teardown seam',
   /BRIDGE\.exitBattle = function exitBattle\(\)/.test(bridge)
   && /exitArsenalBattleMode\(\{ goldHosted: true, silentGoldExit: true \}\)/.test(bridge));
 const resultReturn = bridge.match(/function scheduleResultReturn\(\)[\s\S]*?function cancelResultReturn/);
-check('result return posts one shell exit event and does not directly open/exit legacy flow',
-  !!resultReturn
+const resultContinue = bridge.match(/function returnFromGoldResult\(\)[\s\S]*?function showGoldResult/);
+check('post-KO owner Result Gold Continue posts one shell exit without legacy flow',
+  !!resultReturn && !!resultContinue
   && !/exitArsenalBattleMode/.test(resultReturn[0])
-  && /APEX_CHAOS_BATTLE_EXIT/.test(resultReturn[0]));
+  && /showGoldResult\(resolved\)/.test(resultReturn[0])
+  && /APEX_CHAOS_BATTLE_EXIT/.test(resultContinue[0])
+  && /event\.source!==resultFrame\.contentWindow/.test(bridge)
+  && /event\.origin!==window\.location\.origin/.test(bridge)
+  && /event\.data\.matchId===resultData\?\.meta\?\.id/.test(bridge));
 
 const exitBlock = battle.match(/window\.exitArsenalBattleMode = function exitArsenalBattleMode\(options = \{\}\)[\s\S]*?\n  \};/);
 check('battle runtime has explicit goldHosted teardown-only branch', !!exitBlock && /if \(goldHosted\)/.test(exitBlock[0]));
