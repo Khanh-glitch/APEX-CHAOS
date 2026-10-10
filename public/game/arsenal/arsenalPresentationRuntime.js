@@ -810,9 +810,18 @@
     // drawWeaponSprite uses keepUpright scale(1,-1) after rotate when left.
     const orientation=Math.cos(theta)<0?-1:1;
     const localY=((c.muzzleV-.5)*height+(c.muzzleDy||0))*orientation;
-    return {x:cx+Math.cos(theta)*localX-Math.sin(theta)*localY,
-      y:cy+Math.sin(theta)*localX+Math.cos(theta)*localY,centerX:cx,centerY:cy,
-      width,height,theta};
+    const sourceX=cx+Math.cos(theta)*localX-Math.sin(theta)*localY;
+    const sourceY=cy+Math.sin(theta)*localX+Math.cos(theta)*localY;
+    // Plasma requires ~104px of Gold glow/ring/mote overhang. A world-edge
+    // actor must not crop half the charging core. Both rendering and the
+    // projectile launcher consume this ONE corrected world-space anchor.
+    // Only the plasma charge changes origin; other weapon calibration stays
+    // bit-for-bit intact. Preserve raw source for an energy-tether cue.
+    const margin=id==='PLASMA_SPLITTER'?c.chargeClipMargin||0:0;
+    const bound=window.GAME_SIZE||1000;
+    const x=margin?Math.max(margin,Math.min(bound-margin,sourceX)):sourceX;
+    const y=margin?Math.max(margin,Math.min(bound-margin,sourceY)):sourceY;
+    return {x,y,sourceX,sourceY,centerX:cx,centerY:cy,width,height,theta};
   }
 
   // Direct V4.3 Gold Lab charge authoring: radial compression,
@@ -825,7 +834,17 @@
     const compress=Math.max(0,Math.min(1,(t-.72)/.28));
     const outerR=(31+t*13)*(1-.42*compress);
     const clock=holder.elapsed||0;
-    ctx.save();ctx.translate(m.x,m.y);ctx.globalCompositeOperation='lighter';
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    // If an edge would crop the charge, a thin umbilical arc visibly connects
+    // the weapon's true barrel to the inset core, avoiding a floating effect.
+    if(Math.hypot(m.x-m.sourceX,m.y-m.sourceY)>1){
+      ctx.save();ctx.strokeStyle='#ca84fc';ctx.lineWidth=4.2;
+      ctx.globalAlpha=.28+t*.52;ctx.shadowColor='#c781ff';ctx.shadowBlur=16;
+      ctx.beginPath();ctx.moveTo(m.sourceX,m.sourceY);
+      ctx.quadraticCurveTo((m.sourceX+m.x)/2,(m.sourceY+m.y)/2-13*t,m.x,m.y);
+      ctx.stroke();ctx.restore();
+    }
+    ctx.translate(m.x,m.y);
     const glow=ctx.createRadialGradient(0,0,0,0,0,55*(1-.18*compress));
     glow.addColorStop(0,'rgba(255,255,255,'+(.25+t*.45)+')');
     glow.addColorStop(.14,'rgba(223,176,255,'+(.3+t*.4)+')');
