@@ -21,6 +21,8 @@ jobs:
         with: {node-version: 22, cache: pnpm}
       - run: pnpm install --frozen-lockfile
       - run: pnpm arsenal:sfx:materialize
+      - name: Gold Result real KO isolation and owner catalogue
+        run: node tools/testResultGoldAuthority.mjs
       - name: New native J-K adversarial tests
         run: node tools/testQuestCompanionNativeB6n.mjs
       - name: Owner-approved passive rig remains exact

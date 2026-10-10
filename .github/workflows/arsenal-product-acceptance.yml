@@ -45,6 +45,8 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Owner Gold result engine and secure iframe contract
+        run: node tools/testResultGoldAuthority.mjs
       - name: Verify product graph, source hygiene, runtime revision, and generated audio bank
         run: |
           pnpm test:product-graph
