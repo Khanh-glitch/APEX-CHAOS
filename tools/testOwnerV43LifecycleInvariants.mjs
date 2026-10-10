@@ -67,4 +67,21 @@ assert.match(w,/APEX_CRYSTAL\.resolveBullet\(p,bodyT,dt\)/,'Other V4.3 mobile pr
 assert.match(w,/p\.kind==='boomerang'&&!p\.__hr\?\.crystalReflected/,'Reflected boomerang cannot override its new trajectory with the old return path');
 assert.match(w,/p\.kind==='plasma'&&p\.homing&&!p\.__hr\?\.crystalReflected/,'Reflected plasma shards cannot home toward the original owner's foe');
 assert.match(w,/if\(outcome\?\.consumed\)return;/,'Crystal contact must supersede a stale body hit');
+// R3: shared interaction policies, preserving reflected damage to descendants,
+// and distinct Gold motion are release-blocking source contracts.
+for(const [id,kind] of [['FLARE_GUN','flare'],['TACTICAL_CROSSBOW','bolt'],
+  ['STEEL_BALL_LAUNCHER','ball'],['COMBAT_BOOMERANG','boomerang'],
+  ['RPG_7','rocket'],['SHRAPNEL_MINE_LAUNCHER','mine']]){
+  assert.match(cfg,new RegExp(id+':Object\.freeze\([\s\S]{0,230}reflectableKinds:\[\''+kind+'\'\]'),
+    'registry reflection capability missing: '+id);
+}
+assert.match(cfg,/reflectableKinds:\['plasma-core','plasma'\]/,
+  'plasma core and released shards share one reflected-particle law');
+assert.match(cfg,/reflectableKinds:\[\],muzzleDx:-1/,'flame cone must not masquerade as a moving bullet');
+assert.match(cry,/eligible\.includes\(p\.kind\)/,'Crystal K must query authoritative registry capabilities');
+assert.match(w,/v43DamageScale\(p,c\.coreDamage\)/,'plasma child damage must inherit the parent reflection scalar');
+assert.match(w,/child\.aqReflected=!!p\.aqReflected/,'shards must inherit Swirl reflection provenance');
+assert.match(w,/v43GoldBoomerangAirflow\(ctx,p,life\)/,'boomerang must render the Gold wingtip vortices');
+assert.match(w,/ctx\.shadowBlur=26-i\*5/,'plasma core must have four-layer Gold bloom');
+assert.match(p,/chargeClipMargin/,'plasma charged core must reserve full glow overhang');
 console.log('PASS owner V43 source integration invariants: 8 weapon entries + native holder/pose/projectile/Frost/result gates');
