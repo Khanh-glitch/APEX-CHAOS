@@ -24,36 +24,36 @@ const tests={
 // detection to the owner after every build.
 const matrix={
  FLARE_GUN:{
-  ready:['gold:held-motion'],attack:['source:flame','source:ribbons'],
+  ready:['gold:held-motion'],attack:['source:flame','source:ribbons','gold:flare-ignition-release-motion'],
   contact:['gold:flare-impact'],afterglow:['gold:burn-particles'],
   counter:['gold:flare-Crystal-Magnet-motion']},
  TACTICAL_CROSSBOW:{
-  ready:['gold:crossbow-recoil'],attack:['source:ribbons'],
+  ready:['gold:crossbow-recoil'],attack:['source:ribbons','gold:bolt-accelerating-motion'],
   contact:['gold:bolt-tip-and-impact'],afterglow:['gold:bolt-decay'],
   counter:['gold:bolt-Crystal-Magnet-motion']},
  STEEL_BALL_LAUNCHER:{
-  ready:['gold:steelball-recoil'],attack:['source:ribbons'],
+  ready:['gold:steelball-recoil'],attack:['source:ribbons','gold:physical-ball-launch-motion'],
   contact:['gold:bank-ricochet'],afterglow:['gold:steelball-contact'],
   counter:['gold:steelball-Crystal-Magnet-motion']},
  COMBAT_BOOMERANG:{
-  ready:['gold:throw-release'],attack:['source:airfoil','source:natural-flight'],
+  ready:['gold:throw-release'],attack:['source:airfoil','source:natural-flight','gold:complete-release-flight-and-catch'],
   contact:['gold:two-leg-hit-and-catch'],afterglow:['gold:weapon-return-pose'],
   counter:['gold:boomerang-redirect-motion']},
  RPG_7:{
-  ready:['gold:rpg-recoil'],attack:['source:ribbons'],
-  contact:['source:blast'],afterglow:['gold:rpg-soft-smoke'],
+  ready:['gold:rpg-recoil'],attack:['source:ribbons','gold:rpg-thrust-and-smoke-motion'],
+  contact:['source:blast','gold:rpg-impact-and-debris'],afterglow:['gold:rpg-soft-smoke'],
   counter:['gold:rpg-Crystal-Magnet-motion']},
  FLAMETHROWER:{
-  ready:['gold:flame-held-animation'],attack:['source:flame'],
+  ready:['gold:flame-held-animation'],attack:['source:flame','gold:470-rate-emission-field'],
   contact:['gold:flame-contact'],afterglow:['gold:470-particles-and-burn'],
   counter:['gold:flame-counter-identity']},
  PLASMA_SPLITTER:{
-  ready:['gold:charge-rings-and-crop'],attack:['source:plasma-transport'],
+  ready:['gold:charge-rings-and-crop'],attack:['source:plasma-transport','gold:core-flight-and-three-split-motion'],
   contact:['gold:core-and-three-split'],afterglow:['gold:plasma-impact'],
   counter:['gold:plasma-Crystal-split-motion']},
  SHRAPNEL_MINE_LAUNCHER:{
   ready:['gold:mine-recoil'],attack:['gold:mine-flight'],
-  contact:['source:armed-mine','source:blast'],
+  contact:['source:armed-mine','source:blast','gold:mine-arm-to-contact-transition'],
   afterglow:['gold:mine-pressure-and-shrapnel'],
   counter:['gold:mine-Crystal-Magnet-motion']},
 };
