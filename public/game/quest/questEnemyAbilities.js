@@ -26,7 +26,14 @@
         if(!core.enemySpecies('reaver')||typeof to.takeDamage!=='function')continue;
         const before=to.hp;
         to.takeDamage(core.enemySpecies('reaver').contactDamage,from,'quest-reaver-contact');
-        if(to.hp<before){applied++;bumps++;impacts.push({x:to.x,y:to.y,dx:to.x-from.x,dy:to.y-from.y,age:0,kind:'claw'});if(impacts.length>18)impacts.shift();}
+        if(to.hp<before){
+          // The accepted native 50HP contact is also the attack animation
+          // receipt. No idle loop pretends a claw strike occurred.
+          if(from.data)from.data.__questClawPulse=(from.data.__questClawPulse||0)+1;
+          applied++;bumps++;
+          impacts.push({x:to.x,y:to.y,dx:to.x-from.x,dy:to.y-from.y,age:0,kind:'claw'});
+          if(impacts.length>18)impacts.shift();
+        }
       }
       return applied;
     }
@@ -94,6 +101,9 @@
           const dy=dist>1e-6?(target.y-optic.y)/dist:0;
           rays.push({owner:f,originX:optic.x,originY:optic.y,x:optic.x,y:optic.y,
             dx,dy,remaining:1400,done:false,fade:0});
+          // Physical laser release owns one animation impulse. The
+          // V12 spring rig responds to this receipt, not a fabricated timer.
+          if(f.data)f.data.__questLaserPulse=(f.data.__questLaserPulse||0)+1;
           shots++;
           log?.('QUEST_SENTINEL_LASER_FIRE',f.questId);
           continue;
