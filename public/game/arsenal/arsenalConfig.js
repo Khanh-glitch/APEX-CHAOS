@@ -237,7 +237,7 @@
       art:'/assets/arsenal/v43/PLASMA_SPLITTER.webp',worldWidth:189,muzzleU:.95,muzzleV:.5,
       reflectableKinds:['plasma-core','plasma'],magnetizableKinds:[],muzzleDx:-14,muzzleDy:-13,
       chargeClipMargin:104,charge:.5,coreSpeed:525,splitAfter:.47,shards:3,
-      shardSpeed:660,shardTurnRate:6.2,spread:[-.22,0,.22],shardDamage:67,coreDamage:42,radius:9}),
+      shardSpeed:660,shardTurnRate:4.5,spread:[-.22,0,.22],shardDamage:67,coreDamage:76,radius:9}),
     SHRAPNEL_MINE_LAUNCHER:Object.freeze({tier:'T4',name:'Shrapnel Mine Launcher',kind:'mine',family:'SPECIAL',
       art:'/assets/arsenal/v43/SHRAPNEL_MINE_LAUNCHER.webp',
       projectile:'/assets/arsenal/v43/SHRAPNEL_MINE.webp',
