@@ -888,9 +888,9 @@
       if(!path){p.life=0;return;}
       const u=p.travel/Math.max(1e-6,path.total);
       const curvature=v43BoomerangCurvature(path,p.travel);
-      const desired=v43min(565+65*Math.sin(Math.PI*v43min(u,0,1))
-        -curvature*12500-100*u,300,625);
-      p.speed+=v43min(desired-p.speed,-850*dt,850*dt);
+      const desired=v43min(c.cruise+65*Math.sin(Math.PI*v43min(u,0,1))
+        -curvature*c.curveDrag-100*u,c.minTurnSpeed,c.maxTurnSpeed);
+      p.speed+=v43min(desired-p.speed,-c.accelLimit*dt,c.accelLimit*dt);
       const lastTravel=p.travel;
       p.travel=Math.min(path.total,p.travel+p.speed*dt);
       const q=v43PathAt(path,p.travel);
