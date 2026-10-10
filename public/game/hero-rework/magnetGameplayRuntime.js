@@ -206,11 +206,17 @@
       && isFirearm(slot.weaponId);
   }
   function isEligibleBullet(p) {
-    // Shield A2 bends ordinary kinetic objects, NEVER flame/plasma energy.
-    const kinetic=p?.type==='aq_bullet'||(p?.type==='aq_v43'&&
-      ['bolt','ball','rocket','fragment'].includes(p.kind));
-    return !!p && p.aq === true && kinetic && p.life !== 0
-      && isFirearm(p.weapon) && !(p.__hr && p.__hr.cryHold);
+    // Ordinary firearm bullets and V4.3 PHYSICAL projectiles are kinetic.
+    // V43 devices are NOT in CFG.isGun(): requiring isFirearm here silently
+    // let rockets/steel balls pass through Magnet A2. Flame, flare, plasma,
+    // and post-impact burns are NOT deflectable by a magnetic field.
+    const normal=p?.type==='aq_bullet'&&isFirearm(p.weapon);
+    const special=globalScope.APEX_ARSENAL_CONFIG?.V43_WEAPONS?.[p?.weapon];
+    const physical=p?.type==='aq_v43'&&!!special&&special.tier!=='T6'
+      &&(['bolt','ball','rocket','boomerang','fragment'].includes(p.kind)
+        ||(p.kind==='mine'&&p.phase==='flight'));
+    return !!p && p.aq===true && p.life>0 && !isT6Weapon(p.weapon)
+      && (normal||physical) && !(p.__hr && p.__hr.cryHold);
   }
   function hostileTo(p, ct, combatantOfBody) {
     if (p.__hr && p.__hr.neutral) return true;
