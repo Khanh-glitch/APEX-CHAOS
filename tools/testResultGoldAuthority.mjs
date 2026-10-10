@@ -46,6 +46,9 @@ function duel(name1='ROBOT',name2='ROBOT'){
  assert.equal(res,ledger.seal('P2'),'KO must seal exactly once, no duplicate awards');
  assert.equal(res.players[0].character.portraitSrc,'/assets/gold-ui/heroes/newbot/pick_selected_large.webp');
  assert.equal(res.players[0].stats.healing,0);
+ // Lethal damage is counted at actual HP pre-KO, NOT the dead loser's 0 HP.
+ assert.ok(!res.players[0].awards.some(a=>a.achievementId==='executioner'));
+
 }
 {
  const {f1,f2,ledger}=duel('MIRROR','ROBOT');
@@ -56,6 +59,36 @@ function duel(name1='ROBOT',name2='ROBOT'){
  assert.equal(res.players[0].awards.length,0,'no fabricated medals in no-damage match');
  assert.equal(res.players[0].character.portraitSrc,'/assets/gold-ui/heroes/mirror/pick_roster_cover.webp');
  assert.equal(res.players[1].outcome,'victory');
+}
+
+{
+ const {f1,f2,ledger}=duel();
+ ledger.onShot(f1,'PISTOL');
+ f2.hp=190;ledger.onDamage(f2,f1,'arsenal-pistol',810);
+ assert.ok(!ledger.seal('P1').players[0].awards.some(a=>a.achievementId==='executioner'),
+   'large KO from 100% HP must not be called Executioner');
+}
+{
+ const {f1,f2,ledger}=duel();
+ f2.hp=199;ledger.onDamage(f2,f1,'arsenal-pistol',801);
+ f2.hp=0;ledger.onDamage(f2,f1,'arsenal-pistol',199);
+ const w=ledger.seal('P1');
+ assert.ok(w.players[0].awards.some(a=>a.achievementId==='executioner'),
+   'native KO when opponent BEFORE last hit <=20% must earn Executioner');
+}
+{
+ const {f1,f2,ledger}=duel();
+ ledger.onRicochet(f1);
+ f2.hp=900;ledger.onDamage(f2,f1,'arsenal-sabre',100);
+ assert.ok(!ledger.seal('P1').players[0].awards.some(a=>a.achievementId==='ricochet'),
+   'wall bounce alone, or unrelated subsequent hit, never earns ricochet medal');
+}
+{
+ const {f1,f2,ledger}=duel();
+ ledger.onRicochetHit(f1);
+ const res=ledger.seal('P1');
+ assert.ok(res.players[0].awards.some(a=>a.achievementId==='ricochet'),
+   'native confirmed wall-bounced thrown impact is the only medal receipt');
 }
 const battle=readFileSync('public/game/modes/arsenalBattleRuntime.js','utf8');
 const bridge=readFileSync('public/game/gold/goldProductBridge.js','utf8');

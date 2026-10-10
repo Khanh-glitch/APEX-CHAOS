@@ -982,11 +982,14 @@
                 const hit=questHit||
                   sweptSegmentCircleHit(p.px,p.py,p.x,p.y,target.x,target.y,hitR)||
                   {x:p.x,y:p.y};
+                const hpBeforeImpact=target.hp;
                 aqDamage(target, CFG.meleeDamage('STORMBREAKER'), p.owner, 'STORMBREAKER', {
                   knockback: spec.knockback, stun: spec.stun,
                   shake: spec.shake != null ? spec.shake : 15,
                   hitStop: spec.hitStop != null ? spec.hitStop : 0.08,
                 });
+                if(p.__resultRicochet>0&&target.hp<hpBeforeImpact)
+                  AQ.state?.resultLedger?.onRicochetHit?.(p.owner);
                 // E08 causal receipt must be committed immediately after the
                 // REAL swept hit + native damage, before any VFX/SFX callback
                 // can re-enter presentation or clear a transient projectile.
@@ -1005,9 +1008,12 @@
               }
               p.pinAngle = Math.atan2(p.vy, p.vx);
               // ONE melee damage authority: thrown hits read the same x1.5.
+              const hpBeforeThrow=target.hp;
               aqDamage(target, CFG.meleeDamage(p.weapon), p.owner, p.weapon, {
                 knockback: spec.knockback, stun: spec.stun, shake: 8, hitStop: 0.05,
               });
+              if(p.__resultRicochet>0&&target.hp<hpBeforeThrow)
+                AQ.state?.resultLedger?.onRicochetHit?.(p.owner);
               window.avCue('melee_hit', { weapon: p.weapon, x: target.x, y: target.y, angle: p.pinAngle });
               p.state = 'pinned';
               p.pinnedTo = target;
@@ -1027,6 +1033,7 @@
               thrownExit(p);
             } else {
               p.ricochetsLeft -= 1;
+              p.__resultRicochet=(p.__resultRicochet||0)+1;
               AQ.state?.resultLedger?.onRicochet?.(p.owner);
               p.spin *= -1;
               window.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });

@@ -27,7 +27,11 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    noDamageTime:0,maxNoDamage:0,ricochets:0,trapHits:0,
    healsFromDanger:0,followups:0,damageWindow:0,maxBurst1:0,maxBurst3:0,
    maxLostLead:0,comebackDeficit:0,skillDamage:0,swapFast:0,lastPickupAt:null,
-   kills:0,earlyHit:0,firstBlood:false
+   kills:0,earlyHit:0,firstBlood:false,
+   executionerPreHp:null,fateHandDelay:null,lastPickupWeapon:null,
+   ricochetHits:0,damageWhileBehind:0,comboChains:0,lastComboAt:-Infinity,
+   lastAttack:{weapon:null,skill:null},chaosEvents:[],chaosQualified:false,
+   pendingControls:new Map()
  }));
  const track=f=>tracks.find(t=>t.f===f)||null;
  function now(){return elapsed}
@@ -39,6 +43,25 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    const weapon=String(label||'').startsWith('arsenal-');
    const id=weapon?String(label).slice(8).toUpperCase().replaceAll('-','_'):String(label||'SKILL');
    const key=(weapon?'W:':'S:')+id;
+   // HP has ALREADY been deducted by native Fighter. Reconstruct only the
+   // target's PRE-HIT HP from the accepted HP delta, never speculative damage.
+   if(a.f.hp < victim.hp+actual) a.damageWhileBehind+=actual;
+   if(victim.hp<=0){
+     a.executionerPreHp=100*(victim.hp+actual)/Math.max(1,victim.maxHp);
+     if(weapon&&a.lastPickupAt!==null&&a.lastPickupWeapon===id)
+       a.fateHandDelay=Math.max(0,now()-a.lastPickupAt);
+   }
+   const type=weapon?'weapon':'skill';
+   const other=type==='weapon'?'skill':'weapon';
+   if(a.lastAttack[other]!==null&&now()-a.lastAttack[other]<=2
+     &&now()-a.lastComboAt>=2){a.comboChains++;a.lastComboAt=now();}
+   a.lastAttack[type]=now();
+   const controlUntil=a.pendingControls.get(victim.id);
+   if(controlUntil!==undefined&&now()<=controlUntil){a.followups++;a.pendingControls.delete(victim.id)}
+   a.chaosEvents.push({t:now(),kind:type,id});
+   while(a.chaosEvents.length&&(now()-a.chaosEvents[0].t>20||a.chaosEvents.length>256))a.chaosEvents.shift();
+   if(new Set(a.chaosEvents.filter(e=>e.kind==='weapon').map(e=>e.id)).size>=3
+      &&a.chaosEvents.some(e=>e.kind==='skill'))a.chaosQualified=true;
    const record=a.sourceMap.get(key)||{id:key,label:id,kind:weapon?'weapon':'skill',weaponId:weapon?id:undefined,damage:0};
    record.damage+=actual;a.sourceMap.set(key,record);a.dealt+=actual;
    if(!weapon)a.skillDamage+=actual;
@@ -53,8 +76,8 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(d>=500){a.longDamage+=actual;a.longMaxRange=Math.max(a.longMaxRange,d)}
    if(d<=240){a.closeDamage+=actual;a.closeMaxRange=Math.max(a.closeMaxRange,d)}
    if(source.hp/Math.max(1,source.maxHp)<=.25)a.damageAtLow+=actual;
-   a.hitsTimeline.push({t:now(),damage:actual,weapon:id});
-   while(a.hitsTimeline.length>250)a.hitsTimeline.shift();
+   a.hitsTimeline.push({t:now(),damage:actual,weapon:id,kind:type});
+   while(a.hitsTimeline.length&&(a.hitsTimeline.length>4096||now()-a.hitsTimeline[0].t>65))a.hitsTimeline.shift();
    for(const win of [1.2,3]){
      let amt=0;for(let i=a.hitsTimeline.length-1;i>=0;i--){const x=a.hitsTimeline[i];if(now()-x.t>win)break;amt+=x.damage}
      if(win===1.2)a.maxBurst1=Math.max(a.maxBurst1,amt);else a.maxBurst3=Math.max(a.maxBurst3,amt);
@@ -67,11 +90,14 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    x.lastShotAt=now();x.lastWeapon=weaponId}
  function onMiss(f){const x=track(f);if(x&&live)x.hitStreak=0}
  function onPickup(f,weaponId){const x=track(f);if(!live||!x)return; x.pickups++;x.weapons.add(String(weaponId));
-   if(x.lastPickupAt!==null&&now()-x.lastPickupAt<=2)x.swapFast++;x.lastPickupAt=now()}
+   if(x.lastPickupAt!==null&&now()-x.lastPickupAt<=2)x.swapFast++;x.lastPickupAt=now();x.lastPickupWeapon=String(weaponId)}
  function onHeal(f,actual){const x=track(f);if(!live||!x||!(actual>0))return;x.healing+=actual;
    if(f.hp/Math.max(1,f.maxHp)<=.25+actual/Math.max(1,f.maxHp))x.healsFromDanger+=actual}
  function onCast(f){const x=track(f);if(x&&live)x.casts++}
  function onRicochet(f){const x=track(f);if(x&&live)x.ricochets++}
+ function onRicochetHit(f){const x=track(f);if(x&&live)x.ricochetHits++}
+ function onControl(source,victim){const a=track(source),v=track(victim);
+   if(live&&a&&v&&a!==v)a.pendingControls.set(victim.id,now()+2.5)}
  function onBlocked(f,n){const x=track(f);if(x&&live&&n>0)x.blocked+=n}
  function tick(dt){if(!live||!(dt>0)||!finite(dt))return;elapsed+=dt;
    for(const t of tracks){if(t.f?.hp==null)continue;
@@ -98,12 +124,12 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      cycles:0,traps:0,refreshes:0
    };
    // No metric is fabricated. Unsupported measures never pass a predicate.
-   const unsupported=new Set(['fate-hand','trickster','combo-artist','signature-newbot',
+   const unsupported=new Set(['signature-newbot',
      'signature-hunter','signature-crystala','signature-magnet','signature-frost','signature-mirror']);
    if(unsupported.has(def.id))return null;
    if(def.id==='first-blood')return t.firstBlood?{__event:1}:null;
    if(def.id==='final-round')return null; // lacks final-ammo accepted-hit event
-   if(def.id==='executioner')generic.hp=Math.min(generic.hp,100); // actual final HP only
+   if(def.id==='executioner')generic.hp=t.executionerPreHp??Infinity;
    if(def.id==='overkill')generic.hit=t.maxHit;
    if(def.id==='burst-king')generic.damage=t.maxBurst3;
    if(def.id==='no-escape')generic.damage=t.maxBurst1;
@@ -115,14 +141,19 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(def.id==='mastery-precision')generic.damage=t.familyDamage.get('PRECISION')||0;
    if(def.id==='mastery-semi')generic.damage=t.familyDamage.get('SEMI')||0;
    if(def.id==='mastery-melee')generic.damage=t.familyDamage.get('MELEE')||0;
-   if(def.id==='ricochet')generic.hits=t.ricochets;
+   if(def.id==='ricochet')generic.hits=t.ricochetHits;
    if(def.id==='untouchable')generic.duration=elapsed;
    if(def.id==='pacifist')generic.seconds=t.noDamageTime;
    if(def.id==='adrenaline'){generic.damage=t.damageAtLow;generic.hp=t.minHp;}
    if(def.id==='glass-cannon')generic.min=t.dealt;
-   if(def.id==='clutch')return null; // last 30s hit window not yet signed
-   if(def.id==='never-surrender')return null; // last HP comeback authority absent
-   if(def.id==='chaos-bringer')return null; // source diversity window not signed
+   if(def.id==='clutch'){generic.damage=t.hitsTimeline.reduce((s,x)=>s+(elapsed-x.t<=30?x.damage:0),0);generic.window=30;}
+   if(def.id==='never-surrender')generic.damage=t.damageWhileBehind;
+   if(def.id==='fate-hand')generic.delay=t.fateHandDelay??Infinity;
+   if(def.id==='trickster'){generic.followups=t.followups;generic.window=2.5;}
+   if(def.id==='combo-artist'){generic.chains=t.comboChains;generic.window=2;}
+   if(def.id==='chaos-bringer'){
+     if(!t.chaosQualified)return null;generic.window=20;generic.sources=3;
+   }
    if(['last-stand','comeback','speed-win'].includes(def.id)&&!winner)return null;
    return generic;
  }
@@ -181,7 +212,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        :{weaponId:'',ownerId:'',damage:0}};
    sealed=Object.freeze(result);return sealed;
  }
- return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onRicochet,onBlocked,tick,seal,
+ return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onRicochet,onRicochetHit,onControl,onBlocked,tick,seal,
    snapshot:()=>({live,elapsed,players:tracks.map(t=>({id:t.id,dealt:t.dealt,shots:t.shots,pickups:t.pickups}))})});
 }
 root.APEX_MATCH_RESULT_AUTHORITY=Object.freeze({create});
