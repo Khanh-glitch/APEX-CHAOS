@@ -9,7 +9,7 @@ const evidence=read('docs/maintenance/V43_GOLD_40_PHASE_EVIDENCE_BACKLOG_2026-10
 const sha=/^[0-9a-f]{40}$/;
 assert.equal(inventory.repo,'Khanh-glitch/APEX-CHAOS');
 assert.match(inventory.canonicalSha,sha);
-assert.equal(inventory.schema,'apex-chaos-branch-snapshot-v2');
+assert.equal(inventory.schema,'apex-chaos-branch-snapshot-v3');
 assert.equal(inventory.branches.length,171);
 assert.equal(new Set(inventory.branches.map(b=>b.name)).size,171);
 for(const b of inventory.branches){
@@ -21,10 +21,10 @@ const byName=new Map(inventory.branches.map(b=>[b.name,b]));
 assert.equal(byName.get(inventory.canonicalDevelopment)?.sha,inventory.canonicalSha);
 assert.equal(byName.get('main')?.role,'default-branch');
 assert.equal(byName.get('cleanup/v43-repository-hygiene-20261010')?.role,'staged-cleanup');
-assert.equal(byName.get('fix/v43-runtime-integrity-20261010')?.role,'open-pr-dependency');
-assert.equal(inventory.openPullRequests.length,12);
+assert.equal(byName.get('fix/v43-runtime-integrity-20261010')?.role,'merged-pr-preserve');
+assert.equal(inventory.openPullRequests.length,11);
 const ids=inventory.openPullRequests.map(p=>p.number).sort((a,b)=>a-b);
-assert.deepEqual(ids,Array.from({length:12},(_,i)=>i+15));
+assert.deepEqual(ids,Array.from({length:11},(_,i)=>i+15));
 for(const p of inventory.openPullRequests){
   assert.equal(byName.has(p.head),true,'Missing PR head '+p.number);
   assert.equal(byName.has(p.base),true,'Missing PR base '+p.number);
@@ -34,7 +34,8 @@ for(const b of inventory.branches)tally[b.role]=(tally[b.role]||0)+1;
 assert.deepEqual(tally,inventory.summary);
 assert.equal(tally['ancestor-review-candidate'],120);
 assert.equal(tally['diverged-preserve'],35);
-assert.equal(tally['open-pr-dependency'],12);
+assert.equal(tally['open-pr-dependency'],11);
+assert.equal(tally['merged-pr-preserve'],1);
 assert.equal(evidence.status,'EVIDENCE_ONLY_NOT_CERTIFICATION');
 assert.equal(evidence.summary.verifiedGoldPhases,0);
 assert.equal(evidence.summary.unverifiedGoldPhases,40);
@@ -60,5 +61,5 @@ for(const p of evidence.pendingPhases){
   actual.add(p.weapon+'/'+p.phase);
 }
 assert.deepEqual([...actual].sort(),[...expected].sort());
-console.log('PASS V4.3 audit snapshot: 171 SHA-pinned refs, 12 open PRs, 40/40 correctly BLOCKED Gold phases');
+console.log('PASS V4.3 audit snapshot: 171 SHA-pinned refs, 11 open PRs, 40/40 correctly BLOCKED Gold phases');
 console.log('NOTE: Static snapshot self-check only. No GitHub deletion, deployment, or visual certification.');

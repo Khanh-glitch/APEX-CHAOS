@@ -1,8 +1,8 @@
 {
   "schema": "apex-chaos-v43-first-batch-review-v1",
   "status": "READ_ONLY_HOLD",
-  "canonicalSha": "05b491de4c30e2239ea27a2b98e6c2d9db3aee04",
-  "explanation": "These five historic CI-base refs are ancestors of V4.3 and duplicate SHA tips already referenced by other branches. That does not prove they are free from CI/deployment links; no deletion is approved. The server must recheck SHA, default, open PRs, all workflow exact/glob refs and outside Cloudflare/manual-preview/rollback dependencies before applying any batch.",
+  "canonicalSha": "01633971cd2b014dd726d38f965705b9fca8b24f",
+  "explanation": "These five historic CI-base refs are ancestors of V4.3 and duplicate SHA tips already referenced by other branches. That does not prove they are free from CI/deployment links; no deletion is approved. The server must recheck SHA, default, open PRs, all workflow exact/glob refs and outside Cloudflare/manual-preview/rollback dependencies before applying any batch. Post-PR26 merge development now pins 01633971; neither SHA recency nor duplicated Git tip makes these branches deletion-approved.",
   "batchSize": 5,
   "deleted": 0,
   "requiresExternallyReviewedApprovalFile": true,

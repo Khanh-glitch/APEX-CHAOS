@@ -59,9 +59,10 @@ if(!liveDefault||typeof liveDefault!=='string')throw Error('Cannot establish liv
 const branchList=paged('branches');
 const live=new Map(branchList.map(x=>[x.name,x]));
 const fixed=live.get(audit.canonicalDevelopment);
-if(!fixed||fixed.commit.sha!==audit.canonicalSha){
-  throw Error('V43 SHA MOVED: cleanup blocked until a fresh audit');
-}
+if(!fixed)throw Error('Canonical development branch not found; abort');
+const liveDevelopmentSha=fixed.commit.sha;
+const snapshotStale=liveDevelopmentSha!==audit.canonicalSha;
+if(apply&&snapshotStale)throw Error('V43 SHA MOVED: destructive cleanup blocked until a fresh audit');
 const openPRs=paged('pulls?state=open&');
 const prRefs=new Set(openPRs.flatMap(p=>[p.head?.ref,p.base?.ref]).filter(Boolean));
 const workflowDir='.github/workflows';
@@ -79,6 +80,10 @@ function isAncestor(candidate,anchor){
     throw Error('Local complete git history required; cannot verify '+candidate);
   return proc.status===0;
 }
+// A fast-forward of development is safe for OBSERVATION, not for deletion.
+// Never trust the pinned branch inventory to approve deletion after a merge.
+if(snapshotStale&&!isAncestor(audit.canonicalSha,liveDevelopmentSha))
+  throw Error('V43 checkpoint is not an ancestor of the current development SHA');
 const ready=[],blocked=[];
 for(const old of audit.branches){
   const now=live.get(old.name);
@@ -107,7 +112,7 @@ for(const old of audit.branches){
 const plan={mode:apply?'APPLY':'DRY_RUN',repo:audit.repo,
   anchor:{branch:audit.canonicalDevelopment,sha:audit.canonicalSha},
   scanned:branchList.length,candidates:ready.length,blocked:blocked.length,
-  liveDefault,workflowWildcardPrefixes:wildcardPrefixes,
+  liveDefault,liveDevelopmentSha,snapshotStale,workflowWildcardPrefixes:wildcardPrefixes,
   deleteLimit:apply?limit:0,ready,blocked};
 process.stdout.write(JSON.stringify(plan,null,2)+'\n');
 if(!apply){

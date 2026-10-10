@@ -1,18 +1,18 @@
 # APEX CHAOS — V4.3 repository cleanup, phase 1 (2026-10-10)
 
-**Status:** staged as a Draft PR against development/v43; NO destructive changes executed.
+**Status:** staged as Draft PR #25 against development/v43 AFTER PR #26 merged. No destructive changes executed.
 **Production:** main and Cloudflare deployment are OUT OF SCOPE.
 
 ## Canonical current development snapshot
 
-- development/v43 pins exact commit 05b491de4c30e2239ea27a2b98e6c2d9db3aee04.
+- development/v43 now contains merged PR #26 at commit 01633971cd2b014dd726d38f965705b9fca8b24f. Historical pre-fix checkpoint: 05b491de4c30e2239ea27a2b98e6c2d9db3aee04.
 - The original Draft PR #24 branch is still at this same commit and remains unchanged.
 - main is the repository default but is **not** evidence of the newest production deployment.
 - Only the HEAD copy of the V4.3 source is anchored. A Git ref is not production deployment provenance.
 
 ## Ref inventory
 
-See docs/maintenance/V43_BRANCH_INVENTORY_2026-10-10.json. Initial inventory contained 170 refs; the refreshed October 10 snapshot contains **171 refs**, including the subsequent PR #26 repair branch. All 12 current open PR head/base refs are classified as reserved. The cleanup branch SHA changes as this document is committed, so its recorded own SHA is informational only; that ref is *never* eligible for deletion.
+See docs/maintenance/V43_BRANCH_INVENTORY_2026-10-10.json. Initial inventory contained 170 refs; the refreshed October 10 snapshot contains **171 refs**, including the subsequent PR #26 repair branch. All 11 current open PR head/base refs are classified as reserved; merged PR #26's old branch is separately marked merged-pr-preserve. The cleanup branch SHA changes as this document is committed, so its recorded own SHA is informational only; that ref is *never* eligible for deletion.
 
 Historical graph relationship to V4.3 before those two new refs:
 - 131 of the original refs are ancestors (including main and numerous open-PR bases).
@@ -80,6 +80,8 @@ Do not set `reviewedExternalDeployments` to true without actually verifying Clou
     node tools/maintenance/v43-branch-cleanup.mjs --apply --confirm=DELETE-VERIFIED-ANCESTORS --approved-sha-file=/secure/reviewed-v43-refs.json --limit=5
 
 Without the approval file, application refuses to run. Even if supplied, only independently approved names with exactly matching SHA in the safe live planner are eligible. The planner also reads the **current remote default branch** rather than hardcoding `main`, rejects CI branch glob namespaces (including `arena/**`), and rechecks SHA, PR relationships and default branch immediately before each deletion.
+
+Read-only mode tolerates a newer descendant HEAD (while recording snapshotStale=true); --apply refuses any SHA drift until audit reapproval. The old PR #26 head remains preserved.
 
 This is **not run** by CI. Each batch is limited to at most 20, rechecks GitHub PRs, SHA and protection before individual deletion, and stops on drift/failure.
 
