@@ -54,7 +54,7 @@
     "public/game/hero-rework/hunterPresentationRuntime.js": "4c18e797dbb365282147c03355be7876f35d86ce4c59c603b2640236578e8ac5",
     "public/game/hero-rework/crystalaPresentationRuntime.js": "d76cd3874f58faa5c17fb47ce380d2288e0b63663c6059cd35a3a2c67594092c",
     "public/game/hero-rework/frostGoldV1.js": "0d97e857df605a3ac2a5a95099b27fa4037533844142e21e49fbca4667976f1a",
-    "public/game/hero-rework/frostPresentationRuntime.js": "93465d0f93ea8e353f54248264e64704892ce1e287aadef53dd187cc8c596a89",
+    "public/game/hero-rework/frostPresentationRuntime.js": "d369e4721376ead8a542ee8a5af26e759af4e1bc1d5cd9b98b82d8f3733bdec7",
     "public/game/hero-rework/magnetPresentationRuntime.js": "088b8f995584a0b83c1093001edf7c0251081265a40a2ea48f9a0b5939ecc062",
     "public/game/hero-rework/mirrorPresentationRuntime.js": "3713f25305cb588042898e6137ae1c0c7d1b7214b92e32f0393a4cdf4bf96155",
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
