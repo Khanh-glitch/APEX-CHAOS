@@ -802,8 +802,14 @@
     const offset=(params.offset+(p.localX||0)-(p.recoil||0))*artScale;
     const lateral=(p.localY||0)*artScale;
     const theta=aimAngle+params.drawOffset+(p.rotKick||0)+(p.flourish||0);
-    const cx=fighter.x+Math.cos(aimAngle)*offset-Math.sin(aimAngle)*lateral;
-    const cy=fighter.y+Math.sin(aimAngle)*offset+Math.cos(aimAngle)*lateral;
+    // ROBOT has its own Gold held-weapon socket; the generic Arsenal grip
+    // is not where its override renders the gun. Sharing the robot socket
+    // here keeps charge VFX, launch point and held art on the same origin.
+    const robot=window.APEX_ROBOT_PRESENTATION;
+    const robotSocket=robot?.isRobotFighter?.(fighter)
+      ?robot.getRobotWeaponSocketWorld?.(fighter):null;
+    const cx=robotSocket?.x??(fighter.x+Math.cos(aimAngle)*offset-Math.sin(aimAngle)*lateral);
+    const cy=robotSocket?.y??(fighter.y+Math.sin(aimAngle)*offset+Math.cos(aimAngle)*lateral);
     const width=params.targetLongSide*(p.scaleX||1)*artScale;
     const height=width*meta.h/meta.w;
     const localX=(c.muzzleU-.5)*width+(c.muzzleDx||0);
@@ -885,10 +891,9 @@
       ? holder.meta.aimAngle
       : Math.atan2(fighter.dir?.y || 0, fighter.dir?.x || 1);
     const drawn=drawWeaponWithPose(ctx, fighter, holder.weaponId, holder.def?.category || '', angle, holder.meta && holder.meta.pose, 0.98);
-    // The original V4.3 Gold Plasma Splitter visibly accumulates energy
-    // BEFORE the carrier is released, not after. This is a cosmetic pass only.
-    if(holder.weaponId==='PLASMA_SPLITTER'&&holder.phase==='WINDUP')
-      drawV43GoldPlasmaCharge(ctx,fighter,holder,angle);
+    // Charge VFX is drawn by the ONE foreground pass, *after* every
+    // hero-specific held-art override (including ROBOT). Do not draw it here:
+    // ROBOT's override returns before this function can run at all.
     return drawn;
   }
 
@@ -1060,6 +1065,7 @@
     weaponDrawParams,
     weaponMuzzleWorld,
     drawEquippedWeapon,
+    drawV43GoldPlasmaCharge,
     drawPoseGhost,
     drawDetachedWeapon,
     weaponImage,
