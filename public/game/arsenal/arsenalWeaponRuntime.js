@@ -704,6 +704,13 @@
     }
     v43Pulse(p.x,p.y,'blast',radius/95,p.weapon);
   }
+  // One AOE authority for impact, wall and natural fuse: never detonate twice.
+  function v43DetonateRocket(p){
+    if(p.exploded)return false;
+    p.exploded=true;
+    v43Splash(p,p.damage??V43[p.weapon].peak,V43[p.weapon].blastRadius);
+    p.life=0;return true;
+  }
   function v43Muzzle(f,weaponId,angle){
     // One owner-authored Gold muzzle follows the exact rendered held art.
     // The former radial estimate was off the sprite, especially when left.
@@ -775,7 +782,7 @@
   // A fast, physically legible, TARGET-AIMED throw. Launch direction is fixed
   // at release (no cheating homing); outward leg crosses the enemy's recorded
   // center. Return bends around the target, then reconnects to launch origin.
-  function v43MakeFlightPath(x,y,angle){
+  function v43MakeFlightPath(x,y,angle,target=null){
     // Ported from owner's *actual* V4.3 NATURAL_FLIGHT Gold HTML.
     // Target contributes to the INITIAL aiming angle only; trajectory shape
     // and tangential speed NEVER sample the opponent after release.
@@ -790,14 +797,21 @@
     const forwardX=Math.abs(dx)>.05?(dx>0?(size-x)/dx:-x/dx):1e6;
     const forwardY=Math.abs(dy)>.05?(dy>0?(size-y)/dy:-y/dy):1e6;
     const available=Math.max(0,Math.min(forwardX,forwardY));
-    const distance=v43min(available*.77,400,490);
+    // Freeze opponent distance at release; extend the first leg up
+    // to 760px, but reserve space at world edges rather than forcing 400px.
+    const targetDistance=target?Math.hypot(target.x-x,target.y-y):Math.min(650,available);
+    const reach=Math.max(90,Math.min(targetDistance+(target?.radius||75)*.3,760));
+    const distance=Math.min(reach,Math.max(30,available-30));
+    const turn=Math.min(160,Math.max(34,distance*.31));
     const world=(u,v)=>({x:x+direction.x*u+cross.x*v*bank,
       y:y+direction.y*u+cross.y*v*bank});
-    const a=world(0,0),b=world(distance,-50),c=world(distance*.49,-160);
+    const a=world(0,0),b=world(distance,0),c=world(distance*.49,-turn);
+    // Preserve Gold's 3 cubic segments and banking/spin, while using a
+    // real straight outgoing intercept followed by its signature loop.
     const legs=[
-      [a,world(distance*.24,-1),world(distance*.73,-10),b],
-      [b,world(distance*1.27,-92),world(distance*1.03,-167),c],
-      [c,world(distance*-.05,-153),world(distance*.15,-19),a],
+      [a,world(distance*.24,0),world(distance*.75,0),b],
+      [b,world(distance*1.23,-turn*.5),world(distance*1.03,-turn),c],
+      [c,world(-distance*.05,-turn),world(distance*.15,-turn*.12),a],
     ];
     const cubic=(v0,v1,v2,v3,t)=>{
       const u=1-t;return u*u*u*v0+3*u*u*t*v1+3*u*t*t*v2+t*t*t*v3;
@@ -930,11 +944,16 @@
       if(p.phase==='out'&&lastTravel<path.far&&p.travel>=path.far){
         p.phase='return';p.damage=c.returning;p.hits=new Set();
       }
+      // Catch the REAL return projectile, if and only if the hand is empty.
+      if(p.phase==='return'&&p.launchOwner?.hp>0
+        &&!getHolder(p.launchOwner)
+        &&Math.hypot(p.x-p.launchOwner.x,p.y-p.launchOwner.y)
+          <=(p.launchOwner.radius||75)+(p.radius||13)+15){
+        equip(p.launchOwner,p.weapon);
+        v43Pulse(p.x,p.y,'retrieve');p.life=0;return;
+      }
       if(p.travel>=path.total-.01||p.age>=c.maxFlightSeconds){
-        const h=getHolder(p.launchOwner);
-        if(h?.weaponId===p.weapon&&h.phase==='IN_FLIGHT'){
-          h.phase='RETRIEVED';h.meta.v43Time=0;
-        }
+        // No phantom replacement sprite at the origin on a missed catch.
         v43Pulse(p.x,p.y,'retrieve');p.life=0;return;
       }
       const previous=p.visual[p.visual.length-1];
@@ -1002,8 +1021,7 @@
         v43Pulse(hit.x,hit.y,'plasma');p.life=0;return;
       }
       if(p.kind==='rocket'){
-        v43Splash(p,p.damage??c.peak,c.blastRadius);
-        p.life=0;return;
+        v43DetonateRocket(p);return;
       }
       if(p.kind==='ball'){
         // Steel Ball is a direct kinetic collision, NEVER a scaled AOE.
@@ -1054,7 +1072,7 @@
     }
     if(p.kind==='rocket'&&(p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
       p.x=v43min(p.x,0,GAME_SIZE);p.y=v43min(p.y,0,GAME_SIZE);
-      v43Splash(p,p.damage??c.peak,c.blastRadius);p.life=0;
+      v43DetonateRocket(p);
     }
     if(p.kind==='plasma-core'&&
       (p.x<0||p.x>GAME_SIZE||p.y<0||p.y>GAME_SIZE)){
@@ -1075,8 +1093,9 @@
       }
       v43Pulse(p.x,p.y,'split');p.life=0;
     }
-    if(p.life<=0&&p.kind==='rocket'){
-      v43Splash(p,p.damage??c.peak,c.blastRadius);
+    // The base engine removes expired projectiles before this step.
+    if(p.kind==='rocket'&&p.life<=Math.max(.04,dt*1.5)){
+      v43DetonateRocket(p);
     }
   }
   function v43TickBurn(p,dt){
@@ -1155,10 +1174,14 @@
         if(kind==='plasma-core'){x.damage=c.coreDamage;}
         if(kind==='boomerang'){
           x.spin=0;x.spinRate=c.spin;x.damage=c.outgoing;
-          x.flightPath=v43MakeFlightPath(x.x,x.y,a);
-          x.travel=0;x.speed=c.speed;
+          // Aim from actual muzzle to the opponent; no further tracking.
+          const foe=ctx.enemy;
+          const throwAngle=foe?Math.atan2(foe.y-x.y,foe.x-x.x):a;
+          x.flightPath=v43MakeFlightPath(x.x,x.y,throwAngle,foe);
+          x.angle=throwAngle;x.travel=0;x.speed=c.speed;
           x.life=x.maxLife=c.maxFlightSeconds+.35;
-          h.phase='IN_FLIGHT';h.meta.v43Time=0;
+          // Free the hand immediately; collecting another gun is legal.
+          f.data.arsenal=null;
         }else{
           h.phase='FOLLOW_THROUGH';h.meta.v43Time=0;
         }
