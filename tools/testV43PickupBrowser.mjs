@@ -156,11 +156,22 @@ try{
         weaponId:${JSON.stringify(id)},revealLeadSeconds:0,revealedFor:0,
         pickedBy:null,rejectedFor:{},spawnTime:st.time});
       const states=[],used=new Set();
+      let earlyManualProbe=null;
       const originalTick=wa.updateArsenalProjectiles;
       let tickCalls=0;
       wa.updateArsenalProjectiles=function(dt){tickCalls++;return originalTick.call(wa,dt);};
       for(let i=0;i<300;i++){
         window.APEX_ARSENAL.step(1/60);
+        if(i===35){
+          const observed=projectiles.find(p=>p.aq&&p.weapon===${JSON.stringify(id)});
+          if(observed){
+            const was=observed.age;
+            originalTick.call(wa,1/60);
+            earlyManualProbe={before:was,after:observed.age,
+              x:observed.x,type:observed.type,
+              tickBody:originalTick.toString().slice(0,110)};
+          }
+        }
         if(i%2===0)draw();
         for(const x of projectiles)if(x.aq&&x.weapon===${JSON.stringify(id)})used.add(x.kind);
         if(i===18||i===35||i===80||i===160){
@@ -183,7 +194,7 @@ try{
       const manualAfter=probe?.age??null;
       wa.updateArsenalProjectiles=originalTick;
       const events=window.APEX_ARSENAL.events;
-      return {id:${JSON.stringify(id)},started,permitted,tickCalls,manualBefore,manualAfter,
+      return {id:${JSON.stringify(id)},started,permitted,tickCalls,manualBefore,manualAfter,earlyManualProbe,
         p1:a.name,p2:b.name,damage:1000-b.hp,
         kinds:[...used],pickup:events.filter(e=>e.includes('PICKUP')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
