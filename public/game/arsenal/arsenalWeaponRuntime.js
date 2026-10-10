@@ -62,6 +62,15 @@
     // LEAVES the hand along the aim (grenade-style forward throw) and scales
     // out — no axe lingers in the hand after the release.
     STORMBREAKER: { windupRot: -1.35, windupLift: 16, throwFwd: 46, throwTime: 0.22, throwRot: 0.6, returnTau: 0.14 },
+    // V4.3 special devices share the SAME Arsenal pose springs and recoil.
+    FLARE_GUN: { recoilPx: 16, rotKick: .12, returnTau: .13 },
+    TACTICAL_CROSSBOW: { recoilPx: 12, rotKick: .08, returnTau: .16 },
+    STEEL_BALL_LAUNCHER: { recoilPx: 25, rotKick: .23, returnTau: .21 },
+    COMBAT_BOOMERANG: { windupRot: -.8, windupLift: 10, returnTau: .18 },
+    RPG_7: { recoilPx: 34, rotKick: .20, returnTau: .28 },
+    FLAMETHROWER: { recoilPx: 5, rotKick: .035, returnTau: .09 },
+    PLASMA_SPLITTER: { windupRot: -.12, recoilPx: 24, rotKick: .16, returnTau: .22 },
+    SHRAPNEL_MINE_LAUNCHER: { recoilPx: 26, rotKick: .20, returnTau: .21 },
   };
   // POST-C §3: registry guns have no hand-authored recipe — derive one from
   // the firing family so every staged gun gets sensible weapon-only motion.
@@ -599,11 +608,17 @@
       })||null;
     }
     let best=null,bestSq=Infinity;
+    // Long projectile artwork leads its center: collision follows the nose.
+    const tip=(V43[p.weapon]?.tipOffset)||0;
+    const a=Math.atan2(p.vy,p.vx);
+    const leadX=Math.cos(a)*tip,leadY=Math.sin(a)*tip;
+    const noseFrom={x:from.x+leadX,y:from.y+leadY};
+    const noseTo={x:to.x+leadX,y:to.y+leadY};
     for(const f of v43Enemies(p.owner)){
       const rad=f.radius*CFG.BULLET_HIT_RADIUS_SCALE+(p.radius||8);
-      const hit=sweptSegmentCircleHit(from.x,from.y,to.x,to.y,f.x,f.y,rad);
+      const hit=sweptSegmentCircleHit(noseFrom.x,noseFrom.y,noseTo.x,noseTo.y,f.x,f.y,rad);
       if(hit){
-        const d=(hit.x-from.x)**2+(hit.y-from.y)**2;
+        const d=(hit.x-noseFrom.x)**2+(hit.y-noseFrom.y)**2;
         if(d<bestSq){bestSq=d;best={actor:f,x:hit.x,y:hit.y};}
       }
     }
@@ -664,11 +679,43 @@
     p.ticks++;
     if(p.ticks>=c.ticks)p.life=0;
   }
+  // Arc-length lookup table: one physical Boomerang body; NO opponent homing.
+  // Separate outward/return lobes form a readable throw curve while retaining
+  // the launch angle and release point as the only trajectory inputs.
+  function v43MakeFlightPath(x,y,angle){
+    const dx=Math.cos(angle),dy=Math.sin(angle),nx=-dy,ny=dx;
+    const reach=380,bend=150;
+    const apex={x:x+dx*reach+nx*bend,y:y+dy*reach+ny*bend};
+    const points=[],samples=80;
+    const bez=(a,b,c,d,t)=>{const u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d;};
+    for(let leg=0;leg<2;leg++)for(let i=0;i<=samples;i++){
+      if(leg&&i===0)continue;
+      const t=i/samples;
+      const p0=leg?apex:{x,y},p3=leg?{x,y}:apex;
+      const p1=leg?{x:apex.x+dx*110-nx*120,y:apex.y+dy*110-ny*120}
+                  :{x:x+dx*145-nx*35,y:y+dy*145-ny*35};
+      const p2=leg?{x:x-dx*110-nx*135,y:y-dy*110-ny*135}
+                  :{x:apex.x-dx*35+nx*75,y:apex.y-dy*35+ny*75};
+      const pt={x:bez(p0.x,p1.x,p2.x,p3.x,t),y:bez(p0.y,p1.y,p2.y,p3.y,t)};
+      const prior=points[points.length-1];
+      pt.s=(prior?.s||0)+(prior?Math.hypot(pt.x-prior.x,pt.y-prior.y):0);
+      points.push(pt);
+    }
+    return {points,total:points[points.length-1].s};
+  }
+  function v43PathAt(path,progress){
+    const pts=path.points,target=path.total*progress;
+    let lo=0,hi=pts.length-1;
+    while(lo<hi){const mid=(lo+hi)>>1;if(pts[mid].s<target)lo=mid+1;else hi=mid;}
+    const b=pts[lo],a=pts[Math.max(0,lo-1)];
+    const t=(target-a.s)/Math.max(1e-6,b.s-a.s);
+    return {x:a.x+(b.x-a.x)*Math.min(1,t),y:a.y+(b.y-a.y)*Math.min(1,t)};
+  }
   function v43Step(p,dt){
     const c=V43[p.weapon];
     if(!c||!p.owner||p.owner.hp<=0||AQ.state?.over){p.life=0;return;}
     if(p.__hr?.cryHold)return;
-    p.age+=dt;p.life-=dt;
+    p.age+=dt; // Engine updateProjectiles owns every projectile's lifetime.
     if(p.kind==='flame'){v43FlameHit(p,dt);return;}
     if(p.kind==='mine'&&p.phase==='armed'){
       p.armAge=(p.armAge||0)+dt;
@@ -708,21 +755,35 @@
       p.vx*=m;p.vy*=m;
     }
     if(p.kind==='boomerang'){
-      p.spin+=c.spin*dt;
-      if(p.phase==='out'&&(p.age>c.flightSeconds*.46
-        ||Math.hypot(p.x-p.owner.x,p.y-p.owner.y)>Math.min(680,c.speed*2.4))){
-        p.phase='return';
+      // World path is sampled once from RELEASE geometry, never re-steered to
+      // the target or owner's later position. Time advances along arc length.
+      const path=p.flightPath;
+      if(!path){p.life=0;return;}
+      const q=v43PathAt(path,Math.min(1,p.age/c.flightSeconds));
+      p.px=p.x;p.py=p.y;
+      p.x=q.x;p.y=q.y;
+      p.vx=(p.x-p.px)/Math.max(dt,1e-5);
+      p.vy=(p.y-p.py)/Math.max(dt,1e-5);
+      p.spin+=c.spin*dt*(1-.20*Math.min(1,p.age/c.flightSeconds));
+      if(p.phase==='out'&&p.age>=c.flightSeconds*.5){
+        p.phase='return';p.damage=c.returning;p.hits=new Set();
       }
-      if(p.phase==='return'){
-        const n=v43Normalize(p.owner.x-p.x,p.owner.y-p.y);
-        const targetX=n.x*c.maxTurnSpeed,targetY=n.y*c.maxTurnSpeed;
-        const dvx=targetX-p.vx,dvy=targetY-p.vy,dmag=Math.hypot(dvx,dvy);
-        const gain=Math.min(dmag,c.accelLimit*dt);
-        if(dmag>0){p.vx+=dvx/dmag*gain;p.vy+=dvy/dmag*gain;}
-        if(Math.hypot(p.x-p.owner.x,p.y-p.owner.y)<(p.owner.radius||75)*.6){
-          p.life=0;v43Pulse(p.x,p.y,'retrieve');return;
+      if(p.age>=c.flightSeconds){
+        const h=getHolder(p.owner);
+        if(h?.weaponId===p.weapon&&h.phase==='IN_FLIGHT'){
+          h.phase='RETRIEVED';h.meta.v43Time=0;
         }
+        v43Pulse(p.x,p.y,'retrieve');p.life=0;return;
       }
+      p.visual.push({x:p.x,y:p.y});if(p.visual.length>11)p.visual.shift();
+      const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+      if(hit&&!p.hits.has(hit.actor)){
+        p.hits.add(hit.actor);
+        aqDamage(hit.actor,p.damage,p.owner,p.weapon,{
+          knockback:100,impact:{x:hit.x,y:hit.y,vx:p.vx,vy:p.vy}});
+        v43Pulse(hit.x,hit.y,'strike');
+      }
+      return;
     }
     p.px=p.x;p.py=p.y;
     p.x+=p.vx*dt;p.y+=p.vy*dt;
@@ -752,12 +813,6 @@
           maxLife:c.burnTicks*c.burnInterval+.05,tickCount:burnCount});
       }
       if(p.kind==='bolt')hit.actor.applyStatus?.('slow',c.slowSeconds,{mult:c.slowMult});
-      if(p.kind==='boomerang'){
-        p.hits.add(hit.actor);v43Pulse(p.x,p.y,'strike');
-        // Once per outward and once per return; this is one real flying object.
-        if(p.phase==='out'){p.phase='return';p.damage=c.returning;p.hits=new Set();}
-        p.x+=p.vx*dt*.3;p.y+=p.vy*dt*.3;return;
-      }
       if(p.kind==='fragment'){
         p.hits.add(hit.actor);if(p.hits.size>=c.maxFragmentHits)p.life=0;
         return;
@@ -797,46 +852,79 @@
   function v43TickBurn(p,dt){
     const c=V43.FLARE_GUN,t=p.victim;
     if(!t||t.hp<=0||t.withdrawn===true){p.life=0;return;}
-    p.age+=dt;p.life-=dt;p.x=t.x;p.y=t.y;
+    p.age+=dt;p.x=t.x;p.y=t.y; // Engine owns p.life.
     while((p.tickCount||0)<c.burnTicks
       &&p.age+1e-7>=((p.tickCount||0)+1)*c.burnInterval){
       p.tickCount=(p.tickCount||0)+1;
       aqDamage(t,c.burnDamage,p.owner,p.weapon,{statusDamage:true});
     }
   }
+  // Native Arsenal holder driver owns equip/READY/ammo/pose/consume for all
+  // weapons. SPECIAL is only an attack executor, not an independent battle
+  // lifecycle or an extra per-frame clock.
   function makeV43Special(id){
     const c=V43[id];
-    if(!c)throw Error('unknown V43 '+id);
+    if(!c)throw Error('unknown special '+id);
+    const recovery=id==='FLAMETHROWER'?c.duration+.08:(c.recoverySeconds||.30);
     return {
       id,category:'ranged',spriteKey:id,
       onEquip(ctx){ctx.holder.phase='READY';},
       canActivate(ctx){return ctx.holder.phase==='READY'
-        &&ctx.holder.elapsed>=CFG.RANGED_READY_DELAY_SECONDS
+        &&ctx.holder.elapsed>=(c.readyDelaySeconds??CFG.RANGED_READY_DELAY_SECONDS)
         &&enemyAlive(ctx);},
       activate(ctx){
         const f=ctx.fighter,h=ctx.holder,a=angleToEnemy(ctx);
         h.phase='WINDUP';h.meta.v43Time=0;
         h.meta.v43Angle=a;
-        h.meta.v43Wait=c.windup||c.deployDelay||c.charge||0;
+        h.meta.v43Wait=c.windup??c.deployDelay??c.charge??0;
         log('USE', 'fighter='+f.name+' weapon='+id+' kind='+c.kind);
-        window.avCue?.('fire',{weapon:id,family:'SPECIAL',
-          x:f.x,y:f.y,angle:a});
       },
       update(ctx,dt){
-        const h=ctx.holder;if(h.phase!=='WINDUP')return;
-        h.meta.v43Time+=dt;if(h.meta.v43Time<h.meta.v43Wait)return;
-        const f=ctx.fighter,a=h.meta.v43Angle;
+        const h=ctx.holder,f=ctx.fighter;
+        if(h.phase==='FOLLOW_THROUGH'||h.phase==='RETRIEVED'){
+          h.meta.v43Time+=dt;
+          if(h.meta.v43Time >= (h.phase==='RETRIEVED'?.30:recovery)){
+            // Boomerang has physically returned: retire the spent body without
+            // ejecting a fake copy from the fighter's hand.
+            if(h.phase==='RETRIEVED'){
+              f.data.arsenal=null;
+              log('CONSUME','fighter='+f.name+' weapon='+id+' reason=boomerang-retrieved');
+            }else consume(f,'sequence-complete');
+          }
+          return;
+        }
+        if(h.phase==='IN_FLIGHT'){
+          // A lifecycle interruption must never strand a permanently armed
+          // holder if a projectile was destroyed by external effects.
+          if(!projectiles.some(p=>p?.aq&&p.weapon===id&&p.owner===f&&p.kind==='boomerang'&&p.life>0)){
+            h.phase='RETRIEVED';h.meta.v43Time=0;
+          }
+          return;
+        }
+        if(h.phase!=='WINDUP')return;
+        h.meta.v43Time+=dt;
+        if(h.meta.v43Time<h.meta.v43Wait)return;
+        const a=h.meta.v43Angle;
         const kind={flare:'flare',bolt:'bolt',ball:'ball',boomerang:'boomerang',
           rocket:'rocket',flame:'flame',plasma:'plasma-core',mine:'mine'}[c.kind];
-        if(!kind)throw Error('V43 executor not implemented '+c.kind);
-        AQ.state?.resultLedger?.onShot?.(f,id);
+        if(!kind)throw Error('special executor not implemented '+c.kind);
         const x=v43Spawn(f,id,kind,a,{phase:kind==='boomerang'?'out':'flight',
-          life:kind==='flame'?c.duration:kind==='boomerang'?c.flightSeconds:3.2,
+          speed:kind==='plasma-core'?c.coreSpeed:undefined,
+          life:kind==='flame'?c.duration:kind==='boomerang'?c.flightSeconds+.16:3.2,
           radius:c.radius||8,damage:c.direct??c.peak??c.outgoing??c.shardDamage??c.tickDamage??0});
+        h.shotsFired+=1; // Same holder ammo/telemetry law as normal Arsenal guns.
+        AQ.state?.resultLedger?.onShot?.(f,id);
+        poseKick(h,poseRecipe(id));
+        window.avCue?.('fire',{weapon:id,family:'SPECIAL',x:f.x,y:f.y,angle:a});
         if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;}
         if(kind==='plasma-core'){x.damage=c.shardDamage;}
-        if(kind==='boomerang'){x.spin=0;x.damage=c.outgoing;}
-        consume(f,'v43-fired');
+        if(kind==='boomerang'){
+          x.spin=0;x.damage=c.outgoing;
+          x.flightPath=v43MakeFlightPath(x.x,x.y,a);
+          h.phase='IN_FLIGHT';h.meta.v43Time=0;
+        }else{
+          h.phase='FOLLOW_THROUGH';h.meta.v43Time=0;
+        }
       }
     };
   }

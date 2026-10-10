@@ -778,6 +778,7 @@
 
   function drawEquippedWeapon(ctx, fighter, holder) {
     if (!fighter || !holder || !holder.weaponId) return false;
+    if (holder.weaponId === 'COMBAT_BOOMERANG' && holder.phase === 'IN_FLIGHT') return false;
     // V2 §A2: equipped weapons continuously face the opponent through the
     // independent aim angle — never through the fighter movement direction.
     const angle = (holder.meta && holder.meta.aimAngle != null)
