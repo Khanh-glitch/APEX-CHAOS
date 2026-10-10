@@ -97,3 +97,27 @@ for(const key of ['questBreachWaves','questRivetOverridden','questTotLastChoice'
 assert.match(donor,/drawAftermath\(ctx,realActors=\[\],state=null\)/);
 assert.match(donor,/const max=fx\.special\?1\.55:3\.25/);
 console.log('PASS post Quest selectable real-kit story, real pistol pickup, true donor motion/part cleanup');
+
+// Execute the actual E01 ordered-receipt authority with every selectable
+// Gold kit. A forged Cast from another hero or side cannot advance Story.
+const QCTX={window:{},Math,Number,Object,Array,String};
+vm.runInNewContext(read('public/game/quest/questReflexReceipts.js'),QCTX);
+for(const [name,hero] of [['ROBOT','ROBOT'],['HUNTER','HUNTER'],
+ ['CRYSTALA','CRYSTAL'],['MAGNET','MAGNET'],['FROST','ICE'],['MIRROR','MIRROR']]){
+ const n={id:1,questId:'NEWBOT',questTeam:'ALLY',hp:1000,maxHp:1000,
+  type:{name}},tot={id:2,questId:'T.O.T',questTeam:'HOSTILE',hp:1000,maxHp:1000};
+ const g=QCTX.window.APEX_QUEST_REFLEX_RECEIPTS.create(()=>[n,tot]);
+ assert.equal(g.acceptDamage({label:'arsenal-pistol',attacker:n,victim:tot,amount:10}),true);
+ assert.equal(g.acceptDamage({label:'arsenal-pistol',attacker:tot,victim:n,amount:10}),true);
+ assert.equal(g.acceptCast({type:'Cast',seq:1,payload:{
+  hero:'INVALID',fighterId:1,side:'p1',slot:'A1'}}),false);
+ assert.equal(g.acceptCast({type:'Cast',seq:2,payload:{
+  hero, fighterId:2,side:'p1',slot:'A1'}}),false);
+ assert.equal(g.acceptCast({type:'Cast',seq:3,payload:{
+  hero,fighterId:1,side:'p1',slot:'A1'}}),true,
+  name+' must accept native selected-hero A1 after the real pistol exchanges');
+ assert.equal(g.acceptCast({type:'Cast',seq:4,payload:{
+  hero,fighterId:1,side:'p1',slot:'A2'}}),true);
+ assert.equal(g.snapshot().phase,'BOTH_HALF');
+}
+console.log('PASS post Quest E01 ordered native J/K Cast for six selectable kits; forged casts rejected');
