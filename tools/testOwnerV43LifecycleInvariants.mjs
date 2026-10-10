@@ -80,8 +80,9 @@ for(const [id,kind] of [['FLARE_GUN','flare'],['TACTICAL_CROSSBOW','bolt'],
 }
 assert.match(cfg,/reflectableKinds:\['plasma-core','plasma'\]/,
   'plasma core and released shards share one reflected-particle law');
-assert.match(cfg,/reflectableKinds:\[\],muzzleDx:-1/,'flame cone must not masquerade as a moving bullet');
+assert.match(cfg,/reflectableKinds:\[\],magnetizableKinds:\[\],muzzleDx:-1/,'flame cone must not masquerade as a moving bullet');
 assert.match(cry,/eligible\.includes\(p\.kind\)/,'Crystal K must query authoritative registry capabilities');
+assert.match(rd('public/game/hero-rework/magnetGameplayRuntime.js'),/special\.magnetizableKinds\.includes\(p\.kind\)/,'Magnet must use shared kinetic registry');
 assert.match(w,/v43DamageScale\(p,c\.coreDamage\)/,'plasma child damage must inherit the parent reflection scalar');
 assert.match(w,/child\.aqReflected=!!p\.aqReflected/,'shards must inherit Swirl reflection provenance');
 assert.match(w,/v43GoldBoomerangAirflow\(ctx,p,life\)/,'boomerang must render the Gold wingtip vortices');
