@@ -96,7 +96,7 @@ try{
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('vie');w.document.querySelector('#freeBattle')?.click()})()");
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('screen-mode')})()"),view.id+' entered Mode Select');
    const modeText=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('.modeSelectScreen')?.innerText||''})()");
-   checked(modeText.includes('CHỌN CHẾ ĐỘ')&&modeText.includes('ĐỐI ĐẦU')===false?true:modeText.includes('CHỌN CHẾ ĐỘ'),view.id+' translated Mode Select',modeText.slice(0,250));
+   checked(modeText.includes('CHỌN CHẾ ĐỘ'),view.id+' translated Mode Select',modeText.slice(0,250));
    await capture(view.id+'-mode-vie');
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.modeCard[data-mode=bot]')?.click()})()");
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('screen-fighter')})()"),view.id+' entered Fighter Select');
