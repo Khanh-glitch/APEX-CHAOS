@@ -20,8 +20,27 @@ assert.equal(translateCopy('Chúng ta là bạn à?','eng'),'Are we friends?');
 assert.equal(translateCopy('Chúng ta là bạn à?','vie'),'Chúng ta là bạn à?');
 assert.equal(translateCopy('FIRST WAKE','eng'),'FIRST WAKE');
 assert.equal(translateCopy('Hồ sơ danh hiệu','eng'),'Achievements archive');
+
+assert.equal(translateCopy('CHIẾN THẮNG','eng'),'VICTORY');
+assert.equal(translateCopy('THẤT BẠI','eng'),'DEFEAT');
+assert.equal(translateCopy('Xem chi tiết: Không Thể Trốn Thoát, Huyền Thoại','eng'),'View details: No Escape, Legendary');
+assert.equal(translateCopy('Độ hiếm Hiếm','eng'),'Rarity Rare');
+assert.equal(translateCopy('Đóng góp cao nhất: REDLINE_KAI','eng'),'Top contributor: REDLINE_KAI');
+assert.equal(translateCopy('Player 1: REDLINE_KAI — chiến thắng','eng'),'Player 1: REDLINE_KAI — victory');
+assert.equal(translateCopy('REDLINE_KAI gây 6,240 sát thương, chiếm 57%. NULL.SPECTRE gây 4,710 sát thương, chiếm 43%.','eng'),'REDLINE_KAI dealt 6,240 damage (57%). NULL.SPECTRE dealt 4,710 damage (43%).');
+assert.equal(translateCopy('32 lần','eng'),'32 times');
+assert.equal(translateCopy('Đấu Tay Đôi · Xếp Hạng','eng'),'Ranked Duel');
+assert.equal(translateCopy('Kỹ năng · Phá Cổng Nhiệt','eng'),'Skill · Thermal Breach');
+
 assert.equal(translateCopy('Nguồn sát thương','eng'),'Damage sources');
 assert.equal(Object.keys(VIETNAMESE_DIALOGUE_EN).length,13);
+const fixtureSource=readFileSync(new URL('../result-gold/src/data/fixture.ts',import.meta.url),'utf8');
+const expectedFixtureCopy=['Pháo Ray','Hạng nặng','Đường ray kép xuyên giáp','Hạng trung','Nòng kép cận chiến','Tiểu Liên','Hạng nhẹ','Nhịp bắn dồn dập','Súng Bắn Tỉa','Tầm xa, độ chính xác cao','Cơn mưa đạn','Súng Phóng','Đạn nổ hồ quang','Xung phong hạng nặng','Kỹ năng · Phá Cổng Nhiệt','Du kích tầm xa','Kỹ năng · Xung Tĩnh Điện','Đấu Tay Đôi · Xếp Hạng','Mùa 7'];
+for(const label of expectedFixtureCopy){
+ assert.ok(fixtureSource.includes(label),'fixture source changed: '+label);
+ assert.notEqual(translateCopy(label,'eng'),label,'missing ENG fixture: '+label);
+}
+
 const awards=JSON.parse(readFileSync(new URL('../result-gold/src/data/ownerDecisions.json',import.meta.url))).items;
 assert.equal(awards.length,50);
 assert.equal(AWARD_RULE_TEMPLATES.length,52);
