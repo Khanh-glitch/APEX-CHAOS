@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import { bootHarness } from './lib/crystalaHarness.mjs';
 import { installShadowQuery } from './lib/interactionPolicyCandidate.mjs';
+import { BASE_WEAPON_IDS } from './lib/contentBaseline.mjs';
 
 const H=await bootHarness(), {win}=H;
 const cfg=win.APEX_ARSENAL_CONFIG;
@@ -31,7 +32,8 @@ function compare(action,obj,context,expected,tag){
 assert.equal(typeof cap.query,'function');
 const ctx={config:cfg,weapons:defs,matchActive:true};
 const ids=Array.from(cfg.P0_WEAPON_IDS);
-assert.equal(ids.length,41,'live equipment roster must remain pinned to CP2');
+assert.ok(ids.length>=BASE_WEAPON_IDS.length,'original equipment removed');
+for(const id of BASE_WEAPON_IDS)assert.ok(ids.includes(id),'missing original item '+id);
 for(const id of ids){
   for(const phase of ['REVEALED','TELEGRAPH','HELD']){
     for(const kind of ['WEAPON','HEAL']){

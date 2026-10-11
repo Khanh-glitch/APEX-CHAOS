@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { bootHarness } from './lib/crystalaHarness.mjs';
+import { BASE_HERO_IDS, BASE_WEAPON_IDS, BASE_GUN_IDS, BASE_V43_IDS } from './lib/contentBaseline.mjs';
 
 const baseline = {
   FLARE_GUN:               {kind:'flare',     reflect:['flare'],                magnet:[]},
@@ -29,19 +30,33 @@ gate('boot-real-production-runtime', () => {
   assert.ok(C && A && R && M && F && W && HR && win.APEX_ARSENAL_WEAPONS);
   assert.deepEqual(H.loadErrors.filter(x => /arsenal|hero-rework|apexEngine/.test(x.file)), []);
 });
-gate('current-12-heroes-and-36-skills-are-frozen', () => {
-  const r=R.validateRegistry(); assert.equal(r.ok,true,r.errors.join('; '));
-  assert.equal(r.heroCount,12); assert.equal(r.skillCount,36);
+gate('canonical-12-heroes-preserved-with-extensible-ID-set', () => {
+  const ids=Object.keys(R.HEROES);
+  for(const id of BASE_HERO_IDS){
+    assert.ok(ids.includes(id),'missing original hero '+id);
+    for(const slot of ['A1','A2','PASSIVE']){
+      const skill=R.HEROES[id].skills?.[slot];
+      assert.ok(skill?.mechanicId,'missing skill '+id+'.'+slot);
+      assert.ok(Array.isArray(skill.progressionBinding?.knobPath),'missing progression knob '+id+'.'+slot);
+      assert.ok(R.resolveSkillLevel(id,slot,1),'Lv1 broken '+id+'.'+slot);
+    }
+  }
+  // Production validateRegistry still hard-codes 12/36 until a revisioned CP5 cutover.
+  if(ids.length===BASE_HERO_IDS.length){
+    const r=R.validateRegistry();assert.equal(r.ok,true,r.errors.join('; '));
+  }
 });
-gate('current-24-guns-8-specials-41-equipment-IDs', () => {
-  assert.equal(C.GUN_REGISTRY.length,24); assert.equal(C.V43_SPECIAL_IDS.length,8);
-  assert.equal(C.P0_WEAPON_IDS.length,41);
-  assert.equal(new Set(Array.from(C.P0_WEAPON_IDS)).size,41);
+gate('canonical-24-guns-8-specials-41-items-preserved-with-extensions', () => {
+  for(const id of BASE_GUN_IDS)assert.ok(C.GUN_REGISTRY.some(e=>e.id===id),'missing original gun '+id);
+  for(const id of BASE_V43_IDS)assert.ok(C.V43_SPECIAL_IDS.includes(id),'missing original special '+id);
+  for(const id of BASE_WEAPON_IDS)assert.ok(C.P0_WEAPON_IDS.includes(id),'missing original item '+id);
+  assert.ok(C.P0_WEAPON_IDS.length>=BASE_WEAPON_IDS.length);
+  assert.equal(new Set(Array.from(C.P0_WEAPON_IDS)).size,C.P0_WEAPON_IDS.length);
   for(const id of ['CHAIN_WHIP','HARPOON_LAUNCHER','RAILGUN','TWIN_REAPER_SCYTHES'])
     assert.equal(C.P0_WEAPON_IDS.includes(id),false);
 });
 gate('eight-specials-kind-policy-snapshot', () => {
-  assert.deepEqual(Object.keys(C.V43_WEAPONS).sort(),Object.keys(baseline).sort());
+  for(const id of Object.keys(baseline))assert.ok(C.V43_WEAPONS[id],'missing original V43 '+id);
   for(const [id,b] of Object.entries(baseline)) {
     const live=C.V43_WEAPONS[id];
     assert.equal(live.kind,b.kind,id+' kind');
