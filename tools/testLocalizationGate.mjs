@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {JSDOM} from 'jsdom';
-import {COPY,PROPER_NAMES,translateCopy,VIETNAMESE_DIALOGUE_EN} from '../src/game/localeCatalog.js';
+import {COPY,PROPER_NAMES,translateCopy,VIETNAMESE_DIALOGUE_EN,VIETNAMESE_UI_EN} from '../src/game/localeCatalog.js';
 
 assert.equal(translateCopy('FREE BATTLE','vie'),'ĐẤU TỰ DO');
 assert.equal(translateCopy('  LOCK IN  ','vie'),'  XÁC NHẬN  ');
@@ -15,6 +16,9 @@ assert.equal(translateCopy('FIRST WAKE','eng'),'FIRST WAKE');
 assert.equal(translateCopy('Hồ sơ danh hiệu','eng'),'Achievements archive');
 assert.equal(translateCopy('Nguồn sát thương','eng'),'Damage sources');
 assert.equal(Object.keys(VIETNAMESE_DIALOGUE_EN).length,13);
+const awards=JSON.parse(readFileSync(new URL('../result-gold/src/data/ownerDecisions.json',import.meta.url))).items;
+assert.equal(awards.length,50);
+for(const a of awards)assert.ok(VIETNAMESE_UI_EN[a.name],`Missing translated achievement name: ${a.id} / ${a.name}`);
 for(const name of PROPER_NAMES)assert.equal(translateCopy(name,'vie'),name,'name must stay canonical');
 for(const [en,vi] of Object.entries(COPY)){
   assert.ok(en.length&&vi.length);
