@@ -23,7 +23,12 @@ assert.equal(AWARD_RULE_TEMPLATES.length,52);
 for(const item of awards){const rendered=item.rule.replace(/\{([a-zA-Z0-9_-]+)\}/g,(_m,k)=>String(item.params.find(p=>p.key===k)?.value??0));const out=englishAwardRule(rendered);assert.ok(out,`Missing English condition rule for ${item.id}: ${rendered}`);assert.ok(!out.includes('{'),`Incomplete translation for ${item.id}`);}
 assert.match(englishAwardRule('Gây ≥ 250 DMG thực tế trong cửa sổ 0,1 giây.'),/250/);
 assert.match(englishAwardRule('Trong cùng một lần Attraction, kéo và nhặt các súng hợp lệ rồi gây tổng ≥ 200 DMG bằng TẤT CẢ những súng đó.'),/200/);
-for(const a of awards)assert.ok(VIETNAMESE_UI_EN[a.name],`Missing translated achievement name: ${a.id} / ${a.name}`);
+for(const a of awards){
+ assert.ok(VIETNAMESE_UI_EN[a.name],`Missing translated achievement name: ${a.id} / ${a.name}`);
+ for(const p of a.params){
+  if(/[À-ỹ]/u.test(p.label))assert.ok(VIETNAMESE_UI_EN[p.label],`Missing English metric label: ${a.id} / ${p.label}`);
+ }
+}
 for(const name of PROPER_NAMES)assert.equal(translateCopy(name,'vie'),name,'name must stay canonical');
 for(const [en,vi] of Object.entries(COPY)){
   assert.ok(en.length&&vi.length);
