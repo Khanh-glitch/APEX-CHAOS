@@ -78,7 +78,8 @@ try{
        withinTitle:rect.width<=w.innerWidth+3&&rect.right<=w.innerWidth+4,
        ctaWithin:button.getBoundingClientRect().width<=cta.width+3,
        pickerVisible:pickBox.width>20&&pickBox.y>=0&&pickBox.bottom<=w.innerHeight,
-       pickerHit:Boolean(covered&&(covered===picker||covered.closest('#apex-language-picker')))
+       pickerHit:Boolean(covered&&(covered===picker||covered.closest('#apex-language-picker'))),
+       hitStack:d.elementsFromPoint(pickBox.x+pickBox.width/2,pickBox.y+pickBox.height/2).slice(0,8).map(e=>({tag:e.tagName,id:e.id,cls:typeof e.className==='string'?e.className.slice(0,70):'',z:w.getComputedStyle(e).zIndex,pointer:w.getComputedStyle(e).pointerEvents}))
      };
    })()`);
    checked(report.chosen==='vie'&&report.persist==='vie'&&report.htmlLang==='vi',view.id+' VIE state',report);
