@@ -299,6 +299,13 @@ export const VIETNAMESE_DIALOGUE_EN = Object.freeze({
 // Reverse glossary for surfaces originally authored in Vietnamese (Result Gold).
 // Avoid substituting punctuation, hero names, ranking thresholds or reward IDs.
 export const VIETNAMESE_UI_EN=Object.freeze({
+ 'APEX CHAOS / DANH HIỆU':'APEX CHAOS / ACHIEVEMENTS',
+ 'Xem lại hiệu ứng':'Replay animation',
+ '▲ Dẫn đầu':'▲ Leading',
+ 'Bấm để xem chi tiết':'Select to view details',
+ 'CHIẾN THẮNG':'VICTORY','THẤT BẠI':'DEFEAT',
+ 'Đã đạt / Yêu cầu':'Earned / Required',
+
  'Kết quả trận đấu':'Match results',
  'Chọn người chơi để xem danh hiệu đạt được':'Select a player to view earned achievements',
  'Thị phần tổng sát thương':'Share of total damage',
