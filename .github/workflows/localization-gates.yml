@@ -8,6 +8,7 @@ on:
       - 'src/game/localization.css'
       - 'src/main.jsx'
       - 'tools/testLocalizationGate.mjs'
+      - 'tools/testLocalizationChrome.mjs'
       - 'package.json'
       - '.github/workflows/localization-gates.yml'
   workflow_dispatch:
@@ -27,3 +28,26 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:localization
       - run: pnpm build
+      - name: Verify real Chrome desktop and portrait glyphs
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort >/tmp/apex-localization-vite.log 2>&1 &
+          SERVER=$!
+          trap 'kill "$SERVER" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then READY=1; break; fi
+            sleep 1
+          done
+          test "$READY" = 1
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testLocalizationChrome.mjs
+      - name: Upload VIE ENG browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localization-chrome-visual-evidence
+          path: docs/acceptance/localization
+          if-no-files-found: warn
