@@ -2056,7 +2056,12 @@ api.clearIntegrityTrace = function () {
 };
 
 
-api.whenReady=startFrostArtWarmup();
+// jsdom/source-only smoke can load the classic runtime without a browser
+// Path2D implementation. Do not instantiate Gold's Path2D-backed IceField in
+// that environment; a real battle intentionally fails closed if attempted.
+api.whenReady=typeof g.Path2D==='function'
+  ? startFrostArtWarmup()
+  : Promise.reject(new Error('Frost art requires a Path2D-capable Canvas runtime'));
 api.whenReady.catch(()=>{});
 loadProbe('runtime-ready', { runtime: 'frostPresentationRuntime' });
 g.apexFrostPresentationRuntime = 'ready';
