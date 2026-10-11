@@ -137,7 +137,7 @@ try{
    })()`);
    checked(report.chosen==='vie'&&report.persist==='vie'&&report.htmlLang==='vi',view.id+' VIE state',report);
    checked(report.title.includes('NHỮNG KẺ')&&report.cta.includes('TIẾP TỤC'),view.id+' natural Home translations',report);
-   checked(report.font.includes('Arial')||report.font.includes('Segoe UI'),view.id+' Unicode face fallback',report);
+   checked(report.font.includes('ApexVietCondensed'),view.id+' Unicode face fallback',report);
    checked(report.withinTitle&&report.ctaWithin&&report.pickerVisible&&report.pickerHit,view.id+' glyph bounds and selector hit target',report);
    await capture(view.id+'-vie');
    await typographyAudit(view.id+'-home-vie','w.document',['.storyTitle span','.quest','.location','.cta .label','.profileText b']);
@@ -170,7 +170,7 @@ try{
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.rosterCard[data-hero=newbot]')?.click();w.document.querySelector('#lockIn')?.click()})()");
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;return d.body.classList.contains('battle-hud-open')&&Boolean(d.querySelector('#battleHudFrame')?.contentDocument?.body)})()",70000),'live BOT battle loaded with authentic Gold HUD');
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;return d.querySelector('#battleHudFrame')?.contentDocument?.documentElement?.lang==='vi'})()",25000),'embedded Battle HUD inherited VIE locale');
-     const hudProof=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument,n=d.createElement('span');n.textContent='UNARMED';n.id='locale-test-probe';d.body.appendChild(n);return {lang:d.documentElement.lang,frameFont:d.getElementById('apex-locale-frame-font')?.textContent.includes('Arial')||false}})()");
+     const hudProof=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument,n=d.createElement('span');n.textContent='UNARMED';n.id='locale-test-probe';d.body.appendChild(n);return {lang:d.documentElement.lang,frameFont:d.getElementById('apex-locale-frame-font')?.textContent.includes('ApexVietCondensed')||false}})()");
      checked(hudProof.lang==='vi'&&hudProof.frameFont,'live Battle HUD received readable Vietnamese font',hudProof);
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument;return d.getElementById('locale-test-probe')?.textContent==='TAY KHÔNG'})()"),'embedded Battle HUD dynamic text localized');
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#battleHudFrame')?.contentDocument?.getElementById('locale-test-probe')?.remove()})()");
