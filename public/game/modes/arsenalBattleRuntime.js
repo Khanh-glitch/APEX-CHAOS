@@ -1358,7 +1358,6 @@
     aqPerfMark('hud', performance.now() - t0);
   }
 
-  function questCanvasCopy(v){return window.APEX_I18N?.translate?.(v)||v;}
   function drawQuestSwarmInterlude(c,s){
     if(!s?.questScrapSwarmProgression)return;
     const wave=s.questSwarmWave==='B'?2:1;
@@ -1366,7 +1365,7 @@
     c.textAlign='left';
     c.font='900 15px Bahnschrift, Arial, sans-serif';
     c.fillStyle='rgba(242,215,168,.78)';
-    c.fillText((window.APEX_I18N?.getLanguage?.()==='vie'?'BẦY PHẾ LIỆU':'SWARM')+'  /  '+String(wave).padStart(2,'0')+'—02',40,57);
+    c.fillText('SWARM  /  '+String(wave).padStart(2,'0')+'—02',40,57);
     c.fillStyle='#e2a04c';
     c.fillRect(40,69,32,3);
     c.fillStyle=wave===2?'#e2a04c':'#444c52';
@@ -1389,10 +1388,9 @@
       c.textAlign='center';c.fillStyle='#fff0d4';
       c.shadowColor='rgba(233,143,44,.65)';c.shadowBlur=23;
       c.font='900 64px Impact, Bahnschrift, sans-serif';
-      if(window.APEX_I18N?.getLanguage?.()==='vie')c.font='900 55px Arial, sans-serif';
-      c.fillText(questCanvasCopy('WAVE 02'),500,455);
+      c.fillText('WAVE 02',500,455);
       c.shadowBlur=0;c.font='900 17px Bahnschrift, Arial, sans-serif';
-      c.fillStyle='#ffbd75';c.fillText(questCanvasCopy('FOUR CONTACTS INBOUND'),500,491);
+      c.fillStyle='#ffbd75';c.fillText('FOUR CONTACTS INBOUND',500,491);
       c.fillStyle='rgba(255,180,90,.65)';
       c.fillRect(356,514,288*t,3);
     }
@@ -1405,7 +1403,7 @@
     c.save();c.textAlign='left';
     c.font='900 14px Bahnschrift,Arial,sans-serif';
     c.fillStyle='rgba(246,207,143,.87)';
-    c.fillText(questCanvasCopy('WEAPON RAIN'),40,56);
+    c.fillText('WEAPON RAIN',40,56);
     c.fillStyle='#db9952';c.fillRect(40,66,41,3);
     c.fillStyle=phase==='DRIZZLE'?'#41494d':'#db9952';c.fillRect(85,66,41,3);
     c.fillStyle=(phase==='BURST'||phase==='OBSERVED')?'#db9952':'#41494d';
@@ -1429,7 +1427,7 @@
     c.beginPath();c.arc(target.x,target.y,r,-Math.PI/2,-Math.PI/2+v*Math.PI*2);c.stroke();
     c.shadowBlur=0;c.textAlign='center';
     c.fillStyle='#fbdfb2';c.font='900 21px Bahnschrift,Arial,sans-serif';
-    c.fillText(questCanvasCopy('IMPACT ACCUMULATOR'),target.x,target.y-r-24);
+    c.fillText('IMPACT ACCUMULATOR',target.x,target.y-r-24);
     c.fillStyle='#fff7dc';c.font='900 32px Bahnschrift,Arial,sans-serif';
     c.fillText(Math.round(v*100)+'%',target.x,target.y-r-54);
     const milestones=Q.BREAKER_SPEC?.milestones||[];
@@ -1484,9 +1482,9 @@
         && !AQ.state.questWeaponRainProgression
         && !AQ.state.questBreakerChargeProgression) {
         ctx.font='900 48px sans-serif';ctx.fillStyle='#ffdf9e';
-        ctx.fillText(questCanvasCopy(AQ.state.questOutcome==='COMPLETE'
+        ctx.fillText(AQ.state.questOutcome==='COMPLETE'
           ?(AQ.state.questWeaponRainProgression?'WEAPON RAIN CLEAR':AQ.state.questScrapSwarmProgression?'SCRAP SWARM CLEAR':AQ.state.questFirstWake?'FIRST WAKE CLEAR':'QUEST TEST CLEAR')
-          :'NEWBOT KO — RETRY'),GAME_SIZE/2,148);
+          :'NEWBOT KO — RETRY',GAME_SIZE/2,148);
       }
       ctx.restore();
     }
