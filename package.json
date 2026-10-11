@@ -57,7 +57,8 @@
     "test:hero-rig-delivery": "node tools/testHeroBattleRigDeliveryGate.mjs",
     "test:hero-accent-language": "node tools/testHeroAccentLanguageGate.mjs",
     "test:hero-rework:robot-gates": "node tools/testHeroReworkRobotPresentationGates.mjs",
-    "test:result-gold": "node tools/testResultGoldAuthority.mjs"
+    "test:result-gold": "node tools/testResultGoldAuthority.mjs",
+    "test:localization": "node tools/testLocalizationGate.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
