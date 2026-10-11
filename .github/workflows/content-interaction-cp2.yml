@@ -1,8 +1,9 @@
-name: Content Interaction CP2 Baseline
+name: Content Interaction CP2 + CP3 Shadow
 on:
   pull_request:
     paths:
       - 'tools/testContentInteractionBaseline.mjs'
+      - 'tools/testInteractionPolicyShadow.mjs'
       - 'tools/lib/crystalaHarness.mjs'
       - 'public/game/arsenal/**'
       - 'public/game/hero-rework/**'
@@ -23,4 +24,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Freeze real-runtime content interaction baseline
-        run: node tools/testContentInteractionBaseline.mjs
+        run: |
+          node --check public/game/hero-rework/ailRuntime.js
+          node --check tools/testInteractionPolicyShadow.mjs
+          node tools/testContentInteractionBaseline.mjs
+          node tools/testInteractionPolicyShadow.mjs
