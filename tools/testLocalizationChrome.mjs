@@ -217,7 +217,17 @@ try{
      checked(lucky.lang==='vi'&&lucky.title.includes('QUAY MAY MẮN')&&lucky.drawer.includes('ĐẤU SĨ'), 'Lucky iframe translated and accent font active',lucky);
      await capture('desktop-lucky-vie');
      await typographyAudit('desktop-lucky-vie','w.document.querySelector("#luckyDonorFrame").contentDocument',['.title strong','.tag .tn','.tag .ts','.plate .pm','.console button','.hud button']);
-     await auditAllVisibleText('desktop-lucky-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+     const luckyBodyAudit=await auditAllVisibleText('desktop-lucky-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+     checked(luckyBodyAudit.clippedCount===0&&luckyBodyAudit.inspected>10,'Lucky Draw visible content fits VIE',luckyBodyAudit.clipped);
+     // This panel is deliberately translated but normally remains offscreen.
+     // Exercise the actual Gold control: only an open drawer is relevant to visible-text clipping.
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#infoD')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;return d.querySelector('#stage')?.dataset.drawer==='1'})()",10000),'Lucky Draw real pool drawer opened');
+     await sleep(550);
+     const pool=await auditAllVisibleText('desktop-lucky-drawer-open-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+     checked(pool.inspected>25&&pool.clippedCount===0,'Open Lucky Draw pool text is fully visible',pool.clipped.slice(0,12));
+     await capture('desktop-lucky-drawer-open-vie');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#drawerX')?.click()})()");
 
      // Result Gold is a separate React document authored in Vietnamese.
      // Feed it an actual sealed native ledger, exactly like the independent
@@ -274,7 +284,20 @@ try{
      await capture('desktop-result-gold-eng');
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('vie')})()");
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#localization-result-proof-frame')?.contentDocument?.documentElement?.lang==='vi'})()"),'Result Gold returns to native VIE');
-     await auditAllVisibleText('desktop-result-gold-vie','w.document.querySelector("#localization-result-proof-frame").contentDocument');
+     const resultVIEAudit=await auditAllVisibleText('desktop-result-gold-vie','w.document.querySelector("#localization-result-proof-frame").contentDocument');
+     checked(resultVIEAudit.inspected>25&&resultVIEAudit.clippedCount===0,'VIE Result Gold has no visible text clipping',resultVIEAudit.clipped);
+     // Native-Vietnamese Result Gold: check its two actual dialogs without overriding its font.
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('.dock .btn--ghost')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame')?.contentDocument;return !!d?.querySelector('#commendation-archive[open]')})()",15000),'VIE Result archive opens');
+     const archiveVIE=await auditAllVisibleText('desktop-result-archive-open-vie','w.document.querySelector("#localization-result-proof-frame").contentDocument');
+     checked(archiveVIE.inspected>35&&archiveVIE.clippedCount===0,'VIE Result archive captions and titles fit',archiveVIE.clipped.slice(0,12));
+     await capture('desktop-result-archive-vie');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('#commendation-archive .iconbtn--sq')?.click();d.querySelector('.chip')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame')?.contentDocument;return !!d?.querySelector('#award-detail[open]')})()",10000),'VIE Result achievement detail opens');
+     const detailVIE=await auditAllVisibleText('desktop-result-award-detail-vie','w.document.querySelector("#localization-result-proof-frame").contentDocument');
+     checked(detailVIE.inspected>25&&detailVIE.clippedCount===0,'VIE Result award detail fits',detailVIE.clipped.slice(0,12));
+     await capture('desktop-result-award-detail-vie');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('#award-detail .iconbtn--sq')?.click()})()");
      await capture('desktop-result-gold-vie');
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('eng')})()");
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#localization-result-proof-frame')?.contentDocument?.documentElement?.lang==='en'})()"),'Result Gold restores ENG after VIE audit');
