@@ -1,0 +1,38 @@
+name: Vendor Vietnamese Gold font (one-shot)
+on:
+  push:
+    branches: ['audit/vie-typography-foundation-f4d9de6']
+    paths: ['.github/workflows/vendor-apex-vietnamese-font.yml']
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download and verify exact SIL OFL upstream font
+        shell: bash
+        run: |
+          set -euo pipefail
+          FONT=public/gold/fonts/apex-oswald-vietnamese.ttf
+          LICENSE=public/gold/fonts/APEX-OSWALD-OFL.txt
+          mkdir -p public/gold/fonts
+          curl -fLsS --retry 3 'https://raw.githubusercontent.com/google/fonts/main/ofl/oswald/Oswald%5Bwght%5D.ttf' -o "$FONT"
+          test "$(git hash-object "$FONT")" = 'd1a3b9cb1325bf20b3a06ef9849d21c411212a3b'
+          curl -fLsS --retry 3 'https://raw.githubusercontent.com/google/fonts/main/ofl/oswald/OFL.txt' -o "$LICENSE"
+          test "$(git hash-object "$LICENSE")" = '4d4e319b6114be0174e6de5d8090408f78dc65b8'
+          test "$(stat -c %s "$FONT")" -eq 172088
+      - name: Commit verified font to the feature branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add public/gold/fonts/apex-oswald-vietnamese.ttf public/gold/fonts/APEX-OSWALD-OFL.txt
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'chore(font): vendor verified SIL OFL Oswald with Vietnamese glyphs'
+            git push origin HEAD:refs/heads/audit/vie-typography-foundation-f4d9de6
+          fi
