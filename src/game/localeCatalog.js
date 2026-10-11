@@ -217,6 +217,41 @@ export const VIETNAMESE_DIALOGUE_EN = Object.freeze({
   'Lần này...':'This time...',
   '...tôi dừng được rồi.':'...I can finally stop.'
 });
+
+// Reverse glossary for surfaces originally authored in Vietnamese (Result Gold).
+// Avoid substituting punctuation, hero names, ranking thresholds or reward IDs.
+export const VIETNAMESE_UI_EN=Object.freeze({
+ 'Nguồn sát thương':'Damage sources','Hồ sơ danh hiệu':'Achievements archive',
+ 'Đóng hồ sơ':'Close archive','Đóng':'Close','Chế độ xem':'View',
+ 'Dữ liệu cố định, không thay đổi khi tải lại / đổi cỡ / xem lại.':'Recorded data remains unchanged when reloading, resizing, or replaying.',
+ 'Thu gọn tất cả':'Collapse all','Mở rộng tất cả':'Expand all',
+ 'Đã kích hoạt':'Triggered','Sự kiện combat hợp lệ':'Valid combat event',
+ 'Lọc danh hiệu':'Filter achievements','Tất cả':'All',
+ 'Đã đạt trong trận':'Earned this match','Hiển thị':'Showing',
+ 'Chưa ai đạt':'Not earned','Chính xác':'Accuracy','Chí mạng':'Critical hits',
+ 'Hồi phục':'Healing','Kỹ năng':'Skills','lần':'times',
+ 'DANH HIỆU':'ACHIEVEMENTS','Đóng chi tiết danh hiệu':'Close achievement details',
+ 'Đã đạt':'Earned','Yêu cầu':'Required','Chọn danh hiệu':'Choose an achievement',
+ 'Danh hiệu trước':'Previous achievement','Danh hiệu tiếp theo':'Next achievement',
+ 'Đang nhận kết quả trận đấu':'Receiving match results',
+ 'Thông tin trận đấu':'Match information','Xem lại hiệu ứng (R)':'Replay animation (R)',
+ 'Xem lại':'Replay','Đang tổng kết kết quả…':'Calculating match results…',
+ 'Bỏ qua':'Skip','Tiếp tục':'Continue','Đang tổng kết…':'Calculating…',
+ 'Mở hồ sơ và danh hiệu đang được áp dụng':'Open the match achievement archive',
+ 'Hỏa Lực':'Firepower','Chính Xác':'Precision','Vũ Khí':'Weapons',
+ 'Sinh Tồn':'Survival','Chiến Thuật':'Tactics','Hỗn Loạn':'Chaos',
+ 'Danh hiệu riêng':'Signature','Thường':'Common','Hiếm':'Rare',
+ 'Sử Thi':'Epic','Huyền Thoại':'Legendary',
+ 'Điều kiện sự kiện':'Event condition',
+ 'Kết quả trận đấu':'Match results',
+ 'danh hiệu':'achievements','sắp theo độ hiếm':'sorted by rarity',
+ 'nhất quán':'consistent','kiểm tra':'checks','có':'found',
+ 'lỗi':'issues','Đã đạt trong trận':'Earned this match',
+ 'Đang nhận kết quả trận đấu':'Receiving match results',
+ 'Đang mở hồ sơ':'Opening archive','Danh hiệu':'Achievement',
+ 'Tiếp tục câu chuyện':'Continue story',
+});
+
 export const PROPER_NAMES = Object.freeze([
   'APEX CHAOS','APEX','NEWBOT','ROBOT','HUNTER','CRYSTALA','CRYSTAL',
   'MAGNET','FROST','MIRROR','T.O.T','RIVET','SCRAP BASIN','STORMBREAKER',
@@ -253,5 +288,11 @@ export function translateCopy(input,language='eng'){
   if(typeof input!=='string')return input;
   const match=input.match(/^(\s*)([\s\S]*?)(\s*)$/);
   if(!match||!match[2])return input;
-  return match[1]+(language==='vie'?phrase(match[2]):(VIETNAMESE_DIALOGUE_EN[match[2]]||match[2]))+match[3];
+  const original=match[2];
+  if(language==='vie')return match[1]+phrase(original)+match[3];
+  const reverse=VIETNAMESE_DIALOGUE_EN[original]||VIETNAMESE_UI_EN[original];
+  if(reverse)return match[1]+reverse+match[3];
+  const parts=original.split(/(\\s+\/\/\\s+|\\s+·\\s+|\\s+\|\\s+)/);
+  if(parts.length>1)return match[1]+parts.map((p,i)=>i%2?p:(VIETNAMESE_UI_EN[p]||p)).join('')+match[3];
+  return input;
 }
