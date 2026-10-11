@@ -81,23 +81,34 @@ function installDocument(doc){
         else if(change.type==='attributes')localizeAttrs(change.target,rec);
         else if(change.type==='childList')for(const n of change.addedNodes)walk(n,rec);
       }
-      attachFrames(doc);
+      // Frame discovery belongs to node insertions only. Combat counters
+      // update text every frame; scanning the entire document on each tick
+      // would add unnecessary work to the 60 FPS path.
+      for(const change of records){
+        if(change.type!=='childList')continue;
+        for(const node of change.addedNodes){
+          if(node.nodeType!==1)continue;
+          if(node.matches?.('iframe'))wireFrame(node);
+          for(const frame of node.querySelectorAll?.('iframe')||[])wireFrame(frame);
+        }
+      }
     }finally{busy=false;}
   });
   observer.observe(doc.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:ATTRS});
   rec.observer=observer;
   attachFrames(doc);
 }
-function attachFrames(doc){
-  for(const frame of doc.querySelectorAll('iframe')){
-    if(!frame.__apexLocaleWired){
-      frame.__apexLocaleWired=true;
-      frame.addEventListener('load',()=>{
-        try{installDocument(frame.contentDocument);}catch{}
-      });
-    }
-    try{installDocument(frame.contentDocument);}catch{}
+function wireFrame(frame){
+  if(!frame.__apexLocaleWired){
+    frame.__apexLocaleWired=true;
+    frame.addEventListener('load',()=>{
+      try{installDocument(frame.contentDocument);}catch{}
+    });
   }
+  try{installDocument(frame.contentDocument);}catch{}
+}
+function attachFrames(doc){
+  for(const frame of doc.querySelectorAll('iframe'))wireFrame(frame);
 }
 function updateAll(){
   busy=true;
