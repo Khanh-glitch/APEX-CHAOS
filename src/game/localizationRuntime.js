@@ -61,7 +61,8 @@ function setDocLanguage(doc){
   doc.documentElement.dataset.apexLanguage=language;
   if(doc!==document){
     const path=doc.defaultView?.location?.pathname||'';
-    const goldDoc=path.includes('/gold/');
+    const embeddedId=doc.defaultView?.frameElement?.id||'';
+    const goldDoc=path.includes('/gold/') || embeddedId==='battleHudFrame' || embeddedId==='luckyDonorFrame';
     let css=doc.getElementById('apex-locale-frame-font');
     if(!goldDoc){
       // Do not apply a generic fallback to Result Gold, Quest-owned layouts,
