@@ -396,6 +396,14 @@ function phrase(value){
   if(exact!==undefined)return exact;
   const count=t.match(/^(\d+) (HITS?|CRITS?|HOSTILES DOWN|FIGHTERS?)$/i);
   if(count){const unit=phrase(count[2]);return count[1]+' '+unit;}
+  // Production HUD cooldown/charges strings are constructed at runtime;
+  // translate display units without touching authoritative timing values.
+  const cooldown=t.match(/^([0-9]+(?:[.,][0-9]+)?)S COOLDOWN$/i);
+  if(cooldown)return cooldown[1].replace('.',',')+' GIÂY HỒI CHIÊU';
+  const charges=t.match(/^(\\d+) CHARGES · ([0-9]+(?:[.,][0-9]+)?)S RECHARGE$/i);
+  if(charges)return charges[1]+' LẦN DÙNG · '+charges[2].replace('.',',')+' GIÂY NẠP LẠI';
+  const active=t.match(/^([0-9]+(?:[.,][0-9]+)?)S ACTIVE · ([0-9]+(?:[.,][0-9]+)?)S CD$/i);
+  if(active)return active[1].replace('.',',')+' GIÂY HIỆU LỰC · '+active[2].replace('.',',')+' GIÂY HỒI CHIÊU';
   const stage=t.match(/^STORY\s*·\s*(\d+)$/i);
   if(stage)return 'CỐT TRUYỆN · '+stage[1];
   const code=t.match(/^(CH|LV|LEVEL)\s*(\d+)$/i);
