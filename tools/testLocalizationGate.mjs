@@ -105,7 +105,7 @@ assert.equal(document.documentElement.lang,'vi');
 assert.equal(canvas.__apexCanvasLocaleInstalled,true,'only real game canvas has a draw-time adapter');
 context.fillText('WAVE 02',500,455);
 assert.equal(canvasDraws.at(-1).text,'ĐỢT 02');
-assert.ok(canvasDraws.at(-1).font.includes('Arial'),'Vietnamese Canvas must use accent-capable font');
+assert.ok(canvasDraws.at(-1).font.includes('ApexVietCondensed'),'Vietnamese Canvas must use the bundled glyph-complete Gold face');
 assert.equal(context.font,'900 64px Impact, Bahnschrift, sans-serif','original Gold font restored');
 context.strokeText('FOUR CONTACTS INBOUND',500,491);
 assert.equal(canvasDraws.at(-1).text,'BỐN KẺ ĐỊCH ĐANG ÁP SÁT');
