@@ -32,6 +32,59 @@ async function capture(name){
  const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
  await writeFile('docs/acceptance/localization/'+name+'.png',Buffer.from(shot.data,'base64'));
 }
+
+async function typographyAudit(label, documentExpr, selectors){
+  const expression = '(async()=>{'
+    +'const w=window.__apexGoldFidelity?.child()||window;'
+    +'const d='+documentExpr+';'
+    +'await d.fonts.ready;'
+    +'const selectors='+JSON.stringify(selectors)+';'
+    +'const list=selectors.flatMap(s=>[...d.querySelectorAll(s)].map(e=>({selector:s,element:e})));'
+    +'const results=list.filter(x=>{const r=x.element.getBoundingClientRect(),c=d.defaultView.getComputedStyle(x.element);return r.width>0&&r.height>0&&c.visibility!=="hidden"&&c.display!=="none"&&c.opacity!=="0"}).map(x=>{'
+    +'const e=x.element,r=d.createRange();r.selectNodeContents(e);const t=r.getBoundingClientRect(),style=d.defaultView.getComputedStyle(e),violations=[];'
+    +'for(let p=e;p&&p!==d.documentElement;p=p.parentElement){const c=d.defaultView.getComputedStyle(p),b=p.getBoundingClientRect();'
+    +'if(/hidden|clip|auto|scroll/.test(c.overflowX+" "+c.overflowY)||c.clipPath!=="none"){'
+    +'const delta=Math.max(0,b.left-t.left,t.right-b.right,b.top-t.top,t.bottom-b.bottom);'
+    +'if(delta>2.5)violations.push({parent:p.id||p.className?.toString().slice(0,55)||p.tagName,delta:Math.round(delta)});'
+    +'}}return{selector:x.selector,text:(e.innerText||e.textContent||"").trim().slice(0,110),font:style.fontFamily,size:style.fontSize,'
+    +'box:[Math.round(e.getBoundingClientRect().width),Math.round(e.getBoundingClientRect().height)],'
+    +'textBox:[Math.round(t.width),Math.round(t.height)],overflow:Math.max(0,e.scrollWidth-e.clientWidth),clips:violations.slice(0,3)};'
+    +'});return{lang:d.documentElement.lang,total:results.length,clipped:results.filter(x=>x.clips.length||x.overflow>3).slice(0,35),'
+    +'samples:results.slice(0,15)};'
+    +'})()';
+  const report=await run(expression);
+  console.log('TYPOGRAPHY_AUDIT '+JSON.stringify({surface:label,...report}));
+  return report;
+}
+
+
+async function auditAllVisibleText(label,documentExpr){
+  const expression='(async()=>{'
+    +'const w=window.__apexGoldFidelity?.child()||window,d='+documentExpr+';await d.fonts.ready;'
+    +'const tw=d.createTreeWalker(d.body,NodeFilter.SHOW_TEXT),items=[];let n,count=0;'
+    +'while((n=tw.nextNode())&&count<2000){const text=n.textContent.trim();if(!text||text.length<2)continue;'
+    +'const e=n.parentElement;if(!e||e.closest("script,style,noscript,svg,textarea,.sr-only,[aria-hidden=true],[data-apex-no-localize]"))continue;'
+    +'const css=d.defaultView.getComputedStyle(e);if(css.visibility==="hidden"||css.display==="none"||css.opacity==="0")continue;'
+    +'const r=d.createRange();r.selectNodeContents(n);const boxes=[...r.getClientRects()];'
+    +'const viewport=d.documentElement.getBoundingClientRect();'
+    +'if(!boxes.some(b=>b.width>0&&b.height>0&&b.right>0&&b.bottom>0&&b.left<viewport.width&&b.top<viewport.height))continue;'
+    +'let p=e,flag=null;while(p&&p!==d.documentElement){const s=d.defaultView.getComputedStyle(p),b=p.getBoundingClientRect();'
+    +'if(s.visibility==="hidden"||s.display==="none"||s.opacity==="0"){flag=null;break;}'
+    +'if(/hidden|clip/.test(s.overflowX)||s.clipPath!=="none"){'
+    +'for(const t of boxes){const left=b.left-t.left,right=t.right-b.right,delta=Math.max(left,right);'
+    +'if(delta>3.5&&(!flag||delta>flag.delta))flag={parent:p.id||String(p.className||p.tagName).slice(0,45),delta:Math.round(delta),left:Math.round(left),right:Math.round(right)};'
+    +'}}p=p.parentElement;}'
+    +'count++;if(flag)items.push({text:text.slice(0,95),parent:e.id||String(e.className||e.tagName).slice(0,65),'
+    +'font:css.fontFamily,size:css.fontSize,flag});}'
+    +'items.sort((a,b)=>b.flag.delta-a.flag.delta);'
+    +'return{lang:d.documentElement.lang,inspected:count,clippedCount:items.length,clipped:items.slice(0,35),'
+    +'bodyText:(d.body?.innerText||"").slice(0,250)};'
+    +'})()';
+  const report=await run(expression);
+  console.log('ALL_TEXT_AUDIT '+JSON.stringify({surface:label,...report}));
+  return report;
+}
+
 const checked=(ok,message,value)=>{
  console.log((ok?'PASS':'FAIL')+' localization chrome: '+message+' '+JSON.stringify(value??''));
  if(!ok)throw Error(message);
@@ -54,8 +107,8 @@ try{
  });
  await cmd('Page.enable');await cmd('Runtime.enable');
  await mkdir('docs/acceptance/localization',{recursive:true});
- for(const view of [{id:'desktop',w:1440,h:900},{id:'portrait',w:390,h:844}]){
-   await cmd('Emulation.setDeviceMetricsOverride',{width:view.w,height:view.h,deviceScaleFactor:2,mobile:view.id==='portrait',screenWidth:view.w,screenHeight:view.h});
+ for(const view of [{id:'desktop',w:1440,h:900},{id:'portrait',w:390,h:844},{id:'narrow-portrait',w:360,h:640},{id:'landscape',w:844,h:390}]){
+   await cmd('Emulation.setDeviceMetricsOverride',{width:view.w,height:view.h,deviceScaleFactor:2,mobile:view.id==='portrait'||view.id==='narrow-portrait'||view.id==='landscape',screenWidth:view.w,screenHeight:view.h});
    await cmd('Page.navigate',{url:base});
    checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-boot-start'))"),view.id+' boot loads');
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#apex-boot-start')?.click()})()");
@@ -86,9 +139,13 @@ try{
    })()`);
    checked(report.chosen==='vie'&&report.persist==='vie'&&report.htmlLang==='vi',view.id+' VIE state',report);
    checked(report.title.includes('NHỮNG KẺ')&&report.cta.includes('TIẾP TỤC'),view.id+' natural Home translations',report);
-   checked(report.font.includes('Arial')||report.font.includes('Segoe UI'),view.id+' Unicode face fallback',report);
+   checked(report.font.includes('ApexVietCondensed'),view.id+' Unicode face fallback',report);
+   const face=await run("(async()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;await d.fonts.ready;return Array.from(d.fonts).filter(f=>f.family==='ApexVietCondensed').map(f=>f.status)})()");
+   checked(face.includes('loaded'),view.id+' actual condensed Vietnamese font loaded',face);
    checked(report.withinTitle&&report.ctaWithin&&report.pickerVisible&&report.pickerHit,view.id+' glyph bounds and selector hit target',report);
    await capture(view.id+'-vie');
+   await typographyAudit(view.id+'-home-vie','w.document',['.storyTitle span','.quest','.location','.cta .label','.profileText b']);
+   checked((await auditAllVisibleText(view.id+'-home-vie','w.document')).clippedCount===0,view.id+' home visible text is not clipped');
    const restored=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('eng');return {label:w.document.querySelector('#freeBattle .label')?.textContent,persist:w.localStorage.getItem('apex-chaos.ui-language.v1')}})()");
    checked(restored.label==='FREE BATTLE'&&restored.persist==='eng',view.id+' restore ENG',restored);
    await capture(view.id+'-eng');
@@ -98,12 +155,27 @@ try{
    const modeText=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('.modeSelectScreen')?.innerText||''})()");
    checked(modeText.includes('CHỌN CHẾ ĐỘ'),view.id+' translated Mode Select',modeText.slice(0,250));
    await capture(view.id+'-mode-vie');
+   await typographyAudit(view.id+'-mode-vie','w.document',['.modeTitle','.modeName','.modeSub','.modeLead','.flowHints']);
+   checked((await auditAllVisibleText(view.id+'-mode-vie','w.document')).clippedCount===0,view.id+' mode visible text is not clipped');
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.modeCard[data-mode=bot]')?.click()})()");
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('screen-fighter')})()"),view.id+' entered Fighter Select');
    const fighterText=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('.fighterSelectScreen')?.innerText||''})()");
    checked(fighterText.includes('CHỌN ĐẤU SĨ'),view.id+' translated Fighter Select',fighterText.slice(0,300));
    checked(fighterText.includes('NEWBOT')||fighterText.includes('HUNTER'),view.id+' preserved proper fighter names');
    await capture(view.id+'-fighter-vie');
+   await typographyAudit(view.id+'-fighter-vie','w.document',['.fighterTitleBlock h2','.fighterName','.fighterTag','.skillChip','.playerFlag','.fighterModeBadge']);
+   checked((await auditAllVisibleText(view.id+'-fighter-vie','w.document')).clippedCount===0,view.id+' fighter visible text is not clipped');
+   if(view.id==='desktop'||view.id==='portrait'){
+     const heroKeys=['newbot','hunter','crystala','magnet','frost','mirror'];
+     for(const hero of heroKeys){
+       const changed=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const card=w.document.querySelector('.rosterCard[data-hero=${hero}]');if(!card)return false;card.click();return true})()".replace('${hero}',hero));
+       checked(changed,view.id+' roster includes '+hero);
+       await sleep(90);
+       const reading=await auditAllVisibleText(view.id+'-fighter-'+hero+'-vie','w.document');
+       checked(reading.clippedCount===0,view.id+' fighter skill/identity text fits '+hero,reading.clipped.slice(0,6));
+     }
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.rosterCard[data-hero=newbot]')?.click()})()");
+   }
 
    if(view.id==='desktop'){
      // Real production BOT path; this does not fabricate hit points,
@@ -113,11 +185,20 @@ try{
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.rosterCard[data-hero=newbot]')?.click();w.document.querySelector('#lockIn')?.click()})()");
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;return d.body.classList.contains('battle-hud-open')&&Boolean(d.querySelector('#battleHudFrame')?.contentDocument?.body)})()",70000),'live BOT battle loaded with authentic Gold HUD');
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;return d.querySelector('#battleHudFrame')?.contentDocument?.documentElement?.lang==='vi'})()",25000),'embedded Battle HUD inherited VIE locale');
-     const hudProof=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument,n=d.createElement('span');n.textContent='UNARMED';n.id='locale-test-probe';d.body.appendChild(n);return {lang:d.documentElement.lang,frameFont:d.getElementById('apex-locale-frame-font')?.textContent.includes('Arial')||false}})()");
+     const battleFrameReport=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,f=w.document.querySelector('#battleHudFrame'),d=f?.contentDocument;return {src:f?.getAttribute('src'),srcdocLength:f?.getAttribute('srcdoc')?.length||0,href:d?.URL,readyState:d?.readyState,htmlLen:d?.documentElement?.outerHTML.length||0,bodyLen:d?.body?.innerHTML.length||0,hud:Boolean(d?.querySelector('#hud')),id:d?.defaultView?.frameElement?.id,frameFont:Boolean(d?.getElementById('apex-locale-frame-font'))}})()");
+     console.log('BATTLE_FRAME_REPORT '+JSON.stringify(battleFrameReport));
+     const reactHudReport=await run("(()=>{const d=document,w=window.__apexGoldFidelity?.child()||window;return {bodyClass:d.body.className,childBodyClass:w.document.body.className,reactPanels:d.querySelectorAll('.combat-panel').length,childPanels:w.document.querySelectorAll('.combat-panel').length,visible:d.querySelector('.combat-panel')?.getBoundingClientRect().toJSON()||null,loadout:d.querySelector('.cp-loadout-name')?.textContent||null,stageText:w.document.querySelector('#battleHudHost')?.textContent?.slice(0,100),hudApi:Boolean(window.APEX_GOLD_HUD)}})()");
+     console.log('LIVE_REACT_HUD_REPORT '+JSON.stringify(reactHudReport));
+     const combatAudit=await auditAllVisibleText('desktop-react-battle-vie','document');
+     checked(combatAudit.clipped.filter(x=>['sk-name','sk-desc','sk-slot','sk-state'].includes(x.parent)).length===0,
+       'real rendered combat skill names, timings and states are fully visible in VIE',combatAudit.clipped.slice(0,12));
+     const hudProof=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument,n=d.createElement('span');n.textContent='UNARMED';n.id='locale-test-probe';d.body.appendChild(n);return {lang:d.documentElement.lang,frameFont:d.getElementById('apex-locale-frame-font')?.textContent.includes('ApexVietCondensed')||false}})()");
      checked(hudProof.lang==='vi'&&hudProof.frameFont,'live Battle HUD received readable Vietnamese font',hudProof);
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument;return d.getElementById('locale-test-probe')?.textContent==='TAY KHÔNG'})()"),'embedded Battle HUD dynamic text localized');
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#battleHudFrame')?.contentDocument?.getElementById('locale-test-probe')?.remove()})()");
      await capture('desktop-live-battle-vie');
+     await typographyAudit('desktop-battle-vie','w.document.querySelector("#battleHudFrame").contentDocument',['.vr-name','.vr-sub','.id-name','.id-ctrl','.sk-name','.sk-desc','.sk-slot','.sk-state','.cp-loadout-name']);
+     await auditAllVisibleText('desktop-battle-vie','w.document.querySelector("#battleHudFrame").contentDocument');
    }
 
 
@@ -135,6 +216,18 @@ try{
      const lucky=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,f=w.document.querySelector('#luckyDonorFrame'),d=f.contentDocument;return {lang:d.documentElement.lang,title:d.querySelector('.title strong')?.textContent||'',drawer:d.querySelector('#infoD')?.textContent||'',font:d.defaultView.getComputedStyle(d.querySelector('.title strong')).fontFamily}})()");
      checked(lucky.lang==='vi'&&lucky.title.includes('QUAY MAY MẮN')&&lucky.drawer.includes('ĐẤU SĨ'), 'Lucky iframe translated and accent font active',lucky);
      await capture('desktop-lucky-vie');
+     await typographyAudit('desktop-lucky-vie','w.document.querySelector("#luckyDonorFrame").contentDocument',['.title strong','.tag .tn','.tag .ts','.plate .pm','.console button','.hud button']);
+     const luckyBodyAudit=await auditAllVisibleText('desktop-lucky-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+     checked(luckyBodyAudit.clippedCount===0&&luckyBodyAudit.inspected>10,'Lucky Draw visible content fits VIE',luckyBodyAudit.clipped);
+     // This panel is deliberately translated but normally remains offscreen.
+     // Exercise the actual Gold control: only an open drawer is relevant to visible-text clipping.
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#infoD')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;return d.querySelector('#stage')?.dataset.drawer==='1'})()",10000),'Lucky Draw real pool drawer opened');
+     await sleep(550);
+     const pool=await auditAllVisibleText('desktop-lucky-drawer-open-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+     checked(pool.inspected>15&&pool.clippedCount===0,'Open Lucky Draw pool text is fully visible',pool.clipped.slice(0,12));
+     await capture('desktop-lucky-drawer-open-vie');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#drawerX')?.click()})()");
 
      // Result Gold is a separate React document authored in Vietnamese.
      // Feed it an actual sealed native ledger, exactly like the independent
@@ -189,6 +282,26 @@ try{
      checked(resultProof.lang==='en'&&resultProof.heroes===2,'Result Gold ENG state and true match survive frame localization',resultProof);
      checked(resultProof.vietnamese.length===0,'Result Gold has no untranslated Vietnamese user-visible copy in ENG',resultProof);
      await capture('desktop-result-gold-eng');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('vie')})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#localization-result-proof-frame')?.contentDocument?.documentElement?.lang==='vi'})()"),'Result Gold returns to native VIE');
+     const resultVIEAudit=await auditAllVisibleText('desktop-result-gold-vie','w.document.querySelector("#localization-result-proof-frame").contentDocument');
+     checked(resultVIEAudit.inspected>25&&resultVIEAudit.clippedCount===0,'VIE Result Gold has no visible text clipping',resultVIEAudit.clipped);
+     // Native-Vietnamese Result Gold: check its two actual dialogs without overriding its font.
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('.dock .btn--ghost')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame')?.contentDocument;return !!d?.querySelector('#commendation-archive[open]')})()",15000),'VIE Result archive opens');
+     const archiveVIE=await auditAllVisibleText('desktop-result-archive-open-vie','w.document.querySelector("#localization-result-proof-frame").contentDocument');
+     checked(archiveVIE.inspected>35&&archiveVIE.clippedCount===0,'VIE Result archive captions and titles fit',archiveVIE.clipped.slice(0,12));
+     await capture('desktop-result-archive-vie');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('#commendation-archive .iconbtn--sq')?.click();d.querySelector('.chip')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame')?.contentDocument;return !!d?.querySelector('#award-detail[open]')})()",10000),'VIE Result achievement detail opens');
+     const detailVIE=await auditAllVisibleText('desktop-result-award-detail-vie','w.document.querySelector("#localization-result-proof-frame").contentDocument');
+     checked(detailVIE.inspected>25&&detailVIE.clippedCount===0,'VIE Result award detail fits',detailVIE.clipped.slice(0,12));
+     await capture('desktop-result-award-detail-vie');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('#award-detail .iconbtn--sq')?.click()})()");
+     await capture('desktop-result-gold-vie');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('eng')})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#localization-result-proof-frame')?.contentDocument?.documentElement?.lang==='en'})()"),'Result Gold restores ENG after VIE audit');
+
 
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('.dock .btn--ghost')?.click()})()");
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame')?.contentDocument;return !!d?.querySelector('#commendation-archive[open]')})()",15000),'Result Gold archive opens in ENG');

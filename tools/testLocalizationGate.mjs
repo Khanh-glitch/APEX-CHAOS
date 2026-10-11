@@ -6,9 +6,9 @@ import {COPY,PROPER_NAMES,translateCopy,VIETNAMESE_DIALOGUE_EN,VIETNAMESE_UI_EN}
 
 assert.equal(translateCopy('FREE BATTLE','vie'),'ĐẤU TỰ DO');
 for(const name of ['WEAPON DASH','VIRTUAL ARMOR','CONTEXT CONSTRUCT','AWAKENING','MIRROR ARSENAL','MIRROR EXCHANGE','ANCIENT CRYSTAL ENTITY','FIELD CONTROL UNIT','CRYO EDGE UNIT']) assert.notEqual(translateCopy(name,'vie'),name,'untranslated production fighter copy: '+name);
-assert.equal(translateCopy('4.5S COOLDOWN','vie'),'4,5 GIÂY HỒI CHIÊU');
-assert.equal(translateCopy('2 CHARGES · 4.5S RECHARGE','vie'),'2 LẦN DÙNG · 4,5 GIÂY NẠP LẠI');
-assert.equal(translateCopy('1.0S ACTIVE · 11.0S CD','vie'),'1,0 GIÂY HIỆU LỰC · 11,0 GIÂY HỒI CHIÊU');
+assert.equal(translateCopy('4.5S COOLDOWN','vie'),'HỒI CHIÊU 4,5s');
+assert.equal(translateCopy('2 CHARGES · 4.5S RECHARGE','vie'),'2 LẦN · NẠP 4,5s');
+assert.equal(translateCopy('1.0S ACTIVE · 11.0S CD','vie'),'HIỆU LỰC 1,0s · HỒI 11,0s');
 
 assert.equal(translateCopy('  LOCK IN  ','vie'),'  XÁC NHẬN  ');
 assert.equal(translateCopy('SCRAP BASIN','vie'),'SCRAP BASIN');
@@ -105,7 +105,7 @@ assert.equal(document.documentElement.lang,'vi');
 assert.equal(canvas.__apexCanvasLocaleInstalled,true,'only real game canvas has a draw-time adapter');
 context.fillText('WAVE 02',500,455);
 assert.equal(canvasDraws.at(-1).text,'ĐỢT 02');
-assert.ok(canvasDraws.at(-1).font.includes('Arial'),'Vietnamese Canvas must use accent-capable font');
+assert.ok(canvasDraws.at(-1).font.includes('ApexVietCondensed'),'Vietnamese Canvas must use the bundled glyph-complete Gold face');
 assert.equal(context.font,'900 64px Impact, Bahnschrift, sans-serif','original Gold font restored');
 context.strokeText('FOUR CONTACTS INBOUND',500,491);
 assert.equal(canvasDraws.at(-1).text,'BỐN KẺ ĐỊCH ĐANG ÁP SÁT');

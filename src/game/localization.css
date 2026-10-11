@@ -39,28 +39,43 @@
 @media (max-height:600px) and (orientation:portrait){
   #gold-shell-host #stage #apex-language-picker{top:calc(var(--safeT,0px) + 1.8vh + 37px)}
 }
-/* Vietnamese fallback: Gold Oswald was shipped as Latin+Latin-Ext only.
-   Vietnamese-specific codepoints must be rendered from a complete system
-   Unicode face rather than missing-glyph boxes in the condensed display face. */
-html[data-apex-language="vie"] #gold-shell-host #stage,
-html[data-apex-language="vie"] #gold-shell-host #battleHudHost,
-html[data-apex-language="vie"] #battle-shell{
-  --fDisplay:Arial,'Segoe UI',sans-serif;
-  --fAction:Arial,'Segoe UI',sans-serif;
-  --fUi:Arial,'Segoe UI',sans-serif;
-  --fBody:Arial,'Segoe UI',sans-serif;
-  --fd:Arial,'Segoe UI',sans-serif;
+/* Typography contract: VIE must keep Gold's condensed display proportions.
+   Self-hosted SIL OFL Oswald variable includes the Vietnamese subset, unlike
+   the Gold donor's shipped Latin/Latin-Ext-only WOFF2 collection.
+   Source: google/fonts/ofl/oswald/Oswald[wght].ttf; pinned blob d1a3b9c.
+   ENG is completely untouched; no global font-family !important. */
+@font-face{
+  font-family:'ApexVietCondensed';
+  src:url('/gold/fonts/apex-oswald-vietnamese.ttf') format('truetype');
+  font-style:normal;
+  font-weight:200 700;
+  font-display:swap;
 }
-html[data-apex-language="vie"] #gold-shell-host #stage :is(.storyTitle,.cta,.modeTitle,.modeName,.fighterTitleBlock h2,.fighterName),
-html[data-apex-language="vie"] #gold-shell-host #battleHudHost{
-  font-family:Arial,'Segoe UI',sans-serif;
-  font-weight:800;
-  letter-spacing:0;
+html[data-apex-language="vie"] #gold-shell-host #stage{
+  --fDisplay:'ApexVietCondensed',Impact,'Arial Narrow',sans-serif;
+  --fAction:'ApexVietCondensed',Impact,'Arial Narrow',sans-serif;
+  --fUi:'ApexVietCondensed','Segoe UI',sans-serif;
+  --apex-vie-kicker-track:.14em;
+  --apex-vie-support-track:.08em;
 }
-html[data-apex-language="vie"] #gold-shell-host #stage .storyTitle{line-height:1.04}
-html[data-apex-language="vie"] #gold-shell-host #stage .cta .label{white-space:normal;text-align:center;line-height:1}
-html[data-apex-language="vie"] #gold-shell-host #stage .modeLead,
-html[data-apex-language="vie"] #gold-shell-host #stage .modeSub{letter-spacing:0}
-
-/* CSS-generated English does not exist in the DOM; translate it explicitly. */
-html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .playerFlag::after{content:"  ĐÃ KHÓA";letter-spacing:0}
+/* Donor's HOME title uses a hardcoded Impact family rather than --fDisplay.
+   This is a font role, not a per-text/per-screen size workaround. */
+html[data-apex-language="vie"] #gold-shell-host #stage .storyTitle{
+  font-family:var(--fDisplay);
+  font-weight:700;
+  line-height:1.035;
+}
+html[data-apex-language="vie"] #gold-shell-host #stage :is(.quest,.modeKicker,.fighterKicker){
+  letter-spacing:var(--apex-vie-kicker-track);
+}
+html[data-apex-language="vie"] #gold-shell-host #stage :is(.location,.modeSub,.fighterTag,.fighterModeBadge,.skillChip){
+  letter-spacing:var(--apex-vie-support-track);
+}
+html[data-apex-language="vie"] #gold-shell-host #stage .cta .label{
+  white-space:nowrap;
+}
+/* Only CSS-generated state, unavailable to the locale catalog/DOM translator. */
+html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .playerFlag::after{
+  content:"  ĐÃ KHÓA";
+  letter-spacing:.02em;
+}

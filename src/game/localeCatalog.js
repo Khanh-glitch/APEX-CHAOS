@@ -57,7 +57,7 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['ANCIENT CRYSTAL ENTITY','THỰC THỂ PHA LÊ CỔ ĐẠI'],
   ['FIELD CONTROL UNIT','ĐƠN VỊ ĐIỀU KHIỂN TRƯỜNG LỰC'],
   ['CRYO EDGE UNIT','ĐƠN VỊ BĂNG GIÁ'],
-  ['WEAPON DASH','LƯỚT THEO VŨ KHÍ'],
+  ['WEAPON DASH','LAO TỚI VŨ KHÍ'],
   ['VIRTUAL ARMOR','GIÁP ẢO'],
   ['CONTEXT CONSTRUCT','KIẾN TẠO THÍCH ỨNG'],
   ['AWAKENING','THỨC TỈNH'],
@@ -479,11 +479,11 @@ function phrase(value){
   // Production HUD cooldown/charges strings are constructed at runtime;
   // translate display units without touching authoritative timing values.
   const cooldown=t.match(/^([0-9]+(?:[.,][0-9]+)?)S COOLDOWN$/i);
-  if(cooldown)return cooldown[1].replace('.',',')+' GIÂY HỒI CHIÊU';
+  if(cooldown)return 'HỒI CHIÊU '+cooldown[1].replace('.',',')+'s';
   const charges=t.match(/^(\d+) CHARGES · ([0-9]+(?:[.,][0-9]+)?)S RECHARGE$/i);
-  if(charges)return charges[1]+' LẦN DÙNG · '+charges[2].replace('.',',')+' GIÂY NẠP LẠI';
+  if(charges)return charges[1]+' LẦN · NẠP '+charges[2].replace('.',',')+'s';
   const active=t.match(/^([0-9]+(?:[.,][0-9]+)?)S ACTIVE · ([0-9]+(?:[.,][0-9]+)?)S CD$/i);
-  if(active)return active[1].replace('.',',')+' GIÂY HIỆU LỰC · '+active[2].replace('.',',')+' GIÂY HỒI CHIÊU';
+  if(active)return 'HIỆU LỰC '+active[1].replace('.',',')+'s · HỒI '+active[2].replace('.',',')+'s';
   const stage=t.match(/^STORY\s*·\s*(\d+)$/i);
   if(stage)return 'CỐT TRUYỆN · '+stage[1];
   const code=t.match(/^(CH|LV|LEVEL)\s*(\d+)$/i);
