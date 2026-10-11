@@ -165,6 +165,17 @@ try{
    await capture(view.id+'-fighter-vie');
    await typographyAudit(view.id+'-fighter-vie','w.document',['.fighterTitleBlock h2','.fighterName','.fighterTag','.skillChip','.playerFlag','.fighterModeBadge']);
    checked((await auditAllVisibleText(view.id+'-fighter-vie','w.document')).clippedCount===0,view.id+' fighter visible text is not clipped');
+   if(view.id==='desktop'||view.id==='portrait'){
+     const heroKeys=['newbot','hunter','crystala','magnet','frost','mirror'];
+     for(const hero of heroKeys){
+       const changed=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const card=w.document.querySelector('.rosterCard[data-hero=${hero}]');if(!card)return false;card.click();return true})()".replace('${hero}',hero));
+       checked(changed,view.id+' roster includes '+hero);
+       await sleep(90);
+       const reading=await auditAllVisibleText(view.id+'-fighter-'+hero+'-vie','w.document');
+       checked(reading.clippedCount===0,view.id+' fighter skill/identity text fits '+hero,reading.clipped.slice(0,6));
+     }
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.rosterCard[data-hero=newbot]')?.click()})()");
+   }
 
    if(view.id==='desktop'){
      // Real production BOT path; this does not fabricate hit points,
@@ -178,7 +189,9 @@ try{
      console.log('BATTLE_FRAME_REPORT '+JSON.stringify(battleFrameReport));
      const reactHudReport=await run("(()=>{const d=document,w=window.__apexGoldFidelity?.child()||window;return {bodyClass:d.body.className,childBodyClass:w.document.body.className,reactPanels:d.querySelectorAll('.combat-panel').length,childPanels:w.document.querySelectorAll('.combat-panel').length,visible:d.querySelector('.combat-panel')?.getBoundingClientRect().toJSON()||null,loadout:d.querySelector('.cp-loadout-name')?.textContent||null,stageText:w.document.querySelector('#battleHudHost')?.textContent?.slice(0,100),hudApi:Boolean(window.APEX_GOLD_HUD)}})()");
      console.log('LIVE_REACT_HUD_REPORT '+JSON.stringify(reactHudReport));
-     await auditAllVisibleText('desktop-react-battle-vie','document');
+     const combatAudit=await auditAllVisibleText('desktop-react-battle-vie','document');
+     checked(combatAudit.clipped.filter(x=>['sk-name','sk-desc','sk-slot','sk-state'].includes(x.parent)).length===0,
+       'real rendered combat skill names, timings and states are fully visible in VIE',combatAudit.clipped.slice(0,12));
      const hudProof=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument,n=d.createElement('span');n.textContent='UNARMED';n.id='locale-test-probe';d.body.appendChild(n);return {lang:d.documentElement.lang,frameFont:d.getElementById('apex-locale-frame-font')?.textContent.includes('ApexVietCondensed')||false}})()");
      checked(hudProof.lang==='vi'&&hudProof.frameFont,'live Battle HUD received readable Vietnamese font',hudProof);
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument;return d.getElementById('locale-test-probe')?.textContent==='TAY KHÔNG'})()"),'embedded Battle HUD dynamic text localized');
