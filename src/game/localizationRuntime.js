@@ -4,7 +4,9 @@ const KEY='apex-chaos.ui-language.v1';
 const ATTRS=['aria-label','title','placeholder','alt'];
 const IGNORED='script,style,noscript,code,pre,textarea,svg title[data-id], [data-apex-no-localize]';
 const roots=new WeakMap();
-const FRAME_FONT_CSS = `html[data-apex-language='vie'] body,html[data-apex-language='vie'] #stage,html[data-apex-language='vie'] #hud,html[data-apex-language='vie'] #stage *:not(svg):not(path){font-family:Arial,'Segoe UI',sans-serif!important;}html[data-apex-language='vie'] .storyTitle{line-height:1.04!important}html[data-apex-language='vie'] button{letter-spacing:0!important}`;
+// Inject only into authored Gold documents. The native Result Gold is already
+// designed in Vietnamese and must retain its own layout/fonts without overrides.
+const FRAME_FONT_CSS = `@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf') format('truetype');font-style:normal;font-weight:200 700;font-display:swap}html[data-apex-language='vie']{--fd:'ApexVietCondensed','Segoe UI',sans-serif;--fui:'ApexVietCondensed','Segoe UI',sans-serif;--fnum:'ApexVietCondensed','Segoe UI',sans-serif}`;
 let language='eng';
 let busy=false;
 let select=null;
@@ -58,9 +60,17 @@ function setDocLanguage(doc){
   doc.documentElement.lang=language==='vie'?'vi':'en';
   doc.documentElement.dataset.apexLanguage=language;
   if(doc!==document){
+    const path=doc.defaultView?.location?.pathname||'';
+    const goldDoc=/\\/gold\\//.test(path);
     let css=doc.getElementById('apex-locale-frame-font');
-    if(!css&&doc.head){css=doc.createElement('style');css.id='apex-locale-frame-font';doc.head.appendChild(css);}
-    if(css&&css.textContent!==FRAME_FONT_CSS)css.textContent=FRAME_FONT_CSS;
+    if(!goldDoc){
+      // Do not apply a generic fallback to Result Gold, Quest-owned layouts,
+      // or unrelated authored documents.
+      css?.remove();
+    }else{
+      if(!css&&doc.head){css=doc.createElement('style');css.id='apex-locale-frame-font';doc.head.appendChild(css);}
+      if(css&&css.textContent!==FRAME_FONT_CSS)css.textContent=FRAME_FONT_CSS;
+    }
   }
 }
 
@@ -101,7 +111,7 @@ function installCanvasLocale(doc){
       // Some Gold display faces omit Vietnamese accents. Change the glyph
       // face only for this localized draw call; restore the exact old font.
       const vietnameseFont=typeof oldFont==='string'
-        ?oldFont.replace(/Impact|Bahnschrift|ui-monospace/g,'Arial'):oldFont;
+        ?oldFont.replace(/(\\d+(?:\\.\\d+)?(?:px|pt)(?:\\/\\S+)?)(?:\\s+.+)$/, '$1 "ApexVietCondensed", sans-serif'):oldFont;
       if(vietnameseFont!==oldFont)this.font=vietnameseFont;
       try{return original.apply(this,args);}
       finally{if(this.font!==oldFont)this.font=oldFont;}
