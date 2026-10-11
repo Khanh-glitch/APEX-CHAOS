@@ -316,7 +316,7 @@ export const VIETNAMESE_UI_EN=Object.freeze({
  'Kỹ năng · Phá Cổng Nhiệt':'Skill · Thermal Breach',
  'Kỹ năng · Xung Tĩnh Điện':'Skill · Static Pulse',
  'Đấu Tay Đôi · Xếp Hạng':'Ranked Duel','Mùa 7':'Season 7',
- 'Độ hiếm':'Rarity','Bấm để xem chi tiết':'Click to view details',
+ 'Độ hiếm':'Rarity','Chênh lệch':'Damage gap','Bấm để xem chi tiết':'Click to view details',
  '▲ Dẫn đầu':'▲ Leading',
  'Tổng sát thương gây ra':'Total damage dealt',
  'Đang xem':'Viewing','Người chơi':'Player',
@@ -533,7 +533,7 @@ export function translateCopy(input,language='eng'){
   if(fixtureGood)return match[1]+'consistent · '+fixtureGood[1]+'/'+fixtureGood[2]+' checks'+match[3];
 
   const rarity=original.match(/^Độ hiếm\s+(.+)$/u);
-  if(rarity&&VIETNAMESE_UI_EN[rarity[1]])return match[1]+'Rarity '+VIETNAMESE_UI_EN[rarity[1]]+match[3];
+  if(rarity)return match[1]+'Rarity '+(VIETNAMESE_UI_EN[rarity[1]]||rarity[1])+match[3];
   const contribution=original.match(/^Đóng góp cao nhất:\s*(.+)$/u);
   if(contribution)return match[1]+'Top contributor: '+contribution[1]+match[3];
   const detail=original.match(/^Xem chi tiết:\s*(.+),\s*(Thường|Hiếm|Sử Thi|Huyền Thoại)$/u);
