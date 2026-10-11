@@ -118,7 +118,9 @@ check('Frost preprocess is prebattle, single-load, decoded and readiness-gated',
   && frostPresentation.includes('const loader=new G.FrostEngine()')
   && frostPresentation.includes('Promise.resolve(loader.load()).then')
   && frostPresentation.includes('installSharedFrostArt(state.engine)')
-  && frostPresentation.includes('api.whenReady=startFrostArtWarmup()')
+  && frostPresentation.includes("api.whenReady=typeof g.Path2D==='function'")
+  && frostPresentation.includes('? startFrostArtWarmup()')
+  && frostPresentation.includes("Promise.reject(new Error('Frost art requires a Path2D-capable Canvas runtime'))")
   && frostPresentation.includes("typeof g.Path2D==='function'")
   && frostPresentation.includes("'preprocess-ready'")
   && !frostPresentation.includes('e.load().then'));
