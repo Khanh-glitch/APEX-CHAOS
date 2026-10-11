@@ -6,11 +6,13 @@
  */
 import assert from 'node:assert/strict';
 import { bootHarness } from './lib/crystalaHarness.mjs';
+import { installShadowQuery } from './lib/interactionPolicyCandidate.mjs';
 
 const H=await bootHarness(), {win}=H;
 const cfg=win.APEX_ARSENAL_CONFIG;
 const defs=win.APEX_ARSENAL_WEAPONS;
 const cap=win.APEX_HERO_REWORK_AIL.CapabilityAuthority;
+installShadowQuery(cap); // only in test VM
 const mag=win.APEX_MAGNET, frost=win.APEX_FROST;
 let cases=0, fails=0;
 function equal(name,actual,expected){
