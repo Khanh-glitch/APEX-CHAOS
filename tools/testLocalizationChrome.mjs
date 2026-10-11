@@ -105,6 +105,23 @@ try{
    checked(fighterText.includes('NEWBOT')||fighterText.includes('HUNTER'),view.id+' preserved proper fighter names');
    await capture(view.id+'-fighter-vie');
 
+   if(view.id==='desktop'){
+     // Lucky Draw uses a second authored document. Boot the real HOME again
+     // and follow its real route/transition instead of injecting a fake DOM.
+     await cmd('Page.navigate',{url:base});
+     checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-boot-start'))"),'Lucky HOME boot');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#apex-boot-start')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.body?.dataset?.apexSceneTransition==='DONE'})()"),'Lucky HOME transition opened');
+     checked(await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.APEX_I18N?.getLanguage?.()==='vie'})()"),'VIE setting survives navigation');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#openLuckyDraw')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#luckyDonorHost')?.classList.contains('is-open')})()",70000),'real Lucky Draw route opened');
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return Boolean(w.document.querySelector('#luckyDonorFrame')?.contentDocument?.querySelector('#stage .title strong'))})()"),'Lucky iframe document available');
+     const lucky=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,f=w.document.querySelector('#luckyDonorFrame'),d=f.contentDocument;return {lang:d.documentElement.lang,title:d.querySelector('.title strong')?.textContent||'',drawer:d.querySelector('#infoD')?.textContent||'',font:d.defaultView.getComputedStyle(d.querySelector('.title strong')).fontFamily}})()");
+     checked(lucky.lang==='vi'&&lucky.title.includes('QUAY MAY MẮN')&&lucky.drawer.includes('ĐẤU SĨ'), 'Lucky iframe translated and accent font active',lucky);
+     await capture('desktop-lucky-vie');
+   }
+
+
  }
  console.log('PASS localization desktop + portrait Chrome smoke');
 }finally{
