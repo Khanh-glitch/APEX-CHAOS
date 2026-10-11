@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {JSDOM} from 'jsdom';
+import {AWARD_RULE_TEMPLATES,englishAwardRule} from '../src/game/localeAwardRules.js';
 import {COPY,PROPER_NAMES,translateCopy,VIETNAMESE_DIALOGUE_EN,VIETNAMESE_UI_EN} from '../src/game/localeCatalog.js';
 
 assert.equal(translateCopy('FREE BATTLE','vie'),'ĐẤU TỰ DO');
@@ -18,6 +19,10 @@ assert.equal(translateCopy('Nguồn sát thương','eng'),'Damage sources');
 assert.equal(Object.keys(VIETNAMESE_DIALOGUE_EN).length,13);
 const awards=JSON.parse(readFileSync(new URL('../result-gold/src/data/ownerDecisions.json',import.meta.url))).items;
 assert.equal(awards.length,50);
+assert.equal(AWARD_RULE_TEMPLATES.length,52);
+for(const item of awards){const rendered=item.rule.replace(/\{([a-zA-Z0-9_-]+)\}/g,(_m,k)=>String(item.params.find(p=>p.key===k)?.value??0));const out=englishAwardRule(rendered);assert.ok(out,`Missing English condition rule for ${item.id}: ${rendered}`);assert.ok(!out.includes('{'),`Incomplete translation for ${item.id}`);}
+assert.match(englishAwardRule('Gây ≥ 250 DMG thực tế trong cửa sổ 0,1 giây.'),/250/);
+assert.match(englishAwardRule('Trong cùng một lần Attraction, kéo và nhặt các súng hợp lệ rồi gây tổng ≥ 200 DMG bằng TẤT CẢ những súng đó.'),/200/);
 for(const a of awards)assert.ok(VIETNAMESE_UI_EN[a.name],`Missing translated achievement name: ${a.id} / ${a.name}`);
 for(const name of PROPER_NAMES)assert.equal(translateCopy(name,'vie'),name,'name must stay canonical');
 for(const [en,vi] of Object.entries(COPY)){
