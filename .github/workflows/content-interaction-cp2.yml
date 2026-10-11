@@ -1,9 +1,11 @@
-name: Content Interaction CP2 + CP3 Shadow
+name: Content Interaction Admission Gates
 on:
   pull_request:
     paths:
       - 'tools/testContentInteractionBaseline.mjs'
       - 'tools/testInteractionPolicyShadow.mjs'
+      - 'tools/testContentAdmissionGate.mjs'
+      - 'docs/architecture/content-admission/extensions.json'
       - 'tools/lib/crystalaHarness.mjs'
       - 'public/game/arsenal/**'
       - 'public/game/hero-rework/**'
@@ -29,3 +31,5 @@ jobs:
           node --check tools/testInteractionPolicyShadow.mjs
           node tools/testContentInteractionBaseline.mjs
           node tools/testInteractionPolicyShadow.mjs
+          node --check tools/testContentAdmissionGate.mjs
+          node tools/testContentAdmissionGate.mjs
