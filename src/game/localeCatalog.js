@@ -299,6 +299,32 @@ export const VIETNAMESE_DIALOGUE_EN = Object.freeze({
 // Reverse glossary for surfaces originally authored in Vietnamese (Result Gold).
 // Avoid substituting punctuation, hero names, ranking thresholds or reward IDs.
 export const VIETNAMESE_UI_EN=Object.freeze({
+
+ // Result Gold UI also uses a Vietnamese-authored static fallback match fixture.
+ // These are display labels/descriptions, not names of real fighters or guns.
+ 'Pháo Ray':'Railgun','Hạng nặng':'Heavy class',
+ 'Đường ray kép xuyên giáp':'Twin electromagnetic rails with armor penetration',
+ 'Hạng trung':'Medium class','Nòng kép cận chiến':'Twin barrels for close-quarters combat',
+ 'Tiểu Liên':'Submachine Gun','Hạng nhẹ':'Light class',
+ 'Nhịp bắn dồn dập':'Rapid sustained fire',
+ 'Súng Bắn Tỉa':'Marksman Rifle',
+ 'Tầm xa, độ chính xác cao':'Long range and high accuracy',
+ 'Cơn mưa đạn':'Bullet storm','Súng Phóng':'Launcher',
+ 'Đạn nổ hồ quang':'Arc-explosive rounds',
+ 'Xung phong hạng nặng':'Heavy assault',
+ 'Du kích tầm xa':'Long-range skirmisher',
+ 'Kỹ năng · Phá Cổng Nhiệt':'Skill · Thermal Breach',
+ 'Kỹ năng · Xung Tĩnh Điện':'Skill · Static Pulse',
+ 'Đấu Tay Đôi · Xếp Hạng':'Ranked Duel','Mùa 7':'Season 7',
+ 'Độ hiếm':'Rarity','Bấm để xem chi tiết':'Click to view details',
+ '▲ Dẫn đầu':'▲ Leading',
+ 'Tổng sát thương gây ra':'Total damage dealt',
+ 'Đang xem':'Viewing','Người chơi':'Player',
+ 'CHIẾN THẮNG':'VICTORY','THẤT BẠI':'DEFEAT',
+ 'Đã đạt':'Earned','Đã mở khóa':'Unlocked',
+ 'Chưa mở khóa':'Locked','Đang chờ':'Pending',
+ 'Yêu cầu danh hiệu':'Achievement requirements',
+
  'APEX CHAOS / DANH HIỆU':'APEX CHAOS / ACHIEVEMENTS',
  'Xem lại hiệu ứng':'Replay animation',
  '▲ Dẫn đầu':'▲ Leading',
@@ -477,6 +503,22 @@ export function translateCopy(input,language='eng'){
   if(!match||!match[2])return input;
   const original=match[2];
   if(language==='vie')return match[1]+phrase(original)+match[3];
+
+  // Only recognized UI patterns: never machine-translate player names, IDs or
+  // uncontrolled text. Format numeric values exactly as the game provides them.
+  const rarity=original.match(/^Độ hiếm\s+(.+)$/u);
+  if(rarity&&VIETNAMESE_UI_EN[rarity[1]])return match[1]+'Rarity '+VIETNAMESE_UI_EN[rarity[1]]+match[3];
+  const contribution=original.match(/^Đóng góp cao nhất:\s*(.+)$/u);
+  if(contribution)return match[1]+'Top contributor: '+contribution[1]+match[3];
+  const detail=original.match(/^Xem chi tiết:\s*(.+),\s*(Thường|Hiếm|Sử Thi|Huyền Thoại)$/u);
+  if(detail)return match[1]+'View details: '+(VIETNAMESE_UI_EN[detail[1]]||detail[1])+', '+VIETNAMESE_UI_EN[detail[2]]+match[3];
+  const verdict=original.match(/^(Player\s+\d+:\s*.+?)\s+—\s+(chiến thắng|thất bại)$/u);
+  if(verdict)return match[1]+verdict[1]+' — '+VIETNAMESE_UI_EN[verdict[2]]+match[3];
+  const comparison=original.match(/^(.+?) gây ([0-9.,]+) sát thương, chiếm ([0-9.,]+)%. (.+?) gây ([0-9.,]+) sát thương, chiếm ([0-9.,]+)%\.$/u);
+  if(comparison)return match[1]+comparison[1]+' dealt '+comparison[2]+' damage ('+comparison[3]+'%). '+comparison[4]+' dealt '+comparison[5]+' damage ('+comparison[6]+'%).'+match[3];
+  const numeric=original.match(/^(\d+(?:[.,]\d+)?)\s+(lần|giây|lượt|món|chuỗi)$/u);
+  if(numeric)return match[1]+numeric[1]+' '+(VIETNAMESE_UI_EN[numeric[2]]||numeric[2])+match[3];
+
   const reverse=VIETNAMESE_DIALOGUE_EN[original]||VIETNAMESE_UI_EN[original]||englishAwardRule(original);
   if(reverse)return match[1]+reverse+match[3];
   const parts=original.split(/(\s+\/\/\s+|\s+·\s+|\s+\|\s+)/);
