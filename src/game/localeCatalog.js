@@ -324,6 +324,10 @@ export const VIETNAMESE_UI_EN=Object.freeze({
  'Đã đạt':'Earned','Đã mở khóa':'Unlocked',
  'Chưa mở khóa':'Locked','Đang chờ':'Pending',
  'Yêu cầu danh hiệu':'Achievement requirements',
+ 'Đã đạt / Yêu cầu':'Earned / Required',
+ 'Bấm vào huy hiệu để xem chi tiết.':'Select a badge to view details.',
+ 'Bấm vào huy hiệu để xem chi tiết':'Select a badge to view details',
+
 
  'APEX CHAOS / DANH HIỆU':'APEX CHAOS / ACHIEVEMENTS',
  'Xem lại hiệu ứng':'Replay animation',
@@ -506,6 +510,28 @@ export function translateCopy(input,language='eng'){
 
   // Only recognized UI patterns: never machine-translate player names, IDs or
   // uncontrolled text. Format numeric values exactly as the game provides them.
+
+  // Generated accessibility and award-condition labels in native Result Gold:
+  // convert only known Vietnamese grammar, preserving player names and metrics.
+  const metricParts=original.split(' · ');
+  const translatedParts=metricParts.map(part=>{
+    const condition=part.match(/^(.+?)(:\s*|\s+)([≥≤])\s*([0-9.,-]+)(?:\s+(.+))?$/u);
+    if(!condition)return part;
+    const label=VIETNAMESE_UI_EN[condition[1]];
+    if(!label)return part;
+    const unit=condition[5]?(VIETNAMESE_UI_EN[condition[5]]||condition[5]):'';
+    return label+condition[2]+condition[3]+' '+condition[4]+(unit?' '+unit:'');
+  });
+  if(translatedParts.some((p,i)=>p!==metricParts[i]))return match[1]+translatedParts.join(' · ')+match[3];
+  const rack=original.match(/^(\d+)\s+danh hiệu của (.+)\. Bấm vào huy hiệu để xem chi tiết\.$/u);
+  if(rack)return match[1]+rack[1]+' achievements earned by '+rack[2]+'. Select a badge to view details.'+match[3];
+  const rackHeading=original.match(/^Danh hiệu của (.+)$/u);
+  if(rackHeading)return match[1]+'Achievements earned by '+rackHeading[1]+match[3];
+  const fixtureBad=original.match(/^có (\d+) lỗi$/u);
+  if(fixtureBad)return match[1]+fixtureBad[1]+' issues found'+match[3];
+  const fixtureGood=original.match(/^nhất quán · ([0-9]+)\/([0-9]+) kiểm tra$/u);
+  if(fixtureGood)return match[1]+'consistent · '+fixtureGood[1]+'/'+fixtureGood[2]+' checks'+match[3];
+
   const rarity=original.match(/^Độ hiếm\s+(.+)$/u);
   if(rarity&&VIETNAMESE_UI_EN[rarity[1]])return match[1]+'Rarity '+VIETNAMESE_UI_EN[rarity[1]]+match[3];
   const contribution=original.match(/^Đóng góp cao nhất:\s*(.+)$/u);
