@@ -6,6 +6,7 @@ on:
       - 'src/game/localeAwardRules.js'
       - 'src/game/localizationRuntime.js'
       - 'src/game/localization.css'
+      - 'public/gold/fonts/**'
       - 'src/main.jsx'
       - 'tools/testLocalizationGate.mjs'
       - 'tools/testLocalizationChrome.mjs'
