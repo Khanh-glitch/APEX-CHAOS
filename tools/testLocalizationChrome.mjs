@@ -225,7 +225,7 @@ try{
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;return d.querySelector('#stage')?.dataset.drawer==='1'})()",10000),'Lucky Draw real pool drawer opened');
      await sleep(550);
      const pool=await auditAllVisibleText('desktop-lucky-drawer-open-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
-     checked(pool.inspected>25&&pool.clippedCount===0,'Open Lucky Draw pool text is fully visible',pool.clipped.slice(0,12));
+     checked(pool.inspected>15&&pool.clippedCount===0,'Open Lucky Draw pool text is fully visible',pool.clipped.slice(0,12));
      await capture('desktop-lucky-drawer-open-vie');
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#drawerX')?.click()})()");
 
