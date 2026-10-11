@@ -45,3 +45,4 @@ jobs:
           node tools/testV43MagnetFloorPickup.mjs
           node --check tools/testCoreSixEffectMaterialReadiness.mjs
           node tools/testCoreSixEffectMaterialReadiness.mjs
+          node tools/testProductAssetIntentGate.mjs
