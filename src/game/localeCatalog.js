@@ -1,3 +1,4 @@
+import {englishAwardRule} from './localeAwardRules.js';
 // APEX CHAOS localization catalog — source copy is always the accepted Gold English.
 // Do not change gameplay IDs, hero names, weapon IDs, or canonical owner-locked Vietnamese dialogue.
 // Vietnamese copy has been edited for natural in-game usage rather than word-by-word translation.
@@ -316,7 +317,7 @@ export function translateCopy(input,language='eng'){
   if(!match||!match[2])return input;
   const original=match[2];
   if(language==='vie')return match[1]+phrase(original)+match[3];
-  const reverse=VIETNAMESE_DIALOGUE_EN[original]||VIETNAMESE_UI_EN[original];
+  const reverse=VIETNAMESE_DIALOGUE_EN[original]||VIETNAMESE_UI_EN[original]||englishAwardRule(original);
   if(reverse)return match[1]+reverse+match[3];
   const parts=original.split(/(\s+\/\/\s+|\s+·\s+|\s+\|\s+)/);
   if(parts.length>1)return match[1]+parts.map((p,i)=>i%2?p:(VIETNAMESE_UI_EN[p]||p)).join('')+match[3];
