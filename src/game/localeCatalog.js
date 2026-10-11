@@ -325,6 +325,7 @@ export const VIETNAMESE_UI_EN=Object.freeze({
  'Chưa mở khóa':'Locked','Đang chờ':'Pending',
  'Yêu cầu danh hiệu':'Achievement requirements',
  'Đã đạt / Yêu cầu':'Earned / Required',
+ 'yêu cầu':'required',
  'Bấm vào huy hiệu để xem chi tiết.':'Select a badge to view details.',
  'Bấm vào huy hiệu để xem chi tiết':'Select a badge to view details',
 
@@ -523,6 +524,8 @@ export function translateCopy(input,language='eng'){
     return label+condition[2]+condition[3]+' '+condition[4]+(unit?' '+unit:'');
   });
   if(translatedParts.some((p,i)=>p!==metricParts[i]))return match[1]+translatedParts.join(' · ')+match[3];
+  const requirement=original.match(/^yêu cầu\s+([≥≤])\s*(.+)$/u);
+  if(requirement)return match[1]+'required '+requirement[1]+' '+requirement[2]+match[3];
   const rack=original.match(/^(\d+)\s+danh hiệu của (.+)\. Bấm vào huy hiệu để xem chi tiết\.$/u);
   if(rack)return match[1]+rack[1]+' achievements earned by '+rack[2]+'. Select a badge to view details.'+match[3];
   const rackHeading=original.match(/^Danh hiệu của (.+)$/u);
