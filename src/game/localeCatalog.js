@@ -209,7 +209,7 @@ export const VIETNAMESE_DIALOGUE_EN = Object.freeze({
   'Tôi không đánh nữa!':"I'm done fighting!",
   'Cậu phải đánh.':'You have to fight.',
   'Nếu cậu dừng...':'If you stop...',
-  '...tôi sẽ không.':'...I won't.',
+  '...tôi sẽ không.':"...I won't.",
   'Từ lúc tỉnh dậy đến giờ... tôi chưa từng chọn được mình có nhặt súng hay không.':"Ever since I woke up... I never had a choice about picking up a gun.",
   'Nhưng tôi có thể chọn mình làm gì với nó.':'But I can choose what I do with it.',
   'Đi.':'Go.',
