@@ -4,6 +4,7 @@ const KEY='apex-chaos.ui-language.v1';
 const ATTRS=['aria-label','title','placeholder','alt'];
 const IGNORED='script,style,noscript,code,pre,textarea,svg title[data-id], [data-apex-no-localize]';
 const roots=new WeakMap();
+const FRAME_FONT_CSS = `html[data-apex-language='vie'] body,html[data-apex-language='vie'] #stage,html[data-apex-language='vie'] #hud,html[data-apex-language='vie'] #stage *:not(svg):not(path){font-family:Arial,'Segoe UI',sans-serif!important;}html[data-apex-language='vie'] .storyTitle{line-height:1.04!important}html[data-apex-language='vie'] button{letter-spacing:0!important}`;
 let language='eng';
 let busy=false;
 let select=null;
@@ -52,12 +53,22 @@ function walk(node,rec){
     if(child.nodeType===1 || child.nodeType===3)walk(child,rec);
   }
 }
+function setDocLanguage(doc){
+  if(!doc?.documentElement)return;
+  doc.documentElement.lang=language==='vie'?'vi':'en';
+  doc.documentElement.dataset.apexLanguage=language;
+  if(doc!==document){
+    let css=doc.getElementById('apex-locale-frame-font');
+    if(!css&&doc.head){css=doc.createElement('style');css.id='apex-locale-frame-font';doc.head.appendChild(css);}
+    if(css&&css.textContent!==FRAME_FONT_CSS)css.textContent=FRAME_FONT_CSS;
+  }
+}
 function installDocument(doc){
   if(!doc?.documentElement)return;
   if(roots.has(doc))return;
   const rec={text:new WeakMap(),attrs:new WeakMap(),observer:null};
   roots.set(doc,rec);
-  doc.documentElement.lang=language==='vie'?'vi':'en';
+  setDocLanguage(doc);
   busy=true;
   try{walk(doc.body,rec);}finally{busy=false;}
   const observer=new MutationObserver((records)=>{
@@ -94,7 +105,7 @@ function updateAll(){
     const visit=(doc)=>{
       const rec=roots.get(doc);
       if(rec){
-        doc.documentElement.lang=language==='vie'?'vi':'en';
+        setDocLanguage(doc);
         walk(doc.body,rec);
       }
       for(const frame of doc.querySelectorAll('iframe')){
