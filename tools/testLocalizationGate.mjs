@@ -12,6 +12,8 @@ assert.equal(translateCopy('3 HITS','vie'),'3 ĐÒN TRÚNG');
 assert.equal(translateCopy('Chúng ta là bạn à?','eng'),'Are we friends?');
 assert.equal(translateCopy('Chúng ta là bạn à?','vie'),'Chúng ta là bạn à?');
 assert.equal(translateCopy('FIRST WAKE','eng'),'FIRST WAKE');
+assert.equal(translateCopy('Hồ sơ danh hiệu','eng'),'Achievements archive');
+assert.equal(translateCopy('Nguồn sát thương','eng'),'Damage sources');
 assert.equal(Object.keys(VIETNAMESE_DIALOGUE_EN).length,13);
 for(const name of PROPER_NAMES)assert.equal(translateCopy(name,'vie'),name,'name must stay canonical');
 for(const [en,vi] of Object.entries(COPY)){
