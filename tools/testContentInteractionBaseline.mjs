@@ -1,0 +1,121 @@
+#!/usr/bin/env node
+// CP2: Pin behavior of shipped AIL, Arsenal, Hero Rework and eight V4.3 weapons.
+// SOURCE baseline: main@578098c73436e3263a34f5b83b6ceb8340b26258.
+// This is a regression gate, NOT a new interaction runtime.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { bootHarness } from './lib/crystalaHarness.mjs';
+
+const baseline = {
+  FLARE_GUN:               {kind:'flare',     reflect:['flare'],                magnet:[]},
+  TACTICAL_CROSSBOW:      {kind:'bolt',      reflect:['bolt'],                 magnet:['bolt']},
+  STEEL_BALL_LAUNCHER:    {kind:'ball',      reflect:['ball'],                 magnet:['ball']},
+  COMBAT_BOOMERANG:       {kind:'boomerang', reflect:['boomerang'],            magnet:['boomerang']},
+  RPG_7:                  {kind:'rocket',    reflect:['rocket'],               magnet:['rocket']},
+  FLAMETHROWER:           {kind:'flame',     reflect:[],                       magnet:[]},
+  PLASMA_SPLITTER:        {kind:'plasma',    reflect:['plasma-core','plasma'], magnet:[]},
+  SHRAPNEL_MINE_LAUNCHER: {kind:'mine',      reflect:['mine'],                 magnet:['mine','fragment']},
+};
+const H = await bootHarness(), {win,T} = H;
+const C = win.APEX_ARSENAL_CONFIG, A = win.APEX_HERO_REWORK_AIL;
+const R = win.APEX_HERO_REWORK_REGISTRY, M = win.APEX_MAGNET, F = win.APEX_FROST;
+const W = win.APEX_ARSENAL.weaponApi, HR = win.APEX_HERO_REWORK;
+let passed=0, failed=0;
+function gate(name, test) {
+  try { test(); passed++; console.log('PASS ' + name); }
+  catch (e) { failed++; console.error('FAIL ' + name + '\n' + String(e?.stack || e)); }
+}
+gate('boot-real-production-runtime', () => {
+  assert.ok(C && A && R && M && F && W && HR && win.APEX_ARSENAL_WEAPONS);
+  assert.deepEqual(H.loadErrors.filter(x => /arsenal|hero-rework|apexEngine/.test(x.file)), []);
+});
+gate('current-12-heroes-and-36-skills-are-frozen', () => {
+  const r=R.validateRegistry(); assert.equal(r.ok,true,r.errors.join('; '));
+  assert.equal(r.heroCount,12); assert.equal(r.skillCount,36);
+});
+gate('current-24-guns-8-specials-41-equipment-IDs', () => {
+  assert.equal(C.GUN_REGISTRY.length,24); assert.equal(C.V43_SPECIAL_IDS.length,8);
+  assert.equal(C.P0_WEAPON_IDS.length,41);
+  assert.equal(new Set(Array.from(C.P0_WEAPON_IDS)).size,41);
+  for(const id of ['CHAIN_WHIP','HARPOON_LAUNCHER','RAILGUN','TWIN_REAPER_SCYTHES'])
+    assert.equal(C.P0_WEAPON_IDS.includes(id),false);
+});
+gate('eight-specials-kind-policy-snapshot', () => {
+  assert.deepEqual(Object.keys(C.V43_WEAPONS).sort(),Object.keys(baseline).sort());
+  for(const [id,b] of Object.entries(baseline)) {
+    const live=C.V43_WEAPONS[id];
+    assert.equal(live.kind,b.kind,id+' kind');
+    assert.deepEqual(Array.from(live.reflectableKinds),b.reflect,id+' reflection');
+    assert.deepEqual(Array.from(live.magnetizableKinds),b.magnet,id+' magnet');
+    assert.equal(win.APEX_ARSENAL_WEAPONS[id].category,'ranged',id+' holder');
+  }
+});
+gate('magnet-projectile-eligibility-all-current-special-kinds', () => {
+  for(const [id,b] of Object.entries(baseline)){
+    for(const kind of new Set([...b.reflect,...b.magnet,b.kind,'burn','unknown'])){
+      const p={aq:true,type:'aq_v43',weapon:id,kind,phase:'flight',life:2};
+      assert.equal(M.isEligibleBullet(p),b.magnet.includes(kind),id+'/'+kind);
+      assert.equal(M.isEligibleBullet({...p,life:0}),false,id+' expired');
+      assert.equal(M.isEligibleBullet({...p,__hr:{cryHold:true}}),false,id+' held');
+    }
+  }
+  for(const phase of ['arming','armed','spent'])
+    assert.equal(M.isEligibleBullet({aq:true,type:'aq_v43',life:2,weapon:'SHRAPNEL_MINE_LAUNCHER',kind:'mine',phase}),false);
+  assert.equal(M.isEligibleBullet({aq:true,type:'aq_v43',life:2,weapon:'SHRAPNEL_MINE_LAUNCHER',kind:'fragment',phase:'flight'}),true);
+});
+gate('ordinary-firearm-and-T6-magnet-exclusions', () => {
+  assert.equal(C.isGun('GLOCK_17'),true);
+  assert.equal(C.isGun('RPG_7'),false);
+  assert.equal(M.isEligibleBullet({aq:true,type:'aq_bullet',weapon:'GLOCK_17',life:2}),true);
+  assert.equal(M.isEligibleBullet({aq:true,type:'aq_bullet',weapon:'STORMBREAKER',life:2}),false);
+});
+gate('frost-and-magnet-floor-policies-are-not-equivalent', () => {
+  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'PISTOL',tier:'T1'}),true);
+  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'RPG_7',tier:'T3'}),true);
+  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'GRENADE',tier:'T1'}),false);
+  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'STORMBREAKER',tier:'T6'}),false);
+  const slot=id=>({kind:'WEAPON',weaponId:id,phase:'REVEALED'});
+  assert.equal(M.isEligibleFloorFirearm(slot('PISTOL')),true);
+  assert.equal(M.isEligibleFloorFirearm(slot('RPG_7')),false);
+  assert.equal(M.isEligibleFloorFirearm(slot('STORMBREAKER')),false);
+});
+gate('T6-shared-capability-policy-exceptions', () => {
+  const cap=A.CapabilityAuthority;
+  for(const op of ['graph','gate-x2','gate-div2','singularity','mirror','reflect','capture','dodge']){
+    assert.equal(cap.allows(op,{weapon:'STORMBREAKER'}),false,op);
+    assert.equal(cap.allows(op,{weapon:'GLOCK_17'}),true,op);
+  }
+  assert.equal(cap.allows('weak',{weapon:'STORMBREAKER'}),true);
+  assert.equal(cap.canManipulate({weapon:'STORMBREAKER'}),false);
+});
+gate('mirror-F2-type-exclusion-intentionally-preserved', () => {
+  const s=fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js','utf8');
+  const i=s.indexOf('function mirrorF2Eligible(p)');
+  const j=s.indexOf('function mirrorF2CoolingDown(p)',i);
+  assert.ok(i>0 && j>i);
+  const body=s.slice(i,j);
+  for(const type of ['aq_bullet','aq_grenade','aq_thrown']) assert.ok(body.includes("p.type === '"+type+"'"));
+  assert.equal(body.includes('aq_v43'),false);
+});
+gate('one-real-damage-transaction-and-receipt', () => {
+  assert.ok(T.start('MAGNET','MAGNET')); T.holdSpawns();
+  const [a,b]=H.fighters(); a.baseSpeed=b.baseSpeed=0;
+  const hp=b.hp, seq=A.bus.seq;
+  const damage=W.aqDamage(b,1,a,'PISTOL',{impact:{x:b.x,y:b.y,vx:1,vy:0}});
+  const realized=hp-b.hp;
+  assert.ok(Number.isFinite(realized) && realized>0,'real Fighter HP must decrease');
+  // Arsenal returns pre-combatant dealt, while Hero Rework may modify the
+  // actual victim HP transaction. The receipt MUST equal realized HP.
+  assert.equal(damage,7,'Arsenal applied accepted PISTOL x7 scaling');
+  const receipt=A.bus.since(seq).filter(e=>e.type==='RealizedDamageEvent');
+  assert.equal(receipt.length,1,'exactly one realized damage receipt');
+  assert.ok(Math.abs(receipt[0].payload.amount-realized)<1e-8,
+    'receipt must equal actual HP delta, not Arsenal nominal damage');
+  assert.equal(receipt[0].payload.weaponId,'PISTOL');
+  win.exitArsenalBattleMode();
+  assert.equal(HR.match,null);
+});
+console.log('\nCP2 content interaction baseline: '+passed+'/'+(passed+failed)+(failed?' FAIL':' PASS'));
+// jsdom/game runtime keeps browser-like handles alive. Like the existing
+// Hero-Rework gates, exit explicitly after the last synchronous assertion.
+process.exit(failed ? 1 : 0);
