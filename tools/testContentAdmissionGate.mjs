@@ -86,6 +86,10 @@ function inspect(manifest, {cfg,reg,mech,surface}) {
         const source=fs.readFileSync(test,'utf8');
         if(!source.includes('bootHarness') || !source.includes('APEX_ARSENAL'))
           issue(r.id,'proofTests.'+kind+' must drive real Arsenal through bootHarness');
+        if(!source.includes(r.id))
+          issue(r.id,'proofTests.'+kind+' never references the new content ID');
+        if(kind==='teardown' && !source.includes('exitArsenalBattleMode'))
+          issue(r.id,'proofTests.teardown must exercise a real battle exit/rematch');
       }
     }
     // Source-copy localisation is keyed by *English text*, not symbolic IDs.
@@ -196,6 +200,10 @@ assert.ok(omitted.some(e=>e.includes('SECRET_GUN')&&e.includes('absent from P0')
 // Declare all three runnable proofs, not a single arbitrary file.
 assert.ok(withoutTests.some(e=>e.includes('missing runnable proofTests.')),
   'must reject content without category-specific evidence');
+// Existing baseline smoke scripts must not be re-used as fake new-ID evidence.
+assert.ok(badLocale.some(e=>e.includes('never references the new content ID')),
+  'must reject proof script that never mentions the new weapon');
+
 // Every declared regression script must run and pass (none for canonical baseline).
 const scripts=new Set([...manifest.heroes,...manifest.weapons].flatMap(e=>e.tests||[]));
 for(const test of scripts){
@@ -206,5 +214,5 @@ for(const test of scripts){
   }
 }
 console.log('CP4 CONTENT ADMISSION PASS: '+EXPECTED_HEROES.length+' canonical heroes, '
-  +EXPECTED_WEAPONS.length+' canonical weapons; '+scripts.size+' extension tests; 8 fail-closed assertions');
+  +EXPECTED_WEAPONS.length+' canonical weapons; '+scripts.size+' extension tests; 9 fail-closed assertions');
 process.exit(0);
