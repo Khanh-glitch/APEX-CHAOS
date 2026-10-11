@@ -190,6 +190,34 @@ try{
      checked(resultProof.vietnamese.length===0,'Result Gold has no untranslated Vietnamese user-visible copy in ENG',resultProof);
      await capture('desktop-result-gold-eng');
 
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('.dock .btn--ghost')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame')?.contentDocument;return !!d?.querySelector('#commendation-archive[open]')})()",15000),'Result Gold archive opens in ENG');
+     const archiveAudit=await run(`(()=>{
+       const w=window.__apexGoldFidelity?.child()||window;
+       const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;
+       const root=d.querySelector('#commendation-archive');
+       const strings=(root.innerText||'').split('\\n');
+       const attrs=[...root.querySelectorAll('[aria-label],[title]')].flatMap(e=>[e.getAttribute('aria-label'),e.getAttribute('title')]).filter(Boolean);
+       return {vietnamese:Array.from(new Set(strings.concat(attrs).filter(x=>/[À-ỹ]/u.test(x)))).slice(0,45),preview:(root.innerText||'').slice(0,850)};
+     })()`);
+     checked(archiveAudit.vietnamese.length===0,'Gold result Archive and 47 condition entries are English only',archiveAudit);
+     await capture('desktop-result-archive-eng');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('#commendation-archive .iconbtn--sq')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame')?.contentDocument;return !d?.querySelector('#commendation-archive[open]')})()",10000),'Archive can close without breaking layout');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;d.querySelector('.chip')?.click()})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#localization-result-proof-frame')?.contentDocument;return !!d?.querySelector('#award-detail[open]')})()",10000),'Gold result first earned title details open');
+     const detailsAudit=await run(`(()=>{
+       const w=window.__apexGoldFidelity?.child()||window;
+       const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;
+       const root=d.querySelector('#award-detail');
+       const strings=(root.innerText||'').split('\\n');
+       const attrs=[...root.querySelectorAll('[aria-label],[title]')].flatMap(e=>[e.getAttribute('aria-label'),e.getAttribute('title')]).filter(Boolean);
+       return {vietnamese:Array.from(new Set(strings.concat(attrs).filter(x=>/[À-ỹ]/u.test(x)))).slice(0,45),preview:(root.innerText||'').slice(0,850)};
+     })()`);
+     checked(detailsAudit.vietnamese.length===0,'Gold detailed achievement rules and thresholds are English only',detailsAudit);
+     await capture('desktop-award-details-eng');
+
+
    }
 
 
