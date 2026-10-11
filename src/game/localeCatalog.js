@@ -262,7 +262,7 @@ const LOOKUP = new Map(Object.entries(COPY).map(([en,vi])=>[en.toUpperCase(),vi]
 function phrase(value){
   const t=value.trim();
   if(!t||PRESERVE.has(t.toUpperCase()))return t;
-  const exact=LOOKUP.get(t.toUpperCase());
+  const exact=COPY[t]??LOOKUP.get(t.toUpperCase());
   if(exact!==undefined)return exact;
   const count=t.match(/^(\d+) (HITS?|CRITS?|HOSTILES DOWN|FIGHTERS?)$/i);
   if(count){const unit=phrase(count[2]);return count[1]+' '+unit;}
