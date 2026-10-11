@@ -61,7 +61,7 @@ function setDocLanguage(doc){
   doc.documentElement.dataset.apexLanguage=language;
   if(doc!==document){
     const path=doc.defaultView?.location?.pathname||'';
-    const goldDoc=/\\/gold\\//.test(path);
+    const goldDoc=path.includes('/gold/');
     let css=doc.getElementById('apex-locale-frame-font');
     if(!goldDoc){
       // Do not apply a generic fallback to Result Gold, Quest-owned layouts,
@@ -111,7 +111,7 @@ function installCanvasLocale(doc){
       // Some Gold display faces omit Vietnamese accents. Change the glyph
       // face only for this localized draw call; restore the exact old font.
       const vietnameseFont=typeof oldFont==='string'
-        ?oldFont.replace(/(\\d+(?:\\.\\d+)?(?:px|pt)(?:\\/\\S+)?)(?:\\s+.+)$/, '$1 "ApexVietCondensed", sans-serif'):oldFont;
+        ?oldFont.replace(/([0-9]+(?:[.][0-9]+)?(?:px|pt)).*$/, '$1 "ApexVietCondensed", sans-serif'):oldFont;
       if(vietnameseFont!==oldFont)this.font=vietnameseFont;
       try{return original.apply(this,args);}
       finally{if(this.font!==oldFont)this.font=oldFont;}
