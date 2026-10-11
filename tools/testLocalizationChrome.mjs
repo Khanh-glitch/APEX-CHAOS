@@ -61,6 +61,8 @@ try{
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#apex-boot-start')?.click()})()");
    checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-language-select'))"),view.id+' language picker loads');
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('ready')})()"),view.id+' HOME ready');
+   checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.body?.dataset?.apexSceneTransition==='DONE'})()"),view.id+' transition fully opened');
+   await sleep(200);
    const report=await run(`(()=>{
      const w=window.__apexGoldFidelity?.child()||window,d=w.document;
      const picker=d.querySelector('#apex-language-select');
