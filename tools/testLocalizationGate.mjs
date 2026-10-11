@@ -29,6 +29,15 @@ assert.equal(translateCopy('Đóng góp cao nhất: REDLINE_KAI','eng'),'Top con
 assert.equal(translateCopy('Player 1: REDLINE_KAI — chiến thắng','eng'),'Player 1: REDLINE_KAI — victory');
 assert.equal(translateCopy('REDLINE_KAI gây 6,240 sát thương, chiếm 57%. NULL.SPECTRE gây 4,710 sát thương, chiếm 43%.','eng'),'REDLINE_KAI dealt 6,240 damage (57%). NULL.SPECTRE dealt 4,710 damage (43%).');
 assert.equal(translateCopy('32 lần','eng'),'32 times');
+
+assert.equal(translateCopy('Sát thương chuỗi: ≥ 500 DMG · Khoảng ngắt tối đa: ≤ 1,2 giây','eng'),'Chain damage: ≥ 500 DMG · Maximum gap: ≤ 1,2 seconds');
+assert.equal(translateCopy('Sát thương chuỗi ≥ 500 DMG · Khoảng ngắt tối đa ≤ 1,2 giây','eng'),'Chain damage ≥ 500 DMG · Maximum gap ≤ 1,2 seconds');
+assert.equal(translateCopy('10 danh hiệu của ROBOT. Bấm vào huy hiệu để xem chi tiết.','eng'),'10 achievements earned by ROBOT. Select a badge to view details.');
+assert.equal(translateCopy('Danh hiệu của HUNTER','eng'),'Achievements earned by HUNTER');
+assert.equal(translateCopy('có 3 lỗi','eng'),'3 issues found');
+assert.equal(translateCopy('nhất quán · 7/7 kiểm tra','eng'),'consistent · 7/7 checks');
+assert.equal(translateCopy('Đã đạt / Yêu cầu','eng'),'Earned / Required');
+
 assert.equal(translateCopy('Đấu Tay Đôi · Xếp Hạng','eng'),'Ranked Duel');
 assert.equal(translateCopy('Kỹ năng · Phá Cổng Nhiệt','eng'),'Skill · Thermal Breach');
 
