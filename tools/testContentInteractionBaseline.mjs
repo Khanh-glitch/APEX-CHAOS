@@ -112,4 +112,6 @@ gate('one-real-damage-transaction-and-receipt', () => {
   assert.equal(HR.match,null);
 });
 console.log('\nCP2 content interaction baseline: '+passed+'/'+(passed+failed)+(failed?' FAIL':' PASS'));
-if(failed)process.exitCode=1;
+// jsdom/game runtime keeps browser-like handles alive. Like the existing
+// Hero-Rework gates, exit explicitly after the last synchronous assertion.
+process.exit(failed ? 1 : 0);
