@@ -140,7 +140,7 @@ try{
    checked(report.chosen==='vie'&&report.persist==='vie'&&report.htmlLang==='vi',view.id+' VIE state',report);
    checked(report.title.includes('NHỮNG KẺ')&&report.cta.includes('TIẾP TỤC'),view.id+' natural Home translations',report);
    checked(report.font.includes('ApexVietCondensed'),view.id+' Unicode face fallback',report);
-   const face=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;return Array.from(d.fonts).filter(f=>f.family==='ApexVietCondensed').map(f=>f.status)})()");
+   const face=await run("(async()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;await d.fonts.ready;return Array.from(d.fonts).filter(f=>f.family==='ApexVietCondensed').map(f=>f.status)})()");
    checked(face.includes('loaded'),view.id+' actual condensed Vietnamese font loaded',face);
    checked(report.withinTitle&&report.ctaWithin&&report.pickerVisible&&report.pickerHit,view.id+' glyph bounds and selector hit target',report);
    await capture(view.id+'-vie');
