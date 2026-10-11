@@ -135,6 +135,61 @@ try{
      const lucky=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,f=w.document.querySelector('#luckyDonorFrame'),d=f.contentDocument;return {lang:d.documentElement.lang,title:d.querySelector('.title strong')?.textContent||'',drawer:d.querySelector('#infoD')?.textContent||'',font:d.defaultView.getComputedStyle(d.querySelector('.title strong')).fontFamily}})()");
      checked(lucky.lang==='vi'&&lucky.title.includes('QUAY MAY MẮN')&&lucky.drawer.includes('ĐẤU SĨ'), 'Lucky iframe translated and accent font active',lucky);
      await capture('desktop-lucky-vie');
+
+     // Result Gold is a separate React document authored in Vietnamese.
+     // Feed it an actual sealed native ledger, exactly like the independent
+     // Gold acceptance harness, then audit the English-only rendered result.
+     const resultSetup=await run(`(async()=>{
+       const w=window.__apexGoldFidelity?.child()||window;
+       w.APEX_I18N.setLanguage('eng');
+       const scripts=['/game/arsenal/arsenalCWeaponSet.generated.js',
+         '/game/results/ownerAwards.generated.js','/game/results/matchResultAuthority.js'];
+       for(const src of scripts){
+         if(w.document.querySelector('script[data-locale-fixture="'+src+'"]'))continue;
+         await new Promise((resolve,reject)=>{
+           const el=w.document.createElement('script');
+           el.src=src;el.dataset.localeFixture=src;
+           el.onload=resolve;el.onerror=()=>reject(new Error('script unavailable '+src));
+           w.document.head.appendChild(el);
+         });
+       }
+       const actors=[{id:1,name:'ROBOT',x:180,y:450,hp:1000,maxHp:1000},
+         {id:2,name:'HUNTER',x:820,y:450,hp:1000,maxHp:1000}];
+       const cfg={WEAPONS:{PISTOL:{family:'SEMI'}},tierOf:()=> 'T1'};
+       const ledger=w.APEX_MATCH_RESULT_AUTHORITY.create({actors,mode:'BOT',startedAt:1720000000000,weaponConfig:cfg});
+       ledger.onPickup(actors[0],'PISTOL');ledger.onPickup(actors[1],'PISTOL');
+       ledger.onShot(actors[0],'PISTOL');actors[1].hp=400;
+       ledger.onDamage(actors[1],actors[0],'arsenal-pistol',600);
+       ledger.tick(1.2);ledger.onShot(actors[1],'PISTOL');actors[0].hp=880;
+       ledger.onDamage(actors[0],actors[1],'arsenal-pistol',120);
+       ledger.tick(.4);ledger.onShot(actors[0],'PISTOL');actors[1].hp=0;
+       ledger.onDamage(actors[1],actors[0],'arsenal-pistol',400);
+       w.__localizationResultProof=ledger.seal('P1');
+       const frame=w.document.createElement('iframe');
+       frame.id='localization-result-proof-frame';frame.src='/result-gold/index.html';
+       frame.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;z-index:2147483600;border:0';
+       w.document.body.appendChild(frame);
+       return {id:w.__localizationResultProof.meta.id,titles:w.APEX_RESULT_OWNER_CATALOG.length};
+     })()`);
+     checked(resultSetup.titles===47,'Result Gold native authority generated accepted 47 award options',resultSetup);
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return !!w.document.querySelector('#localization-result-proof-frame')?.contentDocument?.querySelector('.ac-root')})()",40000),'Gold result iframe React booted');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#localization-result-proof-frame').contentWindow.postMessage({type:'APEX_RESULT_GOLD_PAYLOAD',match:w.__localizationResultProof},w.location.origin)})()");
+     checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#localization-result-proof-frame')?.contentDocument?.querySelectorAll('.hero').length===2})()",40000),'native match visible in Result Gold');
+     await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#localization-result-proof-frame')?.contentDocument?.querySelector('.skip')?.click()})()");
+     await sleep(600);
+     const resultProof=await run(`(()=>{
+       const w=window.__apexGoldFidelity?.child()||window;
+       const d=w.document.querySelector('#localization-result-proof-frame').contentDocument;
+       const body=d.querySelector('.ac-root')||d.body;
+       const visible=body.innerText||'';
+       const attrs=[...body.querySelectorAll('[aria-label],[title]')].flatMap(e=>[e.getAttribute('aria-label'),e.getAttribute('title')]).filter(Boolean);
+       const vietnamese=Array.from(new Set(visible.split('\\n').concat(attrs).filter(x=>/[À-ỹ]/u.test(x))));
+       return {lang:d.documentElement.lang,heroes:d.querySelectorAll('.hero').length,vietnamese:vietnamese.slice(0,35),title:visible.slice(0,700)};
+     })()`);
+     checked(resultProof.lang==='en'&&resultProof.heroes===2,'Result Gold ENG state and true match survive frame localization',resultProof);
+     checked(resultProof.vietnamese.length===0,'Result Gold has no untranslated Vietnamese user-visible copy in ENG',resultProof);
+     await capture('desktop-result-gold-eng');
+
    }
 
 
