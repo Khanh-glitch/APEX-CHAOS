@@ -211,6 +211,28 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['SPEED WIN','CHIẾN THẮNG THẦN TỐC'],
   ['CHAOS BRINGER','KẺ GIEO HỖN LOẠN'],
 ]));
+
+const VISIBLE_MISC=Object.freeze({
+ 'RIVAL':'ĐỐI THỦ','ARENA // EAX-01':'ĐẤU TRƯỜNG // EAX-01',
+ 'SCRAP HOSTILES':'KẺ ĐỊCH PHẾ LIỆU','TWO WAVES':'HAI ĐỢT TẤN CÔNG',
+ 'SCRAP SWARM // WAVES':'BẦY PHẾ LIỆU // CÁC ĐỢT',
+ 'LOCKED // EXTENSION POINT':'CHƯA MỞ // NỘI DUNG TƯƠNG LAI',
+ 'BATTLE LIVE':'ĐANG GIAO TRANH',
+ 'SWARM':'BẦY PHẾ LIỆU','WAVE 02':'ĐỢT 02',
+ 'FOUR CONTACTS INBOUND':'BỐN KẺ ĐỊCH ĐANG ÁP SÁT',
+ 'WEAPON RAIN CLEAR':'ĐÃ VƯỢT QUA MƯA VŨ KHÍ',
+ 'SCRAP SWARM CLEAR':'ĐÃ ĐẨY LÙI BẦY PHẾ LIỆU',
+ 'FIRST WAKE CLEAR':'ĐÃ VƯỢT QUA THỨC TỈNH',
+ 'QUEST TEST CLEAR':'ĐÃ VƯỢT QUA THỬ THÁCH',
+ 'NEWBOT KO — RETRY':'NEWBOT GỤC NGÃ — THỬ LẠI',
+ '0 HITS':'0 ĐÒN TRÚNG','0 CRIT':'0 CHÍ MẠNG',
+ 'MATCH REPORT':'BÁO CÁO TRẬN ĐẤU','Match Report':'Báo cáo trận đấu',
+ 'WEAPON OF THE BATTLE':'VŨ KHÍ NỔI BẬT NHẤT TRẬN',
+ 'Weapon of the Battle':'Vũ khí nổi bật nhất trận',
+ 'Codex':'Bách khoa danh hiệu','Space':'PHÍM CÁCH',
+ 'All achievements':'Toàn bộ danh hiệu',
+});
+
 // Owner-locked Vietnamese story dialogue is canonical; the English option
 // provides a separate display-only rendering without mutating story receipts.
 
@@ -277,6 +299,26 @@ export const VIETNAMESE_DIALOGUE_EN = Object.freeze({
 // Reverse glossary for surfaces originally authored in Vietnamese (Result Gold).
 // Avoid substituting punctuation, hero names, ranking thresholds or reward IDs.
 export const VIETNAMESE_UI_EN=Object.freeze({
+ 'Kết quả trận đấu':'Match results',
+ 'Chọn người chơi để xem danh hiệu đạt được':'Select a player to view earned achievements',
+ 'Thị phần tổng sát thương':'Share of total damage',
+ 'Dẫn đầu':'Leading','So sánh tổng sát thương gây ra':'Compare total damage dealt',
+ 'Tổng sát thương gây ra':'Total damage dealt',
+ 'Ảnh nhân vật · placeholder':'Character art · placeholder',
+ 'chiến thắng':'victory','thất bại':'defeat',
+ 'Không có sát thương từ vũ khí':'No weapon damage dealt',
+ 'KHÔNG CÓ VŨ KHÍ NỔI BẬT':'NO STANDOUT WEAPON',
+ 'Trận đấu chưa ghi nhận sát thương vũ khí.':'No weapon damage was recorded in this match.',
+ 'Minh họa vũ khí · placeholder':'Weapon artwork · placeholder',
+ 'Sát thương vũ khí':'Weapon damage',
+ 'tổng sát thương cả trận':'total match damage',
+ 'Đóng góp cao nhất':'Top contributor',
+ 'Hồ sơ danh hiệu':'Achievement archive',
+ 'Đang tổng kết kết quả…':'Calculating match results…',
+ 'Đang tổng kết…':'Calculating…',
+ 'Bỏ qua':'Skip',
+ 'Hồ sơ và danh hiệu':'Archive and achievements',
+
  // Result Gold metric names (owner-authored Vietnamese; numeric values are immutable)
  'Sát thương chuỗi':'Chain damage','Khoảng ngắt tối đa':'Maximum gap',
  'Đòn mạnh nhất':'Strongest hit','Damage burst':'Burst damage',
@@ -388,11 +430,11 @@ export const PROPER_NAMES = Object.freeze([
   'FORWARD DRIVE','EAX-01','P1','P2','A1','A2','J','K','NUM1','NUM2','AC','BOT'
 ]);
 const PRESERVE = new Set(PROPER_NAMES.map(v=>v.toUpperCase()));
-const LOOKUP = new Map(Object.entries({...COPY,...QUEST_EXTRA}).map(([en,vi])=>[en.toUpperCase(),vi]));
+const LOOKUP = new Map(Object.entries({...COPY,...QUEST_EXTRA,...VISIBLE_MISC}).map(([en,vi])=>[en.toUpperCase(),vi]));
 function phrase(value){
   const t=value.trim();
   if(!t||PRESERVE.has(t.toUpperCase()))return t;
-  const exact=COPY[t]??QUEST_EXTRA[t]??LOOKUP.get(t.toUpperCase());
+  const exact=COPY[t]??QUEST_EXTRA[t]??VISIBLE_MISC[t]??LOOKUP.get(t.toUpperCase());
   if(exact!==undefined)return exact;
   const count=t.match(/^(\d+) (HITS?|CRITS?|HOSTILES DOWN|FIGHTERS?)$/i);
   if(count){const unit=phrase(count[2]);return count[1]+' '+unit;}
