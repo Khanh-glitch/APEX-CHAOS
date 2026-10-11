@@ -32,6 +32,31 @@ async function capture(name){
  const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
  await writeFile('docs/acceptance/localization/'+name+'.png',Buffer.from(shot.data,'base64'));
 }
+
+async function typographyAudit(label, documentExpr, selectors){
+  const expression = '(async()=>{'
+    +'const w=window.__apexGoldFidelity?.child()||window;'
+    +'const d='+documentExpr+';'
+    +'await d.fonts.ready;'
+    +'const selectors='+JSON.stringify(selectors)+';'
+    +'const list=selectors.flatMap(s=>[...d.querySelectorAll(s)].map(e=>({selector:s,element:e})));'
+    +'const results=list.filter(x=>{const r=x.element.getBoundingClientRect(),c=d.defaultView.getComputedStyle(x.element);return r.width>0&&r.height>0&&c.visibility!=="hidden"&&c.display!=="none"&&c.opacity!=="0"}).map(x=>{'
+    +'const e=x.element,r=d.createRange();r.selectNodeContents(e);const t=r.getBoundingClientRect(),style=d.defaultView.getComputedStyle(e),violations=[];'
+    +'for(let p=e;p&&p!==d.documentElement;p=p.parentElement){const c=d.defaultView.getComputedStyle(p),b=p.getBoundingClientRect();'
+    +'if(/hidden|clip|auto|scroll/.test(c.overflowX+" "+c.overflowY)||c.clipPath!=="none"){'
+    +'const delta=Math.max(0,b.left-t.left,t.right-b.right,b.top-t.top,t.bottom-b.bottom);'
+    +'if(delta>2.5)violations.push({parent:p.id||p.className?.toString().slice(0,55)||p.tagName,delta:Math.round(delta)});'
+    +'}}return{selector:x.selector,text:(e.innerText||e.textContent||"").trim().slice(0,110),font:style.fontFamily,size:style.fontSize,'
+    +'box:[Math.round(e.getBoundingClientRect().width),Math.round(e.getBoundingClientRect().height)],'
+    +'textBox:[Math.round(t.width),Math.round(t.height)],overflow:Math.max(0,e.scrollWidth-e.clientWidth),clips:violations.slice(0,3)};'
+    +'});return{lang:d.documentElement.lang,total:results.length,clipped:results.filter(x=>x.clips.length||x.overflow>3).slice(0,35),'
+    +'samples:results.slice(0,15)};'
+    +'})()';
+  const report=await run(expression);
+  console.log('TYPOGRAPHY_AUDIT '+JSON.stringify({surface:label,...report}));
+  return report;
+}
+
 const checked=(ok,message,value)=>{
  console.log((ok?'PASS':'FAIL')+' localization chrome: '+message+' '+JSON.stringify(value??''));
  if(!ok)throw Error(message);
@@ -89,6 +114,7 @@ try{
    checked(report.font.includes('Arial')||report.font.includes('Segoe UI'),view.id+' Unicode face fallback',report);
    checked(report.withinTitle&&report.ctaWithin&&report.pickerVisible&&report.pickerHit,view.id+' glyph bounds and selector hit target',report);
    await capture(view.id+'-vie');
+   await typographyAudit(view.id+'-home-vie','w.document',['.storyTitle span','.quest','.location','.cta .label','.profileText b']);
    const restored=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('eng');return {label:w.document.querySelector('#freeBattle .label')?.textContent,persist:w.localStorage.getItem('apex-chaos.ui-language.v1')}})()");
    checked(restored.label==='FREE BATTLE'&&restored.persist==='eng',view.id+' restore ENG',restored);
    await capture(view.id+'-eng');
@@ -98,12 +124,14 @@ try{
    const modeText=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('.modeSelectScreen')?.innerText||''})()");
    checked(modeText.includes('CHỌN CHẾ ĐỘ'),view.id+' translated Mode Select',modeText.slice(0,250));
    await capture(view.id+'-mode-vie');
+   await typographyAudit(view.id+'-mode-vie','w.document',['.modeTitle','.modeName','.modeSub','.modeLead','.flowHints']);
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.modeCard[data-mode=bot]')?.click()})()");
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('screen-fighter')})()"),view.id+' entered Fighter Select');
    const fighterText=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('.fighterSelectScreen')?.innerText||''})()");
    checked(fighterText.includes('CHỌN ĐẤU SĨ'),view.id+' translated Fighter Select',fighterText.slice(0,300));
    checked(fighterText.includes('NEWBOT')||fighterText.includes('HUNTER'),view.id+' preserved proper fighter names');
    await capture(view.id+'-fighter-vie');
+   await typographyAudit(view.id+'-fighter-vie','w.document',['.fighterTitleBlock h2','.fighterName','.fighterTag','.skillChip','.playerFlag','.fighterModeBadge']);
 
    if(view.id==='desktop'){
      // Real production BOT path; this does not fabricate hit points,
@@ -118,6 +146,7 @@ try{
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument;return d.getElementById('locale-test-probe')?.textContent==='TAY KHÔNG'})()"),'embedded Battle HUD dynamic text localized');
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#battleHudFrame')?.contentDocument?.getElementById('locale-test-probe')?.remove()})()");
      await capture('desktop-live-battle-vie');
+     await typographyAudit('desktop-battle-vie','w.document.querySelector("#battleHudFrame").contentDocument',['.vr-name','.vr-sub','.id-name','.id-ctrl','.sk-name','.sk-desc','.sk-slot','.sk-state','.cp-loadout-name']);
    }
 
 
@@ -135,6 +164,7 @@ try{
      const lucky=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,f=w.document.querySelector('#luckyDonorFrame'),d=f.contentDocument;return {lang:d.documentElement.lang,title:d.querySelector('.title strong')?.textContent||'',drawer:d.querySelector('#infoD')?.textContent||'',font:d.defaultView.getComputedStyle(d.querySelector('.title strong')).fontFamily}})()");
      checked(lucky.lang==='vi'&&lucky.title.includes('QUAY MAY MẮN')&&lucky.drawer.includes('ĐẤU SĨ'), 'Lucky iframe translated and accent font active',lucky);
      await capture('desktop-lucky-vie');
+     await typographyAudit('desktop-lucky-vie','w.document.querySelector("#luckyDonorFrame").contentDocument',['.title strong','.tag .tn','.tag .ts','.plate .pm','.console button','.hud button']);
 
      // Result Gold is a separate React document authored in Vietnamese.
      // Feed it an actual sealed native ledger, exactly like the independent
