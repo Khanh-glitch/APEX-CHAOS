@@ -171,7 +171,7 @@ assert.ok(inspect(manifest,withHero).some(e=>e.includes('NEW_HERO')&&e.includes(
 const newGun={
   id:'NEW_GUN',releaseStage:'development',executorType:'gun-family',
   damageAuthority:'WRONG',questExposure:'not-auto',
-  tests:['tools/testContentAdmissionGate.mjs'],
+  tests:['tools/testContentInteractionBaseline.mjs'],
   assets:['public/assets/arsenal/v43/FLARE_GUN.webp'],
   interactions:Object.fromEntries(interactions.map(i=>[i,'requires-review']))
 };
