@@ -122,7 +122,7 @@ function setLanguage(next){
   if(select)select.value=language;
   document.documentElement.dataset.apexLanguage=language;
   updateAll();
-  window.dispatchEvent(new CustomEvent('apex:language-changed',{detail:{language}}));
+  window.dispatchEvent(new window.CustomEvent('apex:language-changed',{detail:{language}}));
 }
 function mountPicker(){
   if(select?.isConnected)return;
