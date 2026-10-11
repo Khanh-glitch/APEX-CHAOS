@@ -4,6 +4,7 @@ on:
     paths:
       - 'tools/testContentInteractionBaseline.mjs'
       - 'tools/testInteractionPolicyShadow.mjs'
+      - 'tools/lib/interactionPolicyCandidate.mjs'
       - 'tools/lib/crystalaHarness.mjs'
       - 'public/game/arsenal/**'
       - 'public/game/hero-rework/**'
@@ -27,5 +28,6 @@ jobs:
         run: |
           node --check public/game/hero-rework/ailRuntime.js
           node --check tools/testInteractionPolicyShadow.mjs
+          node --check tools/lib/interactionPolicyCandidate.mjs
           node tools/testContentInteractionBaseline.mjs
           node tools/testInteractionPolicyShadow.mjs
