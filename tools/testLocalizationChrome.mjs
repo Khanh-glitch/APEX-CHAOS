@@ -63,9 +63,11 @@ async function auditAllVisibleText(label,documentExpr){
     +'const w=window.__apexGoldFidelity?.child()||window,d='+documentExpr+';await d.fonts.ready;'
     +'const tw=d.createTreeWalker(d.body,NodeFilter.SHOW_TEXT),items=[];let n,count=0;'
     +'while((n=tw.nextNode())&&count<2000){const text=n.textContent.trim();if(!text||text.length<2)continue;'
-    +'const e=n.parentElement;if(!e||e.closest("script,style,noscript,svg,textarea,[data-apex-no-localize]"))continue;'
+    +'const e=n.parentElement;if(!e||e.closest("script,style,noscript,svg,textarea,.sr-only,[aria-hidden=true],[data-apex-no-localize]"))continue;'
     +'const css=d.defaultView.getComputedStyle(e);if(css.visibility==="hidden"||css.display==="none"||css.opacity==="0")continue;'
-    +'const r=d.createRange();r.selectNodeContents(n);const boxes=[...r.getClientRects()];if(!boxes.length)continue;'
+    +'const r=d.createRange();r.selectNodeContents(n);const boxes=[...r.getClientRects()];'
+    +'const viewport=d.documentElement.getBoundingClientRect();'
+    +'if(!boxes.some(b=>b.width>0&&b.height>0&&b.right>0&&b.bottom>0&&b.left<viewport.width&&b.top<viewport.height))continue;'
     +'let p=e,flag=null;while(p&&p!==d.documentElement){const s=d.defaultView.getComputedStyle(p),b=p.getBoundingClientRect();'
     +'if(s.visibility==="hidden"||s.display==="none"||s.opacity==="0"){flag=null;break;}'
     +'if(/hidden|clip/.test(s.overflowX)||s.clipPath!=="none"){'
@@ -105,8 +107,8 @@ try{
  });
  await cmd('Page.enable');await cmd('Runtime.enable');
  await mkdir('docs/acceptance/localization',{recursive:true});
- for(const view of [{id:'desktop',w:1440,h:900},{id:'portrait',w:390,h:844}]){
-   await cmd('Emulation.setDeviceMetricsOverride',{width:view.w,height:view.h,deviceScaleFactor:2,mobile:view.id==='portrait',screenWidth:view.w,screenHeight:view.h});
+ for(const view of [{id:'desktop',w:1440,h:900},{id:'portrait',w:390,h:844},{id:'narrow-portrait',w:360,h:640},{id:'landscape',w:844,h:390}]){
+   await cmd('Emulation.setDeviceMetricsOverride',{width:view.w,height:view.h,deviceScaleFactor:2,mobile:view.id==='portrait'||view.id==='narrow-portrait'||view.id==='landscape',screenWidth:view.w,screenHeight:view.h});
    await cmd('Page.navigate',{url:base});
    checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-boot-start'))"),view.id+' boot loads');
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#apex-boot-start')?.click()})()");
@@ -138,10 +140,12 @@ try{
    checked(report.chosen==='vie'&&report.persist==='vie'&&report.htmlLang==='vi',view.id+' VIE state',report);
    checked(report.title.includes('NHỮNG KẺ')&&report.cta.includes('TIẾP TỤC'),view.id+' natural Home translations',report);
    checked(report.font.includes('ApexVietCondensed'),view.id+' Unicode face fallback',report);
+   const face=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;return Array.from(d.fonts).filter(f=>f.family==='ApexVietCondensed').map(f=>f.status)})()");
+   checked(face.includes('loaded'),view.id+' actual condensed Vietnamese font loaded',face);
    checked(report.withinTitle&&report.ctaWithin&&report.pickerVisible&&report.pickerHit,view.id+' glyph bounds and selector hit target',report);
    await capture(view.id+'-vie');
    await typographyAudit(view.id+'-home-vie','w.document',['.storyTitle span','.quest','.location','.cta .label','.profileText b']);
-   await auditAllVisibleText(view.id+'-home-vie','w.document');
+   checked((await auditAllVisibleText(view.id+'-home-vie','w.document')).clippedCount===0,view.id+' home visible text is not clipped');
    const restored=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('eng');return {label:w.document.querySelector('#freeBattle .label')?.textContent,persist:w.localStorage.getItem('apex-chaos.ui-language.v1')}})()");
    checked(restored.label==='FREE BATTLE'&&restored.persist==='eng',view.id+' restore ENG',restored);
    await capture(view.id+'-eng');
@@ -152,7 +156,7 @@ try{
    checked(modeText.includes('CHỌN CHẾ ĐỘ'),view.id+' translated Mode Select',modeText.slice(0,250));
    await capture(view.id+'-mode-vie');
    await typographyAudit(view.id+'-mode-vie','w.document',['.modeTitle','.modeName','.modeSub','.modeLead','.flowHints']);
-   await auditAllVisibleText(view.id+'-mode-vie','w.document');
+   checked((await auditAllVisibleText(view.id+'-mode-vie','w.document')).clippedCount===0,view.id+' mode visible text is not clipped');
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.modeCard[data-mode=bot]')?.click()})()");
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('screen-fighter')})()"),view.id+' entered Fighter Select');
    const fighterText=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('.fighterSelectScreen')?.innerText||''})()");
@@ -160,7 +164,7 @@ try{
    checked(fighterText.includes('NEWBOT')||fighterText.includes('HUNTER'),view.id+' preserved proper fighter names');
    await capture(view.id+'-fighter-vie');
    await typographyAudit(view.id+'-fighter-vie','w.document',['.fighterTitleBlock h2','.fighterName','.fighterTag','.skillChip','.playerFlag','.fighterModeBadge']);
-   await auditAllVisibleText(view.id+'-fighter-vie','w.document');
+   checked((await auditAllVisibleText(view.id+'-fighter-vie','w.document')).clippedCount===0,view.id+' fighter visible text is not clipped');
 
    if(view.id==='desktop'){
      // Real production BOT path; this does not fabricate hit points,
@@ -170,6 +174,8 @@ try{
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('.rosterCard[data-hero=newbot]')?.click();w.document.querySelector('#lockIn')?.click()})()");
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;return d.body.classList.contains('battle-hud-open')&&Boolean(d.querySelector('#battleHudFrame')?.contentDocument?.body)})()",70000),'live BOT battle loaded with authentic Gold HUD');
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;return d.querySelector('#battleHudFrame')?.contentDocument?.documentElement?.lang==='vi'})()",25000),'embedded Battle HUD inherited VIE locale');
+     const battleFrameReport=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,f=w.document.querySelector('#battleHudFrame'),d=f?.contentDocument;return {src:f?.getAttribute('src'),srcdocLength:f?.getAttribute('srcdoc')?.length||0,href:d?.URL,readyState:d?.readyState,htmlLen:d?.documentElement?.outerHTML.length||0,bodyLen:d?.body?.innerHTML.length||0,hud:Boolean(d?.querySelector('#hud')),id:d?.defaultView?.frameElement?.id,frameFont:Boolean(d?.getElementById('apex-locale-frame-font'))}})()");
+     console.log('BATTLE_FRAME_REPORT '+JSON.stringify(battleFrameReport));
      const hudProof=await run("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument,n=d.createElement('span');n.textContent='UNARMED';n.id='locale-test-probe';d.body.appendChild(n);return {lang:d.documentElement.lang,frameFont:d.getElementById('apex-locale-frame-font')?.textContent.includes('ApexVietCondensed')||false}})()");
      checked(hudProof.lang==='vi'&&hudProof.frameFont,'live Battle HUD received readable Vietnamese font',hudProof);
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document.querySelector('#battleHudFrame').contentDocument;return d.getElementById('locale-test-probe')?.textContent==='TAY KHÔNG'})()"),'embedded Battle HUD dynamic text localized');
