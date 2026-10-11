@@ -102,11 +102,15 @@ gate('one-real-damage-transaction-and-receipt', () => {
   const [a,b]=H.fighters(); a.baseSpeed=b.baseSpeed=0;
   const hp=b.hp, seq=A.bus.seq;
   const damage=W.aqDamage(b,1,a,'PISTOL',{impact:{x:b.x,y:b.y,vx:1,vy:0}});
-  assert.equal(hp-b.hp,7);
-  assert.equal(damage,7);
+  const realized=hp-b.hp;
+  assert.ok(Number.isFinite(realized) && realized>0,'real Fighter HP must decrease');
+  // Arsenal returns pre-combatant dealt, while Hero Rework may modify the
+  // actual victim HP transaction. The receipt MUST equal realized HP.
+  assert.equal(damage,7,'Arsenal applied accepted PISTOL x7 scaling');
   const receipt=A.bus.since(seq).filter(e=>e.type==='RealizedDamageEvent');
-  assert.equal(receipt.length,1);
-  assert.equal(receipt[0].payload.amount,7);
+  assert.equal(receipt.length,1,'exactly one realized damage receipt');
+  assert.ok(Math.abs(receipt[0].payload.amount-realized)<1e-8,
+    'receipt must equal actual HP delta, not Arsenal nominal damage');
   assert.equal(receipt[0].payload.weaponId,'PISTOL');
   win.exitArsenalBattleMode();
   assert.equal(HR.match,null);
