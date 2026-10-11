@@ -266,7 +266,7 @@ const matchers=AWARD_RULE_TEMPLATES.map(({vi,en})=>{
   const slots=[];
   const source=vi.replace(/\{([a-zA-Z0-9_-]+)\}/g,(_m,key)=>'\u0000'+key+'\u0000');
   const re=source.split(/(\u0000[^\u0000]+\u0000)/g).map(chunk=>{
-    if(chunk.startsWith('\u0000')&&chunk.endsWith('\u0000')){slots.push(chunk.slice(1,-1));return '([0-9]+(?:[.,][0-9]+)?)';}
+    if(chunk.startsWith('\u0000')&&chunk.endsWith('\u0000')){slots.push(chunk.slice(1,-1));return '(-?[0-9]+(?:[.,][0-9]+)?)';}
     return chunk.replace(/[.*+?^$\u007b\u007d()|[\]\\]/g,'\\$&');
   }).join('');
   return {re:new RegExp('^'+re+'$','u'),slots,en};
