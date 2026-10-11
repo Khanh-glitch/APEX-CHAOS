@@ -5,6 +5,11 @@ import {AWARD_RULE_TEMPLATES,englishAwardRule} from '../src/game/localeAwardRule
 import {COPY,PROPER_NAMES,translateCopy,VIETNAMESE_DIALOGUE_EN,VIETNAMESE_UI_EN} from '../src/game/localeCatalog.js';
 
 assert.equal(translateCopy('FREE BATTLE','vie'),'ĐẤU TỰ DO');
+for(const name of ['WEAPON DASH','VIRTUAL ARMOR','CONTEXT CONSTRUCT','AWAKENING','MIRROR ARSENAL','MIRROR EXCHANGE','ANCIENT CRYSTAL ENTITY','FIELD CONTROL UNIT','CRYO EDGE UNIT']) assert.notEqual(translateCopy(name,'vie'),name,'untranslated production fighter copy: '+name);
+assert.equal(translateCopy('4.5S COOLDOWN','vie'),'4,5 GIÂY HỒI CHIÊU');
+assert.equal(translateCopy('2 CHARGES · 4.5S RECHARGE','vie'),'2 LẦN DÙNG · 4,5 GIÂY NẠP LẠI');
+assert.equal(translateCopy('1.0S ACTIVE · 11.0S CD','vie'),'1,0 GIÂY HIỆU LỰC · 11,0 GIÂY HỒI CHIÊU');
+
 assert.equal(translateCopy('  LOCK IN  ','vie'),'  XÁC NHẬN  ');
 assert.equal(translateCopy('SCRAP BASIN','vie'),'SCRAP BASIN');
 assert.equal(translateCopy('NEWBOT','vie'),'NEWBOT');
