@@ -200,6 +200,23 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['SPEED WIN','CHIẾN THẮNG THẦN TỐC'],
   ['CHAOS BRINGER','KẺ GIEO HỖN LOẠN'],
 ]));
+// Owner-locked Vietnamese story dialogue is canonical; the English option
+// provides a separate display-only rendering without mutating story receipts.
+export const VIETNAMESE_DIALOGUE_EN = Object.freeze({
+  'Lùi lại.':'Get back.',
+  'Chúng ta là bạn à?':'Are we friends?',
+  'Tôi nghĩ vậy.':'I think so.',
+  'Tôi không đánh nữa!':"I'm done fighting!",
+  'Cậu phải đánh.':'You have to fight.',
+  'Nếu cậu dừng...':'If you stop...',
+  '...tôi sẽ không.':'...I won't.',
+  'Từ lúc tỉnh dậy đến giờ... tôi chưa từng chọn được mình có nhặt súng hay không.':"Ever since I woke up... I never had a choice about picking up a gun.",
+  'Nhưng tôi có thể chọn mình làm gì với nó.':'But I can choose what I do with it.',
+  'Đi.':'Go.',
+  'Cậu muốn biết mình là ai mà.':'You wanted to know who you are.',
+  'Lần này...':'This time...',
+  '...tôi dừng được rồi.':'...I can finally stop.'
+});
 export const PROPER_NAMES = Object.freeze([
   'APEX CHAOS','APEX','NEWBOT','ROBOT','HUNTER','CRYSTALA','CRYSTAL',
   'MAGNET','FROST','MIRROR','T.O.T','RIVET','SCRAP BASIN','STORMBREAKER',
@@ -233,8 +250,8 @@ function phrase(value){
   return t;
 }
 export function translateCopy(input,language='eng'){
-  if(language!=='vie'||typeof input!=='string')return input;
+  if(typeof input!=='string')return input;
   const match=input.match(/^(\s*)([\s\S]*?)(\s*)$/);
   if(!match||!match[2])return input;
-  return match[1]+phrase(match[2])+match[3];
+  return match[1]+(language==='vie'?phrase(match[2]):(VIETNAMESE_DIALOGUE_EN[match[2]]||match[2]))+match[3];
 }
