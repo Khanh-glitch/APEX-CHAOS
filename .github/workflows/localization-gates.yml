@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'src/game/localeCatalog.js'
+      - 'src/game/localeAwardRules.js'
       - 'src/game/localizationRuntime.js'
       - 'src/game/localization.css'
       - 'src/main.jsx'
