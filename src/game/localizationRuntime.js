@@ -131,7 +131,7 @@ function installDocument(doc){
       // Frame discovery belongs to node insertions only. Combat counters
       // update text every frame; scanning the entire document on each tick
       // would add unnecessary work to the 60 FPS path.
-      if(records.some(change=>change.type==='childList'&&change.addedNodes.length))installCanvasLocale(doc);
+      if(doc===document && records.some(change=>change.type==='childList'&&change.addedNodes.length))installCanvasLocale(doc);
       for(const change of records){
         if(change.type!=='childList')continue;
         for(const node of change.addedNodes){
@@ -145,9 +145,14 @@ function installDocument(doc){
   observer.observe(doc.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:ATTRS});
   rec.observer=observer;
   attachFrames(doc);
-  installCanvasLocale(doc);
+  if(doc===document)installCanvasLocale(doc);
 }
 function wireFrame(frame){
+  // The mobile Gold fidelity iframe boots a FULL second game application.
+  // Its own localization instance owns its DOM and game canvas. Double
+  // observing that document from the outer shell would race two languages.
+  if(frame.id==='gold-document')return;
+  try{if(frame.contentWindow?.APEX_I18N)return;}catch{}
   if(!frame.__apexLocaleWired){
     frame.__apexLocaleWired=true;
     frame.addEventListener('load',()=>{
@@ -210,5 +215,10 @@ export function installLocalization(){
   const guard=new MutationObserver(()=>{if(!select?.isConnected)mountPicker();});
   guard.observe(document.body,{subtree:true,childList:true});
   document.addEventListener('apex:localization-refresh',updateAll);
+  window.addEventListener('storage',(event)=>{
+    if(event.key!==KEY)return;
+    const incoming=event.newValue==='vie'?'vie':'eng';
+    if(incoming!==language)setLanguage(incoming);
+  });
   setLanguage(language);
 }
