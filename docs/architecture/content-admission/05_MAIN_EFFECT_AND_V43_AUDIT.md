@@ -13,3 +13,9 @@ Baseline: `main@2590beee79b9447fa3639870b6de6801428b7f42`. This audit does **not
 - First-cast and rematch ready material + repeat prison rendering: `tools/testCoreSixEffectMaterialReadiness.mjs`.
 - Production Gold renderer and original V43 projectile physics remain independent truth authorities. No new gameplay policy is inferred for Mirror F2 V43, Magnet BOT preflight or V43 passive speed scaling.
 - The actual owner V43 Gold visual-motion certification still lacks 40 phase proofs; this audit cannot honestly mark those green.
+
+## Additional confirmed V43 classification seams
+
+- `heroMechanicsRuntime.magnetAiDecision` previously scanned only `CFG.isGun` floor slots and `aq_bullet` incoming threats. BOT Magnet could refuse an appropriate A1 even when gameplay could attract that V43 ranged floor gun, and did not proactively respond to kinetic V43 rocket/bolt/ball/mines. AI now delegates to the **same real Magnet gameplay eligibility predicates** for floor holders and incoming projectiles, retaining own-projectile and TOI geometry checks. Nonkinetic plasma/flame remains excluded.
+- `arsenalBattleRuntime` emergency unarmed-rescue logic also treated a V43 equipped ranged holder as unarmed and V43 revealed guns as zero available guns, risking a needless additional emergency gun spawn. The local count now recognizes registered V43 ranged holders as actual equipment, without changing regular `CFG.isGun` projectile/damage-family semantics.
+- Deliberately **not normalized:** `arsenalSpawnRuntime.selectFirearmWeapon` is a conventional-gun *fallback* chooser; `arsenalWeaponRuntime.scaleEquipmentDamage` applies the x7 ordinary family scale while V43 owns per-special damage values. Changing these without approved balance tests could double-scale V43 hits. Mirror F2 does not yet admit `aq_v43` by its current contract.
