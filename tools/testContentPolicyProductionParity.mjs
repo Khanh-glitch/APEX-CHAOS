@@ -67,5 +67,34 @@ compare(unknown,'unknown-weapon-fails-closed');
 assert.equal(AIL.CapabilityAuthority.query('magnet-projectile',unknown,{config:CFG}).status,
   'unresolved','unknown content cannot silently receive Magnet permission');
 assert.equal(MAG.isEligibleBullet(unknown),false,'unknown projectile is never pulled');
+
+// Prove the REAL Magnet consumer delegates to AIL rather than passing by
+// coincidence through its independent legacy fallback. This probe is confined
+// to the Node harness; restore the original authority in a finally block.
+const accepted={aq:true,type:'aq_bullet',weapon:'GLOCK_17',life:2,phase:'flight'};
+assert.equal(MAG.isEligibleBullet(accepted),true,'registered canonical bullet admitted before probe');
+const realQuery=AIL.CapabilityAuthority.query;
+try {
+  const calls=[];
+  AIL.CapabilityAuthority.query=function(action,projectile,context){
+    calls.push({action,projectile,context});
+    return Object.freeze({status:'denied',reason:'cp5-probe'});
+  };
+  assert.equal(MAG.isEligibleBullet(accepted),false,
+    'Magnet must honor explicit canonical AIL denial');
+  assert.equal(calls.length,1,'exactly one AIL query per Magnet classification');
+  assert.equal(calls[0].action,'magnet-projectile');
+  assert.equal(calls[0].projectile,accepted,'preserve original projectile identity');
+  assert.equal(calls[0].context.config,CFG,'pass real canonical Arsenal config');
+
+  AIL.CapabilityAuthority.query=()=>Object.freeze({
+    status:'unresolved',reason:'cp5-unknown-content-probe',
+  });
+  assert.equal(MAG.isEligibleBullet(accepted),false,
+    'unknown capability must fail closed, never fall back into legacy allowance');
+} finally {
+  AIL.CapabilityAuthority.query=realQuery;
+}
+assert.equal(MAG.isEligibleBullet(accepted),true,'AIL authority restored after probe');
 console.log('CP5 LIVE MAGNET POLICY '+(checked-failures)+'/'+checked+(failures?' DRIFT':' PASS'));
 process.exit(failures?1:0);
