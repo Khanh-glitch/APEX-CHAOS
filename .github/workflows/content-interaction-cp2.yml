@@ -5,6 +5,8 @@ on:
       - 'tools/testContentInteractionBaseline.mjs'
       - 'tools/testInteractionPolicyShadow.mjs'
       - 'tools/lib/interactionPolicyCandidate.mjs'
+      - 'tools/lib/contentBaseline.mjs'
+      - 'src/game/localeCatalog.js'
       - 'tools/testContentAdmissionGate.mjs'
       - 'docs/architecture/content-admission/extensions.json'
       - 'tools/lib/crystalaHarness.mjs'

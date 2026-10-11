@@ -6,23 +6,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { bootHarness } from './lib/crystalaHarness.mjs';
+import { BASE_HERO_IDS, BASE_WEAPON_IDS } from './lib/contentBaseline.mjs';
+import { COPY, translateCopy } from '../src/game/localeCatalog.js';
 
-const EXPECTED_HEROES = Object.freeze([
-  'ROBOT','CRYSTAL','MAGNET','BLACK_HOLE','MATH_V2','ICE',
-  'RUBBER','HUNTER','TIME','MIRROR','SLIME','SNIPER'
-]);
-const EXPECTED_WEAPONS = Object.freeze([
-  'PISTOL','SMG','SHOTGUN','SNIPER','GLOCK_17','BERETTA_93R',
-  'DESERT_DEAGLE','MAGNUM_500','SZECSEI_FUCHS','TEC_9',
-  'MAC_10','P90','AK_47','M16','ZBROYAR_Z15',
-  'ZBROYAR_Z15_S1','ZBROYAR_Z15_S2','ZBROYAR_Z15_S3',
-  'M249_SAW','MBR','MBR2','MOSSBERG_500','SAWED_OFF',
-  'JACKHAMMER','FLARE_GUN','TACTICAL_CROSSBOW',
-  'STEEL_BALL_LAUNCHER','COMBAT_BOOMERANG','RPG_7',
-  'FLAMETHROWER','PLASMA_SPLITTER','SHRAPNEL_MINE_LAUNCHER',
-  'GRENADE','SABRE','BATTLE_AXE','DAGGER','SPEAR',
-  'SPIKED_CLUB','STORMBREAKER','SWIRL_SHIELD','TOWER_SHIELD'
-]);
+const EXPECTED_HEROES=BASE_HERO_IDS;
+const EXPECTED_WEAPONS=BASE_WEAPON_IDS;
 const VALID_ID = /^[A-Z][A-Z0-9_]*$/;
 const allowedStages = ['development','candidate','approved'];
 const allowedExecutorTypes = ['gun-family','v43-special','equipment'];
@@ -48,6 +36,16 @@ function inspect(manifest, {cfg,reg,mech,surface}) {
   for (const id of weaponBase) if(!weaponIds.includes(id)) issue(id,'legacy equipment removed');
   for (const [tag,ids] of [['heroes',heroIds],['weapons',weaponIds]])
     if(new Set(ids).size!==ids.length)issue(tag,'duplicate live registry IDs');
+  // Detect new definitions that never reached the actual pickup registry.
+  for(const e of (cfg.GUN_REGISTRY||[]))
+    if(!weaponIds.includes(e.id))issue(e.id,'registered gun absent from P0 pickup pool');
+  for(const id of Object.keys(cfg.V43_WEAPONS||{}))
+    if(!weaponIds.includes(id))issue(id,'special defined but absent from P0 pickup pool');
+  const newHeroCount=heroIds.filter(id=>!heroBase.has(id)).length;
+  if(newHeroCount && typeof reg.validateRegistry==='function'){
+    const verdict=reg.validateRegistry();
+    if(!verdict.ok)issue('hero-registry','production validator rejects extensions; CP5 revision cutover required');
+  }
   const newHeroes=heroIds.filter(id=>!heroBase.has(id));
   const newWeapons=weaponIds.filter(id=>!weaponBase.has(id));
   const verifyIndex=(kind,records,added)=>{
@@ -78,6 +76,30 @@ function inspect(manifest, {cfg,reg,mech,surface}) {
     if(!allowedStages.includes(r.releaseStage))issue(r.id,'invalid releaseStage');
     validateFileList(r,'tests');
     validateFileList(r,'assets');
+    // Mandatory executable evidence, not just an unverified tests[] label.
+    for(const kind of ['combat','interactions','teardown']){
+      const test=r.proofTests?.[kind];
+      if(typeof test!=='string'||!r.tests?.includes(test)||!test.startsWith('tools/')
+        ||test.includes('..')||!fs.existsSync(test)){
+        issue(r.id,'missing runnable proofTests.'+kind);
+      }else{
+        const source=fs.readFileSync(test,'utf8');
+        if(!source.includes('bootHarness') || !source.includes('APEX_ARSENAL'))
+          issue(r.id,'proofTests.'+kind+' must drive real Arsenal through bootHarness');
+      }
+    }
+    // Source-copy localisation is keyed by *English text*, not symbolic IDs.
+    // Require real, executable VIE translation in the shipping catalog.
+    if(!Array.isArray(r.localizedCopy)||!r.localizedCopy.length)
+      issue(r.id,'localizedCopy requires at least one EN/VIE source-copy pair');
+    else for(const pair of r.localizedCopy){
+      if(!isRecord(pair)||typeof pair.en!=='string'||typeof pair.vi!=='string'
+        ||!pair.en.trim()||!pair.vi.trim()||pair.en===pair.vi
+        ||COPY[pair.en]!==pair.vi||translateCopy(pair.en,'vie')!==pair.vi)
+        issue(r.id,'EN/VIE pair must exist in live localeCatalog');
+    }
+    if(r.releaseStage==='approved' && Object.values(r.interactions||{}).includes('requires-review'))
+      issue(r.id,'approved content cannot retain unresolved interaction rules');
     if(r.releaseStage==='approved'
       && (!(typeof r.ownerApprovalDocument==='string')||!r.ownerApprovalDocument.startsWith('docs/')
         ||r.ownerApprovalDocument.includes('..')||!fs.existsSync(r.ownerApprovalDocument)))
@@ -95,8 +117,6 @@ function inspect(manifest, {cfg,reg,mech,surface}) {
     if(!isRecord(r.interactions))issue(r.id,'missing hero interaction declaration');
     else for(const a of interactions)if(!choices.includes(r.interactions[a]))
       issue(r.id,'missing decision for '+a);
-    if(!Array.isArray(r.localizationKeys)||!r.localizationKeys.length)
-      issue(r.id,'missing language keys for both VIE/ENG copy review');
     if(surface.isPublicPlayableFighter(r.id) && r.releaseStage!=='approved')
       issue(r.id,'unexpected public playable hero without approved release');
   }
@@ -120,6 +140,11 @@ function inspect(manifest, {cfg,reg,mech,surface}) {
     else for(const a of interactions)if(!choices.includes(r.interactions[a]))
       issue(r.id,'missing decision for '+a);
     const tier=cfg.tierOf(r.id);
+    if(!tier)issue(r.id,'missing live tier definition');
+    if((tier==='T1'||tier==='T2')&&!cfg.BY_TIER?.[tier]?.includes(r.id))
+      issue(r.id,'declared Quest tier missing from actual BY_TIER pool');
+    if(r.executorType==='v43-special' && !cfg.V43_SPECIAL_IDS?.includes(r.id))
+      issue(r.id,'special is absent from canonical special ID list');
     if((tier==='T1'||tier==='T2')&&r.questExposure!=='inherited-auto')
       issue(r.id,'T1/T2 already enter Quest by tier; declare inherited-auto or change route in a reviewed patch');
     if(tier!=='T1'&&tier!=='T2'&&r.questExposure!=='not-auto')
@@ -157,6 +182,20 @@ const withoutTests=inspect({...manifest,weapons:[{...newGun,
   damageAuthority:'aqDamage',questExposure:'inherited-auto',tests:[]}]},{...live,cfg:pretendCfg});
 assert.ok(withoutTests.some(e=>e.includes('tests must be nonempty')),'must reject missing proof');
 
+// Fail closed when the ledger claims VIE/ENG text that has no real catalog entry.
+const badLocale=inspect({...manifest,weapons:[{...newGun,
+  damageAuthority:'aqDamage',questExposure:'inherited-auto',
+  proofTests:{combat:newGun.tests[0],interactions:newGun.tests[0],teardown:newGun.tests[0]},
+  localizedCopy:[{en:'THIS IS NOT IN THE CATALOG',vi:'BẢN DỊCH GIẢ'}]}]},{...live,cfg:pretendCfg});
+assert.ok(badLocale.some(e=>e.includes('EN/VIE pair must exist')),'must reject fake localisation');
+// Special definitions not admitted to real spawn pool are never valid.
+const omitted=inspect(manifest,{...live,cfg:{...live.cfg,
+  GUN_REGISTRY:[...live.cfg.GUN_REGISTRY,{id:'SECRET_GUN',family:'SEMI'}]}});
+assert.ok(omitted.some(e=>e.includes('SECRET_GUN')&&e.includes('absent from P0')),
+  'must reject invisible special or conventional gun definitions');
+// Declare all three runnable proofs, not a single arbitrary file.
+assert.ok(withoutTests.some(e=>e.includes('missing runnable proofTests.')),
+  'must reject content without category-specific evidence');
 // Every declared regression script must run and pass (none for canonical baseline).
 const scripts=new Set([...manifest.heroes,...manifest.weapons].flatMap(e=>e.tests||[]));
 for(const test of scripts){
@@ -167,5 +206,5 @@ for(const test of scripts){
   }
 }
 console.log('CP4 CONTENT ADMISSION PASS: '+EXPECTED_HEROES.length+' canonical heroes, '
-  +EXPECTED_WEAPONS.length+' canonical weapons; '+scripts.size+' extension tests; 5 fail-closed assertions');
+  +EXPECTED_WEAPONS.length+' canonical weapons; '+scripts.size+' extension tests; 8 fail-closed assertions');
 process.exit(0);
