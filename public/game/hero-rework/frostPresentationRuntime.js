@@ -355,6 +355,39 @@ function frostCfg(ct) {
   };
 }
 
+
+let frostArtWarmPromise = null;
+function installSharedFrostArt(engine) {
+  if (!sharedArt || !engine) return false;
+  engine.mips=sharedArt.mips;
+  engine.shadowCanvas=sharedArt.shadow;
+  try { engine.prepareSurfaces(engine.iceCanvas.width,engine.iceCanvas.height); } catch(err) { warnOnce(err); }
+  engine.ready=true;
+  return true;
+}
+function startFrostArtWarmup() {
+  if (sharedArt) return Promise.resolve(true);
+  if (frostArtWarmPromise) return frostArtWarmPromise;
+  if (!G || typeof G.FrostEngine!=='function') return Promise.reject(new Error('Frost Gold engine unavailable'));
+  loadProbe('preprocess-start',{source:'FrostEngine.load/prebattle'});
+  const loader=new G.FrostEngine();
+  frostArtWarmPromise=Promise.resolve(loader.load()).then(()=>{
+    if(!loader.ready || !G.LAYERS?.every(k=>loader.mips[k]?.length))
+      throw new Error('Frost prebattle art incomplete');
+    sharedArt={mips:loader.mips,shadow:loader.shadowCanvas};
+    for(const [,state] of liveStates) installSharedFrostArt(state.engine);
+    api.ready=true;
+    loadProbe('preprocess-ready',{cacheStats:G.cacheStats?{...G.cacheStats}:null});
+    return true;
+  }).catch(error=>{
+    api.error=String(error);
+    loadProbe('preprocess-error',{error:String(error)});
+    frostArtWarmPromise=null;
+    throw error;
+  });
+  return frostArtWarmPromise;
+}
+
 function createState(ct) {
   const f = ct.anchor;
   const cfg = frostCfg(ct);
@@ -368,41 +401,9 @@ function createState(ct) {
     const host = (g.ctx && g.ctx.canvas) || g.canvas || (g.document && g.document.getElementById && g.document.getElementById('gameCanvas'));
     if (host && typeof e.prepareSurfaces === 'function') e.prepareSurfaces(host.width, host.height);
   } catch (err) { warnOnce(err); }
-  // Art load is per-engine with a module-shared promise (first engine wins),
-  // but mips live ON the engine: every later engine backfills from the
-  // shared art cache so rematches/mirrors render (mips are read-only after
-  // load, safe to share).
-  if (sharedArt) {
-    e.mips = sharedArt.mips;
-    e.shadowCanvas = sharedArt.shadow;
-    try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); } catch (err) { warnOnce(err); }
-    e.ready = true;
-    api.ready = true;
-  } else if (!createState.loadStarted && typeof e.load === 'function') {
-    createState.loadStarted = true;
-    loadProbe('preprocess-start', { source: 'FrostEngine.load' });
-    try {
-      e.load().then(() => {
-        sharedArt = { mips: e.mips, shadow: e.shadowCanvas };
-        for (const [, other] of liveStates) {
-          if (other.engine !== e) {
-            other.engine.mips = e.mips;
-            other.engine.shadowCanvas = e.shadowCanvas;
-            try { other.engine.prepareSurfaces(other.engine.iceCanvas.width, other.engine.iceCanvas.height); } catch (prepErr) { warnOnce(prepErr); }
-            other.engine.ready = true;
-          }
-        }
-        api.ready = true;
-        loadProbe('preprocess-ready', { cacheStats: G.cacheStats ? { ...G.cacheStats } : null });
-      }).catch((err) => {
-        api.error = String(err);
-        loadProbe('preprocess-error', { error: String(err) });
-      });
-    } catch (err) {
-      api.error = String(err);
-      loadProbe('preprocess-error', { error: String(err) });
-    }
-  }
+  // This promise starts before public battle readiness. No first-cast decode.
+  if (sharedArt) installSharedFrostArt(e);
+  else void startFrostArtWarmup().catch(warnOnce);
   const S = {
     ct, fighter: f, engine: e, cfg,
     tOff: null, // engine.t - clock()
@@ -2055,6 +2056,8 @@ api.clearIntegrityTrace = function () {
 };
 
 
+api.whenReady=startFrostArtWarmup();
+api.whenReady.catch(()=>{});
 loadProbe('runtime-ready', { runtime: 'frostPresentationRuntime' });
 g.apexFrostPresentationRuntime = 'ready';
 })(typeof window !== 'undefined' ? window : globalThis);

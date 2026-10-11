@@ -33,7 +33,10 @@ s=s.replace('if (A.trav >= A.total || d < A.speed * dt * 1.2)', 'if (this.contac
 s=s.replace('function rtDeriveLayers(im){','function rtDeriveLayers(im){\n cacheStats.derivations++;');
 s=s.replace('function rtLoadImages(){','function rtLoadImages(){\n if(rootPromise)return rootPromise;\n cacheStats.rootLoads++;');
 s=s.replace('  return Promise.all(Object.entries(ROOT_TRAP_ART)', '  return rootPromise=Promise.all(Object.entries(ROOT_TRAP_ART)');
-s=s.replace('im.onerror=()=>res();','im.onerror=()=>{throw Error("Hunter V10 art failed: "+src);};');
+s=s.replace('Object.entries(ROOT_TRAP_ART).map(([k,src])=>new Promise(res=>{','Object.entries(ROOT_TRAP_ART).map(([k,src])=>new Promise((res,rej)=>{');
+s=s.replace('im.onload=()=>{out[k]=rtDeriveLayers(im);res();};','im.onload=()=>{try{out[k]=rtDeriveLayers(im);res();}catch(e){rej(e);}};');
+s=s.replace('}))).then(()=>out);','}))).then(()=>out).catch(e=>{rootPromise=null;throw e;});');
+s=s.replace('im.onerror=()=>res();','im.onerror=()=>rej(new Error("Hunter V10 art failed: "+src));');
 // POST-PLAYTEST 2026-09-29: normal ARMED is mechanical and energy-silent.
 s=s.replace("rtSetPose(R,RT_POSE.open);R.coreTarget=1;R.slotTarget=.4;R.edge=.08;R.tension=0;R.sweepAmt=.35;R.sweepDir=1;R.sweepT=0;R.armedT=0;",
  "rtSetPose(R,RT_POSE.open);R.coreTarget=1;R.slotTarget=0;R.edge=0;R.tension=0;R.sweepAmt=0;R.sweepDir=1;R.sweepT=-1;R.armedT=0;");

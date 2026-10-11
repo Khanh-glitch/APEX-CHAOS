@@ -355,6 +355,10 @@
   }
 
   function cachedConstructLayer(ctx, cons, front) {
+    // Hexa Prison has six independently growing walls. The parent 'grown'
+    // flag does not guarantee that a cached front/back snapshot captured
+    // every facet. Keep linear Wall raster caching; render Prism/Hexa live.
+    if (cons.kind === 'prison') return false;
     if (!constructRasterStable(cons)) {
       if (constructRasterCache.has(cons)) {
         constructRasterCache.delete(cons); constructCacheStats.invalidations += 1;
