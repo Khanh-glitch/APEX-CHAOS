@@ -91,3 +91,7 @@ Protected regressions already exist: `tools/testMirrorCoreSixInterop.mjs`, `tool
 - If a capability or collision ordering is not yet modeled, record `UNRESOLVED` and ask for approval; never patch other hero runtimes solely to make the new content pass.
 - Never weaken existing regression gates or unlock the six non-playable heroes by changing a roster count assertion.
 - CP3 acceptance prerequisite: shadow-comparison proves the common policy returns **identical** answers to the current specialized consumers for all existing variants, including invalid/held/reflected/phased projectiles.
+
+## CP5/Main audit correction — V43 floor holders are not ballistic bullets
+
+At the original CP1 baseline, `CFG.isGun()` was used to exclude all V43 *floor* holders from Magnet. This proved unintended for the owner's real ranged V43 guns: `isGun` classifies conventional firearm *projectile families*, not the weapon slots eligible for Magnet A1/A2. The accepted corrected policy is: revealed non-heal non-T6 conventional gun **or registered V43 special with ranged holder category**. All eight current V43 ranged holders qualify; their **projectiles retain independent kinetic/energy capability tags** (flame/plasma emission remains nonmagnetic). The corrected policy has its own actual floor-motion test and updates the CP2 and CP3 shadow baselines. This change must not convert their projectile type to `aq_bullet` or bypass V43 physics.

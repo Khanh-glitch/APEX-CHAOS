@@ -49,8 +49,10 @@ export function installShadowQuery(CapabilityAuthority) {
     if (action === 'magnet-revealed-slot') {
       if (!config || typeof config.isGun !== 'function') return result('unresolved', 'missing-config');
       if (!id || !known) return result('unresolved', 'unregistered-weapon');
+      const specialFloor = !!special && special.tier !== 'T6'
+        && context.weapons?.[id]?.category === 'ranged';
       const ok = target.phase === 'REVEALED' && target.kind !== 'HEAL'
-        && !t6 && config.isGun(id);
+        && !t6 && (config.isGun(id) || specialFloor);
       return result(ok ? 'allowed' : 'denied', 'magnet-floor-gun-law');
     }
 

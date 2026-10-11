@@ -8,6 +8,7 @@ on:
       - 'tools/lib/contentBaseline.mjs'
       - 'src/game/localeCatalog.js'
       - 'tools/testContentAdmissionGate.mjs'
+      - 'tools/testV43MagnetFloorPickup.mjs'
       - 'docs/architecture/content-admission/extensions.json'
       - 'tools/lib/crystalaHarness.mjs'
       - 'public/game/arsenal/**'
@@ -37,3 +38,5 @@ jobs:
           node tools/testInteractionPolicyShadow.mjs
           node --check tools/testContentAdmissionGate.mjs
           node tools/testContentAdmissionGate.mjs
+          node --check tools/testV43MagnetFloorPickup.mjs
+          node tools/testV43MagnetFloorPickup.mjs

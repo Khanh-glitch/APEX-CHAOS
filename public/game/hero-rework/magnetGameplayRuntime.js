@@ -202,8 +202,17 @@
     return !!(cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
   }
   function isEligibleFloorFirearm(slot) {
-    return !!slot && slot.phase === 'REVEALED' && slot.kind !== 'HEAL'
-      && isFirearm(slot.weaponId);
+    if (!slot || slot.phase !== 'REVEALED' || slot.kind === 'HEAL'
+      || !slot.weaponId || isT6Weapon(slot.weaponId)) return false;
+    if (isFirearm(slot.weaponId)) return true;
+    // V4.3 specials are REAL equipped ranged weapons, but CFG.isGun()
+    // intentionally covers only conventional families. Magnet A1/A2 act
+    // on a revealed floor HOLDER, not on that gun's projectile material:
+    // FLAMETHROWER/PLASMA holders can move even when their emissions cannot.
+    const cfg = globalScope.APEX_ARSENAL_CONFIG;
+    return !!cfg?.V43_WEAPONS?.[slot.weaponId]
+      && cfg.V43_WEAPONS[slot.weaponId].tier !== 'T6'
+      && globalScope.APEX_ARSENAL_WEAPONS?.[slot.weaponId]?.category === 'ranged';
   }
   function isEligibleBullet(p) {
     // Ordinary firearm bullets and V4.3 PHYSICAL projectiles are kinetic.
