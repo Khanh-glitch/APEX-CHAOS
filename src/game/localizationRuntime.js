@@ -63,6 +63,53 @@ function setDocLanguage(doc){
     if(css&&css.textContent!==FRAME_FONT_CSS)css.textContent=FRAME_FONT_CSS;
   }
 }
+
+function canvasCopy(source){
+  if(typeof source!=='string')return source;
+  const direct=translateCopy(source,language);
+  if(direct!==source)return direct;
+  if(language!=='vie')return source;
+  const swarm=source.match(/^SWARM\s*\/\s*(.+)$/);
+  if(swarm)return 'BẦY PHẾ LIỆU / '+swarm[1];
+  const lock=source.match(/^LOCK (.+?)(\s+·\s+.+)$/);
+  if(lock)return 'KHÓA '+lock[1]+lock[2];
+  const fail=source.match(/^A1 FAILED:\s*(.+)$/);
+  if(fail)return 'KỸ NĂNG 1 THẤT BẠI: '+fail[1];
+  const milestone=source.match(/^BURST M(\d+)$/);
+  if(milestone)return 'BÙNG NỔ M'+milestone[1];
+  return source;
+}
+// Local presentation decorator. It is installed on the ONE actual game
+// canvas's existing 2D context, never the global Canvas prototype, offscreen
+// canvases, Gold transitions, Lucky Draw, story snapshots or weapon canvases.
+// No combat source, renderer ordering, physics or weapon IDs are modified.
+function installCanvasLocale(doc){
+  const canvas=doc.getElementById?.('game-canvas');
+  if(!canvas||canvas.__apexCanvasLocaleInstalled)return;
+  let ctx;
+  try{ctx=canvas.getContext('2d');}catch{return;}
+  if(!ctx)return;
+  for(const method of ['fillText','strokeText']){
+    const original=ctx[method];
+    if(typeof original!=='function')continue;
+    Object.defineProperty(ctx,method,{configurable:true,writable:true,value:function(...args){
+      if(language!=='vie'||typeof args[0]!=='string')return original.apply(this,args);
+      const out=canvasCopy(args[0]);
+      if(out===args[0])return original.apply(this,args);
+      args[0]=out;
+      const oldFont=this.font;
+      // Some Gold display faces omit Vietnamese accents. Change the glyph
+      // face only for this localized draw call; restore the exact old font.
+      const vietnameseFont=typeof oldFont==='string'
+        ?oldFont.replace(/Impact|Bahnschrift|ui-monospace/g,'Arial'):oldFont;
+      if(vietnameseFont!==oldFont)this.font=vietnameseFont;
+      try{return original.apply(this,args);}
+      finally{if(this.font!==oldFont)this.font=oldFont;}
+    }});
+  }
+  Object.defineProperty(canvas,'__apexCanvasLocaleInstalled',{value:true,configurable:true});
+}
+
 function installDocument(doc){
   if(!doc?.documentElement)return;
   if(roots.has(doc))return;
@@ -84,6 +131,7 @@ function installDocument(doc){
       // Frame discovery belongs to node insertions only. Combat counters
       // update text every frame; scanning the entire document on each tick
       // would add unnecessary work to the 60 FPS path.
+      if(records.some(change=>change.type==='childList'&&change.addedNodes.length))installCanvasLocale(doc);
       for(const change of records){
         if(change.type!=='childList')continue;
         for(const node of change.addedNodes){
@@ -97,6 +145,7 @@ function installDocument(doc){
   observer.observe(doc.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:ATTRS});
   rec.observer=observer;
   attachFrames(doc);
+  installCanvasLocale(doc);
 }
 function wireFrame(frame){
   if(!frame.__apexLocaleWired){
