@@ -206,10 +206,17 @@
       && isFirearm(slot.weaponId);
   }
   function isEligibleBullet(p) {
-    // Ordinary firearm bullets and V4.3 PHYSICAL projectiles are kinetic.
-    // V43 devices are NOT in CFG.isGun(): requiring isFirearm here silently
-    // let rockets/steel balls pass through Magnet A2. Flame, flare, plasma,
-    // and post-impact burns are NOT deflectable by a magnetic field.
+    // CP5: AIL is the single policy authority in real product battles.
+    // An unknown or unregistered kind is NOT automatically admitted.
+    const auth=globalScope.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+    if(auth && typeof auth.query==='function'){
+      const decision=auth.query('magnet-projectile',p,{
+        config:globalScope.APEX_ARSENAL_CONFIG,
+      });
+      return decision.status==='allowed';
+    }
+    // Legacy predicate exists only for isolated old V43 tests that load
+    // Magnet without the product AIL runtime.
     const normal=p?.type==='aq_bullet'&&isFirearm(p.weapon);
     const special=globalScope.APEX_ARSENAL_CONFIG?.V43_WEAPONS?.[p?.weapon];
     const physical=p?.type==='aq_v43'&&!!special&&special.tier!=='T6'
