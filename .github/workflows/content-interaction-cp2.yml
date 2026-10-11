@@ -1,0 +1,26 @@
+name: Content Interaction CP2 Baseline
+on:
+  pull_request:
+    paths:
+      - 'tools/testContentInteractionBaseline.mjs'
+      - 'tools/lib/crystalaHarness.mjs'
+      - 'public/game/arsenal/**'
+      - 'public/game/hero-rework/**'
+      - '.github/workflows/content-interaction-cp2.yml'
+  workflow_dispatch:
+jobs:
+  real-runtime-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Freeze real-runtime content interaction baseline
+        run: node tools/testContentInteractionBaseline.mjs
