@@ -203,6 +203,51 @@ export const COPY = Object.freeze(Object.fromEntries([
 ]));
 // Owner-locked Vietnamese story dialogue is canonical; the English option
 // provides a separate display-only rendering without mutating story receipts.
+
+// Quest Director summaries and cinematic telemetry captions.
+const QUEST_EXTRA=Object.freeze({
+ 'No valid network ID. One machine wakes in the Scrap Basin.':'Không có mã mạng hợp lệ. Một cỗ máy thức tỉnh tại Scrap Basin.',
+ 'Two routines wake beneath the scrap. Learn the controls through a real encounter.':'Hai chuỗi lệnh thức tỉnh dưới lớp phế liệu. Học cách điều khiển qua một trận chiến thực sự.',
+ 'WORKSHOP — THREE FAILURES':'XƯỞNG — BA KẺ THẤT BẠI',
+ 'Three discarded units take shelter together. The workshop is their last safe place.':'Ba cỗ máy bị vứt bỏ cùng trú ngụ. Xưởng là nơi an toàn cuối cùng của họ.',
+ 'NEWBOT and T.O.T stand together against two approaching scrap hunters.':'NEWBOT và T.O.T sát cánh chống lại hai kẻ săn phế liệu đang áp sát.',
+ 'Two waves. Seven hostiles. Hold the basin without losing NEWBOT.':'Hai đợt tấn công. Bảy kẻ địch. Giữ vững khu vực và bảo vệ NEWBOT.',
+ 'Metal falls from above. Survive two hostiles and the final rain of weapons.':'Kim loại trút xuống từ trên cao. Sống sót trước hai kẻ địch và cơn mưa vũ khí cuối cùng.',
+ 'Charge the impact accumulator with genuine weapon damage. Hold until the relay answers.':'Dùng sát thương vũ khí thực tế để nạp bộ tích lũy va chạm. Cầm cự đến khi trạm tiếp sóng phản hồi.',
+ 'Three allies defend the basin in three real waves. RIVET secures the rig before joining the front.':'Ba đồng minh bảo vệ khu vực qua ba đợt tấn công. RIVET khóa giàn điều khiển an toàn trước khi ra tiền tuyến.',
+ 'NEWBOT faces T.O.T. Only one of them can make the final choice.':'NEWBOT đối mặt T.O.T. Chỉ một người có thể đưa ra lựa chọn cuối cùng.',
+ 'T.O.T chose to stop. NEWBOT steps beyond the workshop.':'T.O.T đã chọn dừng lại. NEWBOT bước ra khỏi xưởng.',
+ 'ROUTINE DETECTED':'PHÁT HIỆN CHUỖI LỆNH','NEW COMMAND':'LỆNH MỚI',
+ 'TWO SCOUTS DEFEATED · MORE CONTACTS AHEAD':'ĐÃ HẠ HAI TRINH SÁT · PHÍA TRƯỚC VẪN CÒN KẺ ĐỊCH',
+ 'SEVEN HOSTILES DOWN · THE WEAPON CYCLE CHANGES':'ĐÃ HẠ BẢY KẺ ĐỊCH · CHU KỲ VŨ KHÍ THAY ĐỔI',
+ 'NEWBOT KO · RETRY CHECKPOINT':'NEWBOT GỤC NGÃ · THỬ LẠI TỪ ĐIỂM LƯU',
+ 'IMPACT ACCUMULATOR · THE NEXT OBJECTIVE':'BỘ TÍCH LŨY VA CHẠM · MỤC TIÊU TIẾP THEO',
+ 'RETRY · CHECKPOINT PRESERVED':'THỬ LẠI · ĐÃ GIỮ ĐIỂM LƯU',
+ '6000 ACCEPTED IMPACT · INFRASTRUCTURE PULSE SENT':'ĐÃ NHẬN 6000 SÁT THƯƠNG VA CHẠM · ĐÃ PHÁT XUNG TÍN HIỆU',
+ 'RIVET LEAVES THE CONTROL RIG · NO AUTOMATIC OPERATOR':'RIVET RỜI GIÀN ĐIỀU KHIỂN · GIÀN KHÔNG TỰ VẬN HÀNH',
+ 'SCRAP BASIN · THE RELAY ANSWERS':'SCRAP BASIN · TRẠM TIẾP SÓNG PHẢN HỒI',
+ 'THE RELAY ANSWERS FROM BEYOND THE RIG':'TÍN HIỆU PHẢN HỒI ĐẾN TỪ BÊN NGOÀI GIÀN ĐIỀU KHIỂN',
+ 'T.O.T + RIVET: REGISTERED · NEWBOT: NO VALID NETWORK ID':'T.O.T + RIVET: ĐÃ ĐĂNG KÝ · NEWBOT: KHÔNG CÓ MÃ MẠNG HỢP LỆ',
+ 'PASSIVE HOLD ENDS · RETURN TO THE RIG':'KẾT THÚC GIỮ THỤ ĐỘNG · QUAY LẠI GIÀN ĐIỀU KHIỂN',
+ 'THE EXTERNAL SIGNAL FORCES A RECONNECTION':'TÍN HIỆU BÊN NGOÀI ÉP KẾT NỐI LẠI',
+ 'RIVET · LAST COMMAND BEFORE EXTERNAL CONTROL':'RIVET · LỆNH CUỐI TRƯỚC KHI BỊ CHIẾM QUYỀN',
+ 'RIVET · 750 HP · NATIVE IMPACT':'RIVET · 750 HP · SÁT THƯƠNG THỰC',
+ 'RIVET · 450 HP · NATIVE IMPACT':'RIVET · 450 HP · SÁT THƯƠNG THỰC',
+ 'RIVET · 180 HP · PHYSICAL NONLETHAL STOP':'RIVET · 180 HP · KHỐNG CHẾ KHÔNG GÂY CHẾT',
+ 'RIVET SURVIVES · RETURN TO THE WORKSHOP':'RIVET SỐNG SÓT · TRỞ VỀ XƯỞNG',
+ 'NEWBOT KO · CHECKPOINT PRESERVED':'NEWBOT GỤC NGÃ · ĐÃ GIỮ ĐIỂM LƯU',
+ 'E08 · REAL ARSENAL BOSS DUEL':'E08 · ĐẤU BOSS BẰNG ARSENAL THỰC',
+ 'NATIVE DAMAGE GATE · SINGLE ARTIFACT':'NGƯỠNG SÁT THƯƠNG THỰC · CHỈ MỘT VŨ KHÍ',
+ 'PHYSICAL HIT OR MISS RESOLVED':'ĐÃ XÁC ĐỊNH VA CHẠM HOẶC TRƯỢT MỤC TIÊU',
+ 'NATIVE NONLETHAL HOLD · T.O.T CHOOSES':'KHỐNG CHẾ KHÔNG GÂY CHẾT · T.O.T TỰ CHỌN',
+ 'PHYSICAL RETREAT · CHECKPOINT PRESERVED':'RÚT LUI THỰC SỰ · ĐÃ GIỮ ĐIỂM LƯU',
+ 'BOTH FIGHTERS // HOLD':'CẢ HAI ĐẤU SĨ // TẠM DỪNG',
+ 'STORMBREAKER // GROUND CONTACT':'STORMBREAKER // TIẾP XÚC MẶT ĐẤT',
+ 'WORKSHOP // NETWORK IDENTITIES':'XƯỞNG // DANH TÍNH MẠNG',
+ 'PISTOL // CONTACT':'SÚNG NGẮN // TRÚNG ĐÍCH',
+ 'PISTOL // RETALIATION':'SÚNG NGẮN // BẮN TRẢ',
+});
+
 export const VIETNAMESE_DIALOGUE_EN = Object.freeze({
   'Lùi lại.':'Get back.',
   'Chúng ta là bạn à?':'Are we friends?',
@@ -285,11 +330,11 @@ export const PROPER_NAMES = Object.freeze([
   'FORWARD DRIVE','EAX-01','P1','P2','A1','A2','J','K','NUM1','NUM2','AC','BOT'
 ]);
 const PRESERVE = new Set(PROPER_NAMES.map(v=>v.toUpperCase()));
-const LOOKUP = new Map(Object.entries(COPY).map(([en,vi])=>[en.toUpperCase(),vi]));
+const LOOKUP = new Map(Object.entries({...COPY,...QUEST_EXTRA}).map(([en,vi])=>[en.toUpperCase(),vi]));
 function phrase(value){
   const t=value.trim();
   if(!t||PRESERVE.has(t.toUpperCase()))return t;
-  const exact=COPY[t]??LOOKUP.get(t.toUpperCase());
+  const exact=COPY[t]??QUEST_EXTRA[t]??LOOKUP.get(t.toUpperCase());
   if(exact!==undefined)return exact;
   const count=t.match(/^(\d+) (HITS?|CRITS?|HOSTILES DOWN|FIGHTERS?)$/i);
   if(count){const unit=phrase(count[2]);return count[1]+' '+unit;}
