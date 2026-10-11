@@ -292,7 +292,7 @@ export function translateCopy(input,language='eng'){
   if(language==='vie')return match[1]+phrase(original)+match[3];
   const reverse=VIETNAMESE_DIALOGUE_EN[original]||VIETNAMESE_UI_EN[original];
   if(reverse)return match[1]+reverse+match[3];
-  const parts=original.split(/(\\s+\/\/\\s+|\\s+·\\s+|\\s+\|\\s+)/);
+  const parts=original.split(/(\s+\/\/\s+|\s+·\s+|\s+\|\s+)/);
   if(parts.length>1)return match[1]+parts.map((p,i)=>i%2?p:(VIETNAMESE_UI_EN[p]||p)).join('')+match[3];
   return input;
 }
