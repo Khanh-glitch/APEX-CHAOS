@@ -1078,6 +1078,7 @@ function resolveNativeStreamTick(req) {
           // The reflected segment is the original Stream segment re-routed,
           // not a newly spawned projectile or an independent fire transaction.
           reflections.push({from:rStart,to:{x:rStart.x+nv.x*rem,y:rStart.y+nv.y*rem},
+            incomingAngle:dir,contactDistance:req.range-left,
             controller:cons.ct.anchor,source,damagePct:cons.ct.skills.PASSIVE.cfg.reflectedDamagePct,
             construct:cons.id,facet:cap.idx,tick:req.tick,ray:tIndex});
         }
