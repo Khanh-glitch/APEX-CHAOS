@@ -779,7 +779,9 @@
       // the REAL damaging cone. Stream ticks are not projectile/VFX particles.
       // This API accepts a carrier contract, not weapon IDs; any future Stream
       // emitter may use the same authoritative contact transaction.
-      const CR=window.APEX_CRYSTAL;
+      // The V43 Gold/contract VM intentionally runs without a browser global.
+      // Absent Crystala runtime means legacy no-construct gameplay unchanged.
+      const CR=typeof window!=='undefined'?window.APEX_CRYSTAL:null;
       const resolved=CR?.resolveNativeStreamTick?.({
         carrierKind:'stream',attack:p,tick:p.ticks,source:p.owner,
         origin:{x:p.x,y:p.y},angle:dir,cone:c.cone,range:c.range,
