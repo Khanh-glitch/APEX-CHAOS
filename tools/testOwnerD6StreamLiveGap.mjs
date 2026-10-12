@@ -44,7 +44,7 @@ function scenario(form) {
    a.x=350;a.y=500; b.x=610;b.y=500;
  }
  assert.ok(a.x>75&&a.x<925&&a.y>75&&a.y<925,'bad outside victim placement');
- const initialHp=a.hp,initialStructure=get().hp;
+ const initialHp=a.hp,sourceHp0=b.hp,initialStructure=get().hp;
  const angle=Math.atan2(a.y-b.y,a.x-b.x);
  const stream={
    aq:true,type:'aq_v43',kind:'flame',weapon:'FLAMETHROWER',
@@ -93,6 +93,7 @@ function scenario(form) {
  const remainingPanelHp=form==='wall'?ending.hp:ending.hp[facet];
  const out={
    form,facet,damageToBody:+dmg.toFixed(4),
+   reflectedDamageToOriginalSource:+(sourceHp0-b.hp).toFixed(4),
    structureHpBefore:initialPanelHp,structureHpAfter:remainingPanelHp,
    streamTicks:stream.ticks,
    earliestRealMaterialContact:{t:+witness.t.toFixed(4),facet:witness.facet,
@@ -109,7 +110,8 @@ function scenario(form) {
    assert.equal(remainingPanelHp,0,'owner A1: five real ticks must destroy contacted Wall/facet');
    // First four ticks reflect. Fifth breaking tick passes through unchanged.
    // Additional redirected Stream hit and burn truth is separately tested.
-   assert.ok(dmg>0,'owner A1: breaking tick must be able to reach victim beyond material');
+   assert.ok(dmg>0,'owner A1: breaking tick must reach victim beyond material');
+   assert.ok(b.hp<sourceHp0,'owner A1: nonbreaking ticks must reflect native Stream damage at original attacker');
  }
  passed++;
 }
