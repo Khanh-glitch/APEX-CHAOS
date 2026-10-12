@@ -113,10 +113,17 @@ check('Robot measures synchronous sprite preprocess',
   robotPresentation.includes("'preprocess-start'") && robotPresentation.includes("'preprocess-ready'"));
 check('Hunter measures Gold load/derive preprocess',
   hunterPresentation.includes("'preprocess-start'") && hunterPresentation.includes("'preprocess-ready'"));
-check('Frost measures instance Gold mip/surface preprocess',
-  frostPresentation.includes("source: 'FrostEngine.load'")
-  && frostPresentation.includes("e.load().then")
-  && !frostPresentation.includes("typeof G.load === 'function'"));
+check('Frost preprocess is prebattle, single-load, decoded and readiness-gated',
+  frostPresentation.includes("source:'FrostEngine.load/prebattle'")
+  && frostPresentation.includes('const loader=new G.FrostEngine()')
+  && frostPresentation.includes('Promise.resolve(loader.load()).then')
+  && frostPresentation.includes('installSharedFrostArt(state.engine)')
+  && frostPresentation.includes("api.whenReady=typeof g.Path2D==='function'")
+  && frostPresentation.includes('? startFrostArtWarmup()')
+  && frostPresentation.includes("Promise.reject(new Error('Frost art requires a Path2D-capable Canvas runtime'))")
+  && frostPresentation.includes("typeof g.Path2D==='function'")
+  && frostPresentation.includes("'preprocess-ready'")
+  && !frostPresentation.includes('e.load().then'));
 check('Magnet measures the Gold image fanout loader itself',
   magnetGold.includes("'preprocess-start'") && magnetGold.includes("'preprocess-ready'")
   && magnetGold.includes('assetJobs:jobs.length'));

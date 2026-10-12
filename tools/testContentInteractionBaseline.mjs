@@ -91,7 +91,10 @@ gate('frost-and-magnet-floor-policies-are-not-equivalent', () => {
   assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'STORMBREAKER',tier:'T6'}),false);
   const slot=id=>({kind:'WEAPON',weaponId:id,phase:'REVEALED'});
   assert.equal(M.isEligibleFloorFirearm(slot('PISTOL')),true);
-  assert.equal(M.isEligibleFloorFirearm(slot('RPG_7')),false);
+  assert.equal(M.isEligibleFloorFirearm(slot('RPG_7')),true);
+  for(const id of C.V43_SPECIAL_IDS){
+    assert.equal(M.isEligibleFloorFirearm(slot(id)),true,'V43 holder is a floor gun: '+id);
+  }
   assert.equal(M.isEligibleFloorFirearm(slot('STORMBREAKER')),false);
 });
 gate('T6-shared-capability-policy-exceptions', () => {

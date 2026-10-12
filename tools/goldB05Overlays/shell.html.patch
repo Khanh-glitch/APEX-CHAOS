@@ -3,8 +3,8 @@ diff --git a/public/gold/shell.html b/public/gold/shell.html
 +++ b/public/gold/shell.html
 @@ -1410,12 +1410,73 @@
  
- <script src="/game/ui/uiSfxAuthority.js?v=20261010-v43-post-update-02"></script>
- <script src="/game/gold/goldProductBridge.js?v=20261010-v43-post-update-02"></script>
+ <script src="/game/ui/uiSfxAuthority.js?v=20261012-main-fx-v43-01"></script>
+ <script src="/game/gold/goldProductBridge.js?v=20261012-main-fx-v43-01"></script>
 +<script src="/game/quest/quest01Director.js?v=20261010-quest-fixed-robot-02"></script>
  <script>
  (() => {

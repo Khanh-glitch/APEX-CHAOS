@@ -498,11 +498,19 @@
         }
       }
       const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) => f && f.hp > 0);
+      const isRealRangedGun = (id) => {
+        if (!id || id === 'STORMBREAKER' || id === 'T6') return false;
+        if (CFG.isGun?.(id)) return true;
+        const special=CFG.V43_WEAPONS?.[id];
+        return !!special && special.tier !== 'T6'
+          && window.APEX_ARSENAL_WEAPONS?.[id]?.category === 'ranged';
+      };
       const holdsGun = (f) => {
         const h = weaponApi.getHolder(f);
-        return !!(h && CFG.isGun && CFG.isGun(h.weaponId));
+        return !!(h && isRealRangedGun(h.weaponId));
       };
-      const revealedGuns = (state.slots || []).filter((s) => s.phase === 'REVEALED' && s.kind !== 'HEAL' && CFG.isGun && CFG.isGun(s.weaponId)).length;
+      const revealedGuns = (state.slots || []).filter((s) =>
+        s.phase === 'REVEALED' && s.kind !== 'HEAL' && isRealRangedGun(s.weaponId)).length;
       const emergencyGunNeeded = !state.labMode && living.length >= 2
         && living.every((f) => !holdsGun(f)) && revealedGuns === 0
         // E03 allocates its regular first 4.5s-cycle slot to a REAL nearby

@@ -1956,9 +1956,9 @@ function rtLoadImages(){
  if(rootPromise)return rootPromise;
  cacheStats.rootLoads++;
   const out={};
-  return rootPromise=Promise.all(Object.entries(ROOT_TRAP_ART).map(([k,src])=>new Promise(res=>{
-    const im=new Image();im.onload=()=>{out[k]=rtDeriveLayers(im);res();};im.onerror=()=>{throw Error("Hunter V10 art failed: "+src);};im.src=src;
-  }))).then(()=>out);
+  return rootPromise=Promise.all(Object.entries(ROOT_TRAP_ART).map(([k,src])=>new Promise((res,rej)=>{
+    const im=new Image();im.onload=()=>{try{out[k]=rtDeriveLayers(im);res();}catch(e){rej(e);}};im.onerror=()=>rej(new Error("Hunter V10 art failed: "+src));im.src=src;
+  }))).then(()=>out).catch(e=>{rootPromise=null;throw e;});
 }
 function rtFreshArm(){return {root:new RT_SO(0,4,.6),blade:new RT_SO(0,4,.6),rootS:new RT_SO(1,4,.7),target:{...RT_POSE.compact}};}
 function rtEnsure(st){

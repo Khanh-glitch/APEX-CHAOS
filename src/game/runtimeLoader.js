@@ -248,7 +248,22 @@ export function loadBattleGameRuntimes(heroIds) {
   if (battleRuntimePromises.has(key)) return battleRuntimePromises.get(key);
   publishBattleRuntimeState(key, heroIds, false);
   const gate = enqueueGroup(runtimes, { priority: true })
-    .then(() => {
+    .then(async () => {
+      const selected = new Set((Array.isArray(heroIds) ? heroIds : []).map(id=>String(id||'').toLowerCase()));
+      const materialGates = [];
+      if (selected.has('hunter')) {
+        const ready=window.APEX_HUNTER_PRESENTATION?.whenReady;
+        if (!ready || typeof ready.then !== 'function')
+          throw new Error('Hunter skill/trap asset preload gate missing');
+        materialGates.push(ready);
+      }
+      if (selected.has('frost') || selected.has('ice')) {
+        const ready=window.APEX_FROST_PRESENTATION?.whenReady;
+        if (!ready || typeof ready.then !== 'function')
+          throw new Error('Frost skill material preload gate missing');
+        materialGates.push(ready);
+      }
+      await Promise.all(materialGates);
       battleRuntimeReadyKeys.add(key);
       publishBattleRuntimeState(key, heroIds, true);
       return true;

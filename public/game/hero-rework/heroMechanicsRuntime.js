@@ -376,13 +376,12 @@
     const self = ctx.combatant && ctx.combatant.anchor;
     if (!self) return { shouldCast:false, score:0, reason:'no-self', retryAfter:.35 };
 
-    const cfg = globalScope.APEX_ARSENAL_CONFIG;
-    const isGun = (id) => !!(id && id !== 'STORMBREAKER' && id !== 'T6'
-      && cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
+    // AI and physics MUST consult the same floor/kinetic admission rules.
+    // CFG.isGun is only conventional families; it excludes real V43 holders
+    // and their selectively magnetic physical projectiles.
     const state = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
     const floor = state && Array.isArray(state.slots)
-      ? state.slots.filter((slot) => slot && slot.phase === 'REVEALED'
-          && slot.kind !== 'HEAL' && isGun(slot.weaponId))
+      ? state.slots.filter((slot) => m.isEligibleFloorFirearm(slot))
       : [];
 
     // A1 attraction owns arena-wide floor-gun force, so a real eligible floor
@@ -406,16 +405,15 @@
       }
     }
 
-    // Closest-approach truth during the authored active window. This covers
-    // hostile and neutral firearm bullets while excluding own/T6/non-firearm
-    // objects; no aim/speed-tier heuristic is introduced.
+    // Closest-approach truth during the authored active window. Include
+    // ordinary firearm bullets AND eligible V43 physical bodies; never allow
+    // plasma/flame/status or T6 projectiles here.
     const liveFor = kind === 'a1'
       ? (ctx.cfg.gameplayDuration ?? 1)
       : (ctx.cfg.duration ?? 1.8);
     const projectiles = ctx.api.liveProjectiles ? ctx.api.liveProjectiles() : [];
     for (const p of projectiles) {
-      if (!p || p.aq !== true || p.type !== 'aq_bullet' || p.life === 0
-          || !isGun(p.weapon) || (p.__hr && p.__hr.cryHold)) continue;
+      if (!m.isEligibleBullet(p)) continue;
       const ownerCt = ctx.api.combatantOfBody ? ctx.api.combatantOfBody(p.owner) : null;
       if (ownerCt === ctx.combatant || p.owner === self
           || (ctx.api.ownsBody && ctx.api.ownsBody(ctx.combatant,p.owner))) continue;
