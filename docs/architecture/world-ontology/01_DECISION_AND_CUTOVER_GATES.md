@@ -21,7 +21,7 @@
 - Crystala needs incoming Stream contact coverage, but the exact way to reflect or counter continuous streams is not owner-defined.
 
 ## Review/approval decisions (only when crossing associated production seam)
-**B01 — Crystala:** When a continuous flame/beam/acid stream reaches Wall/Hexa/K, is it only blocked or also reflected/converted into a counter-stream or damage event? The existing breaking-shot, six-shard and Gold rules remain authoritative.
+**B01 — Crystala OWNER-RESOLVED 2026-10-13:** Option B: reflect the ACTUAL incoming Stream using native stream geometry, no fake projectile. Wall and HEXA are the SAME A1 with different constructs and existing structural/break laws; K/A2 is a distinct six-shard mechanism and is not implicitly extended. Remaining OPEN only: recurring Stream-to-structure damage/break-through cadence (does not change owner choice B). See `02_CRYSTALA_STREAM_REFLECTION_B.md`.
 
 **B02 — Frost:** Which non-firearm Weapon forms can be frozen as Equipment? Frozen ordinary bullets remain the *only* current Passive trigger; do not silently convert flames or melee to freeze bullets.
 
