@@ -6,6 +6,7 @@ on:
       - 'tools/world-ontology/**'
       - 'tools/testWorldOntologyCrystalaStream.mjs'
       - 'tools/testWorldOntologyRuntimeSnapshot.mjs'
+      - 'tools/testWorldOntologyCommercialMode.mjs'
       - '.github/workflows/world-ontology-design.yml'
   workflow_dispatch:
 
@@ -28,7 +29,11 @@ jobs:
           node --check tools/world-ontology/crystalaStreamContract.reference.mjs
           node --check tools/testWorldOntologyCrystalaStream.mjs
           node --check tools/testWorldOntologyRuntimeSnapshot.mjs
+          node --check tools/testWorldOntologyCommercialMode.mjs
+          node --check tools/world-ontology/commercialModeContent.reference.mjs
       - name: Crystala A1 Stream B semantics (REFERENCE ONLY; not runtime)
         run: node tools/testWorldOntologyCrystalaStream.mjs
+      - name: Commercial cosmetics, gameplay variants and future ModePolicy (REFERENCE ONLY)
+        run: node tools/testWorldOntologyCommercialMode.mjs
       - name: Read real effective Arsenal/Hero registries (AUDIT ONLY)
         run: node tools/testWorldOntologyRuntimeSnapshot.mjs
