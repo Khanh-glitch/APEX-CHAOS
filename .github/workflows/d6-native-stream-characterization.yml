@@ -29,6 +29,11 @@ jobs:
           node --check tools/testOwnerD6StreamLiveGap.mjs
           node --check tools/testOwnerD6GenericStreamContacts.mjs
           node --check tools/world-ontology/attackCarrierContact.reference.mjs
+      - name: Exact new runtime revision + Gold source cutover consistency
+        run: |
+          pnpm test:runtime-revision
+          node tools/testGoldB05PatchRevision.mjs
+          node tools/buildGoldCutover.mjs --check
       - name: Derive exact changed artifact SHA-256 and bytes for fail-closed revision lock
         run: |
           sha256sum public/game/arsenal/arsenalWeaponRuntime.js public/game/hero-rework/crystalGameplayRuntime.js public/gold/shell.html
