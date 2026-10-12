@@ -6,6 +6,7 @@ on:
       - 'public/game/arsenal/arsenalWeaponRuntime.js'
       - 'tools/testOwnerD6StreamLiveGap.mjs'
       - 'tools/testOwnerD6GenericStreamContacts.mjs'
+      - 'tools/testOwnerD6NativeGoldFlameRoutes.mjs'
       - 'tools/world-ontology/attackCarrierContact.reference.mjs'
       - '.github/workflows/d6-native-stream-characterization.yml'
   workflow_dispatch:
@@ -28,6 +29,7 @@ jobs:
         run: |
           node --check tools/testOwnerD6StreamLiveGap.mjs
           node --check tools/testOwnerD6GenericStreamContacts.mjs
+          node --check tools/testOwnerD6NativeGoldFlameRoutes.mjs
           node --check tools/world-ontology/attackCarrierContact.reference.mjs
       - name: Derive exact changed artifact SHA-256 and bytes for fail-closed revision lock
         run: |
@@ -40,6 +42,8 @@ jobs:
           node tools/buildGoldCutover.mjs --check
       - name: Generic Stream and Beam material semantics (REFERENCE ONLY)
         run: node tools/testOwnerD6GenericStreamContacts.mjs
+      - name: Original Gold Flame source-route control and reflection visual witness
+        run: node tools/testOwnerD6NativeGoldFlameRoutes.mjs
       - name: Real Arsenal Flame owner-law proof (Wall, HEXA, reflected source, breaking tick)
         run: node tools/testOwnerD6StreamLiveGap.mjs
       - name: Existing V43 damage/gold flame mechanics contracts
