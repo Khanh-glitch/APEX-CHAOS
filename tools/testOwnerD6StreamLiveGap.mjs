@@ -136,6 +136,45 @@ for(const hz of [30,60,120]){
   scenario('wall',hz);
   scenario('hexa',hz);
 }
+// Generalization proof: a completely new energy Stream MUST be discovered by
+// native material semantics without adding the weapon ID to Crystala.
+function genericFutureStream() {
+  HR.setSeed(441);HR.setAiEnabled(false);
+  const m=T.start('CRYSTAL','ROBOT');T.holdSpawns();
+  const [a,b]=win.fighters;a.baseSpeed=b.baseSpeed=0;
+  a.x=150;a.y=500;b.x=850;b.y=500;
+  a.setDir(1,0);b.setDir(-1,0);
+  T.step(.3);
+  assert.ok(HR.pressAbility(a,'A1').ok);
+  const ct=m.combatants[0],get=()=>CRY.inspect(ct).constructs.find(x=>x.kind==='wall');
+  assert.ok(stepUntil(()=>get()?.lockedAt!=null),'future-energy wall not solid');
+  const attack={aq:true,weapon:'FUTURE_ENERGY_STREAM',__hr:{}};
+  const spec=tick=>({
+    carrierKind:'stream',attack,tick,source:b,
+    origin:{x:b.x,y:b.y},angle:Math.atan2(a.y-b.y,a.x-b.x),
+    cone:.06,range:650,tickDamage:18,targets:[]
+  });
+  const initial=get().hp;
+  let r=CRY.resolveNativeStreamTick(spec(0));
+  assert.equal(r.status,'allowed');assert.ok(r.reflections.length>0);
+  assert.equal(get().hp,initial-18,
+    'future energy Stream did not inherit Wall damage law exactly once');
+  const second=CRY.resolveNativeStreamTick(spec(0));
+  assert.equal(second.status,'allowed');
+  assert.equal(get().hp,initial-18,
+    'same AttackCarrier tick must not reapply structure HP on repeated call');
+  r=CRY.resolveNativeStreamTick(spec(1));
+  assert.equal(r.status,'allowed');assert.equal(get().hp,initial-36);
+  const t6=CRY.resolveNativeStreamTick({
+    ...spec(2),attack:{aq:true,weapon:'FUTURE_ENERGY_STREAM',
+      heroManipulationImmune:true,__hr:{}}
+  });
+  assert.equal(t6.status,'denied');
+  assert.equal(get().hp,initial-36,'protected attack must not mutate Wall');
+  console.log('PASS D6 future energy Stream generic inheritance and tick idempotence');
+}
+if(!characterize)genericFutureStream();
+
 console.log('D6 FLAME '+(characterize?'CHARACTERIZATION OF KNOWN GAP':'OWNER-LAW EXPECTATION')+
   ': '+passed+'/'+passed+' real Arsenal scenarios; NOT visual/redirect damage certification');
 process.exit(0);
