@@ -1,0 +1,26 @@
+name: D6 Native Stream Gap Characterization (no cutover)
+on:
+  pull_request:
+    paths:
+      - 'tools/testOwnerD6StreamLiveGap.mjs'
+      - '.github/workflows/d6-native-stream-characterization.yml'
+  workflow_dispatch:
+
+jobs:
+  real-stream-gap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Syntax of characterization harness
+        run: node --check tools/testOwnerD6StreamLiveGap.mjs
+      - name: Reproduce shipped A1 native Stream collision gap (KNOWN BAD, not an owner-law PASS)
+        run: node tools/testOwnerD6StreamLiveGap.mjs --characterize
