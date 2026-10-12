@@ -55,18 +55,24 @@ function scenario(form) {
    ticks:0,flameOrigins:[],hits:new Set(),phase:'flight'
  };
  win.projectiles.push(stream);
- T.step(.36);
+ // Capture the genuinely LIVE material on the first damaging tick. A fixed
+ // candidate destroys the Wall/HEXA by tick five, so querying only AFTER the
+ // entire attack is both invalid and a false failure.
+ T.step(.06);
+ const firstTickCaps=CRY.capsules().filter(cap=>cap.cons?.id===get().id)
+   .map(cap=>({...cap,cons:{...cap.cons,state:'LIVE'}}));
+ const firstTickMuzzle={x:stream.x,y:stream.y,angle:stream.angle};
+ T.step(.30);
  const ending=get();
  const dmg=initialHp-a.hp;
  // The REAL Gold-aligned muzzle/angle is now on the live Stream carrier.
  // Check whether authoritative Crystala material actually lies between the
  // native emitting position and the damaged fighter's body. Never infer
  // this from decorative flame particles.
- const geom=HR.geom,realMaterials=CRY.capsules()
-   .filter(cap=>cap.cons?.id===get().id);
+ const geom=HR.geom,realMaterials=firstTickCaps;
  assert.equal(typeof geom?.capsuleToi,'function','missing shared capsule TOI authority');
  const witness=realMaterials.map(cap=>{
-   const hit=geom.capsuleToi(stream.x,stream.y,a.x,a.y,
+   const hit=geom.capsuleToi(firstTickMuzzle.x,firstTickMuzzle.y,a.x,a.y,
      cap.ax,cap.ay,cap.bx,cap.by,cap.r);
    return hit?{t:hit.t,facet:cap.idx,nx:hit.nx,ny:hit.ny,
      constructId:cap.cons.id}:null;
@@ -79,8 +85,8 @@ function scenario(form) {
  // The current reference is sampled and does not mutate live gameplay.
  const semantic=sampleAttackCarrierSurfaces({
    carrierKind:'stream',id:'live-flame-'+form,tick:4,
-   origin:{x:stream.x,y:stream.y},
-   direction:{x:Math.cos(stream.angle),y:Math.sin(stream.angle)},
+   origin:{x:firstTickMuzzle.x,y:firstTickMuzzle.y},
+   direction:{x:Math.cos(firstTickMuzzle.angle),y:Math.sin(firstTickMuzzle.angle)},
    range:CFG.V43_WEAPONS.FLAMETHROWER.range,
    halfAngle:CFG.V43_WEAPONS.FLAMETHROWER.cone,sampleCount:65
  },realMaterials,geom.capsuleToi);
