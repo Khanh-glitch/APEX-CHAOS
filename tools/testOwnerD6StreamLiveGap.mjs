@@ -4,6 +4,7 @@
 // Without --characterize, desired owner-law behavior is the test oracle.
 import assert from 'node:assert/strict';
 import {bootHarness} from './lib/crystalaHarness.mjs';
+import {sampleAttackCarrierSurfaces} from './world-ontology/attackCarrierContact.reference.mjs';
 const {win,T,HR,CRY,CFG}=await bootHarness();
 const DT=1/60, characterize=process.argv.includes('--characterize');
 let passed=0;
@@ -74,6 +75,20 @@ function scenario(form) {
    'actual damaging muzzle-to-target path does not intersect owner A1 solid geometry');
  if(form==='hexa')assert.equal(witness.facet,facet,
    'native stream witness must impact the actual selected Hexa facet');
+ // A future energy / acid Stream uses this SAME material witness contract.
+ // The current reference is sampled and does not mutate live gameplay.
+ const semantic=sampleAttackCarrierSurfaces({
+   carrierKind:'stream',id:'live-flame-'+form,tick:4,
+   origin:{x:stream.x,y:stream.y},
+   direction:{x:Math.cos(stream.angle),y:Math.sin(stream.angle)},
+   range:CFG.V43_WEAPONS.FLAMETHROWER.range,
+   halfAngle:CFG.V43_WEAPONS.FLAMETHROWER.cone,sampleCount:65
+ },realMaterials,geom.capsuleToi);
+ assert.equal(semantic.status,'allowed','shared attack-carrier resolver failed');
+ assert.ok(semantic.materialContacts.some(c=>c.facetId===facet),
+   'actual hit panel missing from generic Stream/Beam material witness');
+ assert.equal(new Set(semantic.materialContacts.map(c=>c.receiptKey)).size,
+   semantic.materialContacts.length,'same A1 material charged more than once per tick');
  const initialPanelHp=form==='wall'?initialStructure:initialStructure[facet];
  const remainingPanelHp=form==='wall'?ending.hp:ending.hp[facet];
  const out={
@@ -82,6 +97,7 @@ function scenario(form) {
    streamTicks:stream.ticks,
    earliestRealMaterialContact:{t:+witness.t.toFixed(4),facet:witness.facet,
      nx:+witness.nx.toFixed(4),ny:+witness.ny.toFixed(4)},
+   genericCarrierSurfaceWitnesses:semantic.materialContacts.length,
    activeMaterial:realMaterials.length
  };
  console.log('D6 NATIVE FLAME CHARACTERIZATION '+JSON.stringify(out));
