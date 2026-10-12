@@ -1,0 +1,36 @@
+name: D5 Crystala A1 Shared Breaking-Hit Runtime Proof
+on:
+  pull_request:
+    paths:
+      - 'public/game/hero-rework/crystalGameplayRuntime.js'
+      - 'tools/testOwnerCrystalaA1SharedBreak.mjs'
+      - 'tools/testRuntimeRevisionGate.mjs'
+      - 'tools/runtimeRevision.lock.json'
+      - 'src/game/runtimeManifest.js'
+      - '.github/workflows/d5-crystala-a1-shared-break.yml'
+  workflow_dispatch:
+jobs:
+  exact-sha-real-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate source, lockfile and tested runtime revision
+        run: |
+          node --check public/game/hero-rework/crystalGameplayRuntime.js
+          node --check tools/testOwnerCrystalaA1SharedBreak.mjs
+          pnpm test:runtime-revision
+      - name: Real-gameplay Wall vs HEXA breaking projectile law
+        run: node tools/testOwnerCrystalaA1SharedBreak.mjs
+      - name: Current full Crystala production gameplay regressions
+        run: node tools/testCrystalaGameplayGates.mjs
+      - name: Existing content interaction baseline (no skipped T6)
+        run: node tools/testContentInteractionBaseline.mjs
