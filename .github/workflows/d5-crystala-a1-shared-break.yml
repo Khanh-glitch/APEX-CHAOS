@@ -16,6 +16,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # exact main base SHA for source A/B comparison
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.9
