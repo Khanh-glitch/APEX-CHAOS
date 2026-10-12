@@ -54,6 +54,9 @@ function scenario(form) {
    damage:CFG.V43_WEAPONS.FLAMETHROWER.tickDamage,
    ticks:0,flameOrigins:[],hits:new Set(),phase:'flight'
  };
+ const receiptLog=[];
+ const unsubscribe=win.APEX_HERO_REWORK_AIL.bus.on('CrystalStreamContact',
+   e=>receiptLog.push(e.payload));
  win.projectiles.push(stream);
  // Capture the genuinely LIVE material on the first damaging tick. A fixed
  // candidate destroys the Wall/HEXA by tick five, so querying only AFTER the
@@ -63,6 +66,7 @@ function scenario(form) {
    .map(cap=>({...cap,cons:{...cap.cons,state:'LIVE'}}));
  const firstTickMuzzle={x:stream.x,y:stream.y,angle:stream.angle};
  T.step(.30);
+ unsubscribe();
  const ending=get();
  const dmg=initialHp-a.hp;
  // The REAL Gold-aligned muzzle/angle is now on the live Stream carrier.
@@ -105,6 +109,7 @@ function scenario(form) {
    earliestRealMaterialContact:{t:+witness.t.toFixed(4),facet:witness.facet,
      nx:+witness.nx.toFixed(4),ny:+witness.ny.toFixed(4)},
    genericCarrierSurfaceWitnesses:semantic.materialContacts.length,
+   realStreamStructuralReceipts:receiptLog.filter(e=>e.cons===get().id && e.facet===facet).length,
    activeMaterial:realMaterials.length
  };
  console.log('D6 NATIVE FLAME CHARACTERIZATION '+JSON.stringify(out));
@@ -113,6 +118,12 @@ function scenario(form) {
    assert.ok(dmg>0,'legacy Flame did not reach victim; cannot characterize obstruction');
    assert.equal(remainingPanelHp,initialPanelHp,'legacy structure HP changed; update characterization');
  } else {
+   const panelReceipts=receiptLog.filter(e=>e.cons===get().id && e.facet===facet);
+   assert.equal(panelReceipts.length,5,
+     'owner A1: exact five real damage ticks, once per material surface per tick');
+   assert.deepEqual(panelReceipts.map(e=>e.broken),
+     [false,false,false,false,true],
+     'owner A1: first four ticks reflect and exactly fifth tick breaks through');
    assert.ok(remainingPanelHp<=0,'owner A1: five real ticks must destroy contacted Wall/facet');
    // First four ticks reflect. Fifth breaking tick passes through unchanged.
    // Additional redirected Stream hit and burn truth is separately tested.
