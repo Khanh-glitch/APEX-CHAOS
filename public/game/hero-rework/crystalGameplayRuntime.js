@@ -95,7 +95,7 @@ function newTele() {
     overflowThreats: 0, overflowHits: 0, reservations: 0, intercepts: 0, aborts: 0,
     repeatIntercepts: 0, reflectedDamage: 0, preventedDamage: 0, shardBusySeconds: 0,
     constructDamage: 0, wallBreaks: 0, facetBreaks: 0, constructEnds: [], jPerK: [],
-    constructReflects: 0, reflectedProjectiles: 0, urgentReservations: 0,
+    constructReflects: 0, reflectedProjectiles: 0, reflectedStreamTicks: 0, urgentReservations: 0,
     // Decision telemetry: measures the actual trade between K-only, early J
     // Prison, and delayed-J Wall without changing any gameplay law.
     decisionWindows: [], constructDecisions: [],
@@ -1064,7 +1064,14 @@ function resolveNativeStreamTick(req) {
           damageConstruct(st,cons,cap,req.tickDamage,hx,hy,ux,uy,why);
           if(!breaking) {
             st.tele.constructReflects+=1;
-            st.tele.reflectedProjectiles+=1;
+            st.tele.reflectedStreamTicks+=1;
+            if(cons.decision){
+              cons.decision.reflectCount+=1;
+              cons.decision.reflectedDamageIssued+=req.tickDamage*
+                cons.ct.skills.PASSIVE.cfg.reflectedDamagePct;
+              cons.decision.blockedStreamDamage=
+                (cons.decision.blockedStreamDamage||0)+req.tickDamage;
+            }
             emit('CrystalConstructReflect',{cons:cons.id,kind:cap.kind,
               facet:cap.idx,x:hx,y:hy,damage:req.tickDamage,carrierKind:'stream',tick:req.tick});
           }
@@ -1082,7 +1089,8 @@ function resolveNativeStreamTick(req) {
           // not a newly spawned projectile or an independent fire transaction.
           reflections.push({from:rStart,to:{x:rStart.x+nv.x*rem,y:rStart.y+nv.y*rem},
             incomingAngle:dir,contactDistance:req.range-left,
-            controller:cons.ct.anchor,source,damagePct:cons.ct.skills.PASSIVE.cfg.reflectedDamagePct,
+            controller:cons.ct.anchor,source,decisionId:cons.decision?.id||null,
+            damagePct:cons.ct.skills.PASSIVE.cfg.reflectedDamagePct,
             construct:cons.id,constructOwner:cons.ct.idx,
             facet:cap.idx,tick:req.tick,ray:tIndex});
         }
