@@ -12,7 +12,7 @@ function stepUntil(cond,max=3){
  for(let i=0;i<Math.ceil(max/DT);i++){if(cond())return true;T.step(DT);}
  return !!cond();
 }
-function scenario(form) {
+function scenario(form,flameHz=60) {
  HR.setSeed(42); HR.setAiEnabled(false);
  const match=T.start('CRYSTAL','ROBOT');
  assert.ok(match,'real Arsenal match could not start');
@@ -61,11 +61,11 @@ function scenario(form) {
  // Capture the genuinely LIVE material on the first damaging tick. A fixed
  // candidate destroys the Wall/HEXA by tick five, so querying only AFTER the
  // entire attack is both invalid and a false failure.
- T.step(.06);
+ T.step(.06,1/flameHz);
  const firstTickCaps=CRY.capsules().filter(cap=>cap.cons?.id===get().id)
    .map(cap=>({...cap,cons:{...cap.cons,state:'LIVE'}}));
  const firstTickMuzzle={x:stream.x,y:stream.y,angle:stream.angle};
- T.step(.30);
+ T.step(.30,1/flameHz);
  unsubscribe();
  const ending=get();
  const dmg=initialHp-a.hp;
@@ -102,7 +102,7 @@ function scenario(form) {
  const initialPanelHp=form==='wall'?initialStructure:initialStructure[facet];
  const remainingPanelHp=form==='wall'?ending.hp:ending.hp[facet];
  const out={
-   form,facet,damageToBody:+dmg.toFixed(4),
+   form,facet,flameHz,damageToBody:+dmg.toFixed(4),
    reflectedDamageToOriginalSource:+(sourceHp0-b.hp).toFixed(4),
    structureHpBefore:initialPanelHp,structureHpAfter:remainingPanelHp,
    streamTicks:stream.ticks,
@@ -132,8 +132,10 @@ function scenario(form) {
  }
  passed++;
 }
-scenario('wall');
-scenario('hexa');
+for(const hz of [30,60,120]){
+  scenario('wall',hz);
+  scenario('hexa',hz);
+}
 console.log('D6 FLAME '+(characterize?'CHARACTERIZATION OF KNOWN GAP':'OWNER-LAW EXPECTATION')+
   ': '+passed+'/'+passed+' real Arsenal scenarios; NOT visual/redirect damage certification');
 process.exit(0);
