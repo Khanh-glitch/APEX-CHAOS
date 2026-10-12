@@ -582,12 +582,14 @@ function constructHit(best, p, dt) {
   const dmg = structDamage(p);
   const hr = hrOf(p);
   let reflected = false;
-  // V2 §1.3 breaking-shot law — WALL ONLY (HEXA keeps live reflect-first
-  // ordering unchanged). Structural damage >= remaining Wall HP: apply the
-  // structural hit (which destroys the Wall), do NOT reflect, and let the SAME
-  // projectile continue through the broken Wall with its full current
-  // damage/owner/velocity/crit/provenance. No residual-damage arithmetic.
-  const breaking = !t6 && cons.kind === 'wall' && dmg >= cons.hp;
+  // OWNER 2026-10-13: WALL and HEXA are alternate geometries of the SAME
+  // A1, with ONE breaking-hit law. Compare damage against the *contacted*
+  // surface HP (whole WALL or the one HEXA facet). A lethal hit destroys the
+  // surface without reflection; the SAME incoming projectile continues with
+  // unchanged owner/velocity/current damage/crit/provenance. No residual math.
+  // T6 keeps its separate structural final-authority path.
+  const surfaceHp = cons.kind === 'wall' ? cons.hp : cons.facets[cap.idx]?.hp;
+  const breaking = !t6 && Number.isFinite(surfaceHp) && dmg >= surfaceHp;
   if (!t6 && !breaking) {
     const v = reflectVec(cvx, cvy, n.x, n.y);
     if (cons.decision) cons.decision.blockedProjectileDamage += dmg;
@@ -612,7 +614,7 @@ function constructHit(best, p, dt) {
 }
 
 // ONE authoritative structural transaction: real HP, visual response at the real
-// contact point, break/reflect ordering handled by the caller (reflect first).
+// contact point; A1 common pre-reflection breaker decides the outcome.
 function damageConstruct(st, cons, cap, dmg, hx, hy, vx, vy, why) {
   if (cons.state !== 'LIVE') return;
   st.tele.constructDamage += dmg;
