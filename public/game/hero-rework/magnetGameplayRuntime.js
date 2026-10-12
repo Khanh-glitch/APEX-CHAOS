@@ -204,15 +204,12 @@
   function isEligibleFloorFirearm(slot) {
     if (!slot || slot.phase !== 'REVEALED' || slot.kind === 'HEAL'
       || !slot.weaponId || isT6Weapon(slot.weaponId)) return false;
-    if (isFirearm(slot.weaponId)) return true;
-    // V4.3 specials are REAL equipped ranged weapons, but CFG.isGun()
-    // intentionally covers only conventional families. Magnet A1/A2 act
-    // on a revealed floor HOLDER, not on that gun's projectile material:
-    // FLAMETHROWER/PLASMA holders can move even when their emissions cannot.
+    // Magnet manipulates the *floor holder*. Its projectile may be kinetic
+    // steel, plasma, flame or an unlaunched mine; do NOT use isGun() here.
+    // T6 immunity is a separate ACTION policy, not an equipment category.
     const cfg = globalScope.APEX_ARSENAL_CONFIG;
-    return !!cfg?.V43_WEAPONS?.[slot.weaponId]
-      && cfg.V43_WEAPONS[slot.weaponId].tier !== 'T6'
-      && globalScope.APEX_ARSENAL_WEAPONS?.[slot.weaponId]?.category === 'ranged';
+    return !!cfg?.isRangedEquipment?.(slot.weaponId)
+      && cfg.tierOf?.(slot.weaponId) !== 'T6';
   }
   function isEligibleBullet(p) {
     // Ordinary firearm bullets and V4.3 PHYSICAL projectiles are kinetic.

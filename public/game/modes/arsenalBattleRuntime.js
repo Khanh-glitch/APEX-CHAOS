@@ -498,13 +498,11 @@
         }
       }
       const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) => f && f.hp > 0);
-      const isRealRangedGun = (id) => {
-        if (!id || id === 'STORMBREAKER' || id === 'T6') return false;
-        if (CFG.isGun?.(id)) return true;
-        const special=CFG.V43_WEAPONS?.[id];
-        return !!special && special.tier !== 'T6'
-          && window.APEX_ARSENAL_WEAPONS?.[id]?.category === 'ranged';
-      };
+      // Emergency gun policy asks "is the fighter equipped with a ranged
+      // weapon?", NOT "does its executor fire conventional aq_bullet?".
+      // Reuse the SAME canonical equipment category as Magnet/Frost; avoid
+      // version lists or custom branches when a new ranged special ships.
+      const isRealRangedGun = (id) => !!CFG.isRangedEquipment?.(id);
       const holdsGun = (f) => {
         const h = weaponApi.getHolder(f);
         return !!(h && isRealRangedGun(h.weaponId));

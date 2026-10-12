@@ -60,6 +60,17 @@
   CFG.isOffensive = (id) => !!WEAPON_TIER[id];
   CFG.isMelee = (id) => MELEE_IDS.includes(id);
   CFG.isGun = (id) => GUN_IDS.includes(id);
+  // SEMANTIC CATEGORY ≠ ballistic/executor FAMILY.
+  // All EQUIPPED ranged weapons (including V43/future specials) share this
+  // classifier. No patch to Magnet/AI/spawn when the next ranged executor
+  // ships: the real Arsenal WEAPONS definitions own the category.
+  // Call at runtime, after arsenalWeaponRuntime installs its definitions.
+  // Leave isGun strictly conventional for crit, damage scale, and emission.
+  CFG.isRangedEquipment = (id) => {
+    if (typeof id !== 'string' || !id) return false;
+    const definition = window.APEX_ARSENAL_WEAPONS?.[id];
+    return !!definition && definition.category === 'ranged';
+  };
 
   CFG.THROWN_MELEE.speed = {
     SABRE: 1010, BATTLE_AXE: 920, DAGGER: 1210, SPEAR: 1065, SPIKED_CLUB: 965,

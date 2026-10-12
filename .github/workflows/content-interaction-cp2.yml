@@ -10,6 +10,7 @@ on:
       - 'tools/testContentAdmissionGate.mjs'
       - 'tools/testV43MagnetFloorPickup.mjs'
       - 'tools/testCoreSixEffectMaterialReadiness.mjs'
+      - 'tools/testEquipmentSemanticsContract.mjs'
       - 'src/game/runtimeLoader.js'
       - 'tools/bridgeHunterGoldV10.mjs'
       - 'docs/architecture/content-admission/extensions.json'
@@ -45,4 +46,6 @@ jobs:
           node tools/testV43MagnetFloorPickup.mjs
           node --check tools/testCoreSixEffectMaterialReadiness.mjs
           node tools/testCoreSixEffectMaterialReadiness.mjs
+          node --check tools/testEquipmentSemanticsContract.mjs
+          node tools/testEquipmentSemanticsContract.mjs
           node tools/testProductAssetIntentGate.mjs
