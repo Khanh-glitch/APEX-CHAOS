@@ -4,6 +4,7 @@ on:
     paths:
       - 'public/game/hero-rework/crystalGameplayRuntime.js'
       - 'tools/testOwnerCrystalaA1SharedBreak.mjs'
+      - 'tools/testOwnerCrystalaA1BaselineDiff.mjs'
       - 'tools/testRuntimeRevisionGate.mjs'
       - 'tools/runtimeRevision.lock.json'
       - 'src/game/runtimeManifest.js'
@@ -27,10 +28,11 @@ jobs:
         run: |
           node --check public/game/hero-rework/crystalGameplayRuntime.js
           node --check tools/testOwnerCrystalaA1SharedBreak.mjs
+          node --check tools/testOwnerCrystalaA1BaselineDiff.mjs
           pnpm test:runtime-revision
       - name: Real-gameplay Wall vs HEXA breaking projectile law
         run: node tools/testOwnerCrystalaA1SharedBreak.mjs
-      - name: Current full Crystala production gameplay regressions
-        run: node tools/testCrystalaGameplayGates.mjs
+      - name: Full real Crystala suite versus exact main baseline (no new failures, all old failures printed)
+        run: node tools/testOwnerCrystalaA1BaselineDiff.mjs
       - name: Existing content interaction baseline (no skipped T6)
         run: node tools/testContentInteractionBaseline.mjs
