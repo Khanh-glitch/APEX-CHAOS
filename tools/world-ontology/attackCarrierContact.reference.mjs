@@ -4,6 +4,9 @@
 const reply=(status,reason,more={})=>Object.freeze({status,reason,...more});
 const finite=n=>Number.isFinite(n);
 const point=p=>p&&finite(p.x)&&finite(p.y);
+const entityId=id=>(typeof id==='string'&&id.length>0)||
+  (Number.isSafeInteger(id)&&id>=0);
+const entityKey=id=>String(id);
 export function sampleAttackCarrierSurfaces(attack,surfaces,segmentCapsule) {
   if(!attack||!['stream','beam'].includes(attack.carrierKind))
     return reply('unresolved','unsupported-attack-carrier-form');
@@ -34,25 +37,25 @@ export function sampleAttackCarrierSurfaces(attack,surfaces,segmentCapsule) {
       if(kind!=='wall'&&kind!=='prison'&&kind!=='hexa')continue;
       if(!finite(cap.ax)||!finite(cap.ay)||!finite(cap.bx)||!finite(cap.by)
         ||!finite(cap.r)||!Number.isInteger(cap.idx)
-        ||typeof cons.id!=='string'||!cons.id)
+        ||!entityId(cons.id))
         return reply('unresolved','invalid-authoritative-capsule');
       const hit=segmentCapsule(attack.origin.x,attack.origin.y,tx,ty,
         cap.ax,cap.ay,cap.bx,cap.by,cap.r);
       if(!hit||!finite(hit.t)||hit.t<0||hit.t>1)continue;
-      const raw={constructId:cons.id,facetId:cap.idx,
+      const raw={constructId:cons.id,constructKey:entityKey(cons.id),facetId:cap.idx,
         form:kind==='wall'?'wall':'hexa',
         rayIndex:i,t:hit.t,hitX:attack.origin.x+(tx-attack.origin.x)*hit.t,
         hitY:attack.origin.y+(ty-attack.origin.y)*hit.t,
         nx:hit.nx,ny:hit.ny,angle};
       if(!best||raw.t<best.t
         ||(Math.abs(raw.t-best.t)<1e-9&&
-          String(raw.constructId+':'+raw.facetId)<String(best.constructId+':'+best.facetId)))
+          String(raw.constructKey+':'+raw.facetId)<String(best.constructKey+':'+best.facetId)))
         best=raw;
     }
     const sample=Object.freeze({rayIndex:i,angle,firstMaterial:best?Object.freeze(best):null});
     angularSamples.push(sample);
     if(best){
-      const key=best.constructId+':'+best.facetId;
+      const key=best.constructKey+':'+best.facetId;
       const curr=grouped.get(key);
       if(!curr)grouped.set(key,{surfaceKey:key,constructId:best.constructId,
         facetId:best.facetId,form:best.form,first:best,
