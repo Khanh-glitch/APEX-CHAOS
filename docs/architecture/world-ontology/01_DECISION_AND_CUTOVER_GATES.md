@@ -23,7 +23,7 @@
 ## Review/approval decisions (only when crossing associated production seam)
 **B01 — Crystala OWNER-RESOLVED 2026-10-13:** Option B: reflect the ACTUAL incoming Stream using native stream geometry, no fake projectile. Wall and HEXA are the SAME A1 with different constructs and existing structural/break laws; K/A2 is a distinct six-shard mechanism and is not implicitly extended. Remaining OPEN only: recurring Stream-to-structure damage/break-through cadence (does not change owner choice B). See `02_CRYSTALA_STREAM_REFLECTION_B.md`.
 
-**B02 — Frost:** Which non-firearm Weapon forms can be frozen as Equipment? Frozen ordinary bullets remain the *only* current Passive trigger; do not silently convert flames or melee to freeze bullets.
+**B02 — Frost owner requirement ALREADY SPECIFIED:** A1 freezes all eligible non-T6 Weapons, including melee/specials; the Passive applies ONLY when a Frozen Weapon emits conventional bullets. New non-bullet freeze damage/procs are NOT authorized. Current firearm-only runtime restriction is an owner-law delta, and actual visual/holder semantics need distinct tests.
 
 **B03 — Independent defense pool:** Trigger conditions, probability, cadence, cap and priority relative to offensive spawn. Cannot invent balance or change Quest T1/T2 story drops.
 
