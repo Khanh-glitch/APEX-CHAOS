@@ -8,6 +8,10 @@ on:
       - 'tools/testRuntimeRevisionGate.mjs'
       - 'tools/runtimeRevision.lock.json'
       - 'src/game/runtimeManifest.js'
+      - 'tools/buildGoldCutover.mjs'
+      - 'tools/lib/goldB05PatchRevision.mjs'
+      - 'tools/testGoldB05PatchRevision.mjs'
+      - 'tools/goldB05Overlays/shell.html.patch'
       - '.github/workflows/d5-crystala-a1-shared-break.yml'
   workflow_dispatch:
 jobs:
@@ -32,6 +36,10 @@ jobs:
           node --check tools/testOwnerCrystalaA1SharedBreak.mjs
           node --check tools/testOwnerCrystalaA1BaselineDiff.mjs
           pnpm test:runtime-revision
+      - name: Generated Gold B05 patch revision transport proof
+        run: |
+          node tools/testGoldB05PatchRevision.mjs
+          node tools/buildGoldCutover.mjs --check
       - name: Real-gameplay Wall vs HEXA breaking projectile law
         run: node tools/testOwnerCrystalaA1SharedBreak.mjs
       - name: Full real Crystala suite versus exact main baseline (no new failures, all old failures printed)
