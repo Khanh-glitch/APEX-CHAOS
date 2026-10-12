@@ -57,13 +57,32 @@ function scenario(form) {
  T.step(.36);
  const ending=get();
  const dmg=initialHp-a.hp;
+ // The REAL Gold-aligned muzzle/angle is now on the live Stream carrier.
+ // Check whether authoritative Crystala material actually lies between the
+ // native emitting position and the damaged fighter's body. Never infer
+ // this from decorative flame particles.
+ const geom=HR.geom,realMaterials=CRY.capsules()
+   .filter(cap=>cap.cons?.id===get().id);
+ assert.equal(typeof geom?.capsuleToi,'function','missing shared capsule TOI authority');
+ const witness=realMaterials.map(cap=>{
+   const hit=geom.capsuleToi(stream.x,stream.y,a.x,a.y,
+     cap.ax,cap.ay,cap.bx,cap.by,cap.r);
+   return hit?{t:hit.t,facet:cap.idx,nx:hit.nx,ny:hit.ny,
+     constructId:cap.cons.id}:null;
+ }).filter(Boolean).sort((x,y)=>x.t-y.t)[0]||null;
+ assert.ok(witness&&witness.t>0&&witness.t<1,
+   'actual damaging muzzle-to-target path does not intersect owner A1 solid geometry');
+ if(form==='hexa')assert.equal(witness.facet,facet,
+   'native stream witness must impact the actual selected Hexa facet');
  const initialPanelHp=form==='wall'?initialStructure:initialStructure[facet];
  const remainingPanelHp=form==='wall'?ending.hp:ending.hp[facet];
  const out={
    form,facet,damageToBody:+dmg.toFixed(4),
    structureHpBefore:initialPanelHp,structureHpAfter:remainingPanelHp,
    streamTicks:stream.ticks,
-   activeMaterial:CRY.capsules().filter(c=>c.cons?.id===get().id).length
+   earliestRealMaterialContact:{t:+witness.t.toFixed(4),facet:witness.facet,
+     nx:+witness.nx.toFixed(4),ny:+witness.ny.toFixed(4)},
+   activeMaterial:realMaterials.length
  };
  console.log('D6 NATIVE FLAME CHARACTERIZATION '+JSON.stringify(out));
  assert.equal(stream.ticks,5,'not five native damage ticks');
