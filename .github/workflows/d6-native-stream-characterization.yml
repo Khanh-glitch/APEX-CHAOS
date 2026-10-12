@@ -1,7 +1,9 @@
-name: D6 Native Stream Gap Characterization (no cutover)
+name: D6 Native Stream Owner-Law Candidate Gameplay
 on:
   pull_request:
     paths:
+      - 'public/game/hero-rework/crystalGameplayRuntime.js'
+      - 'public/game/arsenal/arsenalWeaponRuntime.js'
       - 'tools/testOwnerD6StreamLiveGap.mjs'
       - 'tools/testOwnerD6GenericStreamContacts.mjs'
       - 'tools/world-ontology/attackCarrierContact.reference.mjs'
@@ -29,5 +31,7 @@ jobs:
           node --check tools/world-ontology/attackCarrierContact.reference.mjs
       - name: Generic Stream and Beam material semantics (REFERENCE ONLY)
         run: node tools/testOwnerD6GenericStreamContacts.mjs
-      - name: Reproduce shipped A1 native Stream collision gap (KNOWN BAD, not an owner-law PASS)
-        run: node tools/testOwnerD6StreamLiveGap.mjs --characterize
+      - name: Real Arsenal Flame owner-law proof (Wall, HEXA, reflected source, breaking tick)
+        run: node tools/testOwnerD6StreamLiveGap.mjs
+      - name: Existing V43 damage/gold flame mechanics contracts
+        run: node tools/testV43PostUpdateContracts.mjs
