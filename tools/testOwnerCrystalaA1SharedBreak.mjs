@@ -86,5 +86,40 @@ test('HEXA: breaking bullet passes through unchanged, only contacted facet break
   assert.equal(w.get().facetsDead.filter(Boolean).length,1,'Uncontacted facets unexpectedly died');
   return {facet:i,dead:w.get().facetsDead[i],damage:fmt(p.damage),passed:true};
 });
+test('Wall: lethal breaking projectile still damages REAL body behind',()=>{
+  const w=fresh('wall'),hp0=w.a.hp;
+  const p=fire(w.b,850,500,{x:w.a.x,y:w.a.y},12);
+  assert.ok(stepUntil(()=>w.get().state==='ENDED',1.2),'Wall never broke');
+  const owner=p.owner,damage=p.damage;
+  T.step(.4);
+  assert.ok(w.a.hp<hp0,'Wall break tagged passthrough but projectile did NOT damage real target behind');
+  assert.equal(p.owner,owner,'Wall breaking projectile changed owner after break');
+  assert.equal(p.damage,damage,'Wall breaking projectile changed payload after break');
+  assert.notEqual(p.__hr?.crystalReflected,true);
+  return {hpDelta:fmt(hp0-w.a.hp),passed:true};
+});
+test('HEXA: lethal facet-breaking projectile still damages REAL body behind',()=>{
+  const w=fresh('hexa'),P=CRY.rigOf(w.ct).constructs.find(x=>x.kind==='prison').prison;
+  const facet=Array.from({length:6},(_,i)=>{
+    const e=P.edges[i];
+    return {i,x:(e.a.x+e.b.x)/2,y:(e.a.y+e.b.y)/2};
+  }).sort((a,b)=>a.x-b.x)[0];
+  const dx=facet.x-P.cx,dy=facet.y-P.cy,d=Math.hypot(dx,dy);
+  assert.ok(d>0,'HEXA facet radial direction unavailable');
+  // Position the real victim outside the contacted facet, not within the wall.
+  w.a.x=facet.x+dx/d*235;w.a.y=facet.y+dy/d*235;
+  assert.ok(w.a.x>75&&w.a.x<925&&w.a.y>75&&w.a.y<925,'Victim test position outside arena');
+  w.a.baseSpeed=0;
+  const hp0=w.a.hp;
+  const p=fire(w.b,P.cx,P.cy,{x:w.a.x,y:w.a.y},12);
+  const owner=p.owner,damage=p.damage;
+  assert.ok(stepUntil(()=>w.get().facetsDead[facet.i],.8),'HEXA contacted facet never broke');
+  T.step(.5);
+  assert.ok(w.a.hp<hp0,'HEXA break tagged passthrough but projectile did NOT damage real target behind');
+  assert.equal(w.get().facetsDead.filter(Boolean).length,1,'Other HEXA facets unexpectedly broke');
+  assert.notEqual(p.__hr?.crystalReflected,true);
+  assert.equal(p.owner,owner);assert.equal(p.damage,damage);
+  return {facet:facet.i,hpDelta:fmt(hp0-w.a.hp),passed:true};
+});
 console.log(`OWNER CRYSTALA A1 ACTUAL ARSENAL: ${pass}/${pass} PASS`);
 process.exit(0);
