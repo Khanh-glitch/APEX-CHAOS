@@ -1007,7 +1007,7 @@ function resolveNativeStreamTick(req) {
       req.tick < 0 || !(req.cone >= 0) || req.cone > Math.PI/2 ||
       !req.attack || !Array.isArray(req.targets))
     return { status: 'unresolved', reason: 'invalid-attack-carrier-tick' };
-  if (req.attack.weapon === 'STORMBREAKER' || req.attack.heroManipulationImmune)
+  if (CFG()?.tierOf?.(req.attack.weapon) === 'T6' || req.attack.heroManipulationImmune)
     return { status: 'denied', reason: 'T6' };
   const geom=GEOM();
   if (!geom || typeof geom.capsuleToi !== 'function')
@@ -1015,7 +1015,10 @@ function resolveNativeStreamTick(req) {
   const currentCaps=capsules().filter(c=>{
     if (!c || c.cons.state !== 'LIVE' || !c.cons.ct) return false;
     const other=HR() && HR().byCombatant(source);
-    return (!other || c.cons.ct !== other) && (c.idx < 0 || !c.cons.facets[c.idx].dead);
+    const alliedQuestTeam=source.questTeam && c.cons.ct.anchor?.questTeam &&
+      source.questTeam===c.cons.ct.anchor.questTeam;
+    return (!other || c.cons.ct !== other) && !alliedQuestTeam &&
+      (c.idx < 0 || !c.cons.facets[c.idx].dead);
   });
   if (!currentCaps.length) return { status:'allowed', affected:false, blockedTargets:[], reflections:[] };
   const receiptBag=hrOf(req.attack);
@@ -1046,7 +1049,7 @@ function resolveNativeStreamTick(req) {
       const hx=x+ux*left*hit.t,hy=y+uy*left*hit.t;
       const traveled=left*hit.t;
       left-=traveled;
-      const key=cons.id+':'+cap.idx;
+      const key=cons.ct.idx+':'+cons.id+':'+cap.idx;
       let outcome=decisions.get(key);
       if(!outcome) {
         const hp=cap.idx<0?cons.hp:cons.facets[cap.idx].hp;
@@ -1080,7 +1083,8 @@ function resolveNativeStreamTick(req) {
           reflections.push({from:rStart,to:{x:rStart.x+nv.x*rem,y:rStart.y+nv.y*rem},
             incomingAngle:dir,contactDistance:req.range-left,
             controller:cons.ct.anchor,source,damagePct:cons.ct.skills.PASSIVE.cfg.reflectedDamagePct,
-            construct:cons.id,facet:cap.idx,tick:req.tick,ray:tIndex});
+            construct:cons.id,constructOwner:cons.ct.idx,
+            facet:cap.idx,tick:req.tick,ray:tIndex});
         }
         break;
       }
@@ -1089,6 +1093,7 @@ function resolveNativeStreamTick(req) {
       const epsilon=Math.min(0.7,left);
       x=hx+ux*epsilon;y=hy+uy*epsilon;left-=epsilon;
     }
+    if(left>0.001)throw Error('Native Stream traversal budget exceeded: contact unresolved');
     return blocked;
   }
   // Evaluate exact target-center rays first, preserving the original direct
