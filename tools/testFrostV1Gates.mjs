@@ -508,16 +508,32 @@ try {
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
   o.b.x = 800; o.b.y = 800;
   const r = HR.pressAbility(o.a, 'A2');
-  T.step(0.5); // trail spans ~200..610 at y=500 (no wall yet)
-  o.a.baseSpeed = 0; // pin AFTER the trail is laid; Frost stays ~610
-  const id = T.pushSlot({ x: 450, y: 500, phase: 'REVEALED', weaponId: 'PISTOL' });
+  T.step(0.5); // genuine movement integration creates the trail
+  o.a.baseSpeed = 0; // pin AFTER laying, so the slot cannot be picked up
+  // The earlier fixed x=450 fixture occasionally landed OFF the real trail
+  // when movement/bounds resolution varied. Select a mechanic-owned LIVE
+  // node, away from Frost's current pickup radius, instead of assuming travel.
+  const truth = FR().inspect(o.ct);
+  const nodes = truth.trailNodes || [];
+  const first = nodes[0], last = nodes[nodes.length - 1];
+  const reach = first && last ? Math.hypot(last.x-first.x,last.y-first.y) : 0;
+  const candidates = nodes.filter(n => Math.hypot(n.x-o.a.x,n.y-o.a.y)>150
+    && n.x>40 && n.x<960 && n.y>40 && n.y<960);
+  const point = candidates[Math.floor(candidates.length/2)] || null;
+  const supported = !!point && FR().isSurfaceAt(point.x, point.y);
+  const id = point
+    ? T.pushSlot({ x: point.x, y: point.y, phase: 'REVEALED', weaponId: 'PISTOL' })
+    : null;
   o.b.x = 100; o.b.y = 900;
   T.step(2 / 60);
-  const s = AQSlots().find((q) => q.id === id);
-  const trailLive = FR().inspect(o.ct).trail > 0;
-  win.APEX_ARSENAL.state.slots = AQSlots().filter((q) => q.id !== id);
-  gate('F05.8-trail-freezes', r.ok === true && trailLive && !!s && !!s.__frostFrozen,
-    { trail: trailLive, frozen: !!(s && s.__frostFrozen) });
+  const slot = id == null ? null : AQSlots().find(q => q.id === id);
+  const trailLive = truth.trail>0;
+  win.APEX_ARSENAL.state.slots = AQSlots().filter(q => q.id !== id);
+  gate('F05.8-trail-freezes',
+    r.ok===true && trailLive && reach>150 && supported && !!slot && !!slot.__frostFrozen,
+    { trail:trailLive, nodes:nodes.length, reach:+reach.toFixed(1),
+      sample:point && [point.x,point.y], supported, frozen:!!(slot&&slot.__frostFrozen),
+      frostAt:[+o.a.x.toFixed(1),+o.a.y.toFixed(1)] });
 } catch (e) { gate('F05.8-trail-freezes', false, String(e && e.message)); }
 
 function iceVersusIce() {
