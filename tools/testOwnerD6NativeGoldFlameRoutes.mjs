@@ -50,8 +50,16 @@ assert.ok(min(retro)<min(forward)-20,
   'Gold tongue visual did not bend back along physically reflected native Stream');
 assert.ok(bounce.some(x=>Math.abs(x.angle)>2.5),
   'Gold tongues must rotate along reflected direction, not merely move');
+const untouched=render({flameReflectHistory:[{time:.05,
+  routes:[{angle:Math.PI,travel:40,from:{x:140,y:100},to:{x:-185,y:100}}]}]});
+assert.deepEqual(JSON.parse(JSON.stringify(untouched)),JSON.parse(JSON.stringify(control)),
+  'nonintercepted angular range must NEVER inherit nearby reflection Gold');
+const narrow=render({flameReflectHistory:[{time:.05,routes:[routes[16]]}]});
+const changed=narrow.filter((t,i)=>Math.abs(t.x-control[i].x)>20).length;
+assert.ok(changed>0&&changed<control.length/2,
+  'one small intercepted angular slice cannot visually redirect whole flame cone');
 assert.match(source,/flameReflectHistory:\(p\.flameReflectHistory\|\|\[\]\)\.slice\(\)/,
   'Gold tail must retain authoritative reflection snapshots');
 assert.match(source,/flameReflectHistory:v\.flameReflectHistory/,
   'Gold tail renderer must reuse same reflected trajectories');
-console.log('D6 Native Gold Flame routing PROBE: 5/5 PASS (source renderer, not browser pixel certification)');
+console.log('D6 Native Gold Flame routing PROBE: 7/7 PASS (source renderer, not browser pixel certification)');
