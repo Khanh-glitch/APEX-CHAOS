@@ -1653,7 +1653,10 @@
               Math.cos(a-route.angle)));
             if(delta<bestAngle){bestAngle=delta;nearest=route;}
           }
-          if(nearest&&travel>nearest.travel){
+          // Only the intercepted angular slice may bend. Otherwise a
+          // single tiny Wall run would visually redirect the ENTIRE cone.
+          const laneTolerance=Math.max(.003,V43.FLAMETHROWER.cone/16*.8);
+          if(nearest&&bestAngle<=laneTolerance&&travel>nearest.travel){
             const ox=nearest.to.x-nearest.from.x,oy=nearest.to.y-nearest.from.y;
             const length=Math.hypot(ox,oy);
             if(length>1e-6){
