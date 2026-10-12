@@ -5,21 +5,30 @@ on:
       - 'docs/architecture/world-ontology/**'
       - 'tools/world-ontology/**'
       - 'tools/testWorldOntologyCrystalaStream.mjs'
+      - 'tools/testWorldOntologyRuntimeSnapshot.mjs'
       - '.github/workflows/world-ontology-design.yml'
   workflow_dispatch:
 
 jobs:
   world-ontology-reference:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Validate test-only reference source
         run: |
           node --check tools/world-ontology/crystalaStreamContract.reference.mjs
           node --check tools/testWorldOntologyCrystalaStream.mjs
+          node --check tools/testWorldOntologyRuntimeSnapshot.mjs
       - name: Crystala A1 Stream B semantics (REFERENCE ONLY; not runtime)
         run: node tools/testWorldOntologyCrystalaStream.mjs
+      - name: Read real effective Arsenal/Hero registries (AUDIT ONLY)
+        run: node tools/testWorldOntologyRuntimeSnapshot.mjs
