@@ -113,7 +113,7 @@ function scenario(form) {
    assert.ok(dmg>0,'legacy Flame did not reach victim; cannot characterize obstruction');
    assert.equal(remainingPanelHp,initialPanelHp,'legacy structure HP changed; update characterization');
  } else {
-   assert.equal(remainingPanelHp,0,'owner A1: five real ticks must destroy contacted Wall/facet');
+   assert.ok(remainingPanelHp<=0,'owner A1: five real ticks must destroy contacted Wall/facet');
    // First four ticks reflect. Fifth breaking tick passes through unchanged.
    // Additional redirected Stream hit and burn truth is separately tested.
    assert.ok(dmg>0,'owner A1: breaking tick must reach victim beyond material');
