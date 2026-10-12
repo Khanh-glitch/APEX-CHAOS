@@ -65,3 +65,6 @@ console.log('WORLD ONTOLOGY RUNTIME READ-ONLY SNAPSHOT:',JSON.stringify({
   flame:'native-damage-stream-not-projectile-eligible-by-type',
 },null,2));
 console.log('WORLD ONTOLOGY RUNTIME SNAPSHOT PASS (audit only; owner deltas not shipped)');
+// jsdom game harness leaves browser-like handles alive; exit explicitly
+// after synchronous assertions, exactly like the existing CP2 headless gate.
+process.exit(0);
