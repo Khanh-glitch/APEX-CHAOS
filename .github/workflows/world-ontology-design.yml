@@ -1,0 +1,25 @@
+name: World Ontology Design Reference (non-production)
+on:
+  pull_request:
+    paths:
+      - 'docs/architecture/world-ontology/**'
+      - 'tools/world-ontology/**'
+      - 'tools/testWorldOntologyCrystalaStream.mjs'
+      - '.github/workflows/world-ontology-design.yml'
+  workflow_dispatch:
+
+jobs:
+  world-ontology-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate test-only reference source
+        run: |
+          node --check tools/world-ontology/crystalaStreamContract.reference.mjs
+          node --check tools/testWorldOntologyCrystalaStream.mjs
+      - name: Crystala A1 Stream B semantics (REFERENCE ONLY; not runtime)
+        run: node tools/testWorldOntologyCrystalaStream.mjs
