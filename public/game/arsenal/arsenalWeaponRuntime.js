@@ -843,7 +843,8 @@
           const view=Object.create(p);
           view.owner=seg.controller;view.damage=c.tickDamage*seg.damagePct;
           view.__hr={...(p.__hr||{}),crystalReflected:true,neutral:false,
-            cryOwner:window.APEX_HERO_REWORK?.byCombatant?.(seg.controller)?.idx};
+            cryOwner:window.APEX_HERO_REWORK?.byCombatant?.(seg.controller)?.idx,
+            crySourceConsDecision:seg.decisionId};
           v43Deal(view,f,c.tickDamage*seg.damagePct,{knockback:26});
           if(!p.crystalStreamBurnRecipients)p.crystalStreamBurnRecipients=new Set();
           if(!p.crystalStreamBurnRecipients.has(f)){
