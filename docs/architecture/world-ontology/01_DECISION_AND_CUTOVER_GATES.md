@@ -10,7 +10,7 @@
 5. Query says `allowed | denied | unresolved` with reason. It never substitutes for actual swept collision/TOI, transfer, owner credit, damage, FX or asset readiness executor.
 6. Each newly invented action is namespaced and registered with domain, mutation rights, lifecycle and real proof; unknown action/trait cannot silently default to allowed or denied.
 7. Pure visual/effect/character/weapon skins cannot mutate gameplay parameters or hitboxes. Commercial skin with damage, fire cadence or mechanics changes has a separate GameplayVariant identity and admission proof; mode has explicit allow/normalize/deny policy.
-8. No all-at-once projectile rewrite; regular and V43 frame ownership must stay exact-once. Preserve AIL T6, damage/credit, Wall/Hexa, Frozen holder, Mirror neutral, Quest story rules.
+8. No all-at-once projectile rewrite; regular and V43 frame ownership must stay exact-once. Preserve AIL T6, damage/credit, Frozen holder, Mirror neutral, Quest story rules. OWNER 2026-10-13 explicitly CHANGES historic HEXA reflect-first into same A1 breaking-hit pass-through as WALL; do not treat the prior reflect-first rule as protected.
 
 ## SHA-sourced key discrepancies
 - Magnet A1 floor predicate uses `CFG.isGun` and omits V43 Weapon slots despite owner rule all eligible floor Weapons; Magnet V43 flight can be recognized by magnetizableKinds.
@@ -18,10 +18,10 @@
 - Robot A1 uses nearest revealed pickup; future separate defense items require role filtering.
 - Hunter A2 currently tracks nearest living enemy Body while owner described random enemy; choosing *when* to lock/reselect is a gameplay decision.
 - Frost predicate currently protects firearm-only Frozen Gun; expanding to all melee/hybrid weapons needs owner semantic clarification before production change.
-- Crystala needs incoming Stream contact coverage, but the exact way to reflect or counter continuous streams is not owner-defined.
+- Crystala needs incoming Stream contact coverage and NEW unified Wall/HEXA breaking-hit rule: if incoming real hit/tick damage >= remaining contacted surface HP, destroy that Wall/facet and do NOT reflect the same hit. Historic Hexa reflect-first is superseded by newest owner decision.
 
 ## Review/approval decisions (only when crossing associated production seam)
-**B01 — Crystala OWNER-RESOLVED 2026-10-13:** Option B: reflect the ACTUAL incoming Stream using native stream geometry, no fake projectile. Wall and HEXA are the SAME A1 with different constructs and existing structural/break laws; K/A2 is a distinct six-shard mechanism and is not implicitly extended. Remaining OPEN only: recurring Stream-to-structure damage/break-through cadence (does not change owner choice B). See `02_CRYSTALA_STREAM_REFLECTION_B.md`.
+**B01 — Crystala OWNER-RESOLVED 2026-10-13:** Option B reflects the intercepted portion of the ACTUAL Stream (no synthetic bullet). A1 WALL and HEXA share the SAME reflect-unless-breaking law for all eligible attack hits including real Stream damage ticks. A hit that consumes the HP of the Wall or contacted HEXA facet is the breaking hit and passes through **without** reflection, with original controller/payload. Historical HEXA reflect-first is explicitly superseded by latest owner authority. Separate geometry, per-facet HP, positioning and K/A2 remain. See `02_CRYSTALA_STREAM_REFLECTION_B.md`.
 
 **B02 — Frost owner requirement ALREADY SPECIFIED:** A1 freezes all eligible non-T6 Weapons, including melee/specials; the Passive applies ONLY when a Frozen Weapon emits conventional bullets. New non-bullet freeze damage/procs are NOT authorized. Current firearm-only runtime restriction is an owner-law delta, and actual visual/holder semantics need distinct tests.
 
