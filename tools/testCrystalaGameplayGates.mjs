@@ -1269,13 +1269,12 @@ await gate('V04-wall-fails-with-no-cooldown-when-a-blade-is-busy', () => {
       reason: r && r.reason, cdLeftAfter: after, constructs: ins(w.cta).constructs.length } };
 });
 
-await gate('V05-hexa-facet-numbers-and-reflect-first-removal-are-unchanged', () => {
-  // V2 §1.3 NON-CHANGE: facet HP stays 75 and HEXA keeps its own reflect-first
-  // law — even the shot that removes the last facet HP is still reflected
-  // (the Wall's new breaking-shot law does NOT leak into HEXA). The prism
-  // holds all six shards, so the test shots can never be claimed and fly
-  // straight to the facets: three effective-31.5 shots land 75 -> 43.5 ->
-  // 12 -> removed on one facet, every one of them reflected.
+await gate('V05-hexa-facet-numbers-and-owner-shared-breaking-hit-law', () => {
+  // OWNER 2026-10-13 supersedes older V2 reflect-first HEXA law.
+  // Both Wall/HEXA: a hit that does NOT destroy the contacted surface reflects;
+  // the lethal third hit breaks the facet and passes through UNREFLECTED with
+  // the original source/velocity/damage. HEXA facet HP remains exactly 75.
+  // Three 31.5-effective-damage shots: 75 -> 43.5 -> 12 -> dead.
   const w = crystalK();
   press(w.a, 'A2');
   step(0.05);
@@ -1294,8 +1293,13 @@ await gate('V05-hexa-facet-numbers-and-reflect-first-removal-are-unchanged', () 
   return { ok: r && r.ok === true && built && built.kind === 'prison' && built.maxHp.length === 6 && built.maxHp.every((m) => m === 75)
       && g && near(g.R, 135, 1e-6) && g.edges.length === 6
       && end.lockedAt != null && near(end.endAt - end.lockedAt, 3.0, 1e-9)
-      && hps.length === 3 && refs.length === 3 && hps.every((e) => e.payload.kind === 'prison' && e.payload.why === 'hit')
-      && shots.every((p) => p.__hr && p.__hr.crystalReflected && p.owner === w.a)
+      && hps.length === 3 && refs.length === 2
+      && hps.every((e) => e.payload.kind === 'prison')
+      && hps[0].payload.why === 'hit' && hps[1].payload.why === 'hit'
+      && hps[2].payload.why === 'break-through'
+      && shots.slice(0,2).every((p) => p.__hr && p.__hr.crystalReflected && p.owner === w.a)
+      && !(shots[2].__hr && shots[2].__hr.crystalReflected)
+      && shots[2].owner === w.b && !!(shots[2].__hr && shots[2].__hr.cryPassed)
       && deadFacets === 1 && end.state === 'LIVE',
     detail: { r: r && r.ok, facetMax: built && built.maxHp,
       radius: g && fmt(g.R), edges: g && g.edges.length, life: end.lockedAt != null ? (end.endAt - end.lockedAt) : null,
