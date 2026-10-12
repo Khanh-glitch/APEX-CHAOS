@@ -36,11 +36,14 @@ hunterCanvas.width=hunterCanvas.height=1000;
 const hunterCtx=hunterCanvas.getContext('2d');
 const originalHunterDraw=hunterCtx.drawImage.bind(hunterCtx);
 const drawnBlades=new Set();
-hunterCtx.drawImage=(img,...args)=>{
+const observedDraws=[];
+const patchedDrawImage=(img,...args)=>{
   const id=bladeByImage.get(img);
   if(id) drawnBlades.add(id);
+  observedDraws.push({id:id||null,w:img?.width||0,h:img?.height||0,n:args.length});
   return originalHunterDraw(img,...args);
 };
+hunterCtx.drawImage=patchedDrawImage;
 const trap={tr:{on:true,x:500,y:500,phase:'unfold',t:0,lift:{x:0}},_rtImgs:a.root};
 for(let i=0;i<50;i++){
   trap.tr.t+=(1/60);
@@ -48,6 +51,12 @@ for(let i=0;i<50;i++){
   GOLDH.rtUpdate(trap,1/60);
 }
 GOLDH.rtDraw(trap,hunterCtx,null,'front');
+console.log('HUNTER ROOT MATERIAL TRACE',JSON.stringify({
+  hooked:hunterCtx.drawImage===patchedDrawImage,
+  on:trap.tr.on,visible:trap._rt?.visible,phase:trap._rt?.phase,
+  assetKeys:Object.keys(a.root),observedDraws:observedDraws.slice(0,20),
+  totalDraws:observedDraws.length,trapMeasure:hunter.trapMeasure,
+}));
 assert.deepEqual([...drawnBlades].sort(),bladeKeys,
   'the accepted Gold trap front pass must draw all three sickle-blade sprites');
 
