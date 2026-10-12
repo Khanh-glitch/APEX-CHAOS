@@ -831,7 +831,9 @@
           // multi-bounce has to execute as an explicit additional transaction.
           const geom=window.APEX_HERO_REWORK?.geom;
           const other=CR?.capsules?.().some(cap=>{
-            if(cap.cons.id===seg.construct&&cap.idx===seg.facet)return false;
+            if(cap.cons.id===seg.construct &&
+               cap.cons.ct?.idx===seg.constructOwner &&
+               cap.idx===seg.facet)return false;
             const obstacle=geom?.capsuleToi?.(seg.from.x,seg.from.y,
               hit.x,hit.y,cap.ax,cap.ay,cap.bx,cap.by,cap.r);
             return obstacle&&obstacle.t<.999;
