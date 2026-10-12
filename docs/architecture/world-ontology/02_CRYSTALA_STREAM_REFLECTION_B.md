@@ -6,7 +6,7 @@
 ## Binding truths
 
 1. Both Wall and HEXA use ONE semantic eligibility and attack-reflection protocol for **all independent flying projectiles (including energy) and incoming attack Streams**. No per-weapon IDs or different Wall/HEXA type allowlists. T6 exception retains priority.
-2. WALL geometry, whole-wall HP, breaking-shot pass-through and existing owner-approved Gold remain as-is. HEXA uses its own facets, facet HP and **reflect-first** ordering; no new escape or facet mechanic. **Unify semantics, not distinct structural laws**.
+2. WALL and HEXA are **functionally identical as A1 reflectors**. For every valid projectile impact or true damage Stream tick, test the HP of the exact contacted surface *before* reflection. If damage >= remaining HP, that same hit destroys the Wall/HEXA facet and **passes through without reflection**, preserving original attack controller, velocity/direction, damage, statuses and provenance. Otherwise reflect, then decrement the struck surface HP. Differences are only geometry, placement, HP/independent HEXA facets and construct deployment. **Newest owner instruction supersedes the prior HEXA reflect-first contract** from Crystala V2. Do not alter Gold choreography, K/A2 or T6 policies.
 3. Reflected Stream remains a **Stream**, never an `aq_bullet` synthetic body. It is the *intercepted part of the actual damaging stream*, redirected by the true contacted surface/normal, not all generated particles or the entire stream without a real intersection.
 4. Its original emission/weapon source and provenance persist. The post-reflection controller/damage-credit law follows Crystala's canonical reflection policy and `aqDamage`; no double ×7, second critical roll, duplicate tick or independent HP subtraction.
 5. Nonintercepted stream portions remain governed by their original source. A stream portion clipped/blocked by solid geometry cannot also independently hit the target behind that same surface.
@@ -25,7 +25,7 @@
 
 `StreamRoute`: clip only intersected stream slices at that surface; reflect the intercepted part of the same attack with adjusted path and effective owner, keep uncontacted coverage and timing. Never generate fake projectile/second fire.
 
-`StructuralAdjudication`: determines whether this impact truly reflects, passes through broken Wall, or is otherwise absorbed. Existing WALL projectile breaking-shot and HEXA reflect-first laws are distinct. **Recurring stream-tick structural damage cadence/break-through is still OPEN**, and must be settled before live damage code changes; no synthetic per-frame HP drain authorized.
+`StructuralAdjudication`: **ONE common A1 rule** across WALL and HEXA. Each REAL Stream damage tick contacting a surface is one independent attack hit; compare its authorized structural damage with current Wall HP or contacted facet HP. If hit would deplete HP, break and pass the SAME hit/stream slice through unchanged; otherwise redirect that same slice, then subtract the tick structural damage. No particle/frame-rate-driven HP drain, no double counting, and no invented residual-damage arithmetic. This decision is OWNER-RESOLVED. In multi-facet trajectories, later independent contacts are decided by their actual later surface state/TOI, not a global HEXA immunity.
 
 `DamageReceipt`: realized damage/status/BURN per tick goes through canonical `aqDamage` exactly once with traceable source, controller and no duplicate recipient tick. VFX subscribes to authoritative contact/reflection, never owns geometry/damage.
 
@@ -35,7 +35,7 @@
 - Earlier body/wall contacts precede later structure, no missing or double hits; true clipped stream cannot damage behind an intact blocked path.
 - Native same-stream redirection (not fake bullet), conserved source identity, Crystala controller credit only when legally reflected; status/BURN no duplicated damage.
 - T6/owner-projectile/friendly structure controls preserved; normal physical damage law distinct.
-- Ordinary projectiles keep existing swept/ordered Wall breakthrough and HEXA behavior exactly.
+- All eligible projectile and Stream hits follow unified breaking-hit pass-through for WALL and HEXA, explicitly updating the old HEXA reflect-first gameplay. Preserve ordered swept contacts, HP and Crystala passive/reflection credit.
 - Quest/Free Battle mode coverage; cold-load effects, desktop/mobile, rematch cleanup.
 - Tests of the **same real engine branch SHA**, runtime revision / checksum cutover, and owner visual/gameplay review.
 
@@ -47,6 +47,6 @@ Independent fixtures may verify owner decision B, phase/eligibility and a **prev
 
 - B SAME-STREAM redirection: **OWNER CONFIRMED**.
 - Wall and HEXA same A1 different constructs: **OWNER CONFIRMED**.
-- Original Wall/HEXA structural, T6, K/A2 and Gold laws: **PROTECTED**.
-- Repeated stream tick structure HP budget/break timing: **OPEN**.
+- WALL/HEXA geometry, HP, placement, T6, K/A2 and Gold: **PROTECTED**. HEXA old reflect-first ordering: **SUPERSEDED BY OWNER**.
+- Each real Stream damage tick contributes exactly one structural hit at a contacted surface; breaking-hit pass-through: **OWNER CONFIRMED**.
 - Implemented in actual Arsenal/Crystala battle: **NOT YET**.
