@@ -30,7 +30,12 @@ assert.equal(GOLDF.cacheStats.loadCalls,1,'Frost Gold image decode must be one m
 // Rendering proof, not just downloaded files: the Gold armed trap must
 // actually issue color draw calls for each of the THREE independent blades.
 const bladeKeys=['blade0','blade1','blade2'];
-const bladeByImage=new Map(bladeKeys.map(key=>[a.root[key].color,key]));
+// Canvas's native drawImage boundary can change JS wrapper identity for
+// derived images. Their immutable pixel dimensions survive that boundary.
+const bladeDimensions=new Map(bladeKeys.map(key=>[
+  `${a.root[key].color.width}x${a.root[key].color.height}`,key
+]));
+assert.equal(bladeDimensions.size,3,'all three Gold blade art parts need distinct dimensions');
 const hunterCanvas=win.document.createElement('canvas');
 hunterCanvas.width=hunterCanvas.height=1000;
 const hunterCtx=hunterCanvas.getContext('2d');
@@ -38,9 +43,10 @@ const originalHunterDraw=hunterCtx.drawImage.bind(hunterCtx);
 const drawnBlades=new Set();
 const observedDraws=[];
 const patchedDrawImage=(img,...args)=>{
-  const id=bladeByImage.get(img);
-  if(id) drawnBlades.add(id);
-  observedDraws.push({id:id||null,w:img?.width||0,h:img?.height||0,n:args.length});
+  const shape=`${img?.width||0}x${img?.height||0}`;
+  const blade=bladeDimensions.get(shape);
+  if(blade) drawnBlades.add(blade);
+  observedDraws.push({shape,blade:blade||null});
   return originalHunterDraw(img,...args);
 };
 hunterCtx.drawImage=patchedDrawImage;
@@ -51,14 +57,10 @@ for(let i=0;i<50;i++){
   GOLDH.rtUpdate(trap,1/60);
 }
 GOLDH.rtDraw(trap,hunterCtx,null,'front');
-console.log('HUNTER ROOT MATERIAL TRACE',JSON.stringify({
-  hooked:hunterCtx.drawImage===patchedDrawImage,
-  on:trap.tr.on,visible:trap._rt?.visible,phase:trap._rt?.phase,
-  assetKeys:Object.keys(a.root),observedDraws:observedDraws.slice(0,20),
-  totalDraws:observedDraws.length,trapMeasure:hunter.trapMeasure,
-}));
 assert.deepEqual([...drawnBlades].sort(),bladeKeys,
-  'the accepted Gold trap front pass must draw all three sickle-blade sprites');
+  'Gold trap front pass must draw all 3 blade dimensions, not just load assets');
+assert.equal(observedDraws.length,6,
+  'Gold front pass must render each of the three blades once in shadow and color');
 
 const loaderSource=fs.readFileSync('src/game/runtimeLoader.js','utf8');
 assert.match(loaderSource,/await Promise\.all\(materialGates\)/,'battle readiness must wait for art');
