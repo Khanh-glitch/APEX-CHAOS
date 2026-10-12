@@ -31,11 +31,13 @@ const rows=items.map(id=>{
     }):null,
     magnetA1Desired:ownerRobotMagnetGoal,
     magnetA1Runtime:!!M.isEligibleFloorFirearm(slot),
+    frostOwnerGoal:ownerRobotMagnetGoal,
     frostRuntime:!!F.isFreezableFirearm(slot),
   });
 });
 const missing=rows.filter(x=>x.magnetA1Desired&&!x.magnetA1Runtime).map(x=>x.id);
 const illegal=rows.filter(x=>x.magnetA1Runtime&&!x.magnetA1Desired).map(x=>x.id);
+const frostMissing=rows.filter(x=>x.frostOwnerGoal&&!x.frostRuntime).map(x=>x.id);
 assert.equal(illegal.length,0,'live Magnet incorrectly admits Defense/T6 in sampled slot');
 const newV43=BASE_V43_IDS.map(id=>rows.find(x=>x.id===id));
 assert.ok(newV43.every(Boolean),'V43 not in canonical equipment pool');
@@ -57,6 +59,7 @@ console.log('WORLD ONTOLOGY RUNTIME READ-ONLY SNAPSHOT:',JSON.stringify({
   defense:rows.filter(x=>x.role==='defense').length,
   v43:newV43.length,
   magnetA1OwnerLawMissing:missing,
+  frostA1OwnerLawMissing:frostMissing,
   magnetA1UnexpectedAllowed:illegal,
   z15:'effective-ballistics-same',
   flame:'native-damage-stream-not-projectile-eligible-by-type',
