@@ -29,6 +29,10 @@ jobs:
           node --check tools/testOwnerD6StreamLiveGap.mjs
           node --check tools/testOwnerD6GenericStreamContacts.mjs
           node --check tools/world-ontology/attackCarrierContact.reference.mjs
+      - name: Derive exact changed artifact SHA-256 and bytes for fail-closed revision lock
+        run: |
+          sha256sum public/game/arsenal/arsenalWeaponRuntime.js public/game/hero-rework/crystalGameplayRuntime.js public/gold/shell.html
+          wc -c public/gold/shell.html
       - name: Generic Stream and Beam material semantics (REFERENCE ONLY)
         run: node tools/testOwnerD6GenericStreamContacts.mjs
       - name: Real Arsenal Flame owner-law proof (Wall, HEXA, reflected source, breaking tick)
