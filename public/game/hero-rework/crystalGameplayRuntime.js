@@ -1029,7 +1029,7 @@ function resolveNativeStreamTick(req) {
   // Segment traversal is ordered by the authoritative AIL capsule TOI. For
   // breaking hits, the same ray continues; for nonbreaking hits it reflects.
   function route(dir, reflectAllowed, tIndex) {
-    let x=origin.x, y=origin.y, left=req.range, blocked=false;
+    let x=origin.x, y=origin.y, left=req.range, blocked=false, clearRoute=false;
     const ux=Math.cos(dir),uy=Math.sin(dir);
     for(let depth=0;depth<12&&left>0.001;depth++) {
       let first=null;
@@ -1044,7 +1044,7 @@ function resolveNativeStreamTick(req) {
             (cons.id+':'+cap.idx)<(first.cap.cons.id+':'+first.cap.idx)))
           first={cap,hit};
       }
-      if(!first)break;
+      if(!first){clearRoute=true;break;}
       const {cap,hit}=first,cons=cap.cons,st=cons.st;
       const hx=x+ux*left*hit.t,hy=y+uy*left*hit.t;
       const traveled=left*hit.t;
@@ -1093,7 +1093,8 @@ function resolveNativeStreamTick(req) {
       const epsilon=Math.min(0.7,left);
       x=hx+ux*epsilon;y=hy+uy*epsilon;left-=epsilon;
     }
-    if(left>0.001)throw Error('Native Stream traversal budget exceeded: contact unresolved');
+    if(left>0.001&&!blocked&&!clearRoute)
+      throw Error('Native Stream traversal budget exceeded: contact unresolved');
     return blocked;
   }
   // Evaluate exact target-center rays first, preserving the original direct
