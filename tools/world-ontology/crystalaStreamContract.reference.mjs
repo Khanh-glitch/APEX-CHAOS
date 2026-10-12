@@ -59,19 +59,61 @@ export function previewCrystalaStreamRedirect(sample, contacts, context={}) {
     })
   });
 }
+// Shared A1 impact rule for BOTH Wall and HEXA. No HP mutation in reference.
+// Each true projectile hit OR real Stream damage tick is one impact.
+// Returns an authoritative-transaction SHAPE, NOT a live game transaction.
+export function adjudicateA1ConstructImpact(surface, hit) {
+  if(!surface || !['wall','hexa'].includes(surface.form) || !str(surface.id))
+    return ret('unresolved','unknown-construct-surface');
+  if(!Number.isFinite(surface.hp) || !(surface.hp>0))
+    return ret('unresolved','invalid-or-inactive-surface-hp');
+  if(!hit || !Number.isFinite(hit.structuralDamage) || !(hit.structuralDamage>0))
+    return ret('unresolved','missing-positive-structural-damage');
+  if(!['projectile','stream'].includes(hit.carrierForm))
+    return ret('unresolved','unknown-attack-carrier');
+  const breaking = hit.structuralDamage >= surface.hp;
+  return ret('allowed',breaking?'breaking-hit-passes-through':'nonbreaking-hit-reflects',{
+    effect:breaking?'break-through':'reflect',
+    surfaceId:surface.id,
+    form:surface.form,
+    hpBefore:surface.hp,
+    hpAfter:Math.max(0,surface.hp-hit.structuralDamage),
+    damageApplied:hit.structuralDamage,
+    originalAttackContinues:breaking,
+    reflectOriginalAttack:!breaking,
+    // No residual-damage arithmetic. Breaking strike retains its FULL payload.
+    damageOutcome:'NO_DAMAGE_APPLIED_IN_REFERENCE'
+  });
+}
+
+// A preview may only be committed after an actual collision/structural witness.
+// A formerly injected "reflect-first" HEXA outcome is actively rejected.
 export function approveStreamReflectionPreview(preview, structural, seen) {
   if(preview?.status!=='allowed') return preview??ret('unresolved','missing-preview');
   if(!seen||typeof seen.has!=='function'||typeof seen.add!=='function')
     return ret('unresolved','missing-receipt-deduplication-authority');
-  if(!structural||!['reflect','break-through','absorb'].includes(structural.outcome))
-    return ret('unresolved','missing-structural-adjudication');
-  if(structural.constructId!==preview.plan.constructId)
-    return ret('unresolved','construct-receipt-mismatch');
-  if(structural.outcome==='break-through')
-    return ret('denied','wall-break-through-preserves-original-carrier');
-  if(structural.outcome==='absorb')
-    return ret('denied','structural-absorption-no-counter');
-  if(seen.has(preview.receiptKey)) return ret('denied','stream-tick-already-adjudicated');
+  if(!structural||structural.constructId!==preview.plan.constructId)
+    return ret('unresolved','missing-or-mismatched-structural-witness');
+  if(seen.has(preview.receiptKey))
+    return ret('denied','stream-tick-already-adjudicated');
+  // The input must report the *current* HP of the exact collided Wall / HEXA facet.
+  const adjudication=adjudicateA1ConstructImpact({
+    id:structural.constructId,
+    form:preview.plan.constructForm,
+    hp:structural.hpBefore
+  },{
+    carrierForm:'stream',
+    structuralDamage:structural.structuralDamage
+  });
+  if(adjudication.status!=='allowed') return adjudication;
+  if(str(structural.outcome) && structural.outcome!==adjudication.effect)
+    return ret('unresolved','structural-outcome-conflicts-with-unified-A1-law');
   seen.add(preview.receiptKey);
-  return ret('allowed','stream-reflection-approved-without-damage-execution',{plan:preview.plan});
+  return ret('allowed',adjudication.reason,{
+    effect:adjudication.effect,
+    hpAfter:adjudication.hpAfter,
+    originalAttackContinues:adjudication.originalAttackContinues,
+    redirect:adjudication.reflectOriginalAttack?preview.plan:null,
+    damageOutcome:'NO_DAMAGE_APPLIED_IN_REFERENCE'
+  });
 }
