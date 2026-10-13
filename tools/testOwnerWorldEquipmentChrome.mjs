@@ -174,7 +174,19 @@ try {
    if(kind==='frost'){
     a.x=200;a.y=500;a.setDir(1,0);b.x=850;b.y=850;
     if(!G.APEX_ARSENAL_SKILL_GATE.pressJ(a))throw Error('Real Frost A1 press rejected');
-    for(let i=0;i<54;i++)AR.step(1/60);
+    // CP5 read-only browser canary for the real early A1 presentation window.
+    const earlyFrames=[],F=G.APEX_FROST_PRESENTATION;
+    for(let i=0;i<54;i++){
+      AR.step(1/60);
+      if(typeof G.draw==='function')G.draw();
+      if(i<20||i===29||i===39||i===53){
+        const p=F?.inspect?.(a),audit=p?.renderAudit||{};
+        earlyFrames.push({frame:i+1,ready:p?.ready,engineReady:p?.engineReady,
+          leaks:p?.stateLeaks,exceptions:audit.drawExceptions,
+          bodyDraws:audit.bodyDraws,iceRenders:audit.iceRenders,
+          sources:F?.integrityTrace?.().at(-1)?.renderSourceCounts||{}});
+      }
+    }
     const lane=G.APEX_FROST.inspect(HR.byCombatant(a)).lanes[0];
     if(!lane)throw Error('Frost A1 failed to make real ice lane');
     a.x=100;a.y=100;b.x=100;b.y=900;
@@ -183,7 +195,7 @@ try {
     AR.step(2/60);
     const measurements=slots.map((s,i)=>({id:ids[i],eligible:i<3,frozen:!!s.__frostFrozen}));
     if(typeof G.draw==='function')G.draw();
-    return {kind,measurements,laneWidth:lane.width??null};
+    return {kind,measurements,laneWidth:lane.width??null,earlyFrames};
    }
   },kind);
   if(kind==='magnet'){
@@ -203,8 +215,18 @@ try {
       label+' A2 did not repel responsive V43 '+m.id+': '+JSON.stringify(m));
     assert.equal(m.phase,'REVEALED',label+' V43 floor slot vanished '+m.id);
    }
-  }else for(const m of evaluated.measurements){
-   assert.equal(m.frozen,m.eligible,label+' '+m.id+' wrong Frozen Equipment');
+  }else{
+   for(const m of evaluated.measurements)
+     assert.equal(m.frozen,m.eligible,label+' '+m.id+' wrong Frozen Equipment');
+   assert.equal(evaluated.earlyFrames.length,23,label+' Frost early-frame samples');
+   for(const frame of evaluated.earlyFrames){
+     assert.ok(frame.ready&&frame.engineReady,label+' Gold art unavailable frame '+frame.frame);
+     assert.equal(frame.leaks,0,label+' canvas state leak frame '+frame.frame);
+     assert.equal(frame.exceptions,0,label+' Frost draw exception frame '+frame.frame);
+     assert.ok(frame.bodyDraws>0,label+' missing actor render frame '+frame.frame);
+   }
+   assert.ok(evaluated.earlyFrames.some(f=>(f.sources['frost-gold-body']||0)>0),
+     label+' early Gold Frost actor source absent');
   }
   assert.deepEqual(errors,[],label+' browser page errors');
   await (await page.$('#game-canvas')).screenshot({path:path.join(OUT,label+'-after.png')});
