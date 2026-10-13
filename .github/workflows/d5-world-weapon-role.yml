@@ -2,6 +2,12 @@ name: D5 World Weapon Role Owner Gate (isolated)
 on:
   pull_request:
     paths:
+      # CP6 future extension admission: newly ADDED weapon/hero runtime files
+      # must trigger the owner gate without hand-editing a 6-hero/V4.x allowlist.
+      - 'public/game/arsenal/**'
+      - 'public/game/hero-rework/**'
+      - 'src/game/**'
+      - 'tools/testExtensionCapacityGates.mjs'
       - 'public/game/arsenal/arsenalIdentityRuntime.js'
       - 'public/game/hero-rework/magnetGameplayRuntime.js'
       - 'public/game/hero-rework/frostGameplayRuntime.js'
