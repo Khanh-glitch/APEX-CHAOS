@@ -7,6 +7,7 @@ on:
       - 'public/game/hero-rework/frostGameplayRuntime.js'
       - 'tools/testContentInteractionBaseline.mjs'
       - 'tools/testOwnerWorldEquipmentRoles.mjs'
+      - 'tools/testOwnerWeaponPoseLifecycleAudit.mjs'
       - 'tools/testOwnerWorldEquipmentChrome.mjs'
       - '.github/workflows/d5-world-weapon-role.yml'
   workflow_dispatch:
@@ -39,6 +40,8 @@ jobs:
           node tools/buildGoldCutover.mjs --check
       - name: Explicit owner Weapon/Defense/T6/Frozen Bullet live runtime gates
         run: node tools/testOwnerWorldEquipmentRoles.mjs
+      - name: Read-only equipped weapon motion and RPG real-fire lifecycle baseline
+        run: node tools/testOwnerWeaponPoseLifecycleAudit.mjs
       - name: Original content interaction contracts with owner-superseded roles
         run: node tools/testContentInteractionBaseline.mjs
       - name: V43 kinetic projectile material law unchanged
