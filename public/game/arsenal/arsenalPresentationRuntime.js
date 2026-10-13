@@ -574,9 +574,14 @@
         break;
       }
       case 'explosion': {
+        // The AOE and its single gameplay hit receipt already occurred.
+        // Cosmetic presentation may replace BOTH visual layers, never the
+        // original SFX or blast damage. Grenade / default rocket remain Gold.
         playAll('explosion');
-        stats.atlasCued = (stats.atlasCued || 0) + 1; // bomb explosion stays (V2 §A4)
-        pushVfx({ kind: 'atlas', x: o.x, y: o.y, life: 64 / 34, fps: 34, size: 400 });
+        if (!window.APEX_COSMETICS?.suppressDefaultBlast?.(o.cosmetic)) {
+          stats.atlasCued = (stats.atlasCued || 0) + 1;
+          pushVfx({ kind: 'atlas', x: o.x, y: o.y, life: 64 / 34, fps: 34, size: 400 });
+        }
         break;
       }
       case 'storm_windup': {
