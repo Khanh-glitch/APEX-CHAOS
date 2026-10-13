@@ -174,5 +174,28 @@ test('field A1 physically moves ordinary plus V43 plus melee floor Weapons',()=>
   else assert.ok(moved<.01,items[i].weaponId+' wrongly attracted');
  }
 });
+test('REAL Magnet A2 repels responsive floor equipment but leaves inert Weapon stationary',()=>{
+ HR.setSeed(138);HR.setAiEnabled(false);
+ assert.ok(T.start('MAGNET','ROBOT'));T.holdSpawns();
+ const [a,b]=H.fighters();
+ a.x=310;a.y=500;a.baseSpeed=0;
+ b.x=900;b.y=900;b.baseSpeed=0;
+ const specs=[
+  {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'inert',x:410,y:500},
+  {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'responsive',x:410,y:550}
+ ];
+ const ids=specs.map(s=>T.pushSlot(s));
+ const get=id=>win.APEX_ARSENAL.state.slots.find(s=>s.id===id);
+ const before=ids.map(id=>({x:get(id).x,y:get(id).y}));
+ const cast=HR.pressAbility(a,'A2');assert.equal(cast.ok,true,'real A2 cast');
+ T.step(.1);
+ const after=ids.map(id=>get(id));
+ for(const s of after)assert.ok(s&&s.phase==='REVEALED','floor persisted through live A2');
+ const inertDistance=Math.hypot(after[0].x-before[0].x,after[0].y-before[0].y);
+ const responsiveDistance=Math.hypot(after[1].x-before[1].x,after[1].y-before[1].y);
+ assert.ok(inertDistance<.01,'A2 incorrectly displaced inert Weapon: '+inertDistance);
+ assert.ok(responsiveDistance>.1,'A2 failed to repel responsive Weapon: '+responsiveDistance);
+ assert.ok(after[1].x>before[1].x,'A2 response must be outward');
+});
 console.log('OWNER WORLD EQUIPMENT D5: '+passed+'/'+passed+' real runtime tests PASS');
 process.exit(0);
