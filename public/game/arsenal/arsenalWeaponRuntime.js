@@ -750,6 +750,14 @@
       ...extra};
     projectiles.push(p);return p;
   }
+  // Derivative projectiles must keep the source visual receipt even when
+  // impact/reflection changes physical ownership or the player re-equips.
+  // This is a generic carrier law, not a skin-specific/weapon-specific branch.
+  function v43SpawnChild(parent,kind,angle,extra={}){
+    if(!parent||!parent.weapon)throw Error('Child projectile missing canonical parent');
+    return v43Spawn(parent.owner,parent.weapon,kind,angle,{
+      ...extra,cosmetic:parent.cosmetic||null});
+  }
   function v43ApplyBurn(target, owner, weapon, ticks, interval, damage, parent=null) {
     if (!target || target.hp <= 0) return;
     const burn={aq:true,type:'aq_v43',kind:'burn',owner,weapon,victim:target,
@@ -983,7 +991,7 @@
         const fragmentGroup={victimHits:new Map()};
         for(let i=0;i<c.fragments;i++){
           const angle=i*Math.PI*2/c.fragments;
-          const child=v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
+          const child=v43SpawnChild(p,'fragment',angle,{x:p.x,y:p.y,
             px:p.x,py:p.y,radius:4,
             damage:c.fragmentDamage*v43DamageScale(p,c.peak),fragmentGroup,
             life:.55,vx:Math.cos(angle)*c.fragmentSpeed,vy:Math.sin(angle)*c.fragmentSpeed});
@@ -1203,7 +1211,7 @@
     if(p.kind==='plasma-core'&&p.age>=c.splitAfter){
       for(const da of c.spread){
         const angle=Math.atan2(p.vy,p.vx)+da;
-        const child=v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
+        const child=v43SpawnChild(p,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
           radius:c.radius,damage:c.shardDamage*v43DamageScale(p,c.coreDamage),
           vx:Math.cos(angle)*c.shardSpeed,vy:Math.sin(angle)*c.shardSpeed,
           life:2.3,homing:!v43Redirected(p)});
@@ -1213,7 +1221,7 @@
             cryOwner:p.__hr?.cryOwner,neutral:false};
         }
       }
-      v43Pulse(p.x,p.y,'split');p.life=0;
+      v43Pulse(p.x,p.y,'split',1,p.weapon,p.cosmetic);p.life=0;
     }
     // The base engine removes expired projectiles before this step.
     if(p.kind==='rocket'&&p.life<=Math.max(.04,dt*1.5)){
