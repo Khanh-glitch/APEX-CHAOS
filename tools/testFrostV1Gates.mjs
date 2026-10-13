@@ -508,16 +508,30 @@ try {
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
   o.b.x = 800; o.b.y = 800;
   const r = HR.pressAbility(o.a, 'A2');
-  T.step(0.5); // trail spans ~200..610 at y=500 (no wall yet)
-  o.a.baseSpeed = 0; // pin AFTER the trail is laid; Frost stays ~610
-  const id = T.pushSlot({ x: 450, y: 500, phase: 'REVEALED', weaponId: 'PISTOL' });
+  T.step(0.5); // REAL A2 movement is authoritative: do not assume a
+  // fixed endpoint while other movement/collision statuses are in play.
+  const trace = FR().inspect(o.ct);
+  const nodes = trace?.trailNodes || [];
+  const first = nodes[0], last = nodes[nodes.length - 1];
+  const travelled = first && last ? Math.hypot(last.x-first.x,last.y-first.y) : 0;
+  const mid = nodes[Math.floor(nodes.length/2)] || null;
+  // Assert meaningful physical displacement AND freeze support at a sampled
+  // actual trail interior, not an arbitrary x=450 which might lie off-trail.
+  // This does NOT substitute renderer motion or force a frozen slot in code.
+  const validTravel = nodes.length >= 3 && travelled >= 180 && !!mid;
+  o.a.baseSpeed = 0; // pin only AFTER the trail is laid
+  const id = validTravel ? T.pushSlot({
+    x: mid.x, y: mid.y, phase: 'REVEALED', weaponId: 'PISTOL'
+  }) : null;
   o.b.x = 100; o.b.y = 900;
   T.step(2 / 60);
-  const s = AQSlots().find((q) => q.id === id);
+  const s = id == null ? null : AQSlots().find((q) => q.id === id);
   const trailLive = FR().inspect(o.ct).trail > 0;
-  win.APEX_ARSENAL.state.slots = AQSlots().filter((q) => q.id !== id);
-  gate('F05.8-trail-freezes', r.ok === true && trailLive && !!s && !!s.__frostFrozen,
-    { trail: trailLive, frozen: !!(s && s.__frostFrozen) });
+  if (id != null) win.APEX_ARSENAL.state.slots = AQSlots().filter((q) => q.id !== id);
+  gate('F05.8-trail-freezes',
+    r.ok === true && validTravel && trailLive && !!s && !!s.__frostFrozen,
+    { trail: trailLive, nodes: nodes.length, travel: +travelled.toFixed(1),
+      sample: mid && {x:mid.x,y:mid.y}, frozen: !!(s && s.__frostFrozen) });
 } catch (e) { gate('F05.8-trail-freezes', false, String(e && e.message)); }
 
 function iceVersusIce() {
