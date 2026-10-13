@@ -146,5 +146,47 @@ assert.equal(c.query('mirror-f2-projectile',{aq:true,type:'aq_v43',weapon:'RPG_7
   kind:'rocket',life:2},{config:CFG}).status,'unresolved',
   'Mirror V43 must not be implicitly enabled by the Magnet/Frost cutover');
 
+// CP5.5: reflection TAG is not a physical reflection transaction.
+// Preserve every pre-cutover kind decision while Crystal/Swirl retain the
+// independent mine-flight, ownership, geometry, TOI and one-reflection rules.
+let reflectCases=0;
+for(const [id,spec] of Object.entries(CFG.V43_WEAPONS)){
+  const kinds=new Set([...spec.reflectableKinds,...(spec.magnetizableKinds||[]),
+    spec.kind,'burn','mine','unregistered-tag'].filter(Boolean));
+  for(const kind of kinds){
+    const p={aq:true,type:'aq_v43',weapon:id,kind,life:3,phase:'flight'};
+    const d=c.query('v43-reflection-tag',p,{config:CFG});
+    assert.equal(Object.isFrozen(d),true,id+' immutable reflection decision');
+    assert.equal(d.status==='allowed',spec.reflectableKinds.includes(kind),
+      id+'/'+kind+' canonical reflected-kind parity');
+    // The tag is phase-agnostic. An armed mine is excluded by the executor,
+    // not by prematurely rewriting the semantic tag.
+    if(kind==='mine') assert.equal(c.query('v43-reflection-tag',
+      {...p,phase:'armed'},{config:CFG}).status,d.status,
+      'kind policy must not decide mine collision phase');
+    reflectCases++;
+  }
+}
+const rP={aq:true,type:'aq_v43',weapon:'RPG_7',kind:'rocket',phase:'flight',life:2};
+assert.equal(c.query('v43-reflection-tag',rP,{config:CFG}).status,'allowed');
+assert.equal(c.query('v43-reflection-tag',{...rP,weapon:'FUTURE_UNKNOWN'},
+  {config:CFG}).status,'unresolved','future unknown V43 cannot inherit reflection');
+assert.equal(c.query('v43-reflection-tag',rP,{}).status,'unresolved',
+  'missing authority fails closed');
+assert.equal(c.query('v43-reflection-tag',{...rP,weapon:'STORMBREAKER'},
+  {config:CFG}).status,'denied','T6 never reflectable');
+const cryptoPolicy=await import('node:fs');
+const crystalSource=cryptoPolicy.readFileSync('public/game/hero-rework/crystalGameplayRuntime.js','utf8');
+const arsenalSource=cryptoPolicy.readFileSync('public/game/arsenal/arsenalWeaponRuntime.js','utf8');
+assert.ok(crystalSource.includes("authority.query?.('v43-reflection-tag',p,{config:CFG()})"),
+  'Crystala must delegate V43 eligibility to AIL');
+assert.ok(arsenalSource.includes("const crystalEligible=v43ReflectableTag(p)"),
+  'V43 native stream router must delegate canonical reflection kind');
+assert.ok(arsenalSource.includes("&&v43ReflectableTag(p)"),
+  'Swirl Shield must delegate canonical reflection kind');
+assert.ok(arsenalSource.includes("p.kind!=='mine'||p.phase==='flight'"),
+  'mine flight/arming restrictions must remain in the executor');
+console.log('CP5 V43 REFLECTION KIND PARITY PASS '+reflectCases+' canonical cases');
+
 console.log('CP5 LIVE MAGNET POLICY '+(checked-failures)+'/'+checked+(failures?' DRIFT':' PASS'));
 process.exit(failures?1:0);

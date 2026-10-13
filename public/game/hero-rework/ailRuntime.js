@@ -204,9 +204,9 @@
   };
 
   /* CP5 LIVE MAGNET QUERY START */
-  // Only projectile policy is admitted to the production AIL authority here.
-  // The D5 World Weapon/Defense floor model is a separate semantic axis:
-  // this adapter MUST NOT decide Magnet A1/A2 floor or Frost eligibility.
+  // CP5 live semantic admissions: floor Weapon roles, Frozen Equipment,
+  // kinetic projectile and V43 reflection kind. Combat consumers still own
+  // the actual physical contact, damage and motion.
   CapabilityAuthority.query = function queryInteraction(action,target,context={}) {
     const result=(status,reason)=>Object.freeze({status,reason});
     if(action==='magnet-revealed-slot'||action==='magnet-repel-slot'){
@@ -241,6 +241,28 @@
         return result('unresolved','unregistered-equipment');
       return result(config.isHeroManipulableWeapon(id,target)?'allowed':'denied',
         'canonical-world-frozen-equipment-role');
+    }
+    if(action==='v43-reflection-tag'){
+      // CP5.5 semantic kind admission ONLY. Reflective contact, mine flight,
+      // ownership, path priority, damage and T6 collision remain with each
+      // existing engine consumer. No new V43 projectile types are enabled.
+      if(!target||typeof target!=='object')
+        return result('unresolved','missing-target');
+      const config=context.config;
+      if(!config||typeof config.V43_WEAPONS!=='object')
+        return result('unresolved','missing-v43-config');
+      const id=target.weapon;
+      const special=config.V43_WEAPONS[id];
+      if(!id||(!special&&!Object.prototype.hasOwnProperty.call(config.WEAPONS||{},id)))
+        return result('unresolved','unregistered-weapon');
+      if(target.type!=='aq_v43'||this.isT6(target)||id==='T6'
+         ||id==='STORMBREAKER'||special?.tier==='T6')
+        return result('denied','not-a-legal-v43-projectile');
+      if(!special)return result('denied','not-a-v43-special');
+      if(!Array.isArray(special.reflectableKinds))
+        return result('unresolved','missing-v43-reflection-tags');
+      return result(special.reflectableKinds.includes(target.kind)?'allowed':'denied',
+        'canonical-v43-reflection-kind');
     }
     if(action!=='magnet-projectile')
       return result('unresolved','unmigrated-interaction-action');
