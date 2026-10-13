@@ -29,7 +29,18 @@ try {
     assert.equal(CFG.isHeroManipulableFloorWeapon(s),true,weaponId+' canonical World Weapon');
     assert.equal(CFG.isGun(weaponId),false,weaponId+' must not regress to isGun AI shortcut');
   }
-  T.step(1.4);
+  // Sample every actual simulation frame: the canonical pickup may REMOVE
+  // an attracted RPG before the final snapshot. Remember real movement,
+  // never count a disappearance alone as proof of magnetic displacement.
+  const travel=new Map(slots.map(o=>[o.id,0]));
+  for(let i=0;i<84;i++){
+    T.step(1/60);
+    for(const item of slots){
+      const obj=AR.state.slots.find(s=>s.id===item.id);
+      if(obj)travel.set(item.id,Math.max(travel.get(item.id)||0,
+        Math.hypot(obj.x-item.x,obj.y-item.y)));
+    }
+  }
   const ct=HR.byCombatant(magnet),snap=MAG.inspect(win.matchClock);
   const field=snap.fields.find(x=>x.combatant===ct);
   const ai=HR.match?.aiCastPlan||{};
@@ -43,12 +54,9 @@ try {
     'BOT Magnet must autonomously cast A1 against V43/melee/grenade Weapon floor: '+
       JSON.stringify(diag));
   for(const original of slots){
-    const current=AR.state.slots.find(s=>s.id===original.id);
-    const moved=current ? Math.hypot(current.x-original.x,current.y-original.y) : 0;
-    const attracted=snap.floorInfluence.some(x=>x.slot.id===original.id)
-      ||snap.floorFirearms.some(x=>x.slot.id===original.id&&x.integrations>0);
-    assert.ok(moved>0.2||(!current&&attracted),
-      original.weaponId+' must move via real pickup-seam integration, moved='+moved);
+    const distance=travel.get(original.id)||0;
+    assert.ok(distance>0.2,
+      original.weaponId+' must physically move before pickup or removal, tracked='+distance);
   }
   console.log('PASS MAGNET BOT A1 REAL World Weapon AI + physics (RPG/SABRE/GRENADE)');
 } finally {
