@@ -104,30 +104,26 @@ try {
       ...ids.map((id,i)=>[id,630+(i%2)*30,400+i*27,true]),
       ['STORMBREAKER',650,625,false],['SWIRL_SHIELD',650,660,false]
     ];
-    // At least one V43 slot MUST come from the actual Arsenal Lab spawn
-    // pipeline. Handcrafted test slots alone once hid the missing "kind".
+    // Lab has a real cap of 6 floor objects. Create its one genuine V43
+    // item FIRST, then add synthetic controls for this multi-identity audit.
+    const oldLab=AR.state.labMode;
+    AR.state.labMode=true;
+    let genuineRPG;
+    try{genuineRPG=G.APEX_ARSENAL_SPAWN.spawnLabWeapon('RPG_7');}
+    finally{AR.state.labMode=oldLab;}
+    if(!genuineRPG||genuineRPG.kind!=='WEAPON'){
+      const func=String(G.APEX_ARSENAL_SPAWN.spawnLabWeapon);
+      throw Error('REAL Lab RPG-7 slot invalid: '+JSON.stringify({
+        exists:!!genuineRPG,kind:genuineRPG?.kind,
+        activeSlots:AR.state.slots.length,
+        labCap:CFG.LAB_MANUAL_SLOT_CAP,
+        hasNewSource:func.includes("kind: 'WEAPON'")
+      }));
+    }
     const slots=inventory.map(([id,x,y])=>{
-      if(id!=='RPG_7')return slot(id,x,y);
-      const oldLab=AR.state.labMode;
-      AR.state.labMode=true;
-      let spawned;
-      try{spawned=G.APEX_ARSENAL_SPAWN.spawnLabWeapon(id);}
-      finally{AR.state.labMode=oldLab;}
-      if(!spawned||spawned.kind!=='WEAPON'){
-        const src=String(G.APEX_ARSENAL_SPAWN.spawnLabWeapon);
-        const scripts=performance.getEntriesByType('resource').map(x=>x.name)
-          .filter(x=>x.includes('arsenalSpawnRuntime'));
-        throw Error('REAL Lab RPG-7 slot missing World kind: '+JSON.stringify({
-          got:spawned?.kind,keys:Object.keys(spawned||{}),
-          hasNewSource:src.includes("kind: 'WEAPON'"),
-          sourceSnippet:src.slice(src.indexOf('const slot ='),src.indexOf('const slot =')+260),
-          scriptURLs:scripts,
-          rev:G.apexArsenalSpawnRuntime,
-          hasSemanticFunction:!!G.APEX_ARSENAL_CONFIG?.isHeroManipulableFloorWeapon
-        }));
-      }
-      spawned.x=x;spawned.y=y;
-      return spawned;
+      const placed=id==='RPG_7'?genuineRPG:slot(id,x,y);
+      placed.x=x;placed.y=y;
+      return placed;
     });
     const pos=slots.map(s=>({x:s.x,y:s.y}));
     if(!HR.pressAbility(a,'A1').ok)throw Error('Real Magnet A1 cast was denied');
