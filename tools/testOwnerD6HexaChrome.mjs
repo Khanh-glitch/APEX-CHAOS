@@ -126,10 +126,15 @@ try {
    // body still draws at its previous position for that one frame.
    AR.step(1/60);
    const pre={wallHp:c.hp[facet],facet,sourceHp:b.hp,targetHp:a.hp,
-     material:CR.capsules().length};
-   G.__d6Case={a,b,ct,AR,CR,pre,facet,receipts:[]};
-   G.__d6Case.off=G.APEX_HERO_REWORK_AIL.bus.on('CrystalStreamContact',
+     material:CR.capsules().length,allHp:c.hp.slice(),allDead:c.facetsDead.slice()};
+   G.__d6Case={a,b,ct,AR,CR,pre,facet,receipts:[],constructHits:[],facetBreaks:[]};
+   const bus=G.APEX_HERO_REWORK_AIL.bus;
+   G.__d6Case.off=bus.on('CrystalStreamContact',
      ev=>G.__d6Case.receipts.push(ev.payload));
+   G.__d6Case.offHits=bus.on('CrystalConstructHit',
+     ev=>G.__d6Case.constructHits.push(ev.payload));
+   G.__d6Case.offBreaks=bus.on('CrystalFacetBreak',
+     ev=>G.__d6Case.facetBreaks.push(ev.payload));
    if(typeof G.draw==='function')G.draw();
    return pre;
   });
@@ -161,10 +166,14 @@ try {
    for(let i=0;i<11;i++)AR.step(1/60);
    if(typeof G.draw==='function')G.draw();
    const c=CR.inspect(ct).constructs.find(x=>x.kind==='prison');
-   O.off();
+   O.off();O.offHits();O.offBreaks();
    return {wallState:c.state,wallHp:c.hp[O.facet],wallReason:c.reason,
      selectedFacet:O.facet,facetDead:c.facetsDead[O.facet],
      liveOtherFacets:c.facetsDead.filter(x=>!x).length,
+     beforeFacets:pre.allHp,beforeDead:pre.allDead,
+     afterFacets:c.hp,afterDead:c.facetsDead,
+     hits:O.constructHits.map(x=>({cons:x.cons,kind:x.kind,facet:x.facet,damage:x.damage,why:x.why})),
+     facetBreaks:O.facetBreaks.map(x=>({cons:x.cons,facet:x.facet})),
      ticks:flame.ticks,sourceHpLoss:pre.sourceHp-b.hp,targetHpLoss:pre.targetHp-a.hp,
      receipts:O.receipts.map(x=>({broken:x.broken,tick:x.tick,facet:x.facet})),
      visualHistory:flame.flameReflectHistory?.length||0};
@@ -187,6 +196,7 @@ try {
     'destroyed material still presents an authoritative collision surface');
   await canvas.screenshot({path:path.join(OUT,name+'-hexa-settled.png')});
 
+  console.log('D6_HEXA_CAUSAL '+name+' '+JSON.stringify({initial:init,after}));
   assert.equal(after.facetDead,true,'struck HEXA facet must break');
   assert.equal(after.liveOtherFacets,5,'other five HEXA facets must retain independent HP');
   assert.ok(after.wallHp<=0,'destroyed HEXA facet HP must be exhausted');
