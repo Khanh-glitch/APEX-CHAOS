@@ -67,7 +67,8 @@
   // T6 is excluded from Hero manipulation but remains physical equipment.
   CFG.isHeroManipulableWeapon = (id, slot = null) => !!id &&
     CFG.isOffensive(id) && CFG.tierOf(id) !== 'T6' &&
-    (!slot || CFG.isHeroManipulablePickup(slot));
+    (!slot || (slot.kind !== 'HEAL' && slot.tier !== 'T6' &&
+      CFG.isHeroManipulablePickup(slot)));
   CFG.isHeroManipulableFloorWeapon = (slot) => !!slot &&
     slot.phase === 'REVEALED' && slot.kind === 'WEAPON' &&
     CFG.isHeroManipulableWeapon(slot.weaponId, slot);
