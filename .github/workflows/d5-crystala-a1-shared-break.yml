@@ -14,6 +14,9 @@ on:
       - 'tools/lib/goldB05PatchRevision.mjs'
       - 'tools/testGoldB05PatchRevision.mjs'
       - 'tools/goldB05Overlays/shell.html.patch'
+      - 'public/game/arsenal/arsenalConfig.js'
+      - 'public/game/arsenal/arsenalIdentityRuntime.js'
+      - 'public/game/arsenal/arsenalWeaponRuntime.js'
       - '.github/workflows/d5-crystala-a1-shared-break.yml'
   workflow_dispatch:
 jobs:

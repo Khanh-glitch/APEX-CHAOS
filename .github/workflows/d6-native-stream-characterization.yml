@@ -11,6 +11,11 @@ on:
       - 'tools/testOwnerD6NativeStreamChrome.mjs'
       - 'tools/testOwnerD6HexaChrome.mjs'
       - 'tools/world-ontology/attackCarrierContact.reference.mjs'
+      - 'public/game/arsenal/arsenalConfig.js'
+      - 'public/game/arsenal/arsenalIdentityRuntime.js'
+      - 'public/game/arsenal/arsenalSpawnRuntime.js'
+      - 'public/game/hero-rework/ailRuntime.js'
+      - 'tools/testV43PostUpdateContracts.mjs'
       - '.github/workflows/d6-native-stream-characterization.yml'
   workflow_dispatch:
 
