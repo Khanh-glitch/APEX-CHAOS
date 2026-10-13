@@ -63,6 +63,8 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install QA-only Chrome driver without updating committed lockfile
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
       - name: Actual desktop/mobile Chrome native Stream gameplay and Canvas
         run: |
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
