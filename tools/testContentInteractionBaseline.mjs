@@ -149,6 +149,43 @@ gate('mirror-F2-type-exclusion-intentionally-preserved', () => {
     {aq:true,type:'aq_bullet',weapon:'STORMBREAKER'},
   ]) assert.equal(auth.query('mirror-f2-projectile',bad,ctx).status,'denied');
 });
+gate('future-V43-content-inherits-shared-Magnet-Crystal-Frost-roles-without-hero-edits', () => {
+  // A sacrificial future weapon is declared ONLY in the canonical catalogues.
+  // Hero-specific tables remain untouched. This proves that current AIL
+  // queries honor content traits instead of a private eight-ID allowlist.
+  const id='CP5_FUTURE_KINETIC_CATALOG_CANARY';
+  const original=C.V43_WEAPONS;
+  assert.ok(!C.WEAPONS[id] && !original[id], 'canary identity collided with production');
+  try {
+    C.V43_WEAPONS={...original,[id]:{
+      tier:'T2',kind:'foil',family:'SPECIAL',
+      reflectableKinds:['foil'],magnetizableKinds:['ion']
+    }};
+    C.WEAPONS[id]={worldRoles:['weapon'],magneticResponse:'responsive'};
+    C.WEAPON_TIER[id]='T2';
+    const floor={kind:'WEAPON',phase:'REVEALED',weaponId:id,tier:'T2'};
+    assert.equal(M.isEligibleFloorWeapon(floor),true,'future Weapon must be pulled by A1');
+    assert.equal(M.isEligibleA2FloorWeapon(floor),true,'responsive future Weapon must be repelled');
+    assert.equal(F.isFreezableWeapon(floor),true,'future Weapon inherits Frost equipment law');
+    const shell={aq:true,type:'aq_v43',weapon:id,life:2,phase:'flight'};
+    const reflect=kind=>A.CapabilityAuthority.query('v43-reflection-tag',{...shell,kind},{config:C}).status;
+    assert.equal(reflect('foil'),'allowed','reflection kind must follow future trait');
+    assert.equal(reflect('ion'),'denied','reflection may not borrow Magnet permission');
+    assert.equal(M.isEligibleBullet({...shell,kind:'ion'}),true,'Magnet follows future kinetic trait');
+    assert.equal(M.isEligibleBullet({...shell,kind:'foil'}),false,'Magnet may not borrow reflection permission');
+    assert.equal(M.isEligibleBullet({...shell,kind:'ion',life:0}),false,'expired future projectile denied');
+    assert.equal(M.isEligibleBullet({...shell,kind:'ion',__hr:{cryHold:true}}),false,'held future projectile denied');
+    C.V43_WEAPONS[id]={...C.V43_WEAPONS[id],tier:'T6'};
+    C.WEAPON_TIER[id]='T6';
+    assert.equal(M.isEligibleBullet({...shell,kind:'ion'}),false,'future T6 kinetic immunity');
+    assert.equal(reflect('foil'),'denied','future T6 reflection immunity');
+    assert.equal(M.isEligibleFloorWeapon(floor),false,'future T6 floor immunity');
+    assert.equal(F.isFreezableWeapon(floor),false,'future T6 Frozen Equipment immunity');
+  }finally {
+    C.V43_WEAPONS=original;
+    delete C.WEAPONS[id];delete C.WEAPON_TIER[id];
+  }
+});
 gate('one-real-damage-transaction-and-receipt', () => {
   assert.ok(T.start('MAGNET','MAGNET')); T.holdSpawns();
   const [a,b]=H.fighters(); a.baseSpeed=b.baseSpeed=0;
