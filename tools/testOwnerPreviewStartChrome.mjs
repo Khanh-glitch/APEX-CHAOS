@@ -66,20 +66,21 @@ const snap=()=>`(() => {
 let failed=0;
 try{
  for(const test of cases){
-  const page=await browser.newPage(),errors=[],failedRequests=[];
+  const page=await browser.newPage(),errors=[],failedRequests=[],warnings=[];
   try{
     if(test.ua)await page.setUserAgent(test.ua);
     await page.setViewport(test.viewport);
     page.on('pageerror',e=>errors.push(String(e)));
+    page.on('console',m=>{if(m.type()==='warning'||m.type()==='error')warnings.push(m.text().slice(0,1200))});
     page.on('requestfailed',req=>failedRequests.push({url:req.url(),reason:req.failure()?.errorText||''}));
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
     let observation=null;
-    for(let i=0;i<30;i++){
+    for(let i=0;i<24;i++){
       observation=await page.evaluate(snap()).catch(e=>({probeError:String(e)}));
       if(observation?.startPresent||observation?.bootError)break;
       await new Promise(r=>setTimeout(r,500));
     }
-    console.log('[PREVIEW START] '+test.id+' '+JSON.stringify({observation,errors,failedRequests}));
+    console.log('[PREVIEW START] '+test.id+' '+JSON.stringify({observation,errors,warnings,failedRequests}));
     fs.writeFileSync(path.join(out,test.id+'-diagnostics.json'),
       JSON.stringify({observation,errors,failedRequests},null,2));
     await page.screenshot({path:path.join(out,test.id+'-before.png')});
