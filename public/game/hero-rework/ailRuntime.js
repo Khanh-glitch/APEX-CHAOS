@@ -175,9 +175,15 @@
   const CapabilityAuthority = {
     isT6(obj) {
       if (!obj) return false;
-      if (obj.isT6 === true) return true;
-      const w = obj.weapon || (obj.data && obj.data.arsenal && obj.data.arsenal.weaponId);
-      return w === 'T6' || w === 'STORMBREAKER';
+      if (obj.isT6 === true || obj.tier === 'T6') return true;
+      // A single physical item crosses multiple representations: the floor
+      // uses weaponId, detached projectiles use weapon, held equipment uses
+      // data.arsenal.weaponId. Never grant hero-object manipulation merely
+      // because one of the other identity fields is absent or contradictory.
+      const held = obj.data && obj.data.arsenal && obj.data.arsenal.weaponId;
+      return obj.weapon === 'T6' || obj.weapon === 'STORMBREAKER'
+        || obj.weaponId === 'T6' || obj.weaponId === 'STORMBREAKER'
+        || held === 'T6' || held === 'STORMBREAKER';
     },
     canManipulate(obj) { return !this.isT6(obj); },
     // Hero-object interactions this gates (doc 01):
