@@ -236,5 +236,45 @@ test('REAL Magnet A2 repels responsive floor equipment but leaves inert Weapon s
  assert.ok(responsiveDistance>.1,'A2 failed to repel responsive Weapon: '+responsiveDistance);
  assert.ok(after[1].x>before[1].x,'A2 response must be outward');
 });
+test('CP5 live floor policy parity and fail-closed future equipment',()=>{
+ const cap=win.APEX_HERO_REWORK_AIL.CapabilityAuthority;
+ const ask=(action,slot,config=C)=>cap.query(action,slot,{config});
+ for(const id of C.P0_WEAPON_IDS){
+   const good={kind:'WEAPON',phase:'REVEALED',weaponId:id,tier:C.tierOf(id)};
+   const states=[good,{...good,phase:'TELEGRAPH'},
+     {...good,kind:'HEAL'},{...good,heroInteractionImmune:true}];
+   for(const slot of states){
+     const a=ask('magnet-revealed-slot',slot);
+     const b=ask('magnet-repel-slot',slot);
+     assert.ok(Object.isFrozen(a)&&Object.isFrozen(b),'immutable decision');
+     assert.equal(a.status==='allowed',C.isHeroManipulableFloorWeapon(slot),id+'/A1');
+     assert.equal(b.status==='allowed',C.isHeroMagneticallyResponsiveFloorWeapon(slot),id+'/A2');
+     assert.equal(M.isEligibleFloorWeapon(slot),a.status==='allowed',id+'/consumer A1');
+     assert.equal(M.isEligibleA2FloorWeapon(slot),b.status==='allowed',id+'/consumer A2');
+   }
+ }
+ const unknown={kind:'WEAPON',phase:'REVEALED',weaponId:'CP5_UNKNOWN'};
+ for(const action of ['magnet-revealed-slot','magnet-repel-slot']){
+   assert.equal(ask(action,unknown).status,'unresolved',action+' unknown');
+   assert.equal(ask(action,null).status,'unresolved',action+' null');
+   assert.equal(ask(action,unknown,{}).status,'unresolved',action+' missing config');
+ }
+ const id='CP5_FUTURE_CANARY';
+ const slot={kind:'WEAPON',phase:'REVEALED',weaponId:id};
+ try{
+   C.WEAPONS[id]={worldRoles:['weapon'],magneticResponse:'inert'};
+   C.WEAPON_TIER[id]='T3';
+   assert.equal(ask('magnet-revealed-slot',slot).status,'allowed',
+     'future declared nonmagnetic Weapon still attracts');
+   assert.equal(ask('magnet-repel-slot',slot).status,'denied',
+     'future inert Weapon must not repel');
+   C.WEAPONS[id].magneticResponse='responsive';
+   assert.equal(ask('magnet-repel-slot',slot).status,'allowed',
+     'new effective trait immediately controls A2 without editing Magnet');
+   C.WEAPONS[id].worldRoles=['defense'];
+   assert.equal(ask('magnet-revealed-slot',slot).status,'denied','Defense excludes A1');
+   assert.equal(ask('magnet-repel-slot',slot).status,'denied','Defense excludes A2');
+ }finally{delete C.WEAPONS[id];delete C.WEAPON_TIER[id];}
+});
 console.log('OWNER WORLD EQUIPMENT D5: '+passed+'/'+passed+' real runtime tests PASS');
 process.exit(0);

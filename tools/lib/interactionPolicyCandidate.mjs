@@ -46,6 +46,14 @@ export function installShadowQuery(CapabilityAuthority) {
       return result('allowed', 'physical-v43-projectile');
     }
 
+    if (action === 'magnet-repel-slot') {
+      if (!config || typeof config.isHeroMagneticallyResponsiveFloorWeapon !== 'function')
+        return result('unresolved', 'missing-canonical-magnetic-response');
+      if (!id || !known) return result('unresolved', 'unregistered-weapon');
+      const ok = config.isHeroMagneticallyResponsiveFloorWeapon(target);
+      return result(ok ? 'allowed' : 'denied', 'canonical-magnetic-response');
+    }
+
     if (action === 'magnet-revealed-slot') {
       if (!config || typeof config.isHeroManipulableFloorWeapon !== 'function')
         return result('unresolved', 'missing-canonical-world-weapon-role');
