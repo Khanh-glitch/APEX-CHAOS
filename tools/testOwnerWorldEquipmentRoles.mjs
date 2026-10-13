@@ -34,6 +34,35 @@ test('T6, Defense, HEAL, unrevealed, unknown and immune floor denied',()=>{
   {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',heroInteractionImmune:true}
  ])assert.equal(M.isEligibleFloorWeapon(bad),false,JSON.stringify(bad));
 });
+test('shared T6 immunity accepts floor, held and projectile identity shapes',()=>{
+ const cap=win.APEX_HERO_REWORK_AIL.CapabilityAuthority;
+ const immune=[
+   {weapon:'STORMBREAKER'},
+   {kind:'WEAPON',phase:'REVEALED',weaponId:'STORMBREAKER'},
+   {data:{arsenal:{weaponId:'STORMBREAKER'}}},
+   {weapon:'PISTOL',weaponId:'STORMBREAKER'},
+   {weapon:'STORMBREAKER',weaponId:'PISTOL'},
+   {weaponId:'FUTURE_T6_CONTENT',tier:'T6'},
+   {weaponId:'PISTOL',isT6:true},
+ ];
+ const actions=['graph','gate-x2','gate-div2','singularity','mirror','reflect','capture','dodge'];
+ for(const shape of immune){
+   assert.equal(cap.isT6(shape),true,'T6 not recognized: '+JSON.stringify(shape));
+   assert.equal(cap.canManipulate(shape),false,'T6 manipulable: '+JSON.stringify(shape));
+   for(const action of actions)
+     assert.equal(cap.allows(action,shape),false,'T6 '+action+': '+JSON.stringify(shape));
+ }
+ const ordinary=[
+   {weapon:'PISTOL'}, {weaponId:'PISTOL'},
+   {data:{arsenal:{weaponId:'PISTOL'}}},
+   {kind:'WEAPON',phase:'REVEALED',weaponId:'RPG_7',tier:'T3'},
+ ];
+ for(const shape of ordinary){
+   assert.equal(cap.isT6(shape),false,'false T6 immunity: '+JSON.stringify(shape));
+   for(const action of actions)
+     assert.equal(cap.allows(action,shape),true,'ordinary '+action+': '+JSON.stringify(shape));
+ }
+});
 test('held Weapon can be frozen or stolen without equating holder with floor',()=>{
  for(const id of ['GRENADE','SABRE','COMBAT_BOOMERANG','RPG_7']){
   assert.equal(F.isFreezableWeapon({weaponId:id}),true,id);
