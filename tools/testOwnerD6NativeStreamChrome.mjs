@@ -114,6 +114,10 @@ try {
    if(!c?.lockedAt)throw Error('A1 material not solid');
    a.x=350;a.y=500;b.x=610;b.y=500;
    a.baseSpeed=b.baseSpeed=0;
+   // Moving the fighter in an owner fixture must advance the real Gold
+   // presentation rig BEFORE a screenshot; otherwise the live character
+   // body still draws at its previous position for that one frame.
+   AR.step(1/60);
    const pre={wallHp:c.hp,sourceHp:b.hp,targetHp:a.hp,material:CR.capsules().length};
    G.__d6Case={a,b,ct,AR,CR,pre,receipts:[]};
    G.__d6Case.off=G.APEX_HERO_REWORK_AIL.bus.on('CrystalStreamContact',
@@ -155,6 +159,23 @@ try {
      visualHistory:flame.flameReflectHistory?.length||0};
   });
   await canvas.screenshot({path:path.join(OUT,name+'-broken.png')});
+  // Check gameplay hitbox teardown separately from the authored Gold
+  // collapsing animation. The screenshot captures the ACTUAL later visual,
+  // not a false expectation that a destroyed Wall disappears instantly.
+  const settled=await page.evaluate(()=>{
+   const G=window,O=G.__d6Case,{AR,CR,ct}=O;
+   for(let i=0;i<36;i++)AR.step(1/60);
+   if(typeof G.draw==='function')G.draw();
+   const form=O.facet===undefined?'wall':'prison';
+   const cons=CR.inspect(ct).constructs.find(x=>x.kind===form);
+   return {panelState:cons.state,blockedCaps:CR.capsules()
+     .filter(x=>x.cons.id===cons.id && x.idx===(O.facet??-1)).length,
+     remainingMaterialCaps:CR.capsules().length};
+  });
+  assert.equal(settled.blockedCaps,0,
+    'destroyed material still presents an authoritative collision surface');
+  await canvas.screenshot({path:path.join(OUT,name+'-settled.png')});
+
   assert.equal(after.wallState,'ENDED');
   assert.equal(after.wallReason,'destroyed');
   assert.equal(after.ticks,5);
@@ -162,7 +183,7 @@ try {
   assert.deepEqual(after.receipts.map(x=>x.broken),[false,false,false,false,true]);
   assert.ok(after.sourceHpLoss>0&&after.targetHpLoss>0);
   assert.deepEqual(errors,[],'browser page errors');
-  report.push({name,initial:init,middle,after,errors});
+  report.push({name,initial:init,middle,after,settled,errors});
   console.log('PASS D6 REAL CHROME '+name+' '+JSON.stringify({middle,after}));
   await page.close();
  }
