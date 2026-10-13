@@ -94,11 +94,15 @@ try {
     s.slots.push(v);return v;
    };
    if(kind==='magnet'){
+    // Full current V4.3 floor pool — a single RPG smoke probe previously
+    // left seven new equipment identities unmeasured in the real Gold battle.
+    const ids=CFG.V43_SPECIAL_IDS;
+    if(ids.length!==8)throw Error('V43 owner roster changed: '+ids.length);
     const inventory=[
-      ['PISTOL',615,500,true],['RPG_7',615,530,true],
-      ['SABRE',615,470,true],['GRENADE',635,550,true],
-      ['FLAMETHROWER',635,440,true],['STORMBREAKER',615,570,false],
-      ['SWIRL_SHIELD',615,430,false]
+      ['PISTOL',610,420,true],['SABRE',610,450,true],
+      ['GRENADE',610,480,true],
+      ...ids.map((id,i)=>[id,630+(i%2)*30,400+i*27,true]),
+      ['STORMBREAKER',650,625,false],['SWIRL_SHIELD',650,660,false]
     ];
     const slots=inventory.map(([id,x,y])=>slot(id,x,y));
     const pos=slots.map(s=>({x:s.x,y:s.y}));
