@@ -21,6 +21,7 @@ import {
 import { GOLD_SHELL_URL, HERO_BATTLE_RIGS, HERO_BATTLE_RIG_ASSETS } from './game/goldAssetManifest.js';
 import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
 import goldFontParityCSS from './game/goldFontParity.css?raw';
+import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
@@ -494,6 +495,13 @@ export default function App() {
         paritySheet.id = 'apex-gold-font-parity';
         paritySheet.textContent = goldFontParityCSS;
         host.appendChild(paritySheet);
+        // R90 visual containment: native Gold portrait-tablet BOT media well
+        // resolves a 504px-square image into a 117px-high art row. Place this
+        // surgical layer AFTER the original donor; DO NOT alter Gold layout.
+        const skillArtSheet = document.createElement('style');
+        skillArtSheet.id = 'apex-gold-skill-art-bounds';
+        skillArtSheet.textContent = goldSkillArtBoundsCSS;
+        host.appendChild(skillArtSheet);
         const facesLoaded = await fontSheetReady;
         if (facesLoaded) {
           try {
