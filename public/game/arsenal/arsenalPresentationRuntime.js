@@ -707,7 +707,11 @@
       ctx.shadowColor = options.glow;
       ctx.shadowBlur = options.shadowBlur || 14;
     }
-    ctx.drawImage(img, 0, 0, meta.w, meta.h, -dw / 2, -dh / 2, dw, dh);
+    // A held skin may REPLACE only these pixels, inside the same authored
+    // muzzle/pose transform. Gold physics, dimensions and socket do not change.
+    if (!window.APEX_COSMETICS?.render?.('weapon',ctx,options.cosmetic,
+      { x:0,y:0,width:dw,height:dh,kind:weaponId }))
+      ctx.drawImage(img, 0, 0, meta.w, meta.h, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
 
     if (options.mode === 'equipped') stats.equippedSpriteDraws += 1;
@@ -779,6 +783,8 @@
     const y = fighter.y + Math.sin(aimAngle) * offset + Math.sin(aimAngle + Math.PI / 2) * lateral;
     return drawWeaponSprite(ctx, weaponId, x, y, {
       mode: 'equipped',
+      cosmetic:window.APEX_COSMETICS?.capture?.(
+        window.APEX_COSMETICS?.sideOf?.(fighter,window),'weapon',weaponId)||null,
       useWorld: params.useWorld,
       scaleMul: (p.scaleX || 1) * artScale,
       targetLongSide: params.targetLongSide * (p.scaleX || 1) * artScale,
