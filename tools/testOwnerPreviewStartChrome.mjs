@@ -39,6 +39,21 @@ const snap=()=>`(() => {
     frameSrc:frame?.src||null,bootError:child.body?.dataset?.apexBootError||null,
     engineReady:!!child.defaultView?.__apexEngineReady,
     goldMounted:child.getElementById('gold-shell-host')?.dataset?.apexGoldMounted||null,
+    shellChildren:child.getElementById('gold-shell-host')?.children.length||0,
+    stagePresent:!!child.getElementById('stage'),
+    bridgeReady:!!child.defaultView?.APEX_GOLD,
+    audioSfx:child.defaultView?.apexUiSfx?.state?.()||null,
+    assets:(()=>{
+      const state=child.defaultView?.apexProductAssets?.state?.();if(!state)return null;
+      return {scopes:state.scopes,inflight:state.inflight,
+        pending:state.records.filter(r=>r.state!=='READY'&&r.state!=='FETCHED')
+          .map(r=>({url:r.url,state:r.state,error:r.error})).slice(0,20),
+        ready:state.records.filter(r=>r.state==='READY'||r.state==='FETCHED').length,
+        total:state.records.length};
+    })(),
+    scripts:[...child.querySelectorAll('script[src]')].slice(-15).map(s=>({
+      src:s.getAttribute('src'),ready:s.dataset.apexLoaded||null
+    })),
     scene:child.body?.dataset?.apexSceneTransition||null,
     startPresent:!!start,geom,
     startImage:img?{src:img.currentSrc||img.src,complete:img.complete,naturalWidth:img.naturalWidth}:null,
@@ -56,7 +71,7 @@ try{
     page.on('requestfailed',req=>failedRequests.push({url:req.url(),reason:req.failure()?.errorText||''}));
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
     let observation=null;
-    for(let i=0;i<160;i++){
+    for(let i=0;i<65;i++){
       observation=await page.evaluate(snap()).catch(e=>({probeError:String(e)}));
       if(observation?.startPresent||observation?.bootError)break;
       await new Promise(r=>setTimeout(r,500));
