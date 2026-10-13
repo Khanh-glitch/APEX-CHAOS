@@ -52,7 +52,7 @@ try{
     const weapons=await game.$$eval('.apex-cosmetics-item',nodes=>nodes.map(n=>n.innerText));
     assert.ok(weapons.some(x=>x.includes('RPG')),'RPG_7 must be discoverable from live gun config');
     await game.click('#apex-cosmetics-search');
-    await game.keyboard.type('RPG');
+    await page.keyboard.type('RPG');
     await game.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-item').length===1,
       {timeout:10000});
     const current=await game.$eval('.apex-cosmetics-item',e=>e.innerText);
