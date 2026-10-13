@@ -216,7 +216,22 @@ try {
     AR.step(2/60);
     const measurements=slots.map((s,i)=>({id:ids[i],eligible:i<3,frozen:!!s.__frostFrozen}));
     if(typeof G.draw==='function')G.draw();
-    return {kind,measurements,laneWidth:lane.width??null,earlyFrames};
+    // Same actual battle, same actor/Gold engine: let the REAL ability clock
+    // become ready and cast once more without resetting cooldown/gameplay.
+    const firstCast=F.inspect(a),ctl=HR.abilityController(HR.byCombatant(a));
+    let elapsed=0;
+    for(;elapsed<850&&(ctl.cooldownLeft('A1')>0||a.hardCC());elapsed++)AR.step(1/60);
+    if(ctl.cooldownLeft('A1')>0||a.hardCC())
+      throw Error('Frost second A1 never naturally ready: '+JSON.stringify({elapsed,cd:ctl.cooldownLeft('A1')}));
+    a.x=200;a.y=500;a.setDir(1,0); AR.state.slots=[];
+    if(!G.APEX_ARSENAL_SKILL_GATE.pressJ(a))throw Error('Real Frost second A1 press rejected');
+    for(let i=0;i<54;i++){AR.step(1/60);if(typeof G.draw==='function')G.draw();}
+    const secondCast=F.inspect(a);
+    return {kind,measurements,laneWidth:lane.width??null,earlyFrames,
+      twoCastProof:{firstStarts:firstCast.castStarts,firstId:firstCast.a1Started,
+        secondStarts:secondCast.castStarts,secondId:secondCast.a1Started,
+        firstReplays:firstCast.a1Replays,secondReplays:secondCast.a1Replays,
+        loadCalls:G.APEX_FROST_GOLD.cacheStats.loadCalls,waitedFrames:elapsed}};
    }
   },kind);
   if(kind==='magnet'){
@@ -251,6 +266,13 @@ try {
      admitted.add(frame.a1Started);
    }
    assert.equal(admitted.size,1,label+' first A1 changed cast identity mid-animation');
+   const v=evaluated.twoCastProof;
+   assert.ok(v.firstId>0&&v.secondId>v.firstId,label+' cast IDs do not advance monotonically');
+   assert.equal(v.firstStarts,1,label+' first activation not exactly one Gold visual');
+   assert.equal(v.secondStarts,2,label+' second activation not exactly one more Gold visual');
+   assert.equal(v.firstReplays,0,label+' first A1 delayed visual replayed');
+   assert.equal(v.secondReplays,0,label+' second A1 delayed visual replayed');
+   assert.equal(v.loadCalls,1,label+' repeated Gold preprocessing across casts');
    assert.ok(evaluated.earlyFrames.some(f=>(f.sources['frost-gold-body']||0)>0),
      label+' early Gold Frost actor source absent');
   }
