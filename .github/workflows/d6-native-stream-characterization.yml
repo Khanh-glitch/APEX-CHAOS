@@ -7,6 +7,7 @@ on:
       - 'tools/testOwnerD6StreamLiveGap.mjs'
       - 'tools/testOwnerD6GenericStreamContacts.mjs'
       - 'tools/testOwnerD6NativeGoldFlameRoutes.mjs'
+      - 'tools/testOwnerD6NativeStreamChrome.mjs'
       - 'tools/world-ontology/attackCarrierContact.reference.mjs'
       - '.github/workflows/d6-native-stream-characterization.yml'
   workflow_dispatch:
@@ -48,3 +49,40 @@ jobs:
         run: node tools/testOwnerD6StreamLiveGap.mjs
       - name: Existing V43 damage/gold flame mechanics contracts
         run: node tools/testV43PostUpdateContracts.mjs
+
+  real-chrome-stream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Actual desktop/mobile Chrome native Stream gameplay and Canvas
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          export CHROME_PATH="$CHROME"
+          export APEX_APP_URL=http://127.0.0.1:5173/
+          export APEX_EVIDENCE_DIR=/tmp/d6-native-stream-browser
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort >/tmp/d6-vite.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null 2>&1; then break; fi
+            sleep .5
+          done
+          node tools/testOwnerD6NativeStreamChrome.mjs
+      - name: Attach original desktop/mobile Canvas evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d6-native-stream-chrome-${{ github.sha }}
+          path: /tmp/d6-native-stream-browser/
+          if-no-files-found: warn
+          retention-days: 7
