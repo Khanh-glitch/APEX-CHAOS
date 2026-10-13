@@ -82,6 +82,12 @@ fired.owner=fighter2; // simulate reflecting / redirecting an existing carrier
 assert.equal(fired.cosmetic.skinId,'neon-a');
 const before=JSON.stringify({damage:fired.damage,blastRadius:fired.blastRadius,weapon:fired.weapon});
 assert.equal(cosmetics.render('projectile',fakeCanvas,p1,{x:100,y:120,vx:400,vy:30,age:.7,life:.8,kind:'rocket'}),true);
+assert.equal(cosmetics.render('projectile',fakeCanvas,p1,
+  {x:100,y:120,vx:450,vy:0,maxLife:2,life:1.5,type:'aq_bullet'}),true);
+assert.equal(snapshots.at(-1).pose.age,.5,
+  'ordinary bullets need a monotonic cosmetic age without new gameplay timers');
+assert.equal(snapshots.at(-1).pose.kind,'aq_bullet',
+  'non-V43 projectiles must have a typed cosmetic render identity');
 assert.equal(cosmetics.render('blast',fakeCanvas,p1,{x:400,y:420,life:.9,kind:'rocket'}),true);
 assert.equal(cosmetics.render('weapon',fakeCanvas,p1,{width:155,height:50,kind:weapon}),true);
 assert.equal(cosmetics.render('actor',fakeCanvas,cosmetics.capture('p1','hero',hero),{kind:hero}),true);
@@ -166,6 +172,15 @@ assert.match(product,/surface\('cosmetic-locker',[^\n]*ACTIVE/);
 assert.match(app,/CosmeticLocker/);
 assert.match(gun,/captureProjectile\?\.\(f,id\)/);
 assert.match(gun,/captureProjectile\?\.\(owner,weapon\)/);
+assert.match(gun,/function v43SpawnChild\(parent,kind,angle,extra=/,
+  'secondary physical projectiles need one generic source receipt');
+assert.match(gun,/cosmetic:parent\.cosmetic\|\|null/,
+  'child appearance must derive from original projectile, not current owner');
+assert.match(gun,/v43SpawnChild\(p,'fragment'/);
+assert.match(gun,/v43SpawnChild\(p,'plasma'/);
+assert.match(gun,/if \(p\.type === 'aq_bullet'\)/);
+assert.equal((gun.match(/APEX_COSMETICS\?\.render\?\.\('projectile'/g)||[]).length,1,
+  'all physical projectile types must share ONE cosmetic dispatch');
 assert.match(bridge,/await looks\.ready/);
 assert.match(robot,/cosmetic\?\.render\?\.\('actor'/);
 assert.match(av,/suppressDefaultBlast/);
