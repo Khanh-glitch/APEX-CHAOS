@@ -5,6 +5,8 @@ on:
       - 'public/game/hero-rework/crystalGameplayRuntime.js'
       - 'tools/testOwnerCrystalaA1SharedBreak.mjs'
       - 'tools/testOwnerCrystalaA1BaselineDiff.mjs'
+      - 'tools/testCrystalaGameplayGates.mjs'
+      - 'public/game/hero-rework/ailRuntime.js'
       - 'tools/testRuntimeRevisionGate.mjs'
       - 'tools/runtimeRevision.lock.json'
       - 'src/game/runtimeManifest.js'

@@ -203,6 +203,43 @@
     },
   };
 
+  /* CP5 LIVE MAGNET QUERY START */
+  // Only projectile policy is admitted to the production AIL authority here.
+  // The D5 World Weapon/Defense floor model is a separate semantic axis:
+  // this adapter MUST NOT decide Magnet A1/A2 floor or Frost eligibility.
+  CapabilityAuthority.query = function queryInteraction(action,target,context={}) {
+    const result=(status,reason)=>Object.freeze({status,reason});
+    if(action!=='magnet-projectile')
+      return result('unresolved','unmigrated-interaction-action');
+    if(!target||typeof target!=='object')
+      return result('unresolved','missing-target');
+    const config=context.config;
+    if(!config||typeof config.isGun!=='function')
+      return result('unresolved','missing-canonical-config');
+    const id=target.weapon;
+    const defs=config.WEAPONS||{};
+    const special=config.V43_WEAPONS?.[id];
+    if(!id||(!defs[id]&&!special))
+      return result('unresolved','unregistered-weapon');
+    if(target.aq!==true||!(target.life>0)||this.isT6(target)||
+      id==='STORMBREAKER'||id==='T6'||target.__hr?.cryHold)
+      return result('denied','inactive-held-or-t6');
+    if(target.type==='aq_bullet')
+      return result(config.isGun(id)?'allowed':'denied','ordinary-firearm-bullet');
+    if(target.type!=='aq_v43')
+      return result('denied','unsupported-projectile-family');
+    if(!special||special.tier==='T6')
+      return result('denied','not-a-legal-special');
+    if(!Array.isArray(special.magnetizableKinds))
+      return result('unresolved','missing-physical-kind-tags');
+    if(!special.magnetizableKinds.includes(target.kind))
+      return result('denied','not-a-physical-projectile-kind');
+    if(target.kind==='mine'&&target.phase!=='flight')
+      return result('denied','stationary-mine');
+    return result('allowed','canonical-v43-physical-projectile');
+  };
+  /* CP5 LIVE MAGNET QUERY END */
+
   /* ------------------------------------------------------------------ *
    * Swept-circle vs circle TOI. Movement is processed per-segment so the
    * EARLIEST contact wins deterministically (doc 01 "Swept interaction").
