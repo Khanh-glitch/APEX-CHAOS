@@ -593,6 +593,17 @@
   // through aqDamage/Fighter.takeDamage, never virtual HP.
   // ---------------------------------------------------------------------------
   const V43=CFG.V43_WEAPONS||{};
+  // CP5.5 shared semantic V43 REFLECTION TAG; no collision/velocity logic.
+  // AIL may be absent in a standalone legacy weapon-only harness; live
+  // production is fail-closed when AIL exists but refuses the query.
+  function v43ReflectableTag(p) {
+    const authority=window.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+    if(authority)
+      return authority.query?.('v43-reflection-tag',p,{config:CFG})?.status==='allowed';
+    const kinds=V43[p?.weapon]?.reflectableKinds;
+    return Array.isArray(kinds)&&kinds.includes(p?.kind);
+  }
+
   const v43min=(n,a,b)=>Math.max(a,Math.min(b,n));
   const v43Normalize=(x,y)=>{const d=Math.hypot(x,y)||1;return {x:x/d,y:y/d};};
   function v43Enemies(owner){
@@ -1113,7 +1124,7 @@
     // CRYSTALA K / J: same real swept segment, wall/shard BEFORE fighter.
     // Only mobile damage-bearing bodies are routed: an armed floor mine,
     // flame cone and timed burn never masquerade as reflectable bullets.
-    const crystalEligible=V43[p.weapon]?.reflectableKinds?.includes(p.kind)
+    const crystalEligible=v43ReflectableTag(p)
       &&(p.kind!=='mine'||p.phase==='flight');
     if(crystalEligible&&window.APEX_CRYSTAL?.resolveBullet){
       const bodyT=hit?.t??2;
@@ -2936,7 +2947,7 @@
           // Reflect the first eligible hostile projectile that comes close.
           for (const p of projectiles) {
             const reflectable=p?.type==='aq_bullet'||(p?.type==='aq_v43'
-              &&V43[p.weapon]?.reflectableKinds?.includes(p.kind)
+              &&v43ReflectableTag(p)
               &&(p.kind!=='mine'||p.phase==='flight'));
             if(!p||!reflectable||!p.owner||p.owner===f||p.aqReflected
               ||p.__hr?.crystalReflected||p.__hr?.cryHold)continue;
