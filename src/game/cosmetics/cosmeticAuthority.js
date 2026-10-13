@@ -68,7 +68,7 @@ function register(def) {
   if (registry.has(idKey)) throw new Error('Duplicate cosmetic owner: '+idKey);
   const assets = Object.freeze([...(def.assets || [])].map(safeAsset));
   const hooks = {};
-  for (const name of ['projectile','blast','actor']) {
+  for (const name of ['projectile','blast','actor','weapon','skill']) {
     if (def.render?.[name] != null) {
       if (typeof def.render[name] !== 'function') throw new Error('Skin render hook must be synchronous');
       hooks[name] = def.render[name];
@@ -146,6 +146,7 @@ function render(name,ctx,receipt,payload) {
   // projectile, health target, engine state or damage receipt into skin code.
   const pose=Object.freeze({
     x:Number(payload?.x)||0,y:Number(payload?.y)||0,
+    width:Number(payload?.width)||0,height:Number(payload?.height)||0,
     vx:Number(payload?.vx)||0,vy:Number(payload?.vy)||0,
     angle:Number(payload?.angle)||0,
     age:Number(payload?.age)||0,life:Number(payload?.life)||0,
