@@ -52,14 +52,16 @@ assert.match(w,/kind==='plasma-core'\?c\.coreSpeed/,'plasma core has independent
 assert.match(cfg,/projectileWidth:78/,'mine artwork must be legible independently of collision size');
 assert.match(w,/f\.data\.arsenal=null;/,
   'throwing must remove the holder before the shared weapon foreground pass');
-assert.match(f,/function drawQueuedA1GoldSurface\\(S, draw\\)/,
+assert.ok(f.includes('function drawQueuedA1GoldSurface(S, draw)'),
   'deferred A1 must immediately render canonical Gold ice');
-assert.match(f,/drawQueuedA1GoldSurface\\(S, \\(\\) => drawIceComposite\\(S, ctx, px\\)\\)/,
-  'deferred A1 must enter the real Gold IceField render path');
-assert.match(f,/e\\.buildLane\\(L\\.frontStartAt \\+ off, L\\.len, travel\\)/,
-  'queued native A1 material must be authored by Gold buildLane, not a substitute graphic');
-assert.match(f,/n\\.gameplay = false/,'queued A1 preview must never become gameplay ice');
-assert.doesNotMatch(f,/drawQueuedA1Floor|rgba\\(110,213,248/,'unapproved flat cyan A1 proxy must not return');
+assert.ok(f.includes('drawQueuedA1GoldSurface(S, () => drawIceComposite(S, ctx, px))'),
+  'queued A1 must enter the real Gold IceField render path');
+assert.ok(f.includes('e.buildLane(L.frontStartAt + off, L.len, travel)'),
+  'queued native A1 must reuse Gold buildLane, not a substitute graphic');
+assert.ok(f.includes('n.gameplay = false'),
+  'queued visual-only ice cannot acquire gameplay authority');
+assert.ok(!f.includes('drawQueuedA1Floor') && !f.includes('rgba(110,213,248'),
+  'unapproved flat cyan A1 proxy must not return');
 assert.match(f,/pumpCastQueue\(S, now, insp\)/,'Gold A1 deferred authored choreography must remain owned by the original queue');
 assert.match(result,/APEX_COMBAT_HUD\?\.projection/,'Result must use Battle HUD color authority');
 assert.match(result,/cfg\.TIER_COLORS\?\.\[tier\]/,'Result must use actual weapon tier palette');
