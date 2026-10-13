@@ -139,6 +139,7 @@ assert.equal(cosmetics.render('actor',fakeCanvas,decodedReceipt,{kind:'FUTURE_DE
   'before READY a skin must fall back instead of making an opportunistic fetch');
 globalThis.Image=class DecodedImage {
   naturalWidth=64;
+  complete=true; // synchronous cache hit followed by a real async load event
   decode(){decodeCount++;return Promise.resolve()}
   set src(v){reads++;setImmediate(()=>this.onload?.())}
 };
@@ -146,8 +147,10 @@ try{
   await Promise.all(Array.from({length:8},()=>cosmetics.ready([
     {side:'p1',heroId:'FUTURE_DECODE_CANARY'}
   ])));
+  await new Promise(resolve=>setImmediate(resolve));
   assert.equal(reads,1,'eight concurrent READY requests must use one image loader');
-  assert.equal(decodeCount,1,'one skin texture must be decoded exactly once');
+  assert.equal(decodeCount,1,
+    'cached-complete plus later native load must still decode the same texture exactly once');
   assert.equal(cosmetics.render('actor',fakeCanvas,decodedReceipt,{kind:'FUTURE_DECODE_CANARY'}),true);
   assert.equal(reads,1,'rendering must reuse decoded artwork without fetching');
   await cosmetics.ready([{side:'p1',heroId:'FUTURE_DECODE_CANARY'}]);
