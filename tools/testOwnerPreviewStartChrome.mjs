@@ -73,7 +73,8 @@ try{
     page.on('pageerror',e=>errors.push(String(e)));
     page.on('console',m=>{if(m.type()==='warn'||m.type()==='warning'||m.type()==='error')warnings.push(m.text().slice(0,1200))});
     page.on('requestfailed',req=>failedRequests.push({url:req.url(),reason:req.failure()?.errorText||''}));
-    await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
+    const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
+    assert.ok(response?.ok(),test.id+' PREVIEW_NOT_DEPLOYED HTTP '+(response?.status()??'none')+' at '+url);
     let observation=null;
     for(let i=0;i<24;i++){
       observation=await page.evaluate(snap()).catch(e=>({probeError:String(e)}));
