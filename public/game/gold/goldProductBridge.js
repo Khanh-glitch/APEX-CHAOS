@@ -912,6 +912,9 @@
 
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
     if (battleLiveRunning) return false;
+    // Recover from any earlier cancelled/failed launch without leaving a stale
+    // cosmetic snapshot to leak into the next real fight.
+    window.APEX_COSMETICS?.endMatch?.();
     const sessionToken = ++battleSessionToken;
     // Story FIRST WAKE uses the exact same prepared Gold battle compositor
     // as CP04, but enters through the separately signed E02 Story route.
@@ -1005,6 +1008,9 @@
         window.__apexGoldBattleHosted = false;
         return false;
       }
+      // The ONE battle session freezes cosmetic appearance after asset READY
+      // and before any physical projectile may be spawned.
+      window.APEX_COSMETICS?.beginMatch?.();
       // CP04 playtest alone uses the opt-in Quest entry. Both modes still
       // resolve through the ONE real Arsenal startArsenalBattleMode and the
       // same Gold READY contract; no second battle engine or fake art scene.
@@ -1031,6 +1037,7 @@
       })() : await Promise.resolve(window.startMatch());
       if (started !== true || sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
         console.warn('[gold-bridge] production match start did not reach READY.');
+        window.APEX_COSMETICS?.endMatch?.();
         battleLiveRunning = false;
         window.__apexGoldBattleHosted = false;
         restoreArena();
@@ -1046,6 +1053,7 @@
       hideLegacyBattleUi();
       const seam = window.APEX_GOLD_HUD;
       if (!seam) {
+        window.APEX_COSMETICS?.endMatch?.();
         battleLiveRunning = false;
         window.__apexGoldBattleHosted = false;
         restoreArena();
@@ -1060,6 +1068,7 @@
       return true;
     } catch (error) {
       console.warn('[gold-bridge] battle live failed.', error);
+      window.APEX_COSMETICS?.endMatch?.();
       battleLiveRunning = false;
       window.__apexGoldBattleHosted = false;
       restoreArena();
@@ -1075,6 +1084,7 @@
     // reached yet. This makes ESC-during-load a real cancellation.
     battleSessionToken += 1;
     clearGoldResult();
+    window.APEX_COSMETICS?.endMatch?.();
     if (!hadBattle) return false;
     if (pumpId) {
       if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pumpId);
