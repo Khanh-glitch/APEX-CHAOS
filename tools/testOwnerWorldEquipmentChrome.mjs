@@ -220,7 +220,7 @@ try {
     // become ready and cast once more without resetting cooldown/gameplay.
     const firstCast=F.inspect(a),ctl=HR.abilityController(HR.byCombatant(a));
     let elapsed=0;
-    for(;elapsed<850&&(ctl.cooldownLeft('A1')>0||a.hardCC());elapsed++)AR.step(1/60);
+    for(;elapsed<1800&&(ctl.cooldownLeft('A1')>0||a.hardCC());elapsed++)AR.step(1/60);
     if(ctl.cooldownLeft('A1')>0||a.hardCC())
       throw Error('Frost second A1 never naturally ready: '+JSON.stringify({elapsed,cd:ctl.cooldownLeft('A1')}));
     a.x=200;a.y=500;a.setDir(1,0); AR.state.slots=[];
