@@ -135,7 +135,12 @@ try {
     // a fixed V4.x version or a fixed set of weapon IDs.
     const candidate=Object.keys(CFG.WEAPONS).find((id)=>{
       const sample={kind:'WEAPON',weaponId:id,phase:'REVEALED'};
-      return CFG.isGun(id)===false&&CAP.query('magnet-revealed-slot',sample,{config:CFG}).status==='allowed';
+      const spec=CFG.WEAPONS[id];
+      // Trait discovery, not V43_SPECIAL_IDS or a current gun-name whitelist:
+      // this must be a data-declared SPECIAL equipment, not GRENADE.
+      const special=Array.isArray(spec?.magnetizableKinds)||Array.isArray(spec?.reflectableKinds);
+      return special&&CFG.isGun(id)===false&&
+        CAP.query('magnet-revealed-slot',sample,{config:CFG}).status==='allowed';
     });
     if(!candidate)throw Error('No non-firearm World Weapon in canonical catalogue for BOT AI');
     const floorSlot=slot(candidate,690,500);
