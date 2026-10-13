@@ -57,16 +57,40 @@
   CFG.TIER_ROLL = TIER_ROLL;
   CFG.BY_TIER = BY_TIER;
   CFG.tierOf = (id) => WEAPON_TIER[id] || null;
-  CFG.isOffensive = (id) => !!WEAPON_TIER[id];
   CFG.isMelee = (id) => MELEE_IDS.includes(id);
   CFG.isGun = (id) => GUN_IDS.includes(id);
 
-  // WORLD ONTOLOGY D5: Weapon is a canonical equipment ROLE, not firearm
-  // category and not projectile material. This consumes the existing tier and
-  // OFFENSIVE catalog; no second registry or per-Hero gun ID list is created.
-  // T6 is excluded from Hero manipulation but remains physical equipment.
+  // D5 World Ontology — one effective Arsenal definition, composable roles.
+  // Tier is RARITY/POWER, not proof of Weapon role. A future tiered Defense
+  // must not be mistaken for a gun; a Quest-only Weapon may never random-spawn.
+  // These are properties OF CFG.WEAPONS, not a second hero-specific registry.
+  // Current canonical roles are seeded once from the existing OFFENSIVE/SHIELD
+  // catalog; NEW definitions declare worldRoles on their own effective record.
+  for (const id of CFG.P0_WEAPON_IDS) {
+    const spec=CFG.WEAPONS[id];
+    if (!spec || typeof spec!=='object')
+      throw Error('World Weapon role missing canonical equipment definition: '+id);
+    if (spec.worldRoles != null && (!Array.isArray(spec.worldRoles) ||
+         spec.worldRoles.some(x=>x!=='weapon'&&x!=='defense')))
+      throw Error('Unrecognized effective World roles: '+id);
+    if (!spec.worldRoles) {
+      const roles=[];
+      if (OFFENSIVE_IDS.includes(id)) roles.push('weapon');
+      if (SHIELD_IDS.includes(id)) roles.push('defense');
+      spec.worldRoles=Object.freeze(roles);
+    }
+  }
+  CFG.hasWorldRole = (id, role) => {
+    const roles=CFG.WEAPONS[id]?.worldRoles;
+    return (role==='weapon'||role==='defense') &&
+      Array.isArray(roles) && roles.includes(role);
+  };
+  CFG.isOffensive = (id) => CFG.hasWorldRole(id,'weapon');
+
+  // Semantic eligibility is independent of equipment tier, pool, spawn mode
+  // and projectile material. T6 and instance-level exemption still prevail.
   CFG.isHeroManipulableWeapon = (id, slot = null) => !!id &&
-    CFG.isOffensive(id) && CFG.tierOf(id) !== 'T6' &&
+    CFG.hasWorldRole(id,'weapon') && CFG.tierOf(id) !== 'T6' &&
     (!slot || (slot.kind !== 'HEAL' && slot.tier !== 'T6' &&
       CFG.isHeroManipulablePickup(slot)));
   CFG.isHeroManipulableFloorWeapon = (slot) => !!slot &&
