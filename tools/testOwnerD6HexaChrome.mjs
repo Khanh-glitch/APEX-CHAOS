@@ -121,6 +121,10 @@ try {
    a.x=selected.x+dx/d*145;a.y=selected.y+dy/d*145;
    b.x=live.cx;b.y=live.cy;
    a.baseSpeed=b.baseSpeed=0;
+   // Moving the fighter in an owner fixture must advance the real Gold
+   // presentation rig BEFORE a screenshot; otherwise the live character
+   // body still draws at its previous position for that one frame.
+   AR.step(1/60);
    const pre={wallHp:c.hp[facet],facet,sourceHp:b.hp,targetHp:a.hp,
      material:CR.capsules().length};
    G.__d6Case={a,b,ct,AR,CR,pre,facet,receipts:[]};
@@ -166,6 +170,23 @@ try {
      visualHistory:flame.flameReflectHistory?.length||0};
   });
   await canvas.screenshot({path:path.join(OUT,name+'-hexa-broken.png')});
+  // Check gameplay hitbox teardown separately from the authored Gold
+  // collapsing animation. The screenshot captures the ACTUAL later visual,
+  // not a false expectation that a destroyed Wall disappears instantly.
+  const settled=await page.evaluate(()=>{
+   const G=window,O=G.__d6Case,{AR,CR,ct}=O;
+   for(let i=0;i<36;i++)AR.step(1/60);
+   if(typeof G.draw==='function')G.draw();
+   const form=O.facet===undefined?'wall':'prison';
+   const cons=CR.inspect(ct).constructs.find(x=>x.kind===form);
+   return {panelState:cons.state,blockedCaps:CR.capsules()
+     .filter(x=>x.cons.id===cons.id && x.idx===(O.facet??-1)).length,
+     remainingMaterialCaps:CR.capsules().length};
+  });
+  assert.equal(settled.blockedCaps,0,
+    'destroyed material still presents an authoritative collision surface');
+  await canvas.screenshot({path:path.join(OUT,name+'-hexa-settled.png')});
+
   assert.equal(after.facetDead,true,'struck HEXA facet must break');
   assert.equal(after.liveOtherFacets,5,'other five HEXA facets must retain independent HP');
   assert.ok(after.wallHp<=0,'destroyed HEXA facet HP must be exhausted');
@@ -176,7 +197,7 @@ try {
     'wrong HEXA facet received a Stream tick');
   assert.ok(after.sourceHpLoss>0&&after.targetHpLoss>0);
   assert.deepEqual(errors,[],'browser page errors');
-  report.push({name,initial:init,middle,after,errors});
+  report.push({name,initial:init,middle,after,settled,errors});
   console.log('PASS D6 REAL CHROME HEXA '+name+' '+JSON.stringify({middle,after}));
   await page.close();
  }
