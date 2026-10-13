@@ -528,10 +528,14 @@ const FR = {
     // Frozen melee, thrown Grenade, Boomerang and energy/flame do NOT gain
     // invented Freeze procs merely because the Equipment was on ice.
     const CFG=g.APEX_ARSENAL_CONFIG;
-    // Live Arsenal uses aq_bullet; legacy generic Bullet carriers use
-    // "bullet". Both require a conventional firearm holder, not merely
-    // a frozen Weapon (otherwise a Frozen Grenade/melee would gain Passive).
-    const firedAsConventionalBullet=p.type==='aq_bullet'||p.type==='bullet';
+    // The authoritative onFireBullet -> onProjectileFired(kind:'bullet')
+    // calls this with a *stand-in* {weapon, critical, __hr} BEFORE the engine
+    // constructs aq_bullet, so p.type is intentionally absent there.
+    // A declared non-bullet type is always denied; an untyped stand-in is
+    // permitted ONLY from the conventional firearm Bullet hook/holder.
+    // Frozen melee/Grenade/V43 Stream never gains a Frozen Bullet proc.
+    const firedAsConventionalBullet=p.type==null||
+      p.type==='aq_bullet'||p.type==='bullet';
     if(!firedAsConventionalBullet || !CFG?.isGun?.(hold.weaponId) ||
        (p.weapon && p.weapon!==hold.weaponId))return false;
     // Semantic blast group: holder identity + sequence position at fire time.
