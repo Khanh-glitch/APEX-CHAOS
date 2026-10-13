@@ -1,5 +1,5 @@
 {
-  "revision": "20261013-cp5-mirror-f2-r5",
+  "revision": "20261013-cp5-t6-world-identity-r6",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -19,7 +19,7 @@
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
     "public/game/arsenal/arsenalStormbreakerVfxRuntime.js": "f5862f8e002958c967ab5a5796caef33962bdcf5eaafa183c30a90b55caaed8d",
     "public/game/arsenal/arsenalManualSkillGate.js": "0330a608a68c6515f596d2a6b08c592b07e9608276553ac9b16987fd139fe0d3",
-    "public/game/hero-rework/ailRuntime.js": "a8ea60830bdd5b8f9814b2744179df25a635eaf34abc1f3b4bff2e6945090531",
+    "public/game/hero-rework/ailRuntime.js": "a79aa1c780441a4e04dd3b70946405b05c11f018e10a8fd60455bb395906c876",
     "public/game/hero-rework/heroRegistry.js": "bc0ce3d3d8927b02a9a91121310def05f11b366d99e08f4cf8c1cb7f95c083b6",
     "public/game/arsenal/arsenalShellSelectRuntime.js": "c20d6147c086460bd6d8d4de4365ef5b54c612f5056cd2704dc61bd06745d648",
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "dea5c0cf90465ab18731dc61df4d4568ef4275695d0b81482e779806322f91a6",
