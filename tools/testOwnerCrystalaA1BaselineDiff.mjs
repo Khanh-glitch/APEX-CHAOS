@@ -21,6 +21,13 @@ function run(which,body){
   const summary=output.match(/\[CRYSTALA GAMEPLAY GATES\]\s+(\d+\/\d+)/)?.[1]||'NO-SUMMARY';
   console.log(which+' full Crystala source: '+summary+'; exit='+test.status);
   console.log(which+' FAILURES:',failures.join(', ')||'(none)');
+  // Diagnostics only: preserve every failing invariant's original executor
+  // detail, rather than reporting a misleading aggregated 71/73 score.
+  // No gameplay authority is altered and no failure is suppressed.
+  for(const line of output.split('\n')){
+    if(/^FAIL\s{2}/.test(line))
+      console.log(which+' EXACT FAILURE '+line);
+  }
   assert.notEqual(summary,'NO-SUMMARY',which+' harness did not finish');
   return failures;
 }
