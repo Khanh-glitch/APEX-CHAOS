@@ -63,7 +63,7 @@ export function installShadowQuery(CapabilityAuthority) {
     }
 
     if (action === 'frost-freezable-equipment') {
-      const defs = context.weapons;
+      const defs = context.weapons || config?.WEAPONS;
       if (!defs || typeof defs !== 'object')
         return result('unresolved', 'missing-equipment-definitions');
       if (!config || typeof config.isHeroManipulableWeapon !== 'function')

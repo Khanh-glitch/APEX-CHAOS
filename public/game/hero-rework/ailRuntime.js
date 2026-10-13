@@ -227,6 +227,21 @@
       return result(config[method](target)?'allowed':'denied',
         action==='magnet-revealed-slot'?'canonical-world-weapon':'canonical-magnetic-response');
     }
+    if(action==='frost-freezable-equipment'){
+      // CP5.3: Frozen Equipment is a semantic World Weapon capability, NOT
+      // permission to turn every projectile into an ordinary Frozen Bullet.
+      // Frost contact/timing remains entirely owned by FrostGameplayRuntime.
+      const config=context.config;
+      const id=target && target.weaponId;
+      if(!target||typeof target!=='object')
+        return result('unresolved','missing-target');
+      if(!config||typeof config.isHeroManipulableWeapon!=='function')
+        return result('unresolved','missing-canonical-weapon-role');
+      if(!id||!Object.prototype.hasOwnProperty.call(config.WEAPONS||{},id))
+        return result('unresolved','unregistered-equipment');
+      return result(config.isHeroManipulableWeapon(id,target)?'allowed':'denied',
+        'canonical-world-frozen-equipment-role');
+    }
     if(action!=='magnet-projectile')
       return result('unresolved','unmigrated-interaction-action');
     if(!target||typeof target!=='object')

@@ -276,5 +276,36 @@ test('CP5 live floor policy parity and fail-closed future equipment',()=>{
    assert.equal(ask('magnet-repel-slot',slot).status,'denied','Defense excludes A2');
  }finally{delete C.WEAPONS[id];delete C.WEAPON_TIER[id];}
 });
+test('CP5 Frost shared equipment query preserves all World Weapon boundaries',()=>{
+ const cap=win.APEX_HERO_REWORK_AIL.CapabilityAuthority;
+ const ask=(slot,config=C)=>cap.query('frost-freezable-equipment',slot,{config});
+ for(const id of C.P0_WEAPON_IDS){
+   const actual={kind:'WEAPON',phase:'REVEALED',weaponId:id,tier:C.tierOf(id)};
+   const shapes=[actual,{...actual,kind:'HEAL'}, {...actual,tier:'T6'},
+     {...actual,heroInteractionImmune:true},{weaponId:id}];
+   for(const s of shapes){
+     const decision=ask(s);
+     assert.ok(Object.isFrozen(decision),'immutable Frost policy decision');
+     const expected=C.isHeroManipulableWeapon(id,s);
+     assert.equal(decision.status==='allowed',expected,id+'/query');
+     assert.equal(F.isFreezableWeapon(s),expected,id+'/actual consumer');
+   }
+ }
+ assert.equal(ask({weaponId:'CP5_UNKNOWN'}).status,'unresolved');
+ assert.equal(ask(null).status,'unresolved');
+ assert.equal(ask({weaponId:'PISTOL'},{}).status,'unresolved');
+ const id='CP5_FUTURE_FROST';
+ try{
+   C.WEAPONS[id]={worldRoles:['weapon'],magneticResponse:'inert'};
+   C.WEAPON_TIER[id]='T3';
+   assert.equal(ask({weaponId:id}).status,'allowed',
+     'Frost freezes a nonmagnetic offensive Weapon');
+   assert.equal(F.isFreezableWeapon({weaponId:id}),true,
+     'Frost consumer must inherit canonical future Weapon role');
+   C.WEAPONS[id].worldRoles=['defense'];
+   assert.equal(ask({weaponId:id}).status,'denied',
+     'Defense cannot acquire Frozen Equipment');
+ }finally{delete C.WEAPONS[id];delete C.WEAPON_TIER[id];}
+});
 console.log('OWNER WORLD EQUIPMENT D5: '+passed+'/'+passed+' real runtime tests PASS');
 process.exit(0);
