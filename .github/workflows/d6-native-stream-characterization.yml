@@ -8,6 +8,7 @@ on:
       - 'tools/testOwnerD6GenericStreamContacts.mjs'
       - 'tools/testOwnerD6NativeGoldFlameRoutes.mjs'
       - 'tools/testOwnerD6NativeStreamChrome.mjs'
+      - 'tools/testOwnerD6HexaChrome.mjs'
       - 'tools/world-ontology/attackCarrierContact.reference.mjs'
       - '.github/workflows/d6-native-stream-characterization.yml'
   workflow_dispatch:
@@ -80,6 +81,7 @@ jobs:
             sleep .5
           done
           node tools/testOwnerD6NativeStreamChrome.mjs
+          node tools/testOwnerD6HexaChrome.mjs
       - name: Attach original desktop/mobile Canvas evidence
         if: always()
         uses: actions/upload-artifact@v4
