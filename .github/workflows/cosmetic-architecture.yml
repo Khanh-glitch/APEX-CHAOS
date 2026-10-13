@@ -1,0 +1,49 @@
+name: Cosmetic Architecture / Locker (isolated)
+on:
+  pull_request:
+    paths:
+      - 'src/game/cosmetics/**'
+      - 'src/App.jsx'
+      - 'src/game/productSurface.js'
+      - 'public/game/arsenal/**'
+      - 'public/game/hero-rework/**'
+      - 'public/game/gold/goldProductBridge.js'
+      - 'tools/testCosmeticContracts.mjs'
+      - 'tools/testCosmeticLockerChrome.mjs'
+      - '.github/workflows/cosmetic-architecture.yml'
+  workflow_dispatch:
+jobs:
+  cosmetic-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify P1/P2 identity, skin asset readiness, collision invariance and hooks
+        run: node tools/testCosmeticContracts.mjs
+      - name: Verify production build and original runtime locks
+        run: |
+          node tools/testRuntimeRevisionGate.mjs
+          node tools/buildGoldCutover.mjs --check
+          pnpm run build
+      - name: Chrome Gold Home SKINS category desktop + Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite preview --host 127.0.0.1 --port 4173 > /tmp/apex-cosmetic-vite.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testCosmeticLockerChrome.mjs
