@@ -1,0 +1,39 @@
+name: Owner Preview START Chrome (desktop and Android)
+on:
+  pull_request:
+    paths:
+      - 'tools/testOwnerPreviewStartChrome.mjs'
+      - '.github/workflows/preview-start-owner-check.yml'
+  workflow_dispatch:
+jobs:
+  actual-preview-entrypoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install isolated Chrome QA driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Verify Netlify PR 62 actual boot entrypoints (not Vite dev)
+        env:
+          APEX_PREVIEW_URL: https://deploy-preview-62--apexchaos.netlify.app/
+          APEX_EVIDENCE_DIR: /tmp/apex-preview-start
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testOwnerPreviewStartChrome.mjs
+      - name: Preserve viewport screenshots and failure telemetry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-preview-start-diagnostics-${{ github.sha }}
+          path: /tmp/apex-preview-start/
+          if-no-files-found: warn
+          retention-days: 7
