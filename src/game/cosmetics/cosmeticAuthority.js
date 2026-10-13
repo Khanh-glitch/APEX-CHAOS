@@ -40,6 +40,19 @@ function clean(raw) {
   return data;
 }
 let loadout = fresh();
+// Capture appearance ONCE per real battle. UI may persist its next loadout,
+// but cannot switch an already-running actor, weapon or projectile mid-motion.
+let matchLoadout = null;
+function beginMatch() {
+  if (matchLoadout) return false;
+  matchLoadout = clean(loadout);
+  return true;
+}
+function endMatch() {
+  matchLoadout = null;
+  return true;
+}
+function matchActive() { return matchLoadout !== null; }
 function read(storage) {
   try {
     const raw = storage?.getItem?.(STORAGE_KEY);
@@ -140,7 +153,14 @@ function sideOf(owner, scope=typeof window!=='undefined'?window:null) {
   return null; // unresolved third-party bodies retain ORIGINAL presentation
 }
 function capture(side,kind,baseId) {
-  const skin=side ? selected(side,kind,baseId) : variants(kind,baseId)[0];
+  // Use the match-owned immutable choice when battle is live. The Locker's
+  // selected() remains the editable choice for FUTURE matches.
+  const base=canonical(kind,baseId);
+  const catalogue=variants(kind,base);
+  const skinId=side
+    ? (matchLoadout || loadout)[validSide(side)][kind][base] || 'default'
+    : 'default';
+  const skin=catalogue.find(v=>v.id===skinId) || catalogue[0];
   // Immutable ownership receipt. Reflection, disarm, pickup and mirror never
   // re-query a different fighter/weapon loadout during projectile flight.
   return Object.freeze({side:side||null,kind,baseId:canonical(kind,baseId),skinId:skin.id});
@@ -240,6 +260,7 @@ export function createCosmeticAuthority(storage=typeof window!=='undefined'?wind
     version:'cosmetics-v1', register, variants, selected,
     equip:(side,kind,base,id)=>equip(side,kind,base,id,storage),
     snapshot, subscribe, capture,captureProjectile,sideOf,
+    beginMatch,endMatch,matchActive,
     resolve,render,suppressDefaultBlast,ready,
   });
 }
