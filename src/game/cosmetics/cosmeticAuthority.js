@@ -169,9 +169,15 @@ function render(name,ctx,receipt,payload) {
     scale:Number(payload?.scale)||1,
     kind:String(payload?.kind||''),skinId:entry.id,
   });
+  // Skin renderers may only consume resources the shared READY barrier
+  // decoded for THIS skin. No render-time image constructor, network load
+  // or undeclared asset is needed to show a first-frame effect.
+  const resources=Object.freeze({
+    get:(path)=>entry.assets.includes(path)?(loadedAssets.get(path)||null):null,
+  });
   ctx.save();
   try {
-    const result=fn(ctx,pose);
+    const result=fn(ctx,pose,resources);
     if (result && typeof result.then==='function') throw new Error('Async render skin is forbidden');
     return result===true;
   } catch (error) {
