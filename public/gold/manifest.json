@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261013-world-weapon-native-stream-cp5-r5",
+  "runtimeRevision": "20261013-world-weapon-native-stream-magnet-a1-r6",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -276,8 +276,8 @@
       "sha256": "bd1e4d828101da94d773fb108d3c8dfca170280464bd153b66a0e321597f4b2e"
     },
     "shell.html": {
-      "bytes": 428799,
-      "sha256": "9a39e6928ac9d749484344083c8119a8715af6c6fdadfa848c8d1fb29703d9fb"
+      "bytes": 428811,
+      "sha256": "c3b4931bb1bb380acdfb420d226c0f1a3f3bd955652fb55d60a9017cd8eac469"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,
