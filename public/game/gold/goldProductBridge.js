@@ -899,7 +899,15 @@
     const assets = window.apexProductAssets;
     if (!assets || typeof assets.preparePresentations !== 'function')
       throw new Error('Shared hero presentation readiness authority is unavailable');
-    return assets.preparePresentations(heroIds);
+    await assets.preparePresentations(heroIds);
+    // Battle READY certifies the SELECTED cosmetic packs too, not merely the
+    // base hero atlas. No first-cast asset downloads and no missing skin is
+    // silently counted as a ready presentation.
+    const looks=window.APEX_COSMETICS;
+    if (!looks || typeof looks.ready !== 'function')
+      throw new Error('Cosmetic presentation authority is unavailable');
+    await looks.ready(heroIds.map((heroId,index)=>({side:index===0?'p1':'p2',heroId})));
+    return true;
   }
 
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
