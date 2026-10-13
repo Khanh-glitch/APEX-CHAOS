@@ -64,7 +64,7 @@ try {
   catch(e){console.error('D5 Gold navigation FAIL',label,e);
    await page.screenshot({path:path.join(OUT,label+'-navigation-fail.png')});
    throw e;}
-  const initial=await page.evaluate((hero)=>{
+  const initial=await page.evaluate(async (hero)=>{
    const G=window,AR=G.APEX_ARSENAL,HR=G.APEX_HERO_REWORK;
    if(!AR?.state?.active)throw Error('No actual Arsenal battle');
    const [a,b]=G.fighters,ct=HR.byCombatant(a);
@@ -80,6 +80,16 @@ try {
    for(let i=0;i<3;i++)AR.step(1/60);
    if(typeof G.draw==='function')G.draw();
    if(hero==='frost'){
+     // Future heroes opt into this SAME registry: two callers of one prepare
+     // must share an in-flight promise, never initialize an atlas twice.
+     const assets=G.apexProductAssets;
+     let calls=0;
+     assets.registerPresentation('cp5_future_visual_canary',async()=>{calls++;await Promise.resolve();});
+     await Promise.all([assets.preparePresentations(['cp5_future_visual_canary']),
+       assets.preparePresentations(['cp5_future_visual_canary']),
+       assets.preparePresentations(['cp5_future_visual_canary'])]);
+     if(calls!==1||assets.presentationReadiness()?.cp5_future_visual_canary?.state!=='READY')
+       throw Error('Future hero presentation provider was initialized more than once');
      const P=G.APEX_FROST_PRESENTATION,pre=G.apexProductAssets?.presentationReadiness?.();
      const state=P?.inspect?.(a);
      if(pre?.frost?.state!=='READY'||!P?.ready||!state?.engineReady)
