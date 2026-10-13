@@ -53,11 +53,16 @@ try{
     assert.ok(weapons.some(x=>x.includes('RPG')),'RPG_7 must be discoverable from live gun config');
     await game.click('#apex-cosmetics-search');
     await page.keyboard.type('RPG');
-    await game.waitForFunction(()=>{
-      const list=[...document.querySelectorAll('.apex-cosmetics-item')];
-      return list.length>0 && list.length<10 &&
-        list.every(e=>/RPG/i.test(e.innerText));
-    },{timeout:10000});
+    const searchProbe=await game.evaluate(()=>({
+      value:document.querySelector('#apex-cosmetics-search')?.value,
+      items:[...document.querySelectorAll('.apex-cosmetics-item')].map(e=>e.innerText).slice(0,12),
+      category:document.querySelector('[role=tab][aria-selected=true]')?.textContent
+    }));
+    console.log('COSMETIC SEARCH '+test.name+' '+JSON.stringify(searchProbe));
+    assert.equal(searchProbe.value,'RPG','real keyboard search input did not receive keys');
+    assert.ok(searchProbe.items.length>0 && searchProbe.items.length<weapons.length &&
+      searchProbe.items.every(e=>/RPG/i.test(e)),
+      'real search should narrow to RPG family: '+JSON.stringify(searchProbe));
     const current=await game.$eval('.apex-cosmetics-item',e=>e.innerText);
     assert.match(current,/RPG/i);
     await game.click('.apex-cosmetics-item');
@@ -88,6 +93,16 @@ try{
     console.log('PASS COSMETIC LOCKER '+test.name+' '+JSON.stringify({heroCount,weaponCount:weapons.length,sideProof}));
   }catch(err){
     failed++;console.error('FAIL COSMETIC LOCKER '+test.name+' '+String(err?.stack||err));
+    const diagnosis=await page.evaluate(()=>{
+      const d=document.getElementById('gold-document')?.contentDocument||document;
+      return {url:d.URL,stage:d.querySelector('#stage')?.className,
+        title:d.querySelector('#apex-cosmetics-title')?.textContent,
+        search:d.querySelector('#apex-cosmetics-search')?.value,
+        tab:d.querySelector('[role=tab][aria-selected=true]')?.textContent,
+        entries:[...d.querySelectorAll('.apex-cosmetics-item')].slice(0,10).map(e=>e.innerText),
+        errors:window.__apexEngineLoadError||null};
+    }).catch(e=>({error:String(e)}));
+    console.error('COSMETIC FAILURE DIAGNOSTICS '+test.name+' '+JSON.stringify(diagnosis));
   }finally{await page.close()}
  }
 }finally{await browser.close()}
