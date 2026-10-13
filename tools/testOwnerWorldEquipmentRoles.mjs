@@ -11,6 +11,10 @@ test('all effective equipment IDs inherit 1 common legal Weapon role',()=>{
  assert.equal(C.OFFENSIVE_WEAPON_IDS.length,39);
  assert.equal(C.SHIELD_IDS.length,2);
  for(const id of C.P0_WEAPON_IDS){
+  const roles=C.WEAPONS[id]?.worldRoles;
+  assert.ok(Array.isArray(roles)&&roles.length>0,id+' missing effective worldRoles');
+  assert.equal(C.hasWorldRole(id,'weapon'),C.OFFENSIVE_WEAPON_IDS.includes(id),id+' role-vs-pool baseline');
+  assert.equal(C.hasWorldRole(id,'defense'),C.SHIELD_IDS.includes(id),id+' defense baseline');
   const s={kind:'WEAPON',phase:'REVEALED',weaponId:id,tier:C.tierOf(id)};
   assert.equal(C.isHeroManipulableFloorWeapon(s),role(id),id+'/role');
   assert.equal(M.isEligibleFloorWeapon(s),role(id),id+'/magnet');
@@ -57,15 +61,34 @@ test('Frozen nonfirearm has ZERO Frozen Bullet passive tag',()=>{
  assert.equal(F.tagFrozenBullet({}, {weapon:'RPG_7',__hr:{}},owner),false,
    'mismatched emitter may not borrow frozen gun provenance');
 });
-test('fresh canonical future T3 Weapon admitted without per-Hero edits',()=>{
- const future='OWNER_FUTURE_TRIAL_WEAPON';
+test('future nonspawning Weapon and tiered Defense / hybrid roles stay distinct',()=>{
+ const W='OWNER_FUTURE_QUEST_ONLY_WEAPON',D='OWNER_FUTURE_T2_DEFENSE',
+   H='OWNER_FUTURE_HYBRID_EQUIPMENT';
+ const slot=id=>({kind:'WEAPON',phase:'REVEALED',weaponId:id,tier:C.tierOf(id)});
  try{
-  C.WEAPON_TIER[future]='T3';
-  const s={kind:'WEAPON',phase:'REVEALED',weaponId:future,tier:'T3'};
-  assert.equal(C.isOffensive(future),true);
-  assert.equal(M.isEligibleFloorWeapon(s),true);
-  assert.equal(F.isFreezableWeapon(s),true);
- }finally{delete C.WEAPON_TIER[future];}
+  // One canonical identity declaration, no Hero patch, no spawn admission.
+  C.WEAPONS[W]={worldRoles:['weapon']};C.WEAPON_TIER[W]='T3';
+  assert.ok(!C.OFFENSIVE_WEAPON_IDS.includes(W),'trial Weapon must not be in random spawn pool');
+  assert.equal(C.isOffensive(W),true,'World role independent of random spawn roster');
+  assert.equal(M.isEligibleFloorWeapon(slot(W)),true);
+  assert.equal(F.isFreezableWeapon(slot(W)),true);
+
+  // A separate Defense pool may still assign rarity to a shield.
+  C.WEAPONS[D]={worldRoles:['defense']};C.WEAPON_TIER[D]='T2';
+  assert.equal(C.isOffensive(D),false,'having a tier does NOT make an item a Weapon');
+  assert.equal(C.hasWorldRole(D,'defense'),true);
+  assert.equal(M.isEligibleFloorWeapon(slot(D)),false);
+  assert.equal(F.isFreezableWeapon(slot(D)),false);
+
+  // Composite roles must not need special-case lists on every old Hero.
+  C.WEAPONS[H]={worldRoles:['weapon','defense']};C.WEAPON_TIER[H]='T4';
+  assert.equal(C.hasWorldRole(H,'weapon'),true);
+  assert.equal(C.hasWorldRole(H,'defense'),true);
+  assert.equal(M.isEligibleFloorWeapon(slot(H)),true);
+  assert.equal(F.isFreezableWeapon(slot(H)),true);
+ }finally{
+  for(const id of [W,D,H]){delete C.WEAPON_TIER[id];delete C.WEAPONS[id];}
+ }
 });
 test('real Frost A1 freezes revealed melee, Grenade and V43 but not Defense/T6',()=>{
  HR.setSeed(26);HR.setAiEnabled(false);
