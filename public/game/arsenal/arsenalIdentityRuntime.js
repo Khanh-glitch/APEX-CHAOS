@@ -57,9 +57,64 @@
   CFG.TIER_ROLL = TIER_ROLL;
   CFG.BY_TIER = BY_TIER;
   CFG.tierOf = (id) => WEAPON_TIER[id] || null;
-  CFG.isOffensive = (id) => !!WEAPON_TIER[id];
   CFG.isMelee = (id) => MELEE_IDS.includes(id);
   CFG.isGun = (id) => GUN_IDS.includes(id);
+
+  // D5 World Ontology — one effective Arsenal definition, composable roles.
+  // Tier is RARITY/POWER, not proof of Weapon role. A future tiered Defense
+  // must not be mistaken for a gun; a Quest-only Weapon may never random-spawn.
+  // These are properties OF CFG.WEAPONS, not a second hero-specific registry.
+  // Current canonical roles are seeded once from the existing OFFENSIVE/SHIELD
+  // catalog; NEW definitions declare worldRoles on their own effective record.
+  for (const id of CFG.P0_WEAPON_IDS) {
+    const spec=CFG.WEAPONS[id];
+    if (!spec || typeof spec!=='object')
+      throw Error('World Weapon role missing canonical equipment definition: '+id);
+    if (spec.worldRoles != null && (!Array.isArray(spec.worldRoles) ||
+         spec.worldRoles.some(x=>x!=='weapon'&&x!=='defense')))
+      throw Error('Unrecognized effective World roles: '+id);
+    if (!spec.worldRoles) {
+      const roles=[];
+      if (OFFENSIVE_IDS.includes(id)) roles.push('weapon');
+      if (SHIELD_IDS.includes(id)) roles.push('defense');
+      spec.worldRoles=Object.freeze(roles);
+    }
+    // Existing content is explicitly grandfathered into current A2 behavior.
+    // This is a physical response trait, NOT Weapon role / tier / spawn pool.
+    // Future equipment must declare its own trait on the effective definition.
+    if (spec.magneticResponse == null)
+      spec.magneticResponse = spec.worldRoles.includes('weapon') ? 'responsive' : 'inert';
+    if (spec.magneticResponse !== 'responsive' && spec.magneticResponse !== 'inert')
+      throw Error('Invalid magneticResponse in canonical equipment: '+id);
+  }
+  CFG.hasWorldRole = (id, role) => {
+    const roles=CFG.WEAPONS[id]?.worldRoles;
+    return (role==='weapon'||role==='defense') &&
+      Array.isArray(roles) && roles.includes(role);
+  };
+  CFG.isOffensive = (id) => CFG.hasWorldRole(id,'weapon');
+  // Instance override is optional, but a malformed value NEVER grants A2.
+  // Missing future equipment traits fail closed for A2 without blocking A1.
+  CFG.magneticResponseOf = (id, slot = null) => {
+    const response = slot && Object.hasOwn(slot, 'magneticResponse')
+      ? slot.magneticResponse : CFG.WEAPONS[id]?.magneticResponse;
+    return response === 'responsive' ? 'responsive' : 'inert';
+  };
+
+  // Semantic eligibility is independent of equipment tier, pool, spawn mode
+  // and projectile material. T6 and instance-level exemption still prevail.
+  CFG.isHeroManipulableWeapon = (id, slot = null) => !!id &&
+    CFG.hasWorldRole(id,'weapon') && CFG.tierOf(id) !== 'T6' &&
+    (!slot || (slot.kind !== 'HEAL' && slot.tier !== 'T6' &&
+      CFG.isHeroManipulablePickup(slot)));
+  CFG.isHeroManipulableFloorWeapon = (slot) => !!slot &&
+    slot.phase === 'REVEALED' && slot.kind === 'WEAPON' &&
+    CFG.isHeroManipulableWeapon(slot.weaponId, slot);
+  // A2 equipment force requires BOTH semantic Weapon and physical response.
+  // A1 deliberately ignores this trait: owner law pulls every eligible Weapon.
+  CFG.isHeroMagneticallyResponsiveFloorWeapon = (slot) =>
+    CFG.isHeroManipulableFloorWeapon(slot) &&
+    CFG.magneticResponseOf(slot.weaponId, slot) === 'responsive';
 
   CFG.THROWN_MELEE.speed = {
     SABRE: 1010, BATTLE_AXE: 920, DAGGER: 1210, SPEAR: 1065, SPIKED_CLUB: 965,
