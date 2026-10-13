@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'tools/testContentInteractionBaseline.mjs'
+      - 'tools/testContentPolicyProductionParity.mjs'
       - 'tools/testInteractionPolicyShadow.mjs'
       - 'tools/lib/interactionPolicyCandidate.mjs'
       - 'tools/lib/contentBaseline.mjs'
@@ -35,5 +36,7 @@ jobs:
           node --check tools/lib/interactionPolicyCandidate.mjs
           node tools/testContentInteractionBaseline.mjs
           node tools/testInteractionPolicyShadow.mjs
+          node --check tools/testContentPolicyProductionParity.mjs
+          node tools/testContentPolicyProductionParity.mjs
           node --check tools/testContentAdmissionGate.mjs
           node tools/testContentAdmissionGate.mjs

@@ -215,6 +215,16 @@
   // Legacy API name retained for old callers; semantics are now Weapon role.
   const isEligibleFloorFirearm=isEligibleFloorWeapon;
   function isEligibleBullet(p) {
+    // CP5 live product authority. Legacy fallback is confined to isolated
+    // historical harnesses which do not load AIL at all.
+    const auth=globalScope.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+    if(auth){
+      if(typeof auth.query!=='function')return false;
+      const decision=auth.query('magnet-projectile',p,{
+        config:globalScope.APEX_ARSENAL_CONFIG,
+      });
+      return decision?.status==='allowed';
+    }
     // Ordinary firearm bullets and V4.3 PHYSICAL projectiles are kinetic.
     // V43 devices are NOT in CFG.isGun(): requiring isFirearm here silently
     // let rockets/steel balls pass through Magnet A2. Flame, flare, plasma,

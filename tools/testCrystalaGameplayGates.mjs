@@ -1140,10 +1140,23 @@ await gate('G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites', (
     'public/game/hero-rework/hunterPresentationRuntime.js',
     'public/game/hero-rework/robotPresentationRuntime.js',
     'public/game/hero-rework/hunterGoldV10.js',
-    'public/game/hero-rework/ailRuntime.js',
     'public/game/hero-rework/heroMechanicsRuntime.js',
   ];
   const changedProtectedFiles = UNTOUCHED.filter(f => read(f)!==baseline(f));
+  // Require ALL pre-existing AIL code to stay byte-identical to pinned main.
+  // Strip only the explicitly bounded CP5 magnet query adapter: no broad
+  // whole-file hash waiver, and no silent change of unrelated authority.
+  const ailPath='public/game/hero-rework/ailRuntime.js';
+  const ailSource=read(ailPath);
+  const policyStart='  /* CP5 LIVE MAGNET QUERY START */\n';
+  const policyEnd='  /* CP5 LIVE MAGNET QUERY END */\n\n';
+  const policyA=ailSource.indexOf(policyStart),policyB=ailSource.indexOf(policyEnd);
+  const validAdapter=policyA>=0&&policyB>policyA&&
+    ailSource.indexOf(policyStart,policyA+1)<0&&
+    ailSource.indexOf(policyEnd,policyB+1)<0;
+  const ailWithoutAdapter=validAdapter
+    ?ailSource.slice(0,policyA)+ailSource.slice(policyB+policyEnd.length):'';
+  const ailBaselineIdentical=validAdapter&&ailWithoutAdapter===baseline(ailPath);
   const mech = read('public/game/hero-rework/heroMechanicsRuntime.js');
   const oldMech = baseline('public/game/hero-rework/heroMechanicsRuntime.js');
   const slice = (s,a,b) => s.slice(s.indexOf(a),s.indexOf(b));
@@ -1179,10 +1192,10 @@ await gate('G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites', (
   const noOwnerGrant=!/OWNER_TEST_CREDITS\s*=\s*12000/.test(meta) &&
     !/OWNER_TEST_GRANT_KEY/.test(meta);
   return {ok: changedProtectedFiles.length===0 &&
-      changedCollisionPrimitives.length===0 &&
+      changedCollisionPrimitives.length===0 && ailBaselineIdentical &&
       robotBlockIdentical && hunterBlockIdentical && geom && noOwnerGrant,
     detail:{protectedMainSha:MAIN.slice(0,8),changedProtectedFiles,
-      changedCollisionPrimitives,robotBlockIdentical,hunterBlockIdentical,
+      changedCollisionPrimitives,ailBaselineIdentical,robotBlockIdentical,hunterBlockIdentical,
       sharedGeom:!!geom,noOwnerGrant}};
 });
 
