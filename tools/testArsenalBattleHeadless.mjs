@@ -3188,14 +3188,16 @@ report.rev2ProductGraph = run(`
   };
 `);
 // 2026-10-05 correction: the Fighter Shop is a LOCKED extension point (Gold
-// product direction), so the active public surface set is bot/local/draw and
-// the locked set is shop + the future surfaces. A locked route must be
-// genuinely non-launchable (never a visually disabled ACTIVE route).
-gate('rev2-product-active-surfaces-are-the-battle-entries-and-draw',
-  report.rev2ProductGraph.publicCount === 10 && report.rev2ProductGraph.activeCount === 3
+// product direction); the independent Cosmetic Locker is a new ACTIVE
+// presentation-only surface. Fighter Shop and the roadmap stay LOCKED.
+// A locked route must remain genuinely non-launchable.
+gate('rev2-product-active-surfaces-include-independent-cosmetic-locker',
+  report.rev2ProductGraph.publicCount === 11 && report.rev2ProductGraph.activeCount === 4
     && report.rev2ProductGraph.activeIds.includes('bot-battle')
     && report.rev2ProductGraph.activeIds.includes('local-1v1')
     && report.rev2ProductGraph.activeIds.includes('lucky-draw')
+    && report.rev2ProductGraph.activeIds.includes('cosmetic-locker')
+    && win.APEX_PRODUCT_SURFACE.canLaunch('cosmetic-locker') === true
     && report.rev2ProductGraph.activeIds.includes('fighter-shop') === false
     && report.rev2ProductGraph.allLockedBlocked === true
     && win.APEX_PRODUCT_SURFACE.canLaunch('fighter-shop') === false
