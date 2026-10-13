@@ -201,10 +201,15 @@
     const cfg = globalScope.APEX_ARSENAL_CONFIG;
     return !!(cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
   }
-  function isEligibleFloorFirearm(slot) {
-    return !!slot && slot.phase === 'REVEALED' && slot.kind !== 'HEAL'
-      && isFirearm(slot.weaponId);
+  function isEligibleFloorWeapon(slot) {
+    // Every canonical non-T6 offensive Weapon on a REVEALED floor slot,
+    // including V43, melee and Grenade; Defense has an independent pool.
+    // Material eligibility for airborne projectiles is a different axis.
+    const cfg=globalScope.APEX_ARSENAL_CONFIG;
+    return !!(cfg?.isHeroManipulableFloorWeapon?.(slot));
   }
+  // Legacy API name retained for old callers; semantics are now Weapon role.
+  const isEligibleFloorFirearm=isEligibleFloorWeapon;
   function isEligibleBullet(p) {
     // Ordinary firearm bullets and V4.3 PHYSICAL projectiles are kinetic.
     // V43 devices are NOT in CFG.isGun(): requiring isFirearm here silently
@@ -903,7 +908,7 @@
   globalScope.APEX_MAGNET = {
     version: '1.0.0', CONSTANTS,
     canCast, castA1, castA2, activeFor, activeFields,
-    isEligibleFloorFirearm, isEligibleBullet,
+    isEligibleFloorWeapon, isEligibleFloorFirearm, isEligibleBullet,
     stepWorld, prepareBodyForces, consumeBodyMotion, bodyFieldPath, fieldAccelerationAt,
     EXPLICIT_MOVER_CEILING: CONSTANTS.A2_EXPLICIT_MOVER_CEILING,
     stepProjectiles, consumeMovementPlan, revokeEntry, modifyFirearmEmission,

@@ -1715,7 +1715,10 @@ try {
 } catch (e) { gate('F11.9-armed-no-steal-shock-anyway', false, String(e && e.message)); }
 
 try {
-  // F11.10: melee/grenade/shield/T6 never transfer; shock still applies.
+  // F11.10 OWNER SUPERSESSION 2026-10-13: Defense and T6 never transfer.
+  // Grenade is a Weapon and may transfer while still held. A melee Weapon
+  // already spent by its own strike is no longer held and cannot be stolen.
+  // We still preserve the real shock and one-holder invariants.
   const rows = {};
   for (const wid of ['SABRE', 'GRENADE', 'SWIRL_SHIELD', 'STORMBREAKER']) {
     const o = contactDuel();
@@ -1728,9 +1731,8 @@ try {
       touchBodies(o);
       T.step(2 / 60);
     });
-    // SABRE at point-blank range legitimately spends itself striking (the
-    // weapon's own law, proven by the CONSUME/STRIKE log); the no-transfer
-    // assertion is frostEmpty + no FrostSteal for every class.
+    // SABRE at point-blank legitimately spends itself striking; absence of
+    // a held item is a normal failed theft, NOT a prohibition on melee Weapon.
     rows[wid] = {
       spentByOwner: spends.length > 0,
       held: W().getHolder(o.b) === h0 && !!h0,
@@ -1740,11 +1742,15 @@ try {
     };
     tap.release();
   }
-  const ok = Object.entries(rows).every(([wid, r]) =>
-    (wid === 'SABRE' ? (r.held || r.spentByOwner) : r.held)
-    && r.frostEmpty && r.shock && !r.steal);
-  gate('F11.10-never-steal-other-classes', ok, rows);
-} catch (e) { gate('F11.10-never-steal-other-classes', false, String(e && e.message)); }
+  const ok = Object.entries(rows).every(([wid, r]) => {
+    if (!r.shock) return false;
+    if (wid === 'GRENADE') return r.steal && !r.held && !r.frostEmpty && !r.spentByOwner;
+    if (wid === 'SABRE') return r.spentByOwner ? (r.frostEmpty && !r.steal)
+      : (r.steal && !r.held && !r.frostEmpty);
+    return r.held && r.frostEmpty && !r.steal;
+  });
+  gate('F11.10-owner-weapon-transfer-defense-T6-exclusion', ok, rows);
+} catch (e) { gate('F11.10-owner-weapon-transfer-defense-T6-exclusion', false, String(e && e.message)); }
 
 try {
   // F11.11: same overlap cannot re-steal; separation + re-contact can.
