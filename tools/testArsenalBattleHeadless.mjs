@@ -2271,9 +2271,11 @@ gate('r59-magnet-bot-empty-board-reasons-are-explicit',
   report.r59MagnetBotDecision.idleReasons.some(e=>e.slot==='A1'&&e.reason==='no-field-target')
   && report.r59MagnetBotDecision.idleReasons.some(e=>e.slot==='A2'&&e.reason==='no-field-target'),
   report.r59MagnetBotDecision.idleReasons);
-gate('r59-magnet-bot-a1-uses-real-floor-firearm',
+// Original R59 case still covers the same real firearm. Its POLICY receipt
+// follows the canonical World Weapon role rather than a firearm taxonomy.
+gate('r59-magnet-bot-a1-uses-canonical-world-weapon-role',
   report.r59MagnetBotDecision.floorCase.a1>=1
-  && report.r59MagnetBotDecision.floorCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='eligible-floor-firearm'),
+  && report.r59MagnetBotDecision.floorCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='eligible-world-weapon'),
   report.r59MagnetBotDecision.floorCase);
 gate('r59-magnet-bot-a2-uses-authored-body-radius',
   report.r59MagnetBotDecision.bodyCase.a2>=1
