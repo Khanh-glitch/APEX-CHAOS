@@ -402,6 +402,9 @@ try {
   gate('R90-current-Gold-skill-art-states-actually-rendered',
     skillArtProbe?.found===true&&skillArtProbe.imageLoaded===true&&
     skillArtProbe.imageFit==='contain'&&
+    // R90: the source image element itself must fit in Gold's approved well,
+    // not merely overlap it while overflow:hidden hides the lost bitmap.
+    skillArtProbe.imageBounds===true&&
     skillArtProbe.imageClipped===true&&skillArtProbe.imageArea===true&&
     skillArtProbe.stateBounds===true&&
     skillArtProbe.stateFont>=10&&
