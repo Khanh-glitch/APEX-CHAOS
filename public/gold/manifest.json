@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261013-cp5-floor-policy-r1",
+  "runtimeRevision": "20261013-cp5-frost-equipment-r2",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -276,8 +276,8 @@
       "sha256": "bd1e4d828101da94d773fb108d3c8dfca170280464bd153b66a0e321597f4b2e"
     },
     "shell.html": {
-      "bytes": 428771,
-      "sha256": "423a13c5714d5b613dca372652b458b59486163a8c7869008754e8ad30010e46"
+      "bytes": 428777,
+      "sha256": "69006b847a7d943f6206a40a6f544c45f159b798acc0775147b3831c6b991517"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,

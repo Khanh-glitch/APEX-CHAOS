@@ -197,10 +197,14 @@ function ensureTransferDockGate() {
 }
 
 function isFreezableWeapon(slot) {
-  // Frozen Equipment applies to ALL non-T6 offensive Weapon roles. Whether
-  // the holder can emit a conventional Frozen Bullet is a SEPARATE ability
-  // predicate, not permission to freeze the equipment.
+  // CP5.3: AIL owns the semantic query. Arsenal's effective WEAPONS record
+  // remains the SINGLE role authority. Passive Frozen Bullet filtering and
+  // all contact/freeze timing stay in Frost, with no new gameplay producer.
   const CFG=g.APEX_ARSENAL_CONFIG;
+  const auth=g.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+  if(auth) return auth.query?.('frost-freezable-equipment',slot,
+    {config:CFG})?.status==='allowed'; // unresolved always denied
+  // No-AIL standalone legacy harness only, not a production fallback.
   return !!slot && !!CFG?.isHeroManipulableWeapon?.(slot.weaponId,slot);
 }
 // Backward-compatible name; callers must not mistake equipment eligibility
