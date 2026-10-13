@@ -90,6 +90,39 @@ test('future nonspawning Weapon and tiered Defense / hybrid roles stay distinct'
   for(const id of [W,D,H]){delete C.WEAPON_TIER[id];delete C.WEAPONS[id];}
  }
 });
+test('A1 Weapon law and A2 material response are independent, including instance overrides',()=>{
+ const ids=['PISTOL','RPG_7','GRENADE','SABRE','FLAMETHROWER'];
+ for(const id of ids){
+  const slot={kind:'WEAPON',phase:'REVEALED',weaponId:id,tier:C.tierOf(id)};
+  assert.equal(C.magneticResponseOf(id,slot),'responsive',id+' baseline magnetic response');
+  assert.equal(M.isEligibleA2FloorWeapon(slot),true,id+' current A2 parity');
+  slot.magneticResponse='inert';
+  assert.equal(M.isEligibleFloorWeapon(slot),true,id+' A1 must still attract');
+  assert.equal(M.isEligibleA2FloorWeapon(slot),false,id+' A2 must not repel');
+  slot.magneticResponse='responsive';
+  assert.equal(M.isEligibleA2FloorWeapon(slot),true,id+' instance responsive');
+  slot.magneticResponse='invalid';
+  assert.equal(M.isEligibleA2FloorWeapon(slot),false,id+' invalid instance fails closed');
+ }
+ const W='FUTURE_A2_NONMAGNETIC_WEAPON',H='FUTURE_A2_HYBRID',D='FUTURE_A2_DEFENSE';
+ try{
+  C.WEAPONS[W]={worldRoles:['weapon'],magneticResponse:'inert'};
+  C.WEAPONS[H]={worldRoles:['weapon','defense'],magneticResponse:'responsive'};
+  C.WEAPONS[D]={worldRoles:['defense'],magneticResponse:'responsive'};
+  const slot=id=>({kind:'WEAPON',phase:'REVEALED',weaponId:id});
+  assert.equal(M.isEligibleFloorWeapon(slot(W)),true,'nonmagnetic Weapon still A1 eligible');
+  assert.equal(M.isEligibleA2FloorWeapon(slot(W)),false,'nonmagnetic Weapon A2 denied');
+  assert.equal(F.isFreezableWeapon(slot(W)),true,'nonmagnetic Weapon still Frost eligible');
+  assert.equal(M.isEligibleA2FloorWeapon(slot(H)),true,'hybrid allows A2 if responsive');
+  assert.equal(M.isEligibleA2FloorWeapon(slot(D)),false,'Defense alone does not become Weapon');
+  assert.equal(M.isEligibleA2FloorWeapon({...slot(W),magneticResponse:'responsive'}),true,
+   'instance response overrides canonical definition');
+  assert.equal(M.isEligibleA2FloorWeapon({...slot(H),magneticResponse:'inert'}),false,
+   'instance inert overrides responsive hybrid');
+  delete C.WEAPONS[W].magneticResponse;
+  assert.equal(M.isEligibleA2FloorWeapon(slot(W)),false,'missing future trait fails closed');
+ }finally{for(const id of [W,H,D])delete C.WEAPONS[id];}
+});
 test('real Frost A1 freezes revealed melee, Grenade and V43 but not Defense/T6',()=>{
  HR.setSeed(26);HR.setAiEnabled(false);
  const match=T.start('ICE','ROBOT');assert.ok(match);
@@ -140,6 +173,29 @@ test('field A1 physically moves ordinary plus V43 plus melee floor Weapons',()=>
   if(role(items[i].weaponId)) assert.ok(moved>0.1,items[i].weaponId+' was not attracted');
   else assert.ok(moved<.01,items[i].weaponId+' wrongly attracted');
  }
+});
+test('REAL Magnet A2 repels responsive floor equipment but leaves inert Weapon stationary',()=>{
+ HR.setSeed(138);HR.setAiEnabled(false);
+ assert.ok(T.start('MAGNET','ROBOT'));T.holdSpawns();
+ const [a,b]=H.fighters();
+ a.x=310;a.y=500;a.baseSpeed=0;
+ b.x=900;b.y=900;b.baseSpeed=0;
+ const specs=[
+  {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'inert',x:480,y:500},
+  {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'responsive',x:480,y:560}
+ ];
+ const ids=specs.map(s=>T.pushSlot(s));
+ const get=id=>win.APEX_ARSENAL.state.slots.find(s=>s.id===id);
+ const before=ids.map(id=>({x:get(id).x,y:get(id).y}));
+ const cast=HR.pressAbility(a,'A2');assert.equal(cast.ok,true,'real A2 cast');
+ T.step(.1);
+ const after=ids.map(id=>get(id));
+ for(const s of after)assert.ok(s&&s.phase==='REVEALED','floor persisted through live A2');
+ const inertDistance=Math.hypot(after[0].x-before[0].x,after[0].y-before[0].y);
+ const responsiveDistance=Math.hypot(after[1].x-before[1].x,after[1].y-before[1].y);
+ assert.ok(inertDistance<.01,'A2 incorrectly displaced inert Weapon: '+inertDistance);
+ assert.ok(responsiveDistance>.1,'A2 failed to repel responsive Weapon: '+responsiveDistance);
+ assert.ok(after[1].x>before[1].x,'A2 response must be outward');
 });
 console.log('OWNER WORLD EQUIPMENT D5: '+passed+'/'+passed+' real runtime tests PASS');
 process.exit(0);

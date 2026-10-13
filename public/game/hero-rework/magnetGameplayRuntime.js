@@ -208,6 +208,10 @@
     const cfg=globalScope.APEX_ARSENAL_CONFIG;
     return !!(cfg?.isHeroManipulableFloorWeapon?.(slot));
   }
+  // A2 uses physical magnetic response; A1 uses only legal World Weapon.
+  function isEligibleA2FloorWeapon(slot) {
+    return !!globalScope.APEX_ARSENAL_CONFIG?.isHeroMagneticallyResponsiveFloorWeapon?.(slot);
+  }
   // Legacy API name retained for old callers; semantics are now Weapon role.
   const isEligibleFloorFirearm=isEligibleFloorWeapon;
   function isEligibleBullet(p) {
@@ -629,6 +633,7 @@
       let ax = 0, ay = 0, cap = 0, forced = false;
       const by = [];
       for (const field of live) {
+        if (field.state.kind === 'a2' && !isEligibleA2FloorWeapon(slot)) continue;
         const cx = field.owner.anchor.x, cy = field.owner.anchor.y;
         let dx = cx - slot.x, dy = cy - slot.y;
         const d = Math.hypot(dx, dy);
@@ -908,7 +913,8 @@
   globalScope.APEX_MAGNET = {
     version: '1.0.0', CONSTANTS,
     canCast, castA1, castA2, activeFor, activeFields,
-    isEligibleFloorWeapon, isEligibleFloorFirearm, isEligibleBullet,
+    isEligibleFloorWeapon, isEligibleA2FloorWeapon,
+    isEligibleFloorFirearm, isEligibleBullet,
     stepWorld, prepareBodyForces, consumeBodyMotion, bodyFieldPath, fieldAccelerationAt,
     EXPLICIT_MOVER_CEILING: CONSTANTS.A2_EXPLICIT_MOVER_CEILING,
     stepProjectiles, consumeMovementPlan, revokeEntry, modifyFirearmEmission,

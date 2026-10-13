@@ -106,8 +106,43 @@ try {
     for(let i=0;i<9;i++)AR.step(1/60);
     const measurements=slots.map((s,i)=>({id:s.weaponId,eligible:inventory[i][3],
       distance:Math.hypot(s.x-pos[i].x,s.y-pos[i].y)}));
+    const fieldActive=G.APEX_MAGNET.activeFields(G.APEX_HERO_REWORK_AIL.clock()).length>0;
+    // Same Gold Battle Canvas; A1 expires before a distinct A2 physical trial.
+    for(let i=0;i<70;i++)AR.step(1/60);
+    AR.state.slots=[];
+    AR.step(1/60);
+    const ct=HR.byCombatant(a),ctl=HR.abilityController(ct),MAG=G.APEX_MAGNET;
+    // Real cast-readiness law, not an arbitrary 70-frame assumption: the
+    // Gold match may have advanced during transition before this QA probe.
+    // No cooldown, CC or mutual-exclusion state is forcibly reset.
+    let readySteps=0;
+    for(;readySteps<900&&(ctl.cooldownLeft('A2')>0||
+        MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock())||
+        a.hardCC());readySteps++)AR.step(1/60);
+    if(a.hardCC()||ctl.cooldownLeft('A2')>0||
+       MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock()))
+      throw Error('A2 never became legitimately cast-ready: '+JSON.stringify({
+        readySteps,cooldown:ctl.cooldownLeft('A2'),
+        cc:a.hardCC(),statuses:a.statuses,
+        a1Active:MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock())
+      }));
+    const inert=slot('PISTOL',480,500), responsive=slot('PISTOL',480,560);
+    inert.magneticResponse='inert';
+    responsive.magneticResponse='responsive';
+    const before=[{x:inert.x,y:inert.y},{x:responsive.x,y:responsive.y}];
+    const castA2=HR.pressAbility(a,'A2');
+    if(!castA2.ok)throw Error('Real Magnet A2 cast denied: '+JSON.stringify({
+      reason:castA2.reason,cooldown:ctl.cooldownLeft('A2'),
+      a1Active:MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock()),
+      hp:a.hp,clock:G.APEX_HERO_REWORK_AIL.clock()
+    }));
+    for(let i=0;i<8;i++)AR.step(1/60);
+    const a2Measurements=[inert,responsive].map((s,i)=>({
+      response:s.magneticResponse,distance:Math.hypot(s.x-before[i].x,s.y-before[i].y),
+      outward:s.x>before[i].x,phase:s.phase
+    }));
     if(typeof G.draw==='function')G.draw();
-    return {kind,measurements,fieldActive:G.APEX_MAGNET.activeFields(G.APEX_HERO_REWORK_AIL.clock()).length>0};
+    return {kind,measurements,fieldActive,a2Measurements};
    }
    if(kind==='frost'){
     a.x=200;a.y=500;a.setDir(1,0);b.x=850;b.y=850;
@@ -130,6 +165,13 @@ try {
     assert.ok(m.eligible?m.distance>0.1:m.distance<.01,
       label+' '+m.id+' wrong floor physics '+m.distance);
    }
+   assert.equal(evaluated.a2Measurements.length,2,label+' missing live A2 evidence');
+   const [inert,responsive]=evaluated.a2Measurements;
+   assert.ok(inert.distance<.01,label+' A2 moved nonmagnetic Pistol: '+inert.distance);
+   assert.ok(responsive.distance>.1&&responsive.outward,
+     label+' A2 did not repel responsive Pistol: '+JSON.stringify(responsive));
+   assert.equal(inert.phase,'REVEALED',label+' inert slot vanished');
+   assert.equal(responsive.phase,'REVEALED',label+' responsive slot vanished');
   }else for(const m of evaluated.measurements){
    assert.equal(m.frozen,m.eligible,label+' '+m.id+' wrong Frozen Equipment');
   }

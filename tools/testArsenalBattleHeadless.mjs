@@ -1722,7 +1722,13 @@ report.postCGuns = run(`
   const missing = ids.filter(id => !weapons[id]);
   window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
+  // Product-authentic emissions still use the real holder/projectile driver.
+  // Isolate the gun identity trial from unrelated emergency floor spawns:
+  // otherwise a counter-shield telegraph can divert the autonomous shooter
+  // mid-test and make one gun appear nonfunctional despite a valid executor.
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  APEX_ARSENAL.state.spawnHeld = true;
+  APEX_ARSENAL.state.unarmedFastConsumed = true;
   const fired = {};
   for (const id of ids) {
     fighters[0].hp = 1000; fighters[1].hp = 1000;
