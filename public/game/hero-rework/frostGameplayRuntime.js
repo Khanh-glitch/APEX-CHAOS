@@ -196,15 +196,16 @@ function ensureTransferDockGate() {
   };
 }
 
-function isFreezableFirearm(slot) {
-  if (!slot || slot.kind === 'HEAL') return false;
-  const id = slot.weaponId;
-  if (!id || id === 'GRENADE' || id === 'STORMBREAKER' || id === 'T6') return false;
-  if (slot.tier === 'T6') return false;
-  const W = g.APEX_ARSENAL_WEAPONS;
-  const def = W && W[id];
-  return !!def && def.category === 'ranged';
+function isFreezableWeapon(slot) {
+  // Frozen Equipment applies to ALL non-T6 offensive Weapon roles. Whether
+  // the holder can emit a conventional Frozen Bullet is a SEPARATE ability
+  // predicate, not permission to freeze the equipment.
+  const CFG=g.APEX_ARSENAL_CONFIG;
+  return !!slot && !!CFG?.isHeroManipulableWeapon?.(slot.weaponId,slot);
 }
+// Backward-compatible name; callers must not mistake equipment eligibility
+// for the ordinary-bullet-only Passive.
+const isFreezableFirearm=isFreezableWeapon;
 
 function freezeSlotFromSurface(slot, now = clock()) {
   if (!slot || slot.phase !== 'REVEALED' || !isFreezableFirearm(slot)) return false;
@@ -523,6 +524,11 @@ const FR = {
   tagFrozenBullet(ctx, p, owner) {
     const hold = owner && owner.data && owner.data.arsenal;
     if (!hold || !hold.__frostFrozen || !p || !p.__hr) return false;
+    // Owner lock: only a conventional emitted Bullet gets a Frozen Passive.
+    // Frozen melee, thrown Grenade, Boomerang and energy/flame do NOT gain
+    // invented Freeze procs merely because the Equipment was on ice.
+    const CFG=g.APEX_ARSENAL_CONFIG;
+    if(p.type!=='aq_bullet' || !CFG?.isGun?.(p.weapon))return false;
     // Semantic blast group: holder identity + sequence position at fire time.
     // All pellets of one fireOneShot share both; sequential shots differ in
     // shotsFired (incremented after each shot); re-equips differ in holder.
@@ -695,7 +701,7 @@ const FR = {
   // Read-only tactical query. AI/presentation may ask the SAME surface
   // authority gameplay uses; callers never reconstruct ice geometry.
   isSurfaceAt(x, y, now = clock()) { return activeFrostSurfaceAt(x, y, now); },
-  isFreezableFirearm,
+  isFreezableWeapon, isFreezableFirearm,
   holderInTransfer,   // stolen holder still in Gold transfer flight (pre-dock)
 };
 
