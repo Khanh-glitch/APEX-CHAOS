@@ -61,6 +61,17 @@
   CFG.isMelee = (id) => MELEE_IDS.includes(id);
   CFG.isGun = (id) => GUN_IDS.includes(id);
 
+  // WORLD ONTOLOGY D5: Weapon is a canonical equipment ROLE, not firearm
+  // category and not projectile material. This consumes the existing tier and
+  // OFFENSIVE catalog; no second registry or per-Hero gun ID list is created.
+  // T6 is excluded from Hero manipulation but remains physical equipment.
+  CFG.isHeroManipulableWeapon = (id, slot = null) => !!id &&
+    CFG.isOffensive(id) && CFG.tierOf(id) !== 'T6' &&
+    (!slot || CFG.isHeroManipulablePickup(slot));
+  CFG.isHeroManipulableFloorWeapon = (slot) => !!slot &&
+    slot.phase === 'REVEALED' && slot.kind === 'WEAPON' &&
+    CFG.isHeroManipulableWeapon(slot.weaponId, slot);
+
   CFG.THROWN_MELEE.speed = {
     SABRE: 1010, BATTLE_AXE: 920, DAGGER: 1210, SPEAR: 1065, SPIKED_CLUB: 965,
     STORMBREAKER: CFG.STORMBREAKER ? CFG.STORMBREAKER.throwSpeed : 1350,
