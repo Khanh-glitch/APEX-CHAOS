@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
+import './testMagnetAiWorldRoleContract.mjs';
 const CHROME=process.env.CHROME_PATH;
 if(!CHROME)throw Error('CHROME_PATH must identify installed Chromium');
 const URL=process.env.APEX_APP_URL||'http://127.0.0.1:5173/';
