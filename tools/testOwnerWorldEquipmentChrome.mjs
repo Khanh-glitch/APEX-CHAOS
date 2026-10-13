@@ -94,13 +94,37 @@ try {
     s.slots.push(v);return v;
    };
    if(kind==='magnet'){
+    // Full current V4.3 floor pool — a single RPG smoke probe previously
+    // left seven new equipment identities unmeasured in the real Gold battle.
+    const ids=CFG.V43_SPECIAL_IDS;
+    if(ids.length!==8)throw Error('V43 owner roster changed: '+ids.length);
     const inventory=[
-      ['PISTOL',615,500,true],['RPG_7',615,530,true],
-      ['SABRE',615,470,true],['GRENADE',635,550,true],
-      ['FLAMETHROWER',635,440,true],['STORMBREAKER',615,570,false],
-      ['SWIRL_SHIELD',615,430,false]
+      ['PISTOL',610,420,true],['SABRE',610,450,true],
+      ['GRENADE',610,480,true],
+      ...ids.map((id,i)=>[id,630+(i%2)*30,400+i*27,true]),
+      ['STORMBREAKER',650,625,false],['SWIRL_SHIELD',650,660,false]
     ];
-    const slots=inventory.map(([id,x,y])=>slot(id,x,y));
+    // Lab has a real cap of 6 floor objects. Create its one genuine V43
+    // item FIRST, then add synthetic controls for this multi-identity audit.
+    const oldLab=AR.state.labMode;
+    AR.state.labMode=true;
+    let genuineRPG;
+    try{genuineRPG=G.APEX_ARSENAL_SPAWN.spawnLabWeapon('RPG_7');}
+    finally{AR.state.labMode=oldLab;}
+    if(!genuineRPG||genuineRPG.kind!=='WEAPON'){
+      const func=String(G.APEX_ARSENAL_SPAWN.spawnLabWeapon);
+      throw Error('REAL Lab RPG-7 slot invalid: '+JSON.stringify({
+        exists:!!genuineRPG,kind:genuineRPG?.kind,
+        activeSlots:AR.state.slots.length,
+        labCap:CFG.LAB_MANUAL_SLOT_CAP,
+        hasNewSource:func.includes("kind: 'WEAPON'")
+      }));
+    }
+    const slots=inventory.map(([id,x,y])=>{
+      const placed=id==='RPG_7'?genuineRPG:slot(id,x,y);
+      placed.x=x;placed.y=y;
+      return placed;
+    });
     const pos=slots.map(s=>({x:s.x,y:s.y}));
     if(!HR.pressAbility(a,'A1').ok)throw Error('Real Magnet A1 cast was denied');
     for(let i=0;i<9;i++)AR.step(1/60);
@@ -126,10 +150,12 @@ try {
         cc:a.hardCC(),statuses:a.statuses,
         a1Active:MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock())
       }));
-    const inert=slot('PISTOL',480,500), responsive=slot('PISTOL',480,560);
+    const inert=slot('PISTOL',480,500);
     inert.magneticResponse='inert';
-    responsive.magneticResponse='responsive';
-    const before=[{x:inert.x,y:inert.y},{x:responsive.x,y:responsive.y}];
+    const responsive=CFG.V43_SPECIAL_IDS.map((id,i)=>
+      slot(id,480+(i%2)*12,420+i*20));
+    const targets=[inert,...responsive];
+    const before=targets.map(s=>({x:s.x,y:s.y}));
     const castA2=HR.pressAbility(a,'A2');
     if(!castA2.ok)throw Error('Real Magnet A2 cast denied: '+JSON.stringify({
       reason:castA2.reason,cooldown:ctl.cooldownLeft('A2'),
@@ -137,8 +163,9 @@ try {
       hp:a.hp,clock:G.APEX_HERO_REWORK_AIL.clock()
     }));
     for(let i=0;i<8;i++)AR.step(1/60);
-    const a2Measurements=[inert,responsive].map((s,i)=>({
-      response:s.magneticResponse,distance:Math.hypot(s.x-before[i].x,s.y-before[i].y),
+    const a2Measurements=targets.map((s,i)=>({
+      id:s.weaponId,response:CFG.magneticResponseOf(s.weaponId,s),
+      distance:Math.hypot(s.x-before[i].x,s.y-before[i].y),
       outward:s.x>before[i].x,phase:s.phase
     }));
     if(typeof G.draw==='function')G.draw();
@@ -165,13 +192,17 @@ try {
     assert.ok(m.eligible?m.distance>0.1:m.distance<.01,
       label+' '+m.id+' wrong floor physics '+m.distance);
    }
-   assert.equal(evaluated.a2Measurements.length,2,label+' missing live A2 evidence');
-   const [inert,responsive]=evaluated.a2Measurements;
+   assert.equal(evaluated.a2Measurements.length,9,label+' missing 8 V43 A2 trial objects');
+   const [inert,...responsive]=evaluated.a2Measurements;
    assert.ok(inert.distance<.01,label+' A2 moved nonmagnetic Pistol: '+inert.distance);
-   assert.ok(responsive.distance>.1&&responsive.outward,
-     label+' A2 did not repel responsive Pistol: '+JSON.stringify(responsive));
    assert.equal(inert.phase,'REVEALED',label+' inert slot vanished');
-   assert.equal(responsive.phase,'REVEALED',label+' responsive slot vanished');
+   assert.equal(responsive.length,8);
+   for(const m of responsive){
+    assert.equal(m.response,'responsive',label+' V43 material response '+m.id);
+    assert.ok(m.distance>.1&&m.outward,
+      label+' A2 did not repel responsive V43 '+m.id+': '+JSON.stringify(m));
+    assert.equal(m.phase,'REVEALED',label+' V43 floor slot vanished '+m.id);
+   }
   }else for(const m of evaluated.measurements){
    assert.equal(m.frozen,m.eligible,label+' '+m.id+' wrong Frozen Equipment');
   }

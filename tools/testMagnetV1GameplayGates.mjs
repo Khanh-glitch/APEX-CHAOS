@@ -334,6 +334,49 @@ try {
   gate('M06.4-a2-body-motion-enters-canonical-collision-solve',maxPenetration<1e-6,{maxPenetration});
 } catch(e){gate('M06.4-a2-body-motion-enters-canonical-collision-solve',false,String(e));}
 
+// Critical owner report: exercising only classification tags is insufficient.
+// Fire a REAL RPG-7 rocket from a canonical enemy holder and follow the
+// production hero-rework projectile bridge under real A1 and A2 fields.
+for(const ability of ['A1','A2']){
+ try {
+  const o=start('ROBOT');
+  o.a.x=310;o.a.y=500;
+  o.b.x=690;o.b.y=530;
+  o.a.setDir(1,0);o.b.setDir(-1,0);
+  win.APEX_ARSENAL.state.spawnTimer=1e6;
+  win.APEX_ARSENAL.state.spawnHeld=true;
+  win.APEX_ARSENAL.state.slots=[];
+  if(!W.equip(o.b,'RPG_7'))throw Error('enemy real RPG holder equip denied');
+  for(let i=0;i<15;i++)T.step(1/60);
+  const cast=HR.pressAbility(o.a,ability);
+  if(!cast.ok)throw Error('real Magnet '+ability+' cast denied: '+JSON.stringify(cast));
+  let actualShot=false,eligible=false,affected=false,fieldSteps=0,entry=false;
+  let sample=null;
+  for(let i=0;i<100;i++){
+    T.step(1/60);
+    const rockets=H.projectiles().filter(p=>p&&p.aq===true&&p.type==='aq_v43'
+       &&p.weapon==='RPG_7'&&p.kind==='rocket');
+    if(rockets.length){actualShot=true;eligible ||= MAG.isEligibleBullet(rockets[0]);}
+    const inspect=MAG.inspect(win.matchClock);
+    const force=(inspect.projectileInfluence||[]).find(p=>
+      p.projectile?.weapon==='RPG_7'&&p.projectile?.kind==='rocket'&&
+      p.fields?.some(f=>f.kind===ability.toLowerCase()));
+    if(force){
+      affected=true;fieldSteps++;
+      sample={x:force.projectile.x,y:force.projectile.y,
+        vx:force.projectile.vx,vy:force.projectile.vy,
+        fields:force.fields.map(f=>f.kind),plan:!!force.plan};
+    }
+    if((inspect.captureEvents||[]).some(x=>x.projectile?.weapon==='RPG_7'))entry=true;
+  }
+  gate('M09.'+(ability==='A1'?'1':'2')+'-real-RPG-projectile-'+ability,
+    actualShot&&eligible&&affected&&(ability==='A1'||entry),
+    {actualShot,eligible,affected,fieldSteps,entry,sample});
+ }catch(e){
+  gate('M09.'+(ability==='A1'?'1':'2')+'-real-RPG-projectile-'+ability,false,String(e));
+ }
+}
+
 try {
   const source = fs.readFileSync('public/game/hero-rework/magnetGameplayRuntime.js', 'utf8');
   gate('M07.1-trajectory-only-source-law',

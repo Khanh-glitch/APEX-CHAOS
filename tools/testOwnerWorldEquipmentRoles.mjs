@@ -123,6 +123,45 @@ test('A1 Weapon law and A2 material response are independent, including instance
   assert.equal(M.isEligibleA2FloorWeapon(slot(W)),false,'missing future trait fails closed');
  }finally{for(const id of [W,H,D])delete C.WEAPONS[id];}
 });
+// No synthetic slot: this exercises the SAME spawn/reveal code Free Battle
+// and the Lab use, which formerly omitted kind for all real Weapon slots.
+test('REAL normal and Lab spawn carry World WEAPON through reveal + Magnet A1',()=>{
+ HR.setSeed(171);HR.setAiEnabled(false);
+ assert.ok(T.start('MAGNET','ROBOT'));T.holdSpawns();
+ const state=win.APEX_ARSENAL.state,sp=win.APEX_ARSENAL_SPAWN;
+ assert.ok(sp?.trySpawnSlot&&sp?.spawnLabWeapon,'actual spawn APIs missing');
+ const [a,b]=H.fighters();
+ a.x=310;a.y=500;a.baseSpeed=0;
+ b.x=900;b.y=900;b.baseSpeed=0;
+ const tele=sp.trySpawnSlot();
+ assert.ok(tele&&tele.phase==='TELEGRAPH','normal spawn failed');
+ assert.equal(tele.kind,'WEAPON','normal telegraph must identify floor equipment');
+ // Deliberately simulate an old pre-fix telegraph to verify reveal backfills.
+ tele.kind=undefined;
+ state.time=tele.spawnTime+4;
+ sp.updateSlots(1/60);
+ assert.equal(tele.phase,'REVEALED','normal floor weapon did not reveal');
+ assert.equal(tele.kind,'WEAPON','normal reveal failed to restore World kind');
+ assert.equal(C.isHeroManipulableFloorWeapon(tele),role(tele.weaponId),
+   'normal real-slot Weapon role mismatch');
+
+ state.slots=[];
+ const prev=state.labMode;state.labMode=true;
+ const lab=sp.spawnLabWeapon('RPG_7');
+ state.labMode=prev;
+ assert.ok(lab&&lab.phase==='REVEALED','real Lab RPG-7 spawn denied');
+ assert.equal(lab.kind,'WEAPON','real Lab RPG missing floor World kind');
+ assert.ok(M.isEligibleFloorWeapon(lab),'real Lab RPG invisible to Magnet A1');
+ assert.ok(M.isEligibleA2FloorWeapon(lab),'real Lab RPG invisible to Magnet A2');
+ lab.x=615;lab.y=500;
+ const startX=lab.x;
+ assert.ok(HR.pressAbility(a,'A1').ok);
+ T.step(.15);
+ assert.ok(lab.x<startX-0.1,
+   'Magnet A1 ignored REAL Lab-created RPG slot: dx='+(lab.x-startX));
+ assert.equal(C.isHeroManipulableFloorWeapon({kind:'HEAL',phase:'REVEALED',
+    weaponId:'PISTOL'}),false,'HEAL must never inherit Weapon role');
+});
 test('real Frost A1 freezes revealed melee, Grenade and V43 but not Defense/T6',()=>{
  HR.setSeed(26);HR.setAiEnabled(false);
  const match=T.start('ICE','ROBOT');assert.ok(match);
