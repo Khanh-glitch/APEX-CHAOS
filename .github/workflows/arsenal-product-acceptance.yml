@@ -95,6 +95,8 @@ jobs:
           done
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testHomePortraitBrowser.mjs
 
+      - name: CP6 future-content admission and load rehearsal
+        run: node tools/testExtensionCapacityGates.mjs
       - name: Audit CI cross-system trigger coverage (future Weapon/Hero changes)
         run: node tools/testCrossSystemWorkflowAdmission.mjs
 
