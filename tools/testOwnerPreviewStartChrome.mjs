@@ -71,7 +71,7 @@ try{
     if(test.ua)await page.setUserAgent(test.ua);
     await page.setViewport(test.viewport);
     page.on('pageerror',e=>errors.push(String(e)));
-    page.on('console',m=>{if(m.type()==='warning'||m.type()==='error')warnings.push(m.text().slice(0,1200))});
+    page.on('console',m=>{if(m.type()==='warn'||m.type()==='warning'||m.type()==='error')warnings.push(m.text().slice(0,1200))});
     page.on('requestfailed',req=>failedRequests.push({url:req.url(),reason:req.failure()?.errorText||''}));
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
     let observation=null;
