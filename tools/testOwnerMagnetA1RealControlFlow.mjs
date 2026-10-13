@@ -60,13 +60,28 @@ T.holdSpawns();
 const [player,rival]=H.fighters();
 player.x=300;player.y=500;player.baseSpeed=0;
 rival.x=880;rival.y=850;rival.baseSpeed=0;
-const id=T.pushSlot({kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',x:490,y:550});
-const slot=AR.state.slots.find(s=>s.id===id);
+// REPRODUCE production bug: never fabricate a correctly typed floor slot.
+const SPAWN=win.APEX_ARSENAL_SPAWN;
+const slot=SPAWN.trySpawnSlot({forceFirearm:true});
+assert.ok(slot,'real Arsenal TELEGRAPH weapon must be created');
+assert.equal(slot.kind,'WEAPON','real spawn must own the World Weapon tag');
+assert.equal(slot.phase,'TELEGRAPH','real normal pickup reveal lifecycle');
+const weaponId=slot.questWeaponId||null;
+player.x=slot.x>500?slot.x-190:slot.x+190;
+player.y=slot.y;
+rival.x=slot.x>500?120:880;
+rival.y=slot.y>500?120:880;
+T.step(3.1); // NORMAL force-reveal path, not a synthetic REVEALED object.
+assert.equal(slot.phase,'REVEALED','normal Arsenal slot never became visible');
+assert.equal(slot.kind,'WEAPON','real revealed slot lost World Weapon tag');
+assert.equal(CFG.isHeroManipulableFloorWeapon(slot),true,
+  'real revealed firearm must enter canonical Magnet/Frost World role');
 const start={x:slot.x,y:slot.y};
 assert.equal(win.APEX_ARSENAL_SKILL_GATE.pressJ(player),true,
   'actual P1 skill-gate J input must accept Magnet A1');
 T.step(.35);
-assert.ok(Math.hypot(slot.x-start.x,slot.y-start.y)>2,
-  'P1 Magnet A1 must pull an ordinary Pistol on real battle step');
-console.log('PASS MAGNET P1 A1 actual skill gate + PISTOL floor displacement');
+const moved=Math.hypot(slot.x-start.x,slot.y-start.y);
+assert.ok(moved>2,
+  'P1 Magnet A1 must pull a NATURALLY spawned Weapon, id='+slot.weaponId+' moved='+moved);
+console.log('PASS MAGNET P1 A1 skill gate + naturally spawned '+slot.weaponId+' displacement='+moved);
 console.log('MAGNET A1 REAL CONTROL FLOW 2/2 PASS');

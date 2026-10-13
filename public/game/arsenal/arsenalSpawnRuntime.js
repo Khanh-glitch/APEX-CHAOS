@@ -197,6 +197,7 @@
       x: point.x,
       y: point.y,
       phase: 'TELEGRAPH',
+      kind: 'WEAPON', // canonical category from birth, not guessed from weapon tier
       weaponId: null,
       forceFirearm: !!(opts && opts.forceFirearm),
       questWeaponId:forcedQuest?((forcedStoryStorm||forcedTotStorm)?'STORMBREAKER':'PISTOL'):null,
@@ -236,7 +237,7 @@
     const point = pickSpawnPoint(occupied);
     const slot = {
       id: state.nextSlotId++, x: point.x, y: point.y,
-      phase: 'REVEALED', weaponId,
+      phase: 'REVEALED', kind: 'WEAPON', weaponId,
       tier: CFG.tierOf ? CFG.tierOf(weaponId) : null,
       revealedFor: 0, pickedBy: null, rejectedFor: {},
       spawnTime: state.time,
@@ -273,6 +274,11 @@
   }
 
   function revealSlot(slot, eta, fighter, force = false) {
+    // A TELEGRAPH slot becomes a real typed World Weapon at the authority seam.
+    // Keep legacy/Quest telegraphs compatible without silently converting HEAL.
+    if (slot.kind != null && slot.kind !== 'WEAPON')
+      throw Error('Non-weapon floor slot entered weapon reveal pipeline: '+slot.kind);
+    slot.kind = 'WEAPON';
     slot.phase = 'REVEALED';
     // E01 restricted training pool never rolls a late Stormbreaker or a
     // surprise melee while waiting on accepted J/K and both half-HP gates.
