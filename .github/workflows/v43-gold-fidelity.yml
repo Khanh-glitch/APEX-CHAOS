@@ -1,4 +1,4 @@
-name: V43 GOLD Fidelity Certification
+name: V43 Gold Source Integrity (visual parity advisory)
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   gold-fidelity:
-    name: Gold visual and motion evidence (fail-closed)
+    name: V43 source invariants (40 visual phases advisory)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,8 +28,14 @@ jobs:
           node-version: 22
       - name: Validate 40-phase inventory and emit non-certifying reference preflight
         run: node tools/maintenance/v43-gold-reference-preflight.mjs --out /tmp/v43-gold-evidence-preflight.json
-      - name: Check all source-trace proofs and Gold phase coverage
-        run: node tools/testOwnerV43GoldCertification.mjs --strict
+      # Owner scope 2026-10-13: eight V4.3 visuals are accepted as sufficient
+      # for the current systems cutover. Keep seven executable SOURCE guards
+      # fail-closed and publish the honest 0/40 visual comparison inventory,
+      # but do not claim pixel/motion certification or block systems release.
+      # Strict comparison remains available explicitly:
+      # node tools/testOwnerV43GoldCertification.mjs --strict
+      - name: Enforce seven executable V43 source proofs; report visual backlog
+        run: node tools/testOwnerV43GoldCertification.mjs
       - name: Retain Gold evidence preflight even when strict certification blocks
         if: always()
         uses: actions/upload-artifact@v4
