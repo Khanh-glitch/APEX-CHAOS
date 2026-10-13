@@ -994,7 +994,10 @@ function renderRig(g) {
         const glow = fighter.color || '#ffffff';
         try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (error) {}
       }
-      renderRobotLocal(ctx, fighter, st);
+      const cosmetic=globalScope.APEX_COSMETICS;
+      const receipt=cosmetic?.capture?.(cosmetic.sideOf(fighter,globalScope),'hero','ROBOT')||null;
+      if (!cosmetic?.render?.('actor',ctx,receipt,{x:0,y:0,kind:'ROBOT'}))
+        renderRobotLocal(ctx, fighter, st);
     } finally {
       if (fighter.isRage) { try { ctx.filter = 'none'; } catch (error) {} }
       ctx.restore();
@@ -1519,7 +1522,12 @@ function renderRig(g) {
               const glow = this.color || '#ffffff';
               try { tc.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (e) {}
             }
-            try { renderRobotLocal(tc, this, st); } catch (e) { console.warn('[robot-presentation] render failed', e); }
+            try {
+              const cosmetic=globalScope.APEX_COSMETICS;
+              const receipt=cosmetic?.capture?.(cosmetic.sideOf(this,globalScope),'hero','ROBOT')||null;
+              if(!cosmetic?.render?.('actor',tc,receipt,{x:0,y:0,kind:'ROBOT'}))
+                renderRobotLocal(tc,this,st);
+            } catch(e) { console.warn('[robot-presentation] render failed',e); }
             if (this.isRage) { try { tc.filter = 'none'; } catch (e) {} }
             tc.restore();
           };
