@@ -57,8 +57,8 @@ assert.equal(rpg.returnTau,.28,'RPG baseline; do NOT tune based on a test');
 // Arsenal runtime and ensure one pulse reaches the holder pose. No VFX changed.
 assert.equal(W.equip(f,'RPG_7'),true,'real RPG equip');
 const h=W.getHolder(f);
-for(let i=0;i<360&&h.shotsFired===0;i++)T.step(1/60);
-assert.ok(h.shotsFired>0,'real RPG did not fire within six seconds');
+for(let i=0;i<90&&h.shotsFired===0;i++)T.step(1/60);
+assert.ok(h.shotsFired>0,'real RPG did not fire within 1.5 seconds');
 assert.ok(h.meta.pose.pulses>0,'RPG fire missed poseKick -> visible recoil');
 assert.ok(h.meta.pose.recoil>0,'RPG fire did not apply declared recoil');
 assert.equal(h.meta.pose.pulses,h.shotsFired,'RPG recoil pulse not in sync with shots');
@@ -70,3 +70,4 @@ console.log('WEAPON POSE RECIPES '+JSON.stringify(observations));
 console.log('RPG REAL FIRE recoil='+h.meta.pose.recoil.toFixed(2)+
  'px rot='+h.meta.pose.rotKick.toFixed(3)+' pulses='+h.meta.pose.pulses);
 console.log('WEAPON POSE LIFECYCLE READ-ONLY PASS');
+process.exit(0); // explicit CI completion; no preview/audio handles are product state
