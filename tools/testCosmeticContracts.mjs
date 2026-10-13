@@ -77,6 +77,32 @@ assert.equal(cosmetics.captureProjectile(thirdParty,weapon,combatScope).skinId,'
 assert.equal(cosmetics.sideOf({id:'orphan'},combatScope),null);
 assert.equal(cosmetics.sideOf({id:'invalid-index',__hrCombatant:{idx:6}},combatScope),null);
 
+// One battle may contain two visually distinct copies of the SAME weapon and
+// hero. Live catalogue edits must affect only the next match, not a held gun,
+// hero body or reflected projectile already in motion.
+assert.equal(cosmetics.matchActive(),false);
+assert.equal(cosmetics.beginMatch(),true);
+assert.equal(cosmetics.matchActive(),true);
+assert.equal(cosmetics.beginMatch(),false,'repeated scene notification must not overwrite the receipt');
+assert.equal(cosmetics.equip('p1','weapon',weapon,'neon-b').ok,true);
+assert.equal(cosmetics.equip('p1','hero',hero,'default').ok,true);
+assert.equal(cosmetics.selected('p1','weapon',weapon).id,'neon-b','future loadout must update');
+assert.equal(cosmetics.capture('p1','weapon',weapon).skinId,'neon-a',
+  'held weapon from live match must not change when selection changes');
+assert.equal(cosmetics.captureProjectile(cloneP1,weapon,combatScope).skinId,'neon-a',
+  'new projectile within existing match must use match appearance');
+assert.equal(cosmetics.capture('p1','hero',hero).skinId,'hero-alt',
+  'NEWBOT-like actor must retain its skin until exit');
+assert.equal(cosmetics.capture('p2','weapon',weapon).skinId,'neon-b',
+  'P2 snapshot remains independent');
+assert.equal(cosmetics.endMatch(),true);
+assert.equal(cosmetics.matchActive(),false);
+assert.equal(cosmetics.capture('p1','weapon',weapon).skinId,'neon-b',
+  'next match should pick up the newly-equipped appearance');
+assert.equal(cosmetics.capture('p1','hero',hero).skinId,'default');
+cosmetics.equip('p1','weapon',weapon,'neon-a');
+cosmetics.equip('p1','hero',hero,'hero-alt');
+
 const fired={cosmetic:p1,owner:fighter1,weapon,damage:161,blastRadius:130};
 fired.owner=fighter2; // simulate reflecting / redirecting an existing carrier
 assert.equal(fired.cosmetic.skinId,'neon-a');
@@ -185,6 +211,10 @@ assert.match(gun,/if \(p\.type === 'aq_bullet'\)/);
 assert.equal((gun.match(/APEX_COSMETICS\?\.render\?\.\('projectile'/g)||[]).length,1,
   'all physical projectile types must share ONE cosmetic dispatch');
 assert.match(bridge,/await looks\.ready/);
+assert.match(bridge,/APEX_COSMETICS\?\.beginMatch\?\.\(\)/,
+  'cosmetic session must start at real battle authority');
+assert.match(bridge,/APEX_COSMETICS\?\.endMatch\?\.\(\)/,
+  'cosmetic session must be torn down at battle exit');
 assert.match(robot,/cosmetic\?\.render\?\.\('actor'/);
 assert.match(av,/suppressDefaultBlast/);
 assert.match(av,/cosmetic:window\.APEX_COSMETICS/);
