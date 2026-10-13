@@ -1,0 +1,35 @@
+name: D5 World Weapon Role Owner Gate (isolated)
+on:
+  pull_request:
+    paths:
+      - 'public/game/arsenal/arsenalIdentityRuntime.js'
+      - 'public/game/hero-rework/magnetGameplayRuntime.js'
+      - 'public/game/hero-rework/frostGameplayRuntime.js'
+      - 'tools/testContentInteractionBaseline.mjs'
+      - 'tools/testOwnerWorldEquipmentRoles.mjs'
+      - '.github/workflows/d5-world-weapon-role.yml'
+  workflow_dispatch:
+jobs:
+  owner-role:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Explicit owner Weapon/Defense/T6/Frozen Bullet live runtime gates
+        run: node tools/testOwnerWorldEquipmentRoles.mjs
+      - name: Original content interaction contracts with owner-superseded roles
+        run: node tools/testContentInteractionBaseline.mjs
+      - name: V43 kinetic projectile material law unchanged
+        run: node tools/testV43KineticHeroInteractions.mjs
+      - name: Magnet V1 complete actual runtime
+        run: node tools/testMagnetV1GameplayGates.mjs
+      - name: Frost V1 complete actual runtime
+        run: node tools/testFrostV1Gates.mjs
