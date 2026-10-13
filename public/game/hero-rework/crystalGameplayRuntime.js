@@ -95,7 +95,7 @@ function newTele() {
     overflowThreats: 0, overflowHits: 0, reservations: 0, intercepts: 0, aborts: 0,
     repeatIntercepts: 0, reflectedDamage: 0, preventedDamage: 0, shardBusySeconds: 0,
     constructDamage: 0, wallBreaks: 0, facetBreaks: 0, constructEnds: [], jPerK: [],
-    constructReflects: 0, reflectedProjectiles: 0, urgentReservations: 0,
+    constructReflects: 0, reflectedProjectiles: 0, reflectedStreamTicks: 0, urgentReservations: 0,
     // Decision telemetry: measures the actual trade between K-only, early J
     // Prison, and delayed-J Wall without changing any gameplay law.
     decisionWindows: [], constructDecisions: [],
@@ -993,6 +993,142 @@ function capsules() {
   return list;
 }
 
+/* =================================================== D6 NATIVE ATTACK CARRIER */
+// Authoritative CONTACT + Wall/HEXA structural HP for a real damaging Stream
+// tick. The Arsenal emitter remains the only Fighter damage/BURN executor.
+// This API speaks carrier traits and actual geometry, never weapon-name lists.
+// Each tick/surface is one HP receipt regardless of sampled angular rays.
+function resolveNativeStreamTick(req) {
+  const source=req && req.source, origin=req && req.origin;
+  if (!req || req.carrierKind !== 'stream' ||
+      !source || !origin || !Number.isFinite(origin.x) || !Number.isFinite(origin.y) ||
+      !Number.isFinite(req.angle) || !(req.range > 0) ||
+      !(req.tickDamage > 0) || !Number.isInteger(req.tick) ||
+      req.tick < 0 || !(req.cone >= 0) || req.cone > Math.PI/2 ||
+      !req.attack || !Array.isArray(req.targets))
+    return { status: 'unresolved', reason: 'invalid-attack-carrier-tick' };
+  if (CFG()?.tierOf?.(req.attack.weapon) === 'T6' || req.attack.heroManipulationImmune)
+    return { status: 'denied', reason: 'T6' };
+  const geom=GEOM();
+  if (!geom || typeof geom.capsuleToi !== 'function')
+    return { status: 'unresolved', reason: 'missing-shared-TOI' };
+  const currentCaps=capsules().filter(c=>{
+    if (!c || c.cons.state !== 'LIVE' || !c.cons.ct) return false;
+    const other=HR() && HR().byCombatant(source);
+    const alliedQuestTeam=source.questTeam && c.cons.ct.anchor?.questTeam &&
+      source.questTeam===c.cons.ct.anchor.questTeam;
+    return (!other || c.cons.ct !== other) && !alliedQuestTeam &&
+      (c.idx < 0 || !c.cons.facets[c.idx].dead);
+  });
+  if (!currentCaps.length) return { status:'allowed', affected:false, blockedTargets:[], reflections:[] };
+  const receiptBag=hrOf(req.attack);
+  if (!receiptBag.crystalStreamTickReceipts) receiptBag.crystalStreamTickReceipts=new Set();
+  const receipts=receiptBag.crystalStreamTickReceipts;
+  const decisions=new Map(), reflections=[];
+  let touched=false;
+  // Segment traversal is ordered by the authoritative AIL capsule TOI. For
+  // breaking hits, the same ray continues; for nonbreaking hits it reflects.
+  function route(dir, reflectAllowed, tIndex) {
+    let x=origin.x, y=origin.y, left=req.range, blocked=false, clearRoute=false;
+    const ux=Math.cos(dir),uy=Math.sin(dir);
+    for(let depth=0;depth<12&&left>0.001;depth++) {
+      let first=null;
+      for(const cap of currentCaps) {
+        const cons=cap.cons;
+        if(cons.state!=='LIVE'||(cap.idx>=0&&cons.facets[cap.idx].dead))continue;
+        const hit=geom.capsuleToi(x,y,x+ux*left,y+uy*left,
+          cap.ax,cap.ay,cap.bx,cap.by,cap.r);
+        if(!hit || !(hit.t>=0) || hit.t>1)continue;
+        if(!first || hit.t<first.hit.t-1e-9 ||
+           (Math.abs(hit.t-first.hit.t)<=1e-9 &&
+            (cons.id+':'+cap.idx)<(first.cap.cons.id+':'+first.cap.idx)))
+          first={cap,hit};
+      }
+      if(!first){clearRoute=true;break;}
+      const {cap,hit}=first,cons=cap.cons,st=cons.st;
+      const hx=x+ux*left*hit.t,hy=y+uy*left*hit.t;
+      const traveled=left*hit.t;
+      left-=traveled;
+      const key=cons.ct.idx+':'+cons.id+':'+cap.idx;
+      let outcome=decisions.get(key);
+      if(!outcome) {
+        const hp=cap.idx<0?cons.hp:cons.facets[cap.idx].hp;
+        const breaking=req.tickDamage>=hp;
+        outcome={breaking,cap,hit,hx,hy,st,cons};
+        decisions.set(key,outcome);
+        const receipt=req.tick+':'+key;
+        if(!receipts.has(receipt)) {
+          receipts.add(receipt);
+          touched=true;
+          const why=breaking?'break-through':'hit';
+          damageConstruct(st,cons,cap,req.tickDamage,hx,hy,ux,uy,why);
+          if(!breaking) {
+            st.tele.constructReflects+=1;
+            st.tele.reflectedStreamTicks+=1;
+            if(cons.decision){
+              cons.decision.reflectCount+=1;
+              cons.decision.reflectedDamageIssued+=req.tickDamage*
+                cons.ct.skills.PASSIVE.cfg.reflectedDamagePct;
+              cons.decision.blockedStreamDamage=
+                (cons.decision.blockedStreamDamage||0)+req.tickDamage;
+            }
+            emit('CrystalConstructReflect',{cons:cons.id,kind:cap.kind,
+              facet:cap.idx,x:hx,y:hy,damage:req.tickDamage,carrierKind:'stream',tick:req.tick});
+          }
+          emit('CrystalStreamContact',{cons:cons.id,facet:cap.idx,
+            tick:req.tick,broken:breaking,x:hx,y:hy});
+        }
+      }
+      if(!outcome.breaking) {
+        blocked=true;
+        if(reflectAllowed) {
+          const nv=reflectVec(ux,uy,hit.nx,hit.ny);
+          const rStart={x:hx+nv.x*.5,y:hy+nv.y*.5};
+          const rem=Math.max(0,left-.5);
+          // The reflected segment is the original Stream segment re-routed,
+          // not a newly spawned projectile or an independent fire transaction.
+          reflections.push({from:rStart,to:{x:rStart.x+nv.x*rem,y:rStart.y+nv.y*rem},
+            incomingAngle:dir,contactDistance:req.range-left,
+            controller:cons.ct.anchor,source,decisionId:cons.decision?.id||null,
+            damagePct:cons.ct.skills.PASSIVE.cfg.reflectedDamagePct,
+            construct:cons.id,constructOwner:cons.ct.idx,
+            facet:cap.idx,tick:req.tick,ray:tIndex});
+        }
+        break;
+      }
+      // A broken surface is not a barrier to THIS breaking hit; continue the
+      // original damaging ray through other live surfaces in TOI order.
+      const epsilon=Math.min(0.7,left);
+      x=hx+ux*epsilon;y=hy+uy*epsilon;left-=epsilon;
+    }
+    if(left>0.001&&!blocked&&!clearRoute)
+      throw Error('Native Stream traversal budget exceeded: contact unresolved');
+    return blocked;
+  }
+  // Evaluate exact target-center rays first, preserving the original direct
+  // damage-cone eligibility and avoiding approximation in target obstruction.
+  const blockedTargets=[];
+  for(const target of req.targets) {
+    if(!target||!(target.hp>0))continue;
+    const angle=Math.atan2(target.y-origin.y,target.x-origin.x);
+    const diff=Math.abs(Math.atan2(Math.sin(angle-req.angle),Math.cos(angle-req.angle)));
+    if(diff>req.cone+Math.asin(Math.min(1,((target.radius||75)*.35)/
+      Math.max(1,Math.hypot(target.x-origin.x,target.y-origin.y)))))continue;
+    if(route(angle,true,'target:'+target.id))blockedTargets.push(target);
+  }
+  // Extra angular lanes account for material exposed to the Stream even when
+  // no body stands directly behind it. Each surface receives at most 1 actual
+  // structural hit per tick regardless of ray count.
+  const lanes=33;
+  for(let i=0;i<lanes;i++){
+    const dir=req.angle+(i/(lanes-1)*2-1)*req.cone;
+    route(dir,true,i);
+  }
+  return {status:'allowed',affected:touched||decisions.size>0,
+    blockedTargets,reflections,contacts:decisions.size,
+    sampleModel:'angular-lanes-33-with-exact-target-ray'};
+}
+
 /* ============================================================ BODY-HIT NOTES */
 function noteBodyHit(p, target) {
   const HRr = HR(); const ct = HRr && HRr.byCombatant(target);
@@ -1017,7 +1153,7 @@ function afterBodyHit(p, target, realized) {
 
 /* ================================================================== PUBLIC API */
 Object.assign(CR, {
-  tick, holdStep, resolveBullet, capsules, thrownSurface, thrownHit, noteBodyHit, afterBodyHit,
+  tick, holdStep, resolveBullet, capsules, resolveNativeStreamTick, thrownSurface, thrownHit, noteBodyHit, afterBodyHit,
   castAwakening, canCastConstruct, castConstruct, aiCanAttemptConstruct,
   aiAwakeningOpportunity, aiConstructOpportunity,
   stateOf,
