@@ -23,6 +23,7 @@ import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordin
 import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/CosmeticLocker.jsx';
+import './game/cosmetics/skins/rocketVuaHe.js';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
