@@ -411,7 +411,7 @@ function createState(ct) {
     // Authored ice width -> gameplay mechanic width (1.0 on stock Lv1 truth).
     laneK: (+cfg.a1.width || REF.A1_WIDTH) / REF.A1_WIDTH,
     trailK: (+cfg.a2.trailWidth || REF.A2_WIDTH) / REF.A2_WIDTH,
-    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0 },
+    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0, goldPreview: null },
     a2: { live: false, started: false, hydrated: 0, path: null },
     castQ: [],       // deferred Gold cast admissions (FIFO, truth-checked)
     castSeq: 0, castStarts: 0, castDeferred: 0, castDropped: 0,
@@ -477,7 +477,7 @@ function resetEngineVisuals(S, m) {
     e.huntGoal = 0;
   } catch (err) { warnOnce(err); }
   S.tOff = null;
-  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0 };
+  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0, goldPreview: null };
   S.a2 = { live: false, started: false, hydrated: 0, path: null };
   S.castQ.length = 0;
   S.castSeq = 0; S.castStarts = 0; S.castDeferred = 0; S.castDropped = 0;
@@ -1439,6 +1439,7 @@ function driveEngine(S, ct, dt) {
   let insp = null;
   try { insp = FR && typeof FR.inspect === 'function' ? FR.inspect(ct) : null; } catch (err) {}
   tickA1(S, ct, insp, now, dt);
+  primeQueuedA1Gold(S);
   if (S.a1.pending && now < S.a1.holdUntil) e.modeT = 0;
   try { e.onIce = e.ice.iceAt(e.fx, e.fy + 6, t); } catch (err) { e.onIce = false; }
   const pvx = e.fvx, pvy = e.fvy;
@@ -1543,52 +1544,74 @@ api.tick = function (dt) {
 // World-surface layer only: ice/wet/front/floor support. Arsenal invokes this
 // after the chamber floor but before pickup sprites, guaranteeing guns remain
 // readable without moving the Frost actor/head out of its normal body order.
-// Mechanical A1 lane becomes true at the native release even if Gold is
-// busy animating A2. Preview that ALREADY EXISTING surface immediately, but
-// keep the canonical Gold A1 admission/0.25s beat and ice nodes untouched.
-// This is not a second gameplay floor; the native lane is its only authority.
-function drawQueuedA1Floor(ctx,S){
-  const q=S.castQ.find(v=>v.kind==='a1'&&v.lane);
-  if(!q || S.engine.mode==='a1')return;
-  const L=q.lane,now=clock();
-  if(now<L.frontStartAt || now>=L.expireAt)return;
-  const progress=Math.max(0,Math.min(1,(now-L.frontStartAt)/Math.max(.05,L.frontDoneAt-L.frontStartAt)));
-  const len=L.len*progress, half=L.len>0?((S.cfg.a1.width||160)/2):0;
-  if(len<4||!half)return;
-  // Graphic follows the native front, local-axis jagged ice, not an arbitrary
-  // screen-space rectangle. At Gold admission it yields instantly to the
-  // original fully articulated release/front.
-  ctx.save();
-  try{
-    ctx.translate(L.ox,L.oy);ctx.rotate(Math.atan2(L.dy,L.dx));
-    const fade=Math.min(1,(L.expireAt-now)/.35);
-    ctx.globalAlpha=.72*Math.max(0,fade);
-    const grad=ctx.createLinearGradient(0,-half,len,half);
-    grad.addColorStop(0,'rgba(110,213,248,.50)');
-    grad.addColorStop(.48,'rgba(192,246,255,.57)');
-    grad.addColorStop(1,'rgba(62,155,232,.58)');
-    ctx.fillStyle=grad;
-    ctx.beginPath();ctx.moveTo(0,-half*.72);
-    const step=22;
-    for(let x=0;x<len;x+=step)ctx.lineTo(x,-half*(.86+.12*Math.sin(x*.063+1.1)));
-    ctx.lineTo(len,-half*.45);
-    ctx.lineTo(len,half*.45);
-    for(let x=len;x>0;x-=step)ctx.lineTo(x,half*(.85+.13*Math.sin(x*.07+2.3)));
-    ctx.lineTo(0,half*.72);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(201,247,255,.45)';ctx.lineWidth=3;ctx.stroke();
-    ctx.strokeStyle='rgba(220,253,255,.20)';ctx.lineWidth=2;
-    for(let k=1;k<6;k++){const x=len*k/6;if(x<5)continue;
-      ctx.beginPath();ctx.moveTo(x,-half*.66);ctx.lineTo(Math.max(0,x-24),half*.55);ctx.stroke();}
-  } finally {ctx.restore();}
+// Deferred A1 is rendered only by the approved Gold FrostEngine material.
+// While A2 owns Gold's single actor-mode, do not insert an unauthored
+// gradient floor between gameplay release and the queued A1 cast. Gameplay
+// truth and its freeze/contact timing remain unchanged, and the queued cast
+// still plays Gold's full anticipation, breath, front and expiry lifecycle.
+// A1 and A2 are independent native skills, while the Gold actor serializes
+// their body choreography. A native A1 lane can become active before the body
+// is free to play the authored breath. The old immediate feedback painted a
+// flat gradient instead of Gold material. Materialize ONLY a render-only
+// sample of Gold's own buildLane() from the authoritative origin/front/expiry.
+// Keep it OUT of the engine's persistent ice array and flag gameplay=false:
+// native Frost owns contacts/expiry; this is no new physical ice surface.
+function primeQueuedA1Gold(S) {
+  const q = S.castQ.find((v) => v.kind === 'a1' && v.lane);
+  if (!q || S.a1.goldPreview?.castId === q.castId) return;
+  const e = S.engine, L = q.lane, ice = e.ice;
+  const keepA1 = e.a1, keepOrigin = e.a1Origin, keepNodes = ice.nodes;
+  const keepRng = e.rng.s, keepIceRng = ice.rng.s;
+  try {
+    e.a1 = { ...keepA1, ang: Math.atan2(L.dy, L.dx), nodes: [] };
+    e.a1Origin = { x: L.ox, y: L.oy };
+    ice.nodes = [];
+    const off = S.tOff || 0;
+    const travel = Math.max(0.05, L.frontDoneAt - L.frontStartAt);
+    e.buildLane(L.frontStartAt + off, L.len, travel);
+    const shift = L.expireAt + off - (e.a1.endT + e.a1FloorLife);
+    const nodes = ice.nodes;
+    for (const n of nodes) {
+      n.gameplay = false; // render-only; never enter iceAt/nodeAt authority
+      n.__frostQueuedPreview = true;
+      n.activeUntil = L.expireAt + off;
+      if (Number.isFinite(n.decayAt)) n.decayAt += shift;
+    }
+    if (nodes.length) S.a1.goldPreview = {
+      castId: q.castId, nodes, frontStartAt: L.frontStartAt, expireAt: L.expireAt,
+    };
+  } catch (err) { warnOnce(err); }
+  finally {
+    e.a1 = keepA1; e.a1Origin = keepOrigin; ice.nodes = keepNodes;
+    e.rng.s = keepRng; ice.rng.s = keepIceRng;
+  }
 }
+
+// Temporary, render-only inclusion is restored BEFORE control returns from
+// the canvas pass. While Gold plays its deferred anticipation, keep this
+// surface until its real ice takes over, avoiding a frame of missing floor.
+function drawQueuedA1GoldSurface(S, draw) {
+  const e = S.engine, P = S.a1.goldPreview;
+  if (!P) return draw();
+  if (clock() >= P.expireAt || (e.a1.released && S.a1.startedId === P.castId)) {
+    S.a1.goldPreview = null;
+    return draw();
+  }
+  if (clock() < P.frontStartAt) return draw();
+  const nodes = e.ice.nodes, count = nodes.length;
+  try {
+    nodes.push(...P.nodes);
+    return draw(); // the SAME approved Gold IceField.render/composite path
+  } finally { nodes.length = count; }
+}
+
 function renderSurfaceUnderWeapons(ctx) {
   if (!api.ready || !liveStates.size || !ctx) return;
   const px = pxFromCtx(ctx);
   for (const [, S] of liveStates) {
     isolated(ctx, () => {
       S.engine.ice.drawWet(ctx, S.engine.t);
-      drawIceComposite(S, ctx, px);
-      drawQueuedA1Floor(ctx,S);
+      drawQueuedA1GoldSurface(S, () => drawIceComposite(S, ctx, px));
       S.engine.drawA1MacroFront(ctx, px);
     });
   }
