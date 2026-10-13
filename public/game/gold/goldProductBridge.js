@@ -434,6 +434,10 @@
           // R58: transition HOLD includes audio readiness. The destination is
           // not "ready" while first-use SFX can still be downloading/decoding.
           await warmMatchHeroAudio(...heroIds);
+          // One shared decode/preprocess contract for EVERY selected hero.
+          // Script READY and product image-byte READY do not imply the hero's
+          // offscreen atlases are safe to draw on its first ability.
+          await prepareMatchHeroPresentations(...heroIds);
           return true;
         })
       );
@@ -891,6 +895,13 @@
     return true;
   }
 
+  async function prepareMatchHeroPresentations(...heroIds) {
+    const assets = window.apexProductAssets;
+    if (!assets || typeof assets.preparePresentations !== 'function')
+      throw new Error('Shared hero presentation readiness authority is unavailable');
+    return assets.preparePresentations(heroIds);
+  }
+
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
     if (battleLiveRunning) return false;
     const sessionToken = ++battleSessionToken;
@@ -970,6 +981,7 @@
       // transition seam, but onBattleLive is also an API boundary. Await the
       // same idempotent readiness contract before the engine can accept input.
       await warmMatchHeroAudio(p1Shell, p2Shell);
+      await prepareMatchHeroPresentations(p1Shell, p2Shell);
       if (sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
         battleLiveRunning = false;
         restoreArena();
