@@ -15,6 +15,7 @@ on:
       - 'public/game/arsenal/arsenalIdentityRuntime.js'
       - 'public/game/arsenal/arsenalSpawnRuntime.js'
       - 'public/game/hero-rework/ailRuntime.js'
+      - 'public/game/hero-rework/heroRegistry.js'
       - 'tools/testV43PostUpdateContracts.mjs'
       - '.github/workflows/d6-native-stream-characterization.yml'
   workflow_dispatch:

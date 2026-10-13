@@ -13,6 +13,7 @@ on:
       - 'public/game/arsenal/arsenalWeaponRuntime.js'
       - 'public/game/arsenal/arsenalSpawnRuntime.js'
       - 'public/game/hero-rework/ailRuntime.js'
+      - 'public/game/hero-rework/heroRegistry.js'
       - 'tools/testFrostV1Gates.mjs'
       - 'tools/testV43KineticHeroInteractions.mjs'
       - '.github/workflows/d5-world-weapon-role.yml'
