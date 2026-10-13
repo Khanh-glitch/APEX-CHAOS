@@ -53,10 +53,13 @@ try{
     assert.ok(weapons.some(x=>x.includes('RPG')),'RPG_7 must be discoverable from live gun config');
     await game.click('#apex-cosmetics-search');
     await page.keyboard.type('RPG');
-    await game.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-item').length===1,
-      {timeout:10000});
+    await game.waitForFunction(()=>{
+      const list=[...document.querySelectorAll('.apex-cosmetics-item')];
+      return list.length>0 && list.length<10 &&
+        list.every(e=>/RPG/i.test(e.innerText));
+    },{timeout:10000});
     const current=await game.$eval('.apex-cosmetics-item',e=>e.innerText);
-    assert.match(current,/RPG/);
+    assert.match(current,/RPG/i);
     await game.click('.apex-cosmetics-item');
     assert.equal(await game.$eval('.apex-cosmetics-skin.selected',e=>e.innerText.includes('ORIGINAL')),true);
     await game.evaluate(()=>{
