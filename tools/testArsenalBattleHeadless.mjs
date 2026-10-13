@@ -7052,6 +7052,71 @@ if(process.argv.includes('--quest-reflex-real')){
   }
 }
 
+// CP5 reliability canary. The earlier single-run Robot A1 case failed once
+// with a spent cooldown and no physical displacement; repeat it through the
+// REAL skill input + real production simulation, not a mocked dash call.
+// This executes after other owner gates to preserve their fixture isolation.
+report.cp5RobotA1Stress = run(`
+  const HR=window.APEX_HERO_REWORK;
+  const trials=[];
+  for(let k=0;k<16;k++){
+    window.__apexArsenalTestStartMatch('ROBOT','ICE');
+    cancelAnimationFrame(reqId); reqId=0;
+    APEX_ARSENAL.state.spawnTimer=1e6;
+    APEX_ARSENAL.state.slots=[];
+    const f=fighters[0],ct=HR.byCombatant(f),ctl=HR.abilityController(ct);
+    window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+    for(let t=0;t<8;t++)APEX_ARSENAL.step(1/60);
+    const unarmedNoSpend=ctl.cooldownLeft('A1')===0
+      &&!ct.store['robot.weapon_dash']?.dash;
+    const aiBefore=HR.aiEnabled;
+    HR.setAiEnabled(false);
+    try{
+      fighters[1].x=900;fighters[1].y=100;fighters[1].baseSpeed=0;
+      const sid=__APEX_TEST.pushSlot({
+        x:450,y:500,phase:'REVEALED',weaponId:'PISTOL',revealedFor:0
+      });
+      f.x=200;f.y=500;f.baseSpeed=0;
+      if(f.data)f.data.__hrHoldBody=false;
+      const x0=f.x,mark=HR.AIL.bus.seq;
+      window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+      const dash=ct.store['robot.weapon_dash']?.dash;
+      const frames=[];
+      for(let t=0;t<36;t++){
+        APEX_ARSENAL.step(1/60);
+        if(t===11||t===17||t===35){
+          const d=ct.store['robot.weapon_dash']?.dash;
+          frames.push({frame:t+1,x:f.x,y:f.y,target:d?.targetSlotId??null,
+            windup:d?.windup??null,launched:d?.launched??null});
+        }
+      }
+      const events=HR.AIL.bus.since(mark).filter(e=>/^RobotA1/.test(e.type))
+        .map(e=>e.type);
+      const result={
+        n:k+1,pass:unarmedNoSpend&&!!dash&&f.x>x0+40&&
+          ctl.cooldownLeft('A1')>5&&
+          events.includes('RobotA1DashLaunch')&&
+          events.includes('RobotA1Contact'),
+        noSpend:unarmedNoSpend,cast:!!dash,moved:+(f.x-x0).toFixed(3),
+        cd:+ctl.cooldownLeft('A1').toFixed(3),
+        target:dash?.targetSlotId??null,slotId:sid,
+        events,frames
+      };
+      trials.push(result);
+    }finally{
+      HR.setAiEnabled(aiBefore);
+    }
+  }
+  return {count:trials.length,passed:trials.filter(t=>t.pass).length,
+    // Always keep the failure trace and preserve three representative
+    // successes, so a true miss remains debuggable rather than retried away.
+    failures:trials.filter(t=>!t.pass),
+    representative:trials.filter(t=>t.pass).slice(0,3)};
+`);
+gate('cp5-robot-a1-repeatability-16-real-matches',
+  report.cp5RobotA1Stress?.count===16&&report.cp5RobotA1Stress?.passed===16,
+  report.cp5RobotA1Stress);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
