@@ -1219,7 +1219,7 @@ await gate('A01-P2-Crystal-AI-healthy-no-fail-cue-spam', () => {
   try { m=T.start('ROBOT','CRYSTAL'); }
   finally { win.__apexArsenalBattleProfile=priorProfile??'LOCAL'; }
   T.holdSpawns();
-  assert.equal(win.APEX_ARSENAL.state.battleMode,'BOT','AI gate requires actual BOT battle');
+  const aiMode=win.APEX_ARSENAL.state.battleMode;
   const ev = []; AIL.bus.on('*', (e) => ev.push(e));
   let err = null;
   try { step(25); } catch (e) { err = String(e && e.stack || e).split('\n').slice(0, 2).join(' | '); }
@@ -1227,7 +1227,7 @@ await gate('A01-P2-Crystal-AI-healthy-no-fail-cue-spam', () => {
   const fails = ev.filter((e) => e.type === 'CastFailCue' && e.payload.hero === 'CRYSTAL').length;
   const casts = ev.filter((e) => e.type === 'Cast' && e.payload.hero === 'CRYSTAL').map((e) => e.payload.slot);
   HR.setAiEnabled(false);
-  return { ok: !err && HR.invariants().ok && casts.includes('A2') && fails <= 2 && ct.anchor.hp > 0, detail: { err, fails, casts: casts.join(','), invariants: HR.invariants().errors } };
+  return { ok: aiMode==='BOT' && !err && HR.invariants().ok && casts.includes('A2') && fails <= 2 && ct.anchor.hp > 0, detail: { aiMode, err, fails, casts: casts.join(','), invariants: HR.invariants().errors } };
 });
 
 // @@GATES_CONTINUE@@
