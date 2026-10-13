@@ -107,9 +107,17 @@ export default function CosmeticLocker() {
       Cosmetic catalogue unavailable: {loadError}
       <button type="button" onClick={()=>setLoadError('')}>×</button>
     </div>}
-    {open&&<div className="apex-cosmetics-overlay" role="presentation" onMouseDown={e=>{
-      if(e.target===e.currentTarget)setOpen(false);
-    }}>
+    {open&&<div className="apex-cosmetics-overlay" role="presentation"
+      // A modal must own its keyboard input. Gold's global keydown handler
+      // must never intercept search typing, P1/P2 controls or focused tabs.
+      onKeyDownCapture={e=>{
+        e.stopPropagation();
+        if(e.key==='Escape'){e.preventDefault();setOpen(false)}
+      }}
+      onKeyUpCapture={e=>e.stopPropagation()}
+      onMouseDown={e=>{
+        if(e.target===e.currentTarget)setOpen(false);
+      }}>
       <section className="apex-cosmetics" role="dialog" aria-modal="true" aria-labelledby="apex-cosmetics-title">
         <header className="apex-cosmetics-head">
           <div><div className="apex-cosmetics-eyebrow">APEX CHAOS / PERSONALIZATION</div>
