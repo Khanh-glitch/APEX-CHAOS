@@ -29,6 +29,7 @@ const RULES = {
     'public/game/arsenal/arsenalSpawnRuntime.js',
     'public/game/hero-rework/ailRuntime.js',
     'public/game/hero-rework/heroRegistry.js',
+    'public/game/hero-rework/heroReworkRuntime.js',
     'public/game/hero-rework/magnetGameplayRuntime.js',
     'public/game/hero-rework/frostGameplayRuntime.js',
     'tools/testFrostV1Gates.mjs',
@@ -40,6 +41,7 @@ const RULES = {
     'public/game/arsenal/arsenalWeaponRuntime.js',
     'public/game/hero-rework/ailRuntime.js',
     'public/game/hero-rework/heroRegistry.js',
+    'public/game/hero-rework/heroReworkRuntime.js',
     'public/game/hero-rework/crystalGameplayRuntime.js',
     'tools/testCrystalaGameplayGates.mjs',
     'tools/testOwnerCrystalaA1SharedBreak.mjs'
@@ -51,6 +53,7 @@ const RULES = {
     'public/game/arsenal/arsenalWeaponRuntime.js',
     'public/game/hero-rework/ailRuntime.js',
     'public/game/hero-rework/heroRegistry.js',
+    'public/game/hero-rework/heroReworkRuntime.js',
     'public/game/hero-rework/crystalGameplayRuntime.js',
     'tools/testV43PostUpdateContracts.mjs',
     'tools/testOwnerD6StreamLiveGap.mjs'

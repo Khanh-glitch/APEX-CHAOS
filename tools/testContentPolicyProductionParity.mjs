@@ -188,5 +188,30 @@ assert.ok(arsenalSource.includes("p.kind!=='mine'||p.phase==='flight'"),
   'mine flight/arming restrictions must remain in the executor');
 console.log('CP5 V43 REFLECTION KIND PARITY PASS '+reflectCases+' canonical cases');
 
+const mirCtx={config:CFG,matchActive:true};
+let mirrorCases=0;
+for(const id of CFG.P0_WEAPON_IDS){
+  for(const type of ['aq_bullet','aq_grenade','aq_thrown','aq_v43']){
+    for(const state of ['flight','pinned','tumble']){
+      const p={aq:true,type,weapon:id,state};
+      const result=c.query('mirror-f2-projectile',p,mirCtx);
+      const expected=id!=='STORMBREAKER'&&CFG.tierOf(id)!=='T6'&&
+        (type==='aq_bullet'||type==='aq_grenade'||
+          (type==='aq_thrown'&&state==='flight'));
+      assert.equal(Object.isFrozen(result),true,'immutable Mirror decision');
+      assert.equal(result.status==='allowed',expected,id+'/'+type+'/'+state);
+      mirrorCases++;
+    }
+  }
+}
+assert.equal(c.query('mirror-f2-projectile',{aq:true,type:'aq_bullet',
+  weapon:'UNKNOWN_FUTURE'},mirCtx).status,'unresolved','future unknown must fail closed');
+assert.equal(c.query('mirror-f2-projectile',{aq:true,type:'aq_bullet',
+  weapon:'PISTOL'},{config:CFG}).status,'unresolved','missing match state fails closed');
+const HRsource=cryptoPolicy.readFileSync('public/game/hero-rework/heroReworkRuntime.js','utf8');
+assert.ok(HRsource.includes("auth.query?.('mirror-f2-projectile',p,"),
+  'Mirror F2 runtime must consume canonical capability query');
+console.log('CP5 MIRROR F2 FAMILIES '+mirrorCases+' source-policy cases PASS');
+
 console.log('CP5 LIVE MAGNET POLICY '+(checked-failures)+'/'+checked+(failures?' DRIFT':' PASS'));
 process.exit(failures?1:0);

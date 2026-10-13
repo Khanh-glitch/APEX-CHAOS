@@ -3158,8 +3158,17 @@
   // tumbling drop states). No ad-hoc weapon-name allowlist decides family.
   function mirrorF2Eligible(p) {
     if (!M || !p || !p.aq) return false;
-    if (M.api && M.api.isT6Weapon && M.api.isT6Weapon(p.weapon)) return false; // T6 immune (capability authority)
-    if (p.type === 'aq_bullet') return true;       // bullets + pellets + replays + transforms
+    const auth=AIL.CapabilityAuthority;
+    if (auth) {
+      // CP5.6 canonical family permission; the F2 sweep/cooldown/escrow and
+      // Gold choreography below remain unchanged. Unknown => NOT eligible.
+      return auth.query?.('mirror-f2-projectile',p,{
+        config: globalScope.APEX_ARSENAL_CONFIG, matchActive: !!M,
+      })?.status==='allowed';
+    }
+    // No-AIL standalone compatibility, NEVER a production fallback.
+    if (M.api && M.api.isT6Weapon && M.api.isT6Weapon(p.weapon)) return false;
+    if (p.type === 'aq_bullet') return true;
     if (p.type === 'aq_grenade') return true;
     if (p.type === 'aq_thrown') return p.state === 'flight';
     return false;

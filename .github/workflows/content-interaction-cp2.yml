@@ -40,3 +40,5 @@ jobs:
           node tools/testContentPolicyProductionParity.mjs
           node --check tools/testContentAdmissionGate.mjs
           node tools/testContentAdmissionGate.mjs
+          # Full real Mirror F2 transit/escrow after its AIL family cutover.
+          node tools/testMirrorF2Routing.mjs

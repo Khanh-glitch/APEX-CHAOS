@@ -264,6 +264,24 @@
       return result(special.reflectableKinds.includes(target.kind)?'allowed':'denied',
         'canonical-v43-reflection-kind');
     }
+    if(action==='mirror-f2-projectile'){
+      // CP5.6: Mirror F2 accepts ONLY the three original detached projectile
+      // families. The semantic gate cannot enlarge this to V43 without a
+      // separate owner-approved gameplay/geometry change.
+      if(!target||typeof target!=='object')
+        return result('unresolved','missing-target');
+      if(typeof context.matchActive!=='boolean')
+        return result('unresolved','missing-match-state');
+      const config=context.config,id=target.weapon;
+      if(!config||!id||!((config.WEAPONS||{})[id]||config.V43_WEAPONS?.[id]))
+        return result('unresolved','unregistered-weapon-or-config');
+      if(!context.matchActive||target.aq!==true||this.isT6(target)
+        ||id==='STORMBREAKER'||id==='T6')
+        return result('denied','inactive-or-t6');
+      const ok=target.type==='aq_bullet'||target.type==='aq_grenade'
+        ||(target.type==='aq_thrown'&&target.state==='flight');
+      return result(ok?'allowed':'denied','canonical-mirror-f2-family');
+    }
     if(action!=='magnet-projectile')
       return result('unresolved','unmigrated-interaction-action');
     if(!target||typeof target!=='object')
