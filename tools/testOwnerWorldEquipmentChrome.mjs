@@ -106,8 +106,23 @@ try {
     for(let i=0;i<9;i++)AR.step(1/60);
     const measurements=slots.map((s,i)=>({id:s.weaponId,eligible:inventory[i][3],
       distance:Math.hypot(s.x-pos[i].x,s.y-pos[i].y)}));
+    const fieldActive=G.APEX_MAGNET.activeFields(G.APEX_HERO_REWORK_AIL.clock()).length>0;
+    // Same Gold Battle Canvas; A1 expires before a distinct A2 physical trial.
+    for(let i=0;i<70;i++)AR.step(1/60);
+    AR.state.slots=[];
+    AR.step(1/60);
+    const inert=slot('PISTOL',430,500), responsive=slot('PISTOL',430,550);
+    inert.magneticResponse='inert';
+    responsive.magneticResponse='responsive';
+    const before=[{x:inert.x,y:inert.y},{x:responsive.x,y:responsive.y}];
+    if(!HR.pressAbility(a,'A2').ok)throw Error('Real Magnet A2 cast denied');
+    for(let i=0;i<8;i++)AR.step(1/60);
+    const a2Measurements=[inert,responsive].map((s,i)=>({
+      response:s.magneticResponse,distance:Math.hypot(s.x-before[i].x,s.y-before[i].y),
+      outward:s.x>before[i].x,phase:s.phase
+    }));
     if(typeof G.draw==='function')G.draw();
-    return {kind,measurements,fieldActive:G.APEX_MAGNET.activeFields(G.APEX_HERO_REWORK_AIL.clock()).length>0};
+    return {kind,measurements,fieldActive,a2Measurements};
    }
    if(kind==='frost'){
     a.x=200;a.y=500;a.setDir(1,0);b.x=850;b.y=850;
@@ -130,6 +145,13 @@ try {
     assert.ok(m.eligible?m.distance>0.1:m.distance<.01,
       label+' '+m.id+' wrong floor physics '+m.distance);
    }
+   assert.equal(evaluated.a2Measurements.length,2,label+' missing live A2 evidence');
+   const [inert,responsive]=evaluated.a2Measurements;
+   assert.ok(inert.distance<.01,label+' A2 moved nonmagnetic Pistol: '+inert.distance);
+   assert.ok(responsive.distance>.1&&responsive.outward,
+     label+' A2 did not repel responsive Pistol: '+JSON.stringify(responsive));
+   assert.equal(inert.phase,'REVEALED',label+' inert slot vanished');
+   assert.equal(responsive.phase,'REVEALED',label+' responsive slot vanished');
   }else for(const m of evaluated.measurements){
    assert.equal(m.frozen,m.eligible,label+' '+m.id+' wrong Frozen Equipment');
   }
