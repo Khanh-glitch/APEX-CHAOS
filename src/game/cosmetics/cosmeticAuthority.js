@@ -165,9 +165,14 @@ function render(name,ctx,receipt,payload) {
     width:Number(payload?.width)||0,height:Number(payload?.height)||0,
     vx:Number(payload?.vx)||0,vy:Number(payload?.vy)||0,
     angle:Number(payload?.angle)||0,
-    age:Number(payload?.age)||0,life:Number(payload?.life)||0,
+    // Ordinary aq_bullet carriers store remaining life, not age. Every
+    // family gets a monotonic visual timeline without adding a new gameplay
+    // clock or mutating physical projectile state.
+    age:Number.isFinite(payload?.age)?payload.age:
+      Math.max(0,(Number(payload?.maxLife)||0)-(Number(payload?.life)||0)),
+    life:Number(payload?.life)||0,
     scale:Number(payload?.scale)||1,
-    kind:String(payload?.kind||''),skinId:entry.id,
+    kind:String(payload?.kind||payload?.type||''),skinId:entry.id,
   });
   // Skin renderers may only consume resources the shared READY barrier
   // decoded for THIS skin. No render-time image constructor, network load
