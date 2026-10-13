@@ -364,25 +364,34 @@ try {
     const state=node?.querySelector('.sk-state');
     const cdn=art?.querySelector('.sk-cdn');
     if(!node||!art||!icon||!state||!cdn)return {found:false};
+    // Snapshot Gold's authored CSS in one JS task. The real running HUD
+    // owns this data-state and may overwrite an asynchronous 260ms probe.
     const original=node.dataset.state;
+    const transitionBefore=icon.style.getPropertyValue('transition');
+    const transitionPriority=icon.style.getPropertyPriority('transition');
     const bounds=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:r.width,h:r.height}};
     const within=(parent,child)=>child.x>=parent.x-2&&child.y>=parent.y-2&&child.right<=parent.right+2&&child.bottom<=parent.bottom+2;
     const box=bounds(node),a=bounds(art),i=bounds(icon),textBox=bounds(state);
+    icon.style.setProperty('transition','none','important');
     node.dataset.state='ready';
-    await new Promise(resolve=>setTimeout(resolve,260));
+    void icon.offsetWidth;
     const ready={opacity:Number(getComputedStyle(icon).opacity)};
     node.dataset.state='active';
-    await new Promise(resolve=>setTimeout(resolve,260));
+    void icon.offsetWidth;
     const active={opacity:Number(getComputedStyle(icon).opacity),stateColor:getComputedStyle(state).color};
     node.dataset.state='cd';
-    await new Promise(resolve=>setTimeout(resolve,260));
+    void icon.offsetWidth;
     const cooling={opacity:Number(getComputedStyle(icon).opacity),
       cdOpacity:Number(getComputedStyle(cdn).opacity),
       stateColor:getComputedStyle(state).color};
     node.dataset.state=original;
+    if(transitionBefore)icon.style.setProperty('transition',transitionBefore,transitionPriority);
+    else icon.style.removeProperty('transition');
     return {found:true,imageLoaded:icon.complete&&icon.naturalWidth>0,
       naturalWidth:icon.naturalWidth,imageFit:getComputedStyle(icon).objectFit,
       imageBounds:within(a,i),imageClipped:getComputedStyle(art).overflow==='hidden',
+      imageGeometry:{node:box,art:a,icon:i},originalLiveState:original,
+      transitionRestored:icon.style.getPropertyValue('transition')===transitionBefore,
       imageArea:i.w>0&&i.h>0&&i.right>a.x+2&&i.x<a.right-2&&i.bottom>a.y+2&&i.y<a.bottom-2,
       stateBounds:within(box,textBox),
       stateFont:parseFloat(getComputedStyle(state).fontSize),
@@ -397,6 +406,7 @@ try {
     skillArtProbe.stateBounds===true&&
     skillArtProbe.stateFont>=10&&
     skillArtProbe.overlayDisabled===true&&skillArtProbe.noRetiredRings===true&&
+    skillArtProbe.transitionRestored===true&&
     skillArtProbe.ready?.opacity>.90&&skillArtProbe.active?.opacity>.90&&
     skillArtProbe.cooling?.opacity<.48&&skillArtProbe.cooling?.opacity>.20&&
     skillArtProbe.cooling?.cdOpacity>.9,
