@@ -209,6 +209,24 @@
   // this adapter MUST NOT decide Magnet A1/A2 floor or Frost eligibility.
   CapabilityAuthority.query = function queryInteraction(action,target,context={}) {
     const result=(status,reason)=>Object.freeze({status,reason});
+    if(action==='magnet-revealed-slot'||action==='magnet-repel-slot'){
+      // CP5.2: read ONLY the effective canonical Arsenal world-role traits;
+      // A1 and A2 deliberately have DIFFERENT physical admission rules.
+      // Unknown equipment, missing role authority and missing objects fail closed.
+      const config=context.config;
+      const id=target && target.weaponId;
+      const method=action==='magnet-revealed-slot'
+        ? 'isHeroManipulableFloorWeapon'
+        : 'isHeroMagneticallyResponsiveFloorWeapon';
+      if(!target||typeof target!=='object')
+        return result('unresolved','missing-target');
+      if(!config||typeof config[method]!=='function')
+        return result('unresolved','missing-canonical-floor-role');
+      if(!id||!Object.prototype.hasOwnProperty.call(config.WEAPONS||{},id))
+        return result('unresolved','unregistered-equipment');
+      return result(config[method](target)?'allowed':'denied',
+        action==='magnet-revealed-slot'?'canonical-world-weapon':'canonical-magnetic-response');
+    }
     if(action!=='magnet-projectile')
       return result('unresolved','unmigrated-interaction-action');
     if(!target||typeof target!=='object')

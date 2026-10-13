@@ -201,16 +201,25 @@
     const cfg = globalScope.APEX_ARSENAL_CONFIG;
     return !!(cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
   }
-  function isEligibleFloorWeapon(slot) {
-    // Every canonical non-T6 offensive Weapon on a REVEALED floor slot,
-    // including V43, melee and Grenade; Defense has an independent pool.
-    // Material eligibility for airborne projectiles is a different axis.
+  function isEligibleFloorByRole(action, slot) {
     const cfg=globalScope.APEX_ARSENAL_CONFIG;
-    return !!(cfg?.isHeroManipulableFloorWeapon?.(slot));
+    const auth=globalScope.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+    // CP5.2 live cutover. AIL owns the query contract, while the single
+    // effective Arsenal WEAPONS record continues to own roles/traits.
+    // Never fall back from an unresolved production query to an old predicate.
+    if(auth) return auth.query?.(action,slot,{config:cfg})?.status==='allowed';
+    // Legacy standalone harnesses only: AIL absent, not merely unresolved.
+    const method=action==='magnet-revealed-slot'
+      ? 'isHeroManipulableFloorWeapon'
+      : 'isHeroMagneticallyResponsiveFloorWeapon';
+    return !!cfg?.[method]?.(slot);
   }
-  // A2 uses physical magnetic response; A1 uses only legal World Weapon.
+  function isEligibleFloorWeapon(slot) {
+    return isEligibleFloorByRole('magnet-revealed-slot',slot);
+  }
+  // A2 requires physical magnetic response; A1 intentionally ignores it.
   function isEligibleA2FloorWeapon(slot) {
-    return !!globalScope.APEX_ARSENAL_CONFIG?.isHeroMagneticallyResponsiveFloorWeapon?.(slot);
+    return isEligibleFloorByRole('magnet-repel-slot',slot);
   }
   // Legacy API name retained for old callers; semantics are now Weapon role.
   const isEligibleFloorFirearm=isEligibleFloorWeapon;
