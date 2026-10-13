@@ -35,9 +35,9 @@ jobs:
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           CHROME_PATH="$CHROME" node tools/testOwnerBootPlatformInjectionChrome.mjs
-      - name: Verify Netlify PR 65 actual boot entrypoints (not Vite dev)
+      - name: Verify main-facing PR's deployed Netlify START entrypoints
         env:
-          APEX_PREVIEW_URL: https://deploy-preview-65--apexchaos.netlify.app/
+          APEX_PREVIEW_URL: https://deploy-preview-${{ github.event.pull_request.number || 62 }}--apexchaos.netlify.app/
           APEX_EVIDENCE_DIR: /tmp/apex-preview-start
         run: |
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
