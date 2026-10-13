@@ -52,6 +52,8 @@ jobs:
         run: |
           node tools/testRuntimeRevisionGate.mjs
           node tools/buildGoldCutover.mjs --check
+      - name: CP6 synthetic new-Hero/new-Weapon scale and retry contract
+        run: node tools/testExtensionCapacityGates.mjs
       - name: Explicit owner Weapon/Defense/T6/Frozen Bullet live runtime gates
         run: node tools/testOwnerWorldEquipmentRoles.mjs
       - name: Read-only equipped weapon motion and RPG real-fire lifecycle baseline
