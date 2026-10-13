@@ -2093,8 +2093,20 @@ report.postCRobot = run(`
   f.x = 200; f.y = 500; f.baseSpeed = 0;
   if (f.data) f.data.__hrHoldBody = false;
   const x0 = f.x;
+  const mark = HR.AIL.bus.seq;
+  const slotAtCast = APEX_ARSENAL.state.slots.find(s => s.id === sid);
   window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
-  for (let i = 0; i < 36; i++) APEX_ARSENAL.step(1 / 60);
+  const castDash = ct.store['robot.weapon_dash']?.dash;
+  const trace = [];
+  for (let i = 0; i < 36; i++) {
+    APEX_ARSENAL.step(1 / 60);
+    if (i % 6 === 5 || i === 35) {
+      const d = ct.store['robot.weapon_dash']?.dash;
+      trace.push({frame:i+1,x:f.x,y:f.y,dx:f.x-x0,heading:d?.heading??null,
+        windup:d?.windup??null,launched:d?.launched??null,
+        target:d?.targetSlotId??null,phase:APEX_ARSENAL.state.slots.find(s=>s.id===sid)?.phase??null});
+    }
+  }
   HR.setAiEnabled(aiWas);
   return {
     name: f.name,
@@ -2104,6 +2116,12 @@ report.postCRobot = run(`
     cdAfter: ctl.cooldownLeft('A1'),
     slot: sid,
     x: f.x,
+    // Read-only forensic evidence for sporadic Robot A1 headless regression.
+    // This must NEVER cause a failed real-dash gate to be waived.
+    fixture:{x0,slot:slotAtCast&&{id:slotAtCast.id,x:slotAtCast.x,
+      y:slotAtCast.y,phase:slotAtCast.phase,kind:slotAtCast.kind,weaponId:slotAtCast.weaponId},
+      castDash:castDash&&{heading:castDash.heading,targetSlotId:castDash.targetSlotId},
+      trace,events:HR.AIL.bus.since(mark).filter(e=>/^RobotA1|^Cast/.test(e.type)).slice(0,12).map(e=>({type:e.type,payload:e.payload}))},
   };
 `);
 gate('postc-robot-selectable', report.postCRobot.name === 'ROBOT' && report.postCRobot.cooldown === 10, report.postCRobot);
