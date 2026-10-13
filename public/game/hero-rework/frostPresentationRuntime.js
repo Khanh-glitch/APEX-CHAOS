@@ -355,6 +355,49 @@ function frostCfg(ct) {
   };
 }
 
+// Preprocess belongs to the surface readiness authority, not to the first
+// A1 press or the first in-battle tick. A single detached Gold engine decodes
+// and builds the canonical mips once; all live actor engines attach those
+// immutable results. Never issue FrostEngine.load() from two different engines:
+// Gold internally caches its first loader promise but does NOT copy that
+// engine's mips into a later caller.
+let artReadyPromise = null;
+function attachGoldArt(e) {
+  if (!sharedArt || !e) return false;
+  e.mips = sharedArt.mips;
+  e.shadowCanvas = sharedArt.shadow;
+  try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); }
+  catch (err) { warnOnce(err); }
+  e.ready = true;
+  return true;
+}
+function prepareGoldArtwork() {
+  if (sharedArt) return Promise.resolve(true);
+  if (artReadyPromise) return artReadyPromise;
+  if (!G || typeof G.FrostEngine !== 'function')
+    return Promise.reject(new Error('Frost Gold preprocess runtime missing'));
+  loadProbe('preprocess-start', { source: 'presentation-readiness-contract' });
+  const loader = new G.FrostEngine();
+  artReadyPromise = Promise.resolve().then(() => loader.load()).then(() => {
+    if (!loader.ready || !loader.mips || !loader.shadowCanvas)
+      throw new Error('Frost Gold atlas preprocessing incomplete');
+    sharedArt = { mips: loader.mips, shadow: loader.shadowCanvas };
+    for (const [, S] of liveStates) attachGoldArt(S.engine);
+    api.ready = true;
+    loadProbe('preprocess-ready', { cacheStats: G.cacheStats ? { ...G.cacheStats } : null });
+    return true;
+  }, (error) => {
+    api.error = String(error);
+    loadProbe('preprocess-error', { error:String(error) });
+    throw error;
+  });
+  return artReadyPromise;
+}
+api.prepare = prepareGoldArtwork;
+// Registry-based extension point: subsequent heroes enroll here instead of
+// adding their private image loaders to the battle transition.
+g.apexProductAssets?.registerPresentation?.('frost', prepareGoldArtwork);
+
 function createState(ct) {
   const f = ct.anchor;
   const cfg = frostCfg(ct);
@@ -372,36 +415,11 @@ function createState(ct) {
   // but mips live ON the engine: every later engine backfills from the
   // shared art cache so rematches/mirrors render (mips are read-only after
   // load, safe to share).
-  if (sharedArt) {
-    e.mips = sharedArt.mips;
-    e.shadowCanvas = sharedArt.shadow;
-    try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); } catch (err) { warnOnce(err); }
-    e.ready = true;
-    api.ready = true;
-  } else if (!createState.loadStarted && typeof e.load === 'function') {
-    createState.loadStarted = true;
-    loadProbe('preprocess-start', { source: 'FrostEngine.load' });
-    try {
-      e.load().then(() => {
-        sharedArt = { mips: e.mips, shadow: e.shadowCanvas };
-        for (const [, other] of liveStates) {
-          if (other.engine !== e) {
-            other.engine.mips = e.mips;
-            other.engine.shadowCanvas = e.shadowCanvas;
-            try { other.engine.prepareSurfaces(other.engine.iceCanvas.width, other.engine.iceCanvas.height); } catch (prepErr) { warnOnce(prepErr); }
-            other.engine.ready = true;
-          }
-        }
-        api.ready = true;
-        loadProbe('preprocess-ready', { cacheStats: G.cacheStats ? { ...G.cacheStats } : null });
-      }).catch((err) => {
-        api.error = String(err);
-        loadProbe('preprocess-error', { error: String(err) });
-      });
-    } catch (err) {
-      api.error = String(err);
-      loadProbe('preprocess-error', { error: String(err) });
-    }
+  if (!attachGoldArt(e)) {
+    // Standalone/dev harnesses that bypass the battle preparation gate may
+    // still create an actor; they share the exact same pending preprocess
+    // promise, never a second engine.loader with an empty atlas.
+    void prepareGoldArtwork().then(() => attachGoldArt(e)).catch(warnOnce);
   }
   const S = {
     ct, fighter: f, engine: e, cfg,
