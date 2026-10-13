@@ -79,6 +79,13 @@
       if (SHIELD_IDS.includes(id)) roles.push('defense');
       spec.worldRoles=Object.freeze(roles);
     }
+    // Existing content is explicitly grandfathered into current A2 behavior.
+    // This is a physical response trait, NOT Weapon role / tier / spawn pool.
+    // Future equipment must declare its own trait on the effective definition.
+    if (spec.magneticResponse == null)
+      spec.magneticResponse = spec.worldRoles.includes('weapon') ? 'responsive' : 'inert';
+    if (spec.magneticResponse !== 'responsive' && spec.magneticResponse !== 'inert')
+      throw Error('Invalid magneticResponse in canonical equipment: '+id);
   }
   CFG.hasWorldRole = (id, role) => {
     const roles=CFG.WEAPONS[id]?.worldRoles;
@@ -86,6 +93,13 @@
       Array.isArray(roles) && roles.includes(role);
   };
   CFG.isOffensive = (id) => CFG.hasWorldRole(id,'weapon');
+  // Instance override is optional, but a malformed value NEVER grants A2.
+  // Missing future equipment traits fail closed for A2 without blocking A1.
+  CFG.magneticResponseOf = (id, slot = null) => {
+    const response = slot && Object.hasOwn(slot, 'magneticResponse')
+      ? slot.magneticResponse : CFG.WEAPONS[id]?.magneticResponse;
+    return response === 'responsive' ? 'responsive' : 'inert';
+  };
 
   // Semantic eligibility is independent of equipment tier, pool, spawn mode
   // and projectile material. T6 and instance-level exemption still prevail.
@@ -96,6 +110,11 @@
   CFG.isHeroManipulableFloorWeapon = (slot) => !!slot &&
     slot.phase === 'REVEALED' && slot.kind === 'WEAPON' &&
     CFG.isHeroManipulableWeapon(slot.weaponId, slot);
+  // A2 equipment force requires BOTH semantic Weapon and physical response.
+  // A1 deliberately ignores this trait: owner law pulls every eligible Weapon.
+  CFG.isHeroMagneticallyResponsiveFloorWeapon = (slot) =>
+    CFG.isHeroManipulableFloorWeapon(slot) &&
+    CFG.magneticResponseOf(slot.weaponId, slot) === 'responsive';
 
   CFG.THROWN_MELEE.speed = {
     SABRE: 1010, BATTLE_AXE: 920, DAGGER: 1210, SPEAR: 1065, SPIKED_CLUB: 965,
