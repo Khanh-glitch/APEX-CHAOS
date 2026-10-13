@@ -21,9 +21,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Install isolated Chrome QA driver
         run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
-      - name: Verify Netlify PR 62 actual boot entrypoints (not Vite dev)
+      - name: Verify Netlify PR 65 actual boot entrypoints (not Vite dev)
         env:
-          APEX_PREVIEW_URL: https://deploy-preview-62--apexchaos.netlify.app/
+          APEX_PREVIEW_URL: https://deploy-preview-65--apexchaos.netlify.app/
           APEX_EVIDENCE_DIR: /tmp/apex-preview-start
         run: |
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
