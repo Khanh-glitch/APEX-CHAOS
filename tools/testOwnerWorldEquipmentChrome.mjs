@@ -76,8 +76,8 @@ try {
    HR.setAiEnabled(hero==='newbot');
    if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
    a.baseSpeed=b.baseSpeed=0;
-   a.x=hero==='magnet'?310:200;a.y=500;a.setDir(1,0);
-   b.x=850;b.y=850;b.setDir(-1,0);
+   a.x=hero==='newbot'?850:hero==='magnet'?310:200;a.y=hero==='newbot'?850:500;a.setDir(1,0);
+   b.x=hero==='newbot'?310:850;b.y=hero==='newbot'?500:850;b.setDir(-1,0);
    AR.state.spawnTimer=1e6;AR.state.spawnHeld=true;AR.state.unarmedFastConsumed=true;
    AR.state.slots=[];
    for(let i=0;i<3;i++)AR.step(1/60);
@@ -114,7 +114,7 @@ try {
          JSON.stringify(G.APEX_FROST_GOLD?.cacheStats));
    }
    return {hero:ct.heroId,slotCount:AR.state.slots.length,arenaVisible:true};
-  },kind);
+  },hero);
   await (await page.$('#game-canvas')).screenshot({path:path.join(OUT,label+'-before.png')});
   const evaluated=await page.evaluate((kind)=>{
    const G=window,AR=G.APEX_ARSENAL,HR=G.APEX_HERO_REWORK,CFG=G.APEX_ARSENAL_CONFIG;
