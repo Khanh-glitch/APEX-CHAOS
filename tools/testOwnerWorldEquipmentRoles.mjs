@@ -67,6 +67,29 @@ test('fresh canonical future T3 Weapon admitted without per-Hero edits',()=>{
   assert.equal(F.isFreezableWeapon(s),true);
  }finally{delete C.WEAPON_TIER[future];}
 });
+test('real Frost A1 freezes revealed melee, Grenade and V43 but not Defense/T6',()=>{
+ HR.setSeed(26);HR.setAiEnabled(false);
+ const match=T.start('ICE','ROBOT');assert.ok(match);
+ T.holdSpawns();
+ const [a,b]=H.fighters();a.x=200;a.y=500;a.setDir(1,0);
+ b.x=800;b.y=800;b.setDir(-1,0);
+ assert.equal(win.APEX_ARSENAL_SKILL_GATE.pressJ(a),true);
+ T.step(.9);
+ const lane=F.inspect(HR.byCombatant(a)).lanes[0];
+ assert.ok(lane&&lane.len>250,'no real Frost Breath floor');
+ a.x=100;a.y=100;b.x=100;b.y=900;
+ const ids=['SABRE','GRENADE','RPG_7','SWIRL_SHIELD','STORMBREAKER'];
+ const slots=ids.map((weaponId,i)=>T.pushSlot({
+   kind:'WEAPON',phase:'REVEALED',weaponId,x:lane.ox+270+i*52,y:lane.oy
+ }));
+ T.step(2/60);
+ const current=win.APEX_ARSENAL.state.slots;
+ for(let i=0;i<ids.length;i++){
+   const slot=current.find(s=>s.id===slots[i]);
+   assert.ok(slot,'slot vanished from real floor: '+ids[i]);
+   assert.equal(!!slot.__frostFrozen,i<3,ids[i]+' A1 Frozen Equipment');
+ }
+});
 test('field A1 physically moves ordinary plus V43 plus melee floor Weapons',()=>{
  HR.setSeed(1337);HR.setAiEnabled(false);
  const m=T.start('MAGNET','ROBOT');assert.ok(m);
