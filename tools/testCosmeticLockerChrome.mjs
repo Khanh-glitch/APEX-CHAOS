@@ -38,9 +38,7 @@ try{
       {timeout:10000});
     const weapons=await page.$$eval('.apex-cosmetics-item',nodes=>nodes.map(n=>n.innerText));
     assert.ok(weapons.some(x=>x.includes('RPG')),'RPG_7 must be discoverable from live gun config');
-    await page.$eval('#apex-cosmetics-search',e=>{e.value='RPG';e.dispatchEvent(new Event('input',{bubbles:true}))});
-    // React input onChange uses native setter; drive through keyboard too.
-    await page.click('#apex-cosmetics-search',{clickCount:3});
+    await page.click('#apex-cosmetics-search');
     await page.keyboard.type('RPG');
     await page.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-item').length===1,
       {timeout:10000});
