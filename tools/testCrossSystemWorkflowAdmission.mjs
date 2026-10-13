@@ -79,10 +79,10 @@ for(const file of [world,crystal,stream]){
   console.log('CROSS SYSTEM EXTENSION ADMISSION '+file+': all '+EXTENSION_GLOBS.length+' future-module families protected');
 }
 const owner=fs.readFileSync(world,'utf8');
-assert.match(owner,/node tools\\/testExtensionCapacityGates\\.mjs/,
+assert.match(owner,/node tools\/testExtensionCapacityGates\.mjs/,
   'D5 must actually execute the future-content stress gate, not merely watch it');
 const genericProduct=fs.readFileSync(product,'utf8');
-assert.match(genericProduct,/node tools\\/testExtensionCapacityGates\\.mjs/,
+assert.match(genericProduct,/node tools\/testExtensionCapacityGates\.mjs/,
   'Product Acceptance must run the future-content stress gate on every PR');
 
 let assertions=0;
