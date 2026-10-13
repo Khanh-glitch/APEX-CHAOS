@@ -59,6 +59,32 @@ const RULES = {
     'tools/testOwnerD6StreamLiveGap.mjs'
   ]
 };
+// New files must be admitted automatically. Checking only explicit existing
+// paths would give false confidence when a future weapon/hero owns a brand-new
+// module and the specialist workflow simply never starts.
+const EXTENSION_GLOBS = [
+  'public/game/arsenal/**',
+  'public/game/hero-rework/**',
+  'public/game/product/**',
+  'public/game/gold/**',
+  'src/game/**',
+];
+for(const file of [world,crystal,stream]){
+  const declared=paths(file);
+  for(const pattern of EXTENSION_GLOBS){
+    assert.ok(declared.has(pattern),file+' does not auto-test NEW source '+pattern);
+  }
+  assert.ok(declared.has('tools/testExtensionCapacityGates.mjs'),
+    file+' must re-run on shared extension stress changes');
+  console.log('CROSS SYSTEM EXTENSION ADMISSION '+file+': all '+EXTENSION_GLOBS.length+' future-module families protected');
+}
+const owner=fs.readFileSync(world,'utf8');
+assert.match(owner,/node tools\\/testExtensionCapacityGates\\.mjs/,
+  'D5 must actually execute the future-content stress gate, not merely watch it');
+const genericProduct=fs.readFileSync(product,'utf8');
+assert.match(genericProduct,/node tools\\/testExtensionCapacityGates\\.mjs/,
+  'Product Acceptance must run the future-content stress gate on every PR');
+
 let assertions=0;
 for (const [workflow,needed] of Object.entries(RULES)){
   const declared=paths(workflow);
