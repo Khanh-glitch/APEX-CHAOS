@@ -2539,6 +2539,27 @@ function main() {
       const target = path.join(OUT_DIR, rel);
       if (!fs.existsSync(target) || !read(target).equals(buf)) {
         console.error(`[gold-cutover] DRIFT: ${rel}`);
+        // A single hash mismatch in the generated manifest otherwise hides
+        // which source file changed. Emit the exact differing entries, without
+        // relaxing byte-for-byte certification or rewriting any artifact.
+        if (rel === 'manifest.json' && fs.existsSync(target)) {
+          try {
+            const old = JSON.parse(read(target).toString('utf8'));
+            const latest = JSON.parse(buf.toString('utf8'));
+            if (old.runtimeRevision !== latest.runtimeRevision) {
+              console.error('[gold-cutover] manifest revision differs:',
+                old.runtimeRevision, '!=', latest.runtimeRevision);
+            }
+            for (const key of new Set([...Object.keys(old.files || {}), ...Object.keys(latest.files || {})])) {
+              if (JSON.stringify(old.files?.[key]) !== JSON.stringify(latest.files?.[key])) {
+                console.error('[gold-cutover] manifest entry differs:', key,
+                  JSON.stringify(old.files?.[key]), '!=', JSON.stringify(latest.files?.[key]));
+              }
+            }
+          } catch (error) {
+            console.error('[gold-cutover] manifest diff inspection failed:', String(error));
+          }
+        }
         drift++;
       }
     }
