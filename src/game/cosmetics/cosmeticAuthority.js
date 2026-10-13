@@ -183,10 +183,15 @@ async function ready(sideHeroPairs=[], storage=typeof window!=='undefined'?windo
       :new Promise((resolve,reject)=>{
         if (typeof Image==='undefined') { reject(new Error('No browser image runtime'));return; }
         const img=new Image();
-        img.onload=()=>resolve(img);
+        img.onload=()=>{
+          // Downloaded is not PREPROCESSED: decode() is the actual first-frame
+          // barrier for a skin sprite/atlas (the same bug class as Frost A1).
+          Promise.resolve().then(()=>typeof img.decode==='function'?img.decode():true)
+            .then(()=>resolve(img),()=>reject(new Error('Skin asset decode failed: '+asset)));
+        };
         img.onerror=()=>reject(new Error('Skin asset failed: '+asset));
         img.src=asset;
-        if(img.complete && img.naturalWidth)resolve(img);
+        if(img.complete && img.naturalWidth)img.onload();
       });
     const promise=task.then(file=>{loadedAssets.set(asset,file);return file;},
       e=>{assetPromises.delete(asset);throw e;});
