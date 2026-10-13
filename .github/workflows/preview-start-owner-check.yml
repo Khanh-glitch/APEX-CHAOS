@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'tools/testOwnerPreviewStartChrome.mjs'
+      - 'tools/testOwnerBootPlatformInjectionChrome.mjs'
+      - 'src/App.jsx'
       - '.github/workflows/preview-start-owner-check.yml'
   workflow_dispatch:
 jobs:
@@ -21,6 +23,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Install isolated Chrome QA driver
         run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Build exact production payload for provider-injection regression
+        run: pnpm run build
+      - name: Run local production Chrome with Netlify-like duplicate script
+        run: |
+          pnpm exec vite preview --host 127.0.0.1 --port 4173 > /tmp/apex-preview-vite.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testOwnerBootPlatformInjectionChrome.mjs
       - name: Verify Netlify PR 65 actual boot entrypoints (not Vite dev)
         env:
           APEX_PREVIEW_URL: https://deploy-preview-65--apexchaos.netlify.app/
