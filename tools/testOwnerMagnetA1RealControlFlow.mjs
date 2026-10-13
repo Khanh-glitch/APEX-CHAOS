@@ -93,3 +93,4 @@ assert.ok(moved>2,
   'P1 Magnet A1 must pull a NATURALLY spawned Weapon, id='+slot.weaponId+' moved='+moved);
 console.log('PASS MAGNET P1 A1 skill gate + naturally spawned '+slot.weaponId+' displacement='+moved);
 console.log('MAGNET A1 REAL CONTROL FLOW 2/2 PASS');
+process.exit(0); // QA harness owns live image/audio handles; don't hold CI open
