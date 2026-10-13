@@ -115,8 +115,17 @@ try {
     // Real cast-readiness law, not an arbitrary 70-frame assumption: the
     // Gold match may have advanced during transition before this QA probe.
     // No cooldown, CC or mutual-exclusion state is forcibly reset.
-    for(let i=0;i<900&&(ctl.cooldownLeft('A2')>0||
-        MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock()));i++)AR.step(1/60);
+    let readySteps=0;
+    for(;readySteps<900&&(ctl.cooldownLeft('A2')>0||
+        MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock())||
+        a.hardCC());readySteps++)AR.step(1/60);
+    if(a.hardCC()||ctl.cooldownLeft('A2')>0||
+       MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock()))
+      throw Error('A2 never became legitimately cast-ready: '+JSON.stringify({
+        readySteps,cooldown:ctl.cooldownLeft('A2'),
+        cc:a.hardCC(),statuses:a.statuses,
+        a1Active:MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock())
+      }));
     const inert=slot('PISTOL',480,500), responsive=slot('PISTOL',480,560);
     inert.magneticResponse='inert';
     responsive.magneticResponse='responsive';
