@@ -9,6 +9,12 @@ on:
       - 'tools/testOwnerWorldEquipmentRoles.mjs'
       - 'tools/testOwnerWeaponPoseLifecycleAudit.mjs'
       - 'tools/testOwnerWorldEquipmentChrome.mjs'
+      - 'public/game/arsenal/arsenalConfig.js'
+      - 'public/game/arsenal/arsenalWeaponRuntime.js'
+      - 'public/game/arsenal/arsenalSpawnRuntime.js'
+      - 'public/game/hero-rework/ailRuntime.js'
+      - 'tools/testFrostV1Gates.mjs'
+      - 'tools/testV43KineticHeroInteractions.mjs'
       - '.github/workflows/d5-world-weapon-role.yml'
   workflow_dispatch:
 jobs:
