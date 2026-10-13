@@ -96,20 +96,55 @@ try {
   AIL.CapabilityAuthority.query=realQuery;
 }
 assert.equal(MAG.isEligibleBullet(accepted),true,'AIL authority restored after probe');
-// D5/D6 integration guard: floor semantics have NOT migrated to this
-// projectile-only query. An old CP5 Gun-based floor policy would reject melee,
-// grenade and nonmagnetic World Weapons if accidentally used for A1.
-for(const id of ['PISTOL','GRENADE','SABRE']){
-  const slot={kind:'WEAPON',phase:'REVEALED',weaponId:id};
-  assert.equal(CFG.isHeroManipulableFloorWeapon(slot),true,'A1 must admit '+id);
-  assert.equal(MAG.isEligibleFloorWeapon(slot),true,'Magnet A1 World Weapon parity '+id);
+// CP5.2/CP5.3 production consumer proof: floor A1 and A2 are intentionally
+// DIFFERENT, and Frost uses the same canonical Weapon role without changing
+// Frozen Bullet projectile semantics. All three must honor an explicit AIL
+// denial; it is not enough to return the same boolean by coincidence.
+const FROST=win.APEX_FROST;
+const floor={kind:'WEAPON',phase:'REVEALED',weaponId:'SABRE'};
+const responsive={kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL'};
+const inert={...responsive,magneticResponse:'inert'};
+const c=AIL.CapabilityAuthority;
+assert.equal(c.query('magnet-revealed-slot',floor,{config:CFG}).status,'allowed');
+assert.equal(c.query('magnet-repel-slot',responsive,{config:CFG}).status,'allowed');
+assert.equal(c.query('magnet-repel-slot',inert,{config:CFG}).status,'denied');
+assert.equal(c.query('frost-freezable-equipment',floor,{config:CFG}).status,'allowed');
+assert.equal(MAG.isEligibleFloorWeapon(inert),true,'A1 ignores physical response');
+assert.equal(MAG.isEligibleA2FloorWeapon(inert),false,'A2 respects physical response');
+assert.equal(FROST.isFreezableWeapon(inert),true,'Frost freezes a nonmagnetic Weapon');
+for(const action of ['magnet-revealed-slot','magnet-repel-slot','frost-freezable-equipment']){
+  assert.equal(c.query(action,{weaponId:'FUTURE_UNKNOWN',kind:'WEAPON',phase:'REVEALED'},
+    {config:CFG}).status,'unresolved','unknown equipment must fail closed '+action);
 }
-const nonmag={kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'inert'};
-assert.equal(MAG.isEligibleFloorWeapon(nonmag),true,'A1 ignores material response');
-assert.equal(MAG.isEligibleA2FloorWeapon(nonmag),false,'A2 honors material response');
-for(const action of ['magnet-revealed-slot','frost-freezable-equipment','mirror-f2-projectile'])
-  assert.equal(AIL.CapabilityAuthority.query(action,{aq:true,weapon:'PISTOL'},
-    {config:CFG}).status,'unresolved','no stale legacy policy exposed: '+action);
+const restoreQuery=c.query;
+try {
+  const seen=[];
+  c.query=(action,target,context)=>{
+    seen.push({action,target,context});
+    return Object.freeze({status:'denied',reason:'cp5-consumer-denial'});
+  };
+  assert.equal(MAG.isEligibleFloorWeapon(floor),false,'A1 must follow AIL denial');
+  assert.equal(MAG.isEligibleA2FloorWeapon(responsive),false,'A2 must follow AIL denial');
+  assert.equal(FROST.isFreezableWeapon(floor),false,'Frost must follow AIL denial');
+  assert.deepEqual(seen.map(x=>x.action),[
+    'magnet-revealed-slot','magnet-repel-slot','frost-freezable-equipment'
+  ],'every consumer must query exactly its own semantic action');
+  for(const call of seen){
+    assert.equal(call.context.config,CFG,'effective Arsenal config must be reused');
+  }
+  c.query=()=>Object.freeze({status:'unresolved',reason:'cp5-unknown'});
+  assert.equal(MAG.isEligibleFloorWeapon(floor),false,'A1 unresolved is denied');
+  assert.equal(MAG.isEligibleA2FloorWeapon(responsive),false,'A2 unresolved is denied');
+  assert.equal(FROST.isFreezableWeapon(floor),false,'Frost unresolved is denied');
+} finally { c.query=restoreQuery; }
+assert.equal(MAG.isEligibleFloorWeapon(floor),true,'restored A1 query');
+assert.equal(MAG.isEligibleA2FloorWeapon(responsive),true,'restored A2 query');
+assert.equal(FROST.isFreezableWeapon(floor),true,'restored Frost query');
+// Mirror F2 remains intentionally NOT cut over: V43 escrow/geometry is
+// a separate owner decision, not a side-effect of the current CP5 actions.
+assert.equal(c.query('mirror-f2-projectile',{aq:true,type:'aq_v43',weapon:'RPG_7',
+  kind:'rocket',life:2},{config:CFG}).status,'unresolved',
+  'Mirror V43 must not be implicitly enabled by the Magnet/Frost cutover');
 
 console.log('CP5 LIVE MAGNET POLICY '+(checked-failures)+'/'+checked+(failures?' DRIFT':' PASS'));
 process.exit(failures?1:0);
