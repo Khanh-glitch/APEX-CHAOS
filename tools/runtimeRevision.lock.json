@@ -1,5 +1,5 @@
 {
-  "revision": "20261013-world-weapon-native-stream-cp5-r5",
+  "revision": "20261013-world-weapon-native-stream-magnet-a1-r8",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -14,7 +14,7 @@
     "public/game/arsenal/arsenalConfig.js": "c1bcd2d46c2cbd36663c3a3bbea7c0e9fc43fef8204a9fe1eaae2bdc8fa2e5af",
     "public/game/arsenal/arsenalIdentityRuntime.js": "d9a5b80a043a40445395f2b28c8e6aab2dfae5c868b56ea3eaac261d84bcae1a",
     "public/game/arsenal/arsenalWeaponRuntime.js": "423c981bb096195e6af45316d39923295d2c3ca7be9b7e307b8e297fcfe35547",
-    "public/game/arsenal/arsenalSpawnRuntime.js": "a4f4ca1e5b52b1ffcaeb66422b22652e1fd7c5a4740f6846fcadff09264650c9",
+    "public/game/arsenal/arsenalSpawnRuntime.js": "06c86bb6fb1aaefa3656ae7521101719af00f4b86b299f35f6fe82de8f5b1cde",
     "public/game/arsenal/arsenalPresentationRuntime.js": "864560d7d91a493118c044a2880c41a71150f8eb860e24cc1e6464488a3291db",
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
     "public/game/arsenal/arsenalStormbreakerVfxRuntime.js": "f5862f8e002958c967ab5a5796caef33962bdcf5eaafa183c30a90b55caaed8d",
@@ -47,7 +47,7 @@
     "public/game/hero-rework/magnetGameplayRuntime.js": "ce12e7f45ed81b36ee43c77a6fedfe3a342730a46d47bee36224a074022859b2",
     "public/game/hero-rework/magnetGoldV1.js": "fa1b2bed4705cc85bff6a449cd1f013483c5c0c07eae0589913540d2708e5b90",
     "public/game/hero-rework/mirrorGoldV1.js": "f7d1817064ca87997050e2f07acd60d98edfd575fbcffbc2ecd08597366f13e7",
-    "public/game/hero-rework/heroMechanicsRuntime.js": "10f81d7458d453bec6a82ddfd7ca8383a6c06487bf9f62f07219ed305647f609",
+    "public/game/hero-rework/heroMechanicsRuntime.js": "40ad5f8c967a79a1d6c45c8f9c7b4374240aa9924839ea70a6540e82c20de7b0",
     "public/game/hero-rework/heroReworkRuntime.js": "02c6e652b2edc30a8b5536049878b028a42061d54049a721e1e3800c63043392",
     "public/game/hero-rework/robotPresentationRuntime.js": "210c44377192fd4c2031a4f28e1cb8b626128b9f341ec6e3919cd0ae976eb605",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",

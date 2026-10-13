@@ -2255,7 +2255,11 @@ gate('r59-magnet-bot-empty-board-reasons-are-explicit',
   report.r59MagnetBotDecision.idleReasons);
 gate('r59-magnet-bot-a1-uses-real-floor-firearm',
   report.r59MagnetBotDecision.floorCase.a1>=1
-  && report.r59MagnetBotDecision.floorCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='eligible-floor-firearm'),
+  && report.r59MagnetBotDecision.floorCase.a2===0
+  && report.r59MagnetBotDecision.floorCase.decisions.some(e=>
+    e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='eligible-world-weapon')
+  && report.r59MagnetBotDecision.floorCase.decisions.some(e=>
+    e.type==='AICastReject'&&e.slot==='A2'&&e.reason==='a1-world-weapon-priority'),
   report.r59MagnetBotDecision.floorCase);
 gate('r59-magnet-bot-a2-uses-authored-body-radius',
   report.r59MagnetBotDecision.bodyCase.a2>=1

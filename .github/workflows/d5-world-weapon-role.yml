@@ -8,6 +8,8 @@ on:
       - 'tools/testContentInteractionBaseline.mjs'
       - 'tools/testOwnerWorldEquipmentRoles.mjs'
       - 'tools/testOwnerWeaponPoseLifecycleAudit.mjs'
+      - 'tools/testOwnerMagnetA1RealControlFlow.mjs'
+      - 'public/game/hero-rework/heroMechanicsRuntime.js'
       - 'tools/testOwnerWorldEquipmentChrome.mjs'
       - 'public/game/arsenal/arsenalConfig.js'
       - 'public/game/arsenal/arsenalWeaponRuntime.js'
@@ -48,6 +50,8 @@ jobs:
         run: node tools/testOwnerWorldEquipmentRoles.mjs
       - name: Read-only equipped weapon motion and RPG real-fire lifecycle baseline
         run: node tools/testOwnerWeaponPoseLifecycleAudit.mjs
+      - name: Real BOT Magnet A1 world-weapon decision and P1 skill-gate pickup physics
+        run: node tools/testOwnerMagnetA1RealControlFlow.mjs
       - name: Original content interaction contracts with owner-superseded roles
         run: node tools/testContentInteractionBaseline.mjs
       - name: V43 kinetic projectile material law unchanged

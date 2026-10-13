@@ -172,6 +172,73 @@ try {
      label+' A2 did not repel responsive Pistol: '+JSON.stringify(responsive));
    assert.equal(inert.phase,'REVEALED',label+' inert slot vanished');
    assert.equal(responsive.phase,'REVEALED',label+' responsive slot vanished');
+
+   // Owner-reported failure was against NORMAL spawned slots and HUD button,
+   // not the idealized, manually typed slots used in the earlier Chrome proof.
+   const liveSetup=await page.evaluate(()=>{
+    const G=window,AR=G.APEX_ARSENAL,HR=G.APEX_HERO_REWORK,
+      SPAWN=G.APEX_ARSENAL_SPAWN,MAG=G.APEX_MAGNET;
+    const [a,b]=G.fighters,ct=HR.byCombatant(a),ctl=HR.abilityController(ct);
+    AR.state.slots=[];AR.state.spawnHeld=true;AR.state.unarmedFastConsumed=true;
+    AR.state.spawnTimer=1e6;
+    let ready=0;
+    for(;ready<1000&&(ctl.cooldownLeft('A1')>0||
+      MAG.activeFor(ct,'a2',G.APEX_HERO_REWORK_AIL.clock())||
+      a.hardCC());ready++)AR.step(1/60);
+    if(ctl.cooldownLeft('A1')>0||a.hardCC()||
+       MAG.activeFor(ct,'a2',G.APEX_HERO_REWORK_AIL.clock()))
+       throw Error('Cannot reach real A1-ready UI state');
+    const slot=SPAWN.trySpawnSlot({forceFirearm:true});
+    if(!slot||slot.kind!=='WEAPON'||slot.phase!=='TELEGRAPH')
+      throw Error('Real spawn failed to declare WEAPON TELEGRAPH');
+    a.x=Math.max(95,Math.min(905,slot.x+(slot.x<500?190:-190)));
+    a.y=slot.y;a.baseSpeed=0;
+    b.x=slot.x<500?900:100;b.y=slot.y<500?900:100;b.baseSpeed=0;
+    for(let i=0;i<186&&slot.phase==='TELEGRAPH';i++)AR.step(1/60);
+    if(slot.phase!=='REVEALED'||slot.kind!=='WEAPON'||
+      !G.APEX_ARSENAL_CONFIG.isHeroManipulableFloorWeapon(slot))
+      throw Error('Normal Arsenal reveal did not become a typed legal World Weapon '+
+        JSON.stringify({id:slot.weaponId,phase:slot.phase,kind:slot.kind}));
+    G.__qaRealMagnet={slot,x:slot.x,y:slot.y,
+      castsBefore:MAG.inspect(G.APEX_HERO_REWORK_AIL.clock()).fields
+       .find(x=>x.combatant===ct)?.casts.a1||0};
+    if(typeof G.draw==='function')G.draw();
+    return {id:slot.weaponId,kind:slot.kind,phase:slot.phase,
+      readyFrames:ready,castBefore:G.__qaRealMagnet.castsBefore,
+      buttons:[...document.querySelectorAll('.skill[data-p="1"]')]
+        .map(e=>({i:e.dataset.i,state:e.dataset.state,visible:e.getClientRects().length>0}))};
+   });
+   await (await page.$('#game-canvas')).screenshot({
+     path:path.join(OUT,label+'-natural-before.png')});
+   const uiButton=await page.$('.skill[data-p="1"][data-i="0"]');
+   assert.ok(uiButton,label+' real Gold A1 skill button missing: '+JSON.stringify(liveSetup));
+   await uiButton.click(); // real browser pointerdown + pointerup transaction.
+   const liveResult=await page.evaluate(()=>{
+     const G=window,AR=G.APEX_ARSENAL,HR=G.APEX_HERO_REWORK,
+       MAG=G.APEX_MAGNET,[a]=G.fighters;
+     const ct=HR.byCombatant(a),probe=G.__qaRealMagnet;
+     let moved=0,frames=0;
+     for(let i=0;i<24;i++){
+       AR.step(1/60);frames++;
+       moved=Math.max(moved,Math.hypot(
+         probe.slot.x-probe.x,probe.slot.y-probe.y));
+     }
+     if(typeof G.draw==='function')G.draw();
+     const fields=MAG.inspect(G.APEX_HERO_REWORK_AIL.clock()).fields;
+     const castAfter=fields.find(f=>f.combatant===ct)?.casts.a1||0;
+     return {id:probe.slot.weaponId,kind:probe.slot.kind,
+       phase:probe.slot.phase,castBefore:probe.castsBefore,castAfter,moved,frames};
+   });
+   assert.equal(liveResult.castAfter,liveResult.castBefore+1,
+     label+' HUD pointer release did not invoke real Magnet A1: '+
+       JSON.stringify({liveSetup,liveResult}));
+   assert.ok(liveResult.moved>2,
+     label+' A1 did not pull genuinely spawned floor Weapon: '+
+       JSON.stringify({liveSetup,liveResult}));
+   await (await page.$('#game-canvas')).screenshot({
+     path:path.join(OUT,label+'-natural-after.png')});
+   console.log('PASS REAL OWNER MAGNET HUD POINTER + NATURAL SPAWN '+label+' '+
+      JSON.stringify({liveSetup,liveResult}));
   }else for(const m of evaluated.measurements){
    assert.equal(m.frozen,m.eligible,label+' '+m.id+' wrong Frozen Equipment');
   }
