@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261013-world-weapon-native-stream-magnet-a1-r7';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261013-world-weapon-native-stream-magnet-a1-r8';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
