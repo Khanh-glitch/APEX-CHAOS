@@ -132,8 +132,22 @@ gate('mirror-F2-type-exclusion-intentionally-preserved', () => {
   const j=s.indexOf('function mirrorF2CoolingDown(p)',i);
   assert.ok(i>0 && j>i);
   const body=s.slice(i,j);
-  for(const type of ['aq_bullet','aq_grenade','aq_thrown']) assert.ok(body.includes("p.type === '"+type+"'"));
-  assert.equal(body.includes('aq_v43'),false);
+  assert.ok(body.includes("auth.query?.('mirror-f2-projectile',p,"),
+    'Mirror F2 must consume shared AIL admission, not parallel local rules');
+  for(const type of ['aq_bullet','aq_grenade','aq_thrown'])
+    assert.ok(body.includes("p.type === '"+type+"'"),'historical no-AIL family proof '+type);
+  assert.equal(body.includes('aq_v43'),false,'V43 escrow must remain denied');
+  const auth=A.CapabilityAuthority;
+  const ctx={config:C,matchActive:true};
+  for(const type of ['aq_bullet','aq_grenade','aq_thrown']){
+    const proj={aq:true,type,weapon:'PISTOL',state:'flight'};
+    assert.equal(auth.query('mirror-f2-projectile',proj,ctx).status,'allowed',type);
+  }
+  for(const bad of [
+    {aq:true,type:'aq_v43',weapon:'RPG_7',kind:'rocket'},
+    {aq:true,type:'aq_thrown',weapon:'SABRE',state:'pinned'},
+    {aq:true,type:'aq_bullet',weapon:'STORMBREAKER'},
+  ]) assert.equal(auth.query('mirror-f2-projectile',bad,ctx).status,'denied');
 });
 gate('one-real-damage-transaction-and-receipt', () => {
   assert.ok(T.start('MAGNET','MAGNET')); T.holdSpawns();
