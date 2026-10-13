@@ -41,6 +41,9 @@ const snap=()=>`(() => {
     goldMounted:child.getElementById('gold-shell-host')?.dataset?.apexGoldMounted||null,
     shellChildren:child.getElementById('gold-shell-host')?.children.length||0,
     stagePresent:!!child.getElementById('stage'),
+    homeGeometryInstalled:!!child.defaultView?.__apexHomeGeometryGuard,
+    shellNavigateInstalled:typeof child.defaultView?.APEX_GOLD_SHELL_NAVIGATE==='function',
+    windowShellReady:!!child.defaultView?.APEX_GOLD?.prepareSurface,
     bridgeReady:!!child.defaultView?.APEX_GOLD,
     audioSfx:child.defaultView?.apexUiSfx?.state?.()||null,
     assets:(()=>{
@@ -52,7 +55,7 @@ const snap=()=>`(() => {
         total:state.records.length};
     })(),
     scripts:[...child.querySelectorAll('script[src]')].slice(-15).map(s=>({
-      src:s.getAttribute('src'),ready:s.dataset.apexLoaded||null
+      src:s.getAttribute('src'),ready:s.dataset.apexLoaded||null,parent:s.parentElement?.id||s.parentElement?.tagName||null
     })),
     scene:child.body?.dataset?.apexSceneTransition||null,
     startPresent:!!start,geom,
@@ -71,7 +74,7 @@ try{
     page.on('requestfailed',req=>failedRequests.push({url:req.url(),reason:req.failure()?.errorText||''}));
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
     let observation=null;
-    for(let i=0;i<65;i++){
+    for(let i=0;i<30;i++){
       observation=await page.evaluate(snap()).catch(e=>({probeError:String(e)}));
       if(observation?.startPresent||observation?.bootError)break;
       await new Promise(r=>setTimeout(r,500));
