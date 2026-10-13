@@ -117,11 +117,27 @@ function subscribe(fn) {
 function sideOf(owner, scope=typeof window!=='undefined'?window:null) {
   if (!owner) return null;
   const fighters=scope?.fighters;
-  if (Array.isArray(fighters)) {
-    if (owner===fighters[0] || owner?.anchor===fighters[0]) return 'p1';
-    if (owner===fighters[1] || owner?.anchor===fighters[1]) return 'p2';
-  }
-  return null; // fail to DEFAULT; never borrow the opponent's look
+  if (!Array.isArray(fighters)) return null;
+  // The main engine-owned bodies are the fast path. Do not infer cosmetic
+  // ownership from the current projectile owner after a reflection.
+  const body=owner?.anchor || owner;
+  if (body===fighters[0]) return 'p1';
+  if (body===fighters[1]) return 'p2';
+
+  // A promoted anchor, summoned body, clone or other future physical fighter
+  // may legitimately shoot while never occupying fighters[0/1]. Resolve its
+  // *combatant*, not its hero name or a fixed list of six species.
+  const combatant=scope?.APEX_HERO_REWORK?.byCombatant?.(body)
+    || body?.__hrCombatant || null;
+  const idx=combatant?.idx;
+  if (!Number.isInteger(idx) || idx<0 || idx>1 || !fighters[idx]) return null;
+  const member=body===combatant.anchor || body?.__hrCombatant===combatant
+    || (Array.isArray(combatant.bodies) && combatant.bodies.includes(body));
+  const slot=fighters[idx];
+  const slotOwned=slot===combatant.anchor || slot?.__hrCombatant===combatant
+    || (Array.isArray(combatant.bodies) && combatant.bodies.includes(slot));
+  if (member && slotOwned) return idx===0?'p1':'p2';
+  return null; // unresolved third-party bodies retain ORIGINAL presentation
 }
 function capture(side,kind,baseId) {
   const skin=side ? selected(side,kind,baseId) : variants(kind,baseId)[0];
