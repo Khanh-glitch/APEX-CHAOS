@@ -93,6 +93,61 @@ try{
     await game.click('.apex-skin-entry');
     await game.waitForSelector('#apex-cosmetics-title',{visible:true});
     assert.equal(await game.evaluate(()=>window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id),'qa-alt');
+    // Full process reload: the loadout is restored from persistent storage
+    // BEFORE the asynchronous cosmetic pack has registered. Unavailable skins
+    // must display ORIGINAL temporarily without deleting the saved choice;
+    // registering the same pack must reactivate P2 independently of P1.
+    await page.reload({waitUntil:'domcontentloaded',timeout:50000});
+    await page.waitForFunction(()=>{
+      const doc=document.getElementById('gold-document')?.contentDocument||document;
+      return !!doc.getElementById('apex-boot-start')
+        && !!doc.defaultView?.APEX_COSMETICS;
+    },{timeout:85000});
+    const nextURL=await page.evaluate(()=>
+      (document.getElementById('gold-document')?.contentDocument||document).URL);
+    const resumed=page.frames().find(f=>f.url()===nextURL);
+    assert.ok(resumed,'Cold-reload game frame missing: '+nextURL);
+    const beforePack=await resumed.evaluate(()=>{
+      const C=window.APEX_COSMETICS;
+      return {
+        storage:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7,
+        effectiveP1:C.selected('p1','weapon','RPG_7').id,
+        effectiveP2:C.selected('p2','weapon','RPG_7').id
+      };
+    });
+    assert.deepEqual(beforePack,{storage:'qa-alt',effectiveP1:'default',effectiveP2:'default'},
+      'Cold boot must preserve unavailable cosmetic intent but fail closed to ORIGINAL');
+    const afterPack=await resumed.evaluate(()=>{
+      const C=window.APEX_COSMETICS;
+      C.register({
+        kind:'weapon',baseId:'RPG_7',id:'qa-alt',label:'QA ALT',
+        detail:'Read-only synthetic skin manifest for reload regression',
+        render:{projectile:()=>false}
+      });
+      return {
+        p1:C.selected('p1','weapon','RPG_7').id,
+        p2:C.selected('p2','weapon','RPG_7').id,
+        stored:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7
+      };
+    });
+    assert.deepEqual(afterPack,{p1:'default',p2:'qa-alt',stored:'qa-alt'},
+      'Late registration must restore exactly the previously selected P2 skin');
+    await resumed.click('#apex-boot-start');
+    await resumed.waitForSelector('.apex-skin-entry',{visible:true,timeout:45000});
+    await resumed.click('.apex-skin-entry');
+    await resumed.waitForSelector('#apex-cosmetics-title',{visible:true,timeout:20000});
+    await resumed.click('.apex-cosmetics-sides button:nth-child(2)');
+    await resumed.click('.apex-cosmetics-tabs button:nth-child(2)');
+    await resumed.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-item').length>10,
+      {timeout:12000});
+    const resumedChoice=await resumed.evaluate(()=>({
+      p2:window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id,
+      items:[...document.querySelectorAll('.apex-cosmetics-item')].filter(el=>
+        el.innerText.includes('RPG')).map(el=>el.innerText),
+    }));
+    assert.equal(resumedChoice.p2,'qa-alt');
+    assert.ok(resumedChoice.items.some(x=>x.includes('QA ALT')),
+      'Cosmetic locker must reflect restored P2 selection after cold reload');
     assert.equal(errors.length,0,'unexpected browser exceptions: '+errors.join(', '));
     console.log('PASS COSMETIC LOCKER '+test.name+' '+JSON.stringify({heroCount,weaponCount:weapons.length,sideProof}));
   }catch(err){
