@@ -1210,7 +1210,16 @@ await gate('M01-contact-to-dock-is-1.60s-and-dock-flips-availability-exactly', (
 await gate('A01-P2-Crystal-AI-healthy-no-fail-cue-spam', () => {
   HR.setSeed(7);
   HR.setAiEnabled(true);
-  const m = T.start('ROBOT', 'CRYSTAL'); T.holdSpawns();
+  // This gate asserts the BOT opponent AI, not LOCAL 1v1 (where P2 is
+  // correctly reserved for human input). The headless harness defaults LOCAL.
+  // Test the intended mode explicitly; restore LOCAL for all later gates.
+  const priorProfile=win.__apexArsenalBattleProfile;
+  win.__apexArsenalBattleProfile='BOT';
+  let m;
+  try { m=T.start('ROBOT','CRYSTAL'); }
+  finally { win.__apexArsenalBattleProfile=priorProfile??'LOCAL'; }
+  T.holdSpawns();
+  assert.equal(win.APEX_ARSENAL.state.battleMode,'BOT','AI gate requires actual BOT battle');
   const ev = []; AIL.bus.on('*', (e) => ev.push(e));
   let err = null;
   try { step(25); } catch (e) { err = String(e && e.stack || e).split('\n').slice(0, 2).join(' | '); }
