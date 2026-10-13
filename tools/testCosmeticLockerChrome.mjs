@@ -93,6 +93,46 @@ try{
     await game.click('.apex-skin-entry');
     await game.waitForSelector('#apex-cosmetics-title',{visible:true});
     assert.equal(await game.evaluate(()=>window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id),'qa-alt');
+
+    // Hard refresh is not closing the modal: browser navigation destroys the
+    // transient registry functions while preserving persistent loadout.
+    // An actual shipped pack re-registers at startup; simulate that separate
+    // registration and verify a stale ID never impersonates P1 or crashes.
+    await page.reload({waitUntil:'domcontentloaded',timeout:50000});
+    await page.waitForFunction(()=>{
+      const doc=document.getElementById('gold-document')?.contentDocument||document;
+      return !!doc.getElementById('apex-boot-start');
+    },{timeout:65000});
+    const refreshedUrl=await page.evaluate(()=>
+      (document.getElementById('gold-document')?.contentDocument||document).URL);
+    const refreshed=page.frames().find(f=>f.url()===refreshedUrl);
+    assert.ok(refreshed,'Gold destination frame absent after hard reload');
+    const beforeRegistration=await refreshed.evaluate(()=>({
+      saved:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7,
+      selected:window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id
+    }));
+    assert.equal(beforeRegistration.saved,'qa-alt','equipped skin was not durable across full page navigation');
+    assert.equal(beforeRegistration.selected,'default','unregistered appearance must fail closed');
+    await refreshed.evaluate(()=>{
+      window.APEX_COSMETICS.register({
+        kind:'weapon',baseId:'RPG_7',id:'qa-alt',label:'QA ALT',
+        detail:'Synthetic pack returns on a new document after reload',
+        render:{projectile:()=>false}
+      });
+    });
+    assert.equal(await refreshed.evaluate(()=>
+      window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id),'qa-alt',
+      'registered pack must recover its saved selection after reload');
+    await refreshed.click('#apex-boot-start');
+    await refreshed.waitForSelector('.apex-skin-entry',{visible:true,timeout:45000});
+    await refreshed.click('.apex-skin-entry');
+    await refreshed.click('.apex-cosmetics-sides button:nth-child(2)');
+    await refreshed.click('.apex-cosmetics-tabs button:nth-child(2)');
+    await refreshed.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-item').length>10,
+      {timeout:10000});
+    const reloadedAppearance=await refreshed.evaluate(()=>
+      window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id);
+    assert.equal(reloadedAppearance,'qa-alt');
     assert.equal(errors.length,0,'unexpected browser exceptions: '+errors.join(', '));
     console.log('PASS COSMETIC LOCKER '+test.name+' '+JSON.stringify({heroCount,weaponCount:weapons.length,sideProof}));
   }catch(err){
