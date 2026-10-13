@@ -1848,9 +1848,9 @@
     ctx.restore();
   }
   function v43GoldProjectile(ctx,p){
-    // Presentation plug-in may replace original artwork without ever owning
-    // collision/damage/projectile lifetime. Unregistered/default is no-op.
-    if (typeof window !== 'undefined' && window.APEX_COSMETICS?.render?.('projectile',ctx,p.cosmetic,p)===true) return;
+    // The single projectile cosmetic dispatch lives in drawArsenalProjectiles
+    // for ordinary bullets AND special carriers. This Gold renderer stays
+    // exactly the fallback for no skin / an unavailable skin resource.
     const c=V43[p.weapon]||{},life=p.kind==='boomerang'
       ?v43min(p.life/.25,0,1):v43min(p.life/Math.max(.1,p.maxLife),0,1);
     const angle=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
@@ -1985,6 +1985,13 @@
     for (const p of projectiles) {
       if (!p || !p.aq) continue;
       ctx.save();
+      // ONE visual dispatch for all physical projectile families. This never
+      // changes the carrier, physics, damage receipt or Gold fallback.
+      if (typeof window !== 'undefined' &&
+          window.APEX_COSMETICS?.render?.('projectile',ctx,p.cosmetic,p)===true) {
+        ctx.restore();
+        continue;
+      }
       if (p.type === 'aq_v43') {
         v43GoldProjectile(ctx,p);
         ctx.restore();
