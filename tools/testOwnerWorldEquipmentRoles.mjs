@@ -90,6 +90,39 @@ test('future nonspawning Weapon and tiered Defense / hybrid roles stay distinct'
   for(const id of [W,D,H]){delete C.WEAPON_TIER[id];delete C.WEAPONS[id];}
  }
 });
+test('A1 Weapon law and A2 material response are independent, including instance overrides',()=>{
+ const ids=['PISTOL','RPG_7','GRENADE','SABRE','FLAMETHROWER'];
+ for(const id of ids){
+  const slot={kind:'WEAPON',phase:'REVEALED',weaponId:id,tier:C.tierOf(id)};
+  assert.equal(C.magneticResponseOf(id,slot),'responsive',id+' baseline magnetic response');
+  assert.equal(M.isEligibleA2FloorWeapon(slot),true,id+' current A2 parity');
+  slot.magneticResponse='inert';
+  assert.equal(M.isEligibleFloorWeapon(slot),true,id+' A1 must still attract');
+  assert.equal(M.isEligibleA2FloorWeapon(slot),false,id+' A2 must not repel');
+  slot.magneticResponse='responsive';
+  assert.equal(M.isEligibleA2FloorWeapon(slot),true,id+' instance responsive');
+  slot.magneticResponse='invalid';
+  assert.equal(M.isEligibleA2FloorWeapon(slot),false,id+' invalid instance fails closed');
+ }
+ const W='FUTURE_A2_NONMAGNETIC_WEAPON',H='FUTURE_A2_HYBRID',D='FUTURE_A2_DEFENSE';
+ try{
+  C.WEAPONS[W]={worldRoles:['weapon'],magneticResponse:'inert'};
+  C.WEAPONS[H]={worldRoles:['weapon','defense'],magneticResponse:'responsive'};
+  C.WEAPONS[D]={worldRoles:['defense'],magneticResponse:'responsive'};
+  const slot=id=>({kind:'WEAPON',phase:'REVEALED',weaponId:id});
+  assert.equal(M.isEligibleFloorWeapon(slot(W)),true,'nonmagnetic Weapon still A1 eligible');
+  assert.equal(M.isEligibleA2FloorWeapon(slot(W)),false,'nonmagnetic Weapon A2 denied');
+  assert.equal(F.isFreezableWeapon(slot(W)),true,'nonmagnetic Weapon still Frost eligible');
+  assert.equal(M.isEligibleA2FloorWeapon(slot(H)),true,'hybrid allows A2 if responsive');
+  assert.equal(M.isEligibleA2FloorWeapon(slot(D)),false,'Defense alone does not become Weapon');
+  assert.equal(M.isEligibleA2FloorWeapon({...slot(W),magneticResponse:'responsive'}),true,
+   'instance response overrides canonical definition');
+  assert.equal(M.isEligibleA2FloorWeapon({...slot(H),magneticResponse:'inert'}),false,
+   'instance inert overrides responsive hybrid');
+  delete C.WEAPONS[W].magneticResponse;
+  assert.equal(M.isEligibleA2FloorWeapon(slot(W)),false,'missing future trait fails closed');
+ }finally{for(const id of [W,H,D])delete C.WEAPONS[id];}
+});
 test('real Frost A1 freezes revealed melee, Grenade and V43 but not Defense/T6',()=>{
  HR.setSeed(26);HR.setAiEnabled(false);
  const match=T.start('ICE','ROBOT');assert.ok(match);
