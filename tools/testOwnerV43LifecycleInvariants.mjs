@@ -104,7 +104,17 @@ for(const [id,kind] of [['FLARE_GUN','flare'],['TACTICAL_CROSSBOW','bolt'],
 assert.match(cfg,/reflectableKinds:\['plasma-core','plasma'\]/,
   'plasma core and released shards share one reflected-particle law');
 assert.match(cfg,/reflectableKinds:\[\],magnetizableKinds:\[\],muzzleDx:-1/,'flame cone must not masquerade as a moving bullet');
-assert.match(cry,/eligible\.includes\(p\.kind\)/,'Crystal K must query authoritative registry capabilities');
+// CP5.5: actual Crystal K now calls the shared policy instead of repeating
+// the V43 tag classifier. Keep both provenance and the real consumer enforced.
+const ail=fs.readFileSync('public/game/hero-rework/ailRuntime.js','utf8');
+assert.match(ail,/action==='v43-reflection-tag'/,
+  'shared AIL reflection-kind action must exist');
+assert.match(ail,/special\.reflectableKinds\.includes\(target\.kind\)/,
+  'AIL must read the canonical V43 registry capability tag');
+assert.match(cry,/authority\.query\?\.\('v43-reflection-tag',p,\{config:CFG\(\)\}\)/,
+  'Crystal K must consume the AIL canonical reflection policy');
+assert.match(cry,/p\.kind==='mine'&&p\.phase!=='flight'/,
+  'Crystal K must retain mine flight eligibility guard');
 assert.match(rd('public/game/hero-rework/magnetGameplayRuntime.js'),/special\.magnetizableKinds\.includes\(p\.kind\)/,'Magnet must use shared kinetic registry');
 assert.match(w,/v43DamageScale\(p,c\.coreDamage\)/,'plasma child damage must inherit the parent reflection scalar');
 assert.match(w,/function v43Deal\(p,target,amount,opts=\{\}\)/,
