@@ -25,6 +25,17 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Record SHA-256 of modified runtime and Gold shell
+        run: |
+          sha256sum public/game/arsenal/arsenalIdentityRuntime.js
+          sha256sum public/game/hero-rework/magnetGameplayRuntime.js
+          sha256sum public/game/hero-rework/frostGameplayRuntime.js
+          sha256sum public/gold/shell.html
+          wc -c public/gold/shell.html
+      - name: Verify source/gold cache revision and canonical generated artifacts
+        run: |
+          node tools/testRuntimeRevisionGate.mjs
+          node tools/buildGoldCutover.mjs --check
       - name: Explicit owner Weapon/Defense/T6/Frozen Bullet live runtime gates
         run: node tools/testOwnerWorldEquipmentRoles.mjs
       - name: Original content interaction contracts with owner-superseded roles
