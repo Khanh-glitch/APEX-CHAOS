@@ -27,13 +27,78 @@ try {
    await window.__apexEnsureDeferredRuntimes('arsenalProduct');
    window.__APEX_TEST_MODE=true;
   });
+  // Traverse the ACTUAL public boot and Gold selection lifecycle. A game
+  // simulation can run behind the START/Home compositor and still return
+  // correct HP values; screenshots of that state are NOT battle evidence.
+  try {
+   await page.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
+   await page.click('#apex-boot-start');
+   await page.waitForFunction(()=>typeof window.APEX_GOLD_SHELL_NAVIGATE==='function' &&
+     !document.getElementById('apex-boot-start') &&
+     !window.APEX_SCENE_TRANSITION?.active?.(),{timeout:90000});
+   const navigated=await page.evaluate(()=>
+     window.APEX_GOLD_SHELL_NAVIGATE('fighter',{mode:'bot'}));
+   assert.equal(navigated,true,'Gold fighter navigation rejected');
+   await page.waitForFunction(()=>{
+     const card=document.querySelector('.rosterCard[data-hero="crystala"]');
+     return !!card && card.getClientRects().length>0 &&
+       getComputedStyle(card).visibility!=='hidden';
+   },{timeout:90000});
+   await page.$eval('.rosterCard[data-hero="crystala"]',el=>el.click());
+   await page.$eval('#lockIn',el=>el.click());
+   await page.$eval('.rosterCard[data-hero="newbot"]',el=>el.click());
+   await page.$eval('#lockIn',el=>el.click());
+   await page.waitForFunction(()=>{
+     const root=document.getElementById('battleHudHost');
+     return document.body.classList.contains('battle-hud-open') &&
+       root?.classList.contains('is-open') &&
+       root.contains(document.getElementById('game-canvas')) &&
+       !window.APEX_SCENE_TRANSITION?.active?.();
+   },{timeout:120000});
+  }catch(err){
+   const state=await page.evaluate(()=>({
+     bootStart:!!document.getElementById('apex-boot-start'),
+     donorClass:document.getElementById('battleHudHost')?.className,
+     battleOpen:document.body.classList.contains('battle-hud-open'),
+     stageClass:document.getElementById('stage')?.className,
+     rosterCount:document.querySelectorAll('.rosterCard').length,
+     fighterNavigator:typeof window.APEX_GOLD_SHELL_NAVIGATE,
+     engineActive:window.APEX_ARSENAL?.state?.active,
+   }));
+   console.error('D6 REAL CHROME public navigation failed',name,JSON.stringify(state),err);
+   await page.screenshot({path:path.join(OUT,name+'-navigation-FAILED.png')});
+   throw err;
+  }
+  // The screenshot must be from the LIVE Gold battle compositor, not the
+  // door canvas or an engine simulation running under Home.
+  const visible=await page.evaluate(()=>{
+    const canvas=document.getElementById('game-canvas');
+    const host=document.getElementById('battleHudHost');
+    const rect=canvas.getBoundingClientRect(),styles=getComputedStyle(canvas);
+    return {
+      battleOpen:document.body.classList.contains('battle-hud-open'),
+      rootOpen:host.classList.contains('is-open'),inRoot:host.contains(canvas),
+      bootStart:!!document.getElementById('apex-boot-start'),
+      canvasWidth:rect.width,canvasHeight:rect.height,
+      visibility:styles.visibility,display:styles.display,opacity:styles.opacity,
+      viewport:{width:innerWidth,height:innerHeight}
+    };
+  });
+  assert.ok(visible.battleOpen&&visible.rootOpen&&visible.inRoot&&!visible.bootStart,
+    'Gold battle compositor is NOT visibly authoritative: '+JSON.stringify(visible));
+  assert.ok(visible.canvasWidth>200&&visible.canvasHeight>200&&
+    visible.visibility==='visible'&&visible.display!=='none'&&
+    Number(visible.opacity)>.95,
+    'No visible battle canvas: '+JSON.stringify(visible));
+  console.log('D6 VISIBLE GOLD BATTLE HOST '+name+' '+JSON.stringify(visible));
   const init=await page.evaluate(()=>{
    const G=window,AR=G.APEX_ARSENAL,HR=G.APEX_HERO_REWORK,CR=G.APEX_CRYSTAL;
-   if(AR?.state?.active)G.exitArsenalBattleMode();
-   if(!G.startArsenalBattleMode('CRYSTAL','ROBOT',{testFixture:true}))
-     throw Error('Cannot start battle');
+   if(!AR?.state?.active || !HR?.match)
+     throw Error('Gold battle surface open but real Arsenal match not running');
    if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
    const [a,b]=G.fighters;
+   if(HR.byCombatant(a)?.heroId!=='CRYSTAL')
+     throw Error('Public Gold selection did not launch Crystala as P1');
    a.baseSpeed=b.baseSpeed=0;
    a.x=150;a.y=500;a.setDir(1,0);
    b.x=850;b.y=500;b.setDir(-1,0);
