@@ -48,6 +48,14 @@ test('Frozen nonfirearm has ZERO Frozen Bullet passive tag',()=>{
  assert.equal(F.tagFrozenBullet({}, {type:'aq_v43',weapon:'FLAMETHROWER',__hr:{}},owner),false);
  holder.weaponId='PISTOL';
  assert.equal(F.tagFrozenBullet({}, {type:'aq_bullet',weapon:'PISTOL',__hr:{}},owner),true);
+ // Actual HR.onFireBullet sends an intentionally untyped stand-in before
+ // the real aq_bullet body is emitted; this must remain a valid Frozen Bullet.
+ const standin={weapon:'PISTOL',critical:false,__hr:{}};
+ assert.equal(F.tagFrozenBullet({},standin,owner),true,
+   'real onFireBullet stand-in cannot be rejected for lacking p.type');
+ assert.ok(standin.__hr.frost?.group,'untyped stand-in must carry blast provenance');
+ assert.equal(F.tagFrozenBullet({}, {weapon:'RPG_7',__hr:{}},owner),false,
+   'mismatched emitter may not borrow frozen gun provenance');
 });
 test('fresh canonical future T3 Weapon admitted without per-Hero edits',()=>{
  const future='OWNER_FUTURE_TRIAL_WEAPON';
