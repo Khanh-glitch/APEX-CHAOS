@@ -581,20 +581,32 @@
 
   /* ------------------------------------------------------------------ *
    * Registry validation — used by gates and smoke tests.
-   * Invariants: 12 heroes, 36 skills, every skill exactly one knob,
+   * Invariants: original 12 heroes/36 skills remain REQUIRED and ordered;
+   * well-defined extension heroes may append to the roster. Every hero
+   * still has exactly 3 skill slots and exactly one progression knob.
    * knobPath is a non-empty frozen array, Lv1 resolves to canonical.
    * ------------------------------------------------------------------ */
   function validateRegistry() {
     const errors = [];
     const heroes = Object.keys(HEROES);
-    if (heroes.length !== 12) errors.push(`expected 12 heroes, got ${heroes.length}`);
     const expected = ['ROBOT', 'CRYSTAL', 'MAGNET', 'BLACK_HOLE', 'MATH_V2', 'ICE', 'RUBBER', 'HUNTER', 'TIME', 'MIRROR', 'SLIME', 'SNIPER'];
+    if (heroes.length < expected.length)
+      errors.push(`missing legacy heroes: expected at least ${expected.length}, got ${heroes.length}`);
+    // CP5.4: compare the original subset by ordinal. A future registered
+    // hero may APPEND but cannot replace, reorder or silently delete a base ID.
     for (let i = 0; i < expected.length; i++) {
       if (heroes[i] !== expected[i]) errors.push(`hero order: position ${i} is ${heroes[i]}, expected ${expected[i]}`);
     }
     let skillCount = 0;
     for (const heroId of heroes) {
       const hero = HEROES[heroId];
+      if (!hero || !hero.skills || typeof hero.skills !== 'object') {
+        errors.push(`${heroId} missing skill registry`);
+        continue;
+      }
+      const extras = Object.keys(hero.skills).filter(
+        slot => !['A1', 'A2', 'PASSIVE'].includes(slot));
+      if (extras.length) errors.push(`${heroId} unregistered extra skill slots: ${extras.join(',')}`);
       for (const slot of ['A1', 'A2', 'PASSIVE']) {
         const s = hero.skills[slot];
         if (!s) { errors.push(`${heroId}.${slot} missing`); continue; }
@@ -646,7 +658,7 @@
         }
       }
     }
-    if (skillCount !== 36) errors.push(`expected 36 skills, got ${skillCount}`);
+    if (skillCount !== heroes.length * 3) errors.push(`expected ${heroes.length * 3} skills, got ${skillCount}`);
     return { ok: errors.length === 0, errors, heroCount: heroes.length, skillCount };
   }
 
