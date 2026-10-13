@@ -178,15 +178,18 @@ async function ready(sideHeroPairs=[], storage=typeof window!=='undefined'?windo
   await Promise.all(unique.map(asset=>{
     if(loadedAssets.has(asset))return loadedAssets.get(asset);
     if(assetPromises.has(asset))return assetPromises.get(asset);
-    const promise=new Promise((resolve,reject)=>{
-      if (typeof Image==='undefined') { reject(new Error('No browser image runtime'));return; }
-      if (/\.(mp3|ogg)$/.test(asset)) { resolve(true);return; }
-      const img=new Image();
-      img.onload=()=>resolve(img);
-      img.onerror=()=>reject(new Error('Skin asset failed: '+asset));
-      img.src=asset;
-      if(img.complete && img.naturalWidth)resolve(img);
-    }).then(img=>{loadedAssets.set(asset,img);return img;},e=>{assetPromises.delete(asset);throw e;});
+    const task=/\.(mp3|ogg)$/.test(asset)
+      ?fetch(asset).then(r=>{if(!r.ok)throw new Error('Skin audio failed: '+asset);return r.arrayBuffer()})
+      :new Promise((resolve,reject)=>{
+        if (typeof Image==='undefined') { reject(new Error('No browser image runtime'));return; }
+        const img=new Image();
+        img.onload=()=>resolve(img);
+        img.onerror=()=>reject(new Error('Skin asset failed: '+asset));
+        img.src=asset;
+        if(img.complete && img.naturalWidth)resolve(img);
+      });
+    const promise=task.then(file=>{loadedAssets.set(asset,file);return file;},
+      e=>{assetPromises.delete(asset);throw e;});
     assetPromises.set(asset,promise);return promise;
   }));
   return Object.freeze({ready:true,assetCount:unique.length});
