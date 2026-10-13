@@ -22,6 +22,7 @@ import { GOLD_SHELL_URL, HERO_BATTLE_RIGS, HERO_BATTLE_RIG_ASSETS } from './game
 import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
 import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
+import CosmeticLocker from './game/cosmetics/CosmeticLocker.jsx';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
@@ -409,6 +410,13 @@ export default function App() {
     if (!surface || !authority?.canLaunch?.(surface.id, { admin })) return false;
     if (!gameReady) return false;
 
+    if (surface.route === 'skins') {
+      // The locker is a sibling product surface, never an alternate Gold
+      // shell or a replacement for the locked Fighter Shop. One existing
+      // arsenalHub manifest owns the catalogue metadata.
+      window.dispatchEvent(new Event('apex-open-cosmetics'));
+      return true;
+    }
     if (surface.route === 'shop' || surface.route === 'draw' || surface.route === 'local' || surface.route === 'bot') {
       await loadDeferredGameRuntimes('arsenalHub');
       const meta = window.APEX_ARSENAL_META;
@@ -860,6 +868,7 @@ export default function App() {
 
   return (
     <>
+    <CosmeticLocker />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount
