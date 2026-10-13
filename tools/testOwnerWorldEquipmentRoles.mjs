@@ -181,8 +181,8 @@ test('REAL Magnet A2 repels responsive floor equipment but leaves inert Weapon s
  a.x=310;a.y=500;a.baseSpeed=0;
  b.x=900;b.y=900;b.baseSpeed=0;
  const specs=[
-  {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'inert',x:410,y:500},
-  {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'responsive',x:410,y:550}
+  {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'inert',x:480,y:500},
+  {kind:'WEAPON',phase:'REVEALED',weaponId:'PISTOL',magneticResponse:'responsive',x:480,y:560}
  ];
  const ids=specs.map(s=>T.pushSlot(s));
  const get=id=>win.APEX_ARSENAL.state.slots.find(s=>s.id===id);

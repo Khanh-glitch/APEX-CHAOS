@@ -111,7 +111,7 @@ try {
     for(let i=0;i<70;i++)AR.step(1/60);
     AR.state.slots=[];
     AR.step(1/60);
-    const inert=slot('PISTOL',430,500), responsive=slot('PISTOL',430,550);
+    const inert=slot('PISTOL',480,500), responsive=slot('PISTOL',480,560);
     inert.magneticResponse='inert';
     responsive.magneticResponse='responsive';
     const before=[{x:inert.x,y:inert.y},{x:responsive.x,y:responsive.y}];
