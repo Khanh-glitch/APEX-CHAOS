@@ -380,15 +380,16 @@
     const isGun = (id) => !!(id && id !== 'STORMBREAKER' && id !== 'T6'
       && cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
     const state = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+    // AI must use the SAME effective World Weapon law as the real A1 force.
+    // isGun() rejects V4.3, grenades and melee: previously the BOT stood idle
+    // even though the live field was capable of pulling these floor pickups.
     const floor = state && Array.isArray(state.slots)
-      ? state.slots.filter((slot) => slot && slot.phase === 'REVEALED'
-          && slot.kind !== 'HEAL' && isGun(slot.weaponId))
+      ? state.slots.filter((slot) => !!cfg?.isHeroManipulableFloorWeapon?.(slot))
       : [];
 
-    // A1 attraction owns arena-wide floor-gun force, so a real eligible floor
-    // firearm is already a concrete target; no invented AI range is needed.
+    // A1 targets every valid floor Weapon, irrespective of its magneticResponse.
     if (kind === 'a1' && floor.length) {
-      return { shouldCast:true, score:1, reason:'eligible-floor-firearm', retryAfter:.2 };
+      return { shouldCast:true, score:1, reason:'eligible-world-weapon', retryAfter:.2 };
     }
 
     const radius = kind === 'a1'
@@ -401,8 +402,9 @@
           && dist(self.x,self.y,body.x,body.y) <= radius)) {
         return { shouldCast:true, score:.9, reason:'enemy-in-repel-radius', retryAfter:.15 };
       }
-      if (floor.some((slot) => dist(self.x,self.y,slot.x,slot.y) <= radius)) {
-        return { shouldCast:true, score:.72, reason:'floor-firearm-in-radius', retryAfter:.2 };
+      if (floor.some((slot) => cfg?.isHeroMagneticallyResponsiveFloorWeapon?.(slot)
+          && dist(self.x,self.y,slot.x,slot.y) <= radius)) {
+        return { shouldCast:true, score:.72, reason:'responsive-floor-weapon-in-radius', retryAfter:.2 };
       }
     }
 
