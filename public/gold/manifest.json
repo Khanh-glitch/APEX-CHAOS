@@ -276,8 +276,8 @@
       "sha256": "bd1e4d828101da94d773fb108d3c8dfca170280464bd153b66a0e321597f4b2e"
     },
     "shell.html": {
-      "sha256": "4e959441cdd31f3e44b5204ba76ee8e213a5a7c80eaebab4cedabde849a61e25",
-      "bytes": 428783
+      "bytes": 428783,
+      "sha256": "4e959441cdd31f3e44b5204ba76ee8e213a5a7c80eaebab4cedabde849a61e25"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,
