@@ -1,0 +1,106 @@
+// D6 owner-law real Chrome desktop/mobile, with native Canvas screenshots.
+// Not an original-Gold pixel-match certification.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import puppeteer from 'puppeteer-core';
+const CHROME=process.env.CHROME_PATH;
+if(!CHROME)throw Error('Set CHROME_PATH');
+const URL=process.env.APEX_APP_URL||'http://127.0.0.1:5173/';
+const OUT=path.resolve(process.env.APEX_EVIDENCE_DIR||'/tmp/d6-stream-chrome');
+fs.mkdirSync(OUT,{recursive:true});
+const browser=await puppeteer.launch({executablePath:CHROME,headless:true,
+ args:['--headless=new','--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']});
+const report=[];
+try {
+ for(const [name,viewport] of [
+   ['desktop',{width:1440,height:900}],
+   ['mobile',{width:390,height:844,isMobile:true,deviceScaleFactor:2}]
+ ]) {
+  const page=await browser.newPage();
+  await page.setViewport(viewport);
+  const errors=[];
+  page.on('pageerror',err=>errors.push(String(err)));
+  await page.goto(URL,{waitUntil:'load',timeout:45000});
+  await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:45000});
+  await page.evaluate(async()=>{
+   await window.__apexEnsureDeferredRuntimes('arsenalProduct');
+   window.__APEX_TEST_MODE=true;
+  });
+  const init=await page.evaluate(()=>{
+   const G=window,AR=G.APEX_ARSENAL,HR=G.APEX_HERO_REWORK,CR=G.APEX_CRYSTAL;
+   if(AR?.state?.active)G.exitArsenalBattleMode();
+   if(!G.startArsenalBattleMode('CRYSTAL','ROBOT',{testFixture:true}))
+     throw Error('Cannot start battle');
+   if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
+   const [a,b]=G.fighters;
+   a.baseSpeed=b.baseSpeed=0;
+   a.x=150;a.y=500;a.setDir(1,0);
+   b.x=850;b.y=500;b.setDir(-1,0);
+   AR.state.spawnTimer=1e6;AR.state.spawnHeld=true;
+   AR.state.slots=[];AR.state.unarmedFastConsumed=true;
+   for(let i=0;i<18;i++)AR.step(1/60);
+   const ct=HR.byCombatant(a);
+   if(!HR.pressAbility(a,'A1').ok)throw Error('A1 Wall failed');
+   let c=CR.inspect(ct).constructs.find(x=>x.kind==='wall');
+   for(let i=0;i<180&&!c?.lockedAt;i++){
+    AR.step(1/60);c=CR.inspect(ct).constructs.find(x=>x.kind==='wall');
+   }
+   if(!c?.lockedAt)throw Error('A1 material not solid');
+   a.x=350;a.y=500;b.x=610;b.y=500;
+   a.baseSpeed=b.baseSpeed=0;
+   const pre={wallHp:c.hp,sourceHp:b.hp,targetHp:a.hp,material:CR.capsules().length};
+   G.__d6Case={a,b,ct,AR,CR,pre,receipts:[]};
+   G.__d6Case.off=G.APEX_HERO_REWORK_AIL.bus.on('CrystalStreamContact',
+     ev=>G.__d6Case.receipts.push(ev.payload));
+   if(typeof G.draw==='function')G.draw();
+   return pre;
+  });
+  assert.equal(init.wallHp,80);
+  const canvas=await page.$('#game-canvas');
+  assert.ok(canvas,'game canvas not available');
+  await canvas.screenshot({path:path.join(OUT,name+'-before.png')});
+  const middle=await page.evaluate(()=>{
+   const G=window,O=G.__d6Case,{a,b,AR}=O;
+   const p={aq:true,type:'aq_v43',kind:'flame',weapon:'FLAMETHROWER',
+     owner:b,launchOwner:b,flameTarget:a,angle:Math.PI,
+     x:b.x,y:b.y,px:b.x,py:b.y,ox:b.x,oy:b.y,vx:0,vy:0,
+     age:0,life:.325,maxLife:.325,damage:18,ticks:0,
+     flameOrigins:[],hits:new Set(),phase:'flight'};
+   G.projectiles.push(p);O.flame=p;
+   for(let i=0;i<11;i++)AR.step(1/60);
+   if(typeof G.draw==='function')G.draw();
+   return {ticks:p.ticks,wallHp:O.CR.inspect(O.ct).constructs.find(x=>x.kind==='wall').hp,
+     visualHistory:p.flameReflectHistory?.length||0,
+     routeCount:p.flameReflectHistory?.reduce((s,x)=>s+x.routes.length,0)||0};
+  });
+  assert.ok(middle.ticks>=2&&middle.ticks<=4,'wrong intermediate tick count');
+  assert.ok(middle.wallHp>0&&middle.wallHp<80,'expected live reflecting wall');
+  assert.ok(middle.visualHistory>0&&middle.routeCount>0,'missing Gold reflected routes');
+  await canvas.screenshot({path:path.join(OUT,name+'-reflecting.png')});
+  const after=await page.evaluate(()=>{
+   const G=window,O=G.__d6Case,{AR,CR,ct,a,b,pre,flame}=O;
+   for(let i=0;i<11;i++)AR.step(1/60);
+   if(typeof G.draw==='function')G.draw();
+   const c=CR.inspect(ct).constructs.find(x=>x.kind==='wall');
+   O.off();
+   return {wallState:c.state,wallHp:c.hp,wallReason:c.reason,
+     ticks:flame.ticks,sourceHpLoss:pre.sourceHp-b.hp,targetHpLoss:pre.targetHp-a.hp,
+     receipts:O.receipts.map(x=>({broken:x.broken,tick:x.tick,facet:x.facet})),
+     visualHistory:flame.flameReflectHistory?.length||0};
+  });
+  await canvas.screenshot({path:path.join(OUT,name+'-broken.png')});
+  assert.equal(after.wallState,'ENDED');
+  assert.equal(after.wallReason,'destroyed');
+  assert.equal(after.ticks,5);
+  assert.equal(after.receipts.length,5);
+  assert.deepEqual(after.receipts.map(x=>x.broken),[false,false,false,false,true]);
+  assert.ok(after.sourceHpLoss>0&&after.targetHpLoss>0);
+  assert.deepEqual(errors,[],'browser page errors');
+  report.push({name,initial:init,middle,after,errors});
+  console.log('PASS D6 REAL CHROME '+name+' '+JSON.stringify({middle,after}));
+  await page.close();
+ }
+ fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify(report,null,2));
+ console.log('D6 REAL CHROME: 2/2 PASS with six original product Canvas screenshots');
+}finally{await browser.close();}
