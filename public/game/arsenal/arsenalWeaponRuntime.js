@@ -499,6 +499,9 @@
       knockback: spec.knockback || 0,
       stun: spec.stun || 0,
       color: spec.color || (owner && owner.color) || '#ffffff',
+      // Identity is captured on SPAWN, not re-read from current holder after
+      // reflection, disarm or future skin changes. Visual-only immutable data.
+      cosmetic:window.APEX_COSMETICS?.captureProjectile?.(owner,weapon)||null,
       resultFinalShot:!!spec.finalShot,
       resultMirrorCopy:!!getHolder(owner)?.__hrMirrorCopy,
       resultMagnetPulled:!!AQ.state?.resultLedger?.onMagnetQualifiedHolder?.(owner,getHolder(owner)),
@@ -653,13 +656,13 @@
     }
     return best;
   }
-  function v43Pulse(x,y,kind,scale=1,weapon=null){
+  function v43Pulse(x,y,kind,scale=1,weapon=null,cosmetic=null){
     const duration=kind==='blast'?.85:kind==='split'?.58:.40;
     if(AQ.state?.visuals) pushVisual({kind:'v43_'+kind,x,y,
-      life:duration,maxLife:duration,scale,weapon});
+      life:duration,maxLife:duration,scale,weapon,cosmetic});
     // Kinetic impact, metal wall bounce and return are NOT 400px orange
     // grenade detonations. Reserve the native explosion atlas for actual AOE.
-    if(kind==='blast')window.avCue?.('explosion',{x,y,weapon:'V43_'+kind});
+    if(kind==='blast')window.avCue?.('explosion',{x,y,weapon:weapon||'V43_'+kind,cosmetic});
     else if(kind==='ricochet')window.avCue?.('ricochet',{x,y,weapon:'STEEL_BALL_LAUNCHER'});
   }
   // One resolved projectile carries one damage scalar through reflection,
@@ -713,7 +716,7 @@
           knockback:320*factor,shake:5*factor,hitStop:.012});
       }
     }
-    v43Pulse(p.x,p.y,'blast',radius/95,p.weapon);
+    v43Pulse(p.x,p.y,'blast',radius/95,p.weapon,p.cosmetic);
   }
   // One AOE authority for impact, wall and natural fuse: never detonate twice.
   function v43DetonateRocket(p){
@@ -738,6 +741,7 @@
   function v43Spawn(f,id,kind,angle,extra={}){
     const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;
     const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,launchOwner:f,
+      cosmetic:window.APEX_COSMETICS?.captureProjectile?.(f,id)||null,
       x:m.x,y:m.y,px:m.x,py:m.y,ox:m.x,oy:m.y,
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       angle,spin:0,age:0,life:extra.life??3,maxLife:extra.life??3,
@@ -1844,6 +1848,9 @@
     ctx.restore();
   }
   function v43GoldProjectile(ctx,p){
+    // Presentation plug-in may replace original artwork without ever owning
+    // collision/damage/projectile lifetime. Unregistered/default is no-op.
+    if (window.APEX_COSMETICS?.render?.('projectile',ctx,p.cosmetic,p)===true) return;
     const c=V43[p.weapon]||{},life=p.kind==='boomerang'
       ?v43min(p.life/.25,0,1):v43min(p.life/Math.max(.1,p.maxLife),0,1);
     const angle=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
@@ -3067,6 +3074,7 @@
   // staggering billows, discontinuous arcs and sparks, never a generic solid
   // explosion circle or repeating five-segment ring for every weapon.
   function v43GoldImpact(ctx,v,life){
+    if (window.APEX_COSMETICS?.render?.('blast',ctx,v.cosmetic,{...v,life})===true) return;
     const kind=v.kind.slice(4),age=1-life,blast=kind==='blast';
     if(kind==='smoke'){
       ctx.save();ctx.translate(v.x,v.y);ctx.rotate((v.angle||0)+Math.sin(v.seed||0)*.3);
