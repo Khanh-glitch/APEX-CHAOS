@@ -32,8 +32,16 @@ try {
   T.step(1.4);
   const ct=HR.byCombatant(magnet),snap=MAG.inspect(win.matchClock);
   const field=snap.fields.find(x=>x.combatant===ct);
+  const ai=HR.match?.aiCastPlan||{};
+  const diag={clock:win.matchClock,mode:AR.state.battleMode,lab:AR.state.labMode,
+    hrAi:HR.aiEnabled,mAi:HR.match?.aiEnabled,hero:ct?.heroId,
+    fields:snap.fields.map(s=>({hero:s.combatant?.heroId,casts:s.casts})),
+    plans:ai,floor:AR.state.slots.map(s=>({id:s.weaponId,phase:s.phase,
+      world:CFG.isHeroManipulableFloorWeapon(s)}))};
+  console.log('MAGNET_BOT_REAL_A1_DIAGNOSTIC '+JSON.stringify(diag));
   assert.ok(field&&field.casts.a1>0,
-    'BOT Magnet must autonomously cast A1 against V43/melee/grenade Weapon floor');
+    'BOT Magnet must autonomously cast A1 against V43/melee/grenade Weapon floor: '+
+      JSON.stringify(diag));
   for(const original of slots){
     const current=AR.state.slots.find(s=>s.id===original.id);
     const moved=current ? Math.hypot(current.x-original.x,current.y-original.y) : 0;
