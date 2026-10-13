@@ -3151,6 +3151,36 @@ try {
 } catch (e) { gate('F13.12-deferred-a1-historical-origin', false, String(e && e.message)); }
 
 
+// F13.13 — owner-reported intermittent flat cyan slab before the real A1.
+// Trigger the actual A2 -> queued A1 overlap, not a synthetic draw fixture.
+// The native lane may exist during Gold's A2, but no temporary gradient
+// proxy may replace the Gold-authored ice or sneak new gameplay material in.
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  const ct = HR.byCombatant(o.a);
+  HR.pressAbility(o.a, 'A2');
+  T.step(2 / 60);
+  const cast = win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.4);
+  const during = P().inspect(o.a);
+  const native = FR().inspect(ct);
+  const e = P().engineFor(o.a);
+  const beforeDraw = e.ice.nodes.filter((n) => n.kind === 'lane').length;
+  T.redraw();
+  const afterDraw = e.ice.nodes.filter((n) => n.kind === 'lane').length;
+  const src = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
+  const noProxy = !src.includes('drawQueuedA1Floor')
+    && !src.includes("grad.addColorStop(0,'rgba(110,213,248,.50)'");
+  const deferred = cast && during.mode === 'a2' && during.queuedKinds.includes('a1')
+    && native.lanes.length > 0 && beforeDraw === 0 && afterDraw === 0;
+  T.step(2.5);
+  const after = P().inspect(o.a);
+  gate('F13.13-deferred-a1-gold-only-no-cyan-proxy',
+    noProxy && deferred && after.a1.released && after.a1.nodes >= 40 && after.castDropped === 0,
+    { noProxy, deferred, beforeDraw, afterDraw, goldNodes: after.a1.nodes,
+      goldReleased: after.a1.released, dropped: after.castDropped });
+} catch (e) { gate('F13.13-deferred-a1-gold-only-no-cyan-proxy', false, String(e && e.message)); }
+
 /* ================= F14 — owner activation-window regressions ========== */
 // These gates inspect every activation frame rather than redrawing one frozen
 // simulation state. They fail the old lazy-resize / coarse-history / split
