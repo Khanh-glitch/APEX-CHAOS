@@ -197,6 +197,7 @@
       x: point.x,
       y: point.y,
       phase: 'TELEGRAPH',
+      kind: 'WEAPON', // canonical floor equipment, distinct from HEAL
       weaponId: null,
       forceFirearm: !!(opts && opts.forceFirearm),
       questWeaponId:forcedQuest?((forcedStoryStorm||forcedTotStorm)?'STORMBREAKER':'PISTOL'):null,
@@ -236,7 +237,7 @@
     const point = pickSpawnPoint(occupied);
     const slot = {
       id: state.nextSlotId++, x: point.x, y: point.y,
-      phase: 'REVEALED', weaponId,
+      phase: 'REVEALED', kind: 'WEAPON', weaponId,
       tier: CFG.tierOf ? CFG.tierOf(weaponId) : null,
       revealedFor: 0, pickedBy: null, rejectedFor: {},
       spawnTime: state.time,
@@ -274,6 +275,7 @@
 
   function revealSlot(slot, eta, fighter, force = false) {
     slot.phase = 'REVEALED';
+    slot.kind = 'WEAPON'; // retain type authority even for legacy telegraphs
     // E01 restricted training pool never rolls a late Stormbreaker or a
     // surprise melee while waiting on accepted J/K and both half-HP gates.
     // No changes to normal Arsenal or other Quest encounters.
