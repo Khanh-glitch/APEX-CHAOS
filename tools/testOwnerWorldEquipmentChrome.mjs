@@ -104,7 +104,20 @@ try {
       ...ids.map((id,i)=>[id,630+(i%2)*30,400+i*27,true]),
       ['STORMBREAKER',650,625,false],['SWIRL_SHIELD',650,660,false]
     ];
-    const slots=inventory.map(([id,x,y])=>slot(id,x,y));
+    // At least one V43 slot MUST come from the actual Arsenal Lab spawn
+    // pipeline. Handcrafted test slots alone once hid the missing "kind".
+    const slots=inventory.map(([id,x,y])=>{
+      if(id!=='RPG_7')return slot(id,x,y);
+      const oldLab=AR.state.labMode;
+      AR.state.labMode=true;
+      let spawned;
+      try{spawned=G.APEX_ARSENAL_SPAWN.spawnLabWeapon(id);}
+      finally{AR.state.labMode=oldLab;}
+      if(!spawned||spawned.kind!=='WEAPON')
+        throw Error('REAL Lab RPG-7 slot missing World kind: '+spawned?.kind);
+      spawned.x=x;spawned.y=y;
+      return spawned;
+    });
     const pos=slots.map(s=>({x:s.x,y:s.y}));
     if(!HR.pressAbility(a,'A1').ok)throw Error('Real Magnet A1 cast was denied');
     for(let i=0;i<9;i++)AR.step(1/60);
