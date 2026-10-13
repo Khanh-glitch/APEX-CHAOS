@@ -11,9 +11,11 @@ const product = '.github/workflows/arsenal-product-acceptance.yml';
 const content = '.github/workflows/content-interaction-cp2.yml';
 const paths = (name) => {
   const text=fs.readFileSync(name,'utf8');
-  const m=text.match(/^  pull_request:\s*\n    paths:\s*\n((?:      - [^\n]+\n)+)/m);
+  // YAML may document why a future runtime glob exists; comments aren't
+  // list items but may appear before or between literal path entries.
+  const m=text.match(/^  pull_request:\s*\n    paths:\s*\n((?:(?:      - [^\n]+|      #[^\n]*)\n)+)/m);
   assert.ok(m,name+' must keep explicit PR path admission list');
-  const list=m[1].split('\n').filter(Boolean).map(line=>{
+  const list=m[1].split('\n').filter(line=>line.startsWith('      - ')).map(line=>{
     const matched=line.match(/^      - ['"]([^'"]+)['"](?:\s+#.*)?$/);
     assert.ok(matched,name+' malformed PR path: '+line);
     return matched[1];
