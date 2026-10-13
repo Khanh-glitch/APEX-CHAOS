@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261013-cp7-cosmetic-contract-r8",
+  "runtimeRevision": "20261013-cp7-cosmetic-ownership-r9",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -276,8 +276,8 @@
       "sha256": "bd1e4d828101da94d773fb108d3c8dfca170280464bd153b66a0e321597f4b2e"
     },
     "shell.html": {
-      "bytes": 428781,
-      "sha256": "e244dffb6610d978865d58bf8d100fd561594879a7b0434b1424bdf1a2c5d5f2"
+      "bytes": 428783,
+      "sha256": "18b720e119d8044eedf5bf65ae399152cc9e5baff05ee7189f332ed1d8fc92b3"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,
