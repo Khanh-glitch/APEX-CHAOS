@@ -127,6 +127,35 @@ try {
      earliestETA:null,predictedFighter:null,tier:CFG.tierOf(id)};
     s.slots.push(v);return v;
    };
+   if(kind==='magnet-ai'){
+    const p2ct=HR.byCombatant(b),CAP=G.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+    if(p2ct?.heroId!=='MAGNET'||!G.APEX_HERO_REWORK.aiEnabled)
+      throw Error('Actual BOT not active as Magnet P2');
+    // Discover targets from the current semantic catalogue, never enumerate
+    // a fixed V4.x version or a fixed set of weapon IDs.
+    const candidate=Object.keys(CFG.WEAPONS).find((id)=>{
+      const sample={kind:'WEAPON',weaponId:id,phase:'REVEALED'};
+      return CFG.isGun(id)===false&&CAP.query('magnet-revealed-slot',sample,{config:CFG}).status==='allowed';
+    });
+    if(!candidate)throw Error('No non-firearm World Weapon in canonical catalogue for BOT AI');
+    const floorSlot=slot(candidate,690,500);
+    const physical=CAP.query('magnet-revealed-slot',floorSlot,{config:CFG});
+    if(physical.status!=='allowed')throw Error('Magnet A1 gameplay denies BOT target');
+    const before=p2ct.telemetry.bySkill?.A1||0;
+    let frames=0;
+    for(;frames<280&&(p2ct.telemetry.bySkill?.A1||0)===before;frames++)AR.step(1/60);
+    if((p2ct.telemetry.bySkill?.A1||0)!==before+1)
+      throw Error('Real BOT never proactively chose Magnet A1 for non-gun World Weapon: '+
+        JSON.stringify({candidate,frames,castCount:p2ct.telemetry.bySkill?.A1||0,
+          plan:HR.match?.aiCastPlan?.['MAGNET:A1'],remaining:p2ct.skills?.A1?.cdLeft}));
+    if(typeof G.draw==='function')G.draw();
+    return {kind,candidate,frames,aiCasts:(p2ct.telemetry.bySkill?.A1||0)-before,
+      a1Field:G.APEX_MAGNET.activeFields(G.APEX_HERO_REWORK_AIL.clock()).length};
+   }
+   if(kind==='hunter'){
+    return {kind,preprocess:G.apexProductAssets?.presentationReadiness?.()?.hunter?.state,
+      goldReady:!!G.APEX_HUNTER_PRESENTATION?.ready};
+   }
    if(kind==='magnet'){
     // Full current V4.3 floor pool — a single RPG smoke probe previously
     // left seven new equipment identities unmeasured in the real Gold battle.
@@ -248,7 +277,12 @@ try {
         loadCalls:G.APEX_FROST_GOLD.cacheStats.loadCalls,waitedFrames:elapsed}};
    }
   },kind);
-  if(kind==='magnet'){
+  if(kind==='magnet-ai'){
+   assert.equal(evaluated.aiCasts,1,label+' BOT did not autonomously cast A1 for a non-firearm World Weapon');
+  }else if(kind==='hunter'){
+   assert.equal(evaluated.preprocess,'READY',label+' Hunter Gold preprocess not READY');
+   assert.equal(evaluated.goldReady,true,label+' Hunter Gold art missing first frame');
+  }else if(kind==='magnet'){
    assert.ok(evaluated.fieldActive,label+' real field not active');
    for(const m of evaluated.measurements){
     assert.ok(m.eligible?m.distance>0.1:m.distance<.01,
@@ -297,5 +331,5 @@ try {
   await page.close();
  }
  fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify(results,null,2));
- console.log('D5 WORLD WEAPON REAL GOLD CHROME: 4/4 PASS; 8 battle Canvas screenshots');
+ console.log('D5 WORLD WEAPON REAL GOLD CHROME: '+results.length+'/'+variants.length+' PASS; '+(2*results.length)+' battle Canvas screenshots');
 }finally{await browser.close();}
