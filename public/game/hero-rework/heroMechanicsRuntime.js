@@ -398,9 +398,19 @@
 
     if (kind === 'a2') {
       const enemies = ctx.api.enemyBodies ? ctx.api.enemyBodies(ctx.combatant) : [];
+      // A2 remains a defensive priority against a nearby real opponent.
       if (enemies.some((body) => body && body.hp > 0
           && dist(self.x,self.y,body.x,body.y) <= radius)) {
         return { shouldCast:true, score:.9, reason:'enemy-in-repel-radius', retryAfter:.15 };
+      }
+      // BOT slots have independent randomized readiness times. Without
+      // arbitration, A2 can fire first for a nearby floor Weapon and block
+      // the stronger arena-wide A1 while both fields are mutually exclusive.
+      // Yield a non-emergency A2 to a READY A1 with a valid World target.
+      // After the genuine A1 cast/cooldown, A2 regains its own floor policy.
+      const ctl=globalScope.APEX_HERO_REWORK?.abilityController?.(ctx.combatant);
+      if (floor.length && m.canCast(ctx,'a1') && ctl?.cooldownLeft?.('A1')<=0) {
+        return { shouldCast:false, score:0, reason:'a1-world-weapon-priority', retryAfter:.2 };
       }
       if (floor.some((slot) => cfg?.isHeroMagneticallyResponsiveFloorWeapon?.(slot)
           && dist(self.x,self.y,slot.x,slot.y) <= radius)) {
