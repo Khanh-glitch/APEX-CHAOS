@@ -3166,18 +3166,24 @@ try {
   const native = FR().inspect(ct);
   const e = P().engineFor(o.a);
   const beforeDraw = e.ice.nodes.filter((n) => n.kind === 'lane').length;
-  T.redraw();
+  let previewRenders = 0;
+  const originalRender = e.ice.render;
+  e.ice.render = function (...args) {
+    if (this.nodes.some((n) => n.__frostQueuedPreview)) previewRenders++;
+    return originalRender.apply(this, args);
+  };
+  try { T.redraw(); } finally { e.ice.render = originalRender; }
   const afterDraw = e.ice.nodes.filter((n) => n.kind === 'lane').length;
   const src = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
   const noProxy = !src.includes('drawQueuedA1Floor')
     && !src.includes("grad.addColorStop(0,'rgba(110,213,248,.50)'");
   const deferred = cast && during.mode === 'a2' && during.queuedKinds.includes('a1')
-    && native.lanes.length > 0 && beforeDraw === 0 && afterDraw === 0;
+    && native.lanes.length > 0 && beforeDraw === 0 && afterDraw === 0 && previewRenders > 0;
   T.step(2.5);
   const after = P().inspect(o.a);
   gate('F13.13-deferred-a1-gold-only-no-cyan-proxy',
     noProxy && deferred && after.a1.released && after.a1.nodes >= 40 && after.castDropped === 0,
-    { noProxy, deferred, beforeDraw, afterDraw, goldNodes: after.a1.nodes,
+    { noProxy, deferred, previewRenders, beforeDraw, afterDraw, goldNodes: after.a1.nodes,
       goldReleased: after.a1.released, dropped: after.castDropped });
 } catch (e) { gate('F13.13-deferred-a1-gold-only-no-cyan-proxy', false, String(e && e.message)); }
 
