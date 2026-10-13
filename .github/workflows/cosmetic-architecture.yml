@@ -10,6 +10,7 @@ on:
       - 'public/game/gold/goldProductBridge.js'
       - 'tools/testCosmeticContracts.mjs'
       - 'tools/testCosmeticLockerChrome.mjs'
+      - 'tools/testCosmeticBattleChrome.mjs'
       - '.github/workflows/cosmetic-architecture.yml'
   workflow_dispatch:
 jobs:
@@ -49,3 +50,4 @@ jobs:
             sleep 1
           done
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testCosmeticLockerChrome.mjs
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testCosmeticBattleChrome.mjs
