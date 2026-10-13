@@ -1176,7 +1176,7 @@ await gate('G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites', (
     typeof HR.geom.wallsBlockPoint==='function' &&
     typeof HR.geom.solidCapsules==='function';
   const meta=read('public/game/arsenal/arsenalMetaRuntime.js');
-  const noOwnerGrant=!/OWNER_TEST_CREDITS\\s*=\\s*12000/.test(meta) &&
+  const noOwnerGrant=!/OWNER_TEST_CREDITS\s*=\s*12000/.test(meta) &&
     !/OWNER_TEST_GRANT_KEY/.test(meta);
   return {ok: changedProtectedFiles.length===0 &&
       changedCollisionPrimitives.length===0 &&
