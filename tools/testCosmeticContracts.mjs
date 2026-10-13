@@ -112,6 +112,48 @@ try{
 }finally{globalThis.Image=previousImage}
 assert.equal(downloads,1,'missing asset attempted more than once during one load');
 
+// The skin callback must consume the EXACT centrally decoded texture, never
+// initialize its own image on its first visual cast or access other packs.
+cosmetics.equip('p1','hero','FUTURE_ASSET_CANARY','default');
+const decodedPath='/assets/test/future-ready.webp';
+let reads=0, decodeCount=0, renderCount=0;
+cosmetics.register({
+  kind:'hero',baseId:'FUTURE_DECODE_CANARY',id:'decoded',assets:[decodedPath],
+  render:{actor:(_ctx,_pose,resources)=>{
+    renderCount++;
+    assert.ok(Object.isFrozen(resources),'renderer asset accessor must be read-only');
+    assert.equal(resources.get('/assets/test/not-owned.webp'),null,
+      'a skin cannot read another pack asset');
+    return resources.get(decodedPath)?.naturalWidth===64;
+  }}
+});
+cosmetics.equip('p1','hero','FUTURE_DECODE_CANARY','decoded');
+const decodedReceipt=cosmetics.capture('p1','hero','FUTURE_DECODE_CANARY');
+assert.equal(cosmetics.render('actor',fakeCanvas,decodedReceipt,{kind:'FUTURE_DECODE_CANARY'}),false,
+  'before READY a skin must fall back instead of making an opportunistic fetch');
+globalThis.Image=class DecodedImage {
+  naturalWidth=64;
+  decode(){decodeCount++;return Promise.resolve()}
+  set src(v){reads++;setImmediate(()=>this.onload?.())}
+};
+try{
+  await Promise.all(Array.from({length:8},()=>cosmetics.ready([
+    {side:'p1',heroId:'FUTURE_DECODE_CANARY'}
+  ])));
+  assert.equal(reads,1,'eight concurrent READY requests must use one image loader');
+  assert.equal(decodeCount,1,'one skin texture must be decoded exactly once');
+  assert.equal(cosmetics.render('actor',fakeCanvas,decodedReceipt,{kind:'FUTURE_DECODE_CANARY'}),true);
+  assert.equal(reads,1,'rendering must reuse decoded artwork without fetching');
+  await cosmetics.ready([{side:'p1',heroId:'FUTURE_DECODE_CANARY'}]);
+  assert.equal(decodeCount,1,'re-entering a match must not re-decode a READY asset');
+}finally{
+  globalThis.Image=previousImage;
+  cosmetics.equip('p1','hero','FUTURE_DECODE_CANARY','default');
+}
+assert.ok(renderCount>=2);
+assert.equal(fakeCanvas.saves,fakeCanvas.restores,'canvas save/restore leaked after asset hooks');
+
+
 // Static integration: a product menu and both physical carriers must use
 // the exact cosmetic authority; never inject a separate skin gun/hero registry.
 const file=p=>fs.readFileSync(p,'utf8');
