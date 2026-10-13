@@ -538,6 +538,16 @@ export default function App() {
 
         for (const planned of scriptPlan) {
           if (cancelled) return;
+          // Netlify can inject /.netlify/scripts/cdp into BOTH the document
+          // and the fetched Gold HTML at deploy-preview time. Its pre-existing
+          // script already fired load before Gold was fetched and never carries
+          // our data-apex-loaded flag. Re-awaiting that past event deadlocks the
+          // entire mount BEFORE START; it is NOT an authored Gold runtime.
+          // Provider scripts belong to the host page, not the Gold importer.
+          if (planned.src) {
+            const pathname = new URL(planned.src, document.baseURI).pathname;
+            if (pathname.startsWith('/.netlify/scripts/')) continue;
+          }
           const run = document.createElement('script');
           if (planned.type) run.type = planned.type;
           if (planned.src) {
