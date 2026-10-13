@@ -376,6 +376,47 @@
     return Object.fromEntries(CORE_SIX.map((hero)=>[hero,heroProfile(hero)]));
   }
 
+  // Shared presentation PREPROCESS gate: script evaluation and downloaded rig
+  // bytes alone cannot certify the first frame. A hero renderer registers its
+  // own deterministic decode/atlas/Canvas-preparation promise here. Scene
+  // transitions await this SAME idempotent contract before real battle input;
+  // adding a new hero never requires a name-specific condition in the bridge.
+  const presentationProviders = new Map();
+  const presentationPromises = new Map();
+  const presentationStates = new Map();
+  function registerPresentation(hero, prepare) {
+    const key = heroKey(hero);
+    if (!key || typeof prepare !== 'function') throw new Error('Invalid presentation readiness provider');
+    const prior = presentationProviders.get(key);
+    if (prior && prior !== prepare) throw new Error('Duplicate presentation readiness provider: ' + key);
+    presentationProviders.set(key, prepare);
+    if (!presentationStates.has(key)) presentationStates.set(key, { state:'REGISTERED', error:null });
+    return true;
+  }
+  async function preparePresentations(heroIds) {
+    const ids = [...new Set((Array.isArray(heroIds) ? heroIds : []).map(heroKey).filter(Boolean))];
+    const active = ids.filter((id) => presentationProviders.has(id));
+    await Promise.all(active.map((id) => {
+      if (presentationPromises.has(id)) return presentationPromises.get(id);
+      const provider = presentationProviders.get(id);
+      presentationStates.set(id, { state:'PREPARING', error:null });
+      const task = Promise.resolve().then(() => provider()).then(() => {
+        presentationStates.set(id, { state:'READY', error:null });
+        return true;
+      }, (error) => {
+        presentationPromises.delete(id); // retry on a later route, never fake READY
+        presentationStates.set(id, { state:'ERROR', error:String(error?.message || error) });
+        throw error;
+      });
+      presentationPromises.set(id, task);
+      return task;
+    }));
+    return { ready:true, heroes:active };
+  }
+  function presentationReadiness() {
+    return Object.fromEntries([...presentationStates].map(([key,value]) => [key,{...value}]));
+  }
+
   function snapshot() {
     return {
       records: Array.from(records.values()).map((r) => Object.assign({}, r)),
@@ -394,6 +435,9 @@
     state: snapshot,
     profileHero: heroProfile,
     profileHeroes: heroProfiles,
+    registerPresentation,
+    preparePresentations,
+    presentationReadiness,
   });
   window.apexHeroLoadTelemetry = Object.freeze({
     mark: markHeroLoad,
