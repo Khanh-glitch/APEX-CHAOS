@@ -1,5 +1,5 @@
 {
-  "revision": "20261013-world-weapon-role-r1",
+  "revision": "20261013-world-weapon-role-r2",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -12,7 +12,7 @@
     "public/game/gold/goldProductBridge.js": "dc4989abcb9a10bf294ff32509b9ccc89661c9d353e76971876e4bc33f0edae0",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalConfig.js": "c1bcd2d46c2cbd36663c3a3bbea7c0e9fc43fef8204a9fe1eaae2bdc8fa2e5af",
-    "public/game/arsenal/arsenalIdentityRuntime.js": "540d2956a71f193d9d109e262535757e73bfac99d78e627b5cbbe4c5e3be2fca",
+    "public/game/arsenal/arsenalIdentityRuntime.js": "794a3042dea0fee657c5b335dcad576dde5ea3f09ca781a9dc4a136f652938a5",
     "public/game/arsenal/arsenalWeaponRuntime.js": "6f8873e65bbab4447fe90e6cdda39a40b81061c0365f2261403a277d5ca123b7",
     "public/game/arsenal/arsenalSpawnRuntime.js": "a4f4ca1e5b52b1ffcaeb66422b22652e1fd7c5a4740f6846fcadff09264650c9",
     "public/game/arsenal/arsenalPresentationRuntime.js": "864560d7d91a493118c044a2880c41a71150f8eb860e24cc1e6464488a3291db",
