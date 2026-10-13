@@ -18,9 +18,11 @@ const variants=[
  ['mobile','magnet',{width:390,height:844,isMobile:true,deviceScaleFactor:2},'magnet'],
  ['desktop','frost',{width:1440,height:900},'frost'],
  ['mobile','frost',{width:390,height:844,isMobile:true,deviceScaleFactor:2},'frost'],
+ ['desktop','hunter',{width:1440,height:900},'hunter'],
+ ['desktop','magnet-ai',{width:1440,height:900},'newbot','magnet'],
 ];
 const now=()=>Date.now();
-async function goGoldBattle(page,hero,name){
+async function goGoldBattle(page,hero,name,opponent='newbot'){
  await page.goto(URL,{waitUntil:'load',timeout:45000});
  await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:60000});
  await page.evaluate(async()=>{await window.__apexEnsureDeferredRuntimes('arsenalProduct');
@@ -37,7 +39,7 @@ async function goGoldBattle(page,hero,name){
   {timeout:90000},hero);
  await page.$eval('.rosterCard[data-hero="'+hero+'"]',e=>e.click());
  await page.$eval('#lockIn',e=>e.click());
- await page.$eval('.rosterCard[data-hero="newbot"]',e=>e.click());
+ await page.$eval('.rosterCard[data-hero="'+opponent+'"]',e=>e.click());
  await page.$eval('#lockIn',e=>e.click());
  await page.waitForFunction(()=>{const host=document.getElementById('battleHudHost');
   return document.body.classList.contains('battle-hud-open')&&
@@ -56,12 +58,12 @@ async function goGoldBattle(page,hero,name){
  return visible;
 }
 try {
- for(const [device,kind,viewport,hero] of variants){
+ for(const [device,kind,viewport,hero,opponent] of variants){
   const label=device+'-'+kind,started=now(),page=await browser.newPage();
   await page.setViewport(viewport);
   const errors=[];page.on('pageerror',e=>errors.push(String(e)));
   let visible;
-  try {visible=await goGoldBattle(page,hero,label);}
+  try {visible=await goGoldBattle(page,hero,label,opponent);}
   catch(e){console.error('D5 Gold navigation FAIL',label,e);
    await page.screenshot({path:path.join(OUT,label+'-navigation-fail.png')});
    throw e;}
@@ -69,9 +71,9 @@ try {
    const G=window,AR=G.APEX_ARSENAL,HR=G.APEX_HERO_REWORK;
    if(!AR?.state?.active)throw Error('No actual Arsenal battle');
    const [a,b]=G.fighters,ct=HR.byCombatant(a);
-   const required=hero==='magnet'?'MAGNET':'ICE';
+   const required=hero==='magnet'?'MAGNET':hero==='frost'?'ICE':hero==='hunter'?'HUNTER':'ROBOT';
    if(ct?.heroId!==required)throw Error('Wrong hero for Gold selection '+ct?.heroId);
-   HR.setAiEnabled(false);
+   HR.setAiEnabled(hero==='newbot');
    if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
    a.baseSpeed=b.baseSpeed=0;
    a.x=hero==='magnet'?310:200;a.y=500;a.setDir(1,0);
@@ -80,6 +82,17 @@ try {
    AR.state.slots=[];
    for(let i=0;i<3;i++)AR.step(1/60);
    if(typeof G.draw==='function')G.draw();
+   if(hero==='hunter'||hero==='magnet'){
+     const states=G.apexProductAssets?.presentationReadiness?.();
+     const goldReady=hero==='hunter' ? G.APEX_HUNTER_PRESENTATION?.ready : G.APEX_MAGNET_GOLD?.ready;
+     if(states?.[hero]?.state!=='READY'||!goldReady)
+       throw Error('Gold '+hero+' first frame not presentation READY: '+JSON.stringify({states,goldReady}));
+   }
+   if(hero==='newbot'){
+     const states=G.apexProductAssets?.presentationReadiness?.();
+     if(states?.magnet?.state!=='READY'||!G.APEX_MAGNET_GOLD?.ready)
+       throw Error('BOT Magnet first frame rendered before presentation READY');
+   }
    if(hero==='frost'){
      // Future heroes opt into this SAME registry: two callers of one prepare
      // must share an in-flight promise, never initialize an atlas twice.
