@@ -79,7 +79,7 @@ async function loadAssets(){
     loadProbe('preprocess-error',{error:String(error)});
   }
 }
-loadAssets();
+const artworkTask=loadAssets(); // one canonical 54-image load; never restart per match
 
 const states=new Map();
 function createState(combatant){
@@ -522,6 +522,13 @@ g.APEX_MAGNET_GOLD={
   version:'2.0.0-canonical-engine',DT,META,BODY_REF,BODY_VISUAL_CALIBRATION,
   updateFrame,tick,cue,drawArenaDistortion,drawBefore,draw,drawActor:draw,drawAfter,getSockets,teardown,inspect,setRandomSeed,
   get ready(){return ready;},
+  // Loader ownership stays in Gold; the product can await its existing
+  // promise before revealing a selected Magnet battle. Errors fail READY
+  // instead of exposing an invisible actor with gameplay already running.
+  prepare:()=>artworkTask.then(()=>{
+    if(!ready)throw (loadError||new Error('Magnet Gold atlas preprocessing incomplete'));
+    return true;
+  }),
 };
 g.apexMagnetGoldV1='ready';
 })(typeof window!=='undefined'?window:globalThis);
