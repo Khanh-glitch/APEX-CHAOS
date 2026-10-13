@@ -79,6 +79,16 @@ try {
    AR.state.slots=[];
    for(let i=0;i<3;i++)AR.step(1/60);
    if(typeof G.draw==='function')G.draw();
+   if(hero==='frost'){
+     const P=G.APEX_FROST_PRESENTATION,pre=G.apexProductAssets?.presentationReadiness?.();
+     const state=P?.inspect?.(a);
+     if(pre?.frost?.state!=='READY'||!P?.ready||!state?.engineReady)
+       throw Error('First Frost battle frame appeared BEFORE shared presentation READY: '+
+         JSON.stringify({pre,frostReady:P?.ready,state}));
+     if(G.APEX_FROST_GOLD?.cacheStats?.loadCalls!==1)
+       throw Error('Frost Gold atlas preprocessed more than once or not at all: '+
+         JSON.stringify(G.APEX_FROST_GOLD?.cacheStats));
+   }
    return {hero:ct.heroId,slotCount:AR.state.slots.length,arenaVisible:true};
   },kind);
   await (await page.$('#game-canvas')).screenshot({path:path.join(OUT,label+'-before.png')});
@@ -184,6 +194,7 @@ try {
         earlyFrames.push({frame:i+1,ready:p?.ready,engineReady:p?.engineReady,
           leaks:p?.stateLeaks,exceptions:audit.drawExceptions,
           bodyDraws:audit.bodyDraws,iceRenders:audit.iceRenders,
+          castStarts:p?.castStarts,a1Replays:p?.a1Replays,a1Started:p?.a1Started,
           sources:F?.integrityTrace?.().at(-1)?.renderSourceCounts||{}});
       }
     }
@@ -219,12 +230,17 @@ try {
    for(const m of evaluated.measurements)
      assert.equal(m.frozen,m.eligible,label+' '+m.id+' wrong Frozen Equipment');
    assert.equal(evaluated.earlyFrames.length,23,label+' Frost early-frame samples');
+   const admitted=new Set();
    for(const frame of evaluated.earlyFrames){
      assert.ok(frame.ready&&frame.engineReady,label+' Gold art unavailable frame '+frame.frame);
      assert.equal(frame.leaks,0,label+' canvas state leak frame '+frame.frame);
      assert.equal(frame.exceptions,0,label+' Frost draw exception frame '+frame.frame);
      assert.ok(frame.bodyDraws>0,label+' missing actor render frame '+frame.frame);
+     assert.equal(frame.castStarts,1,label+' first A1 spawned a second visual cast at frame '+frame.frame);
+     assert.equal(frame.a1Replays,0,label+' first A1 replayed a late visual at frame '+frame.frame);
+     admitted.add(frame.a1Started);
    }
+   assert.equal(admitted.size,1,label+' first A1 changed cast identity mid-animation');
    assert.ok(evaluated.earlyFrames.some(f=>(f.sources['frost-gold-body']||0)>0),
      label+' early Gold Frost actor source absent');
   }
