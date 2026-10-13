@@ -113,8 +113,19 @@ try {
       let spawned;
       try{spawned=G.APEX_ARSENAL_SPAWN.spawnLabWeapon(id);}
       finally{AR.state.labMode=oldLab;}
-      if(!spawned||spawned.kind!=='WEAPON')
-        throw Error('REAL Lab RPG-7 slot missing World kind: '+spawned?.kind);
+      if(!spawned||spawned.kind!=='WEAPON'){
+        const src=String(G.APEX_ARSENAL_SPAWN.spawnLabWeapon);
+        const scripts=performance.getEntriesByType('resource').map(x=>x.name)
+          .filter(x=>x.includes('arsenalSpawnRuntime'));
+        throw Error('REAL Lab RPG-7 slot missing World kind: '+JSON.stringify({
+          got:spawned?.kind,keys:Object.keys(spawned||{}),
+          hasNewSource:src.includes("kind: 'WEAPON'"),
+          sourceSnippet:src.slice(src.indexOf('const slot ='),src.indexOf('const slot =')+260),
+          scriptURLs:scripts,
+          rev:G.apexArsenalSpawnRuntime,
+          hasSemanticFunction:!!G.APEX_ARSENAL_CONFIG?.isHeroManipulableFloorWeapon
+        }));
+      }
       spawned.x=x;spawned.y=y;
       return spawned;
     });
