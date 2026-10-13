@@ -33,6 +33,8 @@ jobs:
           node tools/testRuntimeRevisionGate.mjs
           node tools/buildGoldCutover.mjs --check
           pnpm run build
+      - name: Install isolated Chrome driver (no committed dependency changes)
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
       - name: Chrome Gold Home SKINS category desktop + Android
         shell: bash
         run: |
