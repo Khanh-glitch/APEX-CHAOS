@@ -4,6 +4,7 @@ on:
     paths:
       - 'public/game/hero-rework/crystalGameplayRuntime.js'
       - 'public/game/arsenal/arsenalWeaponRuntime.js'
+      - 'src/game/runtimeManifest.js' # SHA-pinned D5+D6 integration rechecks native Stream
       - 'tools/testOwnerD6StreamLiveGap.mjs'
       - 'tools/testOwnerD6GenericStreamContacts.mjs'
       - 'tools/testOwnerD6NativeGoldFlameRoutes.mjs'

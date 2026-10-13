@@ -84,15 +84,38 @@ gate('ordinary-firearm-and-T6-magnet-exclusions', () => {
   assert.equal(M.isEligibleBullet({aq:true,type:'aq_bullet',weapon:'GLOCK_17',life:2}),true);
   assert.equal(M.isEligibleBullet({aq:true,type:'aq_bullet',weapon:'STORMBREAKER',life:2}),false);
 });
-gate('frost-and-magnet-floor-policies-are-not-equivalent', () => {
-  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'PISTOL',tier:'T1'}),true);
-  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'RPG_7',tier:'T3'}),true);
-  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'GRENADE',tier:'T1'}),false);
-  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'STORMBREAKER',tier:'T6'}),false);
-  const slot=id=>({kind:'WEAPON',weaponId:id,phase:'REVEALED'});
-  assert.equal(M.isEligibleFloorFirearm(slot('PISTOL')),true);
-  assert.equal(M.isEligibleFloorFirearm(slot('RPG_7')),false);
-  assert.equal(M.isEligibleFloorFirearm(slot('STORMBREAKER')),false);
+gate('owner-world-equipment-roles-shared-but-effects-remain-distinct', () => {
+  // OWNER SUPERSESSION 2026-10-13: "Weapon" is ALL offensive spawn roles,
+  // not only firearms/ranged. The previously intentional exclusion of V43,
+  // Grenade and melee in Magnet/Frost was a semantic defect.
+  const roster=C.P0_WEAPON_IDS;
+  assert.equal(roster.length,41,'41 canonical equipment identities');
+  assert.equal(C.OFFENSIVE_WEAPON_IDS.length,39,'39 Weapon, incl. T6');
+  assert.equal(C.SHIELD_IDS.length,2,'two independent Defense items');
+  for(const id of roster){
+    const t6=C.tierOf(id)==='T6';
+    const eligible=C.isOffensive(id)&&!t6;
+    const slot={kind:'WEAPON',weaponId:id,phase:'REVEALED',
+      tier:C.tierOf(id)};
+    assert.equal(C.isHeroManipulableWeapon(id,slot),eligible,id+' role');
+    assert.equal(C.isHeroManipulableFloorWeapon(slot),eligible,id+' floor');
+    assert.equal(M.isEligibleFloorFirearm(slot),eligible,id+' Magnet floor');
+    assert.equal(M.isEligibleFloorWeapon(slot),eligible,id+' Magnet role');
+    assert.equal(F.isFreezableFirearm(slot),eligible,id+' Frost existing API');
+    assert.equal(F.isFreezableWeapon(slot),eligible,id+' Frost role');
+  }
+  const slot=(id,extra={})=>({kind:'WEAPON',weaponId:id,phase:'REVEALED',...extra});
+  for(const bad of [slot('SWIRL_SHIELD'),slot('TOWER_SHIELD'),
+    slot('STORMBREAKER'),slot('PISTOL',{heroInteractionImmune:true}),
+    slot('RPG_7',{phase:'HELD'}),slot('PISTOL',{kind:'HEAL'}),
+    slot('FUTURE_UNKNOWN')]){
+    assert.equal(C.isHeroManipulableFloorWeapon(bad),false);
+    assert.equal(M.isEligibleFloorWeapon(bad),false);
+  }
+  assert.equal(C.isHeroManipulableWeapon('RPG_7'),true);
+  assert.equal(C.isHeroManipulableWeapon('STORMBREAKER'),false);
+  assert.equal(F.isFreezableWeapon({weaponId:'GRENADE'}),true,
+    'A2 steal can recognize held Grenade without pretending it is a firearm');
 });
 gate('T6-shared-capability-policy-exceptions', () => {
   const cap=A.CapabilityAuthority;

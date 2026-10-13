@@ -1,0 +1,88 @@
+name: D5 World Weapon Role Owner Gate (isolated)
+on:
+  pull_request:
+    paths:
+      - 'public/game/arsenal/arsenalIdentityRuntime.js'
+      - 'public/game/hero-rework/magnetGameplayRuntime.js'
+      - 'public/game/hero-rework/frostGameplayRuntime.js'
+      - 'tools/testContentInteractionBaseline.mjs'
+      - 'tools/testOwnerWorldEquipmentRoles.mjs'
+      - 'tools/testOwnerWorldEquipmentChrome.mjs'
+      - '.github/workflows/d5-world-weapon-role.yml'
+  workflow_dispatch:
+jobs:
+  owner-role:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Frost F00.1 checks real historical ancestry
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Record SHA-256 of modified runtime and Gold shell
+        run: |
+          sha256sum public/game/arsenal/arsenalIdentityRuntime.js
+          sha256sum public/game/hero-rework/magnetGameplayRuntime.js
+          sha256sum public/game/hero-rework/frostGameplayRuntime.js
+          sha256sum public/gold/shell.html
+          wc -c public/gold/shell.html
+      - name: Verify source/gold cache revision and canonical generated artifacts
+        run: |
+          node tools/testRuntimeRevisionGate.mjs
+          node tools/buildGoldCutover.mjs --check
+      - name: Explicit owner Weapon/Defense/T6/Frozen Bullet live runtime gates
+        run: node tools/testOwnerWorldEquipmentRoles.mjs
+      - name: Original content interaction contracts with owner-superseded roles
+        run: node tools/testContentInteractionBaseline.mjs
+      - name: V43 kinetic projectile material law unchanged
+        run: node tools/testV43KineticHeroInteractions.mjs
+      - name: Magnet V1 complete actual runtime
+        run: node tools/testMagnetV1GameplayGates.mjs
+      - name: Frost V1 complete actual runtime
+        run: node tools/testFrostV1Gates.mjs
+
+  real-gold-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install QA-only Chrome driver (no committed dependencies changed)
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Real Gold Battle desktop/mobile Magnet and Frost proofs
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          export CHROME_PATH="$CHROME"
+          export APEX_APP_URL=http://127.0.0.1:5173/
+          export APEX_EVIDENCE_DIR=/tmp/d5-world-weapon-chrome
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort >/tmp/d5-vite.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null 2>&1; then break; fi
+            sleep .5
+          done
+          node tools/testOwnerWorldEquipmentChrome.mjs
+      - name: Preserve desktop/mobile Gold Battle Canvas captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d5-world-weapon-chrome-${{ github.sha }}
+          path: /tmp/d5-world-weapon-chrome/
+          if-no-files-found: warn
+          retention-days: 7
