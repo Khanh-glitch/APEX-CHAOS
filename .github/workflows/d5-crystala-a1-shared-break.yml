@@ -2,6 +2,12 @@ name: D5 Crystala A1 Shared Breaking-Hit Runtime Proof
 on:
   pull_request:
     paths:
+      # CP6 future extension admission: newly ADDED weapon/hero runtime files
+      # must trigger the owner gate without hand-editing a 6-hero/V4.x allowlist.
+      - 'public/game/arsenal/**'
+      - 'public/game/hero-rework/**'
+      - 'src/game/**'
+      - 'tools/testExtensionCapacityGates.mjs'
       - 'public/game/hero-rework/crystalGameplayRuntime.js'
       - 'tools/testOwnerCrystalaA1SharedBreak.mjs'
       - 'tools/testOwnerCrystalaA1BaselineDiff.mjs'
