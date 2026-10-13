@@ -7062,8 +7062,9 @@ report.cp5RobotA1Stress = run(`
   for(let k=0;k<16;k++){
     window.__apexArsenalTestStartMatch('ROBOT','ICE');
     cancelAnimationFrame(reqId); reqId=0;
-    APEX_ARSENAL.state.spawnTimer=1e6;
-    APEX_ARSENAL.state.slots=[];
+    // Hold both the cadence timer and separate unarmed fast-spawn route.
+    // Merely setting spawnTimer=1e6 left a rival REVEALED slot alive.
+    __APEX_TEST.holdSpawns();
     const f=fighters[0],ct=HR.byCombatant(f),ctl=HR.abilityController(ct);
     window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
     for(let t=0;t<8;t++)APEX_ARSENAL.step(1/60);
@@ -7082,24 +7083,32 @@ report.cp5RobotA1Stress = run(`
       window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
       const dash=ct.store['robot.weapon_dash']?.dash;
       const frames=[];
-      for(let t=0;t<36;t++){
+      // Robot A1 has .26s windup + up to .55s dash, and actual pickup
+      // detection occurs in the engine step. Observe a full 1s, not .60s.
+      for(let t=0;t<60;t++){
         APEX_ARSENAL.step(1/60);
-        if(t===11||t===17||t===35){
+        if(t===11||t===17||t===35||t===59){
           const d=ct.store['robot.weapon_dash']?.dash;
           frames.push({frame:t+1,x:f.x,y:f.y,target:d?.targetSlotId??null,
             windup:d?.windup??null,launched:d?.launched??null});
         }
       }
-      const events=HR.AIL.bus.since(mark).filter(e=>/^RobotA1/.test(e.type))
-        .map(e=>e.type);
+      const receipts=HR.AIL.bus.since(mark)
+        .filter(e=>/^RobotA1/.test(e.type));
+      const events=receipts.map(e=>e.type);
+      const contact=receipts.find(e=>e.type==='RobotA1Contact');
+      const held=__APEX_TEST.holder('HERO');
       const result={
-        n:k+1,pass:unarmedNoSpend&&!!dash&&f.x>x0+40&&
+        n:k+1,pass:unarmedNoSpend&&!!dash&&
+          dash.targetSlotId===sid&&f.x>x0+40&&
           ctl.cooldownLeft('A1')>5&&
           events.includes('RobotA1DashLaunch')&&
-          events.includes('RobotA1Contact'),
+          contact?.payload?.slotId===sid&&held?.weapon==='PISTOL',
         noSpend:unarmedNoSpend,cast:!!dash,moved:+(f.x-x0).toFixed(3),
         cd:+ctl.cooldownLeft('A1').toFixed(3),
         target:dash?.targetSlotId??null,slotId:sid,
+        contactSlotId:contact?.payload?.slotId??null,holder:held?.weapon||null,
+        slotsAtEnd:APEX_ARSENAL.state.slots.map(v=>({id:v.id,phase:v.phase,weapon:v.weaponId})),
         events,frames
       };
       trials.push(result);
