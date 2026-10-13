@@ -52,6 +52,31 @@ const p2=cosmetics.captureProjectile(fighter2,weapon,scope);
 const neutral=cosmetics.captureProjectile({id:3},weapon,scope);
 assert.ok(Object.isFrozen(p1));
 assert.deepEqual([p1.skinId,p2.skinId,neutral.skinId],['neon-a','neon-b','default']);
+// NEW hero bodies and clones use their canonical combatant membership,
+// not a six-hero whitelist and not an arbitrary inferred player ID.
+const cloneP1={id:'p1-echo'};
+const cloneP2={id:'p2-echo'};
+const ctP1={idx:0,anchor:fighter1,bodies:[fighter1,cloneP1]};
+const ctP2={idx:1,anchor:fighter2,bodies:[fighter2,cloneP2]};
+fighter1.__hrCombatant=ctP1;fighter2.__hrCombatant=ctP2;
+cloneP1.__hrCombatant=ctP1;cloneP2.__hrCombatant=ctP2;
+const combatScope={fighters:[fighter1,fighter2],
+  APEX_HERO_REWORK:{byCombatant:body=>body?.__hrCombatant||null}};
+assert.equal(cosmetics.captureProjectile(cloneP1,weapon,combatScope).skinId,'neon-a',
+  'future summoned P1 body must inherit P1 cosmetic receipt');
+assert.equal(cosmetics.captureProjectile(cloneP2,weapon,combatScope).skinId,'neon-b',
+  'future summoned P2 body must inherit P2 cosmetic receipt');
+// Promoted fighters may replace combatant.anchor while fighters[] retains the
+// original retired engine slot. Membership still keeps the right skin.
+ctP1.anchor=cloneP1;
+assert.equal(cosmetics.captureProjectile(cloneP1,weapon,combatScope).skinId,'neon-a',
+  'promoted anchor must not lose its cosmetic identity');
+const thirdParty={__hrCombatant:{idx:0,anchor:{},bodies:[]}};
+assert.equal(cosmetics.captureProjectile(thirdParty,weapon,combatScope).skinId,'default',
+  'non-member body may not impersonate the P1 skin');
+assert.equal(cosmetics.sideOf({id:'orphan'},combatScope),null);
+assert.equal(cosmetics.sideOf({id:'invalid-index',__hrCombatant:{idx:6}},combatScope),null);
+
 const fired={cosmetic:p1,owner:fighter1,weapon,damage:161,blastRadius:130};
 fired.owner=fighter2; // simulate reflecting / redirecting an existing carrier
 assert.equal(fired.cosmetic.skinId,'neon-a');
