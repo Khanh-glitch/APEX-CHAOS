@@ -111,11 +111,22 @@ try {
     for(let i=0;i<70;i++)AR.step(1/60);
     AR.state.slots=[];
     AR.step(1/60);
+    const ct=HR.byCombatant(a),ctl=HR.abilityController(ct),MAG=G.APEX_MAGNET;
+    // Real cast-readiness law, not an arbitrary 70-frame assumption: the
+    // Gold match may have advanced during transition before this QA probe.
+    // No cooldown, CC or mutual-exclusion state is forcibly reset.
+    for(let i=0;i<900&&(ctl.cooldownLeft('A2')>0||
+        MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock()));i++)AR.step(1/60);
     const inert=slot('PISTOL',480,500), responsive=slot('PISTOL',480,560);
     inert.magneticResponse='inert';
     responsive.magneticResponse='responsive';
     const before=[{x:inert.x,y:inert.y},{x:responsive.x,y:responsive.y}];
-    if(!HR.pressAbility(a,'A2').ok)throw Error('Real Magnet A2 cast denied');
+    const castA2=HR.pressAbility(a,'A2');
+    if(!castA2.ok)throw Error('Real Magnet A2 cast denied: '+JSON.stringify({
+      reason:castA2.reason,cooldown:ctl.cooldownLeft('A2'),
+      a1Active:MAG.activeFor(ct,'a1',G.APEX_HERO_REWORK_AIL.clock()),
+      hp:a.hp,clock:G.APEX_HERO_REWORK_AIL.clock()
+    }));
     for(let i=0;i<8;i++)AR.step(1/60);
     const a2Measurements=[inert,responsive].map((s,i)=>({
       response:s.magneticResponse,distance:Math.hypot(s.x-before[i].x,s.y-before[i].y),
