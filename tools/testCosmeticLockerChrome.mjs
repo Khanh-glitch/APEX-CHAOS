@@ -32,7 +32,9 @@ try{
       (document.getElementById('gold-document')?.contentDocument||document).URL);
     const game=page.frames().find(f=>f.url()===gameUrl);
     assert.ok(game,'Gold game frame unavailable: '+gameUrl);
-    const launcherHidden=await game.$eval('.apex-skin-entry',el=>{
+    const launcherHidden=await game.evaluate(()=>{
+      const el=document.querySelector('.apex-skin-entry');
+      if(!el)return true; // home launcher need not be mounted before START
       const css=getComputedStyle(el);
       return css.display==='none'||css.visibility==='hidden';
     });
@@ -51,8 +53,10 @@ try{
       {timeout:10000});
     const weapons=await game.$$eval('.apex-cosmetics-item',nodes=>nodes.map(n=>n.innerText));
     assert.ok(weapons.some(x=>x.includes('RPG')),'RPG_7 must be discoverable from live gun config');
-    await game.click('#apex-cosmetics-search');
-    await page.keyboard.type('RPG');
+    const searchInput=await game.$('#apex-cosmetics-search');
+    assert.ok(searchInput,'Skin search not mounted in the active Gold game frame');
+    await searchInput.click();
+    await searchInput.type('RPG');
     const searchProbe=await game.evaluate(()=>({
       value:document.querySelector('#apex-cosmetics-search')?.value,
       items:[...document.querySelectorAll('.apex-cosmetics-item')].map(e=>e.innerText).slice(0,12),
