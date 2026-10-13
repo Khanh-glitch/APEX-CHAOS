@@ -7,6 +7,8 @@ on:
       - 'public/game/arsenal/**'
       - 'public/game/hero-rework/**'
       - 'src/game/**'
+      - 'public/game/product/**'
+      - 'public/game/gold/**'
       - 'tools/testExtensionCapacityGates.mjs'
       - 'public/game/arsenal/arsenalIdentityRuntime.js'
       - 'public/game/hero-rework/magnetGameplayRuntime.js'
