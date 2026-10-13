@@ -9,6 +9,8 @@ on:
       - 'tools/testOwnerV43Gold*.mjs'
       - 'tools/testOwnerV43BoomerangNaturalFlight.mjs'
       - 'tools/testOwnerV43GoldCertification.mjs'
+      - 'tools/maintenance/v43-gold-reference-preflight.mjs'
+      - 'docs/maintenance/V43_GOLD_40_PHASE_EVIDENCE_BACKLOG_2026-10-10.json'
       - '.github/workflows/v43-gold-fidelity.yml'
   workflow_dispatch:
 
@@ -24,5 +26,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Validate 40-phase inventory and emit non-certifying reference preflight
+        run: node tools/maintenance/v43-gold-reference-preflight.mjs --out /tmp/v43-gold-evidence-preflight.json
       - name: Check all source-trace proofs and Gold phase coverage
         run: node tools/testOwnerV43GoldCertification.mjs --strict
+      - name: Retain Gold evidence preflight even when strict certification blocks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v43-gold-evidence-preflight
+          path: /tmp/v43-gold-evidence-preflight.json
+          if-no-files-found: warn
