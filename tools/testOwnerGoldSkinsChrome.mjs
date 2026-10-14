@@ -166,7 +166,11 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    const worldEdge=typeof GAME_SIZE==='number'?GAME_SIZE:1024;
    p.x=worldEdge-8;p.y=490;p.vx=500;p.vy=0;p.life=.35;
    for(let i=0;i<30&&!p.exploded;i++)A.step(1/60);
-   if(!p.exploded)throw Error('Native Rocket did not detonate');
+   if(!p.exploded)throw Error('Native Rocket did not detonate '+JSON.stringify({
+     x:p.x,y:p.y,age:p.age,life:p.life,gameSize:typeof GAME_SIZE!=='undefined'?GAME_SIZE:null,
+     present:projectiles.includes(p),type:p.type,kind:p.kind,phase:p.phase,
+     effectKinds:(A.state.visuals||[]).filter(v=>v.kind==='v43_blast').map(v=>v.cosmetic?.skinId)
+   }));
    const blast=A.state.visuals?.find(v=>v.kind==='v43_blast'&&v.cosmetic?.skinId==='vua-he');
    if(!blast||blast.maxLife<1.37)throw Error('Gold V7 blast lifetime missing '+JSON.stringify(blast));
    const drawBlast=C.render('blast',ctx,blast.cosmetic,{...blast,age:.4});
