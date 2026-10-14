@@ -174,6 +174,7 @@ export default function FieldArchiveC03(){
    await loadDeferredGameRuntimes('arsenalHub');
    if(!isHome())return;
    setWeapons(catalogWeapons());
+   setHeroes(catalogHeroes());
    setOpen(true);setView('SKINS');
   }catch(e){setError(String(e?.message||e))}
   finally{inFlight.current=false;setLoading(false)}
