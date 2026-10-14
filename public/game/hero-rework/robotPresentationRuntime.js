@@ -1558,8 +1558,23 @@ function renderRig(g) {
       // One page-lifetime subscription, match-local sprite/FX state is reset
       // by the existing teardown path. No gameplay events are fabricated.
       const off=AIL.bus.on('*', event=>{
-        try { handleBusEvent(event); }
-        catch (e) { console.warn('[robot-presentation] bus handler error', e); }
+        try {
+          // Native Rework lifecycle is the ONLY owner of match boundaries.
+          // Every per-match Robot spring/particle/audio session must end at
+          // teardown and start clean at install. No global HR/exit wrapping.
+          if(event.type==='ReworkMatchTeardown'){
+            clearRobotStates();
+            resetRobotAudioSession();
+            return;
+          }
+          if(event.type==='ReworkMatchInstall'){
+            clearRobotStates();
+            resetRobotAudioSession();
+            loadRobotAudio();
+            return;
+          }
+          handleBusEvent(event);
+        } catch (e) { console.warn('[robot-presentation] bus handler error', e); }
       });
       if(typeof off!=='function')throw Error('Robot presentation requires AIL bus unsubscribe');
       AIL.bus.__robotPresentationHooked = true;
@@ -1766,28 +1781,9 @@ function renderRig(g) {
       globalScope.update = wrappedU;
     }
 
-    const HR2 = globalScope.APEX_HERO_REWORK;
-    if (HR2 && HR2.installMatch && !HR2.__robotTeardownWrapped) {
-      HR2.__robotTeardownWrapped = true;
-      const prevInstall = HR2.installMatch;
-      HR2.installMatch = function () {
-        clearRobotStates();
-        resetRobotAudioSession();
-        loadRobotAudio();
-        return prevInstall.apply(this, arguments);
-      };
-      const baseExit = globalScope.exitArsenalBattleMode;
-      if (baseExit && !baseExit.__robotExitWrapped) {
-        const wrappedExit = function () {
-          clearRobotStates();
-          resetRobotAudioSession();
-          return baseExit.apply(this, arguments);
-        };
-        wrappedExit.__hrWrapped = baseExit.__hrWrapped;
-        wrappedExit.__robotExitWrapped = true;
-        globalScope.exitArsenalBattleMode = wrappedExit;
-      }
-    }
+    // CP12: no HR.installMatch/exitArsenalBattleMode monkey-patch.
+    // The AIL lifecycle subscriber above owns Robot session cleanup.
+
   }
 
   globalScope.APEX_ROBOT_PRESENTATION = {
