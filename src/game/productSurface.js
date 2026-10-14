@@ -46,7 +46,7 @@ const PUBLIC_SURFACES = Object.freeze([
   surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available Core Six fighter for 350 AC.', { route: 'draw' }),
   surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available in the pre-pilot build.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available in the pre-pilot build.'),
-  surface('dictionary', 'Dictionary', LOCKED, 'Dictionary is not available in the pre-pilot build.'),
+  surface('dictionary', 'Field Archive', ACTIVE, 'Browse the Core Six and Arsenal, inspect approved Gold art and equip cosmetic skins for P1/P2.', { route: 'skins' }),
   surface('missions', 'Missions', LOCKED, 'Missions are not available in the pre-pilot build.'),
   surface('achievements', 'Achievements', LOCKED, 'Achievements are not available in the pre-pilot build.'),
   surface('account-profile', 'Account / Profile', LOCKED, 'Account / Profile is not available in the pre-pilot build.'),
