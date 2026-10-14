@@ -220,5 +220,9 @@
    the same 340px panel. Preserve real INFO via its tab, not overlapping the
    two appearance hit targets. No scroll, no hidden Equip and no clipping. */
 @media (max-width:900px) and (orientation:landscape) and (max-height:480px){
+  /* The shared mobile 45% / 55% TWO-ROW rule must not run in
+     landscape: both panels occupy grid row 1, otherwise each receives
+     only 45% of the available height and Equip overlaps the skin strip. */
+  .fa3-body{grid-template-rows:minmax(0,1fr)}
   .fa3-appear .fa3-readout-embed{display:none}
 }
