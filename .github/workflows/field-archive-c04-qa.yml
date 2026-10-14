@@ -44,7 +44,7 @@ jobs:
         run: |
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$CHROME"
-          CHROME_PATH="$CHROME" node tools/testFieldArchiveC03Chrome.mjs
+          CHROME_PATH="$CHROME" node tools/testFieldArchiveC04Chrome.mjs
           CHROME_PATH="$CHROME" node tools/testFieldArchivePickQuickChrome.mjs
       - uses: actions/upload-artifact@v4
         if: always()
