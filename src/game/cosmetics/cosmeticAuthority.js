@@ -212,6 +212,7 @@ function render(name,ctx,receipt,payload) {
   } finally { ctx.restore(); }
 }
 function trailHistorySeconds(receipt) {return resolve(receipt)?.trailHistorySeconds||0;}
+function suppressDefaultTrail(receipt) {return resolve(receipt)?.suppressBaseTrail===true;}
 function blastDuration(receipt) {return resolve(receipt)?.blastSeconds||0;}
 function suppressDefaultBlast(receipt) {
   return resolve(receipt)?.suppressBaseBlast===true;
