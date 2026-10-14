@@ -85,6 +85,31 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    hCtx.translate(450,450);
    const ecoDraw=C.render('actor',hCtx,C.capture('p1','hero','ROBOT'),{x:0,y:0,kind:'ROBOT',robot:{time:st.T,springs,armor:st.armor,held:st.held,mode:st.mode,ticks:st.ticks,lockFlash:st.lockFlash}});
    if(ecoDraw!==true)throw Error('ECO V17 owner-rig did not draw');
+   // CP9 regression: a replacement silhouette alone cannot pass Gold fidelity.
+   // Exercise the actual native AIL presentation bus and assert world FX callbacks
+   // emit visible pixels for one passive beat. No gameplay cooldown or damage edits.
+   const bus=G.APEX_HERO_REWORK_AIL?.bus;
+   if(!bus)throw Error('Native Robot event bus unavailable');
+   const beforeFx=st.ecoFxSerial||0;
+   bus.emit('RobotPassiveMilestone',{hero:'ROBOT',fighterId:a.id,milestone:1});
+   if((st.ecoFxSerial||0)<=beforeFx||!st.ecoFxEvents?.some(e=>e.kind==='passive'))
+     throw Error('ECO Gold world VFX missing native passive event provenance');
+   const worldPose={x:a.x,y:a.y,kind:'ROBOT',robot:{
+      time:st.T,mode:st.mode,armor:st.armor,vx:st.vxw,vy:st.vyw,
+      trailOn:st.trailOn,dashTrail:st.trail,
+      fxEvents:st.ecoFxEvents
+   }};
+   const wc=document.createElement('canvas');wc.width=1200;wc.height=900;
+   const wctx=wc.getContext('2d');
+   if(C.render('worldBack',wctx,C.capture('p1','hero','ROBOT'),worldPose)!==true)
+      throw Error('ECO Gold rear FX not registered/dispatchable');
+   if(C.render('worldFront',wctx,C.capture('p1','hero','ROBOT'),worldPose)!==true)
+      throw Error('ECO Gold leaf VFX not registered/dispatchable');
+   const worldPixels=wctx.getImageData(0,0,1200,900).data;
+   let alphaPixelCount=0;
+   for(let k=3;k<worldPixels.length;k+=4)if(worldPixels[k])alphaPixelCount++;
+   if(alphaPixelCount<8)throw Error('ECO Gold native passive has no visible leaf material');
+
    const painted=hCtx.getImageData(450,450,1,1).data[3];
    // Save pixels from exactly the approved native presentation callbacks; these
    // are not synthetic CSS mockups or screenshots of a separate Gold studio.
