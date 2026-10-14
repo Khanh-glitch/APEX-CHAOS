@@ -148,16 +148,26 @@ export default function FieldArchiveC03(){
   const selected=entryPick?pickSelection():null;
   if(entryPick&&!selected)return; // Gold owns fighter identity, never guess.
   opener.current=document.activeElement;inFlight.current=true;setLoading(true);setError('');
+  // Gold already owns the selected Fighter. Do not block Quick Equip on the
+  // full Arsenal catalog; its prior asynchronous wait made the Pick button
+  // appear responsive while the Archive itself never opened in time.
+  if(selected){
+   setKind('hero');setSide(selected.side);setFocus(selected.heroId);
+   setQuery('');setPage(0);setView('SKINS');
+   const equippedId=cosmetics.selected(selected.side,'hero',selected.heroId).id;
+   setPreview(equippedId);
+   setSkinPage(Math.max(0,Math.floor(cosmetics.variants('hero',selected.heroId).findIndex(v=>v.id===equippedId)/2)));
+   setOpen(true);
+   inFlight.current=false;setLoading(false);
+   void loadDeferredGameRuntimes('arsenalHub').then(()=>{
+    if(document.getElementById('stage')?.classList.contains('screen-fighter'))setWeapons(catalogWeapons());
+   }).catch(e=>console.warn('[field-archive] optional weapon catalog',e));
+   return;
+  }
   try{
    await loadDeferredGameRuntimes('arsenalHub');
-   if(entryPick&&!isFighterPick())return; // Match may have launched while loading.
-   if(!entryPick&&!isHome())return;
+   if(!isHome())return;
    setWeapons(catalogWeapons());
-   if(selected){
-    setKind('hero');setSide(selected.side);setFocus(selected.heroId);setQuery('');
-    const equippedId=cosmetics.selected(selected.side,'hero',selected.heroId).id;
-    setPreview(equippedId);setSkinPage(Math.max(0,Math.floor(cosmetics.variants('hero',selected.heroId).findIndex(v=>v.id===equippedId)/2)));
-   }
    setOpen(true);setView('SKINS');
   }catch(e){setError(String(e?.message||e))}
   finally{inFlight.current=false;setLoading(false)}
