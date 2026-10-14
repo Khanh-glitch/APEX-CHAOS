@@ -657,7 +657,7 @@
     return best;
   }
   function v43Pulse(x,y,kind,scale=1,weapon=null,cosmetic=null){
-    const duration=kind==='blast'?.85:kind==='split'?.58:.40;
+    const duration=kind==='blast'?Math.max(.85,window.APEX_COSMETICS?.blastDuration?.(cosmetic)||0):kind==='split'?.58:.40;
     if(AQ.state?.visuals) pushVisual({kind:'v43_'+kind,x,y,
       life:duration,maxLife:duration,scale,weapon,cosmetic});
     // Kinetic impact, metal wall bounce and return are NOT 400px orange
@@ -3089,7 +3089,7 @@
   // staggering billows, discontinuous arcs and sparks, never a generic solid
   // explosion circle or repeating five-segment ring for every weapon.
   function v43GoldImpact(ctx,v,life){
-    if (typeof window !== 'undefined' && window.APEX_COSMETICS?.render?.('blast',ctx,v.cosmetic,{...v,life})===true) return;
+    if (typeof window !== 'undefined' && window.APEX_COSMETICS?.render?.('blast',ctx,v.cosmetic,{...v,life,age:(1-life)*(v.maxLife||.85)})===true) return;
     const kind=v.kind.slice(4),age=1-life,blast=kind==='blast';
     if(kind==='smoke'){
       ctx.save();ctx.translate(v.x,v.y);ctx.rotate((v.angle||0)+Math.sin(v.seed||0)*.3);

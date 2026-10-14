@@ -980,6 +980,20 @@ function renderRig(g) {
   // Body-only wrapper used by Mirror's wrong-person reflection. It draws the
   // live Robot rig at a caller-supplied world root without entering Fighter.draw,
   // advancing Robot state, or duplicating status/world effects.
+  // CP8: read-only scalar snapshot of the AUTHORITATIVE native Robot rig.
+  // No JS spring instance, fighter reference or combat state can leak to a skin.
+  function robotCosmeticMotion(st) {
+    const springs={};
+    for(const [k,v] of Object.entries(st.R))springs[k]=Array.isArray(v)?v.map(x=>x.x):v.x;
+    return {
+      time:st.T,armor:!!st.armor,held:!!st.held,
+      scanning:!!st.brackets&&st.brackets.state==='in'&&!st.held,
+      mode:st.mode,lockFlash:st.lockFlash,ticks:[...st.ticks],springs,
+      pulses:st.pulses.slice(-12).map(p=>({t:p.t,dur:p.dur,w:p.w,pts:p.pts.map(q=>[q[0],q[1]])})),
+      stress:st.stress.slice(-12).map(p=>({x:p.x,y:p.y,nx:p.nx,ny:p.ny,t:p.t,dur:p.dur,armored:!!p.armored}))
+    };
+  }
+
   function renderActorImage(ctx, fighter, x, y) {
     if (!ctx || !isRobotFighter(fighter)) return false;
     const st = getRobotState(fighter);
@@ -996,7 +1010,7 @@ function renderRig(g) {
       }
       const cosmetic=globalScope.APEX_COSMETICS;
       const receipt=cosmetic?.capture?.(cosmetic.sideOf(fighter,globalScope),'hero','ROBOT')||null;
-      if (!cosmetic?.render?.('actor',ctx,receipt,{x:0,y:0,kind:'ROBOT'}))
+      if (!cosmetic?.render?.('actor',ctx,receipt,{x:0,y:0,kind:'ROBOT',robot:receipt?.skinId!=='default'?robotCosmeticMotion(st):null}))
         renderRobotLocal(ctx, fighter, st);
     } finally {
       if (fighter.isRage) { try { ctx.filter = 'none'; } catch (error) {} }
@@ -1525,7 +1539,7 @@ function renderRig(g) {
             try {
               const cosmetic=globalScope.APEX_COSMETICS;
               const receipt=cosmetic?.capture?.(cosmetic.sideOf(this,globalScope),'hero','ROBOT')||null;
-              if(!cosmetic?.render?.('actor',tc,receipt,{x:0,y:0,kind:'ROBOT'}))
+              if(!cosmetic?.render?.('actor',tc,receipt,{x:0,y:0,kind:'ROBOT',robot:receipt?.skinId!=='default'?robotCosmeticMotion(st):null}))
                 renderRobotLocal(tc,this,st);
             } catch(e) { console.warn('[robot-presentation] render failed',e); }
             if (this.isRage) { try { tc.filter = 'none'; } catch (e) {} }
@@ -1625,6 +1639,12 @@ function renderRig(g) {
                 const drawAngle = aim + (params.drawOffset || 0) + (holder.meta && holder.meta.pose && holder.meta.pose.rotKick || 0);
                 const ok = av.drawWeaponSprite(ctx, holder.weaponId, offX, offY, {
                   mode: 'equipped',
+                  // Robot's native jaw/socket override must carry the same
+                  // P1/P2 cosmetic identity as every other equipped weapon.
+                  // Only presentation is selected; pose, recoil and aim stay native.
+                  cosmetic: globalScope.APEX_COSMETICS?.capture?.(
+                    globalScope.APEX_COSMETICS?.sideOf?.(fighter, globalScope),
+                    'weapon', holder.weaponId) || null,
                   useWorld: params.useWorld,
                   targetLongSide: params.targetLongSide,
                   angle: drawAngle,

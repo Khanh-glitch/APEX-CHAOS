@@ -1,5 +1,5 @@
 {
-  "revision": "20261013-cp7-cosmetic-ownership-r9",
+  "revision": "20261014-cp8-owner-gold-content-r10",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -13,7 +13,7 @@
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalConfig.js": "c1bcd2d46c2cbd36663c3a3bbea7c0e9fc43fef8204a9fe1eaae2bdc8fa2e5af",
     "public/game/arsenal/arsenalIdentityRuntime.js": "d9a5b80a043a40445395f2b28c8e6aab2dfae5c868b56ea3eaac261d84bcae1a",
-    "public/game/arsenal/arsenalWeaponRuntime.js": "6f58fc38c98d4d62edcb68757b5ba8917e988e037cab8596267718e83f3c0a5d",
+    "public/game/arsenal/arsenalWeaponRuntime.js": "348c58a8c16fe0794832364219e74eab77fe46d45a07beb7edb81dbe96bdbecb",
     "public/game/arsenal/arsenalSpawnRuntime.js": "4fd07e50ee21d8c59fb726777a9c1f3359c07350578a74eb905aedb240ff8121",
     "public/game/arsenal/arsenalPresentationRuntime.js": "3f2a565757aad42e2b6d96cc64421d47809d12b852b8931588a52bb093100497",
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
@@ -49,7 +49,7 @@
     "public/game/hero-rework/mirrorGoldV1.js": "f7d1817064ca87997050e2f07acd60d98edfd575fbcffbc2ecd08597366f13e7",
     "public/game/hero-rework/heroMechanicsRuntime.js": "bd42477193c0b359bbe69e6b5a4b3d6c58cc2617f6de006f3747c981984841ad",
     "public/game/hero-rework/heroReworkRuntime.js": "7fbb1e63d9cbb14a4cf08590185636f48def35c2603209e32c1ca4a30d7babbe",
-    "public/game/hero-rework/robotPresentationRuntime.js": "10c51ba25bb4cd8c4831edf009edc837a7bca789c4dc062adea44fedc5848e57",
+    "public/game/hero-rework/robotPresentationRuntime.js": "e66aa7e46157ced1c9e03389b288055e02ef766248eb18811a4eeae33ada25f6",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "9c38075d3b7f5af9f185e651be7be10d99a61031b53c371fbbb29c12bf8f5b8f",
     "public/game/hero-rework/crystalaPresentationRuntime.js": "d76cd3874f58faa5c17fb47ce380d2288e0b63663c6059cd35a3a2c67594092c",

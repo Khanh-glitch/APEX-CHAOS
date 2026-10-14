@@ -79,6 +79,8 @@ function register(def) {
     detail:String(def.detail || '').slice(0,240),
     preview:def.preview ? safeAsset(def.preview):null,
     assets, render:Object.freeze(hooks),
+    prepare:typeof def.prepare==='function'?def.prepare:null,
+    blastSeconds:Math.max(0,Math.min(3,Number(def.blastSeconds)||0)),
     suppressBaseBlast:!!def.suppressBaseBlast && typeof hooks.blast === 'function',
   });
   registry.set(idKey,record);
@@ -155,6 +157,18 @@ function resolve(receipt) {
     return record || null; // missing skin pack => do not invent an effect
   } catch (_) { return null; }
 }
+// Copy only scalar presentation data. No mutable combat objects enter skin renderers.
+function cosmeticData(v, depth=0){
+ if(depth>7)return null;
+ if(typeof v==='number')return Number.isFinite(v)?v:0;
+ if(typeof v==='boolean'||typeof v==='string')return v;
+ if(Array.isArray(v))return Object.freeze(v.slice(0,90).map(x=>cosmeticData(x,depth+1)));
+ if(v&&typeof v==='object'){
+   const result={};for(const [k,x] of Object.entries(v).slice(0,48))result[k]=cosmeticData(x,depth+1);
+   return Object.freeze(result);
+ }
+ return null;
+}
 function render(name,ctx,receipt,payload) {
   const entry=resolve(receipt), fn=entry?.render?.[name];
   if (typeof fn!=='function') return false;
@@ -173,6 +187,9 @@ function render(name,ctx,receipt,payload) {
     life:Number(payload?.life)||0,
     scale:Number(payload?.scale)||1,
     kind:String(payload?.kind||payload?.type||''),skinId:entry.id,
+    side:receipt?.side||null,
+    trail:cosmeticData(Array.isArray(payload?.visual)?payload.visual:[]),
+    robot:cosmeticData(payload?.robot||null),
   });
   // Skin renderers may only consume resources the shared READY barrier
   // decoded for THIS skin. No render-time image constructor, network load
@@ -190,6 +207,7 @@ function render(name,ctx,receipt,payload) {
     return false;
   } finally { ctx.restore(); }
 }
+function blastDuration(receipt) {return resolve(receipt)?.blastSeconds||0;}
 function suppressDefaultBlast(receipt) {
   return resolve(receipt)?.suppressBaseBlast===true;
 }
@@ -232,6 +250,7 @@ async function ready(sideHeroPairs=[], storage=typeof window!=='undefined'?windo
       e=>{assetPromises.delete(asset);throw e;});
     assetPromises.set(asset,promise);return promise;
   }));
+  await Promise.all([...new Set(all)].filter(p=>p.prepare).map(p=>Promise.resolve().then(()=>p.prepare())));
   return Object.freeze({ready:true,assetCount:unique.length});
 }
 export function createCosmeticAuthority(storage=typeof window!=='undefined'?window.localStorage:null) {
@@ -240,7 +259,7 @@ export function createCosmeticAuthority(storage=typeof window!=='undefined'?wind
     version:'cosmetics-v1', register, variants, selected,
     equip:(side,kind,base,id)=>equip(side,kind,base,id,storage),
     snapshot, subscribe, capture,captureProjectile,sideOf,
-    resolve,render,suppressDefaultBlast,ready,
+    resolve,render,suppressDefaultBlast,blastDuration,ready,
   });
 }
 export const cosmetics=createCosmeticAuthority();
