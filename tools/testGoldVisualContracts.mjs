@@ -20,6 +20,9 @@ const contracts=[
   passes:['weapon','projectile','blast'],
   families:['held-launcher','rocket-flight-smoke','rocket-native-detonation']}
 ];
+const approval=fs.readFileSync('src/game/cosmetics/approvedGoldSkins.js','utf8');
+assert.equal((approval.match(/cosmetics\\.register\\(/g)||[]).length,contracts.length,
+ 'A new curated Gold skin requires a separately reviewed family inventory and proof list');
 for(const law of contracts){
  const rec=cosmetics.variants(law.kind,law.baseId).find(x=>x.id===law.skinId);
  assert.ok(rec,'approved Gold pack absent: '+law.skinId);
