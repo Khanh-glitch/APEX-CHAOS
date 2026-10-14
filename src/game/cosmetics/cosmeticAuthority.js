@@ -265,7 +265,7 @@ export function createCosmeticAuthority(storage=typeof window!=='undefined'?wind
     version:'cosmetics-v1', register, variants, selected,
     equip:(side,kind,base,id)=>equip(side,kind,base,id,storage),
     snapshot, subscribe, capture,captureProjectile,sideOf,
-    resolve,render,suppressDefaultBlast,blastDuration,trailHistorySeconds,ready,
+    resolve,render,suppressDefaultBlast,suppressDefaultTrail,blastDuration,trailHistorySeconds,ready,
   });
 }
 export const cosmetics=createCosmeticAuthority();
