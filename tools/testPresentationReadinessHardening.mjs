@@ -26,7 +26,7 @@ const assets=scene.apexProductAssets;
 assert.ok(assets?.registerPresentation&&assets?.prepare);
 let result=await Promise.allSettled([
  assets.prepare('fighter-hero',{heroIds:['future'],scope:'cp11-a'}),
- assets.prepare('fighter-hero',{heroIds:['future'],scope:'cp11-a'})
+ assets.prepare('fighter-hero',{heroIds:['future'],scope:'cp11-b'})
 ]);
 assert.ok(result.every(x=>x.status==='rejected'&&/image decode failed/.test(String(x.reason))),
  'Concurrent decode rejection must NEVER report READY');
