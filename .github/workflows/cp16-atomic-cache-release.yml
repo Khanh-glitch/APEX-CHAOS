@@ -41,6 +41,7 @@ jobs:
         run: |
           pnpm run build
           node tools/testShippingDist.mjs
+          node tools/testCP16BuildReceipt.mjs
   cold-return-chrome:
     needs: atomic-integrity
     runs-on: ubuntu-latest
