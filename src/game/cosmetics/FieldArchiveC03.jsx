@@ -48,7 +48,7 @@ const isHome=()=>{
  return !!(document.body.classList.contains('apex-gold-mounted')&&stage&&!document.getElementById('apex-boot-start')&&window.gameState!=='ARSENAL'&&
  !['screen-mode','screen-fighter','screen-draw','screen-battle','flow-transition'].some(c=>stage.classList.contains(c)));
 };
-function catalogHeroes(){const registry=window.APEX_HERO_REWORK_REGISTRY?.HEROES||{};return PRODUCT_ROSTER.playableIds.map(id=>{const data=registry[id];return data?{id,name:data.displayName||data.name||id,tier:'FIGHTER',family:'PLAYABLE',registry:data}:null}).filter(Boolean)}
+function catalogHeroes(){const registry=window.APEX_HERO_REWORK_REGISTRY?.HEROES||{};return PRODUCT_ROSTER.playableIds.map(id=>{const data=registry[id];return data?{id,name:HERO_META[id]?.name||data.displayName||data.name||id,tier:'FIGHTER',family:'PLAYABLE',registry:data}:null}).filter(Boolean)}
 function catalogWeapons(){
  const c=window.APEX_ARSENAL_CONFIG;
  if(!c?.WEAPONS)return [];
