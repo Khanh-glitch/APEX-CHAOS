@@ -74,12 +74,21 @@ function DisplayArtwork({kind,item,previewId}){
  const hero=kind==='hero';
  const image=hero?PICTURE(item.id):weaponImage(item.id,{skinId:previewId,art:item.data?.art});
  const isEco=hero&&item.id==='ROBOT'&&previewId==='ecobot';
- const [broken,setBroken]=useState(false);
- useEffect(()=>setBroken(false),[image,isEco]);
- return <div className={'fa3-artwork '+(hero?'fa3-artwork-hero':'fa3-artwork-weapon')} key={kind+item.id+previewId}>
+ const [decodedSrc,setDecodedSrc]=useState('');
+ const [badSrc,setBadSrc]=useState('');
+ const ready=isEco||!!image&&decodedSrc===image;
+ const broken=!isEco&&(!image||badSrc===image);
+ function decodeRealImage(event){
+  const img=event.currentTarget,src=image;
+  Promise.resolve(typeof img.decode==='function'?img.decode():undefined).then(()=>{
+   if(img.isConnected&&img.getAttribute('src')===src&&img.naturalWidth>0)setDecodedSrc(src);
+  },()=>{if(img.isConnected&&img.getAttribute('src')===src)setBadSrc(src)});
+ }
+ return <div className={'fa3-artwork '+(hero?'fa3-artwork-hero':'fa3-artwork-weapon')} data-visual-ready={ready?'true':'false'} key={kind+item.id+previewId}>
   <span className="fa3-art-code" aria-hidden="true">{hero?'FIELD RECORD / '+item.id:'ARSENAL / '+item.tier}</span>
   <div className="fa3-art-orbit" aria-hidden="true"/>
-  {isEco?<GoldEcoActor active/>:image&&!broken?<img src={image} className={hero?'fa3-hero-img':'fa3-weapon-img'} alt={item.name+' '+previewId+' approved asset'} onError={()=>setBroken(true)}/>:<div className="fa3-art-missing" role="status">VISUAL RECORD UNAVAILABLE <small>Asset not present in approved inventory</small></div>}
+  {isEco?<GoldEcoActor active/>:!broken?<img src={image} className={(hero?'fa3-hero-img':'fa3-weapon-img')+(ready?' fa3-decoded':' fa3-pending')} alt={item.name+' '+previewId+' approved asset'} decoding="async" onLoad={decodeRealImage} onError={()=>setBadSrc(image)}/>:<div className="fa3-art-missing" role="status">VISUAL RECORD UNAVAILABLE <small>Approved image could not be decoded</small></div>}
+  {!ready&&!broken&&<div className="fa3-visual-progress" role="status"><span>◎</span><b>DECODING APPROVED ART</b><small>VISUAL AUTHORITY / {item.id}</small></div>}
   <span className="fa3-art-underlay" aria-hidden="true">{item.id.replaceAll('_',' ').slice(0,18)}</span>
   <span className="fa3-art-label">{previewId==='default'?'ORIGINAL':previewId.toUpperCase()} / VISUAL PREVIEW</span>
  </div>;
