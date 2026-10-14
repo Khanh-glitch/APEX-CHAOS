@@ -109,7 +109,7 @@ try{
    },{timeout:35000});
    const facts=await page.evaluate(()=>{document.querySelector('.fa3-detail-tabs button:nth-child(2)').click();return true});
    await page.waitForSelector('.fa4-readout:not(.fa4-compact) .fa4-telemetry');
-   const words=await page.$eval('.fa4-readout:not(.fa4-compact)',e=>e.textContent);
+   const words=await page.evaluate(async()=>{let text='';const root=document.querySelector('.fa4-readout:not(.fa4-compact)');for(let i=0;i<12;i++){text+=' '+root.textContent;const next=root.querySelector('[aria-label="Next weapon specification page"]');if(!next||next.disabled)break;next.click();await new Promise(resolve=>setTimeout(resolve,25));}return text});
    assert.ok(['BLAST PEAK','161','PROJECTILE SPEED','420','MAX SPEED','990','BLAST RADIUS','126','ACCELERATION','760'].every(w=>words.includes(w)),
      'RPG-7 native parameters must remain accurate: '+words);
    const axes=await page.$$eval('.fa4-readout:not(.fa4-compact) .fa4-axis',els=>els.map(x=>x.textContent));

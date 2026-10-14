@@ -114,7 +114,7 @@ function DisplayArtwork({kind,item,previewId}){
  </div>;
 }
 function WeaponFacts({item,skin}){return <WeaponStatConsole item={item} skin={skin}/>}
-function HeroFacts({item}){return <AbilityWeb item={item}/>}
+function HeroFacts({item}){return <AbilityWeb item={item} legacySkills={HERO_META[item.id]?.skills||[]}/>}
 export default function FieldArchiveC03(){
  const [home,setHome]=useState(false),[pick,setPick]=useState(false),[pickHost,setPickHost]=useState(null),[open,setOpen]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
  const [kind,setKind]=useState('hero'),[side,setSide]=useState('p1'),[focus,setFocus]=useState('ROBOT');
@@ -249,7 +249,7 @@ export default function FieldArchiveC03(){
           <strong>{s.id===worn?.id?'✓':'↗'}</strong></button>)}</div>
         {skinMaxPage>0&&<div className="fa3-skin-pager" aria-label="Skin pages"><button disabled={safeSkinPage===0} onClick={()=>setSkinPage(p=>Math.max(0,p-1))} aria-label="Previous skin page">‹</button><span>{String(safeSkinPage+1).padStart(2,'0')} / {String(skinMaxPage+1).padStart(2,'0')}</span><button disabled={safeSkinPage===skinMaxPage} onClick={()=>setSkinPage(p=>Math.min(skinMaxPage,p+1))} aria-label="Next skin page">›</button></div>}
         {current&&<div className="fa3-readout-embed">
-          {kind==='hero'?<AbilityWeb item={current} compact/>:<WeaponStatConsole item={current} skin={chosen} compact/>}
+          {kind==='hero'?<AbilityWeb item={current} legacySkills={HERO_META[current.id]?.skills||[]} compact/>:<WeaponStatConsole item={current} skin={chosen} compact/>}
          </div>}
         <div className="fa3-equip-state"><b>{side==='p1'?'PLAYER 01':'PLAYER 02 / BOT'}</b><span>EQUIPPED / {worn?.label||'ORIGINAL'}</span></div>
         <button type="button" className="fa3-equip" onClick={equip} disabled={!chosen||chosen.id===worn?.id}>{chosen?.id===worn?.id?'EQUIPPED ✓':'EQUIP THIS SKIN ↗'}</button>
