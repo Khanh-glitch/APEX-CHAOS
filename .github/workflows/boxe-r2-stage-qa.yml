@@ -20,7 +20,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: BOXE R2 authority semantic acceptance
-        run: node tools/testBoxeContractsR2.mjs
+        run: |
+          node tools/testBoxeContractsR2.mjs
+          node tools/testBoxeWaveDirector.mjs
       - name: Latest C04 Field Archive compatibility
         run: node tools/testFieldArchiveC04Profiles.mjs
       - name: Shipping build remains unchanged

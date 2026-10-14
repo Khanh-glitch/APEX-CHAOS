@@ -31,7 +31,7 @@ export function createWaveUpgradePool(extra=[]){
  }
  return Object.freeze(pool);
 }
-export function upgradeState(){return {level:1,xp:0,totalXp:0,owned:new Set(),stacks:{},pending:null};}
+export function upgradeState(){return {level:1,xp:0,totalXp:0,owned:new Set(),stacks:{},pending:null,pendingLevelUps:0,offerSerial:0};}
 export function isCardEligible(c,s){
  if(c.kind==='unlock')return !s.owned.has(c.id)&&c.requires.every(req=>s.owned.has(req));
  return (s.stacks[c.id]||0)<c.maxStacks&&(c.requires||[]).every(req=>s.owned.has(req));
@@ -42,9 +42,10 @@ function seededRng(seed){
 }
 export function offerThreeCards(state,{seed=1,pool=WAVE_UPGRADES}={}){
  if(state.pending)throw Error('UNRESOLVED_THREE_CARD_OFFER');
+ if(state.pendingLevelUps<=0)throw Error('NO_LEVEL_UP_PENDING');
  const eligible=pool.filter(c=>isCardEligible(c,state));
  if(eligible.length<3)throw Error('UPGRADE_POOL_EXHAUSTED');
- const rand=seededRng((seed ^ Math.imul(state.level,0x9e3779b1))>>>0);
+ const rand=seededRng((seed ^ Math.imul(state.level,0x9e3779b1) ^ Math.imul(state.offerSerial+1,0x85ebca6b))>>>0);
  const candidates=[...eligible],offer=[];
  for(let i=0;i<3;i++){
   const weight=c=>RARITY_WEIGHTS[c.tier];
@@ -54,6 +55,7 @@ export function offerThreeCards(state,{seed=1,pool=WAVE_UPGRADES}={}){
   offer.push(candidates.splice(index,1)[0]);
  }
  state.pending=offer.map(c=>c.id);
+ state.offerSerial++;
  return offer;
 }
 export function chooseCard(state,cardId,{pool=WAVE_UPGRADES}={}){
@@ -63,6 +65,8 @@ export function chooseCard(state,cardId,{pool=WAVE_UPGRADES}={}){
  if(card.kind==='unlock')state.owned.add(card.id);
  else state.stacks[card.id]=(state.stacks[card.id]||0)+1;
  state.pending=null;
+ if(!(state.pendingLevelUps>0))throw Error('LEVEL_UP_ACCOUNTING_INVALID');
+ state.pendingLevelUps--;
  return card;
 }
 export function unlockedKeys(state){
@@ -84,6 +88,7 @@ export function recordAuthorizedKill(state,{killId,xp},seenKills){
  seenKills.add(killId);state.xp+=xp;state.totalXp+=xp;
  let levels=0;
  while(state.xp>=xpForNextLevel(state.level)){state.xp-=xpForNextLevel(state.level);state.level++;levels++;}
+ state.pendingLevelUps+=levels;
  return {accepted:true,levels};
 }
 export const WAVE_BOSS_SET=new Set(BOXE_WAVE.bossesAt);
@@ -94,10 +99,10 @@ export function waveDescriptor(number,registry){
  return {wave:number,boss,candidates:ids,spawnEdges:['north','south','east','west']};
 }
 export const DEFAULT_ROBOTS=Object.freeze({
- scout:{minWave:1,boss:false,behavior:'strafe-shoot'},
- bruiser:{minWave:3,boss:false,behavior:'aggressive-pursuit'},
- sentinel:{minWave:6,boss:false,behavior:'ranged-barrage'},
- bossAlpha:{minWave:5,maxWave:5,boss:true,behavior:'multi-phase'},
- bossOmega:{minWave:10,maxWave:10,boss:true,behavior:'multi-phase'},
- bossEndless:{minWave:11,boss:true,behavior:'endless-multi-phase'}
+ scout:{minWave:1,boss:false,behavior:'strafe-shoot',xp:15},
+ bruiser:{minWave:3,boss:false,behavior:'aggressive-pursuit',xp:30},
+ sentinel:{minWave:6,boss:false,behavior:'ranged-barrage',xp:45},
+ bossAlpha:{minWave:5,maxWave:5,boss:true,behavior:'multi-phase',xp:220},
+ bossOmega:{minWave:10,maxWave:10,boss:true,behavior:'multi-phase',xp:440},
+ bossEndless:{minWave:11,boss:true,behavior:'endless-multi-phase',xp:550}
 });

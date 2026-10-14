@@ -87,13 +87,17 @@ assert.equal(e3.some(x=>x.type==='arena:damage-request'),false);
 // Initial three-card semantics: ZERO auto-free grants, random choices do not
 // imply automatic acquisition, finite cards have no duplicates in one offer.
 const w=upgradeState();
+assert.throws(()=>offerThreeCards(w,{seed:19}),/NO_LEVEL_UP_PENDING/);
+const unlockedXP=new Set();
+recordAuthorizedKill(w,{killId:'training-authorized-kill',xp:60},unlockedXP);
+assert.equal(w.pendingLevelUps,1);
 assert.deepEqual(unlockedKeys(w),['J','K','L']);assert.deepEqual(enabledGoldSkills(w),[]);
 const o=offerThreeCards(w,{seed:19});
 assert.equal(o.length,3);assert.equal(new Set(o.map(x=>x.id)).size,3);
 assert.deepEqual(unlockedKeys(w),['J','K','L']);
 assert.throws(()=>chooseCard(w,'unlock-ultimate'),/CARD_NOT_OFFERED/);
 chooseCard(w,o[0].id);
-assert.equal(w.pending,null);
+assert.equal(w.pending,null);assert.equal(w.pendingLevelUps,0);
 assert.ok(!w.owned.has('unlock-ultimate'));
 assert.throws(()=>offerThreeCards({...w,pending:['x']},{seed:1}),/UNRESOLVED/);
 // Explicit upgrade ordering is by SELECTED cards, never by reaching level.
@@ -111,6 +115,15 @@ const kills=new Set(),s=upgradeState();
 assert.equal(recordAuthorizedKill(s,{killId:'robot-42',xp:70},kills).accepted,true);
 assert.equal(recordAuthorizedKill(s,{killId:'robot-42',xp:70},kills).accepted,false);
 assert.equal(s.totalXp,70);
+const chain=upgradeState(),chainKills=new Set();
+const chainEvent=recordAuthorizedKill(chain,{killId:'wave-boss-unique',xp:1200},chainKills);
+assert.ok(chainEvent.levels>=3);assert.equal(chain.pendingLevelUps,chainEvent.levels);
+for(let i=0;i<chainEvent.levels;i++){
+ const cards=offerThreeCards(chain,{seed:0xB0AE});
+ assert.equal(cards.length,3);
+ chooseCard(chain,cards[0].id);
+}
+assert.equal(chain.pendingLevelUps,0);
 assert.equal(waveDescriptor(5,DEFAULT_ROBOTS).boss,true);
 assert.deepEqual(waveDescriptor(10,DEFAULT_ROBOTS).candidates,['bossOmega']);
 assert.deepEqual(waveDescriptor(15,DEFAULT_ROBOTS).candidates,['bossEndless']);
