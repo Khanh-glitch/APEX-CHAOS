@@ -1551,13 +1551,19 @@ function renderRig(g) {
     }, { passive: true });
 
     const AIL = globalScope.APEX_HERO_REWORK_AIL;
-    if (AIL && AIL.bus && !AIL.bus.__robotPresentationHooked) {
+    if (AIL?.bus && !AIL.bus.__robotPresentationHooked) {
+      // Subscribe to the engine's existing wildcard presentation channel.
+      // Do not monkey-patch bus.emit: that global interceptor silently changed
+      // the ordering seen by every current and future hero/weapon subscriber.
+      // One page-lifetime subscription, match-local sprite/FX state is reset
+      // by the existing teardown path. No gameplay events are fabricated.
+      const off=AIL.bus.on('*', event=>{
+        try { handleBusEvent(event); }
+        catch (e) { console.warn('[robot-presentation] bus handler error', e); }
+      });
+      if(typeof off!=='function')throw Error('Robot presentation requires AIL bus unsubscribe');
       AIL.bus.__robotPresentationHooked = true;
-      const origEmit = AIL.bus.emit;
-      AIL.bus.emit = function (type, payload) {
-        try { handleBusEvent({ type, payload }); } catch (e) { console.warn('[robot-presentation] bus handler error', e); }
-        return origEmit.call(this, type, payload);
-      };
+      AIL.bus.__robotPresentationUnsubscribe = off;
     }
 
     const Fighter = globalScope.Fighter;
