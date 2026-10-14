@@ -35,36 +35,41 @@ export function AbilityWeb({item,skills,compact=false}){
  const content=skills||[];
  const current=content.find(([id])=>id===selected)||content[0]||null;
  return <section className={'fa3-combat-web'+(compact?' fa3-combat-web-compact':'')} aria-label="Ability circuit; select a skill node">
-  <div className="fa3-readout-top"><b>COMBAT CIRCUIT / 03 NODES</b><span>SKILL RELATION MAP</span></div>
+  <div className="fa3-readout-top"><b>TACTICAL ABILITY NETWORK</b><span>03 ACTIVE CHANNELS / P · A1 · A2</span></div>
   <div className="fa3-web-body">
    <div className="fa3-web-graphic" role="group" aria-label="Passive, A1, A2 ability selection">
-    <svg viewBox="0 0 250 200" aria-hidden="true" className="fa3-web-lines">
-     <defs>
-      <linearGradient id="fa3-web-wires" x1="0" y1="0" x2="1" y2="1">
-       <stop offset="0" stopColor="#bd6f32"/><stop offset=".5" stopColor="#fbb66c"/><stop offset="1" stopColor="#66563f"/>
-      </linearGradient>
-     </defs>
-     <path d="M125 13 L226 175 L24 175 Z" fill="#121817" fillOpacity=".30" stroke="url(#fa3-web-wires)" strokeWidth="2.2"/>
-     <path d="M125 45 L195 160 L55 160 Z" stroke="#c49153" strokeOpacity=".48" fill="none" strokeDasharray="4 5"/>
-     <path d="M125 77 L163 148 L87 148 Z M125 13 V175 M24 175 L176 94 M226 175 L74 94" fill="none" stroke="#976c47" strokeOpacity=".45" strokeWidth=".8"/>
-     <circle cx="125" cy="119" r="31" fill="#1c2221" stroke="#9c6e40" strokeWidth="1.7"/>
-     <circle cx="125" cy="119" r="23" fill="none" stroke="#dba45e" strokeOpacity=".55" strokeDasharray="2 3"/>
-     <path d="M119 119l6-8 6 8-6 8z" fill="#eca35c"/>
-     <path d="M8 184h33 M209 184h33 M125 4V15" stroke="#d5a263" strokeWidth="2"/>
-    </svg>
-    {KEYS.map((code,i)=>{
+    <div className="fa3-web-map" data-node={selected.toLowerCase()}>
+     <svg viewBox="0 0 250 200" aria-hidden="true" className="fa3-web-lines">
+      <defs>
+       <linearGradient id="fa3-web-wires" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#cf7931"/><stop offset=".46" stopColor="#ffcc84"/><stop offset="1" stopColor="#8c5633"/></linearGradient>
+       <radialGradient id="fa3-web-core"><stop offset="0" stopColor="#c9793d" stopOpacity=".55"/><stop offset="1" stopColor="#c9793d" stopOpacity="0"/></radialGradient>
+      </defs>
+      <path d="M125 20 L224 168 L26 168 Z" fill="#171f1d" fillOpacity=".42" stroke="#f4a85b" strokeOpacity=".38" strokeWidth="5"/>
+      <path d="M125 20 L224 168 L26 168 Z" fill="none" stroke="url(#fa3-web-wires)" strokeWidth="1.8"/>
+      <path d="M125 49 L202 156 L48 156 Z M125 78 L178 145 L72 145 Z" stroke="#ac8457" strokeOpacity=".52" fill="none" strokeDasharray="3 5"/>
+      <path d="M125 20 L125 117 L26 168 M125 117 L224 168 M26 168 L125 20 M224 168 L125 20" fill="none" stroke="#ba8b54" strokeOpacity=".5" strokeWidth="1.2"/>
+      <path d="M125 117 L125 20 M125 117 L26 168 M125 117 L224 168" fill="none" className="fa3-web-beams" stroke="url(#fa3-web-wires)" strokeWidth="1.8" strokeDasharray="9 10"/>
+      <circle cx="125" cy="117" r="35" fill="url(#fa3-web-core)"/>
+      <circle cx="125" cy="117" r="23" fill="#151c1c" stroke="#ffbd6c" strokeWidth="2"/>
+      <circle cx="125" cy="117" r="32" fill="none" stroke="#ffac62" strokeOpacity=".65" strokeDasharray="3 5"/>
+      <path d="M117 117l8-12 8 12-8 12z" fill="#fbb66b"/>
+      <path d="M9 176h42 M198 176h42 M125 0v18" stroke="#b88755" strokeWidth="2"/>
+      <path d="M19 174v10 M231 174v10" stroke="#b88755"/>
+     </svg>
+     {KEYS.map(code=>{
       const label=content.find(([k])=>k===code)?.[1]||code;
       return <button type="button" key={code} className={'fa3-web-node fa3-web-node-'+code.toLowerCase()+(selected===code?' active':'')} aria-pressed={selected===code} aria-label={code+' '+label} onClick={()=>setSelected(code)}>
        <span>{code==='PASSIVE'?'P':code}</span>
       </button>;
-    })}
-    <span className="fa3-web-stamp" aria-hidden="true">SELECT NODE</span>
+     })}
+     <span className="fa3-web-stamp" aria-hidden="true">SKILL AUTHORITY</span>
+    </div>
    </div>
    <div className="fa3-web-detail" aria-live="polite">
-    <span className="fa3-readout-code">{current?.[0]||'—'} // ACTIVE FILE</span>
+    <span className="fa3-readout-code">{current?.[0]||'—'} // LIVE ABILITY RECORD</span>
     <strong>{current?.[1]||'NO ABILITY REGISTERED'}</strong>
     <p>{current?.[2]||'Ability information unavailable'}</p>
-    <div className="fa3-web-legend"><i/> NATIVE ABILITY <b>NO COSMETIC BUFF</b></div>
+    <div className="fa3-web-legend"><i/> ENGINE AUTHORITY <b>SKIN ≠ BUFF</b></div>
    </div>
   </div>
  </section>;
