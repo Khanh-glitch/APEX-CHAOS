@@ -35,7 +35,10 @@ async function chooseWeapon(frame){
 }
 try{
  for(const v of testCases){
-  const page=await browser.newPage(),errors=[];
+  // Desktop and Android must start in isolated browser profiles; the
+  // synthetic 'qa-alt' storage from one case must not pre-equip the other.
+  const context=await browser.createBrowserContext();
+  const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(String(e)));
   try{
    await page.setViewport({width:v.width,height:v.height,isMobile:!!v.isMobile,hasTouch:!!v.hasTouch,deviceScaleFactor:v.deviceScaleFactor||1});
@@ -117,7 +120,7 @@ try{
   }catch(e){fails++;console.error('FAIL FIELD ARCHIVE COSMETIC '+v.name,String(e?.stack||e),errors);
    const diag=await page.evaluate(()=>({url:location.href,hasArchive:!!document.querySelector('.fa3-shell'),stage:document.querySelector('#stage')?.className})).catch(()=>({}));
    console.error('DIAGNOSTIC',diag);
-  }finally{await page.close()}
+  }finally{await page.close();await context.close()}
  }
 }finally{await browser.close()}
 if(fails)process.exit(1);
