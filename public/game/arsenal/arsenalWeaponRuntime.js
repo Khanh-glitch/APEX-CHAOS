@@ -738,6 +738,15 @@
     const dir=Math.cos(angle),side=Math.sin(angle),r=f.radius||75;
     return {x:f.x+dir*r*.78,y:f.y+side*r*.78};
   }
+  // Visual history is cosmetic-only. Preserve Gold clouds until their lifetime
+  // expires; the previous fixed 24 samples truncated V3 smoke at high FPS.
+  function trimV43VisualHistory(p){
+    const seconds=window.APEX_COSMETICS?.trailHistorySeconds?.(p.cosmetic)||0;
+    if(seconds>0){
+      while(p.visual.length>1 && p.age-p.visual[0].t>seconds)p.visual.shift();
+      if(p.visual.length>180)p.visual.splice(0,p.visual.length-180);
+    }else if(p.visual.length>24)p.visual.shift();
+  }
   function v43Spawn(f,id,kind,angle,extra={}){
     const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;
     const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,launchOwner:f,
@@ -1085,7 +1094,7 @@
       }
       const previous=p.visual[p.visual.length-1];
       if(!previous||Math.hypot(p.x-previous.x,p.y-previous.y)>4){
-        p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
+        p.visual.push({x:p.x,y:p.y,t:p.age});trimV43VisualHistory(p);
       }
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
       // Every physical SPECIAL flight must pass through Crystal's single
@@ -1127,7 +1136,7 @@
         postVx:magnetPlan.postVx,postVy:magnetPlan.postVy};
       p.__hr.pathPoly=magnetPlan.poly?.length?magnetPlan.poly:null;
     }else{p.x+=p.vx*dt;p.y+=p.vy*dt;}
-    p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
+    p.visual.push({x:p.x,y:p.y,t:p.age});trimV43VisualHistory(p);
     // Plasma core is a charged carrier, not a damaging early projectile.
     // Mine must land and arm first: an in-flight collision cannot bypass
     // the explicit 0.48s arming gate.
