@@ -68,7 +68,7 @@ function register(def) {
   if (registry.has(idKey)) throw new Error('Duplicate cosmetic owner: '+idKey);
   const assets = Object.freeze([...(def.assets || [])].map(safeAsset));
   const hooks = {};
-  for (const name of ['projectile','blast','actor','weapon','skill','worldBack','worldFront']) {
+  for (const name of ['projectile','blast','actor','weapon','skill','worldBack','worldFront','targetLock','targetMeasure']) {
     if (def.render?.[name] != null) {
       if (typeof def.render[name] !== 'function') throw new Error('Skin render hook must be synchronous');
       hooks[name] = def.render[name];
