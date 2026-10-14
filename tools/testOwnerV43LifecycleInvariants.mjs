@@ -146,7 +146,19 @@ assert.match(p,/drawV43GoldPlasmaCharge,\s*drawPoseGhost/,
   'Gold plasma presentation helper must be available to the shared foreground');
 assert.match(p,/robot\.getRobotWeaponSocketWorld\?\.\(fighter\)/,
   'plasma muzzle and charge must honor the actual ROBOT-held-art socket');
-assert.match(robot,/if \(ok\) return true;/,
-  'regression fixture: ROBOT-held-art override short-circuits default drawer');
+// CP13: the old global Robot AV wrapper was replaced with a scoped provider.
+ // The invariant is not the formatting of an old short-circuit statement:
+ // the physically-equipped ROBOT returns a paint receipt to the Arsenal-owned
+ // dispatch, so generic equipped art must NOT draw a second gun.
+assert.match(robot,/registerEquippedWeaponRenderer\('robot-native-jaw',paintRobotEquipped\)/,
+  'ROBOT must register its native jaw renderer through Arsenal AV');
+assert.match(robot,/if\(ok\)return true;/,
+  'ROBOT native jaw provider must claim the completed Gold-held paint');
+assert.doesNotMatch(robot,/av\.drawEquippedWeapon\s*=/,
+  'ROBOT must not replace the globally shared Arsenal AV draw method');
+assert.match(p,/if\(handled===true\)return true;/,
+  'Arsenal provider dispatch must stop after one complete held weapon draw');
+assert.match(p,/registerEquippedWeaponRenderer,/,
+  'Arsenal must export the owner-scoped held weapon provider registry');
 
 console.log('PASS owner V43 source integration invariants: 8 weapon entries + native holder/pose/projectile/Frost/result gates');
