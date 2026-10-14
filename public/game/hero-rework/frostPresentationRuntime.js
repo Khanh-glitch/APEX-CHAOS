@@ -429,7 +429,7 @@ function createState(ct) {
     // Authored ice width -> gameplay mechanic width (1.0 on stock Lv1 truth).
     laneK: (+cfg.a1.width || REF.A1_WIDTH) / REF.A1_WIDTH,
     trailK: (+cfg.a2.trailWidth || REF.A2_WIDTH) / REF.A2_WIDTH,
-    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0, goldPreview: null },
+    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0 },
     a2: { live: false, started: false, hydrated: 0, path: null },
     castQ: [],       // deferred Gold cast admissions (FIFO, truth-checked)
     castSeq: 0, castStarts: 0, castDeferred: 0, castDropped: 0,
@@ -495,7 +495,7 @@ function resetEngineVisuals(S, m) {
     e.huntGoal = 0;
   } catch (err) { warnOnce(err); }
   S.tOff = null;
-  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0, goldPreview: null };
+  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0 };
   S.a2 = { live: false, started: false, hydrated: 0, path: null };
   S.castQ.length = 0;
   S.castSeq = 0; S.castStarts = 0; S.castDeferred = 0; S.castDropped = 0;
@@ -836,46 +836,8 @@ function canAcceptCast(S) {
   try { return S.engine.mode === 'free'; } catch (e) { return false; }
 }
 
-// ---- deferred admission: replay from authoritative gameplay history -------
-// A queued cast is admitted after gameplay has already moved on. Starting it
-// "here, now" would put the lane under Frost's CURRENT feet and cut the hunt
-// path off at the admission point. Both are reconstructed from gameplay truth
-// instead, through Gold's own buildLane / ice.add — no second mechanic, no
-// approximated effect, no steering or teleport.
-
-// A1: gameplay released while Gold was busy. The lane is rebuilt at the real
-// release origin, along the committed direction, with the real front window
-// back-dated (born times in the past = the front the player already saw) and
-// the one shared gameplay expiry.
-function replayA1Lane(S, q, now) {
-  const e = S.engine, L = q.lane;
-  const off = S.tOff || 0;
-  const ang = Math.atan2(L.dy, L.dx);
-  e.a1Len = L.len;
-  e.a1Travel = Math.max(0.05, L.frontDoneAt - L.frontStartAt);
-  Object.assign(e.a1, {
-    ang, released: false, bite: true, ended: true, front: L.len, frontPrev: L.len,
-    nodes: [], rowAcc: 0, lobeAcc: 0, chipAcc: 0,
-  });
-  // The lane is rebuilt at the AUTHORITATIVE release origin (gameplay truth),
-  // not at Frost's current position: a deferred visual must not drag the
-  // floor to wherever Frost has since walked.
-  e.a1Origin = { x: L.ox, y: L.oy };
-  try { e.buildLane(L.frontStartAt + off, L.len, e.a1Travel); }
-  catch (err) { warnOnce(err); }
-  finally { e.a1Origin = null; }
-  e.a1.released = true;
-  // Lifetime stays the ORIGINAL gameplay lane expiry (never a fresh floor
-  // from admission time).
-  S.a1.casts.push({
-    nodes: (e.a1.nodes || []).map((w) => w && w.n).filter(Boolean),
-    expireE: L.expireAt + off,
-  });
-  if (S.a1.casts.length > 4) S.a1.casts.shift();
-  S.a1.releasedSeen = true;   // the generic capture must not re-anchor it
-  S.a1.replays = (S.a1.replays || 0) + 1;
-}
-
+// A2 keeps the canonical movement-history adapter. The unused A1 replay
+// producer was removed; only Gold's one admitted cast may create a lane.
 // A2: the hunt has been running (and turning/bouncing) while Gold was busy.
 // The Gold trail is reconstructed from the authoritative gameplay movement
 // history through GOLD'S OWN trail constructor and GOLD'S OWN node law
@@ -944,9 +906,10 @@ function startCast(S, q, now, insp) {
     e.a1Travel = q.lane
       ? Math.max(0.05, q.lane.frontDoneAt - q.lane.frontStartAt)
       : q.travel;
-    try { e.castA1(q.ang); } catch (err) { warnOnce(err); }
+    e.castA1(q.ang);
+    if (e.mode !== 'a1') throw new Error('Frost A1 actor rejected cast '+q.castId);
     S.a1.startedId = q.castId;
-    S.a1.startClock = q.lane || now - (q.castAt || now) > 0.05 ? now : (q.castAt || now);
+    S.a1.startClock = (q.lane || now - q.castAt > 0.05) ? now : q.castAt;
     S.a1.forceExpiryId = q.lane ? q.castId : null;
     if (q.lane) {
       S.a1.expireClock = q.lane.expireAt;
@@ -983,9 +946,16 @@ function castStillTrue(S, q, now) {
 }
 
 function requestCast(S, q, now, insp) {
-  // Gameplay has accepted a qualifying Frost activation. Refresh the one
-  // shared arena mood now, even if Gold presentation admission is deferred.
   refreshAmbience(now);
+  // CP17: Gold serialized the A1 gesture behind a multi-second A2 animation
+  // and rendered an ice-preview before replaying the real A1 afterwards.
+  // The skills are CONCURRENT in gameplay. Give A1 immediate actor priority;
+  // A2's native movement + Gold history-derived trail continue independently.
+  if (q.kind === 'a1' && S.engine.mode === 'a2') {
+    S.engine.mode = 'free';
+    S.engine.huntGoal = 0;
+    S.a2.actorYieldedToA1 = true;
+  }
   if (canAcceptCast(S) && !S.castQ.length) { startCast(S, q, now, insp); return; }
   // Same-kind supersede: a newer cast of the same ability replaces the older
   // queued one (the older visual's truth is already being overwritten).
@@ -1074,13 +1044,9 @@ function tickA1(S, ct, insp, now, dt) {
   if (insp && !insp.pending && S.a1.pending) {
     S.a1.pending = false;
     S.a1.releaseClock = now;
-    // The gameplay release is the authority for the beat: land the Gold
-    // pressure->release on the SAME frame (float dt accumulation otherwise
-    // leaves modeT a hair under A1_CAST and the whole visual runs a frame
-    // behind the mechanic lane).
-    if (e.mode === 'a1' && e.a1 && !e.a1.released && e.modeT < A1_RELEASE_BEAT) {
-      e.modeT = A1_RELEASE_BEAT;
-    }
+    // Never jump modeT to Gold's release threshold when gameplay crosses its
+    // commit. That shortcut bypassed the 0.25s authored opening/pressure beat
+    // after a hitch. Gold emits exactly one release on its own timeline.
     S.a1.expireClock = now + frontSeconds + (+cfg1.floorLifetime || 4.5);
     // Released while Gold is still busy: the visual can no longer be started
     // "here, now". Bind the queued cast to the authoritative lane record so
@@ -1457,7 +1423,6 @@ function driveEngine(S, ct, dt) {
   let insp = null;
   try { insp = FR && typeof FR.inspect === 'function' ? FR.inspect(ct) : null; } catch (err) {}
   tickA1(S, ct, insp, now, dt);
-  primeQueuedA1Gold(S);
   if (S.a1.pending && now < S.a1.holdUntil) e.modeT = 0;
   try { e.onIce = e.ice.iceAt(e.fx, e.fy + 6, t); } catch (err) { e.onIce = false; }
   const pvx = e.fvx, pvy = e.fvy;
@@ -1562,74 +1527,14 @@ api.tick = function (dt) {
 // World-surface layer only: ice/wet/front/floor support. Arsenal invokes this
 // after the chamber floor but before pickup sprites, guaranteeing guns remain
 // readable without moving the Frost actor/head out of its normal body order.
-// Deferred A1 is rendered only by the approved Gold FrostEngine material.
-// While A2 owns Gold's single actor-mode, do not insert an unauthored
-// gradient floor between gameplay release and the queued A1 cast. Gameplay
-// truth and its freeze/contact timing remain unchanged, and the queued cast
-// still plays Gold's full anticipation, breath, front and expiry lifecycle.
-// A1 and A2 are independent native skills, while the Gold actor serializes
-// their body choreography. A native A1 lane can become active before the body
-// is free to play the authored breath. The old immediate feedback painted a
-// flat gradient instead of Gold material. Materialize ONLY a render-only
-// sample of Gold's own buildLane() from the authoritative origin/front/expiry.
-// Keep it OUT of the engine's persistent ice array and flag gameplay=false:
-// native Frost owns contacts/expiry; this is no new physical ice surface.
-function primeQueuedA1Gold(S) {
-  const q = S.castQ.find((v) => v.kind === 'a1' && v.lane);
-  if (!q || S.a1.goldPreview?.castId === q.castId) return;
-  const e = S.engine, L = q.lane, ice = e.ice;
-  const keepA1 = e.a1, keepOrigin = e.a1Origin, keepNodes = ice.nodes;
-  const keepRng = e.rng.s, keepIceRng = ice.rng.s;
-  try {
-    e.a1 = { ...keepA1, ang: Math.atan2(L.dy, L.dx), nodes: [] };
-    e.a1Origin = { x: L.ox, y: L.oy };
-    ice.nodes = [];
-    const off = S.tOff || 0;
-    const travel = Math.max(0.05, L.frontDoneAt - L.frontStartAt);
-    e.buildLane(L.frontStartAt + off, L.len, travel);
-    const shift = L.expireAt + off - (e.a1.endT + e.a1FloorLife);
-    const nodes = ice.nodes;
-    for (const n of nodes) {
-      n.gameplay = false; // render-only; never enter iceAt/nodeAt authority
-      n.__frostQueuedPreview = true;
-      n.activeUntil = L.expireAt + off;
-      if (Number.isFinite(n.decayAt)) n.decayAt += shift;
-    }
-    if (nodes.length) S.a1.goldPreview = {
-      castId: q.castId, nodes, frontStartAt: L.frontStartAt, expireAt: L.expireAt,
-    };
-  } catch (err) { warnOnce(err); }
-  finally {
-    e.a1 = keepA1; e.a1Origin = keepOrigin; ice.nodes = keepNodes;
-    e.rng.s = keepRng; ice.rng.s = keepIceRng;
-  }
-}
-
-// Temporary, render-only inclusion is restored BEFORE control returns from
-// the canvas pass. While Gold plays its deferred anticipation, keep this
-// surface until its real ice takes over, avoiding a frame of missing floor.
-function drawQueuedA1GoldSurface(S, draw) {
-  const e = S.engine, P = S.a1.goldPreview;
-  if (!P) return draw();
-  if (clock() >= P.expireAt || (e.a1.released && S.a1.startedId === P.castId)) {
-    S.a1.goldPreview = null;
-    return draw();
-  }
-  if (clock() < P.frontStartAt) return draw();
-  const nodes = e.ice.nodes, count = nodes.length;
-  try {
-    nodes.push(...P.nodes);
-    return draw(); // the SAME approved Gold IceField.render/composite path
-  } finally { nodes.length = count; }
-}
-
+// CP17: one A1 cast ID => one Gold actor and one Gold lane producer.
 function renderSurfaceUnderWeapons(ctx) {
   if (!api.ready || !liveStates.size || !ctx) return;
   const px = pxFromCtx(ctx);
   for (const [, S] of liveStates) {
     isolated(ctx, () => {
       S.engine.ice.drawWet(ctx, S.engine.t);
-      drawQueuedA1GoldSurface(S, () => drawIceComposite(S, ctx, px));
+      drawIceComposite(S, ctx, px);
       S.engine.drawA1MacroFront(ctx, px);
     });
   }
