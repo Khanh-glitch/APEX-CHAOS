@@ -1404,11 +1404,11 @@ function renderRig(g) {
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
-        ecoFx(st,'a2-on',f);
         playRobotSfx('robot_a2_activate', { vol: 0.78 });
         setPoseState(st, { ...P_A2_INDEX, ...(st.held ? { calTh: -.02 } : {}) });
         atState(st, .16, () => {
           st.armor = true;
+          ecoFx(st,'a2-on',f);
           setPoseState(st, P_A2_LOCK);
           st.snapUntil = st.T + .16; st.snapW = 66; st.snapZ = .6;
           st.R.seam.snapTo(1);
@@ -1488,10 +1488,10 @@ function renderRig(g) {
         if (!st) continue;
         if (payload.milestone <= (st._lastMilestoneNumber || 0)) continue;
         st._lastMilestoneNumber = payload.milestone;
-        ecoFx(st,'passive',f);
         playRobotSfx('robot_passive_milestone', { vol: 0.68 });
         for (let i = 0; i < 3; i++) atState(st, i * .06, () => { st.ticks[i] = 1; });
         atState(st, .2, () => {
+          ecoFx(st,'passive',f);
           st.R.crest.kick(16); st.lockFlash = .6; st.R.glow.kick(.5);
           const ps = calPointLocal(st, 0, PIV[0].x, PIV[0].y);
           const po = calPointLocal(st, 1, PIV[1].x, PIV[1].y);
