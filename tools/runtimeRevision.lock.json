@@ -13,7 +13,7 @@
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalConfig.js": "c1bcd2d46c2cbd36663c3a3bbea7c0e9fc43fef8204a9fe1eaae2bdc8fa2e5af",
     "public/game/arsenal/arsenalIdentityRuntime.js": "d9a5b80a043a40445395f2b28c8e6aab2dfae5c868b56ea3eaac261d84bcae1a",
-    "public/game/arsenal/arsenalWeaponRuntime.js": "348c58a8c16fe0794832364219e74eab77fe46d45a07beb7edb81dbe96bdbecb",
+    "public/game/arsenal/arsenalWeaponRuntime.js": "d1b596cb26ad7bf498cf14f332fe125f0e1b848423884c3f13ca8b574c77902f",
     "public/game/arsenal/arsenalSpawnRuntime.js": "4fd07e50ee21d8c59fb726777a9c1f3359c07350578a74eb905aedb240ff8121",
     "public/game/arsenal/arsenalPresentationRuntime.js": "3f2a565757aad42e2b6d96cc64421d47809d12b852b8931588a52bb093100497",
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
