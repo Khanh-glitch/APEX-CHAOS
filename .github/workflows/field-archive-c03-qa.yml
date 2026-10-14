@@ -1,0 +1,89 @@
+name: Field Archive C03 Real Product QA
+on:
+  push:
+    branches:
+      - design/field-archive-c03-product-20261014
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  real-product-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Real shipping build and runtime Gold manifest/asset integrity
+        run: |
+          pnpm build
+          node tools/testShippingDist.mjs
+          node tools/testRuntimeRevisionGate.mjs
+          pnpm test:product-graph
+          pnpm test:gold-shell-loader
+          pnpm test:gold-revision-integrity
+          pnpm test:source-hygiene
+          pnpm test:localization
+      - name: Install Chrome driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Preview built product
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/fa3-vite.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/fa3-vite.log
+          exit 1
+      - name: Five real Chrome viewports, Gold HOME Dictionary, actual Equip and persisted reload
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testFieldArchiveC03Chrome.mjs
+      - name: Real Gold Fighter Pick Quick Equip — desktop/mobile, P1/BOT, actual persistent skins
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testFieldArchivePickQuickChrome.mjs
+      # Capture proof without branch self-push: parallel workflows cannot
+      # safely race each other to rewrite the branch, and dynamic screenshot
+      # frames are diagnostic evidence rather than source commits.
+      - name: Upload diagnostic and approved actual UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: field-archive-c03-real-product-proof
+          path: |
+            docs/field-archive/candidate03/
+            docs/field-archive/pick-quick-equip/
+          if-no-files-found: warn
+          retention-days: 21
+
+      # Create a separate evidence branch after PASS so reviewers can inspect
+      # the *actual* rendered screenshots without extracting Actions artifacts.
+      # Never self-push to the design source branch or to main.
+      - name: Publish actual Chrome screenshots to isolated audit branch
+        if: success() && github.ref == 'refs/heads/design/field-archive-c03-product-20261014'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "field-archive-chrome-evidence[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          EVIDENCE="visual/c03-qa-${GITHUB_SHA:0:9}"
+          git switch -c "$EVIDENCE"
+          git add docs/field-archive/candidate03/ docs/field-archive/pick-quick-equip/
+          git commit -m "Actual Chrome no-scroll Field Archive C03 evidence for ${GITHUB_SHA:0:9} [skip ci]"
+          git push origin HEAD:"refs/heads/$EVIDENCE"
+          echo "Screenshot proof branch: $EVIDENCE"
