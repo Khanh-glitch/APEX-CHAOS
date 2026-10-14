@@ -68,7 +68,7 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   advance(now);if(state.cooldowns.A1>0||state.rocket)return false;
   state.cooldowns.A1=RULES.a1.cooldownMs;
   state.rocket={phase:'outbound',returnAt:now+RULES.a1.outboundMs,enhancedAtCast:state.enhanced,
-   collisionIds:new Set(),flurryUsed:false,cargoId:null};
+   collisionIds:new Set(),flurryUsed:false,cargoId:null,pendingCargoId:null};
   dispatch('boxe:rocket-launch',{goldKey:'2',durationMs:RULES.a1.outboundMs,enhanced:state.enhanced,damage:0});
   return true;
  }
@@ -99,10 +99,19 @@ export function createBoxeBattleController({emit=()=>{}}={}){
  }
  function rocketGroundGunContact({gunId,eligible=true},now){
   advance(now);const r=state.rocket;
-  if(!r||r.phase!=='outbound'||r.cargoId||!gunId||!eligible)return false;
-  // Canonical ownership/ground-availability must be revalidated in adapter.
-  r.cargoId=gunId;dispatch('arena:reserve-ground-gun-request',{gunId,maxCargo:1});
+  if(!r||r.phase!=='outbound'||r.cargoId||r.pendingCargoId||!gunId||!eligible)return false;
+  // This is a PENDING request, never proof of actual floor-weapon ownership.
+  r.pendingCargoId=gunId;
+  dispatch('arena:reserve-ground-gun-request',{gunId,maxCargo:1});
   return true;
+ }
+ function resolveGroundGunReservation({gunId,accepted},now){
+  advance(now);const r=state.rocket;
+  if(!r||r.pendingCargoId!==gunId)return false;
+  r.pendingCargoId=null;
+  if(!accepted){dispatch('boxe:ground-gun-reservation-rejected',{gunId});return true;}
+  r.cargoId=gunId;
+  dispatch('boxe:ground-gun-reservation-confirmed',{gunId});return true;
  }
  function rocketCatch(now){
   advance(now);const r=state.rocket;
@@ -147,21 +156,22 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   dispatch('arena:stun-request',{opponentId,durationMs:RULES.a2.counterStunMs,source:'A2',damage:0});
   dispatch('arena:disarm-request',{opponentId,source:'A2',collisionId});
   if(c.enhancedAtCast){
-   // Real engine must use CURRENT HP, never a stale pre-counter snapshot.
+   // No precomputed absolute amount: the engine MUST atomically resolve
+   // 10% of current target HP at application time after collision authority.
    dispatch('boxe:uppercut-finisher-vfx',{goldKey:'3',opponentId,collisionId});
    dispatch('arena:damage-request',{opponentId,kind:'A2_EMPOWERED_FINISHER',
-    amount:boxeSkillDamage({kind:'A2_EMPOWERED_FINISHER',targetRemainingHP:opponentRemainingHP}),
-    fractionRemaining:0.10,authoritativeRemainingAtImpact:true});
+    formula:'FRACTION_OF_REMAINING_HP',fractionRemaining:0.10,
+    authoritativeRemainingAtImpact:true});
   }
   state.counter=null;return true;
  }
  function snapshot(){return {
   now:state.now,damageProgress:state.damageProgress,enhanced:state.enhanced,
   enhancedUntil:state.enhancedUntil,cooldowns:{...state.cooldowns},
-  rocket:state.rocket?{phase:state.rocket.phase,returnAt:state.rocket.returnAt,cargoId:state.rocket.cargoId,flurryUsed:state.rocket.flurryUsed}:null,
+  rocket:state.rocket?{phase:state.rocket.phase,returnAt:state.rocket.returnAt,cargoId:state.rocket.cargoId,pendingCargoId:state.rocket.pendingCargoId,flurryUsed:state.rocket.flurryUsed}:null,
   flurry:state.flurry?{startedAt:state.flurry.startedAt,endingAt:state.flurry.endingAt,punchCount:state.flurry.punchCount}:null,
   counterPhase:state.counter?.phase||null,carryQueue:state.carryQueue,fireCycleActive:state.fireCycleActive
  };}
  return {advance,recordRealDamage,castA1,rocketFighterHit,flurryFighterHit,rocketGroundGunContact,
-  rocketCatch,setWeaponFireCycle,castA2,interceptIncoming,counterContact,snapshot};
+  resolveGroundGunReservation,rocketCatch,setWeaponFireCycle,castA2,interceptIncoming,counterContact,snapshot};
 }
