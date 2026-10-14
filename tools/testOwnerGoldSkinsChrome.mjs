@@ -112,11 +112,21 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    for(let k=3;k<worldPixels.length;k+=4)if(worldPixels[k])alphaPixelCount++;
    if(alphaPixelCount<8)throw Error('ECO Gold native passive has no visible leaf material');
 
+   // CP9 smoke proof MUST be acquired from the ACTUAL RPG carrier after
+   // native physics has produced sampled flight history. A first-frame rocket
+   // sprite does NOT prove the exhaust is attached, smooth or Gold-faithful.
+   for(let j=0;j<14;j++)A.step(1/60);
+   if(!projectiles.includes(p)||p.visual.length<8)
+      throw Error('Gold smoke missing continuous native rocket flight samples');
+   const smokeCanvas=document.createElement('canvas');
+   smokeCanvas.width=1200;smokeCanvas.height=900;
+   W.drawArsenalProjectiles(smokeCanvas.getContext('2d'));
+   const smokeFrame=smokeCanvas.toDataURL('image/png');
    const painted=hCtx.getImageData(450,450,1,1).data[3];
    // Save pixels from exactly the approved native presentation callbacks; these
    // are not synthetic CSS mockups or screenshots of a separate Gold studio.
    if(G.__cp8Evidence)throw Error('CP8 evidence namespace already in use');
-   G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),ecoWorld:wc.toDataURL('image/png'),rocket:ctx.canvas.toDataURL('image/png')};
+   G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),ecoWorld:wc.toDataURL('image/png'),rocket:ctx.canvas.toDataURL('image/png'),rocketSmoke:smokeFrame};
    const oldOwner=p.owner;p.owner=b;
    W.drawArsenalProjectiles(ctx);
    if(p.cosmetic?.skinId!=='vua-he')throw Error('Reflection changed Gold identity');
@@ -143,7 +153,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
   if(captureDir){
    const frames=await page.evaluate(()=>window.__cp8Evidence||null);
    assert.deepEqual(Object.keys(frames||{}).sort(),[
-     'actor','ecoWorld','rocket','blast-020','blast-043','blast-091','blast-120'].sort());
+     'actor','ecoWorld','rocket','rocketSmoke','blast-020','blast-043','blast-091','blast-120'].sort());
    for(const [name,data] of Object.entries(frames)){
      assert.match(data,/^data:image\/png;base64,/,'Evidence must be a lossless PNG');
      fs.writeFileSync(path.join(captureDir,`${caseInfo.name}-${name}.png`),
