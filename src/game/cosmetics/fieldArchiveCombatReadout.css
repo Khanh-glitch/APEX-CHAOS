@@ -100,6 +100,12 @@
 .fa3-skin-pager,.fa3-pager{color:#dca667}
 .fa3-footer{background:#101818;color:#b29568;border-top:2px solid #a66635}
 .fa3-footer .fa3-safety{color:#f8aa54}
+/* Hard contract: each skin page contains at most two visible choices.
+   Reserve their PHYSICAL heights before sharing remaining panel space with
+   telemetry. Flex:1 on both list+telemetry previously shrank the skin list
+   to 18px in 844x390 landscape while 2x30px buttons overflowed into EQUIP. */
+.fa3-appear{min-height:0;overflow:hidden}
+.fa3-skin-list{flex:0 0 auto;min-height:0;overflow:visible}
 .fa3-readout-embed{position:relative;min-width:0;min-height:0;flex:1;display:flex;margin:clamp(7px,1.3vh,14px) 0;
  border:1px solid #835735;background:#0c1515;box-shadow:inset 0 0 22px #0009,0 0 0 2px #a56b301f}
 .fa3-readout-embed:before{content:"";position:absolute;top:-4px;left:5px;width:32%;height:3px;background:#ffb35b;z-index:2}
