@@ -83,6 +83,10 @@ try{
        'unusable compact ability web in '+v.name+': '+JSON.stringify(web));
    }
    assert.deepEqual(errors,[],'browser runtime/asset errors');
+   await page.waitForFunction(()=>{
+     const a=document.querySelector('.fa3-artwork'),im=document.querySelector('.fa3-hero-img');
+     return a?.dataset.visualReady==='true'&&im?.complete&&im.naturalWidth>0&&getComputedStyle(im).opacity!=='0';
+   },{timeout:30000});
    await page.screenshot({path:path.join(dir,v.name+'-newbot-original.jpg'),type:'jpeg',quality:85});
    await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:nth-child(2)').click());
    await page.waitForSelector('.fa3-combat-web:not(.fa3-combat-web-compact)');
@@ -122,6 +126,10 @@ try{
    await page.waitForFunction(()=>!![...document.querySelectorAll('.fa3-index-list button')].find(x=>x.textContent.includes('RPG-7')),{timeout:25000});
    await page.evaluate(()=>[...document.querySelectorAll('.fa3-index-list button')].find(x=>x.textContent.includes('RPG-7')).click());
    await page.waitForFunction(()=>document.querySelector('.fa3-record-top h3')?.textContent==='RPG-7',{timeout:10000});
+   await page.waitForFunction(()=>{
+     const a=document.querySelector('.fa3-artwork'),img=document.querySelector('.fa3-weapon-img');
+     return a?.dataset.visualReady==='true'&&img?.complete&&img.naturalWidth>0&&getComputedStyle(img).opacity!=='0';
+   },{timeout:35000});
    const facts=await page.evaluate(()=>{document.querySelector('.fa3-detail-tabs button:nth-child(2)').click();return true});
    await page.waitForSelector('.fa3-stat-console:not(.fa3-stat-console-compact)');
    const words=await page.$eval('.fa3-stat-console:not(.fa3-stat-console-compact)',e=>e.textContent);
@@ -140,6 +148,10 @@ try{
      'Weapon combat telemetry clipped in '+v.name+': '+JSON.stringify(statsReadable));
    await page.$eval('.fa3-detail-tabs button:first-child',e=>e.click());
    await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(e=>e.textContent.includes('VUA HỀ')).click());
+   await page.waitForFunction(()=>{
+     const a=document.querySelector('.fa3-artwork'),img=document.querySelector('.fa3-weapon-img');
+     return a?.dataset.visualReady==='true'&&img?.complete&&img.naturalWidth>0&&getComputedStyle(img).opacity!=='0'&&img.getAttribute('src')?.includes('vua-he');
+   },{timeout:35000});
    await page.screenshot({path:path.join(dir,v.name+'-rpg-vua-he.jpg'),type:'jpeg',quality:85});
    await page.click('.fa3-equip');
    const receipt=await page.evaluate(()=>({loadout:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1')),equipped:document.querySelector('.fa3-equip-state').textContent,body:document.body.className,
