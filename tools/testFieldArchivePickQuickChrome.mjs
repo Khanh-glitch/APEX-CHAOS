@@ -28,8 +28,29 @@ try {
    });
    assert.ok(button.hit&&button.box.width>=25&&button.box.height>=12,'Gold Pick button not reachable '+JSON.stringify(button));
    await page.screenshot({path:path.join(output,v.name+'-pick.jpg'),type:'jpeg',quality:82});
+   const preClick=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const label=document.getElementById('p1Name')?.textContent?.trim();
+    return {stage:stage?.className,p1Name:label,p2Name:document.getElementById('p2Name')?.textContent?.trim(),
+      activeTransition:!!window.APEX_SCENE_TRANSITION?.active?.(),
+      button:!!document.querySelector('.fa3-pick-equip-entry')};
+   });
+   console.log('C03 QUICK PICK BEFORE CLICK',v.name,preClick);
    await page.$eval('.fa3-pick-equip-entry',e=>e.click());
-   await page.waitForSelector('.fa3-shell',{visible:true,timeout:30000});
+   try{await page.waitForSelector('.fa3-shell',{visible:true,timeout:18000});}
+   catch(e){
+    const post=await page.evaluate(()=>({
+     stage:document.getElementById('stage')?.className,
+     p1:document.getElementById('p1Name')?.textContent?.trim(),
+     p2:document.getElementById('p2Name')?.textContent?.trim(),
+     overlay:!!document.querySelector('.fa3-shell'),
+     error:document.querySelector('.apex-skin-error')?.textContent?.trim(),
+     button:document.querySelector('.fa3-pick-equip-entry')?.outerHTML?.slice(0,300),
+     activeTransition:!!window.APEX_SCENE_TRANSITION?.active?.(),
+    }));
+    console.log('C03 QUICK PICK FAILED TO OPEN',v.name,post);
+    throw e;
+   }
    assert.equal(await page.$eval('.fa3-record-top h3',e=>e.textContent),'NEWBOT','Pick opener not on selected hero');
    assert.ok((await page.$eval('.fa3-players button[aria-pressed="true"]',e=>e.textContent)).includes('P1'));
    await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(b=>b.textContent.includes('ECOBOT'))?.click());
