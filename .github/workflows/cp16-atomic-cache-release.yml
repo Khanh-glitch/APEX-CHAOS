@@ -1,0 +1,84 @@
+name: CP16 Atomic Cache Release Candidate
+on:
+  pull_request:
+    paths:
+      - 'src/game/runtimeManifest.js'
+      - 'src/game/goldAssetManifest.js'
+      - 'public/gold/**'
+      - 'tools/runtimeRevision.lock.json'
+      - 'tools/testRuntimeRevisionGate.mjs'
+      - 'tools/testCP16AtomicRelease.mjs'
+      - 'tools/testCP16ColdReturnChrome.mjs'
+      - '.github/workflows/cp16-atomic-cache-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  atomic-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: CP16 atomic three-way cache lock + mixed-cache negative tests
+        run: |
+          node --check tools/testCP16AtomicRelease.mjs
+          node --check tools/testCP16ColdReturnChrome.mjs
+          node tools/testCP16AtomicRelease.mjs
+          node tools/testRuntimeRevisionGate.mjs
+          node tools/testGoldRevisionIntegrityGate.mjs
+          node tools/testGoldB05PatchRevision.mjs
+          node tools/testRuntimeScriptAdmission.mjs
+          node tools/buildGoldCutover.mjs --check
+      - name: Build exact release candidate and inspect shipping dist
+        run: |
+          pnpm run build
+          node tools/testShippingDist.mjs
+  cold-return-chrome:
+    needs: atomic-integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Install isolated Chrome driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Exercise physical Chrome cold, cached reload, and history return
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite preview --host 127.0.0.1 --port 4173 >/tmp/cp16-vite.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep .5
+          done
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testCP16ColdReturnChrome.mjs
+      - name: Retain cold/return visual and network receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp16-cold-return-chrome
+          path: |
+            /tmp/cp16-cache-browser/
+            /tmp/cp16-vite.log
+          if-no-files-found: warn
+          retention-days: 14
