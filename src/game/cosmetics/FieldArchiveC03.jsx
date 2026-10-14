@@ -5,6 +5,7 @@ import {loadDeferredGameRuntimes} from '../runtimeLoader.js';
 import './approvedGoldSkins.js';
 import './cosmeticLocker.css';
 import './fieldArchiveC03.css';
+import {AbilityWeb,WeaponStatConsole} from './FieldArchiveCombatReadout.jsx';
 
 const HERO_META=Object.freeze({
  ROBOT:{name:'NEWBOT',file:'newbot',accent:'#df8e39',intro:'A discarded machine that learned to fight again.',skills:[['PASSIVE','ROLLING BURST','Damage in a 1.2s burst window refunds active cooldown.'],['A1','WEAPON DASH','Quickly closes the distance to a revealed floor weapon.'],['A2','VIRTUAL ARMOR','Reduces incoming damage for 3 seconds.']]},
@@ -83,18 +84,8 @@ function DisplayArtwork({kind,item,previewId}){
   <span className="fa3-art-label">{previewId==='default'?'ORIGINAL':previewId.toUpperCase()} / VISUAL PREVIEW</span>
  </div>;
 }
-function WeaponFacts({item,skin}){
- const d=item.data||{},isRocket=item.id==='RPG_7';
- const format=n=>Number.isFinite(Number(n))?String(n):'—';
- const power=isRocket?'PEAK '+format(d.peak):d.damagePerShot?'HIT '+format(d.damagePerShot):d.damagePerPellet?'PELLET '+format(d.damagePerPellet):d.damage?'HIT '+format(d.damage):d.tickDamage?'TICK '+format(d.tickDamage):'NATIVE ARSENAL';
- const secondary=isRocket?'BLAST RADIUS '+format(d.blastRadius):d.pellets?'PELLETS '+format(d.pellets):d.shots?'SHOTS '+format(d.shots):d.triggerRange?'REACH '+format(d.triggerRange):d.range?'RANGE '+format(d.range):item.family;
- return <div className="fa3-facts">
-  <div className="fa3-fact"><b>01 / COMBAT PROFILE</b><strong>{item.tier} · {item.family} · {isRocket?'ROCKET':'ARSENAL'}</strong><small>{power} / {secondary}</small></div>
-  <div className="fa3-fact"><b>02 / HOW IT FIGHTS</b><strong>{isRocket?'ACCELERATING EXPLOSIVE ROCKET':d.pellets?'SPREAD FIRE':d.triggerRange?'CLOSE-RANGE STRIKE':d.bulletSpeed?'BALLISTIC PROJECTILE':'NATIVE SPECIAL EXECUTOR'}</strong><small>{isRocket?'Rocket accelerates in flight; area damage resolves through the native explosion.':'Exact damage, cadence and collision always come from the match engine.'}</small></div>
-  <div className="fa3-fact"><b>03 / THE SELECTED APPEARANCE</b><strong>{isRocket&&skin?.id==='vua-he'?'LAUNCHER · ROCKET · SMOKE · BLAST':skin?.id==='default'?'ORIGINAL GOLD PRESENTATION':'REGISTERED COSMETIC VISUALS'}</strong><small>Changes appearance, not damage, spawn tier, collision or skill authority.</small></div>
- </div>;
-}
-function HeroFacts({item}){const m=HERO_META[item.id];return <div className="fa3-facts">{(m?.skills||[]).map(([n,title,desc])=><div className="fa3-fact" key={n}><b>{n}</b><strong>{title}</strong><small>{desc}</small></div>)}</div>}
+function WeaponFacts({item,skin}){return <WeaponStatConsole item={item} skin={skin}/>}
+function HeroFacts({item}){return <AbilityWeb item={item} skills={HERO_META[item.id]?.skills||[]}/>}
 export default function FieldArchiveC03(){
  const [home,setHome]=useState(false),[open,setOpen]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
  const [kind,setKind]=useState('hero'),[side,setSide]=useState('p1'),[focus,setFocus]=useState('ROBOT');
@@ -198,11 +189,9 @@ export default function FieldArchiveC03(){
           <span className="fa3-skin-name"><b>{s.label}</b><small>{s.id==='default'?'ORIGINAL PRESENTATION':s.detail||'APPROVED COSMETIC'}</small></span>
           <strong>{s.id===worn?.id?'✓':'↗'}</strong></button>)}</div>
         {skinMaxPage>0&&<div className="fa3-skin-pager" aria-label="Skin pages"><button disabled={safeSkinPage===0} onClick={()=>setSkinPage(p=>Math.max(0,p-1))} aria-label="Previous skin page">‹</button><span>{String(safeSkinPage+1).padStart(2,'0')} / {String(skinMaxPage+1).padStart(2,'0')}</span><button disabled={safeSkinPage===skinMaxPage} onClick={()=>setSkinPage(p=>Math.min(skinMaxPage,p+1))} aria-label="Next skin page">›</button></div>}
-        <div className="fa3-insight" aria-label="Appearance field note">
-         <span>FIELD NOTE / {kind==='hero'?'FIGHTER':'WEAPON'} REGISTER</span>
-         <strong>{kind==='hero'?'SAME FIGHTER, DIFFERENT LOOK':current?.tier+' · '+current?.family}</strong>
-         <small>{kind==='hero'?'Skills, movement and hit authority remain identical with a skin.':current?.id==='RPG_7'?'RPG-7: rocket acceleration, area blast · skin only alters presentation.':'Weapon spawn and battle stats stay tied to the original Arsenal ID.'}</small>
-        </div>
+        {current&&<div className="fa3-readout-embed">
+          {kind==='hero'?<AbilityWeb item={current} skills={HERO_META[current.id]?.skills||[]} compact/>:<WeaponStatConsole item={current} skin={chosen} compact/>}
+         </div>}
         <div className="fa3-equip-state"><b>{side==='p1'?'PLAYER 01':'PLAYER 02 / BOT'}</b><span>EQUIPPED / {worn?.label||'ORIGINAL'}</span></div>
         <button type="button" className="fa3-equip" onClick={equip} disabled={!chosen||chosen.id===worn?.id}>{chosen?.id===worn?.id?'EQUIPPED ✓':'EQUIP THIS SKIN ↗'}</button>
         {warning&&<small role="alert" className="fa3-alert">Selection active for this session; browser storage is disabled.</small>}
