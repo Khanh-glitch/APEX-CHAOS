@@ -2,6 +2,7 @@
 // rewrites here. Canonical runtime adapter validates each death and applies
 // spawn requests. Neither BOXE nor BOT WAVE is public while Gold is absent.
 import {BOXE_WAVE} from '../boxe/boxeConfig.js';
+import {getWaveLoadout,makeWaveEnemyEquipment} from './apexGunLoadouts.js';
 import {DEFAULT_ROBOTS,WAVE_UPGRADES,upgradeState,recordAuthorizedKill,
  waveDescriptor,offerThreeCards,chooseCard,unlockedKeys,enabledGoldSkills}
  from './upgradeRegistry.js';
@@ -10,29 +11,34 @@ const makeRng=seed=>{let s=(seed>>>0)||0x2d1c9e3b;return ()=>{s^=s<<13;s^=s>>>17
 const EDGES=Object.freeze(['north','east','south','west']);
 export const WAVE_PROVISIONAL_TUNING=Object.freeze({
  baselineNonBossCount:6,additionalPerWave:2,maxEnemiesInWave:48,
- hpScalePerWave:1.12,damageScalePerWave:1.07
+ hpScalePerWave:1.055,damageScalePerWave:1.055
 });
 // Game process owns actual enemy HP, spawn/despawn and timing. A Wave Director
 // only outputs a deterministic schedule with identities, profiles and edges.
 export function buildWavePlan(wave,{seed=1,registry=DEFAULT_ROBOTS,tuning=WAVE_PROVISIONAL_TUNING}={}){
  const desc=waveDescriptor(wave,registry);
- if(!desc.candidates.length)throw Error('NO_REGISTERED_ENEMY_FOR_WAVE_'+wave);
+ const arsenal=getWaveLoadout(wave,{seed});
  const rng=makeRng((seed^Math.imul(wave,0x9e3779b1))>>>0);
- const amount=desc.boss?1:Math.min(tuning.maxEnemiesInWave,tuning.baselineNonBossCount+tuning.additionalPerWave*(wave-1));
- const enemies=Array.from({length:amount},(_,i)=>{
-  const archetypeId=desc.candidates[Math.floor(rng()*desc.candidates.length)];
-  const edge=EDGES[i%EDGES.length];
+ const support=Object.keys(registry).filter(id=>!registry[id].boss&&registry[id].minWave<=wave&&(!registry[id].maxWave||registry[id].maxWave>=wave));
+ if(!support.length)throw Error('NO_REGISTERED_ENEMY_FOR_WAVE_'+wave);
+ const bosses=desc.boss?desc.candidates:[];
+ if(desc.boss&&!bosses.length)throw Error('NO_REGISTERED_BOSS_FOR_WAVE_'+wave);
+ const weaponIds=[...arsenal.composition];if(arsenal.bossGun)weaponIds.push(arsenal.bossGun);
+ const enemies=weaponIds.map((gunId,i)=>{
+  const boss=!!arsenal.bossGun&&i===weaponIds.length-1;
+  const archetypeId=boss?bosses[Math.floor(rng()*bosses.length)]:support[Math.floor(rng()*support.length)];
   return Object.freeze({
-   id:'wave-'+wave+'-enemy-'+i,archetypeId,edge,
-   // Position fraction along edge: stay away from exact corners
-   edgeFraction:0.08+0.84*rng(),
+   id:'wave-'+wave+'-enemy-'+i,archetypeId,edge:EDGES[i%EDGES.length],boss,gunId,
+   edgeFraction:.08+.84*rng(),equipment:makeWaveEnemyEquipment(gunId,wave,{boss}),
    hpMultiplier:+Math.pow(tuning.hpScalePerWave,wave-1).toFixed(4),
-   attackMultiplier:+Math.pow(tuning.damageScalePerWave,wave-1).toFixed(4),
-   xp:registry[archetypeId].xp
+   attackMultiplier:arsenal.damageScalar,xp:registry[archetypeId].xp
   });
  });
  if(enemies.some(e=>!Number.isFinite(e.xp)||e.xp<0))throw Error('ENEMY_WITHOUT_XP');
- return Object.freeze({wave,boss:desc.boss,enemies:Object.freeze(enemies),terrain:'landscape-arena'});
+ return Object.freeze({wave,boss:desc.boss,enemies:Object.freeze(enemies),
+  pressureEstimate:arsenal.pressureEstimate,concurrentLimit:arsenal.concurrentLimit,
+  gunComposition:arsenal.composition,reloadPolicy:arsenal.reloadPolicy,terrain:'landscape-arena'});
+
 }
 export function createBotWaveDirector({seed=1,registry=DEFAULT_ROBOTS,upgrades=WAVE_UPGRADES,onEvent=()=>{}}={}){
  const state={status:'ready',wave:0,plan:null,live:new Map(),seenKills:new Set(),progress:upgradeState(),endless:false};
