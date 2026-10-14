@@ -30,7 +30,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.17;ba
 .page.right:before{content:"";position:absolute;top:0;left:0;bottom:0;width:28px;background:linear-gradient(90deg,#5d4b313c,transparent);pointer-events:none}
 .spine{position:absolute;z-index:4;left:42%;top:0;height:100%;width:11px;transform:translateX(-50%);pointer-events:none;background:linear-gradient(90deg,#32281816,#4835252b,#fff1,#312a1d28)}
 .top-rule,.folio{display:flex;align-items:center;justify-content:space-between;font:800 10px ui-monospace,monospace;letter-spacing:.12em;color:#7b5a3b}
-.top-rule:after{content:"";height:1px;background:#94765483;flex:1;margin-left:16px}
+.top-rule:after{content:"";height:1px;background:#94765483;flex:1;margin-left:16px}.mobile-skin-jump{display:none;border:1px solid #ad6b32;color:#864a2a;background:#e8c89b50;padding:5px 8px;font:900 10px Impact,sans-serif;letter-spacing:.12em}
 .kicker{display:flex;align-items:center;gap:10px;color:#ab5827;font:900 11px Impact,"Arial Narrow",sans-serif;letter-spacing:.21em;margin-top:35px}
 .kicker span:first-child{flex:none;width:21px;height:3px;background:#dd7a32}.kicker span:last-child{width:auto;white-space:nowrap;height:auto;background:transparent}
 .title{margin:8px 0 3px;font:1000 clamp(48px,5.4vw,86px)/.92 Impact,"Arial Narrow",sans-serif;letter-spacing:.005em;color:#241e18;text-transform:uppercase}
@@ -84,7 +84,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.17;ba
 .foot b{color:#c2a279}
 .mode-note{font:600 10px ui-monospace,monospace;color:#70553f;margin-top:6px}
 @media(max-width:950px){.top{height:58px}.stage{width:100%;padding:8px 15px 24px 26px}.book{grid-template-columns:44% 56%;min-height:600px}.page{min-height:600px}.page.left{padding:27px 22px 20px 35px}.page.right{padding:22px}.title{font-size:52px}.description{font-size:12px}.art-area{height:360px}.archive-tabs{left:-7px;top:80px}.archive-tabs button{width:38px;min-height:130px;font-size:10px;padding:10px}.ability{padding:9px 1px}.citation{display:none}.skin{padding:5px}.skin-thumb{width:38px;height:42px}}
-@media(max-width:700px){.top{padding:0 15px}.brand{font-size:23px}.top-meta{font-size:8px;letter-spacing:.15em}.top-status{display:none}.stage{padding:12px 13px 28px 23px}.book{display:block;min-height:0;border-width:8px}.spine{display:none}.page{min-height:0;border-radius:0!important;overflow:hidden}.page.left{padding:25px 22px 22px 29px}.page.right{padding:22px 20px 26px 24px}.page.left:after{display:none}.page.right:before{display:none}.kicker{margin-top:17px}.title{font-size:clamp(50px,13vw,76px)}.description{margin:16px 0 12px}.section-header{margin-top:16px}.abilities{display:grid;grid-template-columns:1fr;gap:0}.ability{padding:9px 2px}.citation{position:static;display:flex;margin-top:13px}.right-head{padding-bottom:9px}.art-area{height:min(64vw,365px);min-height:285px}.art-stamp{font-size:8px}.skin-thumb{width:46px}.skin b{font-size:11px}.archive-tabs{left:-11px;top:68px}.archive-tabs button{width:33px;min-height:105px;font-size:9px;padding:6px}.foot{font-size:9px;line-height:1.7;display:block;text-align:center;margin-top:0}.foot span{display:block}.bottom-actions{gap:8px}.equip{min-width:125px;padding:11px 13px;font-size:15px}.selection-state{font-size:9px}}
+@media(max-width:700px){.top{padding:0 15px}.brand{font-size:23px}.top-meta{font-size:8px;letter-spacing:.15em}.top-status{display:none}.stage{padding:12px 13px 28px 23px}.book{display:block;min-height:0;border-width:8px}.spine{display:none}.page{min-height:0;border-radius:0!important;overflow:hidden}.page.left{padding:25px 22px 22px 29px}.page.right{padding:22px 20px 26px 24px}.page.left:after{display:none}.page.right:before{display:none}.kicker{margin-top:17px}.title{font-size:clamp(50px,13vw,76px)}.description{margin:16px 0 12px}.section-header{margin-top:16px}.abilities{display:grid;grid-template-columns:1fr;gap:0}.ability{padding:9px 2px}.citation{position:static;display:flex;margin-top:13px}.right-head{padding-bottom:9px}.art-area{height:min(64vw,365px);min-height:285px}.art-stamp{font-size:8px}.skin-thumb{width:46px}.skin b{font-size:11px}.archive-tabs{left:-11px;top:68px}.archive-tabs button{width:33px;min-height:105px;font-size:9px;padding:6px}.foot{font-size:9px;line-height:1.7;display:block;text-align:center;margin-top:0}.foot span{display:block}.mobile-skin-jump{display:block}.top-rule:after{display:none}.bottom-actions{gap:8px}.equip{min-width:125px;padding:11px 13px;font-size:15px}.selection-state{font-size:9px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -94,7 +94,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.17;ba
 <nav class="archive-tabs" aria-label="Loại hồ sơ"><button class="active" type="button" data-type="hero" aria-pressed="true">FIGHTERS</button><button type="button" data-type="weapon" aria-pressed="false">WEAPONS</button></nav>
 <div class="book">
 <section class="page left" aria-label="Trang thông tin">
-<div class="top-rule"><span>APEX CHAOS / DOCUMENT 001</span></div>
+<div class="top-rule"><span>APEX CHAOS / DOCUMENT 001</span><button type="button" class="mobile-skin-jump" id="jumpSkin">SKINS ↘</button></div>
 <div class="kicker"><span></span><span id="recordKind">FIGHTER RECORD</span></div>
 <h1 class="title" id="recordTitle">NEWBOT</h1>
 <div class="subline"><span class="orange-tag" id="recordTag">ROBOT / 01</span><span id="recordSub">CORE SIX / PLAYABLE</span></div>
@@ -121,7 +121,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.17;ba
 <div class="art-stamp right-stamp" id="proof">REFERENCE / V17 RENDER</div>
 <div class="preview-notice" id="previewLabel">VIEWING / ECOBOT</div>
 </div>
-<div class="skinbar"><span class="skinbar-title" id="skinBarLabel">NEWBOT / APPEARANCES</span><div class="player-switch" role="group" aria-label="Trang phục của người chơi"><button type="button" data-side="p1" class="active" aria-pressed="true">P1</button><button type="button" data-side="p2" aria-pressed="false">P2 / BOT</button></div></div>
+<div class="skinbar" id="cosmeticSelection"><span class="skinbar-title" id="skinBarLabel">NEWBOT / APPEARANCES</span><div class="player-switch" role="group" aria-label="Trang phục của người chơi"><button type="button" data-side="p1" class="active" aria-pressed="true">P1</button><button type="button" data-side="p2" aria-pressed="false">P2 / BOT</button></div></div>
 <div class="skins" id="skinList" role="group" aria-label="Ngoại hình"></div>
 <div class="bottom-actions"><span class="selection-state" id="equippedText">P1 EQUIPPED / ORIGINAL</span><button type="button" class="equip" id="equipBtn">EQUIP ↗</button></div>
 <p class="mode-note">PROTOTYPE ONLY · CHỌN VÀ EQUIP CHỈ MÔ PHỎNG TẠI TRANG NÀY · KHÔNG GHI VÀO GAME</p>
@@ -753,6 +753,7 @@ function render(){
  const isEq=preview===equipped[side][kind];$('equipBtn').disabled=isEq;$('equipBtn').textContent=isEq?'EQUIPPED ✓':'EQUIP ↗';
 }
 document.querySelectorAll('[data-type]').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.type;preview=defaultPreview[kind];render()}));
+$('jumpSkin').addEventListener('click',()=>{$('cosmeticSelection').scrollIntoView({block:'center',behavior:'instant'});});
 document.querySelectorAll('[data-side]').forEach(b=>b.addEventListener('click',()=>{side=b.dataset.side;preview=equipped[side][kind];render()}));
 $('skinList').addEventListener('click',e=>{const el=e.target.closest('[data-skin]');if(el){preview=el.dataset.skin;render()}});
 $('equipBtn').addEventListener('click',()=>{equipped[side][kind]=preview;render()});
