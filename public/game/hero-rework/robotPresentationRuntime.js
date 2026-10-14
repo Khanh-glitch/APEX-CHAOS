@@ -1043,7 +1043,7 @@ function renderRig(g) {
   }
 
   // World-space: brackets, measure, trail with calibration ticks (authority)
-  function renderRobotWorld(ctx, fighter, st, ecoAlreadyBack=false) {
+  function renderRobotWorld(ctx, fighter, st, ecoAlreadyBack=false, ecoTargetAlreadyBack=false) {
   const eco=globalScope.APEX_COSMETICS;
   const receipt=eco?.capture?.(eco.sideOf(fighter,globalScope),'hero','ROBOT');
   const motion=receipt?.skinId==='ecobot'?robotCosmeticMotion(st):null;
@@ -1076,7 +1076,8 @@ function renderRig(g) {
   }
     // Cosmetic owns the entire Gold targeting family; ORIGINAL keeps its
     // authored metal bracket. Both read native bracket state and target only.
-    const ecoLockDrawn=!!(ecoPose&&eco?.render?.('targetLock',ctx,receipt,ecoPose)===true);
+    const ecoLockDrawn=ecoTargetAlreadyBack||
+      !!(ecoPose&&eco?.render?.('targetLock',ctx,receipt,ecoPose)===true);
     // Brackets — elastic easing from HTML authority, adapted to target pickup
     if (!ecoLockDrawn && st.brackets) {
       let gap, alpha;
@@ -1589,13 +1590,17 @@ function renderRig(g) {
             if (this.isRage) { try { tc.filter = 'none'; } catch (e) {} }
             tc.restore();
           };
-          // Gold V17 wall smoke and dash ribbons must sit BEHIND the fighter.
-          let ecoAlreadyBack=false;
+          // Gold V17 wall smoke, dash ribbon AND living target ring belong
+          // BEHIND the actor as in the owner's Gold standalone draw order.
+          let ecoAlreadyBack=false,ecoTargetAlreadyBack=false;
           try {
             const eco=globalScope.APEX_COSMETICS;
             const receipt=eco?.capture?.(eco.sideOf(this,globalScope),'hero','ROBOT');
-            if(receipt?.skinId==='ecobot')ecoAlreadyBack=eco.render('worldBack',ctx,receipt,
-              {x:this.x,y:this.y,kind:'ROBOT',robot:robotCosmeticMotion(st)})===true;
+            if(receipt?.skinId==='ecobot'){
+              const worldPose={x:this.x,y:this.y,kind:'ROBOT',robot:robotCosmeticMotion(st)};
+              ecoAlreadyBack=eco.render('worldBack',ctx,receipt,worldPose)===true;
+              ecoTargetAlreadyBack=eco.render('targetLock',ctx,receipt,worldPose)===true;
+            }
           }catch(e){console.warn('[ecobot] rear world FX failed',e);}
           if (P && P.actorRender && P.isActive()) P.actorRender(ctx, this, this.x, this.y, renderActor);
           else renderActor(ctx);
@@ -1612,7 +1617,7 @@ function renderRig(g) {
           }
           ctx.restore();
           ctx.globalAlpha = 1;
-          try { renderRobotWorld(ctx, this, st, ecoAlreadyBack); } catch (e) { console.warn('[robot-presentation] world render failed', e); }
+          try { renderRobotWorld(ctx, this, st, ecoAlreadyBack, ecoTargetAlreadyBack); } catch (e) { console.warn('[robot-presentation] world render failed', e); }
           loadProbe('first-complete-frame', { frame: Number.isFinite(globalScope.__apexRenderFrame) ? globalScope.__apexRenderFrame : null });
           return;
         }
