@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "status": "AWAITING_BINARY_GOLD_IMPORT",
+  "source": "THE_HAND_GOLD_ROCKET_CATCH_IMPACT_V2_POSE_UPDATED(1).html",
+  "source_sha256": "ccb889bb08cb2e741c4f7f5e0b33d08047c08fb28bfc1c31ae9401604444e2b2",
+  "source_bytes": 25675422,
+  "original_target": "public/gold/boxe-gold/THE_HAND_GOLD_ORIGINAL.html",
+  "deembedded_target": "public/gold/boxe-gold/THE_HAND_GOLD_DEEMBEDDED.html",
+  "assets_dir": "public/gold/boxe-gold/assets",
+  "asset_names": [
+    "char-body.png",
+    "glove.png",
+    "dummy.png",
+    "bot.png",
+    "fx-rock.png",
+    "fx-rubble.png",
+    "fx-fracture.png",
+    "char-body-new.png",
+    "char-body2.png",
+    "fx-fire.png"
+  ],
+  "invariant": "Source Gold is immutable; any production alterations are additive adapters/forks. No VFX omissions permitted.",
+  "note": "Manifest is an audit receipt only. The 25.7 MB original HTML and 10 binary PNGs are NOT uploaded by this commit."
+}
