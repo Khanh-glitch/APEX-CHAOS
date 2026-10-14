@@ -5,7 +5,7 @@ on:
       - design/field-archive-c03-product-20261014
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   real-product-qa:
     runs-on: ubuntu-latest
@@ -61,3 +61,20 @@ jobs:
           path: docs/field-archive/candidate03/
           if-no-files-found: warn
           retention-days: 21
+
+      # Create a separate evidence branch after PASS so reviewers can inspect
+      # the *actual* rendered screenshots without extracting Actions artifacts.
+      # Never self-push to the design source branch or to main.
+      - name: Publish actual Chrome screenshots to isolated audit branch
+        if: success() && github.ref == 'refs/heads/design/field-archive-c03-product-20261014'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "field-archive-chrome-evidence[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          EVIDENCE="visual/c03-qa-${GITHUB_SHA:0:9}"
+          git switch -c "$EVIDENCE"
+          git add docs/field-archive/candidate03/
+          git commit -m "Actual Chrome no-scroll Field Archive C03 evidence for ${GITHUB_SHA:0:9} [skip ci]"
+          git push origin HEAD:"refs/heads/$EVIDENCE"
+          echo "Screenshot proof branch: $EVIDENCE"
