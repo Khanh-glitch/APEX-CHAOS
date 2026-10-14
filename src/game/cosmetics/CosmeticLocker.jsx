@@ -3,6 +3,7 @@ import { PRODUCT_ROSTER } from '../productSurface.js';
 import { cosmetics } from './cosmeticAuthority.js';
 import { loadDeferredGameRuntimes } from '../runtimeLoader.js';
 import './cosmeticLocker.css';
+import './approvedGoldSkins.js';
 
 const heroNames={
   ROBOT:'NEWBOT',HUNTER:'HUNTER',CRYSTAL:'CRYSTALA',
