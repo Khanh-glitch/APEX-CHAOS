@@ -1957,7 +1957,11 @@ function wrapArsenalAV() {
     if (!AV || typeof AV.drawEquippedWeapon !== 'function' || AV.__frostWrapped) return;
     wrapArsenalAV.done = true;
     AV.__frostWrapped = true;
-    const base = AV.drawEquippedWeapon.bind(AV);
+    // CP14 diagnostic-only: observe which implementation this historical
+    // wrapper actually captured. Remove after provenance is established.
+    const capturedEquippedDrawer=AV.drawEquippedWeapon;
+    AV.__cp14CapturedEquippedSource = String(capturedEquippedDrawer).slice(0,1300);
+    const base = capturedEquippedDrawer.bind(AV);
     AV.drawEquippedWeapon = function (c, f, h) {
       try { if (holderSuppressed(h)) return false; } catch (err) { warnOnce(err); }
       const r = base(c, f, h);
