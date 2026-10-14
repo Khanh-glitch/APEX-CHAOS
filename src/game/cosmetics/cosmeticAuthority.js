@@ -81,6 +81,7 @@ function register(def) {
     assets, render:Object.freeze(hooks),
     prepare:typeof def.prepare==='function'?def.prepare:null,
     blastSeconds:Math.max(0,Math.min(3,Number(def.blastSeconds)||0)),
+    trailHistorySeconds:Math.max(0,Math.min(3,Number(def.trailHistorySeconds)||0)),
     suppressBaseBlast:!!def.suppressBaseBlast && typeof hooks.blast === 'function',
   });
   registry.set(idKey,record);
@@ -207,6 +208,7 @@ function render(name,ctx,receipt,payload) {
     return false;
   } finally { ctx.restore(); }
 }
+function trailHistorySeconds(receipt) {return resolve(receipt)?.trailHistorySeconds||0;}
 function blastDuration(receipt) {return resolve(receipt)?.blastSeconds||0;}
 function suppressDefaultBlast(receipt) {
   return resolve(receipt)?.suppressBaseBlast===true;
@@ -259,7 +261,7 @@ export function createCosmeticAuthority(storage=typeof window!=='undefined'?wind
     version:'cosmetics-v1', register, variants, selected,
     equip:(side,kind,base,id)=>equip(side,kind,base,id,storage),
     snapshot, subscribe, capture,captureProjectile,sideOf,
-    resolve,render,suppressDefaultBlast,blastDuration,ready,
+    resolve,render,suppressDefaultBlast,blastDuration,trailHistorySeconds,ready,
   });
 }
 export const cosmetics=createCosmeticAuthority();
