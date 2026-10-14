@@ -7,6 +7,8 @@ on:
       - .github/workflows/cp16-live-pages-admission.yml
       - package.json
       - src/game/runtimeLoader.js
+      - src/game/cosmetics/cosmeticLocker.css
+      - tools/testLocalizationChrome.mjs
       - src/game/runtimeManifest.js
       - src/game/goldAssetManifest.js
       - public/gold/**
@@ -95,6 +97,13 @@ jobs:
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           CHROME_PATH="$CHROME" node tools/testOwnerWorldEquipmentChrome.mjs
+      - name: Live Cloudflare VIE/ENG typography and independent SKINS/language touch targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testLocalizationChrome.mjs
       - name: Reverify live release SHA after browser runs
         shell: bash
         run: |
@@ -114,5 +123,6 @@ jobs:
           path: |
             /tmp/cp16-live-cold-return/
             /tmp/cp16-live-combat/
+            docs/acceptance/localization/
           if-no-files-found: warn
           retention-days: 14
