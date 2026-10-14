@@ -1,0 +1,70 @@
+name: Field Archive Candidate 02 Visual QA
+on:
+  push:
+    branches:
+      - design/field-archive-candidate02-20261014
+    paths:
+      - 'public/field-archive.html'
+      - 'public/field-archive/ecobot-v17.js'
+      - 'tools/testFieldArchiveCandidate02Chrome.mjs'
+      - '.github/workflows/field-archive-candidate02.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify-and-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Install isolated Chrome QA driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Serve real built prototype
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort > /tmp/field-archive-vite.log 2>&1 &
+          for n in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/field-archive.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/field-archive-vite.log
+          exit 1
+      - name: Real Chrome 1440 desktop + 390 mobile, Gold painter, source pixels and equip isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testFieldArchiveCandidate02Chrome.mjs
+      - name: Preserve candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: field-archive-c02-real-browser-proof
+          path: docs/field-archive/candidate02/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Commit audited reference screenshots to DESIGN branch only
+        if: success() && github.ref == 'refs/heads/design/field-archive-candidate02-20261014'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "field-archive-visual-audit[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/field-archive/candidate02/
+          if ! git diff --cached --quiet; then
+            git commit -m "Field Archive C02: actual desktop/mobile Gold render QA proof [skip ci]"
+            git push origin HEAD:design/field-archive-candidate02-20261014
+          fi
