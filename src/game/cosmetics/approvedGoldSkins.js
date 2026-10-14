@@ -8,7 +8,7 @@ cosmetics.register({
  kind:'weapon',baseId:'RPG_7',id:'vua-he',label:'VUA HỀ — THE LAST LAUGH',
  detail:'Owner Gold / native RPG-7 · V7 smoke and original complete face frame',
  preview:'/assets/skins/rocket-vua-he/launcher.png',assets:rocketGoldAssets,
- suppressBaseBlast:true,blastSeconds:1.38,trailHistorySeconds:.87,
+ suppressBaseBlast:true,suppressBaseTrail:true,blastSeconds:1.38,trailHistorySeconds:.87,
  render:{weapon:drawRocketGoldWeapon,projectile:drawRocketGoldProjectile,blast:drawRocketGoldBlast}
 });
 cosmetics.register({
