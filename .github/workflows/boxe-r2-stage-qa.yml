@@ -25,6 +25,7 @@ jobs:
           node tools/testBoxeWaveDirector.mjs
           node tools/testBoxeWaveInputs.mjs
           node tools/testBoxeWaveArsenalR3.mjs
+          node tools/testBoxeComboR4.mjs
       - name: Latest C04 Field Archive compatibility
         run: node tools/testFieldArchiveC04Profiles.mjs
       - name: Shipping build remains unchanged
