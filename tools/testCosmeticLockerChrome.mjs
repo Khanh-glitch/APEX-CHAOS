@@ -77,9 +77,9 @@ try{
         detail:'Read-only synthetic skin manifest for UI regression',render:{projectile:()=>false}
       });
     });
-    await game.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-skin').length===2,
+    await game.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-skin').length>=3,
       {timeout:10000});
-    await game.$$eval('.apex-cosmetics-skin',nodes=>nodes.at(-1).click());
+    await game.evaluate(()=>{const node=[...document.querySelectorAll('.apex-cosmetics-skin')].find(el=>el.innerText.includes('QA ALT'));if(!node)throw Error('QA ALT skin entry missing');node.click()});
     assert.equal(await game.$eval('.apex-cosmetics-skin.selected strong',n=>n.textContent),'QA ALT');
     const sideProof=await game.evaluate(()=>({
       p2:window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id,
