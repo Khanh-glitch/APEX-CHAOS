@@ -1431,6 +1431,11 @@ function driveEngine(S, ct, dt) {
   // This is visual only: enter quickly, settle out cleanly when leaving the surface.
   e.surfaceEyeBoost = damp(e.surfaceEyeBoost || 0, e.onIce ? 1 : 0, e.onIce ? 0.045 : 0.085, dt);
   if (e.mode === 'a1') {
+    // A 1/60 accumulation can land at 0.24999999999999997 instead of
+    // the Gold release threshold 0.25. Snap ONLY floating-point epsilon,
+    // never the entire pending beat: the old full 0->.25 jump erased motion.
+    if (e.modeT >= A1_RELEASE_BEAT - 1e-7 &&
+        e.modeT < A1_RELEASE_BEAT) e.modeT = A1_RELEASE_BEAT;
     e.fvx = damp(e.fvx, 0, 0.06, dt);
     e.fvy = damp(e.fvy, 0, 0.06, dt);
     try { e.updateA1(dt); } catch (err) { warnOnce(err); }
