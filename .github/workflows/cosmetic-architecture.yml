@@ -9,6 +9,7 @@ on:
       - 'public/game/hero-rework/**'
       - 'public/game/gold/goldProductBridge.js'
       - 'tools/testCosmeticContracts.mjs'
+      - 'tools/testGoldRocketSmokeSampling.mjs'
       - 'tools/testCosmeticLockerChrome.mjs'
       - 'tools/testCosmeticBattleChrome.mjs'
       - 'tools/testOwnerGoldSkinsChrome.mjs'
@@ -29,7 +30,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Verify P1/P2 identity, skin asset readiness, collision invariance and hooks
-        run: node tools/testCosmeticContracts.mjs
+        run: |
+          node tools/testCosmeticContracts.mjs
+          node tools/testGoldRocketSmokeSampling.mjs
       - name: Verify production build and original runtime locks
         run: |
           node tools/testRuntimeRevisionGate.mjs
