@@ -1,9 +1,13 @@
 // CP8 REAL owner Gold skin proof, desktop and Android: no procedural QA artwork.
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 const chrome=process.env.CHROME_PATH;
 if(!chrome)throw Error('CHROME_PATH required');
 const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
+const captureDir=process.env.APEX_CP8_CAPTURE_DIR||'';
+if(captureDir)fs.mkdirSync(captureDir,{recursive:true});
 const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']});
 let errors=0;
 for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'android',viewport:{width:390,height:844,isMobile:true,hasTouch:true,deviceScaleFactor:2}}]){
@@ -70,6 +74,10 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    const ecoDraw=C.render('actor',hCtx,C.capture('p1','hero','ROBOT'),{x:0,y:0,kind:'ROBOT',robot:{time:st.T,springs,armor:st.armor,held:st.held,mode:st.mode,ticks:st.ticks,lockFlash:st.lockFlash}});
    if(ecoDraw!==true)throw Error('ECO V17 owner-rig did not draw');
    const painted=hCtx.getImageData(450,450,1,1).data[3];
+   // Save pixels from exactly the approved native presentation callbacks; these
+   // are not synthetic CSS mockups or screenshots of a separate Gold studio.
+   if(G.__cp8Evidence)throw Error('CP8 evidence namespace already in use');
+   G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),rocket:ctx.canvas.toDataURL('image/png')};
    const oldOwner=p.owner;p.owner=b;
    W.drawArsenalProjectiles(ctx);
    if(p.cosmetic?.skinId!=='vua-he')throw Error('Reflection changed Gold identity');
@@ -82,9 +90,28 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    if(!blast||blast.maxLife<1.37)throw Error('Gold V7 blast lifetime missing '+JSON.stringify(blast));
    const drawBlast=C.render('blast',ctx,blast.cosmetic,{...blast,age:.4});
    if(!drawBlast)throw Error('Gold V7 smoke/full-face renderer did not render');
+   // Sample timeline WITHOUT advancing damage/collision or forging a second hit.
+   // These PNGs permit owner comparison against the supplied Gold keyframes.
+   for(const age of [.20,.43,.91,1.20]){
+     const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=900;
+     if(!C.render('blast',canvas.getContext('2d'),blast.cosmetic,{...blast,age,kind:'v43_blast'}))
+       throw Error('Gold blast frame renderer rejected age '+age);
+     G.__cp8Evidence['blast-'+String(Math.round(age*100)).padStart(3,'0')]=canvas.toDataURL('image/png');
+   }
    return {readyAssets:G.__cp8ReadyAssets,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,blastLife:blast.maxLife,exploded:p.exploded,hp:[a.hp,b.hp]};
   });
   assert.equal(exceptions.length,0,'Chrome page errors: '+exceptions.join('\n'));
+  if(captureDir){
+   const frames=await page.evaluate(()=>window.__cp8Evidence||null);
+   assert.deepEqual(Object.keys(frames||{}).sort(),[
+     'actor','rocket','blast-020','blast-043','blast-091','blast-120'].sort());
+   for(const [name,data] of Object.entries(frames)){
+     assert.match(data,/^data:image\/png;base64,/,'Evidence must be a lossless PNG');
+     fs.writeFileSync(path.join(captureDir,`${caseInfo.name}-${name}.png`),
+       Buffer.from(data.slice('data:image/png;base64,'.length),'base64'));
+   }
+   await page.screenshot({path:path.join(captureDir,`${caseInfo.name}-battle-ui.png`)});
+  }
   assert.equal(warnings.filter(s=>s.includes('[cosmetic] renderer failed')).length,0,'Gold renderer exceptions: '+warnings.join('\n'));
   console.log('CP8 OWNER GOLD REAL CHROME PASS '+caseInfo.name+' '+JSON.stringify(evidence));
  }catch(e){errors++;console.error('CP8 OWNER GOLD REAL CHROME FAIL '+caseInfo.name+' '+String(e?.stack||e)+' warnings='+warnings.slice(-8).join(' | '));}
