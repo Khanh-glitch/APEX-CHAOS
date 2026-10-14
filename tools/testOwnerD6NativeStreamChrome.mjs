@@ -96,6 +96,12 @@ try {
    if(!AR?.state?.active || !HR?.match)
      throw Error('Gold battle surface open but real Arsenal match not running');
    if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
+   // This is an isolated Crystala WALL vs real native Flame stream test.
+   // An autonomous BOT is unrelated to the authored 80-HP material fixture:
+   // its shots could lower the wall to 3 HP before the first assertion,
+   // intermittently on Android while desktop passed. Disable ONLY fixture AI;
+   // retain real wall creation, Flame carrier, tick contacts, damage and render.
+   HR.setAiEnabled(false);
    const [a,b]=G.fighters;
    if(HR.byCombatant(a)?.heroId!=='CRYSTAL')
      throw Error('Public Gold selection did not launch Crystala as P1');
