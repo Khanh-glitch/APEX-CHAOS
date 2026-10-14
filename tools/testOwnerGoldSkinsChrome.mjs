@@ -47,8 +47,8 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0}
    A.state.spawnTimer=1e6;A.state.spawnHeld=true;A.state.unarmedFastConsumed=true;A.state.slots=[];
    projectiles.length=0;a.baseSpeed=0;b.baseSpeed=0;
-   // Independent lanes avoid native rival impact before Gold reference t=0.84s.
-   a.x=170;a.y=420;b.x=780;b.y=780;a.setDir(1,0);b.setDir(-1,0);a.hp=1000;b.hp=1000;
+   // Native homing RPG must have a distant forward target, not an off-axis target it reaches by t=.75s.
+   a.x=100;a.y=440;b.x=980;b.y=440;a.setDir(1,0);b.setDir(-1,0);a.hp=1000;b.hp=1000;
    if(!W.equip(a,'RPG_7')||!W.equip(b,'RPG_7'))throw Error('Native RPG equipment refused');
    let p=null,q=null,steps=0;
    for(;steps<180;steps++){
