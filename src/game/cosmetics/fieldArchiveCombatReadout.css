@@ -228,3 +228,68 @@
      SKINS keeps the actual skin choices and Equip directly hit-testable. */
   .fa3-appear .fa3-readout-embed{display:none}
 }
+
+/* C03 R3 / art + tactical web reconstruction */
+.fa3-web-graphic{display:grid;place-items:center;position:relative;min-height:0;overflow:visible}
+.fa3-web-map{position:relative;width:min(100%,310px);aspect-ratio:5/4;flex:none;max-height:94%;filter:drop-shadow(0 0 13px #f4a4521c);isolation:isolate}
+.fa3-web-map .fa3-web-lines{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 0 5px #d9954c44);overflow:visible}
+.fa3-web-map .fa3-web-beams{animation:fa3-energy 2.4s linear infinite}
+.fa3-web-map .fa3-web-node{position:absolute;z-index:4;top:auto;bottom:auto;right:auto;left:auto;width:clamp(30px,3.05vw,45px);height:clamp(30px,3.05vw,45px);border-radius:0;
+ clip-path:polygon(50% 0,96% 21%,96% 77%,50% 100%,4% 77%,4% 21%);
+ filter:drop-shadow(0 1px 7px #000a);transform:translate(-50%,-50%);
+ box-shadow:inset 0 0 0 2px #a7804f,inset 0 -12px #0003;transition:filter .15s,background .15s,scale .15s}
+.fa3-web-map .fa3-web-node-passive{top:10%;left:50%;bottom:auto}
+.fa3-web-map .fa3-web-node-a1{top:84%;left:10.4%;bottom:auto}
+.fa3-web-map .fa3-web-node-a2{top:84%;left:89.6%;right:auto;bottom:auto}
+.fa3-web-map .fa3-web-node:hover{transform:translate(-50%,-50%) scale(1.09);filter:drop-shadow(0 0 10px #f8b35490)}
+.fa3-web-map .fa3-web-node.active{transform:translate(-50%,-50%) scale(1.12);border-color:#ffe09b;color:#23160c;background:linear-gradient(135deg,#ffdf8e,#f98a31 70%,#9c411d);
+ filter:drop-shadow(0 0 12px #f8a44ba6);animation:fa3-skill-pulse 2s ease-in-out infinite}
+.fa3-web-map .fa3-web-stamp{top:59%;left:50%;font-size:clamp(6px,.61vw,9px);color:#f3b466c4;
+ letter-spacing:.06em;white-space:nowrap;transform:translate(-50%,-50%);text-shadow:0 1px #000}
+.fa3-web-detail{position:relative;background:linear-gradient(90deg,#b16a2c17,transparent 27%);border-left:1px solid #9b703d7d;
+ padding:clamp(7px,1.2vw,19px);justify-content:center}
+.fa3-web-detail:before{content:"";position:absolute;top:12%;bottom:12%;left:-2px;width:3px;
+ background:linear-gradient(transparent,#ffaa56,transparent);opacity:.8}
+.fa3-web-detail strong{color:#ffe0aa;font-size:clamp(13px,1.3vw,20px);letter-spacing:.035em}
+.fa3-web-detail p{color:#e3c7a0;line-height:1.43}
+.fa3-web-legend{color:#e6a868}
+@keyframes fa3-energy{from{stroke-dashoffset:0}to{stroke-dashoffset:-76}}
+@keyframes fa3-skill-pulse{0%,100%{filter:drop-shadow(0 0 6px #ffa65365)}50%{filter:drop-shadow(0 0 15px #ffc479dd)}}
+.fa3-record-top:after{content:"";position:absolute;left:clamp(14px,2.4vw,34px);right:clamp(14px,2.4vw,34px);bottom:-6px;height:3px;
+ background:linear-gradient(90deg,#c56d2c 0,#7a5633 33%,transparent 82%)}
+.fa3-center{background:
+ linear-gradient(120deg,#2c302b2e 0 7%,transparent 7% 92%,#121e2180 93%),
+ radial-gradient(ellipse at 51% 52%,#e1cca9,#ad8d64 66%,#413b30 100%);
+ box-shadow:inset 8px 0 28px #05080976,inset -11px 0 26px #1b151274}
+.fa3-artwork:before{content:"";border:0;border-radius:0;inset:5% 4% 7%;transform:none;box-shadow:none;
+ background:repeating-linear-gradient(130deg,#a66c2e22 0 2px,transparent 3px 38px),
+ linear-gradient(135deg,transparent 5%,#a8773935 5.3% 5.8%,transparent 6.2% 93%,#a8773938 93.3% 94%,transparent 94.5%);
+ clip-path:polygon(12% 0,88% 0,100% 15%,100% 85%,88% 100%,12% 100%,0 85%,0 15%)}
+.fa3-art-orbit{border:0;box-shadow:none;opacity:.65;animation:fa3-scope 12s steps(75) infinite}
+.fa3-art-orbit:before{inset:-2px;border:3px dashed #a56831aa;border-left:6px solid #e8943d88;border-right-color:transparent;
+ box-shadow:0 0 0 15px #8c54281f,0 0 0 16px #bd844434}
+.fa3-record-stamp{transform:rotate(3deg);background:linear-gradient(120deg,#ead2a86b,#9e4d2957);
+ border:3px double #704524}
+.fa3-art-code,.fa3-art-label,.fa3-record-top small,.fa3-index-head{letter-spacing:.14em}
+.fa3-skin{border-left:4px solid #c08c50}.fa3-skin.preview{border-left:4px solid #ffbf70}
+.fa3-index-list button{border-left:3px solid #ba7a37}
+.fa3-stat-console .fa3-readout-top{box-shadow:inset 4px 0 #e8a35b}
+/* Portrait: keep the web inside fixed INFO pane, never push EQUIP below viewport. */
+@media(max-width:760px){
+ .fa3-web-body{grid-template-columns:minmax(0,48%) minmax(0,52%)}
+ .fa3-web-map{width:min(100%,220px);max-height:94%}
+ .fa3-web-map .fa3-web-node{width:clamp(27px,8vw,38px);height:clamp(27px,8vw,38px)}
+ .fa3-web-detail{padding:5px 6px}
+ .fa3-web-detail strong{font-size:clamp(10px,3vw,14px)}
+ .fa3-web-detail p{font-size:clamp(8px,2.25vw,11px);-webkit-line-clamp:3}
+ .fa3-web-map .fa3-web-stamp{font-size:6px}
+}
+@media(max-width:760px) and (orientation:landscape){
+ .fa3-web-map{width:min(100%,175px);max-height:90%}
+ .fa3-web-map .fa3-web-node{width:27px;height:27px}
+ .fa3-web-detail p{font-size:8px;-webkit-line-clamp:2}
+ .fa3-web-legend{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .fa3-web-map .fa3-web-beams,.fa3-web-map .fa3-web-node.active{animation:none!important}
+}
