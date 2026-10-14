@@ -50,6 +50,13 @@ jobs:
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           CHROME_PATH="$CHROME" node tools/testFieldArchiveC03Chrome.mjs
+      - name: Real Gold Fighter Pick Quick Equip — desktop/mobile, P1/BOT, actual persistent skins
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testFieldArchivePickQuickChrome.mjs
       # Capture proof without branch self-push: parallel workflows cannot
       # safely race each other to rewrite the branch, and dynamic screenshot
       # frames are diagnostic evidence rather than source commits.
@@ -58,7 +65,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: field-archive-c03-real-product-proof
-          path: docs/field-archive/candidate03/
+          path: |
+            docs/field-archive/candidate03/
+            docs/field-archive/pick-quick-equip/
           if-no-files-found: warn
           retention-days: 21
 
@@ -74,7 +83,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           EVIDENCE="visual/c03-qa-${GITHUB_SHA:0:9}"
           git switch -c "$EVIDENCE"
-          git add docs/field-archive/candidate03/
+          git add docs/field-archive/candidate03/ docs/field-archive/pick-quick-equip/
           git commit -m "Actual Chrome no-scroll Field Archive C03 evidence for ${GITHUB_SHA:0:9} [skip ci]"
           git push origin HEAD:"refs/heads/$EVIDENCE"
           echo "Screenshot proof branch: $EVIDENCE"
