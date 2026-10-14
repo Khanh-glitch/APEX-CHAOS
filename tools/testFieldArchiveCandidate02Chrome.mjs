@@ -50,6 +50,16 @@ try{
   assert.equal(initial.titleCollision,false,'archive record kicker overlaps main title');
   assert.equal(initial.pageWidth<=initial.screenWidth+1,true,'horizontal layout clipped');
   await page.screenshot({path:path.join(out,'archive-'+v.label+'.jpg'),type:'jpeg',quality:82,fullPage:true});
+  if(v.label==='mobile'){
+    await page.locator('#jumpSkin').click();
+    const jump=await page.evaluate(()=>{
+      const bar=document.getElementById('cosmeticSelection').getBoundingClientRect();
+      return {top:bar.top,bottom:bar.bottom,view:innerHeight,scrollY};
+    });
+    assert.ok(jump.scrollY>100&&jump.top>=0&&jump.bottom<=jump.view,
+      'mobile SKINS jump did not reach usable cosmetic controls: '+JSON.stringify(jump));
+    await page.evaluate(()=>scrollTo(0,0));
+  }
   await page.locator('button[data-skin="default"]').click();
   const original=await page.evaluate(()=>({view:window.__APEX_FIELD_ARCHIVE_QA__(),imageReady:document.getElementById('originalHero').naturalWidth>0}));
   assert.equal(original.imageReady,true,'original Gold Home asset missing');
