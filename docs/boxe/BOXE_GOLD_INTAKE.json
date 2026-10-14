@@ -20,5 +20,17 @@
     "fx-fire.png"
   ],
   "invariant": "Source Gold is immutable; any production alterations are additive adapters/forks. No VFX omissions permitted.",
-  "note": "Manifest is an audit receipt only. The 25.7 MB original HTML and 10 binary PNGs are NOT uploaded by this commit."
+  "note": "Manifest is an audit receipt only. The 25.7 MB original HTML and 10 binary PNGs are NOT uploaded by this commit.",
+  "asset_sha256": {
+    "char-body.png": "20dcb0fda5ddb8bb62065b593d194f814a9879128dac087fb5570147fb87ee3d",
+    "glove.png": "6947974edbf8f7e35b67f1ecb89519fb0cd9eb13fa8267c14f36a036943f4fca",
+    "dummy.png": "45b622cb64487d7fecf3ea3464e782e5051f24b6ac5e620b90fa0d70c29a5856",
+    "bot.png": "e6981e01a9b94f7a74a4fd52a069f211260862f754bb3002803565ee5595e7d5",
+    "fx-rock.png": "ff7d40a70b2fa9d14119d35edb087e7a4cb41537d2fa7d44fbbd4224aaffe349",
+    "fx-rubble.png": "94235a9d39e824fc7ca1f0ac80bddfdbbc474257a0f1ed836c57bd3635cfec82",
+    "fx-fracture.png": "9d1c6080e0ea3ce3ee05671bc7d8a4443b323a2455a22b3e3b1b0f8ef47243cb",
+    "char-body-new.png": "fe3fc5a49fdd309cce2484ac3c45cace4051195afdf6a91bc534310f4b56f883",
+    "char-body2.png": "0e2aa58951b3772006b2e950c53d7d5882c2bf96333985cde5d2998696c24689",
+    "fx-fire.png": "efdb98d065a0fe10e19f8256008cd1dd4c9a7b710b03f2a8dcd5529f965820d2"
+  }
 }

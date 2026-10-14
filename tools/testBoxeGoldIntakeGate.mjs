@@ -1,0 +1,27 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+const manifest=JSON.parse(fs.readFileSync('docs/boxe/BOXE_GOLD_INTAKE.json','utf8'));
+const base='public/gold/boxe-gold';
+const digest=x=>crypto.createHash('sha256').update(fs.readFileSync(x)).digest('hex');
+const file=path.join(base,'THE_HAND_GOLD_ORIGINAL.html');
+assert.ok(fs.existsSync(file),'OWNER GOLD BINARY NOT YET IMPORTED; manifest is not proof of upload');
+assert.equal(fs.statSync(file).size,manifest.source_bytes,'owner Gold byte count changed');
+assert.equal(digest(file),manifest.source_sha256,'owner Gold is not SHA-authentic');
+const split=path.join(base,'THE_HAND_GOLD_DEEMBEDDED.html');
+assert.ok(fs.existsSync(split),'lossless split HTML missing');
+const source=fs.readFileSync(file,'utf8');
+const decomposed=fs.readFileSync(split,'utf8');
+let expected=source.replace(/("src\/assets\/([^"]+)"\\s*:\\s*")data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)(")/g,(full,before,name,encoded,after)=>{
+ const bin=Buffer.from(encoded,'base64');
+ const asset=path.join(base,'assets',name);
+ assert.ok(fs.existsSync(asset),'Gold asset missing: '+name);
+ assert.equal(digest(asset),manifest.asset_sha256[name],'Gold binary modified: '+name);
+ assert.ok(bin.equals(fs.readFileSync(asset)),'Gold asset is not losslessly decoded: '+name);
+ return before+'./assets/'+name+after;
+});
+assert.equal(decomposed,expected,'Gold JS, CSS or HTML changed beyond asset path decomposition');
+assert.ok(source.includes('this.rocketCatchResponse()'),'catch motion contract lost');
+assert.ok(source.includes('i * 0.085'),'Gold 85ms jab timing lost');
+console.log('BOXE owner Gold source, all assets and lossless decomposition PASS');
