@@ -1,0 +1,105 @@
+name: CP17 LIVE Frost A1 Mid-Match Admission
+on:
+  push:
+    branches:
+      - arena/cp17-frost-a1-cast-lifecycle-20261014
+    paths:
+      - '.github/workflows/cp17-live-frost-a1.yml'
+      - 'public/game/hero-rework/frostPresentationRuntime.js'
+      - 'tools/testOwnerWorldEquipmentChrome.mjs'
+      - 'src/game/runtimeManifest.js'
+      - 'src/game/goldAssetManifest.js'
+      - 'public/gold/**'
+      - 'tools/runtimeRevision.lock.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cp17-frost-live-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  exact-live-frost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      APEX_APP_URL: https://arena-cp17-frost-a1-cast-lif.apex-chaos.pages.dev/
+      APEX_EVIDENCE_DIR: /tmp/cp17-frost-live-battle
+      APEX_CP16_EVIDENCE_DIR: /tmp/cp17-frost-live-cold
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Exact-live Git SHA, CP17 revision, and Gold material manifest admission
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cp17-frost-live-cold
+          ok=0
+          for i in $(seq 1 60); do
+            curl -fLsS --max-time 20 "${APEX_APP_URL}CP16_BUILD_RECEIPT.json?candidate=${GITHUB_SHA}&check=${i}" -o /tmp/cp17-frost-live-cold/receipt.json 2>/dev/null || true
+            if node --input-type=module -e "
+              import fs from 'node:fs';
+              const r=JSON.parse(fs.readFileSync('/tmp/cp17-frost-live-cold/receipt.json','utf8'));
+              if(r.gitCommit!==process.env.GITHUB_SHA ||
+                r.revision!=='20261014-cp17-frost-cast-r1' ||
+                r.versionedRuntimeCount!==59)process.exit(1);
+            " >/dev/null 2>&1; then ok=1;break;fi
+            sleep 6
+          done
+          test "$ok" = 1 || { echo "::error::Cloudflare preview does not serve exact CP17 SHA";exit 1; }
+          curl -fLsS --max-time 25 "${APEX_APP_URL}gold/shell.html" -o /tmp/cp17-frost-live-cold/shell.html
+          curl -fLsS --max-time 25 "${APEX_APP_URL}gold/manifest.json" -o /tmp/cp17-frost-live-cold/manifest.json
+          node --input-type=module -e "
+            import fs from 'node:fs';import crypto from 'node:crypto';
+            const r=JSON.parse(fs.readFileSync('/tmp/cp17-frost-live-cold/receipt.json','utf8'));
+            const g=JSON.parse(fs.readFileSync('/tmp/cp17-frost-live-cold/manifest.json','utf8'));
+            const shell=fs.readFileSync('/tmp/cp17-frost-live-cold/shell.html');
+            const hash=crypto.createHash('sha256').update(shell).digest('hex');
+            if(g.runtimeRevision!==r.revision||hash!==r.goldShellSha256||
+              hash!==g.files?.['shell.html']?.sha256||
+              shell.length!==g.files?.['shell.html']?.bytes)process.exit(1);
+            console.log('CP17 EXACT LIVE SHA/GOLD PASS',r.gitCommit,r.revision,hash);
+          "
+      - name: Install isolated Chrome QA driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Live Cloudflare desktop/Android cold/cache/history return
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testCP16ColdReturnChrome.mjs
+      - name: LIVE Frost third A1 in same Battle under A2 — desktop and mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testOwnerWorldEquipmentChrome.mjs
+      - name: Recheck exact live Git SHA after full Chrome combat
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --max-time 30 "${APEX_APP_URL}CP16_BUILD_RECEIPT.json?final=${GITHUB_SHA}" -o /tmp/cp17-frost-live-cold/receipt-after.json
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const r=JSON.parse(fs.readFileSync('/tmp/cp17-frost-live-cold/receipt-after.json','utf8'));
+            if(r.gitCommit!==process.env.GITHUB_SHA)process.exit(1);
+            console.log('CP17 LIVE SHA AFTER COMBAT PASS',r.gitCommit);
+          "
+      - name: Preserve actual Cloudflare battle Canvas screenshots and activation receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp17-frost-live-${{ github.sha }}
+          path: |
+            /tmp/cp17-frost-live-cold/
+            /tmp/cp17-frost-live-battle/
+          if-no-files-found: warn
+          retention-days: 14
