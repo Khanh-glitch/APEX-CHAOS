@@ -1031,12 +1031,12 @@ function renderRig(g) {
   }
 
   // World-space: brackets, measure, trail with calibration ticks (authority)
-  function renderRobotWorld(ctx, fighter, st) {
+  function renderRobotWorld(ctx, fighter, st, ecoAlreadyBack=false) {
   const eco=globalScope.APEX_COSMETICS;
   const receipt=eco?.capture?.(eco.sideOf(fighter,globalScope),'hero','ROBOT');
   const motion=receipt?.skinId==='ecobot'?robotCosmeticMotion(st):null;
   const ecoPose=motion?{x:fighter.x,y:fighter.y,kind:'ROBOT',robot:motion}:null;
-  const ecoBack=ecoPose&&eco?.render?.('worldBack',ctx,receipt,ecoPose)===true;
+  const ecoBack=ecoAlreadyBack||!!(ecoPose&&eco?.render?.('worldBack',ctx,receipt,ecoPose)===true);
   for (const f of st.flashes) {
     const a = 1 - f.t / f.dur;
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
@@ -1568,6 +1568,14 @@ function renderRig(g) {
             if (this.isRage) { try { tc.filter = 'none'; } catch (e) {} }
             tc.restore();
           };
+          // Gold V17 wall smoke and dash ribbons must sit BEHIND the fighter.
+          let ecoAlreadyBack=false;
+          try {
+            const eco=globalScope.APEX_COSMETICS;
+            const receipt=eco?.capture?.(eco.sideOf(this,globalScope),'hero','ROBOT');
+            if(receipt?.skinId==='ecobot')ecoAlreadyBack=eco.render('worldBack',ctx,receipt,
+              {x:this.x,y:this.y,kind:'ROBOT',robot:robotCosmeticMotion(st)})===true;
+          }catch(e){console.warn('[ecobot] rear world FX failed',e);}
           if (P && P.actorRender && P.isActive()) P.actorRender(ctx, this, this.x, this.y, renderActor);
           else renderActor(ctx);
           ctx.save();
@@ -1583,7 +1591,7 @@ function renderRig(g) {
           }
           ctx.restore();
           ctx.globalAlpha = 1;
-          try { renderRobotWorld(ctx, this, st); } catch (e) { console.warn('[robot-presentation] world render failed', e); }
+          try { renderRobotWorld(ctx, this, st, ecoAlreadyBack); } catch (e) { console.warn('[robot-presentation] world render failed', e); }
           loadProbe('first-complete-frame', { frame: Number.isFinite(globalScope.__apexRenderFrame) ? globalScope.__apexRenderFrame : null });
           return;
         }
