@@ -52,17 +52,26 @@ assert.match(w,/kind==='plasma-core'\?c\.coreSpeed/,'plasma core has independent
 assert.match(cfg,/projectileWidth:78/,'mine artwork must be legible independently of collision size');
 assert.match(w,/f\.data\.arsenal=null;/,
   'throwing must remove the holder before the shared weapon foreground pass');
-assert.ok(f.includes('function drawQueuedA1GoldSurface(S, draw)'),
-  'deferred A1 must immediately render canonical Gold ice');
-assert.ok(f.includes('drawQueuedA1GoldSurface(S, () => drawIceComposite(S, ctx, px))'),
-  'queued A1 must enter the real Gold IceField render path');
-assert.ok(f.includes('e.buildLane(L.frontStartAt + off, L.len, travel)'),
-  'queued native A1 must reuse Gold buildLane, not a substitute graphic');
-assert.ok(f.includes('n.gameplay = false'),
-  'queued visual-only ice cannot acquire gameplay authority');
+// CP17: reverse the obsolete acceptance law. It previously REQUIRED a
+// second queued Gold floor before the real A1: exactly the mid-match pop-in
+// and replay the owner reported. A1 now owns one immediate authored cast,
+// including during Gold A2; A2's physical trail remains independent.
+assert.ok(f.includes("if (q.kind === 'a1' && S.engine.mode === 'a2')"),
+  'A1 accepted during A2 must take actor ownership in the same tick');
+assert.ok(f.includes('e.castA1(q.ang)'),
+  'Frost A1 animation must originate from the real Gold cast');
+assert.ok(f.includes('drawIceComposite(S, ctx, px)'),
+  'Gold must own the sole A1 ice surface pass');
+assert.doesNotMatch(f,/function (?:drawQueuedA1GoldSurface|primeQueuedA1Gold|replayA1Lane)\(/,
+  'no independent preview or historical lane materializer may replay the same A1');
+assert.doesNotMatch(f,/n\.__frostQueuedPreview\s*=/,
+  'queued preview material must never produce a second ice field');
+assert.match(f,/e\.modeT >= A1_RELEASE_BEAT - 1e-7/,
+  'Gold release epsilon must not become a full anticipation-skipping jump');
 assert.ok(!f.includes('drawQueuedA1Floor') && !f.includes('rgba(110,213,248'),
   'unapproved flat cyan A1 proxy must not return');
-assert.match(f,/pumpCastQueue\(S, now, insp\)/,'Gold A1 deferred authored choreography must remain owned by the original queue');
+assert.match(f,/pumpCastQueue\(S, now, insp\)/,
+  'A2 history queue remains truthful without replaying A1');
 assert.match(result,/APEX_COMBAT_HUD\?\.projection/,'Result must use Battle HUD color authority');
 assert.match(result,/cfg\.TIER_COLORS\?\.\[tier\]/,'Result must use actual weapon tier palette');
 assert.match(weapon,/weapon__rarity/,'Weapon Gold must visibly show tier');
