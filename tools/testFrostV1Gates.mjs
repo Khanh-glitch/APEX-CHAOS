@@ -2969,7 +2969,7 @@ try {
   const castOk = win.APEX_ARSENAL_SKILL_GATE.pressJ(oB.a);
   T.step(2 / 60);
   const qB = P().inspect(oB.a);
-  const deferredB = qB.mode === 'a2' && qB.queued === 1 && qB.queuedKinds[0] === 'a1';
+  const immediateB = qB.mode === 'a1' && qB.queued === 0 && qB.a1Started > 0 && qB.a1Replays === 0;
   // Gameplay A1 keeps its own schedule while the visual waits.
   T.step(0.5);
   const gLane = FR().inspect(ctB).lanes.length === 1;
@@ -2981,11 +2981,11 @@ try {
     nodesB = i.a1.nodes;
   }
   const iB = P().inspect(oB.a);
-  const bothB = releasedB && nodesB >= 40 && iB.castStarts === 2 && iB.castDropped === 0 && iB.queued === 0;
+  const bothB = releasedB && nodesB >= 40 && iB.castStarts === 2 && iB.castDropped === 0 && iB.queued === 0 && iB.a1Replays === 0;
   gate('F13.8-concurrent-cast-lossless',
-    deferredA && startedA && bothA && castOk && deferredB && gLane && bothB,
+    deferredA && startedA && bothA && castOk && immediateB && gLane && bothB,
     { legA: { deferred: deferredA, started: startedA, nodes: iA.a1.nodes, trail: iA.a2.trail, starts: iA.castStarts, dropped: iA.castDropped },
-      legB: { deferred: deferredB, gameplayLane: gLane, released: releasedB, nodes: nodesB, starts: iB.castStarts, dropped: iB.castDropped } });
+      legB: { immediate: immediateB, gameplayLane: gLane, released: releasedB, nodes: nodesB, starts: iB.castStarts, dropped: iB.castDropped } });
 } catch (e) { gate('F13.8-concurrent-cast-lossless', false, String(e && e.message)); }
 
 // F13.9 — A1 direction is the gameplay CAST-ACCEPTANCE snapshot. A real
@@ -3102,90 +3102,57 @@ try {
     { gpNodes: gpHist.length, hydrated: i.a2Hydrated, early8: early, covered: all, bornTruth, grew });
 } catch (e) { gate('F13.11-deferred-a2-hydrates-history', false, String(e && e.message)); }
 
-// F13.12 — a deferred A1 must ALWAYS play its cast beat before the lane:
-// authoritative origin/direction/original expiry are retained, but no direct
-// historical floor replay may bypass anticipation/open/release.
+// CP17: A1 pressed while A2 owns Gold starts its single authored actor
+// gesture IMMEDIATELY, without replaying a stale floor after the hunt.
 try {
-  const o = stillPair(300, 500, 1, 1200, 900);
-  const ct = HR.byCombatant(o.a);
-  const AIL = win.APEX_HERO_REWORK_AIL;
-  HR.pressAbility(o.a, 'A2');                     // A2 owns Gold
-  T.step(2 / 60);
-  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);        // A1 queued
-  T.step(0.4);                                     // gameplay releases the lane
-  const lane = FR().inspect(ct).lanes[0];
-  const qd = P().inspect(o.a).queued === 1;
-  for (let k = 0; k < 30; k++) { o.a.x += 14; T.step(2 / 60); }   // Frost leaves
-  const farX = o.a.x;
-  let admitted = false;
-  for (let k = 0; k < 60 && !admitted; k++) { T.step(0.05); admitted = P().inspect(o.a).mode === 'a1'; }
-  const e = P().engineFor(o.a);
-  const atAdmission = P().inspect(o.a);
-  const noDirectLane = e.ice.nodes.filter((n) => n.kind === 'lane').length === 0
-    && !atAdmission.a1.released;
-  T.step(0.12);
-  const loaded = P().inspect(o.a);
-  const beatLoaded = loaded.mode === 'a1' && !loaded.a1.released
-    && loaded.choreography.jawGoal >= 14
-    && e.ice.nodes.filter((n) => n.kind === 'lane').length === 0;
-  let rel = false;
-  for (let k = 0; k < 20 && !rel; k++) { T.step(0.025); rel = P().inspect(o.a).a1.released; }
-  const i = P().inspect(o.a);
-  const off = e.t - AIL.clock();
-  const nodes = e.ice.nodes.filter((n) => n.kind === 'lane');
-  const dOrigin = Math.hypot(i.a1.ox - lane.ox, i.a1.oy - lane.oy);        // vs gameplay truth
-  const dFrost = Math.hypot(i.a1.ox - o.a.x, i.a1.oy - o.a.y);             // vs where Frost is now
-  const angOk = Math.abs(i.a1.ang - Math.atan2(lane.dy, lane.dx)) < 0.01;
-  const decays = nodes.map((n) => n.decayAt).filter((d) => d !== Infinity && d < Infinity);
-  const expiry = decays.length ? Math.min(...decays) : NaN;
-  const expiryTruth = Math.abs(expiry - (lane.expireAt + off)) < 0.2;       // gameplay lane expiry
-  const notRestarted = expiry < e.t + (ct.skills.A1.cfg.floorLifetime || 4.5) - 1.0; // not a fresh floor
-  const bornAfterBeat = nodes.length > 0 && Math.min(...nodes.map((n) => n.born)) >= atAdmission.t - 0.05;
-  gate('F13.12-deferred-a1-historical-origin',
-    qd && admitted && noDirectLane && beatLoaded && rel && i.a1Replays === 1
-    && nodes.length >= 40 && dOrigin < 45 && dFrost > 300
-    && angOk && expiryTruth && notRestarted && bornAfterBeat,
-    { admitted, noDirectLane, beatLoaded, originGap: +dOrigin.toFixed(1),
-      frostGap: +dFrost.toFixed(1), frostX: Math.round(farX), ang: i.a1.ang,
-      expiryTruth, notRestarted, bornAfterBeat, nodes: nodes.length });
-} catch (e) { gate('F13.12-deferred-a1-historical-origin', false, String(e && e.message)); }
+  const o=stillPair(300,500,1,850,850), ct=HR.byCombatant(o.a);
+  HR.pressAbility(o.a,'A2');T.step(2/60);
+  const before=P().inspect(o.a);
+  const pressed=win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(1/60);
+  const at=P().inspect(o.a), e=P().engineFor(o.a);
+  const started=pressed && before.mode==='a2' && at.mode==='a1' &&
+    at.a1Started>0 && at.queued===0 && at.a1Replays===0 &&
+    at.a1.released===false && e.ice.nodes.filter(n=>n.kind==='lane').length===0;
+  const a2Live=FR().inspect(ct).a2live;
+  for(let i=0;i<11;i++){o.a.x+=14;T.step(1/60);}
+  const charging=P().inspect(o.a);
+  for(let i=0;i<9;i++)T.step(1/60);
+  const released=P().inspect(o.a);
+  for(let i=0;i<9;i++){o.a.x+=14;T.step(1/60);}
+  const final=P().inspect(o.a);
+  gate('F13.12-a1-immediate-mid-a2-with-original-gold-beat',
+    started && a2Live && !charging.a1.released && released.a1.released &&
+    e.ice.nodes.filter(n=>n.kind==='lane').length>40 &&
+    final.a1Started===at.a1Started && final.a1Replays===0 &&
+    final.castStarts===2 && final.a2.trail>0,
+    {started,a2Live,charged:!charging.a1.released,released:released.a1.released,
+      castStarts:final.castStarts,a1Replays:final.a1Replays,a2Trail:final.a2.trail});
+} catch(e){gate('F13.12-a1-immediate-mid-a2-with-original-gold-beat',false,String(e?.message||e));}
 
-
-// F13.13 — owner-reported intermittent flat cyan slab before the real A1.
-// Trigger the actual A2 -> queued A1 overlap, not a synthetic draw fixture.
-// The native lane may exist during Gold's A2, but no temporary gradient
-// proxy may replace the Gold-authored ice or sneak new gameplay material in.
+// CP17: even across a complete A2 + A1 overlay lifecycle, the visual must
+// have one release transition and no speculative preview-node producer.
 try {
-  const o = stillPair(300, 500, 1, 850, 850);
-  const ct = HR.byCombatant(o.a);
-  HR.pressAbility(o.a, 'A2');
-  T.step(2 / 60);
-  const cast = win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
-  T.step(0.4);
-  const during = P().inspect(o.a);
-  const native = FR().inspect(ct);
-  const e = P().engineFor(o.a);
-  const beforeDraw = e.ice.nodes.filter((n) => n.kind === 'lane').length;
-  let previewRenders = 0;
-  const originalRender = e.ice.render;
-  e.ice.render = function (...args) {
-    if (this.nodes.some((n) => n.__frostQueuedPreview)) previewRenders++;
-    return originalRender.apply(this, args);
-  };
-  try { T.redraw(); } finally { e.ice.render = originalRender; }
-  const afterDraw = e.ice.nodes.filter((n) => n.kind === 'lane').length;
-  const src = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
-  const noProxy = !src.includes('drawQueuedA1Floor')
-    && !src.includes("grad.addColorStop(0,'rgba(110,213,248,.50)'");
-  const deferred = cast && during.mode === 'a2' && during.queuedKinds.includes('a1')
-    && native.lanes.length > 0 && beforeDraw === 0 && afterDraw === 0 && previewRenders > 0;
-  T.step(2.5);
-  const after = P().inspect(o.a);
-  gate('F13.13-deferred-a1-gold-only-no-cyan-proxy',
-    noProxy && deferred && after.a1.released && after.a1.nodes >= 40 && after.castDropped === 0,
-    { noProxy, deferred, previewRenders, beforeDraw, afterDraw, goldNodes: after.a1.nodes,
-      goldReleased: after.a1.released, dropped: after.castDropped });
-} catch (e) { gate('F13.13-deferred-a1-gold-only-no-cyan-proxy', false, String(e && e.message)); }
+  const o=stillPair(300,500,1,850,850);
+  HR.pressAbility(o.a,'A2');T.step(2/60);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);T.step(1/60);
+  const e=P().engineFor(o.a), initial=P().inspect(o.a);
+  let preview=false,releases=0,previous=false,maxLane=0;
+  for(let i=0;i<52;i++){
+    o.a.x+=2;T.step(1/60);
+    const p=P().inspect(o.a);
+    preview=preview||e.ice.nodes.some(n=>n.__frostQueuedPreview);
+    maxLane=Math.max(maxLane,e.ice.nodes.filter(n=>n.kind==='lane').length);
+    if(p.a1.released&&!previous)releases++;
+    previous=p.a1.released;
+  }
+  const final=P().inspect(o.a);
+  gate('F13.13-one-cast-one-release-zero-replay',
+    !preview && releases===1 && maxLane>40 &&
+    initial.a1Started>0 && final.a1Started===initial.a1Started &&
+    final.a1Replays===0 && final.castStarts===2 && final.queued===0,
+    {preview,releases,maxLane,castStarts:final.castStarts,queued:final.queued,replays:final.a1Replays});
+} catch(e){gate('F13.13-one-cast-one-release-zero-replay',false,String(e?.message||e));}
 
 /* ================= F14 — owner activation-window regressions ========== */
 // These gates inspect every activation frame rather than redrawing one frozen
