@@ -47,7 +47,8 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0}
    A.state.spawnTimer=1e6;A.state.spawnHeld=true;A.state.unarmedFastConsumed=true;A.state.slots=[];
    projectiles.length=0;a.baseSpeed=0;b.baseSpeed=0;
-   a.x=230;a.y=460;b.x=780;b.y=540;a.setDir(1,0);b.setDir(-1,0);a.hp=1000;b.hp=1000;
+   // Independent lanes avoid native rival impact before Gold reference t=0.84s.
+   a.x=170;a.y=420;b.x=780;b.y=780;a.setDir(1,0);b.setDir(-1,0);a.hp=1000;b.hp=1000;
    if(!W.equip(a,'RPG_7')||!W.equip(b,'RPG_7'))throw Error('Native RPG equipment refused');
    let p=null,q=null,steps=0;
    for(;steps<180;steps++){
@@ -136,12 +137,23 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    const smokeCanvas=document.createElement('canvas');
    smokeCanvas.width=1200;smokeCanvas.height=900;
    W.drawArsenalProjectiles(smokeCanvas.getContext('2d'));
-   const smokeFrame=smokeCanvas.toDataURL('image/png');
+   const smokeEarly=smokeCanvas.toDataURL('image/png');
+   const earlyAge=p.age;
+   // Compare with the owner's Gold t=0.84s rather than an unrelated early
+   // age. ONLY the authoritative Arsenal simulation advances this carrier.
+   for(let n=0;n<80&&p.age<.84&&projectiles.includes(p);n++)A.step(1/60);
+   if(!projectiles.includes(p)||p.exploded||p.age<.84-1e-6)
+     throw Error('Gold t=.84s native rocket flight unavailable age='+p.age+' x='+p.x+' y='+p.y);
+   const smokeMatched=document.createElement('canvas');
+   smokeMatched.width=1200;smokeMatched.height=900;
+   W.drawArsenalProjectiles(smokeMatched.getContext('2d'));
+   const smokeFrame=smokeMatched.toDataURL('image/png');
    const painted=hCtx.getImageData(450,450,1,1).data[3];
    // Save pixels from exactly the approved native presentation callbacks; these
    // are not synthetic CSS mockups or screenshots of a separate Gold studio.
    if(G.__cp8Evidence)throw Error('CP8 evidence namespace already in use');
-   G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),ecoWorld:wc.toDataURL('image/png'),rocket:ctx.canvas.toDataURL('image/png'),rocketSmoke:smokeFrame};
+   G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),ecoWorld:wc.toDataURL('image/png'),
+      rocket:ctx.canvas.toDataURL('image/png'),rocketSmokeEarly:smokeEarly,rocketSmoke:smokeFrame};
    const oldOwner=p.owner;p.owner=b;
    W.drawArsenalProjectiles(ctx);
    if(p.cosmetic?.skinId!=='vua-he')throw Error('Reflection changed Gold identity');
@@ -162,13 +174,13 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
        throw Error('Gold blast frame renderer rejected age '+age);
      G.__cp8Evidence['blast-'+String(Math.round(age*100)).padStart(3,'0')]=canvas.toDataURL('image/png');
    }
-   return {readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,blastLife:blast.maxLife,exploded:p.exploded,hp:[a.hp,b.hp]};
+   return {readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,blastLife:blast.maxLife,exploded:p.exploded,smokeEarlyAge:earlyAge,smokeMatchedAge:p.age,hp:[a.hp,b.hp]};
   });
   assert.equal(exceptions.length,0,'Chrome page errors: '+exceptions.join('\n'));
   if(captureDir){
    const frames=await page.evaluate(()=>window.__cp8Evidence||null);
    assert.deepEqual(Object.keys(frames||{}).sort(),[
-     'actor','ecoWorld','rocket','rocketSmoke','blast-020','blast-043','blast-091','blast-120'].sort());
+     'actor','ecoWorld','rocket','rocketSmokeEarly','rocketSmoke','blast-020','blast-043','blast-091','blast-120'].sort());
    for(const [name,data] of Object.entries(frames)){
      assert.match(data,/^data:image\/png;base64,/,'Evidence must be a lossless PNG');
      fs.writeFileSync(path.join(captureDir,`${caseInfo.name}-${name}.png`),
