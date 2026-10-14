@@ -59,8 +59,27 @@ try{
    });
    assert.equal(skinReach.length,2,'NEWBOT must expose exactly two registered appearances');
    assert.ok(skinReach.every(s=>s.hit&&s.within),'clipped or occluded appearance: '+JSON.stringify(skinReach));
+   // R2 game-art quality contract: the hero circuit must exist on the actual
+   // SKINS panel and each node must remain hit-testable in the viewport.
+   const web=await page.evaluate(()=>{
+    const buttons=[...document.querySelectorAll('.fa3-combat-web-compact .fa3-web-node')];
+    return {length:buttons.length,rects:buttons.map(el=>{
+      const r=el.getBoundingClientRect(),cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;
+      return {inScreen:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight,
+        hit:document.elementFromPoint(cx,cy)?.closest('.fa3-web-node')===el};
+    }),readoutVisible:!!document.querySelector('.fa3-readout-embed')};
+   });
+   assert.equal(web.length,3,'PASSIVE / A1 / A2 spiderweb nodes missing');
+   assert.ok(web.rects.every(x=>x.hit&&x.inScreen),'unusable ability web in '+v.name+': '+JSON.stringify(web));
    assert.deepEqual(errors,[],'browser runtime/asset errors');
    await page.screenshot({path:path.join(dir,v.name+'-newbot-original.jpg'),type:'jpeg',quality:85});
+   await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:nth-child(2)').click());
+   await page.waitForSelector('.fa3-combat-web:not(.fa3-combat-web-compact)');
+   await page.evaluate(()=>document.querySelector('.fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-node-a2').click());
+   const ability=await page.$eval('.fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-detail',e=>e.textContent);
+   assert.ok(ability.includes('VIRTUAL ARMOR'),'A2 click did not update REAL NEWBOT skill info');
+   await page.screenshot({path:path.join(dir,v.name+'-newbot-ability-web.jpg'),type:'jpeg',quality:85});
+   await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:first-child').click());
    // IMPORTANT: live registered cosmetic, no fake prototype model.
    const eco=await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(b=>b.textContent.includes('ECOBOT'))?.textContent);
    assert.ok(eco,'ECOBOT skin registration unavailable');
@@ -85,9 +104,21 @@ try{
    await page.evaluate(()=>[...document.querySelectorAll('.fa3-index-list button')].find(x=>x.textContent.includes('RPG-7')).click());
    await page.waitForFunction(()=>document.querySelector('.fa3-record-top h3')?.textContent==='RPG-7',{timeout:10000});
    const facts=await page.evaluate(()=>{document.querySelector('.fa3-detail-tabs button:nth-child(2)').click();return true});
-   await page.waitForSelector('.fa3-facts');
-   const words=await page.$eval('.fa3-facts',e=>e.textContent);
-   assert.ok(words.includes('COMBAT PROFILE')&&words.includes('HOW IT FIGHTS')&&words.includes('SELECTED APPEARANCE')&&words.includes('161')&&words.includes('126'),'RPG-7 INFO must show native peak/blast data and cosmetic delta, not generic pick up text');
+   await page.waitForSelector('.fa3-stat-console:not(.fa3-stat-console-compact)');
+   const words=await page.$eval('.fa3-stat-console:not(.fa3-stat-console-compact)',e=>e.textContent);
+   assert.ok(['BLAST PEAK','161','PROJECTILE SPEED','420','TOP SPEED','990','BLAST RADIUS','126','ACCELERATION','760'].every(w=>words.includes(w)),
+     'RPG-7 INFO must show the exact native weapon parameters (not invented DPS) '+words);
+   await page.screenshot({path:path.join(dir,v.name+'-rpg-combat-stats.jpg'),type:'jpeg',quality:85});
+   const statsReadable=await page.evaluate(()=>{
+    const body=document.querySelector('.fa3-detail').getBoundingClientRect();
+    return [...document.querySelectorAll('.fa3-stat-console:not(.fa3-stat-console-compact) .fa3-metric')].map(el=>{
+      const b=el.getBoundingClientRect(),x=(b.left+b.right)/2,y=(b.top+b.bottom)/2;
+      return {name:el.textContent.slice(0,23),visible:b.top>=body.top-1&&b.bottom<=body.bottom+1,
+        inViewport:b.top>=0&&b.bottom<=innerHeight+1,hit:!!document.elementFromPoint(x,y)?.closest('.fa3-stat-console')};
+    });
+   });
+   assert.ok(statsReadable.length>=5&&statsReadable.every(s=>s.visible&&s.inViewport&&s.hit),
+     'Weapon combat telemetry clipped in '+v.name+': '+JSON.stringify(statsReadable));
    await page.$eval('.fa3-detail-tabs button:first-child',e=>e.click());
    await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(e=>e.textContent.includes('VUA HỀ')).click());
    await page.screenshot({path:path.join(dir,v.name+'-rpg-vua-he.jpg'),type:'jpeg',quality:85});
