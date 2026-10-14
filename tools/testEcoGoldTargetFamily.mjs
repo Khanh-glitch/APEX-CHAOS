@@ -1,7 +1,12 @@
 // CP10: owner ECO V17 targeting family regression. This validates the actual
 // Gold render functions without mutating Robot targeting, cooldown or pickups.
 import assert from 'node:assert/strict';
-import {drawEcoGoldTargetLock,drawEcoGoldTargetMeasure} from '../src/game/cosmetics/ecoNewbotV17WorldGold.js';
+// The imported immutable ECO body source instantiates browser Path2D at
+// module load. In Node we stub only its constructor; this test never paints
+// the body. Pixel verification is performed separately by real Chrome CI.
+globalThis.Path2D ??= class Path2DStub {constructor(){}};
+const {drawEcoGoldTargetLock,drawEcoGoldTargetMeasure} =
+ await import('../src/game/cosmetics/ecoNewbotV17WorldGold.js');
 import {cosmetics} from '../src/game/cosmetics/cosmeticAuthority.js';
 
 function probe(){
