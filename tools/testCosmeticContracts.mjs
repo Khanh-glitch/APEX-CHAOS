@@ -41,6 +41,12 @@ assert.equal(cosmetics.trailHistorySeconds(
 assert.equal(cosmetics.trailHistorySeconds(
   cosmetics.capture('p2','weapon','FUTURE_TRAIL_HISTORY_CANARY')),0);
 assert.equal(skinA.kind,'weapon');
+assert.equal(cosmetics.suppressDefaultTrail({kind:'weapon',baseId:weapon,skinId:'neon-a'}),true);
+assert.equal(cosmetics.suppressDefaultTrail({kind:'weapon',baseId:weapon,skinId:'neon-b'}),false);
+assert.equal(cosmetics.suppressDefaultTrail({kind:'weapon',baseId:weapon,skinId:'default'}),false);
+assert.equal(cosmetics.suppressDefaultTrail(null),false);
+const noProjectileSkin=cosmetics.register({kind:'weapon',baseId:'FUTURE_BLAST_ONLY',id:'custom',suppressBaseTrail:true,render:{blast:()=>true}});
+assert.equal(noProjectileSkin.suppressBaseTrail,false,'Trail cannot be suppressed without a custom projectile renderer');
 assert.equal(cosmetics.variants('weapon',weapon).length,3);
 assert.equal(cosmetics.variants('hero',hero).length,2);
 assert.equal(cosmetics.selected('p1','weapon',weapon).id,'default');
