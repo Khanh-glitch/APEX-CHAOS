@@ -1639,6 +1639,12 @@ function renderRig(g) {
                 const drawAngle = aim + (params.drawOffset || 0) + (holder.meta && holder.meta.pose && holder.meta.pose.rotKick || 0);
                 const ok = av.drawWeaponSprite(ctx, holder.weaponId, offX, offY, {
                   mode: 'equipped',
+                  // Robot's native jaw/socket override must carry the same
+                  // P1/P2 cosmetic identity as every other equipped weapon.
+                  // Only presentation is selected; pose, recoil and aim stay native.
+                  cosmetic: globalScope.APEX_COSMETICS?.capture?.(
+                    globalScope.APEX_COSMETICS?.sideOf?.(fighter, globalScope),
+                    'weapon', holder.weaponId) || null,
                   useWorld: params.useWorld,
                   targetLongSide: params.targetLongSide,
                   angle: drawAngle,
