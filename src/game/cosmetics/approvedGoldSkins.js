@@ -2,7 +2,7 @@
 import {cosmetics} from './cosmeticAuthority.js';
 import {rocketGoldAssets,drawRocketGoldWeapon,drawRocketGoldProjectile,drawRocketGoldBlast} from './rocketVuaHeGold.js';
 import {prepareEcoGold,drawEcoGoldActor} from './ecoNewbotV17Gold.js';
-import {drawEcoGoldWorldBack,drawEcoGoldWorldFront} from './ecoNewbotV17WorldGold.js';
+import {drawEcoGoldWorldBack,drawEcoGoldWorldFront,drawEcoGoldTargetLock,drawEcoGoldTargetMeasure} from './ecoNewbotV17WorldGold.js';
 
 cosmetics.register({
  kind:'weapon',baseId:'RPG_7',id:'vua-he',label:'VUA HỀ — THE LAST LAUGH',
@@ -15,5 +15,6 @@ cosmetics.register({
  kind:'hero',baseId:'ROBOT',id:'ecobot',label:'ECOBOT — RECYCLE CORE V17',
  detail:'Owner Gold · forest-jade mechanical layers · native NEWBOT springs',
  assets:[],prepare:prepareEcoGold,
- render:{actor:drawEcoGoldActor,worldBack:drawEcoGoldWorldBack,worldFront:drawEcoGoldWorldFront}
+ render:{actor:drawEcoGoldActor,worldBack:drawEcoGoldWorldBack,worldFront:drawEcoGoldWorldFront,
+  targetLock:drawEcoGoldTargetLock,targetMeasure:drawEcoGoldTargetMeasure}
 });
