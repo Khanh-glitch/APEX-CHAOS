@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/cp16-cloudflare-owner-preview.yml'
       - 'src/game/runtimeManifest.js'
+      - 'src/game/runtimeLoader.js'
+      - 'tools/testRuntimeScriptAdmission.mjs'
       - 'src/game/goldAssetManifest.js'
       - 'public/gold/**'
       - 'tools/runtimeRevision.lock.json'
@@ -43,6 +45,7 @@ jobs:
       - name: Verify immutable source/generator admission before deployment
         run: |
           node tools/testCP16AtomicRelease.mjs
+          node tools/testRuntimeScriptAdmission.mjs
           node tools/testRuntimeRevisionGate.mjs
           node tools/testGoldRevisionIntegrityGate.mjs
           node tools/buildGoldCutover.mjs --check
