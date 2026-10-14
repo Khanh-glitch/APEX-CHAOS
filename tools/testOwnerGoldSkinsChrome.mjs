@@ -105,6 +105,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
      observed:consumed===undefined?'undefined':String(consumed),
      frostWrapperActive:AV.__frostWrapped===true,
      publicSource:String(AV.drawEquippedWeapon).slice(0,1050),
+     capturedFrostBaseSource:AV.__cp14CapturedEquippedSource||'not-captured',
      ownProperty:!!Object.getOwnPropertyDescriptor(AV,'drawEquippedWeapon'),
      registered:AV.equippedWeaponRendererIds(),
      canaryRuns:callCount
