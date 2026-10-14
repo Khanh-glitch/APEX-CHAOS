@@ -1,0 +1,87 @@
+name: Field Archive C03 LIVE Preview Acceptance
+on:
+  push:
+    branches:
+      - design/field-archive-c03-product-20261014
+    paths:
+      - .github/workflows/field-archive-c03-live-preview.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-cloudflare-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      APEX_APP_URL: https://design-field-archive-c03-pro.apex-chaos.pages.dev/
+      RECEIPT: /tmp/c03-live-receipt.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Fail closed until Cloudflare serves exact branch SHA + Gold bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=0
+          for i in $(seq 1 60); do
+            rm -f "$RECEIPT"
+            curl -fLsS -H 'Cache-Control: no-cache' --max-time 18 "$APEX_APP_URL""CP16_BUILD_RECEIPT.json?sha=$GITHUB_SHA&n=$i" -o "$RECEIPT" 2>/dev/null || true
+            if node --input-type=module -e '
+              import fs from "node:fs";
+              const r=JSON.parse(fs.readFileSync(process.env.RECEIPT,"utf8"));
+              if(r.gitCommit!==process.env.GITHUB_SHA||r.revision!=="20261014-cp17-frost-cast-r1")process.exit(1);
+            ' >/dev/null 2>&1;then found=1;break;fi
+            sleep 6
+          done
+          test "$found" -eq 1 || { echo "::error::Cloudflare does not serve exact C03 commit";exit 1; }
+          curl -fLsS --max-time 20 "$APEX_APP_URL""gold/shell.html" -o /tmp/c03-gold-shell.html
+          curl -fLsS --max-time 20 "$APEX_APP_URL""gold/manifest.json" -o /tmp/c03-gold-manifest.json
+          node --input-type=module -e '
+            import fs from "node:fs";import crypto from "node:crypto";
+            const r=JSON.parse(fs.readFileSync(process.env.RECEIPT,"utf8"));
+            const g=JSON.parse(fs.readFileSync("/tmp/c03-gold-manifest.json","utf8"));
+            const shell=fs.readFileSync("/tmp/c03-gold-shell.html");
+            const hash=crypto.createHash("sha256").update(shell).digest("hex");
+            if(hash!==g.files?.["shell.html"]?.sha256||hash!==r.goldShellSha256||
+              g.files["shell.html"].bytes!==shell.length)process.exit(1);
+            console.log("FIELD ARCHIVE LIVE SHA/GOLD PASS",r.gitCommit,hash);
+          '
+      - name: Install isolated Chrome driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Actual Cloudflare 5-device Dictionary no-scroll, Gold art, P1/P2 Equip and reload
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testFieldArchiveC03Chrome.mjs
+      - name: Re-verify public SHA after all Chrome steps
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS -H 'Cache-Control: no-cache' --max-time 25 "$APEX_APP_URL""CP16_BUILD_RECEIPT.json?post=$GITHUB_SHA" -o /tmp/c03-live-after.json
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const r=JSON.parse(fs.readFileSync("/tmp/c03-live-after.json","utf8"));
+            if(r.gitCommit!==process.env.GITHUB_SHA)process.exit(1);
+            console.log("FIELD ARCHIVE LIVE SHA AFTER CHROME PASS",r.gitCommit);
+          '
+      - name: Preserve screenshot and build receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: field-archive-c03-live-cloudflare-evidence
+          path: |
+            docs/field-archive/candidate03/
+            /tmp/c03-live-receipt.json
+            /tmp/c03-live-after.json
+            /tmp/c03-gold-manifest.json
+          retention-days: 21
+          if-no-files-found: warn

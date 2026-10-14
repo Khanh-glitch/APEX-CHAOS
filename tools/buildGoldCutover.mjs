@@ -2446,7 +2446,15 @@ function main() {
   outputs.set('lucky-draw.html', Buffer.from(buildLuckyDonor(), 'utf8'));
   log('lucky-draw.html built (localized + production-bridged donor)');
   outputs.set('shell.html', Buffer.from(adaptTotGoldShellB8(adaptRivetGoldShellB7(adaptBreachGoldShellB6i(applyQuestMobileTouchRelease(applyB05Overlay('shell.html', buildShell(outputs.get('battle-hud.html').toString('utf8'))))))), 'utf8'));
-  log('shell.html built (canonical shell + production patches)');
+  // C03: Dictionary is the one integrated Fighter / Weapon cosmetic archive.
+  // Keep this in the generator, NOT as an output-only shell edit, so all
+  // release/GOLD hash gates regenerate the exact authorized UI bytes.
+  const dictionaryBefore='<button class="route is-locked" type="button" aria-label="Dictionary (locked)" disabled>';
+  const dictionaryAfter='<button class="route" id="apexDictionaryOpen" type="button" aria-label="Open Field Archive Dictionary">';
+  const rawArchiveShell=outputs.get('shell.html').toString('utf8');
+  if(rawArchiveShell.split(dictionaryBefore).length!==2)throw new Error('C03 Dictionary route source anchor drift');
+  outputs.set('shell.html',Buffer.from(rawArchiveShell.replace(dictionaryBefore,dictionaryAfter),'utf8'));
+  log('shell.html built (canonical shell + production patches + active C03 Dictionary route)');
 
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
@@ -2526,7 +2534,7 @@ function main() {
   // Cache identity: the Gold shell / Lucky Draw / battle HUD URLs carry the
   // runtime revision so a prior Gold cutover can never be served from a stale
   // browser cache during verification (2026-10-05 correction slice).
-  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}';`);
+  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}&fieldArchive=c03';`);
   assetLines.push(`export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=${REVISION}';`);

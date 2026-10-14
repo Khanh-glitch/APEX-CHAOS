@@ -3187,24 +3187,29 @@ report.rev2ProductGraph = run(`
       && !('exitArsenalQuestMode' in window),
   };
 `);
-// 2026-10-05 correction: the Fighter Shop is a LOCKED extension point (Gold
-// product direction); the independent Cosmetic Locker is a new ACTIVE
-// presentation-only surface. Fighter Shop and the roadmap stay LOCKED.
-// A locked route must remain genuinely non-launchable.
-gate('rev2-product-active-surfaces-include-independent-cosmetic-locker',
-  report.rev2ProductGraph.publicCount === 11 && report.rev2ProductGraph.activeCount === 4
+// C03 product transition: Dictionary is the real unified Field Archive,
+// while the old 'cosmetic-locker' API remains an ACTIVE compatibility shortcut
+// into the SAME authority. Fighter Shop and all other roadmap routes remain
+// genuinely locked. Do not weaken the non-launchability assertions.
+gate('c03-product-active-archive-and-independent-cosmetic-compatibility',
+  report.rev2ProductGraph.publicCount === 11 && report.rev2ProductGraph.activeCount === 5
     && report.rev2ProductGraph.activeIds.includes('bot-battle')
     && report.rev2ProductGraph.activeIds.includes('local-1v1')
     && report.rev2ProductGraph.activeIds.includes('lucky-draw')
     && report.rev2ProductGraph.activeIds.includes('cosmetic-locker')
+    && report.rev2ProductGraph.activeIds.includes('dictionary')
     && win.APEX_PRODUCT_SURFACE.canLaunch('cosmetic-locker') === true
+    && win.APEX_PRODUCT_SURFACE.canLaunch('dictionary') === true
+    && win.APEX_PRODUCT_SURFACE.get('dictionary')?.route === 'skins'
     && report.rev2ProductGraph.activeIds.includes('fighter-shop') === false
     && report.rev2ProductGraph.allLockedBlocked === true
     && win.APEX_PRODUCT_SURFACE.canLaunch('fighter-shop') === false
     && win.APEX_PRODUCT_SURFACE.canLaunch('quest-01') === false,
   report.rev2ProductGraph);
-gate('rev2-product-locked-public-future-surfaces',
-  report.rev2ProductGraph.lockedCount === 7 && report.rev2ProductGraph.allLockedBlocked,
+gate('c03-product-locked-remaining-public-future-surfaces',
+  report.rev2ProductGraph.lockedCount === 6 && report.rev2ProductGraph.allLockedBlocked
+    && !win.APEX_PRODUCT_SURFACE.canLaunch('missions')
+    && !win.APEX_PRODUCT_SURFACE.canLaunch('account-profile'),
   report.rev2ProductGraph);
 gate('rev2-quest-01-is-locked-future-product-surface',
   report.rev2ProductGraph.quest01?.availability === 'LOCKED'
