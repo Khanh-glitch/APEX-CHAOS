@@ -354,27 +354,27 @@
           {
             "selector": ".fa3-primary",
             "box": {
-              "x": 124.4375,
+              "x": 139.4375,
               "y": 3,
-              "width": 91.171875,
+              "width": 87.171875,
               "height": 48,
               "top": 3,
-              "right": 215.609375,
+              "right": 226.609375,
               "bottom": 51,
-              "left": 124.4375
+              "left": 139.4375
             }
           },
           {
             "selector": ".fa3-players",
             "box": {
-              "x": 219.609375,
+              "x": 229.609375,
               "y": 3,
-              "width": 60.390625,
+              "width": 56.390625,
               "height": 48,
               "top": 3,
-              "right": 280,
+              "right": 286,
               "bottom": 51,
-              "left": 219.609375
+              "left": 229.609375
             }
           },
           {
@@ -419,14 +419,14 @@
           {
             "selector": ".fa3-close",
             "box": {
-              "x": 284,
+              "x": 289,
               "y": 5,
-              "width": 26,
+              "width": 23,
               "height": 44,
               "top": 5,
-              "right": 310,
+              "right": 312,
               "bottom": 49,
-              "left": 284
+              "left": 289
             }
           }
         ],
