@@ -161,7 +161,7 @@ export default function FieldArchiveC03(){
       <aside className={'fa3-index '+(view==='INDEX'?'fa3-index-active':'')} aria-label="Fighter and weapon catalogue">
        <div className="fa3-index-head"><b>REGISTER / {kind==='hero'?'FIGHTERS':'WEAPONS'}</b><span>{String(filtered.length).padStart(2,'0')} FILES</span></div>
        <input type="search" aria-label="Search archive" placeholder="FIND A RECORD..." value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/>
-       <div className="fa3-index-list">{pageItems.map(item=><button type="button" key={item.id} className={item.id===current?.id?'chosen':''} aria-pressed={item.id===current?.id} onClick={()=>{resetFocus(item.id);if(isNarrow)setView('SKINS')}}>
+       <div className="fa3-index-list">{pageItems.map(item=><button type="button" key={item.id} className={item.id===current?.id?'chosen':''} aria-pressed={item.id===current?.id} onClick={()=>{resetFocus(item.id);setView('SKINS')}}>
          <span className="fa3-index-img">{kind==='hero'?<img src={PICTURE(item.id)} alt=""/>:<span>{item.tier}</span>}</span>
          <span className="fa3-index-name"><b>{item.name}</b><small>{kind==='hero'?'FIGHTER':item.tier+' / '+item.family}</small></span><i aria-hidden="true">↗</i></button>)}
          {filtered.length===0&&<p className="fa3-no-results">No matching records.</p>}
