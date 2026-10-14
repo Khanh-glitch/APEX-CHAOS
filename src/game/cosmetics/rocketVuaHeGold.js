@@ -2,7 +2,33 @@
 // Gold formulas below extracted without rewriting from owner 2026-10-14 HTML.
 // This is visual-only: native RPG_7 projectiles, fuse, collision and AOE remain authoritative.
 const ROOT='/assets/skins/rocket-vua-he/';
-export const rocketGoldAssets=Object.freeze(['launcher','projectile','fullFace',...Array.from({length:10},(_,i)=>'v'+i),...Array.from({length:10},(_,i)=>'s'+i)].map(n=>ROOT+n+'.png'));
+// Literal first-party paths are deliberate: the shipping asset audit must
+// see and RETAIN every Gold texture, even though the renderer indexes by name.
+export const rocketGoldAssets=Object.freeze([
+  '/assets/skins/rocket-vua-he/launcher.png',
+  '/assets/skins/rocket-vua-he/projectile.png',
+  '/assets/skins/rocket-vua-he/fullFace.png',
+  '/assets/skins/rocket-vua-he/v0.png',
+  '/assets/skins/rocket-vua-he/v1.png',
+  '/assets/skins/rocket-vua-he/v2.png',
+  '/assets/skins/rocket-vua-he/v3.png',
+  '/assets/skins/rocket-vua-he/v4.png',
+  '/assets/skins/rocket-vua-he/v5.png',
+  '/assets/skins/rocket-vua-he/v6.png',
+  '/assets/skins/rocket-vua-he/v7.png',
+  '/assets/skins/rocket-vua-he/v8.png',
+  '/assets/skins/rocket-vua-he/v9.png',
+  '/assets/skins/rocket-vua-he/s0.png',
+  '/assets/skins/rocket-vua-he/s1.png',
+  '/assets/skins/rocket-vua-he/s2.png',
+  '/assets/skins/rocket-vua-he/s3.png',
+  '/assets/skins/rocket-vua-he/s4.png',
+  '/assets/skins/rocket-vua-he/s5.png',
+  '/assets/skins/rocket-vua-he/s6.png',
+  '/assets/skins/rocket-vua-he/s7.png',
+  '/assets/skins/rocket-vua-he/s8.png',
+  '/assets/skins/rocket-vua-he/s9.png',
+]);
 const GOLD={smokeLife:.68};
 const BLAST=.80, SMOKE_WINDOW=1.38, W=1e8, H=1e8;
 const settings=Object.freeze({density:1.3,opacity:1.3,scale:1.22,face:1.16});
