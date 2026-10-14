@@ -212,7 +212,7 @@
     return !!(AQ && AQ.state && AQ.state.active);
   }
   function actorRender(c, key, wx, wy, renderFn, kind) {
-    if (!isActive()) { renderFn(c); return; }
+    if (!isActive()) return renderFn(c);
     const pr = current().profile;
     let pair = sils.get(key);
     if (!pair) {
@@ -235,7 +235,8 @@
     sourceCtx.setTransform(1, 0, 0, 1, SIL / 2 - wx, SIL / 2 - wy);
     rstats.inActor = true;
     if (kind === 'weapon') rstats.weaponRenders += 1; else rstats.actorRenders += 1;
-    try { renderFn(sourceCtx); } finally { rstats.inActor = false; }
+    let receipt;
+    try { receipt = renderFn(sourceCtx); } finally { rstats.inActor = false; }
     sourceCtx.setTransform(1, 0, 0, 1, 0, 0);
 
     // MASK: cheap copy of SOURCE used only for neutral readability treatment.
@@ -260,6 +261,10 @@
     c.drawImage(pair.mask, dx, dy);
     c.restore();
     c.drawImage(pair.source, dx, dy); // preserve original full-color appearance
+    // The offscreen pass must transport its ONE native held-art receipt.
+    // Returning undefined here broke the Arsenal provider contract through
+    // the Chamber Palette -> Frost wrapper chain, despite correct pixels.
+    return receipt;
   }
   let wrapped = false;
   function installWrappers() {
@@ -290,8 +295,7 @@
       AV.drawEquippedWeapon = function (c, f, h) {
         if (!isActive()) return bw(c, f, h);
         // ONE weapon render dispatch per call; separation reuses its pixels.
-        actorRender(c, f, f.x, f.y, (oc) => bw(oc, f, h), 'weapon');
-        return undefined;
+        return actorRender(c, f, f.x, f.y, (oc) => bw(oc, f, h), 'weapon');
       };
       AV.__paletteWrapped = true;
     }
