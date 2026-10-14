@@ -12,6 +12,8 @@ on:
       - 'tools/testGoldRocketSmokeSampling.mjs'
       - 'tools/testEcoGoldTargetFamily.mjs'
       - 'tools/testGoldVisualContracts.mjs'
+      - 'tools/testPresentationReadinessHardening.mjs'
+      - 'public/game/product/productAssetRuntime.js'
       - 'tools/testCosmeticLockerChrome.mjs'
       - 'tools/testCosmeticBattleChrome.mjs'
       - 'tools/testOwnerGoldSkinsChrome.mjs'
@@ -37,6 +39,7 @@ jobs:
           node tools/testGoldRocketSmokeSampling.mjs
           node tools/testEcoGoldTargetFamily.mjs
           node tools/testGoldVisualContracts.mjs
+          node tools/testPresentationReadinessHardening.mjs
       - name: Verify production build and original runtime locks
         run: |
           node tools/testRuntimeRevisionGate.mjs
