@@ -32,7 +32,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.17;ba
 .top-rule,.folio{display:flex;align-items:center;justify-content:space-between;font:800 10px ui-monospace,monospace;letter-spacing:.12em;color:#7b5a3b}
 .top-rule:after{content:"";height:1px;background:#94765483;flex:1;margin-left:16px}
 .kicker{display:flex;align-items:center;gap:10px;color:#ab5827;font:900 11px Impact,"Arial Narrow",sans-serif;letter-spacing:.21em;margin-top:35px}
-.kicker span{width:21px;height:3px;background:#dd7a32}
+.kicker span:first-child{flex:none;width:21px;height:3px;background:#dd7a32}.kicker span:last-child{width:auto;white-space:nowrap;height:auto;background:transparent}
 .title{margin:8px 0 3px;font:1000 clamp(48px,5.4vw,86px)/.92 Impact,"Arial Narrow",sans-serif;letter-spacing:.005em;color:#241e18;text-transform:uppercase}
 .subline{display:flex;align-items:center;gap:12px;margin-top:10px;font-size:13px;font-weight:850;letter-spacing:.06em;color:#775840}
 .orange-tag{background:#cc6633;color:#fff1da;padding:6px 9px;font:900 10px/1 ui-monospace,monospace;letter-spacing:.1em}
@@ -58,8 +58,8 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.17;ba
 .art-image{position:absolute;inset:5px 0 0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(5px 22px 13px #2c241a5a)}
 #originalHero{height:103%;object-fit:contain;object-position:center;display:none}
 #heroCanvas{width:100%;height:100%;position:absolute;inset:0;display:none}
-#originalWeapon{max-width:88%;height:80%;object-fit:contain;display:none}
-#vuaHeWeapon{width:100%;height:auto;object-fit:contain;display:none;filter:drop-shadow(2px 18px 8px #33291a66)}
+#originalWeapon{top:50%;left:50%;transform:translate(-50%,-50%);width:91%;height:74%;object-fit:contain;display:none}
+#vuaHeWeapon{top:50%;left:50%;transform:translate(-50%,-50%);width:99%;height:auto;max-height:86%;object-fit:contain;display:none;filter:drop-shadow(2px 18px 8px #33291a66)}
 .preview-notice{position:absolute;z-index:5;bottom:18px;left:50%;transform:translateX(-50%);background:#1f211ff0;border:1px solid #7c6951;color:#ebe0d0;font:900 9px ui-monospace,monospace;padding:8px 12px;letter-spacing:.12em;white-space:nowrap;pointer-events:none}
 .skinbar{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .skinbar-title{font:900 12px Impact,sans-serif;letter-spacing:.1em}
@@ -71,7 +71,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.17;ba
 .skin.selected{border:2px solid #d06f2f;background:#eee0c7;box-shadow:inset 0 0 0 1px #fff7e1}
 .skin:disabled{opacity:.5}
 .skin-thumb{flex:none;width:54px;height:46px;display:grid;place-items:center;background:#272923;color:#f3d7a9;overflow:hidden}
-.skin-thumb img{width:100%;height:100%;object-fit:contain}
+.skin-thumb img,.skin-thumb canvas{width:100%;height:100%;object-fit:contain}
 .skin b{font:900 12px Impact,sans-serif;display:block;letter-spacing:.045em;white-space:nowrap}
 .skin small{display:block;color:#806344;font:800 9px ui-monospace,monospace;letter-spacing:.03em;margin-top:4px}
 .skin-check{color:#9f562e;font-weight:900;font-size:12px;margin-left:auto}
@@ -721,12 +721,14 @@ function paintEco(time=0){
  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);ctx.save();
  ctx.translate(w*.5,h*.53);
- const s=Math.min(w/165,h/150)*.45;ctx.scale(s,s);
+ const s=Math.min(w/165,h/150)*.76;ctx.scale(s,s);
  const t=time/1000;
  const springs={rootX:0,rootY:Math.sin(t*1.2)*1.6,tilt:Math.sin(t*.6)*.006,coreX:0,coreY:0,crest:0,chin:0,cheekX:0,cheekY:0,lagX:0,lagY:0,lid:0,glow:1,seam:0,calDx:[0,0],calDy:[0,0],calTh:[0,0],spin:[t*.5,t*.43]};
  const pose={side,robot:{time:t,springs,ticks:[0,0,0],scanning:false,armor:false,held:false,lockFlash:0,pulses:[],stress:[]}};
  try{if(!drawEcoGoldActor(ctx,pose))renderError='Gold rig rejected pose'}catch(e){renderError=String(e);console.error('ECOBOT exact Gold renderer',e)}
  ctx.restore();
+ const mini=document.querySelector('.eco-mini');
+ if(mini&&canvas.width>0){const mc=mini.getContext('2d');mc.clearRect(0,0,mini.width,mini.height);const crop=Math.min(canvas.width,canvas.height)*.83;mc.drawImage(canvas,(canvas.width-crop)/2,(canvas.height-crop)/2,crop,crop,0,0,mini.width,mini.height);}
  if(renderError){$('previewLabel').textContent='RENDER CHECK / '+renderError.slice(0,65)}
 }
 function frame(time){if(time-lastFrame>30){paintEco(time);lastFrame=time}requestAnimationFrame(frame)}
@@ -740,7 +742,7 @@ function render(){
  $('abilityList').innerHTML=d.skills.map(([code,name,detail])=>'<div class="ability"><span class="ability-icon">'+code+'</span><div><b>'+name+'</b><p>'+detail+'</p></div></div>').join('');
  $('skinList').innerHTML=d.skins.map(([id,label,detail])=>{
   const selected=preview===id,eq=equipped[side][kind]===id;
-  const img=id==='vua-he'?'<img src="/assets/skins/rocket-vua-he/launcher.png" alt="">':id==='default'?(kind==='weapon'?'<img src="/assets/arsenal/v43/RPG_7.webp" alt="">':'N'): 'E';
+  const img=id==='vua-he'?'<img src="/assets/skins/rocket-vua-he/launcher.png" alt="">':id==='default'?(kind==='weapon'?'<img src="/assets/arsenal/v43/RPG_7.webp" alt="">':'<img src="/gold/assets/gold/home-robot-body.png" alt="">'): '<canvas class="eco-mini" aria-label="Gold ECOBOT thumbnail" width="108" height="92"></canvas>';
   return '<button type="button" class="skin '+(selected?'selected':'')+'" data-skin="'+id+'" aria-pressed="'+selected+'"><span class="skin-thumb">'+img+'</span><span><b>'+label+'</b><small>'+detail+'</small></span><span class="skin-check">'+(eq?'✓':'')+'</span></button>';
  }).join('');
  ['originalHero','heroCanvas','originalWeapon','vuaHeWeapon'].forEach(id=>{$(id).style.display='none'});
