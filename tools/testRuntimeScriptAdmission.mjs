@@ -10,7 +10,7 @@ loader=loader.replace(/^export\s+(?=(?:async\s+)?function\s)/gm,'');
 assert.ok(!/^import\s/m.test(loader)&&!/^export\s/m.test(loader),
  'Runtime loader fixture transpile must not alter function implementations');
 const bootstrap=[
- "const ARSENAL_HUB_RUNTIMES=[];",
+ "const ARSENAL_HUB_RUNTIMES=window.__hubTuples;",
  "const MENU_INTERACTIVE_RUNTIMES=[];",
  "const PRODUCT_MUSIC_BOOT_RUNTIMES=[];",
  "const SELECT_RUNTIMES=[];",
@@ -24,11 +24,11 @@ const bootstrap=[
  "const preloadRuntimeSources=()=>{};"
 ].join('\n');
 
-function browser({rules={},warmup=[],battle=[]}={}){
+function browser({rules={},warmup=[],battle=[],hub=[]}={}){
  const history=[],nodes=[],winListeners=new Map();
  const baseURI='https://unit.apex.invalid/';
  const ruleFor=src=>rules[new URL(src,baseURI).pathname]||{};
- const win={__warmupTuples:warmup,__battleTuples:battle,
+ const win={__warmupTuples:warmup,__battleTuples:battle,__hubTuples:hub,
   addEventListener(type,fn){if(!winListeners.has(type))winListeners.set(type,new Set());winListeners.get(type).add(fn);},
   removeEventListener(type,fn){winListeners.get(type)?.delete(fn);}
  };
@@ -56,7 +56,8 @@ function browser({rules={},warmup=[],battle=[]}={}){
       fireWindow('error',{filename:new URL('/unrelated.js',baseURI).href,message:'unrelated'});
     if(rule.evalError)
       fireWindow('error',{filename:new URL(node.src,baseURI).href,message:'synthetic evaluation failure'});
-    if(rule.readyMarker)win[rule.readyMarker]='ready';
+    if(rule.readyMarker && (!rule.requires || win[rule.requires]==='ready'))
+      win[rule.readyMarker]='ready';
     node.emit('load'); // browser does this EVEN IF script evaluation threw
    });
    return node;
@@ -141,4 +142,40 @@ assert.deepEqual(concurrent.history,
  ['/arsenalConfig.js','/ail.js','/mechanics.js'],
  'warmup/battle must evaluate each runtime once in dependency order');
 assert.equal(concurrent.win.__apexBattleRuntimeState?.ready,true);
+
+
+// CP16 race that genuinely failed in Chrome: product loading, then Home hub
+// attaches while the initial product script is still in flight. The historical
+// priority splice moved CONFIG after IDENTITY and silently skipped the identity
+// IIFE's !CFG precondition. This is not a relaxed retry: order MUST be correct.
+const overlap=browser({
+  warmup:[
+    ['/engineCore.js','apexEngineCore'],
+    ['/arsenalConfig.js','apexArsenalConfig'],
+    ['/arsenalIdentity.js','apexArsenalIdentityRuntime'],
+    ['/ail.js','apexHeroReworkAil']
+  ],
+  hub:[
+    ['/arsenalConfig.js','apexArsenalConfig'],
+    ['/ail.js','apexHeroReworkAil']
+  ],
+  rules:{
+    '/engineCore.js':{readyMarker:'apexEngineCore'},
+    '/arsenalConfig.js':{readyMarker:'apexArsenalConfig'},
+    '/arsenalIdentity.js':{readyMarker:'apexArsenalIdentityRuntime',requires:'apexArsenalConfig'},
+    '/ail.js':{readyMarker:'apexHeroReworkAil',requires:'apexArsenalConfig'}
+  }
+});
+const productRace=overlap.api.loadDeferredGameRuntimes('arsenalProduct',{priority:true});
+const hubRace=overlap.api.loadDeferredGameRuntimes('arsenalHub',{priority:true});
+await Promise.all([productRace,hubRace]);
+assert.deepEqual(overlap.history,
+ ['/engineCore.js','/arsenalConfig.js','/arsenalIdentity.js','/ail.js'],
+ 'joining arsenalHub cannot relocate shared config behind dependent Identity');
+assert.equal(overlap.win.apexArsenalIdentityRuntime,'ready');
+assert.equal(overlap.win.apexArsenalConfig,'ready');
+assert.equal(overlap.nodes.filter(n=>n.src==='/arsenalConfig.js').length,1,
+ 'hub and product may only evaluate config once');
+console.log('CP16 PRIORITY QUEUE DEPENDENCY ORDER PASS: Home/arsenalProduct concurrent overlap');
+
 console.log('CP15 CLASSIC RUNTIME ADMISSION PASS: marker, onload+throw, wrong-source error, dedupe, fail-closed dependency queue, concurrent warmup/battle');

@@ -167,7 +167,7 @@ async function loadRuntimeList(runtimes) {
 // ─────────────────────────────────────────────────────────────────────────────
 const loadQueue = [];
 let queueRunning = false;
-let priorityDepth = 0;
+let activeRuntimeEntry = null; // in-flight dependency belongs to every concurrent group
 let fatalRuntimeFailure = null; // failed required runtime poisons this document
 
 function runtimeAlreadyLoaded(src, dataKey) {
@@ -188,7 +188,7 @@ async function pumpQueue() {
   try {
     while (loadQueue.length) {
       const entry = loadQueue.shift();
-      if (entry.priority) priorityDepth = Math.max(0, priorityDepth - 1);
+      activeRuntimeEntry = entry;
       try {
         await loadClassicRuntime(entry.src, entry.dataKey);
         entry.settle();
@@ -200,12 +200,13 @@ async function pumpQueue() {
           fatalRuntimeFailure = error;
           entry.fail(error);
           for (const remaining of loadQueue.splice(0)) remaining.fail(error);
-          priorityDepth = 0;
           break;
         } else {
           console.warn(`[asset-loader] Optional runtime failed: ${entry.src}`);
           entry.settle();
         }
+      } finally {
+        if (activeRuntimeEntry === entry) activeRuntimeEntry = null;
       }
     }
   } finally {
@@ -223,20 +224,49 @@ function enqueueGroup(runtimes, { priority = false } = {}) {
   const entries = [];
   for (const tuple of runtimes) {
     if (runtimeAlreadyLoaded(tuple[0], tuple[1])) continue;
-    const queued = loadQueue.find((q) => q.src === tuple[0]);
-    entries.push(queued || makeQueueEntry(tuple));
+    // CP16 race proof: the currently evaluating script has left loadQueue,
+    // but it still owns this dependency. Reuse its promise rather than
+    // enqueueing another copy while a second group joins the same graph.
+    const queued = loadQueue.find((q) => q.src === tuple[0]) ||
+      (activeRuntimeEntry?.src === tuple[0] ? activeRuntimeEntry : null);
+    if (!entries.some((e) => e.src === tuple[0]))
+      entries.push(queued || makeQueueEntry(tuple));
   }
   if (!entries.length) return Promise.resolve();
-  for (const entry of entries) {
-    const i = loadQueue.indexOf(entry);
-    if (i >= 0) loadQueue.splice(i, 1);
-  }
+  const pending = entries.filter((e) => e !== activeRuntimeEntry);
   if (priority) {
-    for (const entry of entries) entry.priority = true;
-    loadQueue.splice(priorityDepth, 0, ...entries);
-    priorityDepth += entries.length;
+    // An old priority implementation removed shared entries then appended
+    // them after the rest of an already queued group. When arsenalProduct
+    // started first and Home's arsenalHub arrived during an in-flight script,
+    // this moved arsenalConfig BEHIND arsenalIdentityRuntime. Identity then
+    // evaluated without CFG, returned without READY, and CP15 correctly
+    // denied Battle. Preserve every existing dependency edge; interleave
+    // only NEW entries around the old queue's shared anchors.
+    const anchorOrder = pending
+      .map((entry) => loadQueue.indexOf(entry)).filter((index) => index >= 0);
+    if (anchorOrder.some((index, i) => i > 0 && index < anchorOrder[i - 1])) {
+      const error = new Error('Incompatible concurrent runtime dependency order');
+      fatalRuntimeFailure = error;
+      for (const remaining of loadQueue.splice(0)) remaining.fail(error);
+      return Promise.reject(error);
+    }
+    let cursor = -1;
+    for (let i = 0; i < pending.length; i++) {
+      const entry = pending[i];
+      const existingAt = loadQueue.indexOf(entry);
+      if (existingAt >= 0) { cursor = existingAt; continue; }
+      const nextAnchor = pending.slice(i + 1)
+        .map((candidate) => loadQueue.indexOf(candidate))
+        .find((index) => index >= 0);
+      const insertAt = cursor >= 0 ? cursor + 1 :
+        nextAnchor === undefined ? 0 : nextAnchor;
+      loadQueue.splice(insertAt, 0, entry);
+      cursor = insertAt;
+    }
   } else {
-    loadQueue.push(...entries);
+    for (const entry of pending) {
+      if (!loadQueue.includes(entry)) loadQueue.push(entry);
+    }
   }
   void pumpQueue();
   return Promise.all(entries.map((e) => e.promise));
