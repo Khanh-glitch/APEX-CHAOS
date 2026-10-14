@@ -62,8 +62,8 @@ function park(a, b) {
 
 /* ================= F00 — baseline / scope (in-node leaves) ============ */
 try {
-  const out = execSync('git merge-base --is-ancestor 43d3eebd2d4351e007e9577bd907197f742a1a3d HEAD && echo YES', { cwd: process.cwd() }).toString();
-  gate('F00.1-ancestry', out.includes('YES'), 'pre-pilot rollback oracle 43d3eeb is in HEAD ancestry');
+  const out = execSync('git merge-base --is-ancestor 6ca80b7c06643cfa773e7fef452d936791e646cc HEAD && echo YES', { cwd: process.cwd() }).toString();
+  gate('F00.1-ancestry', out.includes('YES'), 'CP16 last approved SHA is in the CP17 branch ancestry');
 } catch (e) { gate('F00.1-ancestry', false, String(e && e.message)); }
 try {
   const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
@@ -3000,8 +3000,12 @@ try {
   o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0); o.b.x = 520; o.b.y = 500;
   win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
   const cast = FR().inspect(ct).a1cast;      // snapshot at acceptance
-  T.step(16 / 60);                            // bounce happens inside the commit
-  const bounced = o.a.dir.x < -0.5;           // live dir really reversed
+  T.step(16 / 60);                            // collision step crosses gameplay release
+  const bounced = o.a.dir.x < -0.5;
+  // One coarse integration step is NOT sixteen visible Gold animation frames.
+  // After a hitch, the authored pressure/release must PLAY on real rendered
+  // frames, rather than forcing modeT directly to .25 on the first return.
+  for (let frame = 0; frame < 15; frame++) T.step(1 / 60);           // live dir really reversed
   const gi = FR().inspect(ct);
   const pi = P().inspect(o.a);
   const e = P().engineFor(o.a);
@@ -3305,15 +3309,18 @@ try {
   const o = stillPair(300, 500, 1, 820, 820);
   P().setReactionParticlesEnabled(false);
   win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
-  T.step(0.08);
+  // Observe a real multi-frame animation, not five coarse calls which
+  // previously relied on a forced 0.25s release teleport to pass.
+  const frames = (count) => { for(let i=0;i<count;i++) T.step(1/60); };
+  frames(5);
   const anticipate = P().inspect(o.a);
-  T.step(0.12);
+  frames(7);
   const open = P().inspect(o.a);
-  T.step(0.06);
+  frames(4);
   const release = P().inspect(o.a);
-  T.step(0.28);
+  frames(17);
   const recovery = P().inspect(o.a);
-  T.step(0.29);
+  frames(18);
   const resumed = P().inspect(o.a);
   P().setReactionParticlesEnabled(true);
   gate('F16.1-a1-authored-visible-beat',
