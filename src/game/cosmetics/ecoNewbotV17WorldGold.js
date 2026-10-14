@@ -173,3 +173,101 @@ export function drawEcoGoldWorldFront(ctx,pose){
 export function ecoGoldWorldSnapshot(side){const s=states.get(side);return s?{
  leaves:s.leaves.length,puffs:s.puffs.length,flecks:s.flecks.length,trail:s.history.length,
  emissions:{...s.emissions},lastSerial:s.lastSerial}:null;}
+
+
+// ECO V17 TARGETING FAMILY. Owner Gold drawBrackets()/drawMeasure()
+// (ECO_NEWBOT_RECYCLE_CORE_V17.html): circular living-seed reticle, two
+// counter-rotating arcs, and a luminous calibrated acquisition ray.
+// The authoritative NEWBOT state supplies the target/lock timing. All visual
+// phases are derived from its presentation clock; no targeting or gameplay.
+function validPoint(p){return p&&Number.isFinite(p.x)&&Number.isFinite(p.y);}
+function ecoTargetMarkState(r) {
+ const b=r.brackets;
+ if(!b||!validPoint(b.target)||!Number.isFinite(b.t0))return null;
+ const t=Math.max(0,r.time-b.t0),closing=b.state==='out';
+ const end=Number.isFinite(b.t1)?b.t1-b.t0:t;
+ const elapsed=closing?Math.max(0,r.time-b.t1):t;
+ const f=clamp((closing?elapsed/.14:t/.14));
+ const radius=closing?mix(58,34,f):mix(86,58,1-Math.pow(1-f,2.2));
+ const alpha=closing?1-f:clamp(t/.06);
+ const sweep=closing?mix(1.4,.7,f):mix(.9,1.9,1-Math.pow(1-f,2.2));
+ // Original V17 drives ecoMarkSpin at 8.4 rad/s while acquiring,
+ // 5.2 rad/s while releasing. Reticle never spins the physical target.
+ const spin=8.4*(closing?Math.max(0,end):t)+(closing?5.2*elapsed:0);
+ const pulse=.82+.18*Math.sin((Number(r.time)||0)*7*2.2);
+ return {x:b.target.x,y:b.target.y,radius,alpha,sweep,spin,pulse};
+}
+export function drawEcoGoldTargetLock(ctx,pose){
+ if(pose.kind!=='ROBOT'||!pose.robot)return false;
+ const m=ecoTargetMarkState(pose.robot);
+ // Skin owns this pass even when there is no authoritative target.
+ // Never draw a fake lock in front of the character as ORIGINAL did.
+ if(!m||m.alpha<=0)return true;
+ const {x,y,radius:r,alpha,sweep,spin,pulse}=m;
+ ctx.save();
+ try{
+  ctx.globalAlpha*=alpha;
+  ctx.translate(x,y);
+  ctx.lineCap='round';
+  ctx.globalCompositeOperation='lighter';
+  const rg=ctx.createRadialGradient(0,0,8,0,0,r+34);
+  rg.addColorStop(0,'rgba(205,255,188,0)');
+  rg.addColorStop(.55,'rgba(182,255,163,.07)');
+  rg.addColorStop(1,'rgba(182,255,163,0)');
+  ctx.fillStyle=rg;ctx.beginPath();ctx.arc(0,0,r+34,0,TAU);ctx.fill();
+  ctx.strokeStyle='rgba(215,255,200,'+(.72*pulse)+')';ctx.lineWidth=3.8;
+  for(const off of [0,Math.PI]){
+   ctx.beginPath();ctx.arc(0,0,r,spin+off+.22,spin+off+.22+sweep);ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(124,224,150,'+(.8*pulse)+')';ctx.lineWidth=2.2;
+  for(const off of [.92,Math.PI+.92]){
+   ctx.beginPath();ctx.arc(0,0,r-12,-spin*.86+off,-spin*.86+off+.8);ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(210,255,206,'+(.52*pulse)+')';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(0,0,r+8,0,TAU);ctx.stroke();
+  // GOLD: four soft living cardinal seeds, not polygon brackets.
+  for(let i=0;i<4;i++){
+   const a=spin*.55+i*TAU/4;
+   ctx.save();ctx.translate(Math.cos(a)*(r+5),Math.sin(a)*(r+5));
+   ctx.rotate(a+Math.PI/2);
+   ctx.fillStyle=i%2?'rgba(166,241,153,.72)':'rgba(231,255,214,.74)';
+   ctx.beginPath();ctx.moveTo(0,-8);ctx.quadraticCurveTo(7,0,0,8);
+   ctx.quadraticCurveTo(-7,0,0,-8);ctx.fill();ctx.restore();
+  }
+ }finally{ctx.restore();}
+ return true;
+}
+export function drawEcoGoldTargetMeasure(ctx,pose){
+ if(pose.kind!=='ROBOT'||!pose.robot)return false;
+ const m=pose.robot.measure, b=pose.robot.brackets;
+ if(!m||pose.robot.held)return true;
+ const target=validPoint(m.target)?m.target:b?.target;
+ if(!validPoint(target)||!Number.isFinite(m.t0))return true;
+ const t=pose.robot.time-m.t0;
+ if(t<0||t>.34)return true;
+ const p=clamp(t/.08),alpha=t<.16?1:clamp(1-(t-.16)/.18);
+ const source=validPoint(pose.robot.scanSource)?pose.robot.scanSource:
+  {x:pose.x,y:pose.y-(Number(pose.robot.radius)||0)*.8};
+ const ex=mix(source.x,target.x,p),ey=mix(source.y,target.y,p);
+ const dx=target.x-source.x,dy=target.y-source.y,L=Math.hypot(dx,dy)||1;
+ const nx=-dy/L,ny=dx/L;
+ ctx.save();
+ try{
+  ctx.globalAlpha*=alpha*.9;ctx.globalCompositeOperation='lighter';
+  ctx.strokeStyle='rgba(172,245,165,.42)';ctx.lineWidth=4.5;
+  ctx.beginPath();ctx.moveTo(source.x,source.y);ctx.lineTo(ex,ey);ctx.stroke();
+  ctx.strokeStyle='rgba(228,255,218,.75)';ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(source.x,source.y);ctx.lineTo(ex,ey);ctx.stroke();
+  for(const f of [.18,.36,.54,.72,.90]){
+   if(f>p)continue;
+   const x=mix(source.x,target.x,f),y=mix(source.y,target.y,f);
+   const w=3+4*Math.sin(pose.robot.time*7*2+f*6);
+   ctx.strokeStyle='rgba(220,255,216,.5)';ctx.lineWidth=1.2;
+   ctx.beginPath();ctx.moveTo(x-nx*(5+w),y-ny*(5+w));
+   ctx.lineTo(x+nx*(5+w),y+ny*(5+w));ctx.stroke();
+  }
+  ctx.fillStyle='rgba(228,255,218,.86)';
+  ctx.beginPath();ctx.arc(ex,ey,2.2,0,TAU);ctx.fill();
+ }finally{ctx.restore();}
+ return true;
+}
