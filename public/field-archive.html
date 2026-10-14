@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>APEX CHAOS / FIELD ARCHIVE — Candidate 02</title>
+<style>
+:root{font-family:"Arial Narrow",Impact,"Segoe UI",sans-serif;color:#26221c;background:#0a0b0c;font-synthesis:none}
+*{box-sizing:border-box}
+button{font:inherit;cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #ff961b;outline-offset:4px}
+body{margin:0;min-height:100dvh;overflow-x:hidden;background:radial-gradient(ellipse at 50% 70%,#28251f 0,#111214 58%,#060707 100%);color:#f0e9dc}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.17;background:repeating-linear-gradient(0deg,transparent 0 5px,#000 6px 7px),radial-gradient(circle at 20% 30%,#bd761d 0,transparent 37%);}
+.top{height:70px;max-width:1650px;margin:auto;padding:0 clamp(22px,3.6vw,56px);display:flex;align-items:center;gap:17px}
+.brand{font:1000 25px/1 Impact,"Arial Narrow",sans-serif;font-style:italic;letter-spacing:-.035em;color:#f1ede5;text-decoration:none}
+.brand em{font-style:normal;color:#f68c22}
+.top-line{width:1px;height:29px;background:#50453b;margin-left:5px}
+.top-meta{color:#c1ad8e;font-size:10px;letter-spacing:.32em;font-weight:900}
+.top-status{margin-left:auto;color:#9e9b93;font:700 10px ui-monospace,monospace;letter-spacing:.1em;display:flex;gap:10px;align-items:center}
+.top-status i{width:7px;height:7px;border-radius:50%;background:#bf9a5e;box-shadow:0 0 11px #c99f5b}
+.stage{width:min(1500px,96vw);margin:0 auto 36px;position:relative;padding:18px 25px 26px}
+.archive-tabs{position:absolute;z-index:5;left:-14px;top:110px;display:flex;flex-direction:column;gap:8px}
+.archive-tabs button{width:55px;min-height:154px;border:1px solid #43382f;background:#191b1d;color:#bfb5a5;writing-mode:vertical-rl;transform:rotate(180deg);font-weight:900;letter-spacing:.19em;font-size:12px;padding:18px 12px;box-shadow:0 9px 20px #0005}
+.archive-tabs button.active{background:#ee8c23;color:#1b1610;border-color:#ffa641}
+.archive-tabs button:hover{filter:brightness(1.15)}
+.book{position:relative;min-height:730px;display:grid;grid-template-columns:42% 58%;border:13px solid #20201e;border-radius:13px 16px 17px 12px;box-shadow:0 35px 70px #000b,0 0 0 1px #584739,0 2px 0 8px #100e0c,0 24px 0 8px #0c0b0a;overflow:visible;background:#cec0a5}
+.book:before{content:"";position:absolute;z-index:0;inset:5px 7px -9px 7px;border-radius:3px 6px 13px 13px;background:repeating-linear-gradient(0deg,#8b795f 0,#b1a18b 2px,#74674f 3px,#c8b99f 5px);transform:translateY(8px)}
+.page{position:relative;min-width:0;min-height:730px;color:#201d19;box-shadow:inset 0 0 70px #71583c24;overflow:hidden;background-color:#daceb9;background-image:radial-gradient(ellipse at 28% 22%,#f2ead7bb,transparent 65%),repeating-linear-gradient(0deg,#ffffff07 0 2px,#38260f05 3px 5px),linear-gradient(103deg,#b8ab92,#e1d7bf 13%,#e6dcc7 78%,#cbbba0)}
+.page.left{border-right:1px solid #70583a44;border-radius:4px 0 0 5px;padding:clamp(25px,3vw,49px) clamp(25px,3vw,47px) 25px clamp(34px,4vw,68px)}
+.page.right{border-radius:0 4px 5px 0;padding:24px clamp(24px,2.8vw,42px) 26px clamp(28px,3vw,48px);background-image:radial-gradient(ellipse at 60% 44%,#efe4ce99,transparent 70%),repeating-linear-gradient(0deg,#ffffff07 0 2px,#38260f05 3px 5px),linear-gradient(90deg,#bdab91,#e3d7be 12%,#e8dcc4 85%,#c3b295)}
+.page.left:after{content:"";position:absolute;top:0;right:0;bottom:0;width:28px;background:linear-gradient(90deg,transparent,#5d4b3136);pointer-events:none}
+.page.right:before{content:"";position:absolute;top:0;left:0;bottom:0;width:28px;background:linear-gradient(90deg,#5d4b313c,transparent);pointer-events:none}
+.spine{position:absolute;z-index:4;left:42%;top:0;height:100%;width:11px;transform:translateX(-50%);pointer-events:none;background:linear-gradient(90deg,#32281816,#4835252b,#fff1,#312a1d28)}
+.top-rule,.folio{display:flex;align-items:center;justify-content:space-between;font:800 10px ui-monospace,monospace;letter-spacing:.12em;color:#7b5a3b}
+.top-rule:after{content:"";height:1px;background:#94765483;flex:1;margin-left:16px}
+.kicker{display:flex;align-items:center;gap:10px;color:#ab5827;font:900 11px Impact,"Arial Narrow",sans-serif;letter-spacing:.21em;margin-top:35px}
+.kicker span{width:21px;height:3px;background:#dd7a32}
+.title{margin:8px 0 3px;font:1000 clamp(48px,5.4vw,86px)/.92 Impact,"Arial Narrow",sans-serif;letter-spacing:.005em;color:#241e18;text-transform:uppercase}
+.subline{display:flex;align-items:center;gap:12px;margin-top:10px;font-size:13px;font-weight:850;letter-spacing:.06em;color:#775840}
+.orange-tag{background:#cc6633;color:#fff1da;padding:6px 9px;font:900 10px/1 ui-monospace,monospace;letter-spacing:.1em}
+.description{font:500 clamp(12px,1.04vw,15px)/1.6 "Segoe UI",sans-serif;letter-spacing:0;margin:24px 0 18px;color:#4d4132;max-width:43ch}
+.record-table{display:flex;align-items:center;gap:18px;padding:12px 0;border-block:1px solid #8c775a70;font:750 11px/1.4 "Segoe UI",sans-serif;color:#4b3d2e}
+.record-table strong{font:900 10px ui-monospace,monospace;color:#8d5d34;letter-spacing:.06em}
+.separator{height:20px;border-left:1px solid #7b6e5a88}
+.section-header{display:flex;align-items:center;justify-content:space-between;color:#866245;letter-spacing:.16em;font:900 10px ui-monospace,monospace;margin-top:25px;padding-bottom:9px;border-bottom:1px solid #a8937561}
+.abilities{margin-top:4px}
+.ability{display:grid;grid-template-columns:36px 1fr;gap:12px;padding:13px 2px 12px;border-bottom:1px dashed #95826978}
+.ability-icon{background:#2b302c;color:#e6b66c;display:grid;place-items:center;font:900 10px ui-monospace,monospace;border:1px solid #725a40;clip-path:polygon(0 0,92% 0,100% 10%,100% 100%,0 100%)}
+.ability b{display:block;font:900 12px/1.3 Impact,"Arial Narrow",sans-serif;letter-spacing:.08em}
+.ability p{margin:4px 0 0;font:450 11px/1.5 "Segoe UI",sans-serif;color:#5b5044}
+.citation{position:absolute;bottom:24px;left:clamp(34px,4vw,68px);right:40px;border-top:1px solid #a18c71;padding-top:10px;display:flex;justify-content:space-between;color:#8c775f;font:700 9px ui-monospace,monospace}
+.page-number{font:900 11px ui-monospace,monospace;color:#886849;letter-spacing:.08em}
+.right-head{display:flex;align-items:center;justify-content:space-between;color:#866548;font:900 10px ui-monospace,monospace;letter-spacing:.12em;padding-bottom:11px;border-bottom:1px solid #a18b70ab}
+.right-head em{font-style:normal;color:#a75630}
+.art-area{position:relative;height:clamp(360px,48vw,467px);margin:9px 0 0;overflow:hidden;display:grid;place-items:center;border-bottom:1px solid #a69071aa}
+.art-area:before{content:"";position:absolute;inset:6% 9% 7%;pointer-events:none;opacity:.45;background:radial-gradient(circle,#f9f1db70,transparent 62%),repeating-radial-gradient(circle at 50% 56%,transparent 0 90px,#87684322 91px 93px,transparent 95px 190px)}
+.art-stamp{position:absolute;z-index:2;left:10px;top:14px;font:900 11px ui-monospace,monospace;letter-spacing:.15em;color:#7b634d;writing-mode:vertical-rl}
+.art-stamp.right-stamp{left:auto;right:10px;top:auto;bottom:15px}
+.art-watermark{position:absolute;font:900 clamp(160px,20vw,310px)/1 Impact,sans-serif;color:#77543a0c;top:7%;right:5%;pointer-events:none}
+.art-image{position:absolute;inset:5px 0 0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(5px 22px 13px #2c241a5a)}
+#originalHero{height:103%;object-fit:contain;object-position:center;display:none}
+#heroCanvas{width:100%;height:100%;position:absolute;inset:0;display:none}
+#originalWeapon{max-width:88%;height:80%;object-fit:contain;display:none}
+#vuaHeWeapon{width:100%;height:auto;object-fit:contain;display:none;filter:drop-shadow(2px 18px 8px #33291a66)}
+.preview-notice{position:absolute;z-index:5;bottom:18px;left:50%;transform:translateX(-50%);background:#1f211ff0;border:1px solid #7c6951;color:#ebe0d0;font:900 9px ui-monospace,monospace;padding:8px 12px;letter-spacing:.12em;white-space:nowrap;pointer-events:none}
+.skinbar{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.skinbar-title{font:900 12px Impact,sans-serif;letter-spacing:.1em}
+.player-switch{display:flex;border:1px solid #867154;background:#c6b79b}
+.player-switch button{padding:7px 13px;color:#67523b;background:transparent;border:0;font:900 11px Impact,sans-serif}
+.player-switch button.active{background:#d47a32;color:#211710}
+.skins{display:flex;gap:10px;margin-top:12px}
+.skin{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #a78b66;background:#d2c2a6;padding:8px 10px;min-width:0;flex:1;color:#3c2f20}
+.skin.selected{border:2px solid #d06f2f;background:#eee0c7;box-shadow:inset 0 0 0 1px #fff7e1}
+.skin:disabled{opacity:.5}
+.skin-thumb{flex:none;width:54px;height:46px;display:grid;place-items:center;background:#272923;color:#f3d7a9;overflow:hidden}
+.skin-thumb img{width:100%;height:100%;object-fit:contain}
+.skin b{font:900 12px Impact,sans-serif;display:block;letter-spacing:.045em;white-space:nowrap}
+.skin small{display:block;color:#806344;font:800 9px ui-monospace,monospace;letter-spacing:.03em;margin-top:4px}
+.skin-check{color:#9f562e;font-weight:900;font-size:12px;margin-left:auto}
+.bottom-actions{display:flex;gap:12px;justify-content:flex-end;align-items:center;margin-top:16px}
+.selection-state{margin-right:auto;font:800 10px ui-monospace,monospace;color:#775d43;letter-spacing:.03em}
+.equip{background:#cf6a2a;border:1px solid #a34c22;box-shadow:inset 0 1px #fac18e;color:#1e1711;padding:13px 24px;font:1000 18px Impact,sans-serif;letter-spacing:.08em;min-width:165px;clip-path:polygon(0 0,95% 0,100% 15%,100% 100%,5% 100%,0 85%);transition:filter .2s,transform .2s}
+.equip:hover{filter:brightness(1.12);transform:translateY(-2px)}
+.equip:disabled{background:#8d806b;border-color:#706556;color:#453b2e;cursor:default}
+.foot{max-width:1500px;padding:0 20px 20px;margin:-5px auto 10px;color:#858077;font:600 10px ui-monospace,monospace;letter-spacing:.055em;display:flex;gap:15px;justify-content:space-between}
+.foot b{color:#c2a279}
+.mode-note{font:600 10px ui-monospace,monospace;color:#70553f;margin-top:6px}
+@media(max-width:950px){.top{height:58px}.stage{width:100%;padding:8px 15px 24px 26px}.book{grid-template-columns:44% 56%;min-height:600px}.page{min-height:600px}.page.left{padding:27px 22px 20px 35px}.page.right{padding:22px}.title{font-size:52px}.description{font-size:12px}.art-area{height:360px}.archive-tabs{left:-7px;top:80px}.archive-tabs button{width:38px;min-height:130px;font-size:10px;padding:10px}.ability{padding:9px 1px}.citation{display:none}.skin{padding:5px}.skin-thumb{width:38px;height:42px}}
+@media(max-width:700px){.top{padding:0 15px}.brand{font-size:23px}.top-meta{font-size:8px;letter-spacing:.15em}.top-status{display:none}.stage{padding:12px 13px 28px 23px}.book{display:block;min-height:0;border-width:8px}.spine{display:none}.page{min-height:0;border-radius:0!important;overflow:hidden}.page.left{padding:25px 22px 22px 29px}.page.right{padding:22px 20px 26px 24px}.page.left:after{display:none}.page.right:before{display:none}.kicker{margin-top:17px}.title{font-size:clamp(50px,13vw,76px)}.description{margin:16px 0 12px}.section-header{margin-top:16px}.abilities{display:grid;grid-template-columns:1fr;gap:0}.ability{padding:9px 2px}.citation{position:static;display:flex;margin-top:13px}.right-head{padding-bottom:9px}.art-area{height:min(64vw,365px);min-height:285px}.art-stamp{font-size:8px}.skin-thumb{width:46px}.skin b{font-size:11px}.archive-tabs{left:-11px;top:68px}.archive-tabs button{width:33px;min-height:105px;font-size:9px;padding:6px}.foot{font-size:9px;line-height:1.7;display:block;text-align:center;margin-top:0}.foot span{display:block}.bottom-actions{gap:8px}.equip{min-width:125px;padding:11px 13px;font-size:15px}.selection-state{font-size:9px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="https://apex-chaos.pages.dev/" title="APEX CHAOS production; this prototype does not change live equip"><em>▲</em>PEX CHAOS</a><span class="top-line"></span><span class="top-meta">THE FIELD ARCHIVE</span><span class="top-status"><i></i> DESIGN STUDY / CANDIDATE 02</span></header>
+<main class="stage">
+<nav class="archive-tabs" aria-label="Loại hồ sơ"><button class="active" type="button" data-type="hero" aria-pressed="true">FIGHTERS</button><button type="button" data-type="weapon" aria-pressed="false">WEAPONS</button></nav>
+<div class="book">
+<section class="page left" aria-label="Trang thông tin">
+<div class="top-rule"><span>APEX CHAOS / DOCUMENT 001</span></div>
+<div class="kicker"><span></span><span id="recordKind">FIGHTER RECORD</span></div>
+<h1 class="title" id="recordTitle">NEWBOT</h1>
+<div class="subline"><span class="orange-tag" id="recordTag">ROBOT / 01</span><span id="recordSub">CORE SIX / PLAYABLE</span></div>
+<p class="description" id="recordDesc">Robot chiến đấu tái chế. Hệ kỹ năng xoay quanh việc áp sát vũ khí, dựng giáp tạm thời và tăng tốc chu kỳ kỹ năng khi gây sát thương theo chuỗi.</p>
+<div class="record-table"><span><strong>CLASS</strong><br><span id="recordClass">FIGHTER</span></span><span class="separator"></span><span><strong>STATUS</strong><br><span id="recordStatus">AVAILABLE</span></span><span class="separator"></span><span><strong>FILE</strong><br><span id="recordId">R-01</span></span></div>
+<div class="section-header"><span id="recordSection">ABILITIES / VERIFIED</span><span>● ● ●</span></div>
+<div class="abilities" id="abilityList">
+<div class="ability"><span class="ability-icon">P</span><div><b>ROLLING BURST</b><p>Gây sát thương trong cửa sổ 1,2 giây để giảm hồi chiêu hiện tại.</p></div></div>
+<div class="ability"><span class="ability-icon">A1</span><div><b>WEAPON DASH</b><p>Lao nhanh tới vũ khí hợp lệ trên sàn.</p></div></div>
+<div class="ability"><span class="ability-icon">A2</span><div><b>VIRTUAL ARMOR</b><p>Giảm sát thương nhận vào trong thời gian ngắn.</p></div></div>
+</div>
+<div class="citation"><span>FIELD ARCHIVE / CONTROLLED COPY</span><span id="leftFolio">01 — 02</span></div>
+</section>
+<div class="spine" aria-hidden="true"></div>
+<section class="page right" aria-label="Trang ngoại hình">
+<div class="right-head"><span id="artLabel">PLATE 01 / NEWBOT VISUAL STUDY</span><span><em>✦</em> APPEARANCES</span></div>
+<div class="art-area" id="artArea">
+<div class="art-watermark" id="artWatermark" aria-hidden="true">01</div>
+<div class="art-stamp">APPROVED GOLD SOURCE</div>
+<img class="art-image" id="originalHero" alt="NEWBOT original Gold home art" src="/gold/assets/gold/home-robot-body.png">
+<canvas id="heroCanvas" role="img" aria-label="ECOBOT from the exact approved V17 Canvas source"></canvas>
+<img class="art-image" id="originalWeapon" alt="RPG-7 original Arsenal V4.3 asset" src="/assets/arsenal/v43/RPG_7.webp">
+<img class="art-image" id="vuaHeWeapon" alt="RPG-7 Vua Hề approved Gold launcher" src="/assets/skins/rocket-vua-he/launcher.png">
+<div class="art-stamp right-stamp" id="proof">REFERENCE / V17 RENDER</div>
+<div class="preview-notice" id="previewLabel">VIEWING / ECOBOT</div>
+</div>
+<div class="skinbar"><span class="skinbar-title" id="skinBarLabel">NEWBOT / APPEARANCES</span><div class="player-switch" role="group" aria-label="Trang phục của người chơi"><button type="button" data-side="p1" class="active" aria-pressed="true">P1</button><button type="button" data-side="p2" aria-pressed="false">P2 / BOT</button></div></div>
+<div class="skins" id="skinList" role="group" aria-label="Ngoại hình"></div>
+<div class="bottom-actions"><span class="selection-state" id="equippedText">P1 EQUIPPED / ORIGINAL</span><button type="button" class="equip" id="equipBtn">EQUIP ↗</button></div>
+<p class="mode-note">PROTOTYPE ONLY · CHỌN VÀ EQUIP CHỈ MÔ PHỎNG TẠI TRANG NÀY · KHÔNG GHI VÀO GAME</p>
+</section>
+</div>
+</main>
+<footer class="foot"><span><b>ART FIDELITY:</b> Gold ECOBOT V17 Canvas / Gold HOME original / Arsenal V4.3 RPG-7 / Vua Hề launcher</span><span>NO NEW HEROES · NO FICTIONAL SKINS · NO GAMEPLAY CHANGES</span></footer>
+<script type="module">
+import {prepareEcoGold,drawEcoGoldActor} from './field-archive/ecobot-v17.js';
+const $=id=>document.getElementById(id);
+const DATA={
+ hero:{title:'NEWBOT',recordKind:'FIGHTER RECORD',tag:'ROBOT / 01',sub:'CORE SIX / PLAYABLE',desc:'Robot chiến đấu tái chế. Hệ kỹ năng xoay quanh việc áp sát vũ khí, dựng giáp tạm thời và tăng tốc chu kỳ kỹ năng khi gây sát thương theo chuỗi.',cls:'FIGHTER',status:'AVAILABLE',id:'R-01',section:'ABILITIES / GAMEPLAY',art:'PLATE 01 / NEWBOT GOLD',bar:'NEWBOT / APPEARANCES',proof:'ECOBOT / V17 GOLD',folio:'01 — 02',skills:[['P','ROLLING BURST','Gây sát thương trong cửa sổ 1,2 giây để giảm hồi chiêu hiện tại.'],['A1','WEAPON DASH','Lao nhanh tới vũ khí hợp lệ trên sàn; không tự nhắm T6.'],['A2','VIRTUAL ARMOR','Trong 3 giây, giảm sát thương nhận vào (theo luật native).']],skins:[['default','ORIGINAL','GOLD HOME'],['ecobot','ECOBOT','RECYCLE CORE V17']]},
+ weapon:{title:'RPG-7',recordKind:'WEAPON RECORD',tag:'ARSENAL / T3',sub:'ROCKET / SPECIAL',desc:'Súng phóng rocket cấp T3. Trang bị skin cho loại súng này không quyết định khẩu súng nào sẽ xuất hiện trên sàn trong trận.',cls:'RANGED',status:'AVAILABLE',id:'W-RPG7',section:'WEAPON SYSTEM',art:'PLATE 02 / RPG-7 GOLD',bar:'RPG-7 / APPEARANCES',proof:'VUA HỀ / V7 LAUNCHER',folio:'02 — 02',skills:[['01','PICK UP','Nhặt khi súng xuất hiện hợp lệ trong Arena; skin đã trang bị được áp dụng.'],['02','PROJECTILE','Rocket có projectile và hành vi va chạm do engine gốc quản lý.'],['03','IMPACT','Vua Hề thay hình súng, projectile, trail và blast; sát thương không thay đổi.']],skins:[['default','ORIGINAL','ARSENAL V4.3'],['vua-he','VUA HỀ','THE LAST LAUGH']]},
+};
+const equipped={p1:{hero:'default',weapon:'default'},p2:{hero:'default',weapon:'default'}};
+let kind='hero',side='p1',preview='ecobot',lastFrame=0,animationReady=false,renderError='';
+const canvas=$('heroCanvas'),ctx=canvas.getContext('2d',{alpha:true});
+const defaultPreview={hero:'ecobot',weapon:'vua-he'};
+const assetViews={default:{hero:'originalHero',weapon:'originalWeapon'},ecobot:{hero:'heroCanvas'},'vua-he':{weapon:'vuaHeWeapon'}};
+function paintEco(time=0){
+ if(kind!=='hero'||preview!=='ecobot'||!animationReady)return;
+ const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
+ const pixelRatio=Math.min(window.devicePixelRatio||1,2);
+ const w=Math.round(rect.width*pixelRatio),h=Math.round(rect.height*pixelRatio);
+ if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+ ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);ctx.save();
+ ctx.translate(w*.5,h*.53);
+ const s=Math.min(w/165,h/150)*.45;ctx.scale(s,s);
+ const t=time/1000;
+ const springs={rootX:0,rootY:Math.sin(t*1.2)*1.6,tilt:Math.sin(t*.6)*.006,coreX:0,coreY:0,crest:0,chin:0,cheekX:0,cheekY:0,lagX:0,lagY:0,lid:0,glow:1,seam:0,calDx:[0,0],calDy:[0,0],calTh:[0,0],spin:[t*.5,t*.43]};
+ const pose={side,robot:{time:t,springs,ticks:[0,0,0],scanning:false,armor:false,held:false,lockFlash:0,pulses:[],stress:[]}};
+ try{if(!drawEcoGoldActor(ctx,pose))renderError='Gold rig rejected pose'}catch(e){renderError=String(e);console.error('ECOBOT exact Gold renderer',e)}
+ ctx.restore();
+ if(renderError){$('previewLabel').textContent='RENDER CHECK / '+renderError.slice(0,65)}
+}
+function frame(time){if(time-lastFrame>30){paintEco(time);lastFrame=time}requestAnimationFrame(frame)}
+function render(){
+ const d=DATA[kind];
+ $('recordKind').textContent=d.recordKind;$('recordTitle').textContent=d.title;$('recordTag').textContent=d.tag;$('recordSub').textContent=d.sub;
+ $('recordDesc').textContent=d.desc;$('recordClass').textContent=d.cls;$('recordStatus').textContent=d.status;$('recordId').textContent=d.id;
+ $('recordSection').textContent=d.section;$('artLabel').textContent=d.art;$('skinBarLabel').textContent=d.bar;$('proof').textContent=d.proof;$('leftFolio').textContent=d.folio;
+ $('artWatermark').textContent=kind==='hero'?'01':'T3';document.querySelectorAll('[data-type]').forEach(b=>{const on=b.dataset.type===kind;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))});
+ document.querySelectorAll('[data-side]').forEach(b=>{const on=b.dataset.side===side;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))});
+ $('abilityList').innerHTML=d.skills.map(([code,name,detail])=>'<div class="ability"><span class="ability-icon">'+code+'</span><div><b>'+name+'</b><p>'+detail+'</p></div></div>').join('');
+ $('skinList').innerHTML=d.skins.map(([id,label,detail])=>{
+  const selected=preview===id,eq=equipped[side][kind]===id;
+  const img=id==='vua-he'?'<img src="/assets/skins/rocket-vua-he/launcher.png" alt="">':id==='default'?(kind==='weapon'?'<img src="/assets/arsenal/v43/RPG_7.webp" alt="">':'N'): 'E';
+  return '<button type="button" class="skin '+(selected?'selected':'')+'" data-skin="'+id+'" aria-pressed="'+selected+'"><span class="skin-thumb">'+img+'</span><span><b>'+label+'</b><small>'+detail+'</small></span><span class="skin-check">'+(eq?'✓':'')+'</span></button>';
+ }).join('');
+ ['originalHero','heroCanvas','originalWeapon','vuaHeWeapon'].forEach(id=>{$(id).style.display='none'});
+ const view=assetViews[preview]?.[kind];if(view)$(view).style.display='block';
+ if(view==='heroCanvas'&&!animationReady){$('previewLabel').textContent='PREPARING APPROVED GOLD ART';}else{$('previewLabel').textContent='VIEWING / '+d.skins.find(s=>s[0]===preview)?.[1]}
+ const e=d.skins.find(x=>x[0]===equipped[side][kind])?.[1]||'ORIGINAL';
+ $('equippedText').textContent=side.toUpperCase()+' EQUIPPED / '+e;
+ const isEq=preview===equipped[side][kind];$('equipBtn').disabled=isEq;$('equipBtn').textContent=isEq?'EQUIPPED ✓':'EQUIP ↗';
+}
+document.querySelectorAll('[data-type]').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.type;preview=defaultPreview[kind];render()}));
+document.querySelectorAll('[data-side]').forEach(b=>b.addEventListener('click',()=>{side=b.dataset.side;preview=equipped[side][kind];render()}));
+$('skinList').addEventListener('click',e=>{const el=e.target.closest('[data-skin]');if(el){preview=el.dataset.skin;render()}});
+$('equipBtn').addEventListener('click',()=>{equipped[side][kind]=preview;render()});
+try{animationReady=!!prepareEcoGold();if(!animationReady)renderError='Atlas preparation returned false'}catch(e){renderError=String(e);console.error('ECOBOT Gold preparation',e)}
+render();requestAnimationFrame(frame);
+window.__APEX_FIELD_ARCHIVE_QA__=()=>({kind,side,preview,equipped:JSON.parse(JSON.stringify(equipped)),goldPrepared:animationReady,renderError,canvasRendered:canvas.width>0&&canvas.height>0,assetSources:{hero:'/gold/assets/gold/home-robot-body.png',ecobot:'exact owner V17 module',rpg:'/assets/arsenal/v43/RPG_7.webp',vuaHe:'/assets/skins/rocket-vua-he/launcher.png'}});
+</script>
+</body></html>
