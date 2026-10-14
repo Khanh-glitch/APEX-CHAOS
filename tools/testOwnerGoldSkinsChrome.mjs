@@ -303,8 +303,44 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    }
    await page.screenshot({path:path.join(captureDir,`${caseInfo.name}-battle-ui.png`)});
   }
+  // CP12 final lifecycle proof runs AFTER Gold/rocket snapshots. A genuine
+  // Hero Rework reinstall must clear old Robot springs/audio via the native
+  // lifecycle bus; then the actual Battle exit must release them again.
+  const lifecycle=await page.evaluate(()=>{
+    const G=window,H=G.APEX_HERO_REWORK,P=G.APEX_ROBOT_PRESENTATION;
+    const bus=G.APEX_HERO_REWORK_AIL.bus,a=G.fighters[0];
+    if(!H?.match||!P?.lifecycleEvidence||!G.exitArsenalBattleMode)
+      throw Error('CP12 native lifecycle authorities unavailable');
+    const emitter=bus.emit,listenerCount=bus.listeners['*']?.length||0;
+    const originalState=P.getRobotState(a),before=P.lifecycleEvidence();
+    if(!before.subscribed||before.activeRobotStates<1)
+      throw Error('CP12 original Robot state not active');
+    const beforeTeardown=bus.ofType('ReworkMatchTeardown').length;
+    const beforeInstall=bus.ofType('ReworkMatchInstall').length;
+    H.installMatch();
+    if(!H.match||bus.ofType('ReworkMatchTeardown').length!==beforeTeardown+1||
+       bus.ofType('ReworkMatchInstall').length!==beforeInstall+1)
+      throw Error('CP12 rematch did not traverse the native lifecycle exactly once');
+    const empty=P.lifecycleEvidence();
+    if(empty.activeRobotStates!==0||empty.audioSession<=before.audioSession)
+      throw Error('CP12 stale Robot state or audio survived rematch '+JSON.stringify({before,empty}));
+    const freshState=P.getRobotState(a);
+    if(freshState===originalState||freshState.T!==0)
+      throw Error('CP12 new match reused an old spring/clock state');
+    if(bus.emit!==emitter||(bus.listeners['*']?.length||0)!==listenerCount)
+      throw Error('CP12 rematch rewrapped or duplicated AIL subscription');
+    G.exitArsenalBattleMode();
+    const after=P.lifecycleEvidence();
+    if(H.match!==null||bus.ofType('ReworkMatchTeardown').length!==beforeTeardown+2||
+       after.activeRobotStates!==0||after.audioSession<=empty.audioSession)
+      throw Error('CP12 exit leaked match Robot state/audio '+JSON.stringify(after));
+    if(bus.emit!==emitter||(bus.listeners['*']?.length||0)!==listenerCount)
+      throw Error('CP12 exit changed native emitter/listener cardinality');
+    return {rematchClean:true,exitClean:true,subscriberStable:true,
+      beforeAudio:before.audioSession,afterAudio:after.audioSession};
+  });
   assert.equal(warnings.filter(s=>s.includes('[cosmetic] renderer failed')).length,0,'Gold renderer exceptions: '+warnings.join('\n'));
-  console.log('CP8 OWNER GOLD REAL CHROME PASS '+caseInfo.name+' '+JSON.stringify(evidence));
+  console.log('CP8 OWNER GOLD REAL CHROME PASS '+caseInfo.name+' '+JSON.stringify({...evidence,lifecycle}));
  }catch(e){errors++;console.error('CP8 OWNER GOLD REAL CHROME FAIL '+caseInfo.name+' '+String(e?.stack||e)+' warnings='+warnings.slice(-8).join(' | '));}
  finally{await page.close()}
 }
