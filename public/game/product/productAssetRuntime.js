@@ -157,7 +157,7 @@
       try {
         await new Promise((resolve, reject) => {
           const img = new Image();
-          let done = false;
+          let done = false, decodeStarted = false;
           const finish = (err) => {
             if (done) return;
             done = true;
@@ -172,15 +172,20 @@
           };
           if (signal) signal.addEventListener('abort', onAbort, { once: true });
           img.decoding = 'async';
-          img.onload = async () => {
-            try { if (img.decode) await img.decode(); } catch (_) {}
-            finish();
+          // onload and cached-complete may both fire. Exactly one decode must
+          // succeed before READY; a rejected decode is not a successful load.
+          const onLoaded = () => {
+            if (done || decodeStarted) return;
+            decodeStarted = true;
+            Promise.resolve().then(() => typeof img.decode === 'function' ? img.decode() : true)
+              .then(() => finish(), error => finish(new Error(
+                'image decode failed: ' + rec.path + ' (' + String(error?.message || error) + ')'
+              )));
           };
+          img.onload = onLoaded;
           img.onerror = () => finish(new Error('image decode failed: ' + rec.path));
           img.src = rec.url;
-          if (img.complete && img.naturalWidth > 0) {
-            Promise.resolve(img.decode ? img.decode().catch(() => {}) : null).then(() => finish());
-          }
+          if (img.complete && img.naturalWidth > 0) onLoaded();
         });
         rec.state = 'READY';
         rec.readyAt = now();
@@ -400,10 +405,12 @@
       if (presentationPromises.has(id)) return presentationPromises.get(id);
       const provider = presentationProviders.get(id);
       presentationStates.set(id, { state:'PREPARING', error:null });
-      const task = Promise.resolve().then(() => provider()).then(() => {
+      const task = Promise.resolve().then(() => provider()).then((result) => {
+        if(result!==true && result?.ready!==true)
+          throw new Error('Presentation preprocess not READY: '+id);
         presentationStates.set(id, { state:'READY', error:null });
         return true;
-      }, (error) => {
+      }).catch((error) => {
         presentationPromises.delete(id); // retry on a later route, never fake READY
         presentationStates.set(id, { state:'ERROR', error:String(error?.message || error) });
         throw error;
