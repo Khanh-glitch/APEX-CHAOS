@@ -158,7 +158,12 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    W.drawArsenalProjectiles(ctx);
    if(p.cosmetic?.skinId!=='vua-he')throw Error('Reflection changed Gold identity');
    p.owner=oldOwner;
-   projectiles.splice(projectiles.indexOf(q),1);
+   // The P2 ORIGINAL rocket can naturally expire during the longer .84s flight.
+   // splice(-1,1) would REMOVE P1's real Gold rocket from the global array!
+   // That prevented ALL later native detonation despite no gameplay regression.
+   const originalIndex=projectiles.indexOf(q);
+   if(originalIndex>=0)projectiles.splice(originalIndex,1);
+   if(!projectiles.includes(p))throw Error('Gold P1 native rocket lost after P2 cleanup');
    // Now test the REAL wall-triggered blast after capturing the full-length
    // flight. The old .08s forced fuse could expire at the engine's removal
    // seam before the native detonation callback, leaving a false QA failure.
