@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "reports": [
+    {
+      "v": "desktop",
+      "button": {
+        "box": {
+          "x": 1111.453125,
+          "y": 652,
+          "width": 166.546875,
+          "height": 25,
+          "top": 652,
+          "right": 1278,
+          "bottom": 677,
+          "left": 1111.453125
+        },
+        "hit": true
+      },
+      "p1Skin": "ecobot",
+      "p2": {
+        "hero": "NEWBOT",
+        "side": "P2 / BOT",
+        "original": "PLAYER 02 / BOTEQUIPPED / ORIGINAL"
+      },
+      "p2Hero": "ROBOT"
+    },
+    {
+      "v": "mobile",
+      "button": {
+        "box": {
+          "x": 271.3672790527344,
+          "y": 602.234375,
+          "width": 95.125,
+          "height": 18,
+          "top": 602.234375,
+          "right": 366.4922790527344,
+          "bottom": 620.234375,
+          "left": 271.3672790527344
+        },
+        "hit": true
+      },
+      "p1Skin": "ecobot",
+      "p2": {
+        "hero": "NEWBOT",
+        "side": "P2 / BOT",
+        "original": "PLAYER 02 / BOTEQUIPPED / ORIGINAL"
+      },
+      "p2Hero": "ROBOT"
+    }
+  ]
+}
