@@ -1,0 +1,37 @@
+name: BOXE R2 Staged Contracts
+on:
+  push:
+    branches: [feature/boxe-bot-wave-gold-intake-20261014]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  semantic-and-c04-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: BOXE R2 authority semantic acceptance
+        run: node tools/testBoxeContractsR2.mjs
+      - name: Latest C04 Field Archive compatibility
+        run: node tools/testFieldArchiveC04Profiles.mjs
+      - name: Shipping build remains unchanged
+        run: |
+          pnpm build
+          pnpm test:product-graph
+          pnpm test:source-hygiene
+      - name: Report binary Gold gate status without pretending imported
+        run: |
+          if test -f public/gold/boxe-gold/THE_HAND_GOLD_ORIGINAL.html; then
+            node tools/testBoxeGoldIntakeGate.mjs
+          else
+            echo "::notice::Source Gold binary and PNG still not in repo; this workflow is STAGING-ONLY, NOT integrated Gold QA."
+          fi
