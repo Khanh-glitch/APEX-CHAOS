@@ -3,7 +3,7 @@
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
-    "public/game/product/productAssetRuntime.js": "6adb8e701ce85fd8794340ef203fca76343a0e02d9bcc3f3e5cb6346f200eb5d",
+    "public/game/product/productAssetRuntime.js": "5b6e0e692436de8c21ba50fa4e2fc1ec94797458100ca4692a8f96ec55b285c1",
     "public/game/ui/apexCombatHudRuntime.js": "a193f90e322ed5545d1ae48185abcd819d7c0ae459d23271bf5cadd3adf6033d",
     "public/game/ui/uiSfxAuthority.js": "196cc910ba9ad0ecacb56070b83ed3d72602a9b802e318b4b3034e659f5cc441",
     "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",
