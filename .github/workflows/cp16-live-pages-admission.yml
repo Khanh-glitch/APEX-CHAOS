@@ -1,0 +1,118 @@
+name: CP16 LIVE Cloudflare Pages Admission
+on:
+  push:
+    branches:
+      - arena/cp16-atomic-cache-release-candidate-20261014
+    paths:
+      - .github/workflows/cp16-live-pages-admission.yml
+      - package.json
+      - src/game/runtimeLoader.js
+      - src/game/runtimeManifest.js
+      - src/game/goldAssetManifest.js
+      - public/gold/**
+      - tools/writeCP16BuildReceipt.mjs
+      - tools/testCP16ColdReturnChrome.mjs
+      - tools/testOwnerWorldEquipmentChrome.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cp16-live-pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  live-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      APEX_APP_URL: https://arena-cp16-atomic-cache-rele.apex-chaos.pages.dev/
+      APEX_CP16_EVIDENCE_DIR: /tmp/cp16-live-cold-return
+      APEX_EVIDENCE_DIR: /tmp/cp16-live-combat
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify live response belongs to exact branch SHA and revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cp16-live-cold-return
+          RECEIPT=/tmp/cp16-live-cold-return/build-receipt.json
+          MATCHED=0
+          for attempt in $(seq 1 60); do
+            rm -f "$RECEIPT"
+            curl -fLsS --max-time 20 "${APEX_APP_URL}CP16_BUILD_RECEIPT.json?sha=${GITHUB_SHA}" -o "$RECEIPT" 2>/dev/null || true
+            if [ -s "$RECEIPT" ] &&               RECEIPT_FILE="$RECEIPT" node --input-type=module -e "
+                import fs from 'node:fs';
+                const r=JSON.parse(fs.readFileSync(process.env.RECEIPT_FILE,'utf8'));
+                if(r.gitCommit!==process.env.GITHUB_SHA ||
+                   r.revision!=='20261014-cp16-atomic-release-r1' ||
+                   r.versionedRuntimeCount!==59)process.exit(1);
+              " >/dev/null 2>&1; then
+              MATCHED=1
+              break
+            fi
+            echo "Live alias has not published exact SHA ${GITHUB_SHA}: attempt ${attempt}/60"
+            sleep 6
+          done
+          if [ "$MATCHED" != 1 ]; then
+            echo "::error::Live Cloudflare Pages branch never served this exact SHA/revision"
+            exit 1
+          fi
+          curl -fLsS --max-time 30 "${APEX_APP_URL}gold/manifest.json" -o /tmp/cp16-live-cold-return/gold-manifest.json
+          curl -fLsS --max-time 30 "${APEX_APP_URL}gold/shell.html" -o /tmp/cp16-live-cold-return/shell.html
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            import crypto from 'node:crypto';
+            const r=JSON.parse(fs.readFileSync('/tmp/cp16-live-cold-return/build-receipt.json','utf8'));
+            const g=JSON.parse(fs.readFileSync('/tmp/cp16-live-cold-return/gold-manifest.json','utf8'));
+            const shell=fs.readFileSync('/tmp/cp16-live-cold-return/shell.html');
+            const sha=crypto.createHash('sha256').update(shell).digest('hex');
+            if(g.runtimeRevision!==r.revision || sha!==r.goldShellSha256 ||
+              g.files?.['shell.html']?.sha256!==sha ||
+              g.files?.['shell.html']?.bytes!==shell.length)process.exit(1);
+            console.log('LIVE CP16 CLOUDFARE SHA/GOLD VERIFIED',r.gitCommit,r.revision,sha);
+          "
+      - name: Install standalone Chrome QA driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Live Cloudflare cold boot, START, cached reload and browser return (desktop/Android)
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testCP16ColdReturnChrome.mjs
+      - name: Live Cloudflare real Battle, Magnet/Frost/AI Gold world-weapon proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testOwnerWorldEquipmentChrome.mjs
+      - name: Reverify live release SHA after browser runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --max-time 25 "${APEX_APP_URL}CP16_BUILD_RECEIPT.json?end=${GITHUB_SHA}" -o /tmp/cp16-live-cold-return/final-receipt.json
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const r=JSON.parse(fs.readFileSync('/tmp/cp16-live-cold-return/final-receipt.json','utf8'));
+            if(r.gitCommit!==process.env.GITHUB_SHA)process.exit(1);
+            console.log('CP16 LIVE PAGE FINAL SHA PASS',r.gitCommit);
+          "
+      - name: Upload actual deployed-URL browser screenshots and release receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp16-live-pages-admission-${{ github.sha }}
+          path: |
+            /tmp/cp16-live-cold-return/
+            /tmp/cp16-live-combat/
+          if-no-files-found: warn
+          retention-days: 14
