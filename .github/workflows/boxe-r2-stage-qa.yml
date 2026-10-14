@@ -8,7 +8,7 @@ permissions:
 jobs:
   semantic-and-c04-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -38,3 +38,27 @@ jobs:
           else
             echo "::notice::Source Gold binary and PNG still not in repo; this workflow is STAGING-ONLY, NOT integrated Gold QA."
           fi
+      - name: Browser dependencies
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Start built product preview
+        shell: bash
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/boxe-c04-preview.log 2>&1 &
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0; sleep 1; done
+          cat /tmp/boxe-c04-preview.log; exit 1
+      - name: Real Chrome C04 five-viewport and Quick Equip regression
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testFieldArchiveC04Chrome.mjs
+          CHROME_PATH="$CHROME" node tools/testFieldArchivePickQuickChrome.mjs
+      - name: Upload C04 regression evidence, no source snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boxe-r2-c04-chrome-check
+          path: |
+            docs/field-archive/candidate03/
+            docs/field-archive/pick-quick-equip/
+          retention-days: 14
