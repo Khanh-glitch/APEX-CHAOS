@@ -159,11 +159,11 @@ function resolve(receipt) {
   } catch (_) { return null; }
 }
 // Copy only scalar presentation data. No mutable combat objects enter skin renderers.
-function cosmeticData(v, depth=0){
+function cosmeticData(v, depth=0, maxItems=90){
  if(depth>7)return null;
  if(typeof v==='number')return Number.isFinite(v)?v:0;
  if(typeof v==='boolean'||typeof v==='string')return v;
- if(Array.isArray(v))return Object.freeze(v.slice(0,90).map(x=>cosmeticData(x,depth+1)));
+ if(Array.isArray(v))return Object.freeze(v.slice(-maxItems).map(x=>cosmeticData(x,depth+1)));
  if(v&&typeof v==='object'){
    const result={};for(const [k,x] of Object.entries(v).slice(0,48))result[k]=cosmeticData(x,depth+1);
    return Object.freeze(result);
@@ -189,7 +189,7 @@ function render(name,ctx,receipt,payload) {
     scale:Number(payload?.scale)||1,
     kind:String(payload?.kind||payload?.type||''),skinId:entry.id,
     side:receipt?.side||null,
-    trail:cosmeticData(Array.isArray(payload?.visual)?payload.visual:[]),
+    trail:cosmeticData(Array.isArray(payload?.visual)?payload.visual:[],0,240),
     robot:cosmeticData(payload?.robot||null),
   });
   // Skin renderers may only consume resources the shared READY barrier
