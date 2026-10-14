@@ -69,6 +69,27 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    // Catch the real Robot jaw/socket draw route, not just a direct call to a
    // cosmetic hook: P1's *held launcher* must be the selected Gold skin.
    const AV=G.APEX_ARSENAL_AV;
+   // CP13: registered socket provider, no shared AV monkey patch. A distinct
+   // dummy HUNTER body exercises a test-only consumer and unregisters it
+   // before genuine Gold/ORIGINAL held launcher evidence.
+   if(!AV?.registerEquippedWeaponRenderer||!AV.equippedWeaponRendererIds)
+     throw Error('CP13 Arsenal held-weapon registry unavailable');
+   if(!AV.equippedWeaponRendererIds().includes('robot-native-jaw')||AV.__robotSocketWrapped)
+     throw Error('CP13 NEWBOT is still monkey-patching the AV draw owner');
+   const beforeEqDraw=AV.drawEquippedWeapon;
+   const dummy={id:-313,type:{__hrHero:'HUNTER'},radius:50,dir:{x:1,y:0}};
+   let callCount=0;
+   const canary=()=>{callCount++;return true;};
+   const unsubscribe=AV.registerEquippedWeaponRenderer('cp13-canary',canary);
+   let deniedDuplicate=false;
+   try{AV.registerEquippedWeaponRenderer('cp13-canary',()=>true);}
+   catch(error){deniedDuplicate=/Duplicate/.test(String(error));}
+   const consumed=AV.drawEquippedWeapon(ctx,dummy,{weaponId:'PISTOL'});
+   unsubscribe();
+   if(!deniedDuplicate||!consumed||callCount!==1||
+      AV.equippedWeaponRendererIds().includes('cp13-canary')||
+      beforeEqDraw!==AV.drawEquippedWeapon)
+     throw Error('CP13 held-provider ordering/duplicate/disposal contract failed');
    const originalDrawWeapon=AV.drawWeaponSprite;
    let realRobotGoldWeaponCalls=0;
    AV.drawWeaponSprite=function(c,id,x,y,options){
