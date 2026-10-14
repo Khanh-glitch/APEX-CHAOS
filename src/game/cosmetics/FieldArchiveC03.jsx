@@ -35,7 +35,12 @@ function pickSelection(){
  const stage=document.getElementById('stage');
  const side=stage?.classList.contains('fighter-active-p2')?'p2':'p1';
  const label=document.getElementById(side==='p1'?'p1Name':'p2Name')?.textContent?.trim().toUpperCase()||'';
- const heroId=Object.keys(HERO_META).find(id=>HERO_META[id].name===label)||null;
+ // Gold uses the legacy label ROBOT in Pick, while Archive/GAME identity
+ // is ROBOT and its current catalogue display name is NEWBOT. Match BOTH
+ // canonical IDs and presentational aliases; never infer a random fighter.
+ const heroByGoldName={ROBOT:'ROBOT',NEWBOT:'ROBOT',CRYSTALA:'CRYSTAL',CRYSTAL:'CRYSTAL',
+  HUNTER:'HUNTER',MAGNET:'MAGNET',FROST:'ICE',ICE:'ICE',MIRROR:'MIRROR'};
+ const heroId=heroByGoldName[label]||null;
  return heroId?{side,heroId,name:label}:null;
 }
 const isHome=()=>{
