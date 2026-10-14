@@ -52,8 +52,11 @@ try{
        const r=el.getBoundingClientRect(),cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;
        return {label:el.textContent.trim().slice(0,30),
          hit:document.elementFromPoint(cx,cy)?.closest('.fa3-skin')===el,
+         over:document.elementFromPoint(cx,cy)?.tagName+' / '+document.elementFromPoint(cx,cy)?.className,
          within:r.top>=detail.getBoundingClientRect().top-1 &&
                 r.bottom<=equipState.getBoundingClientRect().top+1,
+         equipStateTop:equipState.getBoundingClientRect().top,
+         detailTop:detail.getBoundingClientRect().top,
          bounds:r.toJSON()};
      });
    });
