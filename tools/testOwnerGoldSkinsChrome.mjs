@@ -129,6 +129,32 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    for(let k=3;k<worldPixels.length;k+=4)if(worldPixels[k])alphaPixelCount++;
    if(alphaPixelCount<8)throw Error('ECO Gold native passive has no visible leaf material');
 
+   // CP10 Gold targeting MATERIAL PROOF: an explicit presentation-only slot
+   // fixture verifies the target-lock and measure visuals. It NEVER mutates
+   // a physical gun slot, triggers A1, picks a target, or changes damage.
+   // The separate native RobotA1Lock lifecycle remains authoritative in game.
+   const lockCanvas=document.createElement('canvas');
+   lockCanvas.width=1200;lockCanvas.height=900;
+   const lockContext=lockCanvas.getContext('2d');
+   const lockPoint={x:720,y:390};
+   const lockPose={kind:'ROBOT',x:a.x,y:a.y,robot:{
+     time:st.T+.20,held:false,
+     scanSource:{x:a.x,y:a.y-a.radius*.8},
+     brackets:{state:'in',t0:st.T,target:lockPoint},
+     measure:{t0:st.T+.09,target:lockPoint}
+   }};
+   const ecoReceipt=C.capture('p1','hero','ROBOT');
+   if(C.render('targetLock',lockContext,ecoReceipt,lockPose)!==true)
+     throw Error('ECO Gold A1 circular lock family missing');
+   if(C.render('targetMeasure',lockContext,ecoReceipt,lockPose)!==true)
+     throw Error('ECO Gold A1 acquisition beam family missing');
+   if(C.render('targetLock',lockContext,C.capture('p2','hero','ROBOT'),lockPose)!==false)
+     throw Error('ORIGINAL Robot reticle was overwritten by ECO');
+   const reticleRegion=lockContext.getImageData(590,255,260,270).data;
+   let marked=0;for(let k=3;k<reticleRegion.length;k+=4)if(reticleRegion[k]>15)marked++;
+   if(marked<100)throw Error('ECO Gold target ring has no visible living material '+marked);
+   const targetImage=lockCanvas.toDataURL('image/png');
+
    // CP9 smoke proof MUST be acquired from the ACTUAL RPG carrier after
    // native physics has produced sampled flight history. A first-frame rocket
    // sprite does NOT prove the exhaust is attached, smooth or Gold-faithful.
@@ -153,6 +179,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    // are not synthetic CSS mockups or screenshots of a separate Gold studio.
    if(G.__cp8Evidence)throw Error('CP8 evidence namespace already in use');
    G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),ecoWorld:wc.toDataURL('image/png'),
+      ecoTarget:targetImage,
       rocket:ctx.canvas.toDataURL('image/png'),rocketSmokeEarly:smokeEarly,rocketSmoke:smokeFrame};
    const oldOwner=p.owner;p.owner=b;
    W.drawArsenalProjectiles(ctx);
@@ -194,7 +221,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
   if(captureDir){
    const frames=await page.evaluate(()=>window.__cp8Evidence||null);
    assert.deepEqual(Object.keys(frames||{}).sort(),[
-     'actor','ecoWorld','rocket','rocketSmokeEarly','rocketSmoke','blast-020','blast-043','blast-091','blast-120'].sort());
+     'actor','ecoWorld','ecoTarget','rocket','rocketSmokeEarly','rocketSmoke','blast-020','blast-043','blast-091','blast-120'].sort());
    for(const [name,data] of Object.entries(frames)){
      assert.match(data,/^data:image\/png;base64,/,'Evidence must be a lossless PNG');
      fs.writeFileSync(path.join(captureDir,`${caseInfo.name}-${name}.png`),
