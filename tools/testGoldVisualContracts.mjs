@@ -21,7 +21,7 @@ const contracts=[
   families:['held-launcher','rocket-flight-smoke','rocket-native-detonation']}
 ];
 const approval=fs.readFileSync('src/game/cosmetics/approvedGoldSkins.js','utf8');
-assert.equal((approval.match(/cosmetics\\.register\\(/g)||[]).length,contracts.length,
+assert.equal((approval.match(/cosmetics\.register\(/g)||[]).length,contracts.length,
  'A new curated Gold skin requires a separately reviewed family inventory and proof list');
 for(const law of contracts){
  const rec=cosmetics.variants(law.kind,law.baseId).find(x=>x.id===law.skinId);
