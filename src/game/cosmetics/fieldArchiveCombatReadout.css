@@ -224,4 +224,7 @@
      landscape: both panels occupy grid row 1, otherwise each receives
      only 45% of the available height and Equip overlaps the skin strip. */
   .fa3-body{grid-template-rows:minmax(0,1fr)}
+  /* At 390px height the compact circuit is available in INFO only;
+     SKINS keeps the actual skin choices and Equip directly hit-testable. */
+  .fa3-appear .fa3-readout-embed{display:none}
 }
