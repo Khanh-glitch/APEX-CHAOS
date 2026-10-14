@@ -1,0 +1,69 @@
+/* Cosmetic Locker owns its own product surface and NEVER rewrites Gold shell.
+   Palette borrows APEX scrap/bronze, scales to portrait and keyboard users. */
+.apex-skin-entry{position:fixed;right:max(2.55vw,18px);top:calc(2.55vh + 52px + 29px + 12px + env(safe-area-inset-top));z-index:3300;display:flex;align-items:center;gap:12px;border:1px solid #bc9a57;background:linear-gradient(110deg,#181f25f5,#2b251bf5);color:#f7e9c7;padding:12px 19px;font:800 13px/1.1 "ApcKanit",system-ui,sans-serif;letter-spacing:.15em;box-shadow:0 12px 32px #0009;cursor:pointer;clip-path:polygon(0 0,95% 0,100% 18%,100% 100%,5% 100%,0 82%);transition:filter .15s,transform .15s}
+.apex-skin-entry:focus-visible,.apex-cosmetics button:focus-visible,.apex-cosmetics input:focus-visible{outline:2px solid #ffd989;outline-offset:3px}
+.apex-skin-entry:hover{filter:brightness(1.2);transform:translateY(-2px)}
+.apex-skin-entry:disabled{opacity:.65;cursor:wait}
+.apex-skin-entry-mark{font-size:19px;color:#dabb78}
+.apex-skin-error{position:fixed;z-index:7000;right:16px;top:70px;background:#2e1b17;color:#ffc7b9;border:1px solid #af584d;padding:12px;max-width:320px;font:12px system-ui,sans-serif}
+.apex-skin-error button{background:none;color:inherit;border:0;float:right;cursor:pointer;font-size:18px}
+body:has(#apex-boot-start) .apex-skin-entry,body:has(#stage.screen-mode) .apex-skin-entry,body:has(#stage.screen-fighter) .apex-skin-entry{display:none}
+.apex-cosmetic-locker-open #stage{pointer-events:none}
+.apex-cosmetics-overlay{position:fixed;inset:0;z-index:14000;background:rgba(4,8,12,.88);backdrop-filter:blur(9px);display:grid;place-items:center;padding:clamp(12px,3vw,30px);font-family:"ApcKanit","Segoe UI",system-ui,sans-serif;color:#ece6dc}
+.apex-cosmetics{width:min(1180px,100%);max-height:min(92dvh,880px);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #8d7655;background:linear-gradient(155deg,#182028,#0e131a 72%);box-shadow:0 35px 100px #000b, inset 0 1px #fff1}
+.apex-cosmetics *{box-sizing:border-box}
+.apex-cosmetics button{font-family:inherit}
+.apex-cosmetics-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:clamp(16px,3vw,29px) clamp(18px,3vw,34px) 15px;border-bottom:1px solid #3d424a}
+.apex-cosmetics-eyebrow{font:700 11px/1.2 ui-monospace,monospace;color:#c6a86f;letter-spacing:.19em}
+.apex-cosmetics h2{font:900 clamp(22px,3.3vw,38px)/1.08 "ApcKanit",system-ui,sans-serif;letter-spacing:.035em;margin:9px 0 6px}
+.apex-cosmetics h2 span{color:#c6aa75;font-size:.62em}
+.apex-cosmetics-head p{color:#a7b1ba;font-size:13px;margin:0}
+.apex-cosmetics-close{background:#293039;border:1px solid #5c646b;color:#f4e1bf;font-size:29px;line-height:1;width:43px;height:43px;cursor:pointer}
+.apex-cosmetics-tools{display:flex;justify-content:space-between;gap:12px;padding:12px 24px;border-bottom:1px solid #2f3942;flex-wrap:wrap}
+.apex-cosmetics-tabs,.apex-cosmetics-sides{display:flex;gap:5px}
+.apex-cosmetics-tabs button,.apex-cosmetics-sides button{border:1px solid #3f4851;background:#151b22;color:#a8b0b6;padding:10px 14px;font-size:12px;letter-spacing:.075em;font-weight:800;cursor:pointer}
+.apex-cosmetics-tabs button.on,.apex-cosmetics-sides button.on{background:#8c7448;border-color:#d1b47b;color:#101417}
+.apex-cosmetics-content{display:grid;grid-template-columns:minmax(225px,325px) minmax(0,1fr);gap:0;min-height:0;flex:1}
+.apex-cosmetics-catalogue{border-right:1px solid #343d45;min-height:0;display:flex;flex-direction:column;padding:20px 14px 0 23px}
+.apex-cosmetics-catalogue label,.apex-cosmetics-skinlabel{display:flex;justify-content:space-between;color:#c2a779;font-size:10px;font-weight:900;letter-spacing:.14em;margin-bottom:12px}
+.apex-cosmetics-catalogue input{background:#0d1217;color:#fff;border:1px solid #4a525a;padding:12px;width:100%;font:13px system-ui,sans-serif;margin-bottom:13px;outline-offset:2px}
+.apex-cosmetics-list{overflow-y:auto;overscroll-behavior:contain;flex:1;padding-bottom:20px;scrollbar-width:thin;scrollbar-color:#6c5c45 #171d24}
+.apex-cosmetics-item{width:100%;border:1px solid transparent;border-bottom-color:#323940;background:transparent;color:#eae4dc;padding:11px 9px;display:flex;gap:10px;align-items:center;text-align:left;cursor:pointer}
+.apex-cosmetics-item:hover,.apex-cosmetics-item.on{background:#2b2e30;border-color:#9e8051}
+.apex-cosmetics-item-icon{width:43px;height:43px;flex:none;border:1px solid var(--accent);color:var(--accent);background:#10161a;display:grid;place-items:center;font:900 13px "ApcKanit",sans-serif}
+.apex-cosmetics-item-copy{display:grid;min-width:0;gap:4px;flex:1}
+.apex-cosmetics-item-copy strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apex-cosmetics-item-copy small{color:#8d9ba7;font:10px ui-monospace,monospace}
+.apex-cosmetics-item-arrow{color:#b99a65;font-size:20px}
+.apex-cosmetics-detail{min-width:0;min-height:0;overflow:auto;padding:20px clamp(18px,2.8vw,32px);scrollbar-width:thin}
+.apex-cosmetics-art{height:clamp(145px,22vh,235px);position:relative;overflow:hidden;display:grid;place-items:center;border:1px solid #545554;background:radial-gradient(circle at 50% 56%,color-mix(in srgb,var(--accent) 22%,transparent),#111921 60%,#090e14)}
+.apex-cosmetics-orbit{width:200px;height:200px;border:1px solid color-mix(in srgb,var(--accent) 65%,transparent);transform:rotate(-27deg) scaleY(.45);border-radius:50%;position:absolute;box-shadow:0 0 30px #ab925a19}
+.apex-cosmetics-monogram{font-size:clamp(65px,8vw,112px);font-weight:900;font-style:italic;letter-spacing:-.08em;color:var(--accent);text-shadow:0 10px 30px #000;z-index:1}
+.apex-cosmetics-art-number,.apex-cosmetics-art-caption{position:absolute;left:16px;bottom:13px;color:#c1c3bf;font:10px ui-monospace,monospace;letter-spacing:.14em}
+.apex-cosmetics-art-number{top:13px;bottom:auto;color:var(--accent)}
+.apex-cosmetics-detail-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:17px 0 22px}
+.apex-cosmetics-detail-head small{color:#c6a86f;font:10px ui-monospace,monospace;letter-spacing:.17em}
+.apex-cosmetics-detail h3{margin:5px 0 0;font-size:clamp(19px,3vw,29px);line-height:1}
+.apex-cosmetics-loaded{font:700 10px ui-monospace,monospace;color:#e0c18b;border:1px solid #856b47;padding:7px;white-space:nowrap}
+.apex-cosmetics-skins{display:grid;gap:9px}
+.apex-cosmetics-skin{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px;border:1px solid #46505a;background:#141c24;color:#eee;cursor:pointer}
+.apex-cosmetics-skin:hover,.apex-cosmetics-skin.selected{border-color:#d5b57b;background:#292a2a}
+.apex-cosmetics-skin-swatch{width:52px;height:52px;display:grid;place-items:center;background:#2b333b;color:#e1bf75;border:1px solid #6a6553;font-size:22px}
+.apex-cosmetics-skin-swatch img{max-width:100%;max-height:100%;object-fit:contain}
+.apex-cosmetics-skin-copy{display:grid;gap:4px;flex:1}
+.apex-cosmetics-skin-copy strong{font-size:14px}
+.apex-cosmetics-skin-copy small{font-size:11px;color:#a3abb3}
+.apex-cosmetics-skin-status{font-size:10px;font-weight:900;letter-spacing:.09em;color:#e1bf86;white-space:nowrap}
+.apex-cosmetics-notice{padding:12px 14px;border-left:2px solid #a98b5b;background:#20272d;color:#bcc6ca;line-height:1.6;font:12px system-ui,sans-serif;margin-top:16px}
+.apex-cosmetics-warning{color:#ffd0a5;font-size:12px}
+.apex-cosmetics-empty{color:#adb4ba;font-size:13px;padding:15px}
+.apex-cosmetics-foot{border-top:1px solid #3c4147;padding:12px 23px;display:flex;gap:12px;justify-content:space-between;align-items:center;color:#959fa9;font:10px ui-monospace,monospace;letter-spacing:.08em}
+.apex-cosmetics-foot button{background:#b79a66;border:0;color:#11171e;padding:12px 17px;font-weight:900;letter-spacing:.06em;cursor:pointer}
+@media(max-width:680px){.apex-skin-entry{right:max(4vw,10px);top:calc(1.8vh + 39px + 26px + 12px + env(safe-area-inset-top));padding:10px 12px;font-size:11px}.apex-cosmetics-overlay{padding:6px}.apex-cosmetics{height:96dvh;max-height:none}.apex-cosmetics-head{padding:13px 14px}.apex-cosmetics h2{font-size:23px}.apex-cosmetics-head p{font-size:11px}.apex-cosmetics-tools{padding:9px;gap:6px}.apex-cosmetics-tabs button,.apex-cosmetics-sides button{padding:9px 8px;font-size:10px}.apex-cosmetics-content{grid-template-columns:1fr;grid-template-rows:minmax(156px,.38fr) minmax(0,1fr)}.apex-cosmetics-catalogue{padding:10px;border-right:0;border-bottom:1px solid #343d45}.apex-cosmetics-catalogue label{margin-bottom:5px}.apex-cosmetics-catalogue input{margin-bottom:6px;padding:8px}.apex-cosmetics-list{display:flex;overflow-x:auto;overflow-y:hidden;padding:0 0 6px;gap:6px}.apex-cosmetics-item{min-width:145px;max-width:180px;border:1px solid #343d45;padding:7px}.apex-cosmetics-item-icon{width:31px;height:33px}.apex-cosmetics-item-arrow{display:none}.apex-cosmetics-detail{padding:12px}.apex-cosmetics-art{height:120px}.apex-cosmetics-monogram{font-size:66px}.apex-cosmetics-detail-head{margin:10px 0}.apex-cosmetics-detail h3{font-size:21px}.apex-cosmetics-foot{padding:9px;letter-spacing:0}.apex-cosmetics-foot span{max-width:50%;font-size:9px}.apex-cosmetics-foot button{padding:9px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.apex-skin-entry{transition:none}}
+
+/* CP16 utility rail: profile -> VIE/ENG -> SKINS, with a real pointer gap.
+   Gold's compact portrait language top uses 37px rather than 39px. */
+@media (max-height:600px) and (orientation:portrait) and (max-width:680px){
+  .apex-skin-entry{top:calc(1.8vh + 37px + 26px + 12px + env(safe-area-inset-top))}
+}

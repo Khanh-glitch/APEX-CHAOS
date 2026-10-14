@@ -21,6 +21,8 @@ import {
 import { GOLD_SHELL_URL, HERO_BATTLE_RIGS, HERO_BATTLE_RIG_ASSETS } from './game/goldAssetManifest.js';
 import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
 import goldFontParityCSS from './game/goldFontParity.css?raw';
+import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
+import CosmeticLocker from './game/cosmetics/CosmeticLocker.jsx';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
@@ -408,6 +410,13 @@ export default function App() {
     if (!surface || !authority?.canLaunch?.(surface.id, { admin })) return false;
     if (!gameReady) return false;
 
+    if (surface.route === 'skins') {
+      // The locker is a sibling product surface, never an alternate Gold
+      // shell or a replacement for the locked Fighter Shop. One existing
+      // arsenalHub manifest owns the catalogue metadata.
+      window.dispatchEvent(new Event('apex-open-cosmetics'));
+      return true;
+    }
     if (surface.route === 'shop' || surface.route === 'draw' || surface.route === 'local' || surface.route === 'bot') {
       await loadDeferredGameRuntimes('arsenalHub');
       const meta = window.APEX_ARSENAL_META;
@@ -494,6 +503,13 @@ export default function App() {
         paritySheet.id = 'apex-gold-font-parity';
         paritySheet.textContent = goldFontParityCSS;
         host.appendChild(paritySheet);
+        // R90 visual containment: native Gold portrait-tablet BOT media well
+        // resolves a 504px-square image into a 117px-high art row. Place this
+        // surgical layer AFTER the original donor; DO NOT alter Gold layout.
+        const skillArtSheet = document.createElement('style');
+        skillArtSheet.id = 'apex-gold-skill-art-bounds';
+        skillArtSheet.textContent = goldSkillArtBoundsCSS;
+        host.appendChild(skillArtSheet);
         const facesLoaded = await fontSheetReady;
         if (facesLoaded) {
           try {
@@ -530,6 +546,16 @@ export default function App() {
 
         for (const planned of scriptPlan) {
           if (cancelled) return;
+          // Netlify can inject /.netlify/scripts/cdp into BOTH the document
+          // and the fetched Gold HTML at deploy-preview time. Its pre-existing
+          // script already fired load before Gold was fetched and never carries
+          // our data-apex-loaded flag. Re-awaiting that past event deadlocks the
+          // entire mount BEFORE START; it is NOT an authored Gold runtime.
+          // Provider scripts belong to the host page, not the Gold importer.
+          if (planned.src) {
+            const pathname = new URL(planned.src, document.baseURI).pathname;
+            if (pathname.startsWith('/.netlify/scripts/')) continue;
+          }
           const run = document.createElement('script');
           if (planned.type) run.type = planned.type;
           if (planned.src) {
@@ -842,6 +868,7 @@ export default function App() {
 
   return (
     <>
+    <CosmeticLocker />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount

@@ -574,9 +574,14 @@
         break;
       }
       case 'explosion': {
+        // The AOE and its single gameplay hit receipt already occurred.
+        // Cosmetic presentation may replace BOTH visual layers, never the
+        // original SFX or blast damage. Grenade / default rocket remain Gold.
         playAll('explosion');
-        stats.atlasCued = (stats.atlasCued || 0) + 1; // bomb explosion stays (V2 §A4)
-        pushVfx({ kind: 'atlas', x: o.x, y: o.y, life: 64 / 34, fps: 34, size: 400 });
+        if (!window.APEX_COSMETICS?.suppressDefaultBlast?.(o.cosmetic)) {
+          stats.atlasCued = (stats.atlasCued || 0) + 1;
+          pushVfx({ kind: 'atlas', x: o.x, y: o.y, life: 64 / 34, fps: 34, size: 400 });
+        }
         break;
       }
       case 'storm_windup': {
@@ -702,7 +707,11 @@
       ctx.shadowColor = options.glow;
       ctx.shadowBlur = options.shadowBlur || 14;
     }
-    ctx.drawImage(img, 0, 0, meta.w, meta.h, -dw / 2, -dh / 2, dw, dh);
+    // A held skin may REPLACE only these pixels, inside the same authored
+    // muzzle/pose transform. Gold physics, dimensions and socket do not change.
+    if (!window.APEX_COSMETICS?.render?.('weapon',ctx,options.cosmetic,
+      { x:0,y:0,width:dw,height:dh,kind:weaponId }))
+      ctx.drawImage(img, 0, 0, meta.w, meta.h, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
 
     if (options.mode === 'equipped') stats.equippedSpriteDraws += 1;
@@ -774,6 +783,8 @@
     const y = fighter.y + Math.sin(aimAngle) * offset + Math.sin(aimAngle + Math.PI / 2) * lateral;
     return drawWeaponSprite(ctx, weaponId, x, y, {
       mode: 'equipped',
+      cosmetic:window.APEX_COSMETICS?.capture?.(
+        window.APEX_COSMETICS?.sideOf?.(fighter,window),'weapon',weaponId)||null,
       useWorld: params.useWorld,
       scaleMul: (p.scaleX || 1) * artScale,
       targetLongSide: params.targetLongSide * (p.scaleX || 1) * artScale,
@@ -880,8 +891,36 @@
     ctx.beginPath();ctx.arc(0,0,5+t*9,0,TAU);ctx.fill();ctx.restore();
   }
 
+  // CP13 — the ONE presentation-only seam for specialised hero held-rigs.
+  // Registration is page-lifetime and idempotent. Each provider is ordered
+  // deterministically and must RETURN TRUE only if it painted the entire
+  // equipped weapon. Physics/ownership/aim/recoil remain Arsenal/hero-owned.
+  const equippedWeaponRenderers = new Map();
+  function registerEquippedWeaponRenderer(id, paint) {
+    const key=String(id||'');
+    if(!/^[a-z][a-z0-9-]{1,79}$/.test(key)||typeof paint!=='function')
+      throw new Error('Invalid equipped weapon presentation provider');
+    const previous=equippedWeaponRenderers.get(key);
+    if(previous && previous!==paint)
+      throw new Error('Duplicate equipped weapon presentation provider: '+key);
+    equippedWeaponRenderers.set(key,paint);
+    return ()=>{
+      if(equippedWeaponRenderers.get(key)===paint)equippedWeaponRenderers.delete(key);
+    };
+  }
+
   function drawEquippedWeapon(ctx, fighter, holder) {
     if (!fighter || !holder || !holder.weaponId) return false;
+    // BEFORE generic art just as the old Robot wrapper was. Providers that
+    // do not own this fighter MUST return false; ORIGINAL art is unchanged.
+    for(const [id,paint] of equippedWeaponRenderers) {
+      try {
+        const handled=paint(ctx,fighter,holder);
+        if(handled&&typeof handled.then==='function')
+          throw new Error('Async equipped weapon renderer forbidden: '+id);
+        if(handled===true)return true;
+      }catch(error){console.warn('[arsenal-av] equipped renderer failed: '+id,error);}
+    }
     // TRUE = handled by this renderer. Returning false made the host fallback
     // paint the weapon again even while the thrown projectile owned the art.
     if (holder.weaponId === 'COMBAT_BOOMERANG' && holder.phase === 'IN_FLIGHT') return true;
@@ -1064,6 +1103,8 @@
     drawWeaponSprite,
     weaponDrawParams,
     weaponMuzzleWorld,
+    registerEquippedWeaponRenderer,
+    equippedWeaponRendererIds:()=>Object.freeze([...equippedWeaponRenderers.keys()]),
     drawEquippedWeapon,
     drawV43GoldPlasmaCharge,
     drawPoseGhost,

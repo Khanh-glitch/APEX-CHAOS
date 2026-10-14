@@ -45,33 +45,103 @@ function runtimeScriptFor(src) {
   return null;
 }
 
+// CP15: the browser dispatches <script>.load even when executing that script
+// throws. A successful fetch is NOT proof that its classic global evaluated.
+// Only essential runtime authorities require a legacy "ready" marker: those
+// markers are written by the current canonical scripts after initialization.
+const REQUIRED_CLASSIC_READY_MARKERS = new Set([
+  'apexArsenalConfig', 'apexArsenalIdentityRuntime',
+  'apexArsenalWeaponRuntime', 'apexArsenalSpawnRuntime',
+  'apexArsenalPresentationRuntime', 'apexArsenalChamberPaletteRuntime',
+  'apexHeroReworkAil', 'apexHeroReworkRegistry',
+  'apexHeroReworkMechanics', 'apexHeroReworkRuntime',
+  'apexArsenalBattleRuntime',
+]);
+const classicRuntimeInflight = new Map();
+function runtimeUrl(src) {
+  return new URL(src, document.baseURI || 'http://localhost/').href;
+}
+function runtimeAdmissionError(src, reason) {
+  return new Error(`Classic runtime admission failed [${src}]: ${reason}`);
+}
 export function loadClassicRuntime(src, dataKey) {
-  return new Promise((resolve, reject) => {
+  const url = runtimeUrl(src);
+  if (classicRuntimeInflight.has(url)) return classicRuntimeInflight.get(url);
+  const gate = new Promise((resolve, reject) => {
     const endTiming = beginPerfSpan('runtime', src);
     const existing = runtimeScriptFor(src);
+    const markerReady = () => !REQUIRED_CLASSIC_READY_MARKERS.has(dataKey) ||
+      window[dataKey] === 'ready';
+    if (existing?.dataset.apexFailed === 'true') {
+      endTiming({ ok: false, cached: true, reason: 'prior-evaluation-failure' });
+      reject(runtimeAdmissionError(src, 'earlier evaluation failed; reload the page'));
+      return;
+    }
     if (existing?.dataset.apexLoaded === 'true') {
-      endTiming({ ok: true, cached: true });
-      resolve();
+      if (!markerReady()) {
+        endTiming({ ok: false, cached: true, reason: 'missing-ready-marker' });
+        reject(runtimeAdmissionError(src, `missing ${dataKey}=ready after cached load`));
+      } else {
+        endTiming({ ok: true, cached: true });
+        resolve();
+      }
       return;
     }
 
     const runtime = existing || document.createElement('script');
-    runtime.src = src;
+    if (!existing) runtime.src = src; // never restart a pre-existing script
     runtime.async = false;
     runtime.dataset[dataKey] = 'true';
+    let settled = false;
+    const evaluationErrors = [];
+    const onEvaluationError = (event) => {
+      // Attribution is filename-specific: concurrent unrelated page errors
+      // must not invalidate the runtime being admitted.
+      try {
+        if (event?.filename && runtimeUrl(event.filename) === url)
+          evaluationErrors.push(String(event.message || event.error?.message || 'evaluation error'));
+      } catch (_) {}
+    };
+    const cleanup = () => {
+      runtime.removeEventListener('load', handleLoad);
+      runtime.removeEventListener('error', handleError);
+      window.removeEventListener('error', onEvaluationError, true);
+    };
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error) {
+        runtime.dataset.apexFailed = 'true';
+        endTiming({ ok: false, cached: false, reason: String(error.message) });
+        reject(error);
+      } else {
+        runtime.dataset.apexLoaded = 'true';
+        endTiming({ ok: true, cached: false });
+        resolve();
+      }
+    };
     const handleLoad = () => {
-      runtime.dataset.apexLoaded = 'true';
-      endTiming({ ok: true, cached: false });
-      resolve();
+      if (evaluationErrors.length)
+        return finish(runtimeAdmissionError(src, evaluationErrors[0]));
+      if (!markerReady())
+        return finish(runtimeAdmissionError(src, `missing ${dataKey}=ready after evaluation`));
+      finish();
     };
-    const handleError = () => {
-      endTiming({ ok: false, cached: false });
-      reject(new Error(`Failed to load ${src}`));
-    };
+    const handleError = () => finish(runtimeAdmissionError(src, 'script network/load error'));
+    window.addEventListener('error', onEvaluationError, true);
     runtime.addEventListener('load', handleLoad, { once: true });
     runtime.addEventListener('error', handleError, { once: true });
     if (!existing) document.body.appendChild(runtime);
   });
+  classicRuntimeInflight.set(url, gate);
+  // Clear only the active promise. A failed script node stays marked failed,
+  // since blindly re-evaluating partly mutated classic globals is unsafe.
+  void gate.then(
+    () => { if (classicRuntimeInflight.get(url) === gate) classicRuntimeInflight.delete(url); },
+    () => { if (classicRuntimeInflight.get(url) === gate) classicRuntimeInflight.delete(url); },
+  );
+  return gate;
 }
 
 async function loadRuntimeList(runtimes) {
@@ -97,11 +167,13 @@ async function loadRuntimeList(runtimes) {
 // ─────────────────────────────────────────────────────────────────────────────
 const loadQueue = [];
 let queueRunning = false;
-let priorityDepth = 0;
+let activeRuntimeEntry = null; // in-flight dependency belongs to every concurrent group
+let fatalRuntimeFailure = null; // failed required runtime poisons this document
 
-function runtimeAlreadyLoaded(src) {
+function runtimeAlreadyLoaded(src, dataKey) {
   const existing = runtimeScriptFor(src);
-  return Boolean(existing && existing.dataset.apexLoaded === 'true');
+  return Boolean(existing && existing.dataset.apexLoaded === 'true'
+    && (!REQUIRED_CLASSIC_READY_MARKERS.has(dataKey) || window[dataKey] === 'ready'));
 }
 
 function makeQueueEntry([src, dataKey, options]) {
@@ -116,17 +188,25 @@ async function pumpQueue() {
   try {
     while (loadQueue.length) {
       const entry = loadQueue.shift();
-      if (entry.priority) priorityDepth = Math.max(0, priorityDepth - 1);
+      activeRuntimeEntry = entry;
       try {
         await loadClassicRuntime(entry.src, entry.dataKey);
         entry.settle();
       } catch (error) {
         if (!entry.options || !entry.options.optional) {
+          // A missing core script invalidates every downstream classic-script
+          // dependency. Never keep evaluating the queued Hero/Weapon modules
+          // in an impossible state and never advertise Battle ready.
+          fatalRuntimeFailure = error;
           entry.fail(error);
+          for (const remaining of loadQueue.splice(0)) remaining.fail(error);
+          break;
         } else {
           console.warn(`[asset-loader] Optional runtime failed: ${entry.src}`);
           entry.settle();
         }
+      } finally {
+        if (activeRuntimeEntry === entry) activeRuntimeEntry = null;
       }
     }
   } finally {
@@ -140,23 +220,53 @@ async function pumpQueue() {
 // promise) so patch chains keep their relative order and the click waits only
 // for its own dependencies — never for unrelated background work.
 function enqueueGroup(runtimes, { priority = false } = {}) {
+  if (fatalRuntimeFailure) return Promise.reject(fatalRuntimeFailure);
   const entries = [];
   for (const tuple of runtimes) {
-    if (runtimeAlreadyLoaded(tuple[0])) continue;
-    const queued = loadQueue.find((q) => q.src === tuple[0]);
-    entries.push(queued || makeQueueEntry(tuple));
+    if (runtimeAlreadyLoaded(tuple[0], tuple[1])) continue;
+    // CP16 race proof: the currently evaluating script has left loadQueue,
+    // but it still owns this dependency. Reuse its promise rather than
+    // enqueueing another copy while a second group joins the same graph.
+    const queued = loadQueue.find((q) => q.src === tuple[0]) ||
+      (activeRuntimeEntry?.src === tuple[0] ? activeRuntimeEntry : null);
+    if (!entries.some((e) => e.src === tuple[0]))
+      entries.push(queued || makeQueueEntry(tuple));
   }
   if (!entries.length) return Promise.resolve();
-  for (const entry of entries) {
-    const i = loadQueue.indexOf(entry);
-    if (i >= 0) loadQueue.splice(i, 1);
-  }
+  const pending = entries.filter((e) => e !== activeRuntimeEntry);
   if (priority) {
-    for (const entry of entries) entry.priority = true;
-    loadQueue.splice(priorityDepth, 0, ...entries);
-    priorityDepth += entries.length;
+    // An old priority implementation removed shared entries then appended
+    // them after the rest of an already queued group. When arsenalProduct
+    // started first and Home's arsenalHub arrived during an in-flight script,
+    // this moved arsenalConfig BEHIND arsenalIdentityRuntime. Identity then
+    // evaluated without CFG, returned without READY, and CP15 correctly
+    // denied Battle. Preserve every existing dependency edge; interleave
+    // only NEW entries around the old queue's shared anchors.
+    const anchorOrder = pending
+      .map((entry) => loadQueue.indexOf(entry)).filter((index) => index >= 0);
+    if (anchorOrder.some((index, i) => i > 0 && index < anchorOrder[i - 1])) {
+      const error = new Error('Incompatible concurrent runtime dependency order');
+      fatalRuntimeFailure = error;
+      for (const remaining of loadQueue.splice(0)) remaining.fail(error);
+      return Promise.reject(error);
+    }
+    let cursor = -1;
+    for (let i = 0; i < pending.length; i++) {
+      const entry = pending[i];
+      const existingAt = loadQueue.indexOf(entry);
+      if (existingAt >= 0) { cursor = existingAt; continue; }
+      const nextAnchor = pending.slice(i + 1)
+        .map((candidate) => loadQueue.indexOf(candidate))
+        .find((index) => index >= 0);
+      const insertAt = cursor >= 0 ? cursor + 1 :
+        nextAnchor === undefined ? 0 : nextAnchor;
+      loadQueue.splice(insertAt, 0, entry);
+      cursor = insertAt;
+    }
   } else {
-    loadQueue.push(...entries);
+    for (const entry of pending) {
+      if (!loadQueue.includes(entry)) loadQueue.push(entry);
+    }
   }
   void pumpQueue();
   return Promise.all(entries.map((e) => e.promise));

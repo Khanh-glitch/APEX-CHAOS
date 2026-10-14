@@ -161,6 +161,46 @@ const manifest=JSON.parse(fs.readFileSync(path,'utf8'));
 const issues=inspect(manifest,live);
 assert.deepEqual(issues,[],'live content admission failed');
 
+// CP5.4 REAL Registry canary: append a test-only 13th record, verify the
+// original 12/36 remain a required subset and malformed extensions fail.
+// This is NOT a new playable Fighter, executor, art asset or production ID.
+{
+  const id='CP5_CANARY_HERO';
+  const heroes=live.reg.HEROES;
+  const before=Object.keys(heroes);
+  assert.equal(before.length,EXPECTED_HEROES.length,'fixture assumes original roster');
+  const base=heroes.ROBOT;
+  try {
+    heroes[id]={...base,id,displayName:'CP5 Canary (test only)'};
+    const v=live.reg.validateRegistry();
+    assert.equal(v.ok,true,'13th well-formed canary rejected: '+v.errors.slice(0,3).join('; '));
+    assert.equal(v.heroCount,13);
+    assert.equal(v.skillCount,39);
+    assert.deepEqual(Object.keys(heroes).slice(0,12),before,
+      'original insertion order changed');
+    assert.equal(live.reg.resolveHeroId(id),id,'registered extension ID must resolve');
+    assert.equal(live.reg.displayNameFor(id),'CP5 Canary (test only)');
+    assert.equal(live.surface.isPublicPlayableFighter(id),false,
+      'new registry identity must remain product-locked');
+    assert.deepEqual(live.reg.resolveSkillLevel(id,'A1',1),
+      live.reg.resolveSkillLevel('ROBOT','A1',1),
+      'test canary must inherit deterministic Lv1 configuration');
+    // Even if the registry shape is valid, the CP4 admission contract must
+    // still reject this undeclared hero until art/tests/locale/executor exist.
+    const admission=inspect(manifest,live);
+    assert.ok(admission.some(x=>x.includes(id)&&x.includes('lacks admission')),
+      'registry extension must not bypass CP4 admission');
+    heroes[id]={...base,id,skills:{...base.skills,A2:undefined}};
+    const bad=live.reg.validateRegistry();
+    assert.equal(bad.ok,false,'malformed 13th hero was accepted');
+    assert.ok(bad.errors.some(x=>x.includes(id+'.A2')),
+      'malformed extension must identify its missing skill');
+  } finally { delete heroes[id]; }
+  assert.deepEqual(Object.keys(heroes),before,'canary leaked into production registry');
+  assert.equal(live.reg.validateRegistry().ok,true,'base registry damaged by fixture');
+  console.log('CP5 HERO REGISTRY CANARY PASS: baseline 12/36, extension 13/39, invalid extension denied');
+}
+
 // Negative / mutation testing ensures the gate is not ceremonial.
 const withNew={...live,cfg:{...live.cfg,P0_WEAPON_IDS:[...live.cfg.P0_WEAPON_IDS,'NEW_GUN']}};
 assert.ok(inspect(manifest,withNew).some(e=>e.includes('NEW_GUN')&&e.includes('lacks admission')),

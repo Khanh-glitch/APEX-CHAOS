@@ -157,7 +157,7 @@
       try {
         await new Promise((resolve, reject) => {
           const img = new Image();
-          let done = false;
+          let done = false, decodeStarted = false;
           const finish = (err) => {
             if (done) return;
             done = true;
@@ -172,15 +172,20 @@
           };
           if (signal) signal.addEventListener('abort', onAbort, { once: true });
           img.decoding = 'async';
-          img.onload = async () => {
-            try { if (img.decode) await img.decode(); } catch (_) {}
-            finish();
+          // onload and cached-complete may both fire. Exactly one decode must
+          // succeed before READY; a rejected decode is not a successful load.
+          const onLoaded = () => {
+            if (done || decodeStarted) return;
+            decodeStarted = true;
+            Promise.resolve().then(() => typeof img.decode === 'function' ? img.decode() : true)
+              .then(() => finish(), error => finish(new Error(
+                'image decode failed: ' + rec.path + ' (' + String(error?.message || error) + ')'
+              )));
           };
+          img.onload = onLoaded;
           img.onerror = () => finish(new Error('image decode failed: ' + rec.path));
           img.src = rec.url;
-          if (img.complete && img.naturalWidth > 0) {
-            Promise.resolve(img.decode ? img.decode().catch(() => {}) : null).then(() => finish());
-          }
+          if (img.complete && img.naturalWidth > 0) onLoaded();
         });
         rec.state = 'READY';
         rec.readyAt = now();
@@ -376,6 +381,49 @@
     return Object.fromEntries(CORE_SIX.map((hero)=>[hero,heroProfile(hero)]));
   }
 
+  // Shared presentation PREPROCESS gate: script evaluation and downloaded rig
+  // bytes alone cannot certify the first frame. A hero renderer registers its
+  // own deterministic decode/atlas/Canvas-preparation promise here. Scene
+  // transitions await this SAME idempotent contract before real battle input;
+  // adding a new hero never requires a name-specific condition in the bridge.
+  const presentationProviders = new Map();
+  const presentationPromises = new Map();
+  const presentationStates = new Map();
+  function registerPresentation(hero, prepare) {
+    const key = heroKey(hero);
+    if (!key || typeof prepare !== 'function') throw new Error('Invalid presentation readiness provider');
+    const prior = presentationProviders.get(key);
+    if (prior && prior !== prepare) throw new Error('Duplicate presentation readiness provider: ' + key);
+    presentationProviders.set(key, prepare);
+    if (!presentationStates.has(key)) presentationStates.set(key, { state:'REGISTERED', error:null });
+    return true;
+  }
+  async function preparePresentations(heroIds) {
+    const ids = [...new Set((Array.isArray(heroIds) ? heroIds : []).map(heroKey).filter(Boolean))];
+    const active = ids.filter((id) => presentationProviders.has(id));
+    await Promise.all(active.map((id) => {
+      if (presentationPromises.has(id)) return presentationPromises.get(id);
+      const provider = presentationProviders.get(id);
+      presentationStates.set(id, { state:'PREPARING', error:null });
+      const task = Promise.resolve().then(() => provider()).then((result) => {
+        if(result!==true && result?.ready!==true)
+          throw new Error('Presentation preprocess not READY: '+id);
+        presentationStates.set(id, { state:'READY', error:null });
+        return true;
+      }).catch((error) => {
+        presentationPromises.delete(id); // retry on a later route, never fake READY
+        presentationStates.set(id, { state:'ERROR', error:String(error?.message || error) });
+        throw error;
+      });
+      presentationPromises.set(id, task);
+      return task;
+    }));
+    return { ready:true, heroes:active };
+  }
+  function presentationReadiness() {
+    return Object.fromEntries([...presentationStates].map(([key,value]) => [key,{...value}]));
+  }
+
   function snapshot() {
     return {
       records: Array.from(records.values()).map((r) => Object.assign({}, r)),
@@ -394,6 +442,9 @@
     state: snapshot,
     profileHero: heroProfile,
     profileHeroes: heroProfiles,
+    registerPresentation,
+    preparePresentations,
+    presentationReadiness,
   });
   window.apexHeroLoadTelemetry = Object.freeze({
     mark: markHeroLoad,

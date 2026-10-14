@@ -102,6 +102,23 @@ const win = runInWindow(document, bridgeSource, 'goldProductBridge.js', {
   },
   APEX_ARSENAL_META: { owns: () => true, credits: () => 12000 },
   __apexEnsureDeferredRuntimes: async () => true,
+  // The bridge requires the generic presentation readiness authority before
+  // engine start. Preserve that real contract at the shim boundary: a selected
+  // (including FUTURE) hero set must be prepared before startMatch is called.
+  apexProductAssets: {
+    async preparePresentations(heroIds) {
+      win.__apexPreparedHeroIds = [...heroIds];
+      return { ready:true, heroes:heroIds };
+    },
+  },
+  APEX_COSMETICS: {
+    // Model the real pre-battle skin READY boundary in this DOM-only
+    // fixture; missing it must prevent Battle from starting in production.
+    async ready(selected) {
+      win.__apexPreparedCosmetics = selected.map(pair=>({...pair}));
+      return {ready:true,assetCount:0};
+    },
+  },
   // Production contract (`public/game/arsenal/arsenalShellSelectRuntime.js`):
   // window.startMatch() is a Promise<boolean> READY contract — it resolves
   // `true` only after the real Arsenal match has started. The double must
@@ -136,6 +153,17 @@ console.warn = __origWarn;
 // exactly once (no synthetic double-trigger).
 check('the real production match start was invoked exactly once',
   (win.__apexStartMatchCalls || 0) === 1, `calls=${win.__apexStartMatchCalls || 0}`);
+check('the selected heroes crossed shared preprocess readiness before battle',
+  Array.isArray(win.__apexPreparedHeroIds)
+  && win.__apexPreparedHeroIds.includes('newbot')
+  && win.__apexPreparedHeroIds.includes('hunter'));
+check('both chosen player looks crossed the cosmetic READY barrier',
+  Array.isArray(win.__apexPreparedCosmetics)
+  && win.__apexPreparedCosmetics.length===2
+  && win.__apexPreparedCosmetics[0].side==='p1'
+  && win.__apexPreparedCosmetics[0].heroId==='newbot'
+  && win.__apexPreparedCosmetics[1].side==='p2'
+  && win.__apexPreparedCosmetics[1].heroId==='hunter');
 if (__errs.length) failures.push('bridge reported an error: ' + __errs.join(' | '));
 const refs = (win.__apexLegacyRefs || []).map((el) => `${el.tagName}#${el.id || '(parked:' + (el.getAttribute('data-apex-parked-id') || '') + ')'}=${JSON.stringify(el.style.display)}`);
 notes.push('legacy nodes the hide touched: ' + JSON.stringify(refs));

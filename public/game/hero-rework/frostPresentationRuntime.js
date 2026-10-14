@@ -355,6 +355,49 @@ function frostCfg(ct) {
   };
 }
 
+// Preprocess belongs to the surface readiness authority, not to the first
+// A1 press or the first in-battle tick. A single detached Gold engine decodes
+// and builds the canonical mips once; all live actor engines attach those
+// immutable results. Never issue FrostEngine.load() from two different engines:
+// Gold internally caches its first loader promise but does NOT copy that
+// engine's mips into a later caller.
+let artReadyPromise = null;
+function attachGoldArt(e) {
+  if (!sharedArt || !e) return false;
+  e.mips = sharedArt.mips;
+  e.shadowCanvas = sharedArt.shadow;
+  try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); }
+  catch (err) { warnOnce(err); }
+  e.ready = true;
+  return true;
+}
+function prepareGoldArtwork() {
+  if (sharedArt) return Promise.resolve(true);
+  if (artReadyPromise) return artReadyPromise;
+  if (!G || typeof G.FrostEngine !== 'function')
+    return Promise.reject(new Error('Frost Gold preprocess runtime missing'));
+  loadProbe('preprocess-start', { source: 'presentation-readiness-contract' });
+  const loader = new G.FrostEngine();
+  artReadyPromise = Promise.resolve().then(() => loader.load()).then(() => {
+    if (!loader.ready || !loader.mips || !loader.shadowCanvas)
+      throw new Error('Frost Gold atlas preprocessing incomplete');
+    sharedArt = { mips: loader.mips, shadow: loader.shadowCanvas };
+    for (const [, S] of liveStates) attachGoldArt(S.engine);
+    api.ready = true;
+    loadProbe('preprocess-ready', { cacheStats: G.cacheStats ? { ...G.cacheStats } : null });
+    return true;
+  }, (error) => {
+    api.error = String(error);
+    loadProbe('preprocess-error', { error:String(error) });
+    throw error;
+  });
+  return artReadyPromise;
+}
+api.prepare = prepareGoldArtwork;
+// Registry-based extension point: subsequent heroes enroll here instead of
+// adding their private image loaders to the battle transition.
+g.apexProductAssets?.registerPresentation?.('frost', prepareGoldArtwork);
+
 function createState(ct) {
   const f = ct.anchor;
   const cfg = frostCfg(ct);
@@ -372,36 +415,11 @@ function createState(ct) {
   // but mips live ON the engine: every later engine backfills from the
   // shared art cache so rematches/mirrors render (mips are read-only after
   // load, safe to share).
-  if (sharedArt) {
-    e.mips = sharedArt.mips;
-    e.shadowCanvas = sharedArt.shadow;
-    try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); } catch (err) { warnOnce(err); }
-    e.ready = true;
-    api.ready = true;
-  } else if (!createState.loadStarted && typeof e.load === 'function') {
-    createState.loadStarted = true;
-    loadProbe('preprocess-start', { source: 'FrostEngine.load' });
-    try {
-      e.load().then(() => {
-        sharedArt = { mips: e.mips, shadow: e.shadowCanvas };
-        for (const [, other] of liveStates) {
-          if (other.engine !== e) {
-            other.engine.mips = e.mips;
-            other.engine.shadowCanvas = e.shadowCanvas;
-            try { other.engine.prepareSurfaces(other.engine.iceCanvas.width, other.engine.iceCanvas.height); } catch (prepErr) { warnOnce(prepErr); }
-            other.engine.ready = true;
-          }
-        }
-        api.ready = true;
-        loadProbe('preprocess-ready', { cacheStats: G.cacheStats ? { ...G.cacheStats } : null });
-      }).catch((err) => {
-        api.error = String(err);
-        loadProbe('preprocess-error', { error: String(err) });
-      });
-    } catch (err) {
-      api.error = String(err);
-      loadProbe('preprocess-error', { error: String(err) });
-    }
+  if (!attachGoldArt(e)) {
+    // Standalone/dev harnesses that bypass the battle preparation gate may
+    // still create an actor; they share the exact same pending preprocess
+    // promise, never a second engine.loader with an empty atlas.
+    void prepareGoldArtwork().then(() => attachGoldArt(e)).catch(warnOnce);
   }
   const S = {
     ct, fighter: f, engine: e, cfg,
@@ -818,46 +836,8 @@ function canAcceptCast(S) {
   try { return S.engine.mode === 'free'; } catch (e) { return false; }
 }
 
-// ---- deferred admission: replay from authoritative gameplay history -------
-// A queued cast is admitted after gameplay has already moved on. Starting it
-// "here, now" would put the lane under Frost's CURRENT feet and cut the hunt
-// path off at the admission point. Both are reconstructed from gameplay truth
-// instead, through Gold's own buildLane / ice.add — no second mechanic, no
-// approximated effect, no steering or teleport.
-
-// A1: gameplay released while Gold was busy. The lane is rebuilt at the real
-// release origin, along the committed direction, with the real front window
-// back-dated (born times in the past = the front the player already saw) and
-// the one shared gameplay expiry.
-function replayA1Lane(S, q, now) {
-  const e = S.engine, L = q.lane;
-  const off = S.tOff || 0;
-  const ang = Math.atan2(L.dy, L.dx);
-  e.a1Len = L.len;
-  e.a1Travel = Math.max(0.05, L.frontDoneAt - L.frontStartAt);
-  Object.assign(e.a1, {
-    ang, released: false, bite: true, ended: true, front: L.len, frontPrev: L.len,
-    nodes: [], rowAcc: 0, lobeAcc: 0, chipAcc: 0,
-  });
-  // The lane is rebuilt at the AUTHORITATIVE release origin (gameplay truth),
-  // not at Frost's current position: a deferred visual must not drag the
-  // floor to wherever Frost has since walked.
-  e.a1Origin = { x: L.ox, y: L.oy };
-  try { e.buildLane(L.frontStartAt + off, L.len, e.a1Travel); }
-  catch (err) { warnOnce(err); }
-  finally { e.a1Origin = null; }
-  e.a1.released = true;
-  // Lifetime stays the ORIGINAL gameplay lane expiry (never a fresh floor
-  // from admission time).
-  S.a1.casts.push({
-    nodes: (e.a1.nodes || []).map((w) => w && w.n).filter(Boolean),
-    expireE: L.expireAt + off,
-  });
-  if (S.a1.casts.length > 4) S.a1.casts.shift();
-  S.a1.releasedSeen = true;   // the generic capture must not re-anchor it
-  S.a1.replays = (S.a1.replays || 0) + 1;
-}
-
+// A2 keeps the canonical movement-history adapter. The unused A1 replay
+// producer was removed; only Gold's one admitted cast may create a lane.
 // A2: the hunt has been running (and turning/bouncing) while Gold was busy.
 // The Gold trail is reconstructed from the authoritative gameplay movement
 // history through GOLD'S OWN trail constructor and GOLD'S OWN node law
@@ -926,9 +906,10 @@ function startCast(S, q, now, insp) {
     e.a1Travel = q.lane
       ? Math.max(0.05, q.lane.frontDoneAt - q.lane.frontStartAt)
       : q.travel;
-    try { e.castA1(q.ang); } catch (err) { warnOnce(err); }
+    e.castA1(q.ang);
+    if (e.mode !== 'a1') throw new Error('Frost A1 actor rejected cast '+q.castId);
     S.a1.startedId = q.castId;
-    S.a1.startClock = q.lane || now - (q.castAt || now) > 0.05 ? now : (q.castAt || now);
+    S.a1.startClock = (q.lane || now - q.castAt > 0.05) ? now : q.castAt;
     S.a1.forceExpiryId = q.lane ? q.castId : null;
     if (q.lane) {
       S.a1.expireClock = q.lane.expireAt;
@@ -965,9 +946,16 @@ function castStillTrue(S, q, now) {
 }
 
 function requestCast(S, q, now, insp) {
-  // Gameplay has accepted a qualifying Frost activation. Refresh the one
-  // shared arena mood now, even if Gold presentation admission is deferred.
   refreshAmbience(now);
+  // CP17: Gold serialized the A1 gesture behind a multi-second A2 animation
+  // and rendered an ice-preview before replaying the real A1 afterwards.
+  // The skills are CONCURRENT in gameplay. Give A1 immediate actor priority;
+  // A2's native movement + Gold history-derived trail continue independently.
+  if (q.kind === 'a1' && S.engine.mode === 'a2') {
+    S.engine.mode = 'free';
+    S.engine.huntGoal = 0;
+    S.a2.actorYieldedToA1 = true;
+  }
   if (canAcceptCast(S) && !S.castQ.length) { startCast(S, q, now, insp); return; }
   // Same-kind supersede: a newer cast of the same ability replaces the older
   // queued one (the older visual's truth is already being overwritten).
@@ -1056,13 +1044,9 @@ function tickA1(S, ct, insp, now, dt) {
   if (insp && !insp.pending && S.a1.pending) {
     S.a1.pending = false;
     S.a1.releaseClock = now;
-    // The gameplay release is the authority for the beat: land the Gold
-    // pressure->release on the SAME frame (float dt accumulation otherwise
-    // leaves modeT a hair under A1_CAST and the whole visual runs a frame
-    // behind the mechanic lane).
-    if (e.mode === 'a1' && e.a1 && !e.a1.released && e.modeT < A1_RELEASE_BEAT) {
-      e.modeT = A1_RELEASE_BEAT;
-    }
+    // Never jump modeT to Gold's release threshold when gameplay crosses its
+    // commit. That shortcut bypassed the 0.25s authored opening/pressure beat
+    // after a hitch. Gold emits exactly one release on its own timeline.
     S.a1.expireClock = now + frontSeconds + (+cfg1.floorLifetime || 4.5);
     // Released while Gold is still busy: the visual can no longer be started
     // "here, now". Bind the queued cast to the authoritative lane record so
@@ -1447,6 +1431,11 @@ function driveEngine(S, ct, dt) {
   // This is visual only: enter quickly, settle out cleanly when leaving the surface.
   e.surfaceEyeBoost = damp(e.surfaceEyeBoost || 0, e.onIce ? 1 : 0, e.onIce ? 0.045 : 0.085, dt);
   if (e.mode === 'a1') {
+    // A 1/60 accumulation can land at 0.24999999999999997 instead of
+    // the Gold release threshold 0.25. Snap ONLY floating-point epsilon,
+    // never the entire pending beat: the old full 0->.25 jump erased motion.
+    if (e.modeT >= A1_RELEASE_BEAT - 1e-7 &&
+        e.modeT < A1_RELEASE_BEAT) e.modeT = A1_RELEASE_BEAT;
     e.fvx = damp(e.fvx, 0, 0.06, dt);
     e.fvy = damp(e.fvy, 0, 0.06, dt);
     try { e.updateA1(dt); } catch (err) { warnOnce(err); }
@@ -1543,44 +1532,7 @@ api.tick = function (dt) {
 // World-surface layer only: ice/wet/front/floor support. Arsenal invokes this
 // after the chamber floor but before pickup sprites, guaranteeing guns remain
 // readable without moving the Frost actor/head out of its normal body order.
-// Mechanical A1 lane becomes true at the native release even if Gold is
-// busy animating A2. Preview that ALREADY EXISTING surface immediately, but
-// keep the canonical Gold A1 admission/0.25s beat and ice nodes untouched.
-// This is not a second gameplay floor; the native lane is its only authority.
-function drawQueuedA1Floor(ctx,S){
-  const q=S.castQ.find(v=>v.kind==='a1'&&v.lane);
-  if(!q || S.engine.mode==='a1')return;
-  const L=q.lane,now=clock();
-  if(now<L.frontStartAt || now>=L.expireAt)return;
-  const progress=Math.max(0,Math.min(1,(now-L.frontStartAt)/Math.max(.05,L.frontDoneAt-L.frontStartAt)));
-  const len=L.len*progress, half=L.len>0?((S.cfg.a1.width||160)/2):0;
-  if(len<4||!half)return;
-  // Graphic follows the native front, local-axis jagged ice, not an arbitrary
-  // screen-space rectangle. At Gold admission it yields instantly to the
-  // original fully articulated release/front.
-  ctx.save();
-  try{
-    ctx.translate(L.ox,L.oy);ctx.rotate(Math.atan2(L.dy,L.dx));
-    const fade=Math.min(1,(L.expireAt-now)/.35);
-    ctx.globalAlpha=.72*Math.max(0,fade);
-    const grad=ctx.createLinearGradient(0,-half,len,half);
-    grad.addColorStop(0,'rgba(110,213,248,.50)');
-    grad.addColorStop(.48,'rgba(192,246,255,.57)');
-    grad.addColorStop(1,'rgba(62,155,232,.58)');
-    ctx.fillStyle=grad;
-    ctx.beginPath();ctx.moveTo(0,-half*.72);
-    const step=22;
-    for(let x=0;x<len;x+=step)ctx.lineTo(x,-half*(.86+.12*Math.sin(x*.063+1.1)));
-    ctx.lineTo(len,-half*.45);
-    ctx.lineTo(len,half*.45);
-    for(let x=len;x>0;x-=step)ctx.lineTo(x,half*(.85+.13*Math.sin(x*.07+2.3)));
-    ctx.lineTo(0,half*.72);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(201,247,255,.45)';ctx.lineWidth=3;ctx.stroke();
-    ctx.strokeStyle='rgba(220,253,255,.20)';ctx.lineWidth=2;
-    for(let k=1;k<6;k++){const x=len*k/6;if(x<5)continue;
-      ctx.beginPath();ctx.moveTo(x,-half*.66);ctx.lineTo(Math.max(0,x-24),half*.55);ctx.stroke();}
-  } finally {ctx.restore();}
-}
+// CP17: one A1 cast ID => one Gold actor and one Gold lane producer.
 function renderSurfaceUnderWeapons(ctx) {
   if (!api.ready || !liveStates.size || !ctx) return;
   const px = pxFromCtx(ctx);
@@ -1588,7 +1540,6 @@ function renderSurfaceUnderWeapons(ctx) {
     isolated(ctx, () => {
       S.engine.ice.drawWet(ctx, S.engine.t);
       drawIceComposite(S, ctx, px);
-      drawQueuedA1Floor(ctx,S);
       S.engine.drawA1MacroFront(ctx, px);
     });
   }

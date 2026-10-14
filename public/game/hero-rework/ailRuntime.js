@@ -175,9 +175,15 @@
   const CapabilityAuthority = {
     isT6(obj) {
       if (!obj) return false;
-      if (obj.isT6 === true) return true;
-      const w = obj.weapon || (obj.data && obj.data.arsenal && obj.data.arsenal.weaponId);
-      return w === 'T6' || w === 'STORMBREAKER';
+      if (obj.isT6 === true || obj.tier === 'T6') return true;
+      // A single physical item crosses multiple representations: the floor
+      // uses weaponId, detached projectiles use weapon, held equipment uses
+      // data.arsenal.weaponId. Never grant hero-object manipulation merely
+      // because one of the other identity fields is absent or contradictory.
+      const held = obj.data && obj.data.arsenal && obj.data.arsenal.weaponId;
+      return obj.weapon === 'T6' || obj.weapon === 'STORMBREAKER'
+        || obj.weaponId === 'T6' || obj.weaponId === 'STORMBREAKER'
+        || held === 'T6' || held === 'STORMBREAKER';
     },
     canManipulate(obj) { return !this.isT6(obj); },
     // Hero-object interactions this gates (doc 01):
@@ -202,6 +208,116 @@
       return true;
     },
   };
+
+  /* CP5 LIVE MAGNET QUERY START */
+  // CP5 live semantic admissions: floor Weapon roles, Frozen Equipment,
+  // kinetic projectile and V43 reflection kind. Combat consumers still own
+  // the actual physical contact, damage and motion.
+  CapabilityAuthority.query = function queryInteraction(action,target,context={}) {
+    const result=(status,reason)=>Object.freeze({status,reason});
+    if(action==='magnet-revealed-slot'||action==='magnet-repel-slot'){
+      // CP5.2: read ONLY the effective canonical Arsenal world-role traits;
+      // A1 and A2 deliberately have DIFFERENT physical admission rules.
+      // Unknown equipment, missing role authority and missing objects fail closed.
+      const config=context.config;
+      const id=target && target.weaponId;
+      const method=action==='magnet-revealed-slot'
+        ? 'isHeroManipulableFloorWeapon'
+        : 'isHeroMagneticallyResponsiveFloorWeapon';
+      if(!target||typeof target!=='object')
+        return result('unresolved','missing-target');
+      if(!config||typeof config[method]!=='function')
+        return result('unresolved','missing-canonical-floor-role');
+      if(!id||!Object.prototype.hasOwnProperty.call(config.WEAPONS||{},id))
+        return result('unresolved','unregistered-equipment');
+      return result(config[method](target)?'allowed':'denied',
+        action==='magnet-revealed-slot'?'canonical-world-weapon':'canonical-magnetic-response');
+    }
+    if(action==='frost-freezable-equipment'){
+      // CP5.3: Frozen Equipment is a semantic World Weapon capability, NOT
+      // permission to turn every projectile into an ordinary Frozen Bullet.
+      // Frost contact/timing remains entirely owned by FrostGameplayRuntime.
+      const config=context.config;
+      const id=target && target.weaponId;
+      if(!target||typeof target!=='object')
+        return result('unresolved','missing-target');
+      if(!config||typeof config.isHeroManipulableWeapon!=='function')
+        return result('unresolved','missing-canonical-weapon-role');
+      if(!id||!Object.prototype.hasOwnProperty.call(config.WEAPONS||{},id))
+        return result('unresolved','unregistered-equipment');
+      return result(config.isHeroManipulableWeapon(id,target)?'allowed':'denied',
+        'canonical-world-frozen-equipment-role');
+    }
+    if(action==='v43-reflection-tag'){
+      // CP5.5 semantic kind admission ONLY. Reflective contact, mine flight,
+      // ownership, path priority, damage and T6 collision remain with each
+      // existing engine consumer. No new V43 projectile types are enabled.
+      if(!target||typeof target!=='object')
+        return result('unresolved','missing-target');
+      const config=context.config;
+      if(!config||typeof config.V43_WEAPONS!=='object')
+        return result('unresolved','missing-v43-config');
+      const id=target.weapon;
+      const special=config.V43_WEAPONS[id];
+      if(!id||(!special&&!Object.prototype.hasOwnProperty.call(config.WEAPONS||{},id)))
+        return result('unresolved','unregistered-weapon');
+      if(target.type!=='aq_v43'||this.isT6(target)||id==='T6'
+         ||id==='STORMBREAKER'||special?.tier==='T6')
+        return result('denied','not-a-legal-v43-projectile');
+      if(!special)return result('denied','not-a-v43-special');
+      if(!Array.isArray(special.reflectableKinds))
+        return result('unresolved','missing-v43-reflection-tags');
+      return result(special.reflectableKinds.includes(target.kind)?'allowed':'denied',
+        'canonical-v43-reflection-kind');
+    }
+    if(action==='mirror-f2-projectile'){
+      // CP5.6: Mirror F2 accepts ONLY the three original detached projectile
+      // families. The semantic gate cannot enlarge this to V43 without a
+      // separate owner-approved gameplay/geometry change.
+      if(!target||typeof target!=='object')
+        return result('unresolved','missing-target');
+      if(typeof context.matchActive!=='boolean')
+        return result('unresolved','missing-match-state');
+      const config=context.config,id=target.weapon;
+      if(!config||!id||!((config.WEAPONS||{})[id]||config.V43_WEAPONS?.[id]))
+        return result('unresolved','unregistered-weapon-or-config');
+      if(!context.matchActive||target.aq!==true||this.isT6(target)
+        ||id==='STORMBREAKER'||id==='T6')
+        return result('denied','inactive-or-t6');
+      const ok=target.type==='aq_bullet'||target.type==='aq_grenade'
+        ||(target.type==='aq_thrown'&&target.state==='flight');
+      return result(ok?'allowed':'denied','canonical-mirror-f2-family');
+    }
+    if(action!=='magnet-projectile')
+      return result('unresolved','unmigrated-interaction-action');
+    if(!target||typeof target!=='object')
+      return result('unresolved','missing-target');
+    const config=context.config;
+    if(!config||typeof config.isGun!=='function')
+      return result('unresolved','missing-canonical-config');
+    const id=target.weapon;
+    const defs=config.WEAPONS||{};
+    const special=config.V43_WEAPONS?.[id];
+    if(!id||(!defs[id]&&!special))
+      return result('unresolved','unregistered-weapon');
+    if(target.aq!==true||!(target.life>0)||this.isT6(target)||
+      id==='STORMBREAKER'||id==='T6'||target.__hr?.cryHold)
+      return result('denied','inactive-held-or-t6');
+    if(target.type==='aq_bullet')
+      return result(config.isGun(id)?'allowed':'denied','ordinary-firearm-bullet');
+    if(target.type!=='aq_v43')
+      return result('denied','unsupported-projectile-family');
+    if(!special||special.tier==='T6')
+      return result('denied','not-a-legal-special');
+    if(!Array.isArray(special.magnetizableKinds))
+      return result('unresolved','missing-physical-kind-tags');
+    if(!special.magnetizableKinds.includes(target.kind))
+      return result('denied','not-a-physical-projectile-kind');
+    if(target.kind==='mine'&&target.phase!=='flight')
+      return result('denied','stationary-mine');
+    return result('allowed','canonical-v43-physical-projectile');
+  };
+  /* CP5 LIVE MAGNET QUERY END */
 
   /* ------------------------------------------------------------------ *
    * Swept-circle vs circle TOI. Movement is processed per-segment so the

@@ -62,8 +62,8 @@ function park(a, b) {
 
 /* ================= F00 — baseline / scope (in-node leaves) ============ */
 try {
-  const out = execSync('git merge-base --is-ancestor 43d3eebd2d4351e007e9577bd907197f742a1a3d HEAD && echo YES', { cwd: process.cwd() }).toString();
-  gate('F00.1-ancestry', out.includes('YES'), 'pre-pilot rollback oracle 43d3eeb is in HEAD ancestry');
+  const out = execSync('git merge-base --is-ancestor 6ca80b7c06643cfa773e7fef452d936791e646cc HEAD && echo YES', { cwd: process.cwd() }).toString();
+  gate('F00.1-ancestry', out.includes('YES'), 'CP16 last approved SHA is in the CP17 branch ancestry');
 } catch (e) { gate('F00.1-ancestry', false, String(e && e.message)); }
 try {
   const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
@@ -508,16 +508,30 @@ try {
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
   o.b.x = 800; o.b.y = 800;
   const r = HR.pressAbility(o.a, 'A2');
-  T.step(0.5); // trail spans ~200..610 at y=500 (no wall yet)
-  o.a.baseSpeed = 0; // pin AFTER the trail is laid; Frost stays ~610
-  const id = T.pushSlot({ x: 450, y: 500, phase: 'REVEALED', weaponId: 'PISTOL' });
+  T.step(0.5); // REAL A2 movement is authoritative: do not assume a
+  // fixed endpoint while other movement/collision statuses are in play.
+  const trace = FR().inspect(o.ct);
+  const nodes = trace?.trailNodes || [];
+  const first = nodes[0], last = nodes[nodes.length - 1];
+  const travelled = first && last ? Math.hypot(last.x-first.x,last.y-first.y) : 0;
+  const mid = nodes[Math.floor(nodes.length/2)] || null;
+  // Assert meaningful physical displacement AND freeze support at a sampled
+  // actual trail interior, not an arbitrary x=450 which might lie off-trail.
+  // This does NOT substitute renderer motion or force a frozen slot in code.
+  const validTravel = nodes.length >= 3 && travelled >= 180 && !!mid;
+  o.a.baseSpeed = 0; // pin only AFTER the trail is laid
+  const id = validTravel ? T.pushSlot({
+    x: mid.x, y: mid.y, phase: 'REVEALED', weaponId: 'PISTOL'
+  }) : null;
   o.b.x = 100; o.b.y = 900;
   T.step(2 / 60);
-  const s = AQSlots().find((q) => q.id === id);
+  const s = id == null ? null : AQSlots().find((q) => q.id === id);
   const trailLive = FR().inspect(o.ct).trail > 0;
-  win.APEX_ARSENAL.state.slots = AQSlots().filter((q) => q.id !== id);
-  gate('F05.8-trail-freezes', r.ok === true && trailLive && !!s && !!s.__frostFrozen,
-    { trail: trailLive, frozen: !!(s && s.__frostFrozen) });
+  if (id != null) win.APEX_ARSENAL.state.slots = AQSlots().filter((q) => q.id !== id);
+  gate('F05.8-trail-freezes',
+    r.ok === true && validTravel && trailLive && !!s && !!s.__frostFrozen,
+    { trail: trailLive, nodes: nodes.length, travel: +travelled.toFixed(1),
+      sample: mid && {x:mid.x,y:mid.y}, frozen: !!(s && s.__frostFrozen) });
 } catch (e) { gate('F05.8-trail-freezes', false, String(e && e.message)); }
 
 function iceVersusIce() {
@@ -1715,7 +1729,10 @@ try {
 } catch (e) { gate('F11.9-armed-no-steal-shock-anyway', false, String(e && e.message)); }
 
 try {
-  // F11.10: melee/grenade/shield/T6 never transfer; shock still applies.
+  // F11.10 OWNER SUPERSESSION 2026-10-13: Defense and T6 never transfer.
+  // Grenade is a Weapon and may transfer while still held. A melee Weapon
+  // already spent by its own strike is no longer held and cannot be stolen.
+  // We still preserve the real shock and one-holder invariants.
   const rows = {};
   for (const wid of ['SABRE', 'GRENADE', 'SWIRL_SHIELD', 'STORMBREAKER']) {
     const o = contactDuel();
@@ -1728,9 +1745,8 @@ try {
       touchBodies(o);
       T.step(2 / 60);
     });
-    // SABRE at point-blank range legitimately spends itself striking (the
-    // weapon's own law, proven by the CONSUME/STRIKE log); the no-transfer
-    // assertion is frostEmpty + no FrostSteal for every class.
+    // SABRE at point-blank legitimately spends itself striking; absence of
+    // a held item is a normal failed theft, NOT a prohibition on melee Weapon.
     rows[wid] = {
       spentByOwner: spends.length > 0,
       held: W().getHolder(o.b) === h0 && !!h0,
@@ -1740,11 +1756,15 @@ try {
     };
     tap.release();
   }
-  const ok = Object.entries(rows).every(([wid, r]) =>
-    (wid === 'SABRE' ? (r.held || r.spentByOwner) : r.held)
-    && r.frostEmpty && r.shock && !r.steal);
-  gate('F11.10-never-steal-other-classes', ok, rows);
-} catch (e) { gate('F11.10-never-steal-other-classes', false, String(e && e.message)); }
+  const ok = Object.entries(rows).every(([wid, r]) => {
+    if (!r.shock) return false;
+    if (wid === 'GRENADE') return r.steal && !r.held && !r.frostEmpty && !r.spentByOwner;
+    if (wid === 'SABRE') return r.spentByOwner ? (r.frostEmpty && !r.steal)
+      : (r.steal && !r.held && !r.frostEmpty);
+    return r.held && r.frostEmpty && !r.steal;
+  });
+  gate('F11.10-owner-weapon-transfer-defense-T6-exclusion', ok, rows);
+} catch (e) { gate('F11.10-owner-weapon-transfer-defense-T6-exclusion', false, String(e && e.message)); }
 
 try {
   // F11.11: same overlap cannot re-steal; separation + re-contact can.
@@ -2949,7 +2969,7 @@ try {
   const castOk = win.APEX_ARSENAL_SKILL_GATE.pressJ(oB.a);
   T.step(2 / 60);
   const qB = P().inspect(oB.a);
-  const deferredB = qB.mode === 'a2' && qB.queued === 1 && qB.queuedKinds[0] === 'a1';
+  const immediateB = qB.mode === 'a1' && qB.queued === 0 && qB.a1Started > 0 && qB.a1Replays === 0;
   // Gameplay A1 keeps its own schedule while the visual waits.
   T.step(0.5);
   const gLane = FR().inspect(ctB).lanes.length === 1;
@@ -2961,11 +2981,11 @@ try {
     nodesB = i.a1.nodes;
   }
   const iB = P().inspect(oB.a);
-  const bothB = releasedB && nodesB >= 40 && iB.castStarts === 2 && iB.castDropped === 0 && iB.queued === 0;
+  const bothB = releasedB && nodesB >= 40 && iB.castStarts === 2 && iB.castDropped === 0 && iB.queued === 0 && iB.a1Replays === 0;
   gate('F13.8-concurrent-cast-lossless',
-    deferredA && startedA && bothA && castOk && deferredB && gLane && bothB,
+    deferredA && startedA && bothA && castOk && immediateB && gLane && bothB,
     { legA: { deferred: deferredA, started: startedA, nodes: iA.a1.nodes, trail: iA.a2.trail, starts: iA.castStarts, dropped: iA.castDropped },
-      legB: { deferred: deferredB, gameplayLane: gLane, released: releasedB, nodes: nodesB, starts: iB.castStarts, dropped: iB.castDropped } });
+      legB: { immediate: immediateB, gameplayLane: gLane, released: releasedB, nodes: nodesB, starts: iB.castStarts, dropped: iB.castDropped } });
 } catch (e) { gate('F13.8-concurrent-cast-lossless', false, String(e && e.message)); }
 
 // F13.9 — A1 direction is the gameplay CAST-ACCEPTANCE snapshot. A real
@@ -2980,8 +3000,12 @@ try {
   o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0); o.b.x = 520; o.b.y = 500;
   win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
   const cast = FR().inspect(ct).a1cast;      // snapshot at acceptance
-  T.step(16 / 60);                            // bounce happens inside the commit
-  const bounced = o.a.dir.x < -0.5;           // live dir really reversed
+  T.step(16 / 60);                            // collision step crosses gameplay release
+  const bounced = o.a.dir.x < -0.5;
+  // One coarse integration step is NOT sixteen visible Gold animation frames.
+  // After a hitch, the authored pressure/release must PLAY on real rendered
+  // frames, rather than forcing modeT directly to .25 on the first return.
+  for (let frame = 0; frame < 15; frame++) T.step(1 / 60);           // live dir really reversed
   const gi = FR().inspect(ct);
   const pi = P().inspect(o.a);
   const e = P().engineFor(o.a);
@@ -3082,54 +3106,57 @@ try {
     { gpNodes: gpHist.length, hydrated: i.a2Hydrated, early8: early, covered: all, bornTruth, grew });
 } catch (e) { gate('F13.11-deferred-a2-hydrates-history', false, String(e && e.message)); }
 
-// F13.12 — a deferred A1 must ALWAYS play its cast beat before the lane:
-// authoritative origin/direction/original expiry are retained, but no direct
-// historical floor replay may bypass anticipation/open/release.
+// CP17: A1 pressed while A2 owns Gold starts its single authored actor
+// gesture IMMEDIATELY, without replaying a stale floor after the hunt.
 try {
-  const o = stillPair(300, 500, 1, 1200, 900);
-  const ct = HR.byCombatant(o.a);
-  const AIL = win.APEX_HERO_REWORK_AIL;
-  HR.pressAbility(o.a, 'A2');                     // A2 owns Gold
-  T.step(2 / 60);
-  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);        // A1 queued
-  T.step(0.4);                                     // gameplay releases the lane
-  const lane = FR().inspect(ct).lanes[0];
-  const qd = P().inspect(o.a).queued === 1;
-  for (let k = 0; k < 30; k++) { o.a.x += 14; T.step(2 / 60); }   // Frost leaves
-  const farX = o.a.x;
-  let admitted = false;
-  for (let k = 0; k < 60 && !admitted; k++) { T.step(0.05); admitted = P().inspect(o.a).mode === 'a1'; }
-  const e = P().engineFor(o.a);
-  const atAdmission = P().inspect(o.a);
-  const noDirectLane = e.ice.nodes.filter((n) => n.kind === 'lane').length === 0
-    && !atAdmission.a1.released;
-  T.step(0.12);
-  const loaded = P().inspect(o.a);
-  const beatLoaded = loaded.mode === 'a1' && !loaded.a1.released
-    && loaded.choreography.jawGoal >= 14
-    && e.ice.nodes.filter((n) => n.kind === 'lane').length === 0;
-  let rel = false;
-  for (let k = 0; k < 20 && !rel; k++) { T.step(0.025); rel = P().inspect(o.a).a1.released; }
-  const i = P().inspect(o.a);
-  const off = e.t - AIL.clock();
-  const nodes = e.ice.nodes.filter((n) => n.kind === 'lane');
-  const dOrigin = Math.hypot(i.a1.ox - lane.ox, i.a1.oy - lane.oy);        // vs gameplay truth
-  const dFrost = Math.hypot(i.a1.ox - o.a.x, i.a1.oy - o.a.y);             // vs where Frost is now
-  const angOk = Math.abs(i.a1.ang - Math.atan2(lane.dy, lane.dx)) < 0.01;
-  const decays = nodes.map((n) => n.decayAt).filter((d) => d !== Infinity && d < Infinity);
-  const expiry = decays.length ? Math.min(...decays) : NaN;
-  const expiryTruth = Math.abs(expiry - (lane.expireAt + off)) < 0.2;       // gameplay lane expiry
-  const notRestarted = expiry < e.t + (ct.skills.A1.cfg.floorLifetime || 4.5) - 1.0; // not a fresh floor
-  const bornAfterBeat = nodes.length > 0 && Math.min(...nodes.map((n) => n.born)) >= atAdmission.t - 0.05;
-  gate('F13.12-deferred-a1-historical-origin',
-    qd && admitted && noDirectLane && beatLoaded && rel && i.a1Replays === 1
-    && nodes.length >= 40 && dOrigin < 45 && dFrost > 300
-    && angOk && expiryTruth && notRestarted && bornAfterBeat,
-    { admitted, noDirectLane, beatLoaded, originGap: +dOrigin.toFixed(1),
-      frostGap: +dFrost.toFixed(1), frostX: Math.round(farX), ang: i.a1.ang,
-      expiryTruth, notRestarted, bornAfterBeat, nodes: nodes.length });
-} catch (e) { gate('F13.12-deferred-a1-historical-origin', false, String(e && e.message)); }
+  const o=stillPair(300,500,1,850,850), ct=HR.byCombatant(o.a);
+  HR.pressAbility(o.a,'A2');T.step(2/60);
+  const before=P().inspect(o.a);
+  const pressed=win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(1/60);
+  const at=P().inspect(o.a), e=P().engineFor(o.a);
+  const started=pressed && before.mode==='a2' && at.mode==='a1' &&
+    at.a1Started>0 && at.queued===0 && at.a1Replays===0 &&
+    at.a1.released===false && e.ice.nodes.filter(n=>n.kind==='lane').length===0;
+  const a2Live=FR().inspect(ct).a2live;
+  for(let i=0;i<11;i++){o.a.x+=14;T.step(1/60);}
+  const charging=P().inspect(o.a);
+  for(let i=0;i<9;i++)T.step(1/60);
+  const released=P().inspect(o.a);
+  for(let i=0;i<9;i++){o.a.x+=14;T.step(1/60);}
+  const final=P().inspect(o.a);
+  gate('F13.12-a1-immediate-mid-a2-with-original-gold-beat',
+    started && a2Live && !charging.a1.released && released.a1.released &&
+    e.ice.nodes.filter(n=>n.kind==='lane').length>40 &&
+    final.a1Started===at.a1Started && final.a1Replays===0 &&
+    final.castStarts===2 && final.a2.trail>0,
+    {started,a2Live,charged:!charging.a1.released,released:released.a1.released,
+      castStarts:final.castStarts,a1Replays:final.a1Replays,a2Trail:final.a2.trail});
+} catch(e){gate('F13.12-a1-immediate-mid-a2-with-original-gold-beat',false,String(e?.message||e));}
 
+// CP17: even across a complete A2 + A1 overlay lifecycle, the visual must
+// have one release transition and no speculative preview-node producer.
+try {
+  const o=stillPair(300,500,1,850,850);
+  HR.pressAbility(o.a,'A2');T.step(2/60);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);T.step(1/60);
+  const e=P().engineFor(o.a), initial=P().inspect(o.a);
+  let preview=false,releases=0,previous=false,maxLane=0;
+  for(let i=0;i<52;i++){
+    o.a.x+=2;T.step(1/60);
+    const p=P().inspect(o.a);
+    preview=preview||e.ice.nodes.some(n=>n.__frostQueuedPreview);
+    maxLane=Math.max(maxLane,e.ice.nodes.filter(n=>n.kind==='lane').length);
+    if(p.a1.released&&!previous)releases++;
+    previous=p.a1.released;
+  }
+  const final=P().inspect(o.a);
+  gate('F13.13-one-cast-one-release-zero-replay',
+    !preview && releases===1 && maxLane>40 &&
+    initial.a1Started>0 && final.a1Started===initial.a1Started &&
+    final.a1Replays===0 && final.castStarts===2 && final.queued===0,
+    {preview,releases,maxLane,castStarts:final.castStarts,queued:final.queued,replays:final.a1Replays});
+} catch(e){gate('F13.13-one-cast-one-release-zero-replay',false,String(e?.message||e));}
 
 /* ================= F14 — owner activation-window regressions ========== */
 // These gates inspect every activation frame rather than redrawing one frozen
@@ -3282,15 +3309,18 @@ try {
   const o = stillPair(300, 500, 1, 820, 820);
   P().setReactionParticlesEnabled(false);
   win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
-  T.step(0.08);
+  // Observe a real multi-frame animation, not five coarse calls which
+  // previously relied on a forced 0.25s release teleport to pass.
+  const frames = (count) => { for(let i=0;i<count;i++) T.step(1/60); };
+  frames(5);
   const anticipate = P().inspect(o.a);
-  T.step(0.12);
+  frames(7);
   const open = P().inspect(o.a);
-  T.step(0.06);
+  frames(4);
   const release = P().inspect(o.a);
-  T.step(0.28);
+  frames(17);
   const recovery = P().inspect(o.a);
-  T.step(0.29);
+  frames(18);
   const resumed = P().inspect(o.a);
   P().setReactionParticlesEnabled(true);
   gate('F16.1-a1-authored-visible-beat',

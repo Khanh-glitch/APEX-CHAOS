@@ -49,6 +49,7 @@ import { adaptGoldShellR83 } from './goldShellR83.mjs';
 import { adaptBreachGoldShellB6i } from './questB6iGoldShell.mjs';
 import { adaptRivetGoldShellB7 } from './questB7GoldShell.mjs';
 import { adaptTotGoldShellB8 } from './questB8GoldShell.mjs';
+import { bindB05ShellRevision } from './lib/goldB05PatchRevision.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
@@ -2332,7 +2333,16 @@ function applyB05Overlay(name,html) {
   try {
     fs.mkdirSync(path.dirname(dest),{recursive:true});
     fs.writeFileSync(dest,work,'utf8');
-    const result=spawnSync('git',['apply','--unsafe-paths','--whitespace=nowarn',patchFile],
+    // Bind the TWO generated cache-revision context tokens in memory. Strict
+    // authored patch hunk/canvas/Quest geometry remains untouched. This avoids
+    // a stale two-line URL context each time a future revision is cut over.
+    let activePatchFile=patchFile;
+    if(isShell){
+      const bound=bindB05ShellRevision(fs.readFileSync(patchFile,'utf8'),work);
+      activePatchFile=path.join(temp,'b05-shell-revision-bound.patch');
+      fs.writeFileSync(activePatchFile,bound,'utf8');
+    }
+    const result=spawnSync('git',['apply','--unsafe-paths','--whitespace=nowarn',activePatchFile],
       {cwd:temp,encoding:'utf8'});
     if(result.status!==0)throw new Error('B05 authored patch is stale for '+name+
       '\n'+(result.stderr||result.stdout));
@@ -2529,6 +2539,27 @@ function main() {
       const target = path.join(OUT_DIR, rel);
       if (!fs.existsSync(target) || !read(target).equals(buf)) {
         console.error(`[gold-cutover] DRIFT: ${rel}`);
+        // A single hash mismatch in the generated manifest otherwise hides
+        // which source file changed. Emit the exact differing entries, without
+        // relaxing byte-for-byte certification or rewriting any artifact.
+        if (rel === 'manifest.json' && fs.existsSync(target)) {
+          try {
+            const old = JSON.parse(read(target).toString('utf8'));
+            const latest = JSON.parse(buf.toString('utf8'));
+            if (old.runtimeRevision !== latest.runtimeRevision) {
+              console.error('[gold-cutover] manifest revision differs:',
+                old.runtimeRevision, '!=', latest.runtimeRevision);
+            }
+            for (const key of new Set([...Object.keys(old.files || {}), ...Object.keys(latest.files || {})])) {
+              if (JSON.stringify(old.files?.[key]) !== JSON.stringify(latest.files?.[key])) {
+                console.error('[gold-cutover] manifest entry differs:', key,
+                  JSON.stringify(old.files?.[key]), '!=', JSON.stringify(latest.files?.[key]));
+              }
+            }
+          } catch (error) {
+            console.error('[gold-cutover] manifest diff inspection failed:', String(error));
+          }
+        }
         drift++;
       }
     }

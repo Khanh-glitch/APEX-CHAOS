@@ -1,0 +1,35 @@
+name: CP17 Frost A1 Visual Lifecycle (isolated)
+on:
+  pull_request:
+    paths:
+      - 'public/game/hero-rework/frostPresentationRuntime.js'
+      - 'tools/testFrostV1Gates.mjs'
+      - 'tools/runtimeRevision.lock.json'
+      - '.github/workflows/cp17-frost-cast-identity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-frost-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # F00.1 ancestry requires the actual Git graph, not shallow CI checkout
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Frost real renderer/gameplay integration suite, including CP17 hostile overlap
+        run: node tools/testFrostV1Gates.mjs
+      - name: Runtime source SHA-256 hard gate, no release-token drift
+        run: node tools/testRuntimeRevisionGate.mjs
+      - name: Build real shipping artifact
+        run: |
+          pnpm run build
+          node tools/testShippingDist.mjs

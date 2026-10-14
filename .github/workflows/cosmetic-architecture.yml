@@ -1,0 +1,82 @@
+name: Cosmetic Architecture / Locker (isolated)
+on:
+  pull_request:
+    paths:
+      - 'src/game/cosmetics/**'
+      - 'src/App.jsx'
+      - 'src/game/productSurface.js'
+      - 'public/game/arsenal/**'
+      - 'public/game/hero-rework/**'
+      - 'public/game/gold/goldProductBridge.js'
+      - 'tools/testCosmeticContracts.mjs'
+      - 'tools/testGoldRocketSmokeSampling.mjs'
+      - 'tools/testEcoGoldTargetFamily.mjs'
+      - 'tools/testGoldVisualContracts.mjs'
+      - 'tools/testPresentationReadinessHardening.mjs'
+      - 'tools/testRobotEventBusSubscription.mjs'
+      - 'tools/testRobotLifecycleContract.mjs'
+      - 'tools/testEquippedWeaponProviderContract.mjs'
+      - 'tools/testRuntimeScriptAdmission.mjs'
+      - 'src/game/runtimeLoader.js'
+      - 'public/game/product/productAssetRuntime.js'
+      - 'tools/testCosmeticLockerChrome.mjs'
+      - 'tools/testCosmeticBattleChrome.mjs'
+      - 'tools/testOwnerGoldSkinsChrome.mjs'
+      - '.github/workflows/cosmetic-architecture.yml'
+  workflow_dispatch:
+jobs:
+  cosmetic-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify P1/P2 identity, skin asset readiness, collision invariance and hooks
+        run: |
+          node tools/testCosmeticContracts.mjs
+          node tools/testGoldRocketSmokeSampling.mjs
+          node tools/testEcoGoldTargetFamily.mjs
+          node tools/testGoldVisualContracts.mjs
+          node tools/testPresentationReadinessHardening.mjs
+          node tools/testRobotEventBusSubscription.mjs
+          node tools/testRobotLifecycleContract.mjs
+          node tools/testEquippedWeaponProviderContract.mjs
+          node tools/testRuntimeScriptAdmission.mjs
+      - name: Verify production build and original runtime locks
+        run: |
+          node tools/testRuntimeRevisionGate.mjs
+          node tools/buildGoldCutover.mjs --check
+          pnpm run build
+      - name: Install isolated Chrome driver (no committed dependency changes)
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Chrome Gold Home SKINS category desktop + Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite preview --host 127.0.0.1 --port 4173 > /tmp/apex-cosmetic-vite.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testCosmeticLockerChrome.mjs
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testCosmeticBattleChrome.mjs
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ APEX_CP8_CAPTURE_DIR=/tmp/cp8-gold-evidence node tools/testOwnerGoldSkinsChrome.mjs
+      - name: Retain CP8 real Chrome Gold screenshots for owner review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp8-owner-gold-real-chrome-frames
+          path: /tmp/cp8-gold-evidence/*.png
+          if-no-files-found: error
+          retention-days: 14

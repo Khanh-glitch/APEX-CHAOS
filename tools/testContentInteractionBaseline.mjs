@@ -84,15 +84,38 @@ gate('ordinary-firearm-and-T6-magnet-exclusions', () => {
   assert.equal(M.isEligibleBullet({aq:true,type:'aq_bullet',weapon:'GLOCK_17',life:2}),true);
   assert.equal(M.isEligibleBullet({aq:true,type:'aq_bullet',weapon:'STORMBREAKER',life:2}),false);
 });
-gate('frost-and-magnet-floor-policies-are-not-equivalent', () => {
-  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'PISTOL',tier:'T1'}),true);
-  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'RPG_7',tier:'T3'}),true);
-  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'GRENADE',tier:'T1'}),false);
-  assert.equal(F.isFreezableFirearm({kind:'WEAPON',weaponId:'STORMBREAKER',tier:'T6'}),false);
-  const slot=id=>({kind:'WEAPON',weaponId:id,phase:'REVEALED'});
-  assert.equal(M.isEligibleFloorFirearm(slot('PISTOL')),true);
-  assert.equal(M.isEligibleFloorFirearm(slot('RPG_7')),false);
-  assert.equal(M.isEligibleFloorFirearm(slot('STORMBREAKER')),false);
+gate('owner-world-equipment-roles-shared-but-effects-remain-distinct', () => {
+  // OWNER SUPERSESSION 2026-10-13: "Weapon" is ALL offensive spawn roles,
+  // not only firearms/ranged. The previously intentional exclusion of V43,
+  // Grenade and melee in Magnet/Frost was a semantic defect.
+  const roster=C.P0_WEAPON_IDS;
+  assert.equal(roster.length,41,'41 canonical equipment identities');
+  assert.equal(C.OFFENSIVE_WEAPON_IDS.length,39,'39 Weapon, incl. T6');
+  assert.equal(C.SHIELD_IDS.length,2,'two independent Defense items');
+  for(const id of roster){
+    const t6=C.tierOf(id)==='T6';
+    const eligible=C.isOffensive(id)&&!t6;
+    const slot={kind:'WEAPON',weaponId:id,phase:'REVEALED',
+      tier:C.tierOf(id)};
+    assert.equal(C.isHeroManipulableWeapon(id,slot),eligible,id+' role');
+    assert.equal(C.isHeroManipulableFloorWeapon(slot),eligible,id+' floor');
+    assert.equal(M.isEligibleFloorFirearm(slot),eligible,id+' Magnet floor');
+    assert.equal(M.isEligibleFloorWeapon(slot),eligible,id+' Magnet role');
+    assert.equal(F.isFreezableFirearm(slot),eligible,id+' Frost existing API');
+    assert.equal(F.isFreezableWeapon(slot),eligible,id+' Frost role');
+  }
+  const slot=(id,extra={})=>({kind:'WEAPON',weaponId:id,phase:'REVEALED',...extra});
+  for(const bad of [slot('SWIRL_SHIELD'),slot('TOWER_SHIELD'),
+    slot('STORMBREAKER'),slot('PISTOL',{heroInteractionImmune:true}),
+    slot('RPG_7',{phase:'HELD'}),slot('PISTOL',{kind:'HEAL'}),
+    slot('FUTURE_UNKNOWN')]){
+    assert.equal(C.isHeroManipulableFloorWeapon(bad),false);
+    assert.equal(M.isEligibleFloorWeapon(bad),false);
+  }
+  assert.equal(C.isHeroManipulableWeapon('RPG_7'),true);
+  assert.equal(C.isHeroManipulableWeapon('STORMBREAKER'),false);
+  assert.equal(F.isFreezableWeapon({weaponId:'GRENADE'}),true,
+    'A2 steal can recognize held Grenade without pretending it is a firearm');
 });
 gate('T6-shared-capability-policy-exceptions', () => {
   const cap=A.CapabilityAuthority;
@@ -109,8 +132,59 @@ gate('mirror-F2-type-exclusion-intentionally-preserved', () => {
   const j=s.indexOf('function mirrorF2CoolingDown(p)',i);
   assert.ok(i>0 && j>i);
   const body=s.slice(i,j);
-  for(const type of ['aq_bullet','aq_grenade','aq_thrown']) assert.ok(body.includes("p.type === '"+type+"'"));
-  assert.equal(body.includes('aq_v43'),false);
+  assert.ok(body.includes("auth.query?.('mirror-f2-projectile',p,"),
+    'Mirror F2 must consume shared AIL admission, not parallel local rules');
+  for(const type of ['aq_bullet','aq_grenade','aq_thrown'])
+    assert.ok(body.includes("p.type === '"+type+"'"),'historical no-AIL family proof '+type);
+  assert.equal(body.includes('aq_v43'),false,'V43 escrow must remain denied');
+  const auth=A.CapabilityAuthority;
+  const ctx={config:C,matchActive:true};
+  for(const type of ['aq_bullet','aq_grenade','aq_thrown']){
+    const proj={aq:true,type,weapon:'PISTOL',state:'flight'};
+    assert.equal(auth.query('mirror-f2-projectile',proj,ctx).status,'allowed',type);
+  }
+  for(const bad of [
+    {aq:true,type:'aq_v43',weapon:'RPG_7',kind:'rocket'},
+    {aq:true,type:'aq_thrown',weapon:'SABRE',state:'pinned'},
+    {aq:true,type:'aq_bullet',weapon:'STORMBREAKER'},
+  ]) assert.equal(auth.query('mirror-f2-projectile',bad,ctx).status,'denied');
+});
+gate('future-V43-content-inherits-shared-Magnet-Crystal-Frost-roles-without-hero-edits', () => {
+  // A sacrificial future weapon is declared ONLY in the canonical catalogues.
+  // Hero-specific tables remain untouched. This proves that current AIL
+  // queries honor content traits instead of a private eight-ID allowlist.
+  const id='CP5_FUTURE_KINETIC_CATALOG_CANARY';
+  const original=C.V43_WEAPONS;
+  assert.ok(!C.WEAPONS[id] && !original[id], 'canary identity collided with production');
+  try {
+    C.V43_WEAPONS={...original,[id]:{
+      tier:'T2',kind:'foil',family:'SPECIAL',
+      reflectableKinds:['foil'],magnetizableKinds:['ion']
+    }};
+    C.WEAPONS[id]={worldRoles:['weapon'],magneticResponse:'responsive'};
+    C.WEAPON_TIER[id]='T2';
+    const floor={kind:'WEAPON',phase:'REVEALED',weaponId:id,tier:'T2'};
+    assert.equal(M.isEligibleFloorWeapon(floor),true,'future Weapon must be pulled by A1');
+    assert.equal(M.isEligibleA2FloorWeapon(floor),true,'responsive future Weapon must be repelled');
+    assert.equal(F.isFreezableWeapon(floor),true,'future Weapon inherits Frost equipment law');
+    const shell={aq:true,type:'aq_v43',weapon:id,life:2,phase:'flight'};
+    const reflect=kind=>A.CapabilityAuthority.query('v43-reflection-tag',{...shell,kind},{config:C}).status;
+    assert.equal(reflect('foil'),'allowed','reflection kind must follow future trait');
+    assert.equal(reflect('ion'),'denied','reflection may not borrow Magnet permission');
+    assert.equal(M.isEligibleBullet({...shell,kind:'ion'}),true,'Magnet follows future kinetic trait');
+    assert.equal(M.isEligibleBullet({...shell,kind:'foil'}),false,'Magnet may not borrow reflection permission');
+    assert.equal(M.isEligibleBullet({...shell,kind:'ion',life:0}),false,'expired future projectile denied');
+    assert.equal(M.isEligibleBullet({...shell,kind:'ion',__hr:{cryHold:true}}),false,'held future projectile denied');
+    C.V43_WEAPONS[id]={...C.V43_WEAPONS[id],tier:'T6'};
+    C.WEAPON_TIER[id]='T6';
+    assert.equal(M.isEligibleBullet({...shell,kind:'ion'}),false,'future T6 kinetic immunity');
+    assert.equal(reflect('foil'),'denied','future T6 reflection immunity');
+    assert.equal(M.isEligibleFloorWeapon(floor),false,'future T6 floor immunity');
+    assert.equal(F.isFreezableWeapon(floor),false,'future T6 Frozen Equipment immunity');
+  }finally {
+    C.V43_WEAPONS=original;
+    delete C.WEAPONS[id];delete C.WEAPON_TIER[id];
+  }
 });
 gate('one-real-damage-transaction-and-receipt', () => {
   assert.ok(T.start('MAGNET','MAGNET')); T.holdSpawns();

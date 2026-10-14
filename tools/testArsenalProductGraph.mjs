@@ -121,12 +121,13 @@ gate('semantic-graph-and-admin-boundary', () => {
   const graph = listProductSurfaces();
   const active = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.ACTIVE);
   const locked = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.LOCKED);
-  assert.equal(graph.length, 10);
-  // Current Gold product law: Bot Battle, Local 1v1 and Lucky Draw are ACTIVE.
-  // Fighter Shop is intentionally a visible LOCKED extension point.
-  assert.equal(active.length, 3);
+  assert.equal(graph.length, 11);
+  // Bot, Local, Lucky and the lightweight Cosmetic Locker are active.
+  // The separate Fighter Shop remains LOCKED until its owner cutover.
+  assert.equal(active.length, 4);
   assert.equal(locked.length, 7);
-  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'lucky-draw']);
+  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'cosmetic-locker', 'lucky-draw']);
+  assert.equal(canLaunchProductSurface('cosmetic-locker'), true);
   assert.ok(locked.some((surface) => surface.id === 'fighter-shop'));
   assert.ok(locked.some((surface) => surface.id === 'quest-01'));
   assert.equal(canLaunchProductSurface('fighter-shop'), false);

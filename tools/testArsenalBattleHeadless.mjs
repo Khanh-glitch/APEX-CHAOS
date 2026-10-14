@@ -1722,7 +1722,13 @@ report.postCGuns = run(`
   const missing = ids.filter(id => !weapons[id]);
   window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
+  // Product-authentic emissions still use the real holder/projectile driver.
+  // Isolate the gun identity trial from unrelated emergency floor spawns:
+  // otherwise a counter-shield telegraph can divert the autonomous shooter
+  // mid-test and make one gun appear nonfunctional despite a valid executor.
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  APEX_ARSENAL.state.spawnHeld = true;
+  APEX_ARSENAL.state.unarmedFastConsumed = true;
   const fired = {};
   for (const id of ids) {
     fighters[0].hp = 1000; fighters[1].hp = 1000;
@@ -2087,8 +2093,20 @@ report.postCRobot = run(`
   f.x = 200; f.y = 500; f.baseSpeed = 0;
   if (f.data) f.data.__hrHoldBody = false;
   const x0 = f.x;
+  const mark = HR.AIL.bus.seq;
+  const slotAtCast = APEX_ARSENAL.state.slots.find(s => s.id === sid);
   window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
-  for (let i = 0; i < 36; i++) APEX_ARSENAL.step(1 / 60);
+  const castDash = ct.store['robot.weapon_dash']?.dash;
+  const trace = [];
+  for (let i = 0; i < 36; i++) {
+    APEX_ARSENAL.step(1 / 60);
+    if (i % 6 === 5 || i === 35) {
+      const d = ct.store['robot.weapon_dash']?.dash;
+      trace.push({frame:i+1,x:f.x,y:f.y,dx:f.x-x0,heading:d?.heading??null,
+        windup:d?.windup??null,launched:d?.launched??null,
+        target:d?.targetSlotId??null,phase:APEX_ARSENAL.state.slots.find(s=>s.id===sid)?.phase??null});
+    }
+  }
   HR.setAiEnabled(aiWas);
   return {
     name: f.name,
@@ -2098,6 +2116,12 @@ report.postCRobot = run(`
     cdAfter: ctl.cooldownLeft('A1'),
     slot: sid,
     x: f.x,
+    // Read-only forensic evidence for sporadic Robot A1 headless regression.
+    // This must NEVER cause a failed real-dash gate to be waived.
+    fixture:{x0,slot:slotAtCast&&{id:slotAtCast.id,x:slotAtCast.x,
+      y:slotAtCast.y,phase:slotAtCast.phase,kind:slotAtCast.kind,weaponId:slotAtCast.weaponId},
+      castDash:castDash&&{heading:castDash.heading,targetSlotId:castDash.targetSlotId},
+      trace,events:HR.AIL.bus.since(mark).filter(e=>/^RobotA1|^Cast/.test(e.type)).slice(0,12).map(e=>({type:e.type,payload:e.payload}))},
   };
 `);
 gate('postc-robot-selectable', report.postCRobot.name === 'ROBOT' && report.postCRobot.cooldown === 10, report.postCRobot);
@@ -2247,9 +2271,11 @@ gate('r59-magnet-bot-empty-board-reasons-are-explicit',
   report.r59MagnetBotDecision.idleReasons.some(e=>e.slot==='A1'&&e.reason==='no-field-target')
   && report.r59MagnetBotDecision.idleReasons.some(e=>e.slot==='A2'&&e.reason==='no-field-target'),
   report.r59MagnetBotDecision.idleReasons);
-gate('r59-magnet-bot-a1-uses-real-floor-firearm',
+// Original R59 case still covers the same real firearm. Its POLICY receipt
+// follows the canonical World Weapon role rather than a firearm taxonomy.
+gate('r59-magnet-bot-a1-uses-canonical-world-weapon-role',
   report.r59MagnetBotDecision.floorCase.a1>=1
-  && report.r59MagnetBotDecision.floorCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='eligible-floor-firearm'),
+  && report.r59MagnetBotDecision.floorCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='eligible-world-weapon'),
   report.r59MagnetBotDecision.floorCase);
 gate('r59-magnet-bot-a2-uses-authored-body-radius',
   report.r59MagnetBotDecision.bodyCase.a2>=1
@@ -3162,14 +3188,16 @@ report.rev2ProductGraph = run(`
   };
 `);
 // 2026-10-05 correction: the Fighter Shop is a LOCKED extension point (Gold
-// product direction), so the active public surface set is bot/local/draw and
-// the locked set is shop + the future surfaces. A locked route must be
-// genuinely non-launchable (never a visually disabled ACTIVE route).
-gate('rev2-product-active-surfaces-are-the-battle-entries-and-draw',
-  report.rev2ProductGraph.publicCount === 10 && report.rev2ProductGraph.activeCount === 3
+// product direction); the independent Cosmetic Locker is a new ACTIVE
+// presentation-only surface. Fighter Shop and the roadmap stay LOCKED.
+// A locked route must remain genuinely non-launchable.
+gate('rev2-product-active-surfaces-include-independent-cosmetic-locker',
+  report.rev2ProductGraph.publicCount === 11 && report.rev2ProductGraph.activeCount === 4
     && report.rev2ProductGraph.activeIds.includes('bot-battle')
     && report.rev2ProductGraph.activeIds.includes('local-1v1')
     && report.rev2ProductGraph.activeIds.includes('lucky-draw')
+    && report.rev2ProductGraph.activeIds.includes('cosmetic-locker')
+    && win.APEX_PRODUCT_SURFACE.canLaunch('cosmetic-locker') === true
     && report.rev2ProductGraph.activeIds.includes('fighter-shop') === false
     && report.rev2ProductGraph.allLockedBlocked === true
     && win.APEX_PRODUCT_SURFACE.canLaunch('fighter-shop') === false
@@ -7027,6 +7055,80 @@ if(process.argv.includes('--quest-reflex-real')){
     gate('q4a-organic-reflex-runner',false,{error:String(error?.stack||error)});
   }
 }
+
+// CP5 reliability canary. The earlier single-run Robot A1 case failed once
+// with a spent cooldown and no physical displacement; repeat it through the
+// REAL skill input + real production simulation, not a mocked dash call.
+// This executes after other owner gates to preserve their fixture isolation.
+report.cp5RobotA1Stress = run(`
+  const HR=window.APEX_HERO_REWORK;
+  const trials=[];
+  for(let k=0;k<16;k++){
+    window.__apexArsenalTestStartMatch('ROBOT','ICE');
+    cancelAnimationFrame(reqId); reqId=0;
+    // Hold both the cadence timer and separate unarmed fast-spawn route.
+    // Merely setting spawnTimer=1e6 left a rival REVEALED slot alive.
+    __APEX_TEST.holdSpawns();
+    const f=fighters[0],ct=HR.byCombatant(f),ctl=HR.abilityController(ct);
+    window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+    for(let t=0;t<8;t++)APEX_ARSENAL.step(1/60);
+    const unarmedNoSpend=ctl.cooldownLeft('A1')===0
+      &&!ct.store['robot.weapon_dash']?.dash;
+    const aiBefore=HR.aiEnabled;
+    HR.setAiEnabled(false);
+    try{
+      fighters[1].x=900;fighters[1].y=100;fighters[1].baseSpeed=0;
+      const sid=__APEX_TEST.pushSlot({
+        x:450,y:500,phase:'REVEALED',weaponId:'PISTOL',revealedFor:0
+      });
+      f.x=200;f.y=500;f.baseSpeed=0;
+      if(f.data)f.data.__hrHoldBody=false;
+      const x0=f.x,mark=HR.AIL.bus.seq;
+      window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+      const dash=ct.store['robot.weapon_dash']?.dash;
+      const frames=[];
+      // Robot A1 has .26s windup + up to .55s dash, and actual pickup
+      // detection occurs in the engine step. Observe a full 1s, not .60s.
+      for(let t=0;t<60;t++){
+        APEX_ARSENAL.step(1/60);
+        if(t===11||t===17||t===35||t===59){
+          const d=ct.store['robot.weapon_dash']?.dash;
+          frames.push({frame:t+1,x:f.x,y:f.y,target:d?.targetSlotId??null,
+            windup:d?.windup??null,launched:d?.launched??null});
+        }
+      }
+      const receipts=HR.AIL.bus.since(mark)
+        .filter(e=>/^RobotA1/.test(e.type));
+      const events=receipts.map(e=>e.type);
+      const contact=receipts.find(e=>e.type==='RobotA1Contact');
+      const held=__APEX_TEST.holder('HERO');
+      const result={
+        n:k+1,pass:unarmedNoSpend&&!!dash&&
+          dash.targetSlotId===sid&&f.x>x0+40&&
+          ctl.cooldownLeft('A1')>5&&
+          events.includes('RobotA1DashLaunch')&&
+          contact?.payload?.slotId===sid&&held?.weapon==='PISTOL',
+        noSpend:unarmedNoSpend,cast:!!dash,moved:+(f.x-x0).toFixed(3),
+        cd:+ctl.cooldownLeft('A1').toFixed(3),
+        target:dash?.targetSlotId??null,slotId:sid,
+        contactSlotId:contact?.payload?.slotId??null,holder:held?.weapon||null,
+        slotsAtEnd:APEX_ARSENAL.state.slots.map(v=>({id:v.id,phase:v.phase,weapon:v.weaponId})),
+        events,frames
+      };
+      trials.push(result);
+    }finally{
+      HR.setAiEnabled(aiBefore);
+    }
+  }
+  return {count:trials.length,passed:trials.filter(t=>t.pass).length,
+    // Always keep the failure trace and preserve three representative
+    // successes, so a true miss remains debuggable rather than retried away.
+    failures:trials.filter(t=>!t.pass),
+    representative:trials.filter(t=>t.pass).slice(0,3)};
+`);
+gate('cp5-robot-a1-repeatability-16-real-matches',
+  report.cp5RobotA1Stress?.count===16&&report.cp5RobotA1Stress?.passed===16,
+  report.cp5RobotA1Stress);
 
 // ------------------------------------------------------------------- summary
 report.summary = {

@@ -201,11 +201,39 @@
     const cfg = globalScope.APEX_ARSENAL_CONFIG;
     return !!(cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
   }
-  function isEligibleFloorFirearm(slot) {
-    return !!slot && slot.phase === 'REVEALED' && slot.kind !== 'HEAL'
-      && isFirearm(slot.weaponId);
+  function isEligibleFloorByRole(action, slot) {
+    const cfg=globalScope.APEX_ARSENAL_CONFIG;
+    const auth=globalScope.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+    // CP5.2 live cutover. AIL owns the query contract, while the single
+    // effective Arsenal WEAPONS record continues to own roles/traits.
+    // Never fall back from an unresolved production query to an old predicate.
+    if(auth) return auth.query?.(action,slot,{config:cfg})?.status==='allowed';
+    // Legacy standalone harnesses only: AIL absent, not merely unresolved.
+    const method=action==='magnet-revealed-slot'
+      ? 'isHeroManipulableFloorWeapon'
+      : 'isHeroMagneticallyResponsiveFloorWeapon';
+    return !!cfg?.[method]?.(slot);
   }
+  function isEligibleFloorWeapon(slot) {
+    return isEligibleFloorByRole('magnet-revealed-slot',slot);
+  }
+  // A2 requires physical magnetic response; A1 intentionally ignores it.
+  function isEligibleA2FloorWeapon(slot) {
+    return isEligibleFloorByRole('magnet-repel-slot',slot);
+  }
+  // Legacy API name retained for old callers; semantics are now Weapon role.
+  const isEligibleFloorFirearm=isEligibleFloorWeapon;
   function isEligibleBullet(p) {
+    // CP5 live product authority. Legacy fallback is confined to isolated
+    // historical harnesses which do not load AIL at all.
+    const auth=globalScope.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+    if(auth){
+      if(typeof auth.query!=='function')return false;
+      const decision=auth.query('magnet-projectile',p,{
+        config:globalScope.APEX_ARSENAL_CONFIG,
+      });
+      return decision?.status==='allowed';
+    }
     // Ordinary firearm bullets and V4.3 PHYSICAL projectiles are kinetic.
     // V43 devices are NOT in CFG.isGun(): requiring isFirearm here silently
     // let rockets/steel balls pass through Magnet A2. Flame, flare, plasma,
@@ -624,6 +652,7 @@
       let ax = 0, ay = 0, cap = 0, forced = false;
       const by = [];
       for (const field of live) {
+        if (field.state.kind === 'a2' && !isEligibleA2FloorWeapon(slot)) continue;
         const cx = field.owner.anchor.x, cy = field.owner.anchor.y;
         let dx = cx - slot.x, dy = cy - slot.y;
         const d = Math.hypot(dx, dy);
@@ -903,6 +932,7 @@
   globalScope.APEX_MAGNET = {
     version: '1.0.0', CONSTANTS,
     canCast, castA1, castA2, activeFor, activeFields,
+    isEligibleFloorWeapon, isEligibleA2FloorWeapon,
     isEligibleFloorFirearm, isEligibleBullet,
     stepWorld, prepareBodyForces, consumeBodyMotion, bodyFieldPath, fieldAccelerationAt,
     EXPLICIT_MOVER_CEILING: CONSTANTS.A2_EXPLICIT_MOVER_CEILING,

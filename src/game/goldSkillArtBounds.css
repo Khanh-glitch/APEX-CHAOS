@@ -1,0 +1,21 @@
+/*
+ * R90 — Production skill-art containment, NOT a Gold redesign.
+ * Real Chrome 1032×1376 iPad BOT: .sk-art=504×117px, img=504×504px
+ * despite object-fit:contain. Because grid percentage height is cyclic,
+ * the image paints outside its authored well and is mostly clipped.
+ *
+ * Absolute positioning resolves width/height against the existing art well.
+ * No HUD row, weapon/panel, hit target, text, Gold animation or game logic
+ * dimension is modified. Other modes/orientations retain canonical Gold CSS.
+ */
+#gold-shell-host #battleHudHost #hud[data-layout="port"][data-size="tablet"][data-mode="1p"]
+  #p1Side .skill .sk-art > img.apex-skill-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}

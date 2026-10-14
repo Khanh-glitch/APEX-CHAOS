@@ -1,0 +1,63 @@
+name: D5 Crystala A1 Shared Breaking-Hit Runtime Proof
+on:
+  pull_request:
+    paths:
+      # CP6 future extension admission: newly ADDED weapon/hero runtime files
+      # must trigger the owner gate without hand-editing a 6-hero/V4.x allowlist.
+      - 'public/game/arsenal/**'
+      - 'public/game/hero-rework/**'
+      - 'src/game/**'
+      - 'public/game/product/**'
+      - 'public/game/gold/**'
+      - 'tools/testExtensionCapacityGates.mjs'
+      - 'public/game/hero-rework/crystalGameplayRuntime.js'
+      - 'tools/testOwnerCrystalaA1SharedBreak.mjs'
+      - 'tools/testOwnerCrystalaA1BaselineDiff.mjs'
+      - 'tools/testCrystalaGameplayGates.mjs'
+      - 'public/game/hero-rework/ailRuntime.js'
+      - 'public/game/hero-rework/heroRegistry.js'
+      - 'public/game/hero-rework/heroReworkRuntime.js'
+      - 'tools/testRuntimeRevisionGate.mjs'
+      - 'tools/runtimeRevision.lock.json'
+      - 'src/game/runtimeManifest.js'
+      - 'tools/buildGoldCutover.mjs'
+      - 'tools/lib/goldB05PatchRevision.mjs'
+      - 'tools/testGoldB05PatchRevision.mjs'
+      - 'tools/goldB05Overlays/shell.html.patch'
+      - 'public/game/arsenal/arsenalConfig.js'
+      - 'public/game/arsenal/arsenalIdentityRuntime.js'
+      - 'public/game/arsenal/arsenalWeaponRuntime.js'
+      - '.github/workflows/d5-crystala-a1-shared-break.yml'
+  workflow_dispatch:
+jobs:
+  exact-sha-real-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # exact main base SHA for source A/B comparison
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate source, lockfile and tested runtime revision
+        run: |
+          node --check public/game/hero-rework/crystalGameplayRuntime.js
+          node --check tools/testOwnerCrystalaA1SharedBreak.mjs
+          node --check tools/testOwnerCrystalaA1BaselineDiff.mjs
+          pnpm test:runtime-revision
+      - name: Generated Gold B05 patch revision transport proof
+        run: |
+          node tools/testGoldB05PatchRevision.mjs
+          node tools/buildGoldCutover.mjs --check
+      - name: Real-gameplay Wall vs HEXA breaking projectile law
+        run: node tools/testOwnerCrystalaA1SharedBreak.mjs
+      - name: Full real Crystala suite versus exact main baseline (no new failures, all old failures printed)
+        run: node tools/testOwnerCrystalaA1BaselineDiff.mjs
+      - name: Existing content interaction baseline (no skipped T6)
+        run: node tools/testContentInteractionBaseline.mjs

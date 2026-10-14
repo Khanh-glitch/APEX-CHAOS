@@ -407,6 +407,7 @@
       lockFlash: 0,
       ticks: [0, 0, 0],
       stress: [],
+      ecoFxEvents: [],ecoFxSerial:0,
       pulses: [],
       parts: [],
       flashes: [],
@@ -630,7 +631,16 @@
     return { x: fighter.x + local.x, y: fighter.y + local.y, angle: local.a, local };
   }
 
-  function impactLocal(st, s, hx, hy, dir, F, worldPt) {
+  function ecoFx(st,kind,fighter,extra={}) {
+    const x=Number(extra.x),y=Number(extra.y);
+    st.ecoFxEvents.push({serial:++st.ecoFxSerial,t:st.T,kind,
+      x:Number.isFinite(x)?x:fighter?.x||0,y:Number.isFinite(y)?y:fighter?.y||0,
+      armored:!!st.armor});
+    if(st.ecoFxEvents.length>40)st.ecoFxEvents.shift();
+  }
+  function impactLocal(st, s, hx, hy, dir, F, worldPt, isWall=false) {
+    // GOLD wall impact is its own material pass; never double-spawn ordinary hit leaves.
+    if(!isWall)ecoFx(st,'hit',null,worldPt);
     const o = 1 - s;
     const tan = { x: -dir.y, y: dir.x };
     const above = hy < PIV[s].y ? 1 : -1;
@@ -980,6 +990,33 @@ function renderRig(g) {
   // Body-only wrapper used by Mirror's wrong-person reflection. It draws the
   // live Robot rig at a caller-supplied world root without entering Fighter.draw,
   // advancing Robot state, or duplicating status/world effects.
+  // CP8: read-only scalar snapshot of the AUTHORITATIVE native Robot rig.
+  // No JS spring instance, fighter reference or combat state can leak to a skin.
+  function robotCosmeticMotion(st) {
+    const springs={};
+    for(const [k,v] of Object.entries(st.R))springs[k]=Array.isArray(v)?v.map(x=>x.x):v.x;
+    return {
+      time:st.T,armor:!!st.armor,held:!!st.held,
+      scanning:!!st.brackets&&st.brackets.state==='in'&&!st.held,
+      // Presentation-only snapshots. The cosmetic target belongs to the same
+      // native RobotA1Lock target slot; no aim, target selection or ownership
+      // is calculated by the skin.
+      brackets:st.brackets?{
+        t0:st.brackets.t0,t1:st.brackets.t1,state:st.brackets.state,
+        target:st.brackets.target?{x:st.brackets.target.x,y:st.brackets.target.y}:null
+      }:null,
+      measure:st.measure?{
+        t0:st.measure.t0,
+        target:st.brackets?.target?{x:st.brackets.target.x,y:st.brackets.target.y}:null
+      }:null,
+      mode:st.mode,lockFlash:st.lockFlash,ticks:[...st.ticks],springs,
+      vx:st.vxw,vy:st.vyw,trailOn:st.trailOn,dashTrail:st.trail.slice(-90),
+      fxEvents:st.ecoFxEvents.slice(-40),
+      pulses:st.pulses.slice(-12).map(p=>({t:p.t,dur:p.dur,w:p.w,pts:p.pts.map(q=>[q[0],q[1]])})),
+      stress:st.stress.slice(-12).map(p=>({x:p.x,y:p.y,nx:p.nx,ny:p.ny,t:p.t,dur:p.dur,armored:!!p.armored}))
+    };
+  }
+
   function renderActorImage(ctx, fighter, x, y) {
     if (!ctx || !isRobotFighter(fighter)) return false;
     const st = getRobotState(fighter);
@@ -994,7 +1031,10 @@ function renderRig(g) {
         const glow = fighter.color || '#ffffff';
         try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (error) {}
       }
-      renderRobotLocal(ctx, fighter, st);
+      const cosmetic=globalScope.APEX_COSMETICS;
+      const receipt=cosmetic?.capture?.(cosmetic.sideOf(fighter,globalScope),'hero','ROBOT')||null;
+      if (!cosmetic?.render?.('actor',ctx,receipt,{x:0,y:0,kind:'ROBOT',robot:receipt?.skinId!=='default'?robotCosmeticMotion(st):null}))
+        renderRobotLocal(ctx, fighter, st);
     } finally {
       if (fighter.isRage) { try { ctx.filter = 'none'; } catch (error) {} }
       ctx.restore();
@@ -1003,7 +1043,13 @@ function renderRig(g) {
   }
 
   // World-space: brackets, measure, trail with calibration ticks (authority)
-  function renderRobotWorld(ctx, fighter, st) {
+  function renderRobotWorld(ctx, fighter, st, ecoAlreadyBack=false, ecoTargetAlreadyBack=false) {
+  const eco=globalScope.APEX_COSMETICS;
+  const receipt=eco?.capture?.(eco.sideOf(fighter,globalScope),'hero','ROBOT');
+  const motion=receipt?.skinId==='ecobot'?robotCosmeticMotion(st):null;
+  const ecoPose=motion?{x:fighter.x,y:fighter.y,kind:'ROBOT',
+    robot:{...motion,scanSource:{x:fighter.x,y:fighter.y-fighter.radius*.8}}}:null;
+  const ecoBack=ecoAlreadyBack||!!(ecoPose&&eco?.render?.('worldBack',ctx,receipt,ecoPose)===true);
   for (const f of st.flashes) {
     const a = 1 - f.t / f.dur;
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
@@ -1028,8 +1074,12 @@ function renderRig(g) {
       ctx.fillStyle = 'rgba(120,118,110,' + a * .28 + ')'; ctx.beginPath(); ctx.arc(q2.x, q2.y, q2.s * (1 + q2.t * 2), 0, TAU); ctx.fill();
     }
   }
+    // Cosmetic owns the entire Gold targeting family; ORIGINAL keeps its
+    // authored metal bracket. Both read native bracket state and target only.
+    const ecoLockDrawn=ecoTargetAlreadyBack||
+      !!(ecoPose&&eco?.render?.('targetLock',ctx,receipt,ecoPose)===true);
     // Brackets — elastic easing from HTML authority, adapted to target pickup
-    if (st.brackets) {
+    if (!ecoLockDrawn && st.brackets) {
       let gap, alpha;
       const t = st.T - st.brackets.t0;
       if (st.brackets.state === 'in') {
@@ -1064,8 +1114,11 @@ function renderRig(g) {
       }
     }
 
+    if(ecoLockDrawn&&st.brackets?.state==='out'&&st.T-st.brackets.t1>=.14)
+      st.brackets=null; // presentation-only Gold release lifetime, not A1 authority
+    const ecoMeasureDrawn=!!(ecoPose&&eco?.render?.('targetMeasure',ctx,receipt,ecoPose)===true);
     // Measure — line from robot latch/head to target
-    if (st.measure && !st.held) {
+    if (!ecoMeasureDrawn && st.measure && !st.held) {
       const t = st.T - st.measure.t0;
       if (t > .34) { st.measure = null; }
       else {
@@ -1090,8 +1143,10 @@ function renderRig(g) {
       }
     }
 
+    if(ecoMeasureDrawn&&st.measure&&st.T-st.measure.t0>.34)
+      st.measure=null; // native presenter GC for the Gold-only drawing path
     // Trail with calibration ticks — authority logic
-    if (st.trail.length >= 2) {
+    if (!ecoBack && st.trail.length >= 2) {
       const fade = st.trailOn ? (isFinite(st.contactT) && st.T > st.contactT ? clamp(1 - (st.T - st.contactT) / .5, 0, 1) : 1) : 0;
       if (fade <= 0) { if (!st.trailOn) st.trail = []; }
       else {
@@ -1123,6 +1178,7 @@ function renderRig(g) {
         ctx.restore();
       }
     }
+    if(ecoPose)eco?.render?.('worldFront',ctx,receipt,ecoPose);
   }
 
   function isRobotFighter(f) {
@@ -1285,6 +1341,7 @@ function renderRig(g) {
         if (!st) continue;
         if (st.T - st._lastNoWeaponAt < 0.35) continue;
         st._lastNoWeaponAt = st.T;
+        ecoFx(st,'a1-fail',f);
         st.lastSfx.robot_a1_no_weapon = st.T;
         playRobotSfx('robot_a1_no_weapon', { vol: 0.65 });
         setPoseState(st, { ... (st.held ? P_HELD : P_IDLE), lid: .3, glow: 1.2, spin: Math.PI / 4, crest: -18, calTh: (st.held ? -.05 : 0) + .08 });
@@ -1307,6 +1364,7 @@ function renderRig(g) {
         st.trail = [{ x: f.x, y: f.y, t: st.T }];
         st.contactT = Infinity;
         st.trailOn = true;
+        ecoFx(st,'a1-launch',f);
         st.lastDashHeading = null;
         const cast = st._lastLockAt;
         // Miss/timeout cleanup does not manufacture equip/contact truth.
@@ -1332,6 +1390,7 @@ function renderRig(g) {
         if (!st) continue;
         // Only after real equip truth — held becomes true here
         st.held = true;
+        ecoFx(st,'a1-contact',f);
         setPoseState(st, P_A1_CONTACT);
         st.snapUntil = st.T + .12; st.snapW = 72; st.snapZ = .5;
         const cast = st._lastLockAt;
@@ -1370,6 +1429,7 @@ function renderRig(g) {
         setPoseState(st, { ...P_A2_INDEX, ...(st.held ? { calTh: -.02 } : {}) });
         atState(st, .16, () => {
           st.armor = true;
+          ecoFx(st,'a2-on',f);
           setPoseState(st, P_A2_LOCK);
           st.snapUntil = st.T + .16; st.snapW = 66; st.snapZ = .6;
           st.R.seam.snapTo(1);
@@ -1430,6 +1490,7 @@ function renderRig(g) {
         if (st.T - st._lastEndAt < 0.2) continue;
         st._lastEndAt = st.T;
         st.armor = false;
+        ecoFx(st,'a2-off',f);
         setPoseState(st, st.held ? P_HELD : P_IDLE);
         st.softUntil = st.T + .55;
         playRobotSfx('robot_a2_end', { vol: 0.75 });
@@ -1451,6 +1512,7 @@ function renderRig(g) {
         playRobotSfx('robot_passive_milestone', { vol: 0.68 });
         for (let i = 0; i < 3; i++) atState(st, i * .06, () => { st.ticks[i] = 1; });
         atState(st, .2, () => {
+          ecoFx(st,'passive',f);
           st.R.crest.kick(16); st.lockFlash = .6; st.R.glow.kick(.5);
           const ps = calPointLocal(st, 0, PIV[0].x, PIV[0].y);
           const po = calPointLocal(st, 1, PIV[1].x, PIV[1].y);
@@ -1489,13 +1551,34 @@ function renderRig(g) {
     }, { passive: true });
 
     const AIL = globalScope.APEX_HERO_REWORK_AIL;
-    if (AIL && AIL.bus && !AIL.bus.__robotPresentationHooked) {
+    if (AIL?.bus && !AIL.bus.__robotPresentationHooked) {
+      // Subscribe to the engine's existing wildcard presentation channel.
+      // Do not monkey-patch bus.emit: that global interceptor silently changed
+      // the ordering seen by every current and future hero/weapon subscriber.
+      // One page-lifetime subscription, match-local sprite/FX state is reset
+      // by the existing teardown path. No gameplay events are fabricated.
+      const off=AIL.bus.on('*', event=>{
+        try {
+          // Native Rework lifecycle is the ONLY owner of match boundaries.
+          // Every per-match Robot spring/particle/audio session must end at
+          // teardown and start clean at install. No global HR/exit wrapping.
+          if(event.type==='ReworkMatchTeardown'){
+            clearRobotStates();
+            resetRobotAudioSession();
+            return;
+          }
+          if(event.type==='ReworkMatchInstall'){
+            clearRobotStates();
+            resetRobotAudioSession();
+            loadRobotAudio();
+            return;
+          }
+          handleBusEvent(event);
+        } catch (e) { console.warn('[robot-presentation] bus handler error', e); }
+      });
+      if(typeof off!=='function')throw Error('Robot presentation requires AIL bus unsubscribe');
       AIL.bus.__robotPresentationHooked = true;
-      const origEmit = AIL.bus.emit;
-      AIL.bus.emit = function (type, payload) {
-        try { handleBusEvent({ type, payload }); } catch (e) { console.warn('[robot-presentation] bus handler error', e); }
-        return origEmit.call(this, type, payload);
-      };
+      AIL.bus.__robotPresentationUnsubscribe = off;
     }
 
     const Fighter = globalScope.Fighter;
@@ -1519,10 +1602,27 @@ function renderRig(g) {
               const glow = this.color || '#ffffff';
               try { tc.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (e) {}
             }
-            try { renderRobotLocal(tc, this, st); } catch (e) { console.warn('[robot-presentation] render failed', e); }
+            try {
+              const cosmetic=globalScope.APEX_COSMETICS;
+              const receipt=cosmetic?.capture?.(cosmetic.sideOf(this,globalScope),'hero','ROBOT')||null;
+              if(!cosmetic?.render?.('actor',tc,receipt,{x:0,y:0,kind:'ROBOT',robot:receipt?.skinId!=='default'?robotCosmeticMotion(st):null}))
+                renderRobotLocal(tc,this,st);
+            } catch(e) { console.warn('[robot-presentation] render failed',e); }
             if (this.isRage) { try { tc.filter = 'none'; } catch (e) {} }
             tc.restore();
           };
+          // Gold V17 wall smoke, dash ribbon AND living target ring belong
+          // BEHIND the actor as in the owner's Gold standalone draw order.
+          let ecoAlreadyBack=false,ecoTargetAlreadyBack=false;
+          try {
+            const eco=globalScope.APEX_COSMETICS;
+            const receipt=eco?.capture?.(eco.sideOf(this,globalScope),'hero','ROBOT');
+            if(receipt?.skinId==='ecobot'){
+              const worldPose={x:this.x,y:this.y,kind:'ROBOT',robot:robotCosmeticMotion(st)};
+              ecoAlreadyBack=eco.render('worldBack',ctx,receipt,worldPose)===true;
+              ecoTargetAlreadyBack=eco.render('targetLock',ctx,receipt,worldPose)===true;
+            }
+          }catch(e){console.warn('[ecobot] rear world FX failed',e);}
           if (P && P.actorRender && P.isActive()) P.actorRender(ctx, this, this.x, this.y, renderActor);
           else renderActor(ctx);
           ctx.save();
@@ -1538,7 +1638,7 @@ function renderRig(g) {
           }
           ctx.restore();
           ctx.globalAlpha = 1;
-          try { renderRobotWorld(ctx, this, st); } catch (e) { console.warn('[robot-presentation] world render failed', e); }
+          try { renderRobotWorld(ctx, this, st, ecoAlreadyBack, ecoTargetAlreadyBack); } catch (e) { console.warn('[robot-presentation] world render failed', e); }
           loadProbe('first-complete-frame', { frame: Number.isFinite(globalScope.__apexRenderFrame) ? globalScope.__apexRenderFrame : null });
           return;
         }
@@ -1558,6 +1658,7 @@ function renderRig(g) {
             const st = getRobotState(owner);
             if (st) {
               const k = 1;
+              ecoFx(st,'fire',owner);
               st.R.gunKick.kick(-11 * k);
               st.R.rootX.kick(-22 * k);
               st.R.coreY.kick(7 * k);
@@ -1583,12 +1684,14 @@ function renderRig(g) {
           const st = getRobotState(this);
           if (st) {
             st.wallFlash = 1;
+
             const dir = side === 'left' ? { x: 1, y: 0 } : side === 'right' ? { x: -1, y: 0 } : side === 'top' ? { x: 0, y: 1 } : { x: 0, y: -1 };
             const hx = side === 'left' ? 96 : side === 'right' ? 1184 : 640;
             const hy = side === 'top' ? 96 : side === 'bottom' ? 1184 : 600;
             const local = headToLocal(st, hx, hy);
             const worldPt = { x: this.x + local.x, y: this.y + local.y };
-            impactLocal(st, side === 'right' ? 1 : 0, hx, hy, dir, 1.25, worldPt);
+            ecoFx(st,'wall',this,worldPt);
+            impactLocal(st, side === 'right' ? 1 : 0, hx, hy, dir, 1.25, worldPt, true);
             dustState(st, worldPt.x, worldPt.y + 40, dir.x, dir.y, 4);
           }
         }
@@ -1596,47 +1699,53 @@ function renderRig(g) {
       };
     }
 
-    const installAvOverride = () => {
+    const installAvProvider = () => {
       const av = globalScope.APEX_ARSENAL_AV;
-      if (!av || !av.drawEquippedWeapon || av.__robotSocketWrapped) return;
-      av.__robotSocketWrapped = true;
-      const prevDrawEq = av.drawEquippedWeapon;
-      av.drawEquippedWeapon = function (ctx, fighter, holder) {
-        if (isRobotFighter(fighter)) {
-          try {
-            const st = getRobotState(fighter);
-            const socket = getRobotWeaponSocketWorld(fighter);
-            if (st && socket && holder && holder.weaponId) {
-              const aim = (holder.meta && holder.meta.aimAngle != null) ? holder.meta.aimAngle : Math.atan2(fighter.dir.y, fighter.dir.x);
-              // heldGunLocal already applies the authored positional recoil once.
-              const offX = socket.x;
-              const offY = socket.y;
-              const meta = av.weaponMeta ? av.weaponMeta(holder.weaponId) : null;
-              if (meta && av.drawWeaponSprite) {
-                const params = av.weaponDrawParams ? av.weaponDrawParams(holder.weaponId, holder.def?.category || '', fighter.radius) : { drawOffset: 0, targetLongSide: 120, offset: 0 };
-                const drawAngle = aim + (params.drawOffset || 0) + (holder.meta && holder.meta.pose && holder.meta.pose.rotKick || 0);
-                const ok = av.drawWeaponSprite(ctx, holder.weaponId, offX, offY, {
-                  mode: 'equipped',
-                  useWorld: params.useWorld,
-                  targetLongSide: params.targetLongSide,
-                  angle: drawAngle,
-                  alpha: 0.98,
-                  keepUpright: true,
-                });
-                if (ok) return true;
-              }
+      if (!av?.registerEquippedWeaponRenderer || av.__robotSocketRegistered) return;
+      // Arsenal owns dispatch, NEWBOT contributes only its authored jaw
+      // position and presentation transform. This no longer overrides
+      // AV.drawEquippedWeapon for any other hero (notably Frost/Hunter).
+      const paintRobotEquipped = function(ctx,fighter,holder) {
+        if (!isRobotFighter(fighter)) return false;
+        try {
+          const st = getRobotState(fighter);
+          const socket = getRobotWeaponSocketWorld(fighter);
+          if (st && socket && holder && holder.weaponId) {
+            const aim = (holder.meta && holder.meta.aimAngle != null) ? holder.meta.aimAngle : Math.atan2(fighter.dir.y, fighter.dir.x);
+            // heldGunLocal already applies authored positional recoil once.
+            const offX=socket.x,offY=socket.y;
+            const meta=av.weaponMeta ? av.weaponMeta(holder.weaponId) : null;
+            if (meta && av.drawWeaponSprite) {
+              const params=av.weaponDrawParams ? av.weaponDrawParams(holder.weaponId,holder.def?.category||'',fighter.radius) : {drawOffset:0,targetLongSide:120,offset:0};
+              const drawAngle=aim+(params.drawOffset||0)+(holder.meta&&holder.meta.pose&&holder.meta.pose.rotKick||0);
+              const ok=av.drawWeaponSprite(ctx,holder.weaponId,offX,offY,{
+                mode:'equipped',
+                // P1/P2 cosmetic owner remains captured from physical fighter.
+                cosmetic:globalScope.APEX_COSMETICS?.capture?.(
+                  globalScope.APEX_COSMETICS?.sideOf?.(fighter,globalScope),
+                  'weapon',holder.weaponId)||null,
+                useWorld:params.useWorld,
+                targetLongSide:params.targetLongSide,
+                angle:drawAngle,
+                alpha:.98,
+                keepUpright:true,
+              });
+              if(ok)return true;
             }
-          } catch (e) {}
-        }
-        return prevDrawEq.call(this, ctx, fighter, holder);
+          }
+        }catch(e){console.warn('[robot-presentation] held socket provider failed',e);}
+        return false; // Arsenal draws its original weapon if unavailable.
       };
+      const unregister=av.registerEquippedWeaponRenderer('robot-native-jaw',paintRobotEquipped);
+      av.__robotSocketRegistered=true;
+      av.__robotSocketUnsubscribe=unregister;
     };
-    installAvOverride();
+    installAvProvider();
     if (globalScope.setInterval) {
       let tries = 0;
       const iv = setInterval(() => {
-        tries++; installAvOverride();
-        if ((globalScope.APEX_ARSENAL_AV && globalScope.APEX_ARSENAL_AV.__robotSocketWrapped) || tries > 50) clearInterval(iv);
+        tries++; installAvProvider();
+        if ((globalScope.APEX_ARSENAL_AV && globalScope.APEX_ARSENAL_AV.__robotSocketRegistered) || tries > 50) clearInterval(iv);
       }, 200);
     }
 
@@ -1672,28 +1781,9 @@ function renderRig(g) {
       globalScope.update = wrappedU;
     }
 
-    const HR2 = globalScope.APEX_HERO_REWORK;
-    if (HR2 && HR2.installMatch && !HR2.__robotTeardownWrapped) {
-      HR2.__robotTeardownWrapped = true;
-      const prevInstall = HR2.installMatch;
-      HR2.installMatch = function () {
-        clearRobotStates();
-        resetRobotAudioSession();
-        loadRobotAudio();
-        return prevInstall.apply(this, arguments);
-      };
-      const baseExit = globalScope.exitArsenalBattleMode;
-      if (baseExit && !baseExit.__robotExitWrapped) {
-        const wrappedExit = function () {
-          clearRobotStates();
-          resetRobotAudioSession();
-          return baseExit.apply(this, arguments);
-        };
-        wrappedExit.__hrWrapped = baseExit.__hrWrapped;
-        wrappedExit.__robotExitWrapped = true;
-        globalScope.exitArsenalBattleMode = wrappedExit;
-      }
-    }
+    // CP12: no HR.installMatch/exitArsenalBattleMode monkey-patch.
+    // The AIL lifecycle subscriber above owns Robot session cleanup.
+
   }
 
   globalScope.APEX_ROBOT_PRESENTATION = {
@@ -1704,6 +1794,13 @@ function renderRig(g) {
     playRobotSfx,
     loadRobotAudio,
     resetRobotAudioSession,
+    // Read-only lifecycle audit: state never leaks across rematches or exit.
+    // Exposes counts only, not mutable combatants or AudioContext objects.
+    lifecycleEvidence: () => Object.freeze({
+      activeRobotStates: robotStates.size,
+      audioSession: robotAudioSession,
+      subscribed: !!globalScope.APEX_HERO_REWORK_AIL?.bus?.__robotPresentationHooked
+    }),
     audioEvidence: () => JSON.parse(JSON.stringify(Object.values(robotAudioEvidence))),
     SPR: () => SPR,
     isRobotFighter,

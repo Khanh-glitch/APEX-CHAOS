@@ -499,6 +499,9 @@
       knockback: spec.knockback || 0,
       stun: spec.stun || 0,
       color: spec.color || (owner && owner.color) || '#ffffff',
+      // Identity is captured on SPAWN, not re-read from current holder after
+      // reflection, disarm or future skin changes. Visual-only immutable data.
+      cosmetic:window.APEX_COSMETICS?.captureProjectile?.(owner,weapon)||null,
       resultFinalShot:!!spec.finalShot,
       resultMirrorCopy:!!getHolder(owner)?.__hrMirrorCopy,
       resultMagnetPulled:!!AQ.state?.resultLedger?.onMagnetQualifiedHolder?.(owner,getHolder(owner)),
@@ -593,6 +596,17 @@
   // through aqDamage/Fighter.takeDamage, never virtual HP.
   // ---------------------------------------------------------------------------
   const V43=CFG.V43_WEAPONS||{};
+  // CP5.5 shared semantic V43 REFLECTION TAG; no collision/velocity logic.
+  // AIL may be absent in a standalone legacy weapon-only harness; live
+  // production is fail-closed when AIL exists but refuses the query.
+  function v43ReflectableTag(p) {
+    const authority=window.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+    if(authority)
+      return authority.query?.('v43-reflection-tag',p,{config:CFG})?.status==='allowed';
+    const kinds=V43[p?.weapon]?.reflectableKinds;
+    return Array.isArray(kinds)&&kinds.includes(p?.kind);
+  }
+
   const v43min=(n,a,b)=>Math.max(a,Math.min(b,n));
   const v43Normalize=(x,y)=>{const d=Math.hypot(x,y)||1;return {x:x/d,y:y/d};};
   function v43Enemies(owner){
@@ -642,13 +656,13 @@
     }
     return best;
   }
-  function v43Pulse(x,y,kind,scale=1,weapon=null){
-    const duration=kind==='blast'?.85:kind==='split'?.58:.40;
+  function v43Pulse(x,y,kind,scale=1,weapon=null,cosmetic=null){
+    const duration=kind==='blast'?Math.max(.85,window.APEX_COSMETICS?.blastDuration?.(cosmetic)||0):kind==='split'?.58:.40;
     if(AQ.state?.visuals) pushVisual({kind:'v43_'+kind,x,y,
-      life:duration,maxLife:duration,scale,weapon});
+      life:duration,maxLife:duration,scale,weapon,cosmetic});
     // Kinetic impact, metal wall bounce and return are NOT 400px orange
     // grenade detonations. Reserve the native explosion atlas for actual AOE.
-    if(kind==='blast')window.avCue?.('explosion',{x,y,weapon:'V43_'+kind});
+    if(kind==='blast')window.avCue?.('explosion',{x,y,weapon:weapon||'V43_'+kind,cosmetic});
     else if(kind==='ricochet')window.avCue?.('ricochet',{x,y,weapon:'STEEL_BALL_LAUNCHER'});
   }
   // One resolved projectile carries one damage scalar through reflection,
@@ -702,7 +716,7 @@
           knockback:320*factor,shake:5*factor,hitStop:.012});
       }
     }
-    v43Pulse(p.x,p.y,'blast',radius/95,p.weapon);
+    v43Pulse(p.x,p.y,'blast',radius/95,p.weapon,p.cosmetic);
   }
   // One AOE authority for impact, wall and natural fuse: never detonate twice.
   function v43DetonateRocket(p){
@@ -724,9 +738,19 @@
     const dir=Math.cos(angle),side=Math.sin(angle),r=f.radius||75;
     return {x:f.x+dir*r*.78,y:f.y+side*r*.78};
   }
+  // Visual history is cosmetic-only. Preserve Gold clouds until their lifetime
+  // expires; the previous fixed 24 samples truncated V3 smoke at high FPS.
+  function trimV43VisualHistory(p){
+    const seconds=window.APEX_COSMETICS?.trailHistorySeconds?.(p.cosmetic)||0;
+    if(seconds>0){
+      while(p.visual.length>1 && p.age-p.visual[0].t>seconds)p.visual.shift();
+      if(p.visual.length>240)p.visual.splice(0,p.visual.length-240);
+    }else if(p.visual.length>24)p.visual.shift();
+  }
   function v43Spawn(f,id,kind,angle,extra={}){
     const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;
     const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,launchOwner:f,
+      cosmetic:window.APEX_COSMETICS?.captureProjectile?.(f,id)||null,
       x:m.x,y:m.y,px:m.x,py:m.y,ox:m.x,oy:m.y,
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       angle,spin:0,age:0,life:extra.life??3,maxLife:extra.life??3,
@@ -734,6 +758,14 @@
       phase:extra.phase||'flight',hits:new Set(),bounces:0,visual:[{x:m.x,y:m.y,t:0}],
       ...extra};
     projectiles.push(p);return p;
+  }
+  // Derivative projectiles must keep the source visual receipt even when
+  // impact/reflection changes physical ownership or the player re-equips.
+  // This is a generic carrier law, not a skin-specific/weapon-specific branch.
+  function v43SpawnChild(parent,kind,angle,extra={}){
+    if(!parent||!parent.weapon)throw Error('Child projectile missing canonical parent');
+    return v43Spawn(parent.owner,parent.weapon,kind,angle,{
+      ...extra,cosmetic:parent.cosmetic||null});
   }
   function v43ApplyBurn(target, owner, weapon, ticks, interval, damage, parent=null) {
     if (!target || target.hp <= 0) return;
@@ -774,13 +806,40 @@
       const due=c.tickStart+p.ticks*c.tickInterval;
       if(p.age+1e-6<due)break;
       const dir=p.angle;
-      for(const f of v43Enemies(p.owner)){
-        // The exact same live muzzle origin / cone / reach powers both
-        // the damage envelope and original Lab particle system.
+      const naturalTargets=v43Enemies(p.owner);
+      // A1 Wall/HEXA contact is decided by the shared Crystala engine over
+      // the REAL damaging cone. Stream ticks are not projectile/VFX particles.
+      // This API accepts a carrier contract, not weapon IDs; any future Stream
+      // emitter may use the same authoritative contact transaction.
+      // The V43 Gold/contract VM intentionally runs without a browser global.
+      // Absent Crystala runtime means legacy no-construct gameplay unchanged.
+      const CR=typeof window!=='undefined'?window.APEX_CRYSTAL:null;
+      const resolved=CR?.resolveNativeStreamTick?.({
+        carrierKind:'stream',attack:p,tick:p.ticks,source:p.owner,
+        origin:{x:p.x,y:p.y},angle:dir,cone:c.cone,range:c.range,
+        tickDamage:c.tickDamage,targets:naturalTargets
+      })||null;
+      if(resolved?.status==='unresolved')
+        throw Error('Native AttackCarrier contact is unresolved: '+resolved.reason);
+      if(AQ.state?.visuals && resolved?.affected){
+        if(!p.flameReflectHistory)p.flameReflectHistory=[];
+        p.flameReflectHistory.push({
+          time:p.age,emissionTick:p.ticks,
+          routes:(resolved.reflections||[]).map(s=>({
+            angle:s.incomingAngle,travel:s.contactDistance,
+            from:{x:s.from.x,y:s.from.y},
+            to:{x:s.to.x,y:s.to.y}
+          }))
+        });
+      }
+      const blocked=new Set(resolved?.blockedTargets||[]);
+      for(const f of naturalTargets){
+        // The EXACT unchanged Gold muzzle/cone reach decides the direct
+        // eligibility; authoritative construct contact can now block it.
         const dx=f.x-p.x,dy=f.y-p.y,d=Math.hypot(dx,dy);
         const off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-dir),
           Math.cos(Math.atan2(dy,dx)-dir)));
-        if(d<=c.range+(f.radius||75)*.2
+        if(!blocked.has(f)&&d<=c.range+(f.radius||75)*.2
           &&off<=c.cone+Math.asin(v43min((f.radius||75)*.35/Math.max(d,1),0,1))){
           v43Deal(p,f,c.tickDamage,{knockback:26});
           if(!p.burnRecipients)p.burnRecipients=new Set();
@@ -790,13 +849,51 @@
           }
         }
       }
+      // Each redirected segment is the SAME attack tick; the lightweight
+      // damage receipt view never enters projectiles[] or owns another clock.
+      const reflHit=new Set();
+      for(const seg of resolved?.reflections||[]){
+        if(!seg?.controller||!(seg.damagePct>0))continue;
+        for(const f of v43Enemies(seg.controller)){
+          if(reflHit.has(f))continue;
+          const hit=sweptSegmentCircleHit(seg.from.x,seg.from.y,
+            seg.to.x,seg.to.y,f.x,f.y,(f.radius||75)*.35);
+          if(!hit)continue;
+          // No redirected damage through a DIFFERENT live construct; future
+          // multi-bounce has to execute as an explicit additional transaction.
+          const geom=window.APEX_HERO_REWORK?.geom;
+          const other=CR?.capsules?.().some(cap=>{
+            if(cap.cons.id===seg.construct &&
+               cap.cons.ct?.idx===seg.constructOwner &&
+               cap.idx===seg.facet)return false;
+            const obstacle=geom?.capsuleToi?.(seg.from.x,seg.from.y,
+              hit.x,hit.y,cap.ax,cap.ay,cap.bx,cap.by,cap.r);
+            return obstacle&&obstacle.t<.999;
+          });
+          if(other)continue;
+          reflHit.add(f);
+          const view=Object.create(p);
+          view.owner=seg.controller;view.damage=c.tickDamage*seg.damagePct;
+          view.__hr={...(p.__hr||{}),crystalReflected:true,neutral:false,
+            cryOwner:window.APEX_HERO_REWORK?.byCombatant?.(seg.controller)?.idx,
+            crySourceConsDecision:seg.decisionId};
+          v43Deal(view,f,c.tickDamage*seg.damagePct,{knockback:26});
+          if(!p.crystalStreamBurnRecipients)p.crystalStreamBurnRecipients=new Set();
+          if(!p.crystalStreamBurnRecipients.has(f)){
+            p.crystalStreamBurnRecipients.add(f);
+            v43ApplyBurn(f,seg.controller,p.weapon,c.burnTicks,
+              c.burnInterval,c.burnDamage*seg.damagePct,view);
+          }
+        }
+      }
       p.ticks++;
     }
     if(p.ticks>=c.ticks){
       // Stop physical damage; let only the emitted original Lab particles fade.
       if(AQ.state?.visuals)pushVisual({
         kind:'v43_flame_tail',x:p.x,y:p.y,angle:p.angle,
-        flameOrigins:(p.flameOrigins||[]).slice(),baseAge:p.age,
+        flameOrigins:(p.flameOrigins||[]).slice(),
+        flameReflectHistory:(p.flameReflectHistory||[]).slice(),baseAge:p.age,
         life:.65,maxLife:.65
       });
       p.life=0;
@@ -903,7 +1000,7 @@
         const fragmentGroup={victimHits:new Map()};
         for(let i=0;i<c.fragments;i++){
           const angle=i*Math.PI*2/c.fragments;
-          const child=v43Spawn(p.owner,p.weapon,'fragment',angle,{x:p.x,y:p.y,
+          const child=v43SpawnChild(p,'fragment',angle,{x:p.x,y:p.y,
             px:p.x,py:p.y,radius:4,
             damage:c.fragmentDamage*v43DamageScale(p,c.peak),fragmentGroup,
             life:.55,vx:Math.cos(angle)*c.fragmentSpeed,vy:Math.sin(angle)*c.fragmentSpeed});
@@ -947,7 +1044,10 @@
     }
     if(p.kind==='rocket'){
       const dir=Math.atan2(p.vy,p.vx);
-      if(AQ.state?.visuals&&p.age<3.3)pushVisual({kind:'v43_smoke',
+      // Cosmetic trail authority: one smoke owner per physical rocket.
+      // ORIGINAL retains native V43 smoke; approved custom trails own their VFX.
+      if(!window.APEX_COSMETICS?.suppressDefaultTrail?.(p.cosmetic)
+         &&AQ.state?.visuals&&p.age<3.3)pushVisual({kind:'v43_smoke',
         x:p.x-Math.cos(dir)*35,y:p.y-Math.sin(dir)*35,
         angle:dir,seed:p.age*41,life:.68,maxLife:.68,scale:.88});
       const sp=Math.hypot(p.vx,p.vy)||1;
@@ -997,7 +1097,7 @@
       }
       const previous=p.visual[p.visual.length-1];
       if(!previous||Math.hypot(p.x-previous.x,p.y-previous.y)>4){
-        p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
+        p.visual.push({x:p.x,y:p.y,t:p.age});trimV43VisualHistory(p);
       }
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
       // Every physical SPECIAL flight must pass through Crystal's single
@@ -1039,7 +1139,7 @@
         postVx:magnetPlan.postVx,postVy:magnetPlan.postVy};
       p.__hr.pathPoly=magnetPlan.poly?.length?magnetPlan.poly:null;
     }else{p.x+=p.vx*dt;p.y+=p.vy*dt;}
-    p.visual.push({x:p.x,y:p.y,t:p.age});if(p.visual.length>24)p.visual.shift();
+    p.visual.push({x:p.x,y:p.y,t:p.age});trimV43VisualHistory(p);
     // Plasma core is a charged carrier, not a damaging early projectile.
     // Mine must land and arm first: an in-flight collision cannot bypass
     // the explicit 0.48s arming gate.
@@ -1048,7 +1148,7 @@
     // CRYSTALA K / J: same real swept segment, wall/shard BEFORE fighter.
     // Only mobile damage-bearing bodies are routed: an armed floor mine,
     // flame cone and timed burn never masquerade as reflectable bullets.
-    const crystalEligible=V43[p.weapon]?.reflectableKinds?.includes(p.kind)
+    const crystalEligible=v43ReflectableTag(p)
       &&(p.kind!=='mine'||p.phase==='flight');
     if(crystalEligible&&window.APEX_CRYSTAL?.resolveBullet){
       const bodyT=hit?.t??2;
@@ -1123,7 +1223,7 @@
     if(p.kind==='plasma-core'&&p.age>=c.splitAfter){
       for(const da of c.spread){
         const angle=Math.atan2(p.vy,p.vx)+da;
-        const child=v43Spawn(p.owner,p.weapon,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
+        const child=v43SpawnChild(p,'plasma',angle,{x:p.x,y:p.y,px:p.x,py:p.y,
           radius:c.radius,damage:c.shardDamage*v43DamageScale(p,c.coreDamage),
           vx:Math.cos(angle)*c.shardSpeed,vy:Math.sin(angle)*c.shardSpeed,
           life:2.3,homing:!v43Redirected(p)});
@@ -1133,7 +1233,7 @@
             cryOwner:p.__hr?.cryOwner,neutral:false};
         }
       }
-      v43Pulse(p.x,p.y,'split');p.life=0;
+      v43Pulse(p.x,p.y,'split',1,p.weapon,p.cosmetic);p.life=0;
     }
     // The base engine removes expired projectiles before this step.
     if(p.kind==='rocket'&&p.life<=Math.max(.04,dt*1.5)){
@@ -1565,12 +1665,45 @@
            if(p.flameOrigins[j].time<=birth+.02){pose=p.flameOrigins[j];break;}
          }
        }
-       const a=pose.angle+(rnd(i,1)*2-1)*(.22*(V43.FLAMETHROWER.cone/.36));
+       let a=pose.angle+(rnd(i,1)*2-1)*(.22*(V43.FLAMETHROWER.cone/.36));
       const v=280+rnd(i,2)*275;
       const travel=Math.min(V43.FLAMETHROWER.range,v*age*(1-.13*age));
-      const px=pose.x+Math.cos(a)*travel+(rnd(i,3)-.5)*6;
-      const py=pose.y+Math.sin(a)*travel+(rnd(i,4)-.5)*10-
+      let px=pose.x+Math.cos(a)*travel+(rnd(i,3)-.5)*6;
+      let py=pose.y+Math.sin(a)*travel+(rnd(i,4)-.5)*10-
         (type<.10?11*age*age:Math.sin(p.age*19+i*.74)*4*age);
+      // Reuse original Gold tongues/smoke/sparks; only redirect positions
+      // where the ACTUAL stream tick was reflected by live material. VFX
+      // owns neither contact geometry, structural HP nor damage receipts.
+      if(p.flameReflectHistory?.length){
+        let native=null;
+        for(let j=p.flameReflectHistory.length-1;j>=0;j--){
+          if(p.flameReflectHistory[j].time<=birth+.02){
+            native=p.flameReflectHistory[j];break;
+          }
+        }
+        if(native?.routes?.length){
+          let nearest=null,bestAngle=Infinity;
+          for(const route of native.routes){
+            const delta=Math.abs(Math.atan2(Math.sin(a-route.angle),
+              Math.cos(a-route.angle)));
+            if(delta<bestAngle){bestAngle=delta;nearest=route;}
+          }
+          // Only the intercepted angular slice may bend. Otherwise a
+          // single tiny Wall run would visually redirect the ENTIRE cone.
+          const laneTolerance=Math.max(.003,V43.FLAMETHROWER.cone/16*.8);
+          if(nearest&&bestAngle<=laneTolerance&&travel>nearest.travel){
+            const ox=nearest.to.x-nearest.from.x,oy=nearest.to.y-nearest.from.y;
+            const length=Math.hypot(ox,oy);
+            if(length>1e-6){
+              const dx=ox/length,dy=oy/length;
+              const extension=Math.min(length,travel-nearest.travel);
+              px=nearest.from.x+dx*extension+(rnd(i,3)-.5)*6;
+              py=nearest.from.y+dy*extension+(rnd(i,4)-.5)*10;
+              a=Math.atan2(dy,dx);
+            }
+          }
+        }
+      }
       const opacity=Math.pow(1-age/life,.70);
       const size=type<.10?8+rnd(i,5)*9:5+rnd(i,5)*9;
       if(type<.10){
@@ -1735,6 +1868,9 @@
     ctx.restore();
   }
   function v43GoldProjectile(ctx,p){
+    // The single projectile cosmetic dispatch lives in drawArsenalProjectiles
+    // for ordinary bullets AND special carriers. This Gold renderer stays
+    // exactly the fallback for no skin / an unavailable skin resource.
     const c=V43[p.weapon]||{},life=p.kind==='boomerang'
       ?v43min(p.life/.25,0,1):v43min(p.life/Math.max(.1,p.maxLife),0,1);
     const angle=Number.isFinite(p.angle)?p.angle:Math.atan2(p.vy||0,p.vx||1);
@@ -1869,6 +2005,13 @@
     for (const p of projectiles) {
       if (!p || !p.aq) continue;
       ctx.save();
+      // ONE visual dispatch for all physical projectile families. This never
+      // changes the carrier, physics, damage receipt or Gold fallback.
+      if (typeof window !== 'undefined' &&
+          window.APEX_COSMETICS?.render?.('projectile',ctx,p.cosmetic,p)===true) {
+        ctx.restore();
+        continue;
+      }
       if (p.type === 'aq_v43') {
         v43GoldProjectile(ctx,p);
         ctx.restore();
@@ -2838,7 +2981,7 @@
           // Reflect the first eligible hostile projectile that comes close.
           for (const p of projectiles) {
             const reflectable=p?.type==='aq_bullet'||(p?.type==='aq_v43'
-              &&V43[p.weapon]?.reflectableKinds?.includes(p.kind)
+              &&v43ReflectableTag(p)
               &&(p.kind!=='mine'||p.phase==='flight'));
             if(!p||!reflectable||!p.owner||p.owner===f||p.aqReflected
               ||p.__hr?.crystalReflected||p.__hr?.cryHold)continue;
@@ -2958,6 +3101,7 @@
   // staggering billows, discontinuous arcs and sparks, never a generic solid
   // explosion circle or repeating five-segment ring for every weapon.
   function v43GoldImpact(ctx,v,life){
+    if (typeof window !== 'undefined' && window.APEX_COSMETICS?.render?.('blast',ctx,v.cosmetic,{...v,life,age:(1-life)*(v.maxLife||.85)})===true) return;
     const kind=v.kind.slice(4),age=1-life,blast=kind==='blast';
     if(kind==='smoke'){
       ctx.save();ctx.translate(v.x,v.y);ctx.rotate((v.angle||0)+Math.sin(v.seed||0)*.3);
@@ -3069,7 +3213,8 @@
       } else if(v.kind==='v43_flame_tail'){
         const age=v.baseAge+(v.maxLife-v.life);
         v43GoldFlamethrowerParticles(ctx,{age,x:v.x,y:v.y,angle:v.angle,
-          flameOrigins:v.flameOrigins,isTail:true});
+          flameOrigins:v.flameOrigins,
+          flameReflectHistory:v.flameReflectHistory,isTail:true});
       } else if(v.kind?.startsWith?.('v43_')){
         v43GoldImpact(ctx,v,a);
       } else if (v.kind === 'aimline') {

@@ -1,0 +1,385 @@
+// CP8 REAL owner Gold skin proof, desktop and Android: no procedural QA artwork.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import puppeteer from 'puppeteer-core';
+const chrome=process.env.CHROME_PATH;
+if(!chrome)throw Error('CHROME_PATH required');
+const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
+const captureDir=process.env.APEX_CP8_CAPTURE_DIR||'';
+if(captureDir)fs.mkdirSync(captureDir,{recursive:true});
+const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']});
+let errors=0;
+for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'android',viewport:{width:390,height:844,isMobile:true,hasTouch:true,deviceScaleFactor:2}}]){
+ const page=await browser.newPage(),exceptions=[],warnings=[];
+ try{
+  await page.setViewport(caseInfo.viewport);
+  page.on('pageerror',e=>exceptions.push(String(e)));
+  page.on('console',m=>{if(m.type()==='warning'||m.type()==='error')warnings.push(m.text())});
+  await page.goto(url,{waitUntil:'load',timeout:50000});
+  await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:65000});
+  await page.evaluate(async()=>{
+   await window.__apexEnsureDeferredRuntimes('arsenalProduct');
+   window.__APEX_TEST_MODE=true;
+   const C=window.APEX_COSMETICS;
+   if(!C.variants('hero','ROBOT').some(s=>s.id==='ecobot')||!C.variants('weapon','RPG_7').some(s=>s.id==='vua-he'))throw Error('Owner GOLD skin not registered');
+   if(!C.equip('p1','hero','ROBOT','ecobot').ok)throw Error('ECOBOT equip rejected');
+   if(!C.equip('p1','weapon','RPG_7','vua-he').ok)throw Error('Vua He equip rejected');
+   if(!C.equip('p2','weapon','RPG_7','default').ok)throw Error('P2 ORIGINAL equip rejected');
+   const result=await C.ready([{side:'p1',heroId:'ROBOT'},{side:'p2',heroId:'HUNTER'}]);
+   if(!result?.ready||result.assetCount<23)throw Error('Gold asset decode gate incomplete '+JSON.stringify(result));
+   window.__cp8ReadyAssets=result.assetCount;
+  });
+  await page.waitForSelector('#apex-boot-start',{visible:true,timeout:85000});
+  await page.click('#apex-boot-start');
+  await page.waitForFunction(()=>typeof window.APEX_GOLD_SHELL_NAVIGATE==='function'&&!document.getElementById('apex-boot-start')&&!window.APEX_SCENE_TRANSITION?.active?.(),{timeout:85000});
+  assert.equal(await page.evaluate(()=>window.APEX_GOLD_SHELL_NAVIGATE('fighter',{mode:'bot'})),true);
+  await page.waitForSelector('.rosterCard[data-hero="newbot"]',{visible:true,timeout:90000});
+  await page.$eval('.rosterCard[data-hero="newbot"]',el=>el.click());
+  await page.$eval('#lockIn',el=>el.click());
+  await page.$eval('.rosterCard[data-hero="hunter"]',el=>el.click());
+  await page.$eval('#lockIn',el=>el.click());
+  await page.waitForFunction(()=>document.body.classList.contains('battle-hud-open')&&document.getElementById('battleHudHost')?.contains(document.getElementById('game-canvas'))&&!window.APEX_SCENE_TRANSITION?.active?.(),{timeout:110000});
+  const evidence=await page.evaluate(()=>{
+   const G=window,A=G.APEX_ARSENAL,W=A.weaponApi,C=G.APEX_COSMETICS;
+   const H=G.APEX_HERO_REWORK,[a,b]=G.fighters;
+   H.setAiEnabled(false);
+   if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0}
+   A.state.spawnTimer=1e6;A.state.spawnHeld=true;A.state.unarmedFastConsumed=true;A.state.slots=[];
+   projectiles.length=0;a.baseSpeed=0;b.baseSpeed=0;
+   // Native homing RPG must have a distant forward target, not an off-axis target it reaches by t=.75s.
+   a.x=100;a.y=440;b.x=980;b.y=440;a.setDir(1,0);b.setDir(-1,0);a.hp=1000;b.hp=1000;
+   if(!W.equip(a,'RPG_7')||!W.equip(b,'RPG_7'))throw Error('Native RPG equipment refused');
+   let p=null,q=null,steps=0;
+   for(;steps<180;steps++){
+    A.step(1/60);
+    p=projectiles.find(z=>z.aq&&z.kind==='rocket'&&z.weapon==='RPG_7'&&z.owner===a);
+    q=projectiles.find(z=>z.aq&&z.kind==='rocket'&&z.weapon==='RPG_7'&&z.owner===b);
+    if(p&&q)break;
+   }
+   if(!p||!q)throw Error('Two native Rocket carriers unavailable '+steps);
+   if(p.cosmetic?.skinId!=='vua-he'||q.cosmetic?.skinId!=='default')throw Error('P1/P2 Gold receipt mismatch');
+   if(!Object.isFrozen(p.cosmetic)||!Object.isFrozen(q.cosmetic))throw Error('Projectile cosmetic receipt not frozen');
+   if(p.damage!==q.damage||p.radius!==q.radius)throw Error('Cosmetic mutated RPG damage/radius');
+   const ctx=document.createElement('canvas').getContext('2d');ctx.canvas.width=1200;ctx.canvas.height=900;
+   const skinProjectile=C.render('projectile',ctx,p.cosmetic,p);
+   const originalProjectile=C.render('projectile',ctx,q.cosmetic,q);
+   if(skinProjectile!==true||originalProjectile!==false)throw Error('Gold/ORIGINAL rocket draw hooks rejected');
+   W.drawArsenalProjectiles(ctx);
+   // Catch the real Robot jaw/socket draw route, not just a direct call to a
+   // cosmetic hook: P1's *held launcher* must be the selected Gold skin.
+   const AV=G.APEX_ARSENAL_AV;
+   // CP13: registered socket provider, no shared AV monkey patch. A distinct
+   // dummy HUNTER body exercises a test-only consumer and unregisters it
+   // before genuine Gold/ORIGINAL held launcher evidence.
+   if(!AV?.registerEquippedWeaponRenderer||!AV.equippedWeaponRendererIds)
+     throw Error('CP13 Arsenal held-weapon registry unavailable');
+   if(!AV.equippedWeaponRendererIds().includes('robot-native-jaw')||AV.__robotSocketWrapped)
+     throw Error('CP13 NEWBOT is still monkey-patching the AV draw owner');
+   const beforeEqDraw=AV.drawEquippedWeapon;
+   const dummy={id:-313,type:{__hrHero:'HUNTER'},radius:50,dir:{x:1,y:0}};
+   let callCount=0;
+   const canary=()=>{callCount++;return true;};
+   const unsubscribe=AV.registerEquippedWeaponRenderer('cp13-canary',canary);
+   let deniedDuplicate=false;
+   try{AV.registerEquippedWeaponRenderer('cp13-canary',()=>true);}
+   catch(error){deniedDuplicate=/Duplicate/.test(String(error));}
+   const consumed=AV.drawEquippedWeapon(ctx,dummy,{weaponId:'PISTOL'});
+   unsubscribe();
+   // CP14: the physical paint result MUST traverse the Arsenal native
+   // provider -> offscreen Chamber Palette -> Frost overlay wrappers.
+   // Verify this even though today's Battle loop ignores the returned value,
+   // because future hero held-art providers must never lose their receipt.
+   if(!deniedDuplicate||consumed!==true||callCount!==1||
+      !AV.__paletteWrapped||!AV.__frostWrapped||
+      AV.equippedWeaponRendererIds().includes('cp13-canary')||
+      beforeEqDraw!==AV.drawEquippedWeapon)
+     throw Error('CP14 held-provider receipt lost across Palette/Frost '+JSON.stringify({
+       deniedDuplicate,consumed,callCount,
+       palette:AV.__paletteWrapped,frost:AV.__frostWrapped,
+       providers:AV.equippedWeaponRendererIds(),
+       unchanged:beforeEqDraw===AV.drawEquippedWeapon
+     }));
+   G.__cp13HeldProviderReturn={
+     observed:String(consumed),
+     paletteWrapperActive:true,
+     frostWrapperActive:true,
+     registered:AV.equippedWeaponRendererIds(),
+     canaryRuns:callCount
+   };
+   const originalDrawWeapon=AV.drawWeaponSprite;
+   let realRobotGoldWeaponCalls=0;
+   AV.drawWeaponSprite=function(c,id,x,y,options){
+     if(id==='RPG_7'&&options?.mode==='equipped'&&options?.cosmetic?.skinId==='vua-he')
+       realRobotGoldWeaponCalls++;
+     return originalDrawWeapon.apply(this,arguments);
+   };
+   try{if(typeof G.draw==='function')G.draw();}
+   finally{AV.drawWeaponSprite=originalDrawWeapon;}
+   if(realRobotGoldWeaponCalls<1)throw Error('NEWBOT held RPG_7 bypassed the equipped Gold launcher skin');
+   const st=G.APEX_ROBOT_PRESENTATION?.getRobotState(a);
+   if(!st)throw Error('Native robot spring state unavailable');
+   const springs={};for(const [k,v] of Object.entries(st.R))springs[k]=Array.isArray(v)?v.map(s=>s.x):v.x;
+   const hCtx=document.createElement('canvas').getContext('2d');hCtx.canvas.width=900;hCtx.canvas.height=900;
+   hCtx.translate(450,450);
+   const ecoDraw=C.render('actor',hCtx,C.capture('p1','hero','ROBOT'),{x:0,y:0,kind:'ROBOT',robot:{time:st.T,springs,armor:st.armor,held:st.held,mode:st.mode,ticks:st.ticks,lockFlash:st.lockFlash}});
+   if(ecoDraw!==true)throw Error('ECO V17 owner-rig did not draw');
+   // CP9 regression: a replacement silhouette alone cannot pass Gold fidelity.
+   // Exercise the actual native AIL presentation bus and assert world FX callbacks
+   // emit visible pixels for one passive beat. No gameplay cooldown or damage edits.
+   const bus=G.APEX_HERO_REWORK_AIL?.bus;
+   if(!bus)throw Error('Native Robot event bus unavailable');
+   if(bus.__robotPresentationHooked!==true)
+     throw Error('Robot presentation native AIL bus hook is not installed');
+   if(G.__apexRobotEventBody?.({fighterId:a.id})!==a)
+     throw Error('Robot presentation event body ownership resolver differs from P1');
+   const beforeFx=st.ecoFxSerial||0;
+   // The native match may already have reached milestone 1 while we sampled
+   // its real RPG carriers. Advance the milestone *test fixture*, not gameplay.
+   // Replaying a previous milestone is SUPPOSED to be ignored by Robot's owner
+   // event dedup guard and cannot prove the cosmetic FX branch.
+   const nextMilestone=Math.max(0,Number(st._lastMilestoneNumber)||0)+1;
+   bus.emit('RobotPassiveMilestone',{hero:'ROBOT',fighterId:a.id,milestone:nextMilestone});
+   // Native Robot GOLD schedules the passive pulse at +0.20 s via the SAME
+   // authoritative spring/event queue. Check after a real engine advance,
+   // not synchronously at emission (which would reject the correct choreography).
+   // These 15 real RPG simulation frames simultaneously build the smoke path.
+   for(let j=0;j<15;j++)A.step(1/60);
+   if((st.ecoFxSerial||0)<=beforeFx||!st.ecoFxEvents?.some(e=>e.kind==='passive'&&e.serial>beforeFx))
+     throw Error('ECO Gold presentation event failed for next milestone '+nextMilestone+
+       ' body='+a.id+' busHook='+bus.__robotPresentationHooked+
+       ' last='+st._lastMilestoneNumber+' fxBefore='+beforeFx+' fxAfter='+st.ecoFxSerial);
+   const worldPose={x:a.x,y:a.y,kind:'ROBOT',robot:{
+      time:st.T+.06,mode:st.mode,armor:st.armor,vx:st.vxw,vy:st.vyw,
+      trailOn:st.trailOn,dashTrail:st.trail,
+      fxEvents:st.ecoFxEvents
+   }};
+   const wc=document.createElement('canvas');wc.width=1200;wc.height=900;
+   const wctx=wc.getContext('2d');
+   if(C.render('worldBack',wctx,C.capture('p1','hero','ROBOT'),worldPose)!==true)
+      throw Error('ECO Gold rear FX not registered/dispatchable');
+   // At birth alpha is exactly zero in Gold; sample the next presentation tick.
+   worldPose.robot.time=st.T+.12;
+   if(C.render('worldFront',wctx,C.capture('p1','hero','ROBOT'),worldPose)!==true)
+      throw Error('ECO Gold leaf VFX not registered/dispatchable');
+   const worldPixels=wctx.getImageData(0,0,1200,900).data;
+   let alphaPixelCount=0;
+   for(let k=3;k<worldPixels.length;k+=4)if(worldPixels[k])alphaPixelCount++;
+   if(alphaPixelCount<8)throw Error('ECO Gold native passive has no visible leaf material');
+
+   // CP10 Gold targeting MATERIAL PROOF: an explicit presentation-only slot
+   // fixture verifies the target-lock and measure visuals. It NEVER mutates
+   // a physical gun slot, triggers A1, picks a target, or changes damage.
+   // The separate native RobotA1Lock lifecycle remains authoritative in game.
+   const lockCanvas=document.createElement('canvas');
+   lockCanvas.width=1200;lockCanvas.height=900;
+   const lockContext=lockCanvas.getContext('2d');
+   const lockPoint={x:720,y:390};
+   const lockPose={kind:'ROBOT',x:a.x,y:a.y,robot:{
+     time:st.T+.20,held:false,
+     scanSource:{x:a.x,y:a.y-a.radius*.8},
+     brackets:{state:'in',t0:st.T,target:lockPoint},
+     measure:{t0:st.T+.09,target:lockPoint}
+   }};
+   const ecoReceipt=C.capture('p1','hero','ROBOT');
+   if(C.render('targetLock',lockContext,ecoReceipt,lockPose)!==true)
+     throw Error('ECO Gold A1 circular lock family missing');
+   if(C.render('targetMeasure',lockContext,ecoReceipt,lockPose)!==true)
+     throw Error('ECO Gold A1 acquisition beam family missing');
+   if(C.render('targetLock',lockContext,C.capture('p2','hero','ROBOT'),lockPose)!==false)
+     throw Error('ORIGINAL Robot reticle was overwritten by ECO');
+   const reticleRegion=lockContext.getImageData(590,255,260,270).data;
+   let marked=0;for(let k=3;k<reticleRegion.length;k+=4)if(reticleRegion[k]>15)marked++;
+   if(marked<100)throw Error('ECO Gold target ring has no visible living material '+marked);
+   const targetImage=lockCanvas.toDataURL('image/png');
+
+   // CP10 regression for *all* V17 world FX families. Each material draw
+   // receives one isolated, presenter-only event with a distinct time epoch;
+   // no event from a previous family can leave surviving particles and cause
+   // a false PASS. The fake cosmetic receipt is NEVER equipped to P2.
+   const familyKinds=['a1-launch','a1-contact','a1-fail','a2-on','a2-off',
+     'passive','hit','wall','fire'];
+   const familyInk={};
+   const fixtureEcoP2={side:'p2',kind:'hero',baseId:'ROBOT',skinId:'ecobot'};
+   const originalP2=C.capture('p2','hero','ROBOT');
+   for(const [i,kind] of familyKinds.entries()){
+     const t=st.T+100+i*10;
+     const canvas=document.createElement('canvas');
+     canvas.width=1000;canvas.height=800;
+     const c=canvas.getContext('2d');
+     const pose={x:500,y:450,kind:'ROBOT',robot:{
+       time:t,armor:kind==='hit',mode:'idle',vx:0,vy:0,trailOn:false,
+       dashTrail:[],fxEvents:[{serial:i+1,t,kind,x:500,y:450,armored:kind==='hit'}]
+     }};
+     if(!C.render('worldBack',c,fixtureEcoP2,pose))
+       throw Error('ECO Gold missing back-world hook '+kind);
+     pose.robot.time=t+.12;
+     if(!C.render('worldFront',c,fixtureEcoP2,pose))
+       throw Error('ECO Gold missing front-world hook '+kind);
+     const pix=c.getImageData(360,300,300,300).data;
+     let ink=0;for(let k=3;k<pix.length;k+=4)if(pix[k]>2)ink++;
+     familyInk[kind]=ink;
+     if(ink<6)throw Error('ECO Gold family missing visible native-event material '+kind+' '+ink);
+     if(C.render('worldFront',c,originalP2,pose)!==false)
+       throw Error('P2 ORIGINAL used ECO material family '+kind);
+   }
+
+   // CP9 smoke proof MUST be acquired from the ACTUAL RPG carrier after
+   // native physics has produced sampled flight history. A first-frame rocket
+   // sprite does NOT prove the exhaust is attached, smooth or Gold-faithful.
+   if(!projectiles.includes(p)||p.visual.length<8)
+      throw Error('Gold smoke missing continuous native rocket flight samples');
+   const smokeCanvas=document.createElement('canvas');
+   smokeCanvas.width=1200;smokeCanvas.height=900;
+   W.drawArsenalProjectiles(smokeCanvas.getContext('2d'));
+   const smokeEarly=smokeCanvas.toDataURL('image/png');
+   const earlyAge=p.age;
+   // Compare with the owner's Gold t=0.84s rather than an unrelated early
+   // age. ONLY the authoritative Arsenal simulation advances this carrier.
+   for(let n=0;n<80&&p.age<.84&&projectiles.includes(p);n++)A.step(1/60);
+   if(!projectiles.includes(p)||p.exploded||p.age<.84-1e-6)
+     throw Error('Gold t=.84s native rocket flight unavailable age='+p.age+' x='+p.x+' y='+p.y);
+   const smokeMatched=document.createElement('canvas');
+   smokeMatched.width=1200;smokeMatched.height=900;
+   W.drawArsenalProjectiles(smokeMatched.getContext('2d'));
+   const smokeFrame=smokeMatched.toDataURL('image/png');
+   const painted=hCtx.getImageData(450,450,1,1).data[3];
+   // Save pixels from exactly the approved native presentation callbacks; these
+   // are not synthetic CSS mockups or screenshots of a separate Gold studio.
+   if(G.__cp8Evidence)throw Error('CP8 evidence namespace already in use');
+   G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),ecoWorld:wc.toDataURL('image/png'),
+      ecoTarget:targetImage,
+      rocket:ctx.canvas.toDataURL('image/png'),rocketSmokeEarly:smokeEarly,rocketSmoke:smokeFrame};
+   const oldOwner=p.owner;p.owner=b;
+   W.drawArsenalProjectiles(ctx);
+   if(p.cosmetic?.skinId!=='vua-he')throw Error('Reflection changed Gold identity');
+   p.owner=oldOwner;
+   // The P2 ORIGINAL rocket can naturally expire during the longer .84s flight.
+   // splice(-1,1) would REMOVE P1's real Gold rocket from the global array!
+   // That prevented ALL later native detonation despite no gameplay regression.
+   const originalIndex=projectiles.indexOf(q);
+   if(originalIndex>=0)projectiles.splice(originalIndex,1);
+   if(!projectiles.includes(p))throw Error('Gold P1 native rocket lost after P2 cleanup');
+   // Now test the REAL wall-triggered blast after capturing the full-length
+   // flight. The old .08s forced fuse could expire at the engine's removal
+   // seam before the native detonation callback, leaving a false QA failure.
+   // Crossing the arena boundary exercises the same authoritative v43Detonate.
+   const worldEdge=typeof GAME_SIZE==='number'?GAME_SIZE:1024;
+   p.x=worldEdge-8;p.y=490;p.vx=500;p.vy=0;p.life=.35;
+   for(let i=0;i<30&&!p.exploded;i++)A.step(1/60);
+   if(!p.exploded)throw Error('Native Rocket did not detonate '+JSON.stringify({
+     x:p.x,y:p.y,age:p.age,life:p.life,gameSize:typeof GAME_SIZE!=='undefined'?GAME_SIZE:null,
+     present:projectiles.includes(p),type:p.type,kind:p.kind,phase:p.phase,
+     effectKinds:(A.state.visuals||[]).filter(v=>v.kind==='v43_blast').map(v=>v.cosmetic?.skinId)
+   }));
+   const blast=A.state.visuals?.find(v=>v.kind==='v43_blast'&&v.cosmetic?.skinId==='vua-he');
+   if(!blast||blast.maxLife<1.37)throw Error('Gold V7 blast lifetime missing '+JSON.stringify(blast));
+   const drawBlast=C.render('blast',ctx,blast.cosmetic,{...blast,age:.4});
+   if(!drawBlast)throw Error('Gold V7 smoke/full-face renderer did not render');
+   // Sample timeline WITHOUT advancing damage/collision or forging a second hit.
+   // These PNGs permit owner comparison against the supplied Gold keyframes.
+   for(const age of [.20,.43,.91,1.20]){
+     const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=900;
+     if(!C.render('blast',canvas.getContext('2d'),blast.cosmetic,{...blast,age,kind:'v43_blast'}))
+       throw Error('Gold blast frame renderer rejected age '+age);
+     G.__cp8Evidence['blast-'+String(Math.round(age*100)).padStart(3,'0')]=canvas.toDataURL('image/png');
+   }
+   return {cp13HeldProviderReturn:G.__cp13HeldProviderReturn,readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,familyInk,blastLife:blast.maxLife,exploded:p.exploded,smokeEarlyAge:earlyAge,smokeMatchedAge:p.age,hp:[a.hp,b.hp]};
+  });
+
+  // CP11 real A1 integration after the existing rocket smoke/blast proof:
+  // one Arsenal-spawned physical revealed gun, one real ability cast,
+  // one native RobotA1Lock, then a Gold ring at that SAME slot position.
+  const nativeA1=await page.evaluate(()=>{
+    const G=window,A=G.APEX_ARSENAL,H=G.APEX_HERO_REWORK;
+    const W=A.weaponApi,SP=G.APEX_ARSENAL_SPAWN,C=G.APEX_COSMETICS;
+    const a=G.fighters[0],bus=G.APEX_HERO_REWORK_AIL.bus;
+    if(!a||!H?.pressAbility||!SP?.spawnLabWeapon)
+      throw Error('Native A1 integration endpoint missing');
+    const holder=W.getHolder(a);
+    if(holder&&holder.phase!=='EMPTY'&&holder.phase!=='CONSUMED')
+      W.consume(a,'cp11-a1-owner-proof');
+    A.state.slots=[];
+    const lab=A.state.labMode;A.state.labMode=true;
+    let slot;try{slot=SP.spawnLabWeapon('PISTOL');}
+    finally{A.state.labMode=lab;}
+    if(!slot||slot.phase!=='REVEALED')
+      throw Error('Real Arsenal revealed slot not spawned');
+    slot.x=640;slot.y=440;a.x=100;a.y=440;a.setDir(1,0);
+    const before=bus.ofType('RobotA1Lock').length;
+    const cast=H.pressAbility(a,'A1');
+    const ev=bus.ofType('RobotA1Lock').at(-1);
+    if(!cast?.ok||!ev||bus.ofType('RobotA1Lock').length!==before+1||
+       ev.payload.slotId!==slot.id)
+      throw Error('Native Robot ability did not lock physical slot');
+    const st=G.APEX_ROBOT_PRESENTATION.getRobotState(a);
+    if(!st?.brackets?.target||Math.hypot(st.brackets.target.x-slot.x,st.brackets.target.y-slot.y)>.1)
+      throw Error('Native Robot visual lacks real target coordinates');
+    for(let i=0;i<6;i++)A.step(1/60);
+    const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=800;
+    const ctx=canvas.getContext('2d'),receipt=C.capture('p1','hero','ROBOT');
+    const pose={kind:'ROBOT',x:a.x,y:a.y,robot:{time:st.T,held:false,
+      brackets:st.brackets,measure:st.measure,scanSource:{x:a.x,y:a.y-a.radius*.8}}};
+    if(!C.render('targetLock',ctx,receipt,pose)||
+       !C.render('targetMeasure',ctx,receipt,pose))
+      throw Error('Live A1 lock not rendered by Gold target family');
+    const pix=ctx.getImageData(490,295,290,290).data;let ink=0;
+    for(let i=3;i<pix.length;i+=4)if(pix[i]>15)ink++;
+    if(ink<100)throw Error('Live A1 target material invisible: '+ink);
+    return {slotId:slot.id,lockSeq:ev.seq,target:st.brackets.target,ink};
+  });
+  if(nativeA1.ink<100)throw Error('Native ECO target evidence incomplete');
+  assert.equal(exceptions.length,0,'Chrome page errors: '+exceptions.join('\n'));
+  if(captureDir){
+   const frames=await page.evaluate(()=>window.__cp8Evidence||null);
+   assert.deepEqual(Object.keys(frames||{}).sort(),[
+     'actor','ecoWorld','ecoTarget','rocket','rocketSmokeEarly','rocketSmoke','blast-020','blast-043','blast-091','blast-120'].sort());
+   for(const [name,data] of Object.entries(frames)){
+     assert.match(data,/^data:image\/png;base64,/,'Evidence must be a lossless PNG');
+     fs.writeFileSync(path.join(captureDir,`${caseInfo.name}-${name}.png`),
+       Buffer.from(data.slice('data:image/png;base64,'.length),'base64'));
+   }
+   await page.screenshot({path:path.join(captureDir,`${caseInfo.name}-battle-ui.png`)});
+  }
+  // CP12 final lifecycle proof runs AFTER Gold/rocket snapshots. A genuine
+  // Hero Rework reinstall must clear old Robot springs/audio via the native
+  // lifecycle bus; then the actual Battle exit must release them again.
+  const lifecycle=await page.evaluate(()=>{
+    const G=window,H=G.APEX_HERO_REWORK,P=G.APEX_ROBOT_PRESENTATION;
+    const bus=G.APEX_HERO_REWORK_AIL.bus,a=G.fighters[0];
+    if(!H?.match||!P?.lifecycleEvidence||!G.exitArsenalBattleMode)
+      throw Error('CP12 native lifecycle authorities unavailable');
+    const emitter=bus.emit,listenerCount=bus.listeners['*']?.length||0;
+    const originalState=P.getRobotState(a),before=P.lifecycleEvidence();
+    if(!before.subscribed||before.activeRobotStates<1)
+      throw Error('CP12 original Robot state not active');
+    const beforeTeardown=bus.ofType('ReworkMatchTeardown').length;
+    const beforeInstall=bus.ofType('ReworkMatchInstall').length;
+    H.installMatch();
+    if(!H.match||bus.ofType('ReworkMatchTeardown').length!==beforeTeardown+1||
+       bus.ofType('ReworkMatchInstall').length!==beforeInstall+1)
+      throw Error('CP12 rematch did not traverse the native lifecycle exactly once');
+    const empty=P.lifecycleEvidence();
+    if(empty.activeRobotStates!==0||empty.audioSession<=before.audioSession)
+      throw Error('CP12 stale Robot state or audio survived rematch '+JSON.stringify({before,empty}));
+    const freshState=P.getRobotState(a);
+    if(freshState===originalState||freshState.T!==0)
+      throw Error('CP12 new match reused an old spring/clock state');
+    if(bus.emit!==emitter||(bus.listeners['*']?.length||0)!==listenerCount)
+      throw Error('CP12 rematch rewrapped or duplicated AIL subscription');
+    G.exitArsenalBattleMode();
+    const after=P.lifecycleEvidence();
+    if(H.match!==null||bus.ofType('ReworkMatchTeardown').length!==beforeTeardown+2||
+       after.activeRobotStates!==0||after.audioSession<=empty.audioSession)
+      throw Error('CP12 exit leaked match Robot state/audio '+JSON.stringify(after));
+    if(bus.emit!==emitter||(bus.listeners['*']?.length||0)!==listenerCount)
+      throw Error('CP12 exit changed native emitter/listener cardinality');
+    return {rematchClean:true,exitClean:true,subscriberStable:true,
+      beforeAudio:before.audioSession,afterAudio:after.audioSession};
+  });
+  assert.equal(warnings.filter(s=>s.includes('[cosmetic] renderer failed')).length,0,'Gold renderer exceptions: '+warnings.join('\n'));
+  console.log('CP8 OWNER GOLD REAL CHROME PASS '+caseInfo.name+' '+JSON.stringify({...evidence,lifecycle}));
+ }catch(e){errors++;console.error('CP8 OWNER GOLD REAL CHROME FAIL '+caseInfo.name+' '+String(e?.stack||e)+' warnings='+warnings.slice(-8).join(' | '));}
+ finally{await page.close()}
+}
+await browser.close();if(errors)process.exitCode=1;

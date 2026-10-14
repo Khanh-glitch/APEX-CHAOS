@@ -12,6 +12,9 @@
   const AIL = g.APEX_HERO_REWORK_AIL;
   const MAG = g.APEX_MAGNET;
   const GOLD = g.APEX_MAGNET_GOLD;
+  // Do not reproduce a second Gold loader. Selected battles await the Gold
+  // owner's existing 54-image preprocessing promise through one shared gate.
+  g.apexProductAssets?.registerPresentation?.('magnet',()=>GOLD.prepare());
   const loadProbe = (phase, detail) => {
     try { return g.apexHeroLoadTelemetry?.mark?.('magnet', phase, detail); } catch (_) { return null; }
   };

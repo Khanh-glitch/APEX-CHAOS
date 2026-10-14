@@ -8,6 +8,7 @@
 //   CRY_GATES=C0,G node tools/testCrystalaGameplayGates.mjs   # name-prefix filter while iterating
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { bootHarness } from './lib/crystalaHarness.mjs';
 
 const only = (process.env.CRY_GATES || '').split(',').filter(Boolean);
@@ -1125,26 +1126,77 @@ await gate('G06-Hunter-pounce-authored-displacement-cannot-tunnel', async () => 
 });
 
 await gate('G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites', () => {
-  const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
-  const read = (f) => fs.readFileSync(f, 'utf8');
-  const PROTECTED = {   // byte-identical to accepted r33 baseline 0348694 (protected semantics)
-    'public/game/arsenal/arsenalChamberPaletteRuntime.js': 'dea5c0cf90465ab18731dc61df4d4568ef4275695d0b81482e779806322f91a6',
-    'public/game/hero-rework/hunterPresentationRuntime.js': '3fcb290dc5dd5ff7b4a102f11c181394a0f01e3d6a5f42efbf535d21a9e1ae89',
-    'public/game/hero-rework/robotPresentationRuntime.js': '419249adade667ee8ef06d2b4709ce252304b7edd50906108b26a0304c15b411',
-    'public/game/hero-rework/hunterGoldV10.js': '3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1',
-    'public/game/arsenal/arsenalWeaponRuntime.js': 'aa931e9cd661c8748a5e4f149d96ee48b7544b4f93e34054a96ff02e281892b2',
-    'public/game/hero-rework/ailRuntime.js': 'dbc5e1e22a52639fbf8a0cc609ee9be03ca2538903d8c13788188b73d4e2f0b0',
-  };
-  const bad = Object.entries(PROTECTED).filter(([f, h]) => sha(read(f)) !== h).map(([f]) => f);
+  // R33 whole-file hashes were already stale on pinned MAIN; they asserted
+  // source identity rather than collision behavior, obscuring true regressions.
+  // Keep a strict, PINNED main baseline for unrelated protected owners.
+  // D6 intentionally extends the Flame stream consumer, so protect its
+  // unchanged swept collision primitives rather than forbid the entire file.
+  const MAIN = '2590beee79b9447fa3639870b6de6801428b7f42';
+  const read = f => fs.readFileSync(f,'utf8');
+  const baseline = f => execFileSync('git',['show',MAIN+':'+f],
+    {encoding:'utf8',maxBuffer:10*1024*1024});
+  const UNTOUCHED = [
+    'public/game/arsenal/arsenalChamberPaletteRuntime.js',
+    'public/game/hero-rework/hunterPresentationRuntime.js',
+    'public/game/hero-rework/robotPresentationRuntime.js',
+    'public/game/hero-rework/hunterGoldV10.js',
+    'public/game/hero-rework/heroMechanicsRuntime.js',
+  ];
+  const changedProtectedFiles = UNTOUCHED.filter(f => read(f)!==baseline(f));
+  // Require ALL pre-existing AIL code to stay byte-identical to pinned main.
+  // Strip only the explicitly bounded CP5 magnet query adapter: no broad
+  // whole-file hash waiver, and no silent change of unrelated authority.
+  const ailPath='public/game/hero-rework/ailRuntime.js';
+  const ailSource=read(ailPath);
+  const policyStart='  /* CP5 LIVE MAGNET QUERY START */\n';
+  const policyEnd='  /* CP5 LIVE MAGNET QUERY END */\n\n';
+  const policyA=ailSource.indexOf(policyStart),policyB=ailSource.indexOf(policyEnd);
+  const validAdapter=policyA>=0&&policyB>policyA&&
+    ailSource.indexOf(policyStart,policyA+1)<0&&
+    ailSource.indexOf(policyEnd,policyB+1)<0;
+  const ailWithoutAdapter=validAdapter
+    ?ailSource.slice(0,policyA)+ailSource.slice(policyB+policyEnd.length):'';
+  const ailBaselineIdentical=validAdapter&&ailWithoutAdapter===baseline(ailPath);
   const mech = read('public/game/hero-rework/heroMechanicsRuntime.js');
-  const slice = (a, b) => mech.slice(mech.indexOf(a), mech.indexOf(b));
-  const robot = sha(slice('   * 1. ROBOT', '   * 2. CRYSTAL')) === 'e3f0ee8cd974403a27ac53bbb739629b2e550b1f548a42a19c3e58b5d73f983b';
-  const hunter = sha(slice('   * 8. HUNTER', '   * 9. TIME')) === '7b5b5ae4662ec800274f075fbcf2b1072642a62e00fc13bb279d49ef54e92aa2';
-  const geom = HR.geom && typeof HR.geom.capsuleToi === 'function' && typeof HR.geom.wallsBlockPoint === 'function' && typeof HR.geom.solidCapsules === 'function';
-  // Pre-pilot product law removes the normal owner-test grant while retaining
-  // the protected Crystal/Robot/Hunter mechanics above.
-  const noOwnerGrant = !/OWNER_TEST_CREDITS\s*=\s*12000/.test(read('public/game/arsenal/arsenalMetaRuntime.js')) && !/OWNER_TEST_GRANT_KEY/.test(read('public/game/arsenal/arsenalMetaRuntime.js'));
-  return { ok: bad.length === 0 && robot && hunter && geom && noOwnerGrant, detail: { changedProtectedFiles: bad, robotBlockIdentical: robot, hunterBlockIdentical: hunter, sharedGeom: geom, noOwnerGrant } };
+  const oldMech = baseline('public/game/hero-rework/heroMechanicsRuntime.js');
+  const slice = (s,a,b) => s.slice(s.indexOf(a),s.indexOf(b));
+  const robotBlockIdentical = slice(mech,'   * 1. ROBOT','   * 2. CRYSTAL')===
+    slice(oldMech,'   * 1. ROBOT','   * 2. CRYSTAL');
+  const hunterBlockIdentical = slice(mech,'   * 8. HUNTER','   * 9. TIME')===
+    slice(oldMech,'   * 8. HUNTER','   * 9. TIME');
+
+  // Collision primitive identity is independent of the intentionally changed
+  // D6 Stream-versus-Wall call site, tested by native gameplay/Chrome gates.
+  const fnBody = (source,name) => {
+    const marker='function '+name+'(';
+    const pos=source.indexOf(marker);
+    if(pos<0||source.indexOf(marker,pos+1)!==-1)throw Error('G07 function cardinality '+name);
+    const open=source.indexOf('{',pos);
+    let depth=0;
+    for(let i=open;i<source.length;i++){
+      if(source[i]==='{')depth++;
+      if(source[i]==='}'&&--depth===0)return source.slice(pos,i+1);
+    }
+    throw Error('G07 unterminated function '+name);
+  };
+  const weaponFile='public/game/arsenal/arsenalWeaponRuntime.js';
+  const currWeapon=read(weaponFile),baseWeapon=baseline(weaponFile);
+  const primitives=['sweptSegmentCircleHit','v43Enemies','v43Deal'];
+  const changedCollisionPrimitives=primitives.filter(name=>
+    fnBody(currWeapon,name)!==fnBody(baseWeapon,name));
+
+  const geom = HR.geom && typeof HR.geom.capsuleToi==='function' &&
+    typeof HR.geom.wallsBlockPoint==='function' &&
+    typeof HR.geom.solidCapsules==='function';
+  const meta=read('public/game/arsenal/arsenalMetaRuntime.js');
+  const noOwnerGrant=!/OWNER_TEST_CREDITS\s*=\s*12000/.test(meta) &&
+    !/OWNER_TEST_GRANT_KEY/.test(meta);
+  return {ok: changedProtectedFiles.length===0 &&
+      changedCollisionPrimitives.length===0 && ailBaselineIdentical &&
+      robotBlockIdentical && hunterBlockIdentical && geom && noOwnerGrant,
+    detail:{protectedMainSha:MAIN.slice(0,8),changedProtectedFiles,
+      changedCollisionPrimitives,ailBaselineIdentical,robotBlockIdentical,hunterBlockIdentical,
+      sharedGeom:!!geom,noOwnerGrant}};
 });
 
 await gate('G08-cage-stops-tracking-the-target-after-NUCLEATE', () => {
@@ -1210,7 +1262,16 @@ await gate('M01-contact-to-dock-is-1.60s-and-dock-flips-availability-exactly', (
 await gate('A01-P2-Crystal-AI-healthy-no-fail-cue-spam', () => {
   HR.setSeed(7);
   HR.setAiEnabled(true);
-  const m = T.start('ROBOT', 'CRYSTAL'); T.holdSpawns();
+  // This gate asserts the BOT opponent AI, not LOCAL 1v1 (where P2 is
+  // correctly reserved for human input). The headless harness defaults LOCAL.
+  // Test the intended mode explicitly; restore LOCAL for all later gates.
+  const priorProfile=win.__apexArsenalBattleProfile;
+  win.__apexArsenalBattleProfile='BOT';
+  let m;
+  try { m=T.start('ROBOT','CRYSTAL'); }
+  finally { win.__apexArsenalBattleProfile=priorProfile??'LOCAL'; }
+  T.holdSpawns();
+  const aiMode=win.APEX_ARSENAL.state.battleMode;
   const ev = []; AIL.bus.on('*', (e) => ev.push(e));
   let err = null;
   try { step(25); } catch (e) { err = String(e && e.stack || e).split('\n').slice(0, 2).join(' | '); }
@@ -1218,7 +1279,7 @@ await gate('A01-P2-Crystal-AI-healthy-no-fail-cue-spam', () => {
   const fails = ev.filter((e) => e.type === 'CastFailCue' && e.payload.hero === 'CRYSTAL').length;
   const casts = ev.filter((e) => e.type === 'Cast' && e.payload.hero === 'CRYSTAL').map((e) => e.payload.slot);
   HR.setAiEnabled(false);
-  return { ok: !err && HR.invariants().ok && casts.includes('A2') && fails <= 2 && ct.anchor.hp > 0, detail: { err, fails, casts: casts.join(','), invariants: HR.invariants().errors } };
+  return { ok: aiMode==='BOT' && !err && HR.invariants().ok && casts.includes('A2') && fails <= 2 && ct.anchor.hp > 0, detail: { aiMode, err, fails, casts: casts.join(','), invariants: HR.invariants().errors } };
 });
 
 // @@GATES_CONTINUE@@
@@ -1269,13 +1330,12 @@ await gate('V04-wall-fails-with-no-cooldown-when-a-blade-is-busy', () => {
       reason: r && r.reason, cdLeftAfter: after, constructs: ins(w.cta).constructs.length } };
 });
 
-await gate('V05-hexa-facet-numbers-and-reflect-first-removal-are-unchanged', () => {
-  // V2 §1.3 NON-CHANGE: facet HP stays 75 and HEXA keeps its own reflect-first
-  // law — even the shot that removes the last facet HP is still reflected
-  // (the Wall's new breaking-shot law does NOT leak into HEXA). The prism
-  // holds all six shards, so the test shots can never be claimed and fly
-  // straight to the facets: three effective-31.5 shots land 75 -> 43.5 ->
-  // 12 -> removed on one facet, every one of them reflected.
+await gate('V05-hexa-facet-numbers-and-owner-shared-breaking-hit-law', () => {
+  // OWNER 2026-10-13 supersedes older V2 reflect-first HEXA law.
+  // Both Wall/HEXA: a hit that does NOT destroy the contacted surface reflects;
+  // the lethal third hit breaks the facet and passes through UNREFLECTED with
+  // the original source/velocity/damage. HEXA facet HP remains exactly 75.
+  // Three 31.5-effective-damage shots: 75 -> 43.5 -> 12 -> dead.
   const w = crystalK();
   press(w.a, 'A2');
   step(0.05);
@@ -1294,8 +1354,13 @@ await gate('V05-hexa-facet-numbers-and-reflect-first-removal-are-unchanged', () 
   return { ok: r && r.ok === true && built && built.kind === 'prison' && built.maxHp.length === 6 && built.maxHp.every((m) => m === 75)
       && g && near(g.R, 135, 1e-6) && g.edges.length === 6
       && end.lockedAt != null && near(end.endAt - end.lockedAt, 3.0, 1e-9)
-      && hps.length === 3 && refs.length === 3 && hps.every((e) => e.payload.kind === 'prison' && e.payload.why === 'hit')
-      && shots.every((p) => p.__hr && p.__hr.crystalReflected && p.owner === w.a)
+      && hps.length === 3 && refs.length === 2
+      && hps.every((e) => e.payload.kind === 'prison')
+      && hps[0].payload.why === 'hit' && hps[1].payload.why === 'hit'
+      && hps[2].payload.why === 'break-through'
+      && shots.slice(0,2).every((p) => p.__hr && p.__hr.crystalReflected && p.owner === w.a)
+      && !(shots[2].__hr && shots[2].__hr.crystalReflected)
+      && shots[2].owner === w.b && !!(shots[2].__hr && shots[2].__hr.cryPassed)
       && deadFacets === 1 && end.state === 'LIVE',
     detail: { r: r && r.ok, facetMax: built && built.maxHp,
       radius: g && fmt(g.R), edges: g && g.edges.length, life: end.lockedAt != null ? (end.endAt - end.lockedAt) : null,

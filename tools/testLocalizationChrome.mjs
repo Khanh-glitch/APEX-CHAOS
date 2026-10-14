@@ -125,6 +125,14 @@ try{
      const box=title.getBoundingClientRect(),cta=d.querySelector('#continueStory').getBoundingClientRect();
      const pickBox=picker.getBoundingClientRect();
      const covered=d.elementFromPoint(pickBox.x+pickBox.width/2,pickBox.y+pickBox.height/2);
+     // CP16: overlapping fixed SKINS button previously intercepted mobile VIE/ENG taps.
+     const skin=d.querySelector('.apex-skin-entry');
+     const skinBox=skin?.getBoundingClientRect();
+     const skinVisible=Boolean(skin&&skinBox.width>20&&skinBox.height>20);
+     const skinTarget=skinVisible
+       ?d.elementFromPoint(skinBox.x+skinBox.width/2,skinBox.y+skinBox.height/2):null;
+     const overlap=Boolean(skinVisible&&pickBox.left<skinBox.right&&
+       pickBox.right>skinBox.left&&pickBox.top<skinBox.bottom&&pickBox.bottom>skinBox.top);
      return {
        chosen:picker.value,persist:w.localStorage.getItem('apex-chaos.ui-language.v1'),
        title:title.innerText,cta:button.innerText,htmlLang:d.documentElement.lang,
@@ -134,6 +142,10 @@ try{
        ctaWithin:button.getBoundingClientRect().width<=cta.width+3,
        pickerVisible:pickBox.width>20&&pickBox.y>=0&&pickBox.bottom<=w.innerHeight,
        pickerHit:Boolean(covered&&(covered===picker||covered.closest('#apex-language-picker'))),
+       skinVisible,skinOverlap:overlap,
+       skinHit:!skinVisible||Boolean(skinTarget&&(skinTarget===skin||skin.contains(skinTarget))),
+       skinInside:!skinVisible||(skinBox.left>=0&&skinBox.right<=w.innerWidth&&
+         skinBox.top>=0&&skinBox.bottom<=w.innerHeight),
        hitStack:d.elementsFromPoint(pickBox.x+pickBox.width/2,pickBox.y+pickBox.height/2).slice(0,8).map(e=>({tag:e.tagName,id:e.id,cls:typeof e.className==='string'?e.className.slice(0,70):'',z:w.getComputedStyle(e).zIndex,pointer:w.getComputedStyle(e).pointerEvents}))
      };
    })()`);
@@ -142,7 +154,9 @@ try{
    checked(report.font.includes('ApexVietCondensed'),view.id+' Unicode face fallback',report);
    const face=await run("(async()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;await d.fonts.ready;return Array.from(d.fonts).filter(f=>f.family==='ApexVietCondensed').map(f=>f.status)})()");
    checked(face.includes('loaded'),view.id+' actual condensed Vietnamese font loaded',face);
-   checked(report.withinTitle&&report.ctaWithin&&report.pickerVisible&&report.pickerHit,view.id+' glyph bounds and selector hit target',report);
+   checked(report.withinTitle&&report.ctaWithin&&report.pickerVisible&&report.pickerHit&&
+     !report.skinOverlap&&report.skinHit&&report.skinInside,
+     view.id+' glyph bounds and independent language/SKINS hit targets',report);
    await capture(view.id+'-vie');
    await typographyAudit(view.id+'-home-vie','w.document',['.storyTitle span','.quest','.location','.cta .label','.profileText b']);
    checked((await auditAllVisibleText(view.id+'-home-vie','w.document')).clippedCount===0,view.id+' home visible text is not clipped');

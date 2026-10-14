@@ -10,7 +10,13 @@ const G=g.APEX_HUNTER_GOLD,HR=g.APEX_HERO_REWORK,states=new WeakMap();let assets
 const loadProbe=(phase,detail)=>{try{return g.apexHeroLoadTelemetry?.mark?.('hunter',phase,detail);}catch(_){return null;}};
 const api=g.APEX_HUNTER_PRESENTATION={ready:false,trapWorldRadius:0};
 loadProbe('preprocess-start',{source:'APEX_HUNTER_GOLD.load'});
-G.load().then(a=>{assets=a;api.ready=true;measure();loadProbe('preprocess-ready',{cacheStats:G.cacheStats?{...G.cacheStats}:null});}).catch(e=>{api.error=String(e);loadProbe('preprocess-error',{error:String(e)});console.error('[Hunter V10 assets]',e);});
+// The Gold loader remains the ONE owner. Reuse its original promise when a
+// selected battle asks the common readiness contract to certify first frames.
+const hunterArtworkTask=G.load().then(a=>{assets=a;api.ready=true;measure();loadProbe('preprocess-ready',{cacheStats:G.cacheStats?{...G.cacheStats}:null});}).catch(e=>{api.error=String(e);loadProbe('preprocess-error',{error:String(e)});console.error('[Hunter V10 assets]',e);});
+g.apexProductAssets?.registerPresentation?.('hunter',()=>hunterArtworkTask.then(()=>{
+ if(!api.ready)throw new Error('Hunter Gold presentation preprocess failed: '+(api.error||'missing art'));
+ return true;
+}));
 const scale=f=>2*(f.radius||75)/(555*.335),offset=98*.335;
 function hunter(f){return HR.byCombatant(f)?.heroId==='HUNTER';}
 function state(f){if(states.has(f))return states.get(f);const cv=document.createElement('canvas');cv.width=cv.height=1;const s=new G.Stage(cv);s.auto=false;s.art=assets?.art||{};s.glow=assets?.glow||{};s.ready=!!assets;s.fighter=f;s.scale=scale(f);s.a1Motion=null;s.plantTrap=function(){G.Stage.prototype.plantTrap.call(this);this.pendingPlant=true;};states.set(f,s);sync(s);s.integrateHunter(0);return s;}

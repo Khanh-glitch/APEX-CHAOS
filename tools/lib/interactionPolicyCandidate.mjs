@@ -46,21 +46,31 @@ export function installShadowQuery(CapabilityAuthority) {
       return result('allowed', 'physical-v43-projectile');
     }
 
-    if (action === 'magnet-revealed-slot') {
-      if (!config || typeof config.isGun !== 'function') return result('unresolved', 'missing-config');
+    if (action === 'magnet-repel-slot') {
+      if (!config || typeof config.isHeroMagneticallyResponsiveFloorWeapon !== 'function')
+        return result('unresolved', 'missing-canonical-magnetic-response');
       if (!id || !known) return result('unresolved', 'unregistered-weapon');
-      const ok = target.phase === 'REVEALED' && target.kind !== 'HEAL'
-        && !t6 && config.isGun(id);
-      return result(ok ? 'allowed' : 'denied', 'magnet-floor-gun-law');
+      const ok = config.isHeroMagneticallyResponsiveFloorWeapon(target);
+      return result(ok ? 'allowed' : 'denied', 'canonical-magnetic-response');
+    }
+
+    if (action === 'magnet-revealed-slot') {
+      if (!config || typeof config.isHeroManipulableFloorWeapon !== 'function')
+        return result('unresolved', 'missing-canonical-world-weapon-role');
+      if (!id || !known) return result('unresolved', 'unregistered-weapon');
+      const ok = config.isHeroManipulableFloorWeapon(target);
+      return result(ok ? 'allowed' : 'denied', 'shared-world-floor-weapon-role');
     }
 
     if (action === 'frost-freezable-equipment') {
-      const defs = context.weapons;
-      if (!defs || typeof defs !== 'object') return result('unresolved', 'missing-equipment-definitions');
+      const defs = context.weapons || config?.WEAPONS;
+      if (!defs || typeof defs !== 'object')
+        return result('unresolved', 'missing-equipment-definitions');
+      if (!config || typeof config.isHeroManipulableWeapon !== 'function')
+        return result('unresolved', 'missing-canonical-world-weapon-role');
       if (!id || !defs[id]) return result('unresolved', 'unregistered-equipment');
-      const ok = target.kind !== 'HEAL' && id !== 'GRENADE'
-        && !t6 && target.tier !== 'T6' && defs[id].category === 'ranged';
-      return result(ok ? 'allowed' : 'denied', 'frost-ranged-holder-law');
+      const ok = config.isHeroManipulableWeapon(id, target);
+      return result(ok ? 'allowed' : 'denied', 'shared-world-frozen-equipment-role');
     }
 
     if (action === 'mirror-f2-projectile') {

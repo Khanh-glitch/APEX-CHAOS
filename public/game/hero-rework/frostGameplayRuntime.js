@@ -196,15 +196,20 @@ function ensureTransferDockGate() {
   };
 }
 
-function isFreezableFirearm(slot) {
-  if (!slot || slot.kind === 'HEAL') return false;
-  const id = slot.weaponId;
-  if (!id || id === 'GRENADE' || id === 'STORMBREAKER' || id === 'T6') return false;
-  if (slot.tier === 'T6') return false;
-  const W = g.APEX_ARSENAL_WEAPONS;
-  const def = W && W[id];
-  return !!def && def.category === 'ranged';
+function isFreezableWeapon(slot) {
+  // CP5.3: AIL owns the semantic query. Arsenal's effective WEAPONS record
+  // remains the SINGLE role authority. Passive Frozen Bullet filtering and
+  // all contact/freeze timing stay in Frost, with no new gameplay producer.
+  const CFG=g.APEX_ARSENAL_CONFIG;
+  const auth=g.APEX_HERO_REWORK_AIL?.CapabilityAuthority;
+  if(auth) return auth.query?.('frost-freezable-equipment',slot,
+    {config:CFG})?.status==='allowed'; // unresolved always denied
+  // No-AIL standalone legacy harness only, not a production fallback.
+  return !!slot && !!CFG?.isHeroManipulableWeapon?.(slot.weaponId,slot);
 }
+// Backward-compatible name; callers must not mistake equipment eligibility
+// for the ordinary-bullet-only Passive.
+const isFreezableFirearm=isFreezableWeapon;
 
 function freezeSlotFromSurface(slot, now = clock()) {
   if (!slot || slot.phase !== 'REVEALED' || !isFreezableFirearm(slot)) return false;
@@ -523,6 +528,20 @@ const FR = {
   tagFrozenBullet(ctx, p, owner) {
     const hold = owner && owner.data && owner.data.arsenal;
     if (!hold || !hold.__frostFrozen || !p || !p.__hr) return false;
+    // Owner lock: only a conventional emitted Bullet gets a Frozen Passive.
+    // Frozen melee, thrown Grenade, Boomerang and energy/flame do NOT gain
+    // invented Freeze procs merely because the Equipment was on ice.
+    const CFG=g.APEX_ARSENAL_CONFIG;
+    // The authoritative onFireBullet -> onProjectileFired(kind:'bullet')
+    // calls this with a *stand-in* {weapon, critical, __hr} BEFORE the engine
+    // constructs aq_bullet, so p.type is intentionally absent there.
+    // A declared non-bullet type is always denied; an untyped stand-in is
+    // permitted ONLY from the conventional firearm Bullet hook/holder.
+    // Frozen melee/Grenade/V43 Stream never gains a Frozen Bullet proc.
+    const firedAsConventionalBullet=p.type==null||
+      p.type==='aq_bullet'||p.type==='bullet';
+    if(!firedAsConventionalBullet || !CFG?.isGun?.(hold.weaponId) ||
+       (p.weapon && p.weapon!==hold.weaponId))return false;
     // Semantic blast group: holder identity + sequence position at fire time.
     // All pellets of one fireOneShot share both; sequential shots differ in
     // shotsFired (incremented after each shot); re-equips differ in holder.
@@ -695,7 +714,7 @@ const FR = {
   // Read-only tactical query. AI/presentation may ask the SAME surface
   // authority gameplay uses; callers never reconstruct ice geometry.
   isSurfaceAt(x, y, now = clock()) { return activeFrostSurfaceAt(x, y, now); },
-  isFreezableFirearm,
+  isFreezableWeapon, isFreezableFirearm,
   holderInTransfer,   // stolen holder still in Gold transfer flight (pre-dock)
 };
 

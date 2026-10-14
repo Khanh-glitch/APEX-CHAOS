@@ -52,9 +52,26 @@ assert.match(w,/kind==='plasma-core'\?c\.coreSpeed/,'plasma core has independent
 assert.match(cfg,/projectileWidth:78/,'mine artwork must be legible independently of collision size');
 assert.match(w,/f\.data\.arsenal=null;/,
   'throwing must remove the holder before the shared weapon foreground pass');
-assert.match(f,/function drawQueuedA1Floor\(ctx,S\)/,'delayed A1 must receive gameplay-authoritative immediate visual feedback');
-assert.match(f,/drawQueuedA1Floor\(ctx,S\)/,'the pending A1 feedback must actually render');
-assert.match(f,/pumpCastQueue\(S, now, insp\)/,'Gold A1 deferred authored choreography must remain owned by the original queue');
+// CP17: reverse the obsolete acceptance law. It previously REQUIRED a
+// second queued Gold floor before the real A1: exactly the mid-match pop-in
+// and replay the owner reported. A1 now owns one immediate authored cast,
+// including during Gold A2; A2's physical trail remains independent.
+assert.ok(f.includes("if (q.kind === 'a1' && S.engine.mode === 'a2')"),
+  'A1 accepted during A2 must take actor ownership in the same tick');
+assert.ok(f.includes('e.castA1(q.ang)'),
+  'Frost A1 animation must originate from the real Gold cast');
+assert.ok(f.includes('drawIceComposite(S, ctx, px)'),
+  'Gold must own the sole A1 ice surface pass');
+assert.doesNotMatch(f,/function (?:drawQueuedA1GoldSurface|primeQueuedA1Gold|replayA1Lane)\(/,
+  'no independent preview or historical lane materializer may replay the same A1');
+assert.doesNotMatch(f,/n\.__frostQueuedPreview\s*=/,
+  'queued preview material must never produce a second ice field');
+assert.match(f,/e\.modeT >= A1_RELEASE_BEAT - 1e-7/,
+  'Gold release epsilon must not become a full anticipation-skipping jump');
+assert.ok(!f.includes('drawQueuedA1Floor') && !f.includes('rgba(110,213,248'),
+  'unapproved flat cyan A1 proxy must not return');
+assert.match(f,/pumpCastQueue\(S, now, insp\)/,
+  'A2 history queue remains truthful without replaying A1');
 assert.match(result,/APEX_COMBAT_HUD\?\.projection/,'Result must use Battle HUD color authority');
 assert.match(result,/cfg\.TIER_COLORS\?\.\[tier\]/,'Result must use actual weapon tier palette');
 assert.match(weapon,/weapon__rarity/,'Weapon Gold must visibly show tier');
@@ -96,7 +113,17 @@ for(const [id,kind] of [['FLARE_GUN','flare'],['TACTICAL_CROSSBOW','bolt'],
 assert.match(cfg,/reflectableKinds:\['plasma-core','plasma'\]/,
   'plasma core and released shards share one reflected-particle law');
 assert.match(cfg,/reflectableKinds:\[\],magnetizableKinds:\[\],muzzleDx:-1/,'flame cone must not masquerade as a moving bullet');
-assert.match(cry,/eligible\.includes\(p\.kind\)/,'Crystal K must query authoritative registry capabilities');
+// CP5.5: actual Crystal K now calls the shared policy instead of repeating
+// the V43 tag classifier. Keep both provenance and the real consumer enforced.
+const ail=fs.readFileSync('public/game/hero-rework/ailRuntime.js','utf8');
+assert.match(ail,/action==='v43-reflection-tag'/,
+  'shared AIL reflection-kind action must exist');
+assert.match(ail,/special\.reflectableKinds\.includes\(target\.kind\)/,
+  'AIL must read the canonical V43 registry capability tag');
+assert.match(cry,/authority\.query\?\.\('v43-reflection-tag',p,\{config:CFG\(\)\}\)/,
+  'Crystal K must consume the AIL canonical reflection policy');
+assert.match(cry,/p\.kind==='mine'&&p\.phase!=='flight'/,
+  'Crystal K must retain mine flight eligibility guard');
 assert.match(rd('public/game/hero-rework/magnetGameplayRuntime.js'),/special\.magnetizableKinds\.includes\(p\.kind\)/,'Magnet must use shared kinetic registry');
 assert.match(w,/v43DamageScale\(p,c\.coreDamage\)/,'plasma child damage must inherit the parent reflection scalar');
 assert.match(w,/function v43Deal\(p,target,amount,opts=\{\}\)/,
@@ -128,7 +155,19 @@ assert.match(p,/drawV43GoldPlasmaCharge,\s*drawPoseGhost/,
   'Gold plasma presentation helper must be available to the shared foreground');
 assert.match(p,/robot\.getRobotWeaponSocketWorld\?\.\(fighter\)/,
   'plasma muzzle and charge must honor the actual ROBOT-held-art socket');
-assert.match(robot,/if \(ok\) return true;/,
-  'regression fixture: ROBOT-held-art override short-circuits default drawer');
+// CP13: the old global Robot AV wrapper was replaced with a scoped provider.
+ // The invariant is not the formatting of an old short-circuit statement:
+ // the physically-equipped ROBOT returns a paint receipt to the Arsenal-owned
+ // dispatch, so generic equipped art must NOT draw a second gun.
+assert.match(robot,/registerEquippedWeaponRenderer\('robot-native-jaw',paintRobotEquipped\)/,
+  'ROBOT must register its native jaw renderer through Arsenal AV');
+assert.match(robot,/if\(ok\)return true;/,
+  'ROBOT native jaw provider must claim the completed Gold-held paint');
+assert.doesNotMatch(robot,/av\.drawEquippedWeapon\s*=/,
+  'ROBOT must not replace the globally shared Arsenal AV draw method');
+assert.match(p,/if\(handled===true\)return true;/,
+  'Arsenal provider dispatch must stop after one complete held weapon draw');
+assert.match(p,/registerEquippedWeaponRenderer,/,
+  'Arsenal must export the owner-scoped held weapon provider registry');
 
 console.log('PASS owner V43 source integration invariants: 8 weapon entries + native holder/pose/projectile/Frost/result gates');
