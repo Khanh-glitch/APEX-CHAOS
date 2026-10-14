@@ -122,12 +122,14 @@ gate('semantic-graph-and-admin-boundary', () => {
   const active = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.ACTIVE);
   const locked = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.LOCKED);
   assert.equal(graph.length, 11);
-  // Bot, Local, Lucky and the lightweight Cosmetic Locker are active.
+  // Bot, Local, Lucky, cosmetic shortcut and the unified Dictionary Field Archive are active.
   // The separate Fighter Shop remains LOCKED until its owner cutover.
-  assert.equal(active.length, 4);
-  assert.equal(locked.length, 7);
-  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'cosmetic-locker', 'lucky-draw']);
+  assert.equal(active.length, 5);
+  assert.equal(locked.length, 6);
+  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'cosmetic-locker', 'lucky-draw', 'dictionary']);
   assert.equal(canLaunchProductSurface('cosmetic-locker'), true);
+   assert.equal(canLaunchProductSurface('dictionary'), true);
+   assert.equal(graph.find(x=>x.id==='dictionary')?.route,'skins');
   assert.ok(locked.some((surface) => surface.id === 'fighter-shop'));
   assert.ok(locked.some((surface) => surface.id === 'quest-01'));
   assert.equal(canLaunchProductSurface('fighter-shop'), false);
