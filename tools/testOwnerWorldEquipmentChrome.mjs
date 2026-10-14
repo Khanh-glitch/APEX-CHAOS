@@ -315,11 +315,46 @@ try {
     if(!G.APEX_ARSENAL_SKILL_GATE.pressJ(a))throw Error('Real Frost second A1 press rejected');
     for(let i=0;i<54;i++){AR.step(1/60);if(typeof G.draw==='function')G.draw();}
     const secondCast=F.inspect(a);
+    // CP17: actual third A1 in the SAME Gold Battle, while native A2 is live.
+    // The previous fixture only exercised two isolated A1s and could never
+    // detect queued Gold actor motion, preview duplication or a delayed replay.
+    let untilReady=0;
+    for(;untilReady<1800&&(ctl.cooldownLeft('A1')>0||a.hardCC());untilReady++)AR.step(1/60);
+    if(ctl.cooldownLeft('A1')>0||a.hardCC())throw Error('CP17 third A1 cooldown did not recover');
+    a.x=200;a.y=500;a.setDir(1,0);b.x=850;b.y=850;AR.state.slots=[];
+    const hunt=HR.pressAbility(a,'A2');
+    if(!hunt?.ok)throw Error('CP17 A2 setup denied');
+    for(let n=0;n<8;n++)AR.step(1/60);
+    if(F.inspect(a).mode!=='a2')throw Error('CP17 actual Gold hunt not running');
+    if(!G.APEX_ARSENAL_SKILL_GATE.pressJ(a))throw Error('CP17 overlapping A1 denied');
+    const trace=[],E=F.engineFor(a);let lastReleased=false,releaseEdges=0,preview=false,maxIce=0;
+    for(let n=0;n<54;n++){
+      AR.step(1/60);if(typeof G.draw==='function')G.draw();
+      const p=F.inspect(a),ice=E.ice.nodes.filter(x=>x.kind==='lane').length;
+      if(p.a1.released&&!lastReleased)releaseEdges++;
+      lastReleased=p.a1.released;maxIce=Math.max(maxIce,ice);
+      preview=preview||E.ice.nodes.some(x=>x.__frostQueuedPreview);
+      trace.push({frame:n+1,mode:p.mode,started:p.a1Started,starts:p.castStarts,
+        released:p.a1.released,queued:p.queued,replays:p.a1Replays,
+        jaw:p.choreography.jawGoal,ice});
+    }
+    const first=trace[0],last=trace.at(-1);
+    const midmatchA1A2={first,last,releaseEdges,preview,maxIce,
+      chargeFrames:trace.filter(x=>x.frame>=5&&x.frame<=14&&x.jaw>=40&&!x.released).length,
+      releasedOnTime:trace.some(x=>x.frame>=15&&x.frame<=23&&x.released),
+      loadCalls:G.APEX_FROST_GOLD.cacheStats.loadCalls,
+      sample:trace.filter(x=>[1,5,10,15,18,23,35,54].includes(x.frame))};
+    if(first.mode!=='a1'||first.queued!==0||first.starts!==4||
+      first.started<=secondCast.a1Started||releaseEdges!==1||preview||
+      maxIce<40||midmatchA1A2.chargeFrames<3||!midmatchA1A2.releasedOnTime||
+      last.started!==first.started||last.replays!==0||midmatchA1A2.loadCalls!==1)
+      throw Error('CP17 LIVE MID-MATCH FROST A1 failed: '+JSON.stringify(midmatchA1A2));
     return {kind,measurements,laneWidth:lane.width??null,earlyFrames,
       twoCastProof:{firstStarts:firstCast.castStarts,firstId:firstCast.a1Started,
         secondStarts:secondCast.castStarts,secondId:secondCast.a1Started,
         firstReplays:firstCast.a1Replays,secondReplays:secondCast.a1Replays,
-        loadCalls:G.APEX_FROST_GOLD.cacheStats.loadCalls,waitedFrames:elapsed}};
+        loadCalls:G.APEX_FROST_GOLD.cacheStats.loadCalls,waitedFrames:elapsed},
+      midmatchA1A2};
    }
   },kind);
   if(kind==='magnet-ai'){
@@ -366,6 +401,8 @@ try {
    assert.equal(v.firstReplays,0,label+' first A1 delayed visual replayed');
    assert.equal(v.secondReplays,0,label+' second A1 delayed visual replayed');
    assert.equal(v.loadCalls,1,label+' repeated Gold preprocessing across casts');
+   assert.ok(evaluated.midmatchA1A2&&evaluated.midmatchA1A2.releaseEdges===1,
+     label+' overlapping third A1 must release exactly once');
    assert.ok(evaluated.earlyFrames.some(f=>(f.sources['frost-gold-body']||0)>0),
      label+' early Gold Frost actor source absent');
   }
