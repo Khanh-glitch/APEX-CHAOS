@@ -998,6 +998,17 @@ function renderRig(g) {
     return {
       time:st.T,armor:!!st.armor,held:!!st.held,
       scanning:!!st.brackets&&st.brackets.state==='in'&&!st.held,
+      // Presentation-only snapshots. The cosmetic target belongs to the same
+      // native RobotA1Lock target slot; no aim, target selection or ownership
+      // is calculated by the skin.
+      brackets:st.brackets?{
+        t0:st.brackets.t0,t1:st.brackets.t1,state:st.brackets.state,
+        target:st.brackets.target?{x:st.brackets.target.x,y:st.brackets.target.y}:null
+      }:null,
+      measure:st.measure?{
+        t0:st.measure.t0,
+        target:st.brackets?.target?{x:st.brackets.target.x,y:st.brackets.target.y}:null
+      }:null,
       mode:st.mode,lockFlash:st.lockFlash,ticks:[...st.ticks],springs,
       vx:st.vxw,vy:st.vyw,trailOn:st.trailOn,dashTrail:st.trail.slice(-90),
       fxEvents:st.ecoFxEvents.slice(-40),
@@ -1036,7 +1047,8 @@ function renderRig(g) {
   const eco=globalScope.APEX_COSMETICS;
   const receipt=eco?.capture?.(eco.sideOf(fighter,globalScope),'hero','ROBOT');
   const motion=receipt?.skinId==='ecobot'?robotCosmeticMotion(st):null;
-  const ecoPose=motion?{x:fighter.x,y:fighter.y,kind:'ROBOT',robot:motion}:null;
+  const ecoPose=motion?{x:fighter.x,y:fighter.y,kind:'ROBOT',
+    robot:{...motion,scanSource:{x:fighter.x,y:fighter.y-fighter.radius*.8}}}:null;
   const ecoBack=ecoAlreadyBack||!!(ecoPose&&eco?.render?.('worldBack',ctx,receipt,ecoPose)===true);
   for (const f of st.flashes) {
     const a = 1 - f.t / f.dur;
@@ -1062,8 +1074,11 @@ function renderRig(g) {
       ctx.fillStyle = 'rgba(120,118,110,' + a * .28 + ')'; ctx.beginPath(); ctx.arc(q2.x, q2.y, q2.s * (1 + q2.t * 2), 0, TAU); ctx.fill();
     }
   }
+    // Cosmetic owns the entire Gold targeting family; ORIGINAL keeps its
+    // authored metal bracket. Both read native bracket state and target only.
+    const ecoLockDrawn=!!(ecoPose&&eco?.render?.('targetLock',ctx,receipt,ecoPose)===true);
     // Brackets — elastic easing from HTML authority, adapted to target pickup
-    if (st.brackets) {
+    if (!ecoLockDrawn && st.brackets) {
       let gap, alpha;
       const t = st.T - st.brackets.t0;
       if (st.brackets.state === 'in') {
@@ -1098,8 +1113,11 @@ function renderRig(g) {
       }
     }
 
+    if(ecoLockDrawn&&st.brackets?.state==='out'&&st.T-st.brackets.t1>=.14)
+      st.brackets=null; // presentation-only Gold release lifetime, not A1 authority
+    const ecoMeasureDrawn=!!(ecoPose&&eco?.render?.('targetMeasure',ctx,receipt,ecoPose)===true);
     // Measure — line from robot latch/head to target
-    if (st.measure && !st.held) {
+    if (!ecoMeasureDrawn && st.measure && !st.held) {
       const t = st.T - st.measure.t0;
       if (t > .34) { st.measure = null; }
       else {
@@ -1124,6 +1142,8 @@ function renderRig(g) {
       }
     }
 
+    if(ecoMeasureDrawn&&st.measure&&st.T-st.measure.t0>.34)
+      st.measure=null; // native presenter GC for the Gold-only drawing path
     // Trail with calibration ticks — authority logic
     if (!ecoBack && st.trail.length >= 2) {
       const fade = st.trailOn ? (isFinite(st.contactT) && st.T > st.contactT ? clamp(1 - (st.T - st.contactT) / .5, 0, 1) : 1) : 0;
