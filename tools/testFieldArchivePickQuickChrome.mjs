@@ -76,7 +76,11 @@ try {
     side:document.querySelector('.fa3-players button[aria-pressed="true"]')?.textContent,
     original:document.querySelector('.fa3-equip-state')?.textContent
    }));
-   assert.equal(p2.hero,cpuName,'Quick Equip BOT hero mismatch');
+   // Gold Pick preserves legacy on-screen names (ROBOT, ICE, CRYSTAL);
+   // the Archive deliberately displays the newer user-facing product names.
+   // Compare canonical hero identity, not its two historical UI aliases.
+   const archiveHeroByGoldName={ROBOT:'NEWBOT',ICE:'FROST',CRYSTAL:'CRYSTALA'};
+   assert.equal(p2.hero,archiveHeroByGoldName[cpuName]||cpuName,'Quick Equip BOT hero identity mismatch');
    assert.ok(p2.side.includes('P2')&&p2.original.includes('ORIGINAL'),'BOT P2 identity/skin leaked');
    assert.deepEqual(errors,[],'Pick Quick Equip browser errors');
    await page.screenshot({path:path.join(output,v.name+'-p2-archive.jpg'),type:'jpeg',quality:82});
