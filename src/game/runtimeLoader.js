@@ -45,33 +45,103 @@ function runtimeScriptFor(src) {
   return null;
 }
 
+// CP15: the browser dispatches <script>.load even when executing that script
+// throws. A successful fetch is NOT proof that its classic global evaluated.
+// Only essential runtime authorities require a legacy "ready" marker: those
+// markers are written by the current canonical scripts after initialization.
+const REQUIRED_CLASSIC_READY_MARKERS = new Set([
+  'apexArsenalConfig', 'apexArsenalIdentityRuntime',
+  'apexArsenalWeaponRuntime', 'apexArsenalSpawnRuntime',
+  'apexArsenalPresentationRuntime', 'apexArsenalChamberPaletteRuntime',
+  'apexHeroReworkAil', 'apexHeroReworkRegistry',
+  'apexHeroReworkMechanics', 'apexHeroReworkRuntime',
+  'apexArsenalBattleRuntime',
+]);
+const classicRuntimeInflight = new Map();
+function runtimeUrl(src) {
+  return new URL(src, document.baseURI || 'http://localhost/').href;
+}
+function runtimeAdmissionError(src, reason) {
+  return new Error(`Classic runtime admission failed [${src}]: ${reason}`);
+}
 export function loadClassicRuntime(src, dataKey) {
-  return new Promise((resolve, reject) => {
+  const url = runtimeUrl(src);
+  if (classicRuntimeInflight.has(url)) return classicRuntimeInflight.get(url);
+  const gate = new Promise((resolve, reject) => {
     const endTiming = beginPerfSpan('runtime', src);
     const existing = runtimeScriptFor(src);
+    const markerReady = () => !REQUIRED_CLASSIC_READY_MARKERS.has(dataKey) ||
+      window[dataKey] === 'ready';
+    if (existing?.dataset.apexFailed === 'true') {
+      endTiming({ ok: false, cached: true, reason: 'prior-evaluation-failure' });
+      reject(runtimeAdmissionError(src, 'earlier evaluation failed; reload the page'));
+      return;
+    }
     if (existing?.dataset.apexLoaded === 'true') {
-      endTiming({ ok: true, cached: true });
-      resolve();
+      if (!markerReady()) {
+        endTiming({ ok: false, cached: true, reason: 'missing-ready-marker' });
+        reject(runtimeAdmissionError(src, `missing ${dataKey}=ready after cached load`));
+      } else {
+        endTiming({ ok: true, cached: true });
+        resolve();
+      }
       return;
     }
 
     const runtime = existing || document.createElement('script');
-    runtime.src = src;
+    if (!existing) runtime.src = src; // never restart a pre-existing script
     runtime.async = false;
     runtime.dataset[dataKey] = 'true';
+    let settled = false;
+    const evaluationErrors = [];
+    const onEvaluationError = (event) => {
+      // Attribution is filename-specific: concurrent unrelated page errors
+      // must not invalidate the runtime being admitted.
+      try {
+        if (event?.filename && runtimeUrl(event.filename) === url)
+          evaluationErrors.push(String(event.message || event.error?.message || 'evaluation error'));
+      } catch (_) {}
+    };
+    const cleanup = () => {
+      runtime.removeEventListener('load', handleLoad);
+      runtime.removeEventListener('error', handleError);
+      window.removeEventListener('error', onEvaluationError, true);
+    };
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error) {
+        runtime.dataset.apexFailed = 'true';
+        endTiming({ ok: false, cached: false, reason: String(error.message) });
+        reject(error);
+      } else {
+        runtime.dataset.apexLoaded = 'true';
+        endTiming({ ok: true, cached: false });
+        resolve();
+      }
+    };
     const handleLoad = () => {
-      runtime.dataset.apexLoaded = 'true';
-      endTiming({ ok: true, cached: false });
-      resolve();
+      if (evaluationErrors.length)
+        return finish(runtimeAdmissionError(src, evaluationErrors[0]));
+      if (!markerReady())
+        return finish(runtimeAdmissionError(src, `missing ${dataKey}=ready after evaluation`));
+      finish();
     };
-    const handleError = () => {
-      endTiming({ ok: false, cached: false });
-      reject(new Error(`Failed to load ${src}`));
-    };
+    const handleError = () => finish(runtimeAdmissionError(src, 'script network/load error'));
+    window.addEventListener('error', onEvaluationError, true);
     runtime.addEventListener('load', handleLoad, { once: true });
     runtime.addEventListener('error', handleError, { once: true });
     if (!existing) document.body.appendChild(runtime);
   });
+  classicRuntimeInflight.set(url, gate);
+  // Clear only the active promise. A failed script node stays marked failed,
+  // since blindly re-evaluating partly mutated classic globals is unsafe.
+  void gate.then(
+    () => { if (classicRuntimeInflight.get(url) === gate) classicRuntimeInflight.delete(url); },
+    () => { if (classicRuntimeInflight.get(url) === gate) classicRuntimeInflight.delete(url); },
+  );
+  return gate;
 }
 
 async function loadRuntimeList(runtimes) {
