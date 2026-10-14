@@ -10,6 +10,7 @@ on:
       - 'public/game/gold/goldProductBridge.js'
       - 'tools/testCosmeticContracts.mjs'
       - 'tools/testGoldRocketSmokeSampling.mjs'
+      - 'tools/testEcoGoldTargetFamily.mjs'
       - 'tools/testCosmeticLockerChrome.mjs'
       - 'tools/testCosmeticBattleChrome.mjs'
       - 'tools/testOwnerGoldSkinsChrome.mjs'
@@ -33,6 +34,7 @@ jobs:
         run: |
           node tools/testCosmeticContracts.mjs
           node tools/testGoldRocketSmokeSampling.mjs
+          node tools/testEcoGoldTargetFamily.mjs
       - name: Verify production build and original runtime locks
         run: |
           node tools/testRuntimeRevisionGate.mjs
