@@ -1,0 +1,55 @@
+name: Field Archive C03 Real Product QA
+on:
+  push:
+    branches:
+      - design/field-archive-c03-product-20261014
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-product-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Real shipping build and runtime Gold manifest/asset integrity
+        run: |
+          pnpm build
+          node tools/testShippingDist.mjs
+          node tools/testRuntimeRevisionGate.mjs
+      - name: Install Chrome driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Preview built product
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/fa3-vite.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/fa3-vite.log
+          exit 1
+      - name: Five real Chrome viewports, Gold HOME Dictionary, actual Equip and persisted reload
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testFieldArchiveC03Chrome.mjs
+      - name: Upload diagnostic and approved actual UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: field-archive-c03-real-product-proof
+          path: docs/field-archive/candidate03/
+          if-no-files-found: warn
+          retention-days: 21
