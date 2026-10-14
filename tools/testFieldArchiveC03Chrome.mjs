@@ -43,6 +43,22 @@ try{
    assert.equal(initial.originalSrc,'/assets/gold-ui/heroes/newbot/pick_selected_large.webp','NEWBOT default must use approved Gold pick art');
    assert.equal(initial.hasScroll,false,'the page scrolls vertically');
    assert.ok(initial.equip.top>=0&&initial.equip.bottom<=v.height+1,'Equip below/above viewport '+JSON.stringify(initial.equip));
+   // Geometric and hit-testing regression: short landscape used to hide the
+   // second appearance below a decorative field-note. Every skin must be
+   // directly clickable, fully above equip/status, and inside its panel.
+   const skinReach=await page.evaluate(()=>{
+     const detail=document.querySelector('.fa3-detail'),equipState=document.querySelector('.fa3-equip-state');
+     return [...document.querySelectorAll('.fa3-skin')].map(el=>{
+       const r=el.getBoundingClientRect(),cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;
+       return {label:el.textContent.trim().slice(0,30),
+         hit:document.elementFromPoint(cx,cy)?.closest('.fa3-skin')===el,
+         within:r.top>=detail.getBoundingClientRect().top-1 &&
+                r.bottom<=equipState.getBoundingClientRect().top+1,
+         bounds:r.toJSON()};
+     });
+   });
+   assert.equal(skinReach.length,2,'NEWBOT must expose exactly two registered appearances');
+   assert.ok(skinReach.every(s=>s.hit&&s.within),'clipped or occluded appearance: '+JSON.stringify(skinReach));
    assert.deepEqual(errors,[],'browser runtime/asset errors');
    await page.screenshot({path:path.join(dir,v.name+'-newbot-original.jpg'),type:'jpeg',quality:85});
    // IMPORTANT: live registered cosmetic, no fake prototype model.
