@@ -37,10 +37,26 @@ assert.equal(ctrl.flurryFighterHit({collisionId:'flurry-1',opponentId:'FROST'},3
 assert.equal(has('arena:stun-request').find(x=>x.source==='A1-FLURRY').durationMs,42.5);
 assert.equal(has('boxe:flurry-start')[0].periodMs,85);
 assert.equal(has('boxe:flurry-start')[0].bodyDash,false);
+// First Gold launch is immediate. 2.000s / 85ms with 50ms impact clearance
+// => precisely 23 legally hittable attacks. Catch can never cancel flurry.
+assert.equal(has('boxe:flurry-punch-scheduled').length,1);
+const singlePunch=has('boxe:flurry-punch-scheduled')[0];
+assert.equal(singlePunch.atMs,3102);
+assert.equal(singlePunch.impactAtMs,3152);
+assert.equal(singlePunch.damage,0);
 assert.equal(ctrl.rocketGroundGunContact({gunId:'PISTOL'},3107),true);
 assert.equal(ctrl.rocketGroundGunContact({gunId:'RPG7'},3108),false);
 ctrl.setWeaponFireCycle(true,3109);
-ctrl.advance(5299);assert.equal(ctrl.snapshot().rocket.phase,'outbound'); // cast 300 + 5000
+ctrl.advance(5299);assert.equal(ctrl.snapshot().rocket.phase,'outbound');
+const punches=has('boxe:flurry-punch-scheduled');
+assert.equal(punches.length,23,'Flurry exact Gold timeline has 23 complete punches in 2s');
+for(let i=0;i<punches.length;i++){
+ assert.equal(punches[i].atMs,3102+i*85);
+ assert.equal(punches[i].impactAtMs,punches[i].atMs+50);
+ assert.ok(punches[i].impactAtMs<=5102);
+}
+assert.equal(has('boxe:flurry-finished').length,1);
+assert.equal(has('boxe:flurry-finished')[0].punchCount,23); // cast 300 + 5000
 ctrl.advance(5300);assert.equal(ctrl.snapshot().rocket.phase,'returning');
 assert.equal(ctrl.rocketCatch(5400),true);
 assert.equal(has('arena:equip-queued-gun-request').length,0);
@@ -97,7 +113,16 @@ assert.equal(recordAuthorizedKill(s,{killId:'robot-42',xp:70},kills).accepted,fa
 assert.equal(s.totalXp,70);
 assert.equal(waveDescriptor(5,DEFAULT_ROBOTS).boss,true);
 assert.deepEqual(waveDescriptor(10,DEFAULT_ROBOTS).candidates,['bossOmega']);
+assert.deepEqual(waveDescriptor(15,DEFAULT_ROBOTS).candidates,['bossEndless']);
+assert.equal(waveDescriptor(20,DEFAULT_ROBOTS).boss,true);
 assert.equal(waveDescriptor(2,DEFAULT_ROBOTS).boss,false);
 const ext={...DEFAULT_ROBOTS,'flying-mech':{minWave:2,boss:false}};
 assert.ok(waveDescriptor(2,ext).candidates.includes('flying-mech'));
 console.log('BOXE Owner R2 PASS: auto skills 0 damage; 10% finisher; 300/3s/x2; repeated stun/disarm; Gold rocket 5s; catch gun queue; BOT WAVE gated J/K/L, three random upgrade offers; wave 5/10 bosses; extension registry');
+
+// Inspect C04 profile when fighter explicitly states damage 0: the keyword
+// "hit" alone must not invent ability HP damage for BOXE.
+const {heroProfile}=await import('../src/game/cosmetics/fieldArchiveProfiles.js');
+const zeroHero={archiveProfile:{traits:{damage:0}},skills:{PASSIVE:{mechanicId:'hit_power',baseConfig:{damage:0}},A1:{mechanicId:'rocket_hit',baseConfig:{impactStunMs:500}},A2:{mechanicId:'block_and_hit',baseConfig:{duration:1}}}};
+assert.equal(heroProfile(zeroHero).axes.find(x=>x.key==='damage').value,0);
+console.log('C04 radar owner-defined zero damage override PASS');

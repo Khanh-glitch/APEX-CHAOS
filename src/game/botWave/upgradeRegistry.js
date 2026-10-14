@@ -98,5 +98,6 @@ export const DEFAULT_ROBOTS=Object.freeze({
  bruiser:{minWave:3,boss:false,behavior:'aggressive-pursuit'},
  sentinel:{minWave:6,boss:false,behavior:'ranged-barrage'},
  bossAlpha:{minWave:5,maxWave:5,boss:true,behavior:'multi-phase'},
- bossOmega:{minWave:10,maxWave:10,boss:true,behavior:'multi-phase'}
+ bossOmega:{minWave:10,maxWave:10,boss:true,behavior:'multi-phase'},
+ bossEndless:{minWave:11,boss:true,behavior:'endless-multi-phase'}
 });

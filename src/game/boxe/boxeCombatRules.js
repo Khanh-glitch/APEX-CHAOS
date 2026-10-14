@@ -12,7 +12,7 @@ export function boxeSkillDamage({kind,targetRemainingHP=0}={}){
 export function createBoxeBattleController({emit=()=>{}}={}){
  const state={
   now:0,damageProgress:0,enhancedUntil:0,enhanced:false,
-  cooldowns:{A1:0,A2:0},rocket:null,counter:null,
+  cooldowns:{A1:0,A2:0},rocket:null,flurry:null,counter:null,
   carryQueue:null,fireCycleActive:false
  };
  function dispatch(type,payload={}){emit({type,now:state.now,...payload});}
@@ -35,8 +35,19 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   if(state.counter?.phase==='guard'&&now>=state.counter.expiresAt){
    state.counter=null;dispatch('boxe:counter-window-ended');
   }
-  if(state.rocket?.flurry&&state.rocket.flurry.endingAt<=now){
-   dispatch('boxe:flurry-finished',{goldKey:'1'});state.rocket.flurry=null;
+  // Gold key 1: launch interval 85ms, impact delay 50ms. Events retain
+  // their exact scheduled time even when one engine frame spans many ticks.
+  const f=state.flurry;
+  if(f){
+   while(f.nextLaunchAt+50<=f.endingAt&&f.nextLaunchAt<=now){
+    dispatch('boxe:flurry-punch-scheduled',{goldKey:'1',punchIndex:f.punchCount++,atMs:f.nextLaunchAt,
+     impactAtMs:f.nextLaunchAt+50,periodMs:85,bodyDash:false,damage:0});
+    f.nextLaunchAt+=85;
+   }
+   if(now>=f.endingAt){
+    dispatch('boxe:flurry-finished',{goldKey:'1',atMs:f.endingAt,punchCount:f.punchCount});
+    state.flurry=null;
+   }
   }
  }
  function recordRealDamage({direction,realizedHp,source,ownedByBoxe=true},now){
@@ -57,7 +68,7 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   advance(now);if(state.cooldowns.A1>0||state.rocket)return false;
   state.cooldowns.A1=RULES.a1.cooldownMs;
   state.rocket={phase:'outbound',returnAt:now+RULES.a1.outboundMs,enhancedAtCast:state.enhanced,
-   collisionIds:new Set(),flurry:null,flurryIds:new Set(),cargoId:null};
+   collisionIds:new Set(),flurryUsed:false,cargoId:null};
   dispatch('boxe:rocket-launch',{goldKey:'2',durationMs:RULES.a1.outboundMs,enhanced:state.enhanced,damage:0});
   return true;
  }
@@ -68,16 +79,20 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   dispatch('arena:stun-request',{opponentId,durationMs:RULES.a1.impactStunMs,damage:0,source:'A1'});
   dispatch('arena:disarm-request',{opponentId,source:'A1',collisionId});
   dispatch('boxe:rocket-impact',{goldKey:'2',opponentId,collisionId,damage:0});
-  if(r.enhancedAtCast&&!r.flurry){
-   r.flurry={startedAt:now,endingAt:now+RULES.a1.enhanced.durationMs};
+  if(r.enhancedAtCast&&!r.flurryUsed){
+   r.flurryUsed=true;
+   state.flurry={startedAt:now,endingAt:now+RULES.a1.enhanced.durationMs,
+    nextLaunchAt:now,punchCount:0,hitIds:new Set()};
    dispatch('boxe:flurry-start',{goldKey:'1',durationMs:2000,periodMs:85,bodyDash:false});
+   // Immediate first launch belongs to the same exact clock tick.
+   advance(now);
   }
   return true;
  }
  function flurryFighterHit({collisionId,opponentId},now){
-  advance(now);const r=state.rocket;
-  if(!r?.flurry||now>=r.flurry.endingAt||!collisionId||r.flurryIds.has(collisionId))return false;
-  r.flurryIds.add(collisionId);
+  advance(now);const f=state.flurry;
+  if(!f||now>=f.endingAt||!collisionId||f.hitIds.has(collisionId))return false;
+  f.hitIds.add(collisionId);
   dispatch('arena:stun-request',{opponentId,source:'A1-FLURRY',durationMs:42.5,damage:0,collisionId});
   dispatch('boxe:flurry-impact',{goldKey:'1',opponentId,collisionId,damage:0});
   return true;
@@ -143,7 +158,8 @@ export function createBoxeBattleController({emit=()=>{}}={}){
  function snapshot(){return {
   now:state.now,damageProgress:state.damageProgress,enhanced:state.enhanced,
   enhancedUntil:state.enhancedUntil,cooldowns:{...state.cooldowns},
-  rocket:state.rocket?{phase:state.rocket.phase,returnAt:state.rocket.returnAt,cargoId:state.rocket.cargoId,flurryActive:!!state.rocket.flurry}:null,
+  rocket:state.rocket?{phase:state.rocket.phase,returnAt:state.rocket.returnAt,cargoId:state.rocket.cargoId,flurryUsed:state.rocket.flurryUsed}:null,
+  flurry:state.flurry?{startedAt:state.flurry.startedAt,endingAt:state.flurry.endingAt,punchCount:state.flurry.punchCount}:null,
   counterPhase:state.counter?.phase||null,carryQueue:state.carryQueue,fireCycleActive:state.fireCycleActive
  };}
  return {advance,recordRealDamage,castA1,rocketFighterHit,flurryFighterHit,rocketGroundGunContact,

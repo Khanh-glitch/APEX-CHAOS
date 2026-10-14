@@ -48,6 +48,10 @@ export function heroProfile(hero){
  if(!hero?.skills)return {kind:'hero',status:'unavailable',axes:PROFILE_AXES.hero.map(a=>({...a,value:null,evidence:[]}))};
  const skills=['PASSIVE','A1','A2'].map(k=>hero.skills[k]).filter(Boolean);
  const axes=PROFILE_AXES.hero.map(axis=>{
+  // Owner-declared mechanic profiles win over keyword heuristics, including
+  // an explicit ZERO. This supports non-damaging fighters without false DPS.
+  const canonical=declaredTraits(hero)[axis.key];
+  if(finite(canonical))return {...axis,value:Math.round(canonical),evidence:['DECLARED FIGHTER MECHANIC']};
   let total=0;const evidence=[];
   for(const skill of skills){
    const config=skill.baseConfig||{};
@@ -55,6 +59,11 @@ export function heroProfile(hero){
    const fields=entries(config);
    const matching=fields.filter(e=>RULES[axis.key].test(e.path));
    const nameMatches=RULES[axis.key].test(tokens[0]);
+   const tagged=declaredTraits(skill)[axis.key];
+   if(finite(tagged)){
+    total+=tagged/3;evidence.push('DECLARED SKILL MECHANIC PROFILE');
+    continue;
+   }
    if(nameMatches||matching.length){
     // Count independently documented mechanic names/parameters. Do not
     // multiply raw damage by global scale or guess chance-to-hit/DPS.
@@ -65,8 +74,6 @@ export function heroProfile(hero){
     total+=signal+availability;
     evidence.push(title(skill.slot||skill.kind||skill.id)+': '+(matching.slice(0,2).map(e=>title(e.path)).join(' / ')||title(skill.mechanicId||skill.id)));
    }
-   const tagged=declaredTraits(skill)[axis.key];
-   if(finite(tagged)){total+=tagged/3;evidence.push('DECLARED MECHANIC PROFILE');}
   }
   // Fixed scoring anchors ensure a new fighter does NOT change old scores.
   return {...axis,value:Math.round(clamp(total)),evidence};
