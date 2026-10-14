@@ -1,0 +1,121 @@
+name: OWNER CP17 PRODUCTION SHA + Chrome Verification
+on:
+  push:
+    branches:
+      - ops/verify-cp17-production-20261014
+    paths:
+      - .github/workflows/owner-cp17-production-verification.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  production-cloudflare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      APEX_APP_URL: https://apex-chaos.pages.dev/
+      EXPECTED_PRODUCTION_SHA: 8f43599bcf1a4193ccaa2e2b9ba26d34d965cbd7
+      EXPECTED_RELEASE_REVISION: 20261014-cp17-frost-cast-r1
+      APEX_CP16_EVIDENCE_DIR: /tmp/cp17-production-cold
+      APEX_EVIDENCE_DIR: /tmp/cp17-production-battle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Strict live production commit SHA and Gold shell byte admission
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cp17-production-cold
+          curl -fLsS --max-time 30 "${APEX_APP_URL}" -o /tmp/cp17-production-cold/production-index.html
+          matched=0
+          for attempt in $(seq 1 45); do
+            rm -f /tmp/cp17-production-cold/production-receipt.json
+            curl -fLsS --max-time 25 -H 'Cache-Control: no-cache' "${APEX_APP_URL}CP16_BUILD_RECEIPT.json?verified=${EXPECTED_PRODUCTION_SHA}&attempt=${attempt}" -o /tmp/cp17-production-cold/production-receipt.json 2>/dev/null || true
+            if node --input-type=module -e "
+              import fs from 'node:fs';
+              const r=JSON.parse(fs.readFileSync('/tmp/cp17-production-cold/production-receipt.json','utf8'));
+              if(r.gitCommit!==process.env.EXPECTED_PRODUCTION_SHA ||
+                 r.revision!==process.env.EXPECTED_RELEASE_REVISION ||
+                 r.versionedRuntimeCount!==59 || r.gitBranch!=='main')
+                process.exit(1);
+            " >/dev/null 2>&1; then matched=1;break;fi
+            echo "Cloudflare production has not served the exact merged SHA: ${attempt}/45"
+            sleep 6
+          done
+          if [ "$matched" != "1" ]; then echo "::error::Production served unexpected/missing SHA or release revision";exit 1;fi
+          curl -fLsS --max-time 30 "${APEX_APP_URL}gold/manifest.json" -o /tmp/cp17-production-cold/gold-manifest.json
+          curl -fLsS --max-time 30 "${APEX_APP_URL}gold/shell.html" -o /tmp/cp17-production-cold/gold-shell.html
+          node --input-type=module -e "
+            import fs from 'node:fs';import crypto from 'node:crypto';
+            const r=JSON.parse(fs.readFileSync('/tmp/cp17-production-cold/production-receipt.json','utf8'));
+            const g=JSON.parse(fs.readFileSync('/tmp/cp17-production-cold/gold-manifest.json','utf8'));
+            const shell=fs.readFileSync('/tmp/cp17-production-cold/gold-shell.html');
+            const hash=crypto.createHash('sha256').update(shell).digest('hex');
+            if(r.gitCommit!==process.env.EXPECTED_PRODUCTION_SHA ||
+              g.runtimeRevision!==r.revision || r.goldShellSha256!==hash ||
+              g.files?.['shell.html']?.sha256!==hash ||
+              g.files?.['shell.html']?.bytes!==shell.length)process.exit(1);
+            console.log('PRODUCTION CP17 SHA + GOLD BYTES PASS',r.gitCommit,r.revision,hash,shell.length);
+          "
+      - name: Install Chrome driver
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Real Cloudflare production desktop and Android START cold/cache/return
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testCP16ColdReturnChrome.mjs
+      - name: Real Cloudflare production Battle smoke on desktop and Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testOwnerWorldEquipmentChrome.mjs
+      - name: Reverify production SHA after all Chrome runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --max-time 30 -H 'Cache-Control: no-cache' "${APEX_APP_URL}CP16_BUILD_RECEIPT.json?after=${EXPECTED_PRODUCTION_SHA}" -o /tmp/cp17-production-cold/production-after.json
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const r=JSON.parse(fs.readFileSync('/tmp/cp17-production-cold/production-after.json','utf8'));
+            if(r.gitCommit!==process.env.EXPECTED_PRODUCTION_SHA ||
+               r.revision!==process.env.EXPECTED_RELEASE_REVISION)process.exit(1);
+            console.log('PRODUCTION CP17 SHA AFTER BATTLE PASS',r.gitCommit,r.revision);
+          "
+      - name: Auxiliary deployment domains (advisory; Cloudflare remains production release authority)
+        if: always()
+        shell: bash
+        run: |
+          for url in "https://apexchaos.netlify.app/CP16_BUILD_RECEIPT.json" "https://khanh-glitch.github.io/APEX-CHAOS/CP16_BUILD_RECEIPT.json"; do
+            echo "Checking auxiliary candidate domain: ${url}"
+            curl -fLsS --max-time 15 "${url}" -o /tmp/cp17-production-cold/auxiliary.json || { echo "::warning::Auxiliary domain inaccessible/not deployed";continue; }
+            RECEIPT=/tmp/cp17-production-cold/auxiliary.json node --input-type=module -e "
+              import fs from 'node:fs';
+              try {
+                const r=JSON.parse(fs.readFileSync(process.env.RECEIPT,'utf8'));
+                console.log('AUXILIARY RECEIPT SHA',r.gitCommit||'none','revision',r.revision||'none');
+                if(r.gitCommit!==process.env.EXPECTED_PRODUCTION_SHA)
+                  console.log('WARNING auxiliary domain is not verified at production merge');
+              } catch(e){console.log('WARNING auxiliary domain did not serve JSON receipt:',String(e));}
+            "
+          done
+      - name: Preserve actual production receipts and battle Chrome proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp17-production-live-proof
+          path: |
+            /tmp/cp17-production-cold/
+            /tmp/cp17-production-battle/
+          retention-days: 21
+          if-no-files-found: warn
