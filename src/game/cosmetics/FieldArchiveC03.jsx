@@ -36,7 +36,7 @@ function catalogWeapons(){
   family:String(w.family||w.kind||'Equipment'),data:w
  })).sort((a,b)=>(Number(a.tier?.slice(1))||9)-(Number(b.tier?.slice(1))||9)||a.name.localeCompare(b.name));
 }
-function GoldEcoActor({active}){
+function GoldEcoActor({active,mini=false}){
  const ref=useRef(null);const [fallback,setFallback]=useState(false);
  useEffect(()=>{if(!active)return;let run=true,raf=0,mod=null;
   import('./ecoNewbotV17Gold.js').then(api=>{
@@ -52,7 +52,7 @@ function GoldEcoActor({active}){
       const w=Math.round(bounds.width*dpr),h=Math.round(bounds.height*dpr);
       if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
       ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);ctx.save();ctx.translate(w*.5,h*.52);
-      const scale=Math.min(w/165,h/150)*.73;ctx.scale(scale,scale);
+      const scale=Math.min(w/165,h/150)*(mini?.73:.73);ctx.scale(scale,scale);
       const t=time/1000;
       const springs={rootX:0,rootY:Math.sin(t*1.35)*1.7,tilt:Math.sin(t*.73)*.012,coreX:0,coreY:0,crest:0,chin:0,cheekX:0,cheekY:0,lagX:0,lagY:0,lid:0,glow:1,seam:0,calDx:[0,0],calDy:[0,0],calTh:[0,0],spin:[t*.5,t*.43]};
       try{api.drawEcoGoldActor(ctx,{robot:{time:t,springs,ticks:[0,0,0],scanning:false,armor:false,held:false,lockFlash:0,pulses:[],stress:[]}})}catch(e){console.warn('[archive] ECOBOT Gold renderer',e);setFallback(true);run=false}
@@ -66,8 +66,8 @@ function GoldEcoActor({active}){
   return()=>{run=false;cancelAnimationFrame(raf)};
  },[active]);
  if(!active)return null;
- if(fallback)return <img src={PICTURE('ROBOT')} className="fa3-hero-img" alt="NEWBOT original fallback (ECOBOT preview unavailable)"/>;
- return <canvas ref={ref} className="fa3-eco" aria-label="Approved ECOBOT V17 Gold actor rendering"/>;
+ if(fallback)return <span className="fa3-render-warning">ECOBOT GOLD PREVIEW UNAVAILABLE</span>;
+ return <canvas ref={ref} className={'fa3-eco'+(mini?' fa3-eco-mini':'')} aria-label="Approved ECOBOT V17 Gold actor rendering"/>;
 }
 function DisplayArtwork({kind,item,previewId}){
  const hero=kind==='hero';
@@ -84,13 +84,14 @@ function DisplayArtwork({kind,item,previewId}){
  </div>;
 }
 function WeaponFacts({item,skin}){
- const d=item.data||{}, isRocket=item.id==='RPG_7'&&skin?.id==='vua-he';
- const tags=[item.tier,item.family].filter(Boolean);
- const measurable=[['DAMAGE',d.damagePerShot??d.damage??d.tickDamage],['AMMO',d.ammo??d.magazine??d.shots],['RANGE',d.range??d.triggerRange]].filter(([,v])=>typeof v==='number'&&Number.isFinite(v));
+ const d=item.data||{},isRocket=item.id==='RPG_7';
+ const format=n=>Number.isFinite(Number(n))?String(n):'—';
+ const power=isRocket?'PEAK '+format(d.peak):d.damagePerShot?'HIT '+format(d.damagePerShot):d.damagePerPellet?'PELLET '+format(d.damagePerPellet):d.damage?'HIT '+format(d.damage):d.tickDamage?'TICK '+format(d.tickDamage):'NATIVE ARSENAL';
+ const secondary=isRocket?'BLAST RADIUS '+format(d.blastRadius):d.pellets?'PELLETS '+format(d.pellets):d.shots?'SHOTS '+format(d.shots):d.triggerRange?'REACH '+format(d.triggerRange):d.range?'RANGE '+format(d.range):item.family;
  return <div className="fa3-facts">
-  <div className="fa3-fact"><b>WEAPON PROFILE</b><strong>{tags.join(' / ')}</strong><small>{measurable.length?measurable.map(([n,v])=>n+' '+v).join(' · '):'Combat values follow the native Arsenal weapon configuration.'}</small></div>
-  <div className="fa3-fact"><b>SKIN MODIFIES</b><strong>{isRocket?'LAUNCHER · ROCKET · TRAIL · BLAST':skin?.id==='default'?'ORIGINAL PRESENTATION':'REGISTERED GOLD VISUALS'}</strong><small>{skin?.id==='default'?'Native game weapon appearance':skin?.detail||'Visuals only; native gameplay unchanged'}</small></div>
-  <div className="fa3-fact"><b>UNCHANGED IN BATTLE</b><strong>DAMAGE · PICKUP · HIT RULES</strong><small>Skin selection does not choose which gun will spawn in the arena.</small></div>
+  <div className="fa3-fact"><b>01 / COMBAT PROFILE</b><strong>{item.tier} · {item.family} · {isRocket?'ROCKET':'ARSENAL'}</strong><small>{power} / {secondary}</small></div>
+  <div className="fa3-fact"><b>02 / HOW IT FIGHTS</b><strong>{isRocket?'ACCELERATING EXPLOSIVE ROCKET':d.pellets?'SPREAD FIRE':d.triggerRange?'CLOSE-RANGE STRIKE':d.bulletSpeed?'BALLISTIC PROJECTILE':'NATIVE SPECIAL EXECUTOR'}</strong><small>{isRocket?'Rocket accelerates in flight; area damage resolves through the native explosion.':'Exact damage, cadence and collision always come from the match engine.'}</small></div>
+  <div className="fa3-fact"><b>03 / THE SELECTED APPEARANCE</b><strong>{isRocket&&skin?.id==='vua-he'?'LAUNCHER · ROCKET · SMOKE · BLAST':skin?.id==='default'?'ORIGINAL GOLD PRESENTATION':'REGISTERED COSMETIC VISUALS'}</strong><small>Changes appearance, not damage, spawn tier, collision or skill authority.</small></div>
  </div>;
 }
 function HeroFacts({item}){const m=HERO_META[item.id];return <div className="fa3-facts">{(m?.skills||[]).map(([n,title,desc])=><div className="fa3-fact" key={n}><b>{n}</b><strong>{title}</strong><small>{desc}</small></div>)}</div>}
@@ -152,7 +153,7 @@ export default function FieldArchiveC03(){
   {open&&<div className="fa3-overlay apex-cosmetics-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}} onKeyDownCapture={e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();setOpen(false)}}} onKeyUpCapture={e=>e.stopPropagation()}>
    <section className="fa3-shell" role="dialog" aria-modal="true" aria-labelledby="fa3-title">
     <div className="fa3-binding" aria-hidden="true"><i/><i/><i/></div>
-    <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS / RESTRICTED FIELD RECORD</small><h2 id="fa3-title">THE FIELD <em>ARCHIVE</em></h2></div>
+    <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS / RESTRICTED FIELD RECORD</small><h2 id="fa3-title"><span>THE FIELD </span><em>ARCHIVE</em></h2></div>
      <div className="fa3-primary" role="tablist" aria-label="Archive category"><button role="tab" aria-selected={kind==='hero'} className={kind==='hero'?'on':''} onClick={()=>changeKind('hero')}>FIGHTERS</button><button role="tab" aria-selected={kind==='weapon'} className={kind==='weapon'?'on':''} onClick={()=>changeKind('weapon')}>WEAPONS</button></div>
      <div className="fa3-players" role="group" aria-label="Choose loadout"><button aria-pressed={side==='p1'} className={side==='p1'?'on':''} onClick={()=>changeSide('p1')}>P1</button><button aria-pressed={side==='p2'} className={side==='p2'?'on':''} onClick={()=>changeSide('p2')}>P2 / BOT</button></div>
      <button className="fa3-close apex-cosmetics-close" type="button" onClick={()=>setOpen(false)} aria-label="Close archive">✕</button>
@@ -181,9 +182,14 @@ export default function FieldArchiveC03(){
        {view==='SKINS'&&<div className="fa3-appear">
         <p className="fa3-description">{kind==='hero'?HERO_META[current?.id]?.intro:'Skin applies whenever this weapon type is obtained during a match.'}</p>
         <div className="fa3-skin-list">{opts.map(s=><button type="button" key={s.id} className={'fa3-skin'+(s.id===activePreview?' preview':'')+(s.id===worn?.id?' equipped':'')} onClick={()=>setPreview(s.id)} aria-pressed={s.id===activePreview}>
-          <span className="fa3-skin-thumb">{s.id==='ecobot'?<span className="fa3-eco-symbol">E</span>:<img src={kind==='hero'?PICTURE(current.id):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||''} alt=""/>}</span>
+          <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:<img src={kind==='hero'?PICTURE(current.id):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||''} alt=""/>}</span>
           <span className="fa3-skin-name"><b>{s.label}</b><small>{s.id==='default'?'ORIGINAL PRESENTATION':s.detail||'APPROVED COSMETIC'}</small></span>
           <strong>{s.id===worn?.id?'✓':'↗'}</strong></button>)}</div>
+        <div className="fa3-insight" aria-label="Appearance field note">
+         <span>FIELD NOTE / {kind==='hero'?'FIGHTER':'WEAPON'} REGISTER</span>
+         <strong>{kind==='hero'?'SAME FIGHTER, DIFFERENT LOOK':current?.tier+' · '+current?.family}</strong>
+         <small>{kind==='hero'?'Skills, movement and hit authority remain identical with a skin.':current?.id==='RPG_7'?'RPG-7: rocket acceleration, area blast · skin only alters presentation.':'Weapon spawn and battle stats stay tied to the original Arsenal ID.'}</small>
+        </div>
         <div className="fa3-equip-state"><b>{side==='p1'?'PLAYER 01':'PLAYER 02 / BOT'}</b><span>EQUIPPED / {worn?.label||'ORIGINAL'}</span></div>
         <button type="button" className="fa3-equip" onClick={equip} disabled={!chosen||chosen.id===worn?.id}>{chosen?.id===worn?.id?'EQUIPPED ✓':'EQUIP THIS SKIN ↗'}</button>
         {warning&&<small role="alert" className="fa3-alert">Selection active for this session; browser storage is disabled.</small>}
