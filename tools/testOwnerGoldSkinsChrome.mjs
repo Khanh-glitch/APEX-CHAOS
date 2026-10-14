@@ -101,8 +101,14 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
      }));
    // Read-only compatibility telemetry. CP14 must reconcile outer AV wrappers
    // with the native provider's explicit true/false paint receipt.
-   G.__cp13HeldProviderReturn={observed:consumed===undefined?'undefined':String(consumed),
-     frostWrapperActive:AV.__frostWrapped===true};
+   G.__cp13HeldProviderReturn={
+     observed:consumed===undefined?'undefined':String(consumed),
+     frostWrapperActive:AV.__frostWrapped===true,
+     publicSource:String(AV.drawEquippedWeapon).slice(0,1050),
+     ownProperty:!!Object.getOwnPropertyDescriptor(AV,'drawEquippedWeapon'),
+     registered:AV.equippedWeaponRendererIds(),
+     canaryRuns:callCount
+   };
    const originalDrawWeapon=AV.drawWeaponSprite;
    let realRobotGoldWeaponCalls=0;
    AV.drawWeaponSprite=function(c,id,x,y,options){
