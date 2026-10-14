@@ -65,8 +65,10 @@ try{
     kind:'weapon',baseId:'RPG_7',id:'qa-alt',label:'QA ALT',
     detail:'QA-only owner skin',render:{projectile:()=>false}
    }));
-   await game.waitForFunction(()=>[...document.querySelectorAll('.fa3-skin')].length>=2,{timeout:10000});
-   // True product uses bounded two-skin pages; locate and advance to QA variant.
+   // Two default skins were ALREADY visible. Wait for the third registered
+   // pack to appear in the pagination control; otherwise a fast desktop can
+   // attempt to click before React's subscribe notification finishes painting.
+   await game.waitForSelector('.fa3-skin-pager button:last-child',{visible:true,timeout:15000});
    await game.$eval('.fa3-skin-pager button:last-child',e=>e.click());
    await game.waitForFunction(()=>[...document.querySelectorAll('.fa3-skin')].some(e=>e.textContent.includes('QA ALT')),{timeout:10000});
    await game.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(e=>e.textContent.includes('QA ALT')).click());
