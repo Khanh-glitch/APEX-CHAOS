@@ -32,23 +32,38 @@ try{
    const q=window.__APEX_FIELD_ARCHIVE_QA__();
    const c=document.getElementById('heroCanvas'),ct=c.getContext('2d');
    const data=ct.getImageData(0,0,c.width,c.height).data;
-   let opaque=0;for(let i=3;i<data.length;i+=4*97)if(data[i]>10)opaque++;
-   return {q,opaque,book:document.querySelector('.book').getBoundingClientRect().toJSON(),pageWidth:document.documentElement.scrollWidth,screenWidth:innerWidth};
+   let opaque=0,minX=c.width,minY=c.height,maxX=0,maxY=0;
+   for(let y=0;y<c.height;y+=8)for(let x=0;x<c.width;x+=8){
+     const a=data[(y*c.width+x)*4+3];
+     if(a>12){opaque++;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+   }
+   const kicker=document.querySelector('.kicker').getBoundingClientRect(),title=document.querySelector('.title').getBoundingClientRect();
+   return {q,opaque,paintBounds:{x:minX,y:minY,width:maxX-minX,height:maxY-minY,ratio:(maxX-minX)/c.width},titleCollision:kicker.bottom>title.top+2,
+     book:document.querySelector('.book').getBoundingClientRect().toJSON(),pageWidth:document.documentElement.scrollWidth,screenWidth:innerWidth};
   });
   assert.equal(initial.q.kind,'hero');
   assert.equal(initial.q.preview,'ecobot');
   assert.equal(initial.q.goldPrepared,true,'real Gold atlas not prepared');
   assert.equal(initial.q.renderError,'','real Gold painter failed');
   assert.ok(initial.opaque>20,'exact ECOBOT painter produced empty Canvas');
+  assert.ok(initial.paintBounds.ratio>.33,'ECOBOT still too small inside right folio: '+JSON.stringify(initial.paintBounds));
+  assert.equal(initial.titleCollision,false,'archive record kicker overlaps main title');
   assert.equal(initial.pageWidth<=initial.screenWidth+1,true,'horizontal layout clipped');
   await page.screenshot({path:path.join(out,'archive-'+v.label+'.jpg'),type:'jpeg',quality:82,fullPage:true});
   await page.locator('button[data-skin="default"]').click();
   const original=await page.evaluate(()=>({view:window.__APEX_FIELD_ARCHIVE_QA__(),imageReady:document.getElementById('originalHero').naturalWidth>0}));
   assert.equal(original.imageReady,true,'original Gold Home asset missing');
+  await page.screenshot({path:path.join(out,'original-'+v.label+'.jpg'),type:'jpeg',quality:80,fullPage:true});
   await page.locator('button[data-type="weapon"]').click();
   await page.waitForSelector('#vuaHeWeapon');
-  const weapon=await page.evaluate(()=>({q:window.__APEX_FIELD_ARCHIVE_QA__(),vuaHe:document.getElementById('vuaHeWeapon').naturalWidth>0,original:document.getElementById('originalWeapon').naturalWidth>0}));
+  const weapon=await page.evaluate(()=>{
+    const img=document.getElementById('vuaHeWeapon'),area=document.getElementById('artArea'),b=img.getBoundingClientRect(),a=area.getBoundingClientRect();
+    return {q:window.__APEX_FIELD_ARCHIVE_QA__(),vuaHe:img.naturalWidth>0,
+      original:document.getElementById('originalWeapon').naturalWidth>0,
+      verticalCenterError:Math.abs((b.top+b.bottom)/2-(a.top+a.bottom)/2)/a.height};
+  });
   assert.equal(weapon.q.preview,'vua-he');assert.equal(weapon.vuaHe,true,'Vua He source failed');assert.equal(weapon.original,true,'real RPG original image failed');
+  assert.ok(weapon.verticalCenterError<.035,'actual RPG Gold art still pinned to upper edge: '+weapon.verticalCenterError);
   await page.screenshot({path:path.join(out,'rpg-'+v.label+'.jpg'),type:'jpeg',quality:80,fullPage:true});
   await page.locator('#equipBtn').click();
   let actual=await page.evaluate(()=>window.__APEX_FIELD_ARCHIVE_QA__());
