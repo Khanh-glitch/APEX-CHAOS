@@ -13,7 +13,7 @@ const split=path.join(base,'THE_HAND_GOLD_DEEMBEDDED.html');
 assert.ok(fs.existsSync(split),'lossless split HTML missing');
 const source=fs.readFileSync(file,'utf8');
 const decomposed=fs.readFileSync(split,'utf8');
-let expected=source.replace(/("src\/assets\/([^"]+)"\\s*:\\s*")data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)(")/g,(full,before,name,encoded,after)=>{
+let expected=source.replace(/("src\/assets\/([^"]+)"\s*:\s*")data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)(")/g,(full,before,name,encoded,after)=>{
  const bin=Buffer.from(encoded,'base64');
  const asset=path.join(base,'assets',name);
  assert.ok(fs.existsSync(asset),'Gold asset missing: '+name);
