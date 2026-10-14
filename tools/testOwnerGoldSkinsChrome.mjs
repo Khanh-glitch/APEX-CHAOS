@@ -65,7 +65,19 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    const originalProjectile=C.render('projectile',ctx,q.cosmetic,q);
    if(skinProjectile!==true||originalProjectile!==false)throw Error('Gold/ORIGINAL rocket draw hooks rejected');
    W.drawArsenalProjectiles(ctx);
-   if(typeof G.draw==='function')G.draw();
+   // Catch the real Robot jaw/socket draw route, not just a direct call to a
+   // cosmetic hook: P1's *held launcher* must be the selected Gold skin.
+   const AV=G.APEX_ARSENAL_AV;
+   const originalDrawWeapon=AV.drawWeaponSprite;
+   let realRobotGoldWeaponCalls=0;
+   AV.drawWeaponSprite=function(c,id,x,y,options){
+     if(id==='RPG_7'&&options?.mode==='equipped'&&options?.cosmetic?.skinId==='vua-he')
+       realRobotGoldWeaponCalls++;
+     return originalDrawWeapon.apply(this,arguments);
+   };
+   try{if(typeof G.draw==='function')G.draw();}
+   finally{AV.drawWeaponSprite=originalDrawWeapon;}
+   if(realRobotGoldWeaponCalls<1)throw Error('NEWBOT held RPG_7 bypassed the equipped Gold launcher skin');
    const st=G.APEX_ROBOT_PRESENTATION?.getRobotState(a);
    if(!st)throw Error('Native robot spring state unavailable');
    const springs={};for(const [k,v] of Object.entries(st.R))springs[k]=Array.isArray(v)?v.map(s=>s.x):v.x;
@@ -98,7 +110,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
        throw Error('Gold blast frame renderer rejected age '+age);
      G.__cp8Evidence['blast-'+String(Math.round(age*100)).padStart(3,'0')]=canvas.toDataURL('image/png');
    }
-   return {readyAssets:G.__cp8ReadyAssets,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,blastLife:blast.maxLife,exploded:p.exploded,hp:[a.hp,b.hp]};
+   return {readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,blastLife:blast.maxLife,exploded:p.exploded,hp:[a.hp,b.hp]};
   });
   assert.equal(exceptions.length,0,'Chrome page errors: '+exceptions.join('\n'));
   if(captureDir){
