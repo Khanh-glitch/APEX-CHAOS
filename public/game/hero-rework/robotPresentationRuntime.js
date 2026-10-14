@@ -407,6 +407,7 @@
       lockFlash: 0,
       ticks: [0, 0, 0],
       stress: [],
+      ecoFxEvents: [],ecoFxSerial:0,
       pulses: [],
       parts: [],
       flashes: [],
@@ -630,7 +631,15 @@
     return { x: fighter.x + local.x, y: fighter.y + local.y, angle: local.a, local };
   }
 
+  function ecoFx(st,kind,fighter,extra={}) {
+    const x=Number(extra.x),y=Number(extra.y);
+    st.ecoFxEvents.push({serial:++st.ecoFxSerial,t:st.T,kind,
+      x:Number.isFinite(x)?x:fighter?.x||0,y:Number.isFinite(y)?y:fighter?.y||0,
+      armored:!!st.armor});
+    if(st.ecoFxEvents.length>40)st.ecoFxEvents.shift();
+  }
   function impactLocal(st, s, hx, hy, dir, F, worldPt) {
+    ecoFx(st,'hit',null,worldPt);
     const o = 1 - s;
     const tan = { x: -dir.y, y: dir.x };
     const above = hy < PIV[s].y ? 1 : -1;
@@ -989,6 +998,8 @@ function renderRig(g) {
       time:st.T,armor:!!st.armor,held:!!st.held,
       scanning:!!st.brackets&&st.brackets.state==='in'&&!st.held,
       mode:st.mode,lockFlash:st.lockFlash,ticks:[...st.ticks],springs,
+      vx:st.vxw,vy:st.vyw,trailOn:st.trailOn,dashTrail:st.trail.slice(-90),
+      fxEvents:st.ecoFxEvents.slice(-40),
       pulses:st.pulses.slice(-12).map(p=>({t:p.t,dur:p.dur,w:p.w,pts:p.pts.map(q=>[q[0],q[1]])})),
       stress:st.stress.slice(-12).map(p=>({x:p.x,y:p.y,nx:p.nx,ny:p.ny,t:p.t,dur:p.dur,armored:!!p.armored}))
     };
@@ -1021,6 +1032,11 @@ function renderRig(g) {
 
   // World-space: brackets, measure, trail with calibration ticks (authority)
   function renderRobotWorld(ctx, fighter, st) {
+  const eco=globalScope.APEX_COSMETICS;
+  const receipt=eco?.capture?.(eco.sideOf(fighter,globalScope),'hero','ROBOT');
+  const motion=receipt?.skinId==='ecobot'?robotCosmeticMotion(st):null;
+  const ecoPose=motion?{x:fighter.x,y:fighter.y,kind:'ROBOT',robot:motion}:null;
+  const ecoBack=ecoPose&&eco?.render?.('worldBack',ctx,receipt,ecoPose)===true;
   for (const f of st.flashes) {
     const a = 1 - f.t / f.dur;
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
@@ -1108,7 +1124,7 @@ function renderRig(g) {
     }
 
     // Trail with calibration ticks — authority logic
-    if (st.trail.length >= 2) {
+    if (!ecoBack && st.trail.length >= 2) {
       const fade = st.trailOn ? (isFinite(st.contactT) && st.T > st.contactT ? clamp(1 - (st.T - st.contactT) / .5, 0, 1) : 1) : 0;
       if (fade <= 0) { if (!st.trailOn) st.trail = []; }
       else {
@@ -1140,6 +1156,7 @@ function renderRig(g) {
         ctx.restore();
       }
     }
+    if(ecoPose)eco?.render?.('worldFront',ctx,receipt,ecoPose);
   }
 
   function isRobotFighter(f) {
@@ -1302,6 +1319,7 @@ function renderRig(g) {
         if (!st) continue;
         if (st.T - st._lastNoWeaponAt < 0.35) continue;
         st._lastNoWeaponAt = st.T;
+        ecoFx(st,'a1-fail',f);
         st.lastSfx.robot_a1_no_weapon = st.T;
         playRobotSfx('robot_a1_no_weapon', { vol: 0.65 });
         setPoseState(st, { ... (st.held ? P_HELD : P_IDLE), lid: .3, glow: 1.2, spin: Math.PI / 4, crest: -18, calTh: (st.held ? -.05 : 0) + .08 });
@@ -1324,6 +1342,7 @@ function renderRig(g) {
         st.trail = [{ x: f.x, y: f.y, t: st.T }];
         st.contactT = Infinity;
         st.trailOn = true;
+        ecoFx(st,'a1-launch',f);
         st.lastDashHeading = null;
         const cast = st._lastLockAt;
         // Miss/timeout cleanup does not manufacture equip/contact truth.
@@ -1349,6 +1368,7 @@ function renderRig(g) {
         if (!st) continue;
         // Only after real equip truth — held becomes true here
         st.held = true;
+        ecoFx(st,'a1-contact',f);
         setPoseState(st, P_A1_CONTACT);
         st.snapUntil = st.T + .12; st.snapW = 72; st.snapZ = .5;
         const cast = st._lastLockAt;
@@ -1383,6 +1403,7 @@ function renderRig(g) {
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
+        ecoFx(st,'a2-on',f);
         playRobotSfx('robot_a2_activate', { vol: 0.78 });
         setPoseState(st, { ...P_A2_INDEX, ...(st.held ? { calTh: -.02 } : {}) });
         atState(st, .16, () => {
@@ -1447,6 +1468,7 @@ function renderRig(g) {
         if (st.T - st._lastEndAt < 0.2) continue;
         st._lastEndAt = st.T;
         st.armor = false;
+        ecoFx(st,'a2-off',f);
         setPoseState(st, st.held ? P_HELD : P_IDLE);
         st.softUntil = st.T + .55;
         playRobotSfx('robot_a2_end', { vol: 0.75 });
@@ -1465,6 +1487,7 @@ function renderRig(g) {
         if (!st) continue;
         if (payload.milestone <= (st._lastMilestoneNumber || 0)) continue;
         st._lastMilestoneNumber = payload.milestone;
+        ecoFx(st,'passive',f);
         playRobotSfx('robot_passive_milestone', { vol: 0.68 });
         for (let i = 0; i < 3; i++) atState(st, i * .06, () => { st.ticks[i] = 1; });
         atState(st, .2, () => {
@@ -1580,6 +1603,7 @@ function renderRig(g) {
             const st = getRobotState(owner);
             if (st) {
               const k = 1;
+              ecoFx(st,'fire',owner);
               st.R.gunKick.kick(-11 * k);
               st.R.rootX.kick(-22 * k);
               st.R.coreY.kick(7 * k);
@@ -1605,6 +1629,7 @@ function renderRig(g) {
           const st = getRobotState(this);
           if (st) {
             st.wallFlash = 1;
+            ecoFx(st,'wall',this,{x:this.x,y:this.y});
             const dir = side === 'left' ? { x: 1, y: 0 } : side === 'right' ? { x: -1, y: 0 } : side === 'top' ? { x: 0, y: 1 } : { x: 0, y: -1 };
             const hx = side === 'left' ? 96 : side === 'right' ? 1184 : 640;
             const hy = side === 'top' ? 96 : side === 'bottom' ? 1184 : 600;
