@@ -209,3 +209,10 @@
  .fa3-record-stamp{display:none}
 }
 @media(prefers-reduced-motion:reduce){.fa3-overlay *,.fa3-overlay *:before,.fa3-overlay *:after{animation:none!important}}
+
+/* Landscape 844x390 cannot show a full telemetry module *and* skin actions in
+   the same 340px panel. Preserve real INFO via its tab, not overlapping the
+   two appearance hit targets. No scroll, no hidden Equip and no clipping. */
+@media (max-width:900px) and (orientation:landscape) and (max-height:480px){
+  .fa3-appear .fa3-readout-embed{display:none}
+}
