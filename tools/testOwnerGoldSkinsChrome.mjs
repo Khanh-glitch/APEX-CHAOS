@@ -248,6 +248,49 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    }
    return {readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,familyInk,blastLife:blast.maxLife,exploded:p.exploded,smokeEarlyAge:earlyAge,smokeMatchedAge:p.age,hp:[a.hp,b.hp]};
   });
+
+  // CP11 real A1 integration after the existing rocket smoke/blast proof:
+  // one Arsenal-spawned physical revealed gun, one real ability cast,
+  // one native RobotA1Lock, then a Gold ring at that SAME slot position.
+  const nativeA1=await page.evaluate(()=>{
+    const G=window,A=G.APEX_ARSENAL,H=G.APEX_HERO_REWORK;
+    const W=A.weaponApi,SP=G.APEX_ARSENAL_SPAWN,C=G.APEX_COSMETICS;
+    const a=G.fighters[0],bus=G.APEX_HERO_REWORK_AIL.bus;
+    if(!a||!H?.pressAbility||!SP?.spawnLabWeapon)
+      throw Error('Native A1 integration endpoint missing');
+    const holder=W.getHolder(a);
+    if(holder&&holder.phase!=='EMPTY'&&holder.phase!=='CONSUMED')
+      W.consume(a,'cp11-a1-owner-proof');
+    A.state.slots=[];
+    const lab=A.state.labMode;A.state.labMode=true;
+    let slot;try{slot=SP.spawnLabWeapon('PISTOL');}
+    finally{A.state.labMode=lab;}
+    if(!slot||slot.phase!=='REVEALED')
+      throw Error('Real Arsenal revealed slot not spawned');
+    slot.x=640;slot.y=440;a.x=100;a.y=440;a.setDir(1,0);
+    const before=bus.ofType('RobotA1Lock').length;
+    const cast=H.pressAbility(a,'A1');
+    const ev=bus.ofType('RobotA1Lock').at(-1);
+    if(!cast?.ok||!ev||bus.ofType('RobotA1Lock').length!==before+1||
+       ev.payload.slotId!==slot.id)
+      throw Error('Native Robot ability did not lock physical slot');
+    const st=G.APEX_ROBOT_PRESENTATION.getRobotState(a);
+    if(!st?.brackets?.target||Math.hypot(st.brackets.target.x-slot.x,st.brackets.target.y-slot.y)>.1)
+      throw Error('Native Robot visual lacks real target coordinates');
+    for(let i=0;i<6;i++)A.step(1/60);
+    const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=800;
+    const ctx=canvas.getContext('2d'),receipt=C.capture('p1','hero','ROBOT');
+    const pose={kind:'ROBOT',x:a.x,y:a.y,robot:{time:st.T,held:false,
+      brackets:st.brackets,measure:st.measure,scanSource:{x:a.x,y:a.y-a.radius*.8}}};
+    if(!C.render('targetLock',ctx,receipt,pose)||
+       !C.render('targetMeasure',ctx,receipt,pose))
+      throw Error('Live A1 lock not rendered by Gold target family');
+    const pix=ctx.getImageData(490,295,290,290).data;let ink=0;
+    for(let i=3;i<pix.length;i+=4)if(pix[i]>15)ink++;
+    if(ink<100)throw Error('Live A1 target material invisible: '+ink);
+    return {slotId:slot.id,lockSeq:ev.seq,target:st.brackets.target,ink};
+  });
+  if(nativeA1.ink<100)throw Error('Native ECO target evidence incomplete');
   assert.equal(exceptions.length,0,'Chrome page errors: '+exceptions.join('\n'));
   if(captureDir){
    const frames=await page.evaluate(()=>window.__cp8Evidence||null);
