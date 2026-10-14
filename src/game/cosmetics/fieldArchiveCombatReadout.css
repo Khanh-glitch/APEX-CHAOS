@@ -293,3 +293,61 @@
 @media(prefers-reduced-motion:reduce){
  .fa3-web-map .fa3-web-beams,.fa3-web-map .fa3-web-node.active{animation:none!important}
 }
+
+/* C03 R3 / ballistic diagram, readable native weapon readout */
+.fa3-stat-console{position:relative}
+.fa3-stat-console:after{content:"";position:absolute;inset:26px 2px 12px;z-index:0;pointer-events:none;opacity:.18;
+ background:repeating-linear-gradient(0deg,transparent 0 28px,#a06a304f 29px 30px),
+ repeating-linear-gradient(90deg,transparent 0 35px,#a06a3046 36px 37px)}
+.fa3-stat-console>*{position:relative;z-index:1}
+.fa3-stat-ribbon{border-bottom:0;background:linear-gradient(90deg,#432e2280,#0a1212 74%);padding:8px 11px}
+.fa3-weapon-kind{font-weight:1000;color:#ffcf93;letter-spacing:.1em}
+.fa3-weapon-type{margin-left:auto;font-size:8px;color:#baa58a;text-align:right}
+.fa3-tier-marker{box-shadow:2px 2px 0 #0b1011,inset 0 1px #f8be85}
+.fa3-ballistic-diagram{position:relative;flex:none;min-height:77px;padding:4px 11px 6px;
+ background:repeating-linear-gradient(90deg,transparent 0 38px,#b98b4422 39px 40px),linear-gradient(90deg,#101c1b,#1a2622);
+ border-block:1px solid #785634;box-shadow:inset 0 0 16px #0008;overflow:hidden}
+.fa3-ballistic-line{position:absolute;inset:1px 5px auto;width:calc(100% - 10px);height:35px;opacity:.58}
+.fa3-ballistic-pulse{animation:fa3-ballistic 2.8s linear infinite}
+.fa3-ballistic-points{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:end;height:62px}
+.fa3-ballistic-points>div{min-width:0;display:flex;flex-direction:column;justify-content:end;gap:2px;padding:29px 3px 0}
+.fa3-ballistic-points>div:nth-child(2){text-align:center}.fa3-ballistic-points>div:nth-child(3){text-align:right}
+.fa3-ballistic-points b{font:900 8px ui-monospace,monospace;color:#ffb76b;letter-spacing:.11em;text-shadow:0 2px #000}
+.fa3-ballistic-points strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 11px Impact,sans-serif;color:#e6d2af;letter-spacing:.06em}
+.fa3-metrics{gap:6px;padding:7px}
+.fa3-metric{border-color:#6a5640;border-left:3px solid #a57743;position:relative;isolation:isolate;
+ background:linear-gradient(145deg,#2b342f,#121e1d 80%);padding:8px 10px;box-shadow:inset 0 1px #bb875e22}
+.fa3-metric:after{content:"";position:absolute;bottom:5px;right:6px;width:18px;height:18px;border:1px solid #b4855038;border-radius:50%;
+ box-shadow:0 0 0 4px #aa804119;pointer-events:none;z-index:-1}
+.fa3-metric-prime{background:linear-gradient(125deg,#7d48264e,#2a2924 58%,#111e1c);border-left:4px solid #ffc06c}
+.fa3-metric-name{display:flex;align-items:center;gap:5px;font-size:clamp(7px,.66vw,10px);color:#dca35f}
+.fa3-metric-name i{font-style:normal;color:#8a765b;font-size:8px}
+.fa3-metric-value{font-size:clamp(20px,2.3vw,34px);letter-spacing:.04em;color:#ffe3b5;text-shadow:0 2px #000}
+.fa3-metric-prime .fa3-metric-value{color:#ffaf65}
+.fa3-metric-sub{color:#bba88e;font-size:9px}
+.fa3-stat-foot{color:#b18a62;letter-spacing:.05em}
+@keyframes fa3-ballistic{to{stroke-dashoffset:-88}}
+@media(max-height:760px) and (min-width:900px){
+ .fa3-ballistic-diagram{min-height:62px}
+ .fa3-ballistic-points{height:51px}
+ .fa3-ballistic-points>div{padding-top:20px}
+ .fa3-metric{padding:5px 8px}
+ .fa3-metric-value{font-size:clamp(17px,1.9vw,27px)}
+}
+@media(max-width:900px){
+ .fa3-ballistic-diagram{min-height:50px;padding:2px 5px}
+ .fa3-ballistic-line{height:25px}
+ .fa3-ballistic-points{height:45px}
+ .fa3-ballistic-points>div{padding:18px 2px 0}
+ .fa3-ballistic-points b{font-size:7px}
+ .fa3-ballistic-points strong{font-size:9px}
+ .fa3-metric{padding:4px 6px}
+ .fa3-metric-name{font-size:7px}
+ .fa3-metric-value{font-size:16px}
+ .fa3-stat-ribbon{padding:4px 6px}
+ .fa3-weapon-type{font-size:7px}
+}
+@media(max-width:900px) and (orientation:landscape) and (max-height:480px){
+ .fa3-ballistic-diagram{display:none}
+}
+@media(prefers-reduced-motion:reduce){.fa3-ballistic-pulse{animation:none!important}}
