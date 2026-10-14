@@ -116,7 +116,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    // Save pixels from exactly the approved native presentation callbacks; these
    // are not synthetic CSS mockups or screenshots of a separate Gold studio.
    if(G.__cp8Evidence)throw Error('CP8 evidence namespace already in use');
-   G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),rocket:ctx.canvas.toDataURL('image/png')};
+   G.__cp8Evidence={actor:hCtx.canvas.toDataURL('image/png'),ecoWorld:wc.toDataURL('image/png'),rocket:ctx.canvas.toDataURL('image/png')};
    const oldOwner=p.owner;p.owner=b;
    W.drawArsenalProjectiles(ctx);
    if(p.cosmetic?.skinId!=='vua-he')throw Error('Reflection changed Gold identity');
@@ -143,7 +143,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
   if(captureDir){
    const frames=await page.evaluate(()=>window.__cp8Evidence||null);
    assert.deepEqual(Object.keys(frames||{}).sort(),[
-     'actor','rocket','blast-020','blast-043','blast-091','blast-120'].sort());
+     'actor','ecoWorld','rocket','blast-020','blast-043','blast-091','blast-120'].sort());
    for(const [name,data] of Object.entries(frames)){
      assert.match(data,/^data:image\/png;base64,/,'Evidence must be a lossless PNG');
      fs.writeFileSync(path.join(captureDir,`${caseInfo.name}-${name}.png`),
