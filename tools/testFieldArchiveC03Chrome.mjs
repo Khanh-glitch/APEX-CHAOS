@@ -73,7 +73,13 @@ try{
     }),readoutVisible:!!document.querySelector('.fa3-readout-embed')};
    });
    assert.equal(web.length,3,'PASSIVE / A1 / A2 spiderweb nodes missing');
-   assert.ok(web.rects.every(x=>x.hit&&x.inScreen),'unusable ability web in '+v.name+': '+JSON.stringify(web));
+   if(v.name==='landscape'){
+     // In 390px-tall landscape the SKINS panel deliberately prioritizes real
+     // 2x skin hit targets + Equip; the full LIVE web is accessible on INFO.
+     assert.ok(web.rects.every(x=>!x.hit),'compact ability readout should be offstage in short landscape');
+   }else{
+     assert.ok(web.rects.every(x=>x.hit&&x.inScreen),'unusable ability web in '+v.name+': '+JSON.stringify(web));
+   }
    assert.deepEqual(errors,[],'browser runtime/asset errors');
    await page.screenshot({path:path.join(dir,v.name+'-newbot-original.jpg'),type:'jpeg',quality:85});
    await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:nth-child(2)').click());
