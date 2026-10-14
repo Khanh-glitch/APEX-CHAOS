@@ -32,7 +32,7 @@ function surface(id, title, availability, detail, extra = {}) {
 }
 
 // Ordering is intentional: playable product surfaces appear first, followed
-// by the six visible locked roadmap surfaces. ADMIN is separate from public
+// by the six remaining locked roadmap surfaces. ADMIN is separate from public
 // navigation and can only launch through its explicit owner seam.
 const PUBLIC_SURFACES = Object.freeze([
   surface('bot-battle', 'Bot Battle', ACTIVE, 'Choose a fighter and face the accepted Arsenal CPU.', { route: 'bot' }),
