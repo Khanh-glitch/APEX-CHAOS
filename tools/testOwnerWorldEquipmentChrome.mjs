@@ -138,7 +138,7 @@ try {
      // must share an in-flight promise, never initialize an atlas twice.
      const assets=G.apexProductAssets;
      let calls=0;
-     assets.registerPresentation('cp5_future_visual_canary',async()=>{calls++;await Promise.resolve();});
+     assets.registerPresentation('cp5_future_visual_canary',async()=>{calls++;await Promise.resolve();return true;});
      await Promise.all([assets.preparePresentations(['cp5_future_visual_canary']),
        assets.preparePresentations(['cp5_future_visual_canary']),
        assets.preparePresentations(['cp5_future_visual_canary'])]);
