@@ -17,7 +17,7 @@ const skinA=cosmetics.register({
     weapon:(_ctx,pose)=>{assert.ok(Object.isFrozen(pose));snapshots.push({kind:'held',pose});return true;},
     projectile:(_ctx,pose)=>{assert.ok(Object.isFrozen(pose));snapshots.push({kind:'travel',pose});return true;},
     blast:(_ctx,pose)=>{assert.ok(Object.isFrozen(pose));snapshots.push({kind:'impact',pose});return true;},
-  },suppressBaseBlast:true
+  },suppressBaseBlast:true,suppressBaseTrail:true
 });
 cosmetics.register({
   kind:'weapon',baseId:weapon,id:'neon-b',label:'NEON B',
