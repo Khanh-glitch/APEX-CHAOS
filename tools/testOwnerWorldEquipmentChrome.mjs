@@ -41,6 +41,17 @@ async function goGoldBattle(page,hero,name,opponent='newbot'){
  await page.$eval('#lockIn',e=>e.click());
  await page.$eval('.rosterCard[data-hero="'+opponent+'"]',e=>e.click());
  await page.$eval('#lockIn',e=>e.click());
+ // Record whether battle entry really started at the exact accepted LOCK IN.
+ // This is read-only diagnosis: NEVER retry/force the handoff from this fixture.
+ const handoffAtLock=await page.evaluate(()=>({
+   doorActive:window.APEX_SCENE_TRANSITION?.active?.()??null,
+   bodyClass:document.body.className,
+   stageClass:document.getElementById('stage')?.className,
+   hudClass:document.getElementById('battleHudHost')?.className,
+   railsClass:document.getElementById('battleTransition')?.className,
+   hudVisible:document.getElementById('battleHudHost')?.getAttribute('aria-hidden')
+ }));
+ console.log('D5 LOCK IN handoff snapshot '+name+' '+JSON.stringify(handoffAtLock));
  await page.waitForFunction(()=>{const host=document.getElementById('battleHudHost');
   return document.body.classList.contains('battle-hud-open')&&
    host?.classList.contains('is-open')&&
@@ -61,12 +72,27 @@ try {
  for(const [device,kind,viewport,hero,opponent] of variants){
   const label=device+'-'+kind,started=now(),page=await browser.newPage();
   await page.setViewport(viewport);
-  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+  const errors=[],warnings=[];
+  page.on('pageerror',e=>errors.push(String(e)));
+  page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')warnings.push(m.text())});
   let visible;
   try {visible=await goGoldBattle(page,hero,label,opponent);}
-  catch(e){console.error('D5 Gold navigation FAIL',label,e);
+  catch(e){
+   const diag=await page.evaluate(()=>({
+     doorActive:window.APEX_SCENE_TRANSITION?.active?.()??null,
+     bodyClass:document.body.className,
+     stageClass:document.getElementById('stage')?.className,
+     hudClass:document.getElementById('battleHudHost')?.className,
+     railsClass:document.getElementById('battleTransition')?.className,
+     hudVisible:document.getElementById('battleHudHost')?.getAttribute('aria-hidden'),
+     battleApi:typeof window.APEX_GOLD?.startBattle,
+     battleRuntime:window.apexArsenalBattleRuntime||null,
+     currentHandoffBanner:document.getElementById('handoffBanner')?.textContent
+   })).catch(e=>({probeError:String(e)}));
+   console.error('D5 Gold navigation FAIL '+label+' '+JSON.stringify({diag,errors,warnings:warnings.slice(-12)}),e);
    await page.screenshot({path:path.join(OUT,label+'-navigation-fail.png')});
-   throw e;}
+   throw e;
+  }
   const initial=await page.evaluate(async (hero)=>{
    const G=window,AR=G.APEX_ARSENAL,HR=G.APEX_HERO_REWORK;
    if(!AR?.state?.active)throw Error('No actual Arsenal battle');
