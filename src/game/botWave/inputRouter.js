@@ -8,13 +8,17 @@ const ACTIONS=Object.freeze(['J','K','L','U','I']);
 export function waveControlsFor(state){
  const keys=unlockedKeys(state);
  const gold=new Set(enabledGoldSkills(state));
- return ACTIONS.map(key=>Object.freeze({
-  key,enabled:keys.includes(key),
-  inputMethod:'keyboard-or-touch',
-  baseAction:BOXE_WAVE.controls[key].base,
-  goldKey:BOXE_WAVE.controls[key].goldKey,
-  goldEnabled:BOXE_WAVE.controls[key].goldKey?gold.has(BOXE_WAVE.controls[key].goldKey):false
- }));
+ return ACTIONS.map(key=>{
+  const goldKeys=BOXE_WAVE.goldUpgradeOrder.filter(e=>e.bind===key&&gold.has(e.goldKey)).map(e=>e.goldKey);
+  return Object.freeze({
+   key,enabled:keys.includes(key),
+   inputMethod:'keyboard-or-touch',
+   baseAction:BOXE_WAVE.controls[key].base,
+   goldKey:goldKeys.at(-1)||null,
+   goldKeys:Object.freeze(goldKeys),
+   goldEnabled:goldKeys.length>0
+  });
+ });
 }
 export function createWaveInputRouter({getUpgradeState,onAction=()=>{}}){
  if(typeof getUpgradeState!=='function')throw Error('NO_UPGRADE_AUTHORITY');
@@ -24,7 +28,7 @@ export function createWaveInputRouter({getUpgradeState,onAction=()=>{}}){
   if(!c||!c.enabled)return {accepted:false,reason:'LOCKED_OR_UNKNOWN_ACTION'};
   if(!['press','release'].includes(phase))throw Error('INVALID_ACTION_PHASE');
   if(!['keyboard','touch','gamepad'].includes(source))throw Error('UNTRUSTED_INPUT_SOURCE');
-  onAction({type:'wave:control',action:normalized,source,phase,goldKey:c.goldKey,
+  onAction({type:'wave:control',action:normalized,source,phase,goldKey:c.goldKey,goldKeys:c.goldKeys,
     activeGoldKeys:enabledGoldSkills(getUpgradeState())});
   return {accepted:true,action:normalized};
  }
