@@ -4,6 +4,7 @@ import {BOXE_WAVE} from '../boxe/boxeConfig.js';
 
 const BASE_UPGRADES=Object.freeze([
  {id:'unlock-jab-finisher',tier:'rare',kind:'unlock',slot:'J',goldKey:'1',requires:[],rank:1},
+ {id:'unlock-rocket-proc',tier:'rare',kind:'unlock',slot:'J',goldKey:'2',requires:[],rank:0},
  {id:'unlock-uppercut-finisher',tier:'epic',kind:'unlock',slot:'J',goldKey:'3',requires:['unlock-jab-finisher'],rank:2},
  {id:'unlock-counter',tier:'rare',kind:'unlock',slot:'K',goldKey:'9',requires:['unlock-uppercut-finisher'],rank:3},
  {id:'unlock-phantom',tier:'epic',kind:'unlock',slot:'U',goldKey:'5',requires:['unlock-counter'],rank:4},

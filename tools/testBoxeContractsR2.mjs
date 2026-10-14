@@ -8,6 +8,9 @@ for(const skill of ['PUNCH','A1','A1_EMPOWERED','A2','GOLD_JAB','GOLD_COUNTER'])
  assert.equal(boxeSkillDamage({kind:skill,targetRemainingHP:900}),0,skill+' deals zero auto-battle HP');
 assert.equal(boxeSkillDamage({kind:'A2_EMPOWERED_FINISHER',targetRemainingHP:500}),50);
 assert.deepEqual(BOXE_WAVE.startingInputs,['J','K','L']);
+assert.equal(BOXE_WAVE.rocketProc.perConfirmedPunchProbability,.075);
+assert.equal(BOXE_WAVE.rocketProc.maxDetachedGloves,1);
+assert.equal(BOXE_WAVE.rocketProc.flightMs,5000);
 assert.deepEqual(BOXE_WAVE.bossesAt,[5,10]);
 const e=[],ctrl=createBoxeBattleController({emit:x=>e.push(x)});
 const has=(type)=>e.filter(x=>x.type===type);
@@ -123,6 +126,8 @@ for(const entry of ranks){
 assert.deepEqual(unlockedKeys(w),['J','K','L','U','I']);
 assert.deepEqual(enabledGoldSkills(w),['1','3','9','5','0']);
 assert.equal(ranks.at(-1).goldKey,'0');
+assert.ok(!w.owned.has('unlock-rocket-proc'),'rocket remains independently card-gated');
+assert.equal(createWaveUpgradePool().find(x=>x.id==='unlock-rocket-proc').goldKey,'2');
 const kills=new Set(),s=upgradeState();
 assert.equal(recordAuthorizedKill(s,{killId:'robot-42',xp:70},kills).accepted,true);
 assert.equal(recordAuthorizedKill(s,{killId:'robot-42',xp:70},kills).accepted,false);

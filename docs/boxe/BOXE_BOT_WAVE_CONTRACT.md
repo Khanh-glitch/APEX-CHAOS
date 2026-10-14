@@ -31,3 +31,10 @@
 - C04 combat profile must reflect zero skill damage (control/mobility > damage) without fake numeric DPS.
 - New enemy, skill or upgrade added via declarative registry only, without per-ID UI edits.
 - CI: pure semantic gates -> original Gold SHA gate -> VFX event bridge -> Chrome desktop/mobile landscape real active mode -> owner playtest.
+
+## Owner R4 binding — 2026-10-15
+- FIST ROCKET appears only as a randomly offered **separate rare unlock card**: confirmed punch impact rolls a 7.5% chance, 1 flying glove at a time, Gold key 2, 5s outbound then Gold catch. Its Gold VFX may NOT be deleted to simplify proc implementation.
+- BOXE always aims for the **closest alive robot** in BOT WAVE on desktop and mobile; this is aim assistance, not guaranteed hit.
+- No wave-based stat mutations for Arsenal guns: ammo, cadence, damage, projectile velocity, reload remain fixed for each weapon even on bosses. Pressure escalates by gun combinations, threat lanes, active-robot cap, spawn angles, boss HP and positioning. SHOTGUN native action is ONE blast of 8 pellets before reload.
+- BOXE BOT WAVE survival trial starts at **3200 HP** with real Arsenal gun damage; player/enemy HP and between-wave healing may be tuned from hands-on Chrome playtests. This does NOT change 1v1 BOXE stats or global Arsenal.
+- J full combo order is 3 Gold basics (left, right, heavy-left), optional Gold key 1 six-beat flurry, optional Gold key 3 uppercut only after the flurry. On Gold cooldown / interrupted combo, a locked/unavailable link must NOT be silently skipped. Exact recovered timing is Gold basic 0.26/0.26/0.42s, basic hit at +0.09/+0.09/+0.13s; six jab launches at i*.085 and hit at +.05; uppercut impact at +.17. State machine must preserve VFX and input authority.

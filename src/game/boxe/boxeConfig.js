@@ -31,6 +31,8 @@ export const BOXE_WAVE=Object.freeze({
    {rank:4,id:'unlock-phantom',goldKey:'5',bind:'U'},
    {rank:5,id:'unlock-ultimate',goldKey:'0',bind:'I'}
  ]),
+ rocketProc:Object.freeze({goldKey:'2',perConfirmedPunchProbability:0.075,flightMs:5000,
+   maxDetachedGloves:1,requiresUpgradeId:'unlock-rocket-proc',requiresConfirmedPunchHit:true}),
  initialChapterWaves:10,
  bossesAt:Object.freeze([5,10]),
  mobileAim:'auto-target',
