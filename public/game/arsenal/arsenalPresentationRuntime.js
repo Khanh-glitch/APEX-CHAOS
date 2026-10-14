@@ -891,8 +891,36 @@
     ctx.beginPath();ctx.arc(0,0,5+t*9,0,TAU);ctx.fill();ctx.restore();
   }
 
+  // CP13 — the ONE presentation-only seam for specialised hero held-rigs.
+  // Registration is page-lifetime and idempotent. Each provider is ordered
+  // deterministically and must RETURN TRUE only if it painted the entire
+  // equipped weapon. Physics/ownership/aim/recoil remain Arsenal/hero-owned.
+  const equippedWeaponRenderers = new Map();
+  function registerEquippedWeaponRenderer(id, paint) {
+    const key=String(id||'');
+    if(!/^[a-z][a-z0-9-]{1,79}$/.test(key)||typeof paint!=='function')
+      throw new Error('Invalid equipped weapon presentation provider');
+    const previous=equippedWeaponRenderers.get(key);
+    if(previous && previous!==paint)
+      throw new Error('Duplicate equipped weapon presentation provider: '+key);
+    equippedWeaponRenderers.set(key,paint);
+    return ()=>{
+      if(equippedWeaponRenderers.get(key)===paint)equippedWeaponRenderers.delete(key);
+    };
+  }
+
   function drawEquippedWeapon(ctx, fighter, holder) {
     if (!fighter || !holder || !holder.weaponId) return false;
+    // BEFORE generic art just as the old Robot wrapper was. Providers that
+    // do not own this fighter MUST return false; ORIGINAL art is unchanged.
+    for(const [id,paint] of equippedWeaponRenderers) {
+      try {
+        const handled=paint(ctx,fighter,holder);
+        if(handled&&typeof handled.then==='function')
+          throw new Error('Async equipped weapon renderer forbidden: '+id);
+        if(handled===true)return true;
+      }catch(error){console.warn('[arsenal-av] equipped renderer failed: '+id,error);}
+    }
     // TRUE = handled by this renderer. Returning false made the host fallback
     // paint the weapon again even while the thrown projectile owned the art.
     if (holder.weaponId === 'COMBAT_BOOMERANG' && holder.phase === 'IN_FLIGHT') return true;
@@ -1075,6 +1103,8 @@
     drawWeaponSprite,
     weaponDrawParams,
     weaponMuzzleWorld,
+    registerEquippedWeaponRenderer,
+    equippedWeaponRendererIds:()=>Object.freeze([...equippedWeaponRenderers.keys()]),
     drawEquippedWeapon,
     drawV43GoldPlasmaCharge,
     drawPoseGhost,
