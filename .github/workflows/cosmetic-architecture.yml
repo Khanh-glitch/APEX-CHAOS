@@ -16,6 +16,8 @@ on:
       - 'tools/testRobotEventBusSubscription.mjs'
       - 'tools/testRobotLifecycleContract.mjs'
       - 'tools/testEquippedWeaponProviderContract.mjs'
+      - 'tools/testRuntimeScriptAdmission.mjs'
+      - 'src/game/runtimeLoader.js'
       - 'public/game/product/productAssetRuntime.js'
       - 'tools/testCosmeticLockerChrome.mjs'
       - 'tools/testCosmeticBattleChrome.mjs'
@@ -46,6 +48,7 @@ jobs:
           node tools/testRobotEventBusSubscription.mjs
           node tools/testRobotLifecycleContract.mjs
           node tools/testEquippedWeaponProviderContract.mjs
+          node tools/testRuntimeScriptAdmission.mjs
       - name: Verify production build and original runtime locks
         run: |
           node tools/testRuntimeRevisionGate.mjs
