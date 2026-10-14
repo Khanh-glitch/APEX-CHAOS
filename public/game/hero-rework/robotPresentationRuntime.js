@@ -1794,6 +1794,13 @@ function renderRig(g) {
     playRobotSfx,
     loadRobotAudio,
     resetRobotAudioSession,
+    // Read-only lifecycle audit: state never leaks across rematches or exit.
+    // Exposes counts only, not mutable combatants or AudioContext objects.
+    lifecycleEvidence: () => Object.freeze({
+      activeRobotStates: robotStates.size,
+      audioSession: robotAudioSession,
+      subscribed: !!globalScope.APEX_HERO_REWORK_AIL?.bus?.__robotPresentationHooked
+    }),
     audioEvidence: () => JSON.parse(JSON.stringify(Object.values(robotAudioEvidence))),
     SPR: () => SPR,
     isRobotFighter,
