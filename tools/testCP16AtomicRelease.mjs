@@ -20,7 +20,10 @@ function inspect(current){
   assert.ok(!current.urls.includes('20261014-cp8-owner-gold-content-r10'),
     'stale CP8 Gold surface cache token');
   for(const path of surfaces){
-    const publicURL = '/gold/'+path+'?v='+current.revision;
+    // C03 changes ONLY Gold shell HTML, not the 59 classic combat scripts.
+    // Preserve the atomic revision and require a second exact skin/archive
+    // cache discriminator on the shell to prevent browsers reusing CP17 HOME.
+    const publicURL = '/gold/'+path+'?v='+current.revision+(path==='shell.html'?'&fieldArchive=c03':'');
     const name = path==='shell.html'?'SHELL':path==='lucky-draw.html'?'LUCKY_DRAW':
       path==='battle-hud.html'?'BATTLE_HUD':'TRANSITION';
     assert.ok(current.urls.includes("export const GOLD_"+name+"_URL = '"+publicURL+"'"),
@@ -48,6 +51,7 @@ for(const [name,mutation] of [
   ['manifest revision only',{goldRevision:'stale-gold'}],
   ['SHA lock revision only',{lockRevision:'stale-runtime'}],
   ['Gold surface URL only',{urls:goldURLs.replace('/gold/lucky-draw.html?v='+revision,'/gold/lucky-draw.html?v=stale-gold')}],
+  ['Field Archive shell discriminator removed',{urls:goldURLs.replace('&fieldArchive=c03','')}],
   ['Gold executable URL only',{shell:shell.replace('/game/gold/goldProductBridge.js?v='+revision,'/game/gold/goldProductBridge.js?v=stale-gold')}],
   ['Gold shell data without hash',{shell:shell+'<!-- invalidation canary -->'}]
 ]){
@@ -64,4 +68,4 @@ assert.ok(Object.keys(lock.files).length>=40,'unexpectedly shortened runtime SHA
 for(const [file,sha] of Object.entries(lock.files)){
   assert.equal(digest(fs.readFileSync(file)),sha,'runtime changed without relock '+file);
 }
-console.log('CP16 ATOMIC RELEASE CANDIDATE PASS: 3-way cache authority, shell bytes, full Gold hashes, runtime lock, 5 negative mixed-cache cases');
+console.log('CP16 ATOMIC RELEASE CANDIDATE PASS: 3-way cache authority, shell bytes, full Gold hashes, runtime lock, 6 negative mixed-cache cases');
