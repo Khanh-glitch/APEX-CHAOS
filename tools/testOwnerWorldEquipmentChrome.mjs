@@ -34,13 +34,27 @@ async function goGoldBattle(page,hero,name,opponent='newbot'){
   {timeout:90000});
  const route=await page.evaluate(()=>window.APEX_GOLD_SHELL_NAVIGATE('fighter',{mode:'bot'}));
  assert.equal(route,true,'Gold fighter route rejected');
- await page.waitForFunction((id)=>{const e=document.querySelector('.rosterCard[data-hero="'+id+'"]');
-  return !!e&&e.getClientRects().length>0&&getComputedStyle(e).visibility==='visible';},
-  {timeout:90000},hero);
- await page.$eval('.rosterCard[data-hero="'+hero+'"]',e=>e.click());
- await page.$eval('#lockIn',e=>e.click());
- await page.$eval('.rosterCard[data-hero="'+opponent+'"]',e=>e.click());
- await page.$eval('#lockIn',e=>e.click());
+ // Wait for the actual, interactive Fighter surface, not merely a visible
+ // card behind Mode -> Fighter choreography. Synthetic DOM click() previously
+ // bypassed pointer hit-testing and could lock slots before the route settled.
+ await page.waitForFunction((id)=>{
+  const stage=document.getElementById('stage');
+  const e=document.querySelector('.rosterCard[data-hero="'+id+'"]');
+  return stage?.classList.contains('screen-fighter') &&
+   !stage.classList.contains('mode-committing') &&
+   !stage.classList.contains('flow-transition') &&
+   !window.APEX_SCENE_TRANSITION?.active?.() &&
+   !!e&&e.getClientRects().length>0&&getComputedStyle(e).visibility==='visible';
+ },{timeout:90000},hero);
+ await page.click('.rosterCard[data-hero="'+hero+'"]');
+ await page.click('#lockIn');
+ await page.waitForFunction(()=>{
+  const stage=document.getElementById('stage');
+  return stage?.classList.contains('fighter-p1-locked')&&
+   stage?.classList.contains('fighter-active-p2');
+ },{timeout:15000});
+ await page.click('.rosterCard[data-hero="'+opponent+'"]');
+ await page.click('#lockIn');
  // Record whether battle entry really started at the exact accepted LOCK IN.
  // This is read-only diagnosis: NEVER retry/force the handoff from this fixture.
  const handoffAtLock=await page.evaluate(()=>({
