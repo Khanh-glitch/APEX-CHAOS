@@ -1,4 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {PRODUCT_ROSTER} from '../productSurface.js';
 import {cosmetics} from './cosmeticAuthority.js';
 import {loadDeferredGameRuntimes} from '../runtimeLoader.js';
@@ -23,6 +24,19 @@ function weaponImage(id,meta){if(id==='RPG_7'&&meta?.skinId==='vua-he')return '/
  if(WEAPON_V43_IMAGES.has(id))return '/assets/arsenal/v43/'+id+'.webp';
  if(WEAPON_C_IMAGES.has(id))return '/assets/arsenal/weapons/c/'+id+'.png';
  return typeof meta?.art==='string'&&/^\/assets\/arsenal\//.test(meta.art)?meta.art:null;
+}
+// The real Gold fighter-pick is a separate screen from HOME. Read its
+// DOM selection authority instead of copying or mutating Gold pick state.
+const isFighterPick=()=>{
+ const stage=document.getElementById('stage');
+ return !!(stage?.classList.contains('screen-fighter')&&!stage.classList.contains('flow-transition')&&!window.APEX_SCENE_TRANSITION?.active?.());
+};
+function pickSelection(){
+ const stage=document.getElementById('stage');
+ const side=stage?.classList.contains('fighter-active-p2')?'p2':'p1';
+ const label=document.getElementById(side==='p1'?'p1Name':'p2Name')?.textContent?.trim().toUpperCase()||'';
+ const heroId=Object.keys(HERO_META).find(id=>HERO_META[id].name===label)||null;
+ return heroId?{side,heroId,name:label}:null;
 }
 const isHome=()=>{
  const stage=document.getElementById('stage');
@@ -96,14 +110,19 @@ function DisplayArtwork({kind,item,previewId}){
 function WeaponFacts({item,skin}){return <WeaponStatConsole item={item} skin={skin}/>}
 function HeroFacts({item}){return <AbilityWeb item={item} skills={HERO_META[item.id]?.skills||[]}/>}
 export default function FieldArchiveC03(){
- const [home,setHome]=useState(false),[open,setOpen]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
+ const [home,setHome]=useState(false),[pick,setPick]=useState(false),[pickHost,setPickHost]=useState(null),[open,setOpen]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
  const [kind,setKind]=useState('hero'),[side,setSide]=useState('p1'),[focus,setFocus]=useState('ROBOT');
  const [weapons,setWeapons]=useState([]),[view,setView]=useState('SKINS'),[page,setPage]=useState(0),[query,setQuery]=useState('');
  const [preview,setPreview]=useState('default'),[skinPage,setSkinPage]=useState(0),[rev,setRev]=useState(0),[warning,setWarning]=useState(false);
  const [windowSize,setWindowSize]=useState({w:typeof window!=='undefined'?window.innerWidth:1440,h:typeof window!=='undefined'?window.innerHeight:900});
  const inFlight=useRef(false),opener=useRef(null);
  useEffect(()=>{
-  const update=()=>{const current=isHome();setHome(current);if(!current)setOpen(false)};
+  const update=()=>{
+   const current=isHome(),duringPick=isFighterPick();
+   setHome(current);setPick(duringPick);
+   setPickHost(duringPick?document.querySelector('#fighterSelectScreen .selectionHeadV6'):null);
+   if(!current&&!duringPick)setOpen(false);
+  };
   const resize=()=>setWindowSize({w:innerWidth,h:innerHeight});
   const subscription=cosmetics.subscribe(()=>setRev(x=>x+1));
   const interval=setInterval(update,400);
@@ -123,11 +142,24 @@ export default function FieldArchiveC03(){
   window.addEventListener('keydown',key);
   return()=>{window.removeEventListener('keydown',key);document.body.classList.remove('apex-cosmetic-locker-open','fa3-locked');(opener.current||before)?.focus?.()};
  },[open]);
- async function launch(){
-  if(!isHome()||inFlight.current)return;
+ async function launch(source='home'){
+  const entryPick=source==='pick';
+  if((entryPick?!isFighterPick():!isHome())||inFlight.current)return;
+  const selected=entryPick?pickSelection():null;
+  if(entryPick&&!selected)return; // Gold owns fighter identity, never guess.
   opener.current=document.activeElement;inFlight.current=true;setLoading(true);setError('');
-  try{await loadDeferredGameRuntimes('arsenalHub');setWeapons(catalogWeapons());setOpen(true);setView('SKINS')}
-  catch(e){setError(String(e?.message||e))}
+  try{
+   await loadDeferredGameRuntimes('arsenalHub');
+   if(entryPick&&!isFighterPick())return; // Match may have launched while loading.
+   if(!entryPick&&!isHome())return;
+   setWeapons(catalogWeapons());
+   if(selected){
+    setKind('hero');setSide(selected.side);setFocus(selected.heroId);setQuery('');
+    const equippedId=cosmetics.selected(selected.side,'hero',selected.heroId).id;
+    setPreview(equippedId);setSkinPage(Math.max(0,Math.floor(cosmetics.variants('hero',selected.heroId).findIndex(v=>v.id===equippedId)/2)));
+   }
+   setOpen(true);setView('SKINS');
+  }catch(e){setError(String(e?.message||e))}
   finally{inFlight.current=false;setLoading(false)}
  }
  const items=useMemo(()=>kind==='hero'?HERO_ORDER.filter(x=>PRODUCT_ROSTER.playableIds.includes(x)).map(id=>({id,name:HERO_META[id].name,tier:'FIGHTER',family:'CORE SIX'})):weapons,[kind,weapons]);
@@ -152,6 +184,7 @@ export default function FieldArchiveC03(){
  function equip(){if(!current||!chosen||activePreview===worn?.id)return;const result=cosmetics.equip(side,kind,current.id,chosen.id);if(result.ok)setWarning(result.persisted===false)}
  return <>
   {home&&!open&&<button type="button" className="apex-skin-entry" onClick={()=>void launch()} disabled={loading} title="Open Field Archive: fighters, weapons and skins"><span className="apex-skin-entry-mark" aria-hidden="true">✦</span><span>{loading?'LOADING':'ARCHIVE'}</span><span aria-hidden="true">↗</span></button>}
+  {pick&&!open&&pickHost&&createPortal(<button type="button" className="fa3-pick-equip-entry" aria-label="Open appearance for selected fighter and player" onClick={()=>void launch('pick')} disabled={loading}><span>✦</span> {loading?'PREPARING':'APPEARANCE'} <b>↗</b></button>,pickHost)}
   {home&&!open&&error&&<div className="apex-skin-error" role="alert">Archive unavailable: {error}<button type="button" onClick={()=>setError('')}>×</button></div>}
   {open&&<div className="fa3-overlay apex-cosmetics-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}} onKeyDownCapture={e=>{
     e.stopPropagation();
