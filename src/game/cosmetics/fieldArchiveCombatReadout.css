@@ -351,3 +351,15 @@
  .fa3-ballistic-diagram{display:none}
 }
 @media(prefers-reduced-motion:reduce){.fa3-ballistic-pulse{animation:none!important}}
+
+/* R3 accessibility: 320x568 is too short for two real skin hit targets,
+   a complete readable skill circuit AND Equip. SKINS remains one-tap,
+   detailed interactive P/A1/A2 graph lives on the INFO tab (no scrolling). */
+@media(max-width:360px) and (max-height:650px) and (orientation:portrait){
+ .fa3-readout-embed{display:none}
+ .fa3-appear{justify-content:flex-start}
+ .fa3-skin-list{margin-bottom:auto}
+ .fa3-equip-state{margin-top:auto}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-map{width:min(100%,155px)}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-map .fa3-web-node{width:25px;height:25px}
+}

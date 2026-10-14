@@ -73,17 +73,27 @@ try{
     }),readoutVisible:!!document.querySelector('.fa3-readout-embed')};
    });
    assert.equal(web.length,3,'PASSIVE / A1 / A2 spiderweb nodes missing');
-   if(v.name==='landscape'){
-     // In 390px-tall landscape the SKINS panel deliberately prioritizes real
-     // 2x skin hit targets + Equip; the full LIVE web is accessible on INFO.
-     assert.ok(web.rects.every(x=>!x.hit),'compact ability readout should be offstage in short landscape');
+   if(v.name==='landscape'||v.name==='small-mobile'){
+     // 320x568 portrait and 844x390 landscape prioritize two owned skins +
+     // real Equip on the SKINS tab; the full web is on the INFO tab.
+     assert.ok(web.rects.every(x=>!x.hit),
+       'compact ability web must not obscure appearance controls in '+v.name);
    }else{
-     assert.ok(web.rects.every(x=>x.hit&&x.inScreen),'unusable ability web in '+v.name+': '+JSON.stringify(web));
+     assert.ok(web.rects.every(x=>x.hit&&x.inScreen),
+       'unusable compact ability web in '+v.name+': '+JSON.stringify(web));
    }
    assert.deepEqual(errors,[],'browser runtime/asset errors');
    await page.screenshot({path:path.join(dir,v.name+'-newbot-original.jpg'),type:'jpeg',quality:85});
    await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:nth-child(2)').click());
    await page.waitForSelector('.fa3-combat-web:not(.fa3-combat-web-compact)');
+   const infoNodes=await page.evaluate(()=>[...document.querySelectorAll('.fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-node')].map(el=>{
+     const r=el.getBoundingClientRect(),cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;
+     return {key:el.textContent.trim(),inView:r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight,
+       actualHit:document.elementFromPoint(cx,cy)?.closest('.fa3-web-node')===el};
+   }));
+   assert.equal(infoNodes.length,3,'INFO skill network must have exactly three nodes');
+   assert.ok(infoNodes.every(n=>n.inView&&n.actualHit),
+      'INFO node must be clickable at viewport '+v.name+': '+JSON.stringify(infoNodes));
    await page.evaluate(()=>document.querySelector('.fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-node-a2').click());
    const ability=await page.$eval('.fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-detail',e=>e.textContent);
    assert.ok(ability.includes('VIRTUAL ARMOR'),'A2 click did not update REAL NEWBOT skill info');
