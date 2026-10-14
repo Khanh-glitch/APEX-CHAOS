@@ -77,7 +77,7 @@ export function unlockedKeys(state){
  return keys;
 }
 export function enabledGoldSkills(state){
- return BOXE_WAVE.goldUpgradeOrder.filter(x=>state.owned.has(x.id)).map(x=>x.goldKey);
+ return [...BOXE_WAVE.goldUpgradeOrder.filter(x=>state.owned.has(x.id)).map(x=>x.goldKey),...(state.owned.has('unlock-rocket-proc')?['2']:[])];
 }
 // Exp thresholds are tunable game config: no XP is awarded by this pure module.
 // The authoritative killed-enemy handler must dedupe killId and award XP once.
