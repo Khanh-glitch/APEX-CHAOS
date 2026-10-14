@@ -90,10 +90,21 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    // emit visible pixels for one passive beat. No gameplay cooldown or damage edits.
    const bus=G.APEX_HERO_REWORK_AIL?.bus;
    if(!bus)throw Error('Native Robot event bus unavailable');
+   if(bus.__robotPresentationHooked!==true)
+     throw Error('Robot presentation native AIL bus hook is not installed');
+   if(G.__apexRobotEventBody?.({fighterId:a.id})!==a)
+     throw Error('Robot presentation event body ownership resolver differs from P1');
    const beforeFx=st.ecoFxSerial||0;
-   bus.emit('RobotPassiveMilestone',{hero:'ROBOT',fighterId:a.id,milestone:1});
-   if((st.ecoFxSerial||0)<=beforeFx||!st.ecoFxEvents?.some(e=>e.kind==='passive'))
-     throw Error('ECO Gold world VFX missing native passive event provenance');
+   // The native match may already have reached milestone 1 while we sampled
+   // its real RPG carriers. Advance the milestone *test fixture*, not gameplay.
+   // Replaying a previous milestone is SUPPOSED to be ignored by Robot's owner
+   // event dedup guard and cannot prove the cosmetic FX branch.
+   const nextMilestone=Math.max(0,Number(st._lastMilestoneNumber)||0)+1;
+   bus.emit('RobotPassiveMilestone',{hero:'ROBOT',fighterId:a.id,milestone:nextMilestone});
+   if((st.ecoFxSerial||0)<=beforeFx||!st.ecoFxEvents?.some(e=>e.kind==='passive'&&e.serial>beforeFx))
+     throw Error('ECO Gold presentation event failed for next milestone '+nextMilestone+
+       ' body='+a.id+' busHook='+bus.__robotPresentationHooked+
+       ' last='+st._lastMilestoneNumber+' fxBefore='+beforeFx+' fxAfter='+st.ecoFxSerial);
    const worldPose={x:a.x,y:a.y,kind:'ROBOT',robot:{
       time:st.T+.06,mode:st.mode,armor:st.armor,vx:st.vxw,vy:st.vyw,
       trailOn:st.trailOn,dashTrail:st.trail,
