@@ -17,8 +17,16 @@ try{
   const errors=[];
   page.on('pageerror',e=>errors.push(String(e)));
   page.on('response',r=>{if(r.status()>=400&&/field-archive|launcher|RPG_7|home-robot-body/.test(r.url()))errors.push('HTTP '+r.status()+' '+r.url())});
-  await page.goto('http://127.0.0.1:4173/field-archive.html',{waitUntil:'networkidle2',timeout:60000});
-  await page.waitForFunction(()=>window.__APEX_FIELD_ARCHIVE_QA__?.().canvasRendered,{timeout:60000});
+  const response=await page.goto('http://127.0.0.1:4173/field-archive.html',{waitUntil:'networkidle2',timeout:60000});
+  console.log('C02 INITIAL HTTP',v.label,response?.status(),page.url());
+  await new Promise(r=>setTimeout(r,1500));
+  const diagnostic=await page.evaluate(()=>({title:document.title,hasArchive:!!document.querySelector('.book'),hasModule:!!document.querySelector('script[type="module"]'),hookType:typeof window.__APEX_FIELD_ARCHIVE_QA__,scriptText:document.querySelector('script[type="module"]')?.textContent?.slice(0,150)}));
+  console.log('C02 MODULE DIAGNOSTIC',v.label,diagnostic,'pageErrors',errors);
+  if(errors.length||diagnostic.hookType!=='function'){
+    await page.screenshot({path:path.join(out,'failure-'+v.label+'.jpg'),type:'jpeg',quality:78,fullPage:true});
+    throw Error('C02 module was not executable: '+JSON.stringify({diagnostic,errors}));
+  }
+  await page.waitForFunction(()=>window.__APEX_FIELD_ARCHIVE_QA__?.().canvasRendered,{timeout:15000});
   await new Promise(r=>setTimeout(r,750));
   const initial=await page.evaluate(()=>{
    const q=window.__APEX_FIELD_ARCHIVE_QA__();
