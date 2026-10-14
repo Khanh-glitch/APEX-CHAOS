@@ -99,7 +99,7 @@ export default function FieldArchiveC03(){
  const [home,setHome]=useState(false),[open,setOpen]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
  const [kind,setKind]=useState('hero'),[side,setSide]=useState('p1'),[focus,setFocus]=useState('ROBOT');
  const [weapons,setWeapons]=useState([]),[view,setView]=useState('SKINS'),[page,setPage]=useState(0),[query,setQuery]=useState('');
- const [preview,setPreview]=useState('default'),[rev,setRev]=useState(0),[warning,setWarning]=useState(false);
+ const [preview,setPreview]=useState('default'),[skinPage,setSkinPage]=useState(0),[rev,setRev]=useState(0),[warning,setWarning]=useState(false);
  const [windowSize,setWindowSize]=useState({w:typeof window!=='undefined'?window.innerWidth:1440,h:typeof window!=='undefined'?window.innerHeight:900});
  const inFlight=useRef(false),opener=useRef(null);
  useEffect(()=>{
@@ -138,14 +138,17 @@ export default function FieldArchiveC03(){
  const worn=current?cosmetics.selected(side,kind,current.id):null;
  const activePreview=opts.some(v=>v.id===preview)?preview:'default';
  const chosen=opts.find(v=>v.id===activePreview)||opts[0]||null;
+ const skinMaxPage=Math.max(0,Math.ceil(opts.length/2)-1);
+ const safeSkinPage=Math.min(skinPage,skinMaxPage);
+ const visibleSkins=opts.slice(safeSkinPage*2,safeSkinPage*2+2);
  const isNarrow=windowSize.w<760||windowSize.h<550;
  const listPageSize=windowSize.w<540?3:windowSize.h<710?4:6;
  const pageMax=Math.max(0,Math.ceil(filtered.length/listPageSize)-1);
  const safePage=Math.min(page,pageMax),pageItems=filtered.slice(safePage*listPageSize,(safePage+1)*listPageSize);
- const resetFocus=useCallback((id)=>{setFocus(id);setPage(0);setPreview(cosmetics.selected(side,kind,id).id);setWarning(false)},[kind,side]);
+ const resetFocus=useCallback((id)=>{const selected=cosmetics.selected(side,kind,id).id;setFocus(id);setPage(0);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(kind,id).findIndex(v=>v.id===selected)/2)));setPreview(selected);setWarning(false)},[kind,side]);
  const shift=(delta)=>{if(!items.length)return;const item=items[(idx+delta+items.length)%items.length];resetFocus(item.id)};
- function changeKind(next){setKind(next);setPage(0);setQuery('');setView('SKINS');const id=next==='hero'?'ROBOT':weapons[0]?.id||'';setFocus(id);if(id)setPreview(cosmetics.selected(side,next,id).id)}
- function changeSide(next){setSide(next);if(current)setPreview(cosmetics.selected(next,kind,current.id).id)}
+ function changeKind(next){setKind(next);setPage(0);setQuery('');setView('SKINS');const id=next==='hero'?'ROBOT':weapons[0]?.id||'';setFocus(id);if(id){const selected=cosmetics.selected(side,next,id).id;setPreview(selected);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(next,id).findIndex(v=>v.id===selected)/2)))}}
+ function changeSide(next){setSide(next);if(current){const selected=cosmetics.selected(next,kind,current.id).id;setPreview(selected);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(kind,current.id).findIndex(v=>v.id===selected)/2)))}}
  function equip(){if(!current||!chosen||activePreview===worn?.id)return;const result=cosmetics.equip(side,kind,current.id,chosen.id);if(result.ok)setWarning(result.persisted===false)}
  return <>
   {home&&!open&&<button type="button" className="apex-skin-entry" onClick={()=>void launch()} disabled={loading} title="Open Field Archive: fighters, weapons and skins"><span className="apex-skin-entry-mark" aria-hidden="true">✦</span><span>{loading?'LOADING':'ARCHIVE'}</span><span aria-hidden="true">↗</span></button>}
@@ -181,10 +184,11 @@ export default function FieldArchiveC03(){
        <div className="fa3-detail-heading"><span>{view==='SKINS'?'APPEARANCES / SELECT & EQUIP':view==='INFO'?'FIELD NOTES / GAMEPLAY':'SELECT RECORD'}</span><i aria-hidden="true">RECORD NO. {String(idx+1).padStart(3,'0')}</i></div>
        {view==='SKINS'&&<div className="fa3-appear">
         <p className="fa3-description">{kind==='hero'?HERO_META[current?.id]?.intro:'Skin applies whenever this weapon type is obtained during a match.'}</p>
-        <div className="fa3-skin-list">{opts.map(s=><button type="button" key={s.id} className={'fa3-skin'+(s.id===activePreview?' preview':'')+(s.id===worn?.id?' equipped':'')} onClick={()=>setPreview(s.id)} aria-pressed={s.id===activePreview}>
+        <div className="fa3-skin-list">{visibleSkins.map(s=><button type="button" key={s.id} className={'fa3-skin'+(s.id===activePreview?' preview':'')+(s.id===worn?.id?' equipped':'')} onClick={()=>setPreview(s.id)} aria-pressed={s.id===activePreview}>
           <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:<img src={kind==='hero'?PICTURE(current.id):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||''} alt=""/>}</span>
           <span className="fa3-skin-name"><b>{s.label}</b><small>{s.id==='default'?'ORIGINAL PRESENTATION':s.detail||'APPROVED COSMETIC'}</small></span>
           <strong>{s.id===worn?.id?'✓':'↗'}</strong></button>)}</div>
+        {skinMaxPage>0&&<div className="fa3-skin-pager" aria-label="Skin pages"><button disabled={safeSkinPage===0} onClick={()=>setSkinPage(p=>Math.max(0,p-1))} aria-label="Previous skin page">‹</button><span>{String(safeSkinPage+1).padStart(2,'0')} / {String(skinMaxPage+1).padStart(2,'0')}</span><button disabled={safeSkinPage===skinMaxPage} onClick={()=>setSkinPage(p=>Math.min(skinMaxPage,p+1))} aria-label="Next skin page">›</button></div>}
         <div className="fa3-insight" aria-label="Appearance field note">
          <span>FIELD NOTE / {kind==='hero'?'FIGHTER':'WEAPON'} REGISTER</span>
          <strong>{kind==='hero'?'SAME FIGHTER, DIFFERENT LOOK':current?.tier+' · '+current?.family}</strong>
