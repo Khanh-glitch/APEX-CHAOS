@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 const manifest=JSON.parse(fs.readFileSync('docs/boxe/BOXE_GOLD_INTAKE.json','utf8'));
-const base='public/gold/boxe-gold';
+const base='masters/boxe-gold';
 const digest=x=>crypto.createHash('sha256').update(fs.readFileSync(x)).digest('hex');
 const file=path.join(base,'THE_HAND_GOLD_ORIGINAL.html');
 assert.ok(fs.existsSync(file),'OWNER GOLD BINARY NOT YET IMPORTED; manifest is not proof of upload');

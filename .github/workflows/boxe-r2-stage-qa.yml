@@ -33,7 +33,7 @@ jobs:
           pnpm test:source-hygiene
       - name: Report binary Gold gate status without pretending imported
         run: |
-          if test -f public/gold/boxe-gold/THE_HAND_GOLD_ORIGINAL.html; then
+          if test -f masters/boxe-gold/THE_HAND_GOLD_ORIGINAL.html; then
             node tools/testBoxeGoldIntakeGate.mjs
           else
             echo "::notice::Source Gold binary and PNG still not in repo; this workflow is STAGING-ONLY, NOT integrated Gold QA."

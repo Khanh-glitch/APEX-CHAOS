@@ -33,3 +33,6 @@
 - Reuse the exact Gold VFX modules and event sequencing; **never** simulate preservation by approximating glow/trails.
 - Gameplay damage, stun, disarm, pickup and ownership must come from arena-authoritative engine hooks, not standalone training lab.
 - Include regression for SOURCE → asset extraction → VFX events → gameplay authority → mobile landscape → real browser screenshots.
+
+## Gold master storage policy (corrected before upload)
+The immutable owner source and deembedded assets MUST live in `masters/boxe-gold/` (nonshipping). Do not commit originals under `public/gold/`, since doing so would unnecessarily deploy ~45MB of lab-only sources. Runtime build must selectively stage approved asset slices after Gold integration; do not duplicate the entire file in product shipping.

@@ -4,9 +4,9 @@
   "source": "THE_HAND_GOLD_ROCKET_CATCH_IMPACT_V2_POSE_UPDATED(1).html",
   "source_sha256": "ccb889bb08cb2e741c4f7f5e0b33d08047c08fb28bfc1c31ae9401604444e2b2",
   "source_bytes": 25675422,
-  "original_target": "public/gold/boxe-gold/THE_HAND_GOLD_ORIGINAL.html",
-  "deembedded_target": "public/gold/boxe-gold/THE_HAND_GOLD_DEEMBEDDED.html",
-  "assets_dir": "public/gold/boxe-gold/assets",
+  "original_target": "masters/boxe-gold/THE_HAND_GOLD_ORIGINAL.html",
+  "deembedded_target": "masters/boxe-gold/THE_HAND_GOLD_DEEMBEDDED.html",
+  "assets_dir": "masters/boxe-gold/assets",
   "asset_names": [
     "char-body.png",
     "glove.png",
@@ -20,7 +20,7 @@
     "fx-fire.png"
   ],
   "invariant": "Source Gold is immutable; any production alterations are additive adapters/forks. No VFX omissions permitted.",
-  "note": "Manifest is an audit receipt only. The 25.7 MB original HTML and 10 binary PNGs are NOT uploaded by this commit.",
+  "note": "SHA-locked nonshipping Gold master. The 25.7MB HTML and 10 PNG binary assets are NOT imported yet; do not place source masters under public/.",
   "asset_sha256": {
     "char-body.png": "20dcb0fda5ddb8bb62065b593d194f814a9879128dac087fb5570147fb87ee3d",
     "glove.png": "6947974edbf8f7e35b67f1ecb89519fb0cd9eb13fa8267c14f36a036943f4fca",
