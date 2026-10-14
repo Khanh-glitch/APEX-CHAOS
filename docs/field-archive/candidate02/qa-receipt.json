@@ -1,0 +1,187 @@
+{
+  "status": "PASS",
+  "views": [
+    {
+      "viewport": "desktop",
+      "hero": {
+        "q": {
+          "kind": "hero",
+          "side": "p1",
+          "preview": "ecobot",
+          "equipped": {
+            "p1": {
+              "hero": "default",
+              "weapon": "default"
+            },
+            "p2": {
+              "hero": "default",
+              "weapon": "default"
+            }
+          },
+          "goldPrepared": true,
+          "renderError": "",
+          "canvasRendered": true,
+          "assetSources": {
+            "hero": "/gold/assets/gold/home-robot-body.png",
+            "ecobot": "exact owner V17 module",
+            "rpg": "/assets/arsenal/v43/RPG_7.webp",
+            "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
+          }
+        },
+        "opaque": 319,
+        "book": {
+          "x": 53.796875,
+          "y": 88,
+          "width": 1332.390625,
+          "height": 788,
+          "top": 88,
+          "right": 1386.1875,
+          "bottom": 876,
+          "left": 53.796875
+        },
+        "pageWidth": 1440,
+        "screenWidth": 1440
+      },
+      "weapon": {
+        "kind": "weapon",
+        "side": "p1",
+        "preview": "vua-he",
+        "equipped": {
+          "p1": {
+            "hero": "default",
+            "weapon": "default"
+          },
+          "p2": {
+            "hero": "default",
+            "weapon": "default"
+          }
+        },
+        "goldPrepared": true,
+        "renderError": "",
+        "canvasRendered": true,
+        "assetSources": {
+          "hero": "/gold/assets/gold/home-robot-body.png",
+          "ecobot": "exact owner V17 module",
+          "rpg": "/assets/arsenal/v43/RPG_7.webp",
+          "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
+        }
+      },
+      "final": {
+        "kind": "hero",
+        "side": "p2",
+        "preview": "ecobot",
+        "equipped": {
+          "p1": {
+            "hero": "default",
+            "weapon": "vua-he"
+          },
+          "p2": {
+            "hero": "ecobot",
+            "weapon": "default"
+          }
+        },
+        "goldPrepared": true,
+        "renderError": "",
+        "canvasRendered": true,
+        "assetSources": {
+          "hero": "/gold/assets/gold/home-robot-body.png",
+          "ecobot": "exact owner V17 module",
+          "rpg": "/assets/arsenal/v43/RPG_7.webp",
+          "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
+        }
+      },
+      "errors": []
+    },
+    {
+      "viewport": "mobile",
+      "hero": {
+        "q": {
+          "kind": "hero",
+          "side": "p1",
+          "preview": "ecobot",
+          "equipped": {
+            "p1": {
+              "hero": "default",
+              "weapon": "default"
+            },
+            "p2": {
+              "hero": "default",
+              "weapon": "default"
+            }
+          },
+          "goldPrepared": true,
+          "renderError": "",
+          "canvasRendered": true,
+          "assetSources": {
+            "hero": "/gold/assets/gold/home-robot-body.png",
+            "ecobot": "exact owner V17 module",
+            "rpg": "/assets/arsenal/v43/RPG_7.webp",
+            "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
+          }
+        },
+        "opaque": 103,
+        "book": {
+          "x": 23,
+          "y": 70,
+          "width": 354,
+          "height": 1193.765625,
+          "top": 70,
+          "right": 377,
+          "bottom": 1263.765625,
+          "left": 23
+        },
+        "pageWidth": 390,
+        "screenWidth": 390
+      },
+      "weapon": {
+        "kind": "weapon",
+        "side": "p1",
+        "preview": "vua-he",
+        "equipped": {
+          "p1": {
+            "hero": "default",
+            "weapon": "default"
+          },
+          "p2": {
+            "hero": "default",
+            "weapon": "default"
+          }
+        },
+        "goldPrepared": true,
+        "renderError": "",
+        "canvasRendered": true,
+        "assetSources": {
+          "hero": "/gold/assets/gold/home-robot-body.png",
+          "ecobot": "exact owner V17 module",
+          "rpg": "/assets/arsenal/v43/RPG_7.webp",
+          "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
+        }
+      },
+      "final": {
+        "kind": "hero",
+        "side": "p2",
+        "preview": "ecobot",
+        "equipped": {
+          "p1": {
+            "hero": "default",
+            "weapon": "vua-he"
+          },
+          "p2": {
+            "hero": "ecobot",
+            "weapon": "default"
+          }
+        },
+        "goldPrepared": true,
+        "renderError": "",
+        "canvasRendered": true,
+        "assetSources": {
+          "hero": "/gold/assets/gold/home-robot-body.png",
+          "ecobot": "exact owner V17 module",
+          "rpg": "/assets/arsenal/v43/RPG_7.webp",
+          "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
+        }
+      },
+      "errors": []
+    }
+  ]
+}
