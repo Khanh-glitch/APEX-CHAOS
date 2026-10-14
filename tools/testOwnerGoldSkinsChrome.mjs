@@ -155,6 +155,37 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    if(marked<100)throw Error('ECO Gold target ring has no visible living material '+marked);
    const targetImage=lockCanvas.toDataURL('image/png');
 
+   // CP10 regression for *all* V17 world FX families. Each material draw
+   // receives one isolated, presenter-only event with a distinct time epoch;
+   // no event from a previous family can leave surviving particles and cause
+   // a false PASS. The fake cosmetic receipt is NEVER equipped to P2.
+   const familyKinds=['a1-launch','a1-contact','a1-fail','a2-on','a2-off',
+     'passive','hit','wall','fire'];
+   const familyInk={};
+   const fixtureEcoP2={side:'p2',kind:'hero',baseId:'ROBOT',skinId:'ecobot'};
+   const originalP2=C.capture('p2','hero','ROBOT');
+   for(const [i,kind] of familyKinds.entries()){
+     const t=st.T+100+i*10;
+     const canvas=document.createElement('canvas');
+     canvas.width=1000;canvas.height=800;
+     const c=canvas.getContext('2d');
+     const pose={x:500,y:450,kind:'ROBOT',robot:{
+       time:t,armor:kind==='hit',mode:'idle',vx:0,vy:0,trailOn:false,
+       dashTrail:[],fxEvents:[{serial:i+1,t,kind,x:500,y:450,armored:kind==='hit'}]
+     }};
+     if(!C.render('worldBack',c,fixtureEcoP2,pose))
+       throw Error('ECO Gold missing back-world hook '+kind);
+     pose.robot.time=t+.12;
+     if(!C.render('worldFront',c,fixtureEcoP2,pose))
+       throw Error('ECO Gold missing front-world hook '+kind);
+     const pix=c.getImageData(360,300,300,300).data;
+     let ink=0;for(let k=3;k<pix.length;k+=4)if(pix[k]>2)ink++;
+     familyInk[kind]=ink;
+     if(ink<6)throw Error('ECO Gold family missing visible native-event material '+kind+' '+ink);
+     if(C.render('worldFront',c,originalP2,pose)!==false)
+       throw Error('P2 ORIGINAL used ECO material family '+kind);
+   }
+
    // CP9 smoke proof MUST be acquired from the ACTUAL RPG carrier after
    // native physics has produced sampled flight history. A first-frame rocket
    // sprite does NOT prove the exhaust is attached, smooth or Gold-faithful.
@@ -215,7 +246,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
        throw Error('Gold blast frame renderer rejected age '+age);
      G.__cp8Evidence['blast-'+String(Math.round(age*100)).padStart(3,'0')]=canvas.toDataURL('image/png');
    }
-   return {readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,blastLife:blast.maxLife,exploded:p.exploded,smokeEarlyAge:earlyAge,smokeMatchedAge:p.age,hp:[a.hp,b.hp]};
+   return {readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,familyInk,blastLife:blast.maxLife,exploded:p.exploded,smokeEarlyAge:earlyAge,smokeMatchedAge:p.age,hp:[a.hp,b.hp]};
   });
   assert.equal(exceptions.length,0,'Chrome page errors: '+exceptions.join('\n'));
   if(captureDir){
