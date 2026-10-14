@@ -2534,7 +2534,7 @@ function main() {
   // Cache identity: the Gold shell / Lucky Draw / battle HUD URLs carry the
   // runtime revision so a prior Gold cutover can never be served from a stale
   // browser cache during verification (2026-10-05 correction slice).
-  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}';`);
+  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}&fieldArchive=c03';`);
   assetLines.push(`export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=${REVISION}';`);
