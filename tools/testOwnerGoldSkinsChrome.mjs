@@ -95,7 +95,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    if((st.ecoFxSerial||0)<=beforeFx||!st.ecoFxEvents?.some(e=>e.kind==='passive'))
      throw Error('ECO Gold world VFX missing native passive event provenance');
    const worldPose={x:a.x,y:a.y,kind:'ROBOT',robot:{
-      time:st.T,mode:st.mode,armor:st.armor,vx:st.vxw,vy:st.vyw,
+      time:st.T+.06,mode:st.mode,armor:st.armor,vx:st.vxw,vy:st.vyw,
       trailOn:st.trailOn,dashTrail:st.trail,
       fxEvents:st.ecoFxEvents
    }};
