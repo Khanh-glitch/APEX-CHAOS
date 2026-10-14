@@ -16,8 +16,8 @@ const HERO_META=Object.freeze({
  ICE:{name:'FROST',file:'frost',accent:'#86bcd6',intro:'Freezes weapons, controls movement and turns ice into an advantage.',skills:[['PASSIVE','FREEZE PRESSURE','Follow-up hits refresh a frozen target’s timer.'],['A1','FROST BREATH','Lays ice and controls movement speed on the frozen ground.'],['A2','ICE RUSH','Rushes forward, leaving ice and stealing an eligible weapon.']]},
  MIRROR:{name:'MIRROR',file:'mirror',accent:'#a8a3b2',intro:'Turns battlefield positioning and projectiles into an illusion.',skills:[['PASSIVE','MIRROR SHARDS','Realized damage creates shards that can assemble into mirror nodes.'],['A1','MIRROR ARSENAL','Copies an eligible enemy-held weapon as a fresh temporary instance; T6 excluded.'],['A2','ATOMIC EXCHANGE','Swaps the two bodies’ positions without swapping HP, velocity or weapons.']]},
 });
-const HERO_ORDER=['ROBOT','HUNTER','CRYSTAL','MAGNET','ICE','MIRROR'];
-const PICTURE=(id)=>{const m=HERO_META[id];if(!m)return null;return '/assets/gold-ui/heroes/'+m.file+'/pick_'+(id==='MIRROR'?'roster_cover':'selected_large')+'.webp'};
+// Product roster defines availability; registries provide all additional content.
+const PICTURE=(id,definition)=>{const declared=definition?.archiveProfile?.artwork||definition?.artwork?.pickSelected||definition?.artwork?.selected; if(typeof declared==='string'&&/^\/assets\/[a-zA-Z0-9_./-]+\.(webp|png|jpg)$/.test(declared)&&!declared.includes('..'))return declared;const legacy=HERO_META[id];return legacy?'/assets/gold-ui/heroes/'+legacy.file+'/pick_'+(id==='MIRROR'?'roster_cover':'selected_large')+'.webp':null};
 const WEAPON_C_IMAGES=new Set('PISTOL SHOTGUN SMG SNIPER GRENADE SABRE BATTLE_AXE DAGGER SPEAR SPIKED_CLUB SWIRL_SHIELD TOWER_SHIELD AK_47 BERETTA_93R DESERT_DEAGLE GLOCK_17 JACKHAMMER M16 M249_SAW MAC_10 MAGNUM_500 MBR MBR2 MOSSBERG_500 P90 SAWED_OFF SZECSEI_FUCHS TEC_9 ZBROYAR_Z15'.split(' '));
 const WEAPON_V43_IMAGES=new Set('BOLT COMBAT_BOOMERANG FLAMETHROWER FLARE_GUN PLASMA_SPLITTER RPG_7 SHRAPNEL_MINE_LAUNCHER STEEL_BALL_LAUNCHER TACTICAL_CROSSBOW'.split(' '));
 function weaponImage(id,meta){if(id==='RPG_7'&&meta?.skinId==='vua-he')return '/assets/skins/rocket-vua-he/launcher.png';
@@ -48,6 +48,7 @@ const isHome=()=>{
  return !!(document.body.classList.contains('apex-gold-mounted')&&stage&&!document.getElementById('apex-boot-start')&&window.gameState!=='ARSENAL'&&
  !['screen-mode','screen-fighter','screen-draw','screen-battle','flow-transition'].some(c=>stage.classList.contains(c)));
 };
+function catalogHeroes(){const registry=window.APEX_HERO_REWORK_REGISTRY?.HEROES||{};return PRODUCT_ROSTER.playableIds.map(id=>{const data=registry[id];return data?{id,name:data.displayName||data.name||id,tier:'FIGHTER',family:'PLAYABLE',registry:data}:null}).filter(Boolean)}
 function catalogWeapons(){
  const c=window.APEX_ARSENAL_CONFIG;
  if(!c?.WEAPONS)return [];
@@ -91,7 +92,7 @@ function GoldEcoActor({active,mini=false}){
 }
 function DisplayArtwork({kind,item,previewId}){
  const hero=kind==='hero';
- const image=hero?PICTURE(item.id):weaponImage(item.id,{skinId:previewId,art:item.data?.art});
+ const image=hero?PICTURE(item.id,item.registry):weaponImage(item.id,{skinId:previewId,art:item.data?.art});
  const isEco=hero&&item.id==='ROBOT'&&previewId==='ecobot';
  const [decodedSrc,setDecodedSrc]=useState('');
  const [badSrc,setBadSrc]=useState('');
@@ -113,11 +114,11 @@ function DisplayArtwork({kind,item,previewId}){
  </div>;
 }
 function WeaponFacts({item,skin}){return <WeaponStatConsole item={item} skin={skin}/>}
-function HeroFacts({item}){return <AbilityWeb item={item} skills={HERO_META[item.id]?.skills||[]}/>}
+function HeroFacts({item}){return <AbilityWeb item={item}/>}
 export default function FieldArchiveC03(){
  const [home,setHome]=useState(false),[pick,setPick]=useState(false),[pickHost,setPickHost]=useState(null),[open,setOpen]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
  const [kind,setKind]=useState('hero'),[side,setSide]=useState('p1'),[focus,setFocus]=useState('ROBOT');
- const [weapons,setWeapons]=useState([]),[view,setView]=useState('SKINS'),[page,setPage]=useState(0),[query,setQuery]=useState('');
+ const [weapons,setWeapons]=useState([]),[heroes,setHeroes]=useState([]),[view,setView]=useState('SKINS'),[page,setPage]=useState(0),[query,setQuery]=useState('');
  const [preview,setPreview]=useState('default'),[skinPage,setSkinPage]=useState(0),[rev,setRev]=useState(0),[warning,setWarning]=useState(false);
  const [windowSize,setWindowSize]=useState({w:typeof window!=='undefined'?window.innerWidth:1440,h:typeof window!=='undefined'?window.innerHeight:900});
  const inFlight=useRef(false),opener=useRef(null);
@@ -165,7 +166,7 @@ export default function FieldArchiveC03(){
    setOpen(true);
    inFlight.current=false;setLoading(false);
    void loadDeferredGameRuntimes('arsenalHub').then(()=>{
-    if(document.getElementById('stage')?.classList.contains('screen-fighter'))setWeapons(catalogWeapons());
+    if(document.getElementById('stage')?.classList.contains('screen-fighter'))setWeapons(catalogWeapons());setHeroes(catalogHeroes());
    }).catch(e=>console.warn('[field-archive] optional weapon catalog',e));
    return;
   }
@@ -177,7 +178,7 @@ export default function FieldArchiveC03(){
   }catch(e){setError(String(e?.message||e))}
   finally{inFlight.current=false;setLoading(false)}
  }
- const items=useMemo(()=>kind==='hero'?HERO_ORDER.filter(x=>PRODUCT_ROSTER.playableIds.includes(x)).map(id=>({id,name:HERO_META[id].name,tier:'FIGHTER',family:'CORE SIX'})):weapons,[kind,weapons]);
+ const items=useMemo(()=>kind==='hero'?heroes:weapons,[kind,heroes,weapons]);
  const filtered=useMemo(()=>items.filter(x=>!query||x.name.toLowerCase().includes(query.toLowerCase())||x.id.toLowerCase().includes(query.toLowerCase())),[items,query]);
  const current=items.find(x=>x.id===focus)||items[0]||null;
  const count=items.length,idx=Math.max(0,items.findIndex(x=>x.id===current?.id));
@@ -223,7 +224,7 @@ export default function FieldArchiveC03(){
        <div className="fa3-index-head"><b>REGISTER / {kind==='hero'?'FIGHTERS':'WEAPONS'}</b><span>{String(filtered.length).padStart(2,'0')} FILES</span></div>
        <input type="search" aria-label="Search archive" placeholder="FIND A RECORD..." value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/>
        <div className="fa3-index-list">{pageItems.map(item=><button type="button" key={item.id} className={item.id===current?.id?'chosen':''} aria-pressed={item.id===current?.id} onClick={()=>{resetFocus(item.id);setView('SKINS')}}>
-         <span className="fa3-index-img">{kind==='hero'?<img src={PICTURE(item.id)} alt=""/>:<span>{item.tier}</span>}</span>
+         <span className="fa3-index-img">{kind==='hero'?<img src={PICTURE(item.id,item.registry)||''} alt=""/>:<span>{item.tier}</span>}</span>
          <span className="fa3-index-name"><b>{item.name}</b><small>{kind==='hero'?'FIGHTER':item.tier+' / '+item.family}</small></span><i aria-hidden="true">↗</i></button>)}
          {filtered.length===0&&<p className="fa3-no-results">No matching records.</p>}
        </div>
@@ -240,14 +241,14 @@ export default function FieldArchiveC03(){
        </div>
        <div className="fa3-detail-heading"><span>{view==='SKINS'?'APPEARANCES / SELECT & EQUIP':view==='INFO'?'FIELD NOTES / GAMEPLAY':'SELECT RECORD'}</span><i aria-hidden="true">RECORD NO. {String(idx+1).padStart(3,'0')}</i></div>
        {view==='SKINS'&&<div className="fa3-appear">
-        <p className="fa3-description">{kind==='hero'?HERO_META[current?.id]?.intro:'Skin applies whenever this weapon type is obtained during a match.'}</p>
+        <p className="fa3-description">{kind==='hero'?(current?.registry?.archiveProfile?.intro||HERO_META[current?.id]?.intro||'Read the registered combat kit and approved cosmetic appearances.'):'Skin applies whenever this weapon type is obtained during a match.'}</p>
         <div className="fa3-skin-list">{visibleSkins.map(s=><button type="button" key={s.id} className={'fa3-skin'+(s.id===activePreview?' preview':'')+(s.id===worn?.id?' equipped':'')} onClick={()=>setPreview(s.id)} aria-pressed={s.id===activePreview}>
-          <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:<img src={kind==='hero'?PICTURE(current.id):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||''} alt=""/>}</span>
+          <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:<img src={kind==='hero'?(s.preview||PICTURE(current.id,current.registry)):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||''} alt=""/>}</span>
           <span className="fa3-skin-name"><b>{s.label}</b><small>{s.id==='default'?'ORIGINAL PRESENTATION':s.detail||'APPROVED COSMETIC'}</small></span>
           <strong>{s.id===worn?.id?'✓':'↗'}</strong></button>)}</div>
         {skinMaxPage>0&&<div className="fa3-skin-pager" aria-label="Skin pages"><button disabled={safeSkinPage===0} onClick={()=>setSkinPage(p=>Math.max(0,p-1))} aria-label="Previous skin page">‹</button><span>{String(safeSkinPage+1).padStart(2,'0')} / {String(skinMaxPage+1).padStart(2,'0')}</span><button disabled={safeSkinPage===skinMaxPage} onClick={()=>setSkinPage(p=>Math.min(skinMaxPage,p+1))} aria-label="Next skin page">›</button></div>}
         {current&&<div className="fa3-readout-embed">
-          {kind==='hero'?<AbilityWeb item={current} skills={HERO_META[current.id]?.skills||[]} compact/>:<WeaponStatConsole item={current} skin={chosen} compact/>}
+          {kind==='hero'?<AbilityWeb item={current} compact/>:<WeaponStatConsole item={current} skin={chosen} compact/>}
          </div>}
         <div className="fa3-equip-state"><b>{side==='p1'?'PLAYER 01':'PLAYER 02 / BOT'}</b><span>EQUIPPED / {worn?.label||'ORIGINAL'}</span></div>
         <button type="button" className="fa3-equip" onClick={equip} disabled={!chosen||chosen.id===worn?.id}>{chosen?.id===worn?.id?'EQUIPPED ✓':'EQUIP THIS SKIN ↗'}</button>
