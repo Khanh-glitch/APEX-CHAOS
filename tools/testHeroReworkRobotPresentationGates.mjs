@@ -492,15 +492,33 @@ function withSfxCounter(fn) {
   const realA = win.fighters[0], realB = win.fighters[1];
   const stRealA = win.APEX_ROBOT_PRESENTATION.getRobotState(realA);
   const stRealB = win.APEX_ROBOT_PRESENTATION.getRobotState(realB);
+  // CP12 match Install invalidates both previous Robot visual clocks.
+  // A new match's first legitimate A1 can lock at st.T === 0; the old
+  // "lastLockAt > 0" assertion accidentally required STALE match state.
+  gate('P-BOTH-real-rematch-uses-new-per-body-spring-state',
+    stRealA !== stA && stRealB !== stB && stRealA !== stRealB
+      && stRealA.T === 0 && stRealB.T === 0,
+    {freshA:stRealA!==stA,freshB:stRealB!==stB,tA:stRealA.T,tB:stRealB.T});
   const locksB = stRealB._lastLockAt || 0;
   const bracketsB = stRealB.brackets || null;
   const snapB = stRealB.snapUntil || 0;
   const ctlReal = win.APEX_HERO_REWORK.abilityController(win.APEX_HERO_REWORK.byCombatant(realA));
   const castRes = ctlReal.tryCast('A1', 'gates');
   const castOk = !!(castRes && (castRes === true || castRes.ok));
-  const lockA = (() => { const st = win.APEX_ROBOT_PRESENTATION.getRobotState(realA); return st ? (st._lastLockAt || 0) : 0; })();
+  const latest = win.APEX_HERO_REWORK.AIL.bus.ofType('RobotA1Lock').at(-1);
+  const lockState = win.APEX_ROBOT_PRESENTATION.getRobotState(realA);
+  const lockA = lockState?._lastLockAt;
+  const actualSlot = latest?.payload?.slotId == null ? null : Q.slotById(latest.payload.slotId);
+  const atNativeSlot = !!(lockState?.brackets?.target && actualSlot
+    && Math.hypot(lockState.brackets.target.x-actualSlot.x,
+                  lockState.brackets.target.y-actualSlot.y)<0.1);
   Q.step(0.15);
-  gate('P-BOTH-real-cast-fires-on-the-caster-body', castOk && lockA > 0, { castRes, lockA });
+  gate('P-BOTH-real-cast-fires-on-the-caster-body',
+    castOk && Number.isFinite(lockA) && lockA >= 0
+      && lockState?.brackets?.state === 'in' && atNativeSlot
+      && latest?.payload?.fighterId === realA.id,
+    { castRes, lockA, nativeSlot:latest?.payload?.slotId,
+      caster:latest?.payload?.fighterId, atNativeSlot });
   gate('P-BOTH-real-cast-leaves-the-rival-body-untouched',
     (stRealB._lastLockAt || 0) === locksB && (stRealB.brackets || null) === bracketsB && (stRealB.snapUntil || 0) === snapB,
     { rival: { lastLockAt: stRealB._lastLockAt || 0, brackets: !!(stRealB.brackets), snapUntil: stRealB.snapUntil || 0 } });
