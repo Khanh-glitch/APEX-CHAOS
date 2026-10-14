@@ -168,10 +168,12 @@ async function loadRuntimeList(runtimes) {
 const loadQueue = [];
 let queueRunning = false;
 let priorityDepth = 0;
+let fatalRuntimeFailure = null; // failed required runtime poisons this document
 
-function runtimeAlreadyLoaded(src) {
+function runtimeAlreadyLoaded(src, dataKey) {
   const existing = runtimeScriptFor(src);
-  return Boolean(existing && existing.dataset.apexLoaded === 'true');
+  return Boolean(existing && existing.dataset.apexLoaded === 'true'
+    && (!REQUIRED_CLASSIC_READY_MARKERS.has(dataKey) || window[dataKey] === 'ready'));
 }
 
 function makeQueueEntry([src, dataKey, options]) {
@@ -192,7 +194,14 @@ async function pumpQueue() {
         entry.settle();
       } catch (error) {
         if (!entry.options || !entry.options.optional) {
+          // A missing core script invalidates every downstream classic-script
+          // dependency. Never keep evaluating the queued Hero/Weapon modules
+          // in an impossible state and never advertise Battle ready.
+          fatalRuntimeFailure = error;
           entry.fail(error);
+          for (const remaining of loadQueue.splice(0)) remaining.fail(error);
+          priorityDepth = 0;
+          break;
         } else {
           console.warn(`[asset-loader] Optional runtime failed: ${entry.src}`);
           entry.settle();
@@ -210,9 +219,10 @@ async function pumpQueue() {
 // promise) so patch chains keep their relative order and the click waits only
 // for its own dependencies — never for unrelated background work.
 function enqueueGroup(runtimes, { priority = false } = {}) {
+  if (fatalRuntimeFailure) return Promise.reject(fatalRuntimeFailure);
   const entries = [];
   for (const tuple of runtimes) {
-    if (runtimeAlreadyLoaded(tuple[0])) continue;
+    if (runtimeAlreadyLoaded(tuple[0], tuple[1])) continue;
     const queued = loadQueue.find((q) => q.src === tuple[0]);
     entries.push(queued || makeQueueEntry(tuple));
   }
