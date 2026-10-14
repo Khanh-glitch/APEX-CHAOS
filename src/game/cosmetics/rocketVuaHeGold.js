@@ -182,20 +182,26 @@ export function drawRocketGoldProjectile(ctx,pose,resources){
  // Gold source: exact V3 two-layer smoke envelopes, drift, texture family,
  // size and alpha. Only provenance changes: sampled NATIVE path and local
  // tangent at birth, not the standalone lab's precomputed straight flight.
- const now=pose.age,history=pose.trail||[],period=.030/settings.density;
- for(let i=0;i<history.length;i++){
-  const pos=history[i];
-  if(!Number.isFinite(pos.x)||!Number.isFinite(pos.y)||!Number.isFinite(pos.t))continue;
-  const prev=i>0?history[i-1]:null,next=i+1<history.length?history[i+1]:null;
-  const dx=prev?pos.x-prev.x:next?next.x-pos.x:pose.vx;
-  const dy=prev?pos.y-prev.y:next?next.y-pos.y:pose.vy;
+ const now=pose.age,period=.030/settings.density;
+ const history=(pose.trail||[]).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)&&Number.isFinite(p.t));
+ // Gold emits smoke at a fixed cadence, NOT once per render frame. Interpolate
+ // along the physical path to preserve the exact emission count on 30/60/144/240Hz
+ // screens, without replacing engine flight or owning any projectile position.
+ for(let i=1;i<history.length;i++){
+  const from=history[i-1],to=history[i],span=to.t-from.t;
+  if(span<=0)continue;
+  const dx=to.x-from.x,dy=to.y-from.y;
   const ga=Math.hypot(dx,dy)>0.001?Math.atan2(dy,dx):angle;
-  // Immutable birth-time seed: dropping old ring-buffer records must never
-  // make every surviving smoke sprite jump to another texture/position.
-  const emission=Math.max(0,Math.round(pos.t/period));
+  const first=Math.max(0,Math.floor((from.t+1e-8)/period)+1);
+  const last=Math.floor((to.t+1e-8)/period);
+  for(let emission=first;emission<=last;emission++){
+   const born=emission*period;
+   const uPath=clamp((born-from.t)/span);
+   const pos={x:mix(from.x,to.x,uPath),y:mix(from.y,to.y,uPath)};
+   // Immutable Gold birth seed survives visual history window rotation.
   for(let j=0;j<2;j++){
    const seed=emission*17+j*173.27;
-   const age=now-pos.t-(j*.012),life=GOLD.smokeLife*(.80+hash(seed+4)*.33);
+   const age=now-born-(j*.012),life=GOLD.smokeLife*(.80+hash(seed+4)*.33);
    if(age<0||age>life)continue;
    const u=age/life,env=smooth(age/.058)*Math.pow(1-u,1.08),sway=(hash(seed+5)-.5)*24;
    const back=rotPoint(-43-u*(26+hash(seed+2)*22),0,ga);
@@ -206,6 +212,7 @@ export function drawRocketGoldProjectile(ctx,pose,resources){
    const img=resources.get(ROOT+'v'+Math.floor(hash(seed+32)*10)+'.png');
    if(img&&alpha>.001){ctx.save();ctx.globalAlpha=clamp(alpha);
     ctx.translate(x,y);ctx.rotate(rotation);ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore();}
+  }
   }
  }
  // GOLD contains no static nozzle sprite: every cloud comes from a real flight
