@@ -5,7 +5,7 @@ on:
       - design/field-archive-c03-product-20261014
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   real-product-qa:
     runs-on: ubuntu-latest
@@ -45,6 +45,18 @@ jobs:
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           CHROME_PATH="$CHROME" node tools/testFieldArchiveC03Chrome.mjs
+      - name: Commit actual audited UI screenshots on design branch only
+        if: success() && github.ref == 'refs/heads/design/field-archive-c03-product-20261014'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "field-archive-qa[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/field-archive/candidate03/
+          if ! git diff --cached --quiet; then
+            git commit -m "C03 actual Chrome screenshots and persistent Equip receipts [skip ci]"
+            git push origin HEAD:design/field-archive-c03-product-20261014
+          fi
       - name: Upload diagnostic and approved actual UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
