@@ -86,27 +86,24 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    catch(error){deniedDuplicate=/Duplicate/.test(String(error));}
    const consumed=AV.drawEquippedWeapon(ctx,dummy,{weaponId:'PISTOL'});
    unsubscribe();
-   // A legacy Frost-owned outer wrapper still owns this public method.
-   // Its return value is not consumed by arsenalBattleRuntime.drawEquippedWeapons;
-   // the actionable provider contract is ONE invoked callback, no duplicate
-   // registration and exact removal. The genuine NEWBOT Gold jaw path below
-   // remains mandatory and verifies actual sprite/cosmetic pixels.
-   if(!deniedDuplicate||callCount!==1||
+   // CP14: the physical paint result MUST traverse the Arsenal native
+   // provider -> offscreen Chamber Palette -> Frost overlay wrappers.
+   // Verify this even though today's Battle loop ignores the returned value,
+   // because future hero held-art providers must never lose their receipt.
+   if(!deniedDuplicate||consumed!==true||callCount!==1||
+      !AV.__paletteWrapped||!AV.__frostWrapped||
       AV.equippedWeaponRendererIds().includes('cp13-canary')||
       beforeEqDraw!==AV.drawEquippedWeapon)
-     throw Error('CP13 held-provider ordering/duplicate/disposal contract failed '+JSON.stringify({
+     throw Error('CP14 held-provider receipt lost across Palette/Frost '+JSON.stringify({
        deniedDuplicate,consumed,callCount,
+       palette:AV.__paletteWrapped,frost:AV.__frostWrapped,
        providers:AV.equippedWeaponRendererIds(),
        unchanged:beforeEqDraw===AV.drawEquippedWeapon
      }));
-   // Read-only compatibility telemetry. CP14 must reconcile outer AV wrappers
-   // with the native provider's explicit true/false paint receipt.
    G.__cp13HeldProviderReturn={
-     observed:consumed===undefined?'undefined':String(consumed),
-     frostWrapperActive:AV.__frostWrapped===true,
-     publicSource:String(AV.drawEquippedWeapon).slice(0,1050),
-     capturedFrostBaseSource:AV.__cp14CapturedEquippedSource||'not-captured',
-     ownProperty:!!Object.getOwnPropertyDescriptor(AV,'drawEquippedWeapon'),
+     observed:String(consumed),
+     paletteWrapperActive:true,
+     frostWrapperActive:true,
      registered:AV.equippedWeaponRendererIds(),
      canaryRuns:callCount
    };
