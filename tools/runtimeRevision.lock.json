@@ -1,5 +1,5 @@
 {
-  "revision": "20261014-cp8-owner-gold-content-r10",
+  "revision": "20261014-cp10-eco-v17-targeting-family",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -49,7 +49,7 @@
     "public/game/hero-rework/mirrorGoldV1.js": "f7d1817064ca87997050e2f07acd60d98edfd575fbcffbc2ecd08597366f13e7",
     "public/game/hero-rework/heroMechanicsRuntime.js": "bd42477193c0b359bbe69e6b5a4b3d6c58cc2617f6de006f3747c981984841ad",
     "public/game/hero-rework/heroReworkRuntime.js": "7fbb1e63d9cbb14a4cf08590185636f48def35c2603209e32c1ca4a30d7babbe",
-    "public/game/hero-rework/robotPresentationRuntime.js": "e0418e06aab87472b76ab4e6dd2357553aeea60b39d522ac2ec7510a2f742d5c",
+    "public/game/hero-rework/robotPresentationRuntime.js": "a5823d808fa03fb567cbab9c4b07b11cdd6d6f87e39bda33dac4d8fc52b42997",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "9c38075d3b7f5af9f185e651be7be10d99a61031b53c371fbbb29c12bf8f5b8f",
     "public/game/hero-rework/crystalaPresentationRuntime.js": "d76cd3874f58faa5c17fb47ce380d2288e0b63663c6059cd35a3a2c67594092c",
