@@ -179,26 +179,32 @@ export function drawRocketGoldProjectile(ctx,pose,resources){
  // Gold projectile 104x24 and natural aim direction, with no orbit transform.
  ctx.save();ctx.translate(pose.x,pose.y);ctx.rotate(angle);
  ctx.drawImage(im,-52,-12,104,24);ctx.restore();
- // Physical history supplies the path; Gold smoke lifetime/shape formula stays unchanged.
- const smoke=resources.get(ROOT+'v3.png');
+ // History samples are physical emission anchors, NOT a single ribbon bitmap.
+ // Each cloud keeps the tangent at its birth. Current rocket rotation must not
+ // retroactively rotate smoke already deposited during a Magnet bend/turn.
  const now=pose.age,history=pose.trail||[];
- for(let i=0;i<history.length;i++){
-  const pos=history[i],born=pos.t;
-  for(let j=0;j<2;j++){
-   const seed=i*17+j*173.27;
-   const age=now-born-(j*.012),life=GOLD.smokeLife*(.80+hash(seed+4)*.33);
-   if(age<0||age>life)continue;
-   const u=age/life,env=smooth(age/.058)*Math.pow(1-u,1.08),sway=(hash(seed+5)-.5)*24;
-   const ga=angle,back=rotPoint(-43-u*(26+hash(seed+2)*22),0,ga);
-   const side=rotPoint(0,(hash(seed+7)-.5)*16-18*u+sway*u+Math.sin(u*5+seed)*7*u,ga);
-   const x=pos.x+back.x+side.x,y=pos.y+back.y+side.y;
-   const spread=(36+hash(seed+8)*35)*(1+.9*u),w=spread,h=spread*(.69+hash(seed+9)*.49);
-   const a=env*settings.opacity*(j===0?.47:.34),rot=ga+(hash(seed+19)-.5)*.6+u*.26;
-   const img=resources.get(ROOT+'v'+Math.floor(hash(seed+32)*10)+'.png');
-   if(img){ctx.save();ctx.globalAlpha=clamp(a);ctx.translate(x,y);ctx.rotate(rot);ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore();}
-  }
+ const active=history.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)&&
+   Number.isFinite(p.t)&&now-p.t>=0&&now-p.t<GOLD.smokeLife);
+ const puff=resources.get(ROOT+'s3.png');
+ for(let i=0;i<active.length;i++){
+   const p=active[i],older=history.findLast?.(q=>q.t<p.t-0.00001)||null;
+   const dx=older?p.x-older.x:pose.vx,dy=older?p.y-older.y:pose.vy;
+   const heading=Math.atan2(dy||0,dx||1);
+   const elapsed=now-p.t,life=GOLD.smokeLife;
+   const u=clamp(elapsed/life);
+   // Small rounded puffs overlap as particles: no anisotropic stretched sprites,
+   // no full-sheet smoke quad, and no fixed-angle stripe across a curved trajectory.
+   const seed=p.t*29.91+i*7.17;
+   const size=(12+23*u)*(1+hash(seed)*.24);
+   const alpha=smooth(elapsed/.075)*Math.pow(1-u,1.55)*.42;
+   const offset=rotPoint(-35-8*u,(hash(seed+3)-.5)*(4+19*u),heading);
+   const img=resources.get(ROOT+'s'+Math.floor(hash(seed+12)*10)+'.png')||puff;
+   if(img&&alpha>.001){ctx.save();ctx.translate(p.x+offset.x,p.y+offset.y);
+     ctx.rotate(heading*.16+(hash(seed+9)-.5)*.4);
+     ctx.globalAlpha=clamp(alpha);ctx.drawImage(img,-size/2,-size/2,size,size);ctx.restore();}
  }
- if(now>.04&&smoke){const b=rotPoint(-53,0,angle);ctx.save();ctx.translate(pose.x+b.x,pose.y+b.y);ctx.rotate(angle);ctx.globalAlpha=clamp(.33*settings.opacity);ctx.drawImage(smoke,-18,-12,36,24);ctx.restore();}
+ // Never draw a stationary rectangle on the nozzle. The first puff begins
+ // on a real sampled trajectory point, after the rocket has left the muzzle.
  return true;
 }
 export function drawRocketGoldBlast(ctx,pose,resources){
