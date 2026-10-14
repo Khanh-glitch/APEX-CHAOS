@@ -39,15 +39,28 @@ try {
    const navigated=await page.evaluate(()=>
      window.APEX_GOLD_SHELL_NAVIGATE('fighter',{mode:'bot'}));
    assert.equal(navigated,true,'Gold fighter navigation rejected');
+   // The route returns an intent before Fighter's authored choreography
+   // settles. Wait until a player can truly interact, then use pointer input
+   // instead of synthetic DOM click() that bypasses transition hit-testing.
    await page.waitForFunction(()=>{
+     const stage=document.getElementById('stage');
      const card=document.querySelector('.rosterCard[data-hero="crystala"]');
-     return !!card && card.getClientRects().length>0 &&
+     return stage?.classList.contains('screen-fighter') &&
+       !stage.classList.contains('mode-committing') &&
+       !stage.classList.contains('flow-transition') &&
+       !window.APEX_SCENE_TRANSITION?.active?.() &&
+       !!card && card.getClientRects().length>0 &&
        getComputedStyle(card).visibility!=='hidden';
    },{timeout:90000});
-   await page.$eval('.rosterCard[data-hero="crystala"]',el=>el.click());
-   await page.$eval('#lockIn',el=>el.click());
-   await page.$eval('.rosterCard[data-hero="newbot"]',el=>el.click());
-   await page.$eval('#lockIn',el=>el.click());
+   await page.click('.rosterCard[data-hero="crystala"]');
+   await page.click('#lockIn');
+   await page.waitForFunction(()=>{
+     const stage=document.getElementById('stage');
+     return stage?.classList.contains('fighter-p1-locked') &&
+       stage?.classList.contains('fighter-active-p2');
+   },{timeout:15000});
+   await page.click('.rosterCard[data-hero="newbot"]');
+   await page.click('#lockIn');
    await page.waitForFunction(()=>{
      const root=document.getElementById('battleHudHost');
      return document.body.classList.contains('battle-hud-open') &&
