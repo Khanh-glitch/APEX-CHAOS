@@ -220,3 +220,10 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
  .fa3-insight strong{font-size:9px}
  .fa3-insight span{font-size:7px}
 }
+
+
+.fa3-skin-pager{display:flex;align-items:center;justify-content:center;gap:12px;flex:none;height:28px;color:#83552e;font:900 10px ui-monospace,monospace}
+.fa3-skin-pager button{height:24px;min-width:32px;border:1px solid #936b44;background:#262924;color:#f0be89;font:900 18px Impact,sans-serif}
+.fa3-skin-pager button:disabled{opacity:.28}
+@media(max-width:760px){.fa3-skin-pager{height:23px}.fa3-skin-pager button{height:21px;min-width:30px}}
+@media(max-width:760px) and (orientation:landscape){.fa3-skin-pager{height:18px}.fa3-skin-pager button{height:17px;font-size:14px}}
