@@ -1,6 +1,8 @@
 // Cosmetic authority: presentation data ONLY. Weapon/hero IDs, damage,
 // collision, hit provenance, cooldowns and AI are never resolved here.
 // This module is evaluated before the Gold classic-script/runtime graph.
+import {validateGoldVisualContract} from './goldVisualContract.js';
+
 const STORAGE_KEY = 'apexChaos.cosmeticLoadout.v1';
 const KINDS = new Set(['hero', 'weapon']);
 const SIDES = ['p1', 'p2'];
@@ -74,11 +76,13 @@ function register(def) {
       hooks[name] = def.render[name];
     }
   }
+  const visualContract = validateGoldVisualContract({...def,render:hooks});
   const record = Object.freeze({
     kind, baseId, id, label:String(def.label || id).slice(0,95),
     detail:String(def.detail || '').slice(0,240),
     preview:def.preview ? safeAsset(def.preview):null,
     assets, render:Object.freeze(hooks),
+    fidelity:def.fidelity||'standard', visualContract,
     prepare:typeof def.prepare==='function'?def.prepare:null,
     blastSeconds:Math.max(0,Math.min(3,Number(def.blastSeconds)||0)),
     trailHistorySeconds:Math.max(0,Math.min(3,Number(def.trailHistorySeconds)||0)),
