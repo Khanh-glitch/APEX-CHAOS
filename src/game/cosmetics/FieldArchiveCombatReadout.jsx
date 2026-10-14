@@ -26,6 +26,17 @@ export function nativeWeaponMetrics(item){
  add('BURN TICKS',val(['burnTicks']),'ticks','Damage-over-time stages');
  add('STUN',val(['stun']),'sec','Control duration');
  add('ACCELERATION',val(['acceleration']),'u/s²','Projectile acceleration');
+ add('AMMO CAPACITY',val(['ammo','magazine','magSize','magazineSize']),'rounds','Weapon magazine if defined in native config');
+ add('TRAVEL LIFETIME',val(['bulletLife','maxFlightSeconds','flightMax']),'sec','Projectile duration / limit');
+ add('FUSE TIME',val(['fuse']),'sec','Delay before detonation');
+ add('BURN DAMAGE',val(['burnDamage']),'HP','Native damage per burning tick');
+ add('FRAGMENTS',val(['fragments','shards']),'units','Spawned fragment or shard count');
+ add('FRAGMENT HIT',val(['fragmentDamage','shardDamage']),'HP','Native shard direct damage');
+ add('RETURN HIT',val(['returning']),'HP','Boomerang return damage');
+ add('ARM TIME',val(['armSeconds']),'sec','Mine becomes active');
+ add('DEPLOY DELAY',val(['deployDelay']),'sec','Deployment setup');
+ add('CONTROL SLOW',val(['slowSeconds']),'sec','Status effect duration');
+ add('BURN STAGES',val(['burnTicks','ticks']),'ticks','Periodic stages');
  return specs;
 }
 const KEYS=['PASSIVE','A1','A2'];
@@ -75,21 +86,43 @@ export function AbilityWeb({item,skills,compact=false}){
  </section>;
 }
 export function WeaponStatConsole({item,skin,compact=false}){
- const d=item?.data||{},specs=nativeWeaponMetrics(item);
- const display=specs.slice(0,compact?4:8);
- const exotic=['rocket','flame','plasma','mine','boomerang','bolt','ball'].includes(String(d.kind||''));
- const skinParts=item?.id==='RPG_7'&&skin?.id==='vua-he'?'LAUNCHER / PROJECTILE / SMOKE / BLAST':skin?.id==='default'?'ORIGINAL WEAPON VISUAL':'APPROVED COSMETIC FX';
+ const d=item?.data||{},all=nativeWeaponMetrics(item),specs=all.slice(0,compact?4:8);
+ const family=String(item?.family||'').toUpperCase();
+ const mode=String(d.kind||family||'STANDARD').toUpperCase();
+ const isRpg=item?.id==='RPG_7',isVuaHe=isRpg&&skin?.id==='vua-he';
+ const skinParts=isVuaHe?'LAUNCHER · ROCKET · SMOKE · BLAST':skin?.id==='default'?'ORIGINAL NATIVE VISUAL':'REGISTERED COSMETIC FX';
+ const special=['ROCKET','FLAME','PLASMA','MINE','BOOMERANG','BOLT','BALL'].includes(mode);
+ const offense=all.find(s=>/HIT BASE|PELLET BASE|BLAST PEAK|TICK BASE|DIRECT HIT/i.test(s.title));
+ const velocity=all.find(s=>s.title==='PROJECTILE SPEED');
+ const impact=all.find(s=>s.title==='BLAST RADIUS');
+ const properties=[
+  ['ORIGIN',item?.tier||'—'],
+  ['TRAVEL',velocity?velocity.value+' '+velocity.unit:mode],
+  ['IMPACT',impact?impact.value+' '+impact.unit:offense?offense.value+' '+offense.unit:'NATIVE'],
+ ];
  return <section className={'fa3-stat-console'+(compact?' fa3-stat-console-compact':'')} aria-label={'Native combat specifications '+item?.name}>
-  <div className="fa3-readout-top"><b>ARSENAL TELEMETRY / {item?.id||'—'}</b><span>ENGINE DATA / {item?.tier||'—'}</span></div>
-  <div className="fa3-stat-ribbon"><span className="fa3-tier-marker">{item?.tier||'—'}</span><span>{String(item?.family||'ARMS').toUpperCase()}</span><span>{exotic?'SPECIAL EXECUTOR':'STANDARD LOADOUT'}</span></div>
+  <div className="fa3-readout-top"><b>WEAPON FIELD TELEMETRY / {item?.id||'—'}</b><span>ARSENAL LIVE CONFIG</span></div>
+  <div className="fa3-stat-ribbon">
+   <span className="fa3-tier-marker">{item?.tier||'—'}</span>
+   <span className="fa3-weapon-kind">{mode} / {family}</span>
+   <span className="fa3-weapon-type">{special?'SPECIAL EXECUTOR':'NATIVE FIREARM'}</span>
+  </div>
+  {!compact&&<div className="fa3-ballistic-diagram" aria-label="Weapon firing event chain, not a scaled performance graph">
+   <svg className="fa3-ballistic-line" viewBox="0 0 320 39" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M12 21 L113 21 L151 9 L193 33 L230 21 L306 21" fill="none" stroke="#7f6645" strokeWidth="4" strokeLinecap="square"/>
+    <path className="fa3-ballistic-pulse" d="M12 21 L113 21 L151 9 L193 33 L230 21 L306 21" fill="none" stroke="#ffbd6f" strokeWidth="1.8" strokeDasharray="12 10"/>
+    <circle cx="12" cy="21" r="5" fill="#f0ac62"/><circle cx="151" cy="9" r="4" fill="#e29742"/><circle cx="306" cy="21" r="7" fill="#f39b48" stroke="#ffdb9b" strokeWidth="1"/>
+   </svg>
+   <div className="fa3-ballistic-points">{properties.map(([name,value])=><div key={name}><b>{name}</b><strong>{value}</strong></div>)}</div>
+  </div>}
   <div className="fa3-metrics">
-   {display.length?display.map((s,i)=><div className={'fa3-metric'+(i===0?' fa3-metric-prime':'')} key={s.title}>
-     <span className="fa3-metric-name">{s.title}</span>
+   {specs.length?specs.map((s,i)=><div className={'fa3-metric'+(i===0?' fa3-metric-prime':'')} key={s.title}>
+     <span className="fa3-metric-name"><i>{String(i+1).padStart(2,'0')}</i>{s.title}</span>
      <div className="fa3-metric-value">{s.value}<small>{s.unit}</small></div>
      {!compact&&<span className="fa3-metric-sub">{s.subtitle}</span>}
-    </div>):<div className="fa3-metric fa3-metric-empty">NATIVE SPECIAL — NO NUMERIC STATS IN CONFIG</div>}
+    </div>):<div className="fa3-metric fa3-metric-empty">NATIVE SPECIAL / NO NUMERIC STATS IN CONFIG</div>}
   </div>
-  <div className="fa3-stat-status"><b>SKIN FX</b><span>{skinParts}</span></div>
-  <div className="fa3-stat-foot">RAW CONFIG VALUES · ACTUAL HIT DMG MAY BE MODIFIED BY BATTLE ENGINE</div>
+  <div className="fa3-stat-status"><b>VISUAL KIT</b><span>{skinParts}</span></div>
+  <div className="fa3-stat-foot">ENGINE RAW DATA · SKIN ADDS 0 DAMAGE · NO INVENTED DPS / AMMO</div>
  </section>;
 }
