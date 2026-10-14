@@ -103,6 +103,8 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    const wctx=wc.getContext('2d');
    if(C.render('worldBack',wctx,C.capture('p1','hero','ROBOT'),worldPose)!==true)
       throw Error('ECO Gold rear FX not registered/dispatchable');
+   // At birth alpha is exactly zero in Gold; sample the next presentation tick.
+   worldPose.robot.time=st.T+.12;
    if(C.render('worldFront',wctx,C.capture('p1','hero','ROBOT'),worldPose)!==true)
       throw Error('ECO Gold leaf VFX not registered/dispatchable');
    const worldPixels=wctx.getImageData(0,0,1200,900).data;
