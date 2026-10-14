@@ -27,6 +27,19 @@ cosmetics.register({
   kind:'hero',baseId:hero,id:'hero-alt',label:'Hero Alternate',
   render:{actor:(_ctx,p)=>{snapshots.push({kind:'actor',pose:p});return true;}}
 });
+// CP9 visual-history retention is a per-skin receipt, never new projectile physics.
+const historySkin=cosmetics.register({
+  kind:'weapon',baseId:'FUTURE_TRAIL_HISTORY_CANARY',id:'long-smoke',
+  trailHistorySeconds:.87,render:{projectile:()=>true}
+});
+assert.equal(historySkin.trailHistorySeconds,.87);
+assert.equal(cosmetics.trailHistorySeconds(
+  cosmetics.capture('p1','weapon','FUTURE_TRAIL_HISTORY_CANARY')),0);
+cosmetics.equip('p1','weapon','FUTURE_TRAIL_HISTORY_CANARY','long-smoke');
+assert.equal(cosmetics.trailHistorySeconds(
+  cosmetics.capture('p1','weapon','FUTURE_TRAIL_HISTORY_CANARY')),.87);
+assert.equal(cosmetics.trailHistorySeconds(
+  cosmetics.capture('p2','weapon','FUTURE_TRAIL_HISTORY_CANARY')),0);
 assert.equal(skinA.kind,'weapon');
 assert.equal(cosmetics.variants('weapon',weapon).length,3);
 assert.equal(cosmetics.variants('hero',hero).length,2);
