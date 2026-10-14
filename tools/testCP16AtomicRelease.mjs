@@ -23,7 +23,7 @@ function inspect(current){
     const publicURL = '/gold/'+path+'?v='+current.revision;
     const name = path==='shell.html'?'SHELL':path==='lucky-draw.html'?'LUCKY_DRAW':
       path==='battle-hud.html'?'BATTLE_HUD':'TRANSITION';
-    assert.ok(current.urls.includes("export const GOLD_"+name+" = '"+publicURL+"'"),
+    assert.ok(current.urls.includes("export const GOLD_"+name+"_URL = '"+publicURL+"'"),
       'missing atomic Gold URL: '+path);
   }
   for(const path of scriptPaths){
