@@ -107,11 +107,13 @@ export default function FieldArchiveC03(){
   const subscription=cosmetics.subscribe(()=>setRev(x=>x+1));
   const interval=setInterval(update,400);
   const event=()=>{void launch()};
+  const homeClick=e=>{if(e.target?.closest?.('#apexDictionaryOpen'))void launch()};
   window.addEventListener('apex-open-cosmetics',event);
   window.addEventListener('apex-open-dictionary',event);
+  document.addEventListener('click',homeClick);
   window.addEventListener('resize',resize,{passive:true});
   update();
-  return()=>{clearInterval(interval);subscription();window.removeEventListener('resize',resize);window.removeEventListener('apex-open-cosmetics',event);window.removeEventListener('apex-open-dictionary',event)};
+  return()=>{clearInterval(interval);subscription();document.removeEventListener('click',homeClick);window.removeEventListener('resize',resize);window.removeEventListener('apex-open-cosmetics',event);window.removeEventListener('apex-open-dictionary',event)};
  },[]);
  useEffect(()=>{if(!open)return;
   const before=document.activeElement;
