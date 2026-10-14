@@ -565,3 +565,6 @@ export function drawEcoGoldActor(ctx,pose){
   return true;
  }finally{ctx.restore();R=null;ECO=null;pulses=[];stress=[];}
 }
+
+// Reuse the EXACT Gold V3 living-leaf shape in world-space FX.
+export {ecLeaf as drawEcoLeafGold};
