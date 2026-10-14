@@ -89,7 +89,13 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    if(!deniedDuplicate||!consumed||callCount!==1||
       AV.equippedWeaponRendererIds().includes('cp13-canary')||
       beforeEqDraw!==AV.drawEquippedWeapon)
-     throw Error('CP13 held-provider ordering/duplicate/disposal contract failed');
+     throw Error('CP13 held-provider ordering/duplicate/disposal contract failed '+JSON.stringify({
+       deniedDuplicate,consumed,callCount,
+       providers:AV.equippedWeaponRendererIds(),
+       unchanged:beforeEqDraw===AV.drawEquippedWeapon,
+       drawPrefix:String(AV.drawEquippedWeapon).slice(0,160),
+       owner:G.APEX_HERO_REWORK?.byCombatant?.(dummy)?.heroId||null
+     }));
    const originalDrawWeapon=AV.drawWeaponSprite;
    let realRobotGoldWeaponCalls=0;
    AV.drawWeaponSprite=function(c,id,x,y,options){
