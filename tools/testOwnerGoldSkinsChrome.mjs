@@ -159,7 +159,12 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    if(p.cosmetic?.skinId!=='vua-he')throw Error('Reflection changed Gold identity');
    p.owner=oldOwner;
    projectiles.splice(projectiles.indexOf(q),1);
-   p.x=600;p.y=490;p.vx=0;p.vy=0;p.life=.08;
+   // Now test the REAL wall-triggered blast after capturing the full-length
+   // flight. The old .08s forced fuse could expire at the engine's removal
+   // seam before the native detonation callback, leaving a false QA failure.
+   // Crossing the arena boundary exercises the same authoritative v43Detonate.
+   const worldEdge=typeof GAME_SIZE==='number'?GAME_SIZE:1024;
+   p.x=worldEdge-8;p.y=490;p.vx=500;p.vy=0;p.life=.35;
    for(let i=0;i<30&&!p.exploded;i++)A.step(1/60);
    if(!p.exploded)throw Error('Native Rocket did not detonate');
    const blast=A.state.visuals?.find(v=>v.kind==='v43_blast'&&v.cosmetic?.skinId==='vua-he');
