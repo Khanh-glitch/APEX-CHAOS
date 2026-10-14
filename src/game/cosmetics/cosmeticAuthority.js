@@ -260,7 +260,16 @@ async function ready(sideHeroPairs=[], storage=typeof window!=='undefined'?windo
       e=>{assetPromises.delete(asset);throw e;});
     assetPromises.set(asset,promise);return promise;
   }));
-  await Promise.all([...new Set(all)].filter(p=>p.prepare).map(p=>Promise.resolve().then(()=>p.prepare())));
+  // Promise resolution is not readiness: a preprocessing provider may
+  // legitimately finish with false after a failed atlas/decode attempt.
+  // Reject rather than caching a blank first-frame skin as READY.
+  await Promise.all([...new Set(all)].filter(p=>p.prepare).map(p=>
+    Promise.resolve().then(()=>p.prepare()).then(ready=>{
+      if(ready!==true && ready?.ready!==true)
+        throw new Error('Skin preprocess not READY: '+p.kind+'/'+p.id);
+      return ready;
+    })
+  ));
   return Object.freeze({ready:true,assetCount:unique.length});
 }
 export function createCosmeticAuthority(storage=typeof window!=='undefined'?window.localStorage:null) {
