@@ -638,8 +638,9 @@
       armored:!!st.armor});
     if(st.ecoFxEvents.length>40)st.ecoFxEvents.shift();
   }
-  function impactLocal(st, s, hx, hy, dir, F, worldPt) {
-    ecoFx(st,'hit',null,worldPt);
+  function impactLocal(st, s, hx, hy, dir, F, worldPt, isWall=false) {
+    // GOLD wall impact is its own material pass; never double-spawn ordinary hit leaves.
+    if(!isWall)ecoFx(st,'hit',null,worldPt);
     const o = 1 - s;
     const tan = { x: -dir.y, y: dir.x };
     const above = hy < PIV[s].y ? 1 : -1;
@@ -1637,13 +1638,14 @@ function renderRig(g) {
           const st = getRobotState(this);
           if (st) {
             st.wallFlash = 1;
-            ecoFx(st,'wall',this,{x:this.x,y:this.y});
+
             const dir = side === 'left' ? { x: 1, y: 0 } : side === 'right' ? { x: -1, y: 0 } : side === 'top' ? { x: 0, y: 1 } : { x: 0, y: -1 };
             const hx = side === 'left' ? 96 : side === 'right' ? 1184 : 640;
             const hy = side === 'top' ? 96 : side === 'bottom' ? 1184 : 600;
             const local = headToLocal(st, hx, hy);
             const worldPt = { x: this.x + local.x, y: this.y + local.y };
-            impactLocal(st, side === 'right' ? 1 : 0, hx, hy, dir, 1.25, worldPt);
+            ecoFx(st,'wall',this,worldPt);
+            impactLocal(st, side === 'right' ? 1 : 0, hx, hy, dir, 1.25, worldPt, true);
             dustState(st, worldPt.x, worldPt.y + 40, dir.x, dir.y, 4);
           }
         }
