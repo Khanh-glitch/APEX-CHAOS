@@ -153,7 +153,16 @@ export default function FieldArchiveC03(){
  return <>
   {home&&!open&&<button type="button" className="apex-skin-entry" onClick={()=>void launch()} disabled={loading} title="Open Field Archive: fighters, weapons and skins"><span className="apex-skin-entry-mark" aria-hidden="true">✦</span><span>{loading?'LOADING':'ARCHIVE'}</span><span aria-hidden="true">↗</span></button>}
   {home&&!open&&error&&<div className="apex-skin-error" role="alert">Archive unavailable: {error}<button type="button" onClick={()=>setError('')}>×</button></div>}
-  {open&&<div className="fa3-overlay apex-cosmetics-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}} onKeyDownCapture={e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();setOpen(false)}}} onKeyUpCapture={e=>e.stopPropagation()}>
+  {open&&<div className="fa3-overlay apex-cosmetics-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}} onKeyDownCapture={e=>{
+    e.stopPropagation();
+    if(e.key==='Escape'){e.preventDefault();setOpen(false)}
+    // Footer advertises arrow-key dossier paging. Give it real behavior,
+    // but do not steal caret movement from the live catalogue search.
+    else if((e.key==='ArrowLeft'||e.key==='ArrowRight') &&
+      !/^(INPUT|TEXTAREA)$/.test(e.target?.tagName||'')){
+      e.preventDefault();shift(e.key==='ArrowLeft'?-1:1);
+    }
+   }} onKeyUpCapture={e=>e.stopPropagation()}>
    <section className="fa3-shell" role="dialog" aria-modal="true" aria-labelledby="fa3-title">
     <div className="fa3-binding" aria-hidden="true"><i/><i/><i/></div>
     <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS / RESTRICTED FIELD RECORD</small><h2 id="fa3-title"><span>THE FIELD </span><em>ARCHIVE</em></h2></div>
