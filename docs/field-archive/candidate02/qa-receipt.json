@@ -28,7 +28,7 @@
             "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
           }
         },
-        "opaque": 1393,
+        "opaque": 1395,
         "paintBounds": {
           "x": 160,
           "y": 72,
@@ -127,7 +127,7 @@
             "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
           }
         },
-        "opaque": 461,
+        "opaque": 462,
         "paintBounds": {
           "x": 48,
           "y": 56,
@@ -140,10 +140,10 @@
           "x": 23,
           "y": 70,
           "width": 354,
-          "height": 1202.765625,
+          "height": 1214.765625,
           "top": 70,
           "right": 377,
-          "bottom": 1272.765625,
+          "bottom": 1284.765625,
           "left": 23
         },
         "pageWidth": 390,
