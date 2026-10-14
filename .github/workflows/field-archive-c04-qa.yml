@@ -5,7 +5,7 @@ on:
       - design/field-archive-c04-data-driven-20261014
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   c04-qa:
     runs-on: ubuntu-latest
@@ -54,3 +54,19 @@ jobs:
             docs/field-archive/candidate03/
             docs/field-archive/pick-quick-equip/
           retention-days: 14
+
+      # Browser frames are evidence, not source. Publish isolated branch only
+      # after all Chrome, extension and shipping gates have passed.
+      - name: Publish C04 actual Chrome frames on isolated evidence branch
+        if: success() && github.ref == 'refs/heads/design/field-archive-c04-data-driven-20261014'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "field-archive-c04-evidence[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          EVIDENCE="visual/c04-qa-${GITHUB_SHA:0:9}"
+          git switch -c "$EVIDENCE"
+          git add docs/field-archive/candidate03/ docs/field-archive/pick-quick-equip/
+          git commit -m "C04 real Chrome viewport evidence for ${GITHUB_SHA:0:9} [skip ci]"
+          git push origin HEAD:"refs/heads/$EVIDENCE"
+          echo "C04 screenshot evidence branch: $EVIDENCE"
