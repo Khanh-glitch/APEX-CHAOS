@@ -184,23 +184,35 @@ export function drawRocketGoldProjectile(ctx,pose,resources){
  // tangent at birth, not the standalone lab's precomputed straight flight.
  const now=pose.age,period=.030/settings.density;
  const history=(pose.trail||[]).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)&&Number.isFinite(p.t));
- // Gold emits smoke at a fixed cadence, NOT once per render frame. Interpolate
- // along the physical path to preserve the exact emission count on 30/60/144/240Hz
- // screens, without replacing engine flight or owning any projectile position.
+ // Owner Gold emits at .030/density (~23ms) while its standalone rocket
+ // travels about 420px/s. Native RPG_7 legitimately accelerates towards
+ // 990px/s. Using ONLY Gold's temporal slots leaves 2x+ gaps in screen space,
+ // revealing individual round texture boundaries rather than Gold's blended
+ // smoke. Keep every original Gold slot/seed exactly; add only intervening
+ // visual births when real physical speed demands closer spatial overlap.
+ // This adapter does not change rocket speed, angle, collision or emission time
+ // of any existing Gold particle, and samples ONLY native path points.
+ const refGoldSpeed=420,subSlots=3,subPeriod=period/subSlots;
  for(let i=1;i<history.length;i++){
   const from=history[i-1],to=history[i],span=to.t-from.t;
   if(span<=0)continue;
   const dx=to.x-from.x,dy=to.y-from.y;
+  const speed=Math.hypot(dx,dy)/span;
   const ga=Math.hypot(dx,dy)>0.001?Math.atan2(dy,dx):angle;
-  const first=Math.max(0,Math.floor((from.t+1e-8)/period)+1);
-  const last=Math.floor((to.t+1e-8)/period);
-  for(let emission=first;emission<=last;emission++){
-   const born=emission*period;
+  const usedSlots=clamp(Math.ceil(speed/refGoldSpeed),1,subSlots);
+  const first=Math.max(0,Math.floor((from.t+1e-8)/subPeriod)+1);
+  const last=Math.floor((to.t+1e-8)/subPeriod);
+  for(let slot=first;slot<=last;slot++){
+   const sub=slot%subSlots;
+   if(sub>=usedSlots)continue;
+   const emission=Math.floor(slot/subSlots),born=slot*subPeriod;
    const uPath=clamp((born-from.t)/span);
    const pos={x:mix(from.x,to.x,uPath),y:mix(from.y,to.y,uPath)};
-   // Immutable Gold birth seed survives visual history window rotation.
+   // Original Gold birth slots (sub=0) retain EXACT source seed and alpha.
+   // Supplementary interpolated slots are deterministic by absolute age;
+   // visual-history trimming or FPS cannot re-randomize them.
   for(let j=0;j<2;j++){
-   const seed=emission*17+j*173.27;
+   const seed=emission*17+j*173.27+(sub?sub*119.13:0);
    const age=now-born-(j*.012),life=GOLD.smokeLife*(.80+hash(seed+4)*.33);
    if(age<0||age>life)continue;
    const u=age/life,env=smooth(age/.058)*Math.pow(1-u,1.08),sway=(hash(seed+5)-.5)*24;
@@ -208,7 +220,7 @@ export function drawRocketGoldProjectile(ctx,pose,resources){
    const side=rotPoint(0,(hash(seed+7)-.5)*16-18*u+sway*u+Math.sin(u*5+seed)*7*u,ga);
    const x=pos.x+back.x+side.x,y=pos.y+back.y+side.y;
    const spread=(36+hash(seed+8)*35)*(1+.9*u),w=spread,h=spread*(.69+hash(seed+9)*.49);
-   const alpha=env*settings.opacity*(j===0?.47:.34),rotation=ga+(hash(seed+19)-.5)*.6+u*.26;
+   const alpha=env*settings.opacity*(j===0?.47:.34)*(sub?.66:1),rotation=ga+(hash(seed+19)-.5)*.6+u*.26;
    const img=resources.get(ROOT+'v'+Math.floor(hash(seed+32)*10)+'.png');
    if(img&&alpha>.001){ctx.save();ctx.globalAlpha=clamp(alpha);
     ctx.translate(x,y);ctx.rotate(rotation);ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore();}
