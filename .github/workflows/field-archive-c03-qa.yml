@@ -25,6 +25,11 @@ jobs:
           pnpm build
           node tools/testShippingDist.mjs
           node tools/testRuntimeRevisionGate.mjs
+          pnpm test:product-graph
+          pnpm test:gold-shell-loader
+          pnpm test:gold-revision-integrity
+          pnpm test:source-hygiene
+          pnpm test:localization
       - name: Install Chrome driver
         run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
       - name: Preview built product
