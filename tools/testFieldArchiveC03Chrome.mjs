@@ -71,7 +71,7 @@ try{
    const facts=await page.evaluate(()=>{document.querySelector('.fa3-detail-tabs button:nth-child(2)').click();return true});
    await page.waitForSelector('.fa3-facts');
    const words=await page.$eval('.fa3-facts',e=>e.textContent);
-   assert.ok(words.includes('WEAPON PROFILE')&&words.includes('SKIN MODIFIES')&&words.includes('UNCHANGED IN BATTLE'),'weapon INFO lacks player-useful facts');
+   assert.ok(words.includes('COMBAT PROFILE')&&words.includes('HOW IT FIGHTS')&&words.includes('SELECTED APPEARANCE')&&words.includes('161')&&words.includes('126'),'RPG-7 INFO must show native peak/blast data and cosmetic delta, not generic pick up text');
    await page.$eval('.fa3-detail-tabs button:first-child',e=>e.click());
    await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(e=>e.textContent.includes('VUA HỀ')).click());
    await page.screenshot({path:path.join(dir,v.name+'-rpg-vua-he.jpg'),type:'jpeg',quality:85});
