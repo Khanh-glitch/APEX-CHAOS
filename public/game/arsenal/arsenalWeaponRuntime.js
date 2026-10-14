@@ -744,7 +744,7 @@
     const seconds=window.APEX_COSMETICS?.trailHistorySeconds?.(p.cosmetic)||0;
     if(seconds>0){
       while(p.visual.length>1 && p.age-p.visual[0].t>seconds)p.visual.shift();
-      if(p.visual.length>180)p.visual.splice(0,p.visual.length-180);
+      if(p.visual.length>240)p.visual.splice(0,p.visual.length-240);
     }else if(p.visual.length>24)p.visual.shift();
   }
   function v43Spawn(f,id,kind,angle,extra={}){
