@@ -1044,7 +1044,10 @@
     }
     if(p.kind==='rocket'){
       const dir=Math.atan2(p.vy,p.vx);
-      if(AQ.state?.visuals&&p.age<3.3)pushVisual({kind:'v43_smoke',
+      // Cosmetic trail authority: one smoke owner per physical rocket.
+      // ORIGINAL retains native V43 smoke; approved custom trails own their VFX.
+      if(!window.APEX_COSMETICS?.suppressDefaultTrail?.(p.cosmetic)
+         &&AQ.state?.visuals&&p.age<3.3)pushVisual({kind:'v43_smoke',
         x:p.x-Math.cos(dir)*35,y:p.y-Math.sin(dir)*35,
         angle:dir,seed:p.age*41,life:.68,maxLife:.68,scale:.88});
       const sp=Math.hypot(p.vx,p.vy)||1;
