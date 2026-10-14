@@ -82,6 +82,9 @@ function register(def) {
     prepare:typeof def.prepare==='function'?def.prepare:null,
     blastSeconds:Math.max(0,Math.min(3,Number(def.blastSeconds)||0)),
     trailHistorySeconds:Math.max(0,Math.min(3,Number(def.trailHistorySeconds)||0)),
+    // A skin that renders its own flight trail owns that visual pass exclusively.
+    // This never affects engine projectile physics, collision or default weapons.
+    suppressBaseTrail:!!def.suppressBaseTrail && typeof hooks.projectile === 'function',
     suppressBaseBlast:!!def.suppressBaseBlast && typeof hooks.blast === 'function',
   });
   registry.set(idKey,record);
