@@ -1699,53 +1699,53 @@ function renderRig(g) {
       };
     }
 
-    const installAvOverride = () => {
+    const installAvProvider = () => {
       const av = globalScope.APEX_ARSENAL_AV;
-      if (!av || !av.drawEquippedWeapon || av.__robotSocketWrapped) return;
-      av.__robotSocketWrapped = true;
-      const prevDrawEq = av.drawEquippedWeapon;
-      av.drawEquippedWeapon = function (ctx, fighter, holder) {
-        if (isRobotFighter(fighter)) {
-          try {
-            const st = getRobotState(fighter);
-            const socket = getRobotWeaponSocketWorld(fighter);
-            if (st && socket && holder && holder.weaponId) {
-              const aim = (holder.meta && holder.meta.aimAngle != null) ? holder.meta.aimAngle : Math.atan2(fighter.dir.y, fighter.dir.x);
-              // heldGunLocal already applies the authored positional recoil once.
-              const offX = socket.x;
-              const offY = socket.y;
-              const meta = av.weaponMeta ? av.weaponMeta(holder.weaponId) : null;
-              if (meta && av.drawWeaponSprite) {
-                const params = av.weaponDrawParams ? av.weaponDrawParams(holder.weaponId, holder.def?.category || '', fighter.radius) : { drawOffset: 0, targetLongSide: 120, offset: 0 };
-                const drawAngle = aim + (params.drawOffset || 0) + (holder.meta && holder.meta.pose && holder.meta.pose.rotKick || 0);
-                const ok = av.drawWeaponSprite(ctx, holder.weaponId, offX, offY, {
-                  mode: 'equipped',
-                  // Robot's native jaw/socket override must carry the same
-                  // P1/P2 cosmetic identity as every other equipped weapon.
-                  // Only presentation is selected; pose, recoil and aim stay native.
-                  cosmetic: globalScope.APEX_COSMETICS?.capture?.(
-                    globalScope.APEX_COSMETICS?.sideOf?.(fighter, globalScope),
-                    'weapon', holder.weaponId) || null,
-                  useWorld: params.useWorld,
-                  targetLongSide: params.targetLongSide,
-                  angle: drawAngle,
-                  alpha: 0.98,
-                  keepUpright: true,
-                });
-                if (ok) return true;
-              }
+      if (!av?.registerEquippedWeaponRenderer || av.__robotSocketRegistered) return;
+      // Arsenal owns dispatch, NEWBOT contributes only its authored jaw
+      // position and presentation transform. This no longer overrides
+      // AV.drawEquippedWeapon for any other hero (notably Frost/Hunter).
+      const paintRobotEquipped = function(ctx,fighter,holder) {
+        if (!isRobotFighter(fighter)) return false;
+        try {
+          const st = getRobotState(fighter);
+          const socket = getRobotWeaponSocketWorld(fighter);
+          if (st && socket && holder && holder.weaponId) {
+            const aim = (holder.meta && holder.meta.aimAngle != null) ? holder.meta.aimAngle : Math.atan2(fighter.dir.y, fighter.dir.x);
+            // heldGunLocal already applies authored positional recoil once.
+            const offX=socket.x,offY=socket.y;
+            const meta=av.weaponMeta ? av.weaponMeta(holder.weaponId) : null;
+            if (meta && av.drawWeaponSprite) {
+              const params=av.weaponDrawParams ? av.weaponDrawParams(holder.weaponId,holder.def?.category||'',fighter.radius) : {drawOffset:0,targetLongSide:120,offset:0};
+              const drawAngle=aim+(params.drawOffset||0)+(holder.meta&&holder.meta.pose&&holder.meta.pose.rotKick||0);
+              const ok=av.drawWeaponSprite(ctx,holder.weaponId,offX,offY,{
+                mode:'equipped',
+                // P1/P2 cosmetic owner remains captured from physical fighter.
+                cosmetic:globalScope.APEX_COSMETICS?.capture?.(
+                  globalScope.APEX_COSMETICS?.sideOf?.(fighter,globalScope),
+                  'weapon',holder.weaponId)||null,
+                useWorld:params.useWorld,
+                targetLongSide:params.targetLongSide,
+                angle:drawAngle,
+                alpha:.98,
+                keepUpright:true,
+              });
+              if(ok)return true;
             }
-          } catch (e) {}
-        }
-        return prevDrawEq.call(this, ctx, fighter, holder);
+          }
+        }catch(e){console.warn('[robot-presentation] held socket provider failed',e);}
+        return false; // Arsenal draws its original weapon if unavailable.
       };
+      const unregister=av.registerEquippedWeaponRenderer('robot-native-jaw',paintRobotEquipped);
+      av.__robotSocketRegistered=true;
+      av.__robotSocketUnsubscribe=unregister;
     };
-    installAvOverride();
+    installAvProvider();
     if (globalScope.setInterval) {
       let tries = 0;
       const iv = setInterval(() => {
-        tries++; installAvOverride();
-        if ((globalScope.APEX_ARSENAL_AV && globalScope.APEX_ARSENAL_AV.__robotSocketWrapped) || tries > 50) clearInterval(iv);
+        tries++; installAvProvider();
+        if ((globalScope.APEX_ARSENAL_AV && globalScope.APEX_ARSENAL_AV.__robotSocketRegistered) || tries > 50) clearInterval(iv);
       }, 200);
     }
 
