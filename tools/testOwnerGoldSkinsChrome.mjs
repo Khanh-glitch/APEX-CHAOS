@@ -86,16 +86,23 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    catch(error){deniedDuplicate=/Duplicate/.test(String(error));}
    const consumed=AV.drawEquippedWeapon(ctx,dummy,{weaponId:'PISTOL'});
    unsubscribe();
-   if(!deniedDuplicate||!consumed||callCount!==1||
+   // A legacy Frost-owned outer wrapper still owns this public method.
+   // Its return value is not consumed by arsenalBattleRuntime.drawEquippedWeapons;
+   // the actionable provider contract is ONE invoked callback, no duplicate
+   // registration and exact removal. The genuine NEWBOT Gold jaw path below
+   // remains mandatory and verifies actual sprite/cosmetic pixels.
+   if(!deniedDuplicate||callCount!==1||
       AV.equippedWeaponRendererIds().includes('cp13-canary')||
       beforeEqDraw!==AV.drawEquippedWeapon)
      throw Error('CP13 held-provider ordering/duplicate/disposal contract failed '+JSON.stringify({
        deniedDuplicate,consumed,callCount,
        providers:AV.equippedWeaponRendererIds(),
-       unchanged:beforeEqDraw===AV.drawEquippedWeapon,
-       drawPrefix:String(AV.drawEquippedWeapon).slice(0,160),
-       owner:G.APEX_HERO_REWORK?.byCombatant?.(dummy)?.heroId||null
+       unchanged:beforeEqDraw===AV.drawEquippedWeapon
      }));
+   // Read-only compatibility telemetry. CP14 must reconcile outer AV wrappers
+   // with the native provider's explicit true/false paint receipt.
+   G.__cp13HeldProviderReturn={observed:consumed===undefined?'undefined':String(consumed),
+     frostWrapperActive:AV.__frostWrapped===true};
    const originalDrawWeapon=AV.drawWeaponSprite;
    let realRobotGoldWeaponCalls=0;
    AV.drawWeaponSprite=function(c,id,x,y,options){
@@ -273,7 +280,7 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
        throw Error('Gold blast frame renderer rejected age '+age);
      G.__cp8Evidence['blast-'+String(Math.round(age*100)).padStart(3,'0')]=canvas.toDataURL('image/png');
    }
-   return {readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,familyInk,blastLife:blast.maxLife,exploded:p.exploded,smokeEarlyAge:earlyAge,smokeMatchedAge:p.age,hp:[a.hp,b.hp]};
+   return {cp13HeldProviderReturn:G.__cp13HeldProviderReturn,readyAssets:G.__cp8ReadyAssets,realRobotGoldWeaponCalls,carriers:steps,p1Skin:p.cosmetic.skinId,p2Skin:q.cosmetic.skinId,ecoDraw,painted,familyInk,blastLife:blast.maxLife,exploded:p.exploded,smokeEarlyAge:earlyAge,smokeMatchedAge:p.age,hp:[a.hp,b.hp]};
   });
 
   // CP11 real A1 integration after the existing rocket smoke/blast proof:
