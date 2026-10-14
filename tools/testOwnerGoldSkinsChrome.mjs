@@ -101,6 +101,11 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    // event dedup guard and cannot prove the cosmetic FX branch.
    const nextMilestone=Math.max(0,Number(st._lastMilestoneNumber)||0)+1;
    bus.emit('RobotPassiveMilestone',{hero:'ROBOT',fighterId:a.id,milestone:nextMilestone});
+   // Native Robot GOLD schedules the passive pulse at +0.20 s via the SAME
+   // authoritative spring/event queue. Check after a real engine advance,
+   // not synchronously at emission (which would reject the correct choreography).
+   // These 15 real RPG simulation frames simultaneously build the smoke path.
+   for(let j=0;j<15;j++)A.step(1/60);
    if((st.ecoFxSerial||0)<=beforeFx||!st.ecoFxEvents?.some(e=>e.kind==='passive'&&e.serial>beforeFx))
      throw Error('ECO Gold presentation event failed for next milestone '+nextMilestone+
        ' body='+a.id+' busHook='+bus.__robotPresentationHooked+
@@ -126,7 +131,6 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
    // CP9 smoke proof MUST be acquired from the ACTUAL RPG carrier after
    // native physics has produced sampled flight history. A first-frame rocket
    // sprite does NOT prove the exhaust is attached, smooth or Gold-faithful.
-   for(let j=0;j<14;j++)A.step(1/60);
    if(!projectiles.includes(p)||p.visual.length<8)
       throw Error('Gold smoke missing continuous native rocket flight samples');
    const smokeCanvas=document.createElement('canvas');
