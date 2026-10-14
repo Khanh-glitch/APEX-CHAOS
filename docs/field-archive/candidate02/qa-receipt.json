@@ -28,7 +28,15 @@
             "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
           }
         },
-        "opaque": 319,
+        "opaque": 1393,
+        "paintBounds": {
+          "x": 160,
+          "y": 72,
+          "width": 352,
+          "height": 344,
+          "ratio": 0.5222551928783383
+        },
+        "titleCollision": false,
         "book": {
           "x": 53.796875,
           "y": 88,
@@ -119,15 +127,23 @@
             "vuaHe": "/assets/skins/rocket-vua-he/launcher.png"
           }
         },
-        "opaque": 103,
+        "opaque": 461,
+        "paintBounds": {
+          "x": 48,
+          "y": 56,
+          "width": 200,
+          "height": 192,
+          "ratio": 0.6802721088435374
+        },
+        "titleCollision": false,
         "book": {
           "x": 23,
           "y": 70,
           "width": 354,
-          "height": 1193.765625,
+          "height": 1202.765625,
           "top": 70,
           "right": 377,
-          "bottom": 1263.765625,
+          "bottom": 1272.765625,
           "left": 23
         },
         "pageWidth": 390,
