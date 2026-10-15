@@ -499,7 +499,7 @@
   function candidateProjectile(p,limitT=1){
     if(!p?.aq||!(p.life>0)||!['aq_bullet','aq_v43','aq_grenade','aq_thrown'].includes(p.type))
       return null;
-    if(p.type==='aq_v43'&&(['flame','burn','plasma-core'].includes(p.kind)
+    if(p.type==='aq_v43'&&(['flame','burn'].includes(p.kind)
       ||(p.kind==='mine'&&p.phase!=='flight')))return null;
     if(p.type==='aq_thrown'&&p.state!=='flight')return null;
     const match=global.APEX_HERO_REWORK?.match;
