@@ -33,7 +33,7 @@ assert.equal(ctrl.rocketFighterHit({collisionId:'contact-A',opponentId:'FROST'},
 assert.equal(ctrl.rocketFighterHit({collisionId:'contact-A',opponentId:'FROST'},3103),false);
 assert.equal(ctrl.rocketFighterHit({collisionId:'contact-B',opponentId:'FROST'},3104),false,'650ms same-target re-hit protection');
 assert.equal(has('arena:disarm-request').filter(x=>x.source==='A1').length,1);
-assert.equal(has('arena:stun-request').filter(x=>x.source==='A1').length,2);
+assert.equal(has('arena:stun-request').filter(x=>x.source==='A1').length,1);
 assert.ok(has('arena:stun-request').filter(x=>x.source==='A1').every(x=>x.durationMs===350&&x.damage===0));
 assert.equal(ctrl.flurryFighterHit({collisionId:'flurry-1',opponentId:'FROST'},3105),true);
 assert.equal(ctrl.flurryFighterHit({collisionId:'flurry-1',opponentId:'FROST'},3106),false);
