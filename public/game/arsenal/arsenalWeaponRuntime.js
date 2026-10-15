@@ -336,7 +336,10 @@
     const h = getHolder(f);
     if (!h) return;
     h.consumed = true;
-    snapshotPoseGhost(f, h);
+    // BOXE disarm creates a single real ejected floor weapon; the generic
+    // consume pose ghost would leave an illusory second gun on the victim.
+    if(String(reason||'').startsWith('boxe-')) f.data.arsenalFade=null;
+    else snapshotPoseGhost(f, h);
     if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[ARSENAL] weapon cleanup failed', h.weaponId, error); } }
     f.data.arsenal = null; // holder returns to UNARMED; no stale owner/target refs remain
     log('CONSUME', `fighter=${f.name} weapon=${h.weaponId}${reason ? ` reason=${reason}` : ''}`);
