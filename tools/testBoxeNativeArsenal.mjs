@@ -27,6 +27,11 @@ assert.equal(skill.tryCast('A1',{source:'boxe-native-integration'}).ok,true);
 assert.equal(skill.tryCast('A2',{source:'boxe-native-integration'}).ok,false,
   'A2 must be blocked while rocket exists');
 assert.ok(ct.store.__boxeBattle?.rocket, 'BOXE rocket not engine-owned');
+assert.equal(ct.skills.A1.cdLeft,0,'A1 cooldown waits for return');
+const recall=skill.tryCast('A1',{source:'manual-early-recall'});
+assert.equal(recall.ok,true);
+assert.equal(recall.recast,true);
+assert.equal(ct.store.__boxeBattle?.rocket.phase,'returning');
 assert.equal(enemy.anchor.hp,originalHp, 'zero-damage cast changed opponent HP');
 win.exitArsenalBattleMode();
 assert.equal(H.HR.match,null,'exit did not teardown live match');
