@@ -207,7 +207,7 @@
 
   function makeAbilityController(ct) {
     return {
-      cooldownLeft(slot) { const s = ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0, s.cdLeft)) : 0; },
+      cooldownLeft(slot) { const s=ct.skills[slot]; if(slot==='A1'&&ct.heroId==='BOXE'&&ct.store.__boxeBattle?.rocket)return .1; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0,s.cdLeft)) : 0; },
       refundCooldown(slot, sec) {
         const s = ct.skills[slot];
         if (s && sec > 0) { s.cdLeft = Math.max(0, s.cdLeft - sec); }
@@ -243,8 +243,12 @@
         const a = ct.anchor;
         if (!a || a.hp <= 0) return { ok: false, reason: 'dead' };
         if (typeof a.hardCC === 'function' && a.hardCC()) return { ok: false, reason: 'cc' };
-        if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
         const exec = MECH.EXECUTORS[s.def.mechanicId];
+        if(slot==='A1'&&ct.heroId==='BOXE'&&ct.store.__boxeBattle?.rocket){
+          const recall=exec?.recast?.(mechCtx(ct,slot));
+          return recall?{ok:true,recast:true}:{ok:false,reason:'already-returning'};
+        }
+        if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
         const ctx = mechCtx(ct, slot);
         if (exec && exec.canCast && !exec.canCast(ctx)) {
           ct.telemetry.castFails += 1;
@@ -259,6 +263,7 @@
         }
         if(s.cfg.maxCharges) { if(s.charges === s.cfg.maxCharges) s.rechargeLeft = s.cfg.cooldown; s.charges--; }
         else s.cdLeft = s.cfg.cooldown;
+        if(ct.heroId==='BOXE'&&slot==='A1')s.cdLeft=0;
         ct.telemetry.casts += 1;
         ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
         if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
