@@ -70,7 +70,7 @@ export function createBoxeBattleController({emit=()=>{}}={}){
  function castA1(now){
   advance(now);if(state.cooldowns.A1>0||state.rocket)return false;
   state.rocket={phase:'outbound',returnAt:now+RULES.a1.outboundMs,enhancedAtCast:state.enhanced,
-   collisionIds:new Set(),lastOpponentHits:new Map(),recallRequested:false,
+   collisionIds:new Set(),recallRequested:false,
    flurryUsed:false,cargoId:null,pendingCargoId:null};
   dispatch('boxe:rocket-launch',{goldKey:'2',durationMs:RULES.a1.outboundMs,enhanced:state.enhanced,damage:0});
   return true;
@@ -83,15 +83,16 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   r.phase='returning';dispatch('boxe:rocket-return-phase',{goldKey:'2',early:true,carryId:r.cargoId});
   return true;
  }
- function rocketFighterHit({collisionId,opponentId},now){
+ const stunFromContact=(speed,reference,maxMs)=>Math.round(maxMs*Math.pow(
+  Math.max(0,Math.min(1,(Number.isFinite(speed)?speed:reference)/reference)),1.2)*1000)/1000;
+ function rocketFighterHit({collisionId,opponentId,relativeNormalSpeed},now){
   advance(now);const r=state.rocket;
   if(!r||r.phase!=='outbound'||!collisionId||r.collisionIds.has(collisionId))return false;
   r.collisionIds.add(collisionId);
-  const previous=r.lastOpponentHits.get(opponentId)??-Infinity;
-  if(now-previous<RULES.a1.repeatHitGapMs)return false;
-  r.lastOpponentHits.set(opponentId,now);
-  dispatch('arena:stun-request',{opponentId,durationMs:RULES.a1.impactStunMs,damage:0,source:'A1'});
-  dispatch('arena:disarm-request',{opponentId,source:'A1',collisionId});
+  const stun=stunFromContact(relativeNormalSpeed,1250,RULES.a1.impactStunMaxMs);
+  if(stun>0)dispatch('arena:stun-request',{opponentId,durationMs:stun,damage:0,source:'A1'});
+  dispatch('arena:knockback-request',{opponentId,source:'A1',
+   strength:stun/Math.max(1,RULES.a1.impactStunMaxMs),collisionId});
   dispatch('boxe:rocket-impact',{goldKey:'2',opponentId,collisionId,damage:0});
   if(r.enhancedAtCast&&!r.flurryUsed){
    r.flurryUsed=true;
@@ -103,11 +104,13 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   }
   return true;
  }
- function flurryFighterHit({collisionId,opponentId},now){
+ function flurryFighterHit({collisionId,opponentId,relativeNormalSpeed,handActive=true},now){
   advance(now);const f=state.flurry;
-  if(!f||now>=f.endingAt||!collisionId||f.hitIds.has(collisionId))return false;
+  if(!f||now>=f.endingAt||!collisionId||f.hitIds.has(collisionId)||!handActive)return false;
   f.hitIds.add(collisionId);
-  dispatch('arena:stun-request',{opponentId,source:'A1-FLURRY',durationMs:RULES.a1.enhanced.impactStunMs,damage:0,collisionId});
+  const stun=stunFromContact(relativeNormalSpeed,2080,RULES.a1.enhanced.impactStunMaxMs);
+  if(stun>0)dispatch('arena:stun-request',{opponentId,source:'A1-FLURRY',
+   durationMs:stun,damage:0,collisionId});
   dispatch('boxe:flurry-impact',{goldKey:'1',opponentId,collisionId,damage:0});
   return true;
  }
