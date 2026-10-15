@@ -42,3 +42,8 @@ assert.equal(H.HR.abilityController(match.combatants[0]).tryCast('A2',{source:'l
 win.exitArsenalBattleMode();
 assert.equal(H.HR.match,null);
 console.log('PASS BOXE native Arsenal BOT, P2, same-hero Local, no-skill-damage, A1/A2 exclusion, cleanup');
+// jsdom hosts legacy frame/timer observers. Assertions above run to completion;
+// explicitly close the harness so this proof exits instead of timing out in
+// CP4 spawnSync(180000), which would otherwise report status=null after PASS.
+H.dom.window.close();
+process.exit(0);

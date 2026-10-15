@@ -219,7 +219,7 @@ gate('smoke-boot', hrFilesLoaded && hrLoadErrors.length === 0,
 
 /* Gate 2 — registry validation */
 const v = HR.validateRegistry();
-gate('smoke-registry', v.ok && v.heroCount === 12 && v.skillCount === 36, { errors: v.errors });
+gate('smoke-registry', v.ok && v.heroCount === 13 && v.skillCount === 39 && !!win.APEX_HERO_REWORK_REGISTRY.HEROES.BOXE, { errors: v.errors });
 
 /* Gate 3 — NEWBIE -> ROBOT migration (idempotent, from the seeded legacy save) */
 const metaApi = win.APEX_ARSENAL_META;
@@ -260,11 +260,11 @@ gate('smoke-neutral-arsenal-api-no-retired-ladder',
 
 /* Gate 6 — product authority owns the visible 12 / playable Core Six split */
 const ids = shells.ids;
-const poolOk = ids.length === 12 && PRODUCT_ROSTER.visibleIds.every((id, index) => ids[index] === id)
+const poolOk = ids.length === 13 && PRODUCT_ROSTER.visibleIds.every((id, index) => ids[index] === id)
   && shells.roster().map((fighter) => fighter.name).join(',') === PRODUCT_ROSTER.playableIds.join(',');
 const lockedNoPlay = PRODUCT_ROSTER.lockedIds.every((id) => ids.includes(id) && !shells.isPlayable(id));
 const buyRejected = metaApi ? PRODUCT_ROSTER.lockedIds.every((id) => metaApi.buy(id).ok === false) : false;
-gate('smoke-product-visible12-playable6-locked6', poolOk && lockedNoPlay && buyRejected,
+gate('smoke-product-visible13-playable7-locked6', poolOk && lockedNoPlay && buyRejected,
   { ids, playable: shells.roster().map((fighter) => fighter.name), lockedNoPlay, buyRejected });
 
 /* Gate 7 — 20s @ 60fps healthy match (ROBOT vs SNIPER, AI on) */
