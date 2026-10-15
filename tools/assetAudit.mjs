@@ -24,6 +24,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyAudio, AUDIO_DELIVERY_POLICY } from './audioDeliveryPolicy.mjs';
+import { botWaveShippingAssetRefs } from './botWaveShippingAssetRefs.mjs';
 import {
   ARSENAL_PRODUCT_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
@@ -119,6 +120,22 @@ const shipFiles = [
 const toolFiles = listTextFiles(path.join(REPO, 'tools'), (f) => f.includes(path.join('tools', 'arsenal-assets')));
 
 const shipText = shipFiles.map((f) => ({ file: f, text: fs.readFileSync(f, 'utf8') }));
+// R5 Gold's ~25MB HTML is a derivative binary artifact, added only after the
+// owner imports it. Do NOT scan that entire embedded-base64 file once PER
+// public asset. Parse the URLs once, then feed a small reference index into
+// the existing production audit and pruning pipeline.
+const waveGoldFile=path.join(PUBLIC,'bot-wave','game.html');
+if (fs.existsSync(waveGoldFile)) {
+  const waveAssets=botWaveShippingAssetRefs(fs.readFileSync(waveGoldFile,'utf8'));
+  if (!waveAssets.length) throw Error('Gold BOT WAVE active but no Arsenal asset references found');
+  for (const asset of waveAssets) {
+    if (!fs.existsSync(path.join(PUBLIC,asset.replace(/^\\//,'')))) {
+      throw Error('Gold BOT WAVE missing native Arsenal asset: '+asset);
+    }
+  }
+  shipText.push({ file:waveGoldFile,text:waveAssets.join('\\n') });
+}
+
 const toolText = toolFiles.map((f) => ({ file: f, text: fs.readFileSync(f, 'utf8') }));
 
 const publicFiles = walk(PUBLIC);
