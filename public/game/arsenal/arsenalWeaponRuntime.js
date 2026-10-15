@@ -1000,8 +1000,8 @@
       return true;
     }
     if(p.kind==='boomerang'){
-      // A struck returnable weapon resumes its REAL return lifecycle.
-      p.phase='return';p.hits=new Set();p.magnetReleased=true;
+      // The authentic curved outbound/return spline stays in charge.
+      // Never force a fake turn, lose the real weapon, or overwrite travel.
       v43Pulse(p.x,p.y,'ricochet',.7,p.weapon,p.cosmetic);
       return true;
     }
