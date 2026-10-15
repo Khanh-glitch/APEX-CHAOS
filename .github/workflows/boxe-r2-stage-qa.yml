@@ -31,6 +31,7 @@ jobs:
           node tools/testBoxeComboR4.mjs
           node tools/testBotWaveGameRouteR5.mjs
           node tools/testBotWaveShippingAssets.mjs
+          node tools/testBotWaveLosslessR5.mjs
       - name: Latest C04 Field Archive compatibility
         run: node tools/testFieldArchiveC04Profiles.mjs
       - name: Shipping build remains unchanged
@@ -38,12 +39,13 @@ jobs:
           pnpm build
           pnpm test:product-graph
           pnpm test:source-hygiene
+          node --input-type=module -e "import fs from 'node:fs';import assert from 'node:assert/strict';assert.ok(fs.existsSync('dist/bot-wave/game.html'),'Shipping bundle missing BOT WAVE R5.1 gameplay');assert.deepEqual(fs.readFileSync('dist/bot-wave/game.html'),fs.readFileSync('public/bot-wave/game.html'),'Vite altered Gold runtime during build');"
       - name: Report binary Gold gate status without pretending imported
         run: |
           if test -f masters/boxe-gold/THE_HAND_GOLD_ORIGINAL.html; then
             node tools/testBoxeGoldIntakeGate.mjs
           else
-            echo "::notice::Source Gold binary and PNG still not in repo; this workflow is STAGING-ONLY, NOT integrated Gold QA."
+            echo "::notice::BOT WAVE R5.1 compact playable runtime has lossless SHA proof and Chrome checks; original unshipped master HTML is not imported. Do not claim source-master intake complete."
           fi
       - name: Browser dependencies
         run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
