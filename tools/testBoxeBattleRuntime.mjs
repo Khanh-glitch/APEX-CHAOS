@@ -29,15 +29,13 @@ assert.equal(ex['boxe.block_and_hit'].canCast(ctx),false,'A2 forbidden while A1 
 assert.equal(ex['boxe.block_and_hit'].cast(ctx),false,'no cooldown spent on forbidden A2');
 for(let n=0;n<13;n++){time+=.02;ex['boxe.fist_rocket'].onTick(ctx,.02);}
 assert.equal(b.hp,1000,'rocket never harms HP');
-assert.ok(events.some(e=>e.name==='boxe:rocket-impact'),'real contact should stun/disarm');
-assert.ok(!held.has(b),'opponent holder consumed');
-assert.equal(slots.length,1,'disarm creates one real dropped gun');
-assert.equal(slots[0].boxeDisarmedVictimId,b.id);
-assert.ok(slots[0].boxePickupLockUntil>time);
+assert.ok(events.some(e=>e.name==='boxe:rocket-impact'),'real contact must create impulse + stun');
+assert.ok(held.has(b),'A1 must not disarm target');
+assert.equal(slots.length,0,'A1 cannot create a dropped enemy weapon');
 assert.equal(BX.snapshot(ctx).rocket.cargoId,null,'no remote gun vacuum');
 for(let n=0;n<342;n++){time+=.02;ex['boxe.fist_rocket'].onTick(ctx,.02);}
 assert.equal(BX.snapshot(ctx).rocket,null,'rocket completes catch');
-assert.ok([null,'SMG'].includes(weapons.getHolder(a)?.weaponId??null),'only a real recovered gun can equip BOXE');
+assert.equal(weapons.getHolder(a),null,'A1 never steals opponent gun');
 // A1 may pick one actual ground gun, never mint out of nothing.
 const reserve=ctx.api.dropWeaponSlot('PISTOL',100,0);
 a.x=0;time=20;
@@ -80,4 +78,4 @@ assert.equal(BX.snapshot(ctx).counter,null);
 assert.equal(b.hp,600);
 // Every event has exact identity; no P1-to-P2 cross-owner emission.
 for(const e of events.filter(e=>e.name.startsWith('boxe:')))assert.equal(e.body.hero,'BOXE');
-console.log('PASS BOXE normal battle semantic runtime: rocket physical-hit/disarm/catch, native floor pickup, guard, passive, cooldown and enhanced A2');
+console.log('PASS BOXE normal battle semantic runtime: rocket real hit without disarm, native ground gun, counter-only disarm, passive, cooldown');
