@@ -64,6 +64,48 @@ jobs:
           CHROME_PATH="$CHROME" node tools/testFieldArchivePickQuickChrome.mjs
           CHROME_PATH="$CHROME" node tools/testBoxeModeEntryChrome.mjs
           CHROME_PATH="$CHROME" node tools/testBoxeNormalChrome.mjs
+      # This artifact is the COMPLETE built APEX CHAOS app (not a standalone
+      # Gold game). No live deployment is triggered by this workflow.
+      - name: Verify complete Cloudflare playtest candidate SHA and assets
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import {botWaveShippingAssetRefs} from './tools/botWaveShippingAssetRefs.mjs';
+          const receipt=JSON.parse(fs.readFileSync('dist/CP16_BUILD_RECEIPT.json','utf8'));
+          assert.equal(receipt.gitCommit, process.env.GITHUB_SHA, 'Cloudflare candidate build identity mismatch');
+          assert.equal(receipt.application,'APEX CHAOS');
+          const game=fs.readFileSync('dist/bot-wave/game.html','utf8');
+          const proof=JSON.parse(fs.readFileSync('docs/boxe/BOT_WAVE_R5_EXTERNAL_ASSETS_PROOF.json','utf8'));
+          const sha=crypto.createHash('sha256').update(game).digest('hex');
+          assert.equal(sha, '0f38ac8a44082e26627e6b5415f4434f623f851b5461476567ffc16e2e62ca78',
+            'Gold wave playable bytes drifted');
+          const refs=botWaveShippingAssetRefs(game);
+          assert.equal(refs.length,15,'BOT WAVE 5 Arsenal sprites + 10 SFX must be present');
+          for(const asset of refs)assert.ok(fs.existsSync('dist'+asset), 'Missing shipping dependency '+asset);
+          assert.equal(proof.externalized_sha256,sha,'Release proof and runtime disagree');
+          assert.equal(proof.substitutions.length,10,'Gold sprite list incomplete');
+          for(const sprite of proof.substitutions){
+            const asset='dist/assets/boxe-gold/'+sprite.file;
+            assert.ok(fs.existsSync(asset),'Missing Gold PNG '+sprite.file);
+            assert.equal(crypto.createHash('sha256').update(fs.readFileSync(asset)).digest('hex'),
+              sprite.sha256,'Gold PNG changed '+sprite.file);
+          }
+          assert.ok(fs.existsSync('dist/gold/shell.html'),'Missing APEX HOME');
+          console.log('CLOUDFLARE UPLOAD CANDIDATE PASS: Git SHA',receipt.gitCommit,
+            '15 real gun/SFX refs, 10 Gold sprites, HOME+BOT WAVE+normal Arsenal');
+          NODE
+      - name: Upload APEX CHAOS Cloudflare candidate (NOT deployed)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boxe-r5-apex-cloudflare-playtest-${{ github.sha }}
+          path: dist/
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 0
       - name: Upload C04 regression evidence, no source snapshots
         if: always()
         uses: actions/upload-artifact@v4
