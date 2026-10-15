@@ -207,7 +207,7 @@
 
   function makeAbilityController(ct) {
     return {
-      cooldownLeft(slot) { const s=ct.skills[slot]; if(slot==='A1'&&ct.heroId==='BOXE'&&ct.store.__boxeBattle?.rocket)return .1; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0,s.cdLeft)) : 0; },
+      cooldownLeft(slot) { const s=ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0,s.cdLeft)) : 0; },
       refundCooldown(slot, sec) {
         const s = ct.skills[slot];
         if (s && sec > 0) { s.cdLeft = Math.max(0, s.cdLeft - sec); }
@@ -1710,6 +1710,7 @@
     if (AQS && AQS.state && AQS.state.battleMode === 'LOCAL') return;
     const ctl = abilityController(ct);
     for (const slot of ['A1', 'A2']) {
+      if(ct.heroId==='BOXE'&&slot==='A1'&&ct.store.__boxeBattle?.rocket)continue;
       if (ctl.cooldownLeft(slot) > 0) continue;
       const key = `${ct.heroId}:${slot}`;
       const plan = (M.aiCastPlan[key] = M.aiCastPlan[key] || {});
