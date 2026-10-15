@@ -39,6 +39,19 @@
     g.player.aim=Number.isFinite(aim)?aim:Math.atan2(body.dir?.y||0,body.dir?.x||1);
     g.player.faceX=Math.cos(g.player.aim)<0?-1:1;
   }
+  // Gold key #1/#3/#9 create impact effects only through hitCone/hitCircle.
+  // Feed those methods a **disconnected visual target**: it is a fresh POJO
+  // holding copied positions, never the native Fighter, HP ledger or Arsenal
+  // Combatant. Local dummy damage creates Gold VFX, NEVER real HP mutation.
+  function syncVisualTarget(g,body,originX,originY,limit=Infinity){
+    const foe=(global.fighters||[]).find(x=>x&&x!==body&&x.hp>0);
+    if(!foe||Math.hypot(foe.x-originX,foe.y-originY)>limit){g.enemies=[];return;}
+    const p=g.enemies[0]||{id:'__VISUAL_ONLY__',r:75,z:0,hp:1e9,maxHp:1e9,
+      vx:0,vy:0,wob:0,dead:false,kind:'dummy',slowT:0,stunT:0};
+    p.x=foe.x;p.y=foe.y;p.r=foe.radius||75;p.dead=false;
+    p.hp=1e9;p.maxHp=1e9;
+    g.enemies=[p];
+  }
   // All Gold timeline events retain their actual delays without enabling a
   // second combat simulation or Gold's RAF/AI/projectiles.
   function advanceGoldFx(g,dt){
@@ -167,6 +180,7 @@
       const target=(global.fighters||[]).find(f=>f?.id===body.targetId)||{
         x:rec.f.x+90,y:rec.f.y,radius:75};
       syncGoldPlayer(g,rec.f,Math.atan2(target.y-rec.f.y,target.x-rec.f.x));
+      syncVisualTarget(g,rec.f,rec.f.x,rec.f.y);
       // Source key 9 FULL counterStrike: impactPackage, ghost fist, wave,
       // lightning, material, afterimage and cinematic feedback. Enemy HP
       // remains exclusively owned by the native APEX Arsenal adapter.
@@ -216,6 +230,7 @@
       e.player.x=f.x;e.player.y=f.y;
       const foe=(global.fighters||[]).find(x=>x&&x!==body&&x.hp>0);
       if(foe)e.player.aim=Math.atan2(foe.y-f.y,foe.x-f.x);
+      syncVisualTarget(e,body,f.x,f.y,46+(foe?.radius||75)+110);
       while(f.cycle<4&&elapsed>=(f.cycle*.51+.11)){
         e.skillJab(); // EXACT Gold key 1 6-shot choreography × 4
         f.cycle++;
