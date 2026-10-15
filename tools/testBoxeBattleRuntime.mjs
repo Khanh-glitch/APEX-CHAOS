@@ -31,11 +31,13 @@ for(let n=0;n<75;n++){time+=.02;ex['boxe.fist_rocket'].onTick(ctx,.02);}
 assert.equal(b.hp,1000,'rocket never harms HP');
 assert.ok(events.some(e=>e.name==='boxe:rocket-impact'),'real contact should stun/disarm');
 assert.ok(!held.has(b),'opponent holder consumed');
-assert.equal(slots.length,0,'disarmed gun is reserved as real rocket cargo, not duplicated');
-assert.equal(BX.snapshot(ctx).rocket.cargoId,1,'actual disarmed slot is claimed once');
+assert.equal(slots.length,1,'disarm creates one real dropped gun');
+assert.equal(slots[0].boxeDisarmedVictimId,b.id);
+assert.ok(slots[0].boxePickupLockUntil>time);
+assert.equal(BX.snapshot(ctx).rocket.cargoId,null,'no remote gun vacuum');
 for(let n=0;n<280;n++){time+=.02;ex['boxe.fist_rocket'].onTick(ctx,.02);}
 assert.equal(BX.snapshot(ctx).rocket,null,'rocket completes catch');
-assert.equal(weapons.getHolder(a)?.weaponId,'SMG','caught gun delivered only after catch');
+assert.equal(weapons.getHolder(a),null,'disarm does not magically grant BOXE a gun');
 // A1 may pick one actual ground gun, never mint out of nothing.
 const reserve=ctx.api.dropWeaponSlot('PISTOL',100,0);
 a.x=0;time=20;
