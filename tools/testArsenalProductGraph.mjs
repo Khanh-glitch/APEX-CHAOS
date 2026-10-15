@@ -143,8 +143,9 @@ gate('semantic-graph-and-admin-boundary', () => {
 });
 
 gate('visible-roster-core-six-and-locked-six', () => {
-  assert.equal(PRODUCT_ROSTER.visibleIds.length, 12);
-  assert.equal(PRODUCT_ROSTER.playableIds.length, 6);
+  assert.equal(PRODUCT_ROSTER.visibleIds.length, 13);
+  assert.equal(PRODUCT_ROSTER.playableIds.length, 7);
+  assert.ok(PRODUCT_ROSTER.playableIds.includes('BOXE'));
   assert.equal(PRODUCT_ROSTER.lockedIds.length, 6);
   assert.ok(PRODUCT_ROSTER.playableIds.includes('ROBOT'));
   assert.ok(PRODUCT_ROSTER.playableIds.includes('ICE'));

@@ -104,6 +104,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/arsenal/arsenalManualSkillGate.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalManualSkillGate'],
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
+  ['/game/hero-rework/boxeBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeBattle'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
@@ -133,6 +134,8 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/mirrorGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorGoldV1'],
   ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
   ['/game/hero-rework/heroReworkRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRuntime'],
+  ['/game/hero-rework/boxeGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldLibrary'],
+  ['/game/hero-rework/boxeGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldPresentationRuntime'],
   ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&cp8Socket=vua-he-held', 'apexRobotPresentationRuntime'],
   ['/game/hero-rework/hunterGoldV10.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterGoldV10'],
   ['/game/hero-rework/hunterPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterPresentationRuntime'],
@@ -154,6 +157,10 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
 // fighters pay hero-specific evaluation cost. Filtering instead of concatenating
 // sub-groups preserves every historical dependency edge and script order.
 export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
+  boxe: Object.freeze([
+    '/game/hero-rework/boxeGoldLibrary.js',
+    '/game/hero-rework/boxeGoldPresentationRuntime.js',
+  ]),
   newbot: Object.freeze([
     '/game/hero-rework/robotPresentationRuntime.js',
   ]),
@@ -189,6 +196,7 @@ const CORE_SIX_RUNTIME_KEY_ALIASES = Object.freeze({
   magnet: 'magnet',
   frost: 'frost', ice: 'frost',
   mirror: 'mirror',
+  boxe: 'boxe',
 });
 const BATTLE_RUNTIME_OWNER_BY_PATH = new Map();
 for (const [hero, paths] of Object.entries(CORE_SIX_BATTLE_RUNTIME_PATHS)) {

@@ -492,6 +492,31 @@
     },
   };
 
+  // BOXE is an append-only, owner-approved seventh playable fighter.
+  // Gold art and SFX are separate presentation authority; these fields are
+  // normal Arsenal Battle gameplay only (never copy Gold's damage values).
+  HEROES.BOXE = {
+    id: 'BOXE',
+    name: 'BOXE',
+    displayName: 'BOXE',
+    classRef: 'rework.boxe',
+    archiveProfile: { traits: { damage: 0, control: 92, mobility: 65, defense: 88, field: 38 } },
+    skills: {
+      A1: skill('boxe.fist_rocket', 'A1', 'boxe.fist_rocket', {
+        cooldown: 15, outboundSeconds: 5, returnSeconds: .82,
+        impactStunSeconds: .5, maxGroundGuns: 1, baseDamage: 0,
+      }, ['cooldown'], 'cooldown_step'),
+      A2: skill('boxe.block_and_hit', 'A2', 'boxe.block_and_hit', {
+        cooldown: 20, guardSeconds: 1, counterStunSeconds: 2,
+        finisherFractionRemainingHP: .10, baseDamage: 0,
+      }, ['cooldown'], 'cooldown_step'),
+      PASSIVE: skill('boxe.heat', 'PASSIVE', 'boxe.heat', {
+        damageThreshold: 300, enhancedSeconds: 3, cooldownRecoveryMultiplier: 2,
+        eligible: 'realized-incoming-or-own-weapon', resetAtEnd: true,
+      }, ['damageThreshold'], 'magnitude_step'),
+    },
+  };
+
   const CANONICAL_IDS = Object.freeze(Object.keys(HEROES)); // insertion order = doc order
 
   /* ------------------------------------------------------------------ *

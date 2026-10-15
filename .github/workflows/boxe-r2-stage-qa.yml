@@ -22,6 +22,8 @@ jobs:
       - name: BOXE R2 authority semantic acceptance
         run: |
           node tools/testBoxeContractsR2.mjs
+          node tools/testBoxeBattleRuntime.mjs
+          node tools/testBoxeNormalIntegration.mjs
           node tools/testBoxeWaveDirector.mjs
           node tools/testBoxeWaveInputs.mjs
           node tools/testBoxeWaveArsenalR3.mjs
