@@ -23,6 +23,7 @@ import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordin
 import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
+import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
@@ -862,6 +863,29 @@ export default function App() {
     mountGoldShell();
     return () => { cancelled = true; };
   }, [gameReady, goldReady]);
+
+  useEffect(() => {
+    // Gold shell is SHA-LOCKED by CP16. New mode entries are product-owned
+    // extensions mounted only AFTER the canonical shell has fully booted.
+    if (!goldReady) return;
+    const mode = document.getElementById('modeSelectScreen');
+    const choices = mode?.querySelector('.modeChoices');
+    if (!mode || !choices || document.getElementById('botWaveEntry')) return;
+    const entry = document.createElement('button');
+    entry.id='botWaveEntry';entry.type='button';entry.className='apex-wave-mode-entry';
+    entry.innerHTML='<span>03 / SURVIVAL · PREVIEW</span><strong>BOT WAVE — BOXE</strong><small>10 WAVES · REAL ARSENAL · GOLD VFX</small>';
+    const onClick=async ()=>{
+      if(window.APEX_SCENE_TRANSITION?.active?.())return;
+      entry.disabled=true;
+      try{
+        const ok=await window.apexLaunchProductSurface?.('bot-wave');
+        if(!ok)throw Error('BOT WAVE surface unavailable');
+      }catch(e){console.warn('[bot-wave] launch',e);entry.disabled=false;}
+    };
+    entry.addEventListener('click',onClick);
+    choices.insertAdjacentElement('afterend',entry);
+    return ()=>{entry.removeEventListener('click',onClick);entry.remove();};
+  }, [goldReady]);
 
   useEffect(() => {
     const launchAdminLab = () => launchProductSurface('arsenal-lab', { admin: true });
