@@ -48,10 +48,18 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      const f=document.querySelector('#wave');
      return !!f&&!f.hidden&&document.querySelector('#status')?.classList.contains('hidden');
    },{timeout:60000});
+   // Owner Gold intentionally starts paused with ZERO enemies. A real
+   // authenticated START WAVE click is required before asserting gameplay;
+   // skipping this user gesture causes false Chrome timeouts and muted audio.
+   const gameFrame=page.frames().find(f=>f.url().includes('/bot-wave/game.html'));
+   assert.ok(gameFrame,'Gold playable frame never loaded');
+   await gameFrame.waitForSelector('#w-go',{visible:true,timeout:60000});
+   await gameFrame.click('#w-go');
    await page.waitForFunction(()=>{
      const frame=document.querySelector('#wave')?.contentWindow;
      const game=frame?.handLab;
-     return !!(game?.player&&Array.isArray(game?.enemies)&&game.enemies.some(e=>!e.dead));
+     return !!(game?.player&&Array.isArray(game?.enemies)&&game.enemies.some(e=>!e.dead)
+       && !game.paused);
    },{timeout:60000});
    const waveRuntime=await page.evaluate(()=>{
      const w=document.querySelector('#wave').contentWindow;
