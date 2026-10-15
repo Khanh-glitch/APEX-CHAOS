@@ -41,13 +41,14 @@ function setup({enhanced=false,enemyX=440,enemyY=500}={}){
   return{BX,scope,ct,other,self,foe,a1,events,slots,held,ctx,step,
     get time(){return time;},set time(t){time=t;}};
 }
-function shot(t,hand='L',kind='aq_bullet'){
+function shot(t,hand='L',kind='aq_bullet',preferHand=false){
   const state=t.ct.store.__boxeBattle;
   const h=state.flurry?.hands[hand]|| (hand==='L'?state.rocket:state.secondary);
   assert.ok(h,'shot needs actual glove');
   const x=h.x,y=h.y;
   const p={aq:true,life:2,type:kind,weapon:'PISTOL',owner:t.foe,
-    px:x-120,py:y,x:x+120,y,radius:6,vx:1400,vy:0};
+    px:preferHand?x:x-120,py:y,x:preferHand?x+1:x+120,y,
+    radius:6,vx:1400,vy:0};
   const c=t.BX.candidateProjectile(p);
   assert.ok(c,'moving physical bullet must sweep the real glove');
   assert.equal(c.hand,hand);
@@ -87,7 +88,7 @@ function shot(t,hand='L',kind='aq_bullet'){
   const t=setup({enhanced:true});t.a1.cast(t.ctx);t.step(.32);
   const st=t.ct.store.__boxeBattle;
   assert.equal(st.flurry?.hands.R.phase,'active');
-  shot(t,'L');
+  shot(t,'L','aq_bullet',true);
   assert.equal(st.rocket.phase,'returning');
   assert.equal(st.flurry.hands.R.phase,'active');
 }
