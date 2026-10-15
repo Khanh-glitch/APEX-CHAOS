@@ -416,7 +416,14 @@ export default function App() {
       // the active Arsenal auto-battle engine. The native product graph
       // remains the single launch authority.
       stopMenuMusic();
-      window.location.assign('/bot-wave/index.html');
+      // Mobile Gold Fidelity uses a same-origin compositing iframe. Escape
+      // that viewport so this landscape-first mode uses the whole screen.
+      const target='/bot-wave/index.html';
+      try {
+        if(window.top!==window && window.top.location.origin===window.location.origin)
+          window.top.location.assign(target);
+        else window.location.assign(target);
+      }catch(_){window.location.assign(target);}
       return true;
     }
     if (surface.route === 'skins') {
