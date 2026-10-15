@@ -129,11 +129,11 @@ if (fs.existsSync(waveGoldFile)) {
   const waveAssets=botWaveShippingAssetRefs(fs.readFileSync(waveGoldFile,'utf8'));
   if (!waveAssets.length) throw Error('Gold BOT WAVE active but no Arsenal asset references found');
   for (const asset of waveAssets) {
-    if (!fs.existsSync(path.join(PUBLIC,asset.replace(/^\\//,'')))) {
+    if (!fs.existsSync(path.join(PUBLIC,asset.slice(1)))) {
       throw Error('Gold BOT WAVE missing native Arsenal asset: '+asset);
     }
   }
-  shipText.push({ file:waveGoldFile,text:waveAssets.join('\\n') });
+  shipText.push({ file:waveGoldFile,text:waveAssets.join(' ') });
 }
 
 const toolText = toolFiles.map((f) => ({ file: f, text: fs.readFileSync(f, 'utf8') }));
