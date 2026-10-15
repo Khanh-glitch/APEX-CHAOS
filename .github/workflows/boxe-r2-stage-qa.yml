@@ -56,6 +56,7 @@ jobs:
           test -n "$CHROME"
           CHROME_PATH="$CHROME" node tools/testFieldArchiveC04Chrome.mjs
           CHROME_PATH="$CHROME" node tools/testFieldArchivePickQuickChrome.mjs
+          CHROME_PATH="$CHROME" node tools/testBoxeModeEntryChrome.mjs
       - name: Upload C04 regression evidence, no source snapshots
         if: always()
         uses: actions/upload-artifact@v4
