@@ -21,8 +21,25 @@ iframe{width:100%;height:100%;border:0;display:block}
   if(!contentType.includes('text/html'))throw Error('Gold runtime has wrong MIME type');
   // Vite SPA fallback returns an ordinary index.html on a missing runtime file.
   // We MUST NOT claim this is an available game.
-  const first=(await r.clone().text()).slice(0,500);
-  if(!first.includes('BOXE')&&!first.includes('BOT WAVE'))throw Error('BOXE Gold gameplay not imported yet');
+  // Read only the document prefix. The playable Gold HTML is ~25.7 MB:
+  // r.clone().text() would download/parse it completely before the iframe
+  // requests it again, creating a second expensive mobile transfer.
+  const reader=r.body?.getReader();
+  let first='';
+  if(reader){
+   const decoder=new TextDecoder();
+   try{
+    while(first.length<500){
+     const next=await reader.read();
+     if(next.done)break;
+     first+=decoder.decode(next.value,{stream:true});
+    }
+   }finally{await reader.cancel().catch(()=>{});}
+  }else first=(await r.text()).slice(0,500);
+  // Do NOT accept the wrapper itself as gameplay: its title also says BOXE.
+  // This marker belongs to the owner-derived R5 Gold HTML, not SPA fallback.
+  if(!first.includes('<title>APEX CHAOS — BOXE · BOT WAVE PLAYTEST</title>'))
+   throw Error('BOXE Gold gameplay not imported yet');
   frame.src='/bot-wave/game.html';frame.hidden=false;
   document.getElementById('status').classList.add('hidden');
  }catch(e){
