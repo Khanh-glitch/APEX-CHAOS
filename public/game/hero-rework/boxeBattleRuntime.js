@@ -379,6 +379,8 @@
         started:f.next,hitAt:f.next+.05,index,aim,
         reach:index%6===5?122:104,registered:false
       };
+      else emit(ctx,'boxe:flurry-punch',{punchIndex:index,hand,x:h.x,y:h.y,
+        hit:false,stun:0,strength:0,damage:0,reason:'hand-not-at-strike-position'});
       f.next+=V.flurryInterval;
     }
     for(const hand of ['L','R']){
