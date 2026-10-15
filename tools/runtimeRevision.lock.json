@@ -61,7 +61,7 @@
     "public/game/results/ownerAwards.generated.js": "bf1214feb289ade27e97c382b33e87a2ecf230f54c3e673cec004b0e824d25bb",
     "public/game/results/matchResultAuthority.js": "2a14d78e29a120efcf9cc663c05c6c1ea36e93911188b287895405e6dc65462f",
     "public/game/hero-rework/boxeBattleRuntime.js": "d1126d118d9528495fd15f460aa6e09b8c0fb8b56490d3721fe9fda5273c36a3",
-    "public/game/hero-rework/boxeGoldLibrary.js": "ab17c0b3ea2302c34efb1fba1c5263004e3a39edd16fd5aac3bef70a771e9b32",
+    "public/game/hero-rework/boxeGoldLibrary.js": "f283094e1b345b7f3f212649382f4cc2d4c6497abfe12fd7729b567aaddb6d08",
     "public/game/hero-rework/boxeGoldPresentationRuntime.js": "df665584dd64d27143f776a76f887ab5f389f7a79b6ae90ee0d73cd7b65348ec"
   }
 }

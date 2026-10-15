@@ -2979,14 +2979,11 @@ class Engine {
     }
     /* -------------------------------------------------------------- audio */
     initAudio() {
-        if (!this.actx) {
-            try {
-                this.actx = new AudioContext();
-            }
-            catch { /* no audio */ }
-        }
-        if (this.actx?.state === 'suspended')
-            void this.actx.resume();
+        // Battle-only Gold presentation has no audio ownership. The base Gold
+        // VFX/motion methods remain intact; semantic SFX come from APEX once
+        // owner supplies them, and this visual-only library never starts an
+        // AudioContext outside the shared music / UI-SFX authorities.
+        return;
     }
     sfx(kind, power = 1) {
         if (!this.opts.sound || !this.actx)
