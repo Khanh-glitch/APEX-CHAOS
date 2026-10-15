@@ -73,4 +73,5 @@ jobs:
             docs/field-archive/candidate03/
             docs/field-archive/pick-quick-equip/
             docs/boxe/normal-browser/
+            docs/boxe/r5-browser/
           retention-days: 14
