@@ -62,12 +62,14 @@
       const e=g.timeline[i];e.t-=dt;
       if(e.t<=0){g.timeline.splice(i,1);e.fn();}
     }
+    if(p.empoweredT>0&&Math.random()<.25)g.fire.puff(p.x+(Math.random()*52-26),p.y-Math.random()*40,14,0,-90,.45);
     for(const hand of ['L','R']){
       const h=g.hands[hand];
       if(h.t>=0){h.t+=dt/(h.dur||.26);if(h.t>=1)h.t=-1;}
       if(!h.missing){
         const pose=g.glovePose(hand);
         g.fx.trail(hand,pose.x,pose.y,g.trailColor,pose.active?30*pose.scale:13);
+        if(p.empoweredT>0&&Math.random()<.3)g.fire.puff(pose.x+(Math.random()*20-10),pose.y+(Math.random()*16-8),12,0,-80,.4);
         if(pose.active){
           g.fluid.addForce(pose.x,pose.y,34,Math.cos(pose.angle)*9,Math.sin(pose.angle)*5);
           if(Math.random()<.5)g.after(pose.x,pose.y,pose.angle,'glove',g.trailColor,pose.mirror);
@@ -109,7 +111,7 @@
     g.fx.addSmoke(pr.x,y,-pr.vx*.06,-pr.vy*.06+(Math.random()*32-16),13+Math.random()*11,.45+Math.random()*.35,'#ff8a4c',true);
     if(Math.random()<.5)g.fx.addSmoke(pr.x,y,Math.random()*40-20,Math.random()*36-10,16+Math.random()*12,.6+Math.random()*.4,'#6f6a62',false);
     g.fx.addEmber(pr.x,y,'#ffd23c',90);
-    g.fx.pool(pr.x,v.y+34,90,'#ff7a3c',.16);
+    g.fx.pool(pr.x,pr.y+34,90,'#ff7a3c',.16);
     g.burst(pr.x,pr.y,1,['#ffe97a'],'spark',40,3,.3);
     if(Math.random()<.35)g.lightning.strike(pr.x,y,pr.x+(Math.random()*80-40),y+(Math.random()*80-40),'#ffd23c',1.6,{branches:1,life:.14,rough:.5});
     g.rocketDetailTravel(pr);
@@ -205,6 +207,7 @@
     g.player.vx*=Math.exp(-10*dt);g.player.vy*=Math.exp(-10*dt);
     g.hands.R.missing=!!st?.rocket;
     g.hands.L.missing=!!st?.flurry;
+    if(g.fx.scorches)g.fx.scorches.length=0;
     if(st?.rocket){
       const r=st.rocket;
       const v=rec.rocket||(rec.rocket={lastX:r.x,lastY:r.y,lastAt:clock,dist:0});
@@ -228,6 +231,7 @@
       const elapsed=clock-f.start;
       const e=f.g;
       e.player.x=f.x;e.player.y=f.y;
+      e.player.empoweredT=Math.max(0,f.until-clock);
       const foe=(global.fighters||[]).find(x=>x&&x!==body&&x.hp>0);
       if(foe)e.player.aim=Math.atan2(foe.y-f.y,foe.x-f.x);
       syncVisualTarget(e,body,f.x,f.y,46+(foe?.radius||75)+110);
@@ -280,8 +284,8 @@
           const lx=f.fromX+(l.x-f.fromX)*(1-(1-arrival)**3);
           const ly=f.fromY+(l.y-f.fromY)*(1-(1-arrival)**3);
           if(fg.sprites){
-            fg.drawGlove(ctx,lx,ly,l.angle,70,l.mirror,l.sx||1,l.sy||1);
-            fg.drawGlove(ctx,r.x,r.y,r.angle,70,r.mirror,r.sx||1,r.sy||1);
+            fg.drawGlovePose(ctx,{...l,x:lx,y:ly,scale:l.scale||1});
+            fg.drawGlovePose(ctx,{...r,scale:r.scale||1});
           }
           fg.material.drawAtmosphere(ctx);
           fg.fluid.draw(ctx,'fire');fg.fire.draw(ctx);fg.lightning.draw(ctx);
