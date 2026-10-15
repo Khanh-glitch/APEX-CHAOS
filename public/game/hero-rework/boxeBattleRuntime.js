@@ -390,6 +390,10 @@
         continue;
       }
       if(hand==='L'&&h.phase==='caught'){h.x=ctx.combatant.anchor.x;h.y=ctx.combatant.anchor.y;continue;}
+      if(hand==='R'&&!sec&&h.phase==='returning'){
+        h.phase='caught';h.x=ctx.combatant.anchor.x;h.y=ctx.combatant.anchor.y;
+        continue;
+      }
       if(hand==='R'&&sec){
         if(sec.phase==='approach'||sec.phase==='returning'){
           h.x=sec.x;h.y=sec.y;h.phase=sec.phase;continue;
