@@ -107,7 +107,7 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   advance(now);const f=state.flurry;
   if(!f||now>=f.endingAt||!collisionId||f.hitIds.has(collisionId))return false;
   f.hitIds.add(collisionId);
-  dispatch('arena:stun-request',{opponentId,source:'A1-FLURRY',durationMs:42.5,damage:0,collisionId});
+  dispatch('arena:stun-request',{opponentId,source:'A1-FLURRY',durationMs:RULES.a1.enhanced.impactStunMs,damage:0,collisionId});
   dispatch('boxe:flurry-impact',{goldKey:'1',opponentId,collisionId,damage:0});
   return true;
  }
