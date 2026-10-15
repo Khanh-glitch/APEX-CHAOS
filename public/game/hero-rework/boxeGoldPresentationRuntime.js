@@ -187,6 +187,7 @@
       // lightning, material, afterimage and cinematic feedback. Enemy HP
       // remains exclusively owned by the native APEX Arsenal adapter.
       g.counterStrike({x:target.x,y:target.y,r:target.radius||75,z:0,dead:false});
+      rec.counterFlashUntil=now()+.26;
       if(body.finisher){
         // Entire original key-3 choreography, including deferred five fire
         // columns; a visual-only Gold Engine has zero combat targets.
@@ -272,6 +273,13 @@
         advance(rec,this);
         const g=rec.g;
         drawLayers(ctx,g);
+        if(rec.counterFlashUntil>now()){
+          // Original Gold screen FX are spatially clipped to the counter
+          // contact; other fighters and the Arsenal HUD never get flash.
+          ctx.save();ctx.beginPath();ctx.arc(this.x,this.y,230,0,Math.PI*2);ctx.clip();
+          g.fx.drawScreen(ctx,global.GAME_SIZE||1000,global.GAME_SIZE||1000,this.x,this.y);
+          ctx.restore();
+        }
         if(rec.flurry){
           const f=rec.flurry,fg=f.g,elapsed=Math.max(0,now()-f.start);
           ctx.save();
