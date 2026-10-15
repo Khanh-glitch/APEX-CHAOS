@@ -368,6 +368,21 @@
 
     for (const slot of state.slots) {
       if(slot.questNarrativeOnly===true)continue;
+      if(slot.phase==='REVEALED'&&slot.boxeEjection){
+        // A genuine Arsenal floor pickup with short-lived ejection momentum.
+        // Wall reflection, drag and pickup eligibility remain world-owned.
+        const e=slot.boxeEjection;
+        const step=Math.max(0,Math.min(dt,e.remaining));
+        const size=Number.isFinite(GAME_SIZE)?GAME_SIZE:1000,lo=60,hi=size-60;
+        const nx=slot.x+e.vx*step,ny=slot.y+e.vy*step;
+        slot.x=Math.max(lo,Math.min(hi,nx));
+        slot.y=Math.max(lo,Math.min(hi,ny));
+        if(slot.x!==nx)e.vx=-e.vx*.45;
+        if(slot.y!==ny)e.vy=-e.vy*.45;
+        const drag=Math.exp(-4*step);e.vx*=drag;e.vy*=drag;
+        e.remaining-=step;
+        if(e.remaining<=1e-6||Math.hypot(e.vx,e.vy)<25)slot.boxeEjection=null;
+      }
       if (slot.kind === 'HEAL') {
         if (slot.phase === 'REVEALED') {
           slot.revealedFor += dt;
