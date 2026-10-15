@@ -163,7 +163,8 @@ gate('economy-clean-state-and-mutation-legality', () => {
   assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits);
   assert.equal(meta.getState().credits, 12000);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
-  assert.equal(meta.poolLocked().length, 5);
+  assert.equal(meta.poolLocked().length, 6); // BOXE joins the real unowned pool; six Core Six purchase candidates unaffected
+  assert.ok(meta.poolLocked().includes('BOXE'));
   assert.ok(meta.poolLocked().includes('HUNTER'));
   assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));
   // A Lucky Draw costs the real 350 AC and can only take from the unowned pool.

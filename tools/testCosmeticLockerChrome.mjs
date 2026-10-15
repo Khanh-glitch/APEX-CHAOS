@@ -56,8 +56,8 @@ try{
    // into three per page. The registry truth remains SIX; avoid demanding a
    // vertically scrolling six-row index on a 390px phone.
    const count=await game.$eval('.fa3-index-head',e=>e.textContent);
-   assert.match(count,/06 FILES/,'All six playable fighters must exist in registry');
-   assert.equal(names.length,v.width<540?3:6,'first no-scroll fighter folio capacity must match viewport');
+   assert.match(count,/07 FILES/,'Six original fighters plus BOXE must exist in registry');
+   assert.equal(names.length,v.width<540?3:7,'first no-scroll fighter folio must contain the complete playable registry on desktop or three on mobile');
    await game.$eval('.fa3-players button:last-child',e=>e.click());
    const side=await game.$eval('.fa3-equip-state',e=>e.textContent);
    assert.match(side,/PLAYER 02/,'P2 owner not selected');

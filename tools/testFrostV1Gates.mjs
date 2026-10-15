@@ -78,13 +78,13 @@ try {
 try {
   const keys = Object.keys(REG.HEROES);
   gate('F01.1-single-storage-hero',
-    keys.length === 12 && keys[5] === 'ICE' && !keys.includes('FROST') && REG.HEROES.ICE.id === 'ICE',
+    keys.length === 13 && keys[5] === 'ICE' && keys[12] === 'BOXE' && !keys.includes('FROST') && REG.HEROES.ICE.id === 'ICE' && Object.keys(REG.HEROES).slice(0,12).join('|') === 'ROBOT|CRYSTAL|MAGNET|BLACK_HOLE|MATH_V2|ICE|RUBBER|HUNTER|TIME|MIRROR|SLIME|SNIPER',
     { count: keys.length });
 } catch (e) { gate('F01.1-single-storage-hero', false, String(e && e.message)); }
 
 try {
   const v = REG.validateRegistry();
-  gate('F01-registry-valid', v.ok && v.heroCount === 12 && v.skillCount === 36, { errors: v.errors });
+  gate('F01-registry-valid', v.ok && v.heroCount === 13 && v.skillCount === 39 && !!REG.HEROES.BOXE, { errors: v.errors });
 } catch (e) { gate('F01-registry-valid', false, String(e && e.message)); }
 
 try {
