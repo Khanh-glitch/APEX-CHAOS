@@ -160,6 +160,13 @@
       fg.player.empoweredT=body.duration;
       rec.flurry={g:fg,x:body.x,y:body.y,start:now(),until:now()+body.duration,
         fromX:body.sourceX,fromY:body.sourceY,last:now(),cycle:0};
+    }else if(ev.type==='boxe:rocket-shot'){
+      // Native physical bullet/gauntlet contact. Gold V3 sound bank stays
+      // untouched; original contact light, grit and sparks only.
+      g.fx.flash(body.x,body.y-14,50,'#ffe9a8',.13);
+      g.fx.shock(body.x,body.y,65,'#ffd23c',4,.18);
+      g.burst(body.x,body.y,7,['#ffffff','#ffe97a'],'spark',260,3,.24);
+      g.material.fracture(body.x,body.y+18,25,1,.25);
     }else if(ev.type==='boxe:rocket-return'){
       g.rocketCatchApproach=.16;
     }else if(ev.type==='boxe:rocket-catch'){
@@ -206,8 +213,8 @@
     g.player.guardT=st?.counter?.phase==='guard'?Math.max(0,st.counter.until-clock):0;
     // Gold's visual-only launch recoil must decay; native movement stays authoritative.
     g.player.vx*=Math.exp(-10*dt);g.player.vy*=Math.exp(-10*dt);
-    g.hands.R.missing=!!st?.rocket;
-    g.hands.L.missing=!!st?.flurry;
+    g.hands.R.missing=!!st?.secondary||!!st?.flurry;
+    g.hands.L.missing=!!st?.rocket&&st.rocket.phase!=='caught';
     if(g.fx.scorches)g.fx.scorches.length=0;
     if(st?.rocket){
       const r=st.rocket;
@@ -220,7 +227,13 @@
         vx,vy,angle:r.heading,traveled:v.dist};
       if(r.phase==='outbound')goldRocketExhaust(g,pr);
       else if(r.phase==='returning')g.rocketDetailReturn(pr);
-      g.projs=r.phase==='flurry'?[]:[pr]; // gloves drawn at fixed jab anchor
+      g.projs=(r.phase==='flurry'||r.phase==='caught')?[]:[pr];
+      if(st.secondary?.phase==='returning'){
+        const h=st.secondary,angle=Math.atan2(h.y-h.prevY,h.x-h.prevX);
+        const item={kind:'rocket',phase:'return',x:h.x,y:h.y,
+          vx:h.x-h.prevX,vy:h.y-h.prevY,angle,traveled:0};
+        g.rocketDetailReturn(item);g.projs.push(item);
+      }
       if(r.phase==='returning'){
         const d=Math.hypot(r.x-body.x,r.y-body.y);
         g.rocketCatchApproach=d<205?Math.max(0,(205-d)/175):0;
@@ -236,7 +249,7 @@
       const foe=(global.fighters||[]).find(x=>x&&x!==body&&x.hp>0);
       if(foe)e.player.aim=Math.atan2(foe.y-f.y,foe.x-f.x);
       syncVisualTarget(e,body,f.x,f.y,46+(foe?.radius||75)+110);
-      while(f.cycle<4&&elapsed>=(f.cycle*.51+.11)){
+      while(f.cycle<4&&elapsed>=f.cycle*.51){
         e.skillJab(); // EXACT Gold key 1 6-shot choreography × 4
         f.cycle++;
       }
@@ -292,8 +305,11 @@
           const lx=f.fromX+(l.x-f.fromX)*(1-(1-arrival)**3);
           const ly=f.fromY+(l.y-f.fromY)*(1-(1-arrival)**3);
           if(fg.sprites){
-            fg.drawGlovePose(ctx,{...l,x:lx,y:ly,scale:l.scale||1});
-            fg.drawGlovePose(ctx,{...r,scale:r.scale||1});
+            const hands=this.__hrCombatant?.store?.__boxeBattle?.flurry?.hands;
+            if(!hands||hands.L.phase==='active')
+              fg.drawGlovePose(ctx,{...l,x:lx,y:ly,scale:l.scale||1});
+            if(!hands||hands.R.phase==='active'||hands.R.phase==='approach')
+              fg.drawGlovePose(ctx,{...r,scale:r.scale||1});
           }
           fg.material.drawAtmosphere(ctx);
           fg.fluid.draw(ctx,'fire');fg.fire.draw(ctx);fg.lightning.draw(ctx);
