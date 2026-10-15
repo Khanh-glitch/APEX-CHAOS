@@ -384,7 +384,11 @@
     for(const hand of ['L','R']){
       const h=f.hands[hand];h.prevX=h.x;h.prevY=h.y;
       const r=st.rocket,sec=st.secondary;
-      if(hand==='L'&&h.phase==='returning'&&r){h.x=r.x;h.y=r.y;continue;}
+      if(hand==='L'&&h.phase==='returning'&&r){
+        h.x=r.x;h.y=r.y;
+        if(r.phase==='caught')h.phase='caught';
+        continue;
+      }
       if(hand==='L'&&h.phase==='caught'){h.x=ctx.combatant.anchor.x;h.y=ctx.combatant.anchor.y;continue;}
       if(hand==='R'&&sec){
         if(sec.phase==='approach'||sec.phase==='returning'){
@@ -535,7 +539,8 @@
     if(!st?.rocket)return false;
     const ctx={combatant:ct,api:{
       clock:()=>global.APEX_HERO_REWORK_AIL?.clock?.()??global.matchClock??0,
-      emitEvent:(type,detail)=>global.APEX_HERO_REWORK_AIL?.bus?.emit?.(type,detail)
+      emitEvent:(type,detail)=>global.APEX_HERO_REWORK_AIL?.bus?.emit?.(type,
+        {...detail,fighterId:ct.anchor.id,side:ct.side})
     }};
     if(candidate.phase==='outbound'){
       st.rocket.earlyRecall=false;
