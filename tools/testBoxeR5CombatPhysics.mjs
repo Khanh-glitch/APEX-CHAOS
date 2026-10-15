@@ -73,6 +73,24 @@ function shot(t,hand='L',kind='aq_bullet'){
   assert.equal('rocketHitGap' in t.BX.values,false);
   assert.ok(r,'authentic active Rocket');
 }
+// Real off-centre swept contact must stun less than the same-speed head-on hit.
+{
+  const t=setup();t.a1.cast(t.ctx);
+  t.foe.y=600; // 100px tangent offset, within the authentic 121px collision sum
+  t.step(.26);
+  const stun=t.events.find(e=>e.name==='STUN')?.dur||0;
+  assert.ok(stun>0&&stun<.35,'normal impulse falls with glancing contact angle');
+  assert.ok(t.events.some(e=>e.name==='boxe:rocket-reflect'));
+}
+// The PRIMARY glove may be shot too; only that hand returns, the other keeps Jabbing.
+{
+  const t=setup({enhanced:true});t.a1.cast(t.ctx);t.step(.32);
+  const st=t.ct.store.__boxeBattle;
+  assert.equal(st.flurry?.hands.R.phase,'active');
+  shot(t,'L');
+  assert.equal(st.rocket.phase,'returning');
+  assert.equal(st.flurry.hands.R.phase,'active');
+}
 // Bullet against outbound glove changes ONLY its physical flight state.
 {
   const t=setup({enemyX:900,enemyY:850});t.a1.cast(t.ctx);t.step(.07);
