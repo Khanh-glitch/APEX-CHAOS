@@ -13,7 +13,7 @@ function setup(start={x:160,y:300,fx:440,fy:300}){
  const ctx={combatant:ct,api:{clock:()=>time,emitEvent:(name,payload)=>events.push({name,payload,time}),enemyOf:()=>other,combatantOfBody:body=>body===self?ct:body===foe?other:null,applyStunTo:(body,duration)=>events.push({name:'stun',body,duration,time}),dropWeaponSlot:(weaponId,x,y)=>{const item={id:slots.length+1,weaponId,x,y,phase:'REVEALED',kind:'WEAPON'};slots.push(item);return item;}}};
  const rocket=BX.executors['boxe.fist_rocket'],passive=BX.executors['boxe.heat'];
  function step(duration,delta=0.01){for(let n=0;n<Math.ceil(duration/delta);n++){time+=delta;rocket.onTick(ctx,delta);passive.onTick(ctx,delta);}}
- return{self,foe,ct,ctx,BX,events,held,slots,rocket,passive,step,get time(){return time;},set time(v){time=v;}};
+ return{self,foe,ct,ctx,BX,scope,events,held,slots,rocket,passive,step,get time(){return time;},set time(v){time=v;}};
 }
 // Unempowered casts must survive becoming heated MID-FLIGHT and hit without flurry.
 {
@@ -70,5 +70,48 @@ function setup(start={x:160,y:300,fx:440,fy:300}){
  assert.ok(t.BX.snapshot(t.ctx).rocket.vx<0,'right edge reflects horizontal velocity');
  const speed=Math.hypot(t.BX.snapshot(t.ctx).rocket.vx,t.BX.snapshot(t.ctx).rocket.vy);
  assert.ok(Math.abs(speed-1250)<.01,'speed conserved on reflection');
+}
+// R4 owner: pressing A1 again recalls immediately; cooldown begins on catch.
+{
+  const t=setup({x:160,y:450,fx:800,fy:800});
+  assert.equal(t.rocket.cast(t.ctx),true);
+  t.step(.09);
+  assert.equal(t.rocket.recast(t.ctx),true);
+  assert.equal(t.BX.snapshot(t.ctx).rocket.phase,'returning');
+  assert.equal(t.ct.skills.A1.cdLeft,0,'no cooldown during the physical flight');
+  t.step(.28);
+  assert.equal(t.BX.snapshot(t.ctx).rocket,null);
+  assert.equal(t.ct.skills.A1.cdLeft,15,'cooldown starts upon physical catch');
+}
+// Crystala's shared swept capsules are an actual collision barrier.
+{
+  const t=setup({x:160,y:500,fx:820,fy:500});
+  t.scope.APEX_CRYSTAL={capsules:()=>[{
+    ax:300,ay:380,bx:300,by:620,r:20,cons:{id:4,ct:{}},kind:'wall'
+  }]};
+  t.scope.APEX_HERO_REWORK={geom:{capsuleToi(x0,y0,x1,y1){
+    if(x0<300&&x1>=300)return{t:(300-x0)/(x1-x0),nx:-1,ny:0};
+    return null;
+  }}};
+  assert.equal(t.rocket.cast(t.ctx),true);
+  t.step(.25);
+  assert.ok(t.events.some(x=>x.name==='boxe:rocket-crystal-reflect'),
+    'A1 must reflect on the real Crystal capsule');
+  assert.ok(t.BX.snapshot(t.ctx).rocket.vx<0,'A1 leaves Crystal reflected, not piercing');
+}
+// Magnet's existing physics integrator receives the same live rocket object.
+{
+  const t=setup({x:160,y:500,fx:800,fy:800});
+  let calls=0;
+  t.scope.APEX_MAGNET={
+    stepProjectiles(dt,objects){calls++;assert.equal(objects.length,1);
+      assert.equal(objects[0].abilityKind,'BOXE_FIST_ROCKET');
+      objects[0].vy+=dt*800;
+    },
+    consumeMovementPlan(){return null;}
+  };
+  t.rocket.cast(t.ctx);t.step(.1);
+  assert.ok(calls>=10);
+  assert.ok(t.BX.snapshot(t.ctx).rocket.vy>0,'Magnet force bends A1 physical velocity');
 }
 console.log('PASS owner R3 physics: 1250u/s, solid fighter+wall reflection, 5s active, 2s anchored flurry, 85ms/70ms, activation snapshot, independent moving owner, no skill damage');
