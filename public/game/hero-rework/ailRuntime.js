@@ -292,6 +292,9 @@
       return result('unresolved','unmigrated-interaction-action');
     if(!target||typeof target!=='object')
       return result('unresolved','missing-target');
+    if(target.type==='aq_ability')
+      return result(target.aq===true&&target.abilityKind==='BOXE_FIST_ROCKET'
+        &&target.owner&&target.life>0?'allowed':'denied','physical-ability-projectile');
     const config=context.config;
     if(!config||typeof config.isGun!=='function')
       return result('unresolved','missing-canonical-config');
