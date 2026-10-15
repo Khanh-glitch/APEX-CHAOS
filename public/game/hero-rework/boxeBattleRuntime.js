@@ -38,7 +38,7 @@
     const slot=ctx.api.dropWeaponSlot(id,px,py);
     if(slot){
       slot.boxeDisarmedVictimId=other.id;
-      slot.boxePickupLockUntil=ctx.api.clock()+.85;
+      slot.boxePickupLockUntil=ctx.api.clock()+(reason==='counter'?2.05:.85);
       slot.boxeEjection={fromX:other.x,fromY:other.y,vx:dir.x*1050,vy:dir.y*1050,
         remaining:.38};
     }
