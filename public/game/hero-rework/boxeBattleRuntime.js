@@ -186,7 +186,7 @@
         let x1=x0+r.vx*step,y1=y0+r.vy*step;
         // Collision against opponent is a solid reflection, not piercing.
         const u=foe?segmentBodyHit(x0,y0,x1,y1,foe,V.rocketRadius):null;
-        if(u!==null&&now-r.lastHit>=V.rocketHitGap){
+        if(u!==null){ // Physical solidity applies even during stun re-hit cooldown.
           r.x=x0+(x1-x0)*u;r.y=y0+(y1-y0)*u;
           const normal=unit(r.x-foe.x,r.y-foe.y);
           const incoming=r.vx*normal.x+r.vy*normal.y;
@@ -206,8 +206,10 @@
         }
         if(r.phase==='outbound'){
           // Mirror Fighter.resolveWalls() normal response without damping.
-          if(x1<lo||x1>hi){x1=Math.max(lo,Math.min(hi,x1));r.vx=x1===lo?Math.abs(r.vx):-Math.abs(r.vx);}
-          if(y1<lo||y1>hi){y1=Math.max(lo,Math.min(hi,y1));r.vy=y1===lo?Math.abs(r.vy):-Math.abs(r.vy);}
+          if(x1<lo||x1>hi){x1=Math.max(lo,Math.min(hi,x1));r.vx=x1===lo?Math.abs(r.vx):-Math.abs(r.vx);
+            emit(ctx,'boxe:rocket-wall-reflect',{x:x1,y:y1,side:x1===lo?'left':'right',vx:r.vx,vy:r.vy});}
+          if(y1<lo||y1>hi){y1=Math.max(lo,Math.min(hi,y1));r.vy=y1===lo?Math.abs(r.vy):-Math.abs(r.vy);
+            emit(ctx,'boxe:rocket-wall-reflect',{x:x1,y:y1,side:y1===lo?'top':'bottom',vx:r.vx,vy:r.vy});}
           r.x=x1;r.y=y1;r.heading=Math.atan2(r.vy,r.vx);
           acquireGroundGun(ctx,st);
         }

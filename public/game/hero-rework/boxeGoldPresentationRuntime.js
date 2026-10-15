@@ -129,6 +129,10 @@
       g.ring(pr.x,pr.y,'#ff7a3c',380,5,.3);
       g.shake(4);g.hitstop(.04);
       g.rocketDetailContact(pr,{x:body.x,y:body.y,r:75});
+    }else if(ev.type==='boxe:rocket-wall-reflect'){
+      // Reuse Gold's earth/dust and lightning primitives for arena contact.
+      g.material.fracture(body.x,body.y+20,36,2,.55);
+      g.fx.flash(body.x,body.y-10,40,'#ffd23c',.10);
     }else if(ev.type==='boxe:flurry-start'){
       // Two fists stay at the physical impact site. Native BOXE is NEVER
       // teleported or slowed; a second *visual-only* Gold instance draws only
