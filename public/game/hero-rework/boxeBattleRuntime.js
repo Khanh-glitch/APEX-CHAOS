@@ -29,17 +29,18 @@
     weaponApi.consume(other,'boxe-'+reason);
     // Only an actual holder can generate a floor pickup. Gun ownership is
     // transferred through native consume plus the existing world-slot API.
-    // Physical weapon ejection: never spawn a collectible at the victim centre.
+    // Physical weapon ejection originates at the victim, not a teleport.
+    // Victim-specific lock prevents same-tick auto re-equip during flight.
     const self=ctx.combatant.anchor,dir=unit(other.x-self.x,other.y-self.y);
     const gameSize=Number.isFinite(global.GAME_SIZE)?global.GAME_SIZE:1000;
-    const distance=(other.radius||75)+150;
-    const px=Math.max(60,Math.min(gameSize-60,other.x+dir.x*distance));
-    const py=Math.max(60,Math.min(gameSize-60,other.y+dir.y*distance));
+    const px=Math.max(60,Math.min(gameSize-60,other.x+dir.x*18));
+    const py=Math.max(60,Math.min(gameSize-60,other.y+dir.y*18));
     const slot=ctx.api.dropWeaponSlot(id,px,py);
     if(slot){
       slot.boxeDisarmedVictimId=other.id;
       slot.boxePickupLockUntil=ctx.api.clock()+.85;
-      slot.boxeEjection={fromX:other.x,fromY:other.y,vx:dir.x*900,vy:dir.y*900};
+      slot.boxeEjection={fromX:other.x,fromY:other.y,vx:dir.x*1050,vy:dir.y*1050,
+        remaining:.38};
     }
     emit(ctx,'boxe:disarm',{reason,weaponId:id,slotId:slot?.id??null,targetId:other.id,x:px,y:py});
     return true;
