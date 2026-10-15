@@ -17,16 +17,16 @@
     const offscreen=document.createElement('canvas');
     offscreen.width=1;offscreen.height=1;
     const g=new lib.Engine(offscreen,{visualOnly:true,materialFx:true,sound:false,
-      hitstop:true,afterimage:true});
+      hitstop:true,afterimage:true,shake:1});
     // visual-only Gold must never register DOM events, spawn lab enemies, or
     // requestAnimationFrame; the patched constructor returns before attach().
     g.enemies=[];g.projs=[];g.ribbons=[];g.paused=true;
-    const rec={g,f,last:now(),rocket:null,punches:[],disposers:[]};live.set(f,rec);
+    const rec={g,f,last:now(),rocket:null,flurry:null,punches:[],disposers:[]};live.set(f,rec);
     return rec;
   }
   function purgeStale(){
     const active=new Set(global.fighters||[]);
-    for(const [f,r] of live)if(!active.has(f)||f.hp<=0){r.g.destroy();live.delete(f);}
+    for(const [f,r] of live)if(!active.has(f)||f.hp<=0){r.g.destroy();r.flurry?.g?.destroy();live.delete(f);}
   }
   function find(id){
     purgeStale();
@@ -34,58 +34,144 @@
     const f=fighters.find(f=>f&&f.id===id&&isBoxe(f));
     return f?live.get(f)||make(f):null;
   }
+  function syncGoldPlayer(g,body,aim){
+    g.player.x=body.x;g.player.y=body.y;
+    g.player.aim=Number.isFinite(aim)?aim:Math.atan2(body.dir?.y||0,body.dir?.x||1);
+    g.player.faceX=Math.cos(g.player.aim)<0?-1:1;
+  }
+  // All Gold timeline events retain their actual delays without enabling a
+  // second combat simulation or Gold's RAF/AI/projectiles.
+  function advanceGoldFx(g,dt){
+    if(!g)return;
+    const p=g.player;
+    g.time+=dt;
+    for(let i=g.timeline.length-1;i>=0;i--){
+      const e=g.timeline[i];e.t-=dt;
+      if(e.t<=0){g.timeline.splice(i,1);e.fn();}
+    }
+    for(const hand of ['L','R']){
+      const h=g.hands[hand];
+      if(h.t>=0){h.t+=dt/(h.dur||.26);if(h.t>=1)h.t=-1;}
+      if(!h.missing){
+        const pose=g.glovePose(hand);
+        g.fx.trail(hand,pose.x,pose.y,g.trailColor,pose.active?30*pose.scale:13);
+        if(pose.active){
+          g.fluid.addForce(pose.x,pose.y,34,Math.cos(pose.angle)*9,Math.sin(pose.angle)*5);
+          if(Math.random()<.5)g.after(pose.x,pose.y,pose.angle,'glove',g.trailColor,pose.mirror);
+          if(Math.random()<.6)g.fx.addSpark(pose.x,pose.y,pose.angle+Math.PI,
+            120+Math.random()*220,g.trailColor,1.2+Math.random()*1.2,.12+Math.random()*.12,p.y+34);
+        }
+      }
+    }
+    if(g.rocketCatch){g.rocketCatch.t+=dt;if(g.rocketCatch.t>=g.rocketCatch.life)g.rocketCatch=null;}
+    g.rocketCatchApproach=Math.max(0,g.rocketCatchApproach-dt*4.2);
+    for(const a of [...g.pressure]){a.life-=dt;if(a.life<=0)g.pressure.splice(g.pressure.indexOf(a),1);else{
+      const k=1-a.life/a.max;a.r=6+(a.r1-6)*(1-Math.pow(1-k,2.4));}}
+    for(const a of [...g.rings]){a.life-=dt;a.r+=a.vr*dt;if(a.life<=0)g.rings.splice(g.rings.indexOf(a),1);}
+    for(const a of [...g.arcs]){a.life-=dt;if(a.life<=0)g.arcs.splice(g.arcs.indexOf(a),1);}
+    for(const a of [...g.afters]){a.life-=dt;if(a.life<=0)g.afters.splice(g.afters.indexOf(a),1);}
+    for(const a of [...g.particles]){
+      a.life-=dt;a.vy+=(a.grav||0)*dt;
+      const drag=Math.exp(-(a.drag||0)*dt);a.vx*=drag;a.vy*=drag;
+      a.x+=a.vx*dt;a.y+=a.vy*dt;a.rot+=(a.vr||0)*dt;
+      if(a.life<=0)g.particles.splice(g.particles.indexOf(a),1);
+    }
+    for(const zone of [...g.zones]){
+      zone.t+=dt;
+      if(zone.kind==='flame'&&!zone.pulsed&&zone.t>.12){zone.pulsed=true;
+        g.fire.column(zone.x,zone.y,42,150,.65,.8);}
+      if(zone.t>=zone.dur)g.zones.splice(g.zones.indexOf(zone),1);
+    }
+    g.material.update(dt);g.fluid.step(Math.min(dt,.034));
+    g.fire.update(dt);g.lightning.update(dt);g.fx.update(dt,dt);
+  }
+  // Gold's ORIGINAL key-2 projectile exhaust cadence, copied from its
+  // Engine.update rocket branch; only enemy damage and second movement loop
+  // are removed. APEX alone owns velocity and HP.
+  function goldRocketExhaust(g,pr){
+    const y=pr.y-10; // source-Gold SHOULDER_Y
+    const v=g.player;
+    g.fire.puff(pr.x-pr.vx*.04,pr.y-pr.vy*.04-10,26,-pr.vx*.12,-pr.vy*.12-60,.9);
+    g.fx.flash(pr.x,y,48,'#ff7a3c',.22);
+    g.fx.addSmoke(pr.x,y,-pr.vx*.06,-pr.vy*.06+(Math.random()*32-16),13+Math.random()*11,.45+Math.random()*.35,'#ff8a4c',true);
+    if(Math.random()<.5)g.fx.addSmoke(pr.x,y,Math.random()*40-20,Math.random()*36-10,16+Math.random()*12,.6+Math.random()*.4,'#6f6a62',false);
+    g.fx.addEmber(pr.x,y,'#ffd23c',90);
+    g.fx.pool(pr.x,v.y+34,90,'#ff7a3c',.16);
+    g.burst(pr.x,pr.y,1,['#ffe97a'],'spark',40,3,.3);
+    if(Math.random()<.35)g.lightning.strike(pr.x,y,pr.x+(Math.random()*80-40),y+(Math.random()*80-40),'#ffd23c',1.6,{branches:1,life:.14,rough:.5});
+    g.rocketDetailTravel(pr);
+  }
   function consume(ev){
     if(!ev||!ev.type?.startsWith('boxe:'))return;
     const body=ev.payload||{},rec=find(body.fighterId);
     if(!rec)return;const g=rec.g;
     const r=rec.f.__hrCombatant?.store?.__boxeBattle?.rocket;
     if(ev.type==='boxe:counter-guard'){
-      // Owner Gold key-9 guard startup (VFX-only; native collision owns HP).
-      g.skillCounter();
+      syncGoldPlayer(g,rec.f);
+      g.skillCounter(); // EXACT Gold key 9 startup, including material+screen fx
+      g.player.guardT=body.duration||1;
     }else if(ev.type==='boxe:counter-intercept'){
       g.fx.flash(rec.f.x,rec.f.y-20,155,'#ffe9a8',.25);
     }else if(ev.type==='boxe:rocket-launch'){
       rec.rocket={lastX:body.x,lastY:body.y,lastAt:ev.t,dist:0,lastVisual:ev.t};
-      const a=body.heading||0,px=body.x+Math.cos(a)*40,py=body.y+Math.sin(a)*40;
-      g.material.fracture(px,py+36,78,4);
-      g.material.throwRubble(px,py+28,10,270,.7,a+Math.PI);
-      g.fx.streakCone(px,py,a,10,'#ffd23c',.1,1500,110);
-      g.fx.screenFlash('#ff9f2e',.12,.12);
-      g.fire.column(px,py+18,72,180,.7,1);
+      syncGoldPlayer(g,rec.f,body.heading);
+      g.hands.R.missing=false;
+      g.skillRocket(); // EXACT Gold key 2 entire launch: smoke, scorch,
+                       // flame, debris, impulse, shake, pressure and sparks.
+      g.projs=[]; // Replace only Gold combat/projectile motion, NOT its FX.
     }else if(ev.type==='boxe:rocket-impact'){
       if(!r)return;
       const v=rec.rocket||{};
-      const pr={x:r.x,y:r.y,angle:r.heading,vx:Math.cos(r.heading)*1250,vy:Math.sin(r.heading)*1250,phase:'out',traveled:v.dist||0};
-      // Source Gold material erosion + Detail spark/lighting; no fake impact icon.
+      const pr={x:body.x,y:body.y,angle:body.heading,
+        vx:(body.speed||1250)*Math.cos(body.heading),
+        vy:(body.speed||1250)*Math.sin(body.heading),phase:'out',traveled:v.dist||0};
       g.material.eruption(pr.x,pr.y+22,.52,true);
       g.ring(pr.x,pr.y,'#ff7a3c',380,5,.3);
+      g.shake(4);g.hitstop(.04);
       g.rocketDetailContact(pr,{x:body.x,y:body.y,r:75});
+    }else if(ev.type==='boxe:flurry-start'){
+      // Two fists stay at the physical impact site. Native BOXE is NEVER
+      // teleported or slowed; a second *visual-only* Gold instance draws only
+      // gloves and original six-jab FX, not another fighter body.
+      const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;
+      const fg=new lib.Engine(canvas,{visualOnly:true,materialFx:true,sound:false,
+        hitstop:true,afterimage:true,shake:1});
+      fg.enemies=[];fg.projs=[];fg.ribbons=[];fg.paused=true;
+      fg.player.x=body.x;fg.player.y=body.y;fg.player.aim=g.player.aim;
+      fg.player.empoweredT=body.duration;
+      rec.flurry={g:fg,x:body.x,y:body.y,start:now(),until:now()+body.duration,
+        fromX:body.sourceX,fromY:body.sourceY,last:now(),cycle:0};
     }else if(ev.type==='boxe:rocket-return'){
       g.rocketCatchApproach=.16;
     }else if(ev.type==='boxe:rocket-catch'){
       const state=rec.rocket;
       const prev=state||{lastX:rec.f.x-55,lastY:rec.f.y};
-      const dx=rec.f.x-prev.lastX,dy=rec.f.y-prev.lastY;
+      const dx=Number.isFinite(body.vx)?body.vx:rec.f.x-prev.lastX;
+      const dy=Number.isFinite(body.vy)?body.vy:rec.f.y-prev.lastY;
       const angle=Math.atan2(dy,dx),speed=1450;
+      syncGoldPlayer(g,rec.f,angle);
       const grip=g.glovePose('R');
-      const syntheticVisualProjectile={vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,angle};
-      // Calls the original Gold physical catch/spring implementation.
       g.hands.R.missing=false;
-      g.startRocketCatch(syntheticVisualProjectile,grip,grip.x,grip.y+10);
+      g.startRocketCatch({vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,angle},
+        grip,prev.lastX,prev.lastY);
+      g.ring(rec.f.x,rec.f.y,'#38e1ff',260,4,.3);
       rec.rocket=null;
-    }else if(ev.type==='boxe:flurry-punch'){
-      const h=g.hands[body.punchIndex%2?'R':'L'];
-      h.t=0;h.angle=g.player.aim;h.reach=155;h.dur=.26;
-      g.fx.flash(g.player.x+Math.cos(h.angle)*95,g.player.y+Math.sin(h.angle)*95,45,'#ffd23c',.11);
+    }else if(ev.type==='boxe:flurry-end'){
+      // Let the final Gold jab glow decay while the Rocket resumes flight.
+      if(rec.flurry)rec.flurry.endAt=now();
     }else if(ev.type==='boxe:counter-contact'){
-      g.fx.screenFlash('#ffd76a',.16,.35);
-      g.startPunch('R',g.player.aim,132,.34,true);
-      g.material.eruption(rec.f.x,rec.f.y+15,.75);
-      g.fx.radialStreaks(rec.f.x,rec.f.y-20,20,'#ffe066',1100,80);
-      if(body.finisher) {
-        // Gold key-3 impact family, no second gameplay transaction.
-        g.fx.flash(rec.f.x,rec.f.y-10,165,'#ff9f2e',.3);
-        g.fire.column(rec.f.x,rec.f.y+15,90,230,.5,1);
+      const target=(global.fighters||[]).find(f=>f?.id===body.targetId)||{
+        x:rec.f.x+90,y:rec.f.y,radius:75};
+      syncGoldPlayer(g,rec.f,Math.atan2(target.y-rec.f.y,target.x-rec.f.x));
+      // Source key 9 FULL counterStrike: impactPackage, ghost fist, wave,
+      // lightning, material, afterimage and cinematic feedback. Enemy HP
+      // remains exclusively owned by the native APEX Arsenal adapter.
+      g.counterStrike({x:target.x,y:target.y,r:target.radius||75,z:0,dead:false});
+      if(body.finisher){
+        // Entire original key-3 choreography, including deferred five fire
+        // columns; a visual-only Gold Engine has zero combat targets.
+        syncGoldPlayer(g,rec.f,g.player.aim);
+        g.skillUppercut();
       }
     }
   }
@@ -93,32 +179,62 @@
   function advance(rec,body){
     const g=rec.g,ct=body.__hrCombatant,st=ct?.store?.__boxeBattle;
     const clock=now(),dt=Math.min(.05,Math.max(0,clock-rec.last));rec.last=clock;
-    g.time=clock;const p=g.player;
-    p.x=body.x;p.y=body.y;p.aim=Math.atan2(body.dir?.y||0,body.dir?.x||1);
-    p.faceX=(body.dir?.x??1)<0?-1:1;
-    p.z=0;p.hp=body.hp;p.maxHp=body.maxHp||1000;
-    p.empoweredT=st?Math.max(0,st.enhancedUntil-clock):0;
-    p.guardT=st?.counter?.phase==='guard'?Math.max(0,st.counter.until-clock):0;
+    syncGoldPlayer(g,body);
+    g.player.z=0;g.player.hp=body.hp;g.player.maxHp=body.maxHp||1000;
+    g.player.empoweredT=st?Math.max(0,st.enhancedUntil-clock):0;
+    g.player.guardT=st?.counter?.phase==='guard'?Math.max(0,st.counter.until-clock):0;
+    // Gold's visual-only launch recoil must decay; native movement stays authoritative.
+    g.player.vx*=Math.exp(-10*dt);g.player.vy*=Math.exp(-10*dt);
     g.hands.R.missing=!!st?.rocket;
-    if(g.rocketCatch){g.rocketCatch.t+=dt;if(g.rocketCatch.t>=g.rocketCatch.life)g.rocketCatch=null;}
-    if(g.hands.L.t>=0){g.hands.L.t+=dt/.26;if(g.hands.L.t>=1)g.hands.L.t=-1;}
-    if(g.hands.R.t>=0){g.hands.R.t+=dt/.26;if(g.hands.R.t>=1)g.hands.R.t=-1;}
+    g.hands.L.missing=!!st?.flurry;
     if(st?.rocket){
       const r=st.rocket;
       const v=rec.rocket||(rec.rocket={lastX:r.x,lastY:r.y,lastAt:clock,dist:0});
-      const delta=Math.hypot(r.x-v.lastX,r.y-v.lastY);
-      const vx=dt>0?(r.x-v.lastX)/dt:Math.cos(r.heading)*1250;
-      const vy=dt>0?(r.y-v.lastY)/dt:Math.sin(r.heading)*1250;
-      v.dist+=delta;v.lastX=r.x;v.lastY=r.y;
-      const pr={kind:'rocket',phase:r.phase==='outbound'?'out':'return',x:r.x,y:r.y,
-        vx,vy,angle:Math.atan2(vy,vx),traveled:v.dist};
-      if(pr.phase==='out')g.rocketDetailTravel(pr);else g.rocketDetailReturn(pr);
-      g.projs=[pr];
-      if(pr.phase==='return'){const d=Math.hypot(r.x-body.x,r.y-body.y);
-        g.rocketCatchApproach=d<205?Math.max(0,(205-d)/175):0;}
+      const distance=Math.hypot(r.x-v.lastX,r.y-v.lastY);
+      v.dist+=distance;v.lastX=r.x;v.lastY=r.y;
+      const vx=Number.isFinite(r.vx)?r.vx:Math.cos(r.heading)*1250;
+      const vy=Number.isFinite(r.vy)?r.vy:Math.sin(r.heading)*1250;
+      const pr={kind:'rocket',phase:r.phase==='returning'?'return':'out',x:r.x,y:r.y,
+        vx,vy,angle:r.heading,traveled:v.dist};
+      if(r.phase==='outbound')goldRocketExhaust(g,pr);
+      else if(r.phase==='returning')g.rocketDetailReturn(pr);
+      g.projs=r.phase==='flurry'?[]:[pr]; // gloves drawn at fixed jab anchor
+      if(r.phase==='returning'){
+        const d=Math.hypot(r.x-body.x,r.y-body.y);
+        g.rocketCatchApproach=d<205?Math.max(0,(205-d)/175):0;
+      }
     }else g.projs=[];
-    g.material.update(dt);g.fluid.step(Math.min(dt,.034));
-    g.fire.update(dt);g.lightning.update(dt);g.fx.update(dt);
+    advanceGoldFx(g,dt);
+    const f=rec.flurry;
+    if(f){
+      const elapsed=clock-f.start;
+      const e=f.g;
+      e.player.x=f.x;e.player.y=f.y;
+      const foe=(global.fighters||[]).find(x=>x&&x!==body&&x.hp>0);
+      if(foe)e.player.aim=Math.atan2(foe.y-f.y,foe.x-f.x);
+      while(f.cycle<4&&elapsed>=(f.cycle*.51+.11)){
+        e.skillJab(); // EXACT Gold key 1 6-shot choreography × 4
+        f.cycle++;
+      }
+      const fdt=Math.min(.05,Math.max(0,clock-f.last));f.last=clock;
+      advanceGoldFx(e,fdt);
+      if(f.endAt&&clock-f.endAt>.32){e.destroy();rec.flurry=null;}
+    }
+  }
+  function drawLayers(ctx,g){
+    // Original Gold engine's world-compositing layers in their source order.
+    // Excludes Gold's alternative arena, AI, health overlays and second HUD.
+    g.material.drawGround(ctx);
+    g.fx.drawGround(ctx);
+    g.drawAfters(ctx);
+    g.material.drawWorld(ctx);
+    g.fluid.draw(ctx,'smoke');
+    g.drawPlayer(ctx);g.drawProjs(ctx);
+    g.material.drawAtmosphere(ctx);
+    ctx.save();ctx.globalAlpha=.45;g.fluid.draw(ctx,'smoke');ctx.restore();
+    g.fluid.draw(ctx,'fire');
+    g.fire.draw(ctx);g.lightning.draw(ctx);
+    g.drawFx(ctx);g.fx.drawTop(ctx);
   }
   const oldDraw=global.Fighter?.prototype?.draw;
   if(!oldDraw)throw Error('BOXE_REQUIRES_NATIVE_FIGHTER_DRAW');
@@ -132,20 +248,34 @@
       try{
         advance(rec,this);
         const g=rec.g;
-        g.material.drawGround(ctx);
-        g.material.drawWorld(ctx);
-        g.drawPlayer(ctx);
-        g.drawProjs(ctx);
-        g.fire.draw(ctx);g.lightning.draw(ctx);
-        g.drawFx(ctx);
-        g.fx.drawTop(ctx);
+        drawLayers(ctx,g);
+        if(rec.flurry){
+          const f=rec.flurry,fg=f.g,elapsed=Math.max(0,now()-f.start);
+          ctx.save();
+          // Draw the source Gold punch sprites, not circles or temporary assets.
+          fg.drawAfters(ctx);
+          fg.material.drawGround(ctx);fg.material.drawWorld(ctx);
+          fg.fluid.draw(ctx,'smoke');
+          const l=fg.glovePose('L'),r=fg.glovePose('R');
+          const arrival=Math.min(1,elapsed/.11);
+          const lx=f.fromX+(l.x-f.fromX)*(1-(1-arrival)**3);
+          const ly=f.fromY+(l.y-f.fromY)*(1-(1-arrival)**3);
+          if(fg.sprites){
+            fg.drawGlove(ctx,lx,ly,l.angle,70,l.mirror,l.sx||1,l.sy||1);
+            fg.drawGlove(ctx,r.x,r.y,r.angle,70,r.mirror,r.sx||1,r.sy||1);
+          }
+          fg.material.drawAtmosphere(ctx);
+          fg.fluid.draw(ctx,'fire');fg.fire.draw(ctx);fg.lightning.draw(ctx);
+          fg.drawFx(ctx);fg.fx.drawTop(ctx);
+          ctx.restore();
+        }
       }finally{ctx.restore();}
     };
   }
-  global.APEX_BOXE_GOLD_PRESENTATION={version:'r1-gold-extracted',
+  global.APEX_BOXE_GOLD_PRESENTATION={version:'r2-owner-gold-choreography',
     ready:()=>!!lib.Engine&&!!global.Fighter?.prototype?.__boxeGoldDraw,
     hasSprites:f=>!!live.get(f)?.g?.sprites,
-    teardown:f=>{const r=live.get(f);if(r){r.g.destroy();live.delete(f);}},
+    teardown:f=>{const r=live.get(f);if(r){r.g.destroy();r.flurry?.g?.destroy();live.delete(f);}},
     purgeStale,
     snapshot:f=>({exists:live.has(f),sprites:!!live.get(f)?.g?.sprites,
       source:lib.sourceSha256,visualOnly:true})};

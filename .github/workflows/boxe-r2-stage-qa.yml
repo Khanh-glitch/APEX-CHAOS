@@ -23,6 +23,7 @@ jobs:
         run: |
           node tools/testBoxeContractsR2.mjs
           node tools/testBoxeBattleRuntime.mjs
+          node tools/testBoxeOwnerPhysicsR3.mjs
           node tools/testBoxeNormalIntegration.mjs
           node tools/testBoxeNativeArsenal.mjs
           node tools/testBoxeWaveDirector.mjs

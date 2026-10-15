@@ -503,7 +503,9 @@
     archiveProfile: { traits: { damage: 0, control: 92, mobility: 65, defense: 88, field: 38 } },
     skills: {
       A1: skill('boxe.fist_rocket', 'A1', 'boxe.fist_rocket', {
-        cooldown: 15, outboundSeconds: 5, returnSeconds: .82,
+        cooldown: 15, outboundSeconds: 5, flightSpeed: 1250,
+        returnSpeed: 1450, reboundOn: ['wall','opponent'],
+        flurrySeconds: 2, flurryInterval: .085, flurryHitStunSeconds: .0425,
         impactStunSeconds: .5, maxGroundGuns: 1, baseDamage: 0,
       }, ['cooldown'], 'cooldown_step'),
       A2: skill('boxe.block_and_hit', 'A2', 'boxe.block_and_hit', {
@@ -512,7 +514,7 @@
       }, ['cooldown'], 'cooldown_step'),
       PASSIVE: skill('boxe.heat', 'PASSIVE', 'boxe.heat', {
         damageThreshold: 300, enhancedSeconds: 3, cooldownRecoveryMultiplier: 2,
-        eligible: 'realized-incoming-or-own-weapon', resetAtEnd: true,
+        eligible: 'realized-dealt-or-received-HP', resetAtEnd: true,
       }, ['damageThreshold'], 'magnitude_step'),
     },
   };

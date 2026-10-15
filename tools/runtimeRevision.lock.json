@@ -20,7 +20,7 @@
     "public/game/arsenal/arsenalStormbreakerVfxRuntime.js": "f5862f8e002958c967ab5a5796caef33962bdcf5eaafa183c30a90b55caaed8d",
     "public/game/arsenal/arsenalManualSkillGate.js": "0330a608a68c6515f596d2a6b08c592b07e9608276553ac9b16987fd139fe0d3",
     "public/game/hero-rework/ailRuntime.js": "a79aa1c780441a4e04dd3b70946405b05c11f018e10a8fd60455bb395906c876",
-    "public/game/hero-rework/heroRegistry.js": "6a8d647cb9cf13705cbda226a177e7d565b7e6938fe29c0bbfa686ee49fc2711",
+    "public/game/hero-rework/heroRegistry.js": "049eace1d5f0f7661ba71d4816ca55e015e972c819687d2d419cc96d13bca6dd",
     "public/game/arsenal/arsenalShellSelectRuntime.js": "c20d6147c086460bd6d8d4de4365ef5b54c612f5056cd2704dc61bd06745d648",
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "4b95efadd6a4a252a5462a96d544520d0caf8387ad8c963069a0f9ec5e3bf13f",
     "public/game/arsenal/arsenalMetaRuntime.js": "cd848c2a0ee1611e9c702bd7352d15257ca0f682c9a037579248f812c1925a45",
@@ -60,8 +60,8 @@
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
     "public/game/results/ownerAwards.generated.js": "bf1214feb289ade27e97c382b33e87a2ecf230f54c3e673cec004b0e824d25bb",
     "public/game/results/matchResultAuthority.js": "2a14d78e29a120efcf9cc663c05c6c1ea36e93911188b287895405e6dc65462f",
-    "public/game/hero-rework/boxeBattleRuntime.js": "d1126d118d9528495fd15f460aa6e09b8c0fb8b56490d3721fe9fda5273c36a3",
+    "public/game/hero-rework/boxeBattleRuntime.js": "f91df4b8060a37cd4c7ec098bf433765dae97bb7bb917a474344cc5c6140a403",
     "public/game/hero-rework/boxeGoldLibrary.js": "f283094e1b345b7f3f212649382f4cc2d4c6497abfe12fd7729b567aaddb6d08",
-    "public/game/hero-rework/boxeGoldPresentationRuntime.js": "df665584dd64d27143f776a76f887ab5f389f7a79b6ae90ee0d73cd7b65348ec"
+    "public/game/hero-rework/boxeGoldPresentationRuntime.js": "5257a74c7875d16c80976e3f3ffef1a83a59dde5996782c0bdc84e66d78f755c"
   }
 }
