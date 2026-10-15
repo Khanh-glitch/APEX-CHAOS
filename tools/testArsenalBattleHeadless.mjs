@@ -3192,9 +3192,12 @@ report.rev2ProductGraph = run(`
 // into the SAME authority. Fighter Shop and all other roadmap routes remain
 // genuinely locked. Do not weaken the non-launchability assertions.
 gate('c03-product-active-archive-and-independent-cosmetic-compatibility',
-  report.rev2ProductGraph.publicCount === 11 && report.rev2ProductGraph.activeCount === 5
+  report.rev2ProductGraph.publicCount === 12 && report.rev2ProductGraph.activeCount === 6
     && report.rev2ProductGraph.activeIds.includes('bot-battle')
     && report.rev2ProductGraph.activeIds.includes('local-1v1')
+    && report.rev2ProductGraph.activeIds.includes('bot-wave')
+    && win.APEX_PRODUCT_SURFACE.get('bot-wave')?.preview === true
+    && win.APEX_PRODUCT_SURFACE.get('bot-wave')?.route === 'wave'
     && report.rev2ProductGraph.activeIds.includes('lucky-draw')
     && report.rev2ProductGraph.activeIds.includes('cosmetic-locker')
     && report.rev2ProductGraph.activeIds.includes('dictionary')
