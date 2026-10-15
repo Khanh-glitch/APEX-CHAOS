@@ -61,6 +61,7 @@ jobs:
           CHROME_PATH="$CHROME" node tools/testFieldArchiveC04Chrome.mjs
           CHROME_PATH="$CHROME" node tools/testFieldArchivePickQuickChrome.mjs
           CHROME_PATH="$CHROME" node tools/testBoxeModeEntryChrome.mjs
+          CHROME_PATH="$CHROME" node tools/testBoxeNormalChrome.mjs
       - name: Upload C04 regression evidence, no source snapshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,4 +70,5 @@ jobs:
           path: |
             docs/field-archive/candidate03/
             docs/field-archive/pick-quick-equip/
+            docs/boxe/normal-browser/
           retention-days: 14

@@ -3226,16 +3226,16 @@ gate('rev2-bot-local-are-the-active-battle-entries',
 gate('rev2-admin-lab-requires-explicit-admin-authority',
   report.rev2ProductGraph.adminHidden && report.rev2ProductGraph.adminGate,
   { adminHidden: report.rev2ProductGraph.adminHidden, adminGate: report.rev2ProductGraph.adminGate });
-gate('rev2-roster-visible-twelve-playable-core-six',
-  report.rev2ProductGraph.visibleCount === 12 && report.rev2ProductGraph.playableCount === 6
+gate('rev2-roster-visible-thirteen-playable-seven',
+  report.rev2ProductGraph.visibleCount === 13 && report.rev2ProductGraph.playableCount === 7
     && report.rev2ProductGraph.lockedCountByRoster === 6,
   { visible: report.rev2ProductGraph.visibleCount, playable: report.rev2ProductGraph.playableCount,
     locked: report.rev2ProductGraph.lockedCountByRoster });
 gate('rev2-locked-roster-shells-cannot-be-public-played',
   report.rev2ProductGraph.lockedNonPlayable && report.roster.lockedRejected,
   { lockedNonPlayable: report.rev2ProductGraph.lockedNonPlayable, rejected: report.roster.lockedRejected });
-gate('rev2-roster-exact-core-six-identities-and-aliases',
-  report.rev2ProductGraph.coreSixIds.join(',') === 'CRYSTAL,HUNTER,ICE,MAGNET,MIRROR,ROBOT'
+gate('rev2-roster-original-core-six-plus-boxe-identities',
+  report.rev2ProductGraph.coreSixIds.filter(id=>id!=='BOXE').join(',') === 'CRYSTAL,HUNTER,ICE,MAGNET,MIRROR,ROBOT' && report.rev2ProductGraph.coreSixIds.includes('BOXE')
     && report.rev2ProductGraph.coreSixAliasesResolve,
   { coreSixIds: report.rev2ProductGraph.coreSixIds,
     aliasesResolve: report.rev2ProductGraph.coreSixAliasesResolve });
