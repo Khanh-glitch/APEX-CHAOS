@@ -429,7 +429,9 @@
       }
       if(elapsed>=.17)h.attack=null;
     }
-    if(now>=f.until){
+    // The 24th Gold jab launches before 2s but contacts at +50ms.
+    // Do not throw away its last physical impact at the timeline boundary.
+    if(now>=f.until+.055){
       emit(ctx,'boxe:flurry-end',{x:f.x,y:f.y,punches:f.count});
       st.flurry=null;
       startSecondaryReturn(st);
