@@ -47,6 +47,9 @@ export function createBoxeBattleController({emit=()=>{}}={}){
    if(now>=f.endingAt){
     dispatch('boxe:flurry-finished',{goldKey:'1',atMs:f.endingAt,punchCount:f.punchCount});
     state.flurry=null;
+    if(state.rocket?.recallRequested&&state.rocket.phase==='outbound'){
+      state.rocket.phase='returning';dispatch('boxe:rocket-return-phase',{goldKey:'2',early:true});
+    }
    }
   }
  }
@@ -66,16 +69,27 @@ export function createBoxeBattleController({emit=()=>{}}={}){
  }
  function castA1(now){
   advance(now);if(state.cooldowns.A1>0||state.rocket)return false;
-  state.cooldowns.A1=RULES.a1.cooldownMs;
   state.rocket={phase:'outbound',returnAt:now+RULES.a1.outboundMs,enhancedAtCast:state.enhanced,
-   collisionIds:new Set(),flurryUsed:false,cargoId:null,pendingCargoId:null};
+   collisionIds:new Set(),lastOpponentHits:new Map(),recallRequested:false,
+   flurryUsed:false,cargoId:null,pendingCargoId:null};
   dispatch('boxe:rocket-launch',{goldKey:'2',durationMs:RULES.a1.outboundMs,enhanced:state.enhanced,damage:0});
+  return true;
+ }
+ function recallA1(now){
+  advance(now);const r=state.rocket;
+  if(!r||r.phase==='returning')return false;
+  r.recallRequested=true;
+  if(state.flurry)return true;
+  r.phase='returning';dispatch('boxe:rocket-return-phase',{goldKey:'2',early:true,carryId:r.cargoId});
   return true;
  }
  function rocketFighterHit({collisionId,opponentId},now){
   advance(now);const r=state.rocket;
   if(!r||r.phase!=='outbound'||!collisionId||r.collisionIds.has(collisionId))return false;
   r.collisionIds.add(collisionId);
+  const previous=r.lastOpponentHits.get(opponentId)??-Infinity;
+  if(now-previous<RULES.a1.repeatHitGapMs)return false;
+  r.lastOpponentHits.set(opponentId,now);
   dispatch('arena:stun-request',{opponentId,durationMs:RULES.a1.impactStunMs,damage:0,source:'A1'});
   dispatch('arena:disarm-request',{opponentId,source:'A1',collisionId});
   dispatch('boxe:rocket-impact',{goldKey:'2',opponentId,collisionId,damage:0});
@@ -122,6 +136,8 @@ export function createBoxeBattleController({emit=()=>{}}={}){
    dispatch('arena:weapon-transfer-on-catch-request',{gunId:r.cargoId,afterActiveFire:state.fireCycleActive});
   }
   state.rocket=null;
+  state.cooldowns.A1=RULES.a1.cooldownMs;
+  dispatch('boxe:rocket-cooldown-started',{durationMs:RULES.a1.cooldownMs});
   if(state.carryQueue&&!state.fireCycleActive)flushWeaponQueue();
   return true;
  }
@@ -136,7 +152,7 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   }
  }
  function castA2(now){
-  advance(now);if(state.cooldowns.A2>0||state.counter)return false;
+  advance(now);if(state.cooldowns.A2>0||state.counter||state.rocket||state.flurry)return false;
   state.cooldowns.A2=RULES.a2.cooldownMs;
   state.counter={phase:'guard',expiresAt:now+RULES.a2.guardMs,enhancedAtCast:state.enhanced};
   dispatch('boxe:counter-guard',{goldKey:'9',durationMs:1000,damage:0});
@@ -172,6 +188,6 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   flurry:state.flurry?{startedAt:state.flurry.startedAt,endingAt:state.flurry.endingAt,punchCount:state.flurry.punchCount}:null,
   counterPhase:state.counter?.phase||null,carryQueue:state.carryQueue,fireCycleActive:state.fireCycleActive
  };}
- return {advance,recordRealDamage,castA1,rocketFighterHit,flurryFighterHit,rocketGroundGunContact,
+ return {advance,recordRealDamage,castA1,recallA1,rocketFighterHit,flurryFighterHit,rocketGroundGunContact,
   resolveGroundGunReservation,rocketCatch,setWeaponFireCycle,castA2,interceptIncoming,counterContact,snapshot};
 }
