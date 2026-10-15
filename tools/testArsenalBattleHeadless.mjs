@@ -1552,8 +1552,8 @@ report.shells = run(`
   result.nativeCast = !!cast?.ok;
   return result;
 `);
-gate('shells-visible-12-playable-core-six',
-  report.shells.visibleCount === 12 && report.shells.playableCount === 6
+gate('shells-visible-13-playable-seven',
+  report.shells.visibleCount === 13 && report.shells.playableCount === 7
     && report.shells.allVisibleResolvable && report.shells.playableMatchesAuthority
     && report.shells.lockedResolveButDoNotPlay,
   report.shells);
