@@ -410,6 +410,14 @@ export default function App() {
     if (!surface || !authority?.canLaunch?.(surface.id, { admin })) return false;
     if (!gameReady) return false;
 
+    if (surface.route === 'wave') {
+      // Isolated Gold runtime: route transition, not a fake overlay on
+      // the active Arsenal auto-battle engine. The native product graph
+      // remains the single launch authority.
+      stopMenuMusic();
+      window.location.assign('/bot-wave/index.html');
+      return true;
+    }
     if (surface.route === 'skins') {
       // The locker is a sibling product surface, never an alternate Gold
       // shell or a replacement for the locked Fighter Shop. One existing
