@@ -981,6 +981,36 @@
     return Math.abs(Math.atan2(Math.sin(b.heading-a.heading),
       Math.cos(b.heading-a.heading)))/36;
   }
+  // BOXE's detached physical gauntlets are world collision bodies.
+  // V4.3 retains its authored rocket/plasma/steel/boomerang/mine lifecycle;
+  // it must not borrow the ordinary bullet's generic splice operation.
+  function v43BoxeHit(p,bodyT=2){
+    const bx=window.APEX_BOXE_BATTLE;
+    const shot=bx?.candidateProjectile?.(p,Math.min(1,bodyT));
+    if(!shot)return false;
+    bx.confirmProjectileContact(p,shot);
+    if(p.weapon==='STORMBREAKER'||p.weapon==='T6')return false;
+    p.x=shot.x;p.y=shot.y;
+    if(p.kind==='rocket'){v43DetonateRocket(p);return true;}
+    if(p.kind==='mine'&&p.phase==='flight'){
+      // Keep the armed-floor-mine contract: a collision forces it to land,
+      // not to explode before its explicit arming delay.
+      p.phase='arming';p.age=0;p.vx=0;p.vy=0;
+      v43Pulse(p.x,p.y,'ricochet',.65,p.weapon,p.cosmetic);
+      return true;
+    }
+    if(p.kind==='boomerang'){
+      // A struck returnable weapon resumes its REAL return lifecycle.
+      p.phase='return';p.hits=new Set();p.magnetReleased=true;
+      v43Pulse(p.x,p.y,'ricochet',.7,p.weapon,p.cosmetic);
+      return true;
+    }
+    if(p.kind==='plasma-core'){
+      v43Pulse(p.x,p.y,'plasma',1,p.weapon,p.cosmetic);
+    }else v43Pulse(p.x,p.y,'ricochet',.6,p.weapon,p.cosmetic);
+    p.life=0;
+    return true;
+  }
   function v43Step(p,dt){
     const c=V43[p.weapon];
     if(!c||!p.owner||p.owner.hp<=0||AQ.state?.over){p.life=0;return;}
@@ -1103,12 +1133,13 @@
         p.visual.push({x:p.x,y:p.y,t:p.age});trimV43VisualHistory(p);
       }
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+      const glove=window.APEX_BOXE_BATTLE?.candidateProjectile?.(p,hit?.t??1)||null;
       // Every physical SPECIAL flight must pass through Crystal's single
       // swept surface authority BEFORE native body damage. A K intercept
       // may hold/re-own the exact projectile; never apply the stale body hit.
       const crystal=window.APEX_CRYSTAL;
       if(crystal?.resolveBullet){
-        const bodyT=hit?.t??2;
+        const bodyT=Math.min(hit?.t??2,glove?.t??2);
         const outcome=crystal.resolveBullet(p,bodyT,dt);
         if(outcome?.consumed){
           if(v43Redirected(p)){
@@ -1118,6 +1149,7 @@
           return;
         }
       }
+      if(glove&&v43BoxeHit(p,hit?.t??2))return;
       // One real Fighter contact per outward/return leg. The same actor
       // cannot be struck repeatedly during a lingering swept overlap.
       if(hit&&!p.hits.has(hit.actor)
@@ -1148,16 +1180,18 @@
     // the explicit 0.48s arming gate.
     const hit=p.kind==='mine'?null
       :v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+    const glove=window.APEX_BOXE_BATTLE?.candidateProjectile?.(p,hit?.t??1)||null;
     // CRYSTALA K / J: same real swept segment, wall/shard BEFORE fighter.
     // Only mobile damage-bearing bodies are routed: an armed floor mine,
     // flame cone and timed burn never masquerade as reflectable bullets.
     const crystalEligible=v43ReflectableTag(p)
       &&(p.kind!=='mine'||p.phase==='flight');
     if(crystalEligible&&window.APEX_CRYSTAL?.resolveBullet){
-      const bodyT=hit?.t??2;
+      const bodyT=Math.min(hit?.t??2,glove?.t??2);
       const outcome=window.APEX_CRYSTAL.resolveBullet(p,bodyT,dt);
       if(outcome?.consumed)return;
     }
+    if(glove&&v43BoxeHit(p,hit?.t??2))return;
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
       if(p.kind==='plasma-core'){
