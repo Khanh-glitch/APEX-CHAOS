@@ -1,5 +1,40 @@
 {
   "schemaVersion": 1,
-  "heroes": [],
+  "heroes": [
+    {
+      "id": "BOXE",
+      "releaseStage": "approved",
+      "ownerApprovalDocument": "docs/boxe/BOXE_NORMAL_BATTLE_HUD_PENDING.md",
+      "tests": [
+        "tools/testBoxeNativeArsenal.mjs"
+      ],
+      "proofTests": {
+        "combat": "tools/testBoxeNativeArsenal.mjs",
+        "interactions": "tools/testBoxeNativeArsenal.mjs",
+        "teardown": "tools/testBoxeNativeArsenal.mjs"
+      },
+      "assets": [
+        "public/assets/boxe-gold/char-body-new.png",
+        "public/assets/boxe-gold/glove.png"
+      ],
+      "projectileFamilies": [
+        "boxe-rocket-gold-visual-only"
+      ],
+      "localizedCopy": [
+        {
+          "en": "FIST ROCKET",
+          "vi": "NẮM ĐẤM TÊN LỬA"
+        }
+      ],
+      "interactions": {
+        "reflect": "not-applicable",
+        "magnet": "allowed",
+        "mirror": "allowed",
+        "freeze": "allowed",
+        "capture": "not-applicable",
+        "T6": "not-applicable"
+      }
+    }
+  ],
   "weapons": []
 }

@@ -7,3 +7,7 @@
 - Gold source SHA-256 = `ccb889bb08cb2e741c4f7f5e0b33d08047c08fb28bfc1c31ae9401604444e2b2`; source PNGs are staged without lossy transforms. The visual-only extraction shares source methods and only disables the second Gold gameplay loop.
 - Approval gates: native fighter pick P1/P2/BOT; Rocket distinct impact 0 HP stun + disarm; one weapon pickup post-catch, queue after fire cycle; A2 unavailable during A1; passive 300 realized HP/3s extra cooldown; A2 only 10% *remaining* HP; Gold return/catch, proper cleanup on rematch; six original heroes unchanged; desktop and mobile Chrome; THEN Cloudflare owner playtest.
 - **No build preview/deploy/promotion until the build gates and source-integrity checks pass.**
+
+## Stage/admission scope (2026-10-15)
+
+The owner has authorized **BOXE playable integration for QA of BOT Battle and Local 1v1**, not release to production or acceptance of HUD artwork. The CP4 content ledger's `releaseStage=approved` applies strictly to admission of that fighter ID on this **Draft PR** with native combat tests. It is **not** final owner acceptance, authorization to merge to `main`, or permission to deploy Cloudflare/Netlify previews before all required gates are green. Gold Fighter Pick and Combat HUD art slots stay unfilled until the owner supplies official assets. Interactions must be tested with native authority in CI; art/audio readiness is gated independently and later.

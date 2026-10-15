@@ -2477,6 +2477,7 @@ function main() {
   // preload it with the match instead of loading it during the first frames
   // (owner report: FROST loads slower than the others).
   const HERO_BATTLE_RIG_DIRS = {
+    boxe: ['/assets/boxe-gold'],
     newbot: ['/assets/hero-rework/robot-final'],
     crystala: ['/assets/hero-rework/crystala-curated'],
     frost: ['/assets/hero-rework/frost-v1'],
