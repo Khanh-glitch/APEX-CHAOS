@@ -7,9 +7,9 @@
   'use strict';
   if (global.APEX_BOXE_BATTLE) return;
   const V = {passiveThreshold:300, enhancedSeconds:3, rocketOutboundSeconds:5,
-    rocketSpeed:1250, rocketReturnSpeed:1450, rocketRadius:46, rocketHitGap:.65,
-    rocketStunSeconds:.35, flurrySeconds:2, flurryInterval:.085,
-    flurryHitStunSeconds:.07, counterGuardSeconds:1,
+    rocketSpeed:1250, rocketReturnSpeed:1450, rocketRadius:46,
+    rocketStunSeconds:.35, rocketPushSpeed:320, flurrySeconds:2, flurryInterval:.085,
+    flurryHitStunSeconds:.07, flurryPushSpeed:165, counterGuardSeconds:1,
     counterTravelSeconds:.36, counterSpeed:1850,
     counterStunSeconds:2, finisherRemainingFraction:.10};
   const finite = n => Number.isFinite(n);
@@ -18,7 +18,7 @@
   const boxe=ctx=>{
     const st=ctx.combatant.store;
     return st.__boxeBattle || (st.__boxeBattle={progress:0,enhancedUntil:0,
-      rocket:null,flurry:null,counter:null,recoil:null,pendingCargo:null,catchId:0});
+      rocket:null,flurry:null,secondary:null,impulses:[],counter:null,recoil:null,pendingCargo:null,catchId:0});
   };
   const isEmpowered=(ctx,s)=>s.enhancedUntil>ctx.api.clock();
   function disarm(ctx,other,reason){
@@ -95,29 +95,64 @@
     const u=(-qb-Math.sqrt(disc))/(2*a);
     return u>=0&&u<=1?u:null;
   }
-  function hitRocket(ctx,st,foe,now){
+  // A real NEW contact, not an invisible 650ms immunity window.
+  // Relative normal closing speed determines both stun and impulse.
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function impactStrength(vx,vy,tx,ty,nx,ny,reference=V.rocketSpeed){
+    const closing=Math.max(0,-((vx-(tx||0))*nx+(vy-(ty||0))*ny));
+    return clamp(closing/reference,0,1);
+  }
+  function applyImpact(ctx,st,foe,nx,ny,strength,jab=false){
+    const power=Math.pow(clamp(strength,0,1),1.2);
+    const stun=(jab?V.flurryHitStunSeconds:V.rocketStunSeconds)*power;
+    if(stun>.002)ctx.api.applyStunTo(foe,stun);
+    if(power>.001){
+      const speed=(jab?V.flurryPushSpeed:V.rocketPushSpeed)*power;
+      const old=st.impulses.find(k=>k.body===foe);
+      if(old){old.vx+=-nx*speed;old.vy+=-ny*speed;}
+      else st.impulses.push({body:foe,vx:-nx*speed,vy:-ny*speed});
+    }
+    return stun;
+  }
+  function tickImpulses(ctx,dt){
+    const st=boxe(ctx),d=Math.max(0,dt);
+    for(let i=st.impulses.length-1;i>=0;i--){
+      const k=st.impulses[i];
+      if(!k.body||k.body.hp<=0){st.impulses.splice(i,1);continue;}
+      const scale=(1-Math.exp(-10*d))/10;
+      const x=k.body.x+k.vx*scale,y=k.body.y+k.vy*scale;
+      if(typeof ctx.api.moveHunterBody==='function')
+        ctx.api.moveHunterBody(k.body,x,y);
+      else{k.body.x=x;k.body.y=y;}
+      const damp=Math.exp(-10*d);
+      k.vx*=damp;k.vy*=damp;
+      if(Math.hypot(k.vx,k.vy)<4)st.impulses.splice(i,1);
+    }
+  }
+  function hitRocket(ctx,st,foe,now,normal,vx,vy){
     const r=st.rocket;
-    if(!r||r.phase!=='outbound'||now-r.lastHit<V.rocketHitGap)return false;
-    // A separating contact may re-enter during the same five-second active
-    // interval; disarm remains a real once-per-held-gun authority operation.
-    r.lastHit=now;
-    ctx.api.applyStunTo(foe,V.rocketStunSeconds);
-    disarm(ctx,foe,'rocket');
-    // Collision is at the opponent's surface, while a newly dropped gun is
-    // registered at the body centre. Account for that same body radius once.
-    // No oversized remote vacuum: a genuine glove-to-ground contact is required.
+    if(!r||r.phase!=='outbound')return false;
+    const fv=foe.__hrVel||{x:0,y:0};
+    const power=impactStrength(vx,vy,fv.x,fv.y,normal.x,normal.y);
+    const stun=applyImpact(ctx,st,foe,normal.x,normal.y,power);
+    // A1 explicitly cannot disarm. A2 remains the sole fighter disarm.
     acquireGroundGun(ctx,st);
     emit(ctx,'boxe:rocket-impact',{targetId:foe.id,x:r.x,y:r.y,heading:r.heading,
-      speed:V.rocketSpeed,damage:0,enhanced:r.enhanced});
+      speed:Math.hypot(vx,vy),strength:power,stun,damage:0,enhanced:r.enhanced});
     if(r.enhanced&&!r.triggeredFlurry){
-      r.triggeredFlurry=true;
-      r.phase='flurry'; // Rocket hand stops at actual contact, never owner body.
-      const until=now+V.flurrySeconds;
-      st.flurry={until,next:now,count:0,x:r.x,y:r.y,targetId:foe.id,
-        approachFromX:ctx.combatant.anchor.x,approachFromY:ctx.combatant.anchor.y};
-      emit(ctx,'boxe:flurry-start',{x:r.x,y:r.y,sourceX:ctx.combatant.anchor.x,
-        sourceY:ctx.combatant.anchor.y,duration:V.flurrySeconds,
-        period:V.flurryInterval,bodyDash:false,rocketPaused:true});
+      r.triggeredFlurry=true;r.phase='flurry';
+      const from=ctx.combatant.anchor;
+      st.secondary={x:from.x,y:from.y,prevX:from.x,prevY:from.y,
+        phase:'approach',returnX:r.x,returnY:r.y};
+      const hands={
+        L:{x:r.x,y:r.y,prevX:r.x,prevY:r.y,phase:'active',attack:null},
+        R:{x:from.x,y:from.y,prevX:from.x,prevY:from.y,phase:'approach',attack:null}
+      };
+      st.flurry={until:now+V.flurrySeconds,next:now,count:0,x:r.x,y:r.y,
+        targetId:foe.id,hands,approachStart:now,
+        approachFromX:from.x,approachFromY:from.y};
+      emit(ctx,'boxe:flurry-start',{x:r.x,y:r.y,sourceX:from.x,sourceY:from.y,
+        duration:V.flurrySeconds,period:V.flurryInterval,bodyDash:false,rocketPaused:true});
     }
     return true;
   }
@@ -157,11 +192,41 @@
     st.recoil={dirX:dir.x,dirY:dir.y,duration:.11,remaining:.11};
     emit(ctx,'boxe:rocket-catch',{x:body.x,y:body.y,
       vx:r.vx,vy:r.vy,physicalRecoil:true,hitstop:true,hasGun:!!r.cargoWeapon});
+    // Both independently detached gloves must be caught before A1 cooldown.
+    if(st.secondary){
+      r.phase='caught';r.x=body.x;r.y=body.y;
+      tickPendingCargo(ctx);return;
+    }
+    completeA1Catch(ctx,st);
+  }
+  function completeA1Catch(ctx,st){
     st.rocket=null;
     const skill=ctx.combatant.skills?.A1;
     if(skill)skill.cdLeft=skill.cfg?.cooldown??15;
     emit(ctx,'boxe:rocket-cooldown-start',{duration:skill?.cdLeft??15});
     tickPendingCargo(ctx);
+  }
+  function startSecondaryReturn(st){
+    if(st.secondary&&st.secondary.phase!=='returning')st.secondary.phase='returning';
+  }
+  function tickSecondary(ctx,dt){
+    const st=boxe(ctx),second=st.secondary;if(!second)return;
+    const now=ctx.api.clock(),body=ctx.combatant.anchor;
+    second.prevX=second.x;second.prevY=second.y;
+    if(second.phase==='approach'){
+      const dx=second.returnX-second.x,dy=second.returnY-second.y;
+      const d=Math.hypot(dx,dy),step=V.rocketReturnSpeed*Math.max(0,dt);
+      if(d<=step||d<4){second.x=second.returnX;second.y=second.returnY;second.phase='active';}
+      else{second.x+=dx/d*step;second.y+=dy/d*step;}
+    }else if(second.phase==='returning'){
+      const dx=body.x-second.x,dy=body.y-second.y,d=Math.hypot(dx,dy);
+      const step=V.rocketReturnSpeed*Math.max(0,dt);
+      if(d<=step+V.rocketRadius){
+        emit(ctx,'boxe:secondary-catch',{x:body.x,y:body.y});
+        st.secondary=null;
+        if(st.rocket?.phase==='caught')completeA1Catch(ctx,st);
+      }else{second.x+=dx/d*step;second.y+=dy/d*step;}
+    }
   }
   function startRocketReturn(ctx,st,now){
     const r=st.rocket;
@@ -182,14 +247,16 @@
     const body=ctx.combatant.anchor;
     if(!body||body.hp<=0){
       if(r.cargoWeapon)ctx.api.dropWeaponSlot(r.cargoWeapon,body?.x??r.x,body?.y??r.y);
-      st.rocket=null;st.flurry=null;st.recoil=null;return;
+      st.rocket=null;st.flurry=null;st.secondary=null;st.recoil=null;return;
     }
     const now=ctx.api.clock();
+    r.prevX=r.x;r.prevY=r.y;
     if(r.phase==='flurry'){
       // The other glove travels here; the owner keeps moving independently.
       // Finish two seconds of punches even if the five-second clock elapsed.
       if(!st.flurry){
-        if(now>=r.started+V.rocketOutboundSeconds)startRocketReturn(ctx,st,now);
+        if(r.recallAfterFlurry||now>=r.started+V.rocketOutboundSeconds)
+          startRocketReturn(ctx,st,now);
         else r.phase='outbound';
       }
     }else if(r.phase==='outbound'){
@@ -241,12 +308,13 @@
           const normal=unit(r.x-foe.x,r.y-foe.y);
           const incoming=r.vx*normal.x+r.vy*normal.y;
           if(incoming<0){
+            const impactVx=r.vx,impactVy=r.vy;
             const v=reflect(r.vx,r.vy,normal.x,normal.y);
             r.vx=v.x*V.rocketSpeed;r.vy=v.y*V.rocketSpeed;
             r.heading=Math.atan2(r.vy,r.vx);
             r.x=foe.x+normal.x*(V.rocketRadius+(foe.radius||75)+0.2);
             r.y=foe.y+normal.y*(V.rocketRadius+(foe.radius||75)+0.2);
-            hitRocket(ctx,st,foe,now);
+            hitRocket(ctx,st,foe,now,normal,impactVx,impactVy);
             emit(ctx,'boxe:rocket-reflect',{x:r.x,y:r.y,normalX:normal.x,
               normalY:normal.y,vx:r.vx,vy:r.vy,from:'fighter'});
             if(r.phase==='flurry')break;
@@ -301,18 +369,62 @@
   function tickFlurry(ctx){
     const st=boxe(ctx),f=st.flurry;if(!f)return;
     const now=ctx.api.clock(),foe=liveOpponent(ctx);
-    while(f.next<Math.min(now,f.until)&&f.count<24){
-      const index=f.count++;f.next+=V.flurryInterval;
-      // Physical fists stay at impact location; BOXE's body position cannot
-      // cancel hits or drag the punches away as it runs around the arena.
-      const contact=foe&&dist(f,foe)<=V.rocketRadius+(foe.radius||75)+110;
-      if(contact)ctx.api.applyStunTo(foe,V.flurryHitStunSeconds);
-      emit(ctx,'boxe:flurry-punch',{punchIndex:index,hand:index%2===0?'L':'R',
-        x:f.x,y:f.y,hit:!!contact,targetId:contact?foe.id:null,damage:0});
+    // 24 authored Gold beats (4 x 6), 85ms interval. A jab only stuns at
+    // its REAL impact frame if its own glove reaches the target's surface.
+    // No 231px all-directions circle, no synthetic hits for missing gloves.
+    while(f.next<f.until&&f.next<=now&&f.count<24){
+      const index=f.count++,hand=index%2===0?'L':'R',h=f.hands[hand];
+      const aim=foe?Math.atan2(foe.y-f.y,foe.x-f.x):0;
+      if(h.phase==='active')h.attack={
+        started:f.next,hitAt:f.next+.05,index,aim,
+        reach:index%6===5?122:104,registered:false
+      };
+      f.next+=V.flurryInterval;
+    }
+    for(const hand of ['L','R']){
+      const h=f.hands[hand];h.prevX=h.x;h.prevY=h.y;
+      const r=st.rocket,sec=st.secondary;
+      if(hand==='L'&&h.phase==='returning'&&r){h.x=r.x;h.y=r.y;continue;}
+      if(hand==='L'&&h.phase==='caught'){h.x=ctx.combatant.anchor.x;h.y=ctx.combatant.anchor.y;continue;}
+      if(hand==='R'&&sec){
+        if(sec.phase==='approach'||sec.phase==='returning'){
+          h.x=sec.x;h.y=sec.y;h.phase=sec.phase;continue;
+        }else if(sec.phase==='active'&&h.phase==='approach')h.phase='active';
+      }
+      if(h.phase!=='active')continue;
+      const a=h.attack;
+      if(!a){h.x=f.x;h.y=f.y;continue;}
+      const elapsed=now-a.started;
+      const u=elapsed<=.05?clamp(elapsed/.05,0,1)
+        :clamp((.17-elapsed)/.12,0,1);
+      h.x=f.x+Math.cos(a.aim)*a.reach*u;
+      h.y=f.y+Math.sin(a.aim)*a.reach*u;
+      if(!a.registered&&now>=a.hitAt){
+        a.registered=true;
+        const reach=a.reach;
+        const dx=foe?foe.x-f.x:0,dy=foe?foe.y-f.y:0;
+        const d=Math.hypot(dx,dy);
+        const diff=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-a.aim),
+          Math.cos(Math.atan2(dy,dx)-a.aim)));
+        const contact=!!foe&&d<=reach+V.rocketRadius+(foe.radius||75)
+          &&(d<1||diff<=.58);
+        let stun=0,strength=0;
+        if(contact){
+          const nx= -Math.cos(a.aim),ny=-Math.sin(a.aim);
+          const fv=foe.__hrVel||{x:0,y:0};
+          strength=impactStrength(Math.cos(a.aim)*reach/.05,
+            Math.sin(a.aim)*reach/.05,fv.x,fv.y,nx,ny,reach/.05);
+          stun=applyImpact(ctx,st,foe,nx,ny,strength,true);
+        }
+        emit(ctx,'boxe:flurry-punch',{punchIndex:a.index,hand,x:h.x,y:h.y,
+          hit:contact,stun,strength,targetId:contact?foe.id:null,damage:0});
+      }
+      if(elapsed>=.17)h.attack=null;
     }
     if(now>=f.until){
       emit(ctx,'boxe:flurry-end',{x:f.x,y:f.y,punches:f.count});
       st.flurry=null;
+      startSecondaryReturn(st);
       if(st.rocket?.phase==='flurry'){
         if(st.rocket.recallAfterFlurry||now>=st.rocket.started+V.rocketOutboundSeconds)
           startRocketReturn(ctx,st,now);
@@ -365,6 +477,81 @@
       st.counter=null;emit(ctx,'boxe:counter-miss');
     }
   }
+  // Projectile contact candidates are read-only until the canonical global
+  // TOI arbiter confirms that no earlier wall/body/Crystal/Mirror consumed it.
+  // Relative swept circles cover BOTH moving projectile and moving gauntlet.
+  function movingContact(p,x0,y0,x1,y1,radius,limit){
+    const fx=(p.px??p.x)-x0,fy=(p.py??p.y)-y0;
+    const vx=(p.x-(p.px??p.x))-(x1-x0);
+    const vy=(p.y-(p.py??p.y))-(y1-y0);
+    const R=radius+(p.radius||7),a=vx*vx+vy*vy;
+    if(fx*fx+fy*fy<=R*R)return 0;
+    if(a<1e-10)return null;
+    const b=2*(fx*vx+fy*vy),c=fx*fx+fy*fy-R*R;
+    const disc=b*b-4*a*c;if(disc<0)return null;
+    const t=(-b-Math.sqrt(disc))/(2*a);
+    return t>=0&&t<=Math.min(1,limit??1)?t:null;
+  }
+  function candidateProjectile(p,limitT=1){
+    if(!p?.aq||!(p.life>0)||!['aq_bullet','aq_v43','aq_grenade','aq_thrown'].includes(p.type))
+      return null;
+    if(p.type==='aq_v43'&&(['flame','burn','plasma-core'].includes(p.kind)
+      ||(p.kind==='mine'&&p.phase!=='flight')))return null;
+    if(p.type==='aq_thrown'&&p.state!=='flight')return null;
+    const match=global.APEX_HERO_REWORK?.match;
+    if(!match?.combatants)return null;
+    let best=null;
+    for(const ct of match.combatants){
+      if(ct.heroId!=='BOXE'||!ct.anchor||ct.anchor.hp<=0)continue;
+      if(p.owner===ct.anchor||p.launchOwner===ct.anchor)continue;
+      const st=ct.store.__boxeBattle,r=st?.rocket;
+      if(!r)continue;
+      const check=(hand,x0,y0,x1,y1,phase)=>{
+        const t=movingContact(p,x0,y0,x1,y1,V.rocketRadius,limitT);
+        if(t!=null&&(!best||t<best.t))best={ct,hand,phase,t,
+          x:(p.px??p.x)+(p.x-(p.px??p.x))*t,
+          y:(p.py??p.y)+(p.y-(p.py??p.y))*t};
+      };
+      if(st.flurry){
+        for(const hand of ['L','R']){
+          const h=st.flurry.hands[hand];
+          if(h.phase==='caught')continue;
+          check(hand,h.prevX??h.x,h.prevY??h.y,h.x,h.y,h.phase);
+        }
+      }else{
+        if(r.phase!=='caught')
+          check('L',r.prevX??r.x,r.prevY??r.y,r.x,r.y,r.phase);
+        if(st.secondary)
+          check('R',st.secondary.prevX??st.secondary.x,
+            st.secondary.prevY??st.secondary.y,st.secondary.x,st.secondary.y,
+            st.secondary.phase);
+      }
+    }
+    return best;
+  }
+  function confirmProjectileContact(p,candidate){
+    if(!candidate||!(p.life>0))return false;
+    const ct=candidate.ct,st=ct.store.__boxeBattle;
+    if(!st?.rocket)return false;
+    const ctx={combatant:ct,api:{
+      clock:()=>global.APEX_HERO_REWORK_AIL?.clock?.()??global.matchClock??0,
+      emitEvent:(type,detail)=>global.APEX_HERO_REWORK_AIL?.bus?.emit?.(type,detail)
+    }};
+    if(candidate.phase==='outbound'){
+      st.rocket.earlyRecall=false;
+      startRocketReturn(ctx,st,ctx.api.clock());
+    }else if(st.flurry&&(candidate.phase==='active'||candidate.phase==='approach')){
+      const h=st.flurry.hands[candidate.hand];
+      h.phase='returning';h.attack=null;
+      if(candidate.hand==='L')startRocketReturn(ctx,st,ctx.api.clock());
+      else startSecondaryReturn(st);
+    }
+    emit(ctx,'boxe:rocket-shot',{hand:candidate.hand,x:candidate.x,
+      y:candidate.y,weapon:p.weapon||null,projectileKind:p.kind||p.type,
+      phase:candidate.phase,returning:true});
+    // Contact stays physical during return but cannot restart recall.
+    return true;
+  }
   const executors={
     'boxe.fist_rocket':{
       canCast(ctx){return !boxe(ctx).rocket;},
@@ -381,9 +568,11 @@
         emit(ctx,'boxe:rocket-launch',{x:self.x,y:self.y,heading,goldKey:'2',
           speed:V.rocketSpeed,enhanced:st.rocket.enhanced,damage:0});return true;},
       recast:recastRocket,
-      onTick(ctx,dt){tickPendingCargo(ctx);tickFlurry(ctx);tickRocket(ctx,dt);tickRecoil(ctx,dt);},
+      onTick(ctx,dt){tickPendingCargo(ctx);tickImpulses(ctx,dt);
+        tickFlurry(ctx);tickRocket(ctx,dt);tickSecondary(ctx,dt);tickRecoil(ctx,dt);},
       onTeardown(ctx){const st=boxe(ctx);if(st.rocket?.cargoWeapon){const r=st.rocket,body=ctx.combatant.anchor;ctx.api.dropWeaponSlot(r.cargoWeapon,body?.x??r.x,body?.y??r.y);}if(st.pendingCargo){const p=st.pendingCargo;ctx.api.dropWeaponSlot(p.weaponId,p.x,p.y);}
-        st.pendingCargo=null;st.rocket=null;st.flurry=null;st.recoil=null;}
+        st.pendingCargo=null;st.rocket=null;st.flurry=null;st.secondary=null;
+        st.impulses=[];st.recoil=null;}
     },
     'boxe.block_and_hit':{
       canCast(ctx){const st=boxe(ctx);return !st.counter&&!st.rocket&&!st.flurry;},
@@ -403,7 +592,8 @@
       onTeardown(ctx){const st=boxe(ctx);st.progress=0;st.enhancedUntil=0;}
     }
   };
-  global.APEX_BOXE_BATTLE={version:'normal-r2-owner-physics',values:Object.freeze(V),executors,
+  global.APEX_BOXE_BATTLE={version:'normal-r5-contact-physics',values:Object.freeze(V),
+    candidateProjectile,confirmProjectileContact,executors,
     install(table){for(const [k,v] of Object.entries(executors)){
       if(table[k])throw Error('BOXE_MECHANIC_ALREADY_REGISTERED_'+k);
       table[k]=v;
@@ -412,6 +602,6 @@
       rocket:st.rocket&&{phase:st.rocket.phase,x:st.rocket.x,y:st.rocket.y,
         cargoId:st.rocket.cargoId,vx:st.rocket.vx,vy:st.rocket.vy,
         enhanced:st.rocket.enhanced},flurry:st.flurry&&{count:st.flurry.count,
-          x:st.flurry.x,y:st.flurry.y},
+          x:st.flurry.x,y:st.flurry.y,hands:st.flurry.hands},
       counter:st.counter&&{phase:st.counter.phase}};}};
 })(typeof window!=='undefined'?window:globalThis);
