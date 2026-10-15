@@ -586,6 +586,8 @@
           }
           continue;
         }
+        if(slot.boxeDisarmedVictimId===f.id
+          &&(window.APEX_HERO_REWORK_AIL?.clock?.()??state.time)<slot.boxePickupLockUntil)continue;
         if (weaponApi.getHolder(f)) {
           if (!slot.rejectedFor[f.id]) {
             slot.rejectedFor[f.id] = true;
