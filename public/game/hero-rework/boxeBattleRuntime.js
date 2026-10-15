@@ -7,9 +7,9 @@
   'use strict';
   if (global.APEX_BOXE_BATTLE) return;
   const V = {passiveThreshold:300, enhancedSeconds:3, rocketOutboundSeconds:5,
-    rocketSpeed:1250, rocketReturnSpeed:1450, rocketRadius:46, rocketHitGap:.15,
-    rocketStunSeconds:.5, flurrySeconds:2, flurryInterval:.085,
-    flurryHitStunSeconds:.0425, counterGuardSeconds:1,
+    rocketSpeed:1250, rocketReturnSpeed:1450, rocketRadius:46, rocketHitGap:.65,
+    rocketStunSeconds:.35, flurrySeconds:2, flurryInterval:.085,
+    flurryHitStunSeconds:.07, counterGuardSeconds:1,
     counterTravelSeconds:.36, counterSpeed:1850,
     counterStunSeconds:2, finisherRemainingFraction:.10};
   const finite = n => Number.isFinite(n);
@@ -18,7 +18,7 @@
   const boxe=ctx=>{
     const st=ctx.combatant.store;
     return st.__boxeBattle || (st.__boxeBattle={progress:0,enhancedUntil:0,
-      rocket:null,flurry:null,counter:null,recoil:null,catchId:0});
+      rocket:null,flurry:null,counter:null,recoil:null,pendingCargo:null,catchId:0});
   };
   const isEmpowered=(ctx,s)=>s.enhancedUntil>ctx.api.clock();
   function disarm(ctx,other,reason){
@@ -29,8 +29,19 @@
     weaponApi.consume(other,'boxe-'+reason);
     // Only an actual holder can generate a floor pickup. Gun ownership is
     // transferred through native consume plus the existing world-slot API.
-    const slot=ctx.api.dropWeaponSlot(id,other.x,other.y);
-    emit(ctx,'boxe:disarm',{reason,weaponId:id,slotId:slot?.id??null,targetId:other.id});
+    // Physical weapon ejection: never spawn a collectible at the victim centre.
+    const self=ctx.combatant.anchor,dir=unit(other.x-self.x,other.y-self.y);
+    const gameSize=Number.isFinite(global.GAME_SIZE)?global.GAME_SIZE:1000;
+    const distance=(other.radius||75)+150;
+    const px=Math.max(60,Math.min(gameSize-60,other.x+dir.x*distance));
+    const py=Math.max(60,Math.min(gameSize-60,other.y+dir.y*distance));
+    const slot=ctx.api.dropWeaponSlot(id,px,py);
+    if(slot){
+      slot.boxeDisarmedVictimId=other.id;
+      slot.boxePickupLockUntil=ctx.api.clock()+.85;
+      slot.boxeEjection={fromX:other.x,fromY:other.y,vx:dir.x*900,vy:dir.y*900};
+    }
+    emit(ctx,'boxe:disarm',{reason,weaponId:id,slotId:slot?.id??null,targetId:other.id,x:px,y:py});
     return true;
   }
   function liveOpponent(ctx){
@@ -93,7 +104,8 @@
     disarm(ctx,foe,'rocket');
     // Collision is at the opponent's surface, while a newly dropped gun is
     // registered at the body centre. Account for that same body radius once.
-    acquireGroundGun(ctx,st,(foe.radius||75)+4);
+    // No oversized remote vacuum: a genuine glove-to-ground contact is required.
+    acquireGroundGun(ctx,st);
     emit(ctx,'boxe:rocket-impact',{targetId:foe.id,x:r.x,y:r.y,heading:r.heading,
       speed:V.rocketSpeed,damage:0,enhanced:r.enhanced});
     if(r.enhanced&&!r.triggeredFlurry){
@@ -124,37 +136,45 @@
     slots.splice(idx,1);
     emit(ctx,'boxe:rocket-gun-reserved',{slotId:slot.id,weaponId:slot.weaponId});
   }
+  function tickPendingCargo(ctx){
+    const st=boxe(ctx),p=st.pendingCargo;if(!p)return;
+    const body=ctx.combatant.anchor,w=global.APEX_ARSENAL?.weaponApi;
+    const held=w?.getHolder?.(body);
+    if(held&&held.phase!=='READY'&&held.phase!=='SPENT')return;
+    st.pendingCargo=null;
+    if(!body||body.hp<=0||!w?.equip?.(body,p.weaponId)){
+      ctx.api.dropWeaponSlot(p.weaponId,body?.x??p.x,body?.y??p.y);
+      emit(ctx,'boxe:rocket-gun-rejected',{weaponId:p.weaponId});
+    }else emit(ctx,'boxe:rocket-gun-equipped',{weaponId:p.weaponId});
+  }
   function catchRocket(ctx,st){
     const r=st.rocket;if(!r)return;
     const body=ctx.combatant.anchor;
-    if(r.cargoWeapon){
-      const w=global.APEX_ARSENAL?.weaponApi;
-      const cur=w?.getHolder?.(body);
-      // Native holder must complete its active fire cycle.  Do not interrupt
-      // one mid-burst and do not forge a second concurrently held item.
-      if(cur&&cur.phase!=='READY'&&cur.phase!=='SPENT'){
-        r.awaitEquip=true;return;
-      }
-      if(!w?.equip?.(body,r.cargoWeapon)){
-        // Restore real floor slot on rejected equip, avoiding silent item loss.
-        ctx.api.dropWeaponSlot(r.cargoWeapon,body.x,body.y);
-        emit(ctx,'boxe:rocket-gun-rejected',{weaponId:r.cargoWeapon});
-      }
-    }
-    // Gold absorbs the incoming 1450u/s projectile with ~16px directional
-    // recoil over its 55ms compression+rebound. Move via native solid mover,
-    // never via the disconnected visual Gold player velocity.
+    // A physical catch is immediate; a busy firearm queues only the EQUIP.
+    if(r.cargoWeapon)st.pendingCargo={weaponId:r.cargoWeapon,x:body.x,y:body.y};
     const dir=unit(r.vx||0,r.vy||0);
     st.recoil={dirX:dir.x,dirY:dir.y,duration:.11,remaining:.11};
     emit(ctx,'boxe:rocket-catch',{x:body.x,y:body.y,
       vx:r.vx,vy:r.vy,physicalRecoil:true,hitstop:true,hasGun:!!r.cargoWeapon});
     st.rocket=null;
+    const skill=ctx.combatant.skills?.A1;
+    if(skill)skill.cdLeft=skill.cfg?.cooldown??15;
+    emit(ctx,'boxe:rocket-cooldown-start',{duration:skill?.cdLeft??15});
+    tickPendingCargo(ctx);
   }
   function startRocketReturn(ctx,st,now){
     const r=st.rocket;
     if(!r||r.phase==='returning')return;
     r.phase='returning';r.returnAt=now;
-    emit(ctx,'boxe:rocket-return',{x:r.x,y:r.y,speed:V.rocketReturnSpeed});
+    emit(ctx,'boxe:rocket-return',{x:r.x,y:r.y,speed:V.rocketReturnSpeed,
+      reason:r.earlyRecall?'manual':'lifetime'});
+  }
+  function recastRocket(ctx){
+    const st=boxe(ctx),r=st.rocket;if(!r||r.phase==='returning')return false;
+    r.earlyRecall=true;
+    if(r.phase==='flurry'){r.recallAfterFlurry=true;return true;}
+    startRocketReturn(ctx,st,ctx.api.clock());
+    return true;
   }
   function tickRocket(ctx,dt){
     const st=boxe(ctx),r=st.rocket;if(!r)return;
@@ -164,7 +184,6 @@
       st.rocket=null;st.flurry=null;st.recoil=null;return;
     }
     const now=ctx.api.clock();
-    if(r.awaitEquip){catchRocket(ctx,st);return;}
     if(r.phase==='flurry'){
       // The other glove travels here; the owner keeps moving independently.
       // Finish two seconds of punches even if the five-second clock elapsed.
@@ -179,14 +198,44 @@
       let remaining=Math.min(Math.max(0,dt),Math.max(0,V.rocketOutboundSeconds-elapsed+Math.max(0,dt)));
       const arena=Number.isFinite(global.GAME_SIZE)?global.GAME_SIZE:1000;
       const lo=V.rocketRadius,hi=arena-V.rocketRadius;
-      const foe=liveOpponent(ctx);
+      const foe=liveOpponent(ctx),crystal=global.APEX_CRYSTAL;
+      const geom=global.APEX_HERO_REWORK?.geom;
       while(remaining>1e-7&&r.phase==='outbound'){
         const step=Math.min(remaining,1/120);remaining-=step;
         const x0=r.x,y0=r.y;
-        let x1=x0+r.vx*step,y1=y0+r.vy*step;
-        // Collision against opponent is a solid reflection, not piercing.
-        const u=foe?segmentBodyHit(x0,y0,x1,y1,foe,V.rocketRadius):null;
-        if(u!==null){ // Physical solidity applies even during stun re-hit cooldown.
+        // Same kinetic admission and force integration as real Magnet projectiles.
+        // No fake firearm identity or duplicated acceleration formula.
+        r.owner=body;r.type='aq_ability';r.abilityKind='BOXE_FIST_ROCKET';
+        r.aq=true;r.life=Math.max(.001,r.started+V.rocketOutboundSeconds-now);
+        const magnet=global.APEX_MAGNET;
+        magnet?.stepProjectiles?.(step,[r],ctx.api.combatantOfBody,now);
+        const plan=magnet?.consumeMovementPlan?.(r);
+        let x1=plan?.finalX??(x0+r.vx*step),y1=plan?.finalY??(y0+r.vy*step);
+        const bodyU=foe?segmentBodyHit(x0,y0,x1,y1,foe,V.rocketRadius):null;
+        let solid=null;
+        if(geom?.capsuleToi&&crystal?.capsules){
+          for(const cap of crystal.capsules()){
+            if(cap.cons?.ct===ctx.combatant)continue;
+            const hit=geom.capsuleToi(x0,y0,x1,y1,
+              cap.ax,cap.ay,cap.bx,cap.by,cap.r+V.rocketRadius);
+            if(hit&&hit.t>=0&&hit.t<=1&&(!solid||hit.t<solid.t))
+              solid={...hit,cap};
+          }
+        }
+        if(solid&&(bodyU===null||solid.t<=bodyU)){
+          r.x=x0+(x1-x0)*solid.t;r.y=y0+(y1-y0)*solid.t;
+          const n=unit(solid.nx,solid.ny),v=reflect(r.vx,r.vy,n.x,n.y);
+          const speed=Math.hypot(r.vx,r.vy);
+          r.vx=v.x*speed;r.vy=v.y*speed;r.heading=Math.atan2(r.vy,r.vx);
+          r.x+=n.x*.4;r.y+=n.y*.4;
+          const rest=step*(1-solid.t);
+          x1=r.x+r.vx*rest;y1=r.y+r.vy*rest;
+          emit(ctx,'boxe:rocket-crystal-reflect',{x:r.x,y:r.y,
+            constructId:solid.cap.cons?.id,kind:solid.cap.kind});
+          // Physical Crystal contact wins before a fighter hidden behind it.
+          r.x=x1;r.y=y1;
+        }else if(bodyU!==null){
+          const u=bodyU; // Physical solidity applies even during stun re-hit cooldown.
           r.x=x0+(x1-x0)*u;r.y=y0+(y1-y0)*u;
           const normal=unit(r.x-foe.x,r.y-foe.y);
           const incoming=r.vx*normal.x+r.vy*normal.y;
@@ -264,7 +313,8 @@
       emit(ctx,'boxe:flurry-end',{x:f.x,y:f.y,punches:f.count});
       st.flurry=null;
       if(st.rocket?.phase==='flurry'){
-        if(now>=st.rocket.started+V.rocketOutboundSeconds)startRocketReturn(ctx,st,now);
+        if(st.rocket.recallAfterFlurry||now>=st.rocket.started+V.rocketOutboundSeconds)
+          startRocketReturn(ctx,st,now);
         else st.rocket.phase='outbound';
       }
     }
@@ -329,8 +379,10 @@
           enhanced:isEmpowered(ctx,st),triggeredFlurry:false,cargoId:null,cargoWeapon:null};
         emit(ctx,'boxe:rocket-launch',{x:self.x,y:self.y,heading,goldKey:'2',
           speed:V.rocketSpeed,enhanced:st.rocket.enhanced,damage:0});return true;},
-      onTick(ctx,dt){tickFlurry(ctx);tickRocket(ctx,dt);tickRecoil(ctx,dt);},
-      onTeardown(ctx){const st=boxe(ctx);if(st.rocket?.cargoWeapon){const r=st.rocket,body=ctx.combatant.anchor;ctx.api.dropWeaponSlot(r.cargoWeapon,body?.x??r.x,body?.y??r.y);}st.rocket=null;st.flurry=null;st.recoil=null;}
+      recast:recastRocket,
+      onTick(ctx,dt){tickPendingCargo(ctx);tickFlurry(ctx);tickRocket(ctx,dt);tickRecoil(ctx,dt);},
+      onTeardown(ctx){const st=boxe(ctx);if(st.rocket?.cargoWeapon){const r=st.rocket,body=ctx.combatant.anchor;ctx.api.dropWeaponSlot(r.cargoWeapon,body?.x??r.x,body?.y??r.y);}if(st.pendingCargo){const p=st.pendingCargo;ctx.api.dropWeaponSlot(p.weaponId,p.x,p.y);}
+        st.pendingCargo=null;st.rocket=null;st.flurry=null;st.recoil=null;}
     },
     'boxe.block_and_hit':{
       canCast(ctx){const st=boxe(ctx);return !st.counter&&!st.rocket&&!st.flurry;},
