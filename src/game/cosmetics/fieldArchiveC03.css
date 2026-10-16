@@ -243,3 +243,6 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
  .fa3-equip{padding:6px}
  .fa3-bottom-note{display:none}
 }
+
+/* During resident-Home BOT WAVE, Archive belongs to the parked Home, not the match. */
+body.apex-bot-wave-active .apex-skin-entry,body.apex-bot-wave-active .fa3-pick-equip-entry{display:none!important}

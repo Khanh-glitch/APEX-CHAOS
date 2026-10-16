@@ -46,6 +46,20 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
   assert.ok(homeArt.loaded&&homeArt.actionArt===1&&
     homeArt.src==='/assets/dictionary/heroes/boxe/standing.png',
     'Home BOT WAVE entry must be illustrated by the original BOXE standing artwork '+JSON.stringify(homeArt));
+  // R9: layout must clear the original FREE BATTLE CTA; a nice screenshot
+  // is NOT a test if its event card covers the real game controls.
+  const homeGeometry=await page.evaluate(()=>{
+    const entry=document.querySelector('#botWaveEntry'),free=document.getElementById('freeBattle');
+    const title=entry.querySelector('strong'),a=entry.getBoundingClientRect(),b=free?.getBoundingClientRect();
+    const collision=b?Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*
+      Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)):0;
+    return {entry:{x:a.x,y:a.y,width:a.width,height:a.height,bottom:a.bottom},
+      battle:b?{x:b.x,y:b.y,width:b.width,height:b.height}:null,
+      overlapArea:collision,titleClipped:title.scrollWidth>title.clientWidth+2};
+  });
+  assert.equal(homeGeometry.overlapArea,0,'Home BOT WAVE overlaps FREE BATTLE '+JSON.stringify(homeGeometry));
+  assert.equal(homeGeometry.titleClipped,false,'Home BOT WAVE title clipped '+JSON.stringify(homeGeometry));
+  console.log('BOT WAVE R9 owner Home layout PASS',view.name,homeGeometry);
   await page.screenshot({path:path.join(output,view.name+'-home-special-icon.png')});
   await page.$eval('#botWaveEntry',el=>el.click());
   await page.waitForFunction(()=>location.pathname==='/bot-wave/index.html',{timeout:45000})
@@ -133,6 +147,15 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.modalArt&&interfaceRead.debugHidden
        &&interfaceRead.fiveBeats===5&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===0&&interfaceRead.pressureMeter,
       'Owner Gold HUD not rebuilt '+JSON.stringify(interfaceRead));
+   // Resident Gold Home must NOT leave its separate Archive button above Wave.
+   const inheritedHome=await page.evaluate(()=>{
+     const archive=document.querySelector('.apex-skin-entry');
+     const wave=document.getElementById('apex-wave-host');
+     return {active:document.body.classList.contains('apex-bot-wave-active'),
+       hasWave:!!wave,archivePainted:!!(archive&&getComputedStyle(archive).display!=='none')};
+   });
+   assert.ok(inheritedHome.active&&inheritedHome.hasWave&&!inheritedHome.archivePainted,
+     'Resident-Home ARCHIVE leaks over live BOT WAVE '+JSON.stringify(inheritedHome));
    await gameFrame.click('#w-go');
    await page.waitForFunction(()=>{
      const frame=document.querySelector('#wave')?.contentWindow;
@@ -147,6 +170,19 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
       width:w.innerWidth,height:w.innerHeight,gameCanvas:!!w.document.getElementById('arena')};
    });
    assert.ok(waveRuntime.playerHP>0&&waveRuntime.enemyCount>=1);
+   const hudGeometry=await gameFrame.evaluate(()=>{
+     const rect=selector=>{const e=document.querySelector(selector),r=e?.getBoundingClientRect();
+       return r?{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}:null};
+     return {screen:{w:innerWidth,h:innerHeight},hero:rect('.bw-hero'),center:rect('.bw-encounter'),
+       threat:rect('.bw-threat'),skills:rect('.bw-skill-deck'),return:null};
+   });
+   const {w,h}=hudGeometry.screen;
+   assert.ok(hudGeometry.hero?.width<=310&&hudGeometry.hero?.height<=205&&
+     hudGeometry.center?.width<=330&&hudGeometry.center?.height<=155&&
+     hudGeometry.threat?.width<=280&&hudGeometry.skills?.width<=335&&
+     hudGeometry.skills?.height<=124&&hudGeometry.skills?.y>=h*.71,
+     'R9 HUD occupies playable arena '+JSON.stringify(hudGeometry));
+   console.log('BOT WAVE R9 playable-area UI bounds PASS',view.name,hudGeometry);
    assert.equal(waveRuntime.gameCanvas,true);
    // Restore-fidelity owner gate: source Gold art, source R2 industrial circular
    // stage, postprocess and BOTH sampled SFX banks must render in a live browser.
@@ -286,6 +322,18 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    }));
    assert.ok(shot.nativeExecutor&&shot.nativeProjectileDrawing&&shot.nativePistolEmissions>0&&shot.fakeGoldOrbs===0&&shot.goldVisualRedesign,
     'Free Battle shot authority not actually running '+JSON.stringify(shot));
+   // The original test only proved native fire events; it NEVER proved
+   // what reached the audio graph. Require the actual browser AudioBuffer
+   // source to report attenuation and its UNRAISED native voice cap.
+   const liveMix=await gameFrame.evaluate(()=>({
+     policy:window.APEX_BOT_WAVE_AUDIO_POLICY?.snapshots?.()||null,
+     version:window.APEX_BOT_WAVE_INTERFACE_V2?.version||null,
+     actual:window.APEX_ARSENAL_AV?.stats?.waveMix||null
+   }));
+   assert.ok(liveMix.policy?.mix?.gain>0&&liveMix.policy.mix.gain<=.14&&
+     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r9'),
+     'Native gun SFX not demonstrably attenuated in live Chromium '+JSON.stringify(liveMix));
+   console.log('BOT WAVE R9 actual WebAudio native gun mix PASS',view.name,liveMix);
    console.log('BOT WAVE actual Arsenal gun discharge PASS',view.name,shot);
    // Explicit real HTTP fetch proof: no sprite/audio is accidentally
    // discarded by shipping-prune or silently replaced by SPA HTML fallback.

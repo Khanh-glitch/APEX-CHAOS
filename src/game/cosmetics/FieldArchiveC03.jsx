@@ -50,7 +50,7 @@ function pickSelection(){
 }
 const isHome=()=>{
  const stage=document.getElementById('stage');
- return !!(document.body.classList.contains('apex-gold-mounted')&&stage&&!document.getElementById('apex-boot-start')&&window.gameState!=='ARSENAL'&&
+ return !!(document.body.classList.contains('apex-gold-mounted')&&stage&&!document.getElementById('apex-boot-start')&&!document.getElementById('apex-wave-host')&&!document.body.classList.contains('apex-bot-wave-active')&&window.gameState!=='ARSENAL'&&
  !['screen-mode','screen-fighter','screen-draw','screen-battle','flow-transition'].some(c=>stage.classList.contains(c)));
 };
 function catalogHeroes(){const registry=window.APEX_HERO_REWORK_REGISTRY?.HEROES||{};return PRODUCT_ROSTER.playableIds.map(id=>{const data=registry[id];return data?{id,name:HERO_META[id]?.name||data.displayName||data.name||id,tier:'FIGHTER',family:'PLAYABLE',registry:data}:null}).filter(Boolean)}

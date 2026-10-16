@@ -3,10 +3,10 @@
 #stage #botWaveEntry{
  --wave-gold:#ffc482;--wave-steel:#141922;
  position:absolute;z-index:26;
- right:clamp(17px,2.7vw,52px);bottom:clamp(166px,22.8vh,258px);top:auto;
- width:clamp(320px,29vw,475px);height:clamp(130px,15.5vh,176px);
+ right:clamp(15px,3.1vw,57px);bottom:clamp(190px,29vh,290px);top:auto;
+ width:clamp(292px,20.7vw,370px);height:clamp(94px,12.1vh,112px);
  box-sizing:border-box;padding:0;display:grid;
- grid-template-columns:41% 59%;align-items:stretch;text-align:left;
+ grid-template-columns:38% 62%;align-items:stretch;text-align:left;
  isolation:isolate;overflow:visible;
  border:1px solid #e6b77a9c;border-left:4px solid #ff9d46;
  border-radius:3px;
@@ -41,11 +41,11 @@
 }
 #stage #botWaveEntry .apex-wave-entry-copy{
  position:relative;z-index:3;display:flex;flex-direction:column;justify-content:center;
- gap:clamp(4px,.65vh,9px);padding:13px 17px 16px;
+ gap:clamp(3px,.42vh,6px);padding:8px 14px 13px;
  min-width:0;overflow:hidden;pointer-events:none;
 }
 #stage #botWaveEntry .apex-special-wave-top{
- display:flex;align-items:center;gap:7px;font:900 10px/1 ui-monospace,Consolas,monospace;
+ display:flex;align-items:center;gap:7px;font:900 8px/1 ui-monospace,Consolas,monospace;
  color:#ffb477;letter-spacing:.15em;white-space:nowrap;
 }
 #stage #botWaveEntry .apex-special-wave-top i{
@@ -53,11 +53,11 @@
  box-shadow:0 0 11px #ffab52;animation:waveBeacon 2.2s ease-in-out infinite;
 }
 #stage #botWaveEntry strong{
- font:italic 1000 clamp(34px,3.55vw,56px)/.92 Impact,"Arial Narrow",system-ui;
- letter-spacing:.035em;color:#fff0d4;white-space:nowrap;text-shadow:0 3px 9px #000a;
+ font:italic 1000 clamp(27px,2.1vw,38px)/.94 Impact,"Arial Narrow",system-ui;
+ letter-spacing:.035em;color:#fff0d4;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;text-shadow:0 3px 9px #000a;
 }
 #stage #botWaveEntry small{
- font:900 clamp(8px,.66vw,11px)/1.2 ui-monospace,Consolas,monospace;
+ font:800 clamp(7px,.57vw,9px)/1.2 ui-monospace,Consolas,monospace;
  color:#d9b194;letter-spacing:.05em;white-space:nowrap;
 }
 #stage #botWaveEntry .apex-wave-entry-go{
@@ -83,24 +83,24 @@
 }
 #apex-wave-host > #return:focus-visible{outline:3px solid #ffe0a0;outline-offset:3px}
 @media(max-width:980px) and (orientation:landscape){
- #stage #botWaveEntry{right:1.5vw;bottom:clamp(93px,19vh,155px);
-  width:clamp(190px,27vw,265px);height:clamp(67px,17vh,101px);
+ #stage #botWaveEntry{right:1.5vw;bottom:clamp(99px,24vh,160px);
+  width:clamp(185px,25vw,254px);height:clamp(67px,16vh,89px);
   grid-template-columns:36% 64%;border-left-width:2px}
  #stage #botWaveEntry .apex-wave-entry-copy{padding:5px 11px 7px;gap:3px}
  #stage #botWaveEntry .apex-special-wave-top{font-size:6.5px;letter-spacing:.06em}
  #stage #botWaveEntry .apex-special-wave-top i{width:4px;height:4px}
- #stage #botWaveEntry strong{font-size:clamp(22px,3vw,31px)}
+ #stage #botWaveEntry strong{font-size:clamp(20px,2.7vw,27px)}
  #stage #botWaveEntry small{font-size:6px}
  #stage #botWaveEntry .apex-wave-entry-go{font-size:13px;bottom:5px;right:6px}
  #apex-wave-host > #return{font-size:9px!important;padding:5px 10px!important;min-height:28px}
 }
 @media(orientation:portrait){
- #stage #botWaveEntry{right:3vw;bottom:calc(var(--safeB,0px) + 92px);
-  width:clamp(230px,65vw,350px);height:clamp(98px,14vh,134px);
+ #stage #botWaveEntry{right:3vw;bottom:calc(var(--safeB,0px) + 130px);
+  width:clamp(210px,61vw,315px);height:clamp(90px,13vh,115px);
   grid-template-columns:38% 62%}
  #stage #botWaveEntry .apex-wave-entry-copy{padding:8px 11px 11px;gap:5px}
  #stage #botWaveEntry .apex-special-wave-top{font-size:8px;letter-spacing:.055em}
- #stage #botWaveEntry strong{font-size:clamp(28px,7vw,40px)}
+ #stage #botWaveEntry strong{font-size:clamp(23px,6.2vw,34px)}
  #stage #botWaveEntry small{font-size:7px;letter-spacing:0}
 }
 @media(prefers-reduced-motion:reduce){

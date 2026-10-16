@@ -470,7 +470,8 @@ export default function App() {
       window.addEventListener('popstate',onPop);
       window.addEventListener('message',onMessage);
       const cleanup=()=>{window.removeEventListener('popstate',onPop);
-        window.removeEventListener('message',onMessage)};
+        window.removeEventListener('message',onMessage);
+        document.body.classList.remove('apex-bot-wave-active')};
       const waitReady=()=>new Promise((resolve,reject)=>{
         let done=false;
         const timeout=setTimeout(()=>finish(Error('BOT WAVE Gold V2 admission timed out')),24000);
@@ -484,11 +485,11 @@ export default function App() {
           if(!doc?.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
           if(!doc.getElementById('bw-v2-styles')){
             const css=doc.createElement('link');css.rel='stylesheet';css.id='bw-v2-styles';
-            css.href='/game/bot-wave/botWavePresentationV2.css?v=20261016-boxe-r8-cinematic';doc.head.append(css);
+            css.href='/game/bot-wave/botWavePresentationV2.css?v=20261016-boxe-r9-owner-fidelity';doc.head.append(css);
           }
           if(!doc.getElementById('bw-v2-script')){
             const script=doc.createElement('script');script.id='bw-v2-script';
-            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261016-boxe-r8-cinematic';doc.head.append(script);
+            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261016-boxe-r9-owner-fidelity';doc.head.append(script);
           }
           const win=frame.contentWindow;
           if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&
@@ -499,6 +500,7 @@ export default function App() {
         const poll=setInterval(attach,80);attach();
       });
       document.body.append(cover);waveOverlayRef.current=cover;
+      document.body.classList.add('apex-bot-wave-active');
       const coordinator=window.APEX_SCENE_TRANSITION;
       try{
         const result=await coordinator.run({

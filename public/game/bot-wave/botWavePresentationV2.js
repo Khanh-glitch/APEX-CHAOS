@@ -6,12 +6,18 @@
 'use strict';
 const doc=window.document;
 if(window.APEX_BOT_WAVE_INTERFACE_V2)return;
-const VERSION='owner-release-r8-cinematic';
+const VERSION='owner-release-r9-owner-fidelity';
 // Existing BOXE baseline was x1.5; owner requests another +30% -> x1.95.
  // Arsenal's compressor/voice-density mix follows this shared mode policy.
- const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.23,gunFloor:.18});
+ const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.14,gunFloor:.12});
 function installWaveAudioMix(){
  window.APEX_BOT_WAVE_AUDIO_MIX=AUDIO_MIX;
+ // Testable game-only policy; the actual per-shot gain is recorded by native AV.
+ window.APEX_BOT_WAVE_AUDIO_POLICY=Object.freeze({mode:'native-swarm',revision:VERSION,
+   gunBase:AUDIO_MIX.weapons,gunFloor:AUDIO_MIX.gunFloor,
+   snapshots:()=>({mix:window.APEX_ARSENAL_AV?.stats?.waveMix||null,
+     recentVoice:window.APEX_ARSENAL_AV?.stats?.lastVoice||null,
+     decoded:window.APEX_ARSENAL_AV?.audioStatus?.().decoded||0})});
  const director=window.BOXE_SFX?.audio;
  if(!director)return;
  const apply=()=>{
