@@ -19,11 +19,11 @@ function install(){
  const hud=doc.getElementById('wave-hud');
  const modal=doc.querySelector('#wave-modal .w-dialog');
  const stage=doc.getElementById('arena-experience-hud');
- const essential=[hud,modal,stage,hud?.querySelector('.w-left'),hud?.querySelector('.w-right'),
+ const essential=[hud,modal,hud?.querySelector('.w-left'),hud?.querySelector('.w-right'),
    hud?.querySelector('.w-actions'),hud?.querySelector('#wave-stick'),hud?.querySelector('#wave-status'),
    hud?.querySelector('#resume-wave'),doc.getElementById('w-go')];
  if(essential.some(x=>!x))return false;
- const [, , , left,right,actions,stick,status,pause]=essential;
+ const [, , left,right,actions,stick,status,pause]=essential;
  // Previously these were five detached HUD rectangles and a 10-step
  // debug bar. Build a coherent command deck, with encounter hierarchy and
  // clear player/weapon identities, while preserving functional DOM nodes.
@@ -88,9 +88,9 @@ function install(){
   kicker.textContent='BOT WAVE  //  SURVIVAL PROTOCOL';
   modal.insertBefore(kicker,doc.getElementById('w-title'));
  }
- const oldTrack=stage.querySelector('#arena-round-track');
+ const oldTrack=stage?.querySelector('#arena-round-track');
  if(oldTrack){oldTrack.setAttribute('aria-hidden','true');oldTrack.hidden=true;}
- const tool=stage.querySelector('#arena-experience-tools');
+ const tool=stage?.querySelector('#arena-experience-tools');
  if(tool){tool.hidden=true;tool.setAttribute('aria-hidden','true');}
  // HUD truth: chapter, five dramatic beats, wave identity. No 10-wave cap.
  const update=()=>{
