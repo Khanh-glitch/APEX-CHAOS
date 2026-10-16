@@ -368,6 +368,7 @@
 
     for (const slot of state.slots) {
       if(slot.questNarrativeOnly===true)continue;
+      applyFloorAttractors(slot,dt);
       if(slot.phase==='REVEALED'&&slot.boxeEjection){
         // A genuine Arsenal floor pickup with short-lived ejection momentum.
         // Wall reflection, drag and pickup eligibility remain world-owned.
@@ -517,6 +518,33 @@
   // but ONLY this canonical resolver can remove the slot. Evaluators are
   // read-only until their commit callback wins the nearest-contact arbitration.
   const externalPickupConsumers = new Map();
+  // Existing slot coordinates remain authoritative; field owners only return
+  // finite speed requests. This runs inside updateSlots, not an independent
+  // RAF or a hero-side position integrator.
+  const floorAttractors = new Map();
+  function registerFloorAttractor(id, query) {
+    const key=String(id||'');
+    if(!key||typeof query!=='function')throw Error('invalid floor attractor');
+    if(floorAttractors.has(key))throw Error('duplicate floor attractor '+key);
+    floorAttractors.set(key,query);
+    return ()=>{if(floorAttractors.get(key)===query)floorAttractors.delete(key);};
+  }
+  function applyFloorAttractors(slot,dt) {
+    if(slot?.phase!=='REVEALED'||slot.kind!=='WEAPON'||!Number.isFinite(dt)||dt<=0)return;
+    if(!window.APEX_ARSENAL_CONFIG?.isHeroManipulableFloorWeapon?.(slot))return;
+    let vx=0,vy=0;
+    for(const [key,query] of floorAttractors){
+      let force;
+      try{force=query(slot,dt);}catch(error){console.warn('[ARSENAL] floor attractor',key,error);continue;}
+      if(!force||!Number.isFinite(force.vx)||!Number.isFinite(force.vy))continue;
+      vx+=force.vx;vy+=force.vy;
+    }
+    const v=Math.hypot(vx,vy),limit=650;
+    if(v>limit){vx*=limit/v;vy*=limit/v;}
+    const S=typeof GAME_SIZE==='number'?GAME_SIZE:1000;
+    slot.x=Math.max(60,Math.min(S-60,slot.x+vx*dt));
+    slot.y=Math.max(60,Math.min(S-60,slot.y+vy*dt));
+  }
   function registerExternalPickupConsumer(id, evaluate) {
     const key=String(id||'');
     if(!key || typeof evaluate!=='function')throw Error('invalid pickup consumer');
@@ -963,6 +991,7 @@
     updateSlots,
     resolvePickups,
     registerExternalPickupConsumer,
+    registerFloorAttractor,
     externalPickupConsumerIds:()=>Object.freeze([...externalPickupConsumers.keys()]),
     drawSlots,
     predictContactETA,
