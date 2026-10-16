@@ -60,8 +60,8 @@
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
     "public/game/results/ownerAwards.generated.js": "bf1214feb289ade27e97c382b33e87a2ecf230f54c3e673cec004b0e824d25bb",
     "public/game/results/matchResultAuthority.js": "2a14d78e29a120efcf9cc663c05c6c1ea36e93911188b287895405e6dc65462f",
-    "public/game/hero-rework/boxeBattleRuntime.js": "6b05284d4365cf73079ede6ec222959b072cbe17f1bd6202c62b81c583fa7962",
+    "public/game/hero-rework/boxeBattleRuntime.js": "700d924bd13edf6e6e073cd67094092dbbd3bb936ee92addbb04daa8648dd917",
     "public/game/hero-rework/boxeGoldLibrary.js": "f283094e1b345b7f3f212649382f4cc2d4c6497abfe12fd7729b567aaddb6d08",
-    "public/game/hero-rework/boxeGoldPresentationRuntime.js": "9cbf5d6e5e6cba53f7d6f226dc86731b53afe583a530146437f48cbd64d94a71"
+    "public/game/hero-rework/boxeGoldPresentationRuntime.js": "c320bf3fe4381915f4193f404310fe0d5a45a028fc527d907bfd46a5790bb771"
   }
 }
