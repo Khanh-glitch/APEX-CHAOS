@@ -561,19 +561,19 @@
   // product selection or assign art until the owner supplies final Gold.
   HEROES.SHURI = {
     id:'SHURI',name:'SHURI',displayName:'SHURI',classRef:'rework.shuri',
-    identityColor:'#f29a51',
+    identityColor:'#f16c41',
     archiveProfile:{
       subtitle:'Scrap Engineer',
       intro:'A scrap engineer who recycles spent guns and commands one modular field machine.',
       artwork:{
-        avatar:'/assets/gold-ui/heroes/shuri/source/core.webp',
-        standing:'/assets/gold-ui/heroes/shuri/source/core.webp',
-        cover:'/assets/gold-ui/heroes/shuri/source/core.webp',
+        avatar:'/assets/dictionary/heroes/shuri/avatar.webp',
+        standing:'/assets/dictionary/heroes/shuri/standing.webp',
+        cover:'/assets/dictionary/heroes/shuri/cover.webp',
       },
       skillArt:{
-        PASSIVE:'/assets/gold-ui/heroes/shuri/source/collector.webp',
-        A1:'/assets/gold-ui/heroes/shuri/source/bomb.webp',
-        A2:'/assets/gold-ui/heroes/shuri/source/foundation.webp',
+        PASSIVE:'/assets/dictionary/heroes/shuri/passive.webp',
+        A1:'/assets/dictionary/heroes/shuri/a1.webp',
+        A2:'/assets/dictionary/heroes/shuri/a2.webp',
       },
       traits:{damage:48,control:67,mobility:82,defense:70,field:98},
     },

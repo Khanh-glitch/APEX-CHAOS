@@ -36,15 +36,16 @@ for(const file of ['core.webp','collector.webp','bomb.webp','foundation.webp',
 for(const role of ['portrait','art','battleAvatar','skillIcons']){
  assert.ok(bridge.includes(role),'Gold Product Bridge missing UI art role '+role);
 }
-assert.match(bridge,/shuri\/source\/core\.webp/);
-assert.match(bridge,/shuri\/source\/collector\.webp/);
-assert.match(bridge,/shuri\/source\/bomb\.webp/);
-assert.match(bridge,/shuri\/source\/foundation\.webp/);
+for(const role of ['avatar','standing','cover','passive','a1','a2']){
+ const filename='public/assets/dictionary/heroes/shuri/'+role+'.webp';
+ assert.ok(fs.existsSync(filename)&&fs.statSync(filename).size>10000,'Missing SHURI owner art '+role);
+ assert.ok(bridge.includes('/assets/dictionary/heroes/shuri/'+role+'.webp'),'Bridge missing '+role);
+}
 const registry=read('public/game/hero-rework/heroRegistry.js');
 assert.match(registry,/HEROES\.SHURI/);
-assert.match(registry,/PASSIVE:\s*'\/assets\/gold-ui\/heroes\/shuri\/source\/collector\.webp'/);
-assert.match(registry,/A1:\s*'\/assets\/gold-ui\/heroes\/shuri\/source\/bomb\.webp'/);
-assert.match(registry,/A2:\s*'\/assets\/gold-ui\/heroes\/shuri\/source\/foundation\.webp'/);
+for(const role of ['avatar','standing','cover','passive','a1','a2']){
+ assert.ok(registry.includes('/assets/dictionary/heroes/shuri/'+role+'.webp'),'Registry missing '+role);
+}
 
 assert.ok(gold.length>1000000 && gold.includes('data:audio/ogg;base64,')
   && gold.includes('data:image/webp;base64,'));

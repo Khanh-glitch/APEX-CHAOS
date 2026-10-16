@@ -113,16 +113,15 @@
       ],
     },
     shuri: {
-      // Byte-exact painted Gold (8) source sprites; NO procedural redraw
-      // or donor stock illustration. Dedicated cover staging is a separate
-      // presentation task, not a reason to hide the approved identity.
-      portrait: heroUiAsset('shuri/source/core.webp'),
-      art: heroUiAsset('shuri/source/core.webp'),
-      battleAvatar: heroUiAsset('shuri/source/core.webp'),
+      // Owner SHURI V5 art: dedicated full-body, cinematic cover and locked goggles.
+      // Keep the battle Gold rig under shuri/source/ completely unchanged.
+      portrait: '/assets/dictionary/heroes/shuri/cover.webp',
+      art: '/assets/dictionary/heroes/shuri/standing.webp',
+      battleAvatar: '/assets/dictionary/heroes/shuri/avatar.webp',
       skillIcons: [
-        heroUiAsset('shuri/source/collector.webp'),
-        heroUiAsset('shuri/source/bomb.webp'),
-        heroUiAsset('shuri/source/foundation.webp'),
+        '/assets/dictionary/heroes/shuri/passive.webp',
+        '/assets/dictionary/heroes/shuri/a1.webp',
+        '/assets/dictionary/heroes/shuri/a2.webp',
       ],
     },
     boxe: {
@@ -178,7 +177,7 @@
   // showed up as soon as a crit/heavy slash or a rail plate took her accent.
   const FALLBACK_ACCENTS = {
     newbot: '#ff941f', hunter: '#96ca2d', crystala: '#a066f0',
-    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42', shuri: '#f29a51',
+    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42', shuri: '#f16c41',
   };
 
   // Production-visible roster authority (2026-10-05): the Gold roster is
