@@ -500,22 +500,58 @@
     name: 'BOXE',
     displayName: 'BOXE',
     classRef: 'rework.boxe',
-    archiveProfile: { traits: { damage: 0, control: 92, mobility: 65, defense: 88, field: 38 } },
+    archiveProfile: {
+      subtitle: 'The Fist of Dawn',
+      intro: 'An experienced rocket-glove boxer. BOXE controls space with real impacts, but both hands must physically return before he can counter again.',
+      artwork: {
+        avatar: '/assets/dictionary/heroes/boxe/avatar.png',
+        standing: '/assets/dictionary/heroes/boxe/standing.png',
+        cover: '/assets/dictionary/heroes/boxe/cover.png',
+      },
+      skillArt: {
+        PASSIVE: '/assets/dictionary/heroes/boxe/passive.png',
+        A1: '/assets/dictionary/heroes/boxe/a1.png',
+        A2: '/assets/dictionary/heroes/boxe/a2.png',
+      },
+      traits: { damage: 0, control: 92, mobility: 65, defense: 88, field: 38 },
+    },
     skills: {
       A1: skill('boxe.fist_rocket', 'A1', 'boxe.fist_rocket', {
         cooldown: 15, outboundSeconds: 5, flightSpeed: 1250,
         returnSpeed: 1450, reboundOn: ['wall','opponent'],
-        flurrySeconds: 2, flurryInterval: .085, flurryHitStunSeconds: .0425,
-        impactStunSeconds: .5, maxGroundGuns: 1, baseDamage: 0,
-      }, ['cooldown'], 'cooldown_step'),
+        flurrySeconds: 2, flurryInterval: .085, flurryPunches: 24,
+        flurryHitStunSeconds: .07, impactStunSeconds: .35,
+        flurryHeavyEvery: 6, flurryHeavyPushRatio: 330 / 130,
+        cooldownStarts: 'after-both-gloves-caught',
+        manualFlurryCancel: 'cancel-unplayed-and-recall-both',
+        naturalFlurryEnd: 'recall-both',
+        bulletContact: 'physical-emergency-recall',
+        stunLaw: 'relative-normal-closing-speed',
+        disarmOnHit: false, maxGroundGuns: 1, baseDamage: 0,
+      }, ['cooldown'], 'cooldown_step', {
+        displayName: 'Fist Rocket',
+        archiveProfile: {
+          description: 'Launches a glove towards the opponent for up to 5 s, reflecting off walls and fighters. Stun scales with actual contact angle and force (max 350 ms); A1 never disarms. Projectiles striking a glove force that glove to return. One real floor gun can be carried home. Press A1 again to recall. During Heat, a successful hit begins a 24-beat, 2-second two-glove flurry: each authentic jab can stun for up to 70 ms, and every sixth hit has heavier push. Press A1 to cancel unplayed strikes and recall BOTH gloves; finishing 24 beats recalls both automatically. A1 cooldown starts only after BOTH gloves are physically caught; A2 stays locked until then.',
+        },
+      }),
       A2: skill('boxe.block_and_hit', 'A2', 'boxe.block_and_hit', {
         cooldown: 20, guardSeconds: 1, counterStunSeconds: 2,
         finisherFractionRemainingHP: .10, baseDamage: 0,
-      }, ['cooldown'], 'cooldown_step'),
+      }, ['cooldown'], 'cooldown_step', {
+        displayName: 'Block & Hit',
+        archiveProfile: {
+          description: 'Enter a 1-second counter guard. Intercepting an eligible attack launches a physical counter, disarms the opponent and stuns for 2 seconds. While Heat is active at activation, the empowered finisher also deals 10% of the target\'s remaining HP. A2 cannot activate while A1 gloves remain detached.',
+        },
+      }),
       PASSIVE: skill('boxe.heat', 'PASSIVE', 'boxe.heat', {
         damageThreshold: 300, enhancedSeconds: 3, cooldownRecoveryMultiplier: 2,
         eligible: 'realized-dealt-or-received-HP', resetAtEnd: true,
-      }, ['damageThreshold'], 'magnitude_step'),
+      }, ['damageThreshold'], 'magnitude_step', {
+        displayName: 'Càng đánh càng hăng',
+        archiveProfile: {
+          description: 'Each 300 realized HP damage dealt or received grants 3 seconds of Heat: skills activated during that window use their empowered version, and skill cooldown recovery runs at 2x. Empowerment is fixed at cast time, not retroactively applied to a rocket already airborne. Heat resets after 3 seconds.',
+        },
+      }),
     },
   };
 
