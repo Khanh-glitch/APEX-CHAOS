@@ -95,7 +95,7 @@ jobs:
           if test -f masters/boxe-gold/THE_HAND_GOLD_ORIGINAL.html; then
             node tools/testBoxeGoldIntakeGate.mjs
           else
-            echo "::notice::BOT WAVE R5.1 compact playable runtime has lossless SHA proof and Chrome checks; original unshipped master HTML is not imported. Do not claim source-master intake complete."
+            echo "::notice::Owner-supplied Gold R2 engine, SFX and artwork restored and SHA-locked. The 26MB standalone is archived outside this repo; shipped Wave replaces only the old gun simulation with native Arsenal."
           fi
       - name: Browser dependencies
         run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check

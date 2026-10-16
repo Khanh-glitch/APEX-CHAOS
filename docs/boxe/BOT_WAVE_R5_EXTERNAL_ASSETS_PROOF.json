@@ -1,8 +1,8 @@
 {
-  "raw_sha256": "e766b7cdd0b57e87187992ba464d8bddae2c2ee0fac3996e46ab9b048f2d0256",
-  "externalized_sha256": "1db839f172e64048729115c5e068e0716800f4084aa24b9463447b48b0409e55",
-  "raw_bytes": 25720219,
-  "externalized_bytes": 317923,
+  "raw_sha256": "928dd80df819172b06ea2ee872d6fe5f206d6aded3f21cdea150caa2af07a3a1",
+  "externalized_sha256": "5745e5e267eed2b457cf3f2ac5bafda14ec35dc03f9053552841ba9f72edf3f7",
+  "raw_bytes": 26401137,
+  "externalized_bytes": 995987,
   "substitutions": [
     {
       "file": "char-body.png",
@@ -58,5 +58,8 @@
   "gold_visual_prefix_sha256": "58f886f93addd83e87f87be476ae8eb504a1e166a520d44ee4454918ba38882f",
   "visual_prefix_delimiter": "/* BOXE BOT WAVE pilot — additive Gold Lab adapter",
   "source_gold_visual_edits": 0,
-  "bot_wave_gameplay_revision": "REJECT-R3-NATIVE-EXECUTOR-POSE-PROJECTILES-AND-AV"
+  "bot_wave_gameplay_revision": "REJECT-R3-NATIVE-EXECUTOR-POSE-PROJECTILES-AND-AV",
+  "owner_gold_core_sha256": "00a14304c6c82efc337e78cbeb4f68ff9d1f15b4413016b6355a6c43dd3ffbc7",
+  "owner_gold_core_chars": 901831,
+  "source_authority": "Owner-uploaded BOXE_THE_LAST_ROUND_R2_PLAYTEST (1)(1).html: exact Gold core and R2 arena/SFX; only the wave director and native Arsenal adapter differ."
 }
