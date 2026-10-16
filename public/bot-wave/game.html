@@ -6265,6 +6265,23 @@ window.addEventListener('error',e=>{console.error('Standalone runtime error:',e.
  */
 (async function installBotWaveGoldPilot(){
 'use strict';
+// Audio rollback boundary: EXACT V3 behavior for Jab and U.
+// Other Final accents (K Pressure Bloom, current provisional I bell) are untouched.
+(function preserveAcceptedSound(){
+ const accents=window.BOXE_FINAL_SFX;
+ if(!accents)return;
+ const originalEmit=accents.emit.bind(accents);
+ accents.emit=function(name,...args){if(name==='j_coil_b'||name==='j_arc_b'||name==='round_bell'||name.startsWith('blink_'))return false;return originalEmit(name,...args);};
+ accents.canBlink=function(){return false;};
+ accents.emitBlink=function(){return false;};
+ const label=document.querySelector('#boxe-final-mix p');
+ if(label)label.textContent='K: Pressure Bloom C · J/U: V3 ORIGINAL · I: V3 ORIGINAL (chờ duyệt chuông)';
+ const previews=document.querySelectorAll('#boxe-final-previews button');
+ if(previews[1])previews[1].textContent='▶ J · V3 ORIGINAL';
+ if(previews[2])previews[2].textContent='▶ U · V3 ORIGINAL';
+ if(previews[3])previews[3].textContent='▶ I · V3 ORIGINAL';
+})();
+
 // Separate owner Gold animation from native Arsenal & encounter policies.
 const loadWaveDependency=src=>new Promise((resolve,reject)=>{
  const el=document.createElement('script');el.src=src;el.onload=resolve;
@@ -6564,7 +6581,7 @@ const _ownerStageStyle=document.createElement('style');_ownerStageStyle.textCont
 
  for(const id of ['w-hp','w-hp-bar','w-level','w-xp','w-xp-bar','w-wave','w-count','w-arsenal','wave-status','w-title','w-desc','w-cards','w-go','wave-modal'])UI[id]=document.getElementById(id);
  document.getElementById('w-go').onclick=()=>{if(state.phase==='intro'||state.phase==='intermission'){engine.paused=false;UI['wave-modal'].hidden=true;startWave()}else if(state.phase==='complete'){restart()}else if(state.phase==='gameover'){restart()}};
- document.getElementById('resume-wave').onclick=()=>{if(state.phase==='combat'){engine.paused=!engine.paused;document.getElementById('resume-wave').textContent=engine.paused?'▶ RESUME':'Ⅱ PAUSE';}};
+ document.getElementById('resume-wave').onclick=()=>{if(state.phase==='combat'){engine.paused=!engine.paused;engine.combatCue('PAUSE',.7);document.getElementById('resume-wave').textContent=engine.paused?'▶ RESUME':'Ⅱ PAUSE';}};
  document.querySelectorAll('[data-act]').forEach(b=>{const a=b.dataset.act;b.addEventListener('pointerdown',e=>{e.preventDefault();engine.initAudio();b.classList.add('on');act(a,true)});b.addEventListener('pointerup',e=>{e.preventDefault();b.classList.remove('on');act(a,false)});b.addEventListener('pointercancel',()=>{b.classList.remove('on');act(a,false)});});
  const stick=document.getElementById('wave-stick');let stickPointer=null;
  function stickMove(e){let r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=(e.clientX-cx)/(r.width*.38),dy=(e.clientY-cy)/(r.height*.38),n=Math.max(1,Math.hypot(dx,dy));dx/=n;dy/=n;stick.style.setProperty('--dx',(dx*r.width*.22)+'px');stick.style.setProperty('--dy',(dy*r.height*.22)+'px');stickDX=dx;stickDY=dy;}
@@ -6596,13 +6613,13 @@ function gainXP(xp){if(state.phase==='complete'||state.phase==='gameover')return
 function qualifiedCards(){return CARDS.filter(c=>!c.requires?.some(req=>!state.owned.has(req))&&(!c.max||((state.stacks[c.id]||0)<c.max))&&(!['jab','rocket','uppercut','counter','phantom','ult'].includes(c.id)||!state.owned.has(c.id)));}
 function threeCards(){const pool=qualifiedCards(),draw=[];for(let i=0;i<3&&pool.length;i++){let total=pool.reduce((s,c)=>s+c.weight,0),r=rng()*total,idx=pool.length-1;for(let j=0;j<pool.length;j++){r-=pool[j].weight;if(r<0){idx=j;break}}draw.push(pool.splice(idx,1)[0]);}return draw}
 function presentCards(){if(state.offer||state.levelsPending<=0)return;
- state.phase='upgrade';engine.paused=true;
+ state.phase='upgrade';engine.paused=true;engine.combatCue('LEVEL_UP',.86);
  UI['w-title'].textContent='LEVEL '+state.level+' · CHỌN NÂNG CẤP';UI['w-desc'].textContent='Một trong ba thẻ được bốc theo tỷ lệ tier. Không mở khóa tự động; ultimate I chỉ có khi bạn chọn đúng thẻ.';
  state.offer=threeCards();UI['w-cards'].replaceChildren(...state.offer.map(c=>{const btn=document.createElement('button');btn.className='w-card';btn.innerHTML=`<small>${c.tier} · ${['jab','rocket','uppercut','counter','phantom','ult'].includes(c.id)?'UNLOCK':'UPGRADE'}</small><strong></strong><em></em>`;btn.querySelector('strong').textContent=c.label;btn.querySelector('em').textContent=c.desc;btn.onclick=()=>chooseCard(c.id);return btn}));
  UI['w-go'].style.display='none';UI['wave-modal'].hidden=false;
 }
 function chooseCard(id){if(state.phase!=='upgrade'||!state.offer?.some(c=>c.id===id))return;
- let c=state.offer.find(x=>x.id===id);state.stacks[id]=(state.stacks[id]||0)+1;
+ let c=state.offer.find(x=>x.id===id);engine.combatCue('UPGRADE',.9);state.stacks[id]=(state.stacks[id]||0)+1;
  if(['jab','rocket','uppercut','counter','phantom','ult'].includes(id))state.owned.add(id);
  if(id==='counter')engine.waveCounterUnlocked=true;
  if(id==='vitality'){let heal=engine.player.maxHp*.12;engine.player.maxHp+=heal;engine.player.hp+=heal;}
@@ -6675,7 +6692,7 @@ function lose(){state.phase='gameover';state.comboFlow=null;state.rocketPending=
  UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';UI['w-go'].textContent='↻ RETRY';UI['wave-modal'].hidden=false;}
 function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.timeline=[];engine.player.hp=3200;engine.player.maxHp=3200;
  ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.damageMul=1;state.moveMul=1;state.punchMul=1;state.guardBonus=0;state.healOnKill=.012;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
- UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;startWave();}
+ UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;engine.combatCue('UI',.7);startWave();}
 function autoAimNow(){
  const p=engine.player,targets=engine.enemies.filter(e=>!e.dead);
  if(!targets.length){ARENA_STAGE.targetId=null;return null;}

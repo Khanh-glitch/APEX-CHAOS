@@ -30,3 +30,6 @@ console.log('OWNER GOLD R2 fidelity PASS: full original renderer, audio banks, 1
 assert.ok(game.includes('const ARENA_STAGE={')&&game.includes('engine.drawArena=function(ctx){ARENA_STAGE.draw(ctx);'), 'Owner circular R2 arena missing');
 assert.ok(game.includes('const R2_PRESENT={')&&game.includes('R2_PRESENT.hit(e,done,opts||{})'),'Owner impact number VFX missing');
 assert.ok(game.includes("engine.combatCue('WAVE_START',.8)"),'Owner fight SFX not routed');
+
+for(const forbidden of ["name==='j_coil_b'","name==='j_arc_b'","name==='round_bell'","name.startsWith('blink_')"])
+ assert.ok(game.includes(forbidden),'Original approved V3 sound rollback missing: '+forbidden);
