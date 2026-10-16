@@ -357,13 +357,33 @@
   // ---------------------------------------------------------------------------
   // Audio playback — bounded polyphony on the existing Apex audio graph.
   // ---------------------------------------------------------------------------
+  // BOT WAVE-only acoustic bus. Preserve every native source/sample; reduce
+  // summation peaks with dynamic headroom and a real compressor, not random
+  // gun mute/drop, time-stretch or changed shot cadence.
+  // Fire events are stamped at the semantic cue source, not guessed from filenames.
+  // The bus compresses gunfire ONLY; BOXE impact/guard and game cues keep their authority.
+  let waveBus=null,waveBusContext=null,cluster=0,clusterAt=0;
+  function waveAudioDestination(ctx,isGun){
+    const dest=typeof battleAudioMaster!=='undefined'?battleAudioMaster:ctx.destination;
+    if(!isGun)return dest;
+    if(waveBus&&waveBusContext===ctx)return waveBus;
+    if(typeof ctx.createDynamicsCompressor!=='function')return dest;
+    const limiter=ctx.createDynamicsCompressor();
+    limiter.threshold.value=-34;limiter.knee.value=11;limiter.ratio.value=10;
+    limiter.attack.value=.003;limiter.release.value=.31;
+    limiter.connect(dest);
+    waveBus=limiter;waveBusContext=ctx;
+    return limiter;
+  }
   function playEntry(entry) {
     pushRing(stats.scheduled, { rel: entry.rel, offset: entry.offset || 0, dur: entry.dur || null, vol: entry.vol }, 900);
     const ctx = audioCtxOf();
     const buffer = audioBuffers.get(entry.rel);
     if (!ctx || !buffer) { stats.throttled.notReady = (stats.throttled.notReady || 0) + 1; return; }
     const active = activeVoices.get(entry.rel) || 0;
-    const cap = entry.maxVoices || 4;
+    const waveMix=window.APEX_BOT_WAVE_AUDIO_MIX;
+    // Do not multiply native simultaneous-voice caps when 41 weapons swarm.
+    const cap = entry.maxVoices||4;
     if (active >= cap) { stats.throttled[entry.rel] = (stats.throttled[entry.rel] || 0) + 1; return; }
     let offset = entry.offset || 0;
     if (entry.slices) { offset = entry.slices[smgSliceCursor++ % entry.slices.length]; }
@@ -371,7 +391,10 @@
     // Reserve the voice (harness and browser share the cap accounting); release
     // when the clip would have ended.
     activeVoices.set(entry.rel, active + 1);
-    const release = () => activeVoices.set(entry.rel, Math.max(0, (activeVoices.get(entry.rel) || 1) - 1));
+    // Each voice has one owner: timeout and onended can both fire.
+    let released=false;
+    const release=()=>{if(released)return;released=true;
+      activeVoices.set(entry.rel,Math.max(0,(activeVoices.get(entry.rel)||1)-1));};
     if (typeof setTimeout === 'function') {
       const relId = setTimeout(() => { untrackTimer(relId); release(); }, Math.ceil(dur * 1000) + 40);
       trackTimer(relId);
@@ -388,8 +411,26 @@
       try { src.playbackRate.value = entry.playbackRate; } catch (e) {}
     }
     const gain = ctx.createGain();
-    const vol = entry.vol != null ? entry.vol : 0.7;
-    const now = ctx.currentTime;
+    const now=ctx.currentTime;
+    const isGun=!!(waveMix&&(entry.waveFire===true||/\/guns\//.test(entry.rel)));
+    const isUtility=!!(waveMix&&entry.waveUtility===true);
+    // Density is measured across every weapon ID, not once per clip filename.
+    // Ear-safe attenuation recovers smoothly as pressure drops; never time-stretches
+    // samples, changes gameplay cadence, or touches BOXE's Gold key SFX.
+    if(isGun){
+      cluster*=Math.exp(-Math.max(0,now-clusterAt)*4.2);
+      cluster=Math.min(30,cluster+1);clusterAt=now;
+    }
+    const crowded=isGun?Math.max(waveMix.gunFloor||.18,
+      1/Math.sqrt(1+Math.max(0,cluster-1)*.92)):1;
+    const utilityFactor=isUtility?Math.max(.22,1/Math.sqrt(1+cluster*.55)):1;
+    const vol=(entry.vol!=null?entry.vol:.7)*(isGun?waveMix.weapons*crowded:
+      isUtility?.25*utilityFactor:1);
+    if(isUtility)stats.waveUtility={source:entry.rel,
+      gain:Number(vol.toFixed(4)),density:Number(cluster.toFixed(2))};
+    if(isGun)stats.waveMix={density:Number(cluster.toFixed(2)),
+      gain:Number(vol.toFixed(4)),factor:Number(crowded.toFixed(3)),
+      nativeVoiceCap:cap,source:entry.rel};
     const attack = entry.attack != null ? entry.attack : 0;
     const fadeTail = entry.fadeTail != null ? entry.fadeTail : 0;
     const playDur = dur + (fadeTail > 0 ? 0 : 0);
@@ -406,7 +447,7 @@
     }
     stats.lastVoice = { rel: entry.rel, vol, offset, dur: playDur, viaBufferSource: true };
     src.connect(gain);
-    gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : ctx.destination);
+    gain.connect(waveMix?waveAudioDestination(ctx,isGun||isUtility):(typeof battleAudioMaster !== 'undefined'?battleAudioMaster:ctx.destination));
     src.onended = () => { liveSources.delete(src); release(); };
     try {
       src.start(now, offset, playDur);
@@ -424,20 +465,22 @@
     const list = AUDIO[listName];
     if (!list) return;
     for (const entry of list) {
-      const e = (opts && (opts.rate || opts.vol != null))
+      const e = (opts && (opts.rate || opts.vol != null || opts.waveFire || opts.waveUtility))
         ? Object.assign({}, entry, {
             playbackRate: opts.rate || entry.playbackRate,
             vol: opts.vol != null ? opts.vol : entry.vol,
+            waveFire: opts.waveFire === true,
+            waveUtility: opts.waveUtility === true,
           })
         : entry;
       playEntry(e);
     }
   }
-  function playLater(listName, delayMs) {
+  function playLater(listName, delayMs, opts) {
     if (typeof setTimeout !== 'function') return;
     // Session lifecycle: the raw timeout is tracked so resetAudioSession()
     // can cancel cues that are still pending when a battle session ends.
-    const id = setTimeout(() => { untrackTimer(id); playAll(listName); }, Math.max(0, delayMs | 0));
+    const id = setTimeout(() => { untrackTimer(id); playAll(listName, opts); }, Math.max(0, delayMs | 0));
     trackTimer(id);
   }
 
@@ -479,15 +522,19 @@
         break;
       }
       case 'pickup': {
+        if(window.APEX_BOT_WAVE_NPC_EQUIP){
+          stats.waveNpcEquipMuted=(stats.waveNpcEquipMuted||0)+1;
+          break;
+        }
         const w = o.weapon;
         const ready = GUN_READY[w];
         if (ready) {
-          playAll(ready);
-          if (w === 'SNIPER') playLater('pickup_sniper_lock', 180);
+          playAll(ready,{waveUtility:true});
+          if (w === 'SNIPER') playLater('pickup_sniper_lock', 180,{waveUtility:true});
           stats.gunReady = (stats.gunReady || 0) + 1;
           stats.lastGunReady = { weapon: w, cue: ready, rel: (AUDIO[ready] && AUDIO[ready][0] && AUDIO[ready][0].rel) };
         } else {
-          playAll('pickup');
+          playAll('pickup',{waveUtility:true});
           stats.lastGunReady = { weapon: w, cue: 'pickup', rel: AUDIO.pickup[0].rel };
         }
         break;
@@ -507,7 +554,10 @@
         const sfx = o.sfx || specialSfx[w] || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
         const recipes = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.VFX_RECIPES) || {};
         const rec = recipes[o.vfx] || null;
-        playAll(sfx, { rate: o.sfxRate || 1 });
+        const worldMelee=['SABRE','BATTLE_AXE','DAGGER','SPEAR','SPIKED_CLUB',
+          'STORMBREAKER','COMBAT_BOOMERANG','SWIRL_SHIELD','TOWER_SHIELD'].includes(w);
+        playAll(sfx, { rate: o.sfxRate || 1,
+          waveFire:!worldMelee&&fam!=='MELEE'&&fam!=='SHIELD' });
         const scale = rec ? rec.scale : (fam === 'AUTO' ? 0.5 : fam === 'SHOTGUN' ? 1.5 : fam === 'AUTOSHOT' ? 1.15 : fam === 'BURST' ? 0.62 : 0.7);
         const stretch = rec ? rec.stretch : (fam === 'SHOTGUN' || fam === 'AUTOSHOT' ? 1.35 : 1);
         const frames = fam === 'AUTO' ? [2 + (smgSliceCursor % 2), 3] : (fam === 'SHOTGUN' || fam === 'AUTOSHOT') ? [4, 0] : fam === 'BURST' ? [0, 2] : [0, 1];
@@ -544,7 +594,7 @@
         const list = shotgun ? SHELL_VARS : CASING_VARS;
         const entry = list[(shotgun ? shellCursor++ : casingCursor++) % list.length];
         const e = (o.vol != null) ? Object.assign({}, entry, { vol: o.vol }) : entry;
-        playEntry(e);
+        playEntry(window.APEX_BOT_WAVE_AUDIO_MIX?{...e,waveUtility:true}:e);
         const key = shotgun ? 'shotgun_shell_land' : 'casing_land';
         stats.casingLands = (stats.casingLands || 0) + 1;
         stats.lastCasingLand = { key, rel: entry.rel, shotgun: !!shotgun };
@@ -558,12 +608,12 @@
         break;
       }
       case 'shotgun_rack': {
-        playAll('shotgun_rack_pull');
-        playLater('shotgun_rack_push', 170);
+        playAll('shotgun_rack_pull',{waveUtility:true});
+        playLater('shotgun_rack_push', 170,{waveUtility:true});
         break;
       }
       case 'sniper_shot': {
-        playAll('sniper_shot');
+        playAll('sniper_shot',{waveFire:true});
         // Long stretched transient — the near-hitscan punctuation (C §5.3).
         muzzle(o.x, o.y, o.angle, 1.9, [5, 4], 0.16, 2.1);
         pushVfx({ kind: 'smoke', x: o.x, y: o.y, angle: o.angle, scale: 0.9, life: 0.55, file: SMOKE('03') });

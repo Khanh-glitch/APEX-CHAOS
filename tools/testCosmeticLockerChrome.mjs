@@ -1,169 +1,127 @@
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
-const chrome=process.env.CHROME_PATH;
-if(!chrome)throw Error('CHROME_PATH required');
-const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
-const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:[
-  '--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage',
-  '--autoplay-policy=no-user-gesture-required'
-]});
-const variants=[
-  {name:'desktop',width:1440,height:900},
-  {name:'mobile-android',width:390,height:844,isMobile:true,hasTouch:true,
-    deviceScaleFactor:2,ua:'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36'},
-];
-let failed=0;
+if(!process.env.CHROME_PATH)throw Error('CHROME_PATH required');
+const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']});
+const start=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
+const testCases=[{name:'desktop',width:1440,height:900},{name:'mobile-android',width:390,height:844,isMobile:true,hasTouch:true,deviceScaleFactor:2,ua:'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36'}];
+let fails=0;
+async function gameFrame(page){
+ await page.waitForFunction(()=>!!(document.getElementById('gold-document')?.contentDocument||document).getElementById('apex-boot-start'),{timeout:90000});
+ const url=await page.evaluate(()=>(document.getElementById('gold-document')?.contentDocument||document).URL);
+ const frame=page.frames().find(f=>f.url()===url);
+ assert.ok(frame,'actual Gold game frame absent '+url);return frame;
+}
+async function openArchive(frame){
+ await frame.click('#apex-boot-start');
+ await frame.waitForSelector('.apex-skin-entry',{visible:true,timeout:55000});
+ await frame.click('.apex-skin-entry');
+ await frame.waitForSelector('#fa3-title',{visible:true,timeout:50000});
+}
+async function chooseWeapon(frame){
+ await frame.$eval('.fa3-primary button:last-child',e=>e.click());
+ await frame.waitForFunction(()=>!!window.APEX_ARSENAL_CONFIG?.WEAPONS&&Object.keys(window.APEX_ARSENAL_CONFIG.WEAPONS).length>10,{timeout:22000});
+ // Mobile-only overlay, harmless on desktop; no scrolling in either.
+ await frame.$eval('.fa3-detail-tabs button:last-child',e=>e.click());
+ await frame.focus('.fa3-index input');
+ await frame.$eval('.fa3-index input',e=>{e.value='';e.dispatchEvent(new Event('input',{bubbles:true}))});
+ await frame.type('.fa3-index input','RPG');
+ await frame.waitForFunction(()=>[...document.querySelectorAll('.fa3-index-list button')].some(e=>e.textContent.includes('RPG-7')),{timeout:15000});
+ const matches=await frame.evaluate(()=>[...document.querySelectorAll('.fa3-index-list button')].map(x=>x.textContent));
+ assert.ok(matches.length>=1&&matches.every(x=>/RPG/i.test(x)), 'RPG weapon search did not narrow catalog');
+ await frame.evaluate(()=>[...document.querySelectorAll('.fa3-index-list button')].find(x=>x.textContent.includes('RPG-7'))?.click());
+ await frame.waitForFunction(()=>document.querySelector('.fa3-record-top h3')?.textContent==='RPG-7',{timeout:15000});
+ await frame.$eval('.fa3-detail-tabs button:first-child',e=>e.click());
+ return matches;
+}
 try{
- for(const test of variants){
-  const page=await browser.newPage(),errors=[];
+ for(const v of testCases){
+  // Desktop and Android must start in isolated browser profiles; the
+  // synthetic 'qa-alt' storage from one case must not pre-equip the other.
+  const context=await browser.createBrowserContext();
+  const page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(String(e)));
   try{
-    await page.setViewport({width:test.width,height:test.height,isMobile:!!test.isMobile,
-      hasTouch:!!test.hasTouch,deviceScaleFactor:test.deviceScaleFactor||1});
-    if(test.ua)await page.setUserAgent(test.ua);
-    page.on('pageerror',e=>errors.push(String(e)));
-    await page.goto(url,{waitUntil:'domcontentloaded',timeout:50000});
-    // Android Gold Fidelity mounts the actual game into a SAME-ORIGIN iframe.
-    // Exercise the actual destination document rather than the empty wrapper.
-    await page.waitForFunction(()=>{
-      const doc=document.getElementById('gold-document')?.contentDocument||document;
-      return !!doc.getElementById('apex-boot-start');
-    },{timeout:65000});
-    const gameUrl=await page.evaluate(()=>
-      (document.getElementById('gold-document')?.contentDocument||document).URL);
-    const game=page.frames().find(f=>f.url()===gameUrl);
-    assert.ok(game,'Gold game frame unavailable: '+gameUrl);
-    const launcherHidden=await game.evaluate(()=>{
-      const el=document.querySelector('.apex-skin-entry');
-      if(!el)return true; // home launcher need not be mounted before START
-      const css=getComputedStyle(el);
-      return css.display==='none'||css.visibility==='hidden';
-    });
-    assert.equal(launcherHidden,true,'SKINS must not be clickable during boot START');
-    await game.click('#apex-boot-start');
-    await game.waitForSelector('.apex-skin-entry',{visible:true,timeout:45000});
-    await game.click('.apex-skin-entry');
-    await game.waitForSelector('#apex-cosmetics-title',{visible:true,timeout:20000});
-    const heroCount=await game.$$eval('.apex-cosmetics-item',x=>x.length);
-    assert.equal(heroCount,6,'Fighter category must show every current playable hero');
-    await game.click('.apex-cosmetics-sides button:nth-child(2)');
-    const p2=await game.$eval('.apex-cosmetics-loaded',x=>x.textContent);
-    assert.match(p2,/02/,'P2 loadout independent category');
-    await game.click('.apex-cosmetics-tabs button:nth-child(2)');
-    await game.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-item').length>10,
-      {timeout:10000});
-    const weapons=await game.$$eval('.apex-cosmetics-item',nodes=>nodes.map(n=>n.innerText));
-    assert.ok(weapons.some(x=>x.includes('RPG')),'RPG_7 must be discoverable from live gun config');
-    const searchInput=await game.$('#apex-cosmetics-search');
-    assert.ok(searchInput,'Skin search not mounted in the active Gold game frame');
-    await searchInput.click();
-    await searchInput.type('RPG');
-    const searchProbe=await game.evaluate(()=>({
-      value:document.querySelector('#apex-cosmetics-search')?.value,
-      items:[...document.querySelectorAll('.apex-cosmetics-item')].map(e=>e.innerText).slice(0,12),
-      category:document.querySelector('[role=tab][aria-selected=true]')?.textContent
-    }));
-    console.log('COSMETIC SEARCH '+test.name+' '+JSON.stringify(searchProbe));
-    assert.equal(searchProbe.value,'RPG','real keyboard search input did not receive keys');
-    assert.ok(searchProbe.items.length>0 && searchProbe.items.length<weapons.length &&
-      searchProbe.items.every(e=>/RPG/i.test(e)),
-      'real search should narrow to RPG family: '+JSON.stringify(searchProbe));
-    const current=await game.$eval('.apex-cosmetics-item',e=>e.innerText);
-    assert.match(current,/RPG/i);
-    await game.click('.apex-cosmetics-item');
-    assert.equal(await game.$eval('.apex-cosmetics-skin.selected',e=>e.innerText.includes('ORIGINAL')),true);
-    await game.evaluate(()=>{
-      window.APEX_COSMETICS.register({
-        kind:'weapon',baseId:'RPG_7',id:'qa-alt',label:'QA ALT',
-        detail:'Read-only synthetic skin manifest for UI regression',render:{projectile:()=>false}
-      });
-    });
-    await game.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-skin').length>=3,
-      {timeout:10000});
-    await game.evaluate(()=>{const node=[...document.querySelectorAll('.apex-cosmetics-skin')].find(el=>el.innerText.includes('QA ALT'));if(!node)throw Error('QA ALT skin entry missing');node.click()});
-    assert.equal(await game.$eval('.apex-cosmetics-skin.selected strong',n=>n.textContent),'QA ALT');
-    const sideProof=await game.evaluate(()=>({
-      p2:window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id,
-      p1:window.APEX_COSMETICS.selected('p1','weapon','RPG_7').id,
-      stored:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7
-    }));
-    assert.deepEqual(sideProof,{p2:'qa-alt',p1:'default',stored:'qa-alt'},
-      'synthetic P2 visual selection must not mutate P1 and must persist');
-    await game.click('.apex-cosmetics-close');
-    await game.waitForSelector('.apex-skin-entry',{visible:true});
-    await game.click('.apex-skin-entry');
-    await game.waitForSelector('#apex-cosmetics-title',{visible:true});
-    assert.equal(await game.evaluate(()=>window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id),'qa-alt');
-    // Full process reload: the loadout is restored from persistent storage
-    // BEFORE the asynchronous cosmetic pack has registered. Unavailable skins
-    // must display ORIGINAL temporarily without deleting the saved choice;
-    // registering the same pack must reactivate P2 independently of P1.
-    await page.reload({waitUntil:'domcontentloaded',timeout:50000});
-    await page.waitForFunction(()=>{
-      const doc=document.getElementById('gold-document')?.contentDocument||document;
-      return !!doc.getElementById('apex-boot-start')
-        && !!doc.defaultView?.APEX_COSMETICS;
-    },{timeout:85000});
-    const nextURL=await page.evaluate(()=>
-      (document.getElementById('gold-document')?.contentDocument||document).URL);
-    const resumed=page.frames().find(f=>f.url()===nextURL);
-    assert.ok(resumed,'Cold-reload game frame missing: '+nextURL);
-    const beforePack=await resumed.evaluate(()=>{
-      const C=window.APEX_COSMETICS;
-      return {
-        storage:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7,
-        effectiveP1:C.selected('p1','weapon','RPG_7').id,
-        effectiveP2:C.selected('p2','weapon','RPG_7').id
-      };
-    });
-    assert.deepEqual(beforePack,{storage:'qa-alt',effectiveP1:'default',effectiveP2:'default'},
-      'Cold boot must preserve unavailable cosmetic intent but fail closed to ORIGINAL');
-    const afterPack=await resumed.evaluate(()=>{
-      const C=window.APEX_COSMETICS;
-      C.register({
-        kind:'weapon',baseId:'RPG_7',id:'qa-alt',label:'QA ALT',
-        detail:'Read-only synthetic skin manifest for reload regression',
-        render:{projectile:()=>false}
-      });
-      return {
-        p1:C.selected('p1','weapon','RPG_7').id,
-        p2:C.selected('p2','weapon','RPG_7').id,
-        stored:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7
-      };
-    });
-    assert.deepEqual(afterPack,{p1:'default',p2:'qa-alt',stored:'qa-alt'},
-      'Late registration must restore exactly the previously selected P2 skin');
-    await resumed.click('#apex-boot-start');
-    await resumed.waitForSelector('.apex-skin-entry',{visible:true,timeout:45000});
-    await resumed.click('.apex-skin-entry');
-    await resumed.waitForSelector('#apex-cosmetics-title',{visible:true,timeout:20000});
-    await resumed.click('.apex-cosmetics-sides button:nth-child(2)');
-    await resumed.click('.apex-cosmetics-tabs button:nth-child(2)');
-    await resumed.waitForFunction(()=>document.querySelectorAll('.apex-cosmetics-item').length>10,
-      {timeout:12000});
-    const resumedChoice=await resumed.evaluate(()=>({
-      p2:window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id,
-      items:[...document.querySelectorAll('.apex-cosmetics-item')].filter(el=>
-        el.innerText.includes('RPG')).map(el=>el.innerText),
-    }));
-    assert.equal(resumedChoice.p2,'qa-alt');
-    assert.ok(resumedChoice.items.some(x=>x.includes('QA ALT')),
-      'Cosmetic locker must reflect restored P2 selection after cold reload');
-    assert.equal(errors.length,0,'unexpected browser exceptions: '+errors.join(', '));
-    console.log('PASS COSMETIC LOCKER '+test.name+' '+JSON.stringify({heroCount,weaponCount:weapons.length,sideProof}));
-  }catch(err){
-    failed++;console.error('FAIL COSMETIC LOCKER '+test.name+' '+String(err?.stack||err));
-    const diagnosis=await page.evaluate(()=>{
-      const d=document.getElementById('gold-document')?.contentDocument||document;
-      return {url:d.URL,stage:d.querySelector('#stage')?.className,
-        title:d.querySelector('#apex-cosmetics-title')?.textContent,
-        search:d.querySelector('#apex-cosmetics-search')?.value,
-        tab:d.querySelector('[role=tab][aria-selected=true]')?.textContent,
-        entries:[...d.querySelectorAll('.apex-cosmetics-item')].slice(0,10).map(e=>e.innerText),
-        errors:window.__apexEngineLoadError||null};
-    }).catch(e=>({error:String(e)}));
-    console.error('COSMETIC FAILURE DIAGNOSTICS '+test.name+' '+JSON.stringify(diagnosis));
-  }finally{await page.close()}
+   await page.setViewport({width:v.width,height:v.height,isMobile:!!v.isMobile,hasTouch:!!v.hasTouch,deviceScaleFactor:v.deviceScaleFactor||1});
+   if(v.ua)await page.setUserAgent(v.ua);
+   await page.goto(start,{waitUntil:'domcontentloaded',timeout:70000});
+   const game=await gameFrame(page);
+   const hidden=await game.evaluate(()=>{
+    const el=document.querySelector('.apex-skin-entry');if(!el)return true;
+    const css=getComputedStyle(el);return css.visibility==='hidden'||css.display==='none';
+   });
+   assert.equal(hidden,true,'Archive entry visible before START');
+   await openArchive(game);
+   const names=await game.$$eval('.fa3-index-list button',els=>els.map(e=>e.textContent.trim()));
+   // A viewport-locked mobile folio intentionally pages the six fighters
+   // into three per page. The registry truth remains SIX; avoid demanding a
+   // vertically scrolling six-row index on a 390px phone.
+   const count=await game.$eval('.fa3-index-head',e=>e.textContent);
+   assert.match(count,/07 FILES/,'Six original fighters plus BOXE must exist in registry');
+   assert.equal(names.length,v.width<540?3:6,'first no-scroll fighter folio retains six-per-page desktop / three-per-page mobile capacity');
+   await game.$eval('.fa3-players button:last-child',e=>e.click());
+   const side=await game.$eval('.fa3-equip-state',e=>e.textContent);
+   assert.match(side,/PLAYER 02/,'P2 owner not selected');
+   const matches=await chooseWeapon(game);
+   const before=await game.evaluate(()=>window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id);
+   assert.equal(before,'default');
+   await game.evaluate(()=>window.APEX_COSMETICS.register({
+    kind:'weapon',baseId:'RPG_7',id:'qa-alt',label:'QA ALT',
+    detail:'QA-only owner skin',render:{projectile:()=>false}
+   }));
+   // Two default skins were ALREADY visible. Wait for the third registered
+   // pack to appear in the pagination control; otherwise a fast desktop can
+   // attempt to click before React's subscribe notification finishes painting.
+   await game.waitForSelector('.fa3-skin-pager button:last-child',{visible:true,timeout:15000});
+   await game.$eval('.fa3-skin-pager button:last-child',e=>e.click());
+   await game.waitForFunction(()=>[...document.querySelectorAll('.fa3-skin')].some(e=>e.textContent.includes('QA ALT')),{timeout:10000});
+   await game.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(e=>e.textContent.includes('QA ALT')).click());
+   const still=await game.evaluate(()=>window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id);
+   assert.equal(still,'default','PREVIEW alone must never equip skin');
+   await game.$eval('.fa3-equip',e=>e.click());
+   const proof=await game.evaluate(()=>({
+    p1:window.APEX_COSMETICS.selected('p1','weapon','RPG_7').id,
+    p2:window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id,
+    stored:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7
+   }));
+   assert.deepEqual(proof,{p1:'default',p2:'qa-alt',stored:'qa-alt'},'P2 equip/write isolated and persistent');
+   await game.$eval('.fa3-close',e=>e.click());
+   await game.waitForSelector('.apex-skin-entry',{visible:true,timeout:15000});
+   await game.$eval('.apex-skin-entry',e=>e.click());
+   await game.waitForSelector('#fa3-title',{visible:true,timeout:30000});
+   assert.equal(await game.evaluate(()=>window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id),'qa-alt');
+   // New process: registered synthetic pack is absent until runtime re-registers.
+   await page.reload({waitUntil:'domcontentloaded',timeout:70000});
+   const next=await gameFrame(page);
+   await next.waitForFunction(()=>!!window.APEX_COSMETICS,{timeout:20000});
+   const cold=await next.evaluate(()=>{
+    const C=window.APEX_COSMETICS;
+    return {
+     storage:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7,
+     p1:C.selected('p1','weapon','RPG_7').id,p2:C.selected('p2','weapon','RPG_7').id
+    };
+   });
+   assert.deepEqual(cold,{storage:'qa-alt',p1:'default',p2:'default'},'Cold boot must fail closed without losing cosmetic intent');
+   const registered=await next.evaluate(()=>{
+    const C=window.APEX_COSMETICS;
+    C.register({kind:'weapon',baseId:'RPG_7',id:'qa-alt',label:'QA ALT',detail:'Re-registration QA',render:{projectile:()=>false}});
+    return {
+     p1:C.selected('p1','weapon','RPG_7').id,p2:C.selected('p2','weapon','RPG_7').id,
+     stored:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1'))?.p2?.weapon?.RPG_7
+    };
+   });
+   assert.deepEqual(registered,{p1:'default',p2:'qa-alt',stored:'qa-alt'},'Late registration must restore saved skin only to P2');
+   await openArchive(next);
+   await next.$eval('.fa3-players button:last-child',e=>e.click());
+   await chooseWeapon(next);
+   const restored=await next.$eval('.fa3-equip-state',e=>e.textContent);
+   assert.ok(restored.includes('QA ALT'),'Field Archive does not show rehydrated P2 choice: '+restored);
+   assert.deepEqual(errors,[],'runtime errors');
+   console.log('PASS FIELD ARCHIVE COSMETIC '+v.name+' '+JSON.stringify({heroCount:names.length,foundWeapons:matches.length,proof,restored}));
+  }catch(e){fails++;console.error('FAIL FIELD ARCHIVE COSMETIC '+v.name,String(e?.stack||e),errors);
+   const diag=await page.evaluate(()=>({url:location.href,hasArchive:!!document.querySelector('.fa3-shell'),stage:document.querySelector('#stage')?.className})).catch(()=>({}));
+   console.error('DIAGNOSTIC',diag);
+  }finally{await page.close();await context.close()}
  }
 }finally{await browser.close()}
-if(failed)process.exit(1);
-console.log('COSMETIC LOCKER CHROME desktop/mobile PASS');
+if(fails)process.exit(1);
+console.log('FIELD ARCHIVE COSMETIC CONTRACT Chrome desktop/Android PASS');

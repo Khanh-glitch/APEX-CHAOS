@@ -207,7 +207,7 @@
 
   function makeAbilityController(ct) {
     return {
-      cooldownLeft(slot) { const s = ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0, s.cdLeft)) : 0; },
+      cooldownLeft(slot) { const s=ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0,s.cdLeft)) : 0; },
       refundCooldown(slot, sec) {
         const s = ct.skills[slot];
         if (s && sec > 0) { s.cdLeft = Math.max(0, s.cdLeft - sec); }
@@ -243,8 +243,12 @@
         const a = ct.anchor;
         if (!a || a.hp <= 0) return { ok: false, reason: 'dead' };
         if (typeof a.hardCC === 'function' && a.hardCC()) return { ok: false, reason: 'cc' };
-        if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
         const exec = MECH.EXECUTORS[s.def.mechanicId];
+        if(slot==='A1'&&ct.heroId==='BOXE'&&ct.store.__boxeBattle?.rocket){
+          const recall=exec?.recast?.(mechCtx(ct,slot));
+          return recall?{ok:true,recast:true}:{ok:false,reason:'already-returning'};
+        }
+        if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
         const ctx = mechCtx(ct, slot);
         if (exec && exec.canCast && !exec.canCast(ctx)) {
           ct.telemetry.castFails += 1;
@@ -259,6 +263,7 @@
         }
         if(s.cfg.maxCharges) { if(s.charges === s.cfg.maxCharges) s.rechargeLeft = s.cfg.cooldown; s.charges--; }
         else s.cdLeft = s.cfg.cooldown;
+        if(ct.heroId==='BOXE'&&slot==='A1')s.cdLeft=0;
         ct.telemetry.casts += 1;
         ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
         if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
@@ -1705,6 +1710,7 @@
     if (AQS && AQS.state && AQS.state.battleMode === 'LOCAL') return;
     const ctl = abilityController(ct);
     for (const slot of ['A1', 'A2']) {
+      if(ct.heroId==='BOXE'&&slot==='A1'&&ct.store.__boxeBattle?.rocket)continue;
       if (ctl.cooldownLeft(slot) > 0) continue;
       const key = `${ct.heroId}:${slot}`;
       const plan = (M.aiCastPlan[key] = M.aiCastPlan[key] || {});
@@ -2403,6 +2409,7 @@
     // MAGNET V1: sum every active field once, then alter trajectory before
     // this pass performs the one canonical projectile movement integration.
     const magnet = globalScope.APEX_MAGNET;
+    const BOXE = globalScope.APEX_BOXE_BATTLE;
     if (magnet) magnet.stepProjectiles(dt, projectiles, combatantOfBody, AIL.clock());
 
     // F2 MIRROR ESCROW TRANSIT: advance the canonical fixed-step transit
@@ -2470,8 +2477,10 @@
         // routes through the shared authority (api.isT6Weapon) and
         // shatters through — walls are not terminal for T6. --------------
         const wallHit = sweepWalls(p, BULLET_HIT_SCALE);
+        const rocketShot = BOXE?.candidateProjectile?.(p,1)||null;
         const wallIsT6 = wallHit && M.api.isT6Weapon && M.api.isT6Weapon(p.weapon);
-        const wallTerminal = !!wallHit && !wallIsT6;
+        const wallTerminal = !!wallHit && !wallIsT6
+          && !(rocketShot && rocketShot.t < wallHit.t);
         if (wallHit && wallIsT6) {
           wallHit.wall.hp -= ((CFG && CFG.WEAPONS && CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446);
           wallHit.wall.__shatteredBy = 'STORMBREAKER';
@@ -2523,9 +2532,21 @@
         // anything later on the path.
         let cryLimit = bodyHit ? bodyHit.t : 2;
         if (mf2 && mf2.kind === 'capture') cryLimit = Math.min(cryLimit, mf2.capT);
+        if(rocketShot)cryLimit=Math.min(cryLimit,rocketShot.t);
         if (CRY) {
           const cr = CRY.resolveBullet(p, cryLimit, dt);
           if (cr && cr.consumed) continue;
+        }
+        if (rocketShot && (!bodyHit || rocketShot.t < bodyHit.t)
+          && (!mf2 || mf2.kind!=='capture'||rocketShot.t < mf2.capT)){
+          BOXE.confirmProjectileContact(p,rocketShot);
+          // T6 retains original non-absorbed piercing authority, even after
+          // an authentic contact makes the BOXE glove retract.
+          if(!(M.api.isT6Weapon&&M.api.isT6Weapon(p.weapon))){
+            supersedeMagnetBoundary(p,rocketShot.t,{terminal:true});
+            p.x=rocketShot.x;p.y=rocketShot.y;p.life=0;
+            continue;
+          }
         }
         if (mf2 && mf2.kind === 'capture' && !(bodyHit && bodyHit.t < mf2.capT)) {
           mirrorF2Capture(p, mf2, projectiles);
@@ -2600,7 +2621,14 @@
         // crossing TOI bounds mirror candidacy, so a physically-earlier
         // bounce always wins and no surface event beyond it is presented.
         const gWallToi = arenaBoundToi(p, GAME_SIZE);
-        const mg = mirrorF2Candidate(p, null, gWallToi);
+        const boxeGrenade = BOXE?.candidateProjectile?.(p,1)||null;
+        const mg = mirrorF2Candidate(p, null, Math.min(gWallToi??2,boxeGrenade?.t??2));
+        if(boxeGrenade&&(gWallToi==null||boxeGrenade.t<gWallToi)
+          &&(!mg||mg.kind!=='capture'||boxeGrenade.t<mg.capT)){
+          BOXE.confirmProjectileContact(p,boxeGrenade);
+          p.x=boxeGrenade.x;p.y=boxeGrenade.y;
+          if(W?.explodeGrenade){W.explodeGrenade(p);continue;}
+        }
         if (mg && mg.kind === 'capture') { mirrorF2Capture(p, mg, projectiles); continue; }
         if (mg && mg.kind === 'oneNode') mirrorF2LocalResponse(p, mg);
         if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); }
@@ -2680,7 +2708,18 @@
           let tWallToi = tCrySweep ? tCrySweep.t : null;
           if (tWallSweep && (tWallToi == null || tWallSweep.t < tWallToi)) tWallToi = tWallSweep.t;
           if (tBoundToi != null && (tWallToi == null || tBoundToi < tWallToi)) tWallToi = tBoundToi;
-          const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null, tWallToi);
+          const bxThrow = BOXE?.candidateProjectile?.(p,1)||null;
+          const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null,
+            Math.min(tWallToi??2,bxThrow?.t??2));
+          if(bxThrow&&(!tBodyHit||bxThrow.t<tBodyHit.t)
+            &&(tWallToi==null||bxThrow.t<tWallToi)
+            &&(!mt||mt.kind!=='capture'||bxThrow.t<mt.capT)){
+            BOXE.confirmProjectileContact(p,bxThrow);
+            if(!(M.api.isT6Weapon&&M.api.isT6Weapon(p.weapon))){
+              p.x=bxThrow.x;p.y=bxThrow.y;thrownExitLocal(p);
+              continue;
+            }
+          }
           if (mt && mt.kind === 'capture' && !(tBodyHit && tBodyHit.t < mt.capT)) {
             mirrorF2Capture(p, mt, projectiles);
             continue;

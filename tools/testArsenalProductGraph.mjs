@@ -121,13 +121,19 @@ gate('semantic-graph-and-admin-boundary', () => {
   const graph = listProductSurfaces();
   const active = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.ACTIVE);
   const locked = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.LOCKED);
-  assert.equal(graph.length, 11);
-  // Bot, Local, Lucky and the lightweight Cosmetic Locker are active.
+  assert.equal(graph.length, 12);
+  // Bot, Local, Lucky, cosmetic shortcut and the unified Dictionary Field Archive are active.
   // The separate Fighter Shop remains LOCKED until its owner cutover.
-  assert.equal(active.length, 4);
-  assert.equal(locked.length, 7);
-  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'cosmetic-locker', 'lucky-draw']);
+  assert.equal(active.length, 6);
+  assert.equal(locked.length, 6);
+  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'bot-wave', 'cosmetic-locker', 'lucky-draw', 'dictionary']);
   assert.equal(canLaunchProductSurface('cosmetic-locker'), true);
+  assert.equal(canLaunchProductSurface('bot-wave'), true);
+  assert.equal(graph.find(x=>x.id==='bot-wave')?.route,'wave');
+  assert.equal(graph.find(x=>x.id==='bot-wave')?.preview,true);
+  assert.equal(graph.find(x=>x.id==='bot-wave')?.special,true);
+   assert.equal(canLaunchProductSurface('dictionary'), true);
+   assert.equal(graph.find(x=>x.id==='dictionary')?.route,'skins');
   assert.ok(locked.some((surface) => surface.id === 'fighter-shop'));
   assert.ok(locked.some((surface) => surface.id === 'quest-01'));
   assert.equal(canLaunchProductSurface('fighter-shop'), false);
@@ -138,8 +144,9 @@ gate('semantic-graph-and-admin-boundary', () => {
 });
 
 gate('visible-roster-core-six-and-locked-six', () => {
-  assert.equal(PRODUCT_ROSTER.visibleIds.length, 12);
-  assert.equal(PRODUCT_ROSTER.playableIds.length, 6);
+  assert.equal(PRODUCT_ROSTER.visibleIds.length, 13);
+  assert.equal(PRODUCT_ROSTER.playableIds.length, 7);
+  assert.ok(PRODUCT_ROSTER.playableIds.includes('BOXE'));
   assert.equal(PRODUCT_ROSTER.lockedIds.length, 6);
   assert.ok(PRODUCT_ROSTER.playableIds.includes('ROBOT'));
   assert.ok(PRODUCT_ROSTER.playableIds.includes('ICE'));
@@ -157,7 +164,8 @@ gate('economy-clean-state-and-mutation-legality', () => {
   assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits);
   assert.equal(meta.getState().credits, 12000);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
-  assert.equal(meta.poolLocked().length, 5);
+  assert.equal(meta.poolLocked().length, 6); // BOXE joins the real unowned pool; six Core Six purchase candidates unaffected
+  assert.ok(meta.poolLocked().includes('BOXE'));
   assert.ok(meta.poolLocked().includes('HUNTER'));
   assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));
   // A Lucky Draw costs the real 350 AC and can only take from the unowned pool.

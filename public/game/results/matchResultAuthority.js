@@ -10,6 +10,20 @@ const finite=n=>Number.isFinite(n);
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const heroId=f=>({ROBOT:'NEWBOT',ICE:'FROST',CRYSTAL:'CRYSTALA'}[String(f?.name||'').toUpperCase()]||String(f?.name||'').toUpperCase());
 const heroSlug=id=>({NEWBOT:'newbot',CRYSTALA:'crystala',FROST:'frost'}[id]||id.toLowerCase());
+// Result consumes the Gold Pick artwork identity, never guesses the filename.
+function heroPortraitSource(id){
+  const slug=heroSlug(id);
+  const pick=root.APEX_GOLD_ROSTER?.[slug];
+  const selected=pick?.art||pick?.portrait||pick?.battleAvatar;
+  if(typeof selected==='string'&&selected.startsWith('/assets/')&&!selected.includes('..'))return selected;
+  // Works before Gold Bridge loads: new heroes publish their actual art in
+  // the canonical hero registry, whereas the Core Six retain legacy fallback.
+  const registryId=({NEWBOT:'ROBOT',CRYSTALA:'CRYSTAL',FROST:'ICE'}[id]||id);
+  const declared=root.APEX_HERO_REWORK_REGISTRY?.HEROES?.[registryId]?.archiveProfile?.artwork;
+  const art=typeof declared==='string'?declared:declared?.standing||declared?.cover||declared?.avatar;
+  if(typeof art==='string'&&art.startsWith('/assets/')&&!art.includes('..'))return art;
+  return '/assets/gold-ui/heroes/'+slug+'/'+(id==='MIRROR'?'pick_roster_cover.webp':'pick_selected_large.webp');
+}
 const accent={NEWBOT:'#ff941f',HUNTER:'#96ca2d',CRYSTALA:'#a066f0',MAGNET:'#c7c5e9',FROST:'#7ee8ff',MIRROR:'#e9e5df'};
 const rgb=s=>{const h=(s||'#aaaaaa').replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)).join(' ')};
 function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
@@ -231,13 +245,13 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        silhouette:'generic',artSrc:art,stats:{shotsFired:shots,shotsHit:hits,bestHit:Math.round(best)}});
    }
    const players=tracks.map((t,i)=>{
-     const slug=heroSlug(t.hero);
      // Result Gold must consume the EXACT live HUD identity, never a
      // second hero palette. A fallback only serves non-visual test fixtures.
      const hud=root.APEX_COMBAT_HUD?.projection?.()?.sides?.[i]?.identity;
      const projected=root.APEX_HERO_REWORK?.hudIdentity?.(t.f);
      const liveColor=(hud?.heroId===t.hero&&hud?.color)||projected?.color||t.f?.color;
-     const color=/^#[0-9a-fA-F]{6}$/.test(liveColor||'')?liveColor:(accent[t.hero]||'#dddddd');
+     const registeredColor=root.APEX_HERO_REWORK_REGISTRY?.HEROES?.[t.hero]?.identityColor;
+     const color=/^#[0-9a-fA-F]{6}$/.test(liveColor||'')?liveColor:(registeredColor||accent[t.hero]||'#dddddd');
      const list=[...t.sourceMap.values()];
      const awards=[];
      for(const def of catalog){if(def.heroId&&def.heroId!==t.hero)continue;
@@ -250,7 +264,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      return {id:t.id,slot:i+1,handle:'P'+(i+1),level:1,rankTitle:'CORE SIX',
        outcome:i===wi?'victory':'defeat',accent:color,accentRgb:rgb(color),
        character:{name:t.hero,className:'APEX FIGHTER',tagline:'',artKind:'generic',
-         heroId:t.hero,portraitSrc:'/assets/gold-ui/heroes/'+slug+'/'+(t.hero==='MIRROR'?'pick_roster_cover.webp':'pick_selected_large.webp')},
+         heroId:t.hero,portraitSrc:heroPortraitSource(t.hero)},
        damage:{dealt:t.dealt,taken:t.taken,sources:list},stats:{
          accuracy:t.shots>0?Math.min(100,Math.round(t.hits/t.shots*100)):0,
          critRate:t.hits>0?Math.round(t.critHits/t.hits*100):0,

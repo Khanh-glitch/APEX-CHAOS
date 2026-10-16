@@ -62,6 +62,26 @@ function duel(name1='ROBOT',name2='ROBOT'){
 }
 
 {
+ // Gold Pick is the primary Result artwork source; the canonical hero
+ // registry provides an identical fallback if Gold Bridge has not loaded.
+ const priorRoster=scope.APEX_GOLD_ROSTER,priorRegistry=scope.APEX_HERO_REWORK_REGISTRY;
+ const standing='/assets/dictionary/heroes/boxe/standing.png';
+ scope.APEX_GOLD_ROSTER={boxe:{art:standing,portrait:'/assets/dictionary/heroes/boxe/cover.png'}};
+ scope.APEX_HERO_REWORK_REGISTRY={HEROES:{BOXE:{
+  identityColor:'#ffac42',archiveProfile:{artwork:{standing}}
+ }}};
+ const actual=duel('BOXE','MIRROR').ledger.seal('P1');
+ assert.equal(actual.players[0].character.heroId,'BOXE');
+ assert.equal(actual.players[0].character.portraitSrc,scope.APEX_GOLD_ROSTER.boxe.art);
+ assert.equal(actual.players[0].accent,'#ffac42');
+ assert.equal(actual.players[1].character.portraitSrc,'/assets/gold-ui/heroes/mirror/pick_roster_cover.webp');
+ delete scope.APEX_GOLD_ROSTER;
+ assert.equal(duel('BOXE','ROBOT').ledger.seal('P1').players[0].character.portraitSrc,standing);
+ if(priorRoster!==undefined)scope.APEX_GOLD_ROSTER=priorRoster;
+ if(priorRegistry!==undefined)scope.APEX_HERO_REWORK_REGISTRY=priorRegistry;
+ else delete scope.APEX_HERO_REWORK_REGISTRY;
+}
+{
  const {f1,f2,ledger}=duel();
  ledger.onShot(f1,'PISTOL');
  f2.hp=190;ledger.onDamage(f2,f1,'arsenal-pistol',810);

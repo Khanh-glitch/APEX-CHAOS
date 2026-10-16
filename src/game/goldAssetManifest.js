@@ -78,6 +78,16 @@ export const GOLD_SHIPPING_ASSETS = Object.freeze([
   '/gold/shell.html',
   '/gold/transition/mechanical-door-v4.gold.js',
   '/assets/audio/forward_drive_theme.ogg',
+  '/assets/boxe-gold/bot.png',
+  '/assets/boxe-gold/char-body-new.png',
+  '/assets/boxe-gold/char-body.png',
+  '/assets/boxe-gold/char-body2.png',
+  '/assets/boxe-gold/dummy.png',
+  '/assets/boxe-gold/fx-fire.png',
+  '/assets/boxe-gold/fx-fracture.png',
+  '/assets/boxe-gold/fx-rock.png',
+  '/assets/boxe-gold/fx-rubble.png',
+  '/assets/boxe-gold/glove.png',
   '/assets/hero-rework/frost-v1/base.png',
   '/assets/hero-rework/frost-v1/browL.png',
   '/assets/hero-rework/frost-v1/browR.png',
@@ -166,6 +176,18 @@ export const GOLD_SHIPPING_ASSETS = Object.freeze([
 // (composed URLs included). Exported so the product asset runtime can
 // preload them with the match and tools/assetAudit keeps them SHIPPING.
 export const HERO_BATTLE_RIGS = Object.freeze({
+  boxe: Object.freeze([
+    '/assets/boxe-gold/bot.png',
+    '/assets/boxe-gold/char-body-new.png',
+    '/assets/boxe-gold/char-body.png',
+    '/assets/boxe-gold/char-body2.png',
+    '/assets/boxe-gold/dummy.png',
+    '/assets/boxe-gold/fx-fire.png',
+    '/assets/boxe-gold/fx-fracture.png',
+    '/assets/boxe-gold/fx-rock.png',
+    '/assets/boxe-gold/fx-rubble.png',
+    '/assets/boxe-gold/glove.png',
+  ]),
   crystala: Object.freeze([
   ]),
   frost: Object.freeze([
@@ -265,7 +287,7 @@ export const HERO_BATTLE_RIG_ASSETS = Object.freeze(
   Object.values(HERO_BATTLE_RIGS).flat(),
 );
 
-export const GOLD_SHELL_URL = '/gold/shell.html?v=20261014-cp17-frost-cast-r1';
-export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261014-cp17-frost-cast-r1';
-export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261014-cp17-frost-cast-r1';
-export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261014-cp17-frost-cast-r1';
+export const GOLD_SHELL_URL = '/gold/shell.html?v=20261016-boxe-r7-wave-polish&fieldArchive=c03';
+export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261016-boxe-r7-wave-polish';
+export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261016-boxe-r7-wave-polish';
+export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261016-boxe-r7-wave-polish';

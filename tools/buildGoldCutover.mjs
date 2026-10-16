@@ -880,7 +880,7 @@ const seamPatches = [
 // the Gold pack's canonical shell keys; display names from the hero registry.
 const GOLD_HERO_ACCENTS = {
   ROBOT: '#ff941f', HUNTER: '#96ca2d', CRYSTAL: '#a066f0',
-  MAGNET: '#c7c5e9', ICE: '#7ee8ff', MIRROR: '#e9e5df',
+  MAGNET: '#c7c5e9', ICE: '#7ee8ff', MIRROR: '#e9e5df', BOXE: '#ffac42',
 };
 const LUCKY_ROSTER = [
   { shellKey: 'newbot', productionId: 'ROBOT', display: 'ROBOT', tag: 'APEX COMBAT FRAME' },
@@ -2446,7 +2446,33 @@ function main() {
   outputs.set('lucky-draw.html', Buffer.from(buildLuckyDonor(), 'utf8'));
   log('lucky-draw.html built (localized + production-bridged donor)');
   outputs.set('shell.html', Buffer.from(adaptTotGoldShellB8(adaptRivetGoldShellB7(adaptBreachGoldShellB6i(applyQuestMobileTouchRelease(applyB05Overlay('shell.html', buildShell(outputs.get('battle-hud.html').toString('utf8'))))))), 'utf8'));
-  log('shell.html built (canonical shell + production patches)');
+  // C03: Dictionary is the one integrated Fighter / Weapon cosmetic archive.
+  // Keep this in the generator, NOT as an output-only shell edit, so all
+  // release/GOLD hash gates regenerate the exact authorized UI bytes.
+  const dictionaryBefore='<button class="route is-locked" type="button" aria-label="Dictionary (locked)" disabled>';
+  const dictionaryAfter='<button class="route" id="apexDictionaryOpen" type="button" aria-label="Open Field Archive Dictionary">';
+  const rawArchiveShell=outputs.get('shell.html').toString('utf8');
+  if(rawArchiveShell.split(dictionaryBefore).length!==2)throw new Error('C03 Dictionary route source anchor drift');
+  outputs.set('shell.html',Buffer.from(rawArchiveShell.replace(dictionaryBefore,dictionaryAfter),'utf8'));
+  log('shell.html built (canonical shell + production patches + active C03 Dictionary route)');
+  // R7: The live Wave iframe needs to pause the ALREADY APPROVED Gold Home
+  // presentation loop while keeping Home resident across Door V4 transitions.
+  // This is an explicit generated patch, never a manual output-only change.
+  const waveParentSeam="  function decodeBattleHud(){\n    const raw=(battleHudPayload?.textContent||'').trim();";
+  const waveParentPatch=`  // Wave's live-Home overlay uses the SAME suspension authority as battle.
+  // Do not keep a second active Home particle/parallax loop underneath Gold.
+  // Suspending presentation preserves resident sprites, music position and
+  // the exact Home DOM without reducing Wave renderer quality.
+  window.APEX_GOLD_PARENT_RUNTIME=Object.freeze({
+    pause:freezeParentRuntime,resume:resumeParentRuntime,
+    paused:()=>!!window.__APEX_PARENT_RUNTIME_PAUSED
+  });
+  function decodeBattleHud(){
+    const raw=(battleHudPayload?.textContent||'').trim();`;
+  const waveSourceShell=outputs.get('shell.html').toString('utf8');
+  if(waveSourceShell.split(waveParentSeam).length!==2)throw new Error('R7 Home freeze/resume source anchor drift');
+  outputs.set('shell.html',Buffer.from(waveSourceShell.replace(waveParentSeam,waveParentPatch),'utf8'));
+  log('R7 Home/Wave freeze-resume seam built from canonical Gold shell');
 
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
@@ -2469,6 +2495,7 @@ function main() {
   // preload it with the match instead of loading it during the first frames
   // (owner report: FROST loads slower than the others).
   const HERO_BATTLE_RIG_DIRS = {
+    boxe: ['/assets/boxe-gold'],
     newbot: ['/assets/hero-rework/robot-final'],
     crystala: ['/assets/hero-rework/crystala-curated'],
     frost: ['/assets/hero-rework/frost-v1'],
@@ -2526,7 +2553,7 @@ function main() {
   // Cache identity: the Gold shell / Lucky Draw / battle HUD URLs carry the
   // runtime revision so a prior Gold cutover can never be served from a stale
   // browser cache during verification (2026-10-05 correction slice).
-  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}';`);
+  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}&fieldArchive=c03';`);
   assetLines.push(`export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=${REVISION}';`);

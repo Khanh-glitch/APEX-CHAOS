@@ -31,11 +31,11 @@
   // PLAYABLE_ROSTER_IDS; ICE displays as FROST, CRYSTAL as CRYSTALA).
   const GOLD_SHELL_KEY_BY_PRODUCTION_ID = {
     ROBOT: 'newbot', HUNTER: 'hunter', CRYSTAL: 'crystala',
-    MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror',
+    MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror', BOXE: 'boxe',
   };
   const PRODUCTION_ID_BY_SHELL_KEY = {
     newbot: 'ROBOT', hunter: 'HUNTER', crystala: 'CRYSTAL',
-    magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR',
+    magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR', boxe: 'BOXE',
   };
   // ── immutable Git art authority (R44 owner-playtest media manifest) ─────
   // Every URL below is a gitPath recorded in
@@ -112,6 +112,16 @@
         heroUiAsset('frost/skill_a2.webp'),
       ],
     },
+    boxe: {
+      portrait: '/assets/dictionary/heroes/boxe/cover.png',
+      art: '/assets/dictionary/heroes/boxe/standing.png',
+      battleAvatar: '/assets/dictionary/heroes/boxe/avatar.png',
+      skillIcons: [
+        '/assets/dictionary/heroes/boxe/passive.png',
+        '/assets/dictionary/heroes/boxe/a1.png',
+        '/assets/dictionary/heroes/boxe/a2.png',
+      ],
+    },
     // Mirror: no PICK_SELECTED_LARGE by owner decision.
     mirror: {
       portrait: heroUiAsset('mirror/pick_roster_cover.webp'),
@@ -144,6 +154,7 @@
     magnet: { name: 'MAGNET', tag: 'FIELD CONTROL UNIT' },
     frost: { name: 'FROST', tag: 'CRYO EDGE UNIT' },
     mirror: { name: 'MIRROR', tag: 'ECHO DUPLICATE' },
+    boxe: { name: 'BOXE', tag: 'THE FIST OF DAWN' },
   };
   // ONE accent per hero. These are FALLBACKS for the case where the shell
   // registry is not loaded yet; the live value is APEX_ARSENAL_SHELLS.typeFor()
@@ -153,7 +164,7 @@
   // showed up as soon as a crit/heavy slash or a rail plate took her accent.
   const FALLBACK_ACCENTS = {
     newbot: '#ff941f', hunter: '#96ca2d', crystala: '#a066f0',
-    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df',
+    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42',
   };
 
   // Production-visible roster authority (2026-10-05): the Gold roster is
@@ -900,6 +911,12 @@
     if (!assets || typeof assets.preparePresentations !== 'function')
       throw new Error('Shared hero presentation readiness authority is unavailable');
     await assets.preparePresentations(heroIds);
+    // Source-locked Gold BOXE sprites must decode BEFORE the arena opens;
+    // missing HUD artwork is intentionally not part of the gameplay gate.
+    if (heroIds.some(id => String(id).toLowerCase()==='boxe')) {
+      if (!window.APEX_BOXE_GOLD_LIBRARY?.preloadSprites) throw Error('BOXE Gold renderer unavailable');
+      await window.APEX_BOXE_GOLD_LIBRARY.preloadSprites();
+    }
     // Battle READY certifies the SELECTED cosmetic packs too, not merely the
     // base hero atlas. No first-cast asset downloads and no missing skin is
     // silently counted as a ready presentation.
@@ -1291,6 +1308,7 @@
     MAGNET: { A1: 'MAGNETIC ATTRACTION', A2: 'MAGNETIC REPEL' },
     ICE: { A1: 'FROST BREATH', A2: 'FROST RUSH' },
     MIRROR: { A1: 'MIRROR ARSENAL', A2: 'MIRROR EXCHANGE' },
+    BOXE: { PASSIVE: 'CÀNG ĐÁNH CÀNG HĂNG', A1: 'FIST ROCKET', A2: 'BLOCK & HIT' },
   };
   function canonicalHeroId(heroId) {
     const id = String(heroId || '').toUpperCase();
@@ -1357,7 +1375,7 @@
     const base = Array.isArray(fallback) ? fallback : ['PASSIVE', 'A1', 'A2'];
     const copy = GOLD_SKILL_COPY[productionId] || {};
     return [
-      base[0] || 'PASSIVE',
+      copy.PASSIVE || base[0] || 'PASSIVE',
       copy.A1 || base[1] || 'A1',
       copy.A2 || base[2] || 'A2',
     ];

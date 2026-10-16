@@ -113,13 +113,17 @@ export async function bootHarness(opts = {}) {
     return new Promise(() => {});
   };
   class HarnessImage {
-    constructor() { this.complete = false; this.width = 0; this.height = 0; this.__realImage = null; this.onload = null; this.onerror = null; }
+    constructor() { this.complete = false; this.width = 0; this.height = 0; this.__realImage = null; this.onload = null; this.onerror = null; this._listeners = {load:new Set(),error:new Set()}; }
+    addEventListener(type, fn) { if(typeof fn==='function') this._listeners[type]?.add(fn); }
+    removeEventListener(type, fn) { this._listeners[type]?.delete(fn); }
+    dispatchEvent(event) { const type=String(event?.type||''); for(const fn of this._listeners[type]||[]) fn.call(this,event); return true; }
+    _notify(type) { const event={type,target:this,currentTarget:this}; const handler=type==='load'?this.onload:this.onerror; if(typeof handler==='function')handler.call(this,event);this.dispatchEvent(event); }
     set src(v) {
       this._src = v;
       const rel = String(v).replace(/^\//, '');
       loadImage(path.join(REPO, 'public', rel))
-        .then((im) => { this.__realImage = im; this.width = im.width; this.height = im.height; this.naturalWidth = im.width; this.naturalHeight = im.height; this.complete = true; if (this.onload) this.onload(); })
-        .catch(() => { if (this.onerror) this.onerror(); });
+        .then((im) => { this.__realImage = im; this.width = im.width; this.height = im.height; this.naturalWidth = im.width; this.naturalHeight = im.height; this.complete = true; this._notify('load'); })
+        .catch(() => { this._notify('error'); });
     }
     get src() { return this._src; }
   }

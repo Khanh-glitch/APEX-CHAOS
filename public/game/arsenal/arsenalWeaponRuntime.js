@@ -336,7 +336,10 @@
     const h = getHolder(f);
     if (!h) return;
     h.consumed = true;
-    snapshotPoseGhost(f, h);
+    // BOXE disarm creates a single real ejected floor weapon; the generic
+    // consume pose ghost would leave an illusory second gun on the victim.
+    if(String(reason||'').startsWith('boxe-')) f.data.arsenalFade=null;
+    else snapshotPoseGhost(f, h);
     if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[ARSENAL] weapon cleanup failed', h.weaponId, error); } }
     f.data.arsenal = null; // holder returns to UNARMED; no stale owner/target refs remain
     log('CONSUME', `fighter=${f.name} weapon=${h.weaponId}${reason ? ` reason=${reason}` : ''}`);
@@ -978,6 +981,36 @@
     return Math.abs(Math.atan2(Math.sin(b.heading-a.heading),
       Math.cos(b.heading-a.heading)))/36;
   }
+  // BOXE's detached physical gauntlets are world collision bodies.
+  // V4.3 retains its authored rocket/plasma/steel/boomerang/mine lifecycle;
+  // it must not borrow the ordinary bullet's generic splice operation.
+  function v43BoxeHit(p,bodyT=2){
+    const bx=window.APEX_BOXE_BATTLE;
+    const shot=bx?.candidateProjectile?.(p,Math.min(1,bodyT));
+    if(!shot)return false;
+    bx.confirmProjectileContact(p,shot);
+    if(p.weapon==='STORMBREAKER'||p.weapon==='T6')return false;
+    p.x=shot.x;p.y=shot.y;
+    if(p.kind==='rocket'){v43DetonateRocket(p);return true;}
+    if(p.kind==='mine'&&p.phase==='flight'){
+      // Keep the armed-floor-mine contract: a collision forces it to land,
+      // not to explode before its explicit arming delay.
+      p.phase='arming';p.age=0;p.vx=0;p.vy=0;
+      v43Pulse(p.x,p.y,'ricochet',.65,p.weapon,p.cosmetic);
+      return true;
+    }
+    if(p.kind==='boomerang'){
+      // The authentic curved outbound/return spline stays in charge.
+      // Never force a fake turn, lose the real weapon, or overwrite travel.
+      v43Pulse(p.x,p.y,'ricochet',.7,p.weapon,p.cosmetic);
+      return true;
+    }
+    if(p.kind==='plasma-core'){
+      v43Pulse(p.x,p.y,'plasma',1,p.weapon,p.cosmetic);
+    }else v43Pulse(p.x,p.y,'ricochet',.6,p.weapon,p.cosmetic);
+    p.life=0;
+    return true;
+  }
   function v43Step(p,dt){
     const c=V43[p.weapon];
     if(!c||!p.owner||p.owner.hp<=0||AQ.state?.over){p.life=0;return;}
@@ -1100,12 +1133,13 @@
         p.visual.push({x:p.x,y:p.y,t:p.age});trimV43VisualHistory(p);
       }
       const hit=v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+      const glove=window.APEX_BOXE_BATTLE?.candidateProjectile?.(p,hit?.t??1)||null;
       // Every physical SPECIAL flight must pass through Crystal's single
       // swept surface authority BEFORE native body damage. A K intercept
       // may hold/re-own the exact projectile; never apply the stale body hit.
       const crystal=window.APEX_CRYSTAL;
       if(crystal?.resolveBullet){
-        const bodyT=hit?.t??2;
+        const bodyT=Math.min(hit?.t??2,glove?.t??2);
         const outcome=crystal.resolveBullet(p,bodyT,dt);
         if(outcome?.consumed){
           if(v43Redirected(p)){
@@ -1115,6 +1149,7 @@
           return;
         }
       }
+      if(glove&&v43BoxeHit(p,hit?.t??2))return;
       // One real Fighter contact per outward/return leg. The same actor
       // cannot be struck repeatedly during a lingering swept overlap.
       if(hit&&!p.hits.has(hit.actor)
@@ -1145,16 +1180,18 @@
     // the explicit 0.48s arming gate.
     const hit=p.kind==='mine'?null
       :v43Hit(p,{x:p.px,y:p.py},{x:p.x,y:p.y});
+    const glove=window.APEX_BOXE_BATTLE?.candidateProjectile?.(p,hit?.t??1)||null;
     // CRYSTALA K / J: same real swept segment, wall/shard BEFORE fighter.
     // Only mobile damage-bearing bodies are routed: an armed floor mine,
     // flame cone and timed burn never masquerade as reflectable bullets.
     const crystalEligible=v43ReflectableTag(p)
       &&(p.kind!=='mine'||p.phase==='flight');
     if(crystalEligible&&window.APEX_CRYSTAL?.resolveBullet){
-      const bodyT=hit?.t??2;
+      const bodyT=Math.min(hit?.t??2,glove?.t??2);
       const outcome=window.APEX_CRYSTAL.resolveBullet(p,bodyT,dt);
       if(outcome?.consumed)return;
     }
+    if(glove&&v43BoxeHit(p,hit?.t??2))return;
     if(hit&&!p.hits.has(hit.actor)){
       p.x=hit.x;p.y=hit.y;
       if(p.kind==='plasma-core'){
@@ -2455,6 +2492,9 @@
         weapon: id, family, sfx: spec.sfx, sfxRate: spec.sfxRate, vfx: spec.vfx,
         x: muz.x, y: muz.y, angle: base, usedMeta: muz.usedMeta,
       });
+      if (family === 'SHOTGUN' && pellets > 1 && !spec.noPumpRack) {
+        window.avCue('shotgun_rack', { weapon: id, x: f.x, y: f.y, angle: base });
+      }
       ejectCasing(f, base, casingPower, id);
       log('SHOT', `fighter=${f.name} weapon=${id} t=${(typeof matchClock === 'number' ? matchClock : 0).toFixed(3)}`);
     }
@@ -2491,7 +2531,7 @@
           fired = true;
         }
         if (fired) {
-          cameraShake = Math.max(cameraShake, family === 'AUTOSHOT' ? 6 : 3);
+          cameraShake = Math.max(cameraShake, family === 'SHOTGUN' ? 9 : family === 'AUTOSHOT' ? 6 : 3);
           playFighterSound(f, 'skill');
         }
         const need = spec.shots || 1;
@@ -2656,6 +2696,9 @@
   const WEAPONS = {
     PISTOL: makeGun('PISTOL', 'G01_pistol', '#ffe08a'),
 
+    // Classic SHOTGUN has pellets/cone but no 'shots' scalar. Treat it as
+    // the authored one-blast Arsenal executor (same aim, damage and asset),
+    // not a makeGun() magazine whose while condition never fires.
     SHOTGUN: makeGun('SHOTGUN', 'G03_shotgun', '#ffbe6b'),
     _SHOTGUN_LEGACY: (() => {
       const spec = CFG.WEAPONS.SHOTGUN;
@@ -3091,6 +3134,18 @@
     h.meta.aimAngle = h.meta.aimAngle == null ? logicalAim(ctx) : dampAngle(h.meta.aimAngle, logicalAim(ctx), dt);
     integratePose(h, dt); // Checkpoint B: weapon pose springs (weapon-only motion)
     tickPoseGhost(f, dt);
+    // Empowered BOXE A1 denies both new trigger pulls and ongoing bursts.
+    // Ammo and equipment remain native; fire resumes after the lock.
+    const resolver=window.APEX_HERO_REWORK_AIL?.StatusResolver;
+    const triggerClock=window.APEX_HERO_REWORK_AIL?.clock?.() ??
+      (typeof matchClock==='number'?matchClock:0);
+    const locked=resolver?.has?.(f,'BOXE_TRIGGER_LOCK')===true ||
+      ((f.__boxeTriggerLockUntil||0)>triggerClock);
+    // STOP NEW SHOTS from READY, FIRING, AIM and WINDUP. Physical bullets
+    // already fired and harmless return/recovery phases continue normally.
+    const harmlessFlight=h.phase==='IN_FLIGHT'||h.phase==='RETRIEVED'||
+      h.phase==='FOLLOW_THROUGH';
+    if(locked&&h.def.category==='ranged'&&!harmlessFlight)return;
     if (h.phase === 'READY' && h.def.canActivate && h.def.canActivate(ctx)) {
       h.def.activate(ctx);
     }
