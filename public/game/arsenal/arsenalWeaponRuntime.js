@@ -343,6 +343,15 @@
     if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[ARSENAL] weapon cleanup failed', h.weaponId, error); } }
     f.data.arsenal = null; // holder returns to UNARMED; no stale owner/target refs remain
     log('CONSUME', `fighter=${f.name} weapon=${h.weaponId}${reason ? ` reason=${reason}` : ''}`);
+    // Holder lifecycle is reported after the native owner has gone UNARMED.
+    // Event is generic and non-authoritative for damage; consumers decide
+    // whether the termination qualifies for their own mechanic. Listener
+    // callbacks cannot change completion, ammo or holder disposal.
+    window.APEX_HERO_REWORK_AIL?.bus?.emit('ArsenalHolderEnded', {
+      fighter: f, fighterId: f.id, holder: h,
+      weaponId: h.weaponId, reason: String(reason || 'unknown'),
+      completion: ['sequence-complete','shot-fired','blast-resolved'].includes(reason),
+    });
   }
 
   function defColor(def) {
@@ -1320,6 +1329,12 @@
             if(h.phase==='RETRIEVED'){
               f.data.arsenal=null;
               log('CONSUME','fighter='+f.name+' weapon='+id+' reason=boomerang-retrieved');
+          // The retrieved boomerang bypasses consume() by design; still
+          // publish the same generic holder-termination notification.
+          window.APEX_HERO_REWORK_AIL?.bus?.emit('ArsenalHolderEnded', {
+            fighter: f, fighterId: f.id, holder: h, weaponId: id,
+            reason: 'boomerang-retrieved', completion: true,
+          });
             }else consume(f,'sequence-complete');
           }
           return;
