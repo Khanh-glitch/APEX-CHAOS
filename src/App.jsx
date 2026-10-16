@@ -448,11 +448,11 @@ export default function App() {
             await coordinator.run({name:'bot-wave-return',source:cover,
               target:document.getElementById('gold-shell-host'),
               prepare:()=>Promise.resolve(),
-              commit:()=>{cleanup();cover.remove();waveOverlayRef.current=null;
+              commit:()=>{cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;
                 if(location.pathname!=='/')history.replaceState({},'','/');
                 playMenuMusic();}});
           }else{
-            cleanup();cover.remove();waveOverlayRef.current=null;history.replaceState({},'','/');
+            cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;history.replaceState({},'','/');
             playMenuMusic();
           }
         }finally{
@@ -507,14 +507,14 @@ export default function App() {
           prepare:()=>{frame.src='/bot-wave/game.html';return waitReady();},
           commit:()=>{cover.style.visibility='visible';status.remove();
             history.pushState({apexWave:true},'','/bot-wave/index.html');
-            stopMenuMusic();},
-          rollback:()=>{cover.remove();waveOverlayRef.current=null;cleanup();}
+            window.APEX_GOLD_PARENT_RUNTIME?.pause?.();stopMenuMusic();},
+          rollback:()=>{window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;cleanup();}
         });
         if(result?.ok===false && waveOverlayRef.current!==cover)return false;
         if(!waveOverlayRef.current)return false;
         return true;
       }catch(error){
-        cleanup();cover.remove();waveOverlayRef.current=null;
+        cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;
         console.error('[bot-wave] transition/Gold admission',error);
         return false;
       }
