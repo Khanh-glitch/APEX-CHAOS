@@ -69,6 +69,24 @@ async function makeNativeResult(){
   portraits:match.players.map(p=>p.character.portraitSrc),
   gun:match.weapons.find(w=>w.id==='PISTOL')?.artSrc};
 }
+async function makeBoxeNativeResult(){
+ // Load the real canonical registry used by the shipped battle runtime.
+ await new Promise((resolve,reject)=>{
+  const el=document.createElement('script');
+  el.src='/game/hero-rework/heroRegistry.js';el.onload=resolve;
+  el.onerror=()=>reject(Error('missing canonical BOXE registry'));
+  document.head.appendChild(el);
+ });
+ const actors=[{id:11,name:'BOXE',x:180,y:450,hp:1000,maxHp:1000},
+  {id:12,name:'ROBOT',x:820,y:450,hp:1000,maxHp:1000}];
+ const ledger=window.APEX_MATCH_RESULT_AUTHORITY.create({
+  actors,mode:'LOCAL',startedAt:1720000000010,weaponConfig:{WEAPONS:{}}
+ });
+ const match=ledger.seal('P1');
+ window.postMessage({type:'APEX_RESULT_GOLD_PAYLOAD',match},location.origin);
+ return {id:match.meta.id,hero:match.players[0].character,
+  color:match.players[0].accent,portrait:match.players[0].character.portraitSrc};
+}
 function inspect(){
  const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();
   return{x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}};
@@ -137,7 +155,15 @@ try{
  check('physical Continue carries exact native match ID and origin',
   cont?.length===1&&cont[0].matchId===receipt.id
    &&cont[0].origin===new URL(base).origin,cont);
- await writeFile(path.join(dir,'result-gold-report.json'),JSON.stringify({receipt,views,continue:cont,failures},null,2));
+ const boxe=await ev('('+makeBoxeNativeResult.toString()+')()');
+ const boxeSnap=await poll('('+inspect.toString()+')()',x=>
+  x?.images?.length===2&&x.images.some(i=>i.src==='/assets/dictionary/heroes/boxe/standing.png'&&i.ok),100);
+ check('BOXE scoreboard displays decoded original Pick standing PNG and its identity',
+  boxe.portrait==='/assets/dictionary/heroes/boxe/standing.png'&&
+  boxe.color==='#ffac42'&&!!boxeSnap&&boxeSnap.placeholders.length===0,
+  {boxe,images:boxeSnap?.images,placeholders:boxeSnap?.placeholders});
+ await writeFile(path.join(dir,'result-gold-boxe.png'),Buffer.from((await cd('Page.captureScreenshot',{format:'png'})).data,'base64'));
+ await writeFile(path.join(dir,'result-gold-report.json'),JSON.stringify({receipt,views,continue:cont,boxe,boxeSnap,failures},null,2));
  console.log('RESULT GOLD CHROME SUMMARY '+JSON.stringify({viewports:views.length,failures:failures.length}));
  if(failures.length)process.exitCode=1;
 }catch(e){console.error('RESULT GOLD CHROME FATAL',e);process.exitCode=1}

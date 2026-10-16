@@ -880,7 +880,7 @@ const seamPatches = [
 // the Gold pack's canonical shell keys; display names from the hero registry.
 const GOLD_HERO_ACCENTS = {
   ROBOT: '#ff941f', HUNTER: '#96ca2d', CRYSTAL: '#a066f0',
-  MAGNET: '#c7c5e9', ICE: '#7ee8ff', MIRROR: '#e9e5df',
+  MAGNET: '#c7c5e9', ICE: '#7ee8ff', MIRROR: '#e9e5df', BOXE: '#ffac42',
 };
 const LUCKY_ROSTER = [
   { shellKey: 'newbot', productionId: 'ROBOT', display: 'ROBOT', tag: 'APEX COMBAT FRAME' },

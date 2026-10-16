@@ -500,6 +500,8 @@
     name: 'BOXE',
     displayName: 'BOXE',
     classRef: 'rework.boxe',
+    // The canonical BOXE visual identity: projected by Shell, Pick, HUD and Result.
+    identityColor: '#ffac42',
     archiveProfile: {
       subtitle: 'The Fist of Dawn',
       intro: 'An experienced rocket-glove boxer. BOXE controls space with real impacts, but both hands must physically return before he can counter again.',
