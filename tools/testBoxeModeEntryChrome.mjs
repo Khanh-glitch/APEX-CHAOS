@@ -32,6 +32,10 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
     const r=el.getBoundingClientRect(),s=getComputedStyle(el);
     return r.width>18&&r.height>18&&s.display!=='none'&&s.visibility!=='hidden';
   },{timeout:20000});
+  await page.waitForFunction(()=>{
+    const img=document.querySelector('#botWaveEntry .apex-wave-entry-art img');
+    return !!img?.complete&&img.naturalWidth>0;
+  },{timeout:30000});
   const homeArt=await page.evaluate(()=>{
    const root=document.querySelector('#botWaveEntry');
    const image=root?.querySelector('.apex-wave-entry-art img');
