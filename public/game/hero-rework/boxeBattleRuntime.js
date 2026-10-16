@@ -48,6 +48,7 @@
     const old=weaponApi?.getHolder?.(other);
     if(!old)return false;
     const id=old.weaponId;
+    if(id==='STORMBREAKER'||id==='T6')return false; // T6 immunity.
     weaponApi.consume(other,'boxe-'+reason);
     // Only an actual holder can generate a floor pickup. Gun ownership is
     // transferred through native consume plus the existing world-slot API.
@@ -67,6 +68,19 @@
     }
     emit(ctx,'boxe:disarm',{reason,weaponId:id,slotId:slot?.id??null,targetId:other.id,x:px,y:py});
     return true;
+  }
+  // AIL owns semantic status and time. VM-only tests without AIL use
+  // the old deterministic field fallback; shipped battles never need it.
+  function lockTrigger(ctx,foe,seconds){
+    const resolver=global.APEX_HERO_REWORK_AIL?.StatusResolver;
+    if(resolver?.apply)resolver.apply(foe,'BOXE_TRIGGER_LOCK',seconds);
+    else foe.__boxeTriggerLockUntil=Math.max(foe.__boxeTriggerLockUntil||0,
+      ctx.api.clock()+seconds);
+  }
+  function unlockTrigger(ctx,foe){
+    if(!foe)return;
+    global.APEX_HERO_REWORK_AIL?.StatusResolver?.clear?.(foe,'BOXE_TRIGGER_LOCK');
+    if(foe.__boxeTriggerLockUntil)foe.__boxeTriggerLockUntil=ctx.api.clock();
   }
   function liveOpponent(ctx){
     const foe=ctx.api.enemyOf(ctx.combatant)?.anchor;
@@ -174,12 +188,11 @@
         R:{x:from.x,y:from.y,prevX:from.x,prevY:from.y,phase:'approach',attack:null}
       };
       st.flurry={until:now+V.flurrySeconds,next:now,count:0,x:r.x,y:r.y,
-        targetId:foe.id,hands,approachStart:now,
+        targetId:foe.id,targetBody:foe,hands,approachStart:now,
         approachFromX:from.x,approachFromY:from.y};
       // Prevent both new triggers and continuation of an in-flight burst.
       // Native Arsenal weapon driver owns the actual trigger denial.
-      foe.__boxeTriggerLockUntil=Math.max(foe.__boxeTriggerLockUntil||0,
-        now+V.flurrySeconds+.055);
+      lockTrigger(ctx,foe,V.flurrySeconds+.055);
       emit(ctx,'boxe:flurry-start',{x:r.x,y:r.y,sourceX:from.x,sourceY:from.y,
         duration:V.flurrySeconds,period:V.flurryInterval,bodyDash:false,rocketPaused:true});
     }
@@ -271,11 +284,7 @@
     // The renderer may let already spawned Gold particles fade naturally.
     for(const hand of ['L','R'])f.hands[hand].attack=null;
     st.flurry=null;
-    const target=liveOpponent(ctx);
-    // Recalling A1 releases its trigger lock, but never shortens a newer lock.
-    if(target?.id===f.targetId&&(target.__boxeTriggerLockUntil||0)<=f.until+.1)
-      target.__boxeTriggerLockUntil=Math.min(target.__boxeTriggerLockUntil||0,
-        ctx.api.clock());
+    unlockTrigger(ctx,f.targetBody);
     emit(ctx,'boxe:flurry-end',{x:f.x,y:f.y,punches:f.count,
       reason,cancelled:reason==='manual-recall'});
     // Both gloves return independently from their live world positions.
@@ -303,6 +312,7 @@
     const body=ctx.combatant.anchor;
     if(!body||body.hp<=0){
       if(r.cargoWeapon)ctx.api.dropWeaponSlot(r.cargoWeapon,body?.x??r.x,body?.y??r.y);
+      unlockTrigger(ctx,st.flurry?.targetBody);
       st.rocket=null;st.flurry=null;st.secondary=null;st.recoil=null;return;
     }
     const now=ctx.api.clock();
@@ -636,7 +646,7 @@
       recast:recastRocket,
       onTick(ctx,dt){tickPendingCargo(ctx);tickImpulses(ctx,dt);
         tickFlurry(ctx);tickRocket(ctx,dt);tickSecondary(ctx,dt);tickRecoil(ctx,dt);},
-      onTeardown(ctx){const st=boxe(ctx);if(st.rocket?.cargoWeapon){const r=st.rocket,body=ctx.combatant.anchor;ctx.api.dropWeaponSlot(r.cargoWeapon,body?.x??r.x,body?.y??r.y);}if(st.pendingCargo){const p=st.pendingCargo;ctx.api.dropWeaponSlot(p.weaponId,p.x,p.y);}
+      onTeardown(ctx){const st=boxe(ctx);unlockTrigger(ctx,st.flurry?.targetBody);if(st.rocket?.cargoWeapon){const r=st.rocket,body=ctx.combatant.anchor;ctx.api.dropWeaponSlot(r.cargoWeapon,body?.x??r.x,body?.y??r.y);}if(st.pendingCargo){const p=st.pendingCargo;ctx.api.dropWeaponSlot(p.weaponId,p.x,p.y);}
         st.pendingCargo=null;st.rocket=null;st.flurry=null;st.secondary=null;
         st.impulses=[];st.recoil=null;}
     },
