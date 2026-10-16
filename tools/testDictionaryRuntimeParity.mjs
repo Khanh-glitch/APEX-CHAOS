@@ -69,7 +69,8 @@ const boxeArts={
  a2:H.archiveProfile.skillArt.A2,
 };
 const originalArtHashes={
- passive:'5e4d51a89a2a81de684b4fa397e83b8d8af403854b21b463fef67e72c5e44ff4',
+ // Owner-uploaded passive art from the same 056192f intake commit.
+ passive:'0c46f6f583b758f7fe3f69bbd21a31ac70a45ba663fd7b10de0330439c337593',
  // Current owner-uploaded cover was placed by commit 056192f (Oct 16).
  // Preserve and verify those exact bytes; never substitute an older cover.
  cover:'68cd26a93374ca3ecdd90d43011c5b4a58fb533c1c7cf14ea5dac19870aaf50a',
