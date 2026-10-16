@@ -3136,10 +3136,16 @@
     tickPoseGhost(f, dt);
     // Empowered BOXE A1 denies both new trigger pulls and ongoing bursts.
     // Ammo and equipment remain native; fire resumes after the lock.
+    const resolver=window.APEX_HERO_REWORK_AIL?.StatusResolver;
     const triggerClock=window.APEX_HERO_REWORK_AIL?.clock?.() ??
       (typeof matchClock==='number'?matchClock:0);
-    if((f.__boxeTriggerLockUntil||0)>triggerClock &&
-        (h.phase==='READY'||h.phase==='FIRING'))return;
+    const locked=resolver?.has?.(f,'BOXE_TRIGGER_LOCK')===true ||
+      ((f.__boxeTriggerLockUntil||0)>triggerClock);
+    // STOP NEW SHOTS from READY, FIRING, AIM and WINDUP. Physical bullets
+    // already fired and harmless return/recovery phases continue normally.
+    const harmlessFlight=h.phase==='IN_FLIGHT'||h.phase==='RETRIEVED'||
+      h.phase==='FOLLOW_THROUGH';
+    if(locked&&h.def.category==='ranged'&&!harmlessFlight)return;
     if (h.phase === 'READY' && h.def.canActivate && h.def.canActivate(ctx)) {
       h.def.activate(ctx);
     }
