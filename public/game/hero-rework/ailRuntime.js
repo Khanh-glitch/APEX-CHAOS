@@ -111,6 +111,8 @@
     WEAK: { refresh: 'duration', duration: 1.0, mirrorOnly: true },
     ROOT: { refresh: 'duration' },
     STUN: { refresh: 'duration' },
+    // BOXE A1: separate trigger authority; does not conflate movement stun.
+    BOXE_TRIGGER_LOCK: { refresh: 'duration' },
     GEL: { refresh: 'value' },
   };
 
