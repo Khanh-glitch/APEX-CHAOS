@@ -58,6 +58,31 @@ for(const slot of ['PASSIVE','A1','A2']){
  assert.ok(H.archiveProfile.skillArt?.[slot]?.startsWith('/assets/dictionary/heroes/boxe/'),
   'missing registered skill illustration '+slot);
 }
+// Owner BOXE artwork admission: declared URLs alone are not a delivery proof.
+// Fail closed until all six unmodified original PNGs exist in the PR tree.
+const boxeArts={
+ avatar:H.archiveProfile.artwork.avatar,
+ standing:H.archiveProfile.artwork.standing,
+ cover:H.archiveProfile.artwork.cover,
+ passive:H.archiveProfile.skillArt.PASSIVE,
+ a1:H.archiveProfile.skillArt.A1,
+ a2:H.archiveProfile.skillArt.A2,
+};
+const originalArtHashes={
+ passive:'5e4d51a89a2a81de684b4fa397e83b8d8af403854b21b463fef67e72c5e44ff4',
+ cover:'d28a042b33649998b797d7b6b0fc442c104ef226a46750f2bca9b00f037820b3',
+};
+for(const [name,url] of Object.entries(boxeArts)){
+ assert.ok(url?.startsWith('/assets/dictionary/heroes/boxe/'),'BOXE '+name+' art is not registered');
+ const p='public'+url;
+ assert.ok(fs.existsSync(new URL('../'+p,import.meta.url)),'BOXE original PNG MISSING: '+p);
+ const bytes=fs.readFileSync(new URL('../'+p,import.meta.url));
+ assert.ok(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),'Invalid BOXE PNG: '+name);
+ if(originalArtHashes[name]){
+  const actual=(await import('node:crypto')).createHash('sha256').update(bytes).digest('hex');
+  assert.equal(actual,originalArtHashes[name],'Owner original PNG mismatch: '+name);
+ }
+}
 assert.equal(skillRecords(H).length,3);
 assert.equal(skillRecords(H)[1].name,'Fist Rocket');
 const six={ROBOT:'newbot',HUNTER:'hunter',CRYSTAL:'crystala',
