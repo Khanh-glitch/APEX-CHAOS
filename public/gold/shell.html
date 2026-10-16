@@ -1777,6 +1777,14 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     requestAnimationFrame(()=>list.forEach(a=>{try{if(a.playState==='paused')a.play()}catch(_){}}));
   }
 
+  // Wave's live-Home overlay uses the SAME suspension authority as battle.
+  // Do not keep a second active Home particle/parallax loop underneath Gold.
+  // Suspending presentation preserves resident sprites, music position and
+  // the exact Home DOM without reducing Wave renderer quality.
+  window.APEX_GOLD_PARENT_RUNTIME=Object.freeze({
+    pause:freezeParentRuntime,resume:resumeParentRuntime,
+    paused:()=>!!window.__APEX_PARENT_RUNTIME_PAUSED
+  });
   function decodeBattleHud(){
     const raw=(battleHudPayload?.textContent||'').trim();
     const bin=atob(raw), bytes=new Uint8Array(bin.length);
