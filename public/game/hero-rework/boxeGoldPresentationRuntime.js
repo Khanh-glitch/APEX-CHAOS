@@ -183,8 +183,13 @@
       g.ring(rec.f.x,rec.f.y,'#38e1ff',260,4,.3);
       rec.rocket=null;
     }else if(ev.type==='boxe:flurry-end'){
-      // Let the final Gold jab glow decay while the Rocket resumes flight.
-      if(rec.flurry)rec.flurry.endAt=now();
+      if(rec.flurry){
+        // Cancelling J must cancel future Gold jab callbacks too: the
+        // original scheduled six-beat visuals must not keep punching after
+        // native gameplay has withdrawn both gloves. Existing particles fade.
+        rec.flurry.endAt=now();
+        rec.flurry.g.timeline.length=0;
+      }
     }else if(ev.type==='boxe:counter-contact'){
       const target=(global.fighters||[]).find(f=>f?.id===body.targetId)||{
         x:rec.f.x+90,y:rec.f.y,radius:75};
@@ -249,8 +254,8 @@
       const foe=(global.fighters||[]).find(x=>x&&x!==body&&x.hp>0);
       if(foe)e.player.aim=Math.atan2(foe.y-f.y,foe.x-f.x);
       syncVisualTarget(e,body,f.x,f.y,46+(foe?.radius||75)+110);
-      while(f.cycle<4&&elapsed>=f.cycle*.51){
-        e.skillJab(); // EXACT Gold key 1 6-shot choreography × 4
+      while(!f.endAt&&f.cycle<4&&elapsed>=f.cycle*.51){
+        e.skillJab(); // EXACT Gold key 1 six-beat motion while live
         f.cycle++;
       }
       const fdt=Math.min(.05,Math.max(0,clock-f.last));f.last=clock;
@@ -304,7 +309,7 @@
           const arrival=Math.min(1,elapsed/.11);
           const lx=f.fromX+(l.x-f.fromX)*(1-(1-arrival)**3);
           const ly=f.fromY+(l.y-f.fromY)*(1-(1-arrival)**3);
-          if(fg.sprites){
+          if(!f.endAt&&fg.sprites){
             const hands=this.__hrCombatant?.store?.__boxeBattle?.flurry?.hands;
             if(!hands||hands.L.phase==='active')
               fg.drawGlovePose(ctx,{...l,x:lx,y:ly,scale:l.scale||1});
