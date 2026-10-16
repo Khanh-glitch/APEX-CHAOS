@@ -6,8 +6,10 @@
 'use strict';
 const doc=window.document;
 if(window.APEX_BOT_WAVE_INTERFACE_V2)return;
-const VERSION='owner-reject-r2';
-const AUDIO_MIX=Object.freeze({boxe:1.5,weapons:0.5});
+const VERSION='owner-release-r6';
+// Existing BOXE baseline was x1.5; owner requests another +30% -> x1.95.
+ // Arsenal's compressor/voice-density mix follows this shared mode policy.
+ const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.36});
 function installWaveAudioMix(){
  window.APEX_BOT_WAVE_AUDIO_MIX=AUDIO_MIX;
  const director=window.BOXE_SFX?.audio;
@@ -63,6 +65,9 @@ function install(){
  chapter.textContent='CHAPTER 01  //  ARSENAL SURVIVAL';
  const wave=node('div','bw-wave-line');
  wave.innerHTML='<span class="bw-witness">SURVIVE</span>';
+ const pressure=node('div','bw-pressure');
+ pressure.innerHTML='<span>HOSTILE PRESSURE</span><strong id="bw-pressure-label">STANDBY</strong><i id="bw-pressure-fill"></i>';
+ center.append(pressure);
  const centerSegment=node('div','bw-beat-markers');
  centerSegment.id='bw-beat-markers';
  for(let i=0;i<5;i++){const segment=node('i');segment.setAttribute('aria-label','Nhịp '+(i+1));centerSegment.append(segment);}
@@ -78,6 +83,22 @@ function install(){
  move.append(stick,moveLabel);
  const skill=node('div','bw-skill-deck');
  const skillTitle=node('div','bw-skill-caption','BOXE  //  COMBAT ABILITIES');
+ // Visual artwork only: the original action DOM, handlers and key semantics
+ // remain live. Use approved BOXE raster art instead of placeholder letters.
+ const artByAction={
+  J:'/assets/dictionary/heroes/boxe/avatar.png',
+  K:'/assets/dictionary/heroes/boxe/a2.png',
+  L:'/assets/dictionary/heroes/boxe/standing.png',
+  U:'/assets/dictionary/heroes/boxe/passive.png',
+  I:'/assets/dictionary/heroes/boxe/cover.png'
+ };
+ for(const btn of actions.querySelectorAll('[data-act]')){
+  const img=node('img','bw-action-art');
+  img.src=artByAction[btn.dataset.act]||artByAction.J;
+  img.alt='';img.decoding='async';img.draggable=false;
+  btn.prepend(img);
+  btn.dataset.key=btn.dataset.act;
+ }
  skill.append(skillTitle,actions);
  const interfaceControls=node('div','bw-interface-controls');
  interfaceControls.append(pause,status);
@@ -108,21 +129,30 @@ function install(){
  const tool=stage?.querySelector('#arena-experience-tools');
  if(tool){tool.hidden=true;tool.setAttribute('aria-hidden','true');}
  // HUD truth: chapter, five dramatic beats, wave identity. No 10-wave cap.
+ let lastChapter='',lastPressure='',lastBeat=-1;
  const update=()=>{
   const pilot=window.BOXE_WAVE_PILOT;
   if(!pilot)return;
   const s=pilot.state||{},n=Math.max(1,s.wave||1);
   const count=Math.floor((n-1)/5)+1,beat=(n-1)%5;
-  chapter.textContent='CHAPTER '+String(count).padStart(2,'0')+'  //  ARSENAL SURVIVAL';
+  const newChapter='CHAPTER '+String(count).padStart(2,'0')+'  //  ARSENAL SURVIVAL';
+  if(newChapter!==lastChapter){chapter.textContent=newChapter;lastChapter=newChapter;}
   center.classList.toggle('bw-is-boss',beat===4);
   center.classList.toggle('bw-is-upgrade',s.phase==='upgrade');
-  centerSegment.querySelectorAll('i').forEach((el,i)=>{
-   el.classList.toggle('done',i<beat);
-   el.classList.toggle('active',i===beat);
-  });
+  if(beat!==lastBeat){for(const [i,el] of [...centerSegment.children].entries()){
+   el.classList.toggle('done',i<beat);el.classList.toggle('active',i===beat);
+  }lastBeat=beat;}
   const phase=doc.querySelector('.bw-witness');
   if(phase)phase.textContent=beat===4?'BOSS ROUND':s.phase==='combat'?'IN COMBAT':
    s.phase==='upgrade'?'UPGRADE':'SURVIVE';
+  const active=window.handLab?.enemies?.filter(e=>!e.dead&&e.waveGunId).length||0;
+  const queued=s.queue?.length||0;
+  const cap=Math.max(1,s.softCap||5);
+  const danger=Math.min(1,active/cap);
+  const text=active+' ACTIVE  /  '+queued+' INBOUND';
+  if(text!==lastPressure){pressure.querySelector('strong').textContent=text;lastPressure=text;}
+  pressure.style.setProperty('--bw-pressure',danger.toFixed(3));
+  center.classList.toggle('bw-under-pressure',active>=cap);
   hero.classList.toggle('bw-took-hit',left.classList.contains('r2-damaged'));
   deck.dataset.phase=s.phase||'intro';
  };
