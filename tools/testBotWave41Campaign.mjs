@@ -25,10 +25,15 @@ assert.equal(planWave(config,15).boss,true);
 assert.equal(planWave(config,41).boss,false);
 assert.equal(planWave(config,150).wave,150);
 assert.equal(planWave(config,150).infinite,true);
-let discovered=new Set();
+let discovered=new Set(),actualEncountered=new Set();
 for(let w=1;w<=32;w++){
  const p=planWave(config,w);
- for(const id of p.newWeapons)discovered.add(id);
+ for(const id of p.newWeapons){
+  discovered.add(id);
+  assert.ok(p.composition.some(x=>x.weaponId===id),
+   'New identity must be wielded in its debut wave: '+id+' wave '+w);
+ }
+ for(const foe of p.composition)actualEncountered.add(foe.weaponId);
  assert.ok(p.composition.every(e=>catalog.byId.has(e.weaponId)));
  assert.ok(p.concurrentLimit>=5&&p.concurrentLimit<=9);
  assert.equal(p.gunDamageScalar,1);
@@ -36,7 +41,8 @@ for(let w=1;w<=32;w++){
  assert.equal(p.gunProjectileSpeedScalar,1);
  assert.equal(p.reloadPolicy,'KEEP_WEAPON_AND_REFILL_MAGAZINE');
 }
-assert.equal(discovered.size,41,'All 41 distinct native weapons must be first encountered by wave 32');
+assert.equal(discovered.size,41,'All 41 native weapons must debut by wave 32');
+assert.equal(actualEncountered.size,41,'All 41 native weapons must physically appear in real wave compositions, not only unlock lists');
 for(const id of catalog.allWeaponIds){
  const native=config.WEAPONS[id];
  assert.strictEqual(catalog.byId.get(id).spec,native,'Wave must reference native spec, not make a damage copy: '+id);

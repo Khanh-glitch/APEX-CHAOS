@@ -53,10 +53,12 @@ function planWave(nativeConfig,wave,{seed=41}={}){
  const beat=PLAN_BEATS[(wave-1)%5];
  const chapter=Math.floor((wave-1)/5)+1;
  const rand=seeded((seed^Math.imul(wave,0x9e3779b1))>>>0);
- // One first-contact showcase at a time; roughly 1.3 new weapons per wave.
- // By wave 32 all 41 weapon identities have entered the playable campaign.
- const revealed=Math.min(catalog.ordered.length,Math.max(1,Math.floor(wave*1.3)+1));
- const previous=wave===1?0:Math.min(catalog.ordered.length,Math.max(0,Math.floor((wave-1)*1.3)+1));
+ // Stage approximately 1.36 fresh identities per wave, with exactly PISTOL
+ // on wave 1. Every newly unlocked weapon is GUARANTEED an actual carrier
+ // slot in its reveal wave, not merely a name in the director catalogue.
+ // All 41 physically encounterable weapons have debuted by wave 31.
+ const revealed=Math.min(catalog.ordered.length,Math.max(1,Math.floor((wave-1)*1.36)+1));
+ const previous=wave===1?0:Math.min(catalog.ordered.length,Math.max(1,Math.floor((wave-2)*1.36)+1));
  const newly=catalog.ordered.slice(previous,revealed);
  const available=catalog.ordered.slice(0,revealed);
  const featured=wave===1?catalog.byId.get('PISTOL'):newly.length?newly[Math.floor(rand()*newly.length)]:
@@ -67,7 +69,8 @@ function planWave(nativeConfig,wave,{seed=41}={}){
  for(let i=0;i<slots;i++){
   // The spotlight gets space and never becomes a 41-gun simultaneity soup.
   let pick;
-  if(wave===1||i===0||i===1&&newly.length>0)pick=featured;
+  if(i<newly.length)pick=newly[i]; // Guaranteed real first encounter.
+  else if(wave===1||i===newly.length)pick=featured;
   else if(i%5===0&&newly.length>1)pick=newly[Math.floor(rand()*newly.length)];
   else if(i%3===0)pick=available[Math.floor(rand()*available.length)];
   else pick=available[Math.floor(Math.pow(rand(),1.4)*available.length)];
