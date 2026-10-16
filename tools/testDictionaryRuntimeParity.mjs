@@ -70,7 +70,9 @@ const boxeArts={
 };
 const originalArtHashes={
  passive:'5e4d51a89a2a81de684b4fa397e83b8d8af403854b21b463fef67e72c5e44ff4',
- cover:'d28a042b33649998b797d7b6b0fc442c104ef226a46750f2bca9b00f037820b3',
+ // Current owner-uploaded cover was placed by commit 056192f (Oct 16).
+ // Preserve and verify those exact bytes; never substitute an older cover.
+ cover:'68cd26a93374ca3ecdd90d43011c5b4a58fb533c1c7cf14ea5dac19870aaf50a',
 };
 for(const [name,url] of Object.entries(boxeArts)){
  assert.ok(url?.startsWith('/assets/dictionary/heroes/boxe/'),'BOXE '+name+' art is not registered');
