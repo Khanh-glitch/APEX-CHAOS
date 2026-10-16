@@ -210,7 +210,11 @@
     if(!q.commanded && t>=q.castAt+.72){
       q.commanded=true;
       const structure=structureOf(ctx);
-      if(structure)requestMorph(ctx,st,structure);
+      // A1 only issues a morph command for the machine that existed at
+      // cast time. A machine built from this NEW anchor may not be toggled
+      // by a delayed command issued before it existed.
+      if(structure && structure.solid.id===q.structureIdAtCast)
+        requestMorph(ctx,st,structure);
       emit(ctx,'a1-command',{bombId:q.id});
     }
     if(t>=q.castAt+1.6)st.a1Sequence=null;
@@ -271,7 +275,9 @@
     const foe=ctx.api.enemyBodies(ctx.combatant).find(x=>x.hp>0);
     const vx=foe?f.x-foe.x:-(f.dir?.x||1),vy=foe?f.y-foe.y:-(f.dir?.y||0);
     const mag=Math.hypot(vx,vy)||1;
-    st.a1Sequence={id,castAt:t,anchor,dx:vx/mag,dy:vy/mag,
+    st.a1Sequence={id,castAt:t,anchor,
+      structureIdAtCast:st.structure?.solid?.id??null,
+      dx:vx/mag,dy:vy/mag,
       speed:1300,duration:.18,placed:false,recoiled:false,commanded:false};
     emit(ctx,'a1-start',{bombId:id,x:anchor.x,y:anchor.y,
       placeAt:t+.40,armAt:t+.47,recoilAt:t+.52,commandAt:t+.72});
