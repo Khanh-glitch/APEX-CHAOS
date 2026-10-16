@@ -5956,13 +5956,28 @@ window.addEventListener('error',e=>{console.error('Standalone runtime error:',e.
  * Pilot gun sprites are graphic silhouettes pending the Arsenal asset bridge.
  * Arsenal source fields (shots, intervals, damage, speeds) verified against config.
  */
-(function installBotWaveGoldPilot(){
+(async function installBotWaveGoldPilot(){
 'use strict';
+// Separate owner Gold animation from native Arsenal & encounter policies.
+const loadWaveDependency=src=>new Promise((resolve,reject)=>{
+ const el=document.createElement('script');el.src=src;el.onload=resolve;
+ el.onerror=()=>reject(Error('BOT_WAVE_DEPENDENCY_FAILED '+src));document.head.appendChild(el);
+});
+await Promise.all([
+ loadWaveDependency('/game/arsenal/arsenalConfig.js'),
+ loadWaveDependency('/game/bot-wave/waveCampaign.js'),
+ loadWaveDependency('/game/bot-wave/armoryRuntime.js')
+]);
+const CFG=window.APEX_ARSENAL_CONFIG,CAMPAIGN=window.APEX_BOT_WAVE_CAMPAIGN;
+const ARSENAL_CATALOG=CAMPAIGN.indexNative(CFG);
+
 // APEX CHAOS asset authority. One resident sprite and bounded audio pool per cue.
 const APEX_GUN_ART=Object.create(null);
-for(const id of ['PISTOL','SMG','SHOTGUN','SNIPER','GRENADE']){
- const art=new Image(); art.decoding='async';
- art.src='/assets/arsenal/weapons/c/'+id+'.png';
+for(const {id} of ARSENAL_CATALOG.records){
+ const art=new Image();art.decoding='async';
+ art.src=CFG.V43_WEAPONS?.[id]?.art||
+  (id==='STORMBREAKER'?'/assets/arsenal/weapons/c/STORMBREAKER.webp':
+   '/assets/arsenal/weapons/c/'+id+'.png');
  APEX_GUN_ART[id]=art;
 }
 const APEX_GUN_AUDIO=Object.freeze({
@@ -5975,7 +5990,12 @@ const APEX_GUN_AUDIO=Object.freeze({
 const sfxPool=new Map();
 function waveGunCue(gun,kind='fire'){
  if(!engine?.opts?.sound)return;
- const path=APEX_GUN_AUDIO[gun]?.[kind==='reload'?1:0];if(!path)return;
+ const profile=ARMORY?.weapons?.[gun];
+ const fallback=profile?.family==='SHOTGUN'||profile?.family==='AUTOSHOT'?'SHOTGUN':
+  profile?.family==='PRECISION'?'SNIPER':
+  profile?.family==='AUTO'||profile?.family==='BURST'?'SMG':'PISTOL';
+ const path=(APEX_GUN_AUDIO[gun]||APEX_GUN_AUDIO[fallback])?.[kind==='reload'?1:0];
+ if(!path)return;
  const key=gun+':'+kind;let pool=sfxPool.get(key);
  if(!pool){pool=Array.from({length:4},()=>{
   const audio=new Audio(path);audio.preload='auto';return audio;
@@ -5983,25 +6003,12 @@ function waveGunCue(gun,kind='fire'){
  const cue=pool.find(a=>a.paused||a.ended)||pool[0];
  try{cue.pause();cue.currentTime=0;cue.volume=kind==='fire'?.31:.22;cue.play().catch(()=>{});}catch(_){/* Browser gesture gate */}
 }
-const WAVE_GUNS=Object.freeze({
-  PISTOL:{label:'PISTOL',mag:3,interval:.22,rawDamage:4.5,speed:2600,bulletLife:1,spread:.05,range:900,reload:1.3,speedScale:1,damageScale:1,color:'#ffd58c'},
-  SMG:{label:'SMG',mag:8,interval:.085,rawDamage:2.4,speed:3100,bulletLife:.9,spread:.10,range:820,reload:1.8,speedScale:1,damageScale:1,color:'#f99778'},
-  SHOTGUN:{label:'SHOTGUN',mag:1,interval:.95,rawDamage:3.6,speed:2500,bulletLife:.17,spread:.62,pellets:8,range:370,reload:2.35,speedScale:1,damageScale:1,color:'#ffbb61'},
-  SNIPER:{label:'SNIPER',mag:1,interval:1.45,rawDamage:26,speed:5800,bulletLife:1,aimTime:.8,spread:.02,range:1050,reload:2.8,speedScale:1,damageScale:1,color:'#ff6284'},
-  GRENADE:{label:'GRENADE',mag:1,interval:1.7,rawDamage:20,speed:540,bulletLife:1.4,spread:.06,range:720,reload:3.4,speedScale:1,damageScale:1,splash:155,color:'#ff9963'}
+const ARMORY=window.APEX_BOT_WAVE_ARMORY.createArmory({
+ engine,config:CFG,campaign:CAMPAIGN,cue:waveGunCue,rand:rng
 });
-const COMPOSITIONS=[
- {w:1,count:6,groups:[['PISTOL',6]],label:'FIRST CONTACT',heal:.18},
- {w:2,count:8,groups:[['PISTOL',5],['SMG',3]],label:'BURST FIRE',heal:.16},
- {w:3,count:10,groups:[['PISTOL',4],['SMG',4],['SHOTGUN',2]],label:'CLOSE QUARTERS',heal:.16},
- {w:4,count:12,groups:[['PISTOL',4],['SMG',4],['SHOTGUN',2],['SNIPER',2]],label:'CROSS FIRE',heal:.15},
- {w:5,count:13,groups:[['SMG',5],['SHOTGUN',4],['PISTOL',3]],bossGun:'SMG',label:'BOSS · IRON SENTINEL',heal:.20},
- {w:6,count:16,groups:[['SMG',7],['SHOTGUN',4],['SNIPER',5]],label:'SUPPRESSION GRID',heal:.16},
- {w:7,count:18,groups:[['SMG',8],['SHOTGUN',4],['SNIPER',4],['PISTOL',2]],label:'PINCH MOVEMENT',heal:.17},
- {w:8,count:21,groups:[['SMG',8],['SHOTGUN',5],['GRENADE',5],['SNIPER',3]],label:'AREA DENIAL',heal:.18},
- {w:9,count:24,groups:[['GRENADE',6],['SMG',8],['SNIPER',6],['SHOTGUN',4]],label:'FIRESTORM',heal:.20},
- {w:10,count:26,groups:[['GRENADE',7],['SMG',9],['SHOTGUN',6],['SNIPER',3]],bossGun:'GRENADE',label:'BOSS · OMEGA ARSENAL',heal:.23}
-];
+const WAVE_GUNS=ARMORY.weapons;
+// Legacy ten-wave inspection sample only; it is NOT a campaign cap.
+const COMPOSITIONS=Array.from({length:10},(_,i)=>waveComposition(i+1));
 const CARDS=[
  {id:'jab',label:'THUNDER JAB',desc:'Cuối combo J: thêm liên hoàn đấm từ Gold phím 1',tier:'RARE',weight:19,requires:[]},
  {id:'rocket',label:'FIST ROCKET · 7.5% PER HIT',desc:'Mỗi cú đấm TRÚNG MỤC TIÊU lăn 7.5% để kích hoạt găng tên lửa Gold phím 2. Chỉ 1 găng đang bay; nảy trong 5s rồi rút về đúng Gold.',tier:'RARE',weight:16,requires:[]},
@@ -6025,7 +6032,7 @@ function clamp(a,l,h){return Math.min(h,Math.max(l,a))}
 function pick(arr){return arr[Math.floor(rng()*arr.length)]}
 const UI={};let lastUI=0;
 const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,healOnKill:.012,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[]};
-window.BOXE_WAVE_PILOT={state,guns:WAVE_GUNS,compositions:COMPOSITIONS,keys:()=>Array.from(state.owned),testRollRocket:(n=100)=>{let count=0;for(let i=0;i<n;i++)if(rng()<.075)count++;return count},testForceXP:(xp)=>gainXP(xp),testStartWave:()=>startWave(),testKillAll:()=>{for(const e of engine.enemies.slice())if(!e.dead)engine.damageEnemy(e,e.hp+1000,{quiet:true})}};
+window.BOXE_WAVE_PILOT={state,guns:WAVE_GUNS,compositions:COMPOSITIONS,planWave:waveComposition,catalogue:ARSENAL_CATALOG.allWeaponIds,keys:()=>Array.from(state.owned),testRollRocket:(n=100)=>{let count=0;for(let i=0;i<n;i++)if(rng()<.075)count++;return count},testForceXP:(xp)=>gainXP(xp),testStartWave:()=>startWave(),testKillAll:()=>{for(const e of engine.enemies.slice())if(!e.dead)engine.damageEnemy(e,e.hp+1000,{quiet:true})}};
 function addCss(){let s=document.createElement('style');s.textContent=`
 #app{min-width:0!important;background:#090b0e}
 #app>.topbar,#left-panel,#right-panel,#idle-editor,.skill-dock,.arena-bottom-label,.top-overlay,.pause-overlay,.controls{display:none!important}
@@ -6058,7 +6065,7 @@ function addCss(){let s=document.createElement('style');s.textContent=`
 `;document.head.append(s)}
 function createUI(){
  addCss();const hud=document.createElement('div');hud.id='wave-hud';hud.innerHTML=`<div class="w-left"><div class="w-head">BOXE · THE FIST OF DAWN</div><div class="w-small">HP <b id="w-hp">—</b></div><div class="w-meter"><i id="w-hp-bar"></i></div><div class="w-small">LV <b id="w-level">1</b> · XP <b id="w-xp">0</b></div><div class="w-meter xp"><i id="w-xp-bar"></i></div></div><div class="w-right"><b id="w-wave">WAVE 01 / 10</b><span id="w-count" class="w-small"></span><div class="w-weapon" id="w-arsenal"></div></div><div id="wave-status">J PUNCH · K GUARD · L DASH</div><div id="wave-stick"><i></i></div><div class="w-actions"><button class="w-action" data-act="J">J<small>ĐẤM</small></button><button class="w-action" data-act="K">K<small>THỦ</small></button><button class="w-action" data-act="L">L<small>LƯỚT</small></button><button class="w-action" data-act="U" disabled>U<small>LOCK</small></button><button class="w-action" data-act="I" disabled>I<small>LOCK</small></button></div><button id="resume-wave">Ⅱ PAUSE</button>`;
- const modal=document.createElement('div');modal.id='wave-modal';modal.innerHTML=`<div class="w-dialog"><h1 id="w-title">APEX CHAOS · BOT WAVE</h1><p id="w-desc">BOXE chống lại 10 wave robot mang súng từ Arsenal (Pistol, SMG, Shotgun, Sniper, Grenade). Băng đạn được THAY MỚI thay vì vứt súng; mỗi loại có reload và khoảng an toàn riêng. HP hồi giữa wave và theo mỗi K.O.</p><div class="w-cards" id="w-cards"></div><button class="w-go" id="w-go">▶ START WAVE 01</button></div>`;
+ const modal=document.createElement('div');modal.id='wave-modal';modal.innerHTML=`<div class="w-dialog"><h1 id="w-title">APEX CHAOS · BOT WAVE</h1><p id="w-desc">BOXE tham gia chiến dịch Arsenal không giới hạn với 41 vũ khí thật, các chapter luân phiên nhịp nghỉ, áp lực và boss. Băng đạn được THAY MỚI thay vì vứt súng; mỗi loại có reload và khoảng an toàn riêng. HP hồi giữa wave và theo mỗi K.O.</p><div class="w-cards" id="w-cards"></div><button class="w-go" id="w-go">▶ START WAVE 01</button></div>`;
  document.body.append(hud,modal);
  for(const id of ['w-hp','w-hp-bar','w-level','w-xp','w-xp-bar','w-wave','w-count','w-arsenal','wave-status','w-title','w-desc','w-cards','w-go','wave-modal'])UI[id]=document.getElementById(id);
  document.getElementById('w-go').onclick=()=>{if(state.phase==='intro'||state.phase==='intermission'){engine.paused=false;UI['wave-modal'].hidden=true;startWave()}else if(state.phase==='complete'){restart()}else if(state.phase==='gameover'){restart()}};
@@ -6078,10 +6085,10 @@ function refreshUI(){
  UI['w-hp'].textContent=Math.max(0,Math.ceil(p.hp))+' / '+Math.ceil(p.maxHp);
  UI['w-hp-bar'].style.width=clamp(100*p.hp/p.maxHp,0,100)+'%';UI['w-level'].textContent=state.level;
  UI['w-xp'].textContent=Math.floor(state.xp)+' / '+th;UI['w-xp-bar'].style.width=clamp(100*state.xp/th,0,100)+'%';
- UI['w-wave'].textContent='WAVE '+String(state.wave).padStart(2,'0')+' / 10';
+ UI['w-wave'].textContent='WAVE '+String(state.wave).padStart(2,'0')+' · CHAPTER '+(Math.floor(Math.max(0,state.wave-1)/5)+1);
  UI['w-count'].textContent=state.phase==='combat'?engine.enemies.length+' ROBOTS · '+state.queue.length+' REINFORCEMENTS':state.phase.toUpperCase();
  UI['wave-status'].textContent=(state.empowered?'⚡ NHIỆT HUYẾT · '+Math.ceil(state.empoweredEnd-engine.time)+'s · ':'')+'J AUTO-APPROACH · ATTACK'+(state.owned.has('jab')?' + FLURRY':'')+(state.owned.has('uppercut')?' + VOLCANO':'')+(state.owned.has('rocket')?' · ROCKET 7.5%':'')+' · K '+(state.owned.has('counter')?'COUNTER':'GUARD')+' · L DASH'+(state.owned.has('ult')?' · I FINAL ROUND':'');
- const guns=state.wave>0?(COMPOSITIONS[Math.min(state.wave,10)-1]||COMPOSITIONS[9]).groups.map(x=>x[0]):['PISTOL'];
+ const guns=state.wave>0?waveComposition(state.wave).groups.map(x=>x[0]):['PISTOL'];
  UI['w-arsenal'].replaceChildren(...guns.slice(0,5).map(name=>{let el=document.createElement('span');el.textContent=name;return el}));
  for(const name of ['U','I'])document.querySelector(`[data-act="${name}"]`).disabled=!state.owned.has(name==='U'?'phantom':'ult');
 }
@@ -6116,26 +6123,34 @@ function chooseCard(id){if(state.phase!=='upgrade'||!state.offer?.some(c=>c.id==
  state.phase='combat';engine.paused=false;
  if(!state.queue.length&&!engine.enemies.length)completeWave();
 }
-function waveComposition(n){return COMPOSITIONS[Math.min(n,10)-1]||COMPOSITIONS[9]}
+function waveComposition(n){
+ const plan=CAMPAIGN.planWave(CFG,n);
+ const groups=new Map();let bossGun=null;
+ for(const e of plan.composition){
+  if(e.boss)bossGun=e.weaponId;
+  else groups.set(e.weaponId,(groups.get(e.weaponId)||0)+1);
+ }
+ return {w:n,count:plan.composition.length,groups:[...groups],
+  bossGun,label:plan.title+' · '+plan.chapter,heal:plan.betweenWaveHealFraction,plan};
+}
 function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.phase==='gameover')return;
  state.wave++;state.phase='combat';state.comboFlow=null;state.rocketPending=false;state.stickyEngage=null;state.queue=[];state.spawnT=0;const comp=waveComposition(state.wave);
- for(const [gun,n] of comp.groups)for(let i=0;i<n;i++)state.queue.push({gun,boss:false});
- if(comp.bossGun)state.queue.push({gun:comp.bossGun,boss:true});
- // Seeded permutation so same gun lists are not introduced all at once.
- for(let i=state.queue.length-1;i>0;i--){let j=Math.floor(rng()*(i+1));[state.queue[i],state.queue[j]]=[state.queue[j],state.queue[i]];}
- state.softCap=Math.min(11,6+Math.floor(state.wave/2));engine.paused=false;engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
+ state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,boss:e.boss,edge:e.edge,
+  edgeFraction:e.edgeFraction,role:e.role}));
+ state.softCap=comp.plan.concurrentLimit;engine.paused=false;engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
  engine.banner={text:'WAVE '+String(state.wave).padStart(2,'0'),sub:comp.label,t:1.8,max:1.8};
 }
 function makeEnemy(desc){
  const baseIndex=state.shots++,four=['top','right','bottom','left'];
  // Four-edge guarantee; subsequent guns create deliberate flank/zone angles.
- const edge=baseIndex<4?four[baseIndex]:desc.gun==='SHOTGUN'?(['left','right'][baseIndex%2]):
-  desc.gun==='SNIPER'?(['top','bottom'][baseIndex%2]):
-  desc.gun==='GRENADE'?(['bottom','top'][baseIndex%2]):four[baseIndex%4];
+ const edge=desc.edge||four[baseIndex%4];
  const margin=590;
- let x=0,y=0;if(edge==='top'){x=(rng()*2-1)*660;y=-margin}else if(edge==='bottom'){x=(rng()*2-1)*660;y=margin}else if(edge==='left'){x=-760;y=(rng()*2-1)*510}else{x=760;y=(rng()*2-1)*510}
+ const lane=Number.isFinite(desc.edgeFraction)?desc.edgeFraction:rng();
+ let x=0,y=0;if(edge==='top'){x=(lane*2-1)*660;y=-margin}else if(edge==='bottom'){x=(lane*2-1)*660;y=margin}else if(edge==='left'){x=-760;y=(lane*2-1)*510}else{x=760;y=(lane*2-1)*510}
  const boss=!!desc.boss,g=WAVE_GUNS[desc.gun];
- const hp=boss?(state.wave===5?1480:2320):Math.round(115*(1+.078*(state.wave-1))*(desc.gun==='SNIPER'?.85:1));
+ const chapter=Math.floor((state.wave-1)/5)+1;
+ const hp=boss?Math.min(7900,1200+chapter*420):
+  Math.min(380,Math.round(115*(1+.036*Math.min(state.wave-1,60))*(desc.role==='snipe'?.88:1)));
  const e={id:engine.nextId++,kind:'bot',x,y,vx:0,vy:0,r:boss?68:30,hp,maxHp:hp,
  angle:0,flash:0,wob:0,wobV:0,z:0,vz:0,shootT:1e8,strafeDir:rng()<.5?-1:1,strafeT:1+rng()*2,orbitHitAt:0,slowT:0,dead:false,
  waveGunId:desc.gun,waveAmmo:g.mag,waveFireT:.8+rng(),waveReloadT:0,waveBoss:boss,waveAimT:0,waveStunT:0};
@@ -6143,45 +6158,25 @@ function makeEnemy(desc){
  engine.material.dust(e.x,e.y+25,boss?8:3,boss?150:60,.35);
  return e;
 }
-function emitBullet(e,g,angle,damage,scale=1){let speed=g.speed;
- engine.projs.push({kind:'orb',x:e.x+Math.cos(angle)*36,y:e.y+Math.sin(angle)*36,
- vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,angle,life:g.bulletLife,traveled:0,phase:'out',hitSet:new Set(),src:e,
- waveGunId:e.waveGunId,waveDamage:damage*scale,waveColor:g.color,waveSplash:g.splash||0});
-}
-function gunFire(e,dt){const g=WAVE_GUNS[e.waveGunId],p=engine.player;
- if(!g||e.dead||state.phase!=='combat')return;
- if(e.waveReloadT>0){e.waveReloadT-=dt;if(e.waveReloadT<=0){e.waveAmmo=g.mag;e.waveFireT=0;engine.fx.flash(e.x,e.y-22,15,g.color,.12)}return;}
- e.waveFireT-=dt;if(e.waveFireT>0)return;
- const dx=p.x-e.x,dy=p.y-e.y,dist=Math.hypot(dx,dy);
- if(dist>g.range){e.waveFireT=.20;return}
- if(e.waveAmmo<=0){e.waveReloadT=g.reload;e.waveFireT=e.waveReloadT;waveGunCue(e.waveGunId,'reload');return}
- e.waveAmmo--;e.waveFireT=g.interval;waveGunCue(e.waveGunId,'fire');
- const a=Math.atan2(dy,dx)+(rng()-.5)*g.spread*2;
- const damage=g.rawDamage*7*g.damageScale; // STRICT R4: fixed for each weapon on ALL waves, including boss
- if(e.waveGunId==='SHOTGUN'){
-  for(let i=0;i<g.pellets;i++)emitBullet(e,g,a+(i/(g.pellets-1)-.5)*g.spread,damage,.85);
- }else emitBullet(e,g,a,damage);
- if(e.waveAmmo<=0){e.waveReloadT=g.reload;e.waveFireT=e.waveReloadT;waveGunCue(e.waveGunId,'reload');}
- engine.fx.streakCone(e.x+Math.cos(a)*43,e.y-23+Math.sin(a)*40,a,3,g.color,.10,420,35);
- engine.fx.flash(e.x+Math.cos(a)*35,e.y-25+Math.sin(a)*33,29,g.color,.10);
- engine.burst(e.x+Math.cos(a)*32,e.y-25+Math.sin(a)*20,2,['#fff5ce',g.color],'spark',85,3,.23);
- if(e.waveGunId==='GRENADE')engine.fire.puff(e.x+Math.cos(a)*30,e.y-35,16,0,-90,.4);
- if(e.waveGunId==='SNIPER')engine.lightning.strike(e.x,e.y-35,e.x+Math.cos(a)*110,e.y-35+Math.sin(a)*110,g.color,2,{branches:0,life:.12});
- engine.sfx(e.waveGunId==='SHOTGUN'?'boom':'zap',e.waveGunId==='SNIPER'?.75:.38);
-}
-function completedUI(){const comp=waveComposition(state.wave);UI['w-title'].textContent=state.wave===10?'CHAPTER CLEAR · BOXE LIVES':'WAVE '+state.wave+' CLEAR';
- UI['w-desc'].textContent=state.wave===10?'Bạn đã trụ 10 wave, vượt qua các tổ hợp Arsenal. Có thể tiếp tục Endless sau bản chapter này.':'Hồi '+Math.round(comp.heal*100)+'% HP. Wave sau ép góc bằng phối súng và hướng xuất hiện mới; mỗi khẩu giữ nguyên damage, cadence, bullet speed và reload.';
- UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';UI['w-go'].textContent=state.wave>=10?'▶ ENDLESS WAVE 11':'▶ NEXT WAVE '+(state.wave+1);
+function gunFire(e,dt){if(state.phase==='combat')ARMORY.fire(e,dt);}
+function completedUI(){
+ const comp=waveComposition(state.wave),boss=comp.plan.boss;
+ UI['w-title'].textContent=boss?'CHAPTER '+comp.plan.chapter+' SURVIVED':'WAVE '+state.wave+' CLEAR';
+ UI['w-desc'].textContent='Nghỉ hồi '+Math.round(comp.heal*100)+
+ '% HP · Đã mở '+comp.plan.revealedWeapons+' / '+comp.plan.totalWeapons+
+ ' vũ khí Arsenal. Kẻ địch mới và tổ hợp tiếp theo thay đổi hướng ép góc, không tăng chỉ số súng.';
+ UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';
+ UI['w-go'].textContent='▶ NEXT WAVE '+(state.wave+1);
  UI['wave-modal'].hidden=false;
 }
 function completeWave(){if(state.phase!=='combat')return;state.phase='intermission';state.comboFlow=null;state.rocketPending=false;engine.paused=true;
  let c=waveComposition(state.wave);engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*c.heal);
  completedUI();}
 function lose(){state.phase='gameover';state.comboFlow=null;state.rocketPending=false;engine.paused=true;state.losses++;UI['w-title'].textContent='BOXE DOWN · WAVE '+state.wave;
- UI['w-desc'].textContent='Bị áp đảo bởi robot cầm Arsenal. Thử nâng HP, tăng tốc hoặc giữ vị trí khi SNIPER/GRENADE xuất hiện.';
+ UI['w-desc'].textContent='BOT WAVE tiếp tục qua nhiều chapter. Quan sát hướng tấn công, thử thẻ nâng cấp và chọn thời điểm lướt thay vì đứng chặn đạn.';
  UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';UI['w-go'].textContent='↻ RETRY';UI['wave-modal'].hidden=false;}
 function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.timeline=[];engine.player.hp=3200;engine.player.maxHp=3200;
- state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.damageMul=1;state.moveMul=1;state.punchMul=1;state.guardBonus=0;state.healOnKill=.012;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
+ ARMORY.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.damageMul=1;state.moveMul=1;state.punchMul=1;state.guardBonus=0;state.healOnKill=.012;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
  UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;startWave();}
 function autoAimNow(){
  const p=engine.player,targets=engine.enemies.filter(e=>!e.dead);
@@ -6225,7 +6220,7 @@ function recordBOXERealDamage(realized){
 }
 const nativeDamageEnemy=engine.damageEnemy.bind(engine);
 engine.damageEnemy=function(e,raw,opts){
- const before=e.dead;const done=nativeDamageEnemy(e,raw*state.damageMul,opts);
+ const before=e.dead;const done=nativeDamageEnemy(e,ARMORY.protect(e,raw*state.damageMul),opts);
  recordBOXERealDamage(done);
  if(!before&&e.dead){state.kills++;
   let base=e.waveBoss?260:e.waveGunId==='SNIPER'?34:e.waveGunId==='GRENADE'?32:18;
@@ -6247,6 +6242,7 @@ engine.drawProjs=function(ctx){
  for(const pr of this.projs)if(pr.waveGunId){const c=pr.waveColor||'#ffdd98';const a=pr.angle;
   ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle=c;ctx.globalAlpha=.85;ctx.lineWidth=pr.waveGunId==='SNIPER'?4:pr.waveGunId==='GRENADE'?5:2;
   ctx.beginPath();ctx.moveTo(pr.x-Math.cos(a)*35,pr.y-30-Math.sin(a)*35);ctx.lineTo(pr.x+Math.cos(a)*4,pr.y-30+Math.sin(a)*4);ctx.stroke();ctx.restore();}
+ ARMORY.draw(ctx,APEX_GUN_ART);
 };
 const nativeDrawEnemy=engine.drawEnemy.bind(engine);
 engine.drawEnemy=function(ctx,e){nativeDrawEnemy(ctx,e);if(!e.waveGunId)return;
@@ -6254,7 +6250,7 @@ engine.drawEnemy=function(ctx,e){nativeDrawEnemy(ctx,e);if(!e.waveGunId)return;
  ctx.save();ctx.translate(px,py);ctx.rotate(a);
  const gunArt=APEX_GUN_ART[e.waveGunId];
  if(gunArt?.complete&&gunArt.naturalWidth){
-  const width=e.waveGunId==='SNIPER'?88:e.waveGunId==='SHOTGUN'?73:e.waveGunId==='SMG'?66:58;
+  const width=g.family==='PRECISION'?88:g.family==='SHOTGUN'||g.family==='AUTOSHOT'?73:g.family==='AUTO'?66:g.family==='MELEE'?82:65;
   const height=width*gunArt.naturalHeight/gunArt.naturalWidth;
   if(Math.cos(a)<0){ctx.scale(1,-1)}
   ctx.shadowColor='#000a';ctx.shadowBlur=6;
@@ -6265,7 +6261,7 @@ engine.drawEnemy=function(ctx,e){nativeDrawEnemy(ctx,e);if(!e.waveGunId)return;
   ctx.fillRect(-16,-5,32,9);ctx.strokeRect(-16,-5,32,9);
  }
  ctx.restore();
- if(e.waveGunId==='SNIPER'&&e.waveReloadT<=0&&e.waveFireT>.02&&e.waveFireT<.85){
+ if(g.family==='PRECISION'&&e.waveReloadT<=0&&e.waveFireT>.02&&e.waveFireT<.85){
   const aa=Math.atan2(this.player.y-e.y,this.player.x-e.x),tt=clamp((.85-e.waveFireT)/.85,0,1);
   ctx.save();ctx.strokeStyle='#ff4968';ctx.globalAlpha=.2+.65*tt;ctx.lineWidth=1+tt*1.5;
   ctx.beginPath();ctx.moveTo(e.x+Math.cos(aa)*32,e.y-22+Math.sin(aa)*32);
@@ -6416,6 +6412,7 @@ engine.update=function(dt){
  if(stickDX>.22)k.add('KeyD');if(stickDX<-.22)k.add('KeyA');if(stickDY>.22)k.add('KeyS');if(stickDY<-.22)k.add('KeyW');}
  const originalX=this.player.x,originalY=this.player.y;
  autoAimNow();nativeUpdate(dt);
+ if(state.phase==='combat')ARMORY.update(Math.min(.05,dt));
  if(state.stickyEngage)advanceStickyJ();
  if(state.phase==='combat'){
   autoAimNow();
@@ -6433,7 +6430,11 @@ engine.update=function(dt){
    }else {this.player.empoweredT=remaining;this.player.fury=100;}
   }
  }
- if(state.phase==='combat'&&state.moveMul!==1){this.player.x+=((this.player.x-originalX)*(state.moveMul-1));this.player.y+=((this.player.y-originalY)*(state.moveMul-1));}
+ if(state.phase==='combat'){
+  const speed=state.moveMul*ARMORY.movementSlow();
+  if(speed!==1){this.player.x+=(this.player.x-originalX)*(speed-1);
+   this.player.y+=(this.player.y-originalY)*(speed-1);}
+ }
  updateWave(dt);
 };
 const nativeOnKeyDown=engine.onKeyDown;

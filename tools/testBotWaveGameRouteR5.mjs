@@ -9,7 +9,7 @@ assert.equal(listProductSurfaces().filter(x=>x.availability==='ACTIVE').length,6
 const app=fs.readFileSync('src/App.jsx','utf8');
 assert.ok(app.includes("const target='/bot-wave/index.html'"),'Gold wave destination missing');
 assert.ok(app.includes('window.top.location.assign(target)')&&app.includes('window.location.assign(target)'),'desktop/mobile route requires native + fidelity iframe escape');
-assert.ok(fs.readFileSync('src/App.jsx','utf8').includes("choices.insertAdjacentElement('afterend',entry)"));
+assert.ok(fs.readFileSync('src/App.jsx','utf8').includes("routes.appendChild(entry)"));
 assert.ok(fs.readFileSync('public/bot-wave/index.html','utf8').includes("frame.src='/bot-wave/game.html'"));
 assert.ok(fs.existsSync('src/game/botWave/wavePreviewEntry.css'));
 const p={x:0,y:0},near={id:'robot-1',x:305,y:0,r:30};

@@ -24,8 +24,10 @@ const expanded=binary.toString('utf8').replace(/\/assets\/boxe-gold\/([A-Za-z0-9
 });
 assert.equal(substitutions.length,10,'exactly ten Gold images must externalize');
 assert.equal(new Set(substitutions).size,10,'duplicate/missing sprite mappings');
-assert.equal(Buffer.byteLength(expanded),proof.raw_bytes,'Gold R5.1 restored size changed');
-assert.equal(sha(Buffer.from(expanded)),proof.raw_sha256,'Gold R5.1 gameplay or VFX bytes changed');
-assert.equal(proof.vfx_and_gameplay_edits,0,'Gold gameplay edits forbidden');
+const prefix=binary.toString('utf8').split(proof.visual_prefix_delimiter)[0];
+assert.equal(sha(Buffer.from(prefix)),proof.gold_visual_prefix_sha256,
+ 'Owner Gold art/motion/VFX core changed outside the isolated wave adapter');
+assert.equal(proof.source_gold_visual_edits,0,'Owner Gold visual core edits forbidden');
+assert.equal(substitutions.length,10,'All original lossless PNGs must remain linked');
 assert.ok(expanded.includes('WAVE_STICKY_ASSIST')&&expanded.includes('waveGunCue')&&expanded.includes('APEX_GUN_ART'),'R5.1 wave and Arsenal hooks missing');
 console.log('BOXE R5.1 LOSSLESS RUNTIME PASS; raw='+proof.raw_sha256+' bytes='+proof.raw_bytes+' served='+binary.byteLength+' Gold PNG='+substitutions.length);

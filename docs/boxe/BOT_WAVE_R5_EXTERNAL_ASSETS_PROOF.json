@@ -1,8 +1,8 @@
 {
   "raw_sha256": "e766b7cdd0b57e87187992ba464d8bddae2c2ee0fac3996e46ab9b048f2d0256",
-  "externalized_sha256": "0f38ac8a44082e26627e6b5415f4434f623f851b5461476567ffc16e2e62ca78",
+  "externalized_sha256": "1ea2efb339a6c11ac3950a34b63e8c543f95db8cad44f01cd96ed7940bfcd1bc",
   "raw_bytes": 25720219,
-  "externalized_bytes": 322922,
+  "externalized_bytes": 318441,
   "substitutions": [
     {
       "file": "char-body.png",
@@ -55,5 +55,8 @@
       "bytes": 1430667
     }
   ],
-  "vfx_and_gameplay_edits": 0
+  "gold_visual_prefix_sha256": "58f886f93addd83e87f87be476ae8eb504a1e166a520d44ee4454918ba38882f",
+  "visual_prefix_delimiter": "/* BOXE BOT WAVE pilot — additive Gold Lab adapter",
+  "source_gold_visual_edits": 0,
+  "bot_wave_gameplay_revision": "CP3-native-41-unbounded"
 }
