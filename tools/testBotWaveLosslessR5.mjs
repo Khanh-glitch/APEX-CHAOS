@@ -35,3 +35,6 @@ for(const forbidden of ["name==='j_coil_b'","name==='j_arc_b'","name==='round_be
  assert.ok(game.includes(forbidden),'Original approved V3 sound rollback missing: '+forbidden);
 
 assert.ok(game.includes('document.body.append(stageHud);'),'Owner arena round effects HUD must actually mount');
+
+for(const id of ['w-hp-trail','w-r2-fury-bar','r2-boss-panel','r2-boss-hp-fill'])
+ assert.ok(game.includes('id="'+id+'"'),'Gold R2 visible HUD effect not mounted: '+id);
