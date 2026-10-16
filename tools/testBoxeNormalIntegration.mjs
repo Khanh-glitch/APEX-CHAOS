@@ -37,6 +37,38 @@ assert.ok(native.includes("resolver?.has?.(f,'BOXE_TRIGGER_LOCK')") &&
  'BOXE A1 must gate all native pre-shot phases through shared AIL status');
 const ail=read('public/game/hero-rework/ailRuntime.js');
 assert.ok(ail.includes('BOXE_TRIGGER_LOCK'), 'AIL trigger-lock status law missing');
+// Execute the ACTUAL native holder driver with an instrumented ranged
+// executor. String-matching alone cannot catch sniper AIM / V43 WINDUP leaks.
+const begin=native.indexOf('  function updateHolder(f, dt) {');
+const finish=native.indexOf('\n  // V4.3 Gold authored impact mass.',begin);
+assert.ok(begin>0&&finish>begin,'native holder seam unavailable');
+let triggerLocked=true,activationCount=0,shotCount=0;
+const holder={phase:'READY',elapsed:0,meta:{aimAngle:0},def:{
+ category:'ranged',canActivate:()=>true,
+ activate:()=>{activationCount++;},update:()=>{shotCount++;}
+}};
+const mockFighter={hp:1000,id:'target'};
+const harness={matchClock:0,
+ window:{APEX_HERO_REWORK_AIL:{
+  clock:()=>0,StatusResolver:{has:()=>triggerLocked}}},
+ tickPoseGhost:()=>{},getHolder:()=>holder,
+ makeCtx:()=>({fighter:mockFighter}),
+ logicalAim:()=>0,dampAngle:()=>0,integratePose:()=>{}};
+vm.runInNewContext(native.slice(begin,finish)+'\nthis.updateHolderTest=updateHolder;',harness);
+for(const phase of ['READY','FIRING','AIM','WINDUP']){
+ holder.phase=phase;activationCount=0;shotCount=0;
+ harness.updateHolderTest(mockFighter,.016);
+ assert.equal(activationCount,0,'locked '+phase+' must not activate');
+ assert.equal(shotCount,0,'locked '+phase+' must not progress to shot');
+ triggerLocked=false;
+ harness.updateHolderTest(mockFighter,.016);
+ assert.equal(shotCount,1,'unlocked '+phase+' must resume native weapon state');
+ triggerLocked=true;
+}
+for(const phase of ['IN_FLIGHT','FOLLOW_THROUGH','RETRIEVED']){
+ holder.phase=phase;shotCount=0;harness.updateHolderTest(mockFighter,.016);
+ assert.equal(shotCount,1,phase+' physical recovery must continue during lock');
+}
 const presentation=read('public/game/hero-rework/boxeGoldPresentationRuntime.js');
 assert.ok(presentation.includes('ctx.translate(worldOffset(),worldOffset())') &&
  presentation.includes('const toGold=v=>v-worldOffset()'),'Gold VFX centered-coordinate fix missing');
