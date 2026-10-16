@@ -53,7 +53,7 @@
  box-shadow:0 0 11px #ffab52;animation:waveBeacon 2.2s ease-in-out infinite;
 }
 #stage #botWaveEntry strong{
- font:italic 1000 clamp(27px,2.1vw,38px)/.94 Impact,"Arial Narrow",system-ui;
+ font:italic 1000 clamp(22px,1.6vw,30px)/.94 Impact,"Arial Narrow",system-ui;
  letter-spacing:.035em;color:#fff0d4;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;text-shadow:0 3px 9px #000a;
 }
 #stage #botWaveEntry small{
@@ -89,7 +89,7 @@
  #stage #botWaveEntry .apex-wave-entry-copy{padding:5px 11px 7px;gap:3px}
  #stage #botWaveEntry .apex-special-wave-top{font-size:6.5px;letter-spacing:.06em}
  #stage #botWaveEntry .apex-special-wave-top i{width:4px;height:4px}
- #stage #botWaveEntry strong{font-size:clamp(20px,2.7vw,27px)}
+ #stage #botWaveEntry strong{font-size:clamp(17px,2.2vw,22px)}
  #stage #botWaveEntry small{font-size:6px}
  #stage #botWaveEntry .apex-wave-entry-go{font-size:13px;bottom:5px;right:6px}
  #apex-wave-host > #return{font-size:9px!important;padding:5px 10px!important;min-height:28px}
@@ -100,7 +100,7 @@
   grid-template-columns:38% 62%}
  #stage #botWaveEntry .apex-wave-entry-copy{padding:8px 11px 11px;gap:5px}
  #stage #botWaveEntry .apex-special-wave-top{font-size:8px;letter-spacing:.055em}
- #stage #botWaveEntry strong{font-size:clamp(23px,6.2vw,34px)}
+ #stage #botWaveEntry strong{font-size:clamp(20px,5vw,27px)}
  #stage #botWaveEntry small{font-size:7px;letter-spacing:0}
 }
 @media(prefers-reduced-motion:reduce){
