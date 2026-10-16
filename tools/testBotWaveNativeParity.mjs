@@ -11,6 +11,9 @@ assert.ok(!bridge.includes('shot(e,g,'),'Independent re-authored shot executor n
 assert.ok(!bridge.includes('recordToGun'),'Per-mode gun spec rewrite is forbidden');
 assert.ok(!bridge.includes('setInterval('),'No independent shooting clock');
 assert.ok(bridge.includes("backend:'FREE_BATTLE_NATIVE'"));
+const arsenal=fs.readFileSync('public/game/arsenal/arsenalWeaponRuntime.js','utf8');
+assert.ok(arsenal.includes("SHOTGUN: makeBlastGun('SHOTGUN'"),
+ 'Native classic SHOTGUN must use pellet volley executor; undefined magazine length makes it inert');
 assert.ok(bridge.includes('projectile.life-=dt'),'Gold must advance canonical Arsenal projectile life once per tick');
 assert.ok(bridge.includes('native.api.updateArsenalProjectiles(dt'),'Collision ownership must remain with Arsenal runtime');
 assert.ok(!bridge.includes('engine.projs.splice('),'No fake projectile lifecycle allowed');

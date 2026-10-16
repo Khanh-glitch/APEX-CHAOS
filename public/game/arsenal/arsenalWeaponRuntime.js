@@ -2693,7 +2693,10 @@
   const WEAPONS = {
     PISTOL: makeGun('PISTOL', 'G01_pistol', '#ffe08a'),
 
-    SHOTGUN: makeGun('SHOTGUN', 'G03_shotgun', '#ffbe6b'),
+    // Classic SHOTGUN has pellets/cone but no 'shots' scalar. Treat it as
+    // the authored one-blast Arsenal executor (same aim, damage and asset),
+    // not a makeGun() magazine whose while condition never fires.
+    SHOTGUN: makeBlastGun('SHOTGUN', '#ffbe6b'),
     _SHOTGUN_LEGACY: (() => {
       const spec = CFG.WEAPONS.SHOTGUN;
       return {
