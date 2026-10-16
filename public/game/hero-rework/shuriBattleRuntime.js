@@ -286,7 +286,7 @@
   function a2can(ctx){
     const st=stateOf(ctx.combatant),s=structureOf(ctx);
     if(!s)return st.scrap>=20 && !!st.anchor
-      && !!ctx.api.nearestFreeWorldCircle(st.anchor.x,st.anchor.y,ctx.combatant.anchor.radius||75);
+      && !!ctx.api.nearestFreeWorldCircle(st.anchor.x,st.anchor.y,ctx.combatant.anchor.radius||75,{excludeBody:ctx.combatant.anchor});
     return s.phase==='ACTIVE'&&st.scrap>0&&s.solid.hp<200;
   }
   function a2(ctx){
