@@ -74,7 +74,21 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    });
    // Owner reject R2 admission: prove entirely new structural HUD and
    // artwork-led chapter modal, not just a cosmetic CSS over old Gold rectangles.
-   await gameFrame.waitForSelector('#bw-interface-v2',{visible:true,timeout:20000});
+   await gameFrame.waitForSelector('#bw-interface-v2',{visible:true,timeout:20000}).catch(async e=>{
+      const snapshot=await gameFrame.evaluate(()=>({
+        app:document.readyState,
+        GoldHud:!!document.getElementById('wave-hud'),
+        GoldStage:!!document.getElementById('arena-experience-hud'),
+        script:[...document.querySelectorAll('script[src]')].map(s=>s.src),
+        presentation:window.APEX_BOT_WAVE_INTERFACE_V2||null,
+        hero:!!document.querySelector('#wave-hud .w-left'),
+        controls:!!document.querySelector('#wave-hud .w-actions'),
+        dialog:!!document.querySelector('#wave-modal .w-dialog'),
+        stylesheet:!!document.querySelector('#bw-v2-styles'),
+        standalone:!!document.querySelector('#bw-interface-v2'),
+      }));
+      throw Error('BOT_WAVE_REJECT_HUD_FAILED '+JSON.stringify({snapshot,errors,consoleIssues})+' '+e);
+   });
    await gameFrame.waitForSelector('.bw-cover-art',{timeout:20000});
    const interfaceRead=await gameFrame.evaluate(()=>({
      standalone:document.querySelector('#wave-hud .bw-command-deck')?.id==='bw-interface-v2',
