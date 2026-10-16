@@ -192,6 +192,8 @@ export default function App() {
   installProductSurfaceAuthority(window);
   const scriptRef = useRef(null);
   const menuAudioRef = useRef(null);
+  const waveOverlayRef = useRef(null);
+  const waveReturnBusyRef = useRef(false);
   // Product music lifecycle is owned by productMusicAuthority. React keeps
   // only the single persistent element ref for diagnostics/fallback cleanup.
   const [gameReady, setGameReady] = useState(false);
@@ -412,19 +414,110 @@ export default function App() {
     if (!gameReady) return false;
 
     if (surface.route === 'wave') {
-      // Isolated Gold runtime: route transition, not a fake overlay on
-      // the active Arsenal auto-battle engine. The native product graph
-      // remains the single launch authority.
-      stopMenuMusic();
-      // Mobile Gold Fidelity uses a same-origin compositing iframe. Escape
-      // that viewport so this landscape-first mode uses the whole screen.
-      const target='/bot-wave/index.html';
-      try {
-        if(window.top!==window && window.top.location.origin===window.location.origin)
-          window.top.location.assign(target);
-        else window.location.assign(target);
-      }catch(_){window.location.assign(target);}
-      return true;
+      // Preserve the LIVE Home surface while the approved Mechanical Door V4
+      // seals it. One native Gold iframe (not a nested wrapper) is mounted
+      // behind the cover, so returning needs neither browser reload nor START.
+      if(waveOverlayRef.current)return true;
+      const cover=document.createElement('section');
+      cover.id='apex-wave-host';
+      cover.setAttribute('aria-label','BOT WAVE · BOXE');
+      Object.assign(cover.style,{position:'fixed',inset:'0',zIndex:'900',background:'#090c11',
+        visibility:'hidden',isolation:'isolate'});
+      const frame=document.createElement('iframe');
+      frame.id='wave';frame.title='APEX CHAOS · BOXE BOT WAVE';
+      frame.allow='autoplay; fullscreen';
+      Object.assign(frame.style,{position:'absolute',inset:'0',width:'100%',height:'100%',border:'0'});
+      const close=document.createElement('button');
+      close.id='return';close.type='button';close.textContent='← APEX HOME';
+      close.setAttribute('aria-label','Trở về APEX Home');
+      Object.assign(close.style,{position:'absolute',top:'max(7px, env(safe-area-inset-top))',
+        left:'50%',transform:'translateX(-50%)',zIndex:'5',
+        padding:'6px 13px',border:'1px solid #c68c58',borderRadius:'4px',
+        font:'850 11px system-ui',background:'#0b1019ee',color:'#ffe1af',cursor:'pointer'});
+      const status=document.createElement('div');
+      status.id='status';status.textContent='PREPARING · THE LAST ROUND';
+      Object.assign(status.style,{position:'absolute',inset:'0',display:'grid',placeItems:'center',
+        background:'#090c11',color:'#ffca8a',font:'800 12px system-ui',letterSpacing:'.14em'});
+      cover.append(frame,status,close);
+      const goHome=async()=>{
+        if(waveReturnBusyRef.current || waveOverlayRef.current!==cover)return;
+        waveReturnBusyRef.current=true;close.disabled=true;
+        const coordinator=window.APEX_SCENE_TRANSITION;
+        try{
+          if(coordinator?.run){
+            await coordinator.run({name:'bot-wave-return',source:cover,
+              target:document.getElementById('gold-shell-host'),
+              prepare:()=>Promise.resolve(),
+              commit:()=>{cleanup();cover.remove();waveOverlayRef.current=null;
+                if(location.pathname!=='/')history.replaceState({},'','/');
+                playMenuMusic();}});
+          }else{
+            cleanup();cover.remove();waveOverlayRef.current=null;history.replaceState({},'','/');
+            playMenuMusic();
+          }
+        }finally{
+          waveReturnBusyRef.current=false;
+          if(waveOverlayRef.current===cover)close.disabled=false;
+        }
+      };
+      close.addEventListener('click',()=>{void goHome()});
+      // Back key behaves like the in-product return button.
+      const onPop=()=>{if(waveOverlayRef.current===cover)void goHome()};
+      const onMessage=e=>{
+        if(e.origin===location.origin&&e.source===frame.contentWindow&&
+          e.data?.type==='APEX_BOT_WAVE_EXIT')void goHome();
+      };
+      window.addEventListener('popstate',onPop);
+      window.addEventListener('message',onMessage);
+      const cleanup=()=>{window.removeEventListener('popstate',onPop);
+        window.removeEventListener('message',onMessage)};
+      const waitReady=()=>new Promise((resolve,reject)=>{
+        let done=false;
+        const timeout=setTimeout(()=>finish(Error('BOT WAVE Gold V2 admission timed out')),24000);
+        const finish=error=>{
+          if(done)return;done=true;clearInterval(poll);clearTimeout(timeout);
+          error?reject(error):resolve();
+        };
+        const attach=()=>{
+          let doc;
+          try{doc=frame.contentDocument}catch(e){return}
+          if(!doc?.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
+          if(!doc.getElementById('bw-v2-styles')){
+            const css=doc.createElement('link');css.rel='stylesheet';css.id='bw-v2-styles';
+            css.href='/game/bot-wave/botWavePresentationV2.css';doc.head.append(css);
+          }
+          if(!doc.getElementById('bw-v2-script')){
+            const script=doc.createElement('script');script.id='bw-v2-script';
+            script.src='/game/bot-wave/botWavePresentationV2.js';doc.head.append(script);
+          }
+          const win=frame.contentWindow;
+          if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&
+             doc.getElementById('bw-v2-styles')?.sheet){
+            status.remove();finish();
+          }
+        };
+        const poll=setInterval(attach,80);attach();
+      });
+      document.body.append(cover);waveOverlayRef.current=cover;
+      const coordinator=window.APEX_SCENE_TRANSITION;
+      try{
+        const result=await coordinator.run({
+          name:'bot-wave-enter',
+          source:document.getElementById('gold-shell-host'),target:cover,
+          prepare:()=>{frame.src='/bot-wave/game.html';return waitReady();},
+          commit:()=>{cover.style.visibility='visible';status.remove();
+            history.pushState({apexWave:true},'','/bot-wave/index.html');
+            stopMenuMusic();},
+          rollback:()=>{cover.remove();waveOverlayRef.current=null;cleanup();}
+        });
+        if(result?.ok===false && waveOverlayRef.current!==cover)return false;
+        if(!waveOverlayRef.current)return false;
+        return true;
+      }catch(error){
+        cleanup();cover.remove();waveOverlayRef.current=null;
+        console.error('[bot-wave] transition/Gold admission',error);
+        return false;
+      }
     }
     if (surface.route === 'skins') {
       // The locker is a sibling product surface, never an alternate Gold
