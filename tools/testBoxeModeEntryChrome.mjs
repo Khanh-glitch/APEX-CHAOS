@@ -116,6 +116,38 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    });
    assert.ok(waveRuntime.playerHP>0&&waveRuntime.enemyCount>=1);
    assert.equal(waveRuntime.gameCanvas,true);
+   // Restore-fidelity owner gate: source Gold art, source R2 industrial circular
+   // stage, postprocess and BOTH sampled SFX banks must render in a live browser.
+   await gameFrame.waitForFunction(()=>{
+     const gold=window.BOXE_SFX?.getStats?.();
+     const accents=window.BOXE_FINAL_SFX;
+     const base=window.BOXE_ARENA_EXPERIENCE?.stage?.base;
+     return !!(gold?.ready&&gold.loaded===gold.total&&gold.total>=33
+       &&accents?.ready&&accents.buffers?.size===9
+       &&base?.width===2200&&base?.height===2200);
+   },{timeout:40000});
+   const ownerGold=await gameFrame.evaluate(()=>{
+     const gold=window.BOXE_SFX.getStats();
+     const final=window.BOXE_FINAL_SFX;
+     const stage=window.BOXE_ARENA_EXPERIENCE.stage;
+     const engine=window.handLab;
+     return {sfx:{loaded:gold.loaded,total:gold.total,ready:gold.ready,
+       recent:gold.recent.length},final:{ready:final.ready,count:final.buffers.size},
+       arena:{radius:stage.radius,playable:stage.playable,baseWidth:stage.base.width,
+         renderer:engine.drawArena.toString().includes('ARENA_STAGE.draw'),
+         goldFire:!!engine.fire,goldLightning:!!engine.lightning,
+         post:!!engine.post,goldMaterial:!!engine.material},
+       hitFx:!!window.BOXE_R2_PRESENTATION?.enabled,
+       stageHud:!!document.getElementById('arena-experience-hud')};
+   });
+   assert.equal(ownerGold.arena.radius,920);
+   assert.equal(ownerGold.arena.playable,880);
+   assert.ok(ownerGold.arena.renderer&&ownerGold.arena.goldFire
+     &&ownerGold.arena.goldLightning&&ownerGold.arena.post
+     &&ownerGold.arena.goldMaterial&&ownerGold.hitFx&&ownerGold.stageHud,
+     'Owner Gold arena/VFX not fully active '+JSON.stringify(ownerGold));
+   console.log('OWNER GOLD exact 920 arena + 33 SFX + 9 Final + R2 VFX PASS',
+     view.name,ownerGold);
    // Real engine receipts, not 41 catalog aliases or hand-drawn tracers.
    // Fire six representative weapon families directly through Free Battle's
    // original weapon holder, against the Gold BOXE actor in a live iframe.
