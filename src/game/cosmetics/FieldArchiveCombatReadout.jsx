@@ -27,7 +27,7 @@ const GOLD_SKILL_ART=Object.freeze({
 });
 function skillArtwork(item,slot){
  const declared=item?.registry?.archiveProfile?.skillArt?.[slot];
- if(typeof declared==='string'&&/^\\/assets\\/[a-zA-Z0-9_./-]+\\.(png|webp|jpg)$/.test(declared)&&!declared.includes('..'))
+ if(typeof declared==='string'&&declared.startsWith('/assets/')&&/\.(png|webp|jpg)$/.test(declared)&&!declared.includes('..'))
    return declared;
  const slug=GOLD_SKILL_ART[item?.id];
  return slug?'/assets/gold-ui/heroes/'+slug+'/skill_'+slot.toLowerCase()+'.webp':null;
