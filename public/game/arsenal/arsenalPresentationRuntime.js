@@ -945,6 +945,19 @@
   // Registration is page-lifetime and idempotent. Each provider is ordered
   // deterministically and must RETURN TRUE only if it painted the entire
   // equipped weapon. Physics/ownership/aim/recoil remain Arsenal/hero-owned.
+  // Shared late-world presentation channel for persistent VFX surviving a
+  // Fighter death or transform. Pure render callbacks only; the emitter
+  // never owns world HP, collision or any gameplay update.
+  const worldVisualRenderers = new Map();
+  function registerWorldVisualRenderer(id,paint){
+    const key=String(id||'');
+    if(!/^[a-z][a-z0-9-]{1,79}$/.test(key)||typeof paint!=='function')
+      throw Error('Invalid world visual presentation provider');
+    if(worldVisualRenderers.has(key)&&worldVisualRenderers.get(key)!==paint)
+      throw Error('Duplicate world visual provider '+key);
+    worldVisualRenderers.set(key,paint);
+    return ()=>{if(worldVisualRenderers.get(key)===paint)worldVisualRenderers.delete(key);};
+  }
   const equippedWeaponRenderers = new Map();
   function registerEquippedWeaponRenderer(id, paint) {
     const key=String(id||'');
@@ -1018,6 +1031,13 @@
   }
 
   function draw(ctx) {
+    for(const [id,paint] of worldVisualRenderers){
+      try{
+        const result=paint(ctx);
+        if(result&&typeof result.then==='function')
+          throw Error('Async world visual renderer forbidden: '+id);
+      }catch(error){console.warn('[arsenal-av] world visual renderer failed: '+id,error);}
+    }
     for (const v of vfx) {
       if (v.kind === 'muzzle') {
         const n = v.frames.length;
@@ -1153,6 +1173,8 @@
     drawWeaponSprite,
     weaponDrawParams,
     weaponMuzzleWorld,
+    registerWorldVisualRenderer,
+    worldVisualRendererIds:()=>Object.freeze([...worldVisualRenderers.keys()]),
     registerEquippedWeaponRenderer,
     equippedWeaponRendererIds:()=>Object.freeze([...equippedWeaponRenderers.keys()]),
     drawEquippedWeapon,
