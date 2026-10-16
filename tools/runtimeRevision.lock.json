@@ -13,9 +13,9 @@
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalConfig.js": "7ca8b66277f021a296220bfa5994d275840d85fff7893a853626098cae0c8bfa",
     "public/game/arsenal/arsenalIdentityRuntime.js": "d9a5b80a043a40445395f2b28c8e6aab2dfae5c868b56ea3eaac261d84bcae1a",
-    "public/game/arsenal/arsenalWeaponRuntime.js": "efbd7552b06ac1724da85a6a04587616b8cc9bbf6e49eb0e7535b0802cd92582",
+    "public/game/arsenal/arsenalWeaponRuntime.js": "ad099f89f909f21a7e75e146ca615bc6e8d5d5a2bc4c77e342a3a9c809c7fab9",
     "public/game/arsenal/arsenalSpawnRuntime.js": "ba4d54a058611f503af5b39adf80ff5338f938202e5703d681142361d88ee2cb",
-    "public/game/arsenal/arsenalPresentationRuntime.js": "086c14adb18e1020180f1f2be75269e47cdc03ce7631b5f4aef828f038c1cdac",
+    "public/game/arsenal/arsenalPresentationRuntime.js": "3d0163ee506002b3c51ce387e6b7bce529c62ed7df2b7b62851d9c3f944de870",
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
     "public/game/arsenal/arsenalStormbreakerVfxRuntime.js": "f5862f8e002958c967ab5a5796caef33962bdcf5eaafa183c30a90b55caaed8d",
     "public/game/arsenal/arsenalManualSkillGate.js": "0330a608a68c6515f596d2a6b08c592b07e9608276553ac9b16987fd139fe0d3",
@@ -60,8 +60,8 @@
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
     "public/game/results/ownerAwards.generated.js": "bf1214feb289ade27e97c382b33e87a2ecf230f54c3e673cec004b0e824d25bb",
     "public/game/results/matchResultAuthority.js": "4e70e2bece26fdaba9e23af22cd396d458ef3c4a36cd1a8b63e832588c0f6689",
-    "public/game/hero-rework/boxeBattleRuntime.js": "c7af9b15e8b08447c2049eaa8d0d2f7cd82a4ddf31a09934a3bd0540bd9462f9",
+    "public/game/hero-rework/boxeBattleRuntime.js": "f677b31980b69db7b08b16592af23b2d3e2ed3865d902218f25bf2f37285d1c3",
     "public/game/hero-rework/boxeGoldLibrary.js": "f283094e1b345b7f3f212649382f4cc2d4c6497abfe12fd7729b567aaddb6d08",
-    "public/game/hero-rework/boxeGoldPresentationRuntime.js": "c320bf3fe4381915f4193f404310fe0d5a45a028fc527d907bfd46a5790bb771"
+    "public/game/hero-rework/boxeGoldPresentationRuntime.js": "5f3397105899c22bc5c6a5bebe9e2f72eac770972da615719f59b35aedc225ab"
   }
 }
