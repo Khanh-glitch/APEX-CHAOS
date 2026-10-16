@@ -1903,6 +1903,7 @@
   // AbilityController / realized-HP / contact pipeline as the Core Six.
   // Non-BOXE test fixtures can still load the original 12 independently.
   if (globalScope.APEX_BOXE_BATTLE) globalScope.APEX_BOXE_BATTLE.install(EXECUTORS);
+  if (globalScope.APEX_SHURI_BATTLE) globalScope.APEX_SHURI_BATTLE.install(EXECUTORS);
   globalScope.apexHeroReworkMechanics = 'ready';
   globalScope.APEX_HERO_REWORK_MECHANICS = {
     version: '1.0.0-rebuild1',
