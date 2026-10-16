@@ -422,7 +422,7 @@ export default function App() {
       cover.id='apex-wave-host';
       cover.setAttribute('aria-label','BOT WAVE · BOXE');
       Object.assign(cover.style,{position:'fixed',inset:'0',zIndex:'900',background:'#090c11',
-        visibility:'hidden',isolation:'isolate'});
+        opacity:'0',pointerEvents:'none',isolation:'isolate'});
       const frame=document.createElement('iframe');
       frame.id='wave';frame.title='APEX CHAOS · BOXE BOT WAVE';
       frame.allow='autoplay; fullscreen';
@@ -505,7 +505,7 @@ export default function App() {
           name:'bot-wave-enter',
           source:document.getElementById('gold-shell-host'),target:cover,
           prepare:()=>{frame.src='/bot-wave/game.html';return waitReady();},
-          commit:()=>{cover.style.visibility='visible';status.remove();
+          commit:()=>{cover.style.opacity='1';cover.style.pointerEvents='auto';status.remove();
             history.pushState({apexWave:true},'','/bot-wave/index.html');
             window.APEX_GOLD_PARENT_RUNTIME?.pause?.();stopMenuMusic();},
           rollback:()=>{window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;cleanup();}
