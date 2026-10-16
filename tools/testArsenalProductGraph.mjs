@@ -4,6 +4,8 @@
 // mutation seams without booting retired routes. It is deterministic and
 // browser-independent: node tools/testArsenalProductGraph.mjs
 import assert from 'node:assert/strict';
+// Shared weapon capability checks run inside the existing Product Graph gate.
+import './testShuriArsenalFoundation.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
