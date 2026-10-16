@@ -357,13 +357,29 @@
   // ---------------------------------------------------------------------------
   // Audio playback — bounded polyphony on the existing Apex audio graph.
   // ---------------------------------------------------------------------------
+  // BOT WAVE-only acoustic bus. Preserve every native source/sample; reduce
+  // summation peaks with dynamic headroom and a real compressor, not random
+  // gun mute/drop, time-stretch or changed shot cadence.
+  let waveBus=null,waveBusContext=null,cluster=0,clusterAt=0;
+  function waveAudioDestination(ctx){
+    if(waveBus&&waveBusContext===ctx)return waveBus;
+    const dest=typeof battleAudioMaster!=='undefined'?battleAudioMaster:ctx.destination;
+    if(typeof ctx.createDynamicsCompressor!=='function')return dest;
+    const limiter=ctx.createDynamicsCompressor();
+    limiter.threshold.value=-25;limiter.knee.value=18;limiter.ratio.value=6;
+    limiter.attack.value=.005;limiter.release.value=.24;
+    limiter.connect(dest);
+    waveBus=limiter;waveBusContext=ctx;
+    return limiter;
+  }
   function playEntry(entry) {
     pushRing(stats.scheduled, { rel: entry.rel, offset: entry.offset || 0, dur: entry.dur || null, vol: entry.vol }, 900);
     const ctx = audioCtxOf();
     const buffer = audioBuffers.get(entry.rel);
     if (!ctx || !buffer) { stats.throttled.notReady = (stats.throttled.notReady || 0) + 1; return; }
     const active = activeVoices.get(entry.rel) || 0;
-    const cap = entry.maxVoices || 4;
+    const waveMix=window.APEX_BOT_WAVE_AUDIO_MIX;
+    const cap = waveMix?Math.max(entry.maxVoices||4,6):(entry.maxVoices||4);
     if (active >= cap) { stats.throttled[entry.rel] = (stats.throttled[entry.rel] || 0) + 1; return; }
     let offset = entry.offset || 0;
     if (entry.slices) { offset = entry.slices[smgSliceCursor++ % entry.slices.length]; }
@@ -371,7 +387,10 @@
     // Reserve the voice (harness and browser share the cap accounting); release
     // when the clip would have ended.
     activeVoices.set(entry.rel, active + 1);
-    const release = () => activeVoices.set(entry.rel, Math.max(0, (activeVoices.get(entry.rel) || 1) - 1));
+    // Each voice has one owner: timeout and onended can both fire.
+    let released=false;
+    const release=()=>{if(released)return;released=true;
+      activeVoices.set(entry.rel,Math.max(0,(activeVoices.get(entry.rel)||1)-1));};
     if (typeof setTimeout === 'function') {
       const relId = setTimeout(() => { untrackTimer(relId); release(); }, Math.ceil(dur * 1000) + 40);
       trackTimer(relId);
@@ -388,9 +407,16 @@
       try { src.playbackRate.value = entry.playbackRate; } catch (e) {}
     }
     const gain = ctx.createGain();
-    const vol = (entry.vol != null ? entry.vol : 0.7) *
-      (window.APEX_BOT_WAVE_AUDIO_MIX?.weapons ?? 1);
-    const now = ctx.currentTime;
+    const now=ctx.currentTime;
+    const isGun=waveMix&&(/\/guns\/|_shot\.|shotgun|sniper|rifle/i.test(entry.rel));
+    // Continuous short-term gun density: retains quiet transients in a swarm
+    // rather than arbitrarily dropping every Nth shot. Never reaches zero.
+    if(isGun){
+      cluster*=Math.exp(-Math.max(0,now-clusterAt)*8);cluster=Math.min(24,cluster+1);
+      clusterAt=now;
+    }
+    const crowded=isGun?Math.max(.58,1/Math.sqrt(1+Math.max(0,cluster-1)*.25)):1;
+    const vol=(entry.vol!=null?entry.vol:.7)*(waveMix?.weapons??1)*crowded;
     const attack = entry.attack != null ? entry.attack : 0;
     const fadeTail = entry.fadeTail != null ? entry.fadeTail : 0;
     const playDur = dur + (fadeTail > 0 ? 0 : 0);
@@ -407,7 +433,7 @@
     }
     stats.lastVoice = { rel: entry.rel, vol, offset, dur: playDur, viaBufferSource: true };
     src.connect(gain);
-    gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : ctx.destination);
+    gain.connect(waveMix?waveAudioDestination(ctx):(typeof battleAudioMaster !== 'undefined'?battleAudioMaster:ctx.destination));
     src.onended = () => { liveSources.delete(src); release(); };
     try {
       src.start(now, offset, playDur);
