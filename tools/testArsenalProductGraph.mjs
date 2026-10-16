@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 // Shared weapon capability checks run inside the existing Product Graph gate.
 import './testShuriArsenalFoundation.mjs';
 import './testShuriBattleRuntime.mjs';
+import './testShuriGoldIntegration.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
