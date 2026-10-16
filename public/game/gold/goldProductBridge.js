@@ -113,7 +113,7 @@
       ],
     },
     boxe: {
-      portrait: '/assets/dictionary/heroes/boxe/avatar.png',
+      portrait: '/assets/dictionary/heroes/boxe/cover.png',
       art: '/assets/dictionary/heroes/boxe/standing.png',
       battleAvatar: '/assets/dictionary/heroes/boxe/avatar.png',
       skillIcons: [
