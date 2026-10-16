@@ -6284,7 +6284,7 @@ window.addEventListener('error',e=>{console.error('Standalone runtime error:',e.
 
 // Separate owner Gold animation from native Arsenal & encounter policies.
 const loadWaveDependency=src=>new Promise((resolve,reject)=>{
- const el=document.createElement('script');el.src=src;el.onload=resolve;
+ const el=document.createElement('script');el.src=src+'?v=20261016-boxe-r7-wave-polish';el.onload=resolve;
  el.onerror=()=>reject(Error('BOT_WAVE_DEPENDENCY_FAILED '+src));document.head.appendChild(el);
 });
 await Promise.all([
