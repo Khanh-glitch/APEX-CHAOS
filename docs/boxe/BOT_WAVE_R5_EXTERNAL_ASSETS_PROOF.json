@@ -1,8 +1,8 @@
 {
   "raw_sha256": "e766b7cdd0b57e87187992ba464d8bddae2c2ee0fac3996e46ab9b048f2d0256",
-  "externalized_sha256": "217c4b9dd54f4fe238d16c1a7d329fab1d1d5652f870e317d37bdacf5ada8a37",
+  "externalized_sha256": "1db839f172e64048729115c5e068e0716800f4084aa24b9463447b48b0409e55",
   "raw_bytes": 25720219,
-  "externalized_bytes": 319449,
+  "externalized_bytes": 317923,
   "substitutions": [
     {
       "file": "char-body.png",
@@ -58,5 +58,5 @@
   "gold_visual_prefix_sha256": "58f886f93addd83e87f87be476ae8eb504a1e166a520d44ee4454918ba38882f",
   "visual_prefix_delimiter": "/* BOXE BOT WAVE pilot — additive Gold Lab adapter",
   "source_gold_visual_edits": 0,
-  "bot_wave_gameplay_revision": "REJECT-RECOVERY-R3-NATIVE-FREE-BATTLE-EXECUTORS"
+  "bot_wave_gameplay_revision": "REJECT-R3-NATIVE-EXECUTOR-POSE-PROJECTILES-AND-AV"
 }

@@ -6139,6 +6139,7 @@ function waveComposition(n){
   bossGun,label:plan.title+' · '+plan.chapter,heal:plan.betweenWaveHealFraction,plan};
 }
 function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.phase==='gameover')return;
+ ARMORY.ensureAudio();
  state.wave++;state.phase='combat';state.comboFlow=null;state.rocketPending=false;state.stickyEngage=null;state.queue=[];state.spawnT=0;const comp=waveComposition(state.wave);
  state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,boss:e.boss,edge:e.edge,
   edgeFraction:e.edgeFraction,role:e.role}));
@@ -6242,40 +6243,26 @@ engine.damagePlayer=function(dmg,fromAngle){if(state.phase!=='combat')return;
 };
 const nativeDrawProjs=engine.drawProjs.bind(engine);
 engine.drawProjs=function(ctx){
- // Gold original glove and ground wave still use unmodified native renderer.
+ // Gold J/K/L, glove particles and impact effects retain the unmodified
+ // owner's renderer. The REAL Arsenal bullets/V43 bodies live separately in
+ // the native projectile array and draw with native VFX only.
  nativeDrawProjs(ctx);
- // Additional Arsenal tracer layer, additive rather than replacing Gold VFX.
- for(const pr of this.projs)if(pr.waveGunId){const c=pr.waveColor||'#ffdd98';const a=pr.angle;
-  ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle=c;ctx.globalAlpha=.85;ctx.lineWidth=pr.waveGunId==='SNIPER'?4:pr.waveGunId==='GRENADE'?5:2;
-  ctx.beginPath();ctx.moveTo(pr.x-Math.cos(a)*35,pr.y-30-Math.sin(a)*35);ctx.lineTo(pr.x+Math.cos(a)*4,pr.y-30+Math.sin(a)*4);ctx.stroke();ctx.restore();}
- ARMORY.draw(ctx,APEX_GUN_ART);
+ ARMORY.draw(ctx);
 };
 const nativeDrawEnemy=engine.drawEnemy.bind(engine);
-engine.drawEnemy=function(ctx,e){nativeDrawEnemy(ctx,e);if(!e.waveGunId)return;
- const g=WAVE_GUNS[e.waveGunId],a=e.angle||0,px=e.x+Math.cos(a)*(e.r+20),py=e.y-42+Math.sin(a)*(e.r+20);
- ctx.save();ctx.translate(px,py);ctx.rotate(a);
- const gunArt=APEX_GUN_ART[e.waveGunId];
- if(gunArt?.complete&&gunArt.naturalWidth){
-  const width=g.family==='PRECISION'?88:g.family==='SHOTGUN'||g.family==='AUTOSHOT'?73:g.family==='AUTO'?66:g.family==='MELEE'?82:65;
-  const height=width*gunArt.naturalHeight/gunArt.naturalWidth;
-  if(Math.cos(a)<0){ctx.scale(1,-1)}
-  ctx.shadowColor='#000a';ctx.shadowBlur=6;
-  ctx.drawImage(gunArt,-width*.36,-height*.5,width,height);
- }else{
-  // Only a network/asset error fallback, not a claim of native Arsenal art.
-  ctx.fillStyle='#111823';ctx.strokeStyle=g.color;ctx.lineWidth=2;
-  ctx.fillRect(-16,-5,32,9);ctx.strokeRect(-16,-5,32,9);
+engine.drawEnemy=function(ctx,e){
+ nativeDrawEnemy(ctx,e);
+ if(!e.waveGunId)return;
+ // The exact Free Battle held-weapon art, pose recoil, aim and casing
+ // positions — no Gold-demo mini gun image and no fake charge tracer.
+ ARMORY.drawEquipped(ctx,e);
+ if(e.waveBoss){
+  ctx.save();ctx.textAlign='center';
+  ctx.font='950 13px ui-monospace,monospace';ctx.fillStyle='#ffce70';
+  ctx.shadowBlur=11;ctx.shadowColor='#b45529';
+  ctx.fillText('◆ ELITE',e.x,e.y-e.r-54);
+  ctx.restore();
  }
- ctx.restore();
- if(g.family==='PRECISION'&&e.waveReloadT<=0&&e.waveFireT>.02&&e.waveFireT<.85){
-  const aa=Math.atan2(this.player.y-e.y,this.player.x-e.x),tt=clamp((.85-e.waveFireT)/.85,0,1);
-  ctx.save();ctx.strokeStyle='#ff4968';ctx.globalAlpha=.2+.65*tt;ctx.lineWidth=1+tt*1.5;
-  ctx.beginPath();ctx.moveTo(e.x+Math.cos(aa)*32,e.y-22+Math.sin(aa)*32);
-  ctx.lineTo(e.x+Math.cos(aa)*850,e.y-22+Math.sin(aa)*850);ctx.stroke();ctx.restore();
- }
- ctx.save();ctx.font='800 13px ui-monospace,monospace';ctx.textAlign='center';ctx.fillStyle=e.waveBoss?'#ffce70':'#e9cba5';ctx.fillText(e.waveGunId+(e.waveBoss?' • BOSS':''),e.x,e.y-e.r-63);
- ctx.fillStyle='#11141b';ctx.fillRect(e.x-33,e.y-e.r-53,66,5);ctx.fillStyle='#ffb66d';ctx.fillRect(e.x-33,e.y-e.r-53,66*clamp(e.waveAmmo/g.mag,0,1),5);
- ctx.restore();
 };
 // OWNER REJECT RECOVERY: never replace Gold's authored ring, materials,
 // fractures, floor detail or ribbon effects with a homemade stadium.

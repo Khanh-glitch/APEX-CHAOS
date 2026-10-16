@@ -15,3 +15,7 @@ assert.ok(gold.includes('APEX_BOT_WAVE_NATIVE_BRIDGE'),'Gold wave must load actu
 assert.ok(!gold.includes('APEX_BOT_WAVE_ARMORY.createArmory'),
  'Deprecated fake Armory must never drive Gold');
 console.log('PASS: BOT WAVE Free Battle weapon executor parity architecture, no fake orb/projectile/shot timer');
+
+assert.ok(gold.includes('ARMORY.drawEquipped(ctx,e)'),'Gold bot must use the real Arsenal weapon visual pose');
+assert.ok(gold.includes('ARMORY.ensureAudio()'),'Gold interaction must initialize the existing Arsenal audio bank');
+assert.ok(!gold.includes('Additional Arsenal tracer layer'),'Rejected homemade tracer visuals forbidden');
