@@ -196,8 +196,8 @@ jobs:
           test -f dist/CP16_BUILD_RECEIPT.json
           test -s dist/bot-wave/game.html
           test -s dist/game/bot-wave/waveCampaign.js
-          test -s dist/game/bot-wave/armoryRuntime.js
-          test -s dist/game/bot-wave/botWaveHudGold.css
+          test -s dist/game/bot-wave/nativeArsenalGoldBridge.js
+          test -s dist/game/bot-wave/botWavePresentationV2.css
           test -s dist/gold/shell.html
           node -e "const j=require('./dist/CP16_BUILD_RECEIPT.json');if(j.gitCommit!==process.env.GITHUB_SHA)throw Error('STALE_BOXE_BUILD')"
           printf '%s' "$GITHUB_SHA" > dist/BOT_WAVE_OWNER_SHA.txt
