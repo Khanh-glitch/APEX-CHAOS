@@ -209,9 +209,11 @@
     const r=st.recoil;
     if(!r)return;
     const t=now();
-    const remaining=r.until-t;
-    if(remaining<=0){st.recoil=null;return;}
-    const b=ctx.combatant.anchor,step=r.speed*Math.min(dt,remaining);
+    const from=Math.max(r.startedAt,t-dt),through=Math.min(r.until,t);
+    const step=r.speed*Math.max(0,through-from);
+    if(t>=r.until)st.recoil=null;
+    if(step<=0)return;
+    const b=ctx.combatant.anchor;
     b.x+=r.dx*step;b.y+=r.dy*step;
     // The canonical post-step swept world/wall resolver owns contact.
     const S=ctx.api.gameSize,rad=b.radius||75;
@@ -228,7 +230,7 @@
     const foe=ctx.api.enemyBodies(ctx.combatant).find(x=>x.hp>0);
     const vx=foe?f.x-foe.x:-(f.dir?.x||1),vy=foe?f.y-foe.y:-(f.dir?.y||0);
     const mag=Math.hypot(vx,vy)||1;
-    st.recoil={dx:vx/mag,dy:vy/mag,speed:1300,until:t+.18};
+    st.recoil={dx:vx/mag,dy:vy/mag,speed:1300,startedAt:t,until:t+.18};
     emit(ctx,'a1-plant',{bombId:id,x:anchor.x,y:anchor.y,armedAt:st.bomb.armedAt});
     const s=structureOf(ctx);
     if(s)requestMorph(ctx,st,s);
