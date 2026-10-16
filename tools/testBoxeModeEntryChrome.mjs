@@ -97,6 +97,31 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    })),refs);
    assert.ok(checks.every(x=>x.ok&&x.correctMime),'Arsenal gun/sound delivery error '+JSON.stringify(checks.filter(x=>!x.ok||!x.correctMime)));
    await page.screenshot({path:path.join(output,view.name+'-wave-playable.png')});
+   // Integration proof, not a roster-only unit assertion: the live Gold
+   // engine must accept wave 11 AND wave 32 without a "chapter complete".
+   const milestones=await gameFrame.evaluate(()=>{
+    const pilot=window.BOXE_WAVE_PILOT,engine=window.handLab;
+    const result=[];
+    for(const n of [11,32]){
+     const composition=pilot.planWave(n);
+     pilot.state.wave=n-1;
+     pilot.state.phase='intermission';
+     pilot.state.queue.length=0;
+     engine.enemies.length=0;
+     pilot.testStartWave();
+     if(pilot.state.wave!==n||pilot.state.phase!=='combat'||
+       pilot.state.queue.length!==composition.plan.composition.length)
+       throw Error('LIVE_WAVE_CAP_OR_SPAWN_PLAN_'+n);
+     result.push({wave:pilot.state.wave,
+      queue:pilot.state.queue.length,
+      revealed:composition.plan.revealedWeapons,
+      boss:composition.plan.boss});
+    }
+    return result;
+   });
+   assert.deepEqual(milestones.map(m=>m.wave),[11,32]);
+   assert.equal(milestones[1].revealed,41,'Chapter 7 must expose all native equipment');
+   console.log('BOT WAVE live Gold unlimited progression PASS',view.name,milestones);
    console.log('BOXE R5 integrated Gold GAMEPLAY + sprites/SFX PASS',view.name,waveRuntime,checks.length);
   }else{
    // Staging-only: explicitly report the binary gap; do not claim playability.
