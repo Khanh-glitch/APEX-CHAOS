@@ -31,7 +31,7 @@ export function botWaveShippingAssetRefs(goldHtml){
    !goldHtml.includes('waveGunCue')||!goldHtml.includes('WAVE_STICKY_ASSIST'))
   throw Error('BOXE_GOLD_R5_RUNTIME_NOT_INTACT');
  const paths=new Set(nativeWaveWeaponAssetRefs());
- for(const m of goldHtml.matchAll(/\\/assets\\/arsenal\\/av\\/sfx\\/[A-Za-z0-9_./-]+\\.(?:mp3|ogg|wav)/g))paths.add(m[0]);
+ for(const m of goldHtml.matchAll(/\/assets\/arsenal\/av\/sfx\/[A-Za-z0-9_./-]+\.(?:mp3|ogg|wav)/g))paths.add(m[0]);
  for(const item of paths){
   const ext=item.slice(item.lastIndexOf('.')+1);
   if(!ALLOWED.has(ext)||item.includes('..'))throw Error('INVALID_BOT_WAVE_ASSET_'+item);

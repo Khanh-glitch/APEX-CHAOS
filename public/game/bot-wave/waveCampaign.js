@@ -67,7 +67,7 @@ function planWave(nativeConfig,wave,{seed=41}={}){
  for(let i=0;i<slots;i++){
   // The spotlight gets space and never becomes a 41-gun simultaneity soup.
   let pick;
-  if(i===0||i===1&&newly.length>0)pick=featured;
+  if(wave===1||i===0||i===1&&newly.length>0)pick=featured;
   else if(i%5===0&&newly.length>1)pick=newly[Math.floor(rand()*newly.length)];
   else if(i%3===0)pick=available[Math.floor(rand()*available.length)];
   else pick=available[Math.floor(Math.pow(rand(),1.4)*available.length)];
