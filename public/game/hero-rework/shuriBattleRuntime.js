@@ -16,7 +16,8 @@
   const stateOf=(ct)=>{
     if(!ct||ct.heroId!=='SHURI')return null;
     return ct.store.__shuri||(ct.store.__shuri={
-      scrap:10,anchor:null,bomb:null,structure:null,recoil:null,disposed:false,
+      scrap:10,anchor:null,bomb:null,structure:null,recoil:null,a1Sequence:null,
+      pendingRecycle:[],disposed:false,
       serial:0,
     });
   };
@@ -185,6 +186,48 @@
     }
     if(s.solid.hp<=0)destroyStructure(ctx,st);
   }
+  // GOLD (8) is the timing authority. Gameplay waits for the EXACT
+  // physical Gold beats; presentation receives events but cannot move
+  // this native timeline. 0.40 place, 0.47 arm, 0.52 recoil, 0.72 command.
+  function tickA1Sequence(ctx,st){
+    const q=st.a1Sequence;
+    if(!q)return;
+    const t=now();
+    if(!q.placed && t>=q.castAt+.40){
+      q.placed=true;
+      st.anchor={...q.anchor};
+      st.bomb={id:q.id,x:q.anchor.x,y:q.anchor.y,
+        armed:false,armedAt:q.castAt+.47};
+      emit(ctx,'a1-place',{bombId:q.id,x:q.anchor.x,y:q.anchor.y});
+    }
+    if(!q.recoiled && t>=q.castAt+.52){
+      q.recoiled=true;
+      st.recoil={dx:q.dx,dy:q.dy,speed:q.speed,
+        startedAt:q.castAt+.52,until:q.castAt+.52+q.duration};
+      emit(ctx,'a1-recoil',{bombId:q.id,x:ctx.combatant.anchor.x,
+        y:ctx.combatant.anchor.y,dx:q.dx,dy:q.dy});
+    }
+    if(!q.commanded && t>=q.castAt+.72){
+      q.commanded=true;
+      const structure=structureOf(ctx);
+      if(structure)requestMorph(ctx,st,structure);
+      emit(ctx,'a1-command',{bombId:q.id});
+    }
+    if(t>=q.castAt+1.6)st.a1Sequence=null;
+  }
+  function tickRecycle(ctx,st){
+    const due=st.pendingRecycle;
+    if(!due?.length)return;
+    const t=now();
+    for(let i=due.length-1;i>=0;i--){
+      const item=due[i];
+      if(t<item.awardAt)continue;
+      due.splice(i,1);
+      st.scrap+=item.amount;
+      emit(ctx,'recycle-award',{weaponId:item.weaponId,
+        amount:item.amount,total:st.scrap,receipt:item.receipt});
+    }
+  }
   function tickBomb(ctx,st){
     const b=st.bomb;
     if(!b)return;
@@ -222,18 +265,16 @@
   }
   function a1(ctx){
     const st=stateOf(ctx.combatant),f=ctx.combatant.anchor;
-    const anchor={x:f.x,y:f.y};
+    const anchor={x:f.x,y:f.y+50};
     const t=now();
     const id=++st.serial;
-    st.anchor=anchor;
-    st.bomb={id,x:anchor.x,y:anchor.y,armed:false,armedAt:t+.38};
     const foe=ctx.api.enemyBodies(ctx.combatant).find(x=>x.hp>0);
     const vx=foe?f.x-foe.x:-(f.dir?.x||1),vy=foe?f.y-foe.y:-(f.dir?.y||0);
     const mag=Math.hypot(vx,vy)||1;
-    st.recoil={dx:vx/mag,dy:vy/mag,speed:1300,startedAt:t,until:t+.18};
-    emit(ctx,'a1-plant',{bombId:id,x:anchor.x,y:anchor.y,armedAt:st.bomb.armedAt});
-    const s=structureOf(ctx);
-    if(s)requestMorph(ctx,st,s);
+    st.a1Sequence={id,castAt:t,anchor,dx:vx/mag,dy:vy/mag,
+      speed:1300,duration:.18,placed:false,recoiled:false,commanded:false};
+    emit(ctx,'a1-start',{bombId:id,x:anchor.x,y:anchor.y,
+      placeAt:t+.40,armAt:t+.47,recoilAt:t+.52,commandAt:t+.72});
     return true;
   }
   function a2can(ctx){
@@ -273,15 +314,18 @@
       if(st.structure)destroyStructure(ctx,st,'owner-dead');
       return;
     }
+    tickA1Sequence(ctx,st);
     tickRecoil(ctx,st,dt);
     tickBomb(ctx,st);
+    tickRecycle(ctx,st);
     tickStructure(ctx,st,dt);
   }
   function teardown(ctx){
     const st=stateOf(ctx.combatant);
     if(!st||st.disposed)return;
     if(st.structure)destroyStructure(ctx,st,'teardown');
-    st.bomb=null;st.recoil=null;st.anchor=null;st.disposed=true;
+    st.bomb=null;st.recoil=null;st.anchor=null;st.a1Sequence=null;
+    st.pendingRecycle.length=0;st.disposed=true;
   }
   function install(EXECUTORS){
     EXECUTORS['shuri.shock_recoil']={
@@ -306,10 +350,14 @@
     if(!st||st.disposed)return;
     const amount=Number(String(CFG().tierOf(p.weaponId)).slice(1));
     if(!Number.isInteger(amount)||amount<1||amount>5)return;
-    st.scrap+=amount;
-    AIL.bus.emit('shuri:recycle',{
+    const receipt=++st.serial;
+    // Original Gold (8): 0.16s start delay + 2.84s compressor lock.
+    // Accrue Scrap at that visual/SFX moment, never at the weapon fade.
+    st.pendingRecycle.push({receipt,weaponId:p.weaponId,amount,
+      awardAt:now()+3.0});
+    AIL.bus.emit('shuri:recycle-start',{
       fighterId:f.id,side:ct.side,combatantId:ct.combatantId,
-      weaponId:p.weaponId,amount,total:st.scrap,reason:p.reason,
+      weaponId:p.weaponId,amount,receipt,awardAt:now()+3.0,
     });
   });
   // Recoil receives the canonical wall-contact normal; impact may reverse
