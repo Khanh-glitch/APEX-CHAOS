@@ -102,12 +102,14 @@
     const closing=Math.max(0,-((vx-(tx||0))*nx+(vy-(ty||0))*ny));
     return clamp(closing/reference,0,1);
   }
-  function applyImpact(ctx,st,foe,nx,ny,strength,jab=false){
+  function applyImpact(ctx,st,foe,nx,ny,strength,jab=false,jabPushScale=1){
     const power=Math.pow(clamp(strength,0,1),1.2);
     const stun=(jab?V.flurryHitStunSeconds:V.rocketStunSeconds)*power;
     if(stun>.002)ctx.api.applyStunTo(foe,stun);
     if(power>.001){
-      const speed=(jab?V.flurryPushSpeed:V.rocketPushSpeed)*power;
+      // Gold six-beat cadence: the sixth jab has a heavier follow-through.
+      // Match its relative 330:130 impulse, not an invented HP/stun bonus.
+      const speed=(jab?V.flurryPushSpeed*jabPushScale:V.rocketPushSpeed)*power;
       const old=st.impulses.find(k=>k.body===foe);
       if(old){old.vx+=-nx*speed;old.vy+=-ny*speed;}
       else st.impulses.push({body:foe,vx:-nx*speed,vy:-ny*speed});
@@ -235,10 +237,32 @@
     emit(ctx,'boxe:rocket-return',{x:r.x,y:r.y,speed:V.rocketReturnSpeed,
       reason:r.earlyRecall?'manual':'lifetime'});
   }
+  function endFlurry(ctx,st,reason){
+    const f=st.flurry;
+    if(!f)return false;
+    // Stop future beats AND in-flight scheduled impact authorizations.
+    // The renderer may let already spawned Gold particles fade naturally.
+    for(const hand of ['L','R'])f.hands[hand].attack=null;
+    st.flurry=null;
+    emit(ctx,'boxe:flurry-end',{x:f.x,y:f.y,punches:f.count,
+      reason,cancelled:reason==='manual-recall'});
+    // Both gloves return independently from their live world positions.
+    // A bullet-recalled/caught glove keeps that state; no respawn/teleport.
+    if(st.rocket && st.rocket.phase!=='returning' && st.rocket.phase!=='caught'){
+      st.rocket.earlyRecall=reason==='manual-recall';
+      startRocketReturn(ctx,st,ctx.api.clock());
+    }
+    startSecondaryReturn(st);
+    return true;
+  }
   function recastRocket(ctx){
-    const st=boxe(ctx),r=st.rocket;if(!r||r.phase==='returning')return false;
+    const st=boxe(ctx),r=st.rocket;
+    if(!r)return false;
+    // Manual recall during Gold jab is allowed even if ONE glove has already
+    // been shot into return or caught; the other glove must also come home.
+    if(st.flurry)return endFlurry(ctx,st,'manual-recall');
+    if(r.phase==='returning'||r.phase==='caught')return false;
     r.earlyRecall=true;
-    if(r.phase==='flurry'){r.recallAfterFlurry=true;return true;}
     startRocketReturn(ctx,st,ctx.api.clock());
     return true;
   }
@@ -424,24 +448,21 @@
           const fv=foe.__hrVel||{x:0,y:0};
           strength=impactStrength(Math.cos(a.aim)*reach/.05,
             Math.sin(a.aim)*reach/.05,fv.x,fv.y,nx,ny,reach/.05);
-          stun=applyImpact(ctx,st,foe,nx,ny,strength,true);
+          const sixth=(a.index%6)===5;
+          stun=applyImpact(ctx,st,foe,nx,ny,strength,true,sixth?330/130:1);
         }
         emit(ctx,'boxe:flurry-punch',{punchIndex:a.index,hand,x:h.x,y:h.y,
-          hit:contact,stun,strength,targetId:contact?foe.id:null,damage:0});
+          hit:contact,stun,strength,heavy:(a.index%6)===5,
+          targetId:contact?foe.id:null,damage:0});
       }
       if(elapsed>=.17)h.attack=null;
     }
     // The 24th Gold jab launches before 2s but contacts at +50ms.
     // Do not throw away its last physical impact at the timeline boundary.
     if(now>=f.until+.055){
-      emit(ctx,'boxe:flurry-end',{x:f.x,y:f.y,punches:f.count});
-      st.flurry=null;
-      startSecondaryReturn(st);
-      if(st.rocket?.phase==='flurry'){
-        if(st.rocket.recallAfterFlurry||now>=st.rocket.started+V.rocketOutboundSeconds)
-          startRocketReturn(ctx,st,now);
-        else st.rocket.phase='outbound';
-      }
+      // 24th Gold impact has been resolved; neither glove resumes an
+      // additional outbound 5-second flight after finishing the combo.
+      endFlurry(ctx,st,'completed');
     }
   }
   function counterTakeDamage(ctx,body,packet){
