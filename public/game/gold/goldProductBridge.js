@@ -931,6 +931,15 @@
       if (!window.APEX_BOXE_GOLD_LIBRARY?.preloadSprites) throw Error('BOXE Gold renderer unavailable');
       await window.APEX_BOXE_GOLD_LIBRARY.preloadSprites();
     }
+    // SHURI is admitted through the SAME selected-hero READY authority.
+    // The arena cannot reveal an empty actor while the approved Gold 8
+    // original source sprites are decoding.
+    if (heroIds.some(id => String(id).toLowerCase()==='shuri')) {
+      const gold = window.APEX_SHURI_GOLD_PRESENTATION;
+      if (!gold?.whenReady) throw Error('SHURI Gold renderer unavailable');
+      if (await gold.whenReady() !== true || !gold.ready())
+        throw Error('SHURI approved Gold sprites failed readiness');
+    }
     // Battle READY certifies the SELECTED cosmetic packs too, not merely the
     // base hero atlas. No first-cast asset downloads and no missing skin is
     // silently counted as a ready presentation.
