@@ -9,6 +9,11 @@ assert.ok(!bridge.includes("kind:'orb'"),'Fake Gold orb must not emit native Ars
 assert.ok(!bridge.includes('engine.projs.push('),'Gold projectile clones must not be emitted in native bridge');
 assert.ok(!bridge.includes('shot(e,g,'),'Independent re-authored shot executor not permitted');
 assert.ok(!bridge.includes('recordToGun'),'Per-mode gun spec rewrite is forbidden');
+assert.ok(bridge.includes('const vx=actor.vx||0,vy=actor.vy||0') &&
+ bridge.includes('if(actor.hp>0){actor.vx=vx;actor.vy=vy;}'),
+ 'Gold fixed knockback must not double native Arsenal push or pull BOXE toward shooter');
+assert.ok(bridge.includes('Math.max(1,s.shots||1)'),
+ 'Wave shot count must project the actual native weapon spec, including SHOTGUN');
 assert.ok(bridge.includes('config.WEAPONS.TOWER_SHIELD.damageTakenMult'),
  'Gold melee contacts must honor the exact canonical Tower Shield guard rule');
 assert.ok(!bridge.includes('return amount*.5'),'No bespoke Wave shield nerf');
@@ -26,6 +31,10 @@ assert.ok(!bridge.includes('engine.projs.splice('),'No fake projectile lifecycle
 assert.ok(gold.includes('APEX_BOT_WAVE_NATIVE_BRIDGE'),'Gold wave must load actual native bridge');
 assert.ok(!gold.includes('APEX_BOT_WAVE_ARMORY.createArmory'),
  'Deprecated fake Armory must never drive Gold');
+const campaign=fs.readFileSync('public/game/bot-wave/waveCampaign.js','utf8');
+assert.ok(campaign.includes('startingHP:1000') &&
+ campaign.includes('baseKillHealFraction:.005')&&campaign.includes('gunDamageScalar:1'),
+ 'Survival pressure must use HP/recovery, never secret weapon stat scaling');
 console.log('PASS: BOT WAVE Free Battle weapon executor parity architecture, no fake orb/projectile/shot timer');
 
 assert.ok(gold.includes('ARMORY.drawEquipped(ctx,e)'),'Gold bot must use the real Arsenal weapon visual pose');
