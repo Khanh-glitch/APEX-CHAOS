@@ -112,6 +112,19 @@
         heroUiAsset('frost/skill_a2.webp'),
       ],
     },
+    shuri: {
+      // Byte-exact painted Gold (8) source sprites; NO procedural redraw
+      // or donor stock illustration. Dedicated cover staging is a separate
+      // presentation task, not a reason to hide the approved identity.
+      portrait: heroUiAsset('shuri/source/core.webp'),
+      art: heroUiAsset('shuri/source/core.webp'),
+      battleAvatar: heroUiAsset('shuri/source/core.webp'),
+      skillIcons: [
+        heroUiAsset('shuri/source/collector.webp'),
+        heroUiAsset('shuri/source/bomb.webp'),
+        heroUiAsset('shuri/source/foundation.webp'),
+      ],
+    },
     boxe: {
       portrait: '/assets/dictionary/heroes/boxe/cover.png',
       art: '/assets/dictionary/heroes/boxe/standing.png',
