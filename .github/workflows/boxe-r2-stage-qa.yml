@@ -33,6 +33,8 @@ jobs:
           nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/boxe-wave.log 2>&1 &
           for i in $(seq 1 45); do curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0; sleep 1; done
           cat /tmp/boxe-wave.log; exit 1
+      - name: Install Chrome controller for real-mode QA
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
       - name: Chrome Home icon and live Gold BOT WAVE desktop/mobile
         shell: bash
         run: |
