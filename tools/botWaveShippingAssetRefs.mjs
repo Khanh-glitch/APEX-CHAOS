@@ -26,11 +26,15 @@ export function nativeWaveWeaponAssetRefs(){
     '/assets/arsenal/weapons/c/'+id+'.png');
  }).sort();
 }
+export function nativeWaveProjectileAssetRefs(){
+ return Object.values(nativeConfig().V43_WEAPONS||{})
+  .map(s=>s.projectile).filter(Boolean).sort();
+}
 export function botWaveShippingAssetRefs(goldHtml){
  if(typeof goldHtml!=='string'||!goldHtml.includes('APEX_GUN_ART')||
    !goldHtml.includes('waveGunCue')||!goldHtml.includes('WAVE_STICKY_ASSIST'))
   throw Error('BOXE_GOLD_R5_RUNTIME_NOT_INTACT');
- const paths=new Set(nativeWaveWeaponAssetRefs());
+ const paths=new Set([...nativeWaveWeaponAssetRefs(),...nativeWaveProjectileAssetRefs()]);
  for(const m of goldHtml.matchAll(/\/assets\/arsenal\/av\/sfx\/[A-Za-z0-9_./-]+\.(?:mp3|ogg|wav)/g))paths.add(m[0]);
  const armory=fs.readFileSync('public/game/bot-wave/armoryRuntime.js','utf8');
  for(const m of armory.matchAll(/\/assets\/arsenal\/av\/sfx\/[A-Za-z0-9_./-]+\.(?:mp3|ogg|wav)/g))paths.add(m[0]);

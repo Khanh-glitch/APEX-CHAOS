@@ -214,16 +214,53 @@ function createArmory({engine,config,campaign,cue,rand}){
    }
   }
  }
+ // Use the ORIGINAL V4.3 projectile sprite, never the whole held weapon
+ // artwork as a projectile. Keep the Gold engine and BOXE rigs untouched.
+ const nativeProjectileImages=Object.create(null);
+ for(const [id,s] of Object.entries(config.V43_WEAPONS||{})){
+  if(!s.projectile||typeof Image!=='function')continue;
+  const art=new Image();art.decoding='async';art.src=s.projectile;
+  nativeProjectileImages[id]=art;
+ }
  function draw(ctx,assets){
   for(const q of specials){
-   const art=assets?.[q.gunId],g=weapons[q.gunId];
+   const g=weapons[q.gunId],s=config.WEAPONS[q.gunId];
+   const exactSprite=nativeProjectileImages[q.gunId];
+   const thrownWhole=q.variant==='boomerang'||q.variant==='stormbreaker';
+   const art=q.variant==='fragment'||q.variant==='shard'?null:
+    exactSprite|| (thrownWhole?assets?.[q.gunId]:null);
+   const w=s.projectileWidth|| (thrownWhole?90:q.variant==='mine'?72:38);
    ctx.save();ctx.translate(q.x,q.y-24);ctx.rotate(q.angle);
    ctx.globalCompositeOperation='lighter';
-   if(art?.complete&&art.naturalWidth){
-    const width=q.variant==='stormbreaker'?110:q.variant==='boomerang'?75:q.variant==='mine'?38:35;
-    ctx.globalAlpha=.9;ctx.drawImage(art,-width/2,-width/2,width,width*art.naturalHeight/art.naturalWidth);
+   // A visible non-polluting motion read for every projectile, including
+   // plasma core/shards where Arsenal has no projectile texture.
+   if(q.variant==='plasma'||q.variant==='shard'){
+    ctx.shadowColor=q.variant==='plasma'?'#78ecff':'#95b5ff';ctx.shadowBlur=19;
+    ctx.strokeStyle=q.variant==='plasma'?'#68f9f9':'#9fd4ff';ctx.lineWidth=q.variant==='plasma'?9:5;
+    ctx.beginPath();ctx.moveTo(-36,0);ctx.lineTo(4,0);ctx.stroke();
+    ctx.fillStyle='#e3ffff';ctx.beginPath();ctx.arc(4,0,q.variant==='plasma'?10:5,0,Math.PI*2);ctx.fill();
+   }else if(q.variant==='flare'){
+    ctx.shadowColor='#ff9436';ctx.shadowBlur=26;
+    const flare=ctx.createRadialGradient(0,0,1,0,0,18);
+    flare.addColorStop(0,'#fff7c1');flare.addColorStop(.45,'#ffbf6d');flare.addColorStop(1,'#ff5a1600');
+    ctx.fillStyle=flare;ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#ffad6277';ctx.lineWidth=6;
+    ctx.beginPath();ctx.moveTo(-32,0);ctx.lineTo(0,0);ctx.stroke();
+   }else if(q.variant==='fragment'){
+    ctx.shadowColor='#ffb46c';ctx.shadowBlur=12;
+    ctx.fillStyle='#ffddad';ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(-8,-3);ctx.lineTo(-5,5);ctx.closePath();ctx.fill();
+   }else if(art?.complete&&art.naturalWidth){
+    const width=Math.min(125,w);
+    ctx.globalAlpha=.9;
+    ctx.drawImage(art,-width*.48,-width*art.naturalHeight/art.naturalWidth*.5,
+      width,width*art.naturalHeight/art.naturalWidth);
    }else{
+    ctx.shadowColor=g.color;ctx.shadowBlur=12;
     ctx.fillStyle=g.color;ctx.beginPath();ctx.arc(0,0,q.radius,0,Math.PI*2);ctx.fill();
+   }
+   if(q.variant==='mine'&&q.armed){
+    ctx.strokeStyle='#ff7b598c';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(0,0,22+Math.sin(q.age*12)*3,0,Math.PI*2);ctx.stroke();
    }
    ctx.restore();
   }

@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import {botWaveShippingAssetRefs,nativeWaveWeaponAssetRefs} from './botWaveShippingAssetRefs.mjs';
+import {botWaveShippingAssetRefs,nativeWaveWeaponAssetRefs,nativeWaveProjectileAssetRefs} from './botWaveShippingAssetRefs.mjs';
 const native=nativeWaveWeaponAssetRefs();
 assert.equal(native.length,41,'Every native equipment identity needs a delivered sprite');
 assert.equal(new Set(native).size,41);
 const sound='/assets/arsenal/av/sfx/guns/cz.mp3';
 const sample="WAVE_STICKY_ASSIST APEX_GUN_ART waveGunCue '"+sound+"'";
 const refs=botWaveShippingAssetRefs(sample);
-assert.deepEqual(refs.filter(p=>p.includes('/assets/arsenal/')&&!p.includes('/av/')),native);
+const projectileArt=nativeWaveProjectileAssetRefs();
+assert.ok(projectileArt.length>=4,'V4.3 dedicated rocket/bolt/mine/ball visuals required');
+for(const art of [...native,...projectileArt])assert.ok(refs.includes(art),'Missing exact source art: '+art);
 assert.ok(refs.includes(sound));
 assert.ok(refs.length>42,'Native melee/shield audio identities must be shipped as well');
 assert.throws(()=>botWaveShippingAssetRefs('window.BASE=1'),/RUNTIME_NOT_INTACT/);
