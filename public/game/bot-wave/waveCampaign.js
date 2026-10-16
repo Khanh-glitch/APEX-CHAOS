@@ -89,7 +89,7 @@ function planWave(nativeConfig,wave,{seed=41}={}){
   roster.push(Object.freeze({weaponId:pick.id,family:pick.family,role:pick.role,
     edge:'bottom',edgeFraction:.5,boss:true}));
  }
- const healing=beat.id==='breather'?.23:beat.id==='boss'?.28:.12;
+ const healing=beat.id==='breather'?.08:beat.id==='boss'?.12:.045;
  return Object.freeze({wave,chapter,beat:beat.id,title:beat.caption,
   boss:beat.id==='boss',newWeapons:Object.freeze(newly.map(x=>x.id)),
   revealedWeapons:revealed,totalWeapons:catalog.allWeaponIds.length,
@@ -98,6 +98,9 @@ function planWave(nativeConfig,wave,{seed=41}={}){
   gunDamageScalar:1,gunCadenceScalar:1,gunProjectileSpeedScalar:1,
   infinite:true});
 }
-const API=Object.freeze({indexNative,planWave,beats:PLAN_BEATS});
+// Pressure comes from real Arsenal guns, directions, survival HP and recovery,
+ // never from altering weapon damage, accuracy, cadence or projectile physics.
+ const SURVIVAL=Object.freeze({startingHP:1000,baseKillHealFraction:.005});
+ const API=Object.freeze({indexNative,planWave,beats:PLAN_BEATS,survival:SURVIVAL});
 root.APEX_BOT_WAVE_CAMPAIGN=API;
 })(typeof window!=='undefined'?window:globalThis);
