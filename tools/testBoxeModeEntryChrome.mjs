@@ -116,6 +116,24 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    });
    assert.ok(waveRuntime.playerHP>0&&waveRuntime.enemyCount>=1);
    assert.equal(waveRuntime.gameCanvas,true);
+   // Reject the prior fake-armory PASS: the REAL Arsenal firing event must
+   // actually happen in Chrome, and the Gold orb array may not carry a fake
+   // waveGunId projectile. These are observable native battle events.
+   await gameFrame.waitForFunction(()=>{
+    const a=window.APEX_ARSENAL_AV,api=window.APEX_ARSENAL?.weaponApi;
+    return !!api&&!!a&&a.stats.cued.some(x=>x.event==='fire'&&x.weapon==='PISTOL');
+   },{timeout:18000});
+   const shot=await gameFrame.evaluate(()=>({
+    nativeExecutor:!!window.APEX_ARSENAL?.weaponApi,
+    nativeProjectileDrawing:typeof window.APEX_ARSENAL.weaponApi.drawArsenalProjectiles==='function',
+    nativePistolEmissions:window.APEX_ARSENAL_AV.stats.cued.filter(x=>x.event==='fire'&&x.weapon==='PISTOL').length,
+    fakeGoldOrbs:window.handLab.projs.filter(p=>p.waveGunId).length,
+    audio:window.APEX_ARSENAL_AV.audioStatus(),
+    goldVisualRedesign:!!document.getElementById('bw-interface-v2'),
+   }));
+   assert.ok(shot.nativeExecutor&&shot.nativeProjectileDrawing&&shot.nativePistolEmissions>0&&shot.fakeGoldOrbs===0&&shot.goldVisualRedesign,
+    'Free Battle shot authority not actually running '+JSON.stringify(shot));
+   console.log('BOT WAVE actual Arsenal gun discharge PASS',view.name,shot);
    // Explicit real HTTP fetch proof: no sprite/audio is accidentally
    // discarded by shipping-prune or silently replaced by SPA HTML fallback.
    const refs=botWaveShippingAssetRefs(fs.readFileSync('public/bot-wave/game.html','utf8'));
