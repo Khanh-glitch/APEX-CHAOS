@@ -488,7 +488,7 @@ export default function App() {
           }
           if(!doc.getElementById('bw-v2-script')){
             const script=doc.createElement('script');script.id='bw-v2-script';
-            script.src='/game/bot-wave/botWavePresentationV2.js';doc.head.append(script);
+            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261016-boxe-r7-wave-polish';doc.head.append(script);
           }
           const win=frame.contentWindow;
           if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&
