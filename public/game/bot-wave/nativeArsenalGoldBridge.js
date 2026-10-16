@@ -159,6 +159,26 @@ function build({engine,config,campaign,cue,rand}){
   native.av.draw(ctx);
   ctx.restore();
  }
+ function drawEquipped(ctx,e){
+  if(!native.ready)return false;
+  const proxy=combatants.get(e),holder=proxy&&native.api.getHolder(proxy);
+  if(!proxy||!holder)return false;
+  // This is EXACTLY the same equipped-weapon pose/recoil, muzzle orientation
+  // and asset provider Free Battle calls. The -1000 offset is camera only.
+  ctx.save();ctx.translate(-ORIGIN,-ORIGIN);
+  const rendered=native.av.drawEquippedWeapon(ctx,proxy,holder);
+  ctx.restore();
+  return rendered;
+ }
+ let audioWarmed=false;
+ function ensureAudio(){
+  // Native shots use the ONE Gold-engine AudioContext and the trimmed,
+  // polyphony-limited sound recipes from ArsenalPresentationRuntime.
+  engine.initAudio();
+  if(audioWarmed||!engine.actx)return;
+  audioWarmed=true;
+  native.av.warmAudio().catch(e=>console.error('[BOT WAVE] native AV',e));
+ }
  function protect(){return arguments[1];}
  function movementSlow(){return 1;}
  function reset(){
@@ -169,7 +189,7 @@ function build({engine,config,campaign,cue,rand}){
  }
  function liveHolder(e){return combatants.has(e)?native.api?.getHolder(combatants.get(e)):null;}
  return Object.freeze({weapons:catalog,index:campaign.indexNative(config),
-  fire,update,draw,protect,movementSlow,reset,activate,connect,liveHolder,
+  fire,update,draw,drawEquipped,ensureAudio,protect,movementSlow,reset,activate,connect,liveHolder,
   snapshot:()=>({projectiles:root.projectiles.length,backend:'FREE_BATTLE_NATIVE',native41:Object.keys(native.weapons||{}).length}),
   getNative:()=>native});
 }
