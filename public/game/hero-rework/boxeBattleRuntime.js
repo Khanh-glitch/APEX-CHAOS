@@ -6,12 +6,34 @@
 (function registerBoxeBattle(global) {
   'use strict';
   if (global.APEX_BOXE_BATTLE) return;
-  const V = {passiveThreshold:300, enhancedSeconds:3, rocketOutboundSeconds:5,
-    rocketSpeed:1250, rocketReturnSpeed:1450, rocketRadius:46,
-    rocketStunSeconds:.35, rocketPushSpeed:320, flurrySeconds:2, flurryInterval:.085,
-    flurryHitStunSeconds:.07, flurryPushSpeed:165, counterGuardSeconds:1,
+  // The canonical Lv1 hero registry owns mechanics exposed by Dictionary.
+  // Harnesses that load this adapter in isolation use the same baseline
+  // fallbacks; CI compares the fallbacks and the registered game authority.
+  const skills=global.APEX_HERO_REWORK_REGISTRY?.HEROES?.BOXE?.skills;
+  const a1=skills?.A1?.baseConfig||{};
+  const a2=skills?.A2?.baseConfig||{};
+  const heat=skills?.PASSIVE?.baseConfig||{};
+  const V = {
+    passiveThreshold:heat.damageThreshold??300,
+    enhancedSeconds:heat.enhancedSeconds??3,
+    rocketOutboundSeconds:a1.outboundSeconds??5,
+    rocketSpeed:a1.flightSpeed??1250,
+    rocketReturnSpeed:a1.returnSpeed??1450,
+    rocketRadius:46,
+    rocketStunSeconds:a1.impactStunSeconds??.35,
+    rocketPushSpeed:320,
+    flurrySeconds:a1.flurrySeconds??2,
+    flurryInterval:a1.flurryInterval??.085,
+    flurryPunches:a1.flurryPunches??24,
+    flurryHitStunSeconds:a1.flurryHitStunSeconds??.07,
+    flurryPushSpeed:165,
+    flurryHeavyEvery:a1.flurryHeavyEvery??6,
+    flurryHeavyPushRatio:a1.flurryHeavyPushRatio??330/130,
+    counterGuardSeconds:a2.guardSeconds??1,
     counterTravelSeconds:.36, counterSpeed:1850,
-    counterStunSeconds:2, finisherRemainingFraction:.10};
+    counterStunSeconds:a2.counterStunSeconds??2,
+    finisherRemainingFraction:a2.finisherFractionRemainingHP??.10
+  };
   const finite = n => Number.isFinite(n);
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const emit=(ctx,type,data={})=>ctx.api.emitEvent(type,{...data,hero:'BOXE'});
@@ -396,7 +418,7 @@
     // 24 authored Gold beats (4 x 6), 85ms interval. A jab only stuns at
     // its REAL impact frame if its own glove reaches the target's surface.
     // No 231px all-directions circle, no synthetic hits for missing gloves.
-    while(f.next<f.until&&f.next<=now&&f.count<24){
+    while(f.next<f.until&&f.next<=now&&f.count<V.flurryPunches){
       const index=f.count++,hand=index%2===0?'L':'R',h=f.hands[hand];
       const aim=foe?Math.atan2(foe.y-f.y,foe.x-f.x):0;
       if(h.phase==='active')h.attack={
@@ -448,11 +470,11 @@
           const fv=foe.__hrVel||{x:0,y:0};
           strength=impactStrength(Math.cos(a.aim)*reach/.05,
             Math.sin(a.aim)*reach/.05,fv.x,fv.y,nx,ny,reach/.05);
-          const sixth=(a.index%6)===5;
-          stun=applyImpact(ctx,st,foe,nx,ny,strength,true,sixth?330/130:1);
+          const sixth=(a.index%V.flurryHeavyEvery)===V.flurryHeavyEvery-1;
+          stun=applyImpact(ctx,st,foe,nx,ny,strength,true,sixth?V.flurryHeavyPushRatio:1);
         }
         emit(ctx,'boxe:flurry-punch',{punchIndex:a.index,hand,x:h.x,y:h.y,
-          hit:contact,stun,strength,heavy:(a.index%6)===5,
+          hit:contact,stun,strength,heavy:(a.index%V.flurryHeavyEvery)===V.flurryHeavyEvery-1,
           targetId:contact?foe.id:null,damage:0});
       }
       if(elapsed>=.17)h.attack=null;
