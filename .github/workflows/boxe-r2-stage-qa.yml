@@ -22,6 +22,7 @@ jobs:
       - name: Native 41 equipment and Gold art prefix
         run: |
           node tools/testBotWave41Campaign.mjs
+          node tools/testBotWave41Execution.mjs
           node tools/testBotWaveShippingAssets.mjs
           node tools/testBotWaveLosslessR5.mjs
           node tools/testBotWaveGameRouteR5.mjs
