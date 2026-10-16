@@ -6,10 +6,10 @@
 'use strict';
 const doc=window.document;
 if(window.APEX_BOT_WAVE_INTERFACE_V2)return;
-const VERSION='owner-release-r6';
+const VERSION='owner-release-r8-cinematic';
 // Existing BOXE baseline was x1.5; owner requests another +30% -> x1.95.
  // Arsenal's compressor/voice-density mix follows this shared mode policy.
- const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.36});
+ const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.23,gunFloor:.18});
 function installWaveAudioMix(){
  window.APEX_BOT_WAVE_AUDIO_MIX=AUDIO_MIX;
  const director=window.BOXE_SFX?.audio;
@@ -76,15 +76,16 @@ function install(){
  const chapter=node('div','bw-chapter');
  chapter.id='bw-chapter';
  chapter.textContent='CHAPTER 01  //  ARSENAL SURVIVAL';
+ const waveNumber=node('div','bw-wave-number','WAVE 01');
  const wave=node('div','bw-wave-line');
  wave.innerHTML='<span class="bw-witness">SURVIVE</span>';
  const pressure=node('div','bw-pressure');
  pressure.innerHTML='<span>HOSTILE PRESSURE</span><strong id="bw-pressure-label">STANDBY</strong><i id="bw-pressure-fill"></i>';
- center.append(pressure);
+ // The meter sits BELOW the wave identity instead of stealing the headline.
  const centerSegment=node('div','bw-beat-markers');
  centerSegment.id='bw-beat-markers';
  for(let i=0;i<5;i++){const segment=node('i');segment.setAttribute('aria-label','Nhịp '+(i+1));centerSegment.append(segment);}
- center.append(chapter,wave,centerSegment);
+ center.append(chapter,waveNumber,wave,pressure,centerSegment);
  const threat=node('section','bw-threat');
  threat.setAttribute('aria-label','Trang bị và kẻ địch');
  const threatEyebrow=node('div','bw-threat-eyebrow','HOSTILE CONTACT  //  ROBOT UNITS');
@@ -136,12 +137,13 @@ function install(){
   const count=Math.floor((n-1)/5)+1,beat=(n-1)%5;
   const newChapter='CHAPTER '+String(count).padStart(2,'0')+'  //  ARSENAL SURVIVAL';
   if(newChapter!==lastChapter){chapter.textContent=newChapter;lastChapter=newChapter;}
+  waveNumber.textContent='WAVE '+String(n).padStart(2,'0');
   center.classList.toggle('bw-is-boss',beat===4);
   center.classList.toggle('bw-is-upgrade',s.phase==='upgrade');
   if(beat!==lastBeat){for(const [i,el] of [...centerSegment.children].entries()){
    el.classList.toggle('done',i<beat);el.classList.toggle('active',i===beat);
   }lastBeat=beat;}
-  const phase=doc.querySelector('.bw-witness');
+  const phase=wave.querySelector('.bw-witness');
   if(phase)phase.textContent=beat===4?'BOSS ROUND':s.phase==='combat'?'IN COMBAT':
    s.phase==='upgrade'?'UPGRADE':'SURVIVE';
   const active=window.handLab?.enemies?.filter(e=>!e.dead&&e.waveGunId).length||0;

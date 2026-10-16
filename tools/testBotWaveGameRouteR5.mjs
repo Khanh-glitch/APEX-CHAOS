@@ -15,7 +15,7 @@ const wrapper=fs.readFileSync('public/bot-wave/index.html','utf8');
 assert.ok(wrapper.includes('iframe[hidden]{display:none!important}'),'BOT WAVE old arena flash risk');
 assert.ok(wrapper.includes("!doc.getElementById('bw-interface-v2')"),'must wait for V2 before reveal');
 const audioMix=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js','utf8');
-assert.ok(audioMix.includes('boxe:1.95,weapons:.36'),'BOT WAVE Gold x1.95 / Arsenal adaptive base x.36 required');
+assert.ok(audioMix.includes('boxe:1.95,weapons:.23'),'BOT WAVE Gold x1.95 / Arsenal adaptive base x.36 required');
 assert.ok(fs.readFileSync('public/bot-wave/index.html','utf8').includes("frame.src='/bot-wave/game.html'"));
 assert.ok(app.includes("frame.src='/bot-wave/game.html'"),'single direct Gold iframe not mounted');
 assert.ok(!app.includes("window.top.location.assign(target)"),'hard navigation must not bypass transition');

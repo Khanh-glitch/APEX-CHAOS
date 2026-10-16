@@ -360,14 +360,17 @@
   // BOT WAVE-only acoustic bus. Preserve every native source/sample; reduce
   // summation peaks with dynamic headroom and a real compressor, not random
   // gun mute/drop, time-stretch or changed shot cadence.
+  // Fire events are stamped at the semantic cue source, not guessed from filenames.
+  // The bus compresses gunfire ONLY; BOXE impact/guard and game cues keep their authority.
   let waveBus=null,waveBusContext=null,cluster=0,clusterAt=0;
-  function waveAudioDestination(ctx){
-    if(waveBus&&waveBusContext===ctx)return waveBus;
+  function waveAudioDestination(ctx,isGun){
     const dest=typeof battleAudioMaster!=='undefined'?battleAudioMaster:ctx.destination;
+    if(!isGun)return dest;
+    if(waveBus&&waveBusContext===ctx)return waveBus;
     if(typeof ctx.createDynamicsCompressor!=='function')return dest;
     const limiter=ctx.createDynamicsCompressor();
-    limiter.threshold.value=-25;limiter.knee.value=18;limiter.ratio.value=6;
-    limiter.attack.value=.005;limiter.release.value=.24;
+    limiter.threshold.value=-34;limiter.knee.value=11;limiter.ratio.value=10;
+    limiter.attack.value=.003;limiter.release.value=.31;
     limiter.connect(dest);
     waveBus=limiter;waveBusContext=ctx;
     return limiter;
@@ -379,7 +382,8 @@
     if (!ctx || !buffer) { stats.throttled.notReady = (stats.throttled.notReady || 0) + 1; return; }
     const active = activeVoices.get(entry.rel) || 0;
     const waveMix=window.APEX_BOT_WAVE_AUDIO_MIX;
-    const cap = waveMix?Math.max(entry.maxVoices||4,6):(entry.maxVoices||4);
+    // Do not multiply native simultaneous-voice caps when 41 weapons swarm.
+    const cap = entry.maxVoices||4;
     if (active >= cap) { stats.throttled[entry.rel] = (stats.throttled[entry.rel] || 0) + 1; return; }
     let offset = entry.offset || 0;
     if (entry.slices) { offset = entry.slices[smgSliceCursor++ % entry.slices.length]; }
@@ -408,15 +412,20 @@
     }
     const gain = ctx.createGain();
     const now=ctx.currentTime;
-    const isGun=waveMix&&(/\/guns\/|_shot\.|shotgun|sniper|rifle/i.test(entry.rel));
-    // Continuous short-term gun density: retains quiet transients in a swarm
-    // rather than arbitrarily dropping every Nth shot. Never reaches zero.
+    const isGun=!!(waveMix&&(entry.waveFire===true||/\/guns\//.test(entry.rel)));
+    // Density is measured across every weapon ID, not once per clip filename.
+    // Ear-safe attenuation recovers smoothly as pressure drops; never time-stretches
+    // samples, changes gameplay cadence, or touches BOXE's Gold key SFX.
     if(isGun){
-      cluster*=Math.exp(-Math.max(0,now-clusterAt)*8);cluster=Math.min(24,cluster+1);
-      clusterAt=now;
+      cluster*=Math.exp(-Math.max(0,now-clusterAt)*4.2);
+      cluster=Math.min(30,cluster+1);clusterAt=now;
     }
-    const crowded=isGun?Math.max(.58,1/Math.sqrt(1+Math.max(0,cluster-1)*.25)):1;
-    const vol=(entry.vol!=null?entry.vol:.7)*(waveMix?.weapons??1)*crowded;
+    const crowded=isGun?Math.max(waveMix.gunFloor||.18,
+      1/Math.sqrt(1+Math.max(0,cluster-1)*.92)):1;
+    const vol=(entry.vol!=null?entry.vol:.7)*(isGun?waveMix.weapons*crowded:1);
+    if(isGun)stats.waveMix={density:Number(cluster.toFixed(2)),
+      gain:Number(vol.toFixed(4)),factor:Number(crowded.toFixed(3)),
+      nativeVoiceCap:cap,source:entry.rel};
     const attack = entry.attack != null ? entry.attack : 0;
     const fadeTail = entry.fadeTail != null ? entry.fadeTail : 0;
     const playDur = dur + (fadeTail > 0 ? 0 : 0);
@@ -433,7 +442,7 @@
     }
     stats.lastVoice = { rel: entry.rel, vol, offset, dur: playDur, viaBufferSource: true };
     src.connect(gain);
-    gain.connect(waveMix?waveAudioDestination(ctx):(typeof battleAudioMaster !== 'undefined'?battleAudioMaster:ctx.destination));
+    gain.connect(waveMix?waveAudioDestination(ctx,isGun):(typeof battleAudioMaster !== 'undefined'?battleAudioMaster:ctx.destination));
     src.onended = () => { liveSources.delete(src); release(); };
     try {
       src.start(now, offset, playDur);
@@ -451,10 +460,11 @@
     const list = AUDIO[listName];
     if (!list) return;
     for (const entry of list) {
-      const e = (opts && (opts.rate || opts.vol != null))
+      const e = (opts && (opts.rate || opts.vol != null || opts.waveFire))
         ? Object.assign({}, entry, {
             playbackRate: opts.rate || entry.playbackRate,
             vol: opts.vol != null ? opts.vol : entry.vol,
+            waveFire: opts.waveFire === true,
           })
         : entry;
       playEntry(e);
@@ -534,7 +544,7 @@
         const sfx = o.sfx || specialSfx[w] || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
         const recipes = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.VFX_RECIPES) || {};
         const rec = recipes[o.vfx] || null;
-        playAll(sfx, { rate: o.sfxRate || 1 });
+        playAll(sfx, { rate: o.sfxRate || 1, waveFire: true });
         const scale = rec ? rec.scale : (fam === 'AUTO' ? 0.5 : fam === 'SHOTGUN' ? 1.5 : fam === 'AUTOSHOT' ? 1.15 : fam === 'BURST' ? 0.62 : 0.7);
         const stretch = rec ? rec.stretch : (fam === 'SHOTGUN' || fam === 'AUTOSHOT' ? 1.35 : 1);
         const frames = fam === 'AUTO' ? [2 + (smgSliceCursor % 2), 3] : (fam === 'SHOTGUN' || fam === 'AUTOSHOT') ? [4, 0] : fam === 'BURST' ? [0, 2] : [0, 1];

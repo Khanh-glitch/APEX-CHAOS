@@ -31,7 +31,7 @@ assert.ok(wave.includes('CAMPAIGN.survival.startingHP')&&plan.includes('starting
 assert.ok(plan.includes('gunDamageScalar:1,gunCadenceScalar:1,gunProjectileSpeedScalar:1'));
 const ui=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js','utf8');
 const home=fs.readFileSync('src/App.jsx','utf8');
-assert.ok(ui.includes('boxe:1.95,weapons:.36')&&!ui.includes('bw-action-art')&&
+assert.ok(ui.includes('boxe:1.95,weapons:.23')&&!ui.includes('bw-action-art')&&
  home.includes('class="apex-wave-entry-art"')&&
  home.includes('/assets/dictionary/heroes/boxe/standing.png'),
  'The original BOXE art must belong to Home event entry, not J/K/L/U/I keys');
