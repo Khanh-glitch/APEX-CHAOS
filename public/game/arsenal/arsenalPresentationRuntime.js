@@ -413,6 +413,7 @@
     const gain = ctx.createGain();
     const now=ctx.currentTime;
     const isGun=!!(waveMix&&(entry.waveFire===true||/\/guns\//.test(entry.rel)));
+    const isUtility=!!(waveMix&&entry.waveUtility===true);
     // Density is measured across every weapon ID, not once per clip filename.
     // Ear-safe attenuation recovers smoothly as pressure drops; never time-stretches
     // samples, changes gameplay cadence, or touches BOXE's Gold key SFX.
@@ -422,7 +423,11 @@
     }
     const crowded=isGun?Math.max(waveMix.gunFloor||.18,
       1/Math.sqrt(1+Math.max(0,cluster-1)*.92)):1;
-    const vol=(entry.vol!=null?entry.vol:.7)*(isGun?waveMix.weapons*crowded:1);
+    const utilityFactor=isUtility?Math.max(.22,1/Math.sqrt(1+cluster*.55)):1;
+    const vol=(entry.vol!=null?entry.vol:.7)*(isGun?waveMix.weapons*crowded:
+      isUtility?.25*utilityFactor:1);
+    if(isUtility)stats.waveUtility={source:entry.rel,
+      gain:Number(vol.toFixed(4)),density:Number(cluster.toFixed(2))};
     if(isGun)stats.waveMix={density:Number(cluster.toFixed(2)),
       gain:Number(vol.toFixed(4)),factor:Number(crowded.toFixed(3)),
       nativeVoiceCap:cap,source:entry.rel};
@@ -442,7 +447,7 @@
     }
     stats.lastVoice = { rel: entry.rel, vol, offset, dur: playDur, viaBufferSource: true };
     src.connect(gain);
-    gain.connect(waveMix?waveAudioDestination(ctx,isGun):(typeof battleAudioMaster !== 'undefined'?battleAudioMaster:ctx.destination));
+    gain.connect(waveMix?waveAudioDestination(ctx,isGun||isUtility):(typeof battleAudioMaster !== 'undefined'?battleAudioMaster:ctx.destination));
     src.onended = () => { liveSources.delete(src); release(); };
     try {
       src.start(now, offset, playDur);
@@ -460,21 +465,22 @@
     const list = AUDIO[listName];
     if (!list) return;
     for (const entry of list) {
-      const e = (opts && (opts.rate || opts.vol != null || opts.waveFire))
+      const e = (opts && (opts.rate || opts.vol != null || opts.waveFire || opts.waveUtility))
         ? Object.assign({}, entry, {
             playbackRate: opts.rate || entry.playbackRate,
             vol: opts.vol != null ? opts.vol : entry.vol,
             waveFire: opts.waveFire === true,
+            waveUtility: opts.waveUtility === true,
           })
         : entry;
       playEntry(e);
     }
   }
-  function playLater(listName, delayMs) {
+  function playLater(listName, delayMs, opts) {
     if (typeof setTimeout !== 'function') return;
     // Session lifecycle: the raw timeout is tracked so resetAudioSession()
     // can cancel cues that are still pending when a battle session ends.
-    const id = setTimeout(() => { untrackTimer(id); playAll(listName); }, Math.max(0, delayMs | 0));
+    const id = setTimeout(() => { untrackTimer(id); playAll(listName, opts); }, Math.max(0, delayMs | 0));
     trackTimer(id);
   }
 
@@ -516,15 +522,19 @@
         break;
       }
       case 'pickup': {
+        if(window.APEX_BOT_WAVE_NPC_EQUIP){
+          stats.waveNpcEquipMuted=(stats.waveNpcEquipMuted||0)+1;
+          break;
+        }
         const w = o.weapon;
         const ready = GUN_READY[w];
         if (ready) {
-          playAll(ready);
-          if (w === 'SNIPER') playLater('pickup_sniper_lock', 180);
+          playAll(ready,{waveUtility:true});
+          if (w === 'SNIPER') playLater('pickup_sniper_lock', 180,{waveUtility:true});
           stats.gunReady = (stats.gunReady || 0) + 1;
           stats.lastGunReady = { weapon: w, cue: ready, rel: (AUDIO[ready] && AUDIO[ready][0] && AUDIO[ready][0].rel) };
         } else {
-          playAll('pickup');
+          playAll('pickup',{waveUtility:true});
           stats.lastGunReady = { weapon: w, cue: 'pickup', rel: AUDIO.pickup[0].rel };
         }
         break;
@@ -544,7 +554,10 @@
         const sfx = o.sfx || specialSfx[w] || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
         const recipes = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.VFX_RECIPES) || {};
         const rec = recipes[o.vfx] || null;
-        playAll(sfx, { rate: o.sfxRate || 1, waveFire: true });
+        const worldMelee=['SABRE','BATTLE_AXE','DAGGER','SPEAR','SPIKED_CLUB',
+          'STORMBREAKER','COMBAT_BOOMERANG','SWIRL_SHIELD','TOWER_SHIELD'].includes(w);
+        playAll(sfx, { rate: o.sfxRate || 1,
+          waveFire:!worldMelee&&fam!=='MELEE'&&fam!=='SHIELD' });
         const scale = rec ? rec.scale : (fam === 'AUTO' ? 0.5 : fam === 'SHOTGUN' ? 1.5 : fam === 'AUTOSHOT' ? 1.15 : fam === 'BURST' ? 0.62 : 0.7);
         const stretch = rec ? rec.stretch : (fam === 'SHOTGUN' || fam === 'AUTOSHOT' ? 1.35 : 1);
         const frames = fam === 'AUTO' ? [2 + (smgSliceCursor % 2), 3] : (fam === 'SHOTGUN' || fam === 'AUTOSHOT') ? [4, 0] : fam === 'BURST' ? [0, 2] : [0, 1];
@@ -581,7 +594,7 @@
         const list = shotgun ? SHELL_VARS : CASING_VARS;
         const entry = list[(shotgun ? shellCursor++ : casingCursor++) % list.length];
         const e = (o.vol != null) ? Object.assign({}, entry, { vol: o.vol }) : entry;
-        playEntry(e);
+        playEntry(window.APEX_BOT_WAVE_AUDIO_MIX?{...e,waveUtility:true}:e);
         const key = shotgun ? 'shotgun_shell_land' : 'casing_land';
         stats.casingLands = (stats.casingLands || 0) + 1;
         stats.lastCasingLand = { key, rel: entry.rel, shotgun: !!shotgun };
@@ -595,12 +608,12 @@
         break;
       }
       case 'shotgun_rack': {
-        playAll('shotgun_rack_pull');
-        playLater('shotgun_rack_push', 170);
+        playAll('shotgun_rack_pull',{waveUtility:true});
+        playLater('shotgun_rack_push', 170,{waveUtility:true});
         break;
       }
       case 'sniper_shot': {
-        playAll('sniper_shot');
+        playAll('sniper_shot',{waveFire:true});
         // Long stretched transient — the near-hitscan punctuation (C §5.3).
         muzzle(o.x, o.y, o.angle, 1.9, [5, 4], 0.16, 2.1);
         pushVfx({ kind: 'smoke', x: o.x, y: o.y, angle: o.angle, scale: 0.9, life: 0.55, file: SMOKE('03') });

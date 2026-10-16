@@ -110,7 +110,11 @@ function build({engine,config,campaign,cue,rand}){
   if(!native.weapons[id])throw Error('NATIVE_WAVE_UNREGISTERED_'+id);
   // True Arsenal equip -> holder-def -> projectiles. No fake mode shots.
   if(!native.api.getHolder(proxy)){
-   if(!native.api.equip(proxy,id))throw Error('NATIVE_WAVE_EQUIP_REJECTED_'+id);
+   // Robots are spawned with native guns; they never make player-style pickups.
+   const previous=root.APEX_BOT_WAVE_NPC_EQUIP;
+   root.APEX_BOT_WAVE_NPC_EQUIP=true;
+   try{if(!native.api.equip(proxy,id))throw Error('NATIVE_WAVE_EQUIP_REJECTED_'+id);}
+   finally{root.APEX_BOT_WAVE_NPC_EQUIP=previous;}
   }
   return proxy;
  }

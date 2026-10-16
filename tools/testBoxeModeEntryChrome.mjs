@@ -328,10 +328,13 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    const liveMix=await gameFrame.evaluate(()=>({
      policy:window.APEX_BOT_WAVE_AUDIO_POLICY?.snapshots?.()||null,
      version:window.APEX_BOT_WAVE_INTERFACE_V2?.version||null,
-     actual:window.APEX_ARSENAL_AV?.stats?.waveMix||null
+     actual:window.APEX_ARSENAL_AV?.stats?.waveMix||null,
+     npcEquipAudioSuppressed:window.APEX_ARSENAL_AV?.stats?.waveNpcEquipMuted||0,
+     utility:window.APEX_ARSENAL_AV?.stats?.waveUtility||null
    }));
    assert.ok(liveMix.policy?.mix?.gain>0&&liveMix.policy.mix.gain<=.14&&
-     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r9'),
+     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r9')&&
+     liveMix.npcEquipAudioSuppressed>0,
      'Native gun SFX not demonstrably attenuated in live Chromium '+JSON.stringify(liveMix));
    console.log('BOT WAVE R9 actual WebAudio native gun mix PASS',view.name,liveMix);
    console.log('BOT WAVE actual Arsenal gun discharge PASS',view.name,shot);
