@@ -6686,7 +6686,10 @@ function chooseCard(id){if(state.phase!=='upgrade'||!state.offer?.some(c=>c.id==
 }
 // Campaign plan is immutable per wave. Re-use it across 130ms HUD refreshes,
  // rather than allocating and sorting the full 41-gun catalog repeatedly.
- let cachedWaveNo=0,cachedWaveComposition=null;
+ // Function declarations in Gold boot are invoked before this point is
+ // evaluated. Use hoisted var with NO late initializer to avoid TDZ and
+ // preserve any memoized first-wave plan computed during initial admission.
+ var cachedWaveNo,cachedWaveComposition;
  function waveComposition(n){
  if(cachedWaveNo===n&&cachedWaveComposition)return cachedWaveComposition;
  const plan=CAMPAIGN.planWave(CFG,n);
