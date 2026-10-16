@@ -2492,6 +2492,9 @@
         weapon: id, family, sfx: spec.sfx, sfxRate: spec.sfxRate, vfx: spec.vfx,
         x: muz.x, y: muz.y, angle: base, usedMeta: muz.usedMeta,
       });
+      if (family === 'SHOTGUN' && pellets > 1 && !spec.noPumpRack) {
+        window.avCue('shotgun_rack', { weapon: id, x: f.x, y: f.y, angle: base });
+      }
       ejectCasing(f, base, casingPower, id);
       log('SHOT', `fighter=${f.name} weapon=${id} t=${(typeof matchClock === 'number' ? matchClock : 0).toFixed(3)}`);
     }
@@ -2528,7 +2531,7 @@
           fired = true;
         }
         if (fired) {
-          cameraShake = Math.max(cameraShake, family === 'AUTOSHOT' ? 6 : 3);
+          cameraShake = Math.max(cameraShake, family === 'SHOTGUN' ? 9 : family === 'AUTOSHOT' ? 6 : 3);
           playFighterSound(f, 'skill');
         }
         const need = spec.shots || 1;
@@ -2696,7 +2699,7 @@
     // Classic SHOTGUN has pellets/cone but no 'shots' scalar. Treat it as
     // the authored one-blast Arsenal executor (same aim, damage and asset),
     // not a makeGun() magazine whose while condition never fires.
-    SHOTGUN: makeBlastGun('SHOTGUN', '#ffbe6b'),
+    SHOTGUN: makeGun('SHOTGUN', 'G03_shotgun', '#ffbe6b'),
     _SHOTGUN_LEGACY: (() => {
       const spec = CFG.WEAPONS.SHOTGUN;
       return {

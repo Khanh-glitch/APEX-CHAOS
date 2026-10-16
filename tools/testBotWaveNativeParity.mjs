@@ -15,8 +15,11 @@ assert.ok(!bridge.includes('return amount*.5'),'No bespoke Wave shield nerf');
 assert.ok(!bridge.includes('setInterval('),'No independent shooting clock');
 assert.ok(bridge.includes("backend:'FREE_BATTLE_NATIVE'"));
 const arsenal=fs.readFileSync('public/game/arsenal/arsenalWeaponRuntime.js','utf8');
-assert.ok(arsenal.includes("SHOTGUN: makeBlastGun('SHOTGUN'"),
- 'Native classic SHOTGUN must use pellet volley executor; undefined magazine length makes it inert');
+const config=fs.readFileSync('public/game/arsenal/arsenalConfig.js','utf8');
+assert.ok(/SHOTGUN:\s*\{\s*family: 'SHOTGUN', shots: 2, interval: 0.28, pellets: 8/.test(config),
+ 'Free Battle SHOTGUN must preserve two 8-pellet volleys with 0.28s spacing');
+assert.ok(arsenal.includes("SHOTGUN: makeGun('SHOTGUN'"),
+ 'Native SHOTGUN must use two timed volleys instead of an inert undefined magazine');
 assert.ok(bridge.includes('projectile.life-=dt'),'Gold must advance canonical Arsenal projectile life once per tick');
 assert.ok(bridge.includes('native.api.updateArsenalProjectiles(dt'),'Collision ownership must remain with Arsenal runtime');
 assert.ok(!bridge.includes('engine.projs.splice('),'No fake projectile lifecycle allowed');

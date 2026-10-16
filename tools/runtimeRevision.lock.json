@@ -1,5 +1,5 @@
 {
-  "revision": "20261014-cp17-frost-cast-r1",
+  "revision": "20261016-boxe-native-gold-r2",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -11,9 +11,9 @@
     "public/game/core/apexArsenalProductDrawRecoveryRuntime.js": "b8b515fe710642614a4a1a671fe0da7f2295aaff9e439e10a16ecec6cc953c71",
     "public/game/gold/goldProductBridge.js": "e4f6de598f4dae580143a09ea04a162ce605f7f22b241fa18b57e8c5fcc7fce5",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
-    "public/game/arsenal/arsenalConfig.js": "c1bcd2d46c2cbd36663c3a3bbea7c0e9fc43fef8204a9fe1eaae2bdc8fa2e5af",
+    "public/game/arsenal/arsenalConfig.js": "7ca8b66277f021a296220bfa5994d275840d85fff7893a853626098cae0c8bfa",
     "public/game/arsenal/arsenalIdentityRuntime.js": "d9a5b80a043a40445395f2b28c8e6aab2dfae5c868b56ea3eaac261d84bcae1a",
-    "public/game/arsenal/arsenalWeaponRuntime.js": "c8cc360394736b1bd95baab27bae45ff10054ce38f4ba3f1c768c2d7675748a6",
+    "public/game/arsenal/arsenalWeaponRuntime.js": "efbd7552b06ac1724da85a6a04587616b8cc9bbf6e49eb0e7535b0802cd92582",
     "public/game/arsenal/arsenalSpawnRuntime.js": "ba4d54a058611f503af5b39adf80ff5338f938202e5703d681142361d88ee2cb",
     "public/game/arsenal/arsenalPresentationRuntime.js": "086c14adb18e1020180f1f2be75269e47cdc03ce7631b5f4aef828f038c1cdac",
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
