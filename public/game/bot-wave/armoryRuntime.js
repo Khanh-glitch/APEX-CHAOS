@@ -156,7 +156,7 @@ function createArmory({engine,config,campaign,cue,rand}){
    }
    let collided=Math.hypot(p.x-q.x,p.y-q.y)<(p.r||29)+q.radius;
    if(id==='mine')collided=q.armed&&Math.hypot(p.x-q.x,p.y-q.y)<(s.triggerRadius||135);
-   if(id==='boomerang'&&q.hitLeg===(q.returned?1:0))collided=false;
+   if(id==='boomerang'&&(q.returned?q.hitLeg>=2:q.hitLeg>=1))collided=false;
    if(collided){
     if(id==='rocket')aoe(q,s.blastRadius||126,q.damage);
     else if(id==='ball')aoe(q,s.blastRadius||90,q.damage);

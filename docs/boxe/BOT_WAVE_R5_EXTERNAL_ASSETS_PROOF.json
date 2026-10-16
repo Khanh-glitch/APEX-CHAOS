@@ -2,7 +2,7 @@
   "raw_sha256": "e766b7cdd0b57e87187992ba464d8bddae2c2ee0fac3996e46ab9b048f2d0256",
   "externalized_sha256": "1ea2efb339a6c11ac3950a34b63e8c543f95db8cad44f01cd96ed7940bfcd1bc",
   "raw_bytes": 25720219,
-  "externalized_bytes": 318441,
+  "externalized_bytes": 320761,
   "substitutions": [
     {
       "file": "char-body.png",

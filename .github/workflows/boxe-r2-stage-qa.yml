@@ -6,6 +6,46 @@ on:
 permissions:
   contents: read
 jobs:
+  bot-wave-41-native-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Native 41 equipment and Gold art prefix
+        run: |
+          node tools/testBotWave41Campaign.mjs
+          node tools/testBotWaveShippingAssets.mjs
+          node tools/testBotWaveLosslessR5.mjs
+          node tools/testBotWaveGameRouteR5.mjs
+      - name: Build all asset-backed native equipment
+        run: pnpm build
+      - name: Start integrated product
+        shell: bash
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/boxe-wave.log 2>&1 &
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0; sleep 1; done
+          cat /tmp/boxe-wave.log; exit 1
+      - name: Chrome Home icon and live Gold BOT WAVE desktop/mobile
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testBoxeModeEntryChrome.mjs
+      - name: Browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-wave-41-chrome
+          path: docs/boxe/r5-browser/
+          if-no-files-found: ignore
   semantic-and-c04-regression:
     runs-on: ubuntu-latest
     timeout-minutes: 40
