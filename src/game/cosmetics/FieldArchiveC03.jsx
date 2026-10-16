@@ -17,7 +17,12 @@ const HERO_META=Object.freeze({
  MIRROR:{name:'MIRROR',file:'mirror',accent:'#a8a3b2',intro:'Turns battlefield positioning and projectiles into an illusion.',skills:[['PASSIVE','MIRROR SHARDS','Realized damage creates shards that can assemble into mirror nodes.'],['A1','MIRROR ARSENAL','Copies an eligible enemy-held weapon as a fresh temporary instance; T6 excluded.'],['A2','ATOMIC EXCHANGE','Swaps the two bodies’ positions without swapping HP, velocity or weapons.']]},
 });
 // Product roster defines availability; registries provide all additional content.
-const PICTURE=(id,definition)=>{const declared=definition?.archiveProfile?.artwork||definition?.artwork?.pickSelected||definition?.artwork?.selected; if(typeof declared==='string'&&/^\/assets\/[a-zA-Z0-9_./-]+\.(webp|png|jpg)$/.test(declared)&&!declared.includes('..'))return declared;const legacy=HERO_META[id];return legacy?'/assets/gold-ui/heroes/'+legacy.file+'/pick_'+(id==='MIRROR'?'roster_cover':'selected_large')+'.webp':null};
+const PICTURE=(id,definition)=>{const artwork=definition?.archiveProfile?.artwork;
+ const declared=(typeof artwork==='string'?artwork:artwork?.standing||artwork?.avatar)||
+   definition?.artwork?.pickSelected||definition?.artwork?.selected;
+ if(typeof declared==='string'&&/^\/assets\/[a-zA-Z0-9_./-]+\.(webp|png|jpg)$/.test(declared)&&!declared.includes('..'))return declared;
+ const legacy=HERO_META[id];return legacy?'/assets/gold-ui/heroes/'+legacy.file+'/pick_'+(id==='MIRROR'?'roster_cover':'selected_large')+'.webp':null;
+};
 const WEAPON_C_IMAGES=new Set('PISTOL SHOTGUN SMG SNIPER GRENADE SABRE BATTLE_AXE DAGGER SPEAR SPIKED_CLUB SWIRL_SHIELD TOWER_SHIELD AK_47 BERETTA_93R DESERT_DEAGLE GLOCK_17 JACKHAMMER M16 M249_SAW MAC_10 MAGNUM_500 MBR MBR2 MOSSBERG_500 P90 SAWED_OFF SZECSEI_FUCHS TEC_9 ZBROYAR_Z15'.split(' '));
 const WEAPON_V43_IMAGES=new Set('BOLT COMBAT_BOOMERANG FLAMETHROWER FLARE_GUN PLASMA_SPLITTER RPG_7 SHRAPNEL_MINE_LAUNCHER STEEL_BALL_LAUNCHER TACTICAL_CROSSBOW'.split(' '));
 function weaponImage(id,meta){if(id==='RPG_7'&&meta?.skinId==='vua-he')return '/assets/skins/rocket-vua-he/launcher.png';
@@ -39,7 +44,7 @@ function pickSelection(){
  // is ROBOT and its current catalogue display name is NEWBOT. Match BOTH
  // canonical IDs and presentational aliases; never infer a random fighter.
  const heroByGoldName={ROBOT:'ROBOT',NEWBOT:'ROBOT',CRYSTALA:'CRYSTAL',CRYSTAL:'CRYSTAL',
-  HUNTER:'HUNTER',MAGNET:'MAGNET',FROST:'ICE',ICE:'ICE',MIRROR:'MIRROR'};
+  HUNTER:'HUNTER',MAGNET:'MAGNET',FROST:'ICE',ICE:'ICE',MIRROR:'MIRROR',BOXE:'BOXE'};
  const heroId=heroByGoldName[label]||null;
  return heroId?{side,heroId,name:label}:null;
 }
@@ -234,7 +239,7 @@ export default function FieldArchiveC03(){
       <main className="fa3-center">
        <div className="fa3-record-top"><div><small>DOCUMENT / {String(idx+1).padStart(2,'0')} — {String(count).padStart(2,'0')}</small><h3>{current?.name||'ARCHIVE'}</h3></div><span className="fa3-record-stamp">{kind==='hero'?'FIGHTER REGISTRY':'ARSENAL RECORD'}</span></div>
        {current?<DisplayArtwork kind={kind} item={current} previewId={activePreview}/>:<div className="fa3-empty">Preparing Arsenal records…</div>}
-       <div className="fa3-record-navigation"><button type="button" onClick={()=>shift(-1)} aria-label="Previous record">‹</button><span>{current?.tier||'—'} / {kind==='hero'?'CORE SIX':current?.family||'ARSENAL'}</span><button type="button" onClick={()=>shift(1)} aria-label="Next record">›</button></div>
+       <div className="fa3-record-navigation"><button type="button" onClick={()=>shift(-1)} aria-label="Previous record">‹</button><span>{current?.tier||'—'} / {kind==='hero'?'ACTIVE ROSTER':current?.family||'ARSENAL'}</span><button type="button" onClick={()=>shift(1)} aria-label="Next record">›</button></div>
       </main>
       <section className="fa3-detail" aria-label="Appearance and record information">
        <div className="fa3-detail-tabs" role="tablist" aria-label="Record details">
@@ -260,7 +265,7 @@ export default function FieldArchiveC03(){
        <div className="fa3-bottom-note">APPEARANCES ONLY / COMBAT RULES PRESERVED</div>
       </section>
     </div>
-    <footer className="fa3-footer"><span>FIELD ARCHIVE · VOL. 01 / CORE SIX & ARSENAL</span><span>ESC — CLOSE · ARROWS — NEXT RECORD</span><span className="fa3-safety">NO PAGE SCROLL / LIVE EQUIP AUTHORITY</span></footer>
+    <footer className="fa3-footer"><span>FIELD ARCHIVE · VOL. 01 / FIGHTERS & ARSENAL</span><span>ESC — CLOSE · ARROWS — NEXT RECORD</span><span className="fa3-safety">NO PAGE SCROLL / LIVE EQUIP AUTHORITY</span></footer>
    </section>
   </div>}
  </>;
