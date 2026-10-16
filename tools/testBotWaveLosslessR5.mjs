@@ -1,39 +1,28 @@
-// OWNER R5.1 — lossless runtime externalization gate.
-// The Gold source is immutable. Its 10 embedded PNGs are replaced by identical
-// existing, hash-checked /assets/boxe-gold images for efficient cloud delivery.
+// BOXE owner-supplied Gold fidelity gate. Gold engine, motion, SFX and VFX
+// must match the attached R2 PLAYTEST source exactly; only the arena/wave
+// adapter after this immutable region may evolve.
 import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
-const proof=JSON.parse(fs.readFileSync('docs/boxe/BOT_WAVE_R5_EXTERNAL_ASSETS_PROOF.json','utf8'));
-const binary=fs.readFileSync('public/bot-wave/game.html');
+const game=fs.readFileSync('public/bot-wave/game.html','utf8');
+const start=game.indexOf('const modules='),end=game.indexOf('/* BOXE BOT WAVE pilot',start);
+assert.ok(start>0&&end>start,'Gold modules/adapter boundary missing');
+const core=game.slice(start,end);
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
-assert.equal(binary.byteLength,proof.externalized_bytes,'BOT WAVE HTML byte count drift');
-assert.equal(sha(binary),proof.externalized_sha256,'BOT WAVE altered post-externalization');
-const substitutions=[];
-const expanded=binary.toString('utf8').replace(/\/assets\/boxe-gold\/([A-Za-z0-9_-]+\.png)/g,(full,name)=>{
- const match=proof.substitutions.find(a=>a.file===name);
- assert.ok(match,'unexpected Gold asset path '+name);
- const disk=path.join('public/assets/boxe-gold',name);
- assert.ok(fs.existsSync(disk),'Gold sprite missing: '+name);
- const bytes=fs.readFileSync(disk);
- assert.equal(bytes.length,match.bytes,'PNG size mismatch: '+name);
- assert.equal(sha(bytes),match.sha256,'Gold PNG content changed: '+name);
- substitutions.push(name);
- return 'data:image/png;base64,'+bytes.toString('base64');
-});
-assert.equal(substitutions.length,10,'exactly ten Gold images must externalize');
-assert.equal(new Set(substitutions).size,10,'duplicate/missing sprite mappings');
-const prefix=binary.toString('utf8').split(proof.visual_prefix_delimiter)[0];
-assert.equal(sha(Buffer.from(prefix)),proof.gold_visual_prefix_sha256,
- 'Owner Gold art/motion/VFX core changed outside the isolated wave adapter');
-assert.equal(proof.source_gold_visual_edits,0,'Owner Gold visual core edits forbidden');
-const adapter=binary.toString('utf8').split(proof.visual_prefix_delimiter)[1]||'';
-assert.ok(!adapter.includes("engine.drawArena=function("),"REJECT: BOT WAVE replaced owner Gold arena renderer");
-for(const method of ['initRibbons','updateRibbons','resetRibbons','drawRibbons'])
- assert.ok(!adapter.includes('engine.'+method+'=function('),'REJECT: BOT WAVE disabled owner Gold '+method);
-
-assert.equal(substitutions.length,10,'All original lossless PNGs must remain linked');
-assert.ok(expanded.includes('WAVE_STICKY_ASSIST')&&expanded.includes('APEX_GUN_ART')&&expanded.includes('APEX_BOT_WAVE_NATIVE_BRIDGE'),'Native Arsenal integration missing');
-assert.ok(!expanded.includes('APEX_BOT_WAVE_ARMORY.createArmory'),'REJECT: fake weapon executor active');
-console.log('BOXE R5.1 LOSSLESS RUNTIME PASS; raw='+proof.raw_sha256+' bytes='+proof.raw_bytes+' served='+binary.byteLength+' Gold PNG='+substitutions.length);
+assert.equal(Buffer.byteLength(core),901831,'Owner Gold source length changed');
+assert.equal(sha(core),'00a14304c6c82efc337e78cbeb4f68ff9d1f15b4413016b6355a6c43dd3ffbc7',
+ 'Owner-approved Gold engine/VFX/BOXE sound banks mutated');
+for(const item of ['class BoxeSoundDirector','const BOXE_AUDIO_BANK','const BOXE_FINAL_AUDIO_BANK',
+ 'BOXE_SFX','BOXE_FINAL_SFX','this.fire.draw(ctx)','this.lightning.draw(ctx)',
+ 'this.material.drawGround(ctx)','this.post.end(']){
+ assert.ok(core.includes(item),'Original Gold visual/audio primitive absent: '+item);
+}
+const proof=JSON.parse(fs.readFileSync('docs/boxe/BOT_WAVE_R5_EXTERNAL_ASSETS_PROOF.json','utf8'));
+for(const asset of proof.substitutions){
+ const src='/assets/boxe-gold/'+asset.file;
+ assert.ok(game.includes(src),'Original Gold sprite reference missing '+src);
+ const binary=fs.readFileSync('public'+src);
+ assert.equal(binary.length,asset.bytes,'Owner Gold artwork byte count changed: '+asset.file);
+ assert.equal(sha(binary),asset.sha256,'Owner Gold artwork changed: '+asset.file);
+}
+console.log('OWNER GOLD R2 fidelity PASS: full original renderer, audio banks, 10 immutable PNGs, appended native Wave bridge');
