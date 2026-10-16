@@ -44,6 +44,12 @@ export const GOLD_QUEST_SHELL_RUNTIMES = Object.freeze([
   ['/game/quest/quest01Director.js?v=20261010-quest-fixed-robot-02', 'apexQuest01Director'],
 ]);
 
+// BOT WAVE special Home route: separate intent-loaded scripts only.
+export const BOT_WAVE_SPECIAL_RUNTIMES = Object.freeze([
+  ['/game/bot-wave/waveCampaign.js?v=wave41-cp3', 'apexBotWaveCampaign'],
+  ['/game/bot-wave/armoryRuntime.js?v=wave41-cp3', 'apexBotWaveArmory'],
+]);
+
 // Current-neutral combat services shared by Arsenal and the generic engine.
 export const CURRENT_COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
