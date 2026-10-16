@@ -96,7 +96,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      fiveBeats:document.querySelectorAll('#bw-beat-markers i').length,
      modalArt:!!document.querySelector('.w-dialog > .bw-cover img'),
      controls:document.querySelectorAll('.bw-skill-deck .w-action').length,
-     debugHidden:getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
+     debugHidden:!document.getElementById('arena-experience-tools')||getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
    }));
    assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.modalArt&&interfaceRead.debugHidden
        &&interfaceRead.fiveBeats===5&&interfaceRead.controls===5,
