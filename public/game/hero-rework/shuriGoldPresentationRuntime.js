@@ -110,7 +110,11 @@
         break;
       }
       case 'shuri:bomb-expire':
-        Gold.triggerBomb(w);break;
+        // Expiry is NOT a stun or EMP. The owner Gold Lab auditions an
+        // automatic discharge at 5s; native APEX explicitly distinguishes
+        // timeout from confirmed contact. Clear the isolated visual prop
+        // without firing Gold's discharge function.
+        w.bomb=null;break;
       case 'shuri:build-start':{
         w.anchor={pos:{x:p.x,y:p.y},t:w.t};
         w.shuri.scrap=Math.max(20,w.shuri.scrap);
@@ -162,6 +166,11 @@
     let remaining=d,iterations=0;
     while(remaining>=Gold.DT/2 && iterations++<10){
       const h=Math.min(Gold.DT,remaining);
+      // Gold Lab's isolated demo automatically detonates an idle bomb
+      // at 5s. Live APEX is authoritative on its 5s lifetime (after arm).
+      // Keep original visual ticking until a native trigger/expiry arrives.
+      if(rec.w.bomb?.st==='armed')
+        rec.w.bomb.t=Math.min(rec.w.bomb.t,5-2*Gold.DT);
       Gold.step(rec.w,h);
       remaining-=h;
     }
