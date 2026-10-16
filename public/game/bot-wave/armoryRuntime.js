@@ -8,6 +8,42 @@ function createArmory({engine,config,campaign,cue,rand}){
  const native=catalog=>catalog.records;
  const index=campaign.indexNative(config);
  const specials=[];
+ // Owner-accepted native Arsenal sonic language: melee swings and shield
+ // starts do NOT sound like the Pistol. Polyphony stays bounded per identity.
+ const nativeFireSounds=Object.freeze({
+  SABRE:'/assets/arsenal/av/sfx/c-final/SABRE/sabre_motion.mp3',
+  BATTLE_AXE:'/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_motion.mp3',
+  DAGGER:'/assets/arsenal/av/sfx/c-final/DAGGER/dagger_motion.mp3',
+  SPEAR:'/assets/arsenal/av/sfx/c-final/SPEAR/spear_motion.mp3',
+  SPIKED_CLUB:'/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_swing.mp3',
+  STORMBREAKER:'/assets/arsenal/av/sfx/scifi/forceField_001.ogg',
+  SWIRL_SHIELD:'/assets/arsenal/av/sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3',
+  TOWER_SHIELD:'/assets/arsenal/av/sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3',
+  COMBAT_BOOMERANG:'/assets/arsenal/av/sfx/c-final/SABRE/sabre_motion.mp3',
+  TACTICAL_CROSSBOW:'/assets/arsenal/av/sfx/c-final/SPEAR/spear_motion.mp3',
+ });
+ const fireFamily=Object.freeze({
+  RPG_7:'SNIPER',PLASMA_SPLITTER:'SNIPER',
+  FLAMETHROWER:'SMG',STEEL_BALL_LAUNCHER:'SHOTGUN',
+  SHRAPNEL_MINE_LAUNCHER:'SHOTGUN',
+ });
+ const soundPools=new Map(),lastSoundAt=new Map();
+ function playNativeSound(id){
+  const url=nativeFireSounds[id];
+  if(!url)return false;
+  if(engine?.opts?.sound===false||typeof Audio!=='function')return true;
+  const last=lastSoundAt.get(id)??-99;
+  if(engine.time-last<.10)return true;
+  lastSoundAt.set(id,engine.time);
+  let pool=soundPools.get(id);
+  if(!pool){
+   pool=Array.from({length:2},()=>{const a=new Audio(url);a.preload='auto';return a;});
+   soundPools.set(id,pool);
+  }
+  const sample=pool.find(a=>a.paused||a.ended)||pool[0];
+  try{sample.pause();sample.currentTime=0;sample.volume=.22;sample.play().catch(()=>{});}catch(_){}
+  return true;
+ }
  const palette={SEMI:'#ffd99c',AUTO:'#e5a47d',BURST:'#ecb87c',PRECISION:'#ff7095',SHOTGUN:'#ffb96c',
   AUTOSHOT:'#f9b46d',GRENADE:'#ff9d6c',MELEE:'#f0c17b',SHIELD:'#83d6e6',SPECIAL:'#d1a5ff'};
  const specialRange={flare:730,bolt:930,ball:720,boomerang:600,rocket:870,flame:320,plasma:780,mine:520};
@@ -66,7 +102,8 @@ function createArmory({engine,config,campaign,cue,rand}){
   if(dist>g.range+(p.r||0)){e.waveFireT=.16;return}
   if(e.waveAmmo<=0){e.waveReloadT=g.reload;return}
   const a=Math.atan2(dy,dx)+(rand()-.5)*g.spread*2,s=g.native;
-  e.waveAmmo--;e.waveFireT=g.interval;cue(e.waveGunId,'fire');
+  e.waveAmmo--;e.waveFireT=g.interval;
+  if(!playNativeSound(e.waveGunId))cue(fireFamily[e.waveGunId]||e.waveGunId,'fire');
   if(g.family==='SHIELD'){
    e.waveShieldUntil=engine.time+(s.duration||2.8);
    e.waveShieldId=e.waveGunId;impact(e.x,e.y,g.range,g.color);

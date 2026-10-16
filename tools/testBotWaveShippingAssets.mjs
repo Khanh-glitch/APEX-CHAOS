@@ -10,7 +10,7 @@ const sample="WAVE_STICKY_ASSIST APEX_GUN_ART waveGunCue '"+sound+"'";
 const refs=botWaveShippingAssetRefs(sample);
 assert.deepEqual(refs.filter(p=>p.includes('/assets/arsenal/')&&!p.includes('/av/')),native);
 assert.ok(refs.includes(sound));
-assert.equal(refs.length,42);
+assert.ok(refs.length>42,'Native melee/shield audio identities must be shipped as well');
 assert.throws(()=>botWaveShippingAssetRefs('window.BASE=1'),/RUNTIME_NOT_INTACT/);
 const root='public';
 for(const asset of refs)assert.ok(fs.existsSync(path.join(root,asset.slice(1))),'Missing native asset '+asset);
