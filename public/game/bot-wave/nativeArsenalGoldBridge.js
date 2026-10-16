@@ -50,8 +50,16 @@ function mirrorGoldActor(actor,engine,{player=false}={}){
  Object.defineProperty(proxy,'hp',{configurable:true,enumerable:true,
   get:()=>Math.max(0,actor.hp),set:v=>{actor.hp=v;}});
  proxy.takeDamage=function(amount,source,reason){
-  if(player)engine.damagePlayer(amount,Math.atan2((source?.y||ORIGIN)-proxy.y,(source?.x||ORIGIN)-proxy.x));
-  else engine.damageEnemy(actor,amount,{});
+  if(player){
+   // Arsenal's aqDamage() owns the ONE physical knockback impulse from
+   // source -> victim. Gold damagePlayer adds a fixed +260 impulse of its own,
+   // which previously pulled BOXE toward the attacker and double-kicked hits.
+   // Keep all Gold damage flashes/sounds/HP, discard ONLY that duplicate push.
+   const vx=actor.vx||0,vy=actor.vy||0;
+   engine.damagePlayer(amount,Math.atan2(proxy.y-(source?.y??ORIGIN),
+     proxy.x-(source?.x??ORIGIN)));
+   if(actor.hp>0){actor.vx=vx;actor.vy=vy;}
+  }else engine.damageEnemy(actor,amount,{});
  };
  proxy.applyStatus=function(kind,time,arg){
   if(kind==='push'&&arg&&Number.isFinite(arg.strength)){
@@ -72,8 +80,9 @@ function build({engine,config,campaign,cue,rand}){
  const records=campaign.indexNative(config).records;
  const ammo=Object.freeze(Object.fromEntries(records.map(r=>{
   const s=r.spec,f=r.family;
-  return[r.id,f==='SHIELD'||f==='MELEE'||f==='GRENADE'||f==='SPECIAL'||f==='PRECISION'?1:
-   f==='SHOTGUN'?1:Math.max(1,s.shots||1)];
+  // Display the exact native magazine/shot lifecycle, including the two
+  // accepted shotgun discharges. Wave-only rearm happens AFTER native consume.
+  return[r.id,Math.max(1,s.shots||1)];
  })));
  function create(e){
   const proxy=mirrorGoldActor(e,engine);
