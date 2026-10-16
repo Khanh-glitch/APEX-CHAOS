@@ -32,6 +32,16 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
     const r=el.getBoundingClientRect(),s=getComputedStyle(el);
     return r.width>18&&r.height>18&&s.display!=='none'&&s.visibility!=='hidden';
   },{timeout:20000});
+  const homeArt=await page.evaluate(()=>{
+   const root=document.querySelector('#botWaveEntry');
+   const image=root?.querySelector('.apex-wave-entry-art img');
+   return {exists:!!image,src:image?.getAttribute('src')||'',
+    loaded:!!image?.complete&&image.naturalWidth>0,
+    actionArt:root?.querySelectorAll('img').length||0};
+  });
+  assert.ok(homeArt.loaded&&homeArt.actionArt===1&&
+    homeArt.src==='/assets/dictionary/heroes/boxe/standing.png',
+    'Home BOT WAVE entry must be illustrated by the original BOXE standing artwork '+JSON.stringify(homeArt));
   await page.screenshot({path:path.join(output,view.name+'-home-special-icon.png')});
   await page.$eval('#botWaveEntry',el=>el.click());
   await page.waitForFunction(()=>location.pathname==='/bot-wave/index.html',{timeout:30000});
@@ -101,7 +111,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      debugHidden:!document.getElementById('arena-experience-tools')||getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
    }));
    assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.modalArt&&interfaceRead.debugHidden
-       &&interfaceRead.fiveBeats===5&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===5&&interfaceRead.pressureMeter,
+       &&interfaceRead.fiveBeats===5&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===0&&interfaceRead.pressureMeter,
       'Owner Gold HUD not rebuilt '+JSON.stringify(interfaceRead));
    await gameFrame.click('#w-go');
    await page.waitForFunction(()=>{
@@ -251,7 +261,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
     fakeGoldOrbs:window.handLab.projs.filter(p=>p.waveGunId).length,
     audio:window.APEX_ARSENAL_AV.audioStatus(),
     goldVisualRedesign:!!document.getElementById('bw-interface-v2'),
-     skillArt:[...document.querySelectorAll('.bw-action-art')].filter(img=>img.complete&&img.naturalWidth>0).length,
+     actionArt:document.querySelectorAll('.bw-action-art').length,
      pressureMeter:!!document.getElementById('bw-pressure-fill'),
    }));
    assert.ok(shot.nativeExecutor&&shot.nativeProjectileDrawing&&shot.nativePistolEmissions>0&&shot.fakeGoldOrbs===0&&shot.goldVisualRedesign,
