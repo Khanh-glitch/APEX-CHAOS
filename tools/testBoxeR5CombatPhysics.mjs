@@ -141,6 +141,9 @@ function shot(t,hand='L',kind='aq_bullet',preferHand=false){
   assert.ok(st.flurry&&st.secondary?.phase==='active');
   const committed=st.flurry.count;
   assert.ok(committed>0&&committed<24);
+  // Move BOXE away BEFORE recall so real 1450u/s return travel is
+  // measurably non-zero rather than immediately entering its catch radius.
+  t.self.x=830;t.self.y=740;
   assert.equal(t.a1.recast(t.ctx),true);
   assert.equal(st.flurry,null,'manual A1 immediately ends remaining jab authority');
   assert.equal(st.rocket.phase,'returning');
