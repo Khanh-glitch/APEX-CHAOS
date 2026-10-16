@@ -14,6 +14,25 @@ iframe{width:100%;height:100%;border:0;display:block}
 <script>
 (async function boot(){
  const info=document.getElementById('info'),frame=document.getElementById('wave');
+ // Apply product-grade interface AFTER the Gold pilot creates its runtime
+ // HUD, so this visual skin is the final cascade, not a fork of Gold source.
+ frame.addEventListener('load',()=>{
+  const doc=frame.contentDocument;if(!doc)return;
+  const attach=()=>{
+   if(!doc.getElementById('wave-hud'))return false;
+   if(!doc.getElementById('apex-wave-premium-styles')){
+    const sheet=doc.createElement('link');sheet.rel='stylesheet';
+    sheet.id='apex-wave-premium-styles';
+    sheet.href='/game/bot-wave/botWaveHudGold.css';doc.head.append(sheet);
+   }
+   return true;
+  };
+  if(attach())return;
+  const observer=new MutationObserver(()=>{if(attach())observer.disconnect();});
+  observer.observe(doc,{childList:true,subtree:true});
+  setTimeout(()=>observer.disconnect(),20000);
+ });
+
  try{
   const r=await fetch('/bot-wave/game.html',{cache:'no-cache'});
   if(!r.ok)throw Error('Gold runtime not present: HTTP '+r.status);

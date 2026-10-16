@@ -1,0 +1,147 @@
+/* CP4 — BOT WAVE premium product HUD. Owner BOXE Gold VFX, sprites,
+   combat motion and audio remain unmodified. Additive CSS only. */
+#wave-hud{--wave-amber:#ffbe67;--wave-red:#f15b48;--wave-ivory:#f7ebd9;
+ --wave-steel:rgba(12,18,24,.91);font-family:system-ui,'Segoe UI',sans-serif;
+ text-shadow:0 1px 4px rgba(0,0,0,.54)}
+#wave-hud::before{content:'';position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(180deg,rgba(2,5,9,.43) 0,transparent 18%,transparent 76%,rgba(1,5,9,.36) 100%);
+ z-index:-1}
+.w-left,.w-right{border-radius:4px 16px 4px 14px!important;
+ background:linear-gradient(138deg,rgba(28,28,32,.94),rgba(8,13,18,.88))!important;
+ border:1px solid rgba(246,173,94,.42)!important;
+ box-shadow:0 2px 0 #ffdb9152 inset,0 12px 38px rgba(0,0,0,.60),0 0 28px #ec84451a!important;
+ backdrop-filter:blur(12px);position:absolute;overflow:hidden}
+.w-left::before,.w-right::before{content:'';position:absolute;left:0;top:0;width:100%;height:3px;
+ background:linear-gradient(90deg,#e24e3d,#ffbd67 55%,transparent);opacity:.95}
+.w-left{width:min(300px,35vw)!important;top:13px!important;left:14px!important;padding:12px 15px 11px!important}
+.w-head{font-size:clamp(9px,.84vw,12px)!important;font-weight:950!important;letter-spacing:.19em!important;
+ color:#ffcf86!important;margin-bottom:9px;white-space:normal!important}
+.w-head::before{content:'✦';display:inline-block;margin-right:8px;color:#ff7f52;text-shadow:0 0 15px #ec6a4b}
+.w-small{font:750 10px/1.5 ui-monospace,Consolas,monospace!important;color:#d7c7b1!important;
+ letter-spacing:.035em;opacity:1!important}
+.w-small b{font-weight:1000;color:#fff0d2;font-variant-numeric:tabular-nums}
+.w-meter{height:9px!important;margin:5px 0 10px!important;background:rgba(0,0,0,.67)!important;
+ border:1px solid #8d715743;border-radius:2px!important;position:relative}
+.w-meter i{background:linear-gradient(90deg,#ad192f 0%,#ea533e 54%,#ffbb78 100%)!important;
+ box-shadow:0 0 17px #f65a4d80;transition:width .13s linear}
+.w-meter.xp{height:5px!important;margin-bottom:0!important}
+.w-meter.xp i{background:linear-gradient(90deg,#5c83d7,#73e5e2)!important}
+.w-right{top:13px!important;right:14px!important;text-align:right;
+ padding:12px 14px 13px!important;max-width:min(375px,42vw)!important}
+.w-right b{font:950 clamp(13px,1.25vw,20px)/1.2 system-ui!important;
+ color:#ffcf83!important;letter-spacing:.11em!important;text-transform:uppercase;
+ text-shadow:0 0 13px #e66c273b}
+#w-count{display:block;margin-top:6px;opacity:.9!important}
+.w-weapon{gap:5px!important;margin-top:9px!important}
+.w-weapon span{border-radius:2px 8px 2px 7px!important;padding:4px 7px!important;
+ background:linear-gradient(130deg,rgba(86,53,36,.76),rgba(22,25,30,.95))!important;
+ border:1px solid #b47a4e85!important;color:#f4d2a5;font-size:9px!important;letter-spacing:.07em}
+#wave-status{bottom:16px!important;max-width:43vw!important;background:rgba(7,14,20,.88)!important;
+ border:1px solid #cb89546c!important;letter-spacing:.06em!important;
+ font:700 9px/1.5 ui-monospace,monospace!important;color:#cfbbab!important;
+ border-radius:2px 9px 2px 9px!important;box-shadow:0 9px 22px #0008;
+ padding:7px 12px!important;white-space:normal}
+.w-actions{right:15px!important;bottom:14px!important;gap:8px!important;z-index:2}
+.w-action{position:relative;min-width:55px!important;height:60px!important;
+ border-radius:5px 13px 5px 12px!important;color:#fff0ce!important;
+ border:1px solid #d3a16ca6!important;box-shadow:0 4px 0 #0c1118,0 12px 18px #0009,inset 0 0 0 1px #ffd39917;
+ background:linear-gradient(155deg,#3d2c2b,#171c26 68%,#0f161f)!important;
+ font:1000 22px/1 system-ui!important;
+ transition:transform .12s,border-color .12s,filter .12s}
+.w-action[data-act="J"]{border-color:#ffc17d!important;background:linear-gradient(140deg,#8b3728,#442826 62%,#171a21)!important}
+.w-action[data-act="K"]{background:linear-gradient(140deg,#4a4447,#202c35)!important}
+.w-action[data-act="L"]{background:linear-gradient(140deg,#6c4e27,#252b30)!important}
+.w-action[data-act="U"],.w-action[data-act="I"]{border-color:#b3a9c785!important}
+.w-action small{font:900 9px system-ui!important;letter-spacing:.055em;color:#f3d7b6!important;margin-top:6px}
+.w-action[disabled]{opacity:.32!important;filter:grayscale(.7);border-style:dashed!important;box-shadow:none;
+ pointer-events:none!important}
+.w-action.on{transform:translateY(3px) scale(.96)!important;filter:brightness(1.2);
+ box-shadow:0 1px 0 #070b10,0 0 22px #ff9a5d91!important}
+.w-action:not(:disabled):focus-visible{outline:3px solid #f2d796;outline-offset:3px}
+#resume-wave{top:108px!important;right:14px!important;border-radius:3px 8px!important;
+ background:linear-gradient(120deg,#232c32,#131a20)!important;
+ border:1px solid #9f856b!important;color:#e2cbaa!important;padding:6px 11px!important;
+ font:900 10px ui-monospace,monospace!important;opacity:.78}
+#resume-wave:hover{opacity:1!important}
+#wave-stick{border:2px solid #c99055b0!important;box-shadow:inset 0 0 24px #0009,0 0 24px #ed915421}
+#wave-stick i{background:linear-gradient(135deg,#8c5541b0,#2c3743ba)!important;box-shadow:0 0 14px #ffa75b35}
+#wave-modal{background:radial-gradient(ellipse at 50% 40%,rgba(27,19,21,.89),rgba(3,6,10,.96) 68%)!important;
+ backdrop-filter:blur(11px)!important}
+.w-dialog{border-radius:4px 23px 4px 22px!important;
+ background:radial-gradient(circle at 5% 0,rgba(111,54,33,.42),transparent 47%),
+ linear-gradient(140deg,#242329,#101720 64%,#2a171a)!important;
+ border:1px solid #d5a16d!important;position:relative;
+ box-shadow:0 4px 0 #f9c17d22 inset,0 25px 110px #000f,0 0 60px #e2742435!important;
+ padding:clamp(14px,2.7vw,28px)!important}
+.w-dialog::before{content:'APEX  /  SURVIVAL PROTOCOL';display:block;position:relative;
+ color:#df9d6b;font:900 10px/1 ui-monospace,monospace;letter-spacing:.24em;
+ padding:1px 0 17px;border-bottom:1px solid #ffb86a3a;margin-bottom:16px}
+.w-dialog h1{font:1000 clamp(22px,3.1vw,37px)/1.05 system-ui!important;letter-spacing:.045em!important;
+ color:#ffe3b2!important;text-transform:uppercase;text-shadow:0 0 30px #ef935b35}
+.w-dialog p{color:#c5b4a9!important;max-width:680px;line-height:1.55;font-size:12px!important}
+.w-dialog .w-cards{gap:clamp(6px,1.3vw,12px)!important;margin:19px 0 16px!important}
+.w-card{position:relative;min-height:178px!important;border-radius:4px 15px 4px 13px!important;
+ background:linear-gradient(145deg,#292d33,#1d202a 70%,#232028)!important;
+ border:1px solid #907767bb!important;padding:clamp(11px,1.55vw,19px)!important;
+ overflow:hidden;box-shadow:0 12px 22px #0007,inset 0 1px 0 #ffffff18!important}
+.w-card::before{content:'';height:3px;position:absolute;top:0;left:0;right:0;
+ background:linear-gradient(90deg,#ff8750,#ffc280,transparent);opacity:.7}
+.w-card small{font:950 10px ui-monospace,monospace!important;letter-spacing:.11em!important;color:#e4ae80!important}
+.w-card strong{font-size:clamp(12px,1.28vw,17px)!important;line-height:1.15;color:#ffecd0!important}
+.w-card em{font-size:clamp(10px,.93vw,12px)!important;color:#c7bcc0!important;font-style:normal!important}
+.w-card:hover,.w-card:focus-visible{transform:translateY(-4px)!important;
+ background:linear-gradient(145deg,#4e3431,#20242d)!important;
+ border-color:#ffc788!important;box-shadow:0 18px 28px #000a,0 0 22px #ee8e4454!important}
+.w-card:focus-visible{outline:2px solid #ffdf9d;outline-offset:2px}
+.w-go{border-radius:3px 11px 3px 10px!important;padding:13px 22px!important;
+ background:linear-gradient(98deg,#d34b3a,#ffb15c 70%,#ffe0a1)!important;
+ box-shadow:0 4px 0 #714024,0 10px 29px #f0722b33!important;
+ font:950 13px system-ui!important;letter-spacing:.05em!important}
+.w-go:focus-visible{outline:3px solid #fff3ce;outline-offset:3px}
+@media(pointer:coarse),(max-width:860px){
+ .w-left{left:7px!important;top:7px!important;width:min(230px,30vw)!important;padding:8px!important}
+ .w-right{top:7px!important;right:7px!important;max-width:34vw!important;padding:8px!important}
+ .w-head{font-size:9px!important;margin-bottom:4px}
+ .w-actions{bottom:7px!important;right:7px!important;gap:5px!important}
+ .w-action{min-width:43px!important;height:46px!important;font-size:17px!important}
+ .w-action small{font-size:7px!important;margin-top:4px}
+ #resume-wave{top:75px!important;right:7px!important;padding:4px 7px!important;font-size:9px!important}
+ #wave-status{bottom:6px!important;min-width:0;max-width:34vw!important;font-size:8px!important;padding:5px!important}
+ .w-weapon span{padding:2px 4px!important;font-size:7px!important}
+ .w-dialog{padding:12px!important}
+ .w-dialog::before{padding-bottom:7px;margin-bottom:9px;font-size:8px}
+ .w-card{min-height:100px!important;padding:8px!important}
+ .w-dialog .w-cards{margin:9px 0!important}
+ .w-card small{font-size:8px!important;margin-bottom:7px}
+ .w-card strong{font-size:11px!important;margin-bottom:6px}
+ .w-card em{font-size:9px!important}
+}
+@media(max-height:430px) and (orientation:landscape){
+ .w-left{width:min(215px,27vw)!important}
+ .w-right{max-width:min(256px,30vw)!important}
+ #wave-stick{width:84px!important;height:84px!important;left:9px!important;bottom:7px!important}
+ .w-dialog{max-height:94dvh!important}
+ .w-dialog p{margin:5px 0 7px!important;font-size:9px!important}
+ .w-dialog h1{font-size:19px!important}
+ .w-card{min-height:98px!important}
+ .w-card em{line-height:1.25}
+ .w-go{padding:8px 14px!important;font-size:11px!important}
+}
+@media(max-width:640px) and (orientation:portrait){
+ .w-left{width:49vw!important;max-width:none!important}
+ .w-right{max-width:47vw!important}
+ .w-head{font-size:8px!important;letter-spacing:.055em!important}
+ .w-right b{font-size:11px!important}
+ #wave-status{display:none!important}
+ #resume-wave{top:105px!important}
+ .w-actions{gap:4px!important}
+ .w-action{min-width:39px!important;height:43px!important}
+ .w-dialog .w-cards{grid-template-columns:1fr!important;gap:7px!important}
+ .w-card{min-height:70px!important}
+ .w-card strong{margin-bottom:5px!important}
+ .w-card small{margin-bottom:5px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .w-action,.w-card{transition:none!important}
+ .w-card:hover{transform:none!important}
+}
