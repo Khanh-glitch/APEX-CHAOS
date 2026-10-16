@@ -13,7 +13,9 @@ vm.runInNewContext(read('public/game/hero-rework/boxeBattleRuntime.js'),scope);
 const reg=scope.APEX_HERO_REWORK_REGISTRY,boxe=scope.APEX_BOXE_BATTLE;
 assert.ok(reg?.validateRegistry().ok,JSON.stringify(reg?.validateRegistry().errors));
 assert.deepEqual(Array.from(Object.keys(reg.HEROES).slice(0,12)),['ROBOT','CRYSTAL','MAGNET','BLACK_HOLE','MATH_V2','ICE','RUBBER','HUNTER','TIME','MIRROR','SLIME','SNIPER']);
-assert.equal(Object.keys(reg.HEROES).at(-1),'BOXE');
+assert.ok(Object.keys(reg.HEROES).indexOf('BOXE')>=12,'BOXE must remain append-only after the canonical 12');
+assert.ok(Object.keys(reg.HEROES).indexOf('SHURI')>Object.keys(reg.HEROES).indexOf('BOXE'),
+  'a future fighter may append after BOXE without rewriting its admission law');
 assert.deepEqual(Array.from(PRODUCT_ROSTER.playableIds).slice(-1),['BOXE']);
 assert.ok(PRODUCT_ROSTER.visibleIds.includes('BOXE'));
 assert.equal(reg.resolveSkillLevel('BOXE','A1',1).cooldown,15);
