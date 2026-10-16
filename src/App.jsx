@@ -989,6 +989,8 @@ export default function App() {
       try{
         const ok=await window.apexLaunchProductSurface?.('bot-wave');
         if(!ok)throw Error('BOT WAVE surface unavailable');
+        // Home stays mounted behind Wave; do not leave its entry disabled.
+        entry.disabled=false;
       }catch(e){console.warn('[bot-wave] launch',e);entry.disabled=false;}
     };
     entry.addEventListener('click',onClick);
