@@ -25,8 +25,27 @@ assert.ok(!arsenalBattleRuntimesFor(['ROBOT','BOXE']).some(x=>x[0].includes('shu
  'SHURI Gold must remain lazy when not picked');
 assert.match(bridge,/SHURI: 'shuri'/);
 assert.match(bridge,/shuri: 'SHURI'/);
-assert.ok(!PRODUCT_ROSTER.playableIds.includes('SHURI'),
- 'No public SHURI until the approved Pick/Archive/HUD art and Chrome Gold gate pass');
+assert.ok(PRODUCT_ROSTER.playableIds.includes('SHURI'),
+ 'SHURI must be admitted through canonical playable roster — no battle-only fighter');
+assert.ok(PRODUCT_ROSTER.visibleIds.includes('SHURI'));
+for(const file of ['core.webp','collector.webp','bomb.webp','foundation.webp',
+                   'grip.webp','tool.webp','rackhead.webp','medhead.webp']){
+ assert.ok(fs.statSync('public/assets/gold-ui/heroes/shuri/source/'+file).size>1000,
+   'approved owner Gold source asset missing: '+file);
+}
+for(const role of ['portrait','art','battleAvatar','skillIcons']){
+ assert.ok(bridge.includes(role),'Gold Product Bridge missing UI art role '+role);
+}
+assert.match(bridge,/shuri\/source\/core\.webp/);
+assert.match(bridge,/shuri\/source\/collector\.webp/);
+assert.match(bridge,/shuri\/source\/bomb\.webp/);
+assert.match(bridge,/shuri\/source\/foundation\.webp/);
+const registry=read('public/game/hero-rework/heroRegistry.js');
+assert.match(registry,/HEROES\.SHURI/);
+assert.match(registry,/PASSIVE:\s*'\/assets\/gold-ui\/heroes\/shuri\/source\/collector\.webp'/);
+assert.match(registry,/A1:\s*'\/assets\/gold-ui\/heroes\/shuri\/source\/bomb\.webp'/);
+assert.match(registry,/A2:\s*'\/assets\/gold-ui\/heroes\/shuri\/source\/foundation\.webp'/);
+
 assert.ok(gold.length>1000000 && gold.includes('data:audio/ogg;base64,')
   && gold.includes('data:image/webp;base64,'));
 assert.doesNotMatch(gold,/new Function\(|\beval\(/,'Native Gold must not evaluate source strings');
@@ -64,4 +83,4 @@ assert.equal(w.anchor.pos.x,x);
 assert.equal(w.anchor.pos.y,y+50,'Gold bom position must remain ORIGINAL, not relocated by SFX');
 assert.ok(w.sfx.some(e=>e.name==='place')&&w.sfx.some(e=>e.name==='arm'));
 assert.ok(w.sfx.some(e=>e.name==='recoil'));
-console.log('PASS SHURI GOLD V8 authentic module + SFX event time / native selected runtime / public artwork fail-closed');
+console.log('PASS SHURI GOLD V8 authentic module + SFX event time / native selected runtime / Pick/Archive/HUD owner art registered');
