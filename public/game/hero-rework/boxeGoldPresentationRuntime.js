@@ -12,6 +12,9 @@
   const live=new Map();
   const finite=(n)=>Number.isFinite(n);
   const now=()=>AIL.clock();
+  // Gold's smoke/fire grid is centered; native match coordinates are not.
+  const worldOffset=()=>((Number.isFinite(global.GAME_SIZE)?global.GAME_SIZE:1000)/2);
+  const toGold=v=>v-worldOffset();
   function isBoxe(f){return f?.type?.__hrHero==='BOXE'||f?.__hrCombatant?.heroId==='BOXE';}
   function make(f){
     const offscreen=document.createElement('canvas');
@@ -35,7 +38,7 @@
     return f?live.get(f)||make(f):null;
   }
   function syncGoldPlayer(g,body,aim){
-    g.player.x=body.x;g.player.y=body.y;
+    g.player.x=toGold(body.x);g.player.y=toGold(body.y);
     g.player.aim=Number.isFinite(aim)?aim:Math.atan2(body.dir?.y||0,body.dir?.x||1);
     g.player.faceX=Math.cos(g.player.aim)<0?-1:1;
   }
@@ -45,10 +48,10 @@
   // Combatant. Local dummy damage creates Gold VFX, NEVER real HP mutation.
   function syncVisualTarget(g,body,originX,originY,limit=Infinity){
     const foe=(global.fighters||[]).find(x=>x&&x!==body&&x.hp>0);
-    if(!foe||Math.hypot(foe.x-originX,foe.y-originY)>limit){g.enemies=[];return;}
+    if(!foe||Math.hypot(toGold(foe.x)-originX,toGold(foe.y)-originY)>limit){g.enemies=[];return;}
     const p=g.enemies[0]||{id:'__VISUAL_ONLY__',r:75,z:0,hp:1e9,maxHp:1e9,
       vx:0,vy:0,wob:0,dead:false,kind:'dummy',slowT:0,stunT:0};
-    p.x=foe.x;p.y=foe.y;p.r=foe.radius||75;p.dead=false;
+    p.x=toGold(foe.x);p.y=toGold(foe.y);p.r=foe.radius||75;p.dead=false;
     p.hp=1e9;p.maxHp=1e9;
     g.enemies=[p];
   }
@@ -126,7 +129,7 @@
       g.skillCounter(); // EXACT Gold key 9 startup, including material+screen fx
       g.player.guardT=body.duration||1;
     }else if(ev.type==='boxe:counter-intercept'){
-      g.fx.flash(rec.f.x,rec.f.y-20,155,'#ffe9a8',.25);
+      g.fx.flash(toGold(rec.f.x),toGold(rec.f.y)-20,155,'#ffe9a8',.25);
     }else if(ev.type==='boxe:rocket-launch'){
       rec.rocket={lastX:body.x,lastY:body.y,lastAt:ev.t,dist:0,lastVisual:ev.t};
       syncGoldPlayer(g,rec.f,body.heading);
@@ -137,7 +140,7 @@
     }else if(ev.type==='boxe:rocket-impact'){
       if(!r)return;
       const v=rec.rocket||{};
-      const pr={x:body.x,y:body.y,angle:body.heading,
+      const pr={x:toGold(body.x),y:toGold(body.y),angle:body.heading,
         vx:(body.speed||1250)*Math.cos(body.heading),
         vy:(body.speed||1250)*Math.sin(body.heading),phase:'out',traveled:v.dist||0};
       g.material.eruption(pr.x,pr.y+22,.52,true);
@@ -146,8 +149,8 @@
       g.rocketDetailContact(pr,{x:body.x,y:body.y,r:75});
     }else if(ev.type==='boxe:rocket-wall-reflect'){
       // Reuse Gold's earth/dust and lightning primitives for arena contact.
-      g.material.fracture(body.x,body.y+20,36,2,.55);
-      g.fx.flash(body.x,body.y-10,40,'#ffd23c',.10);
+      g.material.fracture(toGold(body.x),toGold(body.y)+20,36,2,.55);
+      g.fx.flash(toGold(body.x),toGold(body.y)-10,40,'#ffd23c',.10);
     }else if(ev.type==='boxe:flurry-start'){
       // Two fists stay at the physical impact site. Native BOXE is NEVER
       // teleported or slowed; a second *visual-only* Gold instance draws only
@@ -156,17 +159,17 @@
       const fg=new lib.Engine(canvas,{visualOnly:true,materialFx:true,sound:false,
         hitstop:true,afterimage:true,shake:1});
       fg.enemies=[];fg.projs=[];fg.ribbons=[];fg.paused=true;
-      fg.player.x=body.x;fg.player.y=body.y;fg.player.aim=g.player.aim;
+      fg.player.x=toGold(body.x);fg.player.y=toGold(body.y);fg.player.aim=g.player.aim;
       fg.player.empoweredT=body.duration;
-      rec.flurry={g:fg,x:body.x,y:body.y,start:now(),until:now()+body.duration,
-        fromX:body.sourceX,fromY:body.sourceY,last:now(),cycle:0};
+      rec.flurry={g:fg,x:toGold(body.x),y:toGold(body.y),start:now(),until:now()+body.duration,
+        fromX:toGold(body.sourceX),fromY:toGold(body.sourceY),last:now(),cycle:0};
     }else if(ev.type==='boxe:rocket-shot'){
       // Native physical bullet/gauntlet contact. Gold V3 sound bank stays
       // untouched; original contact light, grit and sparks only.
-      g.fx.flash(body.x,body.y-14,50,'#ffe9a8',.13);
-      g.fx.shock(body.x,body.y,65,'#ffd23c',4,.18);
-      g.burst(body.x,body.y,7,['#ffffff','#ffe97a'],'spark',260,3,.24);
-      g.material.fracture(body.x,body.y+18,25,1,.25);
+      g.fx.flash(toGold(body.x),toGold(body.y)-14,50,'#ffe9a8',.13);
+      g.fx.shock(toGold(body.x),toGold(body.y),65,'#ffd23c',4,.18);
+      g.burst(toGold(body.x),toGold(body.y),7,['#ffffff','#ffe97a'],'spark',260,3,.24);
+      g.material.fracture(toGold(body.x),toGold(body.y)+18,25,1,.25);
     }else if(ev.type==='boxe:rocket-return'){
       g.rocketCatchApproach=.16;
     }else if(ev.type==='boxe:rocket-catch'){
@@ -179,8 +182,8 @@
       const grip=g.glovePose('R');
       g.hands.R.missing=false;
       g.startRocketCatch({vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,angle},
-        grip,prev.lastX,prev.lastY);
-      g.ring(rec.f.x,rec.f.y,'#38e1ff',260,4,.3);
+        grip,toGold(prev.lastX),toGold(prev.lastY));
+      g.ring(toGold(rec.f.x),toGold(rec.f.y),'#38e1ff',260,4,.3);
       rec.rocket=null;
     }else if(ev.type==='boxe:flurry-end'){
       if(rec.flurry){
@@ -194,11 +197,11 @@
       const target=(global.fighters||[]).find(f=>f?.id===body.targetId)||{
         x:rec.f.x+90,y:rec.f.y,radius:75};
       syncGoldPlayer(g,rec.f,Math.atan2(target.y-rec.f.y,target.x-rec.f.x));
-      syncVisualTarget(g,rec.f,rec.f.x,rec.f.y);
+      syncVisualTarget(g,rec.f,g.player.x,g.player.y);
       // Source key 9 FULL counterStrike: impactPackage, ghost fist, wave,
       // lightning, material, afterimage and cinematic feedback. Enemy HP
       // remains exclusively owned by the native APEX Arsenal adapter.
-      g.counterStrike({x:target.x,y:target.y,r:target.radius||75,z:0,dead:false});
+      g.counterStrike({x:toGold(target.x),y:toGold(target.y),r:target.radius||75,z:0,dead:false});
       rec.counterFlashUntil=now()+.26;
       if(body.finisher){
         // Entire original key-3 choreography, including deferred five fire
@@ -228,14 +231,14 @@
       v.dist+=distance;v.lastX=r.x;v.lastY=r.y;
       const vx=Number.isFinite(r.vx)?r.vx:Math.cos(r.heading)*1250;
       const vy=Number.isFinite(r.vy)?r.vy:Math.sin(r.heading)*1250;
-      const pr={kind:'rocket',phase:r.phase==='returning'?'return':'out',x:r.x,y:r.y,
+      const pr={kind:'rocket',phase:r.phase==='returning'?'return':'out',x:toGold(r.x),y:toGold(r.y),
         vx,vy,angle:r.heading,traveled:v.dist};
       if(r.phase==='outbound')goldRocketExhaust(g,pr);
       else if(r.phase==='returning')g.rocketDetailReturn(pr);
       g.projs=(r.phase==='flurry'||r.phase==='caught')?[]:[pr];
       if(st.secondary?.phase==='returning'){
         const h=st.secondary,angle=Math.atan2(h.y-h.prevY,h.x-h.prevX);
-        const item={kind:'rocket',phase:'return',x:h.x,y:h.y,
+        const item={kind:'rocket',phase:'return',x:toGold(h.x),y:toGold(h.y),
           vx:h.x-h.prevX,vy:h.y-h.prevY,angle,traveled:0};
         g.rocketDetailReturn(item);g.projs.push(item);
       }
@@ -290,12 +293,13 @@
       try{
         advance(rec,this);
         const g=rec.g;
+        ctx.translate(worldOffset(),worldOffset());
         drawLayers(ctx,g);
         if(rec.counterFlashUntil>now()){
           // Original Gold screen FX are spatially clipped to the counter
           // contact; other fighters and the Arsenal HUD never get flash.
-          ctx.save();ctx.beginPath();ctx.arc(this.x,this.y,230,0,Math.PI*2);ctx.clip();
-          g.fx.drawScreen(ctx,global.GAME_SIZE||1000,global.GAME_SIZE||1000,this.x,this.y);
+          ctx.save();ctx.beginPath();ctx.arc(toGold(this.x),toGold(this.y),230,0,Math.PI*2);ctx.clip();
+          g.fx.drawScreen(ctx,global.GAME_SIZE||1000,global.GAME_SIZE||1000,toGold(this.x),toGold(this.y));
           ctx.restore();
         }
         if(rec.flurry){
