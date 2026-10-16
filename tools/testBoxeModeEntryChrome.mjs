@@ -48,7 +48,23 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
     'Home BOT WAVE entry must be illustrated by the original BOXE standing artwork '+JSON.stringify(homeArt));
   await page.screenshot({path:path.join(output,view.name+'-home-special-icon.png')});
   await page.$eval('#botWaveEntry',el=>el.click());
-  await page.waitForFunction(()=>location.pathname==='/bot-wave/index.html',{timeout:30000});
+  await page.waitForFunction(()=>location.pathname==='/bot-wave/index.html',{timeout:45000})
+    .catch(async error=>{
+      const diag=await page.evaluate(()=>{
+        const f=document.querySelector('#wave'),w=f?.contentWindow,d=f?.contentDocument;
+        return {pathname:location.pathname,host:!!document.querySelector('#apex-wave-host'),
+          stageOpacity:document.querySelector('#apex-wave-host')?.style.opacity,
+          homeReady:!!document.getElementById('botWaveEntry'),
+          transition:window.APEX_SCENE_TRANSITION?.state?.(),
+          frameUrl:f?.getAttribute('src')||null,
+          frameReady:d?.readyState||null,
+          gold:!!w?.handLab,pilot:!!w?.BOXE_WAVE_PILOT,
+          hud:!!d?.getElementById('wave-hud'),
+          v2:!!w?.APEX_BOT_WAVE_INTERFACE_V2,
+          stylesheet:!!d?.getElementById('bw-v2-styles')?.sheet};
+      });
+      throw new Error('GOLD_DOOR_WAVE_ENTRY_STALLED '+JSON.stringify({diag,errors,consoleIssues})+' '+error);
+    });
   await page.waitForSelector('#wave',{timeout:10000});
   const status=await page.evaluate(()=>({
    pathname:location.pathname,
