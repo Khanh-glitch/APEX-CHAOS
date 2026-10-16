@@ -473,6 +473,7 @@
       },
 
       /* world entities ------------------------------------------------ */
+      nearestFreeWorldCircle: (x,y,r) => nearestFreeWorldCircle(x,y,r),
       spawnWall(o) {
         // Unified world-solid record: the existing capsule is the default.
         // A zero-length capsule is a physically accurate circle with the
@@ -2232,6 +2233,39 @@
     for (const c of solidCapsules()) if (pointToSegmentDist(x, y, c.ax, c.ay, c.bx, c.by) < r + c.r) return true;
     return false;
   }
+  // Deterministic shared world placement query. Uses the SAME collision
+  // capsules and living arena bodies as ordinary movement, never a special
+  // SHURI placement map. No displacement if the anchor is already legal.
+  function nearestFreeWorldCircle(x, y, radius) {
+    if(!M||!Number.isFinite(x)||!Number.isFinite(y))return null;
+    const S=globalScope.GAME_SIZE||1000;
+    const r=Math.max(1,Number(radius)||75);
+    const capsules=solidCapsules();
+    const bodies=M.api.allBodies();
+    const free=(px,py)=>{
+      if(px<r||py<r||px>S-r||py>S-r)return false;
+      for(const c of capsules){
+        if(pointToSegmentDist(px,py,c.ax,c.ay,c.bx,c.by)<r+c.r)return false;
+      }
+      for(const b of bodies){
+        if(b&&b.hp>0&&Math.hypot(px-b.x,py-b.y)<r+(b.radius||75))return false;
+      }
+      return true;
+    };
+    if(free(x,y))return {x,y,adjusted:false};
+    // Minimal-distance outward scan, deterministic ring/angle tie order.
+    // A capped search fails cleanly instead of embedding a solid into a wall.
+    const step=Math.max(12,r/4);
+    for(let d=step;d<=Math.min(S,5*r);d+=step){
+      const samples=Math.max(16,Math.ceil(Math.PI*2*d/(step*.75)));
+      for(let i=0;i<samples;i++){
+        const a=i*Math.PI*2/samples;
+        const px=x+Math.cos(a)*d,py=y+Math.sin(a)*d;
+        if(free(px,py))return {x:px,y:py,adjusted:true};
+      }
+    }
+    return null;
+  }
   // Runs after the engine's body separation each step: sweeps every living body
   // from where it was to where it is against all solid capsules and stands it on
   // the surface it would have crossed (bounce heading like an arena wall).
@@ -2280,7 +2314,7 @@
     // The one authoritative ordered movement path (see pathSegments above).
     pathSegments, pathPointAt, pathVelocityAt, pathToPointDist, globalT, clearPath,
     bodyPathSegments, samplePath,
-    pendingMagnetToi, supersedeMagnetBoundary };
+    pendingMagnetToi, supersedeMagnetBoundary, nearestFreeWorldCircle };
 
 
   function releaseFromSingularity(s, d) {
