@@ -18,7 +18,7 @@ function nativeConfig(){
 }
 export function nativeWaveWeaponAssetRefs(){
  const config=nativeConfig();
- return config.P0_WEAPON_IDS.map(id=>{
+ return [...config.P0_WEAPON_IDS].map(id=>{
   if(!/^[A-Z0-9_]+$/.test(id))throw Error('INVALID_APEX_GUN_ID_'+id);
   if(!config.WEAPONS[id])throw Error('MISSING_NATIVE_WEAPON_'+id);
   return config.V43_WEAPONS?.[id]?.art||
