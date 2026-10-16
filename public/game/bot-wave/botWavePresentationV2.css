@@ -131,7 +131,10 @@
 #wave-hud #wave-status{display:none!important}
 #arena-experience-hud #arena-round-track,#arena-experience-hud #arena-experience-tools{display:none!important}
 #arena-experience-hud #r2-boss-panel{top:clamp(100px,14vh,156px)!important}
-#arena-experience-hud #arena-announce{top:25%!important;z-index:7}
+/* R11 audit: Gold's own WAVE title + new top-center badge already announce the
+   phase. The retired R2 DOM 'ROUND 01 / THE LAST ROUND' duplicates both and
+   covers BOXE while it fights. Keep native Gold canvas VFX and its timeline. */
+#arena-experience-hud #arena-announce{display:none!important}
 /* A single wave chapter screen: one illustrated left plate, three selectable cards. */
 #wave-modal{background:radial-gradient(ellipse at 50% 40%,#342026ce,#020710f5 75%)!important;
  backdrop-filter:blur(9px)!important}

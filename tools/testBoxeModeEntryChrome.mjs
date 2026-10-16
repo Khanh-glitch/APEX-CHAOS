@@ -348,6 +348,23 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
       (mime.includes('audio/')||mime.includes('mpeg')||mime.includes('ogg'))};
    })),refs);
    assert.ok(checks.every(x=>x.ok&&x.correctMime),'Arsenal gun/sound delivery error '+JSON.stringify(checks.filter(x=>!x.ok||!x.correctMime)));
+   // Do not certify a screenshot captured during the Mechanical Door or
+   // deprecated giant center announcement. Inspect live gameplay AFTER both
+   // presentation sequences settle, not a loading/transition frame.
+   await page.waitForFunction(()=>!window.APEX_SCENE_TRANSITION?.active?.(),{timeout:35000});
+   await new Promise(resolve=>setTimeout(resolve,2400));
+   const lateVisual=await gameFrame.evaluate(()=>{
+     const old=document.getElementById('arena-announce');
+     const hero=document.querySelector('.bw-hero'),dock=document.querySelector('.bw-skill-deck');
+     return {oldAnnouncementHidden:!old||getComputedStyle(old).display==='none',
+       heroVisible:!!hero&&hero.getBoundingClientRect().width>0,
+       controlsVisible:!!dock&&dock.getBoundingClientRect().width>0,
+       gamePaused:window.handLab?.paused??null,
+       wavePhase:window.BOXE_WAVE_PILOT?.state?.phase??null};
+   });
+   assert.ok(lateVisual.oldAnnouncementHidden&&lateVisual.heroVisible&&lateVisual.controlsVisible,
+     'R11 screenshot still has redundant large center announcement '+JSON.stringify(lateVisual));
+   console.log('BOT WAVE R11 settled cinematic DOM audit PASS',view.name,lateVisual);
    await page.screenshot({path:path.join(output,view.name+'-wave-playable.png')});
    // Integration proof, not a roster-only unit assertion: the live Gold
    // engine must accept wave 11 AND wave 32 without a "chapter complete".
