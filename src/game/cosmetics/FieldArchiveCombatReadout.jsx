@@ -21,6 +21,23 @@ function Profile({profile}){return <div className="fa4-profile">
  <Radar profile={profile}/>
  <div className="fa4-axes">{profile.axes.map(a=><div className="fa4-axis" key={a.key} title={a.evidence.join(' · ')||'No mechanic evidence'}><span>{a.label}</span><div className="fa4-track"><i style={{width:(a.value||0)+'%'}}/></div><b>{a.value==null?'—':a.value}</b></div>)}</div>
  </div>}
+const GOLD_SKILL_ART=Object.freeze({
+ ROBOT:'newbot', HUNTER:'hunter', CRYSTAL:'crystala', MAGNET:'magnet',
+ ICE:'frost', MIRROR:'mirror'
+});
+function skillArtwork(item,slot){
+ const declared=item?.registry?.archiveProfile?.skillArt?.[slot];
+ if(typeof declared==='string'&&/^\\/assets\\/[a-zA-Z0-9_./-]+\\.(png|webp|jpg)$/.test(declared)&&!declared.includes('..'))
+   return declared;
+ const slug=GOLD_SKILL_ART[item?.id];
+ return slug?'/assets/gold-ui/heroes/'+slug+'/skill_'+slot.toLowerCase()+'.webp':null;
+}
+function SkillThumbnail({src,slot}){
+ const [failed,setFailed]=useState(false);
+ useEffect(()=>setFailed(false),[src]);
+ return !src||failed?<span className="fa4-skill-fallback" aria-hidden="true">{slot==='PASSIVE'?'P':slot}</span>
+   :<img src={src} alt="" loading="lazy" onError={()=>setFailed(true)}/>;
+}
 export function AbilityWeb({item,legacySkills=[],compact=false}){
  const [selected,setSelected]=useState('A1');
  useEffect(()=>setSelected('A1'),[item?.id]);
@@ -30,9 +47,18 @@ export function AbilityWeb({item,legacySkills=[],compact=false}){
  const explanation=item?.registry?.skills?.[current?.slot]?.archiveProfile?.description||legacy?.[2]||'';
  return <section className={'fa4-readout'+(compact?' fa4-compact':'')}>
   <div className="fa3-readout-top"><b>FIGHTER / COMBAT PROFILE</b><span>CANONICAL LV1 · ROLE PROFILE</span></div>
+  <div className="fa4-skill-portraits" role="group" aria-label="Three registered fighter abilities">
+   {skills.map(skill=><button type="button" key={skill.slot}
+      className="fa4-skill-portrait" aria-label={skill.slot+' · '+skill.name}
+      onClick={()=>setSelected(skill.slot)} aria-pressed={selected===skill.slot}
+      title={skill.name}>
+     <SkillThumbnail src={skillArtwork(item,skill.slot)} slot={skill.slot}/>
+     <span>{skill.slot}</span>
+    </button>)}
+  </div>
   <Profile profile={heroProfile(item?.registry)}/>
-  {!compact&&<div className="fa4-skills"><div className="fa4-skill-select">{skills.map(s=><button key={s.slot} onClick={()=>setSelected(s.slot)} aria-pressed={selected===s.slot}>{s.slot}</button>)}</div>
-   {current?<div className="fa4-skill-info"><b>{legacy?.[1]||current.mechanicId.replaceAll(/[._]/g,' ').toUpperCase()}</b>{explanation&&<p>{explanation}</p>}<small>{current.cooldown!=null?'COOLDOWN '+current.cooldown+'s · ':''}{current.metrics.map(x=>x.label+' '+x.value).join(' · ')||'CANONICAL MECHANIC'}</small></div>:<span>NO REGISTERED SKILL</span>}
+  {!compact&&<div className="fa4-skills">
+   {current?<div className="fa4-skill-info"><b>{current.name||legacy?.[1]||current.mechanicId.replaceAll(/[._]/g,' ').toUpperCase()}</b>{explanation&&<p>{explanation}</p>}<small>{current.cooldown!=null?'COOLDOWN '+current.cooldown+'s · ':''}{current.metrics.map(x=>x.label+' '+x.value).join(' · ')||'CANONICAL MECHANIC'}</small></div>:<span>NO REGISTERED SKILL</span>}
   </div>}
  </section>
 }
