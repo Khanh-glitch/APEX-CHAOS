@@ -303,7 +303,7 @@
  box-shadow:0 0 0 5px #0b111bd0,inset 0 0 23px #080a10,0 0 29px #ba5e3c65!important}
 #wave-hud #wave-stick i{border-radius:50%!important;width:41px!important;height:41px!important;
  left:calc(50% - 20.5px)!important;top:calc(50% - 20.5px)!important;
- background:#392928 url('/assets/dictionary/heroes/boxe/avatar.png') center / contain no-repeat!important;
+ background:radial-gradient(circle at 32% 26%,#81503d,#28212a 68%,#121720)!important;
  border:1px solid #ffc887!important;box-shadow:0 0 15px #d7773e85!important;
  transform:translate(var(--dx,0px),var(--dy,0px))}
 #wave-hud .bw-skill-deck{margin-inline:auto 0;padding:10px 11px 12px;
@@ -317,19 +317,15 @@
 #wave-hud .w-action{position:relative!important;overflow:hidden!important;
  isolation:isolate;width:clamp(60px,5.4vw,80px)!important;height:82px!important;
  border-radius:4px 14px 4px 11px!important;
- font-size:0!important;box-shadow:inset 0 1px #ffe3aa58,0 7px 17px #000b!important;
+ font-size:17px!important;box-shadow:inset 0 1px #ffe3aa58,0 7px 17px #000b!important;
  background:linear-gradient(145deg,#5a3527,#151c28 72%)!important}
 #wave-hud .w-action:before{content:"";position:absolute;z-index:1;inset:0;
  background:linear-gradient(180deg,#0304080e,transparent 33%,#060910ee 89%);
  pointer-events:none}
 #wave-hud .w-action::after{content:attr(data-key);position:absolute;z-index:3;top:4px;left:6px;
  color:#ffe2a8;font:950 12px/1 Impact,system-ui;text-shadow:0 2px 5px #000}
-#wave-hud .bw-action-art{position:absolute;inset:0;width:100%;height:100%;z-index:0;
- object-fit:contain;object-position:center 24%;padding:3px 4px 13px;box-sizing:border-box;
- filter:drop-shadow(0 4px 6px #0009);pointer-events:none}
 #wave-hud .w-action[data-act="J"]{width:clamp(78px,6.3vw,94px)!important;height:91px!important;
  border-color:#ffca89!important;background:linear-gradient(145deg,#9b492a,#252026)!important}
-#wave-hud .w-action[data-act="J"] .bw-action-art{object-position:center 38%;padding:1px 3px 14px}
 #wave-hud .w-action small{position:absolute;z-index:3;inset:auto 2px 4px;
  font-size:9px!important;text-align:center;
  text-shadow:0 2px 5px #000e;line-height:1.1!important}
