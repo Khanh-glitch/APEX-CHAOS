@@ -2455,6 +2455,24 @@ function main() {
   if(rawArchiveShell.split(dictionaryBefore).length!==2)throw new Error('C03 Dictionary route source anchor drift');
   outputs.set('shell.html',Buffer.from(rawArchiveShell.replace(dictionaryBefore,dictionaryAfter),'utf8'));
   log('shell.html built (canonical shell + production patches + active C03 Dictionary route)');
+  // R7: The live Wave iframe needs to pause the ALREADY APPROVED Gold Home
+  // presentation loop while keeping Home resident across Door V4 transitions.
+  // This is an explicit generated patch, never a manual output-only change.
+  const waveParentSeam="  function decodeBattleHud(){\\n    const raw=(battleHudPayload?.textContent||'').trim();";
+  const waveParentPatch=`  // Wave's live-Home overlay uses the SAME suspension authority as battle.
+  // Do not keep a second active Home particle/parallax loop underneath Gold.
+  // Suspending presentation preserves resident sprites, music position and
+  // the exact Home DOM without reducing Wave renderer quality.
+  window.APEX_GOLD_PARENT_RUNTIME=Object.freeze({
+    pause:freezeParentRuntime,resume:resumeParentRuntime,
+    paused:()=>!!window.__APEX_PARENT_RUNTIME_PAUSED
+  });
+  function decodeBattleHud(){
+    const raw=(battleHudPayload?.textContent||'').trim();`;
+  const waveSourceShell=outputs.get('shell.html').toString('utf8');
+  if(waveSourceShell.split(waveParentSeam).length!==2)throw new Error('R7 Home freeze/resume source anchor drift');
+  outputs.set('shell.html',Buffer.from(waveSourceShell.replace(waveParentSeam,waveParentPatch),'utf8'));
+  log('R7 Home/Wave freeze-resume seam built from canonical Gold shell');
 
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
