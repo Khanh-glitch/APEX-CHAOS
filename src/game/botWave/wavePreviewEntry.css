@@ -16,3 +16,15 @@
 @media (prefers-reduced-motion:reduce){
  #stage .routes #botWaveEntry{transition:none}
  #stage .routes #botWaveEntry:hover{transform:none}}
+
+/* Home Gold authored 6 route columns. The seventh special icon MUST join the
+   same HUD rail, not silently wrap outside its hitbox/viewport. */
+#stage .routes:has(>#botWaveEntry){grid-template-columns:repeat(7,minmax(0,1fr))}
+@media(orientation:portrait){
+ #stage .routes:has(>#botWaveEntry){grid-template-columns:repeat(4,minmax(0,1fr))}
+ #stage .routes #botWaveEntry{min-width:0;font-size:clamp(6px,1.65vw,8px)!important}
+}
+@media(orientation:landscape) and (max-width:950px){
+ #stage .routes:has(>#botWaveEntry) .route{gap:3px;font-size:clamp(6px,.85vw,9px)}
+ #stage .routes:has(>#botWaveEntry) .route svg{width:17px;height:17px}
+}
