@@ -513,6 +513,37 @@
   // B5 evidence counter (gates assert the treatment actually draws).
   const redTierStats = { draws: 0 };
 
+  // A physical non-Fighter collector may compete for a public floor pickup,
+  // but ONLY this canonical resolver can remove the slot. Evaluators are
+  // read-only until their commit callback wins the nearest-contact arbitration.
+  const externalPickupConsumers = new Map();
+  function registerExternalPickupConsumer(id, evaluate) {
+    const key=String(id||'');
+    if(!key || typeof evaluate!=='function')throw Error('invalid pickup consumer');
+    if(externalPickupConsumers.has(key))throw Error('duplicate pickup consumer '+key);
+    externalPickupConsumers.set(key,evaluate);
+    return ()=>{if(externalPickupConsumers.get(key)===evaluate)externalPickupConsumers.delete(key);};
+  }
+  function bestExternalPickup(slot) {
+    if(slot?.phase!=='REVEALED'||slot.kind!=='WEAPON'||slot.questPickupOwner)return null;
+    const CFG=window.APEX_ARSENAL_CONFIG;
+    if(!CFG?.isHeroManipulableFloorWeapon?.(slot))return null;
+    let best=null;
+    for(const [key,evaluate] of externalPickupConsumers){
+      let proposed;
+      try{proposed=evaluate(slot);}catch(e){console.warn('[ARSENAL] external pickup evaluation',key,e);continue;}
+      if(!proposed||typeof proposed.commit!=='function')continue;
+      const d=proposed.distance;
+      if(!Number.isFinite(d)||d<0)continue;
+      const receiver=proposed.owner;
+      if(!receiver||receiver.hp<=0)continue;
+      if(slot.__frostFrozen && window.APEX_FROST?.deniesPickup?.(slot,receiver))continue;
+      const now=window.APEX_HERO_REWORK_AIL?.clock?.()??AQ.state?.time??0;
+      if(slot.boxeDisarmedVictimId===receiver.id&&now<slot.boxePickupLockUntil)continue;
+      if(!best||d<best.distance)best={...proposed,distance:d,key};
+    }
+    return best;
+  }
   function resolvePickups() {
     const state = AQ.state;
     if (!state) return;
@@ -613,6 +644,21 @@
         if (d < closestDist) { closest = f; closestDist = d; }
       }
 
+      const external=bestExternalPickup(slot);
+      if(external && (!closest||external.distance<closestDist)){
+        // One authoritative transaction; no slot removal occurs on a failed
+        // commit and no second fighter/equipment collector may receive it.
+        let accepted=false;
+        try{accepted=external.commit(slot)===true;}
+        catch(error){console.warn('[ARSENAL] pickup commit failed',external.key,error);}
+        if(accepted){
+          slot.phase='PICKED_UP';
+          slot.pickedBy=external.key;
+          log('PICKUP',`id=${slot.id} source=${external.key} weapon=${slot.weaponId}`);
+          slot.phase='REMOVED';
+          continue;
+        }
+      }
       if (!closest) continue;
       slot.phase = 'PICKED_UP';
       slot.pickedBy = closest.name;
@@ -916,6 +962,8 @@
     selectHealId,
     updateSlots,
     resolvePickups,
+    registerExternalPickupConsumer,
+    externalPickupConsumerIds:()=>Object.freeze([...externalPickupConsumers.keys()]),
     drawSlots,
     predictContactETA,
     isEligibleForPickup,
