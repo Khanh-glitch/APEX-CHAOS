@@ -33,3 +33,5 @@ assert.ok(game.includes("engine.combatCue('WAVE_START',.8)"),'Owner fight SFX no
 
 for(const forbidden of ["name==='j_coil_b'","name==='j_arc_b'","name==='round_bell'","name.startsWith('blink_')"])
  assert.ok(game.includes(forbidden),'Original approved V3 sound rollback missing: '+forbidden);
+
+assert.ok(game.includes('document.body.append(stageHud);'),'Owner arena round effects HUD must actually mount');
