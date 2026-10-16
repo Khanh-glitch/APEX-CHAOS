@@ -112,6 +112,16 @@
         heroUiAsset('frost/skill_a2.webp'),
       ],
     },
+    boxe: {
+      portrait: '/assets/dictionary/heroes/boxe/avatar.png',
+      art: '/assets/dictionary/heroes/boxe/standing.png',
+      battleAvatar: '/assets/dictionary/heroes/boxe/avatar.png',
+      skillIcons: [
+        '/assets/dictionary/heroes/boxe/passive.png',
+        '/assets/dictionary/heroes/boxe/a1.png',
+        '/assets/dictionary/heroes/boxe/a2.png',
+      ],
+    },
     // Mirror: no PICK_SELECTED_LARGE by owner decision.
     mirror: {
       portrait: heroUiAsset('mirror/pick_roster_cover.webp'),
@@ -144,7 +154,7 @@
     magnet: { name: 'MAGNET', tag: 'FIELD CONTROL UNIT' },
     frost: { name: 'FROST', tag: 'CRYO EDGE UNIT' },
     mirror: { name: 'MIRROR', tag: 'ECHO DUPLICATE' },
-    boxe: { name: 'BOXE', tag: 'THE FIST OF DAWN · ART PENDING' },
+    boxe: { name: 'BOXE', tag: 'THE FIST OF DAWN' },
   };
   // ONE accent per hero. These are FALLBACKS for the case where the shell
   // registry is not loaded yet; the live value is APEX_ARSENAL_SHELLS.typeFor()
