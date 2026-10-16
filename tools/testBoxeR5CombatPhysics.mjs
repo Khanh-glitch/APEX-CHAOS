@@ -155,7 +155,8 @@ function shot(t,hand='L',kind='aq_bullet',preferHand=false){
   t.step(.5);
   assert.equal(st.rocket,null);
   assert.equal(st.secondary,null);
-  assert.equal(t.ct.skills.A1.cdLeft,15,'only both catches start 15s cooldown');
+  assert.ok(t.ct.skills.A1.cdLeft>14&&t.ct.skills.A1.cdLeft<=15,
+    'cooldown is ticking only after both physical catches');
   assert.equal(t.BX.executors['boxe.block_and_hit'].canCast(t.ctx),true,'A2 regained');
   const end=t.events.filter(e=>e.name==='boxe:flurry-end');
   assert.equal(end.length,1,'early recall emits one Gold lifecycle finish');
@@ -180,7 +181,7 @@ for(const hand of ['L','R']){
   t.step(.7);
   assert.equal(st.rocket,null);
   assert.equal(st.secondary,null);
-  assert.equal(t.ct.skills.A1.cdLeft,15);
+  assert.ok(t.ct.skills.A1.cdLeft>14&&t.ct.skills.A1.cdLeft<=15);
   assert.equal(t.events.filter(e=>e.name==='boxe:flurry-end').length,1);
 }
 // Natural completion after all 24 Gold jab beats auto-recovers BOTH hands,
@@ -205,8 +206,10 @@ for(const hand of ['L','R']){
   t.step(1);
   assert.equal(st.rocket,null);
   assert.equal(st.secondary,null);
-  assert.equal(t.ct.skills.A1.cdLeft,15);
-  assert.equal(t.events.filter(e=>e.name==='boxe:rocket-cooldown-start').length,1);
+  assert.ok(t.ct.skills.A1.cdLeft>14&&t.ct.skills.A1.cdLeft<=15);
+  const receipts=t.events.filter(e=>e.name==='boxe:rocket-cooldown-start');
+  assert.equal(receipts.length,1);
+  assert.equal(receipts[0].payload.duration,15);
 }
 // Last jab of every Gold 6-beat phrase remains distinct without bonus HP,
 // continuous stun or an artificial on-complete reward.
