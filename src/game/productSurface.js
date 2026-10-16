@@ -17,11 +17,11 @@ const { ACTIVE, LOCKED, ADMIN } = PRODUCT_AVAILABILITY;
 // Hero Registry; display copy is resolved at render time rather than duplicated
 // as another naming authority here.
 const VISIBLE_ROSTER_IDS = Object.freeze([
-  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE',
+  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE' 'SHURI',
   'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER',
 ]);
 const PLAYABLE_ROSTER_IDS = Object.freeze([
-  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE',
+  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE' 'SHURI',
 ]);
 const VISIBLE_LOCKED_ROSTER_IDS = Object.freeze([
   'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER',
@@ -36,7 +36,7 @@ function surface(id, title, availability, detail, extra = {}) {
 // navigation and can only launch through its explicit owner seam.
 const PUBLIC_SURFACES = Object.freeze([
   surface('bot-battle', 'Bot Battle', ACTIVE, 'Choose a fighter and face the accepted Arsenal CPU.', { route: 'bot' }),
-  surface('local-1v1', 'Local 1v1', ACTIVE, 'Choose two owned Core Six fighters and launch Arsenal Battle.', { route: 'local' }),
+  surface('local-1v1', 'Local 1v1', ACTIVE, 'Choose two available fighters and launch Arsenal Battle.', { route: 'local' }),
   surface('bot-wave', 'BOT WAVE · BOXE', ACTIVE, 'Standalone Home special mode: open-ended five-beat chapters, owner Gold BOXE art and 41 native Arsenal weapons.', { route: 'wave', special: true, preview: true }),
   surface('cosmetic-locker', 'Cosmetic Locker', ACTIVE, 'Choose original or registered Fighter and Weapon skin presentations per player.', { route: 'skins' }),
   // DOUBLE_AUDIT_2026-10-04: Fighter Shop conflicts with the Gold product
@@ -44,10 +44,10 @@ const PUBLIC_SURFACES = Object.freeze([
   // visible in the product graph, not launchable. The route stays declared
   // (no future-surface metadata is rewritten); only its availability changes.
   surface('fighter-shop', 'Fighter Shop', LOCKED, 'Fighter Shop is a locked extension point in the current Gold product scope.'),
-  surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available Core Six fighter for 350 AC.', { route: 'draw' }),
+  surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available fighter for 350 AC.', { route: 'draw' }),
   surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available in the pre-pilot build.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available in the pre-pilot build.'),
-  surface('dictionary', 'Field Archive', ACTIVE, 'Browse the Core Six and Arsenal, inspect approved Gold art and equip cosmetic skins for P1/P2.', { route: 'skins' }),
+  surface('dictionary', 'Field Archive', ACTIVE, 'Browse playable fighters and Arsenal, inspect approved Gold art and equip cosmetic skins for P1/P2.', { route: 'skins' }),
   surface('missions', 'Missions', LOCKED, 'Missions are not available in the pre-pilot build.'),
   surface('achievements', 'Achievements', LOCKED, 'Achievements are not available in the pre-pilot build.'),
   surface('account-profile', 'Account / Profile', LOCKED, 'Account / Profile is not available in the pre-pilot build.'),
