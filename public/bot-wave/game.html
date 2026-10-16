@@ -6271,34 +6271,9 @@ engine.drawEnemy=function(ctx,e){nativeDrawEnemy(ctx,e);if(!e.waveGunId)return;
  ctx.fillStyle='#11141b';ctx.fillRect(e.x-33,e.y-e.r-53,66,5);ctx.fillStyle='#ffb66d';ctx.fillRect(e.x-33,e.y-e.r-53,66*clamp(e.waveAmmo/g.mag,0,1),5);
  ctx.restore();
 };
-const nativeDrawArena=engine.drawArena.bind(engine);
-engine.drawArena=function(ctx){
- // Keep texture and box geometry of GOLD, but remove all training measurements,
- // painted center bolt and test labeling. Draw a cleaner landscape-inspired floor.
- ctx.fillStyle='#0c1014';ctx.fillRect(-2100,-2100,4200,4200);
- // Landscape scrap-arena: terrain is a stadium, NOT a square boxing lab.
- ctx.save();ctx.beginPath();ctx.roundRect(-840,-560,1680,1120,195);ctx.clip();
- const floor=ctx.createLinearGradient(-750,-540,740,540);
- floor.addColorStop(0,'#302d2c');floor.addColorStop(.5,'#252c30');floor.addColorStop(1,'#313230');
- ctx.fillStyle=floor;ctx.fillRect(-850,-570,1700,1140);
- ctx.strokeStyle='#e0b47a12';ctx.lineWidth=1;
- for(let x=-900;x<=900;x+=96){ctx.beginPath();ctx.moveTo(x,-630);ctx.lineTo(x,630);ctx.stroke()}
- for(let y=-640;y<=640;y+=96){ctx.beginPath();ctx.moveTo(-900,y);ctx.lineTo(900,y);ctx.stroke()}
- ctx.restore();
- ctx.lineWidth=14;ctx.strokeStyle='#b78351bb';ctx.beginPath();ctx.roundRect(-840,-560,1680,1120,195);ctx.stroke();
- ctx.lineWidth=3;ctx.strokeStyle='#d4b79260';ctx.beginPath();ctx.roundRect(-808,-528,1616,1056,165);ctx.stroke();
- if(!this._apexFavicon){
-   const i=new Image();i.crossOrigin='anonymous';
-   i.src='/gold/assets/gold/favicon-r72-owner.png';
-   this._apexFavicon=i;
- }
- ctx.globalAlpha=.19;ctx.textAlign='center';
- if(this._apexFavicon.complete&&this._apexFavicon.naturalWidth){ctx.drawImage(this._apexFavicon,-155,-155,310,310)}
- else {ctx.fillStyle='#deb980';ctx.font='900 150px system-ui';ctx.fillText('APEX',0,24)}
- ctx.globalAlpha=1;
- ctx.font='700 26px system-ui';ctx.fillStyle='#deb98048';ctx.fillText('BOT WAVE',0,80);
-};
-engine.initRibbons=function(){this.ribbons=[]};engine.updateRibbons=function(){this.ribbons=[]};engine.resetRibbons=function(){this.ribbons=[]};engine.drawRibbons=function(){};engine.ribbons=[];
+// OWNER REJECT RECOVERY: never replace Gold's authored ring, materials,
+// fractures, floor detail or ribbon effects with a homemade stadium.
+// engine.drawArena / initRibbons / updateRibbons / drawRibbons stay native.
 const originalCast=engine.castSkill.bind(engine);
 engine.castSkill=function(id){if(!({jab:'jab',uppercut:'uppercut',counter:'counter',phantom:'phantom',ult:'ult'}[id]&&state.owned.has(id)))return false;return originalCast(id)};
 // A roll is attached to every real successful punch impact, not arbitrary J spam.

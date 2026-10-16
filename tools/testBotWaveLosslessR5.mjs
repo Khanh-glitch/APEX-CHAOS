@@ -28,6 +28,11 @@ const prefix=binary.toString('utf8').split(proof.visual_prefix_delimiter)[0];
 assert.equal(sha(Buffer.from(prefix)),proof.gold_visual_prefix_sha256,
  'Owner Gold art/motion/VFX core changed outside the isolated wave adapter');
 assert.equal(proof.source_gold_visual_edits,0,'Owner Gold visual core edits forbidden');
+const adapter=binary.toString('utf8').split(proof.visual_prefix_delimiter)[1]||'';
+assert.ok(!adapter.includes('engine.drawArena=function('),'REJECT: BOT WAVE replaced owner's Gold arena renderer');
+for(const method of ['initRibbons','updateRibbons','resetRibbons','drawRibbons'])
+ assert.ok(!adapter.includes('engine.'+method+'=function('),'REJECT: BOT WAVE disabled owner Gold '+method);
+
 assert.equal(substitutions.length,10,'All original lossless PNGs must remain linked');
 assert.ok(expanded.includes('WAVE_STICKY_ASSIST')&&expanded.includes('waveGunCue')&&expanded.includes('APEX_GUN_ART'),'R5.1 wave and Arsenal hooks missing');
 console.log('BOXE R5.1 LOSSLESS RUNTIME PASS; raw='+proof.raw_sha256+' bytes='+proof.raw_bytes+' served='+binary.byteLength+' Gold PNG='+substitutions.length);
