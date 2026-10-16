@@ -238,3 +238,142 @@
 }
 @media(prefers-reduced-motion:reduce){
  #wave-hud .w-action,#wave-modal .w-card{transition:none!important}}
+
+
+/* ── R6 COMMAND DECK / approved BOXE artwork, native Gold pixels ───────
+   This skin moves NO game objects, changes NO source sprites and disables
+   NO VFX. It only arranges existing interactive DOM with stronger hierarchy.
+   A single HTML command surface replaces stacked detached HUD boxes. */
+#wave-hud .bw-command-deck::before{content:"";position:absolute;inset:0;
+ pointer-events:none;opacity:.75;
+ background:linear-gradient(180deg,rgba(8,11,19,.30),transparent 24%),
+ linear-gradient(0deg,rgba(5,8,14,.48),transparent 18%)}
+#wave-hud .bw-top{grid-template-columns:minmax(250px,1.18fr) minmax(184px,.83fr) minmax(228px,1fr);
+ padding-top:max(12px,env(safe-area-inset-top));gap:clamp(7px,1.25vw,23px)}
+#wave-hud .bw-hero{grid-template-columns:75px 1fr;grid-template-rows:auto auto;
+ min-height:154px;width:min(435px,100%);padding:13px 16px 13px;
+ background:linear-gradient(117deg,#221e23ef 0,#121820ec 62%,#0f1722e9);
+ clip-path:polygon(0 0,calc(100% - 19px) 0,100% 19px,100% 100%,12px 100%,0 calc(100% - 12px));
+ border-left:3px solid #ffc581;box-shadow:0 16px 42px #03060dbd}
+#wave-hud .bw-hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+ background:radial-gradient(ellipse at 9% 19%,#a75f3b31,transparent 50%);
+ border-top:1px solid #f8b37585}
+#wave-hud .bw-portrait{width:75px;height:82px;grid-row:1;grid-column:1;align-self:center;
+ filter:drop-shadow(0 6px 6px #000b) drop-shadow(0 0 14px #f5974b38)}
+#wave-hud .bw-hero-label{align-self:center;gap:2px}
+#wave-hud .bw-hero-label strong{font-size:clamp(28px,2.9vw,43px);line-height:.9;
+ text-shadow:0 4px 16px #000d,0 0 24px #db7c5940}
+#wave-hud .bw-hero>.w-left{grid-row:2;grid-column:1/3;margin-top:6px!important;
+ padding-top:7px!important}
+#wave-hud .hp-r2{height:11px!important;box-shadow:0 0 16px #c9483530!important}
+#wave-hud .bw-encounter{min-height:151px;
+ padding:13px 18px 11px;border-top:1px solid #dc8d6473;
+ border-bottom:1px solid #d5a86a5c;clip-path:polygon(8% 0,92% 0,100% 20%,100% 88%,92% 100%,8% 100%,0 88%,0 20%);
+ background:linear-gradient(90deg,#0d131ee1,#1b161ded 48%,#0d131ee1)}
+#wave-hud .bw-chapter{letter-spacing:.19em;font-size:10px}
+#wave-hud .bw-witness{font-size:clamp(23px,2.25vw,33px);
+ letter-spacing:.10em;margin-top:5px}
+#wave-hud .bw-beat-markers{margin-top:10px;gap:6px;max-width:245px}
+#wave-hud .bw-beat-markers i{height:6px;transform:skewX(-22deg);
+ box-shadow:inset 0 1px #cda68552}
+#wave-hud .bw-pressure{display:flex;flex-wrap:wrap;justify-content:space-between;
+ align-items:center;gap:3px 6px;text-align:left;margin:10px auto 0;
+ max-width:250px;font:800 8px/1.4 ui-monospace,monospace;
+ letter-spacing:.09em;color:#cfb198}
+#wave-hud .bw-pressure strong{font:900 9px ui-monospace,monospace;color:#f6bf87}
+#wave-hud .bw-pressure i{display:block;flex:1 0 100%;height:4px;
+ border:1px solid #ad755b5c;background:#2b2a31;
+ position:relative;overflow:hidden}
+#wave-hud .bw-pressure i::before{content:"";position:absolute;inset:0;
+ transform:scaleX(var(--bw-pressure,0));transform-origin:left;
+ background:linear-gradient(90deg,#db8d53,#f9bb67 50%,#f4544b);transition:transform .16s linear}
+#wave-hud .bw-under-pressure .bw-pressure strong{color:#ff8269}
+#wave-hud .bw-threat{min-height:151px;width:min(350px,100%);padding:13px 16px;
+ border-top:1px solid #edb0718e;border-right:3px solid #f3a561;
+ background:linear-gradient(110deg,#101722e6,#20202bea);
+ clip-path:polygon(0 0,100% 0,100% 100%,18px 100%,0 calc(100% - 18px));
+ box-shadow:0 16px 40px #000a}
+#wave-hud .bw-threat-eyebrow{font-size:9px;letter-spacing:.15em}
+#wave-hud #w-wave{font-size:clamp(21px,2.05vw,31px)!important}
+#wave-hud .bw-bottom{align-items:end;gap:10px;min-height:135px;
+ padding-bottom:max(12px,env(safe-area-inset-bottom))}
+#wave-hud .bw-movement{min-width:102px}
+#wave-hud .bw-movement #wave-stick{width:76px!important;height:76px!important;
+ border-radius:50%;background:radial-gradient(circle,#292732,#121820 60%,#101118);
+ box-shadow:0 0 0 5px #0b111bd0,inset 0 0 23px #080a10,0 0 29px #ba5e3c65!important}
+#wave-hud #wave-stick i{border-radius:50%!important;width:41px!important;height:41px!important;
+ left:calc(50% - 20.5px)!important;top:calc(50% - 20.5px)!important;
+ background:#392928 url('/assets/dictionary/heroes/boxe/avatar.png') center / contain no-repeat!important;
+ border:1px solid #ffc887!important;box-shadow:0 0 15px #d7773e85!important;
+ transform:translate(var(--dx,0px),var(--dy,0px))}
+#wave-hud .bw-skill-deck{margin-inline:auto 0;padding:10px 11px 12px;
+ border-top:2px solid #ffbe7a;
+ clip-path:polygon(0 0,100% 0,100% 100%,12px 100%,0 calc(100% - 12px));
+ background:linear-gradient(0deg,#0a1019f5,#29232beb);
+ box-shadow:0 13px 29px #000a}
+#wave-hud .bw-skill-caption{font-size:9px;letter-spacing:.17em;
+ color:#ffe0b1;text-align:center;margin-bottom:9px}
+#wave-hud .w-actions{gap:8px!important}
+#wave-hud .w-action{position:relative!important;overflow:hidden!important;
+ isolation:isolate;width:clamp(60px,5.4vw,80px)!important;height:82px!important;
+ border-radius:4px 14px 4px 11px!important;
+ font-size:0!important;box-shadow:inset 0 1px #ffe3aa58,0 7px 17px #000b!important;
+ background:linear-gradient(145deg,#5a3527,#151c28 72%)!important}
+#wave-hud .w-action:before{content:"";position:absolute;z-index:1;inset:0;
+ background:linear-gradient(180deg,#0304080e,transparent 33%,#060910ee 89%);
+ pointer-events:none}
+#wave-hud .w-action::after{content:attr(data-key);position:absolute;z-index:3;top:4px;left:6px;
+ color:#ffe2a8;font:950 12px/1 Impact,system-ui;text-shadow:0 2px 5px #000}
+#wave-hud .bw-action-art{position:absolute;inset:0;width:100%;height:100%;z-index:0;
+ object-fit:contain;object-position:center 24%;padding:3px 4px 13px;box-sizing:border-box;
+ filter:drop-shadow(0 4px 6px #0009);pointer-events:none}
+#wave-hud .w-action[data-act="J"]{width:clamp(78px,6.3vw,94px)!important;height:91px!important;
+ border-color:#ffca89!important;background:linear-gradient(145deg,#9b492a,#252026)!important}
+#wave-hud .w-action[data-act="J"] .bw-action-art{object-position:center 38%;padding:1px 3px 14px}
+#wave-hud .w-action small{position:absolute;z-index:3;inset:auto 2px 4px;
+ font-size:9px!important;text-align:center;
+ text-shadow:0 2px 5px #000e;line-height:1.1!important}
+#wave-hud .w-action.on{filter:brightness(1.19) saturate(1.2)!important}
+#wave-hud .w-action[disabled]{opacity:.42!important;filter:grayscale(.82)!important}
+#wave-hud .bw-interface-controls{min-width:98px}
+#wave-hud #resume-wave{border-top:2px solid #efb77e!important;padding:9px 13px!important}
+@media(max-width:980px){
+ #wave-hud .bw-top{grid-template-columns:minmax(0,1fr) minmax(142px,.86fr) minmax(0,1fr);
+  gap:5px;padding:6px 7px 0}
+ #wave-hud .bw-hero{grid-template-columns:43px 1fr;min-height:100px;
+  padding:7px 8px 8px}
+ #wave-hud .bw-portrait{width:43px;height:43px}
+ #wave-hud .bw-hero-label strong{font-size:23px}
+ #wave-hud .bw-encounter{min-height:99px;padding:6px 6px 7px}
+ #wave-hud .bw-chapter{font-size:7px;letter-spacing:.08em}
+ #wave-hud .bw-witness{font-size:20px}
+ #wave-hud .bw-pressure{font-size:6px;margin-top:4px}
+ #wave-hud .bw-pressure strong{font-size:7px}
+ #wave-hud .bw-beat-markers{margin-top:5px}
+ #wave-hud .bw-threat{min-height:99px;padding:7px 8px}
+ #wave-hud .bw-threat-eyebrow{font-size:7px}
+ #wave-hud .bw-bottom{min-height:86px;padding:0 6px 6px}
+ #wave-hud .bw-movement{min-width:60px}
+ #wave-hud .bw-movement #wave-stick{width:48px!important;height:48px!important}
+ #wave-hud #wave-stick i{width:29px!important;height:29px!important;
+  left:calc(50% - 14.5px)!important;top:calc(50% - 14.5px)!important}
+ #wave-hud .bw-skill-deck{padding:5px 6px 6px}
+ #wave-hud .bw-skill-caption{font-size:7px;margin-bottom:4px}
+ #wave-hud .w-actions{gap:4px!important}
+ #wave-hud .w-action{width:43px!important;height:49px!important;min-width:40px!important}
+ #wave-hud .w-action[data-act="J"]{width:50px!important;height:57px!important}
+ #wave-hud .w-action small{font-size:7px!important}
+ #wave-hud .w-action::after{font-size:9px}
+ #wave-hud .bw-interface-controls{min-width:62px}
+}
+@media(max-width:600px) and (orientation:portrait){
+ #wave-hud .bw-top{grid-template-columns:1fr 1fr}
+ #wave-hud .bw-hero{grid-column:1;grid-row:1}
+ #wave-hud .bw-threat{grid-column:2;grid-row:1}
+ #wave-hud .bw-encounter{grid-column:1/-1;grid-row:2;max-width:70vw}
+ #wave-hud .bw-bottom{justify-content:space-between;gap:4px}
+ #wave-hud .bw-movement{min-width:48px}
+ #wave-hud .bw-skill-deck{margin-left:0}
+ #wave-hud .w-action{width:36px!important;min-width:35px!important;height:45px!important}
+ #wave-hud .w-action[data-act="J"]{width:43px!important;height:52px!important}
+}
