@@ -571,7 +571,7 @@
       PASSIVE:skill('shuri.recycle','PASSIVE','shuri.recycle',{
         initialScrap:10,minimumTier:1,maximumTier:5,
         validEquipment:'canonical-gun-or-launcher',
-      },['initialScrap'],'scrap_step',{
+      },['initialScrap'],'capacity_step',{
         displayName:'Recycle Snap',
         archiveProfile:{description:'Finishing a directly held eligible T1–T5 gun or launcher grants Scrap equal to its tier.'},
       }),
