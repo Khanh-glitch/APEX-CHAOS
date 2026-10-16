@@ -191,14 +191,21 @@ function build({engine,config,campaign,cue,rand}){
   ctx.restore();
   return rendered;
  }
- let audioWarmed=false;
+ let audioWarmPromise=null;
  function ensureAudio(){
-  // Native shots use the ONE Gold-engine AudioContext and the trimmed,
-  // polyphony-limited sound recipes from ArsenalPresentationRuntime.
+  // Warm the COMPLETE native Arsenal bank before combat starts, once per
+  // iframe AudioContext. Previously this fire-and-forget decode caused early
+  // wave shots to have no audible sample until fetch/decode completed.
+  // Do not trim or substitute clips: retain every original sample.
   engine.initAudio();
-  if(audioWarmed||!engine.actx)return;
-  audioWarmed=true;
-  native.av.warmAudio().catch(e=>console.error('[BOT WAVE] native AV',e));
+  if(!engine.actx)return Promise.reject(Error('WAVE_AUDIO_CONTEXT_UNAVAILABLE'));
+  if(!native.av?.warmAudio)return Promise.reject(Error('WAVE_ARSENAL_SFX_UNAVAILABLE'));
+  if(!audioWarmPromise){
+   audioWarmPromise=native.av.warmAudio().catch(error=>{
+     audioWarmPromise=null;throw error;
+   });
+  }
+  return audioWarmPromise;
  }
  function protect(e,amount){
   // Gold BOXE punches live in Gold's own attack-contact authority (they are
