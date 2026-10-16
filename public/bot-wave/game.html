@@ -5966,7 +5966,8 @@ const loadWaveDependency=src=>new Promise((resolve,reject)=>{
 await Promise.all([
  loadWaveDependency('/game/arsenal/arsenalConfig.js'),
  loadWaveDependency('/game/bot-wave/waveCampaign.js'),
- loadWaveDependency('/game/bot-wave/armoryRuntime.js')
+ loadWaveDependency('/game/bot-wave/nativeArsenalGoldBridge.js'),
+ loadWaveDependency('/game/arsenal/arsenalCWeaponSet.generated.js')
 ]);
 const CFG=window.APEX_ARSENAL_CONFIG,CAMPAIGN=window.APEX_BOT_WAVE_CAMPAIGN;
 const ARSENAL_CATALOG=CAMPAIGN.indexNative(CFG);
@@ -6003,9 +6004,13 @@ function waveGunCue(gun,kind='fire'){
  const cue=pool.find(a=>a.paused||a.ended)||pool[0];
  try{cue.pause();cue.currentTime=0;cue.volume=kind==='fire'?.31:.22;cue.play().catch(()=>{});}catch(_){/* Browser gesture gate */}
 }
-const ARMORY=window.APEX_BOT_WAVE_ARMORY.createArmory({
+const ARMORY=window.APEX_BOT_WAVE_NATIVE_BRIDGE.createArmory({
  engine,config:CFG,campaign:CAMPAIGN,cue:waveGunCue,rand:rng
 });
+// Native Free Battle executor & sound/VFX pipeline, AFTER Gold actor shim.
+await loadWaveDependency('/game/arsenal/arsenalPresentationRuntime.js');
+await loadWaveDependency('/game/arsenal/arsenalWeaponRuntime.js');
+ARMORY.connect();
 const WAVE_GUNS=ARMORY.weapons;
 // Legacy ten-wave inspection sample only; it is NOT a campaign cap.
 const COMPOSITIONS=Array.from({length:10},(_,i)=>waveComposition(i+1));
@@ -6154,7 +6159,8 @@ function makeEnemy(desc){
  const e={id:engine.nextId++,kind:'bot',x,y,vx:0,vy:0,r:boss?68:30,hp,maxHp:hp,
  angle:0,flash:0,wob:0,wobV:0,z:0,vz:0,shootT:1e8,strafeDir:rng()<.5?-1:1,strafeT:1+rng()*2,orbitHitAt:0,slowT:0,dead:false,
  waveGunId:desc.gun,waveAmmo:g.mag,waveFireT:.8+rng(),waveReloadT:0,waveBoss:boss,waveAimT:0,waveStunT:0};
- engine.enemies.push(e);engine.fx.flash(e.x,e.y-15,boss?150:60,boss?'#ff7850':'#d7b387',.25);
+ engine.enemies.push(e);ARMORY.activate(e);
+ engine.fx.flash(e.x,e.y-15,boss?150:60,boss?'#ff7850':'#d7b387',.25);
  engine.material.dust(e.x,e.y+25,boss?8:3,boss?150:60,.35);
  return e;
 }

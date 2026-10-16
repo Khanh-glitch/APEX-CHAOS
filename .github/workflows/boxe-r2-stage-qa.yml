@@ -22,7 +22,7 @@ jobs:
       - name: Native 41 equipment and Gold art prefix
         run: |
           node tools/testBotWave41Campaign.mjs
-          node tools/testBotWave41Execution.mjs
+          node tools/testBotWaveNativeParity.mjs
           node tools/testBotWaveShippingAssets.mjs
           node tools/testBotWaveLosslessR5.mjs
           node tools/testBotWaveGameRouteR5.mjs
@@ -30,7 +30,7 @@ jobs:
         run: pnpm build
       - name: Verify dynamic Gold scripts in shipping bundle
         run: |
-          node --input-type=module -e "import fs from 'node:fs'; for(const p of ['game/arsenal/arsenalConfig.js','game/bot-wave/waveCampaign.js','game/bot-wave/armoryRuntime.js','game/bot-wave/botWavePresentationV2.js','game/bot-wave/botWavePresentationV2.css'])if(!fs.existsSync('dist/'+p))throw Error('BOT_WAVE_PRUNED_DEPENDENCY '+p)"
+          node --input-type=module -e "import fs from 'node:fs'; for(const p of ['game/arsenal/arsenalConfig.js','game/bot-wave/waveCampaign.js','game/bot-wave/nativeArsenalGoldBridge.js','game/arsenal/arsenalWeaponRuntime.js','game/arsenal/arsenalPresentationRuntime.js','game/bot-wave/botWavePresentationV2.js','game/bot-wave/botWavePresentationV2.css'])if(!fs.existsSync('dist/'+p))throw Error('BOT_WAVE_PRUNED_DEPENDENCY '+p)"
       - name: Start integrated product
         shell: bash
         run: |

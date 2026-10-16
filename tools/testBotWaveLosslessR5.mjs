@@ -34,5 +34,6 @@ for(const method of ['initRibbons','updateRibbons','resetRibbons','drawRibbons']
  assert.ok(!adapter.includes('engine.'+method+'=function('),'REJECT: BOT WAVE disabled owner Gold '+method);
 
 assert.equal(substitutions.length,10,'All original lossless PNGs must remain linked');
-assert.ok(expanded.includes('WAVE_STICKY_ASSIST')&&expanded.includes('waveGunCue')&&expanded.includes('APEX_GUN_ART'),'R5.1 wave and Arsenal hooks missing');
+assert.ok(expanded.includes('WAVE_STICKY_ASSIST')&&expanded.includes('APEX_GUN_ART')&&expanded.includes('APEX_BOT_WAVE_NATIVE_BRIDGE'),'Native Arsenal integration missing');
+assert.ok(!expanded.includes('APEX_BOT_WAVE_ARMORY.createArmory'),'REJECT: fake weapon executor active');
 console.log('BOXE R5.1 LOSSLESS RUNTIME PASS; raw='+proof.raw_sha256+' bytes='+proof.raw_bytes+' served='+binary.byteLength+' Gold PNG='+substitutions.length);

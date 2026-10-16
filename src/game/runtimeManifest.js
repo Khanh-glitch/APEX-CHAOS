@@ -47,7 +47,10 @@ export const GOLD_QUEST_SHELL_RUNTIMES = Object.freeze([
 // BOT WAVE special Home route: separate intent-loaded scripts only.
 export const BOT_WAVE_SPECIAL_RUNTIMES = Object.freeze([
   ['/game/bot-wave/waveCampaign.js?v=wave41-cp3', 'apexBotWaveCampaign'],
-  ['/game/bot-wave/armoryRuntime.js?v=wave41-cp3', 'apexBotWaveArmory'],
+  ['/game/bot-wave/nativeArsenalGoldBridge.js?v=reject-r3', 'apexBotWaveNativeBridge'],
+  ['/game/arsenal/arsenalCWeaponSet.generated.js?v=reject-r3', 'apexArsenalCSet'],
+  ['/game/arsenal/arsenalPresentationRuntime.js?v=reject-r3', 'apexArsenalPresentationRuntime'],
+  ['/game/arsenal/arsenalWeaponRuntime.js?v=reject-r3', 'apexArsenalWeaponRuntime'],
 ]);
 
 // BOT WAVE presentation is independently booted inside the Gold iframe,
