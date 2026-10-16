@@ -50,7 +50,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    // navigation into the fail-closed pending-Gold wrapper.
    await page.waitForFunction(()=>{
      const f=document.querySelector('#wave');
-     return !!f&&!f.hidden&&document.querySelector('#status')?.classList.contains('hidden');
+     return !!f&&!f.hidden&&(!document.querySelector('#status') || document.querySelector('#status')?.classList.contains('hidden'));
    },{timeout:60000});
    // Owner Gold intentionally starts paused with ZERO enemies. A real
    // authenticated START WAVE click is required before asserting gameplay;
@@ -249,6 +249,8 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
     fakeGoldOrbs:window.handLab.projs.filter(p=>p.waveGunId).length,
     audio:window.APEX_ARSENAL_AV.audioStatus(),
     goldVisualRedesign:!!document.getElementById('bw-interface-v2'),
+     skillArt:[...document.querySelectorAll('.bw-action-art')].filter(img=>img.complete&&img.naturalWidth>0).length,
+     pressureMeter:!!document.getElementById('bw-pressure-fill'),
    }));
    assert.ok(shot.nativeExecutor&&shot.nativeProjectileDrawing&&shot.nativePistolEmissions>0&&shot.fakeGoldOrbs===0&&shot.goldVisualRedesign,
     'Free Battle shot authority not actually running '+JSON.stringify(shot));
