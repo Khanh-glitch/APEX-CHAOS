@@ -31,11 +31,11 @@
   // PLAYABLE_ROSTER_IDS; ICE displays as FROST, CRYSTAL as CRYSTALA).
   const GOLD_SHELL_KEY_BY_PRODUCTION_ID = {
     ROBOT: 'newbot', HUNTER: 'hunter', CRYSTAL: 'crystala',
-    MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror', BOXE: 'boxe',
+    MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror', BOXE: 'boxe', SHURI: 'shuri',
   };
   const PRODUCTION_ID_BY_SHELL_KEY = {
     newbot: 'ROBOT', hunter: 'HUNTER', crystala: 'CRYSTAL',
-    magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR', boxe: 'BOXE',
+    magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR', boxe: 'BOXE', shuri: 'SHURI',
   };
   // ── immutable Git art authority (R44 owner-playtest media manifest) ─────
   // Every URL below is a gitPath recorded in
@@ -155,6 +155,7 @@
     frost: { name: 'FROST', tag: 'CRYO EDGE UNIT' },
     mirror: { name: 'MIRROR', tag: 'ECHO DUPLICATE' },
     boxe: { name: 'BOXE', tag: 'THE FIST OF DAWN' },
+    shuri: { name: 'SHURI', tag: 'SCRAP ENGINEER' },
   };
   // ONE accent per hero. These are FALLBACKS for the case where the shell
   // registry is not loaded yet; the live value is APEX_ARSENAL_SHELLS.typeFor()
@@ -164,7 +165,7 @@
   // showed up as soon as a crit/heavy slash or a rail plate took her accent.
   const FALLBACK_ACCENTS = {
     newbot: '#ff941f', hunter: '#96ca2d', crystala: '#a066f0',
-    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42',
+    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42', shuri: '#f29a51',
   };
 
   // Production-visible roster authority (2026-10-05): the Gold roster is
