@@ -3134,6 +3134,12 @@
     h.meta.aimAngle = h.meta.aimAngle == null ? logicalAim(ctx) : dampAngle(h.meta.aimAngle, logicalAim(ctx), dt);
     integratePose(h, dt); // Checkpoint B: weapon pose springs (weapon-only motion)
     tickPoseGhost(f, dt);
+    // Empowered BOXE A1 denies both new trigger pulls and ongoing bursts.
+    // Ammo and equipment remain native; fire resumes after the lock.
+    const triggerClock=window.APEX_HERO_REWORK_AIL?.clock?.() ??
+      (typeof matchClock==='number'?matchClock:0);
+    if((f.__boxeTriggerLockUntil||0)>triggerClock &&
+        (h.phase==='READY'||h.phase==='FIRING'))return;
     if (h.phase === 'READY' && h.def.canActivate && h.def.canActivate(ctx)) {
       h.def.activate(ctx);
     }
