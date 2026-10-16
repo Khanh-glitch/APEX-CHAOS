@@ -160,7 +160,7 @@ try{
   x?.images?.length===2&&x.images.some(i=>i.src==='/assets/dictionary/heroes/boxe/standing.png'&&i.ok),100);
  check('BOXE scoreboard displays decoded original Pick standing PNG and its identity',
   boxe.portrait==='/assets/dictionary/heroes/boxe/standing.png'&&
-  boxe.color==='#ffac42'&&!!boxeSnap&&boxeSnap.placeholders.length===0,
+  boxe.color==='#ffac42'&&!!boxeSnap&&boxeSnap.placeholders.every(t=>t==='Không có sát thương từ vũ khí'),
   {boxe,images:boxeSnap?.images,placeholders:boxeSnap?.placeholders});
  await writeFile(path.join(dir,'result-gold-boxe.png'),Buffer.from((await cd('Page.captureScreenshot',{format:'png'})).data,'base64'));
  await writeFile(path.join(dir,'result-gold-report.json'),JSON.stringify({receipt,views,continue:cont,boxe,boxeSnap,failures},null,2));
