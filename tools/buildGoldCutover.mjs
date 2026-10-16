@@ -2458,7 +2458,7 @@ function main() {
   // R7: The live Wave iframe needs to pause the ALREADY APPROVED Gold Home
   // presentation loop while keeping Home resident across Door V4 transitions.
   // This is an explicit generated patch, never a manual output-only change.
-  const waveParentSeam="  function decodeBattleHud(){\\n    const raw=(battleHudPayload?.textContent||'').trim();";
+  const waveParentSeam="  function decodeBattleHud(){\n    const raw=(battleHudPayload?.textContent||'').trim();";
   const waveParentPatch=`  // Wave's live-Home overlay uses the SAME suspension authority as battle.
   // Do not keep a second active Home particle/parallax loop underneath Gold.
   // Suspending presentation preserves resident sprites, music position and
