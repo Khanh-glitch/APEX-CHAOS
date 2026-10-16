@@ -58,7 +58,7 @@ w.free=true;w.script=[];w.tasks=[];
 w.shuri.scrap=25;
 const x=w.shuri.pos.x,y=w.shuri.pos.y;
 g.doA1(w);
-for(let i=0;i<31;i++)g.step(w,g.DT);
+for(let i=0;i<Math.ceil(.55/g.DT);i++)g.step(w,g.DT); // Gold runs at 120Hz; reach place/arm/recoil
 assert.ok(w.anchor,'Gold must place a real visual anchor at its original 0.4s beat');
 assert.equal(w.anchor.pos.x,x);
 assert.equal(w.anchor.pos.y,y+50,'Gold bom position must remain ORIGINAL, not relocated by SFX');
