@@ -32,10 +32,18 @@ for(const selected of [['BOXE','ROBOT'],['ROBOT','BOXE'],['BOXE','BOXE']]){
 }
 assert.ok(!arsenalBattleRuntimesFor(['ROBOT','ICE']).map(([url])=>url.split('?')[0]).includes('/game/hero-rework/boxeGoldPresentationRuntime.js'),'BOXE Gold must stay deferred when not picked');
 const native=read('public/game/arsenal/arsenalWeaponRuntime.js');
-assert.ok(native.includes("h.phase==='READY'||h.phase==='FIRING'"),'BOXE A1 must lock both trigger phases');
+assert.ok(native.includes("resolver?.has?.(f,'BOXE_TRIGGER_LOCK')") &&
+ native.includes("h.phase==='IN_FLIGHT'") && native.includes("h.def.category==='ranged'"),
+ 'BOXE A1 must gate all native pre-shot phases through shared AIL status');
+const ail=read('public/game/hero-rework/ailRuntime.js');
+assert.ok(ail.includes('BOXE_TRIGGER_LOCK'), 'AIL trigger-lock status law missing');
 const presentation=read('public/game/hero-rework/boxeGoldPresentationRuntime.js');
 assert.ok(presentation.includes('ctx.translate(worldOffset(),worldOffset())') &&
  presentation.includes('const toGold=v=>v-worldOffset()'),'Gold VFX centered-coordinate fix missing');
+assert.ok(presentation.includes("g.hands.R.missing=!!st?.rocket") &&
+ presentation.includes('detailLastDist:v.detailLastDist') &&
+ presentation.includes('toGold(foe.y)-f.y'),
+ 'Gold R-hand identity, FX cadence and flurry aim must match original');
 const gold=read('public/game/hero-rework/boxeGoldLibrary.js');
 assert.ok(gold.includes("sourceSha256:'ccb889bb08cb2e741c4f7f5e0b33d08047c08fb28bfc1c31ae9401604444e2b2'"));
 assert.ok(gold.includes('preloadSprites:'));
