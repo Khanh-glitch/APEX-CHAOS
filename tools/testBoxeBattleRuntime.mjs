@@ -79,6 +79,13 @@ assert.equal(ex['boxe.block_and_hit'].cast(ctx),true);
 time+=1.01;ex['boxe.block_and_hit'].onTick(ctx,1.01);
 assert.equal(BX.snapshot(ctx).counter,null);
 assert.equal(b.hp,600);
+// T6 cannot be disarmed by BOXE A2 (Arsenal hero-manipulation immunity).
+time=100;held.set(b,{weaponId:'STORMBREAKER',phase:'READY'});
+assert.equal(ex['boxe.block_and_hit'].cast(ctx),true);
+p=ex['boxe.block_and_hit'].onTakeDamage(ctx,a,{amount:150,source:b});
+for(let i=0;i<24;i++){time+=.016;ex['boxe.block_and_hit'].onTick(ctx,.016);}
+assert.equal(held.get(b)?.weaponId,'STORMBREAKER','A2 must honor T6 immunity');
+assert.equal(slots.filter(x=>x.weaponId==='STORMBREAKER').length,0);
 // Every event has exact identity; no P1-to-P2 cross-owner emission.
 for(const e of events.filter(e=>e.name.startsWith('boxe:')))assert.equal(e.body.hero,'BOXE');
 console.log('PASS BOXE normal battle semantic runtime: rocket real hit without disarm, native ground gun, counter-only disarm, passive, cooldown');
