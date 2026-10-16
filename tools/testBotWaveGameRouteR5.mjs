@@ -7,15 +7,18 @@ assert.equal(getProductSurface('bot-wave').preview,true);
 assert.equal(canLaunchProductSurface('bot-wave'),true);
 assert.equal(listProductSurfaces().filter(x=>x.availability==='ACTIVE').length,6);
 const app=fs.readFileSync('src/App.jsx','utf8');
-assert.ok(app.includes("const target='/bot-wave/index.html'"),'Gold wave destination missing');
-assert.ok(app.includes('window.top.location.assign(target)')&&app.includes('window.location.assign(target)'),'desktop/mobile route requires native + fidelity iframe escape');
+assert.ok(app.includes("history.pushState({apexWave:true}") &&
+ app.includes("name:'bot-wave-enter'")&&app.includes("name:'bot-wave-return'"),
+ 'BOT WAVE must use native Mechanical Door both ways and retain Home');
 assert.ok(fs.readFileSync('src/App.jsx','utf8').includes("stage.appendChild(entry)"));
 const wrapper=fs.readFileSync('public/bot-wave/index.html','utf8');
 assert.ok(wrapper.includes('iframe[hidden]{display:none!important}'),'BOT WAVE old arena flash risk');
 assert.ok(wrapper.includes("!doc.getElementById('bw-interface-v2')"),'must wait for V2 before reveal');
 const audioMix=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js','utf8');
-assert.ok(audioMix.includes('boxe:1.5,weapons:0.5'),'BOT WAVE SFX gain mismatch');
+assert.ok(audioMix.includes('boxe:1.95,weapons:.36'),'BOT WAVE Gold x1.95 / Arsenal adaptive base x.36 required');
 assert.ok(fs.readFileSync('public/bot-wave/index.html','utf8').includes("frame.src='/bot-wave/game.html'"));
+assert.ok(app.includes("frame.src='/bot-wave/game.html'"),'single direct Gold iframe not mounted');
+assert.ok(!app.includes("window.top.location.assign(target)"),'hard navigation must not bypass transition');
 assert.ok(fs.existsSync('src/game/botWave/wavePreviewEntry.css'));
 const p={x:0,y:0},near={id:'robot-1',x:305,y:0,r:30};
 const plan=planStickyJ({player:p,target:near});
