@@ -33,7 +33,11 @@ for(const {id,family} of indexed.records){
  const baseline={damage:totalDamage,projectiles:engine.projs.length,
   special:armory.snapshot().projectiles,shield:foe.waveShieldUntil||0,shots};
  armory.fire(foe,.03);
- assert.equal(shots,baseline.shots+1,'no native attack cue '+id);
+ const nativeBank=new Set(['SABRE','BATTLE_AXE','DAGGER','SPEAR','SPIKED_CLUB',
+  'STORMBREAKER','SWIRL_SHIELD','TOWER_SHIELD','COMBAT_BOOMERANG','TACTICAL_CROSSBOW']);
+ if(nativeBank.has(id)){
+  assert.equal(shots,baseline.shots,'native Gold melee/shield audio must not double trigger fallback '+id);
+ }else assert.equal(shots,baseline.shots+1,'no native attack cue '+id);
  assert.ok(foe.waveAmmo<g.mag,'no magazine consumption '+id);
  assert.ok(foe.waveReloadT>0||foe.waveFireT>0,'no reload/cadence '+id);
  for(const pr of engine.projs.slice(baseline.projectiles))
