@@ -949,6 +949,15 @@ export default function App() {
           }, { capture: true });
           document.body.appendChild(start);
           stopStartGuard = attachBootStartViewportGuard(start);
+          // Fallback for a hard-reloaded/deep-linked Wave route. The normal
+          // Wave entry never reloads React; this one-shot resume prevents
+          // another mandatory START after choosing APEX HOME in standalone.
+          try{
+            if(sessionStorage.getItem('apexWaveReturn')==='1'){
+              sessionStorage.removeItem('apexWaveReturn');
+              activateStart();retireStart();
+            }
+          }catch(_){}
         });
         if (cancelled) return;
         await window.APEX_SCENE_TRANSITION?.signalBootReady?.();
