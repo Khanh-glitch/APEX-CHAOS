@@ -10,7 +10,10 @@ fs.mkdirSync(output,{recursive:true});
 const url=(process.env.APEX_APP_URL||'http://127.0.0.1:4173/').replace(/\/$/,'');
 for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone',width:844,height:390}]){
  const page=await browser.newPage();
- const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ const errors=[],consoleIssues=[];
+ page.on('pageerror',e=>errors.push(String(e?.stack||e)));
+ page.on('console',msg=>{if(msg.type()==='error'||msg.type()==='warning')
+   consoleIssues.push('['+msg.type()+'] '+msg.text());});
  try{
   await page.setViewport({width:view.width,height:view.height,
    isMobile:view.name!=='desktop',hasTouch:view.name!=='desktop'});
@@ -53,7 +56,21 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    // skipping this user gesture causes false Chrome timeouts and muted audio.
    const gameFrame=page.frames().find(f=>f.url().includes('/bot-wave/game.html'));
    assert.ok(gameFrame,'Gold playable frame never loaded');
-   await gameFrame.waitForSelector('#w-go',{visible:true,timeout:60000});
+   await gameFrame.waitForSelector('#w-go',{visible:true,timeout:18000}).catch(async error=>{
+    const diag=await gameFrame.evaluate(()=>({
+      title:document.title,
+      ready:document.readyState,
+      bodySize:document.body?.innerHTML?.length,
+      hasGold:!!window.handLab,
+      hasWavePilot:!!window.BOXE_WAVE_PILOT,
+      hasWaveCampaign:!!window.APEX_BOT_WAVE_CAMPAIGN,
+      hasConfig:!!window.APEX_ARSENAL_CONFIG,
+      hasArmory:!!window.APEX_BOT_WAVE_ARMORY,
+      hasGo:!!document.querySelector('#w-go'),
+      scriptErrors:[...document.querySelectorAll('script[src]')].map(x=>x.src),
+    }));
+    throw Error('WAVE_GAME_NOT_BOOTED '+JSON.stringify({diag,errors,consoleIssues},null,2)+'\n'+error);
+   });
    await gameFrame.click('#w-go');
    await page.waitForFunction(()=>{
      const frame=document.querySelector('#wave')?.contentWindow;
