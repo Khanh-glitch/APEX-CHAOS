@@ -1,5 +1,5 @@
 {
-  "revision": "20261016-boxe-native-gold-r2",
+  "revision": "20261016-boxe-r6-release-candidate",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -13,13 +13,13 @@
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalConfig.js": "7ca8b66277f021a296220bfa5994d275840d85fff7893a853626098cae0c8bfa",
     "public/game/arsenal/arsenalIdentityRuntime.js": "d9a5b80a043a40445395f2b28c8e6aab2dfae5c868b56ea3eaac261d84bcae1a",
-    "public/game/arsenal/arsenalWeaponRuntime.js": "ad099f89f909f21a7e75e146ca615bc6e8d5d5a2bc4c77e342a3a9c809c7fab9",
+    "public/game/arsenal/arsenalWeaponRuntime.js": "997235d914aa07c6b80dcb339a92482ee83212f2486ef6dc3236730b2207e642",
     "public/game/arsenal/arsenalSpawnRuntime.js": "ba4d54a058611f503af5b39adf80ff5338f938202e5703d681142361d88ee2cb",
     "public/game/arsenal/arsenalPresentationRuntime.js": "3d0163ee506002b3c51ce387e6b7bce529c62ed7df2b7b62851d9c3f944de870",
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
     "public/game/arsenal/arsenalStormbreakerVfxRuntime.js": "f5862f8e002958c967ab5a5796caef33962bdcf5eaafa183c30a90b55caaed8d",
     "public/game/arsenal/arsenalManualSkillGate.js": "0330a608a68c6515f596d2a6b08c592b07e9608276553ac9b16987fd139fe0d3",
-    "public/game/hero-rework/ailRuntime.js": "3e954f98eb753112cd6f2f0dcfac976a51c98f93c7344baa61985895b74a49c1",
+    "public/game/hero-rework/ailRuntime.js": "ab2bae88e9343f5777effe01d1796de05b92c59b1718c17e449d903b005efbde",
     "public/game/hero-rework/heroRegistry.js": "0987f9e5d49d97f9627b87ca763cca471a68ca8f24110bde4936fc683a92b583",
     "public/game/arsenal/arsenalShellSelectRuntime.js": "b8016c09999d85b01f5b34a651170664bbde87cf4ee748cff7d992b19f080304",
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "4b95efadd6a4a252a5462a96d544520d0caf8387ad8c963069a0f9ec5e3bf13f",
@@ -60,8 +60,8 @@
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
     "public/game/results/ownerAwards.generated.js": "bf1214feb289ade27e97c382b33e87a2ecf230f54c3e673cec004b0e824d25bb",
     "public/game/results/matchResultAuthority.js": "4e70e2bece26fdaba9e23af22cd396d458ef3c4a36cd1a8b63e832588c0f6689",
-    "public/game/hero-rework/boxeBattleRuntime.js": "f677b31980b69db7b08b16592af23b2d3e2ed3865d902218f25bf2f37285d1c3",
+    "public/game/hero-rework/boxeBattleRuntime.js": "623c9557173bd5ef1c5a165fe42f08bfddb2e592043403dd11967ab4b3f08725",
     "public/game/hero-rework/boxeGoldLibrary.js": "f283094e1b345b7f3f212649382f4cc2d4c6497abfe12fd7729b567aaddb6d08",
-    "public/game/hero-rework/boxeGoldPresentationRuntime.js": "5f3397105899c22bc5c6a5bebe9e2f72eac770972da615719f59b35aedc225ab"
+    "public/game/hero-rework/boxeGoldPresentationRuntime.js": "df5dc45b66a63055d51325e77f99d023cf94c4454b924eb802ccae2efe0502cc"
   }
 }
