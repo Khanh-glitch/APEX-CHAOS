@@ -6581,7 +6581,29 @@ const r2css=document.createElement('style');r2css.id='r2-presentation-css';r2css
 const _ownerStageStyle=document.createElement('style');_ownerStageStyle.textContent='#arena-experience-tools{display:none!important}';document.head.append(_ownerStageStyle);
 
  for(const id of ['w-hp','w-hp-bar','w-level','w-xp','w-xp-bar','w-wave','w-count','w-arsenal','wave-status','w-title','w-desc','w-cards','w-go','wave-modal'])UI[id]=document.getElementById(id);
- document.getElementById('w-go').onclick=()=>{if(state.phase==='intro'||state.phase==='intermission'){engine.paused=false;UI['wave-modal'].hidden=true;startWave()}else if(state.phase==='complete'){restart()}else if(state.phase==='gameover'){restart()}};
+ // Wave opening waits for complete decoded Arsenal sounds. The player gesture
+ // unlocks Gold's own AudioContext before decoding, never during a gun shot.
+ let waveArming=false;
+ document.getElementById('w-go').onclick=async()=>{
+  if(state.phase==='intro'||state.phase==='intermission'){
+   if(waveArming)return;waveArming=true;
+   const go=UI['w-go'],oldText=go.textContent;
+   go.disabled=true;go.textContent='ARMING · NATIVE ARSENAL SFX';
+   try{
+    await ARMORY.ensureAudio();
+    if(state.phase==='intro'||state.phase==='intermission'){
+     engine.paused=false;UI['wave-modal'].hidden=true;startWave();
+    }
+   }catch(error){
+    console.error('[BOT WAVE] Native SFX admission failed; no silent fallback',error);
+    go.textContent='SFX NOT READY · RETRY';
+    UI['w-desc'].textContent='Không tải được âm thanh vũ khí gốc. Hãy thử lại; BOT WAVE không tự thay bằng tiếng súng giả.';
+   }finally{
+    if(!UI['wave-modal'].hidden&&go.textContent==='ARMING · NATIVE ARSENAL SFX')go.textContent=oldText;
+    go.disabled=false;waveArming=false;
+   }
+  }else if(state.phase==='complete'||state.phase==='gameover')restart();
+ };
  document.getElementById('resume-wave').onclick=()=>{if(state.phase==='combat'){engine.paused=!engine.paused;engine.combatCue('PAUSE',.7);document.getElementById('resume-wave').textContent=engine.paused?'▶ RESUME':'Ⅱ PAUSE';}};
  document.querySelectorAll('[data-act]').forEach(b=>{const a=b.dataset.act;b.addEventListener('pointerdown',e=>{e.preventDefault();engine.initAudio();b.classList.add('on');act(a,true)});b.addEventListener('pointerup',e=>{e.preventDefault();b.classList.remove('on');act(a,false)});b.addEventListener('pointercancel',()=>{b.classList.remove('on');act(a,false)});});
  const stick=document.getElementById('wave-stick');let stickPointer=null;
@@ -6678,7 +6700,8 @@ function chooseCard(id){if(state.phase!=='upgrade'||!state.offer?.some(c=>c.id==
   bossGun,label:plan.title+' · '+plan.chapter,heal:plan.betweenWaveHealFraction,plan};
 }
 function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.phase==='gameover')return;
- ARMORY.ensureAudio();
+ // Sound prewarm is triggered by the real WAVE START gesture above.
+ // Internal testStartWave may skip it because tests are a deterministic fixture.
  state.wave++;state.phase='combat';state.comboFlow=null;state.rocketPending=false;state.stickyEngage=null;state.queue=[];state.spawnT=0;const comp=waveComposition(state.wave);
  state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,boss:e.boss,edge:e.edge,
   edgeFraction:e.edgeFraction,role:e.role}));
