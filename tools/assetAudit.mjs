@@ -27,6 +27,7 @@ import { classifyAudio, AUDIO_DELIVERY_POLICY } from './audioDeliveryPolicy.mjs'
 import { botWaveShippingAssetRefs } from './botWaveShippingAssetRefs.mjs';
 import {
   ARSENAL_PRODUCT_RUNTIMES,
+  BOT_WAVE_SPECIAL_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
   SELECT_RUNTIMES,
   UI_SFX_RUNTIMES,
@@ -80,6 +81,7 @@ for (const file of shellHtmlSources()) {
 const runtimePublicFiles = [
   ...MENU_INTERACTIVE_RUNTIMES,
   ...ARSENAL_PRODUCT_RUNTIMES,
+  ...BOT_WAVE_SPECIAL_RUNTIMES,
   ...SELECT_RUNTIMES,
   ...UI_SFX_RUNTIMES,
 ]
@@ -133,7 +135,13 @@ if (fs.existsSync(waveGoldFile)) {
       throw Error('Gold BOT WAVE missing native Arsenal asset: '+asset);
     }
   }
-  shipText.push({ file:waveGoldFile,text:waveAssets.join(' ') });
+  const game=fs.readFileSync(waveGoldFile,'utf8');
+  const required=BOT_WAVE_SPECIAL_RUNTIMES.map(([url])=>String(url).split(/[?#]/,1)[0]);
+  for(const js of required){
+    if(!game.includes("loadWaveDependency('"+js+"')"))throw Error('BOT_WAVE_GOLD_SCRIPT_NOT_LINKED '+js);
+    if(!fs.existsSync(path.join(PUBLIC,js.slice(1))))throw Error('BOT_WAVE_SCRIPT_MISSING '+js);
+  }
+  shipText.push({ file:waveGoldFile,text:[...waveAssets,...required].join(' ') });
 }
 
 const toolText = toolFiles.map((f) => ({ file: f, text: fs.readFileSync(f, 'utf8') }));

@@ -16,7 +16,14 @@ const root='public';
 for(const asset of refs)assert.ok(fs.existsSync(path.join(root,asset.slice(1))),'Missing native asset '+asset);
 const actual='public/bot-wave/game.html';
 if(fs.existsSync(actual)){
- const all=botWaveShippingAssetRefs(fs.readFileSync(actual,'utf8'));
+ const game=fs.readFileSync(actual,'utf8');
+ const nativeScriptPaths=['/game/arsenal/arsenalConfig.js',
+  '/game/bot-wave/waveCampaign.js','/game/bot-wave/armoryRuntime.js'];
+ for(const js of nativeScriptPaths){
+  assert.ok(game.includes("loadWaveDependency('"+js+"')"),'Gold script not linked '+js);
+  assert.ok(fs.existsSync(path.join(root,js.slice(1))),'Missing Gold script '+js);
+ }
+ const all=botWaveShippingAssetRefs(game);
  assert.ok(all.length>=51,'all 41 sprite dependencies and 10 audio refs required');
  for(const asset of all)assert.ok(fs.existsSync(path.join(root,asset.slice(1))),'Missing runtime asset '+asset);
  console.log('BOT WAVE native armory shipping PASS: '+all.length+' 41-weapon art/SFX dependencies');

@@ -27,6 +27,9 @@ jobs:
           node tools/testBotWaveGameRouteR5.mjs
       - name: Build all asset-backed native equipment
         run: pnpm build
+      - name: Verify dynamic Gold scripts in shipping bundle
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; for(const p of ['game/arsenal/arsenalConfig.js','game/bot-wave/waveCampaign.js','game/bot-wave/armoryRuntime.js'])if(!fs.existsSync('dist/'+p))throw Error('BOT_WAVE_PRUNED_DEPENDENCY '+p)"
       - name: Start integrated product
         shell: bash
         run: |
