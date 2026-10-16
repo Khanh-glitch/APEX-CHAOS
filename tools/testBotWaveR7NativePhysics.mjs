@@ -30,7 +30,11 @@ const plan=fs.readFileSync('public/game/bot-wave/waveCampaign.js','utf8');
 assert.ok(wave.includes('CAMPAIGN.survival.startingHP')&&plan.includes('startingHP:1000')&&plan.includes('baseKillHealFraction:.005'));
 assert.ok(plan.includes('gunDamageScalar:1,gunCadenceScalar:1,gunProjectileSpeedScalar:1'));
 const ui=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js','utf8');
-assert.ok(ui.includes('boxe:1.95,weapons:.36')&&ui.includes('bw-action-art'));
+const home=fs.readFileSync('src/App.jsx','utf8');
+assert.ok(ui.includes('boxe:1.95,weapons:.36')&&!ui.includes('bw-action-art')&&
+ home.includes('class="apex-wave-entry-art"')&&
+ home.includes('/assets/dictionary/heroes/boxe/standing.png'),
+ 'The original BOXE art must belong to Home event entry, not J/K/L/U/I keys');
 const av=fs.readFileSync('public/game/arsenal/arsenalPresentationRuntime.js','utf8');
 assert.ok(av.includes('createDynamicsCompressor')&&av.includes('if(released)return'));
 console.log('PASS BOT WAVE R7 native knockback on five directions, exact HP amount, source Arsenal shells and Gold audio headroom');
