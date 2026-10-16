@@ -85,8 +85,11 @@ function build({engine,config,campaign,cue,rand}){
   const api=aq.weaponApi;
   const weapons=root.APEX_ARSENAL_WEAPONS;
   const av=root.APEX_ARSENAL_AV;
-  if(!api||!weapons||!av||Object.keys(weapons).length!==41)
-   throw Error('NATIVE_WAVE_MISSING_REAL_41_EXECUTORS');
+  const missing=index.allWeaponIds.filter(id=>!weapons?.[id]);
+  if(!api||!weapons||!av||missing.length)
+   throw Error('NATIVE_WAVE_MISSING_EXECUTORS api='+!!api+
+    ' total='+Object.keys(weapons||{}).length+' av='+!!av+
+    ' missing='+missing.join(','));
   native.api=api;native.weapons=weapons;native.av=av;native.ready=true;
   root.avCue=(event,detail={})=>av.cue(event,detail);
   av.preload({audio:false});
