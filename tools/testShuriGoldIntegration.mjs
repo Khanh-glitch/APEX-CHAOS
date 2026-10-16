@@ -62,6 +62,13 @@ assert.match(adapter,/Gold\.doA1/);
 assert.match(adapter,/Gold\.doA2/);
 assert.match(adapter,/Gold\.renderNativeLayer/);
 assert.match(adapter,/Gold\.audioOn/);
+assert.match(bridge,/SHURI Gold renderer unavailable/,'Gold Shell must wait for SHURI art');
+assert.match(bridge,/await gold\.whenReady\(\)/,'Gold Shell must await decoded original sprites');
+assert.match(adapter,/p\.source!==\x27a1\x27/,'A1 must not replay the authored Gold morph twice');
+assert.match(gameplay,/source:\x27a1\x27/,'morph provenance must be delivered by native skill');
+assert.match(adapter,/shuri:bomb-expire[\s\S]*?w\.bomb=null/,'expired bomb cannot fake a stun explosion');
+assert.match(adapter,/registerWorldVisualRenderer/,'world residue must outlive the Fighter draw');
+
 assert.match(adapter,/stunConfirmPending/);
 assert.match(adapter,/\^shot\[1-5\]\$/);
 assert.doesNotMatch(adapter,/\.takeDamage\(|\.applyStatus\(|\.fireBullet\(/);
