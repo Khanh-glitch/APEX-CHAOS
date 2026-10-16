@@ -42,6 +42,7 @@ function setup(start={x:160,y:300,fx:440,fy:300}){
  t.step(.16);
  const initial=t.BX.snapshot(t.ctx);
  assert.equal(initial.rocket.phase,'flurry','rocket must stop at contact');
+ assert.ok(t.foe.__boxeTriggerLockUntil>t.time+1.5,'enhanced A1 trigger lock must cover the combo');
  assert.ok(initial.flurry,'Gold key 1 combo begins at Rocket impact');
  const anchor={x:initial.flurry.x,y:initial.flurry.y};
  t.self.x=900;t.self.y=900; // owner may move normally while gloves stay behind
