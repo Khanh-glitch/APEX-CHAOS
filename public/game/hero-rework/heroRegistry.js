@@ -565,6 +565,16 @@
     archiveProfile:{
       subtitle:'Scrap Engineer',
       intro:'A scrap engineer who recycles spent guns and commands one modular field machine.',
+      artwork:{
+        avatar:'/assets/gold-ui/heroes/shuri/source/core.webp',
+        standing:'/assets/gold-ui/heroes/shuri/source/core.webp',
+        cover:'/assets/gold-ui/heroes/shuri/source/core.webp',
+      },
+      skillArt:{
+        PASSIVE:'/assets/gold-ui/heroes/shuri/source/collector.webp',
+        A1:'/assets/gold-ui/heroes/shuri/source/bomb.webp',
+        A2:'/assets/gold-ui/heroes/shuri/source/foundation.webp',
+      },
       traits:{damage:48,control:67,mobility:82,defense:70,field:98},
     },
     skills:{
