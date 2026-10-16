@@ -47,7 +47,7 @@ export function AbilityWeb({item,legacySkills=[],compact=false}){
  const explanation=item?.registry?.skills?.[current?.slot]?.archiveProfile?.description||legacy?.[2]||'';
  return <section className={'fa4-readout'+(compact?' fa4-compact':'')}>
   <div className="fa3-readout-top"><b>FIGHTER / COMBAT PROFILE</b><span>CANONICAL LV1 · ROLE PROFILE</span></div>
-  <div className="fa4-skill-portraits" role="group" aria-label="Three registered fighter abilities">
+  <div className="fa4-skill-portraits fa4-skill-select" role="group" aria-label="Three registered fighter abilities">
    {skills.map(skill=><button type="button" key={skill.slot}
       className="fa4-skill-portrait" aria-label={skill.slot+' · '+skill.name}
       onClick={()=>setSelected(skill.slot)} aria-pressed={selected===skill.slot}
