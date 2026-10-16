@@ -14,6 +14,23 @@
   const FX_SHOW=Object.freeze({core:true,grip:true,tool:true,collector:true,
     structure:true,bomb:true,dummy:false,fixtures:false});
   const now=()=>AIL.clock();
+  // Browsers require a real gesture before decoding/starting WebAudio.
+  // Bind ONCE for all SHURI instances, not a per-fighter listener.
+  let soundInit=null,gameAudioPrimed=false;
+  function primeSound() {
+    if(soundInit)return soundInit;
+    gameAudioPrimed=true;
+    soundInit=Promise.resolve(Gold.audioOn()).catch(error=>{
+      console.warn('[SHURI GOLD] audio authorization failed',error);
+      return false;
+    });
+    return soundInit;
+  }
+  if(global.document){
+    for(const type of ['pointerdown','keydown','touchstart']){
+      global.addEventListener(type,primeSound,{capture:true,once:true,passive:true});
+    }
+  }
   const isShuri=f=>f?.type?.__hrHero==='SHURI'||f?.__hrCombatant?.heroId==='SHURI';
   const bodyById=(id)=> (global.fighters||[]).find(f=>f&&f.id===id);
   let sprites=null,spriteError=null;
@@ -27,7 +44,8 @@
     w.script=[];w.tasks=[];w.fixtures=[];w.free=true;
     w.dummy.pos.x=-1e6;w.dummy.pos.y=-1e6;
     const t=now();
-    rec={f,w,last:t,audioStarted:false,healLast:0,healing:false};
+    rec={f,w,last:t,audioStarted:false,healLast:0,healing:false,
+      stunConfirmPending:false,healedPending:0};
     live.set(f,rec);
     return rec;
   }
@@ -55,6 +73,9 @@
         // Native Gun Rack uses genuine Arsenal holders. The Gold mock rack
         // MUST NEVER autonomously aim/fire, generate damage or audition shots.
         w.st.mounted=null;w.st.incoming=false;
+        const holder=global.APEX_ARSENAL?.weaponApi?.getHolder?.(st.structure.emitter);
+        if(holder && Number.isFinite(holder.meta?.aimAngle))
+          w.st.headAng.x=holder.meta.aimAngle;
       }
     }
   }
@@ -73,6 +94,7 @@
         break;
       }
       case 'shuri:a1-start':{
+        if(gameAudioPrimed)primeSound();
         visualTarget(w,f);
         Gold.doA1(w); // exact owner Gold charge/place/recoil/machine command
         w.dummy.pos.x=-1e6;w.dummy.pos.y=-1e6;
@@ -83,6 +105,7 @@
         const target=bodyById(p.targetId);
         w.dummy.pos.x=target?.x??-1e6;w.dummy.pos.y=target?.y??-1e6;
         Gold.triggerBomb(w);
+        if(target && p.targetId!=null)rec.stunConfirmPending=true;
         w.dummy.pos.x=-1e6;w.dummy.pos.y=-1e6;
         break;
       }
@@ -148,14 +171,15 @@
     // true Arsenal SFX and realized native heal events own playback instead.
     const queued=rec.w.sfx.filter(e=>!/^shot[1-5]$/.test(e.name)
       && !['empty','rail_charge','heal_start','pump','heal_end','stun_confirm'].includes(e.name));
+    if(rec.stunConfirmPending){
+      queued.push({name:'stun_confirm',t:rec.w.t,
+        x:rec.w.bomb?.pos.x??rec.f.x,y:rec.w.bomb?.pos.y??rec.f.y});
+      rec.stunConfirmPending=false;
+    }
     if(rec.healStartPending){queued.push({name:'heal_start',t:rec.w.t,x:rec.f.x,y:rec.f.y});rec.healStartPending=false;}
     if(rec.pumpPending){queued.push({name:'pump',t:rec.w.t,x:rec.f.x,y:rec.f.y});rec.pumpPending=false;}
     if(rec.healing && t>(rec.healUntil||0)){
       rec.healing=false;queued.push({name:'heal_end',t:rec.w.t,x:rec.f.x,y:rec.f.y});
-    }
-    if(rec.w.sfx.some(e=>e.name==='stun_confirm')){
-      // Native bomb-trigger has a targetId only after a real confirmed stun.
-      // Keep a separate native confirmation cue, not the Gold dummy outcome.
     }
     rec.w.sfx.length=0;
     if(queued.length&&Gold.audioReady())Gold.playBatch(queued,1,rec.f.x);
@@ -189,6 +213,7 @@
     hasSprites:()=>!!sprites,
     status:()=>({ready:!!sprites,error:spriteError,instances:live.size,
       originalGold:true,nativeGameplay:true}),
+    primeSound,
     clear:()=>{for(const r of live.values())r.w.sfx.length=0;live.clear();Gold.clearAudio();},
     dispose:()=>{off();live.clear();Gold.clearAudio();},
   });
