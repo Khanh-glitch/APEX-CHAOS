@@ -132,11 +132,22 @@ jobs:
           const game=fs.readFileSync('dist/bot-wave/game.html','utf8');
           const proof=JSON.parse(fs.readFileSync('docs/boxe/BOT_WAVE_R5_EXTERNAL_ASSETS_PROOF.json','utf8'));
           const sha=crypto.createHash('sha256').update(game).digest('hex');
-          assert.equal(sha,proof.externalized_sha256,'Gold wave executable bytes drifted');
+          const source=fs.readFileSync('public/bot-wave/game.html','utf8');
+          assert.equal(sha,crypto.createHash('sha256').update(source).digest('hex'),
+            'Shipping executable differs from this exact reviewed source');
+          // R5's full-file hash is a historical receipt, not the hash of R7:
+          // the Wave adapter is intentionally modified. KEEP source-locked
+          // Gold core and owner images byte-identical, however.
+          const start=game.indexOf('const modules=');
+          const end=game.indexOf('/* BOXE BOT WAVE pilot',start);
+          assert.ok(start>0&&end>start,'Missing immutable Gold boundary');
+          const core=game.slice(start,end);
+          assert.equal(core.length,proof.owner_gold_core_chars,'Original BOXE Gold core length drift');
+          assert.equal(crypto.createHash('sha256').update(core).digest('hex'),
+            proof.owner_gold_core_sha256,'Original BOXE Gold visual/audio core changed');
           const refs=botWaveShippingAssetRefs(game);
           assert.ok(refs.length>=15,'BOT WAVE Arsenal gun and SFX dependencies must be present');
           for(const asset of refs)assert.ok(fs.existsSync('dist'+asset), 'Missing shipping dependency '+asset);
-          assert.equal(proof.externalized_sha256,sha,'Release proof and runtime disagree');
           assert.equal(proof.substitutions.length,10,'Gold sprite list incomplete');
           for(const sprite of proof.substitutions){
             const asset='dist/assets/boxe-gold/'+sprite.file;
