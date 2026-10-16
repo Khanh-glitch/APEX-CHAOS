@@ -23,6 +23,7 @@ const cfg={
  GUN_REGISTRY:[{id:'PISTOL'},{id:'SNIPER'}],
  MELEE_WEAPON_IDS:['DAGGER','SABRE','BATTLE_AXE','SPEAR','SPIKED_CLUB'],
  THROWN_MELEE:{},
+ isHeroManipulablePickup(slot){return !slot?.heroInteractionImmune && slot?.weaponId!=='STORMBREAKER';},
  STORMBREAKER:{throwSpeed:1350},
 };
 const context={window:{APEX_ARSENAL_CONFIG:cfg},console,Math,Object,Array};
