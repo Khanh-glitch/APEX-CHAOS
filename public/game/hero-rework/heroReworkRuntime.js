@@ -473,7 +473,7 @@
       },
 
       /* world entities ------------------------------------------------ */
-      nearestFreeWorldCircle: (x,y,r) => nearestFreeWorldCircle(x,y,r),
+      nearestFreeWorldCircle: (x,y,r,opts) => nearestFreeWorldCircle(x,y,r,opts),
       spawnWall(o) {
         // Unified world-solid record: the existing capsule is the default.
         // A zero-length capsule is a physically accurate circle with the
@@ -2236,7 +2236,7 @@
   // Deterministic shared world placement query. Uses the SAME collision
   // capsules and living arena bodies as ordinary movement, never a special
   // SHURI placement map. No displacement if the anchor is already legal.
-  function nearestFreeWorldCircle(x, y, radius) {
+  function nearestFreeWorldCircle(x, y, radius, options={}) {
     if(!M||!Number.isFinite(x)||!Number.isFinite(y))return null;
     const S=globalScope.GAME_SIZE||1000;
     const r=Math.max(1,Number(radius)||75);
@@ -2248,6 +2248,10 @@
         if(pointToSegmentDist(px,py,c.ax,c.ay,c.bx,c.by)<r+c.r)return false;
       }
       for(const b of bodies){
+        // Placement at the caster's own anchor is valid. The normal world
+        // solid resolver, not a hero-specific teleport, owns subsequent
+        // overlap separation. Other fighters remain genuine blockers.
+        if(b===options.excludeBody)continue;
         if(b&&b.hp>0&&Math.hypot(px-b.x,py-b.y)<r+(b.radius||75))return false;
       }
       return true;
