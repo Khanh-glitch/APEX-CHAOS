@@ -120,6 +120,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
   ['/game/hero-rework/boxeBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeBattle'],
+  ['/game/hero-rework/shuriBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriBattle'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
@@ -172,6 +173,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
 // fighters pay hero-specific evaluation cost. Filtering instead of concatenating
 // sub-groups preserves every historical dependency edge and script order.
 export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
+  shuri: Object.freeze(['/game/hero-rework/shuriBattleRuntime.js']),
   boxe: Object.freeze([
     '/game/hero-rework/boxeGoldLibrary.js',
     '/game/hero-rework/boxeGoldPresentationRuntime.js',
@@ -212,6 +214,7 @@ const CORE_SIX_RUNTIME_KEY_ALIASES = Object.freeze({
   frost: 'frost', ice: 'frost',
   mirror: 'mirror',
   boxe: 'boxe',
+  shuri: 'shuri',
 });
 const BATTLE_RUNTIME_OWNER_BY_PATH = new Map();
 for (const [hero, paths] of Object.entries(CORE_SIX_BATTLE_RUNTIME_PATHS)) {
