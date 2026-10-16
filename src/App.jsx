@@ -982,7 +982,7 @@ export default function App() {
     const entry=document.createElement('button');
     entry.id='botWaveEntry';entry.type='button';entry.className='apex-special-wave-emblem';
     entry.setAttribute('aria-label','BOT WAVE — chế độ sinh tồn đặc biệt');
-    entry.innerHTML='<span class="apex-special-wave-top"><svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M15 2 27 9v12l-12 7L3 21V9L15 2Z"/><path d="m8 18 4-6 4 4 6-8m-8 12 3-3"/></svg><span>SPECIAL EVENT <i></i></span></span><strong>BOT WAVE</strong><small>BOXE · ARSENAL SURVIVAL</small>';
+    entry.innerHTML='<span class="apex-wave-entry-art" aria-hidden="true"><img src="/assets/dictionary/heroes/boxe/standing.png" alt="" decoding="async" draggable="false"></span><span class="apex-wave-entry-copy"><span class="apex-special-wave-top">SPECIAL EVENT <i></i></span><strong>BOT WAVE</strong><small>BOXE · ARSENAL SURVIVAL</small></span>';
     const onClick=async ()=>{
       if(window.APEX_SCENE_TRANSITION?.active?.())return;
       entry.disabled=true;
