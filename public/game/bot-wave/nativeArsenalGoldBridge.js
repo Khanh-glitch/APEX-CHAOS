@@ -85,7 +85,7 @@ function build({engine,config,campaign,cue,rand}){
   const api=aq.weaponApi;
   const weapons=root.APEX_ARSENAL_WEAPONS;
   const av=root.APEX_ARSENAL_AV;
-  const missing=index.allWeaponIds.filter(id=>!weapons?.[id]);
+  const missing=campaign.indexNative(config).allWeaponIds.filter(id=>!weapons?.[id]);
   if(!api||!weapons||!av||missing.length)
    throw Error('NATIVE_WAVE_MISSING_EXECUTORS api='+!!api+
     ' total='+Object.keys(weapons||{}).length+' av='+!!av+
