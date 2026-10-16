@@ -40,8 +40,9 @@ assert.equal(ctrl.flurryFighterHit({collisionId:'flurry-1',opponentId:'FROST'},3
 assert.equal(has('arena:stun-request').find(x=>x.source==='A1-FLURRY').durationMs,70);
 assert.equal(has('boxe:flurry-start')[0].periodMs,85);
 assert.equal(has('boxe:flurry-start')[0].bodyDash,false);
-// First Gold launch is immediate. 2.000s / 85ms with 50ms impact clearance
-// => precisely 23 legally hittable attacks. Catch can never cancel flurry.
+// The source Gold 2s jab window authorizes 24 beats at 85ms intervals.
+ // The 24th impact settles 5ms after the 2s launch window; natural end
+ // waits through that impact, whereas manual recall cancels immediately.
 assert.equal(has('boxe:flurry-punch-scheduled').length,1);
 const singlePunch=has('boxe:flurry-punch-scheduled')[0];
 assert.equal(singlePunch.atMs,3102);
@@ -53,23 +54,49 @@ assert.equal(ctrl.snapshot().rocket.cargoId,null,'pending request is not a succe
 assert.equal(ctrl.resolveGroundGunReservation({gunId:'PISTOL',accepted:true},3108),true);
 assert.equal(ctrl.snapshot().rocket.cargoId,'PISTOL');
 ctrl.setWeaponFireCycle(true,3109);
-ctrl.advance(5299);assert.equal(ctrl.snapshot().rocket.phase,'outbound');
+ctrl.advance(5299);assert.equal(ctrl.snapshot().rocket.phase,'returning',
+ 'both gloves automatically recall when the complete Gold flurry ends');
 const punches=has('boxe:flurry-punch-scheduled');
-assert.equal(punches.length,23,'Flurry exact Gold timeline has 23 complete punches in 2s');
+assert.equal(punches.length,24,'all 24 Gold jab launches are preserved');
 for(let i=0;i<punches.length;i++){
  assert.equal(punches[i].atMs,3102+i*85);
  assert.equal(punches[i].impactAtMs,punches[i].atMs+50);
- assert.ok(punches[i].impactAtMs<=5102);
+ assert.ok(punches[i].impactAtMs<=5157,'final impact may settle 5ms after launch window');
 }
 assert.equal(has('boxe:flurry-finished').length,1);
-assert.equal(has('boxe:flurry-finished')[0].punchCount,23); // cast 300 + 5000
+assert.equal(has('boxe:flurry-finished')[0].punchCount,24);
+assert.equal(has('boxe:flurry-finished')[0].reason,'completed');
 ctrl.advance(5300);assert.equal(ctrl.snapshot().rocket.phase,'returning');
 assert.equal(ctrl.rocketCatch(5400),true);
-assert.equal(ctrl.snapshot().cooldowns.A1,15000,'cooldown begins only on physical catch');
+assert.equal(ctrl.snapshot().rocket.phase,'caught','first glove alone cannot close A1');
+assert.equal(ctrl.snapshot().cooldowns.A1,0,'still waiting on second glove');
+assert.equal(ctrl.secondaryCatch(5400),true);
+assert.equal(ctrl.snapshot().cooldowns.A1,15000,'cooldown begins after BOTH physical catches');
 assert.equal(has('arena:equip-queued-gun-request').length,0);
 ctrl.setWeaponFireCycle(false,5401);
 assert.equal(has('arena:equip-queued-gun-request').length,1);
 assert.equal(has('arena:equip-queued-gun-request')[0].gunId,'PISTOL');
+// Explicit owner cancel sacrifices future Gold strikes for earlier A2 access.
+const manualEvents=[],manual=createBoxeBattleController({emit:x=>manualEvents.push(x)});
+manual.recordRealDamage({direction:'incoming',realizedHp:300,source:'opponent'},0);
+assert.equal(manual.castA1(1),true);
+assert.equal(manual.rocketFighterHit({collisionId:'enhanced-contact',opponentId:'ROBOT'},100),true);
+manual.advance(440);
+const emittedBefore=manualEvents.filter(x=>x.type==='boxe:flurry-punch-scheduled').length;
+assert.ok(emittedBefore>0&&emittedBefore<24);
+assert.equal(manual.recallA1(441),true);
+assert.equal(manual.snapshot().flurry,null);
+assert.equal(manual.snapshot().rocket.phase,'returning');
+assert.equal(manual.snapshot().secondary.phase,'returning');
+manual.advance(1000);
+assert.equal(manualEvents.filter(x=>x.type==='boxe:flurry-punch-scheduled').length,emittedBefore,
+ 'manual A1 cannot keep authorizing cancelled jabs');
+assert.equal(manual.rocketCatch(1001),true);
+assert.equal(manual.snapshot().cooldowns.A1,0,'A2 still locked until both gloves return');
+assert.equal(manual.castA2(1001),false);
+assert.equal(manual.secondaryCatch(1001),true);
+assert.equal(manual.snapshot().cooldowns.A1,15000);
+assert.equal(manual.castA2(1001),true,'ready A2 is accessible after both gloves return');
 assert.ok(has('boxe:gold-rocket-catch')[0].physicalRecoil);
 // Rejected floor pickup must not fabricate ownership or delayed Equip.
 const earlyEvents=[],early=createBoxeBattleController({emit:x=>earlyEvents.push(x)});
