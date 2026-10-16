@@ -19,11 +19,19 @@ iframe{width:100%;height:100%;border:0;display:block}
  frame.addEventListener('load',()=>{
   const doc=frame.contentDocument;if(!doc)return;
   const attach=()=>{
-   if(!doc.getElementById('wave-hud'))return false;
-   if(!doc.getElementById('apex-wave-premium-styles')){
+   // Install only AFTER Gold's authored presentation HUD & R2 pipeline have
+   // booted. Thus both structural redesign and CSS are last in cascade.
+   if(!doc.getElementById('wave-hud')||!doc.getElementById('arena-experience-hud'))return false;
+   if(!doc.getElementById('bw-v2-styles')){
     const sheet=doc.createElement('link');sheet.rel='stylesheet';
-    sheet.id='apex-wave-premium-styles';
-    sheet.href='/game/bot-wave/botWaveHudGold.css';doc.head.append(sheet);
+    sheet.id='bw-v2-styles';sheet.href='/game/bot-wave/botWavePresentationV2.css';
+    doc.head.append(sheet);
+   }
+   if(!doc.getElementById('bw-v2-script')){
+    const script=doc.createElement('script');
+    script.id='bw-v2-script';script.src='/game/bot-wave/botWavePresentationV2.js';
+    script.onerror=()=>console.error('[BOT WAVE] cinematic HUD failed to load');
+    doc.head.append(script);
    }
    return true;
   };

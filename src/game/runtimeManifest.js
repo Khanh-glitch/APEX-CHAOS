@@ -50,6 +50,12 @@ export const BOT_WAVE_SPECIAL_RUNTIMES = Object.freeze([
   ['/game/bot-wave/armoryRuntime.js?v=wave41-cp3', 'apexBotWaveArmory'],
 ]);
 
+// BOT WAVE presentation is independently booted inside the Gold iframe,
+// never run as a parallel menu UI or a second Gold character engine.
+export const BOT_WAVE_PRESENTATION_RUNTIMES = Object.freeze([
+  ['/game/bot-wave/botWavePresentationV2.js?v=reject-r2', 'apexBotWavePresentationV2'],
+]);
+
 // Current-neutral combat services shared by Arsenal and the generic engine.
 export const CURRENT_COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],

@@ -72,6 +72,21 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
     }));
     throw Error('WAVE_GAME_NOT_BOOTED '+JSON.stringify({diag,errors,consoleIssues},null,2)+'\n'+error);
    });
+   // Owner reject R2 admission: prove entirely new structural HUD and
+   // artwork-led chapter modal, not just a cosmetic CSS over old Gold rectangles.
+   await gameFrame.waitForSelector('#bw-interface-v2',{visible:true,timeout:20000});
+   await gameFrame.waitForSelector('.bw-cover-art',{timeout:20000});
+   const interfaceRead=await gameFrame.evaluate(()=>({
+     standalone:document.querySelector('#wave-hud .bw-command-deck')?.id==='bw-interface-v2',
+     hero:!!document.querySelector('.bw-hero .bw-portrait'),
+     fiveBeats:document.querySelectorAll('#bw-beat-markers i').length,
+     modalArt:!!document.querySelector('.w-dialog > .bw-cover img'),
+     controls:document.querySelectorAll('.bw-skill-deck .w-action').length,
+     debugHidden:getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
+   }));
+   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.modalArt&&interfaceRead.debugHidden
+       &&interfaceRead.fiveBeats===5&&interfaceRead.controls===5,
+      'Owner Gold HUD not rebuilt '+JSON.stringify(interfaceRead));
    await gameFrame.click('#w-go');
    await page.waitForFunction(()=>{
      const frame=document.querySelector('#wave')?.contentWindow;
