@@ -11,6 +11,9 @@ assert.ok(!bridge.includes('shot(e,g,'),'Independent re-authored shot executor n
 assert.ok(!bridge.includes('recordToGun'),'Per-mode gun spec rewrite is forbidden');
 assert.ok(!bridge.includes('setInterval('),'No independent shooting clock');
 assert.ok(bridge.includes("backend:'FREE_BATTLE_NATIVE'"));
+assert.ok(bridge.includes('projectile.life-=dt'),'Gold must advance canonical Arsenal projectile life once per tick');
+assert.ok(bridge.includes('native.api.updateArsenalProjectiles(dt'),'Collision ownership must remain with Arsenal runtime');
+assert.ok(!bridge.includes('engine.projs.splice('),'No fake projectile lifecycle allowed');
 assert.ok(gold.includes('APEX_BOT_WAVE_NATIVE_BRIDGE'),'Gold wave must load actual native bridge');
 assert.ok(!gold.includes('APEX_BOT_WAVE_ARMORY.createArmory'),
  'Deprecated fake Armory must never drive Gold');

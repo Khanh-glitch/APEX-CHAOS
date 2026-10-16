@@ -147,7 +147,19 @@ function build({engine,config,campaign,cue,rand}){
   if(!native.ready)return;
   // Native sweep/physics handles every actual aq_bullet, grenade, thrown
   // melee and V4.3 carrier. It never creates Gold 'orb' projectiles.
+  // In Free Battle the outer engine decrements global projectile lifetimes
+  // BEFORE the native Arsenal collision driver runs. Gold's Engine has its
+  // OWN projectile array, so this single adapter must perform that SAME
+  // pre-step exactly once for all aq_* carriers (including V43 burn/mine).
+  for(const projectile of root.projectiles){
+   if(projectile?.aq&&Number.isFinite(projectile.life))projectile.life-=dt;
+  }
   native.api.updateArsenalProjectiles(dt,'all');
+  // The native driver may set life=0 on impact; remove its spent bullets.
+  for(let i=root.projectiles.length-1;i>=0;i--){
+   const projectile=root.projectiles[i];
+   if(projectile?.aq&&projectile.life<=0)root.projectiles.splice(i,1);
+  }
   native.api.tickVisuals(dt);
   native.av.tick(dt);
  }
