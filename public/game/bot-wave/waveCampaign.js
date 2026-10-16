@@ -57,8 +57,13 @@ function planWave(nativeConfig,wave,{seed=41}={}){
  // on wave 1. Every newly unlocked weapon is GUARANTEED an actual carrier
  // slot in its reveal wave, not merely a name in the director catalogue.
  // All 41 physically encounterable weapons have debuted by wave 31.
- const revealed=Math.min(catalog.ordered.length,Math.max(1,Math.floor((wave-1)*1.36)+1));
- const previous=wave===1?0:Math.min(catalog.ordered.length,Math.max(1,Math.floor((wave-2)*1.36)+1));
+ // Teach mechanics one by one before blending fire with explosive denial.
+ // Wave 5 consolidates with a boss. The other 36 identities then debut over
+ // the following 26 waves; all 41 are encountered by wave 32.
+ const revealed=Math.min(catalog.ordered.length,wave<=5?Math.min(4,wave):
+   5+Math.floor((wave-6)*36/26));
+ const previous=wave===1?0:Math.min(catalog.ordered.length,wave<=6?
+   Math.min(4,wave-1):5+Math.floor((wave-7)*36/26));
  const newly=catalog.ordered.slice(previous,revealed);
  const available=catalog.ordered.slice(0,revealed);
  const featured=wave===1?catalog.byId.get('PISTOL'):newly.length?newly[Math.floor(rand()*newly.length)]:
