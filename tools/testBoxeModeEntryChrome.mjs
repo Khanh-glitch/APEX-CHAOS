@@ -92,7 +92,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    const checks=await page.evaluate(async paths=>Promise.all(paths.map(async path=>{
     const response=await fetch(path,{method:'HEAD'});
     const mime=response.headers.get('content-type')||'';
-    return {path,ok:response.ok,correctMime:path.endsWith('.png')?mime.includes('image/'):
+    return {path,ok:response.ok,correctMime:/\.(?:png|webp)$/.test(path)?mime.includes('image/'):
       (mime.includes('audio/')||mime.includes('mpeg')||mime.includes('ogg'))};
    })),refs);
    assert.ok(checks.every(x=>x.ok&&x.correctMime),'Arsenal gun/sound delivery error '+JSON.stringify(checks.filter(x=>!x.ok||!x.correctMime)));
