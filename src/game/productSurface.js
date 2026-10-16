@@ -37,7 +37,7 @@ function surface(id, title, availability, detail, extra = {}) {
 const PUBLIC_SURFACES = Object.freeze([
   surface('bot-battle', 'Bot Battle', ACTIVE, 'Choose a fighter and face the accepted Arsenal CPU.', { route: 'bot' }),
   surface('local-1v1', 'Local 1v1', ACTIVE, 'Choose two owned Core Six fighters and launch Arsenal Battle.', { route: 'local' }),
-  surface('bot-wave', 'BOT WAVE · BOXE PREVIEW', ACTIVE, 'Ten wave Arsenal survival featuring BOXE with owner Gold animation and active gun sprites.', { route: 'wave', preview: true }),
+  surface('bot-wave', 'BOT WAVE · BOXE', ACTIVE, 'Standalone Home special mode: ten authored waves, owner Gold BOXE art and live Arsenal armory.', { route: 'wave', special: true }),
   surface('cosmetic-locker', 'Cosmetic Locker', ACTIVE, 'Choose original or registered Fighter and Weapon skin presentations per player.', { route: 'skins' }),
   // DOUBLE_AUDIT_2026-10-04: Fighter Shop conflicts with the Gold product
   // direction for this cutover, so it is a LIGHTLY LOCKED extension point —

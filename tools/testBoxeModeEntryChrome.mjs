@@ -18,17 +18,17 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
   await page.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
   await page.click('#apex-boot-start');
   await page.waitForFunction(()=>!document.getElementById('apex-boot-start')&&!window.APEX_SCENE_TRANSITION?.active?.(),{timeout:90000});
+  // Independent special-mode icon is visible on HOME; never appear as a
+  // third Free Battle card or require a visit to MODE SELECT.
   await page.waitForSelector('#botWaveEntry',{timeout:30000});
-  // The legitimate product control must be mounted WITHOUT mutating the
-  // Gold shell source (CP16 checks the immutable bytes).
-  await page.$eval('#freeBattle',el=>el.click());
-  await page.waitForSelector('#modeSelectScreen[aria-hidden="false"]',{timeout:15000}).catch(()=>{});
   await page.waitForFunction(()=>{
-    const el=document.getElementById('botWaveEntry');
-    if(!el)return false;const r=el.getBoundingClientRect(),s=getComputedStyle(el);
-    return r.width>100&&r.height>35&&s.display!=='none'&&s.visibility!=='hidden';
+    const el=document.getElementById('botWaveEntry'),stage=document.getElementById('stage');
+    if(!el||!stage?.querySelector('.routes')?.contains(el))return false;
+    if(document.querySelector('#modeSelectScreen #botWaveEntry'))return false;
+    const r=el.getBoundingClientRect(),s=getComputedStyle(el);
+    return r.width>18&&r.height>18&&s.display!=='none'&&s.visibility!=='hidden';
   },{timeout:20000});
-  await page.screenshot({path:path.join(output,view.name+'-mode-entry.png')});
+  await page.screenshot({path:path.join(output,view.name+'-home-special-icon.png')});
   await page.$eval('#botWaveEntry',el=>el.click());
   await page.waitForFunction(()=>location.pathname==='/bot-wave/index.html',{timeout:30000});
   await page.waitForSelector('#wave',{timeout:10000});

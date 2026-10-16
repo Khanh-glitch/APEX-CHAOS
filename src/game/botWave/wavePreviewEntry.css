@@ -1,7 +1,18 @@
-/* BOXE preview extension; Gold shell SHA stays unchanged. */
-#modeSelectScreen .apex-wave-mode-entry{flex-shrink:0;margin:10px 0 2px;min-height:67px;width:100%;padding:8px 17px;text-align:left;display:flex;flex-direction:column;gap:2px;background:linear-gradient(110deg,#1d2427,#3c2a23);border:1px solid #bd834a;border-left:5px solid #f4a247;color:#f0d2a8;cursor:pointer;box-shadow:0 0 22px #d18c2417}
-#modeSelectScreen .apex-wave-mode-entry span{font:850 9px ui-monospace,monospace;letter-spacing:.16em;color:#e9ae6f}
-#modeSelectScreen .apex-wave-mode-entry strong{font:900 clamp(16px,1.55vw,23px) system-ui,sans-serif;letter-spacing:.065em}
-#modeSelectScreen .apex-wave-mode-entry small{font:700 10px system-ui,sans-serif;letter-spacing:.08em;color:#cfc0a8}
-#modeSelectScreen .apex-wave-mode-entry:hover,#modeSelectScreen .apex-wave-mode-entry:focus-visible{outline:2px solid #efb160;outline-offset:2px;background:linear-gradient(100deg,#293335,#583b2b)}
-@media(max-height:720px){#modeSelectScreen .apex-wave-mode-entry{min-height:50px;margin:5px 0 2px;padding:5px 12px}#modeSelectScreen .apex-wave-mode-entry strong{font-size:15px}#modeSelectScreen .apex-wave-mode-entry span,#modeSelectScreen .apex-wave-mode-entry small{font-size:8px}}
+/* W1 — special-mode Home route, preserving the SHA-locked Gold shell.
+ * Mirrors the native HUD/nav hitbox and typography rather than an extra mode card. */
+#stage .routes #botWaveEntry{position:relative;flex-shrink:0;color:#ffd6a1;
+ background:linear-gradient(142deg,rgba(55,29,21,.90),rgba(27,19,17,.91));
+ border:1px solid rgba(255,170,84,.54);box-shadow:inset 0 0 0 1px rgba(255,206,130,.09),0 0 19px rgba(240,121,42,.19);
+ transition:background .18s,border .18s,box-shadow .18s,transform .18s}
+#stage .routes #botWaveEntry svg{color:#ffb261;filter:drop-shadow(0 0 4px #fb852c77)}
+#stage .routes #botWaveEntry span{color:#ffe3b5}
+#stage .routes #botWaveEntry:hover,#stage .routes #botWaveEntry:focus-visible{
+ background:linear-gradient(140deg,rgba(106,52,25,.96),rgba(45,23,21,.96));
+ border-color:#ffca7a;outline:2px solid #f4aa61;outline-offset:2px;
+ box-shadow:inset 0 0 0 1px #ffcb9a44,0 0 30px #e8743766;
+ transform:translateY(-2px)}
+#stage.screen-mode .routes #botWaveEntry,#stage.screen-fighter .routes #botWaveEntry{
+ visibility:hidden!important;pointer-events:none!important}
+@media (prefers-reduced-motion:reduce){
+ #stage .routes #botWaveEntry{transition:none}
+ #stage .routes #botWaveEntry:hover{transform:none}}
