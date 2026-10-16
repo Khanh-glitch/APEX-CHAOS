@@ -20,7 +20,10 @@ const actual='public/bot-wave/game.html';
 if(fs.existsSync(actual)){
  const game=fs.readFileSync(actual,'utf8');
  const nativeScriptPaths=['/game/arsenal/arsenalConfig.js',
-  '/game/bot-wave/waveCampaign.js','/game/bot-wave/armoryRuntime.js'];
+  '/game/bot-wave/waveCampaign.js','/game/bot-wave/nativeArsenalGoldBridge.js',
+  '/game/arsenal/arsenalCWeaponSet.generated.js',
+  '/game/arsenal/arsenalPresentationRuntime.js',
+  '/game/arsenal/arsenalWeaponRuntime.js'];
  for(const js of nativeScriptPaths){
   assert.ok(game.includes("loadWaveDependency('"+js+"')"),'Gold script not linked '+js);
   assert.ok(fs.existsSync(path.join(root,js.slice(1))),'Missing Gold script '+js);
