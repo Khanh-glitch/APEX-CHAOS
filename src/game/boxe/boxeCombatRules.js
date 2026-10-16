@@ -12,7 +12,7 @@ export function boxeSkillDamage({kind,targetRemainingHP=0}={}){
 export function createBoxeBattleController({emit=()=>{}}={}){
  const state={
   now:0,damageProgress:0,enhancedUntil:0,enhanced:false,
-  cooldowns:{A1:0,A2:0},rocket:null,flurry:null,counter:null,
+  cooldowns:{A1:0,A2:0},rocket:null,secondary:null,flurry:null,counter:null,
   carryQueue:null,fireCycleActive:false
  };
  function dispatch(type,payload={}){emit({type,now:state.now,...payload});}
@@ -29,7 +29,7 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   for(const k of ['A1','A2'])state.cooldowns[k]=Math.max(0,state.cooldowns[k]-recovered);
   state.now=now;
   if(state.enhanced&&now>=state.enhancedUntil)expireEnhance();
-  if(state.rocket?.phase==='outbound'&&now>=state.rocket.returnAt){
+  if(state.rocket?.phase==='outbound'&&!state.flurry&&now>=state.rocket.returnAt){
    state.rocket.phase='returning';dispatch('boxe:rocket-return-phase',{goldKey:'2',carryId:state.rocket.cargoId});
   }
   if(state.counter?.phase==='guard'&&now>=state.counter.expiresAt){
@@ -39,17 +39,13 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   // their exact scheduled time even when one engine frame spans many ticks.
   const f=state.flurry;
   if(f){
-   while(f.nextLaunchAt+50<=f.endingAt&&f.nextLaunchAt<=now){
+   while(f.punchCount<24&&f.nextLaunchAt<f.endingAt&&f.nextLaunchAt<=now){
     dispatch('boxe:flurry-punch-scheduled',{goldKey:'1',punchIndex:f.punchCount++,atMs:f.nextLaunchAt,
      impactAtMs:f.nextLaunchAt+50,periodMs:85,bodyDash:false,damage:0});
     f.nextLaunchAt+=85;
    }
-   if(now>=f.endingAt){
-    dispatch('boxe:flurry-finished',{goldKey:'1',atMs:f.endingAt,punchCount:f.punchCount});
-    state.flurry=null;
-    if(state.rocket?.recallRequested&&state.rocket.phase==='outbound'){
-      state.rocket.phase='returning';dispatch('boxe:rocket-return-phase',{goldKey:'2',early:true});
-    }
+   if(now>=f.endingAt+55){
+    endFlurry('completed');
    }
   }
  }
@@ -75,11 +71,25 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   dispatch('boxe:rocket-launch',{goldKey:'2',durationMs:RULES.a1.outboundMs,enhanced:state.enhanced,damage:0});
   return true;
  }
+ function endFlurry(reason){
+  const f=state.flurry;if(!f)return false;
+  state.flurry=null;
+  dispatch('boxe:flurry-finished',{goldKey:'1',atMs:state.now,
+   punchCount:f.punchCount,reason,cancelled:reason==='manual-recall'});
+  if(state.secondary)state.secondary.phase='returning';
+  if(state.rocket&&state.rocket.phase!=='returning'&&state.rocket.phase!=='caught'){
+   state.rocket.phase='returning';
+   dispatch('boxe:rocket-return-phase',{goldKey:'2',early:reason==='manual-recall',
+    carryId:state.rocket.cargoId});
+  }
+  return true;
+ }
  function recallA1(now){
   advance(now);const r=state.rocket;
-  if(!r||r.phase==='returning')return false;
+  if(!r)return false;
+  if(state.flurry)return endFlurry('manual-recall');
+  if(r.phase==='returning'||r.phase==='caught')return false;
   r.recallRequested=true;
-  if(state.flurry)return true;
   r.phase='returning';dispatch('boxe:rocket-return-phase',{goldKey:'2',early:true,carryId:r.cargoId});
   return true;
  }
@@ -98,6 +108,7 @@ export function createBoxeBattleController({emit=()=>{}}={}){
    r.flurryUsed=true;
    state.flurry={startedAt:now,endingAt:now+RULES.a1.enhanced.durationMs,
     nextLaunchAt:now,punchCount:0,hitIds:new Set()};
+   state.secondary={phase:'approach'};
    dispatch('boxe:flurry-start',{goldKey:'1',durationMs:2000,periodMs:85,bodyDash:false});
    // Immediate first launch belongs to the same exact clock tick.
    advance(now);
@@ -130,6 +141,12 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   r.cargoId=gunId;
   dispatch('boxe:ground-gun-reservation-confirmed',{gunId});return true;
  }
+ function finishBothCatches(){
+  state.rocket=null;
+  state.cooldowns.A1=RULES.a1.cooldownMs;
+  dispatch('boxe:rocket-cooldown-started',{durationMs:RULES.a1.cooldownMs});
+  if(state.carryQueue&&!state.fireCycleActive)flushWeaponQueue();
+ }
  function rocketCatch(now){
   advance(now);const r=state.rocket;
   if(!r||r.phase!=='returning')return false;
@@ -138,10 +155,16 @@ export function createBoxeBattleController({emit=()=>{}}={}){
    state.carryQueue=r.cargoId;
    dispatch('arena:weapon-transfer-on-catch-request',{gunId:r.cargoId,afterActiveFire:state.fireCycleActive});
   }
-  state.rocket=null;
-  state.cooldowns.A1=RULES.a1.cooldownMs;
-  dispatch('boxe:rocket-cooldown-started',{durationMs:RULES.a1.cooldownMs});
-  if(state.carryQueue&&!state.fireCycleActive)flushWeaponQueue();
+  r.phase='caught';
+  if(!state.secondary)finishBothCatches();
+  return true;
+ }
+ function secondaryCatch(now){
+  advance(now);
+  if(!state.secondary||state.secondary.phase!=='returning')return false;
+  state.secondary=null;
+  dispatch('boxe:secondary-catch',{goldKey:'1'});
+  if(state.rocket?.phase==='caught')finishBothCatches();
   return true;
  }
  function setWeaponFireCycle(active,now){
@@ -188,9 +211,11 @@ export function createBoxeBattleController({emit=()=>{}}={}){
   now:state.now,damageProgress:state.damageProgress,enhanced:state.enhanced,
   enhancedUntil:state.enhancedUntil,cooldowns:{...state.cooldowns},
   rocket:state.rocket?{phase:state.rocket.phase,returnAt:state.rocket.returnAt,cargoId:state.rocket.cargoId,pendingCargoId:state.rocket.pendingCargoId,flurryUsed:state.rocket.flurryUsed}:null,
+  secondary:state.secondary?{...state.secondary}:null,
   flurry:state.flurry?{startedAt:state.flurry.startedAt,endingAt:state.flurry.endingAt,punchCount:state.flurry.punchCount}:null,
   counterPhase:state.counter?.phase||null,carryQueue:state.carryQueue,fireCycleActive:state.fireCycleActive
  };}
  return {advance,recordRealDamage,castA1,recallA1,rocketFighterHit,flurryFighterHit,rocketGroundGunContact,
-  resolveGroundGunReservation,rocketCatch,setWeaponFireCycle,castA2,interceptIncoming,counterContact,snapshot};
+  resolveGroundGunReservation,rocketCatch,secondaryCatch,setWeaponFireCycle,
+  castA2,interceptIncoming,counterContact,snapshot};
 }
