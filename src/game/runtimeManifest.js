@@ -152,6 +152,8 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/heroReworkRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRuntime'],
   ['/game/hero-rework/boxeGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldLibrary'],
   ['/game/hero-rework/boxeGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldPresentationRuntime'],
+  ['/game/hero-rework/shuriGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldLibrary'],
+  ['/game/hero-rework/shuriGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldPresentationRuntime'],
   ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&cp8Socket=vua-he-held', 'apexRobotPresentationRuntime'],
   ['/game/hero-rework/hunterGoldV10.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterGoldV10'],
   ['/game/hero-rework/hunterPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterPresentationRuntime'],
@@ -173,7 +175,9 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
 // fighters pay hero-specific evaluation cost. Filtering instead of concatenating
 // sub-groups preserves every historical dependency edge and script order.
 export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
-  shuri: Object.freeze(['/game/hero-rework/shuriBattleRuntime.js']),
+  shuri: Object.freeze(['/game/hero-rework/shuriBattleRuntime.js',
+    '/game/hero-rework/shuriGoldLibrary.js',
+    '/game/hero-rework/shuriGoldPresentationRuntime.js']),
   boxe: Object.freeze([
     '/game/hero-rework/boxeGoldLibrary.js',
     '/game/hero-rework/boxeGoldPresentationRuntime.js',
