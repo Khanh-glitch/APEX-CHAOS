@@ -14,7 +14,20 @@ function installWaveAudioMix(){
  window.APEX_BOT_WAVE_AUDIO_MIX=AUDIO_MIX;
  const director=window.BOXE_SFX?.audio;
  if(!director)return;
- const apply=()=>{if(director.master?.gain)director.master.gain.value=director.globalGain*.54*AUDIO_MIX.boxe;};
+ const apply=()=>{
+  if(!director.master?.gain)return;
+  // Preserve the 1.95x owner gain while guarding peaks from stacked Gold
+  // impact samples. This is output dynamics only: no source SFX mutation.
+  const ctx=director.audioCtx;
+  if(ctx?.createDynamicsCompressor&&!director.__apexWaveLimiter){
+   const limiter=ctx.createDynamicsCompressor();
+   limiter.threshold.value=-10;limiter.knee.value=12;limiter.ratio.value=3;
+   limiter.attack.value=.004;limiter.release.value=.19;
+   director.master.disconnect();director.master.connect(limiter);limiter.connect(ctx.destination);
+   Object.defineProperty(director,'__apexWaveLimiter',{value:limiter});
+  }
+  director.master.gain.value=director.globalGain*.54*AUDIO_MIX.boxe;
+ };
  if(!director.__apexWaveMixed){
   const setup=director.setup.bind(director),gain=director.gain.bind(director);
   director.setup=function(...args){const r=setup(...args);apply();return r;};
