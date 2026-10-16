@@ -5,7 +5,7 @@ await import('../public/game/bot-wave/waveCampaign.js');
 const {indexNative,planWave}=globalThis.APEX_BOT_WAVE_CAMPAIGN;
 // Arsenal stays the source of truth: execute actual registry registration in
 // an inert sandbox, never copy a second 41-item list into the wave director.
-const sandbox={console,setTimeout,clearTimeout,window:{addEventListener(){},removeEventListener(){}},
+const sandbox={console,setTimeout(){return 0},clearTimeout(){},window:{addEventListener(){},removeEventListener(){}},
  document:{getElementById(){return null},addEventListener(){},querySelector(){return null}}};
 sandbox.window.window=sandbox.window;
 vm.runInNewContext(fs.readFileSync('public/game/arsenal/arsenalConfig.js','utf8'),sandbox,{timeout:1000});
