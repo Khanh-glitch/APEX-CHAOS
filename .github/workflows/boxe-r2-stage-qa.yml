@@ -23,6 +23,7 @@ jobs:
         run: |
           node tools/testBotWave41Campaign.mjs
           node tools/testBotWaveNativeParity.mjs
+          node tools/testBotWaveR7NativePhysics.mjs
           node tools/testBotWaveShippingAssets.mjs
           node tools/testBotWaveLosslessR5.mjs
           node tools/testBotWaveGameRouteR5.mjs
@@ -76,6 +77,7 @@ jobs:
           node tools/testBoxeNativeArsenal.mjs
           node tools/testBoxeWaveDirector.mjs
           node tools/testBotWave41Campaign.mjs
+          node tools/testBotWaveR7NativePhysics.mjs
           node tools/testBoxeWaveInputs.mjs
           node tools/testBoxeWaveArsenalR3.mjs
           node tools/testBoxeComboR4.mjs
