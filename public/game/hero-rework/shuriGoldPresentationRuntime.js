@@ -133,7 +133,12 @@
         }
         break;
       case 'shuri:morph-start':
-        Gold.morphTo(w,p.to==='MED'?'med':'rack');break;
+        // A1's ORIGINAL Gold 8 doA1 task performs its own 0.72s signal
+        // and morphTo with authored motion + sound. Mirroring native A1
+        // morph here would drive the same machine twice in one frame.
+        // Other native transition sources may still request one morph.
+        if(p.source!=='a1') Gold.morphTo(w,p.to==='MED'?'med':'rack');
+        break;
       case 'shuri:repair':
         if(w.st){w.shuri.scrap=Math.max(p.spent||0,1);Gold.doA2(w);}break;
       case 'shuri:structure-destroyed':
