@@ -388,7 +388,8 @@
       try { src.playbackRate.value = entry.playbackRate; } catch (e) {}
     }
     const gain = ctx.createGain();
-    const vol = entry.vol != null ? entry.vol : 0.7;
+    const vol = (entry.vol != null ? entry.vol : 0.7) *
+      (window.APEX_BOT_WAVE_AUDIO_MIX?.weapons ?? 1);
     const now = ctx.currentTime;
     const attack = entry.attack != null ? entry.attack : 0;
     const fadeTail = entry.fadeTail != null ? entry.fadeTail : 0;
