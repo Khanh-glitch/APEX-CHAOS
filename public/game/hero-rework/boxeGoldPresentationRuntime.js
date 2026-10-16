@@ -146,7 +146,7 @@
       g.material.eruption(pr.x,pr.y+22,.52,true);
       g.ring(pr.x,pr.y,'#ff7a3c',380,5,.3);
       g.shake(4);g.hitstop(.04);
-      g.rocketDetailContact(pr,{x:body.x,y:body.y,r:75});
+      g.rocketDetailContact(pr,{x:toGold(body.x),y:toGold(body.y),r:75});
     }else if(ev.type==='boxe:rocket-wall-reflect'){
       // Reuse Gold's earth/dust and lightning primitives for arena contact.
       g.material.fracture(toGold(body.x),toGold(body.y)+20,36,2,.55);
@@ -221,8 +221,9 @@
     g.player.guardT=st?.counter?.phase==='guard'?Math.max(0,st.counter.until-clock):0;
     // Gold's visual-only launch recoil must decay; native movement stays authoritative.
     g.player.vx*=Math.exp(-10*dt);g.player.vy*=Math.exp(-10*dt);
-    g.hands.R.missing=!!st?.secondary||!!st?.flurry;
-    g.hands.L.missing=!!st?.rocket&&st.rocket.phase!=='caught';
+    // The original Gold rocket is R; L is the independently approaching glove.
+    g.hands.R.missing=!!st?.rocket&&st.rocket.phase!=='caught';
+    g.hands.L.missing=!!st?.secondary||!!st?.flurry;
     if(g.fx.scorches)g.fx.scorches.length=0;
     if(st?.rocket){
       const r=st.rocket;
@@ -232,9 +233,11 @@
       const vx=Number.isFinite(r.vx)?r.vx:Math.cos(r.heading)*1250;
       const vy=Number.isFinite(r.vy)?r.vy:Math.sin(r.heading)*1250;
       const pr={kind:'rocket',phase:r.phase==='returning'?'return':'out',x:toGold(r.x),y:toGold(r.y),
-        vx,vy,angle:r.heading,traveled:v.dist};
-      if(r.phase==='outbound')goldRocketExhaust(g,pr);
-      else if(r.phase==='returning')g.rocketDetailReturn(pr);
+        vx,vy,angle:r.heading,traveled:v.dist,
+        detailLastDist:v.detailLastDist,detailReturnTime:v.detailReturnTime};
+      // Gold detail emitters debounce on projectile state; preserve it each frame.
+      if(r.phase==='outbound'){goldRocketExhaust(g,pr);v.detailLastDist=pr.detailLastDist;}
+      else if(r.phase==='returning'){g.rocketDetailReturn(pr);v.detailReturnTime=pr.detailReturnTime;}
       g.projs=(r.phase==='flurry'||r.phase==='caught')?[]:[pr];
       if(st.secondary?.phase==='returning'){
         const h=st.secondary,angle=Math.atan2(h.y-h.prevY,h.x-h.prevX);
@@ -255,7 +258,7 @@
       e.player.x=f.x;e.player.y=f.y;
       e.player.empoweredT=Math.max(0,f.until-clock);
       const foe=(global.fighters||[]).find(x=>x&&x!==body&&x.hp>0);
-      if(foe)e.player.aim=Math.atan2(foe.y-f.y,foe.x-f.x);
+      if(foe)e.player.aim=Math.atan2(toGold(foe.y)-f.y,toGold(foe.x)-f.x);
       syncVisualTarget(e,body,f.x,f.y,46+(foe?.radius||75)+110);
       while(!f.endAt&&f.cycle<4&&elapsed>=f.cycle*.51){
         e.skillJab(); // EXACT Gold key 1 six-beat motion while live
