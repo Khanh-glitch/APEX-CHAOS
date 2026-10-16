@@ -96,10 +96,12 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      fiveBeats:document.querySelectorAll('#bw-beat-markers i').length,
      modalArt:!!document.querySelector('.w-dialog > .bw-cover img'),
      controls:document.querySelectorAll('.bw-skill-deck .w-action').length,
+     drawnSkillArt:document.querySelectorAll('.bw-skill-deck .bw-action-art').length,
+     pressureMeter:!!document.getElementById('bw-pressure-fill'),
      debugHidden:!document.getElementById('arena-experience-tools')||getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
    }));
    assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.modalArt&&interfaceRead.debugHidden
-       &&interfaceRead.fiveBeats===5&&interfaceRead.controls===5,
+       &&interfaceRead.fiveBeats===5&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===5&&interfaceRead.pressureMeter,
       'Owner Gold HUD not rebuilt '+JSON.stringify(interfaceRead));
    await gameFrame.click('#w-go');
    await page.waitForFunction(()=>{
@@ -291,7 +293,14 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    assert.deepEqual(milestones.map(m=>m.wave),[11,32]);
    assert.equal(milestones[1].revealed,41,'Chapter 7 must expose all native equipment');
    console.log('BOT WAVE live Gold unlimited progression PASS',view.name,milestones);
-   console.log('BOXE R5 integrated Gold GAMEPLAY + sprites/SFX PASS',view.name,waveRuntime,checks.length);
+   console.log('BOXE R7 integrated Gold GAMEPLAY + sprites/SFX PASS',view.name,waveRuntime,checks.length);
+   await page.click('#return');
+   await page.waitForFunction(()=>location.pathname==='/' &&
+     !document.getElementById('apex-wave-host') &&
+     !window.APEX_SCENE_TRANSITION?.active?.(),{timeout:45000});
+   assert.equal(await page.$('#apex-boot-start'),null,'Wave exit must not reboot START');
+   assert.ok(await page.$('#botWaveEntry'),'APEX Home lost after Wave return');
+   console.log('BOT WAVE native-door Home return PASS',view.name);
   }else{
    // Staging-only: explicitly report the binary gap; do not claim playability.
    await page.waitForFunction(()=>document.querySelector('#info')?.textContent?.includes('not installed'),{timeout:20000});
