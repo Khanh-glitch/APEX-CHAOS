@@ -31,6 +31,11 @@ for(const selected of [['BOXE','ROBOT'],['ROBOT','BOXE'],['BOXE','BOXE']]){
  assert.ok(list.includes('/game/hero-rework/boxeGoldPresentationRuntime.js'),`missing Gold for ${selected}`);
 }
 assert.ok(!arsenalBattleRuntimesFor(['ROBOT','ICE']).map(([url])=>url.split('?')[0]).includes('/game/hero-rework/boxeGoldPresentationRuntime.js'),'BOXE Gold must stay deferred when not picked');
+const native=read('public/game/arsenal/arsenalWeaponRuntime.js');
+assert.ok(native.includes("h.phase==='READY'||h.phase==='FIRING'"),'BOXE A1 must lock both trigger phases');
+const presentation=read('public/game/hero-rework/boxeGoldPresentationRuntime.js');
+assert.ok(presentation.includes('ctx.translate(worldOffset(),worldOffset())') &&
+ presentation.includes('const toGold=v=>v-worldOffset()'),'Gold VFX centered-coordinate fix missing');
 const gold=read('public/game/hero-rework/boxeGoldLibrary.js');
 assert.ok(gold.includes("sourceSha256:'ccb889bb08cb2e741c4f7f5e0b33d08047c08fb28bfc1c31ae9401604444e2b2'"));
 assert.ok(gold.includes('preloadSprites:'));
