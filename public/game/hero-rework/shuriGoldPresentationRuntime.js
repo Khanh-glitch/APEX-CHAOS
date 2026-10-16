@@ -215,6 +215,35 @@
       }finally{ctx.restore();}
     };
   }
+  // Persistent machine wreckage and delayed Gold VFX are world visuals,
+  // not children of a living Fighter's draw call. A fallen SHURI must not
+  // silently make a collapsing building/EMP residue disappear.
+  function drawPersistentWorld(ctx){
+    if(!sprites)return;
+    for(const [fighter,rec] of live){
+      if(fighter.hp>0)continue; // alive owner paints the Gold rig once
+      const world=rec.w;
+      if(!world.st && !world.bomb && !world.fx?.length)continue;
+      advance(rec);
+      ctx.save();
+      try{
+        Gold.renderNativeLayer(ctx,world,sprites,{
+          vfx:true,hud:false,
+          show:{core:false,grip:false,tool:false,collector:false,
+            structure:true,bomb:true,dummy:false,fixtures:false},
+        });
+      }finally{ctx.restore();}
+    }
+  }
+  const av=global.APEX_ARSENAL_AV;
+  if(!av?.registerWorldVisualRenderer)
+    throw Error('SHURI_GOLD_REQUIRES_SHARED_WORLD_VISUAL_REGISTRY');
+  const offWorld=av.registerWorldVisualRenderer('shuri-gold-persistent',drawPersistentWorld);
+  const offMatch=AIL.bus.on('ReworkMatchTeardown',()=>{
+    for(const rec of live.values())rec.w.sfx.length=0;
+    live.clear();
+    Gold.clearAudio();
+  });
   global.APEX_SHURI_GOLD_PRESENTATION=Object.freeze({
     ready:()=>!!sprites && !spriteError,
     whenReady:()=>loadPromise,
@@ -224,7 +253,7 @@
       originalGold:true,nativeGameplay:true}),
     primeSound,
     clear:()=>{for(const r of live.values())r.w.sfx.length=0;live.clear();Gold.clearAudio();},
-    dispose:()=>{off();live.clear();Gold.clearAudio();},
+    dispose:()=>{off();offWorld();offMatch();live.clear();Gold.clearAudio();},
   });
   global.apexShuriGoldPresentationRuntime='ready';
 })(typeof window!=='undefined'?window:globalThis);
