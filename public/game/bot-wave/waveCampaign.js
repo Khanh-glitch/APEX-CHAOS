@@ -56,10 +56,10 @@ function planWave(nativeConfig,wave,{seed=41}={}){
  // One first-contact showcase at a time; roughly 1.3 new weapons per wave.
  // By wave 32 all 41 weapon identities have entered the playable campaign.
  const revealed=Math.min(catalog.ordered.length,Math.max(1,Math.floor(wave*1.3)+1));
- const previous=Math.min(catalog.ordered.length,Math.max(0,Math.floor((wave-1)*1.3)+1));
+ const previous=wave===1?0:Math.min(catalog.ordered.length,Math.max(0,Math.floor((wave-1)*1.3)+1));
  const newly=catalog.ordered.slice(previous,revealed);
  const available=catalog.ordered.slice(0,revealed);
- const featured=newly.length?newly[Math.floor(rand()*newly.length)]:
+ const featured=wave===1?catalog.byId.get('PISTOL'):newly.length?newly[Math.floor(rand()*newly.length)]:
   available[(Math.floor(rand()*available.length))];
  const count=Math.min(36,Math.round((6+Math.min(16,Math.floor((wave-1)*.55)))*beat.pacing));
  const slots=Math.max(1,count-(beat.id==='boss'?1:0));

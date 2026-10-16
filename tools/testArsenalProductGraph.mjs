@@ -131,6 +131,7 @@ gate('semantic-graph-and-admin-boundary', () => {
   assert.equal(canLaunchProductSurface('bot-wave'), true);
   assert.equal(graph.find(x=>x.id==='bot-wave')?.route,'wave');
   assert.equal(graph.find(x=>x.id==='bot-wave')?.preview,true);
+  assert.equal(graph.find(x=>x.id==='bot-wave')?.special,true);
    assert.equal(canLaunchProductSurface('dictionary'), true);
    assert.equal(graph.find(x=>x.id==='dictionary')?.route,'skins');
   assert.ok(locked.some((surface) => surface.id === 'fighter-shop'));

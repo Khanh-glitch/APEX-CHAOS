@@ -29,6 +29,7 @@ jobs:
           node tools/testBoxeNormalIntegration.mjs
           node tools/testBoxeNativeArsenal.mjs
           node tools/testBoxeWaveDirector.mjs
+          node tools/testBotWave41Campaign.mjs
           node tools/testBoxeWaveInputs.mjs
           node tools/testBoxeWaveArsenalR3.mjs
           node tools/testBoxeComboR4.mjs
