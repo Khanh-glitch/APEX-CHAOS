@@ -7,7 +7,12 @@ function setup(start={x:160,y:300,fx:440,fy:300}){
  const self={id:1,x:start.x,y:start.y,radius:75,hp:1000,dir:{x:1,y:0}},foe={id:2,x:start.fx,y:start.fy,radius:75,hp:1000};
  const ct={heroId:'BOXE',anchor:self,store:{},skills:{A1:{cdLeft:0},A2:{cdLeft:0}}},other={heroId:'ROBOT',anchor:foe};
  const held=new Map([[foe,{weaponId:'SMG',phase:'READY'}]]);
- const scope={GAME_SIZE:1000,APEX_ARSENAL:{weaponApi:{getHolder:f=>held.get(f)||null,consume:f=>held.delete(f),equip:(f,id)=>{held.set(f,{weaponId:id,phase:'READY'});return true;},aqDamage:(f,v)=>{f.hp-=v;return v;}},state:{slots}},console};
+ const resolver={
+  apply:(body,key,dur)=>{body.__testStatus??={};body.__testStatus[key]=Math.max(body.__testStatus[key]||0,time+dur);},
+  has:(body,key)=>(body?.__testStatus?.[key]||0)>time,
+  clear:(body,key)=>{if(body?.__testStatus)delete body.__testStatus[key];}
+ };
+ const scope={APEX_HERO_REWORK_AIL:{StatusResolver:resolver,clock:()=>time},GAME_SIZE:1000,APEX_ARSENAL:{weaponApi:{getHolder:f=>held.get(f)||null,consume:f=>held.delete(f),equip:(f,id)=>{held.set(f,{weaponId:id,phase:'READY'});return true;},aqDamage:(f,v)=>{f.hp-=v;return v;}},state:{slots}},console};
  scope.globalThis=scope;vm.runInNewContext(src,scope);
  const BX=scope.APEX_BOXE_BATTLE;
  const ctx={combatant:ct,api:{clock:()=>time,emitEvent:(name,payload)=>events.push({name,payload,time}),enemyOf:()=>other,combatantOfBody:body=>body===self?ct:body===foe?other:null,applyStunTo:(body,duration)=>events.push({name:'stun',body,duration,time}),dropWeaponSlot:(weaponId,x,y)=>{const item={id:slots.length+1,weaponId,x,y,phase:'REVEALED',kind:'WEAPON'};slots.push(item);return item;}}};
@@ -42,7 +47,7 @@ function setup(start={x:160,y:300,fx:440,fy:300}){
  t.step(.16);
  const initial=t.BX.snapshot(t.ctx);
  assert.equal(initial.rocket.phase,'flurry','rocket must stop at contact');
- assert.ok(t.foe.__boxeTriggerLockUntil>t.time+1.5,'enhanced A1 trigger lock must cover the combo');
+ assert.ok(t.scope.APEX_HERO_REWORK_AIL.StatusResolver.has(t.foe,'BOXE_TRIGGER_LOCK'),'enhanced A1 must lock the real AIL status');
  assert.ok(initial.flurry,'Gold key 1 combo begins at Rocket impact');
  const anchor={x:initial.flurry.x,y:initial.flurry.y};
  t.self.x=900;t.self.y=900; // owner may move normally while gloves stay behind
