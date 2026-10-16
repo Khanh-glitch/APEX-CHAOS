@@ -9,6 +9,9 @@ assert.ok(!bridge.includes("kind:'orb'"),'Fake Gold orb must not emit native Ars
 assert.ok(!bridge.includes('engine.projs.push('),'Gold projectile clones must not be emitted in native bridge');
 assert.ok(!bridge.includes('shot(e,g,'),'Independent re-authored shot executor not permitted');
 assert.ok(!bridge.includes('recordToGun'),'Per-mode gun spec rewrite is forbidden');
+assert.ok(bridge.includes('config.WEAPONS.TOWER_SHIELD.damageTakenMult'),
+ 'Gold melee contacts must honor the exact canonical Tower Shield guard rule');
+assert.ok(!bridge.includes('return amount*.5'),'No bespoke Wave shield nerf');
 assert.ok(!bridge.includes('setInterval('),'No independent shooting clock');
 assert.ok(bridge.includes("backend:'FREE_BATTLE_NATIVE'"));
 const arsenal=fs.readFileSync('public/game/arsenal/arsenalWeaponRuntime.js','utf8');

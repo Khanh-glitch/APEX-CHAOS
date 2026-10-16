@@ -191,7 +191,23 @@ function build({engine,config,campaign,cue,rand}){
   audioWarmed=true;
   native.av.warmAudio().catch(e=>console.error('[BOT WAVE] native AV',e));
  }
- function protect(){return arguments[1];}
+ function protect(e,amount){
+  // Gold BOXE punches live in Gold's own attack-contact authority (they are
+  // not Arsenal aq_bullet). Bridge ONLY the native Tower Shield mitigation,
+  // reading the exact Free Battle GUARD phase and CFG damageTakenMult.
+  // Native Arsenal bullets already pass through aqDamage and must NOT be
+  // reduced twice. There is no invented BOT WAVE shield multiplier.
+  const p=combatants.get(e),holder=p&&native.api?.getHolder(p);
+  if(holder?.weaponId==='TOWER_SHIELD'&&holder.phase==='GUARD'){
+   const factor=config.WEAPONS.TOWER_SHIELD.damageTakenMult;
+   if(!Number.isFinite(factor)||factor<0||factor>1)
+    throw Error('NATIVE_TOWER_SHIELD_INVALID_FACTOR');
+   native.av?.cue?.('tower_block',{weapon:'TOWER_SHIELD',
+    x:e.x+ORIGIN,y:e.y+ORIGIN});
+   return amount*factor;
+  }
+  return amount;
+ }
  function movementSlow(){return 1;}
  function reset(){
   root.projectiles.length=0;
