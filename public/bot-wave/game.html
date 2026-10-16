@@ -6360,7 +6360,7 @@ function rng(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/42
 function clamp(a,l,h){return Math.min(h,Math.max(l,a))}
 function pick(arr){return arr[Math.floor(rng()*arr.length)]}
 const UI={};let lastUI=0;
-const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,healOnKill:.012,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[]};
+const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[]};
 /* THE LAST ROUND — integrated Arena Experience R1; no changes to weapon AI/stats */
 const ARENA_STAGE={
  radius:920, playable:880, quality:'high', assistEnabled:true, decals:[],entrances:[],flash:0, bossGlow:0,
@@ -6601,7 +6601,8 @@ function refreshUI(){
  const ghost=document.getElementById('w-hp-trail');if(ghost)ghost.style.width=hpPct+'%';
  const left=document.querySelector('#wave-hud .w-left');
  if(state._goldPriorHP!=null&&p.hp<state._goldPriorHP-1&&left){
-  left.classList.remove('r2-damaged');void left.offsetWidth;left.classList.add('r2-damaged');
+  // Restart hit motion next frame, without synchronously forcing layout.
+  left.classList.remove('r2-damaged');requestAnimationFrame(()=>left.classList.add('r2-damaged'));
  }
  state._goldPriorHP=p.hp;left?.classList.toggle('r2-hot',!!state.empowered);
  const fury=clamp(state.empowered?100:state.passiveProgress/3,0,100);
@@ -6623,7 +6624,11 @@ function refreshUI(){
   }
  }
  const guns=state.wave>0?waveComposition(state.wave).groups.map(x=>x[0]):['PISTOL'];
- UI['w-arsenal'].replaceChildren(...guns.slice(0,5).map(name=>{let el=document.createElement('span');el.textContent=name;return el}));
+ const signature=guns.slice(0,5).join('|');
+ if(state._shownArsenal!==signature){
+  state._shownArsenal=signature;
+  UI['w-arsenal'].replaceChildren(...guns.slice(0,5).map(name=>{const el=document.createElement('span');el.textContent=name;return el}));
+ }
  for(const name of ['U','I'])document.querySelector(`[data-act="${name}"]`).disabled=!state.owned.has(name==='U'?'phantom':'ult');
 }
 function xpNeeded(level){return Math.ceil(70*Math.pow(1.16,level-1))}
@@ -6712,7 +6717,7 @@ function completeWave(){if(state.phase!=='combat')return;state.phase='intermissi
 function lose(){state.phase='gameover';state.comboFlow=null;state.rocketPending=false;engine.paused=true;state.losses++;engine.combatCue('PLAYER_KO',1);UI['w-title'].textContent='BOXE DOWN · WAVE '+state.wave;
  UI['w-desc'].textContent='BOT WAVE tiếp tục qua nhiều chapter. Quan sát hướng tấn công, thử thẻ nâng cấp và chọn thời điểm lướt thay vì đứng chặn đạn.';
  UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';UI['w-go'].textContent='↻ RETRY';UI['wave-modal'].hidden=false;}
-function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.timeline=[];engine.player.hp=3200;engine.player.maxHp=3200;
+function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.timeline=[];engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;
  ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.damageMul=1;state.moveMul=1;state.punchMul=1;state.guardBonus=0;state.healOnKill=.012;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
  UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;engine.combatCue('UI',.7);startWave();}
 function autoAimNow(){
@@ -6924,8 +6929,15 @@ engine.basicAttack=function(){
  });
 };
 
+// Capture true CPU costs; never drop sprites, particles, resolution or frames.
+const PERF={samples:0,lastMs:0,maxMs:0,overBudget:0,avgMs:0};
+window.APEX_WAVE_PERF=Object.freeze({snapshot:()=>({
+ ...PERF,projectiles:window.projectiles?.length||0,
+ goldParticles:engine.particles.length,livingBots:engine.enemies.filter(e=>!e.dead).length
+})});
 const nativeUpdate=engine.update.bind(engine);
 engine.update=function(dt){
+ const _start=performance.now();
  if(state.phase==='combat'&&Math.hypot(stickDX,stickDY)>.2){let k=this.keys;for(const code of ['KeyW','KeyA','KeyS','KeyD'])k.delete(code);
  if(stickDX>.22)k.add('KeyD');if(stickDX<-.22)k.add('KeyA');if(stickDY>.22)k.add('KeyS');if(stickDY<-.22)k.add('KeyW');}
  const originalX=this.player.x,originalY=this.player.y;
@@ -6954,6 +6966,10 @@ engine.update=function(dt){
    this.player.y+=(this.player.y-originalY)*(speed-1);}
  }
  updateWave(dt);
+ PERF.lastMs=performance.now()-_start;PERF.samples++;
+ PERF.avgMs+=(PERF.lastMs-PERF.avgMs)/Math.min(180,PERF.samples);
+ PERF.maxMs=Math.max(PERF.maxMs,PERF.lastMs);
+ if(PERF.lastMs>16.67)PERF.overBudget++;
 };
 const nativeOnKeyDown=engine.onKeyDown;
 engine.onKeyDown=function(e){
@@ -6970,12 +6986,13 @@ engine.onKeyUp=function(e){if(e.code==='KeyJ'){act('J',false);return;}nativeOnKe
 window.removeEventListener('keyup',nativeOnKeyUp);window.addEventListener('keyup',engine.onKeyUp);
 window.addEventListener('keydown',e=>{if(e.code.startsWith('Digit'))e.stopImmediatePropagation()},true);
 engine.enemies=[];engine.projs=[];engine.timeline=[];engine.opts.infiniteDummyHp=false;engine.opts.noCooldown=false;engine.opts.sound=true;
-engine.player.hp=3200;engine.player.maxHp=3200;engine.player.x=0;engine.player.y=120;engine.player.fury=0;engine.player.empoweredT=0;engine.player.guardT=0;engine.player.invulnT=0;engine.player.dashCd=0;engine.player.comboStep=0;engine.player.basicCd=0;engine.waveCounterUnlocked=false;
+engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;engine.player.x=0;engine.player.y=120;engine.player.fury=0;engine.player.empoweredT=0;engine.player.guardT=0;engine.player.invulnT=0;engine.player.dashCd=0;engine.player.comboStep=0;engine.player.basicCd=0;engine.waveCounterUnlocked=false;
 engine.camZoom=.57;engine.camZoomBase=.57;
 window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,owned:[...state.owned],sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,enemies:engine.enemies.length,player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp}}),source:'APEX_GOLD_R5'};
 createUI();refreshUI();engine.paused=true;
-const refreshTimer=setInterval(()=>{refreshUI();if(engine.player.hp<=0&&state.phase==='combat')lose()},175);
-window.addEventListener('pagehide',()=>clearInterval(refreshTimer));
+// Native combat already refreshes the HUD and handles defeat in updateWave.
+ // Avoid duplicated DOM churn from a second independent timer.
+ window.addEventListener('pagehide',()=>{engine.mouse.down=false;ARMORY.reset()},{once:true});
 })();
 
 
