@@ -7,6 +7,20 @@
 const doc=window.document;
 if(window.APEX_BOT_WAVE_INTERFACE_V2)return;
 const VERSION='owner-reject-r2';
+const AUDIO_MIX=Object.freeze({boxe:1.5,weapons:0.5});
+function installWaveAudioMix(){
+ window.APEX_BOT_WAVE_AUDIO_MIX=AUDIO_MIX;
+ const director=window.BOXE_SFX?.audio;
+ if(!director)return;
+ const apply=()=>{if(director.master?.gain)director.master.gain.value=director.globalGain*.54*AUDIO_MIX.boxe;};
+ if(!director.__apexWaveMixed){
+  const setup=director.setup.bind(director),gain=director.gain.bind(director);
+  director.setup=function(...args){const r=setup(...args);apply();return r;};
+  director.gain=function(...args){const r=gain(...args);apply();return r;};
+  Object.defineProperty(director,'__apexWaveMixed',{value:true});
+ }
+ apply();
+}
 let installed=false,refresh=null;
 function node(tag,cls,text){
  const el=doc.createElement(tag);
@@ -16,6 +30,7 @@ function node(tag,cls,text){
 }
 function install(){
  if(installed)return true;
+ installWaveAudioMix();
  const hud=doc.getElementById('wave-hud');
  const modal=doc.querySelector('#wave-modal .w-dialog');
  const stage=doc.getElementById('arena-experience-hud');
