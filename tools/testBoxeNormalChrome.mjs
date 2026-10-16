@@ -85,4 +85,6 @@ try{
  }
 }finally{await browser.close();}
 if(failures)process.exit(1);
-console.log('[BOXE NORMAL CHROME] both native Gold-to-Arsenal flows PASS; HUD artwork still pending');
+console.log('[BOXE NORMAL CHROME] both native Gold-to-Arsenal flows PASS');
+// Admission also includes actual Archive and Gold Fighter Pick art decoding.
+await import('./testBoxeDictionaryArtChrome.mjs');
