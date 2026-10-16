@@ -6344,6 +6344,183 @@ function clamp(a,l,h){return Math.min(h,Math.max(l,a))}
 function pick(arr){return arr[Math.floor(rng()*arr.length)]}
 const UI={};let lastUI=0;
 const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,healOnKill:.012,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[]};
+/* THE LAST ROUND — integrated Arena Experience R1; no changes to weapon AI/stats */
+const ARENA_STAGE={
+ radius:920, playable:880, quality:'high', assistEnabled:true, decals:[],entrances:[],flash:0, bossGlow:0,
+ targetId:null, assist:null, features:{featuredDraft:true}, stats:{damage:0,guards:0,assists:0,highestChain:0,steps:0},
+ screen:null,base:null,entryCursor:0, stageStart:0, stageTick:0,
+ mark(x,y,type='hit',strength=1){if(this.quality==='low'&&type==='hit')return;
+   if(!Number.isFinite(x+y)||Math.hypot(x,y)>this.playable+28)return;
+   const last=this.decals[this.decals.length-1];
+   if(last&&last.type===type&&Math.hypot(last.x-x,last.y-y)<22&&engine.time-last.time<.12)return;
+   this.decals.push({x,y,type,strength:Math.min(2,strength),time:engine.time,angle:(this.decals.length*2.399)%6.28});
+   if(this.decals.length>(this.quality==='low'?16:46))this.decals.shift();
+ },
+ entrance(x,y,boss=false){this.entrances.push({x,y,t:engine.time,boss});if(this.entrances.length>14)this.entrances.shift();},
+ beginWave(w){this.flash=1;this.bossGlow=w===5||w===10?1:0;this.stageStart=engine.time;this.assist=null;
+  const d=document.getElementById('arena-announce');if(d){d.querySelector('strong').textContent=w===5?'IRON SENTINEL':w===10?'OMEGA ARSENAL':'ROUND '+String(w).padStart(2,'0');d.querySelector('span').textContent=w===5||w===10?'CHALLENGER DETECTED':'THE LAST ROUND · APEX CHAOS';d.classList.remove('show');void d.offsetWidth;d.classList.add('show');}
+  const tracks=document.querySelectorAll('#arena-round-track b');tracks.forEach((e,i)=>{e.classList.toggle('done',i<w-1);e.classList.toggle('active',i===w-1)});
+ },
+ notice(msg,kind=''){let e=document.getElementById('arena-message');if(!e)return;e.textContent=msg;e.dataset.kind=kind;e.classList.remove('visible');void e.offsetWidth;e.classList.add('visible');},
+ buildBase(){const c=document.createElement('canvas');c.width=c.height=2200;const g=c.getContext('2d',{alpha:false});g.translate(1100,1100);
+  const TAU=Math.PI*2,ring=this.radius;g.fillStyle='#05080d';g.fillRect(-1100,-1100,2200,2200);
+  // Recessed outer cavity, warm rim reflected on dark oxide metal.
+  let glow=g.createRadialGradient(0,0,500,0,0,1070);glow.addColorStop(0,'#11171c');glow.addColorStop(.79,'#171d22');glow.addColorStop(.9,'#342924');glow.addColorStop(.96,'#0d1016');glow.addColorStop(1,'#05080d');
+  g.fillStyle=glow;g.beginPath();g.arc(0,0,1030,0,TAU);g.fill();
+  // Actual playable area is a circle; same 920 engine world boundary.
+  g.save();g.beginPath();g.arc(0,0,ring,0,TAU);g.clip();
+  const floor=g.createRadialGradient(-180,-180,50,0,0,1010);
+  floor.addColorStop(0,'#34383a');floor.addColorStop(.33,'#252c30');floor.addColorStop(.74,'#1a2429');floor.addColorStop(1,'#151a20');g.fillStyle=floor;g.fillRect(-950,-950,1900,1900);
+  // Industrial panels, beveled seams and offset welded strips.
+  for(let ix=-5;ix<=5;ix++)for(let iy=-5;iy<=5;iy++){
+   const x=ix*190-4,y=iy*190-4,w=184,h=184;const odd=(ix*13+iy*7)&3;
+   g.fillStyle=odd===0?'rgba(189,174,143,.035)':odd===1?'rgba(0,0,0,.06)':'rgba(164,188,194,.02)';g.fillRect(x,y,w,h);
+   g.strokeStyle='rgba(3,9,13,.48)';g.lineWidth=5;g.strokeRect(x+2,y+2,w-5,h-5);
+   g.strokeStyle='rgba(160,170,175,.10)';g.lineWidth=1;g.strokeRect(x+7,y+7,w-14,h-14);
+   if((ix+iy)%3===0){g.strokeStyle='rgba(184,129,82,.14)';g.lineWidth=3;g.beginPath();g.moveTo(x+20,y+18);g.lineTo(x+85,y+18);g.stroke();}
+   g.fillStyle='#12171b';for(const xx of [x+15,x+w-16])for(const yy of [y+15,y+h-16]){
+    g.beginPath();g.arc(xx,yy,4,0,TAU);g.fill();g.strokeStyle='rgba(201,168,111,.25)';g.lineWidth=1;g.stroke();
+   }
+  }
+  // Directional micro-grain is physically inside the floor mask, not animated noise.
+  g.lineWidth=1;
+  for(let i=0;i<240;i++){const x=((i*371)%1820)-910,y=((i*541)%1820)-910;
+   g.strokeStyle=i%5?'rgba(214,198,161,.024)':'rgba(0,0,0,.095)';g.beginPath();g.moveTo(x,y);g.lineTo(x+16+i%50,y-3);g.stroke();}
+  // Uncluttered center identity, located beneath fighters and bullets.
+  g.save();g.strokeStyle='rgba(220,175,109,.24)';g.lineWidth=5;g.beginPath();g.arc(0,0,274,0,TAU);g.stroke();
+  g.strokeStyle='rgba(193,157,111,.13)';g.lineWidth=1;g.beginPath();g.arc(0,0,254,0,TAU);g.stroke();
+  g.font='900 78px system-ui';g.textAlign='center';g.fillStyle='rgba(231,184,111,.09)';g.fillText('APEX',0,12);
+  g.font='900 19px system-ui';g.letterSpacing='8px';g.fillText('THE LAST ROUND',0,52);g.restore();
+  g.restore();
+  // Ring track and gilded exposed rail, exact visual edge at 920.
+  for(const [r,stroke,width] of [[976,'#0b1117',37],[956,'#3a322b',23],[936,'#a87948',5],[920,'#c8995c',9],[906,'#05090e',9],[895,'#50616a',2]]){
+   g.strokeStyle=stroke;g.lineWidth=width;g.beginPath();g.arc(0,0,r,0,TAU);g.stroke();}
+  for(let i=0;i<96;i++){const a=i*TAU/96;let r1=939,r2=i%8===0?979:963;
+   g.strokeStyle=i%8===0?'rgba(238,180,102,.58)':'rgba(204,184,151,.15)';g.lineWidth=i%8===0?5:2;
+   g.beginPath();g.moveTo(Math.cos(a)*r1,Math.sin(a)*r1);g.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);g.stroke();}
+  // Four entry mechanisms, displayed outside the playable circular boundary.
+  for(let i=0;i<4;i++){const a=i*Math.PI/2-Math.PI/2;g.save();g.rotate(a+Math.PI/2);g.translate(0,-924);
+   g.fillStyle='#11171b';g.fillRect(-109,-62,218,107);
+   g.strokeStyle='#805a3f';g.lineWidth=9;g.strokeRect(-107,-61,214,106);
+   for(const sx of [-83,83]){g.fillStyle='#273037';g.fillRect(sx-15,-53,30,88);g.strokeStyle='#7b6852';g.lineWidth=2;g.strokeRect(sx-15,-53,30,88);}
+   g.fillStyle='#35231f';g.fillRect(-64,-50,128,33);
+   for(let j=0;j<9;j++){g.fillStyle=j%2?'#ab6d45':'#28262a';g.fillRect(-57+j*14,-46,8,23);}
+   g.font='900 15px ui-monospace,monospace';g.textAlign='center';g.fillStyle='#d4a774';g.fillText('DEPLOY / '+String(i+1).padStart(2,'0'),0,20);
+   g.restore();}
+  // R2: architectural detail. Physically grounded side-walls, radial light bays and engraved maintenance plates.
+  // Kept OUTSIDE gameplay radius: nothing changes movement or projectile collision.
+  g.save();
+  for(let i=0;i<24;i++){
+   const a=(i+.5)*TAU/24,r=999;g.save();g.translate(Math.cos(a)*r,Math.sin(a)*r);g.rotate(a+Math.PI/2);
+   g.fillStyle='#070b10';g.fillRect(-24,-51,48,89);
+   const guard=g.createLinearGradient(0,-34,0,38);guard.addColorStop(0,'#5b5043');guard.addColorStop(.32,'#222b30');guard.addColorStop(.85,'#10161c');guard.addColorStop(1,'#05090d');g.fillStyle=guard;g.fillRect(-19,-43,38,77);
+   g.fillStyle=i%6===0?'rgba(244,166,79,.40)':'rgba(195,142,91,.16)';g.fillRect(-12,-30,24,4);
+   g.fillStyle='#05070c';for(const x of [-12,12])for(const y of [-18,15]){g.beginPath();g.arc(x,y,3.8,0,TAU);g.fill();}
+   g.restore();
+  }
+  // Floor's load-bearing concentric wear zones and inset luminous seams (subtle in center).
+  g.beginPath();g.arc(0,0,866,0,TAU);g.strokeStyle='rgba(0,0,0,.60)';g.lineWidth=28;g.stroke();
+  for(const [r,col,w] of [[858,'rgba(221,180,108,.24)',2],[840,'rgba(206,188,159,.1)',2],[654,'rgba(13,20,25,.5)',13],[646,'rgba(190,146,87,.12)',2],[390,'rgba(11,19,24,.54)',15]]){
+   g.beginPath();g.arc(0,0,r,0,TAU);g.strokeStyle=col;g.lineWidth=w;g.stroke();
+  }
+  for(let i=0;i<32;i++){
+   const a=i*TAU/32;g.save();g.rotate(a);
+   g.fillStyle=(i%8===0)?'rgba(216,145,74,.26)':'rgba(180,166,146,.11)';
+   g.fillRect(830,-3,25,6);g.fillRect(640,-1,17,2);
+   g.restore();
+  }
+  // Four recessed perimeter luminaires with purposeful cast-light, no flashing outlines on play floor.
+  for(let i=0;i<4;i++){
+   const a=i*Math.PI/2+Math.PI/4,x=Math.cos(a)*759,y=Math.sin(a)*759;
+   g.save();g.translate(x,y);g.rotate(a+Math.PI/2);
+   g.fillStyle='#0e1418';g.fillRect(-85,-17,170,34);g.fillStyle='#342920';g.fillRect(-82,-12,164,24);
+   const lg=g.createLinearGradient(0,-7,0,14);lg.addColorStop(0,'rgba(244,171,92,.38)');lg.addColorStop(.5,'rgba(243,194,129,.11)');lg.addColorStop(1,'rgba(0,0,0,.02)');g.fillStyle=lg;g.fillRect(-75,-7,150,18);
+   g.restore();
+  }
+  g.restore();
+  this.base=c;return c;
+ },
+ draw(ctx){if(!this.base)this.buildBase();ctx.save();ctx.fillStyle='#05080d';ctx.fillRect(-2600,-2600,5200,5200);ctx.drawImage(this.base,-1100,-1100);
+  let time=engine.time,high=this.quality==='high',wave=Math.max(1,state.wave),boss=wave===5||wave===10;
+  // Edge lighting breathes with each chapter, but never changes collision.
+  const phase=wave>=8?2:wave>=5?1:0;
+  const strength=state.empowered?.36:boss?.22:.11;
+  ctx.globalAlpha=strength*(.7+.3*Math.sin(time*2.8));ctx.strokeStyle=state.empowered?'#ffcc62':phase===2?'#fd6655':phase===1?'#efab6e':'#a77c5c';
+  ctx.lineWidth=high?12:7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=high?23:0;
+  ctx.beginPath();ctx.arc(0,0,914,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.globalAlpha=1;
+  // Wave-open optical accent tied to chapter state, not a gameplay collider.
+  const r2waveAge=time-this.stageStart;
+  if(r2waveAge>=0&&r2waveAge<1.38){const t=r2waveAge/1.38,theta=t*Math.PI*2-Math.PI/2;
+   ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=(1-t)*.38;
+   ctx.strokeStyle=boss?'#ff9b5b':'#e7b982';ctx.lineWidth=high?15:7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=high?15:0;
+   ctx.beginPath();ctx.arc(0,0,911,theta-.46,theta+.22);ctx.stroke();ctx.restore();}
+  // Gate emissive status strips (mechanics remain visually embedded in ring).
+  for(let i=0;i<4;i++){let a=i*Math.PI/2-Math.PI/2;ctx.save();ctx.rotate(a+Math.PI/2);ctx.translate(0,-923);
+   ctx.fillStyle=boss?'rgba(251,108,67,.65)':'rgba(218,170,100,.55)';ctx.globalAlpha=.55+.2*Math.sin(time*2.3+i);
+   ctx.fillRect(-49,-16,98,4);ctx.restore();}
+  // Physical ground scars, never blocks melee or projectiles.
+  for(const d of this.decals){let age=time-d.time;let life=d.type==='ko'?95:d.type==='hero'?60:23;if(age>life)continue;
+   let alpha=(1-age/life)*(d.type==='hit'?.26:.41);ctx.save();ctx.translate(d.x,d.y+19);ctx.rotate(d.angle);ctx.globalAlpha=alpha;
+   if(d.type==='ko'){ctx.fillStyle='#080b0d';ctx.beginPath();ctx.ellipse(0,0,27*d.strength,13*d.strength,0,0,Math.PI*2);ctx.fill();}
+   else {ctx.strokeStyle=d.type==='hero'?'#d9a260':'#101318';ctx.lineWidth=2*d.strength;for(let i=0;i<3;i++){
+    let a=(i*2.1+.3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*24*d.strength,Math.sin(a)*17*d.strength);ctx.stroke();}}
+   ctx.restore();}
+  for(const e of this.entrances){const age=time-e.t;if(age<0||age>1.05)continue;const p=age/1.05;ctx.save();ctx.translate(e.x,e.y+24);
+   ctx.strokeStyle=e.boss?'#ffc078':'#e3a26b';ctx.globalAlpha=(1-p)*.65;ctx.lineWidth=e.boss?8:4;
+   ctx.beginPath();ctx.ellipse(0,0,(20+p*72)*(e.boss?1.6:1),(9+p*30)*(e.boss?1.6:1),0,0,Math.PI*2);ctx.stroke();
+   if(high){ctx.setLineDash([13,14]);ctx.beginPath();ctx.ellipse(0,0,58+p*22,22+p*7,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}ctx.restore();}
+  // Readable melee target ring; restrained and only on close candidates.
+  if(this.targetId!==null&&state.phase==='combat'){
+   const e=engine.enemies.find(x=>x.id===this.targetId&&!x.dead);if(e&&Math.hypot(e.x-engine.player.x,e.y-engine.player.y)<345){ctx.strokeStyle='rgba(255,208,134,.52)';ctx.lineWidth=2;ctx.setLineDash([8,11]);
+    ctx.beginPath();ctx.ellipse(e.x,e.y+e.r*.65,e.r+15,(e.r+15)*.48,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}}
+  ctx.restore();
+ },
+ reset(){this.decals.length=0;this.entrances.length=0;this.targetId=null;this.assist=null;this.stats={damage:0,guards:0,assists:0,highestChain:0,steps:0};this.stageStart=0;},
+};
+window.BOXE_ARENA_EXPERIENCE={stage:ARENA_STAGE,state,disableAssist:()=>{ARENA_STAGE.assistEnabled=false;ARENA_STAGE.assist=null;}};
+
+/* Combat Presentation R2: damage grouping comes only from native realized damage; no balance hooks. */
+const R2_PRESENT={
+ enabled:true,high:true,groups:new Map(),ko:[],victimOldHP:null,bossOldHP:new Map(),lastHitAt:0,
+ maxGroups:18,
+ classify(enemy,dmg,o){return engine.ultLockT>0?'ultimate':state.comboFlow?.phase==='jab'?'rapid':(dmg>=135||o?.knockup>0)?'heavy':'normal'},
+ hit(e,dmg,o){if(!(dmg>0)||o?.quiet||!this.enabled)return;
+   const kind=this.classify(e,dmg,o),now=engine.time,key=e.id;
+   let g=this.groups.get(key),rapid=kind==='rapid';
+   // Only multihit windows aggregate. Single strikes refresh in place instead of spraying text.
+   if(g&&g.kind===kind&&now-g.last< (rapid?.24:.075)){
+      g.damage+=dmg;g.hits++;g.last=now;g.life=rapid?.62:.54;g.maxLife=g.life;g.pulse=1;g.x=e.x;g.y=e.y;
+   }else{
+      g={id:key,x:e.x,y:e.y,damage:dmg,hits:1,kind,last:now,life:rapid?.72:.57,maxLife:rapid?.72:.57,pulse:1};
+      this.groups.set(key,g);
+   }
+   if(this.groups.size>this.maxGroups){const first=this.groups.keys().next().value;this.groups.delete(first);}
+ },
+ kill(e){if(!this.enabled)return;this.ko.push({x:e.x,y:e.y-e.z-e.r-56,boss:!!e.waveBoss,t:engine.time});if(this.ko.length>9)this.ko.shift();},
+ draw(ctx){if(!this.enabled)return;const time=engine.time;ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+   for(const [id,p] of this.groups){const d=Math.max(0,time-p.last),dur=p.kind==='ultimate'?.80:p.kind==='rapid'?.66:.57;
+    if(d>dur){this.groups.delete(id);continue;}
+    const enemy=engine.enemies.find(e=>e.id===id&&!e.dead),x=enemy?enemy.x:p.x,y=enemy?enemy.y-enemy.z-enemy.r-37:p.y-33;
+    const alpha=Math.min(1,(dur-d)/.22),enter=Math.min(1,d/.09),spring=1+(1-enter)*.27+(p.pulse||0)*.055;
+    const heavy=p.kind==='heavy'||p.kind==='ultimate',large=heavy?30:p.kind==='rapid'?25:18;
+    const dx=(((id*37)%5)-2)*12,yy=y-19-d*48;
+    ctx.save();ctx.globalAlpha=alpha;ctx.translate(x+dx,yy);ctx.scale(spring,spring);
+    if(heavy){ctx.shadowColor=p.kind==='ultimate'?'#fdc36d':'#b95932';ctx.shadowBlur=this.high?12:0;}
+    ctx.font=`900 ${large}px system-ui, sans-serif`;ctx.lineWidth=heavy?5:3.5;ctx.lineJoin='round';ctx.strokeStyle='rgba(12,12,18,.94)';
+    const txt=Math.round(p.damage).toLocaleString('en-US');ctx.strokeText(txt,0,0);ctx.fillStyle=p.kind==='ultimate'?'#ffe5b5':heavy?'#ffc475':p.kind==='rapid'?'#fff2ce':'#eff1ee';ctx.fillText(txt,0,0);
+    if(p.hits>1){ctx.shadowBlur=0;ctx.font='900 11px ui-monospace,monospace';ctx.fillStyle='#ffd8a0';ctx.fillText(`${p.hits} HITS`,0,21);}
+    ctx.restore();p.pulse=Math.max(0,p.pulse-.12);
+   }
+   for(let i=this.ko.length-1;i>=0;i--){const p=this.ko[i],d=time-p.t;if(d>.77){this.ko.splice(i,1);continue;}
+    ctx.save();ctx.globalAlpha=Math.min(1,(.77-d)/.25);ctx.translate(p.x,p.y-d*37);ctx.scale(1+Math.max(0,.20-d)*.55,1+Math.max(0,.20-d)*.55);
+    ctx.font=`1000 ${p.boss?49:31}px system-ui,sans-serif`;ctx.lineWidth=5;ctx.strokeStyle='#240c0b';ctx.strokeText(p.boss?'BOSS K.O.':'K.O.',0,0);ctx.fillStyle=p.boss?'#ffe1aa':'#ffb971';ctx.fillText(p.boss?'BOSS K.O.':'K.O.',0,0);ctx.restore();
+   }
+   ctx.restore();
+ },
+ reset(){this.groups.clear();this.ko.length=0;this.victimOldHP=null;this.bossOldHP.clear();},
+};
+window.BOXE_R2_PRESENTATION=R2_PRESENT;
+let r2hpGhost=null,r2hud=null,r2previousHP=null;
 window.BOXE_WAVE_PILOT={state,guns:WAVE_GUNS,compositions:COMPOSITIONS,planWave:waveComposition,catalogue:ARSENAL_CATALOG.allWeaponIds,keys:()=>Array.from(state.owned),testRollRocket:(n=100)=>{let count=0;for(let i=0;i<n;i++)if(rng()<.075)count++;return count},testForceXP:(xp)=>gainXP(xp),testStartWave:()=>startWave(),testKillAll:()=>{for(const e of engine.enemies.slice())if(!e.dead)engine.damageEnemy(e,e.hp+1000,{quiet:true})}};
 function addCss(){let s=document.createElement('style');s.textContent=`
 #app{min-width:0!important;background:#090b0e}
@@ -6379,6 +6556,12 @@ function createUI(){
  addCss();const hud=document.createElement('div');hud.id='wave-hud';hud.innerHTML=`<div class="w-left"><div class="w-head">BOXE · THE FIST OF DAWN</div><div class="w-small">HP <b id="w-hp">—</b></div><div class="w-meter"><i id="w-hp-bar"></i></div><div class="w-small">LV <b id="w-level">1</b> · XP <b id="w-xp">0</b></div><div class="w-meter xp"><i id="w-xp-bar"></i></div></div><div class="w-right"><b id="w-wave">WAVE 01 / 10</b><span id="w-count" class="w-small"></span><div class="w-weapon" id="w-arsenal"></div></div><div id="wave-status">J PUNCH · K GUARD · L DASH</div><div id="wave-stick"><i></i></div><div class="w-actions"><button class="w-action" data-act="J">J<small>ĐẤM</small></button><button class="w-action" data-act="K">K<small>THỦ</small></button><button class="w-action" data-act="L">L<small>LƯỚT</small></button><button class="w-action" data-act="U" disabled>U<small>LOCK</small></button><button class="w-action" data-act="I" disabled>I<small>LOCK</small></button></div><button id="resume-wave">Ⅱ PAUSE</button>`;
  const modal=document.createElement('div');modal.id='wave-modal';modal.innerHTML=`<div class="w-dialog"><h1 id="w-title">APEX CHAOS · BOT WAVE</h1><p id="w-desc">BOXE tham gia chiến dịch Arsenal không giới hạn với 41 vũ khí thật, các chapter luân phiên nhịp nghỉ, áp lực và boss. Băng đạn được THAY MỚI thay vì vứt súng; mỗi loại có reload và khoảng an toàn riêng. HP hồi giữa wave và theo mỗi K.O.</p><div class="w-cards" id="w-cards"></div><button class="w-go" id="w-go">▶ START WAVE 01</button></div>`;
  document.body.append(hud,modal);
+const stageCss=document.createElement('style');stageCss.textContent="\n/* LAST ROUND: stage presentation is an overlay, never a combat obstacle */\n#arena-experience-hud{position:fixed;inset:0;z-index:24;pointer-events:none;font:800 11px/1.35 system-ui,Segoe UI,sans-serif;color:#eacda2}\n#arena-round-track{position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;gap:4px;padding:7px 10px;background:#070d14cb;border:1px solid #946e4455;border-radius:9px;box-shadow:0 8px 25px #0007}\n#arena-round-track b{display:block;width:19px;height:5px;border-radius:1px;background:#344049;transform:skewX(-20deg)}\n#arena-round-track b.done{background:#926d4d}#arena-round-track b.active{background:#ffbe68;box-shadow:0 0 11px #e68a44}\n#arena-announce{position:absolute;top:20%;left:50%;transform:translate(-50%,-12px);text-align:center;opacity:0;transition:opacity .18s,transform .3s;pointer-events:none;text-shadow:0 7px 22px #000,0 0 25px #b7472477}\n#arena-announce strong{display:block;font:1000 clamp(24px,5vw,54px)/1 system-ui;letter-spacing:.09em;color:#f6cea0;white-space:nowrap}\n#arena-announce span{display:block;color:#dca06d;letter-spacing:.28em;font:900 clamp(9px,1.5vw,14px)/2 ui-monospace,monospace}\n#arena-announce.show{animation:arena-ann 2.05s ease both}@keyframes arena-ann{0%{opacity:0;transform:translate(-50%,-22px)}15%,67%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,5px)}}\n#arena-message{position:absolute;left:50%;top:31%;transform:translateX(-50%);background:#160e13da;color:#ffdbb2;border-top:1px solid #d8a068;border-bottom:1px solid #d8a068;padding:9px 25px;letter-spacing:.12em;white-space:nowrap;opacity:0}\n#arena-message.visible{animation:arena-msg 1.4s ease both}@keyframes arena-msg{0%{opacity:0;transform:translate(-50%,-9px)}18%,75%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,5px)}}\n#arena-experience-tools{position:absolute;top:9px;left:50%;margin-left:130px;pointer-events:auto;display:flex;gap:5px}\n#arena-experience-tools button{font:800 9px ui-monospace,monospace;letter-spacing:.03em;white-space:nowrap;color:#d8c7af;background:#10171ddc;border:1px solid #8d70577a;padding:7px 8px;border-radius:7px;cursor:pointer}\n#arena-experience-tools button[aria-pressed=true]{color:#ffda9e;border-color:#d6a56b;background:#34241d}\n#arena-report{display:flex;justify-content:center;gap:11px;flex-wrap:wrap;margin:10px 0 13px}\n#arena-report .a-stat{background:#16191dcc;border:1px solid #8364496b;padding:10px 11px;border-radius:8px;min-width:106px}\n#arena-report small{display:block;color:#b6a690;font:800 9px ui-monospace,monospace;letter-spacing:.07em}\n#arena-report strong{display:block;color:#ffd091;font:900 18px ui-monospace,monospace;margin-top:4px}\n#arena-approach-hint{position:absolute;bottom:73px;left:50%;transform:translateX(-50%);font-size:10px;color:#e9b773;opacity:0;transition:opacity .12s;white-space:nowrap}\n#arena-approach-hint.on{opacity:.9}\n@media(max-width:890px){#arena-round-track{top:74px;gap:3px;padding:5px}#arena-round-track b{width:13px;height:4px}#arena-experience-tools{top:117px;right:7px;left:auto;margin:0;flex-direction:column}#arena-experience-tools button{font-size:8px;padding:5px}#arena-announce{top:26%}#arena-approach-hint{display:none}}\n@media(max-height:490px){#arena-round-track{top:52px}#arena-experience-tools{top:88px}#arena-announce{top:20%}}\n@media(prefers-reduced-motion:reduce){#arena-announce.show,#arena-message.visible{animation-duration:.15s}}\n";document.head.append(stageCss);
+const stageHud=document.createElement('div');stageHud.id='arena-experience-hud';stageHud.innerHTML=`<div id="arena-round-track" aria-label="Tiến độ 10 hiệp">${Array.from({length:10},()=>'<b></b>').join('')}</div><div id="r2-boss-panel" aria-live="polite"><div class="boss-r2-meta"><span id="r2-boss-name">CHAMPION</span><strong id="r2-boss-hp-text">0 / 0</strong></div><div class="boss-r2-meter"><i id="r2-boss-hp-ghost"></i><b id="r2-boss-hp-fill"></b></div></div><div id="arena-announce"><strong>THE LAST ROUND</strong><span>APEX CHAOS</span></div><div id="arena-message"></div><div id="arena-approach-hint">ASSIST · TIẾP CẬN MỤC TIÊU</div><div id="arena-experience-tools"><button id="stage-visual" type="button" aria-pressed="true">STAGE: HIGH</button><button id="stage-assist" type="button" aria-pressed="true">J ASSIST: ON</button><button id="stage-draft" type="button" aria-pressed="true">DRAFT: FOCUS</button></div>`;
+const r2css=document.createElement('style');r2css.id='r2-presentation-css';r2css.textContent="\n/* APEX CHAOS R2 — high-end ringside layout: HUD never captures arena pointer input */\n#wave-hud{font-family:system-ui,'Segoe UI',sans-serif}\n#wave-hud .w-left,#wave-hud .w-right{border-radius:3px 13px 4px 11px;backdrop-filter:blur(14px);background:linear-gradient(115deg,rgba(7,11,17,.95),rgba(22,24,26,.86));border:1px solid rgba(194,150,94,.55);box-shadow:0 3px 0 rgba(220,170,99,.12) inset,0 14px 35px rgba(0,0,0,.5),0 0 35px rgba(25,23,30,.35)}\n#wave-hud .w-left{padding:11px 13px 12px;width:min(274px,39vw)}\n#wave-hud .w-right{padding:11px 13px}\n#wave-hud .w-head{font-size:11px;letter-spacing:.09em;font-weight:1000;color:#f6cd91;line-height:1.5;margin-bottom:6px}\n#wave-hud .w-small{font-size:10px;letter-spacing:.045em;color:#e9dbca}\n#wave-hud .w-meter{position:relative;height:9px;background:#191a20;border:1px solid rgba(166,140,112,.28);border-radius:2px;overflow:hidden;margin:6px 0 9px;transform:skewX(-9deg)}\n#wave-hud .hp-r2{height:13px;border-color:#ad6151;background:#2b1921}\n#wave-hud .hp-r2 i{position:absolute;top:0;left:0;z-index:2;height:100%;transition:width .095s linear;background:linear-gradient(90deg,#831d31,#e83d38 66%,#ff7f53)}\n#wave-hud .w-hp-trail{position:absolute;z-index:1;top:0;left:0;height:100%;width:100%;background:linear-gradient(90deg,#b36946,#ffcc7b);transition:width .34s cubic-bezier(.21,.65,.3,1) .19s}\n#wave-hud .w-hp-shine{position:absolute;z-index:3;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.21),transparent 55%,rgba(0,0,0,.22))}\n#wave-hud .w-left.r2-damaged{animation:r2-hp-hit .22s linear}\n@keyframes r2-hp-hit{0%,100%{filter:none}35%{filter:brightness(1.65)}}\n#wave-hud .w-meter.xp{height:5px;opacity:.88}\n#wave-hud .w-fury-line{display:flex;justify-content:space-between;font:900 9px ui-monospace,monospace;color:#dcb97f;letter-spacing:.10em}\n#wave-hud .fury-r2{height:5px;background:#31251d}\n#wave-hud .fury-r2 i{width:0;background:linear-gradient(90deg,#955a28,#f4c46b,#fff2ae);transition:width .15s}\n#wave-hud .w-left.r2-hot{box-shadow:0 0 0 1px rgba(255,186,94,.42),0 12px 36px #0009,0 0 24px #bc6a2866}\n#wave-hud .w-right b{font-size:clamp(13px,1.3vw,17px);color:#ffe0a4;letter-spacing:.13em}\n#wave-hud .w-weapon{opacity:.76}\n#wave-status{bottom:7px!important;font-size:9px!important;letter-spacing:.07em!important;max-width:min(550px,55vw)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:3px!important;opacity:.7}\n#wave-hud .w-actions{gap:5px;align-items:flex-end}\n#wave-hud .w-action{position:relative;border:1px solid #957555!important;border-bottom:3px solid #c3915c!important;background:linear-gradient(143deg,#292a2b,#101318 75%)!important;color:#f9e9cd!important;box-shadow:inset 0 1px 0 #e3c29c33,0 6px 12px #0009;transition:transform .1s,border-color .15s,box-shadow .15s}\n#wave-hud .w-action:not(:disabled).r2-active{border-color:#ffcf8b!important;box-shadow:inset 0 1px 9px #ed9d5c55,0 0 21px #de763a44}\n#wave-hud .w-action.r2-cooling{opacity:.6}\n#wave-hud .w-action:active{transform:translateY(2px) scale(.98)}\n#wave-hud .w-action small{letter-spacing:.06em;font-weight:800}\n#arena-round-track{border:1px solid #8b6749a1!important;border-radius:3px!important;background:#05090ee5!important;box-shadow:0 10px 25px #0009!important}\n#arena-round-track b{height:6px!important}\n#r2-boss-panel{position:absolute;top:49px;left:50%;transform:translateX(-50%);width:min(460px,44vw);display:none;filter:drop-shadow(0 11px 15px #0009);background:linear-gradient(180deg,#170b10e6,#0a0c11d9);padding:8px 11px;border:1px solid #b0724a;clip-path:polygon(1.5% 0,98.5% 0,100% 20%,100% 100%,0 100%,0 20%)}\n#r2-boss-panel.visible{display:block}\n#r2-boss-panel .boss-r2-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;font:900 10px ui-monospace,monospace;letter-spacing:.12em;color:#ffd09a;margin-bottom:6px}\n#r2-boss-panel .boss-r2-meta strong{color:#ebc3a7;font-size:10px}\n#r2-boss-panel .boss-r2-meter{position:relative;height:13px;background:#310d1b;border:1px solid #b05c4c;overflow:hidden;transform:skew(-9deg)}\n#r2-boss-panel .boss-r2-meter i,#r2-boss-panel .boss-r2-meter b{position:absolute;left:0;top:0;height:100%;width:100%}\n#r2-boss-panel .boss-r2-meter i{background:#f2bc83;transition:width .35s .18s}\n#r2-boss-panel .boss-r2-meter b{background:linear-gradient(90deg,#9b2333,#ef5a46,#ff9c68);transition:width .08s}\n#arena-announce{top:22%;width:min(90vw,700px)}\n#arena-announce strong{font-weight:1000!important;letter-spacing:.04em!important;text-shadow:0 3px #211112,0 0 24px #7a423d,0 10px 32px #000}\n#arena-announce:before,#arena-announce:after{content:'';display:block;height:2px;max-width:500px;margin:7px auto;background:linear-gradient(90deg,transparent,#e7b778,transparent)}\n#arena-experience-tools{opacity:.84;transition:opacity .2s}\n#arena-experience-tools:hover,#arena-experience-tools:focus-within{opacity:1}\n#arena-experience-tools button{font-size:8px!important;padding:5px 6px!important;border-radius:3px!important}\n#wave-modal .w-dialog{border-radius:4px;box-shadow:0 0 0 3px rgba(235,162,88,.08),0 25px 100px #000f;background:linear-gradient(145deg,#2b1c22,#090d14 45%,#161b1c);max-width:min(800px,97vw)}\n#wave-modal .w-dialog:before{content:'APEX CHAOS • OFFICIAL RINGSIDE FEED';display:block;letter-spacing:.28em;color:#c59e6b;font:900 9px ui-monospace,monospace;margin-bottom:14px}\n#wave-modal .w-card{border-radius:4px;border-left:4px solid #9c6e47;min-height:148px;box-shadow:inset 0 3px #f3d59b11}\n#wave-modal .w-card small{color:#cbaa75}\n#wave-modal .w-card:hover{box-shadow:0 0 20px #d4944022,inset 0 3px #efcc9877}\n#arena-report .a-stat{border-radius:4px;min-width:120px;background:linear-gradient(180deg,#352824,#0c1417)}\n#wave-hud.r2-ui-lite .w-right .w-weapon{display:none}\n@media(max-width:890px){\n #wave-hud .w-left{left:6px;top:6px;width:min(200px,49vw);padding:7px 9px}\n #wave-hud .w-right{right:6px;top:6px;padding:7px 9px;max-width:47vw}\n #wave-hud .w-head{font-size:9px}\n #wave-hud .w-small{font-size:9px}\n #r2-boss-panel{top:94px;width:min(440px,65vw);padding:6px 8px}\n #arena-announce{top:32%}\n #wave-hud .w-action{min-width:0}\n #wave-status{display:none}\n}\n@media(max-width:520px){\n #wave-hud .w-left{width:50vw;max-width:195px}\n #wave-hud .w-right{width:42vw}\n #wave-hud .w-right .w-weapon{display:none}\n #r2-boss-panel{top:104px;left:50%;width:90vw}\n #arena-round-track{top:79px}\n #arena-experience-tools{top:131px;right:5px;flex-direction:column}\n #arena-experience-tools button{font-size:7px!important;padding:4px!important}\n #wave-hud .w-actions{right:5px;bottom:8px;gap:3px}\n #wave-hud .w-action{padding:3px 5px}\n #wave-modal .w-dialog{padding:12px}\n #wave-modal .w-card{min-height:135px;padding:9px}\n}\n@media(prefers-reduced-motion:reduce){#wave-hud .w-action,#wave-hud .hp-r2 i,#wave-hud .w-hp-trail,#r2-boss-panel .boss-r2-meter i,#r2-boss-panel .boss-r2-meter b{transition:none!important;animation:none!important}}\n\n#wave-hud .w-action{height:65px;min-width:60px;font-size:14px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1;position:relative}\n#wave-hud .w-action .r2-skill-glyph{height:19px;width:24px;display:block;opacity:.88;margin-bottom:2px}\n#wave-hud .w-action .r2-skill-glyph svg{width:100%;height:100%;overflow:visible;fill:none;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}\n#wave-hud .w-action small{font-size:8px;line-height:1.15;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n@media(max-width:890px){#wave-hud .w-action{height:57px;min-width:47px;padding:3px 2px;font-size:13px!important}#wave-hud .w-action .r2-skill-glyph{height:16px;width:20px;margin-bottom:1px}#wave-hud .w-action small{font-size:7px}}\n@media(max-width:390px){#wave-hud .w-action{min-width:42px;height:51px}#wave-hud .w-action .r2-skill-glyph{height:14px;width:18px}}\n";document.head.append(r2css);
+
+const _ownerStageStyle=document.createElement('style');_ownerStageStyle.textContent='#arena-experience-tools{display:none!important}';document.head.append(_ownerStageStyle);
+
  for(const id of ['w-hp','w-hp-bar','w-level','w-xp','w-xp-bar','w-wave','w-count','w-arsenal','wave-status','w-title','w-desc','w-cards','w-go','wave-modal'])UI[id]=document.getElementById(id);
  document.getElementById('w-go').onclick=()=>{if(state.phase==='intro'||state.phase==='intermission'){engine.paused=false;UI['wave-modal'].hidden=true;startWave()}else if(state.phase==='complete'){restart()}else if(state.phase==='gameover'){restart()}};
  document.getElementById('resume-wave').onclick=()=>{if(state.phase==='combat'){engine.paused=!engine.paused;document.getElementById('resume-wave').textContent=engine.paused?'▶ RESUME':'Ⅱ PAUSE';}};
@@ -6450,7 +6633,7 @@ function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.p
  state.wave++;state.phase='combat';state.comboFlow=null;state.rocketPending=false;state.stickyEngage=null;state.queue=[];state.spawnT=0;const comp=waveComposition(state.wave);
  state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,boss:e.boss,edge:e.edge,
   edgeFraction:e.edgeFraction,role:e.role}));
- state.softCap=comp.plan.concurrentLimit;engine.paused=false;engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
+ state.softCap=comp.plan.concurrentLimit;ARENA_STAGE.beginWave(state.wave);engine.paused=false;engine.combatCue('WAVE_START',.8);engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
  engine.banner={text:'WAVE '+String(state.wave).padStart(2,'0'),sub:comp.label,t:1.8,max:1.8};
 }
 function makeEnemy(desc){
@@ -6467,7 +6650,8 @@ function makeEnemy(desc){
  const e={id:engine.nextId++,kind:'bot',x,y,vx:0,vy:0,r:boss?68:30,hp,maxHp:hp,
  angle:0,flash:0,wob:0,wobV:0,z:0,vz:0,shootT:1e8,strafeDir:rng()<.5?-1:1,strafeT:1+rng()*2,orbitHitAt:0,slowT:0,dead:false,
  waveGunId:desc.gun,waveAmmo:g.mag,waveFireT:.8+rng(),waveReloadT:0,waveBoss:boss,waveAimT:0,waveStunT:0};
- engine.enemies.push(e);ARMORY.activate(e);
+ engine.enemies.push(e);ARMORY.activate(e);ARENA_STAGE.entrance(e.x,e.y,boss);
+ engine.combatCue(boss?'BOSS_SPAWN':'BOT_SPAWN',boss?1:.5);
  engine.fx.flash(e.x,e.y-15,boss?150:60,boss?'#ff7850':'#d7b387',.25);
  engine.material.dust(e.x,e.y+25,boss?8:3,boss?150:60,.35);
  return e;
@@ -6485,18 +6669,18 @@ function completedUI(){
 }
 function completeWave(){if(state.phase!=='combat')return;state.phase='intermission';state.comboFlow=null;state.rocketPending=false;engine.paused=true;
  let c=waveComposition(state.wave);engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*c.heal);
- completedUI();}
-function lose(){state.phase='gameover';state.comboFlow=null;state.rocketPending=false;engine.paused=true;state.losses++;UI['w-title'].textContent='BOXE DOWN · WAVE '+state.wave;
+ engine.combatCue('WAVE_CLEAR',1);engine.combatCue('HEAL',.48);ARENA_STAGE.notice('ROUND '+state.wave+' CLEAR');completedUI();}
+function lose(){state.phase='gameover';state.comboFlow=null;state.rocketPending=false;engine.paused=true;state.losses++;engine.combatCue('PLAYER_KO',1);UI['w-title'].textContent='BOXE DOWN · WAVE '+state.wave;
  UI['w-desc'].textContent='BOT WAVE tiếp tục qua nhiều chapter. Quan sát hướng tấn công, thử thẻ nâng cấp và chọn thời điểm lướt thay vì đứng chặn đạn.';
  UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';UI['w-go'].textContent='↻ RETRY';UI['wave-modal'].hidden=false;}
 function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.timeline=[];engine.player.hp=3200;engine.player.maxHp=3200;
- ARMORY.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.damageMul=1;state.moveMul=1;state.punchMul=1;state.guardBonus=0;state.healOnKill=.012;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
+ ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.damageMul=1;state.moveMul=1;state.punchMul=1;state.guardBonus=0;state.healOnKill=.012;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
  UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;startWave();}
 function autoAimNow(){
  const p=engine.player,targets=engine.enemies.filter(e=>!e.dead);
- if(!targets.length)return null;
+ if(!targets.length){ARENA_STAGE.targetId=null;return null;}
  targets.sort((a,b)=>{const da=(a.x-p.x)**2+(a.y-p.y)**2,db=(b.x-p.x)**2+(b.y-p.y)**2;return da-db||a.id-b.id});
- const enemy=targets[0];const a=Math.atan2(enemy.y-p.y,enemy.x-p.x);
+ const enemy=targets[0];ARENA_STAGE.targetId=enemy.id;const a=Math.atan2(enemy.y-p.y,enemy.x-p.x);
  p.aim=a;
  // Gold core reads mouse screen coordinates before attack; align pointer to target.
  engine.mouse.x=engine.w/2+Math.cos(a)*260;
@@ -6529,14 +6713,29 @@ function updateWave(rawDt){if(state.phase!=='combat')return;
 function recordBOXERealDamage(realized){
  if(!(realized>0)||state.empowered||state.passiveReady||state.phase!=='combat')return;
  state.passiveProgress+=realized;
- if(state.passiveProgress>=300){state.passiveReady=true;engine.player.fury=100;}
+ if(state.passiveProgress>=300){state.passiveReady=true;engine.player.fury=100;engine.combatCue('PASSIVE_READY',.82);}
  else engine.player.fury=state.passiveProgress/3;
 }
+// Owner Gold R2: native hit rings and text presentation above Gold particles.
+const originalHitCircle=engine.hitCircle.bind(engine);
+engine.hitCircle=function(x,y,r,dmg,opts){const hit=originalHitCircle(x,y,r,dmg,opts);
+ if(hit?.length)ARENA_STAGE.mark(x,y,'hit',dmg>200?1.7:1);return hit;};
+const nativeDrawFxR2=engine.drawFx.bind(engine);
+engine.drawFx=function(ctx){nativeDrawFxR2(ctx);R2_PRESENT.draw(ctx);};
 const nativeDamageEnemy=engine.damageEnemy.bind(engine);
 engine.damageEnemy=function(e,raw,opts){
- const before=e.dead;const done=nativeDamageEnemy(e,ARMORY.protect(e,raw*state.damageMul),opts);
- recordBOXERealDamage(done);
- if(!before&&e.dead){state.kills++;
+ const before=e.dead,textStart=this.texts.length,oldHitHP=e.hp;
+ const done=nativeDamageEnemy(e,ARMORY.protect(e,raw*state.damageMul),opts);
+ if(done>0){e._r2PreHitHP=Math.max(oldHitHP,e._r2PreHitHP||oldHitHP);e._r2DamageTime=this.time;}
+ if(R2_PRESENT.enabled&&done>0&&!opts?.quiet){
+  for(let i=this.texts.length-1;i>=textStart;i--)if(/^\d+(?:[.,]\d+)?$/.test(String(this.texts[i].text)))this.texts.splice(i,1);
+  R2_PRESENT.hit(e,done,opts||{});
+  if(e.dead)for(let i=this.texts.length-1;i>=textStart;i--)if(String(this.texts[i].text)==='K.O.!')this.texts.splice(i,1);
+ }
+ recordBOXERealDamage(done);if(done>0)ARENA_STAGE.stats.damage+=done;
+ if(!before&&e.dead){R2_PRESENT.kill(e);state.kills++;
+  ARENA_STAGE.mark(e.x,e.y,'ko',e.waveBoss?2:1);
+  engine.combatCue(e.waveBoss?'BOSS_KO':'BOT_KO',e.waveBoss?1:.76);
   let base=e.waveBoss?260:e.waveGunId==='SNIPER'?34:e.waveGunId==='GRENADE'?32:18;
   if(state.healOnKill)engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*state.healOnKill);
   gainXP(base);
@@ -6571,9 +6770,14 @@ engine.drawEnemy=function(ctx,e){
   ctx.restore();
  }
 };
-// OWNER REJECT RECOVERY: never replace Gold's authored ring, materials,
-// fractures, floor detail or ribbon effects with a homemade stadium.
-// engine.drawArena / initRibbons / updateRibbons / drawRibbons stay native.
+// OWNER Gold R2 visual authority: the approved circular 920-world arena.
+engine.drawArena=function(ctx){ARENA_STAGE.draw(ctx);};
+// The R2 circular floor intentionally retires the older rectangular lab ropes.
+engine.initRibbons=function(){this.ribbons=[]};
+engine.updateRibbons=function(){this.ribbons=[]};
+engine.resetRibbons=function(){this.ribbons=[]};
+engine.drawRibbons=function(){};
+engine.ribbons=[];
 const originalCast=engine.castSkill.bind(engine);
 engine.castSkill=function(id){if(!({jab:'jab',uppercut:'uppercut',counter:'counter',phantom:'phantom',ult:'ult'}[id]&&state.owned.has(id)))return false;return originalCast(id)};
 // A roll is attached to every real successful punch impact, not arbitrary J spam.
@@ -6694,13 +6898,13 @@ engine.update=function(dt){
   // Passively enter the exact native Gold heat presentation at fury=100,
   // then shorten 8s Gold lab tuning to canonical BOXE 3s, x2 recovery.
   if(state.passiveReady&&!state.empowered&&this.player.empoweredT>0){
-   state.passiveReady=false;state.empowered=true;state.empoweredEnd=this.time+3;
+   state.passiveReady=false;state.empowered=true;state.empoweredEnd=this.time+3;this.combatCue('PASSIVE_ON',1);
    this.opts.haste=2;this.opts.damageScale=.8;
    this.log('CÀNG ĐÁNH CÀNG HĂNG · 3s · HỒI CHIÊU x2','#ffad69');
   }
   if(state.empowered){
    const remaining=state.empoweredEnd-this.time;
-   if(remaining<=0){state.empowered=false;state.empoweredEnd=0;state.passiveProgress=0;
+   if(remaining<=0){this.combatCue('PASSIVE_OFF',.65);state.empowered=false;state.empoweredEnd=0;state.passiveProgress=0;
     this.player.fury=0;this.player.empoweredT=0;this.opts.haste=1;this.opts.damageScale=1;
    }else {this.player.empoweredT=remaining;this.player.fury=100;}
   }

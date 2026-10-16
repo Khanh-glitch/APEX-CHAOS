@@ -9,7 +9,7 @@ const start=game.indexOf('const modules='),end=game.indexOf('/* BOXE BOT WAVE pi
 assert.ok(start>0&&end>start,'Gold modules/adapter boundary missing');
 const core=game.slice(start,end);
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
-assert.equal(Buffer.byteLength(core),901831,'Owner Gold source length changed');
+assert.equal(core.length,901831,'Owner Gold source length changed');
 assert.equal(sha(core),'00a14304c6c82efc337e78cbeb4f68ff9d1f15b4413016b6355a6c43dd3ffbc7',
  'Owner-approved Gold engine/VFX/BOXE sound banks mutated');
 for(const item of ['class BoxeSoundDirector','const BOXE_AUDIO_BANK','const BOXE_FINAL_AUDIO_BANK',
@@ -26,3 +26,7 @@ for(const asset of proof.substitutions){
  assert.equal(sha(binary),asset.sha256,'Owner Gold artwork changed: '+asset.file);
 }
 console.log('OWNER GOLD R2 fidelity PASS: full original renderer, audio banks, 10 immutable PNGs, appended native Wave bridge');
+
+assert.ok(game.includes('const ARENA_STAGE={')&&game.includes('engine.drawArena=function(ctx){ARENA_STAGE.draw(ctx);'), 'Owner circular R2 arena missing');
+assert.ok(game.includes('const R2_PRESENT={')&&game.includes('R2_PRESENT.hit(e,done,opts||{})'),'Owner impact number VFX missing');
+assert.ok(game.includes("engine.combatCue('WAVE_START',.8)"),'Owner fight SFX not routed');
