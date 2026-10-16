@@ -29,7 +29,7 @@ assert.equal(sha(Buffer.from(prefix)),proof.gold_visual_prefix_sha256,
  'Owner Gold art/motion/VFX core changed outside the isolated wave adapter');
 assert.equal(proof.source_gold_visual_edits,0,'Owner Gold visual core edits forbidden');
 const adapter=binary.toString('utf8').split(proof.visual_prefix_delimiter)[1]||'';
-assert.ok(!adapter.includes('engine.drawArena=function('),'REJECT: BOT WAVE replaced owner's Gold arena renderer');
+assert.ok(!adapter.includes("engine.drawArena=function("),"REJECT: BOT WAVE replaced owner Gold arena renderer");
 for(const method of ['initRibbons','updateRibbons','resetRibbons','drawRibbons'])
  assert.ok(!adapter.includes('engine.'+method+'=function('),'REJECT: BOT WAVE disabled owner Gold '+method);
 
