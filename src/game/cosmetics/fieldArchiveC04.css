@@ -29,3 +29,16 @@
 .fa4-spec-pages button{border:1px solid #78613e;background:#182322;color:#ffd19a;min-width:26px;min-height:20px}.fa4-spec-pages button:disabled{opacity:.33}
 @media(max-width:900px){.fa4-telemetry{max-height:48%}.fa4-spec{font-size:9px;padding:3px 1px}.fa4-skills{max-height:45%}.fa4-skill-info p{font-size:9px;-webkit-line-clamp:2}}
 @media(max-width:360px){.fa4-radar-frame{width:57%}.fa4-axes{width:43%}.fa4-radar-frame svg{max-height:150px}.fa4-telemetry-heading{padding:3px 7px;font-size:8px}.fa4-telemetry-heading small{font-size:6px}.fa4-telemetry-list{padding:1px 7px 3px;gap:0 8px}.fa4-spec{font-size:8px;padding:3px 1px}.fa4-spec small{font-size:6px}.fa4-spec-pages{padding:1px 7px;font-size:8px}.fa4-spec-pages button{min-height:17px}.fa4-skill-info p{font-size:8px;-webkit-line-clamp:1}}
+
+/* Registered PASSIVE/A1/A2 visual records. Use the same approved Gold
+   3-skill artwork for Core Six and registry-declared files for new heroes. */
+.fa4-skill-portraits{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px 9px;background:linear-gradient(95deg,#0e1819,#33271d,#111a19);border-bottom:1px solid #775331;min-height:0}
+.fa4-skill-portrait{display:flex;align-items:center;gap:7px;min-width:0;min-height:46px;padding:3px 7px;border:1px solid #795334;background:#1b2524;color:#e6bc87;cursor:pointer;text-align:left;clip-path:polygon(0 0,94% 0,100% 18%,100% 100%,5% 100%,0 82%)}
+.fa4-skill-portrait img{display:block;flex:0 0 auto;width:37px;height:37px;object-fit:cover;object-position:center;background:#121818;border:1px solid #ad7741}
+.fa4-skill-portrait span:not(.fa4-skill-fallback){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 10px ui-monospace,monospace}
+.fa4-skill-portrait[aria-pressed=true]{border-color:#ffb85b;background:linear-gradient(105deg,#60402b,#2a332e);box-shadow:inset 3px 0 #f1a355}
+.fa4-skill-fallback{display:grid;place-items:center;flex:0 0 auto;width:37px;height:37px;background:#292723;color:#d6ae7a;border:1px solid #97724c;font:900 13px Impact,sans-serif}
+.fa4-readout .fa4-skills{max-height:35%}
+@media(max-width:900px){.fa4-skill-portraits{gap:3px;padding:3px 5px}.fa4-skill-portrait{min-height:32px;padding:2px 4px;gap:4px}.fa4-skill-portrait img,.fa4-skill-fallback{width:26px;height:26px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:8px}.fa4-readout .fa4-skills{max-height:36%}}
+@media(max-width:900px) and (orientation:landscape) and (max-height:480px){.fa4-skill-portraits{padding:1px 3px}.fa4-skill-portrait{min-height:23px}.fa4-skill-portrait img,.fa4-skill-fallback{width:20px;height:20px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:7px}}
+@media(max-width:360px){.fa4-skill-portraits{gap:2px;padding:2px}.fa4-skill-portrait{padding:1px 3px;gap:3px;min-height:26px}.fa4-skill-portrait img,.fa4-skill-fallback{width:23px;height:23px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:7px}}
