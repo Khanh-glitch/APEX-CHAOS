@@ -133,4 +133,88 @@ function shot(t,hand='L',kind='aq_bullet',preferHand=false){
   t.step(.3);
   assert.equal(t.held.get(t.self)?.weaponId,'PISTOL','hit bullet cannot steal carried cargo');
 }
+// Owner follow-up: manual J recall is immediate, cancels all remaining
+// attacks, and waits for BOTH physical catches before cooldown/A2 access.
+{
+  const t=setup({enhanced:true});t.a1.cast(t.ctx);t.step(.43);
+  const st=t.ct.store.__boxeBattle;
+  assert.ok(st.flurry&&st.secondary?.phase==='active');
+  const committed=st.flurry.count;
+  assert.ok(committed>0&&committed<24);
+  assert.equal(t.a1.recast(t.ctx),true);
+  assert.equal(st.flurry,null,'manual A1 immediately ends remaining jab authority');
+  assert.equal(st.rocket.phase,'returning');
+  assert.equal(st.secondary.phase,'returning');
+  assert.equal(t.ct.skills.A1.cdLeft,0,'no CD before the two returns');
+  assert.equal(t.BX.executors['boxe.block_and_hit'].canCast(t.ctx),false,'A2 locked');
+  t.step(.07);
+  assert.equal(t.ct.skills.A1.cdLeft,0,'short recall travel is not an instant catch');
+  t.step(.5);
+  assert.equal(st.rocket,null);
+  assert.equal(st.secondary,null);
+  assert.equal(t.ct.skills.A1.cdLeft,15,'only both catches start 15s cooldown');
+  assert.equal(t.BX.executors['boxe.block_and_hit'].canCast(t.ctx),true,'A2 regained');
+  const end=t.events.filter(e=>e.name==='boxe:flurry-end');
+  assert.equal(end.length,1,'early recall emits one Gold lifecycle finish');
+  assert.equal(end[0].payload.reason,'manual-recall');
+  assert.equal(end[0].payload.punches,committed);
+  assert.ok(t.events.filter(e=>e.name==='boxe:flurry-punch').length<=committed,
+    'no deferred phantom strikes after cancel');
+  assert.equal(t.a1.recast(t.ctx),false,'recalled/caught skill never starts twice');
+}
+// A shot glove may already be returning or caught. Manual recall must STILL
+// retrieve the other glove and must not restart the first glove's travel.
+for(const hand of ['L','R']){
+  const t=setup({enhanced:true});t.a1.cast(t.ctx);t.step(.32);
+  const st=t.ct.store.__boxeBattle;
+  shot(t,hand,'aq_bullet',true);
+  t.step(.18);
+  assert.ok(st.flurry,'one shot glove must not end the other glove combo');
+  assert.equal(t.a1.recast(t.ctx),true,'manual recall works after individual hit');
+  assert.equal(st.flurry,null);
+  assert.ok(['returning','caught'].includes(st.rocket.phase));
+  assert.ok(!st.secondary||st.secondary.phase==='returning');
+  t.step(.7);
+  assert.equal(st.rocket,null);
+  assert.equal(st.secondary,null);
+  assert.equal(t.ct.skills.A1.cdLeft,15);
+  assert.equal(t.events.filter(e=>e.name==='boxe:flurry-end').length,1);
+}
+// Natural completion after all 24 Gold jab beats auto-recovers BOTH hands,
+// without allowing the primary Rocket to resume its old 5s outbound path.
+{
+  const t=setup({enhanced:true});t.a1.cast(t.ctx);t.step(.17);
+  const st=t.ct.store.__boxeBattle;
+  assert.ok(st.flurry);
+  // Owner body is free to move; long real return proves no instantaneous CD.
+  t.self.x=900;t.self.y=900;
+  t.step(2.04);
+  assert.ok(st.flurry||st.rocket,'Gold timeline in progress');
+  t.step(.07);
+  assert.equal(st.flurry,null,'all 24 beats completed');
+  const ends=t.events.filter(e=>e.name==='boxe:flurry-end');
+  assert.equal(ends.length,1);
+  assert.equal(ends[0].payload.punches,24);
+  assert.equal(ends[0].payload.reason,'completed');
+  assert.equal(st.rocket?.phase,'returning');
+  assert.equal(st.secondary?.phase,'returning');
+  assert.equal(t.ct.skills.A1.cdLeft,0,'do not start cooldown at flurry end');
+  t.step(1);
+  assert.equal(st.rocket,null);
+  assert.equal(st.secondary,null);
+  assert.equal(t.ct.skills.A1.cdLeft,15);
+  assert.equal(t.events.filter(e=>e.name==='boxe:rocket-cooldown-start').length,1);
+}
+// Last jab of every Gold 6-beat phrase remains distinct without bonus HP,
+// continuous stun or an artificial on-complete reward.
+{
+  const t=setup({enhanced:true});t.a1.cast(t.ctx);t.step(2.4);
+  const punches=t.events.filter(e=>e.name==='boxe:flurry-punch');
+  assert.equal(punches.length,24);
+  for(const e of punches)
+    if(e.payload.punchIndex%6===5)assert.equal(e.payload.heavy,true);
+  assert.equal(punches.filter(e=>e.payload.heavy).length,4);
+  assert.equal(t.foe.hp,1000,'all jabs still deal zero direct HP');
+  assert.equal(t.events.filter(e=>e.name==='boxe:flurry-end').length,1);
+}
 console.log('PASS BOXE R5: relative impact, native push, zero A1 disarms, swept bullets, second glove, cargo, catch-only cooldown');
