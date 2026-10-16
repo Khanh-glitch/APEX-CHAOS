@@ -116,6 +116,45 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    });
    assert.ok(waveRuntime.playerHP>0&&waveRuntime.enemyCount>=1);
    assert.equal(waveRuntime.gameCanvas,true);
+   // Real engine receipts, not 41 catalog aliases or hand-drawn tracers.
+   // Fire six representative weapon families directly through Free Battle's
+   // original weapon holder, against the Gold BOXE actor in a live iframe.
+   const weaponReceipts=await gameFrame.evaluate(()=>{
+     const api=window.APEX_ARSENAL?.weaponApi;
+     const registry=window.APEX_ARSENAL_WEAPONS;
+     const pool=window.projectiles;
+     const player=window.handLab?.player;
+     if(!api||!registry||!Array.isArray(pool)||!player)
+       throw Error('FREE_BATTLE_WEAPON_API_ABSENT');
+     const ids=['PISTOL','SMG','SHOTGUN','SNIPER','RPG_7','PLASMA_SPLITTER'];
+     const captured=[];
+     for(const id of ids){
+       const e={id:'qa-native-'+id,name:'BOT WAVE QA',color:'#ffb85b',
+         hp:1000,radius:30,data:{},dir:{x:-1,y:0},
+         x:player.x+1120,y:player.y+1000,
+         takeDamage(){},applyStatus(){}};
+       const old=pool.length;
+       if(!api.equip(e,id))throw Error('NATIVE_EQUIP_FAILED_'+id);
+       for(let i=0;i<235;i++)api.updateHolder(e,.016);
+       const emitted=pool.slice(old).filter(p=>p?.aq&&p.owner===e&&p.weapon===id);
+       if(!emitted.length)throw Error('NATIVE_SHOT_ABSENT_'+id);
+       for(const p of emitted){
+         if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!Number.isFinite(p.life))
+           throw Error('NATIVE_INVALID_PROJECTILE_'+id);
+       }
+       captured.push({id,projectiles:emitted.length,
+         carriers:[...new Set(emitted.map(p=>p.type))]});
+       pool.splice(old);
+     }
+     return {weapons:captured,executorCount:Object.keys(registry).length,
+       audioDecoded:window.APEX_ARSENAL_AV?.stats?.audioLoaded||0,
+       soundEvents:window.APEX_ARSENAL_AV?.stats?.cued?.length||0};
+   });
+   assert.equal(weaponReceipts.weapons.length,6);
+   assert.ok(weaponReceipts.weapons.every(x=>x.projectiles>0),
+     'Native Arsenal projectile parity failed '+JSON.stringify(weaponReceipts));
+   console.log('BOT WAVE live Free Battle native projectile receipts PASS',
+     view.name,weaponReceipts);
    // Reject the prior fake-armory PASS: the REAL Arsenal firing event must
    // actually happen in Chrome, and the Gold orb array may not carry a fake
    // waveGunId projectile. These are observable native battle events.
