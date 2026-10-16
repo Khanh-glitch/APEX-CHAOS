@@ -39,7 +39,7 @@ while(d.snapshot().pendingLevelUps){
  d.selectLevelUp(cards[0].id);
 }
 assert.equal(d.snapshot().status,'cleared');
-for(let i=2;i<=10;i++){
+for(let i=2;i<=15;i++){
  wave=d.startWave();assert.equal(wave.wave,i);
  for(const e of wave.enemies)d.verifiedDeath(e.id);
  while(d.snapshot().pendingLevelUps){
@@ -48,9 +48,8 @@ for(let i=2;i<=10;i++){
  }
  assert.equal(d.snapshot().status,'cleared');
 }
-assert.equal(d.startWave(),null);
-assert.equal(d.snapshot().status,'chapter-complete');
-d.beginEndless();
-assert.equal(d.startWave().wave,11);
+assert.equal(d.startWave().wave,16);
 assert.equal(d.snapshot().endless,true);
-console.log('BOXE BOT WAVE director PASS: deterministic four-edge spawns; real kill XP once; 3-card-only after level-up; 10 wave chapter; boss 5/10; Endless 11');
+assert.equal(buildWavePlan(30,{seed:721}).enemies.find(e=>e.boss).archetypeId,'bossEndless');
+assert.ok(buildWavePlan(99,{seed:721}).enemies.length>0);
+console.log('BOXE BOT WAVE director PASS: seeded four-edge spawns, real XP, 3-card gating, no wave-10 ending, recurring five-wave bosses');

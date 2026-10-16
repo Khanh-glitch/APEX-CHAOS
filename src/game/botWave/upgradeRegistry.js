@@ -95,7 +95,7 @@ export function recordAuthorizedKill(state,{killId,xp},seenKills){
 export const WAVE_BOSS_SET=new Set(BOXE_WAVE.bossesAt);
 export function waveDescriptor(number,registry){
  if(!Number.isInteger(number)||number<1)throw Error('INVALID_WAVE');
- const boss=WAVE_BOSS_SET.has(number)||(number>BOXE_WAVE.initialChapterWaves&&number%5===0);
+ const boss=number%BOXE_WAVE.chapterLength===0;
  const ids=Object.keys(registry||{}).filter(id=>registry[id].minWave<=number &&(!registry[id].maxWave||registry[id].maxWave>=number)&&!!registry[id].boss===boss);
  return {wave:number,boss,candidates:ids,spawnEdges:['north','south','east','west']};
 }

@@ -11,7 +11,7 @@ const makeRng=seed=>{let s=(seed>>>0)||0x2d1c9e3b;return ()=>{s^=s<<13;s^=s>>>17
 const EDGES=Object.freeze(['north','east','south','west']);
 export const WAVE_PROVISIONAL_TUNING=Object.freeze({
  baselineNonBossCount:6,additionalPerWave:2,maxEnemiesInWave:48,
- hpScalePerWave:1.055,damageScalePerWave:1.055
+ hpScalePerWave:1.035,damageScalePerWave:1
 });
 // Game process owns actual enemy HP, spawn/despawn and timing. A Wave Director
 // only outputs a deterministic schedule with identities, profiles and edges.
@@ -30,7 +30,7 @@ export function buildWavePlan(wave,{seed=1,registry=DEFAULT_ROBOTS,tuning=WAVE_P
   return Object.freeze({
    id:'wave-'+wave+'-enemy-'+i,archetypeId,edge:EDGES[i%EDGES.length],boss,gunId,
    edgeFraction:.08+.84*rng(),equipment:makeWaveEnemyEquipment(gunId,wave,{boss}),
-   hpMultiplier:+Math.pow(tuning.hpScalePerWave,wave-1).toFixed(4),
+   hpMultiplier:+Math.min(2.6,Math.pow(tuning.hpScalePerWave,wave-1)).toFixed(4),
    attackMultiplier:arsenal.damageScalar,xp:registry[archetypeId].xp
   });
  });
@@ -46,11 +46,11 @@ export function createBotWaveDirector({seed=1,registry=DEFAULT_ROBOTS,upgrades=W
  function startWave(){
   if(state.progress.pending||state.progress.pendingLevelUps>0)throw Error('SELECT_LEVEL_UP_CARDS_FIRST');
   if(state.status!=='ready'&&state.status!=='cleared')throw Error('WAVE_NOT_READY');
-  if(state.wave>=BOXE_WAVE.initialChapterWaves&&!state.endless){
-   state.status='chapter-complete';notify('wave:chapter-complete');return null;
-  }
+  // Owner CP2: no hard chapter-clear gate at wave 10 or any finite wave.
+  // Every fifth wave is a milestone, not an ending.
   const plan=buildWavePlan(state.wave+1,{seed,registry});
   state.wave=plan.wave;state.plan=plan;state.live=new Map(plan.enemies.map(e=>[e.id,e]));
+  state.endless=state.wave>10;
   state.status='in-wave';
   notify('wave:spawn-plan',{boss:plan.boss,enemies:plan.enemies});
   return plan;
@@ -89,8 +89,10 @@ export function createBotWaveDirector({seed=1,registry=DEFAULT_ROBOTS,upgrades=W
   return card;
  }
  function beginEndless(){
-  if(state.wave!==BOXE_WAVE.initialChapterWaves||state.status!=='chapter-complete')throw Error('CHAPTER_10_NOT_CLEARED');
-  state.endless=true;state.status='cleared';notify('wave:endless-enabled');
+  // Backward-compatible no-op: continuing is intrinsic, not a user-granted
+  // feature unlocked at a fixed chapter boundary.
+  if(state.status!=='cleared')throw Error('COMPLETE_CURRENT_WAVE_FIRST');
+  state.endless=true;notify('wave:continuation-confirmed');
  }
  function snapshot(){
   return {status:state.status,wave:state.wave,alive:state.live.size,level:state.progress.level,

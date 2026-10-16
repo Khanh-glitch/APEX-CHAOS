@@ -38,3 +38,17 @@
 - No wave-based stat mutations for Arsenal guns: ammo, cadence, damage, projectile velocity, reload remain fixed for each weapon even on bosses. Pressure escalates by gun combinations, threat lanes, active-robot cap, spawn angles, boss HP and positioning. SHOTGUN native action is ONE blast of 8 pellets before reload.
 - BOXE BOT WAVE survival trial starts at **3200 HP** with real Arsenal gun damage; player/enemy HP and between-wave healing may be tuned from hands-on Chrome playtests. This does NOT change 1v1 BOXE stats or global Arsenal.
 - J full combo order is 3 Gold basics (left, right, heavy-left), optional Gold key 1 six-beat flurry, optional Gold key 3 uppercut only after the flurry. On Gold cooldown / interrupted combo, a locked/unavailable link must NOT be silently skipped. Exact recovered timing is Gold basic 0.26/0.26/0.42s, basic hit at +0.09/+0.09/+0.13s; six jab launches at i*.085 and hit at +.05; uppercut impact at +.17. State machine must preserve VFX and input authority.
+
+## Owner CP2 correction — 2026-10-16 (supersedes only the fixed wave count)
+
+- The earlier **10-wave cap is retired**. 41 Arsenal equipment IDs cannot
+  be fairly encountered in ten fights.
+- The chapter cadence repeats **five beats**, boss on every fifth wave.
+  Wave 10 is a milestone/intermission only, not a win/stop/Endless unlock.
+- New equipment is introduced progressively until all 41 native registrations
+  appear (coverage target: by wave 32); late chapters remix established
+  mechanics. No artificially increased gun damage, cadence or projectile speed.
+- This owner correction does **not** modify the identity, Gold sprite,
+  independent glove motion, VFX, cast windows, passive or card unlock laws.
+- Combat must play all 41, including five melee, STORMBREAKER and two shields,
+  using native weapon registrations plus wave-mode behavior adapters.

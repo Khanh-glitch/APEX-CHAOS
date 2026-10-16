@@ -38,8 +38,10 @@ export const BOXE_WAVE=Object.freeze({
  ]),
  rocketProc:Object.freeze({goldKey:'2',perConfirmedPunchProbability:0.075,flightMs:5000,
    maxDetachedGloves:1,requiresUpgradeId:'unlock-rocket-proc',requiresConfirmedPunchHit:true}),
- initialChapterWaves:10,
- bossesAt:Object.freeze([5,10]),
+ chapterLength:5,
+ unboundedCampaign:true,
+ initialChapterWaves:Infinity, // supersedes 10-wave pilot cap; five-wave rhythm repeats
+ bossesAt:Object.freeze([5,10]), // retained historic milestone IDs; subsequent bosses every five
  mobileAim:'auto-target',
  removedVfxFamilies:Object.freeze(['cloth-ribbons-only'])
 });
