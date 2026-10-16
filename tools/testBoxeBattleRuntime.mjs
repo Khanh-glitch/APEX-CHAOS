@@ -53,6 +53,9 @@ p=ex['boxe.block_and_hit'].onTakeDamage(ctx,a,{amount:240,source:b});
 assert.equal(p.amount,0,'opponent-owned hit is intercepted');
 for(let i=0;i<25;i++){time+=.016;ex['boxe.block_and_hit'].onTick(ctx,.016);}
 assert.equal(b.hp,1000,'ordinary counter 0 HP damage');
+const stolen=slots.find(slot=>slot.boxeEjection);
+assert.ok(stolen,'A2 must create an actual Arsenal floor gun');
+assert.ok(stolen.boxeEjection.vx<0,'A2 ejection must travel toward BOXE');
 // Passive only tracks real recognized HP transactions; no carried excess.
 time=50;
 ex['boxe.heat'].onRealizedDamage(ctx,{amount:301,creditedTo:ct,victimCombatant:other,weaponId:'SMG'});
