@@ -51,9 +51,10 @@
     weaponApi.consume(other,'boxe-'+reason);
     // Only an actual holder can generate a floor pickup. Gun ownership is
     // transferred through native consume plus the existing world-slot API.
-    // Physical weapon ejection originates at the victim, not a teleport.
+    // Gun ejection starts at the victim and travels toward BOXE, never teleports.
     // Victim-specific lock prevents same-tick auto re-equip during flight.
-    const self=ctx.combatant.anchor,dir=unit(other.x-self.x,other.y-self.y);
+    // A2 physical gun theft: eject from the opponent TOWARD BOXE.
+    const self=ctx.combatant.anchor,dir=unit(self.x-other.x,self.y-other.y);
     const gameSize=Number.isFinite(global.GAME_SIZE)?global.GAME_SIZE:1000;
     const px=Math.max(60,Math.min(gameSize-60,other.x+dir.x*18));
     const py=Math.max(60,Math.min(gameSize-60,other.y+dir.y*18));
@@ -175,6 +176,10 @@
       st.flurry={until:now+V.flurrySeconds,next:now,count:0,x:r.x,y:r.y,
         targetId:foe.id,hands,approachStart:now,
         approachFromX:from.x,approachFromY:from.y};
+      // Prevent both new triggers and continuation of an in-flight burst.
+      // Native Arsenal weapon driver owns the actual trigger denial.
+      foe.__boxeTriggerLockUntil=Math.max(foe.__boxeTriggerLockUntil||0,
+        now+V.flurrySeconds+.055);
       emit(ctx,'boxe:flurry-start',{x:r.x,y:r.y,sourceX:from.x,sourceY:from.y,
         duration:V.flurrySeconds,period:V.flurryInterval,bodyDash:false,rocketPaused:true});
     }
@@ -266,6 +271,11 @@
     // The renderer may let already spawned Gold particles fade naturally.
     for(const hand of ['L','R'])f.hands[hand].attack=null;
     st.flurry=null;
+    const target=liveOpponent(ctx);
+    // Recalling A1 releases its trigger lock, but never shortens a newer lock.
+    if(target?.id===f.targetId&&(target.__boxeTriggerLockUntil||0)<=f.until+.1)
+      target.__boxeTriggerLockUntil=Math.min(target.__boxeTriggerLockUntil||0,
+        ctx.api.clock());
     emit(ctx,'boxe:flurry-end',{x:f.x,y:f.y,punches:f.count,
       reason,cancelled:reason==='manual-recall'});
     // Both gloves return independently from their live world positions.
