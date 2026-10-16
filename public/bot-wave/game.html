@@ -6662,14 +6662,19 @@ function chooseCard(id){if(state.phase!=='upgrade'||!state.offer?.some(c=>c.id==
  state.phase='combat';engine.paused=false;
  if(!state.queue.length&&!engine.enemies.length)completeWave();
 }
-function waveComposition(n){
+// Campaign plan is immutable per wave. Re-use it across 130ms HUD refreshes,
+ // rather than allocating and sorting the full 41-gun catalog repeatedly.
+ let cachedWaveNo=0,cachedWaveComposition=null;
+ function waveComposition(n){
+ if(cachedWaveNo===n&&cachedWaveComposition)return cachedWaveComposition;
  const plan=CAMPAIGN.planWave(CFG,n);
  const groups=new Map();let bossGun=null;
  for(const e of plan.composition){
   if(e.boss)bossGun=e.weaponId;
   else groups.set(e.weaponId,(groups.get(e.weaponId)||0)+1);
  }
- return {w:n,count:plan.composition.length,groups:[...groups],
+ cachedWaveNo=n;
+ return cachedWaveComposition={w:n,count:plan.composition.length,groups:[...groups],
   bossGun,label:plan.title+' · '+plan.chapter,heal:plan.betweenWaveHealFraction,plan};
 }
 function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.phase==='gameover')return;
@@ -6721,10 +6726,17 @@ function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.ti
  ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.damageMul=1;state.moveMul=1;state.punchMul=1;state.guardBonus=0;state.healOnKill=.012;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
  UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;engine.combatCue('UI',.7);startWave();}
 function autoAimNow(){
- const p=engine.player,targets=engine.enemies.filter(e=>!e.dead);
- if(!targets.length){ARENA_STAGE.targetId=null;return null;}
- targets.sort((a,b)=>{const da=(a.x-p.x)**2+(a.y-p.y)**2,db=(b.x-p.x)**2+(b.y-p.y)**2;return da-db||a.id-b.id});
- const enemy=targets[0];ARENA_STAGE.targetId=enemy.id;const a=Math.atan2(enemy.y-p.y,enemy.x-p.x);
+ // Same exact nearest-robot criterion and stable ID tie-break as the original
+ // sort, with no per-frame filtered array or n*log(n) sorting/allocations.
+ const p=engine.player;
+ let enemy=null,best=Infinity;
+ for(const e of engine.enemies){
+  if(e.dead)continue;
+  const d=(e.x-p.x)**2+(e.y-p.y)**2;
+  if(d<best||(d===best&&enemy&&e.id<enemy.id)){enemy=e;best=d;}
+ }
+ if(!enemy){ARENA_STAGE.targetId=null;return null;}
+ ARENA_STAGE.targetId=enemy.id;const a=Math.atan2(enemy.y-p.y,enemy.x-p.x);
  p.aim=a;
  // Gold core reads mouse screen coordinates before attack; align pointer to target.
  engine.mouse.x=engine.w/2+Math.cos(a)*260;
