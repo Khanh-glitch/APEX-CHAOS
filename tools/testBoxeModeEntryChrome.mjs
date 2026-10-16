@@ -155,6 +155,54 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      'Native Arsenal projectile parity failed '+JSON.stringify(weaponReceipts));
    console.log('BOT WAVE live Free Battle native projectile receipts PASS',
      view.name,weaponReceipts);
+   // 41 actual native holders, not merely IDs in campaign metadata. One
+   // representative shot test above also pins exact pellet/ammo evidence.
+   const fullArsenal=await gameFrame.evaluate(()=>{
+     const cfg=window.APEX_ARSENAL_CONFIG;
+     const records=window.APEX_BOT_WAVE_CAMPAIGN.indexNative(cfg).records;
+     const api=window.APEX_ARSENAL.weaponApi,pool=window.projectiles;
+     const p=window.handLab.player,proxy=window.fighters[0];
+     const prevHit=proxy.takeDamage,prevStatus=proxy.applyStatus;
+     let hitAttempts=0;
+     proxy.takeDamage=()=>{hitAttempts++};
+     proxy.applyStatus=()=>{};
+     const results=[];
+     try{
+       for(const {id,family} of records){
+         const bot={id:'native-full-'+id,name:'NATIVE-WAVE-TEST',color:'#ffbb7d',
+           x:p.x+1120,y:p.y+1000,dir:{x:-1,y:0},hp:10000,radius:30,
+           data:{},takeDamage(){},applyStatus(){}};
+         const was=pool.length,hitBefore=hitAttempts;
+         if(!api.equip(bot,id))throw Error('NATIVE_41_EQUIP_DENIED_'+id);
+         const activatedGuard=api.getHolder(bot)?.phase==='GUARD';
+         if(family!=='SHIELD'){
+           try{for(let k=0;k<230;k++)api.updateHolder(bot,.016)}
+           catch(e){throw Error('NATIVE_41_EXECUTOR_ERROR_'+id+': '+e.message)}
+         }
+         const projectiles=pool.slice(was).filter(pr=>pr?.aq&&pr.owner===bot&&pr.weapon===id).length;
+         const meleeHit=hitAttempts>hitBefore;
+         // A melee attack's actual damage or confirmed active phase is
+         // necessary. Shield must enter its canonical GUARD.
+         if(family==='SHIELD'){
+           if(!activatedGuard)throw Error('NATIVE_41_SHIELD_INACTIVE_'+id);
+         }else if(family==='MELEE'){
+           if(!(projectiles>0||meleeHit||api.getHolder(bot)?.phase==='WINDUP'))
+             throw Error('NATIVE_41_MELEE_INERT_'+id);
+         }else if(projectiles===0)throw Error('NATIVE_41_SHOT_INERT_'+id);
+         results.push({id,family,projectiles,guard:activatedGuard,hit:meleeHit});
+         pool.splice(was);
+       }
+     }finally{
+       proxy.takeDamage=prevHit;
+       proxy.applyStatus=prevStatus;
+     }
+     return {count:results.length,shields:results.filter(x=>x.guard).length,
+       projectiles:results.reduce((n,x)=>n+x.projectiles,0),
+       melee:results.filter(x=>x.family==='MELEE'&&(x.hit||x.projectiles>0)).length};
+   });
+   assert.equal(fullArsenal.count,41,'Native 41 roster did not execute all weapons');
+   assert.equal(fullArsenal.shields,2,'Both native shield executors must enter GUARD');
+   console.log('BOT WAVE full 41/41 real Arsenal execution PASS',view.name,fullArsenal);
    // Reject the prior fake-armory PASS: the REAL Arsenal firing event must
    // actually happen in Chrome, and the Gold orb array may not carry a fake
    // waveGunId projectile. These are observable native battle events.
