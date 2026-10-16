@@ -47,7 +47,7 @@
     if(!s||s.phase==='DEAD')return;
     s.phase='MORPH';s.morphFrom=s.mode;s.morphTo=target;
     s.morphEnds=now()+1.6; // provisional visual transition, not cooldown
-    emit(ctx,'morph-start',{structureId:s.solid.id,from:s.morphFrom,to:target});
+    emit(ctx,'morph-start',{structureId:s.solid.id,from:s.morphFrom,to:target,source:'a1'});
   }
   function releaseRackWeapon(ctx,s,reason){
     const host=s.emitter;
