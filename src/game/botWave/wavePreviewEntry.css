@@ -45,3 +45,59 @@
  #stage #botWaveEntry small{font-size:7px;letter-spacing:0}
 }
 @media(prefers-reduced-motion:reduce){#stage #botWaveEntry{transition:none}}
+
+
+/* R7: BOXE is the illustration on the HOME-entry CTA, never combat keys. */
+#stage #botWaveEntry{
+  width:clamp(226px,22.5vw,332px);min-height:116px;
+  display:flex;flex-direction:row;align-items:center;justify-content:space-between;
+  gap:0;padding:0 16px 0 0;overflow:visible;
+  background:linear-gradient(102deg,#301c1bfa 0%,#21191af7 48%,#0d1420f7 100%);
+  border:1px solid #dfa56d94;
+  box-shadow:0 16px 37px #02050cbb,inset 0 1px #ffe4b384,0 0 36px #e980432e;
+}
+#stage #botWaveEntry .apex-wave-entry-art{
+  position:relative;align-self:stretch;flex:0 0 44%;min-width:0;
+  display:block;pointer-events:none;isolation:isolate;
+  background:radial-gradient(ellipse at 56% 57%,#fc9e5838 0%,#6d372725 43%,transparent 78%);
+}
+#stage #botWaveEntry .apex-wave-entry-art::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,transparent 73%,#21191ac4);
+}
+#stage #botWaveEntry .apex-wave-entry-art img{
+  position:absolute;left:-8%;top:-27%;width:124%;height:149%;
+  object-fit:contain;object-position:center bottom;
+  filter:drop-shadow(0 4px 2px #000c) drop-shadow(0 0 10px #ffa2634a);
+  transform:rotate(-2deg);
+  transition:transform .22s ease,filter .22s ease;
+}
+#stage #botWaveEntry .apex-wave-entry-copy{
+  position:relative;z-index:2;display:flex;flex:1;flex-direction:column;
+  align-items:flex-start;justify-content:center;gap:5px;min-width:0;
+  white-space:nowrap;pointer-events:none;
+}
+#stage #botWaveEntry .apex-special-wave-top{font-size:9px;letter-spacing:.11em}
+#stage #botWaveEntry strong{font-size:clamp(24px,2.5vw,37px);letter-spacing:.022em}
+#stage #botWaveEntry small{font-size:8px;letter-spacing:.055em}
+#stage #botWaveEntry:hover .apex-wave-entry-art img{
+  transform:translate(2px,-4px) rotate(0deg) scale(1.06);
+  filter:drop-shadow(0 6px 3px #000d) drop-shadow(0 0 19px #ffad6875);
+}
+@media(max-width:980px) and (orientation:landscape){
+ #stage #botWaveEntry{right:1.7vw;top:52vh;width:202px;min-height:74px;padding-right:7px}
+ #stage #botWaveEntry .apex-wave-entry-art{flex-basis:42%}
+ #stage #botWaveEntry .apex-wave-entry-art img{top:-22%;height:139%}
+ #stage #botWaveEntry .apex-special-wave-top{font-size:7px;letter-spacing:.06em}
+ #stage #botWaveEntry strong{font-size:24px}
+ #stage #botWaveEntry small{font-size:6px;letter-spacing:0}
+}
+@media(orientation:portrait){
+ #stage #botWaveEntry{right:2.6vw;top:auto;bottom:calc(var(--safeB) + 86px);
+  width:clamp(177px,44vw,259px);min-height:89px;padding-right:8px}
+ #stage #botWaveEntry .apex-wave-entry-art{flex-basis:42%}
+ #stage #botWaveEntry .apex-wave-entry-art img{top:-23%;height:142%}
+ #stage #botWaveEntry .apex-special-wave-top{font-size:7px;letter-spacing:.04em}
+ #stage #botWaveEntry strong{font-size:clamp(20px,5.2vw,28px)}
+ #stage #botWaveEntry small{font-size:6.5px;letter-spacing:0}
+}
