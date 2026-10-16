@@ -31,5 +31,5 @@ if(fs.existsSync(actual)){
  const all=botWaveShippingAssetRefs(game);
  assert.ok(all.length>=51,'all 41 sprite dependencies and 10 audio refs required');
  for(const asset of all)assert.ok(fs.existsSync(path.join(root,asset.slice(1))),'Missing runtime asset '+asset);
- console.log('BOT WAVE native armory shipping PASS: '+all.length+' 41-weapon art/SFX dependencies');
+ console.log('BOT WAVE real native Arsenal shipping PASS: '+all.length+' 41-weapon art/SFX dependencies');
 }
