@@ -26,7 +26,8 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
   await page.waitForSelector('#botWaveEntry',{timeout:30000});
   await page.waitForFunction(()=>{
     const el=document.getElementById('botWaveEntry'),stage=document.getElementById('stage');
-    if(!el||!stage?.querySelector('.routes')?.contains(el))return false;
+    if(!el||el.parentElement!==stage)return false;
+    if(stage.querySelector('.routes')?.contains(el))return false;
     if(document.querySelector('#modeSelectScreen #botWaveEntry'))return false;
     const r=el.getBoundingClientRect(),s=getComputedStyle(el);
     return r.width>18&&r.height>18&&s.display!=='none'&&s.visibility!=='hidden';

@@ -872,16 +872,15 @@ export default function App() {
   }, [gameReady, goldReady]);
 
   useEffect(() => {
-    // CP W1: BOT WAVE is an independent special Home destination, NOT a
-    // third Free Battle choice. The SHA-locked Gold shell is never edited.
+    // Recovery CP1: special-event Home destination. This is a freestanding
+    // stage-level emblem, NEVER a seventh route or a Free Battle mode card.
     if (!goldReady) return;
-    const stage = document.getElementById('stage');
-    const routes = stage?.querySelector('nav.routes.e-routes');
-    if (!routes || document.getElementById('botWaveEntry')) return;
-    const entry = document.createElement('button');
-    entry.id='botWaveEntry';entry.type='button';entry.className='route apex-wave-home-entry';
-    entry.setAttribute('aria-label','BOT WAVE — BOXE survival, 10 rounds');
-    entry.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2l7.8 4.5v9L12 20l-7.8-4.5v-9L12 2Z"/><path d="M5.5 14.5l4.3-4.1 2.3 2 6.4-6.1M6 18h12"/><path d="M8.5 4.5v4M15.5 4.5v4"/></svg><span>BOT WAVE</span>';
+    const stage=document.getElementById('stage');
+    if(!stage||document.getElementById('botWaveEntry'))return;
+    const entry=document.createElement('button');
+    entry.id='botWaveEntry';entry.type='button';entry.className='apex-special-wave-emblem';
+    entry.setAttribute('aria-label','BOT WAVE — chế độ sinh tồn đặc biệt');
+    entry.innerHTML='<span class="apex-special-wave-top"><svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M15 2 27 9v12l-12 7L3 21V9L15 2Z"/><path d="m8 18 4-6 4 4 6-8m-8 12 3-3"/></svg><span>SPECIAL EVENT <i></i></span></span><strong>BOT WAVE</strong><small>BOXE · ARSENAL SURVIVAL</small>';
     const onClick=async ()=>{
       if(window.APEX_SCENE_TRANSITION?.active?.())return;
       entry.disabled=true;
@@ -891,7 +890,7 @@ export default function App() {
       }catch(e){console.warn('[bot-wave] launch',e);entry.disabled=false;}
     };
     entry.addEventListener('click',onClick);
-    routes.appendChild(entry);
+    stage.appendChild(entry);
     return ()=>{entry.removeEventListener('click',onClick);entry.remove();};
   }, [goldReady]);
 
