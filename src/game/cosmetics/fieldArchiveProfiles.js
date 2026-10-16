@@ -121,7 +121,7 @@ export function skillRecords(hero){
   if(!s)return null;
   const pairs=entries(s.baseConfig).filter(e=>finite(e.value));
   const cd=num(s.baseConfig,['cooldown','cooldownSeconds']);
-  return {slot,name:title(s.mechanicId||s.id||slot).replace(/^[A-Z0-9 ]+? /,''),
+  return {slot,name:s.displayName||title(s.mechanicId||s.id||slot).replace(/^[A-Z0-9 ]+? /,''),
    mechanicId:s.mechanicId||s.id||slot,
    cooldown:cd,metrics:pairs.slice(0,5).map(e=>({label:title(e.path),value:e.value}))};
  }).filter(Boolean);
