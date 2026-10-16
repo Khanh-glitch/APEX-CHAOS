@@ -96,22 +96,8 @@ function install(){
  move.append(stick,moveLabel);
  const skill=node('div','bw-skill-deck');
  const skillTitle=node('div','bw-skill-caption','BOXE  //  COMBAT ABILITIES');
- // Visual artwork only: the original action DOM, handlers and key semantics
- // remain live. Use approved BOXE raster art instead of placeholder letters.
- const artByAction={
-  J:'/assets/dictionary/heroes/boxe/avatar.png',
-  K:'/assets/dictionary/heroes/boxe/a2.png',
-  L:'/assets/dictionary/heroes/boxe/standing.png',
-  U:'/assets/dictionary/heroes/boxe/passive.png',
-  I:'/assets/dictionary/heroes/boxe/cover.png'
- };
- for(const btn of actions.querySelectorAll('[data-act]')){
-  const img=node('img','bw-action-art');
-  img.src=artByAction[btn.dataset.act]||artByAction.J;
-  img.alt='';img.decoding='async';img.draggable=false;
-  btn.prepend(img);
-  btn.dataset.key=btn.dataset.act;
- }
+ // Native J/K/L/U/I controls keep their key labels and ability states.
+ // BOXE character art belongs to the *Home entry*, not combat controls.
  skill.append(skillTitle,actions);
  const interfaceControls=node('div','bw-interface-controls');
  interfaceControls.append(pause,status);
