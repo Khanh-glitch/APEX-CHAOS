@@ -48,7 +48,7 @@ const ctx={combatant:ct,api:{
  emitEvent:(type,payload)=>{nativeEvents.push({type,payload,time:t});},
  nearestFreeWorldCircle:(x,y,r)=>({x,y,adjusted:false}),
  spawnWall(o){const s={id:++nextId,...o,maxHp:o.hp};solids.push(s);return s;},
- enemyBodies:()=>[b],applyStunTo(f,d)=>nativeEvents.push({type:'stun',f,d,time:t}),
+ enemyBodies:()=>[b],applyStunTo:(f,d)=>nativeEvents.push({type:'stun',f,d,time:t}),
  gameSize:1000,
 }};
 const passive=ex['shuri.recycle'];
