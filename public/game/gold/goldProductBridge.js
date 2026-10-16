@@ -1308,6 +1308,7 @@
     MAGNET: { A1: 'MAGNETIC ATTRACTION', A2: 'MAGNETIC REPEL' },
     ICE: { A1: 'FROST BREATH', A2: 'FROST RUSH' },
     MIRROR: { A1: 'MIRROR ARSENAL', A2: 'MIRROR EXCHANGE' },
+    BOXE: { PASSIVE: 'CÀNG ĐÁNH CÀNG HĂNG', A1: 'FIST ROCKET', A2: 'BLOCK & HIT' },
   };
   function canonicalHeroId(heroId) {
     const id = String(heroId || '').toUpperCase();
@@ -1374,7 +1375,7 @@
     const base = Array.isArray(fallback) ? fallback : ['PASSIVE', 'A1', 'A2'];
     const copy = GOLD_SKILL_COPY[productionId] || {};
     return [
-      base[0] || 'PASSIVE',
+      copy.PASSIVE || base[0] || 'PASSIVE',
       copy.A1 || base[1] || 'A1',
       copy.A2 || base[2] || 'A2',
     ];
