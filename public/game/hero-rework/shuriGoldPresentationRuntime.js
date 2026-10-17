@@ -45,12 +45,16 @@
     }
     const s=st.structure;
     if(!s||s.phase==='DEAD'||!s.solid||s.solid.hp<=0)return;
+    // ONE operating range: 200 measured FROM the circumference, so the rim
+    // sits at structure radius + operatingRange from the centre. The same
+    // boundary gates rack acquisition and recovery admission natively.
+    const range=rec.f.__hrCombatant?.skills?.A2?.cfg?.operatingRange??200;
+    const radius=(s.solid.radius||75)+range;
     if(s.phase==='BUILD'){
-      reachRim(ctx,s.solid.x,s.solid.y,200,'245,178,100',t,.18);
+      reachRim(ctx,s.solid.x,s.solid.y,radius,'245,178,100',t,.18);
     }else if(s.phase==='ACTIVE'){
-      const radius=s.mode==='MED'?200:(s.firstIntakeUntil>t?200:100);
       reachRim(ctx,s.solid.x,s.solid.y,radius,
-        s.mode==='MED'?'100,244,209':'255,183,95',t,.82);
+        s.recovery?'100,244,209':'255,183,95',t,.82);
     }
   }
   // Browsers require a real gesture before decoding/starting WebAudio.
@@ -113,6 +117,13 @@
         // Gold's authored 5s build motion remains independent; never let
         // a placeholder machine damage or spawn alter native structure HP.
         w.st.pos.x=st.structure.solid.x;w.st.pos.y=st.structure.solid.y;
+        // Native state owns the machine form: recovery reuses the authored
+        // med morph (the mounted gun sinks in with the rack head), anything
+        // else is the gun rack. Forcing the mode here every sync also
+        // neutralizes Gold doA1's legacy 0.72s self-morph — native A1 no
+        // longer switches the machine at all.
+        if(w.st.phase==='active')
+          w.st.mode=st.structure.recovery?'med':'rack';
         // Native Gun Rack uses genuine Arsenal holders. The Gold mock rack
         // MUST NEVER autonomously aim/fire, generate damage or audition shots.
         w.st.mounted=null;w.st.incoming=false;
@@ -166,22 +177,10 @@
         Gold.doA2(w); // original four-way, five-second Gold choreography
         break;
       }
-      case 'shuri:build-mode-changed':
-        // Build source remains Gold-owned. The target mode becomes visible
-        // only when real build is complete; no synthetic second assembly.
-        rec.pendingMode=p.mode;break;
       case 'shuri:build-complete':
-        if(w.st){
-          w.st.mode=rec.pendingMode==='MED'?'med':(p.mode==='MED'?'med':'rack');
-          rec.pendingMode=null;
-        }
-        break;
-      case 'shuri:morph-start':
-        // A1's ORIGINAL Gold 8 doA1 task performs its own 0.72s signal
-        // and morphTo with authored motion + sound. Mirroring native A1
-        // morph here would drive the same machine twice in one frame.
-        // Other native transition sources may still request one morph.
-        if(p.source!=='a1') Gold.morphTo(w,p.to==='MED'?'med':'rack');
+        // A built machine always comes online as the gun rack; recovery is
+        // a later native state mirrored continuously by syncNative.
+        if(w.st)w.st.mode='rack';
         break;
       case 'shuri:repair':
         if(w.st){w.shuri.scrap=Math.max(p.spent||0,1);Gold.doA2(w);}break;
@@ -263,7 +262,9 @@
         if(nativeHolder && !rec.w.snap)
           global.APEX_ARSENAL_AV?.drawEquippedWeapon?.(ctx,this,nativeHolder);
         const s=this.__hrCombatant?.store?.__shuri?.structure;
-        if(s?.phase==='ACTIVE'&&s.mode==='RACK'&&s.emitter){
+        // In recovery the mounted gun sinks into the machine with the med
+        // morph and the rack is off — no native gun is drawn on the emitter.
+        if(s?.phase==='ACTIVE'&&!s.recovery&&s.emitter){
           const h=global.APEX_ARSENAL?.weaponApi?.getHolder(s.emitter);
           if(h)global.APEX_ARSENAL_AV?.drawEquippedWeapon?.(ctx,s.emitter,h);
         }
