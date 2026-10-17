@@ -123,6 +123,7 @@
     if(!ev||!ev.type?.startsWith('boxe:'))return;
     const body=ev.payload||{},rec=find(body.fighterId);
     if(!rec)return;const g=rec.g;
+    global.APEX_BOXE_SFX?.handle(ev);
     const r=rec.f.__hrCombatant?.store?.__boxeBattle?.rocket;
     if(ev.type==='boxe:counter-guard'){
       syncGoldPlayer(g,rec.f);

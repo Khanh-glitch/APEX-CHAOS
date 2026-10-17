@@ -150,6 +150,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/mirrorGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorGoldV1'],
   ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
   ['/game/hero-rework/heroReworkRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRuntime'],
+  ['/game/hero-rework/boxeSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeSfxAuthority'],
   ['/game/hero-rework/boxeGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldLibrary'],
   ['/game/hero-rework/boxeGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldPresentationRuntime'],
   ['/game/hero-rework/shuriGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldLibrary'],
@@ -179,6 +180,7 @@ export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
     '/game/hero-rework/shuriGoldLibrary.js',
     '/game/hero-rework/shuriGoldPresentationRuntime.js']),
   boxe: Object.freeze([
+    '/game/hero-rework/boxeSfxAuthority.js',
     '/game/hero-rework/boxeGoldLibrary.js',
     '/game/hero-rework/boxeGoldPresentationRuntime.js',
   ]),
