@@ -12,10 +12,10 @@
     "public/game/gold/goldProductBridge.js": "114ff6ebee04b5e4ba2fcd253ace855be33ae2c86278e4d3073bb473629691e3",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalConfig.js": "7ca8b66277f021a296220bfa5994d275840d85fff7893a853626098cae0c8bfa",
-    "public/game/arsenal/arsenalIdentityRuntime.js": "d9a5b80a043a40445395f2b28c8e6aab2dfae5c868b56ea3eaac261d84bcae1a",
-    "public/game/arsenal/arsenalWeaponRuntime.js": "997235d914aa07c6b80dcb339a92482ee83212f2486ef6dc3236730b2207e642",
-    "public/game/arsenal/arsenalSpawnRuntime.js": "ba4d54a058611f503af5b39adf80ff5338f938202e5703d681142361d88ee2cb",
-    "public/game/arsenal/arsenalPresentationRuntime.js": "5bb25063ef8c44d21ab94ff78e58f23a55d1b96af3beb2f09ac10c1dde3808b6",
+    "public/game/arsenal/arsenalIdentityRuntime.js": "ae4c272eb1d988068606328f302c02aca280b9aca37fb95542754afbea234b67",
+    "public/game/arsenal/arsenalWeaponRuntime.js": "219b75135a99cb0e744695714c3fb8812a444731a0573aa02bc733cb6244ea75",
+    "public/game/arsenal/arsenalSpawnRuntime.js": "d363de64b470c243cb9e9c85c1836878769f5bb4a5514fff168847132fb9ee8f",
+    "public/game/arsenal/arsenalPresentationRuntime.js": "fba92bff4cb49afac3ff18c7d5c022686f8c35e9406061e00fe036fdbe4794cc",
     "public/game/arsenal/arsenalFeelRuntime.js": "4033c298796c88e206fd24bde5afaffab523ec5b46e88addf0f66e2aaa0e9d9e",
     "public/game/arsenal/arsenalStormbreakerVfxRuntime.js": "f5862f8e002958c967ab5a5796caef33962bdcf5eaafa183c30a90b55caaed8d",
     "public/game/arsenal/arsenalManualSkillGate.js": "0330a608a68c6515f596d2a6b08c592b07e9608276553ac9b16987fd139fe0d3",
@@ -47,8 +47,8 @@
     "public/game/hero-rework/magnetGameplayRuntime.js": "cb80d118bc5a359f26990fc28259eb8c5b0a3e160c5716503702baf221caabbd",
     "public/game/hero-rework/magnetGoldV1.js": "0b46155a49aab38574ecc34cbf8c5f89487c95b270adf739ea5b591f3870ae3f",
     "public/game/hero-rework/mirrorGoldV1.js": "f7d1817064ca87997050e2f07acd60d98edfd575fbcffbc2ecd08597366f13e7",
-    "public/game/hero-rework/heroMechanicsRuntime.js": "0383f54373761dceadba5ecf6b5016f80f2c23fd49a481dd4497b964cf17ee12",
-    "public/game/hero-rework/heroReworkRuntime.js": "81ce05ead4b3380390dd3877163209285e0d24638eac323d91ff87c6fed82651",
+    "public/game/hero-rework/heroMechanicsRuntime.js": "6a4b74306521ddb6541ccabd752988eb8bb25f0f79824b6da190a50616b18315",
+    "public/game/hero-rework/heroReworkRuntime.js": "a3ff5f9bb65a09219ad67eb52c51e511b4965772726475b2d984a0572fe1f3f9",
     "public/game/hero-rework/robotPresentationRuntime.js": "3d1b179de6b795719cc8eedb8479be5be1d7b08ada9329eef4f1523290405ffc",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "9c38075d3b7f5af9f185e651be7be10d99a61031b53c371fbbb29c12bf8f5b8f",
@@ -63,6 +63,9 @@
     "public/game/hero-rework/boxeBattleRuntime.js": "623c9557173bd5ef1c5a165fe42f08bfddb2e592043403dd11967ab4b3f08725",
     "public/game/hero-rework/boxeGoldLibrary.js": "f283094e1b345b7f3f212649382f4cc2d4c6497abfe12fd7729b567aaddb6d08",
     "public/game/hero-rework/boxeGoldPresentationRuntime.js": "83e96a420813351f88dffea3ea4f55bc730946f29bb7dce60c49b1c59e4d16c8",
-    "public/game/hero-rework/boxeSfxAuthority.js": "9e57a0252236b8445d964778929a8e5d4bb3ed0b81362364c7c1703928618ced"
+    "public/game/hero-rework/boxeSfxAuthority.js": "9e57a0252236b8445d964778929a8e5d4bb3ed0b81362364c7c1703928618ced",
+    "public/game/hero-rework/shuriBattleRuntime.js": "b1ed519c0737c5b9fd97ca5c5caef8b640af5b827be293c00ac4e14666da3c98",
+    "public/game/hero-rework/shuriGoldLibrary.js": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public/game/hero-rework/shuriGoldPresentationRuntime.js": "bf9e83bec91d84d769631f2b64efe1c3952a7ddf9455dda68fb98175d14a0378"
   }
 }
