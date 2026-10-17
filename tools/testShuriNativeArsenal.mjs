@@ -13,7 +13,7 @@ function enter(p1,p2){
  return match;
 }
 let match=enter('SHURI','ROBOT');
-assert.deepEqual(match.combatants.map(c=>c.heroId),['SHURI','ROBOT']);
+assert.deepEqual(Array.from(match.combatants,c=>c.heroId),['SHURI','ROBOT']);
 const [shuri,robot]=match.combatants;
 const enemyHp=robot.anchor.hp;
 const a1=H.HR.abilityController(shuri).tryCast('A1',{source:'shuri-native-admission'});
