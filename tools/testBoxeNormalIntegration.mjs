@@ -16,7 +16,12 @@ assert.deepEqual(Array.from(Object.keys(reg.HEROES).slice(0,12)),['ROBOT','CRYST
 assert.ok(Object.keys(reg.HEROES).indexOf('BOXE')>=12,'BOXE must remain append-only after the canonical 12');
 assert.ok(Object.keys(reg.HEROES).indexOf('SHURI')>Object.keys(reg.HEROES).indexOf('BOXE'),
   'a future fighter may append after BOXE without rewriting its admission law');
-assert.deepEqual(Array.from(PRODUCT_ROSTER.playableIds).slice(-1),['BOXE']);
+// Append-only admission: BOXE keeps its seat; later fighters (SHURI)
+// append after it instead of displacing it — same law as the registry.
+const playableIds=Array.from(PRODUCT_ROSTER.playableIds);
+assert.ok(playableIds.includes('BOXE'),'BOXE must remain playable');
+assert.ok(playableIds.indexOf('BOXE')<playableIds.indexOf('SHURI'),
+  'later fighters append after BOXE in the playable roster');
 assert.ok(PRODUCT_ROSTER.visibleIds.includes('BOXE'));
 assert.equal(reg.resolveSkillLevel('BOXE','A1',1).cooldown,15);
 assert.equal(reg.resolveSkillLevel('BOXE','A2',1).cooldown,20);

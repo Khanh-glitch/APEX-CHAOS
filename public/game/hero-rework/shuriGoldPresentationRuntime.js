@@ -196,15 +196,23 @@
         if(now()-rec.healLast>=.6){rec.healLast=now();rec.pumpPending=true;}
         break;
       }
-      case 'shuri:rack-equip':
       case 'shuri:rack-release':
       case 'shuri:rack-shot':
+      case 'shuri:rack-cycle-ended':
+      case 'shuri:mount-pending':
+      case 'shuri:rack-mount':
+      case 'shuri:mount-canceled':
+      case 'shuri:rack-reload':
+      case 'shuri:rack-starved':
+      case 'shuri:recovery-start':
+      case 'shuri:recovery-end':
       case 'shuri:a1-place':
       case 'shuri:a1-recoil':
-      case 'shuri:a1-command':
       case 'shuri:bomb-armed':
       case 'shuri:recycle-award':
-        // Gold visual tasks already own these exact score beats. Replay is
+        // Gold visual tasks / continuous sync already own these beats
+        // (rack state and gun drawing follow the live native Holder;
+        // recovery form follows native state in syncNative). Replay is
         // not dispatched twice; native events remain the verification clock.
         break;
     }

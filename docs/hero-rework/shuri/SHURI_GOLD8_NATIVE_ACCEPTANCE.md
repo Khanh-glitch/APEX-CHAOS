@@ -15,11 +15,27 @@ Status: **DRAFT / NOT MERGEABLE**. The owner’s `shuri-gold-visual-lab (8).zip`
 
 Gold’s 120-Hz script has native anchor beats: bomb placement 0.40s, arm 0.47s, recoil 0.52s and machine signal 0.72s. Native expiry is NOT an unsolicited discharge. Recycle Scrap settles on the original compressor beat; playback never grants the resource itself.
 
+## Owner update 2026-10-17 — native skill law (runtime `20261017-shuri-rework-r3`)
+
+- **Passive (unchanged intake):** a gun/launcher Holder that completes in SHURI’s own hands recycles for Scrap equal to its tier on the 3s compressor beat.
+- **A1 no longer switches the machine.** The Gold 0.72s self-morph remains inside the immutable library but is neutralized by the adapter, which owns the visual machine form from native state every sync. A shocked enemy holding a gun/launcher (T1–T5 incl. V43 specials) is disarmed through the canonical Arsenal `consume('shuri-a1-disarm')`; the stolen gun enters the same recycle queue and pays its tier in Scrap.
+- **A2 is one contextual cast** resolved by a single branch resolver: build (20 Scrap at the A1 anchor) → while holding a gun/launcher, mark it to **mount the rack when its current Holder completes** (an interrupted Holder cancels the mark; the donated first magazine is free) → unarmed and hurt inside the operating range, enter the **recovery hold** (below) → otherwise efficient repair (spends only absorbable Scrap, `ceil(missing/10)`).
+- **Gun Rack auto-turret:** the mounted gun re-seats forever; every reload pays Scrap equal to its tier before the fresh Holder may advance. Out of Scrap the rack is starved — the gun stays mounted and visible, inert, and auto-resumes when Scrap returns. A new donation replaces the mounted gun without Scrap.
+- **One operating range:** 200 measured from the structure circumference (275 from its centre at radius 75). It gates only READY target acquisition and recovery admission; a magazine already firing always finishes.
+- **Recovery hold:** free heal 20 HP/s, SHURI position-locked, machine off (no firing; the mounted gun sinks in with the authored med morph visual). Exits: full HP, leaving range, realized damage to SHURI or the structure, A1 cast, or A2 again (manual cancel, cooldown consumed). The old structure-HP-for-heal exchange law is deleted.
+- **No floor interaction:** the rack never sucks or consumes floor guns; the retired suction/intake registrations and all morph/mode native state are removed, not layered over.
+
+## Motion fidelity acceptance (2026-10-17)
+
+- The adapter measures native fighter velocity and feeds velocity, position and aim target into the Gold world **before** substeps (position is restored exactly after stepping). Gold’s hair chain, head lean/tilt and glance are velocity-driven: teleport-only feeding starved them (hair-tip excursion 7.2, lean 0 in Gold-world simulation) versus velocity-fed (37.6, lean 3.38). `tools/testShuriGoldIntegration.mjs` guards this numerically.
+- Grip/tool/collector adherence firms up with movement speed by scaling their spring `k0` (Gold derives damping as `2·z·√k`, so the damping ratio is unchanged — tighter tracking, never rigid; at rest the authored loose float is fully preserved). Simulated tracking lag while running drops ~45%.
+- The electric bomb is drawn centred: the authored `bomb.webp` body sits at sprite (−25.5, +27.5) px from its 123×122 canvas centre (measured from alpha), so the adapter compensates the rotated offset around rendering only. Gold state/task math is never touched; the Gold library remains byte-immutable.
+
 ## Global surface coverage (all required, not selectively checked)
 
 1. **Gold Home and Fighter Pick:** SHURI in canonical product playable roster for P1/P2/BOT, approved original portrait and selected original art; no broken URL or stock/shape fallback. Transition waits until Gold assets are actually usable.
 2. **Battle hero:** original core, ponytail, gripping/tool/collector actors, head expression, body motion, HUD glasses and correctly mounted native weapon. No additional synthetic body, no duplicated bullets or gun SFX.
-3. **Ability HUD:** Passive/A1/A2 from registry, SHURI imagery, native cooldown/charges, native Scrap balance, build HP/mode. No developer/lab progress HUD replacing Gold HUD.
+3. **Ability HUD:** Passive/A1/A2 from registry, SHURI imagery, native cooldown/charges, native Scrap balance, build HP, mounted-gun and recovery state. No developer/lab progress HUD replacing Gold HUD.
 4. **Field Archive (Dictionary):** all three skill descriptions from same registry/runtime, Gold identity art, 3 skill images, Quick Equip when applicable.
 5. **Cosmetics:** default SHURI presentation unchanged; equip/reload does not substitute art with another hero or break mounted gun identity.
 6. **Match Result:** SHURI as real fighter owner (P1/P2), correct weapon MVP/HP/damage, no additional 'Gun Rack player'.
@@ -28,11 +44,13 @@ Gold’s 120-Hz script has native anchor beats: bomb placement 0.40s, arm 0.47s,
 ## High-value interruption scenes
 
 - Passive visual ghost disassembles a finished real gun while SHURI picks another; actual gun artwork and ownership never duplicate.
-- A1 bomb is silent/inert before the authored landing/arm; confirmed hit plays EMP and **native** stun-confirm once; idle timeout does not.
+- A1 bomb is silent/inert before the authored landing/arm; confirmed hit plays EMP and **native** stun-confirm once; idle timeout does not. A shocked gun-holder is disarmed with no pose ghost, and the stolen gun pays Scrap only on the compressor beat; a shocked non-gun holder keeps their weapon.
 - A1 recoil against arena wall uses native collision and reflected motion; Gold does not teleport the Fighter.
 - A2 can be destroyed at build 2.5/5s; render collapse from the already assembled parts with the Gold source motions and clips.
-- Gun Rack fires one already-committed final shot before A1 morph; Arsenal gunshots from real weapon only, not Gold audition `shot1–shot5`.
-- Med Station pump audio must correspond to native realized HP; structure HP decreases 1:1. Repair does not charge on incomplete build.
+- A marked gun that gets disarmed/destroyed before completion never mounts and pays no Scrap; a completed marked gun mounts instead of paying Passive Scrap (never both).
+- Rack target leaves the operating range mid-magazine: the magazine finishes; the next acquisition waits for a target inside 200-from-circumference. A starved rack keeps its gun visibly mounted and resumes by itself when Scrap returns.
+- Recovery pump audio must correspond to native realized HP; any realized damage to SHURI or the structure releases the hold immediately. Repair does not charge on incomplete build and never spends unabsorbable Scrap.
+- Arsenal gunshots come from the real mounted weapon only, not Gold audition `shot1–shot5`.
 - Gold machine wreck and residue can remain visible after SHURI KO independently of `Fighter.draw`.
 
 ## Evidence and release conditions
