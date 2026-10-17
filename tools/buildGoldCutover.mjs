@@ -1632,6 +1632,31 @@ function buildShell(hudProductionHtml) {
         `    if(motion){stage.classList.remove('hero-switch-impact')`
       ),
     },
+    // ── S57: accepted selections stay visible inside the scrollable roster ──
+    // The production roster now scrolls within its authored deck band, so an
+    // arrow-key step (or a click on a partially visible card) must bring the
+    // accepted fighter fully into that band. This moves only the roster's own
+    // scroll offset — never the stage/page — and honors the shell's existing
+    // motion preference.
+    {
+      id: 'SHL-S57',
+      why: 'an accepted Fighter Pick selection is revealed inside the horizontally scrollable roster',
+      find: /  function selectHero\(id\)\{[\s\S]*?\n    renderFighter\(\);/,
+      replace: (matched) => (
+        `  function revealRosterCard(id){\n` +
+        `    requestAnimationFrame(()=>{\n` +
+        `      const card=document.querySelector('.rosterCard[data-hero="'+id+'"]');\n` +
+        `      const scroller=card?card.parentElement:null;\n` +
+        `      if(!card||!scroller)return;\n` +
+        `      const cr=card.getBoundingClientRect(),sr=scroller.getBoundingClientRect();\n` +
+        `      const dx=cr.left<sr.left?cr.left-sr.left:(cr.right>sr.right?cr.right-sr.right:0);\n` +
+        `      if(dx)scroller.scrollBy({left:dx,behavior:motion?'smooth':'auto'});\n` +
+        `    });\n` +
+        `  }\n\n` +
+        matched +
+        `\n    revealRosterCard(id);`
+      ),
+    },
     // ── S48: both fighters locked = match ready (BOT path) ─────────────────
     {
       id: 'SHL-S48',

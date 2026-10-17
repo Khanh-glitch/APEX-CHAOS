@@ -111,14 +111,18 @@ export function resolvePickBandLaw(shell) {
   });
 }
 
-// One law, three rules per band:
+// One law, per band:
 //   1. the band's lock footprint variables (declared on #stage, the common
 //      ancestor of BOTH the deck and the lock mechanism),
 //   2. the deck band (authored top kept, bottom never below the lock band),
 //   3. the lock band's authored footprint, pinned so no ambient rule can raise
 //      it (the app's legacy global `button{min-height:44px}` tap-target floor
 //      silently made the canonical 30px compact / 42px portrait lock 44px tall,
-//      which is exactly what kept the 932x430 crop alive after the first pass).
+//      which is exactly what kept the 932x430 crop alive after the first pass),
+//   4. roster REACHABILITY inside the band (below): the roster outgrew the
+//      deck width the composition was authored for, so it scrolls
+//      horizontally within its own band at the authored card size. The band
+//      geometry from 1-3 is untouched — only the inside of the roster moves.
 function bandRules(band, gapVh) {
   const vars = `#stage{--apexLockH:${num(band.lockHeightPx)}px;--apexLockB:${num(band.lockBottomVh)}vh;--apexLockGap:${num(gapVh)}vh}`;
   const deck = `#stage .selectionDeckV6{top:${num(band.deckTopVh)}vh!important;`
@@ -126,6 +130,35 @@ function bandRules(band, gapVh) {
     + 'height:auto!important;min-height:0!important}';
   const lock = '#stage .lockMechanismV6{min-height:var(--apexLockH)!important}';
   const rules = [vars, deck, lock];
+  if (band.id === 'desk') {
+    // Unqueried base band: also the cascade base the compact-landscape and
+    // portrait bands then specialize. Canonical lays the roster out as a
+    // flex row of `flex:1 1 0` cards — authored when the roster had six
+    // fighters, so fourteen production fighters (8 playable + 6 visible
+    // locked) crush into equal slivers. Pin each card to the authored
+    // six-across width (5px gaps) and scroll the surplus sideways; the
+    // authored P2-selected widening (flex 1.20) is re-asserted on the same
+    // basis so the selection emphasis survives. Scroll container basics are
+    // declared here once and inherited by the portrait grid (flex on the
+    // cards is simply inert there: grid items ignore it).
+    rules.push('#stage .selectionDeckV6 .roster{overflow-x:auto!important;'
+      + 'overflow-y:hidden!important;scroll-snap-type:x proximity;'
+      + 'scrollbar-width:thin;scrollbar-color:rgba(255,140,0,.55) transparent}');
+    rules.push('#stage .selectionDeckV6 .rosterCard{'
+      + 'flex:0 0 calc((100% - 25px)/6)!important;scroll-snap-align:start}');
+    rules.push('#stage .selectionDeckV6 .rosterCard.p2-selected{'
+      + 'flex-basis:calc((100% - 25px)/6*1.2)!important}');
+    rules.push('#stage .selectionDeckV6 .roster::-webkit-scrollbar{height:4px}');
+    rules.push('#stage .selectionDeckV6 .roster::-webkit-scrollbar-thumb{'
+      + 'background:rgba(255,140,0,.55)}');
+  }
+  if (band.id === 'compact-landscape') {
+    // Same six-across authored card width, on this band's tighter 3px gap.
+    rules.push('#stage .selectionDeckV6 .rosterCard{'
+      + 'flex-basis:calc((100% - 15px)/6)!important}');
+    rules.push('#stage .selectionDeckV6 .rosterCard.p2-selected{'
+      + 'flex-basis:calc((100% - 15px)/6*1.2)!important}');
+  }
   if (band.id === 'portrait') {
     // The portrait deck is the only band that lays the roster out as a GRID.
     // Its canonical `.roster{inset:0;height:auto}` makes an absolutely
@@ -133,16 +166,23 @@ function bandRules(band, gapVh) {
     // height => the box grows past its band: 692..922 inside a 692..839 band),
     // so the 2x1fr rows resolved against content instead of the band and the
     // LOCK bar cut straight through the second row of cards. Give the roster
-    // the band's definite height so the rows mean what they say; surplus
-    // (locked-placeholder) rows contribute nothing.
+    // the band's definite height so the rows mean what they say.
     // (`min-height`/`max-height` are pinned because the retired React menu's
     // global stylesheet still ships `@media(max-width:680px) .roster
     // {min-height:230px;max-height:52dvh}` — the same class name, so an ambient
     // floor used to decide the Gold band's height instead of the band itself.)
+    // The authored page is 3 columns x 2 rows. This rule once also pinned
+    // `grid-auto-rows:0` + `overflow:hidden`, so every fighter past the
+    // sixth landed in a zero-height implicit row and was simply GONE (the
+    // 14-fighter production roster made BOXE/SHURI unpickable in portrait).
+    // Keep the page; flow surplus fighters into further COLUMNS of the same
+    // width (4px gaps) and scroll them through the desk band's scrollport.
     rules.push('#stage .selectionDeckV6 .roster{height:100%!important;'
       + 'min-height:0!important;max-height:none!important;'
+      + 'grid-template-columns:none!important;'
       + 'grid-template-rows:repeat(2,minmax(0,1fr))!important;'
-      + 'grid-auto-rows:0!important;overflow:hidden!important}');
+      + 'grid-auto-flow:column!important;'
+      + 'grid-auto-columns:calc((100% - 8px)/3)!important}');
   }
   const joined = rules.join('\n');
   return band.query ? `@media${band.query}{\n${joined}\n}` : joined;

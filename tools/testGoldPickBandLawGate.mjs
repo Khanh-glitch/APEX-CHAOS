@@ -51,7 +51,25 @@ for (const band of law.bands) {
 }
 check('portrait law owns the grid roster height (ambient floor cannot decide it)',
   count(shell, '#stage .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important;'
-    + 'grid-template-rows:repeat(2,minmax(0,1fr))!important;grid-auto-rows:0!important;overflow:hidden!important}') === 1);
+    + 'grid-template-columns:none!important;grid-template-rows:repeat(2,minmax(0,1fr))!important;'
+    + 'grid-auto-flow:column!important;grid-auto-columns:calc((100% - 8px)/3)!important}') === 1);
+// Roster reachability: the 14-fighter production roster must stay fully
+// reachable inside every band at the authored card size — desk/compact as a
+// six-across flex scrollport, portrait as a 3x2 page flowing into further
+// columns. The old zero-height implicit rows hid every fighter past the
+// sixth in portrait and must never come back.
+check('desk band makes the roster a six-across horizontal scrollport',
+  count(shell, '#stage .selectionDeckV6 .roster{overflow-x:auto!important;overflow-y:hidden!important;'
+    + 'scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:rgba(255,140,0,.55) transparent}') === 1
+  && count(shell, '#stage .selectionDeckV6 .rosterCard{flex:0 0 calc((100% - 25px)/6)!important;scroll-snap-align:start}') === 1
+  && count(shell, '#stage .selectionDeckV6 .rosterCard.p2-selected{flex-basis:calc((100% - 25px)/6*1.2)!important}') === 1
+  && count(shell, '#stage .selectionDeckV6 .roster::-webkit-scrollbar{height:4px}') === 1
+  && count(shell, '#stage .selectionDeckV6 .roster::-webkit-scrollbar-thumb{background:rgba(255,140,0,.55)}') === 1);
+check('compact-landscape keeps the same six-across card width on its 3px gap',
+  count(shell, '#stage .selectionDeckV6 .rosterCard{flex-basis:calc((100% - 15px)/6)!important}') === 1
+  && count(shell, '#stage .selectionDeckV6 .rosterCard.p2-selected{flex-basis:calc((100% - 15px)/6*1.2)!important}') === 1);
+check('the fighter-hiding zero-height implicit rows are retired',
+  count(shell, 'grid-auto-rows:0') === 0);
 check('ambient floors the law defeats are documented',
   adapter.includes('min-height:44px') && adapter.includes('min-height:230px'));
 // R81's short-portrait Fighter Pick adjusts ONLY the roster's TOP edge to
