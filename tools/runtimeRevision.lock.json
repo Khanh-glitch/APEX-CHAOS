@@ -65,7 +65,7 @@
     "public/game/hero-rework/boxeGoldPresentationRuntime.js": "83e96a420813351f88dffea3ea4f55bc730946f29bb7dce60c49b1c59e4d16c8",
     "public/game/hero-rework/boxeSfxAuthority.js": "9e57a0252236b8445d964778929a8e5d4bb3ed0b81362364c7c1703928618ced",
     "public/game/hero-rework/shuriBattleRuntime.js": "b1ed519c0737c5b9fd97ca5c5caef8b640af5b827be293c00ac4e14666da3c98",
-    "public/game/hero-rework/shuriGoldLibrary.js": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public/game/hero-rework/shuriGoldLibrary.js": "efd969aedde049509c139d31f8372b56637e38fb0db34816b6b9e406ecdf3391",
     "public/game/hero-rework/shuriGoldPresentationRuntime.js": "bf9e83bec91d84d769631f2b64efe1c3952a7ddf9455dda68fb98175d14a0378"
   }
 }
