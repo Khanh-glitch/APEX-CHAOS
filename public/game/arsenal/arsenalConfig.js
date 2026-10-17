@@ -54,7 +54,7 @@
       // Checkpoint C §5.2: guns read as tracer events, not floating balls.
       // Collision is swept-segment, so speeds are never compensated by radius.
       PISTOL:      { shots: 3, interval: 0.22, damagePerShot: 4.5, spread: 0.05, bulletSpeed: 2600, bulletRadius: 7, bulletLife: 1.0, knockback: 120 },
-      SHOTGUN:     { pellets: 8, cone: 0.62, damagePerPellet: 3.6, bulletSpeed: 2500, bulletLife: 0.17, bulletRadius: 6, knockback: 950, triggerRange: 430 },
+      SHOTGUN:     { family: 'SHOTGUN', shots: 2, interval: 0.28, pellets: 8, cone: 0.62, damagePerPellet: 3.6, bulletSpeed: 2500, bulletLife: 0.17, bulletRadius: 6, knockback: 950, triggerRange: 430 },
       SMG:         { shots: 8, interval: 0.085, damagePerShot: 2.4, spread: 0.10, bulletSpeed: 3100, bulletRadius: 6, bulletLife: 0.9, knockback: 60 },
       SNIPER:      { aimTime: 0.8, damage: 26, bulletSpeed: 5800, bulletRadius: 8, bulletLife: 1.0, knockback: 260 },
       GRENADE:     { throwSpeed: 540, fuse: 1.4, blastRadius: 155, maxDamage: 20, knockback: 900 },

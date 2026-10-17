@@ -80,7 +80,7 @@ Register Arsenal Quest runtime files here in dependency order.
 Only add the minimum UI needed to enter/exit the mode and show the mode HUD. Do not implement gameplay logic in React.
 
 ### Existing runtime tests / patterns
-See `tools/testShotgunRuntime.mjs`, `tools/testKatanaRuntime.mjs`, `tools/testFangRuntime.mjs`, and related scripts for repository testing conventions.
+See `tools/testShotgunRuntime.mjs`, `tools/testFangRuntime.mjs`, and related scripts for repository testing conventions.
 
 ## 3. Recommended new file layout
 

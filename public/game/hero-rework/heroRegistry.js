@@ -492,6 +492,123 @@
     },
   };
 
+  // BOXE is an append-only, owner-approved seventh playable fighter.
+  // Gold art and SFX are separate presentation authority; these fields are
+  // normal Arsenal Battle gameplay only (never copy Gold's damage values).
+  HEROES.BOXE = {
+    id: 'BOXE',
+    name: 'BOXE',
+    displayName: 'BOXE',
+    classRef: 'rework.boxe',
+    // The canonical BOXE visual identity: projected by Shell, Pick, HUD and Result.
+    identityColor: '#ffac42',
+    archiveProfile: {
+      subtitle: 'The Fist of Dawn',
+      intro: 'An experienced rocket-glove boxer. BOXE controls space with real impacts, but both hands must physically return before he can counter again.',
+      artwork: {
+        avatar: '/assets/dictionary/heroes/boxe/avatar.png',
+        standing: '/assets/dictionary/heroes/boxe/standing.png',
+        cover: '/assets/dictionary/heroes/boxe/cover.png',
+      },
+      skillArt: {
+        PASSIVE: '/assets/dictionary/heroes/boxe/passive.png',
+        A1: '/assets/dictionary/heroes/boxe/a1.png',
+        A2: '/assets/dictionary/heroes/boxe/a2.png',
+      },
+      traits: { damage: 0, control: 92, mobility: 65, defense: 88, field: 38 },
+    },
+    skills: {
+      A1: skill('boxe.fist_rocket', 'A1', 'boxe.fist_rocket', {
+        cooldown: 15, outboundSeconds: 5, flightSpeed: 1250,
+        returnSpeed: 1450, reboundOn: ['wall','opponent'],
+        flurrySeconds: 2, flurryInterval: .085, flurryPunches: 24,
+        flurryHitStunSeconds: .07, impactStunSeconds: .35,
+        flurryHeavyEvery: 6, flurryHeavyPushRatio: 330 / 130,
+        cooldownStarts: 'after-both-gloves-caught',
+        manualFlurryCancel: 'cancel-unplayed-and-recall-both',
+        naturalFlurryEnd: 'recall-both',
+        bulletContact: 'physical-emergency-recall',
+        stunLaw: 'relative-normal-closing-speed',
+        disarmOnHit: false, maxGroundGuns: 1, baseDamage: 0,
+      }, ['cooldown'], 'cooldown_step', {
+        displayName: 'Fist Rocket',
+        archiveProfile: {
+          description: 'Launches a glove towards the opponent for up to 5 s, reflecting off walls and fighters. Stun scales with actual contact angle and force (max 350 ms); A1 never disarms. Projectiles striking a glove force that glove to return. One real floor gun can be carried home. Press A1 again to recall. During Heat, a successful hit begins a 24-beat, 2-second two-glove flurry: each authentic jab can stun for up to 70 ms, and every sixth hit has heavier push. Press A1 to cancel unplayed strikes and recall BOTH gloves; finishing 24 beats recalls both automatically. A1 cooldown starts only after BOTH gloves are physically caught; A2 stays locked until then.',
+        },
+      }),
+      A2: skill('boxe.block_and_hit', 'A2', 'boxe.block_and_hit', {
+        cooldown: 20, guardSeconds: 1, counterStunSeconds: 2,
+        finisherFractionRemainingHP: .10, baseDamage: 0,
+      }, ['cooldown'], 'cooldown_step', {
+        displayName: 'Block & Hit',
+        archiveProfile: {
+          description: 'Enter a 1-second counter guard. Intercepting an eligible attack launches a physical counter, disarms the opponent and stuns for 2 seconds. While Heat is active at activation, the empowered finisher also deals 10% of the target\'s remaining HP. A2 cannot activate while A1 gloves remain detached.',
+        },
+      }),
+      PASSIVE: skill('boxe.heat', 'PASSIVE', 'boxe.heat', {
+        damageThreshold: 300, enhancedSeconds: 3, cooldownRecoveryMultiplier: 2,
+        eligible: 'realized-dealt-or-received-HP', resetAtEnd: true,
+      }, ['damageThreshold'], 'magnitude_step', {
+        displayName: 'Càng đánh càng hăng',
+        archiveProfile: {
+          description: 'Each 300 realized HP damage dealt or received grants 3 seconds of Heat: skills activated during that window use their empowered version, and skill cooldown recovery runs at 2x. Empowerment is fixed at cast time, not retroactively applied to a rocket already airborne. Heat resets after 3 seconds.',
+        },
+      }),
+    },
+  };
+
+  // SHURI: gameplay staged on the developer branch. Do not surface in
+  // product selection or assign art until the owner supplies final Gold.
+  HEROES.SHURI = {
+    id:'SHURI',name:'SHURI',displayName:'SHURI',classRef:'rework.shuri',
+    identityColor:'#f16c41',
+    archiveProfile:{
+      subtitle:'Scrap Engineer',
+      intro:'A scrap engineer who recycles spent guns and commands one modular field machine.',
+      artwork:{
+        avatar:'/assets/dictionary/heroes/shuri/avatar.webp',
+        standing:'/assets/dictionary/heroes/shuri/standing.webp',
+        cover:'/assets/dictionary/heroes/shuri/cover.webp',
+      },
+      skillArt:{
+        PASSIVE:'/assets/dictionary/heroes/shuri/passive.webp',
+        A1:'/assets/dictionary/heroes/shuri/a1.webp',
+        A2:'/assets/dictionary/heroes/shuri/a2.webp',
+      },
+      traits:{damage:48,control:67,mobility:82,defense:70,field:98},
+    },
+    skills:{
+      PASSIVE:skill('shuri.recycle','PASSIVE','shuri.recycle',{
+        initialScrap:20,minimumTier:1,maximumTier:5,
+        validEquipment:'canonical-gun-or-launcher',
+      },['initialScrap'],'capacity_step',{
+        displayName:'Recycle Snap',
+        archiveProfile:{description:'SHURI alone recycles each completed directly held T1–T5 gun or launcher into her collector instead of discarding it; Scrap equals its tier.'},
+      }),
+      A1:skill('shuri.shock_recoil','A1','shuri.shock_recoil',{
+        cooldown:15,bombRadius:100,bombStunSeconds:1,bombArmedLifetime:5,
+        // Pending Gold motion approval: recoil duration/speed are staging
+        // defaults, NOT an owner-approved balance parameter.
+        recoilSpeedPreview:1300,recoilSecondsPreview:.18,
+      },['cooldown'],'cooldown_step',{
+        displayName:'Shock Recoil',
+        archiveProfile:{description:'Plant an electric bomb and new build anchor at the cast point, then recoil away. An enemy shocked by the bomb is stunned, disarmed, and their held gun is recycled into Scrap like the Passive.'},
+      }),
+      A2:skill('shuri.machine','A2','shuri.machine',{
+        cooldown:15,buildScrap:20,buildSeconds:5,structureHP:200,
+        repairPerScrap:10,healPerSecond:20,
+        // One operating range, measured from the structure circumference
+        // (owner law 2026-10-17). It gates rack acquisition and recovery.
+        operatingRange:200,
+        // Each rack reload costs Scrap equal to the mounted gun's tier.
+        reloadScrapPerTier:1,
+      },['cooldown'],'cooldown_step',{
+        displayName:'Mechanical Genesis',
+        archiveProfile:{description:'Contextual machine command. With no machine, spend 20 Scrap to build one 200-HP machine over 5s at the last A1 anchor. While holding a gun, that gun mounts the rack when its magazine finishes and then auto-fires forever, each reload costing Scrap equal to its tier. Unarmed inside the machine operating range (200 from its circumference), enter a recovery hold that heals for free until SHURI or the machine takes damage. Otherwise, spend only the Scrap needed to repair the machine (10 HP per Scrap).'},
+      }),
+    },
+  };
+
   const CANONICAL_IDS = Object.freeze(Object.keys(HEROES)); // insertion order = doc order
 
   /* ------------------------------------------------------------------ *

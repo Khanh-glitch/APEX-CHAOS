@@ -1,0 +1,72 @@
+name: Field Archive C04 Product and Extension QA
+on:
+  push:
+    branches:
+      - design/field-archive-c04-data-driven-20261014
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  c04-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Native score engine and future extension fixture
+        run: node tools/testFieldArchiveC04Profiles.mjs
+      - name: Shipping gates
+        run: |
+          pnpm build
+          node tools/testShippingDist.mjs
+          node tools/testRuntimeRevisionGate.mjs
+          pnpm test:product-graph
+          pnpm test:source-hygiene
+          pnpm test:gold-shell-loader
+          pnpm test:gold-revision-integrity
+      - name: Browser dependencies
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Preview
+        shell: bash
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/c04-vite.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0; sleep 1; done
+          cat /tmp/c04-vite.log; exit 1
+      - name: Actual Chrome C03 regression
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testFieldArchiveC04Chrome.mjs
+          CHROME_PATH="$CHROME" node tools/testFieldArchivePickQuickChrome.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: field-archive-c04-chrome-qa
+          path: |
+            docs/field-archive/candidate03/
+            docs/field-archive/pick-quick-equip/
+          retention-days: 14
+
+      # Browser frames are evidence, not source. Publish isolated branch only
+      # after all Chrome, extension and shipping gates have passed.
+      - name: Publish C04 actual Chrome frames on isolated evidence branch
+        if: success() && github.ref == 'refs/heads/design/field-archive-c04-data-driven-20261014'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "field-archive-c04-evidence[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          EVIDENCE="visual/c04-qa-${GITHUB_SHA:0:9}"
+          git switch -c "$EVIDENCE"
+          git add docs/field-archive/candidate03/ docs/field-archive/pick-quick-equip/
+          git commit -m "C04 real Chrome viewport evidence for ${GITHUB_SHA:0:9} [skip ci]"
+          git push origin HEAD:"refs/heads/$EVIDENCE"
+          echo "C04 screenshot evidence branch: $EVIDENCE"

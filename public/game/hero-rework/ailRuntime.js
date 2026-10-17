@@ -111,6 +111,8 @@
     WEAK: { refresh: 'duration', duration: 1.0, mirrorOnly: true },
     ROOT: { refresh: 'duration' },
     STUN: { refresh: 'duration' },
+    // BOXE A1: separate trigger authority; does not conflate movement stun.
+    BOXE_TRIGGER_LOCK: { refresh: 'duration' },
     GEL: { refresh: 'value' },
   };
 
@@ -292,6 +294,9 @@
       return result('unresolved','unmigrated-interaction-action');
     if(!target||typeof target!=='object')
       return result('unresolved','missing-target');
+    if(target.type==='aq_ability')
+      return result(target.aq===true&&target.abilityKind==='BOXE_FIST_ROCKET'
+        &&target.owner&&target.life>0?'allowed':'denied','physical-ability-projectile');
     const config=context.config;
     if(!config||typeof config.isGun!=='function')
       return result('unresolved','missing-canonical-config');

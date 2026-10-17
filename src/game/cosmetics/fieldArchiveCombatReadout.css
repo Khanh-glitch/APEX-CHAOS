@@ -1,0 +1,415 @@
+/* C03-R2 — APEX FIELD ARSENAL aesthetic.
+   Hard-cut combat silhouette + physical wear, not website component cards.
+   The original C03 layout breakpoints remain authoritative for no-scroll. */
+.fa3-overlay.apex-cosmetics-overlay{background:
+ radial-gradient(ellipse at 48% 40%,#50321e80,transparent 55%),
+ repeating-linear-gradient(124deg,transparent 0 18px,#d8791710 19px 20px,transparent 23px 62px),
+ #070a0c;}
+.fa3-shell{border:9px solid #181c1e;background:#111719;
+ box-shadow:0 0 0 2px #78512c,0 0 0 7px #0b0e0f,0 0 0 8px #c17a385e,0 24px 70px #000e,inset 0 0 40px #000;
+ clip-path:polygon(0 0,98.8% 0,100% 2%,100% 98%,98.6% 100%,1.2% 100%,0 98.3%);
+}
+.fa3-shell:before{z-index:7;opacity:.20;background:
+ repeating-linear-gradient(93deg,#0000 0 13px,#2413050f 14px 15px,#fff5 16px 17px),
+ repeating-linear-gradient(1deg,transparent 0 4px,#170f0c14 5px 6px),
+ radial-gradient(circle at 13% 80%,#0006,transparent 46%),
+ radial-gradient(circle at 96% 4%,#f6a2494f,transparent 28%);}
+.fa3-shell:after{box-shadow:inset 0 0 44px #0009,inset 0 0 0 1px #bc95644c;z-index:8}
+.fa3-header{background:
+ linear-gradient(118deg,#080d0f 0,#273031 49%,#111719 81%),
+ repeating-linear-gradient(-30deg,#a5771a26 0 2px,transparent 3px 14px);
+ border-bottom:4px solid #c66e2d;box-shadow:inset 0 1px #d9a05f6e,inset 0 -2px #381d0d}
+.fa3-header:after{content:"";position:absolute;bottom:-4px;left:35%;right:8%;height:4px;pointer-events:none;
+ background:repeating-linear-gradient(100deg,#f4ba599c 0 17px,#101619 18px 27px,#a34c27 28px 30px);
+ opacity:.6}
+.fa3-brand small{color:#e9a45f}.fa3-brand h2{font-style:italic;letter-spacing:-.005em;text-shadow:2px 3px #0009}
+.fa3-primary,.fa3-players{background:#0a1011;border:1px solid #85613e;clip-path:polygon(0 0,94% 0,100% 22%,100% 100%,6% 100%,0 79%)}
+.fa3-primary button,.fa3-players button{clip-path:polygon(0 0,94% 0,100% 19%,100% 100%,5% 100%,0 81%)}
+.fa3-primary button.on,.fa3-players button.on{background:linear-gradient(140deg,#ffb154,#cd5c24 70%);box-shadow:inset 0 1px #ffd2a4}
+.fa3-index{background:
+ linear-gradient(164deg,#29302e 0,#151b1c 49%,#26211b 100%);
+ border-right:3px solid #c47f3c;box-shadow:inset -14px 0 30px #0008,inset 4px 0 11px #8b6c3547}
+.fa3-index:before,.fa3-detail:before{border-color:#a5774257}
+.fa3-index-head{color:#f2c28c;border-bottom:2px solid #b36630;text-shadow:0 1px #000}
+.fa3-index-head span{color:#c58c51}
+.fa3-index input{background:#090f11;color:#e2c5a3;border:1px solid #957046;box-shadow:inset 0 2px 8px #0008}
+.fa3-index input::placeholder{color:#ad895e}
+.fa3-index-list button{background:linear-gradient(105deg,#23292a,#35312a 69%,#1d2425);border:1px solid #655540;color:#eddbc0;
+ clip-path:polygon(0 0,94% 0,100% 11%,100% 100%,4% 100%,0 87%);position:relative;
+ box-shadow:inset 2px 0 #a16b33,inset 0 -1px #0009;transition:transform .16s,filter .16s}
+.fa3-index-list button:before{content:"";position:absolute;right:0;top:0;height:100%;width:3px;background:#ab753e40;pointer-events:none}
+.fa3-index-list button:hover{filter:brightness(1.22)}
+.fa3-index-list button.chosen{background:linear-gradient(104deg,#7a4b28,#3b3830 45%,#222a2a);border-color:#eaa452;
+ box-shadow:inset 4px 0 #ffad51,0 0 13px #ffa14a17}
+.fa3-index-img{background:#111b1c;border-color:#926d42}
+.fa3-index-name b{letter-spacing:.08em;color:#f8e0ba;font-style:italic}
+.fa3-index-name small{color:#b29c7a}.fa3-index-list button i{color:#f3a24b}
+.fa3-pager{color:#d5ac78}.fa3-pager button,.fa3-record-navigation button{background:#111819;border-color:#b77a41;color:#ffc27b;
+ clip-path:polygon(0 0,85% 0,100% 22%,100% 100%,14% 100%,0 75%)}
+.fa3-center{background:
+ linear-gradient(140deg,#e3d2aeab,transparent 38%),
+ radial-gradient(ellipse at 49% 45%,#d0b891 7%,#a98a62 66%,#5c4b36 100%);
+ border-right:4px solid #be7642;box-shadow:inset 0 0 26px #1d1410a5}
+.fa3-center:before{content:"";pointer-events:none;position:absolute;inset:2px;z-index:1;
+ border:1px solid #c9ad7f62;background:
+ linear-gradient(150deg,transparent 4%,#2f2a212c 5%,transparent 6%,transparent 92%,#241c1329 94%),
+ repeating-linear-gradient(0deg,transparent 0 27px,#3623170b 28px 29px)}
+.fa3-record-top small{font-size:10px;color:#684522;font-weight:1000}
+.fa3-record-top h3{color:#161c1d;text-shadow:1px 2px #f3d6a080;letter-spacing:-.02em;font-style:italic}
+.fa3-record-stamp{border:2px dashed #74442a;color:#71381f;transform:rotate(7deg);background:#e5cda87a;
+ box-shadow:inset 0 0 0 3px #dfbd8d66}
+.fa3-artwork{isolation:isolate}
+.fa3-artwork:before{border:2px dashed #4d453666;inset:10% 11%;border-radius:3px;transform:rotate(-15deg) scale(.84);
+ box-shadow:0 0 0 12px #af783b08,0 0 0 35px #090e1011}
+.fa3-artwork:after{opacity:.80;background:linear-gradient(125deg,#302820a8,#7d5933a9,#f6d8a56c);
+ width:70px;height:17px;left:1%;top:16%;clip-path:polygon(0 0,95% 0,100% 85%,6% 100%)}
+.fa3-art-orbit{width:75%;border:2px solid #795e39a1;box-shadow:0 0 0 28px #c99a4030,0 0 0 62px #35281813;
+ animation:fa3-scope 13s steps(45) infinite;opacity:.52}
+.fa3-art-orbit:before{content:"";position:absolute;inset:-9px;border-left:3px solid #dd8b3c;border-right:3px solid #251913;border-radius:50%}
+.fa3-art-code{color:#4d321c;background:#e7c8919c;padding:4px 6px;transform:skew(-7deg)}
+.fa3-art-label{background:#141a1a;color:#ffc17c;clip-path:polygon(0 0,94% 0,100% 18%,100% 100%,5% 100%,0 77%);padding:9px 23px;
+ border-bottom:2px solid #df8643}
+.fa3-record-navigation{background:linear-gradient(90deg,#33291e,#8c63374d,#33291e);color:#ead0a6;border-top:2px solid #aa7136}
+.fa3-detail{background:
+ linear-gradient(135deg,#252a27,#111919 53%,#1c2626);
+ border-left:1px solid #7d542e;box-shadow:inset 13px 0 30px #050c0d99}
+.fa3-detail:after{content:"";bottom:5px;right:4px;width:80px;height:30px;background:
+ repeating-linear-gradient(-46deg,#d68c2a9e 0 8px,#1d2021 9px 16px);clip-path:polygon(8% 0,100% 0,100% 100%,0 100%);opacity:.42}
+.fa3-detail-tabs{border-bottom:2px solid #a36a37}
+.fa3-detail-tabs button{background:#1d2423;color:#b3a187;border:1px solid #5e4d37;
+ clip-path:polygon(0 0,92% 0,100% 20%,100% 100%,7% 100%,0 83%);font-style:italic}
+.fa3-detail-tabs button.on{background:linear-gradient(120deg,#a55527,#fa9b46);color:#181719;border-color:#eaa457;text-shadow:0 1px #f8c88f}
+.fa3-detail-heading{color:#f7b96c}.fa3-detail-heading i{color:#95836c}
+.fa3-description{color:#c1b39a}
+.fa3-skin{background:linear-gradient(115deg,#313c3a,#131b1c);border:1px solid #6d5c44;color:#f3d6b3;
+ clip-path:polygon(0 0,96% 0,100% 18%,100% 100%,4% 100%,0 80%);
+ box-shadow:inset 3px 0 #816341,0 2px #0006;position:relative}
+.fa3-skin.preview{border:2px solid #ea963f;background:linear-gradient(115deg,#663d29,#3c3429 55%,#1c2625);box-shadow:inset 4px 0 #ffc86f,0 0 15px #f8a04425}
+.fa3-skin-thumb{background:#101718;border:1px solid #795639}
+.fa3-eco-symbol{color:#89d3a9}
+.fa3-skin-name b{font-style:italic;color:#ffe0b3}.fa3-skin-name small{color:#b6a084}
+.fa3-skin>strong{color:#f0ac55}
+.fa3-equip-state{color:#efbe80;border-top:1px dashed #89603e}.fa3-equip-state span{color:#ffc276}
+.fa3-equip{clip-path:polygon(0 0,94% 0,100% 25%,100% 100%,6% 100%,0 74%);
+ background:linear-gradient(115deg,#b44920,#ffa34b 40%,#dc6b2a 90%);
+ box-shadow:inset 0 2px #ffd69e,0 5px #5d2b16,0 8px 12px #0008;text-shadow:0 1px #ffe0a267;
+ transform-origin:center;transition:transform .17s,filter .17s}
+.fa3-equip:not(:disabled):active{transform:scale(.973)}
+.fa3-equip:disabled{background:linear-gradient(110deg,#655844,#847158);color:#281f15;border-color:#46392a}
+.fa3-bottom-note{color:#ab8a62;border-top-color:#694e30}
+.fa3-skin-pager,.fa3-pager{color:#dca667}
+.fa3-footer{background:#101818;color:#b29568;border-top:2px solid #a66635}
+.fa3-footer .fa3-safety{color:#f8aa54}
+/* Hard contract: each skin page contains at most two visible choices.
+   Reserve their PHYSICAL heights before sharing remaining panel space with
+   telemetry. Flex:1 on both list+telemetry previously shrank the skin list
+   to 18px in 844x390 landscape while 2x30px buttons overflowed into EQUIP. */
+.fa3-appear{min-height:0;overflow:hidden}
+.fa3-skin-list{flex:0 0 auto;min-height:0;overflow:visible}
+.fa3-readout-embed{position:relative;min-width:0;min-height:0;flex:1;display:flex;margin:clamp(7px,1.3vh,14px) 0;
+ border:1px solid #835735;background:#0c1515;box-shadow:inset 0 0 22px #0009,0 0 0 2px #a56b301f}
+.fa3-readout-embed:before{content:"";position:absolute;top:-4px;left:5px;width:32%;height:3px;background:#ffb35b;z-index:2}
+.fa3-combat-web,.fa3-stat-console{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+ background:linear-gradient(140deg,#1d2827 0,#091314 55%,#25302c 100%);color:#eecb98}
+.fa3-readout-top{flex:none;display:flex;justify-content:space-between;align-items:center;gap:6px;
+ padding:clamp(4px,.8vh,9px) clamp(7px,.9vw,12px);background:#182424;color:#e6a65d;
+ border-bottom:1px solid #755638;font:900 clamp(7px,.65vw,10px) ui-monospace,monospace;letter-spacing:.04em}
+.fa3-readout-top span{color:#938671;font-size:.85em;text-align:right}
+.fa3-web-body{display:grid;grid-template-columns:minmax(0,47%) minmax(0,53%);flex:1;min-height:0;gap:3px;align-items:center}
+.fa3-web-graphic{position:relative;min-width:0;min-height:0;width:100%;height:100%;display:grid;place-items:center}
+.fa3-web-lines{width:min(100%,220px);height:min(100%,190px);opacity:.98;filter:drop-shadow(0 0 6px #dc893622)}
+.fa3-web-node{position:absolute;z-index:2;display:grid;place-items:center;width:clamp(25px,3vw,43px);height:clamp(25px,3vw,43px);
+ border:2px solid #98714a;color:#f4be7d;background:linear-gradient(145deg,#283330,#090d0f);
+ font:900 clamp(9px,1vw,14px)/1 Impact,sans-serif;clip-path:polygon(50% 0,100% 22%,100% 78%,50% 100%,0 78%,0 22%);
+ filter:drop-shadow(0 2px 5px #0009);transition:filter .18s,transform .18s}
+.fa3-web-node:hover{filter:brightness(1.4);transform:scale(1.08)}
+.fa3-web-node.active{border-color:#ffb96b;color:#23170f;background:linear-gradient(130deg,#ffce75,#eb8336);
+ box-shadow:0 0 12px #eea75688;filter:drop-shadow(0 0 5px #ffaf4e60)}
+.fa3-web-node-passive{top:5%;left:50%;transform:translate(-50%,0)}
+.fa3-web-node-passive:hover{transform:translate(-50%,0) scale(1.08)}
+.fa3-web-node-a1{bottom:6%;left:9%}
+.fa3-web-node-a2{bottom:6%;right:9%}
+.fa3-web-stamp{position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);
+ pointer-events:none;color:#dd9a5070;font:900 7px ui-monospace,monospace;letter-spacing:.1em;white-space:nowrap}
+.fa3-web-detail{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:clamp(4px,.9vw,12px);gap:clamp(3px,.75vh,10px)}
+.fa3-readout-code{font:900 clamp(8px,.72vw,10px) ui-monospace,monospace;color:#d58b45}
+.fa3-web-detail strong{font:900 clamp(12px,1.1vw,17px)/1.1 Impact,sans-serif;color:#f8d2a2;letter-spacing:.05em}
+.fa3-web-detail p{font:550 clamp(9px,.84vw,12px)/1.35 "Segoe UI",system-ui,sans-serif;color:#c2ae8e;margin:0;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.fa3-web-legend{display:flex;align-items:center;gap:7px;font:800 8px ui-monospace,monospace;color:#a38b6e}
+.fa3-web-legend i{width:7px;height:7px;border-radius:50%;background:#df9150;box-shadow:0 0 8px #db854d}
+.fa3-web-legend b{font-size:7px;color:#edaa6c}
+.fa3-stat-ribbon{flex:none;display:flex;align-items:center;gap:7px;padding:7px 8px;color:#c9b093;border-bottom:1px solid #5c4b39;
+ font:800 9px ui-monospace,monospace}
+.fa3-tier-marker{padding:4px 7px;background:#cc662c;color:#180e09;font-size:11px;font-weight:1000}
+.fa3-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);
+ flex:1;min-height:0;padding:clamp(5px,.7vw,9px);gap:clamp(4px,.6vw,8px);overflow:hidden}
+.fa3-metric{display:flex;flex-direction:column;justify-content:center;min-height:0;
+ background:linear-gradient(130deg,#25312f,#10191a);padding:clamp(4px,.65vw,9px);
+ border:1px solid #6b573d;border-left:3px solid #855c37;
+ clip-path:polygon(0 0,95% 0,100% 12%,100% 100%,0 100%)}
+.fa3-metric-prime{border-left-color:#f5a357;background:linear-gradient(130deg,#583d2b,#182426)}
+.fa3-metric-name{font:900 clamp(7px,.6vw,10px) ui-monospace,monospace;color:#d39650;letter-spacing:.045em;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.fa3-metric-value{color:#f2d0a0;font:900 clamp(15px,2vw,28px)/1.05 Impact,sans-serif;margin-top:3px;white-space:nowrap}
+.fa3-metric-value small{font:800 clamp(7px,.64vw,10px) ui-monospace,monospace;color:#a79a80;margin-left:5px}
+.fa3-metric-sub{font:500 9px/1.2 system-ui,sans-serif;color:#a18f75;margin-top:3px}
+.fa3-metric-empty{grid-column:1/-1;align-items:center}
+.fa3-stat-status{display:flex;flex:none;gap:8px;justify-content:space-between;align-items:center;color:#cfb28d;
+ border-top:1px solid #66503a;padding:7px 9px;font:800 9px ui-monospace,monospace}
+.fa3-stat-status b{color:#fa9b52;white-space:nowrap}.fa3-stat-status span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fa3-stat-foot{flex:none;padding:5px 9px;color:#9b8268;font:800 8px ui-monospace,monospace;border-top:1px dashed #463d31}
+.fa3-stat-console-compact .fa3-stat-ribbon{display:none}
+.fa3-stat-console-compact .fa3-metrics{grid-template-columns:repeat(2,minmax(0,1fr));padding:5px}
+.fa3-stat-console-compact .fa3-metric{padding:5px 7px}
+.fa3-stat-console-compact .fa3-metric-value{font-size:clamp(16px,1.7vw,23px)}
+.fa3-stat-console-compact .fa3-stat-status{padding:4px 7px}
+.fa3-stat-console-compact .fa3-stat-foot{display:none}
+.fa3-combat-web-compact .fa3-web-lines{max-height:164px}
+@keyframes fa3-scope{to{transform:rotate(360deg)}}
+@media(max-height:690px) and (min-width:900px){
+ .fa3-readout-top{padding:3px 7px}
+ .fa3-readout-embed{margin:4px 0}.fa3-stat-console-compact .fa3-metric{padding:3px 6px}
+ .fa3-stat-console-compact .fa3-stat-status{display:none}
+ .fa3-web-graphic{height:100%}
+ .fa3-web-detail{gap:3px;padding:3px}
+ .fa3-web-legend{display:none}
+}
+@media(max-width:900px){
+ .fa3-shell{border:3px solid #1d2122;box-shadow:inset 0 0 22px #0008}
+ .fa3-body{grid-template-rows:minmax(0,45%) minmax(0,55%)}
+ .fa3-detail{background:linear-gradient(150deg,#202929,#0f191a)}
+ .fa3-readout-embed{margin:4px 0;min-height:0}
+ .fa3-readout-top{padding:3px 7px;font-size:7px}.fa3-readout-top span{font-size:6px}
+ .fa3-web-body{grid-template-columns:minmax(0,41%) minmax(0,59%)}
+ .fa3-web-detail{padding:3px 5px;gap:4px}
+ .fa3-web-graphic{min-height:0}
+ .fa3-web-node{width:28px;height:28px;font-size:10px}
+ .fa3-web-detail strong{font-size:12px}.fa3-web-detail p{font-size:9px;line-height:1.2;-webkit-line-clamp:2}
+ .fa3-web-legend{display:none}
+ .fa3-metrics{gap:3px;padding:4px}
+ .fa3-metric{padding:4px 6px}
+ .fa3-metric-name{font-size:7px}
+ .fa3-metric-value{font-size:16px}.fa3-metric-value small{font-size:7px}
+ .fa3-metric-sub{display:none}
+ .fa3-stat-status{font-size:7px;padding:3px 5px}
+ .fa3-stat-foot{font-size:7px;padding:3px 5px}
+ .fa3-stat-console-compact .fa3-stat-status{display:none}
+ .fa3-stat-ribbon{padding:4px 6px;font-size:7px}
+ .fa3-index{background:linear-gradient(145deg,#151c1d,#302822)}
+ .fa3-index-list button{clip-path:none}
+}
+@media(max-width:900px) and (orientation:landscape){
+ .fa3-web-graphic{max-width:125px}.fa3-web-detail{padding:2px}
+ .fa3-web-node{width:24px;height:24px;font-size:9px}
+ .fa3-readout-embed{margin:3px 0}
+ .fa3-readout-top{font-size:6px;padding:2px 5px}
+ .fa3-stat-console-compact .fa3-metric{padding:2px 4px}
+ .fa3-stat-console-compact .fa3-metric-value{font-size:13px}
+ .fa3-web-legend{display:none}
+}
+@media(max-width:360px){
+ .fa3-web-detail strong{font-size:10px}
+ .fa3-web-detail p{font-size:8px}
+ .fa3-web-node{width:23px;height:23px}
+ .fa3-metric-value{font-size:14px}
+ .fa3-record-stamp{display:none}
+}
+@media(prefers-reduced-motion:reduce){.fa3-overlay *,.fa3-overlay *:before,.fa3-overlay *:after{animation:none!important}}
+
+/* Landscape 844x390 cannot show a full telemetry module *and* skin actions in
+   the same 340px panel. Preserve real INFO via its tab, not overlapping the
+   two appearance hit targets. No scroll, no hidden Equip and no clipping. */
+@media (max-width:900px) and (orientation:landscape) and (max-height:480px){
+  /* The shared mobile 45% / 55% TWO-ROW rule must not run in
+     landscape: both panels occupy grid row 1, otherwise each receives
+     only 45% of the available height and Equip overlaps the skin strip. */
+  .fa3-body{grid-template-rows:minmax(0,1fr)}
+  /* At 390px height the compact circuit is available in INFO only;
+     SKINS keeps the actual skin choices and Equip directly hit-testable. */
+  .fa3-appear .fa3-readout-embed{display:none}
+}
+
+/* C03 R3 / art + tactical web reconstruction */
+.fa3-web-graphic{display:grid;place-items:center;position:relative;min-height:0;overflow:visible}
+.fa3-web-map{position:relative;width:min(100%,310px);aspect-ratio:5/4;flex:none;max-height:94%;filter:drop-shadow(0 0 13px #f4a4521c);isolation:isolate}
+.fa3-web-map .fa3-web-lines{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 0 5px #d9954c44);overflow:visible}
+.fa3-web-map .fa3-web-beams{animation:fa3-energy 2.4s linear infinite}
+.fa3-web-map .fa3-web-node{position:absolute;z-index:4;top:auto;bottom:auto;right:auto;left:auto;width:clamp(30px,3.05vw,45px);height:clamp(30px,3.05vw,45px);border-radius:0;
+ clip-path:polygon(50% 0,96% 21%,96% 77%,50% 100%,4% 77%,4% 21%);
+ filter:drop-shadow(0 1px 7px #000a);transform:translate(-50%,-50%);
+ box-shadow:inset 0 0 0 2px #a7804f,inset 0 -12px #0003;transition:filter .15s,background .15s,scale .15s}
+.fa3-web-map .fa3-web-node-passive{top:10%;left:50%;bottom:auto}
+.fa3-web-map .fa3-web-node-a1{top:84%;left:10.4%;bottom:auto}
+.fa3-web-map .fa3-web-node-a2{top:84%;left:89.6%;right:auto;bottom:auto}
+.fa3-web-map .fa3-web-node:hover{transform:translate(-50%,-50%) scale(1.09);filter:drop-shadow(0 0 10px #f8b35490)}
+.fa3-web-map .fa3-web-node.active{transform:translate(-50%,-50%) scale(1.12);border-color:#ffe09b;color:#23160c;background:linear-gradient(135deg,#ffdf8e,#f98a31 70%,#9c411d);
+ filter:drop-shadow(0 0 12px #f8a44ba6);animation:fa3-skill-pulse 2s ease-in-out infinite}
+.fa3-web-map .fa3-web-stamp{top:59%;left:50%;font-size:clamp(6px,.61vw,9px);color:#f3b466c4;
+ letter-spacing:.06em;white-space:nowrap;transform:translate(-50%,-50%);text-shadow:0 1px #000}
+.fa3-web-detail{position:relative;background:linear-gradient(90deg,#b16a2c17,transparent 27%);border-left:1px solid #9b703d7d;
+ padding:clamp(7px,1.2vw,19px);justify-content:center}
+.fa3-web-detail:before{content:"";position:absolute;top:12%;bottom:12%;left:-2px;width:3px;
+ background:linear-gradient(transparent,#ffaa56,transparent);opacity:.8}
+.fa3-web-detail strong{color:#ffe0aa;font-size:clamp(13px,1.3vw,20px);letter-spacing:.035em}
+.fa3-web-detail p{color:#e3c7a0;line-height:1.43}
+.fa3-web-legend{color:#e6a868}
+@keyframes fa3-energy{from{stroke-dashoffset:0}to{stroke-dashoffset:-76}}
+@keyframes fa3-skill-pulse{0%,100%{filter:drop-shadow(0 0 6px #ffa65365)}50%{filter:drop-shadow(0 0 15px #ffc479dd)}}
+.fa3-record-top:after{content:"";position:absolute;left:clamp(14px,2.4vw,34px);right:clamp(14px,2.4vw,34px);bottom:-6px;height:3px;
+ background:linear-gradient(90deg,#c56d2c 0,#7a5633 33%,transparent 82%)}
+.fa3-center{background:
+ linear-gradient(120deg,#2c302b2e 0 7%,transparent 7% 92%,#121e2180 93%),
+ radial-gradient(ellipse at 51% 52%,#e1cca9,#ad8d64 66%,#413b30 100%);
+ box-shadow:inset 8px 0 28px #05080976,inset -11px 0 26px #1b151274}
+.fa3-artwork:before{content:"";border:0;border-radius:0;inset:5% 4% 7%;transform:none;box-shadow:none;
+ background:repeating-linear-gradient(130deg,#a66c2e22 0 2px,transparent 3px 38px),
+ linear-gradient(135deg,transparent 5%,#a8773935 5.3% 5.8%,transparent 6.2% 93%,#a8773938 93.3% 94%,transparent 94.5%);
+ clip-path:polygon(12% 0,88% 0,100% 15%,100% 85%,88% 100%,12% 100%,0 85%,0 15%)}
+.fa3-art-orbit{border:0;box-shadow:none;opacity:.65;animation:fa3-scope 12s steps(75) infinite}
+.fa3-art-orbit:before{inset:-2px;border:3px dashed #a56831aa;border-left:6px solid #e8943d88;border-right-color:transparent;
+ box-shadow:0 0 0 15px #8c54281f,0 0 0 16px #bd844434}
+.fa3-record-stamp{transform:rotate(3deg);background:linear-gradient(120deg,#ead2a86b,#9e4d2957);
+ border:3px double #704524}
+.fa3-art-code,.fa3-art-label,.fa3-record-top small,.fa3-index-head{letter-spacing:.14em}
+.fa3-skin{border-left:4px solid #c08c50}.fa3-skin.preview{border-left:4px solid #ffbf70}
+.fa3-index-list button{border-left:3px solid #ba7a37}
+.fa3-stat-console .fa3-readout-top{box-shadow:inset 4px 0 #e8a35b}
+/* Portrait: keep the web inside fixed INFO pane, never push EQUIP below viewport. */
+@media(max-width:760px){
+ .fa3-web-body{grid-template-columns:minmax(0,48%) minmax(0,52%)}
+ .fa3-web-map{width:min(100%,220px);max-height:94%}
+ .fa3-web-map .fa3-web-node{width:clamp(27px,8vw,38px);height:clamp(27px,8vw,38px)}
+ .fa3-web-detail{padding:5px 6px}
+ .fa3-web-detail strong{font-size:clamp(10px,3vw,14px)}
+ .fa3-web-detail p{font-size:clamp(8px,2.25vw,11px);-webkit-line-clamp:3}
+ .fa3-web-map .fa3-web-stamp{font-size:6px}
+}
+@media(max-width:760px) and (orientation:landscape){
+ .fa3-web-map{width:min(100%,175px);max-height:90%}
+ .fa3-web-map .fa3-web-node{width:27px;height:27px}
+ .fa3-web-detail p{font-size:8px;-webkit-line-clamp:2}
+ .fa3-web-legend{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .fa3-web-map .fa3-web-beams,.fa3-web-map .fa3-web-node.active{animation:none!important}
+}
+
+/* C03 R3 / ballistic diagram, readable native weapon readout */
+.fa3-stat-console{position:relative}
+.fa3-stat-console:after{content:"";position:absolute;inset:26px 2px 12px;z-index:0;pointer-events:none;opacity:.18;
+ background:repeating-linear-gradient(0deg,transparent 0 28px,#a06a304f 29px 30px),
+ repeating-linear-gradient(90deg,transparent 0 35px,#a06a3046 36px 37px)}
+.fa3-stat-console>*{position:relative;z-index:1}
+.fa3-stat-ribbon{border-bottom:0;background:linear-gradient(90deg,#432e2280,#0a1212 74%);padding:8px 11px}
+.fa3-weapon-kind{font-weight:1000;color:#ffcf93;letter-spacing:.1em}
+.fa3-weapon-type{margin-left:auto;font-size:8px;color:#baa58a;text-align:right}
+.fa3-tier-marker{box-shadow:2px 2px 0 #0b1011,inset 0 1px #f8be85}
+.fa3-ballistic-diagram{position:relative;flex:none;min-height:77px;padding:4px 11px 6px;
+ background:repeating-linear-gradient(90deg,transparent 0 38px,#b98b4422 39px 40px),linear-gradient(90deg,#101c1b,#1a2622);
+ border-block:1px solid #785634;box-shadow:inset 0 0 16px #0008;overflow:hidden}
+.fa3-ballistic-line{position:absolute;inset:1px 5px auto;width:calc(100% - 10px);height:35px;opacity:.58}
+.fa3-ballistic-pulse{animation:fa3-ballistic 2.8s linear infinite}
+.fa3-ballistic-points{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:end;height:62px}
+.fa3-ballistic-points>div{min-width:0;display:flex;flex-direction:column;justify-content:end;gap:2px;padding:29px 3px 0}
+.fa3-ballistic-points>div:nth-child(2){text-align:center}.fa3-ballistic-points>div:nth-child(3){text-align:right}
+.fa3-ballistic-points b{font:900 8px ui-monospace,monospace;color:#ffb76b;letter-spacing:.11em;text-shadow:0 2px #000}
+.fa3-ballistic-points strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 11px Impact,sans-serif;color:#e6d2af;letter-spacing:.06em}
+.fa3-metrics{gap:6px;padding:7px}
+.fa3-metric{border-color:#6a5640;border-left:3px solid #a57743;position:relative;isolation:isolate;
+ background:linear-gradient(145deg,#2b342f,#121e1d 80%);padding:8px 10px;box-shadow:inset 0 1px #bb875e22}
+.fa3-metric:after{content:"";position:absolute;bottom:5px;right:6px;width:18px;height:18px;border:1px solid #b4855038;border-radius:50%;
+ box-shadow:0 0 0 4px #aa804119;pointer-events:none;z-index:-1}
+.fa3-metric-prime{background:linear-gradient(125deg,#7d48264e,#2a2924 58%,#111e1c);border-left:4px solid #ffc06c}
+.fa3-metric-name{display:flex;align-items:center;gap:5px;font-size:clamp(7px,.66vw,10px);color:#dca35f}
+.fa3-metric-name i{font-style:normal;color:#8a765b;font-size:8px}
+.fa3-metric-value{font-size:clamp(20px,2.3vw,34px);letter-spacing:.04em;color:#ffe3b5;text-shadow:0 2px #000}
+.fa3-metric-prime .fa3-metric-value{color:#ffaf65}
+.fa3-metric-sub{color:#bba88e;font-size:9px}
+.fa3-stat-foot{color:#b18a62;letter-spacing:.05em}
+@keyframes fa3-ballistic{to{stroke-dashoffset:-88}}
+@media(max-height:760px) and (min-width:900px){
+ .fa3-ballistic-diagram{min-height:62px}
+ .fa3-ballistic-points{height:51px}
+ .fa3-ballistic-points>div{padding-top:20px}
+ .fa3-metric{padding:5px 8px}
+ .fa3-metric-value{font-size:clamp(17px,1.9vw,27px)}
+}
+@media(max-width:900px){
+ .fa3-ballistic-diagram{min-height:50px;padding:2px 5px}
+ .fa3-ballistic-line{height:25px}
+ .fa3-ballistic-points{height:45px}
+ .fa3-ballistic-points>div{padding:18px 2px 0}
+ .fa3-ballistic-points b{font-size:7px}
+ .fa3-ballistic-points strong{font-size:9px}
+ .fa3-metric{padding:4px 6px}
+ .fa3-metric-name{font-size:7px}
+ .fa3-metric-value{font-size:16px}
+ .fa3-stat-ribbon{padding:4px 6px}
+ .fa3-weapon-type{font-size:7px}
+}
+@media(max-width:900px) and (orientation:landscape) and (max-height:480px){
+ .fa3-ballistic-diagram{display:none}
+}
+@media(prefers-reduced-motion:reduce){.fa3-ballistic-pulse{animation:none!important}}
+
+/* R3 accessibility: 320x568 is too short for two real skin hit targets,
+   a complete readable skill circuit AND Equip. SKINS remains one-tap,
+   detailed interactive P/A1/A2 graph lives on the INFO tab (no scrolling). */
+@media(max-width:360px) and (max-height:650px) and (orientation:portrait){
+ .fa3-readout-embed{display:none}
+ .fa3-appear{justify-content:flex-start}
+ .fa3-skin-list{margin-bottom:auto}
+ .fa3-equip-state{margin-top:auto}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-map{width:min(100%,155px)}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-map .fa3-web-node{width:25px;height:25px}
+}
+
+/* C03 R3 / image decode admission and desktop hero ability dominance */
+.fa3-artwork .fa3-pending{opacity:0!important;animation:none!important}
+.fa3-artwork .fa3-decoded{opacity:1;animation:fa3-art-admit .35s cubic-bezier(.2,.7,.1,1) both}
+.fa3-visual-progress{position:absolute;z-index:3;inset:12%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;
+ border:1px solid #916b3d99;background:radial-gradient(ellipse,#0d1616ef,#1c2625e8 73%,#40301b99);color:#ffc07e;text-align:center;
+ box-shadow:inset 0 0 32px #0009;clip-path:polygon(9% 0,91% 0,100% 13%,100% 87%,91% 100%,9% 100%,0 87%,0 13%)}
+.fa3-visual-progress>span{font-size:35px;line-height:1;color:#f9a155;animation:fa3-scope 3s linear infinite}
+.fa3-visual-progress>b{font:900 clamp(10px,1vw,15px) Impact,sans-serif;letter-spacing:.13em}
+.fa3-visual-progress>small{font:800 8px ui-monospace,monospace;color:#a88b67;letter-spacing:.06em}
+@keyframes fa3-art-admit{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(min-width:901px){
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-body{display:flex;flex-direction:column;gap:0}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-graphic{flex:1;min-height:0;width:100%;max-width:none;padding:9px 8px}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-map{width:min(100%,340px);max-height:95%;filter:drop-shadow(0 0 16px #dd944536)}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-node{width:clamp(37px,3.3vw,50px);height:clamp(37px,3.3vw,50px)}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-detail{flex:0 0 auto;min-height:118px;padding:12px 20px 12px;border-top:1px solid #8d663d;border-left:none;background:linear-gradient(90deg,#653b257a,#101b1b 78%)}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-detail:before{top:-2px;left:3%;width:94%;height:2px;background:linear-gradient(90deg,#ffb36f,transparent)}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-detail strong{font-size:clamp(17px,1.5vw,22px)}
+ .fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-detail p{font-size:clamp(11px,.85vw,13px);-webkit-line-clamp:2}
+}
+@media(max-width:900px){
+ .fa3-visual-progress{inset:14% 7%;gap:5px}
+ .fa3-visual-progress>span{font-size:24px}
+ .fa3-visual-progress>b{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){.fa3-visual-progress>span,.fa3-artwork .fa3-decoded{animation:none!important}}
+
+/* C03 R3 / native Gold pick-seam Quick Equip. This is one user-owned
+   button inside Gold's existing selection header, not a second pick HUD. */
+#stage.screen-fighter .selectionHeadV6:has(.fa3-pick-equip-entry) .selectionMeta{display:none!important}
+#stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry{
+ position:relative;z-index:8;flex:none;margin-left:auto;min-height:25px;padding:4px 12px;
+ border:1px solid #d68e4a;clip-path:polygon(0 0,92% 0,100% 30%,100% 100%,8% 100%,0 70%);
+ background:linear-gradient(120deg,#b45027,#e89c49 55%,#8b401f);color:#20140d;
+ font:1000 clamp(9px,.9vw,12px)/1 Impact,"Arial Narrow",sans-serif;
+ letter-spacing:.12em;text-shadow:0 1px #fbd2a0a0;box-shadow:inset 0 1px #ffe1a5,0 2px 4px #0008;
+ pointer-events:auto;transition:filter .18s,transform .18s}
+#stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry:hover{filter:brightness(1.18);transform:translateY(-1px)}
+#stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry:active{transform:translateY(1px) scale(.97)}
+#stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry:focus-visible{outline:2px solid #fff0b9;outline-offset:2px}
+#stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry>span{color:#321c0b;margin-right:4px}
+#stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry>b{margin-left:6px}
+@media(max-width:760px){
+ #stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry{min-height:18px;padding:2px 6px;font-size:clamp(7px,2vw,9px);letter-spacing:.04em}
+ #stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry>b{margin-left:1px}
+}
+@media(max-width:760px) and (orientation:landscape){
+ #stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry{min-height:14px;padding:1px 7px;font-size:7px}
+}

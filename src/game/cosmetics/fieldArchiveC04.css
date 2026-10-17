@@ -1,0 +1,44 @@
+.fa4-readout{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:linear-gradient(143deg,#22302d,#0a1515 65%,#26312c);color:#e8c69a}
+.fa4-profile{min-height:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:3px 9px}
+.fa4-radar-frame{min-height:0;flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;width:100%}
+.fa4-radar-frame svg{width:min(100%,345px);height:100%;max-height:345px;overflow:visible}
+.fa4-radar-frame small{font-size:7px;color:#a98759;letter-spacing:.09em;text-align:center}
+.fa4-axes{width:100%;flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-bottom:5px}
+.fa4-axis{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.fa4-axis span{font:800 clamp(6px,.5vw,8px) monospace;white-space:nowrap;color:#dab286}.fa4-axis b{font:900 11px monospace;color:#ffd092}
+.fa4-track{height:3px;width:100%;background:#594d3c}.fa4-track i{display:block;height:100%;background:#efa04b}
+.fa4-skills,.fa4-telemetry{flex:0 0 auto;max-height:39%;min-height:0;overflow:hidden;border-top:1px solid #836039;background:#182322}
+.fa4-skill-select{display:flex;gap:5px;padding:5px}.fa4-skill-select button{flex:1;min-height:24px;background:#1f2e2b;border:1px solid #70573d;color:#efc288}
+.fa4-skill-select button[aria-pressed=true]{background:#b97838;color:#171b19}
+.fa4-skill-info{display:flex;flex-direction:column;gap:3px;padding:4px 9px 9px}.fa4-skill-info b{font-size:11px}.fa4-skill-info small{font-size:9px;color:#c4a37b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fa4-telemetry-heading{display:flex;justify-content:space-between;padding:8px 10px;font-size:10px;color:#f3bd7f}.fa4-telemetry-heading small{font-size:8px}
+.fa4-telemetry-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 15px;padding:2px 12px 8px;overflow:hidden;max-height:none;min-height:0}
+.fa4-spec{display:flex;justify-content:space-between;gap:4px;border-bottom:1px solid #65513b;padding:4px 1px;font:800 9px monospace}.fa4-spec span{color:#b9a184}.fa4-spec b{color:#ffd49c;white-space:nowrap}.fa4-spec small{font-size:8px;color:#a89c85}
+.fa4-compact .fa4-profile{padding:1px 5px}.fa4-compact .fa4-radar-frame svg{max-height:155px}.fa4-compact .fa4-radar-frame small{display:none}.fa4-compact .fa4-axes{margin-bottom:0;gap:2px}.fa4-compact .fa4-axis span{font-size:6px}.fa4-compact .fa4-axis b{font-size:8px}
+.fa3-art-orbit{width:min(74%,400px);box-shadow:none!important;border:1px solid #8d613b70!important;background:repeating-conic-gradient(from 0deg,#a9793b40 0deg 1deg,transparent 1deg 8deg);mask-image:radial-gradient(circle,transparent 0 70%,black 72% 100%);animation:fa3-orbit 40s linear infinite!important;opacity:.7!important}
+.fa3-art-orbit:before{content:"";position:absolute;inset:9%;border:2px solid #8f623d78!important;border-radius:50%;box-shadow:0 0 0 12px #8e66320d!important}
+.fa3-art-orbit:after{content:"";position:absolute;inset:18%;border:1px dashed #ac834c7a;border-radius:50%}
+@media(max-width:900px){.fa4-profile{flex-direction:row}.fa4-radar-frame{width:52%;height:100%}.fa4-radar-frame svg{max-height:180px}.fa4-axes{width:48%;grid-template-columns:1fr;gap:3px}.fa4-axis{flex-direction:row}.fa4-axis span{width:76px;text-align:left;font-size:6px}.fa4-track{flex:1}.fa4-axis b{width:20px;text-align:right;font-size:9px}.fa4-skills,.fa4-telemetry{max-height:45%}}
+@media(max-width:900px) and (orientation:landscape){.fa4-radar-frame svg{max-height:130px}.fa4-axis span{width:72px}.fa4-telemetry-list{max-height:62px}}
+@media(max-width:360px){.fa4-axis span{width:62px;font-size:5px}.fa4-radar-frame svg{max-height:130px}}
+@media(prefers-reduced-motion:reduce){.fa3-art-orbit{animation:none!important}}
+
+.fa4-skill-info p{margin:0 0 2px;font:550 clamp(10px,.8vw,12px)/1.3 "Segoe UI",system-ui,sans-serif;color:#dcc2a1;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.fa4-skills{max-height:43%}
+.fa4-spec-pages{flex:none;display:flex;align-items:center;justify-content:center;gap:11px;color:#d1aa7a;font:900 9px ui-monospace,monospace;padding:2px 7px;border-top:1px solid #715437}
+.fa4-spec-pages button{border:1px solid #78613e;background:#182322;color:#ffd19a;min-width:26px;min-height:20px}.fa4-spec-pages button:disabled{opacity:.33}
+@media(max-width:900px){.fa4-telemetry{max-height:48%}.fa4-spec{font-size:9px;padding:3px 1px}.fa4-skills{max-height:45%}.fa4-skill-info p{font-size:9px;-webkit-line-clamp:2}}
+@media(max-width:360px){.fa4-radar-frame{width:57%}.fa4-axes{width:43%}.fa4-radar-frame svg{max-height:150px}.fa4-telemetry-heading{padding:3px 7px;font-size:8px}.fa4-telemetry-heading small{font-size:6px}.fa4-telemetry-list{padding:1px 7px 3px;gap:0 8px}.fa4-spec{font-size:8px;padding:3px 1px}.fa4-spec small{font-size:6px}.fa4-spec-pages{padding:1px 7px;font-size:8px}.fa4-spec-pages button{min-height:17px}.fa4-skill-info p{font-size:8px;-webkit-line-clamp:1}}
+
+/* Registered PASSIVE/A1/A2 visual records. Use the same approved Gold
+   3-skill artwork for Core Six and registry-declared files for new heroes. */
+.fa4-skill-portraits{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px 9px;background:linear-gradient(95deg,#0e1819,#33271d,#111a19);border-bottom:1px solid #775331;min-height:0}
+.fa4-skill-portrait{display:flex;align-items:center;gap:7px;min-width:0;min-height:46px;padding:3px 7px;border:1px solid #795334;background:#1b2524;color:#e6bc87;cursor:pointer;text-align:left;clip-path:polygon(0 0,94% 0,100% 18%,100% 100%,5% 100%,0 82%)}
+.fa4-skill-portrait img{display:block;flex:0 0 auto;width:37px;height:37px;object-fit:cover;object-position:center;background:#121818;border:1px solid #ad7741}
+.fa4-skill-portrait span:not(.fa4-skill-fallback){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 10px ui-monospace,monospace}
+.fa4-skill-portrait[aria-pressed=true]{border-color:#ffb85b;background:linear-gradient(105deg,#60402b,#2a332e);box-shadow:inset 3px 0 #f1a355}
+.fa4-skill-fallback{display:grid;place-items:center;flex:0 0 auto;width:37px;height:37px;background:#292723;color:#d6ae7a;border:1px solid #97724c;font:900 13px Impact,sans-serif}
+.fa4-readout .fa4-skills{max-height:35%}
+@media(max-width:900px){.fa4-skill-portraits{gap:3px;padding:3px 5px}.fa4-skill-portrait{min-height:32px;padding:2px 4px;gap:4px}.fa4-skill-portrait img,.fa4-skill-fallback{width:26px;height:26px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:8px}.fa4-readout .fa4-skills{max-height:36%}}
+@media(max-width:900px) and (orientation:landscape) and (max-height:480px){.fa4-skill-portraits{padding:1px 3px}.fa4-skill-portrait{min-height:23px}.fa4-skill-portrait img,.fa4-skill-fallback{width:20px;height:20px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:7px}}
+@media(max-width:360px){.fa4-skill-portraits{gap:2px;padding:2px}.fa4-skill-portrait{padding:1px 3px;gap:3px;min-height:26px}.fa4-skill-portrait img,.fa4-skill-fallback{width:23px;height:23px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:7px}}

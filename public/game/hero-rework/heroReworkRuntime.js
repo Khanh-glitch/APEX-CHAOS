@@ -207,7 +207,7 @@
 
   function makeAbilityController(ct) {
     return {
-      cooldownLeft(slot) { const s = ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0, s.cdLeft)) : 0; },
+      cooldownLeft(slot) { const s=ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0,s.cdLeft)) : 0; },
       refundCooldown(slot, sec) {
         const s = ct.skills[slot];
         if (s && sec > 0) { s.cdLeft = Math.max(0, s.cdLeft - sec); }
@@ -243,8 +243,12 @@
         const a = ct.anchor;
         if (!a || a.hp <= 0) return { ok: false, reason: 'dead' };
         if (typeof a.hardCC === 'function' && a.hardCC()) return { ok: false, reason: 'cc' };
-        if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
         const exec = MECH.EXECUTORS[s.def.mechanicId];
+        if(slot==='A1'&&ct.heroId==='BOXE'&&ct.store.__boxeBattle?.rocket){
+          const recall=exec?.recast?.(mechCtx(ct,slot));
+          return recall?{ok:true,recast:true}:{ok:false,reason:'already-returning'};
+        }
+        if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
         const ctx = mechCtx(ct, slot);
         if (exec && exec.canCast && !exec.canCast(ctx)) {
           ct.telemetry.castFails += 1;
@@ -259,6 +263,7 @@
         }
         if(s.cfg.maxCharges) { if(s.charges === s.cfg.maxCharges) s.rechargeLeft = s.cfg.cooldown; s.charges--; }
         else s.cdLeft = s.cfg.cooldown;
+        if(ct.heroId==='BOXE'&&slot==='A1')s.cdLeft=0;
         ct.telemetry.casts += 1;
         ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
         if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
@@ -468,11 +473,26 @@
       },
 
       /* world entities ------------------------------------------------ */
+      nearestFreeWorldCircle: (x,y,r,opts) => nearestFreeWorldCircle(x,y,r,opts),
       spawnWall(o) {
+        // Unified world-solid record: the existing capsule is the default.
+        // A zero-length capsule is a physically accurate circle with the
+        // SAME swept body/projectile collision and HP lifetime as a wall.
+        // No alternate deployed-structure collision engine.
+        const circle = o.shape === 'circle';
+        const radius = circle ? Math.max(1, Number(o.radius) || 75) : null;
         const w = {
           id: ++M.world.wallSeq, owner: o.owner, x: o.x, y: o.y,
-          angle: o.angle || 0, len: o.len || 220, thickness: 26,
-          hp: o.hp, maxHp: o.hp, bornAt: AIL.clock(), lifetime: o.lifetime || 4,
+          shape: circle ? 'circle' : 'capsule',
+          angle: circle ? 0 : (o.angle || 0),
+          len: circle ? 0 : (o.len || 220),
+          radius, thickness: circle ? radius * 2 : 26,
+          hp: o.hp, maxHp: o.hp, bornAt: AIL.clock(),
+          lifetime: o.lifetime === Infinity ? Infinity : (o.lifetime || 4),
+          // Friendly pass-through is an explicit OWNERSHIP policy on the
+          // world-solid, never a global bullet immunity.
+          friendlyProjectilePassThrough: o.friendlyProjectilePassThrough === true,
+          kind: o.kind || (circle ? 'deployed-circle' : 'wall'),
         };
         M.world.walls.push(w);
         AIL.bus.emit('WallSpawned', { id: w.id, hp: w.hp });
@@ -1705,6 +1725,7 @@
     if (AQS && AQS.state && AQS.state.battleMode === 'LOCAL') return;
     const ctl = abilityController(ct);
     for (const slot of ['A1', 'A2']) {
+      if(ct.heroId==='BOXE'&&slot==='A1'&&ct.store.__boxeBattle?.rocket)continue;
       if (ctl.cooldownLeft(slot) > 0) continue;
       const key = `${ct.heroId}:${slot}`;
       const plan = (M.aiCastPlan[key] = M.aiCastPlan[key] || {});
@@ -2212,6 +2233,43 @@
     for (const c of solidCapsules()) if (pointToSegmentDist(x, y, c.ax, c.ay, c.bx, c.by) < r + c.r) return true;
     return false;
   }
+  // Deterministic shared world placement query. Uses the SAME collision
+  // capsules and living arena bodies as ordinary movement, never a special
+  // SHURI placement map. No displacement if the anchor is already legal.
+  function nearestFreeWorldCircle(x, y, radius, options={}) {
+    if(!M||!Number.isFinite(x)||!Number.isFinite(y))return null;
+    const S=globalScope.GAME_SIZE||1000;
+    const r=Math.max(1,Number(radius)||75);
+    const capsules=solidCapsules();
+    const bodies=M.api.allBodies();
+    const free=(px,py)=>{
+      if(px<r||py<r||px>S-r||py>S-r)return false;
+      for(const c of capsules){
+        if(pointToSegmentDist(px,py,c.ax,c.ay,c.bx,c.by)<r+c.r)return false;
+      }
+      for(const b of bodies){
+        // Placement at the caster's own anchor is valid. The normal world
+        // solid resolver, not a hero-specific teleport, owns subsequent
+        // overlap separation. Other fighters remain genuine blockers.
+        if(b===options.excludeBody)continue;
+        if(b&&b.hp>0&&Math.hypot(px-b.x,py-b.y)<r+(b.radius||75))return false;
+      }
+      return true;
+    };
+    if(free(x,y))return {x,y,adjusted:false};
+    // Minimal-distance outward scan, deterministic ring/angle tie order.
+    // A capped search fails cleanly instead of embedding a solid into a wall.
+    const step=Math.max(12,r/4);
+    for(let d=step;d<=Math.min(S,5*r);d+=step){
+      const samples=Math.max(16,Math.ceil(Math.PI*2*d/(step*.75)));
+      for(let i=0;i<samples;i++){
+        const a=i*Math.PI*2/samples;
+        const px=x+Math.cos(a)*d,py=y+Math.sin(a)*d;
+        if(free(px,py))return {x:px,y:py,adjusted:true};
+      }
+    }
+    return null;
+  }
   // Runs after the engine's body separation each step: sweeps every living body
   // from where it was to where it is against all solid capsules and stands it on
   // the surface it would have crossed (bounce heading like an arena wall).
@@ -2260,7 +2318,7 @@
     // The one authoritative ordered movement path (see pathSegments above).
     pathSegments, pathPointAt, pathVelocityAt, pathToPointDist, globalT, clearPath,
     bodyPathSegments, samplePath,
-    pendingMagnetToi, supersedeMagnetBoundary };
+    pendingMagnetToi, supersedeMagnetBoundary, nearestFreeWorldCircle };
 
 
   function releaseFromSingularity(s, d) {
@@ -2403,6 +2461,7 @@
     // MAGNET V1: sum every active field once, then alter trajectory before
     // this pass performs the one canonical projectile movement integration.
     const magnet = globalScope.APEX_MAGNET;
+    const BOXE = globalScope.APEX_BOXE_BATTLE;
     if (magnet) magnet.stepProjectiles(dt, projectiles, combatantOfBody, AIL.clock());
 
     // F2 MIRROR ESCROW TRANSIT: advance the canonical fixed-step transit
@@ -2470,8 +2529,10 @@
         // routes through the shared authority (api.isT6Weapon) and
         // shatters through — walls are not terminal for T6. --------------
         const wallHit = sweepWalls(p, BULLET_HIT_SCALE);
+        const rocketShot = BOXE?.candidateProjectile?.(p,1)||null;
         const wallIsT6 = wallHit && M.api.isT6Weapon && M.api.isT6Weapon(p.weapon);
-        const wallTerminal = !!wallHit && !wallIsT6;
+        const wallTerminal = !!wallHit && !wallIsT6
+          && !(rocketShot && rocketShot.t < wallHit.t);
         if (wallHit && wallIsT6) {
           wallHit.wall.hp -= ((CFG && CFG.WEAPONS && CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446);
           wallHit.wall.__shatteredBy = 'STORMBREAKER';
@@ -2523,9 +2584,21 @@
         // anything later on the path.
         let cryLimit = bodyHit ? bodyHit.t : 2;
         if (mf2 && mf2.kind === 'capture') cryLimit = Math.min(cryLimit, mf2.capT);
+        if(rocketShot)cryLimit=Math.min(cryLimit,rocketShot.t);
         if (CRY) {
           const cr = CRY.resolveBullet(p, cryLimit, dt);
           if (cr && cr.consumed) continue;
+        }
+        if (rocketShot && (!bodyHit || rocketShot.t < bodyHit.t)
+          && (!mf2 || mf2.kind!=='capture'||rocketShot.t < mf2.capT)){
+          BOXE.confirmProjectileContact(p,rocketShot);
+          // T6 retains original non-absorbed piercing authority, even after
+          // an authentic contact makes the BOXE glove retract.
+          if(!(M.api.isT6Weapon&&M.api.isT6Weapon(p.weapon))){
+            supersedeMagnetBoundary(p,rocketShot.t,{terminal:true});
+            p.x=rocketShot.x;p.y=rocketShot.y;p.life=0;
+            continue;
+          }
         }
         if (mf2 && mf2.kind === 'capture' && !(bodyHit && bodyHit.t < mf2.capT)) {
           mirrorF2Capture(p, mf2, projectiles);
@@ -2600,7 +2673,14 @@
         // crossing TOI bounds mirror candidacy, so a physically-earlier
         // bounce always wins and no surface event beyond it is presented.
         const gWallToi = arenaBoundToi(p, GAME_SIZE);
-        const mg = mirrorF2Candidate(p, null, gWallToi);
+        const boxeGrenade = BOXE?.candidateProjectile?.(p,1)||null;
+        const mg = mirrorF2Candidate(p, null, Math.min(gWallToi??2,boxeGrenade?.t??2));
+        if(boxeGrenade&&(gWallToi==null||boxeGrenade.t<gWallToi)
+          &&(!mg||mg.kind!=='capture'||boxeGrenade.t<mg.capT)){
+          BOXE.confirmProjectileContact(p,boxeGrenade);
+          p.x=boxeGrenade.x;p.y=boxeGrenade.y;
+          if(W?.explodeGrenade){W.explodeGrenade(p);continue;}
+        }
         if (mg && mg.kind === 'capture') { mirrorF2Capture(p, mg, projectiles); continue; }
         if (mg && mg.kind === 'oneNode') mirrorF2LocalResponse(p, mg);
         if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); }
@@ -2680,7 +2760,18 @@
           let tWallToi = tCrySweep ? tCrySweep.t : null;
           if (tWallSweep && (tWallToi == null || tWallSweep.t < tWallToi)) tWallToi = tWallSweep.t;
           if (tBoundToi != null && (tWallToi == null || tBoundToi < tWallToi)) tWallToi = tBoundToi;
-          const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null, tWallToi);
+          const bxThrow = BOXE?.candidateProjectile?.(p,1)||null;
+          const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null,
+            Math.min(tWallToi??2,bxThrow?.t??2));
+          if(bxThrow&&(!tBodyHit||bxThrow.t<tBodyHit.t)
+            &&(tWallToi==null||bxThrow.t<tWallToi)
+            &&(!mt||mt.kind!=='capture'||bxThrow.t<mt.capT)){
+            BOXE.confirmProjectileContact(p,bxThrow);
+            if(!(M.api.isT6Weapon&&M.api.isT6Weapon(p.weapon))){
+              p.x=bxThrow.x;p.y=bxThrow.y;thrownExitLocal(p);
+              continue;
+            }
+          }
           if (mt && mt.kind === 'capture' && !(tBodyHit && tBodyHit.t < mt.capT)) {
             mirrorF2Capture(p, mt, projectiles);
             continue;
@@ -2947,6 +3038,7 @@
   }
 
   function wallEndpoints(w) {
+    if(w.shape === 'circle')return {ax:w.x,ay:w.y,bx:w.x,by:w.y,nx:0,ny:-1};
     const dx = Math.cos(w.angle), dy = Math.sin(w.angle);
     const hx = (w.len / 2), hy = (w.thickness / 2);
     return {
@@ -2960,6 +3052,7 @@
     if (!M || !M.world.walls.length) return null;
     let best = null, bestT = 2;
     for (const w of M.world.walls) {
+      if(w.hp <= 0 || (w.friendlyProjectilePassThrough && w.owner === combatantOfBody(p.owner)))continue;
       const e = wallEndpoints(w);
       const d = pointToSegmentDist(p.x, p.y, e.ax, e.ay, e.bx, e.by);
       const near = d <= p.radius + w.thickness / 2 + 4;
@@ -2967,10 +3060,17 @@
       // wall that only the inbound leg reached, so fall back to the real path.
       if (!near && pathToPointDist(p, w.x, w.y) > p.radius + w.thickness / 2 + w.len / 2 + 4) continue;
       for (const g of pathSegments(p)) {
-        const local = segmentCrossT(g.x0, g.y0, g.x1, g.y1, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
+        const local = w.shape === 'circle'
+          ? segmentToPointToi(g.x0,g.y0,g.x1,g.y1,w.x,w.y,p.radius+w.radius)
+          : segmentCrossT(g.x0, g.y0, g.x1, g.y1, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
         if (local == null) continue;
         const toi = globalT(g, local);
-        if (toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny }, t: toi, seg: g }; }
+        if (toi < bestT) {
+          const hx=g.x0+(g.x1-g.x0)*local-w.x,hy=g.y0+(g.y1-g.y0)*local-w.y;
+          const magnitude=Math.hypot(hx,hy)||1;
+          bestT = toi; best = { wall: w,
+            normal: w.shape==='circle'?{x:hx/magnitude,y:hy/magnitude}:{x:e.nx,y:e.ny},t:toi,seg:g };
+        }
         break; // sub-segments are in travel order
       }
     }
@@ -2981,9 +3081,16 @@
     if (!M || !M.world.walls.length) return null;
     let best = null, bestT = 2;
     for (const w of M.world.walls) {
+      if(w.hp <= 0 || (w.friendlyProjectilePassThrough && w.owner === combatantOfBody(p.owner)))continue;
       const e = wallEndpoints(w);
-      const toi = segmentCrossT(p.px, p.py, p.x, p.y, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
-      if (toi != null && toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny }, t: toi }; }
+      const toi = w.shape === 'circle'
+        ? segmentToPointToi(p.px,p.py,p.x,p.y,w.x,w.y,p.radius+w.radius)
+        : segmentCrossT(p.px,p.py,p.x,p.y,e.ax,e.ay,e.bx,e.by,p.radius+w.thickness/2);
+      if(toi!=null&&toi<bestT){
+        const hx=p.px+(p.x-p.px)*toi-w.x,hy=p.py+(p.y-p.py)*toi-w.y;
+        const mag=Math.hypot(hx,hy)||1;
+        bestT=toi;best={wall:w,normal:w.shape==='circle'?{x:hx/mag,y:hy/mag}:{x:e.nx,y:e.ny},t:toi};
+      }
     }
     return best;
   }

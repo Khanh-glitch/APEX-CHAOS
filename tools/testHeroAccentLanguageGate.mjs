@@ -100,6 +100,25 @@ for (const hero of ROSTER) {
   }
 }
 
+// BOXE has no legacy FighterTypes entry: enforce its source identity through
+// the actual Fighter Shell and both Gold surfaces.
+const boxeRegistry=read('public/game/hero-rework/heroRegistry.js');
+const shellSelect=read('public/game/arsenal/arsenalShellSelectRuntime.js');
+const resultLedger=read('public/game/results/matchResultAuthority.js');
+const boxeColor=(boxeRegistry.match(/HEROES\.BOXE = \{[\s\S]*?identityColor: '(#[0-9a-fA-F]{6})'/)||[])[1];
+check('BOXE canonical visual identity is registered',isHex6(boxeColor),boxeColor);
+check('BOXE Gold bridge fallback matches canonical color',hex(boxeColor)===bridgeAccents.boxe,
+ `${boxeColor} vs ${bridgeAccents.boxe}`);
+check('BOXE Gold generator fallback matches canonical color',hex(boxeColor)===genAccents.BOXE,
+ `${boxeColor} vs ${genAccents.BOXE}`);
+check('new hero Shell projects registry identity before neutral fallback',
+ /identityColor = registry\?\.HEROES\?\.\[name\]\?\.identityColor/.test(shellSelect) &&
+ /color: \(base && base\.color\) \|\| identityColor \|\| '#c8c2b4'/.test(shellSelect));
+check('Result uses Gold Pick and canonical artwork rather than a guessed filename',
+ /root\.APEX_GOLD_ROSTER\?\.\[slug\]/.test(resultLedger) &&
+ /archiveProfile\?\.artwork/.test(resultLedger) &&
+ /portraitSrc:heroPortraitSource\(t\.hero\)/.test(resultLedger));
+
 // ── 2. one accent per hero, never another hero's colour ─────────────────────
 const productAccents = ROSTER.map((h) => bridgeAccents[h.shellKey]);
 check('no two heroes share a product accent', new Set(productAccents).size === productAccents.length, productAccents.join(' '));

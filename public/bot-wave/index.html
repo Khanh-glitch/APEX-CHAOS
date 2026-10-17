@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="/gold/assets/gold/favicon-r72-owner.png"><title>APEX CHAOS · BOT WAVE / BOXE</title>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#090e10;color:#f6d39f;font-family:system-ui,sans-serif}
+#return{position:fixed;left:50%;transform:translateX(-50%);top:max(6px,env(safe-area-inset-top));z-index:9999;border:1px solid #d6a15e99;background:#0d1115cc;color:#f5d09c;border-radius:6px;padding:5px 10px;font:750 10px system-ui;cursor:pointer;opacity:.68}#return:hover,#return:focus-visible{opacity:1;outline:2px solid #e8a960}
+#return:focus-visible{outline:3px solid #eeaa62}
+iframe{width:100%;height:100%;border:0;display:block}iframe[hidden]{display:none!important}
+#status{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:25px;background:radial-gradient(ellipse at 50% 20%,#342a25,#080a0c 75%);z-index:90}
+#status.hidden{display:none}#status h1{letter-spacing:.08em;font-size:clamp(28px,5vw,52px)}#status p{max-width:660px;line-height:1.6;color:#cfb89b}
+</style></head><body>
+<button id="return" type="button" onclick="try{sessionStorage.setItem('apexWaveReturn','1')}catch(_){}location.assign('/')">← APEX HOME</button>
+<div id="status"><main><h1>BOT WAVE · BOXE</h1><p id="info">Preparing Gold combat runtime and Arsenal visuals...</p></main></div>
+<iframe id="wave" title="BOXE Gold BOT WAVE" allow="autoplay; fullscreen" hidden></iframe>
+<script>
+(async function boot(){
+ const info=document.getElementById('info'),frame=document.getElementById('wave');
+ // Apply product-grade interface AFTER the Gold pilot creates its runtime
+ // HUD, so this visual skin is the final cascade, not a fork of Gold source.
+ frame.addEventListener('load',()=>{
+  const doc=frame.contentDocument;if(!doc)return;
+  let revealed=false,observer;
+  const reveal=()=>{
+   if(revealed)return true;
+   if(!frame.contentWindow?.BOXE_WAVE_PILOT || !frame.contentWindow?.APEX_BOT_WAVE_INTERFACE_V2?.installed ||
+      !doc.getElementById('bw-interface-v2') || !doc.getElementById('bw-v2-styles')?.sheet)return false;
+   revealed=true;frame.hidden=false;document.getElementById('status').classList.add('hidden');
+   observer?.disconnect();return true;
+  };
+  const attach=()=>{
+   if(!doc.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
+   if(!doc.getElementById('bw-v2-styles')){
+    const sheet=doc.createElement('link');sheet.rel='stylesheet';
+    sheet.id='bw-v2-styles';sheet.href='/game/bot-wave/botWavePresentationV2.css?v=20261016-boxe-r7-wave-polish';
+    sheet.onload=reveal;doc.head.append(sheet);
+   }
+   if(!doc.getElementById('bw-v2-script')){
+    const script=doc.createElement('script');script.id='bw-v2-script';
+    script.src='/game/bot-wave/botWavePresentationV2.js?v=20261016-boxe-r7-wave-polish';script.onload=reveal;doc.head.append(script);
+   }
+  };
+  observer=new MutationObserver(()=>{attach();reveal();});
+  observer.observe(doc.documentElement,{subtree:true,childList:true});
+  attach();reveal();
+  const poll=setInterval(()=>{attach();if(reveal())clearInterval(poll);},80);
+  setTimeout(()=>{clearInterval(poll);observer.disconnect();
+   if(!revealed)info.textContent='BOT WAVE presentation did not finish loading. Reload to retry.';
+  },25000);
+ });
+
+ try{
+  const r=await fetch('/bot-wave/game.html',{cache:'no-cache'});
+  if(!r.ok)throw Error('Gold runtime not present: HTTP '+r.status);
+  const contentType=r.headers.get('content-type')||'';
+  if(!contentType.includes('text/html'))throw Error('Gold runtime has wrong MIME type');
+  // Vite SPA fallback returns an ordinary index.html on a missing runtime file.
+  // We MUST NOT claim this is an available game.
+  // Read only the document prefix. The playable Gold HTML is ~25.7 MB:
+  // r.clone().text() would download/parse it completely before the iframe
+  // requests it again, creating a second expensive mobile transfer.
+  const reader=r.body?.getReader();
+  let first='';
+  if(reader){
+   const decoder=new TextDecoder();
+   try{
+    while(first.length<500){
+     const next=await reader.read();
+     if(next.done)break;
+     first+=decoder.decode(next.value,{stream:true});
+    }
+   }finally{await reader.cancel().catch(()=>{});}
+  }else first=(await r.text()).slice(0,500);
+  // Do NOT accept the wrapper itself as gameplay: its title also says BOXE.
+  // This marker belongs to the owner-derived R5 Gold HTML, not SPA fallback.
+  if(!first.includes('<title>APEX CHAOS — BOXE · BOT WAVE PLAYTEST</title>'))
+   throw Error('BOXE Gold gameplay not imported yet');
+  frame.src='/bot-wave/game.html'; // reveal after Gold HUD and V2 are ready
+ }catch(e){
+  info.textContent='Gold source files are not installed on this preview build. Import the R5 Gold bundle into PR #88, then redeploy. ('+e.message+')';
+  console.warn('[bot-wave]',e);
+ }
+})();
+</script></body></html>

@@ -93,6 +93,22 @@
       Array.isArray(roles) && roles.includes(role);
   };
   CFG.isOffensive = (id) => CFG.hasWorldRole(id,'weapon');
+  // Canonical equipment capability used by any deployed weapon mount or
+  // recycler. Tier is not a weapon class; this is intentionally not a
+  // SHURI-specific list or a second weapon catalogue.
+  CFG.isGunOrLauncher = (id) => {
+    const tier = CFG.tierOf?.(id);
+    if (!['T1','T2','T3','T4','T5'].includes(tier)) return false;
+    if (!CFG.hasWorldRole(id, 'weapon')) return false;
+    if (CFG.isGun(id)) return true;
+    return Object.prototype.hasOwnProperty.call(CFG.V43_WEAPONS || {}, id)
+      && id !== 'COMBAT_BOOMERANG';
+  };
+  CFG.isMountableFloorGun = (slot) =>
+    slot?.phase === 'REVEALED' && slot?.kind === 'WEAPON'
+    && CFG.isGunOrLauncher(slot.weaponId)
+    && CFG.isHeroManipulableWeapon(slot.weaponId, slot);
+
   // Instance override is optional, but a malformed value NEVER grants A2.
   // Missing future equipment traits fail closed for A2 without blocking A1.
   CFG.magneticResponseOf = (id, slot = null) => {

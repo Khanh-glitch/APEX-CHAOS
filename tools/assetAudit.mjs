@@ -24,8 +24,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyAudio, AUDIO_DELIVERY_POLICY } from './audioDeliveryPolicy.mjs';
+import { botWaveShippingAssetRefs } from './botWaveShippingAssetRefs.mjs';
 import {
   ARSENAL_PRODUCT_RUNTIMES,
+  BOT_WAVE_SPECIAL_RUNTIMES,
+  BOT_WAVE_PRESENTATION_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
   SELECT_RUNTIMES,
   UI_SFX_RUNTIMES,
@@ -79,6 +82,8 @@ for (const file of shellHtmlSources()) {
 const runtimePublicFiles = [
   ...MENU_INTERACTIVE_RUNTIMES,
   ...ARSENAL_PRODUCT_RUNTIMES,
+  ...BOT_WAVE_SPECIAL_RUNTIMES,
+  ...BOT_WAVE_PRESENTATION_RUNTIMES,
   ...SELECT_RUNTIMES,
   ...UI_SFX_RUNTIMES,
 ]
@@ -119,6 +124,28 @@ const shipFiles = [
 const toolFiles = listTextFiles(path.join(REPO, 'tools'), (f) => f.includes(path.join('tools', 'arsenal-assets')));
 
 const shipText = shipFiles.map((f) => ({ file: f, text: fs.readFileSync(f, 'utf8') }));
+// R5 Gold's ~25MB HTML is a derivative binary artifact, added only after the
+// owner imports it. Do NOT scan that entire embedded-base64 file once PER
+// public asset. Parse the URLs once, then feed a small reference index into
+// the existing production audit and pruning pipeline.
+const waveGoldFile=path.join(PUBLIC,'bot-wave','game.html');
+if (fs.existsSync(waveGoldFile)) {
+  const waveAssets=botWaveShippingAssetRefs(fs.readFileSync(waveGoldFile,'utf8'));
+  if (!waveAssets.length) throw Error('Gold BOT WAVE active but no Arsenal asset references found');
+  for (const asset of waveAssets) {
+    if (!fs.existsSync(path.join(PUBLIC,asset.slice(1)))) {
+      throw Error('Gold BOT WAVE missing native Arsenal asset: '+asset);
+    }
+  }
+  const game=fs.readFileSync(waveGoldFile,'utf8');
+  const required=BOT_WAVE_SPECIAL_RUNTIMES.map(([url])=>String(url).split(/[?#]/,1)[0]);
+  for(const js of required){
+    if(!game.includes("loadWaveDependency('"+js+"')"))throw Error('BOT_WAVE_GOLD_SCRIPT_NOT_LINKED '+js);
+    if(!fs.existsSync(path.join(PUBLIC,js.slice(1))))throw Error('BOT_WAVE_SCRIPT_MISSING '+js);
+  }
+  shipText.push({ file:waveGoldFile,text:[...waveAssets,...required].join(' ') });
+}
+
 const toolText = toolFiles.map((f) => ({ file: f, text: fs.readFileSync(f, 'utf8') }));
 
 const publicFiles = walk(PUBLIC);

@@ -22,7 +22,8 @@ import { GOLD_SHELL_URL, HERO_BATTLE_RIGS, HERO_BATTLE_RIG_ASSETS } from './game
 import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
 import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
-import CosmeticLocker from './game/cosmetics/CosmeticLocker.jsx';
+import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
+import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
@@ -191,6 +192,8 @@ export default function App() {
   installProductSurfaceAuthority(window);
   const scriptRef = useRef(null);
   const menuAudioRef = useRef(null);
+  const waveOverlayRef = useRef(null);
+  const waveReturnBusyRef = useRef(false);
   // Product music lifecycle is owned by productMusicAuthority. React keeps
   // only the single persistent element ref for diagnostics/fallback cleanup.
   const [gameReady, setGameReady] = useState(false);
@@ -410,6 +413,114 @@ export default function App() {
     if (!surface || !authority?.canLaunch?.(surface.id, { admin })) return false;
     if (!gameReady) return false;
 
+    if (surface.route === 'wave') {
+      // Preserve the LIVE Home surface while the approved Mechanical Door V4
+      // seals it. One native Gold iframe (not a nested wrapper) is mounted
+      // behind the cover, so returning needs neither browser reload nor START.
+      if(waveOverlayRef.current)return true;
+      const cover=document.createElement('section');
+      cover.id='apex-wave-host';
+      cover.setAttribute('aria-label','BOT WAVE · BOXE');
+      Object.assign(cover.style,{position:'fixed',inset:'0',zIndex:'900',background:'#090c11',
+        opacity:'0',pointerEvents:'none',isolation:'isolate'});
+      const frame=document.createElement('iframe');
+      frame.id='wave';frame.title='APEX CHAOS · BOXE BOT WAVE';
+      frame.allow='autoplay; fullscreen';
+      Object.assign(frame.style,{position:'absolute',inset:'0',width:'100%',height:'100%',border:'0'});
+      const close=document.createElement('button');
+      close.id='return';close.type='button';close.textContent='← APEX HOME';
+      close.setAttribute('aria-label','Trở về APEX Home');
+      Object.assign(close.style,{position:'absolute',top:'max(7px, env(safe-area-inset-top))',
+        left:'50%',transform:'translateX(-50%)',zIndex:'5',
+        padding:'6px 13px',border:'1px solid #c68c58',borderRadius:'4px',
+        font:'850 11px system-ui',background:'#0b1019ee',color:'#ffe1af',cursor:'pointer'});
+      const status=document.createElement('div');
+      status.id='status';status.textContent='PREPARING · THE LAST ROUND';
+      Object.assign(status.style,{position:'absolute',inset:'0',display:'grid',placeItems:'center',
+        background:'#090c11',color:'#ffca8a',font:'800 12px system-ui',letterSpacing:'.14em'});
+      cover.append(frame,status,close);
+      const goHome=async()=>{
+        if(waveReturnBusyRef.current || waveOverlayRef.current!==cover)return;
+        waveReturnBusyRef.current=true;close.disabled=true;
+        const coordinator=window.APEX_SCENE_TRANSITION;
+        try{
+          if(coordinator?.run){
+            await coordinator.run({name:'bot-wave-return',source:cover,
+              target:document.getElementById('gold-shell-host'),
+              prepare:()=>Promise.resolve(),
+              commit:()=>{cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;
+                if(location.pathname!=='/')history.replaceState({},'','/');
+                playMenuMusic();}});
+          }else{
+            cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;history.replaceState({},'','/');
+            playMenuMusic();
+          }
+        }finally{
+          waveReturnBusyRef.current=false;
+          if(waveOverlayRef.current===cover)close.disabled=false;
+        }
+      };
+      close.addEventListener('click',()=>{void goHome()});
+      // Back key behaves like the in-product return button.
+      const onPop=()=>{if(waveOverlayRef.current===cover)void goHome()};
+      const onMessage=e=>{
+        if(e.origin===location.origin&&e.source===frame.contentWindow&&
+          e.data?.type==='APEX_BOT_WAVE_EXIT')void goHome();
+      };
+      window.addEventListener('popstate',onPop);
+      window.addEventListener('message',onMessage);
+      const cleanup=()=>{window.removeEventListener('popstate',onPop);
+        window.removeEventListener('message',onMessage);
+        document.body.classList.remove('apex-bot-wave-active')};
+      const waitReady=()=>new Promise((resolve,reject)=>{
+        let done=false;
+        const timeout=setTimeout(()=>finish(Error('BOT WAVE Gold V2 admission timed out')),24000);
+        const finish=error=>{
+          if(done)return;done=true;clearInterval(poll);clearTimeout(timeout);
+          error?reject(error):resolve();
+        };
+        const attach=()=>{
+          let doc;
+          try{doc=frame.contentDocument}catch(e){return}
+          if(!doc?.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
+          if(!doc.getElementById('bw-v2-styles')){
+            const css=doc.createElement('link');css.rel='stylesheet';css.id='bw-v2-styles';
+            css.href='/game/bot-wave/botWavePresentationV2.css?v=20261016-boxe-r9-owner-fidelity';doc.head.append(css);
+          }
+          if(!doc.getElementById('bw-v2-script')){
+            const script=doc.createElement('script');script.id='bw-v2-script';
+            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261016-boxe-r9-owner-fidelity';doc.head.append(script);
+          }
+          const win=frame.contentWindow;
+          if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&
+             doc.getElementById('bw-v2-styles')?.sheet){
+            status.remove();finish();
+          }
+        };
+        const poll=setInterval(attach,80);attach();
+      });
+      document.body.append(cover);waveOverlayRef.current=cover;
+      document.body.classList.add('apex-bot-wave-active');
+      const coordinator=window.APEX_SCENE_TRANSITION;
+      try{
+        const result=await coordinator.run({
+          name:'bot-wave-enter',
+          source:document.getElementById('gold-shell-host'),target:cover,
+          prepare:()=>{frame.src='/bot-wave/game.html';return waitReady();},
+          commit:()=>{cover.style.opacity='1';cover.style.pointerEvents='auto';status.remove();
+            history.pushState({apexWave:true},'','/bot-wave/index.html');
+            window.APEX_GOLD_PARENT_RUNTIME?.pause?.();stopMenuMusic();},
+          rollback:()=>{window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;cleanup();}
+        });
+        if(result?.ok===false && waveOverlayRef.current!==cover)return false;
+        if(!waveOverlayRef.current)return false;
+        return true;
+      }catch(error){
+        cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;
+        console.error('[bot-wave] transition/Gold admission',error);
+        return false;
+      }
+    }
     if (surface.route === 'skins') {
       // The locker is a sibling product surface, never an alternate Gold
       // shell or a replacement for the locked Fighter Shop. One existing
@@ -840,6 +951,15 @@ export default function App() {
           }, { capture: true });
           document.body.appendChild(start);
           stopStartGuard = attachBootStartViewportGuard(start);
+          // Fallback for a hard-reloaded/deep-linked Wave route. The normal
+          // Wave entry never reloads React; this one-shot resume prevents
+          // another mandatory START after choosing APEX HOME in standalone.
+          try{
+            if(sessionStorage.getItem('apexWaveReturn')==='1'){
+              sessionStorage.removeItem('apexWaveReturn');
+              activateStart();retireStart();
+            }
+          }catch(_){}
         });
         if (cancelled) return;
         await window.APEX_SCENE_TRANSITION?.signalBootReady?.();
@@ -854,6 +974,31 @@ export default function App() {
     mountGoldShell();
     return () => { cancelled = true; };
   }, [gameReady, goldReady]);
+
+  useEffect(() => {
+    // Recovery CP1: special-event Home destination. This is a freestanding
+    // stage-level emblem, NEVER a seventh route or a Free Battle mode card.
+    if (!goldReady) return;
+    const stage=document.getElementById('stage');
+    if(!stage||document.getElementById('botWaveEntry'))return;
+    const entry=document.createElement('button');
+    entry.id='botWaveEntry';entry.type='button';entry.className='apex-special-wave-emblem';
+    entry.setAttribute('aria-label','BOT WAVE — chế độ sinh tồn đặc biệt');
+    entry.innerHTML='<span class="apex-wave-entry-art" aria-hidden="true"><img src="/assets/dictionary/heroes/boxe/standing.png" alt="" decoding="async" draggable="false"></span><span class="apex-wave-entry-copy"><span class="apex-special-wave-top">SPECIAL EVENT <i></i></span><strong>BOT WAVE</strong><small>BOXE / ARSENAL SURVIVAL</small><span class="apex-wave-entry-go" aria-hidden="true">↗</span></span>';
+    const onClick=async ()=>{
+      if(window.APEX_SCENE_TRANSITION?.active?.())return;
+      entry.disabled=true;
+      try{
+        const ok=await window.apexLaunchProductSurface?.('bot-wave');
+        if(!ok)throw Error('BOT WAVE surface unavailable');
+        // Home stays mounted behind Wave; do not leave its entry disabled.
+        entry.disabled=false;
+      }catch(e){console.warn('[bot-wave] launch',e);entry.disabled=false;}
+    };
+    entry.addEventListener('click',onClick);
+    stage.appendChild(entry);
+    return ()=>{entry.removeEventListener('click',onClick);entry.remove();};
+  }, [goldReady]);
 
   useEffect(() => {
     const launchAdminLab = () => launchProductSurface('arsenal-lab', { admin: true });

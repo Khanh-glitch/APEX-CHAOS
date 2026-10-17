@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {getProductSurface,canLaunchProductSurface,listProductSurfaces} from '../src/game/productSurface.js';
+import {planStickyJ,WAVE_STICKY_ASSIST} from '../src/game/botWave/stickyJAssist.js';
+assert.equal(getProductSurface('bot-wave').route,'wave');
+assert.equal(getProductSurface('bot-wave').preview,true);
+assert.equal(canLaunchProductSurface('bot-wave'),true);
+assert.equal(listProductSurfaces().filter(x=>x.availability==='ACTIVE').length,6);
+const app=fs.readFileSync('src/App.jsx','utf8');
+assert.ok(app.includes("history.pushState({apexWave:true}") &&
+ app.includes("name:'bot-wave-enter'")&&app.includes("name:'bot-wave-return'"),
+ 'BOT WAVE must use native Mechanical Door both ways and retain Home');
+assert.ok(fs.readFileSync('src/App.jsx','utf8').includes("stage.appendChild(entry)"));
+const wrapper=fs.readFileSync('public/bot-wave/index.html','utf8');
+assert.ok(wrapper.includes('iframe[hidden]{display:none!important}'),'BOT WAVE old arena flash risk');
+assert.ok(wrapper.includes("!doc.getElementById('bw-interface-v2')"),'must wait for V2 before reveal');
+const audioMix=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js','utf8');
+assert.ok(audioMix.includes('boxe:1.95,weapons:.14'),'BOT WAVE Gold x1.95 / swarm-aware Arsenal gun base x.14 required');
+assert.ok(fs.readFileSync('public/bot-wave/index.html','utf8').includes("frame.src='/bot-wave/game.html'"));
+assert.ok(app.includes("frame.src='/bot-wave/game.html'"),'single direct Gold iframe not mounted');
+assert.ok(!app.includes("window.top.location.assign(target)"),'hard navigation must not bypass transition');
+assert.ok(fs.existsSync('src/game/botWave/wavePreviewEntry.css'));
+const p={x:0,y:0},near={id:'robot-1',x:305,y:0,r:30};
+const plan=planStickyJ({player:p,target:near});
+assert.ok(plan);assert.equal(plan.targetId,'robot-1');assert.equal(plan.direction,0);
+assert.ok(plan.seconds>=.045&&plan.seconds<=.17);
+assert.equal(plan.stopDistance,157);assert.equal(plan.consumesNativeDash,true);
+assert.equal(planStickyJ({player:p,target:{...near,x:170}}),null);
+assert.equal(planStickyJ({player:p,target:{...near,x:900}}),null);
+assert.equal(planStickyJ({player:p,target:near,ready:false}),null);
+assert.equal(planStickyJ({player:p,target:near,comboLocked:true}),null);
+assert.equal(planStickyJ({player:p,target:near,paused:true}),null);
+assert.equal(planStickyJ({player:p,target:{...near,dead:true}}),null);
+assert.equal(WAVE_STICKY_ASSIST.requiresNativeDashReady,true);
+const path='public/bot-wave/game.html';
+if(fs.existsSync(path)){
+ const game=fs.readFileSync(path,'utf8');
+ for(const t of ['WAVE_STICKY_ASSIST','waveGunCue','APEX_GUN_ART','waveRocketRoll'])assert.ok(game.includes(t),t);
+ console.log('BOXE R5 Gold runtime is installed, now requires native browser Gold QA.');
+}else console.log('BOXE R5 Product Preview entrance PASS; owner Gold binary gate pending (game.html missing).');
+console.log('Gold J short-range assisted L-dash planner PASS');
