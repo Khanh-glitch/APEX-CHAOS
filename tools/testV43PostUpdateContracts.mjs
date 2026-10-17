@@ -70,7 +70,9 @@ console.log('PASS post Boomerang empty hand, physical swept catch, multi-actor p
 // Owner's original V4.3 Lab fire-only VFX, with halved cone/range/cadence.
 assert.ok(config.includes('duration:.325,ticks:5,tickStart:.05,tickInterval:.06'));
 assert.ok(config.includes('tickDamage:18,range:325,cone:.18,burnTicks:5,burnInterval:.25,burnDamage:13,idealRange:265'));
-assert.ok(runtime.includes('let muzzle=v43Muzzle(p.owner,p.weapon,direction)'));
+assert.ok(runtime.includes('const source=p.emitter||p.owner;'));
+assert.ok(runtime.includes('let muzzle=v43Muzzle(source,p.weapon,direction)'),
+ 'Rack and held guns must emit Gold flame from their actual physical source');
 assert.ok(runtime.includes('x.flameTarget=ctx.enemy'));
 assert.ok(runtime.includes('h.meta.aimAngle=direction'));
 assert.ok(runtime.includes('function v43GoldFlamethrowerParticles(ctx,p)'));

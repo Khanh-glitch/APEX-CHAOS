@@ -61,6 +61,11 @@ jobs:
 
       - name: Owner Gold result engine and secure iframe contract
         run: node tools/testResultGoldAuthority.mjs
+      - name: BOXE and SHURI new fighter admission proofs
+        run: |
+          node tools/testBoxeSharedSfx.mjs
+          node tools/testShuriNativeArsenal.mjs
+
       - name: Verify product graph, source hygiene, runtime revision, and generated audio bank
         run: |
           pnpm test:product-graph
