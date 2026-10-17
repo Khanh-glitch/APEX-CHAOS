@@ -363,9 +363,10 @@
     const recycled=f.__hrCombatant?.heroId==='SHURI' && !f.__arsenalEmitterOwner
       && ['sequence-complete','shot-fired','blast-resolved'].includes(reason)
       && CFG.isGunOrLauncher?.(h.weaponId)===true && /^T[1-5]$/.test(tier);
-    // A completed SHURI gun goes exclusively to the Gold collector.
-    // No generic ejected gun ghost may duplicate the recycling artwork.
-    if(recycled||f.__arsenalEmitterOwner||String(reason||'').startsWith('boxe-'))
+    // A completed SHURI gun — and a gun her A1 shock steals — goes
+    // exclusively to the Gold collector. No generic ejected gun ghost
+    // may duplicate the recycling artwork.
+    if(recycled||reason==='shuri-a1-disarm'||f.__arsenalEmitterOwner||String(reason||'').startsWith('boxe-'))
       f.data.arsenalFade=null;
     else snapshotPoseGhost(f, h);
     if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[ARSENAL] weapon cleanup failed', h.weaponId, error); } }

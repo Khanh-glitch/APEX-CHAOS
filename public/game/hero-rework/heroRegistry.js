@@ -587,22 +587,24 @@
       }),
       A1:skill('shuri.shock_recoil','A1','shuri.shock_recoil',{
         cooldown:15,bombRadius:100,bombStunSeconds:1,bombArmedLifetime:5,
-        placementVisualSeconds:.38,
         // Pending Gold motion approval: recoil duration/speed are staging
         // defaults, NOT an owner-approved balance parameter.
         recoilSpeedPreview:1300,recoilSecondsPreview:.18,
       },['cooldown'],'cooldown_step',{
         displayName:'Shock Recoil',
-        archiveProfile:{description:'Plant an electric bomb and new build anchor at the cast point, recoil, and switch the existing machine form.'},
+        archiveProfile:{description:'Plant an electric bomb and new build anchor at the cast point, then recoil away. An enemy shocked by the bomb is stunned, disarmed, and their held gun is recycled into Scrap like the Passive.'},
       }),
       A2:skill('shuri.machine','A2','shuri.machine',{
         cooldown:15,buildScrap:20,buildSeconds:5,structureHP:200,
-        repairPerScrap:10,healPerSecond:20,healRadius:200,
-        rackInitialRadius:200,rackMaintenanceRadius:100,
-        rackEquipHpPerTier:20,
+        repairPerScrap:10,healPerSecond:20,
+        // One operating range, measured from the structure circumference
+        // (owner law 2026-10-17). It gates rack acquisition and recovery.
+        operatingRange:200,
+        // Each rack reload costs Scrap equal to the mounted gun's tier.
+        reloadScrapPerTier:1,
       },['cooldown'],'cooldown_step',{
         displayName:'Mechanical Genesis',
-        archiveProfile:{description:'Spend 20 Scrap to build one 200-HP modular machine over 5s at the last A1 anchor; otherwise repair with all available Scrap.'},
+        archiveProfile:{description:'Contextual machine command. With no machine, spend 20 Scrap to build one 200-HP machine over 5s at the last A1 anchor. While holding a gun, that gun mounts the rack when its magazine finishes and then auto-fires forever, each reload costing Scrap equal to its tier. Unarmed inside the machine operating range (200 from its circumference), enter a recovery hold that heals for free until SHURI or the machine takes damage. Otherwise, spend only the Scrap needed to repair the machine (10 HP per Scrap).'},
       }),
     },
   };
