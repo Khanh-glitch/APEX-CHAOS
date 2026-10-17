@@ -4526,7 +4526,9 @@ async function audioOn() {
         return loading;
     }
     try {
-        ctx = new AudioContext();
+        // Shared APEX battle audio context; never allocate another sound device.
+        ctx = globalThis.audioCtx;
+        if (!ctx) throw Error('SHURI GOLD requires shared battle audio');
         master = ctx.createGain();
         master.gain.value = muted ? 0 : .70;
         const limiter = ctx.createDynamicsCompressor();
@@ -4536,7 +4538,7 @@ async function audioOn() {
         limiter.attack.value = .003;
         limiter.release.value = .14;
         master.connect(limiter);
-        limiter.connect(ctx.destination);
+        limiter.connect(globalThis.battleAudioMaster || ctx.destination);
         buses = { mech: ctx.createGain(), energy: ctx.createGain(), ui: ctx.createGain() };
         buses.mech.gain.value = .94;
         buses.energy.gain.value = .77;
@@ -4581,6 +4583,7 @@ function accent(kind, start, amount, bus) {
     g.gain.exponentialRampToValueAtTime(Math.max(.0001, amount * .035), start + .007);
     g.gain.exponentialRampToValueAtTime(.0001, start + dur);
     o.connect(lp).connect(g).connect(buses[bus]);
+    globalThis.apexRegisterBattleAudioSource?.(o);
     o.start(start);
     o.stop(start + dur + .03);
 }
@@ -4636,6 +4639,7 @@ function fire(e, at, speed, shuriX) {
         }
         catch { } };
         try {
+            globalThis.apexRegisterBattleAudioSource?.(src);
             src.start(start);
             src.stop(start + end + .01);
         }

@@ -1,5 +1,5 @@
 {
-  "revision": "20261017-shuri-boxe-sfx-r1",
+  "revision": "20261017-shuri-boxe-sfx-r2",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -65,7 +65,7 @@
     "public/game/hero-rework/boxeGoldPresentationRuntime.js": "83e96a420813351f88dffea3ea4f55bc730946f29bb7dce60c49b1c59e4d16c8",
     "public/game/hero-rework/boxeSfxAuthority.js": "9e57a0252236b8445d964778929a8e5d4bb3ed0b81362364c7c1703928618ced",
     "public/game/hero-rework/shuriBattleRuntime.js": "b1ed519c0737c5b9fd97ca5c5caef8b640af5b827be293c00ac4e14666da3c98",
-    "public/game/hero-rework/shuriGoldLibrary.js": "efd969aedde049509c139d31f8372b56637e38fb0db34816b6b9e406ecdf3391",
+    "public/game/hero-rework/shuriGoldLibrary.js": "94d0f314db3609f76aaa2b68df3d80fdd5b491a307dfb0282d9d5728bc28bb85",
     "public/game/hero-rework/shuriGoldPresentationRuntime.js": "bf9e83bec91d84d769631f2b64efe1c3952a7ddf9455dda68fb98175d14a0378"
   }
 }
