@@ -92,7 +92,8 @@
       m.k0=k;m.z0=z;m.k=k;m.z=z;
     }
     rec={f,w,last:t,audioStarted:false,healLast:0,healing:false,
-      stunConfirmPending:false,healedPending:0,bombBurst:null};
+      stunConfirmPending:false,healedPending:0,bombBurst:null,
+      motionX:f.x,motionY:f.y,motionT:t,velX:0,velY:0,baseK:null};
     live.set(f,rec);
     return rec;
   }
@@ -209,8 +210,48 @@
     }
   }
   const off=AIL.bus.on('*',consume);
+  // Gold's hair chain, head lean/tilt and eye glance are driven by her
+  // velocity and its per-substep delta. The native fighter's measured
+  // velocity must be fed BEFORE stepping, or those springs read ~zero
+  // speed and the rig looks dead next to the Gold HTML. Position is also
+  // presented pre-step so satellite-machine anchor targets track the
+  // current frame; syncNative after stepping restores the exact native
+  // point for rendering (Gold would drift/clamp inside its lab arena).
+  function feedMotion(rec){
+    const {w,f}=rec,t=now();
+    const dt=t-rec.motionT;
+    if(dt>0.0005){
+      let vx=(f.x-rec.motionX)/dt,vy=(f.y-rec.motionY)/dt;
+      if(Math.hypot(vx,vy)>2400){vx=0;vy=0;} // spawn/teleport: no phantom impulse
+      // Light smoothing keeps stepped native movement from buzzing.
+      rec.velX=rec.velX*0.35+vx*0.65;
+      rec.velY=rec.velY*0.35+vy*0.65;
+      rec.motionX=f.x;rec.motionY=f.y;rec.motionT=t;
+    }
+    w.shuri.vel.x=rec.velX;w.shuri.vel.y=rec.velY;
+    w.shuri.pos.x=f.x;w.shuri.pos.y=f.y;
+    // Face aim life (squint / glance / tilt) from the real native gun,
+    // without ever setting shuri.gun: Gold would draw its own gun and
+    // double the native one already painted by Arsenal presentation.
+    const holder=global.APEX_ARSENAL?.weaponApi?.getHolder?.(f);
+    const foe=(global.fighters||[]).find(b=>b&&b!==f&&b.hp>0);
+    w.shuri.aimOn=!!holder&&!!foe;
+    w.shuri.aimAt=foe?{x:foe.x,y:foe.y}:null;
+    // Satellite adherence: while she moves fast, grip/tool/collector
+    // hold tighter. Gold derives damping as 2*z*sqrt(k) with z untouched,
+    // so scaling k0 raises responsiveness at the SAME damping ratio —
+    // firmer tracking, never a rigid lock. At rest k0 returns to the
+    // authored values and the original loose float is fully preserved.
+    if(!rec.baseK)rec.baseK={grip:w.grip.k0,tool:w.tool.k0,col:w.col.k0};
+    const u=Math.min(1,Math.hypot(rec.velX,rec.velY)/340);
+    const firm=1+2.1*u*u*(3-2*u);
+    w.grip.k0=rec.baseK.grip*firm;
+    w.tool.k0=rec.baseK.tool*firm;
+    w.col.k0=rec.baseK.col*firm;
+  }
   function advance(rec){
     const t=now(),d=Math.max(0,Math.min(.06,t-rec.last));rec.last=t;
+    feedMotion(rec);
     let remaining=d,iterations=0;
     while(remaining>=Gold.DT/2 && iterations++<10){
       const h=Math.min(Gold.DT,remaining);
@@ -243,6 +284,27 @@
   }
   const oldDraw=global.Fighter?.prototype?.draw;
   if(!oldDraw)throw Error('SHURI_GOLD_REQUIRES_NATIVE_FIGHTER_DRAW');
+  // The authored bomb.webp canvas is 123x122 but the bomb body itself is
+  // centred at sprite (-25.5,+27.5) px from the canvas centre (measured
+  // from the sprite alpha — debris of another strip shares the canvas).
+  // Gold centres the CANVAS on bomb.pos, so in product the bomb floated
+  // ~(-10,+11) world px off its gameplay point and range rim. Compensate
+  // around rendering only: shift pos by the rotated sprite offset,
+  // render, restore. Gold state and task math never see the shift.
+  const BOMB_SPRITE_OFFSET={x:-25.5,y:27.5};
+  function renderGold(ctx,w,opts){
+    const b=w.bomb;
+    if(!b?.pos){Gold.renderNativeLayer(ctx,w,sprites,opts);return;}
+    const imgW=sprites?.bomb?.width||123;
+    // Mirror drawBomb's scale: K.bomb*2*(1+0.14*drop) with K.bomb=25/RIG.bomb.w.
+    const sc=(25/imgW)*2*(1+0.14*(b.drop?.x||0));
+    const ox=BOMB_SPRITE_OFFSET.x*sc,oy=BOMB_SPRITE_OFFSET.y*sc;
+    const c=Math.cos(b.rot?.x||0),s=Math.sin(b.rot?.x||0);
+    const px=b.pos.x,py=b.pos.y;
+    b.pos.x=px-(ox*c-oy*s);b.pos.y=py-(ox*s+oy*c);
+    try{Gold.renderNativeLayer(ctx,w,sprites,opts);}
+    finally{b.pos.x=px;b.pos.y=py;}
+  }
   if(!global.Fighter.prototype.__shuriGoldDraw){
     global.Fighter.prototype.__shuriGoldDraw=true;
     global.Fighter.prototype.draw=function shuriGoldDraw(ctx){
@@ -252,7 +314,7 @@
       ctx.save();
       try{
         advance(rec);
-        Gold.renderNativeLayer(ctx,rec.w,sprites,{
+        renderGold(ctx,rec.w,{
           vfx:true,hud:false,show:FX_SHOW,
         });
         drawNativeRangeRims(ctx,rec);
@@ -283,7 +345,7 @@
       advance(rec);
       ctx.save();
       try{
-        Gold.renderNativeLayer(ctx,world,sprites,{
+        renderGold(ctx,world,{
           vfx:true,hud:false,
           show:{core:false,grip:false,tool:false,collector:false,
             structure:true,bomb:true,dummy:false,fixtures:false},

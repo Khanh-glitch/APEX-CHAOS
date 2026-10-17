@@ -109,4 +109,29 @@ assert.equal(w.anchor.pos.x,x);
 assert.equal(w.anchor.pos.y,y+50,'Gold bom position must remain ORIGINAL, not relocated by SFX');
 assert.ok(w.sfx.some(e=>e.name==='place')&&w.sfx.some(e=>e.name==='arm'));
 assert.ok(w.sfx.some(e=>e.name==='recoil'));
+// Motion fidelity: Gold's hair/face springs are velocity-driven. Feeding
+// measured native velocity before stepping (the adapter's feedMotion)
+// must restore authored excursion vs the old teleport-only feeding.
+assert.match(adapter,/function feedMotion\(rec\)/,'adapter must feed native velocity into Gold');
+assert.match(adapter,/feedMotion\(rec\);\s*\n\s*let remaining/,'velocity must be fed before Gold substeps');
+assert.match(adapter,/BOMB_SPRITE_OFFSET=\{x:-25\.5,y:27\.5\}/,'bomb sprite off-centre must be compensated at render');
+assert.match(adapter,/k0=rec\.baseK\.grip\*firm/,'satellite grip must firm up with speed via k0');
+function hairExcursion(fed){
+  const mw=g.createWorld();mw.free=true;mw.script=[];mw.tasks=[];mw.fixtures=[];
+  let px=600,vx=0,maxHair=0;
+  for(let frame=0;frame<180;frame++){
+    const t=frame/60;
+    const x=600+290*Math.max(0,t-0.2)*(t<2.2?1:0)+ (t>=2.2?290*2.0:0);
+    if(fed){const measured=(x-px)*60;vx=vx*0.35+measured*0.65;
+      mw.shuri.vel.x=vx;mw.shuri.vel.y=0;mw.shuri.pos.x=x;mw.shuri.pos.y=590;}
+    for(let s=0;s<2;s++)g.step(mw,g.DT);
+    mw.shuri.pos.x=x;mw.shuri.pos.y=590;
+    maxHair=Math.max(maxHair,Math.abs(mw.shuri.hx[2].x));
+    px=x;
+  }
+  return maxHair;
+}
+const fedHair=hairExcursion(true),starvedHair=hairExcursion(false);
+assert.ok(fedHair>3*starvedHair,
+  `velocity-fed hair excursion ${fedHair.toFixed(1)} must dwarf teleport-fed ${starvedHair.toFixed(1)}`);
 console.log('PASS SHURI GOLD V8 authentic module + SFX event time / native selected runtime / Pick/Archive/HUD owner art registered');
