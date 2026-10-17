@@ -93,7 +93,9 @@
     }
     rec={f,w,last:t,audioStarted:false,healLast:0,healing:false,
       stunConfirmPending:false,healedPending:0,bombBurst:null,
-      motionX:f.x,motionY:f.y,motionT:t,velX:0,velY:0,baseK:null};
+      motionX:f.x,motionY:f.y,motionT:t,velX:0,velY:0,baseK:null,
+      headX:null,headV:0,headT:t,mountFlight:null,dropFlight:null,
+      lastMountedId:null};
     live.set(f,rec);
     return rec;
   }
@@ -113,6 +115,17 @@
       w.shuri.a1cd=f.__hrCombatant?.skills?.A1?.cdLeft||0;
       w.shuri.a2cd=f.__hrCombatant?.skills?.A2?.cdLeft||0;
       if(st.anchor)w.anchor={pos:{x:st.anchor.x,y:st.anchor.y},t:w.anchor?.t??w.t};
+      // Mounted-gun change tracking for the authored drop flight of a
+      // replaced gun (see shuri:rack-mount / drawRackGun).
+      if(st.structure){
+        const mid=st.structure.mountedWeaponId||null;
+        if(mid&&mid!==rec.lastMountedId){
+          rec.prevMountedId=rec.lastMountedId;rec.lastMountedId=mid;
+        }
+      }else{
+        rec.lastMountedId=null;rec.prevMountedId=null;rec.mountFlight=null;
+      }
+      if(!w.st){rec.headX=null;rec.headV=0;}
       if(st.structure?.solid && w.st){
         w.st.hp=Math.max(0,st.structure.solid.hp);
         // Gold's authored 5s build motion remains independent; never let
@@ -129,8 +142,30 @@
         // MUST NEVER autonomously aim/fire, generate damage or audition shots.
         w.st.mounted=null;w.st.incoming=false;
         const holder=global.APEX_ARSENAL?.weaponApi?.getHolder?.(st.structure.emitter);
-        if(holder && Number.isFinite(holder.meta?.aimAngle))
-          w.st.headAng.x=holder.meta.aimAngle;
+        // Rack head ownership: the adapter springs the head with Gold's own
+        // authored constants (aim k=55 z=.7; idle sway k=30 z=.8 toward
+        // -PI/2+sin(t*.6)*.5) and writes the result into Gold's headAng, so
+        // the Gold ring and the native mounted gun share ONE rotation axis
+        // and ONE angle. The head keeps its lively rest sway; the gun is
+        // drawn in this exact frame by drawRackGun. Gold's internal sway
+        // spring (mock mounted stays null) is overwritten here each sync.
+        if(rec.headX==null){rec.headX=w.st.headAng.x;rec.headV=0;rec.headT=now();}
+        {
+          const tNow=now();
+          let dtH=Math.min(0.05,Math.max(0,tNow-rec.headT));rec.headT=tNow;
+          const aim=holder?.meta?.aimAngle;
+          const engaging=!!holder&&holder.phase!=='READY'&&Number.isFinite(aim);
+          const target=engaging?aim:(-Math.PI/2+Math.sin(w.t*0.6)*0.5);
+          const k=engaging?55:30,c=2*Math.sqrt(k)*(engaging?0.7:0.8);
+          while(dtH>1e-6){
+            const h=Math.min(1/240,dtH);dtH-=h;
+            let d=target-rec.headX;
+            d=Math.atan2(Math.sin(d),Math.cos(d));
+            rec.headV+=(k*d-c*rec.headV)*h;
+            rec.headX+=rec.headV*h;
+          }
+          w.st.headAng.x=rec.headX;w.st.headAng.v=0;
+        }
       }
     }
   }
@@ -196,11 +231,26 @@
         if(now()-rec.healLast>=.6){rec.healLast=now();rec.pumpPending=true;}
         break;
       }
+      case 'shuri:rack-mount':{
+        // Authored gunfly (0.55s): the gun leaves Shuri's hand and docks on
+        // the hub; a replaced gun gets the authored gundrop away. The
+        // native sprite (with the fighter's equipped skin) flies — Gold's
+        // own gunfly would fly tier art and charge native structure HP.
+        const foeDir=f.side==='A'?1:-1;
+        rec.mountFlight={weaponId:p.weaponId,t0:now(),
+          x0:f.x+58*foeDir,y0:f.y,a0:foeDir>0?0:Math.PI};
+        const prev=rec.prevMountedId;rec.prevMountedId=null;
+        if(prev&&prev!==p.weaponId&&w.st&&rec.headX!=null)
+          rec.dropFlight={weaponId:prev,t0:now(),
+            x0:w.st.pos.x,y0:w.st.pos.y,a0:rec.headX,
+            x1:w.st.pos.x+Math.cos(rec.headX+0.65*Math.PI)*92,
+            y1:w.st.pos.y+Math.sin(rec.headX+0.65*Math.PI)*92+30};
+        break;
+      }
       case 'shuri:rack-release':
       case 'shuri:rack-shot':
       case 'shuri:rack-cycle-ended':
       case 'shuri:mount-pending':
-      case 'shuri:rack-mount':
       case 'shuri:mount-canceled':
       case 'shuri:rack-reload':
       case 'shuri:rack-starved':
@@ -211,9 +261,9 @@
       case 'shuri:bomb-armed':
       case 'shuri:recycle-award':
         // Gold visual tasks / continuous sync already own these beats
-        // (rack state and gun drawing follow the live native Holder;
-        // recovery form follows native state in syncNative). Replay is
-        // not dispatched twice; native events remain the verification clock.
+        // (rack head + gun follow the adapter head spring; recovery form
+        // follows native state in syncNative). Replay is not dispatched
+        // twice; native events remain the verification clock.
         break;
     }
   }
@@ -313,6 +363,75 @@
     try{Gold.renderNativeLayer(ctx,w,sprites,opts);}
     finally{b.pos.x=px;b.pos.y=py;}
   }
+  const easeOutCubic=t=>1-Math.pow(1-t,3); // Gold's authored `eo`
+  const wrapDelta=a=>Math.atan2(Math.sin(a),Math.cos(a));
+  function flyWeaponSprite(ctx,rec,weaponId,x,y,angle,scale,alpha){
+    const AV=global.APEX_ARSENAL_AV;
+    if(!AV?.drawWeaponSprite||!weaponId)return false;
+    const cos=global.APEX_COSMETICS;
+    const side=cos?.sideOf?.(rec.f,global);
+    return AV.drawWeaponSprite(ctx,weaponId,x,y,{
+      angle,keepUpright:true,mode:'equipped',
+      cosmetic:side?cos.capture?.(side,'weapon',weaponId):null,
+      targetLongSide:(global.APEX_ARSENAL_CONFIG?.FIREARM_LONG_SIDE?.[weaponId]||120)*scale,
+      alpha:alpha==null?1:alpha,
+    });
+  }
+  // The native mounted gun, bound to the Gold rack head's own frame: same
+  // pivot (hub center), same angle (the adapter head spring). Arsenals
+  // pose/recoil framing still owns recoil kickback — we only retarget which
+  // angle/pivot the pose is solved in, centering it on the hub exactly like
+  // Gold's authored rack gun (translated by -kick only). Transfer flights
+  // mirror the authored gunfly/gundrop timing with the native skinned
+  // sprite. In recovery the gun sinks with the med morph — no gun drawn.
+  function drawRackGun(ctx,rec){
+    const f=rec.f,w=rec.w;
+    const s=f.__hrCombatant?.store?.__shuri?.structure;
+    if(!s||s.phase!=='ACTIVE'||s.recovery||!s.emitter||!w.st)return;
+    const hub=w.st.pos,head=rec.headX??w.st.headAng.x,tNow=now();
+    const holder=global.APEX_ARSENAL?.weaponApi?.getHolder(s.emitter);
+    let docking=false;
+    const mf=rec.mountFlight;
+    if(mf){
+      const e=(tNow-mf.t0)/0.55;
+      if(e<1){
+        docking=true;
+        const ee=easeOutCubic(Math.max(0,e));
+        flyWeaponSprite(ctx,rec,mf.weaponId,
+          mf.x0+(hub.x-mf.x0)*ee,
+          mf.y0+(hub.y-mf.y0)*ee-12*Math.sin(Math.PI*ee),
+          mf.a0+wrapDelta(head-mf.a0)*ee,
+          1+0.25*Math.sin(Math.PI*ee),1);
+      }else rec.mountFlight=null;
+    }
+    if(!docking&&holder){
+      const AV=global.APEX_ARSENAL_AV;
+      if(AV?.drawEquippedWeapon){
+        const meta=holder.meta||{},pose=meta.pose;
+        const savedAim=meta.aimAngle,savedLX=pose?pose.localX:undefined;
+        try{
+          const cat=holder.def?.category;
+          const base=(cat==='melee'?72:cat==='defense'?82:78)/100*(s.emitter.r||75);
+          meta.aimAngle=head;
+          if(pose)pose.localX=-base; // hub pivot; recoil stays in the pose
+          AV.drawEquippedWeapon(ctx,s.emitter,holder);
+        }finally{
+          meta.aimAngle=savedAim;
+          if(pose)pose.localX=savedLX;
+        }
+      }
+    }
+    const df=rec.dropFlight;
+    if(df){
+      const age=tNow-df.t0;
+      if(age<1.7){
+        const ee=easeOutCubic(Math.min(1,age/0.6));
+        flyWeaponSprite(ctx,rec,df.weaponId,
+          df.x0+(df.x1-df.x0)*ee,df.y0+(df.y1-df.y0)*ee,
+          df.a0+7*ee,1,age>0.6?Math.max(0,1-(age-0.6)/1.1):1);
+      }else rec.dropFlight=null;
+    }
+  }
   if(!global.Fighter.prototype.__shuriGoldDraw){
     global.Fighter.prototype.__shuriGoldDraw=true;
     global.Fighter.prototype.draw=function shuriGoldDraw(ctx){
@@ -331,13 +450,9 @@
         const nativeHolder=global.APEX_ARSENAL?.weaponApi?.getHolder?.(this);
         if(nativeHolder && !rec.w.snap)
           global.APEX_ARSENAL_AV?.drawEquippedWeapon?.(ctx,this,nativeHolder);
-        const s=this.__hrCombatant?.store?.__shuri?.structure;
-        // In recovery the mounted gun sinks into the machine with the med
-        // morph and the rack is off — no native gun is drawn on the emitter.
-        if(s?.phase==='ACTIVE'&&!s.recovery&&s.emitter){
-          const h=global.APEX_ARSENAL?.weaponApi?.getHolder(s.emitter);
-          if(h)global.APEX_ARSENAL_AV?.drawEquippedWeapon?.(ctx,s.emitter,h);
-        }
+        // The mounted gun is rigidly bound to the rack head's frame
+        // (hub pivot + head-spring angle) with authored transfer flights.
+        drawRackGun(ctx,rec);
       }finally{ctx.restore();}
     };
   }
