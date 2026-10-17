@@ -191,7 +191,7 @@ function mkMach(x, y, a, k, z, ph) {
 function createWorld(seed = 7) {
     const p = { ...exports.LAYOUT.shuri };
     const sh = {
-        pos: p, vel: (0, exports.v2)(), push: (0, exports.v2)(), lv: (0, exports.v2)(), mv: null, hp: 600, max: 600, scrap: 10, a1cd: 0, a2cd: 0,
+        pos: p, vel: (0, exports.v2)(), push: (0, exports.v2)(), lv: (0, exports.v2)(), mv: null, hp: 600, max: 600, scrap: 20, a1cd: 0, a2cd: 0,
         aim: (0, exports.spr)(0), aimOn: false, aimAt: null, gun: null, gunKick: (0, exports.spr)(0), gunRot: (0, exports.spr)(0),
         leanX: (0, exports.spr)(), leanY: (0, exports.spr)(), tilt: (0, exports.spr)(), hitX: (0, exports.spr)(), hitY: (0, exports.spr)(), bounce: (0, exports.spr)(), sq: (0, exports.spr)(),
         close: (0, exports.spr)(), blink: 0, blinkT0: -9, nextBlink: 1.3, dbl: 0, squeeze: 0, mood: 0, glance: (0, exports.spr)(), jit: 0,
@@ -199,9 +199,9 @@ function createWorld(seed = 7) {
     };
     return {
         t: 0, rnd: mulberry(seed), free: true, shuri: sh,
-        grip: mkMach(p.x - 102, p.y + 4, -Math.PI / 2 - 0.36, 70, 0.55, 0),
-        tool: mkMach(p.x + 100, p.y + 6, -Math.PI / 2 + 0.36, 55, 0.5, 2.1),
-        col: mkMach(p.x, p.y + 102, -Math.PI / 2, 40, 0.62, 4.2),
+        grip: mkMach(p.x - 102, p.y + 4, -Math.PI / 2 - 0.36, 112, 0.82, 0),
+        tool: mkMach(p.x + 100, p.y + 6, -Math.PI / 2 + 0.36, 102, 0.80, 2.1),
+        col: mkMach(p.x, p.y + 102, -Math.PI / 2, 96, 0.84, 4.2),
         bomb: null, anchor: null, st: null,
         dummy: { pos: { ...exports.LAYOUT.dummy }, hp: 3000, max: 3000, stun: 0, flash: 0, wob: (0, exports.spr)() },
         fixtures: exports.LAYOUT.fixtures.map((pos, i) => ({ pos: { ...pos }, tier: i + 1, has: true, rot: [-0.12, 0.1, -0.06, 0.14, -0.1][i], resp: 0 })),
@@ -3111,7 +3111,7 @@ function drawBomb(ctx, w, I, o) {
     const sil = I.sil.bomb;
     const boom = b.st === 'boom' ? b.bt : 0;
     const alive = 1 - (0, engine_1.lin)(0.12, 0.5, boom);
-    const sc = engine_1.K.bomb * (1 + 0.14 * b.drop.x) * (1 + 0.12 * (0, engine_1.eo)((0, engine_1.lin)(0, 0.08, boom)));
+    const sc = engine_1.K.bomb * 2 * (1 + 0.14 * b.drop.x) * (1 + 0.12 * (0, engine_1.eo)((0, engine_1.lin)(0, 0.08, boom)));
     ctx.save();
     ctx.globalAlpha = 0.5 * alive;
     ctx.translate(b.pos.x + 2 + b.drop.x * 10, b.pos.y + 4 + b.drop.x * 14);
@@ -3413,7 +3413,7 @@ function drawTool(ctx, w, I, o) {
     ctx.translate(-rig_1.TP.turret[0], -rig_1.TP.turret[1]);
     if (tl.holdBomb > 0.05) {
         const bi = I.bomb;
-        const bs = engine_1.K.bomb / k * 1.12;
+        const bs = engine_1.K.bomb / k * 2.24;
         ctx.save();
         ctx.translate(rig_1.TP.tip[0], rig_1.TP.tip[1] + 6);
         ctx.scale(bs, bs);

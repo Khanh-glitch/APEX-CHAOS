@@ -16,7 +16,7 @@
   const stateOf=(ct)=>{
     if(!ct||ct.heroId!=='SHURI')return null;
     return ct.store.__shuri||(ct.store.__shuri={
-      scrap:10,anchor:null,bomb:null,structure:null,recoil:null,a1Sequence:null,
+      scrap:ct.skills?.PASSIVE?.cfg?.initialScrap??20,anchor:null,bomb:null,structure:null,recoil:null,a1Sequence:null,
       pendingRecycle:[],disposed:false,
       serial:0,
     });

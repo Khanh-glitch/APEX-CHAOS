@@ -579,11 +579,11 @@
     },
     skills:{
       PASSIVE:skill('shuri.recycle','PASSIVE','shuri.recycle',{
-        initialScrap:10,minimumTier:1,maximumTier:5,
+        initialScrap:20,minimumTier:1,maximumTier:5,
         validEquipment:'canonical-gun-or-launcher',
       },['initialScrap'],'capacity_step',{
         displayName:'Recycle Snap',
-        archiveProfile:{description:'Finishing a directly held eligible T1–T5 gun or launcher grants Scrap equal to its tier.'},
+        archiveProfile:{description:'SHURI alone recycles each completed directly held T1–T5 gun or launcher into her collector instead of discarding it; Scrap equals its tier.'},
       }),
       A1:skill('shuri.shock_recoil','A1','shuri.shock_recoil',{
         cooldown:15,bombRadius:100,bombStunSeconds:1,bombArmedLifetime:5,
@@ -596,7 +596,7 @@
         archiveProfile:{description:'Plant an electric bomb and new build anchor at the cast point, recoil, and switch the existing machine form.'},
       }),
       A2:skill('shuri.machine','A2','shuri.machine',{
-        cooldown:18,buildScrap:20,buildSeconds:5,structureHP:200,
+        cooldown:15,buildScrap:20,buildSeconds:5,structureHP:200,
         repairPerScrap:10,healPerSecond:20,healRadius:200,
         rackInitialRadius:200,rackMaintenanceRadius:100,
         rackEquipHpPerTier:20,

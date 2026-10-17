@@ -14,6 +14,45 @@
   const FX_SHOW=Object.freeze({core:true,grip:true,tool:true,collector:true,
     structure:true,bomb:true,dummy:false,fixtures:false});
   const now=()=>AIL.clock();
+  // Native reach markers are circumference-first. No center-filled discs.
+  function reachRim(ctx,x,y,r,rgb,t,alpha=1){
+    if(!(r>0)||!Number.isFinite(x)||!Number.isFinite(y))return;
+    const phase=(t*.52)%1;
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    ctx.setLineDash([7,12]);ctx.lineDashOffset=-t*15;
+    ctx.strokeStyle='rgba('+rgb+','+(.45*alpha)+')';
+    ctx.lineWidth=1.65;
+    ctx.beginPath();ctx.arc(x,y,r+2,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+    // Expanding pulse begins AT the true gameplay circumference.
+    ctx.strokeStyle='rgba('+rgb+','+(.2*(1-phase)*alpha)+')';
+    ctx.lineWidth=2.5+phase*5;
+    ctx.beginPath();ctx.arc(x,y,r+2+phase*23,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+  function drawNativeRangeRims(ctx,rec){
+    const st=rec.f.__hrCombatant?.store?.__shuri;
+    if(!st)return;
+    const t=now();
+    if(st.bomb)reachRim(ctx,st.bomb.x,st.bomb.y,100,'143,225,255',t);
+    if(rec.bombBurst && t<rec.bombBurst.until){
+      const p=1-(rec.bombBurst.until-t)/.4;
+      ctx.save();ctx.strokeStyle='rgba(157,238,255,'+(.6*(1-p))+')';
+      ctx.lineWidth=5*(1-p)+1;
+      ctx.beginPath();ctx.arc(rec.bombBurst.x,rec.bombBurst.y,100+p*36,0,Math.PI*2);
+      ctx.stroke();ctx.restore();
+    }
+    const s=st.structure;
+    if(!s||s.phase==='DEAD'||!s.solid||s.solid.hp<=0)return;
+    if(s.phase==='BUILD'){
+      reachRim(ctx,s.solid.x,s.solid.y,200,'245,178,100',t,.18);
+    }else if(s.phase==='ACTIVE'){
+      const radius=s.mode==='MED'?200:(s.firstIntakeUntil>t?200:100);
+      reachRim(ctx,s.solid.x,s.solid.y,radius,
+        s.mode==='MED'?'100,244,209':'255,183,95',t,.82);
+    }
+  }
   // Browsers require a real gesture before decoding/starting WebAudio.
   // Bind ONCE for all SHURI instances, not a per-fighter listener.
   let soundInit=null,gameAudioPrimed=false;
@@ -44,8 +83,12 @@
     w.script=[];w.tasks=[];w.fixtures=[];w.free=true;
     w.dummy.pos.x=-1e6;w.dummy.pos.y=-1e6;
     const t=now();
+    // Preserve choreography overrides; raise neutral spring attachment.
+    for(const [m,k,z] of [[w.grip,112,.82],[w.tool,102,.80],[w.col,96,.84]]){
+      m.k0=k;m.z0=z;m.k=k;m.z=z;
+    }
     rec={f,w,last:t,audioStarted:false,healLast:0,healing:false,
-      stunConfirmPending:false,healedPending:0};
+      stunConfirmPending:false,healedPending:0,bombBurst:null};
     live.set(f,rec);
     return rec;
   }
@@ -105,6 +148,7 @@
         const target=bodyById(p.targetId);
         w.dummy.pos.x=target?.x??-1e6;w.dummy.pos.y=target?.y??-1e6;
         Gold.triggerBomb(w);
+        rec.bombBurst={x:p.x,y:p.y,until:now()+.4};
         if(target && p.targetId!=null)rec.stunConfirmPending=true;
         w.dummy.pos.x=-1e6;w.dummy.pos.y=-1e6;
         break;
@@ -212,6 +256,12 @@
         Gold.renderNativeLayer(ctx,rec.w,sprites,{
           vfx:true,hud:false,show:FX_SHOW,
         });
+        drawNativeRangeRims(ctx,rec);
+        // While held, display the REAL native gun. After completion, Gold's
+        // tier-gun enters the collector; never show both representations.
+        const nativeHolder=global.APEX_ARSENAL?.weaponApi?.getHolder?.(this);
+        if(nativeHolder && !rec.w.snap)
+          global.APEX_ARSENAL_AV?.drawEquippedWeapon?.(ctx,this,nativeHolder);
         const s=this.__hrCombatant?.store?.__shuri?.structure;
         if(s?.phase==='ACTIVE'&&s.mode==='RACK'&&s.emitter){
           const h=global.APEX_ARSENAL?.weaponApi?.getHolder(s.emitter);

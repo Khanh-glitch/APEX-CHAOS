@@ -45,4 +45,6 @@ assert.match(runtime,/emit\('ArsenalHolderEnded'/);
 assert.match(runtime,/reason: 'boomerang-retrieved', completion: true/);
 assert.match(runtime,/completion: \['sequence-complete','shot-fired','blast-resolved'\]\.includes\(reason\)/);
 assert.doesNotMatch(runtime,/grantScrap|shuriScrap\s*\+=/i);
+assert.match(runtime,/const recycled=f\.__hrCombatant/);
+assert.match(runtime,/else snapshotPoseGhost\(f, h\)/);
 console.log('SHURI CP1 Arsenal capability & lifecycle contract PASS');

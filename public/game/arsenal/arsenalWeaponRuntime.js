@@ -359,7 +359,14 @@
     h.consumed = true;
     // BOXE disarm creates a single real ejected floor weapon; the generic
     // consume pose ghost would leave an illusory second gun on the victim.
-    if(f.__arsenalEmitterOwner||String(reason||'').startsWith('boxe-')) f.data.arsenalFade=null;
+    const tier=String(CFG.tierOf?.(h.weaponId)||'');
+    const recycled=f.__hrCombatant?.heroId==='SHURI' && !f.__arsenalEmitterOwner
+      && ['sequence-complete','shot-fired','blast-resolved'].includes(reason)
+      && CFG.isGunOrLauncher?.(h.weaponId)===true && /^T[1-5]$/.test(tier);
+    // A completed SHURI gun goes exclusively to the Gold collector.
+    // No generic ejected gun ghost may duplicate the recycling artwork.
+    if(recycled||f.__arsenalEmitterOwner||String(reason||'').startsWith('boxe-'))
+      f.data.arsenalFade=null;
     else snapshotPoseGhost(f, h);
     if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[ARSENAL] weapon cleanup failed', h.weaponId, error); } }
     f.data.arsenal = null; // holder returns to UNARMED; no stale owner/target refs remain
