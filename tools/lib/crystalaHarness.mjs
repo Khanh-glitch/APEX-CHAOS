@@ -120,8 +120,14 @@ export async function bootHarness(opts = {}) {
     _notify(type) { const event={type,target:this,currentTarget:this}; const handler=type==='load'?this.onload:this.onerror; if(typeof handler==='function')handler.call(this,event);this.dispatchEvent(event); }
     set src(v) {
       this._src = v;
-      const rel = String(v).replace(/^\//, '');
-      loadImage(path.join(REPO, 'public', rel))
+      const s = String(v);
+      // Gold hero libraries embed their sprites as data: URLs; decode those
+      // from memory so Gold presentation can boot headlessly. File-path
+      // loading (the historical behavior) is unchanged.
+      const loading = s.startsWith('data:')
+        ? loadImage(Buffer.from(s.slice(s.indexOf(',') + 1), 'base64'))
+        : loadImage(path.join(REPO, 'public', s.replace(/^\//, '')));
+      loading
         .then((im) => { this.__realImage = im; this.width = im.width; this.height = im.height; this.naturalWidth = im.width; this.naturalHeight = im.height; this.complete = true; this._notify('load'); })
         .catch(() => { this._notify('error'); });
     }
