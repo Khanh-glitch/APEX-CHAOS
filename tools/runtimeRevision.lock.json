@@ -1,5 +1,5 @@
 {
-  "revision": "20261017-shuri-rework-r3",
+  "revision": "20261017-shuri-rework-r4",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -26,7 +26,7 @@
     "public/game/hero-rework/boxeBattleRuntime.js": "623c9557173bd5ef1c5a165fe42f08bfddb2e592043403dd11967ab4b3f08725",
     "public/game/hero-rework/shuriBattleRuntime.js": "10e7756c90ea8e40383e21740b5151e4c2241ead4f5d131abb5d94a067baa913",
     "public/game/arsenal/arsenalShellSelectRuntime.js": "b8016c09999d85b01f5b34a651170664bbde87cf4ee748cff7d992b19f080304",
-    "public/game/arsenal/arsenalChamberPaletteRuntime.js": "4b95efadd6a4a252a5462a96d544520d0caf8387ad8c963069a0f9ec5e3bf13f",
+    "public/game/arsenal/arsenalChamberPaletteRuntime.js": "0caf2ee565770ad25b9e0ce4df0b322fd2da631c1ff251d2ad1980daf046ca93",
     "public/game/arsenal/arsenalMetaRuntime.js": "cd848c2a0ee1611e9c702bd7352d15257ca0f682c9a037579248f812c1925a45",
     "public/game/quest/questMultiActorCore.js": "acdca5f504c383c0879973d7aa4b83d1f65fdd102baba94cbee3961365bdc328",
     "public/game/quest/questBreachWavesCore.js": "9eb01f7beb4198a3fa62fdf603355fd83aec5a191582509918a34a41423b8332",
@@ -57,7 +57,7 @@
     "public/game/hero-rework/boxeGoldLibrary.js": "f283094e1b345b7f3f212649382f4cc2d4c6497abfe12fd7729b567aaddb6d08",
     "public/game/hero-rework/boxeGoldPresentationRuntime.js": "83e96a420813351f88dffea3ea4f55bc730946f29bb7dce60c49b1c59e4d16c8",
     "public/game/hero-rework/shuriGoldLibrary.js": "971762b6aa9cd635bf038a5fec219e764bb37bce52038e1c4a6c47280120697b",
-    "public/game/hero-rework/shuriGoldPresentationRuntime.js": "dca9d536cb8131170b11f1c10471835e04b0a7de88ea6647178adbff4581f059",
+    "public/game/hero-rework/shuriGoldPresentationRuntime.js": "a63a86ad5d16e8b127ae23ad1dd4efb17e9ee2d89081c335b436331865d1b255",
     "public/game/hero-rework/robotPresentationRuntime.js": "3d1b179de6b795719cc8eedb8479be5be1d7b08ada9329eef4f1523290405ffc",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "9c38075d3b7f5af9f185e651be7be10d99a61031b53c371fbbb29c12bf8f5b8f",

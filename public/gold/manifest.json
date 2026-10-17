@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261017-shuri-rework-r3",
+  "runtimeRevision": "20261017-shuri-rework-r4",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -277,7 +277,7 @@
     },
     "shell.html": {
       "bytes": 429239,
-      "sha256": "be830dfeaac1ad97db99595d3918be697a5e214077e362d439e1e006df24cdb0"
+      "sha256": "e961588e56147fa0fcf88ea077f4fb5af3c1596b28970f2404074296e2d8456b"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,
