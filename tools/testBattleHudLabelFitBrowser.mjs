@@ -118,6 +118,13 @@ function measureExpr(mode, T) {
     for(const [sideId,side] of [['p1Side','P1'],['p2Side','P2']]){
       const root=document.getElementById(sideId);
       probe(root,side,'.wp-name',T.weapon17,'wp-name-17');
+      // Owner-ordered ordering fix: measure the weapon BLOCK while the
+      // longest (17ch) name is still displayed — previously wp-block was
+      // only measured after the name had been replaced by the 12ch string,
+      // so a 17ch-driven block overflow could hide. The 12ch-state block
+      // measurement below is kept as the second sample.
+      const wpb17=root?root.querySelector('.weapon'):null;
+      if(wpb17) rows.push({side,key:'wp-block-17',tileOv:wpb17.scrollHeight-wpb17.clientHeight,visible:vis(wpb17)});
       probe(root,side,'.wp-name',T.weapon,'wp-name');
       const wt=root?root.querySelector('.wp-txt'):null;
       rows.push({side,key:'wp-txt-wrap',visible:vis(wt),disp:wt?getComputedStyle(wt).display:'missing'});
@@ -162,7 +169,7 @@ try {
   const boot = await evl(`(()=>!!document.getElementById('hud')&&!!document.getElementById('p1Side')&&!!document.getElementById('p2Side'))()`);
   check('built HUD boots standalone with both sides', boot === true);
 
-  let maxTileOv = 0; let probeCount = 0;
+  let maxTileOv = 0; let probeCount = 0; const tileOffenders = [];
   for (const c of CASES) {
     await cmd('Emulation.setDeviceMetricsOverride', { width: c.w, height: c.h, deviceScaleFactor: 1, mobile: false });
     await sleep(420);
@@ -170,7 +177,7 @@ try {
       const res = await evl(measureExpr(c.mode, T));
       if (!res || res.error) { check(`${c.id} ${lang} measurement ran`, false, ' :: ' + JSON.stringify(res)); continue; }
       for (const r of res.rows) {
-        if (r.tileOv != null) maxTileOv = Math.max(maxTileOv, r.tileOv);
+        if (r.tileOv != null) { maxTileOv = Math.max(maxTileOv, r.tileOv); if (r.tileOv > 8) tileOffenders.push(`${c.id} ${lang} ${r.side} ${r.key} tileOv=${r.tileOv}`); }
         const primary = c.mode === '2p' || r.side === 'P1';
         if (!primary || !/^(sk-name|wp-name)/.test(r.key || '') || !r.visible) continue;
         probeCount++;
@@ -187,7 +194,7 @@ try {
   check(`primary-deck probes actually measured (${probeCount})`, probeCount >= 100);
   // The rejected desk-wrap failure mode measured +22px of tile overflow;
   // anything beyond an 8px tolerance is layout breakage, not rounding.
-  check('no skill/weapon tile internal overflow beyond tolerance', maxTileOv <= 8, ` :: maxTileOv=${maxTileOv}`);
+  check('no skill/weapon tile internal overflow beyond tolerance', maxTileOv <= 8, ` :: maxTileOv=${maxTileOv}${tileOffenders.length ? ' :: ' + [...new Set(tileOffenders)].join('; ') : ''}`);
 } finally {
   try { ws && ws.close(); } catch {}
   try { chrome.kill('SIGKILL'); } catch {}
