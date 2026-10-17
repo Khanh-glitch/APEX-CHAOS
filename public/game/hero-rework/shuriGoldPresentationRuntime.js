@@ -77,7 +77,61 @@
   const isShuri=f=>f?.type?.__hrHero==='SHURI'||f?.__hrCombatant?.heroId==='SHURI';
   const bodyById=(id)=> (global.fighters||[]).find(f=>f&&f.id===id);
   let sprites=null,spriteError=null;
-  const loadPromise=Gold.loadAll().then(im=>{sprites=im;return true;}).catch(e=>{
+  // The authored bomb canvas (123x122) carries a second, unrelated dark
+  // strip above the bomb body — in product it reads as a strange black
+  // bar hovering over the electric bomb. The Gold library is immutable,
+  // so the adapter cleans its own loaded copy: alpha connected-component
+  // analysis keeps the bomb body (largest component, plus any detail
+  // overlapping its bounds) and erases disconnected debris, then the
+  // ground-shadow silhouette is regenerated exactly the Gold way.
+  function cleanBombSprite(im){
+    try{
+      const img=im?.bomb,W=img?.width,H=img?.height;
+      if(!W||!H||!global.document)return;
+      const cv=global.document.createElement('canvas');cv.width=W;cv.height=H;
+      const cx=cv.getContext('2d',{willReadFrequently:true});
+      cx.drawImage(img,0,0);
+      const data=cx.getImageData(0,0,W,H),a=data.data;
+      const lab=new Int32Array(W*H).fill(-1),box=[];
+      let best=-1,bestN=0,cur=0;const stack=[];
+      for(let i=0;i<W*H;i++){
+        if(lab[i]!==-1||a[i*4+3]<=16)continue;
+        let n=0,x0=W,x1=-1,y0=H,y1=-1;
+        stack.push(i);lab[i]=cur;
+        while(stack.length){
+          const p=stack.pop();n++;
+          const x=p%W,y=(p/W)|0;
+          if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+          if(x>0&&lab[p-1]===-1&&a[(p-1)*4+3]>16){lab[p-1]=cur;stack.push(p-1);}
+          if(x<W-1&&lab[p+1]===-1&&a[(p+1)*4+3]>16){lab[p+1]=cur;stack.push(p+1);}
+          if(y>0&&lab[p-W]===-1&&a[(p-W)*4+3]>16){lab[p-W]=cur;stack.push(p-W);}
+          if(y<H-1&&lab[p+W]===-1&&a[(p+W)*4+3]>16){lab[p+W]=cur;stack.push(p+W);}
+        }
+        box[cur]={x0,x1,y0,y1};
+        if(n>bestN){bestN=n;best=cur;}
+        cur++;
+      }
+      if(cur<=1||best<0)return; // single component: nothing to clean
+      const B=box[best],keep=new Set([best]);
+      for(let k=0;k<cur;k++){
+        const b=box[k];
+        if(b&&b.x1>=B.x0-4&&b.x0<=B.x1+4&&b.y1>=B.y0-4&&b.y0<=B.y1+4)keep.add(k);
+      }
+      if(keep.size===cur)return;
+      for(let i=0;i<W*H;i++)if(!keep.has(lab[i]))a[i*4+3]=0;
+      cx.putImageData(data,0,0);
+      im.bomb=cv;
+      const blur=7,pad=Math.ceil(blur*2.5);
+      const sc=global.document.createElement('canvas');
+      sc.width=W+pad*2;sc.height=H+pad*2;
+      const sx=sc.getContext('2d');
+      sx.filter=`blur(${blur}px)`;sx.drawImage(cv,pad,pad);sx.filter='none';
+      sx.globalCompositeOperation='source-in';sx.fillStyle='#000';
+      sx.fillRect(0,0,sc.width,sc.height);
+      if(im.sil)im.sil.bomb={c:sc,pad};
+    }catch(e){/* presentation-only cleanup; authored sprite stays valid */}
+  }
+  const loadPromise=Gold.loadAll().then(im=>{cleanBombSprite(im);sprites=im;return true;}).catch(e=>{
     spriteError=String(e);console.error('[SHURI GOLD] original rig not ready',e);return false;
   });
   function ensure(f) {

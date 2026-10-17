@@ -68,7 +68,7 @@
   // ---- curated palettes -----------------------------------------------------
   // floor: identity colors; profile fields derived once below.
   const PALETTES = [
-    { id: 'graphite-mid', label: 'GRAPHITE · MID', floor: { base: '#626A74', inner: '#727B86', outer: '#4F5761', wall: '#3C434C', rail: '#2C3239' } },
+    { id: 'graphite-mid', label: 'GRAPHITE · MID', floor: { base: '#4E565F', inner: '#5C656F', outer: '#3D444D', wall: '#2F353D', rail: '#22272E' } },
     { id: 'graphite-dark', label: 'GRAPHITE · DARK', floor: { base: '#3B414A', inner: '#474E58', outer: '#2B3138', wall: '#22272E', rail: '#171B20' } },
     { id: 'navy-steel', label: 'NAVY · STEEL', floor: { base: '#33415C', inner: '#3F5070', outer: '#253149', wall: '#1C2537', rail: '#121A29' } },
     { id: 'teal-deep', label: 'DEEP TEAL', floor: { base: '#2E4B4A', inner: '#395C5A', outer: '#20393A', wall: '#172B2C', rail: '#0F2021' } },
