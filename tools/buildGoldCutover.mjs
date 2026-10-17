@@ -43,6 +43,7 @@ import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
 import { adaptGoldBattleHudR83 } from './goldBattleHudR83.mjs';
+import { adaptGoldBattleHudR91LabelFit } from './goldBattleHudR91labelFit.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
 import { adaptGoldShellR83 } from './goldShellR83.mjs';
@@ -872,6 +873,8 @@ const seamPatches = [
   log('  R55 (battle-hud): phone panel law + held-gun plate adapted');
   out = adaptGoldBattleHudR83(out);
   log('  R83 (battle-hud): short Local portrait geometry solver candidate');
+  out = adaptGoldBattleHudR91LabelFit(out);
+  log('  R91 (battle-hud): primary-deck skill/weapon label fit (audit D1/D2)');
   return out;
 }
 
