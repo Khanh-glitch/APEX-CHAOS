@@ -95,7 +95,7 @@
       stunConfirmPending:false,healedPending:0,bombBurst:null,
       motionX:f.x,motionY:f.y,motionT:t,velX:0,velY:0,baseK:null,
       headX:null,headV:0,headT:t,mountFlight:null,dropFlight:null,
-      lastMountedId:null};
+      lastMountedId:null,recycleQ:[]};
     live.set(f,rec);
     return rec;
   }
@@ -180,7 +180,13 @@
       case 'shuri:recycle-start':{
         const id=p.weaponId;
         const tier=Number(String(global.APEX_ARSENAL_CONFIG?.tierOf?.(id)||'').slice(1));
-        if(tier>=1&&tier<=5)Gold.visualStartRecycle(w,tier);
+        if(!(tier>=1&&tier<=5))break;
+        // Gold's snap choreography refuses to start while a previous snap
+        // is still running, yet giveGun has already swapped in an intact
+        // tier gun — an un-queued start is silently dropped and the visual
+        // strands. Queue behind the active snap; advance() flushes.
+        if(w.snap){if(rec.recycleQ.length<3)rec.recycleQ.push(tier);}
+        else Gold.visualStartRecycle(w,tier);
         break;
       }
       case 'shuri:a1-start':{
@@ -279,14 +285,38 @@
     const {w,f}=rec,t=now();
     const dt=t-rec.motionT;
     if(dt>0.0005){
-      let vx=(f.x-rec.motionX)/dt,vy=(f.y-rec.motionY)/dt;
+      const dx=f.x-rec.motionX,dy=f.y-rec.motionY;
+      let vx=dx/dt,vy=dy/dt;
       if(Math.hypot(vx,vy)>2400){vx=0;vy=0;} // spawn/teleport: no phantom impulse
-      // Light smoothing keeps stepped native movement from buzzing.
-      rec.velX=rec.velX*0.35+vx*0.65;
-      rec.velY=rec.velY*0.35+vy*0.65;
+      // Shape the measured velocity fast (16/s): Gold's hair chain is
+      // excited by per-substep velocity DELTAS (whip) plus steady drag.
+      // A slow blend spreads the delta of a short combat burst until the
+      // whip is gone and the hair reads stiff; fast shaping keeps the
+      // impulse while still smoothing stepped native movement.
+      const ac=1-Math.exp(-16*dt);
+      rec.velX+=(vx-rec.velX)*ac;
+      rec.velY+=(vy-rec.velY)*ac;
+      // Satellite carry: translate the machine spring STATES by her exact
+      // frame delta. Their targets are Shuri-relative, so uncarried the
+      // authored soft springs integrate a large positional lag at combat
+      // speed (measured >100px on the collector) and the parts box trails
+      // stranded behind her. Carrying moves only the frame of reference:
+      // relative offsets, spring velocities, float and overshoot around
+      // her remain fully authored — adherence without rigid locking. The
+      // tool is exempt during a repair task: it works on the structure, a
+      // world-anchored job, not on her person.
+      if(Math.abs(dx)>0.001||Math.abs(dy)>0.001){
+        const repair=w.tasks.some(tk=>tk.name==='repair');
+        for(const m of repair?[w.grip,w.col]:[w.grip,w.tool,w.col]){
+          m.x.x+=dx;m.y.x+=dy;
+        }
+      }
       rec.motionX=f.x;rec.motionY=f.y;rec.motionT=t;
     }
-    w.shuri.vel.x=rec.velX;w.shuri.vel.y=rec.velY;
+    // Hair liveliness: feed a modestly amplified velocity. Combat bursts
+    // are far shorter than the lab glides the chain was tuned against; the
+    // gain restores authored deflection without stiffening any spring.
+    w.shuri.vel.x=rec.velX*1.6;w.shuri.vel.y=rec.velY*1.6;
     w.shuri.pos.x=f.x;w.shuri.pos.y=f.y;
     // Face aim life (squint / glance / tilt) from the real native gun,
     // without ever setting shuri.gun: Gold would draw its own gun and
@@ -301,11 +331,12 @@
     // firmer tracking, never a rigid lock. At rest k0 returns to the
     // authored values and the original loose float is fully preserved.
     if(!rec.baseK)rec.baseK={grip:w.grip.k0,tool:w.tool.k0,col:w.col.k0};
-    const u=Math.min(1,Math.hypot(rec.velX,rec.velY)/340);
-    const firm=1+2.1*u*u*(3-2*u);
+    const u=Math.min(1,Math.hypot(rec.velX,rec.velY)/650);
+    const firm=1+5.2*u*u*(3-2*u);
     w.grip.k0=rec.baseK.grip*firm;
     w.tool.k0=rec.baseK.tool*firm;
-    w.col.k0=rec.baseK.col*firm;
+    // The collector (parts box) adheres tightest of the three.
+    w.col.k0=rec.baseK.col*firm*1.35;
   }
   function advance(rec){
     const t=now(),d=Math.max(0,Math.min(.06,t-rec.last));rec.last=t;
@@ -322,6 +353,9 @@
       remaining-=h;
     }
     syncNative(rec);
+    // Flush a queued recycle visual the moment the active snap finishes.
+    if(!rec.w.snap&&rec.recycleQ.length)
+      Gold.visualStartRecycle(rec.w,rec.recycleQ.shift());
     // Original visual-only simulator may generate fake gunfire or dummy/HP
     // pump while updating mechanical springs. Filter those audition cues:
     // true Arsenal SFX and realized native heal events own playback instead.
