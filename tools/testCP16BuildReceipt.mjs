@@ -15,7 +15,9 @@ assert.equal(r.goldShellSha256,g.files['shell.html'].sha256,'Gold shell evidence
 assert.equal(r.versionedRuntimeCount,Object.keys(l.files).length,'locked runtime count differs');
 // CP17's locked 59 baseline executables remain, plus the three signed
 // BOXE adapter/Gold presentation runtimes registered in the same graph.
-const boxe=['boxeBattleRuntime.js','boxeGoldLibrary.js','boxeGoldPresentationRuntime.js'];
+const boxe=['boxeBattleRuntime.js','boxeGoldLibrary.js','boxeGoldPresentationRuntime.js','boxeSfxAuthority.js'];
 for(const name of boxe)assert.ok(Object.keys(l.files).some(f=>f.endsWith('/'+name)),'missing BOXE versioned runtime '+name);
-assert.equal(r.versionedRuntimeCount,59+boxe.length,'unexpected runtime-graph size change');
+const shuri=['shuriBattleRuntime.js','shuriGoldLibrary.js','shuriGoldPresentationRuntime.js'];
+for(const name of shuri)assert.ok(Object.keys(l.files).some(f=>f.endsWith('/'+name)),'missing SHURI versioned runtime '+name);
+assert.equal(r.versionedRuntimeCount,59+boxe.length+shuri.length,'unexpected runtime-graph size change');
 console.log('CP16 PACKAGED BUILD RECEIPT PASS',r.gitCommit,r.revision);

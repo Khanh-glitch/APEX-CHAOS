@@ -31,11 +31,11 @@
   // PLAYABLE_ROSTER_IDS; ICE displays as FROST, CRYSTAL as CRYSTALA).
   const GOLD_SHELL_KEY_BY_PRODUCTION_ID = {
     ROBOT: 'newbot', HUNTER: 'hunter', CRYSTAL: 'crystala',
-    MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror', BOXE: 'boxe',
+    MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror', BOXE: 'boxe', SHURI: 'shuri',
   };
   const PRODUCTION_ID_BY_SHELL_KEY = {
     newbot: 'ROBOT', hunter: 'HUNTER', crystala: 'CRYSTAL',
-    magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR', boxe: 'BOXE',
+    magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR', boxe: 'BOXE', shuri: 'SHURI',
   };
   // ── immutable Git art authority (R44 owner-playtest media manifest) ─────
   // Every URL below is a gitPath recorded in
@@ -112,6 +112,18 @@
         heroUiAsset('frost/skill_a2.webp'),
       ],
     },
+    shuri: {
+      // Owner SHURI V5 art: dedicated full-body, cinematic cover and locked goggles.
+      // Keep the battle Gold rig under shuri/source/ completely unchanged.
+      portrait: '/assets/dictionary/heroes/shuri/cover.webp',
+      art: '/assets/dictionary/heroes/shuri/standing.webp',
+      battleAvatar: '/assets/dictionary/heroes/shuri/avatar.webp',
+      skillIcons: [
+        '/assets/dictionary/heroes/shuri/passive.webp',
+        '/assets/dictionary/heroes/shuri/a1.webp',
+        '/assets/dictionary/heroes/shuri/a2.webp',
+      ],
+    },
     boxe: {
       portrait: '/assets/dictionary/heroes/boxe/cover.png',
       art: '/assets/dictionary/heroes/boxe/standing.png',
@@ -155,6 +167,7 @@
     frost: { name: 'FROST', tag: 'CRYO EDGE UNIT' },
     mirror: { name: 'MIRROR', tag: 'ECHO DUPLICATE' },
     boxe: { name: 'BOXE', tag: 'THE FIST OF DAWN' },
+    shuri: { name: 'SHURI', tag: 'SCRAP ENGINEER' },
   };
   // ONE accent per hero. These are FALLBACKS for the case where the shell
   // registry is not loaded yet; the live value is APEX_ARSENAL_SHELLS.typeFor()
@@ -164,7 +177,7 @@
   // showed up as soon as a crit/heavy slash or a rail plate took her accent.
   const FALLBACK_ACCENTS = {
     newbot: '#ff941f', hunter: '#96ca2d', crystala: '#a066f0',
-    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42',
+    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42', shuri: '#f16c41',
   };
 
   // Production-visible roster authority (2026-10-05): the Gold roster is
@@ -916,6 +929,15 @@
     if (heroIds.some(id => String(id).toLowerCase()==='boxe')) {
       if (!window.APEX_BOXE_GOLD_LIBRARY?.preloadSprites) throw Error('BOXE Gold renderer unavailable');
       await window.APEX_BOXE_GOLD_LIBRARY.preloadSprites();
+    }
+    // SHURI is admitted through the SAME selected-hero READY authority.
+    // The arena cannot reveal an empty actor while the approved Gold 8
+    // original source sprites are decoding.
+    if (heroIds.some(id => String(id).toLowerCase()==='shuri')) {
+      const gold = window.APEX_SHURI_GOLD_PRESENTATION;
+      if (!gold?.whenReady) throw Error('SHURI Gold renderer unavailable');
+      if (await gold.whenReady() !== true || !gold.ready())
+        throw Error('SHURI approved Gold sprites failed readiness');
     }
     // Battle READY certifies the SELECTED cosmetic packs too, not merely the
     // base hero atlas. No first-cast asset downloads and no missing skin is

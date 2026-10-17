@@ -557,6 +557,56 @@
     },
   };
 
+  // SHURI: gameplay staged on the developer branch. Do not surface in
+  // product selection or assign art until the owner supplies final Gold.
+  HEROES.SHURI = {
+    id:'SHURI',name:'SHURI',displayName:'SHURI',classRef:'rework.shuri',
+    identityColor:'#f16c41',
+    archiveProfile:{
+      subtitle:'Scrap Engineer',
+      intro:'A scrap engineer who recycles spent guns and commands one modular field machine.',
+      artwork:{
+        avatar:'/assets/dictionary/heroes/shuri/avatar.webp',
+        standing:'/assets/dictionary/heroes/shuri/standing.webp',
+        cover:'/assets/dictionary/heroes/shuri/cover.webp',
+      },
+      skillArt:{
+        PASSIVE:'/assets/dictionary/heroes/shuri/passive.webp',
+        A1:'/assets/dictionary/heroes/shuri/a1.webp',
+        A2:'/assets/dictionary/heroes/shuri/a2.webp',
+      },
+      traits:{damage:48,control:67,mobility:82,defense:70,field:98},
+    },
+    skills:{
+      PASSIVE:skill('shuri.recycle','PASSIVE','shuri.recycle',{
+        initialScrap:20,minimumTier:1,maximumTier:5,
+        validEquipment:'canonical-gun-or-launcher',
+      },['initialScrap'],'capacity_step',{
+        displayName:'Recycle Snap',
+        archiveProfile:{description:'SHURI alone recycles each completed directly held T1–T5 gun or launcher into her collector instead of discarding it; Scrap equals its tier.'},
+      }),
+      A1:skill('shuri.shock_recoil','A1','shuri.shock_recoil',{
+        cooldown:15,bombRadius:100,bombStunSeconds:1,bombArmedLifetime:5,
+        placementVisualSeconds:.38,
+        // Pending Gold motion approval: recoil duration/speed are staging
+        // defaults, NOT an owner-approved balance parameter.
+        recoilSpeedPreview:1300,recoilSecondsPreview:.18,
+      },['cooldown'],'cooldown_step',{
+        displayName:'Shock Recoil',
+        archiveProfile:{description:'Plant an electric bomb and new build anchor at the cast point, recoil, and switch the existing machine form.'},
+      }),
+      A2:skill('shuri.machine','A2','shuri.machine',{
+        cooldown:15,buildScrap:20,buildSeconds:5,structureHP:200,
+        repairPerScrap:10,healPerSecond:20,healRadius:200,
+        rackInitialRadius:200,rackMaintenanceRadius:100,
+        rackEquipHpPerTier:20,
+      },['cooldown'],'cooldown_step',{
+        displayName:'Mechanical Genesis',
+        archiveProfile:{description:'Spend 20 Scrap to build one 200-HP modular machine over 5s at the last A1 anchor; otherwise repair with all available Scrap.'},
+      }),
+    },
+  };
+
   const CANONICAL_IDS = Object.freeze(Object.keys(HEROES)); // insertion order = doc order
 
   /* ------------------------------------------------------------------ *

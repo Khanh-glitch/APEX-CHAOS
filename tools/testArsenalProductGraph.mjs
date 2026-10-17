@@ -4,6 +4,10 @@
 // mutation seams without booting retired routes. It is deterministic and
 // browser-independent: node tools/testArsenalProductGraph.mjs
 import assert from 'node:assert/strict';
+// Shared weapon capability checks run inside the existing Product Graph gate.
+import './testShuriArsenalFoundation.mjs';
+import './testShuriBattleRuntime.mjs';
+import './testShuriGoldIntegration.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -144,9 +148,11 @@ gate('semantic-graph-and-admin-boundary', () => {
 });
 
 gate('visible-roster-core-six-and-locked-six', () => {
-  assert.equal(PRODUCT_ROSTER.visibleIds.length, 13);
-  assert.equal(PRODUCT_ROSTER.playableIds.length, 7);
+  assert.equal(PRODUCT_ROSTER.visibleIds.length, PRODUCT_ROSTER.playableIds.length+PRODUCT_ROSTER.lockedIds.length);
+  assert.equal(PRODUCT_ROSTER.playableIds.length, 8, 'owner SHURI joins seven existing playable fighters');
   assert.ok(PRODUCT_ROSTER.playableIds.includes('BOXE'));
+  assert.ok(PRODUCT_ROSTER.playableIds.includes('SHURI'));
+  assert.ok(PRODUCT_ROSTER.playableIds.indexOf('SHURI')>PRODUCT_ROSTER.playableIds.indexOf('BOXE'));
   assert.equal(PRODUCT_ROSTER.lockedIds.length, 6);
   assert.ok(PRODUCT_ROSTER.playableIds.includes('ROBOT'));
   assert.ok(PRODUCT_ROSTER.playableIds.includes('ICE'));
@@ -164,7 +170,7 @@ gate('economy-clean-state-and-mutation-legality', () => {
   assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits);
   assert.equal(meta.getState().credits, 12000);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
-  assert.equal(meta.poolLocked().length, 6); // BOXE joins the real unowned pool; six Core Six purchase candidates unaffected
+  assert.equal(meta.poolLocked().length, PRODUCT_ROSTER.playableIds.length-1); // ROBOT starts owned; every other active fighter joins canonical economy pool
   assert.ok(meta.poolLocked().includes('BOXE'));
   assert.ok(meta.poolLocked().includes('HUNTER'));
   assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));

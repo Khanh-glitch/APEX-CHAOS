@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261016-boxe-r7-wave-polish';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261017-shuri-boxe-sfx-r2';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -120,6 +120,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
   ['/game/hero-rework/boxeBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeBattle'],
+  ['/game/hero-rework/shuriBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriBattle'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
@@ -149,8 +150,11 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/mirrorGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorGoldV1'],
   ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
   ['/game/hero-rework/heroReworkRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRuntime'],
+  ['/game/hero-rework/boxeSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeSfxAuthority'],
   ['/game/hero-rework/boxeGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldLibrary'],
   ['/game/hero-rework/boxeGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldPresentationRuntime'],
+  ['/game/hero-rework/shuriGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldLibrary'],
+  ['/game/hero-rework/shuriGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldPresentationRuntime'],
   ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&cp8Socket=vua-he-held', 'apexRobotPresentationRuntime'],
   ['/game/hero-rework/hunterGoldV10.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterGoldV10'],
   ['/game/hero-rework/hunterPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterPresentationRuntime'],
@@ -172,7 +176,11 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
 // fighters pay hero-specific evaluation cost. Filtering instead of concatenating
 // sub-groups preserves every historical dependency edge and script order.
 export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
+  shuri: Object.freeze(['/game/hero-rework/shuriBattleRuntime.js',
+    '/game/hero-rework/shuriGoldLibrary.js',
+    '/game/hero-rework/shuriGoldPresentationRuntime.js']),
   boxe: Object.freeze([
+    '/game/hero-rework/boxeSfxAuthority.js',
     '/game/hero-rework/boxeGoldLibrary.js',
     '/game/hero-rework/boxeGoldPresentationRuntime.js',
   ]),
@@ -212,6 +220,7 @@ const CORE_SIX_RUNTIME_KEY_ALIASES = Object.freeze({
   frost: 'frost', ice: 'frost',
   mirror: 'mirror',
   boxe: 'boxe',
+  shuri: 'shuri',
 });
 const BATTLE_RUNTIME_OWNER_BY_PATH = new Map();
 for (const [hero, paths] of Object.entries(CORE_SIX_BATTLE_RUNTIME_PATHS)) {

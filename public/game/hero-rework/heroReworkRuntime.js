@@ -473,11 +473,26 @@
       },
 
       /* world entities ------------------------------------------------ */
+      nearestFreeWorldCircle: (x,y,r,opts) => nearestFreeWorldCircle(x,y,r,opts),
       spawnWall(o) {
+        // Unified world-solid record: the existing capsule is the default.
+        // A zero-length capsule is a physically accurate circle with the
+        // SAME swept body/projectile collision and HP lifetime as a wall.
+        // No alternate deployed-structure collision engine.
+        const circle = o.shape === 'circle';
+        const radius = circle ? Math.max(1, Number(o.radius) || 75) : null;
         const w = {
           id: ++M.world.wallSeq, owner: o.owner, x: o.x, y: o.y,
-          angle: o.angle || 0, len: o.len || 220, thickness: 26,
-          hp: o.hp, maxHp: o.hp, bornAt: AIL.clock(), lifetime: o.lifetime || 4,
+          shape: circle ? 'circle' : 'capsule',
+          angle: circle ? 0 : (o.angle || 0),
+          len: circle ? 0 : (o.len || 220),
+          radius, thickness: circle ? radius * 2 : 26,
+          hp: o.hp, maxHp: o.hp, bornAt: AIL.clock(),
+          lifetime: o.lifetime === Infinity ? Infinity : (o.lifetime || 4),
+          // Friendly pass-through is an explicit OWNERSHIP policy on the
+          // world-solid, never a global bullet immunity.
+          friendlyProjectilePassThrough: o.friendlyProjectilePassThrough === true,
+          kind: o.kind || (circle ? 'deployed-circle' : 'wall'),
         };
         M.world.walls.push(w);
         AIL.bus.emit('WallSpawned', { id: w.id, hp: w.hp });
@@ -2218,6 +2233,43 @@
     for (const c of solidCapsules()) if (pointToSegmentDist(x, y, c.ax, c.ay, c.bx, c.by) < r + c.r) return true;
     return false;
   }
+  // Deterministic shared world placement query. Uses the SAME collision
+  // capsules and living arena bodies as ordinary movement, never a special
+  // SHURI placement map. No displacement if the anchor is already legal.
+  function nearestFreeWorldCircle(x, y, radius, options={}) {
+    if(!M||!Number.isFinite(x)||!Number.isFinite(y))return null;
+    const S=globalScope.GAME_SIZE||1000;
+    const r=Math.max(1,Number(radius)||75);
+    const capsules=solidCapsules();
+    const bodies=M.api.allBodies();
+    const free=(px,py)=>{
+      if(px<r||py<r||px>S-r||py>S-r)return false;
+      for(const c of capsules){
+        if(pointToSegmentDist(px,py,c.ax,c.ay,c.bx,c.by)<r+c.r)return false;
+      }
+      for(const b of bodies){
+        // Placement at the caster's own anchor is valid. The normal world
+        // solid resolver, not a hero-specific teleport, owns subsequent
+        // overlap separation. Other fighters remain genuine blockers.
+        if(b===options.excludeBody)continue;
+        if(b&&b.hp>0&&Math.hypot(px-b.x,py-b.y)<r+(b.radius||75))return false;
+      }
+      return true;
+    };
+    if(free(x,y))return {x,y,adjusted:false};
+    // Minimal-distance outward scan, deterministic ring/angle tie order.
+    // A capped search fails cleanly instead of embedding a solid into a wall.
+    const step=Math.max(12,r/4);
+    for(let d=step;d<=Math.min(S,5*r);d+=step){
+      const samples=Math.max(16,Math.ceil(Math.PI*2*d/(step*.75)));
+      for(let i=0;i<samples;i++){
+        const a=i*Math.PI*2/samples;
+        const px=x+Math.cos(a)*d,py=y+Math.sin(a)*d;
+        if(free(px,py))return {x:px,y:py,adjusted:true};
+      }
+    }
+    return null;
+  }
   // Runs after the engine's body separation each step: sweeps every living body
   // from where it was to where it is against all solid capsules and stands it on
   // the surface it would have crossed (bounce heading like an arena wall).
@@ -2266,7 +2318,7 @@
     // The one authoritative ordered movement path (see pathSegments above).
     pathSegments, pathPointAt, pathVelocityAt, pathToPointDist, globalT, clearPath,
     bodyPathSegments, samplePath,
-    pendingMagnetToi, supersedeMagnetBoundary };
+    pendingMagnetToi, supersedeMagnetBoundary, nearestFreeWorldCircle };
 
 
   function releaseFromSingularity(s, d) {
@@ -2986,6 +3038,7 @@
   }
 
   function wallEndpoints(w) {
+    if(w.shape === 'circle')return {ax:w.x,ay:w.y,bx:w.x,by:w.y,nx:0,ny:-1};
     const dx = Math.cos(w.angle), dy = Math.sin(w.angle);
     const hx = (w.len / 2), hy = (w.thickness / 2);
     return {
@@ -2999,6 +3052,7 @@
     if (!M || !M.world.walls.length) return null;
     let best = null, bestT = 2;
     for (const w of M.world.walls) {
+      if(w.hp <= 0 || (w.friendlyProjectilePassThrough && w.owner === combatantOfBody(p.owner)))continue;
       const e = wallEndpoints(w);
       const d = pointToSegmentDist(p.x, p.y, e.ax, e.ay, e.bx, e.by);
       const near = d <= p.radius + w.thickness / 2 + 4;
@@ -3006,10 +3060,17 @@
       // wall that only the inbound leg reached, so fall back to the real path.
       if (!near && pathToPointDist(p, w.x, w.y) > p.radius + w.thickness / 2 + w.len / 2 + 4) continue;
       for (const g of pathSegments(p)) {
-        const local = segmentCrossT(g.x0, g.y0, g.x1, g.y1, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
+        const local = w.shape === 'circle'
+          ? segmentToPointToi(g.x0,g.y0,g.x1,g.y1,w.x,w.y,p.radius+w.radius)
+          : segmentCrossT(g.x0, g.y0, g.x1, g.y1, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
         if (local == null) continue;
         const toi = globalT(g, local);
-        if (toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny }, t: toi, seg: g }; }
+        if (toi < bestT) {
+          const hx=g.x0+(g.x1-g.x0)*local-w.x,hy=g.y0+(g.y1-g.y0)*local-w.y;
+          const magnitude=Math.hypot(hx,hy)||1;
+          bestT = toi; best = { wall: w,
+            normal: w.shape==='circle'?{x:hx/magnitude,y:hy/magnitude}:{x:e.nx,y:e.ny},t:toi,seg:g };
+        }
         break; // sub-segments are in travel order
       }
     }
@@ -3020,9 +3081,16 @@
     if (!M || !M.world.walls.length) return null;
     let best = null, bestT = 2;
     for (const w of M.world.walls) {
+      if(w.hp <= 0 || (w.friendlyProjectilePassThrough && w.owner === combatantOfBody(p.owner)))continue;
       const e = wallEndpoints(w);
-      const toi = segmentCrossT(p.px, p.py, p.x, p.y, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
-      if (toi != null && toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny }, t: toi }; }
+      const toi = w.shape === 'circle'
+        ? segmentToPointToi(p.px,p.py,p.x,p.y,w.x,w.y,p.radius+w.radius)
+        : segmentCrossT(p.px,p.py,p.x,p.y,e.ax,e.ay,e.bx,e.by,p.radius+w.thickness/2);
+      if(toi!=null&&toi<bestT){
+        const hx=p.px+(p.x-p.px)*toi-w.x,hy=p.py+(p.y-p.py)*toi-w.y;
+        const mag=Math.hypot(hx,hy)||1;
+        bestT=toi;best={wall:w,normal:w.shape==='circle'?{x:hx/mag,y:hy/mag}:{x:e.nx,y:e.ny},t:toi};
+      }
     }
     return best;
   }

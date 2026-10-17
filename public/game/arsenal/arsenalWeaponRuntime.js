@@ -13,6 +13,26 @@
   // elapsed timers / consumed flag. Lives on fighter.data.arsenal.
   // ---------------------------------------------------------------------------
   function getHolder(f) { return (f && f.data && f.data.arsenal) || null; }
+  // A weapon can be mounted on a physical emitter distinct from its damage
+  // owner. The emitter is NEVER inserted into fighters[]; the same Arsenal
+  // executors, projectile ownership and result ledger remain authoritative.
+  const actualWeaponOwner = (f) => f?.__arsenalEmitterOwner || f;
+  function createWeaponEmitter(owner, solid) {
+    if(!owner || !solid) return null;
+    return {
+      __arsenalEmitterOwner: owner, __arsenalWorldSolid: solid,
+      id: 'weapon-emitter:' + String(solid.id), name: 'WORLD WEAPON EMITTER',
+      x:solid.x,y:solid.y,radius:Math.max(1,Number(solid.radius)||75),
+      hp:solid.hp, maxHp:solid.maxHp, data:{arsenal:null,arsenalFade:null},
+      dir:{x:1,y:0},color:owner.color,
+    };
+  }
+  function syncWeaponEmitter(emitter) {
+    const solid=emitter?.__arsenalWorldSolid;
+    if(!solid)return false;
+    emitter.x=solid.x;emitter.y=solid.y;emitter.hp=solid.hp;
+    return emitter.hp>0;
+  }
   function shieldBoundGone(h) {
     if (!h || !h.meta) return true;
     const ownerId = h.meta.boundOwnerId;
@@ -279,8 +299,9 @@
   }
 
   function makeCtx(f) {
+    const actualOwner=actualWeaponOwner(f);
     let enemy = (typeof fighters !== 'undefined' && fighters)
-      ? fighters.find(q => q && q !== f) || null
+      ? fighters.find(q => q && q !== actualOwner && q.hp>0) || null
       : null;
     // HERO REWORK (doc-06): audited body-aware enemy resolution. With the
     // rework layer active, resolve the nearest living enemy BODY (SLIME
@@ -291,7 +312,7 @@
     if (AQ.state?.questRivetPreview?.operator === f) {
       enemy = AQ.state.questRivetPreview.aimPoint;
     } else if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.resolveEnemyBody) {
-      const resolved = window.APEX_HERO_REWORK.resolveEnemyBody(f, enemy);
+      const resolved = window.APEX_HERO_REWORK.resolveEnemyBody(actualOwner, enemy);
       if (resolved !== undefined) enemy = resolved;
     }
     return { fighter: f, enemy, holder: getHolder(f), api: weaponApi };
@@ -325,7 +346,7 @@
     const ant = ANTICIPATION[weaponId] || FAMILY_ANTICIPATION[def.family];
     if (ant) { f.data.arsenal.meta.pose.localY = ant[0]; f.data.arsenal.meta.pose.rotKick = ant[1]; }
     if (def.onEquip) def.onEquip(makeCtx(f));
-    playFighterSound(f, 'wall');
+    if(!f.__arsenalEmitterOwner)playFighterSound(f, 'wall');
     // POST-C §8: no floating name text on the arena canvas — the pickup pop
     // (particles + shockwave + SFX) carries the moment instead.
     window.avCue('pickup', { x: f.x, y: f.y, weapon: weaponId });
@@ -338,11 +359,27 @@
     h.consumed = true;
     // BOXE disarm creates a single real ejected floor weapon; the generic
     // consume pose ghost would leave an illusory second gun on the victim.
-    if(String(reason||'').startsWith('boxe-')) f.data.arsenalFade=null;
+    const tier=String(CFG.tierOf?.(h.weaponId)||'');
+    const recycled=f.__hrCombatant?.heroId==='SHURI' && !f.__arsenalEmitterOwner
+      && ['sequence-complete','shot-fired','blast-resolved'].includes(reason)
+      && CFG.isGunOrLauncher?.(h.weaponId)===true && /^T[1-5]$/.test(tier);
+    // A completed SHURI gun goes exclusively to the Gold collector.
+    // No generic ejected gun ghost may duplicate the recycling artwork.
+    if(recycled||f.__arsenalEmitterOwner||String(reason||'').startsWith('boxe-'))
+      f.data.arsenalFade=null;
     else snapshotPoseGhost(f, h);
     if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[ARSENAL] weapon cleanup failed', h.weaponId, error); } }
     f.data.arsenal = null; // holder returns to UNARMED; no stale owner/target refs remain
     log('CONSUME', `fighter=${f.name} weapon=${h.weaponId}${reason ? ` reason=${reason}` : ''}`);
+    // Holder lifecycle is reported after the native owner has gone UNARMED.
+    // Event is generic and non-authoritative for damage; consumers decide
+    // whether the termination qualifies for their own mechanic. Listener
+    // callbacks cannot change completion, ammo or holder disposal.
+    window.APEX_HERO_REWORK_AIL?.bus?.emit('ArsenalHolderEnded', {
+      fighter: f, fighterId: f.id, holder: h,
+      weaponId: h.weaponId, reason: String(reason || 'unknown'),
+      completion: ['sequence-complete','shot-fired','blast-resolved'].includes(reason),
+    });
   }
 
   function defColor(def) {
@@ -475,6 +512,9 @@
     // (SNIPER predictive intercept), boost speed (MAGNET passive), roll distance
     // crit (SNIPER passive) and record the emission (TIME loop) before the push.
     // Returns a tag object attached to the projectile (null = untouched).
+    // A mounted source uses its real combatant for damage, modifiers and
+    // score. The muzzle coordinates are still those of the physical mount.
+    if(spec.owner?.__arsenalEmitterOwner)spec.owner=actualWeaponOwner(spec.owner);
     const __hrTag = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.onFireBullet)
       ? window.APEX_HERO_REWORK.onFireBullet(spec)
       : null;
@@ -752,8 +792,10 @@
   }
   function v43Spawn(f,id,kind,angle,extra={}){
     const c=V43[id],m=v43Muzzle(f,id,angle),speed=extra.speed??c.speed??c.shardSpeed??650;
-    const p={aq:true,type:'aq_v43',kind,weapon:id,owner:f,launchOwner:f,
-      cosmetic:window.APEX_COSMETICS?.captureProjectile?.(f,id)||null,
+    const trueOwner=actualWeaponOwner(f);
+    const p={aq:true,type:'aq_v43',kind,weapon:id,owner:trueOwner,launchOwner:trueOwner,
+      emitter:f.__arsenalEmitterOwner?f:null,
+      cosmetic:window.APEX_COSMETICS?.captureProjectile?.(trueOwner,id)||null,
       x:m.x,y:m.y,px:m.x,py:m.y,ox:m.x,oy:m.y,
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       angle,spin:0,age:0,life:extra.life??3,maxLife:extra.life??3,
@@ -767,7 +809,7 @@
   // This is a generic carrier law, not a skin-specific/weapon-specific branch.
   function v43SpawnChild(parent,kind,angle,extra={}){
     if(!parent||!parent.weapon)throw Error('Child projectile missing canonical parent');
-    return v43Spawn(parent.owner,parent.weapon,kind,angle,{
+    return v43Spawn(parent.emitter||parent.owner,parent.weapon,kind,angle,{
       ...extra,cosmetic:parent.cosmetic||null});
   }
   function v43ApplyBurn(target, owner, weapon, ticks, interval, damage, parent=null) {
@@ -784,9 +826,10 @@
     const c=V43.FLAMETHROWER;
     // Continuous weapon-relative emission: each particle records the live
     // muzzle pose at birth; old particles keep their original world positions.
-    const h=getHolder(p.owner),aim=h?.meta?.aimAngle;
+    const source=p.emitter||p.owner;
+    const h=getHolder(source),aim=h?.meta?.aimAngle;
     let direction=Number.isFinite(aim)?aim:p.angle;
-    let muzzle=v43Muzzle(p.owner,p.weapon,direction);
+    let muzzle=v43Muzzle(source,p.weapon,direction);
     // The Gold gun socket can sit far below the Fighter center (ROBOT).
     // With the owner-requested half-width cone, center-to-center steering
     // misses even a live target straight ahead. Align the ACTUAL gun muzzle
@@ -795,7 +838,7 @@
     if(target?.hp>0&&Number.isFinite(target.x)&&Number.isFinite(target.y)){
       for(let i=0;i<4;i++){
         direction=Math.atan2(target.y-muzzle.y,target.x-muzzle.x);
-        muzzle=v43Muzzle(p.owner,p.weapon,direction);
+        muzzle=v43Muzzle(source,p.weapon,direction);
       }
       if(h?.meta)h.meta.aimAngle=direction;
     }
@@ -1320,6 +1363,12 @@
             if(h.phase==='RETRIEVED'){
               f.data.arsenal=null;
               log('CONSUME','fighter='+f.name+' weapon='+id+' reason=boomerang-retrieved');
+          // The retrieved boomerang bypasses consume() by design; still
+          // publish the same generic holder-termination notification.
+          window.APEX_HERO_REWORK_AIL?.bus?.emit('ArsenalHolderEnded', {
+            fighter: f, fighterId: f.id, holder: h, weaponId: id,
+            reason: 'boomerang-retrieved', completion: true,
+          });
             }else consume(f,'sequence-complete');
           }
           return;
@@ -1346,7 +1395,7 @@
             kind==='boomerang'?c.flightSeconds+.16:3.2,
           radius:c.radius||8,damage:c.direct??c.peak??c.outgoing??c.shardDamage??c.tickDamage??0});
         h.shotsFired+=1; // Same holder ammo/telemetry law as normal Arsenal guns.
-        AQ.state?.resultLedger?.onShot?.(f,id);
+        AQ.state?.resultLedger?.onShot?.(actualWeaponOwner(f),id);
         poseKick(h,poseRecipe(id));
         window.avCue?.('fire',{weapon:id,family:'SPECIAL',x:f.x,y:f.y,angle:a});
         if(kind==='flame'){x.ticks=0;x.damage=c.tickDamage;x.flameOrigins=[];x.flameTarget=ctx.enemy;}
@@ -3357,6 +3406,8 @@
     drawArsenalVisuals,
     tickVisuals,
     updateHolder,
+    createWeaponEmitter,
+    syncWeaponEmitter,
     tickDetachedWeapons,
     strikeCone,
     makeCtx,

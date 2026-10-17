@@ -1552,8 +1552,8 @@ report.shells = run(`
   result.nativeCast = !!cast?.ok;
   return result;
 `);
-gate('shells-visible-13-playable-seven',
-  report.shells.visibleCount === 13 && report.shells.playableCount === 7
+gate('shells-visible-14-playable-eight',
+  report.shells.visibleCount === 14 && report.shells.playableCount === 8
     && report.shells.allVisibleResolvable && report.shells.playableMatchesAuthority
     && report.shells.lockedResolveButDoNotPlay,
   report.shells);
@@ -3226,16 +3226,16 @@ gate('rev2-bot-local-are-the-active-battle-entries',
 gate('rev2-admin-lab-requires-explicit-admin-authority',
   report.rev2ProductGraph.adminHidden && report.rev2ProductGraph.adminGate,
   { adminHidden: report.rev2ProductGraph.adminHidden, adminGate: report.rev2ProductGraph.adminGate });
-gate('rev2-roster-visible-thirteen-playable-seven',
-  report.rev2ProductGraph.visibleCount === 13 && report.rev2ProductGraph.playableCount === 7
+gate('rev2-roster-visible-fourteen-playable-eight',
+  report.rev2ProductGraph.visibleCount === 14 && report.rev2ProductGraph.playableCount === 8
     && report.rev2ProductGraph.lockedCountByRoster === 6,
   { visible: report.rev2ProductGraph.visibleCount, playable: report.rev2ProductGraph.playableCount,
     locked: report.rev2ProductGraph.lockedCountByRoster });
 gate('rev2-locked-roster-shells-cannot-be-public-played',
   report.rev2ProductGraph.lockedNonPlayable && report.roster.lockedRejected,
   { lockedNonPlayable: report.rev2ProductGraph.lockedNonPlayable, rejected: report.roster.lockedRejected });
-gate('rev2-roster-original-core-six-plus-boxe-identities',
-  report.rev2ProductGraph.coreSixIds.filter(id=>id!=='BOXE').join(',') === 'CRYSTAL,HUNTER,ICE,MAGNET,MIRROR,ROBOT' && report.rev2ProductGraph.coreSixIds.includes('BOXE')
+gate('rev2-roster-original-core-six-plus-boxe-shuri-identities',
+  report.rev2ProductGraph.coreSixIds.filter(id=>id!=='BOXE'&&id!=='SHURI').join(',') === 'CRYSTAL,HUNTER,ICE,MAGNET,MIRROR,ROBOT' && report.rev2ProductGraph.coreSixIds.includes('BOXE') && report.rev2ProductGraph.coreSixIds.includes('SHURI')
     && report.rev2ProductGraph.coreSixAliasesResolve,
   { coreSixIds: report.rev2ProductGraph.coreSixIds,
     aliasesResolve: report.rev2ProductGraph.coreSixAliasesResolve });
