@@ -1432,6 +1432,15 @@
     } else {
       nextIn = Math.max(0, Number(s.cdLeft) || 0);
     }
+    if (maxCharges <= 1) {
+      // cdLeft-authoritative skills own no charge pool (the runtime leaves
+      // s.charges undefined), so the fallback above would report a permanent
+      // charge. The Gold tile law is charges>0 -> READY: a fabricated charge
+      // makes the tile say READY through the whole cooldown while tryCast
+      // rejects. For these skills the one truthful charge count IS
+      // castability — the same nextIn the authority gates on.
+      charges = nextIn > 0 ? 0 : 1;
+    }
     const meta = heroSkillMeta(heroIdOf(fighter) || (ct.heroId || ''), slot);
     const kind = maxCharges > 1 ? 'charges' : meta.kind;
     return {
