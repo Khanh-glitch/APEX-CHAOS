@@ -55,7 +55,12 @@ const isHome=()=>{
  return !!(document.body.classList.contains('apex-gold-mounted')&&stage&&stage.classList.contains('ready')&&!document.getElementById('apex-boot-start')&&!document.getElementById('apex-wave-host')&&!document.body.classList.contains('apex-bot-wave-active')&&!document.body.classList.contains('apex-scene-transition-active')&&!window.APEX_SCENE_TRANSITION?.active?.()&&!battleEngaged&&window.gameState!=='ARSENAL'&&
  !['screen-mode','screen-fighter','screen-draw','screen-battle','flow-transition'].some(c=>stage.classList.contains(c)));
 };
-function catalogHeroes(){const registry=window.APEX_HERO_REWORK_REGISTRY?.HEROES||{};return PRODUCT_ROSTER.playableIds.map(id=>{const data=registry[id];return data?{id,name:HERO_META[id]?.name||data.displayName||data.name||id,tier:'FIGHTER',family:'PLAYABLE',registry:data}:null}).filter(Boolean)}
+// The register lists the full VISIBLE roster (product authority): playable
+// fighters plus the six locked dossiers. Locked fighters already have
+// canonical registry mechanics, so their profiles/skills derive for real;
+// only their artwork and playability are pending.
+function catalogHeroes(){const registry=window.APEX_HERO_REWORK_REGISTRY?.HEROES||{};const locked=new Set(PRODUCT_ROSTER.lockedIds);return PRODUCT_ROSTER.visibleIds.map(id=>{const data=registry[id];return data?{id,name:String(HERO_META[id]?.name||data.displayName||data.name||id).replaceAll('_',' '),tier:'FIGHTER',family:locked.has(id)?'LOCKED':'PLAYABLE',registry:data}:null}).filter(Boolean)}
+const MONOGRAM=id=>String(id).split('_').map(p=>p[0]).filter(Boolean).slice(0,2).join('');
 function catalogWeapons(){
  const c=window.APEX_ARSENAL_CONFIG;
  if(!c?.WEAPONS)return [];
@@ -114,7 +119,7 @@ function DisplayArtwork({kind,item,previewId}){
  return <div className={'fa3-artwork '+(hero?'fa3-artwork-hero':'fa3-artwork-weapon')} data-visual-ready={ready?'true':'false'} key={kind+item.id+previewId}>
   <span className="fa3-art-code" aria-hidden="true">{hero?'FIELD RECORD / '+item.id:'ARSENAL / '+item.tier}</span>
   <div className="fa3-art-orbit" aria-hidden="true"/>
-  {isEco?<GoldEcoActor active/>:!broken?<img src={image} className={(hero?'fa3-hero-img':'fa3-weapon-img')+(ready?' fa3-decoded':' fa3-pending')} alt={item.name+' '+previewId+' approved asset'} decoding="async" onLoad={decodeRealImage} onError={()=>setBadSrc(image)}/>:<div className="fa3-art-missing" role="status">VISUAL RECORD UNAVAILABLE <small>Approved image could not be decoded</small></div>}
+  {isEco?<GoldEcoActor active/>:!broken?<img src={image} className={(hero?'fa3-hero-img':'fa3-weapon-img')+(ready?' fa3-decoded':' fa3-pending')} alt={item.name+' '+previewId+' approved asset'} decoding="async" onLoad={decodeRealImage} onError={()=>setBadSrc(image)}/>:<div className="fa3-art-missing" role="status">{item.family==='LOCKED'?<>VISUAL RECORD CLASSIFIED <small>Fighter locked — dossier incomplete</small></>:<>VISUAL RECORD UNAVAILABLE <small>Approved image could not be decoded</small></>}</div>}
   {!ready&&!broken&&<div className="fa3-visual-progress" role="status"><span>◎</span><b>DECODING APPROVED ART</b><small>VISUAL AUTHORITY / {item.id}</small></div>}
   <span className="fa3-art-underlay" aria-hidden="true">{item.id.replaceAll('_',' ').slice(0,18)}</span>
   <span className="fa3-art-label">{previewId==='default'?'ORIGINAL':previewId.toUpperCase()} / VISUAL PREVIEW</span>
@@ -242,8 +247,8 @@ export default function FieldArchiveC03(){
        <div className="fa3-index-head"><b>REGISTER / {kind==='hero'?'FIGHTERS':'WEAPONS'}</b><span>{String(filtered.length).padStart(2,'0')} FILES</span></div>
        <input type="search" aria-label="Search archive" placeholder="FIND A RECORD..." value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/>
        <div className="fa3-index-list">{pageItems.map(item=><button type="button" key={item.id} className={item.id===current?.id?'chosen':''} aria-pressed={item.id===current?.id} onClick={()=>{resetFocus(item.id);setView('SKINS')}}>
-         <span className="fa3-index-img">{kind==='hero'?<img src={PICTURE(item.id,item.registry)||''} alt=""/>:<span>{item.tier}</span>}</span>
-         <span className="fa3-index-name"><b>{item.name}</b><small>{kind==='hero'?'FIGHTER':item.tier+' / '+item.family}</small></span><i aria-hidden="true">↗</i></button>)}
+        <span className="fa3-index-img">{kind==='hero'?(PICTURE(item.id,item.registry)?<img src={PICTURE(item.id,item.registry)} alt=""/>:<span>{MONOGRAM(item.id)}</span>):<span>{item.tier}</span>}</span>
+        <span className="fa3-index-name"><b>{item.name}</b><small>{kind==='hero'?(item.family==='LOCKED'?'LOCKED FILE':'FIGHTER'):item.tier+' / '+item.family}</small></span><i aria-hidden="true">↗</i></button>)}
          {filtered.length===0&&<p className="fa3-no-results">No matching records.</p>}
        </div>
        <div className="fa3-pager"><button disabled={safePage===0} onClick={()=>setPage(x=>Math.max(0,x-1))} aria-label="Previous archive page">‹</button><span>{String(safePage+1).padStart(2,'0')} / {String(pageMax+1).padStart(2,'0')}</span><button disabled={safePage>=pageMax} onClick={()=>setPage(x=>Math.min(pageMax,x+1))} aria-label="Next archive page">›</button></div>
@@ -251,7 +256,7 @@ export default function FieldArchiveC03(){
       <main className="fa3-center">
        <div className="fa3-record-top"><div><small>DOCUMENT / {String(idx+1).padStart(2,'0')} — {String(count).padStart(2,'0')}</small><h3>{current?.name||'ARCHIVE'}</h3></div><span className="fa3-record-stamp">{kind==='hero'?'FIGHTER REGISTRY':'ARSENAL RECORD'}</span></div>
        {current?<DisplayArtwork kind={kind} item={current} previewId={activePreview}/>:<div className="fa3-empty">Preparing Arsenal records…</div>}
-       <div className="fa3-record-navigation"><button type="button" onClick={()=>shift(-1)} aria-label="Previous record">‹</button><span>{current?.tier||'—'} / {kind==='hero'?'ACTIVE ROSTER':current?.family||'ARSENAL'}</span><button type="button" onClick={()=>shift(1)} aria-label="Next record">›</button></div>
+       <div className="fa3-record-navigation"><button type="button" onClick={()=>shift(-1)} aria-label="Previous record">‹</button><span>{current?.tier||'—'} / {kind==='hero'?(current?.family==='LOCKED'?'LOCKED ROSTER':'ACTIVE ROSTER'):current?.family||'ARSENAL'}</span><button type="button" onClick={()=>shift(1)} aria-label="Next record">›</button></div>
       </main>
       <section className="fa3-detail" aria-label="Appearance and record information">
        <div className="fa3-detail-tabs" role="tablist" aria-label="Record details">

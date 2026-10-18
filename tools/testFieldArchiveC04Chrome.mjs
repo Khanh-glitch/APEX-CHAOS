@@ -62,9 +62,13 @@ try{
    });
    assert.equal(skinReach.length,2,'NEWBOT must expose exactly two registered appearances');
    assert.ok(skinReach.every(s=>s.hit&&s.within),'clipped or occluded appearance: '+JSON.stringify(skinReach));
-   // C04: compact five-axis radar must be present without interfering with Equip.
-   const profileVisible=await page.evaluate(()=>!!document.querySelector('.fa4-compact .fa4-radar-frame svg'));
-   if(v.name!=='landscape'&&v.name!=='small-mobile')assert.ok(profileVisible,'compact radar unavailable');
+   // CP4b dedup law: SKINS compact profile is bars-only; the radar lives
+   // exclusively on INFO (asserted below). One stat, one form per tab.
+   // The register also lists the full visible roster (8 playable + 6 locked).
+   const compactProfile=await page.evaluate(()=>({axes:document.querySelectorAll('.fa4-compact .fa4-axis').length,radar:!!document.querySelector('.fa4-compact .fa4-radar-frame'),files:document.querySelector('.fa3-index-head span')?.textContent?.trim()}));
+   assert.equal(compactProfile.radar,false,'compact SKINS profile must not duplicate the INFO radar');
+   assert.equal(compactProfile.files,'14 FILES','register must list the full visible roster');
+   if(v.name!=='landscape'&&v.name!=='small-mobile')assert.equal(compactProfile.axes,5,'compact five-axis bars unavailable');
    assert.deepEqual(errors,[],'browser runtime/asset errors');
    await page.waitForFunction(()=>{
      const a=document.querySelector('.fa3-artwork'),im=document.querySelector('.fa3-hero-img');
@@ -73,6 +77,8 @@ try{
    await page.screenshot({path:path.join(dir,v.name+'-newbot-original.jpg'),type:'jpeg',quality:85});
    await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:nth-child(2)').click());
    await page.waitForSelector('.fa4-readout:not(.fa4-compact) .fa4-radar-frame');
+   const infoBars=await page.evaluate(()=>document.querySelectorAll('.fa4-readout:not(.fa4-compact) .fa4-axis').length);
+   assert.equal(infoBars,0,'INFO profile must not duplicate the SKINS bars');
    const skillButtons=await page.$$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-select button',els=>els.map(e=>e.textContent.trim()));
    assert.deepEqual(skillButtons,['PASSIVE','A1','A2'],'canonical skill slots missing');
    await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-select button:last-child',e=>e.click());
@@ -112,8 +118,8 @@ try{
    const words=await page.evaluate(async()=>{let text='';const root=document.querySelector('.fa4-readout:not(.fa4-compact)');for(let i=0;i<12;i++){text+=' '+root.textContent;const next=root.querySelector('[aria-label="Next weapon specification page"]');if(!next||next.disabled)break;next.click();await new Promise(resolve=>setTimeout(resolve,25));}return text});
    assert.ok(['BLAST PEAK','161','PROJECTILE SPEED','420','MAX SPEED','990','BLAST RADIUS','126','ACCELERATION','760'].every(w=>words.includes(w)),
      'RPG-7 native parameters must remain accurate: '+words);
-   const axes=await page.$$eval('.fa4-readout:not(.fa4-compact) .fa4-axis',els=>els.map(x=>x.textContent));
-   assert.equal(axes.length,5,'RPG-7 must have five comparable profile axes');
+   const radarLabel=await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-radar-frame svg',el=>el.getAttribute('aria-label')||'');
+   assert.equal(radarLabel.split(', ').filter(x=>/:\s*(\d+\/100|unavailable)/.test(x)).length,5,'RPG-7 must have five comparable profile axes');
    await page.screenshot({path:path.join(dir,v.name+'-rpg-combat-stats.jpg'),type:'jpeg',quality:85});
    await page.$eval('.fa3-detail-tabs button:first-child',e=>e.click());
    await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(e=>e.textContent.includes('VUA HỀ')).click());

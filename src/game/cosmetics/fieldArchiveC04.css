@@ -42,3 +42,7 @@
 @media(max-width:900px){.fa4-skill-portraits{gap:3px;padding:3px 5px}.fa4-skill-portrait{min-height:32px;padding:2px 4px;gap:4px}.fa4-skill-portrait img,.fa4-skill-fallback{width:26px;height:26px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:8px}.fa4-readout .fa4-skills{max-height:36%}}
 @media(max-width:900px) and (orientation:landscape) and (max-height:480px){.fa4-skill-portraits{padding:1px 3px}.fa4-skill-portrait{min-height:23px}.fa4-skill-portrait img,.fa4-skill-fallback{width:20px;height:20px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:7px}}
 @media(max-width:360px){.fa4-skill-portraits{gap:2px;padding:2px}.fa4-skill-portrait{padding:1px 3px;gap:3px;min-height:26px}.fa4-skill-portrait img,.fa4-skill-fallback{width:23px;height:23px}.fa4-skill-portrait span:not(.fa4-skill-fallback){font-size:7px}}
+/* CP4b dedup forms: each form owns the full profile width when alone. */
+.fa4-profile-bars{flex:1;justify-content:center}
+.fa4-profile-bars .fa4-axes{margin-bottom:0}
+@media(max-width:900px){.fa4-profile-radar .fa4-radar-frame{width:100%}.fa4-profile-bars .fa4-axes{width:100%;grid-template-columns:repeat(5,minmax(0,1fr))}.fa4-profile-bars .fa4-axis{flex-direction:column}.fa4-profile-bars .fa4-axis span{width:auto;text-align:center}.fa4-profile-bars .fa4-axis b{width:auto;text-align:center}}

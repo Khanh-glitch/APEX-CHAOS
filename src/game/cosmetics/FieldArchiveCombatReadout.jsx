@@ -17,9 +17,11 @@ function Radar({profile}){
   <small>{profile.status==='unclassified'?'UNCLASSIFIED MECHANICS':'TACTICAL AFFINITY'} · NOT POWER / DPS</small>
  </div>;
 }
-function Profile({profile}){return <div className="fa4-profile">
- <Radar profile={profile}/>
- <div className="fa4-axes">{profile.axes.map(a=><div className="fa4-axis" key={a.key} title={a.evidence.join(' · ')||'No mechanic evidence'}><span>{a.label}</span><div className="fa4-track"><i style={{width:(a.value||0)+'%'}}/></div><b>{a.value==null?'—':a.value}</b></div>)}</div>
+// CP4b dedup law: one stat, one form per tab. SKINS (compact) shows the
+// numeric bars; INFO shows the radar. `form` never renders both.
+function Profile({profile,form='both'}){return <div className={'fa4-profile'+(form!=='both'?' fa4-profile-'+form:'')}>
+ {form!=='bars'&&<Radar profile={profile}/>}
+ {form!=='radar'&&<div className="fa4-axes">{profile.axes.map(a=><div className="fa4-axis" key={a.key} title={a.evidence.join(' · ')||'No mechanic evidence'}><span>{a.label}</span><div className="fa4-track"><i style={{width:(a.value||0)+'%'}}/></div><b>{a.value==null?'—':a.value}</b></div>)}</div>}
  </div>}
 const GOLD_SKILL_ART=Object.freeze({
  ROBOT:'newbot', HUNTER:'hunter', CRYSTAL:'crystala', MAGNET:'magnet',
@@ -56,7 +58,7 @@ export function AbilityWeb({item,legacySkills=[],compact=false}){
      <span>{skill.slot}</span>
     </button>)}
   </div>
-  <Profile profile={heroProfile(item?.registry)}/>
+  <Profile profile={heroProfile(item?.registry)} form={compact?'bars':'radar'}/>
   {!compact&&<div className="fa4-skills">
    {current?<div className="fa4-skill-info"><b>{current.name||legacy?.[1]||current.mechanicId.replaceAll(/[._]/g,' ').toUpperCase()}</b>{explanation&&<p>{explanation}</p>}<small>{current.cooldown!=null?'COOLDOWN '+current.cooldown+'s · ':''}{current.metrics.map(x=>x.label+' '+x.value).join(' · ')||'CANONICAL MECHANIC'}</small></div>:<span>NO REGISTERED SKILL</span>}
   </div>}
@@ -85,7 +87,7 @@ export function WeaponStatConsole({item,skin,compact=false}){
  const kind=String(item?.data?.kind||item?.family||'UNKNOWN').toUpperCase();
  return <section className={'fa4-readout'+(compact?' fa4-compact':'')}>
   <div className="fa3-readout-top"><b>ARSENAL / COMBAT PROFILE</b><span>LIVE NATIVE REGISTRY · {item?.tier}</span></div>
-  <Profile profile={profile}/>
+  <Profile profile={profile} form={compact?'bars':'radar'}/>
   {!compact&&<div className="fa4-telemetry"><div className="fa4-telemetry-heading">{kind} / {item?.family||'EQUIPMENT'} <small>NATIVE SPECS · NO SIMULATED DPS</small></div>
    <div className="fa4-telemetry-list">{metrics.length?visibleMetrics.map(m=><div className="fa4-spec" key={m.title}><span>{m.title}</span><b>{m.value}<small> {m.unit}</small></b></div>):<div>NO NUMERIC NATIVE SPECIFICATION</div>}</div>
    {pages>1&&<div className="fa4-spec-pages"><button type="button" disabled={safePage===0} onClick={()=>setPage(v=>Math.max(0,v-1))} aria-label="Previous weapon specification page">‹</button><span>SPECS {safePage+1} / {pages}</span><button type="button" disabled={safePage===pages-1} onClick={()=>setPage(v=>Math.min(pages-1,v+1))} aria-label="Next weapon specification page">›</button></div>}

@@ -125,7 +125,10 @@ export function skillRecords(hero){
   // in the flat metric list printed "COOLDOWN Xs · COOLDOWN X · ...".
   const pairs=entries(s.baseConfig).filter(e=>finite(e.value)&&!/(^|\.)cooldown(Seconds)?$/i.test(e.path));
   const cd=num(s.baseConfig,['cooldown','cooldownSeconds']);
-  return {slot,name:s.displayName||title(s.mechanicId||s.id||slot).replace(/^[A-Z0-9 ]+? /,''),
+  // mechanicIds are namespaced ("black_hole.event_horizon"); the display
+  // name is the mechanic segment itself. The old first-word strip left
+  // dangling fragments ("HOLE TRANSIT") for multi-word hero prefixes.
+  return {slot,name:s.displayName||title(String(s.mechanicId||s.id||slot).split('.').pop()),
    mechanicId:s.mechanicId||s.id||slot,
    cooldown:cd,metrics:pairs.slice(0,5).map(e=>({label:title(e.path),value:e.value}))};
  }).filter(Boolean);
