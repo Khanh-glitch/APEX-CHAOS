@@ -535,7 +535,7 @@
       }, ['cooldown'], 'cooldown_step', {
         displayName: 'Fist Rocket',
         archiveProfile: {
-          description: 'Launches a glove towards the opponent for up to 5 s, reflecting off walls and fighters. Stun scales with actual contact angle and force (max 350 ms); A1 never disarms. Projectiles striking a glove force that glove to return. One real floor gun can be carried home. Press A1 again to recall. During Heat, a successful hit begins a 24-beat, 2-second two-glove flurry: each authentic jab can stun for up to 70 ms, and every sixth hit has heavier push. Press A1 to cancel unplayed strikes and recall BOTH gloves; finishing 24 beats recalls both automatically. A1 cooldown starts only after BOTH gloves are physically caught; A2 stays locked until then.',
+          description: 'Launch a rebounding glove for up to 5s and recall it anytime. In Heat, a hit starts a 24-hit two-glove flurry.',
         },
       }),
       A2: skill('boxe.block_and_hit', 'A2', 'boxe.block_and_hit', {
@@ -544,7 +544,7 @@
       }, ['cooldown'], 'cooldown_step', {
         displayName: 'Block & Hit',
         archiveProfile: {
-          description: 'Enter a 1-second counter guard. Intercepting an eligible attack launches a physical counter, disarms the opponent and stuns for 2 seconds. While Heat is active at activation, the empowered finisher also deals 10% of the target\'s remaining HP. A2 cannot activate while A1 gloves remain detached.',
+          description: 'Guard for 1s. A blocked attack triggers a disarming counter that stuns for 2s; Heat adds a finisher.',
         },
       }),
       PASSIVE: skill('boxe.heat', 'PASSIVE', 'boxe.heat', {
@@ -553,7 +553,7 @@
       }, ['damageThreshold'], 'magnitude_step', {
         displayName: 'Càng đánh càng hăng',
         archiveProfile: {
-          description: 'Each 300 realized HP damage dealt or received grants 3 seconds of Heat: skills activated during that window use their empowered version, and skill cooldown recovery runs at 2x. Empowerment is fixed at cast time, not retroactively applied to a rocket already airborne. Heat resets after 3 seconds.',
+          description: 'Every 300 damage dealt or taken grants 3s of Heat: empowered casts and double cooldown recovery.',
         },
       }),
     },
@@ -585,7 +585,7 @@
         validEquipment:'canonical-gun-or-launcher',
       },['initialScrap'],'capacity_step',{
         displayName:'Recycle Snap',
-        archiveProfile:{description:'SHURI alone recycles each completed directly held T1–T5 gun or launcher into her collector instead of discarding it; Scrap equals its tier.'},
+        archiveProfile:{description:'Recycle each finished held T1–T5 gun into Scrap equal to its tier.'},
       }),
       A1:skill('shuri.shock_recoil','A1','shuri.shock_recoil',{
         cooldown:15,bombRadius:100,bombStunSeconds:1,bombArmedLifetime:5,
@@ -594,7 +594,7 @@
         recoilSpeedPreview:1300,recoilSecondsPreview:.18,
       },['cooldown'],'cooldown_step',{
         displayName:'Shock Recoil',
-        archiveProfile:{description:'Plant an electric bomb and new build anchor at the cast point, then recoil away. An enemy shocked by the bomb is stunned, disarmed, and their held gun is recycled into Scrap like the Passive.'},
+        archiveProfile:{description:'Plant a bomb and build anchor, then recoil away. Its shock stuns, disarms, and recycles the enemy gun.'},
       }),
       A2:skill('shuri.machine','A2','shuri.machine',{
         cooldown:15,buildScrap:20,buildSeconds:5,structureHP:200,
@@ -606,7 +606,7 @@
         reloadScrapPerTier:1,
       },['cooldown'],'cooldown_step',{
         displayName:'Mechanical Genesis',
-        archiveProfile:{description:'Contextual machine command. With no machine, spend 20 Scrap to build one 200-HP machine over 5s at the last A1 anchor. While holding a gun, that gun mounts the rack when its magazine finishes and then auto-fires forever, each reload costing Scrap equal to its tier. Unarmed inside the machine operating range (200 from its circumference), enter a recovery hold that heals for free until SHURI or the machine takes damage. Otherwise, spend only the Scrap needed to repair the machine (10 HP per Scrap).'},
+        archiveProfile:{description:'Spend Scrap to build or repair her machine; it can mount a finished gun to auto-fire, or shelter SHURI to heal.'},
       }),
     },
   };

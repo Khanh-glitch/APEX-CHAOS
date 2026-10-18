@@ -67,7 +67,7 @@ try{
    // The register also lists the full visible roster (8 playable + 6 locked).
    const compactProfile=await page.evaluate(()=>({axes:document.querySelectorAll('.fa4-compact .fa4-axis').length,radar:!!document.querySelector('.fa4-compact .fa4-radar-frame'),files:document.querySelector('.fa3-index-head span')?.textContent?.trim()}));
    assert.equal(compactProfile.radar,false,'compact SKINS profile must not duplicate the INFO radar');
-   assert.equal(compactProfile.files,'14 FILES','register must list the full visible roster');
+   assert.equal(compactProfile.files,'14','register must list the full visible roster');
    if(v.name!=='landscape'&&v.name!=='small-mobile')assert.equal(compactProfile.axes,5,'compact five-axis bars unavailable');
    assert.deepEqual(errors,[],'browser runtime/asset errors');
    await page.waitForFunction(()=>{

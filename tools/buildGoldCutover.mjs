@@ -1471,14 +1471,14 @@ function buildShell(hudProductionHtml) {
       find: /  <nav class="routes e-routes" aria-label="Main routes">\n    <button class="route" type="button" aria-label="Fighter Shop">/,
       replace: (
         `  <nav class="routes e-routes" aria-label="Main routes">\n` +
-        `    <button class="route is-locked" type="button" aria-label="Fighter Shop (locked)" disabled>`
+        `    <button class="route is-locked" type="button" aria-label="Fighter Shop (locked)" aria-disabled="true" data-locked-route="fighter-shop" title="COMING SOON">`
       ),
     },
     {
       id: 'SHL-S16',
       why: 'locked routes: Upgrade',
       find: /<button class="route" type="button" aria-label="Upgrade">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Upgrade (locked)" disabled>',
+      replace: '<button class="route is-locked" type="button" aria-label="Upgrade (locked)" aria-disabled="true" data-locked-route="fighter-upgrade" title="COMING SOON">',
     },
     {
       id: 'SHL-S17',
@@ -1490,13 +1490,13 @@ function buildShell(hudProductionHtml) {
       id: 'SHL-S18',
       why: 'locked routes: Missions (quests)',
       find: /<button class="route" type="button" aria-label="Missions">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Missions (locked)" disabled>',
+      replace: '<button class="route is-locked" type="button" aria-label="Missions (locked)" aria-disabled="true" data-locked-route="missions" title="COMING SOON">',
     },
     {
       id: 'SHL-S19',
       why: 'locked routes: Account',
       find: /<button class="route" type="button" aria-label="Account">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Account (locked)" disabled>',
+      replace: '<button class="route is-locked" type="button" aria-label="Account (locked)" aria-disabled="true" data-locked-route="account-profile" title="COMING SOON">',
     },
     {
       id: 'SHL-S19a',
@@ -1540,7 +1540,7 @@ function buildShell(hudProductionHtml) {
     },
     {
       id: 'SHL-S20',
-      why: 'locked route styling (dimmed, non-interactive)',
+      why: 'locked route styling (dimmed; interactive only for feedback)',
       find: /\.route:not\(:last-child\)::after\{content:/,
       replace: '.route.is-locked{color:rgba(235,228,218,.34);cursor:not-allowed;filter:saturate(.4)}.route.is-locked svg{opacity:.5}.route.is-locked:hover,.route.is-locked:focus-visible{color:rgba(235,228,218,.34);transform:none}.route.is-locked:hover svg,.route.is-locked:focus-visible svg{color:inherit;transform:none}\n.route:not(:last-child)::after{',
     },
@@ -1591,6 +1591,14 @@ function buildShell(hudProductionHtml) {
       why: 'initial match-ready banner uses player language instead of pipeline terminology',
       find: '<div class="handoffBanner" id="handoffBanner">BATTLE HANDOFF READY</div>',
       replace: '<div class="handoffBanner" id="handoffBanner">BATTLE READY</div>',
+    },
+    // ── S61 (CP6 content): the active route is the product Archive. The
+    // donor's Dictionary word survives only as the internal route seam.
+    {
+      id: 'SHL-S61',
+      why: 'visible Archive route uses the product Archive name instead of Dictionary',
+      find: '<span>Dictionary</span>',
+      replace: '<span>Archive</span>',
     },
     // ── S21: the Lucky Draw donor runs in its own document (the iframe
     // boundary is canonical for the draw). Hand it the REAL production economy
@@ -2532,7 +2540,7 @@ function main() {
   // Keep this in the generator, NOT as an output-only shell edit, so all
   // release/GOLD hash gates regenerate the exact authorized UI bytes.
   const dictionaryBefore='<button class="route is-locked" type="button" aria-label="Dictionary (locked)" disabled>';
-  const dictionaryAfter='<button class="route" id="apexDictionaryOpen" type="button" aria-label="Open Field Archive Dictionary">';
+  const dictionaryAfter='<button class="route" id="apexDictionaryOpen" type="button" aria-label="Open Field Archive">';
   const rawArchiveShell=outputs.get('shell.html').toString('utf8');
   if(rawArchiveShell.split(dictionaryBefore).length!==2)throw new Error('C03 Dictionary route source anchor drift');
   outputs.set('shell.html',Buffer.from(rawArchiveShell.replace(dictionaryBefore,dictionaryAfter),'utf8'));

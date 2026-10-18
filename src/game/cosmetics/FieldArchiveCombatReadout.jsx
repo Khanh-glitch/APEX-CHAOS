@@ -47,8 +47,9 @@ export function AbilityWeb({item,legacySkills=[],compact=false}){
  const current=skills.find(x=>x.slot===selected)||skills[0];
  const legacy=legacySkills.find(x=>x[0]===current?.slot);
  const explanation=item?.registry?.skills?.[current?.slot]?.archiveProfile?.description||legacy?.[2]||'';
+ const specLine=current?[current.cooldown!=null?'COOLDOWN '+current.cooldown+'s':null,...current.metrics.map(x=>x.label+' '+x.value)].filter(Boolean).join(' · '):'';
  return <section className={'fa4-readout'+(compact?' fa4-compact':'')}>
-  <div className="fa3-readout-top"><b>FIGHTER / COMBAT PROFILE</b><span>LV1 · ROLE PROFILE</span></div>
+  <div className="fa3-readout-top"><b>COMBAT PROFILE</b><span>LV1 · ROLE PROFILE</span></div>
   <div className="fa4-skill-portraits fa4-skill-select" role="group" aria-label="Three registered fighter abilities">
    {skills.map(skill=><button type="button" key={skill.slot}
       className="fa4-skill-portrait" aria-label={skill.slot+' · '+skill.name}
@@ -60,7 +61,7 @@ export function AbilityWeb({item,legacySkills=[],compact=false}){
   </div>
   <Profile profile={heroProfile(item?.registry)} form={compact?'bars':'radar'}/>
   {!compact&&<div className="fa4-skills">
-   {current?<div className="fa4-skill-info"><b>{current.name||legacy?.[1]||current.mechanicId.replaceAll(/[._]/g,' ').toUpperCase()}</b>{explanation&&<p>{explanation}</p>}<small>{current.cooldown!=null?'COOLDOWN '+current.cooldown+'s · ':''}{current.metrics.map(x=>x.label+' '+x.value).join(' · ')||'CANONICAL MECHANIC'}</small></div>:<span>NO REGISTERED SKILL</span>}
+   {current?<div className="fa4-skill-info"><b>{current.name||legacy?.[1]||current.mechanicId.replaceAll(/[._]/g,' ').toUpperCase()}</b>{explanation&&<p>{explanation}</p>}<small>{specLine||(current.slot==='PASSIVE'?'ALWAYS ACTIVE':'REGISTERED MECHANIC')}</small></div>:<span>NO REGISTERED SKILL</span>}
   </div>}
  </section>
 }
@@ -86,10 +87,10 @@ export function WeaponStatConsole({item,skin,compact=false}){
  const safePage=Math.min(page,pages-1),visibleMetrics=metrics.slice(safePage*perPage,(safePage+1)*perPage);
  const kind=String(item?.data?.kind||item?.family||'UNKNOWN').toUpperCase();
  return <section className={'fa4-readout'+(compact?' fa4-compact':'')}>
-  <div className="fa3-readout-top"><b>ARSENAL / COMBAT PROFILE</b><span>ARSENAL RECORD · {item?.tier}</span></div>
+  <div className="fa3-readout-top"><b>COMBAT PROFILE</b><span>ARSENAL RECORD · {item?.tier}</span></div>
   <Profile profile={profile} form={compact?'bars':'radar'}/>
-  {!compact&&<div className="fa4-telemetry"><div className="fa4-telemetry-heading">{kind} / {item?.family||'EQUIPMENT'} <small>NATIVE SPECS · NO SIMULATED DPS</small></div>
-   <div className="fa4-telemetry-list">{metrics.length?visibleMetrics.map(m=><div className="fa4-spec" key={m.title}><span>{m.title}</span><b>{m.value}<small> {m.unit}</small></b></div>):<div>NO NUMERIC NATIVE SPECIFICATION</div>}</div>
+  {!compact&&<div className="fa4-telemetry"><div className="fa4-telemetry-heading">{kind} / {item?.family||'EQUIPMENT'} <small>SPECS</small></div>
+   <div className="fa4-telemetry-list">{metrics.length?visibleMetrics.map(m=><div className="fa4-spec" key={m.title}><span>{m.title}</span><b>{m.value}<small> {m.unit}</small></b></div>):<div>NO SPECS</div>}</div>
    {pages>1&&<div className="fa4-spec-pages"><button type="button" disabled={safePage===0} onClick={()=>setPage(v=>Math.max(0,v-1))} aria-label="Previous weapon specification page">‹</button><span>SPECS {safePage+1} / {pages}</span><button type="button" disabled={safePage===pages-1} onClick={()=>setPage(v=>Math.min(pages-1,v+1))} aria-label="Next weapon specification page">›</button></div>}
   </div>}
  </section>;

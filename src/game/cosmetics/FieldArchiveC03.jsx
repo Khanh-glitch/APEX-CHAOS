@@ -117,7 +117,7 @@ function DisplayArtwork({kind,item,previewId}){
   },()=>{if(img.isConnected&&img.getAttribute('src')===src)setBadSrc(src)});
  }
  return <div className={'fa3-artwork '+(hero?'fa3-artwork-hero':'fa3-artwork-weapon')} data-visual-ready={ready?'true':'false'} key={kind+item.id+previewId}>
-  <span className="fa3-art-code" aria-hidden="true">{hero?'FIELD RECORD / '+item.id:'ARSENAL / '+item.tier}</span>
+  <span className="fa3-art-code" aria-hidden="true">{hero?(item.family==='LOCKED'?'LOCKED':'PLAYABLE'):'ARSENAL / '+item.tier}</span>
   <div className="fa3-art-orbit" aria-hidden="true"/>
   {isEco?<GoldEcoActor active/>:!broken?<img src={image} className={(hero?'fa3-hero-img':'fa3-weapon-img')+(ready?' fa3-decoded':' fa3-pending')} alt={item.name+' '+previewId+' approved asset'} decoding="async" onLoad={decodeRealImage} onError={()=>setBadSrc(image)}/>:<div className="fa3-art-missing" role="status">{item.family==='LOCKED'?<>VISUAL RECORD CLASSIFIED <small>Fighter locked — dossier incomplete</small></>:<>VISUAL RECORD UNAVAILABLE <small>Approved image could not be decoded</small></>}</div>}
   {!ready&&!broken&&<div className="fa3-visual-progress" role="status"><span>◎</span><b>DECODING APPROVED ART</b><small>VISUAL AUTHORITY / {item.id}</small></div>}
@@ -223,7 +223,7 @@ export default function FieldArchiveC03(){
  function equip(){if(!current||!chosen||activePreview===worn?.id)return;const result=cosmetics.equip(side,kind,current.id,chosen.id);if(result.ok)setWarning(result.persisted===false)}
  return <>
   {home&&!open&&<button type="button" className="apex-skin-entry" onClick={()=>void launch()} disabled={loading} title="Open Field Archive: fighters, weapons and skins"><span className="apex-skin-entry-mark" aria-hidden="true">✦</span><span>{loading?'LOADING':'ARCHIVE'}</span><span aria-hidden="true">↗</span></button>}
-  {pick&&!open&&pickHost&&createPortal(<button type="button" className="fa3-pick-equip-entry" aria-label="Open appearance for selected fighter and player" onClick={()=>void launch('pick')} disabled={loading}><span>✦</span> {loading?'PREPARING':'APPEARANCE'} <b>↗</b></button>,pickHost)}
+  {pick&&!open&&pickHost&&createPortal(<button type="button" className="fa3-pick-equip-entry" aria-label="Open skins for selected fighter and player" onClick={()=>void launch('pick')} disabled={loading}><span>✦</span> {loading?'PREPARING':'SKINS'} <b>↗</b></button>,pickHost)}
   {home&&!open&&error&&<div className="apex-skin-error" role="alert">Archive unavailable: {error}<button type="button" onClick={()=>setError('')}>×</button></div>}
   {open&&<div className="fa3-overlay apex-cosmetics-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}} onKeyDownCapture={e=>{
     e.stopPropagation();
@@ -237,34 +237,34 @@ export default function FieldArchiveC03(){
    }} onKeyUpCapture={e=>e.stopPropagation()}>
    <section className="fa3-shell" role="dialog" aria-modal="true" aria-labelledby="fa3-title">
     <div className="fa3-binding" aria-hidden="true"><i/><i/><i/></div>
-    <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS / RESTRICTED FIELD RECORD</small><h2 id="fa3-title"><span>THE FIELD </span><em>ARCHIVE</em></h2></div>
+    <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS</small><h2 id="fa3-title"><span>THE FIELD </span><em>ARCHIVE</em></h2></div>
      <div className="fa3-primary" role="tablist" aria-label="Archive category"><button role="tab" aria-selected={kind==='hero'} className={kind==='hero'?'on':''} onClick={()=>changeKind('hero')}>FIGHTERS</button><button role="tab" aria-selected={kind==='weapon'} className={kind==='weapon'?'on':''} onClick={()=>changeKind('weapon')}>WEAPONS</button></div>
      <div className="fa3-players" role="group" aria-label="Choose loadout"><button aria-pressed={side==='p1'} className={side==='p1'?'on':''} onClick={()=>changeSide('p1')}>P1</button><button aria-pressed={side==='p2'} className={side==='p2'?'on':''} onClick={()=>changeSide('p2')}>P2 / BOT</button></div>
      <button className="fa3-close apex-cosmetics-close" type="button" onClick={()=>setOpen(false)} aria-label="Close archive">✕</button>
     </header>
     <div className="fa3-body">
       <aside className={'fa3-index '+(view==='INDEX'?'fa3-index-active':'')} aria-label="Fighter and weapon catalogue">
-       <div className="fa3-index-head"><b>REGISTER / {kind==='hero'?'FIGHTERS':'WEAPONS'}</b><span>{String(filtered.length).padStart(2,'0')} FILES</span></div>
-       <input type="search" aria-label="Search archive" placeholder="FIND A RECORD..." value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/>
+       <div className="fa3-index-head"><b>{kind==='hero'?'FIGHTERS':'WEAPONS'}</b><span>{String(filtered.length).padStart(2,'0')}</span></div>
+       <input type="search" aria-label="Search archive" placeholder="SEARCH..." value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/>
        <div className="fa3-index-list">{pageItems.map(item=><button type="button" key={item.id} className={item.id===current?.id?'chosen':''} aria-pressed={item.id===current?.id} onClick={()=>{resetFocus(item.id);setView('SKINS')}}>
         <span className="fa3-index-img">{kind==='hero'?(PICTURE(item.id,item.registry)?<img src={PICTURE(item.id,item.registry)} alt=""/>:<span>{MONOGRAM(item.id)}</span>):<span>{item.tier}</span>}</span>
-        <span className="fa3-index-name"><b>{item.name}</b><small>{kind==='hero'?(item.family==='LOCKED'?'LOCKED FILE':'FIGHTER'):item.tier+' / '+item.family}</small></span><i aria-hidden="true">↗</i></button>)}
+        <span className="fa3-index-name"><b>{item.name}</b><small>{kind==='hero'?(item.family==='LOCKED'?'LOCKED':'PLAYABLE'):item.tier+' / '+item.family}</small></span><i aria-hidden="true">↗</i></button>)}
          {filtered.length===0&&<p className="fa3-no-results">No matching records.</p>}
        </div>
        <div className="fa3-pager"><button disabled={safePage===0} onClick={()=>setPage(x=>Math.max(0,x-1))} aria-label="Previous archive page">‹</button><span>{String(safePage+1).padStart(2,'0')} / {String(pageMax+1).padStart(2,'0')}</span><button disabled={safePage>=pageMax} onClick={()=>setPage(x=>Math.min(pageMax,x+1))} aria-label="Next archive page">›</button></div>
       </aside>
       <main className="fa3-center">
-       <div className="fa3-record-top"><div><small>DOCUMENT / {String(idx+1).padStart(2,'0')} — {String(count).padStart(2,'0')}</small><h3>{current?.name||'ARCHIVE'}</h3></div><span className="fa3-record-stamp">{kind==='hero'?'FIGHTER REGISTRY':'ARSENAL RECORD'}</span></div>
+       <div className="fa3-record-top"><div><small>{String(idx+1).padStart(2,'0')} / {String(count).padStart(2,'0')}</small><h3>{current?.name||'ARCHIVE'}</h3></div><span className="fa3-record-stamp">{kind==='hero'?'FIGHTER':'WEAPON'}</span></div>
        {current?<DisplayArtwork kind={kind} item={current} previewId={activePreview}/>:<div className="fa3-empty">Preparing Arsenal records…</div>}
-       <div className="fa3-record-navigation"><button type="button" onClick={()=>shift(-1)} aria-label="Previous record">‹</button><span>{current?.tier||'—'} / {kind==='hero'?(current?.family==='LOCKED'?'LOCKED ROSTER':'ACTIVE ROSTER'):current?.family||'ARSENAL'}</span><button type="button" onClick={()=>shift(1)} aria-label="Next record">›</button></div>
+       <div className="fa3-record-navigation"><button type="button" onClick={()=>shift(-1)} aria-label="Previous record">‹</button><span>{kind==='hero'?(current?.family==='LOCKED'?'LOCKED ROSTER':'ACTIVE ROSTER'):((current?.tier||'—')+' / '+(current?.family||'ARSENAL'))}</span><button type="button" onClick={()=>shift(1)} aria-label="Next record">›</button></div>
       </main>
       <section className="fa3-detail" aria-label="Appearance and record information">
        <div className="fa3-detail-tabs" role="tablist" aria-label="Record details">
         {['SKINS','INFO','INDEX'].map(v=><button key={v} role="tab" aria-selected={view===v} className={view===v?'on':''} onClick={()=>setView(v)}>{v}</button>)}
        </div>
-       <div className="fa3-detail-heading"><span>{view==='SKINS'?'APPEARANCES / SELECT & EQUIP':view==='INFO'?'FIELD NOTES / GAMEPLAY':'SELECT RECORD'}</span><i aria-hidden="true">RECORD NO. {String(idx+1).padStart(3,'0')}</i></div>
+       <div className="fa3-detail-heading"><span>{view==='SKINS'?'SKINS / SELECT & EQUIP':view==='INFO'?'GAMEPLAY':'INDEX'}</span><i aria-hidden="true">{String(idx+1).padStart(3,'0')}</i></div>
        {view==='SKINS'&&<div className="fa3-appear">
-        <p className="fa3-description">{kind==='hero'?(current?.registry?.archiveProfile?.intro||HERO_META[current?.id]?.intro||'Read the registered combat kit and approved cosmetic appearances.'):'Skin applies whenever this weapon type is obtained during a match.'}</p>
+        <p className="fa3-description">{kind==='hero'?(current?.registry?.archiveProfile?.intro||HERO_META[current?.id]?.intro||'Fighter locked — dossier incomplete.'):'Tier marks drop rarity: T1 29% · T2 29% · T3 23% · T4 12% · T5 5% · T6 2%.'}</p>
         <div className="fa3-skin-list">{visibleSkins.map(s=><button type="button" key={s.id} className={'fa3-skin'+(s.id===activePreview?' preview':'')+(s.id===worn?.id?' equipped':'')} onClick={()=>setPreview(s.id)} aria-pressed={s.id===activePreview}>
           <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:<img src={kind==='hero'?(s.preview||PICTURE(current.id,current.registry)):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||''} alt=""/>}</span>
           <span className="fa3-skin-name"><b>{s.label}</b><small>{s.id==='default'?'ORIGINAL PRESENTATION':s.detail||'APPROVED COSMETIC'}</small></span>
@@ -278,11 +278,11 @@ export default function FieldArchiveC03(){
         {warning&&<small role="alert" className="fa3-alert">Selection active for this session; browser storage is disabled.</small>}
        </div>}
        {view==='INFO'&&current&&(kind==='hero'?<HeroFacts item={current}/>:<WeaponFacts item={current} skin={chosen}/>)}
-       {view==='INDEX'&&<div className="fa3-index-on-panel"><p>Select a record from the indexed folio.</p><button onClick={()=>setView('SKINS')}>RETURN TO APPEARANCES ↗</button></div>}
+       {view==='INDEX'&&<div className="fa3-index-on-panel"><p>Select a fighter or weapon.</p><button onClick={()=>setView('SKINS')}>RETURN TO SKINS ↗</button></div>}
        <div className="fa3-bottom-note">APPEARANCE ONLY — NO COMBAT EFFECT</div>
       </section>
     </div>
-    <footer className="fa3-footer"><span>FIELD ARCHIVE · VOL. 01 / FIGHTERS & ARSENAL</span><span>ESC — CLOSE · ARROWS — NEXT RECORD</span><span className="fa3-safety">EQUIP APPLIES INSTANTLY</span></footer>
+    <footer className="fa3-footer"><span>FIGHTERS & WEAPONS</span><span>ESC — CLOSE · ARROWS — NEXT RECORD</span><span className="fa3-safety">EQUIP APPLIES INSTANTLY</span></footer>
    </section>
   </div>}
  </>;

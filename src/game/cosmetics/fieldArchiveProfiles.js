@@ -10,7 +10,7 @@ export const PROFILE_AXES=Object.freeze({
   {key:'control',label:'CONTROL'},
   {key:'mobility',label:'MOBILITY'},
   {key:'defense',label:'DEFENSE'},
-  {key:'field',label:'FIELD'}]),
+  {key:'field',label:'FIELD CONTROL'}]),
  weapon:Object.freeze([
   {key:'damage',label:'DAMAGE'},
   {key:'control',label:'CONTROL'},
@@ -116,20 +116,97 @@ export function weaponProfile(weapon){
  });
  return {kind:'weapon',status:'derived',axes,method:'native-spec-v1'};
 }
+const SKILL_SPECS=Object.freeze({
+ 'robot.damage_milestones':[['BURST WINDOW','burstWindowSec','s'],['FIRST MILESTONE','firstThreshold','dmg'],['NEXT EVERY','thresholdStep','dmg']],
+ 'robot.weapon_dash':[['DASH SPEED','dashSpeed','us'],['MAX DASH','maxDashTime','s'],['ARRIVAL','arriveRadius','u']],
+ 'robot.virtual_armor':[['DURATION','duration','s'],['DAMAGE TAKEN','incomingMult','x']],
+ 'hunter.weak_law':[['WEAK','weakDuration','s'],['TARGET TAKES','hunterIncomingMult','x'],['TARGET DEALS','outgoingMult','x']],
+ 'hunter.snare':[['CHARGES','maxCharges','plain'],['TRAP LIFE','trapLifetime','s'],['ROOT','rootDuration','s']],
+ 'hunter.pounce_weak':[['WINDUP','windup','s'],['STUN','stunDuration','s'],['WEAK','weakDuration','s']],
+ 'crystal.refraction':[['REFLECTED DAMAGE','reflectedDamagePct','pct'],['REFLECTIONS / PROJECTILE','maxReflectionsPerProjectile','plain']],
+ 'crystal.context_construct':[['WALL','wall.hp','hp'],['PRISON FACETS','prison.facets','plain'],['SOLID LIFE',['prison.solidLifetime','wall.solidLifetime'],'rangeS']],
+ 'crystal.awakening':[['ACTIVE','active','s'],['SHARDS','shards','plain'],['SCAN','scanRadius','u']],
+ 'magnet.acceleration':[['OWN PROJECTILE SPEED','ownedProjectileVelocityBonus','signedPct']],
+ 'magnet.acquisition':[['FIELD','gameplayDuration','s'],['PULL RANGE','gunDistanceSpan','u'],['GUN SPEED CAP','gunSpeedCap','us']],
+ 'magnet.repulsion_field':[['DURATION','duration','s'],['RADIUS','radius','u'],['BODY PUSH CAP','bodyRadialSpeedCap','us']],
+ 'frost.deep_frost':[['FREEZE CHANCE',['baseProcPct','bonusProcPct'],'sumPct'],['FREEZE','freezeDuration','s'],['RE-FREEZE LOCK','postThawLock','s']],
+ 'frost.breath':[['RANGE','length','u'],['WIDTH','width','u'],['ICE FLOOR','floorLifetime','s']],
+ 'frost.hunt':[['ACTIVE','activeWindow','s'],['TRAIL LIFE','segmentLifetime','s'],['COLD SHOCK','coldShockMult','x']],
+ 'mirror.shattered_mirrors':[['SHARD DAMAGE','damagePerShard','dmg'],['MAX SHARDS / HIT','maxShardsPerEvent','plain'],['SHARD LIFE','freeShardLifetime','s']],
+ 'mirror.arsenal':[['COPY LIFE','copyLifetime','s'],['READY IN','canonicalOwnSeconds','s']],
+ 'mirror.exchange':[['SWAP AT','canonicalSnapSeconds','s'],['SEQUENCE','presentationBusySeconds','s']],
+ 'boxe.heat':[['HEAT AT','damageThreshold','dmg'],['HEAT','enhancedSeconds','s'],['COOLDOWN RECOVERY','cooldownRecoveryMultiplier','x']],
+ 'boxe.fist_rocket':[['FLIGHT UP TO','outboundSeconds','s'],['IMPACT STUN','impactStunSeconds','s'],['FLURRY HITS','flurryPunches','plain']],
+ 'boxe.block_and_hit':[['GUARD','guardSeconds','s'],['COUNTER STUN','counterStunSeconds','s'],['FINISHER','finisherFractionRemainingHP','remainingHp']],
+ 'shuri.recycle':[['STARTING','initialScrap','scrap'],['RECYCLES',['minimumTier','maximumTier'],'tierRange']],
+ 'shuri.shock_recoil':[['BOMB RADIUS','bombRadius','u'],['STUN','bombStunSeconds','s'],['ARMED','bombArmedLifetime','s']],
+ 'shuri.machine':[['MACHINE','structureHP','hp'],['BUILD','buildSeconds','s'],['REPAIR','repairPerScrap','hpPerScrap']],
+ 'black_hole.event_horizon':[['RADIUS GROWTH','radiusPerHp','uPerHp'],['MAX GROWTH','maxGrowth','u']],
+ 'black_hole.transit':[['ACTIVE','activeDuration','s'],['CAPACITY','capacity','plain'],['EXIT DISTANCE','exitTargetDistance','u']],
+ 'black_hole.damage_singularity':[['STORE CAP','storedDamageCap','dmg'],['RETURN','returnPct','pct'],['VULNERABLE','vulnerabilityIncomingMult','x']],
+ 'math.multiply_divide':[['GATE','gateDuration','s'],['MULTIPLY','xFactor','x'],['DIVIDE','halvedDamagePct','x']],
+ 'math.parabola_graph':[['MAX LIFE','maxLifetime','s']],
+ 'math.damage_equation':[['ARMOR','armorDuration','s']],
+ 'rubber.afterbounce':[['WINDOW','duration','s'],['PUSH','pushImpulse','u'],['SELF SPEED','selfSpeedLossPct','lossPct']],
+ 'rubber.elastic_state':[['ACTIVE','activeWindow','s'],['ENERGY CAP','energyCap','plain'],['MAX SPEED','maxSpeedBonusPct','signedPct']],
+ 'rubber.compression':[['STORE','duration','s'],['CAPACITY','capacity','plain'],['RELEASE','releasedDamagePct','pct']],
+ 'time.loop':[['RECORD','recordWindow','s'],['LOOPS','loops','plain'],['LOOP','loopDuration','s']],
+ 'time.rewind':[['SNAPSHOT DELAY','snapshotDelay','s']],
+ 'slime.emergency_mitosis':[['TRIGGERS AT LOST HP','triggerAtLostPct','pct'],['MIN SPLIT','minSplitShareHp','hp']],
+ 'slime.mitosis':[['SPLIT','splitDuration','s'],['BODIES','splitInto','plain'],['DIVERGENCE','divergenceTarget','u']],
+ 'slime.damage_shedding':[['CHILD EVERY','damagePerChild','dmg'],['MAX CHILDREN','maxChildren','plain'],['CHILD','childHp','hp']],
+ 'sniper.distance_crit':[['CRIT CHANCE CAP','critChanceCap','signedPct']],
+ 'sniper.farthest_corner':[['CORNER INSET','cornerInset','u'],['AIM LOST','aimLostDuration','s']],
+ 'sniper.nest':[['MAX NEST','maxDuration','s'],['SPREAD','spreadMultiplier','x']]
+});
+function specPathValue(config,path){
+ if(Array.isArray(path))return path.map(p=>specPathValue(config,p));
+ return String(path).split('.').reduce((value,key)=>value?.[key],config);
+}
+const specNumber=value=>String(Math.round(Number(value)*100)/100);
+function formatSkillSpec(raw,format){
+ if(Array.isArray(raw)){
+  if(format==='rangeS')return raw.slice().sort((a,b)=>a-b).map(specNumber).join('–')+'s';
+  if(format==='sumPct')return specNumber(raw.reduce((sum,v)=>sum+v,0)*100)+'%';
+  if(format==='tierRange')return 'T'+raw[0]+'–T'+raw[1];
+  return raw.map(specNumber).join(' / ');
+ }
+ switch(format){
+  case 's':return specNumber(raw)+'s';
+  case 'pct':return specNumber(raw*100)+'%';
+  case 'signedPct':return (raw>=0?'+':'')+specNumber(raw*100)+'%';
+  case 'lossPct':return '-'+specNumber(raw*100)+'%';
+  case 'remainingHp':return specNumber(raw*100)+'% REMAINING HP';
+  case 'x':return '×'+specNumber(raw);
+  case 'hp':return specNumber(raw)+' HP';
+  case 'dmg':return specNumber(raw)+' DMG';
+  case 'u':return specNumber(raw)+'u';
+  case 'us':return specNumber(raw)+'u/s';
+  case 'uPerHp':return specNumber(raw)+'u/HP';
+  case 'scrap':return specNumber(raw)+' SCRAP';
+  case 'hpPerScrap':return specNumber(raw)+' HP/SCRAP';
+  default:return specNumber(raw);
+ }
+}
+function curatedSkillMetrics(skill){
+ const definitions=SKILL_SPECS[skill?.mechanicId]||[];
+ return definitions.flatMap(([label,path,format])=>{
+  const raw=specPathValue(skill?.baseConfig,path);
+  const values=Array.isArray(raw)?raw:[raw];
+  return values.every(finite)?[{label,value:formatSkillSpec(raw,format)}]:[];
+ });
+}
 export function skillRecords(hero){
  if(!hero?.skills)return [];
  return ['PASSIVE','A1','A2'].map(slot=>{
   const s=hero.skills[slot];
   if(!s)return null;
-  // Cooldown is reported through the dedicated `cooldown` field; keeping it
-  // in the flat metric list printed "COOLDOWN Xs · COOLDOWN X · ...".
-  const pairs=entries(s.baseConfig).filter(e=>finite(e.value)&&!/(^|\.)cooldown(Seconds)?$/i.test(e.path));
   const cd=num(s.baseConfig,['cooldown','cooldownSeconds']);
   // mechanicIds are namespaced ("black_hole.event_horizon"); the display
   // name is the mechanic segment itself. The old first-word strip left
   // dangling fragments ("HOLE TRANSIT") for multi-word hero prefixes.
   return {slot,name:s.displayName||title(String(s.mechanicId||s.id||slot).split('.').pop()),
    mechanicId:s.mechanicId||s.id||slot,
-   cooldown:cd,metrics:pairs.slice(0,5).map(e=>({label:title(e.path),value:e.value}))};
+   cooldown:cd,metrics:curatedSkillMetrics(s)};
  }).filter(Boolean);
 }

@@ -420,11 +420,11 @@ export default function App() {
       if(waveOverlayRef.current)return true;
       const cover=document.createElement('section');
       cover.id='apex-wave-host';
-      cover.setAttribute('aria-label','BOT WAVE · BOXE');
+      cover.setAttribute('aria-label','BOT WAVE — BOXE / ARSENAL SURVIVAL');
       Object.assign(cover.style,{position:'fixed',inset:'0',zIndex:'900',background:'#090c11',
         opacity:'0',pointerEvents:'none',isolation:'isolate'});
       const frame=document.createElement('iframe');
-      frame.id='wave';frame.title='APEX CHAOS · BOXE BOT WAVE';
+      frame.id='wave';frame.title='APEX CHAOS · BOT WAVE — BOXE / ARSENAL SURVIVAL';
       frame.allow='autoplay; fullscreen';
       Object.assign(frame.style,{position:'absolute',inset:'0',width:'100%',height:'100%',border:'0'});
       const close=document.createElement('button');
@@ -435,7 +435,7 @@ export default function App() {
         padding:'6px 13px',border:'1px solid #c68c58',borderRadius:'4px',
         font:'850 11px system-ui',background:'#0b1019ee',color:'#ffe1af',cursor:'pointer'});
       const status=document.createElement('div');
-      status.id='status';status.textContent='PREPARING · THE LAST ROUND';
+      status.id='status';status.textContent='PREPARING · BOT WAVE';
       Object.assign(status.style,{position:'absolute',inset:'0',display:'grid',placeItems:'center',
         background:'#090c11',color:'#ffca8a',font:'800 12px system-ui',letterSpacing:'.14em'});
       cover.append(frame,status,close);
@@ -552,6 +552,48 @@ export default function App() {
     }
     return false;
   };
+
+  useEffect(() => {
+    let timer = 0;
+    const showLockedRouteFeedback = () => {
+      let toast = document.getElementById('apex-locked-route-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'apex-locked-route-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        Object.assign(toast.style, {
+          position: 'fixed', left: '50%', bottom: 'max(18px, env(safe-area-inset-bottom))',
+          transform: 'translate(-50%, 16px)', zIndex: '1200', padding: '10px 18px',
+          border: '1px solid #c68c58', background: '#0b1019ee', color: '#ffe1af',
+          font: '850 11px Oswald, system-ui, sans-serif', letterSpacing: '.16em',
+          opacity: '0', pointerEvents: 'none', transition: 'opacity .18s ease, transform .18s ease'
+        });
+        document.body.appendChild(toast);
+      }
+      toast.textContent = 'COMING SOON';
+      toast.style.opacity = '1';
+      toast.style.transform = 'translate(-50%, 0)';
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, 16px)';
+      }, 1800);
+    };
+    const onLockedRouteClick = (event) => {
+      const route = event.target?.closest?.('[data-locked-route]');
+      if (!route) return;
+      event.preventDefault();
+      event.stopPropagation();
+      showLockedRouteFeedback();
+    };
+    document.addEventListener('click', onLockedRouteClick, true);
+    return () => {
+      document.removeEventListener('click', onLockedRouteClick, true);
+      window.clearTimeout(timer);
+      document.getElementById('apex-locked-route-toast')?.remove();
+    };
+  }, []);
 
   // ── Gold product shell ──────────────────────────────────────────────────
   // The Gold pack (docs/gold-ui/current, owner authority) is the visible
