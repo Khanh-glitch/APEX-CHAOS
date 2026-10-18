@@ -262,7 +262,7 @@ function build({engine,config,campaign,cue,rand}){
  function liveHolder(e){return combatants.has(e)?native.api?.getHolder(combatants.get(e)):null;}
  return Object.freeze({weapons:catalog,index:campaign.indexNative(config),
   fire,update,draw,drawEquipped,ensureAudio,protect,movementSlow,reset,activate,connect,liveHolder,
-  snapshot:()=>({projectiles:root.projectiles.length,backend:'FREE_BATTLE_NATIVE',native41:Object.keys(native.weapons||{}).length}),
+  snapshot:()=>({projectiles:root.projectiles.length,backend:'FREE_BATTLE_NATIVE',native41:records.filter(r=>native.weapons?.[r.id]).length}),
   getNative:()=>native});
 }
 root.APEX_BOT_WAVE_NATIVE_BRIDGE=Object.freeze({createArmory:build});

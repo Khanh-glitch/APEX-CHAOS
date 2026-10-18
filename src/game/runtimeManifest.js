@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261018-skillfix-r18';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261018-botwave-r19';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -46,17 +46,17 @@ export const GOLD_QUEST_SHELL_RUNTIMES = Object.freeze([
 
 // BOT WAVE special Home route: separate intent-loaded scripts only.
 export const BOT_WAVE_SPECIAL_RUNTIMES = Object.freeze([
-  ['/game/bot-wave/waveCampaign.js?v=wave41-cp3', 'apexBotWaveCampaign'],
-  ['/game/bot-wave/nativeArsenalGoldBridge.js?v=reject-r3', 'apexBotWaveNativeBridge'],
-  ['/game/arsenal/arsenalCWeaponSet.generated.js?v=reject-r3', 'apexArsenalCSet'],
-  ['/game/arsenal/arsenalPresentationRuntime.js?v=reject-r3', 'apexArsenalPresentationRuntime'],
-  ['/game/arsenal/arsenalWeaponRuntime.js?v=reject-r3', 'apexArsenalWeaponRuntime'],
+  ['/game/bot-wave/waveCampaign.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveCampaign'],
+  ['/game/bot-wave/nativeArsenalGoldBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveNativeBridge'],
+  ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
+  ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalPresentationRuntime'],
+  ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalWeaponRuntime'],
 ]);
 
 // BOT WAVE presentation is independently booted inside the Gold iframe,
 // never run as a parallel menu UI or a second Gold character engine.
 export const BOT_WAVE_PRESENTATION_RUNTIMES = Object.freeze([
-  ['/game/bot-wave/botWavePresentationV2.js?v=reject-r2', 'apexBotWavePresentationV2'],
+  ['/game/bot-wave/botWavePresentationV2.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWavePresentationV2'],
 ]);
 
 // Current-neutral combat services shared by Arsenal and the generic engine.
