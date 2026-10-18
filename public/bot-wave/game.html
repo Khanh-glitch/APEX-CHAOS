@@ -6353,14 +6353,44 @@ const CARDS=[
  {id:'heal',label:'CỨNG CỰA',desc:'Hồi ngay 20% HP tối đa',tier:'RARE',weight:20,max:99},
  {id:'knock',label:'DƯ CHẤN',desc:'+18% lực đẩy của cú đấm Gold',tier:'RARE',weight:18,max:7},
  {id:'dash',label:'TỐC BIẾN',desc:'-10% hồi lướt L',tier:'RARE',weight:18,max:7},
- {id:'sustain',label:'NỘI LỰC',desc:'Hồi 1,7% HP tối đa khi hạ robot',tier:'EPIC',weight:11,max:7}
+ {id:'sustain',label:'NỘI LỰC',desc:'Hồi 1,7% HP tối đa khi hạ robot',tier:'EPIC',weight:11,max:7},
+ {id:'armor',label:'GIÁP LÕI',desc:'-5% sát thương phải nhận (tối đa 30%)',tier:'COMMON',weight:30,max:6},
+ {id:'insight',label:'KINH NGHIỆM THỰC CHIẾN',desc:'+10% XP nhận được',tier:'RARE',weight:18,max:8},
+ {id:'overclock',label:'ÉP XUNG KỸ NĂNG',desc:'-7% thời gian hồi kỹ năng đã mở',tier:'EPIC',weight:12,max:7,requires:['jab']},
+ {id:'counterFocus',label:'MỞ RỘNG PHẢN ĐÒN',desc:'+0,25s cửa sổ GOLDEN COUNTER',tier:'EPIC',weight:10,max:6,requires:['counter']},
+ {id:'rocketPrimer',label:'MỒI ROCKET',desc:'+1,5 điểm % tỉ lệ FIST ROCKET mỗi đòn trúng',tier:'EPIC',weight:10,max:6,requires:['rocket']}
 ];
 let seed=0xC0FFE42;
 function rng(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/4294967296}
 function clamp(a,l,h){return Math.min(h,Math.max(l,a))}
 function pick(arr){return arr[Math.floor(rng()*arr.length)]}
 const UI={};let lastUI=0;
-const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,spawnInterval:.37,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[]};
+const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,knockMul:1,dashCdMul:1,skillCdMul:1,armor:0,xpMul:1,counterWindowBonus:0,rocketChance:.075,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,spawnInterval:.37,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[]};
+// Every stackable card modifier is derived from state.stacks. Keeping this
+// calculation deterministic is what makes a later snapshot restore exact:
+// restore the stacks, recompute once, and no incrementally accumulated
+// maxHp/cooldown side effects can leak across a cluster rollback.
+function applyStacksDerived({healIncrease=false}={}){
+ const stacks=id=>Math.max(0,state.stacks[id]||0),p=engine.player,oldMax=p.maxHp||CAMPAIGN.survival.startingHP;
+ state.damageMul=Math.pow(1.13,stacks('fist'));
+ state.punchMul=Math.pow(.93,stacks('tempo'));
+ state.moveMul=Math.pow(1.07,stacks('agility'));
+ state.guardBonus=.08*stacks('guard');
+ state.knockMul=1+.18*stacks('knock');
+ state.dashCdMul=Math.pow(.90,stacks('dash'));
+ state.skillCdMul=Math.pow(.93,stacks('overclock'));
+ state.armor=Math.min(.30,.05*stacks('armor'));
+ state.xpMul=Math.pow(1.10,stacks('insight'));
+ state.counterWindowBonus=.25*stacks('counterFocus');
+ state.rocketChance=.075+.015*stacks('rocketPrimer');
+ state.healOnKill=CAMPAIGN.survival.baseKillHealFraction+.017*stacks('sustain');
+ const newMax=CAMPAIGN.survival.startingHP*Math.pow(1.12,stacks('vitality'));
+ p.maxHp=newMax;
+ if(healIncrease&&newMax>oldMax)p.hp+=newMax-oldMax;
+ p.hp=clamp(p.hp,0,newMax);
+ engine.waveCounterUnlocked=state.owned.has('counter');
+ return state;
+}
 /* THE LAST ROUND — integrated Arena Experience R1; no changes to weapon AI/stats */
 const ARENA_STAGE={
  radius:920, playable:880, quality:'high', assistEnabled:true, decals:[],entrances:[],flash:0, bossGlow:0,
@@ -6634,7 +6664,7 @@ function refreshUI(){
  UI['w-xp'].textContent=Math.floor(state.xp)+' / '+th;UI['w-xp-bar'].style.width=clamp(100*state.xp/th,0,100)+'%';
  UI['w-wave'].textContent='WAVE '+String(state.wave).padStart(2,'0')+' · CLUSTER '+(Math.floor(Math.max(0,state.wave-1)/10)+1);
  UI['w-count'].textContent=state.phase==='combat'?engine.enemies.length+' ROBOTS · '+state.queue.length+' REINFORCEMENTS':state.phase.toUpperCase();
- UI['wave-status'].textContent=(state.empowered?'⚡ NHIỆT HUYẾT · '+Math.ceil(state.empoweredEnd-engine.time)+'s · ':'')+'J AUTO-APPROACH · ATTACK'+(state.owned.has('jab')?' + FLURRY':'')+(state.owned.has('uppercut')?' + VOLCANO':'')+(state.owned.has('rocket')?' · ROCKET 7.5%':'')+' · K '+(state.owned.has('counter')?'COUNTER':'GUARD')+' · L DASH'+(state.owned.has('ult')?' · I FINAL ROUND':'');
+ UI['wave-status'].textContent=(state.empowered?'⚡ NHIỆT HUYẾT · '+Math.ceil(state.empoweredEnd-engine.time)+'s · ':'')+'J AUTO-APPROACH · ATTACK'+(state.owned.has('jab')?' + FLURRY':'')+(state.owned.has('uppercut')?' + VOLCANO':'')+(state.owned.has('rocket')?' · ROCKET '+(((state.rocketChance??.075)*100).toFixed(1))+'%':'')+' · K '+(state.owned.has('counter')?'COUNTER':'GUARD')+' · L DASH'+(state.owned.has('ult')?' · I FINAL ROUND':'');
  const boss=engine.enemies.find(e=>e.waveBoss&&!e.dead),bossPanel=document.getElementById('r2-boss-panel');
  if(bossPanel){bossPanel.classList.toggle('visible',!!boss&&state.phase==='combat');
   if(boss){
@@ -6655,7 +6685,7 @@ function refreshUI(){
 }
 function xpNeeded(level){return Math.ceil(70*Math.pow(1.16,level-1))}
 function gainXP(xp){if(state.phase==='complete'||state.phase==='gameover')return;
- state.xp+=xp;
+ state.xp+=xp*(state.xpMul||1);
  while(state.xp>=xpNeeded(state.level)){state.xp-=xpNeeded(state.level);state.level++;state.levelsPending++;}
  if(state.levelsPending>0&&state.phase==='combat')presentCards();
 }
@@ -6670,15 +6700,8 @@ function presentCards(){if(state.offer||state.levelsPending<=0)return;
 function chooseCard(id){if(state.phase!=='upgrade'||!state.offer?.some(c=>c.id===id))return;
  let c=state.offer.find(x=>x.id===id);engine.combatCue('UPGRADE',.9);state.stacks[id]=(state.stacks[id]||0)+1;
  if(['jab','rocket','uppercut','counter','phantom','ult'].includes(id))state.owned.add(id);
- if(id==='counter')engine.waveCounterUnlocked=true;
- if(id==='vitality'){let heal=engine.player.maxHp*.12;engine.player.maxHp+=heal;engine.player.hp+=heal;}
- else if(id==='fist')state.damageMul*=1.13;
- else if(id==='tempo')state.punchMul*=.93;
- else if(id==='agility')state.moveMul*=1.07;
- else if(id==='guard')state.guardBonus+=.08;
- else if(id==='heal')engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*.20);
- else if(id==='sustain')state.healOnKill+=.017;
- else if(id==='dash')engine.player.dashCd=Math.max(0,engine.player.dashCd*.90);
+ applyStacksDerived({healIncrease:id==='vitality'});
+ if(id==='heal')engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*.20);
  state.offer=null;state.levelsPending--;UI['wave-modal'].hidden=true;
  if(state.levelsPending>0){presentCards();return;}
  state.phase='combat';engine.paused=false;
@@ -6749,7 +6772,7 @@ function lose(){state.phase='gameover';state.comboFlow=null;state.rocketPending=
  UI['w-desc'].textContent='BOT WAVE tiếp tục qua nhiều chapter. Quan sát hướng tấn công, thử thẻ nâng cấp và chọn thời điểm lướt thay vì đứng chặn đạn.';
  UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';UI['w-go'].textContent='↻ RETRY';UI['wave-modal'].hidden=false;}
 function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.timeline=[];engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;
- ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.damageMul=1;state.moveMul=1;state.punchMul=1;state.guardBonus=0;state.healOnKill=.012;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
+ ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};applyStacksDerived();engine.player.hp=engine.player.maxHp;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
  UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;engine.combatCue('UI',.7);startWave();}
 function autoAimNow(){
  // Same exact nearest-robot criterion and stable ID tie-break as the original
@@ -6807,11 +6830,12 @@ engine.drawFx=function(ctx){nativeDrawFxR2(ctx);R2_PRESENT.draw(ctx);};
 const nativeDamageEnemy=engine.damageEnemy.bind(engine);
 engine.damageEnemy=function(e,raw,opts){
  const before=e.dead,textStart=this.texts.length,oldHitHP=e.hp;
- const done=nativeDamageEnemy(e,ARMORY.protect(e,raw*state.damageMul),opts);
+ const hitOpts=opts&&state.knockMul!==1?{...opts,kx:(opts.kx||0)*state.knockMul,ky:(opts.ky||0)*state.knockMul}:opts;
+ const done=nativeDamageEnemy(e,ARMORY.protect(e,raw*state.damageMul),hitOpts);
  if(done>0){e._r2PreHitHP=Math.max(oldHitHP,e._r2PreHitHP||oldHitHP);e._r2DamageTime=this.time;}
  if(R2_PRESENT.enabled&&done>0&&!opts?.quiet){
   for(let i=this.texts.length-1;i>=textStart;i--)if(/^\d+(?:[.,]\d+)?$/.test(String(this.texts[i].text)))this.texts.splice(i,1);
-  R2_PRESENT.hit(e,done,opts||{});
+  R2_PRESENT.hit(e,done,hitOpts||{});
   if(e.dead)for(let i=this.texts.length-1;i>=textStart;i--)if(String(this.texts[i].text)==='K.O.!')this.texts.splice(i,1);
  }
  recordBOXERealDamage(done);if(done>0)ARENA_STAGE.stats.damage+=done;
@@ -6825,9 +6849,9 @@ engine.damageEnemy=function(e,raw,opts){
 };
 const nativeDamagePlayer=engine.damagePlayer.bind(engine);
 engine.damagePlayer=function(dmg,fromAngle){if(state.phase!=='combat')return;
- const p=engine.player;const before=p.hp;
- if(dmg>=p.hp){p.hp=dmg+1;nativeDamagePlayer(dmg,fromAngle);p.hp=0;lose();return}
- nativeDamagePlayer(dmg,fromAngle);state.waveDamageReceived+=before-p.hp;recordBOXERealDamage(Math.max(0,before-p.hp));
+ const p=engine.player;const before=p.hp;const effective=Math.max(0,dmg*(1-(state.armor||0)));
+ if(effective>=p.hp){p.hp=effective+1;nativeDamagePlayer(effective,fromAngle);p.hp=0;lose();return}
+ nativeDamagePlayer(effective,fromAngle);state.waveDamageReceived+=before-p.hp;recordBOXERealDamage(Math.max(0,before-p.hp));
 };
 const nativeDrawProjs=engine.drawProjs.bind(engine);
 engine.drawProjs=function(ctx){
@@ -6861,14 +6885,29 @@ engine.resetRibbons=function(){this.ribbons=[]};
 engine.drawRibbons=function(){};
 engine.ribbons=[];
 const originalCast=engine.castSkill.bind(engine);
-engine.castSkill=function(id){if(!({jab:'jab',uppercut:'uppercut',counter:'counter',phantom:'phantom',ult:'ult'}[id]&&state.owned.has(id)))return false;return originalCast(id)};
+// Internal combo/rocket flows historically called originalCast directly.
+// Route every accepted Gold cast through this one helper so skill-CD and
+// counter-window cards apply to real combat casts, not only hotkey casts.
+function castGoldSkill(id){
+ const beforeCd=engine.cds.get(id)||0;
+ const result=originalCast(id);
+ const afterCd=engine.cds.get(id)||0;
+ if(afterCd>beforeCd){
+  if(state.skillCdMul!==1)engine.cds.set(id,afterCd*state.skillCdMul);
+  if(id==='counter'&&state.counterWindowBonus)engine.player.guardT+=state.counterWindowBonus;
+ }
+ return result;
+}
+engine.castSkill=function(id){if(!({jab:'jab',uppercut:'uppercut',counter:'counter',phantom:'phantom',ult:'ult'}[id]&&state.owned.has(id)))return false;return castGoldSkill(id)};
+const nativeDash=engine.dash.bind(engine);
+engine.dash=function(){const beforeCd=this.player.dashCd;const result=nativeDash();if(this.player.dashCd>beforeCd&&state.dashCdMul!==1)this.player.dashCd*=state.dashCdMul;return result;};
 // A roll is attached to every real successful punch impact, not arbitrary J spam.
 // Original Gold renderer and VFX are untouched; only the event hook is additive.
 engine.waveRocketRoll=function(source){
  if(!state.owned.has('rocket')||state.phase!=='combat')return false;
  state.rocketRolls++;
  const roll=state.debug.forceRocketNext?0:rng();state.debug.forceRocketNext=false;
- if(roll>=.075||state.rocketPending||this.hands.R.missing||(this.cds.get('rocket')||0)>0)return false;
+ if(roll>=(state.rocketChance??.075)||state.rocketPending||this.hands.R.missing||(this.cds.get('rocket')||0)>0)return false;
  state.rocketPending=true;
  const fire=()=>{
   if(state.phase!=='combat'){state.rocketPending=false;return;}
@@ -6878,7 +6917,7 @@ engine.waveRocketRoll=function(source){
   if(this.hands.R.missing||(this.cds.get('rocket')||0)>0)return;
   autoAimNow();
   const before=this.projs.length;
-  originalCast('rocket');
+  castGoldSkill('rocket');
   const pr=this.projs.slice(before).find(x=>x.kind==='rocket');
   if(pr){pr.waveFistRocket=true;pr.waveReturnAt=this.time+5;state.rocketProcs++;
    state.comboTrace.push({type:'rocket',source,t:this.time});}
@@ -6951,14 +6990,14 @@ engine.basicAttack=function(){
  this.schedule(.42,()=>{
   if(state.comboFlow!==flow||state.phase!=='combat')return;
   if(!state.owned.has('jab')||(this.cds.get('jab')||0)>0){state.comboFlow=null;return;}
-  flow.phase='jab';autoAimNow();originalCast('jab');
+  flow.phase='jab';autoAimNow();castGoldSkill('jab');
   state.comboTrace.push({type:'gold-1-jab-start',t:this.time});
   // Gold jab: six punches at 0,.085,.17,.255,.34,.425, each impact +.05.
   // Last confirmed Gold impact at .475; allow .085 handoff after last impact.
   this.schedule(.56,()=>{
    if(state.comboFlow!==flow||state.phase!=='combat')return;
    if(state.owned.has('uppercut')&&(this.cds.get('uppercut')||0)<=0){
-    flow.phase='uppercut';autoAimNow();originalCast('uppercut');
+    flow.phase='uppercut';autoAimNow();castGoldSkill('uppercut');
     state.comboTrace.push({type:'gold-3-uppercut-start',t:this.time});
     // Gold uppercut impact lands at +.17; fire/vfx continue without J lock.
     this.schedule(.30,()=>{if(state.comboFlow===flow)state.comboFlow=null;});
@@ -7024,7 +7063,7 @@ engine.onKeyUp=function(e){if(e.code==='KeyJ'){act('J',false);return;}nativeOnKe
 window.removeEventListener('keyup',nativeOnKeyUp);window.addEventListener('keyup',engine.onKeyUp);
 window.addEventListener('keydown',e=>{if(e.code.startsWith('Digit'))e.stopImmediatePropagation()},true);
 engine.enemies=[];engine.projs=[];engine.timeline=[];engine.opts.infiniteDummyHp=false;engine.opts.noCooldown=false;engine.opts.sound=true;
-engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;engine.player.x=0;engine.player.y=120;engine.player.fury=0;engine.player.empoweredT=0;engine.player.guardT=0;engine.player.invulnT=0;engine.player.dashCd=0;engine.player.comboStep=0;engine.player.basicCd=0;engine.waveCounterUnlocked=false;
+engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;engine.player.x=0;engine.player.y=120;engine.player.fury=0;engine.player.empoweredT=0;engine.player.guardT=0;engine.player.invulnT=0;engine.player.dashCd=0;engine.player.comboStep=0;engine.player.basicCd=0;engine.waveCounterUnlocked=false;applyStacksDerived();
 engine.camZoom=.57;engine.camZoomBase=.57;
 window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,owned:[...state.owned],sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,enemies:engine.enemies.length,player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp}}),source:'APEX_GOLD_R5'};
 createUI();refreshUI();engine.paused=true;
