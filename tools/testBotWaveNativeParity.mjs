@@ -6,6 +6,9 @@ import './testBotWaveCounterBridge.mjs';
 // Deterministic card-build proof: stack-derived stats and their real pilot
 // seams must stay live, including formerly dead knock/dash modifiers.
 import './testBotWaveCardBuild.mjs';
+// Wave-boundary persistence proof: exit resume, cluster rollback and the
+// flat non-pity health-pack drop must remain wired to the shipped seams.
+import './testBotWavePersistence.mjs';
 const bridge=fs.readFileSync('public/game/bot-wave/nativeArsenalGoldBridge.js','utf8');
 const gold=fs.readFileSync('public/bot-wave/game.html','utf8');
 for(const x of ['native.api.equip(proxy,id)','native.api.updateHolder(proxy,dt)','native.api.updateArsenalProjectiles(dt','native.api.drawArsenalProjectiles(ctx)','native.av.cue']){
