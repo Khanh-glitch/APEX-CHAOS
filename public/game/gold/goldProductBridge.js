@@ -160,7 +160,7 @@
   }
 
   const GOLD_HERO_COPY = {
-    newbot: { name: 'ROBOT', tag: 'APEX COMBAT FRAME' },
+    newbot: { name: 'NEWBOT', tag: 'APEX COMBAT FRAME' },
     hunter: { name: 'HUNTER', tag: 'MANTIS ASSASSIN' },
     crystala: { name: 'CRYSTALA', tag: 'ANCIENT CRYSTAL ENTITY' },
     magnet: { name: 'MAGNET', tag: 'FIELD CONTROL UNIT' },
@@ -168,6 +168,12 @@
     mirror: { name: 'MIRROR', tag: 'ECHO DUPLICATE' },
     boxe: { name: 'BOXE', tag: 'THE FIST OF DAWN' },
     shuri: { name: 'SHURI', tag: 'SCRAP ENGINEER' },
+    black_hole: { name: 'BLACK HOLE', tag: 'NOT YET AWAKENED' },
+    math_v2: { name: 'MATH V2', tag: 'NOT YET AWAKENED' },
+    rubber: { name: 'RUBBER', tag: 'NOT YET AWAKENED' },
+    time: { name: 'TIME', tag: 'NOT YET AWAKENED' },
+    slime: { name: 'SLIME', tag: 'NOT YET AWAKENED' },
+    sniper: { name: 'SNIPER', tag: 'NOT YET AWAKENED' },
   };
   // ONE accent per hero. These are FALLBACKS for the case where the shell
   // registry is not loaded yet; the live value is APEX_ARSENAL_SHELLS.typeFor()
@@ -247,7 +253,7 @@
         name,
         color,
         accent: color,
-        tag: (copy && copy.tag) || 'LOCKED // PRE-PILOT',
+        tag: (copy && copy.tag) || 'NOT YET AWAKENED',
         productionId,
         playable,
         // A locked future fighter is never "owned" for selection purposes; the
@@ -1331,6 +1337,7 @@
     ICE: { A1: 'FROST BREATH', A2: 'FROST RUSH' },
     MIRROR: { A1: 'MIRROR ARSENAL', A2: 'MIRROR EXCHANGE' },
     BOXE: { PASSIVE: 'CÀNG ĐÁNH CÀNG HĂNG', A1: 'FIST ROCKET', A2: 'BLOCK & HIT' },
+    SHURI: { PASSIVE: 'RECYCLE SNAP', A1: 'SHOCK RECOIL', A2: 'MECHANICAL GENESIS' },
   };
   function canonicalHeroId(heroId) {
     const id = String(heroId || '').toUpperCase();

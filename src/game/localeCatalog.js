@@ -65,6 +65,11 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['MIRROR EXCHANGE','HOÁN ĐỔI PHẢN CHIẾU'],
 
   ['SHOCK RECOIL','GIẬT LÙI ĐIỆN TỪ'],
+  ['RECYCLE SNAP','TÁI CHẾ TỨC THÌ'],
+  ['MECHANICAL GENESIS','KHỞI NGUYÊN CƠ KHÍ'],
+  ['BLOCK & HIT','ĐỠ VÀ PHẢN ĐÒN'],
+  ['SCRAP ENGINEER','KỸ SƯ PHẾ LIỆU'],
+  ['NOT YET AWAKENED','CHƯA THỨC TỈNH'],
   ['FIST ROCKET','NẮM ĐẤM TÊN LỬA'],
   ['BLOCK AND HIT','ĐỠ VÀ PHẢN ĐÒN'],
   ['HEAT','NHIỆT HUYẾT'],
