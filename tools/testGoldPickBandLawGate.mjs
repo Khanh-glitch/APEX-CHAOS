@@ -9,9 +9,14 @@ import fs from 'node:fs';
 import {
   PICK_BAND_MARKER,
   PICK_BAND_SOURCES,
+  ROSTER_PAGER_BAND_RULES,
+  ROSTER_PAGER_MARKER,
+  ROSTER_PAGER_SCRIPT_ID,
   pickBandFor,
   pickBandGeometry,
   resolvePickBandLaw,
+  rosterPagerCss,
+  rosterPagerScript,
 } from './goldShellR52pickBand.mjs';
 
 const shell = fs.readFileSync('public/gold/shell.html', 'utf8');
@@ -137,6 +142,27 @@ check('band routing follows the CSS media query order',
   && pickBandFor(980, 500) === 'compact-landscape'
   && pickBandFor(981, 500) === 'desk'
   && pickBandFor(1920, 1080) === 'desk');
+
+// ── Roster pager law (owner Fighter-Select completion) ─────────────────────
+// Phone bands navigate the six-per-view roster by whole pages: header dots,
+// margin chevrons, mandatory page snap. The desk band keeps the canonical
+// scrollport. Byte-pinned so the pager cannot silently fall out of the build.
+check('shell carries the roster pager law (CSS + script markers)',
+  count(shell, ROSTER_PAGER_MARKER) === 2);
+check('roster pager controller script is emitted exactly once',
+  count(shell, `id="${ROSTER_PAGER_SCRIPT_ID}"`) === 1
+  && count(shell, rosterPagerScript()) === 1);
+check('roster pager base CSS is emitted exactly once (hidden by default)',
+  count(shell, rosterPagerCss()) === 1
+  && rosterPagerCss().includes('.apexRosterPager{display:none;'));
+for (const rule of ROSTER_PAGER_BAND_RULES) {
+  check(`pager band rule is pinned in portrait + compact-landscape only: ${rule.slice(0, 64)}…`,
+    count(shell, rule) === 2);
+}
+check('selection track cursor scales to the live roster size (--cursor-n)',
+  count(shell, '#stage .selectionCursorV6{width:calc(100%/var(--cursor-n,6))}') === 1);
+check('pager script keeps selection ownership with the canonical shell (no selectHero rewrite)',
+  !rosterPagerScript().includes('selectHero') && !rosterPagerScript().includes('lockCurrent'));
 
 console.log(['R52 PICK BAND LAW GATE', ...passes].join('\n'));
 if (failures.length) {
