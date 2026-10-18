@@ -41,7 +41,7 @@ assert.deepEqual(
     armor: { id: 'armor', label: 'GIÁP LÕI', desc: '-5% sát thương phải nhận (tối đa 30%)', tier: 'COMMON', weight: 30, max: 6 },
     insight: { id: 'insight', label: 'KINH NGHIỆM THỰC CHIẾN', desc: '+10% XP nhận được', tier: 'RARE', weight: 18, max: 8 },
     overclock: { id: 'overclock', label: 'ÉP XUNG KỸ NĂNG', desc: '-7% thời gian hồi kỹ năng đã mở', tier: 'EPIC', weight: 12, max: 7, requires: ['jab'] },
-    counterFocus: { id: 'counterFocus', label: 'MỞ RỘNG PHẢN ĐÒN', desc: '+0,25s cửa sổ GOLDEN COUNTER', tier: 'EPIC', weight: 10, max: 6, requires: ['counter'] },
+    counterFocus: { id: 'counterFocus', label: 'MỞ RỘNG PHẢN ĐÒN', desc: '+0,25s cửa sổ GOLDEN COUNTER sau khi thả K', tier: 'EPIC', weight: 10, max: 6, requires: ['counter'] },
     rocketPrimer: { id: 'rocketPrimer', label: 'MỒI ROCKET', desc: '+1,5 điểm % tỉ lệ FIST ROCKET mỗi đòn trúng', tier: 'EPIC', weight: 10, max: 6, requires: ['rocket'] },
   },
 );

@@ -333,10 +333,10 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      utility:window.APEX_ARSENAL_AV?.stats?.waveUtility||null
    }));
    assert.ok(liveMix.policy?.mix?.gain>0&&liveMix.policy.mix.gain<=.14&&
-     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r9')&&
+     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r10')&&
      liveMix.npcEquipAudioSuppressed>0,
      'Native gun SFX not demonstrably attenuated in live Chromium '+JSON.stringify(liveMix));
-   console.log('BOT WAVE R9 actual WebAudio native gun mix PASS',view.name,liveMix);
+   console.log('BOT WAVE R10 actual WebAudio native gun mix PASS',view.name,liveMix);
    console.log('BOT WAVE actual Arsenal gun discharge PASS',view.name,shot);
    // Explicit real HTTP fetch proof: no sprite/audio is accidentally
    // discarded by shipping-prune or silently replaced by SPA HTML fallback.

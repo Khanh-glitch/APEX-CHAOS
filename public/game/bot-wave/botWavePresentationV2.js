@@ -6,7 +6,7 @@
 'use strict';
 const doc=window.document;
 if(window.APEX_BOT_WAVE_INTERFACE_V2)return;
-const VERSION='owner-release-r9-owner-fidelity';
+const VERSION='owner-release-r10-seamless-hud';
 // Existing BOXE baseline was x1.5; owner requests another +30% -> x1.95.
  // Arsenal's compressor/voice-density mix follows this shared mode policy.
  const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.14,gunFloor:.12});
@@ -90,7 +90,7 @@ function install(){
  // The meter sits BELOW the wave identity instead of stealing the headline.
  const centerSegment=node('div','bw-beat-markers');
  centerSegment.id='bw-beat-markers';
- for(let i=0;i<5;i++){const segment=node('i');segment.setAttribute('aria-label','Nhịp '+(i+1));centerSegment.append(segment);}
+ for(let i=0;i<10;i++){const segment=node('i');segment.setAttribute('aria-label','Wave trong cụm '+(i+1));centerSegment.append(segment);}
  center.append(chapter,waveNumber,wave,pressure,centerSegment);
  const threat=node('section','bw-threat');
  threat.setAttribute('aria-label','Trang bị và kẻ địch');
@@ -134,37 +134,45 @@ function install(){
  if(oldTrack){oldTrack.setAttribute('aria-hidden','true');oldTrack.hidden=true;}
  const tool=stage?.querySelector('#arena-experience-tools');
  if(tool){tool.hidden=true;tool.setAttribute('aria-hidden','true');}
- // HUD truth: chapter, five dramatic beats, wave identity. No 10-wave cap.
+ // HUD truth: 10-wave cluster beats, live pressure budget, wave identity.
  let lastChapter='',lastPressure='',lastBeat=-1;
  const update=()=>{
   const pilot=window.BOXE_WAVE_PILOT;
   if(!pilot)return;
   const s=pilot.state||{},n=Math.max(1,s.wave||1);
-  const count=Math.floor((n-1)/5)+1,beat=(n-1)%5;
-  const newChapter='CHAPTER '+String(count).padStart(2,'0')+'  //  ARSENAL SURVIVAL';
+  const cluster=Math.floor((n-1)/10)+1,beat=(n-1)%10,bossBeat=beat===9;
+  const newChapter='CLUSTER '+String(cluster).padStart(2,'0')+'  //  WAVE '+(beat+1)+'/10';
   if(newChapter!==lastChapter){chapter.textContent=newChapter;lastChapter=newChapter;}
   waveNumber.textContent='WAVE '+String(n).padStart(2,'0');
-  center.classList.toggle('bw-is-boss',beat===4);
+  center.classList.toggle('bw-is-boss',bossBeat);
   center.classList.toggle('bw-is-upgrade',s.phase==='upgrade');
-  if(beat!==lastBeat){for(const [i,el] of [...centerSegment.children].entries()){
-   el.classList.toggle('done',i<beat);el.classList.toggle('active',i===beat);
-  }lastBeat=beat;}
+  center.classList.toggle('bw-is-clear',!!s.autoNextWave);
+  const beatKey=beat+(s.autoNextWave?100:0);
+  if(beatKey!==lastBeat){for(const [i,el] of [...centerSegment.children].entries()){
+   el.classList.toggle('done',i<beat||!!s.autoNextWave&&i<=beat);el.classList.toggle('active',i===beat&&!s.autoNextWave);
+  }lastBeat=beatKey;}
   const phase=wave.querySelector('.bw-witness');
-  if(phase)phase.textContent=beat===4?'BOSS ROUND':s.phase==='combat'?'IN COMBAT':
-   s.phase==='upgrade'?'UPGRADE':'SURVIVE';
-  const active=window.handLab?.enemies?.filter(e=>!e.dead&&e.waveGunId).length||0;
+  if(phase)phase.textContent=s.autoNextWave?'WAVE CLEAR':bossBeat?'BOSS ROUND':s.phase==='combat'?'IN COMBAT':
+   s.phase==='upgrade'?'UPGRADE':s.phase==='gameover'?'BOXE DOWN':'READY';
+  const enemies=window.handLab?.enemies||[];
+  const live=enemies.filter(e=>!e.dead&&e.waveGunId);
+  const active=live.length;
   const queued=s.queue?.length||0;
-  const cap=Math.max(1,s.softCap||5);
-  const danger=Math.min(1,active/cap);
-  const text=active+' ACTIVE  /  '+queued+' INBOUND';
+  const activePressure=live.reduce((sum,e)=>sum+(Number(e.wavePressure)||0),0);
+  const budget=Math.max(1,Number(s.pressureBudget)||260);
+  const danger=s.autoNextWave?0:Math.min(1,activePressure/budget||active/Math.max(1,s.softCap||5));
+  const text=s.autoNextWave?'NEXT IN '+Math.max(1,Math.ceil(s.nextWaveT||0))+'s':
+   active+' ACTIVE  /  '+queued+' INBOUND  /  '+Math.round(activePressure)+'/'+Math.round(budget);
   if(text!==lastPressure){pressure.querySelector('strong').textContent=text;lastPressure=text;}
   pressure.style.setProperty('--bw-pressure',danger.toFixed(3));
-  center.classList.toggle('bw-under-pressure',active>=cap);
+  center.classList.toggle('bw-under-pressure',danger>=.82);
   hero.classList.toggle('bw-took-hit',left.classList.contains('r2-damaged'));
-  deck.dataset.phase=s.phase||'intro';
+  hero.classList.toggle('bw-is-low',left.classList.contains('is-low'));
+  deck.dataset.phase=s.autoNextWave?'wave-clear':(s.phase||'intro');
+  deck.dataset.guard=s.guardHeld?'held':(s.guardCdT>0?'cooling':'ready');
  };
  update();
- refresh=window.setInterval(update,170);
+ refresh=window.setInterval(update,90);
  window.addEventListener('pagehide',()=>{if(refresh)clearInterval(refresh);},{once:true});
  installed=true;
  window.APEX_BOT_WAVE_INTERFACE_V2=Object.freeze({installed:true,version:VERSION});

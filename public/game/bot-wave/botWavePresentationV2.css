@@ -1,6 +1,7 @@
-/* APEX CHAOS · BOT WAVE R9
+/* APEX CHAOS · BOT WAVE R10 seamless HUD
    Player-first ringside interface. One authoritative stylesheet:
-   park low-priority stats at the margins; preserve a large uninterrupted arena. */
+   survival + wave/pressure + action cooldowns stay peripheral; transient
+   wave-clear/guard messages never become a modal interruption. */
 #wave-hud{--bw-amber:#ffbb71;--bw-cream:#f9edda;
  position:fixed!important;inset:0!important;z-index:28!important;
  pointer-events:none!important;overflow:hidden!important;color:var(--bw-cream)!important;
@@ -63,12 +64,16 @@
 #wave-hud .bw-pressure strong{font-size:7px;color:#f4d0a6;white-space:nowrap}
 #wave-hud #bw-pressure-fill{position:absolute;left:0;bottom:0;height:2px;
  width:calc(var(--bw-pressure,0)*100%);background:#f2aa6a;transition:width .15s ease}
-#wave-hud .bw-beat-markers{display:flex;justify-content:center;gap:4px;
+#wave-hud .bw-beat-markers{display:flex;justify-content:center;gap:2px;
  width:100%;margin:4px 0 0}
 #wave-hud .bw-beat-markers i{flex:1;height:3px;background:#4b4548;transform:skewX(-14deg)}
 #wave-hud .bw-beat-markers i.done{background:#a77757}
 #wave-hud .bw-beat-markers i.active{background:#ffbe76;box-shadow:0 0 7px #ffb05a}
 #wave-hud .bw-is-boss .bw-wave-number,#wave-hud .bw-is-boss .bw-witness{color:#ff8968}
+#wave-hud .bw-is-clear .bw-witness{color:#9dffb0}
+#wave-hud .bw-is-clear #bw-pressure-fill{background:#8dffb2;width:100%!important}
+#wave-hud .bw-under-pressure #bw-pressure-fill{background:#ff5f4d}
+#wave-hud .bw-under-pressure .bw-pressure strong{color:#ffb1a3}
 /* Right margin: the return button floats above this panel, never intersects it. */
 #wave-hud .bw-threat{justify-self:end;width:min(245px,100%);margin-top:47px;
  padding:9px 10px 9px;border-right:3px solid #e89e57;text-align:right}
@@ -77,8 +82,8 @@
 #wave-hud .bw-threat .w-right{position:static!important;width:100%!important;max-width:none!important;
  background:none!important;border:0!important;border-radius:0!important;
  box-shadow:none!important;padding:0!important;overflow:hidden!important;text-align:right!important}
-#wave-hud #w-wave{font:italic 1000 19px/1 Impact,system-ui!important;letter-spacing:.03em!important;
- color:#ffefd1!important;white-space:nowrap}
+/* Center encounter owns wave identity; the right rail only reports hostiles. */
+#wave-hud #w-wave{display:none!important}
 #wave-hud #w-count{display:block!important;opacity:1!important;color:#d8bda0!important;
  margin:4px 0!important;font:750 8px/1.2 ui-monospace,monospace!important}
 #wave-hud #w-arsenal{display:flex!important;flex-wrap:wrap!important;justify-content:flex-end!important;
@@ -122,13 +127,39 @@
 #wave-hud .w-action[disabled]{opacity:.36!important;filter:grayscale(.8)}
 #wave-hud .w-action.on{filter:brightness(1.17)!important;transform:translateY(2px) scale(.97)!important}
 #wave-hud .w-action:focus-visible{outline:2px solid #ffe2aa;outline-offset:2px}
+#wave-hud .w-action::after{content:none!important}
+#wave-hud .w-action-key{position:absolute;inset:10px 0 auto;text-align:center;
+ font:1000 18px/.95 Impact,system-ui;color:#f8d8ae;text-shadow:0 2px 5px #000}
+#wave-hud .w-action .w-cd{position:absolute;inset:0;pointer-events:none;opacity:0;
+ background:conic-gradient(rgba(1,5,9,.74) calc(var(--cd,0)*1turn),transparent 0)}
+#wave-hud .w-action.is-cooling .w-cd{opacity:1}
+#wave-hud .w-action .w-cd-text{position:absolute;top:3px;right:4px;z-index:2;
+ font:900 9px/1 ui-monospace,monospace;color:#ffe2a8;text-shadow:0 1px 3px #000}
+#wave-hud .w-action.is-cooling{filter:saturate(.72) brightness(.82)}
+#wave-hud .w-action[data-act="K"].is-guarding{border-color:#ffe09a!important;
+ box-shadow:inset 0 1px #ffe2b080,inset 0 0 18px #e68a4455,0 0 20px #e68a4466,0 6px 13px #000a!important}
+#wave-hud .w-action[data-act="K"].is-guarding .w-cd{opacity:.5;
+ background:radial-gradient(circle at 50% 42%,#ffcf8b55,transparent 68%)}
+#wave-hud .bw-command-deck[data-guard="held"] .bw-skill-deck{border-top-color:#ffe09a;
+ box-shadow:0 9px 18px #000a,0 0 22px #e68a4438}
+#wave-hud .bw-hero.bw-is-low{border-color:#ff6b6b!important;
+ box-shadow:inset 0 1px #ff9a9a44,0 0 24px #d934354d!important}
 #wave-hud .bw-interface-controls{display:flex;flex-direction:column;align-items:flex-end;
  justify-content:flex-end;min-width:72px;gap:4px}
 #wave-hud #resume-wave{position:static!important;pointer-events:auto!important;
  padding:6px 8px!important;border:1px solid #ab855f!important;border-radius:2px!important;
  color:#f2d4a6!important;background:#121b26f2!important;
  font:800 8px/1 ui-monospace,monospace!important}
-#wave-hud #wave-status{display:none!important}
+#wave-hud #wave-status{position:absolute!important;left:50%!important;bottom:88px!important;
+ z-index:5;min-width:0!important;max-width:min(520px,52vw)!important;
+ transform:translateX(-50%)!important;pointer-events:none!important;
+ padding:5px 10px!important;border:1px solid #a67c5573!important;border-radius:2px!important;
+ background:#070b11b8!important;color:#e8d2b4!important;
+ font:850 8px/1.25 ui-monospace,monospace!important;letter-spacing:.08em!important;
+ text-align:center!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ opacity:.82;box-shadow:0 8px 20px #0008}
+#wave-hud #wave-status[data-kind="toast"]{opacity:1;color:#fff0cf!important;
+ border-color:#ffcf8b!important;background:#21130bd9!important}
 #arena-experience-hud #arena-round-track,#arena-experience-hud #arena-experience-tools{display:none!important}
 #arena-experience-hud #r2-boss-panel{top:clamp(100px,14vh,156px)!important}
 /* R11 audit: Gold's own WAVE title + new top-center badge already announce the
@@ -228,6 +259,9 @@
  #wave-hud .w-action small{font-size:7px!important}
  #wave-hud .bw-interface-controls{min-width:58px}
  #wave-hud #resume-wave{font-size:7px!important;padding:5px 6px!important}
+ #wave-hud #wave-status{bottom:72px!important;max-width:48vw!important;
+  padding:4px 6px!important;font-size:6px!important}
+ #wave-hud .w-action-key{inset:9px 0 auto;font-size:16px}
  #arena-experience-hud #r2-boss-panel{top:88px!important}
  #wave-modal .w-dialog{grid-template-columns:24% minmax(0,76%);min-height:0;
   width:min(790px,95vw)!important;max-height:96dvh}
@@ -251,6 +285,7 @@
  #wave-hud .bw-threat{grid-column:2;grid-row:1}
  #wave-hud .bw-encounter{grid-column:1/-1;grid-row:2}
  #wave-hud .bw-bottom{gap:3px}
+ #wave-hud #wave-status{bottom:66px!important;max-width:72vw!important}
  #wave-hud .bw-movement #wave-stick{width:43px!important;height:43px!important}
  #wave-hud .w-action{width:35px!important;height:44px!important}
  #wave-hud .w-action[data-act="J"]{width:40px!important;height:48px!important}

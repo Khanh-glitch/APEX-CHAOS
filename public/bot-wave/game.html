@@ -6345,14 +6345,14 @@ const CARDS=[
  {id:'jab',label:'THUNDER JAB',desc:'Cuối combo J: thêm liên hoàn đấm từ Gold phím 1',tier:'RARE',weight:19,requires:[]},
  {id:'rocket',label:'FIST ROCKET · 7.5% PER HIT',desc:'Mỗi cú đấm TRÚNG MỤC TIÊU lăn 7.5% để kích hoạt găng tên lửa Gold phím 2. Chỉ 1 găng đang bay; nảy trong 5s rồi rút về đúng Gold.',tier:'RARE',weight:16,requires:[]},
  {id:'uppercut',label:'VOLCANO FINISH',desc:'Cuối combo J: nối cú Uppercut Gold phím 3',tier:'EPIC',weight:10,requires:['jab']},
- {id:'counter',label:'GOLDEN COUNTER',desc:'K nâng cấp thành phản đòn Gold phím 9',tier:'RARE',weight:15,requires:['uppercut']},
+ {id:'counter',label:'GOLDEN COUNTER',desc:'Giữ K dựng phản đòn Gold; chặn trúng đòn sẽ phản công',tier:'RARE',weight:15,requires:['uppercut']},
  {id:'phantom',label:'PHANTOM STEP · U',desc:'Mở nút U: Gold phím 5',tier:'EPIC',weight:9,requires:['counter']},
  {id:'ult',label:'CHAMPION FINAL · I',desc:'MỞ CHIÊU CUỐI từ Gold phím 0 (không có sẵn)',tier:'LEGENDARY',weight:7,requires:['phantom']},
  {id:'vitality',label:'BẢN LĨNH',desc:'+12% MAX HP, hồi đúng phần HP mới',tier:'COMMON',weight:35,max:12},
  {id:'fist',label:'THIẾT QUYỀN',desc:'+13% sức đấm, tăng sát thương cận chiến',tier:'COMMON',weight:38,max:12},
  {id:'tempo',label:'NHỊP ĐẤM',desc:'-7% thời gian hồi đánh thường',tier:'COMMON',weight:35,max:10},
  {id:'agility',label:'BƯỚC CHÂN',desc:'+7% tốc độ di chuyển',tier:'COMMON',weight:35,max:8},
- {id:'guard',label:'THỦ VỮNG',desc:'+0,08s phòng thủ cơ bản',tier:'COMMON',weight:28,max:8},
+ {id:'guard',label:'THỦ VỮNG',desc:'+0,08s thủ dư sau khi thả K',tier:'COMMON',weight:28,max:8},
  {id:'heal',label:'CỨNG CỰA',desc:'Hồi ngay 20% HP tối đa',tier:'RARE',weight:20,max:99},
  {id:'knock',label:'DƯ CHẤN',desc:'+18% lực đẩy của cú đấm Gold',tier:'RARE',weight:18,max:7},
  {id:'dash',label:'TỐC BIẾN',desc:'-10% hồi lướt L',tier:'RARE',weight:18,max:7},
@@ -6360,7 +6360,7 @@ const CARDS=[
  {id:'armor',label:'GIÁP LÕI',desc:'-5% sát thương phải nhận (tối đa 30%)',tier:'COMMON',weight:30,max:6},
  {id:'insight',label:'KINH NGHIỆM THỰC CHIẾN',desc:'+10% XP nhận được',tier:'RARE',weight:18,max:8},
  {id:'overclock',label:'ÉP XUNG KỸ NĂNG',desc:'-7% thời gian hồi kỹ năng đã mở',tier:'EPIC',weight:12,max:7,requires:['jab']},
- {id:'counterFocus',label:'MỞ RỘNG PHẢN ĐÒN',desc:'+0,25s cửa sổ GOLDEN COUNTER',tier:'EPIC',weight:10,max:6,requires:['counter']},
+ {id:'counterFocus',label:'MỞ RỘNG PHẢN ĐÒN',desc:'+0,25s cửa sổ GOLDEN COUNTER sau khi thả K',tier:'EPIC',weight:10,max:6,requires:['counter']},
  {id:'rocketPrimer',label:'MỒI ROCKET',desc:'+1,5 điểm % tỉ lệ FIST ROCKET mỗi đòn trúng',tier:'EPIC',weight:10,max:6,requires:['rocket']}
 ];
 let seed=0xC0FFE42;
@@ -6368,7 +6368,7 @@ function rng(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/42
 function clamp(a,l,h){return Math.min(h,Math.max(l,a))}
 function pick(arr){return arr[Math.floor(rng()*arr.length)]}
 const UI={};let lastUI=0;
-const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,knockMul:1,dashCdMul:1,skillCdMul:1,armor:0,xpMul:1,counterWindowBonus:0,rocketChance:.075,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,spawnInterval:.37,pressureBudget:260,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[],healthPacks:[],healthPackDrops:0,healthPackPickups:0,waveSnapshot:null,clusterSnapshot:null};
+const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,knockMul:1,dashCdMul:1,skillCdMul:1,armor:0,xpMul:1,counterWindowBonus:0,rocketChance:.075,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,spawnInterval:.37,pressureBudget:260,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[],healthPacks:[],healthPackDrops:0,healthPackPickups:0,waveSnapshot:null,clusterSnapshot:null,guardHeld:false,guardCounterLive:false,guardHoldT:0,guardCdT:0,guardCdMax:2.4,nextWaveT:0,autoNextWave:false,waveToast:'',waveToastT:0};
 // Every stackable card modifier is derived from state.stacks. Keeping this
 // calculation deterministic is what makes a later snapshot restore exact:
 // restore the stacks, recompute once, and no incrementally accumulated
@@ -6594,8 +6594,14 @@ function addCss(){let s=document.createElement('style');s.textContent=`
 .w-dialog .w-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}.w-card{min-height:160px;text-align:left;background:linear-gradient(165deg,#362a28,#13171d);border:1px solid #bd855d;color:#fff0d4;border-radius:11px;padding:14px;cursor:pointer;transition:.15s}.w-card:hover{border-color:#fbd08d;transform:translateY(-3px);background:#473126}
 .w-card small{display:block;font:900 10px ui-monospace,monospace;letter-spacing:.1em;color:#e3b37a;margin-bottom:13px}.w-card strong{display:block;font:1000 15px system-ui;margin-bottom:12px;color:#fff1d9}.w-card em{font:500 12px/1.5 system-ui;color:#e8d2bc}
 .w-go{border:1px solid #f6bb75;background:linear-gradient(105deg,#d48635,#eec576);color:#190c0b;padding:11px 21px;border-radius:7px;font:1000 14px system-ui;cursor:pointer}
-.w-actions{position:absolute;right:12px;bottom:16px;display:flex;gap:7px;pointer-events:auto}.w-action{border:1px solid #b18c5c;background:#141c24cf;color:#f7e3c6;min-width:53px;height:51px;border-radius:13px;font:1000 19px system-ui;touch-action:none;user-select:none}
+.w-actions{position:absolute;right:12px;bottom:16px;display:flex;gap:7px;pointer-events:auto}.w-action{position:relative;overflow:hidden;border:1px solid #b18c5c;background:#141c24cf;color:#f7e3c6;min-width:53px;height:51px;border-radius:13px;font:1000 19px system-ui;touch-action:none;user-select:none}
 .w-action small{display:block;font:700 9px system-ui;color:#baab97}.w-action[disabled]{opacity:.3}.w-action.on{border-color:#ffd47d;background:#74472f}
+.w-action .w-cd{position:absolute;inset:0;pointer-events:none;opacity:0;background:conic-gradient(rgba(2,6,10,.72) calc(var(--cd,0)*1turn),transparent 0)}
+.w-action .w-cd-text{position:absolute;top:3px;right:5px;font:900 9px ui-monospace,monospace;color:#ffe2a8;text-shadow:0 1px 3px #000}
+.w-action.is-cooling .w-cd{opacity:1}.w-action.is-guarding{border-color:#ffe09a!important;box-shadow:0 0 0 2px #ffbe6840,0 0 22px #e68a4466!important}
+.w-action.is-guarding .w-cd{opacity:.55;background:radial-gradient(circle,#ffbe6833,transparent 70%)}
+.w-left.is-low{border-color:#ff6b6b!important;box-shadow:0 0 0 1px #ff6b6b55,0 0 24px #d9343555!important}
+#wave-status[data-kind="toast"]{color:#fff0cf;border-color:#ffcf8b;background:#21130bd9}
 #wave-stick{position:absolute;left:18px;bottom:16px;width:118px;height:118px;border-radius:50%;border:2px solid #d5a26077;background:#191b23a8;pointer-events:auto;touch-action:none;display:none}
 #wave-stick i{position:absolute;width:50px;height:50px;border:2px solid #ffcc84;border-radius:50%;left:32px;top:32px;background:#b17d5188;transform:translate(var(--dx,0px),var(--dy,0px))}
 #resume-wave{position:absolute;right:12px;top:92px;pointer-events:auto;border:1px solid #ab854a;background:#182127;color:#eacfa3;padding:8px;border-radius:8px;cursor:pointer}
@@ -6603,8 +6609,8 @@ function addCss(){let s=document.createElement('style');s.textContent=`
 @media (max-height:430px){#wave-stick{width:84px;height:84px;bottom:8px;left:8px}#wave-stick i{width:36px;height:36px;left:22px;top:22px}.w-actions{bottom:8px}.w-action{min-width:42px;height:41px}.w-right b{font-size:12px}.w-left{max-height:90px;overflow:hidden}.w-dialog .w-cards{min-height:0}.w-card{min-height:96px}.w-dialog h1{font-size:17px}.w-dialog p{font-size:10px;margin:5px 0}.w-card em{font-size:9px}}
 `;document.head.append(s)}
 function createUI(){
- addCss();const hud=document.createElement('div');hud.id='wave-hud';hud.innerHTML=`<div class="w-left"><div class="w-head">BOXE · THE FIST OF DAWN</div><div class="w-small">HP <b id="w-hp">—</b></div><div class="w-meter hp-r2"><div class="w-hp-trail" id="w-hp-trail"></div><i id="w-hp-bar"></i><div class="w-hp-shine"></div></div><div class="w-fury-line"><span>✹ NHIỆT HUYẾT</span><b id="w-r2-fury-val">0%</b></div><div class="w-meter fury-r2"><i id="w-r2-fury-bar"></i></div><div class="w-small">LV <b id="w-level">1</b> · XP <b id="w-xp">0</b></div><div class="w-meter xp"><i id="w-xp-bar"></i></div></div><div class="w-right"><b id="w-wave">WAVE 01 / 10</b><span id="w-count" class="w-small"></span><div class="w-weapon" id="w-arsenal"></div></div><div id="wave-status">J PUNCH · K GUARD · L DASH</div><div id="wave-stick"><i></i></div><div class="w-actions"><button class="w-action" data-act="J">J<small>ĐẤM</small></button><button class="w-action" data-act="K">K<small>THỦ</small></button><button class="w-action" data-act="L">L<small>LƯỚT</small></button><button class="w-action" data-act="U" disabled>U<small>LOCK</small></button><button class="w-action" data-act="I" disabled>I<small>LOCK</small></button></div><button id="resume-wave">Ⅱ PAUSE</button>`;
- const modal=document.createElement('div');modal.id='wave-modal';modal.innerHTML=`<div class="w-dialog"><h1 id="w-title">APEX CHAOS · BOT WAVE</h1><p id="w-desc">BOXE tham gia chiến dịch Arsenal không giới hạn với 41 vũ khí thật, các cụm 10 wave luân phiên nhịp nghỉ, áp lực và boss ở wave cuối cụm. Băng đạn được THAY MỚI thay vì vứt súng; mỗi loại có reload và khoảng an toàn riêng. HP hồi giữa wave và theo mỗi K.O.; cục máu hiếm có thể rơi sau mỗi K.O. Tiến độ được lưu tại đầu mỗi wave, thua trong cụm sẽ quay về wave đầu cụm bằng build lúc vào cụm.</p><div class="w-cards" id="w-cards"></div><button class="w-go" id="w-go">▶ START WAVE 01</button></div>`;
+ addCss();const hud=document.createElement('div');hud.id='wave-hud';hud.innerHTML=`<div class="w-left"><div class="w-head">BOXE · THE FIST OF DAWN</div><div class="w-small">HP <b id="w-hp">—</b></div><div class="w-meter hp-r2"><div class="w-hp-trail" id="w-hp-trail"></div><i id="w-hp-bar"></i><div class="w-hp-shine"></div></div><div class="w-fury-line"><span>✹ NHIỆT HUYẾT</span><b id="w-r2-fury-val">0%</b></div><div class="w-meter fury-r2"><i id="w-r2-fury-bar"></i></div><div class="w-small">LV <b id="w-level">1</b> · XP <b id="w-xp">0</b></div><div class="w-meter xp"><i id="w-xp-bar"></i></div></div><div class="w-right"><b id="w-wave">WAVE 01 / 10</b><span id="w-count" class="w-small"></span><div class="w-weapon" id="w-arsenal"></div></div><div id="wave-status">J PUNCH · K GUARD · L DASH</div><div id="wave-stick"><i></i></div><div class="w-actions"><button class="w-action" data-act="J" data-key="J" aria-label="J đấm"><span class="w-action-key">J</span><small>ĐẤM</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="K" data-key="K" aria-label="Giữ K để thủ"><span class="w-action-key">K</span><small>GIỮ THỦ</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="L" data-key="L" aria-label="L lướt"><span class="w-action-key">L</span><small>LƯỚT</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="U" data-key="U" aria-label="U khóa" disabled><span class="w-action-key">U</span><small>LOCK</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="I" data-key="I" aria-label="I khóa" disabled><span class="w-action-key">I</span><small>LOCK</small><i class="w-cd"></i><b class="w-cd-text"></b></button></div><button id="resume-wave">Ⅱ PAUSE</button>`;
+ const modal=document.createElement('div');modal.id='wave-modal';modal.innerHTML=`<div class="w-dialog"><h1 id="w-title">APEX CHAOS · BOT WAVE</h1><p id="w-desc">BOXE tham gia chiến dịch Arsenal không giới hạn với 41 vũ khí thật, các cụm 10 wave luân phiên nhịp nghỉ, áp lực và boss ở wave cuối cụm. Wave tự nối tiếp sau một nhịp nghỉ ngắn. Giữ K để thủ, thả K mới bắt đầu hồi chiêu; thẻ GOLDEN COUNTER biến thế thủ thành phản đòn. HP hồi giữa wave và theo mỗi K.O.; cục máu hiếm có thể rơi sau mỗi K.O. Tiến độ được lưu tại đầu mỗi wave, thua trong cụm sẽ quay về wave đầu cụm bằng build lúc vào cụm.</p><div class="w-cards" id="w-cards"></div><button class="w-go" id="w-go">▶ START WAVE 01</button></div>`;
  document.body.append(hud,modal);
 const stageCss=document.createElement('style');stageCss.textContent="\n/* LAST ROUND: stage presentation is an overlay, never a combat obstacle */\n#arena-experience-hud{position:fixed;inset:0;z-index:24;pointer-events:none;font:800 11px/1.35 system-ui,Segoe UI,sans-serif;color:#eacda2}\n#arena-round-track{position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;gap:4px;padding:7px 10px;background:#070d14cb;border:1px solid #946e4455;border-radius:9px;box-shadow:0 8px 25px #0007}\n#arena-round-track b{display:block;width:19px;height:5px;border-radius:1px;background:#344049;transform:skewX(-20deg)}\n#arena-round-track b.done{background:#926d4d}#arena-round-track b.active{background:#ffbe68;box-shadow:0 0 11px #e68a44}\n#arena-announce{position:absolute;top:20%;left:50%;transform:translate(-50%,-12px);text-align:center;opacity:0;transition:opacity .18s,transform .3s;pointer-events:none;text-shadow:0 7px 22px #000,0 0 25px #b7472477}\n#arena-announce strong{display:block;font:1000 clamp(24px,5vw,54px)/1 system-ui;letter-spacing:.09em;color:#f6cea0;white-space:nowrap}\n#arena-announce span{display:block;color:#dca06d;letter-spacing:.28em;font:900 clamp(9px,1.5vw,14px)/2 ui-monospace,monospace}\n#arena-announce.show{animation:arena-ann 2.05s ease both}@keyframes arena-ann{0%{opacity:0;transform:translate(-50%,-22px)}15%,67%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,5px)}}\n#arena-message{position:absolute;left:50%;top:31%;transform:translateX(-50%);background:#160e13da;color:#ffdbb2;border-top:1px solid #d8a068;border-bottom:1px solid #d8a068;padding:9px 25px;letter-spacing:.12em;white-space:nowrap;opacity:0}\n#arena-message.visible{animation:arena-msg 1.4s ease both}@keyframes arena-msg{0%{opacity:0;transform:translate(-50%,-9px)}18%,75%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,5px)}}\n#arena-experience-tools{position:absolute;top:9px;left:50%;margin-left:130px;pointer-events:auto;display:flex;gap:5px}\n#arena-experience-tools button{font:800 9px ui-monospace,monospace;letter-spacing:.03em;white-space:nowrap;color:#d8c7af;background:#10171ddc;border:1px solid #8d70577a;padding:7px 8px;border-radius:7px;cursor:pointer}\n#arena-experience-tools button[aria-pressed=true]{color:#ffda9e;border-color:#d6a56b;background:#34241d}\n#arena-report{display:flex;justify-content:center;gap:11px;flex-wrap:wrap;margin:10px 0 13px}\n#arena-report .a-stat{background:#16191dcc;border:1px solid #8364496b;padding:10px 11px;border-radius:8px;min-width:106px}\n#arena-report small{display:block;color:#b6a690;font:800 9px ui-monospace,monospace;letter-spacing:.07em}\n#arena-report strong{display:block;color:#ffd091;font:900 18px ui-monospace,monospace;margin-top:4px}\n#arena-approach-hint{position:absolute;bottom:73px;left:50%;transform:translateX(-50%);font-size:10px;color:#e9b773;opacity:0;transition:opacity .12s;white-space:nowrap}\n#arena-approach-hint.on{opacity:.9}\n@media(max-width:890px){#arena-round-track{top:74px;gap:3px;padding:5px}#arena-round-track b{width:13px;height:4px}#arena-experience-tools{top:117px;right:7px;left:auto;margin:0;flex-direction:column}#arena-experience-tools button{font-size:8px;padding:5px}#arena-announce{top:26%}#arena-approach-hint{display:none}}\n@media(max-height:490px){#arena-round-track{top:52px}#arena-experience-tools{top:88px}#arena-announce{top:20%}}\n@media(prefers-reduced-motion:reduce){#arena-announce.show,#arena-message.visible{animation-duration:.15s}}\n";document.head.append(stageCss);
 const stageHud=document.createElement('div');stageHud.id='arena-experience-hud';stageHud.innerHTML=`<div id="arena-round-track" aria-label="Tiến độ 10 hiệp">${Array.from({length:10},()=>'<b></b>').join('')}</div><div id="r2-boss-panel" aria-live="polite"><div class="boss-r2-meta"><span id="r2-boss-name">CHAMPION</span><strong id="r2-boss-hp-text">0 / 0</strong></div><div class="boss-r2-meter"><i id="r2-boss-hp-ghost"></i><b id="r2-boss-hp-fill"></b></div></div><div id="arena-announce"><strong>THE LAST ROUND</strong><span>APEX CHAOS</span></div><div id="arena-message"></div><div id="arena-approach-hint">ASSIST · TIẾP CẬN MỤC TIÊU</div><div id="arena-experience-tools"><button id="stage-visual" type="button" aria-pressed="true">STAGE: HIGH</button><button id="stage-assist" type="button" aria-pressed="true">J ASSIST: ON</button><button id="stage-draft" type="button" aria-pressed="true">DRAFT: FOCUS</button></div>`;
@@ -6639,7 +6645,7 @@ const _ownerStageStyle=document.createElement('style');_ownerStageStyle.textCont
   }else if(state.phase==='complete')restart();
  };
  document.getElementById('resume-wave').onclick=()=>{if(state.phase==='combat'){engine.paused=!engine.paused;engine.combatCue('PAUSE',.7);document.getElementById('resume-wave').textContent=engine.paused?'▶ RESUME':'Ⅱ PAUSE';}};
- document.querySelectorAll('[data-act]').forEach(b=>{const a=b.dataset.act;b.addEventListener('pointerdown',e=>{e.preventDefault();engine.initAudio();b.classList.add('on');act(a,true)});b.addEventListener('pointerup',e=>{e.preventDefault();b.classList.remove('on');act(a,false)});b.addEventListener('pointercancel',()=>{b.classList.remove('on');act(a,false)});});
+ document.querySelectorAll('[data-act]').forEach(b=>{const a=b.dataset.act;const release=e=>{e?.preventDefault?.();b.classList.remove('on');act(a,false)};b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){/* Keyboard/mouse fallback still has keyup/up. */}engine.initAudio();b.classList.add('on');act(a,true)});b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',()=>{if(b.classList.contains('on'))release()});});
  const stick=document.getElementById('wave-stick');let stickPointer=null;
  function stickMove(e){let r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=(e.clientX-cx)/(r.width*.38),dy=(e.clientY-cy)/(r.height*.38),n=Math.max(1,Math.hypot(dx,dy));dx/=n;dy/=n;stick.style.setProperty('--dx',(dx*r.width*.22)+'px');stick.style.setProperty('--dy',(dy*r.height*.22)+'px');stickDX=dx;stickDY=dy;}
  stick.addEventListener('pointerdown',e=>{stickPointer=e.pointerId;stick.setPointerCapture(e.pointerId);stickMove(e)});
@@ -6648,10 +6654,66 @@ const _ownerStageStyle=document.createElement('style');_ownerStageStyle.textCont
  stick.addEventListener('pointerup',end);stick.addEventListener('pointercancel',end);
 }
 let stickDX=0,stickDY=0;
+function formatHudInt(value){const n=Number(value);return Number.isFinite(n)?Math.max(0,Math.round(n)).toLocaleString('en-US'):'0'}
+function formatCombatText(text){
+ // Presentation-only number hygiene: canonical damage and HP stay exact
+ // internally, while floating combat text never exposes fractional noise.
+ if(typeof text!=='string')return text;
+ const signed=text.match(/^([+-]?)(\d+(?:[.,]\d+)?)(.*)$/);
+ if(!signed)return text;
+ const value=Number(signed[2].replace(',','.'));
+ if(!Number.isFinite(value))return text;
+ return signed[1]+formatHudInt(value)+signed[3];
+}
+function setWaveToast(text,seconds=2.4){state.waveToast=text||'';state.waveToastT=Math.max(0,seconds||0);}
+function setActionCooldown(button,remaining,max,label=''){
+ if(!button)return;
+ const rem=Math.max(0,Number(remaining)||0),cap=Math.max(.01,Number(max)||rem||.01);
+ const cooling=rem>.03;
+ button.classList.toggle('is-cooling',cooling);
+ button.classList.toggle('r2-cooling',cooling);
+ button.style.setProperty('--cd',cooling?(rem/cap).toFixed(3):'0');
+ const text=button.querySelector('.w-cd-text');
+ if(text)text.textContent=label||(cooling?String(Math.ceil(rem)):'');
+ button.dataset.cd=cooling?String(Math.ceil(rem)):'0';
+}
+const actionCdMax={phantom:11,ult:30,counter:12};
+function skillCooldown(id){
+ const rem=engine.cds?.get(id)||0;
+ if(rem>0)actionCdMax[id]=Math.max(actionCdMax[id]||0,rem);
+ return {rem,max:actionCdMax[id]||rem||1};
+}
+function guardCooldownSnapshot(){
+ if(state.owned.has('counter')){
+  const rem=Math.max(state.guardCdT||0,engine.cds?.get('counter')||0);
+  return {rem,max:Math.max(state.guardCdMax||0,12*(state.skillCdMul||1),rem)};
+ }
+ return {rem:state.guardCdT||0,max:Math.max(state.guardCdMax||2.4,state.guardCdT||0)};
+}
+function refreshActionUI(){
+ const buttons={};
+ for(const b of document.querySelectorAll('[data-act]'))buttons[b.dataset.act]=b;
+ const p=engine.player;
+ if(buttons.J)setActionCooldown(buttons.J,p.basicCd||0,.42*(state.punchMul||1));
+ if(buttons.K){
+  const cd=guardCooldownSnapshot();
+  buttons.K.classList.toggle('is-guarding',!!state.guardHeld);
+  buttons.K.classList.toggle('r2-active',!!state.guardHeld);
+  const label=buttons.K.querySelector('small');
+  if(label)label.textContent=state.guardHeld?(state.guardCounterLive?'PHẢN ĐÒN':'ĐANG THỦ'):(state.owned.has('counter')?'GIỮ PHẢN':'GIỮ THỦ');
+  setActionCooldown(buttons.K,state.guardHeld?0:cd.rem,cd.max,state.guardHeld?'GIỮ':'');
+  buttons.K.disabled=false;
+  buttons.K.setAttribute('aria-disabled',String(!state.guardHeld&&cd.rem>0));
+  buttons.K.title=state.owned.has('counter')?'Giữ K dựng GOLDEN COUNTER; thả K bắt đầu hồi chiêu':'Giữ K để thủ; thả K bắt đầu hồi chiêu';
+ }
+ if(buttons.L)setActionCooldown(buttons.L,p.dashCd||0,2.1*(state.dashCdMul||1));
+ if(buttons.U){const cd=skillCooldown('phantom');setActionCooldown(buttons.U,state.owned.has('phantom')?cd.rem:0,cd.max);const label=buttons.U.querySelector('small');if(label)label.textContent=state.owned.has('phantom')?'PHANTOM':'LOCK';}
+ if(buttons.I){const cd=skillCooldown('ult');setActionCooldown(buttons.I,state.owned.has('ult')?cd.rem:0,cd.max);const label=buttons.I.querySelector('small');if(label)label.textContent=state.owned.has('ult')?'FINAL':'LOCK';}
+}
 function refreshUI(){
  if(!UI['w-hp'])return;
  const p=engine.player,th=xpNeeded(state.level);
- UI['w-hp'].textContent=Math.max(0,Math.ceil(p.hp))+' / '+Math.ceil(p.maxHp);
+ UI['w-hp'].textContent=formatHudInt(p.hp)+' / '+formatHudInt(p.maxHp);
  const hpPct=clamp(100*p.hp/Math.max(1,p.maxHp),0,100);
  UI['w-hp-bar'].style.width=hpPct+'%';
  const ghost=document.getElementById('w-hp-trail');if(ghost)ghost.style.width=hpPct+'%';
@@ -6660,20 +6722,29 @@ function refreshUI(){
   // Restart hit motion next frame, without synchronously forcing layout.
   left.classList.remove('r2-damaged');requestAnimationFrame(()=>left.classList.add('r2-damaged'));
  }
- state._goldPriorHP=p.hp;left?.classList.toggle('r2-hot',!!state.empowered);
+ state._goldPriorHP=p.hp;left?.classList.toggle('r2-hot',!!state.empowered);left?.classList.toggle('is-low',hpPct<=30&&p.hp>0);
  const fury=clamp(state.empowered?100:state.passiveProgress/3,0,100);
  const furyEl=document.getElementById('w-r2-fury-bar');if(furyEl)furyEl.style.width=fury+'%';
  const furyVal=document.getElementById('w-r2-fury-val');if(furyVal)furyVal.textContent=state.empowered?Math.max(0,Math.ceil(state.empoweredEnd-engine.time))+'s':Math.round(fury)+'%';
  UI['w-level'].textContent=state.level;
  UI['w-xp'].textContent=Math.floor(state.xp)+' / '+th;UI['w-xp-bar'].style.width=clamp(100*state.xp/th,0,100)+'%';
  UI['w-wave'].textContent='WAVE '+String(state.wave).padStart(2,'0')+' · CLUSTER '+(Math.floor(Math.max(0,state.wave-1)/10)+1);
- UI['w-count'].textContent=state.phase==='combat'?engine.enemies.length+' ROBOTS · '+state.queue.length+' REINFORCEMENTS':state.phase.toUpperCase();
- UI['wave-status'].textContent=(state.empowered?'⚡ NHIỆT HUYẾT · '+Math.ceil(state.empoweredEnd-engine.time)+'s · ':'')+'J AUTO-APPROACH · ATTACK'+(state.owned.has('jab')?' + FLURRY':'')+(state.owned.has('uppercut')?' + VOLCANO':'')+(state.owned.has('rocket')?' · ROCKET '+(((state.rocketChance??.075)*100).toFixed(1))+'%':'')+' · K '+(state.owned.has('counter')?'COUNTER':'GUARD')+' · L DASH'+(state.owned.has('ult')?' · I FINAL ROUND':'');
+ const activeNow=activeGuns(),remainingNow=activeNow+(state.queue?.length||0);
+ UI['w-count'].textContent=state.phase==='combat'?remainingNow+' HOSTILES LEFT':state.autoNextWave?'NEXT WAVE '+Math.max(1,Math.ceil(state.nextWaveT||0))+'s':state.phase.toUpperCase();
+ const guardCd=guardCooldownSnapshot();
+ const statusText=state.waveToastT>0&&state.waveToast?state.waveToast:
+  state.autoNextWave?'WAVE CLEAR · NEXT WAVE '+Math.max(1,Math.ceil(state.nextWaveT||0))+'s':
+  state.empowered?'⚡ NHIỆT HUYẾT · '+Math.max(0,Math.ceil(state.empoweredEnd-engine.time))+'s':
+  state.guardHeld?(state.guardCounterLive?'GIỮ K · COUNTER LIVE':'ĐANG THỦ · THẢ K ĐỂ HỒI CHIÊU'):
+  guardCd.rem>0?'K HỒI CHIÊU '+Math.ceil(guardCd.rem)+'s':
+  state.levelsPending>0?'LEVEL UP SẴN SÀNG':'J ĐẤM · GIỮ K THỦ · L LƯỚT';
+ UI['wave-status'].textContent=statusText;
+ UI['wave-status'].dataset.kind=state.waveToastT>0||state.autoNextWave||state.guardHeld||guardCd.rem>0?'toast':'hint';
  const boss=engine.enemies.find(e=>e.waveBoss&&!e.dead),bossPanel=document.getElementById('r2-boss-panel');
  if(bossPanel){bossPanel.classList.toggle('visible',!!boss&&state.phase==='combat');
   if(boss){
    document.getElementById('r2-boss-name').textContent='CLUSTER '+(Math.floor((state.wave-1)/10)+1)+' · ELITE';
-   document.getElementById('r2-boss-hp-text').textContent=Math.max(0,Math.ceil(boss.hp)).toLocaleString('en-US')+' / '+Math.ceil(boss.maxHp).toLocaleString('en-US');
+   document.getElementById('r2-boss-hp-text').textContent=formatHudInt(boss.hp)+' / '+formatHudInt(boss.maxHp);
    const pct=clamp(100*boss.hp/Math.max(1,boss.maxHp),0,100)+'%';
    document.getElementById('r2-boss-hp-fill').style.width=pct;
    document.getElementById('r2-boss-hp-ghost').style.width=pct;
@@ -6686,6 +6757,7 @@ function refreshUI(){
   UI['w-arsenal'].replaceChildren(...guns.slice(0,5).map(name=>{const el=document.createElement('span');el.textContent=name;return el}));
  }
  for(const name of ['U','I'])document.querySelector(`[data-act="${name}"]`).disabled=!state.owned.has(name==='U'?'phantom':'ult');
+ refreshActionUI();
 }
 function xpNeeded(level){return Math.ceil(70*Math.pow(1.16,level-1))}
 function gainXP(xp){if(state.phase==='complete'||state.phase==='gameover')return;
@@ -6696,7 +6768,7 @@ function gainXP(xp){if(state.phase==='complete'||state.phase==='gameover')return
 function qualifiedCards(){return CARDS.filter(c=>!c.requires?.some(req=>!state.owned.has(req))&&(!c.max||((state.stacks[c.id]||0)<c.max))&&(!['jab','rocket','uppercut','counter','phantom','ult'].includes(c.id)||!state.owned.has(c.id)));}
 function threeCards(){const pool=qualifiedCards(),draw=[];for(let i=0;i<3&&pool.length;i++){let total=pool.reduce((s,c)=>s+c.weight,0),r=rng()*total,idx=pool.length-1;for(let j=0;j<pool.length;j++){r-=pool[j].weight;if(r<0){idx=j;break}}draw.push(pool.splice(idx,1)[0]);}return draw}
 function presentCards(){if(state.offer||state.levelsPending<=0)return;
- state.phase='upgrade';engine.paused=true;engine.combatCue('LEVEL_UP',.86);
+ finishGuard('upgrade');state.phase='upgrade';engine.mouse.down=false;engine.paused=true;engine.combatCue('LEVEL_UP',.86);
  UI['w-title'].textContent='LEVEL '+state.level+' · CHỌN NÂNG CẤP';UI['w-desc'].textContent='Một trong ba thẻ được bốc theo tỷ lệ tier. Không mở khóa tự động; ultimate I chỉ có khi bạn chọn đúng thẻ.';
  state.offer=threeCards();UI['w-cards'].replaceChildren(...state.offer.map(c=>{const btn=document.createElement('button');btn.className='w-card';btn.innerHTML=`<small>${c.tier} · ${['jab','rocket','uppercut','counter','phantom','ult'].includes(c.id)?'UNLOCK':'UPGRADE'}</small><strong></strong><em></em>`;btn.querySelector('strong').textContent=c.label;btn.querySelector('em').textContent=c.desc;btn.onclick=()=>chooseCard(c.id);return btn}));
  UI['w-go'].style.display='none';UI['wave-modal'].hidden=false;
@@ -6782,7 +6854,7 @@ function applyRunSnapshot(snapshot,{preserveLosses=false}={}){
  state.healthPackDrops=snap.healthPackDrops;state.healthPackPickups=snap.healthPackPickups;state.healthPacks.length=0;
  state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;
  state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.comboTrace=[];state.debug={};
- state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;state.activeEnemies=0;state._shownArsenal=null;
+ state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;state.activeEnemies=0;state._shownArsenal=null;resetGuardState();state.nextWaveT=0;state.autoNextWave=false;setWaveToast('',0);
  applyStacksDerived();engine.player.hp=clamp(snap.hp,1,engine.player.maxHp);state._goldPriorHP=engine.player.hp;
  state.waveSnapshot=cloneSnapshot(snap);state.waveSnapshot.losses=state.losses;
  return true;
@@ -6793,7 +6865,7 @@ function resetArenaForSnapshot(){
  engine.paused=true;engine.mouse.down=false;engine.leap=null;engine.ultLockT=0;engine.opts.haste=1;engine.opts.damageScale=1;
  Object.assign(engine.player,{x:0,y:120,vx:0,vy:0,fury:0,empoweredT:0,guardT:0,invulnT:0,dashT:0,dashCd:0,basicCd:0,comboStep:0,comboWinT:0,castLockT:0,cycloneT:0,orbitT:0});
  if(engine.cds)for(const id of engine.cds.keys())engine.cds.set(id,0);
- state.healthPacks.length=0;stickDX=0;stickDY=0;
+ state.healthPacks.length=0;stickDX=0;stickDY=0;resetGuardState();state.nextWaveT=0;state.autoNextWave=false;setWaveToast('',0);
 }
 function prepareClusterRetry(){
  const snap=sanitizeRunSnapshot(state.clusterSnapshot);
@@ -6873,7 +6945,7 @@ function drawHealthPacks(ctx){
 function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.phase==='gameover')return;
  // Sound prewarm is triggered by the real WAVE START gesture above.
  // Internal testStartWave may skip it because tests are a deterministic fixture.
- state.wave++;state.healthPacks.length=0;captureBoundarySnapshot(state.wave);state.phase='combat';state.comboFlow=null;state.rocketPending=false;state.stickyEngage=null;state.queue=[];state.spawnT=0;const comp=waveComposition(state.wave);
+ state.wave++;state.healthPacks.length=0;state.autoNextWave=false;state.nextWaveT=0;setWaveToast('',0);captureBoundarySnapshot(state.wave);state.phase='combat';state.comboFlow=null;state.rocketPending=false;state.stickyEngage=null;state.queue=[];state.spawnT=0;const comp=waveComposition(state.wave);
  state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,boss:e.boss,edge:e.edge,
   edgeFraction:e.edgeFraction,role:e.role,pressure:e.pressure||0}));
  state.softCap=comp.plan.concurrentLimit;state.spawnInterval=comp.plan.spawnInterval||.37;state.pressureBudget=comp.plan.pressureBudget||260;ARENA_STAGE.beginWave(state.wave);engine.paused=false;engine.combatCue('WAVE_START',.8);engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
@@ -6900,27 +6972,28 @@ function makeEnemy(desc){
  return e;
 }
 function gunFire(e,dt){if(state.phase==='combat')ARMORY.fire(e,dt);}
-function completedUI(){
- const comp=waveComposition(state.wave),boss=comp.plan.boss;
- UI['w-title'].textContent=boss?'CLUSTER '+(comp.plan.cluster||comp.plan.chapter)+' SURVIVED':'WAVE '+state.wave+' CLEAR';
- UI['w-desc'].textContent='Nghỉ hồi '+Math.round(comp.heal*100)+
- '% HP · Đã mở '+comp.plan.revealedWeapons+' / '+comp.plan.totalWeapons+
- ' vũ khí Arsenal. Kẻ địch mới và tổ hợp tiếp theo thay đổi hướng ép góc, không tăng chỉ số súng.';
- UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';
- UI['w-go'].textContent='▶ NEXT WAVE '+(state.wave+1);
- UI['wave-modal'].hidden=false;
+function waveClearTransitionUI(comp,healed){
+ // Ordinary wave clears are part of the combat flow: no modal, no pause and
+ // no extra click. The same heal/snapshot boundary remains authoritative.
+ const boss=!!comp.plan.boss,nextWave=state.wave+1,delay=boss?3:2.2;
+ UI['wave-modal'].hidden=true;
+ setWaveToast((boss?'CLUSTER CLEAR':'WAVE '+String(state.wave).padStart(2,'0')+' CLEAR')+' · +'+formatHudInt(healed)+' HP · NEXT '+Math.ceil(delay)+'s',delay);
+ engine.banner={text:boss?'CLUSTER CLEAR':'WAVE '+String(state.wave).padStart(2,'0')+' CLEAR',sub:'+'+formatHudInt(healed)+' HP · WAVE '+String(nextWave).padStart(2,'0')+' INCOMING',t:1.55,max:1.55};
+ return delay;
 }
-function completeWave(){if(state.phase!=='combat')return;state.phase='intermission';state.comboFlow=null;state.rocketPending=false;state.healthPacks.length=0;engine.paused=true;
- let c=waveComposition(state.wave);engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*c.heal);captureBoundarySnapshot(state.wave+1);
- engine.combatCue('WAVE_CLEAR',1);engine.combatCue('HEAL',.48);ARENA_STAGE.notice('ROUND '+state.wave+' CLEAR');completedUI();}
-function lose(){if(state.phase==='gameover')return;state.phase='gameover';state.comboFlow=null;state.rocketPending=false;state.healthPacks.length=0;engine.paused=true;state.losses++;
+function completeWave(){if(state.phase!=='combat')return;
+ finishGuard('wave-clear');state.phase='intermission';state.comboFlow=null;state.rocketPending=false;state.healthPacks.length=0;engine.mouse.down=false;
+ let c=waveComposition(state.wave);const beforeHeal=engine.player.hp;engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*c.heal);const healed=Math.max(0,engine.player.hp-beforeHeal);captureBoundarySnapshot(state.wave+1);
+ ARMORY.reset();engine.paused=false;state.autoNextWave=true;state.nextWaveT=waveClearTransitionUI(c,healed);
+ engine.combatCue('WAVE_CLEAR',1);engine.combatCue('HEAL',.48);ARENA_STAGE.notice('ROUND '+state.wave+' CLEAR');refreshUI();}
+function lose(){if(state.phase==='gameover')return;resetGuardState();state.autoNextWave=false;state.nextWaveT=0;setWaveToast('',0);state.phase='gameover';state.comboFlow=null;state.rocketPending=false;state.healthPacks.length=0;engine.mouse.down=false;engine.paused=true;state.losses++;
  const retryWave=state.clusterSnapshot?.wave||clusterStartWave(state.wave);
  if(state.clusterSnapshot){const retry=cloneSnapshot(state.clusterSnapshot);retry.losses=state.losses;state.waveSnapshot=retry;persistRun();}
  engine.combatCue('PLAYER_KO',1);UI['w-title'].textContent='BOXE DOWN · WAVE '+state.wave;
  UI['w-desc'].textContent='Thua trong cụm: toàn bộ thẻ kiếm được từ Wave '+retryWave+' sẽ bị thu hồi. BOXE quay lại Wave '+retryWave+' bằng đúng build và HP lúc vào cụm.';
  UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';UI['w-go'].textContent='↻ RETRY WAVE '+retryWave;UI['wave-modal'].hidden=false;}
 function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.timeline=[];engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;
- ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.healthPacks.length=0;state.healthPackDrops=0;state.healthPackPickups=0;state.waveSnapshot=null;state.clusterSnapshot=null;clearSavedRun();applyStacksDerived();engine.player.hp=engine.player.maxHp;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
+ ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();resetGuardState();state.autoNextWave=false;state.nextWaveT=0;setWaveToast('',0);state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.healthPacks.length=0;state.healthPackDrops=0;state.healthPackPickups=0;state.waveSnapshot=null;state.clusterSnapshot=null;clearSavedRun();applyStacksDerived();engine.player.hp=engine.player.maxHp;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
  UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;engine.combatCue('UI',.7);startWave();}
 function autoAimNow(){
  // Same exact nearest-robot criterion and stable ID tie-break as the original
@@ -6940,18 +7013,96 @@ function autoAimNow(){
  engine.mouse.y=engine.h/2+Math.sin(a)*260;
  return enemy.id;
 }
-function act(k,press){if(state.phase!=='combat'||engine.paused)return;
+const GUARD_BASE_CD=2.4,GUARD_COUNTER_CD=12,GUARD_HOLD_TICK=.12,GUARD_MOVE_MUL=.55;
+function resetGuardState(){
+ state.guardHeld=false;state.guardCounterLive=false;state.guardHoldT=0;state.guardCdT=0;state.guardCdMax=GUARD_BASE_CD;
+ if(engine?.player){engine.player.guardT=0;engine.player.counterDone=true;}
+}
+function guardReady(){
+ if(state.guardHeld)return false;
+ if(state.owned.has('counter'))return (state.guardCdT||0)<=0&&((engine.cds?.get('counter')||0)<=0);
+ return (state.guardCdT||0)<=0;
+}
+function startGuardCooldown(counterLive){
+ if(counterLive){
+  const full=GUARD_COUNTER_CD*(state.skillCdMul||1);
+  state.guardCdMax=full;state.guardCdT=full;
+  if(engine.cds)engine.cds.set('counter',full);
+ }else{
+  // Longer holds buy safety with recovery time, capped so the basic guard
+  // remains a responsive defensive verb rather than a second ultimate.
+  state.guardCdMax=GUARD_BASE_CD+Math.min(1.2,(state.guardHoldT||0)*.25);
+  state.guardCdT=state.guardCdMax;
+ }
+}
+function beginGuard(){
+ if(state.guardHeld)return true;
+ if(!guardReady()){
+  const cd=guardCooldownSnapshot();
+  setWaveToast('K HỒI CHIÊU '+Math.max(1,Math.ceil(cd.rem))+'s',.75);refreshActionUI();return false;
+ }
+ engine.initAudio();const p=engine.player;
+ if(state.owned.has('counter')){
+  const beforeCd=engine.cds?.get('counter')||0;
+  engine.castSkill('counter');
+  const castLive=(engine.cds?.get('counter')||0)>beforeCd||(p.guardT||0)>0;
+  if(!castLive)return false;
+  state.guardCounterLive=true;
+  state.guardCdMax=GUARD_COUNTER_CD*(state.skillCdMul||1);
+ }else{
+  state.guardCounterLive=false;p.counterDone=true;p.guardT=GUARD_HOLD_TICK;
+  engine.fx.flash(p.x,p.y-20,85,'#f6b73c',.20);engine.sfx('shield',.8);
+ }
+ state.guardHeld=true;state.guardHoldT=0;state.guardCdT=0;refreshActionUI();return true;
+}
+function finishGuard(reason='release'){
+ if(!state.guardHeld)return false;
+ const p=engine.player,counterLive=!!state.guardCounterLive;
+ state.guardHeld=false;state.guardCounterLive=false;
+ if(reason==='countered'){
+  p.guardT=0;p.counterDone=true;
+ }else{
+  const linger=Math.max(0,(state.guardBonus||0)+(counterLive?(state.counterWindowBonus||0):0));
+  p.guardT=linger;
+  if(!counterLive)p.counterDone=true;
+ }
+ startGuardCooldown(counterLive);refreshActionUI();return true;
+}
+function updateGuard(dt){
+ const goldCounterCd=engine.cds?.get('counter')||0;
+ if(state.owned.has('counter')&&!state.guardHeld&&goldCounterCd>0)state.guardCdT=goldCounterCd;
+ else if(state.guardCdT>0)state.guardCdT=Math.max(0,state.guardCdT-dt);
+ if(state.waveToastT>0)state.waveToastT=Math.max(0,state.waveToastT-dt);
+ if(!state.guardHeld)return;
+ const p=engine.player;state.guardHoldT+=dt;
+ if(state.guardCounterLive&&p.counterDone){finishGuard('countered');return;}
+ if(!state.guardCounterLive)p.counterDone=true;
+ p.guardT=Math.max(p.guardT||0,GUARD_HOLD_TICK);
+}
+function act(k,press){
+ if(k==='K'&&!press){finishGuard('release');return;}
+ if(state.phase!=='combat'||engine.paused)return;
+ const cancelsGuard=k==='J'||(k==='L'&&(engine.player.dashCd||0)<=0)||(k==='U'&&state.owned.has('phantom')&&((engine.cds?.get('phantom')||0)<=0))||(k==='I'&&state.owned.has('ult')&&((engine.cds?.get('ult')||0)<=0));
+ if(press&&cancelsGuard&&state.guardHeld)finishGuard('cancel');
  if(k==='J'){engine.mouse.down=press;if(press){engine.initAudio();autoAimNow();engine.basicAttack()}};
  if(!press)return;
- if(k==='K'){engine.initAudio();if(state.owned.has('counter'))engine.castSkill('counter');else{engine.player.guardT=.45+state.guardBonus;engine.player.counterDone=true;engine.fx.flash(engine.player.x,engine.player.y-20,85,'#f6b73c',.20);engine.sfx('shield',.8)}}
+ if(k==='K'){beginGuard();return;}
  if(k==='L')engine.dash();
  if(k==='U'&&state.owned.has('phantom'))engine.castSkill('phantom');
  if(k==='I'&&state.owned.has('ult'))engine.castSkill('ult');
 }
 function activeGuns(){return engine.enemies.filter(e=>!e.dead&&e.waveGunId).length}
 function activePressure(){return engine.enemies.reduce((sum,e)=>sum+(!e.dead&&e.waveGunId?(e.wavePressure||0):0),0)}
-function updateWave(rawDt){if(state.phase!=='combat')return;
+function updateWave(rawDt){
  let dt=Math.min(.05,rawDt);
+ if(state.phase==='intermission'&&state.autoNextWave){
+  updateGuard(dt);updateHealthPacks();state.nextWaveT=Math.max(0,(state.nextWaveT||0)-dt);
+  if(performance.now()-lastUI>90){refreshUI();lastUI=performance.now()}
+  if(state.nextWaveT<=0&&!state.levelsPending&&!state.offer)startWave();
+  return;
+ }
+ if(state.phase!=='combat')return;
+ updateGuard(dt);
  state.aliveTime+=dt;
  // Auto target on ALL devices, not just touch. Tie-break by stable enemy ID.
  if(Math.hypot(stickDX,stickDY)>.2){for(const k of ['KeyW','KeyA','KeyS','KeyD'])engine.keys.delete(k);
@@ -6966,7 +7117,7 @@ function updateWave(rawDt){if(state.phase!=='combat')return;
  updateHealthPacks();
  if(!state.queue.length&&!activeGuns()&&!state.levelsPending)completeWave();
  if(engine.player.hp<=0)lose();
- if(performance.now()-lastUI>130){refreshUI();lastUI=performance.now()}
+ if(performance.now()-lastUI>90){refreshUI();lastUI=performance.now()}
 }
 function recordBOXERealDamage(realized){
  if(!(realized>0)||state.empowered||state.passiveReady||state.phase!=='combat')return;
@@ -6978,6 +7129,8 @@ function recordBOXERealDamage(realized){
 const originalHitCircle=engine.hitCircle.bind(engine);
 engine.hitCircle=function(x,y,r,dmg,opts){const hit=originalHitCircle(x,y,r,dmg,opts);
  if(hit?.length)ARENA_STAGE.mark(x,y,'hit',dmg>200?1.7:1);return hit;};
+const nativeAddText=engine.addText.bind(engine);
+engine.addText=function(x,y,text,color,size){return nativeAddText(x,y,formatCombatText(text),color,size);};
 const nativeDrawFxR2=engine.drawFx.bind(engine);
 engine.drawFx=function(ctx){nativeDrawFxR2(ctx);R2_PRESENT.draw(ctx);drawHealthPacks(ctx);};
 const nativeDamageEnemy=engine.damageEnemy.bind(engine);
@@ -7192,7 +7345,7 @@ engine.update=function(dt){
   }
  }
  if(state.phase==='combat'){
-  const speed=state.moveMul*ARMORY.movementSlow();
+  const speed=state.moveMul*ARMORY.movementSlow()*(state.guardHeld?GUARD_MOVE_MUL:1);
   if(speed!==1){this.player.x+=(this.player.x-originalX)*(speed-1);
    this.player.y+=(this.player.y-originalY)*(speed-1);}
  }
@@ -7213,18 +7366,19 @@ engine.onKeyDown=function(e){
 };
 window.removeEventListener('keydown',nativeOnKeyDown);window.addEventListener('keydown',engine.onKeyDown);
 const nativeOnKeyUp=engine.onKeyUp;
-engine.onKeyUp=function(e){if(e.code==='KeyJ'){act('J',false);return;}nativeOnKeyUp(e)};
+engine.onKeyUp=function(e){if(['KeyJ','KeyK','KeyL','KeyU','KeyI'].includes(e.code)){e.preventDefault();act(e.code.slice(3),false);return;}nativeOnKeyUp(e)};
 window.removeEventListener('keyup',nativeOnKeyUp);window.addEventListener('keyup',engine.onKeyUp);
 window.addEventListener('keydown',e=>{if(e.code.startsWith('Digit'))e.stopImmediatePropagation()},true);
 engine.enemies=[];engine.projs=[];engine.timeline=[];engine.opts.infiniteDummyHp=false;engine.opts.noCooldown=false;engine.opts.sound=true;
 engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;engine.player.x=0;engine.player.y=120;engine.player.fury=0;engine.player.empoweredT=0;engine.player.guardT=0;engine.player.invulnT=0;engine.player.dashCd=0;engine.player.comboStep=0;engine.player.basicCd=0;engine.waveCounterUnlocked=false;applyStacksDerived();restoreSavedRunAtBoot();
 engine.camZoom=.57;engine.camZoomBase=.57;
-window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,owned:[...state.owned],stacks:{...state.stacks},sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,healthPacks:state.healthPacks.length,healthPackDrops:state.healthPackDrops,healthPackPickups:state.healthPackPickups,savedWave:state.waveSnapshot?.wave||0,clusterWave:state.clusterSnapshot?.wave||0,enemies:engine.enemies.length,player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp,maxHp:engine.player.maxHp}}),source:'APEX_GOLD_R5'};
+window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,nextWaveT:state.nextWaveT,autoNextWave:state.autoNextWave,guard:{held:state.guardHeld,counterLive:state.guardCounterLive,cdT:state.guardCdT,cdMax:state.guardCdMax,holdT:state.guardHoldT},owned:[...state.owned],stacks:{...state.stacks},sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,healthPacks:state.healthPacks.length,healthPackDrops:state.healthPackDrops,healthPackPickups:state.healthPackPickups,savedWave:state.waveSnapshot?.wave||0,clusterWave:state.clusterSnapshot?.wave||0,enemies:engine.enemies.length,player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp,maxHp:engine.player.maxHp}}),source:'APEX_GOLD_R5'};
 createUI();refreshUI();presentRunIntro();engine.paused=true;
 // Native combat already refreshes the HUD and handles defeat in updateWave.
  // Avoid duplicated DOM churn from a second independent timer.
- window.addEventListener('pagehide',()=>{persistRun();engine.mouse.down=false;ARMORY.reset()},{once:true});
- document.addEventListener('visibilitychange',()=>{if(document.hidden)persistRun();});
+ window.addEventListener('blur',()=>{finishGuard('focus-loss');engine.mouse.down=false;document.querySelector('[data-act="K"]')?.classList.remove('on');});
+ window.addEventListener('pagehide',()=>{finishGuard('pagehide');persistRun();engine.mouse.down=false;ARMORY.reset()},{once:true});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){finishGuard('hidden');persistRun();}});
 })();
 
 

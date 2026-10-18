@@ -12,6 +12,9 @@ import './testBotWavePersistence.mjs';
 // Post-x7 balance proof: campaign pressure must be derived from realized
 // Free Battle damage and enforced as a simultaneous-fire budget.
 import './testBotWaveBalance.mjs';
+// Seamless HUD proof: ordinary waves auto-advance, combat numbers render as
+// integers, and K is a hold guard with a real pre-Counter cooldown.
+import './testBotWaveHudFlow.mjs';
 const bridge=fs.readFileSync('public/game/bot-wave/nativeArsenalGoldBridge.js','utf8');
 const gold=fs.readFileSync('public/bot-wave/game.html','utf8');
 for(const x of ['native.api.equip(proxy,id)','native.api.updateHolder(proxy,dt)','native.api.updateArsenalProjectiles(dt','native.api.drawArsenalProjectiles(ctx)','native.av.cue']){

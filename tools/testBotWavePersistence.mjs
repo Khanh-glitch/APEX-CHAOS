@@ -41,6 +41,14 @@ const loseStart = game.indexOf('function lose()');
 const loseEnd = game.indexOf('\nfunction restart()', loseStart);
 assert.ok(loseStart >= 0 && loseEnd > loseStart, 'lose() not found');
 const loseText = game.slice(loseStart, loseEnd);
+const helperStart = game.indexOf('function formatHudInt');
+const helperEnd = game.indexOf('\nfunction refreshUI()', helperStart);
+assert.ok(helperStart >= 0 && helperEnd > helperStart, 'HUD helper block not found');
+const helperText = game.slice(helperStart, helperEnd);
+const guardStart = game.indexOf('const GUARD_BASE_CD=');
+const guardEnd = game.indexOf('\nfunction act(', guardStart);
+assert.ok(guardStart >= 0 && guardEnd > guardStart, 'guard state block not found');
+const guardText = game.slice(guardStart, guardEnd);
 
 let rngValue = 0;
 let restartCalls = 0;
@@ -134,6 +142,15 @@ const sandbox = {
     clusterSnapshot: null,
     _goldPriorHP: 1,
     _shownArsenal: 'stale',
+    guardHeld: true,
+    guardCounterLive: true,
+    guardHoldT: 4,
+    guardCdT: 9,
+    guardCdMax: 9,
+    nextWaveT: 2,
+    autoNextWave: true,
+    waveToast: 'STALE',
+    waveToastT: 2,
   },
   engine: {
     time: 10,
@@ -170,6 +187,8 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(`
 ${applyText}
+${helperText}
+${guardText}
 ${blockText}
 ${loseText}
 globalThis.__api={
@@ -261,6 +280,9 @@ near(sandbox.engine.player.hp, 800, 'Rollback restores entry HP');
 near(sandbox.state.damageMul, 1.13, 'Rollback recomputes derived damage');
 assert.equal(sandbox.state.healthPacks.length, 0);
 assert.equal(sandbox.state.levelsPending, 0);
+assert.equal(sandbox.state.guardHeld, false, 'Snapshot restore cannot leak a held guard');
+assert.equal(sandbox.state.autoNextWave, false, 'Manual snapshot restore must not auto-start');
+assert.equal(sandbox.state.nextWaveT, 0);
 
 // Boot restore presents the saved current wave, while a mismatched cluster
 // snapshot is rejected rather than silently trusted.
@@ -388,7 +410,8 @@ api.drawHealthPacks(ctx);
 // orphaned from actual wave flow, kill flow, rendering or boot.
 for (const required of [
   "const BOT_WAVE_SAVE_KEY='apex-botwave-save-v1';",
-  'state.wave++;state.healthPacks.length=0;captureBoundarySnapshot(state.wave);',
+  'state.wave++;state.healthPacks.length=0;state.autoNextWave=false;state.nextWaveT=0;',
+  'captureBoundarySnapshot(state.wave);state.phase=\'combat\';',
   'captureBoundarySnapshot(state.wave+1);',
   "if(state.phase==='gameover')prepareClusterRetry();",
   "UI['w-go'].textContent='↻ RETRY WAVE '+retryWave;",
@@ -397,8 +420,8 @@ for (const required of [
   'drawHealthPacks(ctx);',
   'restoreSavedRunAtBoot();',
   'presentRunIntro();engine.paused=true;',
-  "window.addEventListener('pagehide',()=>{persistRun();",
-  "document.addEventListener('visibilitychange',()=>{if(document.hidden)persistRun();});",
+  "window.addEventListener('pagehide',()=>{finishGuard('pagehide');persistRun();",
+  "document.addEventListener('visibilitychange',()=>{if(document.hidden){finishGuard('hidden');persistRun();}});",
   'state.waveSnapshot=null;state.clusterSnapshot=null;clearSavedRun();',
   'healthPacks:state.healthPacks.length',
   'savedWave:state.waveSnapshot?.wave||0',
