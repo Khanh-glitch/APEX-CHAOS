@@ -6287,13 +6287,16 @@ const loadWaveDependency=src=>new Promise((resolve,reject)=>{
  const el=document.createElement('script');el.src=src+'?v=20261018-botwave-r19';el.onload=resolve;
  el.onerror=()=>reject(Error('BOT_WAVE_DEPENDENCY_FAILED '+src));document.head.appendChild(el);
 });
+await loadWaveDependency('/game/arsenal/arsenalConfig.js');
+await loadWaveDependency('/game/arsenal/arsenalIdentityRuntime.js');
 await Promise.all([
- loadWaveDependency('/game/arsenal/arsenalConfig.js'),
  loadWaveDependency('/game/bot-wave/waveCampaign.js'),
  loadWaveDependency('/game/bot-wave/nativeArsenalGoldBridge.js'),
  loadWaveDependency('/game/arsenal/arsenalCWeaponSet.generated.js')
 ]);
 const CFG=window.APEX_ARSENAL_CONFIG,CAMPAIGN=window.APEX_BOT_WAVE_CAMPAIGN;
+if(window.apexArsenalIdentityRuntime!=='ready'||CFG?.isGun?.('PISTOL')!==true)
+ throw Error('BOT_WAVE_ARSENAL_IDENTITY_REQUIRED');
 const ARSENAL_CATALOG=CAMPAIGN.indexNative(CFG);
 
 // APEX CHAOS asset authority. One resident sprite and bounded audio pool per cue.

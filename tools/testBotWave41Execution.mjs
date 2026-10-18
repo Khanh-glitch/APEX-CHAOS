@@ -1,8 +1,10 @@
 // BOT WAVE 41-weapon execution gate.
 //
 // This deliberately boots the shipped BOT WAVE dependency order in a VM:
-// arsenalConfig -> waveCampaign -> nativeArsenalGoldBridge -> C weapon set,
-// createArmory(), presentation boundary, arsenalWeaponRuntime, connect().
+// arsenalConfig -> arsenalIdentityRuntime -> waveCampaign / native bridge /
+// C weapon set, createArmory(), presentation boundary, arsenalWeaponRuntime,
+// connect(). Identity is not optional: it supplies CFG.isGun/isMelee, without
+// which the real scaleEquipmentDamage silently leaves guns at authored damage.
 // Only the Gold engine seam and the presentation AV seam are stubbed. Every
 // holder, projectile, damage number, phase and consumption transition below
 // is produced by the production Free Battle Arsenal runtime through the
@@ -78,6 +80,7 @@ function load(path) {
 
 for (const path of [
   'public/game/arsenal/arsenalConfig.js',
+  'public/game/arsenal/arsenalIdentityRuntime.js',
   'public/game/bot-wave/waveCampaign.js',
   'public/game/bot-wave/nativeArsenalGoldBridge.js',
   'public/game/arsenal/arsenalCWeaponSet.generated.js',
@@ -95,6 +98,22 @@ assert.equal(
   'removed fake armoryRuntime.js must not be recreated',
 );
 assert.equal(config.ARSENAL_DAMAGE_SCALE, 7, 'BOT WAVE must execute the canonical post-x7 Free Battle config');
+assert.equal(sandbox.apexArsenalIdentityRuntime, 'ready', 'BOT WAVE must boot the Free Battle Arsenal identity runtime');
+assert.equal(config.isGun?.('PISTOL'), true, 'BOT WAVE must classify PISTOL as a gun before weapon damage scaling');
+assert.equal(config.WEAPONS.PISTOL.damagePerShot, 4.5, 'PISTOL authored damage must remain the Free Battle 4.5 input to x7');
+
+const botWaveGame = fs.readFileSync('public/bot-wave/game.html', 'utf8');
+const configLoadAt = botWaveGame.indexOf("await loadWaveDependency('/game/arsenal/arsenalConfig.js')");
+const identityLoadAt = botWaveGame.indexOf("await loadWaveDependency('/game/arsenal/arsenalIdentityRuntime.js')");
+const weaponLoadAt = botWaveGame.indexOf("loadWaveDependency('/game/arsenal/arsenalWeaponRuntime.js')");
+assert.ok(
+  configLoadAt >= 0 && identityLoadAt > configLoadAt && weaponLoadAt > identityLoadAt,
+  'shipped BOT WAVE must load arsenalConfig, then arsenalIdentityRuntime, before arsenalWeaponRuntime',
+);
+assert.ok(
+  botWaveGame.includes('BOT_WAVE_ARSENAL_IDENTITY_REQUIRED'),
+  'shipped BOT WAVE must fail closed instead of falling back to unscaled authored gun damage',
+);
 
 const player = {
   id: 1,
@@ -171,6 +190,12 @@ sandbox.APEX_ARSENAL_AV = {
 
 load('public/game/arsenal/arsenalWeaponRuntime.js');
 armory.connect();
+
+assert.equal(
+  sandbox.APEX_ARSENAL.weaponApi.scaledDamage(config.WEAPONS.PISTOL.damagePerShot, 'PISTOL', false),
+  31.5,
+  'BOT WAVE PISTOL must realize the same Free Battle post-x7 damage as a non-critical body hit',
+);
 
 const projectiles = sandbox.projectiles;
 assert.ok(Array.isArray(projectiles), 'bridge did not install the native projectiles array');
@@ -290,6 +315,7 @@ for (let ordinal = 0; ordinal < indexed.records.length; ordinal++) {
   const hasExecutionEvidence = () => {
     if (family === 'SHIELD') return evidence.phases.has('GUARD');
     if (family === 'MELEE') return totalPlayerDamage() > 0 || evidence.projectiles.size > 0;
+    if (id === 'PISTOL') return totalPlayerDamage() > 0;
     return evidence.projectiles.size > 0 || totalPlayerDamage() > 0;
   };
   const hasLifecycleProjection = () =>
@@ -332,6 +358,13 @@ for (let ordinal = 0; ordinal < indexed.records.length; ordinal++) {
     `${id} produced no real native execution evidence: ${diagnostic}`,
   );
   assert.ok(player.hp > 0 && enemy.hp > 0, `${id} unexpectedly exhausted a test actor: ${diagnostic}`);
+  if (id === 'PISTOL') {
+    assert.equal(
+      goldCalls.playerDamage[0],
+      31.5,
+      `first real BOT WAVE PISTOL bullet must deal Free Battle post-x7 damage, not authored 4.5: ${diagnostic}`,
+    );
+  }
   assert.ok(
     avCalls.some(call => call.event === 'pickup' && call.weapon === id),
     `${id} did not pass through the real native equip AV boundary: ${diagnostic}`,

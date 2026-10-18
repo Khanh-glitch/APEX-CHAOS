@@ -38,6 +38,13 @@ assert.ok(bridge.includes('projectile.life-=dt'),'Gold must advance canonical Ar
 assert.ok(bridge.includes('native.api.updateArsenalProjectiles(dt'),'Collision ownership must remain with Arsenal runtime');
 assert.ok(!bridge.includes('engine.projs.splice('),'No fake projectile lifecycle allowed');
 assert.ok(gold.includes('APEX_BOT_WAVE_NATIVE_BRIDGE'),'Gold wave must load actual native bridge');
+const configLoadAt=gold.indexOf("await loadWaveDependency('/game/arsenal/arsenalConfig.js')");
+const identityLoadAt=gold.indexOf("await loadWaveDependency('/game/arsenal/arsenalIdentityRuntime.js')");
+const weaponLoadAt=gold.indexOf("loadWaveDependency('/game/arsenal/arsenalWeaponRuntime.js')");
+assert.ok(configLoadAt>=0&&identityLoadAt>configLoadAt&&weaponLoadAt>identityLoadAt,
+ 'BOT WAVE must load Arsenal identity after config and before weapon runtime so CFG.isGun enables Free Battle x7');
+assert.ok(gold.includes('BOT_WAVE_ARSENAL_IDENTITY_REQUIRED'),
+ 'BOT WAVE must fail closed instead of silently using authored unscaled gun damage');
 assert.ok(!gold.includes('APEX_BOT_WAVE_ARMORY.createArmory'),
  'Deprecated fake Armory must never drive Gold');
 const campaign=fs.readFileSync('public/game/bot-wave/waveCampaign.js','utf8');
