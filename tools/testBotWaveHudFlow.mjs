@@ -264,30 +264,61 @@ assert.ok(!game.includes("UI['w-go'].textContent='▶ NEXT WAVE"), 'ordinary wav
 assert.ok(!game.includes("engine.player.guardT=.45+state.guardBonus"), 'fixed .45s tap guard is retired');
 
 for (const required of [
-  "const VERSION='owner-release-r10-seamless-hud';",
+  "const VERSION='owner-release-r11-ringside-command-deck';",
   'for(let i=0;i<10;i++)',
   'Math.floor((n-1)/10)+1,beat=(n-1)%10,bossBeat=beat===9',
   'Number(s.pressureBudget)',
   'Number(e.wavePressure)',
   "s.autoNextWave?'WAVE CLEAR'",
   'window.setInterval(update,90)',
+  'const ACTION_GLYPHS=Object.freeze({',
+  'installActionGlyphs(actions);',
+  "decor(deck,'bw-atmosphere'",
+  "decor(hero,'bw-status-lights'",
+  "decor(center,'bw-encounter-crest'",
+  "decor(pressure,'bw-pressure-ticks'",
+  "decor(threat,'bw-radar'",
+  "decor(skill,'bw-deck-rail'",
+  "decor(modal,'bw-dialog-ornaments'",
+  "center.dataset.danger=danger>=.82?'critical'",
+  "guardButton.classList.add('bw-ready-flash')",
 ]) assert.ok(presentation.includes(required), `Missing V2 HUD truth seam: ${required}`);
 assert.ok(!presentation.includes('Math.floor((n-1)/5)'), 'stale five-wave chapter math is retired');
 assert.ok(!presentation.includes('beat===4'), 'stale fifth-wave boss math is retired');
 
 for (const required of [
+  'BOT WAVE R11 — Ringside Command Deck',
+  '--bw-brass:#c99a5f;--bw-amber:#ffbb71;--bw-gold:#ffe1a1;--bw-ember:#ff7048',
+  '--bw-crimson:#ff4057;--bw-mint:#8dffb2;--bw-cyan:#8fe8ff;--bw-violet:#c9a7ff',
+  '#wave-hud .bw-atmosphere',
+  '#wave-hud .bw-status-lights',
+  '#wave-hud .bw-encounter-crest',
+  '#wave-hud .bw-pressure-ticks',
+  '#wave-hud .bw-radar',
+  '@keyframes bw-radar-sweep',
+  '#wave-hud .bw-deck-rail',
+  '#wave-hud .bw-action-glyph',
+  '--bw-action-accent:#ffcf7a',
+  '--bw-action-accent:#8fe8ff',
+  '--bw-action-accent:#c9a7ff',
+  '--bw-action-accent:#ff5964',
   '#wave-hud .w-action .w-cd',
-  'conic-gradient(rgba(1,5,9,.74)',
+  'conic-gradient(rgba(1,5,9,.78)',
+  '#wave-hud .w-action.bw-ready-flash',
   '#wave-hud .w-action[data-act="K"].is-guarding',
   '#wave-hud #wave-status[data-kind="toast"]',
   '#wave-hud .bw-is-clear #bw-pressure-fill',
   '#wave-hud #w-wave{display:none!important}',
+  '#arena-experience-hud #r2-boss-panel .boss-r2-meter:after',
+  '#wave-modal .w-dialog>.bw-dialog-ornaments',
+  '#wave-modal .w-dialog .w-card:after{counter-increment:bw-card',
+  '@media(prefers-reduced-motion:reduce)',
 ]) assert.ok(presentationCss.includes(required), `Missing V2 HUD CSS seam: ${required}`);
 assert.ok(!presentationCss.includes('#wave-hud #wave-status{display:none!important}'), 'contextual status feed must be visible');
 
-assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r10'));
-assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r10'));
-assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r10'));
-assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r10'));
+assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r11'));
+assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r11'));
+assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r11'));
+assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r11'));
 
-console.log('BOT WAVE HUD flow PASS: seamless waves, integer presentation, hold-K guard + pre-counter cooldown, 10-wave pressure HUD');
+console.log('BOT WAVE HUD flow PASS: R11 ringside command deck, seamless waves, integer presentation, hold-K guard + pre-counter cooldown, 10-wave pressure HUD');
