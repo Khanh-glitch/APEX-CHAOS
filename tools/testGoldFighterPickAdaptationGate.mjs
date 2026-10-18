@@ -60,6 +60,17 @@ check('Frost uses one hero-level scale/orientation authority, alpha-bottom groun
   && !shell.includes('frost:{scale:1.53,x:0,y:16}')
   && !/data-hero="frost"[\s\S]{0,160}scale:-?2\.5/.test(shell));
 
+// CP3 owner law: ONE rendered ink height on ONE ground line for every
+// standing fighter, measured from real alpha at runtime. The per-hero table
+// remains the pre-load fallback + facing authority, never the final scale.
+check('CP3 ink standard: measured ink box normalizes every hero to one ink height + ground line',
+  shell.includes('function visualInkBox(img)')
+  && shell.includes('function normalizedHeroScale(img,p)')
+  && shell.includes('const INK_TARGET_RATIO=.92')
+  && shell.includes('groundLine:Number.isFinite(p.groundLine)?p.groundLine:1.025')
+  && generator.includes('function normalizedHeroScale(img,p)')
+  && generator.includes('const INK_TARGET_RATIO=.92'));
+
 check('Mirror has no static selected-large placeholder and waits for a real opponent pick',
   !shell.includes('mirror-world-runtime-opponent-ghost.svg')
   && shell.includes('function mirrorOpponentHero(player)')
