@@ -964,7 +964,13 @@ kbd{font:inherit}
   seam.applyState=function applyState(st){
     if(!st)return;
     const now=performance.now();
-    if(Number.isFinite(st.timer))S.timer=st.timer;
+    if(Number.isFinite(st.timer)){
+      S.timer=st.timer;
+      // The canonical HUD only repaints the clock from renderTimer(); the 1v1
+      // projection path must call it or the donor seed time (02:47) freezes.
+      const timerSec=Math.max(0,Math.ceil(S.timer));
+      if(timerSec!==applyState._timerSec){applyState._timerSec=timerSec;renderTimer();}
+    }
     // Timer truth: elapsed-time semantics unless production supplies a
     // countdown/round authority (current Arsenal does not).
     S.roundAuthority=st.roundAuthority===true;

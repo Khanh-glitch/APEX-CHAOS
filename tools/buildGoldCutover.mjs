@@ -754,7 +754,13 @@ const seamPatches = [
   seam.applyState=function applyState(st){
     if(!st)return;
     const now=performance.now();
-    if(Number.isFinite(st.timer))S.timer=st.timer;
+    if(Number.isFinite(st.timer)){
+      S.timer=st.timer;
+      // The canonical HUD only repaints the clock from renderTimer(); the 1v1
+      // projection path must call it or the donor seed time (02:47) freezes.
+      const timerSec=Math.max(0,Math.ceil(S.timer));
+      if(timerSec!==applyState._timerSec){applyState._timerSec=timerSec;renderTimer();}
+    }
     if(Number.isFinite(st.round))S.round=st.round;
     if(Array.isArray(st.wins))S.wins=[Number(st.wins[0])||0,Number(st.wins[1])||0];
     if(typeof st.ko==='boolean')S.ko=st.ko;
@@ -1537,6 +1543,25 @@ function buildShell(hudProductionHtml) {
       why: 'locked route styling (dimmed, non-interactive)',
       find: /\.route:not\(:last-child\)::after\{content:/,
       replace: '.route.is-locked{color:rgba(235,228,218,.34);cursor:not-allowed;filter:saturate(.4)}.route.is-locked svg{opacity:.5}\n.route:not(:last-child)::after{',
+    },
+    // ── S20b/c: the legacy global `button:hover` (src/styles.css) paints every
+    // button #f3efe3 with a white glow. It out-specifies `.route`'s own
+    // background but loses to `.route:hover`'s light text colour, so a hovered
+    // route rendered near-white text on a near-white cell (audit #8). The
+    // route hover rule re-asserts the route's OWN resting background (and no
+    // glow) in both contexts that paint one: transparent in the base layout,
+    // the canonical gradient inside the portrait block.
+    {
+      id: 'SHL-S20b',
+      why: 'route hover keeps its own (transparent) background against the legacy global button:hover inversion',
+      find: /\.route:hover,\.route:focus-visible\{color:#f3ece1;transform:translateY\(-1px\)\}/,
+      replace: '.route:hover,.route:focus-visible{color:#f3ece1;transform:translateY(-1px);background:transparent;box-shadow:none}',
+    },
+    {
+      id: 'SHL-S20c',
+      why: 'portrait route hover keeps the canonical portrait gradient against the same legacy inversion',
+      find: 'clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%)}',
+      replace: 'clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%)}\n.route:hover,.route:focus-visible{background:linear-gradient(180deg,rgba(26,27,31,.80),rgba(12,13,15,.90))}',
     },
     // ── S21: the Lucky Draw donor runs in its own document (the iframe
     // boundary is canonical for the draw). Hand it the REAL production economy
