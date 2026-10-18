@@ -136,17 +136,20 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    await gameFrame.waitForSelector('.bw-cover-art',{timeout:20000});
    const interfaceRead=await gameFrame.evaluate(()=>({
      standalone:document.querySelector('#wave-hud .bw-command-deck')?.id==='bw-interface-v2',
-     hero:!!document.querySelector('.bw-hero .bw-portrait'),
-     fiveBeats:document.querySelectorAll('#bw-beat-markers i').length,
+     hero:!!document.querySelector('.bw-hero .bw-level-core'),
+     portraitRetired:!document.querySelector('.bw-hero .bw-portrait'),
+     tenBeats:document.querySelectorAll('#bw-beat-markers i').length,
+     minimap:!!document.getElementById('bw-minimap-canvas'),
+     pauseCommand:!!document.querySelector('.bw-hero .bw-pause-trigger')&&!!document.getElementById('bw-pause-menu'),
      modalArt:!!document.querySelector('.w-dialog > .bw-cover img'),
      controls:document.querySelectorAll('.bw-skill-deck .w-action').length,
      drawnSkillArt:document.querySelectorAll('.bw-skill-deck .bw-action-art').length,
      pressureMeter:!!document.getElementById('bw-pressure-fill'),
      debugHidden:!document.getElementById('arena-experience-tools')||getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
    }));
-   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.modalArt&&interfaceRead.debugHidden
-       &&interfaceRead.fiveBeats===5&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===0&&interfaceRead.pressureMeter,
-      'Owner Gold HUD not rebuilt '+JSON.stringify(interfaceRead));
+   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.portraitRetired&&interfaceRead.minimap&&interfaceRead.pauseCommand&&interfaceRead.modalArt&&interfaceRead.debugHidden
+       &&interfaceRead.tenBeats===10&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===0&&interfaceRead.pressureMeter,
+      'R13 Ring Command HUD not rebuilt '+JSON.stringify(interfaceRead));
    // Resident Gold Home must NOT leave its separate Archive button above Wave.
    const inheritedHome=await page.evaluate(()=>{
      const archive=document.querySelector('.apex-skin-entry');
@@ -167,32 +170,40 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      const w=document.querySelector('#wave').contentWindow;
      const player=w.handLab.player,enemies=w.handLab.enemies;
      return {playerHP:player.hp,enemyCount:enemies.filter(e=>!e.dead).length,
-      width:w.innerWidth,height:w.innerHeight,gameCanvas:!!w.document.getElementById('arena')};
+      width:w.innerWidth,height:w.innerHeight,gameCanvas:!!w.document.getElementById('arena'),
+      camera:{zoom:w.handLab.camZoom,base:w.handLab.camZoomBase,multiplier:w.handLab.botWaveCameraZoom,
+        dpr:w.handLab.dpr,canvasWidth:w.handLab.canvas.width,canvasHeight:w.handLab.canvas.height,
+        arenaBaseScale:w.BOXE_ARENA_EXPERIENCE?.stage?.baseScale||1}};
    });
    assert.ok(waveRuntime.playerHP>0&&waveRuntime.enemyCount>=1);
+   assert.ok(Math.abs(waveRuntime.camera.base-.875)<.001&&waveRuntime.camera.multiplier===1.75&&
+     waveRuntime.camera.zoom>=.8&&waveRuntime.camera.zoom<=1.0&&
+     waveRuntime.camera.canvasWidth===Math.floor(waveRuntime.width*Math.min(2,waveRuntime.camera.dpr||1)),
+     'R13 must render Gold at an exact 1.75x lens without CSS canvas upscaling '+JSON.stringify(waveRuntime.camera));
    const hudGeometry=await gameFrame.evaluate(()=>{
      const rect=selector=>{const e=document.querySelector(selector),r=e?.getBoundingClientRect();
        return r?{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}:null};
      return {screen:{w:innerWidth,h:innerHeight},hero:rect('.bw-hero'),center:rect('.bw-encounter'),
-       threat:rect('.bw-threat'),skills:rect('.bw-skill-deck'),return:null};
+       minimap:rect('.bw-minimap'),skills:rect('.bw-skill-deck'),return:null};
    });
    const {w,h}=hudGeometry.screen;
-   assert.ok(hudGeometry.hero?.width<=310&&hudGeometry.hero?.height<=205&&
-     hudGeometry.center?.width<=330&&hudGeometry.center?.height<=155&&
-     hudGeometry.threat?.width<=280&&hudGeometry.skills?.width<=335&&
-     hudGeometry.skills?.height<=124&&hudGeometry.skills?.y>=h*.71,
-     'R9 HUD occupies playable arena '+JSON.stringify(hudGeometry));
-   console.log('BOT WAVE R9 playable-area UI bounds PASS',view.name,hudGeometry);
+   assert.ok(hudGeometry.hero?.width<=360&&hudGeometry.hero?.height<=110&&
+     hudGeometry.center?.width<=640&&hudGeometry.center?.height<=72&&hudGeometry.center?.y<=18&&
+     hudGeometry.minimap?.width<=196&&hudGeometry.minimap?.height<=230&&hudGeometry.skills?.width<=300&&
+     hudGeometry.skills?.height<=105&&hudGeometry.skills?.y>=h*.78,
+     'R13 HUD occupies playable arena '+JSON.stringify(hudGeometry));
+   console.log('BOT WAVE R13 playable-area UI bounds PASS',view.name,hudGeometry);
    assert.equal(waveRuntime.gameCanvas,true);
    // Restore-fidelity owner gate: source Gold art, source R2 industrial circular
    // stage, postprocess and BOTH sampled SFX banks must render in a live browser.
    await gameFrame.waitForFunction(()=>{
      const gold=window.BOXE_SFX?.getStats?.();
      const accents=window.BOXE_FINAL_SFX;
-     const base=window.BOXE_ARENA_EXPERIENCE?.stage?.base;
+     const stage=window.BOXE_ARENA_EXPERIENCE?.stage;
+     const base=stage?.base,expectedBase=2200*(stage?.baseScale||1);
      return !!(gold?.ready&&gold.loaded===gold.total&&gold.total>=33
        &&accents?.ready&&accents.buffers?.size===9
-       &&base?.width===2200&&base?.height===2200);
+       &&base?.width===expectedBase&&base?.height===expectedBase);
    },{timeout:40000});
    const ownerGold=await gameFrame.evaluate(()=>{
      const gold=window.BOXE_SFX.getStats();
@@ -201,7 +212,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      const engine=window.handLab;
      return {sfx:{loaded:gold.loaded,total:gold.total,ready:gold.ready,
        recent:gold.recent.length},final:{ready:final.ready,count:final.buffers.size},
-       arena:{radius:stage.radius,playable:stage.playable,baseWidth:stage.base.width,
+       arena:{radius:stage.radius,playable:stage.playable,baseWidth:stage.base.width,baseScale:stage.baseScale,
          renderer:engine.drawArena.toString().includes('ARENA_STAGE.draw'),
          goldFire:!!engine.fire,goldLightning:!!engine.lightning,
          post:!!engine.post,goldMaterial:!!engine.material},
@@ -210,6 +221,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    });
    assert.equal(ownerGold.arena.radius,920);
    assert.equal(ownerGold.arena.playable,880);
+   assert.equal(ownerGold.arena.baseWidth,2200*ownerGold.arena.baseScale);
    assert.ok(ownerGold.arena.renderer&&ownerGold.arena.goldFire
      &&ownerGold.arena.goldLightning&&ownerGold.arena.post
      &&ownerGold.arena.goldMaterial&&ownerGold.hitFx&&ownerGold.stageHud,
@@ -333,10 +345,10 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      utility:window.APEX_ARSENAL_AV?.stats?.waveUtility||null
    }));
    assert.ok(liveMix.policy?.mix?.gain>0&&liveMix.policy.mix.gain<=.14&&
-     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r12')&&
+     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r13')&&
      liveMix.npcEquipAudioSuppressed>0,
      'Native gun SFX not demonstrably attenuated in live Chromium '+JSON.stringify(liveMix));
-   console.log('BOT WAVE R12 actual WebAudio native gun mix PASS',view.name,liveMix);
+   console.log('BOT WAVE R13 actual WebAudio native gun mix PASS',view.name,liveMix);
    console.log('BOT WAVE actual Arsenal gun discharge PASS',view.name,shot);
    // Explicit real HTTP fetch proof: no sprite/audio is accidentally
    // discarded by shipping-prune or silently replaced by SPA HTML fallback.
@@ -363,8 +375,8 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
        wavePhase:window.BOXE_WAVE_PILOT?.state?.phase??null};
    });
    assert.ok(lateVisual.oldAnnouncementHidden&&lateVisual.heroVisible&&lateVisual.controlsVisible,
-     'R12 screenshot still has redundant large center announcement '+JSON.stringify(lateVisual));
-   console.log('BOT WAVE R12 settled cinematic DOM audit PASS',view.name,lateVisual);
+     'R13 screenshot still has redundant large center announcement '+JSON.stringify(lateVisual));
+   console.log('BOT WAVE R13 settled cinematic DOM audit PASS',view.name,lateVisual);
    await page.screenshot({path:path.join(output,view.name+'-wave-playable.png')});
    // Integration proof, not a roster-only unit assertion: the live Gold
    // engine must accept wave 11 AND wave 32 without a "chapter complete".

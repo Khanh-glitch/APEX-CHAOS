@@ -430,7 +430,11 @@ export default function App() {
       const close=document.createElement('button');
       close.id='return';close.type='button';close.textContent='← APEX HOME';
       close.setAttribute('aria-label','Trở về APEX Home');
-      Object.assign(close.style,{position:'absolute',top:'max(7px, env(safe-area-inset-top))',
+      // R13: BOT WAVE owns its exit through the Ring Command pause menu.
+      // Keep this legacy host control non-visual so it can never cover the
+      // wave spine or minimap; App still returns via APEX_BOT_WAVE_EXIT.
+      close.hidden=true;
+      Object.assign(close.style,{display:'none',position:'absolute',top:'max(7px, env(safe-area-inset-top))',
         left:'50%',transform:'translateX(-50%)',zIndex:'5',
         padding:'6px 13px',border:'1px solid #c68c58',borderRadius:'4px',
         font:'850 11px system-ui',background:'#0b1019ee',color:'#ffe1af',cursor:'pointer'});
@@ -485,11 +489,11 @@ export default function App() {
           if(!doc?.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
           if(!doc.getElementById('bw-v2-styles')){
             const css=doc.createElement('link');css.rel='stylesheet';css.id='bw-v2-styles';
-            css.href='/game/bot-wave/botWavePresentationV2.css?v=20261018-botwave-hud-r12';doc.head.append(css);
+            css.href='/game/bot-wave/botWavePresentationV2.css?v=20261018-botwave-hud-r13';doc.head.append(css);
           }
           if(!doc.getElementById('bw-v2-script')){
             const script=doc.createElement('script');script.id='bw-v2-script';
-            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261018-botwave-hud-r12';doc.head.append(script);
+            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261018-botwave-hud-r13';doc.head.append(script);
           }
           const win=frame.contentWindow;
           if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&

@@ -6398,7 +6398,7 @@ function applyStacksDerived({healIncrease=false}={}){
 const ARENA_STAGE={
  radius:920, playable:880, quality:'high', assistEnabled:true, decals:[],entrances:[],flash:0, bossGlow:0,
  targetId:null, assist:null, features:{featuredDraft:true}, stats:{damage:0,guards:0,assists:0,highestChain:0,steps:0},
- screen:null,base:null,entryCursor:0, stageStart:0, stageTick:0,
+ screen:null,base:null,baseScale:1,entryCursor:0, stageStart:0, stageTick:0,
  mark(x,y,type='hit',strength=1){if(this.quality==='low'&&type==='hit')return;
    if(!Number.isFinite(x+y)||Math.hypot(x,y)>this.playable+28)return;
    const last=this.decals[this.decals.length-1];
@@ -6412,7 +6412,8 @@ const ARENA_STAGE={
   const tracks=document.querySelectorAll('#arena-round-track b');tracks.forEach((e,i)=>{e.classList.toggle('done',i<clusterWave);e.classList.toggle('active',i===clusterWave)});
  },
  notice(msg,kind=''){let e=document.getElementById('arena-message');if(!e)return;e.textContent=msg;e.dataset.kind=kind;e.classList.remove('visible');void e.offsetWidth;e.classList.add('visible');},
- buildBase(){const c=document.createElement('canvas');c.width=c.height=2200;const g=c.getContext('2d',{alpha:false});g.translate(1100,1100);
+ desiredBaseScale(){return (engine.dpr||1)>1.05?1.85:1;},
+ buildBase(){const scale=this.desiredBaseScale();this.baseScale=scale;const c=document.createElement('canvas');c.width=c.height=2200*scale;const g=c.getContext('2d',{alpha:false});g.translate(1100*scale,1100*scale);g.scale(scale,scale);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
   const TAU=Math.PI*2,ring=this.radius;g.fillStyle='#05080d';g.fillRect(-1100,-1100,2200,2200);
   // Recessed outer cavity, warm rim reflected on dark oxide metal.
   let glow=g.createRadialGradient(0,0,500,0,0,1070);glow.addColorStop(0,'#11171c');glow.addColorStop(.79,'#171d22');glow.addColorStop(.9,'#342924');glow.addColorStop(.96,'#0d1016');glow.addColorStop(1,'#05080d');
@@ -6490,7 +6491,7 @@ const ARENA_STAGE={
   g.restore();
   this.base=c;return c;
  },
- draw(ctx){if(!this.base)this.buildBase();ctx.save();ctx.fillStyle='#05080d';ctx.fillRect(-2600,-2600,5200,5200);ctx.drawImage(this.base,-1100,-1100);
+ draw(ctx){if(!this.base||this.baseScale!==this.desiredBaseScale())this.buildBase();ctx.save();ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.fillStyle='#05080d';ctx.fillRect(-2600,-2600,5200,5200);ctx.drawImage(this.base,-1100,-1100,2200,2200);
   let time=engine.time,high=this.quality==='high',wave=Math.max(1,state.wave),clusterWave=(wave-1)%10,boss=clusterWave===9;
   // Living Ring: the arena rim is a diegetic pressure instrument. It reads
   // the real spawn queue and live carrier pressure, but never feeds back
@@ -6598,7 +6599,40 @@ const R2_PRESENT={
 };
 window.BOXE_R2_PRESENTATION=R2_PRESENT;
 let r2hpGhost=null,r2hud=null,r2previousHP=null;
-window.BOXE_WAVE_PILOT={state,guns:WAVE_GUNS,compositions:COMPOSITIONS,planWave:waveComposition,catalogue:ARSENAL_CATALOG.allWeaponIds,keys:()=>Array.from(state.owned),testRollRocket:(n=100)=>{let count=0;for(let i=0;i<n;i++)if(rng()<.075)count++;return count},testForceXP:(xp)=>gainXP(xp),testStartWave:()=>startWave(),testKillAll:()=>{for(const e of engine.enemies.slice())if(!e.dead)engine.damageEnemy(e,e.hp+1000,{quiet:true})}};
+window.BOXE_WAVE_PILOT={state,guns:WAVE_GUNS,compositions:COMPOSITIONS,planWave:waveComposition,catalogue:ARSENAL_CATALOG.allWeaponIds,xpNeeded:(level)=>xpNeeded(level),keys:()=>Array.from(state.owned),
+ isPaused:()=>!!engine.paused,
+ setPaused:(value)=>{
+  if(!['combat','intermission'].includes(state.phase))return false;
+  const next=!!value;
+  if(next===!!engine.paused)return true;
+  if(next){finishGuard('pause');engine.mouse.down=false;}
+  engine.paused=next;engine.combatCue('PAUSE',.7);refreshUI();return true;
+ },
+ saveAndExit:()=>{
+  const saved=persistRun(),wave=state.waveSnapshot?.wave||0;
+  if(!saved)return {saved:false,wave};
+  const detail={type:'APEX_BOT_WAVE_EXIT',saved,wave};
+  if(window.parent&&window.parent!==window)window.parent.postMessage(detail,window.location.origin);
+  else window.setTimeout(()=>window.location.assign('/'),30);
+  return {saved,wave};
+ },
+ replayWave:()=>{
+  const snap=sanitizeRunSnapshot(state.waveSnapshot),cluster=cloneSnapshot(state.clusterSnapshot);
+  if(!snap)return false;
+  resetArenaForSnapshot();
+  if(!applyRunSnapshot(snap,{preserveLosses:true}))return false;
+  state.clusterSnapshot=cluster;state.phase='intermission';persistRun();
+  if(UI['wave-modal'])UI['wave-modal'].hidden=true;
+  engine.paused=false;startWave();refreshUI();return true;
+ },
+ replayCluster:()=>{
+  if(!sanitizeRunSnapshot(state.clusterSnapshot))return false;
+  if(!prepareClusterRetry())return false;
+  if(UI['wave-modal'])UI['wave-modal'].hidden=true;
+  engine.paused=false;startWave();refreshUI();return true;
+ },
+ restartRun:()=>{restart();return true;},
+ testRollRocket:(n=100)=>{let count=0;for(let i=0;i<n;i++)if(rng()<.075)count++;return count},testForceXP:(xp)=>gainXP(xp),testStartWave:()=>startWave(),testKillAll:()=>{for(const e of engine.enemies.slice())if(!e.dead)engine.damageEnemy(e,e.hp+1000,{quiet:true})}};
 function addCss(){let s=document.createElement('style');s.textContent=`
 #app{min-width:0!important;background:#090b0e}
 #app>.topbar,#left-panel,#right-panel,#idle-editor,.skill-dock,.arena-bottom-label,.top-overlay,.pause-overlay,.controls{display:none!important}
@@ -6636,7 +6670,7 @@ function addCss(){let s=document.createElement('style');s.textContent=`
 @media (max-height:430px){#wave-stick{width:84px;height:84px;bottom:8px;left:8px}#wave-stick i{width:36px;height:36px;left:22px;top:22px}.w-actions{bottom:8px}.w-action{min-width:42px;height:41px}.w-right b{font-size:12px}.w-left{max-height:90px;overflow:hidden}.w-dialog .w-cards{min-height:0}.w-card{min-height:96px}.w-dialog h1{font-size:17px}.w-dialog p{font-size:10px;margin:5px 0}.w-card em{font-size:9px}}
 `;document.head.append(s)}
 function createUI(){
- addCss();const hud=document.createElement('div');hud.id='wave-hud';hud.innerHTML=`<div class="w-left"><div class="w-head">BOXE · THE FIST OF DAWN</div><div class="w-small">HP <b id="w-hp">—</b></div><div class="w-meter hp-r2"><div class="w-hp-trail" id="w-hp-trail"></div><i id="w-hp-bar"></i><div class="w-hp-shine"></div></div><div class="w-fury-line"><span>✹ NHIỆT HUYẾT</span><b id="w-r2-fury-val">0%</b></div><div class="w-meter fury-r2"><i id="w-r2-fury-bar"></i></div><div class="w-small">LV <b id="w-level">1</b> · XP <b id="w-xp">0</b></div><div class="w-meter xp"><i id="w-xp-bar"></i></div></div><div class="w-right"><b id="w-wave">WAVE 01 / 10</b><span id="w-count" class="w-small"></span><div class="w-weapon" id="w-arsenal"></div></div><div id="wave-status">J PUNCH · K GUARD · L DASH</div><div id="wave-stick"><i></i></div><div class="w-actions"><button class="w-action" data-act="J" data-key="J" aria-label="J đấm"><span class="w-action-key">J</span><small>ĐẤM</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="K" data-key="K" aria-label="Giữ K để thủ"><span class="w-action-key">K</span><small>GIỮ THỦ</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="L" data-key="L" aria-label="L lướt"><span class="w-action-key">L</span><small>LƯỚT</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="U" data-key="U" aria-label="U khóa" disabled><span class="w-action-key">U</span><small>LOCK</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="I" data-key="I" aria-label="I khóa" disabled><span class="w-action-key">I</span><small>LOCK</small><i class="w-cd"></i><b class="w-cd-text"></b></button></div><button id="resume-wave">Ⅱ PAUSE</button>`;
+ addCss();const hud=document.createElement('div');hud.id='wave-hud';hud.innerHTML=`<div class="w-left"><div class="w-head">BOXE · THE FIST OF DAWN</div><div class="w-small">HP <b id="w-hp">—</b></div><div class="w-meter hp-r2"><div class="w-hp-trail" id="w-hp-trail"></div><i id="w-hp-bar"></i><div class="w-hp-shine"></div></div><div class="w-fury-line"><span>✹ NHIỆT HUYẾT</span><b id="w-r2-fury-val">0%</b></div><div class="w-meter fury-r2"><i id="w-r2-fury-bar"></i></div><div class="w-small">LV <b id="w-level">1</b> · XP <b id="w-xp">0</b></div><div class="w-meter xp"><i id="w-xp-bar"></i></div></div><div class="w-right"><b id="w-wave">WAVE 01 / 10</b><span id="w-count" class="w-small"></span><div class="w-weapon" id="w-arsenal"></div></div><div id="wave-status">J PUNCH · K GUARD · L DASH</div><div id="wave-stick"><i></i></div><div class="w-actions"><button class="w-action" data-act="J" data-key="J" aria-label="J đấm"><span class="w-action-key">J</span><small>ĐẤM</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="K" data-key="K" aria-label="Giữ K để thủ"><span class="w-action-key">K</span><small>GIỮ THỦ</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="L" data-key="L" aria-label="L lướt"><span class="w-action-key">L</span><small>LƯỚT</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="U" data-key="U" aria-label="U khóa" disabled><span class="w-action-key">U</span><small>LOCK</small><i class="w-cd"></i><b class="w-cd-text"></b></button><button class="w-action" data-act="I" data-key="I" aria-label="I khóa" disabled><span class="w-action-key">I</span><small>LOCK</small><i class="w-cd"></i><b class="w-cd-text"></b></button></div><button id="resume-wave" aria-label="Tạm dừng BOT WAVE" title="Tạm dừng">Ⅱ</button>`;
  const modal=document.createElement('div');modal.id='wave-modal';modal.innerHTML=`<div class="w-dialog"><h1 id="w-title">APEX CHAOS · BOT WAVE</h1><p id="w-desc">BOXE tham gia chiến dịch Arsenal không giới hạn với 41 vũ khí thật, các cụm 10 wave luân phiên nhịp nghỉ, áp lực và boss ở wave cuối cụm. Wave tự nối tiếp sau một nhịp nghỉ ngắn. Giữ K để thủ, thả K mới bắt đầu hồi chiêu; thẻ GOLDEN COUNTER biến thế thủ thành phản đòn. HP hồi giữa wave và theo mỗi K.O.; cục máu hiếm có thể rơi sau mỗi K.O. Tiến độ được lưu tại đầu mỗi wave, thua trong cụm sẽ quay về wave đầu cụm bằng build lúc vào cụm.</p><div class="w-cards" id="w-cards"></div><button class="w-go" id="w-go">▶ START WAVE 01</button></div>`;
  document.body.append(hud,modal);
 const stageCss=document.createElement('style');stageCss.textContent="\n/* LAST ROUND: stage presentation is an overlay, never a combat obstacle */\n#arena-experience-hud{position:fixed;inset:0;z-index:24;pointer-events:none;font:800 11px/1.35 system-ui,Segoe UI,sans-serif;color:#eacda2}\n#arena-round-track{position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;gap:4px;padding:7px 10px;background:#070d14cb;border:1px solid #946e4455;border-radius:9px;box-shadow:0 8px 25px #0007}\n#arena-round-track b{display:block;width:19px;height:5px;border-radius:1px;background:#344049;transform:skewX(-20deg)}\n#arena-round-track b.done{background:#926d4d}#arena-round-track b.active{background:#ffbe68;box-shadow:0 0 11px #e68a44}\n#arena-announce{position:absolute;top:20%;left:50%;transform:translate(-50%,-12px);text-align:center;opacity:0;transition:opacity .18s,transform .3s;pointer-events:none;text-shadow:0 7px 22px #000,0 0 25px #b7472477}\n#arena-announce strong{display:block;font:1000 clamp(24px,5vw,54px)/1 system-ui;letter-spacing:.09em;color:#f6cea0;white-space:nowrap}\n#arena-announce span{display:block;color:#dca06d;letter-spacing:.28em;font:900 clamp(9px,1.5vw,14px)/2 ui-monospace,monospace}\n#arena-announce.show{animation:arena-ann 2.05s ease both}@keyframes arena-ann{0%{opacity:0;transform:translate(-50%,-22px)}15%,67%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,5px)}}\n#arena-message{position:absolute;left:50%;top:31%;transform:translateX(-50%);background:#160e13da;color:#ffdbb2;border-top:1px solid #d8a068;border-bottom:1px solid #d8a068;padding:9px 25px;letter-spacing:.12em;white-space:nowrap;opacity:0}\n#arena-message.visible{animation:arena-msg 1.4s ease both}@keyframes arena-msg{0%{opacity:0;transform:translate(-50%,-9px)}18%,75%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,5px)}}\n#arena-experience-tools{position:absolute;top:9px;left:50%;margin-left:130px;pointer-events:auto;display:flex;gap:5px}\n#arena-experience-tools button{font:800 9px ui-monospace,monospace;letter-spacing:.03em;white-space:nowrap;color:#d8c7af;background:#10171ddc;border:1px solid #8d70577a;padding:7px 8px;border-radius:7px;cursor:pointer}\n#arena-experience-tools button[aria-pressed=true]{color:#ffda9e;border-color:#d6a56b;background:#34241d}\n#arena-report{display:flex;justify-content:center;gap:11px;flex-wrap:wrap;margin:10px 0 13px}\n#arena-report .a-stat{background:#16191dcc;border:1px solid #8364496b;padding:10px 11px;border-radius:8px;min-width:106px}\n#arena-report small{display:block;color:#b6a690;font:800 9px ui-monospace,monospace;letter-spacing:.07em}\n#arena-report strong{display:block;color:#ffd091;font:900 18px ui-monospace,monospace;margin-top:4px}\n#arena-approach-hint{position:absolute;bottom:73px;left:50%;transform:translateX(-50%);font-size:10px;color:#e9b773;opacity:0;transition:opacity .12s;white-space:nowrap}\n#arena-approach-hint.on{opacity:.9}\n@media(max-width:890px){#arena-round-track{top:74px;gap:3px;padding:5px}#arena-round-track b{width:13px;height:4px}#arena-experience-tools{top:117px;right:7px;left:auto;margin:0;flex-direction:column}#arena-experience-tools button{font-size:8px;padding:5px}#arena-announce{top:26%}#arena-approach-hint{display:none}}\n@media(max-height:490px){#arena-round-track{top:52px}#arena-experience-tools{top:88px}#arena-announce{top:20%}}\n@media(prefers-reduced-motion:reduce){#arena-announce.show,#arena-message.visible{animation-duration:.15s}}\n";document.head.append(stageCss);
@@ -6671,7 +6705,7 @@ const _ownerStageStyle=document.createElement('style');_ownerStageStyle.textCont
    }
   }else if(state.phase==='complete')restart();
  };
- document.getElementById('resume-wave').onclick=()=>{if(state.phase==='combat'){engine.paused=!engine.paused;engine.combatCue('PAUSE',.7);document.getElementById('resume-wave').textContent=engine.paused?'▶ RESUME':'Ⅱ PAUSE';}};
+ document.getElementById('resume-wave').onclick=()=>{if(state.phase==='combat'||state.phase==='intermission'){const button=document.getElementById('resume-wave');window.BOXE_WAVE_PILOT.setPaused(!engine.paused);button.textContent=engine.paused?'▶':'Ⅱ';button.setAttribute('aria-label',engine.paused?'Tiếp tục BOT WAVE':'Tạm dừng BOT WAVE');}};
  document.querySelectorAll('[data-act]').forEach(b=>{const a=b.dataset.act;const release=e=>{e?.preventDefault?.();b.classList.remove('on');act(a,false)};b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){/* Keyboard/mouse fallback still has keyup/up. */}engine.initAudio();b.classList.add('on');act(a,true)});b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',()=>{if(b.classList.contains('on'))release()});});
  const stick=document.getElementById('wave-stick');let stickPointer=null;
  function stickMove(e){let r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=(e.clientX-cx)/(r.width*.38),dy=(e.clientY-cy)/(r.height*.38),n=Math.max(1,Math.hypot(dx,dy));dx/=n;dy/=n;stick.style.setProperty('--dx',(dx*r.width*.22)+'px');stick.style.setProperty('--dy',(dy*r.height*.22)+'px');stickDX=dx;stickDY=dy;}
@@ -7354,12 +7388,24 @@ window.APEX_WAVE_PERF=Object.freeze({snapshot:()=>({
  goldParticles:engine.particles.length,livingBots:engine.enemies.filter(e=>!e.dead).length
 })});
 const nativeUpdate=engine.update.bind(engine);
+// R13 camera law: BOT WAVE renders through Gold's own lens at exactly 1.75x.
+// Gold's normal/slow-mo/ultimate bases (.50/.48/.45) and its impact easing are
+// restored for the native update, then the completed lens is scaled for the
+// render/input surface. This is an optical transform only: world positions,
+// radii, projectile travel and AI ranges remain in canonical Gold units.
+const BOT_WAVE_CAMERA_ZOOM=1.75;
+engine.botWaveCameraZoom=BOT_WAVE_CAMERA_ZOOM;
 engine.update=function(dt){
  const _start=performance.now();
  if(state.phase==='combat'&&Math.hypot(stickDX,stickDY)>.2){let k=this.keys;for(const code of ['KeyW','KeyA','KeyS','KeyD'])k.delete(code);
  if(stickDX>.22)k.add('KeyD');if(stickDX<-.22)k.add('KeyA');if(stickDY>.22)k.add('KeyS');if(stickDY<-.22)k.add('KeyW');}
  const originalX=this.player.x,originalY=this.player.y;
- autoAimNow();nativeUpdate(dt);
+ autoAimNow();
+ this.camZoom=(this.camZoom||.5)/BOT_WAVE_CAMERA_ZOOM;
+ this.camZoomBase=(this.camZoomBase||.5)/BOT_WAVE_CAMERA_ZOOM;
+ nativeUpdate(dt);
+ this.camZoomBase=(this.camZoomBase||.5)*BOT_WAVE_CAMERA_ZOOM;
+ this.camZoom=(this.camZoom||this.camZoomBase)*BOT_WAVE_CAMERA_ZOOM;
  if(state.phase==='combat')ARMORY.update(Math.min(.05,dt));
  if(state.stickyEngage)advanceStickyJ();
  if(state.phase==='combat'){
@@ -7405,8 +7451,9 @@ window.removeEventListener('keyup',nativeOnKeyUp);window.addEventListener('keyup
 window.addEventListener('keydown',e=>{if(e.code.startsWith('Digit'))e.stopImmediatePropagation()},true);
 engine.enemies=[];engine.projs=[];engine.timeline=[];engine.opts.infiniteDummyHp=false;engine.opts.noCooldown=false;engine.opts.sound=true;
 engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;engine.player.x=0;engine.player.y=120;engine.player.fury=0;engine.player.empoweredT=0;engine.player.guardT=0;engine.player.invulnT=0;engine.player.dashCd=0;engine.player.comboStep=0;engine.player.basicCd=0;engine.waveCounterUnlocked=false;applyStacksDerived();restoreSavedRunAtBoot();
-engine.camZoom=.57;engine.camZoomBase=.57;
-window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,beat:{id:state.hudBeatId,index:state.hudBeatIndex,pattern:state.hudPattern,newWeapons:[...state.hudNewWeapons]},waveKills:state.waveKills,waveDamageDealt:state.waveDamageDealt,waveDamageReceived:state.waveDamageReceived,lastDamage:{at:state.lastDamageAt,angle:state.lastDamageAngle,amount:state.lastDamageAmount},lastHeal:{at:state.lastHealAt,amount:state.lastHealAmount},nextWaveT:state.nextWaveT,autoNextWave:state.autoNextWave,guard:{held:state.guardHeld,counterLive:state.guardCounterLive,cdT:state.guardCdT,cdMax:state.guardCdMax,holdT:state.guardHoldT},owned:[...state.owned],stacks:{...state.stacks},sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,healthPacks:state.healthPacks.length,healthPackDrops:state.healthPackDrops,healthPackPickups:state.healthPackPickups,savedWave:state.waveSnapshot?.wave||0,clusterWave:state.clusterSnapshot?.wave||0,enemies:engine.enemies.length,player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp,maxHp:engine.player.maxHp}}),source:'APEX_GOLD_R5'};
+// Gold's rendered combat lens is .50; R13's owner-locked BOT WAVE lens is .875.
+engine.camZoom=.875;engine.camZoomBase=.875;
+window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,beat:{id:state.hudBeatId,index:state.hudBeatIndex,pattern:state.hudPattern,newWeapons:[...state.hudNewWeapons]},waveKills:state.waveKills,waveDamageDealt:state.waveDamageDealt,waveDamageReceived:state.waveDamageReceived,lastDamage:{at:state.lastDamageAt,angle:state.lastDamageAngle,amount:state.lastDamageAmount},lastHeal:{at:state.lastHealAt,amount:state.lastHealAmount},nextWaveT:state.nextWaveT,autoNextWave:state.autoNextWave,guard:{held:state.guardHeld,counterLive:state.guardCounterLive,cdT:state.guardCdT,cdMax:state.guardCdMax,holdT:state.guardHoldT},owned:[...state.owned],stacks:{...state.stacks},sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,healthPacks:state.healthPacks.length,healthPackDrops:state.healthPackDrops,healthPackPickups:state.healthPackPickups,savedWave:state.waveSnapshot?.wave||0,clusterWave:state.clusterSnapshot?.wave||0,enemies:engine.enemies.length,camera:{zoom:engine.camZoom,base:engine.camZoomBase,multiplier:engine.botWaveCameraZoom||1,dpr:engine.dpr||1,arenaBaseScale:ARENA_STAGE.baseScale||1},player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp,maxHp:engine.player.maxHp}}),source:'APEX_GOLD_R5'};
 createUI();refreshUI();presentRunIntro();engine.paused=true;
 // Native combat already refreshes the HUD and handles defeat in updateWave.
  // Avoid duplicated DOM churn from a second independent timer.

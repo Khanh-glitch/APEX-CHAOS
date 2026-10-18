@@ -11,7 +11,7 @@
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalPresentationRuntime.js": "fba92bff4cb49afac3ff18c7d5c022686f8c35e9406061e00fe036fdbe4794cc",
     "public/game/arsenal/arsenalWeaponRuntime.js": "9c86db8783c762c5fbf8a0c6f74cdb8330aedd552294df8cfd94cdbf03ca4dbe",
-    "public/game/bot-wave/botWavePresentationV2.js": "46c0cbc324ce9def4985aaf87040cb0dca33a33c04071d7d2018f5b0c3748208",
+    "public/game/bot-wave/botWavePresentationV2.js": "40e68977a4c13d013c60c5c8222425123b201f204d04a478abca1e0338f3a6cc",
     "public/game/ui/apexCombatHudRuntime.js": "a193f90e322ed5545d1ae48185abcd819d7c0ae459d23271bf5cadd3adf6033d",
     "public/game/ui/uiSfxAuthority.js": "196cc910ba9ad0ecacb56070b83ed3d72602a9b802e318b4b3034e659f5cc441",
     "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",

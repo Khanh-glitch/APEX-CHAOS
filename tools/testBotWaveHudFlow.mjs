@@ -276,13 +276,29 @@ for (const required of [
   'state.lastHealAt=engine.time;state.lastHealAmount=healed;',
   'beat:{id:state.hudBeatId,index:state.hudBeatIndex,pattern:state.hudPattern,newWeapons:[...state.hudNewWeapons]}',
   'const nextBeat=CAMPAIGN.beats?.[(snap.wave-1)%10];state.hudBeatId=nextBeat?.id||',
+  'const BOT_WAVE_CAMERA_ZOOM=1.75;',
+  'this.camZoom=(this.camZoom||.5)/BOT_WAVE_CAMERA_ZOOM;',
+  'this.camZoomBase=(this.camZoomBase||.5)*BOT_WAVE_CAMERA_ZOOM;',
+  'this.camZoom=(this.camZoom||this.camZoomBase)*BOT_WAVE_CAMERA_ZOOM;',
+  'engine.camZoom=.875;engine.camZoomBase=.875;',
+  'desiredBaseScale(){return (engine.dpr||1)>1.05?1.85:1;}',
+  'c.width=c.height=2200*scale;',
+  'ctx.drawImage(this.base,-1100,-1100,2200,2200);',
+  'setPaused:(value)=>{',
+  'saveAndExit:()=>{',
+  "const detail={type:'APEX_BOT_WAVE_EXIT',saved,wave};",
+  'window.parent.postMessage(detail,window.location.origin);',
+  'replayWave:()=>{',
+  'replayCluster:()=>{',
+  'restartRun:()=>{restart();return true;},',
+  'xpNeeded:(level)=>xpNeeded(level)',
 ]) assert.ok(game.includes(required), `Missing HUD/guard seam: ${required}`);
 assert.ok(!game.includes('function completedUI('), 'per-wave completed modal is retired');
 assert.ok(!game.includes("UI['w-go'].textContent='▶ NEXT WAVE"), 'ordinary waves must not wait for NEXT WAVE click');
 assert.ok(!game.includes("engine.player.guardT=.45+state.guardBonus"), 'fixed .45s tap guard is retired');
 
 for (const required of [
-  "const VERSION='owner-release-r12-living-ring-interface';",
+  "const VERSION='owner-release-r13-ring-command';",
   'for(let i=0;i<10;i++)',
   'Math.floor((n-1)/10)+1,beat=Number.isInteger(s.hudBeatIndex)',
   'beatInfo=BEATS[beat]||beatForWave(n),bossBeat=beat===9',
@@ -293,30 +309,41 @@ for (const required of [
   'const ACTION_GLYPHS=Object.freeze({',
   'installActionGlyphs(actions);',
   "decor(deck,'bw-atmosphere'",
-  "decor(hero,'bw-status-lights'",
-  "decor(center,'bw-encounter-crest'",
+  "decor(hero,'bw-ignition'",
   "decor(pressure,'bw-pressure-ticks'",
-  "decor(threat,'bw-radar'",
-  "decor(skill,'bw-deck-rail'",
   "decor(modal,'bw-dialog-ornaments'",
   "center.dataset.danger=danger>=.82?'critical'",
   "guardButton.classList.add('bw-ready-flash')",
   'const BEATS=Object.freeze([',
   "name:'DAWN HARVEST'",
-  "name:'APEX STORM'",
-  "name:'THE LAST BELL'",
+  "name:'CROSS LESSON'",
+  "name:'GOLD HARVEST'",
+  "name:'LAST BELL'",
   'function refreshScreenFrame(layer){',
   'const refreshArenaType=(attempt=0)=>{',
   "doc.fonts.load('700 32px \"ApexVietCondensed\"','APEX')",
   'if(stage&&loaded>=2){stage.base=null;return;}',
   'function worldToScreen(x,y){',
+  "levelCore.id='bw-level-core';",
+  "vitalStack.id='bw-vital-stack';",
+  "pause.classList.add('bw-pause-trigger');",
   "beatCard.id='bw-beat-card';",
   "oracle.id='bw-oracle';",
-  "constellation.id='bw-constellation';",
-  "telemetry.id='bw-telemetry';",
+  "threat.id='bw-minimap';",
+  "minimapCanvas.id='bw-minimap-canvas';",
+  "dataVault.append(right);",
+  "skill.setAttribute('aria-label','Kỹ năng chiến đấu của BOXE');",
+  "status.classList.add('bw-event-ticker');",
+  "pauseMenu.id='bw-pause-menu';",
   "spatial.id='bw-spatial-layer';",
+  "const peripheral=node('div','bw-peripheral');",
   "const damageWedge=node('div','bw-damage-wedge');",
   "const healHalo=node('div','bw-heal-halo');",
+  'bw-marker-arrow',
+  'bw-marker-badge',
+  'bw-marker-copy',
+  'bw-marker-meter',
+  '--bw-marker-arrow-x',
   'deck.dataset.focus=focus;',
   "hpPct<=.35&&player.hp>0?'danger'",
   "oracle.classList.toggle('is-open',focus==='breather');",
@@ -325,42 +352,74 @@ for (const required of [
   'const queuedPressure=(s.queue||[]).reduce',
   "pressure.style.setProperty('--bw-inbound-pressure'",
   "marker.dataset.family=entry.family||'';",
+  'function xpThreshold(pilot,level){',
+  "levelCore.style.setProperty('--bw-xp',xpPct.toFixed(3));",
+  "hero.classList.toggle('bw-is-ignited',ignited);",
+  'const ARENA_RADIUS=920;',
+  'const drawMinimap=(lab,s,live)=>{',
+  'const hostileGroups=new Map();',
+  'const sector=((Math.round(angle/(Math.PI/6))%12)+12)%12;',
+  'const syncPauseMenu=()=>{',
+  'const setPauseFromInterface=open=>{',
+  'pause.onclick=event=>{event.preventDefault();setPauseFromInterface(!window.handLab?.paused);};',
+  "if(action==='save-exit'){",
+  "if(action==='replay-wave')pilot?.replayWave?.();",
+  "else if(action==='replay-cluster')pilot?.replayCluster?.();",
+  "else if(action==='restart-run')pilot?.restartRun?.();",
+  'openPauseMenu:()=>setPauseFromInterface(true)',
   'spatialFrame=window.requestAnimationFrame(spatialLoop);',
   "window.cancelAnimationFrame?.(spatialFrame)",
 ]) assert.ok(presentation.includes(required), `Missing V2 HUD truth seam: ${required}`);
 assert.ok(!presentation.includes('Math.floor((n-1)/5)'), 'stale five-wave chapter math is retired');
 assert.ok(!presentation.includes('beat===4'), 'stale fifth-wave boss math is retired');
+assert.ok(!presentation.includes('bw-portrait'), 'vitality reactor replaces the avatar slot');
+assert.ok(!presentation.includes('bw-radar'), 'decorative mini-radar is replaced by the true arena minimap');
+assert.ok(!presentation.includes('bw-constellation'), 'family constellation leaves the top-right minimap surface');
+assert.ok(!presentation.includes('bw-telemetry'), 'telemetry panel leaves the top-right minimap surface');
 
 for (const required of [
-  'BOT WAVE R12 — Living Ring Interface',
+  'BOT WAVE R13 — Ring Command',
   "@import url('/gold/fonts.css');",
   "@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf')",
   '--bw-font-display:"ApexVietCondensed","Oswald","Segoe UI",system-ui,sans-serif;',
   '--bw-font-data:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;',
   '#wave-hud .bw-spatial-layer',
   '#wave-hud .bw-spatial-marker.is-boss',
+  '#wave-hud .bw-marker-arrow',
+  '#wave-hud .bw-marker-badge',
+  '#wave-hud .bw-marker-copy strong',
+  '#wave-hud .bw-marker-meter',
+  '#wave-hud .bw-peripheral',
   '#wave-hud .bw-damage-wedge',
   '#wave-hud .bw-heal-halo',
   '#wave-hud .bw-momentum',
-  '#wave-hud .bw-beat-card',
+  '#wave-hud .bw-level-core',
+  'conic-gradient(from -90deg,#8fe8ff calc(var(--bw-xp)*1turn)',
+  '#wave-hud .bw-vital-stack',
+  '#wave-hud .bw-native-level-copy,#wave-hud .w-meter.xp{display:none!important}',
+  '#wave-hud .bw-hero.bw-is-ignited',
+  '@keyframes bw-ember-rise',
+  '#wave-hud .bw-pause-trigger',
+  '#wave-hud .bw-pause-menu',
+  '#wave-hud .bw-pause-actions .is-confirming',
+  '#wave-hud .bw-wave-core',
+  '#wave-hud .bw-beat-inline strong',
   '#wave-hud .bw-oracle.is-open',
-  '#wave-hud .bw-constellation',
-  '#wave-hud .bw-telemetry',
+  '#wave-hud .bw-minimap-canvas',
+  '#wave-hud .bw-minimap[data-danger="critical"]',
+  '#wave-hud .bw-data-vault{display:none!important}',
   '#wave-hud .bw-command-deck[data-focus="hot"] .bw-encounter',
-  '#wave-hud .bw-command-deck[data-focus="danger"] .bw-threat',
+  '#wave-hud .bw-command-deck[data-focus="danger"] .bw-minimap',
   '#wave-hud .bw-command-deck[data-focus="breather"] .bw-encounter',
   '#wave-hud .bw-command-deck[data-focus="cinematic"] .bw-top',
   '#wave-hud [data-family="PRECISION"]',
   '--bw-brass:#c99a5f;--bw-amber:#ffbb71;--bw-gold:#ffe1a1;--bw-ember:#ff7048',
   '--bw-crimson:#ff4057;--bw-mint:#8dffb2;--bw-cyan:#8fe8ff;--bw-violet:#c9a7ff',
   '#wave-hud .bw-atmosphere',
-  '#wave-hud .bw-status-lights',
-  '#wave-hud .bw-encounter-crest',
   '#wave-hud .bw-pressure-ticks',
-  '#wave-hud .bw-radar',
-  '@keyframes bw-radar-sweep',
-  '#wave-hud .bw-deck-rail',
   '#wave-hud .bw-action-glyph',
+  'flex-direction:row-reverse!important',
+  '--bw-action-lift:-25px',
   '--bw-action-accent:#ffcf7a',
   '--bw-action-accent:#8fe8ff',
   '--bw-action-accent:#c9a7ff',
@@ -371,13 +430,20 @@ for (const required of [
   '#wave-hud .w-action[data-act="K"].is-guarding',
   '#wave-hud #wave-status[data-kind="toast"]',
   '#wave-hud .bw-is-clear #bw-pressure-fill',
-  '#wave-hud #w-wave{display:none!important}',
+  '#wave-hud #w-wave,#wave-hud #w-arsenal{display:none!important}',
+  '#arena-experience-hud #r2-boss-panel{top:76px!important;',
   '#arena-experience-hud #r2-boss-panel .boss-r2-meter:after',
   '#wave-modal .w-dialog>.bw-dialog-ornaments',
   '#wave-modal .w-dialog .w-card:after{counter-increment:bw-card',
+  '@keyframes bw-card-deal',
   '@media(prefers-reduced-motion:reduce)',
 ]) assert.ok(presentationCss.includes(required), `Missing V2 HUD CSS seam: ${required}`);
 assert.ok(!presentationCss.includes('#wave-hud #wave-status{display:none!important}'), 'contextual status feed must be visible');
+assert.ok(!presentationCss.includes('.bw-portrait'), 'avatar CSS is retired with the vitality reactor');
+assert.ok(!presentationCss.includes('.bw-radar'), 'mini-radar CSS is retired with the true minimap');
+assert.ok(!presentationCss.includes('.bw-constellation'), 'constellation CSS leaves the minimap surface');
+assert.ok(!presentationCss.includes('.bw-telemetry'), 'telemetry CSS leaves the minimap surface');
+assert.ok(!presentationCss.includes('repeating-linear-gradient(0deg,transparent 0 3px'), 'full-screen scanlines must not blur the 1.75x Gold lens');
 assert.ok(!presentationCss.includes('Bahnschrift'), 'Windows-only Bahnschrift fallback is retired');
 assert.ok(!presentationCss.includes('Impact'), 'Impact fallback is retired in favour of shipped Vietnamese display fonts');
 assert.ok(!/font:(?:italic\s+)?(?:800|850|900|950|1000)\s/.test(presentationCss), 'fake heavy font weights are retired');
@@ -393,15 +459,23 @@ for (const required of [
   'pattern:beat.pattern',
   'families:Object.freeze(Object.entries(beat.familyWeights)',
   'familyWeights:Object.freeze({...beat.familyWeights})',
-]) assert.ok(campaign.includes(required), `Missing campaign R12 forecast seam: ${required}`);
+]) assert.ok(campaign.includes(required), `Missing campaign forecast seam: ${required}`);
 
 // Execute the real V2 installer against a DOM shaped like the pilot HUD.
-// This proves R12 is not just source decoration: beat identity, focus mode,
-// spatial markers, radar dots, family intel and the breather oracle all
+// This proves R13 is not just source decoration: the vitality reactor,
+// minimap, clustered spatial markers, pause system and breather oracle all
 // react to live pilot/engine telemetry.
 const r12dom = new JSDOM(`<!doctype html><html><head></head><body>
 <div id="wave-hud">
-  <div class="w-left"><div class="w-small">HP <b>280</b></div></div>
+  <div class="w-left">
+    <div class="w-head">BOXE</div>
+    <div class="w-small">HP <b id="w-hp">280 / 1,000</b></div>
+    <div class="w-meter hp-r2"><div id="w-hp-trail"></div><i id="w-hp-bar"></i><div class="w-hp-shine"></div></div>
+    <div class="w-fury-line"><span>✹ NHIỆT HUYẾT</span><b id="w-r2-fury-val">3s</b></div>
+    <div class="w-meter fury-r2"><i id="w-r2-fury-bar"></i></div>
+    <div class="w-small">LV <b id="w-level">3</b> · XP <b id="w-xp">35 / 95</b></div>
+    <div class="w-meter xp"><i id="w-xp-bar"></i></div>
+  </div>
   <div class="w-right"><b id="w-wave">WAVE 09</b><span id="w-count">3 HOSTILES LEFT</span>
     <div id="w-arsenal"><span>PISTOL</span><span>SNIPER</span></div></div>
   <div id="wave-status">J PUNCH</div><div id="wave-stick"><i></i></div>
@@ -422,8 +496,11 @@ const r12state = {
   queue: [{ gun: 'PISTOL', family: 'SEMI', edge: 'right', edgeFraction: 0.5, pressure: 52 }],
   spawnT: 0.08, spawnInterval: 0.34, softCap: 6, pressureBudget: 380,
   waveKills: 7, waveDamageDealt: 2450, waveDamageReceived: 310,
+  level: 3, xp: 35, kills: 44, aliveTime: 125, stacks: { power: 2, jab: 1 },
+  waveSnapshot: { wave: 9 }, clusterSnapshot: { wave: 1 },
+  passiveProgress: 300, passiveReady: false,
   healthPacks: [{ x: 120, y: 80 }], lastDamageAt: 11.8, lastDamageAngle: 0, lastDamageAmount: 120,
-  lastHealAt: -9, lastHealAmount: 0, guardHeld: false, guardCdT: 0, empowered: false,
+  lastHealAt: -9, lastHealAmount: 0, guardHeld: false, guardCdT: 0, empowered: true,
 };
 const r12plan = (wave) => ({ plan: {
   wave, pattern: wave === 10 ? 'four-edge' : 'cross',
@@ -434,35 +511,88 @@ const r12plan = (wave) => ({ plan: {
     { weaponId: 'OMEGA', family: 'SPECIAL', role: 'signature' },
   ],
 } });
-r12window.BOXE_WAVE_PILOT = { state: r12state, planWave: r12plan };
+let pauseCalls = 0;
+let saveExitCalls = 0;
+let restartRunCalls = 0;
+r12window.BOXE_WAVE_PILOT = {
+  state: r12state,
+  planWave: r12plan,
+  xpNeeded: (level) => Math.ceil(70 * Math.pow(1.16, level - 1)),
+  setPaused(value) { pauseCalls++; r12window.handLab.paused = !!value; return true; },
+  saveAndExit() { saveExitCalls++; return { saved: true, wave: r12state.waveSnapshot.wave }; },
+  replayWave() { r12window.handLab.paused = false; return true; },
+  replayCluster() { r12window.handLab.paused = false; return true; },
+  restartRun() { restartRunCalls++; r12window.handLab.paused = false; return true; },
+};
 r12window.handLab = {
-  time: 12, w: 960, h: 540, camZoom: 0.57, cam: { x: 0, y: 0 },
+  time: 12, w: 960, h: 540, camZoom: 0.875, cam: { x: 0, y: 0 }, paused: false,
   canvas: r12window.document.createElement('canvas'),
-  player: { x: 0, y: 0, hp: 280, maxHp: 1000 },
+  player: { x: 0, y: 0, hp: 280, maxHp: 1000, aim: -0.4 },
   enemies: [
-    { x: 1600, y: -500, hp: 2250, waveGunId: 'OMEGA', waveFamily: 'SPECIAL', waveBoss: true, wavePressure: 150 },
-    { x: -1500, y: 300, hp: 180, waveGunId: 'SNIPER', waveFamily: 'PRECISION', waveBoss: false, wavePressure: 90 },
+    { x: 1600, y: -500, hp: 2250, maxHp: 3000, waveGunId: 'OMEGA', waveFamily: 'SPECIAL', waveBoss: true, wavePressure: 150 },
+    { x: -1500, y: 300, hp: 180, maxHp: 240, waveGunId: 'SNIPER', waveFamily: 'PRECISION', waveBoss: false, wavePressure: 90 },
+    { x: -1450, y: 280, hp: 160, maxHp: 220, waveGunId: 'AK47', waveFamily: 'AUTO', waveBoss: false, wavePressure: 55 },
   ],
-  toScreen(x, y) { return { x: 480 + x * 0.57, y: 270 + y * 0.57 }; },
+  toScreen(x, y) { return { x: 480 + x * 0.875, y: 270 + y * 0.875 }; },
 };
 r12window.BOXE_ARENA_EXPERIENCE = { stage: { base: { stale: true } } };
 Object.defineProperty(r12window.document, 'fonts', {
   configurable: true,
   value: { load: async () => [{ family: 'stubbed-loaded-face' }] },
 });
+r12window.document.getElementById('wave-modal').hidden = true;
 r12window.eval(presentation);
 const r12doc = r12window.document;
-assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r12-living-ring-interface');
+assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r13-ring-command');
 assert.equal(r12doc.querySelectorAll('.bw-action-glyph').length, 5);
-assert.equal(r12doc.querySelectorAll('.bw-spatial-marker').length, 10);
-assert.equal(r12doc.querySelectorAll('.bw-radar-dot').length, 8);
-assert.equal(r12doc.querySelectorAll('.bw-family-cell').length, 5);
+assert.equal(r12doc.querySelectorAll('.bw-spatial-marker').length, 9);
+assert.equal(r12doc.querySelectorAll('.bw-portrait').length, 0, 'avatar must not be recreated');
+assert.equal(r12doc.getElementById('bw-level-value')?.textContent, '3');
+assert.equal(r12doc.getElementById('bw-xp-ring-label')?.textContent, '35 / 95 XP');
+assert.ok(r12doc.getElementById('bw-vital-stack')?.contains(r12doc.getElementById('w-hp-bar')), 'native HP meter must move into the fused vitality stack');
+assert.ok(r12doc.getElementById('bw-vital-stack')?.contains(r12doc.getElementById('w-r2-fury-bar')), 'native fury meter must be fused directly beneath HP');
+assert.ok(r12doc.querySelector('.bw-hero')?.classList.contains('bw-is-ignited'), 'full fury must ignite the whole vitality reactor');
+assert.ok(r12doc.getElementById('bw-minimap-canvas'), 'top-right must be a true minimap canvas');
+assert.equal(r12doc.getElementById('bw-minimap-mode')?.textContent, 'BOSS');
+assert.match(r12doc.getElementById('bw-minimap-next')?.textContent || '', /RIGHT · PISTOL/);
+assert.ok(r12doc.querySelector('.bw-data-vault')?.contains(r12doc.getElementById('w-arsenal')), 'native arsenal nodes stay alive in the hidden data vault');
+assert.ok(r12doc.querySelector('.bw-minimap-foot')?.contains(r12doc.getElementById('w-count')), 'native hostile count becomes the minimap footer');
 assert.equal(r12doc.getElementById('bw-beat-name')?.textContent, 'APEX STORM');
 assert.equal(r12doc.getElementById('bw-interface-v2')?.dataset.focus, 'danger');
 assert.ok(Number(r12doc.querySelector('.bw-damage-wedge')?.style.opacity) > 0, 'recent directional damage must light the wedge');
+assert.ok(Number(r12doc.querySelector('.bw-peripheral')?.style.opacity) > 0, 'low HP must light the peripheral field');
 assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.textContent.includes('OMEGA')), 'offscreen boss must receive a spatial marker');
-assert.ok([...r12doc.querySelectorAll('.bw-family-cell')].some((cell) => cell.textContent.includes('SNIPER')), 'family constellation must expose live PRECISION pressure');
-assert.equal(r12doc.querySelector('#w-arsenal span')?.dataset.family, 'SEMI');
+assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.textContent.includes('SNIPER +1')), 'same-sector hostiles must cluster into one polished edge tag');
+assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.style.getPropertyValue('--bw-marker-arrow-x').startsWith('-')),
+  'left-side hostiles must place their direction chevron outside the tag on the true vector');
+const minimapCalls = [];
+const minimapCanvasEl = r12doc.getElementById('bw-minimap-canvas');
+Object.defineProperty(minimapCanvasEl, 'clientWidth', { configurable: true, get: () => 160 });
+minimapCanvasEl.getContext = () => ({
+  setTransform() {}, clearRect() { minimapCalls.push('clear'); },
+  createRadialGradient() { return { addColorStop() {} }; },
+  beginPath() {}, arc() { minimapCalls.push('arc'); }, fill() {}, save() {}, clip() {}, stroke() {},
+  moveTo() {}, lineTo() {}, strokeRect() { minimapCalls.push('viewport'); }, closePath() {},
+  translate() {}, rotate() {}, restore() {}, fillText(text) { minimapCalls.push(text); },
+});
+assert.equal(r12doc.getElementById('bw-pause-menu')?.hidden, true);
+r12doc.getElementById('resume-wave')?.click();
+assert.ok(pauseCalls > 0 && r12window.handLab.paused, 'pause symbol must pause through the pilot API');
+assert.equal(r12doc.getElementById('bw-pause-menu')?.hidden, false, 'pause symbol must open Ring Command');
+assert.match(r12doc.getElementById('bw-pause-summary')?.textContent || '', /WAVE 09 · CLUSTER 01 · LV 3/);
+assert.ok([...r12doc.querySelectorAll('.bw-pause-chip')].some((chip) => chip.textContent.includes('POWER ×2')), 'pause menu must expose the live build');
+const restartButton = r12doc.querySelector('[data-pause-action="restart-run"]');
+restartButton?.click();
+assert.equal(restartRunCalls, 0, 'destructive restart requires a second confirming press');
+assert.ok(restartButton?.classList.contains('is-confirming'));
+restartButton?.click();
+assert.equal(restartRunCalls, 1, 'second press executes restart through the pilot API');
+assert.equal(r12doc.getElementById('bw-pause-menu')?.hidden, true);
+r12window.APEX_BOT_WAVE_INTERFACE_V2.openPauseMenu();
+r12doc.querySelector('[data-pause-action="save-exit"]')?.click();
+assert.equal(saveExitCalls, 1, 'save and exit must use the snapshot-boundary pilot seam');
+r12doc.querySelector('[data-pause-action="resume"]')?.click();
+assert.equal(r12window.handLab.paused, false);
 r12state.phase = 'intermission';
 r12state.autoNextWave = true;
 r12state.nextWaveT = 2;
@@ -472,22 +602,27 @@ await new Promise((resolve) => setTimeout(resolve, 130));
 assert.equal(r12window.BOXE_ARENA_EXPERIENCE.stage.base, null, 'loaded Vietnamese faces must invalidate the prerendered arena type');
 assert.equal(r12doc.getElementById('bw-interface-v2')?.dataset.focus, 'breather');
 assert.ok(r12doc.getElementById('bw-oracle')?.classList.contains('is-open'), 'oracle opens only in the seamless breather');
-assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 10 · THE LAST BELL/);
+assert.ok(minimapCalls.includes('clear') && minimapCalls.includes('viewport') && minimapCalls.includes('N'),
+  'minimap canvas must draw the arena, Gold viewport and compass from live telemetry');
+assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 10 · LAST BELL/);
 assert.match(r12doc.getElementById('bw-oracle-families')?.textContent || '', /NEW OMEGA/);
-assert.match(r12doc.getElementById('bw-momentum')?.textContent || '', /WAVE SEALED/);
+assert.match(r12doc.getElementById('bw-momentum-copy')?.textContent || '', /WAVE SEALED/);
 r12state.wave = 19;
 r12state.autoNextWave = false;
 r12state.phase = 'intermission';
 r12state.hudBeatIndex = 9;
 await new Promise((resolve) => setTimeout(resolve, 130));
-assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 20 · THE LAST BELL/,
+assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 20 · LAST BELL/,
   'snapshot intermission stores nextWave-1, so the oracle must forecast state.wave+1');
 r12window.dispatchEvent(new r12window.Event('pagehide'));
 r12window.close();
 
-assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r12'));
-assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r12'));
-assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r12'));
-assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r12'));
+assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r13'));
+assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r13'));
+assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R13 gameplay');
+assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r13'));
+assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r13'));
+assert.ok(wrapper.includes("event.data?.type==='APEX_BOT_WAVE_EXIT'"), 'standalone wrapper must honor the saved-exit message');
+assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Ring Command is installed');
 
-console.log('BOT WAVE HUD flow PASS: R12 living ring interface, seamless waves, integer presentation, hold-K guard + pre-counter cooldown, 10-wave pressure HUD');
+console.log('BOT WAVE HUD flow PASS: R13 Ring Command, 1.75x Gold lens, minimap + clustered edge telemetry, seamless waves, hold-K guard');
