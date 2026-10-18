@@ -292,13 +292,16 @@ for (const required of [
   'replayCluster:()=>{',
   'restartRun:()=>{restart();return true;},',
   'xpNeeded:(level)=>xpNeeded(level)',
+  'const gateGlow=ctx.createLinearGradient(-w/2,0,w/2,0);',
+  'const damageGradient=ctx.createLinearGradient(0,-large*.58,0,large*.58);',
+  'const koSize=p.boss?49:31,koGradient=ctx.createLinearGradient',
 ]) assert.ok(game.includes(required), `Missing HUD/guard seam: ${required}`);
 assert.ok(!game.includes('function completedUI('), 'per-wave completed modal is retired');
 assert.ok(!game.includes("UI['w-go'].textContent='▶ NEXT WAVE"), 'ordinary waves must not wait for NEXT WAVE click');
 assert.ok(!game.includes("engine.player.guardT=.45+state.guardBonus"), 'fixed .45s tap guard is retired');
 
 for (const required of [
-  "const VERSION='owner-release-r13-ring-command';",
+  "const VERSION='owner-release-r14-solar-forge';",
   'for(let i=0;i<10;i++)',
   'Math.floor((n-1)/10)+1,beat=Number.isInteger(s.hudBeatIndex)',
   'beatInfo=BEATS[beat]||beatForWave(n),bossBeat=beat===9',
@@ -309,7 +312,25 @@ for (const required of [
   'const ACTION_GLYPHS=Object.freeze({',
   'installActionGlyphs(actions);',
   "decor(deck,'bw-atmosphere'",
-  "decor(hero,'bw-ignition'",
+  "decor(hero,'bw-forge-shell'",
+  "decor(hero,'bw-forge-backlight'",
+  "forgeFireCanvas.id='bw-fire-canvas';",
+  "forgeParticleCanvas.id='bw-ember-canvas';",
+  'function createForgeFire(glCanvas,particleCanvas,reducedMotion){',
+  "state.mode='webgl-fbm-domain-warp';",
+  'float fbm(vec2 p)',
+  'vec2 warpB=vec2(fbm',
+  'vec3 fireRamp(float t)',
+  "spawn('ember'",
+  "spawn('smoke'",
+  'forgeFire.render({fury:s.empowered?1:clamp((Number(s.passiveProgress)||0)/300),hp:hpPct});',
+  'fireRenderer:()=>forgeFire.mode,',
+  'const minimapTrail=[];',
+  "marker.dataset.urgency=entry.kind==='boss'||entry.distance<430?'critical'",
+  "pulseDeck('bw-event-wave',980);",
+  "pulseDeck('bw-event-level',1150);",
+  "pulseDeck('bw-event-boss',1250);",
+  "pulseDeck('bw-event-ignite',1100);",
   "decor(pressure,'bw-pressure-ticks'",
   "decor(modal,'bw-dialog-ornaments'",
   "center.dataset.danger=danger>=.82?'critical'",
@@ -378,7 +399,7 @@ assert.ok(!presentation.includes('bw-constellation'), 'family constellation leav
 assert.ok(!presentation.includes('bw-telemetry'), 'telemetry panel leaves the top-right minimap surface');
 
 for (const required of [
-  'BOT WAVE R13 — Ring Command',
+  'BOT WAVE R14 — Solar Forge',
   "@import url('/gold/fonts.css');",
   "@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf')",
   '--bw-font-display:"ApexVietCondensed","Oswald","Segoe UI",system-ui,sans-serif;',
@@ -394,11 +415,24 @@ for (const required of [
   '#wave-hud .bw-heal-halo',
   '#wave-hud .bw-momentum',
   '#wave-hud .bw-level-core',
-  'conic-gradient(from -90deg,#8fe8ff calc(var(--bw-xp)*1turn)',
+  'conic-gradient(from -90deg,#dff9ff 0deg,#8fe8ff calc(var(--bw-xp)*1turn)',
   '#wave-hud .bw-vital-stack',
   '#wave-hud .bw-native-level-copy,#wave-hud .w-meter.xp{display:none!important}',
   '#wave-hud .bw-hero.bw-is-ignited',
-  '@keyframes bw-ember-rise',
+  '#wave-hud .bw-forge-shell',
+  '#wave-hud .bw-forge-backlight',
+  '#wave-hud .bw-fire-canvas',
+  '#wave-hud .bw-ember-canvas',
+  '--bw-metal-text:linear-gradient(180deg,#fffdf4 0%,#ffe9b8 38%,#d89c58 62%,#fff0bd 82%,#9a6336 100%);',
+  '--bw-fire-deep:#3d0500;--bw-fire-red:#b91f05;--bw-fire:#ff5a00;--bw-fire-gold:#ffb52e;--bw-fire-white:#fff3b0;',
+  '#wave-hud .bw-command-deck.bw-event-wave .bw-encounter',
+  '#wave-hud .bw-command-deck.bw-event-level .bw-level-core',
+  '#wave-hud .bw-command-deck.bw-event-boss .bw-minimap',
+  '#wave-hud .bw-command-deck.bw-event-ignite .bw-fire-canvas',
+  '#wave-hud .bw-spatial-marker[data-urgency="critical"]:before',
+  '@keyframes bw-boss-lava',
+  '@keyframes bw-event-ignite-fire',
+  '@keyframes bw-marker-reticle',
   '#wave-hud .bw-pause-trigger',
   '#wave-hud .bw-pause-menu',
   '#wave-hud .bw-pause-actions .is-confirming',
@@ -413,7 +447,7 @@ for (const required of [
   '#wave-hud .bw-command-deck[data-focus="breather"] .bw-encounter',
   '#wave-hud .bw-command-deck[data-focus="cinematic"] .bw-top',
   '#wave-hud [data-family="PRECISION"]',
-  '--bw-brass:#c99a5f;--bw-amber:#ffbb71;--bw-gold:#ffe1a1;--bw-ember:#ff7048',
+  '--bw-brass:#c99a5f;--bw-bronze:#8a5a34;--bw-amber:#ffbb71;--bw-gold:#ffe1a1;--bw-ember:#ff7048',
   '--bw-crimson:#ff4057;--bw-mint:#8dffb2;--bw-cyan:#8fe8ff;--bw-violet:#c9a7ff',
   '#wave-hud .bw-atmosphere',
   '#wave-hud .bw-pressure-ticks',
@@ -425,7 +459,7 @@ for (const required of [
   '--bw-action-accent:#c9a7ff',
   '--bw-action-accent:#ff5964',
   '#wave-hud .w-action .w-cd',
-  'conic-gradient(rgba(1,5,9,.78)',
+  'conic-gradient(from -90deg,rgba(1,4,8,.84)',
   '#wave-hud .w-action.bw-ready-flash',
   '#wave-hud .w-action[data-act="K"].is-guarding',
   '#wave-hud #wave-status[data-kind="toast"]',
@@ -439,6 +473,8 @@ for (const required of [
   '@media(prefers-reduced-motion:reduce)',
 ]) assert.ok(presentationCss.includes(required), `Missing V2 HUD CSS seam: ${required}`);
 assert.ok(!presentationCss.includes('#wave-hud #wave-status{display:none!important}'), 'contextual status feed must be visible');
+assert.ok(!presentation.includes('bw-ignition'), 'CSS teardrop ignition is replaced by the Solar Forge renderer');
+assert.ok(!presentationCss.includes('.bw-ignition'), 'CSS teardrop flame rules are retired');
 assert.ok(!presentationCss.includes('.bw-portrait'), 'avatar CSS is retired with the vitality reactor');
 assert.ok(!presentationCss.includes('.bw-radar'), 'mini-radar CSS is retired with the true minimap');
 assert.ok(!presentationCss.includes('.bw-constellation'), 'constellation CSS leaves the minimap surface');
@@ -462,7 +498,7 @@ for (const required of [
 ]) assert.ok(campaign.includes(required), `Missing campaign forecast seam: ${required}`);
 
 // Execute the real V2 installer against a DOM shaped like the pilot HUD.
-// This proves R13 is not just source decoration: the vitality reactor,
+// This proves R14 is not just source decoration: the Solar Forge reactor,
 // minimap, clustered spatial markers, pause system and breather oracle all
 // react to live pilot/engine telemetry.
 const r12dom = new JSDOM(`<!doctype html><html><head></head><body>
@@ -543,7 +579,11 @@ Object.defineProperty(r12window.document, 'fonts', {
 r12window.document.getElementById('wave-modal').hidden = true;
 r12window.eval(presentation);
 const r12doc = r12window.document;
-assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r13-ring-command');
+assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r14-solar-forge');
+assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.fireRenderer?.(), 'particle-fallback', 'JSDOM without WebGL must retain the pooled particle furnace');
+assert.ok(r12doc.getElementById('bw-fire-canvas'), 'vitality reactor must own a dedicated procedural-fire canvas');
+assert.ok(r12doc.getElementById('bw-ember-canvas'), 'vitality reactor must own an independent ember/smoke canvas');
+assert.equal(r12doc.querySelector('.bw-hero')?.dataset.fireRenderer, 'particle-fallback');
 assert.equal(r12doc.querySelectorAll('.bw-action-glyph').length, 5);
 assert.equal(r12doc.querySelectorAll('.bw-spatial-marker').length, 9);
 assert.equal(r12doc.querySelectorAll('.bw-portrait').length, 0, 'avatar must not be recreated');
@@ -565,14 +605,17 @@ assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => ma
 assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.textContent.includes('SNIPER +1')), 'same-sector hostiles must cluster into one polished edge tag');
 assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.style.getPropertyValue('--bw-marker-arrow-x').startsWith('-')),
   'left-side hostiles must place their direction chevron outside the tag on the true vector');
+assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.dataset.urgency === 'critical'),
+  'boss/close hostiles must escalate the reticle urgency state');
 const minimapCalls = [];
 const minimapCanvasEl = r12doc.getElementById('bw-minimap-canvas');
 Object.defineProperty(minimapCanvasEl, 'clientWidth', { configurable: true, get: () => 160 });
 minimapCanvasEl.getContext = () => ({
   setTransform() {}, clearRect() { minimapCalls.push('clear'); },
   createRadialGradient() { return { addColorStop() {} }; },
-  beginPath() {}, arc() { minimapCalls.push('arc'); }, fill() {}, save() {}, clip() {}, stroke() {},
-  moveTo() {}, lineTo() {}, strokeRect() { minimapCalls.push('viewport'); }, closePath() {},
+  createLinearGradient() { minimapCalls.push('glass'); return { addColorStop() {} }; },
+  beginPath() {}, arc() { minimapCalls.push('arc'); }, fill() {}, fillRect() { minimapCalls.push('glass-fill'); }, save() {}, clip() {}, stroke() {},
+  moveTo() {}, lineTo() { minimapCalls.push('viewport-corner'); }, closePath() {},
   translate() {}, rotate() {}, restore() {}, fillText(text) { minimapCalls.push(text); },
 });
 assert.equal(r12doc.getElementById('bw-pause-menu')?.hidden, true);
@@ -602,8 +645,8 @@ await new Promise((resolve) => setTimeout(resolve, 130));
 assert.equal(r12window.BOXE_ARENA_EXPERIENCE.stage.base, null, 'loaded Vietnamese faces must invalidate the prerendered arena type');
 assert.equal(r12doc.getElementById('bw-interface-v2')?.dataset.focus, 'breather');
 assert.ok(r12doc.getElementById('bw-oracle')?.classList.contains('is-open'), 'oracle opens only in the seamless breather');
-assert.ok(minimapCalls.includes('clear') && minimapCalls.includes('viewport') && minimapCalls.includes('N'),
-  'minimap canvas must draw the arena, Gold viewport and compass from live telemetry');
+assert.ok(minimapCalls.includes('clear') && minimapCalls.includes('viewport-corner') && minimapCalls.includes('glass-fill') && minimapCalls.includes('N'),
+  'astrolabe minimap must draw the arena, bracket viewport, glass light and compass from live telemetry');
 assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 10 · LAST BELL/);
 assert.match(r12doc.getElementById('bw-oracle-families')?.textContent || '', /NEW OMEGA/);
 assert.match(r12doc.getElementById('bw-momentum-copy')?.textContent || '', /WAVE SEALED/);
@@ -617,12 +660,12 @@ assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 
 r12window.dispatchEvent(new r12window.Event('pagehide'));
 r12window.close();
 
-assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r13'));
-assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r13'));
-assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R13 gameplay');
-assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r13'));
-assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r13'));
+assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r14'));
+assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r14'));
+assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R14 gameplay');
+assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r14'));
+assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r14'));
 assert.ok(wrapper.includes("event.data?.type==='APEX_BOT_WAVE_EXIT'"), 'standalone wrapper must honor the saved-exit message');
-assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Ring Command is installed');
+assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Solar Forge is installed');
 
-console.log('BOT WAVE HUD flow PASS: R13 Ring Command, 1.75x Gold lens, minimap + clustered edge telemetry, seamless waves, hold-K guard');
+console.log('BOT WAVE HUD flow PASS: R14 Solar Forge, procedural furnace fire, 1.75x Gold lens, astrolabe minimap + clustered edge telemetry, seamless waves, hold-K guard');

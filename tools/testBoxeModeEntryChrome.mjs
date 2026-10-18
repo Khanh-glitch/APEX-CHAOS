@@ -140,6 +140,8 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      portraitRetired:!document.querySelector('.bw-hero .bw-portrait'),
      tenBeats:document.querySelectorAll('#bw-beat-markers i').length,
      minimap:!!document.getElementById('bw-minimap-canvas'),
+     forgeFire:!!document.getElementById('bw-fire-canvas')&&!!document.getElementById('bw-ember-canvas'),
+     fireRenderer:window.APEX_BOT_WAVE_INTERFACE_V2?.fireRenderer?.()||'missing',
      pauseCommand:!!document.querySelector('.bw-hero .bw-pause-trigger')&&!!document.getElementById('bw-pause-menu'),
      modalArt:!!document.querySelector('.w-dialog > .bw-cover img'),
      controls:document.querySelectorAll('.bw-skill-deck .w-action').length,
@@ -147,9 +149,9 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      pressureMeter:!!document.getElementById('bw-pressure-fill'),
      debugHidden:!document.getElementById('arena-experience-tools')||getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
    }));
-   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.portraitRetired&&interfaceRead.minimap&&interfaceRead.pauseCommand&&interfaceRead.modalArt&&interfaceRead.debugHidden
+   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.portraitRetired&&interfaceRead.minimap&&interfaceRead.forgeFire&&['webgl-fbm-domain-warp','particle-fallback'].includes(interfaceRead.fireRenderer)&&interfaceRead.pauseCommand&&interfaceRead.modalArt&&interfaceRead.debugHidden
        &&interfaceRead.tenBeats===10&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===0&&interfaceRead.pressureMeter,
-      'R13 Ring Command HUD not rebuilt '+JSON.stringify(interfaceRead));
+      'R14 Solar Forge HUD not rebuilt '+JSON.stringify(interfaceRead));
    // Resident Gold Home must NOT leave its separate Archive button above Wave.
    const inheritedHome=await page.evaluate(()=>{
      const archive=document.querySelector('.apex-skin-entry');
@@ -345,7 +347,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      utility:window.APEX_ARSENAL_AV?.stats?.waveUtility||null
    }));
    assert.ok(liveMix.policy?.mix?.gain>0&&liveMix.policy.mix.gain<=.14&&
-     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r13')&&
+     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r14')&&
      liveMix.npcEquipAudioSuppressed>0,
      'Native gun SFX not demonstrably attenuated in live Chromium '+JSON.stringify(liveMix));
    console.log('BOT WAVE R13 actual WebAudio native gun mix PASS',view.name,liveMix);
