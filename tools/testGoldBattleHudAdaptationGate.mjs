@@ -82,7 +82,7 @@ check('skill projection carries semantic kind/duration/icon/description',
   bridge.includes('desc: skillSemantic('));
 
 check('skill copy maps Core Six A1/A2 identity instead of generic A1/A2 labels',
-  ['WEAPON DASH','VIRTUAL ARMOR','TRAP DEPLOY','DASH / STRIKE','MAGNETIC ATTRACTION','MAGNETIC REPEL','FROST BREATH','FROST RUSH','MIRROR ARSENAL','MIRROR EXCHANGE']
+  ['WEAPON DASH','VIRTUAL ARMOR','TRAP DEPLOY','DASH / STRIKE','HEXA CONSTRUCT','AWAKENING','MAGNETIC ATTRACTION','MAGNETIC REPEL','FROST BREATH','FROST RUSH','MIRROR ARSENAL','ATOMIC EXCHANGE']
     .every((t) => bridge.includes(t)));
 
 check('Pick preview and live HUD share the same bridge skill display mapping',

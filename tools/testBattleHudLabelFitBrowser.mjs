@@ -82,7 +82,7 @@ async function evl(expression) {
   return r.result?.value;
 }
 
-const EN = { name: 'CRYSTALA', tag: 'ANCIENT CRYSTAL ENTITY', ctrl1: 'LOCAL · J K', ctrl2: 'LOCAL · NUM 1 2', rival: 'CRYSTALA', weapon: 'MOSSBERG 500', weapon17: 'PANCOR JACKHAMMER', skill1: 'MAGNETIC ATTRACTION', skill2: 'CONTEXT CONSTRUCT', desc: '12.0S COOLDOWN' };
+const EN = { name: 'CRYSTALA', tag: 'ANCIENT CRYSTAL ENTITY', ctrl1: 'LOCAL · J K', ctrl2: 'LOCAL · NUM 1 2', rival: 'CRYSTALA', weapon: 'MOSSBERG 500', weapon17: 'PANCOR JACKHAMMER', skill1: 'MAGNETIC ATTRACTION', skill2: 'MECHANICAL GENESIS', desc: '12.0S COOLDOWN' };
 const VI = { name: 'CRYSTALA', tag: 'ĐƠN VỊ ĐIỀU KHIỂN TRƯỜNG LỰC', ctrl1: 'LOCAL · J K', ctrl2: 'LOCAL · NUM 1 2', rival: 'CRYSTALA', weapon: 'MOSSBERG 500', weapon17: 'PANCOR JACKHAMMER', skill1: 'KHO VŨ KHÍ PHẢN CHIẾU', skill2: 'KIẾN TẠO THÍCH ỨNG', desc: '12.0S HỒI CHIÊU' };
 const CASES = [
   { id: 'desk-1920-2p', w: 1920, h: 1080, mode: '2p' },

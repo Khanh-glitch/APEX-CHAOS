@@ -1329,13 +1329,16 @@
   function heroRegistry() {
     return window.APEX_HERO_REWORK_REGISTRY || null;
   }
+  // Canonical player-facing skill names (CP6): one name per skill on every
+  // surface. The registry carries the same names as Title-Case displayName;
+  // this table is the Pick/HUD uppercase projection and must stay in sync.
   const GOLD_SKILL_COPY = {
-    ROBOT: { A1: 'WEAPON DASH', A2: 'VIRTUAL ARMOR' },
-    HUNTER: { A1: 'TRAP DEPLOY', A2: 'DASH / STRIKE' },
-    CRYSTAL: { A1: 'CONTEXT CONSTRUCT', A2: 'AWAKENING' },
-    MAGNET: { A1: 'MAGNETIC ATTRACTION', A2: 'MAGNETIC REPEL' },
-    ICE: { A1: 'FROST BREATH', A2: 'FROST RUSH' },
-    MIRROR: { A1: 'MIRROR ARSENAL', A2: 'MIRROR EXCHANGE' },
+    ROBOT: { PASSIVE: 'ROLLING BURST', A1: 'WEAPON DASH', A2: 'VIRTUAL ARMOR' },
+    HUNTER: { PASSIVE: "PREDATOR'S LAW", A1: 'TRAP DEPLOY', A2: 'DASH / STRIKE' },
+    CRYSTAL: { PASSIVE: 'REFRACTION', A1: 'HEXA CONSTRUCT', A2: 'AWAKENING' },
+    MAGNET: { PASSIVE: 'MAGNETIC ACCELERATION', A1: 'MAGNETIC ATTRACTION', A2: 'MAGNETIC REPEL' },
+    ICE: { PASSIVE: 'FROZEN BULLET', A1: 'FROST BREATH', A2: 'FROST RUSH' },
+    MIRROR: { PASSIVE: 'MIRROR SHARDS', A1: 'MIRROR ARSENAL', A2: 'ATOMIC EXCHANGE' },
     BOXE: { PASSIVE: 'CÀNG ĐÁNH CÀNG HĂNG', A1: 'FIST ROCKET', A2: 'BLOCK & HIT' },
     SHURI: { PASSIVE: 'RECYCLE SNAP', A1: 'SHOCK RECOIL', A2: 'MECHANICAL GENESIS' },
   };
@@ -1378,7 +1381,10 @@
     const fallbackName = def && def.id
       ? String(def.id).split('.').pop().replace(/_/g, ' ').toUpperCase()
       : slot;
-    const name = (GOLD_SKILL_COPY[id] && GOLD_SKILL_COPY[id][slot]) || fallbackName;
+    // Registry displayName is authored copy; mechanicId derivation is a
+    // last-resort dev fallback and must never win while a name exists.
+    const name = (GOLD_SKILL_COPY[id] && GOLD_SKILL_COPY[id][slot])
+      || (def && def.displayName ? String(def.displayName).toUpperCase() : fallbackName);
     return {
       name,
       cooldown,

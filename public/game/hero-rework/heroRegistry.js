@@ -111,16 +111,16 @@
       id: 'ROBOT',
       name: 'ROBOT',
       // Product display copy only; storage/canonical id stays ROBOT.
-      displayName: 'ROBOT',
+      displayName: 'NEWBOT',
       classRef: 'rework.robot',
       skills: {
         A1: skill('robot.weapon_dash', 'A1', 'robot.weapon_dash', {
           cooldown: 10, dashSpeed: 3400, maxDashTime: 0.55, turnRate: 11,
           arriveRadius: 34, targetRevealedPickups: true, t6AutoTarget: false,
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Weapon Dash', archiveProfile: { description: 'Quickly closes the distance to a revealed floor weapon.' } }),
         A2: skill('robot.virtual_armor', 'A2', 'robot.virtual_armor', {
           cooldown: 10, duration: 3.0, incomingMult: 0.45, ccImmunity: false,
-        }, ['incomingMult'], 'magnitude_step'),
+        }, ['incomingMult'], 'magnitude_step', { displayName: 'Virtual Armor', archiveProfile: { description: 'Reduces incoming damage for 3 seconds.' } }),
         PASSIVE: skill('robot.damage_milestones', 'PASSIVE', 'robot.damage_milestones', {
           // POST-PLAYTEST 2026-09-29 owner correction: rolling 1.2s damage
           // burst window. Thresholds 150 -> +50 each, one crossing per
@@ -129,7 +129,7 @@
           milestoneRefundsSec: [0, 0.5, 1.0, 1.5], // index = milestone # - 1
           stepAfterLadder: 0.5, // canonical Lv1: subsequent milestones +0.5s each
           oneProcPerMilestone: true,
-        }, ['stepAfterLadder'], 'seconds_step'),
+        }, ['stepAfterLadder'], 'seconds_step', { displayName: 'Rolling Burst', archiveProfile: { description: 'Damage dealt inside a 1.2-second burst window refunds skill cooldown.' } }),
       },
     },
 
@@ -163,15 +163,15 @@
           wall: { width: 220, hp: 80, solidLifetime: 4.0 },
           prison: { radius: 135, facets: 6, facetHp: 75, solidLifetime: 3.0 },
           preSolidTarget: 0.75,
-        }, ['constructHpMult'], 'magnitude_step'),
+        }, ['constructHpMult'], 'magnitude_step', { displayName: 'Hexa Construct', archiveProfile: { description: 'Raises a crystal wall; during Awakening it can become the HEXA.' } }),
         A2: skill('crystal.awakening', 'A2', 'crystal.awakening', {
           cooldown: 12.0, active: 2.4, shards: 6, scanRadius: 450, interceptBand: 300,
           minAnticipation: 0.12, contactToDock: 1.6,
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Awakening', archiveProfile: { description: 'Activates the six floating shards to defend and enable the HEXA window.' } }),
         PASSIVE: skill('crystal.refraction', 'PASSIVE', 'crystal.refraction', {
           reflectedDamagePct: 0.50, controllerChange: 'CRYSTAL', provenanceRetained: true,
           maxReflectionsPerProjectile: 1, autoBodyReflect: false, t6Reflect: false,
-        }, ['reflectedDamagePct'], 'pp_step'),
+        }, ['reflectedDamagePct'], 'pp_step', { displayName: 'Refraction', archiveProfile: { description: 'Reflected projectiles turn against their owner.' } }),
       },
     },
 
@@ -189,17 +189,17 @@
           gunDistanceSpan: 700, gunSpeedCap: 900, postFieldDrag: 1.8,
           bulletRadius: 480, bulletAcceleration: 14000, bulletSpeedCapMult: 1.10,
           t6Immune: true,
-        }, ['gunAccelerationMax'], 'magnitude_step'),
+        }, ['gunAccelerationMax'], 'magnitude_step', { displayName: 'Magnetic Attraction', archiveProfile: { description: 'Pulls revealed floor guns toward you and curves bullets.' } }),
         A2: skill('magnet.repulsion_field', 'A2', 'magnet.repulsion_field', {
           cooldown: 13, duration: 1.80, radius: 225,
           bodyAcceleration: 2200, bodyRadialSpeedCap: 650,
           gunAcceleration: 3000, gunSpeedCap: 950,
           bulletAcceleration: 18000, bulletSpeedCapMult: 1.10,
           t6Immune: true,
-        }, ['bodyAcceleration'], 'magnitude_step'),
+        }, ['bodyAcceleration'], 'magnitude_step', { displayName: 'Magnetic Repel', archiveProfile: { description: 'Repels nearby bullets, weapons and the opponent.' } }),
         PASSIVE: skill('magnet.acceleration', 'PASSIVE', 'magnet.acceleration', {
           ownedProjectileVelocityBonus: 0.18, t6Immune: true,
-        }, ['ownedProjectileVelocityBonus'], 'pp_step'),
+        }, ['ownedProjectileVelocityBonus'], 'pp_step', { displayName: 'Magnetic Acceleration', archiveProfile: { description: 'Your projectiles fly 18% faster. T6 weapons are immune.' } }),
       },
     },
 
@@ -209,22 +209,23 @@
     BLACK_HOLE: {
       id: 'BLACK_HOLE',
       name: 'BLACK_HOLE',
+      displayName: 'BLACK HOLE',
       classRef: 'rework.black_hole',
       skills: {
         A1: skill('black_hole.transit', 'A1', 'black_hole.transit', {
           cooldown: 14, activeDuration: 2.7, capacity: 8, transitDelay: 0.35,
           exitTargetDistance: 120, preserveVelocity: true, preserveProvenance: true,
           t6Immune: true,
-        }, ['capacity'], 'capacity_step'),
+        }, ['capacity'], 'capacity_step', { displayName: 'Gravity Transit' }),
         A2: skill('black_hole.damage_singularity', 'A2', 'black_hole.damage_singularity', {
           cooldown: 18, escrowWindow: 1.0, storedDamageCap: 300,
           returnPct: 0.65, vulnerabilityDuration: 3, vulnerabilityIncomingMult: 2,
           t6DamageCaptured: false,
-        }, ['storedDamageCap'], 'magnitude_step'),
+        }, ['storedDamageCap'], 'magnitude_step', { displayName: 'Singularity' }),
         PASSIVE: skill('black_hole.event_horizon', 'PASSIVE', 'black_hole.event_horizon', {
           radiusPerHp: 1 / 10, maxGrowth: 100, healingShrinks: false,
           countsEscrowedDamage: false, biggerIsTargetable: true,
-        }, ['radiusPerHp'], 'magnitude_step'),
+        }, ['radiusPerHp'], 'magnitude_step', { displayName: 'Event Horizon' }),
       },
     },
 
@@ -234,24 +235,25 @@
     MATH_V2: {
       id: 'MATH_V2',
       name: 'MATH_V2',
+      displayName: 'MATH V2',
       classRef: 'rework.math_v2',
       skills: {
         A1: skill('math.parabola_graph', 'A1', 'math.parabola_graph', {
           cooldown: 10, maxLifetime: 10, endsOnOffensiveEquipment: true,
           healPickupDoesNotEnd: false, recastReplaces: true,
           equation: 'tuning-slot', // exact parabola equation/scale/orientation is a tuning slot
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Parabola' }),
         A2: skill('math.damage_equation', 'A2', 'math.damage_equation', {
           cooldown: 20, armorDuration: 3,
           countersStartAt: 0, cashOnPhysicalBodyCollision: true,
           noLv1Cap: true,
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Final Equation' }),
         PASSIVE: skill('math.multiply_divide', 'PASSIVE', 'math.multiply_divide', {
           gateDuration: 2, xFactor: 2, divFactor: 2,
           duplicateDamagePct: 1.0, halvedDamagePct: 0.5,
           separationAngle: 'tuning-slot',
           loopSuppression: 'same-surface-zero-progress', t6Immune: true,
-        }, ['xFactor'], 'factor_step'),
+        }, ['xFactor'], 'factor_step', { displayName: 'Multiply / Divide' }),
       },
     },
 
@@ -278,17 +280,17 @@
           cooldown: 10.5, castCommit: 0.25, length: 650, width: 310,
           floorLifetime: 4.5, thawSeconds: 0.30, lingerSeconds: 0.35,
           directDamage: 0, progressionAnchor: 1,
-        }, ['progressionAnchor'], 'cooldown_step'),
+        }, ['progressionAnchor'], 'cooldown_step', { displayName: 'Frost Breath', archiveProfile: { description: 'Lays down ice that changes movement speed on frozen ground.' } }),
         A2: skill('frost.hunt', 'A2', 'frost.hunt', {
           cooldown: 12.5, activeWindow: 2.0, trailWidth: 120,
           segmentLifetime: 3.5, coldShockMult: 0.50,
           coldShockDuration: 1.0, directDamage: 0, progressionAnchor: 1,
-        }, ['progressionAnchor'], 'cooldown_step'),
+        }, ['progressionAnchor'], 'cooldown_step', { displayName: 'Frost Rush', archiveProfile: { description: 'Rushes forward over fresh ice and can steal a weapon on contact.' } }),
         PASSIVE: skill('frost.deep_frost', 'PASSIVE', 'frost.deep_frost', {
           baseProcPct: 0.04, bonusProcPct: 0.04,
           freezeDuration: 0.90, postThawLock: 0.50,
           directDamage: 0, progressionAnchor: 1,
-        }, ['progressionAnchor'], 'cooldown_step'),
+        }, ['progressionAnchor'], 'cooldown_step', { displayName: 'Frozen Bullet', archiveProfile: { description: 'Weapon hits have a chance to freeze the opponent for 0.9 seconds.' } }),
       },
     },
 
@@ -305,16 +307,16 @@
           maxSpeedBonusPct: 0.55, postActiveDecay: 25,
           collisionStunThreshold: 60, collisionStun: 0.55,
           impulseCalibration: 'tuning-slot',
-        }, ['maxSpeedBonusPct'], 'pp_step'),
+        }, ['maxSpeedBonusPct'], 'pp_step', { displayName: 'Elastic State' }),
         A2: skill('rubber.compression', 'A2', 'rubber.compression', {
           cooldown: 15, duration: 2.5, capacity: 8,
           speedLossPerStored: 0.07, speedFloorPct: 0.45,
           releasedDamagePct: 1.0, debtOnMissPct: 1.0, t6Immune: true,
-        }, ['capacity'], 'capacity_step'),
+        }, ['capacity'], 'capacity_step', { displayName: 'Compression' }),
         PASSIVE: skill('rubber.afterbounce', 'PASSIVE', 'rubber.afterbounce', {
           duration: 2.2, pushImpulse: 650, selfSpeedLossPct: 0.15,
           reprocRequiresNewContact: true, stun: false,
-        }, ['pushImpulse'], 'magnitude_step'),
+        }, ['pushImpulse'], 'magnitude_step', { displayName: 'Afterbounce' }),
       },
     },
 
@@ -330,18 +332,18 @@
           cooldown: 6.5, maxCharges: 3, trapLifetime: 6, maxActiveTraps: 3, rootDuration: 1.25,
           weakDuration: 1.0, // POST-PLAYTEST 2026-09-29: real trigger applies WEAK 1.0
           placedAtCaster: true, bulletsPickupsVfxDoNotTrigger: true,
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Trap Deploy', archiveProfile: { description: 'Plants a trap that roots the first opponent who steps in.' } }),
         A2: skill('hunter.pounce_weak', 'A2', 'hunter.pounce_weak', {
           cooldown: 12, windup: 0.16, moveSpeed: 2200, maxMoveTime: 0.50,
           directDamage: 0, stunDuration: 2.0, weakDuration: 1.0,
           canMiss: true, weakScope: 'combatant',
-        }, ['weakDuration'], 'seconds_step'),
+        }, ['weakDuration'], 'seconds_step', { displayName: 'Dash / Strike', archiveProfile: { description: 'Dashes in with a strike that can disarm the opponent.' } }),
         // POST-PLAYTEST 2026-09-29: passive owns WEAK amplification progression.
         // One-knob profile selector; Lv2-Lv5 numbers unresolved until owner balance.
         PASSIVE: skill('hunter.weak_law', 'PASSIVE', 'hunter.weak_law', {
           weakProfileTier: 1,
           weakDuration: 1.0, hunterIncomingMult: 1.25, outgoingMult: 0.75,
-        }, ['weakProfileTier'], 'pp_step'),
+        }, ['weakProfileTier'], 'pp_step', { displayName: 'Predator\'s Law', archiveProfile: { description: 'Marked prey turns WEAK for 1 second: it takes 25% more damage and deals 25% less.' } }),
       },
     },
 
@@ -358,16 +360,16 @@
           ghostBodiesIntangible: true,
           replayWhitelist: ['bullet', 'burst', 'shotgun-fan', 'grenade-throw', 'thrown-melee'],
           replayBlacklist: ['melee-swing', 'shield', 'persistent-field', 'hero-active', 'replay-event', 't6'],
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Time Loop' }),
         A2: skill('time.rewind', 'A2', 'time.rewind', {
           cooldown: 16, snapshotDelay: 3,
           restores: ['hp', 'position', 'velocity'],
           doesNotRewind: ['opponent', 'world', 'projectiles', 'inventory', 'ammo', 'cooldowns'],
           noRevive: true, onlyIfAlive: true,
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Rewind' }),
         PASSIVE: skill('time.timeline_markers', 'PASSIVE', 'time.timeline_markers', {
           markerHorizons: [1, 2], gameplayMutation: false,
-        }, ['markerHorizons', '1'], 'seconds_step'),
+        }, ['markerHorizons', '1'], 'seconds_step', { displayName: 'Timeline Markers' }),
       },
     },
 
@@ -390,7 +392,7 @@
           copiesOpponentHeldEligible: true, freshInstance: true, freshAmmo: true,
           opponentKeepsOriginal: true, whiffIfIneligible: true,
           t6Copy: false, shieldCopyExcluded: true,
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Mirror Arsenal', archiveProfile: { description: 'Copies the enemy\'s held weapon for a short time. T6 excluded.' } }),
         // Checkpoint E: timing is the canonical Gold fixed-step FIRST
         // CROSSING of u >= .25 on A2TS = 1.0 (step 31, ~0.25833s), resolved in
         // the post-movement seam. `snapU`/`actionEndU` are descriptive of that
@@ -403,7 +405,7 @@
           canonicalSnapSeconds: 0.25833, presentationBusySeconds: 1.8,
           resolvesPostMovement: true, observerAtomicPairExchange: true,
           keepsOwn: ['velocity', 'hp', 'weapon', 'status'],
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Atomic Exchange', archiveProfile: { description: 'Swaps the two bodies\' positions without swapping HP, velocity or weapons.' } }),
         PASSIVE: skill('mirror.shattered_mirrors', 'PASSIVE', 'mirror.shattered_mirrors', {
           // Realized-damage -> shard law (doc 08 §4, binding):
           // realized < minEventDamage -> 0; else clamp(round(d/35),1,5).
@@ -421,7 +423,7 @@
           exitController: 'NEUTRAL', damageUnchanged: true, noHeroCredit: true,
           provenanceRetained: true, t6Immune: true,
           loopSuppression: 'zero-progress-only',
-        }, ['freeShardLifetime'], 'seconds_step'),
+        }, ['freeShardLifetime'], 'seconds_step', { displayName: 'Mirror Shards', archiveProfile: { description: 'Damage creates shards that can assemble into mirror nodes.' } }),
       },
     },
 
@@ -446,19 +448,19 @@
           // disturb the frozen laws: non-overlap spawn, seeded
           // reproducibility, independent physical motion.
           divergenceTarget: 25, equipmentDeterministicMerge: true,
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Mitosis' }),
         A2: skill('slime.damage_shedding', 'A2', 'slime.damage_shedding', {
           cooldown: 16, duration: 5, damagePerChild: 100,
           carryOverProgress: true, maxChildren: 3,
           childHp: 140, childLifetime: 5, childRadius: 45,
           childSpeedPct: 0.9, childValidAutoTarget: true,
           childMayEquip: true, expiryReturnHp: true, killedChildHpLost: true,
-        }, ['cooldown'], 'cooldown_step'),
+        }, ['cooldown'], 'cooldown_step', { displayName: 'Shedding' }),
         PASSIVE: skill('slime.emergency_mitosis', 'PASSIVE', 'slime.emergency_mitosis', {
           triggerAtLostPct: 0.80, minSplitShareHp: 100,
           successfulSplitReplacesSource: true,
           combatantDiesWhenNoLivingBody: true,
-        }, ['triggerAtLostPct'], 'pp_threshold_step'),
+        }, ['triggerAtLostPct'], 'pp_threshold_step', { displayName: 'Emergency Mitosis' }),
       },
     },
 
@@ -473,12 +475,12 @@
         A1: skill('sniper.farthest_corner', 'A1', 'sniper.farthest_corner', {
           cooldown: 14, cornerInset: 110, aimLostDuration: 2.2,
           opponentMayStillFireLastAim: true, t6HomingUnaffected: true,
-        }, ['aimLostDuration'], 'seconds_step'),
+        }, ['aimLostDuration'], 'seconds_step', { displayName: 'Farthest Corner' }),
         A2: skill('sniper.nest', 'A2', 'sniper.nest', {
           cooldown: 12, maxDuration: 4, movementSpeed: 0,
           predictiveIntercept: true, postMuzzleNormal: true,
           spreadMultiplier: 0.25,
-        }, ['spreadMultiplier'], 'spread_step'),
+        }, ['spreadMultiplier'], 'spread_step', { displayName: 'Sniper\'s Nest' }),
         PASSIVE: skill('sniper.distance_crit', 'PASSIVE', 'sniper.distance_crit', {
           breakpoints: [
             { dist: 250, crit: 0.00 },
@@ -487,7 +489,7 @@
             { dist: 1000, crit: 0.24 },
           ],
           additive: true, critChanceCap: 0.55, critDamageUnchanged: true,
-        }, ['breakpoints'], 'pp_step'),
+        }, ['breakpoints'], 'pp_step', { displayName: 'Longshot' }),
       },
     },
   };
