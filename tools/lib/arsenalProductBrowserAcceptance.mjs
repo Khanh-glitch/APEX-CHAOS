@@ -512,7 +512,7 @@ export async function runArsenalProductBrowserAcceptance({
           === ${JSON.stringify(lockedFighterIds)}.length
         && cards.filter(card => ${JSON.stringify(lockedFighterIds)}.includes(card.dataset.shopCard))
           .every(card => card.classList.contains('is-locked')
-            && card.querySelector('.aq-fighter-state')?.textContent?.trim() === 'PRE-PILOT LOCKED'),
+            && card.querySelector('.aq-fighter-state')?.textContent?.trim() === 'LOCKED'),
     };
   })()`, value => value && value.visible, { attempts: 80, interval: 80 });
   const legalOfferClick = await clickVisible(`#aq-meta-root [data-shop-card=${JSON.stringify(shopOfferId)}]`);
@@ -554,9 +554,9 @@ export async function runArsenalProductBrowserAcceptance({
       && lockedShopClick.hitWithin === true
       && unavailablePurchase.creditsBefore === unavailablePurchase.creditsAfter
       && unavailablePurchase.lockedName === unavailablePurchase.expectedDisplayName
-      && unavailablePurchase.lockedStatus === 'PRE-PILOT LOCKED'
+      && unavailablePurchase.lockedStatus === 'LOCKED'
       && unavailablePurchase.buyDisabled === true
-      && /LOCKED\s*·\s*PRE-PILOT/.test(unavailablePurchase.buyLabel),
+      && unavailablePurchase.buyLabel === 'LOCKED',
     { route: shopRoute, shop: shopState, legalOffer: legalShopOffer, lockedClick: lockedShopClick, unavailablePurchase });
   const shopBack = await clickVisible('#aq-shop-back');
   const shopReturned = await awaitMenu();

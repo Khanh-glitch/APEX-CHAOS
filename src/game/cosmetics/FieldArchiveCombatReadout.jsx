@@ -14,7 +14,7 @@ function Radar({profile}){
    {points().map((p,i)=><circle key={axes[i].key} cx={p[0]} cy={p[1]} r="3.5" fill="#ffcb81"/>)}
    {axes.map((a,i)=>{const t=-Math.PI/2+i*Math.PI*2/5;return <text key={a.key} x={120+Math.cos(t)*112} y={113+Math.sin(t)*110+4} textAnchor="middle" fill="#e5c69a" fontSize="9" fontWeight="bold">{a.label}</text>})}
   </svg>
-  <small>{profile.status==='unclassified'?'UNCLASSIFIED MECHANICS':'TACTICAL AFFINITY'} · NOT POWER / DPS</small>
+  <small>{profile.status==='unclassified'?'UNCLASSIFIED MECHANICS':'TACTICAL AFFINITY'}</small>
  </div>;
 }
 // CP4b dedup law: one stat, one form per tab. SKINS (compact) shows the
@@ -48,7 +48,7 @@ export function AbilityWeb({item,legacySkills=[],compact=false}){
  const legacy=legacySkills.find(x=>x[0]===current?.slot);
  const explanation=item?.registry?.skills?.[current?.slot]?.archiveProfile?.description||legacy?.[2]||'';
  return <section className={'fa4-readout'+(compact?' fa4-compact':'')}>
-  <div className="fa3-readout-top"><b>FIGHTER / COMBAT PROFILE</b><span>CANONICAL LV1 · ROLE PROFILE</span></div>
+  <div className="fa3-readout-top"><b>FIGHTER / COMBAT PROFILE</b><span>LV1 · ROLE PROFILE</span></div>
   <div className="fa4-skill-portraits fa4-skill-select" role="group" aria-label="Three registered fighter abilities">
    {skills.map(skill=><button type="button" key={skill.slot}
       className="fa4-skill-portrait" aria-label={skill.slot+' · '+skill.name}
@@ -86,7 +86,7 @@ export function WeaponStatConsole({item,skin,compact=false}){
  const safePage=Math.min(page,pages-1),visibleMetrics=metrics.slice(safePage*perPage,(safePage+1)*perPage);
  const kind=String(item?.data?.kind||item?.family||'UNKNOWN').toUpperCase();
  return <section className={'fa4-readout'+(compact?' fa4-compact':'')}>
-  <div className="fa3-readout-top"><b>ARSENAL / COMBAT PROFILE</b><span>LIVE NATIVE REGISTRY · {item?.tier}</span></div>
+  <div className="fa3-readout-top"><b>ARSENAL / COMBAT PROFILE</b><span>ARSENAL RECORD · {item?.tier}</span></div>
   <Profile profile={profile} form={compact?'bars':'radar'}/>
   {!compact&&<div className="fa4-telemetry"><div className="fa4-telemetry-heading">{kind} / {item?.family||'EQUIPMENT'} <small>NATIVE SPECS · NO SIMULATED DPS</small></div>
    <div className="fa4-telemetry-list">{metrics.length?visibleMetrics.map(m=><div className="fa4-spec" key={m.title}><span>{m.title}</span><b>{m.value}<small> {m.unit}</small></b></div>):<div>NO NUMERIC NATIVE SPECIFICATION</div>}</div>

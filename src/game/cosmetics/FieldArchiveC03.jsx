@@ -279,10 +279,10 @@ export default function FieldArchiveC03(){
        </div>}
        {view==='INFO'&&current&&(kind==='hero'?<HeroFacts item={current}/>:<WeaponFacts item={current} skin={chosen}/>)}
        {view==='INDEX'&&<div className="fa3-index-on-panel"><p>Select a record from the indexed folio.</p><button onClick={()=>setView('SKINS')}>RETURN TO APPEARANCES ↗</button></div>}
-       <div className="fa3-bottom-note">APPEARANCES ONLY / COMBAT RULES PRESERVED</div>
+       <div className="fa3-bottom-note">APPEARANCE ONLY — NO COMBAT EFFECT</div>
       </section>
     </div>
-    <footer className="fa3-footer"><span>FIELD ARCHIVE · VOL. 01 / FIGHTERS & ARSENAL</span><span>ESC — CLOSE · ARROWS — NEXT RECORD</span><span className="fa3-safety">NO PAGE SCROLL / LIVE EQUIP AUTHORITY</span></footer>
+    <footer className="fa3-footer"><span>FIELD ARCHIVE · VOL. 01 / FIGHTERS & ARSENAL</span><span>ESC — CLOSE · ARROWS — NEXT RECORD</span><span className="fa3-safety">EQUIP APPLIES INSTANTLY</span></footer>
    </section>
   </div>}
  </>;

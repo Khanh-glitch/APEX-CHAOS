@@ -43,14 +43,14 @@ const PUBLIC_SURFACES = Object.freeze([
   // direction for this cutover, so it is a LIGHTLY LOCKED extension point —
   // visible in the product graph, not launchable. The route stays declared
   // (no future-surface metadata is rewritten); only its availability changes.
-  surface('fighter-shop', 'Fighter Shop', LOCKED, 'Fighter Shop is a locked extension point in the current Gold product scope.'),
+  surface('fighter-shop', 'Fighter Shop', LOCKED, 'Fighter Shop is not available yet.'),
   surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available fighter for 350 AC.', { route: 'draw' }),
-  surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available in the pre-pilot build.'),
-  surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available in the pre-pilot build.'),
+  surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available yet.'),
+  surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available yet.'),
   surface('dictionary', 'Field Archive', ACTIVE, 'Browse playable fighters and Arsenal, inspect approved Gold art and equip cosmetic skins for P1/P2.', { route: 'skins' }),
-  surface('missions', 'Missions', LOCKED, 'Missions are not available in the pre-pilot build.'),
-  surface('achievements', 'Achievements', LOCKED, 'Achievements are not available in the pre-pilot build.'),
-  surface('account-profile', 'Account / Profile', LOCKED, 'Account / Profile is not available in the pre-pilot build.'),
+  surface('missions', 'Missions', LOCKED, 'Missions are not available yet.'),
+  surface('achievements', 'Achievements', LOCKED, 'Achievements are not available yet.'),
+  surface('account-profile', 'Account / Profile', LOCKED, 'Account / Profile is not available yet.'),
 ]);
 
 const ADMIN_SURFACES = Object.freeze([

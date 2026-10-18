@@ -1584,6 +1584,14 @@ function buildShell(hudProductionHtml) {
       find: '.bt-core small{display:block;font-size:8px;letter-spacing:.28em;opacity:.58}',
       replace: '.bt-core small{display:block;font-size:8px;letter-spacing:.28em;opacity:.58}\n#battleTransition .bt-core{padding:14px 24px 12px}\n#battleTransition:not(.is-horizontal) .bt-core{top:calc(50% + 104px)}\n#battleTransition .bt-core::before{content:"VS";display:block;font-family:var(--fDisplay);font-style:italic;font-weight:900;font-size:clamp(30px,3.4vw,44px);line-height:.95;letter-spacing:.04em;color:#f4ece1;text-shadow:0 0 22px rgba(255,121,0,.45);margin-bottom:6px}',
     },
+    // ── S60 (CP6 content): the donor's initial match-ready banner named the
+    // production handoff. Players only need the battle state.
+    {
+      id: 'SHL-S60',
+      why: 'initial match-ready banner uses player language instead of pipeline terminology',
+      find: '<div class="handoffBanner" id="handoffBanner">BATTLE HANDOFF READY</div>',
+      replace: '<div class="handoffBanner" id="handoffBanner">BATTLE READY</div>',
+    },
     // ── S21: the Lucky Draw donor runs in its own document (the iframe
     // boundary is canonical for the draw). Hand it the REAL production economy
     // API on load, and re-sync credits/pool from production on every open: the
@@ -1712,7 +1720,7 @@ function buildShell(hudProductionHtml) {
       why: 'the BOT match-ready handoff plays the real fighter.match_ready cue',
       find: /handoffBanner\.textContent='BATTLE HANDOFF READY';launchBattleHud\(\)/,
       replace: (
-        `handoffBanner.textContent='BATTLE HANDOFF READY';\n` +
+        `handoffBanner.textContent='BATTLE READY';\n` +
         `      uiSfx('fighter.match_ready');\n` +
         `      launchBattleHud()`
       ),
@@ -1900,7 +1908,7 @@ function buildShell(hudProductionHtml) {
       find: /      b\.innerHTML=`<span class="rosterMarker p1">P1<\/span><span class="rosterMarker p2">P2<\/span><img src="\$\{h\.portrait\}" alt="" draggable="false"><span class="rosterName">\$\{h\.name\}<\/span>`;/,
       replace: (
         `      b.innerHTML=\`<span class=\"rosterMarker p1\">P1</span><span class=\"rosterMarker p2\">P2</span><img src=\"\${h.portrait||''}\" alt=\"\" draggable=\"false\"><span class=\"rosterName\">\${h.name||id}</span>\`+(playable?'':'<span class=\"rosterLock\">LOCKED</span>');\n` +
-        `      if(!playable){b.disabled=true;b.title='LOCKED — EXTENSION POINT';}`
+        `      if(!playable){b.disabled=true;b.title='LOCKED';}`
       ),
     },
     {
@@ -2178,11 +2186,11 @@ function buildShell(hudProductionHtml) {
   {
     const re = /  function buildRoster\(\)\{[\s\S]*?\n  \}(?=\n\n  function renderFighter\(\))/;
     if (!re.test(out)) throw new Error('R48A buildRoster seam mismatch');
-    out = out.replace(re, "  function buildRoster(){\n    roster.innerHTML='';\n    HERO_ORDER.forEach((id,idx)=>{\n      const h=HEROES[id]||{};\n      const playable=heroIsPlayable(id);\n      const lockedByAuthority=!!(window.APEX_GOLD_LOCKED&&window.APEX_GOLD_LOCKED(id));\n      const locked=!playable||lockedByAuthority;\n      const b=document.createElement('button');\n      b.type='button';\n      b.className='rosterCard'+(locked?' is-locked':'');\n      b.dataset.hero=id;\n      b.setAttribute('aria-label',h.name||id);\n      const portrait=h.portrait\n        ? `<img src=\"${h.portrait}\" alt=\"\" draggable=\"false\">`\n        : '<span class=\"rosterLockedVisual\" aria-hidden=\"true\"></span>';\n      b.innerHTML=`<span class=\"rosterMarker p1\">P1</span><span class=\"rosterMarker p2\">P2</span>${portrait}<span class=\"rosterName\">${h.name||id}</span>`+(locked?'<span class=\"rosterLock\" aria-hidden=\"true\"><i></i><b>LOCKED</b></span>':'');\n      if(!playable){b.disabled=true;b.title='LOCKED — EXTENSION POINT';}\n      const img=b.querySelector('img');\n      if(img)img.addEventListener('error',()=>{\n        img.remove();\n        if(!b.querySelector('.rosterLockedVisual'))b.insertAdjacentHTML('afterbegin','<span class=\"rosterLockedVisual\" aria-hidden=\"true\"></span>');\n        b.classList.add('art-missing');\n      },{once:true});\n      b.addEventListener('click',()=>{uiSfx('ui.button.press');selectHero(id)});\n      b.addEventListener('pointerenter',()=>{ if(screen==='fighter' && !p1Locked && activePlayer==='p1'){} });\n      roster.appendChild(b);\n    });\n  }");
+    out = out.replace(re, "  function buildRoster(){\n    roster.innerHTML='';\n    HERO_ORDER.forEach((id,idx)=>{\n      const h=HEROES[id]||{};\n      const playable=heroIsPlayable(id);\n      const lockedByAuthority=!!(window.APEX_GOLD_LOCKED&&window.APEX_GOLD_LOCKED(id));\n      const locked=!playable||lockedByAuthority;\n      const b=document.createElement('button');\n      b.type='button';\n      b.className='rosterCard'+(locked?' is-locked':'');\n      b.dataset.hero=id;\n      b.setAttribute('aria-label',h.name||id);\n      const portrait=h.portrait\n        ? `<img src=\"${h.portrait}\" alt=\"\" draggable=\"false\">`\n        : '<span class=\"rosterLockedVisual\" aria-hidden=\"true\"></span>';\n      b.innerHTML=`<span class=\"rosterMarker p1\">P1</span><span class=\"rosterMarker p2\">P2</span>${portrait}<span class=\"rosterName\">${h.name||id}</span>`+(locked?'<span class=\"rosterLock\" aria-hidden=\"true\"><i></i><b>LOCKED</b></span>':'');\n      if(!playable){b.disabled=true;b.title='LOCKED';}\n      const img=b.querySelector('img');\n      if(img)img.addEventListener('error',()=>{\n        img.remove();\n        if(!b.querySelector('.rosterLockedVisual'))b.insertAdjacentHTML('afterbegin','<span class=\"rosterLockedVisual\" aria-hidden=\"true\"></span>');\n        b.classList.add('art-missing');\n      },{once:true});\n      b.addEventListener('click',()=>{uiSfx('ui.button.press');selectHero(id)});\n      b.addEventListener('pointerenter',()=>{ if(screen==='fighter' && !p1Locked && activePlayer==='p1'){} });\n      roster.appendChild(b);\n    });\n  }");
   }
   r48ReplaceOnce("    activePlayer='p1'; p1Locked=false; p2Locked=false; p1Hero='newbot'; p2Hero='newbot'; p2Empty=mode!=='bot';", "    activePlayer='p1'; p1Locked=false; p2Locked=false; p1Hero='newbot'; p2Hero='newbot'; p2Empty=mode!=='bot'; p1HasPicked=false; p2HasPicked=false;", 'mode reset');
   r48ReplaceOnce("    if(battleMode==='bot'){if(p1Locked)return;p1Hero=id;activePlayer='p1'}\n    else if(activePlayer==='p1'&&!p1Locked)p1Hero=id; else if(activePlayer==='p2'&&!p2Locked){p2Hero=id;p2Empty=false} else return;", "    if(battleMode==='bot'){if(p1Locked)return;p1Hero=id;p1HasPicked=true;activePlayer='p1'}\n    else if(activePlayer==='p1'&&!p1Locked){p1Hero=id;p1HasPicked=true} else if(activePlayer==='p2'&&!p2Locked){p2Hero=id;p2Empty=false;p2HasPicked=true} else return;", 'selectHero picked');
-  r48ReplaceOnce("      if(!p1Locked){p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';", "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';", 'BOT lock picked');
+  r48ReplaceOnce("      if(!p1Locked){p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';", "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';", 'BOT lock picked');
   r48ReplaceOnce("    if(activePlayer==='p1'&&!p1Locked){p1Locked=true;activePlayer='p2';p2Hero='newbot';p2Empty=false;renderFighter();", "    if(activePlayer==='p1'&&!p1Locked){p1HasPicked=true;p1Locked=true;activePlayer='p2';p2Hero='newbot';p2Empty=false;p2HasPicked=false;renderFighter();", 'P1 lock picked');
   r48ReplaceOnce("    if(activePlayer==='p2'&&!p2Locked){p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';", "    if(activePlayer==='p2'&&!p2Locked){p2HasPicked=true;p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';", 'P2 lock picked');
 
@@ -2207,7 +2215,7 @@ function buildShell(hudProductionHtml) {
     "    if(battleMode==='bot'){if(!p1Locked){p1Hero=id;p1HasPicked=true;activePlayer='p1'}else if(!p2Locked){p2Hero=id;p2Empty=false;p2HasPicked=true}else return}",
     'BOT slot selectable');
   r48ReplaceOnce(
-    "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';\n      uiSfx('fighter.match_ready');\n      launchBattleHud()}\n      return;",
+    "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';\n      uiSfx('fighter.match_ready');\n      launchBattleHud()}\n      return;",
     "      // Two-step lock. A BOT slot the previous match already locked (the\n" +
     "      // post-match READY return) turns the first press into a full launch, so\n" +
     "      // a rematch stays ONE action.\n" +
@@ -2224,7 +2232,7 @@ function buildShell(hudProductionHtml) {
     "      // ONE selection authority), so presentation can never advertise a fighter\n" +
     "      // the CPU will not use.\n" +
     "      try{window.APEX_GOLD&&window.APEX_GOLD.setBotOpponent&&window.APEX_GOLD.setBotOpponent(p2Hero)}catch(_){}\n" +
-    "      renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';\n" +
+    "      renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';\n" +
     "      uiSfx('fighter.match_ready');\n" +
     "      launchBattleHud();\n" +
     "      return;",
