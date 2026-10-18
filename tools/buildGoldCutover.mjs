@@ -1563,6 +1563,27 @@ function buildShell(hudProductionHtml) {
       find: 'clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%)}',
       replace: 'clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%)}\n.route:hover,.route:focus-visible{background:linear-gradient(180deg,rgba(26,27,31,.80),rgba(12,13,15,.90))}',
     },
+    // ── S58 (CP5 tieutiet): in portrait the Home hero is top-anchored
+    // (top:6.5vh) so its feet dangle mid-smoke; desktop grounds it by
+    // bottom-cropping. Lower it 2.5vh on Home only and add the soft contact
+    // shadow the desktop crop implies. Paint-only, inside the donor's own
+    // portrait block; mode/pick keep their authored anchors.
+    {
+      id: 'SHL-S58',
+      why: 'portrait Home hero grounded (lowered 2.5vh + contact shadow)',
+      find: '.bottom-depth{height:45vh;background:linear-gradient(0deg,#060708 0%,rgba(6,7,8,.96) 55%,rgba(6,7,8,.72) 78%,transparent 100%)}',
+      replace: '.bottom-depth{height:45vh;background:linear-gradient(0deg,#060708 0%,rgba(6,7,8,.96) 55%,rgba(6,7,8,.72) 78%,transparent 100%)}\n  #stage:not(.screen-mode):not(.screen-fighter):not(.screen-draw):not(.screen-battle) .heroWrap{top:9vh}\n  .heroWrap::after{content:"";position:absolute;z-index:-1;left:50%;bottom:3%;width:58%;height:7%;transform:translateX(-50%);background:radial-gradient(50% 50% at 50% 50%,rgba(0,0,0,.55),rgba(0,0,0,0) 68%);filter:blur(5px);pointer-events:none}',
+    },
+    // ── S59 (CP5 tieutiet): the battle-transition seam holds while the HUD
+    // preloads (measured ~2.4s); its centre chip carried only 8-12px
+    // microcopy, so the wait had no focal. Give the chip the VS glyph the
+    // pick screen already speaks (.versusGlyph face/italic/glow), CSS-only.
+    {
+      id: 'SHL-S59',
+      why: 'battle-wait core chip carries the VS glyph focal, hung below the name axis so plates stay readable',
+      find: '.bt-core small{display:block;font-size:8px;letter-spacing:.28em;opacity:.58}',
+      replace: '.bt-core small{display:block;font-size:8px;letter-spacing:.28em;opacity:.58}\n#battleTransition .bt-core{padding:14px 24px 12px}\n#battleTransition:not(.is-horizontal) .bt-core{top:calc(50% + 104px)}\n#battleTransition .bt-core::before{content:"VS";display:block;font-family:var(--fDisplay);font-style:italic;font-weight:900;font-size:clamp(30px,3.4vw,44px);line-height:.95;letter-spacing:.04em;color:#f4ece1;text-shadow:0 0 22px rgba(255,121,0,.45);margin-bottom:6px}',
+    },
     // ── S21: the Lucky Draw donor runs in its own document (the iframe
     // boundary is canonical for the draw). Hand it the REAL production economy
     // API on load, and re-sync credits/pool from production on every open: the

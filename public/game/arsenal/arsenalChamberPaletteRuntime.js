@@ -147,6 +147,24 @@
     c.fillStyle = grad;
     c.fillRect(0, 0, S, S);
 
+    // CP5 tieutiet: whisper-light surface grain so the flat gradient reads
+    // as worn chamber plating between the grid lines. Seeded per
+    // (palette,size) and baked into this cached surface exactly once -
+    // zero per-frame cost, identity hues only, grid geometry untouched.
+    let grainSeed = 2166136261;
+    for (let i = 0; i < pal.id.length; i++) { grainSeed ^= pal.id.charCodeAt(i); grainSeed = Math.imul(grainSeed, 16777619); }
+    grainSeed = (grainSeed ^ S) >>> 0;
+    const grainRnd = () => { grainSeed = (Math.imul(grainSeed, 1664525) + 1013904223) >>> 0; return grainSeed / 4294967296; };
+    const specks = Math.round(S * 1.6);
+    for (let i = 0; i < specks; i++) {
+      const gx = 36 + grainRnd() * (S - 72), gy = 36 + grainRnd() * (S - 72);
+      const gr = 0.6 + grainRnd() * 1.7;
+      c.fillStyle = grainRnd() < 0.5
+        ? rgba(f.inner, 0.05 + grainRnd() * 0.05, pr.floorLift, pr.floorContrastSat)
+        : rgba(f.outer, 0.05 + grainRnd() * 0.06, pr.floorLift, pr.floorContrastSat);
+      c.beginPath(); c.arc(gx, gy, gr, 0, Math.PI * 2); c.fill();
+    }
+
     c.strokeStyle = 'rgba(12,14,18,0.22)';
     c.lineWidth = 1;
     for (let g = 125; g < S; g += 125) {
