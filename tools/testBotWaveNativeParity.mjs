@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+// Behavioral counter proof (real bridge VM): native hits during Gold guard
+// must counter/block at the bridge damage seam, never bypass it.
+import './testBotWaveCounterBridge.mjs';
 const bridge=fs.readFileSync('public/game/bot-wave/nativeArsenalGoldBridge.js','utf8');
 const gold=fs.readFileSync('public/bot-wave/game.html','utf8');
 for(const x of ['native.api.equip(proxy,id)','native.api.updateHolder(proxy,dt)','native.api.updateArsenalProjectiles(dt','native.api.drawArsenalProjectiles(ctx)','native.av.cue']){

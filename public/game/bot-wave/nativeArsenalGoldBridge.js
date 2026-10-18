@@ -49,8 +49,32 @@ function mirrorGoldActor(actor,engine,{player=false}={}){
  }
  Object.defineProperty(proxy,'hp',{configurable:true,enumerable:true,
   get:()=>Math.max(0,actor.hp),set:v=>{actor.hp=v;}});
- proxy.takeDamage=function(amount,source,reason){
+ // Adapter-only back-reference so a native hit can name its Gold source
+ // actor (the Gold counterstrike teleports to a Gold enemy, not a proxy).
+ // Non-enumerable: Arsenal serialization/telemetry never sees the cycle.
+ Object.defineProperty(proxy,'__goldActor',{configurable:true,enumerable:false,
+  value:actor});
+ proxy.takeDamage=function(amount,source,reason,statusDamage){
   if(player){
+   // Gold guard/counter law: native Arsenal projectiles never enter Gold's
+   // own orb-collision branch, so this ONE damage seam must project a hit
+   // taken during guardT into the exact Gold outcome — counterstrike the
+   // living Gold source when the counter card is unlocked, plain guard
+   // block otherwise. Status ticks (burn) are not new attacks: they keep
+   // the ordinary damage path. Damage, HP and the strike itself remain
+   // Gold-owned; the bridge decides nothing about numbers.
+   if(actor.guardT>0&&!statusDamage){
+    const goldSource=source?.__goldActor||null;
+    if(engine.waveCounterUnlocked&&goldSource&&goldSource!==actor
+      &&!goldSource.dead&&goldSource.hp>0
+      &&typeof engine.counterStrike==='function'){
+     engine.counterStrike(goldSource);
+    }else if(goldSource&&goldSource!==actor&&!goldSource.dead){
+     engine.fx?.flash?.(actor.x,actor.y-25,48,'#f6b73c',.12);
+     engine.combatCue?.('GUARD_HIT',.7);
+    }
+    return;
+   }
    // Arsenal's aqDamage() owns the ONE physical knockback impulse from
    // source -> victim. Gold damagePlayer adds a fixed +260 impulse of its own,
    // which previously pulled BOXE toward the attacker and double-kicked hits.

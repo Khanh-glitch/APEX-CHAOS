@@ -25,6 +25,28 @@ for(const ids of [['SHURI','ROBOT'],['SHURI','BOXE'],['SHURI','SHURI']]){
 }
 assert.ok(!arsenalBattleRuntimesFor(['ROBOT','BOXE']).some(x=>x[0].includes('shuriGoldPresentationRuntime')),
  'SHURI Gold must remain lazy when not picked');
+// Cross-match late-load regression (owner report 2026-10-18: SHURI could not
+// cast at all, human or BOT): the selected-battle graph may evaluate
+// heroMechanicsRuntime in an earlier SHURI-less match and load
+// shuriBattleRuntime only when SHURI is first picked. Executor registration
+// must be order-independent — evaluating mechanics BEFORE the SHURI battle
+// runtime in one fresh realm must still yield all three shuri.* executors.
+{
+ const ail=read('public/game/hero-rework/ailRuntime.js');
+ const mechanics=read('public/game/hero-rework/heroMechanicsRuntime.js');
+ const lateScope={console,performance:{now:()=>0},setTimeout,clearTimeout,setInterval,clearInterval};
+ lateScope.window=lateScope;lateScope.globalThis=lateScope;
+ vm.createContext(lateScope);
+ vm.runInContext(ail,lateScope,{filename:'ailRuntime.js',timeout:4000});
+ vm.runInContext(mechanics,lateScope,{filename:'heroMechanicsRuntime.js',timeout:4000});
+ const table=lateScope.APEX_HERO_REWORK_MECHANICS.EXECUTORS;
+ assert.ok(!table['shuri.shock_recoil'],'precondition: SHURI executors absent before late load');
+ vm.runInContext(gameplay,lateScope,{filename:'shuriBattleRuntime.js',timeout:4000});
+ assert.ok(lateScope.APEX_SHURI_BATTLE,'SHURI battle module must register its global on late load');
+ assert.equal(typeof table['shuri.shock_recoil']?.cast,'function','late-loaded SHURI A1 executor missing');
+ assert.equal(typeof table['shuri.machine']?.cast,'function','late-loaded SHURI A2 executor missing');
+ assert.equal(typeof table['shuri.recycle']?.onTick,'function','late-loaded SHURI passive executor missing');
+}
 assert.match(bridge,/SHURI: 'shuri'/);
 assert.match(bridge,/shuri: 'SHURI'/);
 assert.ok(PRODUCT_ROSTER.playableIds.includes('SHURI'),

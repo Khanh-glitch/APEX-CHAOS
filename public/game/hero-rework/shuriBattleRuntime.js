@@ -21,7 +21,13 @@
  */
 (function installShuriBattle(global) {
   'use strict';
-  if(global.APEX_SHURI_BATTLE)return;
+  if(global.APEX_SHURI_BATTLE){
+    // A repeat evaluation must still repair a mechanic table that was
+    // created before this module first registered (see install below).
+    const mechanics=global.APEX_HERO_REWORK_MECHANICS;
+    if(mechanics&&mechanics.EXECUTORS)global.APEX_SHURI_BATTLE.install(mechanics.EXECUTORS);
+    return;
+  }
   const AIL=global.APEX_HERO_REWORK_AIL;
   if(!AIL)throw Error('SHURI_REQUIRES_AIL');
   const now=()=>AIL.clock();
@@ -484,4 +490,12 @@
     if(dot<0){r.dx-=2*dot*p.nx;r.dy-=2*dot*p.ny;}
   });
   global.APEX_SHURI_BATTLE=Object.freeze({install,stateOf});
+  // Order-independent registration: heroMechanicsRuntime installs these
+  // executors when it evaluates AFTER this module, but the selected-battle
+  // runtime graph may evaluate mechanics in an earlier SHURI-less match and
+  // load this module only when SHURI is first picked. In that order the
+  // mechanic table already exists and will never re-evaluate, so register
+  // into it here. install() is assignment-only, hence idempotent.
+  const mechanics=global.APEX_HERO_REWORK_MECHANICS;
+  if(mechanics&&mechanics.EXECUTORS)install(mechanics.EXECUTORS);
 })(typeof window!=='undefined'?window:globalThis);
