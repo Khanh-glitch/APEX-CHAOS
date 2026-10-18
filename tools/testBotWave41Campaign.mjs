@@ -18,21 +18,23 @@ const first=planWave(config,1,{seed:77});
 assert.equal(first.wave,1);
 assert.ok(first.composition.every(x=>x.weaponId==='PISTOL'));
 assert.deepEqual(planWave(config,17,{seed:88}),planWave(config,17,{seed:88}));
-assert.deepEqual(new Set([1,2,3,4].map(w=>planWave(config,w).beat)),new Set(['breather','teach','mix','crescendo']));
+assert.deepEqual(new Set([1,2,3,4,5,6,7,8,9,10].map(w=>planWave(config,w).beat)),new Set(['farm','teach','mix','spike','power','crescendo','boss']));
 assert.equal(planWave(config,1).revealedWeapons,1);
 assert.equal(planWave(config,2).revealedWeapons,2);
 assert.equal(planWave(config,3).revealedWeapons,3);
 assert.equal(planWave(config,4).revealedWeapons,4);
-assert.equal(planWave(config,5).revealedWeapons,4,'First boss consolidates rather than introducing a fifth weapon');
-assert.equal(planWave(config,6).newWeapons[0],'GRENADE','Explosives begin AFTER the first boss');
-assert.equal(planWave(config,5).boss,true);
+assert.equal(planWave(config,5).revealedWeapons,5,'The fifth starter debuts on wave 5');
+assert.ok(planWave(config,5).newWeapons.includes('GRENADE'),'Explosives complete the starter set on wave 5');
+assert.equal(planWave(config,6).revealedWeapons,6);
+assert.equal(planWave(config,5).boss,false);
 assert.equal(planWave(config,10).boss,true);
-assert.equal(planWave(config,15).boss,true);
+assert.equal(planWave(config,15).boss,false);
+assert.equal(planWave(config,20).boss,true);
 assert.equal(planWave(config,41).boss,false);
 assert.equal(planWave(config,150).wave,150);
 assert.equal(planWave(config,150).infinite,true);
 let discovered=new Set(),actualEncountered=new Set();
-for(let w=1;w<=32;w++){
+for(let w=1;w<=30;w++){
  const p=planWave(config,w);
  for(const id of p.newWeapons){
   discovered.add(id);
@@ -41,13 +43,20 @@ for(let w=1;w<=32;w++){
  }
  for(const foe of p.composition)actualEncountered.add(foe.weaponId);
  assert.ok(p.composition.every(e=>catalog.byId.has(e.weaponId)));
- assert.ok(p.concurrentLimit>=5&&p.concurrentLimit<=9);
+ assert.ok(p.concurrentLimit>=5&&p.concurrentLimit<=11);
+ assert.equal(p.boss,w%10===0);
+ assert.equal(p.cluster,Math.floor((w-1)/10)+1);
+ assert.equal(p.clusterWave,((w-1)%10)+1);
+ assert.ok(p.spawnInterval>=.18&&p.spawnInterval<=.5);
+ assert.ok(p.enemyHpMultiplier>0);
+ assert.equal(p.bossHp>0,p.boss);
+ if(p.boss)assert.equal(p.composition[0].boss,true);
  assert.equal(p.gunDamageScalar,1);
  assert.equal(p.gunCadenceScalar,1);
  assert.equal(p.gunProjectileSpeedScalar,1);
  assert.equal(p.reloadPolicy,'KEEP_WEAPON_AND_REFILL_MAGAZINE');
 }
-assert.equal(discovered.size,41,'All 41 native weapons must debut by wave 32');
+assert.equal(discovered.size,41,'All 41 native weapons must debut by wave 30');
 assert.equal(actualEncountered.size,41,'All 41 native weapons must physically appear in real wave compositions, not only unlock lists');
 for(const id of catalog.allWeaponIds){
  const native=config.WEAPONS[id];
@@ -58,4 +67,4 @@ for(const wave of [6,10,18,23,34,47]){
  assert.ok(p.composition.some(e=>e.weaponId));
 }
 assert.throws(()=>planWave(config,0),/INVALID/);
-console.log('BOT WAVE unlimited campaign PASS: 41/41 native Arsenal, revealed by wave 32, chapter crescendo, no stat scaling');
+console.log('BOT WAVE unlimited campaign PASS: 41/41 native Arsenal, revealed by wave 30, 10-wave clusters, Free Battle damage scalars');
