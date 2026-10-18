@@ -333,10 +333,10 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      utility:window.APEX_ARSENAL_AV?.stats?.waveUtility||null
    }));
    assert.ok(liveMix.policy?.mix?.gain>0&&liveMix.policy.mix.gain<=.14&&
-     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r11')&&
+     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r12')&&
      liveMix.npcEquipAudioSuppressed>0,
      'Native gun SFX not demonstrably attenuated in live Chromium '+JSON.stringify(liveMix));
-   console.log('BOT WAVE R11 actual WebAudio native gun mix PASS',view.name,liveMix);
+   console.log('BOT WAVE R12 actual WebAudio native gun mix PASS',view.name,liveMix);
    console.log('BOT WAVE actual Arsenal gun discharge PASS',view.name,shot);
    // Explicit real HTTP fetch proof: no sprite/audio is accidentally
    // discarded by shipping-prune or silently replaced by SPA HTML fallback.
@@ -363,8 +363,8 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
        wavePhase:window.BOXE_WAVE_PILOT?.state?.phase??null};
    });
    assert.ok(lateVisual.oldAnnouncementHidden&&lateVisual.heroVisible&&lateVisual.controlsVisible,
-     'R11 screenshot still has redundant large center announcement '+JSON.stringify(lateVisual));
-   console.log('BOT WAVE R11 settled cinematic DOM audit PASS',view.name,lateVisual);
+     'R12 screenshot still has redundant large center announcement '+JSON.stringify(lateVisual));
+   console.log('BOT WAVE R12 settled cinematic DOM audit PASS',view.name,lateVisual);
    await page.screenshot({path:path.join(output,view.name+'-wave-playable.png')});
    // Integration proof, not a roster-only unit assertion: the live Gold
    // engine must accept wave 11 AND wave 32 without a "chapter complete".

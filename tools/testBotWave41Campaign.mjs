@@ -41,8 +41,13 @@ assert.equal(planWave(config,41).boss,false);
 assert.equal(planWave(config,150).wave,150);
 assert.equal(planWave(config,150).infinite,true);
 let discovered=new Set(),actualEncountered=new Set();
+const expectedPatterns=['front','flank','flank','cross','cross','pincer','front','four-edge','four-edge','four-edge'];
 for(let w=1;w<=30;w++){
  const p=planWave(config,w);
+ assert.equal(p.pattern,expectedPatterns[(w-1)%10],'R12 forecast must receive the authored gate pattern');
+ assert.equal(p.families.length,10,'R12 forecast must receive every native family weight');
+ assert.deepEqual(p.families.map(x=>x.family).sort(),Object.keys(p.familyWeights).sort());
+ assert.ok(p.families.every(x=>x.weight>0&&x.weight===p.familyWeights[x.family]));
  for(const id of p.newWeapons){
   discovered.add(id);
   assert.ok(p.composition.some(x=>x.weaponId===id),
@@ -50,6 +55,8 @@ for(let w=1;w<=30;w++){
  }
  for(const foe of p.composition)actualEncountered.add(foe.weaponId);
  assert.ok(p.composition.every(e=>catalog.byId.has(e.weaponId)));
+ assert.ok(p.composition.every(e=>catalog.byId.get(e.weaponId).family===e.family),
+  'R12 queue/enemy family telemetry must remain the native Arsenal family');
  assert.ok(p.composition.every(e=>Number.isFinite(e.pressure)&&e.pressure>=0),
   'every carrier must carry a finite post-x7 pressure score');
  assert.ok(p.concurrentLimit>=2&&p.concurrentLimit<=8);

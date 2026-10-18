@@ -190,10 +190,12 @@ function planWave(nativeConfig,wave,{seed=41}={}){
  }
  const endlessHpScale=1+Math.min(.18,Math.max(0,cluster-3)*.025);
  return Object.freeze({wave,chapter:cluster,cluster,clusterWave,
-  beat:beat.id,title:beat.caption,boss:beat.id==='boss',
+  beat:beat.id,title:beat.caption,pattern:beat.pattern,boss:beat.id==='boss',
   newWeapons:Object.freeze(newly.map(x=>x.id)),
   revealedWeapons:revealed,totalWeapons:catalog.allWeaponIds.length,
   composition:Object.freeze(roster),
+  families:Object.freeze(Object.entries(beat.familyWeights).map(([family,weight])=>Object.freeze({family,weight}))),
+  familyWeights:Object.freeze({...beat.familyWeights}),
   concurrentLimit,
   spawnInterval:+spawnInterval.toFixed(4),
   pressureBudget,

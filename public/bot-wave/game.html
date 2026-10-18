@@ -6368,7 +6368,7 @@ function rng(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/42
 function clamp(a,l,h){return Math.min(h,Math.max(l,a))}
 function pick(arr){return arr[Math.floor(rng()*arr.length)]}
 const UI={};let lastUI=0;
-const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,knockMul:1,dashCdMul:1,skillCdMul:1,armor:0,xpMul:1,counterWindowBonus:0,rocketChance:.075,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,spawnInterval:.37,pressureBudget:260,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[],healthPacks:[],healthPackDrops:0,healthPackPickups:0,waveSnapshot:null,clusterSnapshot:null,guardHeld:false,guardCounterLive:false,guardHoldT:0,guardCdT:0,guardCdMax:2.4,nextWaveT:0,autoNextWave:false,waveToast:'',waveToastT:0};
+const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,knockMul:1,dashCdMul:1,skillCdMul:1,armor:0,xpMul:1,counterWindowBonus:0,rocketChance:.075,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,spawnInterval:.37,pressureBudget:260,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[],healthPacks:[],healthPackDrops:0,healthPackPickups:0,waveSnapshot:null,clusterSnapshot:null,guardHeld:false,guardCounterLive:false,guardHoldT:0,guardCdT:0,guardCdMax:2.4,nextWaveT:0,autoNextWave:false,waveToast:'',waveToastT:0,hudBeatId:'farm',hudBeatIndex:0,hudPattern:'front',hudNewWeapons:[],waveKills:0,waveDamageDealt:0,lastDamageAt:-9,lastDamageAngle:0,lastDamageAmount:0,lastHealAt:-9,lastHealAmount:0};
 // Every stackable card modifier is derived from state.stacks. Keeping this
 // calculation deterministic is what makes a later snapshot restore exact:
 // restore the stacks, recompute once, and no incrementally accumulated
@@ -6439,8 +6439,8 @@ const ARENA_STAGE={
   // Uncluttered center identity, located beneath fighters and bullets.
   g.save();g.strokeStyle='rgba(220,175,109,.24)';g.lineWidth=5;g.beginPath();g.arc(0,0,274,0,TAU);g.stroke();
   g.strokeStyle='rgba(193,157,111,.13)';g.lineWidth=1;g.beginPath();g.arc(0,0,254,0,TAU);g.stroke();
-  g.font='900 78px system-ui';g.textAlign='center';g.fillStyle='rgba(231,184,111,.09)';g.fillText('APEX',0,12);
-  g.font='900 19px system-ui';g.letterSpacing='8px';g.fillText('THE LAST ROUND',0,52);g.restore();
+  g.font='700 78px "ApexVietCondensed","Oswald",system-ui,sans-serif';g.textAlign='center';g.fillStyle='rgba(231,184,111,.09)';g.fillText('APEX',0,12);
+  g.font='700 19px "ApexVietCondensed","Oswald",system-ui,sans-serif';g.letterSpacing='8px';g.fillText('THE LAST ROUND',0,52);g.restore();
   g.restore();
   // Ring track and gilded exposed rail, exact visual edge at 920.
   for(const [r,stroke,width] of [[976,'#0b1117',37],[956,'#3a322b',23],[936,'#a87948',5],[920,'#c8995c',9],[906,'#05090e',9],[895,'#50616a',2]]){
@@ -6455,7 +6455,7 @@ const ARENA_STAGE={
    for(const sx of [-83,83]){g.fillStyle='#273037';g.fillRect(sx-15,-53,30,88);g.strokeStyle='#7b6852';g.lineWidth=2;g.strokeRect(sx-15,-53,30,88);}
    g.fillStyle='#35231f';g.fillRect(-64,-50,128,33);
    for(let j=0;j<9;j++){g.fillStyle=j%2?'#ab6d45':'#28262a';g.fillRect(-57+j*14,-46,8,23);}
-   g.font='900 15px ui-monospace,monospace';g.textAlign='center';g.fillStyle='#d4a774';g.fillText('DEPLOY / '+String(i+1).padStart(2,'0'),0,20);
+   g.font='600 15px "JetBrains Mono",ui-monospace,monospace';g.textAlign='center';g.fillStyle='#d4a774';g.fillText('DEPLOY / '+String(i+1).padStart(2,'0'),0,20);
    g.restore();}
   // R2: architectural detail. Physically grounded side-walls, radial light bays and engraved maintenance plates.
   // Kept OUTSIDE gameplay radius: nothing changes movement or projectile collision.
@@ -6491,23 +6491,50 @@ const ARENA_STAGE={
   this.base=c;return c;
  },
  draw(ctx){if(!this.base)this.buildBase();ctx.save();ctx.fillStyle='#05080d';ctx.fillRect(-2600,-2600,5200,5200);ctx.drawImage(this.base,-1100,-1100);
-  let time=engine.time,high=this.quality==='high',wave=Math.max(1,state.wave),boss=wave===5||wave===10;
-  // Edge lighting breathes with each chapter, but never changes collision.
-  const phase=wave>=8?2:wave>=5?1:0;
-  const strength=state.empowered?.36:boss?.22:.11;
-  ctx.globalAlpha=strength*(.7+.3*Math.sin(time*2.8));ctx.strokeStyle=state.empowered?'#ffcc62':phase===2?'#fd6655':phase===1?'#efab6e':'#a77c5c';
+  let time=engine.time,high=this.quality==='high',wave=Math.max(1,state.wave),clusterWave=(wave-1)%10,boss=clusterWave===9;
+  // Living Ring: the arena rim is a diegetic pressure instrument. It reads
+  // the real spawn queue and live carrier pressure, but never feeds back
+  // into movement, collision, spawn order or damage.
+  const beatPalette=['#8dffb2','#8fe8ff','#8fe8ff','#ffbb71','#ff9b57','#ff4057','#ffe1a1','#ff7048','#ff5964','#ffc36b'];
+  const beatColor=state.empowered?'#ffcc62':(beatPalette[state.hudBeatIndex]||beatPalette[clusterWave]||'#ffbb71');
+  const hpPct=engine.player.maxHp?engine.player.hp/engine.player.maxHp:1;
+  const lowHp=hpPct<=.35&&engine.player.hp>0?1-hpPct/.35:0;
+  const edges=['top','right','bottom','left'];
+  const gateLoad=[0,0,0,0],gateCount=[0,0,0,0];
+  for(const q of state.queue||[]){const i=edges.indexOf(q.edge);if(i>=0){gateCount[i]++;gateLoad[i]+=.34+(q.pressure||0)/260+(q.boss?1.4:0);}}
+  for(const e of engine.enemies){if(e.dead||!e.waveGunId)continue;const radial=Math.min(1,Math.hypot(e.x||0,e.y||0)/650);if(radial<.18)continue;const i=Math.abs(e.y||0)>Math.abs(e.x||0)?((e.y||0)<0?0:2):((e.x||0)<0?3:1);gateLoad[i]+=(.22+(e.wavePressure||0)/300+(e.waveBoss?1.2:0))*radial;}
+  const maxGateLoad=Math.max(1,...gateLoad);
+  for(let i=0;i<4;i++)gateLoad[i]=Math.min(1,gateLoad[i]/maxGateLoad);
+  const strength=state.empowered?.38:boss?.26:.12+Math.max(...gateLoad)*.12+lowHp*.24;
+  ctx.globalAlpha=strength*(.72+.28*Math.sin(time*2.8));ctx.strokeStyle=lowHp>.45?'#ff4057':beatColor;
   ctx.lineWidth=high?12:7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=high?23:0;
   ctx.beginPath();ctx.arc(0,0,914,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.globalAlpha=1;
+  // Quadrant pressure arcs: longer/brighter where the next carriers and
+  // live fire are actually gathering. Players can feel the dangerous side
+  // of the ring in peripheral vision before reading any panel.
+  ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+  for(let i=0;i<4;i++){const load=gateLoad[i];if(load<=.03&&state.phase!=='combat')continue;
+   const center=-Math.PI/2+i*Math.PI/2,span=.18+load*.72;
+   ctx.globalAlpha=.16+load*.52;ctx.strokeStyle=gateCount[i]&&state.queue[0]?.edge===edges[i]?'#fff0ae':(boss&&i===2?'#ff5964':beatColor);
+   ctx.lineWidth=high?8+load*10:5+load*5;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=high?16:0;
+   ctx.beginPath();ctx.arc(0,0,914,center-span/2,center+span/2);ctx.stroke();}
+  ctx.restore();
   // Wave-open optical accent tied to chapter state, not a gameplay collider.
   const r2waveAge=time-this.stageStart;
   if(r2waveAge>=0&&r2waveAge<1.38){const t=r2waveAge/1.38,theta=t*Math.PI*2-Math.PI/2;
    ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=(1-t)*.38;
-   ctx.strokeStyle=boss?'#ff9b5b':'#e7b982';ctx.lineWidth=high?15:7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=high?15:0;
+   ctx.strokeStyle=boss?'#ff9b5b':beatColor;ctx.lineWidth=high?15:7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=high?15:0;
    ctx.beginPath();ctx.arc(0,0,911,theta-.46,theta+.22);ctx.stroke();ctx.restore();}
-  // Gate emissive status strips (mechanics remain visually embedded in ring).
-  for(let i=0;i<4;i++){let a=i*Math.PI/2-Math.PI/2;ctx.save();ctx.rotate(a+Math.PI/2);ctx.translate(0,-923);
-   ctx.fillStyle=boss?'rgba(251,108,67,.65)':'rgba(218,170,100,.55)';ctx.globalAlpha=.55+.2*Math.sin(time*2.3+i);
-   ctx.fillRect(-49,-16,98,4);ctx.restore();}
+  // Gate strips charge with the actual edge queue. The next gate brightens
+  // as spawnT approaches zero, so deployment is telegraphed by the arena.
+  for(let i=0;i<4;i++){let a=i*Math.PI/2-Math.PI/2;const load=gateLoad[i],isNext=state.queue[0]?.edge===edges[i];
+   const charge=isNext?1-Math.min(1,Math.max(0,state.spawnT)/Math.max(.24,state.spawnInterval||.37)):load*.55;
+   ctx.save();ctx.rotate(a+Math.PI/2);ctx.translate(0,-923);
+   ctx.fillStyle=boss&&i===2?'rgba(255,89,100,.88)':isNext?'rgba(255,240,174,.92)':'rgba(218,170,100,.62)';
+   ctx.globalAlpha=.24+load*.42+charge*.34+.12*Math.sin(time*(2.3+charge*7)+i);
+   const w=34+118*Math.max(load,charge*.75);ctx.fillRect(-w/2,-16,w,4);
+   if(gateCount[i]>1){ctx.globalAlpha=.5+charge*.4;ctx.fillRect(-w/2,-9,w*.72,2);}
+   ctx.restore();}
   // Physical ground scars, never blocks melee or projectiles.
   for(const d of this.decals){let age=time-d.time;let life=d.type==='ko'?95:d.type==='hero'?60:23;if(age>life)continue;
    let alpha=(1-age/life)*(d.type==='hit'?.26:.41);ctx.save();ctx.translate(d.x,d.y+19);ctx.rotate(d.angle);ctx.globalAlpha=alpha;
@@ -6556,14 +6583,14 @@ const R2_PRESENT={
     const dx=(((id*37)%5)-2)*12,yy=y-19-d*48;
     ctx.save();ctx.globalAlpha=alpha;ctx.translate(x+dx,yy);ctx.scale(spring,spring);
     if(heavy){ctx.shadowColor=p.kind==='ultimate'?'#fdc36d':'#b95932';ctx.shadowBlur=this.high?12:0;}
-    ctx.font=`900 ${large}px system-ui, sans-serif`;ctx.lineWidth=heavy?5:3.5;ctx.lineJoin='round';ctx.strokeStyle='rgba(12,12,18,.94)';
+    ctx.font=`700 ${large}px "ApexVietCondensed","Oswald",system-ui,sans-serif`;ctx.lineWidth=heavy?5:3.5;ctx.lineJoin='round';ctx.strokeStyle='rgba(12,12,18,.94)';
     const txt=Math.round(p.damage).toLocaleString('en-US');ctx.strokeText(txt,0,0);ctx.fillStyle=p.kind==='ultimate'?'#ffe5b5':heavy?'#ffc475':p.kind==='rapid'?'#fff2ce':'#eff1ee';ctx.fillText(txt,0,0);
-    if(p.hits>1){ctx.shadowBlur=0;ctx.font='900 11px ui-monospace,monospace';ctx.fillStyle='#ffd8a0';ctx.fillText(`${p.hits} HITS`,0,21);}
+    if(p.hits>1){ctx.shadowBlur=0;ctx.font='600 11px "JetBrains Mono",ui-monospace,monospace';ctx.fillStyle='#ffd8a0';ctx.fillText(`${p.hits} HITS`,0,21);}
     ctx.restore();p.pulse=Math.max(0,p.pulse-.12);
    }
    for(let i=this.ko.length-1;i>=0;i--){const p=this.ko[i],d=time-p.t;if(d>.77){this.ko.splice(i,1);continue;}
     ctx.save();ctx.globalAlpha=Math.min(1,(.77-d)/.25);ctx.translate(p.x,p.y-d*37);ctx.scale(1+Math.max(0,.20-d)*.55,1+Math.max(0,.20-d)*.55);
-    ctx.font=`1000 ${p.boss?49:31}px system-ui,sans-serif`;ctx.lineWidth=5;ctx.strokeStyle='#240c0b';ctx.strokeText(p.boss?'BOSS K.O.':'K.O.',0,0);ctx.fillStyle=p.boss?'#ffe1aa':'#ffb971';ctx.fillText(p.boss?'BOSS K.O.':'K.O.',0,0);ctx.restore();
+    ctx.font=`700 ${p.boss?49:31}px "ApexVietCondensed","Oswald",system-ui,sans-serif`;ctx.lineWidth=5;ctx.strokeStyle='#240c0b';ctx.strokeText(p.boss?'BOSS K.O.':'K.O.',0,0);ctx.fillStyle=p.boss?'#ffe1aa':'#ffb971';ctx.fillText(p.boss?'BOSS K.O.':'K.O.',0,0);ctx.restore();
    }
    ctx.restore();
  },
@@ -6848,6 +6875,7 @@ function applyRunSnapshot(snapshot,{preserveLosses=false}={}){
  const snap=sanitizeRunSnapshot(snapshot);if(!snap)return false;
  const losses=preserveLosses?Math.max(state.losses||0,snap.losses||0):snap.losses;
  state.wave=snap.wave-1;state.phase='intermission';state.queue=[];state.spawnT=0;
+ const nextBeat=CAMPAIGN.beats?.[(snap.wave-1)%10];state.hudBeatId=nextBeat?.id||'';state.hudBeatIndex=(snap.wave-1)%10;state.hudPattern=nextBeat?.pattern||'';state.hudNewWeapons=[];state.waveKills=0;state.waveDamageDealt=0;state.waveDamageReceived=0;
  state.kills=snap.kills;state.xp=snap.xp;state.level=snap.level;state.levelsPending=0;state.offer=null;
  state.owned=new Set(snap.owned);state.stacks={...snap.stacks};state.losses=losses;
  state.aliveTime=snap.aliveTime;state.shots=snap.shots;state.rocketRolls=snap.rocketRolls;state.rocketProcs=snap.rocketProcs;
@@ -6906,7 +6934,7 @@ function updateHealthPacks(){
   const pack=state.healthPacks[i];
   if(engine.time>=pack.expiresAt){state.healthPacks.splice(i,1);continue;}
   if(Math.hypot(p.x-pack.x,p.y-pack.y)<=(p.r||34)+(pack.r||24)){
-   p.hp=Math.min(p.maxHp,p.hp+p.maxHp*(cfg.healFraction??.10));state.healthPackPickups++;state.healthPacks.splice(i,1);
+   const beforePackHeal=p.hp;p.hp=Math.min(p.maxHp,p.hp+p.maxHp*(cfg.healFraction??.10));state.lastHealAt=engine.time;state.lastHealAmount=Math.max(0,p.hp-beforePackHeal);state.healthPackPickups++;state.healthPacks.splice(i,1);
    engine.fx.flash(p.x,p.y-20,110,'#8dffb2',.30);engine.combatCue('HEAL',.82);ARENA_STAGE.notice('+10% HP');
   }
  }
@@ -6946,8 +6974,10 @@ function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.p
  // Sound prewarm is triggered by the real WAVE START gesture above.
  // Internal testStartWave may skip it because tests are a deterministic fixture.
  state.wave++;state.healthPacks.length=0;state.autoNextWave=false;state.nextWaveT=0;setWaveToast('',0);captureBoundarySnapshot(state.wave);state.phase='combat';state.comboFlow=null;state.rocketPending=false;state.stickyEngage=null;state.queue=[];state.spawnT=0;const comp=waveComposition(state.wave);
- state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,boss:e.boss,edge:e.edge,
+ state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,family:e.family,boss:e.boss,edge:e.edge,
   edgeFraction:e.edgeFraction,role:e.role,pressure:e.pressure||0}));
+ state.hudBeatId=comp.plan.beat;state.hudBeatIndex=(comp.plan.clusterWave||1)-1;state.hudPattern=comp.plan.pattern||'';state.hudNewWeapons=[...(comp.plan.newWeapons||[])];
+ state.waveKills=0;state.waveDamageDealt=0;state.waveDamageReceived=0;state.lastDamageAt=-9;state.lastDamageAmount=0;
  state.softCap=comp.plan.concurrentLimit;state.spawnInterval=comp.plan.spawnInterval||.37;state.pressureBudget=comp.plan.pressureBudget||260;ARENA_STAGE.beginWave(state.wave);engine.paused=false;engine.combatCue('WAVE_START',.8);engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
  engine.banner={text:'WAVE '+String(state.wave).padStart(2,'0'),sub:comp.label,t:1.8,max:1.8};
 }
@@ -6964,7 +6994,7 @@ function makeEnemy(desc){
   Math.max(32,Math.round(Math.min(320,110*(1+.022*Math.min(state.wave-1,50))*(desc.role==='snipe'?.88:1))*(plan.enemyHpMultiplier||1)));
  const e={id:engine.nextId++,kind:'bot',x,y,vx:0,vy:0,r:boss?68:30,hp,maxHp:hp,
  angle:0,flash:0,wob:0,wobV:0,z:0,vz:0,shootT:1e8,strafeDir:rng()<.5?-1:1,strafeT:1+rng()*2,orbitHitAt:0,slowT:0,dead:false,
- waveGunId:desc.gun,waveAmmo:g.mag,waveFireT:.8+rng(),waveReloadT:0,waveBoss:boss,waveAimT:0,waveStunT:0,wavePressure:desc.pressure||0};
+ waveGunId:desc.gun,waveFamily:desc.family||'',waveRole:desc.role||'',waveEdge:edge,waveAmmo:g.mag,waveFireT:.8+rng(),waveReloadT:0,waveBoss:boss,waveAimT:0,waveStunT:0,wavePressure:desc.pressure||0};
  engine.enemies.push(e);ARMORY.activate(e);ARENA_STAGE.entrance(e.x,e.y,boss);
  engine.combatCue(boss?'BOSS_SPAWN':'BOT_SPAWN',boss?1:.5);
  engine.fx.flash(e.x,e.y-15,boss?150:60,boss?'#ff7850':'#d7b387',.25);
@@ -6983,7 +7013,7 @@ function waveClearTransitionUI(comp,healed){
 }
 function completeWave(){if(state.phase!=='combat')return;
  finishGuard('wave-clear');state.phase='intermission';state.comboFlow=null;state.rocketPending=false;state.healthPacks.length=0;engine.mouse.down=false;
- let c=waveComposition(state.wave);const beforeHeal=engine.player.hp;engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*c.heal);const healed=Math.max(0,engine.player.hp-beforeHeal);captureBoundarySnapshot(state.wave+1);
+ let c=waveComposition(state.wave);const beforeHeal=engine.player.hp;engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+engine.player.maxHp*c.heal);const healed=Math.max(0,engine.player.hp-beforeHeal);state.lastHealAt=engine.time;state.lastHealAmount=healed;captureBoundarySnapshot(state.wave+1);
  ARMORY.reset();engine.paused=false;state.autoNextWave=true;state.nextWaveT=waveClearTransitionUI(c,healed);
  engine.combatCue('WAVE_CLEAR',1);engine.combatCue('HEAL',.48);ARENA_STAGE.notice('ROUND '+state.wave+' CLEAR');refreshUI();}
 function lose(){if(state.phase==='gameover')return;resetGuardState();state.autoNextWave=false;state.nextWaveT=0;setWaveToast('',0);state.phase='gameover';state.comboFlow=null;state.rocketPending=false;state.healthPacks.length=0;engine.mouse.down=false;engine.paused=true;state.losses++;
@@ -6993,7 +7023,7 @@ function lose(){if(state.phase==='gameover')return;resetGuardState();state.autoN
  UI['w-desc'].textContent='Thua trong cụm: toàn bộ thẻ kiếm được từ Wave '+retryWave+' sẽ bị thu hồi. BOXE quay lại Wave '+retryWave+' bằng đúng build và HP lúc vào cụm.';
  UI['w-cards'].replaceChildren();UI['w-go'].style.display='inline-block';UI['w-go'].textContent='↻ RETRY WAVE '+retryWave;UI['wave-modal'].hidden=false;}
 function restart(){engine.resetAll();engine.enemies=[];engine.projs=[];engine.timeline=[];engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;
- ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();resetGuardState();state.autoNextWave=false;state.nextWaveT=0;setWaveToast('',0);state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.healthPacks.length=0;state.healthPackDrops=0;state.healthPackPickups=0;state.waveSnapshot=null;state.clusterSnapshot=null;clearSavedRun();applyStacksDerived();engine.player.hp=engine.player.maxHp;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
+ ARMORY.reset();ARENA_STAGE.reset();R2_PRESENT.reset();resetGuardState();state.autoNextWave=false;state.nextWaveT=0;setWaveToast('',0);state.wave=0;state.phase='intermission';state.queue=[];state.kills=0;state.hudBeatId='farm';state.hudBeatIndex=0;state.hudPattern='front';state.hudNewWeapons=[];state.waveKills=0;state.waveDamageDealt=0;state.waveDamageReceived=0;state.xp=0;state.level=1;state.levelsPending=0;state.offer=null;state.owned.clear();state.stacks={};state.healthPacks.length=0;state.healthPackDrops=0;state.healthPackPickups=0;state.waveSnapshot=null;state.clusterSnapshot=null;clearSavedRun();applyStacksDerived();engine.player.hp=engine.player.maxHp;state.comboFlow=null;state.comboSerial=0;state.rocketPending=false;state.stickyEngage=null;state.stickyStats={attempts:0,engaged:0,committed:0,cancelled:0};state.rocketRolls=0;state.rocketProcs=0;state.comboTrace=[];state.debug={};state.passiveProgress=0;state.passiveReady=false;state.empowered=false;state.empoweredEnd=0;engine.opts.haste=1;engine.opts.damageScale=1;
  UI['wave-modal'].hidden=true;engine.waveCounterUnlocked=false;engine.paused=false;engine.combatCue('UI',.7);startWave();}
 function autoAimNow(){
  // Same exact nearest-robot criterion and stable ID tie-break as the original
@@ -7016,6 +7046,7 @@ function autoAimNow(){
 const GUARD_BASE_CD=2.4,GUARD_COUNTER_CD=12,GUARD_HOLD_TICK=.12,GUARD_MOVE_MUL=.55;
 function resetGuardState(){
  state.guardHeld=false;state.guardCounterLive=false;state.guardHoldT=0;state.guardCdT=0;state.guardCdMax=GUARD_BASE_CD;
+ state.lastDamageAt=-9;state.lastDamageAmount=0;state.lastHealAt=-9;state.lastHealAmount=0;
  if(engine?.player){engine.player.guardT=0;engine.player.counterDone=true;}
 }
 function guardReady(){
@@ -7144,8 +7175,8 @@ engine.damageEnemy=function(e,raw,opts){
   R2_PRESENT.hit(e,done,hitOpts||{});
   if(e.dead)for(let i=this.texts.length-1;i>=textStart;i--)if(String(this.texts[i].text)==='K.O.!')this.texts.splice(i,1);
  }
- recordBOXERealDamage(done);if(done>0)ARENA_STAGE.stats.damage+=done;
- if(!before&&e.dead){R2_PRESENT.kill(e);state.kills++;
+ recordBOXERealDamage(done);if(done>0){ARENA_STAGE.stats.damage+=done;state.waveDamageDealt=(state.waveDamageDealt||0)+done;}
+ if(!before&&e.dead){R2_PRESENT.kill(e);state.kills++;state.waveKills=(state.waveKills||0)+1;
   ARENA_STAGE.mark(e.x,e.y,'ko',e.waveBoss?2:1);
   engine.combatCue(e.waveBoss?'BOSS_KO':'BOT_KO',e.waveBoss?1:.76);
   let base=e.waveBoss?260:e.waveGunId==='SNIPER'?34:e.waveGunId==='GRENADE'?32:18;
@@ -7157,8 +7188,11 @@ engine.damageEnemy=function(e,raw,opts){
 const nativeDamagePlayer=engine.damagePlayer.bind(engine);
 engine.damagePlayer=function(dmg,fromAngle){if(state.phase!=='combat')return;
  const p=engine.player;const before=p.hp;const effective=Math.max(0,dmg*(1-(state.armor||0)));
- if(effective>=p.hp){p.hp=effective+1;nativeDamagePlayer(effective,fromAngle);p.hp=0;lose();return}
- nativeDamagePlayer(effective,fromAngle);state.waveDamageReceived+=before-p.hp;recordBOXERealDamage(Math.max(0,before-p.hp));
+ const sourceAngle=Number.isFinite(fromAngle)?fromAngle+Math.PI:0;
+ if(effective>=p.hp){state.lastDamageAt=engine.time;state.lastDamageAngle=sourceAngle;state.lastDamageAmount=effective;p.hp=effective+1;nativeDamagePlayer(effective,fromAngle);p.hp=0;lose();return}
+ nativeDamagePlayer(effective,fromAngle);const realized=Math.max(0,before-p.hp);
+ if(realized>0){state.lastDamageAt=engine.time;state.lastDamageAngle=sourceAngle;state.lastDamageAmount=realized;}
+ state.waveDamageReceived+=realized;recordBOXERealDamage(realized);
 };
 const nativeDrawProjs=engine.drawProjs.bind(engine);
 engine.drawProjs=function(ctx){
@@ -7372,7 +7406,7 @@ window.addEventListener('keydown',e=>{if(e.code.startsWith('Digit'))e.stopImmedi
 engine.enemies=[];engine.projs=[];engine.timeline=[];engine.opts.infiniteDummyHp=false;engine.opts.noCooldown=false;engine.opts.sound=true;
 engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survival.startingHP;engine.player.x=0;engine.player.y=120;engine.player.fury=0;engine.player.empoweredT=0;engine.player.guardT=0;engine.player.invulnT=0;engine.player.dashCd=0;engine.player.comboStep=0;engine.player.basicCd=0;engine.waveCounterUnlocked=false;applyStacksDerived();restoreSavedRunAtBoot();
 engine.camZoom=.57;engine.camZoomBase=.57;
-window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,nextWaveT:state.nextWaveT,autoNextWave:state.autoNextWave,guard:{held:state.guardHeld,counterLive:state.guardCounterLive,cdT:state.guardCdT,cdMax:state.guardCdMax,holdT:state.guardHoldT},owned:[...state.owned],stacks:{...state.stacks},sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,healthPacks:state.healthPacks.length,healthPackDrops:state.healthPackDrops,healthPackPickups:state.healthPackPickups,savedWave:state.waveSnapshot?.wave||0,clusterWave:state.clusterSnapshot?.wave||0,enemies:engine.enemies.length,player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp,maxHp:engine.player.maxHp}}),source:'APEX_GOLD_R5'};
+window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,beat:{id:state.hudBeatId,index:state.hudBeatIndex,pattern:state.hudPattern,newWeapons:[...state.hudNewWeapons]},waveKills:state.waveKills,waveDamageDealt:state.waveDamageDealt,waveDamageReceived:state.waveDamageReceived,lastDamage:{at:state.lastDamageAt,angle:state.lastDamageAngle,amount:state.lastDamageAmount},lastHeal:{at:state.lastHealAt,amount:state.lastHealAmount},nextWaveT:state.nextWaveT,autoNextWave:state.autoNextWave,guard:{held:state.guardHeld,counterLive:state.guardCounterLive,cdT:state.guardCdT,cdMax:state.guardCdMax,holdT:state.guardHoldT},owned:[...state.owned],stacks:{...state.stacks},sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,healthPacks:state.healthPacks.length,healthPackDrops:state.healthPackDrops,healthPackPickups:state.healthPackPickups,savedWave:state.waveSnapshot?.wave||0,clusterWave:state.clusterSnapshot?.wave||0,enemies:engine.enemies.length,player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp,maxHp:engine.player.maxHp}}),source:'APEX_GOLD_R5'};
 createUI();refreshUI();presentRunIntro();engine.paused=true;
 // Native combat already refreshes the HUD and handles defeat in updateWave.
  // Avoid duplicated DOM churn from a second independent timer.

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { JSDOM } from 'jsdom';
 
 const game = fs.readFileSync('public/bot-wave/game.html', 'utf8');
+const campaign = fs.readFileSync('public/game/bot-wave/waveCampaign.js', 'utf8');
 const presentation = fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js', 'utf8');
 const presentationCss = fs.readFileSync('public/game/bot-wave/botWavePresentationV2.css', 'utf8');
 const app = fs.readFileSync('src/App.jsx', 'utf8');
@@ -258,15 +260,32 @@ for (const required of [
   'state.guardHeld?GUARD_MOVE_MUL:1',
   'engine.paused=false;state.autoNextWave=true;state.nextWaveT=waveClearTransitionUI(c,healed);',
   "if(state.nextWaveT<=0&&!state.levelsPending&&!state.offer)startWave();",
+  "hudBeatId:'farm',hudBeatIndex:0,hudPattern:'front',hudNewWeapons:[]",
+  'state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,family:e.family,boss:e.boss,edge:e.edge,',
+  'state.hudBeatId=comp.plan.beat;state.hudBeatIndex=(comp.plan.clusterWave||1)-1;state.hudPattern=comp.plan.pattern||',
+  "waveGunId:desc.gun,waveFamily:desc.family||'',waveRole:desc.role||'',waveEdge:edge",
+  'state.waveDamageDealt=(state.waveDamageDealt||0)+done;',
+  'state.waveKills=(state.waveKills||0)+1;',
+  'const sourceAngle=Number.isFinite(fromAngle)?fromAngle+Math.PI:0;',
+  'state.lastDamageAt=engine.time;state.lastDamageAngle=sourceAngle;state.lastDamageAmount=realized;',
+  'clusterWave=(wave-1)%10,boss=clusterWave===9',
+  'const gateLoad=[0,0,0,0],gateCount=[0,0,0,0];',
+  'gateLoad[i]+=.34+(q.pressure||0)/260+(q.boss?1.4:0);',
+  'const radial=Math.min(1,Math.hypot(e.x||0,e.y||0)/650);',
+  'gateLoad[i]+=(.22+(e.wavePressure||0)/300+(e.waveBoss?1.2:0))*radial;',
+  'state.lastHealAt=engine.time;state.lastHealAmount=healed;',
+  'beat:{id:state.hudBeatId,index:state.hudBeatIndex,pattern:state.hudPattern,newWeapons:[...state.hudNewWeapons]}',
+  'const nextBeat=CAMPAIGN.beats?.[(snap.wave-1)%10];state.hudBeatId=nextBeat?.id||',
 ]) assert.ok(game.includes(required), `Missing HUD/guard seam: ${required}`);
 assert.ok(!game.includes('function completedUI('), 'per-wave completed modal is retired');
 assert.ok(!game.includes("UI['w-go'].textContent='▶ NEXT WAVE"), 'ordinary waves must not wait for NEXT WAVE click');
 assert.ok(!game.includes("engine.player.guardT=.45+state.guardBonus"), 'fixed .45s tap guard is retired');
 
 for (const required of [
-  "const VERSION='owner-release-r11-ringside-command-deck';",
+  "const VERSION='owner-release-r12-living-ring-interface';",
   'for(let i=0;i<10;i++)',
-  'Math.floor((n-1)/10)+1,beat=(n-1)%10,bossBeat=beat===9',
+  'Math.floor((n-1)/10)+1,beat=Number.isInteger(s.hudBeatIndex)',
+  'beatInfo=BEATS[beat]||beatForWave(n),bossBeat=beat===9',
   'Number(s.pressureBudget)',
   'Number(e.wavePressure)',
   "s.autoNextWave?'WAVE CLEAR'",
@@ -282,12 +301,56 @@ for (const required of [
   "decor(modal,'bw-dialog-ornaments'",
   "center.dataset.danger=danger>=.82?'critical'",
   "guardButton.classList.add('bw-ready-flash')",
+  'const BEATS=Object.freeze([',
+  "name:'DAWN HARVEST'",
+  "name:'APEX STORM'",
+  "name:'THE LAST BELL'",
+  'function refreshScreenFrame(layer){',
+  'const refreshArenaType=(attempt=0)=>{',
+  "doc.fonts.load('700 32px \"ApexVietCondensed\"','APEX')",
+  'if(stage&&loaded>=2){stage.base=null;return;}',
+  'function worldToScreen(x,y){',
+  "beatCard.id='bw-beat-card';",
+  "oracle.id='bw-oracle';",
+  "constellation.id='bw-constellation';",
+  "telemetry.id='bw-telemetry';",
+  "spatial.id='bw-spatial-layer';",
+  "const damageWedge=node('div','bw-damage-wedge');",
+  "const healHalo=node('div','bw-heal-halo');",
+  'deck.dataset.focus=focus;',
+  "hpPct<=.35&&player.hp>0?'danger'",
+  "oracle.classList.toggle('is-open',focus==='breather');",
+  'const forecastWave=breather?(Number(s.wave)||0)+1:n;',
+  'forecastCache=nextWavePlan(pilot,forecastWave)',
+  'const queuedPressure=(s.queue||[]).reduce',
+  "pressure.style.setProperty('--bw-inbound-pressure'",
+  "marker.dataset.family=entry.family||'';",
+  'spatialFrame=window.requestAnimationFrame(spatialLoop);',
+  "window.cancelAnimationFrame?.(spatialFrame)",
 ]) assert.ok(presentation.includes(required), `Missing V2 HUD truth seam: ${required}`);
 assert.ok(!presentation.includes('Math.floor((n-1)/5)'), 'stale five-wave chapter math is retired');
 assert.ok(!presentation.includes('beat===4'), 'stale fifth-wave boss math is retired');
 
 for (const required of [
-  'BOT WAVE R11 — Ringside Command Deck',
+  'BOT WAVE R12 — Living Ring Interface',
+  "@import url('/gold/fonts.css');",
+  "@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf')",
+  '--bw-font-display:"ApexVietCondensed","Oswald","Segoe UI",system-ui,sans-serif;',
+  '--bw-font-data:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;',
+  '#wave-hud .bw-spatial-layer',
+  '#wave-hud .bw-spatial-marker.is-boss',
+  '#wave-hud .bw-damage-wedge',
+  '#wave-hud .bw-heal-halo',
+  '#wave-hud .bw-momentum',
+  '#wave-hud .bw-beat-card',
+  '#wave-hud .bw-oracle.is-open',
+  '#wave-hud .bw-constellation',
+  '#wave-hud .bw-telemetry',
+  '#wave-hud .bw-command-deck[data-focus="hot"] .bw-encounter',
+  '#wave-hud .bw-command-deck[data-focus="danger"] .bw-threat',
+  '#wave-hud .bw-command-deck[data-focus="breather"] .bw-encounter',
+  '#wave-hud .bw-command-deck[data-focus="cinematic"] .bw-top',
+  '#wave-hud [data-family="PRECISION"]',
   '--bw-brass:#c99a5f;--bw-amber:#ffbb71;--bw-gold:#ffe1a1;--bw-ember:#ff7048',
   '--bw-crimson:#ff4057;--bw-mint:#8dffb2;--bw-cyan:#8fe8ff;--bw-violet:#c9a7ff',
   '#wave-hud .bw-atmosphere',
@@ -315,10 +378,116 @@ for (const required of [
   '@media(prefers-reduced-motion:reduce)',
 ]) assert.ok(presentationCss.includes(required), `Missing V2 HUD CSS seam: ${required}`);
 assert.ok(!presentationCss.includes('#wave-hud #wave-status{display:none!important}'), 'contextual status feed must be visible');
+assert.ok(!presentationCss.includes('Bahnschrift'), 'Windows-only Bahnschrift fallback is retired');
+assert.ok(!presentationCss.includes('Impact'), 'Impact fallback is retired in favour of shipped Vietnamese display fonts');
+assert.ok(!/font:(?:italic\s+)?(?:800|850|900|950|1000)\s/.test(presentationCss), 'fake heavy font weights are retired');
+assert.ok(!game.includes('boss=wave===5||wave===10'), 'arena boss lighting must follow the repeating ten-wave cluster');
+assert.ok(fs.existsSync('public/gold/fonts.css'), 'BOT WAVE iframe must be able to load the shipped Oswald/Teko/JetBrains sheet');
+assert.ok(fs.existsSync('public/gold/fonts/apex-oswald-vietnamese.ttf'), 'BOT WAVE must ship its Vietnamese condensed display face');
+assert.ok(presentationCss.indexOf("@import url('/gold/fonts.css');") < presentationCss.indexOf('#wave-hud{'),
+  'font import must precede HUD rules to be valid CSS');
+assert.ok(game.includes('"ApexVietCondensed","Oswald",system-ui,sans-serif'), 'canvas combat type must use shipped Vietnamese display fonts');
+assert.ok(game.includes('"JetBrains Mono",ui-monospace,monospace'), 'canvas data type must use the shipped mono face');
 
-assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r11'));
-assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r11'));
-assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r11'));
-assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r11'));
+for (const required of [
+  'pattern:beat.pattern',
+  'families:Object.freeze(Object.entries(beat.familyWeights)',
+  'familyWeights:Object.freeze({...beat.familyWeights})',
+]) assert.ok(campaign.includes(required), `Missing campaign R12 forecast seam: ${required}`);
 
-console.log('BOT WAVE HUD flow PASS: R11 ringside command deck, seamless waves, integer presentation, hold-K guard + pre-counter cooldown, 10-wave pressure HUD');
+// Execute the real V2 installer against a DOM shaped like the pilot HUD.
+// This proves R12 is not just source decoration: beat identity, focus mode,
+// spatial markers, radar dots, family intel and the breather oracle all
+// react to live pilot/engine telemetry.
+const r12dom = new JSDOM(`<!doctype html><html><head></head><body>
+<div id="wave-hud">
+  <div class="w-left"><div class="w-small">HP <b>280</b></div></div>
+  <div class="w-right"><b id="w-wave">WAVE 09</b><span id="w-count">3 HOSTILES LEFT</span>
+    <div id="w-arsenal"><span>PISTOL</span><span>SNIPER</span></div></div>
+  <div id="wave-status">J PUNCH</div><div id="wave-stick"><i></i></div>
+  <div class="w-actions">
+    <button data-act="J"><span class="w-action-key">J</span><small>PUNCH</small></button>
+    <button data-act="K"><span class="w-action-key">K</span><small>GUARD</small></button>
+    <button data-act="L"><span class="w-action-key">L</span><small>DASH</small></button>
+    <button data-act="U"><span class="w-action-key">U</span><small>PHANTOM</small></button>
+    <button data-act="I"><span class="w-action-key">I</span><small>FINAL</small></button>
+  </div><button id="resume-wave">PAUSE</button>
+</div>
+<section id="wave-modal"><div class="w-dialog"><h1 id="w-title">BOT WAVE</h1><button id="w-go">START</button></div></section>
+</body></html>`, { url: 'http://localhost/bot-wave/game.html', pretendToBeVisual: false, runScripts: 'outside-only' });
+const r12window = r12dom.window;
+const r12state = {
+  wave: 9, phase: 'combat', autoNextWave: false, nextWaveT: 0,
+  hudBeatId: 'crescendo', hudBeatIndex: 8, hudPattern: 'four-edge', hudNewWeapons: [],
+  queue: [{ gun: 'PISTOL', family: 'SEMI', edge: 'right', edgeFraction: 0.5, pressure: 52 }],
+  spawnT: 0.08, spawnInterval: 0.34, softCap: 6, pressureBudget: 380,
+  waveKills: 7, waveDamageDealt: 2450, waveDamageReceived: 310,
+  healthPacks: [{ x: 120, y: 80 }], lastDamageAt: 11.8, lastDamageAngle: 0, lastDamageAmount: 120,
+  lastHealAt: -9, lastHealAmount: 0, guardHeld: false, guardCdT: 0, empowered: false,
+};
+const r12plan = (wave) => ({ plan: {
+  wave, pattern: wave === 10 ? 'four-edge' : 'cross',
+  newWeapons: wave === 10 ? ['OMEGA'] : [],
+  composition: [
+    { weaponId: 'PISTOL', family: 'SEMI', role: 'fire' },
+    { weaponId: 'SNIPER', family: 'PRECISION', role: 'snipe' },
+    { weaponId: 'OMEGA', family: 'SPECIAL', role: 'signature' },
+  ],
+} });
+r12window.BOXE_WAVE_PILOT = { state: r12state, planWave: r12plan };
+r12window.handLab = {
+  time: 12, w: 960, h: 540, camZoom: 0.57, cam: { x: 0, y: 0 },
+  canvas: r12window.document.createElement('canvas'),
+  player: { x: 0, y: 0, hp: 280, maxHp: 1000 },
+  enemies: [
+    { x: 1600, y: -500, hp: 2250, waveGunId: 'OMEGA', waveFamily: 'SPECIAL', waveBoss: true, wavePressure: 150 },
+    { x: -1500, y: 300, hp: 180, waveGunId: 'SNIPER', waveFamily: 'PRECISION', waveBoss: false, wavePressure: 90 },
+  ],
+  toScreen(x, y) { return { x: 480 + x * 0.57, y: 270 + y * 0.57 }; },
+};
+r12window.BOXE_ARENA_EXPERIENCE = { stage: { base: { stale: true } } };
+Object.defineProperty(r12window.document, 'fonts', {
+  configurable: true,
+  value: { load: async () => [{ family: 'stubbed-loaded-face' }] },
+});
+r12window.eval(presentation);
+const r12doc = r12window.document;
+assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r12-living-ring-interface');
+assert.equal(r12doc.querySelectorAll('.bw-action-glyph').length, 5);
+assert.equal(r12doc.querySelectorAll('.bw-spatial-marker').length, 10);
+assert.equal(r12doc.querySelectorAll('.bw-radar-dot').length, 8);
+assert.equal(r12doc.querySelectorAll('.bw-family-cell').length, 5);
+assert.equal(r12doc.getElementById('bw-beat-name')?.textContent, 'APEX STORM');
+assert.equal(r12doc.getElementById('bw-interface-v2')?.dataset.focus, 'danger');
+assert.ok(Number(r12doc.querySelector('.bw-damage-wedge')?.style.opacity) > 0, 'recent directional damage must light the wedge');
+assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.textContent.includes('OMEGA')), 'offscreen boss must receive a spatial marker');
+assert.ok([...r12doc.querySelectorAll('.bw-family-cell')].some((cell) => cell.textContent.includes('SNIPER')), 'family constellation must expose live PRECISION pressure');
+assert.equal(r12doc.querySelector('#w-arsenal span')?.dataset.family, 'SEMI');
+r12state.phase = 'intermission';
+r12state.autoNextWave = true;
+r12state.nextWaveT = 2;
+r12state.queue = [];
+r12window.handLab.enemies = [];
+await new Promise((resolve) => setTimeout(resolve, 130));
+assert.equal(r12window.BOXE_ARENA_EXPERIENCE.stage.base, null, 'loaded Vietnamese faces must invalidate the prerendered arena type');
+assert.equal(r12doc.getElementById('bw-interface-v2')?.dataset.focus, 'breather');
+assert.ok(r12doc.getElementById('bw-oracle')?.classList.contains('is-open'), 'oracle opens only in the seamless breather');
+assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 10 · THE LAST BELL/);
+assert.match(r12doc.getElementById('bw-oracle-families')?.textContent || '', /NEW OMEGA/);
+assert.match(r12doc.getElementById('bw-momentum')?.textContent || '', /WAVE SEALED/);
+r12state.wave = 19;
+r12state.autoNextWave = false;
+r12state.phase = 'intermission';
+r12state.hudBeatIndex = 9;
+await new Promise((resolve) => setTimeout(resolve, 130));
+assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 20 · THE LAST BELL/,
+  'snapshot intermission stores nextWave-1, so the oracle must forecast state.wave+1');
+r12window.dispatchEvent(new r12window.Event('pagehide'));
+r12window.close();
+
+assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r12'));
+assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r12'));
+assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r12'));
+assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r12'));
+
+console.log('BOT WAVE HUD flow PASS: R12 living ring interface, seamless waves, integer presentation, hold-K guard + pre-counter cooldown, 10-wave pressure HUD');

@@ -266,6 +266,13 @@ sandbox.state.stacks = { fist: 9, armor: 6, vitality: 4 };
 sandbox.state.owned = new Set(['jab', 'uppercut', 'counter']);
 sandbox.state.losses = 5;
 sandbox.state.healthPacks = [{ x: 0, y: 0, r: 24, expiresAt: 99 }];
+sandbox.state.hudBeatId = 'boss';
+sandbox.state.hudBeatIndex = 9;
+sandbox.state.hudPattern = 'four-edge';
+sandbox.state.hudNewWeapons = ['STALE'];
+sandbox.state.waveKills = 99;
+sandbox.state.waveDamageDealt = 9999;
+sandbox.state.waveDamageReceived = 8888;
 sandbox.engine.player.hp = 123;
 sandbox.engine.player.maxHp = 9999;
 assert.equal(api.applyRunSnapshot(cluster11, { preserveLosses: true }), true);
@@ -283,6 +290,13 @@ assert.equal(sandbox.state.levelsPending, 0);
 assert.equal(sandbox.state.guardHeld, false, 'Snapshot restore cannot leak a held guard');
 assert.equal(sandbox.state.autoNextWave, false, 'Manual snapshot restore must not auto-start');
 assert.equal(sandbox.state.nextWaveT, 0);
+assert.equal(sandbox.state.hudBeatId, 'farm', 'Snapshot restore must point HUD telemetry at the next wave to play');
+assert.equal(sandbox.state.hudBeatIndex, 0);
+assert.equal(sandbox.state.hudPattern, 'front');
+assert.deepEqual(plain(sandbox.state.hudNewWeapons), []);
+assert.equal(sandbox.state.waveKills, 0);
+assert.equal(sandbox.state.waveDamageDealt, 0);
+assert.equal(sandbox.state.waveDamageReceived, 0);
 
 // Boot restore presents the saved current wave, while a mismatched cluster
 // snapshot is rejected rather than silently trusted.
