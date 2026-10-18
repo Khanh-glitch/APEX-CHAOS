@@ -1,9 +1,10 @@
 // BOT WAVE — runtime campaign director. This file has no fixed wave limit.
 // The 41 equipable weapons are taken ONLY from live Arsenal P0_WEAPON_IDS.
 // BOT WAVE uses the current Free Battle post-x7 gun numbers and native aim
-// exactly as delivered by arsenalConfig + arsenalWeaponRuntime. This director
-// only controls carrier count, spawn lanes/intervals, enemy HP, mixtures and
-// recovery; it never rescales gun damage, cadence, spread or projectiles.
+// exactly as delivered by arsenalConfig + arsenalIdentityRuntime +
+// arsenalWeaponRuntime. This director only controls carrier count, spawn
+// lanes/intervals, enemy HP, mixtures and recovery; it never rescales gun
+// damage, cadence, spread or projectiles.
 (function(root){
 'use strict';
 const ROLE_WEIGHT=Object.freeze({
@@ -11,9 +12,9 @@ const ROLE_WEIGHT=Object.freeze({
  GRENADE:7,MELEE:8,SHIELD:9,SPECIAL:10
 });
 const FAMILY_PROFILES=Object.freeze({
- fodder:Object.freeze({SEMI:5,AUTO:4,BURST:3,SHOTGUN:1.2,PRECISION:.5,AUTOSHOT:.6,GRENADE:.5,MELEE:1,SHIELD:.3,SPECIAL:.35}),
- mixed:Object.freeze({SEMI:2,AUTO:2,BURST:2,SHOTGUN:2,PRECISION:1.4,AUTOSHOT:1.5,GRENADE:1.3,MELEE:1.2,SHIELD:1,SPECIAL:1}),
- hard:Object.freeze({SEMI:1,AUTO:1.5,BURST:2,SHOTGUN:2.5,PRECISION:3,AUTOSHOT:3,GRENADE:3,MELEE:1.5,SHIELD:2,SPECIAL:3})
+ fodder:Object.freeze({SEMI:5,AUTO:3,BURST:2.2,SHOTGUN:.7,PRECISION:.25,AUTOSHOT:.35,GRENADE:.35,MELEE:1.4,SHIELD:.5,SPECIAL:.2}),
+ mixed:Object.freeze({SEMI:2.2,AUTO:1.8,BURST:1.8,SHOTGUN:1.2,PRECISION:.8,AUTOSHOT:.9,GRENADE:.9,MELEE:1.4,SHIELD:1,SPECIAL:.7}),
+ hard:Object.freeze({SEMI:1.4,AUTO:1.7,BURST:1.9,SHOTGUN:1.8,PRECISION:1.5,AUTOSHOT:1.7,GRENADE:1.6,MELEE:1.5,SHIELD:1.4,SPECIAL:1.5})
 });
 // One cluster is a full ten-wave up/down arc:
 // farm -> two teaching waves -> two mixes -> pressure spike -> power farm
@@ -21,16 +22,16 @@ const FAMILY_PROFILES=Object.freeze({
 // while wave 7 intentionally trades individual enemy HP for volume so a
 // built-up BOXE can feel powerful immediately before the final squeeze.
 const PLAN_BEATS=Object.freeze([
- {id:'farm',caption:'OPEN FARM',cap:6,count:14,spawnInterval:.50,hpMul:.68,pattern:'front',heal:.08,familyWeights:FAMILY_PROFILES.fodder},
- {id:'teach',caption:'NEW THREAT',cap:6,count:10,spawnInterval:.46,hpMul:.90,pattern:'flank',heal:.05,familyWeights:FAMILY_PROFILES.mixed},
- {id:'teach',caption:'DEEPER THREAT',cap:7,count:12,spawnInterval:.43,hpMul:.95,pattern:'flank',heal:.05,familyWeights:FAMILY_PROFILES.mixed},
- {id:'mix',caption:'CROSS-PRESSURE',cap:7,count:16,spawnInterval:.40,hpMul:1,pattern:'cross',heal:.045,familyWeights:FAMILY_PROFILES.mixed},
- {id:'mix',caption:'COMBINED FIRE',cap:8,count:18,spawnInterval:.37,hpMul:1.03,pattern:'cross',heal:.045,familyWeights:FAMILY_PROFILES.mixed},
- {id:'spike',caption:'BREAKPOINT',cap:8,count:18,spawnInterval:.32,hpMul:1.12,pattern:'pincer',heal:.055,familyWeights:FAMILY_PROFILES.hard},
- {id:'power',caption:'POWER HARVEST',cap:8,count:24,spawnInterval:.22,hpMul:.55,pattern:'front',heal:.07,familyWeights:FAMILY_PROFILES.fodder},
- {id:'crescendo',caption:'CRESCENDO',cap:9,count:20,spawnInterval:.30,hpMul:1.08,pattern:'four-edge',heal:.05,familyWeights:FAMILY_PROFILES.hard},
- {id:'crescendo',caption:'FINAL PRESSURE',cap:10,count:22,spawnInterval:.27,hpMul:1.15,pattern:'four-edge',heal:.055,familyWeights:FAMILY_PROFILES.hard},
- {id:'boss',caption:'ARSENAL GUARDIAN',cap:6,count:12,spawnInterval:.42,hpMul:1,pattern:'four-edge',heal:.12,familyWeights:FAMILY_PROFILES.mixed}
+ {id:'farm',caption:'OPEN FARM',cap:3,count:12,spawnInterval:.65,hpMul:.55,pressure:150,pattern:'front',heal:.10,familyWeights:FAMILY_PROFILES.fodder},
+ {id:'teach',caption:'NEW THREAT',cap:3,count:9,spawnInterval:.60,hpMul:.72,pressure:175,pattern:'flank',heal:.07,familyWeights:FAMILY_PROFILES.mixed},
+ {id:'teach',caption:'DEEPER THREAT',cap:4,count:11,spawnInterval:.55,hpMul:.78,pressure:200,pattern:'flank',heal:.07,familyWeights:FAMILY_PROFILES.mixed},
+ {id:'mix',caption:'CROSS-PRESSURE',cap:4,count:14,spawnInterval:.50,hpMul:.84,pressure:230,pattern:'cross',heal:.065,familyWeights:FAMILY_PROFILES.mixed},
+ {id:'mix',caption:'COMBINED FIRE',cap:4,count:16,spawnInterval:.46,hpMul:.88,pressure:250,pattern:'cross',heal:.065,familyWeights:FAMILY_PROFILES.mixed},
+ {id:'spike',caption:'BREAKPOINT',cap:5,count:16,spawnInterval:.40,hpMul:.95,pressure:300,pattern:'pincer',heal:.08,familyWeights:FAMILY_PROFILES.hard},
+ {id:'power',caption:'POWER HARVEST',cap:4,count:20,spawnInterval:.30,hpMul:.42,pressure:210,pattern:'front',heal:.09,familyWeights:FAMILY_PROFILES.fodder},
+ {id:'crescendo',caption:'CRESCENDO',cap:5,count:18,spawnInterval:.38,hpMul:.92,pressure:340,pattern:'four-edge',heal:.07,familyWeights:FAMILY_PROFILES.hard},
+ {id:'crescendo',caption:'FINAL PRESSURE',cap:6,count:20,spawnInterval:.34,hpMul:.98,pressure:380,pattern:'four-edge',heal:.08,familyWeights:FAMILY_PROFILES.hard},
+ {id:'boss',caption:'ARSENAL GUARDIAN',cap:4,count:10,spawnInterval:.55,hpMul:.85,pressure:280,pattern:'four-edge',heal:.14,familyWeights:FAMILY_PROFILES.mixed}
 ]);
 const EDGES=Object.freeze(['top','right','bottom','left']);
 function seeded(seed){let v=(seed>>>0)||0x9e3779b9;return ()=>{v^=v<<13;v^=v>>>17;v^=v<<5;return(v>>>0)/4294967296;};}
@@ -70,9 +71,70 @@ function revealedCount(wave,total){
  if(wave>=30)return total;
  return Math.min(total,5+Math.floor((wave-5)*36/25));
 }
+function scaledPressureDamage(config,id,amount){
+ const spec=config.WEAPONS[id]||{};
+ if(spec.confirmedHitDamage!=null||spec.finalDamage===true)return amount;
+ const scaled=(typeof config.isGun==='function'&&config.isGun(id))||
+  (typeof config.isMelee==='function'&&config.isMelee(id))||id==='GRENADE'||id==='STORMBREAKER';
+ return scaled?amount*(config.ARSENAL_DAMAGE_SCALE||1):amount;
+}
+function pressureCritMultiplier(config,id){
+ if(typeof config.isGun!=='function'||!config.isGun(id))return 1;
+ return 1+(config.CRIT_CHANCE?.[id]||0)*((config.CRIT_DAMAGE_MULTIPLIER||1.5)-1);
+}
+function pressurePelletHits(spec){
+ const pellets=spec.pellets||1;if(pellets<=1)return 1;
+ const hitRadius=30+(spec.bulletRadius||7);let hits=0;
+ for(let i=0;i<pellets;i++){
+  const t=i/(pellets-1);
+  if(Math.abs(275*Math.tan((t-.5)*(spec.cone||0)))<=hitRadius)hits++;
+ }
+ return Math.max(1,hits);
+}
+function pressureCycleSeconds(config,spec,family){
+ const ready=config.RANGED_READY_DELAY_SECONDS||.35;
+ const rearm=family==='PRECISION'||family==='SPECIAL'?1.35:
+  family==='SHOTGUN'||family==='AUTOSHOT'?1.2:.85;
+ if(family==='PRECISION')
+  return ready+(spec.aimTime||.5)+Math.max(0,(spec.shots||1)-1)*(spec.interval||.45)+rearm;
+ if(family==='SHOTGUN'&&!spec.shots)return ready+rearm;
+ const shots=Math.max(1,spec.shots||1),interval=spec.interval||0;let firing=0;
+ for(let shot=1;shot<=shots;shot++){
+  const burstEnd=spec.burstSize&&shot%spec.burstSize===0&&shot<shots;
+  const step=burstEnd?(spec.burstPause||interval):interval;
+  if(shot<shots||!(family==='AUTOSHOT'||family==='SHOTGUN'||shots===1))firing+=step;
+ }
+ return ready+firing+rearm;
+}
+function specialPressureDamage(spec){
+ if(spec.direct)return spec.direct+(spec.burnTicks||0)*(spec.burnDamage||0);
+ if(spec.outgoing)return spec.outgoing+(spec.returning||0);
+ if(spec.ticks)return spec.ticks*(spec.tickDamage||0)+(spec.burnTicks||0)*(spec.burnDamage||0);
+ if(spec.coreDamage)return spec.coreDamage+(spec.shardDamage||0);
+ if(spec.peak)return spec.peak+(spec.maxFragmentHits||0)*(spec.fragmentDamage||0);
+ return spec.damage||spec.maxDamage||80;
+}
+function weaponPressure(record,config){
+ const {id,family,spec}=record;
+ if(family==='SHIELD')return 0;
+ if(family==='SPECIAL')return +(specialPressureDamage(spec)/2.9).toFixed(3);
+ if(id==='GRENADE')
+  return +(scaledPressureDamage(config,id,spec.maxDamage||20)*.65/1.95).toFixed(3);
+ if(family==='MELEE'){
+  const input=typeof config.meleeDamage==='function'?config.meleeDamage(id):(spec.damage||0);
+  return +(scaledPressureDamage(config,id,input)/2.2).toFixed(3);
+ }
+ const shots=Math.max(1,spec.shots||1);
+ const perShot=family==='PRECISION'?scaledPressureDamage(config,id,spec.damage||0):
+  (spec.pellets||1)>1?scaledPressureDamage(config,id,spec.damagePerPellet||0)*pressurePelletHits(spec):
+  scaledPressureDamage(config,id,spec.damagePerShot||spec.damage||0);
+ return +(perShot*shots*pressureCritMultiplier(config,id)/
+  pressureCycleSeconds(config,spec,family)).toFixed(3);
+}
 function planWave(nativeConfig,wave,{seed=41}={}){
  if(!Number.isInteger(wave)||wave<1)throw Error('WAVE_INVALID_INDEX');
  const catalog=indexNative(nativeConfig);
+ const pressureById=new Map(catalog.records.map(r=>[r.id,weaponPressure(r,nativeConfig)]));
  const clusterWave=((wave-1)%10)+1;
  const beat=PLAN_BEATS[clusterWave-1];
  const cluster=Math.floor((wave-1)/10)+1;
@@ -94,9 +156,14 @@ function planWave(nativeConfig,wave,{seed=41}={}){
  }
  const featured=wave===1?catalog.byId.get('PISTOL'):
   newly.length?newly[Math.floor(rand()*newly.length)]:weightedPick();
- let count=beat.id==='boss'?Math.min(18,beat.count+(cluster-1)):
-  Math.min(42,beat.count+(cluster-1)*2);
- if(wave===1)count=6;else if(wave===2)count=8;else if(wave===3)count=10;
+ let count=beat.id==='boss'?Math.min(15,beat.count+Math.floor((cluster-1)/2)):
+  Math.min(34,beat.count+(cluster-1));
+ let concurrentLimit=Math.min(8,beat.cap+Math.floor((cluster-1)/4));
+ let spawnInterval=Math.max(.24,beat.spawnInterval-Math.min(.05,(cluster-1)*.005));
+ let pressureBudget=Math.round(beat.pressure*(1+Math.min(.25,(cluster-1)*.03)));
+ if(wave===1){count=6;concurrentLimit=2;spawnInterval=.70;pressureBudget=110;}
+ else if(wave===2){count=7;concurrentLimit=3;spawnInterval=.62;pressureBudget=150;}
+ else if(wave===3){count=9;concurrentLimit=3;spawnInterval=.58;pressureBudget=170;}
  count=Math.max(count,newly.length+(beat.id==='boss'?1:0));
  const slots=Math.max(0,count-(beat.id==='boss'?1:0));
  const roster=[];
@@ -107,7 +174,7 @@ function planWave(nativeConfig,wave,{seed=41}={}){
   const elitePool=available.filter(r=>(ROLE_WEIGHT[r.family]||0)>=7);
   const pick=newly.length?featured:(elitePool.length?elitePool[Math.floor(rand()*elitePool.length)]:featured);
   roster.push(Object.freeze({weaponId:pick.id,family:pick.family,role:pick.role,
-   edge:'bottom',edgeFraction:.5,boss:true}));
+   pressure:pressureById.get(pick.id)||0,edge:'bottom',edgeFraction:.5,boss:true}));
  }
  for(let i=0;i<slots;i++){
   let pick;
@@ -119,18 +186,19 @@ function planWave(nativeConfig,wave,{seed=41}={}){
    beat.pattern==='pincer'?(i%2?'bottom':'top'):
    EDGES[(i+edgeOffset)%4];
   roster.push(Object.freeze({weaponId:pick.id,family:pick.family,role:pick.role,
-   edge,edgeFraction:.1+.8*rand(),boss:false}));
+   pressure:pressureById.get(pick.id)||0,edge,edgeFraction:.1+.8*rand(),boss:false}));
  }
- const endlessHpScale=1+Math.min(.3,Math.max(0,cluster-3)*.04);
+ const endlessHpScale=1+Math.min(.18,Math.max(0,cluster-3)*.025);
  return Object.freeze({wave,chapter:cluster,cluster,clusterWave,
   beat:beat.id,title:beat.caption,boss:beat.id==='boss',
   newWeapons:Object.freeze(newly.map(x=>x.id)),
   revealedWeapons:revealed,totalWeapons:catalog.allWeaponIds.length,
   composition:Object.freeze(roster),
-  concurrentLimit:Math.min(11,beat.cap+Math.floor((cluster-1)/3)),
-  spawnInterval:Math.max(.18,beat.spawnInterval-Math.min(.06,(cluster-1)*.01)),
+  concurrentLimit,
+  spawnInterval:+spawnInterval.toFixed(4),
+  pressureBudget,
   enemyHpMultiplier:+(beat.hpMul*endlessHpScale).toFixed(4),
-  bossHp:beat.id==='boss'?Math.min(12000,2200+cluster*800):0,
+  bossHp:beat.id==='boss'?Math.min(9000,1700+cluster*550):0,
   betweenWaveHealFraction:beat.heal,
   reloadPolicy:'KEEP_WEAPON_AND_REFILL_MAGAZINE',
   gunDamageScalar:1,gunCadenceScalar:1,gunProjectileSpeedScalar:1,

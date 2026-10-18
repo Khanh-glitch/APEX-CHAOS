@@ -9,6 +9,9 @@ import './testBotWaveCardBuild.mjs';
 // Wave-boundary persistence proof: exit resume, cluster rollback and the
 // flat non-pity health-pack drop must remain wired to the shipped seams.
 import './testBotWavePersistence.mjs';
+// Post-x7 balance proof: campaign pressure must be derived from realized
+// Free Battle damage and enforced as a simultaneous-fire budget.
+import './testBotWaveBalance.mjs';
 const bridge=fs.readFileSync('public/game/bot-wave/nativeArsenalGoldBridge.js','utf8');
 const gold=fs.readFileSync('public/bot-wave/game.html','utf8');
 for(const x of ['native.api.equip(proxy,id)','native.api.updateHolder(proxy,dt)','native.api.updateArsenalProjectiles(dt','native.api.drawArsenalProjectiles(ctx)','native.av.cue']){

@@ -6368,7 +6368,7 @@ function rng(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/42
 function clamp(a,l,h){return Math.min(h,Math.max(l,a))}
 function pick(arr){return arr[Math.floor(rng()*arr.length)]}
 const UI={};let lastUI=0;
-const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,knockMul:1,dashCdMul:1,skillCdMul:1,armor:0,xpMul:1,counterWindowBonus:0,rocketChance:.075,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,spawnInterval:.37,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[],healthPacks:[],healthPackDrops:0,healthPackPickups:0,waveSnapshot:null,clusterSnapshot:null};
+const state={wave:0,phase:'intro',queue:[],spawnT:0,kills:0,xp:0,level:1,levelsPending:0,offer:null,owned:new Set(),stacks:{},damageMul:1,moveMul:1,punchMul:1,guardBonus:0,knockMul:1,dashCdMul:1,skillCdMul:1,armor:0,xpMul:1,counterWindowBonus:0,rocketChance:.075,healOnKill:CAMPAIGN.survival.baseKillHealFraction,waveDamageReceived:0,passiveProgress:0,passiveReady:false,empowered:false,empoweredEnd:0,aliveTime:0,shots:0,hit:0,losses:0,history:[],activeEnemies:0,awaitEndless:false,debug:{},softCap:9,spawnInterval:.37,pressureBudget:260,comboFlow:null,comboSerial:0,rocketPending:false,rocketRolls:0,rocketProcs:0,comboTrace:[],healthPacks:[],healthPackDrops:0,healthPackPickups:0,waveSnapshot:null,clusterSnapshot:null};
 // Every stackable card modifier is derived from state.stacks. Keeping this
 // calculation deterministic is what makes a later snapshot restore exact:
 // restore the stacks, recompute once, and no incrementally accumulated
@@ -6875,8 +6875,8 @@ function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.p
  // Internal testStartWave may skip it because tests are a deterministic fixture.
  state.wave++;state.healthPacks.length=0;captureBoundarySnapshot(state.wave);state.phase='combat';state.comboFlow=null;state.rocketPending=false;state.stickyEngage=null;state.queue=[];state.spawnT=0;const comp=waveComposition(state.wave);
  state.queue=comp.plan.composition.map(e=>({gun:e.weaponId,boss:e.boss,edge:e.edge,
-  edgeFraction:e.edgeFraction,role:e.role}));
- state.softCap=comp.plan.concurrentLimit;state.spawnInterval=comp.plan.spawnInterval||.37;ARENA_STAGE.beginWave(state.wave);engine.paused=false;engine.combatCue('WAVE_START',.8);engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
+  edgeFraction:e.edgeFraction,role:e.role,pressure:e.pressure||0}));
+ state.softCap=comp.plan.concurrentLimit;state.spawnInterval=comp.plan.spawnInterval||.37;state.pressureBudget=comp.plan.pressureBudget||260;ARENA_STAGE.beginWave(state.wave);engine.paused=false;engine.combatCue('WAVE_START',.8);engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
  engine.banner={text:'WAVE '+String(state.wave).padStart(2,'0'),sub:comp.label,t:1.8,max:1.8};
 }
 function makeEnemy(desc){
@@ -6888,11 +6888,11 @@ function makeEnemy(desc){
  let x=0,y=0;if(edge==='top'){x=(lane*2-1)*660;y=-margin}else if(edge==='bottom'){x=(lane*2-1)*660;y=margin}else if(edge==='left'){x=-760;y=(lane*2-1)*510}else{x=760;y=(lane*2-1)*510}
  const boss=!!desc.boss,g=WAVE_GUNS[desc.gun];
  const plan=waveComposition(state.wave).plan;
- const hp=boss?(plan.bossHp||Math.min(12000,2200+(plan.cluster||1)*800)):
-  Math.max(35,Math.round(Math.min(380,115*(1+.036*Math.min(state.wave-1,60))*(desc.role==='snipe'?.88:1))*(plan.enemyHpMultiplier||1)));
+ const hp=boss?(plan.bossHp||Math.min(9000,1700+(plan.cluster||1)*550)):
+  Math.max(32,Math.round(Math.min(320,110*(1+.022*Math.min(state.wave-1,50))*(desc.role==='snipe'?.88:1))*(plan.enemyHpMultiplier||1)));
  const e={id:engine.nextId++,kind:'bot',x,y,vx:0,vy:0,r:boss?68:30,hp,maxHp:hp,
  angle:0,flash:0,wob:0,wobV:0,z:0,vz:0,shootT:1e8,strafeDir:rng()<.5?-1:1,strafeT:1+rng()*2,orbitHitAt:0,slowT:0,dead:false,
- waveGunId:desc.gun,waveAmmo:g.mag,waveFireT:.8+rng(),waveReloadT:0,waveBoss:boss,waveAimT:0,waveStunT:0};
+ waveGunId:desc.gun,waveAmmo:g.mag,waveFireT:.8+rng(),waveReloadT:0,waveBoss:boss,waveAimT:0,waveStunT:0,wavePressure:desc.pressure||0};
  engine.enemies.push(e);ARMORY.activate(e);ARENA_STAGE.entrance(e.x,e.y,boss);
  engine.combatCue(boss?'BOSS_SPAWN':'BOT_SPAWN',boss?1:.5);
  engine.fx.flash(e.x,e.y-15,boss?150:60,boss?'#ff7850':'#d7b387',.25);
@@ -6949,6 +6949,7 @@ function act(k,press){if(state.phase!=='combat'||engine.paused)return;
  if(k==='I'&&state.owned.has('ult'))engine.castSkill('ult');
 }
 function activeGuns(){return engine.enemies.filter(e=>!e.dead&&e.waveGunId).length}
+function activePressure(){return engine.enemies.reduce((sum,e)=>sum+(!e.dead&&e.waveGunId?(e.wavePressure||0):0),0)}
 function updateWave(rawDt){if(state.phase!=='combat')return;
  let dt=Math.min(.05,rawDt);
  state.aliveTime+=dt;
@@ -6958,7 +6959,10 @@ function updateWave(rawDt){if(state.phase!=='combat')return;
  autoAimNow();
  for(const e of engine.enemies){if(e.dead)continue;gunFire(e,dt)}
  state.spawnT-=dt;
- if(state.spawnT<=0&&state.queue.length&&activeGuns()<state.softCap){makeEnemy(state.queue.shift());state.spawnT=state.spawnInterval||.37}
+ const nextSpawn=state.queue[0],activeCount=activeGuns();
+ if(state.spawnT<=0&&nextSpawn&&activeCount<state.softCap&&
+  (!activeCount||activePressure()+(nextSpawn.pressure||0)<=state.pressureBudget)){
+  makeEnemy(state.queue.shift());state.spawnT=state.spawnInterval||.37}
  updateHealthPacks();
  if(!state.queue.length&&!activeGuns()&&!state.levelsPending)completeWave();
  if(engine.player.hp<=0)lose();
