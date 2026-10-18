@@ -2,12 +2,12 @@
    Palette borrows APEX scrap/bronze, scales to portrait and keyboard users. */
 .apex-skin-entry{position:fixed;right:max(2.55vw,18px);top:calc(2.55vh + 52px + 29px + 12px + env(safe-area-inset-top));z-index:3300;display:flex;align-items:center;gap:12px;border:1px solid #bc9a57;background:linear-gradient(110deg,#181f25f5,#2b251bf5);color:#f7e9c7;padding:12px 19px;font:800 13px/1.1 "ApcKanit",system-ui,sans-serif;letter-spacing:.15em;box-shadow:0 12px 32px #0009;cursor:pointer;clip-path:polygon(0 0,95% 0,100% 18%,100% 100%,5% 100%,0 82%);transition:filter .15s,transform .15s}
 .apex-skin-entry:focus-visible,.apex-cosmetics button:focus-visible,.apex-cosmetics input:focus-visible{outline:2px solid #ffd989;outline-offset:3px}
-.apex-skin-entry:hover{filter:brightness(1.2);transform:translateY(-2px)}
+.apex-skin-entry:hover{background:linear-gradient(110deg,#181f25f5,#2b251bf5);color:#f7e9c7;box-shadow:0 12px 32px #0009;filter:brightness(1.2);transform:translateY(-2px)}
 .apex-skin-entry:disabled{opacity:.65;cursor:wait}
 .apex-skin-entry-mark{font-size:19px;color:#dabb78}
 .apex-skin-error{position:fixed;z-index:7000;right:16px;top:70px;background:#2e1b17;color:#ffc7b9;border:1px solid #af584d;padding:12px;max-width:320px;font:12px system-ui,sans-serif}
 .apex-skin-error button{background:none;color:inherit;border:0;float:right;cursor:pointer;font-size:18px}
-body:has(#apex-boot-start) .apex-skin-entry,body:has(#stage.screen-mode) .apex-skin-entry,body:has(#stage.screen-fighter) .apex-skin-entry{display:none}
+body:has(#apex-boot-start) .apex-skin-entry,body:has(#stage.screen-mode) .apex-skin-entry,body:has(#stage.screen-fighter) .apex-skin-entry,body:has(#stage:not(.ready)) .apex-skin-entry,body.apex-scene-transition-active .apex-skin-entry,body:has(#battleHudHost.is-preloading) .apex-skin-entry,body:has(#battleHudHost.is-transitioning) .apex-skin-entry,body:has(#battleHudHost.is-open) .apex-skin-entry{display:none}
 .apex-cosmetic-locker-open #stage{pointer-events:none}
 .apex-cosmetics-overlay{position:fixed;inset:0;z-index:14000;background:rgba(4,8,12,.88);backdrop-filter:blur(9px);display:grid;place-items:center;padding:clamp(12px,3vw,30px);font-family:"ApcKanit","Segoe UI",system-ui,sans-serif;color:#ece6dc}
 .apex-cosmetics{width:min(1180px,100%);max-height:min(92dvh,880px);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #8d7655;background:linear-gradient(155deg,#182028,#0e131a 72%);box-shadow:0 35px 100px #000b, inset 0 1px #fff1}

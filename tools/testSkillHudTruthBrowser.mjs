@@ -122,11 +122,21 @@ async function toBattle(p1Hero, p2Hero) {
   await evl(`(()=>{ [...document.querySelectorAll('.modeCard')].find(c=>/SOLO/.test(c.textContent)).click(); return true; })()`);
   await waitFor(`!!document.querySelector('button.rosterCard') && ${TX_IDLE}`, 'pick ready');
   if (!await pickVerified(p1Hero, 1)) throw new Error('P1 pick failed: ' + p1Hero);
-  await evl(`(()=>{ document.getElementById('lockIn').click(); return true; })()`);
-  await waitFor(`(document.getElementById('stage')?.className||'').includes('fighter-active-p2')`, 'P2 phase', 25000);
+  // lockCurrent() ignores presses until setScreen('fighter') commits (the
+  // prepareSurface decode window). A player cannot tap the hidden button in
+  // that window, but a DOM click can — and is silently swallowed. Press
+  // against the phase readout, the same contract pickVerified uses.
+  const lockUntil = async (expr, label) => {
+    for (let i = 0; i < 40; i++) {
+      if (await evl(`!!(${expr})`)) return true;
+      await evl(`(()=>{ document.getElementById('lockIn')?.click(); return true; })()`);
+      await sleep(600);
+    }
+    throw new Error('lock press never landed: ' + label);
+  };
+  await lockUntil(`(document.getElementById('stage')?.className||'').includes('fighter-active-p2')`, 'P2 phase');
   if (!await pickVerified(p2Hero, 2)) throw new Error('P2 pick failed: ' + p2Hero);
-  await evl(`(()=>{ document.getElementById('lockIn').click(); return true; })()`);
-  await waitFor(`document.getElementById('hud')?.dataset.mode==='1p' && !!window.fighters?.[0]?.__hrCombatant`, 'battle live', 65000);
+  await lockUntil(`document.getElementById('hud')?.dataset.mode==='1p' && !!window.fighters?.[0]?.__hrCombatant`, 'battle live');
   await sleep(2500);
   await evl(INSTALL_PROBE);
 }

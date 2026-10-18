@@ -1542,7 +1542,7 @@ function buildShell(hudProductionHtml) {
       id: 'SHL-S20',
       why: 'locked route styling (dimmed, non-interactive)',
       find: /\.route:not\(:last-child\)::after\{content:/,
-      replace: '.route.is-locked{color:rgba(235,228,218,.34);cursor:not-allowed;filter:saturate(.4)}.route.is-locked svg{opacity:.5}\n.route:not(:last-child)::after{',
+      replace: '.route.is-locked{color:rgba(235,228,218,.34);cursor:not-allowed;filter:saturate(.4)}.route.is-locked svg{opacity:.5}.route.is-locked:hover,.route.is-locked:focus-visible{color:rgba(235,228,218,.34);transform:none}.route.is-locked:hover svg,.route.is-locked:focus-visible svg{color:inherit;transform:none}\n.route:not(:last-child)::after{',
     },
     // ── S20b/c: the legacy global `button:hover` (src/styles.css) paints every
     // button #f3efe3 with a white glow. It out-specifies `.route`'s own
