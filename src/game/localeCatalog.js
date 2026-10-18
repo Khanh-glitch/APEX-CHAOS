@@ -215,6 +215,11 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['NEVER SURRENDER','KHÔNG BAO GIỜ ĐẦU HÀNG'],
   ['SPEED WIN','CHIẾN THẮNG THẦN TỐC'],
   ['CHAOS BRINGER','KẺ GIEO HỖN LOẠN'],
+  // FIELD ARCHIVE / combat-role radar axes (source labels live in
+  // fieldArchiveProfiles.PROFILE_AXES; keep both sides in step)
+  ['DAMAGE','SÁT THƯƠNG'],['CONTROL','KHỐNG CHẾ'],['MOBILITY','CƠ ĐỘNG'],
+  ['DEFENSE','PHÒNG VỆ'],['FIELD','CHI PHỐI'],['TEMPO','NHỊP ĐỘ'],
+  ['REACH','TẦM ẢNH HƯỞNG'],
 ]));
 
 const VISIBLE_MISC=Object.freeze({

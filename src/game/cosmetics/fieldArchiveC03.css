@@ -33,15 +33,15 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
 .fa3-index-list button{display:flex;align-items:center;gap:10px;text-align:left;min-height:0;flex:1;background:linear-gradient(100deg,#d8c7a9,#e9ddc8);border:1px solid #ad9670;color:#2f2a23;padding:clamp(5px,.7vw,9px);transition:transform .17s,background .17s,border .17s}
 .fa3-index-list button:hover{transform:translateX(3px)}
 .fa3-index-list button.chosen{background:#f4dbb4;border-color:#c16628;box-shadow:inset 3px 0 #c16628}
-.fa3-index-img{flex:0 0 clamp(31px,4vw,53px);height:clamp(29px,5.5vh,49px);display:grid;place-items:center;background:#282c2a;border:1px solid #967b53;color:#ddab68;font:900 11px ui-monospace,monospace}
-.fa3-index-img img{width:100%;height:100%;object-fit:contain}
+.fa3-index-img{flex:0 0 clamp(31px,4vw,53px);height:clamp(29px,5.5vh,49px);display:grid;place-items:center;position:relative;overflow:hidden;background:#282c2a;border:1px solid #967b53;color:#ddab68;font:900 11px ui-monospace,monospace}
+.fa3-index-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .fa3-index-name{min-width:0;flex:1;display:grid;gap:4px}
 .fa3-index-name b{font:900 clamp(10px,1vw,14px) Impact,"Arial Narrow",sans-serif;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fa3-index-name small{font:700 clamp(7px,.63vw,9px) ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#816b50}
 .fa3-index-list button i{font-size:15px;flex:none;font-style:normal;color:#9c6532}
 .fa3-no-results{color:#694e33;font:700 11px system-ui,sans-serif}
 .fa3-pager{display:flex;flex:none;justify-content:center;align-items:center;gap:16px;margin-top:8px;height:40px;font:900 11px ui-monospace,monospace;color:#68553b}
-.fa3-pager button{width:39px;height:34px;border:1px solid #866949;background:#242622;color:#f9c38b;font-size:20px}
+.fa3-pager button{width:39px;height:calc(100% - 6px);max-height:34px;min-height:0;border:1px solid #866949;background:#242622;color:#f9c38b;font-size:20px}
 .fa3-pager button:disabled{opacity:.3}
 .fa3-center{display:flex;flex-direction:column;background:radial-gradient(ellipse at 53% 44%,#ebe1cc,#cbb99b 85%),linear-gradient(90deg,#c3af90,#e3d4b8);border-right:4px solid #7a6244}
 .fa3-center:after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,#35261703 0 3px,#f8e7d308 4px 6px);box-shadow:inset 8px 0 28px #5c3c2633,inset -8px 0 22px #624a3638}
@@ -56,13 +56,13 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
 .fa3-art-code{position:absolute;left:3%;top:5%;z-index:4;color:#785d40;font:900 9px ui-monospace,monospace;letter-spacing:.13em}
 .fa3-art-underlay{position:absolute;bottom:9%;left:8%;font:1000 clamp(38px,7vw,108px)/1 Impact,sans-serif;letter-spacing:-.03em;color:#604c3110;white-space:nowrap;pointer-events:none;z-index:-1}
 .fa3-art-label{position:absolute;z-index:4;bottom:1%;left:50%;transform:translateX(-50%);white-space:nowrap;padding:7px 11px;background:#252824;color:#f2d6ae;font:900 9px ui-monospace,monospace;letter-spacing:.07em}
-.fa3-hero-img{z-index:2;position:absolute;inset:4% 0 2%;width:100%;height:94%;object-fit:contain;filter:drop-shadow(6px 20px 11px #31211457);animation:fa3-hover 5.4s ease-in-out infinite}
+.fa3-hero-img{z-index:2;position:absolute;inset:4% 0 auto;width:100%;height:calc(96% - max(13%,50px));object-fit:contain;filter:drop-shadow(6px 20px 11px #31211457);animation:fa3-hover 5.4s ease-in-out infinite}
 .fa3-eco{position:absolute;inset:0;z-index:2;width:100%;height:100%}
 .fa3-weapon-img{z-index:2;width:96%;height:75%;object-fit:contain;filter:drop-shadow(5px 15px 10px #47341e74);animation:fa3-weapon-float 5.6s ease-in-out infinite}
 .fa3-art-missing{z-index:4;max-width:75%;font:900 13px ui-monospace,monospace;text-align:center;color:#6b5139;border:1px dashed #997d5b;padding:20px}
 .fa3-art-missing small{display:block;font:500 11px system-ui,sans-serif;margin-top:8px}
 .fa3-record-navigation{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:12px;flex:none;height:clamp(42px,6vh,62px);background:#b6a4872a;border-top:1px solid #ad9570;color:#76583a;font:900 10px ui-monospace,monospace}
-.fa3-record-navigation button{border:1px solid #826e4f;background:#292a27;color:#eeb276;width:35px;height:30px;font:900 20px/1 Impact,sans-serif}
+.fa3-record-navigation button{border:1px solid #826e4f;background:#292a27;color:#eeb276;width:35px;height:calc(100% - 4px);max-height:30px;min-height:0;font:900 20px/1 Impact,sans-serif}
 .fa3-detail{display:flex;flex-direction:column;padding:clamp(13px,2vw,27px) clamp(13px,2vw,29px) 14px;background:radial-gradient(ellipse at 80% 14%,#f2e8d6aa,transparent 69%),linear-gradient(110deg,#d6c6a9,#ece0c9 66%,#bda688)}
 .fa3-detail:after{content:"";position:absolute;bottom:20px;right:1px;width:42px;height:52px;pointer-events:none;clip-path:polygon(0 0,100% 14%,100% 100%,12% 86%);background:linear-gradient(135deg,transparent,#98755145);opacity:.65}
 .fa3-detail-tabs{flex:none;display:flex;gap:5px;border-bottom:2px solid #866d4e;padding-bottom:8px}
@@ -79,7 +79,7 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
 .fa3-skin.equipped .fa3-skin-name b:after{content:" ✓";color:#ae602d}
 .fa3-skin:hover{transform:translateX(2px)}
 .fa3-skin-thumb{flex:0 0 clamp(36px,4.5vw,62px);height:clamp(36px,6vh,59px);background:#292a27;display:grid;place-items:center;overflow:hidden}
-.fa3-skin-thumb img{width:100%;height:100%;object-fit:contain}
+.fa3-skin-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .fa3-eco-symbol{font:1000 28px Impact,sans-serif;color:#71b797;transform:rotate(-8deg);text-shadow:0 0 9px #61c4ab}
 .fa3-skin-name{display:grid;gap:4px;min-width:0;flex:1}
 .fa3-skin-name b{font:900 clamp(11px,1vw,15px) Impact,sans-serif;letter-spacing:.07em}
@@ -223,7 +223,7 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
 
 
 .fa3-skin-pager{display:flex;align-items:center;justify-content:center;gap:12px;flex:none;height:28px;color:#83552e;font:900 10px ui-monospace,monospace}
-.fa3-skin-pager button{height:24px;min-width:32px;border:1px solid #936b44;background:#262924;color:#f0be89;font:900 18px Impact,sans-serif}
+.fa3-skin-pager button{height:24px;min-height:0;min-width:32px;border:1px solid #936b44;background:#262924;color:#f0be89;font:900 18px Impact,sans-serif}
 .fa3-skin-pager button:disabled{opacity:.28}
 @media(max-width:900px){.fa3-skin-pager{height:23px}.fa3-skin-pager button{height:21px;min-width:30px}}
 @media(max-width:900px) and (orientation:landscape){.fa3-skin-pager{height:18px}.fa3-skin-pager button{height:17px;font-size:14px}}

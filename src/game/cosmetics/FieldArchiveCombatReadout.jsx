@@ -14,7 +14,7 @@ function Radar({profile}){
    {points().map((p,i)=><circle key={axes[i].key} cx={p[0]} cy={p[1]} r="3.5" fill="#ffcb81"/>)}
    {axes.map((a,i)=>{const t=-Math.PI/2+i*Math.PI*2/5;return <text key={a.key} x={120+Math.cos(t)*112} y={113+Math.sin(t)*110+4} textAnchor="middle" fill="#e5c69a" fontSize="9" fontWeight="bold">{a.label}</text>})}
   </svg>
-  <small>{profile.status==='unclassified'?'UNCLASSIFIED MECHANICS':'TACTICAL AFFINITY · '+profile.method} · NOT POWER / DPS</small>
+  <small>{profile.status==='unclassified'?'UNCLASSIFIED MECHANICS':'TACTICAL AFFINITY'} · NOT POWER / DPS</small>
  </div>;
 }
 function Profile({profile}){return <div className="fa4-profile">

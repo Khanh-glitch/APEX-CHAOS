@@ -10,7 +10,7 @@
 .fa4-skills,.fa4-telemetry{flex:0 0 auto;max-height:39%;min-height:0;overflow:hidden;border-top:1px solid #836039;background:#182322}
 .fa4-skill-select{display:flex;gap:5px;padding:5px}.fa4-skill-select button{flex:1;min-height:24px;background:#1f2e2b;border:1px solid #70573d;color:#efc288}
 .fa4-skill-select button[aria-pressed=true]{background:#b97838;color:#171b19}
-.fa4-skill-info{display:flex;flex-direction:column;gap:3px;padding:4px 9px 9px}.fa4-skill-info b{font-size:11px}.fa4-skill-info small{font-size:9px;color:#c4a37b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fa4-skill-info{display:flex;flex-direction:column;gap:3px;padding:4px 9px 9px}.fa4-skill-info b{font-size:11px}.fa4-skill-info small{font-size:9px;color:#c4a37b;line-height:1.5}
 .fa4-telemetry-heading{display:flex;justify-content:space-between;padding:8px 10px;font-size:10px;color:#f3bd7f}.fa4-telemetry-heading small{font-size:8px}
 .fa4-telemetry-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 15px;padding:2px 12px 8px;overflow:hidden;max-height:none;min-height:0}
 .fa4-spec{display:flex;justify-content:space-between;gap:4px;border-bottom:1px solid #65513b;padding:4px 1px;font:800 9px monospace}.fa4-spec span{color:#b9a184}.fa4-spec b{color:#ffd49c;white-space:nowrap}.fa4-spec small{font-size:8px;color:#a89c85}

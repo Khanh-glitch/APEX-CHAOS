@@ -201,8 +201,18 @@ export default function FieldArchiveC03(){
  const listPageSize=windowSize.w<540?3:windowSize.h<710?4:6;
  const pageMax=Math.max(0,Math.ceil(filtered.length/listPageSize)-1);
  const safePage=Math.min(page,pageMax),pageItems=filtered.slice(safePage*listPageSize,(safePage+1)*listPageSize);
- const resetFocus=useCallback((id)=>{const selected=cosmetics.selected(side,kind,id).id;setFocus(id);setPage(0);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(kind,id).findIndex(v=>v.id===selected)/2)));setPreview(selected);setWarning(false)},[kind,side]);
+ const resetFocus=useCallback((id)=>{const selected=cosmetics.selected(side,kind,id).id;setFocus(id);const fi=filtered.findIndex(x=>x.id===id);setPage(fi>=0?Math.floor(fi/listPageSize):0);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(kind,id).findIndex(v=>v.id===selected)/2)));setPreview(selected);setWarning(false)},[kind,side,filtered,listPageSize]);
  const shift=(delta)=>{if(!items.length)return;const item=items[(idx+delta+items.length)%items.length];resetFocus(item.id)};
+ // The register page follows the focused record (pick launch, async catalog
+ // load, search edits) so the chosen row is never off-page. Manual paging
+ // stays free: `page` itself is deliberately not a dependency.
+ useEffect(()=>{
+  if(!open||!current)return;
+  const fi=filtered.findIndex(x=>x.id===current.id);
+  if(fi<0)return;
+  const target=Math.floor(fi/listPageSize);
+  setPage(p=>Math.min(p,pageMax)===target?p:target);
+ },[open,current,filtered,listPageSize,pageMax]);
  function changeKind(next){setKind(next);setPage(0);setQuery('');setView('SKINS');const id=next==='hero'?'ROBOT':weapons[0]?.id||'';setFocus(id);if(id){const selected=cosmetics.selected(side,next,id).id;setPreview(selected);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(next,id).findIndex(v=>v.id===selected)/2)))}}
  function changeSide(next){setSide(next);if(current){const selected=cosmetics.selected(next,kind,current.id).id;setPreview(selected);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(kind,current.id).findIndex(v=>v.id===selected)/2)))}}
  function equip(){if(!current||!chosen||activePreview===worn?.id)return;const result=cosmetics.equip(side,kind,current.id,chosen.id);if(result.ok)setWarning(result.persisted===false)}

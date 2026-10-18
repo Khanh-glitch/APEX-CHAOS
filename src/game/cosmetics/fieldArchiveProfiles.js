@@ -2,19 +2,21 @@
 // This is a descriptive COMBAT ROLE profile, not DPS, balance authority or a skin buff.
 // Newly registered abilities/weapons flow through these rules without UI edits.
 // Unknown mechanics can provide archiveProfile.traits in the canonical definition.
+// Axis labels are authored in the source language (Gold English) like every
+// other UI string; localizationRuntime translates them through localeCatalog.
 export const PROFILE_AXES=Object.freeze({
  hero:Object.freeze([
-  {key:'damage',label:'SÁT THƯƠNG'},
-  {key:'control',label:'KHỐNG CHẾ'},
-  {key:'mobility',label:'CƠ ĐỘNG'},
-  {key:'defense',label:'PHÒNG VỆ'},
-  {key:'field',label:'CHI PHỐI'}]),
+  {key:'damage',label:'DAMAGE'},
+  {key:'control',label:'CONTROL'},
+  {key:'mobility',label:'MOBILITY'},
+  {key:'defense',label:'DEFENSE'},
+  {key:'field',label:'FIELD'}]),
  weapon:Object.freeze([
-  {key:'damage',label:'SÁT THƯƠNG'},
-  {key:'control',label:'KHỐNG CHẾ'},
-  {key:'tempo',label:'NHỊP ĐỘ'},
-  {key:'reach',label:'TẦM ẢNH HƯỞNG'},
-  {key:'defense',label:'PHÒNG VỆ'}])
+  {key:'damage',label:'DAMAGE'},
+  {key:'control',label:'CONTROL'},
+  {key:'tempo',label:'TEMPO'},
+  {key:'reach',label:'REACH'},
+  {key:'defense',label:'DEFENSE'}])
 });
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 const clamp=(v,min=0,max=100)=>Math.max(min,Math.min(max,v));
@@ -119,7 +121,9 @@ export function skillRecords(hero){
  return ['PASSIVE','A1','A2'].map(slot=>{
   const s=hero.skills[slot];
   if(!s)return null;
-  const pairs=entries(s.baseConfig).filter(e=>finite(e.value));
+  // Cooldown is reported through the dedicated `cooldown` field; keeping it
+  // in the flat metric list printed "COOLDOWN Xs · COOLDOWN X · ...".
+  const pairs=entries(s.baseConfig).filter(e=>finite(e.value)&&!/(^|\.)cooldown(Seconds)?$/i.test(e.path));
   const cd=num(s.baseConfig,['cooldown','cooldownSeconds']);
   return {slot,name:s.displayName||title(s.mechanicId||s.id||slot).replace(/^[A-Z0-9 ]+? /,''),
    mechanicId:s.mechanicId||s.id||slot,
