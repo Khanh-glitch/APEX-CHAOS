@@ -242,8 +242,14 @@ try{
      // Exercise the actual Gold control: only an open drawer is relevant to visible-text clipping.
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#infoD')?.click()})()");
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;return d.querySelector('#stage')?.dataset.drawer==='1'})()",10000),'Lucky Draw real pool drawer opened');
-     await sleep(550);
-     const pool=await auditAllVisibleText('desktop-lucky-drawer-open-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+     // The drawer slides in; audit only once its pool text has actually
+     // entered the viewport instead of guessing a fixed animation delay.
+     let pool=null;
+     for(let attempt=0;attempt<40;attempt++){
+       pool=await auditAllVisibleText('desktop-lucky-drawer-open-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+       if(pool.inspected>15)break;
+       await sleep(250);
+     }
      checked(pool.inspected>15&&pool.clippedCount===0,'Open Lucky Draw pool text is fully visible',pool.clipped.slice(0,12));
      await capture('desktop-lucky-drawer-open-vie');
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#drawerX')?.click()})()");
