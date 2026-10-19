@@ -6,7 +6,7 @@
 'use strict';
 const doc=window.document;
 if(window.APEX_BOT_WAVE_INTERFACE_V2)return;
-const VERSION='owner-release-r14-solar-forge';
+const VERSION='owner-release-r15-paneless-forge';
 // Existing BOXE baseline was x1.5; owner requests another +30% -> x1.95.
  // Arsenal's compressor/voice-density mix follows this shared mode policy.
  const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.14,gunFloor:.12});
@@ -74,6 +74,59 @@ function installActionGlyphs(actions){
   button.prepend(holder);
  }
 }
+/* R15 Relic Draft metadata. The pilot still owns card effects and legality;
+ * presentation only gives each offer an emblem, class, headline value and
+ * current stack trail. No upgrade copy is invented here. */
+const UNLOCK_CARD_IDS=Object.freeze(['jab','rocket','uppercut','counter','phantom','ult']);
+const CARD_CODES=Object.freeze({
+ jab:'JB',rocket:'RK',uppercut:'UP',counter:'CT',phantom:'PH',ult:'UL',
+ vitality:'HP',fist:'PW',tempo:'TM',agility:'AG',guard:'GD',heal:'HE',knock:'KN',
+ dash:'DS',sustain:'SU',armor:'AR',insight:'XP',overclock:'OC',counterFocus:'CF',rocketPrimer:'RP'
+});
+const cardSigilSvg=body=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+body+'</svg>';
+const CARD_SIGILS=Object.freeze({
+ jab:ACTION_GLYPHS.J,
+ rocket:cardSigilSvg('<path d="M5 19 19 5"/><path d="M11 5h8v8"/><path d="M5 13v6h6"/>'),
+ uppercut:cardSigilSvg('<path d="M12 20V5"/><path d="m6 10 6-6 6 6"/><path d="M5 21h14"/>'),
+ counter:ACTION_GLYPHS.K,
+ phantom:ACTION_GLYPHS.U,
+ ult:ACTION_GLYPHS.I,
+ vitality:cardSigilSvg('<path d="M12 20s-7-4.5-9-9c-1.2-2.8.7-6 3.7-6C9 5 10.8 6.2 12 8c1.2-1.8 3-3 5.3-3 3 0 4.9 3.2 3.7 6-2 4.5-9 9-9 9Z"/>'),
+ fist:ACTION_GLYPHS.J,
+ tempo:ACTION_GLYPHS.L,
+ agility:cardSigilSvg('<path d="M4 6l7 6-7 6"/><path d="M12 6l7 6-7 6" opacity=".6"/>'),
+ guard:ACTION_GLYPHS.K,
+ heal:cardSigilSvg('<path d="M12 4v16M4 12h16"/>'),
+ knock:cardSigilSvg('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" opacity=".65"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
+ dash:ACTION_GLYPHS.L,
+ sustain:cardSigilSvg('<path d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7Z"/><path d="M18.5 16l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z"/>'),
+ armor:cardSigilSvg('<path d="M12 3l7 3v6c0 4-2.8 7-7 9-4.2-2-7-5-7-9V6Z"/><path d="M12 7v10M8.5 9.5h7"/>'),
+ insight:cardSigilSvg('<circle cx="12" cy="12" r="3"/><path d="M2.5 12C5 6.8 8.3 4.5 12 4.5S19 6.8 21.5 12C19 17.2 15.7 19.5 12 19.5S5 17.2 2.5 12Z"/>'),
+ overclock:cardSigilSvg('<circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>'),
+ counterFocus:cardSigilSvg('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5" opacity=".65"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>'),
+ rocketPrimer:cardSigilSvg('<path d="M5 19 19 5"/><path d="M11 5h8v8"/><path d="M7 7l1 2.4L10.4 10 8 11 7 13.4 6 11 3.6 10 6 9.4Z"/>')
+});
+const CARD_VALUES=Object.freeze({
+ jab:'J · LIÊN HOÀN',rocket:'7.5% · MỖI ĐÒN TRÚNG',uppercut:'J · KẾT LIỄU',
+ counter:'GIỮ K · PHẢN ĐÒN',phantom:'U · PHANTOM STEP',ult:'I · CHIÊU CUỐI',heal:'+20% HP MAX'
+});
+function cardKind(card){
+ if(UNLOCK_CARD_IDS.includes(card?.id))return'unlock';
+ if(card?.id==='heal')return'instant';
+ return'stack';
+}
+function cardKindLabel(card){
+ const kind=cardKind(card);
+ return kind==='unlock'?'MỞ KỸ NĂNG':kind==='instant'?'HỒI PHỤC NGAY':'THẺ CỘNG DỒN';
+}
+function cardValue(card){
+ if(CARD_VALUES[card?.id])return CARD_VALUES[card.id];
+ const text=String(card?.desc||card?.label||'');
+ const match=text.match(/[+-]\s*\d+(?:[,.]\d+)?\s*(?:điểm\s*)?(?:%|s)(?=$|[\s,.);])/i);
+ if(match)return match[0].replace(/\s+/g,' ').toUpperCase();
+ const ratio=text.match(/\d+(?:[,.]\d+)?\s*%/);
+ return ratio?ratio[0].replace(/\s+/g,' '):'BUILD';
+}
 // R13: every cluster beat must survive as one glanceable phrase in the top
 // spine. These names are presentation law only; campaign numbers and spawn
 // order remain owned by waveCampaign/pilot telemetry.
@@ -139,10 +192,10 @@ function worldToScreen(x,y){
  return{x:screenFrame.left+width/2+(x-(lab?.cam?.x??player.x))*zoom,
   y:screenFrame.top+height/2+(y-(lab?.cam?.y??player.y))*zoom};
 }
-/* R14 Solar Forge fire. The old CSS teardrops are gone. This renderer treats
- * Nhiệt Huyết as a real furnace: a domain-warped FBM flame body in WebGL,
- * then independent embers and smoke particles on a second canvas. If WebGL
- * is unavailable, the particle canvas becomes a pooled flame simulation. */
+/* R15 in-bar forge fire. The R14 renderer was physically right but visually
+ * too large: this keeps the domain-warped FBM flame body and particle pool,
+ * then confines both to short tongues rooted inside the Nhiệt Huyết trough.
+ * No coals, sparks or flame body are authored at zero fury. */
 function createForgeFire(glCanvas,particleCanvas,reducedMotion){
  const state={mode:'particle-fallback',intensity:0,clock:Math.random()*20,last:0,
   particles:[],flameSpawn:0,emberSpawn:0,smokeSpawn:0,seed:Math.random()*80};
@@ -177,25 +230,25 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
                   fbm(p*4.2+2.1*warpA+vec2(8.3,2.8-rise*1.18)));
   float turbulence=fbm(p*vec2(4.6,3.3)+2.5*warpB+vec2(0.0,-rise*1.72));
   float columns=fbm(vec2(p.x*2.4,u_seed-rise*0.34));
-  float tongueHeight=(0.16+u_intensity*0.86)*(0.34+0.88*turbulence+0.34*columns+0.18*(warpB.y-0.5));
-  tongueHeight=clamp(tongueHeight,0.025,1.05);
+  float tongueHeight=(0.05+u_intensity*0.54)*(0.34+0.88*turbulence+0.34*columns+0.18*(warpB.y-0.5));
+  tongueHeight=clamp(tongueHeight,0.012,0.68);
   float front=fall(u_fill-0.035,u_fill+0.075,uv.x)*smoothstep(-0.01,0.045,uv.x);
-  float body=fall(tongueHeight-0.25,tongueHeight+0.035,uv.y);
+  float body=fall(tongueHeight-0.16,tongueHeight+0.045,uv.y);
   float vertical=clamp(1.0-uv.y/max(tongueHeight,0.04),0.0,1.0);
   float broken=smoothstep(0.16,0.58,turbulence+vertical*0.24);
   float density=body*front*broken*clamp(u_intensity*1.2,0.0,1.0);
-  float root=fall(0.0,0.20,uv.y)*front;
+  float root=fall(0.0,0.28,uv.y)*front;
   float heat=clamp(density*(0.20+vertical*1.02)+(turbulence-0.48)*0.40*body+root*0.26,0.0,1.12);
   vec3 color=fireRamp(heat);
   color=mix(color*vec3(1.08,0.58,0.50),color,clamp(u_hp,0.0,1.0));
-  float alpha=clamp(density*(0.28+heat*0.88)+root*u_intensity*0.22,0.0,0.94);
+  float alpha=clamp(density*(0.26+heat*0.78)+root*u_intensity*0.18,0.0,0.84);
   float coalNoise=fbm(p*19.0+u_seed+vec2(0.0,-u_time*0.16));
-  float coals=fall(0.015,0.13,uv.y)*smoothstep(0.42,0.88,coalNoise)*front*(0.10+u_intensity*0.72);
-  color+=vec3(1.0,0.20,0.015)*coals*1.9;alpha=max(alpha,coals*0.82);
+  float coals=fall(0.015,0.13,uv.y)*smoothstep(0.42,0.88,coalNoise)*front*(u_intensity*0.62);
+  color+=vec3(1.0,0.20,0.015)*coals*1.35;alpha=max(alpha,coals*0.68);
   vec2 sparkCell=floor(vec2(p.x*74.0,p.y*40.0-u_time*14.0));
-  float sparks=step(0.989,hash(sparkCell))*body*front*u_intensity;
-  color+=vec3(1.0,0.72,0.24)*sparks*2.1;alpha=max(alpha,sparks);
-  gl_FragColor=vec4(color*alpha*1.48,alpha);
+  float sparks=step(0.994,hash(sparkCell))*body*front*u_intensity;
+  color+=vec3(1.0,0.72,0.24)*sparks*1.45;alpha=max(alpha,sparks*0.72);
+  gl_FragColor=vec4(color*alpha*1.20,alpha);
  }`;
  const compile=(type,source)=>{
   const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
@@ -245,26 +298,26 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
   return{width,height,scale,pixelsW,pixelsH};
  };
  const spawn=(kind,width,height,fill,intensity)=>{
-  if(state.particles.length>=150)return;
+  if(state.particles.length>=72)return;
   const front=Math.max(.05,fill);
   const x=(.015+Math.random()*front*.97)*width,y=height-1-Math.random()*4;
   const base={kind,x,y,px:x,py:y,age:0,seed:Math.random()*Math.PI*2,sprite:0};
-  if(kind==='flame')Object.assign(base,{vx:(Math.random()-.5)*7,vy:-(17+Math.random()*28)*(.65+intensity*.6),
-   life:.48+Math.random()*.72,size:(13+Math.random()*19)*(.62+intensity*.55),sprite:Math.floor(Math.random()*3)});
-  else if(kind==='ember')Object.assign(base,{vx:(Math.random()-.5)*16,vy:-(34+Math.random()*64)*(.6+intensity*.65),
-   life:.75+Math.random()*1.25,size:.8+Math.random()*1.6});
-  else Object.assign(base,{x:x+(Math.random()-.5)*14,y:height-8-Math.random()*10,vx:(Math.random()-.5)*5,
-   vy:-(7+Math.random()*11),life:1.5+Math.random()*1.7,size:13+Math.random()*20});
+  if(kind==='flame')Object.assign(base,{vx:(Math.random()-.5)*4,vy:-(8+Math.random()*13)*(.55+intensity*.45),
+   life:.36+Math.random()*.42,size:(8+Math.random()*10)*(.55+intensity*.38),sprite:Math.floor(Math.random()*3)});
+  else if(kind==='ember')Object.assign(base,{vx:(Math.random()-.5)*8,vy:-(16+Math.random()*28)*(.55+intensity*.5),
+   life:.42+Math.random()*.58,size:.55+Math.random()*.9});
+  else Object.assign(base,{x:x+(Math.random()-.5)*8,y:height-5-Math.random()*5,vx:(Math.random()-.5)*2.5,
+   vy:-(4+Math.random()*6),life:.8+Math.random()*.8,size:7+Math.random()*8});
   state.particles.push(base);
  };
  const drawParticles=(size,dt,fill,intensity)=>{
   if(!pctx||!size)return;
   pctx.setTransform(size.scale,0,0,size.scale,0,0);pctx.clearRect(0,0,size.width,size.height);
-  if(!reducedMotion&&intensity>.015){
-   if(!gl){state.flameSpawn+=dt*92*intensity;while(state.flameSpawn>=1){state.flameSpawn--;spawn('flame',size.width,size.height,fill,intensity);}}
-   state.emberSpawn+=dt*(gl?24:34)*intensity;
+  if(!reducedMotion&&intensity>.08){
+   if(!gl){state.flameSpawn+=dt*42*intensity;while(state.flameSpawn>=1){state.flameSpawn--;spawn('flame',size.width,size.height,fill,intensity);}}
+   state.emberSpawn+=dt*(gl?7:12)*intensity;
    while(state.emberSpawn>=1){state.emberSpawn--;spawn('ember',size.width,size.height,fill,intensity);}
-   state.smokeSpawn+=dt*6.5*intensity;
+   state.smokeSpawn+=dt*1.1*intensity;
    while(state.smokeSpawn>=1){state.smokeSpawn--;spawn('smoke',size.width,size.height,fill,intensity);}
   }
   for(const particle of state.particles){
@@ -274,12 +327,12 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
    particle.y+=particle.vy*dt*(particle.kind==='flame'?1+particle.age*.22:1);
    if(particle.kind==='ember')particle.vy-=9*dt;
   }
-  state.particles=state.particles.filter(particle=>particle.age<particle.life&&particle.y>-34);
+  state.particles=state.particles.filter(particle=>particle.age<particle.life&&particle.y>-14);
   if(smokeSprite){
    pctx.globalCompositeOperation='source-over';
    for(const particle of state.particles.filter(item=>item.kind==='smoke')){
     const t=particle.age/particle.life,size=particle.size*(.55+t*1.15);
-    pctx.globalAlpha=.13*Math.sin(Math.PI*Math.min(1,t));
+    pctx.globalAlpha=.055*Math.sin(Math.PI*Math.min(1,t));
     pctx.drawImage(smokeSprite,particle.x-size/2,particle.y-size/2,size,size);
    }
   }
@@ -288,10 +341,10 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
    const t=particle.age/particle.life,lifeCurve=Math.sin(Math.PI*Math.min(1,t));
    if(particle.kind==='flame'&&flameSprites.length){
     const sprite=flameSprites[particle.sprite%flameSprites.length],size=particle.size*(.45+lifeCurve*.78);
-    pctx.globalAlpha=.22+.62*lifeCurve;
+    pctx.globalAlpha=.14+.42*lifeCurve;
     pctx.drawImage(sprite,particle.x-size/2,particle.y-size*.68,size,size*1.24);
    }else if(particle.kind==='ember'){
-    pctx.globalAlpha=.28+.72*(1-t);pctx.strokeStyle='#ffb03a';pctx.lineWidth=particle.size;pctx.lineCap='round';
+    pctx.globalAlpha=.18+.52*(1-t);pctx.strokeStyle='#ffb03a';pctx.lineWidth=particle.size;pctx.lineCap='round';
     pctx.beginPath();pctx.moveTo(particle.px,particle.py);pctx.lineTo(particle.x,particle.y);pctx.stroke();
     pctx.fillStyle='#fff0ad';pctx.beginPath();pctx.arc(particle.x,particle.y,particle.size*.62,0,Math.PI*2);pctx.fill();
    }
@@ -314,10 +367,12 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
    if(!glSize&&!particleSize)return;
    const stamp=(window.performance?.now?.()||Date.now())/1000;
    const dt=state.last?Math.min(.05,Math.max(.001,stamp-state.last)):.033;state.last=stamp;
-   const fill=clamp(fury);let target=fill<=.015?0:.14+.86*Math.pow(fill,.70);
-   if(fill>=.999)target=1.14;
-   if(reducedMotion)target=Math.min(.52,target);
-   state.intensity+=(target-state.intensity)*Math.min(1,dt*5.2);
+   const fill=clamp(fury),heat=fill<=.08?0:clamp((fill-.08)/.92);
+   let target=heat<=0?0:.12+.68*Math.pow(heat,.72);
+   if(fill>=.999)target=.92;
+   if(reducedMotion)target=Math.min(.38,target);
+   state.intensity+=(target-state.intensity)*Math.min(1,dt*3.4);
+   if(heat<=0&&state.intensity<.012)state.intensity=0;
    if(!reducedMotion)state.clock+=dt*(.72+state.intensity*.55);
    drawGL(glSize,Math.max(.035,fill),clamp(hp));
    drawParticles(particleSize,reducedMotion?0:dt,Math.max(.035,fill),state.intensity);
@@ -336,10 +391,11 @@ function install(){
    hud?.querySelector('#resume-wave'),doc.getElementById('w-go')];
  if(essential.some(x=>!x))return false;
  const [, , left,right,actions,stick,status,pause]=essential;
- // R13 breaks the old three-panel composition instead of decorating it:
- // a fused vitality reactor at top-left, one horizontal wave spine across
- // the top edge, and a true arena minimap at top-right. Native Gold nodes
- // are moved—not cloned—so IDs, handlers and refresh seams remain intact.
+ // R15 keeps the R13 information architecture but changes its physical
+ // language again: the vitality reactor carries fire inside its fury trough,
+ // the top-center wave state is suspended type over the arena with no panel,
+ // and the true arena minimap remains at top-right. Native Gold nodes are
+ // moved—not cloned—so IDs, handlers and refresh seams remain intact.
  const deck=node('div','bw-command-deck');
  deck.id='bw-interface-v2';
  deck.dataset.gold='intact';
@@ -373,13 +429,17 @@ function install(){
  pause.title='Tạm dừng';
  hero.append(levelCore,heroLabel,left,pause);
  decor(hero,'bw-forge-shell','');
- decor(hero,'bw-forge-backlight','');
+ // The flame canvases are children of the fused meter trough itself, not a
+ // decorative overlay guessed against hero coordinates. Their roots and the
+ // shader's fury front therefore stay locked to the Nhiệt Huyết bar.
+ decor(vitalStack,'bw-forge-backlight','');
  const forgeFireCanvas=node('canvas','bw-fire-canvas');
  forgeFireCanvas.id='bw-fire-canvas';forgeFireCanvas.setAttribute('aria-hidden','true');
  const forgeParticleCanvas=node('canvas','bw-ember-canvas');
  forgeParticleCanvas.id='bw-ember-canvas';forgeParticleCanvas.setAttribute('aria-hidden','true');
- hero.append(forgeFireCanvas,forgeParticleCanvas);
- const center=node('section','bw-encounter bw-wave-spine');
+ vitalStack.append(forgeFireCanvas,forgeParticleCanvas);
+ const center=node('section','bw-encounter bw-wave-spine bw-paneless-crest');
+ center.dataset.presentation='paneless-crest';
  center.setAttribute('aria-label','Tình hình trận BOT WAVE');
  const waveCore=node('div','bw-wave-core');
  const chapter=node('small','bw-chapter');
@@ -439,9 +499,9 @@ function install(){
  spatial.id='bw-spatial-layer';
  spatial.setAttribute('aria-hidden','true');
  const peripheral=node('div','bw-peripheral');
- const damageWedge=node('div','bw-damage-wedge');
- const healHalo=node('div','bw-heal-halo');
- spatial.append(peripheral,damageWedge,healHalo);
+ // R15 owner correction: presentation must never draw its own circle around
+ // BOXE. Gold's native combat VFX remains the only player-centered effect.
+ spatial.append(peripheral);
  const spatialMarkers=[];
  for(let i=0;i<9;i++){
   const marker=node('div','bw-spatial-marker');
@@ -508,6 +568,37 @@ function install(){
  }
  decor(modal,'bw-dialog-ornaments','<i class="is-tl"></i><i class="is-tr"></i><i class="is-bl"></i><i class="is-br"></i>');
  decor(modal,'bw-dialog-seal','APEX // LAST ROUND // 07');
+ modal.dataset.presentation='relic-draft';
+ const cardsRoot=doc.getElementById('w-cards');
+ const decorateUpgradeCards=()=>{
+  const state=window.BOXE_WAVE_PILOT?.state||{},offer=Array.isArray(state.offer)?state.offer:[];
+  if(!cardsRoot||!offer.length)return;
+  for(const [index,button] of [...cardsRoot.querySelectorAll('.w-card')].entries()){
+   const card=offer[index];if(!card)continue;
+   const kind=cardKind(card),tier=String(card.tier||'COMMON').toUpperCase();
+   const valueText=cardValue(card),stacks=Math.max(0,Number(state.stacks?.[card.id])||0),max=Math.max(0,Number(card.max)||0);
+   const footerText=kind==='unlock'?'ẤN KỸ NĂNG CHƯA MỞ':kind==='instant'?'KÍCH HOẠT NGAY KHI CHỌN':
+    'STACK '+stacks+' → '+(stacks+1)+(max?' / '+max:'');
+   button.classList.add('bw-relic-card');
+   button.dataset.cardId=card.id;button.dataset.tier=tier;button.dataset.kind=kind;
+   button.dataset.choice=String(index+1).padStart(2,'0');button.dataset.code=CARD_CODES[card.id]||'APX';
+   button.style.setProperty('--bw-card-stack',String(kind==='stack'?(max?clamp(stacks/max):Math.min(1,.14+stacks*.08)):kind==='unlock'?.08:1));
+   let sigil=button.querySelector('.bw-card-sigil');
+   if(!sigil){sigil=node('span','bw-card-sigil');sigil.setAttribute('aria-hidden','true');button.insertBefore(sigil,button.querySelector('strong'));}
+   if(sigil.dataset.cardId!==card.id){sigil.innerHTML=CARD_SIGILS[card.id]||'';sigil.dataset.cardId=card.id;}
+   let value=button.querySelector('.bw-card-value');
+   if(!value){value=node('b','bw-card-value');button.querySelector('strong')?.after(value);}
+   setText(value,valueText);
+   let footer=button.querySelector('.bw-card-footer');
+   if(!footer){footer=node('span','bw-card-footer');button.append(footer);}
+   setText(footer,footerText);
+   setText(button.querySelector('small'),tier+' · '+cardKindLabel(card));
+   button.setAttribute('aria-label',[card.label,valueText,card.desc,footerText].filter(Boolean).join('. '));
+  }
+ };
+ const cardObserver=typeof window.MutationObserver==='function'?new window.MutationObserver(decorateUpgradeCards):null;
+ if(cardObserver&&cardsRoot)cardObserver.observe(cardsRoot,{childList:true});
+ decorateUpgradeCards();
  const oldTrack=stage?.querySelector('#arena-round-track');
  if(oldTrack){oldTrack.setAttribute('aria-hidden','true');oldTrack.hidden=true;}
  const bossPanel=stage?.querySelector('#r2-boss-panel');
@@ -583,6 +674,8 @@ function install(){
   if(!stacks.length){pauseBuild.innerHTML='<em>CHƯA CÓ THẺ</em>';return;}
   pauseBuild.replaceChildren(...stacks.sort((a,b)=>(Number(b[1])||0)-(Number(a[1])||0)||a[0].localeCompare(b[0])).map(([id,count])=>{
    const chip=node('span','bw-pause-chip',String(id).replaceAll('_',' ').toUpperCase()+(Number(count)>1?' ×'+count:''));
+   chip.dataset.cardId=id;chip.dataset.code=CARD_CODES[id]||'APX';
+   chip.dataset.kind=UNLOCK_CARD_IDS.includes(id)?'unlock':id==='heal'?'instant':'stack';
    return chip;
   }));
  };
@@ -747,7 +840,7 @@ function install(){
   const pilot=window.BOXE_WAVE_PILOT,lab=window.handLab,s=pilot?.state||{},player=lab?.player;
   if(!pilot||!lab||!player){
    for(const marker of spatialMarkers)marker.style.opacity='0';
-   damageWedge.style.opacity='0';healHalo.style.opacity='0';peripheral.style.opacity='0';return;
+   peripheral.style.opacity='0';return;
   }
   const width=spatial.clientWidth||window.innerWidth||lab.w||960,height=spatial.clientHeight||window.innerHeight||lab.h||540;
   const frame=refreshScreenFrame(spatial),frameRight=frame.left+(frame.width||width),frameBottom=frame.top+(frame.height||height);
@@ -847,22 +940,11 @@ function install(){
   const hpPct=player.maxHp?clamp(player.hp/player.maxHp):1;
   forgeFire.render({fury:s.empowered?1:clamp((Number(s.passiveProgress)||0)/300),hp:hpPct});
   peripheral.style.opacity=String(player.hp>0&&hpPct<=.35?.32+.68*(1-hpPct/.35):0);
-  const now=Number(lab.time)||0,damageAge=now-(Number(s.lastDamageAt)||-9),healAge=now-(Number(s.lastHealAt)||-9);
-  if(damageAge>=0&&damageAge<.9&&player.hp>0){
-   const strength=clamp(.35+(Number(s.lastDamageAmount)||0)/Math.max(1,player.maxHp||1000)*4,0,1);
-   damageWedge.style.left=playerPoint.x+'px';damageWedge.style.top=playerPoint.y+'px';
-   damageWedge.style.opacity=String((1-damageAge/.9)*strength);
-   damageWedge.style.transform='translate(-50%,-50%) rotate('+((Number(s.lastDamageAngle)||0)*180/Math.PI).toFixed(1)+'deg) scale('+(0.8+strength*.45).toFixed(2)+')';
-  }else damageWedge.style.opacity='0';
-  if(healAge>=0&&healAge<1.35&&player.hp>0){
-   healHalo.style.left=playerPoint.x+'px';healHalo.style.top=playerPoint.y+'px';
-   healHalo.style.opacity=String((1-healAge/1.35)*.9);
-   healHalo.style.transform='translate(-50%,-50%) scale('+(0.72+healAge*.55).toFixed(2)+')';
-  }else healHalo.style.opacity='0';
  };
  const update=()=>{
   const pilot=window.BOXE_WAVE_PILOT;
   if(!pilot)return;
+  decorateUpgradeCards();
   const s=pilot.state||{},lab=window.handLab||{},player=lab.player||{},n=Math.max(1,s.wave||1);
   const cluster=Math.floor((n-1)/10)+1,beat=Number.isInteger(s.hudBeatIndex)?clamp(s.hudBeatIndex,0,9):(n-1)%10,
    beatInfo=BEATS[beat]||beatForWave(n),bossBeat=beat===9;
@@ -980,7 +1062,7 @@ function install(){
  update();
  if(typeof window.requestAnimationFrame==='function')spatialFrame=window.requestAnimationFrame(spatialLoop);
  refresh=window.setInterval(update,90);
- window.addEventListener('pagehide',()=>{if(refresh)clearInterval(refresh);if(spatialFrame)window.cancelAnimationFrame?.(spatialFrame);if(readyFlashTimer)clearTimeout(readyFlashTimer);if(pauseConfirmTimer)clearTimeout(pauseConfirmTimer);for(const timer of eventTimers.values())clearTimeout(timer);forgeFire.dispose();},{once:true});
+ window.addEventListener('pagehide',()=>{if(refresh)clearInterval(refresh);if(spatialFrame)window.cancelAnimationFrame?.(spatialFrame);if(readyFlashTimer)clearTimeout(readyFlashTimer);if(pauseConfirmTimer)clearTimeout(pauseConfirmTimer);for(const timer of eventTimers.values())clearTimeout(timer);cardObserver?.disconnect?.();forgeFire.dispose();},{once:true});
  installed=true;
  window.APEX_BOT_WAVE_INTERFACE_V2=Object.freeze({installed:true,version:VERSION,
   fireRenderer:()=>forgeFire.mode,

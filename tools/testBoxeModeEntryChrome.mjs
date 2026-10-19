@@ -141,6 +141,10 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      tenBeats:document.querySelectorAll('#bw-beat-markers i').length,
      minimap:!!document.getElementById('bw-minimap-canvas'),
      forgeFire:!!document.getElementById('bw-fire-canvas')&&!!document.getElementById('bw-ember-canvas'),
+     fireBand:document.getElementById('bw-fire-canvas')?.getBoundingClientRect().height||999,
+     paneless:document.querySelector('.bw-paneless-crest')?.dataset.presentation==='paneless-crest',
+     noPlayerCircles:!document.querySelector('.bw-damage-wedge')&&!document.querySelector('.bw-heal-halo'),
+     relicDraft:document.querySelector('.w-dialog')?.dataset.presentation==='relic-draft',
      fireRenderer:window.APEX_BOT_WAVE_INTERFACE_V2?.fireRenderer?.()||'missing',
      pauseCommand:!!document.querySelector('.bw-hero .bw-pause-trigger')&&!!document.getElementById('bw-pause-menu'),
      modalArt:!!document.querySelector('.w-dialog > .bw-cover img'),
@@ -149,9 +153,9 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      pressureMeter:!!document.getElementById('bw-pressure-fill'),
      debugHidden:!document.getElementById('arena-experience-tools')||getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
    }));
-   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.portraitRetired&&interfaceRead.minimap&&interfaceRead.forgeFire&&['webgl-fbm-domain-warp','particle-fallback'].includes(interfaceRead.fireRenderer)&&interfaceRead.pauseCommand&&interfaceRead.modalArt&&interfaceRead.debugHidden
+   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.portraitRetired&&interfaceRead.minimap&&interfaceRead.forgeFire&&interfaceRead.fireBand<=32&&interfaceRead.paneless&&interfaceRead.noPlayerCircles&&interfaceRead.relicDraft&&['webgl-fbm-domain-warp','particle-fallback'].includes(interfaceRead.fireRenderer)&&interfaceRead.pauseCommand&&interfaceRead.modalArt&&interfaceRead.debugHidden
        &&interfaceRead.tenBeats===10&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===0&&interfaceRead.pressureMeter,
-      'R14 Solar Forge HUD not rebuilt '+JSON.stringify(interfaceRead));
+      'R15 Paneless Forge HUD not rebuilt '+JSON.stringify(interfaceRead));
    // Resident Gold Home must NOT leave its separate Archive button above Wave.
    const inheritedHome=await page.evaluate(()=>{
      const archive=document.querySelector('.apex-skin-entry');
@@ -190,11 +194,11 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    });
    const {w,h}=hudGeometry.screen;
    assert.ok(hudGeometry.hero?.width<=360&&hudGeometry.hero?.height<=110&&
-     hudGeometry.center?.width<=640&&hudGeometry.center?.height<=72&&hudGeometry.center?.y<=18&&
+     hudGeometry.center?.width<=680&&hudGeometry.center?.height<=64&&hudGeometry.center?.y<=18&&
      hudGeometry.minimap?.width<=196&&hudGeometry.minimap?.height<=230&&hudGeometry.skills?.width<=300&&
      hudGeometry.skills?.height<=105&&hudGeometry.skills?.y>=h*.78,
-     'R13 HUD occupies playable arena '+JSON.stringify(hudGeometry));
-   console.log('BOT WAVE R13 playable-area UI bounds PASS',view.name,hudGeometry);
+     'R15 HUD occupies playable arena '+JSON.stringify(hudGeometry));
+   console.log('BOT WAVE R15 playable-area UI bounds PASS',view.name,hudGeometry);
    assert.equal(waveRuntime.gameCanvas,true);
    // Restore-fidelity owner gate: source Gold art, source R2 industrial circular
    // stage, postprocess and BOTH sampled SFX banks must render in a live browser.

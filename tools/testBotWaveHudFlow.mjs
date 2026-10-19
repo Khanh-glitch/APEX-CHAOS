@@ -301,7 +301,7 @@ assert.ok(!game.includes("UI['w-go'].textContent='▶ NEXT WAVE"), 'ordinary wav
 assert.ok(!game.includes("engine.player.guardT=.45+state.guardBonus"), 'fixed .45s tap guard is retired');
 
 for (const required of [
-  "const VERSION='owner-release-r14-solar-forge';",
+  "const VERSION='owner-release-r15-paneless-forge';",
   'for(let i=0;i<10;i++)',
   'Math.floor((n-1)/10)+1,beat=Number.isInteger(s.hudBeatIndex)',
   'beatInfo=BEATS[beat]||beatForWave(n),bossBeat=beat===9',
@@ -313,14 +313,18 @@ for (const required of [
   'installActionGlyphs(actions);',
   "decor(deck,'bw-atmosphere'",
   "decor(hero,'bw-forge-shell'",
-  "decor(hero,'bw-forge-backlight'",
+  "decor(vitalStack,'bw-forge-backlight'",
   "forgeFireCanvas.id='bw-fire-canvas';",
   "forgeParticleCanvas.id='bw-ember-canvas';",
+  'vitalStack.append(forgeFireCanvas,forgeParticleCanvas);',
   'function createForgeFire(glCanvas,particleCanvas,reducedMotion){',
   "state.mode='webgl-fbm-domain-warp';",
   'float fbm(vec2 p)',
   'vec2 warpB=vec2(fbm',
   'vec3 fireRamp(float t)',
+  'tongueHeight=clamp(tongueHeight,0.012,0.68);',
+  'const fill=clamp(fury),heat=fill<=.08?0:clamp((fill-.08)/.92);',
+  'state.emberSpawn+=dt*(gl?7:12)*intensity;',
   "spawn('ember'",
   "spawn('smoke'",
   'forgeFire.render({fury:s.empowered?1:clamp((Number(s.passiveProgress)||0)/300),hp:hpPct});',
@@ -332,6 +336,11 @@ for (const required of [
   "pulseDeck('bw-event-boss',1250);",
   "pulseDeck('bw-event-ignite',1100);",
   "decor(pressure,'bw-pressure-ticks'",
+  "center.dataset.presentation='paneless-crest';",
+  'const CARD_SIGILS=Object.freeze({',
+  'const decorateUpgradeCards=()=>{',
+  'cardObserver?.disconnect?.();',
+  "chip.dataset.code=CARD_CODES[id]||'APX';",
   "decor(modal,'bw-dialog-ornaments'",
   "center.dataset.danger=danger>=.82?'critical'",
   "guardButton.classList.add('bw-ready-flash')",
@@ -358,8 +367,6 @@ for (const required of [
   "pauseMenu.id='bw-pause-menu';",
   "spatial.id='bw-spatial-layer';",
   "const peripheral=node('div','bw-peripheral');",
-  "const damageWedge=node('div','bw-damage-wedge');",
-  "const healHalo=node('div','bw-heal-halo');",
   'bw-marker-arrow',
   'bw-marker-badge',
   'bw-marker-copy',
@@ -397,9 +404,11 @@ assert.ok(!presentation.includes('bw-portrait'), 'vitality reactor replaces the 
 assert.ok(!presentation.includes('bw-radar'), 'decorative mini-radar is replaced by the true arena minimap');
 assert.ok(!presentation.includes('bw-constellation'), 'family constellation leaves the top-right minimap surface');
 assert.ok(!presentation.includes('bw-telemetry'), 'telemetry panel leaves the top-right minimap surface');
+assert.ok(!presentation.includes('bw-damage-wedge'), 'presentation must not draw a damage circle around BOXE');
+assert.ok(!presentation.includes('bw-heal-halo'), 'presentation must not draw a heal circle around BOXE');
 
 for (const required of [
-  'BOT WAVE R14 — Solar Forge',
+  'BOT WAVE R15 — Paneless Forge / Relic Draft',
   "@import url('/gold/fonts.css');",
   "@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf')",
   '--bw-font-display:"ApexVietCondensed","Oswald","Segoe UI",system-ui,sans-serif;',
@@ -411,8 +420,6 @@ for (const required of [
   '#wave-hud .bw-marker-copy strong',
   '#wave-hud .bw-marker-meter',
   '#wave-hud .bw-peripheral',
-  '#wave-hud .bw-damage-wedge',
-  '#wave-hud .bw-heal-halo',
   '#wave-hud .bw-momentum',
   '#wave-hud .bw-level-core',
   'conic-gradient(from -90deg,#dff9ff 0deg,#8fe8ff calc(var(--bw-xp)*1turn)',
@@ -421,11 +428,14 @@ for (const required of [
   '#wave-hud .bw-hero.bw-is-ignited',
   '#wave-hud .bw-forge-shell',
   '#wave-hud .bw-forge-backlight',
+  'opacity:calc(var(--bw-fury)*.38)',
+  'height:28px;width:100%',
   '#wave-hud .bw-fire-canvas',
+  '@keyframes bw-fury-flow',
   '#wave-hud .bw-ember-canvas',
   '--bw-metal-text:linear-gradient(180deg,#fffdf4 0%,#ffe9b8 38%,#d89c58 62%,#fff0bd 82%,#9a6336 100%);',
   '--bw-fire-deep:#3d0500;--bw-fire-red:#b91f05;--bw-fire:#ff5a00;--bw-fire-gold:#ffb52e;--bw-fire-white:#fff3b0;',
-  '#wave-hud .bw-command-deck.bw-event-wave .bw-encounter',
+  '#wave-hud .bw-command-deck.bw-event-wave .bw-paneless-crest',
   '#wave-hud .bw-command-deck.bw-event-level .bw-level-core',
   '#wave-hud .bw-command-deck.bw-event-boss .bw-minimap',
   '#wave-hud .bw-command-deck.bw-event-ignite .bw-fire-canvas',
@@ -436,7 +446,9 @@ for (const required of [
   '#wave-hud .bw-pause-trigger',
   '#wave-hud .bw-pause-menu',
   '#wave-hud .bw-pause-actions .is-confirming',
+  '#wave-hud .bw-paneless-crest:before',
   '#wave-hud .bw-wave-core',
+  '#wave-hud .bw-wave-core:before{display:none}',
   '#wave-hud .bw-beat-inline strong',
   '#wave-hud .bw-oracle.is-open',
   '#wave-hud .bw-minimap-canvas',
@@ -468,12 +480,21 @@ for (const required of [
   '#arena-experience-hud #r2-boss-panel{top:76px!important;',
   '#arena-experience-hud #r2-boss-panel .boss-r2-meter:after',
   '#wave-modal .w-dialog>.bw-dialog-ornaments',
-  '#wave-modal .w-dialog .w-card:after{counter-increment:bw-card',
+  '#wave-modal .w-dialog .bw-relic-card[data-tier="LEGENDARY"]',
+  '#wave-modal .w-dialog .bw-card-sigil',
+  '#wave-modal .w-dialog .bw-card-value',
+  '#wave-modal .w-dialog .bw-card-footer',
+  'content:attr(data-choice)',
+  '#wave-modal .w-dialog .bw-card-sigil svg',
+  '@keyframes bw-draft-halo',
   '@keyframes bw-card-deal',
+  'background:transparent!important;border:0!important;box-shadow:none!important;clip-path:none!important;',
   '@media(prefers-reduced-motion:reduce)',
 ]) assert.ok(presentationCss.includes(required), `Missing V2 HUD CSS seam: ${required}`);
 assert.ok(!presentationCss.includes('#wave-hud #wave-status{display:none!important}'), 'contextual status feed must be visible');
-assert.ok(!presentation.includes('bw-ignition'), 'CSS teardrop ignition is replaced by the Solar Forge renderer');
+assert.ok(!presentation.includes('bw-ignition'), 'CSS teardrop ignition is replaced by the in-bar forge renderer');
+assert.ok(!presentationCss.includes('.bw-damage-wedge'), 'damage-circle CSS must not return around BOXE');
+assert.ok(!presentationCss.includes('.bw-heal-halo'), 'heal-circle CSS must not return around BOXE');
 assert.ok(!presentationCss.includes('.bw-ignition'), 'CSS teardrop flame rules are retired');
 assert.ok(!presentationCss.includes('.bw-portrait'), 'avatar CSS is retired with the vitality reactor');
 assert.ok(!presentationCss.includes('.bw-radar'), 'mini-radar CSS is retired with the true minimap');
@@ -498,9 +519,9 @@ for (const required of [
 ]) assert.ok(campaign.includes(required), `Missing campaign forecast seam: ${required}`);
 
 // Execute the real V2 installer against a DOM shaped like the pilot HUD.
-// This proves R14 is not just source decoration: the Solar Forge reactor,
-// minimap, clustered spatial markers, pause system and breather oracle all
-// react to live pilot/engine telemetry.
+// This proves R15 is not just source decoration: the in-bar forge reactor,
+// paneless crest, relic draft, minimap, clustered spatial markers, pause
+// system and breather oracle all react to live pilot/engine telemetry.
 const r12dom = new JSDOM(`<!doctype html><html><head></head><body>
 <div id="wave-hud">
   <div class="w-left">
@@ -523,7 +544,7 @@ const r12dom = new JSDOM(`<!doctype html><html><head></head><body>
     <button data-act="I"><span class="w-action-key">I</span><small>FINAL</small></button>
   </div><button id="resume-wave">PAUSE</button>
 </div>
-<section id="wave-modal"><div class="w-dialog"><h1 id="w-title">BOT WAVE</h1><button id="w-go">START</button></div></section>
+<section id="wave-modal"><div class="w-dialog"><h1 id="w-title">BOT WAVE</h1><p id="w-desc">CHOOSE</p><div id="w-cards"><button class="w-card"><small>RARE · UNLOCK</small><strong>GOLDEN COUNTER</strong><em>Giữ K dựng phản đòn Gold; chặn trúng đòn sẽ phản công</em></button><button class="w-card"><small>COMMON · UPGRADE</small><strong>THIẾT QUYỀN</strong><em>+13% sức đấm, tăng sát thương cận chiến</em></button><button class="w-card"><small>LEGENDARY · UNLOCK</small><strong>CHAMPION FINAL · I</strong><em>Mở chiêu cuối từ Gold phím 0</em></button></div><button id="w-go">START</button></div></section>
 </body></html>`, { url: 'http://localhost/bot-wave/game.html', pretendToBeVisual: false, runScripts: 'outside-only' });
 const r12window = r12dom.window;
 const r12state = {
@@ -532,7 +553,12 @@ const r12state = {
   queue: [{ gun: 'PISTOL', family: 'SEMI', edge: 'right', edgeFraction: 0.5, pressure: 52 }],
   spawnT: 0.08, spawnInterval: 0.34, softCap: 6, pressureBudget: 380,
   waveKills: 7, waveDamageDealt: 2450, waveDamageReceived: 310,
-  level: 3, xp: 35, kills: 44, aliveTime: 125, stacks: { power: 2, jab: 1 },
+  level: 3, xp: 35, kills: 44, aliveTime: 125, stacks: { power: 2, jab: 1, fist: 2 },
+  offer: [
+    { id: 'counter', label: 'GOLDEN COUNTER', desc: 'Giữ K dựng phản đòn Gold; chặn trúng đòn sẽ phản công', tier: 'RARE' },
+    { id: 'fist', label: 'THIẾT QUYỀN', desc: '+13% sức đấm, tăng sát thương cận chiến', tier: 'COMMON', max: 12 },
+    { id: 'ult', label: 'CHAMPION FINAL · I', desc: 'Mở chiêu cuối từ Gold phím 0', tier: 'LEGENDARY' },
+  ],
   waveSnapshot: { wave: 9 }, clusterSnapshot: { wave: 1 },
   passiveProgress: 300, passiveReady: false,
   healthPacks: [{ x: 120, y: 80 }], lastDamageAt: 11.8, lastDamageAngle: 0, lastDamageAmount: 120,
@@ -579,10 +605,11 @@ Object.defineProperty(r12window.document, 'fonts', {
 r12window.document.getElementById('wave-modal').hidden = true;
 r12window.eval(presentation);
 const r12doc = r12window.document;
-assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r14-solar-forge');
+assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r15-paneless-forge');
 assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.fireRenderer?.(), 'particle-fallback', 'JSDOM without WebGL must retain the pooled particle furnace');
 assert.ok(r12doc.getElementById('bw-fire-canvas'), 'vitality reactor must own a dedicated procedural-fire canvas');
 assert.ok(r12doc.getElementById('bw-ember-canvas'), 'vitality reactor must own an independent ember/smoke canvas');
+assert.ok(r12doc.getElementById('bw-vital-stack')?.contains(r12doc.getElementById('bw-fire-canvas')), 'forge flame must be rooted inside the Nhiệt Huyết trough, not over the hero panel');
 assert.equal(r12doc.querySelector('.bw-hero')?.dataset.fireRenderer, 'particle-fallback');
 assert.equal(r12doc.querySelectorAll('.bw-action-glyph').length, 5);
 assert.equal(r12doc.querySelectorAll('.bw-spatial-marker').length, 9);
@@ -599,7 +626,19 @@ assert.ok(r12doc.querySelector('.bw-data-vault')?.contains(r12doc.getElementById
 assert.ok(r12doc.querySelector('.bw-minimap-foot')?.contains(r12doc.getElementById('w-count')), 'native hostile count becomes the minimap footer');
 assert.equal(r12doc.getElementById('bw-beat-name')?.textContent, 'APEX STORM');
 assert.equal(r12doc.getElementById('bw-interface-v2')?.dataset.focus, 'danger');
-assert.ok(Number(r12doc.querySelector('.bw-damage-wedge')?.style.opacity) > 0, 'recent directional damage must light the wedge');
+assert.equal(r12doc.querySelectorAll('.bw-damage-wedge').length, 0, 'recent damage must not recreate a circle around BOXE');
+assert.equal(r12doc.querySelectorAll('.bw-heal-halo').length, 0, 'healing must not recreate a circle around BOXE');
+assert.equal(r12doc.querySelector('.bw-paneless-crest')?.dataset.presentation, 'paneless-crest', 'top-center wave state must be paneless');
+assert.equal(r12doc.querySelector('.w-dialog')?.dataset.presentation, 'relic-draft', 'upgrade modal must use the relic draft presentation');
+const relicCards = [...r12doc.querySelectorAll('.bw-relic-card')];
+assert.equal(relicCards.length, 3, 'each live upgrade offer must become a relic tablet');
+assert.equal(relicCards[0]?.dataset.kind, 'unlock');
+assert.equal(relicCards[0]?.querySelector('.bw-card-value')?.textContent, 'GIỮ K · PHẢN ĐÒN');
+assert.equal(relicCards[1]?.dataset.tier, 'COMMON');
+assert.equal(relicCards[1]?.querySelector('.bw-card-value')?.textContent, '+13%');
+assert.equal(relicCards[1]?.querySelector('.bw-card-footer')?.textContent, 'STACK 2 → 3 / 12');
+assert.equal(relicCards[2]?.dataset.tier, 'LEGENDARY');
+assert.ok(relicCards.every((card) => card.querySelector('.bw-card-sigil svg')), 'relic tablets need font-independent SVG emblems');
 assert.ok(Number(r12doc.querySelector('.bw-peripheral')?.style.opacity) > 0, 'low HP must light the peripheral field');
 assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.textContent.includes('OMEGA')), 'offscreen boss must receive a spatial marker');
 assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.textContent.includes('SNIPER +1')), 'same-sector hostiles must cluster into one polished edge tag');
@@ -624,6 +663,7 @@ assert.ok(pauseCalls > 0 && r12window.handLab.paused, 'pause symbol must pause t
 assert.equal(r12doc.getElementById('bw-pause-menu')?.hidden, false, 'pause symbol must open Ring Command');
 assert.match(r12doc.getElementById('bw-pause-summary')?.textContent || '', /WAVE 09 · CLUSTER 01 · LV 3/);
 assert.ok([...r12doc.querySelectorAll('.bw-pause-chip')].some((chip) => chip.textContent.includes('POWER ×2')), 'pause menu must expose the live build');
+assert.ok([...r12doc.querySelectorAll('.bw-pause-chip')].some((chip) => chip.dataset.cardId === 'jab' && chip.dataset.code === 'JB'), 'pause build chips must carry card emblem codes');
 const restartButton = r12doc.querySelector('[data-pause-action="restart-run"]');
 restartButton?.click();
 assert.equal(restartRunCalls, 0, 'destructive restart requires a second confirming press');
@@ -660,12 +700,12 @@ assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 
 r12window.dispatchEvent(new r12window.Event('pagehide'));
 r12window.close();
 
-assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r14'));
-assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r14'));
-assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R14 gameplay');
-assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r14'));
-assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r14'));
+assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r15'));
+assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r15'));
+assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R15 gameplay');
+assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r15'));
+assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r15'));
 assert.ok(wrapper.includes("event.data?.type==='APEX_BOT_WAVE_EXIT'"), 'standalone wrapper must honor the saved-exit message');
-assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Solar Forge is installed');
+assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Paneless Forge is installed');
 
-console.log('BOT WAVE HUD flow PASS: R14 Solar Forge, procedural furnace fire, 1.75x Gold lens, astrolabe minimap + clustered edge telemetry, seamless waves, hold-K guard');
+console.log('BOT WAVE HUD flow PASS: R15 Paneless Forge, in-bar procedural fire, relic draft, no presentation circle around BOXE, 1.75x Gold lens, seamless waves, hold-K guard');
