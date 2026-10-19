@@ -6,7 +6,7 @@
 'use strict';
 const doc=window.document;
 if(window.APEX_BOT_WAVE_INTERFACE_V2)return;
-const VERSION='owner-release-r16-ironworks-final';
+const VERSION='owner-release-r17-ironworks-refined';
 // Existing BOXE baseline was x1.5; owner requests another +30% -> x1.95.
  // Arsenal's compressor/voice-density mix follows this shared mode policy.
  const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.14,gunFloor:.12});
@@ -58,7 +58,7 @@ function decor(parent,cls,html){
  return el;
 }
 const ACTION_GLYPHS=Object.freeze({
- J:'<svg viewBox="0 0 24 24"><path d="M8 20.5v-3C5.6 16.3 4.5 14.3 4.5 11.5V8.2C4.5 5.3 6.4 3.2 9 3.2c1 0 1.9.3 2.6.9.7-.6 1.6-.9 2.6-.9 2.5 0 4.3 2 4.3 4.7v2.8c1.1.5 1.8 1.4 1.8 2.6 0 1.8-1.3 3.1-3.1 3.1h-.8v4.1Z"/><path d="M8.7 4.2v5.1M11.6 4.1v5.3M14.5 4.2v5M8 17.5h8.4M8 20.5h8.4"/></svg>',
+ J:'<svg viewBox="0 0 24 24"><path class="gl-body" d="M8 20.5v-3C5.6 16.3 4.5 14.3 4.5 11.5V8.2C4.5 5.3 6.4 3.2 9 3.2c1 0 1.9.3 2.6.9.7-.6 1.6-.9 2.6-.9 2.5 0 4.3 2 4.3 4.7v2.8c1.1.5 1.8 1.4 1.8 2.6 0 1.8-1.3 3.1-3.1 3.1h-.8v4.1Z"/><path class="gl-cuff" d="M8 17.5h8.4v3H8Z"/><path class="gl-bolt" d="M13.1 5.6 9.9 10.3h2.1l-1 4.6 3.4-5h-2.2Z"/><path class="gl-seam" d="M8.7 4.2v5.1M14.5 4.2v5"/></svg>',
  K:'<svg viewBox="0 0 24 24"><path d="M12 3 19 5.2v5.7c0 4.8-2.9 8-7 10.1C7.9 18.9 5 15.7 5 10.9V5.2Z"/><path d="M8.7 11.7 11 14l4.4-4.7"/></svg>',
  L:'<svg viewBox="0 0 24 24"><path d="M4 5.5 10.5 12 4 18.5"/><path d="M11.5 5.5 18 12l-6.5 6.5"/><path d="M18.5 5.5 21 12l-2.5 6.5" opacity=".55"/></svg>',
  U:'<svg viewBox="0 0 24 24"><path d="M7 20v-8.2a5 5 0 0 1 10 0V20l-2.5-2.3L12 20l-2.5-2.3Z"/><circle cx="9.6" cy="11" r=".7" fill="currentColor"/><circle cx="14.4" cy="11" r=".7" fill="currentColor"/></svg>',
@@ -539,7 +539,13 @@ function install(){
   +'<div class="bw-pause-build-wrap"><span>BUILD HIỆN TẠI</span><div class="bw-pause-build" id="bw-pause-build"><em>CHƯA CÓ THẺ</em></div></div>'
   +'<p class="bw-pause-note" id="bw-pause-note">Tiến độ được lưu ở đầu mỗi wave. Thoát giữa wave vẫn giữ nguyên snapshot gần nhất.</p>'
   +'</section>';
- deck.append(spatial,top,lower,status,pauseMenu,dataVault);
+ // R17 wave announcement: replaces Gold's center-screen canvas banner in
+ // top-down play. Compact, hung under the wave spine, never over BOXE.
+ const announce=node('div','bw-announce');
+ announce.id='bw-announce';
+ announce.setAttribute('aria-live','polite');
+ announce.innerHTML='<strong id="bw-announce-text">WAVE 01</strong><span id="bw-announce-sub"></span>';
+ deck.append(spatial,top,lower,status,pauseMenu,dataVault,announce);
  decor(deck,'bw-atmosphere','<i class="bw-corner is-tl"></i><i class="bw-corner is-tr"></i><i class="bw-corner is-bl"></i><i class="bw-corner is-br"></i>');
  hud.replaceChildren(deck);
  // The arena floor is prerendered once, so rebuild it after the shipped
@@ -617,7 +623,7 @@ function install(){
  const tool=stage?.querySelector('#arena-experience-tools');
  if(tool){tool.hidden=true;tool.setAttribute('aria-hidden','true');}
  // HUD truth: 10-wave cluster beats, live pressure budget, wave identity.
- let lastChapter='',lastPressure='',lastBeat=-1,lastGuardState='',lastRank='',lastMomentumText='';
+ let lastChapter='',lastPressure='',lastBeat=-1,lastGuardState='',lastRank='',lastMomentumText='',lastAnnounceAt=-1,announceTimer=0;
  let forecastCacheWave=-1,forecastCache=null,spatialFrame=0,lastSpatialAt=0;
  let lastVitalsSignature='',lastPauseSignature='',pauseMenuOpen=false,pauseConfirmAction='',pauseConfirmTimer=0;
  const beatName=beatCard.querySelector('#bw-beat-name'),beatVerb=beatCard.querySelector('#bw-beat-verb'),
@@ -789,7 +795,7 @@ function install(){
   const px=x=>cx+(Number(x)||0)*scale,py=y=>cy+(Number(y)||0)*scale;
   const beatIndex=Number.isInteger(s.hudBeatIndex)?clamp(s.hudBeatIndex,0,9):0,accent=BEATS[beatIndex]?.accent||'#8fe8ff';
   const bg=ctx.createRadialGradient(cx-radius*.22,cy-radius*.28,radius*.06,cx,cy,radius);
-  bg.addColorStop(0,'#24405e');bg.addColorStop(.38,'#142a44');bg.addColorStop(.72,'#081728');bg.addColorStop(1,'#030914');
+  bg.addColorStop(0,'#2a4a6c');bg.addColorStop(.38,'#1a3552');bg.addColorStop(.72,'#0c2138');bg.addColorStop(1,'#04101f');
   ctx.fillStyle=bg;ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.fill();
   ctx.save();ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.clip();
   ctx.fillStyle='rgba(255,226,176,.055)';
@@ -797,7 +803,7 @@ function install(){
    const x=cx+gx*radius/4.4,y=cy+gy*radius/4.4;
    if(Math.hypot(x-cx,y-cy)<radius-4){ctx.beginPath();ctx.arc(x,y,.75,0,Math.PI*2);ctx.fill();}
   }
-  for(const [ring,alpha,width] of [[.24,.14,1],[.48,.2,1],[.72,.16,1],[.92,.26,1.4]]){
+  for(const [ring,alpha,width] of [[.24,.22,1],[.48,.3,1],[.72,.24,1],[.92,.38,1.4]]){
    ctx.strokeStyle='rgba(143,232,255,'+alpha+')';ctx.lineWidth=width;
    ctx.beginPath();ctx.arc(cx,cy,radius*ring,0,Math.PI*2);ctx.stroke();
   }
@@ -899,7 +905,7 @@ function install(){
   const width=spatial.clientWidth||window.innerWidth||lab.w||960,height=spatial.clientHeight||window.innerHeight||lab.h||540;
   const frame=refreshScreenFrame(spatial),frameRight=frame.left+(frame.width||width),frameBottom=frame.top+(frame.height||height);
   const layerRect=spatial.getBoundingClientRect?.(),panelRects=[];
-  if(layerRect)for(const el of [hero,center,threat,move,skill,bossPanel]){
+  if(layerRect)for(const el of [hero,center,threat,move,skill,bossPanel,...(announce.classList.contains('is-show')?[announce]:[])]){
    const rect=el?.getBoundingClientRect?.();
    if(rect&&rect.width>0&&rect.height>0)panelRects.push({
     left:rect.left-layerRect.left-7,top:rect.top-layerRect.top-7,
@@ -1019,6 +1025,14 @@ function install(){
    beatInfo=BEATS[beat]||beatForWave(n),bossBeat=beat===9;
   const newChapter='CLUSTER '+String(cluster).padStart(2,'0')+' · '+(beat+1)+'/10';
   if(newChapter!==lastChapter){chapter.textContent=newChapter;lastChapter=newChapter;}
+  const ann=s.announce;
+  if(ann&&ann.at!==lastAnnounceAt){lastAnnounceAt=ann.at;
+   const aText=announce.querySelector('#bw-announce-text'),aSub=announce.querySelector('#bw-announce-sub');
+   if(aText)aText.textContent=ann.text||'';if(aSub)aSub.textContent=ann.sub||'';
+   announce.classList.remove('is-show');void announce.offsetWidth;announce.classList.add('is-show');
+   window.clearTimeout(announceTimer);
+   announceTimer=window.setTimeout(()=>announce.classList.remove('is-show'),1900);
+  }
   waveNumber.textContent='WAVE '+String(n).padStart(2,'0');
   center.classList.toggle('bw-is-boss',bossBeat);
   center.classList.toggle('bw-is-upgrade',s.phase==='upgrade');

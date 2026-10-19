@@ -234,7 +234,11 @@ assert.equal(sandbox.UI['wave-modal'].hidden, true, 'wave clear must not open th
 assert.deepEqual(snapshots, [4]);
 near(engine.player.hp, 600, 'between-wave heal remains applied once');
 assert.equal(armoryResets, 1, 'stray native projectiles clear at the seamless boundary');
-assert.match(engine.banner.sub, /\+100 HP/);
+// R17: wave announcements publish through presentation state, never Gold's
+// center-screen canvas banner (which would draw over BOXE in top-down play).
+assert.match(state.announce.sub, /\+100 HP/);
+assert.match(state.announce.text, /CLEAR/);
+assert.equal(engine.banner, null, 'wave flow must not seize the Gold canvas banner');
 for (let i = 0; i < 20; i++) api.updateWave(0.05);
 assert.equal(startCalls, 0);
 near(state.nextWaveT, 1.2, 'breather counts down in-world');
@@ -301,7 +305,7 @@ assert.ok(!game.includes("UI['w-go'].textContent='▶ NEXT WAVE"), 'ordinary wav
 assert.ok(!game.includes("engine.player.guardT=.45+state.guardBonus"), 'fixed .45s tap guard is retired');
 
 for (const required of [
-  "const VERSION='owner-release-r16-ironworks-final';",
+  "const VERSION='owner-release-r17-ironworks-refined';",
   'for(let i=0;i<10;i++)',
   'Math.floor((n-1)/10)+1,beat=Number.isInteger(s.hudBeatIndex)',
   'beatInfo=BEATS[beat]||beatForWave(n),bossBeat=beat===9',
@@ -498,7 +502,12 @@ for (const required of [
   '#wave-hud .w-action[data-act="L"]{order:5;',
   'width:104px!important;height:104px!important',
   'top:calc(100% + 12px)',
-  'top:calc(100% + 35px)',
+  // R17: key badges ride on top of the medallion rim, labels hug the bottom.
+  '#wave-hud .w-action-key{position:absolute;z-index:6;top:-11px',
+  'top:calc(100% + 8px)',
+  '#wave-hud .bw-announce',
+  '#wave-hud .bw-announce.is-show',
+  '@media (min-width:1101px)',
   '--bw-action-accent:#ffcf7a',
   '--bw-action-accent:#8fe8ff',
   '--bw-action-accent:#c9a7ff',
@@ -639,7 +648,7 @@ Object.defineProperty(r12window.document, 'fonts', {
 r12window.document.getElementById('wave-modal').hidden = true;
 r12window.eval(presentation);
 const r12doc = r12window.document;
-assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r16-ironworks-final');
+assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r17-ironworks-refined');
 assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.fireRenderer?.(), 'particle-fallback', 'JSDOM without WebGL must retain the pooled particle furnace');
 assert.ok(r12doc.getElementById('bw-fire-canvas'), 'vitality reactor must own a dedicated procedural-fire canvas');
 assert.ok(r12doc.getElementById('bw-ember-canvas'), 'vitality reactor must own an independent ember/smoke canvas');
@@ -753,12 +762,12 @@ assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 
 r12window.dispatchEvent(new r12window.Event('pagehide'));
 r12window.close();
 
-assert.ok(app.includes('botWavePresentationV2.css?v=20261019-botwave-hud-r16-final'));
-assert.ok(app.includes('botWavePresentationV2.js?v=20261019-botwave-hud-r16-final'));
+assert.ok(app.includes('botWavePresentationV2.css?v=20261019-botwave-hud-r17b'));
+assert.ok(app.includes('botWavePresentationV2.js?v=20261019-botwave-hud-r17b'));
 assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R16 gameplay');
-assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261019-botwave-hud-r16-final'));
-assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261019-botwave-hud-r16-final'));
+assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261019-botwave-hud-r17b'));
+assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261019-botwave-hud-r17b'));
 assert.ok(wrapper.includes("event.data?.type==='APEX_BOT_WAVE_EXIT'"), 'standalone wrapper must honor the saved-exit message');
 assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Ironworks Command is installed');
 
-console.log('BOT WAVE HUD flow PASS: R16 Ironworks Command, in-bar procedural fire, relic draft, state-driven action motion, no presentation circle around BOXE, 1.75x Gold lens, seamless waves, hold-K guard');
+console.log('BOT WAVE HUD flow PASS: R17 Ironworks Refined, in-bar procedural fire, relic draft, state-driven action motion, no presentation circle around BOXE, 1.75x Gold lens, seamless waves, hold-K guard');
