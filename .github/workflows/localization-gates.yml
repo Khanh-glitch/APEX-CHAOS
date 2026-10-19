@@ -10,6 +10,13 @@ on:
       - 'src/main.jsx'
       - 'tools/testLocalizationGate.mjs'
       - 'tools/testLocalizationChrome.mjs'
+      # The Chrome gate audits Home/Mode/Fighter Select inside the generated
+      # Gold shell, so shell-affecting sources must trigger it too (the
+      # portrait Fighter Select overflow lived in these files unwatched).
+      - 'public/gold/shell.html'
+      - 'docs/gold-ui/current/**'
+      - 'tools/buildGoldCutover.mjs'
+      - 'tools/goldShellR52pickBand.mjs'
       - 'package.json'
       - '.github/workflows/localization-gates.yml'
   workflow_dispatch:
