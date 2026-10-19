@@ -489,11 +489,11 @@ export default function App() {
           if(!doc?.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
           if(!doc.getElementById('bw-v2-styles')){
             const css=doc.createElement('link');css.rel='stylesheet';css.id='bw-v2-styles';
-            css.href='/game/bot-wave/botWavePresentationV2.css?v=20261018-botwave-hud-r15';doc.head.append(css);
+            css.href='/game/bot-wave/botWavePresentationV2.css?v=20261019-botwave-hud-r16-final';doc.head.append(css);
           }
           if(!doc.getElementById('bw-v2-script')){
             const script=doc.createElement('script');script.id='bw-v2-script';
-            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261018-botwave-hud-r15';doc.head.append(script);
+            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261019-botwave-hud-r16-final';doc.head.append(script);
           }
           const win=frame.contentWindow;
           if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&
@@ -1030,7 +1030,7 @@ export default function App() {
     const entry=document.createElement('button');
     entry.id='botWaveEntry';entry.type='button';entry.className='apex-special-wave-emblem';
     entry.setAttribute('aria-label','BOT WAVE — chế độ sinh tồn đặc biệt');
-    entry.innerHTML='<span class="apex-wave-entry-art" aria-hidden="true"><img src="/assets/dictionary/heroes/boxe/standing.png" alt="" decoding="async" draggable="false"></span><span class="apex-wave-entry-copy"><span class="apex-special-wave-top">SPECIAL EVENT <i></i></span><strong>BOT WAVE</strong><small>BOXE / ARSENAL SURVIVAL</small><span class="apex-wave-entry-go" aria-hidden="true">↗</span></span>';
+    entry.innerHTML='<span class="apex-wave-entry-art" aria-hidden="true"><img src="/assets/dictionary/heroes/boxe/avatar.png" alt="" decoding="async" draggable="false"></span><span class="apex-wave-entry-copy"><span class="apex-special-wave-top">SPECIAL EVENT <i></i></span><strong>BOT WAVE</strong><small>BOXE / ARSENAL SURVIVAL</small><span class="apex-wave-entry-go" aria-hidden="true">↗</span></span>';
     const onClick=async ()=>{
       if(window.APEX_SCENE_TRANSITION?.active?.())return;
       entry.disabled=true;

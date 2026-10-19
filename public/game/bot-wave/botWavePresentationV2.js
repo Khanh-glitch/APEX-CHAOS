@@ -6,7 +6,7 @@
 'use strict';
 const doc=window.document;
 if(window.APEX_BOT_WAVE_INTERFACE_V2)return;
-const VERSION='owner-release-r15-paneless-forge';
+const VERSION='owner-release-r16-ironworks-final';
 // Existing BOXE baseline was x1.5; owner requests another +30% -> x1.95.
  // Arsenal's compressor/voice-density mix follows this shared mode policy.
  const AUDIO_MIX=Object.freeze({boxe:1.95,weapons:.14,gunFloor:.12});
@@ -58,20 +58,28 @@ function decor(parent,cls,html){
  return el;
 }
 const ACTION_GLYPHS=Object.freeze({
- J:'<svg viewBox="0 0 24 24"><path d="M12 2.5 14.2 8.8 20.8 6.7 16.4 12 20.8 17.3 14.2 15.2 12 21.5 9.8 15.2 3.2 17.3 7.6 12 3.2 6.7 9.8 8.8Z"/></svg>',
+ J:'<svg viewBox="0 0 24 24"><path d="M8 20.5v-3C5.6 16.3 4.5 14.3 4.5 11.5V8.2C4.5 5.3 6.4 3.2 9 3.2c1 0 1.9.3 2.6.9.7-.6 1.6-.9 2.6-.9 2.5 0 4.3 2 4.3 4.7v2.8c1.1.5 1.8 1.4 1.8 2.6 0 1.8-1.3 3.1-3.1 3.1h-.8v4.1Z"/><path d="M8.7 4.2v5.1M11.6 4.1v5.3M14.5 4.2v5M8 17.5h8.4M8 20.5h8.4"/></svg>',
  K:'<svg viewBox="0 0 24 24"><path d="M12 3 19 5.2v5.7c0 4.8-2.9 8-7 10.1C7.9 18.9 5 15.7 5 10.9V5.2Z"/><path d="M8.7 11.7 11 14l4.4-4.7"/></svg>',
  L:'<svg viewBox="0 0 24 24"><path d="M4 5.5 10.5 12 4 18.5"/><path d="M11.5 5.5 18 12l-6.5 6.5"/><path d="M18.5 5.5 21 12l-2.5 6.5" opacity=".55"/></svg>',
  U:'<svg viewBox="0 0 24 24"><path d="M7 20v-8.2a5 5 0 0 1 10 0V20l-2.5-2.3L12 20l-2.5-2.3Z"/><circle cx="9.6" cy="11" r=".7" fill="currentColor"/><circle cx="14.4" cy="11" r=".7" fill="currentColor"/></svg>',
  I:'<svg viewBox="0 0 24 24"><path d="M4 18.5 3.2 7 8 10.7 12 4l4 6.7L20.8 7 20 18.5Z"/><path d="M5 21h14"/></svg>'
 });
+const ACTION_LOCK_GLYPH='<svg viewBox="0 0 24 24"><path d="M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5"/><path d="M5.5 10.5h13V20h-13Z"/><circle cx="12" cy="15.2" r="1.45" fill="currentColor" stroke="none"/><path d="M12 16.4v1.7"/></svg>';
 function installActionGlyphs(actions){
  for(const button of actions.querySelectorAll('[data-act]')){
   const glyph=ACTION_GLYPHS[button.dataset.act];
-  if(!glyph||button.querySelector('.bw-action-glyph'))continue;
-  const holder=node('span','bw-action-glyph');
-  holder.setAttribute('aria-hidden','true');
-  holder.innerHTML=glyph;
-  button.prepend(holder);
+  if(glyph&&!button.querySelector('.bw-action-glyph')){
+   const holder=node('span','bw-action-glyph');
+   holder.setAttribute('aria-hidden','true');
+   holder.innerHTML=glyph;
+   button.prepend(holder);
+  }
+  if(!button.querySelector('.bw-action-lock')){
+   const lock=node('span','bw-action-lock');
+   lock.setAttribute('aria-hidden','true');
+   lock.innerHTML=ACTION_LOCK_GLYPH;
+   button.append(lock);
+  }
  }
 }
 /* R15 Relic Draft metadata. The pilot still owns card effects and legality;
@@ -391,11 +399,11 @@ function install(){
    hud?.querySelector('#resume-wave'),doc.getElementById('w-go')];
  if(essential.some(x=>!x))return false;
  const [, , left,right,actions,stick,status,pause]=essential;
- // R15 keeps the R13 information architecture but changes its physical
- // language again: the vitality reactor carries fire inside its fury trough,
- // the top-center wave state is suspended type over the arena with no panel,
- // and the true arena minimap remains at top-right. Native Gold nodes are
- // moved—not cloned—so IDs, handlers and refresh seams remain intact.
+ // R16 keeps the R13 information architecture but rebuilds every combat
+ // instrument as machined ironworks: the vitality reactor carries fire in
+ // its fury trough, the wave state hangs from an open mechanical spine with
+ // no filled panel, and the true arena minimap remains at top-right. Native
+ // Gold nodes are moved—not cloned—so IDs, handlers and refresh seams stay.
  const deck=node('div','bw-command-deck');
  deck.id='bw-interface-v2';
  deck.dataset.gold='intact';
@@ -438,7 +446,7 @@ function install(){
  const forgeParticleCanvas=node('canvas','bw-ember-canvas');
  forgeParticleCanvas.id='bw-ember-canvas';forgeParticleCanvas.setAttribute('aria-hidden','true');
  vitalStack.append(forgeFireCanvas,forgeParticleCanvas);
- const center=node('section','bw-encounter bw-wave-spine bw-paneless-crest');
+ const center=node('section','bw-encounter bw-wave-spine bw-paneless-crest bw-iron-spine');
  center.dataset.presentation='paneless-crest';
  center.setAttribute('aria-label','Tình hình trận BOT WAVE');
  const waveCore=node('div','bw-wave-core');
@@ -462,6 +470,7 @@ function install(){
  centerSegment.id='bw-beat-markers';
  for(let i=0;i<10;i++){const segment=node('i');segment.setAttribute('aria-label','Wave trong cụm '+(i+1));centerSegment.append(segment);}
  center.append(waveCore,beatCard,wave,pressure,centerSegment,oracle);
+ decor(center,'bw-spine-frame','<i class="is-left"></i><i class="is-right"></i><b></b>');
  decor(pressure,'bw-pressure-ticks','<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>');
  const threat=node('section','bw-minimap');
  threat.id='bw-minimap';
@@ -478,6 +487,7 @@ function install(){
  minimapNext.id='bw-minimap-next';
  minimapFoot.append(minimapNext);
  threat.append(minimapHead,minimapCanvas,minimapFoot);
+ decor(threat,'bw-minimap-armor','<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>');
  const dataVault=node('div','bw-data-vault');
  dataVault.hidden=true;
  dataVault.setAttribute('aria-hidden','true');
@@ -487,19 +497,21 @@ function install(){
  const move=node('div','bw-movement');
  const moveLabel=node('div','bw-joystick-caption','MOVE / EVADE');
  move.append(stick,moveLabel);
- const skill=node('div','bw-skill-deck bw-skill-fan');
+ const skill=node('div','bw-skill-deck bw-skill-fan bw-skill-console');
  skill.setAttribute('aria-label','Kỹ năng chiến đấu của BOXE');
- // Native J/K/L/U/I controls keep their key labels and ability states, but
- // the old rectangular deck is gone: the fan hugs the bottom-right corner.
+ // Native J/K/L/U/I controls keep their key labels and ability states. R16
+ // seats them in one bottom-right iron console: locked specials, the large
+ // J punch core, then guard and dash in true input order.
  skill.append(actions);
  installActionGlyphs(actions);
+ decor(skill,'bw-skill-dock','<i></i><i></i><i></i>');
  lower.append(move,skill);
  status.classList.add('bw-event-ticker');
  const spatial=node('div','bw-spatial-layer');
  spatial.id='bw-spatial-layer';
  spatial.setAttribute('aria-hidden','true');
  const peripheral=node('div','bw-peripheral');
- // R15 owner correction: presentation must never draw its own circle around
+ // Standing owner correction: presentation must never draw its own circle around
  // BOXE. Gold's native combat VFX remains the only player-centered effect.
  spatial.append(peripheral);
  const spatialMarkers=[];
@@ -605,7 +617,7 @@ function install(){
  const tool=stage?.querySelector('#arena-experience-tools');
  if(tool){tool.hidden=true;tool.setAttribute('aria-hidden','true');}
  // HUD truth: 10-wave cluster beats, live pressure budget, wave identity.
- let lastChapter='',lastPressure='',lastBeat=-1,lastGuardState='',lastRank='',lastMomentumText='',readyFlashTimer=0;
+ let lastChapter='',lastPressure='',lastBeat=-1,lastGuardState='',lastRank='',lastMomentumText='';
  let forecastCacheWave=-1,forecastCache=null,spatialFrame=0,lastSpatialAt=0;
  let lastVitalsSignature='',lastPauseSignature='',pauseMenuOpen=false,pauseConfirmAction='',pauseConfirmTimer=0;
  const beatName=beatCard.querySelector('#bw-beat-name'),beatVerb=beatCard.querySelector('#bw-beat-verb'),
@@ -631,6 +643,43 @@ function install(){
   deck.classList.remove(className);void deck.offsetWidth;deck.classList.add(className);
   const old=eventTimers.get(className);if(old)window.clearTimeout(old);
   eventTimers.set(className,window.setTimeout(()=>deck.classList.remove(className),duration));
+ };
+ // R16 motion follows the pilot's own button classes. Presentation never
+ // invents availability: it only turns native locked/cooling/guarding state
+ // transitions into a socket flash, an unlock snap and a stable data state.
+ const actionButtons=[...actions.querySelectorAll('[data-act]')];
+ const actionMotion=new Map(actionButtons.map(button=>[button,{
+  cooling:button.classList.contains('is-cooling'),disabled:!!button.disabled,
+  readyTimer:0,unlockTimer:0}]));
+ for(const button of actionButtons)button.addEventListener('animationend',event=>{
+  if(event.target===button&&event.animationName==='bw-action-deploy')
+   button.classList.add('bw-deployed');
+ });
+ const flashAction=(button,className,duration,timerKey)=>{
+  if(prefersReducedMotion)return;
+  const motion=actionMotion.get(button);if(!motion)return;
+  button.classList.remove(className);void button.offsetWidth;button.classList.add(className);
+  if(motion[timerKey])window.clearTimeout(motion[timerKey]);
+  motion[timerKey]=window.setTimeout(()=>button.classList.remove(className),duration);
+ };
+ const syncActionMotion=()=>{
+  for(const button of actionButtons){
+   const motion=actionMotion.get(button);if(!motion)continue;
+   const cooling=button.classList.contains('is-cooling'),disabled=!!button.disabled,
+    guarding=button.classList.contains('is-guarding'),pressed=button.classList.contains('on');
+   button.dataset.motionState=disabled?'locked':guarding?'guarding':cooling?'cooling':pressed?'pressed':'ready';
+   if(motion.disabled&&!disabled)flashAction(button,'bw-unlock-flash',950,'unlockTimer');
+   else if(button.dataset.act!=='J'&&motion.cooling&&!cooling&&!disabled&&!guarding)
+    flashAction(button,'bw-ready-flash',680,'readyTimer');
+   motion.cooling=cooling;motion.disabled=disabled;
+  }
+ };
+ let lastHeroHp=null,heroHitTimer=0;
+ const pulseHeroHit=()=>{
+  if(prefersReducedMotion)return;
+  hero.classList.remove('bw-took-hit');void hero.offsetWidth;hero.classList.add('bw-took-hit');
+  if(heroHitTimer)window.clearTimeout(heroHitTimer);
+  heroHitTimer=window.setTimeout(()=>hero.classList.remove('bw-took-hit'),310);
  };
  const resetPauseConfirm=()=>{
   pauseConfirmAction='';
@@ -740,7 +789,7 @@ function install(){
   const px=x=>cx+(Number(x)||0)*scale,py=y=>cy+(Number(y)||0)*scale;
   const beatIndex=Number.isInteger(s.hudBeatIndex)?clamp(s.hudBeatIndex,0,9):0,accent=BEATS[beatIndex]?.accent||'#8fe8ff';
   const bg=ctx.createRadialGradient(cx-radius*.22,cy-radius*.28,radius*.06,cx,cy,radius);
-  bg.addColorStop(0,'#243447');bg.addColorStop(.38,'#162233');bg.addColorStop(.72,'#0b1220');bg.addColorStop(1,'#04070d');
+  bg.addColorStop(0,'#24405e');bg.addColorStop(.38,'#142a44');bg.addColorStop(.72,'#081728');bg.addColorStop(1,'#030914');
   ctx.fillStyle=bg;ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.fill();
   ctx.save();ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.clip();
   ctx.fillStyle='rgba(255,226,176,.055)';
@@ -748,7 +797,7 @@ function install(){
    const x=cx+gx*radius/4.4,y=cy+gy*radius/4.4;
    if(Math.hypot(x-cx,y-cy)<radius-4){ctx.beginPath();ctx.arc(x,y,.75,0,Math.PI*2);ctx.fill();}
   }
-  for(const [ring,alpha,width] of [[.24,.10,1],[.48,.16,1],[.72,.12,1],[.92,.22,1.4]]){
+  for(const [ring,alpha,width] of [[.24,.14,1],[.48,.2,1],[.72,.16,1],[.92,.26,1.4]]){
    ctx.strokeStyle='rgba(143,232,255,'+alpha+')';ctx.lineWidth=width;
    ctx.beginPath();ctx.arc(cx,cy,radius*ring,0,Math.PI*2);ctx.stroke();
   }
@@ -772,17 +821,17 @@ function install(){
   const cam=lab.cam||lab.player,zoom=Math.max(.1,Number(lab.camZoom)||.875);
   const halfW=(Number(lab.w)||size)/(2*zoom),halfH=(Number(lab.h)||size)/(2*zoom);
   const view={l:px((cam.x||0)-halfW),t:py((cam.y||0)-halfH),r:px((cam.x||0)+halfW),b:py((cam.y||0)+halfH)};
-  const corner=Math.min(12,(view.r-view.l)*.18,(view.b-view.t)*.18);
-  ctx.strokeStyle='rgba(255,243,220,.48)';ctx.lineWidth=1.3;ctx.lineCap='round';
+  const corner=Math.min(9,(view.r-view.l)*.15,(view.b-view.t)*.15);
+  ctx.strokeStyle='rgba(255,243,220,.34)';ctx.lineWidth=1.15;ctx.lineCap='round';
   for(const [x,y,dx,dy] of [[view.l,view.t,1,1],[view.r,view.t,-1,1],[view.l,view.b,1,-1],[view.r,view.b,-1,-1]]){
    ctx.beginPath();ctx.moveTo(x+dx*corner,y);ctx.lineTo(x,y);ctx.lineTo(x,y+dy*corner);ctx.stroke();
   }
-  if(!prefersReducedMotion){
-   const sweep=time*.72%(Math.PI*2);
+  const sweepAngle=prefersReducedMotion?null:(time*1.45)%(Math.PI*2);
+  if(sweepAngle!=null){
    const sweepGradient=ctx.createRadialGradient(cx,cy,2,cx,cy,radius);
-   sweepGradient.addColorStop(0,'rgba(143,232,255,.16)');sweepGradient.addColorStop(.68,'rgba(143,232,255,.055)');sweepGradient.addColorStop(1,'rgba(143,232,255,0)');
-   ctx.fillStyle=sweepGradient;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,radius,sweep,sweep+.72);ctx.closePath();ctx.fill();
-   ctx.strokeStyle='rgba(190,245,255,.46)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(sweep)*radius,cy+Math.sin(sweep)*radius);ctx.stroke();
+   sweepGradient.addColorStop(0,'rgba(255,191,92,.27)');sweepGradient.addColorStop(.68,'rgba(255,161,66,.1)');sweepGradient.addColorStop(1,'rgba(255,161,66,0)');
+   ctx.fillStyle=sweepGradient;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,radius,sweepAngle,sweepAngle+.58);ctx.closePath();ctx.fill();
+   ctx.strokeStyle='rgba(255,226,160,.62)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(sweepAngle)*radius,cy+Math.sin(sweepAngle)*radius);ctx.stroke();
   }
   const diamond=(x,y,r,fill,stroke)=>{
    ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();
@@ -798,6 +847,11 @@ function install(){
    const x=px(e.x),y=py(e.y),color=familyColor(e.waveFamily);
    const vx=Number(e.vx)||0,vy=Number(e.vy)||0,speed=Math.hypot(vx,vy);
    if(speed>12){ctx.strokeStyle=color;ctx.globalAlpha=.55;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+vx/speed*7,y+vy/speed*7);ctx.stroke();ctx.globalAlpha=1;}
+   if(sweepAngle!=null){
+    const pingAge=((sweepAngle-Math.atan2(e.y||0,e.x||0))%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+    if(pingAge<.92){const pingFade=1-pingAge/.92;ctx.strokeStyle='rgba(255,226,160,'+(pingFade*.58)+')';ctx.lineWidth=1.1;
+     ctx.beginPath();ctx.arc(x,y,5+(1-pingFade)*9,0,Math.PI*2);ctx.stroke();}
+   }
    if(e.waveBoss){ctx.strokeStyle='rgba(255,195,107,.78)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,7+Math.sin(time*6)*1.1,0,Math.PI*2);ctx.stroke();
     ctx.strokeStyle='rgba(255,89,100,.42)';ctx.beginPath();ctx.arc(x,y,10+Math.sin(time*6+1)*1.4,0,Math.PI*2);ctx.stroke();}
    diamond(x,y,e.waveBoss?5.5:3.4,color,'rgba(255,243,220,.9)');
@@ -817,24 +871,24 @@ function install(){
    ctx.globalAlpha=1;
   }
   ctx.save();ctx.translate(px(player.x),py(player.y));ctx.rotate(angle);
-  ctx.fillStyle='#fff3dc';ctx.strokeStyle='#ff9b57';ctx.lineWidth=1.4;
-  ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-5,-4.5);ctx.lineTo(-2.5,0);ctx.lineTo(-5,4.5);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+  ctx.fillStyle='#ffe9bd';ctx.strokeStyle='#ff8a3d';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(-5.5,-5);ctx.lineTo(-2.8,0);ctx.lineTo(-5.5,5);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
   ctx.strokeStyle='rgba(255,207,139,.34)';ctx.beginPath();ctx.arc(px(player.x),py(player.y),8+Math.sin(time*3.2)*1.2,0,Math.PI*2);ctx.stroke();
   ctx.restore();
   const glass=ctx.createLinearGradient(cx-radius,cy-radius,cx+radius*.4,cy+radius);
   glass.addColorStop(0,'rgba(255,255,255,.14)');glass.addColorStop(.28,'rgba(255,255,255,.035)');glass.addColorStop(.58,'rgba(255,255,255,0)');glass.addColorStop(1,'rgba(0,0,0,.20)');
   ctx.save();ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.clip();ctx.fillStyle=glass;ctx.fillRect(cx-radius,cy-radius,radius*2,radius*2);ctx.restore();
-  ctx.strokeStyle=accent;ctx.globalAlpha=.72;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+  ctx.strokeStyle='rgba(255,214,150,.82)';ctx.globalAlpha=.82;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
   ctx.strokeStyle='rgba(255,226,176,.72)';ctx.lineCap='round';
   for(let i=0;i<36;i++){
-   const a=i/36*Math.PI*2+(prefersReducedMotion?0:time*.018),long=i%9===0,len=long?6:2.8;
+   const a=i/36*Math.PI*2,long=i%9===0,len=long?6:2.8;
    ctx.lineWidth=long?1.4:.8;ctx.globalAlpha=long?.88:.42;
    ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*(radius-1),cy+Math.sin(a)*(radius-1));
    ctx.lineTo(cx+Math.cos(a)*(radius+len),cy+Math.sin(a)*(radius+len));ctx.stroke();
   }
   ctx.globalAlpha=1;ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=3;
-  ctx.fillStyle='rgba(255,231,194,.78)';ctx.font='600 7px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('N',cx,9);ctx.fillText('S',cx,size-9);ctx.fillText('W',9,cy);ctx.fillText('E',size-9,cy);
+  ctx.fillStyle='rgba(255,231,194,.88)';ctx.font='600 9px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('N',cx,11);ctx.fillText('S',cx,size-11);ctx.fillText('W',11,cy);ctx.fillText('E',size-11,cy);
  };
  const updateSpatial=()=>{
   const pilot=window.BOXE_WAVE_PILOT,lab=window.handLab,s=pilot?.state||{},player=lab?.player;
@@ -909,6 +963,7 @@ function install(){
      (FAMILY_SHORT[e.waveFamily]||e.waveFamily||'HOSTILE')+' · '+distanceLabel(item.distance),
      familyGlyph(e.waveFamily),e.waveFamily||'',{force:true,count:group.length,meter:e.maxHp?e.hp/e.maxHp:null});
    });
+  const placedMarkers=[];
   spatialMarkers.forEach((marker,index)=>{
    const entry=entries[index];
    if(!entry){marker.style.opacity='0';marker.className='bw-spatial-marker';marker.style.transform='translate3d(-300px,-300px,0)';return;}
@@ -917,6 +972,16 @@ function install(){
     x:clamp(entry.point.x,Math.max(safe.left,frame.left+markerHalfW+8),Math.min(safe.right,frameRight-markerHalfW-8)),
     y:clamp(entry.point.y,safe.top,safe.bottom)});
    point={x:clamp(point.x,frame.left+24,frameRight-24),y:clamp(point.y,frame.top+20,frameBottom-20)};
+   if(pointInPanel(point)){
+    const blockers=panelRects.filter(rect=>point.x>rect.left&&point.x<rect.right&&point.y>rect.top&&point.y<rect.bottom);
+    const below=Math.max(...blockers.map(rect=>rect.bottom))+22,above=Math.min(...blockers.map(rect=>rect.top))-22;
+    point.y=below<=frameBottom-20?below:Math.max(frame.top+20,above);
+   }
+   for(const placed of placedMarkers){
+    if(Math.abs(placed.x-point.x)<118&&Math.abs(placed.y-point.y)<30)
+     point.y=placed.y+34<=frameBottom-20?placed.y+34:placed.y-34;
+   }
+   placedMarkers.push({x:point.x,y:point.y});
    const angle=Math.atan2(entry.point.y-playerPoint.y,entry.point.x-playerPoint.x)*180/Math.PI;
    const scale=entry.kind==='boss'?1.08:entry.offscreen?clamp(1.08-entry.distance/2800,.84,1.08):.82;
    marker.className='bw-spatial-marker is-visible is-'+entry.kind+(entry.offscreen?' is-offscreen':entry.occluded?' is-occluded':' is-onscreen');
@@ -936,7 +1001,11 @@ function install(){
    if(meter)meter.style.opacity=entry.meter==null?'0':'1';
    if(fill)fill.style.width=Math.round((entry.meter||0)*100)+'%';
   });
+  syncActionMotion();
   drawMinimap(lab,s,live);
+  const hpNow=Number(player.hp)||0;
+  if(lastHeroHp!=null&&hpNow<lastHeroHp-1&&hpNow>0)pulseHeroHit();
+  lastHeroHp=hpNow;
   const hpPct=player.maxHp?clamp(player.hp/player.maxHp):1;
   forgeFire.render({fury:s.empowered?1:clamp((Number(s.passiveProgress)||0)/300),hp:hpPct});
   peripheral.style.opacity=String(player.hp>0&&hpPct<=.35?.32+.68*(1-hpPct/.35):0);
@@ -986,7 +1055,6 @@ function install(){
   const focus=breather?'breather':(s.phase==='upgrade'||s.phase==='gameover'||s.phase==='intro')?'cinematic':
    hpPct<=.35&&player.hp>0?'danger':(danger>=.68||active>=5||bossLive)?'hot':'combat';
   deck.dataset.focus=focus;deck.dataset.phase=s.autoNextWave?'wave-clear':(s.phase||'intro');deck.dataset.danger=center.dataset.danger;
-  hero.classList.toggle('bw-took-hit',left.classList.contains('r2-damaged'));
   hero.classList.toggle('bw-is-low',left.classList.contains('is-low'));
   hero.classList.toggle('bw-is-hot',left.classList.contains('r2-hot'));
   const level=Math.max(1,Math.floor(Number(s.level)||1)),xpNeed=xpThreshold(pilot,level),xpPct=clamp((Number(s.xp)||0)/Math.max(1,xpNeed));
@@ -1044,12 +1112,6 @@ function install(){
    active?'ARENA LIVE':'GATES QUIET');
   const guardState=s.guardHeld?'held':(s.guardCdT>0?'cooling':'ready');
   deck.dataset.guard=guardState;
-  if(lastGuardState==='cooling'&&guardState==='ready'){
-   const guardButton=actions.querySelector('[data-act="K"]');
-   if(guardButton){guardButton.classList.add('bw-ready-flash');
-    if(readyFlashTimer)window.clearTimeout(readyFlashTimer);
-    readyFlashTimer=window.setTimeout(()=>guardButton.classList.remove('bw-ready-flash'),520);}
-  }
   lastGuardState=guardState;
   status.dataset.kind=(Number(s.waveToastT)>0&&s.waveToast)?'toast':'hint';
   syncPauseMenu();
@@ -1062,7 +1124,7 @@ function install(){
  update();
  if(typeof window.requestAnimationFrame==='function')spatialFrame=window.requestAnimationFrame(spatialLoop);
  refresh=window.setInterval(update,90);
- window.addEventListener('pagehide',()=>{if(refresh)clearInterval(refresh);if(spatialFrame)window.cancelAnimationFrame?.(spatialFrame);if(readyFlashTimer)clearTimeout(readyFlashTimer);if(pauseConfirmTimer)clearTimeout(pauseConfirmTimer);for(const timer of eventTimers.values())clearTimeout(timer);cardObserver?.disconnect?.();forgeFire.dispose();},{once:true});
+ window.addEventListener('pagehide',()=>{if(refresh)clearInterval(refresh);if(spatialFrame)window.cancelAnimationFrame?.(spatialFrame);if(heroHitTimer)clearTimeout(heroHitTimer);if(pauseConfirmTimer)clearTimeout(pauseConfirmTimer);for(const timer of eventTimers.values())clearTimeout(timer);for(const motion of actionMotion.values()){if(motion.readyTimer)clearTimeout(motion.readyTimer);if(motion.unlockTimer)clearTimeout(motion.unlockTimer);}cardObserver?.disconnect?.();forgeFire.dispose();},{once:true});
  installed=true;
  window.APEX_BOT_WAVE_INTERFACE_V2=Object.freeze({installed:true,version:VERSION,
   fireRenderer:()=>forgeFire.mode,

@@ -301,7 +301,7 @@ assert.ok(!game.includes("UI['w-go'].textContent='▶ NEXT WAVE"), 'ordinary wav
 assert.ok(!game.includes("engine.player.guardT=.45+state.guardBonus"), 'fixed .45s tap guard is retired');
 
 for (const required of [
-  "const VERSION='owner-release-r15-paneless-forge';",
+  "const VERSION='owner-release-r16-ironworks-final';",
   'for(let i=0;i<10;i++)',
   'Math.floor((n-1)/10)+1,beat=Number.isInteger(s.hudBeatIndex)',
   'beatInfo=BEATS[beat]||beatForWave(n),bossBeat=beat===9',
@@ -310,7 +310,23 @@ for (const required of [
   "s.autoNextWave?'WAVE CLEAR'",
   'window.setInterval(update,90)',
   'const ACTION_GLYPHS=Object.freeze({',
+  'const ACTION_LOCK_GLYPH=',
   'installActionGlyphs(actions);',
+  "decor(center,'bw-spine-frame'",
+  "decor(threat,'bw-minimap-armor'",
+  "decor(skill,'bw-skill-dock'",
+  "event.animationName==='bw-action-deploy'",
+  "button.classList.add('bw-deployed')",
+  'const syncActionMotion=()=>{',
+  "button.dataset.motionState=disabled?'locked'",
+  "flashAction(button,'bw-unlock-flash',950,'unlockTimer')",
+  "flashAction(button,'bw-ready-flash',680,'readyTimer')",
+  'const placedMarkers=[];',
+  'const below=Math.max(...blockers.map(rect=>rect.bottom))+22',
+  'const pulseHeroHit=()=>{',
+  'if(lastHeroHp!=null&&hpNow<lastHeroHp-1&&hpNow>0)pulseHeroHit();',
+  'const sweepAngle=prefersReducedMotion?null:(time*1.45)%(Math.PI*2);',
+  'const pingAge=((sweepAngle-Math.atan2(e.y||0,e.x||0))%(Math.PI*2)+Math.PI*2)%(Math.PI*2);',
   "decor(deck,'bw-atmosphere'",
   "decor(hero,'bw-forge-shell'",
   "decor(vitalStack,'bw-forge-backlight'",
@@ -343,7 +359,7 @@ for (const required of [
   "chip.dataset.code=CARD_CODES[id]||'APX';",
   "decor(modal,'bw-dialog-ornaments'",
   "center.dataset.danger=danger>=.82?'critical'",
-  "guardButton.classList.add('bw-ready-flash')",
+  'syncActionMotion();',
   'const BEATS=Object.freeze([',
   "name:'DAWN HARVEST'",
   "name:'CROSS LESSON'",
@@ -406,9 +422,10 @@ assert.ok(!presentation.includes('bw-constellation'), 'family constellation leav
 assert.ok(!presentation.includes('bw-telemetry'), 'telemetry panel leaves the top-right minimap surface');
 assert.ok(!presentation.includes('bw-damage-wedge'), 'presentation must not draw a damage circle around BOXE');
 assert.ok(!presentation.includes('bw-heal-halo'), 'presentation must not draw a heal circle around BOXE');
+assert.ok(!presentation.includes('time*.018'), 'minimap compass ticks must stay fixed while only the radar sweep rotates');
 
 for (const required of [
-  'BOT WAVE R15 — Paneless Forge / Relic Draft',
+  'BOT WAVE R16 — Ironworks Command / Relic Draft',
   "@import url('/gold/fonts.css');",
   "@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf')",
   '--bw-font-display:"ApexVietCondensed","Oswald","Segoe UI",system-ui,sans-serif;',
@@ -448,7 +465,16 @@ for (const required of [
   '#wave-hud .bw-pause-actions .is-confirming',
   '#wave-hud .bw-paneless-crest:before',
   '#wave-hud .bw-wave-core',
-  '#wave-hud .bw-wave-core:before{display:none}',
+  '#wave-hud .bw-spine-frame',
+  '#wave-hud .bw-wave-core:before{content:"";position:absolute;inset:3px',
+  '#wave-hud .bw-minimap-armor',
+  '#wave-hud .bw-skill-dock',
+  '#wave-hud .bw-action-lock',
+  '#wave-hud .w-action.bw-deployed{animation:none}',
+  '#wave-hud .w-action.bw-unlock-flash',
+  '@keyframes bw-spine-charge',
+  '@keyframes bw-hero-hit',
+  '@keyframes bw-action-deploy',
   '#wave-hud .bw-beat-inline strong',
   '#wave-hud .bw-oracle.is-open',
   '#wave-hud .bw-minimap-canvas',
@@ -464,20 +490,27 @@ for (const required of [
   '#wave-hud .bw-atmosphere',
   '#wave-hud .bw-pressure-ticks',
   '#wave-hud .bw-action-glyph',
-  'flex-direction:row-reverse!important',
-  '--bw-action-lift:-25px',
+  'flex-direction:row!important',
+  '#wave-hud .w-action[data-act="I"]{order:1;',
+  '#wave-hud .w-action[data-act="U"]{order:2;',
+  '#wave-hud .w-action[data-act="J"]{order:3;',
+  '#wave-hud .w-action[data-act="K"]{order:4;',
+  '#wave-hud .w-action[data-act="L"]{order:5;',
+  'width:104px!important;height:104px!important',
+  'top:calc(100% + 12px)',
+  'top:calc(100% + 35px)',
   '--bw-action-accent:#ffcf7a',
   '--bw-action-accent:#8fe8ff',
   '--bw-action-accent:#c9a7ff',
   '--bw-action-accent:#ff5964',
   '#wave-hud .w-action .w-cd',
-  'conic-gradient(from -90deg,rgba(1,4,8,.84)',
+  'conic-gradient(from -90deg,rgba(1,4,8,.88)',
   '#wave-hud .w-action.bw-ready-flash',
   '#wave-hud .w-action[data-act="K"].is-guarding',
   '#wave-hud #wave-status[data-kind="toast"]',
   '#wave-hud .bw-is-clear #bw-pressure-fill',
   '#wave-hud #w-wave,#wave-hud #w-arsenal{display:none!important}',
-  '#arena-experience-hud #r2-boss-panel{top:76px!important;',
+  '#arena-experience-hud #r2-boss-panel{top:94px!important;',
   '#arena-experience-hud #r2-boss-panel .boss-r2-meter:after',
   '#wave-modal .w-dialog>.bw-dialog-ornaments',
   '#wave-modal .w-dialog .bw-relic-card[data-tier="LEGENDARY"]',
@@ -488,7 +521,7 @@ for (const required of [
   '#wave-modal .w-dialog .bw-card-sigil svg',
   '@keyframes bw-draft-halo',
   '@keyframes bw-card-deal',
-  'background:transparent!important;border:0!important;box-shadow:none!important;clip-path:none!important;',
+  'background:transparent;border:0;box-shadow:none;clip-path:none;backdrop-filter:none',
   '@media(prefers-reduced-motion:reduce)',
 ]) assert.ok(presentationCss.includes(required), `Missing V2 HUD CSS seam: ${required}`);
 assert.ok(!presentationCss.includes('#wave-hud #wave-status{display:none!important}'), 'contextual status feed must be visible');
@@ -519,9 +552,10 @@ for (const required of [
 ]) assert.ok(campaign.includes(required), `Missing campaign forecast seam: ${required}`);
 
 // Execute the real V2 installer against a DOM shaped like the pilot HUD.
-// This proves R15 is not just source decoration: the in-bar forge reactor,
-// paneless crest, relic draft, minimap, clustered spatial markers, pause
-// system and breather oracle all react to live pilot/engine telemetry.
+// This proves R16 is not just source decoration: the in-bar forge reactor,
+// iron wave spine, relic draft, armored minimap, action-state motion,
+// clustered spatial markers, pause system and breather oracle all react to
+// live pilot/engine telemetry.
 const r12dom = new JSDOM(`<!doctype html><html><head></head><body>
 <div id="wave-hud">
   <div class="w-left">
@@ -605,13 +639,17 @@ Object.defineProperty(r12window.document, 'fonts', {
 r12window.document.getElementById('wave-modal').hidden = true;
 r12window.eval(presentation);
 const r12doc = r12window.document;
-assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r15-paneless-forge');
+assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.version, 'owner-release-r16-ironworks-final');
 assert.equal(r12window.APEX_BOT_WAVE_INTERFACE_V2?.fireRenderer?.(), 'particle-fallback', 'JSDOM without WebGL must retain the pooled particle furnace');
 assert.ok(r12doc.getElementById('bw-fire-canvas'), 'vitality reactor must own a dedicated procedural-fire canvas');
 assert.ok(r12doc.getElementById('bw-ember-canvas'), 'vitality reactor must own an independent ember/smoke canvas');
 assert.ok(r12doc.getElementById('bw-vital-stack')?.contains(r12doc.getElementById('bw-fire-canvas')), 'forge flame must be rooted inside the Nhiệt Huyết trough, not over the hero panel');
 assert.equal(r12doc.querySelector('.bw-hero')?.dataset.fireRenderer, 'particle-fallback');
 assert.equal(r12doc.querySelectorAll('.bw-action-glyph').length, 5);
+assert.equal(r12doc.querySelectorAll('.bw-action-lock').length, 5, 'every socket needs a font-independent lock state');
+assert.ok(r12doc.querySelector('.bw-spine-frame'), 'paneless wave state must hang from a mechanical spine frame');
+assert.equal(r12doc.querySelectorAll('.bw-minimap-armor i').length, 8, 'minimap bezel needs eight physical bolts');
+assert.ok(r12doc.querySelector('.bw-skill-dock'), 'skill sockets must seat into the iron console dock');
 assert.equal(r12doc.querySelectorAll('.bw-spatial-marker').length, 9);
 assert.equal(r12doc.querySelectorAll('.bw-portrait').length, 0, 'avatar must not be recreated');
 assert.equal(r12doc.getElementById('bw-level-value')?.textContent, '3');
@@ -646,6 +684,21 @@ assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => ma
   'left-side hostiles must place their direction chevron outside the tag on the true vector');
 assert.ok([...r12doc.querySelectorAll('.bw-spatial-marker')].some((marker) => marker.dataset.urgency === 'critical'),
   'boss/close hostiles must escalate the reticle urgency state');
+const finalButton = r12doc.querySelector('[data-act="I"]');
+const dashButton = r12doc.querySelector('[data-act="L"]');
+finalButton.disabled = true;
+dashButton.classList.add('is-cooling');
+await new Promise((resolve) => setTimeout(resolve, 130));
+assert.equal(finalButton.dataset.motionState, 'locked', 'native disabled state must become the iron socket lock state');
+assert.equal(dashButton.dataset.motionState, 'cooling', 'native is-cooling state must drive the socket shutter state');
+finalButton.disabled = false;
+dashButton.classList.remove('is-cooling');
+r12window.handLab.player.hp = 210;
+await new Promise((resolve) => setTimeout(resolve, 130));
+assert.ok(finalButton.classList.contains('bw-unlock-flash'), 'unlocking a native skill must snap its lock open');
+assert.ok(dashButton.classList.contains('bw-ready-flash'), 'cooldown completion must flash the socket rim');
+assert.ok(r12doc.querySelector('.bw-hero')?.classList.contains('bw-took-hit'), 'a real HP drop must strike the hero chassis once');
+r12window.handLab.player.hp = 280;
 const minimapCalls = [];
 const minimapCanvasEl = r12doc.getElementById('bw-minimap-canvas');
 Object.defineProperty(minimapCanvasEl, 'clientWidth', { configurable: true, get: () => 160 });
@@ -700,12 +753,12 @@ assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 
 r12window.dispatchEvent(new r12window.Event('pagehide'));
 r12window.close();
 
-assert.ok(app.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r15'));
-assert.ok(app.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r15'));
-assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R15 gameplay');
-assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261018-botwave-hud-r15'));
-assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261018-botwave-hud-r15'));
+assert.ok(app.includes('botWavePresentationV2.css?v=20261019-botwave-hud-r16-final'));
+assert.ok(app.includes('botWavePresentationV2.js?v=20261019-botwave-hud-r16-final'));
+assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R16 gameplay');
+assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261019-botwave-hud-r16-final'));
+assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261019-botwave-hud-r16-final'));
 assert.ok(wrapper.includes("event.data?.type==='APEX_BOT_WAVE_EXIT'"), 'standalone wrapper must honor the saved-exit message');
-assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Paneless Forge is installed');
+assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Ironworks Command is installed');
 
-console.log('BOT WAVE HUD flow PASS: R15 Paneless Forge, in-bar procedural fire, relic draft, no presentation circle around BOXE, 1.75x Gold lens, seamless waves, hold-K guard');
+console.log('BOT WAVE HUD flow PASS: R16 Ironworks Command, in-bar procedural fire, relic draft, state-driven action motion, no presentation circle around BOXE, 1.75x Gold lens, seamless waves, hold-K guard');

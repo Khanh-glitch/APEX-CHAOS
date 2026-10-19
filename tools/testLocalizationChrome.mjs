@@ -9,9 +9,9 @@ const base=process.env.APEX_APP_URL||'http://127.0.0.1:5173/';
 const port=9471;
 const child=spawn(CHROME,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--remote-allow-origins=*','--remote-debugging-port='+port,'--user-data-dir=/tmp/apex-localization-'+process.pid,'about:blank'],{stdio:'ignore'});
 let ws;let serial=0;const pending=new Map();
-function cmd(method,params={}){
+function cmd(method,params={},timeoutMs=45000){
  const id=++serial;return new Promise((resolve,reject)=>{
-   const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method+' timeout'));},45000);
+   const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method+' timeout'));},timeoutMs);
    pending.set(id,{resolve:x=>{clearTimeout(timer);resolve(x)},reject:e=>{clearTimeout(timer);reject(e)}});
    ws.send(JSON.stringify({id,method,params}));
  });
@@ -29,7 +29,10 @@ async function until(code,ms=40000){
  return false;
 }
 async function capture(name){
- const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+ const metrics=await cmd('Page.getLayoutMetrics');
+ const size=metrics.cssContentSize||metrics.contentSize||{width:1440,height:900};
+ const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,fromSurface:true,
+   clip:{x:0,y:0,width:Math.ceil(size.width),height:Math.ceil(size.height),scale:1}},240000);
  await writeFile('docs/acceptance/localization/'+name+'.png',Buffer.from(shot.data,'base64'));
 }
 
@@ -116,10 +119,12 @@ try{
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('ready')})()"),view.id+' HOME ready');
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.body?.dataset?.apexSceneTransition==='DONE'})()"),view.id+' transition fully opened');
    await sleep(200);
-   const report=await run(`(()=>{
+   const report=await run(`(async()=>{
      const w=window.__apexGoldFidelity?.child()||window,d=w.document;
      const picker=d.querySelector('#apex-language-select');
      w.APEX_I18N.setLanguage('vie');
+     await d.fonts.ready;
+     await new Promise(r=>w.requestAnimationFrame(()=>w.requestAnimationFrame(r)));
      const title=d.querySelector('.storyTitle'),button=d.querySelector('#continueStory .label');
      const range=d.createRange();range.selectNodeContents(title);const rect=range.getBoundingClientRect();
      const box=title.getBoundingClientRect(),cta=d.querySelector('#continueStory').getBoundingClientRect();

@@ -13,8 +13,9 @@ async function gameFrame(page){
 }
 async function openArchive(frame){
  await frame.click('#apex-boot-start');
- await frame.waitForSelector('.apex-skin-entry',{visible:true,timeout:55000});
- await frame.click('.apex-skin-entry');
+ await frame.waitForSelector('#apexDictionaryOpen',{visible:true,timeout:55000});
+ await frame.waitForFunction(()=>!document.getElementById('apex-boot-start')&&!window.APEX_SCENE_TRANSITION?.active?.(),{timeout:55000});
+ await frame.click('#apexDictionaryOpen');
  await frame.waitForSelector('#fa3-title',{visible:true,timeout:50000});
 }
 async function chooseWeapon(frame){
@@ -56,7 +57,7 @@ try{
    // into three per page. The registry truth remains SIX; avoid demanding a
    // vertically scrolling six-row index on a 390px phone.
    const count=await game.$eval('.fa3-index-head',e=>e.textContent);
-   assert.match(count,/08 FILES/,'Six original fighters plus BOXE and SHURI must exist in registry');
+   assert.match(count,/FIGHTERS\s*14/,'Eight playable fighters plus six locked dossiers must exist in registry');
    assert.equal(names.length,v.width<540?3:6,'first no-scroll fighter folio retains six-per-page desktop / three-per-page mobile capacity');
    await game.$eval('.fa3-players button:last-child',e=>e.click());
    const side=await game.$eval('.fa3-equip-state',e=>e.textContent);
@@ -85,8 +86,8 @@ try{
    }));
    assert.deepEqual(proof,{p1:'default',p2:'qa-alt',stored:'qa-alt'},'P2 equip/write isolated and persistent');
    await game.$eval('.fa3-close',e=>e.click());
-   await game.waitForSelector('.apex-skin-entry',{visible:true,timeout:15000});
-   await game.$eval('.apex-skin-entry',e=>e.click());
+   await game.waitForSelector('#apexDictionaryOpen',{visible:true,timeout:15000});
+   await game.$eval('#apexDictionaryOpen',e=>e.click());
    await game.waitForSelector('#fa3-title',{visible:true,timeout:30000});
    assert.equal(await game.evaluate(()=>window.APEX_COSMETICS.selected('p2','weapon','RPG_7').id),'qa-alt');
    // New process: registered synthetic pack is absent until runtime re-registers.

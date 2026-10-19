@@ -33,8 +33,8 @@ const ui=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js','utf8')
 const home=fs.readFileSync('src/App.jsx','utf8');
 assert.ok(ui.includes('boxe:1.95,weapons:.14')&&!ui.includes('bw-action-art')&&
  home.includes('class="apex-wave-entry-art"')&&
- home.includes('/assets/dictionary/heroes/boxe/standing.png'),
- 'The original BOXE art must belong to Home event entry, not J/K/L/U/I keys');
+ home.includes('/assets/dictionary/heroes/boxe/avatar.png'),
+ 'The transparent BOXE avatar must belong to Home event entry, not J/K/L/U/I keys');
 const av=fs.readFileSync('public/game/arsenal/arsenalPresentationRuntime.js','utf8');
 assert.ok(av.includes('createDynamicsCompressor')&&av.includes('if(released)return'));
 console.log('PASS BOT WAVE R7 native knockback on five directions, exact HP amount, source Arsenal shells and Gold audio headroom');

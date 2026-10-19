@@ -222,7 +222,6 @@ export default function FieldArchiveC03(){
  function changeSide(next){setSide(next);if(current){const selected=cosmetics.selected(next,kind,current.id).id;setPreview(selected);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(kind,current.id).findIndex(v=>v.id===selected)/2)))}}
  function equip(){if(!current||!chosen||activePreview===worn?.id)return;const result=cosmetics.equip(side,kind,current.id,chosen.id);if(result.ok)setWarning(result.persisted===false)}
  return <>
-  {home&&!open&&<button type="button" className="apex-skin-entry" onClick={()=>void launch()} disabled={loading} title="Open Field Archive: fighters, weapons and skins"><span className="apex-skin-entry-mark" aria-hidden="true">✦</span><span>{loading?'LOADING':'ARCHIVE'}</span><span aria-hidden="true">↗</span></button>}
   {pick&&!open&&pickHost&&createPortal(<button type="button" className="fa3-pick-equip-entry" aria-label="Open skins for selected fighter and player" onClick={()=>void launch('pick')} disabled={loading}><span>✦</span> {loading?'PREPARING':'SKINS'} <b>↗</b></button>,pickHost)}
   {home&&!open&&error&&<div className="apex-skin-error" role="alert">Archive unavailable: {error}<button type="button" onClick={()=>setError('')}>×</button></div>}
   {open&&<div className="fa3-overlay apex-cosmetics-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}} onKeyDownCapture={e=>{

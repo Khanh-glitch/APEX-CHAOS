@@ -44,8 +44,8 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
     actionArt:root?.querySelectorAll('img').length||0};
   });
   assert.ok(homeArt.loaded&&homeArt.actionArt===1&&
-    homeArt.src==='/assets/dictionary/heroes/boxe/standing.png',
-    'Home BOT WAVE entry must be illustrated by the original BOXE standing artwork '+JSON.stringify(homeArt));
+    homeArt.src==='/assets/dictionary/heroes/boxe/avatar.png',
+    'Home BOT WAVE entry must use the transparent BOXE avatar artwork '+JSON.stringify(homeArt));
   // R9: layout must clear the original FREE BATTLE CTA; a nice screenshot
   // is NOT a test if its event card covers the real game controls.
   const homeGeometry=await page.evaluate(()=>{
@@ -59,6 +59,11 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
   });
   assert.equal(homeGeometry.overlapArea,0,'Home BOT WAVE overlaps FREE BATTLE '+JSON.stringify(homeGeometry));
   assert.equal(homeGeometry.titleClipped,false,'Home BOT WAVE title clipped '+JSON.stringify(homeGeometry));
+  const homeArchiveRoutes=await page.evaluate(()=>({
+    floatingArchive:!!document.querySelector('.apex-skin-entry'),
+    dictionaryRoute:!!document.querySelector('#apexDictionaryOpen')}));
+  assert.ok(!homeArchiveRoutes.floatingArchive&&homeArchiveRoutes.dictionaryRoute,
+    'Home must keep only the lower Dictionary/Archive route '+JSON.stringify(homeArchiveRoutes));
   console.log('BOT WAVE R9 owner Home layout PASS',view.name,homeGeometry);
   await page.screenshot({path:path.join(output,view.name+'-home-special-icon.png')});
   await page.$eval('#botWaveEntry',el=>el.click());
@@ -143,6 +148,13 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      forgeFire:!!document.getElementById('bw-fire-canvas')&&!!document.getElementById('bw-ember-canvas'),
      fireBand:document.getElementById('bw-fire-canvas')?.getBoundingClientRect().height||999,
      paneless:document.querySelector('.bw-paneless-crest')?.dataset.presentation==='paneless-crest',
+     ironSpine:!!document.querySelector('.bw-spine-frame'),
+     minimapArmor:document.querySelectorAll('.bw-minimap-armor i').length,
+     skillDock:!!document.querySelector('.bw-skill-dock'),
+     actionLocks:document.querySelectorAll('.bw-action-lock').length,
+     actionOrder:[...document.querySelectorAll('.bw-skill-deck .w-action')]
+       .sort((a,b)=>a.getBoundingClientRect().left-b.getBoundingClientRect().left)
+       .map(button=>button.dataset.act).join(''),
      noPlayerCircles:!document.querySelector('.bw-damage-wedge')&&!document.querySelector('.bw-heal-halo'),
      relicDraft:document.querySelector('.w-dialog')?.dataset.presentation==='relic-draft',
      fireRenderer:window.APEX_BOT_WAVE_INTERFACE_V2?.fireRenderer?.()||'missing',
@@ -153,9 +165,9 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      pressureMeter:!!document.getElementById('bw-pressure-fill'),
      debugHidden:!document.getElementById('arena-experience-tools')||getComputedStyle(document.getElementById('arena-experience-tools')).display==='none',
    }));
-   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.portraitRetired&&interfaceRead.minimap&&interfaceRead.forgeFire&&interfaceRead.fireBand<=32&&interfaceRead.paneless&&interfaceRead.noPlayerCircles&&interfaceRead.relicDraft&&['webgl-fbm-domain-warp','particle-fallback'].includes(interfaceRead.fireRenderer)&&interfaceRead.pauseCommand&&interfaceRead.modalArt&&interfaceRead.debugHidden
+   assert.ok(interfaceRead.standalone&&interfaceRead.hero&&interfaceRead.portraitRetired&&interfaceRead.minimap&&interfaceRead.forgeFire&&interfaceRead.fireBand<=32&&interfaceRead.paneless&&interfaceRead.ironSpine&&interfaceRead.minimapArmor===8&&interfaceRead.skillDock&&interfaceRead.actionLocks===5&&interfaceRead.actionOrder==='IUJKL'&&interfaceRead.noPlayerCircles&&interfaceRead.relicDraft&&['webgl-fbm-domain-warp','particle-fallback'].includes(interfaceRead.fireRenderer)&&interfaceRead.pauseCommand&&interfaceRead.modalArt&&interfaceRead.debugHidden
        &&interfaceRead.tenBeats===10&&interfaceRead.controls===5&&interfaceRead.drawnSkillArt===0&&interfaceRead.pressureMeter,
-      'R15 Paneless Forge HUD not rebuilt '+JSON.stringify(interfaceRead));
+      'R16 Ironworks Command HUD not rebuilt '+JSON.stringify(interfaceRead));
    // Resident Gold Home must NOT leave its separate Archive button above Wave.
    const inheritedHome=await page.evaluate(()=>{
      const archive=document.querySelector('.apex-skin-entry');
@@ -193,12 +205,12 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
        minimap:rect('.bw-minimap'),skills:rect('.bw-skill-deck'),return:null};
    });
    const {w,h}=hudGeometry.screen;
-   assert.ok(hudGeometry.hero?.width<=360&&hudGeometry.hero?.height<=110&&
-     hudGeometry.center?.width<=680&&hudGeometry.center?.height<=64&&hudGeometry.center?.y<=18&&
-     hudGeometry.minimap?.width<=196&&hudGeometry.minimap?.height<=230&&hudGeometry.skills?.width<=300&&
-     hudGeometry.skills?.height<=105&&hudGeometry.skills?.y>=h*.78,
-     'R15 HUD occupies playable arena '+JSON.stringify(hudGeometry));
-   console.log('BOT WAVE R15 playable-area UI bounds PASS',view.name,hudGeometry);
+   assert.ok(hudGeometry.hero?.width<=460&&hudGeometry.hero?.height<=118&&
+     hudGeometry.center?.width<=710&&hudGeometry.center?.height<=108&&hudGeometry.center?.y<=18&&
+     hudGeometry.minimap?.width<=232&&hudGeometry.minimap?.height<=262&&hudGeometry.skills?.width<=500&&
+     hudGeometry.skills?.height<=194&&hudGeometry.skills?.y>=h*.62,
+     'R16 HUD occupies playable arena '+JSON.stringify(hudGeometry));
+   console.log('BOT WAVE R16 playable-area UI bounds PASS',view.name,hudGeometry);
    assert.equal(waveRuntime.gameCanvas,true);
    // Restore-fidelity owner gate: source Gold art, source R2 industrial circular
    // stage, postprocess and BOTH sampled SFX banks must render in a live browser.
@@ -351,7 +363,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      utility:window.APEX_ARSENAL_AV?.stats?.waveUtility||null
    }));
    assert.ok(liveMix.policy?.mix?.gain>0&&liveMix.policy.mix.gain<=.14&&
-     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version?.includes('r14')&&
+     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version==='owner-release-r16-ironworks-final'&&
      liveMix.npcEquipAudioSuppressed>0,
      'Native gun SFX not demonstrably attenuated in live Chromium '+JSON.stringify(liveMix));
    console.log('BOT WAVE R13 actual WebAudio native gun mix PASS',view.name,liveMix);
@@ -410,7 +422,9 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
    assert.equal(milestones[1].revealed,41,'Chapter 7 must expose all native equipment');
    console.log('BOT WAVE live Gold unlimited progression PASS',view.name,milestones);
    console.log('BOXE R7 integrated Gold GAMEPLAY + sprites/SFX PASS',view.name,waveRuntime,checks.length);
-   await page.click('#return');
+   await gameFrame.click('.bw-pause-trigger');
+   await gameFrame.waitForSelector('[data-pause-action="save-exit"]:not([disabled])',{visible:true,timeout:20000});
+   await gameFrame.click('[data-pause-action="save-exit"]');
    await page.waitForFunction(()=>location.pathname==='/' &&
      !document.getElementById('apex-wave-host') &&
      !window.APEX_SCENE_TRANSITION?.active?.(),{timeout:45000});
