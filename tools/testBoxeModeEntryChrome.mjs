@@ -363,7 +363,7 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
      utility:window.APEX_ARSENAL_AV?.stats?.waveUtility||null
    }));
    assert.ok(liveMix.policy?.mix?.gain>0&&liveMix.policy.mix.gain<=.14&&
-     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version==='owner-release-r16-ironworks-final'&&
+     liveMix.actual?.nativeVoiceCap<=4&&liveMix.version==='owner-release-r17-ironworks-refined'&&
      liveMix.npcEquipAudioSuppressed>0,
      'Native gun SFX not demonstrably attenuated in live Chromium '+JSON.stringify(liveMix));
    console.log('BOT WAVE R13 actual WebAudio native gun mix PASS',view.name,liveMix);

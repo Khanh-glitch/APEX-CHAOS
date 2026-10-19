@@ -80,7 +80,7 @@
  linear-gradient(180deg,#ffffff17,transparent 28%),
  repeating-linear-gradient(90deg,transparent 0 13px,#ffffff06 13px 14px,#00000024 14px 15px,transparent 15px 28px),
  linear-gradient(100deg,#ffc37717,transparent 34%,#7ddfff0c),radial-gradient(ellipse at 30% 110%,#ff5a0024,transparent 55%),var(--bw-material);
- box-shadow:var(--bw-bevel-shadow),inset 0 0 0 1px #ffe2b024}
+ box-shadow:var(--bw-bevel-shadow),inset 0 0 0 1px #ffe2b030,inset 0 0 0 3px #00000059,inset 0 0 0 4px #ffe2b014,inset 0 3px 0 #fff3cf4d,inset 0 -4px 0 #00000073}
 #wave-hud .bw-forge-shell:after{content:"";position:absolute;left:0;top:9px;bottom:9px;width:4px;
  background:linear-gradient(180deg,transparent,#ffe1a1 18%,#ffb56a 42%,#ff5a00 76%,transparent);box-shadow:1px 0 0 #000,0 0 14px #ff7a3d88}
 #wave-hud .bw-forge-backlight{position:absolute;z-index:1;left:0;right:0;bottom:-2px;height:26px;
@@ -119,7 +119,7 @@
 #wave-hud .bw-level-core small{font:600 8.5px/1 var(--bw-font-data);letter-spacing:.2em;color:#c9ecfa;text-shadow:0 1px 3px #000}
 #wave-hud .bw-level-core strong{font:700 38px/.88 var(--bw-font-display);color:#fff8e7;
  text-shadow:0 2px 0 #17384a,0 0 17px #8fe8ff70,0 6px 11px #000}
-#wave-hud .bw-level-core span{font:600 7.3px/1 var(--bw-font-data);letter-spacing:.02em;color:#c2d9e6;white-space:nowrap}
+#wave-hud .bw-level-core span{font:600 8.4px/1 var(--bw-font-data);letter-spacing:.02em;color:#dff4ff;white-space:nowrap;text-shadow:0 1px 3px #000,0 0 7px #55b7dd55}
 #wave-hud .bw-level-core .bw-momentum{position:absolute;right:-3px;bottom:-3px;z-index:3;
  width:24px;height:24px;display:grid;place-items:center;color:#201006;
  background:linear-gradient(145deg,#fff0ae,#ff9b57);font:700 13px/1 var(--bw-font-display);
@@ -231,22 +231,32 @@
    now hangs from machined rails: a housed WAVE medallion at center, a beat
    warning arm on the left, a segmented pressure rail on the right, and ten
    rivets carrying cluster progress across the lower beam. */
-#wave-hud .bw-encounter,#wave-hud .bw-paneless-crest{justify-self:center;width:min(700px,calc(100vw - 720px));margin-left:-116px;min-width:0;min-height:80px;position:relative;isolation:isolate;
+#wave-hud .bw-encounter,#wave-hud .bw-paneless-crest{justify-self:center;width:min(620px,calc(100vw - 720px));margin-left:-116px;min-width:0;min-height:80px;position:relative;isolation:isolate;
  display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-rows:auto auto;align-items:center;
  column-gap:18px;padding:5px 16px 18px;background:transparent;border:0;box-shadow:none;clip-path:none;backdrop-filter:none}
+/* R17: viewport-true centering on desktop. The old fixed -116px margin only
+   centered the WAVE core at one exact window width; at every other width the
+   core drifted off-axis and the left rail slid into the pause trigger. The
+   spine now hangs from the true viewport axis at any desktop width. */
+@media (min-width:1101px){
+ #wave-hud .bw-top{grid-template-columns:minmax(420px,452px) minmax(0,1fr) 226px}
+ #wave-hud .bw-hero{grid-column:1}
+ #wave-hud .bw-minimap{grid-column:3}
+ #wave-hud .bw-encounter{position:absolute;top:12px;left:50%;translate:-50% 0;margin:0;width:min(620px,calc(100vw - 760px));z-index:3}
+}
 #wave-hud .bw-spine-frame{position:absolute;inset:1px 0 10px;z-index:-2;pointer-events:none;
- background:linear-gradient(90deg,transparent,#ffdf9b66 18%,#ffdf9bb8 50%,#ffdf9b66 82%,transparent) center top/100% 2px no-repeat,
- linear-gradient(90deg,transparent,#6b4c338c 16%,#ffdf9b59 50%,#6b4c338c 84%,transparent) center bottom/100% 3px no-repeat;
+ background:linear-gradient(90deg,transparent,#ffdf9b66 18%,#ffdf9bb8 50%,#ffdf9b66 82%,transparent) center top/68% 2px no-repeat,
+ linear-gradient(90deg,transparent,#6b4c338c 16%,#ffdf9b59 50%,#6b4c338c 84%,transparent) center bottom/68% 3px no-repeat;
  filter:drop-shadow(0 2px 3px #000) drop-shadow(0 0 7px #0009)}
-#wave-hud .bw-spine-frame i{position:absolute;top:26px;width:33%;height:18px;opacity:.96;
+#wave-hud .bw-spine-frame i{position:absolute;top:26px;width:23%;height:18px;opacity:.96;
  background:linear-gradient(180deg,#3b3030,#0a0e16 70%),repeating-linear-gradient(90deg,transparent 0 12px,#ffffff08 12px 13px,transparent 13px 25px);
  box-shadow:inset 0 2px 0 #ffe8bd38,inset 0 -2px 0 #000,inset 0 -8px 12px #000a,0 8px 14px #0007}
-#wave-hud .bw-spine-frame i.is-left{left:0;clip-path:polygon(0 24%,100% 0,96% 100%,0 100%)}
-#wave-hud .bw-spine-frame i.is-right{right:0;clip-path:polygon(0 0,100% 24%,100% 100%,4% 100%)}
+#wave-hud .bw-spine-frame i.is-left{left:8%;clip-path:polygon(0 24%,100% 0,96% 100%,0 100%)}
+#wave-hud .bw-spine-frame i.is-right{right:8%;clip-path:polygon(0 0,100% 24%,100% 100%,4% 100%)}
 #wave-hud .bw-spine-frame b{position:absolute;left:50%;top:-6px;width:46px;height:10px;transform:translateX(-50%);
  background:linear-gradient(180deg,#ffe9b8,#8a5a34 38%,#11151d 72%);clip-path:polygon(12% 0,88% 0,100% 100%,0 100%);
  box-shadow:inset 0 1px 0 #fff8;filter:drop-shadow(0 4px 6px #000c)}
-#wave-hud .bw-paneless-crest:before{content:"";position:absolute;left:2%;right:2%;bottom:8px;height:3px;z-index:-1;
+#wave-hud .bw-paneless-crest:before{content:"";position:absolute;left:22%;right:22%;bottom:8px;height:3px;z-index:-1;
  background:linear-gradient(180deg,#ffe9b84d,transparent 45%,#0009),linear-gradient(90deg,transparent,color-mix(in srgb,var(--bw-beat-accent) 52%,#ffdf9b 16%) 18%,#ffdf9ba6 50%,color-mix(in srgb,var(--bw-beat-accent) 52%,#ffdf9b 16%) 82%,transparent);
  box-shadow:0 1px 0 #000,0 3px 7px #000a;
  filter:drop-shadow(0 1px 2px #000) drop-shadow(0 0 6px color-mix(in srgb,var(--bw-beat-accent) 30%,transparent))}
@@ -318,6 +328,22 @@
 #wave-hud .bw-oracle strong{color:#eaffef;font:700 13px/1 var(--bw-font-display);letter-spacing:.06em}
 #wave-hud .bw-oracle span:not(.bw-oracle-kicker){color:#ffe1a1;font:600 7.5px/1 var(--bw-font-data);letter-spacing:.06em}
 #wave-hud .bw-oracle small{color:#cfe7d8;font:600 7.5px/1 var(--bw-font-data)}
+/* R17 announcement: compact machined plaque hung under the wave spine.
+   It replaces Gold's center-screen canvas banner for wave start/clear in
+   top-down play, so the announcement never draws over BOXE. */
+#wave-hud .bw-announce{position:absolute;z-index:6;left:50%;top:106px;translate:-50% 0;
+ display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 30px 8px;
+ pointer-events:none;text-align:center;white-space:nowrap;opacity:0;transform:translateY(-7px) scale(.965);transform-origin:top center;
+ background:linear-gradient(180deg,#ffe9b81a,transparent 36%),linear-gradient(160deg,#241a20,#070b13 68%,#120c10);
+ clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%);
+ box-shadow:inset 0 2px 0 #ffe8bd40,inset 0 -3px 0 #000,inset 0 -14px 20px #000b;
+ filter:drop-shadow(0 12px 18px #000c);transition:opacity .26s ease,transform .34s cubic-bezier(.18,1.24,.3,1)}
+#wave-hud .bw-announce.is-show{opacity:1;transform:none}
+#wave-hud .bw-announce strong{display:block;font:700 25px/.95 var(--bw-font-display);letter-spacing:.09em;
+ color:transparent;background:var(--bw-metal-text);-webkit-background-clip:text;background-clip:text;
+ filter:drop-shadow(0 2px 0 #472414) drop-shadow(0 3px 8px #000)}
+#wave-hud .bw-announce span{display:block;color:#ffd9a6;font:600 8.5px/1.2 var(--bw-font-data);
+ letter-spacing:.24em;text-shadow:0 1px 3px #000,0 0 9px #ff9b5740}
 #wave-hud #bw-pressure-fill{position:absolute;left:0;bottom:1px;z-index:1;height:4px;
  width:calc(var(--bw-pressure,0)*100%);background:linear-gradient(180deg,#fff0ae66,transparent 45%),linear-gradient(90deg,#b56335,#ffb36b 58%,#fff0ae);
  box-shadow:0 1px 3px #000,0 0 9px #ff9b575e;transition:width .15s ease}
@@ -424,11 +450,11 @@
 #wave-hud .bw-skill-deck{align-self:flex-end;min-width:0;position:relative;isolation:isolate;
  margin-left:auto;padding:8px 0 0;background:none;border:0;box-shadow:none;clip-path:none}
 #wave-hud .bw-skill-deck:before{content:"";position:absolute;z-index:-2;right:-15px;bottom:-9px;
- width:min(560px,56vw);height:168px;pointer-events:none;
- background:linear-gradient(180deg,#ffe9b81f,transparent 26%),repeating-linear-gradient(90deg,transparent 0 17px,#ffffff05 17px 18px,#00000026 18px 19px,transparent 19px 36px),linear-gradient(155deg,#2b252c,#090d16 62%,#05070c);
- clip-path:polygon(7% 24%,88% 0,100% 14%,100% 100%,0 100%,0 48%);
- box-shadow:inset 0 2px 0 #ffe8bd33,inset 0 -30px 42px #000c,inset 18px 0 30px -24px #ffdf9b66;opacity:.97}
-#wave-hud .bw-skill-deck:after{content:"";position:absolute;z-index:-1;right:2px;bottom:146px;
+ width:min(500px,54vw);height:104px;pointer-events:none;
+ background:linear-gradient(180deg,#ffe9b81f,transparent 30%),repeating-linear-gradient(90deg,transparent 0 17px,#ffffff05 17px 18px,#00000026 18px 19px,transparent 19px 36px),linear-gradient(155deg,#2b252c,#090d16 62%,#05070c);
+ clip-path:polygon(10% 34%,86% 0,100% 20%,100% 100%,0 100%,0 58%);
+ box-shadow:inset 0 2px 0 #ffe8bd40,inset 0 -24px 32px #000c,inset 18px 0 30px -24px #ffdf9b66;opacity:.97}
+#wave-hud .bw-skill-deck:after{content:"";position:absolute;z-index:-1;right:2px;bottom:96px;
  width:calc(100% - 12px);height:3px;transform:skewX(-14deg);pointer-events:none;
  background:linear-gradient(90deg,transparent,#6b4c338c 14%,#ffdf9ba6 52%,color-mix(in srgb,var(--bw-beat-accent) 58%,transparent));
  box-shadow:0 2px 4px #000,0 0 10px color-mix(in srgb,var(--bw-beat-accent) 25%,transparent)}
@@ -442,7 +468,7 @@
 #wave-hud .bw-skill-dock i:nth-child(3){right:22px}
 #wave-hud .w-actions{position:static!important;display:flex!important;flex-direction:row!important;
  justify-content:flex-end!important;align-items:center!important;gap:13px!important;
- padding:16px 18px 58px 26px!important;pointer-events:auto!important}
+ padding:20px 16px 32px 22px!important;pointer-events:auto!important}
 #wave-hud .w-action{--bw-action-accent:#ffbb71;--bw-action-lift:0px;position:relative!important;
  width:78px!important;min-width:0!important;height:78px!important;flex:none!important;
  overflow:visible!important;isolation:isolate;transform:translateY(var(--bw-action-lift));
@@ -476,12 +502,12 @@
  background:radial-gradient(circle at 50% 25%,#66502e,#211c25 56%,#0d1420)!important}
 #wave-hud .w-action[data-act="L"]{order:5;--bw-action-accent:#8fe8ff;--bw-action-lift:0px;animation-delay:.44s;
  background:radial-gradient(circle at 50% 25%,#2a5064,#17202e 58%,#0a101b)!important}
-#wave-hud .w-action small{position:absolute!important;z-index:3;left:50%;top:calc(100% + 19px);right:auto;
+#wave-hud .w-action small{position:absolute!important;z-index:3;left:50%;top:calc(100% + 8px);right:auto;
  width:max-content;max-width:96px;transform:translateX(-50%);
- font:600 9.5px/1.1 "ApexVietCondensed","Oswald",system-ui,sans-serif!important;color:#f7e7ca!important;text-align:center;
+ font:600 10px/1.1 "ApexVietCondensed","Oswald",system-ui,sans-serif!important;color:#f7e7ca!important;text-align:center;
  letter-spacing:.07em;white-space:nowrap;text-shadow:0 1px 3px #000,0 0 8px #000c}
-#wave-hud .w-action[data-act="I"] small,#wave-hud .w-action[data-act="U"] small{top:calc(100% + 22px)}
-#wave-hud .w-action[data-act="J"] small{top:calc(100% + 13px);color:#ffb38a!important;font-size:11.5px!important;letter-spacing:.1em}
+#wave-hud .w-action[data-act="I"] small,#wave-hud .w-action[data-act="U"] small{top:calc(100% + 8px)}
+#wave-hud .w-action[data-act="J"] small{top:calc(100% + 8px);color:#ffb38a!important;font-size:11.5px!important;letter-spacing:.1em}
 #wave-hud .w-action.bw-deployed{animation:none}
 #wave-hud .w-action[disabled]{opacity:.78!important;filter:grayscale(.55) brightness(.68) saturate(.72)}
 #wave-hud .w-action[disabled] .bw-action-glyph{opacity:0}
@@ -492,21 +518,27 @@
 #wave-hud .w-action[disabled] .bw-action-lock{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #wave-hud .w-action.on{filter:brightness(1.32) saturate(1.12)!important;transform:translateY(calc(var(--bw-action-lift) + 3px)) scale(.93)!important}
 #wave-hud .w-action:focus-visible{outline:2px solid #ffe2aa;outline-offset:4px}
-#wave-hud .w-action-key{position:absolute;z-index:5;top:calc(100% + 35px);left:50%;min-width:20px;height:18px;
+#wave-hud .w-action-key{position:absolute;z-index:6;top:-11px;left:50%;min-width:20px;height:18px;
  transform:translateX(-50%);padding:3px 4px 1px;text-align:center;
  border:1px solid color-mix(in srgb,var(--bw-action-accent) 62%,#ffe2aa 14%);border-bottom:3px solid #000;border-radius:3px;
  background:linear-gradient(180deg,#453a35,#171016 58%,#04060a);box-shadow:inset 0 1px 0 #fff3,inset 0 -4px 6px #000a,0 5px 9px #000b,0 0 8px color-mix(in srgb,var(--bw-action-accent) 20%,transparent);
  font:600 9px/1 "JetBrains Mono",ui-monospace,monospace;color:#fff3d6;text-shadow:0 1px 3px #000}
-#wave-hud .w-action[data-act="I"] .w-action-key,#wave-hud .w-action[data-act="U"] .w-action-key{top:calc(100% + 38px)}
-#wave-hud .w-action[data-act="J"] .w-action-key{top:calc(100% + 29px);min-width:22px;height:20px;font-size:10px;padding-top:4px}
+#wave-hud .w-action[data-act="I"] .w-action-key,#wave-hud .w-action[data-act="U"] .w-action-key{top:-10px}
+#wave-hud .w-action[data-act="J"] .w-action-key{top:-12px;min-width:22px;height:20px;font-size:10px;padding-top:4px}
 #wave-hud .bw-action-glyph{position:absolute;z-index:1;top:50%;left:50%;width:36px;height:36px;
  transform:translate(-50%,-50%);color:var(--bw-action-accent);pointer-events:none;
  filter:drop-shadow(0 2px 3px #000d) drop-shadow(0 0 8px color-mix(in srgb,var(--bw-action-accent) 46%,transparent));
  transition:opacity .16s ease,filter .16s ease}
 #wave-hud .bw-action-glyph svg{width:100%;height:100%;display:block;overflow:visible;
  fill:color-mix(in srgb,var(--bw-action-accent) 20%,transparent);stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-#wave-hud .w-action[data-act="J"] .bw-action-glyph{width:52px;height:52px;color:#fff1d6;transform:translate(-50%,-50%) rotate(-8deg)}
-#wave-hud .w-action[data-act="J"] .bw-action-glyph svg{fill:#fff3dc;stroke:#7a3218;stroke-width:1.05}
+#wave-hud .w-action[data-act="J"] .bw-action-glyph{width:56px;height:56px;color:#fff1d6;transform:translate(-50%,-50%) rotate(-8deg)}
+#wave-hud .w-action[data-act="J"] .bw-action-glyph svg{fill:none;stroke:none}
+/* BOXE's actual glove: red leather, cream cuff, yellow bolt — readable at
+   medallion size instead of a white fist silhouette. */
+#wave-hud .w-action[data-act="J"] .bw-action-glyph .gl-body{fill:#cf341f;stroke:#4a0f08;stroke-width:1.1}
+#wave-hud .w-action[data-act="J"] .bw-action-glyph .gl-cuff{fill:#f3e2c2;stroke:#4a0f08;stroke-width:.9}
+#wave-hud .w-action[data-act="J"] .bw-action-glyph .gl-bolt{fill:#ffd23c;stroke:#7a4d00;stroke-width:.55}
+#wave-hud .w-action[data-act="J"] .bw-action-glyph .gl-seam{fill:none;stroke:#6d1709;stroke-width:.9}
 #wave-hud .w-action[data-act="U"] .bw-action-glyph,#wave-hud .w-action[data-act="I"] .bw-action-glyph{width:29px;height:29px}
 #wave-hud .w-action .w-cd{position:absolute;z-index:2;inset:-2px;border-radius:50%;pointer-events:none;opacity:0;
  background:
@@ -1086,10 +1118,12 @@
  #wave-hud .bw-movement #wave-stick{display:block!important;width:60px!important;height:60px!important}
  #wave-hud .bw-joystick-caption{display:none}
  #wave-hud .bw-skill-deck{padding-top:7px}
- #wave-hud .bw-skill-deck:before{width:min(380px,58vw);height:124px;right:-9px;bottom:-7px}
- #wave-hud .bw-skill-deck:after{bottom:110px}
+ #wave-hud .bw-skill-deck:before{width:min(380px,58vw);height:86px;right:-9px;bottom:-7px}
+ #wave-hud .bw-skill-deck:after{bottom:78px}
+ #wave-hud .bw-announce{top:82px;padding:5px 20px 6px}
+ #wave-hud .bw-announce strong{font-size:21px}
  #wave-hud .bw-skill-dock{height:42px;left:5px;right:-4px}
- #wave-hud .w-actions{gap:8px!important;padding:10px 10px 44px 14px!important}
+ #wave-hud .w-actions{gap:8px!important;padding:14px 10px 28px 14px!important}
  #wave-hud .w-action{width:54px!important;height:54px!important;font-size:16px!important}
  #wave-hud .w-action[data-act="J"]{width:70px!important;height:70px!important}
  #wave-hud .w-action[data-act="U"],#wave-hud .w-action[data-act="I"]{width:46px!important;height:46px!important}
@@ -1161,9 +1195,9 @@
  #wave-hud #wave-status{top:216px!important;max-width:72vw!important}
  #arena-experience-hud #r2-boss-panel{top:216px!important;left:50%!important;width:min(340px,86vw)!important}
  #wave-hud .bw-movement #wave-stick{width:50px!important;height:50px!important}
- #wave-hud .bw-skill-deck:before{width:280px;height:96px}
- #wave-hud .bw-skill-deck:after{bottom:80px}
- #wave-hud .w-actions{gap:5px!important;padding:8px 7px 34px 9px!important}
+ #wave-hud .bw-skill-deck:before{width:280px;height:68px}
+ #wave-hud .bw-skill-deck:after{bottom:60px}
+ #wave-hud .w-actions{gap:5px!important;padding:12px 7px 24px 9px!important}
  #wave-hud .w-action{width:43px!important;height:43px!important}
  #wave-hud .w-action[data-act="J"]{width:54px!important;height:54px!important}
  #wave-hud .w-action[data-act="U"],#wave-hud .w-action[data-act="I"]{width:36px!important;height:36px!important}

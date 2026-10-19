@@ -7039,7 +7039,11 @@ function startWave(){if(state.phase==='combat'||state.phase==='upgrade'||state.p
  state.hudBeatId=comp.plan.beat;state.hudBeatIndex=(comp.plan.clusterWave||1)-1;state.hudPattern=comp.plan.pattern||'';state.hudNewWeapons=[...(comp.plan.newWeapons||[])];
  state.waveKills=0;state.waveDamageDealt=0;state.waveDamageReceived=0;state.lastDamageAt=-9;state.lastDamageAmount=0;
  state.softCap=comp.plan.concurrentLimit;state.spawnInterval=comp.plan.spawnInterval||.37;state.pressureBudget=comp.plan.pressureBudget||260;ARENA_STAGE.beginWave(state.wave);engine.paused=false;engine.combatCue('WAVE_START',.8);engine.log('WAVE '+state.wave+' · '+comp.label,'#f6b73c');
- engine.banner={text:'WAVE '+String(state.wave).padStart(2,'0'),sub:comp.label,t:1.8,max:1.8};
+ // R17: wave announcements belong to the presentation layer. Gold's canvas
+ // banner draws at screen center (correct for side-view Free Battle), but in
+ // top-down BOT WAVE that is exactly where BOXE stands, so the pilot only
+ // publishes the announcement through state and V2 renders it under the spine.
+ state.announce={text:'WAVE '+String(state.wave).padStart(2,'0'),sub:comp.label,at:engine.time};
 }
 function makeEnemy(desc){
  const baseIndex=state.shots++,four=['top','right','bottom','left'];
@@ -7068,7 +7072,7 @@ function waveClearTransitionUI(comp,healed){
  const boss=!!comp.plan.boss,nextWave=state.wave+1,delay=boss?3:2.2;
  UI['wave-modal'].hidden=true;
  setWaveToast((boss?'CLUSTER CLEAR':'WAVE '+String(state.wave).padStart(2,'0')+' CLEAR')+' · +'+formatHudInt(healed)+' HP · NEXT '+Math.ceil(delay)+'s',delay);
- engine.banner={text:boss?'CLUSTER CLEAR':'WAVE '+String(state.wave).padStart(2,'0')+' CLEAR',sub:'+'+formatHudInt(healed)+' HP · WAVE '+String(nextWave).padStart(2,'0')+' INCOMING',t:1.55,max:1.55};
+ state.announce={text:boss?'CLUSTER CLEAR':'WAVE '+String(state.wave).padStart(2,'0')+' CLEAR',sub:'+'+formatHudInt(healed)+' HP · WAVE '+String(nextWave).padStart(2,'0')+' INCOMING',at:engine.time};
  return delay;
 }
 function completeWave(){if(state.phase!=='combat')return;
@@ -7302,6 +7306,21 @@ function castGoldSkill(id){
 engine.castSkill=function(id){if(!({jab:'jab',uppercut:'uppercut',counter:'counter',phantom:'phantom',ult:'ult'}[id]&&state.owned.has(id)))return false;return castGoldSkill(id)};
 const nativeDash=engine.dash.bind(engine);
 engine.dash=function(){const beforeCd=this.player.dashCd;const result=nativeDash();if(this.player.dashCd>beforeCd&&state.dashCdMul!==1)this.player.dashCd*=state.dashCdMul;return result;};
+// R17: Gold's dash body-ghosts are authored for side-view (cyan #38e1ff, one
+// full silhouette per frame). In top-down BOT WAVE a vertical or sticky-assist
+// dash stacks ~20 cyan capes into a solid cone under BOXE. Keep the native
+// ghost system, but warm the dash tint to BOXE's palette and decimate by
+// distance so ghosts read as speed lines, never as a mass. BOT WAVE document
+// only; Free Battle keeps the original cyan ghosts untouched.
+const nativeAfter=engine.after.bind(engine);
+let lastDashGhostX=1e9,lastDashGhostY=1e9;
+engine.after=function(x,y,angle,kind,color,mirror){
+ if(kind==='body'&&color==='#38e1ff'&&this.player&&this.player.dashT>0){
+  if(Math.hypot(x-lastDashGhostX,y-lastDashGhostY)<30)return;
+  lastDashGhostX=x;lastDashGhostY=y;color='#ff9a3c';
+ }
+ return nativeAfter(x,y,angle,kind,color,mirror);
+};
 // A roll is attached to every real successful punch impact, not arbitrary J spam.
 // Original Gold renderer and VFX are untouched; only the event hook is additive.
 engine.waveRocketRoll=function(source){
