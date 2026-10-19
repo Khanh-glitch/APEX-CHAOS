@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261018-botwave-r19';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261020-a1-r20';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -108,6 +108,9 @@ export const ARSENAL_SHARED_ENGINE_RUNTIMES = [
 export const ARSENAL_PRODUCT_RUNTIMES = [
   ...ARSENAL_SHARED_ENGINE_RUNTIMES,
   ['/game/gold/goldProductBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGoldProductBridge'],
+  // A1.5 skill details (mirrors the ARSENAL_HUB tuple — hub files ship in
+  // both groups so the asset audit's shipping derivation can see them).
+  ['/game/ui/skillDetailsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexSkillDetailsRuntime'],
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
   ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
   ['/game/results/ownerAwards.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexResultOwnerCatalog'],

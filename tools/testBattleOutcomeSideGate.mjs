@@ -14,7 +14,11 @@ check('debug exposes winner side', battle.includes('winnerSide: state.winnerSide
 check('Gold reads winner side first', bridge.includes("state && state.winnerSide === 'P1' ? 0") && bridge.includes("state && state.winnerSide === 'P2' ? 1"));
 check('legacy name fallback rejects ambiguity', bridge.includes('if (matches.length === 1) winnerIdx = matches[0]'));
 check('Gold no longer uses findIndex by fighter name for winner', !bridge.includes("fighters.findIndex((f) => f && String(f.name) === over)"));
-check('economy reward is side-authoritative', meta.includes("const won = winnerSide === 'P1'"));
+// A1: the reward remains side-authoritative (never fighter-name based) and
+// is now also mode-authoritative — the amount derives from the actual
+// battleMode (BOT/LOCAL), not from winnerSide alone.
+check('economy reward is side-authoritative', meta.includes("const p1Won = winnerSide === 'P1'"));
+check('economy reward is mode-authoritative (A1)', meta.includes("const mode = String(current.battleMode || '').toUpperCase()") && meta.includes('MATCH_REWARDS'));
 
 console.log(['BATTLE OUTCOME SIDE GATE',...passes].join('\n'));
 if(failures.length){console.error(failures.join('\n'));process.exit(1);}

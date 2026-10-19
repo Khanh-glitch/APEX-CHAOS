@@ -18,7 +18,9 @@
   ];
 
   const CSS = `
-    .apex-skill-details-btn{display:inline-flex;align-items:center;gap:7px;margin-top:9px;min-height:34px;
+    /* The Gold fighter sides are pointer-events:none stages; interactive
+       children must explicitly opt back in (same law as the roster cards). */
+    .apex-skill-details-btn{pointer-events:auto;display:inline-flex;align-items:center;gap:7px;margin-top:9px;min-height:34px;
       padding:6px 12px;border:1px solid color-mix(in srgb,var(--heroAccent,#d7bd72) 55%,rgba(238,231,219,.14));
       background:linear-gradient(180deg,rgba(22,24,28,.88),rgba(9,10,13,.9));color:#f2e9d5;cursor:pointer;
       font:800 10px/1 "ApcKanit","Segoe UI",sans-serif;letter-spacing:.16em;text-transform:uppercase;
@@ -31,7 +33,7 @@
     .apex-skill-details-btn:active{transform:scale(.98)}
     .apex-skill-details-btn:focus-visible{outline:2px solid #f0d67e;outline-offset:2px}
     .apex-skill-details-btn[hidden]{display:none}
-    #apex-skill-details{position:fixed;inset:0;z-index:2147481000;display:none;place-items:center;padding:14px;
+    #apex-skill-details{position:fixed;inset:0;z-index:2147481000;display:none;place-items:center;padding:14px;text-align:left;
       background:rgba(3,4,6,.72);backdrop-filter:blur(3px);font-family:"ApcKanit","Segoe UI",sans-serif;color:#f4f0e6}
     #apex-skill-details.is-open{display:grid}
     .apex-sd-panel{width:min(580px,calc(100vw - 20px));max-height:min(88dvh,760px);overflow:auto;overscroll-behavior:contain;
@@ -127,11 +129,14 @@
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = '<div class="apex-sd-panel" role="document"></div>';
-    overlay.addEventListener('pointerdown', (e) => { e.stopPropagation(); }, true);
+    // Backdrop interaction never reaches the shell behind, while clicks on
+    // the panel's own controls must still land: swallow in the bubble phase
+    // at the overlay (after children handled the event), not in capture.
+    overlay.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
     overlay.addEventListener('click', (e) => {
       e.stopPropagation();
       if (e.target === overlay) close();
-    }, true);
+    });
     document.body.appendChild(overlay);
     return overlay;
   }
@@ -178,19 +183,23 @@
 
   function onCaptureKeydown(e) {
     if (!openSide) return;
-    if (e.key === 'Escape') {
-      e.preventDefault(); e.stopPropagation(); close(); return;
-    }
+    // While the panel is open the background Fighter Select must not act on
+    // ANY key — including keys whose target is inside the panel, because the
+    // shell's global handler treats Enter as LOCK IN regardless of focus.
+    // Everything is swallowed in the capture phase; the panel's own controls
+    // are driven manually here.
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+    if (e.key === 'Escape') { close(); return; }
     const root = overlay;
-    const inside = root && e.target && root.contains(e.target);
+    const closeBtn = root && root.querySelector('[data-sd-close]');
     if (e.key === 'Tab') {
       // Minimal focus trap: the close control is the panel's one action.
-      const closeBtn = root && root.querySelector('[data-sd-close]');
-      if (closeBtn) { e.preventDefault(); closeBtn.focus(); }
+      if (closeBtn) closeBtn.focus();
       return;
     }
-    // Background Fighter Select must not act while the panel is open.
-    if (!inside) { e.preventDefault(); e.stopPropagation(); }
+    if ((e.key === 'Enter' || e.key === ' ') && closeBtn && e.target === closeBtn) close();
   }
 
   function open(side, invoker) {
@@ -203,6 +212,7 @@
     root.classList.add('is-open');
     root.setAttribute('aria-hidden', 'false');
     window.addEventListener('keydown', onCaptureKeydown, true);
+    window.addEventListener('keyup', onCaptureKeydown, true);
     const closeBtn = root.querySelector('[data-sd-close]');
     if (closeBtn) closeBtn.focus({ preventScroll: true });
     return true;
@@ -216,6 +226,7 @@
       overlay.setAttribute('aria-hidden', 'true');
     }
     window.removeEventListener('keydown', onCaptureKeydown, true);
+    window.removeEventListener('keyup', onCaptureKeydown, true);
     if (lastInvoker && lastInvoker.isConnected) lastInvoker.focus({ preventScroll: true });
     lastInvoker = null;
   }

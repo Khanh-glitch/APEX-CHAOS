@@ -8,6 +8,7 @@
 }
 .apex-account-overlay.is-open { display: grid; }
 .apex-account-panel {
+  text-align: left;
   width: min(620px, calc(100vw - 20px)); max-height: min(90dvh, 820px); overflow: auto;
   overscroll-behavior: contain; border: 1px solid rgba(215,189,114,.45);
   background: linear-gradient(180deg,#141a21,#0a0e13 78%);

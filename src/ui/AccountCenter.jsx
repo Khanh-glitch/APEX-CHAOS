@@ -191,7 +191,7 @@ export default function AccountCenter() {
         <header className="apex-account-head">
           <img
             className="apex-account-avatar"
-            src={(profile && profile.avatarUrl) || '/assets/gold/favicon-apex-chaos.png'}
+            src={(profile && profile.avatarUrl) || '/gold/assets/gold/favicon-apex-chaos.png'}
             alt=""
             draggable="false"
           />
@@ -317,6 +317,7 @@ export default function AccountCenter() {
                     value={email}
                     placeholder="EMAIL ADDRESS"
                     aria-label="EMAIL ADDRESS"
+                    disabled={!cloudConfigured}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                   <button
