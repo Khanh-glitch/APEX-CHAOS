@@ -37,12 +37,12 @@ iframe{width:100%;height:100%;border:0;display:block}iframe[hidden]{display:none
    if(!doc.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
    if(!doc.getElementById('bw-v2-styles')){
     const sheet=doc.createElement('link');sheet.rel='stylesheet';
-    sheet.id='bw-v2-styles';sheet.href='/game/bot-wave/botWavePresentationV2.css?v=20261019-botwave-hud-r17';
+    sheet.id='bw-v2-styles';sheet.href='/game/bot-wave/botWavePresentationV2.css?v=20261019-botwave-hud-r17b';
     sheet.onload=reveal;doc.head.append(sheet);
    }
    if(!doc.getElementById('bw-v2-script')){
     const script=doc.createElement('script');script.id='bw-v2-script';
-    script.src='/game/bot-wave/botWavePresentationV2.js?v=20261019-botwave-hud-r17';script.onload=reveal;doc.head.append(script);
+    script.src='/game/bot-wave/botWavePresentationV2.js?v=20261019-botwave-hud-r17b';script.onload=reveal;doc.head.append(script);
    }
   };
   observer=new MutationObserver(()=>{attach();reveal();});
