@@ -76,18 +76,69 @@ async function hitProbe(selector) {
       hitWithin:!!top&&(top===el||el.contains(top)),topId:top?.id||'',topClass:String(top?.className||'')};
   })()`);
 }
+// A target inside a horizontal scrollport (the 14-fighter roster scrolls
+// inside its authored six-across deck band) may sit outside the port when
+// the screen opens — Fighter Select canonically opens on page 1 with the
+// default fighter already selected, wherever that card lives. A real user
+// wheels the port until the card is reachable, then clicks; do exactly
+// that with physical wheel input instead of assuming the card starts
+// in-port. The click gates still require a true centre hit afterwards.
+async function wheelIntoView(selector) {
+  const info=await evaluate(`(() => {
+    const el=document.querySelector(${JSON.stringify(selector)});
+    if(!el)return null;
+    let p=el.parentElement;
+    while(p&&p!==document.body){
+      const s=getComputedStyle(p);
+      if((s.overflowX==='auto'||s.overflowX==='scroll')&&p.scrollWidth>p.clientWidth+4)break;
+      p=p.parentElement;
+    }
+    if(!p||p===document.body)return null;
+    const er=el.getBoundingClientRect(),pr=p.getBoundingClientRect();
+    const dir=er.left<pr.left?-1:(er.right>pr.right?1:0);
+    return dir?{x:pr.left+pr.width/2,y:pr.top+pr.height/2,dir}:null;
+  })()`);
+  if(!info)return false;
+  await command('Input.dispatchMouseEvent',{type:'mouseWheel',x:info.x,y:info.y,deltaX:info.dir*260,deltaY:0});
+  return true;
+}
 async function physicalClick(selector) {
   let p=null;
-  for(let i=0;i<80;i++){
-    p=await hitProbe(selector);
-    if(p?.exists&&!p.disabled&&p.hitWithin&&p.pointerEvents!=='none'&&p.width>1&&p.height>1)break;
-    await sleep(80);
+  for(let attempt=0;attempt<3;attempt++){
+    let prev=null;
+    p=null;
+    for(let i=0;i<80;i++){
+      p=await hitProbe(selector);
+      const valid=p?.exists&&!p.disabled&&p.hitWithin&&p.pointerEvents!=='none'&&p.width>1&&p.height>1;
+      if(!valid){prev=null;if(p?.exists)await wheelIntoView(selector);await sleep(80);continue;}
+      // The Gold stage re-scales in steps for over a second after the R77
+      // device-metrics overrides are cleared (measured centre drift
+      // 491 -> 465 -> 677 -> 691 on #freeBattle). Firing at the first hittable
+      // frame can strike a layout that has already moved on, so require the
+      // centre to hold still across two probes first — a settled target is
+      // what a real pointer gets. Every downstream gate is unchanged.
+      if(prev&&Math.abs(p.cx-prev.cx)<=1&&Math.abs(p.cy-prev.cy)<=1)break;
+      prev=p;
+      await sleep(80);
+    }
+    if(!p?.exists||p.disabled||!p.hitWithin||p.pointerEvents==='none')return p||{exists:false};
+    await command('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.cx,y:p.cy});
+    // Verify at fire time: wheel momentum (after wheelIntoView) and rescale
+    // steps can still carry the target between the stability probes and the
+    // press, which used to land the click on a neighbouring roster card.
+    // Re-probe once and only press if the centre is still the measured,
+    // hittable point; otherwise re-aim without having fired.
+    const verify=await hitProbe(selector);
+    // Tolerance scales with the target: hover transforms shift large
+    // cards' centres by a few px on mouseMoved (still a safely centred
+    // hit); wheel-momentum / rescale drift is far larger.
+    const tol=Math.max(2,Math.min(p.width,p.height)*0.1);
+    if(!verify?.hitWithin||Math.abs(verify.cx-p.cx)>tol||Math.abs(verify.cy-p.cy)>tol)continue;
+    await command('Input.dispatchMouseEvent',{type:'mousePressed',x:p.cx,y:p.cy,button:'left',clickCount:1});
+    await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.cx,y:p.cy,button:'left',clickCount:1});
+    return p;
   }
-  if(!p?.exists||p.disabled||!p.hitWithin||p.pointerEvents==='none')return p||{exists:false};
-  await command('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.cx,y:p.cy});
-  await command('Input.dispatchMouseEvent',{type:'mousePressed',x:p.cx,y:p.cy,button:'left',clickCount:1});
-  await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.cx,y:p.cy,button:'left',clickCount:1});
-  return p;
+  return p||{exists:false};
 }
 async function poll(expression,predicate=Boolean,{attempts=250,interval=80}={}) {
   let value=null;
@@ -230,6 +281,19 @@ try {
   } finally {
     await evaluate("document.documentElement.style.removeProperty('--safeB')");
     await command('Emulation.clearDeviceMetricsOverride');
+    // The fidelity stage re-scales in steps for over a second after the
+    // metrics overrides clear (measured #freeBattle centre drift
+    // 491 -> 465 -> 677 -> 691 across ~1.7s, with plateaus between steps).
+    // A flat 180ms wait resumes physical pointer work mid-rescale and the
+    // click lands wherever the layout used to be. Wait until the stage
+    // rect has been unchanged for a full 900ms window instead.
+    let lastRect='',stableSince=Date.now();
+    for(let i=0;i<120;i++){
+      const rect=await evaluate(`(()=>{const r=document.getElementById('stage')?.getBoundingClientRect();return r?[r.width,r.height,r.left,r.top].join(','):''})()`);
+      if(rect&&rect===lastRect&&Date.now()-stableSince>=900)break;
+      if(rect!==lastRect){lastRect=rect;stableSince=Date.now();}
+      await sleep(80);
+    }
     await sleep(180);
   }
   gate('R77-Android-short-portrait-primary-buttons-never-intersect-route-band',

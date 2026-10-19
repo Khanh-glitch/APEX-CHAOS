@@ -179,11 +179,16 @@ function bandRules(band, gapVh) {
     // 14-fighter production roster made BOXE/SHURI unpickable in portrait).
     // Keep the page; flow surplus fighters into further COLUMNS of the same
     // width (4px gaps) and scroll them through the desk band's scrollport.
+    // `scroll-padding-left` matches the roster's 4px inline padding: without
+    // it mandatory snap rested at scrollLeft 4 (aligning card 1's border box
+    // to the snapport origin), which leaked a 4px sliver of the next page's
+    // first column into the port at every rest and pushed that column's
+    // name glyphs to within ~6px of the stage's right edge.
     rules.push('#stage .selectionDeckV6 .roster{height:100%!important;'
       + 'min-height:0!important;max-height:none!important;'
       + 'grid-template-columns:none!important;'
       + 'grid-template-rows:repeat(2,minmax(0,1fr))!important;'
-      + 'grid-auto-flow:column!important;'
+      + 'grid-auto-flow:column!important;scroll-padding-left:4px!important;'
       + 'grid-auto-columns:calc((100% - 8px)/3)!important}');
     // The 3x2 grid page becomes explicit navigation (see roster pager law).
     rules.push(...ROSTER_PAGER_BAND_RULES);
@@ -329,10 +334,10 @@ export function rosterPagerScript() {
         if (meta.textContent !== want) meta.textContent = want;
       }
     }
-    function goTo(p) {
+    function goTo(p, instant) {
       var st = starts(); pages = st.length;
       p = Math.max(0, Math.min(pages - 1, p));
-      roster.scrollTo({ left: st[p], behavior: reduced ? 'auto' : 'smooth' });
+      roster.scrollTo({ left: st[p], behavior: instant || reduced ? 'auto' : 'smooth' });
       page = p;
       requestAnimationFrame(sync);
     }
@@ -375,7 +380,12 @@ export function rosterPagerScript() {
         var st = starts();
         if (st[target] != null && Math.abs(roster.scrollLeft - st[target]) > 3) {
           clearTimeout(alignT);
-          alignT = setTimeout(function () { goTo(target); }, 60);
+          // Selection reveal is IMMEDIATE (like the resize re-align below):
+          // the chosen fighter must never sit half-severed at the port edge
+          // while a glide settles, with the dots/page state disagreeing
+          // with the port until it lands. Browsing (buttons, dots, swipe)
+          // still glides; only the selection-follow jumps.
+          alignT = setTimeout(function () { goTo(target, true); }, 60);
         }
       });
     }
