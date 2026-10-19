@@ -103,26 +103,38 @@ async function wheelIntoView(selector) {
   return true;
 }
 async function physicalClick(selector) {
-  let p=null,prev=null;
-  for(let i=0;i<80;i++){
-    p=await hitProbe(selector);
-    const valid=p?.exists&&!p.disabled&&p.hitWithin&&p.pointerEvents!=='none'&&p.width>1&&p.height>1;
-    if(!valid){prev=null;if(p?.exists)await wheelIntoView(selector);await sleep(80);continue;}
-    // The Gold stage re-scales in steps for over a second after the R77
-    // device-metrics overrides are cleared (measured centre drift
-    // 491 -> 465 -> 677 -> 691 on #freeBattle). Firing at the first hittable
-    // frame can strike a layout that has already moved on, so require the
-    // centre to hold still across two probes first — a settled target is
-    // what a real pointer gets. Every downstream gate is unchanged.
-    if(prev&&Math.abs(p.cx-prev.cx)<=1&&Math.abs(p.cy-prev.cy)<=1)break;
-    prev=p;
-    await sleep(80);
+  let p=null;
+  for(let attempt=0;attempt<3;attempt++){
+    let prev=null;
+    p=null;
+    for(let i=0;i<80;i++){
+      p=await hitProbe(selector);
+      const valid=p?.exists&&!p.disabled&&p.hitWithin&&p.pointerEvents!=='none'&&p.width>1&&p.height>1;
+      if(!valid){prev=null;if(p?.exists)await wheelIntoView(selector);await sleep(80);continue;}
+      // The Gold stage re-scales in steps for over a second after the R77
+      // device-metrics overrides are cleared (measured centre drift
+      // 491 -> 465 -> 677 -> 691 on #freeBattle). Firing at the first hittable
+      // frame can strike a layout that has already moved on, so require the
+      // centre to hold still across two probes first — a settled target is
+      // what a real pointer gets. Every downstream gate is unchanged.
+      if(prev&&Math.abs(p.cx-prev.cx)<=1&&Math.abs(p.cy-prev.cy)<=1)break;
+      prev=p;
+      await sleep(80);
+    }
+    if(!p?.exists||p.disabled||!p.hitWithin||p.pointerEvents==='none')return p||{exists:false};
+    await command('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.cx,y:p.cy});
+    // Verify at fire time: wheel momentum (after wheelIntoView) and rescale
+    // steps can still carry the target between the stability probes and the
+    // press, which used to land the click on a neighbouring roster card.
+    // Re-probe once and only press if the centre is still the measured,
+    // hittable point; otherwise re-aim without having fired.
+    const verify=await hitProbe(selector);
+    if(!verify?.hitWithin||Math.abs(verify.cx-p.cx)>2||Math.abs(verify.cy-p.cy)>2)continue;
+    await command('Input.dispatchMouseEvent',{type:'mousePressed',x:p.cx,y:p.cy,button:'left',clickCount:1});
+    await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.cx,y:p.cy,button:'left',clickCount:1});
+    return p;
   }
-  if(!p?.exists||p.disabled||!p.hitWithin||p.pointerEvents==='none')return p||{exists:false};
-  await command('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.cx,y:p.cy});
-  await command('Input.dispatchMouseEvent',{type:'mousePressed',x:p.cx,y:p.cy,button:'left',clickCount:1});
-  await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.cx,y:p.cy,button:'left',clickCount:1});
-  return p;
+  return p||{exists:false};
 }
 async function poll(expression,predicate=Boolean,{attempts=250,interval=80}={}) {
   let value=null;
