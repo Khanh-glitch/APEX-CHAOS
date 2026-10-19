@@ -1,17 +1,27 @@
+// BOXE contracts: Free Battle battle rules + BOT WAVE upgrade economy (F1).
+//
+// History: the BOT WAVE half of this file tested
+// src/game/botWave/upgradeRegistry.js and BOXE_WAVE (src/game/boxe/
+// boxeConfig.js), an R2 staging prototype production never imported — it
+// asserted boss waves 5/10 and a 60-XP curve while the shipped game runs
+// cluster bosses every 10 waves and a 70-XP curve. Those twins are deleted.
+// The BOT WAVE half now EXECUTES the production pilot functions
+// (qualifiedCards/threeCards/xpNeeded extracted from the shipped
+// public/bot-wave/game.html) instead of a parallel model. The Free Battle
+// controller contract below is untouched.
 import assert from 'node:assert/strict';
-import {BOXE_BATTLE,BOXE_WAVE} from '../src/game/boxe/boxeConfig.js';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {BOXE_BATTLE} from '../src/game/boxe/boxeConfig.js';
 import {boxeSkillDamage,createBoxeBattleController} from '../src/game/boxe/boxeCombatRules.js';
-import {createWaveUpgradePool,offerThreeCards,chooseCard,upgradeState,unlockedKeys,
- enabledGoldSkills,recordAuthorizedKill,waveDescriptor,DEFAULT_ROBOTS} from '../src/game/botWave/upgradeRegistry.js';
 assert.equal(BOXE_BATTLE.a1.baseDamage,0);assert.equal(BOXE_BATTLE.a2.baseDamage,0);
 for(const skill of ['PUNCH','A1','A1_EMPOWERED','A2','GOLD_JAB','GOLD_COUNTER'])
  assert.equal(boxeSkillDamage({kind:skill,targetRemainingHP:900}),0,skill+' deals zero auto-battle HP');
 assert.equal(boxeSkillDamage({kind:'A2_EMPOWERED_FINISHER',targetRemainingHP:500}),50);
-assert.deepEqual(BOXE_WAVE.startingInputs,['J','K','L']);
-assert.equal(BOXE_WAVE.rocketProc.perConfirmedPunchProbability,.075);
-assert.equal(BOXE_WAVE.rocketProc.maxDetachedGloves,1);
-assert.equal(BOXE_WAVE.rocketProc.flightMs,5000);
-assert.deepEqual(BOXE_WAVE.bossesAt,[5,10]);
+// Former BOXE_WAVE input/rocket/boss assertions moved to the production
+// contracts: testBoxeWaveInputs (J/K/L start, U/I card-locked),
+// testBoxeComboR4 (7.5% rocket, single detached glove),
+// testBoxeWaveDirector (boss closes each 10-wave cluster — no wave-5 boss).
 const e=[],ctrl=createBoxeBattleController({emit:x=>e.push(x)});
 const has=(type)=>e.filter(x=>x.type===type);
 assert.equal(ctrl.recordRealDamage({direction:'outgoing',realizedHp:299,source:'owned-weapon'},0),false);
@@ -134,57 +144,52 @@ assert.equal(plain.interceptIncoming({opponentOwned:false,qualifyingDamage:100},
 plain.advance(1001);assert.equal(plain.snapshot().counterPhase,null);
 assert.equal(e3.some(x=>x.type==='boxe:counter-lunge'),false);
 assert.equal(e3.some(x=>x.type==='arena:damage-request'),false);
-// Initial three-card semantics: ZERO auto-free grants, random choices do not
-// imply automatic acquisition, finite cards have no duplicates in one offer.
-const w=upgradeState();
-assert.throws(()=>offerThreeCards(w,{seed:19}),/NO_LEVEL_UP_PENDING/);
-const unlockedXP=new Set();
-recordAuthorizedKill(w,{killId:'training-authorized-kill',xp:60},unlockedXP);
-assert.equal(w.pendingLevelUps,1);
-assert.deepEqual(unlockedKeys(w),['J','K','L']);assert.deepEqual(enabledGoldSkills(w),[]);
-const o=offerThreeCards(w,{seed:19});
-assert.equal(o.length,3);assert.equal(new Set(o.map(x=>x.id)).size,3);
-assert.deepEqual(unlockedKeys(w),['J','K','L']);
-assert.throws(()=>chooseCard(w,'unlock-ultimate'),/CARD_NOT_OFFERED/);
-chooseCard(w,o[0].id);
-assert.equal(w.pending,null);assert.equal(w.pendingLevelUps,0);
-assert.ok(!w.owned.has('unlock-ultimate'));
-assert.throws(()=>offerThreeCards({...w,pending:['x']},{seed:1}),/UNRESOLVED/);
-// Explicit upgrade ordering is by SELECTED cards, never by reaching level.
-const ranks=BOXE_WAVE.goldUpgradeOrder;
-for(const entry of ranks){
- const cards=createWaveUpgradePool().filter(x=>x.kind==='unlock');
- const card=cards.find(x=>x.id===entry.id);
- assert.ok(card.requires.every(x=>w.owned.has(x))||card.requires.length>0||entry.rank===1);
- w.owned.add(entry.id);
-}
-assert.deepEqual(unlockedKeys(w),['J','K','L','U','I']);
-assert.deepEqual(enabledGoldSkills(w),['1','3','9','5','0']);
-assert.equal(ranks.at(-1).goldKey,'0');
-assert.ok(!w.owned.has('unlock-rocket-proc'),'rocket remains independently card-gated');
-assert.equal(createWaveUpgradePool().find(x=>x.id==='unlock-rocket-proc').goldKey,'2');
-const kills=new Set(),s=upgradeState();
-assert.equal(recordAuthorizedKill(s,{killId:'robot-42',xp:70},kills).accepted,true);
-assert.equal(recordAuthorizedKill(s,{killId:'robot-42',xp:70},kills).accepted,false);
-assert.equal(s.totalXp,70);
-const chain=upgradeState(),chainKills=new Set();
-const chainEvent=recordAuthorizedKill(chain,{killId:'wave-boss-unique',xp:1200},chainKills);
-assert.ok(chainEvent.levels>=3);assert.equal(chain.pendingLevelUps,chainEvent.levels);
-for(let i=0;i<chainEvent.levels;i++){
- const cards=offerThreeCards(chain,{seed:0xB0AE});
- assert.equal(cards.length,3);
- chooseCard(chain,cards[0].id);
-}
-assert.equal(chain.pendingLevelUps,0);
-assert.equal(waveDescriptor(5,DEFAULT_ROBOTS).boss,true);
-assert.deepEqual(waveDescriptor(10,DEFAULT_ROBOTS).candidates,['bossOmega']);
-assert.deepEqual(waveDescriptor(15,DEFAULT_ROBOTS).candidates,['bossEndless']);
-assert.equal(waveDescriptor(20,DEFAULT_ROBOTS).boss,true);
-assert.equal(waveDescriptor(2,DEFAULT_ROBOTS).boss,false);
-const ext={...DEFAULT_ROBOTS,'flying-mech':{minWave:2,boss:false}};
-assert.ok(waveDescriptor(2,ext).candidates.includes('flying-mech'));
-console.log('BOXE Owner R2 PASS: auto skills 0 damage; 10% finisher; 300/3s/x2; repeated stun/disarm; Gold rocket 5s; catch gun queue; BOT WAVE gated J/K/L, three random upgrade offers; wave 5/10 bosses; extension registry');
-
+// BOT WAVE upgrade economy — executed from the shipped pilot, not modeled.
+const game=fs.readFileSync('public/bot-wave/game.html','utf8');
+const pilot=game.slice(game.indexOf('/* BOXE BOT WAVE pilot'));
+const grab=(name)=>{const i=pilot.indexOf(name);assert.ok(i>=0,'pilot seam missing: '+name);
+ let d=0,k=pilot.indexOf('{',i);for(;k<pilot.length;k++){if(pilot[k]==='{')d++;else if(pilot[k]==='}'){d--;if(!d)break}}
+ return pilot.slice(i,k+1)};
+const cardsStart=pilot.indexOf('const CARDS=');
+const cardsExpr=pilot.slice(cardsStart+'const CARDS='.length,pilot.indexOf('\n];',cardsStart)+2);
+const api=vm.runInNewContext(
+ 'const CARDS='+cardsExpr+';let seed=0xC0FFE42;'+grab('function rng()')
+ +'let state={owned:new Set(),stacks:{},levelsPending:0,offer:null};'
+ +grab('function xpNeeded')+grab('function qualifiedCards()')+grab('function threeCards()')
+ +'({CARDS,xpNeeded,qualifiedCards,threeCards,setState(s){state=s},reseed(v){seed=v}})',{});
+assert.equal(api.CARDS.length,20,'production pool is 20 cards');
+assert.equal(new Set(api.CARDS.map(c=>c.id)).size,20,'card ids unique');
+// Shipped XP curve (ceil(70*1.16^(L-1))) — the deleted prototype said 60 L1.
+assert.deepEqual(JSON.parse(JSON.stringify(Array.from({length:10},(_,i)=>api.xpNeeded(i+1)))),[70,82,95,110,127,148,171,198,230,267]);
+// Fresh run: requires-chain cards are filtered; unlocks are one-time owned.
+const fresh=api.qualifiedCards().map(c=>c.id);
+assert.deepEqual(JSON.parse(JSON.stringify(fresh)),['jab','rocket','vitality','fist','tempo','agility','guard','heal','knock','dash','sustain','armor','insight'],
+ 'fresh qualified pool excludes every requires-chain card');
+// Golden weighted draw at the production default seed (F1 baseline).
+assert.deepEqual(JSON.parse(JSON.stringify(api.threeCards().map(c=>c.id))),['agility','dash','vitality']);
+for(let s=1;s<=200;s++){api.reseed(s);const draw=api.threeCards();
+ assert.equal(draw.length,3);assert.equal(new Set(draw.map(c=>c.id)).size,3,'no duplicates in one offer');
+ assert.ok(draw.every(c=>fresh.includes(c.id)),'offers only ever come from the qualified pool');}
+// Ownership opens the next chain link; stack caps close a card.
+api.setState({owned:new Set(['jab']),stacks:{armor:6},levelsPending:1,offer:null});
+const afterJab=api.qualifiedCards().map(c=>c.id);
+assert.ok(afterJab.includes('uppercut')&&afterJab.includes('overclock'),'jab ownership unlocks its chain');
+assert.ok(!afterJab.includes('jab'),'owned unlock never re-offers');
+assert.ok(!afterJab.includes('armor'),'armor maxes at 6 stacks');
+assert.ok(!afterJab.includes('counter')&&!afterJab.includes('phantom')&&!afterJab.includes('ult'),'chain cannot skip links');
+// Present/choose gating lives in the pilot control flow (UI-bound, so gated
+// by exact source seams rather than executed).
+assert.ok(pilot.includes('function presentCards(){if(state.offer||state.levelsPending<=0)return;'),'no offer without a pending level');
+assert.ok(pilot.includes("function chooseCard(id){if(state.phase!=='upgrade'||!state.offer?.some(c=>c.id===id))return;"),
+ 'only an offered card can be chosen, only during the upgrade phase');
+assert.ok(pilot.includes('state.offer=threeCards();'),'offers are the production weighted draw');
+assert.ok(pilot.includes('state.levelsPending--;'),'choosing consumes exactly one pending level');
+assert.ok(pilot.includes("const WAVE_UNLOCK_CARD_IDS=Object.freeze(['jab','rocket','uppercut','counter','phantom','ult']);"),
+ 'one-time unlock set is exactly the six chain/rocket cards');
+// Anti-twin (F1): no second upgrade registry / wave config.
+assert.ok(!fs.existsSync('src/game/botWave/upgradeRegistry.js'),'upgradeRegistry twin must not return');
+assert.ok(!fs.readFileSync('src/game/boxe/boxeConfig.js','utf8').includes('export const BOXE_WAVE'),'BOXE_WAVE twin config must not return');
+console.log('BOXE Owner R2 PASS: auto skills 0 damage; 10% finisher; 300/3s/x2; repeated stun/disarm; Gold rocket 5s; catch gun queue; BOT WAVE production economy — 20 cards, 70/1.16 XP, requires-chain, weighted 3-card offers, no free grants');
 // Inspect C04 profile when fighter explicitly states damage 0: the keyword
 // "hit" alone must not invent ability HP damage for BOXE.
 const {heroProfile}=await import('../src/game/cosmetics/fieldArchiveProfiles.js');

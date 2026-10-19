@@ -1,41 +1,68 @@
+// BOT WAVE arsenal authority — production contract (F1).
+//
+// History: this file tested src/game/botWave/apexGunLoadouts.js, a hand-
+// copied twin of Free Battle gun numbers. Production never imported it;
+// BOT WAVE consumes the live APEX_ARSENAL_CONFIG through waveCampaign.js
+// and nativeArsenalGoldBridge.js with all gun scalars pinned to 1. This
+// contract now proves the numbers come from that single source and that no
+// second gun-stat table exists anywhere in the BOT WAVE surface.
 import assert from 'node:assert/strict';
-import {APEX_WAVE_GUNS,APEX_WAVE_LOADOUTS,BOXE_WAVE_SURVIVAL,getWaveLoadout,makeWaveEnemyEquipment,weaponThreatBudget} from '../src/game/botWave/apexGunLoadouts.js';
-assert.equal(APEX_WAVE_LOADOUTS.length,10);
-assert.equal(BOXE_WAVE_SURVIVAL.initialHP,3200);
-assert.equal(BOXE_WAVE_SURVIVAL.baseOnKillHealFraction,.012);
-assert.equal(APEX_WAVE_GUNS.PISTOL.ammo,3);assert.equal(APEX_WAVE_GUNS.SMG.ammo,8);
-assert.equal(APEX_WAVE_GUNS.SHOTGUN.pellets,8);
-assert.equal(APEX_WAVE_GUNS.SHOTGUN.ammo,1,'Native shotgun is one 8-pellet burst, not invented four shells');
-assert.equal(APEX_WAVE_GUNS.SNIPER.aimTime,.8);
-assert.equal(APEX_WAVE_GUNS.GRENADE.blastRadius,155);
-const threat=[];
-for(let w=1;w<=10;w++){
- const p=getWaveLoadout(w,{seed:77});
- const repeat=getWaveLoadout(w,{seed:77});
- assert.deepEqual(p,repeat);
- assert.ok(p.composition.length>=6);
- assert.ok(p.composition.every(id=>APEX_WAVE_GUNS[id]));
- assert.equal(p.boss,w===5||w===10);
- assert.ok(p.concurrentLimit>=6&&p.concurrentLimit<=11);
- assert.equal(p.reloadPolicy,'KEEP_WEAPON_AND_REFILL_MAGAZINE');
- if(w<=2)assert.ok(p.composition.every(id=>['PISTOL','SMG'].includes(id)));
- if(w<=3)assert.ok(!p.composition.includes('SNIPER'));
- if(w<=7)assert.ok(!p.composition.includes('GRENADE'));
- threat.push(p.pressureEstimate);
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+await import('../public/game/bot-wave/waveCampaign.js');
+const { planWave } = globalThis.APEX_BOT_WAVE_CAMPAIGN;
+
+const sandbox = { console, setTimeout() { return 0; }, clearTimeout() {}, window: { addEventListener() {}, removeEventListener() {} }, document: { getElementById() { return null; }, addEventListener() {}, querySelector() { return null; } } };
+sandbox.window.window = sandbox.window;
+vm.runInNewContext(fs.readFileSync('public/game/arsenal/arsenalConfig.js', 'utf8'), sandbox, { timeout: 2000 });
+vm.runInNewContext(fs.readFileSync('public/game/arsenal/arsenalIdentityRuntime.js', 'utf8'), sandbox, { timeout: 2000 });
+const config = sandbox.window.APEX_ARSENAL_CONFIG;
+assert.equal(sandbox.window.apexArsenalIdentityRuntime, 'ready');
+
+// Canonical post-x7 Free Battle numbers, read from their one home.
+assert.equal(config.WEAPONS.PISTOL.damagePerShot, 4.5, 'Pistol raw damage stays 4.5');
+assert.equal(config.ARSENAL_DAMAGE_SCALE, 7, 'global x7 sustained scale stays in the config');
+assert.equal(config.WEAPONS.PISTOL.damagePerShot * config.ARSENAL_DAMAGE_SCALE, 31.5, 'Pistol non-crit hit is exactly 31.5');
+assert.equal(config.WEAPONS.SHOTGUN.pellets, 6);
+assert.equal(config.WEAPONS.SNIPER.aimTime, 0.8);
+assert.equal(config.P0_WEAPON_IDS.length, 41);
+
+// The campaign never rescales guns for wave mode.
+for (const w of [1, 5, 10, 17, 30, 40]) {
+  const p = planWave(config, w);
+  assert.equal(p.gunDamageScalar, 1, 'wave ' + w + ' damage scalar');
+  assert.equal(p.gunCadenceScalar, 1, 'wave ' + w + ' cadence scalar');
+  assert.equal(p.gunProjectileSpeedScalar, 1, 'wave ' + w + ' projectile scalar');
+  assert.equal(p.damageAuthority, 'FREE_BATTLE_POST_X7');
 }
-for(let i=1;i<threat.length;i++)assert.ok(threat[i]>threat[i-1],'Wave '+(i+1)+' pressure must exceed prior wave '+threat);
-const sniper=makeWaveEnemyEquipment('SNIPER',7);assert.equal(sniper.aimTelegraphSeconds,.8);
-const shotgun=makeWaveEnemyEquipment('SHOTGUN',7);assert.equal(shotgun.pellets,8);
-// No changes to one gun's damage, cadence, bullet velocity, ammo or reload
-// between any two waves or for the boss who holds it.
-for(const id of Object.keys(APEX_WAVE_GUNS)){
- const a=makeWaveEnemyEquipment(id,1),b=makeWaveEnemyEquipment(id,10),c=makeWaveEnemyEquipment(id,10,{boss:true});
- assert.deepEqual(a,b,'WAVE_STATS_DRIFT '+id);assert.deepEqual(a,c,'BOSS_WEAPON_BUFF '+id);
- assert.equal(a.damageScale,7,'Auto Battle equipment damage multiplier');
+
+// Campaign indexing reads live config fields — a spec edit must flow through.
+const { indexNative } = globalThis.APEX_BOT_WAVE_CAMPAIGN;
+const catalog = indexNative(config);
+assert.equal(catalog.records.length, 41);
+assert.equal(catalog.allWeaponIds.length, 41);
+assert.ok(catalog.records.every(w => w.spec === config.WEAPONS[w.id]), 'catalog must reference live config specs, not copies');
+assert.ok(catalog.records.every(w => ['defend', 'close', 'zone', 'snipe', 'flank', 'signature', 'fire'].includes(w.role)), 'roles derive from live weapon families');
+assert.deepEqual(catalog.ordered.slice(0, 5).map(w => w.id), ['PISTOL', 'SMG', 'SHOTGUN', 'SNIPER', 'GRENADE'], 'iconic starters lead the reveal order');
+
+// No second gun-stat authority anywhere in the BOT WAVE surface. Real spec
+// literals (damagePerShot assignments) may exist ONLY in the Arsenal config.
+const surfaces = [
+  'public/game/bot-wave/waveCampaign.js',
+  'public/game/bot-wave/nativeArsenalGoldBridge.js',
+];
+for (const f of surfaces) {
+  const src = fs.readFileSync(f, 'utf8');
+  assert.ok(!/damagePerShot\s*:\s*[0-9]/.test(src), f + ' must not copy gun damage numbers');
+  assert.ok(!src.includes('APEX_WAVE_GUNS') && !src.includes('waveGunSpec') || src.includes('waveGunId'), f + ' must not define a parallel gun table');
 }
-const smg=makeWaveEnemyEquipment('SMG',7);assert.equal(smg.magazineCapacity,8);
-assert.ok(smg.reloadSeconds>0&&smg.bulletsReloadInsteadOfDiscard);
-assert.equal(smg.owner,'enemy-robot');
-assert.ok(weaponThreatBudget('PISTOL')>0);
-assert.equal(getWaveLoadout(15).boss,true);
-console.log('BOXE R3 Arsenal pressure PASS; per-wave values',threat.join(' → '),'HP base 3200 / healing / magazines / reload');
+const game = fs.readFileSync('public/bot-wave/game.html', 'utf8');
+const pilot = game.slice(game.indexOf('/* BOXE BOT WAVE pilot'));
+assert.ok(!/damagePerShot\s*:\s*[0-9]/.test(pilot), 'pilot must not copy gun damage numbers');
+assert.ok(pilot.includes("loadWaveDependency('/game/arsenal/arsenalConfig.js')"), 'pilot must load the live config');
+assert.ok(pilot.includes('CFG=window.APEX_ARSENAL_CONFIG'), 'pilot must plan against the live config object');
+
+// Anti-twin (F1): the copied loadout table must stay deleted.
+assert.ok(!fs.existsSync('src/game/botWave/apexGunLoadouts.js'), 'apexGunLoadouts twin must not return');
+console.log('BOXE WAVE R3 ARSENAL PASS: post-x7 config is the only gun-number authority (Pistol 31.5), campaign scalars all 1, no copied gun table in any BOT WAVE surface');
