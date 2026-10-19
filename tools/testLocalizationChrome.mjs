@@ -29,10 +29,7 @@ async function until(code,ms=40000){
  return false;
 }
 async function capture(name){
- const metrics=await cmd('Page.getLayoutMetrics');
- const size=metrics.cssContentSize||metrics.contentSize||{width:1440,height:900};
- const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,fromSurface:true,
-   clip:{x:0,y:0,width:Math.ceil(size.width),height:Math.ceil(size.height),scale:1}},240000);
+ const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},240000);
  await writeFile('docs/acceptance/localization/'+name+'.png',Buffer.from(shot.data,'base64'));
 }
 
