@@ -2567,6 +2567,72 @@ function main() {
   outputs.set('shell.html',Buffer.from(waveSourceShell.replace(waveParentSeam,waveParentPatch),'utf8'));
   log('R7 Home/Wave freeze-resume seam built from canonical Gold shell');
 
+  // F2 (owner decision B, 2026-10-19): Story stays locked until Quest 01
+  // ships. The product registry (src/game/productSurface.js) has always
+  // listed quest-01 as LOCKED, but the Home CTA opened the Quest director
+  // without ever consulting it. This generated patch makes the runtime obey
+  // that ONE authority — it does not create a second lock:
+  //   1. FUNCTION: openQuestFromHome consults APEX_PRODUCT_SURFACE.canLaunch
+  //      and fails closed BEFORE any SFX or director call, so mouse, touch
+  //      and keyboard activation can never reach the director.
+  //   2. PRESENTATION (visual closeout): the Story CTA becomes a quiet
+  //      status chip (lock icon, STORY, COMING SOON — no arrow, no hover or
+  //      press affordance, out of the tab order) while FREE BATTLE takes
+  //      the canonical Gold primary treatment and the first action slot.
+  //      The chip/primary-swap layout rules key off the is-locked class via
+  //      .actions:has(...), and the derivation block below removes that
+  //      class state if the registry ever flips quest-01 to ACTIVE, so the
+  //      interface can never keep saying COMING SOON after release.
+  // Quest content (director, cutscenes, checkpoints, artwork) is untouched
+  // and keeps shipping for development.
+  const storyLockShell=outputs.get('shell.html').toString('utf8');
+  const storyCtaBefore='<button class="cta primary" id="continueStory" type="button"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">CONTINUE STORY</span>';
+  const storyCtaAfter='<button class="cta is-locked" id="continueStory" type="button" tabindex="-1" aria-disabled="true" aria-label="Story — Coming Soon"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">STORY</span><span class="storyState">COMING SOON</span>';
+  if(storyLockShell.split(storyCtaBefore).length!==2)throw new Error('F2 story CTA source anchor drift');
+  const freeBattleBefore='<button class="cta secondary" id="freeBattle" type="button">';
+  const freeBattleAfter='<button class="cta primary" id="freeBattle" type="button">';
+  if(storyLockShell.split(freeBattleBefore).length!==2)throw new Error('F2 Free Battle CTA source anchor drift');
+  const storyGateBefore="  const openQuestFromHome=()=>{\n";
+  const storyGateAfter="  // F2: derive the Story CTA presentation from the ONE product registry.\n"
+    +"  // The generated markup bakes today's LOCKED state; if quest-01 ever\n"
+    +"  // flips ACTIVE in src/game/productSurface.js, restore the authored\n"
+    +"  // CONTINUE STORY primary CTA (and Free Battle secondary) at runtime.\n"
+    +"  const storyProductAuthority=window.APEX_PRODUCT_SURFACE||window.parent?.APEX_PRODUCT_SURFACE;\n"
+    +"  if(storyProductAuthority?.canLaunch?.('quest-01')===true){\n"
+    +"    const s=document.getElementById('continueStory'),f=document.getElementById('freeBattle');\n"
+    +"    if(s){s.classList.remove('is-locked');s.classList.add('primary');s.removeAttribute('aria-disabled');s.removeAttribute('aria-label');s.removeAttribute('tabindex');const l=s.querySelector('.label');if(l)l.textContent=window.APEX_I18N?.translate?.('CONTINUE STORY')||'CONTINUE STORY';}\n"
+    +"    if(f){f.classList.remove('primary');f.classList.add('secondary');}\n"
+    +"  }\n"
+    +"  const openQuestFromHome=()=>{\n"
+    +"    // F2: consult the ONE product authority; fail closed when unreachable.\n"
+    +"    const productAuthority=window.APEX_PRODUCT_SURFACE||window.parent?.APEX_PRODUCT_SURFACE;\n"
+    +"    if(productAuthority?.canLaunch?.('quest-01')!==true)return;\n";
+  if(storyLockShell.split(storyGateBefore).length!==2)throw new Error('F2 quest entry source anchor drift');
+  if(storyLockShell.split('</head>').length!==2)throw new Error('F2 expected exactly one Gold head');
+  // Status-chip presentation, scoped to the locked state only. Materials
+  // mirror the donor's locked routes (dark steel gradient, hairline border,
+  // corner-cut clip); layout keyed off :has(.is-locked) so the runtime
+  // restore above reverts placement with a single class removal. The Home
+  // grid columns, story artwork and every other surface stay authored.
+  const storyLockStyle='<style id="apexStoryLockF2">\n'
+    +'.actions:has(>#continueStory.is-locked)>#freeBattle{order:-1}\n'
+    +'#continueStory .storyState{display:none}\n'
+    +'#continueStory.is-locked{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;row-gap:1px;align-self:center;align-items:center;height:auto;min-height:50px;padding:9px 14px;cursor:default;background:linear-gradient(180deg,rgba(26,27,31,.84),rgba(12,13,15,.94));border:1px solid rgba(238,231,219,.10);clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px));color:rgba(235,228,218,.68);filter:none;box-shadow:none;text-align:left}\n'
+    +'#continueStory.is-locked:hover,#continueStory.is-locked:focus-visible,#continueStory.is-locked:active,#continueStory.is-locked:focus{transform:none;filter:none;outline:none}\n'
+    +'#continueStory.is-locked .ctaFrame,#continueStory.is-locked .ctaTexture,#continueStory.is-locked .ctaSweep,#continueStory.is-locked .ctaRail,#continueStory.is-locked .arrow{display:none}\n'
+    +'#continueStory.is-locked::after{display:none}\n'
+    +'#continueStory.is-locked::before{content:"";position:static;inset:auto;clip-path:none;grid-row:1/3;align-self:center;width:15px;height:15px;background:currentColor;opacity:.85;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23000\' stroke-width=\'2.2\'%3E%3Crect x=\'5\' y=\'10.5\' width=\'14\' height=\'9.5\' rx=\'1.5\'/%3E%3Cpath d=\'M8 10.5V7.6a4 4 0 0 1 8 0v2.9\'/%3E%3Ccircle cx=\'12\' cy=\'15.2\' r=\'1.7\' fill=\'%23000\' stroke=\'none\'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23000\' stroke-width=\'2.2\'%3E%3Crect x=\'5\' y=\'10.5\' width=\'14\' height=\'9.5\' rx=\'1.5\'/%3E%3Cpath d=\'M8 10.5V7.6a4 4 0 0 1 8 0v2.9\'/%3E%3Ccircle cx=\'12\' cy=\'15.2\' r=\'1.7\' fill=\'%23000\' stroke=\'none\'/%3E%3C/svg%3E") center/contain no-repeat}\n'
+    +'#continueStory.is-locked .label{grid-column:2;grid-row:1;font-size:clamp(11px,1.02vw,14px);letter-spacing:.2em;font-weight:800;line-height:1.15;white-space:nowrap}\n'
+    +'#continueStory.is-locked .storyState{display:block;grid-column:2;grid-row:2;font-size:clamp(10px,.92vw,12.5px);letter-spacing:.24em;font-weight:700;line-height:1.2;color:rgba(255,180,90,.82);white-space:nowrap}\n'
+    +'@media (orientation:portrait){#continueStory.is-locked{align-self:stretch;grid-template-columns:auto auto 1fr;grid-template-rows:auto;min-height:46px}#continueStory.is-locked::before{grid-row:1}#continueStory.is-locked .label{grid-row:1}#continueStory.is-locked .storyState{grid-column:3;grid-row:1;justify-self:end}}\n'
+    +'</style>\n</head>';
+  outputs.set('shell.html',Buffer.from(storyLockShell
+    .replace(storyCtaBefore,storyCtaAfter)
+    .replace(freeBattleBefore,freeBattleAfter)
+    .replace(storyGateBefore,storyGateAfter)
+    .replace('</head>',storyLockStyle),'utf8'));
+  log('F2 story lock built (status chip + Free Battle primary; entry gated by product authority)');
+
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     manifestFiles[rel] = { bytes: buf.length, sha256: sha256(buf) };

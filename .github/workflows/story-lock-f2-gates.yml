@@ -1,0 +1,107 @@
+# F2: Story / Quest 01 lock authority gates (owner decision B, 2026-10-19).
+#
+# Story stays locked until Quest 01 ships: the product registry
+# (src/game/productSurface.js) lists quest-01 as LOCKED and every player
+# path must obey it. This workflow proves on each relevant PR that the
+# registry still says LOCKED, the generated Gold shell is in sync with its
+# generator (which carries the F2 COMING SOON + authority-gate overlay),
+# the locale contract holds, and — in real Chrome on the built product —
+# mouse/keyboard/touch/reload/deep-link/saved-state cannot open the Quest
+# director or write quest progress, while neighbouring Home flows
+# (Free Battle, BOT WAVE) keep working.
+name: Story Lock F2 Gates
+on:
+  pull_request:
+    paths:
+      - 'src/game/productSurface.js'
+      - 'src/game/localeCatalog.js'
+      - 'src/game/localizationRuntime.js'
+      - 'tools/buildGoldCutover.mjs'
+      - 'public/gold/shell.html'
+      - 'public/gold/manifest.json'
+      - 'public/game/quest/**'
+      - 'tools/testQuestStoryLockF2Browser.mjs'
+      - 'tools/testLocalizationChrome.mjs'
+      - 'tools/testLocalizationGate.mjs'
+      - '.github/workflows/story-lock-f2-gates.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: story-lock-f2-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  node-gates:
+    name: Story lock node gates (registry, generator, locale, CP16)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Product graph — quest-01 stays LOCKED
+        run: pnpm test:product-graph
+      - name: Gold generator output is in sync (F2 overlay included)
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Gold revision integrity
+        run: pnpm test:gold-revision-integrity
+      - name: Runtime revision lock (CP16)
+        run: pnpm test:runtime-revision
+      - name: Source hygiene
+        run: pnpm test:source-hygiene
+      - name: Locale catalog contract (COMING SOON copy pairs)
+        run: node tools/testLocalizationGate.mjs
+      - name: CP6 future-content admission
+        run: node tools/testExtensionCapacityGates.mjs
+
+  browser-acceptance:
+    name: Story lock browser acceptance (Chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build production bundle
+        run: pnpm build
+      - name: Start built product preview
+        shell: bash
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/story-lock-f2-preview.log 2>&1 &
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0; sleep 1; done
+          cat /tmp/story-lock-f2-preview.log; exit 1
+      - name: Install Chrome controller (same pattern as staged QA)
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: F2 lock — COMING SOON, input/reload/deep-link/saved-state attacks
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testQuestStoryLockF2Browser.mjs
+      - name: Home regression — BOT WAVE entry, live gameplay, Home return
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testBoxeModeEntryChrome.mjs
+      - name: Browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-lock-f2-browser
+          path: |
+            docs/quest/f2-browser/
+            docs/boxe/r5-browser/
+          if-no-files-found: ignore

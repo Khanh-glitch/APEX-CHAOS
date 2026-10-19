@@ -12,7 +12,7 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['THE ONES THROWN AWAY','NHỮNG KẺ BỊ VỨT BỎ'],
   ['Discarded machines, forgotten by the world.','Những cỗ máy bị vứt bỏ, bị cả thế giới lãng quên.'],
   ['But here, in the Scrap Basin,','Nhưng tại Scrap Basin,'],['they move again.','chúng lại cử động.'],
-  ['CONTINUE STORY','TIẾP TỤC CỐT TRUYỆN'],['FREE BATTLE','ĐẤU TỰ DO'],
+  ['CONTINUE STORY','TIẾP TỤC CỐT TRUYỆN'],['STORY — COMING SOON','CỐT TRUYỆN — SẮP RA MẮT'],['FREE BATTLE','ĐẤU TỰ DO'],
   ['Fighter Shop','Cửa hàng đấu sĩ'],['Lucky Draw','Vòng quay may mắn'],
   ['Upgrade','Nâng cấp'],['Archive','Kho hồ sơ'],['Missions','Nhiệm vụ'],['Account','Tài khoản'],
   ['Achievements','Thành tích'],['Fighter Upgrade','Nâng cấp đấu sĩ'],

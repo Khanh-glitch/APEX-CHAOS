@@ -1274,6 +1274,18 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   }
 }
 </style>
+<style id="apexStoryLockF2">
+.actions:has(>#continueStory.is-locked)>#freeBattle{order:-1}
+#continueStory .storyState{display:none}
+#continueStory.is-locked{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;row-gap:1px;align-self:center;align-items:center;height:auto;min-height:50px;padding:9px 14px;cursor:default;background:linear-gradient(180deg,rgba(26,27,31,.84),rgba(12,13,15,.94));border:1px solid rgba(238,231,219,.10);clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px));color:rgba(235,228,218,.68);filter:none;box-shadow:none;text-align:left}
+#continueStory.is-locked:hover,#continueStory.is-locked:focus-visible,#continueStory.is-locked:active,#continueStory.is-locked:focus{transform:none;filter:none;outline:none}
+#continueStory.is-locked .ctaFrame,#continueStory.is-locked .ctaTexture,#continueStory.is-locked .ctaSweep,#continueStory.is-locked .ctaRail,#continueStory.is-locked .arrow{display:none}
+#continueStory.is-locked::after{display:none}
+#continueStory.is-locked::before{content:"";position:static;inset:auto;clip-path:none;grid-row:1/3;align-self:center;width:15px;height:15px;background:currentColor;opacity:.85;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2'%3E%3Crect x='5' y='10.5' width='14' height='9.5' rx='1.5'/%3E%3Cpath d='M8 10.5V7.6a4 4 0 0 1 8 0v2.9'/%3E%3Ccircle cx='12' cy='15.2' r='1.7' fill='%23000' stroke='none'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2'%3E%3Crect x='5' y='10.5' width='14' height='9.5' rx='1.5'/%3E%3Cpath d='M8 10.5V7.6a4 4 0 0 1 8 0v2.9'/%3E%3Ccircle cx='12' cy='15.2' r='1.7' fill='%23000' stroke='none'/%3E%3C/svg%3E") center/contain no-repeat}
+#continueStory.is-locked .label{grid-column:2;grid-row:1;font-size:clamp(11px,1.02vw,14px);letter-spacing:.2em;font-weight:800;line-height:1.15;white-space:nowrap}
+#continueStory.is-locked .storyState{display:block;grid-column:2;grid-row:2;font-size:clamp(10px,.92vw,12.5px);letter-spacing:.24em;font-weight:700;line-height:1.2;color:rgba(255,180,90,.82);white-space:nowrap}
+@media (orientation:portrait){#continueStory.is-locked{align-self:stretch;grid-template-columns:auto auto 1fr;grid-template-rows:auto;min-height:46px}#continueStory.is-locked::before{grid-row:1}#continueStory.is-locked .label{grid-row:1}#continueStory.is-locked .storyState{grid-column:3;grid-row:1;justify-self:end}}
+</style>
 </head>
 <body>
 <main id="stage" data-apex-shell-stage="true" aria-label="APEX CHAOS Home">
@@ -1328,8 +1340,8 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   </section>
 
   <div class="actions e-actions" aria-label="Primary actions">
-    <button class="cta primary" id="continueStory" type="button"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">CONTINUE STORY</span><span class="arrow" aria-hidden="true">❯</span></button>
-    <button class="cta secondary" id="freeBattle" type="button"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">FREE BATTLE</span><span class="arrow" aria-hidden="true">❯</span></button>
+    <button class="cta is-locked" id="continueStory" type="button" tabindex="-1" aria-disabled="true" aria-label="Story — Coming Soon"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">STORY</span><span class="storyState">COMING SOON</span><span class="arrow" aria-hidden="true">❯</span></button>
+    <button class="cta primary" id="freeBattle" type="button"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">FREE BATTLE</span><span class="arrow" aria-hidden="true">❯</span></button>
   </div>
 
   <nav class="routes e-routes" aria-label="Main routes">
@@ -1456,7 +1468,20 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   // and touch. Chrome touchend on the animated home CTA was synthesizing its
   // click onto Free Battle after a layout shift (B5 evidence 37919063772).
   // Handle a real short, completed touch here and cancel only its ghost click.
+  // F2: derive the Story CTA presentation from the ONE product registry.
+  // The generated markup bakes today's LOCKED state; if quest-01 ever
+  // flips ACTIVE in src/game/productSurface.js, restore the authored
+  // CONTINUE STORY primary CTA (and Free Battle secondary) at runtime.
+  const storyProductAuthority=window.APEX_PRODUCT_SURFACE||window.parent?.APEX_PRODUCT_SURFACE;
+  if(storyProductAuthority?.canLaunch?.('quest-01')===true){
+    const s=document.getElementById('continueStory'),f=document.getElementById('freeBattle');
+    if(s){s.classList.remove('is-locked');s.classList.add('primary');s.removeAttribute('aria-disabled');s.removeAttribute('aria-label');s.removeAttribute('tabindex');const l=s.querySelector('.label');if(l)l.textContent=window.APEX_I18N?.translate?.('CONTINUE STORY')||'CONTINUE STORY';}
+    if(f){f.classList.remove('primary');f.classList.add('secondary');}
+  }
   const openQuestFromHome=()=>{
+    // F2: consult the ONE product authority; fail closed when unreachable.
+    const productAuthority=window.APEX_PRODUCT_SURFACE||window.parent?.APEX_PRODUCT_SURFACE;
+    if(productAuthority?.canLaunch?.('quest-01')!==true)return;
 
     if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
     const director=window.APEX_QUEST01_DIRECTOR;
