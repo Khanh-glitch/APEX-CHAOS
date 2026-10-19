@@ -4573,8 +4573,13 @@ const battlePanelIdentity = JSON.parse(run(`return JSON.stringify({
   p1: document.getElementById('p1-name')?.innerText || document.getElementById('p1-name')?.textContent || '',
   p2: document.getElementById('p2-name')?.innerText || document.getElementById('p2-name')?.textContent || '',
 })`));
+// Panel names are product/display copy, so they must follow the Hero
+// Registry display law (public/game/hero-rework/heroRegistry.js): canonical
+// storage id ROBOT renders as NEWBOT, ICE renders as FROST. The match above
+// was started with canonical ids ('ROBOT','ICE'); the truthful panel output
+// is therefore the display pair, exactly as already expected for P2/FROST.
 gate('passb-battle-panel-identities-truthful',
-  battlePanelIdentity.p1 === 'ROBOT' && battlePanelIdentity.p2 === 'FROST',
+  battlePanelIdentity.p1 === 'NEWBOT' && battlePanelIdentity.p2 === 'FROST',
   battlePanelIdentity);
 
 // =====================================================================

@@ -1115,7 +1115,7 @@ section.story.e-story .location,section.story.e-story .copy{margin-left:0!import
 #stage{--apexLockH:42px;--apexLockB:3.2vh;--apexLockGap:0.2vh}
 #stage .selectionDeckV6{top:74.2vh!important;bottom:max(10vh,calc(var(--apexLockB) + var(--apexLockH) + var(--apexLockGap)))!important;height:auto!important;min-height:0!important}
 #stage .lockMechanismV6{min-height:var(--apexLockH)!important}
-#stage .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important;grid-template-columns:none!important;grid-template-rows:repeat(2,minmax(0,1fr))!important;grid-auto-flow:column!important;grid-auto-columns:calc((100% - 8px)/3)!important}
+#stage .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important;grid-template-columns:none!important;grid-template-rows:repeat(2,minmax(0,1fr))!important;grid-auto-flow:column!important;scroll-padding-left:4px!important;grid-auto-columns:calc((100% - 8px)/3)!important}
 #stage .selectionHeadV6 .apexRosterPager{display:flex}
 #stage .selectionDeckV6 .rosterPagerBtn{display:block}
 #stage .selectionDeckV6 .roster{scroll-snap-type:x mandatory!important;touch-action:pan-x}
@@ -2408,7 +2408,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       if(!card||!scroller)return;
       const cr=card.getBoundingClientRect(),sr=scroller.getBoundingClientRect();
       const dx=cr.left<sr.left?cr.left-sr.left:(cr.right>sr.right?cr.right-sr.right:0);
-      if(dx)scroller.scrollBy({left:dx,behavior:motion?'smooth':'auto'});
+      if(dx)scroller.scrollBy({left:dx,behavior:'auto'});
     });
   }
 
@@ -2917,10 +2917,10 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
         if (meta.textContent !== want) meta.textContent = want;
       }
     }
-    function goTo(p) {
+    function goTo(p, instant) {
       var st = starts(); pages = st.length;
       p = Math.max(0, Math.min(pages - 1, p));
-      roster.scrollTo({ left: st[p], behavior: reduced ? 'auto' : 'smooth' });
+      roster.scrollTo({ left: st[p], behavior: instant || reduced ? 'auto' : 'smooth' });
       page = p;
       requestAnimationFrame(sync);
     }
@@ -2963,7 +2963,12 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
         var st = starts();
         if (st[target] != null && Math.abs(roster.scrollLeft - st[target]) > 3) {
           clearTimeout(alignT);
-          alignT = setTimeout(function () { goTo(target); }, 60);
+          // Selection reveal is IMMEDIATE (like the resize re-align below):
+          // the chosen fighter must never sit half-severed at the port edge
+          // while a glide settles, with the dots/page state disagreeing
+          // with the port until it lands. Browsing (buttons, dots, swipe)
+          // still glides; only the selection-follow jumps.
+          alignT = setTimeout(function () { goTo(target, true); }, 60);
         }
       });
     }

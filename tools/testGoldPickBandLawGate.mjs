@@ -57,7 +57,8 @@ for (const band of law.bands) {
 check('portrait law owns the grid roster height (ambient floor cannot decide it)',
   count(shell, '#stage .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important;'
     + 'grid-template-columns:none!important;grid-template-rows:repeat(2,minmax(0,1fr))!important;'
-    + 'grid-auto-flow:column!important;grid-auto-columns:calc((100% - 8px)/3)!important}') === 1);
+    + 'grid-auto-flow:column!important;scroll-padding-left:4px!important;'
+    + 'grid-auto-columns:calc((100% - 8px)/3)!important}') === 1);
 // Roster reachability: the 14-fighter production roster must stay fully
 // reachable inside every band at the authored card size — desk/compact as a
 // six-across flex scrollport, portrait as a 3x2 page flowing into further

@@ -272,12 +272,12 @@
       "sha256": "60d64d7bbba149b12b6dff1a81cb9d25fc4d24cc123a6dfef23b8f7d39298e8b"
     },
     "lucky-draw.html": {
-      "bytes": 100259,
-      "sha256": "bd1e4d828101da94d773fb108d3c8dfca170280464bd153b66a0e321597f4b2e"
+      "bytes": 100260,
+      "sha256": "81db014007a74715ad149140e57edd85d6667b14348d1a796a00f26986b51034"
     },
     "shell.html": {
-      "bytes": 445121,
-      "sha256": "8b386c85148292fa65fce5b960dd525a12d503091b1cc0ac598ec4a09e6474f9"
+      "bytes": 445527,
+      "sha256": "c058fc7528841846d7dc6679ae9d3b1389d3e0176773a274deba30d09ce32f61"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,

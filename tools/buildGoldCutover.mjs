@@ -892,7 +892,7 @@ const GOLD_HERO_ACCENTS = {
   MAGNET: '#c7c5e9', ICE: '#7ee8ff', MIRROR: '#e9e5df', BOXE: '#ffac42',
 };
 const LUCKY_ROSTER = [
-  { shellKey: 'newbot', productionId: 'ROBOT', display: 'ROBOT', tag: 'APEX COMBAT FRAME' },
+  { shellKey: 'newbot', productionId: 'ROBOT', display: 'NEWBOT', tag: 'APEX COMBAT FRAME' },
   { shellKey: 'hunter', productionId: 'HUNTER', display: 'HUNTER', tag: 'MANTIS ASSASSIN' },
   { shellKey: 'crystala', productionId: 'CRYSTAL', display: 'CRYSTALA', tag: 'ANCIENT CRYSTAL ENTITY' },
   { shellKey: 'magnet', productionId: 'MAGNET', display: 'MAGNET', tag: 'FIELD CONTROL UNIT' },
@@ -1701,8 +1701,11 @@ function buildShell(hudProductionHtml) {
     // The production roster now scrolls within its authored deck band, so an
     // arrow-key step (or a click on a partially visible card) must bring the
     // accepted fighter fully into that band. This moves only the roster's own
-    // scroll offset — never the stage/page — and honors the shell's existing
-    // motion preference.
+    // scroll offset — never the stage/page. The reveal is IMMEDIATE (the same
+    // law as the roster pager's selection-follow): a gliding reveal leaves
+    // the accepted fighter's name severed at the port edge for hundreds of
+    // ms while it sweeps, which the visible-text audit reads as clipped
+    // text; browsing (swipe, pager dots/chevrons) still glides.
     {
       id: 'SHL-S57',
       why: 'an accepted Fighter Pick selection is revealed inside the horizontally scrollable roster',
@@ -1715,7 +1718,7 @@ function buildShell(hudProductionHtml) {
         `      if(!card||!scroller)return;\n` +
         `      const cr=card.getBoundingClientRect(),sr=scroller.getBoundingClientRect();\n` +
         `      const dx=cr.left<sr.left?cr.left-sr.left:(cr.right>sr.right?cr.right-sr.right:0);\n` +
-        `      if(dx)scroller.scrollBy({left:dx,behavior:motion?'smooth':'auto'});\n` +
+        `      if(dx)scroller.scrollBy({left:dx,behavior:'auto'});\n` +
         `    });\n` +
         `  }\n\n` +
         matched +
