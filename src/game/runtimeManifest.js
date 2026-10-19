@@ -280,6 +280,9 @@ export const ARSENAL_HUB_RUNTIMES = [
   ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
+  // A1.5: symmetrical P1/P2 SKILL DETAILS on Fighter Select. Presentation
+  // only; resolves through APEX_GOLD.skillDetailsFor → heroRegistry.
+  ['/game/ui/skillDetailsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexSkillDetailsRuntime'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],

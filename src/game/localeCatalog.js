@@ -63,6 +63,7 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['Plant a bomb and build anchor, then recoil away. Its shock stuns, disarms, and recycles the enemy gun.','Đặt bom và điểm neo xây dựng rồi giật lùi ra xa. Vụ sốc làm choáng, đánh rơi vũ khí và tái chế súng của địch.'],
   ['Spend Scrap to build or repair her machine; it can mount a finished gun to auto-fire, or shelter SHURI to heal.','Dùng Scrap để xây hoặc sửa máy; máy có thể gắn súng đã hết đạn để tự bắn, hoặc che chở SHURI hồi máu.'],
   ['PASSIVE','NỘI TẠI'],['ABILITY 1','KỸ NĂNG 1'],['ABILITY 2','KỸ NĂNG 2'],
+  ['SKILL DETAILS','CHI TIẾT KỸ NĂNG'],['ALWAYS ACTIVE','LUÔN KÍCH HOẠT'],
   ['ACTIVE WINDOW','THỜI GIAN HIỆU LỰC'],['COOLDOWN','HỒI CHIÊU'],
   ['Player 1 fighter','Đấu sĩ người chơi 1'],['Player 2 fighter','Đấu sĩ người chơi 2'],
   ['Hero roster','Danh sách đấu sĩ'],['LOCAL 1 VS 1','1 ĐẤU 1 CÙNG MÁY'],
