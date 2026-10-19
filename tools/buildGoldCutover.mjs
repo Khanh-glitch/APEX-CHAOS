@@ -2567,6 +2567,48 @@ function main() {
   outputs.set('shell.html',Buffer.from(waveSourceShell.replace(waveParentSeam,waveParentPatch),'utf8'));
   log('R7 Home/Wave freeze-resume seam built from canonical Gold shell');
 
+  // F2 (owner decision B, 2026-10-19): Story stays locked until Quest 01
+  // ships. The product registry (src/game/productSurface.js) has always
+  // listed quest-01 as LOCKED, but the Home CTA opened the Quest director
+  // without ever consulting it. This generated patch makes the runtime obey
+  // that ONE authority — it does not create a second lock:
+  //   1. the CTA presents the locked state honestly (COMING SOON copy, the
+  //      same is-locked treatment locked routes already use, aria-disabled);
+  //   2. openQuestFromHome consults APEX_PRODUCT_SURFACE.canLaunch and fails
+  //      closed BEFORE any SFX or director call, so mouse, touch and
+  //      keyboard activation of the CTA can never reach the director.
+  // Releasing Quest 01 later = flipping quest-01 to ACTIVE in the registry
+  // and regenerating. Quest content (director, cutscenes, checkpoints,
+  // artwork) is untouched and keeps shipping for development.
+  const storyLockShell=outputs.get('shell.html').toString('utf8');
+  const storyCtaBefore='<button class="cta primary" id="continueStory" type="button"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">CONTINUE STORY</span>';
+  const storyCtaAfter='<button class="cta primary is-locked" id="continueStory" type="button" aria-disabled="true" aria-label="Quest 01 (locked)"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">STORY — COMING SOON</span>';
+  if(storyLockShell.split(storyCtaBefore).length!==2)throw new Error('F2 story CTA source anchor drift');
+  const storyGateBefore="  const openQuestFromHome=()=>{\n";
+  const storyGateAfter="  const openQuestFromHome=()=>{\n"
+    +"    // F2: consult the ONE product authority; fail closed when unreachable.\n"
+    +"    const productAuthority=window.APEX_PRODUCT_SURFACE||window.parent?.APEX_PRODUCT_SURFACE;\n"
+    +"    if(productAuthority?.canLaunch?.('quest-01')!==true)return;\n";
+  if(storyLockShell.split(storyGateBefore).length!==2)throw new Error('F2 quest entry source anchor drift');
+  if(storyLockShell.split('</head>').length!==2)throw new Error('F2 expected exactly one Gold head');
+  // Measured fit (desktop 1440x900): the VI copy renders 438px wide against
+  // 400px available inside the authored 1.72fr CTA column, while EN (380px)
+  // and both mobile breakpoints already fit. Scale ONLY the VI label by the
+  // measured factor (400/438 ~= .91, use .9 for slack); the Home grid law,
+  // EN copy and every other label keep their authored sizes.
+  // The donor's is-locked treatment is scoped to .route buttons, so the CTA
+  // needs the same locked language scoped to itself: desaturated, no hover
+  // lift, no shine sweep, not-allowed cursor (mirrors .route.is-locked).
+  const storyLockStyle='<style id="apexStoryLockF2">\nhtml[lang="vi"] #continueStory .label{font-size:.9em}\n'
+    +'#continueStory.is-locked{cursor:not-allowed;filter:saturate(.4)}\n'
+    +'#continueStory.is-locked:hover,#continueStory.is-locked:focus-visible,#continueStory.is-locked:active{transform:none;filter:saturate(.4)}\n'
+    +'#continueStory.is-locked .ctaSweep{display:none}\n</style>\n</head>';
+  outputs.set('shell.html',Buffer.from(storyLockShell
+    .replace(storyCtaBefore,storyCtaAfter)
+    .replace(storyGateBefore,storyGateAfter)
+    .replace('</head>',storyLockStyle),'utf8'));
+  log('F2 story lock built (Quest 01 COMING SOON; Home entry gated by product authority)');
+
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     manifestFiles[rel] = { bytes: buf.length, sha256: sha256(buf) };

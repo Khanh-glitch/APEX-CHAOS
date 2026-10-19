@@ -1274,6 +1274,12 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   }
 }
 </style>
+<style id="apexStoryLockF2">
+html[lang="vi"] #continueStory .label{font-size:.9em}
+#continueStory.is-locked{cursor:not-allowed;filter:saturate(.4)}
+#continueStory.is-locked:hover,#continueStory.is-locked:focus-visible,#continueStory.is-locked:active{transform:none;filter:saturate(.4)}
+#continueStory.is-locked .ctaSweep{display:none}
+</style>
 </head>
 <body>
 <main id="stage" data-apex-shell-stage="true" aria-label="APEX CHAOS Home">
@@ -1328,7 +1334,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   </section>
 
   <div class="actions e-actions" aria-label="Primary actions">
-    <button class="cta primary" id="continueStory" type="button"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">CONTINUE STORY</span><span class="arrow" aria-hidden="true">❯</span></button>
+    <button class="cta primary is-locked" id="continueStory" type="button" aria-disabled="true" aria-label="Quest 01 (locked)"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">STORY — COMING SOON</span><span class="arrow" aria-hidden="true">❯</span></button>
     <button class="cta secondary" id="freeBattle" type="button"><span class="ctaFrame"></span><span class="ctaTexture"></span><span class="ctaSweep"></span><span class="ctaRail"></span><span class="label">FREE BATTLE</span><span class="arrow" aria-hidden="true">❯</span></button>
   </div>
 
@@ -1457,6 +1463,9 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   // click onto Free Battle after a layout shift (B5 evidence 37919063772).
   // Handle a real short, completed touch here and cancel only its ghost click.
   const openQuestFromHome=()=>{
+    // F2: consult the ONE product authority; fail closed when unreachable.
+    const productAuthority=window.APEX_PRODUCT_SURFACE||window.parent?.APEX_PRODUCT_SURFACE;
+    if(productAuthority?.canLaunch?.('quest-01')!==true)return;
 
     if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
     const director=window.APEX_QUEST01_DIRECTOR;
