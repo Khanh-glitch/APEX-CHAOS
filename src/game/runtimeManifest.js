@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261014-cp17-frost-cast-r1';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261018-botwave-r19';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -42,6 +42,23 @@ export const MENU_INTERACTIVE_RUNTIMES = [
 // duplicating its load, changing Gold readiness or affecting BOT/Local boot.
 export const GOLD_QUEST_SHELL_RUNTIMES = Object.freeze([
   ['/game/quest/quest01Director.js?v=20261010-quest-fixed-robot-02', 'apexQuest01Director'],
+]);
+
+// BOT WAVE special Home route: separate intent-loaded scripts only.
+export const BOT_WAVE_SPECIAL_RUNTIMES = Object.freeze([
+  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
+  ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],
+  ['/game/bot-wave/waveCampaign.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveCampaign'],
+  ['/game/bot-wave/nativeArsenalGoldBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveNativeBridge'],
+  ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
+  ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalPresentationRuntime'],
+  ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalWeaponRuntime'],
+]);
+
+// BOT WAVE presentation is independently booted inside the Gold iframe,
+// never run as a parallel menu UI or a second Gold character engine.
+export const BOT_WAVE_PRESENTATION_RUNTIMES = Object.freeze([
+  ['/game/bot-wave/botWavePresentationV2.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWavePresentationV2'],
 ]);
 
 // Current-neutral combat services shared by Arsenal and the generic engine.
@@ -104,6 +121,8 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/arsenal/arsenalManualSkillGate.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalManualSkillGate'],
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
+  ['/game/hero-rework/boxeBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeBattle'],
+  ['/game/hero-rework/shuriBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriBattle'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
@@ -133,6 +152,11 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/mirrorGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorGoldV1'],
   ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
   ['/game/hero-rework/heroReworkRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRuntime'],
+  ['/game/hero-rework/boxeSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeSfxAuthority'],
+  ['/game/hero-rework/boxeGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldLibrary'],
+  ['/game/hero-rework/boxeGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldPresentationRuntime'],
+  ['/game/hero-rework/shuriGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldLibrary'],
+  ['/game/hero-rework/shuriGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldPresentationRuntime'],
   ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&cp8Socket=vua-he-held', 'apexRobotPresentationRuntime'],
   ['/game/hero-rework/hunterGoldV10.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterGoldV10'],
   ['/game/hero-rework/hunterPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterPresentationRuntime'],
@@ -154,6 +178,14 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
 // fighters pay hero-specific evaluation cost. Filtering instead of concatenating
 // sub-groups preserves every historical dependency edge and script order.
 export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
+  shuri: Object.freeze(['/game/hero-rework/shuriBattleRuntime.js',
+    '/game/hero-rework/shuriGoldLibrary.js',
+    '/game/hero-rework/shuriGoldPresentationRuntime.js']),
+  boxe: Object.freeze([
+    '/game/hero-rework/boxeSfxAuthority.js',
+    '/game/hero-rework/boxeGoldLibrary.js',
+    '/game/hero-rework/boxeGoldPresentationRuntime.js',
+  ]),
   newbot: Object.freeze([
     '/game/hero-rework/robotPresentationRuntime.js',
   ]),
@@ -189,6 +221,8 @@ const CORE_SIX_RUNTIME_KEY_ALIASES = Object.freeze({
   magnet: 'magnet',
   frost: 'frost', ice: 'frost',
   mirror: 'mirror',
+  boxe: 'boxe',
+  shuri: 'shuri',
 });
 const BATTLE_RUNTIME_OWNER_BY_PATH = new Map();
 for (const [hero, paths] of Object.entries(CORE_SIX_BATTLE_RUNTIME_PATHS)) {

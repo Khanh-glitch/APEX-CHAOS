@@ -32,7 +32,7 @@ const ecoVisualContract={
 
 cosmetics.register({
  kind:'weapon',baseId:'RPG_7',id:'vua-he',label:'VUA HỀ — THE LAST LAUGH',
- detail:'Owner Gold / native RPG-7 · V7 smoke and original complete face frame',
+ detail:'The laughing warhead keeps its full face in frame, trailing thick theatrical smoke.',
  preview:'/assets/skins/rocket-vua-he/launcher.png',assets:rocketGoldAssets,
  fidelity:'owner-gold', visualContract:rocketVisualContract,
  suppressBaseBlast:true,suppressBaseTrail:true,blastSeconds:1.38,trailHistorySeconds:.87,
@@ -40,7 +40,7 @@ cosmetics.register({
 });
 cosmetics.register({
  kind:'hero',baseId:'ROBOT',id:'ecobot',label:'ECOBOT — RECYCLE CORE V17',
- detail:'Owner Gold · forest-jade mechanical layers · native NEWBOT springs',
+ detail:'Forest-jade mechanical layers over a spring-driven NEWBOT frame.',
  assets:[],prepare:prepareEcoGold,
  fidelity:'owner-gold',visualContract:ecoVisualContract,
  render:{actor:drawEcoGoldActor,worldBack:drawEcoGoldWorldBack,worldFront:drawEcoGoldWorldFront,

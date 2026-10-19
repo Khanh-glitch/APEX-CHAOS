@@ -33,9 +33,11 @@
     const base = baseTypeFor(name);
     const registry = window.APEX_HERO_REWORK_REGISTRY;
     const label = registry?.displayNameFor ? registry.displayNameFor(name) : name;
+    // New heroes can project identity without having a legacy FighterTypes entry.
+    const identityColor = registry?.HEROES?.[name]?.identityColor;
     return {
       name,
-      color: (base && base.color) || '#c8c2b4',
+      color: (base && base.color) || identityColor || '#c8c2b4',
       desc: `Hero Rework — ${label}`,
       speed: CFG.FIGHTER_SPEED,
       startDx: (base && base.startDx != null) ? base.startDx : 1,

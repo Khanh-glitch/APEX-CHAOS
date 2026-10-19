@@ -1292,7 +1292,7 @@
         }
         win.className = 'aq-result-layer';
         hudRefs.win = win;
-        const actions = ['REMATCH', 'PICK AGAIN', 'PRODUCT MENU'];
+        const actions = ['REMATCH', 'PICK AGAIN', 'HOME'];
         const award = result.award;
         const reward = award
           ? '<div class="aq-result-reward">+' + award.amount + ' AC · BALANCE ' + award.balance + '</div>' : '';
@@ -1304,7 +1304,7 @@
           if (!action) return;
           if (action === 'REMATCH') window.startArsenalBattleMode();
           else if (action === 'PICK AGAIN') window.APEX_ARSENAL_META?.openFighterPick?.({ mode: state.battleMode || 'local' });
-          else if (action === 'PRODUCT MENU') {
+          else if (action === 'HOME') {
             window.exitArsenalBattleMode();
             window.APEX_ARSENAL_META?.returnToProductMenu?.();
           }
@@ -2569,7 +2569,7 @@
     }).join('');
     panel.innerHTML = '<summary>ARSENAL LAB · EQUIPMENT</summary>'
       + '<div class="aq-lab-intro">Tap a weapon to reveal one pickup. ROBOT vs ROBOT · endless HP.</div>'
-      + '<button type="button" class="aq-lab-exit">← PRODUCT MENU</button>'
+      + '<button type="button" class="aq-lab-exit">← HOME</button>'
       + '<div class="aq-lab-message" role="status" aria-live="polite"></div>'
       + '<div class="aq-lab-grid">' + list + '</div>';
     panel.querySelector('.aq-lab-exit').addEventListener('click', () => window.exitArsenalLab());

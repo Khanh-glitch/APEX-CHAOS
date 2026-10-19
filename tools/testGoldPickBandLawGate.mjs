@@ -9,9 +9,14 @@ import fs from 'node:fs';
 import {
   PICK_BAND_MARKER,
   PICK_BAND_SOURCES,
+  ROSTER_PAGER_BAND_RULES,
+  ROSTER_PAGER_MARKER,
+  ROSTER_PAGER_SCRIPT_ID,
   pickBandFor,
   pickBandGeometry,
   resolvePickBandLaw,
+  rosterPagerCss,
+  rosterPagerScript,
 } from './goldShellR52pickBand.mjs';
 
 const shell = fs.readFileSync('public/gold/shell.html', 'utf8');
@@ -51,7 +56,25 @@ for (const band of law.bands) {
 }
 check('portrait law owns the grid roster height (ambient floor cannot decide it)',
   count(shell, '#stage .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important;'
-    + 'grid-template-rows:repeat(2,minmax(0,1fr))!important;grid-auto-rows:0!important;overflow:hidden!important}') === 1);
+    + 'grid-template-columns:none!important;grid-template-rows:repeat(2,minmax(0,1fr))!important;'
+    + 'grid-auto-flow:column!important;grid-auto-columns:calc((100% - 8px)/3)!important}') === 1);
+// Roster reachability: the 14-fighter production roster must stay fully
+// reachable inside every band at the authored card size — desk/compact as a
+// six-across flex scrollport, portrait as a 3x2 page flowing into further
+// columns. The old zero-height implicit rows hid every fighter past the
+// sixth in portrait and must never come back.
+check('desk band makes the roster a six-across horizontal scrollport',
+  count(shell, '#stage .selectionDeckV6 .roster{overflow-x:auto!important;overflow-y:hidden!important;'
+    + 'scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:rgba(255,140,0,.55) transparent}') === 1
+  && count(shell, '#stage .selectionDeckV6 .rosterCard{flex:0 0 calc((100% - 25px)/6)!important;scroll-snap-align:start}') === 1
+  && count(shell, '#stage .selectionDeckV6 .rosterCard.p2-selected{flex-basis:calc((100% - 25px)/6*1.2)!important}') === 1
+  && count(shell, '#stage .selectionDeckV6 .roster::-webkit-scrollbar{height:4px}') === 1
+  && count(shell, '#stage .selectionDeckV6 .roster::-webkit-scrollbar-thumb{background:rgba(255,140,0,.55)}') === 1);
+check('compact-landscape keeps the same six-across card width on its 3px gap',
+  count(shell, '#stage .selectionDeckV6 .rosterCard{flex-basis:calc((100% - 15px)/6)!important}') === 1
+  && count(shell, '#stage .selectionDeckV6 .rosterCard.p2-selected{flex-basis:calc((100% - 15px)/6*1.2)!important}') === 1);
+check('the fighter-hiding zero-height implicit rows are retired',
+  count(shell, 'grid-auto-rows:0') === 0);
 check('ambient floors the law defeats are documented',
   adapter.includes('min-height:44px') && adapter.includes('min-height:230px'));
 // R81's short-portrait Fighter Pick adjusts ONLY the roster's TOP edge to
@@ -119,6 +142,27 @@ check('band routing follows the CSS media query order',
   && pickBandFor(980, 500) === 'compact-landscape'
   && pickBandFor(981, 500) === 'desk'
   && pickBandFor(1920, 1080) === 'desk');
+
+// ── Roster pager law (owner Fighter-Select completion) ─────────────────────
+// Phone bands navigate the six-per-view roster by whole pages: header dots,
+// margin chevrons, mandatory page snap. The desk band keeps the canonical
+// scrollport. Byte-pinned so the pager cannot silently fall out of the build.
+check('shell carries the roster pager law (CSS + script markers)',
+  count(shell, ROSTER_PAGER_MARKER) === 2);
+check('roster pager controller script is emitted exactly once',
+  count(shell, `id="${ROSTER_PAGER_SCRIPT_ID}"`) === 1
+  && count(shell, rosterPagerScript()) === 1);
+check('roster pager base CSS is emitted exactly once (hidden by default)',
+  count(shell, rosterPagerCss()) === 1
+  && rosterPagerCss().includes('.apexRosterPager{display:none;'));
+for (const rule of ROSTER_PAGER_BAND_RULES) {
+  check(`pager band rule is pinned in portrait + compact-landscape only: ${rule.slice(0, 64)}…`,
+    count(shell, rule) === 2);
+}
+check('selection track cursor scales to the live roster size (--cursor-n)',
+  count(shell, '#stage .selectionCursorV6{width:calc(100%/var(--cursor-n,6))}') === 1);
+check('pager script keeps selection ownership with the canonical shell (no selectHero rewrite)',
+  !rosterPagerScript().includes('selectHero') && !rosterPagerScript().includes('lockCurrent'));
 
 console.log(['R52 PICK BAND LAW GATE', ...passes].join('\n'));
 if (failures.length) {

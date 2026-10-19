@@ -1,0 +1,65 @@
+{
+  "raw_sha256": "928dd80df819172b06ea2ee872d6fe5f206d6aded3f21cdea150caa2af07a3a1",
+  "externalized_sha256": "5745e5e267eed2b457cf3f2ac5bafda14ec35dc03f9053552841ba9f72edf3f7",
+  "raw_bytes": 26401137,
+  "externalized_bytes": 995987,
+  "substitutions": [
+    {
+      "file": "char-body.png",
+      "sha256": "20dcb0fda5ddb8bb62065b593d194f814a9879128dac087fb5570147fb87ee3d",
+      "bytes": 2185208
+    },
+    {
+      "file": "glove.png",
+      "sha256": "6947974edbf8f7e35b67f1ecb89519fb0cd9eb13fa8267c14f36a036943f4fca",
+      "bytes": 2380148
+    },
+    {
+      "file": "dummy.png",
+      "sha256": "45b622cb64487d7fecf3ea3464e782e5051f24b6ac5e620b90fa0d70c29a5856",
+      "bytes": 2248733
+    },
+    {
+      "file": "bot.png",
+      "sha256": "e6981e01a9b94f7a74a4fd52a069f211260862f754bb3002803565ee5595e7d5",
+      "bytes": 1979202
+    },
+    {
+      "file": "fx-rock.png",
+      "sha256": "ff7d40a70b2fa9d14119d35edb087e7a4cb41537d2fa7d44fbbd4224aaffe349",
+      "bytes": 1640664
+    },
+    {
+      "file": "fx-rubble.png",
+      "sha256": "94235a9d39e824fc7ca1f0ac80bddfdbbc474257a0f1ed836c57bd3635cfec82",
+      "bytes": 1756538
+    },
+    {
+      "file": "fx-fracture.png",
+      "sha256": "9d1c6080e0ea3ce3ee05671bc7d8a4443b323a2455a22b3e3b1b0f8ef47243cb",
+      "bytes": 2423396
+    },
+    {
+      "file": "char-body-new.png",
+      "sha256": "fe3fc5a49fdd309cce2484ac3c45cace4051195afdf6a91bc534310f4b56f883",
+      "bytes": 1315996
+    },
+    {
+      "file": "char-body2.png",
+      "sha256": "0e2aa58951b3772006b2e950c53d7d5882c2bf96333985cde5d2998696c24689",
+      "bytes": 1687472
+    },
+    {
+      "file": "fx-fire.png",
+      "sha256": "efdb98d065a0fe10e19f8256008cd1dd4c9a7b710b03f2a8dcd5529f965820d2",
+      "bytes": 1430667
+    }
+  ],
+  "gold_visual_prefix_sha256": "58f886f93addd83e87f87be476ae8eb504a1e166a520d44ee4454918ba38882f",
+  "visual_prefix_delimiter": "/* BOXE BOT WAVE pilot — additive Gold Lab adapter",
+  "source_gold_visual_edits": 0,
+  "bot_wave_gameplay_revision": "REJECT-R3-NATIVE-EXECUTOR-POSE-PROJECTILES-AND-AV",
+  "owner_gold_core_sha256": "00a14304c6c82efc337e78cbeb4f68ff9d1f15b4413016b6355a6c43dd3ffbc7",
+  "owner_gold_core_chars": 901831,
+  "source_authority": "Owner-uploaded BOXE_THE_LAST_ROUND_R2_PLAYTEST (1)(1).html: exact Gold core and R2 arena/SFX; only the wave director and native Arsenal adapter differ."
+}

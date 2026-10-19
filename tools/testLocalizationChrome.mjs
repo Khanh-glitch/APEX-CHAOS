@@ -9,9 +9,9 @@ const base=process.env.APEX_APP_URL||'http://127.0.0.1:5173/';
 const port=9471;
 const child=spawn(CHROME,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--remote-allow-origins=*','--remote-debugging-port='+port,'--user-data-dir=/tmp/apex-localization-'+process.pid,'about:blank'],{stdio:'ignore'});
 let ws;let serial=0;const pending=new Map();
-function cmd(method,params={}){
+function cmd(method,params={},timeoutMs=45000){
  const id=++serial;return new Promise((resolve,reject)=>{
-   const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method+' timeout'));},45000);
+   const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method+' timeout'));},timeoutMs);
    pending.set(id,{resolve:x=>{clearTimeout(timer);resolve(x)},reject:e=>{clearTimeout(timer);reject(e)}});
    ws.send(JSON.stringify({id,method,params}));
  });
@@ -29,7 +29,7 @@ async function until(code,ms=40000){
  return false;
 }
 async function capture(name){
- const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+ const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},240000);
  await writeFile('docs/acceptance/localization/'+name+'.png',Buffer.from(shot.data,'base64'));
 }
 
@@ -116,10 +116,12 @@ try{
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('ready')})()"),view.id+' HOME ready');
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.body?.dataset?.apexSceneTransition==='DONE'})()"),view.id+' transition fully opened');
    await sleep(200);
-   const report=await run(`(()=>{
+   const report=await run(`(async()=>{
      const w=window.__apexGoldFidelity?.child()||window,d=w.document;
      const picker=d.querySelector('#apex-language-select');
      w.APEX_I18N.setLanguage('vie');
+     await d.fonts.ready;
+     await new Promise(r=>w.requestAnimationFrame(()=>w.requestAnimationFrame(r)));
      const title=d.querySelector('.storyTitle'),button=d.querySelector('#continueStory .label');
      const range=d.createRange();range.selectNodeContents(title);const rect=range.getBoundingClientRect();
      const box=title.getBoundingClientRect(),cta=d.querySelector('#continueStory').getBoundingClientRect();
@@ -237,8 +239,14 @@ try{
      // Exercise the actual Gold control: only an open drawer is relevant to visible-text clipping.
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#infoD')?.click()})()");
      checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;return d.querySelector('#stage')?.dataset.drawer==='1'})()",10000),'Lucky Draw real pool drawer opened');
-     await sleep(550);
-     const pool=await auditAllVisibleText('desktop-lucky-drawer-open-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+     // The drawer slides in; audit only once its pool text has actually
+     // entered the viewport instead of guessing a fixed animation delay.
+     let pool=null;
+     for(let attempt=0;attempt<40;attempt++){
+       pool=await auditAllVisibleText('desktop-lucky-drawer-open-vie','w.document.querySelector("#luckyDonorFrame").contentDocument');
+       if(pool.inspected>15)break;
+       await sleep(250);
+     }
      checked(pool.inspected>15&&pool.clippedCount===0,'Open Lucky Draw pool text is fully visible',pool.clipped.slice(0,12));
      await capture('desktop-lucky-drawer-open-vie');
      await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;const d=w.document.querySelector('#luckyDonorFrame').contentDocument;d.querySelector('#drawerX')?.click()})()");

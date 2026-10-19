@@ -1,0 +1,160 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import puppeteer from 'puppeteer-core';
+const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']});
+const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
+const dir=path.resolve('docs/field-archive/candidate03');
+fs.mkdirSync(dir,{recursive:true});
+const views=[
+ {name:'desktop',width:1440,height:900,deviceScaleFactor:1},
+ {name:'tablet',width:768,height:1024,deviceScaleFactor:1},
+ {name:'mobile',width:390,height:844,deviceScaleFactor:1,isMobile:true,hasTouch:true},
+ {name:'small-mobile',width:320,height:568,deviceScaleFactor:1,isMobile:true,hasTouch:true},
+ {name:'landscape',width:844,height:390,deviceScaleFactor:1,isMobile:true,hasTouch:true}
+];
+const reports=[];
+try{
+ for(const v of views){
+  const page=await browser.newPage();await page.setViewport(v);
+  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+  page.on('response',r=>{if(r.status()>=400&&/(pick_selected_large|ecobot|FieldArchiveC03|fieldArchiveC03)/.test(r.url()))errors.push('HTTP '+r.status()+':'+r.url())});
+  try{
+   await page.goto(url,{waitUntil:'domcontentloaded',timeout:65000});
+   await page.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
+   await page.click('#apex-boot-start');
+   await page.waitForFunction(()=>!document.getElementById('apex-boot-start')&&!window.APEX_SCENE_TRANSITION?.active?.(),{timeout:90000});
+   await page.waitForSelector('#apexDictionaryOpen',{visible:true,timeout:30000});
+   const locked=await page.$eval('#apexDictionaryOpen',el=>({disabled:el.disabled,locked:el.classList.contains('is-locked')}));
+   assert.deepEqual(locked,{disabled:false,locked:false},'Gold Dictionary is not a real HOME entry');
+   await page.$eval('#apexDictionaryOpen',el=>el.click());
+   await page.waitForSelector('.fa3-shell',{visible:true,timeout:90000});
+   await page.waitForFunction(()=>document.querySelector('.fa3-index-list button'),{timeout:40000});
+   await page.waitForTimeout?.(350).catch?.(()=>{});
+   const initial=await page.evaluate(()=>{
+    const shell=document.querySelector('.fa3-shell'),controls=['.fa3-primary','.fa3-players','.fa3-center','.fa3-detail','.fa3-equip','.fa3-close'].map(s=>({selector:s,box:document.querySelector(s)?.getBoundingClientRect()?.toJSON()}));
+    const doc=document.documentElement,rect=shell.getBoundingClientRect(),equip=document.querySelector('.fa3-equip').getBoundingClientRect();
+    const top=equip.top,bottom=equip.bottom;
+    return {viewport:{width:innerWidth,height:innerHeight},scrollY,book:{x:rect.x,y:rect.y,w:rect.width,h:rect.height},equip:{top,bottom},
+       controlBoxes:controls,hasScroll:document.body.scrollHeight>innerHeight+3&&getComputedStyle(document.body).overflowY!=='hidden',
+       originalSrc:document.querySelector('.fa3-hero-img')?.getAttribute('src'),title:document.querySelector('.fa3-record-top h3')?.textContent};
+   });
+   assert.equal(initial.title,'NEWBOT');
+   assert.equal(initial.originalSrc,'/assets/gold-ui/heroes/newbot/pick_selected_large.webp','NEWBOT default must use approved Gold pick art');
+   assert.equal(initial.hasScroll,false,'the page scrolls vertically');
+   assert.ok(initial.equip.top>=0&&initial.equip.bottom<=v.height+1,'Equip below/above viewport '+JSON.stringify(initial.equip));
+   // Geometric and hit-testing regression: short landscape used to hide the
+   // second appearance below a decorative field-note. Every skin must be
+   // directly clickable, fully above equip/status, and inside its panel.
+   const skinReach=await page.evaluate(()=>{
+     const detail=document.querySelector('.fa3-detail'),equipState=document.querySelector('.fa3-equip-state');
+     return [...document.querySelectorAll('.fa3-skin')].map(el=>{
+       const r=el.getBoundingClientRect(),cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;
+       return {label:el.textContent.trim().slice(0,30),
+         hit:document.elementFromPoint(cx,cy)?.closest('.fa3-skin')===el,
+         over:document.elementFromPoint(cx,cy)?.tagName+' / '+document.elementFromPoint(cx,cy)?.className,
+         within:r.top>=detail.getBoundingClientRect().top-1 &&
+                r.bottom<=equipState.getBoundingClientRect().top+1,
+         equipStateTop:equipState.getBoundingClientRect().top,
+         detailTop:detail.getBoundingClientRect().top,
+         bounds:r.toJSON()};
+     });
+   });
+   assert.equal(skinReach.length,2,'NEWBOT must expose exactly two registered appearances');
+   assert.ok(skinReach.every(s=>s.hit&&s.within),'clipped or occluded appearance: '+JSON.stringify(skinReach));
+   // CP4b dedup law: SKINS compact profile is bars-only; the radar lives
+   // exclusively on INFO (asserted below). One stat, one form per tab.
+   // The register also lists the full visible roster (8 playable + 6 locked).
+   const compactProfile=await page.evaluate(()=>({axes:document.querySelectorAll('.fa4-compact .fa4-axis').length,radar:!!document.querySelector('.fa4-compact .fa4-radar-frame'),files:document.querySelector('.fa3-index-head span')?.textContent?.trim()}));
+   assert.equal(compactProfile.radar,false,'compact SKINS profile must not duplicate the INFO radar');
+   assert.equal(compactProfile.files,'14','register must list the full visible roster');
+   if(v.name!=='landscape'&&v.name!=='small-mobile')assert.equal(compactProfile.axes,5,'compact five-axis bars unavailable');
+   assert.deepEqual(errors,[],'browser runtime/asset errors');
+   await page.waitForFunction(()=>{
+     const a=document.querySelector('.fa3-artwork'),im=document.querySelector('.fa3-hero-img');
+     return a?.dataset.visualReady==='true'&&im?.complete&&im.naturalWidth>0&&getComputedStyle(im).opacity!=='0';
+   },{timeout:30000});
+   await page.screenshot({path:path.join(dir,v.name+'-newbot-original.jpg'),type:'jpeg',quality:85});
+   await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:nth-child(2)').click());
+   await page.waitForSelector('.fa4-readout:not(.fa4-compact) .fa4-radar-frame');
+   const infoBars=await page.evaluate(()=>document.querySelectorAll('.fa4-readout:not(.fa4-compact) .fa4-axis').length);
+   assert.equal(infoBars,0,'INFO profile must not duplicate the SKINS bars');
+   const skillButtons=await page.$$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-select button',els=>els.map(e=>e.textContent.trim()));
+   assert.deepEqual(skillButtons,['PASSIVE','A1','A2'],'canonical skill slots missing');
+   await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-select button:last-child',e=>e.click());
+   const ability=await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-info',e=>e.textContent);
+   assert.ok(ability.includes('VIRTUAL ARMOR'),'canonical A2 skill not shown');
+   await page.screenshot({path:path.join(dir,v.name+'-newbot-ability-web.jpg'),type:'jpeg',quality:85});
+   await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:first-child').click());
+   // IMPORTANT: live registered cosmetic, no fake prototype model.
+   const eco=await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(b=>b.textContent.includes('ECOBOT'))?.textContent);
+   assert.ok(eco,'ECOBOT skin registration unavailable');
+   await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(b=>b.textContent.includes('ECOBOT')).click());
+   await page.waitForFunction(()=>!!document.querySelector('.fa3-eco'),{timeout:30000});
+   await page.screenshot({path:path.join(dir,v.name+'-ecobot.jpg'),type:'jpeg',quality:85});
+   await page.click('.fa3-equip');
+   const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1')));
+   assert.equal(saved.p1.hero.ROBOT,'ecobot','Equip did not persist real P1 skin');
+   await page.$eval('.fa3-players button:last-child',b=>b.click());
+   let status=await page.$eval('.fa3-equip-state',e=>e.textContent);
+   assert.ok(status.includes('ORIGINAL'),'P2 inherited P1 ECOBOT');
+   await page.$eval('.fa3-primary button:last-child',b=>b.click());
+   await page.waitForFunction(()=>document.querySelector('.fa3-record-top h3')?.textContent?.length>0,{timeout:10000});
+   // Find RPG-7 through non-scrolling paging/index. On mobile the INDEX tab reveals this leaf.
+   await page.$eval('.fa3-detail-tabs button:last-child',e=>e.click());
+   await page.$eval('.fa3-index input',e=>{e.value='RPG';e.dispatchEvent(new Event('input',{bubbles:true}))});
+   // React controlled input: use keyboard instead if input value not bound.
+   await page.$eval('.fa3-index input',e=>{e.value='';e.dispatchEvent(new Event('input',{bubbles:true}))});
+   await page.focus('.fa3-index input');await page.keyboard.type('RPG');
+   await page.waitForFunction(()=>!![...document.querySelectorAll('.fa3-index-list button')].find(x=>x.textContent.includes('RPG-7')),{timeout:25000});
+   await page.evaluate(()=>[...document.querySelectorAll('.fa3-index-list button')].find(x=>x.textContent.includes('RPG-7')).click());
+   await page.waitForFunction(()=>document.querySelector('.fa3-record-top h3')?.textContent==='RPG-7',{timeout:10000});
+   await page.waitForFunction(()=>{
+     const a=document.querySelector('.fa3-artwork'),img=document.querySelector('.fa3-weapon-img');
+     return a?.dataset.visualReady==='true'&&img?.complete&&img.naturalWidth>0&&getComputedStyle(img).opacity!=='0';
+   },{timeout:35000});
+   const facts=await page.evaluate(()=>{document.querySelector('.fa3-detail-tabs button:nth-child(2)').click();return true});
+   await page.waitForSelector('.fa4-readout:not(.fa4-compact) .fa4-telemetry');
+   const words=await page.evaluate(async()=>{let text='';const root=document.querySelector('.fa4-readout:not(.fa4-compact)');for(let i=0;i<12;i++){text+=' '+root.textContent;const next=root.querySelector('[aria-label="Next weapon specification page"]');if(!next||next.disabled)break;next.click();await new Promise(resolve=>setTimeout(resolve,25));}return text});
+   assert.ok(['BLAST PEAK','161','PROJECTILE SPEED','420','MAX SPEED','990','BLAST RADIUS','126','ACCELERATION','760'].every(w=>words.includes(w)),
+     'RPG-7 native parameters must remain accurate: '+words);
+   const radarLabel=await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-radar-frame svg',el=>el.getAttribute('aria-label')||'');
+   assert.equal(radarLabel.split(', ').filter(x=>/:\s*(\d+\/100|unavailable)/.test(x)).length,5,'RPG-7 must have five comparable profile axes');
+   await page.screenshot({path:path.join(dir,v.name+'-rpg-combat-stats.jpg'),type:'jpeg',quality:85});
+   await page.$eval('.fa3-detail-tabs button:first-child',e=>e.click());
+   await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(e=>e.textContent.includes('VUA HỀ')).click());
+   await page.waitForFunction(()=>{
+     const a=document.querySelector('.fa3-artwork'),img=document.querySelector('.fa3-weapon-img');
+     return a?.dataset.visualReady==='true'&&img?.complete&&img.naturalWidth>0&&getComputedStyle(img).opacity!=='0'&&img.getAttribute('src')?.includes('vua-he');
+   },{timeout:35000});
+   await page.screenshot({path:path.join(dir,v.name+'-rpg-vua-he.jpg'),type:'jpeg',quality:85});
+   await page.click('.fa3-equip');
+   const receipt=await page.evaluate(()=>({loadout:JSON.parse(localStorage.getItem('apexChaos.cosmeticLoadout.v1')),equipped:document.querySelector('.fa3-equip-state').textContent,body:document.body.className,
+    scrollY,viewport:{width:innerWidth,height:innerHeight},image:document.querySelector('.fa3-weapon-img')?.getAttribute('src'),
+    shell:document.querySelector('.fa3-shell')?.getBoundingClientRect().toJSON()}));
+   assert.equal(receipt.loadout.p2.weapon.RPG_7,'vua-he','P2 real RPG skin equip not persisted');
+   assert.equal(receipt.loadout.p1.weapon?.RPG_7,undefined,'P1 weapon leaked from P2');
+   assert.ok(receipt.image?.includes('/assets/skins/rocket-vua-he/launcher.png'),'Gold Vua Hề art not selected');
+   assert.deepEqual(errors,[],'actual browser JS errors');
+   await page.reload({waitUntil:'domcontentloaded',timeout:65000});
+   await page.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
+   await page.click('#apex-boot-start');
+   await page.waitForFunction(()=>!document.getElementById('apex-boot-start')&&!window.APEX_SCENE_TRANSITION?.active?.(),{timeout:90000});
+   await page.$eval('#apexDictionaryOpen',e=>e.click());
+   await page.waitForSelector('.fa3-shell',{visible:true,timeout:90000});
+   await page.$eval('.fa3-players button:last-child',e=>e.click());
+   await page.$eval('.fa3-primary button:last-child',e=>e.click());
+   await page.$eval('.fa3-detail-tabs button:last-child',e=>e.click());
+   await page.focus('.fa3-index input');await page.keyboard.type('RPG');
+   await page.waitForFunction(()=>!![...document.querySelectorAll('.fa3-index-list button')].find(x=>x.textContent.includes('RPG-7')),{timeout:20000});
+   await page.evaluate(()=>[...document.querySelectorAll('.fa3-index-list button')].find(x=>x.textContent.includes('RPG-7')).click());
+   const recovered=await page.$eval('.fa3-equip-state',el=>el.textContent);
+   assert.ok(recovered.includes('VUA HỀ'),'persisted skin not restored on reload: '+recovered);
+   reports.push({v:v.name,status:'PASS',initial,receipt:{equipped:receipt.equipped,image:receipt.image,restored:recovered},errors});
+   console.log('FIELD ARCHIVE C03 CHROME PASS',v.name,'P1-ECOBOT P2-VUA-HE no-scroll, reload persisted');
+  }catch(error){await page.screenshot({path:path.join(dir,v.name+'-FAIL.jpg'),fullPage:true,type:'jpeg',quality:80}).catch(()=>{});
+   console.error('FIELD ARCHIVE C03 CHROME FAIL',v.name,String(error),errors);throw error;
+  }finally{await page.close()}
+ }
+ fs.writeFileSync(path.join(dir,'qa-receipt.json'),JSON.stringify({status:'PASS',reports},null,2));
+}finally{await browser.close()}

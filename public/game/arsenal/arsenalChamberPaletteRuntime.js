@@ -68,7 +68,7 @@
   // ---- curated palettes -----------------------------------------------------
   // floor: identity colors; profile fields derived once below.
   const PALETTES = [
-    { id: 'graphite-mid', label: 'GRAPHITE · MID', floor: { base: '#626A74', inner: '#727B86', outer: '#4F5761', wall: '#3C434C', rail: '#2C3239' } },
+    { id: 'graphite-mid', label: 'GRAPHITE · MID', floor: { base: '#4E565F', inner: '#5C656F', outer: '#3D444D', wall: '#2F353D', rail: '#22272E' } },
     { id: 'graphite-dark', label: 'GRAPHITE · DARK', floor: { base: '#3B414A', inner: '#474E58', outer: '#2B3138', wall: '#22272E', rail: '#171B20' } },
     { id: 'navy-steel', label: 'NAVY · STEEL', floor: { base: '#33415C', inner: '#3F5070', outer: '#253149', wall: '#1C2537', rail: '#121A29' } },
     { id: 'teal-deep', label: 'DEEP TEAL', floor: { base: '#2E4B4A', inner: '#395C5A', outer: '#20393A', wall: '#172B2C', rail: '#0F2021' } },
@@ -146,6 +146,24 @@
     grad.addColorStop(1, rgba(f.outer, 0.92, pr.floorLift, pr.floorContrastSat));
     c.fillStyle = grad;
     c.fillRect(0, 0, S, S);
+
+    // CP5 tieutiet: whisper-light surface grain so the flat gradient reads
+    // as worn chamber plating between the grid lines. Seeded per
+    // (palette,size) and baked into this cached surface exactly once -
+    // zero per-frame cost, identity hues only, grid geometry untouched.
+    let grainSeed = 2166136261;
+    for (let i = 0; i < pal.id.length; i++) { grainSeed ^= pal.id.charCodeAt(i); grainSeed = Math.imul(grainSeed, 16777619); }
+    grainSeed = (grainSeed ^ S) >>> 0;
+    const grainRnd = () => { grainSeed = (Math.imul(grainSeed, 1664525) + 1013904223) >>> 0; return grainSeed / 4294967296; };
+    const specks = Math.round(S * 1.6);
+    for (let i = 0; i < specks; i++) {
+      const gx = 36 + grainRnd() * (S - 72), gy = 36 + grainRnd() * (S - 72);
+      const gr = 0.6 + grainRnd() * 1.7;
+      c.fillStyle = grainRnd() < 0.5
+        ? rgba(f.inner, 0.05 + grainRnd() * 0.05, pr.floorLift, pr.floorContrastSat)
+        : rgba(f.outer, 0.05 + grainRnd() * 0.06, pr.floorLift, pr.floorContrastSat);
+      c.beginPath(); c.arc(gx, gy, gr, 0, Math.PI * 2); c.fill();
+    }
 
     c.strokeStyle = 'rgba(12,14,18,0.22)';
     c.lineWidth = 1;

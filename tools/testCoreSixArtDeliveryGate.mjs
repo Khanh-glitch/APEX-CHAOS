@@ -16,13 +16,33 @@ try {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const audit = JSON.parse(fs.readFileSync(tmp, 'utf8'));
-  const core = audit.assets.filter((entry) => entry.path.startsWith('/assets/gold-ui/heroes/'));
+  const core = audit.assets.filter((entry) => entry.path.startsWith('/assets/gold-ui/heroes/') && !entry.path.startsWith('/assets/gold-ui/heroes/shuri/source/'));
 
   check('Core Six UI art inventory has exactly 35 authored WebPs', core.length === 35, 'count=' + core.length);
   check('every Core Six UI art file is classified shipping',
     core.every((entry) => entry.classification === 'SHIPPING_LAZY' || entry.classification === 'SHIPPING_HOT'),
     core.filter((entry) => !['SHIPPING_LAZY','SHIPPING_HOT'].includes(entry.classification))
       .map((entry) => entry.path + ':' + entry.classification).join(', '));
+
+  // SHURI Gold rig source components are provenance mirrors, not UI stand-in art.
+  // The six independent owner-V5 UI roles must actually ship instead.
+  const shuriRoles = audit.assets.filter(entry =>
+    entry.path.startsWith('/assets/dictionary/heroes/shuri/'));
+  check('SHURI has six independent UI art roles', shuriRoles.length === 6,
+    'count=' + shuriRoles.length);
+  const rigMirrors = audit.assets.filter(entry =>
+    entry.path.startsWith('/assets/gold-ui/heroes/shuri/source/'));
+  check('SHURI Gold original rig components are preserved as 16 source mirrors',
+    rigMirrors.length === 16, 'count=' + rigMirrors.length);
+  for(const entry of shuriRoles){
+    const full = path.join(ROOT,'public',entry.path.slice(1));
+    check('SHURI role file exists '+entry.path,fs.existsSync(full));
+    check('SHURI role ships '+entry.path,
+      ['SHIPPING_LAZY','SHIPPING_HOT'].includes(entry.classification),
+      entry.classification);
+    check('SHURI role has Gold/Registry consumer '+entry.path,
+      Array.isArray(entry.shipRefs)&&entry.shipRefs.length>0);
+  }
 
   for (const entry of core) {
     const file = path.join(ROOT, 'public', entry.path.replace(/^\/+/, ''));

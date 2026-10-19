@@ -517,14 +517,14 @@
       const available = isProductPlayable(n);
       const owned = available && owns(n);
       const info = fighterInfo(n);
-      const label = !available ? 'PRE-PILOT LOCKED' : owned ? 'OWNED' : '1000 AC';
+      const label = !available ? 'LOCKED' : owned ? 'OWNED' : '1000 AC';
       return `<button type="button" data-shop-card="${esc(n)}" class="aq-fighter-card ${owned ? '' : 'is-locked'} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${info.icon ? `<img src="${esc(info.icon)}" alt=""/>` : esc(info.mark)}</span><span class="aq-fighter-name">${esc(info.label)}</span><span class="aq-fighter-state">${label}</span></button>`;
     }).join('');
     el.style.display = 'block';
     el.innerHTML = shell(`
       <main class="aq-ui">
         <header class="aq-topbar">
-          <div class="aq-brand"><button class="aq-back" id="aq-shop-back" type="button" aria-label="Back to Product Menu">←</button><div class="aq-brand-copy"><div class="aq-kicker">ARSENAL · ROSTER</div><h1 class="aq-title">FIGHTER SHOP</h1></div></div>
+          <div class="aq-brand"><button class="aq-back" id="aq-shop-back" type="button" aria-label="Back to Home">←</button><div class="aq-brand-copy"><div class="aq-kicker">ARSENAL · ROSTER</div><h1 class="aq-title">FIGHTER SHOP</h1></div></div>
           <div class="aq-meta-stats"><div class="aq-stat"><span>ARSENAL CREDITS</span><b>${state.credits} AC</b></div></div>
         </header>
         <section class="aq-shop-layout">
@@ -534,9 +534,9 @@
             <div class="aq-kicker" style="margin-top:18px">FIGHTER PROFILE</div>
             <h2>${esc(selected.label)}</h2>
             <p>${esc(selected.desc)}</p>
-            <div class="aq-detail-status">${!selectedAvailable ? 'PRE-PILOT LOCKED' : selectedOwned ? 'OWNED' : 'LOCKED · 1000 AC'}</div>
+            <div class="aq-detail-status">${!selectedAvailable ? 'LOCKED' : selectedOwned ? 'OWNED' : 'LOCKED · 1000 AC'}</div>
             <div id="aq-shop-message" class="aq-detail-message"></div>
-            <button id="aq-buy" class="aq-buy" type="button" ${(!selectedAvailable || selectedOwned) ? 'disabled' : ''}>${!selectedAvailable ? 'LOCKED · PRE-PILOT' : selectedOwned ? 'OWNED' : 'UNLOCK · 1000 AC'}</button>
+            <button id="aq-buy" class="aq-buy" type="button" ${(!selectedAvailable || selectedOwned) ? 'disabled' : ''}>${!selectedAvailable ? 'LOCKED' : selectedOwned ? 'OWNED' : 'UNLOCK · 1000 AC'}</button>
           </aside>
         </section>
       </main>`);
@@ -575,7 +575,7 @@
     el.innerHTML = shell(`
       <main class="aq-ui">
         <header class="aq-topbar">
-          <div class="aq-brand"><button class="aq-back" id="aq-draw-back" type="button" aria-label="Back to Product Menu">←</button><div class="aq-brand-copy"><div class="aq-kicker">ARSENAL · UNLOCK</div><h1 class="aq-title">LUCKY DRAW</h1></div></div>
+          <div class="aq-brand"><button class="aq-back" id="aq-draw-back" type="button" aria-label="Back to Home">←</button><div class="aq-brand-copy"><div class="aq-kicker">ARSENAL · UNLOCK</div><h1 class="aq-title">LUCKY DRAW</h1></div></div>
           <div class="aq-meta-stats"><div class="aq-stat"><span>ARSENAL CREDITS</span><b>${state.credits} AC</b></div></div>
         </header>
         <section class="aq-draw-layout">

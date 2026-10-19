@@ -168,15 +168,15 @@ assert.deepEqual(issues,[],'live content admission failed');
   const id='CP5_CANARY_HERO';
   const heroes=live.reg.HEROES;
   const before=Object.keys(heroes);
-  assert.equal(before.length,EXPECTED_HEROES.length,'fixture assumes original roster');
+  assert.ok(before.length>=EXPECTED_HEROES.length,'fixture requires immutable original baseline');
   const base=heroes.ROBOT;
   try {
     heroes[id]={...base,id,displayName:'CP5 Canary (test only)'};
     const v=live.reg.validateRegistry();
     assert.equal(v.ok,true,'13th well-formed canary rejected: '+v.errors.slice(0,3).join('; '));
-    assert.equal(v.heroCount,13);
-    assert.equal(v.skillCount,39);
-    assert.deepEqual(Object.keys(heroes).slice(0,12),before,
+    assert.equal(v.heroCount,before.length+1);
+    assert.equal(v.skillCount,(before.length+1)*3);
+    assert.deepEqual(Object.keys(heroes).slice(0,12),before.slice(0,12),
       'original insertion order changed');
     assert.equal(live.reg.resolveHeroId(id),id,'registered extension ID must resolve');
     assert.equal(live.reg.displayNameFor(id),'CP5 Canary (test only)');

@@ -31,11 +31,11 @@
   // PLAYABLE_ROSTER_IDS; ICE displays as FROST, CRYSTAL as CRYSTALA).
   const GOLD_SHELL_KEY_BY_PRODUCTION_ID = {
     ROBOT: 'newbot', HUNTER: 'hunter', CRYSTAL: 'crystala',
-    MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror',
+    MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror', BOXE: 'boxe', SHURI: 'shuri',
   };
   const PRODUCTION_ID_BY_SHELL_KEY = {
     newbot: 'ROBOT', hunter: 'HUNTER', crystala: 'CRYSTAL',
-    magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR',
+    magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR', boxe: 'BOXE', shuri: 'SHURI',
   };
   // ── immutable Git art authority (R44 owner-playtest media manifest) ─────
   // Every URL below is a gitPath recorded in
@@ -112,6 +112,28 @@
         heroUiAsset('frost/skill_a2.webp'),
       ],
     },
+    shuri: {
+      // Owner SHURI V5 art: dedicated full-body, cinematic cover and locked goggles.
+      // Keep the battle Gold rig under shuri/source/ completely unchanged.
+      portrait: '/assets/dictionary/heroes/shuri/cover.webp',
+      art: '/assets/dictionary/heroes/shuri/standing.webp',
+      battleAvatar: '/assets/dictionary/heroes/shuri/avatar.webp',
+      skillIcons: [
+        '/assets/dictionary/heroes/shuri/passive.webp',
+        '/assets/dictionary/heroes/shuri/a1.webp',
+        '/assets/dictionary/heroes/shuri/a2.webp',
+      ],
+    },
+    boxe: {
+      portrait: '/assets/dictionary/heroes/boxe/cover.png',
+      art: '/assets/dictionary/heroes/boxe/standing.png',
+      battleAvatar: '/assets/dictionary/heroes/boxe/avatar.png',
+      skillIcons: [
+        '/assets/dictionary/heroes/boxe/passive.png',
+        '/assets/dictionary/heroes/boxe/a1.png',
+        '/assets/dictionary/heroes/boxe/a2.png',
+      ],
+    },
     // Mirror: no PICK_SELECTED_LARGE by owner decision.
     mirror: {
       portrait: heroUiAsset('mirror/pick_roster_cover.webp'),
@@ -138,12 +160,20 @@
   }
 
   const GOLD_HERO_COPY = {
-    newbot: { name: 'ROBOT', tag: 'APEX COMBAT FRAME' },
+    newbot: { name: 'NEWBOT', tag: 'APEX COMBAT FRAME' },
     hunter: { name: 'HUNTER', tag: 'MANTIS ASSASSIN' },
     crystala: { name: 'CRYSTALA', tag: 'ANCIENT CRYSTAL ENTITY' },
     magnet: { name: 'MAGNET', tag: 'FIELD CONTROL UNIT' },
     frost: { name: 'FROST', tag: 'CRYO EDGE UNIT' },
     mirror: { name: 'MIRROR', tag: 'ECHO DUPLICATE' },
+    boxe: { name: 'BOXE', tag: 'THE FIST OF DAWN' },
+    shuri: { name: 'SHURI', tag: 'SCRAP ENGINEER' },
+    black_hole: { name: 'BLACK HOLE', tag: 'NOT YET AWAKENED' },
+    math_v2: { name: 'MATH V2', tag: 'NOT YET AWAKENED' },
+    rubber: { name: 'RUBBER', tag: 'NOT YET AWAKENED' },
+    time: { name: 'TIME', tag: 'NOT YET AWAKENED' },
+    slime: { name: 'SLIME', tag: 'NOT YET AWAKENED' },
+    sniper: { name: 'SNIPER', tag: 'NOT YET AWAKENED' },
   };
   // ONE accent per hero. These are FALLBACKS for the case where the shell
   // registry is not loaded yet; the live value is APEX_ARSENAL_SHELLS.typeFor()
@@ -153,7 +183,7 @@
   // showed up as soon as a crit/heavy slash or a rail plate took her accent.
   const FALLBACK_ACCENTS = {
     newbot: '#ff941f', hunter: '#96ca2d', crystala: '#a066f0',
-    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df',
+    magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42', shuri: '#f16c41',
   };
 
   // Production-visible roster authority (2026-10-05): the Gold roster is
@@ -223,7 +253,7 @@
         name,
         color,
         accent: color,
-        tag: (copy && copy.tag) || 'LOCKED // PRE-PILOT',
+        tag: (copy && copy.tag) || 'NOT YET AWAKENED',
         productionId,
         playable,
         // A locked future fighter is never "owned" for selection purposes; the
@@ -900,6 +930,21 @@
     if (!assets || typeof assets.preparePresentations !== 'function')
       throw new Error('Shared hero presentation readiness authority is unavailable');
     await assets.preparePresentations(heroIds);
+    // Source-locked Gold BOXE sprites must decode BEFORE the arena opens;
+    // missing HUD artwork is intentionally not part of the gameplay gate.
+    if (heroIds.some(id => String(id).toLowerCase()==='boxe')) {
+      if (!window.APEX_BOXE_GOLD_LIBRARY?.preloadSprites) throw Error('BOXE Gold renderer unavailable');
+      await window.APEX_BOXE_GOLD_LIBRARY.preloadSprites();
+    }
+    // SHURI is admitted through the SAME selected-hero READY authority.
+    // The arena cannot reveal an empty actor while the approved Gold 8
+    // original source sprites are decoding.
+    if (heroIds.some(id => String(id).toLowerCase()==='shuri')) {
+      const gold = window.APEX_SHURI_GOLD_PRESENTATION;
+      if (!gold?.whenReady) throw Error('SHURI Gold renderer unavailable');
+      if (await gold.whenReady() !== true || !gold.ready())
+        throw Error('SHURI approved Gold sprites failed readiness');
+    }
     // Battle READY certifies the SELECTED cosmetic packs too, not merely the
     // base hero atlas. No first-cast asset downloads and no missing skin is
     // silently counted as a ready presentation.
@@ -1284,13 +1329,18 @@
   function heroRegistry() {
     return window.APEX_HERO_REWORK_REGISTRY || null;
   }
+  // Canonical player-facing skill names (CP6): one name per skill on every
+  // surface. The registry carries the same names as Title-Case displayName;
+  // this table is the Pick/HUD uppercase projection and must stay in sync.
   const GOLD_SKILL_COPY = {
-    ROBOT: { A1: 'WEAPON DASH', A2: 'VIRTUAL ARMOR' },
-    HUNTER: { A1: 'TRAP DEPLOY', A2: 'DASH / STRIKE' },
-    CRYSTAL: { A1: 'CONTEXT CONSTRUCT', A2: 'AWAKENING' },
-    MAGNET: { A1: 'MAGNETIC ATTRACTION', A2: 'MAGNETIC REPEL' },
-    ICE: { A1: 'FROST BREATH', A2: 'FROST RUSH' },
-    MIRROR: { A1: 'MIRROR ARSENAL', A2: 'MIRROR EXCHANGE' },
+    ROBOT: { PASSIVE: 'ROLLING BURST', A1: 'WEAPON DASH', A2: 'VIRTUAL ARMOR' },
+    HUNTER: { PASSIVE: "PREDATOR'S LAW", A1: 'TRAP DEPLOY', A2: 'DASH / STRIKE' },
+    CRYSTAL: { PASSIVE: 'REFRACTION', A1: 'HEXA CONSTRUCT', A2: 'AWAKENING' },
+    MAGNET: { PASSIVE: 'MAGNETIC ACCELERATION', A1: 'MAGNETIC ATTRACTION', A2: 'MAGNETIC REPEL' },
+    ICE: { PASSIVE: 'FROZEN BULLET', A1: 'FROST BREATH', A2: 'FROST RUSH' },
+    MIRROR: { PASSIVE: 'MIRROR SHARDS', A1: 'MIRROR ARSENAL', A2: 'ATOMIC EXCHANGE' },
+    BOXE: { PASSIVE: 'CÀNG ĐÁNH CÀNG HĂNG', A1: 'FIST ROCKET', A2: 'BLOCK & HIT' },
+    SHURI: { PASSIVE: 'RECYCLE SNAP', A1: 'SHOCK RECOIL', A2: 'MECHANICAL GENESIS' },
   };
   function canonicalHeroId(heroId) {
     const id = String(heroId || '').toUpperCase();
@@ -1331,7 +1381,10 @@
     const fallbackName = def && def.id
       ? String(def.id).split('.').pop().replace(/_/g, ' ').toUpperCase()
       : slot;
-    const name = (GOLD_SKILL_COPY[id] && GOLD_SKILL_COPY[id][slot]) || fallbackName;
+    // Registry displayName is authored copy; mechanicId derivation is a
+    // last-resort dev fallback and must never win while a name exists.
+    const name = (GOLD_SKILL_COPY[id] && GOLD_SKILL_COPY[id][slot])
+      || (def && def.displayName ? String(def.displayName).toUpperCase() : fallbackName);
     return {
       name,
       cooldown,
@@ -1357,7 +1410,7 @@
     const base = Array.isArray(fallback) ? fallback : ['PASSIVE', 'A1', 'A2'];
     const copy = GOLD_SKILL_COPY[productionId] || {};
     return [
-      base[0] || 'PASSIVE',
+      copy.PASSIVE || base[0] || 'PASSIVE',
       copy.A1 || base[1] || 'A1',
       copy.A2 || base[2] || 'A2',
     ];
@@ -1391,6 +1444,15 @@
       nextIn = Math.max(0, Number(ct.__ctl.cooldownLeft(slot)) || 0);
     } else {
       nextIn = Math.max(0, Number(s.cdLeft) || 0);
+    }
+    if (maxCharges <= 1) {
+      // cdLeft-authoritative skills own no charge pool (the runtime leaves
+      // s.charges undefined), so the fallback above would report a permanent
+      // charge. The Gold tile law is charges>0 -> READY: a fabricated charge
+      // makes the tile say READY through the whole cooldown while tryCast
+      // rejects. For these skills the one truthful charge count IS
+      // castability — the same nextIn the authority gates on.
+      charges = nextIn > 0 ? 0 : 1;
     }
     const meta = heroSkillMeta(heroIdOf(fighter) || (ct.heroId || ''), slot);
     const kind = maxCharges > 1 ? 'charges' : meta.kind;

@@ -1,5 +1,81 @@
 {
   "schemaVersion": 1,
-  "heroes": [],
+  "heroes": [
+    {
+      "id": "BOXE",
+      "releaseStage": "approved",
+      "ownerApprovalDocument": "docs/boxe/BOXE_NORMAL_BATTLE_HUD_PENDING.md",
+      "tests": [
+        "tools/testBoxeNativeArsenal.mjs"
+      ],
+      "proofTests": {
+        "combat": "tools/testBoxeNativeArsenal.mjs",
+        "interactions": "tools/testBoxeNativeArsenal.mjs",
+        "teardown": "tools/testBoxeNativeArsenal.mjs"
+      },
+      "assets": [
+        "public/assets/boxe-gold/char-body-new.png",
+        "public/assets/boxe-gold/glove.png"
+      ],
+      "projectileFamilies": [
+        "boxe-rocket-gold-visual-only"
+      ],
+      "localizedCopy": [
+        {
+          "en": "FIST ROCKET",
+          "vi": "NẮM ĐẤM TÊN LỬA"
+        }
+      ],
+      "interactions": {
+        "reflect": "not-applicable",
+        "magnet": "allowed",
+        "mirror": "allowed",
+        "freeze": "allowed",
+        "capture": "not-applicable",
+        "T6": "not-applicable"
+      }
+    },
+    {
+      "id": "SHURI",
+      "releaseStage": "approved",
+      "ownerApprovalDocument": "docs/hero-rework/shuri/SHURI_TEST_ADMISSION.md",
+      "tests": [
+        "tools/testShuriNativeArsenal.mjs",
+        "tools/testShuriBattleRuntime.mjs",
+        "tools/testShuriGoldIntegration.mjs"
+      ],
+      "proofTests": {
+        "combat": "tools/testShuriNativeArsenal.mjs",
+        "interactions": "tools/testShuriNativeArsenal.mjs",
+        "teardown": "tools/testShuriNativeArsenal.mjs"
+      },
+      "assets": [
+        "public/assets/dictionary/heroes/shuri/avatar.webp",
+        "public/assets/dictionary/heroes/shuri/standing.webp",
+        "public/assets/dictionary/heroes/shuri/cover.webp",
+        "public/assets/dictionary/heroes/shuri/passive.webp",
+        "public/assets/dictionary/heroes/shuri/a1.webp",
+        "public/assets/dictionary/heroes/shuri/a2.webp"
+      ],
+      "projectileFamilies": [
+        "native-Arsenal-gun-rack",
+        "shuri-electric-bomb"
+      ],
+      "localizedCopy": [
+        {
+          "en": "SHOCK RECOIL",
+          "vi": "GIẬT LÙI ĐIỆN TỪ"
+        }
+      ],
+      "interactions": {
+        "reflect": "allowed",
+        "magnet": "allowed",
+        "mirror": "allowed",
+        "freeze": "allowed",
+        "capture": "not-applicable",
+        "T6": "not-applicable"
+      }
+    }
+  ],
   "weapons": []
 }

@@ -192,7 +192,9 @@ const robot=file('public/game/hero-rework/robotPresentationRuntime.js');
 const av=file('public/game/arsenal/arsenalPresentationRuntime.js');
 assert.match(product,/surface\('cosmetic-locker',[^\n]*ACTIVE/);
 assert.match(app,/CosmeticLocker/);
-assert.match(gun,/captureProjectile\?\.\(f,id\)/);
+// SHURI's remote emitters preserve the actual fighter cosmetic owner.
+assert.match(gun,/captureProjectile\?\.\(trueOwner,id\)/);
+assert.match(gun,/const trueOwner=actualWeaponOwner\(f\)/);
 assert.match(gun,/captureProjectile\?\.\(owner,weapon\)/);
 assert.match(gun,/function v43SpawnChild\(parent,kind,angle,extra=/,
   'secondary physical projectiles need one generic source receipt');

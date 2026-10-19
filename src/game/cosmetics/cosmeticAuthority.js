@@ -130,7 +130,11 @@ function sideOf(owner, scope=typeof window!=='undefined'?window:null) {
   if (!Array.isArray(fighters)) return null;
   // The main engine-owned bodies are the fast path. Do not infer cosmetic
   // ownership from the current projectile owner after a reflection.
-  const body=owner?.anchor || owner;
+  // A remote weapon emitter (e.g. a structure-mounted gun) is not a body:
+  // resolve through its canonical fighter owner, the same seam
+  // arsenalWeaponRuntime.actualWeaponOwner uses for projectile receipts,
+  // so emitter-held weapons carry that fighter's equipped skin too.
+  const body=owner?.__arsenalEmitterOwner || owner?.anchor || owner;
   if (body===fighters[0]) return 'p1';
   if (body===fighters[1]) return 'p2';
 

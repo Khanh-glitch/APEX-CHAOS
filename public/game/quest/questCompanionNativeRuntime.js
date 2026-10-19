@@ -294,7 +294,9 @@ function create({actors,policy,weaponApi,state,log}={}){
        id==='RIVET'&&slot==='J'&&s.phase!=='READY'?'INTERCEPT · '+s.phase:
        cfg.name;
      return {name:label,cd:cfg.cooldown||cfg.afterDrawCooldown||10,
-       nextIn:s.cd,charges:1,max:1,truth:true,
+       // Gold tile law is charges>0 -> READY; a hardcoded charge would keep
+       // the tile READY through the whole cooldown. Report castability.
+       nextIn:s.cd,charges:s.cd>0?0:1,max:1,truth:true,
        kind:phase==='STORED'?'stored':'cooldown',
        duration:cfg.duration||0,storedWeapon:phase==='STORED'?
          s.stored.weaponId:null};

@@ -1,0 +1,555 @@
+{
+  "status": "PASS",
+  "reports": [
+    {
+      "v": "desktop",
+      "status": "PASS",
+      "initial": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "book": {
+          "x": 14,
+          "y": 27,
+          "w": 1425.59375,
+          "h": 846
+        },
+        "equip": {
+          "top": 738.8125,
+          "bottom": 796
+        },
+        "controlBoxes": [
+          {
+            "selector": ".fa3-primary",
+            "box": {
+              "x": 989.859375,
+              "y": 53.5,
+              "width": 191.78125,
+              "height": 52,
+              "top": 53.5,
+              "right": 1181.640625,
+              "bottom": 105.5,
+              "left": 989.859375
+            }
+          },
+          {
+            "selector": ".fa3-players",
+            "box": {
+              "x": 1200.359375,
+              "y": 53.5,
+              "width": 135.40625,
+              "height": 52,
+              "top": 53.5,
+              "right": 1335.765625,
+              "bottom": 105.5,
+              "left": 1200.359375
+            }
+          },
+          {
+            "selector": ".fa3-center",
+            "box": {
+              "x": 332.65625,
+              "y": 128,
+              "width": 591.1875,
+              "height": 710,
+              "top": 128,
+              "right": 923.84375,
+              "bottom": 838,
+              "left": 332.65625
+            }
+          },
+          {
+            "selector": ".fa3-detail",
+            "box": {
+              "x": 923.84375,
+              "y": 128,
+              "width": 506.71875,
+              "height": 710,
+              "top": 128,
+              "right": 1430.5625,
+              "bottom": 838,
+              "left": 923.84375
+            }
+          },
+          {
+            "selector": ".fa3-equip",
+            "box": {
+              "x": 952.640625,
+              "y": 738.8125,
+              "width": 449.125,
+              "height": 57.1875,
+              "top": 738.8125,
+              "right": 1401.765625,
+              "bottom": 796,
+              "left": 952.640625
+            }
+          },
+          {
+            "selector": ".fa3-close",
+            "box": {
+              "x": 1354.484375,
+              "y": 57.5,
+              "width": 43,
+              "height": 44,
+              "top": 57.5,
+              "right": 1397.484375,
+              "bottom": 101.5,
+              "left": 1354.484375
+            }
+          }
+        ],
+        "hasScroll": false,
+        "originalSrc": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+        "title": "NEWBOT"
+      },
+      "receipt": {
+        "equipped": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH",
+        "image": "/assets/skins/rocket-vua-he/launcher.png",
+        "restored": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH"
+      },
+      "errors": []
+    },
+    {
+      "v": "tablet",
+      "status": "PASS",
+      "initial": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "scrollY": 0,
+        "book": {
+          "x": 0,
+          "y": 0,
+          "w": 768,
+          "h": 1024
+        },
+        "equip": {
+          "top": 951.984375,
+          "bottom": 995.984375
+        },
+        "controlBoxes": [
+          {
+            "selector": ".fa3-primary",
+            "box": {
+              "x": 543.421875,
+              "y": 15.5,
+              "width": 110.078125,
+              "height": 48,
+              "top": 15.5,
+              "right": 653.5,
+              "bottom": 63.5,
+              "left": 543.421875
+            }
+          },
+          {
+            "selector": ".fa3-players",
+            "box": {
+              "x": 657.5,
+              "y": 15.5,
+              "width": 70.5,
+              "height": 48,
+              "top": 15.5,
+              "right": 728,
+              "bottom": 63.5,
+              "left": 657.5
+            }
+          },
+          {
+            "selector": ".fa3-center",
+            "box": {
+              "x": 3,
+              "y": 79,
+              "width": 762,
+              "height": 423.890625,
+              "top": 79,
+              "right": 765,
+              "bottom": 502.890625,
+              "left": 3
+            }
+          },
+          {
+            "selector": ".fa3-detail",
+            "box": {
+              "x": 3,
+              "y": 502.890625,
+              "width": 762,
+              "height": 518.09375,
+              "top": 502.890625,
+              "right": 765,
+              "bottom": 1020.984375,
+              "left": 3
+            }
+          },
+          {
+            "selector": ".fa3-equip",
+            "box": {
+              "x": 17,
+              "y": 951.984375,
+              "width": 734,
+              "height": 44,
+              "top": 951.984375,
+              "right": 751,
+              "bottom": 995.984375,
+              "left": 17
+            }
+          },
+          {
+            "selector": ".fa3-close",
+            "box": {
+              "x": 732,
+              "y": 17.5,
+              "width": 26,
+              "height": 44,
+              "top": 17.5,
+              "right": 758,
+              "bottom": 61.5,
+              "left": 732
+            }
+          }
+        ],
+        "hasScroll": false,
+        "originalSrc": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+        "title": "NEWBOT"
+      },
+      "receipt": {
+        "equipped": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH",
+        "image": "/assets/skins/rocket-vua-he/launcher.png",
+        "restored": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH"
+      },
+      "errors": []
+    },
+    {
+      "v": "mobile",
+      "status": "PASS",
+      "initial": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "book": {
+          "x": 0,
+          "y": 0,
+          "w": 390,
+          "h": 844
+        },
+        "equip": {
+          "top": 771.984375,
+          "bottom": 815.984375
+        },
+        "controlBoxes": [
+          {
+            "selector": ".fa3-primary",
+            "box": {
+              "x": 182.890625,
+              "y": 15.46875,
+              "width": 98.703125,
+              "height": 48,
+              "top": 15.46875,
+              "right": 281.59375,
+              "bottom": 63.46875,
+              "left": 182.890625
+            }
+          },
+          {
+            "selector": ".fa3-players",
+            "box": {
+              "x": 285.59375,
+              "y": 15.46875,
+              "width": 64.40625,
+              "height": 48,
+              "top": 15.46875,
+              "right": 350,
+              "bottom": 63.46875,
+              "left": 285.59375
+            }
+          },
+          {
+            "selector": ".fa3-center",
+            "box": {
+              "x": 3,
+              "y": 78.953125,
+              "width": 384,
+              "height": 342.90625,
+              "top": 78.953125,
+              "right": 387,
+              "bottom": 421.859375,
+              "left": 3
+            }
+          },
+          {
+            "selector": ".fa3-detail",
+            "box": {
+              "x": 3,
+              "y": 421.859375,
+              "width": 384,
+              "height": 419.125,
+              "top": 421.859375,
+              "right": 387,
+              "bottom": 840.984375,
+              "left": 3
+            }
+          },
+          {
+            "selector": ".fa3-equip",
+            "box": {
+              "x": 17,
+              "y": 771.984375,
+              "width": 356,
+              "height": 44,
+              "top": 771.984375,
+              "right": 373,
+              "bottom": 815.984375,
+              "left": 17
+            }
+          },
+          {
+            "selector": ".fa3-close",
+            "box": {
+              "x": 354,
+              "y": 17.46875,
+              "width": 26,
+              "height": 44,
+              "top": 17.46875,
+              "right": 380,
+              "bottom": 61.46875,
+              "left": 354
+            }
+          }
+        ],
+        "hasScroll": false,
+        "originalSrc": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+        "title": "NEWBOT"
+      },
+      "receipt": {
+        "equipped": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH",
+        "image": "/assets/skins/rocket-vua-he/launcher.png",
+        "restored": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH"
+      },
+      "errors": []
+    },
+    {
+      "v": "small-mobile",
+      "status": "PASS",
+      "initial": {
+        "viewport": {
+          "width": 320,
+          "height": 568
+        },
+        "scrollY": 0,
+        "book": {
+          "x": 0,
+          "y": 0,
+          "w": 320,
+          "h": 568
+        },
+        "equip": {
+          "top": 499.984375,
+          "bottom": 543.984375
+        },
+        "controlBoxes": [
+          {
+            "selector": ".fa3-primary",
+            "box": {
+              "x": 139.4375,
+              "y": 3,
+              "width": 87.171875,
+              "height": 48,
+              "top": 3,
+              "right": 226.609375,
+              "bottom": 51,
+              "left": 139.4375
+            }
+          },
+          {
+            "selector": ".fa3-players",
+            "box": {
+              "x": 229.609375,
+              "y": 3,
+              "width": 56.390625,
+              "height": 48,
+              "top": 3,
+              "right": 286,
+              "bottom": 51,
+              "left": 229.609375
+            }
+          },
+          {
+            "selector": ".fa3-center",
+            "box": {
+              "x": 3,
+              "y": 54,
+              "width": 314,
+              "height": 219.71875,
+              "top": 54,
+              "right": 317,
+              "bottom": 273.71875,
+              "left": 3
+            }
+          },
+          {
+            "selector": ".fa3-detail",
+            "box": {
+              "x": 3,
+              "y": 273.71875,
+              "width": 314,
+              "height": 291.265625,
+              "top": 273.71875,
+              "right": 317,
+              "bottom": 564.984375,
+              "left": 3
+            }
+          },
+          {
+            "selector": ".fa3-equip",
+            "box": {
+              "x": 12,
+              "y": 499.984375,
+              "width": 296,
+              "height": 44,
+              "top": 499.984375,
+              "right": 308,
+              "bottom": 543.984375,
+              "left": 12
+            }
+          },
+          {
+            "selector": ".fa3-close",
+            "box": {
+              "x": 289,
+              "y": 5,
+              "width": 23,
+              "height": 44,
+              "top": 5,
+              "right": 312,
+              "bottom": 49,
+              "left": 289
+            }
+          }
+        ],
+        "hasScroll": false,
+        "originalSrc": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+        "title": "NEWBOT"
+      },
+      "receipt": {
+        "equipped": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH",
+        "image": "/assets/skins/rocket-vua-he/launcher.png",
+        "restored": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH"
+      },
+      "errors": []
+    },
+    {
+      "v": "landscape",
+      "status": "PASS",
+      "initial": {
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "scrollY": 0,
+        "book": {
+          "x": 0,
+          "y": 0,
+          "w": 844,
+          "h": 390
+        },
+        "equip": {
+          "top": 338,
+          "bottom": 382
+        },
+        "controlBoxes": [
+          {
+            "selector": ".fa3-primary",
+            "box": {
+              "x": 619.421875,
+              "y": -0.5,
+              "width": 110.078125,
+              "height": 48,
+              "top": -0.5,
+              "right": 729.5,
+              "bottom": 47.5,
+              "left": 619.421875
+            }
+          },
+          {
+            "selector": ".fa3-players",
+            "box": {
+              "x": 733.5,
+              "y": -0.5,
+              "width": 70.5,
+              "height": 48,
+              "top": -0.5,
+              "right": 804,
+              "bottom": 47.5,
+              "left": 733.5
+            }
+          },
+          {
+            "selector": ".fa3-center",
+            "box": {
+              "x": 3,
+              "y": 47,
+              "width": 393.859375,
+              "height": 340,
+              "top": 47,
+              "right": 396.859375,
+              "bottom": 387,
+              "left": 3
+            }
+          },
+          {
+            "selector": ".fa3-detail",
+            "box": {
+              "x": 396.859375,
+              "y": 47,
+              "width": 444.125,
+              "height": 340,
+              "top": 47,
+              "right": 840.984375,
+              "bottom": 387,
+              "left": 396.859375
+            }
+          },
+          {
+            "selector": ".fa3-equip",
+            "box": {
+              "x": 406.859375,
+              "y": 338,
+              "width": 424.125,
+              "height": 44,
+              "top": 338,
+              "right": 830.984375,
+              "bottom": 382,
+              "left": 406.859375
+            }
+          },
+          {
+            "selector": ".fa3-close",
+            "box": {
+              "x": 808,
+              "y": 1.5,
+              "width": 26,
+              "height": 44,
+              "top": 1.5,
+              "right": 834,
+              "bottom": 45.5,
+              "left": 808
+            }
+          }
+        ],
+        "hasScroll": false,
+        "originalSrc": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+        "title": "NEWBOT"
+      },
+      "receipt": {
+        "equipped": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH",
+        "image": "/assets/skins/rocket-vua-he/launcher.png",
+        "restored": "PLAYER 02 / BOTEQUIPPED / VUA HỀ — THE LAST LAUGH"
+      },
+      "errors": []
+    }
+  ]
+}

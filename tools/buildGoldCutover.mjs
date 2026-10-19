@@ -43,6 +43,7 @@ import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
 import { adaptGoldBattleHudR83 } from './goldBattleHudR83.mjs';
+import { adaptGoldBattleHudR91LabelFit } from './goldBattleHudR91labelFit.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
 import { adaptGoldShellR83 } from './goldShellR83.mjs';
@@ -753,7 +754,13 @@ const seamPatches = [
   seam.applyState=function applyState(st){
     if(!st)return;
     const now=performance.now();
-    if(Number.isFinite(st.timer))S.timer=st.timer;
+    if(Number.isFinite(st.timer)){
+      S.timer=st.timer;
+      // The canonical HUD only repaints the clock from renderTimer(); the 1v1
+      // projection path must call it or the donor seed time (02:47) freezes.
+      const timerSec=Math.max(0,Math.ceil(S.timer));
+      if(timerSec!==applyState._timerSec){applyState._timerSec=timerSec;renderTimer();}
+    }
     if(Number.isFinite(st.round))S.round=st.round;
     if(Array.isArray(st.wins))S.wins=[Number(st.wins[0])||0,Number(st.wins[1])||0];
     if(typeof st.ko==='boolean')S.ko=st.ko;
@@ -872,6 +879,8 @@ const seamPatches = [
   log('  R55 (battle-hud): phone panel law + held-gun plate adapted');
   out = adaptGoldBattleHudR83(out);
   log('  R83 (battle-hud): short Local portrait geometry solver candidate');
+  out = adaptGoldBattleHudR91LabelFit(out);
+  log('  R91 (battle-hud): primary-deck skill/weapon label fit (audit D1/D2)');
   return out;
 }
 
@@ -880,7 +889,7 @@ const seamPatches = [
 // the Gold pack's canonical shell keys; display names from the hero registry.
 const GOLD_HERO_ACCENTS = {
   ROBOT: '#ff941f', HUNTER: '#96ca2d', CRYSTAL: '#a066f0',
-  MAGNET: '#c7c5e9', ICE: '#7ee8ff', MIRROR: '#e9e5df',
+  MAGNET: '#c7c5e9', ICE: '#7ee8ff', MIRROR: '#e9e5df', BOXE: '#ffac42',
 };
 const LUCKY_ROSTER = [
   { shellKey: 'newbot', productionId: 'ROBOT', display: 'ROBOT', tag: 'APEX COMBAT FRAME' },
@@ -1462,14 +1471,14 @@ function buildShell(hudProductionHtml) {
       find: /  <nav class="routes e-routes" aria-label="Main routes">\n    <button class="route" type="button" aria-label="Fighter Shop">/,
       replace: (
         `  <nav class="routes e-routes" aria-label="Main routes">\n` +
-        `    <button class="route is-locked" type="button" aria-label="Fighter Shop (locked)" disabled>`
+        `    <button class="route is-locked" type="button" aria-label="Fighter Shop (locked)" aria-disabled="true" data-locked-route="fighter-shop" title="COMING SOON">`
       ),
     },
     {
       id: 'SHL-S16',
       why: 'locked routes: Upgrade',
       find: /<button class="route" type="button" aria-label="Upgrade">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Upgrade (locked)" disabled>',
+      replace: '<button class="route is-locked" type="button" aria-label="Upgrade (locked)" aria-disabled="true" data-locked-route="fighter-upgrade" title="COMING SOON">',
     },
     {
       id: 'SHL-S17',
@@ -1481,13 +1490,13 @@ function buildShell(hudProductionHtml) {
       id: 'SHL-S18',
       why: 'locked routes: Missions (quests)',
       find: /<button class="route" type="button" aria-label="Missions">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Missions (locked)" disabled>',
+      replace: '<button class="route is-locked" type="button" aria-label="Missions (locked)" aria-disabled="true" data-locked-route="missions" title="COMING SOON">',
     },
     {
       id: 'SHL-S19',
       why: 'locked routes: Account',
       find: /<button class="route" type="button" aria-label="Account">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Account (locked)" disabled>',
+      replace: '<button class="route is-locked" type="button" aria-label="Account (locked)" aria-disabled="true" data-locked-route="account-profile" title="COMING SOON">',
     },
     {
       id: 'SHL-S19a',
@@ -1531,9 +1540,65 @@ function buildShell(hudProductionHtml) {
     },
     {
       id: 'SHL-S20',
-      why: 'locked route styling (dimmed, non-interactive)',
+      why: 'locked route styling (dimmed; interactive only for feedback)',
       find: /\.route:not\(:last-child\)::after\{content:/,
-      replace: '.route.is-locked{color:rgba(235,228,218,.34);cursor:not-allowed;filter:saturate(.4)}.route.is-locked svg{opacity:.5}\n.route:not(:last-child)::after{',
+      replace: '.route.is-locked{color:rgba(235,228,218,.34);cursor:not-allowed;filter:saturate(.4)}.route.is-locked svg{opacity:.5}.route.is-locked:hover,.route.is-locked:focus-visible{color:rgba(235,228,218,.34);transform:none}.route.is-locked:hover svg,.route.is-locked:focus-visible svg{color:inherit;transform:none}\n.route:not(:last-child)::after{',
+    },
+    // ── S20b/c: the legacy global `button:hover` (src/styles.css) paints every
+    // button #f3efe3 with a white glow. It out-specifies `.route`'s own
+    // background but loses to `.route:hover`'s light text colour, so a hovered
+    // route rendered near-white text on a near-white cell (audit #8). The
+    // route hover rule re-asserts the route's OWN resting background (and no
+    // glow) in both contexts that paint one: transparent in the base layout,
+    // the canonical gradient inside the portrait block.
+    {
+      id: 'SHL-S20b',
+      why: 'route hover keeps its own (transparent) background against the legacy global button:hover inversion',
+      find: /\.route:hover,\.route:focus-visible\{color:#f3ece1;transform:translateY\(-1px\)\}/,
+      replace: '.route:hover,.route:focus-visible{color:#f3ece1;transform:translateY(-1px);background:transparent;box-shadow:none}',
+    },
+    {
+      id: 'SHL-S20c',
+      why: 'portrait route hover keeps the canonical portrait gradient against the same legacy inversion',
+      find: 'clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%)}',
+      replace: 'clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%)}\n.route:hover,.route:focus-visible{background:linear-gradient(180deg,rgba(26,27,31,.80),rgba(12,13,15,.90))}',
+    },
+    // ── S58 (CP5 tieutiet): in portrait the Home hero is top-anchored
+    // (top:6.5vh) so its feet dangle mid-smoke; desktop grounds it by
+    // bottom-cropping. Lower it 2.5vh on Home only and add the soft contact
+    // shadow the desktop crop implies. Paint-only, inside the donor's own
+    // portrait block; mode/pick keep their authored anchors.
+    {
+      id: 'SHL-S58',
+      why: 'portrait Home hero grounded (lowered 2.5vh + contact shadow)',
+      find: '.bottom-depth{height:45vh;background:linear-gradient(0deg,#060708 0%,rgba(6,7,8,.96) 55%,rgba(6,7,8,.72) 78%,transparent 100%)}',
+      replace: '.bottom-depth{height:45vh;background:linear-gradient(0deg,#060708 0%,rgba(6,7,8,.96) 55%,rgba(6,7,8,.72) 78%,transparent 100%)}\n  #stage:not(.screen-mode):not(.screen-fighter):not(.screen-draw):not(.screen-battle) .heroWrap{top:9vh}\n  .heroWrap::after{content:"";position:absolute;z-index:-1;left:50%;bottom:3%;width:58%;height:7%;transform:translateX(-50%);background:radial-gradient(50% 50% at 50% 50%,rgba(0,0,0,.55),rgba(0,0,0,0) 68%);filter:blur(5px);pointer-events:none}',
+    },
+    // ── S59 (CP5 tieutiet): the battle-transition seam holds while the HUD
+    // preloads (measured ~2.4s); its centre chip carried only 8-12px
+    // microcopy, so the wait had no focal. Give the chip the VS glyph the
+    // pick screen already speaks (.versusGlyph face/italic/glow), CSS-only.
+    {
+      id: 'SHL-S59',
+      why: 'battle-wait core chip carries the VS glyph focal, hung below the name axis so plates stay readable',
+      find: '.bt-core small{display:block;font-size:8px;letter-spacing:.28em;opacity:.58}',
+      replace: '.bt-core small{display:block;font-size:8px;letter-spacing:.28em;opacity:.58}\n#battleTransition .bt-core{padding:14px 24px 12px}\n#battleTransition:not(.is-horizontal) .bt-core{top:calc(50% + 104px)}\n#battleTransition .bt-core::before{content:"VS";display:block;font-family:var(--fDisplay);font-style:italic;font-weight:900;font-size:clamp(30px,3.4vw,44px);line-height:.95;letter-spacing:.04em;color:#f4ece1;text-shadow:0 0 22px rgba(255,121,0,.45);margin-bottom:6px}',
+    },
+    // ── S60 (CP6 content): the donor's initial match-ready banner named the
+    // production handoff. Players only need the battle state.
+    {
+      id: 'SHL-S60',
+      why: 'initial match-ready banner uses player language instead of pipeline terminology',
+      find: '<div class="handoffBanner" id="handoffBanner">BATTLE HANDOFF READY</div>',
+      replace: '<div class="handoffBanner" id="handoffBanner">BATTLE READY</div>',
+    },
+    // ── S61 (CP6 content): the active route is the product Archive. The
+    // donor's Dictionary word survives only as the internal route seam.
+    {
+      id: 'SHL-S61',
+      why: 'visible Archive route uses the product Archive name instead of Dictionary',
+      find: '<span>Dictionary</span>',
+      replace: '<span>Archive</span>',
     },
     // ── S21: the Lucky Draw donor runs in its own document (the iframe
     // boundary is canonical for the draw). Hand it the REAL production economy
@@ -1632,13 +1697,38 @@ function buildShell(hudProductionHtml) {
         `    if(motion){stage.classList.remove('hero-switch-impact')`
       ),
     },
+    // ── S57: accepted selections stay visible inside the scrollable roster ──
+    // The production roster now scrolls within its authored deck band, so an
+    // arrow-key step (or a click on a partially visible card) must bring the
+    // accepted fighter fully into that band. This moves only the roster's own
+    // scroll offset — never the stage/page — and honors the shell's existing
+    // motion preference.
+    {
+      id: 'SHL-S57',
+      why: 'an accepted Fighter Pick selection is revealed inside the horizontally scrollable roster',
+      find: /  function selectHero\(id\)\{[\s\S]*?\n    renderFighter\(\);/,
+      replace: (matched) => (
+        `  function revealRosterCard(id){\n` +
+        `    requestAnimationFrame(()=>{\n` +
+        `      const card=document.querySelector('.rosterCard[data-hero="'+id+'"]');\n` +
+        `      const scroller=card?card.parentElement:null;\n` +
+        `      if(!card||!scroller)return;\n` +
+        `      const cr=card.getBoundingClientRect(),sr=scroller.getBoundingClientRect();\n` +
+        `      const dx=cr.left<sr.left?cr.left-sr.left:(cr.right>sr.right?cr.right-sr.right:0);\n` +
+        `      if(dx)scroller.scrollBy({left:dx,behavior:motion?'smooth':'auto'});\n` +
+        `    });\n` +
+        `  }\n\n` +
+        matched +
+        `\n    revealRosterCard(id);`
+      ),
+    },
     // ── S48: both fighters locked = match ready (BOT path) ─────────────────
     {
       id: 'SHL-S48',
       why: 'the BOT match-ready handoff plays the real fighter.match_ready cue',
       find: /handoffBanner\.textContent='BATTLE HANDOFF READY';launchBattleHud\(\)/,
       replace: (
-        `handoffBanner.textContent='BATTLE HANDOFF READY';\n` +
+        `handoffBanner.textContent='BATTLE READY';\n` +
         `      uiSfx('fighter.match_ready');\n` +
         `      launchBattleHud()`
       ),
@@ -1826,7 +1916,7 @@ function buildShell(hudProductionHtml) {
       find: /      b\.innerHTML=`<span class="rosterMarker p1">P1<\/span><span class="rosterMarker p2">P2<\/span><img src="\$\{h\.portrait\}" alt="" draggable="false"><span class="rosterName">\$\{h\.name\}<\/span>`;/,
       replace: (
         `      b.innerHTML=\`<span class=\"rosterMarker p1\">P1</span><span class=\"rosterMarker p2\">P2</span><img src=\"\${h.portrait||''}\" alt=\"\" draggable=\"false\"><span class=\"rosterName\">\${h.name||id}</span>\`+(playable?'':'<span class=\"rosterLock\">LOCKED</span>');\n` +
-        `      if(!playable){b.disabled=true;b.title='LOCKED — EXTENSION POINT';}`
+        `      if(!playable){b.disabled=true;b.title='LOCKED';}`
       ),
     },
     {
@@ -2104,11 +2194,11 @@ function buildShell(hudProductionHtml) {
   {
     const re = /  function buildRoster\(\)\{[\s\S]*?\n  \}(?=\n\n  function renderFighter\(\))/;
     if (!re.test(out)) throw new Error('R48A buildRoster seam mismatch');
-    out = out.replace(re, "  function buildRoster(){\n    roster.innerHTML='';\n    HERO_ORDER.forEach((id,idx)=>{\n      const h=HEROES[id]||{};\n      const playable=heroIsPlayable(id);\n      const lockedByAuthority=!!(window.APEX_GOLD_LOCKED&&window.APEX_GOLD_LOCKED(id));\n      const locked=!playable||lockedByAuthority;\n      const b=document.createElement('button');\n      b.type='button';\n      b.className='rosterCard'+(locked?' is-locked':'');\n      b.dataset.hero=id;\n      b.setAttribute('aria-label',h.name||id);\n      const portrait=h.portrait\n        ? `<img src=\"${h.portrait}\" alt=\"\" draggable=\"false\">`\n        : '<span class=\"rosterLockedVisual\" aria-hidden=\"true\"></span>';\n      b.innerHTML=`<span class=\"rosterMarker p1\">P1</span><span class=\"rosterMarker p2\">P2</span>${portrait}<span class=\"rosterName\">${h.name||id}</span>`+(locked?'<span class=\"rosterLock\" aria-hidden=\"true\"><i></i><b>LOCKED</b></span>':'');\n      if(!playable){b.disabled=true;b.title='LOCKED — EXTENSION POINT';}\n      const img=b.querySelector('img');\n      if(img)img.addEventListener('error',()=>{\n        img.remove();\n        if(!b.querySelector('.rosterLockedVisual'))b.insertAdjacentHTML('afterbegin','<span class=\"rosterLockedVisual\" aria-hidden=\"true\"></span>');\n        b.classList.add('art-missing');\n      },{once:true});\n      b.addEventListener('click',()=>{uiSfx('ui.button.press');selectHero(id)});\n      b.addEventListener('pointerenter',()=>{ if(screen==='fighter' && !p1Locked && activePlayer==='p1'){} });\n      roster.appendChild(b);\n    });\n  }");
+    out = out.replace(re, "  function buildRoster(){\n    roster.innerHTML='';\n    HERO_ORDER.forEach((id,idx)=>{\n      const h=HEROES[id]||{};\n      const playable=heroIsPlayable(id);\n      const lockedByAuthority=!!(window.APEX_GOLD_LOCKED&&window.APEX_GOLD_LOCKED(id));\n      const locked=!playable||lockedByAuthority;\n      const b=document.createElement('button');\n      b.type='button';\n      b.className='rosterCard'+(locked?' is-locked':'');\n      b.dataset.hero=id;\n      b.setAttribute('aria-label',h.name||id);\n      const portrait=h.portrait\n        ? `<img src=\"${h.portrait}\" alt=\"\" draggable=\"false\">`\n        : '<span class=\"rosterLockedVisual\" aria-hidden=\"true\"></span>';\n      b.innerHTML=`<span class=\"rosterMarker p1\">P1</span><span class=\"rosterMarker p2\">P2</span>${portrait}<span class=\"rosterName\">${h.name||id}</span>`+(locked?'<span class=\"rosterLock\" aria-hidden=\"true\"><i></i><b>LOCKED</b></span>':'');\n      if(!playable){b.disabled=true;b.title='LOCKED';}\n      const img=b.querySelector('img');\n      if(img)img.addEventListener('error',()=>{\n        img.remove();\n        if(!b.querySelector('.rosterLockedVisual'))b.insertAdjacentHTML('afterbegin','<span class=\"rosterLockedVisual\" aria-hidden=\"true\"></span>');\n        b.classList.add('art-missing');\n      },{once:true});\n      b.addEventListener('click',()=>{uiSfx('ui.button.press');selectHero(id)});\n      b.addEventListener('pointerenter',()=>{ if(screen==='fighter' && !p1Locked && activePlayer==='p1'){} });\n      roster.appendChild(b);\n    });\n  }");
   }
   r48ReplaceOnce("    activePlayer='p1'; p1Locked=false; p2Locked=false; p1Hero='newbot'; p2Hero='newbot'; p2Empty=mode!=='bot';", "    activePlayer='p1'; p1Locked=false; p2Locked=false; p1Hero='newbot'; p2Hero='newbot'; p2Empty=mode!=='bot'; p1HasPicked=false; p2HasPicked=false;", 'mode reset');
   r48ReplaceOnce("    if(battleMode==='bot'){if(p1Locked)return;p1Hero=id;activePlayer='p1'}\n    else if(activePlayer==='p1'&&!p1Locked)p1Hero=id; else if(activePlayer==='p2'&&!p2Locked){p2Hero=id;p2Empty=false} else return;", "    if(battleMode==='bot'){if(p1Locked)return;p1Hero=id;p1HasPicked=true;activePlayer='p1'}\n    else if(activePlayer==='p1'&&!p1Locked){p1Hero=id;p1HasPicked=true} else if(activePlayer==='p2'&&!p2Locked){p2Hero=id;p2Empty=false;p2HasPicked=true} else return;", 'selectHero picked');
-  r48ReplaceOnce("      if(!p1Locked){p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';", "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';", 'BOT lock picked');
+  r48ReplaceOnce("      if(!p1Locked){p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';", "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';", 'BOT lock picked');
   r48ReplaceOnce("    if(activePlayer==='p1'&&!p1Locked){p1Locked=true;activePlayer='p2';p2Hero='newbot';p2Empty=false;renderFighter();", "    if(activePlayer==='p1'&&!p1Locked){p1HasPicked=true;p1Locked=true;activePlayer='p2';p2Hero='newbot';p2Empty=false;p2HasPicked=false;renderFighter();", 'P1 lock picked');
   r48ReplaceOnce("    if(activePlayer==='p2'&&!p2Locked){p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';", "    if(activePlayer==='p2'&&!p2Locked){p2HasPicked=true;p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';", 'P2 lock picked');
 
@@ -2133,7 +2223,7 @@ function buildShell(hudProductionHtml) {
     "    if(battleMode==='bot'){if(!p1Locked){p1Hero=id;p1HasPicked=true;activePlayer='p1'}else if(!p2Locked){p2Hero=id;p2Empty=false;p2HasPicked=true}else return}",
     'BOT slot selectable');
   r48ReplaceOnce(
-    "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';\n      uiSfx('fighter.match_ready');\n      launchBattleHud()}\n      return;",
+    "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';\n      uiSfx('fighter.match_ready');\n      launchBattleHud()}\n      return;",
     "      // Two-step lock. A BOT slot the previous match already locked (the\n" +
     "      // post-match READY return) turns the first press into a full launch, so\n" +
     "      // a rematch stays ONE action.\n" +
@@ -2150,7 +2240,7 @@ function buildShell(hudProductionHtml) {
     "      // ONE selection authority), so presentation can never advertise a fighter\n" +
     "      // the CPU will not use.\n" +
     "      try{window.APEX_GOLD&&window.APEX_GOLD.setBotOpponent&&window.APEX_GOLD.setBotOpponent(p2Hero)}catch(_){}\n" +
-    "      renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';\n" +
+    "      renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';\n" +
     "      uiSfx('fighter.match_ready');\n" +
     "      launchBattleHud();\n" +
     "      return;",
@@ -2178,7 +2268,7 @@ function buildShell(hudProductionHtml) {
   {
     const re = /  function renderWorldHero\(container,id,player\)\{[\s\S]*?\n  \}(?=\n\n  function renderSide\(side,id,player,locked\))/;
     if (!re.test(out)) throw new Error('R49 renderWorldHero seam mismatch');
-    out = out.replace(re, "  const HERO_PRESENTATION=Object.freeze({\n    newbot:{scale:.94,x:0,y:3},\n    hunter:{scale:.62,x:0,y:5},\n    crystala:{scale:.90,x:0,y:4},\n    magnet:{scale:.92,x:0,y:4},\n    frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:1.025},\n  });\n  const worldHeroSwapState=new WeakMap();\n  const visualBottomCache=new Map();\n\n  function visualBottomRatio(img){\n    const key=img.currentSrc||img.src||'';\n    if(visualBottomCache.has(key))return visualBottomCache.get(key);\n    const nw=img.naturalWidth||0,nh=img.naturalHeight||0;\n    if(!(nw>0&&nh>0))return 1;\n    let ratio=1;\n    try{\n      const maxSide=192,k=Math.min(1,maxSide/Math.max(nw,nh));\n      const w=Math.max(1,Math.round(nw*k)),h=Math.max(1,Math.round(nh*k));\n      const cv=document.createElement('canvas');cv.width=w;cv.height=h;\n      const cx=cv.getContext('2d',{willReadFrequently:true});\n      if(cx){\n        cx.clearRect(0,0,w,h);cx.drawImage(img,0,0,w,h);\n        const px=cx.getImageData(0,0,w,h).data;\n        let bottom=-1;\n        scan:for(let y=h-1;y>=0;y--)for(let x=0;x<w;x++)if(px[(y*w+x)*4+3]>12){bottom=y;break scan;}\n        if(bottom>=0)ratio=(bottom+1)/h;\n      }\n    }catch(_){}\n    visualBottomCache.set(key,ratio);\n    return ratio;\n  }\n  function anchoredHeroY(img,p){\n    if(!Number.isFinite(p.groundLine))return p.y||0;\n    const w=img.clientWidth||0,h=img.clientHeight||0,nw=img.naturalWidth||0,nh=img.naturalHeight||0;\n    if(!(w>0&&h>0&&nw>0&&nh>0))return p.y||0;\n    const fit=Math.min(w/nw,h/nh),renderedH=nh*fit,top=(h-renderedH)/2;\n    const visualBottom=top+visualBottomRatio(img)*renderedH;\n    const origin=.68*h;\n    const transformedBottom=origin+(p.scale||1)*(visualBottom-origin);\n    return (p.groundLine*h-transformedBottom)/h*100;\n  }\n  function disposeWorldHeroBody(body){\n    const img=body&&body.querySelector&&body.querySelector('.worldHeroAsset');\n    try{img&&img.__apexGroundAnchorObserver&&img.__apexGroundAnchorObserver.disconnect();}catch(_){}\n  }\n\n  function presentationFor(renderId,player){\n    const p=HERO_PRESENTATION[renderId]||{scale:.94,x:0,y:4};\n    const nativeFacing=Number.isFinite(p.nativeFacing)?p.nativeFacing:1;\n    const desiredSideFacing=player==='p2'?-1:1;\n    const face=nativeFacing*desiredSideFacing;\n    return {scale:p.scale||1,x:p.x||0,y:p.y||0,face,groundLine:Number.isFinite(p.groundLine)?p.groundLine:null};\n  }\n\n  function applyWorldSlotGeometry(container,player){\n    container.style.setProperty('top','7vh','important');\n    container.style.setProperty('bottom','15.5vh','important');\n    container.style.setProperty('width','50.5vw','important');\n    if(player==='p1'){\n      container.style.setProperty('left','-4.6vw','important');\n      container.style.setProperty('right','auto','important');\n    }else{\n      container.style.setProperty('right','-4.6vw','important');\n      container.style.setProperty('left','auto','important');\n    }\n  }\n\n  function applyHeroPresentation(img,renderId,requestedId,player){\n    const p=presentationFor(renderId,player);\n    const y=anchoredHeroY(img,p);\n    img.style.setProperty('width','100%','important');\n    img.style.setProperty('height','100%','important');\n    img.style.setProperty('left','0','important');\n    img.style.setProperty('top','0','important');\n    img.style.setProperty('object-position','50% 50%','important');\n    img.style.setProperty('transform-origin','50% 68%','important');\n    img.style.setProperty('scale','1 1','important');\n    img.style.setProperty('translate','none','important');\n    img.style.setProperty('transform','translate3d('+p.x+'%,'+y+'%,0) scale('+(p.face*p.scale)+','+p.scale+')','important');\n    if(Number.isFinite(p.groundLine)){\n      const syncGround=()=>{const yy=anchoredHeroY(img,p);img.style.setProperty('transform','translate3d('+p.x+'%,'+yy+'%,0) scale('+(p.face*p.scale)+','+p.scale+')','important');};\n      const schedule=()=>requestAnimationFrame(syncGround);\n      if(img.complete)schedule();else img.addEventListener('load',schedule,{once:true});\n      if(typeof ResizeObserver==='function'){const ro=new ResizeObserver(schedule);ro.observe(img);img.__apexGroundAnchorObserver=ro;}\n    }\n    if(requestedId==='mirror'){\n      img.style.setProperty('opacity','.84','important');\n      img.style.setProperty('filter','brightness(.47) saturate(.62) contrast(1.14) drop-shadow(0 24px 32px rgba(0,0,0,.72))','important');\n    }\n  }\n\n  function createWorldHeroBody(target){\n    if(!target.renderId||!target.sourceHero?.art)return null;\n    const body=document.createElement('div');\n    body.className='worldHeroBody';\n    const img=new Image();\n    img.className='worldHeroAsset';\n    img.alt='';img.draggable=false;img.src=target.sourceHero.art;\n    if(target.id==='mirror')img.classList.add('mirrorOpponentAsset');\n    applyHeroPresentation(img,target.renderId,target.id,target.player);\n    body.appendChild(img);\n    // No duplicate image/echo layer. Secondary identity effects must be\n    // geometry/code effects, never a translucent clone of the full hero art.\n    if(target.id==='magnet')body.insertAdjacentHTML('beforeend','<span class=\"magnetOrbit ringA\"></span><span class=\"magnetOrbit ringB\"></span>');\n    if(target.id==='crystala')body.insertAdjacentHTML('beforeend','<span class=\"crystalPulse\"></span>');\n    return body;\n  }\n\n  function commitWorldHero(container,target,state){\n    container.querySelectorAll(':scope > .worldHeroBody').forEach(disposeWorldHeroBody);\n    container.innerHTML='';\n    applyWorldSlotGeometry(container,target.player);\n    container.style.setProperty('--heroTint',target.hero?.accent||'#ff941f');\n    container.dataset.hero=target.id;\n    container.dataset.renderKey=target.nextKey;\n    state.currentKey=target.nextKey;\n    const body=createWorldHeroBody(target);\n    if(!body)return;\n    container.appendChild(body);\n    if(motion&&typeof body.animate==='function'){\n      const dir=target.player==='p1'?-1:1;\n      body.animate([\n        {opacity:0,transform:'translate3d('+(dir*3.0)+'vw,3px,0) scale(.88)',filter:'brightness(.62) saturate(.58)'},\n        {opacity:1,transform:'translate3d(0,0,0) scale(1)',filter:'none'}\n      ],{duration:185,easing:'cubic-bezier(.12,.88,.18,1)'});\n    }\n  }\n\n  function renderWorldHero(container,id,player){\n    const h=HEROES[id];\n    const mirrorSource=id==='mirror'?mirrorOpponentHero(player):null;\n    const renderId=id==='mirror'?mirrorSource:id;\n    const sourceHero=renderId?HEROES[renderId]:null;\n    const nextKey=id==='mirror'?('mirror:'+(renderId||'empty')):id;\n    let state=worldHeroSwapState.get(container);\n    if(!state){state={currentKey:container.dataset.renderKey||'',swapping:false,pending:null};worldHeroSwapState.set(container,state);}\n    const target={id,player,hero:h,renderId,sourceHero,nextKey};\n    state.pending=target;\n    applyWorldSlotGeometry(container,player);\n\n    if(!state.swapping&&state.currentKey===nextKey)return;\n    const current=container.querySelector(':scope > .worldHeroBody');\n    if(!current||!motion){\n      state.swapping=false;\n      commitWorldHero(container,state.pending,state);\n      state.pending=null;\n      return;\n    }\n    if(state.swapping)return;\n\n    state.swapping=true;\n    const dir=player==='p1'?-1:1;\n    const finish=()=>{\n      if(!state.swapping)return;\n      state.swapping=false;\n      const latest=state.pending;\n      state.pending=null;\n      disposeWorldHeroBody(current);\n      current.remove();\n      if(latest)commitWorldHero(container,latest,state);\n    };\n    if(typeof current.animate==='function'){\n      try{\n        const anim=current.animate([\n          {opacity:1,transform:'translate3d(0,0,0) scale(1)',filter:'none'},\n          {opacity:0,transform:'translate3d('+(dir*3.0)+'vw,4px,0) scale(.84)',filter:'brightness(.48) saturate(.38)'}\n        ],{duration:125,easing:'cubic-bezier(.28,.02,.5,1)'});\n        Promise.resolve(anim.finished).then(finish).catch(finish);\n      }catch(_){setTimeout(finish,125);}\n    }else setTimeout(finish,125);\n  }");
+    out = out.replace(re, "  const HERO_PRESENTATION=Object.freeze({\n    newbot:{scale:.94,x:0,y:3},\n    hunter:{scale:.62,x:0,y:5},\n    crystala:{scale:.90,x:0,y:4},\n    magnet:{scale:.92,x:0,y:4},\n    frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:1.025},\n  });\n  const worldHeroSwapState=new WeakMap();\n  const visualBottomCache=new Map();\n\n  function visualBottomRatio(img){\n    const key=img.currentSrc||img.src||'';\n    if(visualBottomCache.has(key))return visualBottomCache.get(key);\n    const nw=img.naturalWidth||0,nh=img.naturalHeight||0;\n    if(!(nw>0&&nh>0))return 1;\n    let ratio=1;\n    try{\n      const maxSide=192,k=Math.min(1,maxSide/Math.max(nw,nh));\n      const w=Math.max(1,Math.round(nw*k)),h=Math.max(1,Math.round(nh*k));\n      const cv=document.createElement('canvas');cv.width=w;cv.height=h;\n      const cx=cv.getContext('2d',{willReadFrequently:true});\n      if(cx){\n        cx.clearRect(0,0,w,h);cx.drawImage(img,0,0,w,h);\n        const px=cx.getImageData(0,0,w,h).data;\n        let bottom=-1;\n        scan:for(let y=h-1;y>=0;y--)for(let x=0;x<w;x++)if(px[(y*w+x)*4+3]>12){bottom=y;break scan;}\n        if(bottom>=0)ratio=(bottom+1)/h;\n      }\n    }catch(_){}\n    visualBottomCache.set(key,ratio);\n    return ratio;\n  }\n  const visualInkCache=new Map();\n  function visualInkBox(img){\n    const key=img.currentSrc||img.src||'';\n    if(visualInkCache.has(key))return visualInkCache.get(key);\n    const nw=img.naturalWidth||0,nh=img.naturalHeight||0;\n    let box={top:0,bottom:1,left:0,right:1};\n    if(nw>0&&nh>0){try{\n      const maxSide=192,k=Math.min(1,maxSide/Math.max(nw,nh));\n      const w=Math.max(1,Math.round(nw*k)),h=Math.max(1,Math.round(nh*k));\n      const cv=document.createElement('canvas');cv.width=w;cv.height=h;\n      const cx=cv.getContext('2d',{willReadFrequently:true});\n      if(cx){cx.clearRect(0,0,w,h);cx.drawImage(img,0,0,w,h);\n        const px=cx.getImageData(0,0,w,h).data;\n        let t=-1,b=-1,l=-1,r=-1;\n        for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(px[(y*w+x)*4+3]>12){if(t<0)t=y;b=y;if(l<0||x<l)l=x;if(x>r)r=x;}\n        if(b>=0)box={top:t/h,bottom:(b+1)/h,left:l/w,right:(r+1)/w};\n      }\n    }catch(_){}}\n    visualInkCache.set(key,box);\n    return box;\n  }\n  // CP3 ink standard (owner): ONE rendered ink height (92% of slot height)\n  // on ONE ground line for every standing fighter; the per-hero table scales\n  // remain only as the pre-load fallback + facing authority.\n  const INK_TARGET_RATIO=.92;\n  function normalizedHeroScale(img,p){\n    const w=img.clientWidth||0,h=img.clientHeight||0,nw=img.naturalWidth||0,nh=img.naturalHeight||0;\n    if(!(w>0&&h>0&&nw>0&&nh>0))return p.scale||1;\n    const box=visualInkBox(img);\n    const fit=Math.min(w/nw,h/nh),renderedH=nh*fit,renderedW=nw*fit;\n    const inkH=(box.bottom-box.top)*renderedH,inkW=(box.right-box.left)*renderedW;\n    if(!(inkH>0))return p.scale||1;\n    let s=(INK_TARGET_RATIO*h)/inkH;\n    if(inkW>0)s=Math.min(s,(1.12*w)/inkW);\n    return Math.min(2.2,Math.max(.35,s));\n  }\n  function anchoredHeroY(img,p){\n    if(!Number.isFinite(p.groundLine))return p.y||0;\n    const w=img.clientWidth||0,h=img.clientHeight||0,nw=img.naturalWidth||0,nh=img.naturalHeight||0;\n    if(!(w>0&&h>0&&nw>0&&nh>0))return p.y||0;\n    const fit=Math.min(w/nw,h/nh),renderedH=nh*fit,top=(h-renderedH)/2;\n    const visualBottom=top+visualBottomRatio(img)*renderedH;\n    const origin=.68*h;\n    const transformedBottom=origin+(p.scale||1)*(visualBottom-origin);\n    return (p.groundLine*h-transformedBottom)/h*100;\n  }\n  function disposeWorldHeroBody(body){\n    const img=body&&body.querySelector&&body.querySelector('.worldHeroAsset');\n    try{img&&img.__apexGroundAnchorObserver&&img.__apexGroundAnchorObserver.disconnect();}catch(_){}\n  }\n\n  function presentationFor(renderId,player){\n    const p=HERO_PRESENTATION[renderId]||{scale:.94,x:0,y:4};\n    const nativeFacing=Number.isFinite(p.nativeFacing)?p.nativeFacing:1;\n    const desiredSideFacing=player==='p2'?-1:1;\n    const face=nativeFacing*desiredSideFacing;\n    return {scale:p.scale||1,x:p.x||0,y:p.y||0,face,groundLine:Number.isFinite(p.groundLine)?p.groundLine:1.025};\n  }\n\n  function applyWorldSlotGeometry(container,player){\n    container.style.setProperty('top','7vh','important');\n    container.style.setProperty('bottom','15.5vh','important');\n    container.style.setProperty('width','50.5vw','important');\n    if(player==='p1'){\n      container.style.setProperty('left','-4.6vw','important');\n      container.style.setProperty('right','auto','important');\n    }else{\n      container.style.setProperty('right','-4.6vw','important');\n      container.style.setProperty('left','auto','important');\n    }\n  }\n\n  function applyHeroPresentation(img,renderId,requestedId,player){\n    const p=presentationFor(renderId,player);\n    const y=anchoredHeroY(img,p);\n    img.style.setProperty('width','100%','important');\n    img.style.setProperty('height','100%','important');\n    img.style.setProperty('left','0','important');\n    img.style.setProperty('top','0','important');\n    img.style.setProperty('object-position','50% 50%','important');\n    img.style.setProperty('transform-origin','50% 68%','important');\n    img.style.setProperty('scale','1 1','important');\n    img.style.setProperty('translate','none','important');\n    img.style.setProperty('transform','translate3d('+p.x+'%,'+y+'%,0) scale('+(p.face*p.scale)+','+p.scale+')','important');\n    const syncInk=()=>{const s=normalizedHeroScale(img,p);const pp={...p,scale:s};const yy=anchoredHeroY(img,pp);img.style.setProperty('transform','translate3d('+p.x+'%,'+yy+'%,0) scale('+(p.face*s)+','+s+')','important');};\n    const scheduleInk=()=>requestAnimationFrame(syncInk);\n    if(img.complete&&img.naturalWidth>0)scheduleInk();else img.addEventListener('load',scheduleInk,{once:true});\n    if(typeof ResizeObserver==='function'){const ro=new ResizeObserver(scheduleInk);ro.observe(img);img.__apexGroundAnchorObserver=ro;}\n    if(requestedId==='mirror'){\n      img.style.setProperty('opacity','.84','important');\n      img.style.setProperty('filter','brightness(.47) saturate(.62) contrast(1.14) drop-shadow(0 24px 32px rgba(0,0,0,.72))','important');\n    }\n  }\n\n  function createWorldHeroBody(target){\n    if(!target.renderId||!target.sourceHero?.art)return null;\n    const body=document.createElement('div');\n    body.className='worldHeroBody';\n    const img=new Image();\n    img.className='worldHeroAsset';\n    img.alt='';img.draggable=false;img.src=target.sourceHero.art;\n    if(target.id==='mirror')img.classList.add('mirrorOpponentAsset');\n    applyHeroPresentation(img,target.renderId,target.id,target.player);\n    body.appendChild(img);\n    // No duplicate image/echo layer. Secondary identity effects must be\n    // geometry/code effects, never a translucent clone of the full hero art.\n    if(target.id==='magnet')body.insertAdjacentHTML('beforeend','<span class=\"magnetOrbit ringA\"></span><span class=\"magnetOrbit ringB\"></span>');\n    if(target.id==='crystala')body.insertAdjacentHTML('beforeend','<span class=\"crystalPulse\"></span>');\n    return body;\n  }\n\n  function commitWorldHero(container,target,state){\n    container.querySelectorAll(':scope > .worldHeroBody').forEach(disposeWorldHeroBody);\n    container.innerHTML='';\n    applyWorldSlotGeometry(container,target.player);\n    container.style.setProperty('--heroTint',target.hero?.accent||'#ff941f');\n    container.dataset.hero=target.id;\n    container.dataset.renderKey=target.nextKey;\n    state.currentKey=target.nextKey;\n    const body=createWorldHeroBody(target);\n    if(!body)return;\n    container.appendChild(body);\n    if(motion&&typeof body.animate==='function'){\n      const dir=target.player==='p1'?-1:1;\n      body.animate([\n        {opacity:0,transform:'translate3d('+(dir*3.0)+'vw,3px,0) scale(.88)',filter:'brightness(.62) saturate(.58)'},\n        {opacity:1,transform:'translate3d(0,0,0) scale(1)',filter:'none'}\n      ],{duration:185,easing:'cubic-bezier(.12,.88,.18,1)'});\n    }\n  }\n\n  function renderWorldHero(container,id,player){\n    const h=HEROES[id];\n    const mirrorSource=id==='mirror'?mirrorOpponentHero(player):null;\n    const renderId=id==='mirror'?mirrorSource:id;\n    const sourceHero=renderId?HEROES[renderId]:null;\n    const nextKey=id==='mirror'?('mirror:'+(renderId||'empty')):id;\n    let state=worldHeroSwapState.get(container);\n    if(!state){state={currentKey:container.dataset.renderKey||'',swapping:false,pending:null};worldHeroSwapState.set(container,state);}\n    const target={id,player,hero:h,renderId,sourceHero,nextKey};\n    state.pending=target;\n    applyWorldSlotGeometry(container,player);\n\n    if(!state.swapping&&state.currentKey===nextKey)return;\n    const current=container.querySelector(':scope > .worldHeroBody');\n    if(!current||!motion){\n      state.swapping=false;\n      commitWorldHero(container,state.pending,state);\n      state.pending=null;\n      return;\n    }\n    if(state.swapping)return;\n\n    state.swapping=true;\n    const dir=player==='p1'?-1:1;\n    const finish=()=>{\n      if(!state.swapping)return;\n      state.swapping=false;\n      const latest=state.pending;\n      state.pending=null;\n      disposeWorldHeroBody(current);\n      current.remove();\n      if(latest)commitWorldHero(container,latest,state);\n    };\n    if(typeof current.animate==='function'){\n      try{\n        const anim=current.animate([\n          {opacity:1,transform:'translate3d(0,0,0) scale(1)',filter:'none'},\n          {opacity:0,transform:'translate3d('+(dir*3.0)+'vw,4px,0) scale(.84)',filter:'brightness(.48) saturate(.38)'}\n        ],{duration:125,easing:'cubic-bezier(.28,.02,.5,1)'});\n        Promise.resolve(anim.finished).then(finish).catch(finish);\n      }catch(_){setTimeout(finish,125);}\n    }else setTimeout(finish,125);\n  }");
   }
   {
     const re = /<style id="r48a-fighter-pick-adaptation">[\s\S]*?<\/style>\s*/;
@@ -2446,7 +2536,33 @@ function main() {
   outputs.set('lucky-draw.html', Buffer.from(buildLuckyDonor(), 'utf8'));
   log('lucky-draw.html built (localized + production-bridged donor)');
   outputs.set('shell.html', Buffer.from(adaptTotGoldShellB8(adaptRivetGoldShellB7(adaptBreachGoldShellB6i(applyQuestMobileTouchRelease(applyB05Overlay('shell.html', buildShell(outputs.get('battle-hud.html').toString('utf8'))))))), 'utf8'));
-  log('shell.html built (canonical shell + production patches)');
+  // C03: Dictionary is the one integrated Fighter / Weapon cosmetic archive.
+  // Keep this in the generator, NOT as an output-only shell edit, so all
+  // release/GOLD hash gates regenerate the exact authorized UI bytes.
+  const dictionaryBefore='<button class="route is-locked" type="button" aria-label="Dictionary (locked)" disabled>';
+  const dictionaryAfter='<button class="route" id="apexDictionaryOpen" type="button" aria-label="Open Field Archive">';
+  const rawArchiveShell=outputs.get('shell.html').toString('utf8');
+  if(rawArchiveShell.split(dictionaryBefore).length!==2)throw new Error('C03 Dictionary route source anchor drift');
+  outputs.set('shell.html',Buffer.from(rawArchiveShell.replace(dictionaryBefore,dictionaryAfter),'utf8'));
+  log('shell.html built (canonical shell + production patches + active C03 Dictionary route)');
+  // R7: The live Wave iframe needs to pause the ALREADY APPROVED Gold Home
+  // presentation loop while keeping Home resident across Door V4 transitions.
+  // This is an explicit generated patch, never a manual output-only change.
+  const waveParentSeam="  function decodeBattleHud(){\n    const raw=(battleHudPayload?.textContent||'').trim();";
+  const waveParentPatch=`  // Wave's live-Home overlay uses the SAME suspension authority as battle.
+  // Do not keep a second active Home particle/parallax loop underneath Gold.
+  // Suspending presentation preserves resident sprites, music position and
+  // the exact Home DOM without reducing Wave renderer quality.
+  window.APEX_GOLD_PARENT_RUNTIME=Object.freeze({
+    pause:freezeParentRuntime,resume:resumeParentRuntime,
+    paused:()=>!!window.__APEX_PARENT_RUNTIME_PAUSED
+  });
+  function decodeBattleHud(){
+    const raw=(battleHudPayload?.textContent||'').trim();`;
+  const waveSourceShell=outputs.get('shell.html').toString('utf8');
+  if(waveSourceShell.split(waveParentSeam).length!==2)throw new Error('R7 Home freeze/resume source anchor drift');
+  outputs.set('shell.html',Buffer.from(waveSourceShell.replace(waveParentSeam,waveParentPatch),'utf8'));
+  log('R7 Home/Wave freeze-resume seam built from canonical Gold shell');
 
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
@@ -2469,6 +2585,7 @@ function main() {
   // preload it with the match instead of loading it during the first frames
   // (owner report: FROST loads slower than the others).
   const HERO_BATTLE_RIG_DIRS = {
+    boxe: ['/assets/boxe-gold'],
     newbot: ['/assets/hero-rework/robot-final'],
     crystala: ['/assets/hero-rework/crystala-curated'],
     frost: ['/assets/hero-rework/frost-v1'],
@@ -2526,7 +2643,7 @@ function main() {
   // Cache identity: the Gold shell / Lucky Draw / battle HUD URLs carry the
   // runtime revision so a prior Gold cutover can never be served from a stale
   // browser cache during verification (2026-10-05 correction slice).
-  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}';`);
+  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}&fieldArchive=c03';`);
   assetLines.push(`export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=${REVISION}';`);

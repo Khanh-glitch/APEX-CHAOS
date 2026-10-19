@@ -202,7 +202,7 @@ const BATTLE_ENTRY_REGION = `  let battleEntryToken=0;
       stage.classList.remove('match-ready','lock-impact');
       if(battleMode==='bot')p1Locked=false;
       else{p2Locked=false;activePlayer=p1Locked?'p2':'p1'}
-      handoffBanner.textContent=battleMode==='bot'?'BATTLE HANDOFF READY':'BOTH FIGHTERS LOCKED';
+      handoffBanner.textContent=battleMode==='bot'?'BATTLE READY':'BOTH FIGHTERS LOCKED';
       renderFighter();
     }catch(_){}
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');

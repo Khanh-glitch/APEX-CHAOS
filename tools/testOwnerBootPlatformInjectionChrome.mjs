@@ -68,3 +68,9 @@ try{
  console.log('PASS preview-provider double-injection START -> Home '+JSON.stringify(before));
  await page.close();
 }finally{await browser.close()}
+
+// BOXE art acceptance is a real visual gate, not merely an asset-path assertion.
+// Run only when BOXE is actually present in this source checkout.
+if(fs.existsSync('public/assets/dictionary/heroes/boxe/standing.png')){
+ await import('./testBoxeDictionaryArtChrome.mjs');
+}

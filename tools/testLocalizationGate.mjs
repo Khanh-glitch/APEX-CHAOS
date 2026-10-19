@@ -5,7 +5,7 @@ import {AWARD_RULE_TEMPLATES,englishAwardRule} from '../src/game/localeAwardRule
 import {COPY,PROPER_NAMES,translateCopy,VIETNAMESE_DIALOGUE_EN,VIETNAMESE_UI_EN} from '../src/game/localeCatalog.js';
 
 assert.equal(translateCopy('FREE BATTLE','vie'),'ĐẤU TỰ DO');
-for(const name of ['WEAPON DASH','VIRTUAL ARMOR','CONTEXT CONSTRUCT','AWAKENING','MIRROR ARSENAL','MIRROR EXCHANGE','ANCIENT CRYSTAL ENTITY','FIELD CONTROL UNIT','CRYO EDGE UNIT']) assert.notEqual(translateCopy(name,'vie'),name,'untranslated production fighter copy: '+name);
+for(const name of ['WEAPON DASH','VIRTUAL ARMOR','HEXA CONSTRUCT','AWAKENING','MIRROR ARSENAL','ATOMIC EXCHANGE',"PREDATOR'S LAW",'REFRACTION','MAGNETIC ACCELERATION','FROZEN BULLET','RECYCLE SNAP','MECHANICAL GENESIS','ANCIENT CRYSTAL ENTITY','FIELD CONTROL UNIT','CRYO EDGE UNIT']) assert.notEqual(translateCopy(name,'vie'),name,'untranslated production fighter copy: '+name);
 assert.equal(translateCopy('4.5S COOLDOWN','vie'),'HỒI CHIÊU 4,5s');
 assert.equal(translateCopy('2 CHARGES · 4.5S RECHARGE','vie'),'2 LẦN · NẠP 4,5s');
 assert.equal(translateCopy('1.0S ACTIVE · 11.0S CD','vie'),'HIỆU LỰC 1,0s · HỒI 11,0s');
