@@ -3844,13 +3844,13 @@ report.ownerTestCredits = run(`
     profile: M.KEY,
   };
 `);
-gate('product-owner-playtest-credits-seeded-once',
-  report.ownerTestCredits.first === 12000
+// A1 production law: a fresh profile loads at exactly 350 AC with NO seed
+// marker, and a stored balance loads back verbatim (never refilled).
+gate('product-a1-fresh-350-and-balance-preserved',
+  report.ownerTestCredits.first === 350
   && report.ownerTestCredits.second === 11000
-  && report.ownerTestCredits.firstSeed?.revision === report.ownerTestCredits.revision
-  && report.ownerTestCredits.secondSeed?.revision === report.ownerTestCredits.revision
-  && report.ownerTestCredits.firstSeed?.profile === report.ownerTestCredits.profile
-  && report.ownerTestCredits.secondSeed?.profile === report.ownerTestCredits.profile,
+  && report.ownerTestCredits.firstSeed == null
+  && report.ownerTestCredits.secondSeed == null,
   report.ownerTestCredits);
 
 report.v3Meta = run(`

@@ -1,17 +1,22 @@
 // ---------------------------------------------------------------------------
-// Owner-playtest economy + selection gate (r44 owner law).
+// A1 production progression + economy gate (replaces the r44 owner-playtest
+// gate; the useful coverage is retained, the law is now production law).
 //
 // Executes the REAL public/game/arsenal/arsenalMetaRuntime.js source against a
 // deterministic storage shim and proves:
 //
-//   · first boot seeds exactly 12,000 AC through the real economy save path
-//     (a legacy 425 profile is upgraded exactly once),
-//   · an ordinary refresh NEVER refills (12,000 → spend 350 → 11,650 →
-//     refresh stays 11,650),
-//   · Lucky Draw still costs the real 350 AC and still sees the REAL unowned
-//     pool (test-selection availability never widens it),
-//   · the Core Six selection override is ONE fenced switch, selection-only,
-//     and a future visible-but-locked fighter stays locked,
+//   · a genuinely new profile starts at exactly 350 AC with ROBOT (NEWBOT)
+//     as the only owned fighter — no 12,000 AC seed, no roster override,
+//   · existing balances/ownership are preserved verbatim (no refill, no
+//     clawback, no destructive reset) and a refresh NEVER refills AC,
+//   · Lucky Draw still costs the real 350 AC against the REAL unowned pool,
+//   · normal selection requires real ownership; the playable roster is
+//     test-selectable ONLY inside an authorized Admin Test session, which
+//     still fabricates no ownership and never widens the draw pool,
+//   · match rewards follow the A1 table by ACTUAL mode+outcome
+//     (BOT win 100 / BOT loss 25 provisional / LOCAL completion 50 either
+//     winner / Lab+Admin+invalid 0) and pay exactly once per sealed match
+//     id — across duplicate callbacks AND reloads,
 //   · there is no parallel currency variable (the one AC state is the balance).
 // ---------------------------------------------------------------------------
 import { readFileSync, readdirSync } from 'node:fs';
@@ -32,6 +37,7 @@ function check(name, cond, detail) {
 
 const CORE_SIX = ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR'];
 const FUTURE = ['SLIME']; // visible-but-locked extension point
+const KEY = 'apexChaos.arsenalMeta.v1';
 
 function makeStorage(initial) {
   const map = new Map(Object.entries(initial || {}));
@@ -42,41 +48,48 @@ function makeStorage(initial) {
     _map: map,
   };
 }
-function boot(initial, productSurface) {
+function boot(initial, extraWindow) {
   const storage = makeStorage(initial);
   const window = {
     localStorage: storage,
     addEventListener() {}, removeEventListener() {},
+    dispatchEvent() { return true; },
     matchMedia: () => ({ matches: false, addEventListener() {} }),
     console,
-    APEX_PRODUCT_SURFACE: productSurface || {
+    CustomEvent: class CustomEvent { constructor(type, init) { this.type = type; this.detail = init && init.detail; } },
+    APEX_PRODUCT_SURFACE: {
       roster: { visibleIds: [...CORE_SIX, ...FUTURE], playableIds: CORE_SIX },
       canLaunch: () => true,
     },
+    ...(extraWindow || {}),
   };
   const ctx = vm.createContext({
     window, console, localStorage: storage, setTimeout, clearTimeout,
     Promise, Date, Math, JSON, Object, Array, String, Number, Boolean, RegExp, Error, Set, Map,
+    CustomEvent: window.CustomEvent,
   });
   vm.runInContext(`(function(){ with (window) {\n${SOURCE}\n} })();`, ctx, { filename: 'arsenalMetaRuntime.js' });
   return { meta: window.APEX_ARSENAL_META, storage, window };
 }
+const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
 
-// ── 1. fresh boot seeds exactly 12,000 ───────────────────────────────────
+// ── 1. a genuinely new player: 350 AC, NEWBOT only ────────────────────────
 {
   const { meta, storage } = boot({});
   check('meta runtime registers', !!meta);
-  check('first boot seeds exactly 12,000 AC', meta.credits() === 12000, `credits=${meta.credits()}`);
-  const stored = JSON.parse(storage.getItem('apexChaos.arsenalMeta.v1'));
-  check('the seed is persisted through the real economy save', stored.credits === 12000);
-  // ONE authority: the marker must carry the revision the runtime itself
-  // declares — a literal here would let the gate and the product drift apart.
-  check('the seed marker is revision+profile scoped',
-    stored.ownerPlaytestAcSeed &&
-    stored.ownerPlaytestAcSeed.revision === meta.OWNER_PLAYTEST_AC_SEED_REVISION &&
-    stored.ownerPlaytestAcSeed.revision === meta.OWNER_PLAYTEST_REVISION &&
-    stored.ownerPlaytestAcSeed.profile === 'apexChaos.arsenalMeta.v1',
+  check('fresh profile starts at exactly 350 AC', meta.credits() === 350, `credits=${meta.credits()}`);
+  check('fresh profile owns ROBOT (NEWBOT) only',
+    JSON.stringify(meta.getState().ownedFighters) === '["ROBOT"]',
+    JSON.stringify(meta.getState().ownedFighters));
+  check('fresh default selection is ROBOT on both sides',
+    meta.getState().lastSelectedP1 === 'ROBOT' && meta.getState().lastSelectedP2 === 'ROBOT');
+  const stored = storedOf(storage);
+  check('the fresh state is persisted through the real economy save', stored.credits === 350);
+  check('no owner-playtest seed is applied or marked',
+    !stored.ownerPlaytestAcSeed && meta.OWNER_PLAYTEST_AC_SEED === 0,
     JSON.stringify(stored.ownerPlaytestAcSeed));
+  check('the roster selection override is disabled for normal players',
+    meta.OWNER_PLAYTEST_CORE_SIX_UNLOCK === false);
   const balanceFields = Object.entries(stored)
     .filter(([k, v]) => typeof v === 'number' && /credit|balance|coin|ac/i.test(k))
     .map(([k]) => k);
@@ -84,95 +97,140 @@ function boot(initial, productSurface) {
     balanceFields.length === 1 && balanceFields[0] === 'credits', balanceFields.join(','));
 }
 
-// ── 2. a legacy 425 profile is upgraded exactly once ─────────────────────
+// ── 2. existing profiles are preserved — never refilled, never reset ──────
 {
-  const legacy = { version: 1, credits: 425, ownedFighters: ['ROBOT'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 3, unlockedAt: { ROBOT: 0 }, arenaPaletteId: null };
-  const { meta, storage } = boot({ 'apexChaos.arsenalMeta.v1': JSON.stringify(legacy) });
-  check('a legacy 425 AC profile is upgraded to 12,000 on first r44 boot', meta.credits() === 12000, `credits=${meta.credits()}`);
-  const again = boot({ 'apexChaos.arsenalMeta.v1': storage.getItem('apexChaos.arsenalMeta.v1') });
-  check('reloading an already-seeded profile does not re-upgrade', again.meta.credits() === 12000, `credits=${again.meta.credits()}`);
+  const legacy = { version: 1, credits: 425, ownedFighters: ['ROBOT', 'HUNTER'], lastSelectedP1: 'HUNTER', lastSelectedP2: 'ROBOT', totalSpins: 3, unlockedAt: { ROBOT: 0, HUNTER: 5 }, arenaPaletteId: null };
+  const { meta } = boot({ [KEY]: JSON.stringify(legacy) });
+  check('an existing 425 AC balance is preserved (no upgrade, no reset)',
+    meta.credits() === 425, `credits=${meta.credits()}`);
+  check('existing ownership is preserved',
+    meta.owns('HUNTER') === true && meta.owns('ROBOT') === true);
 }
-
-// ── 2b. the reseed revision gives every existing profile exactly one refill ─
-// Owner feedback "12.000 AC" must hold for a profile that was already seeded
-// (and possibly spent) under the previous revision — without ever refilling an
-// ordinary refresh of the CURRENT revision.
 {
+  // A profile seeded under the retired r44 law keeps its CURRENT balance:
+  // A1 neither refills it nor claws it back.
   const retired = {
     version: 1, credits: 11650, ownedFighters: ['ROBOT'],
     lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 1,
     unlockedAt: { ROBOT: 0 }, arenaPaletteId: null,
-    ownerPlaytestAcSeed: { revision: '20261005-owner-playtest-r44', profile: 'apexChaos.arsenalMeta.v1', at: 1 },
+    ownerPlaytestAcSeed: { revision: '20261005-owner-playtest-r44', profile: KEY, at: 1 },
   };
-  const { meta, storage } = boot({ 'apexChaos.arsenalMeta.v1': JSON.stringify(retired) });
-  check('a profile seeded under the retired revision is refilled once to 12,000',
-    meta.credits() === 12000, `credits=${meta.credits()}`);
-  const stored = JSON.parse(storage.getItem('apexChaos.arsenalMeta.v1'));
-  check('the refill rewrites the marker to the live revision',
-    stored.ownerPlaytestAcSeed.revision === meta.OWNER_PLAYTEST_REVISION &&
-    stored.ownerPlaytestAcSeed.revision !== '20261005-owner-playtest-r44');
-  const spent = meta.spin(() => 0);
-  check('the refilled balance spends through the real economy',
-    spent.ok === true && spent.credits === 11650, JSON.stringify(spent));
-  const refreshed = boot({ 'apexChaos.arsenalMeta.v1': storage.getItem('apexChaos.arsenalMeta.v1') });
-  check('a refresh after the refill never refills again',
-    refreshed.meta.credits() === 11650, `credits=${refreshed.meta.credits()}`);
+  const { meta, storage } = boot({ [KEY]: JSON.stringify(retired) });
+  check('a retired-seed profile keeps its current balance verbatim',
+    meta.credits() === 11650, `credits=${meta.credits()}`);
+  const refreshed = boot({ [KEY]: storage.getItem(KEY) });
+  check('refreshing it never refills', refreshed.meta.credits() === 11650);
 }
 
-// ── 3. ordinary refresh never refills ────────────────────────────────────
+// ── 3. ordinary refresh / re-login never refills ──────────────────────────
 {
   const { meta, storage } = boot({});
-  check('boot balance is 12,000', meta.credits() === 12000);
-  // A Lucky Draw spin costs the real 350 AC.
   const spin = meta.spin(() => 0);
-  check('Lucky Draw costs the real 350 AC', spin.ok === true && spin.credits === 11650, JSON.stringify(spin));
-  const afterSpin = JSON.parse(storage.getItem('apexChaos.arsenalMeta.v1'));
-  check('the spent balance is persisted', afterSpin.credits === 11650, `stored=${afterSpin.credits}`);
-  const refreshed = boot({ 'apexChaos.arsenalMeta.v1': storage.getItem('apexChaos.arsenalMeta.v1') });
-  check('an ordinary refresh does NOT refill (11,650 stays 11,650)',
-    refreshed.meta.credits() === 11650, `credits=${refreshed.meta.credits()}`);
-  const refreshedTwice = boot({ 'apexChaos.arsenalMeta.v1': refreshed.storage.getItem('apexChaos.arsenalMeta.v1') });
-  check('a second refresh still does not refill',
-    refreshedTwice.meta.credits() === 11650, `credits=${refreshedTwice.meta.credits()}`);
+  check('Lucky Draw costs the real 350 AC (fresh 350 → 0)',
+    spin.ok === true && spin.credits === 0, JSON.stringify(spin));
+  check('the drawn fighter becomes really owned', meta.owns(spin.name) === true);
+  const refused = meta.spin(() => 0);
+  check('a second draw is refused for the real reason (need 350)',
+    refused.ok === false && refused.reason === 'need' && refused.need === 350,
+    JSON.stringify(refused));
+  const refreshed = boot({ [KEY]: storage.getItem(KEY) });
+  check('an ordinary refresh does NOT refill (0 stays 0)',
+    refreshed.meta.credits() === 0, `credits=${refreshed.meta.credits()}`);
+  check('the drawn ownership survives the refresh',
+    refreshed.meta.owns(spin.name) === true);
 }
 
-// ── 4. Lucky Draw keeps the REAL unowned pool ────────────────────────────
+// ── 4. Lucky Draw keeps the REAL unowned pool ─────────────────────────────
 {
   const { meta } = boot({});
   const pool = meta.poolLocked();
   check('Lucky Draw pool is the real unowned playable pool',
     Array.isArray(pool) && pool.length === CORE_SIX.length - 1 && !pool.includes('ROBOT') && pool.includes('MIRROR'),
     JSON.stringify(pool));
-  check('the test-selection override does not widen the Lucky Draw pool',
-    !pool.includes(FUTURE[0]), JSON.stringify(pool));
-  check('the override does not fabricate ownership',
+  check('no override widens the Lucky Draw pool', !pool.includes(FUTURE[0]), JSON.stringify(pool));
+  check('visibility never fabricates ownership',
     meta.owns('MIRROR') === false && meta.owns('HUNTER') === false);
-  check('Lucky Draw refuses when the balance cannot cover 350',
-    (() => { const m2 = boot({}); m2.meta.spin(() => 0); const r = m2.meta.spin(() => 0); return r.ok === true; })());
 }
 
-// ── 5. the ONE fenced selection override ─────────────────────────────────
+// ── 5. selection: ownership for players, admin session for owner testing ──
 {
   const { meta } = boot({});
-  check('all six current playable Core Six are selectable for owner testing',
-    CORE_SIX.every((id) => meta.canPublicSelect(id) === true),
+  check('a normal new player can select NEWBOT only',
+    meta.canPublicSelect('ROBOT') === true &&
+    CORE_SIX.filter((id) => id !== 'ROBOT').every((id) => meta.canPublicSelect(id) === false),
     CORE_SIX.map((id) => `${id}:${meta.canPublicSelect(id)}`).join(' '));
   check('a future visible-but-locked fighter stays locked',
     FUTURE.every((id) => meta.canPublicSelect(id) === false));
-  check('the override is exposed as a single fenced switch',
-    meta.OWNER_PLAYTEST_CORE_SIX_UNLOCK === true &&
-    typeof meta.ownerPlaytestSelectionUnlocked === 'function' &&
-    meta.OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION === meta.OWNER_PLAYTEST_REVISION);
   check('the picker filter honours the single selection authority',
-    meta.filterOwned([{ name: 'MIRROR' }, { name: 'SLIME' }, { name: 'ROBOT' }]).length === 2);
-  check('the AC seed is exposed as a single fenced constant',
-    meta.OWNER_PLAYTEST_AC_SEED === 12000 &&
-    meta.OWNER_PLAYTEST_AC_SEED_REVISION === meta.OWNER_PLAYTEST_REVISION &&
-    /^20261005-owner-playtest-r\d+$/.test(meta.OWNER_PLAYTEST_REVISION),
-    String(meta.OWNER_PLAYTEST_REVISION));
+    meta.filterOwned([{ name: 'MIRROR' }, { name: 'SLIME' }, { name: 'ROBOT' }]).length === 1);
+  check('no admin session exists by default', meta.adminTestSessionActive() === false);
+}
+{
+  const adminWindow = { APEX_ADMIN_AUTHORITY: { isAdminTestSessionActive: () => true } };
+  const { meta } = boot({}, adminWindow);
+  check('an authorized Admin Test session can test-select the playable roster',
+    CORE_SIX.every((id) => meta.canPublicSelect(id) === true),
+    CORE_SIX.map((id) => `${id}:${meta.canPublicSelect(id)}`).join(' '));
+  check('the admin session still cannot open future locked fighters',
+    FUTURE.every((id) => meta.canPublicSelect(id) === false));
+  check('the admin session fabricates no ownership and no credits',
+    meta.owns('MIRROR') === false && meta.credits() === 350);
+  check('the admin session does not widen the Lucky Draw pool',
+    meta.poolLocked().length === CORE_SIX.length - 1);
 }
 
-// ── 6. no scattered bypasses in production sources ───────────────────────
+// ── 6. match rewards: A1 table by actual mode + outcome, paid once ────────
+const matchState = (mode, id) => ({ battleMode: mode, resultGold: { meta: { id } } });
+{
+  const { meta, storage } = boot({});
+  const s1 = matchState('BOT', 'match-bot-win-1');
+  const botWin = meta.awardBattleResult('P1', s1);
+  check('BOT win pays +100 AC', botWin.ok === true && botWin.amount === 100 && meta.credits() === 450,
+    JSON.stringify(botWin));
+  check('a duplicate callback for the same match pays nothing',
+    meta.awardBattleResult('P1', s1).ok === false && meta.credits() === 450);
+  check('the same sealed match id under a fresh state is a duplicate claim',
+    meta.awardBattleResult('P1', matchState('BOT', 'match-bot-win-1')).reason === 'duplicate-claim' &&
+    meta.credits() === 450);
+  const botLoss = meta.awardBattleResult('P2', matchState('BOT', 'match-bot-loss-1'));
+  check('BOT loss pays the provisional +25 AC',
+    botLoss.ok === true && botLoss.amount === 25 && meta.credits() === 475, JSON.stringify(botLoss));
+  const localP2 = meta.awardBattleResult('P2', matchState('LOCAL', 'match-local-1'));
+  check('LOCAL completion pays +50 AC when P2 wins',
+    localP2.ok === true && localP2.amount === 50 && meta.credits() === 525, JSON.stringify(localP2));
+  const localP1 = meta.awardBattleResult('P1', matchState('LOCAL', 'match-local-2'));
+  check('LOCAL completion pays +50 AC when P1 wins (not winner-inferred)',
+    localP1.ok === true && localP1.amount === 50 && meta.credits() === 575, JSON.stringify(localP1));
+  check('Result telemetry reports the actual committed award and balance',
+    meta.lastAward().amount === 50 && meta.lastAward().balance === 575);
+  // Reload: claims persist, so a replayed result can never re-pay.
+  const reloaded = boot({ [KEY]: storage.getItem(KEY) });
+  check('after reload the balance and claims persist (no refill, no re-pay)',
+    reloaded.meta.credits() === 575 &&
+    reloaded.meta.awardBattleResult('P1', matchState('BOT', 'match-bot-win-1')).reason === 'duplicate-claim' &&
+    reloaded.meta.credits() === 575);
+}
+{
+  const { meta } = boot({});
+  check('Lab matches pay 0',
+    meta.awardBattleResult('P1', { battleMode: 'BOT', labMode: true, resultGold: { meta: { id: 'lab-1' } } }).ok === false &&
+    meta.credits() === 350);
+  check('an invalid winner pays 0',
+    meta.awardBattleResult('ROBOT', matchState('BOT', 'x-1')).reason === 'invalid-winner' && meta.credits() === 350);
+  check('a match without a trustworthy mode pays 0 (fail closed)',
+    meta.awardBattleResult('P1', {}).reason === 'invalid-mode' && meta.credits() === 350);
+  check('an abandoned/incomplete match (no sealed result, no mode) pays 0',
+    meta.awardBattleResult('P1', { resultGold: null }).ok === false && meta.credits() === 350);
+}
+{
+  const testWindow = { APEX_ARSENAL_OWNER_TEST: { active: true } };
+  const { meta } = boot({}, testWindow);
+  check('Admin/owner-test matches pay 0 and never touch the wallet',
+    meta.awardBattleResult('P1', matchState('BOT', 'admin-1')).reason === 'admin-test' &&
+    meta.credits() === 350);
+}
+
+// ── 7. no scattered bypasses in production sources ────────────────────────
 {
   const roots = ['src', 'public'];
   const seen = [];
@@ -187,16 +245,19 @@ function boot(initial, productSurface) {
     }
   };
   for (const r of roots) walk(r);
-  check('the owner-playtest selection override is declared in exactly ONE file',
-    seen.length === 1 && seen[0] === 'public/game/arsenal/arsenalMetaRuntime.js',
+  check('the legacy selection switch is declared in exactly ONE file (and is false)',
+    seen.length === 1 && seen[0] === 'public/game/arsenal/arsenalMetaRuntime.js' &&
+    /OWNER_PLAYTEST_CORE_SIX_UNLOCK = false/.test(SOURCE),
     seen.join(','));
+  check('no production source re-enables a 12,000 AC seed',
+    !/OWNER_PLAYTEST_AC_SEED = 12000/.test(SOURCE) && /OWNER_PLAYTEST_AC_SEED = 0/.test(SOURCE));
   const bridge = readFileSync(path.join(ROOT, 'public/game/gold/goldProductBridge.js'), 'utf8');
   check('the Gold bridge has no second selection bypass',
     !/OWNER_PLAYTEST_CORE_SIX_UNLOCK/.test(bridge) &&
     /meta\.canPublicSelect\(hero\.productionId\)/.test(bridge));
 }
 
-const lines = ['OWNER PLAYTEST ECONOMY + SELECTION GATE (r44)', ...notes];
+const lines = ['A1 PRODUCTION PROGRESSION + ECONOMY GATE', ...notes];
 if (failures.length) {
   lines.push('', ...failures, '', `RESULT: FAIL (${failures.length})`);
   console.error(lines.join('\n'));

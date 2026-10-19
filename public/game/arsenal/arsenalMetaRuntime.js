@@ -21,33 +21,52 @@
   const isProductVisible = (name) => ROSTER().includes(String(name || '').toUpperCase());
   const isProductPlayable = (name) => PLAYABLE_ROSTER().includes(String(name || '').toUpperCase());
 
-  // ── OWNER PLAYTEST SELECTION OVERRIDE (r44) — THE ONE FENCED SWITCH ─────
-  // Owner acceptance needs all six CURRENT playable Core Six selectable for a
-  // real battle. This is a SELECTION override ONLY:
-  //   · it never writes ownership (owns() stays production truth),
-  //   · it never touches credits or the Shop,
-  //   · it never widens the Lucky Draw pool (poolLocked() uses owns()),
-  //   · it never unlocks a future visible-but-locked fighter.
-  // It is removed as ONE edit — flip this constant to false — after owner
-  // acceptance. No other file may re-implement this bypass.
-  // ONE revision string owns both owner-playtest overrides below, so a reseed
-  // can never half-apply (selection under one revision, balance under another).
+  // ── A1 PRODUCTION PROGRESSION (retires the r44 owner-playtest overrides) ─
+  // A1 product law: a genuinely new player profile starts with exactly
+  // START_CREDITS (350 AC) and ROBOT (NEWBOT) as the only owned fighter.
+  // The r44 owner-playtest overrides that used to live here are DISABLED for
+  // normal players:
+  //   · OWNER_PLAYTEST_AC_SEED is 0 — no balance is ever seeded/refilled, on
+  //     first boot, refresh or re-login. Existing balances are preserved
+  //     verbatim by sanitize(); nothing is destructively reset.
+  //   · OWNER_PLAYTEST_CORE_SIX_UNLOCK is false — selection requires real
+  //     ownership (owns()).
+  // Owner testing survives ONLY through the separate Admin authority
+  // (src/game/adminAuthority.js → window.APEX_ADMIN_AUTHORITY): while an
+  // authorized Admin Test Mode session is active, the playable roster is
+  // selectable for testing. That session override is selection-only — it
+  // never writes ownership, never touches credits/Shop, never widens the
+  // Lucky Draw pool (poolLocked() uses owns()), never unlocks a future
+  // visible-but-locked fighter, and its matches never pay AC (see
+  // awardBattleResult). The legacy constant names/exports are retained for
+  // one release so old saves and tooling keep resolving; rollback is still
+  // this one fenced block.
   const OWNER_PLAYTEST_REVISION = '20261005-owner-playtest-r52';
-  const OWNER_PLAYTEST_CORE_SIX_UNLOCK = true;
+  const OWNER_PLAYTEST_CORE_SIX_UNLOCK = false;
   const OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION = OWNER_PLAYTEST_REVISION;
-  // Owner playtest balance: exactly 12,000 AC on the first boot of a profile
-  // under this revision. It uses the REAL production economy (award/save on
-  // the one AC state) — there is no parallel currency variable — and it is
-  // marked revision+profile scoped so an ordinary refresh NEVER refills it
-  // (12,000 → spend 350 → 11,650 → refresh stays 11,650). Removed as ONE
-  // edit (set to 0) after owner acceptance.
-  const OWNER_PLAYTEST_AC_SEED = 12000;
+  const OWNER_PLAYTEST_AC_SEED = 0;
   const OWNER_PLAYTEST_AC_SEED_REVISION = OWNER_PLAYTEST_REVISION;
-  function ownerPlaytestSelectionUnlocked(name) {
-    if (!OWNER_PLAYTEST_CORE_SIX_UNLOCK) return false;
-    // ONLY the current production playable roster (the Core Six). A future
-    // visible-but-locked fighter is never unlocked by this override.
+  // The ONE admin-session probe. The keyboard shortcut is an interface, not
+  // authorization: the Admin authority decides who may hold a test session.
+  // A missing authority fails closed (normal player).
+  function adminTestSessionActive() {
+    try {
+      const admin = window.APEX_ADMIN_AUTHORITY;
+      if (admin && typeof admin.isAdminTestSessionActive === 'function') {
+        return admin.isAdminTestSessionActive() === true;
+      }
+    } catch (error) {}
+    return false;
+  }
+  function adminTestSelectionUnlocked(name) {
+    if (!adminTestSessionActive()) return false;
+    // ONLY the current production playable roster. A future
+    // visible-but-locked fighter is never unlocked by the test session.
     return isProductPlayable(name);
+  }
+  // Legacy name retained as an alias of the admin-session rule above.
+  function ownerPlaytestSelectionUnlocked(name) {
+    return adminTestSelectionUnlocked(name);
   }
   const displayNameFor = (name) => {
     const id = String(name || '').toUpperCase();
@@ -92,6 +111,9 @@
       // §D: Chamber-01 arena palette lives in THIS authority — no second
       // storage island. Null means the curated default.
       arenaPaletteId: null,
+      // A1: persistent match-reward claim keys (sealed result ids). One
+      // completed match pays exactly once, even across reload/retries.
+      claimedMatchIds: [],
     };
   }
   function sanitize(raw) {
@@ -105,6 +127,8 @@
     s.lastSelectedP1 = String(raw.lastSelectedP1 || 'ROBOT').toUpperCase();
     s.lastSelectedP2 = String(raw.lastSelectedP2 || 'ROBOT').toUpperCase();
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
+    s.claimedMatchIds = Array.isArray(raw.claimedMatchIds)
+      ? raw.claimedMatchIds.map((id) => String(id || '')).filter(Boolean).slice(-200) : [];
     s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
     // The owner-playtest AC seed marker must survive sanitization, otherwise a
     // refresh would look "unseeded" and refill the balance.
@@ -241,22 +265,58 @@
     lastAward.balance = state.credits;
     return { ok: true, ...lastAward };
   }
-  // Preserve the accepted Bot/Local battle economy without routing rewards
-  // through the retired Quest ladder. One completion pays once: P1 wins earn
-  // 50 AC, and P1 losses earn 25 AC, matching the former product hook.
+  // A1 match-reward law (single wallet commit path; telemetry stays in
+  // award()/lastAward). The amount derives from the ACTUAL match mode and
+  // outcome — never from winnerSide alone:
+  //   BOT   P1 wins → +100 AC · P1 loses → +25 AC (provisional legacy)
+  //   LOCAL valid completed match → +50 AC regardless of winner
+  //   Lab / Admin Test / Quest / incomplete → 0 AC (no wallet entry at all)
+  // Idempotency is two-layered: the in-memory productResultAwarded flag stops
+  // duplicate callbacks, and the sealed result id (resultGold.meta.id) is
+  // persisted in claimedMatchIds so a reload/retry can never pay twice.
+  const MATCH_REWARDS = Object.freeze({ BOT_WIN: 100, BOT_LOSS: 25, LOCAL_COMPLETE: 50 });
   function awardBattleResult(winnerSide, battleState) {
     const current = battleState || (window.APEX_ARSENAL && window.APEX_ARSENAL.state);
     if (!current || current.labMode || current.questStage || current.productResultAwarded) {
       return { ok: false, reason: 'not-awardable', balance: state.credits };
     }
+    // Admin/owner test activity never enters the real wallet ledger.
+    const ownerTest = window.APEX_ARSENAL_OWNER_TEST;
+    if ((ownerTest && ownerTest.active === true) || adminTestSessionActive()) {
+      return { ok: false, reason: 'admin-test', balance: state.credits };
+    }
     if (winnerSide !== 'P1' && winnerSide !== 'P2') {
       return { ok: false, reason: 'invalid-winner', balance: state.credits };
     }
+    const mode = String(current.battleMode || '').toUpperCase();
+    if (mode !== 'BOT' && mode !== 'LOCAL') {
+      // No trustworthy mode = not a valid completed product match. Fail closed.
+      return { ok: false, reason: 'invalid-mode', balance: state.credits };
+    }
+    const claimKey = current.resultGold && current.resultGold.meta
+      ? String(current.resultGold.meta.id || '') : '';
+    if (claimKey && state.claimedMatchIds.includes(claimKey)) {
+      current.productResultAwarded = true;
+      return { ok: false, reason: 'duplicate-claim', balance: state.credits };
+    }
     // Side identity is authoritative: both players may legally choose the
     // same fighter, so a fighter-name comparison cannot determine a winner.
-    const won = winnerSide === 'P1';
+    const p1Won = winnerSide === 'P1';
+    const amount = mode === 'BOT'
+      ? (p1Won ? MATCH_REWARDS.BOT_WIN : MATCH_REWARDS.BOT_LOSS)
+      : MATCH_REWARDS.LOCAL_COMPLETE;
+    const reasons = mode === 'BOT'
+      ? (p1Won ? ['bot_complete', 'bot_winner'] : ['bot_complete'])
+      : ['local_complete'];
     current.productResultAwarded = true;
-    return award(won ? ['free_complete', 'free_winner'] : 'free_complete', won ? 50 : 25);
+    if (claimKey) {
+      state.claimedMatchIds.push(claimKey);
+      if (state.claimedMatchIds.length > 200) {
+        state.claimedMatchIds = state.claimedMatchIds.slice(-200);
+      }
+    }
+    // award() performs the one save, persisting balance AND claim together.
+    return award(reasons, amount);
   }
   function filterOwned(list) {
     const arr = list || [];
@@ -654,8 +714,11 @@
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST, START_CREDITS,
     getState, credits, owns, canPublicSelect, buy, spin, award, awardBattleResult, filterOwned, setLast,
-    // Owner-playtest selection override (r44): ONE fenced switch, selection
-    // only — Lucky Draw, Shop and ownership keep reading production truth.
+    // A1: legacy owner-playtest exports retained for compat; the live rule
+    // is the Admin-authority test session (selection only — Lucky Draw, Shop
+    // and ownership keep reading production truth).
+    MATCH_REWARDS,
+    adminTestSessionActive, adminTestSelectionUnlocked,
     ownerPlaytestSelectionUnlocked,
     OWNER_PLAYTEST_CORE_SIX_UNLOCK,
     OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION,

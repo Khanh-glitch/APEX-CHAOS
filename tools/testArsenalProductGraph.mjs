@@ -168,7 +168,8 @@ gate('economy-clean-state-and-mutation-legality', () => {
   const meta = win.APEX_ARSENAL_META;
   // r44 owner-playtest law: the seeded clean-state balance is exactly 12,000.
   assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits);
-  assert.equal(meta.getState().credits, 12000);
+  // A1 production law: a genuinely new profile starts at exactly 350 AC.
+  assert.equal(meta.getState().credits, 350);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
   assert.equal(meta.poolLocked().length, PRODUCT_ROSTER.playableIds.length-1); // ROBOT starts owned; every other active fighter joins canonical economy pool
   assert.ok(meta.poolLocked().includes('BOXE'));
@@ -179,14 +180,16 @@ gate('economy-clean-state-and-mutation-legality', () => {
   assert.equal(draw.ok, true);
   assert.ok(PRODUCT_ROSTER.playableIds.includes(draw.name));
   assert.ok(!PRODUCT_ROSTER.lockedIds.includes(draw.name));
-  assert.equal(meta.credits(), 12000 - PRODUCT_ECONOMY.drawCost);
-  // The shop costs its real 1,000 AC against the seeded balance.
+  assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost);
+  // The shop enforces the real balance: a fresh player cannot afford 1,000 AC yet.
+  assert.equal(meta.buy('HUNTER').reason, 'need');
+  // Earned AC (the real award path) then funds the real 1,000 AC shop cost.
+  meta.award('proof', 2000);
   const bought = meta.buy('HUNTER');
   assert.equal(bought.ok, true);
-  assert.equal(bought.credits, 12000 - PRODUCT_ECONOMY.drawCost - PRODUCT_ECONOMY.shopCost);
-  // An exhausted balance refuses the draw for the real reason.
+  assert.equal(bought.credits, PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost);
   meta.award('proof', 1000);
-  assert.equal(meta.credits(), 12000 - PRODUCT_ECONOMY.drawCost - PRODUCT_ECONOMY.shopCost + 1000);
+  assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost + 1000);
   return {
     credits: meta.credits(), draw: draw.name, shopCost: meta.SHOP_COST, drawCost: meta.DRAW_COST,
   };
@@ -198,23 +201,31 @@ gate('battle-result-credit-uses-player-side-and-awards-once', () => {
     { name: 'ROBOT', type: { name: 'ROBOT' } },
     { name: 'ROBOT', type: { name: 'ROBOT' } },
   ];
-  const p2State = {};
+  // A1 reward law keys off the ACTUAL match mode: BOT loss (P2 wins) pays
+  // the provisional 25, BOT win pays 100, LOCAL completion pays 50 either way.
+  const p2State = { battleMode: 'BOT', resultGold: { meta: { id: 'graph-bot-1' } } };
   const p2Win = win.APEX_ARSENAL_META.awardBattleResult('P2', p2State);
   assert.equal(p2Win.ok, true);
-  assert.equal(p2Win.amount, 25, 'a P2 win is a P1 loss even when both fighters share the same name');
+  assert.equal(p2Win.amount, 25, 'a P2 win is a P1 BOT loss even when both fighters share the same name');
   assert.equal(win.APEX_ARSENAL_META.awardBattleResult('P2', p2State).reason, 'not-awardable');
-  const p1Win = win.APEX_ARSENAL_META.awardBattleResult('P1', {});
+  assert.equal(
+    win.APEX_ARSENAL_META.awardBattleResult('P2', { battleMode: 'BOT', resultGold: { meta: { id: 'graph-bot-1' } } }).reason,
+    'duplicate-claim', 'the sealed match id can never pay twice');
+  const p1Win = win.APEX_ARSENAL_META.awardBattleResult('P1', { battleMode: 'BOT', resultGold: { meta: { id: 'graph-bot-2' } } });
   assert.equal(p1Win.ok, true);
-  assert.equal(p1Win.amount, 50);
+  assert.equal(p1Win.amount, 100);
+  const localP2 = win.APEX_ARSENAL_META.awardBattleResult('P2', { battleMode: 'LOCAL', resultGold: { meta: { id: 'graph-local-1' } } });
+  assert.equal(localP2.ok, true);
+  assert.equal(localP2.amount, 50, 'a completed Local match pays 50 regardless of winner');
   assert.equal(win.APEX_ARSENAL_META.awardBattleResult('ROBOT', {}).reason, 'invalid-winner');
   return { balance: win.APEX_ARSENAL_META.credits(), p2Award: p2Win.amount, p1Award: p1Win.amount };
 });
 
 gate('newbie-migration-historic-ownership-and-stale-selection-safety', () => {
-  // r44 owner-playtest law: an UNMARKED profile is seeded to exactly 12,000 AC
-  // once (revision+profile scoped marker), so a legacy balance is upgraded
-  // rather than preserved. Ownership/selection migration is unaffected.
-  const OWNER_PLAYTEST_SEED = 12000;
+  // A1 migration law: a legacy balance is PRESERVED verbatim (the retired
+  // r44 seed never upgrades or resets it). Ownership/selection migration is
+  // unaffected.
+  const LEGACY_BALANCE = 777;
   const seed = {
     'apexChaos.arsenalMeta.v1': JSON.stringify({
       credits: 777,
@@ -227,7 +238,7 @@ gate('newbie-migration-historic-ownership-and-stale-selection-safety', () => {
   const { win, storage } = makeClassicContext(seed);
   const state = win.APEX_ARSENAL_META.getState();
   assert.equal(win.APEX_ARSENAL_META.buy('NEWBIE').reason, 'unavailable');
-  assert.equal(state.credits, OWNER_PLAYTEST_SEED);
+  assert.equal(state.credits, LEGACY_BALANCE);
   assert.ok(state.ownedFighters.includes('ROBOT'));
   assert.ok(state.ownedFighters.includes('BLACK_HOLE'));
   assert.ok(state.ownedFighters.includes('HUNTER'));
