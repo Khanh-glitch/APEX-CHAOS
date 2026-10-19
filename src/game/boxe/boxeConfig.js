@@ -20,28 +20,7 @@ export const BOXE_BATTLE=Object.freeze({
  actualDamageException:'a2-enhanced-finisher',
  goldSourceSha256:'ccb889bb08cb2e741c4f7f5e0b33d08047c08fb28bfc1c31ae9401604444e2b2'
 });
-export const BOXE_WAVE=Object.freeze({
- startingInputs:Object.freeze(['J','K','L']),
- controls:Object.freeze({
-   J:{base:'basic-punch',goldKey:null},
-   K:{base:'basic-defense',goldKey:null},
-   L:{base:'dash',goldKey:null},
-   U:{base:null,goldKey:'5',unlock:'unlock-phantom'},
-   I:{base:null,goldKey:'0',unlock:'unlock-ultimate'}
- }),
- goldUpgradeOrder:Object.freeze([
-   {rank:1,id:'unlock-jab-finisher',goldKey:'1',bind:'J'},
-   {rank:2,id:'unlock-uppercut-finisher',goldKey:'3',bind:'J'},
-   {rank:3,id:'unlock-counter',goldKey:'9',bind:'K'},
-   {rank:4,id:'unlock-phantom',goldKey:'5',bind:'U'},
-   {rank:5,id:'unlock-ultimate',goldKey:'0',bind:'I'}
- ]),
- rocketProc:Object.freeze({goldKey:'2',perConfirmedPunchProbability:0.075,flightMs:5000,
-   maxDetachedGloves:1,requiresUpgradeId:'unlock-rocket-proc',requiresConfirmedPunchHit:true}),
- chapterLength:5,
- unboundedCampaign:true,
- initialChapterWaves:Infinity, // supersedes 10-wave pilot cap; five-wave rhythm repeats
- bossesAt:Object.freeze([5,10]), // retained historic milestone IDs; subsequent bosses every five
- mobileAim:'auto-target',
- removedVfxFamilies:Object.freeze(['cloth-ribbons-only'])
-});
+// F1: the BOXE_WAVE staging config (wave-5/10 bosses, unlock-* ids) was deleted
+// with the rest of the src/game/botWave prototypes. BOT WAVE production truth
+// lives in public/game/bot-wave/waveCampaign.js + the pilot in
+// public/bot-wave/game.html and is gated by the testBotWave*/testBoxe* suites.

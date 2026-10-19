@@ -1,7 +1,16 @@
+// BOT WAVE route + Sticky J contract (F1).
+// Proof level: SOURCE-CONTRACT (route seams + VM-evaluated pilot constants; the seconds law is re-derived here, runtime sticky behavior is proven by tools/testBotWaveBrowserInputLock.mjs).
+//
+// History: the sticky half of this file unit-tested
+// src/game/botWave/stickyJAssist.js, a staging prototype. The shipped
+// implementation (requestStickyJ/advanceStickyJ in the
+// public/bot-wave/game.html pilot) carries the same constants but richer
+// gating (basicCd/dashT/leap/comboFlow, cancel-on-target-loss). The
+// prototype is deleted; the constants and pilot behavior are gated here.
+import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {getProductSurface,canLaunchProductSurface,listProductSurfaces} from '../src/game/productSurface.js';
-import {planStickyJ,WAVE_STICKY_ASSIST} from '../src/game/botWave/stickyJAssist.js';
 assert.equal(getProductSurface('bot-wave').route,'wave');
 assert.equal(getProductSurface('bot-wave').preview,true);
 assert.equal(canLaunchProductSurface('bot-wave'),true);
@@ -20,17 +29,33 @@ assert.ok(fs.readFileSync('public/bot-wave/index.html','utf8').includes("frame.s
 assert.ok(app.includes("frame.src='/bot-wave/game.html'"),'single direct Gold iframe not mounted');
 assert.ok(!app.includes("window.top.location.assign(target)"),'hard navigation must not bypass transition');
 assert.ok(fs.existsSync('src/game/botWave/wavePreviewEntry.css'));
-const p={x:0,y:0},near={id:'robot-1',x:305,y:0,r:30};
-const plan=planStickyJ({player:p,target:near});
-assert.ok(plan);assert.equal(plan.targetId,'robot-1');assert.equal(plan.direction,0);
-assert.ok(plan.seconds>=.045&&plan.seconds<=.17);
-assert.equal(plan.stopDistance,157);assert.equal(plan.consumesNativeDash,true);
-assert.equal(planStickyJ({player:p,target:{...near,x:170}}),null);
-assert.equal(planStickyJ({player:p,target:{...near,x:900}}),null);
-assert.equal(planStickyJ({player:p,target:near,ready:false}),null);
-assert.equal(planStickyJ({player:p,target:near,comboLocked:true}),null);
-assert.equal(planStickyJ({player:p,target:near,paused:true}),null);
-assert.equal(planStickyJ({player:p,target:{...near,dead:true}}),null);
+// Sticky J: evaluate the shipped constants and gate the pilot execution.
+const gameSrc=fs.readFileSync('public/bot-wave/game.html','utf8');
+const pilot=gameSrc.slice(gameSrc.indexOf('/* BOXE BOT WAVE pilot'));
+const stickyDecl=pilot.slice(pilot.indexOf('const WAVE_STICKY_ASSIST='));
+const WAVE_STICKY_ASSIST=vm.runInNewContext('('+stickyDecl.slice(stickyDecl.indexOf('Object.freeze(')+('Object.freeze(').length,stickyDecl.indexOf(');'))+')',{});
+assert.deepEqual(JSON.parse(JSON.stringify(WAVE_STICKY_ASSIST)),{minGap:190,maxGap:370,desiredDistance:157,maxDashSeconds:.17,nominalDashSpeed:1250,requiresNativeDashReady:true});
+const {minGap,maxGap,desiredDistance,maxDashSeconds,nominalDashSpeed}=WAVE_STICKY_ASSIST;
+const pilotSeconds=(d)=>d<=minGap||d>maxGap?null:Math.min(maxDashSeconds,Math.max(.045,(d-desiredDistance)/nominalDashSpeed));
+assert.ok(pilotSeconds(275)>0.09&&pilotSeconds(275)<0.10,'275 gap gives a ~0.094s assisted dash');
+assert.equal(pilotSeconds(190),null,'gap at minGap must not engage (already punchable)');
+assert.equal(pilotSeconds(371),null,'gap beyond maxGap must not engage');
+assert.ok(pilotSeconds(370)<=.17,'dash duration capped at 0.17s');
+assert.ok(pilot.includes('if(!target||p.basicCd>0||p.dashCd>0||p.dashT>0||engine.leap||state.comboFlow)return false;'),
+ 'sticky must refuse while punch/dash busy, leaping, or mid combo');
+assert.ok(pilot.includes('if(d<=WAVE_STICKY_ASSIST.minGap||d>WAVE_STICKY_ASSIST.maxGap)return false;'),
+ 'sticky gap window must use the shared constants');
+assert.ok(pilot.includes('Math.max(.045,(d-WAVE_STICKY_ASSIST.desiredDistance)/WAVE_STICKY_ASSIST.nominalDashSpeed)'),
+ 'sticky duration formula must use the shared constants with the 0.045 floor');
+assert.ok(pilot.includes('engine.dash(); // Must use the SAME Gold L dash and its VFX/SFX/cooldown.'),
+ 'sticky must consume the native Gold L dash, never a fake dash');
+assert.ok(pilot.includes('state.stickyEngage={targetId:target.id,until:engine.time+t+.05,angle:a};'),
+ 'sticky engagement must track the native target');
+assert.ok(pilot.includes('state.stickyEngage=null;p.dashT=0;state.stickyStats.cancelled++'),
+ 'lost target / non-combat / pause must cancel and zero dash velocity timer');
+assert.ok(pilot.includes('// Stop at punchable range: stop VELOCITY, never snap character POSITION.'),
+ 'sticky must stop at 157 by velocity, never teleport');
+assert.ok(!fs.existsSync('src/game/botWave/stickyJAssist.js'),'stickyJAssist twin must not return');
 assert.equal(WAVE_STICKY_ASSIST.requiresNativeDashReady,true);
 const path='public/bot-wave/game.html';
 if(fs.existsSync(path)){

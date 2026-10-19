@@ -1,31 +1,47 @@
+// BOT WAVE combo + rocket law — production pilot/engine contract (F1).
+// Proof level: SOURCE-CONTRACT (pilot/engine seam inspection; no combo timing behavior is executed in this file).
+//
+// History: this file asserted beat tables from src/game/botWave/
+// comboTimeline.js, a staging prototype. In production the Gold engine owns
+// J-combo timing/animation and the pilot only schedules card-gated stages
+// (jab flurry, rocket proc) on top. This contract now gates the production
+// seams and asserts the pilot carries NO second beat table of its own.
 import assert from 'node:assert/strict';
-import {GOLD_J_COMBO,makeJComboBeats,rocketProcEligible,rocketProcRoll} from '../src/game/botWave/comboTimeline.js';
-const base=makeJComboBeats();
-assert.deepEqual(base.beats.map(b=>b.type),['basic','basic','basic']);
-assert.deepEqual(base.beats.map(b=>b.impactMs),[90,350,650]);
-assert.equal(base.releaseMs,940);
-const max=makeJComboBeats({jabUnlocked:true,uppercutUnlocked:true});
-assert.deepEqual(max.beats.map(b=>b.type),['basic','basic','basic',...Array(6).fill('Gold1'),'Gold3']);
-assert.deepEqual(max.beats.filter(b=>b.type==='Gold1').map(b=>b.startMs),[940,1025,1110,1195,1280,1365]);
-assert.deepEqual(max.beats.filter(b=>b.type==='Gold1').map(b=>b.impactMs),[990,1075,1160,1245,1330,1415]);
-assert.equal(max.beats.at(-1).startMs,1500);
-assert.equal(max.beats.at(-1).impactMs,1670);
-assert.equal(max.releaseMs,1800);
-const skipped=makeJComboBeats({jabUnlocked:true,jabReady:false,uppercutUnlocked:true});
-assert.deepEqual(skipped.beats.map(b=>b.type),['basic','basic','basic']);
-const jabOnly=makeJComboBeats({jabUnlocked:true,uppercutUnlocked:true,uppercutReady:false});
-assert.equal(jabOnly.beats.filter(b=>b.type==='Gold3').length,0);
-assert.equal(jabOnly.releaseMs,1500);
-const eligible={unlocked:true,confirmedHit:true,detachedGloveCount:0,cooldownReady:true,pending:false};
-assert.equal(rocketProcEligible(eligible),true);
-assert.equal(rocketProcRoll(.074999,eligible),true);
-assert.equal(rocketProcRoll(.075,eligible),false);
-assert.equal(rocketProcRoll(.002,{...eligible,detachedGloveCount:1}),false);
-assert.equal(rocketProcRoll(.002,{...eligible,pending:true}),false);
-assert.equal(rocketProcRoll(.002,{...eligible,confirmedHit:false}),false);
-assert.equal(rocketProcRoll(.002,{...eligible,cooldownReady:false}),false);
-assert.equal(rocketProcRoll(.002,{...eligible,unlocked:false}),false);
-assert.throws(()=>rocketProcRoll(1,eligible),/INVALID_RNG_SAMPLE/);
-assert.equal(GOLD_J_COMBO.rocket.outboundMs,5000);
-assert.equal(GOLD_J_COMBO.rocket.maxDetachedGloves,1);
-console.log('BOXE R4 COMBO GOLD cadence PASS: J L/R/L; 6 jab punches @85ms; uppercut after jab; independent per-hit rocket roll; zero skipped locked stages');
+import fs from 'node:fs';
+
+const game = fs.readFileSync('public/bot-wave/game.html', 'utf8');
+const pilotStart = game.indexOf('/* BOXE BOT WAVE pilot');
+const pilot = game.slice(pilotStart);
+assert.ok(pilot.length > 1000, 'pilot region not found');
+
+// Rocket proc law: 7.5% per confirmed hit, one detached glove in flight.
+assert.ok(pilot.includes('rocketChance:.075'), 'base rocket chance must be 7.5%');
+assert.ok(pilot.includes("state.rocketChance=.075+.015*stacks('rocketPrimer')"),
+  'rocketPrimer stacks must add +1.5pt each, derived not accumulated');
+assert.ok(pilot.includes('engine.waveRocketRoll=function(source){'), 'rocket roll hook must live on the engine seam');
+assert.ok(pilot.includes("if(!state.owned.has('rocket')||state.phase!=='combat')return false;"),
+  'rocket requires the rocket card and combat phase');
+assert.ok(pilot.includes("if(roll>=(state.rocketChance??.075)||state.rocketPending||this.hands.R.missing||(this.cds.get('rocket')||0)>0)return false;"),
+  'roll must respect chance, single-flight pending, missing glove and cooldown');
+assert.ok(pilot.includes('state.rocketPending=true;'), 'a proc must latch the single-flight flag');
+assert.ok(pilot.includes('testRollRocket:(n=100)=>{let count=0;for(let i=0;i<n;i++)if(rng()<.075)count++;return count}'),
+  'pilot test sampler must keep the 7.5% base threshold');
+
+// Card-gated combo stages: jab flurry only exists once the jab card is owned,
+// and scheduling stays inside the pilot combo flow on engine timings.
+assert.ok(pilot.includes("state.comboFlow?.phase==='jab'"), 'jab flurry phase must exist in the pilot combo flow');
+assert.ok(pilot.includes('comboFlow'), 'pilot combo flow state must exist');
+const cardsStart = game.indexOf('const CARDS=');
+const cardsText = game.slice(cardsStart, game.indexOf('\n];', cardsStart));
+assert.ok(cardsText.includes("{id:'jab'") && cardsText.includes("{id:'uppercut'"), 'combo stage cards must exist');
+assert.ok(cardsText.includes("requires:['jab']"), 'uppercut must require the jab card first (chain order)');
+assert.ok(cardsText.includes("requires:['uppercut']"), 'counter must require uppercut (chain continues)');
+assert.ok(!pilot.includes('GOLD_J_COMBO') && !pilot.includes('recoveryMs') && !pilot.includes('makeJComboBeats'),
+  'pilot must not carry a second combo beat table — Gold engine owns J timing');
+// Rocket glove flight/catch timing also belongs to the engine, not the pilot:
+// the pilot must not fabricate a 5000ms outbound timer of its own.
+assert.ok(!pilot.includes('outboundMs'), 'rocket flight timing must stay engine-owned');
+
+// Anti-twin (F1).
+assert.ok(!fs.existsSync('src/game/botWave/comboTimeline.js'), 'comboTimeline prototype twin must not return');
+console.log('BOXE R4 COMBO PASS: production seams — 7.5% rocket per confirmed hit, single detached glove, card-gated jab->uppercut chain, engine owns beat timing');
