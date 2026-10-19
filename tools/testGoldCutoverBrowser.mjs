@@ -129,7 +129,11 @@ async function physicalClick(selector) {
     // Re-probe once and only press if the centre is still the measured,
     // hittable point; otherwise re-aim without having fired.
     const verify=await hitProbe(selector);
-    if(!verify?.hitWithin||Math.abs(verify.cx-p.cx)>2||Math.abs(verify.cy-p.cy)>2)continue;
+    // Tolerance scales with the target: hover transforms shift large
+    // cards' centres by a few px on mouseMoved (still a safely centred
+    // hit); wheel-momentum / rescale drift is far larger.
+    const tol=Math.max(2,Math.min(p.width,p.height)*0.1);
+    if(!verify?.hitWithin||Math.abs(verify.cx-p.cx)>tol||Math.abs(verify.cy-p.cy)>tol)continue;
     await command('Input.dispatchMouseEvent',{type:'mousePressed',x:p.cx,y:p.cy,button:'left',clickCount:1});
     await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.cx,y:p.cy,button:'left',clickCount:1});
     return p;

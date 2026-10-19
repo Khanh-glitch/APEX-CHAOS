@@ -83,20 +83,66 @@ async function connect(endpoint, deadlineAt) {
       pointerEvents:cs.pointerEvents,display:cs.display,visibility:cs.visibility,
       hitWithin:!!top&&(top===el||el.contains(top)),topId:top?.id||'',topClass:String(top?.className||'')};
   })()`);
+  // Fighter Select canonically opens on roster page 1; the 14-fighter
+  // roster scrolls inside its deck band, so a card such as NEWBOT (index 6)
+  // starts outside the port and its centre is not hittable. Wheel the port
+  // with real mouseWheel input until the card is reachable — what a user
+  // does — then click. Asset-load telemetry is unaffected (assets load on
+  // battle launch, after picking).
+  const wheelIntoView = async (selector) => {
+    const info = await evaluate(`(() => {
+      const el=document.querySelector(${JSON.stringify(selector)});
+      if(!el)return null;
+      let p=el.parentElement;
+      while(p&&p!==document.body){
+        const s=getComputedStyle(p);
+        if((s.overflowX==='auto'||s.overflowX==='scroll')&&p.scrollWidth>p.clientWidth+4)break;
+        p=p.parentElement;
+      }
+      if(!p||p===document.body)return null;
+      const er=el.getBoundingClientRect(),pr=p.getBoundingClientRect();
+      const dir=er.left<pr.left?-1:(er.right>pr.right?1:0);
+      return dir?{x:pr.left+pr.width/2,y:pr.top+pr.height/2,dir}:null;
+    })()`);
+    if (!info) return false;
+    await command('Input.dispatchMouseEvent', { type:'mouseWheel', x:info.x, y:info.y, deltaX:info.dir*260, deltaY:0 });
+    return true;
+  };
   const physicalClick = async (selector) => {
     let p = null;
-    for (let i = 0; i < 120; i++) {
-      p = await hitProbe(selector);
-      if (p?.exists && !p.disabled && p.hitWithin && p.pointerEvents !== 'none' && p.width > 1 && p.height > 1) break;
-      await sleep(80);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let prev = null;
+      p = null;
+      for (let i = 0; i < 120; i++) {
+        p = await hitProbe(selector);
+        if (!(p?.exists && !p.disabled && p.hitWithin && p.pointerEvents !== 'none' && p.width > 1 && p.height > 1)) {
+          prev = null;
+          if (p?.exists) await wheelIntoView(selector);
+          await sleep(80);
+          continue;
+        }
+        // Wheel momentum can carry the card after it first reads hittable;
+        // require a still centre across two probes before firing.
+        if (prev && Math.abs(p.cx - prev.cx) <= 1 && Math.abs(p.cy - prev.cy) <= 1) break;
+        prev = p;
+        await sleep(80);
+      }
+      if (!p?.exists || p.disabled || !p.hitWithin || p.pointerEvents === 'none') {
+        throw new Error('pointer target unavailable: ' + selector + ' :: ' + JSON.stringify(p));
+      }
+      await command('Input.dispatchMouseEvent', { type:'mouseMoved', x:p.cx, y:p.cy });
+      // Verify at fire time; re-aim without firing if the card drifted.
+      // Tolerance scales with the target: hover transforms shift large
+      // cards' centres by a few px on mouseMoved, which is still a safely
+      // centred hit; wheel-momentum drift is far larger.
+      const verify = await hitProbe(selector);
+      const tol = Math.max(2, Math.min(p.width, p.height) * 0.1);
+      if (!verify?.hitWithin || Math.abs(verify.cx - p.cx) > tol || Math.abs(verify.cy - p.cy) > tol) continue;
+      await command('Input.dispatchMouseEvent', { type:'mousePressed', x:p.cx, y:p.cy, button:'left', clickCount:1 });
+      await command('Input.dispatchMouseEvent', { type:'mouseReleased', x:p.cx, y:p.cy, button:'left', clickCount:1 });
+      return p;
     }
-    if (!p?.exists || p.disabled || !p.hitWithin || p.pointerEvents === 'none') {
-      throw new Error('pointer target unavailable: ' + selector + ' :: ' + JSON.stringify(p));
-    }
-    await command('Input.dispatchMouseEvent', { type:'mouseMoved', x:p.cx, y:p.cy });
-    await command('Input.dispatchMouseEvent', { type:'mousePressed', x:p.cx, y:p.cy, button:'left', clickCount:1 });
-    await command('Input.dispatchMouseEvent', { type:'mouseReleased', x:p.cx, y:p.cy, button:'left', clickCount:1 });
-    return p;
+    throw new Error('pointer target kept moving: ' + selector + ' :: ' + JSON.stringify(p));
   };
   const poll = async (expression, predicate = Boolean, { attempts = 1800, interval = 80 } = {}) => {
     let value = null;
