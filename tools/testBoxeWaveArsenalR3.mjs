@@ -1,4 +1,5 @@
 // BOT WAVE arsenal authority — production contract (F1).
+// Proof level: EXECUTION (live Arsenal config run in VM; campaign indexNative/planWave executed) + SOURCE-CONTRACT scans for copied gun stats.
 //
 // History: this file tested src/game/botWave/apexGunLoadouts.js, a hand-
 // copied twin of Free Battle gun numbers. Production never imported it;

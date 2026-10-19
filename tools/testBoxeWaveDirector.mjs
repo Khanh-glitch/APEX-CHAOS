@@ -1,4 +1,5 @@
 // BOT WAVE single-authority director contract (F1).
+// Proof level: EXECUTION (planWave run against the real VM-loaded Arsenal config; 80 golden plan hashes) + SOURCE-CONTRACT seams (pilot consumption, anti-twin scan).
 //
 // History: this file used to test src/game/botWave/waveDirector.js, an R2-R5
 // staging prototype that production never imported. Its assertions passed

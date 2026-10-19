@@ -1,4 +1,5 @@
 // BOT WAVE route + Sticky J contract (F1).
+// Proof level: SOURCE-CONTRACT (route seams + VM-evaluated pilot constants; the seconds law is re-derived here, runtime sticky behavior is proven by tools/testBotWaveBrowserInputLock.mjs).
 //
 // History: the sticky half of this file unit-tested
 // src/game/botWave/stickyJAssist.js, a staging prototype. The shipped

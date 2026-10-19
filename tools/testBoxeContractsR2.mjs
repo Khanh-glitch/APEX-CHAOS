@@ -1,4 +1,5 @@
 // BOXE contracts: Free Battle battle rules + BOT WAVE upgrade economy (F1).
+// Proof level: EXECUTION of pilot functions extracted from game.html (qualifiedCards/threeCards/xpNeeded) + EXECUTION of the src Free Battle spec model (boxeCombatRules proves the model, not the Gold runtime) + SOURCE-CONTRACT seams (present/choose).
 //
 // History: the BOT WAVE half of this file tested
 // src/game/botWave/upgradeRegistry.js and BOXE_WAVE (src/game/boxe/

@@ -1,0 +1,195 @@
+# F1 closeout: BOT WAVE single-authority gates on every relevant PR.
+#
+# Why this exists: the old "BOXE R2 Staged Contracts" workflow only triggers
+# on pushes to a retired staging branch, so the six F1 contract tests never
+# ran on PR #95's CI. This workflow is the PR-level proof surface for the
+# single-authority refactor: 6 rewritten contracts + 11 production BOT WAVE
+# regression gates + 2 real-Chrome browser regressions. A fourth job tracks
+# one PRE-EXISTING, unrelated failure under a locked signature so it stays
+# visible on every run instead of being silently ignored (see job comment).
+name: BOT WAVE F1 Gates
+on:
+  pull_request:
+    paths:
+      - 'public/bot-wave/**'
+      - 'public/game/bot-wave/**'
+      - 'public/game/arsenal/arsenalConfig.js'
+      - 'public/game/arsenal/arsenalIdentityRuntime.js'
+      - 'src/game/botWave/**'
+      - 'src/game/boxe/boxeConfig.js'
+      - 'src/game/boxe/boxeCombatRules.js'
+      - 'src/game/productSurface.js'
+      - 'tools/testBoxeWaveDirector.mjs'
+      - 'tools/testBoxeWaveInputs.mjs'
+      - 'tools/testBoxeComboR4.mjs'
+      - 'tools/testBoxeWaveArsenalR3.mjs'
+      - 'tools/testBoxeContractsR2.mjs'
+      - 'tools/testBotWave*.mjs'
+      - 'tools/testBoxeModeEntryChrome.mjs'
+      - '.github/workflows/bot-wave-f1-gates.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bot-wave-f1-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  f1-contracts:
+    name: F1 single-authority contracts (6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Director — production campaign + 80 golden plans (execution)
+        run: node tools/testBoxeWaveDirector.mjs
+      - name: Inputs — pilot act() router law (source-contract)
+        run: node tools/testBoxeWaveInputs.mjs
+      - name: Combo — 7.5% rocket seams (source-contract)
+        run: node tools/testBoxeComboR4.mjs
+      - name: Arsenal — config-only gun numbers (execution)
+        run: node tools/testBoxeWaveArsenalR3.mjs
+      - name: Contracts R2 — pilot economy executed + Free Battle model
+        run: node tools/testBoxeContractsR2.mjs
+      - name: Game route R5 — route + pilot Sticky J constants (source-contract)
+        run: node tools/testBotWaveGameRouteR5.mjs
+
+  botwave-production-regression:
+    name: BOT WAVE production regression (11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: 41-weapon campaign
+        run: node tools/testBotWave41Campaign.mjs
+      - name: 41-weapon execution boot
+        run: node tools/testBotWave41Execution.mjs
+      - name: Balance
+        run: node tools/testBotWaveBalance.mjs
+      - name: Card build
+        run: node tools/testBotWaveCardBuild.mjs
+      - name: Counter bridge
+        run: node tools/testBotWaveCounterBridge.mjs
+      - name: HUD flow
+        run: node tools/testBotWaveHudFlow.mjs
+      - name: Lossless R5
+        run: node tools/testBotWaveLosslessR5.mjs
+      - name: Native parity
+        run: node tools/testBotWaveNativeParity.mjs
+      - name: Persistence
+        run: node tools/testBotWavePersistence.mjs
+      - name: R7 native physics
+        run: node tools/testBotWaveR7NativePhysics.mjs
+      - name: Shipping assets
+        run: node tools/testBotWaveShippingAssets.mjs
+
+  browser-regression:
+    name: BOT WAVE browser acceptance (Chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build production bundle
+        run: pnpm build
+      - name: Start built product preview
+        shell: bash
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/bot-wave-f1-preview.log 2>&1 &
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0; sleep 1; done
+          cat /tmp/bot-wave-f1-preview.log; exit 1
+      - name: Install Chrome controller (same pattern as staged QA)
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Home -> BOT WAVE entry, live gameplay, Home return (desktop + landscape)
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testBoxeModeEntryChrome.mjs
+      - name: Input card-lock + Sticky J + unlock chain (production game.html)
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testBotWaveBrowserInputLock.mjs
+      - name: Browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-wave-f1-browser
+          path: |
+            docs/boxe/r5-browser/
+            docs/boxe/f1-browser/
+          if-no-files-found: ignore
+
+  # NOT an F1 gate. tools/testDictionaryRuntimeParity.mjs fails on clean
+  # main (41feb66) for an unrelated Dictionary-content reason: BOXE PASSIVE
+  # archiveProfile.description is 96 chars while the contract requires
+  # >100. F1 must neither hide this nor be blocked by it, so the failure is
+  # tracked here under a locked signature on every relevant PR: this job
+  # FAILS if the test's behavior changes in either direction (starts
+  # passing -> promote it to a real gate and delete this job; fails
+  # differently -> investigate). No continue-on-error, no skip.
+  known-issue-dictionary-parity:
+    name: KNOWN PRE-EXISTING FAILURE — DictionaryRuntimeParity (tracked, not an F1 gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Reproduce known failure and lock its signature
+        shell: bash
+        run: |
+          set +e
+          out="$(node tools/testDictionaryRuntimeParity.mjs 2>&1)"
+          code=$?
+          set -e
+          echo "$out" | tail -25
+          echo "::warning title=Known pre-existing failure (not an F1 gate)::tools/testDictionaryRuntimeParity.mjs is red on clean main — BOXE PASSIVE dictionary description is 96 chars, contract requires >100. Tracked separately; the fix belongs to Dictionary content, not the F1 BOT WAVE refactor."
+          {
+            echo "## Known pre-existing failure — testDictionaryRuntimeParity"
+            echo ""
+            echo "This test fails on clean \`main\` (\`41feb66\`) and is **not** an F1 gate. This job exists so the failure is executed and recorded on every relevant PR instead of being ignored."
+            echo ""
+            echo "- Exit code: \`$code\`"
+            echo "- Locked signature: \`missing PASSIVE mechanics\` (BOXE PASSIVE \`archiveProfile.description\` = 96 chars, contract requires >100)"
+            echo "- If this job turns red, the test behavior CHANGED (either it now passes — promote it and delete this job — or it fails differently — investigate)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" -eq 0 ]; then
+            echo "::error::testDictionaryRuntimeParity.mjs now PASSES — promote it to a real gate and remove this signature-lock job."
+            exit 1
+          fi
+          if ! echo "$out" | grep -q "missing PASSIVE mechanics"; then
+            echo "::error::testDictionaryRuntimeParity.mjs failure signature changed — investigate before accepting."
+            exit 1
+          fi
+          echo "Known failure reproduced with the locked signature."

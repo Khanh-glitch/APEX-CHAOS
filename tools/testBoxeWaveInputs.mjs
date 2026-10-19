@@ -1,4 +1,5 @@
 // BOT WAVE input law — production pilot contract (F1).
+// Proof level: SOURCE-CONTRACT (pilot seams inspected; runtime key/lock behavior is proven separately by tools/testBotWaveBrowserInputLock.mjs).
 //
 // History: this file unit-tested src/game/botWave/inputRouter.js, a staging
 // prototype that shipping code never imported. The real router is the

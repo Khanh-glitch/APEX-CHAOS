@@ -1,4 +1,5 @@
 // BOT WAVE combo + rocket law — production pilot/engine contract (F1).
+// Proof level: SOURCE-CONTRACT (pilot/engine seam inspection; no combo timing behavior is executed in this file).
 //
 // History: this file asserted beat tables from src/game/botWave/
 // comboTimeline.js, a staging prototype. In production the Gold engine owns
