@@ -137,7 +137,7 @@ try{
        pickBox.right>skinBox.left&&pickBox.top<skinBox.bottom&&pickBox.bottom>skinBox.top);
      return {
        chosen:picker.value,persist:w.localStorage.getItem('apex-chaos.ui-language.v1'),
-       title:title.innerText,cta:button.innerText,htmlLang:d.documentElement.lang,
+       title:title.innerText,cta:button.innerText,ctaState:d.querySelector('#continueStory .storyState')?.innerText,htmlLang:d.documentElement.lang,
        font:w.getComputedStyle(title).fontFamily,
        viewport:{width:w.innerWidth,height:w.innerHeight},
        withinTitle:rect.width<=w.innerWidth+3&&rect.right<=w.innerWidth+4,
@@ -152,7 +152,7 @@ try{
      };
    })()`);
    checked(report.chosen==='vie'&&report.persist==='vie'&&report.htmlLang==='vi',view.id+' VIE state',report);
-   checked(report.title.includes('NHỮNG KẺ')&&report.cta==='CỐT TRUYỆN — SẮP RA MẮT'&&!report.cta.includes('TIẾP TỤC'),view.id+' natural Home translations (F2: Story locked COMING SOON copy)',report);
+   checked(report.title.includes('NHỮNG KẺ')&&report.cta==='CỐT TRUYỆN'&&report.ctaState==='SẮP RA MẮT'&&!report.cta.includes('TIẾP TỤC'),view.id+' natural Home translations (F2: Story status chip copy)',report);
    checked(report.font.includes('ApexVietCondensed'),view.id+' Unicode face fallback',report);
    const face=await run("(async()=>{const w=window.__apexGoldFidelity?.child()||window,d=w.document;await d.fonts.ready;return Array.from(d.fonts).filter(f=>f.family==='ApexVietCondensed').map(f=>f.status)})()");
    checked(face.includes('loaded'),view.id+' actual condensed Vietnamese font loaded',face);
