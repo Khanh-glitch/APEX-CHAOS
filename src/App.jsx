@@ -23,6 +23,7 @@ import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordin
 import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
+import AccountCenter from './ui/AccountCenter.jsx';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -1066,6 +1067,7 @@ export default function App() {
   return (
     <>
     <CosmeticLocker />
+    <AccountCenter />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount
