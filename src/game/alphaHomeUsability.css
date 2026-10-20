@@ -20,11 +20,13 @@
   letter-spacing:.10em; text-transform:uppercase;
 }
 #gold-shell-host #stage.screen-fighter .fighterSide.p1 .fighterIdentity::before {
-  content:'P1 / BẠN'; background:#ffab42;
+  content:'P1 / YOU'; background:#ffab42;
 }
 #gold-shell-host #stage.screen-fighter .fighterSide.p2 .fighterIdentity::before {
-  content:'P2 / ĐỐI THỦ'; background:#4db3ff;
+  content:'P2 / RIVAL'; background:#4db3ff;
 }
+html[data-apex-language="vie"] #gold-shell-host #stage.screen-fighter .fighterSide.p1 .fighterIdentity::before{content:'P1 / BẠN'}
+html[data-apex-language="vie"] #gold-shell-host #stage.screen-fighter .fighterSide.p2 .fighterIdentity::before{content:'P2 / ĐỐI THỦ'}
 #gold-shell-host #stage.apex-mirror-duel.screen-fighter .fighterSide.p1 .fighterIdentity {
   outline:2px solid rgba(255,171,66,.92); outline-offset:4px;
 }
