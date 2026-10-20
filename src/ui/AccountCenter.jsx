@@ -83,6 +83,7 @@ export default function AccountCenter() {
   const [code, setCode] = useState('');
   const [confirmedEmail, setConfirmedEmail] = useState('');
   const [nextSendAt, setNextSendAt] = useState(0);
+  const [recoveryServerLimited, setRecoveryServerLimited] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [nameDraft, setNameDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -204,7 +205,7 @@ export default function AccountCenter() {
           'email-not-verified': 'Tài khoản cần xác minh email trước khi đặt mật khẩu.',
           'password-update-failed': 'Chưa đặt được mật khẩu. Kiểm tra lại và thử sau.',
           'auth-rate-limited': 'Quá nhiều lần thử. Vui lòng đợi trước khi đăng nhập lại.',
-          'recovery-rate-limited': 'Hết lượt gửi email của máy chủ. Đừng gửi lại liên tục; chờ một lúc rồi thử lại.',
+          'recovery-rate-limited': 'Máy chủ email đã hết hạn mức. Không có thời gian mở khóa chính xác; đừng gửi lại liên tục. Hãy thử lại sau ít nhất một giờ.',
           'recovery-unavailable': 'Chưa gửi được email khôi phục. Hãy thử lại sau.',
           'identity-not-verified': 'Phiên đăng nhập không còn hợp lệ. Hãy đăng nhập lại.',
         };
@@ -451,20 +452,23 @@ fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was resto
                     <button
                       type="button"
                       className="apex-account-btn"
-                      disabled={busy || !email.trim() || waitSeconds > 0}
+                      disabled={busy || !email.trim() || waitSeconds > 0 || recoveryServerLimited}
                       onClick={() => run(async () => {
                         const result = await recoverEmailPassword(email);
                         setNow(Date.now());
                         if (result?.ok) {
+                          setRecoveryServerLimited(false);
                           setNextSendAt(Date.now() + 60_000);
                           setMessage('Nếu email này có tài khoản, hãy kiểm tra thư đặt lại mật khẩu. Mở thư, trở lại game rồi đặt mật khẩu mới trong Account Center.');
                         } else if (result?.reason === 'recovery-rate-limited') {
-                          setNextSendAt(Date.now() + 5 * 60_000);
+                          // Provider never promised a five-minute reset: avoid fake countdown.
+                          // Suppress repeated requests until the owner reloads after quota recovery.
+                          setRecoveryServerLimited(true);
                         }
                         return result;
                       })}
                     >
-                      {waitSeconds > 0 ? `GỬI LẠI SAU ${waitSeconds}S` : 'QUÊN MẬT KHẨU?'}
+                      {recoveryServerLimited ? 'EMAIL ĐANG BỊ GIỚI HẠN' : waitSeconds > 0 ? `GỬI LẠI SAU ${waitSeconds}S` : 'QUÊN MẬT KHẨU?'}
                     </button>
                     <p className="apex-account-note">
                       Đăng ký mới tạm khóa trên staging; Guest vẫn chơi ngay.
