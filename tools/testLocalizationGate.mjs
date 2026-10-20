@@ -67,7 +67,7 @@ for(const [en,vi] of Object.entries(COPY)){
   assert.ok(en.length&&vi.length);
   assert.equal(translateCopy(en,'vie'),vi,'missing phrase: '+en);
 }
-const dom=new JSDOM('<!doctype html><html><head></head><body><div id="gold-shell-host"><main id="stage"><button id="freeBattle" aria-label="Free Battle">FREE BATTLE</button><div id="text">NEWBOT</div></main></div></body></html>',{url:'https://game.example/',pretendToBeVisual:true});
+const dom=new JSDOM('<!doctype html><html><head></head><body><div id="gold-shell-host"><main id="stage"><section class="profile" aria-label="Header controls"></section><button id="freeBattle" aria-label="Free Battle">FREE BATTLE</button><div id="text">NEWBOT</div></main></div></body></html>',{url:'https://game.example/',pretendToBeVisual:true});
 globalThis.window=dom.window;
 globalThis.document=dom.window.document;
 globalThis.localStorage=dom.window.localStorage;
@@ -93,6 +93,7 @@ const label=()=>document.querySelector('#freeBattle').textContent;
 assert.equal(label(),'FREE BATTLE');
 const picker=document.querySelector('#apex-language-select');
 assert.ok(picker,'HOME picker must mount');
+assert.equal(picker.closest('.profile')?.closest('#stage')?.id,'stage','language picker must live in the upper Home header');
 assert.equal(picker.value,'eng');
 picker.value='vie';picker.dispatchEvent(new window.Event('change',{bubbles:true}));
 await settle();
