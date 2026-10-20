@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   isCloudConfigured,
   isGoogleSignInEnabled,
+  isEmailCodeEnabled,
   signInWithGoogle,
   signInWithEmailOtp,
-  openEmailMagicLinkHere,
+  verifyEmailOtp,
   signOutCloud,
   requestAccountDeletion,
   previewCloudProgressSnapshot,
@@ -72,8 +73,11 @@ export default function AccountCenter() {
   const [open, setOpen] = useState(false);
   const [, setTick] = useState(0);
   const [email, setEmail] = useState('');
-  const [linkSent, setLinkSent] = useState(false);
-  const [pastedEmailLink, setPastedEmailLink] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [confirmedEmail, setConfirmedEmail] = useState('');
+  const [nextSendAt, setNextSendAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   const [nameDraft, setNameDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -90,8 +94,10 @@ export default function AccountCenter() {
     invokerRef.current = invoker || document.activeElement || null;
     setMessage('');
     setConfirmDelete(false);
-    setLinkSent(false);
-    setPastedEmailLink('');
+    setCodeSent(false);
+    setCode('');
+    setConfirmedEmail('');
+    setNow(Date.now());
     setCloudPreview(null);
     const { profile } = readAuthorities();
     setNameDraft(profile && profile.kind === 'guest' ? profile.displayName : '');
@@ -159,12 +165,29 @@ export default function AccountCenter() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [open, closeCenter]);
 
+  useEffect(() => {
+    if (!open || nextSendAt <= Date.now()) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [open, nextSendAt]);
+
   const run = async (fn) => {
     setBusy(true);
     setMessage('');
     try {
       const result = await fn();
-      if (result && result.ok === false && result.reason) setMessage(String(result.reason).toUpperCase());
+      if (result && result.ok === false && result.reason) {
+        const help = {
+          'email-rate-limited': 'Đã đạt giới hạn gửi email. Đừng bấm lại liên tục; hãy thử sau.',
+          'verify-rate-limited': 'Bạn đã thử mã quá nhiều lần. Hãy đợi trước khi thử lại.',
+          'invalid-or-expired-code': 'Mã không đúng hoặc đã hết hạn. Kiểm tra email mới nhất.',
+          'invalid-code': 'Nhập đủ 6 chữ số trong email.',
+          'invalid-email': 'Địa chỉ email không hợp lệ.',
+          'email-code-not-ready': 'Đăng nhập email chưa mở trên máy chủ thử nghiệm.',
+          'email-send-failed': 'Chưa gửi được email. Thử lại sau.',
+        };
+        setMessage(help[result.reason] || String(result.reason).toUpperCase());
+      }
       refresh();
       return result;
     } catch (error) {
@@ -181,6 +204,8 @@ export default function AccountCenter() {
   } = readAuthorities();
   const isCloud = !!profile && profile.kind === 'cloud';
   const googleEnabled = cloudConfigured && isGoogleSignInEnabled();
+  const emailCodeEnabled = cloudConfigured && isEmailCodeEnabled();
+  const waitSeconds = Math.max(0, Math.ceil((nextSendAt - now) / 1000));
   const lockedIds = playable.filter((id) => !ownedIds.includes(id));
   const displayNameFor = (id) => (meta && typeof meta.displayNameFor === 'function' ? meta.displayNameFor(id) : id);
   const syncLabel = SYNC_LABELS[sync.status] || String(sync.status || '').toUpperCase();
@@ -360,84 +385,118 @@ fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was resto
 
           {!isCloud ? (
             <section className="apex-account-section" aria-label="SIGN IN">
-              <h3>{cloudConfigured ? 'SIGN IN' : 'CLOUD NOT CONFIGURED'}</h3>
+              <h3>ĐĂNG NHẬP</h3>
               <div className="apex-account-actions">
-                <button
-                  type="button"
-                  className="apex-account-btn is-primary"
-                  disabled={busy || !googleEnabled}
-                  onClick={() => run(() => signInWithGoogle())}
-                >
-                  SIGN IN WITH GOOGLE
-                </button>
-                {cloudConfigured && !googleEnabled && (
-                  <p className="apex-account-note">
-                    Google sign-in is not enabled for this environment. Use the email sign-in link.
+                {!emailCodeEnabled && (
+                  <p className="apex-account-note" role="status">
+                    Đăng nhập email đang được nâng cấp sang mã 6 số.
+                    Tạm thời bạn có thể tiếp tục chơi Guest.
                   </p>
                 )}
-                <div className="apex-account-row">
-                  <input
-                    className="apex-account-input"
-                    type="email"
-                    value={email}
-                    placeholder="EMAIL ADDRESS"
-                    aria-label="EMAIL ADDRESS"
-                    disabled={!cloudConfigured}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="apex-account-btn"
-                    disabled={busy || !cloudConfigured}
-                    onClick={() => run(async () => {
-                      const result = await signInWithEmailOtp(email);
-                      if (result && result.ok) setLinkSent(true);
-                      return result;
-                    })}
-                  >
-                    SEND SIGN-IN LINK
-                  </button>
-                </div>
-                {cloudConfigured && (
-                  <p className="apex-account-note">
-                    Sign in on THIS browser: request a new link, then COPY its
-                    address from your email without clicking it. Paste it below.
-                    Clicking a link may open your default browser instead.
-                  </p>
-                )}
-                {cloudConfigured && (
+                {emailCodeEnabled && !codeSent && (
                   <div className="apex-account-row">
                     <input
                       className="apex-account-input"
-                      type="password"
-                      autoComplete="off"
-                      autoCapitalize="off"
-                      spellCheck={false}
-                      value={pastedEmailLink}
-                      placeholder="PASTE EMAIL SIGN-IN LINK"
-                      aria-label="PASTE EMAIL SIGN-IN LINK"
-                      onChange={(e) => setPastedEmailLink(e.target.value)}
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      placeholder="Email"
+                      aria-label="EMAIL ADDRESS"
+                      disabled={busy}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.preventDefault();
+                      }}
                     />
                     <button
                       type="button"
                       className="apex-account-btn is-primary"
-                      disabled={busy || pastedEmailLink.trim().length < 10}
-                      onClick={() => run(() => {
-                        const url = pastedEmailLink;
-                        setPastedEmailLink('');
-                        return openEmailMagicLinkHere(url);
+                      disabled={busy || waitSeconds > 0 || !email.trim()}
+                      onClick={() => run(async () => {
+                        const attempt = Date.now();
+                        const result = await signInWithEmailOtp(email);
+                        setNow(attempt);
+                        if (result?.ok) {
+                          setConfirmedEmail(email.trim());
+                          setCode('');
+                          setCodeSent(true);
+                          setNextSendAt(Date.now() + 60_000);
+                        } else if (result?.reason === 'email-rate-limited') {
+                          setNextSendAt(Date.now() + 5 * 60_000);
+                        }
+                        return result;
                       })}
                     >
-                      SIGN IN IN THIS TAB
+                      {waitSeconds > 0 ? `ĐỢI ${waitSeconds}S` : 'GỬI MÃ'}
                     </button>
                   </div>
                 )}
-                {linkSent && (
-                  <p className="apex-account-note" role="status">
-                    Email sent. COPY the NEW confirmation link's address (do not
-                    open it in the default browser), paste above, then choose
-                    SIGN IN IN THIS TAB. One-time links work only once.
-                  </p>
+                {emailCodeEnabled && codeSent && (
+                  <>
+                    <p className="apex-account-note" role="status">
+                      Mã xác nhận đã được gửi đến {confirmedEmail}. Nhập 6 số
+                      từ email ngay tại đây, không phải chuyển trình duyệt.
+                    </p>
+                    <div className="apex-account-row">
+                      <input
+                        className="apex-account-input"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        autoComplete="one-time-code"
+                        value={code}
+                        placeholder="MÃ 6 SỐ"
+                        aria-label="SIX DIGIT EMAIL CODE"
+                        disabled={busy}
+                        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (code.length === 6 && !busy)
+                              run(() => verifyEmailOtp(confirmedEmail, code));
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="apex-account-btn is-primary"
+                        disabled={busy || code.length !== 6}
+                        onClick={() => run(() => verifyEmailOtp(confirmedEmail, code))}
+                      >
+                        XÁC NHẬN
+                      </button>
+                    </div>
+                    <div className="apex-account-row">
+                      <button type="button" className="apex-account-btn"
+                        disabled={busy}
+                        onClick={() => {
+                          setCodeSent(false);
+                          setCode('');
+                          setMessage('');
+                        }}>
+                        ĐỔI EMAIL
+                      </button>
+                      <button
+                        type="button"
+                        className="apex-account-btn"
+                        disabled={busy || waitSeconds > 0}
+                        onClick={() => run(async () => {
+                          const result = await signInWithEmailOtp(confirmedEmail);
+                          if (result?.ok) {
+                            setCode('');
+                            setNextSendAt(Date.now() + 60_000);
+                          } else if (result?.reason === 'email-rate-limited') {
+                            setNextSendAt(Date.now() + 5 * 60_000);
+                          }
+                          setNow(Date.now());
+                          return result;
+                        })}
+                      >
+                        {waitSeconds > 0 ? `GỬI LẠI SAU ${waitSeconds}S` : 'GỬI LẠI MÃ'}
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </section>
