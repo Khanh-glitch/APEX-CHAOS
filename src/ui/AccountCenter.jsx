@@ -387,7 +387,17 @@ fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was resto
             <section className="apex-account-section" aria-label="SIGN IN">
               <h3>ĐĂNG NHẬP</h3>
               <div className="apex-account-actions">
-                {!emailCodeEnabled && (
+                {googleEnabled && (
+                  <button
+                    type="button"
+                    className="apex-account-btn is-primary"
+                    disabled={busy}
+                    onClick={() => run(() => signInWithGoogle())}
+                  >
+                    ĐĂNG NHẬP GOOGLE
+                  </button>
+                )}
+                {!emailCodeEnabled && !googleEnabled && (
                   <p className="apex-account-note" role="status">
                     Đăng nhập email đang được nâng cấp sang mã 6 số.
                     Tạm thời bạn có thể tiếp tục chơi Guest.
