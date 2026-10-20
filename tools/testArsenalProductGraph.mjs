@@ -128,10 +128,12 @@ gate('semantic-graph-and-admin-boundary', () => {
   assert.equal(graph.length, 12);
   // Bot, Local, Lucky, cosmetic shortcut and the unified Dictionary Field Archive are active.
   // The separate Fighter Shop remains LOCKED until its owner cutover.
-  assert.equal(active.length, 6);
-  assert.equal(locked.length, 6);
-  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'bot-wave', 'cosmetic-locker', 'lucky-draw', 'dictionary']);
+  assert.equal(active.length, 8);
+  assert.equal(locked.length, 4);
+  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'bot-wave', 'cosmetic-locker', 'lucky-draw', 'dictionary', 'missions', 'achievements']);
   assert.equal(canLaunchProductSurface('cosmetic-locker'), true);
+  assert.equal(canLaunchProductSurface('missions'), true);
+  assert.equal(canLaunchProductSurface('achievements'), true);
   assert.equal(canLaunchProductSurface('bot-wave'), true);
   assert.equal(graph.find(x=>x.id==='bot-wave')?.route,'wave');
   assert.equal(graph.find(x=>x.id==='bot-wave')?.preview,true);
