@@ -16,6 +16,16 @@ export function installAlphaHomeUsability() {
     account.setAttribute('data-apex-account-entry', '');
     account.classList.remove('is-locked');
   }
+  // The lower Missions route owns both Missions and Achievements tabs.
+  const missions = stage.querySelector('[data-locked-route="missions"]');
+  if (missions) {
+    missions.removeAttribute('data-locked-route');
+    missions.removeAttribute('aria-disabled');
+    missions.removeAttribute('title');
+    missions.setAttribute('aria-label', 'Missions and Achievements');
+    missions.setAttribute('data-apex-progress-entry', '');
+    missions.classList.remove('is-locked');
+  }
   // Don't duplicate the current language picker; localization owns its lifecycle.
   const help = document.createElement('button');
   help.type = 'button';
