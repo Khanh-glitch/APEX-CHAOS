@@ -230,6 +230,19 @@ const matchState = (mode, id) => ({ battleMode: mode, resultGold: { meta: { id }
     meta.credits() === 350);
 }
 
+// ── Atomic Lucky Draw save: never debit AC before ownership persists ────
+{
+  const {meta, storage}=boot({});
+  let writes=0;
+  const originalSet=storage.setItem;
+  storage.setItem=(key,value)=>{writes++;originalSet(key,value)};
+  const result=meta.spin(()=>0);
+  const persisted=storedOf(storage);
+  check('Lucky Draw stores debit and fighter entitlement in one write',
+    result.ok===true && writes===1 && persisted.credits===0 &&
+    persisted.ownedFighters.includes(result.name) && persisted.totalSpins===1,
+    JSON.stringify({writes,result,persisted}));
+}
 // ── ALPHA progression law: sealed match, once-per-claim and durable AC ──
 {
   const {meta, storage} = boot({});
