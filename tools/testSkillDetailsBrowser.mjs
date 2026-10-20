@@ -86,6 +86,17 @@ const sideState = (page) => page.evaluate(() => ({
   })),
 }));
 
+// Fixed sleeps after details gestures flaked under load (the modal
+// mount waits on a deferred runtime). Wait for the open state the
+// assertions already require — no assertion is relaxed, only the
+// arrival of the state is awaited deterministically.
+const openDetails = async (page, side, gesture = 'click') => {
+  await page[gesture](`.apex-skill-details-btn[data-side="${side}"]`);
+  await page.waitForFunction(
+    () => !!document.querySelector('#apex-skill-details.is-open'),
+    { timeout: 15000 });
+};
+
 const REGISTRY_TRUTH = {
   newbot: {
     name: 'NEWBOT',
@@ -198,8 +209,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.equal(st.p2BtnHidden, false, 'P2/BOT details control visible');
 
   // P1 details (mouse)
-  await page.click('.apex-skill-details-btn[data-side="p1"]');
-  await sleep(400);
+  await openDetails(page, 'p1');
   st = await sideState(page);
   assertDetails(st, 'newbot', 'P1');
   assert.equal(st.p1Hero, 'newbot', 'inspecting did not change P1');
@@ -220,8 +230,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.equal(st.modalOpen, false, 'Enter activated the close control');
   assert.equal(st.p1Locked, false, 'Enter did not lock behind panel');
   // Reopen and close with ESC for the focus-restore check
-  await page.click('.apex-skill-details-btn[data-side="p1"]');
-  await sleep(400);
+  await openDetails(page, 'p1');
   assert.equal((await sideState(page)).modalOpen, true, 'panel reopens');
   await page.keyboard.press('Escape');
   await sleep(300);
@@ -231,8 +240,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.equal(focusedSide, 'p1', 'focus restored to the P1 details button');
 
   // BOT (P2) details — exercised independently
-  await page.click('.apex-skill-details-btn[data-side="p2"]');
-  await sleep(400);
+  await openDetails(page, 'p2');
   st = await sideState(page);
   assertDetails(st, 'newbot', 'BOT');
   await shot(page, 'desktop-p2-bot-details-newbot');
@@ -297,8 +305,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   await sleep(500);
   st = await sideState(page);
   assert.equal(st.p1Hero, 'hunter', 'owned HUNTER selectable');
-  await page.click('.apex-skill-details-btn[data-side="p1"]');
-  await sleep(400);
+  await openDetails(page, 'p1');
   st = await sideState(page);
   assertDetails(st, 'hunter', 'P1');
   await shot(page, 'desktop-p1-details-hunter');
@@ -311,8 +318,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   const viBtn = await page.evaluate(() =>
     document.querySelector('.apex-skill-details-btn[data-side="p1"] span')?.textContent);
   assert.equal(viBtn, 'CHI TIẾT KỸ NĂNG', 'VI button label');
-  await page.click('.apex-skill-details-btn[data-side="p1"]');
-  await sleep(400);
+  await openDetails(page, 'p1');
   st = await sideState(page);
   const a1 = st.skills.find((s) => s.slot === 'A1');
   assert.equal(a1.name, 'ĐẶT BẪY', 'VI canonical A1 name (TRAP DEPLOY)');
@@ -334,8 +340,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   st = await sideState(page);
   assert.equal(st.p1Locked, true, 'P1 locked by the real lock-in control');
   assert.equal(st.p2BtnHidden, false, 'P2 details available after deployment');
-  await page.click('.apex-skill-details-btn[data-side="p2"]');
-  await sleep(400);
+  await openDetails(page, 'p2');
   st = await sideState(page);
   assertDetails(st, st.p2Hero === 'hunter' ? 'hunter' : 'newbot', 'P2');
   await shot(page, 'desktop-p2-details-local');
@@ -353,8 +358,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   await page.setViewport({ width: 391, height: 844, isMobile: true, hasTouch: true });
   await bootHome(page);
   await enterFighterSelect(page, 'SOLO');
-  await page.tap('.apex-skill-details-btn[data-side="p1"]');
-  await sleep(500);
+  await openDetails(page, 'p1', 'tap');
   let st = await sideState(page);
   assertDetails(st, 'newbot', 'P1');
   const box = await page.evaluate(() => {
@@ -369,8 +373,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
 
   await page.setViewport({ width: 851, height: 393, isMobile: true, hasTouch: true });
   await sleep(600);
-  await page.tap('.apex-skill-details-btn[data-side="p2"]');
-  await sleep(500);
+  await openDetails(page, 'p2', 'tap');
   st = await sideState(page);
   assertDetails(st, 'newbot', 'BOT');
   const box2 = await page.evaluate(() => {
