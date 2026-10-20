@@ -22,6 +22,7 @@ const SYNC_LABELS = {
   'local-only': 'LOCAL ONLY',
   'cloud-unconfigured': 'CLOUD NOT CONFIGURED',
   'signed-out': 'SIGNED OUT',
+  connected: 'ACCOUNT CONNECTED',
   syncing: 'SYNCING',
   saved: 'SAVED',
   offline: 'OFFLINE',
@@ -220,18 +221,24 @@ export default function AccountCenter() {
         <div className="apex-account-body">
           <div className="apex-account-stats">
             <div className="apex-account-stat">
-              <span>APEX CREDITS</span>
+              <span>{isCloud ? 'DEVICE CREDITS' : 'APEX CREDITS'}</span>
               <b data-account-credits>{credits == null ? '—' : `${credits} AC`}</b>
             </div>
             <div className="apex-account-stat">
-              <span>OWNED FIGHTERS</span>
+              <span>{isCloud ? 'DEVICE FIGHTERS' : 'OWNED FIGHTERS'}</span>
               <b data-account-owned>{`${ownedIds.length} / ${playable.length}`}</b>
             </div>
             <div className="apex-account-stat">
-              <span>TOTAL DRAWS</span>
+              <span>{isCloud ? 'DEVICE DRAWS' : 'TOTAL DRAWS'}</span>
               <b>{totalSpins}</b>
             </div>
           </div>
+          {isCloud && (
+            <p className="apex-account-note">
+              Credits, fighters and draws above come from THIS DEVICE.
+              Cloud wallet and fighter inventory are not enabled yet.
+            </p>
+          )}
 
           <section className="apex-account-section" aria-label="OWNED FIGHTERS">
             <h3>OWNED FIGHTERS</h3>
@@ -282,6 +289,12 @@ export default function AccountCenter() {
             </p>
             {!cloudConfigured && (
               <p className="apex-account-note">Progress is saved on this device only.</p>
+            )}
+            {isCloud && sync.status === 'connected' && (
+              <p className="apex-account-note">
+                Account sign-in is verified. Your device progress is not confirmed
+                uploaded; use UPLOAD SNAPSHOT to save an unverified backup.
+              </p>
             )}
             {isCloud && (
               <div className="apex-account-actions" style={{ marginTop: 8 }}>
