@@ -16,6 +16,8 @@ on:
       - 'src/game/cloudSnapshotPreview.js'
       - 'src/game/emailCodeAuth.js'
       - 'tools/testA1EmailCodeAuth.mjs'
+      - 'src/game/emailPasswordAuth.js'
+      - 'tools/testA1EmailPasswordAuth.mjs'
       - 'tools/testCloudLifecycleRaces.mjs'
       - 'tools/testA1GuestHandoff.mjs'
       - 'supabase/migrations/0004_a1_guest_migration_idempotency.sql'
@@ -55,6 +57,8 @@ jobs:
         run: node tools/testA1GuestHandoff.mjs
       - name: A1 email OTP and rate-limit contract tests
         run: node tools/testA1EmailCodeAuth.mjs
+      - name: A1 password sign in with verified identity (no email)
+        run: node tools/testA1EmailPasswordAuth.mjs
       - name: A1 cloud session race gates
         run: node tools/testCloudLifecycleRaces.mjs
       - name: Build A1 configured for staging only
