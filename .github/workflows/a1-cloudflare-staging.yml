@@ -14,8 +14,8 @@ on:
       - 'src/ui/AccountCenter.jsx'
       - 'src/game/guestCloudHandoff.js'
       - 'src/game/cloudSnapshotPreview.js'
-      - 'src/game/emailMagicLinkTransfer.js'
-      - 'tools/testA1EmailMagicLinkTransfer.mjs'
+      - 'src/game/emailCodeAuth.js'
+      - 'tools/testA1EmailCodeAuth.mjs'
       - 'tools/testCloudLifecycleRaces.mjs'
       - 'tools/testA1GuestHandoff.mjs'
       - 'supabase/migrations/0004_a1_guest_migration_idempotency.sql'
@@ -37,6 +37,8 @@ jobs:
       VITE_SUPABASE_ANON_KEY: sb_publishable_ESfblLHNzhNN4tqtOF8SJQ_mRqnHpPs
       VITE_APEX_DEV_ADMIN: '0'
       VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+      # Keep sending DISABLED until both Auth email templates use {{ .Token }}.
+      VITE_APEX_EMAIL_CODE_ENABLED: '0'
       APEX_STAGING_BRANCH: a1-cloud-staging-20261020
       APEX_STAGING_URL: https://a1-cloud-staging-20261020.apex-chaos.pages.dev
     steps:
@@ -51,8 +53,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: A1 Guest Magic Link idempotency + account switch tests
         run: node tools/testA1GuestHandoff.mjs
-      - name: A1 second-browser email Magic Link redirect safety tests
-        run: node tools/testA1EmailMagicLinkTransfer.mjs
+      - name: A1 email OTP and rate-limit contract tests
+        run: node tools/testA1EmailCodeAuth.mjs
       - name: A1 cloud session race gates
         run: node tools/testCloudLifecycleRaces.mjs
       - name: Build A1 configured for staging only
