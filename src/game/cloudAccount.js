@@ -166,7 +166,10 @@ async function projectSession(client, session) {
   // and must NOT be applied.
   if (!stillCurrent()) return;
   setVerifiedCloudAdminInternal(adminUserId);
-  setSync('saved', '');
+  // Hosted Auth verified the IDENTITY, not a saved progress snapshot.
+  // Claiming 'saved' here would incorrectly tell new Magic Link users
+  // their device-local wallet/roster were already stored in the cloud.
+  setSync('connected', 'Cloud identity verified. Progress upload is separate.');
 }
 
 // Offline = cannot re-prove a server-verified grant, so fail closed
