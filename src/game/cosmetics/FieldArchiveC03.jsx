@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {PRODUCT_ROSTER} from '../productSurface.js';
+import {resolveGoldPickHeroId} from './goldPickIdentity.js';
 import {cosmetics} from './cosmeticAuthority.js';
 import {loadDeferredGameRuntimes} from '../runtimeLoader.js';
 import './approvedGoldSkins.js';
@@ -40,12 +41,10 @@ function pickSelection(){
  const stage=document.getElementById('stage');
  const side=stage?.classList.contains('fighter-active-p2')?'p2':'p1';
  const label=document.getElementById(side==='p1'?'p1Name':'p2Name')?.textContent?.trim().toUpperCase()||'';
- // Gold uses the legacy label ROBOT in Pick, while Archive/GAME identity
- // is ROBOT and its current catalogue display name is NEWBOT. Match BOTH
- // canonical IDs and presentational aliases; never infer a random fighter.
- const heroByGoldName={ROBOT:'ROBOT',NEWBOT:'ROBOT',CRYSTALA:'CRYSTAL',CRYSTAL:'CRYSTAL',
-  HUNTER:'HUNTER',MAGNET:'MAGNET',FROST:'ICE',ICE:'ICE',MIRROR:'MIRROR',BOXE:'BOXE'};
- const heroId=heroByGoldName[label]||null;
+ const heroId=resolveGoldPickHeroId(label,{
+  goldRoster:window.APEX_GOLD_ROSTER,
+  registry:window.APEX_HERO_REWORK_REGISTRY?.HEROES
+ });
  return heroId?{side,heroId,name:label}:null;
 }
 const isHome=()=>{
