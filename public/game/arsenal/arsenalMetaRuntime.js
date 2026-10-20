@@ -6,6 +6,13 @@
   const SHOP_COST = 1000;
   const DRAW_COST = 350;
   const START_CREDITS = 350;
+  const PROGRESSION_CATALOG = Object.freeze([
+    Object.freeze({ id: 'first-bot', kind: 'mission', stat: 'botMatches', target: 1, ac: 100, vie: 'TRẬN ĐẤU ĐẦU TIÊN', eng: 'FIRST BOT MATCH' }),
+    Object.freeze({ id: 'first-win', kind: 'mission', stat: 'botWins', target: 1, ac: 150, vie: 'CHIẾN THẮNG ĐẦU TAY', eng: 'FIRST BOT WIN' }),
+    Object.freeze({ id: 'local-match', kind: 'mission', stat: 'localMatches', target: 1, ac: 75, vie: 'SO TÀI TẠI CHỖ', eng: 'LOCAL DUEL' }),
+    Object.freeze({ id: 'bot-veteran', kind: 'achievement', stat: 'botWins', target: 3, ac: 250, vie: 'CHIẾN BINH ĐẤU TRƯỜNG', eng: 'ARENA VETERAN' }),
+    Object.freeze({ id: 'bot-survivor', kind: 'achievement', stat: 'botMatches', target: 5, ac: 200, vie: 'KHÔNG BỎ CUỘC', eng: 'NEVER GIVE UP' }),
+  ]);
   // Product availability is centralized in src/game/productSurface.js and is
   // registered on window before classic runtimes load. These adapters never
   // invent a fallback broad roster: a missing authority fails closed to ROBOT.
@@ -114,6 +121,7 @@
       // A1: persistent match-reward claim keys (sealed result ids). One
       // completed match pays exactly once, even across reload/retries.
       claimedMatchIds: [],
+      progression: { botMatches: 0, botWins: 0, localMatches: 0, claimedIds: [] },
     };
   }
   function sanitize(raw) {
@@ -129,6 +137,11 @@
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
     s.claimedMatchIds = Array.isArray(raw.claimedMatchIds)
       ? raw.claimedMatchIds.map((id) => String(id || '')).filter(Boolean).slice(-200) : [];
+    const progress = raw.progression && typeof raw.progression === 'object' ? raw.progression : {};
+    for (const key of ['botMatches','botWins','localMatches'])
+      s.progression[key] = Math.max(0, Math.min(1000000, Number(progress[key]) | 0));
+    s.progression.claimedIds = Array.isArray(progress.claimedIds)
+      ? [...new Set(progress.claimedIds.filter(id => PROGRESSION_CATALOG.some(d => d.id === id)))]:[];
     s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
     // The owner-playtest AC seed marker must survive sanitization, otherwise a
     // refresh would look "unseeded" and refill the balance.
@@ -295,7 +308,10 @@
     }
     const claimKey = current.resultGold && current.resultGold.meta
       ? String(current.resultGold.meta.id || '') : '';
-    if (claimKey && state.claimedMatchIds.includes(claimKey)) {
+    if (!claimKey || claimKey.length > 128) {
+      return { ok: false, reason: 'unsealed-match', balance: state.credits };
+    }
+    if (state.claimedMatchIds.includes(claimKey)) {
       current.productResultAwarded = true;
       return { ok: false, reason: 'duplicate-claim', balance: state.credits };
     }
@@ -315,8 +331,24 @@
         state.claimedMatchIds = state.claimedMatchIds.slice(-200);
       }
     }
-    // award() performs the one save, persisting balance AND claim together.
+    // Persist progression with the exact match claim and normal AC in one save.
+    if (mode === 'BOT') {
+      state.progression.botMatches += 1;
+      if (p1Won) state.progression.botWins += 1;
+    } else state.progression.localMatches += 1;
     return award(reasons, amount);
+  }
+  function progressionCatalog() { return PROGRESSION_CATALOG.map(d => ({ ...d })); }
+  function claimProgressReward(id) {
+    const def = PROGRESSION_CATALOG.find(x => x.id === id);
+    if (!def) return { ok: false, reason: 'unknown-reward' };
+    if (adminTestSessionActive() || window.APEX_ARSENAL_OWNER_TEST?.active === true)
+      return { ok: false, reason: 'admin-test' };
+    if (state.progression.claimedIds.includes(id)) return { ok: false, reason: 'already-claimed' };
+    if (state.progression[def.stat] < def.target) return { ok: false, reason: 'not-complete' };
+    state.progression.claimedIds.push(id);
+    // One real-wallet commit makes receipt and AC award durable together.
+    return award(['progression',def.id], def.ac);
   }
   function filterOwned(list) {
     const arr = list || [];
@@ -713,7 +745,7 @@
 
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST, START_CREDITS,
-    getState, credits, owns, canPublicSelect, buy, spin, award, awardBattleResult, filterOwned, setLast,
+    getState, credits, owns, canPublicSelect, buy, spin, award, awardBattleResult, progressionCatalog, claimProgressReward, filterOwned, setLast,
     // A1: legacy owner-playtest exports retained for compat; the live rule
     // is the Admin-authority test session (selection only — Lucky Draw, Shop
     // and ownership keep reading production truth).
