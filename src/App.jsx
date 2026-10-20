@@ -24,6 +24,8 @@ import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
 import AccountCenter from './ui/AccountCenter.jsx';
+import { installAlphaHomeUsability } from './game/alphaHomeUsability.js';
+import './game/alphaHomeUsability.css';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -615,6 +617,10 @@ export default function App() {
   // occupy the donor's authored arena slot (same-document mount).
   const [goldReady, setGoldReady] = useState(false);
   useEffect(() => {
+    if (!goldReady) return undefined;
+    return installAlphaHomeUsability();
+  }, [goldReady]);
+  useEffect(() => {
     if (!gameReady || goldReady) return;
     const host = document.getElementById('gold-shell-host');
     if (!host || host.dataset.apexGoldMounted === '1') return;
@@ -969,6 +975,7 @@ export default function App() {
             if (activated) return;
             activated = true;
             stopStartGuard();
+            window.dispatchEvent(new Event('apex:boot-started'));
             // Visual disappears in the SAME trusted event, while the old
             // invisible hit surface intercepts the remaining pointer sequence.
             start.style.transition = 'none';
