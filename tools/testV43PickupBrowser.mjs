@@ -45,6 +45,18 @@ try{
     const p=pending.get(x.id);pending.delete(x.id);x.error?p.reject(Error(x.error.message)):p.resolve(x.result);
   });
   await cd('Runtime.enable');await cd('Page.enable');
+  // A1 production economy: a fresh profile owns NEWBOT only (proven by the
+  // A1 gates), and the production battle launch correctly refuses an
+  // unowned CRYSTAL. The R3 Crystal section below fields a real CRYSTAL,
+  // so the fixture is a legitimate saved profile that already owns her —
+  // the state a real player reaches via Lucky Draw/Shop.
+  await cd('Page.addScriptToEvaluateOnNewDocument',{source:`
+    try{localStorage.setItem('apexChaos.arsenalMeta.v1',JSON.stringify({
+      version:1,credits:425,ownedFighters:['ROBOT','CRYSTAL'],
+      lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:1,
+      unlockedAt:{ROBOT:0,CRYSTAL:1},arenaPaletteId:null,claimedMatchIds:[],
+    }));}catch(e){}
+  `});
   await cd('Page.navigate',{url:base+'/?v43OwnerChromeAudit=1'});
   for(let i=0;i<180;i++){
     if(await ev('Boolean(window.__apexEngineReady)').catch(()=>false))break;
@@ -252,14 +264,29 @@ try{
       }
       wa.updateArsenalProjectiles=originalTick;
       const events=window.APEX_ARSENAL.events;
+      // Transport law (diagnosed 2026-10-20): seven 1000x1000 PNG data
+      // URLs in ONE evaluate result (~8.4MB) exceed what this CDP channel
+      // reliably delivers — the response simply never arrives, although
+      // the page finished the work. Park the frames on window and let
+      // the harness pull them one message at a time below. The bytes,
+      // hashes and every assertion downstream are unchanged.
+      window.__v43CoreSixFrames={renderedFrame,
+        phaseFrames:phaseFrames.map(f=>({step:f.step,png:f.png}))};
       return {id:${JSON.stringify(id)},started,permitted,tickCalls,
         p1:a.name,p2:b.name,damage:1000-b.hp,
         kinds:[...used],pickup:events.filter(e=>e.includes('PICKUP')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
         fire:events.filter(e=>e.includes(' USE ')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
-        states,renderedFrame,phaseFrames};
+        states,frameCount:phaseFrames.length};
     })()`);
+    // Pull the parked frames one CDP message at a time (see law above).
+    q.renderedFrame=await ev(`window.__v43CoreSixFrames?.renderedFrame||null`);
+    q.phaseFrames=[];
+    for(let fi=0;fi<(q.frameCount||0);fi++){
+      q.phaseFrames.push(await ev(`window.__v43CoreSixFrames.phaseFrames[${fi}]`));
+    }
+    delete q.frameCount;
     if(q.renderedFrame?.startsWith('data:image/png;base64,')){
       await writeFile(join(out,'core-six-'+id+'.png'),
         Buffer.from(q.renderedFrame.slice('data:image/png;base64,'.length),'base64'));
