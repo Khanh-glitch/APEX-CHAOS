@@ -322,6 +322,11 @@ for (let i = 0; i < heroes.length; i++) {
     report.heroes[hero] = { ok:false, wallMs:Date.now()-started, error:String(error?.stack||error) };
     report.failures.push(hero);
     console.error('[CORE-SIX-COLD] FAIL', hero, error);
+    // Surface the failing hero/phase as a check-run annotation so the
+    // failure is diagnosable from the GitHub API without raw job logs.
+    const oneLine = String(error?.message || error)
+      .replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A').slice(0, 900);
+    console.log(`::error title=CoreSixColdLoad ${hero}::${oneLine}`);
   }
 }
 report.finishedAt = new Date().toISOString();
