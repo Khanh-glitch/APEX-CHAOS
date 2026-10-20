@@ -306,7 +306,7 @@ export default function AccountCenter() {
               <p className="apex-account-note">
                 Thắng trận BOT: +200 AC · Thua BOT: +25 AC.
                 Đấu LOCAL hoàn tất: +50 AC.
-                Cửa hàng và Vòng Quay dùng AC trên thiết bị.
+                Vòng Quay dùng AC trên thiết bị; Cửa hàng đấu sĩ chưa mở.
               </p>
             </section>
           ) : !isCloud ? (
