@@ -133,15 +133,27 @@ export default function FirstPlayGuide() {
   // guide. This is NOT a dismissal — the seen flag is untouched — but a
   // player who starts a match no longer meets the auto-show rule anyway
   // (sealed matches > 0), while the "?" control can always replay it.
+  // A MutationObserver (not polling) watches the stage class: the Gold
+  // screen classes flap during transitions, and under load a 250ms
+  // poll can miss the window entirely, stranding the card over the
+  // fighter picker (CI + single-CPU reproduction: details button
+  // covered by the card's own heading). The predicate matches the
+  // codebase Home convention (App.jsx / FieldArchiveC03): Home is the
+  // absence of every screen-* class.
   useEffect(() => {
     if (!open) return undefined;
-    const watcher = window.setInterval(() => {
+    const AWAY = ['screen-mode', 'screen-fighter', 'screen-draw', 'screen-battle'];
+    const leftHome = () => {
       const stage = document.querySelector('#gold-shell-host #stage');
-      if (stage && (stage.classList.contains('screen-mode') || stage.classList.contains('screen-fighter'))) {
-        setOpen(false);
-      }
-    }, 250);
-    return () => window.clearInterval(watcher);
+      if (stage && AWAY.some((c) => stage.classList.contains(c))) setOpen(false);
+    };
+    leftHome();
+    // Observe the shell host subtree: catches the stage mounting late
+    // AND every class change on it, with no polling window to miss.
+    const host = document.querySelector('#gold-shell-host') || document.body;
+    const observer = new MutationObserver(leftHome);
+    observer.observe(host, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true });
+    return () => observer.disconnect();
   }, [open ]);
 
   useEffect(() => {
@@ -151,7 +163,7 @@ export default function FirstPlayGuide() {
       // Only own the Escape key while Home is the visible scene; in a
       // battle Escape belongs to the battle exit contract.
       const stage = document.querySelector('#gold-shell-host #stage');
-      if (stage && (stage.classList.contains('screen-mode') || stage.classList.contains('screen-fighter'))) return;
+      if (stage && ['screen-mode', 'screen-fighter', 'screen-draw', 'screen-battle'].some((c) => stage.classList.contains(c))) return;
       event.preventDefault();
       close();
     };
