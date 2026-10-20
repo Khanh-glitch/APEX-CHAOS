@@ -58,11 +58,13 @@ jobs:
           test -s dist/index.html
           printf '%s\n' "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
           du -sh dist
+      - name: Rewrite HTML5 first-party paths for itch nested ZIP hosting
+        run: node tools/packItchPortable.mjs
       - name: Package itch.io HTML5 bundle (index at ZIP root)
         shell: bash
         run: |
           set -euo pipefail
-          (cd dist && zip -q -r ../apex-chaos-itch-guest-200ac-rc.zip .)
+          (cd dist-itch-html5 && zip -q -r ../apex-chaos-itch-guest-200ac-rc.zip .)
           unzip -l apex-chaos-itch-guest-200ac-rc.zip | grep -Eq '[[:space:]]index.html$'
           ls -lh apex-chaos-itch-guest-200ac-rc.zip
       - name: Archive owner-review package
