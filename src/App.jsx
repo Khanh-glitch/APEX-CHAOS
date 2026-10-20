@@ -25,6 +25,7 @@ import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
 import AccountCenter from './ui/AccountCenter.jsx';
 import FirstBattleGuide from './ui/FirstBattleGuide.jsx';
+import ProgressionCenter from './ui/ProgressionCenter.jsx';
 import { installAlphaHomeUsability } from './game/alphaHomeUsability.js';
 import './game/alphaHomeUsability.css';
 import './game/botWave/wavePreviewEntry.css';
@@ -534,6 +535,10 @@ export default function App() {
         console.error('[bot-wave] transition/Gold admission',error);
         return false;
       }
+    }
+    if (surface.route === 'progress') {
+      window.dispatchEvent(new Event('apex:progress-open'));
+      return true;
     }
     if (surface.route === 'skins') {
       // The locker is a sibling product surface, never an alternate Gold
@@ -1077,6 +1082,7 @@ export default function App() {
     <CosmeticLocker />
     <AccountCenter />
     <FirstBattleGuide />
+    <ProgressionCenter />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount
