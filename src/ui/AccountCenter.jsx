@@ -6,6 +6,8 @@ import {
   signInWithGoogle,
   signInWithEmailOtp,
   verifyEmailOtp,
+  signInWithPassword,
+  setCurrentAccountPassword,
   signOutCloud,
   requestAccountDeletion,
   previewCloudProgressSnapshot,
@@ -73,6 +75,9 @@ export default function AccountCenter() {
   const [open, setOpen] = useState(false);
   const [, setTick] = useState(0);
   const [email, setEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState('');
   const [confirmedEmail, setConfirmedEmail] = useState('');
@@ -95,6 +100,9 @@ export default function AccountCenter() {
     setMessage('');
     setConfirmDelete(false);
     setCodeSent(false);
+    setLoginPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     setCode('');
     setConfirmedEmail('');
     setNow(Date.now());
@@ -107,6 +115,9 @@ export default function AccountCenter() {
 
   const closeCenter = useCallback(() => {
     setOpen(false);
+    setLoginPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     const invoker = invokerRef.current;
     if (invoker && invoker.isConnected && typeof invoker.focus === 'function') {
       invoker.focus({ preventScroll: true });
@@ -185,6 +196,14 @@ export default function AccountCenter() {
           'invalid-email': 'Địa chỉ email không hợp lệ.',
           'email-code-not-ready': 'Đăng nhập email chưa mở trên máy chủ thử nghiệm.',
           'email-send-failed': 'Chưa gửi được email. Thử lại sau.',
+          'weak-password': 'Mật khẩu phải có từ 12 đến 128 ký tự.',
+          'password-mismatch': 'Hai mật khẩu chưa trùng khớp.',
+          'invalid-credentials': 'Email hoặc mật khẩu không đúng.',
+          'password-required': 'Hãy nhập mật khẩu.',
+          'email-not-verified': 'Tài khoản cần xác minh email trước khi đặt mật khẩu.',
+          'password-update-failed': 'Chưa đặt được mật khẩu. Kiểm tra lại và thử sau.',
+          'auth-rate-limited': 'Quá nhiều lần thử. Vui lòng đợi trước khi đăng nhập lại.',
+          'identity-not-verified': 'Phiên đăng nhập không còn hợp lệ. Hãy đăng nhập lại.',
         };
         setMessage(help[result.reason] || String(result.reason).toUpperCase());
       }
@@ -387,6 +406,50 @@ fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was resto
             <section className="apex-account-section" aria-label="SIGN IN">
               <h3>ĐĂNG NHẬP</h3>
               <div className="apex-account-actions">
+                {cloudConfigured && (
+                  <>
+                    <p className="apex-account-note">
+                      Đã có tài khoản? Đăng nhập bằng email và mật khẩu. Không cần nhận mã.
+                    </p>
+                    <div className="apex-account-row">
+                      <input
+                        className="apex-account-input"
+                        type="email"
+                        autoComplete="username"
+                        value={email}
+                        placeholder="EMAIL"
+                        aria-label="PASSWORD LOGIN EMAIL"
+                        disabled={busy}
+                        onChange={e => setEmail(e.target.value)}
+                      />
+                      <input
+                        className="apex-account-input"
+                        type="password"
+                        autoComplete="current-password"
+                        value={loginPassword}
+                        placeholder="MẬT KHẨU"
+                        aria-label="PASSWORD LOGIN PASSWORD"
+                        disabled={busy}
+                        onChange={e => setLoginPassword(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="apex-account-btn is-primary"
+                      disabled={busy || !email.trim() || !loginPassword}
+                      onClick={() => run(async () => {
+                        const result = await signInWithPassword(email, loginPassword);
+                        setLoginPassword('');
+                        return result;
+                      })}
+                    >
+                      ĐĂNG NHẬP
+                    </button>
+                    <p className="apex-account-note">
+                      Đăng ký mới tạm khóa trên staging; Guest vẫn chơi ngay.
+                    </p>
+                  </>
+                )}
                 {googleEnabled && (
                   <button
                     type="button"
@@ -512,7 +575,51 @@ fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was resto
             </section>
           ) : (
             <section className="apex-account-section" aria-label="ACCOUNT">
-              <h3>PLAYER ACCOUNT</h3>
+              <h3>TÀI KHOẢN</h3>
+              <p className="apex-account-note">
+                Đặt mật khẩu một lần để đăng nhập tài khoản này trên máy khác.
+                Không cần gửi email, mã OTP hay Google.
+              </p>
+              <div className="apex-account-row">
+                <input
+                  className="apex-account-input"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  minLength={12}
+                  maxLength={128}
+                  placeholder="MẬT KHẨU MỚI (12+ KÝ TỰ)"
+                  aria-label="NEW CLOUD PASSWORD"
+                  disabled={busy}
+                  onChange={e => setNewPassword(e.target.value)}
+                />
+                <input
+                  className="apex-account-input"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  minLength={12}
+                  maxLength={128}
+                  placeholder="NHẬP LẠI MẬT KHẨU"
+                  aria-label="CONFIRM CLOUD PASSWORD"
+                  disabled={busy}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <button
+                type="button"
+                className="apex-account-btn"
+                disabled={busy || newPassword.length < 12 || confirmPassword.length < 12}
+                onClick={() => run(async () => {
+                  const result = await setCurrentAccountPassword(newPassword, confirmPassword);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  if (result?.ok) setMessage('ĐÃ ĐẶT MẬT KHẨU. MÁY KHÁC CÓ THỂ ĐĂNG NHẬP.');
+                  return result;
+                })}
+              >
+                ĐẶT MẬT KHẨU CHO TÀI KHOẢN
+              </button>
               <div className="apex-account-actions">
                 <button
                   type="button"
