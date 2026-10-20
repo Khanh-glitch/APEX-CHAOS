@@ -1,0 +1,50 @@
+/* Alpha ergonomics applied outside immutable Gold artwork and skill effects. */
+#gold-shell-host #stage .profile .apex-guide-reopen {
+  flex:0 0 auto; min-width:35px; height:38px; cursor:pointer; color:#ffe6ba;
+  border:1px solid rgba(255,177,82,.55); background:#14181ebf;
+  font:900 17px/1 system-ui,sans-serif;
+}
+#gold-shell-host #stage .profile .apex-guide-reopen:focus-visible,
+#gold-shell-host #stage [data-apex-account-entry]:focus-visible {
+  outline:2px solid #ffb55b; outline-offset:3px;
+}
+#gold-shell-host #stage [data-apex-account-entry] {
+  border-color:rgba(255,170,70,.53); cursor:pointer;
+}
+/* Constant side labels remain visible even when both player slots show the same hero. */
+#gold-shell-host #stage.screen-fighter .fighterSide.p1 .fighterIdentity::before,
+#gold-shell-host #stage.screen-fighter .fighterSide.p2 .fighterIdentity::before {
+  display:block; width:max-content; max-width:100%; padding:4px 9px;
+  margin-bottom:7px; color:#080a0d; border-radius:2px;
+  font:900 clamp(10px,.85vw,13px)/1.2 system-ui,sans-serif;
+  letter-spacing:.10em; text-transform:uppercase;
+}
+#gold-shell-host #stage.screen-fighter .fighterSide.p1 .fighterIdentity::before {
+  content:'P1 / BẠN'; background:#ffab42;
+}
+#gold-shell-host #stage.screen-fighter .fighterSide.p2 .fighterIdentity::before {
+  content:'P2 / ĐỐI THỦ'; background:#4db3ff;
+}
+#gold-shell-host #stage.apex-mirror-duel.screen-fighter .fighterSide.p1 .fighterIdentity {
+  outline:2px solid rgba(255,171,66,.92); outline-offset:4px;
+}
+#gold-shell-host #stage.apex-mirror-duel.screen-fighter .fighterSide.p2 .fighterIdentity {
+  outline:2px solid rgba(77,179,255,.92); outline-offset:4px;
+}
+#gold-shell-host #stage.apex-mirror-duel.screen-fighter .fighterModeBadge::after {
+  content:' · SAME FIGHTER — P1 ORANGE / P2 BLUE';
+  font-size:clamp(8px,.72vw,11px); letter-spacing:.03em;
+}
+html[data-apex-language="vie"] #gold-shell-host #stage.apex-mirror-duel.screen-fighter .fighterModeBadge::after {
+  content:' · CÙNG TƯỚNG — P1 CAM / P2 XANH';
+}
+@media (orientation:portrait) {
+ #gold-shell-host #stage .profile .apex-guide-reopen {min-width:30px;height:32px;font-size:15px}
+ #gold-shell-host #stage.screen-fighter .fighterSide.p1 .fighterIdentity::before,
+ #gold-shell-host #stage.screen-fighter .fighterSide.p2 .fighterIdentity::before {
+   padding:3px 6px;margin-bottom:4px;font-size:9px;
+ }
+ #gold-shell-host #stage.apex-mirror-duel.screen-fighter .fighterModeBadge::after {
+   display:block; font-size:8px;
+ }
+}
