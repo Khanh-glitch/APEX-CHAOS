@@ -1,0 +1,104 @@
+# ITCH Guest-first candidate. Never runs on main or deploys production.
+name: ITCH Guest 200 AC Release Candidate
+on:
+  push:
+    branches:
+      - release/itch-guest-200ac-20261020
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: itch-guest-200ac-rc
+  cancel-in-progress: true
+jobs:
+  candidate:
+    if: github.ref == 'refs/heads/release/itch-guest-200ac-20261020'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      VITE_SUPABASE_URL: ''
+      VITE_SUPABASE_ANON_KEY: ''
+      VITE_APEX_DEV_ADMIN: '0'
+      VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+      VITE_APEX_EMAIL_CODE_ENABLED: '0'
+      ITCH_CANDIDATE_BRANCH: itch-guest-200ac-rc-20261020
+      ITCH_CANDIDATE_URL: https://itch-guest-200ac-rc-20261020.apex-chaos.pages.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Guest-only 200 AC release contract
+        run: node tools/testItchGuestReleaseGate.mjs
+      - name: Real wallet outcomes and one-time rewards
+        run: pnpm test:owner-playtest-economy
+      - name: Free Battle outcome side and mode
+        run: pnpm test:battle-outcome-side
+      - name: Shop, Lucky Draw and product graph
+        run: pnpm test:product-graph
+      - name: Gameplay and Gold runtime revision
+        run: pnpm test:runtime-revision
+      - name: Account / admin security regression contracts
+        run: |
+          node tools/testCloudSecurityContracts.mjs
+          node tools/testCloudLifecycleRaces.mjs
+      - name: Build HTML5 candidate with Guest-only Auth lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm build
+          node tools/testShippingDist.mjs
+          test -s dist/index.html
+          printf '%s\n' "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+          du -sh dist
+      - name: Package itch.io HTML5 bundle (index at ZIP root)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist && zip -q -r ../apex-chaos-itch-guest-200ac-rc.zip .)
+          unzip -l apex-chaos-itch-guest-200ac-rc.zip | grep -Eq '[[:space:]]index.html$'
+          ls -lh apex-chaos-itch-guest-200ac-rc.zip
+      - name: Archive owner-review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-itch-guest-200ac-rc
+          path: apex-chaos-itch-guest-200ac-rc.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Reject missing Cloudflare preview credential
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::No Cloudflare preview token. The itch package is still attached as an artifact."; exit 1; }
+      - name: Deploy only named Cloudflare PREVIEW branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$ITCH_CANDIDATE_BRANCH" != "main"
+          test "$ITCH_CANDIDATE_URL" != "https://apex-chaos.pages.dev"
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name=apex-chaos \
+            --branch="$ITCH_CANDIDATE_BRANCH" \
+            --commit-hash="$GITHUB_SHA" \
+            --commit-dirty=true
+      - name: Verify exact immutable candidate SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 25); do
+            found="$(curl -fsSL --max-time 15 "$ITCH_CANDIDATE_URL/ITCH_GUEST_BUILD_SHA.txt" 2>/dev/null || true)"
+            if [ "$found" = "$GITHUB_SHA" ]; then
+              echo "ITCH GUEST SHA PASS: $found"
+              echo "PREVIEW: $ITCH_CANDIDATE_URL"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::Guest preview did not serve candidate SHA"
+          exit 1
