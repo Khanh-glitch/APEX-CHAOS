@@ -4,6 +4,7 @@ import {
   isGoogleSignInEnabled,
   signInWithGoogle,
   signInWithEmailOtp,
+  openEmailMagicLinkHere,
   signOutCloud,
   requestAccountDeletion,
   previewCloudProgressSnapshot,
@@ -72,6 +73,7 @@ export default function AccountCenter() {
   const [, setTick] = useState(0);
   const [email, setEmail] = useState('');
   const [linkSent, setLinkSent] = useState(false);
+  const [pastedEmailLink, setPastedEmailLink] = useState('');
   const [nameDraft, setNameDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -89,6 +91,7 @@ export default function AccountCenter() {
     setMessage('');
     setConfirmDelete(false);
     setLinkSent(false);
+    setPastedEmailLink('');
     setCloudPreview(null);
     const { profile } = readAuthorities();
     setNameDraft(profile && profile.kind === 'guest' ? profile.displayName : '');
@@ -395,10 +398,45 @@ fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was resto
                     SEND SIGN-IN LINK
                   </button>
                 </div>
+                {cloudConfigured && (
+                  <p className="apex-account-note">
+                    Sign in on THIS browser: request a new link, then COPY its
+                    address from your email without clicking it. Paste it below.
+                    Clicking a link may open your default browser instead.
+                  </p>
+                )}
+                {cloudConfigured && (
+                  <div className="apex-account-row">
+                    <input
+                      className="apex-account-input"
+                      type="password"
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      value={pastedEmailLink}
+                      placeholder="PASTE EMAIL SIGN-IN LINK"
+                      aria-label="PASTE EMAIL SIGN-IN LINK"
+                      onChange={(e) => setPastedEmailLink(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="apex-account-btn is-primary"
+                      disabled={busy || pastedEmailLink.trim().length < 10}
+                      onClick={() => run(() => {
+                        const url = pastedEmailLink;
+                        setPastedEmailLink('');
+                        return openEmailMagicLinkHere(url);
+                      })}
+                    >
+                      SIGN IN IN THIS TAB
+                    </button>
+                  </div>
+                )}
                 {linkSent && (
                   <p className="apex-account-note" role="status">
-                    Check your email and open the sign-in link. APEX CHAOS will
-                    open in a new tab, already signed in. No code is needed.
+                    Email sent. COPY the NEW confirmation link's address (do not
+                    open it in the default browser), paste above, then choose
+                    SIGN IN IN THIS TAB. One-time links work only once.
                   </p>
                 )}
               </div>
