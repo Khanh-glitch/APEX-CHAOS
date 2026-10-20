@@ -14,7 +14,10 @@ import {getProductSurface,canLaunchProductSurface,listProductSurfaces} from '../
 assert.equal(getProductSurface('bot-wave').route,'wave');
 assert.equal(getProductSurface('bot-wave').preview,true);
 assert.equal(canLaunchProductSurface('bot-wave'),true);
-assert.equal(listProductSurfaces().filter(x=>x.availability==='ACTIVE').length,6);
+// ACTIVE surface count tracks the product graph truth (see
+// testArsenalProductGraph): Alpha polish activated missions,
+// achievements and account-profile, so 6 -> 9.
+assert.equal(listProductSurfaces().filter(x=>x.availability==='ACTIVE').length,9);
 const app=fs.readFileSync('src/App.jsx','utf8');
 assert.ok(app.includes("history.pushState({apexWave:true}") &&
  app.includes("name:'bot-wave-enter'")&&app.includes("name:'bot-wave-return'"),

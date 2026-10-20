@@ -43,8 +43,11 @@ for(const view of [{name:'desktop',width:1440,height:900},{name:'landscape-phone
     loaded:!!image?.complete&&image.naturalWidth>0,
     actionArt:root?.querySelectorAll('img').length||0};
   });
+  // Subpath law: the emblem src is an absolute app-root URL (apexAppUrl)
+  // so it survives the Gold <base> on itch-nested hosting; assert the
+  // resolved pathname, not one exact spelling.
   assert.ok(homeArt.loaded&&homeArt.actionArt===1&&
-    homeArt.src==='/assets/dictionary/heroes/boxe/avatar.png',
+    new URL(homeArt.src, 'http://apex.invalid/').pathname.endsWith('/assets/dictionary/heroes/boxe/avatar.png'),
     'Home BOT WAVE entry must use the transparent BOXE avatar artwork '+JSON.stringify(homeArt));
   // R9: layout must clear the original FREE BATTLE CTA; a nice screenshot
   // is NOT a test if its event card covers the real game controls.

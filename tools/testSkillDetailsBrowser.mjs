@@ -130,8 +130,10 @@ function assertDetails(state, heroKey, sideLabelPart) {
 
   const home = await page.evaluate(() => ({
     ac: document.querySelector('[data-apex-ac]')?.textContent,
-    oldTopAccount: !!document.querySelector('.profileIdentity'),
-    bottomAccount: !!document.querySelector('[data-apex-account-entry]'),
+    accountEntries: document.querySelectorAll('#apexAccountOpen').length,
+    missionsEntries: document.querySelectorAll('#apexMissionsOpen').length,
+    profileChips: document.querySelectorAll('.profileIdentity').length,
+    settingsBtns: document.querySelectorAll('.settings').length,
     credits: window.APEX_ARSENAL_META?.credits(),
     owned: window.APEX_ARSENAL_META?.getState().ownedFighters,
     canSelectHunter: window.APEX_ARSENAL_META?.canPublicSelect('HUNTER'),
@@ -145,13 +147,20 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.deepEqual(home.owned, ['ROBOT'], 'fresh ownership is NEWBOT only');
   assert.equal(home.canSelectHunter, false, 'unowned fighter is not selectable');
   assert.equal(home.canSelectRobot, true, 'NEWBOT selectable');
-  assert.equal(home.oldTopAccount, false, 'retired duplicate top account identity is absent');
-  assert.equal(home.bottomAccount, true, 'existing lower Home Account entry opens the real profile');
+  // Alpha Home law: exactly ONE account entry (bottom nav); the retired
+  // top identity chip and the dead settings button are absent.
+  assert.equal(home.accountEntries, 1, 'single bottom-nav account entry');
+  assert.equal(home.missionsEntries, 1, 'single bottom-nav missions entry');
+  assert.equal(home.profileChips, 0, 'retired duplicate top identity chip is absent');
+  assert.equal(home.settingsBtns, 0, 'dead settings button is absent');
   assert.equal(home.isAdmin, false, 'fresh player is not admin');
   await shot(page, 'desktop-home-fresh');
 
-  // Account Center (guest, honest cloud state)
-  await page.click('[data-apex-account-entry]');
+  // Account Center (guest, honest cloud state) — opened from the single
+  // bottom-nav ACCOUNT entry. Dismiss the first-play guide first so it
+  // can never cover the nav on small stages.
+  await page.evaluate(() => document.querySelector('.apex-guide-close')?.click());
+  await page.click('#apexAccountOpen');
   await page.waitForSelector('.apex-account-overlay.is-open', { timeout: 15000 });
   const acct = await page.evaluate(() => ({
     credits: document.querySelector('[data-account-credits]')?.textContent,
@@ -168,7 +177,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.equal(acct.lockedChips, 7);
   if (home.cloud === false) {
     if (GUEST_ONLY_RELEASE) {
-      assert.ok(acct.sync.includes('ĐÃ BẬT LƯU TRÊN THIẾT BỊ'), 'Guest release truthfully labels local save');
+      assert.ok(acct.sync.includes('DEVICE SAVE ACTIVE'), 'Guest release truthfully labels local save');
       assert.equal(acct.googleDisabled, undefined, 'Guest release renders no disabled fake Google button');
       assert.equal(await page.$('[aria-label="SIGN IN"]'), null, 'Guest release has no Cloud login section');
     } else {
@@ -316,7 +325,12 @@ function assertDetails(state, heroKey, sideLabelPart) {
 
   // Lock P1 → P2 fighter deploys → P2 details become available and correct
   await page.click('#lockIn');
-  await sleep(700);
+  // State-driven wait: software-rendered CI/sandbox browsers can take
+  // longer than a fixed sleep to commit the lock transition.
+  await page.waitForFunction(
+    () => document.querySelector('#stage')?.classList.contains('fighter-p1-locked'),
+    { timeout: 15000 },
+  );
   st = await sideState(page);
   assert.equal(st.p1Locked, true, 'P1 locked by the real lock-in control');
   assert.equal(st.p2BtnHidden, false, 'P2 details available after deployment');
