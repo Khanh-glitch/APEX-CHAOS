@@ -7,6 +7,7 @@ import {
   signInWithEmailOtp,
   verifyEmailOtp,
   signInWithPassword,
+  recoverEmailPassword,
   setCurrentAccountPassword,
   signOutCloud,
   requestAccountDeletion,
@@ -203,6 +204,8 @@ export default function AccountCenter() {
           'email-not-verified': 'Tài khoản cần xác minh email trước khi đặt mật khẩu.',
           'password-update-failed': 'Chưa đặt được mật khẩu. Kiểm tra lại và thử sau.',
           'auth-rate-limited': 'Quá nhiều lần thử. Vui lòng đợi trước khi đăng nhập lại.',
+          'recovery-rate-limited': 'Hết lượt gửi email của máy chủ. Đừng gửi lại liên tục; chờ một lúc rồi thử lại.',
+          'recovery-unavailable': 'Chưa gửi được email khôi phục. Hãy thử lại sau.',
           'identity-not-verified': 'Phiên đăng nhập không còn hợp lệ. Hãy đăng nhập lại.',
         };
         setMessage(help[result.reason] || String(result.reason).toUpperCase());
@@ -444,6 +447,24 @@ fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was resto
                       })}
                     >
                       ĐĂNG NHẬP
+                    </button>
+                    <button
+                      type="button"
+                      className="apex-account-btn"
+                      disabled={busy || !email.trim() || waitSeconds > 0}
+                      onClick={() => run(async () => {
+                        const result = await recoverEmailPassword(email);
+                        setNow(Date.now());
+                        if (result?.ok) {
+                          setNextSendAt(Date.now() + 60_000);
+                          setMessage('Nếu email này có tài khoản, hãy kiểm tra thư đặt lại mật khẩu. Mở thư, trở lại game rồi đặt mật khẩu mới trong Account Center.');
+                        } else if (result?.reason === 'recovery-rate-limited') {
+                          setNextSendAt(Date.now() + 5 * 60_000);
+                        }
+                        return result;
+                      })}
+                    >
+                      {waitSeconds > 0 ? `GỬI LẠI SAU ${waitSeconds}S` : 'QUÊN MẬT KHẨU?'}
                     </button>
                     <p className="apex-account-note">
                       Đăng ký mới tạm khóa trên staging; Guest vẫn chơi ngay.
