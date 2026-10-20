@@ -59,7 +59,10 @@ check('boot paint settle never scans future HUD images',
   coordinator.includes("settleSceneElement(defaultRoot(), { verifyImages: false })"));
 check('boot readiness promise can reject instead of orphaning forever',
   coordinator.includes('return { promise, resolve, reject }') && coordinator.includes('bootReady.reject(error)'));
-check('coordinator consumes generated transition URL', coordinator.includes("import { GOLD_TRANSITION_URL } from './goldAssetManifest.js'") && coordinator.includes('const GOLD_DOOR_RUNTIME_URL = GOLD_TRANSITION_URL'));
+// Entry-base law: the generated URL is consumed through apexAppUrl so
+// the door runtime resolves inside nested deploys (itch /html/<id>/),
+// never as an origin-root spelling.
+check('coordinator consumes generated transition URL via app-root authority', coordinator.includes("import { GOLD_TRANSITION_URL } from './goldAssetManifest.js'") && coordinator.includes('const GOLD_DOOR_RUNTIME_URL = apexAppUrl(GOLD_TRANSITION_URL)'));
 check('Gold Door runtime is module-scoped away from engine globals',
   coordinator.includes("script.type = 'module'") &&
   coordinator.includes("s.type === 'module'") &&
