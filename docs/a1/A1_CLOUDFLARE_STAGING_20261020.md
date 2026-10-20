@@ -87,3 +87,27 @@ The owner completed a genuine email Magic Link sign-in in a new tab. Their Accou
 **Owner single-action manual gate (not yet executed):** Keep the currently logged-in browser and its device storage. Open https://a1-cloud-staging-20261020.apex-chaos.pages.dev/, click Home profile chip → Account Center → **BACK UP GUEST PROGRESS** once. Report the on-screen sync status without sharing Auth tokens or email codes. We will then compare staging table row counts (`player_progress`, `guest_migrations`) and confirm local 50 AC, MAGNET, and 1 draw remain unchanged. Running the button a second time should not create duplicate lineages nor silently overwrite the cloud snapshot. Do not rerun Magic Link or clear browser storage.
 
 **Release locks:** The owner account's live backup is still unproven until the explicit click + backend inspection. Multi-device CAS concurrency, backend deletions, Google OAuth and cloud-authoritative AC receipts remain separate unpassed gates. PR stays DRAFT; production stays unchanged.
+
+## Owner screenshot + live SQL closeout — Guest backup verified
+
+A signed-in owner provided an Account Center screenshot after pressing `BACK UP GUEST PROGRESS`. Local device display remained **50 AC**, **2/8 owned (NEWBOT and MAGNET)** and **1 draw**, while the sync label showed **SAVED**. Confirmed independently against APEX staging database immediately afterward:
+
+| Database check | Observed |
+| --- | --- |
+| `public.player_progress` rows | 1 (previously 0) |
+| `public.guest_migrations` rows | 1 (previously 0) |
+| `player_progress.namespace` | `arsenalMeta` |
+| `player_progress.version` | 1 (first CAS insert) |
+| `player_progress.payload.unverified` | `true` |
+| Snapshot state | JSON object, `credits = 50`, `totalSpins = 1`, contains `MAGNET` |
+| Migration status / verification | `pending-review`, `unverified = true` |
+| Guest ID match across migration and snapshot for same signed-in user | 1 matched row |
+| Unique guest-migration database index | Present |
+| Separate Cloud wallet credits/version | 350 AC, version 1 (unchanged starter wallet) |
+| Cloud-ledger starter grants | 1, no duplicate starter grant |
+| Cloud `MAGNET` ownership grants | 0 (no unverified fighter promotion) |
+| Cloud account roles | 0 (no Admin escalation) |
+
+**Checkpoint verdict:** User's single device-to-staging unverified backup **PASS**. Server Cloud wallet authority is still separate from device-local game economy. This is NOT verified currency reconciliation or proof that a *second* browser can safely replay/restore the snapshot. No wallet flag flips, production deployment or merge were made.
+
+**Remaining release checks:** authenticated two-device CAS conflict, cloud restore semantics and conflict UX, actual Google OAuth (if desired), backend account-deletion fulfillment, and server-authoritative match reward receipts. Until then keep A1.2 PR draft and production cloud features locked.
