@@ -10,7 +10,7 @@
 - New browser/profile: 350 AC + NEWBOT only. Existing on-device save (including previously spent AC / previously unlocked heroes) must never be reset or refilled.
 - **Free Battle BOT: P1 win +200 AC**, loss +25 AC. **LOCAL completed match +50 AC**, regardless of which player wins. Lab/Admin Test/Quest/incomplete/invalid = **0 AC**.
 - Sealed match ID + in-memory match completion make all real battle rewards idempotent, including reload/retry. No cloud-authoritative wallet, no server reward calls.
-- Fighter Shop: 1000 AC; Lucky Draw: 350 AC. The draw pool and fighter entitlement checks remain untouched. AC and ownership share the original `apexChaos.arsenalMeta.v1` storage key.
+- Fighter Shop is LOCKED in public navigation. Its underlying 1000 AC purchase wallet law remains tested but is not advertised as player-accessible. Lucky Draw: 350 AC, ACTIVE. The draw pool and fighter entitlement checks remain untouched. AC and ownership share the original `apexChaos.arsenalMeta.v1` storage key.
 - UI assets, skill icons, hero art and battle effects are otherwise unchanged from the pinned main candidate.
 
 ## Independent automated checkpoint
@@ -29,7 +29,7 @@
 - [ ] **BOT win:** Play through a genuine Free Battle BOT match (do not fake a win). Win displays +200 AC and adds exactly 200 to Account Center balance.
 - [ ] **BOT loss:** +25 AC (provisional). Re-opening or revisiting the result does not grant more.
 - [ ] **LOCAL:** An actually completed 1v1 gives +50 total to the local profile, even if P2 wins.
-- [ ] **Shop:** 1000 AC required. A purchased fighter stays owned and selectable after reload.
+- [ ] **Fighter Shop lock:** The public Shop stays LOCKED/COMING SOON with no accessible purchase path. Underlying 1000 AC purchase law, entitlement persistence and balance rules remain covered by isolated economy tests; do not advertise the Shop as open.
 - [ ] **Lucky Draw:** Costs 350 AC once; no duplicate costs; only canonical unowned fighters.
 - [ ] **Refresh / re-enter:** Previous balance, fighters, selected hero and match claim history remain.
 - [ ] **No accidental bypass:** Lab/Admin/invalid/abandoned game never pays AC.
