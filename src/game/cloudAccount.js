@@ -36,6 +36,7 @@ import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
 import { persistGuestHandoffIfEmpty } from './guestCloudHandoff.js';
 import { describeUnverifiedCloudSnapshot } from './cloudSnapshotPreview.js';
 import { requestEmailCode, confirmEmailCode } from './emailCodeAuth.js';
+import { signInWithEmailPassword, setPasswordForVerifiedUser } from './emailPasswordAuth.js';
 
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
@@ -296,6 +297,33 @@ export async function signInWithGoogle() {
   return error ? { ok: false, reason: error.message } : { ok: true, redirect: true };
 }
 
+// Staging acceptance: password login for a previously confirmed user.
+// No email delivery and no template/Google/MFA configuration is needed.
+export async function signInWithPassword(email, password) {
+  if (!isCloudConfigured()) return unconfigured();
+  const client = await getClient();
+  const result = await signInWithEmailPassword(client, email, password);
+  if (!result.ok) return result;
+  await projectSession(client, result.session);
+  return { ok: true };
+}
+
+export async function setCurrentAccountPassword(password, confirmation) {
+  if (!isCloudConfigured()) return unconfigured();
+  const profile = playerAccountAuthority.profile();
+  if (!profile || profile.kind !== 'cloud') return { ok: false, reason: 'signed-out' };
+  const userId = profile.profileId, epoch = sessionEpoch;
+  const client = await getClient();
+  if (epoch !== sessionEpoch || currentSessionUserId !== userId) {
+    return { ok: false, reason: 'session-superseded' };
+  }
+  const result = await setPasswordForVerifiedUser(client, userId, password, confirmation);
+  if (epoch !== sessionEpoch || currentSessionUserId !== userId) {
+    return { ok: false, reason: 'session-superseded' };
+  }
+  return result;
+}
+
 export async function signInWithEmailOtp(email) {
   if (!isEmailCodeEnabled()) return { ok: false, reason: 'email-code-not-ready' };
   const client = await getClient();
@@ -539,6 +567,8 @@ const api = Object.freeze({
   isCloudConfigured,
   initCloudAccount,
   signInWithGoogle,
+  signInWithPassword,
+  setCurrentAccountPassword,
   isEmailCodeEnabled,
   signInWithEmailOtp,
   verifyEmailOtp,
