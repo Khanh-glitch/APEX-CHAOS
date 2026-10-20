@@ -141,6 +141,36 @@ profiles with `deletion_requested_at` set (all public rows cascade from
 `auth.users`), plus its own staging test. No service-role key ever ships
 in the client.
 
+## Addendum — session lifecycle closeout (final round)
+
+A follow-up review found one remaining class of issue in
+`cloudAccount.js`: session projection is async, while sign-out, account
+switching and connectivity loss are synchronous — so a slow role fetch
+could, in principle, re-apply a verified grant after the lifecycle that
+earned it had already ended. Closed as follows:
+
+- **Revoke-first sign-out.** `signOutCloud()` revokes the verified grant
+  (ending any Admin Test Session) and clears the projection
+  synchronously, *before* the `auth.signOut()` network call — a slow or
+  failed request leaves nothing behind.
+- **Epoch guard.** Every `projectSession()` claims an epoch; sign-out,
+  account switch and offline invalidate it. A superseded projection
+  applies nothing: no grant, no display projection, no sync-state write —
+  even if its late role fetch returns `admin`.
+- **Offline fails closed.** Losing connectivity revokes the grant
+  immediately (the published policy); coming back online never restores
+  local state — it re-projects and re-verifies against the server.
+- **Per-account CAS cache.** The progress version cache is tied to the
+  account that produced it and reset on sign-out/account switch, so one
+  user's version can never seed another's compare-and-swap.
+
+Proof: `tools/testCloudLifecycleRaces.mjs` (14 deterministic fake-client
+race checks: revoke-before-network, logout-during-role-fetch,
+logout-during-display-fetch, offline revocation, online
+re-verification-only restore, account-switch stale completion, CAS
+cache isolation). This is client ordering evidence, **not** staging
+proof — the live-backend items below remain pending.
+
 ## A1.2 remaining scope (unchanged, explicit)
 
 Adapter + SQL are complete but **unexecuted against a real backend**:

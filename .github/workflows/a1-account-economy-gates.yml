@@ -32,6 +32,7 @@ on:
       - 'tools/testArsenalProductGraph.mjs'
       - 'tools/testBattleOutcomeSideGate.mjs'
       - 'tools/testCloudSecurityContracts.mjs'
+      - 'tools/testCloudLifecycleRaces.mjs'
       - 'tools/testAdminEscalationNegativesBrowser.mjs'
       - 'tools/assetAudit.mjs'
       - '.github/workflows/a1-account-economy-gates.yml'
@@ -58,6 +59,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Cloud security contracts (no public setters, CAS, deletion-pending)
         run: node tools/testCloudSecurityContracts.mjs
+      - name: Cloud session lifecycle races (logout/offline/switch fail-closed)
+        run: node tools/testCloudLifecycleRaces.mjs
       - name: Production progression contract (350/NEWBOT, rewards, idempotency)
         run: pnpm test:owner-playtest-economy
       - name: Skill-details parity (registry truth, VIE coverage, symmetry)

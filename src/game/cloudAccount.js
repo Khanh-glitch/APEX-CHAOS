@@ -22,7 +22,11 @@
 // and feeds the Admin authority only after the session has been
 // re-validated against the auth server (`auth.getUser()`) and the
 // caller's own account_roles row says 'admin'. Nothing on window can
-// inject either state (Blocker 1).
+// inject either state (Blocker 1). The session lifecycle is epoch-guarded
+// and fail-closed: sign-out revokes synchronously before any network
+// call, offline revokes until a fresh server re-verification, account
+// switches reset the grant + progress version cache, and stale async
+// projections can never re-apply a grant (final lifecycle closeout).
 
 import playerAccountAuthority, {
   projectCloudSessionInternal,
@@ -34,11 +38,15 @@ const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '
 const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '';
 
 export function isCloudConfigured() {
-  return !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
+  // `testClientOverride` is null in every shipped build path; only the
+  // module-private lifecycle test seam at the bottom of this file sets it.
+  return !!testClientOverride || (!!SUPABASE_URL && !!SUPABASE_ANON_KEY);
 }
 
 let clientPromise = null;
+let testClientOverride = null;
 async function getClient() {
+  if (testClientOverride) return testClientOverride;
   if (!isCloudConfigured()) return null;
   if (!clientPromise) {
     clientPromise = import('@supabase/supabase-js').then(({ createClient }) =>
@@ -53,18 +61,65 @@ function setSync(status, detail) {
   setCloudSyncStateInternal(status, detail);
 }
 
+// ── Session lifecycle (fail-closed, race-proof) ─────────────────────────────
+// Session projection is async (profile fetch → server re-validation → role
+// fetch), while sign-out, account switching and connectivity loss are
+// synchronous events. Without ordering, a slow projection could re-apply a
+// verified admin grant AFTER the player already signed out, switched
+// accounts, or went offline. The epoch counter makes every lifecycle
+// transition invalidate in-flight async work:
+//   * every projectSession() call claims a new epoch;
+//   * sign-out and offline bump the epoch WITHOUT starting a projection;
+//   * a projection writes state only while its epoch is still current —
+//     stale completions are discarded (no grant, no display projection,
+//     no sync-state clobber).
+// Revocation is always synchronous and first: sign-out and offline revoke
+// the verified grant (ending any Admin Test Session) before any network
+// await. A grant only ever (re)appears at the end of a fresh, current,
+// server-verified projection — e.g. the 'online' handler re-verifies from
+// scratch instead of restoring local state.
+let sessionEpoch = 0;
+let currentSessionUserId = null;
+
+// Progress CAS cache lives in the lifecycle block because it is only
+// valid for the account that produced it: switching accounts must reset
+// it, or one user's last-known server version would seed the next user's
+// compare-and-swap expectation.
+let lastKnownProgressVersion = null;
+let lastKnownProgressUserId = null;
+function resetProgressSyncCache() {
+  lastKnownProgressVersion = null;
+  lastKnownProgressUserId = null;
+}
+
 // Projects a Supabase session into (a) the DISPLAY profile and (b) — only
 // after server verification — the Admin authority's private channel. The
 // two are deliberately separate (A1 closeout Blocker 1): what the UI shows
-// is never treated as authorization evidence.
+// is never treated as authorization evidence. Every state write after an
+// await is epoch-guarded (see lifecycle block above): a projection that
+// was overtaken by sign-out, an account switch, or going offline applies
+// nothing.
 async function projectSession(client, session) {
+  const epoch = ++sessionEpoch;
+  const stillCurrent = () => epoch === sessionEpoch;
   if (!session || !session.user) {
+    currentSessionUserId = null;
+    resetProgressSyncCache();
     projectCloudSessionInternal(null);
     setVerifiedCloudAdminInternal(null);
     setSync(isCloudConfigured() ? 'signed-out' : 'cloud-unconfigured', '');
     return;
   }
   const user = session.user;
+  if (currentSessionUserId !== user.id) {
+    // Account switch (or first sign-in): the previous account's grant and
+    // CAS version cache must not bleed into this identity. Revoke up
+    // front; a grant for THIS user can only appear after the fresh
+    // server verification at the end of this projection.
+    currentSessionUserId = user.id;
+    resetProgressSyncCache();
+    setVerifiedCloudAdminInternal(null);
+  }
   // (a) Display projection: name/avatar for the Account Center. Sourced
   // from the session + the caller's own profile row (RLS self-select).
   let displayName = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || '';
@@ -75,6 +130,7 @@ async function projectSession(client, session) {
     if (profileRow && profileRow.display_name) displayName = profileRow.display_name;
     if (profileRow && profileRow.avatar_url) avatarUrl = profileRow.avatar_url;
   } catch (error) { /* display data is best-effort */ }
+  if (!stillCurrent()) return; // superseded while fetching display data
   projectCloudSessionInternal({
     userId: user.id,
     email: user.email || '',
@@ -97,8 +153,31 @@ async function projectSession(client, session) {
       if (roleRow && roleRow.role === 'admin') adminUserId = verified.id;
     }
   } catch (error) { /* fail closed: adminUserId stays null */ }
+  // The grant write is the security-critical one: if sign-out, an account
+  // switch, or offline superseded this projection while verification was
+  // in flight, the (possibly admin) result belongs to a dead lifecycle
+  // and must NOT be applied.
+  if (!stillCurrent()) return;
   setVerifiedCloudAdminInternal(adminUserId);
   setSync('saved', '');
+}
+
+// Offline = cannot re-prove a server-verified grant, so fail closed
+// immediately: invalidate in-flight projections and revoke the grant
+// (which also ends any live Admin Test Session). The display profile is
+// left alone — it authorizes nothing. Recovery happens only through the
+// 'online' re-verification below, never by restoring local state.
+function handleOffline() {
+  sessionEpoch += 1;
+  setVerifiedCloudAdminInternal(null);
+  setSync('offline', '');
+}
+
+async function refreshSessionProjection() {
+  const client = await getClient();
+  if (!client) return;
+  const { data } = await client.auth.getSession();
+  await projectSession(client, data && data.session);
 }
 
 let initialized = false;
@@ -117,9 +196,13 @@ export async function initCloudAccount() {
       projectSession(client, session).catch(() => setSync('error', 'session'));
     });
     if (typeof navigator !== 'undefined') {
-      window.addEventListener('online', () => setSync('saved', ''));
-      window.addEventListener('offline', () => setSync('offline', ''));
-      if (navigator.onLine === false) setSync('offline', '');
+      window.addEventListener('online', () => {
+        // Never restore a grant from local state: re-project the live
+        // session and re-verify against the server.
+        refreshSessionProjection().catch(() => setSync('error', 'session'));
+      });
+      window.addEventListener('offline', handleOffline);
+      if (navigator.onLine === false) handleOffline();
     }
     return { ok: true, configured: true };
   } catch (error) {
@@ -165,10 +248,18 @@ export async function verifyEmailOtp(email, token) {
 
 export async function signOutCloud() {
   if (!isCloudConfigured()) return unconfigured();
+  // Revoke FIRST, synchronously, before any network await: a slow or
+  // failed sign-out request must never leave a live verified grant (or
+  // Admin Test Session) behind. Bumping the epoch also neutralizes any
+  // projectSession still awaiting its role fetch — its result, even
+  // 'admin', will be discarded as stale.
+  sessionEpoch += 1;
+  currentSessionUserId = null;
+  resetProgressSyncCache();
+  setVerifiedCloudAdminInternal(null);
+  projectCloudSessionInternal(null);
   const client = await getClient();
   const { error } = await client.auth.signOut();
-  projectCloudSessionInternal(null);
-  setVerifiedCloudAdminInternal(null);
   setSync('signed-out', '');
   return error ? { ok: false, reason: error.message } : { ok: true };
 }
@@ -201,8 +292,10 @@ export async function requestAccountDeletion() {
 // seeing CONFLICT is the user's explicit overwrite decision). Direct
 // table writes are revoked by RLS policy in migration 0002 so the CAS
 // cannot be bypassed through this client's own table access. Economic
-// fields are never auto-applied on download.
-let lastKnownProgressVersion = null;
+// fields are never auto-applied on download. The version cache itself
+// lives in the session-lifecycle block above (reset on sign-out/account
+// switch, and re-checked against the current user below as a second
+// line of defense).
 
 export async function uploadProgressSnapshot() {
   if (!isCloudConfigured()) return unconfigured();
@@ -214,6 +307,13 @@ export async function uploadProgressSnapshot() {
   setSync('syncing', '');
   try {
     const client = await getClient();
+    // Never let a previous account's remembered version seed this
+    // account's CAS expectation (the lifecycle reset should have caught
+    // the switch; this is the belt-and-suspenders check).
+    if (lastKnownProgressUserId !== profile.profileId) {
+      lastKnownProgressVersion = null;
+      lastKnownProgressUserId = profile.profileId;
+    }
     if (lastKnownProgressVersion === null) {
       const { data: existing } = await client
         .from('player_progress').select('version')
@@ -234,7 +334,7 @@ export async function uploadProgressSnapshot() {
     }
     // CONFLICT: a newer snapshot landed first (second device). Preserve it.
     const serverVersion = row ? Number(row.current_version) : null;
-    lastKnownProgressVersion = null; // force a fresh read before any retry
+    resetProgressSyncCache(); // force a fresh read before any retry
     setSync('conflict', 'A newer cloud snapshot exists (another device). Nothing was overwritten.');
     return { ok: false, reason: 'conflict', serverVersion };
   } catch (error) {
@@ -293,3 +393,35 @@ export function installCloudAccount(scope = globalThis) {
 }
 
 export default api;
+
+// ── Deterministic lifecycle test seam (node gates only) ─────────────────────
+// tools/testCloudLifecycleRaces.mjs injects a fake Supabase client here to
+// prove epoch/revocation semantics (logout-during-role-fetch, offline
+// revocation, account switching, stale async completion) without a live
+// backend. Like the other internal channels in this design, this is an
+// ES-module export that is NEVER attached to window or the frozen api
+// object: module scope is unreachable from the devtools console, and a
+// caller who can import this module already controls the client — the
+// shipped bundle's behavior is unchanged (override stays null).
+export const __cloudLifecycleTestHooks = Object.freeze({
+  setClientOverride(client) {
+    testClientOverride = client || null;
+  },
+  projectSession(client, session) {
+    return projectSession(client, session);
+  },
+  handleOffline() {
+    handleOffline();
+  },
+  refreshSessionProjection() {
+    return refreshSessionProjection();
+  },
+  sessionEpoch: () => sessionEpoch,
+  currentSessionUserId: () => currentSessionUserId,
+  progressCache: () => ({ version: lastKnownProgressVersion, userId: lastKnownProgressUserId }),
+  resetLifecycle() {
+    initialized = false;
+    currentSessionUserId = null;
+    resetProgressSyncCache();
+  },
+});
