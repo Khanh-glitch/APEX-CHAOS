@@ -72,7 +72,9 @@ function pass(message) { checks++; console.log('PASS', message); }
   assert.equal(result.result, 'existing');
   assert.equal(h.saved.progress.get(who), before);
   assert.equal(h.saved.calls.filter(x => x.action === 'cas0').length, 0);
+  assert.equal(h.saved.migrations.size, 0, 'secondary browser must not create new Guest import');
   pass('existing cloud snapshot preserved, even when device credits differ');
+  pass('second browser sign-in with existing snapshot adds zero new Guest lineage rows');
 }
 {
   const h = harness(); h.setAuthId('user-b');
