@@ -104,3 +104,33 @@ jobs:
           done
           echo "::error::Guest preview did not serve candidate SHA"
           exit 1
+      - name: Simulate itch.io nested HTML5 hosting (separate preview branch)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The genuine itch ZIP entrypoint is nested under /html/apex/,
+          # NOT hosted at Cloudflare root. This tests relative asset paths.
+          mkdir -p itch-nested-preview/html/apex
+          cp -a dist-itch-html5/. itch-nested-preview/html/apex/
+          printf '<!doctype html><meta charset="utf-8"><title>Nested itch QA</title><iframe src="/html/apex/index.html" width="1440" height="900"></iframe>' > itch-nested-preview/index.html
+          npx --yes wrangler@4 pages deploy itch-nested-preview \
+            --project-name=apex-chaos \
+            --branch=itch-html5-subpath-20261020 \
+            --commit-hash="$GITHUB_SHA" \
+            --commit-dirty=true
+      - name: Verify packaged HTML5 at nested preview path
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://itch-html5-subpath-20261020.apex-chaos.pages.dev/html/apex"
+          for attempt in $(seq 1 25); do
+            got="$(curl -fsSL --max-time 15 "$url/ITCH_GUEST_BUILD_SHA.txt" 2>/dev/null || true)"
+            if [ "$got" = "$GITHUB_SHA" ]; then
+              curl -fsSL --max-time 15 "$url/index.html" | grep -q 'src="./assets/'
+              echo "NESTED ITCH HTML5 QA PASS: $url/index.html"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::Nested HTML5 artifact failed immutable SHA/path gate"
+          exit 1
