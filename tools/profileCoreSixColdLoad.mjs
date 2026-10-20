@@ -201,6 +201,18 @@ async function runHero(hero, index) {
       window.__APEX_COLD_ERRORS=[];
       addEventListener('error',e=>window.__APEX_COLD_ERRORS.push(String(e.message||e.error||'error')));
       addEventListener('unhandledrejection',e=>window.__APEX_COLD_ERRORS.push('rejection:'+String(e.reason||'')));
+      // A1 production economy: a fresh profile owns NEWBOT only (proven by
+      // the A1 gates), so five of the Core Six cards are locked for it.
+      // Cold-load of a hero can only be profiled for a player who owns that
+      // hero; seed that legitimate saved state. This warms no asset cache
+      // (fresh user-data-dir per hero above) — it only models ownership.
+      try{localStorage.setItem('apexChaos.arsenalMeta.v1',JSON.stringify({
+        version:1,credits:425,
+        ownedFighters:['ROBOT','HUNTER','CRYSTAL','MAGNET','ICE','MIRROR'],
+        lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:5,
+        unlockedAt:{ROBOT:0,HUNTER:1,CRYSTAL:2,MAGNET:3,ICE:4,MIRROR:5},
+        arenaPaletteId:null,claimedMatchIds:[],
+      }));}catch(e){}
     `});
     await cdp.command('Page.navigate', { url:appUrl });
 

@@ -61,6 +61,34 @@ try{
     await sleep(100);
   }
   check('owner-hidden-keyboard-loaded-at-real-Gold-Home',homeLoaded,{homeLoaded});
+  // A1.4: Ctrl+Shift+F8 is an interface, not authorization. Prove the real
+  // production denial for the default guest FIRST (genuine authority, no
+  // stubbing), then establish the admin through the exact seam a
+  // server-verified cloud login uses — APEX_PLAYER_ACCOUNT.__setCloudSession,
+  // the write cloudAccount.js performs after account_roles confirms
+  // 'admin'. CI has no backend, so the fixture stands at the
+  // verified-session boundary; authority derivation, the F8 handler and
+  // the bot pick below are all production code.
+  const guestChord=await ev(`(()=>{
+    const owner=window.APEX_ARSENAL_OWNER_TEST;
+    window.dispatchEvent(new KeyboardEvent('keydown',{
+      key:'F8',code:'F8',ctrlKey:true,shiftKey:true,bubbles:true}));
+    return {active:owner.active,
+      canEnter:window.APEX_ADMIN_AUTHORITY?.canEnterAdminTestMode?.()??null,
+      profileKind:window.APEX_PLAYER_ACCOUNT?.profile?.()?.kind||null};
+  })()`);
+  check('a1-guest-f8-denied-with-genuine-authority',
+    guestChord.active===false&&guestChord.canEnter===false
+      &&guestChord.profileKind==='guest',guestChord);
+  const adminReady=await ev(`(()=>{
+    window.APEX_PLAYER_ACCOUNT.__setCloudSession({
+      userId:'ci-admin-fixture',email:'qa-admin@example.invalid',
+      displayName:'QA ADMIN',avatarUrl:'',providers:['email'],role:'admin'});
+    return {source:window.APEX_ADMIN_AUTHORITY?.adminSource?.()||null,
+      canEnter:window.APEX_ADMIN_AUTHORITY?.canEnterAdminTestMode?.()??null};
+  })()`);
+  check('a1-admin-derives-from-verified-cloud-role',
+    adminReady.source==='cloud-role'&&adminReady.canEnter===true,adminReady);
   const homeChord=await ev(`(()=>{
     const owner=window.APEX_ARSENAL_OWNER_TEST;
     const before={active:owner.active,mode:window.__apexArsenalSelectionMode||null};
