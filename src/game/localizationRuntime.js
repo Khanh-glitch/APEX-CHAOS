@@ -203,14 +203,15 @@ function setLanguage(next){
 function mountPicker(){
   if(select?.isConnected)return;
   const stage=document.querySelector('#gold-shell-host #stage');
-  if(!stage)return;
+  const profile=stage?.querySelector('.profile');
+  if(!profile)return;
   const picker=document.createElement('div');
   picker.id='apex-language-picker';
   picker.dataset.apexNoLocalize='';
   picker.setAttribute('role','group');
   picker.setAttribute('aria-label','Language / Ngôn ngữ');
   picker.innerHTML='<span class="apex-language-caption">LANG</span><select id="apex-language-select" aria-label="Language / Ngôn ngữ"><option value="eng">ENG</option><option value="vie">VIE</option></select>';
-  stage.appendChild(picker);
+  profile.appendChild(picker);
   select=picker.querySelector('select');
   select.value=language;
   select.addEventListener('change',()=>setLanguage(select.value));
