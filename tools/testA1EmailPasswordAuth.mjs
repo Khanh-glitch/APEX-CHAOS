@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { signInWithEmailPassword, setPasswordForVerifiedUser } from '../src/game/emailPasswordAuth.js';
+import { signInWithEmailPassword, setPasswordForVerifiedUser, requestPasswordRecovery } from '../src/game/emailPasswordAuth.js';
 let checks = 0;
 const ok = s => {checks++; console.log('PASS',s)};
 const user = {id:'test-user',email:'a@example.invalid',email_confirmed_at:'2026-10-20T00:00:00Z'};
@@ -39,4 +39,27 @@ assert.equal(signed.session.user.id,user.id);ok('cross-browser password signin p
 active={...user,id:'other-user'};
 assert.equal((await signInWithEmailPassword(client,'a@example.invalid','correct-horse-horse')).reason,'identity-not-verified');
 ok('post-signin identity mismatch rejected');
-console.log('A1 PASSWORD SIGN IN: PASS ('+checks+' tests); no emails sent.');
+let recoveryRequests=0;
+let recoveryError=null;
+const recoverClient={auth:{
+  async resetPasswordForEmail(email,opts){
+    recoveryRequests++;
+    assert.equal(email,'a@example.invalid');
+    assert.equal(opts.redirectTo,'https://a1-cloud-staging-20261020.apex-chaos.pages.dev/');
+    return {data:{},error:recoveryError};
+  }
+}};
+const redirect='https://a1-cloud-staging-20261020.apex-chaos.pages.dev/';
+assert.equal((await requestPasswordRecovery(recoverClient,'bad-address',redirect)).reason,'invalid-email');
+assert.equal(recoveryRequests,0);ok('invalid recovery address does not send email');
+const success=await requestPasswordRecovery(recoverClient,' A@Example.invalid ',redirect);
+assert.equal(success.ok,true);
+assert.equal(recoveryRequests,1);ok('official Supabase recovery honors staging redirect and normalizes address');
+recoveryError={status:429,message:'Too many requests'};
+assert.equal((await requestPasswordRecovery(recoverClient,'a@example.invalid',redirect)).reason,'recovery-rate-limited');
+ok('provider email quota is surfaced without repeated retry or credentials');
+recoveryError={status:400,message:'Internal sensitive user details'};
+assert.equal((await requestPasswordRecovery(recoverClient,'a@example.invalid',redirect)).reason,'recovery-unavailable');
+ok('other recovery errors hide account/server details');
+console.log('A1 PASSWORD SIGN IN + RECOVERY: PASS ('+checks+' tests); no real emails sent.');
+
