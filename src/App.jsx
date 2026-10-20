@@ -24,6 +24,7 @@ import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
 import AccountCenter from './ui/AccountCenter.jsx';
+import FirstBattleGuide from './ui/FirstBattleGuide.jsx';
 import { installAlphaHomeUsability } from './game/alphaHomeUsability.js';
 import './game/alphaHomeUsability.css';
 import './game/botWave/wavePreviewEntry.css';
@@ -1075,6 +1076,7 @@ export default function App() {
     <>
     <CosmeticLocker />
     <AccountCenter />
+    <FirstBattleGuide />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount
