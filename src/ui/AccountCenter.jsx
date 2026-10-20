@@ -4,11 +4,9 @@ import {
   isGoogleSignInEnabled,
   signInWithGoogle,
   signInWithEmailOtp,
-  verifyEmailOtp,
   signOutCloud,
   requestAccountDeletion,
   uploadProgressSnapshot,
-  recordGuestMigration,
 } from '../game/cloudAccount.js';
 import './accountCenter.css';
 
@@ -68,8 +66,7 @@ export default function AccountCenter() {
   const [open, setOpen] = useState(false);
   const [, setTick] = useState(0);
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -85,8 +82,7 @@ export default function AccountCenter() {
     invokerRef.current = invoker || document.activeElement || null;
     setMessage('');
     setConfirmDelete(false);
-    setOtpSent(false);
-    setOtp('');
+    setLinkSent(false);
     const { profile } = readAuthorities();
     setNameDraft(profile && profile.kind === 'guest' ? profile.displayName : '');
     setOpen(true);
@@ -315,7 +311,7 @@ export default function AccountCenter() {
                 </button>
                 {cloudConfigured && !googleEnabled && (
                   <p className="apex-account-note">
-                    Google sign-in is not enabled for this environment. Use Email OTP.
+                    Google sign-in is not enabled for this environment. Use the email sign-in link.
                   </p>
                 )}
                 <div className="apex-account-row">
@@ -334,40 +330,18 @@ export default function AccountCenter() {
                     disabled={busy || !cloudConfigured}
                     onClick={() => run(async () => {
                       const result = await signInWithEmailOtp(email);
-                      if (result && result.ok) setOtpSent(true);
+                      if (result && result.ok) setLinkSent(true);
                       return result;
                     })}
                   >
-                    SEND CODE
+                    SEND SIGN-IN LINK
                   </button>
                 </div>
-                {otpSent && (
-                  <div className="apex-account-row">
-                    <input
-                      className="apex-account-input"
-                      value={otp}
-                      placeholder="ENTER CODE"
-                      aria-label="ENTER CODE"
-                      onChange={(e) => setOtp(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="apex-account-btn is-primary"
-                      disabled={busy}
-                      onClick={() => run(async () => {
-                        const result = await verifyEmailOtp(email, otp);
-                        if (result && result.ok) {
-                          // First sign-in: record the guest lineage once, then
-                          // snapshot. The device wallet is never reset by this.
-                          await recordGuestMigration().catch(() => null);
-                          await uploadProgressSnapshot().catch(() => null);
-                        }
-                        return result;
-                      })}
-                    >
-                      VERIFY CODE
-                    </button>
-                  </div>
+                {linkSent && (
+                  <p className="apex-account-note" role="status">
+                    Check your email and open the sign-in link. APEX CHAOS will
+                    open in a new tab, already signed in. No code is needed.
+                  </p>
                 )}
               </div>
             </section>
