@@ -33,6 +33,7 @@ import playerAccountAuthority, {
   setCloudSyncStateInternal,
 } from './playerAccount.js';
 import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
+import { persistGuestHandoffIfEmpty } from './guestCloudHandoff.js';
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
 const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '';
@@ -85,8 +86,35 @@ function setSync(status, detail) {
 // await. A grant only ever (re)appears at the end of a fresh, current,
 // server-verified projection — e.g. the 'online' handler re-verifies from
 // scratch instead of restoring local state.
+const GUEST_LINK_KEY = 'apexChaos.guestEmailLinkPending.v1';
+const GUEST_LINK_TTL_MS = 30 * 60 * 1000; // Magic Link may open a second tab.
+function pendingLink() {
+  try {
+    const value = JSON.parse(localStorage.getItem(GUEST_LINK_KEY) || 'null');
+    if (!value || typeof value.guestId !== 'string'
+      || typeof value.email !== 'string'
+      || !Number.isFinite(value.at) || Date.now() - value.at > GUEST_LINK_TTL_MS
+      || value.at > Date.now()) return null;
+    return value;
+  } catch { return null; }
+}
+function rememberPendingLink(email) {
+  try {
+    localStorage.setItem(GUEST_LINK_KEY, JSON.stringify({
+      guestId: playerAccountAuthority.guestProfileId(),
+      email: String(email || '').trim().toLowerCase(), at: Date.now(),
+    }));
+  } catch { /* private browsing may deny storage; explicit backup remains */ }
+}
+function clearPendingLink(guestId) {
+  try {
+    if (pendingLink()?.guestId === guestId) localStorage.removeItem(GUEST_LINK_KEY);
+  } catch { /* never block auth */ }
+}
 let sessionEpoch = 0;
 let currentSessionUserId = null;
+let guestHandoffInFlight = null;
+let guestHandoffKey = null;
 
 // Progress CAS cache lives in the lifecycle block because it is only
 // valid for the account that produced it: switching accounts must reset
@@ -150,11 +178,13 @@ async function projectSession(client, session) {
   // then read the caller's own role row under RLS. Any error, mismatch or
   // offline state leaves the grant revoked.
   let adminUserId = null;
+  let verifiedUserId = null;
   try {
     const { data: userData, error: userError } = await client.auth.getUser();
     const verified = !userError && userData && userData.user && userData.user.id === user.id
       ? userData.user : null;
     if (verified) {
+      verifiedUserId = verified.id;
       const { data: roleRow } = await client
         .from('account_roles').select('role').eq('user_id', verified.id).maybeSingle();
       if (roleRow && roleRow.role === 'admin') adminUserId = verified.id;
@@ -166,10 +196,27 @@ async function projectSession(client, session) {
   // and must NOT be applied.
   if (!stillCurrent()) return;
   setVerifiedCloudAdminInternal(adminUserId);
-  // Hosted Auth verified the IDENTITY, not a saved progress snapshot.
-  // Claiming 'saved' here would incorrectly tell new Magic Link users
-  // their device-local wallet/roster were already stored in the cloud.
-  setSync('connected', 'Cloud identity verified. Progress upload is separate.');
+  // Identity verification is NOT proof that the device snapshot was saved.
+  const lastStatus = playerAccountAuthority.syncStatus().status;
+  if (!['saved', 'existing'].includes(lastStatus)) {
+    setSync(verifiedUserId ? 'connected' : 'error',
+      verifiedUserId ? 'Cloud identity verified. Progress upload is separate.'
+        : 'Cloud identity not verified yet.');
+  }
+  // Only the matching email-link request FROM THIS DEVICE may cause an
+  // automatic, create-only unverified handoff. No token, no secret, no AC
+  // grant is transported by the local pending marker.
+  const marker = pendingLink();
+  if (verifiedUserId === user.id && marker
+    && marker.guestId === playerAccountAuthority.guestProfileId()
+    && marker.email === String(user.email || '').trim().toLowerCase()
+    && typeof window !== 'undefined') {
+    window.setTimeout(() => {
+      if (stillCurrent() && playerAccountAuthority.profile().profileId === verifiedUserId) {
+        importGuestProgress().catch(() => {});
+      }
+    }, 1200);
+  }
 }
 
 // Offline = cannot re-prove a server-verified grant, so fail closed
@@ -243,7 +290,9 @@ export async function signInWithEmailOtp(email) {
     email: clean,
     options: { emailRedirectTo: window.location.origin + '/', shouldCreateUser: true },
   });
-  return error ? { ok: false, reason: error.message } : { ok: true, sent: true };
+  if (error) return { ok: false, reason: error.message };
+  rememberPendingLink(clean);
+  return { ok: true, sent: true };
 }
 
 export async function verifyEmailOtp(email, token) {
@@ -355,6 +404,60 @@ export async function uploadProgressSnapshot() {
   }
 }
 
+// One-time snapshot promotion candidate. The entire device state is stored
+// as UNVERIFIED backup data, with a unique pending-review lineage row. Cloud
+// wallet and fighter_ownership are NEVER touched by this code. The operation
+// verifies the current user at the Auth server, and only CAS-inserts if the
+// cloud has no snapshot already. It never overwrites another tab's progress.
+export async function importGuestProgress() {
+  if (!isCloudConfigured()) return unconfigured();
+  const profile = playerAccountAuthority.profile();
+  if (!profile || profile.kind !== 'cloud') return { ok: false, reason: 'signed-out' };
+  const userId = profile.profileId;
+  const guestId = playerAccountAuthority.guestProfileId();
+  const key = userId + ':' + guestId;
+  if (guestHandoffInFlight && guestHandoffKey === key) return guestHandoffInFlight;
+  const meta = typeof window !== 'undefined' ? window.APEX_ARSENAL_META : null;
+  const state = typeof meta?.getState === 'function' ? meta.getState() : null;
+  if (!state) return { ok: false, reason: 'device-progress-unavailable' };
+  const epoch = sessionEpoch;
+  const stillValid = () => epoch === sessionEpoch
+    && currentSessionUserId === userId
+    && playerAccountAuthority.profile().profileId === userId
+    && (typeof navigator === 'undefined' || navigator.onLine !== false);
+  const task = (async () => {
+    const client = await getClient();
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    setSync('syncing', 'Creating an unverified guest backup, not issuing cloud credits.');
+    const result = await persistGuestHandoffIfEmpty({
+      client, userId, guestId, snapshot: state, stillValid,
+    });
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    if (result.ok && result.result === 'created') {
+      clearPendingLink(guestId);
+      // Do not set CAS cache here: the manual upload must independently
+      // fetch the server version after a background guest handoff.
+      resetProgressSyncCache();
+      setSync('saved', 'Unverified device backup saved; wallet is still local.');
+    } else if (result.ok && result.result === 'existing') {
+      clearPendingLink(guestId);
+      resetProgressSyncCache();
+      setSync('existing', 'A cloud snapshot already exists. It was NOT overwritten.');
+    } else {
+      setSync('error', 'Guest backup not completed: ' + (result.reason || 'unknown'));
+    }
+    return result;
+  })().finally(() => {
+    if (guestHandoffKey === key) {
+      guestHandoffInFlight = null;
+      guestHandoffKey = null;
+    }
+  });
+  guestHandoffKey = key;
+  guestHandoffInFlight = task;
+  return task;
+}
+
 // One-time guest → account migration record. The snapshot is stored for the
 // (server-gated) promotion policy; locally the player simply keeps playing
 // with the same device wallet, so nothing can be lost or duplicated here.
@@ -384,6 +487,7 @@ const api = Object.freeze({
   signOutCloud,
   requestAccountDeletion,
   uploadProgressSnapshot,
+  importGuestProgress,
   recordGuestMigration,
 });
 
