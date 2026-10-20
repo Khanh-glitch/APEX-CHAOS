@@ -69,3 +69,21 @@ Google OAuth remains deferred: before enabling its provider, configure a Google 
 - Production cloud feature rollout, main-branch merge or deployment.
 
 **Do not mark A1.2 complete, enable cloud wallet, or merge/deploy production merely because this staging workflow passes.**
+
+## Guest Magic Link handoff — acceptance update (staging build 4961a3d)
+
+The owner completed a genuine email Magic Link sign-in in a new tab. Their Account Center screenshot showed an authenticated profile with **50 AC**, **NEWBOT+MAGNET**, and **1 draw**. These are the independent `APEX_ARSENAL_META` values on their device, NOT cloud-authoritative currency/ownership. Before this work, the staging backend had **one** new user/profile/wallet/ledger/starter ownership and zero `player_progress` or `guest_migrations`.
+
+**Implemented in PR#98, staging-only:**
+- `0004_a1_guest_migration_idempotency.sql` applied to APEX staging. Adds unique `(user_id, guest_profile_id)` index, prevents double pending-review migration rows on duplicate callbacks.
+- `src/game/guestCloudHandoff.js` performs a fresh GoTrue `auth.getUser` verification, inserts lineage as `unverified:true` with PostgREST `ignoreDuplicates`, checks existing `player_progress`, then calls **CAS version 0** to create a snapshot only if absent. Existing Cloud snapshot is never overwritten on Magic Link return.
+- `cloudAccount.js` remembers the user's **explicit SEND SIGN-IN LINK** request in same-origin localStorage for 30 minutes, bound to the guest ID and normalized email. On an authenticated same-origin return it attempts one automatic handoff in a deferred task with session epoch/account/online guards. No marker: no automatic transfer. The marker is cleared only after successful first backup or confirmed existing Cloud snapshot.
+- Previously authenticated players can explicitly click **BACK UP GUEST PROGRESS** in Account Center once; this uses the same identity-verified, idempotent CAS0-only logic.
+- The separate **UPDATE CLOUD SNAPSHOT** action remains an *explicit user action* and uses versioned optimistic CAS; both store unverified snapshots. Neither modifies Cloud wallet, ledger, reward claims or fighter ownership.
+- A duplicate, stale sign-out or account switch cannot mint AC or apply a cloud wallet. Session status only reports `SAVED` after a successful CAS0 snapshot. An existing snapshot shows `CLOUD BACKUP EXISTS` rather than falsely claiming it was overwritten.
+
+**Automated evidence:** `tools/testA1GuestHandoff.mjs` 6 deterministic negative/race checks PASS; `tools/testCloudLifecycleRaces.mjs` PASS; real hosted Supabase RLS/RPC negative tests PASS. Cloudflare run [39383095564](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39383095564) completed all steps SUCCESS. Deployment receipt at the staging alias equals `4961a3d8922056d2e09d68d38f90febf78b52224`. Browser validated signed-out Account Center and Magic Link button on the exact deployed SHA.
+
+**Owner single-action manual gate (not yet executed):** Keep the currently logged-in browser and its device storage. Open https://a1-cloud-staging-20261020.apex-chaos.pages.dev/, click Home profile chip → Account Center → **BACK UP GUEST PROGRESS** once. Report the on-screen sync status without sharing Auth tokens or email codes. We will then compare staging table row counts (`player_progress`, `guest_migrations`) and confirm local 50 AC, MAGNET, and 1 draw remain unchanged. Running the button a second time should not create duplicate lineages nor silently overwrite the cloud snapshot. Do not rerun Magic Link or clear browser storage.
+
+**Release locks:** The owner account's live backup is still unproven until the explicit click + backend inspection. Multi-device CAS concurrency, backend deletions, Google OAuth and cloud-authoritative AC receipts remain separate unpassed gates. PR stays DRAFT; production stays unchanged.
