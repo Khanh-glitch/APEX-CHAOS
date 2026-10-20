@@ -34,6 +34,7 @@ import playerAccountAuthority, {
 } from './playerAccount.js';
 import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
 import { persistGuestHandoffIfEmpty } from './guestCloudHandoff.js';
+import { describeUnverifiedCloudSnapshot } from './cloudSnapshotPreview.js';
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
 const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '';
@@ -122,9 +123,13 @@ let guestHandoffKey = null;
 // compare-and-swap expectation.
 let lastKnownProgressVersion = null;
 let lastKnownProgressUserId = null;
+// An update may proceed only if this exact user has just explicitly reviewed
+// the current server version. The view is in memory, never persisted.
+let reviewedCloudSnapshot = null;
 function resetProgressSyncCache() {
   lastKnownProgressVersion = null;
   lastKnownProgressUserId = null;
+  reviewedCloudSnapshot = null;
 }
 
 // Projects a Supabase session into (a) the DISPLAY profile and (b) — only
@@ -198,7 +203,7 @@ async function projectSession(client, session) {
   setVerifiedCloudAdminInternal(adminUserId);
   // Identity verification is NOT proof that the device snapshot was saved.
   const lastStatus = playerAccountAuthority.syncStatus().status;
-  if (!['saved', 'existing'].includes(lastStatus)) {
+  if (!['saved', 'existing', 'previewed'].includes(lastStatus)) {
     setSync(verifiedUserId ? 'connected' : 'error',
       verifiedUserId ? 'Cloud identity verified. Progress upload is separate.'
         : 'Cloud identity not verified yet.');
@@ -357,6 +362,45 @@ export async function requestAccountDeletion() {
 // switch, and re-checked against the current user below as a second
 // line of defense).
 
+// READ ONLY: fetch the current, user-owned snapshot to display its unverified
+// device data without applying it to the local wallet or owned fighters.
+// A successful preview also arms exactly one optimistic CAS update against
+// this version; any login change, sign-out or offline event disarms it.
+export async function previewCloudProgressSnapshot() {
+  if (!isCloudConfigured()) return unconfigured();
+  const profile = playerAccountAuthority.profile();
+  if (!profile || profile.kind !== 'cloud') return { ok: false, reason: 'signed-out' };
+  const userId = profile.profileId;
+  const epoch = sessionEpoch;
+  const stillValid = () => epoch === sessionEpoch
+    && currentSessionUserId === userId
+    && playerAccountAuthority.profile().profileId === userId
+    && (typeof navigator === 'undefined' || navigator.onLine !== false);
+  resetProgressSyncCache();
+  try {
+    const client = await getClient();
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    const { data: verified, error: verifyError } = await client.auth.getUser();
+    if (verifyError || verified?.user?.id !== userId || !stillValid())
+      return { ok: false, reason: 'identity-not-verified' };
+    const { data: row, error: queryError } = await client.from('player_progress')
+      .select('version,payload,updated_at')
+      .eq('user_id', userId).eq('namespace', 'arsenalMeta').maybeSingle();
+    if (queryError || !stillValid()) return { ok: false, reason: 'snapshot-read-failed' };
+    const summary = describeUnverifiedCloudSnapshot(row);
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    reviewedCloudSnapshot = { userId, epoch, version: summary.version };
+    lastKnownProgressVersion = summary.version;
+    lastKnownProgressUserId = userId;
+    setSync('previewed', 'Viewing a read-only unverified Cloud backup. No device data was changed.');
+    return { ok: true, userId, ...summary };
+  } catch {
+    if (stillValid()) setSync('error', 'Cloud backup preview unavailable.');
+    resetProgressSyncCache();
+    return { ok: false, reason: 'snapshot-preview-unavailable' };
+  }
+}
+
 export async function uploadProgressSnapshot() {
   if (!isCloudConfigured()) return unconfigured();
   const profile = playerAccountAuthority.profile();
@@ -364,42 +408,53 @@ export async function uploadProgressSnapshot() {
   const meta = typeof window !== 'undefined' ? window.APEX_ARSENAL_META : null;
   const snapshot = meta && typeof meta.getState === 'function' ? meta.getState() : null;
   if (!snapshot) return { ok: false, reason: 'wallet-unavailable' };
-  setSync('syncing', '');
+  const userId = profile.profileId;
+  const reviewed = reviewedCloudSnapshot;
+  const epoch = sessionEpoch;
+  const stillValid = () => epoch === sessionEpoch
+    && currentSessionUserId === userId
+    && playerAccountAuthority.profile().profileId === userId
+    && (typeof navigator === 'undefined' || navigator.onLine !== false);
+  if (!reviewed || reviewed.userId !== userId
+    || reviewed.epoch !== epoch || !Number.isSafeInteger(reviewed.version)
+    || lastKnownProgressUserId !== userId
+    || lastKnownProgressVersion !== reviewed.version) {
+    return { ok: false, reason: 'preview-required' };
+  }
+  // Each explicit review authorizes ONE update attempt. Even a failed
+  // attempt requires a new review so a second tab cannot be overwritten
+  // just by clicking the same button again.
+  resetProgressSyncCache();
+  setSync('syncing', 'CAS update requested after explicit Cloud preview.');
   try {
     const client = await getClient();
-    // Never let a previous account's remembered version seed this
-    // account's CAS expectation (the lifecycle reset should have caught
-    // the switch; this is the belt-and-suspenders check).
-    if (lastKnownProgressUserId !== profile.profileId) {
-      lastKnownProgressVersion = null;
-      lastKnownProgressUserId = profile.profileId;
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    const { data: verified, error: verifyError } = await client.auth.getUser();
+    if (verifyError || verified?.user?.id !== userId || !stillValid()) {
+      setSync('error', 'Cloud identity changed. Review backup again.');
+      return { ok: false, reason: 'identity-not-verified' };
     }
-    if (lastKnownProgressVersion === null) {
-      const { data: existing } = await client
-        .from('player_progress').select('version')
-        .eq('user_id', profile.profileId).eq('namespace', 'arsenalMeta').maybeSingle();
-      lastKnownProgressVersion = existing ? Number(existing.version) || 0 : 0;
-    }
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
     const { data, error } = await client.rpc('save_progress_snapshot_cas', {
       p_namespace: 'arsenalMeta',
-      p_expected_version: lastKnownProgressVersion,
+      p_expected_version: reviewed.version,
       p_payload: { unverified: true, guestProfileId: playerAccountAuthority.guestProfileId(), state: snapshot },
     });
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
     if (error) throw error;
     const row = Array.isArray(data) ? data[0] : data;
-    if (row && row.ok) {
-      lastKnownProgressVersion = Number(row.current_version);
-      setSync('saved', '');
-      return { ok: true, version: lastKnownProgressVersion };
+    if (row?.ok === true) {
+      setSync('saved', 'Unverified device snapshot saved. Cloud wallet unchanged.');
+      return { ok: true, version: Number(row.current_version) };
     }
-    // CONFLICT: a newer snapshot landed first (second device). Preserve it.
-    const serverVersion = row ? Number(row.current_version) : null;
-    resetProgressSyncCache(); // force a fresh read before any retry
-    setSync('conflict', 'A newer cloud snapshot exists (another device). Nothing was overwritten.');
+    const serverVersion = Number(row?.current_version) || null;
+    setSync('conflict', 'Cloud backup changed after preview. Nothing overwritten. Review again.');
     return { ok: false, reason: 'conflict', serverVersion };
   } catch (error) {
-    setSync(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'error',
-      String(error && error.message || error));
+    if (stillValid()) {
+      setSync(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'error',
+        String(error && error.message || error));
+    }
     return { ok: false, reason: 'upload-failed' };
   }
 }
@@ -486,6 +541,7 @@ const api = Object.freeze({
   verifyEmailOtp,
   signOutCloud,
   requestAccountDeletion,
+  previewCloudProgressSnapshot,
   uploadProgressSnapshot,
   importGuestProgress,
   recordGuestMigration,
@@ -534,6 +590,7 @@ export const __cloudLifecycleTestHooks = Object.freeze({
   sessionEpoch: () => sessionEpoch,
   currentSessionUserId: () => currentSessionUserId,
   progressCache: () => ({ version: lastKnownProgressVersion, userId: lastKnownProgressUserId }),
+  previewState: () => reviewedCloudSnapshot ? { ...reviewedCloudSnapshot } : null,
   resetLifecycle() {
     initialized = false;
     currentSessionUserId = null;
