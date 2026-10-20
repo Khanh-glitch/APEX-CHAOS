@@ -5,6 +5,8 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
+import { apexAppUrl } from './appRoot.js';
+
 export const APEX_ARSENAL_RUNTIME_REVISION = '20261020-a1-r20';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -299,7 +301,9 @@ export function hintRuntimeSources(runtimes, rel = 'preload') {
     const link = document.createElement('link');
     link.rel = rel;
     link.as = 'script';
-    link.href = src;
+    // Hint the same absolute app-root URL the loader will fetch, even
+    // after the Gold <base> retargets document-relative resolution.
+    link.href = apexAppUrl(src);
     link.dataset.apexRuntimeHint = `${rel}:${src}`;
     document.head.appendChild(link);
   }
