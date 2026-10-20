@@ -26,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { classifyAudio, AUDIO_DELIVERY_POLICY } from './audioDeliveryPolicy.mjs';
 import { botWaveShippingAssetRefs } from './botWaveShippingAssetRefs.mjs';
 import {
+  ARSENAL_HUB_RUNTIMES,
   ARSENAL_PRODUCT_RUNTIMES,
   BOT_WAVE_SPECIAL_RUNTIMES,
   BOT_WAVE_PRESENTATION_RUNTIMES,
@@ -81,6 +82,7 @@ for (const file of shellHtmlSources()) {
 
 const runtimePublicFiles = [
   ...MENU_INTERACTIVE_RUNTIMES,
+  ...ARSENAL_HUB_RUNTIMES,
   ...ARSENAL_PRODUCT_RUNTIMES,
   ...BOT_WAVE_SPECIAL_RUNTIMES,
   ...BOT_WAVE_PRESENTATION_RUNTIMES,

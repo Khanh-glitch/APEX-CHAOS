@@ -106,11 +106,16 @@ export const PRODUCT_ROSTER = Object.freeze({
 export const PRODUCT_ECONOMY = Object.freeze({
   shopCost: 1000,
   drawCost: 350,
-  // r44 owner-playtest law: a fresh (or legacy, unmarked) profile starts at
-  // exactly 12,000 AC through the real production economy seed. The seed is
-  // revision+profile scoped in the meta runtime, so an ordinary refresh never
-  // refills a spent balance.
-  cleanStateCredits: 12000,
+  // A1 production law: a genuinely new player profile starts at exactly
+  // 350 AC with ROBOT (NEWBOT) as the only owned fighter. The r44
+  // owner-playtest 12,000 AC seed is retired; existing balances are
+  // preserved by the meta runtime and are never refilled.
+  cleanStateCredits: 350,
+  // Match rewards (committed only by the wallet authority in
+  // arsenalMetaRuntime.awardBattleResult): BOT win 100, BOT loss 25
+  // (provisional legacy), LOCAL valid completion 50 for either winner.
+  // Lab/Admin/Quest/incomplete matches pay 0.
+  matchRewards: Object.freeze({ botWin: 100, botLoss: 25, localComplete: 50 }),
 });
 
 function makeAuthority() {

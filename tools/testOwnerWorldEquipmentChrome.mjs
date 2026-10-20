@@ -23,6 +23,19 @@ const variants=[
 ];
 const now=()=>Date.now();
 async function goGoldBattle(page,hero,name,opponent='newbot'){
+ // A1 production economy: a fresh profile owns NEWBOT only and the Gold
+ // roster correctly locks the rest (proven by the A1 gates). This proof
+ // exercises MAGNET/FROST/HUNTER gameplay through the real selection UI,
+ // so its fixture is a legitimate saved profile that already owns the
+ // fighters under test — the state a real player reaches via Lucky
+ // Draw/Shop. No production unlock is added.
+ await page.evaluateOnNewDocument(()=>{
+  localStorage.setItem('apexChaos.arsenalMeta.v1',JSON.stringify({
+   version:1,credits:425,ownedFighters:['ROBOT','MAGNET','ICE','HUNTER'],
+   lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:3,
+   unlockedAt:{ROBOT:0,MAGNET:1,ICE:2,HUNTER:3},arenaPaletteId:null,claimedMatchIds:[],
+  }));
+ });
  await page.goto(URL,{waitUntil:'load',timeout:45000});
  await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:60000});
  await page.evaluate(async()=>{await window.__apexEnsureDeferredRuntimes('arsenalProduct');

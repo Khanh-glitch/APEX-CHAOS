@@ -45,6 +45,18 @@ try{
     const p=pending.get(x.id);pending.delete(x.id);x.error?p.reject(Error(x.error.message)):p.resolve(x.result);
   });
   await cd('Runtime.enable');await cd('Page.enable');
+  // A1 production economy: a fresh profile owns NEWBOT only (proven by the
+  // A1 gates), and the production battle launch correctly refuses an
+  // unowned CRYSTAL. The R3 Crystal section below fields a real CRYSTAL,
+  // so the fixture is a legitimate saved profile that already owns her —
+  // the state a real player reaches via Lucky Draw/Shop.
+  await cd('Page.addScriptToEvaluateOnNewDocument',{source:`
+    try{localStorage.setItem('apexChaos.arsenalMeta.v1',JSON.stringify({
+      version:1,credits:425,ownedFighters:['ROBOT','CRYSTAL'],
+      lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:1,
+      unlockedAt:{ROBOT:0,CRYSTAL:1},arenaPaletteId:null,claimedMatchIds:[],
+    }));}catch(e){}
+  `});
   await cd('Page.navigate',{url:base+'/?v43OwnerChromeAudit=1'});
   for(let i=0;i<180;i++){
     if(await ev('Boolean(window.__apexEngineReady)').catch(()=>false))break;
@@ -61,6 +73,25 @@ try{
     await sleep(100);
   }
   check('owner-hidden-keyboard-loaded-at-real-Gold-Home',homeLoaded,{homeLoaded});
+  // A1 security closeout: this owner reproduction drives the F8 test
+  // surface and therefore needs a REAL admin grant. Production has no
+  // assignable admin seam by design — tools/testAdminEscalationNegatives-
+  // Browser.mjs proves on the production build that a guest cannot forge
+  // one (no public session setters, locked authority bindings, role-less
+  // UI profile). This script must instead run against a DEVELOPMENT
+  // server started with VITE_APEX_DEV_ADMIN=1: the dev-build grant is a
+  // genuine authority source in vite dev and is compiled out of
+  // production (import.meta.env.DEV === false there). The profile stays a
+  // plain guest below, proving the grant never comes from a forged cloud
+  // identity; authority checks, the F8 handler and the bot pick are all
+  // the shipped code paths.
+  const devAdmin=await ev(`(()=>({
+    source:window.APEX_ADMIN_AUTHORITY?.adminSource?.()||null,
+    canEnter:window.APEX_ADMIN_AUTHORITY?.canEnterAdminTestMode?.()??null,
+    profileKind:window.APEX_PLAYER_ACCOUNT?.profile?.()?.kind||null}))()`);
+  check('a1-dev-admin-grant-active-for-owner-reproduction',
+    devAdmin.source==='dev-build'&&devAdmin.canEnter===true
+      &&devAdmin.profileKind==='guest',devAdmin);
   const homeChord=await ev(`(()=>{
     const owner=window.APEX_ARSENAL_OWNER_TEST;
     const before={active:owner.active,mode:window.__apexArsenalSelectionMode||null};
@@ -224,14 +255,29 @@ try{
       }
       wa.updateArsenalProjectiles=originalTick;
       const events=window.APEX_ARSENAL.events;
+      // Transport law (diagnosed 2026-10-20): seven 1000x1000 PNG data
+      // URLs in ONE evaluate result (~8.4MB) exceed what this CDP channel
+      // reliably delivers — the response simply never arrives, although
+      // the page finished the work. Park the frames on window and let
+      // the harness pull them one message at a time below. The bytes,
+      // hashes and every assertion downstream are unchanged.
+      window.__v43CoreSixFrames={renderedFrame,
+        phaseFrames:phaseFrames.map(f=>({step:f.step,png:f.png}))};
       return {id:${JSON.stringify(id)},started,permitted,tickCalls,
         p1:a.name,p2:b.name,damage:1000-b.hp,
         kinds:[...used],pickup:events.filter(e=>e.includes('PICKUP')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
         fire:events.filter(e=>e.includes(' USE ')
           &&e.includes('weapon='+${JSON.stringify(id)})).length,
-        states,renderedFrame,phaseFrames};
+        states,frameCount:phaseFrames.length};
     })()`);
+    // Pull the parked frames one CDP message at a time (see law above).
+    q.renderedFrame=await ev(`window.__v43CoreSixFrames?.renderedFrame||null`);
+    q.phaseFrames=[];
+    for(let fi=0;fi<(q.frameCount||0);fi++){
+      q.phaseFrames.push(await ev(`window.__v43CoreSixFrames.phaseFrames[${fi}]`));
+    }
+    delete q.frameCount;
     if(q.renderedFrame?.startsWith('data:image/png;base64,')){
       await writeFile(join(out,'core-six-'+id+'.png'),
         Buffer.from(q.renderedFrame.slice('data:image/png;base64,'.length),'base64'));

@@ -1,5 +1,12 @@
 // Genuine shipping arsenalConfig.js owner keyboard handler VM integration test.
 // No fake UI launcher or monkey-patched weapon resolver.
+//
+// A1.4 contract: Ctrl+Shift+F8 is an interface, NOT authorization. The flow
+// below proves (1) a user without the Admin authority is DENIED — the real
+// production denial also proven in Chrome by testSkillDetailsBrowser — and
+// (2) with an authorized Admin authority present (the seam implemented by
+// src/game/adminAuthority.js in production) the original catalogue/spawn
+// mechanics behave exactly as before.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -35,8 +42,20 @@ assert.equal(owner.idForNumber(32),'SHRAPNEL_MINE_LAUNCHER');
 const event=(code,flags={})=>({code,repeat:false,target:null,
   preventDefault(){},stopPropagation(){},...flags});
 const fire=(type,e)=>listeners(type).forEach(fn=>fn(e));
+// (1) No Admin authority: the shortcut must grant nothing.
+fire('keydown',event('F8',{ctrlKey:true,shiftKey:true}));
+assert.equal(owner.active,false,'A1: F8 without admin authorization must stay OFF');
+assert.deepEqual(calls,[],'A1: denial must not open the bot pick');
+// (2) Authorized Admin authority at the one seam: full original behaviour.
+let session=false;
+window.APEX_ADMIN_AUTHORITY={
+  canEnterAdminTestMode:()=>true,
+  isAdminTestSessionActive:()=>session,
+  setAdminTestSession:(on)=>{session=on===true;return session===on;},
+};
 fire('keydown',event('F8',{ctrlKey:true,shiftKey:true}));
 assert.equal(owner.active,true);assert.deepEqual(calls,['openBotPick']);
+assert.equal(session,true,'authority session mirrors owner-test activation');
 AQ.state={active:true,battleMode:'BOT',labMode:false,spawnTimer:4.5};
 fire('keydown',event('ShiftLeft',{shiftKey:true}));
 fire('keydown',event('Digit3',{shiftKey:true}));
@@ -57,4 +76,5 @@ AQ.state.active=false;
 fire('keydown',event('F8',{ctrlKey:true,shiftKey:true}));
 assert.equal(owner.active,false,'shortcut toggles OFF');
 assert.equal(owner.selectedWeaponId,null,'stale forced weapon cleared');
-console.log('PASS OWNER BOT KEYBOARD: off by default, true 39-ID catalog, normal Gold bot pick, Shift release, local-mode isolation, deactivation');
+assert.equal(session,false,'authority session closes with owner-test');
+console.log('PASS OWNER BOT KEYBOARD (A1): F8 denied without admin authority; authorized path keeps off-by-default, true 41-ID catalog, normal Gold bot pick, Shift release, local-mode isolation, deactivation');

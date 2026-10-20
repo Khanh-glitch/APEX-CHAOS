@@ -499,7 +499,22 @@
     // cannot override a shortcut reserved by the host OS.
     if(ev.ctrlKey&&ev.shiftKey&&!ev.altKey&&!ev.metaKey&&ev.code==='F8'&&!ev.repeat){
       ev.preventDefault();ev.stopPropagation();
+      // A1.4: the shortcut is an interface, NOT authorization. Entry requires
+      // the Admin authority (verified cloud admin role, or dev-build opt-in);
+      // a normal player gets an explicit denial and nothing else changes.
+      const adminAuthority=window.APEX_ADMIN_AUTHORITY;
+      if(!ownerTest.active){
+        if(!adminAuthority||adminAuthority.canEnterAdminTestMode?.()!==true){
+          ownerTest.popup('ADMIN TEST MODE · ACCESS DENIED — cần tài khoản Admin đã xác thực');return;
+        }
+        if(adminAuthority.setAdminTestSession?.(true)!==true){
+          ownerTest.popup('ADMIN TEST MODE · ACCESS DENIED');return;
+        }
+      }else{
+        adminAuthority?.setAdminTestSession?.(false);
+      }
       if(!ownerTest.active&&window.APEX_ARSENAL?.state?.active){
+        adminAuthority?.setAdminTestSession?.(false);
         ownerTest.popup('OWNER BOT TEST: exit the current match before activation');return;
       }
       ownerTest.active=!ownerTest.active;ownerDigits='';

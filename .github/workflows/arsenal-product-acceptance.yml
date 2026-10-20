@@ -231,11 +231,29 @@ jobs:
           "$CHROME" --version
 
       - name: V43 owner reproduction - real Chrome floor pickup, rendered assets and native HP
+        # A1 security closeout: this reproduction exercises the owner F8
+        # test surface end-to-end and needs a REAL admin grant. Production
+        # has no forgeable admin seam by design (proven by the A1
+        # security-negative suite), so the test runs against its OWN vite
+        # dev server carrying VITE_APEX_DEV_ADMIN=1 — a development-build-
+        # only grant compiled out of production. The shared :5173 server
+        # stays pristine for every other step; this server dies with us.
+        shell: bash
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
-          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_APP_URL: http://127.0.0.1:5174
           APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/v43-true-pickup
-        run: node tools/testV43PickupBrowser.mjs
+        run: |
+          VITE_APEX_DEV_ADMIN=1 pnpm exec vite --host 127.0.0.1 --port 5174 --strictPort >/tmp/v43-dev-admin.log 2>&1 &
+          V43_PID=$!
+          trap 'kill $V43_PID 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:5174/ -o /dev/null && { ready=1; break; }
+            sleep 1
+          done
+          test "$ready" = "1" || { cat /tmp/v43-dev-admin.log; exit 1; }
+          node tools/testV43PickupBrowser.mjs
 
       - name: Result Gold native-ledger React browser, real art and multi-viewport
         env:

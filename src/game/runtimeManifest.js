@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261018-botwave-r19';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261020-a1-r20';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -280,6 +280,11 @@ export const ARSENAL_HUB_RUNTIMES = [
   ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
+  // A1.5: symmetrical P1/P2 SKILL DETAILS on Fighter Select. Presentation
+  // only; resolves through APEX_GOLD.skillDetailsFor → heroRegistry. Hub
+  // group runs in the shell document that owns Fighter Select; registering
+  // the same file in a second group breaks the concurrent-order proxy.
+  ['/game/ui/skillDetailsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexSkillDetailsRuntime'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],

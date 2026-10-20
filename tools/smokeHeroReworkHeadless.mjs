@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES, resolveLegacyRuntimeFile } from './legacyRuntimeManifest.mjs';
-import { PRODUCT_ROSTER, PRODUCT_ECONOMY, installProductSurfaceAuthority } from '../src/game/productSurface.js';
+import { PRODUCT_ROSTER, installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
@@ -227,7 +227,10 @@ const migrated = metaApi ? metaApi.getState() : null;
 const migrateOk = migrated
   && migrated.ownedFighters.includes('ROBOT') && !migrated.ownedFighters.includes('NEWBIE')
   && migrated.ownedFighters.includes('ICE')
-  && migrated.credits === PRODUCT_ECONOMY.cleanStateCredits
+  // A1: migration preserves a legitimate legacy balance VERBATIM (900 from
+  // the seeded save). The retired owner-playtest reseed used to overwrite
+  // it with the clean-state seed; asserting that here would assert a bug.
+  && migrated.credits === 900
   && migrated.lastSelectedP1 === 'ROBOT'
   && migrated.unlockedAt && migrated.unlockedAt.ROBOT === 123 && migrated.unlockedAt.NEWBIE === undefined;
 const migratedAgain = metaApi ? metaApi.getState() : null;

@@ -1,0 +1,141 @@
+# A1: Player Account, Economy & Fighter Experience gates.
+#
+# Production progression law (fresh profile = 350 AC + NEWBOT only; existing
+# balances preserved; mode-aware idempotent match rewards; admin testing
+# only through the verified Admin authority) and the symmetrical P1/P2
+# SKILL DETAILS contract are proven on each relevant PR: node gates execute
+# the real economy/registry sources, and the browser acceptance drives the
+# built product with real input on desktop/portrait/landscape.
+name: A1 Account Economy Gates
+on:
+  pull_request:
+    paths:
+      - 'src/game/productSurface.js'
+      - 'src/game/playerAccount.js'
+      - 'src/game/adminAuthority.js'
+      - 'src/game/cloudAccount.js'
+      - 'src/game/runtimeManifest.js'
+      - 'src/game/localeCatalog.js'
+      - 'src/ui/AccountCenter.jsx'
+      - 'src/ui/accountCenter.css'
+      - 'src/App.jsx'
+      - 'src/main.jsx'
+      - 'public/game/arsenal/arsenalMetaRuntime.js'
+      - 'public/game/arsenal/arsenalConfig.js'
+      - 'public/game/gold/goldProductBridge.js'
+      - 'public/game/hero-rework/heroRegistry.js'
+      - 'public/game/ui/skillDetailsRuntime.js'
+      - 'supabase/**'
+      - 'tools/testOwnerPlaytestEconomyGate.mjs'
+      - 'tools/testSkillDetailsParityGate.mjs'
+      - 'tools/testSkillDetailsBrowser.mjs'
+      - 'tools/testArsenalProductGraph.mjs'
+      - 'tools/testBattleOutcomeSideGate.mjs'
+      - 'tools/testCloudSecurityContracts.mjs'
+      - 'tools/testCloudLifecycleRaces.mjs'
+      - 'tools/testAdminEscalationNegativesBrowser.mjs'
+      - 'tools/assetAudit.mjs'
+      - '.github/workflows/a1-account-economy-gates.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: a1-account-economy-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  node-gates:
+    name: A1 economy + skill-data node gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Cloud security contracts (no public setters, CAS, deletion-pending)
+        run: node tools/testCloudSecurityContracts.mjs
+      - name: Cloud session lifecycle races (logout/offline/switch fail-closed)
+        run: node tools/testCloudLifecycleRaces.mjs
+      - name: Production progression contract (350/NEWBOT, rewards, idempotency)
+        run: pnpm test:owner-playtest-economy
+      - name: Skill-details parity (registry truth, VIE coverage, symmetry)
+        run: node tools/testSkillDetailsParityGate.mjs
+      - name: Product graph (economy laws, availability)
+        run: pnpm test:product-graph
+      - name: Battle outcome side+mode authority
+        run: pnpm test:battle-outcome-side
+      - name: Runtime revision lock (CP16)
+        run: pnpm test:runtime-revision
+      - name: Gold revision integrity
+        run: pnpm test:gold-revision-integrity
+      - name: Gold generator output is in sync
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Source hygiene
+        run: pnpm test:source-hygiene
+      - name: Locale catalog contract
+        run: node tools/testLocalizationGate.mjs
+      - name: Syntax — account modules
+        run: |
+          node --input-type=module --check < src/game/playerAccount.js
+          node --input-type=module --check < src/game/cloudAccount.js
+          node --check public/game/ui/skillDetailsRuntime.js
+
+  browser-acceptance:
+    name: A1 browser acceptance (Chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build production bundle
+        run: pnpm build
+      - name: Packaged CP16 receipt matches this checkout
+        run: node tools/testCP16BuildReceipt.mjs
+      - name: Start built product preview
+        shell: bash
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/a1-preview.log 2>&1 &
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:4173 -o /dev/null && exit 0; sleep 1; done
+          cat /tmp/a1-preview.log; exit 1
+      - name: Install Chrome controller (same pattern as staged QA)
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: A1 acceptance — fresh economy, account, admin denial, P1+P2 details
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testSkillDetailsBrowser.mjs
+      - name: Security negatives — guest cannot forge admin on production build
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testAdminEscalationNegativesBrowser.mjs
+      - name: Home regression — BOT WAVE entry, live gameplay, Home return
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testBoxeModeEntryChrome.mjs
+      - name: Browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a1-skill-details-browser
+          path: |
+            docs/a1/skill-details-browser/
+            qa-evidence/a1-security-negatives/
+            docs/boxe/r5-browser/
+          if-no-files-found: ignore

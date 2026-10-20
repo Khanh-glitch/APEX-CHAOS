@@ -145,10 +145,12 @@ try {
   META.setLast('ICE', 'ROBOT');
   META.save(META.getState());
   const again = META.load();
+  // A1: the retired owner-playtest seed no longer rewrites balances — the
+  // saved 500 AC round-trips verbatim (seed constant is 0/disabled).
   gate('F01.6-save-round-trip',
-    again.lastSelectedP1 === 'ICE' && again.credits === META.OWNER_PLAYTEST_AC_SEED
-    && again.ownedFighters.join(',') === 'ROBOT,ICE' && again.unlockedAt.ICE === 2
-    && again.ownerPlaytestAcSeed?.revision === META.OWNER_PLAYTEST_AC_SEED_REVISION,
+    again.lastSelectedP1 === 'ICE' && again.credits === 500
+    && META.OWNER_PLAYTEST_AC_SEED === 0
+    && again.ownedFighters.join(',') === 'ROBOT,ICE' && again.unlockedAt.ICE === 2,
     { p1: again.lastSelectedP1, credits: again.credits, seed: META.OWNER_PLAYTEST_AC_SEED });
 } catch (e) { gate('F01.5-legacy-ice-save-loads', false, String(e && e.message)); }
 

@@ -1,0 +1,82 @@
+/* A1.3 — Gold Account Center. Presentation only: every value shown here is
+   read live from APEX_PLAYER_ACCOUNT / APEX_ARSENAL_META / APEX_CLOUD_ACCOUNT.
+   Gold material language: dark steel plates, gold hairlines, corner cuts. */
+.apex-account-overlay {
+  position: fixed; inset: 0; z-index: 2147480900; display: none; place-items: center;
+  padding: 14px; background: rgba(3,4,6,.72); backdrop-filter: blur(3px);
+  font-family: "ApcKanit","Segoe UI",sans-serif; color: #f4f0e6;
+}
+.apex-account-overlay.is-open { display: grid; }
+.apex-account-panel {
+  text-align: left;
+  width: min(620px, calc(100vw - 20px)); max-height: min(90dvh, 820px); overflow: auto;
+  overscroll-behavior: contain; border: 1px solid rgba(215,189,114,.45);
+  background: linear-gradient(180deg,#141a21,#0a0e13 78%);
+  box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 1px rgba(255,255,255,.04);
+  clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+}
+.apex-account-head {
+  position: relative; display: flex; gap: 16px; align-items: center;
+  padding: 18px 20px 14px; border-bottom: 1px solid rgba(238,231,219,.1);
+}
+.apex-account-head::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:#d7bd72; }
+.apex-account-avatar {
+  width: 64px; height: 64px; flex: 0 0 auto; object-fit: contain; padding: 6px;
+  border: 1px solid rgba(215,189,114,.4); background: #0d1217; border-radius: 50%;
+}
+.apex-account-kicker { color:#d7bd72; font: 800 9px/1 ui-monospace,monospace; letter-spacing:.22em; }
+.apex-account-name { margin:5px 0 0; font-size: clamp(22px,4.6vw,30px); line-height:.95; font-style:italic; font-weight:900; overflow-wrap:anywhere; }
+.apex-account-sub { margin-top:5px; color:#9aa6b1; font: 800 9px/1.35 ui-monospace,monospace; letter-spacing:.14em; overflow-wrap:anywhere; }
+.apex-account-close {
+  margin-left:auto; align-self:flex-start; min-width:44px; min-height:44px; display:grid; place-items:center;
+  border:1px solid #4a5057; background:linear-gradient(180deg,#2b3138,#151a20); color:#f4f0e6; cursor:pointer;
+  font: 900 15px/1 sans-serif; clip-path: polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+}
+.apex-account-body { padding: 16px 20px 20px; display: grid; gap: 14px; }
+.apex-account-stats { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.apex-account-stat { padding: 10px 12px; border:1px solid #303842; background:#0d1217; }
+.apex-account-stat span { display:block; color:#86919c; font: 800 8px/1 ui-monospace,monospace; letter-spacing:.14em; }
+.apex-account-stat b { display:block; margin-top:6px; font-size:17px; line-height:1; }
+.apex-account-section h3 {
+  margin: 0 0 9px; font-size: 13px; font-style: italic; font-weight: 900; letter-spacing:.06em;
+}
+.apex-account-note { color:#a7b1bb; font: 600 12.5px/1.5 "Segoe UI",sans-serif; margin: 0; }
+.apex-account-fighters { display:flex; flex-wrap:wrap; gap:6px; }
+.apex-account-fighter {
+  padding: 6px 9px; border:1px solid rgba(215,189,114,.35); background:#11161c;
+  font: 800 10px/1 ui-monospace,monospace; letter-spacing:.08em;
+}
+.apex-account-fighter.is-locked { opacity:.45; border-color:#333c45; }
+.apex-account-actions { display:grid; gap:8px; }
+.apex-account-btn {
+  min-height: 46px; padding: 10px 14px; cursor: pointer; text-align: center;
+  border:1px solid #434c56; background:linear-gradient(180deg,#1a2027,#10151a); color:#f4f0e6;
+  font: 900 12px/1.2 "ApcKanit","Segoe UI",sans-serif; letter-spacing:.1em; text-transform: uppercase;
+  clip-path: polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+.apex-account-btn.is-primary { border-color:#5a5541; background:linear-gradient(180deg,#4b4124,#282311); color:#f7e7ac; }
+.apex-account-btn.is-danger { border-color:#6d3430; background:linear-gradient(180deg,#3a1d1a,#1d100e); color:#ffb4a6; }
+.apex-account-btn:disabled { opacity:.42; cursor:default; }
+@media (hover:hover) { .apex-account-btn:hover:not(:disabled), .apex-account-close:hover { filter:brightness(1.16); } }
+.apex-account-btn:focus-visible, .apex-account-close:focus-visible, .apex-account-input:focus-visible {
+  outline:2px solid #f0d67e; outline-offset:2px;
+}
+.apex-account-row { display:flex; gap:8px; }
+.apex-account-row .apex-account-btn { flex: 0 0 auto; }
+.apex-account-input {
+  flex: 1 1 auto; min-width: 0; min-height: 46px; padding: 10px 12px;
+  border:1px solid #39424c; background:#0b1015; color:#f4f0e6;
+  font: 600 14px/1.2 "Segoe UI",sans-serif;
+}
+.apex-account-message {
+  min-height: 18px; color:#e7ca72; font: 800 10.5px/1.45 ui-monospace,monospace; letter-spacing:.06em;
+}
+.apex-account-sync { color:#8e99a4; font: 800 9px/1.5 ui-monospace,monospace; letter-spacing:.14em; }
+@media (max-width: 560px) {
+  .apex-account-head { padding: 14px 14px 11px; gap: 11px; }
+  .apex-account-avatar { width: 50px; height: 50px; }
+  .apex-account-body { padding: 12px 14px 16px; }
+  .apex-account-stats { grid-template-columns: 1fr 1fr 1fr; }
+  .apex-account-stat b { font-size: 15px; }
+  .apex-account-row { flex-direction: column; }
+}

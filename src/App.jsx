@@ -23,6 +23,7 @@ import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordin
 import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
+import AccountCenter from './ui/AccountCenter.jsx';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -410,7 +411,13 @@ export default function App() {
   const launchProductSurface = async (surfaceId, { admin = false } = {}) => {
     const surface = getProductSurface(surfaceId);
     const authority = window.APEX_PRODUCT_SURFACE;
-    if (!surface || !authority?.canLaunch?.(surface.id, { admin })) return false;
+    // A1: the `admin` option is a request, not proof. ADMIN surfaces launch
+    // only when the Admin authority confirms a verified admin identity
+    // (cloud role, or dev-build opt-in) — a console caller passing
+    // { admin: true } no longer self-authorizes.
+    const adminAuthorized = admin === true
+      && window.APEX_ADMIN_AUTHORITY?.canLaunchAdminSurface?.() === true;
+    if (!surface || !authority?.canLaunch?.(surface.id, { admin: adminAuthorized })) return false;
     if (!gameReady) return false;
 
     if (surface.route === 'wave') {
@@ -1060,6 +1067,7 @@ export default function App() {
   return (
     <>
     <CosmeticLocker />
+    <AccountCenter />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount

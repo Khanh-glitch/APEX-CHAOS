@@ -1415,6 +1415,77 @@
       copy.A2 || base[2] || 'A2',
     ];
   };
+  // A1.5 — the ONE skill-details projection for BOTH Fighter Select sides.
+  // P1, P2 and the BOT opponent all resolve through this exact function:
+  // heroRegistry (displayName + archiveProfile.description + resolved L1
+  // config) is the single skill-data authority, GOLD_SKILL_COPY supplies the
+  // canonical Pick/HUD names, and heroUiArt supplies the approved icons.
+  // Nothing is fabricated: a slot without an authored description returns an
+  // empty desc, and numeric facts are exposed only when the resolved config
+  // actually carries them. Presentation only — this never unlocks, selects
+  // or mutates anything.
+  function passiveSemantic(id) {
+    const reg = heroRegistry();
+    let cfg = null;
+    try {
+      cfg = reg && typeof reg.resolveSkillLevel === 'function'
+        ? reg.resolveSkillLevel(id, 'PASSIVE', 1) : null;
+    } catch (e) { cfg = null; }
+    cfg = cfg || {};
+    const cooldown = Number(cfg.cooldown) || 0;
+    const maxCharges = Number(cfg.maxCharges) > 0 ? Number(cfg.maxCharges) : 1;
+    let duration = 0;
+    for (const key of ['activeWindow', 'gameplayDuration', 'active', 'duration']) {
+      const value = Number(cfg[key]);
+      if (Number.isFinite(value) && value > 0) { duration = value; break; }
+    }
+    if (maxCharges > 1) return skillSemantic('charges', maxCharges, cooldown, duration);
+    if (duration > 0) return skillSemantic('duration', maxCharges, cooldown, duration);
+    if (cooldown > 0) return skillSemantic('cooldown', maxCharges, cooldown, duration);
+    return 'ALWAYS ACTIVE';
+  }
+  BRIDGE.skillDetailsFor = function skillDetailsFor(shellKey) {
+    const key = String(shellKey || '').toLowerCase();
+    if (!key) return null;
+    const productionId = PRODUCTION_ID_BY_SHELL_KEY[key] || canonicalHeroId(key);
+    const reg = heroRegistry();
+    const hero = reg && reg.HEROES ? reg.HEROES[productionId] : null;
+    if (!hero || !hero.skills) return null;
+    const art = heroUiArt(key) || {};
+    const copy = GOLD_SKILL_COPY[productionId] || {};
+    const heroCopy = GOLD_HERO_COPY[key] || {};
+    const meta = window.APEX_ARSENAL_META;
+    const slots = ['PASSIVE', 'A1', 'A2'];
+    const skills = slots.map((slot, index) => {
+      const def = hero.skills[slot] || null;
+      const skillMeta = slot === 'PASSIVE' ? null : heroSkillMeta(productionId, slot);
+      return {
+        slot,
+        name: copy[slot]
+          || (def && def.displayName ? String(def.displayName).toUpperCase() : slot),
+        // Authored gameplay description (Field Archive copy). Never invented.
+        desc: (def && def.archiveProfile && def.archiveProfile.description) || '',
+        meta: slot === 'PASSIVE' ? passiveSemantic(productionId) : skillMeta.desc,
+        icon: Array.isArray(art.skillIcons) ? (art.skillIcons[index] || '') : '',
+        cooldown: skillMeta ? skillMeta.cooldown : 0,
+        duration: skillMeta ? skillMeta.duration : 0,
+        maxCharges: skillMeta ? skillMeta.maxCharges : 1,
+      };
+    });
+    return {
+      shellKey: key,
+      productionId,
+      name: heroCopy.name
+        || (reg && typeof reg.displayNameFor === 'function' && reg.displayNameFor(productionId))
+        || productionId,
+      tag: heroCopy.tag || '',
+      accent: FALLBACK_ACCENTS[key] || '#d7bd72',
+      portrait: art.battleAvatar || art.portrait || art.art || '',
+      playable: isProductionPlayable(productionId),
+      owned: !!(meta && typeof meta.owns === 'function' && meta.owns(productionId)),
+      skills,
+    };
+  };
   function heroIdOf(fighter) {
     return (fighter && (fighter.heroId || fighter.name)) ? String(fighter.heroId || fighter.name).toUpperCase() : null;
   }
