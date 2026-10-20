@@ -354,6 +354,49 @@ async function grantAdmin(client, user) {
   delete globalThis.window.APEX_ARSENAL_META;
 }
 
+// ── S5b. Optimistic concurrency when another device writes after preview ──
+{
+  let remoteVersion = 9;
+  const { client, calls } = makeClient({
+    user: userA,
+    tables: {
+      profiles: fastProfiles,
+      account_roles: playerRole,
+      player_progress: async () => ({ data: {
+        version: remoteVersion,
+        payload: { unverified: true, state: { credits: 50, ownedFighters: ['ROBOT','MAGNET'], totalSpins: 1 } },
+      }, error: null }),
+    },
+    rpc: async (_, args) => ({
+      data: [{ ok: args.p_expected_version === remoteVersion, current_version: remoteVersion }],
+      error: null,
+    }),
+  });
+  hooks.setClientOverride(client);
+  globalThis.window.APEX_ARSENAL_META = { getState: () => ({ credits: 350, ownedFighters: ['ROBOT'] }) };
+  await resetAll(client);
+  await hooks.projectSession(client, sessionOf(userA));
+  const preview = await cloudAccount.previewCloudProgressSnapshot();
+  assert.equal(preview.version, 9);
+  assert.ok(preview.deviceFighters.includes('MAGNET'));
+  remoteVersion = 10; // device B committed first
+  const attempt = await cloudAccount.uploadProgressSnapshot();
+  check('stale version 9 update conflicts against version 10 without overwrite', () => {
+    assert.equal(attempt.reason, 'conflict');
+    assert.equal(attempt.serverVersion, 10);
+    assert.equal(account.syncStatus().status, 'conflict');
+    assert.equal(calls.rpc.at(-1).args.p_expected_version, 9);
+    assert.equal(hooks.previewState(), null);
+  });
+  const replay = await cloudAccount.uploadProgressSnapshot();
+  check('CAS conflict requires a new explicit preview before retry', () => {
+    assert.equal(replay.reason, 'preview-required');
+    assert.equal(calls.rpc.length, 1);
+  });
+  await cloudAccount.signOutCloud();
+  delete globalThis.window.APEX_ARSENAL_META;
+}
+
 // ── S6. Seam hygiene: hooks never leaked onto window/api surface ────────────
 hooks.setClientOverride(null);
 check('test seam is module-private (window + frozen api stay clean)', () => {
