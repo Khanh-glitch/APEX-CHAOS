@@ -36,7 +36,7 @@ import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
 import { persistGuestHandoffIfEmpty } from './guestCloudHandoff.js';
 import { describeUnverifiedCloudSnapshot } from './cloudSnapshotPreview.js';
 import { requestEmailCode, confirmEmailCode } from './emailCodeAuth.js';
-import { signInWithEmailPassword, setPasswordForVerifiedUser } from './emailPasswordAuth.js';
+import { signInWithEmailPassword, setPasswordForVerifiedUser, requestPasswordRecovery } from './emailPasswordAuth.js';
 
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
@@ -308,6 +308,14 @@ export async function signInWithPassword(email, password) {
   return { ok: true };
 }
 
+// Official hosted Auth email recovery. Does not reveal user existence,
+ // and never bypasses mailbox ownership or require a service_role key.
+export async function recoverEmailPassword(email) {
+  if (!isCloudConfigured()) return unconfigured();
+  const client = await getClient();
+  return requestPasswordRecovery(client, email, window.location.origin + '/');
+}
+
 export async function setCurrentAccountPassword(password, confirmation) {
   if (!isCloudConfigured()) return unconfigured();
   const profile = playerAccountAuthority.profile();
@@ -571,6 +579,7 @@ const api = Object.freeze({
   initCloudAccount,
   signInWithGoogle,
   signInWithPassword,
+  recoverEmailPassword,
   setCurrentAccountPassword,
   isEmailCodeEnabled,
   signInWithEmailOtp,
