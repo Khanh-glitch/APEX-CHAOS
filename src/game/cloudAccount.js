@@ -35,7 +35,7 @@ import playerAccountAuthority, {
 import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
 import { persistGuestHandoffIfEmpty } from './guestCloudHandoff.js';
 import { describeUnverifiedCloudSnapshot } from './cloudSnapshotPreview.js';
-import { parseEmailMagicLink } from './emailMagicLinkTransfer.js';
+
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
 const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '';
@@ -52,6 +52,14 @@ export function isCloudConfigured() {
 export function isGoogleSignInEnabled() {
   return isCloudConfigured() && import.meta.env.VITE_APEX_GOOGLE_AUTH_ENABLED === '1';
 }
+
+// Email-code sign-in requires the hosted Supabase email templates to
+// contain {{ .Token }} (Magic Link AND Confirm Signup). We fail CLOSED
+// until the staging operator verifies both templates and enables this flag.
+export function isEmailCodeEnabled() {
+  return isCloudConfigured() && import.meta.env.VITE_APEX_EMAIL_CODE_ENABLED === '1';
+}
+
 
 let clientPromise = null;
 let testClientOverride = null;
@@ -288,7 +296,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithEmailOtp(email) {
-  if (!isCloudConfigured()) return unconfigured();
+  if (!isEmailCodeEnabled()) return { ok: false, reason: 'email-code-not-ready' };
   const clean = String(email || '').trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) return { ok: false, reason: 'invalid-email' };
   const client = await getClient();
@@ -296,32 +304,33 @@ export async function signInWithEmailOtp(email) {
     email: clean,
     options: { emailRedirectTo: window.location.origin + '/', shouldCreateUser: true },
   });
-  if (error) return { ok: false, reason: error.message };
+  if (error) {
+    if (error.status === 429 || /rate.?limit|too many|email quota/i.test(error.message || '')) {
+      return { ok: false, reason: 'email-rate-limited' };
+    }
+    return { ok: false, reason: 'email-send-failed' };
+  }
+  // Preserve existing Guest progress handoff only after an authenticated
+  // same-email verification, never from an unverified email address.
   rememberPendingLink(clean);
   return { ok: true, sent: true };
 }
 
-// Open the one-time verification URL in THIS tab, not the OS default
-// browser. The link never travels to our server or localStorage. A used or
-// expired link must be requested afresh from this device.
-export function openEmailMagicLinkHere(raw) {
-  if (!isCloudConfigured()) return unconfigured();
-  if (typeof window === 'undefined') return { ok: false, reason: 'browser-required' };
-  const safeUrl = parseEmailMagicLink(raw, {
-    supabaseUrl: SUPABASE_URL, appOrigin: window.location.origin,
-  });
-  if (!safeUrl) return { ok: false, reason: 'invalid-email-link' };
-  window.location.assign(safeUrl);
-  return { ok: true, redirect: true };
-}
-
 export async function verifyEmailOtp(email, token) {
-  if (!isCloudConfigured()) return unconfigured();
+  if (!isEmailCodeEnabled()) return { ok: false, reason: 'email-code-not-ready' };
+  const clean = String(email || '').trim();
+  const code = String(token || '').trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean) || !/^\d{6}$/.test(code))
+    return { ok: false, reason: 'invalid-code' };
   const client = await getClient();
   const { data, error } = await client.auth.verifyOtp({
-    email: String(email || '').trim(), token: String(token || '').trim(), type: 'email',
+    email: clean, token: code, type: 'email',
   });
-  if (error) return { ok: false, reason: error.message };
+  if (error) {
+    if (error.status === 429 || /rate.?limit|too many/i.test(error.message || ''))
+      return { ok: false, reason: 'verify-rate-limited' };
+    return { ok: false, reason: 'invalid-or-expired-code' };
+  }
   await projectSession(client, data && data.session);
   return { ok: true };
 }
@@ -552,8 +561,8 @@ const api = Object.freeze({
   isCloudConfigured,
   initCloudAccount,
   signInWithGoogle,
+  isEmailCodeEnabled,
   signInWithEmailOtp,
-  openEmailMagicLinkHere,
   verifyEmailOtp,
   signOutCloud,
   requestAccountDeletion,
