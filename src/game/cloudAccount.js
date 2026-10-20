@@ -33,6 +33,11 @@ import playerAccountAuthority, {
   setCloudSyncStateInternal,
 } from './playerAccount.js';
 import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
+import { persistGuestHandoffIfEmpty } from './guestCloudHandoff.js';
+import { describeUnverifiedCloudSnapshot } from './cloudSnapshotPreview.js';
+import { requestEmailCode, confirmEmailCode } from './emailCodeAuth.js';
+import { signInWithEmailPassword, setPasswordForVerifiedUser, requestPasswordRecovery } from './emailPasswordAuth.js';
+
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
 const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '';
@@ -42,6 +47,21 @@ export function isCloudConfigured() {
   // module-private lifecycle test seam at the bottom of this file sets it.
   return !!testClientOverride || (!!SUPABASE_URL && !!SUPABASE_ANON_KEY);
 }
+
+// OAuth provider is independent from having a configured Supabase project.
+// Ship Google sign-in only when this specific build deliberately opts in,
+// after the provider credentials and redirect allowlist are configured.
+export function isGoogleSignInEnabled() {
+  return isCloudConfigured() && import.meta.env.VITE_APEX_GOOGLE_AUTH_ENABLED === '1';
+}
+
+// Email-code sign-in requires the hosted Supabase email templates to
+// contain {{ .Token }} (Magic Link AND Confirm Signup). We fail CLOSED
+// until the staging operator verifies both templates and enables this flag.
+export function isEmailCodeEnabled() {
+  return isCloudConfigured() && import.meta.env.VITE_APEX_EMAIL_CODE_ENABLED === '1';
+}
+
 
 let clientPromise = null;
 let testClientOverride = null;
@@ -78,8 +98,35 @@ function setSync(status, detail) {
 // await. A grant only ever (re)appears at the end of a fresh, current,
 // server-verified projection — e.g. the 'online' handler re-verifies from
 // scratch instead of restoring local state.
+const GUEST_LINK_KEY = 'apexChaos.guestEmailLinkPending.v1';
+const GUEST_LINK_TTL_MS = 30 * 60 * 1000; // Magic Link may open a second tab.
+function pendingLink() {
+  try {
+    const value = JSON.parse(localStorage.getItem(GUEST_LINK_KEY) || 'null');
+    if (!value || typeof value.guestId !== 'string'
+      || typeof value.email !== 'string'
+      || !Number.isFinite(value.at) || Date.now() - value.at > GUEST_LINK_TTL_MS
+      || value.at > Date.now()) return null;
+    return value;
+  } catch { return null; }
+}
+function rememberPendingLink(email) {
+  try {
+    localStorage.setItem(GUEST_LINK_KEY, JSON.stringify({
+      guestId: playerAccountAuthority.guestProfileId(),
+      email: String(email || '').trim().toLowerCase(), at: Date.now(),
+    }));
+  } catch { /* private browsing may deny storage; explicit backup remains */ }
+}
+function clearPendingLink(guestId) {
+  try {
+    if (pendingLink()?.guestId === guestId) localStorage.removeItem(GUEST_LINK_KEY);
+  } catch { /* never block auth */ }
+}
 let sessionEpoch = 0;
 let currentSessionUserId = null;
+let guestHandoffInFlight = null;
+let guestHandoffKey = null;
 
 // Progress CAS cache lives in the lifecycle block because it is only
 // valid for the account that produced it: switching accounts must reset
@@ -87,9 +134,13 @@ let currentSessionUserId = null;
 // compare-and-swap expectation.
 let lastKnownProgressVersion = null;
 let lastKnownProgressUserId = null;
+// An update may proceed only if this exact user has just explicitly reviewed
+// the current server version. The view is in memory, never persisted.
+let reviewedCloudSnapshot = null;
 function resetProgressSyncCache() {
   lastKnownProgressVersion = null;
   lastKnownProgressUserId = null;
+  reviewedCloudSnapshot = null;
 }
 
 // Projects a Supabase session into (a) the DISPLAY profile and (b) — only
@@ -143,11 +194,13 @@ async function projectSession(client, session) {
   // then read the caller's own role row under RLS. Any error, mismatch or
   // offline state leaves the grant revoked.
   let adminUserId = null;
+  let verifiedUserId = null;
   try {
     const { data: userData, error: userError } = await client.auth.getUser();
     const verified = !userError && userData && userData.user && userData.user.id === user.id
       ? userData.user : null;
     if (verified) {
+      verifiedUserId = verified.id;
       const { data: roleRow } = await client
         .from('account_roles').select('role').eq('user_id', verified.id).maybeSingle();
       if (roleRow && roleRow.role === 'admin') adminUserId = verified.id;
@@ -159,7 +212,27 @@ async function projectSession(client, session) {
   // and must NOT be applied.
   if (!stillCurrent()) return;
   setVerifiedCloudAdminInternal(adminUserId);
-  setSync('saved', '');
+  // Identity verification is NOT proof that the device snapshot was saved.
+  const lastStatus = playerAccountAuthority.syncStatus().status;
+  if (!['saved', 'existing', 'previewed'].includes(lastStatus)) {
+    setSync(verifiedUserId ? 'connected' : 'error',
+      verifiedUserId ? 'Cloud identity verified. Progress upload is separate.'
+        : 'Cloud identity not verified yet.');
+  }
+  // Only the matching email-link request FROM THIS DEVICE may cause an
+  // automatic, create-only unverified handoff. No token, no secret, no AC
+  // grant is transported by the local pending marker.
+  const marker = pendingLink();
+  if (verifiedUserId === user.id && marker
+    && marker.guestId === playerAccountAuthority.guestProfileId()
+    && marker.email === String(user.email || '').trim().toLowerCase()
+    && typeof window !== 'undefined') {
+    window.setTimeout(() => {
+      if (stillCurrent() && playerAccountAuthority.profile().profileId === verifiedUserId) {
+        importGuestProgress().catch(() => {});
+      }
+    }, 1200);
+  }
 }
 
 // Offline = cannot re-prove a server-verified grant, so fail closed
@@ -215,6 +288,7 @@ const unconfigured = () => ({ ok: false, reason: 'cloud-unconfigured' });
 
 export async function signInWithGoogle() {
   if (!isCloudConfigured()) return unconfigured();
+  if (!isGoogleSignInEnabled()) return { ok: false, reason: 'google-provider-disabled' };
   const client = await getClient();
   const { error } = await client.auth.signInWithOAuth({
     provider: 'google',
@@ -223,26 +297,58 @@ export async function signInWithGoogle() {
   return error ? { ok: false, reason: error.message } : { ok: true, redirect: true };
 }
 
-export async function signInWithEmailOtp(email) {
+// Staging acceptance: password login for a previously confirmed user.
+// No email delivery and no template/Google/MFA configuration is needed.
+export async function signInWithPassword(email, password) {
   if (!isCloudConfigured()) return unconfigured();
-  const clean = String(email || '').trim();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) return { ok: false, reason: 'invalid-email' };
   const client = await getClient();
-  const { error } = await client.auth.signInWithOtp({
-    email: clean,
-    options: { emailRedirectTo: window.location.origin + '/', shouldCreateUser: true },
-  });
-  return error ? { ok: false, reason: error.message } : { ok: true, sent: true };
+  const result = await signInWithEmailPassword(client, email, password);
+  if (!result.ok) return result;
+  await projectSession(client, result.session);
+  return { ok: true };
+}
+
+// Official hosted Auth email recovery. Does not reveal user existence,
+ // and never bypasses mailbox ownership or require a service_role key.
+export async function recoverEmailPassword(email) {
+  if (!isCloudConfigured()) return unconfigured();
+  const client = await getClient();
+  return requestPasswordRecovery(client, email, window.location.origin + '/');
+}
+
+export async function setCurrentAccountPassword(password, confirmation) {
+  if (!isCloudConfigured()) return unconfigured();
+  const profile = playerAccountAuthority.profile();
+  if (!profile || profile.kind !== 'cloud') return { ok: false, reason: 'signed-out' };
+  const userId = profile.profileId, epoch = sessionEpoch;
+  const client = await getClient();
+  if (epoch !== sessionEpoch || currentSessionUserId !== userId) {
+    return { ok: false, reason: 'session-superseded' };
+  }
+  const result = await setPasswordForVerifiedUser(client, userId, password, confirmation);
+  // updateUser legitimately fires USER_UPDATED and may refresh projection
+  // (and sessionEpoch) for the SAME user. Only a changed principal revokes
+  // this operation's result; don't falsely say a successful update failed.
+  if (currentSessionUserId !== userId || playerAccountAuthority.profile()?.profileId !== userId) {
+    return { ok: false, reason: 'session-superseded' };
+  }
+  return result;
+}
+
+export async function signInWithEmailOtp(email) {
+  if (!isEmailCodeEnabled()) return { ok: false, reason: 'email-code-not-ready' };
+  const client = await getClient();
+  const result = await requestEmailCode(client, email, window.location.origin + '/');
+  if (result.ok) rememberPendingLink(result.email);
+  return result;
 }
 
 export async function verifyEmailOtp(email, token) {
-  if (!isCloudConfigured()) return unconfigured();
+  if (!isEmailCodeEnabled()) return { ok: false, reason: 'email-code-not-ready' };
   const client = await getClient();
-  const { data, error } = await client.auth.verifyOtp({
-    email: String(email || '').trim(), token: String(token || '').trim(), type: 'email',
-  });
-  if (error) return { ok: false, reason: error.message };
-  await projectSession(client, data && data.session);
+  const result = await confirmEmailCode(client, email, token);
+  if (!result.ok) return result;
+  await projectSession(client, result.session);
   return { ok: true };
 }
 
@@ -297,6 +403,45 @@ export async function requestAccountDeletion() {
 // switch, and re-checked against the current user below as a second
 // line of defense).
 
+// READ ONLY: fetch the current, user-owned snapshot to display its unverified
+// device data without applying it to the local wallet or owned fighters.
+// A successful preview also arms exactly one optimistic CAS update against
+// this version; any login change, sign-out or offline event disarms it.
+export async function previewCloudProgressSnapshot() {
+  if (!isCloudConfigured()) return unconfigured();
+  const profile = playerAccountAuthority.profile();
+  if (!profile || profile.kind !== 'cloud') return { ok: false, reason: 'signed-out' };
+  const userId = profile.profileId;
+  const epoch = sessionEpoch;
+  const stillValid = () => epoch === sessionEpoch
+    && currentSessionUserId === userId
+    && playerAccountAuthority.profile().profileId === userId
+    && (typeof navigator === 'undefined' || navigator.onLine !== false);
+  resetProgressSyncCache();
+  try {
+    const client = await getClient();
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    const { data: verified, error: verifyError } = await client.auth.getUser();
+    if (verifyError || verified?.user?.id !== userId || !stillValid())
+      return { ok: false, reason: 'identity-not-verified' };
+    const { data: row, error: queryError } = await client.from('player_progress')
+      .select('version,payload,updated_at')
+      .eq('user_id', userId).eq('namespace', 'arsenalMeta').maybeSingle();
+    if (queryError || !stillValid()) return { ok: false, reason: 'snapshot-read-failed' };
+    const summary = describeUnverifiedCloudSnapshot(row);
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    reviewedCloudSnapshot = { userId, epoch, version: summary.version };
+    lastKnownProgressVersion = summary.version;
+    lastKnownProgressUserId = userId;
+    setSync('previewed', 'Viewing a read-only unverified Cloud backup. No device data was changed.');
+    return { ok: true, userId, ...summary };
+  } catch {
+    if (stillValid()) setSync('error', 'Cloud backup preview unavailable.');
+    resetProgressSyncCache();
+    return { ok: false, reason: 'snapshot-preview-unavailable' };
+  }
+}
+
 export async function uploadProgressSnapshot() {
   if (!isCloudConfigured()) return unconfigured();
   const profile = playerAccountAuthority.profile();
@@ -304,44 +449,109 @@ export async function uploadProgressSnapshot() {
   const meta = typeof window !== 'undefined' ? window.APEX_ARSENAL_META : null;
   const snapshot = meta && typeof meta.getState === 'function' ? meta.getState() : null;
   if (!snapshot) return { ok: false, reason: 'wallet-unavailable' };
-  setSync('syncing', '');
+  const userId = profile.profileId;
+  const reviewed = reviewedCloudSnapshot;
+  const epoch = sessionEpoch;
+  const stillValid = () => epoch === sessionEpoch
+    && currentSessionUserId === userId
+    && playerAccountAuthority.profile().profileId === userId
+    && (typeof navigator === 'undefined' || navigator.onLine !== false);
+  if (!reviewed || reviewed.userId !== userId
+    || reviewed.epoch !== epoch || !Number.isSafeInteger(reviewed.version)
+    || lastKnownProgressUserId !== userId
+    || lastKnownProgressVersion !== reviewed.version) {
+    return { ok: false, reason: 'preview-required' };
+  }
+  // Each explicit review authorizes ONE update attempt. Even a failed
+  // attempt requires a new review so a second tab cannot be overwritten
+  // just by clicking the same button again.
+  resetProgressSyncCache();
+  setSync('syncing', 'CAS update requested after explicit Cloud preview.');
   try {
     const client = await getClient();
-    // Never let a previous account's remembered version seed this
-    // account's CAS expectation (the lifecycle reset should have caught
-    // the switch; this is the belt-and-suspenders check).
-    if (lastKnownProgressUserId !== profile.profileId) {
-      lastKnownProgressVersion = null;
-      lastKnownProgressUserId = profile.profileId;
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    const { data: verified, error: verifyError } = await client.auth.getUser();
+    if (verifyError || verified?.user?.id !== userId || !stillValid()) {
+      setSync('error', 'Cloud identity changed. Review backup again.');
+      return { ok: false, reason: 'identity-not-verified' };
     }
-    if (lastKnownProgressVersion === null) {
-      const { data: existing } = await client
-        .from('player_progress').select('version')
-        .eq('user_id', profile.profileId).eq('namespace', 'arsenalMeta').maybeSingle();
-      lastKnownProgressVersion = existing ? Number(existing.version) || 0 : 0;
-    }
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
     const { data, error } = await client.rpc('save_progress_snapshot_cas', {
       p_namespace: 'arsenalMeta',
-      p_expected_version: lastKnownProgressVersion,
+      p_expected_version: reviewed.version,
       p_payload: { unverified: true, guestProfileId: playerAccountAuthority.guestProfileId(), state: snapshot },
     });
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
     if (error) throw error;
     const row = Array.isArray(data) ? data[0] : data;
-    if (row && row.ok) {
-      lastKnownProgressVersion = Number(row.current_version);
-      setSync('saved', '');
-      return { ok: true, version: lastKnownProgressVersion };
+    if (row?.ok === true) {
+      setSync('saved', 'Unverified device snapshot saved. Cloud wallet unchanged.');
+      return { ok: true, version: Number(row.current_version) };
     }
-    // CONFLICT: a newer snapshot landed first (second device). Preserve it.
-    const serverVersion = row ? Number(row.current_version) : null;
-    resetProgressSyncCache(); // force a fresh read before any retry
-    setSync('conflict', 'A newer cloud snapshot exists (another device). Nothing was overwritten.');
+    const serverVersion = Number(row?.current_version) || null;
+    setSync('conflict', 'Cloud backup changed after preview. Nothing overwritten. Review again.');
     return { ok: false, reason: 'conflict', serverVersion };
   } catch (error) {
-    setSync(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'error',
-      String(error && error.message || error));
+    if (stillValid()) {
+      setSync(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'error',
+        String(error && error.message || error));
+    }
     return { ok: false, reason: 'upload-failed' };
   }
+}
+
+// One-time snapshot promotion candidate. The entire device state is stored
+// as UNVERIFIED backup data, with a unique pending-review lineage row. Cloud
+// wallet and fighter_ownership are NEVER touched by this code. The operation
+// verifies the current user at the Auth server, and only CAS-inserts if the
+// cloud has no snapshot already. It never overwrites another tab's progress.
+export async function importGuestProgress() {
+  if (!isCloudConfigured()) return unconfigured();
+  const profile = playerAccountAuthority.profile();
+  if (!profile || profile.kind !== 'cloud') return { ok: false, reason: 'signed-out' };
+  const userId = profile.profileId;
+  const guestId = playerAccountAuthority.guestProfileId();
+  const key = userId + ':' + guestId;
+  if (guestHandoffInFlight && guestHandoffKey === key) return guestHandoffInFlight;
+  const meta = typeof window !== 'undefined' ? window.APEX_ARSENAL_META : null;
+  const state = typeof meta?.getState === 'function' ? meta.getState() : null;
+  if (!state) return { ok: false, reason: 'device-progress-unavailable' };
+  const epoch = sessionEpoch;
+  const stillValid = () => epoch === sessionEpoch
+    && currentSessionUserId === userId
+    && playerAccountAuthority.profile().profileId === userId
+    && (typeof navigator === 'undefined' || navigator.onLine !== false);
+  const task = (async () => {
+    const client = await getClient();
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    setSync('syncing', 'Creating an unverified guest backup, not issuing cloud credits.');
+    const result = await persistGuestHandoffIfEmpty({
+      client, userId, guestId, snapshot: state, stillValid,
+    });
+    if (!stillValid()) return { ok: false, reason: 'session-superseded' };
+    if (result.ok && result.result === 'created') {
+      clearPendingLink(guestId);
+      // Do not set CAS cache here: the manual upload must independently
+      // fetch the server version after a background guest handoff.
+      resetProgressSyncCache();
+      setSync('saved', 'Unverified device backup saved; wallet is still local.');
+    } else if (result.ok && result.result === 'existing') {
+      clearPendingLink(guestId);
+      resetProgressSyncCache();
+      setSync('existing', 'A cloud snapshot already exists. It was NOT overwritten.');
+    } else {
+      setSync('error', 'Guest backup not completed: ' + (result.reason || 'unknown'));
+    }
+    return result;
+  })().finally(() => {
+    if (guestHandoffKey === key) {
+      guestHandoffInFlight = null;
+      guestHandoffKey = null;
+    }
+  });
+  guestHandoffKey = key;
+  guestHandoffInFlight = task;
+  return task;
 }
 
 // One-time guest → account migration record. The snapshot is stored for the
@@ -368,11 +578,17 @@ const api = Object.freeze({
   isCloudConfigured,
   initCloudAccount,
   signInWithGoogle,
+  signInWithPassword,
+  recoverEmailPassword,
+  setCurrentAccountPassword,
+  isEmailCodeEnabled,
   signInWithEmailOtp,
   verifyEmailOtp,
   signOutCloud,
   requestAccountDeletion,
+  previewCloudProgressSnapshot,
   uploadProgressSnapshot,
+  importGuestProgress,
   recordGuestMigration,
 });
 
@@ -419,6 +635,7 @@ export const __cloudLifecycleTestHooks = Object.freeze({
   sessionEpoch: () => sessionEpoch,
   currentSessionUserId: () => currentSessionUserId,
   progressCache: () => ({ version: lastKnownProgressVersion, userId: lastKnownProgressUserId }),
+  previewState: () => reviewedCloudSnapshot ? { ...reviewedCloudSnapshot } : null,
   resetLifecycle() {
     initialized = false;
     currentSessionUserId = null;

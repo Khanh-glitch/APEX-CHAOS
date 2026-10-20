@@ -278,50 +278,122 @@ async function grantAdmin(client, user) {
   });
 }
 
-// ── S5. Progress CAS cache is per-account (reset on switch + sign-out) ──────
+// ── S5. Explicit review is mandatory and bound to current user+version ──
 {
+  let currentIdentity = userA;
   const tables = {
     profiles: fastProfiles,
     account_roles: playerRole,
-    player_progress: async () => ({ data: { version: 4 }, error: null }),
+    player_progress: async () => ({ data: {
+      version: currentIdentity.id === 'user-a' ? 4 : 2,
+      payload: { unverified: true, state: { credits: 350, totalSpins: 0, ownedFighters: ['ROBOT'] } },
+      updated_at: '2026-10-20T00:00:00Z',
+    }, error: null }),
   };
   const { client, calls } = makeClient({
     tables,
-    getUser: async () => ({ data: { user: userA }, error: null }),
-    rpc: async () => ({ data: [{ ok: true, current_version: 5 }], error: null }),
+    getUser: async () => ({ data: { user: currentIdentity }, error: null }),
+    rpc: async (name, args) => ({ data: [{ ok: true, current_version: args.p_expected_version + 1 }], error: null }),
   });
   hooks.setClientOverride(client);
   globalThis.window.APEX_ARSENAL_META = { getState: () => ({ credits: 350, ownedFighters: ['ROBOT'] }) };
   await resetAll(client);
   await hooks.projectSession(client, sessionOf(userA));
-  const up1 = await cloudAccount.uploadProgressSnapshot();
-  check('first upload CASes from the fetched server version', () => {
-    assert.equal(up1.ok, true);
-    assert.equal(calls.rpc.at(-1).args.p_expected_version, 4);
-    assert.deepEqual(hooks.progressCache(), { version: 5, userId: 'user-a' });
+
+  const rejected = await cloudAccount.uploadProgressSnapshot();
+  check('Cloud update without reviewing server snapshot is prohibited', () => {
+    assert.equal(rejected.reason, 'preview-required');
+    assert.equal(calls.rpc.length, 0);
   });
 
-  // Switch to B: cache must reset at the switch, so B's upload re-reads
-  // B's own server version instead of reusing A's 5.
-  tables.player_progress = async () => ({ data: { version: 2 }, error: null });
-  const selectsBeforeSwitch = calls.tables.filter((t) => t === 'player_progress').length;
-  await hooks.projectSession(client, sessionOf(userB));
-  check('account switch resets the CAS version cache immediately', () => {
+  const previewA = await cloudAccount.previewCloudProgressSnapshot();
+  check('read-only Cloud preview shows unverified version and credits, not an applied wallet', () => {
+    assert.equal(previewA.ok, true);
+    assert.equal(previewA.version, 4);
+    assert.equal(previewA.deviceCredits, 350);
+    assert.deepEqual(hooks.progressCache(), { version: 4, userId: 'user-a' });
+  });
+
+  const up1 = await cloudAccount.uploadProgressSnapshot();
+  check('reviewed update CASes against precisely the version that was shown', () => {
+    assert.equal(up1.ok, true);
+    assert.equal(calls.rpc.at(-1).args.p_expected_version, 4);
     assert.deepEqual(hooks.progressCache(), { version: null, userId: null });
   });
+  const replay = await cloudAccount.uploadProgressSnapshot();
+  check('successful review grants only one update attempt, not an endless update lease', () => {
+    assert.equal(replay.reason, 'preview-required');
+    assert.equal(calls.rpc.length, 1);
+  });
+
+  const previewBeforeSwitch = await cloudAccount.previewCloudProgressSnapshot();
+  assert.equal(previewBeforeSwitch.version, 4);
+  currentIdentity = userB;
+  await hooks.projectSession(client, sessionOf(userB));
+  const stale = await cloudAccount.uploadProgressSnapshot();
+  check('account switch revokes preview authorization, preventing cross-account write', () => {
+    assert.equal(stale.reason, 'preview-required');
+    assert.deepEqual(hooks.progressCache(), { version: null, userId: null });
+    assert.equal(calls.rpc.length, 1);
+  });
+
+  const previewB = await cloudAccount.previewCloudProgressSnapshot();
   const up2 = await cloudAccount.uploadProgressSnapshot();
-  check('next upload re-reads the NEW account version (no stale seed)', () => {
+  check('new user must separately review own remote snapshot before CAS update', () => {
+    assert.equal(previewB.version, 2);
     assert.equal(up2.ok, true);
     assert.equal(calls.rpc.at(-1).args.p_expected_version, 2);
-    assert.ok(calls.tables.filter((t) => t === 'player_progress').length > selectsBeforeSwitch,
-      'a fresh version fetch happened for B');
-    assert.equal(hooks.progressCache().userId, 'user-b');
+    assert.equal(calls.rpc.length, 2);
   });
 
   await cloudAccount.signOutCloud();
-  check('sign-out clears the CAS version cache', () => {
+  check('sign-out clears Cloud snapshot preview authorization', () => {
+    assert.equal(hooks.previewState(), null);
     assert.deepEqual(hooks.progressCache(), { version: null, userId: null });
   });
+  delete globalThis.window.APEX_ARSENAL_META;
+}
+
+// ── S5b. Optimistic concurrency when another device writes after preview ──
+{
+  let remoteVersion = 9;
+  const { client, calls } = makeClient({
+    user: userA,
+    tables: {
+      profiles: fastProfiles,
+      account_roles: playerRole,
+      player_progress: async () => ({ data: {
+        version: remoteVersion,
+        payload: { unverified: true, state: { credits: 50, ownedFighters: ['ROBOT','MAGNET'], totalSpins: 1 } },
+      }, error: null }),
+    },
+    rpc: async (_, args) => ({
+      data: [{ ok: args.p_expected_version === remoteVersion, current_version: remoteVersion }],
+      error: null,
+    }),
+  });
+  hooks.setClientOverride(client);
+  globalThis.window.APEX_ARSENAL_META = { getState: () => ({ credits: 350, ownedFighters: ['ROBOT'] }) };
+  await resetAll(client);
+  await hooks.projectSession(client, sessionOf(userA));
+  const preview = await cloudAccount.previewCloudProgressSnapshot();
+  assert.equal(preview.version, 9);
+  assert.ok(preview.deviceFighters.includes('MAGNET'));
+  remoteVersion = 10; // device B committed first
+  const attempt = await cloudAccount.uploadProgressSnapshot();
+  check('stale version 9 update conflicts against version 10 without overwrite', () => {
+    assert.equal(attempt.reason, 'conflict');
+    assert.equal(attempt.serverVersion, 10);
+    assert.equal(account.syncStatus().status, 'conflict');
+    assert.equal(calls.rpc.at(-1).args.p_expected_version, 9);
+    assert.equal(hooks.previewState(), null);
+  });
+  const replay = await cloudAccount.uploadProgressSnapshot();
+  check('CAS conflict requires a new explicit preview before retry', () => {
+    assert.equal(replay.reason, 'preview-required');
+    assert.equal(calls.rpc.length, 1);
+  });
+  await cloudAccount.signOutCloud();
   delete globalThis.window.APEX_ARSENAL_META;
 }
 

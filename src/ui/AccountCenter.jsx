@@ -1,13 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   isCloudConfigured,
+  isGoogleSignInEnabled,
+  isEmailCodeEnabled,
   signInWithGoogle,
   signInWithEmailOtp,
   verifyEmailOtp,
+  signInWithPassword,
+  recoverEmailPassword,
+  setCurrentAccountPassword,
   signOutCloud,
   requestAccountDeletion,
+  previewCloudProgressSnapshot,
   uploadProgressSnapshot,
-  recordGuestMigration,
+  importGuestProgress,
 } from '../game/cloudAccount.js';
 import './accountCenter.css';
 
@@ -23,6 +29,9 @@ const SYNC_LABELS = {
   'local-only': 'LOCAL ONLY',
   'cloud-unconfigured': 'CLOUD NOT CONFIGURED',
   'signed-out': 'SIGNED OUT',
+  connected: 'ACCOUNT CONNECTED',
+  existing: 'CLOUD BACKUP EXISTS',
+  previewed: 'BACKUP PREVIEW READY',
   syncing: 'SYNCING',
   saved: 'SAVED',
   offline: 'OFFLINE',
@@ -67,13 +76,21 @@ export default function AccountCenter() {
   const [open, setOpen] = useState(false);
   const [, setTick] = useState(0);
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [loginPassword, setLoginPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [confirmedEmail, setConfirmedEmail] = useState('');
+  const [nextSendAt, setNextSendAt] = useState(0);
+  const [recoveryServerLimited, setRecoveryServerLimited] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [nameDraft, setNameDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletionPending, setDeletionPending] = useState(false);
+  const [cloudPreview, setCloudPreview] = useState(null);
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const invokerRef = useRef(null);
@@ -84,8 +101,14 @@ export default function AccountCenter() {
     invokerRef.current = invoker || document.activeElement || null;
     setMessage('');
     setConfirmDelete(false);
-    setOtpSent(false);
-    setOtp('');
+    setCodeSent(false);
+    setLoginPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setCode('');
+    setConfirmedEmail('');
+    setNow(Date.now());
+    setCloudPreview(null);
     const { profile } = readAuthorities();
     setNameDraft(profile && profile.kind === 'guest' ? profile.displayName : '');
     setOpen(true);
@@ -94,6 +117,9 @@ export default function AccountCenter() {
 
   const closeCenter = useCallback(() => {
     setOpen(false);
+    setLoginPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     const invoker = invokerRef.current;
     if (invoker && invoker.isConnected && typeof invoker.focus === 'function') {
       invoker.focus({ preventScroll: true });
@@ -152,12 +178,39 @@ export default function AccountCenter() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [open, closeCenter]);
 
+  useEffect(() => {
+    if (!open || nextSendAt <= Date.now()) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [open, nextSendAt]);
+
   const run = async (fn) => {
     setBusy(true);
     setMessage('');
     try {
       const result = await fn();
-      if (result && result.ok === false && result.reason) setMessage(String(result.reason).toUpperCase());
+      if (result && result.ok === false && result.reason) {
+        const help = {
+          'email-rate-limited': 'Đã đạt giới hạn gửi email. Đừng bấm lại liên tục; hãy thử sau.',
+          'verify-rate-limited': 'Bạn đã thử mã quá nhiều lần. Hãy đợi trước khi thử lại.',
+          'invalid-or-expired-code': 'Mã không đúng hoặc đã hết hạn. Kiểm tra email mới nhất.',
+          'invalid-code': 'Nhập đủ 6 chữ số trong email.',
+          'invalid-email': 'Địa chỉ email không hợp lệ.',
+          'email-code-not-ready': 'Đăng nhập email chưa mở trên máy chủ thử nghiệm.',
+          'email-send-failed': 'Chưa gửi được email. Thử lại sau.',
+          'weak-password': 'Mật khẩu phải có từ 12 đến 128 ký tự.',
+          'password-mismatch': 'Hai mật khẩu chưa trùng khớp.',
+          'invalid-credentials': 'Email hoặc mật khẩu không đúng.',
+          'password-required': 'Hãy nhập mật khẩu.',
+          'email-not-verified': 'Tài khoản cần xác minh email trước khi đặt mật khẩu.',
+          'password-update-failed': 'Chưa đặt được mật khẩu. Kiểm tra lại và thử sau.',
+          'auth-rate-limited': 'Quá nhiều lần thử. Vui lòng đợi trước khi đăng nhập lại.',
+          'recovery-rate-limited': 'Máy chủ email đã hết hạn mức. Không có thời gian mở khóa chính xác; đừng gửi lại liên tục. Hãy thử lại sau ít nhất một giờ.',
+          'recovery-unavailable': 'Chưa gửi được email khôi phục. Hãy thử lại sau.',
+          'identity-not-verified': 'Phiên đăng nhập không còn hợp lệ. Hãy đăng nhập lại.',
+        };
+        setMessage(help[result.reason] || String(result.reason).toUpperCase());
+      }
       refresh();
       return result;
     } catch (error) {
@@ -173,6 +226,9 @@ export default function AccountCenter() {
     credits, totalSpins, cloudConfigured, isAdmin, adminSource,
   } = readAuthorities();
   const isCloud = !!profile && profile.kind === 'cloud';
+  const googleEnabled = cloudConfigured && isGoogleSignInEnabled();
+  const emailCodeEnabled = cloudConfigured && isEmailCodeEnabled();
+  const waitSeconds = Math.max(0, Math.ceil((nextSendAt - now) / 1000));
   const lockedIds = playable.filter((id) => !ownedIds.includes(id));
   const displayNameFor = (id) => (meta && typeof meta.displayNameFor === 'function' ? meta.displayNameFor(id) : id);
   const syncLabel = SYNC_LABELS[sync.status] || String(sync.status || '').toUpperCase();
@@ -222,18 +278,24 @@ export default function AccountCenter() {
         <div className="apex-account-body">
           <div className="apex-account-stats">
             <div className="apex-account-stat">
-              <span>APEX CREDITS</span>
+              <span>{isCloud ? 'DEVICE CREDITS' : 'APEX CREDITS'}</span>
               <b data-account-credits>{credits == null ? '—' : `${credits} AC`}</b>
             </div>
             <div className="apex-account-stat">
-              <span>OWNED FIGHTERS</span>
+              <span>{isCloud ? 'DEVICE FIGHTERS' : 'OWNED FIGHTERS'}</span>
               <b data-account-owned>{`${ownedIds.length} / ${playable.length}`}</b>
             </div>
             <div className="apex-account-stat">
-              <span>TOTAL DRAWS</span>
+              <span>{isCloud ? 'DEVICE DRAWS' : 'TOTAL DRAWS'}</span>
               <b>{totalSpins}</b>
             </div>
           </div>
+          {isCloud && (
+            <p className="apex-account-note">
+              Credits, fighters and draws above come from THIS DEVICE.
+              Cloud wallet and fighter inventory are not enabled yet.
+            </p>
+          )}
 
           <section className="apex-account-section" aria-label="OWNED FIGHTERS">
             <h3>OWNED FIGHTERS</h3>
@@ -285,88 +347,298 @@ export default function AccountCenter() {
             {!cloudConfigured && (
               <p className="apex-account-note">Progress is saved on this device only.</p>
             )}
+            {isCloud && sync.status === 'connected' && (
+              <p className="apex-account-note">
+                Account sign-in is verified. Your device progress is not confirmed
+                uploaded; use UPLOAD SNAPSHOT to save an unverified backup.
+              </p>
+            )}
             {isCloud && (
               <div className="apex-account-actions" style={{ marginTop: 8 }}>
                 <button
                   type="button"
+                  className="apex-account-btn is-primary"
+                  disabled={busy}
+                  onClick={() => run(() => importGuestProgress())}
+                >
+                  BACK UP GUEST PROGRESS
+                </button>
+                <button
+                  type="button"
                   className="apex-account-btn"
                   disabled={busy}
-                  onClick={() => run(() => uploadProgressSnapshot())}
+                  onClick={() => run(async () => {
+                    const result = await previewCloudProgressSnapshot();
+                    setCloudPreview(result?.ok ? result : null);
+                    return result;
+                  })}
                 >
-                  UPLOAD SNAPSHOT
+                  REVIEW CLOUD BACKUP
                 </button>
+                {cloudPreview?.ok && cloudPreview.userId === profile?.profileId && (
+                  <p className="apex-account-note" data-cloud-preview="true">
+                    {cloudPreview.exists
+                      ? `READ ONLY: cloud version ${cloudPreview.version}; unverified device backup:
+${cloudPreview.deviceCredits ?? 'unknown'} credits, ${cloudPreview.deviceDraws ?? 'unknown'} draws,
+fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was restored to this device.`
+                      : 'No existing Cloud backup. Your device data has not been restored or modified.'}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="apex-account-btn"
+                  disabled={busy || !cloudPreview?.ok || cloudPreview.userId !== profile?.profileId || sync.status !== 'previewed'}
+                  onClick={() => run(async () => {
+                    setCloudPreview(null);
+                    return uploadProgressSnapshot();
+                  })}
+                >
+                  UPDATE CLOUD SNAPSHOT (AFTER REVIEW)
+                </button>
+                <p className="apex-account-note">
+                  REVIEW CLOUD BACKUP is read-only and does not restore
+                  unverified credits/fighters to this device. Updating requires
+                  a fresh preview and checks its exact Cloud version.
+                  BACK UP GUEST PROGRESS never overwrites an existing backup.
+                  None of these actions grants Cloud AC or fighters.
+                </p>
               </div>
             )}
           </section>
 
           {!isCloud ? (
             <section className="apex-account-section" aria-label="SIGN IN">
-              <h3>{cloudConfigured ? 'SIGN IN' : 'CLOUD NOT CONFIGURED'}</h3>
+              <h3>ĐĂNG NHẬP</h3>
               <div className="apex-account-actions">
-                <button
-                  type="button"
-                  className="apex-account-btn is-primary"
-                  disabled={busy || !cloudConfigured}
-                  onClick={() => run(() => signInWithGoogle())}
-                >
-                  SIGN IN WITH GOOGLE
-                </button>
-                <div className="apex-account-row">
-                  <input
-                    className="apex-account-input"
-                    type="email"
-                    value={email}
-                    placeholder="EMAIL ADDRESS"
-                    aria-label="EMAIL ADDRESS"
-                    disabled={!cloudConfigured}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="apex-account-btn"
-                    disabled={busy || !cloudConfigured}
-                    onClick={() => run(async () => {
-                      const result = await signInWithEmailOtp(email);
-                      if (result && result.ok) setOtpSent(true);
-                      return result;
-                    })}
-                  >
-                    SEND CODE
-                  </button>
-                </div>
-                {otpSent && (
-                  <div className="apex-account-row">
-                    <input
-                      className="apex-account-input"
-                      value={otp}
-                      placeholder="ENTER CODE"
-                      aria-label="ENTER CODE"
-                      onChange={(e) => setOtp(e.target.value)}
-                    />
+                {cloudConfigured && (
+                  <>
+                    <p className="apex-account-note">
+                      Đã có tài khoản? Đăng nhập bằng email và mật khẩu. Không cần nhận mã.
+                    </p>
+                    <div className="apex-account-row">
+                      <input
+                        className="apex-account-input"
+                        type="email"
+                        autoComplete="username"
+                        value={email}
+                        placeholder="EMAIL"
+                        aria-label="PASSWORD LOGIN EMAIL"
+                        disabled={busy}
+                        onChange={e => setEmail(e.target.value)}
+                      />
+                      <input
+                        className="apex-account-input"
+                        type="password"
+                        autoComplete="current-password"
+                        value={loginPassword}
+                        placeholder="MẬT KHẨU"
+                        aria-label="PASSWORD LOGIN PASSWORD"
+                        disabled={busy}
+                        onChange={e => setLoginPassword(e.target.value)}
+                      />
+                    </div>
                     <button
                       type="button"
                       className="apex-account-btn is-primary"
-                      disabled={busy}
+                      disabled={busy || !email.trim() || !loginPassword}
                       onClick={() => run(async () => {
-                        const result = await verifyEmailOtp(email, otp);
-                        if (result && result.ok) {
-                          // First sign-in: record the guest lineage once, then
-                          // snapshot. The device wallet is never reset by this.
-                          await recordGuestMigration().catch(() => null);
-                          await uploadProgressSnapshot().catch(() => null);
+                        const result = await signInWithPassword(email, loginPassword);
+                        setLoginPassword('');
+                        return result;
+                      })}
+                    >
+                      ĐĂNG NHẬP
+                    </button>
+                    <button
+                      type="button"
+                      className="apex-account-btn"
+                      disabled={busy || !email.trim() || waitSeconds > 0 || recoveryServerLimited}
+                      onClick={() => run(async () => {
+                        const result = await recoverEmailPassword(email);
+                        setNow(Date.now());
+                        if (result?.ok) {
+                          setRecoveryServerLimited(false);
+                          setNextSendAt(Date.now() + 60_000);
+                          setMessage('Nếu email này có tài khoản, hãy kiểm tra thư đặt lại mật khẩu. Mở thư, trở lại game rồi đặt mật khẩu mới trong Account Center.');
+                        } else if (result?.reason === 'recovery-rate-limited') {
+                          // Provider never promised a five-minute reset: avoid fake countdown.
+                          // Suppress repeated requests until the owner reloads after quota recovery.
+                          setRecoveryServerLimited(true);
                         }
                         return result;
                       })}
                     >
-                      VERIFY CODE
+                      {recoveryServerLimited ? 'EMAIL ĐANG BỊ GIỚI HẠN' : waitSeconds > 0 ? `GỬI LẠI SAU ${waitSeconds}S` : 'QUÊN MẬT KHẨU?'}
+                    </button>
+                    <p className="apex-account-note">
+                      Đăng ký mới tạm khóa trên staging; Guest vẫn chơi ngay.
+                    </p>
+                  </>
+                )}
+                {googleEnabled && (
+                  <button
+                    type="button"
+                    className="apex-account-btn is-primary"
+                    disabled={busy}
+                    onClick={() => run(() => signInWithGoogle())}
+                  >
+                    ĐĂNG NHẬP GOOGLE
+                  </button>
+                )}
+                {emailCodeEnabled && !codeSent && (
+                  <div className="apex-account-row">
+                    <input
+                      className="apex-account-input"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      placeholder="Email"
+                      aria-label="EMAIL ADDRESS"
+                      disabled={busy}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.preventDefault();
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="apex-account-btn is-primary"
+                      disabled={busy || waitSeconds > 0 || !email.trim()}
+                      onClick={() => run(async () => {
+                        const attempt = Date.now();
+                        const result = await signInWithEmailOtp(email);
+                        setNow(attempt);
+                        if (result?.ok) {
+                          setConfirmedEmail(email.trim());
+                          setCode('');
+                          setCodeSent(true);
+                          setNextSendAt(Date.now() + 60_000);
+                        } else if (result?.reason === 'email-rate-limited') {
+                          setNextSendAt(Date.now() + 5 * 60_000);
+                        }
+                        return result;
+                      })}
+                    >
+                      {waitSeconds > 0 ? `ĐỢI ${waitSeconds}S` : 'GỬI MÃ'}
                     </button>
                   </div>
+                )}
+                {emailCodeEnabled && codeSent && (
+                  <>
+                    <p className="apex-account-note" role="status">
+                      Mã xác nhận đã được gửi đến {confirmedEmail}. Nhập 6 số
+                      từ email ngay tại đây, không phải chuyển trình duyệt.
+                    </p>
+                    <div className="apex-account-row">
+                      <input
+                        className="apex-account-input"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        autoComplete="one-time-code"
+                        value={code}
+                        placeholder="MÃ 6 SỐ"
+                        aria-label="SIX DIGIT EMAIL CODE"
+                        disabled={busy}
+                        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (code.length === 6 && !busy)
+                              run(() => verifyEmailOtp(confirmedEmail, code));
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="apex-account-btn is-primary"
+                        disabled={busy || code.length !== 6}
+                        onClick={() => run(() => verifyEmailOtp(confirmedEmail, code))}
+                      >
+                        XÁC NHẬN
+                      </button>
+                    </div>
+                    <div className="apex-account-row">
+                      <button type="button" className="apex-account-btn"
+                        disabled={busy}
+                        onClick={() => {
+                          setCodeSent(false);
+                          setCode('');
+                          setMessage('');
+                        }}>
+                        ĐỔI EMAIL
+                      </button>
+                      <button
+                        type="button"
+                        className="apex-account-btn"
+                        disabled={busy || waitSeconds > 0}
+                        onClick={() => run(async () => {
+                          const result = await signInWithEmailOtp(confirmedEmail);
+                          if (result?.ok) {
+                            setCode('');
+                            setNextSendAt(Date.now() + 60_000);
+                          } else if (result?.reason === 'email-rate-limited') {
+                            setNextSendAt(Date.now() + 5 * 60_000);
+                          }
+                          setNow(Date.now());
+                          return result;
+                        })}
+                      >
+                        {waitSeconds > 0 ? `GỬI LẠI SAU ${waitSeconds}S` : 'GỬI LẠI MÃ'}
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </section>
           ) : (
             <section className="apex-account-section" aria-label="ACCOUNT">
-              <h3>PLAYER ACCOUNT</h3>
+              <h3>TÀI KHOẢN</h3>
+              <p className="apex-account-note">
+                Đặt mật khẩu một lần để đăng nhập tài khoản này trên máy khác.
+                Không cần gửi email, mã OTP hay Google.
+              </p>
+              <div className="apex-account-row">
+                <input
+                  className="apex-account-input"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  minLength={12}
+                  maxLength={128}
+                  placeholder="MẬT KHẨU MỚI (12+ KÝ TỰ)"
+                  aria-label="NEW CLOUD PASSWORD"
+                  disabled={busy}
+                  onChange={e => setNewPassword(e.target.value)}
+                />
+                <input
+                  className="apex-account-input"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  minLength={12}
+                  maxLength={128}
+                  placeholder="NHẬP LẠI MẬT KHẨU"
+                  aria-label="CONFIRM CLOUD PASSWORD"
+                  disabled={busy}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <button
+                type="button"
+                className="apex-account-btn"
+                disabled={busy || newPassword.length < 12 || confirmPassword.length < 12}
+                onClick={() => run(async () => {
+                  const result = await setCurrentAccountPassword(newPassword, confirmPassword);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  if (result?.ok) setMessage('ĐÃ ĐẶT MẬT KHẨU. MÁY KHÁC CÓ THỂ ĐĂNG NHẬP.');
+                  return result;
+                })}
+              >
+                ĐẶT MẬT KHẨU CHO TÀI KHOẢN
+              </button>
               <div className="apex-account-actions">
                 <button
                   type="button"

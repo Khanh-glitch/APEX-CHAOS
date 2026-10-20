@@ -1,0 +1,108 @@
+# A1 isolated Cloudflare Pages staging. Never deploys the default/production branch.
+# The key below is a Supabase PUBLISHABLE browser key (not service_role/secret).
+# This action builds explicitly against the isolated, empty APEX staging database.
+name: A1 Cloudflare Staging Preview
+on:
+  push:
+    branches:
+      - infra/a1-staging-rpc-grants-20261020
+    paths:
+      - '.github/workflows/a1-cloudflare-staging.yml'
+      - 'supabase/migrations/0003_a1_restrict_rpc_execute_grants.sql'
+      - 'tools/testA1StagingAuthHttp.mjs'
+      - 'src/game/cloudAccount.js'
+      - 'src/ui/AccountCenter.jsx'
+      - 'src/game/guestCloudHandoff.js'
+      - 'src/game/cloudSnapshotPreview.js'
+      - 'src/game/emailCodeAuth.js'
+      - 'tools/testA1EmailCodeAuth.mjs'
+      - 'src/game/emailPasswordAuth.js'
+      - 'tools/testA1EmailPasswordAuth.mjs'
+      - 'tools/testCloudLifecycleRaces.mjs'
+      - 'tools/testA1GuestHandoff.mjs'
+      - 'supabase/migrations/0004_a1_guest_migration_idempotency.sql'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: a1-cloudflare-staging-preview
+  cancel-in-progress: true
+jobs:
+  preview:
+    if: github.ref == 'refs/heads/infra/a1-staging-rpc-grants-20261020'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      VITE_SUPABASE_URL: https://pqnhyucmziucjqbxmtbc.supabase.co
+      VITE_SUPABASE_ANON_KEY: sb_publishable_ESfblLHNzhNN4tqtOF8SJQ_mRqnHpPs
+      VITE_APEX_DEV_ADMIN: '0'
+      VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+      # Keep sending DISABLED until both Auth email templates use {{ .Token }}.
+      VITE_APEX_EMAIL_CODE_ENABLED: '0'
+      APEX_STAGING_BRANCH: a1-cloud-staging-20261020
+      APEX_STAGING_URL: https://a1-cloud-staging-20261020.apex-chaos.pages.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: A1 Guest Magic Link idempotency + account switch tests
+        run: node tools/testA1GuestHandoff.mjs
+      - name: A1 email OTP and rate-limit contract tests
+        run: node tools/testA1EmailCodeAuth.mjs
+      - name: A1 password sign in with verified identity (no email)
+        run: node tools/testA1EmailPasswordAuth.mjs
+      - name: A1 cloud session race gates
+        run: node tools/testCloudLifecycleRaces.mjs
+      - name: Build A1 configured for staging only
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm build
+          test -s dist/index.html
+          if ! grep -Rql 'pqnhyucmziucjqbxmtbc.supabase.co' dist/assets; then
+            echo "::error::Staging Supabase project reference missing from compiled JS"
+            exit 1
+          fi
+          printf '%s\n' "$GITHUB_SHA" > dist/A1_STAGING_BUILD_SHA.txt
+      - name: Fail closed without Cloudflare credential
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::CLOUDFLARE_API_TOKEN secret is missing; staging was built but NOT deployed"; exit 1; }
+      - name: Deploy ISOLATED Cloudflare preview branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name=apex-chaos \
+            --branch="$APEX_STAGING_BRANCH" \
+            --commit-hash="$GITHUB_SHA" \
+            --commit-dirty=true
+      - name: Public Supabase staging Auth/RLS/RPC negative tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/testA1StagingAuthHttp.mjs
+      - name: Verify immutable staging receipt (never production alias)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$APEX_STAGING_URL" != "https://apex-chaos.pages.dev"
+          for attempt in $(seq 1 25); do
+            GOT="$(curl -fsSL --max-time 15 "$APEX_STAGING_URL/A1_STAGING_BUILD_SHA.txt" 2>/dev/null || true)"
+            if [ "$GOT" = "$GITHUB_SHA" ]; then
+              echo "CLOUDFLARE A1 STAGING SHA PASS: $GOT"
+              echo "STAGING URL: $APEX_STAGING_URL"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::Cloudflare staging alias did not serve the reviewed build SHA"
+          exit 1
