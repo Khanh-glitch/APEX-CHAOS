@@ -318,7 +318,10 @@ export async function setCurrentAccountPassword(password, confirmation) {
     return { ok: false, reason: 'session-superseded' };
   }
   const result = await setPasswordForVerifiedUser(client, userId, password, confirmation);
-  if (epoch !== sessionEpoch || currentSessionUserId !== userId) {
+  // updateUser legitimately fires USER_UPDATED and may refresh projection
+  // (and sessionEpoch) for the SAME user. Only a changed principal revokes
+  // this operation's result; don't falsely say a successful update failed.
+  if (currentSessionUserId !== userId || playerAccountAuthority.profile()?.profileId !== userId) {
     return { ok: false, reason: 'session-superseded' };
   }
   return result;
