@@ -17,13 +17,18 @@ const EN = [
 const readSeen=()=>{try{return localStorage.getItem(KEY)==='1'}catch{return false}};
 export default function FirstBattleGuide(){
   const [open,setOpen]=useState(false);
+  const [autoHint,setAutoHint]=useState(false);
   const [step,setStep]=useState(0);
   const [lang,setLang]=useState(()=>window.APEX_I18N?.getLanguage?.()||'eng');
   useEffect(()=>{
     let pending=0;
     const show=()=>{setLang(window.APEX_I18N?.getLanguage?.()||'eng');setStep(0);setOpen(true)};
-    const onBoot=()=>{if(!readSeen())pending=window.setTimeout(show,320)};
-    const onOpen=()=>show();
+    const onBoot=()=>{if(!readSeen())pending=window.setTimeout(()=>{
+      setAutoHint(true);
+      try{localStorage.setItem(KEY,'1')}catch{}
+      pending=window.setTimeout(()=>setAutoHint(false),12000);
+    },320)};
+    const onOpen=()=>{setAutoHint(false);show()};
     const onLanguage=()=>setLang(window.APEX_I18N?.getLanguage?.()||'eng');
     window.addEventListener('apex:boot-started',onBoot);
     window.addEventListener('apex:guide-open',onOpen);
@@ -40,7 +45,13 @@ export default function FirstBattleGuide(){
     try{localStorage.setItem(KEY,'1')}catch{}
     setOpen(false);
   };
-  if(!open)return null;
+  if(!open){
+    if(!autoHint)return null;
+    return <aside className="apex-first-guide-hint" aria-live="polite" data-apex-no-localize="">
+      <strong>{lang==='vie'?'LẦN ĐẦU CHƠI?':'FIRST TIME PLAYING?'}</strong>
+      <span>{lang==='vie'?'Đấu BOT → chọn tướng → dùng J/K cho kỹ năng. P1 CAM là bạn; P2 XANH là đối thủ. Nhấn ? để xem hướng dẫn chi tiết.':'BOT battle → pick your fighter → use J/K for abilities. P1 ORANGE is you; P2 BLUE is the rival. Press ? for the full guide.'}</span>
+    </aside>;
+  }
   const copy=lang==='vie'?VI:EN, item=copy[step];
   return <div className="apex-first-guide-overlay" role="dialog" aria-modal="true" aria-labelledby="apex-first-guide-title">
     <section className="apex-first-guide-card" data-apex-no-localize="">
