@@ -14,7 +14,7 @@
 //     test-selectable ONLY inside an authorized Admin Test session, which
 //     still fabricates no ownership and never widens the draw pool,
 //   · match rewards follow the A1 table by ACTUAL mode+outcome
-//     (BOT win 100 / BOT loss 25 provisional / LOCAL completion 50 either
+//     (BOT win 200 / BOT loss 25 provisional / LOCAL completion 50 either
 //     winner / Lab+Admin+invalid 0) and pay exactly once per sealed match
 //     id — across duplicate callbacks AND reloads,
 //   · there is no parallel currency variable (the one AC state is the balance).
@@ -185,30 +185,30 @@ const matchState = (mode, id) => ({ battleMode: mode, resultGold: { meta: { id }
   const { meta, storage } = boot({});
   const s1 = matchState('BOT', 'match-bot-win-1');
   const botWin = meta.awardBattleResult('P1', s1);
-  check('BOT win pays +100 AC', botWin.ok === true && botWin.amount === 100 && meta.credits() === 450,
+  check('BOT win pays +200 AC', botWin.ok === true && botWin.amount === 200 && meta.credits() === 550,
     JSON.stringify(botWin));
   check('a duplicate callback for the same match pays nothing',
-    meta.awardBattleResult('P1', s1).ok === false && meta.credits() === 450);
+    meta.awardBattleResult('P1', s1).ok === false && meta.credits() === 550);
   check('the same sealed match id under a fresh state is a duplicate claim',
     meta.awardBattleResult('P1', matchState('BOT', 'match-bot-win-1')).reason === 'duplicate-claim' &&
-    meta.credits() === 450);
+    meta.credits() === 550);
   const botLoss = meta.awardBattleResult('P2', matchState('BOT', 'match-bot-loss-1'));
   check('BOT loss pays the provisional +25 AC',
-    botLoss.ok === true && botLoss.amount === 25 && meta.credits() === 475, JSON.stringify(botLoss));
+    botLoss.ok === true && botLoss.amount === 25 && meta.credits() === 575, JSON.stringify(botLoss));
   const localP2 = meta.awardBattleResult('P2', matchState('LOCAL', 'match-local-1'));
   check('LOCAL completion pays +50 AC when P2 wins',
-    localP2.ok === true && localP2.amount === 50 && meta.credits() === 525, JSON.stringify(localP2));
+    localP2.ok === true && localP2.amount === 50 && meta.credits() === 625, JSON.stringify(localP2));
   const localP1 = meta.awardBattleResult('P1', matchState('LOCAL', 'match-local-2'));
   check('LOCAL completion pays +50 AC when P1 wins (not winner-inferred)',
-    localP1.ok === true && localP1.amount === 50 && meta.credits() === 575, JSON.stringify(localP1));
+    localP1.ok === true && localP1.amount === 50 && meta.credits() === 675, JSON.stringify(localP1));
   check('Result telemetry reports the actual committed award and balance',
-    meta.lastAward().amount === 50 && meta.lastAward().balance === 575);
+    meta.lastAward().amount === 50 && meta.lastAward().balance === 675);
   // Reload: claims persist, so a replayed result can never re-pay.
   const reloaded = boot({ [KEY]: storage.getItem(KEY) });
   check('after reload the balance and claims persist (no refill, no re-pay)',
-    reloaded.meta.credits() === 575 &&
+    reloaded.meta.credits() === 675 &&
     reloaded.meta.awardBattleResult('P1', matchState('BOT', 'match-bot-win-1')).reason === 'duplicate-claim' &&
-    reloaded.meta.credits() === 575);
+    reloaded.meta.credits() === 675);
 }
 {
   const { meta } = boot({});
