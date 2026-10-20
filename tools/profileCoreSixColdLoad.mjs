@@ -122,8 +122,14 @@ async function connect(endpoint, deadlineAt) {
           continue;
         }
         // Wheel momentum can carry the card after it first reads hittable;
-        // require a still centre across two probes before firing.
-        if (prev && Math.abs(p.cx - prev.cx) <= 1 && Math.abs(p.cy - prev.cy) <= 1) break;
+        // require a settled centre across two probes before firing. The
+        // settle tolerance scales with the target (same law as the
+        // fire-time verify below): animated presentations (FROST/MIRROR)
+        // keep large chrome like #lockIn micro-jittering by a few px
+        // forever, which a human clicks without noticing, while wheel
+        // momentum moves centres far faster than this band.
+        const settleTol = Math.max(2, Math.min(p.width, p.height) * 0.05);
+        if (prev && Math.abs(p.cx - prev.cx) <= settleTol && Math.abs(p.cy - prev.cy) <= settleTol) break;
         prev = p;
         await sleep(80);
       }
@@ -131,16 +137,19 @@ async function connect(endpoint, deadlineAt) {
         throw new Error('pointer target unavailable: ' + selector + ' :: ' + JSON.stringify(p));
       }
       await command('Input.dispatchMouseEvent', { type:'mouseMoved', x:p.cx, y:p.cy });
-      // Verify at fire time; re-aim without firing if the card drifted.
-      // Tolerance scales with the target: hover transforms shift large
-      // cards' centres by a few px on mouseMoved, which is still a safely
-      // centred hit; wheel-momentum drift is far larger.
+      // Verify at fire time. Hover transforms and presentation jitter
+      // shift centres by a few px on mouseMoved; when the target is
+      // still genuinely hittable, fire at the VERIFIED centre (what a
+      // human does) instead of discarding the attempt. Only a drift
+      // beyond the target's own half-extent — real wheel momentum or a
+      // different element — re-aims from scratch.
       const verify = await hitProbe(selector);
-      const tol = Math.max(2, Math.min(p.width, p.height) * 0.1);
-      if (!verify?.hitWithin || Math.abs(verify.cx - p.cx) > tol || Math.abs(verify.cy - p.cy) > tol) continue;
-      await command('Input.dispatchMouseEvent', { type:'mousePressed', x:p.cx, y:p.cy, button:'left', clickCount:1 });
-      await command('Input.dispatchMouseEvent', { type:'mouseReleased', x:p.cx, y:p.cy, button:'left', clickCount:1 });
-      return p;
+      if (!verify?.hitWithin) continue;
+      const drift = Math.max(Math.abs(verify.cx - p.cx), Math.abs(verify.cy - p.cy));
+      if (drift > Math.min(p.width, p.height) * 0.5) continue;
+      await command('Input.dispatchMouseEvent', { type:'mousePressed', x:verify.cx, y:verify.cy, button:'left', clickCount:1 });
+      await command('Input.dispatchMouseEvent', { type:'mouseReleased', x:verify.cx, y:verify.cy, button:'left', clickCount:1 });
+      return verify;
     }
     throw new Error('pointer target kept moving: ' + selector + ' :: ' + JSON.stringify(p));
   };
