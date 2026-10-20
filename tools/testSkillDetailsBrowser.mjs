@@ -1,3 +1,4 @@
+import { GUEST_ONLY_RELEASE } from '../src/game/releasePolicy.js';
 // A1 browser acceptance — production progression, Account Center, Admin
 // gate, and symmetrical P1/P2 SKILL DETAILS on the built product.
 //
@@ -164,8 +165,14 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.deepEqual(acct.ownedChips, ['ROBOT']);
   assert.equal(acct.lockedChips, 7);
   if (home.cloud === false) {
-    assert.ok(acct.sync.includes('CLOUD NOT CONFIGURED'), 'honest unconfigured sync state');
-    assert.equal(acct.googleDisabled, true, 'no fake login button when cloud is unconfigured');
+    if (GUEST_ONLY_RELEASE) {
+      assert.ok(acct.sync.includes('ĐÃ BẬT LƯU TRÊN THIẾT BỊ'), 'Guest release truthfully labels local save');
+      assert.equal(acct.googleDisabled, undefined, 'Guest release renders no disabled fake Google button');
+      assert.equal(await page.$('[aria-label="SIGN IN"]'), null, 'Guest release has no Cloud login section');
+    } else {
+      assert.ok(acct.sync.includes('CLOUD NOT CONFIGURED'), 'honest unconfigured sync state');
+      assert.equal(acct.googleDisabled, true, 'no fake login button when cloud is unconfigured');
+    }
   }
   await shot(page, 'desktop-account-guest');
   await page.keyboard.press('Escape');
