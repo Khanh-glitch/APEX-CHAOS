@@ -6,6 +6,10 @@ import { installAdminAuthority } from './game/adminAuthority.js';
 import { installCloudAccount, initCloudAccount } from './game/cloudAccount.js';
 import { GUEST_ONLY_RELEASE } from './game/releasePolicy.js';
 import App from './App.jsx';
+// Montserrat 900 is self-hosted (Fontsource, OFL) so the shell renders
+// identically offline and inside the itch.io iframe — no third-party
+// font request may gate first paint.
+import '@fontsource/montserrat/900.css';
 import './styles.css';
 import './game/mobileViewportAudit.js';
 import { installLocalization } from './game/localizationRuntime.js';

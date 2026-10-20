@@ -1,5 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
-
+/* Montserrat 900 is self-hosted via Fontsource (see main.jsx) — the
+   previous third-party @import made first paint depend on Google
+   Fonts and silently degraded offline / inside the itch iframe. */
 :root { --bg-color: #050505; --paper: #141414; --ink: #c8c0aa; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
