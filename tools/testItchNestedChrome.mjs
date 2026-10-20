@@ -34,7 +34,7 @@ try {
   assert.match(copy,/CHƠI NGAY, KHÔNG CẦN ĐĂNG NHẬP/);
   assert.match(copy,/200 AC/);
   assert.match(copy,/350 AC/);
-  assert.equal((await nested.$('[role=dialog] input[type=password]')).length,0,'Guest release must not display Auth password controls');
+  assert.equal(await nested.$eval('[role=dialog]', el => el.querySelectorAll('input[type=password]').length),0,'Guest release must not display Auth password controls');
   assert.deepEqual(failures.filter(s=>/Error:|Uncaught|Cosmetic asset|failed to fetch/i.test(s)),[]);
   console.log('NESTED ITCH BROWSER RUNTIME PASS: real Chrome /html/apex/ iframe boot, Guest +200 AC, 350 starter AC, no login UI');
 } finally {
