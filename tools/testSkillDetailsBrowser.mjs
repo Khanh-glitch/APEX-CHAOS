@@ -90,11 +90,55 @@ const sideState = (page) => page.evaluate(() => ({
 // mount waits on a deferred runtime). Wait for the open state the
 // assertions already require — no assertion is relaxed, only the
 // arrival of the state is awaited deterministically.
+const waitModalOpen = (page, open, timeout = 15000) => page.waitForFunction(
+  (want) => !!document.querySelector('#apex-skill-details.is-open') === want,
+  { timeout }, open);
+// A real pointer can only click what wins the hit test. During the
+// select screen's settle (hero art layers, the first-play guide's
+// scene-exit watcher), transient overlays can cover the button's
+// center; on software-rendered runners that window outlasts fixed
+// sleeps. Wait for the button to actually be hittable — if a future
+// change covers it permanently this times out loudly instead of
+// silently passing.
+const waitBtnHittable = (page, side) => page.waitForFunction((sd) => {
+  const btn = document.querySelector(`.apex-skill-details-btn[data-side="${sd}"]`);
+  if (!btn || btn.hidden) return false;
+  const r = btn.getBoundingClientRect();
+  if (!r.width || !r.height) return false;
+  const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+  return !!el && (el === btn || btn.contains(el));
+}, { timeout: 30000 }, side);
 const openDetails = async (page, side, gesture = 'click') => {
-  await page[gesture](`.apex-skill-details-btn[data-side="${side}"]`);
-  await page.waitForFunction(
-    () => !!document.querySelector('#apex-skill-details.is-open'),
-    { timeout: 15000 });
+  await waitBtnHittable(page, side);
+  // Scene transitions lock input briefly; on slow software-rendered
+  // runners a single gesture can land inside that lock and be
+  // swallowed. Re-issue the gesture until the panel actually opens —
+  // every assertion after this helper is unchanged.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await page[gesture](`.apex-skill-details-btn[data-side="${side}"]`);
+    try { await waitModalOpen(page, true, 3000); return; }
+    catch { /* gesture swallowed by the transition lock — retry */ }
+  }
+  // Failure diagnostics (read-only): name what covers the button so a
+  // CI flake reports its cause instead of a bare timeout.
+  console.log('SD-DIAG', side, JSON.stringify(await page.evaluate((sd) => {
+    const btn = document.querySelector(`.apex-skill-details-btn[data-side="${sd}"]`);
+    const r = btn?.getBoundingClientRect();
+    let hit = null;
+    if (r) {
+      const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      hit = !el ? null : (el === btn || btn.contains(el) ? 'BTN' : String(el.className || el.tagName).slice(0, 60));
+    }
+    return {
+      hit, btnHidden: btn?.hidden,
+      btnRect: r ? [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)] : null,
+      p1Hero: document.querySelector('#p1Side')?.dataset.hero,
+      guide: !!document.querySelector('.apex-guide-card'),
+      sdApi: !!window.APEX_SKILL_DETAILS,
+      stageCls: document.querySelector('#stage')?.className,
+    };
+  }, side).catch((e) => 'diag-failed:' + e.message)));
+  await waitModalOpen(page, true); // final wait surfaces the real error
 };
 
 const REGISTRY_TRUTH = {
@@ -225,7 +269,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   // …and Enter (focused on the panel's close control) activates CLOSE —
   // it must never fall through to the shell's LOCK IN.
   await page.keyboard.press('Enter');
-  await sleep(300);
+  await waitModalOpen(page, false);
   st = await sideState(page);
   assert.equal(st.modalOpen, false, 'Enter activated the close control');
   assert.equal(st.p1Locked, false, 'Enter did not lock behind panel');
@@ -233,9 +277,11 @@ function assertDetails(state, heroKey, sideLabelPart) {
   await openDetails(page, 'p1');
   assert.equal((await sideState(page)).modalOpen, true, 'panel reopens');
   await page.keyboard.press('Escape');
-  await sleep(300);
+  await waitModalOpen(page, false);
   st = await sideState(page);
   assert.equal(st.modalOpen, false);
+  await page.waitForFunction(() => document.activeElement?.dataset?.side === 'p1',
+    { timeout: 10000 }).catch(() => {});
   const focusedSide = await page.evaluate(() => document.activeElement?.dataset?.side || '');
   assert.equal(focusedSide, 'p1', 'focus restored to the P1 details button');
 
@@ -245,7 +291,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assertDetails(st, 'newbot', 'BOT');
   await shot(page, 'desktop-p2-bot-details-newbot');
   await page.click('[data-sd-close]');
-  await sleep(300);
+  await waitModalOpen(page, false);
   assert.equal((await sideState(page)).modalOpen, false, 'close button closes');
 
   // Locked fighter cannot be selected (fresh player owns NEWBOT only)
@@ -302,7 +348,8 @@ function assertDetails(state, heroKey, sideLabelPart) {
 
   // Switch P1 to the owned HUNTER, then inspect (details must follow)
   await page.evaluate(() => document.querySelector('.rosterCard[data-hero="hunter"]')?.click());
-  await sleep(500);
+  await page.waitForFunction(() => document.querySelector('#p1Side')?.dataset.hero === 'hunter',
+    { timeout: 15000 });
   st = await sideState(page);
   assert.equal(st.p1Hero, 'hunter', 'owned HUNTER selectable');
   await openDetails(page, 'p1');
@@ -310,11 +357,13 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assertDetails(st, 'hunter', 'P1');
   await shot(page, 'desktop-p1-details-hunter');
   await page.keyboard.press('Escape');
-  await sleep(300);
+  await waitModalOpen(page, false);
 
   // VI: names/descriptions/button localize from the same authorities
   await page.evaluate(() => window.APEX_I18N?.setLanguage('vie'));
-  await sleep(600);
+  await page.waitForFunction(() =>
+    document.querySelector('.apex-skill-details-btn[data-side="p1"] span')?.textContent === 'CHI TIẾT KỸ NĂNG',
+    { timeout: 15000 });
   const viBtn = await page.evaluate(() =>
     document.querySelector('.apex-skill-details-btn[data-side="p1"] span')?.textContent);
   assert.equal(viBtn, 'CHI TIẾT KỸ NĂNG', 'VI button label');
@@ -325,7 +374,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.equal(a1.desc, 'Đặt một cái bẫy trói chân đối thủ đầu tiên bước vào.', 'VI registry description');
   await shot(page, 'desktop-p1-details-hunter-vie');
   await page.keyboard.press('Escape');
-  await sleep(300);
+  await waitModalOpen(page, false);
   await page.evaluate(() => window.APEX_I18N?.setLanguage('eng'));
   await sleep(400);
 
@@ -369,7 +418,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
     `portrait panel on-screen ${JSON.stringify(box)}`);
   await shot(page, 'portrait-p1-details-newbot');
   await page.keyboard.press('Escape');
-  await sleep(300);
+  await waitModalOpen(page, false);
 
   await page.setViewport({ width: 851, height: 393, isMobile: true, hasTouch: true });
   await sleep(600);
