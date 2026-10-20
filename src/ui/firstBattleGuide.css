@@ -1,3 +1,6 @@
+.apex-first-guide-hint{position:fixed;z-index:1000;top:max(68px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(500px,calc(100vw - 22px));padding:10px 16px;border:1px solid #e7aa60;background:#0a1321e9;box-shadow:0 8px 30px #0007;color:#f6ead5;font:600 12px/1.4 system-ui,sans-serif;pointer-events:none;display:grid;gap:4px;text-align:center}
+.apex-first-guide-hint strong{font-size:11px;letter-spacing:.12em;color:#ffbd69}
+#gold-shell-host:has(#stage.screen-mode)~.apex-first-guide-hint,#gold-shell-host:has(#stage.screen-fighter)~.apex-first-guide-hint{display:none}
 .apex-first-guide-overlay{position:fixed;inset:0;z-index:2147481000;display:grid;place-items:center;padding:max(15px,env(safe-area-inset-top)) max(15px,env(safe-area-inset-right)) max(15px,env(safe-area-inset-bottom)) max(15px,env(safe-area-inset-left));background:rgba(1,4,8,.90);color:#f5ebda;font-family:system-ui,sans-serif}
 .apex-first-guide-card{width:min(510px,100%);max-height:90dvh;overflow:auto;padding:clamp(20px,4vw,38px);background:linear-gradient(135deg,#1c2732,#0c1016);border:1px solid #d7a45c;box-shadow:0 15px 70px #0009}
 .apex-first-guide-eyebrow{color:#ffbe70;font:800 11px/1.5 system-ui,sans-serif;letter-spacing:.13em}
