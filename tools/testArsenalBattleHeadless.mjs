@@ -3189,10 +3189,13 @@ report.rev2ProductGraph = run(`
 `);
 // C03 product transition: Dictionary is the real unified Field Archive,
 // while the old 'cosmetic-locker' API remains an ACTIVE compatibility shortcut
-// into the SAME authority. Fighter Shop and all other roadmap routes remain
-// genuinely locked. Do not weaken the non-launchability assertions.
+// into the SAME authority. Alpha product law (tracked identically by
+// testArsenalProductGraph): 9 ACTIVE / 3 LOCKED — Missions, Achievements
+// and Account went live with the one-wallet progression panel; Fighter
+// Shop, Upgrade and Quest 01 remain genuinely locked. Do not weaken the
+// non-launchability assertions for those three.
 gate('c03-product-active-archive-and-independent-cosmetic-compatibility',
-  report.rev2ProductGraph.publicCount === 12 && report.rev2ProductGraph.activeCount === 6
+  report.rev2ProductGraph.publicCount === 12 && report.rev2ProductGraph.activeCount === 9
     && report.rev2ProductGraph.activeIds.includes('bot-battle')
     && report.rev2ProductGraph.activeIds.includes('local-1v1')
     && report.rev2ProductGraph.activeIds.includes('bot-wave')
@@ -3201,18 +3204,25 @@ gate('c03-product-active-archive-and-independent-cosmetic-compatibility',
     && report.rev2ProductGraph.activeIds.includes('lucky-draw')
     && report.rev2ProductGraph.activeIds.includes('cosmetic-locker')
     && report.rev2ProductGraph.activeIds.includes('dictionary')
+    && report.rev2ProductGraph.activeIds.includes('missions')
+    && report.rev2ProductGraph.activeIds.includes('achievements')
+    && report.rev2ProductGraph.activeIds.includes('account-profile')
     && win.APEX_PRODUCT_SURFACE.canLaunch('cosmetic-locker') === true
     && win.APEX_PRODUCT_SURFACE.canLaunch('dictionary') === true
+    && win.APEX_PRODUCT_SURFACE.canLaunch('missions') === true
+    && win.APEX_PRODUCT_SURFACE.canLaunch('account-profile') === true
     && win.APEX_PRODUCT_SURFACE.get('dictionary')?.route === 'skins'
     && report.rev2ProductGraph.activeIds.includes('fighter-shop') === false
     && report.rev2ProductGraph.allLockedBlocked === true
     && win.APEX_PRODUCT_SURFACE.canLaunch('fighter-shop') === false
+    && win.APEX_PRODUCT_SURFACE.canLaunch('fighter-upgrade') === false
     && win.APEX_PRODUCT_SURFACE.canLaunch('quest-01') === false,
   report.rev2ProductGraph);
 gate('c03-product-locked-remaining-public-future-surfaces',
-  report.rev2ProductGraph.lockedCount === 6 && report.rev2ProductGraph.allLockedBlocked
-    && !win.APEX_PRODUCT_SURFACE.canLaunch('missions')
-    && !win.APEX_PRODUCT_SURFACE.canLaunch('account-profile'),
+  report.rev2ProductGraph.lockedCount === 3 && report.rev2ProductGraph.allLockedBlocked
+    && !win.APEX_PRODUCT_SURFACE.canLaunch('fighter-shop')
+    && !win.APEX_PRODUCT_SURFACE.canLaunch('fighter-upgrade')
+    && !win.APEX_PRODUCT_SURFACE.canLaunch('quest-01'),
   report.rev2ProductGraph);
 gate('rev2-quest-01-is-locked-future-product-surface',
   report.rev2ProductGraph.quest01?.availability === 'LOCKED'
