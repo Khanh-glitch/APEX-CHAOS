@@ -14,8 +14,20 @@ export async function persistGuestHandoffIfEmpty({ client, userId, guestId, snap
       return { ok: false, reason: 'identity-not-verified' };
     }
 
-    // A duplicate invocation, second tab, or refreshed Magic Link cannot
-    // create multiple lineage claims. Never award server AC or ownership.
+    // FIRST check whether this Cloud identity already has a snapshot.
+    // This is critical on a second browser: its brand-new local Guest
+    // profile must NOT become another pending import just by signing in.
+    const { data: existing, error: lookupError } = await client.from('player_progress')
+      .select('version').eq('user_id', userId).eq('namespace', 'arsenalMeta').maybeSingle();
+    if (lookupError) return { ok: false, reason: 'snapshot-lookup-failed' };
+    if (!valid()) return { ok: false, reason: 'session-superseded' };
+    if (existing) {
+      return { ok: true, result: 'existing', currentVersion: Number(existing.version) || 1 };
+    }
+
+    // Only the device that may CREATE the very first snapshot records a
+    // candidate lineage, never a signed-in second device with an existing
+    // account backup. Never award server AC or ownership.
     const { error: lineageError } = await client.from('guest_migrations').upsert({
       user_id: userId,
       guest_profile_id: guestId,
@@ -24,15 +36,6 @@ export async function persistGuestHandoffIfEmpty({ client, userId, guestId, snap
     }, { onConflict: 'user_id,guest_profile_id', ignoreDuplicates: true });
     if (lineageError) return { ok: false, reason: 'lineage-write-failed' };
     if (!valid()) return { ok: false, reason: 'session-superseded' };
-
-    const { data: existing, error: lookupError } = await client.from('player_progress')
-      .select('version').eq('user_id', userId).eq('namespace', 'arsenalMeta').maybeSingle();
-    if (lookupError) return { ok: false, reason: 'snapshot-lookup-failed' };
-    if (!valid()) return { ok: false, reason: 'session-superseded' };
-    if (existing) {
-      // A newer snapshot already exists: NEVER silently replace it on login.
-      return { ok: true, result: 'existing', currentVersion: Number(existing.version) || 1 };
-    }
 
     // CAS version 0 is an insert-if-absent. Competing tabs/devices cannot
     // overwrite each other, even if they both saw an empty lookup.
