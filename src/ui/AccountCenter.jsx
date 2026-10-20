@@ -117,7 +117,7 @@ export default function AccountCenter() {
     const onOpenEvent = () => openCenter(null);
     const onDocClick = (event) => {
       const target = event.target && event.target.closest
-        ? event.target.closest('.profileIdentity, .profile .ac')
+        ? event.target.closest('[data-apex-account-entry]')
         : null;
       if (target) {
         event.preventDefault();
