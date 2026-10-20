@@ -15,10 +15,9 @@
     "public/game/ui/apexCombatHudRuntime.js": "a193f90e322ed5545d1ae48185abcd819d7c0ae459d23271bf5cadd3adf6033d",
     "public/game/ui/uiSfxAuthority.js": "196cc910ba9ad0ecacb56070b83ed3d72602a9b802e318b4b3034e659f5cc441",
     "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",
-    "public/game/core/apexArsenalProductRenderHudRuntime.js": "881b37ff0075988add1a82059782eb207e129005a67ff8bcf322db093189edf8",
+    "public/game/core/apexArsenalProductRenderHudRuntime.js": "f87996c034570e6ab14de72ed21d2ce234e9361de0c2ccb77603dce9ba9e6374",
     "public/game/core/apexArsenalProductDrawRecoveryRuntime.js": "b8b515fe710642614a4a1a671fe0da7f2295aaff9e439e10a16ecec6cc953c71",
     "public/game/gold/goldProductBridge.js": "021647ff50115f683abe54bb141fa7bc25efe29e8d796d6faac97297e2d0af57",
-    "public/game/ui/skillDetailsRuntime.js": "badb4d805fd1ae043984121dd31fca7dedb7c87cc0f5ed96a15375e4a73cdc18",
     "public/game/results/ownerAwards.generated.js": "bf1214feb289ade27e97c382b33e87a2ecf230f54c3e673cec004b0e824d25bb",
     "public/game/results/matchResultAuthority.js": "4e70e2bece26fdaba9e23af22cd396d458ef3c4a36cd1a8b63e832588c0f6689",
     "public/game/arsenal/arsenalSpawnRuntime.js": "d363de64b470c243cb9e9c85c1836878769f5bb4a5514fff168847132fb9ee8f",
@@ -70,6 +69,7 @@
     "public/game/hero-rework/frostPresentationRuntime.js": "a4c680740f269260b8efd84d0d8731d689bb876c0c389093f701d315a4afca75",
     "public/game/hero-rework/magnetPresentationRuntime.js": "606fb1cd063804cbf67589f2220a96db1ccb56a7641d7a7c9e3d2e856769b719",
     "public/game/hero-rework/mirrorPresentationRuntime.js": "3713f25305cb588042898e6137ae1c0c7d1b7214b92e32f0393a4cdf4bf96155",
-    "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c"
+    "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
+    "public/game/ui/skillDetailsRuntime.js": "badb4d805fd1ae043984121dd31fca7dedb7c87cc0f5ed96a15375e4a73cdc18"
   }
 }

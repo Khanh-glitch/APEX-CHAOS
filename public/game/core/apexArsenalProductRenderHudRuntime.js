@@ -41,6 +41,13 @@
         });
       }
 
+      // Combat side markers (presentation only, owner Requirement C):
+      // ground rings render under the duelists; head tags render after
+      // the arena flash below so side identity survives peak VFX.
+      // Helpers + gating live in apexEngine.js (apexSideMarkerContext).
+      const sideMarkerMode = (typeof apexSideMarkerContext === 'function') ? apexSideMarkerContext() : null;
+      if (sideMarkerMode && typeof drawSideGroundRings === 'function') drawSideGroundRings(ctx, sideMarkerMode);
+
       for (let i = 0; i < 2; i++) {
         const fighter = fighters[i];
         if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') fighter.draw(ctx);
@@ -70,6 +77,7 @@
         ctx.fillStyle = `rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a})`;
         ctx.fillRect(0, 0, GAME_SIZE, GAME_SIZE);
       }
+      if (sideMarkerMode && typeof drawSideHeadTags === 'function') drawSideHeadTags(ctx, sideMarkerMode);
     } finally {
       ctx.restore();
       ctx.setTransform(1, 0, 0, 1, 0, 0);

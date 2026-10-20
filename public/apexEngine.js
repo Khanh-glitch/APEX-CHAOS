@@ -2267,6 +2267,94 @@ function update(dt) {
     if (arenaFlash.a > 0) arenaFlash.a=Math.max(0,arenaFlash.a-dt*1.6); if(cameraShake>0)cameraShake=Math.max(0,cameraShake-dt*22); cameraZoom=lerp(cameraZoom,1,dt*2);
     if (fighters[0].hp <= 0 || fighters[1].hp <= 0) endMatch();
 }
+// APEX ALPHA — combat side markers (presentation only; owner Requirement C).
+// In a mirror match (same hero, same skin) the sprites are identical, so
+// side identity must survive contact, overlap and heavy VFX. P1 carries an
+// ORANGE chevron + "P1" (+"YOU"/"BẠN" vs BOT), P2 a CYAN diamond + "P2":
+// color + shape + text, never color alone. An under-foot ring in the same
+// color keeps identity readable when a fighter dives behind effects.
+// This draws only: no physics, hitbox, damage, AI or VFX values change.
+// Gated to active product duels (BOT/LOCAL): the battle runtime reports
+// active + battleMode; Lab and quest multi-actor fixtures are excluded,
+// and BOT WAVE runs through a separate bridge that never activates this
+// state. Markers track fighters[0]/[1] (the duelists) — summons and
+// extra actors in the array never get side tags, and must not disable
+// them either (a strict length===2 gate flickered off whenever a summon
+// existed).
+var __apexSideMarkerMode = null; // null = no markers; else 'BOT' | 'LOCAL'
+var __apexSideMarkerCheckedAt = 0;
+function apexSideMarkerContext() {
+    if (window.__apexSideMarkers === false) return null;
+    if (!fighters || !fighters[0] || !fighters[1]) return null;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (now - __apexSideMarkerCheckedAt > 400) {
+        __apexSideMarkerCheckedAt = now;
+        try {
+            const s = (typeof window.getArsenalBattleDebugState === 'function') ? window.getArsenalBattleDebugState() : null;
+            __apexSideMarkerMode = (s && s.active && !s.labMode && !s.questMultiActor)
+                ? (s.battleMode === 'BOT' ? 'BOT' : 'LOCAL') : null;
+        } catch (e) { __apexSideMarkerMode = null; }
+    }
+    return __apexSideMarkerMode;
+}
+// Colors are Gold's canonical side variables (--p1:#ff941f, --p2:#3aa7ff in
+// public/gold/shell.html) so select screen, roster markers and combat all
+// speak one identity language.
+var APEX_SIDE_STYLE = [
+    { color: '#FF941F', tag: 'P1', shape: 'chevron' },
+    { color: '#3AA7FF', tag: 'P2', shape: 'diamond' },
+];
+function drawSideGroundRings(ctx, mode) {
+    if (!mode) return;
+    for (let i = 0; i < 2; i++) {
+        const f = fighters[i]; if (!f || f.hp <= 0 || !isFinite(f.x) || !isFinite(f.y)) continue;
+        const st = APEX_SIDE_STYLE[i];
+        const rx = (f.radius || 75) + 10, ry = rx * 0.42, cy = f.y + (f.radius || 75) * 0.72;
+        ctx.save();
+        ctx.beginPath(); ctx.ellipse(f.x, cy, rx, ry, 0, 0, TAU);
+        ctx.strokeStyle = 'rgba(6,8,12,0.85)'; ctx.lineWidth = 8; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(f.x, cy, rx, ry, 0, 0, TAU);
+        ctx.strokeStyle = st.color; ctx.lineWidth = 4; ctx.stroke();
+        ctx.restore();
+    }
+}
+function drawSideHeadTags(ctx, mode) {
+    if (!mode) return;
+    const vie = !!(window.APEX_I18N && window.APEX_I18N.getLanguage && window.APEX_I18N.getLanguage() === 'vie');
+    // When the fighters overlap, separate the tags horizontally so both
+    // stay legible instead of stacking into one blob.
+    const close = fighters[0] && fighters[1] && Math.abs(fighters[0].x - fighters[1].x) < 140
+        && Math.abs(fighters[0].y - fighters[1].y) < 190;
+    for (let i = 0; i < 2; i++) {
+        const f = fighters[i]; if (!f || f.hp <= 0 || !isFinite(f.x) || !isFinite(f.y)) continue;
+        const st = APEX_SIDE_STYLE[i];
+        const r = f.radius || 75;
+        // Clamp inside the arena: a fighter hugging the top wall must not
+        // push its tag off-canvas (brief sprite overlap beats invisibility).
+        const x = Math.max(48, Math.min(GAME_SIZE - 48, f.x + (close ? (i === 0 ? -30 : 30) : 0)));
+        const glyphY = Math.max(46, f.y - r - 26), textY = glyphY - 20;
+        ctx.save();
+        // Shape glyph (chevron for P1, diamond for P2) with dark outline.
+        ctx.beginPath();
+        if (st.shape === 'chevron') {
+            ctx.moveTo(x - 14, glyphY - 9); ctx.lineTo(x + 14, glyphY - 9); ctx.lineTo(x, glyphY + 9);
+        } else {
+            ctx.moveTo(x, glyphY - 13); ctx.lineTo(x + 12, glyphY); ctx.lineTo(x, glyphY + 13); ctx.lineTo(x - 12, glyphY);
+        }
+        ctx.closePath();
+        ctx.fillStyle = st.color; ctx.fill();
+        ctx.strokeStyle = 'rgba(6,8,12,0.9)'; ctx.lineWidth = 3; ctx.stroke();
+        // Text tag.
+        const label = (i === 0 && mode === 'BOT') ? ('P1 · ' + (vie ? 'BẠN' : 'YOU')) : st.tag;
+        ctx.font = '900 21px Oswald, monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.strokeStyle = 'rgba(6,8,12,0.92)'; ctx.lineWidth = 5;
+        ctx.strokeText(label, x, textY);
+        ctx.fillStyle = '#FFFFFF'; ctx.fillText(label, x, textY);
+        ctx.restore();
+    }
+}
+
 function draw() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
@@ -2299,10 +2387,15 @@ function draw() {
                 background: true, projectiles: true, particles: true, fighters: false,
             });
         }
+        const sideMarkerMode = apexSideMarkerContext();
+        drawSideGroundRings(ctx, sideMarkerMode);
         if (fighters[0]) fighters[0].draw(ctx); if (fighters[1]) fighters[1].draw(ctx);
         for (const f of fighters) { if (f && f.name==='SNIPER' && f.data && f.data.aim>0) { const enemy = fighters.find(q=>q.id!==f.id); if(enemy){ ctx.save(); ctx.globalAlpha=.9; ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(enemy.x,enemy.y); ctx.stroke(); ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.radius+16, 0, TAU); ctx.moveTo(enemy.x-(enemy.radius+28), enemy.y); ctx.lineTo(enemy.x+(enemy.radius+28), enemy.y); ctx.moveTo(enemy.x, enemy.y-(enemy.radius+28)); ctx.lineTo(enemy.x, enemy.y+(enemy.radius+28)); ctx.stroke(); ctx.restore(); }} }
         for (const t of floatingTexts) t.draw(ctx);
         if (arenaFlash.a > 0) { ctx.fillStyle=`rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a})`; ctx.fillRect(0,0,GAME_SIZE,GAME_SIZE); }
+        // Head tags render after the arena flash so side identity is the
+        // last thing washed out — it must survive peak VFX.
+        drawSideHeadTags(ctx, sideMarkerMode);
     } finally {
         ctx.restore();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
