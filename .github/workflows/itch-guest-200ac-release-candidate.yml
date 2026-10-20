@@ -1,4 +1,6 @@
 # ITCH Guest-first candidate. Never runs on main or deploys production.
+# No release ZIP is generated unless all runtime gates INCLUDING a real nested
+# iframe Chrome boot complete successfully. The bundle remains owner-review ONLY.
 name: ITCH Guest 200 AC Release Candidate
 on:
   push:
@@ -60,20 +62,6 @@ jobs:
           du -sh dist
       - name: Rewrite HTML5 first-party paths for itch nested ZIP hosting
         run: node tools/packItchPortable.mjs
-      - name: Package itch.io HTML5 bundle (index at ZIP root)
-        shell: bash
-        run: |
-          set -euo pipefail
-          (cd dist-itch-html5 && zip -q -r ../apex-chaos-itch-guest-200ac-rc.zip .)
-          unzip -l apex-chaos-itch-guest-200ac-rc.zip | grep -Eq '[[:space:]]index.html$'
-          ls -lh apex-chaos-itch-guest-200ac-rc.zip
-      - name: Archive owner-review package
-        uses: actions/upload-artifact@v4
-        with:
-          name: apex-chaos-itch-guest-200ac-rc
-          path: apex-chaos-itch-guest-200ac-rc.zip
-          if-no-files-found: error
-          retention-days: 30
       - name: Reject missing Cloudflare preview credential
         shell: bash
         run: |
@@ -134,3 +122,30 @@ jobs:
           done
           echo "::error::Nested HTML5 artifact failed immutable SHA/path gate"
           exit 1
+      - name: Locate Chrome for ACTUAL nested runtime acceptance
+        id: chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME" || { echo "::error::Real Chrome unavailable; nested runtime NOT approved"; exit 1; }
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+      - name: Install browser controller for acceptance
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Boot nested HTML5 in real Chrome BEFORE generating any owner package
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+        run: node tools/testItchNestedChrome.mjs
+      - name: Package itch.io HTML5 bundle (index at ZIP root)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist-itch-html5 && zip -q -r ../apex-chaos-itch-guest-200ac-rc.zip .)
+          unzip -l apex-chaos-itch-guest-200ac-rc.zip | grep -Eq '[[:space:]]index.html
+          ls -lh apex-chaos-itch-guest-200ac-rc.zip
+      - name: Archive owner-review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-itch-guest-200ac-rc
+          path: apex-chaos-itch-guest-200ac-rc.zip
+          if-no-files-found: error
+          retention-days: 30
