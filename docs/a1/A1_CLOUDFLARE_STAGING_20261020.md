@@ -1,56 +1,71 @@
-# A1.2 Cloudflare Pages staging — execution record (2026-10-20)
+# A1.2 — Cloudflare Pages + Supabase staging acceptance (2026-10-20)
 
-## Isolation contract
+## Verdict: staging infrastructure PASS / real Auth A1.2 still PARTIAL
 
-- APEX CHAOS production remains `https://apex-chaos.pages.dev/`. **Never publish the staging build to the default Cloudflare Pages production branch.**
-- Independent staging branch alias planned: `https://a1-cloud-staging-20261020.apex-chaos.pages.dev/`. This URL is **not verified live** until the SHA receipt check succeeds.
-- Cloudflare project: `apex-chaos`; account ID comes from the existing Cloudflare owner-preview workflow.
-- Supabase staging is `pqnhyucmziucjqbxmtbc` (Singapore): `https://supabase.com/dashboard/project/pqnhyucmziucjqbxmtbc`.
-- The staging build uses **only a Supabase publishable key** through `VITE_SUPABASE_ANON_KEY`; no Supabase service-role/secret key may enter client bundles or GitHub artifacts.
-- Production must not acquire the A1 staging `VITE_*` values.
-- Cloud wallet remains disabled: `public.app_config['cloud_wallet_enabled'] = false`. Browser-side match completion is not authoritative.
+- **Cloudflare Pages staging:** https://a1-cloud-staging-20261020.apex-chaos.pages.dev/
+- **Staging SHA receipt:** https://a1-cloud-staging-20261020.apex-chaos.pages.dev/A1_STAGING_BUILD_SHA.txt
+- **Latest verified runtime:** `6ea7c9856eb41711a3a05ef39bada54fad7af8b0`, from isolated GitHub branch `infra/a1-staging-rpc-grants-20261020`.
+- **Actual workflow PASS:** [A1 Cloudflare Staging Preview run 39379273878](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39379273878). Build, Cloudflare credential, independent Pages branch deploy, Auth/RLS/RPC negative tests and live SHA receipt all PASS.
+- **Production:** https://apex-chaos.pages.dev/ unchanged; previous independently read production receipt `c7a04f0b57f08093a783fa6080b536b9754c83a8`.
+- **Staging backend:** `pqnhyucmziucjqbxmtbc`, Singapore (https://supabase.com/dashboard/project/pqnhyucmziucjqbxmtbc).
+- **Wallet issuance:** `public.app_config.cloud_wallet_enabled=false`, intentionally disabled until server-validated match receipts exist.
+- **GitHub PR:** #98 remains draft. No production merge, migration or deploy approved.
 
-## Database migrations already applied to staging
+## Database and security receipts
+
+Applied to **APEX staging only**, in order:
 
 1. `a1_0001_player_accounts` from `0001_a1_player_accounts.sql`.
 2. `a1_0002_security_closeout` from `0002_a1_security_closeout.sql`.
-3. `a1_0003_restrict_rpc_execute_grants` from `0003_a1_restrict_rpc_execute_grants.sql` (tracked in this PR).
+3. `a1_0003_restrict_rpc_execute_grants` from `0003_a1_restrict_rpc_execute_grants.sql`.
 
-Security advisor initially found 7 anonymous-executable SECURITY DEFINER RPCs despite explicit authenticated grants, because PostgreSQL/Supabase supplies implicit EXECUTE privileges. Migration 0003 revokes implicit PUBLIC/anon EXECUTE and allows the five intentional signed-in RPCs only. Verified from actual live catalog: 0 anonymous executable functions in `public`; RLS is enabled on all 10 A1 public tables; 0 Auth users.
+All ten A1 public tables have RLS enabled. `PUBLIC`/anonymous EXECUTE privileges on SECURITY DEFINER RPCs were inadvertently inherited from Supabase/Postgres defaults after 0001/0002; migration 0003 revokes these and restores the five intentional authenticated RPC grants. Verified in SQL: zero anonymous-executable public functions.
 
-Two RLS-with-no-policy INFO notices on `app_config` and `audit_events` are deny-by-default. The five authenticated-callable SECURITY DEFINER RPC notices warrant explicit server authorization verification; they are not an invitation to disable all client calls.
+A real SQL transaction created two temporary mock Auth identities, tested bootstrap (350 AC + `ROBOT` + starter ledger), isolated wallets/ownership/progress with `SET LOCAL ROLE authenticated`, successful CAS updates, stale CAS denial, and pending-only deletion request. Rolled back: staging Auth user count returned to zero. This verifies database behavior with simulated claims; **not** a real hosted Auth sign-in or real concurrent-device test.
 
-## Verification already executed (staging, nonproduction)
+A repeatable live HTTP smoke script (`tools/testA1StagingAuthHttp.mjs`) runs **after every isolated staging deploy** through `.github/workflows/a1-cloudflare-staging.yml`. It verified:
+- Hosted GoTrue `/auth/v1/health`: HTTP 200.
+- Hosted `/auth/v1/settings`: email enabled, Google disabled, email confirmation required.
+- Anonymous reads of wallets, account_roles, player_progress and app_config return empty.
+- Anonymous reward, purchase, draw, deletion and CAS RPC requests are denied (HTTP 401/403, `42501`).
+- No test users or mutations.
 
-- Real SQL transaction inserted **two temporary Auth identities** and verified bootstrap: each starts with 350 AC, `ROBOT` ownership, a single starter ledger entry.
-- Within that transaction, a simulated JWT claim + `SET LOCAL ROLE authenticated` checked row-level restrictions: users cannot read each other's wallets, fighter ownership or progress.
-- The actual CAS RPC succeeded at versions 0→1 and 1→2 and rejected stale expectations, preserving the newer row.
-- The deletion request RPC returned `pending` and did not erase the wallet.
-- SQL `ROLLBACK` completed; the final live query showed zero Auth users. These are RLS/SQL checks with simulated claims, **not hosted Auth login or two real connected sessions**.
-- Live public REST with the staging publishable key: `GET /rest/v1/wallets` and `account_roles` returned empty; anonymous `claim_match_reward` and `save_progress_snapshot_cas` were denied with HTTP 401/`42501`.
-- Live Auth API `/auth/v1/health` returned HTTP 200; `/auth/v1/settings` reported email enabled, **Google disabled**, sign-ups enabled and email confirmation required.
+Security Advisor has two informational deny-by-default RLS/no-policy notices (`app_config`, `audit_events`), plus five signed-in callable SECURITY DEFINER RPC notices requiring real authorized-user testing; this alone does not demonstrate a bypass.
 
-## Cloudflare Pages staging deployment
+## Real browser UX acceptance
 
-Workflow: `.github/workflows/a1-cloudflare-staging.yml`, restricted to branch `infra/a1-staging-rpc-grants-20261020` and its separate Pages alias. It builds the production artifact with staging Supabase `VITE_*`, embeds `A1_STAGING_BUILD_SHA.txt`, and confirms the remote SHA. It never deploys the Pages production branch. GitHub Actions job can fail closed without deploying.
+Live browser at staging confirmed `window.APEX_CLOUD_ACCOUNT.isCloudConfigured() === true`, admin authority false for Guest, and an Account Center opened from Home profile chip:
+- Guest displays 350 AC and NEWBOT only; 7 other released heroes locked.
+- Sync status: `SIGNED OUT`, not `CLOUD NOT CONFIGURED`.
+- Email address field and SEND CODE enabled.
+- Google provider is **disabled in hosted Supabase**. To avoid a misleading working-looking button, `isGoogleSignInEnabled()` requires explicit `VITE_APEX_GOOGLE_AUTH_ENABLED=1`; current staging build sets 0. Browser verified disabled Google button and honest Email OTP hint. No provider bypass.
+- `account-profile` navigation route stays owner-LOCKED; Account Center profile-chip entry works.
 
-**External owner prerequisite:** The existing GitHub Actions Cloudflare secret `CLOUDFLARE_API_TOKEN` is currently **unavailable** (first live workflow run stopped in credential guard). A Cloudflare Pages-scoped token must be added in the GitHub repository's *Settings → Secrets and variables → Actions* under that exact name. Do not paste it in chat or commit it. The workflow itself stores only public browser configuration.
+No email was sent and no OAuth flow was completed during this QA.
 
-After adding the secret, trigger **Re-run failed jobs** on the staging workflow or push an approved change to its specific branch. Do not make the PR ready or merge merely because the staging build succeeds.
+## Actual remaining owner action — Auth URL Configuration
 
-## Auth end-to-end gates still pending
+The connected Supabase project tools can read database schemas and run migrations, but **cannot configure hosted Auth Site URL, redirect allowlist, or Google provider credentials**. An independent browser visit to that Dashboard page redirected to Supabase sign-in; no authenticated owner Dashboard session is available to this agent. Therefore, do not claim Auth redirects are configured.
 
-- In Supabase **staging project only**, configure Auth URL/redirect allowlist to include the exact staged Pages domain; URL configuration is a dashboard action not exposed by the current Supabase integration.
-- Email is enabled but OTP template/token delivery and actual user sign-in remain unverified.
-- Enable Google provider only after the owner registers Google OAuth client credentials and correct callback/redirects.
-- Using two actual signed-in test accounts, verify profile isolation, server-backed admin grant and revocation, initial wallet+ROBOT, an actual two-session CAS race, and deletion-request semantics.
-- Admin role must be operator-provisioned against the exact test/owner Auth user ID; no role assignment based on email claims or client-side state.
-- Cloud AC minting and `account-profile` release remain LOCKED pending backend receipts and owner approval; do not run any test against MathPath or APEX production projects.
+Open **staging** (never MathPath or production):
+https://supabase.com/dashboard/project/pqnhyucmziucjqbxmtbc/auth/url-configuration
 
-## Open gates
+Set:
+- **Site URL:** `https://a1-cloud-staging-20261020.apex-chaos.pages.dev/`
+- **Additional Redirect URLs:** `https://a1-cloud-staging-20261020.apex-chaos.pages.dev/`
 
-- **Database schema/RLS baseline:** PASS (staging).
-- **Public REST unauthorized request defense:** PASS (staging).
-- **Cloudflare staging build/deploy:** BUILD CHECK RUNNING / DEPLOY BLOCKED until GitHub Cloudflare token exists and SHA receipt is verified.
-- **Email/Google login, two real-session CAS and server-authorized admin:** PENDING.
-- **Production deploy or migration:** NOT AUTHORIZED.
+Save changes. This precisely matches the `window.location.origin + '/'` used by `signInWithEmailOtp` and `signInWithGoogle`. Do **not** add a wildcard including production domains and do **not** switch the staging Supabase project to a production URL. Review the hosted email template to ensure `{{ .RedirectTo }}` or equivalent is honored for email links.
+
+Google OAuth remains deferred: before enabling its provider, configure a Google OAuth client in the **staging Supabase** Authentication providers page with the correct Supabase callback URI, then set `VITE_APEX_GOOGLE_AUTH_ENABLED=1` on staging only and rerun CI. OAuth credentials never belong in frontend bundles or repository files.
+
+## Still UNPROVEN — release locks
+
+- Sending/receiving a real Email OTP, verifying code, browser session restore and sign-out.
+- A second real signed-in identity; inter-user read/write isolation and two genuine device sessions racing on CAS.
+- Operator-created cloud admin role, server-verified admin activation and revocation across logout/offline.
+- Cloud user deletion backend job (the current RPC only marks a pending request).
+- Authoritative match receipts and **cloud wallet issuance** (must remain disabled).
+- Account Center owner visual sign-off and the `account-profile` navigation route.
+- Production cloud feature rollout, main-branch merge or deployment.
+
+**Do not mark A1.2 complete, enable cloud wallet, or merge/deploy production merely because this staging workflow passes.**
