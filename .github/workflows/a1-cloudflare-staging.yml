@@ -13,6 +13,8 @@ on:
       - 'src/game/cloudAccount.js'
       - 'src/ui/AccountCenter.jsx'
       - 'src/game/guestCloudHandoff.js'
+      - 'src/game/cloudSnapshotPreview.js'
+      - 'tools/testCloudLifecycleRaces.mjs'
       - 'tools/testA1GuestHandoff.mjs'
       - 'supabase/migrations/0004_a1_guest_migration_idempotency.sql'
   workflow_dispatch:
