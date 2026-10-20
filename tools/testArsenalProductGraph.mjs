@@ -202,7 +202,7 @@ gate('battle-result-credit-uses-player-side-and-awards-once', () => {
     { name: 'ROBOT', type: { name: 'ROBOT' } },
   ];
   // A1 reward law keys off the ACTUAL match mode: BOT loss (P2 wins) pays
-  // the provisional 25, BOT win pays 100, LOCAL completion pays 50 either way.
+  // the provisional 25, BOT win pays 200, LOCAL completion pays 50 either way.
   const p2State = { battleMode: 'BOT', resultGold: { meta: { id: 'graph-bot-1' } } };
   const p2Win = win.APEX_ARSENAL_META.awardBattleResult('P2', p2State);
   assert.equal(p2Win.ok, true);
@@ -213,7 +213,7 @@ gate('battle-result-credit-uses-player-side-and-awards-once', () => {
     'duplicate-claim', 'the sealed match id can never pay twice');
   const p1Win = win.APEX_ARSENAL_META.awardBattleResult('P1', { battleMode: 'BOT', resultGold: { meta: { id: 'graph-bot-2' } } });
   assert.equal(p1Win.ok, true);
-  assert.equal(p1Win.amount, 100);
+  assert.equal(p1Win.amount, 200);
   const localP2 = win.APEX_ARSENAL_META.awardBattleResult('P2', { battleMode: 'LOCAL', resultGold: { meta: { id: 'graph-local-1' } } });
   assert.equal(localP2.ok, true);
   assert.equal(localP2.amount, 50, 'a completed Local match pays 50 regardless of winner');
