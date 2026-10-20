@@ -4,38 +4,46 @@
 // launch seam (window.apexLaunchArsenalLab in App.jsx) are INTERFACES, not
 // authorization. Both must ask this module. Authorization derives from:
 //
-//   1. An authenticated cloud session whose server-verified role is 'admin'
-//      (public.account_roles, surfaced through APEX_PLAYER_ACCOUNT), or
+//   1. A SERVER-VERIFIED cloud admin: cloudAccount.js confirms the session
+//      with the auth server (`auth.getUser()`), reads the caller's own
+//      `public.account_roles` row under RLS, and only then feeds the user
+//      id through the module-private channel at the bottom of this file.
+//      The display profile (APEX_PLAYER_ACCOUNT) is NEVER consulted here —
+//      the pre-closeout build trusted it, and a guest forging the profile
+//      projection could self-grant admin (A1 closeout Blocker 1,
+//      regression-tested by tools/testAdminEscalationNegativesBrowser.mjs).
 //   2. A development-build-only opt-in: `vite dev` with
 //      VITE_APEX_DEV_ADMIN=1. Production builds ignore that variable because
 //      import.meta.env.DEV is false there.
 //
-// Nothing else grants admin: not localStorage, not query parameters, not
-// client globals, not the keyboard shortcut itself. The test session is
-// ephemeral (never persisted); economy code independently refuses to pay AC
-// while a test session/lab is active, so even a tampered client session can
-// never enter the real wallet ledger.
+// With no configured backend, production fails closed: no cloud admin can
+// exist. Nothing else grants admin: not localStorage, not query parameters,
+// not client globals, not the keyboard shortcut itself. The window binding
+// is installed non-writable + non-configurable so classic-script consumers
+// cannot have the authority swapped out from under them. The test session
+// is ephemeral (never persisted); economy code independently refuses to pay
+// AC while a test session/lab is active, so even a tampered client session
+// can never enter the real wallet ledger. Server-side, every privileged
+// RPC re-derives the caller from auth.uid() under RLS — a tampered client
+// gains no server rights and no valid cloud assets.
 
 let testSessionActive = false;
+let verifiedCloudAdminUserId = null;
 
 function devAdminEnabled() {
   try {
-    return import.meta.env && import.meta.env.DEV === true
-      && import.meta.env.VITE_APEX_DEV_ADMIN === '1';
+    return !!(import.meta.env && import.meta.env.DEV === true
+      && import.meta.env.VITE_APEX_DEV_ADMIN === '1');
   } catch (error) {
     return false;
   }
 }
 
 function cloudAdminRole() {
-  try {
-    const account = typeof window !== 'undefined' ? window.APEX_PLAYER_ACCOUNT : null;
-    if (!account || typeof account.profile !== 'function') return false;
-    const profile = account.profile();
-    return !!profile && profile.kind === 'cloud' && profile.role === 'admin';
-  } catch (error) {
-    return false;
-  }
+  // Deliberately NOT derived from the UI profile projection or any window
+  // object: this flag is set exclusively through the module-private
+  // verified channel below, after server-side identity + role checks.
+  return verifiedCloudAdminUserId !== null;
 }
 
 function isAdmin() {
@@ -98,7 +106,18 @@ const authority = Object.freeze({
 export function installAdminAuthority(scope = globalThis) {
   const current = scope && scope.APEX_ADMIN_AUTHORITY;
   if (current && current.version === 'a1-admin-authority-v1') return current;
-  if (scope) scope.APEX_ADMIN_AUTHORITY = authority;
+  if (scope) {
+    // Lock the binding: arsenalConfig.js and the economy runtime read this
+    // authority through window at decision time, so the genuine object
+    // must not be swappable from the console or another script.
+    try {
+      Object.defineProperty(scope, 'APEX_ADMIN_AUTHORITY', {
+        value: authority, writable: false, configurable: false, enumerable: true,
+      });
+    } catch (error) {
+      try { scope.APEX_ADMIN_AUTHORITY = authority; } catch (ignored) {}
+    }
+  }
   // Losing the cloud session (sign-out) must end any live test session.
   try {
     scope.addEventListener?.('apex:account', () => {
@@ -114,3 +133,19 @@ export function installAdminAuthority(scope = globalThis) {
 if (typeof window !== 'undefined') installAdminAuthority(window);
 
 export default authority;
+
+// ── Module-private verified-admin channel ───────────────────────────────────
+// Imported ONLY by src/game/cloudAccount.js after it has (1) re-validated
+// the session against the auth server via `auth.getUser()` and (2) read an
+// 'admin' row for that exact user from public.account_roles under RLS.
+// Never attached to window or to the frozen authority object: module scope
+// is not reachable from the devtools console, so this grant cannot be
+// forged by a guest (A1 closeout Blocker 1). Pass null to revoke; any live
+// test session ends immediately on revocation.
+export function setVerifiedCloudAdminInternal(userId) {
+  verifiedCloudAdminUserId = typeof userId === 'string' && userId ? userId : null;
+  if (testSessionActive && !isAdmin()) {
+    testSessionActive = false;
+    emitSessionChange();
+  }
+}

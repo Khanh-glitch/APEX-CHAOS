@@ -1,20 +1,34 @@
 // APEX CHAOS player account — identity/session projection authority (A1).
 //
-// This module owns WHO the player is on this device: a persistent local guest
-// profile today, and the cloud session projection when Supabase is configured
-// (src/game/cloudAccount.js feeds authenticated sessions through the internal
-// seam below). It deliberately does NOT own credits, ownership or progression
-// arithmetic — the wallet authority remains APEX_ARSENAL_META
-// (public/game/arsenal/arsenalMetaRuntime.js). Account Center and the Admin
-// authority read identity/role from here; nothing else may invent a parallel
-// "current user" state.
+// This module owns WHO the player appears to be on this device: a persistent
+// local guest profile today, and the cloud session projection when Supabase
+// is configured (src/game/cloudAccount.js feeds authenticated sessions
+// through the module-private functions at the bottom of this file). It
+// deliberately does NOT own credits, ownership or progression arithmetic —
+// the wallet authority remains APEX_ARSENAL_META
+// (public/game/arsenal/arsenalMetaRuntime.js).
 //
-// Trust law: a local guest profile is a device identity, not a trusted cloud
-// identity. Role claims ('admin') are accepted ONLY from an authenticated
-// cloud session object installed by the cloud adapter after server-side
-// verification — never from localStorage, query params or console writes to
-// this module's storage key (the stored guest record carries no role field,
-// and any role field found in storage is ignored on load).
+// SECURITY (A1 closeout, Blocker 1): the profile projection is DISPLAY
+// STATE ONLY. It is not, and must never become, authorization evidence:
+//   * The projection carries no role. Admin derivation lives in
+//     src/game/adminAuthority.js and reads only its own server-verified
+//     channel — never this profile.
+//   * The session/sync setters are ES-module-private functions imported
+//     solely by cloudAccount.js. They are NOT attached to the frozen
+//     window authority, so a console user cannot call them to forge a
+//     cloud identity (the pre-closeout build exposed exactly that and a
+//     guest could self-grant admin — regression-tested by
+//     tools/testAdminEscalationNegativesBrowser.mjs).
+//   * The window binding itself is installed non-writable +
+//     non-configurable, so the genuine authority object cannot be swapped
+//     out from under its consumers.
+// A user with full devtools control can still rewrite their own client's
+// behavior (accepted device-local boundary); nothing here can mint server
+// rights or cloud assets — those live behind Supabase Auth + RLS + RPCs.
+//
+// Trust law: a local guest profile is a device identity, not a trusted
+// cloud identity. The stored guest record carries no role field, and any
+// role/kind fields forged into storage are ignored on load.
 
 const STORAGE_KEY = 'apexChaos.playerAccount.v1';
 
@@ -53,7 +67,7 @@ function loadGuestProfile() {
 }
 
 let guestProfile = loadGuestProfile();
-let cloudSession = null; // { userId, email, displayName, avatarUrl, providers[], role }
+let cloudSession = null; // { userId, email, displayName, avatarUrl, providers[] } — display only, NO role
 let syncState = { status: 'local-only', lastSyncAt: null, detail: '' };
 
 function emitAccountChange() {
@@ -65,6 +79,8 @@ function emitAccountChange() {
 }
 
 function publicProfile() {
+  // Display projection only. There is intentionally NO role field: any
+  // consumer that needs authorization must ask the Admin authority.
   if (cloudSession) {
     return Object.freeze({
       kind: 'cloud',
@@ -73,7 +89,6 @@ function publicProfile() {
       email: cloudSession.email || '',
       avatarUrl: cloudSession.avatarUrl || '',
       providers: [...(cloudSession.providers || [])],
-      role: cloudSession.role === 'admin' ? 'admin' : 'player',
       guestProfileId: guestProfile.profileId,
       createdAt: guestProfile.createdAt,
     });
@@ -85,7 +100,6 @@ function publicProfile() {
     email: '',
     avatarUrl: '',
     providers: [],
-    role: 'player',
     guestProfileId: guestProfile.profileId,
     createdAt: guestProfile.createdAt,
   });
@@ -109,28 +123,47 @@ const authority = Object.freeze({
     emitAccountChange();
     return publicProfile();
   },
-  // ── internal seams for src/game/cloudAccount.js only ─────────────────────
-  __setCloudSession(session) {
-    cloudSession = session && session.userId ? { ...session } : null;
-    emitAccountChange();
-  },
-  __setSyncState(status, detail) {
-    syncState = {
-      status: String(status || 'local-only'),
-      lastSyncAt: status === 'saved' ? Date.now() : syncState.lastSyncAt,
-      detail: String(detail || ''),
-    };
-    emitAccountChange();
-  },
 });
 
 export function installPlayerAccountAuthority(scope = globalThis) {
   const current = scope && scope.APEX_PLAYER_ACCOUNT;
   if (current && current.version === 'a1-player-account-v1') return current;
-  if (scope) scope.APEX_PLAYER_ACCOUNT = authority;
+  if (scope) {
+    // Lock the binding: consumers across classic-script runtimes read this
+    // authority through window, so the genuine object must not be
+    // swappable from the console or another script.
+    try {
+      Object.defineProperty(scope, 'APEX_PLAYER_ACCOUNT', {
+        value: authority, writable: false, configurable: false, enumerable: true,
+      });
+    } catch (error) {
+      try { scope.APEX_PLAYER_ACCOUNT = authority; } catch (ignored) {}
+    }
+  }
   return authority;
 }
 
 if (typeof window !== 'undefined') installPlayerAccountAuthority(window);
 
 export default authority;
+
+// ── Module-private cloud feed ───────────────────────────────────────────────
+// Imported ONLY by src/game/cloudAccount.js, which calls them after a real
+// Supabase session exists. These are deliberately ES-module exports that
+// are never attached to window or to the frozen authority object: module
+// scope is not reachable from the devtools console, so a guest cannot
+// invoke them to forge a cloud identity (A1 closeout Blocker 1). Do not
+// re-export them through any window global.
+export function projectCloudSessionInternal(session) {
+  cloudSession = session && session.userId ? { ...session } : null;
+  emitAccountChange();
+}
+
+export function setCloudSyncStateInternal(status, detail) {
+  syncState = {
+    status: String(status || 'local-only'),
+    lastSyncAt: status === 'saved' ? Date.now() : syncState.lastSyncAt,
+    detail: String(detail || ''),
+  };
+  emitAccountChange();
+}
