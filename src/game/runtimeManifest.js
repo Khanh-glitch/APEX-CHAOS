@@ -108,9 +108,6 @@ export const ARSENAL_SHARED_ENGINE_RUNTIMES = [
 export const ARSENAL_PRODUCT_RUNTIMES = [
   ...ARSENAL_SHARED_ENGINE_RUNTIMES,
   ['/game/gold/goldProductBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGoldProductBridge'],
-  // A1.5 skill details (mirrors the ARSENAL_HUB tuple — hub files ship in
-  // both groups so the asset audit's shipping derivation can see them).
-  ['/game/ui/skillDetailsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexSkillDetailsRuntime'],
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
   ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
   ['/game/results/ownerAwards.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexResultOwnerCatalog'],
@@ -284,7 +281,9 @@ export const ARSENAL_HUB_RUNTIMES = [
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
   // A1.5: symmetrical P1/P2 SKILL DETAILS on Fighter Select. Presentation
-  // only; resolves through APEX_GOLD.skillDetailsFor → heroRegistry.
+  // only; resolves through APEX_GOLD.skillDetailsFor → heroRegistry. Hub
+  // group runs in the shell document that owns Fighter Select; registering
+  // the same file in a second group breaks the concurrent-order proxy.
   ['/game/ui/skillDetailsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexSkillDetailsRuntime'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],

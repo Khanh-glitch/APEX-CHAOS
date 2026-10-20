@@ -22,6 +22,18 @@ try {
   page.on('response',r=>{if(r.status()>=400&&/\/assets\/(dictionary|gold-ui)\/heroes\//.test(r.url()))badAssets.push({status:r.status(),url:r.url()})});
   try{
    await page.setViewport({...view,deviceScaleFactor:1});
+   // A1 production economy: a fresh profile owns NEWBOT only (proven by the
+   // A1 gates), so the BOXE Fighter Pick card is locked for it. This art
+   // gate must actually SELECT BOXE, so its fixture is a legitimate saved
+   // profile that already owns him — the state a real player reaches via
+   // Lucky Draw/Shop. (Dictionary browsing above needs no ownership.)
+   await page.evaluateOnNewDocument(()=>{
+    localStorage.setItem('apexChaos.arsenalMeta.v1',JSON.stringify({
+     version:1,credits:425,ownedFighters:['ROBOT','BOXE'],
+     lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:1,
+     unlockedAt:{ROBOT:0,BOXE:1},arenaPaletteId:null,claimedMatchIds:[],
+    }));
+   });
    await page.goto(url,{waitUntil:'domcontentloaded',timeout:65000});
    await page.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
    await page.click('#apex-boot-start');

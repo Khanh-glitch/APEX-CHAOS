@@ -21,6 +21,17 @@ try {
   await page.setViewport(viewport);
   const errors=[];
   page.on('pageerror',err=>errors.push(String(err)));
+  // A1 production economy: a fresh profile owns NEWBOT only (proven by the
+  // A1 gates). This proof selects CRYSTALA through the real Gold roster, so
+  // its fixture is a legitimate saved profile that already owns her — the
+  // state a real player reaches via Lucky Draw/Shop.
+  await page.evaluateOnNewDocument(()=>{
+   localStorage.setItem('apexChaos.arsenalMeta.v1',JSON.stringify({
+    version:1,credits:425,ownedFighters:['ROBOT','CRYSTAL'],
+    lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:1,
+    unlockedAt:{ROBOT:0,CRYSTAL:1},arenaPaletteId:null,claimedMatchIds:[],
+   }));
+  });
   await page.goto(URL,{waitUntil:'load',timeout:45000});
   await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:45000});
   await page.evaluate(async()=>{
