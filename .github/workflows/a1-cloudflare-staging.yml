@@ -12,6 +12,9 @@ on:
       - 'tools/testA1StagingAuthHttp.mjs'
       - 'src/game/cloudAccount.js'
       - 'src/ui/AccountCenter.jsx'
+      - 'src/game/guestCloudHandoff.js'
+      - 'tools/testA1GuestHandoff.mjs'
+      - 'supabase/migrations/0004_a1_guest_migration_idempotency.sql'
   workflow_dispatch:
 permissions:
   contents: read
@@ -42,6 +45,10 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: A1 Guest Magic Link idempotency + account switch tests
+        run: node tools/testA1GuestHandoff.mjs
+      - name: A1 cloud session race gates
+        run: node tools/testCloudLifecycleRaces.mjs
       - name: Build A1 configured for staging only
         shell: bash
         run: |
