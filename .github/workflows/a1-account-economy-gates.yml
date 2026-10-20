@@ -18,6 +18,16 @@ on:
       - 'src/game/localeCatalog.js'
       - 'src/ui/AccountCenter.jsx'
       - 'src/ui/accountCenter.css'
+      - 'src/ui/FirstPlayGuide.jsx'
+      - 'src/ui/firstPlayGuide.css'
+      - 'src/ui/ProgressionCenter.jsx'
+      - 'src/ui/progressionCenter.css'
+      - 'src/game/sideIdentity.css'
+      - 'src/game/localizationRuntime.js'
+      - 'src/game/localization.css'
+      - 'public/apexEngine.js'
+      - 'public/game/core/apexArsenalProductRenderHudRuntime.js'
+      - 'tools/buildGoldCutover.mjs'
       - 'src/App.jsx'
       - 'src/main.jsx'
       - 'public/game/arsenal/arsenalMetaRuntime.js'
@@ -27,11 +37,6 @@ on:
       - 'public/game/ui/skillDetailsRuntime.js'
       - 'supabase/**'
       - 'tools/testOwnerPlaytestEconomyGate.mjs'
-      - 'tools/testAlphaHomeUsabilityGate.mjs'
-      - 'src/game/alphaHomeUsability.js'
-      - 'src/game/alphaHomeUsability.css'
-      - 'src/ui/FirstBattleGuide.jsx'
-      - 'src/ui/ProgressionCenter.jsx'
       - 'tools/testSkillDetailsParityGate.mjs'
       - 'tools/testSkillDetailsBrowser.mjs'
       - 'tools/testArsenalProductGraph.mjs'
@@ -39,6 +44,7 @@ on:
       - 'tools/testCloudSecurityContracts.mjs'
       - 'tools/testCloudLifecycleRaces.mjs'
       - 'tools/testAdminEscalationNegativesBrowser.mjs'
+      - 'tools/testAlphaHomeBrowser.mjs'
       - 'tools/assetAudit.mjs'
       - '.github/workflows/a1-account-economy-gates.yml'
   workflow_dispatch:
@@ -68,8 +74,6 @@ jobs:
         run: node tools/testCloudLifecycleRaces.mjs
       - name: Production progression contract (350/NEWBOT, rewards, idempotency)
         run: pnpm test:owner-playtest-economy
-      - name: Alpha Home UI DOM acceptance (Account, Missions, mirror, guide)
-        run: node tools/testAlphaHomeUsabilityGate.mjs
       - name: Skill-details parity (registry truth, VIE coverage, symmetry)
         run: node tools/testSkillDetailsParityGate.mjs
       - name: Product graph (economy laws, availability)
@@ -124,6 +128,12 @@ jobs:
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testSkillDetailsBrowser.mjs
+      - name: Alpha Home — single account entry, ENG|VIE, guide never blocks play
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testAlphaHomeBrowser.mjs
       - name: Security negatives — guest cannot forge admin on production build
         shell: bash
         run: |
@@ -143,6 +153,7 @@ jobs:
           name: a1-skill-details-browser
           path: |
             docs/a1/skill-details-browser/
+            qa-evidence/alpha-home/
             qa-evidence/a1-security-negatives/
             docs/boxe/r5-browser/
           if-no-files-found: ignore

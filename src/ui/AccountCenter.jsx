@@ -11,6 +11,7 @@ import {
 } from '../game/cloudAccount.js';
 import './accountCenter.css';
 import { GUEST_ONLY_RELEASE } from '../game/releasePolicy.js';
+import { apexAppUrl } from '../game/appRoot.js';
 
 // A1.3 — Gold Account Center (presentation only).
 // Every value is read live from the real authorities:
@@ -52,17 +53,9 @@ function readAuthorities() {
   };
 }
 
-// The Home chip must show the real identity, not the authored placeholder.
-function stampHomeChip() {
-  try {
-    const { profile } = readAuthorities();
-    if (!profile) return;
-    const nameEl = document.querySelector('.profileIdentity .profileText b');
-    const subEl = document.querySelector('.profileIdentity .profileText small');
-    if (nameEl) nameEl.textContent = profile.displayName;
-    if (subEl) subEl.textContent = profile.kind === 'cloud' ? 'PROFILE' : 'GUEST PROFILE';
-  } catch (error) {}
-}
+// Alpha Home law: there is no top identity chip to stamp anymore — the
+// bottom-nav ACCOUNT is the single entry, and this panel is the one place
+// identity is displayed (always read live via readAuthorities above).
 
 export default function AccountCenter() {
   const [open, setOpen] = useState(false);
@@ -79,7 +72,7 @@ export default function AccountCenter() {
   const closeRef = useRef(null);
   const invokerRef = useRef(null);
 
-  const refresh = useCallback(() => { setTick((n) => n + 1); stampHomeChip(); }, []);
+  const refresh = useCallback(() => { setTick((n) => n + 1); }, []);
 
   const openCenter = useCallback((invoker) => {
     invokerRef.current = invoker || document.activeElement || null;
@@ -116,8 +109,10 @@ export default function AccountCenter() {
     const onCredits = () => refresh();
     const onOpenEvent = () => openCenter(null);
     const onDocClick = (event) => {
+      // The ONE account entry: the generated bottom-nav ACCOUNT route
+      // (tools/buildGoldCutover.mjs stamps #apexAccountOpen).
       const target = event.target && event.target.closest
-        ? event.target.closest('[data-apex-account-entry]')
+        ? event.target.closest('#apexAccountOpen')
         : null;
       if (target) {
         event.preventDefault();
@@ -129,13 +124,11 @@ export default function AccountCenter() {
     window.addEventListener('apex:credits', onCredits);
     window.addEventListener('apex:open-account', onOpenEvent);
     document.addEventListener('click', onDocClick, true);
-    const stamps = [600, 1800, 3500, 7000].map((ms) => window.setTimeout(stampHomeChip, ms));
     return () => {
       window.removeEventListener('apex:account', onAccount);
       window.removeEventListener('apex:credits', onCredits);
       window.removeEventListener('apex:open-account', onOpenEvent);
       document.removeEventListener('click', onDocClick, true);
-      stamps.forEach((t) => window.clearTimeout(t));
     };
   }, [openCenter, refresh]);
 
@@ -193,13 +186,13 @@ export default function AccountCenter() {
         <header className="apex-account-head">
           <img
             className="apex-account-avatar"
-            src={(profile && profile.avatarUrl) || '/gold/assets/gold/favicon-apex-chaos.png'}
+            src={(profile && profile.avatarUrl) || apexAppUrl('/gold/assets/gold/favicon-apex-chaos.png')}
             alt=""
             draggable="false"
           />
           <div>
             <div className="apex-account-kicker">
-              {GUEST_ONLY_RELEASE ? 'HỒ SƠ KHÁCH · LƯU TRÊN THIẾT BỊ' : `ACCOUNT CENTER · ${isCloud ? 'SIGNED IN' : 'LOCAL GUEST'}`}
+              {GUEST_ONLY_RELEASE ? 'GUEST PROFILE · SAVED ON THIS DEVICE' : `ACCOUNT CENTER · ${isCloud ? 'SIGNED IN' : 'LOCAL GUEST'}`}
             </div>
             <h2 className="apex-account-name" id="apex-account-title">
               {profile ? profile.displayName : 'Player'}
@@ -279,12 +272,12 @@ export default function AccountCenter() {
           )}
 
           <section className="apex-account-section" aria-label="SYNC STATUS">
-            <h3>{GUEST_ONLY_RELEASE ? 'TRẠNG THÁI LƯU' : 'SYNC STATUS'}</h3>
+            <h3>{GUEST_ONLY_RELEASE ? 'SAVE STATUS' : 'SYNC STATUS'}</h3>
             <p className="apex-account-sync" data-account-sync>
-              {GUEST_ONLY_RELEASE ? 'ĐÃ BẬT LƯU TRÊN THIẾT BỊ' : `${syncLabel} · ${lastSync}`}
+              {GUEST_ONLY_RELEASE ? 'DEVICE SAVE ACTIVE' : `${syncLabel} · ${lastSync}`}
             </p>
             {!cloudConfigured && (
-              <p className="apex-account-note">{GUEST_ONLY_RELEASE ? 'Tiến độ, AC và tướng được lưu trên trình duyệt này. Đừng xóa dữ liệu trang web; bản itch đầu tiên chưa có đồng bộ tài khoản.' : 'Progress is saved on this device only.'}</p>
+              <p className="apex-account-note">{GUEST_ONLY_RELEASE ? 'Progress, AC and fighters are saved in this browser. Clearing site data erases them; this Alpha has no account sync.' : 'Progress is saved on this device only.'}</p>
             )}
             {isCloud && (
               <div className="apex-account-actions" style={{ marginTop: 8 }}>
@@ -302,11 +295,11 @@ export default function AccountCenter() {
 
           {GUEST_ONLY_RELEASE ? (
             <section className="apex-account-section" aria-label="GUEST RELEASE">
-              <h3>CHƠI NGAY, KHÔNG CẦN ĐĂNG NHẬP</h3>
+              <h3>PLAY INSTANTLY — NO SIGN-IN</h3>
               <p className="apex-account-note">
-                Thắng trận BOT: +200 AC · Thua BOT: +25 AC.
-                Đấu LOCAL hoàn tất: +50 AC.
-                Vòng Quay dùng AC trên thiết bị; Cửa hàng đấu sĩ chưa mở.
+                BOT win: +200 AC · BOT loss: +25 AC · Completed LOCAL match: +50 AC.
+                Lucky Draw spends AC on this device; Fighter Shop is not open yet.
+                Missions pay extra AC for completed battles.
               </p>
             </section>
           ) : !isCloud ? (

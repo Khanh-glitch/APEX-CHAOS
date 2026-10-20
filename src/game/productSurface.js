@@ -48,9 +48,15 @@ const PUBLIC_SURFACES = Object.freeze([
   surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available yet.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available yet.'),
   surface('dictionary', 'Field Archive', ACTIVE, 'Browse playable fighters and Arsenal, inspect approved Gold art and equip cosmetic skins for P1/P2.', { route: 'skins' }),
-  surface('missions', 'Missions', ACTIVE, 'Earn bonus Apex Credits from completed battles.', { route: 'progress' }),
-  surface('achievements', 'Achievements', ACTIVE, 'One-time milestones and bonus Apex Credits.', { route: 'progress' }),
-  surface('account-profile', 'Account / Profile', LOCKED, 'Account / Profile is not available yet.'),
+  // Alpha progression (one wallet authority): sealed BOT/LOCAL matches
+  // advance these counters; each reward is a one-time AC claim into the
+  // real wallet. Both entries open the same progression panel (tabbed).
+  surface('missions', 'Missions', ACTIVE, 'Short-term battle goals that pay bonus Apex Credits.', { route: 'progress' }),
+  surface('achievements', 'Achievements', ACTIVE, 'One-time milestones that pay bonus Apex Credits.', { route: 'progress' }),
+  // The bottom-nav ACCOUNT is the single account entry (real Account
+  // Center). The old top-right identity chip duplicated it and was
+  // removed at the Gold generator.
+  surface('account-profile', 'Account / Profile', ACTIVE, 'Guest profile, Apex Credits, owned fighters and local save status.', { route: 'account' }),
 ]);
 
 const ADMIN_SURFACES = Object.freeze([

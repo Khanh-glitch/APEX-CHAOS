@@ -207,6 +207,14 @@
       "bytes": 6552,
       "sha256": "ff9a537038dfdae7e66bf951967fcee93550a3478ec0062c3ce2cbb46442386d"
     },
+    "fonts/APEX-OSWALD-OFL.txt": {
+      "bytes": 4483,
+      "sha256": "0fd731a904b729a4e02eaf5e8ebd06783edd9abe400e8882760160230675b652"
+    },
+    "fonts/apex-oswald-vietnamese.ttf": {
+      "bytes": 172088,
+      "sha256": "5b38c246e255a12f5712d640d56bcced0472466fc68983d2d0410ec0457c2817"
+    },
     "fonts/jetbrains-mono-latin-400-normal.woff2": {
       "bytes": 21168,
       "sha256": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb"
@@ -276,8 +284,8 @@
       "sha256": "81db014007a74715ad149140e57edd85d6667b14348d1a796a00f26986b51034"
     },
     "shell.html": {
-      "bytes": 449375,
-      "sha256": "728b2a3c9ae97aa0e6c252318dbf58687b5df6260ae97561851d3fe85170c385"
+      "bytes": 448620,
+      "sha256": "3a505bb677dfed1c31b895030f9114f23333a9b306f9229b87a2eded5ce21c12"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,

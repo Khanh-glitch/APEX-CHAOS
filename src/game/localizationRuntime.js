@@ -9,7 +9,7 @@ const roots=new WeakMap();
 const FRAME_FONT_CSS = `@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf') format('truetype');font-style:normal;font-weight:200 700;font-display:swap}html[data-apex-language='vie']{--fd:'ApexVietCondensed','Segoe UI',sans-serif;--fui:'ApexVietCondensed','Segoe UI',sans-serif;--fnum:'ApexVietCondensed','Segoe UI',sans-serif}`;
 let language='eng';
 let busy=false;
-let select=null;
+let pickerEl=null;
 
 function readLanguage(){
   try {return localStorage.getItem(KEY)==='vie'?'vie':'eng';}catch{return 'eng';}
@@ -195,26 +195,43 @@ function setLanguage(next){
   if(next!=='vie' && next!=='eng')return;
   language=next;
   saveLanguage(language);
-  if(select)select.value=language;
+  syncPicker();
   document.documentElement.dataset.apexLanguage=language;
   updateAll();
   window.dispatchEvent(new window.CustomEvent('apex:language-changed',{detail:{language}}));
 }
+// Segmented ENG|VIE control: both languages are always visible in the
+// top utility cluster (no dropdown to open), and the active side is
+// unambiguous at a glance (owner Requirement A).
+function syncPicker(){
+  if(!pickerEl)return;
+  for(const btn of pickerEl.querySelectorAll('[data-apex-language-option]')){
+    const active=btn.dataset.apexLanguageOption===language;
+    btn.classList.toggle('is-active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+  }
+}
 function mountPicker(){
-  if(select?.isConnected)return;
+  if(pickerEl?.isConnected)return;
   const stage=document.querySelector('#gold-shell-host #stage');
-  const profile=stage?.querySelector('.profile');
-  if(!profile)return;
+  if(!stage)return;
   const picker=document.createElement('div');
   picker.id='apex-language-picker';
   picker.dataset.apexNoLocalize='';
   picker.setAttribute('role','group');
   picker.setAttribute('aria-label','Language / Ngôn ngữ');
-  picker.innerHTML='<span class="apex-language-caption">LANG</span><select id="apex-language-select" aria-label="Language / Ngôn ngữ"><option value="eng">ENG</option><option value="vie">VIE</option></select>';
-  profile.appendChild(picker);
-  select=picker.querySelector('select');
-  select.value=language;
-  select.addEventListener('change',()=>setLanguage(select.value));
+  picker.innerHTML='<span class="apex-language-caption">LANG</span>'
+    +'<span class="apex-language-options">'
+    +'<button type="button" id="apex-language-eng" data-apex-language-option="eng" aria-pressed="false">ENG</button>'
+    +'<button type="button" id="apex-language-vie" data-apex-language-option="vie" aria-pressed="false">VIE</button>'
+    +'</span>';
+  stage.appendChild(picker);
+  pickerEl=picker;
+  picker.addEventListener('click',(event)=>{
+    const btn=event.target?.closest?.('[data-apex-language-option]');
+    if(btn)setLanguage(btn.dataset.apexLanguageOption);
+  });
+  syncPicker();
 }
 export function installLocalization(){
   language=readLanguage();
@@ -224,7 +241,7 @@ export function installLocalization(){
   mountPicker();
   // Gold is mounted asynchronously. A single observer discovers it,
   // including subsequent Lucky Draw / Battle HUD same-origin iframes.
-  const guard=new MutationObserver(()=>{if(!select?.isConnected)mountPicker();});
+  const guard=new MutationObserver(()=>{if(!pickerEl?.isConnected)mountPicker();});
   guard.observe(document.body,{subtree:true,childList:true});
   document.addEventListener('apex:localization-refresh',updateAll);
   window.addEventListener('storage',(event)=>{
