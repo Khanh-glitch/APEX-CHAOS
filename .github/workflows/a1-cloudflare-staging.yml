@@ -30,10 +30,6 @@ jobs:
       APEX_STAGING_URL: https://a1-cloud-staging-20261020.apex-chaos.pages.dev
     steps:
       - uses: actions/checkout@v4
-      - name: Fail closed without Cloudflare credential
-        shell: bash
-        run: |
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::CLOUDFLARE_API_TOKEN secret is missing"; exit 1; }
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.9
@@ -53,6 +49,10 @@ jobs:
             exit 1
           fi
           printf '%s\n' "$GITHUB_SHA" > dist/A1_STAGING_BUILD_SHA.txt
+      - name: Fail closed without Cloudflare credential
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::CLOUDFLARE_API_TOKEN secret is missing; staging was built but NOT deployed"; exit 1; }
       - name: Deploy ISOLATED Cloudflare preview branch
         shell: bash
         run: |
