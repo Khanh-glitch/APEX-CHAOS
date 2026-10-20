@@ -35,6 +35,7 @@ import playerAccountAuthority, {
 import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
 import { persistGuestHandoffIfEmpty } from './guestCloudHandoff.js';
 import { describeUnverifiedCloudSnapshot } from './cloudSnapshotPreview.js';
+import { requestEmailCode, confirmEmailCode } from './emailCodeAuth.js';
 
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
@@ -297,41 +298,18 @@ export async function signInWithGoogle() {
 
 export async function signInWithEmailOtp(email) {
   if (!isEmailCodeEnabled()) return { ok: false, reason: 'email-code-not-ready' };
-  const clean = String(email || '').trim();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) return { ok: false, reason: 'invalid-email' };
   const client = await getClient();
-  const { error } = await client.auth.signInWithOtp({
-    email: clean,
-    options: { emailRedirectTo: window.location.origin + '/', shouldCreateUser: true },
-  });
-  if (error) {
-    if (error.status === 429 || /rate.?limit|too many|email quota/i.test(error.message || '')) {
-      return { ok: false, reason: 'email-rate-limited' };
-    }
-    return { ok: false, reason: 'email-send-failed' };
-  }
-  // Preserve existing Guest progress handoff only after an authenticated
-  // same-email verification, never from an unverified email address.
-  rememberPendingLink(clean);
-  return { ok: true, sent: true };
+  const result = await requestEmailCode(client, email, window.location.origin + '/');
+  if (result.ok) rememberPendingLink(result.email);
+  return result;
 }
 
 export async function verifyEmailOtp(email, token) {
   if (!isEmailCodeEnabled()) return { ok: false, reason: 'email-code-not-ready' };
-  const clean = String(email || '').trim();
-  const code = String(token || '').trim();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean) || !/^\d{6}$/.test(code))
-    return { ok: false, reason: 'invalid-code' };
   const client = await getClient();
-  const { data, error } = await client.auth.verifyOtp({
-    email: clean, token: code, type: 'email',
-  });
-  if (error) {
-    if (error.status === 429 || /rate.?limit|too many/i.test(error.message || ''))
-      return { ok: false, reason: 'verify-rate-limited' };
-    return { ok: false, reason: 'invalid-or-expired-code' };
-  }
-  await projectSession(client, data && data.session);
+  const result = await confirmEmailCode(client, email, token);
+  if (!result.ok) return result;
+  await projectSession(client, result.session);
   return { ok: true };
 }
 
