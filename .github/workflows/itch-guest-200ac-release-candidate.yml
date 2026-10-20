@@ -1,0 +1,151 @@
+# ITCH Guest-first candidate. Never runs on main or deploys production.
+# No release ZIP is generated unless all runtime gates INCLUDING a real nested
+# iframe Chrome boot complete successfully. The bundle remains owner-review ONLY.
+name: ITCH Guest 200 AC Release Candidate
+on:
+  push:
+    branches:
+      - release/itch-guest-200ac-20261020
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: itch-guest-200ac-rc
+  cancel-in-progress: true
+jobs:
+  candidate:
+    if: github.ref == 'refs/heads/release/itch-guest-200ac-20261020'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      VITE_SUPABASE_URL: ''
+      VITE_SUPABASE_ANON_KEY: ''
+      VITE_APEX_DEV_ADMIN: '0'
+      VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+      VITE_APEX_EMAIL_CODE_ENABLED: '0'
+      ITCH_CANDIDATE_BRANCH: itch-guest-200ac-rc-20261020
+      ITCH_CANDIDATE_URL: https://itch-guest-200ac-rc-20261020.apex-chaos.pages.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Guest-only 200 AC release contract
+        run: node tools/testItchGuestReleaseGate.mjs
+      - name: Real wallet outcomes and one-time rewards
+        run: pnpm test:owner-playtest-economy
+      - name: Free Battle outcome side and mode
+        run: pnpm test:battle-outcome-side
+      - name: Shop, Lucky Draw and product graph
+        run: pnpm test:product-graph
+      - name: Gameplay and Gold runtime revision
+        run: pnpm test:runtime-revision
+      - name: Account / admin security regression contracts
+        run: |
+          node tools/testCloudSecurityContracts.mjs
+          node tools/testCloudLifecycleRaces.mjs
+      - name: Build HTML5 candidate with Guest-only Auth lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm build
+          node tools/testShippingDist.mjs
+          test -s dist/index.html
+          printf '%s\n' "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+          du -sh dist
+      - name: Rewrite HTML5 first-party paths for itch nested ZIP hosting
+        run: node tools/packItchPortable.mjs
+      - name: Reject missing Cloudflare preview credential
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::No Cloudflare preview token. The itch package is still attached as an artifact."; exit 1; }
+      - name: Deploy only named Cloudflare PREVIEW branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$ITCH_CANDIDATE_BRANCH" != "main"
+          test "$ITCH_CANDIDATE_URL" != "https://apex-chaos.pages.dev"
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name=apex-chaos \
+            --branch="$ITCH_CANDIDATE_BRANCH" \
+            --commit-hash="$GITHUB_SHA" \
+            --commit-dirty=true
+      - name: Verify exact immutable candidate SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 25); do
+            found="$(curl -fsSL --max-time 15 "$ITCH_CANDIDATE_URL/ITCH_GUEST_BUILD_SHA.txt" 2>/dev/null || true)"
+            if [ "$found" = "$GITHUB_SHA" ]; then
+              echo "ITCH GUEST SHA PASS: $found"
+              echo "PREVIEW: $ITCH_CANDIDATE_URL"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::Guest preview did not serve candidate SHA"
+          exit 1
+      - name: Simulate itch.io nested HTML5 hosting (separate preview branch)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The genuine itch ZIP entrypoint is nested under /html/apex/,
+          # NOT hosted at Cloudflare root. This tests relative asset paths.
+          mkdir -p itch-nested-preview/html/apex
+          cp -a dist-itch-html5/. itch-nested-preview/html/apex/
+          printf '<!doctype html><meta charset="utf-8"><title>Nested itch QA</title><iframe src="/html/apex/index.html" width="1440" height="900"></iframe>' > itch-nested-preview/index.html
+          npx --yes wrangler@4 pages deploy itch-nested-preview \
+            --project-name=apex-chaos \
+            --branch=itch-html5-subpath-20261020 \
+            --commit-hash="$GITHUB_SHA" \
+            --commit-dirty=true
+      - name: Verify packaged HTML5 at nested preview path
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://itch-html5-subpath-20261020.apex-chaos.pages.dev/html/apex"
+          for attempt in $(seq 1 25); do
+            got="$(curl -fsSL --max-time 15 "$url/ITCH_GUEST_BUILD_SHA.txt" 2>/dev/null || true)"
+            if [ "$got" = "$GITHUB_SHA" ]; then
+              curl -fsSL --max-time 15 "$url/index.html" | grep -q 'src="./assets/'
+              echo "NESTED ITCH HTML5 QA PASS: $url/index.html"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::Nested HTML5 artifact failed immutable SHA/path gate"
+          exit 1
+      - name: Locate Chrome for ACTUAL nested runtime acceptance
+        id: chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME" || { echo "::error::Real Chrome unavailable; nested runtime NOT approved"; exit 1; }
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+      - name: Install browser controller for acceptance
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+      - name: Boot nested HTML5 in real Chrome BEFORE generating any owner package
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+        run: node tools/testItchNestedChrome.mjs
+      - name: Package itch.io HTML5 bundle (index at ZIP root)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist-itch-html5 && zip -q -r ../apex-chaos-itch-guest-200ac-rc.zip .)
+          unzip -l apex-chaos-itch-guest-200ac-rc.zip | grep -Eq '[[:space:]]index.html
+          ls -lh apex-chaos-itch-guest-200ac-rc.zip
+      - name: Archive owner-review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-itch-guest-200ac-rc
+          path: apex-chaos-itch-guest-200ac-rc.zip
+          if-no-files-found: error
+          retention-days: 30

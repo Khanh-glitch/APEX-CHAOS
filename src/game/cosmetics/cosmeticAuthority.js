@@ -56,7 +56,11 @@ function emit() {
   for (const fn of listeners) { try { fn(snapshot()); } catch (_) {} }
 }
 function safeAsset(asset) {
-  if (typeof asset !== 'string' || !/^\/(assets|gold\/assets)\/[a-zA-Z0-9_./-]+\.(png|webp|jpg|jpeg|svg|ogg|mp3)$/.test(asset) || asset.includes('..'))
+  // Production Cloudflare URLs are root-relative. The identical first-party
+  // files are served relative to itch.io's /html/<game>/ subdirectory in
+  // its HTML5 iframe. Both forms must pass the SAME constrained allowlist.
+  // No external URLs, double-dot traversals or unrelated directories.
+  if (typeof asset !== 'string' || !/(?:^\/|^\.\/)(assets|gold\/assets)\/[a-zA-Z0-9_./-]+\.(png|webp|jpg|jpeg|svg|ogg|mp3)$/.test(asset) || asset.includes('..'))
     throw new Error('Cosmetic asset must be a declared first-party path');
   return asset;
 }
