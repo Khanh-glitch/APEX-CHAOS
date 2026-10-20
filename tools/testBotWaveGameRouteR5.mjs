@@ -29,7 +29,11 @@ assert.ok(wrapper.includes("!doc.getElementById('bw-interface-v2')"),'must wait 
 const audioMix=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js','utf8');
 assert.ok(audioMix.includes('boxe:1.95,weapons:.14'),'BOT WAVE Gold x1.95 / swarm-aware Arsenal gun base x.14 required');
 assert.ok(fs.readFileSync('public/bot-wave/index.html','utf8').includes("frame.src='/bot-wave/game.html'"));
-assert.ok(app.includes("frame.src='/bot-wave/game.html'"),'single direct Gold iframe not mounted');
+// Entry-base law: the App mounts the BOT WAVE iframe through
+// apexAppUrl so the nested itch path resolves (an origin-root spelling
+// would 404 under /html/<id>/). The static public wrapper keeps the
+// root spelling and is relativized by packItchPortable instead.
+assert.ok(app.includes("frame.src=apexAppUrl('/bot-wave/game.html')"),'single direct Gold iframe not mounted via app-root authority');
 assert.ok(!app.includes("window.top.location.assign(target)"),'hard navigation must not bypass transition');
 assert.ok(fs.existsSync('src/game/botWave/wavePreviewEntry.css'));
 // Sticky J: evaluate the shipped constants and gate the pilot execution.
