@@ -6,6 +6,7 @@ import {
   signInWithEmailOtp,
   signOutCloud,
   requestAccountDeletion,
+  previewCloudProgressSnapshot,
   uploadProgressSnapshot,
   importGuestProgress,
 } from '../game/cloudAccount.js';
@@ -25,6 +26,7 @@ const SYNC_LABELS = {
   'signed-out': 'SIGNED OUT',
   connected: 'ACCOUNT CONNECTED',
   existing: 'CLOUD BACKUP EXISTS',
+  previewed: 'BACKUP PREVIEW READY',
   syncing: 'SYNCING',
   saved: 'SAVED',
   offline: 'OFFLINE',
@@ -75,6 +77,7 @@ export default function AccountCenter() {
   const [message, setMessage] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletionPending, setDeletionPending] = useState(false);
+  const [cloudPreview, setCloudPreview] = useState(null);
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const invokerRef = useRef(null);
@@ -86,6 +89,7 @@ export default function AccountCenter() {
     setMessage('');
     setConfirmDelete(false);
     setLinkSent(false);
+    setCloudPreview(null);
     const { profile } = readAuthorities();
     setNameDraft(profile && profile.kind === 'guest' ? profile.displayName : '');
     setOpen(true);
@@ -312,15 +316,40 @@ export default function AccountCenter() {
                   type="button"
                   className="apex-account-btn"
                   disabled={busy}
-                  onClick={() => run(() => uploadProgressSnapshot())}
+                  onClick={() => run(async () => {
+                    const result = await previewCloudProgressSnapshot();
+                    setCloudPreview(result?.ok ? result : null);
+                    return result;
+                  })}
                 >
-                  UPDATE CLOUD SNAPSHOT
+                  REVIEW CLOUD BACKUP
+                </button>
+                {cloudPreview?.ok && cloudPreview.userId === profile?.profileId && (
+                  <p className="apex-account-note" data-cloud-preview="true">
+                    {cloudPreview.exists
+                      ? `READ ONLY: cloud version ${cloudPreview.version}; unverified device backup:
+${cloudPreview.deviceCredits ?? 'unknown'} credits, ${cloudPreview.deviceDraws ?? 'unknown'} draws,
+fighters: ${cloudPreview.deviceFighters.join(', ') || 'none'}. Nothing was restored to this device.`
+                      : 'No existing Cloud backup. Your device data has not been restored or modified.'}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="apex-account-btn"
+                  disabled={busy || !cloudPreview?.ok || cloudPreview.userId !== profile?.profileId || sync.status !== 'previewed'}
+                  onClick={() => run(async () => {
+                    setCloudPreview(null);
+                    return uploadProgressSnapshot();
+                  })}
+                >
+                  UPDATE CLOUD SNAPSHOT (AFTER REVIEW)
                 </button>
                 <p className="apex-account-note">
-                  BACK UP GUEST PROGRESS saves an unverified device snapshot
-                  only if no Cloud snapshot exists. UPDATE CLOUD SNAPSHOT
-                  uses version checking. Neither option grants Cloud AC
-                  or imports fighters into the Cloud economy.
+                  REVIEW CLOUD BACKUP is read-only and does not restore
+                  unverified credits/fighters to this device. Updating requires
+                  a fresh preview and checks its exact Cloud version.
+                  BACK UP GUEST PROGRESS never overwrites an existing backup.
+                  None of these actions grants Cloud AC or fighters.
                 </p>
               </div>
             )}
