@@ -35,6 +35,7 @@ import playerAccountAuthority, {
 import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
 import { persistGuestHandoffIfEmpty } from './guestCloudHandoff.js';
 import { describeUnverifiedCloudSnapshot } from './cloudSnapshotPreview.js';
+import { parseEmailMagicLink } from './emailMagicLinkTransfer.js';
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
 const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '';
@@ -300,6 +301,20 @@ export async function signInWithEmailOtp(email) {
   return { ok: true, sent: true };
 }
 
+// Open the one-time verification URL in THIS tab, not the OS default
+// browser. The link never travels to our server or localStorage. A used or
+// expired link must be requested afresh from this device.
+export function openEmailMagicLinkHere(raw) {
+  if (!isCloudConfigured()) return unconfigured();
+  if (typeof window === 'undefined') return { ok: false, reason: 'browser-required' };
+  const safeUrl = parseEmailMagicLink(raw, {
+    supabaseUrl: SUPABASE_URL, appOrigin: window.location.origin,
+  });
+  if (!safeUrl) return { ok: false, reason: 'invalid-email-link' };
+  window.location.assign(safeUrl);
+  return { ok: true, redirect: true };
+}
+
 export async function verifyEmailOtp(email, token) {
   if (!isCloudConfigured()) return unconfigured();
   const client = await getClient();
@@ -538,6 +553,7 @@ const api = Object.freeze({
   initCloudAccount,
   signInWithGoogle,
   signInWithEmailOtp,
+  openEmailMagicLinkHere,
   verifyEmailOtp,
   signOutCloud,
   requestAccountDeletion,
