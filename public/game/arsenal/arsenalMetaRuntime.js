@@ -268,13 +268,13 @@
   // A1 match-reward law (single wallet commit path; telemetry stays in
   // award()/lastAward). The amount derives from the ACTUAL match mode and
   // outcome — never from winnerSide alone:
-  //   BOT   P1 wins → +100 AC · P1 loses → +25 AC (provisional legacy)
+  //   BOT   P1 wins → +200 AC · P1 loses → +25 AC (provisional legacy)
   //   LOCAL valid completed match → +50 AC regardless of winner
   //   Lab / Admin Test / Quest / incomplete → 0 AC (no wallet entry at all)
   // Idempotency is two-layered: the in-memory productResultAwarded flag stops
   // duplicate callbacks, and the sealed result id (resultGold.meta.id) is
   // persisted in claimedMatchIds so a reload/retry can never pay twice.
-  const MATCH_REWARDS = Object.freeze({ BOT_WIN: 100, BOT_LOSS: 25, LOCAL_COMPLETE: 50 });
+  const MATCH_REWARDS = Object.freeze({ BOT_WIN: 200, BOT_LOSS: 25, LOCAL_COMPLETE: 50 });
   function awardBattleResult(winnerSide, battleState) {
     const current = battleState || (window.APEX_ARSENAL && window.APEX_ARSENAL.state);
     if (!current || current.labMode || current.questStage || current.productResultAwarded) {
