@@ -10,6 +10,7 @@ import {
   recordGuestMigration,
 } from '../game/cloudAccount.js';
 import './accountCenter.css';
+import { GUEST_ONLY_RELEASE } from '../game/releasePolicy.js';
 
 // A1.3 — Gold Account Center (presentation only).
 // Every value is read live from the real authorities:
@@ -198,7 +199,7 @@ export default function AccountCenter() {
           />
           <div>
             <div className="apex-account-kicker">
-              ACCOUNT CENTER · {isCloud ? 'SIGNED IN' : 'LOCAL GUEST'}
+              {GUEST_ONLY_RELEASE ? 'HỒ SƠ KHÁCH · LƯU TRÊN THIẾT BỊ' : `ACCOUNT CENTER · ${isCloud ? 'SIGNED IN' : 'LOCAL GUEST'}`}
             </div>
             <h2 className="apex-account-name" id="apex-account-title">
               {profile ? profile.displayName : 'Player'}
@@ -278,12 +279,12 @@ export default function AccountCenter() {
           )}
 
           <section className="apex-account-section" aria-label="SYNC STATUS">
-            <h3>SYNC STATUS</h3>
+            <h3>{GUEST_ONLY_RELEASE ? 'TRẠNG THÁI LƯU' : 'SYNC STATUS'}</h3>
             <p className="apex-account-sync" data-account-sync>
-              {`${syncLabel} · ${lastSync}`}
+              {GUEST_ONLY_RELEASE ? 'ĐÃ BẬT LƯU TRÊN THIẾT BỊ' : `${syncLabel} · ${lastSync}`}
             </p>
             {!cloudConfigured && (
-              <p className="apex-account-note">Progress is saved on this device only.</p>
+              <p className="apex-account-note">{GUEST_ONLY_RELEASE ? 'Tiến độ, AC và tướng được lưu trên trình duyệt này. Đừng xóa dữ liệu trang web; bản itch đầu tiên chưa có đồng bộ tài khoản.' : 'Progress is saved on this device only.'}</p>
             )}
             {isCloud && (
               <div className="apex-account-actions" style={{ marginTop: 8 }}>
@@ -299,7 +300,16 @@ export default function AccountCenter() {
             )}
           </section>
 
-          {!isCloud ? (
+          {GUEST_ONLY_RELEASE ? (
+            <section className="apex-account-section" aria-label="GUEST RELEASE">
+              <h3>CHƠI NGAY, KHÔNG CẦN ĐĂNG NHẬP</h3>
+              <p className="apex-account-note">
+                Thắng trận BOT: +200 AC · Thua BOT: +25 AC.
+                Đấu LOCAL hoàn tất: +50 AC.
+                Cửa hàng và Vòng Quay dùng AC trên thiết bị.
+              </p>
+            </section>
+          ) : !isCloud ? (
             <section className="apex-account-section" aria-label="SIGN IN">
               <h3>{cloudConfigured ? 'SIGN IN' : 'CLOUD NOT CONFIGURED'}</h3>
               <div className="apex-account-actions">
