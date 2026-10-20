@@ -7,6 +7,7 @@ import {
   signOutCloud,
   requestAccountDeletion,
   uploadProgressSnapshot,
+  importGuestProgress,
 } from '../game/cloudAccount.js';
 import './accountCenter.css';
 
@@ -23,6 +24,7 @@ const SYNC_LABELS = {
   'cloud-unconfigured': 'CLOUD NOT CONFIGURED',
   'signed-out': 'SIGNED OUT',
   connected: 'ACCOUNT CONNECTED',
+  existing: 'CLOUD BACKUP EXISTS',
   syncing: 'SYNCING',
   saved: 'SAVED',
   offline: 'OFFLINE',
@@ -300,12 +302,26 @@ export default function AccountCenter() {
               <div className="apex-account-actions" style={{ marginTop: 8 }}>
                 <button
                   type="button"
+                  className="apex-account-btn is-primary"
+                  disabled={busy}
+                  onClick={() => run(() => importGuestProgress())}
+                >
+                  BACK UP GUEST PROGRESS
+                </button>
+                <button
+                  type="button"
                   className="apex-account-btn"
                   disabled={busy}
                   onClick={() => run(() => uploadProgressSnapshot())}
                 >
-                  UPLOAD SNAPSHOT
+                  UPDATE CLOUD SNAPSHOT
                 </button>
+                <p className="apex-account-note">
+                  BACK UP GUEST PROGRESS saves an unverified device snapshot
+                  only if no Cloud snapshot exists. UPDATE CLOUD SNAPSHOT
+                  uses version checking. Neither option grants Cloud AC
+                  or imports fighters into the Cloud economy.
+                </p>
               </div>
             )}
           </section>
