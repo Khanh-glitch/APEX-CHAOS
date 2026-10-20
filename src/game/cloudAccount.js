@@ -43,6 +43,13 @@ export function isCloudConfigured() {
   return !!testClientOverride || (!!SUPABASE_URL && !!SUPABASE_ANON_KEY);
 }
 
+// OAuth provider is independent from having a configured Supabase project.
+// Ship Google sign-in only when this specific build deliberately opts in,
+// after the provider credentials and redirect allowlist are configured.
+export function isGoogleSignInEnabled() {
+  return isCloudConfigured() && import.meta.env.VITE_APEX_GOOGLE_AUTH_ENABLED === '1';
+}
+
 let clientPromise = null;
 let testClientOverride = null;
 async function getClient() {
@@ -215,6 +222,7 @@ const unconfigured = () => ({ ok: false, reason: 'cloud-unconfigured' });
 
 export async function signInWithGoogle() {
   if (!isCloudConfigured()) return unconfigured();
+  if (!isGoogleSignInEnabled()) return { ok: false, reason: 'google-provider-disabled' };
   const client = await getClient();
   const { error } = await client.auth.signInWithOAuth({
     provider: 'google',
