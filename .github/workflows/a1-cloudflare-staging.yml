@@ -14,6 +14,8 @@ on:
       - 'src/ui/AccountCenter.jsx'
       - 'src/game/guestCloudHandoff.js'
       - 'src/game/cloudSnapshotPreview.js'
+      - 'src/game/emailMagicLinkTransfer.js'
+      - 'tools/testA1EmailMagicLinkTransfer.mjs'
       - 'tools/testCloudLifecycleRaces.mjs'
       - 'tools/testA1GuestHandoff.mjs'
       - 'supabase/migrations/0004_a1_guest_migration_idempotency.sql'
@@ -49,6 +51,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: A1 Guest Magic Link idempotency + account switch tests
         run: node tools/testA1GuestHandoff.mjs
+      - name: A1 second-browser email Magic Link redirect safety tests
+        run: node tools/testA1EmailMagicLinkTransfer.mjs
       - name: A1 cloud session race gates
         run: node tools/testCloudLifecycleRaces.mjs
       - name: Build A1 configured for staging only
