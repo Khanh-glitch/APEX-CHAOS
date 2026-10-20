@@ -260,9 +260,10 @@
     if (state.credits < DRAW_COST) return { ok: false, reason: 'need', need: DRAW_COST - state.credits };
     const random = typeof rng === 'function' ? rng : Math.random;
     const pick = pool[Math.floor(random() * pool.length) % pool.length];
+    // One atomic localStorage snapshot: cost, draw count and ownership
+    // must never split into separate persisted states.
     state.credits -= DRAW_COST;
     state.totalSpins += 1;
-    save(state);
     state.ownedFighters.push(pick);
     state.unlockedAt[pick] = Date.now();
     save(state);
