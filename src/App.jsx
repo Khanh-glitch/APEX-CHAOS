@@ -1094,6 +1094,7 @@ export default function App() {
     <AccountCenter />
     <ProgressionCenter />
     <FirstPlayGuide />
+    <RewardToast />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount
