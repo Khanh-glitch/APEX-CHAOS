@@ -1,0 +1,10 @@
+.apex-first-guide-overlay{position:fixed;inset:0;z-index:2147481000;display:grid;place-items:center;padding:max(15px,env(safe-area-inset-top)) max(15px,env(safe-area-inset-right)) max(15px,env(safe-area-inset-bottom)) max(15px,env(safe-area-inset-left));background:rgba(1,4,8,.90);color:#f5ebda;font-family:system-ui,sans-serif}
+.apex-first-guide-card{width:min(510px,100%);max-height:90dvh;overflow:auto;padding:clamp(20px,4vw,38px);background:linear-gradient(135deg,#1c2732,#0c1016);border:1px solid #d7a45c;box-shadow:0 15px 70px #0009}
+.apex-first-guide-eyebrow{color:#ffbe70;font:800 11px/1.5 system-ui,sans-serif;letter-spacing:.13em}
+.apex-first-guide-progress{display:flex;gap:6px;margin:17px 0 24px}.apex-first-guide-progress span{height:4px;flex:1;background:#56606c}.apex-first-guide-progress .is-current{background:#ffad43}
+.apex-first-guide-card h2{font:900 clamp(23px,5vw,33px)/1.15 system-ui,sans-serif;margin:0 0 15px}
+.apex-first-guide-card p{font:500 16px/1.55 system-ui,sans-serif;margin:0 0 32px;color:#dce3e9;min-height:105px}
+.apex-first-guide-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+.apex-first-guide-actions button{min-height:44px;padding:10px 16px;font:800 12px system-ui,sans-serif;cursor:pointer;border:1px solid #a6aeb7;color:#fff;background:#18212b}
+.apex-first-guide-actions .is-primary{background:#e8a751;border-color:#efba78;color:#131010}
+.apex-first-guide-actions button:focus-visible{outline:3px solid #fff;outline-offset:3px}
