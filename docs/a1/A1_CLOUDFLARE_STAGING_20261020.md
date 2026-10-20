@@ -111,3 +111,21 @@ A signed-in owner provided an Account Center screenshot after pressing `BACK UP 
 **Checkpoint verdict:** User's single device-to-staging unverified backup **PASS**. Server Cloud wallet authority is still separate from device-local game economy. This is NOT verified currency reconciliation or proof that a *second* browser can safely replay/restore the snapshot. No wallet flag flips, production deployment or merge were made.
 
 **Remaining release checks:** authenticated two-device CAS conflict, cloud restore semantics and conflict UX, actual Google OAuth (if desired), backend account-deletion fulfillment, and server-authoritative match reward receipts. Until then keep A1.2 PR draft and production cloud features locked.
+
+## Two-device Cloud preview + optimistic CAS checkpoint
+
+**Staging build:** `552eaf7a9dde5f816a51305d740657708df09c24`. Deployed independently to https://a1-cloud-staging-20261020.apex-chaos.pages.dev/ and verified using its live `A1_STAGING_BUILD_SHA.txt` (HTTP 200). GitHub Actions run [39384720492](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39384720492) **PASS**, including source build, `tools/testCloudLifecycleRaces.mjs`, Guest idempotency tests, hosted Auth/RLS negative HTTP requests, deployment and SHA receipt. Guest session browser smoke still reports proper signed-out Account Center and email Magic Link UI. Other owner/Chrome jobs were independently observed passing; this run does **not** represent real signed-in second-device certification.
+
+### Changes
+
+- `src/game/cloudSnapshotPreview.js`: validate an `unverified: true` player_progress JSON payload, returning only read-only version/device-credits/device-draws/fighter-list information. Does not apply or trust financial or fighter claims.
+- `previewCloudProgressSnapshot()`: require a currently signed-in verified GoTrue account matching player profile; RLS-select own `arsenalMeta` snapshot; establish an in-memory **one-use** reviewed version bound to session epoch and account.
+- `uploadProgressSnapshot()`: no upload without the above explicit review; require renewed verified identity and use CAS *exactly* at the version reviewed. The reviewed capability is spent on the first update attempt; a stale writer gets CONFLICT and cannot replay without reading the newer backup.
+- `AccountCenter.jsx`: REVIEW CLOUD BACKUP (nonmutating preview, plainly labelled unverified) before UPDATE CLOUD SNAPSHOT (AFTER REVIEW); the latter stays disabled without the preview. No automatic economic restore, no cloud wallet issuance.
+- Lifecycle security tests added: reject update without preview, one-use token semantics, reject previous account's preview after switch, freshly reviewed new-account update, logout invalidation, and mocked two-device CAS race (version 9 vs version 10) with no overwritten snapshot.
+
+### Owner acceptance still pending
+
+The owner's first-device **50 AC, 1 draw, NEWBOT+MAGNET** data was previously captured as an unverified snapshot version 1, and staging retained **one** `player_progress` and one `guest_migrations` row through this deployment. However **no second physical browser login has been performed by this agent**. For safe verification: open a private/incognito browser or second device on the **same staging URL**, authenticate with the **same Cloud account via emailed Magic Link**, open Account Center, click **REVIEW CLOUD BACKUP only**. Confirm it shows snapshot version 1 with 50 credits, 1 draw and MAGNET while the separate new-device local wallet remains unchanged. **Do NOT** click BACK UP GUEST PROGRESS, UPDATE CLOUD SNAPSHOT or clear the original device storage during this checkpoint. Report visible preview text; do not paste tokens, OTPs or email links.
+
+**Pass semantics:** read-only recovery/preview of one user's unverified backup across two signed-in clients + no client-state mutation. This is *not* a trusted production wallet/ownership restore. Real simultaneous CAS writes and explicit gameplay restore/reconciliation need separate acceptance and backend authority design before unlocking release.
