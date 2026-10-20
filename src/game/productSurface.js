@@ -112,10 +112,10 @@ export const PRODUCT_ECONOMY = Object.freeze({
   // preserved by the meta runtime and are never refilled.
   cleanStateCredits: 350,
   // Match rewards (committed only by the wallet authority in
-  // arsenalMetaRuntime.awardBattleResult): BOT win 100, BOT loss 25
+  // arsenalMetaRuntime.awardBattleResult): BOT win 200, BOT loss 25
   // (provisional legacy), LOCAL valid completion 50 for either winner.
   // Lab/Admin/Quest/incomplete matches pay 0.
-  matchRewards: Object.freeze({ botWin: 100, botLoss: 25, localComplete: 50 }),
+  matchRewards: Object.freeze({ botWin: 200, botLoss: 25, localComplete: 50 }),
 });
 
 function makeAuthority() {
