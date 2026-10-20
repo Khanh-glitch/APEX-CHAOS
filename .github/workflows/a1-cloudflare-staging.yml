@@ -10,6 +10,8 @@ on:
       - '.github/workflows/a1-cloudflare-staging.yml'
       - 'supabase/migrations/0003_a1_restrict_rpc_execute_grants.sql'
       - 'tools/testA1StagingAuthHttp.mjs'
+      - 'src/game/cloudAccount.js'
+      - 'src/ui/AccountCenter.jsx'
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,6 +29,7 @@ jobs:
       VITE_SUPABASE_URL: https://pqnhyucmziucjqbxmtbc.supabase.co
       VITE_SUPABASE_ANON_KEY: sb_publishable_ESfblLHNzhNN4tqtOF8SJQ_mRqnHpPs
       VITE_APEX_DEV_ADMIN: '0'
+      VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
       APEX_STAGING_BRANCH: a1-cloud-staging-20261020
       APEX_STAGING_URL: https://a1-cloud-staging-20261020.apex-chaos.pages.dev
     steps:
