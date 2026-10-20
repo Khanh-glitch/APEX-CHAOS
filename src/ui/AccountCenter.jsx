@@ -73,6 +73,7 @@ export default function AccountCenter() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletionPending, setDeletionPending] = useState(false);
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const invokerRef = useRef(null);
@@ -375,26 +376,47 @@ export default function AccountCenter() {
                 >
                   SIGN OUT
                 </button>
-                {!confirmDelete ? (
+                {/* Deletion is a backend-processed REQUEST (A1 closeout
+                    Blocker 3): the account is NOT erased by this button.
+                    Copy and state must say PENDING, never "deleted". */}
+                {deletionPending ? (
+                  <button
+                    type="button"
+                    className="apex-account-btn is-danger"
+                    disabled
+                  >
+                    DELETION PENDING
+                  </button>
+                ) : !confirmDelete ? (
                   <button
                     type="button"
                     className="apex-account-btn is-danger"
                     disabled={busy}
                     onClick={() => setConfirmDelete(true)}
                   >
-                    DELETE ACCOUNT
+                    REQUEST DELETION
                   </button>
                 ) : (
                   <button
                     type="button"
                     className="apex-account-btn is-danger"
                     disabled={busy}
-                    onClick={() => run(() => requestAccountDeletion())}
+                    onClick={async () => {
+                      const result = await run(() => requestAccountDeletion());
+                      if (result && result.ok && result.status === 'pending') {
+                        setDeletionPending(true);
+                        setConfirmDelete(false);
+                        setMessage('DELETION REQUESTED — PENDING');
+                      }
+                    }}
                   >
-                    CONFIRM DELETE
+                    CONFIRM REQUEST
                   </button>
                 )}
               </div>
+              <p className="apex-account-note">
+                Deletion is processed by the backend. Until then, your account and data still exist and sign-in still works.
+              </p>
             </section>
           )}
 

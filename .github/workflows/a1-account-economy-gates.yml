@@ -31,6 +31,8 @@ on:
       - 'tools/testSkillDetailsBrowser.mjs'
       - 'tools/testArsenalProductGraph.mjs'
       - 'tools/testBattleOutcomeSideGate.mjs'
+      - 'tools/testCloudSecurityContracts.mjs'
+      - 'tools/testAdminEscalationNegativesBrowser.mjs'
       - 'tools/assetAudit.mjs'
       - '.github/workflows/a1-account-economy-gates.yml'
   workflow_dispatch:
@@ -54,6 +56,8 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Cloud security contracts (no public setters, CAS, deletion-pending)
+        run: node tools/testCloudSecurityContracts.mjs
       - name: Production progression contract (350/NEWBOT, rewards, idempotency)
         run: pnpm test:owner-playtest-economy
       - name: Skill-details parity (registry truth, VIE coverage, symmetry)
@@ -110,6 +114,12 @@ jobs:
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testSkillDetailsBrowser.mjs
+      - name: Security negatives — guest cannot forge admin on production build
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173 node tools/testAdminEscalationNegativesBrowser.mjs
       - name: Home regression — BOT WAVE entry, live gameplay, Home return
         shell: bash
         run: |
@@ -123,5 +133,6 @@ jobs:
           name: a1-skill-details-browser
           path: |
             docs/a1/skill-details-browser/
+            qa-evidence/a1-security-negatives/
             docs/boxe/r5-browser/
           if-no-files-found: ignore
