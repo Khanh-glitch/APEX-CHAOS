@@ -1,22 +1,78 @@
-.apex-progress-overlay{position:fixed;inset:0;z-index:2147481000;background:rgba(2,5,9,.85);display:grid;place-items:center;padding:14px;color:#f8f1e6;font-family:system-ui,sans-serif}
-.apex-progress-panel{width:min(700px,100%);max-height:93dvh;overflow-y:auto;border:1px solid rgba(229,178,92,.75);background:linear-gradient(155deg,#1c2630,#0d1118 75%);box-shadow:0 30px 70px #0009;padding:clamp(15px,3.4vw,29px)}
-.apex-progress-header{display:flex;align-items:start;gap:12px;justify-content:space-between}
-.apex-progress-header small{color:#f0b365;font-weight:800;letter-spacing:.11em;font-size:10px}
-.apex-progress-header h2{font:900 clamp(19px,4vw,30px)/1.13 system-ui,sans-serif;margin:5px 0 15px}
-.apex-progress-header>button{min-height:40px;min-width:40px;border:1px solid #68717a;background:#111a24;color:#fff;cursor:pointer}
-.apex-progress-bal{font-size:12px;color:#c5cad4;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:11px 15px;border:1px solid #434b52;background:#0c131c}
-.apex-progress-bal strong{color:#ffbd72;font-size:19px}
-.apex-progress-tabs{display:grid;grid-template-columns:1fr 1fr;margin:16px 0;gap:7px}
-.apex-progress-tabs button{font:800 12px system-ui,sans-serif;min-height:44px;color:#cfdae5;background:#172330;border:1px solid #465360;cursor:pointer}
-.apex-progress-tabs .active{color:#111;background:#ebb36b;border-color:#ffc987}
-.apex-progress-list{display:grid;gap:9px}.apex-progress-row{display:flex;align-items:center;justify-content:space-between;gap:13px;border:1px solid #384552;background:#101820;padding:12px}
-.apex-progress-row-info{flex:1;min-width:0}.apex-progress-row h3{font:800 14px system-ui,sans-serif;margin:0 0 5px}
-.apex-progress-row p{font:700 12px system-ui,sans-serif;color:#bfcbd7;margin:0 0 9px}
-.apex-progress-meter{height:5px;border-radius:3px;overflow:hidden;background:#424c59}.apex-progress-meter>span{display:block;height:100%;background:#edaa52}
-.apex-progress-row>button{flex:0 0 auto;cursor:pointer;min-height:40px;border:1px solid #ffc581;color:#121212;background:#f2b969;font:800 11px system-ui,sans-serif;padding:7px 12px}
-.apex-progress-row>button:disabled{cursor:default;color:#9caab5;border-color:#526071;background:#27313b}
-.apex-progress-row.claimed{opacity:.75}
-.apex-progress-note{font:500 11px/1.55 system-ui,sans-serif;color:#b7c3cb;margin:18px 0 5px}
-.apex-progress-feedback{font:700 12px/1.4 system-ui,sans-serif;color:#ffcc85;min-height:18px;margin-top:9px}
-.apex-progress-panel button:focus-visible{outline:3px solid #fff;outline-offset:3px}
-@media(max-width:540px){.apex-progress-row{flex-direction:column;align-items:stretch}.apex-progress-row>button{width:100%}.apex-progress-panel{max-height:95dvh}}
+/* Alpha Progression Center — Gold material language (mirrors the Account
+   Center): dark steel plates, gold hairlines, corner cuts. Presentation
+   only; all values come from APEX_ARSENAL_META. */
+.apex-progress-overlay {
+  position: fixed; inset: 0; z-index: 2147480900; display: grid; place-items: center;
+  padding: 14px; background: rgba(3,4,6,.72); backdrop-filter: blur(3px);
+  font-family: "ApcKanit","Segoe UI",sans-serif; color: #f4f0e6;
+}
+.apex-progress-panel {
+  text-align: left;
+  width: min(620px, calc(100vw - 20px)); max-height: min(90dvh, 820px); overflow: auto;
+  overscroll-behavior: contain; border: 1px solid rgba(215,189,114,.45);
+  background: linear-gradient(180deg,#141a21,#0a0e13 78%);
+  box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 1px rgba(255,255,255,.04);
+  clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+}
+.apex-progress-head {
+  position: relative; display: flex; gap: 16px; align-items: flex-start;
+  padding: 18px 20px 14px; border-bottom: 1px solid rgba(238,231,219,.1);
+}
+.apex-progress-head::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:#d7bd72; }
+.apex-progress-kicker { color:#d7bd72; font: 800 9px/1 ui-monospace,monospace; letter-spacing:.22em; }
+.apex-progress-title { margin:6px 0 0; font-size: clamp(20px,4.4vw,27px); line-height:.98; font-style:italic; font-weight:900; }
+.apex-progress-close {
+  margin-left:auto; min-width:44px; min-height:44px; display:grid; place-items:center;
+  border:1px solid #4a5057; background:linear-gradient(180deg,#2b3138,#151a20); color:#f4f0e6; cursor:pointer;
+  font: 900 15px/1 sans-serif; clip-path: polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+}
+.apex-progress-body { padding: 16px 20px 20px; display: grid; gap: 14px; }
+.apex-progress-balance {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding: 10px 12px; border:1px solid #303842; background:#0d1217;
+}
+.apex-progress-balance span { color:#86919c; font: 800 8px/1 ui-monospace,monospace; letter-spacing:.14em; }
+.apex-progress-balance strong { color:#f0d67e; font-size:18px; line-height:1; }
+.apex-progress-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.apex-progress-tabs button {
+  min-height:46px; padding:10px 12px; cursor:pointer; text-align:center;
+  border:1px solid #434c56; background:linear-gradient(180deg,#1a2027,#10151a); color:#f4f0e6;
+  font: 900 12px/1.2 "ApcKanit","Segoe UI",sans-serif; letter-spacing:.1em; text-transform:uppercase;
+  clip-path: polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+.apex-progress-tabs button.is-active {
+  border-color:#5a5541; background:linear-gradient(180deg,#4b4124,#282311); color:#f7e7ac;
+}
+.apex-progress-list { display:grid; gap:8px; }
+.apex-progress-row {
+  display:flex; align-items:center; gap:12px;
+  padding: 11px 12px; border:1px solid #303842; background:#0d1217;
+}
+.apex-progress-row.is-claimed { opacity:.62; }
+.apex-progress-row-info { flex:1; min-width:0; }
+.apex-progress-row h3 { margin:0 0 5px; font-size:13px; font-style:italic; font-weight:900; letter-spacing:.05em; }
+.apex-progress-row p { margin:0 0 8px; text-align:left; color:#a7b1bb; font: 800 10px/1 ui-monospace,monospace; letter-spacing:.1em; }
+.apex-progress-meter { height:5px; background:#232b33; }
+.apex-progress-meter > span { display:block; height:100%; background:linear-gradient(90deg,#c8a24d,#f0d67e); }
+.apex-progress-claim {
+  flex:0 0 auto; min-height:44px; padding:9px 14px; cursor:pointer; text-align:center;
+  border:1px solid #5a5541; background:linear-gradient(180deg,#4b4124,#282311); color:#f7e7ac;
+  font: 900 11px/1.2 "ApcKanit","Segoe UI",sans-serif; letter-spacing:.08em; text-transform:uppercase;
+  clip-path: polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+}
+.apex-progress-claim:disabled {
+  opacity:1; cursor:default; color:#8b96a1;
+  border-color:#333c45; background:linear-gradient(180deg,#171d24,#0d1217);
+}
+.apex-progress-note { color:#a7b1bb; font: 600 12.5px/1.55 "Segoe UI",sans-serif; margin:0; }
+.apex-progress-feedback { color:#f0d67e; font: 800 11px/1.4 ui-monospace,monospace; letter-spacing:.08em; min-height:15px; }
+@media (hover:hover) {
+  .apex-progress-close:hover, .apex-progress-tabs button:hover,
+  .apex-progress-claim:hover:not(:disabled) { filter:brightness(1.16); }
+}
+.apex-progress-panel button:focus-visible { outline:2px solid #f0d67e; outline-offset:2px; }
+@media (max-width: 540px) {
+  .apex-progress-row { flex-direction:column; align-items:stretch; }
+  .apex-progress-claim { width:100%; min-height:48px; }
+  .apex-progress-body { padding:14px 14px 16px; }
+}
