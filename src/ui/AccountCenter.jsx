@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   isCloudConfigured,
+  isGoogleSignInEnabled,
   signInWithGoogle,
   signInWithEmailOtp,
   verifyEmailOtp,
@@ -173,6 +174,7 @@ export default function AccountCenter() {
     credits, totalSpins, cloudConfigured, isAdmin, adminSource,
   } = readAuthorities();
   const isCloud = !!profile && profile.kind === 'cloud';
+  const googleEnabled = cloudConfigured && isGoogleSignInEnabled();
   const lockedIds = playable.filter((id) => !ownedIds.includes(id));
   const displayNameFor = (id) => (meta && typeof meta.displayNameFor === 'function' ? meta.displayNameFor(id) : id);
   const syncLabel = SYNC_LABELS[sync.status] || String(sync.status || '').toUpperCase();
@@ -306,11 +308,16 @@ export default function AccountCenter() {
                 <button
                   type="button"
                   className="apex-account-btn is-primary"
-                  disabled={busy || !cloudConfigured}
+                  disabled={busy || !googleEnabled}
                   onClick={() => run(() => signInWithGoogle())}
                 >
                   SIGN IN WITH GOOGLE
                 </button>
+                {cloudConfigured && !googleEnabled && (
+                  <p className="apex-account-note">
+                    Google sign-in is not enabled for this environment. Use Email OTP.
+                  </p>
+                )}
                 <div className="apex-account-row">
                   <input
                     className="apex-account-input"
