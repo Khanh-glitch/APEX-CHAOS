@@ -48,8 +48,8 @@ const PUBLIC_SURFACES = Object.freeze([
   surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available yet.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available yet.'),
   surface('dictionary', 'Field Archive', ACTIVE, 'Browse playable fighters and Arsenal, inspect approved Gold art and equip cosmetic skins for P1/P2.', { route: 'skins' }),
-  surface('missions', 'Missions', LOCKED, 'Missions are not available yet.'),
-  surface('achievements', 'Achievements', LOCKED, 'Achievements are not available yet.'),
+  surface('missions', 'Missions', ACTIVE, 'Earn bonus Apex Credits from completed battles.', { route: 'progress' }),
+  surface('achievements', 'Achievements', ACTIVE, 'One-time milestones and bonus Apex Credits.', { route: 'progress' }),
   surface('account-profile', 'Account / Profile', LOCKED, 'Account / Profile is not available yet.'),
 ]);
 

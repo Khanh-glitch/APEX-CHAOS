@@ -27,6 +27,11 @@ on:
       - 'public/game/ui/skillDetailsRuntime.js'
       - 'supabase/**'
       - 'tools/testOwnerPlaytestEconomyGate.mjs'
+      - 'tools/testAlphaHomeUsabilityGate.mjs'
+      - 'src/game/alphaHomeUsability.js'
+      - 'src/game/alphaHomeUsability.css'
+      - 'src/ui/FirstBattleGuide.jsx'
+      - 'src/ui/ProgressionCenter.jsx'
       - 'tools/testSkillDetailsParityGate.mjs'
       - 'tools/testSkillDetailsBrowser.mjs'
       - 'tools/testArsenalProductGraph.mjs'
@@ -63,6 +68,8 @@ jobs:
         run: node tools/testCloudLifecycleRaces.mjs
       - name: Production progression contract (350/NEWBOT, rewards, idempotency)
         run: pnpm test:owner-playtest-economy
+      - name: Alpha Home UI DOM acceptance (Account, Missions, mirror, guide)
+        run: node tools/testAlphaHomeUsabilityGate.mjs
       - name: Skill-details parity (registry truth, VIE coverage, symmetry)
         run: node tools/testSkillDetailsParityGate.mjs
       - name: Product graph (economy laws, availability)

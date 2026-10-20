@@ -24,6 +24,10 @@ import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
 import AccountCenter from './ui/AccountCenter.jsx';
+import FirstBattleGuide from './ui/FirstBattleGuide.jsx';
+import ProgressionCenter from './ui/ProgressionCenter.jsx';
+import { installAlphaHomeUsability } from './game/alphaHomeUsability.js';
+import './game/alphaHomeUsability.css';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -532,6 +536,10 @@ export default function App() {
         return false;
       }
     }
+    if (surface.route === 'progress') {
+      window.dispatchEvent(new Event('apex:progress-open'));
+      return true;
+    }
     if (surface.route === 'skins') {
       // The locker is a sibling product surface, never an alternate Gold
       // shell or a replacement for the locked Fighter Shop. One existing
@@ -614,6 +622,10 @@ export default function App() {
   // The canonical iframe boundary is relaxed ONLY so the live arena canvas can
   // occupy the donor's authored arena slot (same-document mount).
   const [goldReady, setGoldReady] = useState(false);
+  useEffect(() => {
+    if (!goldReady) return undefined;
+    return installAlphaHomeUsability();
+  }, [goldReady]);
   useEffect(() => {
     if (!gameReady || goldReady) return;
     const host = document.getElementById('gold-shell-host');
@@ -969,6 +981,7 @@ export default function App() {
             if (activated) return;
             activated = true;
             stopStartGuard();
+            window.dispatchEvent(new Event('apex:boot-started'));
             // Visual disappears in the SAME trusted event, while the old
             // invisible hit surface intercepts the remaining pointer sequence.
             start.style.transition = 'none';
@@ -1068,6 +1081,8 @@ export default function App() {
     <>
     <CosmeticLocker />
     <AccountCenter />
+    <FirstBattleGuide />
+    <ProgressionCenter />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount

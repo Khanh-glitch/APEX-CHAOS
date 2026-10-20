@@ -230,6 +230,39 @@ const matchState = (mode, id) => ({ battleMode: mode, resultGold: { meta: { id }
     meta.credits() === 350);
 }
 
+// ── Atomic Lucky Draw save: never debit AC before ownership persists ────
+{
+  const {meta, storage}=boot({});
+  let writes=0;
+  const originalSet=storage.setItem;
+  storage.setItem=(key,value)=>{writes++;originalSet(key,value)};
+  const result=meta.spin(()=>0);
+  const persisted=storedOf(storage);
+  check('Lucky Draw stores debit and fighter entitlement in one write',
+    result.ok===true && writes===1 && persisted.credits===0 &&
+    persisted.ownedFighters.includes(result.name) && persisted.totalSpins===1,
+    JSON.stringify({writes,result,persisted}));
+}
+// ── ALPHA progression law: sealed match, once-per-claim and durable AC ──
+{
+  const {meta, storage} = boot({});
+  check('unsealed BOT cannot pay', meta.awardBattleResult('P1', {battleMode:'BOT',resultGold:null}).reason==='unsealed-match' && meta.credits()===350);
+  check('mission not claimable without play', meta.claimProgressReward('first-bot').reason==='not-complete');
+  const win = meta.awardBattleResult('P1', matchState('BOT','alpha-sealed-1'));
+  check('sealed BOT counts exactly once', win.ok===true && meta.getState().progression.botWins===1);
+  meta.awardBattleResult('P1',matchState('BOT','alpha-sealed-1'));
+  check('duplicate does not increment progression',meta.getState().progression.botMatches===1);
+  const first=meta.claimProgressReward('first-bot');
+  check('mission pays +100 through real wallet',first.ok===true && meta.credits()===650);
+  check('mission cannot pay twice',meta.claimProgressReward('first-bot').reason==='already-claimed' && meta.credits()===650);
+  check('first win quest pays +150',meta.claimProgressReward('first-win').ok===true && meta.credits()===800);
+  const next=boot({[KEY]:storage.getItem(KEY)});
+  check('claims and AC persist after reload',next.meta.credits()===800 && next.meta.claimProgressReward('first-win').reason==='already-claimed');
+  check('achievement not prematurely claimable',next.meta.claimProgressReward('bot-veteran').reason==='not-complete');
+  next.meta.awardBattleResult('P1',matchState('BOT','alpha-sealed-2'));
+  next.meta.awardBattleResult('P1',matchState('BOT','alpha-sealed-3'));
+  check('three wins unlock only one milestone',next.meta.claimProgressReward('bot-veteran').ok===true && next.meta.claimProgressReward('bot-veteran').reason==='already-claimed');
+}
 // ── 7. no scattered bypasses in production sources ────────────────────────
 {
   const roots = ['src', 'public'];

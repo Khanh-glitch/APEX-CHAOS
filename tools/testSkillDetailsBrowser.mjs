@@ -130,7 +130,8 @@ function assertDetails(state, heroKey, sideLabelPart) {
 
   const home = await page.evaluate(() => ({
     ac: document.querySelector('[data-apex-ac]')?.textContent,
-    chip: document.querySelector('.profileText b')?.textContent,
+    oldTopAccount: !!document.querySelector('.profileIdentity'),
+    bottomAccount: !!document.querySelector('[data-apex-account-entry]'),
     credits: window.APEX_ARSENAL_META?.credits(),
     owned: window.APEX_ARSENAL_META?.getState().ownedFighters,
     canSelectHunter: window.APEX_ARSENAL_META?.canPublicSelect('HUNTER'),
@@ -144,12 +145,13 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.deepEqual(home.owned, ['ROBOT'], 'fresh ownership is NEWBOT only');
   assert.equal(home.canSelectHunter, false, 'unowned fighter is not selectable');
   assert.equal(home.canSelectRobot, true, 'NEWBOT selectable');
-  assert.equal(home.chip, home.accountName, 'Home chip shows the real account identity');
+  assert.equal(home.oldTopAccount, false, 'retired duplicate top account identity is absent');
+  assert.equal(home.bottomAccount, true, 'existing lower Home Account entry opens the real profile');
   assert.equal(home.isAdmin, false, 'fresh player is not admin');
   await shot(page, 'desktop-home-fresh');
 
   // Account Center (guest, honest cloud state)
-  await page.click('.profileIdentity');
+  await page.click('[data-apex-account-entry]');
   await page.waitForSelector('.apex-account-overlay.is-open', { timeout: 15000 });
   const acct = await page.evaluate(() => ({
     credits: document.querySelector('[data-account-credits]')?.textContent,

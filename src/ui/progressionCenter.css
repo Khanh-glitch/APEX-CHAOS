@@ -1,0 +1,22 @@
+.apex-progress-overlay{position:fixed;inset:0;z-index:2147481000;background:rgba(2,5,9,.85);display:grid;place-items:center;padding:14px;color:#f8f1e6;font-family:system-ui,sans-serif}
+.apex-progress-panel{width:min(700px,100%);max-height:93dvh;overflow-y:auto;border:1px solid rgba(229,178,92,.75);background:linear-gradient(155deg,#1c2630,#0d1118 75%);box-shadow:0 30px 70px #0009;padding:clamp(15px,3.4vw,29px)}
+.apex-progress-header{display:flex;align-items:start;gap:12px;justify-content:space-between}
+.apex-progress-header small{color:#f0b365;font-weight:800;letter-spacing:.11em;font-size:10px}
+.apex-progress-header h2{font:900 clamp(19px,4vw,30px)/1.13 system-ui,sans-serif;margin:5px 0 15px}
+.apex-progress-header>button{min-height:40px;min-width:40px;border:1px solid #68717a;background:#111a24;color:#fff;cursor:pointer}
+.apex-progress-bal{font-size:12px;color:#c5cad4;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:11px 15px;border:1px solid #434b52;background:#0c131c}
+.apex-progress-bal strong{color:#ffbd72;font-size:19px}
+.apex-progress-tabs{display:grid;grid-template-columns:1fr 1fr;margin:16px 0;gap:7px}
+.apex-progress-tabs button{font:800 12px system-ui,sans-serif;min-height:44px;color:#cfdae5;background:#172330;border:1px solid #465360;cursor:pointer}
+.apex-progress-tabs .active{color:#111;background:#ebb36b;border-color:#ffc987}
+.apex-progress-list{display:grid;gap:9px}.apex-progress-row{display:flex;align-items:center;justify-content:space-between;gap:13px;border:1px solid #384552;background:#101820;padding:12px}
+.apex-progress-row-info{flex:1;min-width:0}.apex-progress-row h3{font:800 14px system-ui,sans-serif;margin:0 0 5px}
+.apex-progress-row p{font:700 12px system-ui,sans-serif;color:#bfcbd7;margin:0 0 9px}
+.apex-progress-meter{height:5px;border-radius:3px;overflow:hidden;background:#424c59}.apex-progress-meter>span{display:block;height:100%;background:#edaa52}
+.apex-progress-row>button{flex:0 0 auto;cursor:pointer;min-height:40px;border:1px solid #ffc581;color:#121212;background:#f2b969;font:800 11px system-ui,sans-serif;padding:7px 12px}
+.apex-progress-row>button:disabled{cursor:default;color:#9caab5;border-color:#526071;background:#27313b}
+.apex-progress-row.claimed{opacity:.75}
+.apex-progress-note{font:500 11px/1.55 system-ui,sans-serif;color:#b7c3cb;margin:18px 0 5px}
+.apex-progress-feedback{font:700 12px/1.4 system-ui,sans-serif;color:#ffcc85;min-height:18px;margin-top:9px}
+.apex-progress-panel button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media(max-width:540px){.apex-progress-row{flex-direction:column;align-items:stretch}.apex-progress-row>button{width:100%}.apex-progress-panel{max-height:95dvh}}
