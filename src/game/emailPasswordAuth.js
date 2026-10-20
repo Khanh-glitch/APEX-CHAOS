@@ -47,3 +47,22 @@ export async function setPasswordForVerifiedUser(client, expectedUserId, passwor
     return { ok: false, reason: 'password-update-failed' };
   }
 }
+
+
+// Password recovery has an email ownership challenge. Never expose whether
+// an account is registered: the provider deliberately returns no user data.
+export async function requestPasswordRecovery(client, rawEmail, redirectTo) {
+  const email = String(rawEmail || '').trim().toLowerCase();
+  if (!validEmail(email)) return { ok: false, reason: 'invalid-email' };
+  if (!client?.auth?.resetPasswordForEmail) return { ok: false, reason: 'auth-unavailable' };
+  try {
+    const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) return {
+      ok: false,
+      reason: limited(error) ? 'recovery-rate-limited' : 'recovery-unavailable',
+    };
+    return { ok: true, requested: true };
+  } catch {
+    return { ok: false, reason: 'recovery-unavailable' };
+  }
+}
