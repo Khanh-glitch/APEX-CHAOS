@@ -23,12 +23,14 @@ const COPY = {
     pausedNote: 'MATCH PAUSED — TAKE YOUR TIME',
     // Engine truth (APEX_SIDE_EDGE in public/apexEngine.js): fighters[0]
     // = P1 wears the ORANGE edge (#FF941F); P2 wears blue (#3AA7FF).
-    sideYou: 'YOU · P1 · ORANGE EDGE',
+    // Intro labels stay short: each HUD row already carries its P1/P2
+    // tag, and the P2 row is narrow on phones.
+    sideYou: 'YOU · ORANGE EDGE',
     identity: 'YOU · P1 · ORANGE EDGE',
     weaponHint: 'No weapon yet — run over a gun on the ground to pick it up.',
-    sideBot: 'BOT · P2 · BLUE EDGE',
-    sideP1: 'PLAYER 1 · ORANGE EDGE',
-    sideP2: 'PLAYER 2 · BLUE EDGE',
+    sideBot: 'BOT · BLUE EDGE',
+    sideP1: 'P1 · ORANGE EDGE',
+    sideP2: 'P2 · BLUE EDGE',
     steps: [
       { title: 'START HERE', body: 'Press FREE BATTLE.' },
       { title: 'FIRST FIGHT', body: 'Choose VS BOT.' },
@@ -43,12 +45,12 @@ const COPY = {
     actionKicker: 'LƯỢT CỦA BẠN',
     skip: 'BỎ QUA',
     pausedNote: 'TRẬN ĐANG TẠM DỪNG — CỨ THONG THẢ',
-    sideYou: 'BẠN · P1 · VIỀN CAM',
+    sideYou: 'BẠN · VIỀN CAM',
     identity: 'BẠN · P1 · VIỀN CAM',
     weaponHint: 'Chưa có súng — chạy qua khẩu súng trên sân để nhặt.',
-    sideBot: 'BOT · P2 · VIỀN XANH',
-    sideP1: 'NGƯỜI CHƠI 1 · VIỀN CAM',
-    sideP2: 'NGƯỜI CHƠI 2 · VIỀN XANH',
+    sideBot: 'BOT · VIỀN XANH',
+    sideP1: 'P1 · VIỀN CAM',
+    sideP2: 'P2 · VIỀN XANH',
     steps: [
       { title: 'BẮT ĐẦU TẠI ĐÂY', body: 'Nhấn ĐẤU TỰ DO.' },
       { title: 'TRẬN ĐẦU TIÊN', body: 'Chọn ĐẤU BOT.' },

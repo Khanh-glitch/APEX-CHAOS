@@ -120,8 +120,8 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
   // one-time storage version moved with it — the behavior migrated,
   // the assertion still pins the exact shipped strings.
   assert.match(coach, /apex\.alpha\.sideIntro\.v2/, 'side introduction has one persisted one-time authority');
-  assert.match(coach, /sideYou: 'YOU · P1 · ORANGE EDGE'/);
-  assert.match(coach, /sideYou: 'BẠN · P1 · VIỀN CAM'/);
+  assert.match(coach, /sideYou: 'YOU · ORANGE EDGE'/);
+  assert.match(coach, /sideYou: 'BẠN · VIỀN CAM'/);
   assert.match(coach, /pausedNote: 'TRẬN ĐANG TẠM DỪNG/);
   assert.match(coachCss, /#hud\.apex-side-intro-on \.id-row\[data-intro-role\]::after/,
     'side roles render inside existing HUD identity rows, not arena markers');
