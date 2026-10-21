@@ -41,16 +41,18 @@
         });
       }
 
-      // Combat side markers (presentation only, owner Requirement C):
-      // ground rings render under the duelists; head tags render after
-      // the arena flash below so side identity survives peak VFX.
-      // Helpers + gating live in apexEngine.js (apexSideMarkerContext).
-      const sideMarkerMode = (typeof apexSideMarkerContext === 'function') ? apexSideMarkerContext() : null;
-      if (sideMarkerMode && typeof drawSideGroundRings === 'function') drawSideGroundRings(ctx, sideMarkerMode);
+      // CP3 silhouette edge lighting (presentation only): each duelist
+      // is composited with a fine side-colored edge hugging its real
+      // silhouette — no rings, glyphs or floating tags. Helpers +
+      // gating live in apexEngine.js (apexSideIdentityContext).
+      const sideIdentityMode = (typeof apexSideIdentityContext === 'function') ? apexSideIdentityContext() : null;
 
       for (let i = 0; i < 2; i++) {
         const fighter = fighters[i];
-        if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') fighter.draw(ctx);
+        if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') {
+          if (sideIdentityMode && typeof drawFighterWithSideEdge === 'function') drawFighterWithSideEdge(ctx, fighter, i, sideIdentityMode);
+          else fighter.draw(ctx);
+        }
       }
       for (const particle of particles) {
         if (particle && typeof particle.draw === 'function') particle.draw(ctx);
@@ -77,7 +79,8 @@
         ctx.fillStyle = `rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a})`;
         ctx.fillRect(0, 0, GAME_SIZE, GAME_SIZE);
       }
-      if (sideMarkerMode && typeof drawSideHeadTags === 'function') drawSideHeadTags(ctx, sideMarkerMode);
+      // CP3: no head tags after the flash — side identity is the
+      // silhouette edge composited with each fighter above.
     } finally {
       ctx.restore();
       ctx.setTransform(1, 0, 0, 1, 0, 0);

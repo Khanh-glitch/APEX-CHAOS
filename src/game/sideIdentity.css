@@ -1,21 +1,15 @@
-/* Side identity — ONE compact signal on the Fighter Select nameplate
-   (owner Requirement C). The existing .playerFlag chip takes Gold's own
-   side variables (--p1 orange / --p2 blue, already used by the roster
-   markers) instead of the hero accent, which is identical in a mirror
-   match. Shape glyphs match the in-combat markers in public/apexEngine.js
-   (P1 chevron, P2 diamond) so color is never the only cue. No extra
-   outline/caption layers — this chip is the whole select-screen signal. */
+/* Side identity — ONE compact signal on the Fighter Select nameplate.
+   CP3: the chip speaks the same language as the in-combat silhouette
+   edge lighting (apexEngine.drawFighterWithSideEdge): Gold's canonical
+   side colors (--p1 orange / --p2 blue) plus a pattern echo — P1 a
+   single solid edge bar, P2 a fine double bar — so the cue is never
+   color alone. No chevron/diamond glyphs anywhere. This chip is the
+   whole select-screen signal. */
 #gold-shell-host #stage .fighterSide.p1 .playerFlag{
   background:var(--p1);color:#160b00;
+  box-shadow:inset 4px 0 0 rgba(10,6,0,.85);
 }
 #gold-shell-host #stage .fighterSide.p2 .playerFlag{
   background:var(--p2);color:#03131b;
-}
-#gold-shell-host #stage .fighterSide.p1 .playerFlag::before{
-  content:"";flex:none;width:0;height:0;
-  border-left:5px solid transparent;border-right:5px solid transparent;
-  border-top:7px solid #160b00;
-}
-#gold-shell-host #stage .fighterSide.p2 .playerFlag::before{
-  content:"";flex:none;width:8px;height:8px;background:#03131b;transform:rotate(45deg);
+  box-shadow:inset 3px 0 0 rgba(2,10,16,.85), inset 6px 0 0 var(--p2), inset 7px 0 0 rgba(2,10,16,.55);
 }
