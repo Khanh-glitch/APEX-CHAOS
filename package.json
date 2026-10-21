@@ -22,6 +22,7 @@
     "test:gold-battle-lifecycle": "node tools/testGoldBattleLifecycleGate.mjs",
     "test:owner-playtest-economy": "node tools/testOwnerPlaytestEconomyGate.mjs",
     "test:cp3-mastery": "node tools/testCp3MasteryGate.mjs",
+    "test:cp4-combat-intelligence": "node tools/testCp4CombatIntelligenceGate.mjs",
     "test:core-six-art": "node tools/testCoreSixArtAuthorityGate.mjs",
     "test:core-six-art-delivery": "node tools/testCoreSixArtDeliveryGate.mjs",
     "test:gold-fighter-pick-adaptation": "node tools/testGoldFighterPickAdaptationGate.mjs",
