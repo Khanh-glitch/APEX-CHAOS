@@ -144,3 +144,57 @@ phone. Presentation only; revision stays `20261021-cp5-r1`.
 - Recapture: tutorial paused chip below the arena with identity line, weapon
   hint and the ground gun visible; **numeric toast meter now screenshot-proven**
   ("Bậc Thầy Mưu Mẹo" — 3 / 3 lần, BOT chip); Mastery chapters stacked.
+
+## CP5.3 addendum — CORRECTION of the CP5.2 side-identity record
+
+Owner playtest of CP5.2 caught a factual error in the section above: **the
+player is not the blue edge.** Engine source (`APEX_SIDE_EDGE` in
+`public/apexEngine.js`): `fighters[0]` (P1, the human in BOT mode) is painted
+with the **orange** silhouette edge `#FF941F`; blue `#3AA7FF` belongs to P2.
+CP5.2 therefore taught the player to identify with the opponent's colour —
+the exact confusion the feature exists to prevent. CP5.2's "blue edge" claims
+above are superseded by this addendum. The owner also directed that the
+identity teaching belongs **at the start of the match**, not in the pick
+lobby. Commits `ca0165c`, `c350f0e`, `5282d80`; revision unchanged
+`20261021-cp5-r1`.
+
+### Fixes
+- **Identity now taught at battle start**, via the existing CP4 first-fight
+  side introduction inside the HUD identity rows (no new surface, no arena
+  marker). Labels name the true edge colours and each chip is painted in
+  that side's exact engine colour: BOT mode `YOU · ORANGE EDGE` /
+  `BOT · BLUE EDGE` (VIE `BẠN · VIỀN CAM` / `BOT · VIỀN XANH`); LOCAL
+  `P1 · ORANGE EDGE` / `P2 · BLUE EDGE` (VIE identical P1/P2 forms). Labels
+  stay short because each row already carries its P1/P2 tag and the P2 text
+  column is 82px wide at 390px (measured; the chip also wins paint order
+  over the decorative weapon-slot sliver it grazes).
+- **Pick-lobby teaching removed:** coach step 2 reverts to the plain
+  "Pick your fighter, then LOCK IN." instruction (ENG+VIE). The
+  `fighter-active-p2` hide from CP5.2 stays.
+- **Coach battle-lesson identity line corrected** to
+  `YOU · P1 · ORANGE EDGE` / `BẠN · P1 · VIỀN CAM` with the swatch at exact
+  engine `#FF941F`.
+- **Re-teach migration:** intro storage bumped `apex.alpha.sideIntro.v1` →
+  `.v2` (v1 never named colours), so every existing player sees the colour
+  version once per mode; while the coach journey is unfinished the intro
+  repeats at every battle opening, then the one-time flag governs. Display
+  4.5s → 6s.
+- **Gate honesty:** `tools/testCp4CombatIntelligenceGate.mjs` pinned-string
+  assertions (storage key + ENG/VIE `sideYou`) deliberately moved with the
+  migrated behaviour and disclosed in the commit messages; they still pin
+  the exact shipped strings.
+
+### Verification (CP5.3)
+- CP3 mastery gate, CP4 combat-intelligence gate, Gold generator `--check`,
+  production build — PASS at `20261021-cp5-r1` (candidate `5282d80`).
+- Real-browser capture (fresh profile, VIE, 390×844, mirror NEWBOT vs
+  NEWBOT so only the edge differs): at 00:02 the orange chip
+  `BẠN · VIỀN CAM` sits in the P1 row and the blue chip `BOT · VIỀN XANH`
+  in the P2 row, computed colours measured `rgb(255,148,31)` /
+  `rgb(58,167,255)` — exactly the engine's `#FF941F` / `#3AA7FF` — while
+  the arena shows the player's robot with the orange edge and the BOT
+  with the blue edge. Coach paused-lesson chip re-captured with the
+  corrected orange identity line + swatch.
+- Known residual (pre-existing, protected Gold battle HUD, not touched):
+  on 390px phones the top-bar fighter name and HP number visually collide
+  ("NEWBOT1000"); flagged for a future owner-approved HUD pass.
