@@ -399,3 +399,23 @@
 @media (max-width:560px){
   .apex-mastery-chapter-peek{display:none}
 }
+
+/* CP5.2: single-axis (vertical) scrolling ONLY inside Missions/Mastery.
+   The chapter carousel, hero rail and recents previously scrolled sideways
+   on phones; they now stack/wrap inside the panel width. */
+.apex-progress-panel,
+.apex-progress-body{overflow-x:clip}
+.apex-mastery-path{
+  display:grid;grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:minmax(0,1fr);
+  overflow-x:visible;overflow-y:visible;scroll-snap-type:none;padding:0;
+}
+.apex-mastery-chapter,.apex-mastery-terminal{scroll-snap-align:none;min-height:0;min-width:0}
+.apex-mastery-hero-rail{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  overflow:visible;padding:0;
+}
+.apex-mastery-hero-rail button{min-width:0}
+.apex-mastery-recent-row{flex-wrap:wrap;overflow:visible;padding:0}
+@media (min-width:700px){
+  .apex-mastery-hero-rail{grid-template-columns:repeat(4,minmax(0,1fr))}
+}

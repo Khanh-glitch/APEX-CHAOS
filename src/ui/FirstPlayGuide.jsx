@@ -22,13 +22,15 @@ const COPY = {
     skip: 'SKIP',
     pausedNote: 'MATCH PAUSED — TAKE YOUR TIME',
     sideYou: 'YOU · PLAYER 1',
+    identity: 'YOU · P1 · BLUE EDGE',
+    weaponHint: 'No weapon yet — run over a gun on the ground to pick it up.',
     sideBot: 'BOT · PLAYER 2',
     sideP1: 'PLAYER 1',
     sideP2: 'PLAYER 2',
     steps: [
       { title: 'START HERE', body: 'Press FREE BATTLE.' },
       { title: 'FIRST FIGHT', body: 'Choose VS BOT.' },
-      { title: 'READY?', body: 'Pick your fighter, then LOCK IN.' },
+      { title: 'READY?', body: 'Pick your fighter, then LOCK IN. You are P1 — the BOT with the blue edge.' },
       { title: 'CAST SKILL 1', keyboard: 'Press J now.', touch: 'Tap Skill 1 now.' },
       { title: 'CAST SKILL 2', keyboard: 'Press K now.', touch: 'Tap Skill 2 now.' },
       { title: 'REWARDS WAITING', body: 'Open MISSIONS to claim starter rewards and view Mastery.' },
@@ -40,13 +42,15 @@ const COPY = {
     skip: 'BỎ QUA',
     pausedNote: 'TRẬN ĐANG TẠM DỪNG — CỨ THONG THẢ',
     sideYou: 'BẠN · NGƯỜI CHƠI 1',
+    identity: 'BẠN · P1 · VIỀN XANH',
+    weaponHint: 'Chưa có súng — chạy qua khẩu súng trên sân để nhặt.',
     sideBot: 'BOT · NGƯỜI CHƠI 2',
     sideP1: 'NGƯỜI CHƠI 1',
     sideP2: 'NGƯỜI CHƠI 2',
     steps: [
       { title: 'BẮT ĐẦU TẠI ĐÂY', body: 'Nhấn ĐẤU TỰ DO.' },
       { title: 'TRẬN ĐẦU TIÊN', body: 'Chọn ĐẤU BOT.' },
-      { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN.' },
+      { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN. Bạn là P1 — con Robot viền xanh.' },
       { title: 'TUNG CHIÊU 1', keyboard: 'Nhấn J ngay.', touch: 'Chạm thẻ Kỹ năng 1 ngay.' },
       { title: 'TUNG CHIÊU 2', keyboard: 'Nhấn K ngay.', touch: 'Chạm thẻ Kỹ năng 2 ngay.' },
       { title: 'PHẦN THƯỞNG ĐANG CHỜ', body: 'Mở NHIỆM VỤ để nhận thưởng khởi đầu và xem Tinh thông.' },
@@ -212,6 +216,16 @@ function arenaPillStyle() {
     }
   } catch { /* fall through to the safe default */ }
   return { top: '96px', right: '10px' };
+}
+
+// CP5.2: is the coached player still unarmed? Read from the same battle
+// projection the HUD uses; presentation only (hint line in the chip).
+function playerUnarmed() {
+  try {
+    const side = window.APEX_GOLD_PROJECTION?.()?.state?.sides?.[0];
+    if (!side) return false;
+    return !side.data?.arsenal?.weaponId;
+  } catch { return false; }
 }
 
 function skillInfo(index) {
@@ -468,6 +482,24 @@ function computeFrame(step, anchor) {
     placement = 'below';
     chipTop = Math.min(Math.max(12, viewportHeight - 96), rect.bottom + gap);
     chipTransform = 'none';
+  }
+
+  // CP5.2: in battle lessons the chip must never cover the arena. When the
+  // taught card sits below the arena canvas, dock the chip under the
+  // canvas bottom edge (over the HUD strip / card tops) instead of growing
+  // upward into the fight.
+  if ((step === 3 || step === 4) && placement === 'above') {
+    try {
+      let arenaBottom = 0;
+      document.querySelectorAll('canvas').forEach((canvas) => {
+        const r = canvas.getBoundingClientRect();
+        if (r.width > 200 && r.height > 200 && r.bottom <= rect.top + 4 && r.bottom > arenaBottom) arenaBottom = r.bottom;
+      });
+      if (arenaBottom > 0) {
+        chipTop = Math.round(arenaBottom + 6);
+        chipTransform = 'none';
+      }
+    } catch { /* keep the classic above-anchor placement */ }
   }
 
   return {
@@ -1110,6 +1142,12 @@ export default function FirstPlayGuide() {
           </div>
           <h2>{item.title}</h2>
           <p className="apex-guide-body">{displayBody}</p>
+          {(coach.step === 3 || coach.step === 4) && (
+            <p className="apex-guide-identity"><i aria-hidden="true" />{copy.identity}</p>
+          )}
+          {(coach.step === 3 || coach.step === 4) && playerUnarmed() && (
+            <p className="apex-guide-weapon-hint">{copy.weaponHint}</p>
+          )}
         </div>
         <button type="button" className="apex-coach-skip" onClick={skipCoach}>{copy.skip}</button>
       </section>
