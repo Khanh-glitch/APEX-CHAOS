@@ -486,7 +486,8 @@
       if (h && h.weaponId) {
         weaponId = h.weaponId;
         const w = (CFG && CFG.WEAPONS) ? CFG.WEAPONS[weaponId] : null;
-        name = (w && w.art) || String(weaponId).replace(/_/g, ' ');
+        name = (CFG && CFG.weaponDisplayName) ? CFG.weaponDisplayName(weaponId)
+          : ((w && w.art) || String(weaponId).replace(/_/g, ' '));
         family = (w && w.family) ? String(w.family) : '';
         tier = (CFG && CFG.tierOf) ? (CFG.tierOf(weaponId) || '') : '';
         tierColor = (CFG && CFG.TIER_COLORS && tier) ? CFG.TIER_COLORS[tier] : '';

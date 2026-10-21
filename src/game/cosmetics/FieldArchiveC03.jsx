@@ -65,7 +65,7 @@ function catalogWeapons(){
  const c=window.APEX_ARSENAL_CONFIG;
  if(!c?.WEAPONS)return [];
  return Object.entries(c.WEAPONS).filter(([id])=>id!=='T6'&&id!=='STORMBREAKER_INTERNAL').map(([id,w])=>({
-  id,name:String(w.name||id.replaceAll('_',' ')),tier:c.tierOf?.(id)||w.tier||'—',
+  id,name:String(c.weaponDisplayName?.(id)||w.name||id.replaceAll('_',' ')),tier:c.tierOf?.(id)||w.tier||'—',
   family:String(w.family||w.kind||'Equipment'),data:w
  })).sort((a,b)=>(Number(a.tier?.slice(1))||9)-(Number(b.tier?.slice(1))||9)||a.name.localeCompare(b.name));
 }

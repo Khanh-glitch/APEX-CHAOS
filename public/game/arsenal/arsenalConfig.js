@@ -293,6 +293,38 @@
     };
   }
 
+  // ── CP4: ONE weapon display-name authority ─────────────────────────────
+  // Internal IDs, save keys and asset paths NEVER change here. This map is
+  // presentation only: authored art/proper names (SPAS-12, MP5, Snipex
+  // Alligator…) win over the raw registry ID on every player-facing surface
+  // (HUD, Gold projection, Result seal, Locker, Field Archive, Mastery).
+  // Names are canonical proper names in ENG and VIE alike.
+  CONFIG.WEAPON_DISPLAY_NAMES = Object.freeze({
+    PISTOL: 'colt', SHOTGUN: 'SPAS-12', SMG: 'MP5', SNIPER: 'Snipex Alligator',
+    GRENADE: 'Grenade', SABRE: 'Sabre', BATTLE_AXE: 'Battle Axe', DAGGER: 'Dagger',
+    SPEAR: 'Spear', SPIKED_CLUB: 'Spiked Club', STORMBREAKER: 'Stormbreaker',
+    SWIRL_SHIELD: 'Swirl Shield', TOWER_SHIELD: 'Tower Shield',
+    GLOCK_17: 'Glock-17', BERETTA_93R: 'Beretta 93R', DESERT_DEAGLE: 'Desert Deagle',
+    MAGNUM_500: 'Magnum 500', SZECSEI_FUCHS: 'Szecsei & Fuchs', TEC_9: 'TEC-9',
+    MAC_10: 'MAC-10', P90: 'P90', AK_47: 'AK-47', M16: 'M16',
+    ZBROYAR_Z15: 'Zbroyar Z-15', ZBROYAR_Z15_S1: 'Zbroyar Z-15 · Skin 1',
+    ZBROYAR_Z15_S2: 'Zbroyar Z-15 · Skin 2', ZBROYAR_Z15_S3: 'Zbroyar Z-15 · Skin 3',
+    M249_SAW: 'M249 SAW', MBR: 'Project MBR', MBR2: 'Project MBR2',
+    MOSSBERG_500: 'Mossberg 500', SAWED_OFF: 'Sawed-Off Shotgun',
+    JACKHAMMER: 'Pancor Jackhammer',
+    FLARE_GUN: 'Flare Gun', TACTICAL_CROSSBOW: 'Tactical Crossbow',
+    STEEL_BALL_LAUNCHER: 'Steel Ball Launcher', COMBAT_BOOMERANG: 'Combat Boomerang',
+    RPG_7: 'RPG-7', FLAMETHROWER: 'Flamethrower', PLASMA_SPLITTER: 'Plasma Splitter',
+    SHRAPNEL_MINE_LAUNCHER: 'Shrapnel Mine Launcher',
+  });
+  CONFIG.weaponDisplayName = function weaponDisplayName(id) {
+    const key = String(id || '').toUpperCase().replaceAll('-', '_');
+    if (CONFIG.WEAPON_DISPLAY_NAMES[key]) return CONFIG.WEAPON_DISPLAY_NAMES[key];
+    const spec = CONFIG.WEAPONS && CONFIG.WEAPONS[key];
+    if (spec && typeof spec.name === 'string' && spec.name) return spec.name;
+    return key.replaceAll('_', ' ');
+  };
+
   // ── §4 weighted spawn selection ──────────────────────────────────────────
   // Raw selection weights: a melee pickup is 0.5 as likely as a baseline
   // non-melee pickup (owner: melee spawns felt far too frequent). The spawn

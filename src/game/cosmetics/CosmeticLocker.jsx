@@ -22,7 +22,7 @@ function getWeaponEntries(){
   const config=window.APEX_ARSENAL_CONFIG;
   if(!config?.WEAPONS)return [];
   return sortWeapons(Object.entries(config.WEAPONS).map(([id,data])=>({
-    id,name:data?.name||data?.art||id.replaceAll('_',' '),
+    id,name:config.weaponDisplayName?.(id)||data?.name||data?.art||id.replaceAll('_',' '),
     tier:config.tierOf?.(id)||data?.tier||'—',
     family:data?.family||data?.kind||'Equipment',
   })).filter(o=>o.id!=='T6' && o.id!=='STORMBREAKER_INTERNAL'));
