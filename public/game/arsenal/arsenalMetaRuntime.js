@@ -25,6 +25,10 @@
     Object.freeze({ key: 'weapon:RPG_7:vua-he', kind: 'weapon', baseId: 'RPG_7', skinId: 'vua-he', weaponId: 'RPG_7', damageThreshold: 1000 }),
   ]);
   const MASTERY_MAX_VALUE = 1000000000000;
+  // Epoch-millisecond earn timestamps need a separate ceiling: real
+  // Date.now() values already exceed 1e12, so clamping them to the damage
+  // cap rewrote every live earn date to 2001 after reload (CP3.1 audit).
+  const MASTERY_MAX_AT = 4102444800000; // 2100-01-01T00:00:00.000Z
   function resultHeroId(id) {
     const raw = String(id || '').trim().toUpperCase();
     return RESULT_HERO_BY_ENGINE[raw] || raw;
@@ -58,7 +62,7 @@
   }
   function cleanMasteryAt(value) {
     const n = Number(value);
-    return Number.isFinite(n) && n >= 0 ? Math.min(MASTERY_MAX_VALUE, n) : 0;
+    return Number.isFinite(n) && n >= 0 ? Math.min(MASTERY_MAX_AT, n) : 0;
   }
   function sanitizeMastery(raw) {
     const out = emptyMastery();

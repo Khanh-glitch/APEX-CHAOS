@@ -291,6 +291,8 @@ const sealedState = (mode, id, players, extra = {}) => ({
 {
   const { meta, storage } = bootMeta();
   meta.recordMasteryUnlocks([{ heroId: 'NEWBOT', achievementId: 'first-blood', value: 1 }]);
+  const liveEarnedAt = meta.getMastery().earned.NEWBOT['first-blood'];
+  assert.ok(liveEarnedAt > 1700000000000, 'live earn timestamp is a real epoch-ms value');
   meta.awardBattleResult('P1', sealedState('LOCAL', 'cp3-reload-1', [
     player('NEWBOT', { sources: [rpg(1001)] }),
     player('HUNTER'),
@@ -298,6 +300,8 @@ const sealedState = (mode, id, players, extra = {}) => ({
   const reloaded = bootMeta({ [WALLET_KEY]: storage.getItem(WALLET_KEY) }).meta;
   assert.equal(reloaded.getMastery().weaponDamage.RPG_7, 1001);
   assert.ok(reloaded.heroMasteryProgress('NEWBOT').earnedIds.includes('first-blood'));
+  assert.equal(reloaded.getMastery().earned.NEWBOT['first-blood'], liveEarnedAt, 'reload must preserve the exact first-earn timestamp (no 1e12 clamp)');
+  assert.equal(reloaded.getMastery().recent.find((item) => item.achievementId === 'first-blood')?.at, liveEarnedAt);
   assert.equal(reloaded.awardBattleResult('P1', sealedState('LOCAL', 'cp3-reload-1', [
     player('NEWBOT', { sources: [rpg(1001)] }), player('HUNTER'),
   ])).reason, 'duplicate-claim');
