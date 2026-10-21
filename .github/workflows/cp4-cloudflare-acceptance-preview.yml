@@ -4,6 +4,11 @@
 name: CP4 Cloudflare Acceptance Preview
 
 on:
+  push:
+    branches:
+      - arena/d7ff52e8-apex-chaos
+    paths:
+      - '.github/workflows/cp4-cloudflare-acceptance-preview.yml'
   workflow_dispatch:
 
 permissions:
