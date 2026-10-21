@@ -24,11 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      CANDIDATE_SHA: 077cf131805ba9cb1b5609814cb5e577954fb3dd
+      CANDIDATE_SHA: 15a86d2e387e30d76a61f45d87ae29e65ccb2163
       CANDIDATE_REVISION: 20261021-cp5-r1
       SOURCE_BRANCH: arena/d7ff52e8-apex-chaos
-      PREVIEW_BRANCH: cp52-playtest-077cf13
-      PREVIEW_URL: https://cp52-playtest-077cf13.apex-chaos.pages.dev
+      PREVIEW_BRANCH: cp52-playtest-15a86d2
+      PREVIEW_URL: https://cp52-playtest-15a86d2.apex-chaos.pages.dev
       PRODUCTION_URL: https://apex-chaos.pages.dev
       CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -36,7 +36,7 @@ jobs:
       - name: Checkout exact CP5 candidate tree
         uses: actions/checkout@v4
         with:
-          ref: 077cf131805ba9cb1b5609814cb5e577954fb3dd
+          ref: 15a86d2e387e30d76a61f45d87ae29e65ccb2163
           fetch-depth: 0
 
       - name: Verify exact candidate checkout
