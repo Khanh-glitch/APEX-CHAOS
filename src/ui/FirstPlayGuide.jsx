@@ -18,6 +18,7 @@ const LAST_STEP = 5;
 const COPY = {
   eng: {
     kicker: 'LEARN BY PLAYING',
+    actionKicker: 'YOUR MOVE',
     skip: 'SKIP',
     pausedNote: 'MATCH PAUSED — TAKE YOUR TIME',
     sideYou: 'YOU · PLAYER 1',
@@ -28,13 +29,14 @@ const COPY = {
       { title: 'START HERE', body: 'Press FREE BATTLE.' },
       { title: 'FIRST FIGHT', body: 'Choose VS BOT.' },
       { title: 'READY?', body: 'Pick your fighter, then LOCK IN.' },
-      { title: 'SKILL 1 READY', keyboard: 'Press J to cast Skill 1.', touch: 'Tap the highlighted Skill 1 card.' },
-      { title: 'SKILL 2 READY', keyboard: 'Press K to cast Skill 2.', touch: 'Tap the highlighted Skill 2 card.' },
+      { title: 'CAST SKILL 1', keyboard: 'Press J now.', touch: 'Tap Skill 1 now.' },
+      { title: 'CAST SKILL 2', keyboard: 'Press K now.', touch: 'Tap Skill 2 now.' },
       { title: 'REWARDS WAITING', body: 'Open MISSIONS to claim starter rewards and view Mastery.' },
     ],
   },
   vie: {
     kicker: 'HỌC BẰNG CÁCH CHƠI',
+    actionKicker: 'LƯỢT CỦA BẠN',
     skip: 'BỎ QUA',
     pausedNote: 'TRẬN ĐANG TẠM DỪNG — CỨ THONG THẢ',
     sideYou: 'BẠN · NGƯỜI CHƠI 1',
@@ -45,8 +47,8 @@ const COPY = {
       { title: 'BẮT ĐẦU TẠI ĐÂY', body: 'Nhấn ĐẤU TỰ DO.' },
       { title: 'TRẬN ĐẦU TIÊN', body: 'Chọn ĐẤU BOT.' },
       { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN.' },
-      { title: 'KỸ NĂNG 1 ĐÃ SẴN SÀNG', keyboard: 'Nhấn J để tung Kỹ năng 1.', touch: 'Chạm thẻ Kỹ năng 1 đang được đánh dấu.' },
-      { title: 'KỸ NĂNG 2 ĐÃ SẴN SÀNG', keyboard: 'Nhấn K để tung Kỹ năng 2.', touch: 'Chạm thẻ Kỹ năng 2 đang được đánh dấu.' },
+      { title: 'TUNG CHIÊU 1', keyboard: 'Nhấn J ngay.', touch: 'Chạm thẻ Kỹ năng 1 ngay.' },
+      { title: 'TUNG CHIÊU 2', keyboard: 'Nhấn K ngay.', touch: 'Chạm thẻ Kỹ năng 2 ngay.' },
       { title: 'PHẦN THƯỞNG ĐANG CHỜ', body: 'Mở NHIỆM VỤ để nhận thưởng khởi đầu và xem Tinh thông.' },
     ],
   },
@@ -984,6 +986,32 @@ export default function FirstPlayGuide() {
     };
   }, [acceptTutorialInput, pausedSlot, releaseTutorialPause]);
 
+  // CP5 spotlight (presentation only): while a lesson is paused, dim the
+  // arena canvas and the skill card that is NOT being taught, so the one
+  // real control to use is unmistakable. The pause lease, opportunity
+  // logic and input contract are untouched.
+  useEffect(() => {
+    if (pausedSlot == null) return undefined;
+    const touched = [];
+    const mark = (element, className) => {
+      if (!element?.classList) return;
+      element.classList.add(className);
+      touched.push([element, className]);
+    };
+    try {
+      document.body.classList.add('apex-tutorial-paused');
+      mark(skillInfo(pausedSlot).element, 'apex-coach-taught');
+      mark(skillInfo(1 - pausedSlot).element, 'apex-coach-dimmed');
+      document.querySelectorAll('canvas').forEach((canvas) => {
+        if (canvas.width > 200 && !canvas.closest('.apex-coach-layer')) mark(canvas, 'apex-coach-dimmed');
+      });
+    } catch { /* spotlight is decoration; the lesson itself never depends on it */ }
+    return () => {
+      document.body.classList.remove('apex-tutorial-paused');
+      touched.forEach(([element, className]) => { try { element.classList.remove(className); } catch { /* detached */ } });
+    };
+  }, [pausedSlot]);
+
   useEffect(() => () => {
     releaseTutorialPause();
     setSideIntroLabels(null);
@@ -1028,7 +1056,7 @@ export default function FirstPlayGuide() {
         }}
       >
         <div className="apex-coach-copy">
-          <p className="apex-guide-kicker">{copy.kicker} · {coach.step + 1}/{LAST_STEP + 1}</p>
+          <p className="apex-guide-kicker">{(isPausedLesson ? copy.actionKicker : copy.kicker)} · {coach.step + 1}/{LAST_STEP + 1}</p>
           <h2>{item.title}</h2>
           <p className="apex-guide-body">{body}</p>
           {isPausedLesson && (

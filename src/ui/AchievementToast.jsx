@@ -154,9 +154,14 @@ export default function AchievementToast() {
     setCurrent(next);
     setOverflow(overflowRef.current);
     try { window.apexUiSfx?.play?.(toastSfxKey(next)); } catch { /* sound is optional */ }
-    const displayMs = next.ownerKind === 'bot' ? 2200
-      : !next.provisional && next.achievement.rarity === 'legendary' ? 3400
-        : 2800;
+    // CP5 emphasis hierarchy: opponent feats are the quietest signal,
+    // provisional candidates sit below sealed unlocks, and sealed
+    // high-rarity achievements earn the longest read.
+    const displayMs = next.ownerKind === 'bot' ? 1800
+      : next.provisional ? 2400
+        : next.achievement.rarity === 'legendary' ? 3400
+          : next.achievement.rarity === 'epic' ? 3000
+            : 2600;
     window.clearTimeout(hideTimerRef.current);
     hideTimerRef.current = window.setTimeout(() => {
       activeRef.current = null;
@@ -249,9 +254,12 @@ export default function AchievementToast() {
   const overflowText = isBotFeat ? t.botMore(overflow)
     : current.provisional ? t.provisionalMore(overflow) : t.more(overflow);
 
+  // CP5: BOT feats render as a compact edge chip (ref: edge-feed hierarchy)
+  // so an opponent event never carries the same weight as the player's own
+  // unlock. Ownership, rarity shape and the not-recorded note all survive.
   return (
     <div
-      className={`apex-achievement-toast rarity-${achievement.rarity} owner-${current.ownerKind}${current.provisional ? ' is-provisional' : ' is-sealed'}`}
+      className={`apex-achievement-toast rarity-${achievement.rarity} owner-${current.ownerKind}${current.provisional ? ' is-provisional' : ' is-sealed'}${isBotFeat ? ' is-compact' : ''}`}
       key={current.key}
       data-provisional={current.provisional ? 'true' : 'false'}
       data-owner-side={current.ownerSide || 'unknown'}
@@ -270,7 +278,9 @@ export default function AchievementToast() {
         <RarityPips count={presentation.pips} />
       </div>
       <div className="apex-achievement-toast-copy">
-        <span>{ownerText ? `${ownerText} · ` : ''}{statusText} · {RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}</span>
+        <span>{isBotFeat
+          ? `${current.ownerSide || 'P2'} · ${t.ownerBot} · ${RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}`
+          : `${ownerText ? `${ownerText} · ` : ''}${statusText} · ${RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}`}</span>
         <strong>{achievement.name}</strong>
         <small>{detailText}</small>
         {overflow > 0 && <small className="apex-achievement-toast-more">{overflowText}</small>}

@@ -156,12 +156,38 @@
   scroll-snap-align:start; border:1px solid #303842; background:linear-gradient(180deg,#10161d,#090d11);
   padding:12px; min-height:100%;
 }
-.apex-mastery-chapter > header { display:flex; gap:10px; align-items:flex-start; margin-bottom:11px; }
-.apex-mastery-chapter > header > span {
-  color:#d7bd72; font:900 24px/1 sans-serif; font-style:italic; opacity:.9;
+.apex-mastery-chapter > header { margin-bottom:0; }
+.apex-mastery-chapter.is-open > header { margin-bottom:11px; }
+.apex-mastery-chapter-toggle {
+  width:100%; min-height:48px; display:flex; gap:10px; align-items:center;
+  padding:6px 2px; cursor:pointer; text-align:left;
+  border:0; background:none; color:#f4f0e6; font:inherit;
 }
-.apex-mastery-chapter h3 { margin:0; font-size:15px; font-style:italic; }
-.apex-mastery-chapter header small { color:#8b96a1; font:800 9px/1 ui-monospace,monospace; }
+.apex-mastery-chapter-num {
+  color:#d7bd72; font:900 24px/1 sans-serif; font-style:italic; opacity:.9; flex:0 0 auto;
+}
+.apex-mastery-chapter-meta { flex:1; min-width:0; display:grid; gap:6px; }
+.apex-mastery-chapter-name { font-size:15px; font-style:italic; font-weight:900; letter-spacing:.04em; }
+.apex-mastery-chapter-toggle small { color:#8b96a1; font:800 9px/1 ui-monospace,monospace; flex:0 0 auto; }
+.apex-mastery-chapter-chevron {
+  flex:0 0 auto; color:#d7bd72; font-size:20px; line-height:1;
+  transition:transform .18s ease-out;
+}
+.apex-mastery-chapter.is-open .apex-mastery-chapter-chevron { transform:rotate(90deg); }
+.apex-mastery-goal,
+.apex-mastery-next {
+  border:1px solid #303842; background:linear-gradient(180deg,#10161d,#0a0f14);
+  padding:12px 14px; display:grid; gap:8px;
+}
+.apex-mastery-goal { border-color:rgba(215,189,114,.5); }
+.apex-mastery-goal-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+.apex-mastery-goal-head strong { font-size:15px; font-style:italic; font-weight:900; }
+.apex-mastery-goal-head span { margin-left:auto; color:#f0d67e; font:800 12px/1 ui-monospace,monospace; }
+.apex-mastery-goal p,
+.apex-mastery-next p { margin:0; color:#a7b1bb; font-size:12px; line-height:1.5; }
+.apex-mastery-next-line { display:flex; justify-content:space-between; gap:12px; }
+.apex-mastery-next-line b { color:#f4f0e6; font-size:12.5px; font-style:italic; }
+.apex-mastery-next-line span { color:#d7dde3; font:800 9px/1.4 ui-monospace,monospace; letter-spacing:.06em; text-align:right; }
 .apex-mastery-medals { display:grid; gap:8px; }
 .apex-mastery-medal {
   display:flex; gap:10px; padding:10px; border:1px solid #2d3640; background:#0b1015;
@@ -298,6 +324,33 @@
   .apex-mastery-summary { flex-direction:column; }
   .apex-mastery-hero-rail { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; }
   .apex-mastery-hero-rail button { min-width:0; }
+}
+/* CP5 desktop: overview on the left, chapter list on the right — the same
+   component and state, arranged by grid areas only. */
+@media (min-width: 1024px) {
+  .apex-mastery-vault {
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    grid-template-areas:
+      "total total"
+      "recent recent"
+      "rail path"
+      "summary path"
+      "goal path"
+      "next path"
+      "weapon weapon";
+    align-items:start;
+  }
+  .apex-mastery-total { grid-area:total; }
+  .apex-mastery-recent { grid-area:recent; }
+  .apex-mastery-hero-rail { grid-area:rail; flex-wrap:wrap; overflow:visible; }
+  .apex-mastery-summary { grid-area:summary; }
+  .apex-mastery-goal { grid-area:goal; }
+  .apex-mastery-next { grid-area:next; }
+  .apex-mastery-path {
+    grid-area:path; grid-auto-flow:row; grid-auto-columns:auto; grid-template-columns:1fr;
+    overflow:visible; padding:0; scroll-snap-type:none; align-content:start;
+  }
+  .apex-mastery-weapon { grid-area:weapon; }
 }
 @media (prefers-reduced-motion: reduce) {
   .apex-progress-panel * { transition-duration:.01ms !important; animation-duration:.01ms !important; }

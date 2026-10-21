@@ -247,6 +247,9 @@ export default function ProgressionCenter() {
   const [, setTick] = useState(0);
   const [message, setMessage] = useState('');
   const [selectedResultHero, setSelectedResultHero] = useState('NEWBOT');
+  // CP5 chapter accordion: { heroId, category|null } once the player has
+  // toggled anything; before that the first incomplete chapter is open.
+  const [chapterChoice, setChapterChoice] = useState(null);
   const [language, setLanguage] = useState(
     () => (typeof window !== 'undefined' && window.APEX_I18N?.getLanguage?.()) || 'eng');
   const panelRef = useRef(null);
@@ -371,6 +374,22 @@ export default function ProgressionCenter() {
   const bestMap = safeMastery.best?.[selectedHero.resultId] || {};
   const recentItems = Array.isArray(safeMastery.recent) ? safeMastery.recent.slice(0, 8) : [];
   const recentKeys = new Set(recentItems.map((item) => `${item.heroId}:${item.achievementId}`));
+
+  // CP5 information architecture (presentation only): one chapter open at a
+  // time — the first incomplete one by default — plus the nearest
+  // in-progress achievements as the next objective.
+  const chapterOf = (category) => achievements.filter((item) => item.category === category);
+  const firstIncompleteCategory = MASTERY_CATEGORIES.find((category) => {
+    const chapter = chapterOf(category);
+    return chapter.length > 0 && chapter.some((item) => !Object.prototype.hasOwnProperty.call(earnedMap, item.id));
+  }) || null;
+  const openCategory = chapterChoice && chapterChoice.heroId === selectedHero.resultId
+    ? chapterChoice.category : firstIncompleteCategory;
+  const nextObjectives = achievements
+    .filter((item) => !Object.prototype.hasOwnProperty.call(earnedMap, item.id) && bestMap[item.id] != null)
+    .map((item) => ({ item, progress: primaryProgress(item, bestMap[item.id], false) }))
+    .sort((a, b) => b.progress.percent - a.progress.percent)
+    .slice(0, 2);
 
   let ecoProgress = null;
   try { ecoProgress = typeof meta?.skinProgress === 'function' ? meta.skinProgress('hero', 'ROBOT', 'ecobot') : null; } catch { ecoProgress = null; }
@@ -556,33 +575,78 @@ export default function ProgressionCenter() {
                 </div>
               </section>
 
+              {selectedHero.resultId === 'NEWBOT' && (
+                <section className="apex-mastery-goal" aria-label={ecoSkin?.label || 'ECOBOT'}>
+                  <div className="apex-mastery-goal-head">
+                    <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
+                    <strong>{ecoSkin?.label || 'ECOBOT — RECYCLE CORE V17'}</strong>
+                    <span>{ecoProgress.current}/{ecoProgress.target}</span>
+                  </div>
+                  <div className="apex-progress-meter" aria-hidden="true">
+                    <span style={{ width: `${ecoProgress.target ? (ecoProgress.current / ecoProgress.target) * 100 : 0}%` }} />
+                  </div>
+                  <p>{ecoProgress.entitled
+                    ? (ecoEquipped ? t.equipped : t.unlocked)
+                    : t.heroSkinLocked(ecoProgress.current, ecoProgress.target)}</p>
+                </section>
+              )}
+
+              {nextObjectives.length > 0 && (
+                <section className="apex-mastery-next" aria-label={t.currentObjective}>
+                  <p className="apex-mastery-section-kicker">{t.currentObjective}</p>
+                  {nextObjectives.map(({ item, progress }) => (
+                    <p key={item.id} className="apex-mastery-next-line">
+                      <b>{item.name}</b>
+                      <span>{progressText(item, progress, t)}</span>
+                    </p>
+                  ))}
+                </section>
+              )}
+
               <div className="apex-mastery-path">
                 {MASTERY_CATEGORIES.map((category, chapterIndex) => {
                   const chapter = achievements.filter((item) => item.category === category);
                   if (!chapter.length) return null;
                   const chapterEarned = chapter.filter((item) => Object.prototype.hasOwnProperty.call(earnedMap, item.id)).length;
+                  const isOpen = openCategory === category;
                   return (
-                    <section className="apex-mastery-chapter" key={category}>
+                    <section className={`apex-mastery-chapter${isOpen ? ' is-open' : ''}`} key={category}>
                       <header>
-                        <span>{String(chapterIndex + 1).padStart(2, '0')}</span>
-                        <div>
-                          <h3>{CATEGORY_LABELS[category][lang]}</h3>
+                        <button
+                          type="button"
+                          className="apex-mastery-chapter-toggle"
+                          aria-expanded={isOpen}
+                          onClick={() => setChapterChoice({
+                            heroId: selectedHero.resultId,
+                            category: isOpen ? null : category,
+                          })}
+                        >
+                          <span className="apex-mastery-chapter-num">{String(chapterIndex + 1).padStart(2, '0')}</span>
+                          <span className="apex-mastery-chapter-meta">
+                            <span className="apex-mastery-chapter-name">{CATEGORY_LABELS[category][lang]}</span>
+                            <span className="apex-progress-meter" aria-hidden="true">
+                              <span style={{ width: `${chapter.length ? (chapterEarned / chapter.length) * 100 : 0}%` }} />
+                            </span>
+                          </span>
                           <small>{chapterEarned}/{chapter.length}</small>
-                        </div>
+                          <span className="apex-mastery-chapter-chevron" aria-hidden="true">›</span>
+                        </button>
                       </header>
-                      <div className="apex-mastery-medals">
-                        {chapter.map((achievement) => (
-                          <MedalCard
-                            key={achievement.id}
-                            achievement={achievement}
-                            earnedAt={earnedMap[achievement.id]}
-                            best={bestMap[achievement.id]}
-                            recent={recentKeys.has(`${selectedHero.resultId}:${achievement.id}`)}
-                            language={lang}
-                            t={t}
-                          />
-                        ))}
-                      </div>
+                      {isOpen && (
+                        <div className="apex-mastery-medals">
+                          {chapter.map((achievement) => (
+                            <MedalCard
+                              key={achievement.id}
+                              achievement={achievement}
+                              earnedAt={earnedMap[achievement.id]}
+                              best={bestMap[achievement.id]}
+                              recent={recentKeys.has(`${selectedHero.resultId}:${achievement.id}`)}
+                              language={lang}
+                              t={t}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </section>
                   );
                 })}

@@ -91,7 +91,12 @@
 }
 
 .apex-guide-paused-note{
-  margin:7px 0 0;
+  display:inline-block;
+  margin:8px 0 0;
+  padding:4px 9px;
+  border:1px solid rgba(255,210,122,.55);
+  border-radius:999px;
+  background:rgba(20,14,2,.72);
   color:#ffd27a;
   font:800 9px/1.35 ui-monospace,monospace;
   letter-spacing:.12em;
@@ -100,6 +105,19 @@
 .apex-coach-layer.is-tutorial-paused .apex-coach-beacon{
   animation:none;
   opacity:1;
+}
+/* CP5 spotlight: during a paused lesson the arena and the un-taught skill
+   card recede; the taught card keeps full presence next to the beacon. */
+.apex-coach-dimmed{
+  filter:brightness(.52) saturate(.68)!important;
+  transition:filter .18s ease-out;
+}
+.apex-coach-taught{
+  filter:none!important;
+  transition:filter .18s ease-out;
+}
+@media (prefers-reduced-motion: reduce){
+  .apex-coach-dimmed,.apex-coach-taught{transition:none}
 }
 
 /* CP4 first-fight side introduction: the role word lives inside the

@@ -38,6 +38,20 @@
   background: linear-gradient(155deg, rgba(18,24,31,.97), rgba(6,8,10,.97));
   filter: saturate(.72);
 }
+/* CP5 compact opponent chip: BOT feats are edge-feed signals, never a
+   full-size unlock card. Same side dock, smaller footprint and type. */
+.apex-achievement-toast.is-compact {
+  width: min(226px, calc(100vw - 24px));
+  padding: 7px 10px 7px 7px;
+  gap: 8px;
+}
+.apex-achievement-toast.is-compact .apex-achievement-toast-medal {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+.apex-achievement-toast.is-compact .apex-achievement-toast-copy strong { font-size: 14px; }
+.apex-achievement-toast.is-compact .apex-achievement-toast-copy small { font-size: 7.5px; letter-spacing: .06em; }
 .apex-achievement-toast-medal {
   position: relative;
   flex: 0 0 auto;
@@ -174,6 +188,20 @@
   .apex-achievement-toast[data-owner-side="P2"] { margin-left: 56px; }
   .apex-achievement-toast-medal { width: 40px; height: 40px; font-size: 18px; }
   .apex-achievement-toast-copy strong { font-size: 16px; }
+  /* CP5: the BOT chip leaves the sub-arena band (reserved for the player's
+     own unlock) and docks as a small edge signal under the P2 HP segment. */
+  .apex-achievement-toast.is-compact,
+  .apex-achievement-toast.is-compact[data-owner-side="P1"],
+  .apex-achievement-toast.is-compact[data-owner-side="P2"] {
+    left: auto;
+    right: max(8px, env(safe-area-inset-right, 0px));
+    top: calc(env(safe-area-inset-top, 0px) + 84px);
+    bottom: auto;
+    width: auto;
+    max-width: min(238px, 66vw);
+    margin: 0;
+  }
+  .apex-achievement-toast.is-compact .apex-achievement-toast-medal { width: 30px; height: 30px; font-size: 13px; }
 }
 @media (orientation: landscape) and (max-height: 500px) {
   .apex-achievement-toast {
@@ -185,6 +213,9 @@
   .apex-achievement-toast-medal { width: 38px; height: 38px; font-size: 17px; }
   .apex-achievement-toast-copy strong { font-size: 15px; }
   .apex-achievement-toast-copy small { font-size: 8px; }
+  .apex-achievement-toast.is-compact { width: min(196px, calc(100vw - 16px)); }
+  .apex-achievement-toast.is-compact .apex-achievement-toast-medal { width: 30px; height: 30px; font-size: 13px; }
+  .apex-achievement-toast.is-compact .apex-achievement-toast-copy strong { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .apex-achievement-toast,
