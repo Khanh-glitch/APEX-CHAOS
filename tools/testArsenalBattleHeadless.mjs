@@ -2722,7 +2722,7 @@ report.r59CrystalaBotDecision = run(`
   p2=startBot();
   ctl=HR.abilityController(p2);ctl.setCooldown('A2',999);
   projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
-    x:650,y:500,px:650,py:500,vx:80,vy:0,radius:4,life:5,maxLife:5,color:'#fff'});
+    x:250,y:500,px:250,py:500,vx:120,vy:0,radius:4,life:5,maxLife:5,color:'#fff'});
   mark=HR.AIL.bus.seq;
   for(let i=0;i<90;i++)APEX_ARSENAL.step(1/60);
   const wallThreat={a1:p2.telemetry.bySkill.A1||0,

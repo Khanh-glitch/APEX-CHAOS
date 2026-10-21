@@ -19,6 +19,11 @@ const COPY = {
   eng: {
     kicker: 'LEARN BY PLAYING',
     skip: 'SKIP',
+    pausedNote: 'MATCH PAUSED — TAKE YOUR TIME',
+    sideYou: 'YOU · PLAYER 1',
+    sideBot: 'BOT · PLAYER 2',
+    sideP1: 'PLAYER 1',
+    sideP2: 'PLAYER 2',
     steps: [
       { title: 'START HERE', body: 'Press FREE BATTLE.' },
       { title: 'FIRST FIGHT', body: 'Choose VS BOT.' },
@@ -31,6 +36,11 @@ const COPY = {
   vie: {
     kicker: 'HỌC BẰNG CÁCH CHƠI',
     skip: 'BỎ QUA',
+    pausedNote: 'TRẬN ĐANG TẠM DỪNG — CỨ THONG THẢ',
+    sideYou: 'BẠN · NGƯỜI CHƠI 1',
+    sideBot: 'BOT · NGƯỜI CHƠI 2',
+    sideP1: 'NGƯỜI CHƠI 1',
+    sideP2: 'NGƯỜI CHƠI 2',
     steps: [
       { title: 'BẮT ĐẦU TẠI ĐÂY', body: 'Nhấn ĐẤU TỰ DO.' },
       { title: 'TRẬN ĐẦU TIÊN', body: 'Chọn ĐẤU BOT.' },
@@ -177,6 +187,171 @@ function skillInfo(index) {
   return { element, projected, state, charges, nextIn, ready };
 }
 
+const SIDE_INTRO_KEY = 'apex.alpha.sideIntro.v1';
+
+function playCoachSfx(key) {
+  try { window.apexUiSfx?.play?.(key); } catch { /* sound is optional */ }
+}
+
+function publishTutorialPause(slot) {
+  try {
+    window.APEX_TUTORIAL_PAUSE = {
+      active: true,
+      slot,
+      updatedAt: Date.now(),
+      source: 'cp4-coach',
+    };
+  } catch { /* hero-rework lease is fail-closed without this object */ }
+}
+
+function clearTutorialPause() {
+  try {
+    window.APEX_TUTORIAL_PAUSE = {
+      active: false,
+      updatedAt: Date.now(),
+      source: 'cp4-coach',
+    };
+  } catch { /* nothing to release */ }
+}
+
+function liveFighters() {
+  try { return Array.isArray(window.fighters) ? window.fighters : []; }
+  catch { return []; }
+}
+
+function bodyVelocity(body) {
+  const measured = body?.__hrVel;
+  if (measured && Number.isFinite(measured.x) && Number.isFinite(measured.y)) {
+    return { x: Number(measured.x), y: Number(measured.y) };
+  }
+  let mult = 1;
+  try {
+    if (typeof body?.speedMult === 'function') mult = Number(body.speedMult()) || 0;
+  } catch { mult = 1; }
+  const speed = (Number(body?.baseSpeed) || 0) * mult;
+  return {
+    x: (Number(body?.dir?.x) || 0) * speed,
+    y: (Number(body?.dir?.y) || 0) * speed,
+  };
+}
+
+function closestApproach(from, velocity, point, horizon) {
+  const rx = point.x - from.x;
+  const ry = point.y - from.y;
+  const vv = (velocity.x * velocity.x) + (velocity.y * velocity.y);
+  const t = vv > 1 ? Math.max(0, Math.min(horizon, (rx * velocity.x + ry * velocity.y) / vv)) : 0;
+  const qx = from.x + velocity.x * t;
+  const qy = from.y + velocity.y * t;
+  return { t, distance: Math.hypot(point.x - qx, point.y - qy) };
+}
+
+function incomingThreat(self, horizon = 0.65) {
+  try {
+    const selfVelocity = bodyVelocity(self);
+    const threatRadius = Math.max(90, (Number(self?.radius) || 40) + 55);
+    for (const p of window.projectiles || []) {
+      if (!p || p.owner === self || !(Number(p.life) > 0)) continue;
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)
+        || !Number.isFinite(p.vx) || !Number.isFinite(p.vy)) continue;
+      const relative = { x: Number(p.vx) - selfVelocity.x, y: Number(p.vy) - selfVelocity.y };
+      if ((relative.x * relative.x) + (relative.y * relative.y) <= 1) continue;
+      const hit = closestApproach(
+        { x: Number(p.x), y: Number(p.y) },
+        relative,
+        { x: self.x, y: self.y },
+        horizon,
+      );
+      if (hit.distance <= threatRadius) return true;
+    }
+  } catch { /* fall through to geometry-only fallback */ }
+  return false;
+}
+
+function revealedWeaponSlots() {
+  const slots = battleState()?.slots;
+  return Array.isArray(slots)
+    ? slots.filter((slot) => slot && slot.phase === 'REVEALED' && slot.kind !== 'HEAL' && !!slot.weaponId)
+    : [];
+}
+
+// The softlock guard is intentionally late and still tactical: it requires
+// a live threat, a contested pickup while unarmed, or a genuinely closing
+// opponent. Cooldown-zero alone can never open the pause.
+function observableFallbackOpportunity(index, waitedMs) {
+  if (waitedMs < 22000) return false;
+  const [self, foe] = liveFighters();
+  if (!self || !foe || !(self.hp > 0) || !(foe.hp > 0)) return false;
+  if (incomingThreat(self)) return true;
+  const selfArmed = !!self.data?.arsenal?.weaponId;
+  if (index === 0 && !selfArmed && revealedWeaponSlots().length) return true;
+  const dx = foe.x - self.x;
+  const dy = foe.y - self.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance > 560 || distance < 1) return false;
+  const foeVelocity = bodyVelocity(foe);
+  const selfVelocity = bodyVelocity(self);
+  const closingSpeed = -(((foeVelocity.x - selfVelocity.x) * dx)
+    + ((foeVelocity.y - selfVelocity.y) * dy)) / distance;
+  return closingSpeed > 30;
+}
+
+function tacticalOpportunity(index, waitedMs) {
+  const state = battleState();
+  if (!state || state.over || (Number(state.time) || 0) < 1.6) return false;
+  const [self, foe] = liveFighters();
+  if (!self || !foe || !(self.hp > 0) || !(foe.hp > 0)) return false;
+
+  try {
+    const decision = window.APEX_HERO_REWORK?.observeAbilityOpportunity?.(
+      self,
+      index === 1 ? 'A2' : 'A1',
+    );
+    if (decision?.shouldCast && Number(decision.score) >= 0.6
+      && decision.reason !== 'ready-default') return true;
+  } catch { /* use the late observable fallback below */ }
+
+  return observableFallbackOpportunity(index, waitedMs);
+}
+
+function readSideIntroSeen() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SIDE_INTRO_KEY) || '{}');
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  } catch { return {}; }
+}
+
+function writeSideIntroSeen(value) {
+  try { localStorage.setItem(SIDE_INTRO_KEY, JSON.stringify(value)); } catch { /* session-only */ }
+}
+
+function setSideIntroLabels(labels) {
+  try {
+    const rows = [
+      document.querySelector('#p1Side .id-row'),
+      document.querySelector('#p2Side .id-row'),
+    ];
+    let applied = true;
+    rows.forEach((row, index) => {
+      if (!row) { applied = false; return; }
+      if (labels) row.dataset.introRole = labels[index];
+      else delete row.dataset.introRole;
+    });
+    document.querySelector('#hud')?.classList.toggle('apex-side-intro-on', !!labels);
+    return applied;
+  } catch { return false; }
+}
+
+function isVisibleAnchor(element) {
+  if (!element?.isConnected) return false;
+  try {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle?.(element);
+    return rect.width > 2 && rect.height > 2
+      && style?.display !== 'none' && style?.visibility !== 'hidden'
+      && Number(style?.opacity ?? 1) > 0;
+  } catch { return false; }
+}
+
 function findAnchor(step) {
   const stage = stageElement();
   if (step === 0) return document.querySelector('#freeBattle');
@@ -186,8 +361,10 @@ function findAnchor(step) {
       || findByText(stage || document, 'button, [role="button"]', ['VS BOT', 'BOT BATTLE', 'ĐẤU BOT']);
   }
   if (step === 2) return document.querySelector('#lockIn') || stage?.querySelector('.lockIn');
-  if (step === 3) return skillInfo(0).element;
-  if (step === 4) return skillInfo(1).element;
+  if (step === 3 || step === 4) {
+    const element = skillInfo(step - 3).element;
+    return isVisibleAnchor(element) ? element : null;
+  }
   if (step === 5) return document.querySelector('#apexMissionsOpen');
   return null;
 }
@@ -273,6 +450,7 @@ export default function FirstPlayGuide() {
     return !!stored && !stored.done;
   });
   const [frame, setFrame] = useState(null);
+  const [pausedSlot, setPausedSlot] = useState(null);
   const [language, setLanguage] = useState(currentLanguage);
   const [coarse] = useState(() => {
     try { return !!window.matchMedia?.('(pointer: coarse)').matches; } catch { return false; }
@@ -282,6 +460,10 @@ export default function FirstPlayGuide() {
   const activeRef = useRef(active);
   const frameKeyRef = useRef('');
   const skillSnapshotsRef = useRef([null, null]);
+  const pauseRef = useRef(null);
+  const stepSinceRef = useRef({ step: -1, at: 0 });
+  const pauseCooldownUntilRef = useRef(0);
+  const sideIntroRef = useRef({ scene: '', mode: null, activeUntil: 0, applied: false, lastTime: 0 });
   const bootstrappedRef = useRef(false);
 
   const persistCoach = useCallback((next) => {
@@ -298,39 +480,97 @@ export default function FirstPlayGuide() {
     }
   }, []);
 
+  const releaseTutorialPause = useCallback(() => {
+    if (!pauseRef.current && !window.APEX_TUTORIAL_PAUSE?.active) return;
+    pauseRef.current = null;
+    setPausedSlot(null);
+    clearTutorialPause();
+  }, []);
+
+  const engageTutorialPause = useCallback((slot) => {
+    if (pauseRef.current?.slot === slot) {
+      publishTutorialPause(slot);
+      return;
+    }
+    pauseRef.current = { slot, since: Date.now() };
+    publishTutorialPause(slot);
+    setPausedSlot(slot);
+    playCoachSfx('tutorial.pause');
+  }, []);
+
+  const acceptTutorialInput = useCallback((slot, source, key) => {
+    // The event being handled is the player's real J/K or touch input.
+    // Release the freeze first, then forward that one input through the
+    // canonical ability executor exactly once on the next frame.
+    releaseTutorialPause();
+    pauseCooldownUntilRef.current = Date.now() + 4000;
+    playCoachSfx('tutorial.resume');
+    window.requestAnimationFrame(() => {
+      try {
+        if (source === 'pointer' && typeof window.APEX_GOLD_HUD?.pressSkill === 'function') {
+          window.APEX_GOLD_HUD.pressSkill(0, slot, { source: 'pointer' });
+          return;
+        }
+        if (source === 'pointer' && typeof window.APEX_GOLD?.pressSkill === 'function') {
+          window.APEX_GOLD.pressSkill(0, slot, { source: 'pointer' });
+          return;
+        }
+        const fighter = liveFighters()[0];
+        window.APEX_HERO_REWORK?.pressAbility?.(
+          fighter,
+          slot === 1 ? 'A2' : 'A1',
+          { side: 'p1', source: source === 'pointer' ? 'pointer' : 'keyboard', key: key || (slot === 1 ? 'KeyK' : 'KeyJ') },
+        );
+      } catch { /* a failed cast leaves the match running and re-teachable */ }
+    });
+  }, [releaseTutorialPause]);
+
   const updateCoach = useCallback((patch) => {
     const current = coachRef.current;
     if (!current) return null;
     const next = { ...current, ...patch };
     if (JSON.stringify(next) === JSON.stringify(current)) return current;
-    if (Object.prototype.hasOwnProperty.call(patch, 'step') && patch.step !== current.step) clearFrame();
+    if (Object.prototype.hasOwnProperty.call(patch, 'step') && patch.step !== current.step) {
+      clearFrame();
+      stepSinceRef.current = { step: patch.step, at: Date.now() };
+      const expectedSlot = patch.step === 3 ? 0 : patch.step === 4 ? 1 : null;
+      if (pauseRef.current && pauseRef.current.slot !== expectedSlot) releaseTutorialPause();
+    }
     return persistCoach(next);
-  }, [clearFrame, persistCoach]);
+  }, [clearFrame, persistCoach, releaseTutorialPause]);
 
   const setActiveBoth = useCallback((next) => {
     activeRef.current = next;
     setActive(next);
-    if (!next) clearFrame();
-  }, [clearFrame]);
+    if (!next) {
+      releaseTutorialPause();
+      clearFrame();
+    }
+  }, [clearFrame, releaseTutorialPause]);
 
   const finishCoach = useCallback((skipped = false) => {
+    releaseTutorialPause();
     const current = coachRef.current || freshCoach(sealedCounts());
     persistCoach({ ...current, done: true, skipped: skipped || current.skipped });
     activeRef.current = false;
     setActive(false);
     clearFrame();
-  }, [clearFrame, persistCoach]);
+  }, [clearFrame, persistCoach, releaseTutorialPause]);
 
   const skipCoach = useCallback(() => finishCoach(true), [finishCoach]);
 
   const replayCoach = useCallback(() => {
+    releaseTutorialPause();
     setLanguage(currentLanguage());
     persistCoach(freshCoach(sealedCounts()));
     skillSnapshotsRef.current = [null, null];
+    stepSinceRef.current = { step: 0, at: Date.now() };
+    pauseCooldownUntilRef.current = Date.now() + 1500;
+    writeSideIntroSeen({ ...readSideIntroSeen(), bot: 0, local: 0 });
     activeRef.current = true;
     setActive(true);
     clearFrame();
-  }, [clearFrame, persistCoach]);
+  }, [clearFrame, persistCoach, releaseTutorialPause]);
 
   const hideCoach = useCallback(() => setActiveBoth(false), [setActiveBoth]);
 
@@ -426,6 +666,7 @@ export default function FirstPlayGuide() {
   const syncCoach = useCallback(() => {
     const current = coachRef.current;
     if (!activeRef.current || !current || current.done) {
+      releaseTutorialPause();
       clearFrame();
       return;
     }
@@ -450,6 +691,7 @@ export default function FirstPlayGuide() {
       else if (scene === 'home') step = 0;
       else if (scene === 'mode') step = 1;
       else if (scene === 'fighter') step = 2;
+      releaseTutorialPause();
       skillSnapshotsRef.current = [null, null];
     } else if (step < 3) {
       if (scene === 'home') step = 0;
@@ -484,6 +726,7 @@ export default function FirstPlayGuide() {
         };
       });
     } else if (scene !== 'battle') {
+      releaseTutorialPause();
       skillSnapshotsRef.current = [null, null];
     }
 
@@ -492,18 +735,49 @@ export default function FirstPlayGuide() {
       updateCoach({ step, baselineBotMatches, baselineSealedMatches });
     }
 
+    if ((step === 3 || step === 4) && (scene !== 'battle' || !isBotBattle())) {
+      releaseTutorialPause();
+    } else if ((step === 3 || step === 4) && scene === 'battle' && isBotBattle()) {
+      const slot = step - 3;
+      const info = skillInfo(slot);
+      const now = Date.now();
+      if (stepSinceRef.current.step !== step) stepSinceRef.current = { step, at: now };
+      const waitedMs = Math.max(0, now - stepSinceRef.current.at);
+      const [self, foe] = liveFighters();
+      const battleEnded = !!battleState()?.over || !(self?.hp > 0) || !(foe?.hp > 0);
+
+      if (pauseRef.current) {
+        if (pauseRef.current.slot !== slot || !info.ready || battleEnded) {
+          releaseTutorialPause();
+          pauseCooldownUntilRef.current = now + 4000;
+        } else if (now - pauseRef.current.since > 30000) {
+          // Recovery guard: a forgotten lesson resumes the fight and can
+          // be offered again later instead of trapping the match forever.
+          releaseTutorialPause();
+          pauseCooldownUntilRef.current = now + 30000;
+        } else {
+          publishTutorialPause(slot);
+        }
+      } else if (!battleEnded && info.ready && now >= pauseCooldownUntilRef.current
+        && tacticalOpportunity(slot, waitedMs)) {
+        engageTutorialPause(slot);
+      }
+    }
+
     if (!stepSceneMatches(step, scene)) {
       setFrameIfChanged(null);
       return;
     }
 
-    if ((step === 3 || step === 4) && !skillInfo(step - 3).ready) {
+    // CP4 replaces the old persistent ready prompt: battle skill steps are
+    // visible only while the real pause lease is held for that exact slot.
+    if ((step === 3 || step === 4) && pauseRef.current?.slot !== step - 3) {
       setFrameIfChanged(null);
       return;
     }
 
     setFrameIfChanged(computeFrame(step, findAnchor(step)));
-  }, [clearFrame, finishCoach, setFrameIfChanged, updateCoach]);
+  }, [clearFrame, engageTutorialPause, finishCoach, releaseTutorialPause, setFrameIfChanged, updateCoach]);
 
   useEffect(() => {
     if (!active || !coach || coach.done) {
@@ -550,15 +824,186 @@ export default function FirstPlayGuide() {
     };
   }, [active, coach, coach?.done, clearFrame, syncCoach, updateCoach]);
 
+  // CP4 first-fight side introduction: a one-time role word inside each
+  // existing HUD identity row (BOT: YOU/OPPONENT, LOCAL: PLAYER 1/2).
+  // No arena marker, ring, arrow or extra surface is created.
+  useEffect(() => {
+    const poll = () => {
+      const intro = sideIntroRef.current;
+      const scene = currentScene();
+      const state = battleState();
+      const mode = state?.battleMode === 'BOT'
+        ? 'bot'
+        : state?.battleMode === 'LOCAL' ? 'local' : null;
+      const battleTime = Number(state?.time) || 0;
+      const now = Date.now();
+
+      const enteredBattle = intro.scene !== 'battle' && scene === 'battle';
+      const restarted = scene === 'battle' && battleTime + 0.5 < intro.lastTime;
+      if (enteredBattle || restarted || intro.mode !== mode) {
+        intro.mode = mode;
+        intro.activeUntil = 0;
+        intro.applied = false;
+        setSideIntroLabels(null);
+      }
+      intro.scene = scene;
+      intro.lastTime = battleTime;
+
+      if (scene !== 'battle' || !state || state.over || !mode) {
+        if (intro.activeUntil) {
+          intro.activeUntil = 0;
+          intro.applied = false;
+          setSideIntroLabels(null);
+        }
+        return;
+      }
+
+      const copy = COPY[currentLanguage() === 'vie' ? 'vie' : 'eng'];
+      const labels = mode === 'bot'
+        ? [copy.sideYou, copy.sideBot]
+        : [copy.sideP1, copy.sideP2];
+
+      if (intro.activeUntil) {
+        if (now < intro.activeUntil) {
+          if (setSideIntroLabels(labels) && !intro.applied) {
+            intro.applied = true;
+            writeSideIntroSeen({ ...readSideIntroSeen(), [mode]: now });
+          }
+        } else {
+          intro.activeUntil = 0;
+          intro.applied = false;
+          setSideIntroLabels(null);
+        }
+        return;
+      }
+
+      if (!readSideIntroSeen()[mode] && battleTime <= 6) {
+        intro.activeUntil = now + 4500;
+        if (setSideIntroLabels(labels)) {
+          intro.applied = true;
+          writeSideIntroSeen({ ...readSideIntroSeen(), [mode]: now });
+        }
+      }
+    };
+
+    poll();
+    const interval = window.setInterval(poll, 200);
+    return () => {
+      window.clearInterval(interval);
+      setSideIntroLabels(null);
+    };
+  }, []);
+
+  // While a lesson is paused, only the taught slot can resume it. The
+  // canonical executor is closed during the lease, so accepting the real
+  // input here cannot double-cast: release first, forward once next frame.
+  useEffect(() => {
+    if (pausedSlot == null) return undefined;
+    const slot = pausedSlot;
+    const expectedCode = slot === 1 ? 'KeyK' : 'KeyJ';
+    const expectedKey = slot === 1 ? 'k' : 'j';
+
+    const heartbeat = window.setInterval(() => {
+      if (pauseRef.current?.slot === slot) publishTutorialPause(slot);
+    }, 500);
+
+    const onKeyDown = (event) => {
+      if (event.repeat) return;
+      const key = String(event.key || '').toLowerCase();
+      if (event.code !== expectedCode && key !== expectedKey) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      acceptTutorialInput(slot, 'keyboard', event.code || expectedCode);
+    };
+
+    // Gold's real pointer contract casts on release. Mirror it exactly:
+    // hold the taught P1 skill card on pointerdown, accept on pointerup,
+    // and swallow both events so Gold cannot cast a second time.
+    let pendingPointer = null;
+    const taughtSkillCard = (event) => {
+      const card = event.target?.closest?.('#p1Side .skill, .skill[data-p="1"]');
+      return card && Number(card.dataset.i) === slot ? card : null;
+    };
+
+    const clearPendingPointer = () => {
+      if (!pendingPointer) return;
+      pendingPointer.card.classList.remove('is-held');
+      try {
+        if (pendingPointer.card.hasPointerCapture?.(pendingPointer.id)) {
+          pendingPointer.card.releasePointerCapture(pendingPointer.id);
+        }
+      } catch { /* pointer already released */ }
+      pendingPointer = null;
+    };
+
+    const onPointerDown = (event) => {
+      const card = taughtSkillCard(event);
+      if (!card || pendingPointer) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      pendingPointer = { id: event.pointerId, card };
+      card.classList.add('is-held');
+      try { card.setPointerCapture?.(event.pointerId); } catch { /* capture is optional */ }
+    };
+
+    const onPointerUp = (event) => {
+      if (!pendingPointer || event.pointerId !== pendingPointer.id) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      clearPendingPointer();
+      acceptTutorialInput(slot, 'pointer', expectedCode);
+    };
+
+    const onPointerCancel = (event) => {
+      if (!pendingPointer || event.pointerId !== pendingPointer.id) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      clearPendingPointer();
+    };
+
+    const releaseForRecovery = () => releaseTutorialPause();
+    const onVisibility = () => { if (document.hidden) releaseForRecovery(); };
+
+    window.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('pointerup', onPointerUp, true);
+    document.addEventListener('pointercancel', onPointerCancel, true);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', releaseForRecovery);
+
+    return () => {
+      window.clearInterval(heartbeat);
+      window.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('pointerup', onPointerUp, true);
+      document.removeEventListener('pointercancel', onPointerCancel, true);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', releaseForRecovery);
+      clearPendingPointer();
+      releaseTutorialPause();
+    };
+  }, [acceptTutorialInput, pausedSlot, releaseTutorialPause]);
+
+  useEffect(() => () => {
+    releaseTutorialPause();
+    setSideIntroLabels(null);
+  }, [releaseTutorialPause]);
+
   if (!active || !coach || coach.done || !frame) return null;
 
   const lang = language === 'vie' ? 'vie' : 'eng';
   const copy = COPY[lang];
   const item = copy.steps[coach.step] || copy.steps[0];
   const body = item.body || (coarse ? item.touch : item.keyboard);
+  const isPausedLesson = (coach.step === 3 || coach.step === 4)
+    && pausedSlot === coach.step - 3;
 
   return (
-    <div className="apex-guide-dock apex-coach-layer" aria-live="polite">
+    <div
+      className={`apex-guide-dock apex-coach-layer${isPausedLesson ? ' is-tutorial-paused' : ''}`}
+      data-tutorial-paused={isPausedLesson ? 'true' : 'false'}
+      aria-live="polite"
+    >
       <div
         className="apex-coach-beacon"
         aria-hidden="true"
@@ -572,7 +1017,7 @@ export default function FirstPlayGuide() {
       <section
         className="apex-guide-card apex-coach-chip"
         role="status"
-        aria-label={`${copy.kicker}: ${item.title}. ${body}`}
+        aria-label={`${copy.kicker}: ${item.title}. ${body}${isPausedLesson ? ` ${copy.pausedNote}` : ''}`}
         data-placement={frame.placement}
         data-apex-no-localize=""
         style={{
@@ -586,6 +1031,9 @@ export default function FirstPlayGuide() {
           <p className="apex-guide-kicker">{copy.kicker} · {coach.step + 1}/{LAST_STEP + 1}</p>
           <h2>{item.title}</h2>
           <p className="apex-guide-body">{body}</p>
+          {isPausedLesson && (
+            <p className="apex-guide-paused-note">{copy.pausedNote}</p>
+          )}
         </div>
         <button type="button" className="apex-coach-skip" onClick={skipCoach}>{copy.skip}</button>
       </section>
