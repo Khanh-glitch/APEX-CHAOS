@@ -12,7 +12,7 @@ if (!fs.existsSync(path.join(INPUT, 'index.html'))) throw Error('dist/index.html
 fs.rmSync(OUTPUT, { recursive: true, force: true });
 fs.cpSync(INPUT, OUTPUT, { recursive: true });
 
-const resources = '(?:assets/|game/|gold/|bot-wave/|favicon[.]ico|apexEngine[.]js|gold-fidelity-lab[.]html|gold-fidelity-profiles[.]mjs|sniper_cloak_(?:move_)?sprite[.]webp)';
+const resources = '(?:assets/|game/|gold/|result-gold/|bot-wave/|favicon[.]ico|apexEngine[.]js|gold-fidelity-lab[.]html|gold-fidelity-profiles[.]mjs|sniper_cloak_(?:move_)?sprite[.]webp)';
 const quoted = new RegExp("([\\x22\\x27\\x60])/(" + resources + ")", 'g');
 const cssBare = new RegExp("(url\\(\\s*)/(" + resources + ")", 'gi');
 let scanned = 0, modifiedFiles = 0, replacements = 0;
@@ -69,6 +69,9 @@ if (unexpected.length) throw Error('Unconverted itch-root URL: ' + unexpected.sl
 const postBaseCanaries = [
   // UI SFX authority executes as a Gold shell script (post-base context).
   { file: 'game/ui/uiSfxAuthority.js', mustContain: "const ROOT = '../assets/audio/ui-sfx/';" },
+  // CP4: the Result iframe fallback literal must step out of the Gold base
+  // to <app>/result-gold/ instead of escaping to the origin root (404).
+  { file: 'game/gold/goldProductBridge.js', mustContain: "return '../result-gold/index.html';" },
 ];
 for (const canary of postBaseCanaries) {
   const code = fs.readFileSync(path.join(OUTPUT, canary.file), 'utf8');

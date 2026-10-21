@@ -157,7 +157,7 @@ try{
    &&cont[0].origin===new URL(base).origin,cont);
  const boxe=await ev('('+makeBoxeNativeResult.toString()+')()');
  const boxeSnap=await poll('('+inspect.toString()+')()',x=>
-  x?.images?.length===2&&x.images.some(i=>i.src==='/assets/dictionary/heroes/boxe/standing.png'&&i.ok),100);
+  x?.images?.length===2&&x.images.some(i=>i.src.endsWith('/assets/dictionary/heroes/boxe/standing.png')&&i.ok),100);
  check('BOXE scoreboard displays decoded original Pick standing PNG and its identity',
   boxe.portrait==='/assets/dictionary/heroes/boxe/standing.png'&&
   boxe.color==='#ffac42'&&!!boxeSnap&&boxeSnap.placeholders.every(t=>t==='Không có sát thương từ vũ khí'),

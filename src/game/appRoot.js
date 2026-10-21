@@ -30,3 +30,11 @@ export function apexAppUrl(path) {
     return raw;
   }
 }
+
+// CP4: classic product runtimes (Gold bridge Result iframe) resolve through
+// the SAME entry-base authority instead of origin-root literals, which 404
+// under nested /html/<id>/ hosting.
+try {
+  window.APEX_APP_ENTRY_BASE = ENTRY_BASE;
+  window.APEX_APP_URL = apexAppUrl;
+} catch (_) { /* non-browser bundle contexts keep module-only access */ }

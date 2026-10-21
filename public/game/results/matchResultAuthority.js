@@ -25,6 +25,20 @@ function heroPortraitSource(id){
   return '/assets/gold-ui/heroes/'+slug+'/'+(id==='MIRROR'?'pick_roster_cover.webp':'pick_selected_large.webp');
 }
 const accent={NEWBOT:'#ff941f',HUNTER:'#96ca2d',CRYSTALA:'#a066f0',MAGNET:'#c7c5e9',FROST:'#7ee8ff',MIRROR:'#e9e5df'};
+// CP4: sealed snapshot records each SIDE's equipped skin (presentation
+// identity only; entitlement/equip stay with the cosmetic authority).
+function cosmeticSelection(sideIndex,kind,baseId){
+  try{
+    const c=root.APEX_COSMETICS;
+    if(!c||typeof c.selected!=='function')return null;
+    return c.selected(sideIndex===0?'p1':'p2',kind,baseId)||null;
+  }catch(_){return null;}
+}
+function skinPreviewSource(selection){
+  const p=selection&&selection.preview;
+  return (selection&&selection.id&&selection.id!=='default'
+    &&typeof p==='string'&&p.startsWith('/assets/')&&!p.includes('..'))?p:null;
+}
 // CP3: only latched/monotonic owner predicates may be announced while the
 // match is still live. Ratio, current-HP, rolling-window, kill-moment and
 // winner-gated predicates remain seal-only so live feedback can never claim
@@ -340,7 +354,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        const obs=observed(t,def,false);
        if(!awardSatisfies(def,obs))continue;
        t.announcedAwards.add(def.id);
-       events.push({side:t.id,sideIndex:t.index,heroId:t.hero,achievementId:def.id,
+       events.push({side:t.id,sideIndex:t.index,battleMode:mode,heroId:t.hero,achievementId:def.id,
          value:awardPrimaryValue(def,obs),observedParams:awardObservedParams(def,obs),at:elapsed,
          provisional:true,sealRequired:true});
      }
@@ -353,6 +367,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(wi<0)return null;
    live=false;
    const cfg=weaponConfig||{};const weapons=[];
+   const displayName=id=>cfg.weaponDisplayName?cfg.weaponDisplayName(id):String(id||'').replaceAll('_',' ');
    for(const id of new Set(tracks.flatMap(t=>[...t.weapons,...[...t.sourceMap.values()].filter(x=>x.kind==='weapon').map(x=>x.weaponId)]))){
      if(!id)continue;
      const spec=cfg.WEAPONS?.[id]||{};
@@ -368,10 +383,17 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const best=tracks.reduce((n,t)=>Math.max(n,t.weaponMax.get(id)||0),0);
      const tier=cfg.tierOf?.(id)||cfg.WEAPON_TIER?.[id]||'T1';
      const tierColor=cfg.TIER_COLORS?.[tier]||'#C9D0D7';
-     weapons.push({id,name:id.replaceAll('_',' '),weaponClass:category,classLabel:fam,
+     const skinArtBySide={};
+     for(let sideIndex=0;sideIndex<2;sideIndex++){
+       const preview=skinPreviewSource(cosmeticSelection(sideIndex,'weapon',id));
+       if(preview)skinArtBySide[String(sideIndex+1)]=preview;
+     }
+     weapons.push({id,name:displayName(id),weaponClass:category,classLabel:fam,
        tierLabel:tier,tierColor,tierRgb:rgb(tierColor),
        tagline:'APEX ARSENAL',ownerId:tracks[0].id,
-       silhouette:'generic',artSrc:art,stats:{shotsFired:shots,shotsHit:hits,bestHit:Math.round(best)}});
+       silhouette:'generic',artSrc:art,
+       ...(Object.keys(skinArtBySide).length?{skinArtBySide}:{}),
+       stats:{shotsFired:shots,shotsHit:hits,bestHit:Math.round(best)}});
    }
    const players=tracks.map((t,i)=>{
      // Result Gold must consume the EXACT live HUD identity, never a
@@ -381,7 +403,10 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const liveColor=(hud?.heroId===t.hero&&hud?.color)||projected?.color||t.f?.color;
      const registeredColor=root.APEX_HERO_REWORK_REGISTRY?.HEROES?.[t.hero]?.identityColor;
      const color=/^#[0-9a-fA-F]{6}$/.test(liveColor||'')?liveColor:(registeredColor||accent[t.hero]||'#dddddd');
-     const list=[...t.sourceMap.values()];
+     const list=[...t.sourceMap.values()].map(s=>s.kind==='weapon'&&s.weaponId
+       ?{...s,label:displayName(s.weaponId)}:s);
+     const heroSkin=cosmeticSelection(i,'hero',t.hero);
+     const skinPortrait=skinPreviewSource(heroSkin);
      const awards=[];
      for(const def of catalog){if(def.heroId&&def.heroId!==t.hero)continue;
        const obs=observed(t,def,i===wi);if(!obs)continue;
@@ -394,7 +419,8 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      return {id:t.id,slot:i+1,handle:'P'+(i+1),level:1,rankTitle:'CORE SIX',
        outcome:i===wi?'victory':'defeat',accent:color,accentRgb:rgb(color),
        character:{name:t.hero,className:'APEX FIGHTER',tagline:'',artKind:'generic',
-         heroId:t.hero,portraitSrc:heroPortraitSource(t.hero)},
+         heroId:t.hero,skinId:(heroSkin&&heroSkin.id)||'default',
+         portraitSrc:skinPortrait||heroPortraitSource(t.hero)},
        damage:{dealt:t.dealt,taken:t.taken,sources:list},stats:{
          accuracy:t.rangedShots>0?Math.min(100,Math.round(t.rangedHits/t.rangedShots*100)):0,
          critRate:t.critEligibleHits>0?Math.round(t.critHits/t.critEligibleHits*100):0,

@@ -1589,7 +1589,9 @@
     const spec = (cfg && cfg.WEAPONS && cfg.WEAPONS[weaponId]) || null;
     const shots = Number(def.shots) || Number(spec && spec.shots) || 0;
     const fired = Number(holder.shotsFired) || 0;
-    const name = def.art || (spec && spec.art) || weaponId.replace(/_/g, ' ') || 'UNARMED';
+    const name = (cfg && cfg.weaponDisplayName && weaponId)
+      ? cfg.weaponDisplayName(weaponId)
+      : (def.art || (spec && spec.art) || weaponId.replace(/_/g, ' ') || 'UNARMED');
     const family = def.family || (spec && spec.family) || (def.category === 'ranged' ? 'RANGED' : 'MELEE');
     let asset = '';
     try {
@@ -1741,6 +1743,17 @@
     clearGoldResult();
     try{window.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');}catch(_){}
   }
+  function resultGoldUrl(){
+    // CP4: resolve through the app entry base (root and nested /html/<id>/
+    // hosting alike). An origin-root literal 404s inside itch's subpath and
+    // the 9s guard then silently returns Home with no Result at all.
+    try{
+      const base=window.APEX_APP_ENTRY_BASE;
+      if(base)return new URL('result-gold/index.html',base).href;
+    }catch(_){}
+    try{return new URL('../result-gold/index.html',document.baseURI).href;}catch(_){}
+    return '/result-gold/index.html';
+  }
   function showGoldResult(data){
     if(!data||resultFrame||!battleLiveRunning||!hudMounted)return false;
     const frame=document.createElement('iframe');
@@ -1749,9 +1762,14 @@
     frame.setAttribute('aria-label','Kết quả trận đấu');
     frame.style.cssText='position:fixed;inset:0;width:100vw;height:100dvh;'+
       'border:0;background:#07080b;z-index:2147483600;display:block';
-    frame.src='/result-gold/index.html';
+    frame.src=resultGoldUrl();
     resultFrame=frame;resultData=data;resultReady=false;
     document.body.appendChild(frame);
+    try{
+      const local=String(data?.meta?.mode||'').toUpperCase().includes('LOCAL');
+      const p1Won=data?.players?.[0]?.outcome==='victory';
+      window.apexUiSfx?.play?.(local||p1Won?'result.win':'result.loss');
+    }catch(_){/* result presentation never depends on optional UI audio */}
     // A missing build must not trap users in a black screen forever.
     resultTimeout=setTimeout(()=>{if(!resultReady&&resultFrame===frame)returnFromGoldResult()},9000);
     return true;
