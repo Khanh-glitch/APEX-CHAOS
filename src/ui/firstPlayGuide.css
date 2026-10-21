@@ -1,6 +1,5 @@
-/* APEX CHAOS First-Play Guide — compact, docked, non-blocking.
-   Wrapper never captures input except on the card itself; no backdrop
-   dim. Gold visual language mirrors accountCenter.css tokens. */
+/* APEX CHAOS Learn by Playing — anchored, pointer-transparent coach.
+   The beacon and chip never capture input; only SKIP is interactive. */
 
 /* "?" replay control inside the Gold stage, below the ENG|VIE cluster. */
 #gold-shell-host #stage #apex-guide-open{
@@ -19,7 +18,9 @@
 #gold-shell-host #stage #apex-guide-open:hover{color:#ffd27a;border-color:rgba(232,180,90,.55)}
 #gold-shell-host #stage #apex-guide-open:focus-visible{outline:2px solid #ffad3d;outline-offset:2px}
 #gold-shell-host #stage.screen-mode #apex-guide-open,
-#gold-shell-host #stage.screen-fighter #apex-guide-open{visibility:hidden;pointer-events:none}
+#gold-shell-host #stage.screen-fighter #apex-guide-open,
+#gold-shell-host #stage.screen-draw #apex-guide-open,
+#gold-shell-host #stage.screen-battle #apex-guide-open{visibility:hidden;pointer-events:none}
 @media (orientation:portrait){
   #gold-shell-host #stage #apex-guide-open{
     top:calc(var(--safeT,0px) + 1.8vh + 96px);
@@ -28,69 +29,72 @@
   }
 }
 
-/* Docked card: bottom-left on desktop (over art, never over the FREE
-   BATTLE CTA), bottom sheet on phones sized to stay below that CTA. */
-.apex-guide-dock{
-  position:fixed;inset:0;z-index:2147480900;pointer-events:none;
-  display:flex;align-items:flex-end;justify-content:flex-start;
-  padding:0 0 108px 24px;
+.apex-guide-dock.apex-coach-layer{
+  position:fixed;inset:0;z-index:2147480750;pointer-events:none;
   font-family:Arial, Helvetica, sans-serif;color:#f4efe4;
 }
-.apex-guide-card{
-  pointer-events:auto;
-  width:min(430px, calc(100vw - 48px));
-  background:linear-gradient(155deg, rgba(23,21,16,.97), rgba(7,8,10,.98));
-  border:1px solid rgba(232,180,90,.55);
-  box-shadow:0 24px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08);
-  clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-  padding:16px 18px 14px;
+.apex-coach-beacon{
+  position:fixed;pointer-events:none;box-sizing:border-box;
+  border:2px solid rgba(255,201,102,.96);
+  box-shadow:0 0 0 1px rgba(12,8,2,.82),0 0 22px rgba(255,166,45,.48),inset 0 0 18px rgba(255,166,45,.12);
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  animation:apex-coach-beacon-pulse 1.45s ease-in-out infinite;
 }
-.apex-guide-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.apex-guide-kicker{margin:0 0 4px;color:#e8b45a;font-size:10px;font-weight:900;letter-spacing:.16em}
-.apex-guide-card h2{
-  margin:0;color:#fff;font-family:'Oswald',Arial,sans-serif;font-size:clamp(19px,2.4vw,24px);
+.apex-coach-beacon::before,
+.apex-coach-beacon::after{
+  content:"";position:absolute;width:15px;height:15px;border-color:#fff0bc;border-style:solid;
+}
+.apex-coach-beacon::before{left:-2px;top:-2px;border-width:3px 0 0 3px}
+.apex-coach-beacon::after{right:-2px;bottom:-2px;border-width:0 3px 3px 0}
+
+.apex-guide-card.apex-coach-chip{
+  position:fixed;pointer-events:none;box-sizing:border-box;
+  display:flex;align-items:flex-start;gap:12px;
+  padding:11px 12px;
+  background:linear-gradient(155deg, rgba(25,22,15,.97), rgba(7,8,10,.98));
+  border:1px solid rgba(232,180,90,.68);
+  box-shadow:0 18px 46px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.08);
+  clip-path:polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  animation:apex-coach-chip-in .22s ease-out;
+}
+.apex-coach-copy{flex:1;min-width:0}
+.apex-guide-kicker{
+  margin:0 0 3px;color:#e8b45a;
+  font:800 8px/1.25 ui-monospace,monospace;letter-spacing:.16em;
+}
+.apex-guide-card.apex-coach-chip h2{
+  margin:0;color:#fff;font-family:'Oswald',Arial,sans-serif;
+  font-size:clamp(16px,2.2vw,20px);line-height:1.05;
   font-style:italic;font-weight:900;letter-spacing:.03em;text-transform:uppercase;
 }
-.apex-guide-close{
-  flex:none;width:36px;height:36px;border:1px solid rgba(255,255,255,.25);cursor:pointer;
-  background:#22242a;color:#fff;font-size:15px;
+.apex-guide-body{
+  margin:5px 0 0;color:#dfe6ed;
+  font-size:12.5px;font-weight:650;line-height:1.42;
+}
+.apex-coach-skip{
+  pointer-events:auto;flex:none;min-width:58px;min-height:38px;
+  padding:8px 10px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.26);background:#191b20;color:#fff;
+  font:800 10px/1 'Oswald',Arial,sans-serif;letter-spacing:.1em;
   clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
 }
-.apex-guide-body{margin:10px 0 0;text-align:left;color:#dfe6ed;font-size:13.5px;font-weight:600;line-height:1.5}
-.apex-guide-controls{margin-top:10px;display:grid;gap:6px}
-.apex-guide-controls p{
-  margin:0;padding:8px 10px;border:1px solid rgba(232,180,90,.28);background:#111318;
-  color:#e8edf2;font-size:12px;text-align:left;font-weight:600;line-height:1.45;
+.apex-coach-skip:hover{border-color:rgba(255,201,102,.72);color:#ffd27a}
+.apex-coach-skip:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+@keyframes apex-coach-beacon-pulse{
+  0%,100%{opacity:.78;box-shadow:0 0 0 1px rgba(12,8,2,.82),0 0 14px rgba(255,166,45,.34),inset 0 0 12px rgba(255,166,45,.08)}
+  50%{opacity:1;box-shadow:0 0 0 1px rgba(12,8,2,.9),0 0 28px rgba(255,166,45,.62),inset 0 0 20px rgba(255,166,45,.16)}
 }
-.apex-guide-controls p span{
-  display:inline-block;margin-right:8px;padding:2px 7px;background:#e8b45a;color:#1a1206;
-  font-size:9px;font-weight:900;letter-spacing:.12em;vertical-align:2px;
+@keyframes apex-coach-chip-in{
+  from{opacity:0}
+  to{opacity:1}
 }
-.apex-guide-card footer{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:14px}
-.apex-guide-dots{display:flex;gap:6px}
-.apex-guide-dots span{width:22px;height:4px;background:#3c434c}
-.apex-guide-dots span.is-current{background:#ffad3d}
-.apex-guide-actions{display:flex;gap:8px}
-.apex-guide-actions button{
-  min-height:40px;padding:9px 14px;border:1px solid rgba(255,255,255,.28);cursor:pointer;
-  background:#191b20;color:#fff;font-family:'Oswald',Arial,sans-serif;font-size:11.5px;
-  font-weight:800;letter-spacing:.1em;
-  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
-}
-.apex-guide-actions button.is-primary{
-  background:linear-gradient(180deg,#ffc966,#f39a22);border-color:#ffd9a0;color:#1d1200;
-}
-.apex-guide-actions button:focus-visible,.apex-guide-close:focus-visible{outline:2px solid #fff;outline-offset:2px}
 
 @media (max-width: 699px){
-  /* Phones dock the card under the AC/language cluster: FREE BATTLE,
-     the bottom nav and the AC readout all stay visible and usable —
-     the guide never blocks starting a match. */
-  .apex-guide-dock{
-    align-items:flex-start;justify-content:stretch;
-    padding:calc(env(safe-area-inset-top, 0px) + 108px) 12px 0;
-  }
-  .apex-guide-card{width:100%;max-height:38dvh;overflow:auto;padding:12px 14px 10px}
-  .apex-guide-body{font-size:12.5px}
-  .apex-guide-actions button{min-height:44px}
+  .apex-guide-card.apex-coach-chip{padding:10px}
+  .apex-guide-body{font-size:12px}
+  .apex-coach-skip{min-width:54px;min-height:42px;padding:8px}
+}
+@media (prefers-reduced-motion: reduce){
+  .apex-coach-beacon,.apex-guide-card.apex-coach-chip{animation:none}
 }

@@ -22,6 +22,11 @@ on:
       - 'src/ui/firstPlayGuide.css'
       - 'src/ui/ProgressionCenter.jsx'
       - 'src/ui/progressionCenter.css'
+      - 'src/ui/masteryCatalog.js'
+      - 'src/ui/AchievementToast.jsx'
+      - 'src/ui/achievementToast.css'
+      - 'src/ui/SkinUnlockCelebration.jsx'
+      - 'src/ui/skinUnlockCelebration.css'
       - 'src/game/sideIdentity.css'
       - 'src/game/localizationRuntime.js'
       - 'src/game/localization.css'
@@ -31,12 +36,19 @@ on:
       - 'src/App.jsx'
       - 'src/main.jsx'
       - 'public/game/arsenal/arsenalMetaRuntime.js'
+      - 'public/game/arsenal/arsenalCWeaponSet.generated.js'
+      - 'public/game/modes/arsenalBattleRuntime.js'
+      - 'public/game/results/matchResultAuthority.js'
+      - 'public/game/results/ownerAwards.generated.js'
+      - 'src/game/cosmetics/cosmeticAuthority.js'
       - 'public/game/arsenal/arsenalConfig.js'
       - 'public/game/gold/goldProductBridge.js'
       - 'public/game/hero-rework/heroRegistry.js'
       - 'public/game/ui/skillDetailsRuntime.js'
       - 'supabase/**'
       - 'tools/testOwnerPlaytestEconomyGate.mjs'
+      - 'tools/testCp3MasteryGate.mjs'
+      - 'tools/cp3MasteryFixture.mjs'
       - 'tools/testSkillDetailsParityGate.mjs'
       - 'tools/testSkillDetailsBrowser.mjs'
       - 'tools/testArsenalProductGraph.mjs'
@@ -74,6 +86,8 @@ jobs:
         run: node tools/testCloudLifecycleRaces.mjs
       - name: Production progression contract (350/NEWBOT, rewards, idempotency)
         run: pnpm test:owner-playtest-economy
+      - name: CP3 mastery + achievement-gated skins (real ledger/wallet/cosmetics)
+        run: pnpm test:cp3-mastery
       - name: Skill-details parity (registry truth, VIE coverage, symmetry)
         run: node tools/testSkillDetailsParityGate.mjs
       - name: Product graph (economy laws, availability)

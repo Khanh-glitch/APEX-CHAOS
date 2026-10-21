@@ -2271,7 +2271,7 @@ function update(dt) {
 // In a mirror match (same hero, same skin) the sprites are identical, so
 // each duelist carries a fine edge of light that hugs the ACTUAL rendered
 // silhouette: Gold's canonical side colors (--p1:#ff941f / --p2:#3aa7ff,
-// the same words spoken by the HP bars and the select-screen chips) over
+// the same words spoken by the HP bars and the fighter-select chips) over
 // a hairline dark keyline, so the edge survives bright and dark ground
 // alike. The cue is never color-alone: P1's edge is a single solid line,
 // P2's is a fine double hairline (pattern difference, visible in
@@ -2304,7 +2304,7 @@ var APEX_SIDE_EDGE = [
     { color: '#3AA7FF', double: true },
 ];
 var __apexEdgePool = [null, null];
-function __apexEdgeCanvases(idx, px) {
+function __apexEdgeCanvases(idx, px, bodyPx) {
     let slot = __apexEdgePool[idx];
     if (!slot) {
         slot = __apexEdgePool[idx] = {
@@ -2313,13 +2313,19 @@ function __apexEdgeCanvases(idx, px) {
             edge: document.createElement('canvas'),
         };
     }
-    for (const name of ['body', 'sil', 'edge']) {
+    // Body stays full resolution (artwork fidelity); silhouette + edge
+    // run at half resolution (an outline needs no more).
+    if (slot.body.width !== bodyPx || slot.body.height !== bodyPx) { slot.body.width = bodyPx; slot.body.height = bodyPx; }
+    for (const name of ['sil', 'edge']) {
         const c = slot[name];
         if (c.width !== px || c.height !== px) { c.width = px; c.height = px; }
     }
     return slot;
 }
-var __APEX_EDGE_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7071, 0.7071], [0.7071, -0.7071], [-0.7071, 0.7071], [-0.7071, -0.7071]];
+// 4-direction dilation is indistinguishable from 8 at outline widths of
+// 1-3 silhouette pixels (the downscale already feathers diagonals) and
+// halves the composite cost — measured in the CP3 FPS A/B.
+var __APEX_EDGE_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 function drawFighterWithSideEdge(ctx, f, idx, mode) {
     if (!f || typeof f.draw !== 'function') return;
     if (!mode || f.hp <= 0 || !isFinite(f.x) || !isFinite(f.y) || typeof document === 'undefined') { f.draw(ctx); return; }
@@ -2328,23 +2334,25 @@ function drawFighterWithSideEdge(ctx, f, idx, mode) {
         const r = Math.max(20, f.radius || 75);
         const S = Math.ceil(r * 4.4);          // world-unit bounds around the fighter
         const half = S / 2;
-        const RES = 0.5;                        // silhouette needs no full resolution
+        const RES = 0.4;                        // silhouette needs no full resolution
         const px = Math.max(64, Math.ceil(S * RES));
-        const slot = __apexEdgeCanvases(idx, px);
-        // 1) Render the fighter ONCE into the body canvas (identical world
-        //    transform: fighter.draw translates to f.x/f.y itself).
+        const slot = __apexEdgeCanvases(idx, px, S);
+        // 1) Render the fighter ONCE at FULL resolution into the body
+        //    canvas (identical world transform: fighter.draw translates
+        //    to f.x/f.y itself) so Gold artwork never loses a pixel.
         const b = slot.body.getContext('2d');
-        b.setTransform(RES, 0, 0, RES, 0, 0);
+        b.setTransform(1, 0, 0, 1, 0, 0);
         b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; b.filter = 'none';
         b.clearRect(0, 0, S, S);
         b.save(); b.translate(half - f.x, half - f.y); f.draw(b); b.restore();
-        // 2) Silhouette: keep only the body core (status text/rings beyond
-        //    the core never grow an edge), then tint its alpha solid.
+        // 2) Silhouette: sample the body down, keep only the body core
+        //    (status text/rings beyond the core never grow an edge),
+        //    then tint its alpha solid.
         const s2 = slot.sil.getContext('2d');
         s2.setTransform(1, 0, 0, 1, 0, 0);
         s2.globalCompositeOperation = 'source-over'; s2.globalAlpha = 1; s2.filter = 'none';
         s2.clearRect(0, 0, px, px);
-        s2.drawImage(slot.body, 0, 0);
+        s2.drawImage(slot.body, 0, 0, px, px);
         s2.globalCompositeOperation = 'destination-in';
         s2.beginPath(); s2.arc(px / 2, px / 2, r * 1.55 * RES, 0, TAU); s2.fillStyle = '#000'; s2.fill();
         s2.globalCompositeOperation = 'source-in';

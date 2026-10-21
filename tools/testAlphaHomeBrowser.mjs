@@ -8,9 +8,9 @@
 //   * AC readout is visible and equals the live wallet balance;
 //   * ENG|VIE is a segmented top-cluster control and switching to VIE
 //     really translates the Home CTA;
-//   * the first-play guide auto-shows for a genuinely new guest, never
-//     blocks FREE BATTLE (mode select is reachable while it is open),
-//     persists its seen-flag across reload, and reopens via "?";
+//   * the CP3 Learn by Playing coach auto-shows for a genuinely new guest,
+//     advances from the real FREE BATTLE action without blocking play,
+//     persists SKIP across reload, and replays via "?";
 //   * Account and Missions panels open from the bottom nav and close
 //     with Escape;
 //   * on a phone viewport the guide still leaves FREE BATTLE tappable.
@@ -65,7 +65,8 @@ const home = await page.evaluate(() => ({
   langOptions: [...document.querySelectorAll('[data-apex-language-option]')]
     .map((b) => `${b.dataset.apexLanguageOption}:${b.getAttribute('aria-pressed')}`),
   guideOpen: !!document.querySelector('.apex-guide-card'),
-  guideSeen: localStorage.getItem('apex.alpha.guide.v1'),
+  coach: (() => { try { return JSON.parse(localStorage.getItem('apex.alpha.coach.v2') || 'null'); } catch { return null; } })(),
+  coachText: document.querySelector('.apex-guide-card')?.textContent?.replace(/\s+/g, ' ').trim(),
 }));
 check('single account + missions entries; no dead header controls', () => {
   assert.equal(home.account, 1);
@@ -80,44 +81,64 @@ check('AC readout equals the live wallet (350 fresh)', () => {
 check('ENG|VIE segmented control mounted with ENG active', () => {
   assert.deepEqual(home.langOptions, ['eng:true', 'vie:false']);
 });
-check('guide auto-shows for a genuinely new guest (flag unset)', () => {
+check('CP3 coach auto-shows for a genuinely new guest at step 1/6', () => {
   assert.equal(home.guideOpen, true);
-  assert.equal(home.guideSeen, null);
+  assert.equal(home.coach?.version, 2);
+  assert.equal(home.coach?.step, 0);
+  assert.equal(home.coach?.done, false);
+  assert.equal(home.coach?.skipped, false);
+  assert.match(home.coachText || '', /START HERE/);
+  assert.match(home.coachText || '', /FREE BATTLE/);
 });
 await shot(page, 'alpha-home-desktop-guide');
 
-// The guide must never block starting a match.
-const reachedModes = await page.evaluate(() => {
-  document.querySelector('#freeBattle')?.click();
-  return true;
-});
+// The coach must never block starting a match: use the real FREE BATTLE
+// click point while its Home chip is open.
+await page.click('#freeBattle');
+const reachedModes = true;
 await page.waitForSelector('.modeCard', { visible: true, timeout: 30000 });
-check('FREE BATTLE is reachable while the guide is open', () => assert.equal(reachedModes, true));
-// Scene-exit guard: once the player leaves Home the card hides itself so
-// it can never cover mode/fighter/battle controls (without faking a
-// dismissal — the seen flag must stay unset here).
-await page.waitForFunction(() => !document.querySelector('.apex-guide-card'), { timeout: 10000 });
-const hiddenNotDismissed = await page.evaluate(() => localStorage.getItem('apex.alpha.guide.v1'));
-check('guide auto-hides off-Home without faking dismissal', () => assert.equal(hiddenNotDismissed, null));
+check('FREE BATTLE is reachable while the CP3 coach is open', () => assert.equal(reachedModes, true));
+// CP3 replaces the old off-Home hide/seen-flag contract: the real click
+// advances the persisted coach to the VS BOT step, but does not complete it.
+await page.waitForFunction(() => {
+  const coach = window.APEX_LEARN_BY_PLAYING?.state?.();
+  const text = document.querySelector('.apex-guide-card')?.textContent || '';
+  return coach?.step === 1 && coach?.done === false && /FIRST FIGHT/.test(text) && /VS BOT/.test(text);
+}, { timeout: 10000 });
+const coachAfterFreeBattle = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.alpha.coach.v2') || 'null'));
+check('CP3 coach advances from the real FREE BATTLE action without completing', () => {
+  assert.equal(coachAfterFreeBattle?.version, 2);
+  assert.equal(coachAfterFreeBattle?.step, 1);
+  assert.equal(coachAfterFreeBattle?.done, false);
+  assert.equal(coachAfterFreeBattle?.skipped, false);
+});
 await page.keyboard.press('Escape'); // back out of mode select
 await sleep(700);
 await page.waitForSelector('#freeBattle', { visible: true, timeout: 30000 });
 
-// Reopen → dismiss → flag persists → reload does not auto-show.
-await page.click('#apex-guide-open');
-await page.waitForSelector('.apex-guide-card', { visible: true, timeout: 10000 });
-await page.evaluate(() => document.querySelector('.apex-guide-close')?.click());
-await sleep(400);
-const seenAfter = await page.evaluate(() => localStorage.getItem('apex.alpha.guide.v1'));
-check('dismissing the guide persists the seen flag', () => assert.equal(seenAfter, '1'));
+// SKIP is the coach's only interactive element. It finishes and persists
+// the v2 coach; reload must not auto-show it, while "?" replays it fresh.
+await page.waitForSelector('.apex-coach-skip', { visible: true, timeout: 10000 });
+await page.click('.apex-coach-skip');
+await page.waitForFunction(() => !document.querySelector('.apex-guide-card'), { timeout: 10000 });
+const skippedCoach = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.alpha.coach.v2') || 'null'));
+check('SKIP persists the finished CP3 coach', () => {
+  assert.equal(skippedCoach?.done, true);
+  assert.equal(skippedCoach?.skipped, true);
+});
 await bootHome(page);
 const afterReload = await page.evaluate(() => !!document.querySelector('.apex-guide-card'));
-check('guide does not auto-show again after dismissal + reload', () => assert.equal(afterReload, false));
+check('CP3 coach does not auto-show again after SKIP + reload', () => assert.equal(afterReload, false));
 await page.click('#apex-guide-open');
-await page.waitForSelector('.apex-guide-card', { visible: true, timeout: 10000 });
-check('"?" control replays the guide on demand', () => {});
-await page.evaluate(() => document.querySelector('.apex-guide-close')?.click());
-await sleep(300);
+await page.waitForSelector('.apex-coach-skip', { visible: true, timeout: 10000 });
+const replayedCoach = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.alpha.coach.v2') || 'null'));
+check('"?" control replays the CP3 coach on demand', () => {
+  assert.equal(replayedCoach?.step, 0);
+  assert.equal(replayedCoach?.done, false);
+  assert.equal(replayedCoach?.skipped, false);
+});
+await page.click('.apex-coach-skip');
+await page.waitForFunction(() => !document.querySelector('.apex-guide-card'), { timeout: 10000 });
 
 // Language switch really translates the Home CTA, both ways.
 await page.click('[data-apex-language-option="vie"]');
@@ -152,7 +173,7 @@ const prog = await page.evaluate(() => ({
   claimButtonsEnabled: [...document.querySelectorAll('.apex-progress-claim')].filter((b) => !b.disabled).length,
 }));
 check('Missions panel opens with locked (not pre-claimable) rewards', () => {
-  assert.equal(prog.rows, 3);
+  assert.equal(prog.rows, 5, 'CP3 Starter Contracts shows all five real-AC contracts');
   assert.equal(prog.balance, '350 AC');
   assert.equal(prog.claimButtonsEnabled, 0);
 });

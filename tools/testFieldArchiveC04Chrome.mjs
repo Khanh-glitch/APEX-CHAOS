@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import {seedCp3EntitledProfile} from './cp3MasteryFixture.mjs';
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']});
 const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
 const dir=path.resolve('docs/field-archive/candidate03');
@@ -20,6 +21,7 @@ try{
   const errors=[];page.on('pageerror',e=>errors.push(String(e)));
   page.on('response',r=>{if(r.status()>=400&&/(pick_selected_large|ecobot|FieldArchiveC03|fieldArchiveC03)/.test(r.url()))errors.push('HTTP '+r.status()+':'+r.url())});
   try{
+   await seedCp3EntitledProfile(page);
    await page.goto(url,{waitUntil:'domcontentloaded',timeout:65000});
    await page.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
    await page.click('#apex-boot-start');
@@ -83,7 +85,7 @@ try{
    assert.deepEqual(skillButtons,['PASSIVE','A1','A2'],'canonical skill slots missing');
    await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-select button:last-child',e=>e.click());
    const ability=await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-info',e=>e.textContent);
-   assert.ok(ability.includes('VIRTUAL ARMOR'),'canonical A2 skill not shown');
+   assert.ok(ability.toUpperCase().includes('VIRTUAL ARMOR'),'canonical A2 skill not shown');
    await page.screenshot({path:path.join(dir,v.name+'-newbot-ability-web.jpg'),type:'jpeg',quality:85});
    await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:first-child').click());
    // IMPORTANT: live registered cosmetic, no fake prototype model.

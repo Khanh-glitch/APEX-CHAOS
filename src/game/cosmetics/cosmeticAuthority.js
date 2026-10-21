@@ -7,6 +7,22 @@ const STORAGE_KEY = 'apexChaos.cosmeticLoadout.v1';
 const KINDS = new Set(['hero', 'weapon']);
 const SIDES = ['p1', 'p2'];
 const registry = new Map();
+// CP3 achievement-gated cosmetic packs. Entitlement itself belongs to the
+// one wallet/mastery authority (APEX_ARSENAL_META.skinEntitlement); this
+// module only enforces it at equip, selection and render resolution. If
+// that provider is unavailable, gated packs fail closed to ORIGINAL while
+// the stored loadout bytes are preserved untouched.
+const GATED_SKINS = new Set(['hero:ROBOT:ecobot', 'weapon:RPG_7:vua-he']);
+function isEntitled(kind, baseId, skinId) {
+  const skin = String(skinId || 'default');
+  if (skin === 'default') return true;
+  let gateKey;
+  try { gateKey = key(kind, baseId, skin); } catch (_) { return false; }
+  if (!GATED_SKINS.has(gateKey)) return true;
+  const provider = typeof window !== 'undefined' ? window.APEX_ARSENAL_META?.skinEntitlement : null;
+  if (typeof provider !== 'function') return false;
+  try { return provider(kind, canonical(kind, baseId), skin) === true; } catch (_) { return false; }
+}
 const loadedAssets = new Map();
 const assetPromises = new Map();
 const listeners = new Set();
@@ -108,14 +124,17 @@ function selected(side,kind,baseId) {
   validSide(side);
   const base=canonical(kind,baseId);
   const value=loadout[side][kind][base] || 'default';
-  return variants(kind,base).find(v=>v.id===value) || variants(kind,base)[0];
+  const option=variants(kind,base).find(v=>v.id===value);
+  // Re-lock with preservation: an old free-era selection stays in storage,
+  // but renders ORIGINAL until the wallet proves the mastery entitlement.
+  return option && isEntitled(kind,base,option.id) ? option : variants(kind,base)[0];
 }
 function equip(side,kind,baseId,skinId,storage=typeof window!=='undefined'?window.localStorage:null) {
   validSide(side);
   const base=canonical(kind,baseId), option=variants(kind,base).find(v=>v.id===skinId);
   if (!option) return { ok:false, reason:'SKIN_NOT_REGISTERED' };
-  // All available non-default cosmetic packs are explicitly registered. The
-  // ownership/unlock economy can be wired later without changing game balance.
+  if (!isEntitled(kind,base,option.id))
+    return { ok:false, reason:'SKIN_LOCKED', side, kind, baseId:base, skinId:option.id };
   loadout[side][kind][base]=option.id;
   const persisted=persist(storage);
   emit();
@@ -170,7 +189,10 @@ function resolve(receipt) {
   if (!receipt || !KINDS.has(receipt.kind)) return null;
   try {
     const record=variants(receipt.kind,receipt.baseId).find(x=>x.id===receipt.skinId);
-    return record || null; // missing skin pack => do not invent an effect
+    if (!record) return null; // missing skin pack => do not invent an effect
+    return isEntitled(receipt.kind,receipt.baseId,record.id)
+      ? record
+      : variants(receipt.kind,receipt.baseId)[0];
   } catch (_) { return null; }
 }
 // Copy only scalar presentation data. No mutable combat objects enter skin renderers.
@@ -283,7 +305,7 @@ async function ready(sideHeroPairs=[], storage=typeof window!=='undefined'?windo
 export function createCosmeticAuthority(storage=typeof window!=='undefined'?window.localStorage:null) {
   read(storage);
   return Object.freeze({
-    version:'cosmetics-v1', register, variants, selected,
+    version:'cosmetics-v1', register, variants, selected, isEntitled,
     equip:(side,kind,base,id)=>equip(side,kind,base,id,storage),
     snapshot, subscribe, capture,captureProjectile,sideOf,
     resolve,render,suppressDefaultBlast,suppressDefaultTrail,blastDuration,trailHistorySeconds,ready,

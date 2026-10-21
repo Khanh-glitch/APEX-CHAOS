@@ -25,6 +25,15 @@ function heroPortraitSource(id){
   return '/assets/gold-ui/heroes/'+slug+'/'+(id==='MIRROR'?'pick_roster_cover.webp':'pick_selected_large.webp');
 }
 const accent={NEWBOT:'#ff941f',HUNTER:'#96ca2d',CRYSTALA:'#a066f0',MAGNET:'#c7c5e9',FROST:'#7ee8ff',MIRROR:'#e9e5df'};
+// CP3: only latched/monotonic owner predicates may be announced while the
+// match is still live. Ratio, current-HP, rolling-window, kill-moment and
+// winner-gated predicates remain seal-only so live feedback can never claim
+// an achievement the final sealed result would deny.
+const FINAL_ONLY_LIVE_AWARDS=new Set([
+  'executioner','glass-cannon','sure-shot','assassin','final-round',
+  'last-stand','untouchable','one-breath','comeback','kiter','clutch',
+  'speed-win','fate-hand'
+]);
 const rgb=s=>{const h=(s||'#aaaaaa').replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)).join(' ')};
 function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
  if(!Array.isArray(actors)||actors.length!==2||!['BOT','LOCAL'].includes(mode))
@@ -48,7 +57,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    pendingControls:new Map(),refundCycles:new Set(),cooldownCycle:{A1:0,A2:0},
    heroCycles:0,traps:0,trapPending:new Map(),refreshes:0,
    finalRound:false,crystalDamage:0,mirrorDamage:0,magnetDamage:0,
-   magnetHolders:new WeakSet()
+   magnetHolders:new WeakSet(),announcedAwards:new Set()
  }));
  const track=f=>tracks.find(t=>t.f===f)||null;
  function now(){return elapsed}
@@ -218,6 +227,48 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(['last-stand','comeback','speed-win'].includes(def.id)&&!winner)return null;
    return generic;
  }
+ function awardSatisfies(def,obs){
+   if(!obs)return false;
+   if(!def.params.length)return !!obs.__event;
+   return def.params.every(p=>finite(obs[p.key])&&(p.compare==='gte'?obs[p.key]>=p.value:obs[p.key]<=p.value));
+ }
+ function awardObservedParams(def,obs){
+   const m={};
+   if(!obs)return m;
+   for(const p of def.params)if(finite(obs[p.key]))m[p.key]=obs[p.key];
+   return m;
+ }
+ function awardPrimaryValue(def,obs){
+   if(!obs)return null;
+   if(!def.params.length)return obs.__event?1:0;
+   const value=obs[def.params[0].key];
+   return finite(value)?value:null;
+ }
+ function achievementBestsFor(t,winner){
+   const bests={};
+   for(const def of catalog){
+     if(def.heroId&&def.heroId!==t.hero)continue;
+     const obs=observed(t,def,winner);
+     bests[def.id]={value:awardPrimaryValue(def,obs),observedParams:awardObservedParams(def,obs)};
+   }
+   return bests;
+ }
+ function evaluateLive(){
+   if(!live||sealed)return [];
+   const events=[];
+   for(const t of tracks){
+     for(const def of catalog){
+       if(def.heroId&&def.heroId!==t.hero)continue;
+       if(FINAL_ONLY_LIVE_AWARDS.has(def.id)||t.announcedAwards.has(def.id))continue;
+       const obs=observed(t,def,false);
+       if(!awardSatisfies(def,obs))continue;
+       t.announcedAwards.add(def.id);
+       events.push({side:t.id,sideIndex:t.index,heroId:t.hero,achievementId:def.id,
+         value:awardPrimaryValue(def,obs),observedParams:awardObservedParams(def,obs),at:elapsed});
+     }
+   }
+   return events;
+ }
  function seal(winnerSide){
    if(sealed)return sealed;if(!live)return null;
    const wi=winnerSide==='P1'?0:winnerSide==='P2'?1:-1;
@@ -261,6 +312,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        const m={};for(const p of def.params)m[p.key]=obs[p.key];
        awards.push({achievementId:def.id,value:m[def.params[0].key],observedParams:m});
      }
+     const achievementBests=achievementBestsFor(t,i===wi);
      return {id:t.id,slot:i+1,handle:'P'+(i+1),level:1,rankTitle:'CORE SIX',
        outcome:i===wi?'victory':'defeat',accent:color,accentRgb:rgb(color),
        character:{name:t.hero,className:'APEX FIGHTER',tagline:'',artKind:'generic',
@@ -268,7 +320,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        damage:{dealt:t.dealt,taken:t.taken,sources:list},stats:{
          accuracy:t.shots>0?Math.min(100,Math.round(t.hits/t.shots*100)):0,
          critRate:t.hits>0?Math.round(t.critHits/t.hits*100):0,
-         healing:t.healing,skillCasts:t.casts},awards};
+         healing:t.healing,skillCasts:t.casts},awards,achievementBests};
    });
    const ranked=new Map();
    for(const p of players)for(const s of p.damage.sources){if(s.kind!=='weapon')continue;
@@ -282,7 +334,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        :{weaponId:'',ownerId:'',damage:0}};
    sealed=Object.freeze(result);close();return sealed;
  }
- return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onMagnetQualifiedHolder,onRicochet,onRicochetHit,onControl,onBlocked,tick,seal,close,
+ return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onMagnetQualifiedHolder,onRicochet,onRicochetHit,onControl,onBlocked,tick,evaluateLive,seal,close,
    snapshot:()=>({live,elapsed,players:tracks.map(t=>({id:t.id,dealt:t.dealt,shots:t.shots,pickups:t.pickups}))})});
 }
 root.APEX_MATCH_RESULT_AUTHORITY=Object.freeze({create});

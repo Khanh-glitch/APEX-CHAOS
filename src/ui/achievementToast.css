@@ -1,0 +1,85 @@
+/* CP3 achievement toast: top-center below the match clock, pointer-
+   transparent, and bounded so it never covers fighters, HP or skills. */
+.apex-achievement-toast {
+  position: fixed;
+  left: 50%;
+  top: max(76px, calc(env(safe-area-inset-top, 0px) + 9vh));
+  transform: translateX(-50%);
+  z-index: 2147480700;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(430px, calc(100vw - 32px));
+  padding: 10px 14px 10px 10px;
+  color: #f4f0e6;
+  background: linear-gradient(155deg, rgba(27,24,16,.97), rgba(7,8,10,.97));
+  border: 1px solid rgba(232,180,90,.68);
+  box-shadow: 0 18px 46px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.08);
+  clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+  font-family: 'Oswald', Arial, sans-serif;
+  animation: apex-achievement-toast-in .26s ease-out;
+}
+.apex-achievement-toast-medal {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #1d1302;
+  font-size: 22px;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #d7a83f 40%, #75530d 72%, #201505);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -8px 14px rgba(0,0,0,.25), 0 8px 18px rgba(0,0,0,.3);
+}
+.apex-achievement-toast.rarity-legendary {
+  border-color: rgba(255,177,46,.92);
+  box-shadow: 0 18px 52px rgba(0,0,0,.62), 0 0 28px rgba(255,177,46,.18), inset 0 1px rgba(255,255,255,.1);
+}
+.apex-achievement-toast.rarity-epic .apex-achievement-toast-medal {
+  background: radial-gradient(circle at 35% 30%, #f1dcff, #a066f0 42%, #442064 76%, #160a24);
+  color: #fff7ff;
+}
+.apex-achievement-toast.rarity-rare .apex-achievement-toast-medal {
+  background: radial-gradient(circle at 35% 30%, #dff4ff, #58b6e8 42%, #1d587c 76%, #071722);
+  color: #f4fbff;
+}
+.apex-achievement-toast-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.apex-achievement-toast-copy > span {
+  color: #e8b45a;
+  font: 800 8px/1.2 ui-monospace, monospace;
+  letter-spacing: .16em;
+}
+.apex-achievement-toast-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(17px, 3.8vw, 21px);
+  line-height: 1.08;
+  font-style: italic;
+  font-weight: 900;
+}
+.apex-achievement-toast-copy small {
+  color: #c9d2db;
+  font: 800 9px/1.3 ui-monospace, monospace;
+  letter-spacing: .1em;
+}
+.apex-achievement-toast-copy .apex-achievement-toast-more { color: #f0d67e; }
+@keyframes apex-achievement-toast-in {
+  from { opacity: 0; transform: translate(-50%, -8px) scale(.985); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@media (max-width: 540px) {
+  .apex-achievement-toast {
+    top: max(68px, calc(env(safe-area-inset-top, 0px) + 7vh));
+    padding: 8px 11px 8px 8px;
+  }
+  .apex-achievement-toast-medal { width: 42px; height: 42px; font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .apex-achievement-toast { animation: none; }
+}

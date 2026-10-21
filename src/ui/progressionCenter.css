@@ -76,3 +76,184 @@
   .apex-progress-claim { width:100%; min-height:48px; }
   .apex-progress-body { padding:14px 14px 16px; }
 }
+
+/* CP3 Mastery Vault. The mission panel keeps its compact width; only the
+   mastery path expands into the wider horizontal track. */
+.apex-progress-panel:has(.apex-mastery-vault) { width: min(1080px, calc(100vw - 20px)); }
+.apex-progress-row.is-current {
+  border-color: rgba(240,214,126,.78);
+  box-shadow: inset 3px 0 #f0d67e, 0 0 22px rgba(240,214,126,.08);
+}
+.apex-mastery-vault { display: grid; gap: 14px; }
+.apex-mastery-total {
+  display: grid; gap: 9px; padding: 12px; border: 1px solid rgba(215,189,114,.42);
+  background: linear-gradient(120deg, rgba(75,65,36,.55), rgba(13,18,23,.92) 58%);
+}
+.apex-mastery-total > div:first-child { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.apex-mastery-total span,
+.apex-mastery-section-kicker {
+  margin:0; color:#d7bd72; font: 800 8px/1 ui-monospace,monospace; letter-spacing:.18em;
+}
+.apex-mastery-total strong { color:#fff3c4; font-size:24px; font-style:italic; line-height:1; }
+.apex-mastery-recent,
+.apex-mastery-summary,
+.apex-mastery-weapon {
+  border:1px solid #303842; background:linear-gradient(180deg,#10161d,#0a0f14);
+  padding:14px;
+}
+.apex-mastery-recent h3,
+.apex-mastery-summary h3,
+.apex-mastery-weapon h3,
+.apex-mastery-terminal h3 { margin:4px 0 6px; font-size:18px; font-style:italic; font-weight:900; }
+.apex-mastery-recent p,
+.apex-mastery-summary p,
+.apex-mastery-weapon p,
+.apex-mastery-terminal p { margin:0; color:#a7b1bb; font-size:12.5px; line-height:1.5; }
+.apex-mastery-recent-row { display:flex; gap:8px; overflow-x:auto; padding:3px 1px 5px; }
+.apex-mastery-recent-chip {
+  flex:0 0 auto; display:flex; align-items:center; gap:9px; min-height:48px; padding:7px 11px 7px 7px;
+  border:1px solid rgba(215,189,114,.35); background:#0d1217;
+}
+.apex-mastery-recent-chip i {
+  width:34px; height:34px; display:grid; place-items:center; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff3c4,#d7a83f 42%,#6e4d0c); color:#1d1302; font-style:normal;
+}
+.apex-mastery-recent-chip span { display:grid; gap:2px; }
+.apex-mastery-recent-chip b { font-size:12px; }
+.apex-mastery-recent-chip small { color:#8b96a1; font:800 8px/1 ui-monospace,monospace; letter-spacing:.1em; }
+.apex-mastery-hero-rail { display:flex; gap:8px; overflow-x:auto; padding:1px 1px 5px; }
+.apex-mastery-hero-rail button {
+  flex:0 0 auto; min-width:124px; min-height:62px; padding:10px 12px; cursor:pointer; text-align:left;
+  display:grid; gap:3px; border:1px solid #3a434e; background:linear-gradient(180deg,#171e26,#0d1217); color:#f4f0e6;
+  clip-path: polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+.apex-mastery-hero-rail button.is-active { border-color:rgba(240,214,126,.8); background:linear-gradient(180deg,#4b4124,#211b0d); }
+.apex-mastery-hero-rail b { font-size:13px; font-style:italic; }
+.apex-mastery-hero-rail span { color:#f0d67e; font:800 10px/1 ui-monospace,monospace; }
+.apex-mastery-hero-rail small { color:#8b96a1; font:800 8px/1 ui-monospace,monospace; letter-spacing:.12em; }
+.apex-mastery-summary { display:flex; align-items:center; gap:18px; }
+.apex-mastery-ring {
+  --mastery-deg:0deg;
+  position:relative; flex:0 0 auto; width:112px; height:112px; border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:conic-gradient(#f0d67e var(--mastery-deg), #26303a 0deg);
+  box-shadow:0 12px 30px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.18);
+}
+.apex-mastery-ring::before {
+  content:""; position:absolute; inset:8px; border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,#1a222b,#080b0e 72%);
+  border:1px solid rgba(255,255,255,.08);
+}
+.apex-mastery-ring strong,.apex-mastery-ring span { position:relative; z-index:1; }
+.apex-mastery-ring strong { font-size:20px; font-style:italic; }
+.apex-mastery-ring span { color:#d7bd72; font:800 8px/1 ui-monospace,monospace; letter-spacing:.14em; }
+.apex-mastery-ring.tier-legendary { background:conic-gradient(#ffb12e var(--mastery-deg), #26303a 0deg); }
+.apex-mastery-path {
+  display:grid; grid-auto-flow:column; grid-auto-columns:minmax(258px, 292px); gap:12px;
+  overflow-x:auto; overflow-y:hidden; padding:2px 2px 10px; scroll-snap-type:x proximity;
+}
+.apex-mastery-chapter,.apex-mastery-terminal {
+  scroll-snap-align:start; border:1px solid #303842; background:linear-gradient(180deg,#10161d,#090d11);
+  padding:12px; min-height:100%;
+}
+.apex-mastery-chapter > header { display:flex; gap:10px; align-items:flex-start; margin-bottom:11px; }
+.apex-mastery-chapter > header > span {
+  color:#d7bd72; font:900 24px/1 sans-serif; font-style:italic; opacity:.9;
+}
+.apex-mastery-chapter h3 { margin:0; font-size:15px; font-style:italic; }
+.apex-mastery-chapter header small { color:#8b96a1; font:800 9px/1 ui-monospace,monospace; }
+.apex-mastery-medals { display:grid; gap:8px; }
+.apex-mastery-medal {
+  display:flex; gap:10px; padding:10px; border:1px solid #2d3640; background:#0b1015;
+}
+.apex-mastery-medal.is-unlocked {
+  border-color:rgba(215,189,114,.58);
+  background:linear-gradient(130deg,rgba(75,65,36,.48),#0b1015 62%);
+}
+.apex-mastery-medal.is-progress { border-color:rgba(122,154,180,.55); }
+.apex-mastery-medal.is-locked { opacity:.76; }
+.apex-mastery-medal-disc {
+  position:relative; flex:0 0 auto; width:48px; height:48px; border-radius:50%;
+  display:grid; place-items:center; color:#1d1302; font-size:21px;
+  background:radial-gradient(circle at 35% 30%,#fff3c4,#d7a83f 40%,#75530d 72%,#201505);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -8px 14px rgba(0,0,0,.25), 0 8px 18px rgba(0,0,0,.3);
+}
+.apex-mastery-medal.is-locked .apex-mastery-medal-disc { filter:grayscale(.9); opacity:.62; }
+.apex-mastery-medal.is-progress .apex-mastery-medal-disc { filter:saturate(.65); }
+.apex-mastery-medal.rarity-legendary .apex-mastery-medal-disc { box-shadow:0 0 20px rgba(255,177,46,.35), inset 0 1px rgba(255,255,255,.55); }
+.apex-mastery-medal-disc b {
+  position:absolute; top:-7px; right:-10px; padding:3px 5px; background:#ff941f; color:#180c00;
+  font:900 8px/1 ui-monospace,monospace; letter-spacing:.08em;
+}
+.apex-mastery-medal-copy { flex:1; min-width:0; }
+.apex-mastery-medal-top {
+  display:flex; justify-content:space-between; gap:8px; color:#8b96a1;
+  font:800 8px/1 ui-monospace,monospace; letter-spacing:.1em;
+}
+.apex-mastery-medal h4 { margin:5px 0 4px; font-size:13px; line-height:1.2; font-weight:900; }
+.apex-mastery-medal p { margin:0 0 8px; color:#a7b1bb; font-size:11.5px; line-height:1.45; }
+.apex-mastery-medal small { display:block; margin-top:6px; color:#d7dde3; font:800 9px/1.25 ui-monospace,monospace; letter-spacing:.06em; }
+.apex-mastery-terminal {
+  display:flex; flex-direction:column; gap:10px; border-color:rgba(215,189,114,.55);
+  background:radial-gradient(circle at 50% 0%,rgba(215,189,114,.18),transparent 45%),linear-gradient(180deg,#141a14,#090d11);
+}
+.apex-mastery-terminal-mark {
+  width:66px; height:66px; display:grid; place-items:center; border-radius:50%; font-size:31px; color:#14200d;
+  background:radial-gradient(circle at 35% 30%,#eaffc8,#92c94e 42%,#386716 78%);
+  box-shadow:0 12px 28px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.55);
+}
+.apex-mastery-terminal > strong { font-size:28px; font-style:italic; }
+.apex-mastery-remaining { color:#a7b1bb; font-size:12px; }
+.apex-mastery-remaining summary { cursor:pointer; color:#f0d67e; font-weight:800; }
+.apex-mastery-remaining ul {
+  margin:8px 0 0; padding:0; list-style:none; max-height:168px; overflow:auto; display:grid; gap:4px;
+}
+.apex-mastery-remaining li { padding:6px 8px; background:rgba(255,255,255,.04); }
+.apex-mastery-equip {
+  margin-top:auto; min-height:44px; padding:10px 14px; cursor:pointer;
+  border:1px solid #5a5541; background:linear-gradient(180deg,#4b4124,#282311); color:#f7e7ac;
+  font:900 11px/1.2 "ApcKanit","Segoe UI",sans-serif; letter-spacing:.08em; text-transform:uppercase;
+  clip-path: polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+}
+.apex-mastery-equip:disabled {
+  cursor:default; color:#8b96a1; border-color:#333c45;
+  background:linear-gradient(180deg,#171d24,#0d1217);
+}
+.apex-mastery-weapon-head { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+.apex-mastery-weapon-head img {
+  width:min(250px,42%); max-height:132px; object-fit:contain;
+  filter:drop-shadow(0 14px 22px rgba(0,0,0,.45));
+}
+.apex-mastery-rpg-track { display:grid; gap:9px; margin-top:14px; }
+.apex-mastery-rpg-score { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+.apex-mastery-rpg-score span { color:#8b96a1; font:800 8px/1 ui-monospace,monospace; letter-spacing:.14em; }
+.apex-mastery-rpg-score strong { color:#f0d67e; font-size:18px; }
+.apex-mastery-weapon h4 { margin:16px 0 8px; font-size:12px; letter-spacing:.08em; }
+.apex-mastery-weapon-records { display:flex; flex-wrap:wrap; gap:8px; }
+.apex-mastery-weapon-records > span {
+  display:grid; gap:2px; padding:8px 10px; border:1px solid #303842; background:#0d1217;
+}
+.apex-mastery-weapon-records b { font-size:11px; }
+.apex-mastery-weapon-records small { color:#8b96a1; font:800 9px/1 ui-monospace,monospace; }
+@media (hover:hover) {
+  .apex-mastery-hero-rail button:hover,
+  .apex-mastery-equip:hover:not(:disabled) { filter:brightness(1.16); }
+}
+@media (max-width: 699px) {
+  .apex-mastery-summary { align-items:flex-start; }
+  .apex-mastery-ring { width:92px; height:92px; }
+  .apex-mastery-weapon-head { flex-direction:column; align-items:flex-start; }
+  .apex-mastery-weapon-head img { width:min(270px,100%); }
+}
+@media (orientation: portrait) and (max-width: 699px) {
+  .apex-mastery-path {
+    grid-auto-flow:row; grid-auto-columns:auto; grid-template-columns:1fr;
+    overflow-x:visible; overflow-y:visible; padding:0; scroll-snap-type:none;
+  }
+  .apex-mastery-summary { flex-direction:column; }
+  .apex-mastery-hero-rail { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; }
+  .apex-mastery-hero-rail button { min-width:0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .apex-progress-panel * { transition-duration:.01ms !important; animation-duration:.01ms !important; }
+}

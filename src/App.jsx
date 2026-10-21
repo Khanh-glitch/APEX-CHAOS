@@ -28,6 +28,8 @@ import AccountCenter from './ui/AccountCenter.jsx';
 import ProgressionCenter from './ui/ProgressionCenter.jsx';
 import FirstPlayGuide from './ui/FirstPlayGuide.jsx';
 import RewardToast from './ui/RewardToast.jsx';
+import AchievementToast from './ui/AchievementToast.jsx';
+import SkinUnlockCelebration from './ui/SkinUnlockCelebration.jsx';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -1095,6 +1097,8 @@ export default function App() {
     <ProgressionCenter />
     <FirstPlayGuide />
     <RewardToast />
+    <AchievementToast />
+    <SkinUnlockCelebration />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount
