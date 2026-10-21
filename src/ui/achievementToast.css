@@ -159,6 +159,29 @@
   letter-spacing: .1em;
 }
 .apex-achievement-toast-copy .apex-achievement-toast-more { color: #f0d67e; }
+/* CP5.1 achieved-vs-target meter + left gold fin: the toast now shows the
+   real metric that crossed the threshold, not just the achievement name. */
+.apex-achievement-toast { box-shadow: 0 18px 46px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.08), inset 4px 0 0 #e8b45a; }
+.apex-achievement-toast.owner-bot { box-shadow: 0 14px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06), inset 4px 0 0 #8ea0b5; }
+.apex-achievement-toast.is-sealed:not(.is-compact) .apex-achievement-toast-medal { width: 54px; height: 54px; font-size: 25px; }
+.apex-achievement-toast-meter {
+  display: flex; align-items: center; gap: 8px; margin-top: 3px;
+}
+.apex-achievement-toast-meter i {
+  flex: 1; height: 4px; background: rgba(255,255,255,.14); overflow: hidden; display: block;
+}
+.apex-achievement-toast-meter i b {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #c8a24d, #f0d67e);
+}
+.apex-achievement-toast.owner-bot .apex-achievement-toast-meter i b {
+  background: linear-gradient(90deg, #7186a0, #b9c9dc);
+}
+.apex-achievement-toast-meter em {
+  font: 800 9px/1 ui-monospace, monospace; font-style: normal;
+  letter-spacing: .08em; color: #f0d67e; white-space: nowrap;
+}
+.apex-achievement-toast.owner-bot .apex-achievement-toast-meter em { color: #b9c9dc; }
 @keyframes apex-achievement-toast-in {
   from { opacity: 0; transform: translateY(8px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }

@@ -4,7 +4,9 @@ import {
   MASTERY_HEROES,
   RARITY_LABELS,
   applicableAchievements,
+  formatMasteryValue,
   masteryResultHeroId,
+  primaryProgress,
 } from './masteryCatalog.js';
 import './achievementToast.css';
 
@@ -185,6 +187,10 @@ export default function AchievementToast() {
           return {
             key: `${provisional ? 'provisional' : 'sealed'}:${owner.ownerSide || 'unknown'}:${heroId}:${achievement.id}:${at}`,
             achievement,
+            // CP5.1: the ledger/meta payload already carries the primary
+            // metric that crossed the threshold; the toast renders it as
+            // an achieved-vs-target meter from the same catalog authority.
+            value: Number.isFinite(Number(unlock?.value)) ? Number(unlock.value) : null,
             heroId,
             heroName: MASTERY_HEROES.find((hero) => hero.resultId === heroId)?.name || heroId,
             at,
@@ -253,6 +259,13 @@ export default function AchievementToast() {
       : t.progress(current.heroName, progress.earned, progress.total);
   const overflowText = isBotFeat ? t.botMore(overflow)
     : current.provisional ? t.provisionalMore(overflow) : t.more(overflow);
+  const progressInfo = current.value != null
+    ? primaryProgress(achievement, current.value, !current.provisional)
+    : null;
+  const showMeter = !!progressInfo && progressInfo.compare !== 'event' && progressInfo.current != null;
+  const meterText = showMeter
+    ? `${formatMasteryValue(progressInfo.current)} / ${progressInfo.compare === 'lte' ? '≤ ' : ''}${formatMasteryValue(progressInfo.target)}${progressInfo.unit ? ` ${progressInfo.unit}` : ''}`
+    : '';
 
   // CP5: BOT feats render as a compact edge chip (ref: edge-feed hierarchy)
   // so an opponent event never carries the same weight as the player's own
@@ -282,6 +295,12 @@ export default function AchievementToast() {
           ? `${current.ownerSide || 'P2'} · ${t.ownerBot} · ${RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}`
           : `${ownerText ? `${ownerText} · ` : ''}${statusText} · ${RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}`}</span>
         <strong>{achievement.name}</strong>
+        {showMeter && (
+          <span className="apex-achievement-toast-meter" aria-hidden="true">
+            <i><b style={{ width: `${progressInfo.percent}%` }} /></i>
+            <em>{meterText}</em>
+          </span>
+        )}
         <small>{detailText}</small>
         {overflow > 0 && <small className="apex-achievement-toast-more">{overflowText}</small>}
       </div>

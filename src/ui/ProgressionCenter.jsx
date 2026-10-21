@@ -53,6 +53,9 @@ const COPY = {
     weaponMastery: 'WEAPON MASTERY',
     totalMastery: 'TOTAL MASTERY',
     recentUnlocks: 'RECENT UNLOCKS',
+    viewAll: 'VIEW ALL',
+    toNextTier: (n, tierName) => `${n} MORE → ${tierName}`,
+    chapterNext: 'NEXT',
     noRecent: 'No combat achievements yet. Finish a BOT or LOCAL match to start the record.',
     locked: 'LOCKED',
     inProgress: 'IN PROGRESS',
@@ -95,6 +98,9 @@ const COPY = {
     weaponMastery: 'TINH THÔNG VŨ KHÍ',
     totalMastery: 'TỔNG TINH THÔNG',
     recentUnlocks: 'MỞ KHÓA GẦN ĐÂY',
+    viewAll: 'XEM TẤT CẢ',
+    toNextTier: (n, tierName) => `CÒN ${n} → ${tierName}`,
+    chapterNext: 'KẾ TIẾP',
     noRecent: 'Chưa có thành tựu chiến đấu. Hoàn thành một trận BOT hoặc LOCAL để bắt đầu hồ sơ.',
     locked: 'ĐANG KHÓA',
     inProgress: 'ĐANG TIẾN TRIỂN',
@@ -196,6 +202,26 @@ function progressText(achievement, progress, t) {
   return `${t.best} ${formatMasteryValue(progress.current)} / ${formatMasteryValue(progress.target)}${progress.unit ? ` ${progress.unit}` : ''}`;
 }
 
+// CP5.1: how far the selected hero is from the next mastery tier band,
+// using the same bands as masteryTier() in the catalog authority. Returns
+// null when already legendary or when there is nothing to earn.
+function nextTierHint(progress) {
+  const earned = Number(progress?.earned) || 0;
+  const total = Number(progress?.total) || 0;
+  if (!total || earned >= total) return null;
+  const ratio = earned / total;
+  const bands = [
+    { at: 0.25, eng: 'SILVER', vie: 'BẠC' },
+    { at: 0.5, eng: 'GOLD', vie: 'VÀNG' },
+    { at: 0.75, eng: 'EPIC', vie: 'SỬ THI' },
+    { at: 1, eng: 'LEGENDARY', vie: 'HUYỀN THOẠI' },
+  ];
+  const band = bands.find((item) => ratio < item.at || earned === 0);
+  if (!band) return null;
+  const needed = Math.max(1, Math.ceil(band.at * total) - earned);
+  return { needed, tier: band };
+}
+
 function MedalCard({ achievement, earnedAt, best, recent, language, t }) {
   const earned = earnedAt !== undefined;
   const progress = primaryProgress(achievement, best, earned);
@@ -250,6 +276,7 @@ export default function ProgressionCenter() {
   // CP5 chapter accordion: { heroId, category|null } once the player has
   // toggled anything; before that the first incomplete chapter is open.
   const [chapterChoice, setChapterChoice] = useState(null);
+  const [showAllRecent, setShowAllRecent] = useState(false);
   const [language, setLanguage] = useState(
     () => (typeof window !== 'undefined' && window.APEX_I18N?.getLanguage?.()) || 'eng');
   const panelRef = useRef(null);
@@ -372,7 +399,9 @@ export default function ProgressionCenter() {
   const achievements = applicableAchievements(selectedHero.resultId);
   const earnedMap = safeMastery.earned?.[selectedHero.resultId] || {};
   const bestMap = safeMastery.best?.[selectedHero.resultId] || {};
-  const recentItems = Array.isArray(safeMastery.recent) ? safeMastery.recent.slice(0, 8) : [];
+  const recentAll = Array.isArray(safeMastery.recent) ? safeMastery.recent : [];
+  const recentItems = showAllRecent ? recentAll.slice(0, 24) : recentAll.slice(0, 8);
+  const nextTier = nextTierHint(selectedProgress);
   const recentKeys = new Set(recentItems.map((item) => `${item.heroId}:${item.achievementId}`));
 
   // CP5 information architecture (presentation only): one chapter open at a
@@ -521,16 +550,31 @@ export default function ProgressionCenter() {
               </div>
 
               <section className="apex-mastery-recent" aria-labelledby="apex-mastery-recent-title">
-                <h3 id="apex-mastery-recent-title">{t.recentUnlocks}</h3>
+                <div className="apex-mastery-recent-head">
+                  <h3 id="apex-mastery-recent-title">{t.recentUnlocks}</h3>
+                  {recentAll.length > 8 && !showAllRecent && (
+                    <button type="button" className="apex-mastery-view-all" onClick={() => setShowAllRecent(true)}>
+                      {t.viewAll}
+                    </button>
+                  )}
+                </div>
                 {recentItems.length ? (
                   <div className="apex-mastery-recent-row">
                     {recentItems.map((item) => {
                       const achievement = MASTERY_BY_ID[item.achievementId];
                       if (!achievement) return null;
                       const hero = MASTERY_HEROES.find((entry) => entry.resultId === masteryResultHeroId(item.heroId));
+                      const recentPresentation = achievement.rarityPresentation || {};
                       return (
                         <span className="apex-mastery-recent-chip" key={`${item.heroId}-${item.achievementId}-${item.at}`}>
-                          <i aria-hidden="true">{achievement.iconGlyph}</i>
+                          <span
+                            className={`apex-mastery-recent-disc rarity-${achievement.rarity}`}
+                            data-rarity-shape={recentPresentation.shape || 'circle'}
+                            aria-hidden="true"
+                          >
+                            <span className={`apex-mastery-medal-shape shape-${recentPresentation.shape || 'circle'} pattern-${recentPresentation.pattern || 'plain'}`} />
+                            <span className="apex-mastery-medal-glyph">{achievement.iconGlyph}</span>
+                          </span>
                           <span><b>{achievement.name}</b><small>{hero?.name || item.heroId}{dateLabel(item.at, lang) ? ` · ${dateLabel(item.at, lang)}` : ''}</small></span>
                         </span>
                       );
@@ -553,6 +597,9 @@ export default function ProgressionCenter() {
                     >
                       <b>{hero.name}</b>
                       <span>{itemProgress.earned}/{itemProgress.total}</span>
+                      <span className="apex-mastery-rail-meter" aria-hidden="true">
+                        <span style={{ width: `${itemProgress.total ? (itemProgress.earned / itemProgress.total) * 100 : 0}%` }} />
+                      </span>
                       {!owned && <small>{t.locked}</small>}
                     </button>
                   );
@@ -570,14 +617,18 @@ export default function ProgressionCenter() {
                 </div>
                 <div>
                   <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
-                  <h3>{selectedHero.name} · {tier[lang]}</h3>
+                  <h3>{selectedHero.name} · {tier[lang]} · {Math.round(selectedPercent)}%</h3>
                   <p>{selectedProgress.complete ? t.complete : t.remaining(selectedProgress.missingIds.length)}</p>
+                  {nextTier && (
+                    <p className="apex-mastery-next-tier">{t.toNextTier(nextTier.needed, nextTier.tier[lang])}</p>
+                  )}
                 </div>
               </section>
 
               {selectedHero.resultId === 'NEWBOT' && (
                 <section className="apex-mastery-goal" aria-label={ecoSkin?.label || 'ECOBOT'}>
                   <div className="apex-mastery-goal-head">
+                    <span className="apex-mastery-goal-mark" aria-hidden="true">♻</span>
                     <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
                     <strong>{ecoSkin?.label || 'ECOBOT — RECYCLE CORE V17'}</strong>
                     <span>{ecoProgress.current}/{ecoProgress.target}</span>
@@ -594,7 +645,15 @@ export default function ProgressionCenter() {
               {nextObjectives.length > 0 && (
                 <section className="apex-mastery-next" aria-label={t.currentObjective}>
                   <p className="apex-mastery-section-kicker">{t.currentObjective}</p>
-                  {nextObjectives.map(({ item, progress }) => (
+                  <MedalCard
+                    achievement={nextObjectives[0].item}
+                    earnedAt={undefined}
+                    best={bestMap[nextObjectives[0].item.id]}
+                    recent={false}
+                    language={lang}
+                    t={t}
+                  />
+                  {nextObjectives.slice(1).map(({ item, progress }) => (
                     <p key={item.id} className="apex-mastery-next-line">
                       <b>{item.name}</b>
                       <span>{progressText(item, progress, t)}</span>
@@ -627,6 +686,24 @@ export default function ProgressionCenter() {
                             <span className="apex-progress-meter" aria-hidden="true">
                               <span style={{ width: `${chapter.length ? (chapterEarned / chapter.length) * 100 : 0}%` }} />
                             </span>
+                            <span className="apex-mastery-chapter-next">
+                              {chapterEarned < chapter.length
+                                ? `${t.chapterNext}: ${(chapter.find((item) => !Object.prototype.hasOwnProperty.call(earnedMap, item.id)) || {}).name || ''}`
+                                : t.complete}
+                            </span>
+                          </span>
+                          <span className="apex-mastery-chapter-peek" aria-hidden="true">
+                            {chapter.slice(0, 6).map((item) => {
+                              const peek = item.rarityPresentation || {};
+                              const had = Object.prototype.hasOwnProperty.call(earnedMap, item.id);
+                              return (
+                                <i
+                                  key={item.id}
+                                  className={`apex-mastery-peek-disc rarity-${item.rarity} shape-${peek.shape || 'circle'}${had ? ' is-earned' : ''}`}
+                                  data-rarity-shape={peek.shape || 'circle'}
+                                />
+                              );
+                            })}
                           </span>
                           <small>{chapterEarned}/{chapter.length}</small>
                           <span className="apex-mastery-chapter-chevron" aria-hidden="true">›</span>

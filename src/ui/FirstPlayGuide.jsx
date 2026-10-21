@@ -176,6 +176,44 @@ function projectedSkill(index) {
   } catch { return null; }
 }
 
+// CP5.1: the instruction names the actual skill being taught, read from
+// the live HUD projection/DOM at render time — never a per-hero table in
+// the coach. Falls back to the generic Skill 1/2 wording when unavailable.
+function taughtSkillName(index) {
+  try {
+    const projected = projectedSkill(index);
+    const fromProjection = projected?.name || projected?.label || projected?.title;
+    if (typeof fromProjection === 'string' && fromProjection.trim().length >= 2) {
+      return fromProjection.trim().slice(0, 28).toUpperCase();
+    }
+    const element = skillAnchor(index);
+    const named = element?.querySelector?.('[data-name], .skillName, .skill-name, strong, h3, h4, b');
+    const text = String(named?.textContent || '').trim();
+    if (text.length >= 2 && text.length <= 28 && /[A-Za-zÀ-ỹ]/.test(text)) return text.toUpperCase();
+  } catch { /* presentation only */ }
+  return '';
+}
+
+// CP5.1: the paused pill docks inside the arena's top edge (measured from
+// the live arena canvas each render), so "the match is paused" reads at
+// the place the player is looking — not buried inside the coach chip.
+function arenaPillStyle() {
+  try {
+    let best = null;
+    document.querySelectorAll('canvas').forEach((canvas) => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width > 200 && rect.height > 200 && (!best || rect.width * rect.height > best.width * best.height)) best = rect;
+    });
+    if (best) {
+      return {
+        top: `${Math.round(best.top + 10)}px`,
+        right: `${Math.max(8, Math.round(window.innerWidth - best.right + 10))}px`,
+      };
+    }
+  } catch { /* fall through to the safe default */ }
+  return { top: '96px', right: '10px' };
+}
+
 function skillInfo(index) {
   const element = skillAnchor(index);
   const projected = projectedSkill(index);
@@ -1025,6 +1063,8 @@ export default function FirstPlayGuide() {
   const body = item.body || (coarse ? item.touch : item.keyboard);
   const isPausedLesson = (coach.step === 3 || coach.step === 4)
     && pausedSlot === coach.step - 3;
+  const skillName = isPausedLesson ? taughtSkillName(coach.step - 3) : '';
+  const displayBody = skillName ? `${body} · ${skillName}` : body;
 
   return (
     <div
@@ -1042,10 +1082,16 @@ export default function FirstPlayGuide() {
           height: `${frame.beaconHeight}px`,
         }}
       />
+      {isPausedLesson && (
+        <div className="apex-guide-paused-note apex-guide-arena-pill" style={arenaPillStyle()} aria-hidden="true">
+          <i className="apex-pause-bars"><b /><b /></i>
+          <span>{copy.pausedNote}</span>
+        </div>
+      )}
       <section
         className="apex-guide-card apex-coach-chip"
         role="status"
-        aria-label={`${copy.kicker}: ${item.title}. ${body}${isPausedLesson ? ` ${copy.pausedNote}` : ''}`}
+        aria-label={`${copy.kicker}: ${item.title}. ${displayBody}${isPausedLesson ? ` ${copy.pausedNote}` : ''}`}
         data-placement={frame.placement}
         data-apex-no-localize=""
         style={{
@@ -1057,11 +1103,13 @@ export default function FirstPlayGuide() {
       >
         <div className="apex-coach-copy">
           <p className="apex-guide-kicker">{(isPausedLesson ? copy.actionKicker : copy.kicker)} · {coach.step + 1}/{LAST_STEP + 1}</p>
+          <div className="apex-guide-steps" aria-hidden="true">
+            {Array.from({ length: LAST_STEP + 1 }, (_, index) => (
+              <i key={index} className={index <= coach.step ? 'is-done' : ''} />
+            ))}
+          </div>
           <h2>{item.title}</h2>
-          <p className="apex-guide-body">{body}</p>
-          {isPausedLesson && (
-            <p className="apex-guide-paused-note">{copy.pausedNote}</p>
-          )}
+          <p className="apex-guide-body">{displayBody}</p>
         </div>
         <button type="button" className="apex-coach-skip" onClick={skipCoach}>{copy.skip}</button>
       </section>

@@ -102,6 +102,39 @@
   letter-spacing:.12em;
   text-transform:uppercase;
 }
+/* CP5.1: paused pill anchored inside the arena's top edge + step ticks +
+   taught-card lift. Pause bars are CSS rectangles (no font glyph risk). */
+.apex-guide-arena-pill{
+  position:fixed;
+  z-index:2147480749;
+  margin:0;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 11px;
+  pointer-events:none;
+  background:rgba(8,8,10,.88);
+  box-shadow:0 10px 26px rgba(0,0,0,.5);
+  animation:apex-coach-chip-in .22s ease-out;
+}
+.apex-pause-bars{display:inline-flex;gap:3px;flex:none}
+.apex-pause-bars b{display:block;width:3px;height:10px;background:#ffd27a}
+.apex-guide-steps{display:flex;gap:4px;margin:0 0 7px}
+.apex-guide-steps i{display:block;width:15px;height:3px;background:rgba(255,255,255,.16)}
+.apex-guide-steps i.is-done{background:#e8b45a}
+.apex-guide-card.apex-coach-chip[data-placement="above"]::after,
+.apex-guide-card.apex-coach-chip[data-placement="below"]::after{
+  content:"";position:absolute;left:50%;width:14px;height:10px;
+  background:rgba(10,9,9,.98);
+  border-right:1px solid rgba(232,180,90,.68);
+  border-bottom:1px solid rgba(232,180,90,.68);
+}
+.apex-guide-card.apex-coach-chip[data-placement="above"]::after{
+  bottom:-6px;transform:translateX(-50%) rotate(45deg);
+}
+.apex-guide-card.apex-coach-chip[data-placement="below"]::after{
+  top:-6px;transform:translateX(-50%) rotate(225deg);
+}
 .apex-coach-layer.is-tutorial-paused .apex-coach-beacon{
   animation:none;
   opacity:1;

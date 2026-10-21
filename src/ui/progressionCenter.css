@@ -355,3 +355,47 @@
 @media (prefers-reduced-motion: reduce) {
   .apex-progress-panel * { transition-duration:.01ms !important; animation-duration:.01ms !important; }
 }
+
+/* CP5.1 Mastery deepening: shaped recent discs, view-all, rail meters,
+   chapter peeks/next, next-tier hint, goal mark, full next-objective card. */
+.apex-mastery-recent-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.apex-mastery-view-all{
+  background:transparent;border:1px solid rgba(232,180,90,.55);color:#f0d67e;
+  font:800 9px/1 ui-monospace,monospace;letter-spacing:.14em;padding:6px 9px;cursor:pointer;flex:none;
+}
+.apex-mastery-view-all:hover{background:rgba(232,180,90,.12)}
+.apex-mastery-recent-chip i{font-style:normal}
+.apex-mastery-recent-disc{
+  position:relative;width:38px;height:38px;flex:none;display:grid;place-items:center;
+}
+.apex-mastery-recent-disc .apex-mastery-medal-shape{position:absolute;inset:0}
+.apex-mastery-recent-disc .apex-mastery-medal-glyph{position:relative;font-size:17px;line-height:1}
+.apex-mastery-rail-meter{
+  display:block;width:100%;height:3px;background:rgba(255,255,255,.12);margin-top:5px;overflow:hidden;
+}
+.apex-mastery-rail-meter>span{display:block;height:100%;background:linear-gradient(90deg,#c8a24d,#f0d67e)}
+.apex-mastery-next-tier{color:#f0d67e;font:800 10px/1.4 ui-monospace,monospace;letter-spacing:.1em;margin-top:4px}
+.apex-mastery-goal-mark{
+  display:grid;place-items:center;width:34px;height:34px;flex:none;
+  border:1px solid rgba(215,189,114,.6);color:#f0d67e;font-size:18px;
+  background:radial-gradient(circle at 50% 35%,rgba(240,214,126,.22),transparent 70%);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+}
+.apex-mastery-chapter-next{
+  color:#a7b1bb;font:700 9px/1.3 ui-monospace,monospace;letter-spacing:.08em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.apex-mastery-chapter-peek{display:flex;gap:4px;align-items:center;flex:none;padding:0 2px}
+.apex-mastery-peek-disc{
+  width:16px;height:16px;display:block;position:relative;
+  border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.05);
+}
+.apex-mastery-peek-disc.is-earned{background:linear-gradient(145deg,#e8b45a,#8a6424);border-color:#f0d67e}
+.apex-mastery-peek-disc.shape-circle{border-radius:50%}
+.apex-mastery-peek-disc.shape-hex,.apex-mastery-peek-disc.shape-hexagon{clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.apex-mastery-peek-disc.shape-diamond{transform:rotate(45deg) scale(.82)}
+.apex-mastery-peek-disc.shape-triangle{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.apex-mastery-next .apex-mastery-medal{margin:8px 0 10px}
+@media (max-width:560px){
+  .apex-mastery-chapter-peek{display:none}
+}
