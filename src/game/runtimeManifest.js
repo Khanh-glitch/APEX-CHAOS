@@ -7,7 +7,7 @@
 // stale cache during owner browser verification.
 import { apexAppUrl } from './appRoot.js';
 
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261021-cp4-r1';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261021-cp4-r2';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.

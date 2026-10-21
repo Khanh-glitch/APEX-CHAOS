@@ -4,7 +4,9 @@ Status: **implemented for owner playtest review**. This is not an OWNER
 ACCEPTED claim, not a merge, and not a production deploy.
 
 Baseline: PR #101 head `15488b089ee729df89c0f98164f018998cc57374`.
-Runtime revision: `20261021-cp4-r1` (70 versioned runtimes).
+Runtime revision: `20261021-cp4-r2` (70 versioned runtimes; r2 relocks the
+Result canonical-portrait fix found by the Arsenal Product Acceptance
+owner-candidate gate).
 
 ## What changed
 

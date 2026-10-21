@@ -406,7 +406,6 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const list=[...t.sourceMap.values()].map(s=>s.kind==='weapon'&&s.weaponId
        ?{...s,label:displayName(s.weaponId)}:s);
      const heroSkin=cosmeticSelection(i,'hero',t.hero);
-     const skinPortrait=skinPreviewSource(heroSkin);
      const awards=[];
      for(const def of catalog){if(def.heroId&&def.heroId!==t.hero)continue;
        const obs=observed(t,def,i===wi);if(!obs)continue;
@@ -420,7 +419,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        outcome:i===wi?'victory':'defeat',accent:color,accentRgb:rgb(color),
        character:{name:t.hero,className:'APEX FIGHTER',tagline:'',artKind:'generic',
          heroId:t.hero,skinId:(heroSkin&&heroSkin.id)||'default',
-         portraitSrc:skinPortrait||heroPortraitSource(t.hero)},
+         portraitSrc:heroPortraitSource(t.hero)},
        damage:{dealt:t.dealt,taken:t.taken,sources:list},stats:{
          accuracy:t.rangedShots>0?Math.min(100,Math.round(t.rangedHits/t.rangedShots*100)):0,
          critRate:t.critEligibleHits>0?Math.round(t.critHits/t.critEligibleHits*100):0,
