@@ -644,7 +644,10 @@
     const o = 1 - s;
     const tan = { x: -dir.y, y: dir.x };
     const above = hy < PIV[s].y ? 1 : -1;
-    flashState(st, worldPt.x, worldPt.y, F > 1.5);
+    // CP4: wall contact keeps stress/springs/sparks/chips (material truth)
+    // but never the radial hit flash — a filled disc at the arena edge reads
+    // as a stray colored circle unrelated to the silhouette identity.
+    if (!isWall) flashState(st, worldPt.x, worldPt.y, F > 1.5);
     st.stress.push({ x: hx, y: hy, nx: dir.x, ny: dir.y, t: 0, dur: F > 1.5 ? .2 : .14, armored: st.armor });
     if (st.armor) {
       st.R.calDx[s].kick(34 * F);
@@ -1071,7 +1074,17 @@ function renderRig(g) {
       ctx.save(); ctx.translate(q2.x, q2.y); ctx.rotate(q2.r); ctx.globalAlpha = a;
       ctx.fillStyle = '#d6a052'; ctx.fillRect(-3, -1.5, 6, 3); ctx.restore();
     } else if (q2.k === 'dust') {
-      ctx.fillStyle = 'rgba(120,118,110,' + a * .28 + ')'; ctx.beginPath(); ctx.arc(q2.x, q2.y, q2.s * (1 + q2.t * 2), 0, TAU); ctx.fill();
+      // CP4: wall dust is a short scrape streak along its own velocity, not
+      // an expanding filled disc. Same particle, same life/motion law.
+      const sp = Math.hypot(q2.vx, q2.vy);
+      const len = Math.max(6, Math.min(26, sp * .09 + q2.s));
+      ctx.save(); ctx.translate(q2.x, q2.y); ctx.rotate(Math.atan2(q2.vy, q2.vx));
+      ctx.globalAlpha = a * .5; ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(148,144,132,.55)'; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(-len / 2, 0); ctx.quadraticCurveTo(0, 1.5, len / 2, 0); ctx.stroke();
+      ctx.strokeStyle = 'rgba(96,94,88,.4)'; ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.moveTo(-len * .32, 2.4); ctx.lineTo(len * .36, 2.4); ctx.stroke();
+      ctx.restore();
     }
   }
     // Cosmetic owns the entire Gold targeting family; ORIGINAL keeps its
