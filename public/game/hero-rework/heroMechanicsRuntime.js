@@ -409,8 +409,43 @@
           && dist(self.x,self.y,body.x,body.y) <= radius)) {
         return { shouldCast:true, score:.9, reason:'enemy-in-repel-radius', retryAfter:.15 };
       }
-      if (a2Floor.some((slot) => dist(self.x,self.y,slot.x,slot.y) <= radius)) {
-        return { shouldCast:true, score:.72, reason:'responsive-world-weapon-in-radius', retryAfter:.2 };
+      const nearbyFloor = a2Floor.filter((slot) => dist(self.x,self.y,slot.x,slot.y) <= radius);
+      if (nearbyFloor.length) {
+        const liveEnemies = enemies.filter((body) => body && body.hp > 0);
+        // Contract fixtures may intentionally expose no observable rival.
+        // Preserve the legacy responsive-slot verdict only in that case;
+        // with a live rival, A2 must prove denial geometry before it moves
+        // a floor weapon radially away from Magnet.
+        if (!liveEnemies.length) {
+          return { shouldCast:true, score:.72, reason:'responsive-world-weapon-in-radius', retryAfter:.2 };
+        }
+        const enemyCt = ctx.api.enemyOf ? ctx.api.enemyOf(ctx.combatant) : null;
+        const selfHeld = ctx.api.heldWeapon ? ctx.api.heldWeapon(ctx.combatant) : null;
+        const foeHeld = enemyCt && ctx.api.heldWeapon ? ctx.api.heldWeapon(enemyCt) : null;
+        for (const slot of nearbyFloor) {
+          let rival = null;
+          let rivalD = Infinity;
+          for (const body of liveEnemies) {
+            const d = dist(slot.x,slot.y,body.x,body.y);
+            if (d < rivalD) { rivalD = d; rival = body; }
+          }
+          if (!rival) continue;
+          const selfD = dist(self.x,self.y,slot.x,slot.y);
+          const pushX = slot.x - self.x, pushY = slot.y - self.y;
+          if (Math.hypot(pushX,pushY) < 1) continue;
+          // Positive when the radial repel direction initially increases
+          // the rival's distance to the weapon instead of feeding it to them.
+          const pushesAwayFromRival = (pushX * (slot.x - rival.x)) + (pushY * (slot.y - rival.y)) > 0;
+          const contested = rivalD <= selfD + 140 || rivalD <= 360;
+          if (!pushesAwayFromRival || !contested || foeHeld) continue;
+          if (!selfHeld && rivalD > selfD + 140) continue;
+          return {
+            shouldCast:true,
+            score: rivalD <= selfD + 80 ? .82 : .74,
+            reason:'deny-weapon-repel-geometry',
+            retryAfter:.18,
+          };
+        }
       }
     }
 
@@ -1128,8 +1163,30 @@
         if(score>best.score)best={score,reason:'disarm-intercept'};
         continue;
       }
-      if(typeof body.hasStatus==='function'&&body.hasStatus('stun'))continue;
       const v=body.__hrVel||{x:0,y:0};
+      const ownHeld=ctx.api.heldWeapon?ctx.api.heldWeapon(ctx.combatant):null;
+      if(!ownHeld&&ctx.api.revealedPickups){
+        // Legitimate dash -> pickup -> burst setup: the pounce path remains
+        // target-intercept movement, and pickup still resolves only through
+        // the canonical world pickup transaction if Hunter really crosses it.
+        const CFG=globalScope.APEX_ARSENAL_CONFIG||{};
+        const corridor=(Number(self.radius)||0)*.6+(Number(CFG.PICKUP_RADIUS)||42)+(Number(CFG.PICKUP_TOUCH_BONUS)||30);
+        const endX=body.x+(Number(v.x)||0)*t,endY=body.y+(Number(v.y)||0)*t;
+        const dx=endX-self.x,dy=endY-self.y,len2=dx*dx+dy*dy;
+        if(len2>1){
+          for(const pick of ctx.api.revealedPickups({excludeT6:true})){
+            const u=((pick.x-self.x)*dx+(pick.y-self.y)*dy)/len2;
+            if(u<0||u>.9)continue;
+            const qx=self.x+dx*u,qy=self.y+dy*u;
+            if(dist(pick.x,pick.y,qx,qy)<=corridor){
+              const score=Math.max(.78,.9-.18*u);
+              if(score>best.score)best={score,reason:'intercept-pickup-corridor'};
+              break;
+            }
+          }
+        }
+      }
+      if(typeof body.hasStatus==='function'&&body.hasStatus('stun'))continue;
       const rx=body.x-self.x,ry=body.y-self.y;
       const approaching=rx*(Number(v.x)||0)+ry*(Number(v.y)||0)<0;
       if(approaching){

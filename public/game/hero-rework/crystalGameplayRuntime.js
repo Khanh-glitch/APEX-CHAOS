@@ -816,6 +816,80 @@ function aiAwakeningOpportunity(ctx) {
   return { shouldCast:false, score:0, reason:'no-awakening-purpose', retryAfter:.32 };
 }
 
+function plannedWallSegment(st, ctx) {
+  const me = st && st.ct && st.ct.anchor;
+  const ea = st ? enemyAnchorOf(st.ct) : null;
+  if (!me || !ea) return null;
+  const S = gameSize();
+  let ux = ea.x - me.x, uy = ea.y - me.y;
+  const d = Math.hypot(ux, uy);
+  if (d < 1e-6) { ux = 1; uy = 0; } else { ux /= d; uy /= d; }
+  const tx = -uy, ty = ux;
+  const half = Math.max(0, Number(ctx.cfg.wall && ctx.cfg.wall.width) || 220) / 2;
+  const off = Math.min(330, d * 0.48);
+  const mx = clamp(me.x + ux * off, 130, S - 130);
+  const my = clamp(me.y + uy * off, 130, S - 130);
+  return {
+    a0: { x: mx - tx * half, y: my - ty * half },
+    a1: { x: mx + tx * half, y: my + ty * half },
+  };
+}
+
+function wallSegmentDistanceAt(p, segment, t) {
+  const x = (Number(p.x) || 0) + (Number(p.vx) || 0) * t;
+  const y = (Number(p.y) || 0) + (Number(p.vy) || 0) * t;
+  const dx = segment.a1.x - segment.a0.x;
+  const dy = segment.a1.y - segment.a0.y;
+  const len2 = dx * dx + dy * dy;
+  const u = len2 > 1e-9
+    ? clamp(((x - segment.a0.x) * dx + (y - segment.a0.y) * dy) / len2, 0, 1)
+    : 0;
+  const qx = segment.a0.x + dx * u;
+  const qy = segment.a0.y + dy * u;
+  return Math.hypot(x - qx, y - qy);
+}
+
+function wallBlocksThreat(st, ctx, threat) {
+  const segment = plannedWallSegment(st, ctx);
+  if (!segment || !threat || !threat.p) return false;
+  const p = threat.p;
+  const lockDelay = Math.max(0, Number(ctx.cfg.preSolidTarget ?? 0.75) || 0);
+  const solidLife = Math.max(0, Number(ctx.cfg.wall && ctx.cfg.wall.solidLifetime) || 4);
+  const expires = lockDelay + solidLife;
+  const bodyHitAt = Number(threat.t);
+  if (!Number.isFinite(bodyHitAt) || bodyHitAt < lockDelay) return false;
+  const lifeLimit = Number(p.life) >= 0 ? Number(p.life) : Infinity;
+  const end = Math.min(expires, bodyHitAt, lifeLimit);
+  if (end < lockDelay) return false;
+
+  const candidates = [lockDelay, end];
+  const vx = Number(p.vx) || 0, vy = Number(p.vy) || 0;
+  const vv = vx * vx + vy * vy;
+  const sx = segment.a1.x - segment.a0.x;
+  const sy = segment.a1.y - segment.a0.y;
+  const segLen2 = sx * sx + sy * sy;
+  if (vv > 1e-9) {
+    for (const endpoint of [segment.a0, segment.a1]) {
+      const t = -(((Number(p.x) || 0) - endpoint.x) * vx + ((Number(p.y) || 0) - endpoint.y) * vy) / vv;
+      candidates.push(clamp(t, lockDelay, end));
+    }
+    const crossVel = sx * vy - sy * vx;
+    if (Math.abs(crossVel) > 1e-9) {
+      const crossPos = sx * ((Number(p.y) || 0) - segment.a0.y) - sy * ((Number(p.x) || 0) - segment.a0.x);
+      candidates.push(-crossPos / crossVel);
+    }
+    const alongVel = vx * sx + vy * sy;
+    if (Math.abs(alongVel) > 1e-9 && segLen2 > 1e-9) {
+      const alongPos = ((Number(p.x) || 0) - segment.a0.x) * sx + ((Number(p.y) || 0) - segment.a0.y) * sy;
+      candidates.push(-alongPos / alongVel, (segLen2 - alongPos) / alongVel);
+    }
+  }
+
+  const capsuleRadius = CAP_R + Math.max(0, Number(p.radius) || 0);
+  return candidates.some((t) => Number.isFinite(t) && t >= lockDelay && t <= end
+    && wallSegmentDistanceAt(p, segment, t) <= capsuleRadius);
+}
+
 function aiConstructOpportunity(ctx) {
   const st = ensure(ctx.combatant);
   if (!canCastConstruct(ctx)) {
@@ -835,12 +909,18 @@ function aiConstructOpportunity(ctx) {
   }
 
   if (wallPathAvailable(st)) {
-    const horizon = Math.max(.1, Number(ctx.cfg.wall && ctx.cfg.wall.solidLifetime) || 4);
+    const lockDelay = Math.max(0, Number(ctx.cfg.preSolidTarget ?? 0.75) || 0);
+    const horizon = lockDelay + Math.max(.1, Number(ctx.cfg.wall && ctx.cfg.wall.solidLifetime) || 4);
     const threats = aiBodyThreats(st, horizon);
-    if (threats.length) {
+    if (threats.some((threat) => wallBlocksThreat(st, ctx, threat))) {
       return { shouldCast:true, score:.88, reason:'wall-block-incoming-projectile', retryAfter:.12 };
     }
-    return { shouldCast:false, score:0, reason:'no-wall-threat', retryAfter:.3 };
+    return {
+      shouldCast:false,
+      score:0,
+      reason:threats.length ? 'wall-segment-miss' : 'no-wall-threat',
+      retryAfter:.3,
+    };
   }
   return { shouldCast:false, score:0, reason:'construct-unavailable', retryAfter:.25 };
 }

@@ -628,11 +628,89 @@
     // Contact stays physical during return but cannot restart recall.
     return true;
   }
+  function measuredVelocity(body){
+    const measured=body?.__hrVel;
+    if(measured&&finite(measured.x)&&finite(measured.y))return {x:Number(measured.x),y:Number(measured.y)};
+    let mult=1;
+    try{if(typeof body?.speedMult==='function')mult=Number(body.speedMult())||0;}catch(_){mult=1;}
+    const speed=(Number(body?.baseSpeed)||0)*mult;
+    return {x:(Number(body?.dir?.x)||0)*speed,y:(Number(body?.dir?.y)||0)*speed};
+  }
+  function firstWithinRelative(rx,ry,vx,vy,radius,maxT){
+    const c=rx*rx+ry*ry-radius*radius;
+    if(c<=0)return 0;
+    const a=vx*vx+vy*vy;
+    if(!(a>1e-9))return null;
+    const b=2*(rx*vx+ry*vy),disc=b*b-4*a*c;
+    if(disc<0)return null;
+    const root=Math.sqrt(disc);
+    const roots=[(-b-root)/(2*a),(-b+root)/(2*a)]
+      .filter((t)=>finite(t)&&t>=0&&t<=maxT).sort((x,y)=>x-y);
+    return roots.length?roots[0]:null;
+  }
+  function rocketDecision(ctx){
+    const self=ctx.combatant.anchor,foe=liveOpponent(ctx),st=boxe(ctx);
+    if(!self||!foe||st.rocket)return {shouldCast:false,score:0,reason:'no-rocket-target',retryAfter:.35};
+    const heading=unit(foe.x-self.x,foe.y-self.y);
+    const rocketVel={x:heading.x*V.rocketSpeed,y:heading.y*V.rocketSpeed};
+    const foeVel=measuredVelocity(foe);
+    const contact=V.rocketRadius+(Number(foe.radius)||75);
+    const t=firstWithinRelative(
+      foe.x-self.x,foe.y-self.y,
+      foeVel.x-rocketVel.x,foeVel.y-rocketVel.y,
+      contact,V.rocketOutboundSeconds);
+    if(t==null)return {shouldCast:false,score:.18,reason:'no-predicted-rocket-intercept',retryAfter:.28};
+    const size=Number(ctx.api.gameSize)||Number(global.GAME_SIZE)||1000;
+    const hitX=self.x+rocketVel.x*t,hitY=self.y+rocketVel.y*t;
+    if(hitX<0||hitX>size||hitY<0||hitY>size){
+      return {shouldCast:false,score:.2,reason:'rocket-intercept-after-wall',retryAfter:.28};
+    }
+    const urgency=1-(t/Math.max(.001,V.rocketOutboundSeconds));
+    const score=Math.min(.96,.72+.18*urgency+(isEmpowered(ctx,st)?.08:0));
+    return {shouldCast:true,score,reason:'predicted-rocket-intercept',retryAfter:.16};
+  }
+  function counterDecision(ctx){
+    const self=ctx.combatant.anchor,foe=liveOpponent(ctx),st=boxe(ctx);
+    if(!self||!foe||st.counter||st.rocket||st.flurry){
+      return {shouldCast:false,score:0,reason:'counter-unavailable',retryAfter:.3};
+    }
+    const guard=Math.max(0,Number(V.counterGuardSeconds)||0);
+    const selfVel=measuredVelocity(self);
+    const hitScale=Number(global.APEX_ARSENAL_CONFIG?.BULLET_HIT_RADIUS_SCALE)||.78;
+    const projectiles=typeof ctx.api.liveProjectiles==='function'
+      ?ctx.api.liveProjectiles():(global.projectiles||[]);
+    for(const p of projectiles){
+      if(!p||!(Number(p.life)>0)||!finite(p.x)||!finite(p.y)||!finite(p.vx)||!finite(p.vy))continue;
+      const ownerCt=typeof ctx.api.combatantOfBody==='function'?ctx.api.combatantOfBody(p.owner):null;
+      const hostile=ownerCt?ownerCt!==ctx.combatant:p.owner===foe;
+      if(!hostile)continue;
+      const radius=(Number(self.radius)||75)*hitScale+(Number(p.radius)||0);
+      const t=firstWithinRelative(
+        p.x-self.x,p.y-self.y,
+        Number(p.vx)-selfVel.x,Number(p.vy)-selfVel.y,
+        radius,guard);
+      if(t!=null)return {shouldCast:true,score:.95,reason:'incoming-projectile-counter',retryAfter:.12};
+    }
+    const enemyCt=ctx.api.enemyOf(ctx.combatant);
+    const foeHeld=(enemyCt&&typeof ctx.api.heldWeapon==='function'&&ctx.api.heldWeapon(enemyCt))
+      ||foe.data?.arsenal?.weaponId;
+    if(foeHeld){
+      const dx=foe.x-self.x,dy=foe.y-self.y,d=Math.hypot(dx,dy);
+      const contact=(Number(self.radius)||75)+(Number(foe.radius)||75);
+      const foeVel=measuredVelocity(foe);
+      const closing=d>1?-(((foeVel.x-selfVel.x)*dx)+((foeVel.y-selfVel.y)*dy))/d:0;
+      const finisher=(Number(foe.hp)||0)<=Math.max(1,Number(foe.maxHp)||1000)*V.finisherRemainingFraction;
+      if(d-contact<=Math.max(0,closing)*guard+24){
+        return {shouldCast:true,score:finisher?.84:.78,
+          reason:finisher?'counter-finisher-window':'closing-armed-counter',retryAfter:.18};
+      }
+    }
+    return {shouldCast:false,score:.12,reason:'no-counter-threat',retryAfter:.3};
+  }
   const executors={
     'boxe.fist_rocket':{
       canCast(ctx){return !boxe(ctx).rocket;},
-      aiEvaluate(ctx){const foe=liveOpponent(ctx),self=ctx.combatant.anchor;
-        return {shouldCast:!!foe&&dist(foe,self)<900,score:.75,reason:'rocket-line',retryAfter:.3};},
+      aiEvaluate:rocketDecision,
       cast(ctx){const st=boxe(ctx),self=ctx.combatant.anchor,foe=liveOpponent(ctx);
         if(st.rocket)return false;
         const now=ctx.api.clock(),heading=foe?Math.atan2(foe.y-self.y,foe.x-self.x)
@@ -652,9 +730,7 @@
     },
     'boxe.block_and_hit':{
       canCast(ctx){const st=boxe(ctx);return !st.counter&&!st.rocket&&!st.flurry;},
-      aiEvaluate(ctx){const foe=liveOpponent(ctx),self=ctx.combatant.anchor;
-        return {shouldCast:!!foe&&dist(foe,self)<520,score:.76,
-          reason:'counter-opportunity',retryAfter:.35};},
+      aiEvaluate:counterDecision,
       cast(ctx){const st=boxe(ctx),now=ctx.api.clock();if(!this.canCast(ctx))return false;
         st.counter={phase:'guard',until:now+V.counterGuardSeconds,
           enhanced:isEmpowered(ctx,st)};
