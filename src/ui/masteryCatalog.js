@@ -44,6 +44,19 @@ export const RARITY_LABELS = Object.freeze({
   legendary: Object.freeze({ eng: 'LEGENDARY', vie: 'HUYỀN THOẠI' }),
 });
 
+// CP4: rarity must survive grayscale and small viewports without relying
+// on color. Shape + pip count are the shared toast/Vault visual authority.
+export const RARITY_PRESENTATION = Object.freeze({
+  common: Object.freeze({ shape: 'circle', pips: 1, pattern: 'plain' }),
+  rare: Object.freeze({ shape: 'octagon', pips: 2, pattern: 'facet' }),
+  epic: Object.freeze({ shape: 'shield', pips: 3, pattern: 'chevron' }),
+  legendary: Object.freeze({ shape: 'starburst', pips: 4, pattern: 'rays' }),
+});
+
+export function rarityPresentation(rarity) {
+  return RARITY_PRESENTATION[rarity] || RARITY_PRESENTATION.common;
+}
+
 const ICON_GLYPHS = Object.freeze({
   Radar: '◎', Droplet: '◍', Hammer: '⚒', Zap: '⚡', Axe: '⚔', Gem: '◆',
   Target: '⌖', Skull: '☠', Eye: '◉', Hand: '✋', Flame: '♨', CircleDot: '◉',
@@ -100,6 +113,7 @@ export const MASTERY_ACHIEVEMENTS = Object.freeze(
       params: Object.freeze((item.params || []).map((param) => Object.freeze({ ...param }))),
       rule: localizedRule(item),
       rarityWeight: RARITY_WEIGHT[item.rarity] || 0,
+      rarityPresentation: rarityPresentation(item.rarity),
     })),
 );
 

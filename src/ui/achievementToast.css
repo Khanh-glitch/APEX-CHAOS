@@ -1,16 +1,19 @@
-/* CP3 achievement toast: top-center below the match clock, pointer-
-   transparent, and bounded so it never covers fighters, HP or skills. */
+/* CP4 achievement toast: owner-side HUD gutter placement. The toast stays
+   out of the square arena, HP/clock rail and skill cards on desktop and
+   landscape; portrait uses the band between the arena and touch skills. */
 .apex-achievement-toast {
   position: fixed;
-  left: 50%;
-  top: max(76px, calc(env(safe-area-inset-top, 0px) + 9vh));
-  transform: translateX(-50%);
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: auto;
+  top: auto;
+  bottom: max(118px, calc(env(safe-area-inset-bottom, 0px) + 118px));
+  transform: none;
   z-index: 2147480700;
   pointer-events: none;
   display: flex;
   align-items: center;
   gap: 12px;
-  width: min(430px, calc(100vw - 32px));
+  width: min(292px, calc(100vw - 24px));
   padding: 10px 14px 10px 10px;
   color: #f4f0e6;
   background: linear-gradient(155deg, rgba(27,24,16,.97), rgba(7,8,10,.97));
@@ -20,21 +23,94 @@
   font-family: 'Oswald', Arial, sans-serif;
   animation: apex-achievement-toast-in .26s ease-out;
 }
+.apex-achievement-toast[data-owner-side="P1"] {
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: auto;
+}
+.apex-achievement-toast[data-owner-side="P2"] {
+  left: auto;
+  right: max(8px, env(safe-area-inset-right, 0px));
+}
+.apex-achievement-toast.is-provisional { border-style: dashed; }
+.apex-achievement-toast.is-sealed { border-style: solid; }
+.apex-achievement-toast.owner-bot {
+  border-color: rgba(148,163,184,.62);
+  background: linear-gradient(155deg, rgba(18,24,31,.97), rgba(6,8,10,.97));
+  filter: saturate(.72);
+}
 .apex-achievement-toast-medal {
+  position: relative;
   flex: 0 0 auto;
   width: 48px;
   height: 48px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  color: #1d1302;
+  overflow: hidden;
+  color: #111820;
   font-size: 22px;
-  background: radial-gradient(circle at 35% 30%, #fff3c4, #d7a83f 40%, #75530d 72%, #201505);
+  background: radial-gradient(circle at 35% 30%, #ffffff, #b8c2cc 42%, #5c6874 74%, #161c22);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -8px 14px rgba(0,0,0,.25), 0 8px 18px rgba(0,0,0,.3);
+}
+.apex-achievement-toast-medal.shape-circle { border-radius: 50%; }
+.apex-achievement-toast-medal.shape-octagon {
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+}
+.apex-achievement-toast-medal.shape-shield {
+  clip-path: polygon(50% 0, 92% 12%, 88% 58%, 50% 100%, 12% 58%, 8% 12%);
+}
+.apex-achievement-toast-medal.shape-starburst {
+  clip-path: polygon(50% 0, 59% 18%, 76% 7%, 75% 27%, 95% 24%, 84% 41%, 100% 50%, 84% 59%, 95% 76%, 75% 73%, 76% 93%, 59% 82%, 50% 100%, 41% 82%, 24% 93%, 25% 73%, 5% 76%, 16% 59%, 0 50%, 16% 41%, 5% 24%, 25% 27%, 24% 7%, 41% 18%);
+}
+.apex-achievement-toast-medal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.apex-achievement-toast-medal.pattern-facet::before {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 3px, transparent 3px 8px);
+}
+.apex-achievement-toast-medal.pattern-chevron::before {
+  background: repeating-linear-gradient(135deg, rgba(255,255,255,.16) 0 4px, transparent 4px 9px);
+}
+.apex-achievement-toast-medal.pattern-rays::before {
+  background: conic-gradient(from 0deg, rgba(255,255,255,.24) 0deg 8deg, transparent 8deg 24deg, rgba(255,255,255,.24) 24deg 32deg, transparent 32deg 48deg, rgba(255,255,255,.24) 48deg 56deg, transparent 56deg 72deg, rgba(255,255,255,.24) 72deg 80deg, transparent 80deg 96deg, rgba(255,255,255,.24) 96deg 104deg, transparent 104deg 120deg, rgba(255,255,255,.24) 120deg 128deg, transparent 128deg 144deg, rgba(255,255,255,.24) 144deg 152deg, transparent 152deg 168deg, rgba(255,255,255,.24) 168deg 176deg, transparent 176deg 360deg);
+}
+.apex-achievement-toast-glyph {
+  position: relative;
+  z-index: 1;
+  transform: translateY(-3px);
+  line-height: 1;
+}
+.apex-rarity-pips {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 5px;
+  display: flex;
+  gap: 2px;
+  transform: translateX(-50%);
+}
+.apex-rarity-pips i {
+  width: 4px;
+  height: 4px;
+  transform: rotate(45deg);
+  background: currentColor;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.35);
 }
 .apex-achievement-toast.rarity-legendary {
   border-color: rgba(255,177,46,.92);
   box-shadow: 0 18px 52px rgba(0,0,0,.62), 0 0 28px rgba(255,177,46,.18), inset 0 1px rgba(255,255,255,.1);
+}
+.apex-achievement-toast.rarity-legendary .apex-achievement-toast-medal {
+  color: #1d1302;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #d7a83f 40%, #75530d 72%, #201505);
+}
+.apex-achievement-toast.rarity-legendary.is-sealed {
+  animation: apex-achievement-toast-in .26s ease-out, apex-achievement-legendary-pulse 1.15s ease-in-out .3s 2;
+}
+.apex-achievement-toast.rarity-epic .apex-achievement-toast-medal {
+  animation: apex-achievement-medal-in .42s ease-out;
 }
 .apex-achievement-toast.rarity-epic .apex-achievement-toast-medal {
   background: radial-gradient(circle at 35% 30%, #f1dcff, #a066f0 42%, #442064 76%, #160a24);
@@ -70,16 +146,47 @@
 }
 .apex-achievement-toast-copy .apex-achievement-toast-more { color: #f0d67e; }
 @keyframes apex-achievement-toast-in {
-  from { opacity: 0; transform: translate(-50%, -8px) scale(.985); }
-  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
-@media (max-width: 540px) {
-  .apex-achievement-toast {
-    top: max(68px, calc(env(safe-area-inset-top, 0px) + 7vh));
-    padding: 8px 11px 8px 8px;
+@keyframes apex-achievement-legendary-pulse {
+  0%, 100% { box-shadow: 0 18px 52px rgba(0,0,0,.62), 0 0 18px rgba(255,177,46,.14), inset 0 1px rgba(255,255,255,.1); }
+  50% { box-shadow: 0 18px 52px rgba(0,0,0,.62), 0 0 34px rgba(255,177,46,.28), inset 0 1px rgba(255,255,255,.14); }
+}
+@keyframes apex-achievement-medal-in {
+  from { transform: scale(.82); }
+  to { transform: scale(1); }
+}
+@media (orientation: portrait) and (max-width: 699px) {
+  /* Portrait battle geometry is HP rail + 100vw arena + skill deck. Dock
+     in the narrow band immediately below the arena, before the skills. */
+  .apex-achievement-toast,
+  .apex-achievement-toast[data-owner-side="P1"],
+  .apex-achievement-toast[data-owner-side="P2"] {
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    top: min(calc(env(safe-area-inset-top, 0px) + 80px + 100vw), calc(100dvh - 232px));
+    bottom: auto;
+    width: auto;
+    padding: 7px 10px 7px 8px;
   }
-  .apex-achievement-toast-medal { width: 42px; height: 42px; font-size: 19px; }
+  .apex-achievement-toast[data-owner-side="P1"] { margin-right: 56px; }
+  .apex-achievement-toast[data-owner-side="P2"] { margin-left: 56px; }
+  .apex-achievement-toast-medal { width: 40px; height: 40px; font-size: 18px; }
+  .apex-achievement-toast-copy strong { font-size: 16px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .apex-achievement-toast {
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: min(218px, calc(100vw - 16px));
+    padding: 7px 9px 7px 7px;
+    gap: 8px;
+  }
+  .apex-achievement-toast-medal { width: 38px; height: 38px; font-size: 17px; }
+  .apex-achievement-toast-copy strong { font-size: 15px; }
+  .apex-achievement-toast-copy small { font-size: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .apex-achievement-toast { animation: none; }
+  .apex-achievement-toast,
+  .apex-achievement-toast.rarity-epic .apex-achievement-toast-medal { animation: none; }
 }

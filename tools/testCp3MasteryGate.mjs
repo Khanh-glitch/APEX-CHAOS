@@ -615,12 +615,57 @@ const sealedState = (mode, id, players, extra = {}) => ({
   assert.equal(cosmetics.equip('p2', 'weapon', 'RPG_7', 'vua-he').ok, true);
 }
 
+// ── CP4 side-aware presentation ownership (wallet law unchanged) ───────────
+{
+  const { meta } = bootMeta();
+  const mirrorBot = meta.recordMasteryProvisional([
+    { heroId: 'ROBOT', achievementId: 'first-blood', value: 1, sideIndex: 1, battleMode: 'BOT' },
+    { heroId: 'ROBOT', achievementId: 'first-blood', value: 1, sideIndex: 0, battleMode: 'BOT' },
+  ]);
+  assert.equal(mirrorBot.provisional.length, 2, 'mirror provisional feedback dedupes by side, never hero name alone');
+  const botFeat = mirrorBot.provisional.find((item) => item.ownerSide === 'P2');
+  const humanFeat = mirrorBot.provisional.find((item) => item.ownerSide === 'P1');
+  assert.equal(botFeat.ownerKind, 'bot');
+  assert.equal(botFeat.walletEligible, false, 'BOT achievements are presentation-only and never wallet rewards');
+  assert.equal(humanFeat.ownerKind, 'human');
+  assert.equal(humanFeat.walletEligible, true);
+  assert.deepEqual(meta.getMastery().earned, {}, 'side-aware provisional feedback still writes no permanent earn');
+
+  const localMirror = meta.recordMasteryProvisional([
+    { heroId: 'ROBOT', achievementId: 'overkill', value: 300, sideIndex: 0, battleMode: 'LOCAL' },
+    { heroId: 'ROBOT', achievementId: 'overkill', value: 300, sideIndex: 1, battleMode: 'LOCAL' },
+  ]);
+  assert.equal(localMirror.provisional.length, 2, 'LOCAL P1 and P2 keep separate mirror feedback');
+  assert.equal(localMirror.provisional.find((item) => item.ownerSide === 'P2').ownerKind, 'player2');
+  assert.equal(localMirror.provisional.find((item) => item.ownerSide === 'P2').walletEligible, true);
+
+  const sealedLocal = meta.awardBattleResult('P2', sealedState('LOCAL', 'cp4-local-owner', [
+    player('NEWBOT', { awards: [award('first-blood')] }),
+    player('HUNTER', { awards: [award('first-blood')] }),
+  ]));
+  assert.equal(sealedLocal.ok, true);
+  const p2Unlock = sealedLocal.mastery.unlocks.find((item) => item.heroId === 'HUNTER');
+  assert.equal(p2Unlock.ownerSide, 'P2');
+  assert.equal(p2Unlock.ownerKind, 'player2');
+  assert.equal(p2Unlock.walletEligible, true);
+
+  const sealedBot = meta.awardBattleResult('P2', sealedState('BOT', 'cp4-bot-owner', [
+    player('NEWBOT', {}),
+    player('MAGNET', { awards: [award('first-blood')] }),
+  ]));
+  assert.equal(sealedBot.ok, true);
+  assert.equal(sealedBot.mastery.unlocks.some((item) => item.heroId === 'MAGNET'), false,
+    'a sealed BOT result still folds only P1 mastery');
+  assert.equal(meta.heroMasteryProgress('MAGNET').earned, 0);
+}
+
 // ── static integration proof for the live seam and CP3 surfaces ────────────
 {
   const battle = read('public/game/modes/arsenalBattleRuntime.js');
   assert.match(battle, /evaluateLive\(\)/);
   assert.match(battle, /recordMasteryProvisional/);
-  assert.match(battle, /state\.battleMode === 'LOCAL' \|\| event\.sideIndex === 0/);
+  assert.match(battle, /recordProvisional\?\.\(liveEvents\)/, 'CP4 forwards both sides for side-aware presentation');
+  assert.doesNotMatch(battle, /state\.battleMode === 'LOCAL' \|\| event\.sideIndex === 0/, 'BOT-side feats are classified by meta, not silently dropped or credited');
   const app = read('src/App.jsx');
   assert.match(app, /<AchievementToast \/>/);
   assert.match(app, /<SkinUnlockCelebration \/>/);
@@ -638,6 +683,9 @@ const sealedState = (mode, id, players, extra = {}) => ({
   assert.match(meta, /claimedMatchIds/);
   assert.match(meta, /apex:mastery-provisional/);
   assert.match(meta, /recordMasteryProvisional/);
+  assert.match(meta, /ownerKind = sideIndex === 0 \? 'human' : 'bot'/);
+  assert.match(meta, /walletEligible = sideIndex === 0/);
+  assert.match(meta, /const indexes = mode === 'BOT' \? \[0\] : \[0, 1\]/, 'sealed BOT fold remains P1-only');
   assert.match(meta, /foldMasteryResult\(current\.resultGold, mode\)/);
   const toast = read('src/ui/AchievementToast.jsx');
   assert.match(toast, /apex:mastery-provisional/);

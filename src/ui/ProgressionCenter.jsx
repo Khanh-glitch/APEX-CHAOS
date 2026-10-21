@@ -15,6 +15,18 @@ import {
 } from './masteryCatalog.js';
 import './progressionCenter.css';
 
+// CP4: weapon labels come from the ONE arsenal display-name authority when
+// the classic config runtime is present; the ID spelling is only a boot-time
+// fallback before that runtime loads.
+function weaponLabel(id) {
+  try { return window.APEX_ARSENAL_CONFIG?.weaponDisplayName?.(id) || String(id).replaceAll('_', ' '); }
+  catch { return String(id).replaceAll('_', ' '); }
+}
+
+function playProductSfx(key) {
+  try { window.apexUiSfx?.play?.(key); } catch { /* sound is optional */ }
+}
+
 // CP3 Mastery Vault — presentation over the ONE wallet/profile authority.
 // Starter Contracts keep paying through progressionCatalog() +
 // claimProgressReward(). Combat achievements, hero bests and lifetime
@@ -190,10 +202,23 @@ function MedalCard({ achievement, earnedAt, best, recent, language, t }) {
   const status = earned ? 'unlocked' : (best != null ? 'progress' : 'locked');
   const statusLabel = earned ? t.unlocked : (best != null ? t.inProgress : t.locked);
   const unlockedDate = dateLabel(earnedAt, language);
+  const presentation = achievement.rarityPresentation || {};
+  const rarityLabel = RARITY_LABELS[achievement.rarity]?.[language] || achievement.rarity;
   return (
-    <article className={`apex-mastery-medal rarity-${achievement.rarity} is-${status}`} title={achievement.rule[language]}>
+    <article
+      className={`apex-mastery-medal rarity-${achievement.rarity} is-${status}`}
+      title={achievement.rule[language]}
+      tabIndex={0}
+      aria-label={`${achievement.name}. ${rarityLabel}. ${statusLabel}. ${achievement.rule[language]}`}
+      data-rarity-shape={presentation.shape || 'circle'}
+      data-status={status}
+    >
       <div className="apex-mastery-medal-disc" aria-hidden="true">
-        <span>{achievement.iconGlyph}</span>
+        <span className={`apex-mastery-medal-shape shape-${presentation.shape || 'circle'} pattern-${presentation.pattern || 'plain'}`} />
+        <span className="apex-mastery-medal-glyph">{achievement.iconGlyph}</span>
+        <span className="apex-mastery-rarity-pips">
+          {Array.from({ length: Math.max(1, presentation.pips || 1) }, (_, index) => <i key={index} />)}
+        </span>
         {recent && <b>{t.newBadge}</b>}
       </div>
       <div className="apex-mastery-medal-copy">
@@ -314,6 +339,7 @@ export default function ProgressionCenter() {
     const current = currentMeta();
     const result = current && typeof current.claimProgressReward === 'function'
       ? current.claimProgressReward(id) : null;
+    playProductSfx(result?.ok ? 'mission.claim' : 'ui.error');
     setMessage(result && result.ok ? t.claimedMsg : `${t.failedMsg}: ${(result && result.reason) || 'unavailable'}`);
     refresh();
   };
@@ -321,9 +347,11 @@ export default function ProgressionCenter() {
   const equipSkin = (kind, baseId, skinId, gateKey) => {
     const result = cosmetics.equip('p1', kind, baseId, skinId);
     if (result?.ok) {
+      playProductSfx('skin.equip');
       try { currentMeta()?.markSkinUnlockSeen?.(gateKey); } catch { /* celebration state is presentation-only */ }
       setMessage(t.skinEquipped);
     } else {
+      playProductSfx(result?.reason === 'SKIN_LOCKED' ? 'ui.locked' : 'ui.error');
       setMessage(result?.reason === 'SKIN_LOCKED' ? t.skinLocked : `${t.failedMsg}: ${result?.reason || 'unavailable'}`);
     }
     refresh();
@@ -622,7 +650,7 @@ export default function ProgressionCenter() {
                 {topWeapons.length ? (
                   <div className="apex-mastery-weapon-records">
                     {topWeapons.map(([weaponId, value]) => (
-                      <span key={weaponId}><b>{weaponId.replaceAll('_', ' ')}</b><small>{formatMasteryValue(value)} DMG</small></span>
+                      <span key={weaponId}><b>{weaponLabel(weaponId)}</b><small>{formatMasteryValue(value)} DMG</small></span>
                     ))}
                   </div>
                 ) : <p>{t.noWeaponDamage}</p>}

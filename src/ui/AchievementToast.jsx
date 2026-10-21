@@ -17,24 +17,101 @@ const COPY = {
   eng: {
     unlocked: 'ACHIEVEMENT UNLOCKED',
     provisional: 'ACHIEVEMENT IN REACH',
+    botFeat: 'BOT FEAT',
+    botNote: 'BOT FEAT — NOT ADDED TO YOUR MASTERY',
     sealNote: 'FINISH THE MATCH TO RECORD IT',
     more: (n) => `+${n} MORE RECORDED IN MASTERY VAULT`,
     provisionalMore: (n) => `+${n} MORE WAITING FOR MATCH SEAL`,
+    botMore: (n) => `+${n} MORE BOT FEATS — NOT RECORDED`,
     progress: (hero, earned, total) => `${hero} MASTERY ${earned}/${total}`,
+    ownerYou: 'YOU',
+    ownerP1: 'PLAYER 1',
+    ownerP2: 'PLAYER 2',
+    ownerBot: 'BOT',
   },
   vie: {
     unlocked: 'ĐÃ MỞ THÀNH TỰU',
     provisional: 'THÀNH TỰU ĐANG CHỜ CHỐT',
+    botFeat: 'THÀNH TÍCH CỦA BOT',
+    botNote: 'THÀNH TÍCH CỦA BOT — KHÔNG GHI VÀO TINH THÔNG CỦA BẠN',
     sealNote: 'HOÀN THÀNH TRẬN ĐỂ GHI NHẬN',
     more: (n) => `+${n} THÀNH TỰU NỮA ĐÃ GHI VÀO KHO TINH THÔNG`,
     provisionalMore: (n) => `+${n} THÀNH TỰU NỮA ĐANG CHỜ CHỐT TRẬN`,
+    botMore: (n) => `+${n} THÀNH TÍCH BOT NỮA — KHÔNG GHI NHẬN`,
     progress: (hero, earned, total) => `TINH THÔNG ${hero} ${earned}/${total}`,
+    ownerYou: 'BẠN',
+    ownerP1: 'NGƯỜI CHƠI 1',
+    ownerP2: 'NGƯỜI CHƠI 2',
+    ownerBot: 'BOT',
   },
 };
 
 function currentLanguage() {
   try { return window.APEX_I18N?.getLanguage?.() === 'vie' ? 'vie' : 'eng'; }
   catch { return 'eng'; }
+}
+
+function normalizeOwner(unlock) {
+  const rawIndex = Number.isInteger(unlock?.ownerSideIndex)
+    ? unlock.ownerSideIndex
+    : Number.isInteger(unlock?.sideIndex) ? unlock.sideIndex : null;
+  const sideText = String(unlock?.ownerSide || unlock?.side || '').trim().toUpperCase();
+  const ownerSideIndex = rawIndex === 0 || sideText === 'P1' ? 0
+    : rawIndex === 1 || sideText === 'P2' ? 1 : null;
+  const battleMode = String(unlock?.battleMode || '').trim().toUpperCase();
+  let ownerKind = ['human', 'bot', 'player1', 'player2'].includes(unlock?.ownerKind)
+    ? unlock.ownerKind : 'unknown';
+  if (ownerKind === 'unknown' && ownerSideIndex != null) {
+    if (battleMode === 'BOT') ownerKind = ownerSideIndex === 0 ? 'human' : 'bot';
+    else if (battleMode === 'LOCAL') ownerKind = ownerSideIndex === 0 ? 'player1' : 'player2';
+  }
+  const walletEligible = typeof unlock?.walletEligible === 'boolean'
+    ? unlock.walletEligible
+    : ownerKind === 'human' || ownerKind === 'player1' || ownerKind === 'player2';
+  return {
+    ownerSide: ownerSideIndex == null ? null : `P${ownerSideIndex + 1}`,
+    ownerSideIndex,
+    ownerKind,
+    walletEligible,
+    battleMode: battleMode === 'BOT' || battleMode === 'LOCAL' ? battleMode : null,
+  };
+}
+
+function ownerLabel(owner, t) {
+  if (owner.ownerKind === 'bot') return t.ownerBot;
+  if (owner.ownerKind === 'human') return t.ownerYou;
+  if (owner.ownerKind === 'player1' || owner.ownerSide === 'P1') return t.ownerP1;
+  if (owner.ownerKind === 'player2' || owner.ownerSide === 'P2') return t.ownerP2;
+  return '';
+}
+
+function queueScore(item) {
+  const ownerPriority = item.ownerKind === 'bot' ? 0
+    : item.walletEligible ? 3 : 1;
+  return (ownerPriority * 10)
+    + (item.provisional ? 0 : 2)
+    + (item.achievement.rarityWeight || 0);
+}
+
+function compareQueueItems(a, b) {
+  return (queueScore(b) - queueScore(a)) || (a.at - b.at);
+}
+
+function toastSfxKey(item) {
+  if (item.ownerKind === 'bot') return 'achievement.bot';
+  if (item.provisional) return 'achievement.provisional';
+  if (item.achievement.rarity === 'legendary') return 'achievement.legendary';
+  if (item.achievement.rarity === 'epic') return 'achievement.epic';
+  if (item.achievement.rarity === 'rare') return 'achievement.rare';
+  return 'achievement.official';
+}
+
+function RarityPips({ count }) {
+  return (
+    <span className="apex-rarity-pips" aria-hidden="true">
+      {Array.from({ length: Math.max(1, count || 1) }, (_, index) => <i key={index} />)}
+    </span>
+  );
 }
 
 function heroProgress(heroId) {
@@ -76,13 +153,16 @@ export default function AchievementToast() {
     activeRef.current = next;
     setCurrent(next);
     setOverflow(overflowRef.current);
-    try { window.apexUiSfx?.play?.('ui.option.confirm'); } catch { /* sound is optional */ }
+    try { window.apexUiSfx?.play?.(toastSfxKey(next)); } catch { /* sound is optional */ }
+    const displayMs = next.ownerKind === 'bot' ? 2200
+      : !next.provisional && next.achievement.rarity === 'legendary' ? 3400
+        : 2800;
     window.clearTimeout(hideTimerRef.current);
     hideTimerRef.current = window.setTimeout(() => {
       activeRef.current = null;
       setCurrent(null);
       nextTimerRef.current = window.setTimeout(() => showNextRef.current?.(), 140);
-    }, 2800);
+    }, displayMs);
   }, []);
   showNextRef.current = showNext;
 
@@ -96,17 +176,19 @@ export default function AchievementToast() {
           const heroId = masteryResultHeroId(unlock.heroId);
           const at = Number(unlock.at) || Date.now();
           const provisional = event.type === 'apex:mastery-provisional' || unlock.provisional === true;
+          const owner = normalizeOwner(unlock);
           return {
-            key: `${provisional ? 'provisional' : 'sealed'}:${heroId}:${achievement.id}:${at}`,
+            key: `${provisional ? 'provisional' : 'sealed'}:${owner.ownerSide || 'unknown'}:${heroId}:${achievement.id}:${at}`,
             achievement,
             heroId,
             heroName: MASTERY_HEROES.find((hero) => hero.resultId === heroId)?.name || heroId,
             at,
             provisional,
+            ...owner,
           };
         })
         .filter(Boolean)
-        .sort((a, b) => (b.achievement.rarityWeight - a.achievement.rarityWeight) || (a.at - b.at));
+        .sort(compareQueueItems);
 
       for (const item of incoming) {
         if (seenRef.current.has(item.key)) continue;
@@ -120,19 +202,20 @@ export default function AchievementToast() {
         } else {
           overflowRef.current += 1;
           let weakestIndex = -1;
-          let weakestWeight = Infinity;
+          let weakestScore = Infinity;
           queueRef.current.forEach((queued, index) => {
-            if (queued.achievement.rarityWeight < weakestWeight) {
-              weakestWeight = queued.achievement.rarityWeight;
+            const score = queueScore(queued);
+            if (score < weakestScore) {
+              weakestScore = score;
               weakestIndex = index;
             }
           });
-          if (weakestIndex >= 0 && item.achievement.rarityWeight > weakestWeight) {
+          if (weakestIndex >= 0 && queueScore(item) > weakestScore) {
             queueRef.current[weakestIndex] = item;
           }
         }
       }
-      queueRef.current.sort((a, b) => (b.achievement.rarityWeight - a.achievement.rarityWeight) || (a.at - b.at));
+      queueRef.current.sort(compareQueueItems);
       setOverflow(overflowRef.current);
       showNext();
     };
@@ -155,23 +238,42 @@ export default function AchievementToast() {
   const lang = language === 'vie' ? 'vie' : 'eng';
   const t = COPY[lang];
   const achievement = current.achievement;
-  const progress = heroProgress(current.heroId);
+  const presentation = achievement.rarityPresentation || {};
+  const isBotFeat = current.ownerKind === 'bot';
+  const progress = isBotFeat ? null : heroProgress(current.heroId);
+  const ownerText = ownerLabel(current, t);
+  const statusText = isBotFeat ? t.botFeat : current.provisional ? t.provisional : t.unlocked;
+  const detailText = isBotFeat ? t.botNote
+    : current.provisional ? t.sealNote
+      : t.progress(current.heroName, progress.earned, progress.total);
+  const overflowText = isBotFeat ? t.botMore(overflow)
+    : current.provisional ? t.provisionalMore(overflow) : t.more(overflow);
 
   return (
     <div
-      className={`apex-achievement-toast rarity-${achievement.rarity}${current.provisional ? ' is-provisional' : ''}`}
+      className={`apex-achievement-toast rarity-${achievement.rarity} owner-${current.ownerKind}${current.provisional ? ' is-provisional' : ' is-sealed'}`}
       key={current.key}
       data-provisional={current.provisional ? 'true' : 'false'}
+      data-owner-side={current.ownerSide || 'unknown'}
+      data-owner-kind={current.ownerKind}
+      data-wallet-eligible={current.walletEligible ? 'true' : 'false'}
       role="status"
       aria-live="polite"
       data-apex-no-localize=""
     >
-      <div className="apex-achievement-toast-medal" aria-hidden="true">{achievement.iconGlyph}</div>
+      <div
+        className={`apex-achievement-toast-medal shape-${presentation.shape || 'circle'} pattern-${presentation.pattern || 'plain'}`}
+        data-rarity-shape={presentation.shape || 'circle'}
+        aria-hidden="true"
+      >
+        <span className="apex-achievement-toast-glyph">{achievement.iconGlyph}</span>
+        <RarityPips count={presentation.pips} />
+      </div>
       <div className="apex-achievement-toast-copy">
-        <span>{current.provisional ? t.provisional : t.unlocked} · {RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}</span>
+        <span>{ownerText ? `${ownerText} · ` : ''}{statusText} · {RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}</span>
         <strong>{achievement.name}</strong>
-        <small>{current.provisional ? t.sealNote : t.progress(current.heroName, progress.earned, progress.total)}</small>
-        {overflow > 0 && <small className="apex-achievement-toast-more">{current.provisional ? t.provisionalMore(overflow) : t.more(overflow)}</small>}
+        <small>{detailText}</small>
+        {overflow > 0 && <small className="apex-achievement-toast-more">{overflowText}</small>}
       </div>
     </div>
   );

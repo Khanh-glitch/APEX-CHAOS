@@ -437,6 +437,46 @@
     byHero[def.id] = cleaned;
     return true;
   }
+  // CP4 presentation ownership. This is derived only from the event's
+  // side/mode authority and is never inferred from hero identity. It is
+  // attached to transient unlock/provisional payloads for UI placement and
+  // copy; persisted mastery and wallet eligibility law remain unchanged.
+  function masteryPresentationOwner(source) {
+    const input = source && typeof source === 'object' ? source : {};
+    let sideIndex = Number.isInteger(input.sideIndex) ? input.sideIndex
+      : Number.isInteger(input.ownerSideIndex) ? input.ownerSideIndex : null;
+    const sideText = String(input.ownerSide || input.side || '').trim().toUpperCase();
+    if (sideIndex == null && (sideText === 'P1' || sideText === '1')) sideIndex = 0;
+    if (sideIndex == null && (sideText === 'P2' || sideText === '2')) sideIndex = 1;
+    if (sideIndex !== 0 && sideIndex !== 1) sideIndex = null;
+
+    let battleMode = String(input.battleMode || input.mode || '').trim().toUpperCase();
+    if (battleMode !== 'BOT' && battleMode !== 'LOCAL') {
+      try {
+        const liveMode = String(window.APEX_ARSENAL?.state?.battleMode || '').trim().toUpperCase();
+        if (liveMode === 'BOT' || liveMode === 'LOCAL') battleMode = liveMode;
+      } catch (error) { /* presentation owner stays unknown */ }
+    }
+
+    const ownerSide = sideIndex == null ? null : (sideIndex === 0 ? 'P1' : 'P2');
+    let ownerKind = 'unknown';
+    let walletEligible = false;
+    if (sideIndex != null && battleMode === 'BOT') {
+      ownerKind = sideIndex === 0 ? 'human' : 'bot';
+      walletEligible = sideIndex === 0;
+    } else if (sideIndex != null && battleMode === 'LOCAL') {
+      ownerKind = sideIndex === 0 ? 'player1' : 'player2';
+      walletEligible = true;
+    }
+    return {
+      ownerSide,
+      ownerSideIndex: sideIndex,
+      ownerKind,
+      walletEligible,
+      ...(battleMode === 'BOT' || battleMode === 'LOCAL' ? { battleMode } : {}),
+    };
+  }
+
   function observeMastery(input, unlockIt, at) {
     const hero = resultHeroId(input?.heroId || input?.hero);
     const def = awardDef(input?.achievementId || input?.id);
@@ -450,7 +490,13 @@
     const earned = mastery.earned[hero] || (mastery.earned[hero] = {});
     if (Object.prototype.hasOwnProperty.call(earned, def.id)) return { unlock: null, bestChanged };
     earned[def.id] = at;
-    const unlock = { achievementId: def.id, heroId: hero, at, value: cleanMasteryNumber(primary) };
+    const unlock = {
+      achievementId: def.id,
+      heroId: hero,
+      at,
+      value: cleanMasteryNumber(primary),
+      ...masteryPresentationOwner(input),
+    };
     mastery.recent = [
       { achievementId: def.id, heroId: hero, at },
       ...mastery.recent.filter((item) => !(item.heroId === hero && item.achievementId === def.id)),
@@ -562,7 +608,8 @@
       const hero = resultHeroId(event?.heroId || event?.hero);
       const def = awardDef(event?.achievementId || event?.id);
       if (!def || (def.heroId && def.heroId !== hero)) continue;
-      const key = `${hero}:${def.id}`;
+      const owner = masteryPresentationOwner(event);
+      const key = `${owner.ownerSide || 'unknown'}:${hero}:${def.id}`;
       if (seen.has(key)) continue;
       seen.add(key);
       const earned = mastery.earned[hero] || {};
@@ -577,6 +624,7 @@
         value: cleanMasteryNumber(primary),
         provisional: true,
         sealRequired: true,
+        ...owner,
       });
     }
     dispatchMasteryProvisionalEvents(provisional);
@@ -615,6 +663,8 @@
           achievementId,
           value: best.value,
           observedParams: best.observedParams,
+          sideIndex: index,
+          battleMode: mode,
         }, false, at);
         if (observed.bestChanged) changed = true;
       }
@@ -624,6 +674,8 @@
           achievementId: earnedAward?.achievementId,
           value: earnedAward?.value,
           observedParams: earnedAward?.observedParams,
+          sideIndex: index,
+          battleMode: mode,
         }, true, at);
         if (observed.bestChanged) changed = true;
         if (observed.unlock) { unlocks.push(observed.unlock); changed = true; }

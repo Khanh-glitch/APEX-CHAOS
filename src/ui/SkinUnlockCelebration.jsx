@@ -149,7 +149,7 @@ export default function SkinUnlockCelebration() {
   useEffect(() => {
     if (!visible || !currentKey || soundedRef.current.has(currentKey)) return;
     soundedRef.current.add(currentKey);
-    try { window.apexUiSfx?.play?.('lucky.draw.reward_reveal'); } catch { /* sound is optional */ }
+    try { window.apexUiSfx?.play?.('skin.unlock'); } catch { /* sound is optional */ }
   }, [visible, currentKey]);
 
   if (!visible) return null;
@@ -169,9 +169,11 @@ export default function SkinUnlockCelebration() {
   const equip = () => {
     const result = cosmetics.equip('p1', skin.kind, skin.baseId, skin.skinId);
     if (result?.ok) {
+      try { window.apexUiSfx?.play?.('skin.equip'); } catch { /* sound is optional */ }
       finish();
       return;
     }
+    try { window.apexUiSfx?.play?.(result?.reason === 'SKIN_LOCKED' ? 'ui.locked' : 'ui.error'); } catch { /* sound is optional */ }
     setMessage(`${t.failed}: ${result?.reason || 'unavailable'}`);
   };
 

@@ -170,19 +170,64 @@
   border-color:rgba(215,189,114,.58);
   background:linear-gradient(130deg,rgba(75,65,36,.48),#0b1015 62%);
 }
-.apex-mastery-medal.is-progress { border-color:rgba(122,154,180,.55); }
-.apex-mastery-medal.is-locked { opacity:.76; }
+.apex-mastery-medal.is-progress { border-color:rgba(122,154,180,.55); border-style:dashed; }
+.apex-mastery-medal.is-locked {
+  opacity:.84;
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 5px, transparent 5px 10px),
+    #0b1015;
+}
+.apex-mastery-medal:hover,
+.apex-mastery-medal:focus-visible {
+  border-color:rgba(240,214,126,.78);
+  outline:2px solid rgba(240,214,126,.55);
+  outline-offset:2px;
+}
 .apex-mastery-medal-disc {
-  position:relative; flex:0 0 auto; width:48px; height:48px; border-radius:50%;
-  display:grid; place-items:center; color:#1d1302; font-size:21px;
-  background:radial-gradient(circle at 35% 30%,#fff3c4,#d7a83f 40%,#75530d 72%,#201505);
+  position:relative; flex:0 0 auto; width:48px; height:48px;
+  display:grid; place-items:center; color:#111820; font-size:21px;
+}
+.apex-mastery-medal-shape {
+  position:absolute; inset:0; overflow:hidden;
+  background:radial-gradient(circle at 35% 30%,#ffffff,#b8c2cc 42%,#5c6874 74%,#161c22);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -8px 14px rgba(0,0,0,.25), 0 8px 18px rgba(0,0,0,.3);
 }
-.apex-mastery-medal.is-locked .apex-mastery-medal-disc { filter:grayscale(.9); opacity:.62; }
-.apex-mastery-medal.is-progress .apex-mastery-medal-disc { filter:saturate(.65); }
-.apex-mastery-medal.rarity-legendary .apex-mastery-medal-disc { box-shadow:0 0 20px rgba(255,177,46,.35), inset 0 1px rgba(255,255,255,.55); }
+.apex-mastery-medal-shape.shape-circle { border-radius:50%; }
+.apex-mastery-medal-shape.shape-octagon { clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%); }
+.apex-mastery-medal-shape.shape-shield { clip-path:polygon(50% 0,92% 12%,88% 58%,50% 100%,12% 58%,8% 12%); }
+.apex-mastery-medal-shape.shape-starburst { clip-path:polygon(50% 0,59% 18%,76% 7%,75% 27%,95% 24%,84% 41%,100% 50%,84% 59%,95% 76%,75% 73%,76% 93%,59% 82%,50% 100%,41% 82%,24% 93%,25% 73%,5% 76%,16% 59%,0 50%,16% 41%,5% 24%,25% 27%,24% 7%,41% 18%); }
+.apex-mastery-medal-shape::before {
+  content:""; position:absolute; inset:0; pointer-events:none;
+}
+.apex-mastery-medal-shape.pattern-facet::before { background:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 3px,transparent 3px 8px); }
+.apex-mastery-medal-shape.pattern-chevron::before { background:repeating-linear-gradient(135deg,rgba(255,255,255,.16) 0 4px,transparent 4px 9px); }
+.apex-mastery-medal-shape.pattern-rays::before { background:conic-gradient(from 0deg,rgba(255,255,255,.24) 0deg 8deg,transparent 8deg 24deg,rgba(255,255,255,.24) 24deg 32deg,transparent 32deg 48deg,rgba(255,255,255,.24) 48deg 56deg,transparent 56deg 72deg,rgba(255,255,255,.24) 72deg 80deg,transparent 80deg 96deg,rgba(255,255,255,.24) 96deg 104deg,transparent 104deg 120deg,rgba(255,255,255,.24) 120deg 128deg,transparent 128deg 144deg,rgba(255,255,255,.24) 144deg 152deg,transparent 152deg 168deg,rgba(255,255,255,.24) 168deg 176deg,transparent 176deg 360deg); }
+.apex-mastery-medal.rarity-rare .apex-mastery-medal-shape { background:radial-gradient(circle at 35% 30%,#dff4ff,#58b6e8 42%,#1d587c 76%,#071722); }
+.apex-mastery-medal.rarity-epic .apex-mastery-medal-shape { background:radial-gradient(circle at 35% 30%,#f1dcff,#a066f0 42%,#442064 76%,#160a24); }
+.apex-mastery-medal.rarity-legendary .apex-mastery-medal-shape {
+  background:radial-gradient(circle at 35% 30%,#fff3c4,#d7a83f 40%,#75530d 72%,#201505);
+  box-shadow:0 0 20px rgba(255,177,46,.35), inset 0 1px rgba(255,255,255,.55);
+}
+.apex-mastery-medal-glyph {
+  position:relative; z-index:1; transform:translateY(-3px); line-height:1;
+}
+.apex-mastery-medal.rarity-epic .apex-mastery-medal-disc,
+.apex-mastery-medal.rarity-legendary .apex-mastery-medal-disc { color:#fff7ff; }
+.apex-mastery-medal.rarity-rare .apex-mastery-medal-disc { color:#f4fbff; }
+.apex-mastery-medal.rarity-legendary .apex-mastery-medal-disc { color:#1d1302; }
+.apex-mastery-rarity-pips {
+  position:absolute; z-index:1; left:50%; bottom:5px; display:flex; gap:2px;
+  transform:translateX(-50%);
+}
+.apex-mastery-rarity-pips i {
+  width:4px; height:4px; transform:rotate(45deg); background:currentColor;
+  box-shadow:0 0 0 1px rgba(255,255,255,.35);
+}
+.apex-mastery-medal.is-locked .apex-mastery-medal-shape { filter:grayscale(.95); opacity:.62; }
+.apex-mastery-medal.is-progress .apex-mastery-medal-shape { filter:saturate(.65); }
+.apex-mastery-medal.is-unlocked .apex-mastery-medal-shape { filter:none; }
 .apex-mastery-medal-disc b {
-  position:absolute; top:-7px; right:-10px; padding:3px 5px; background:#ff941f; color:#180c00;
+  position:absolute; z-index:2; top:-7px; right:-10px; padding:3px 5px; background:#ff941f; color:#180c00;
   font:900 8px/1 ui-monospace,monospace; letter-spacing:.08em;
 }
 .apex-mastery-medal-copy { flex:1; min-width:0; }
