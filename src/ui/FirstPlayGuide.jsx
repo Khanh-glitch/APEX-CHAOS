@@ -30,7 +30,7 @@ const COPY = {
     steps: [
       { title: 'START HERE', body: 'Press FREE BATTLE.' },
       { title: 'FIRST FIGHT', body: 'Choose VS BOT.' },
-      { title: 'READY?', body: 'Pick your fighter, then LOCK IN. You are P1 — the BOT with the blue edge.' },
+      { title: 'READY?', body: 'Pick your fighter, then LOCK IN. You are P1 — blue edge.' },
       { title: 'CAST SKILL 1', keyboard: 'Press J now.', touch: 'Tap Skill 1 now.' },
       { title: 'CAST SKILL 2', keyboard: 'Press K now.', touch: 'Tap Skill 2 now.' },
       { title: 'REWARDS WAITING', body: 'Open MISSIONS to claim starter rewards and view Mastery.' },
@@ -50,7 +50,7 @@ const COPY = {
     steps: [
       { title: 'BẮT ĐẦU TẠI ĐÂY', body: 'Nhấn ĐẤU TỰ DO.' },
       { title: 'TRẬN ĐẦU TIÊN', body: 'Chọn ĐẤU BOT.' },
-      { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN. Bạn là P1 — con Robot viền xanh.' },
+      { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN. Bạn là P1 — viền xanh.' },
       { title: 'TUNG CHIÊU 1', keyboard: 'Nhấn J ngay.', touch: 'Chạm thẻ Kỹ năng 1 ngay.' },
       { title: 'TUNG CHIÊU 2', keyboard: 'Nhấn K ngay.', touch: 'Chạm thẻ Kỹ năng 2 ngay.' },
       { title: 'PHẦN THƯỞNG ĐANG CHỜ', body: 'Mở NHIỆM VỤ để nhận thưởng khởi đầu và xem Tinh thông.' },
