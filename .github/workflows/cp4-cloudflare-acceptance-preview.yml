@@ -81,13 +81,14 @@ jobs:
 
       - name: Build exact candidate
         shell: bash
-        env:
-          GITHUB_SHA: 6d95af806330f17ff6b23c6d60e40d373c72d9fa
-          CF_PAGES_COMMIT_SHA: 6d95af806330f17ff6b23c6d60e40d373c72d9fa
-          CF_PAGES_BRANCH: arena/d7ff52e8-apex-chaos
         run: |
           set -euo pipefail
-          pnpm build
+          # The receipt must identify the checked-out candidate tree, not the
+          # workflow-orchestration commit. GITHUB_SHA is reserved and cannot be
+          # truthfully overridden through step env, so remove stale SHA hints
+          # and let the receipt read the actual Git HEAD verified above.
+          env -u GITHUB_SHA -u CF_PAGES_COMMIT_SHA \
+            CF_PAGES_BRANCH="$SOURCE_BRANCH" pnpm build
           node tools/testCP16BuildReceipt.mjs
           node --input-type=module -e "
             import fs from 'node:fs';
