@@ -115,9 +115,13 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
   assert.match(coach, /document\.addEventListener\('pointerup', onPointerUp, true\)/,
     'touch lesson accepts the real pointer-release contract');
   assert.match(coach, /expectedCode = slot === 1 \? 'KeyK' : 'KeyJ'/, 'keyboard lesson accepts only the taught J/K slot');
-  assert.match(coach, /apex\.alpha\.sideIntro\.v1/, 'side introduction has one persisted one-time authority');
-  assert.match(coach, /sideYou: 'YOU · PLAYER 1'/);
-  assert.match(coach, /sideYou: 'BẠN · NGƯỜI CHƠI 1'/);
+  // CP5.3 (deliberate, disclosed): the intro now teaches the engine
+  // edge colors (P1 orange / P2 blue), so the pinned labels and the
+  // one-time storage version moved with it — the behavior migrated,
+  // the assertion still pins the exact shipped strings.
+  assert.match(coach, /apex\.alpha\.sideIntro\.v2/, 'side introduction has one persisted one-time authority');
+  assert.match(coach, /sideYou: 'YOU · P1 · ORANGE EDGE'/);
+  assert.match(coach, /sideYou: 'BẠN · P1 · VIỀN CAM'/);
   assert.match(coach, /pausedNote: 'TRẬN ĐANG TẠM DỪNG/);
   assert.match(coachCss, /#hud\.apex-side-intro-on \.id-row\[data-intro-role\]::after/,
     'side roles render inside existing HUD identity rows, not arena markers');

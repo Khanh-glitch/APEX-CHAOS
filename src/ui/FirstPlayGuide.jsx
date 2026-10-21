@@ -21,16 +21,18 @@ const COPY = {
     actionKicker: 'YOUR MOVE',
     skip: 'SKIP',
     pausedNote: 'MATCH PAUSED — TAKE YOUR TIME',
-    sideYou: 'YOU · PLAYER 1',
-    identity: 'YOU · P1 · BLUE EDGE',
+    // Engine truth (APEX_SIDE_EDGE in public/apexEngine.js): fighters[0]
+    // = P1 wears the ORANGE edge (#FF941F); P2 wears blue (#3AA7FF).
+    sideYou: 'YOU · P1 · ORANGE EDGE',
+    identity: 'YOU · P1 · ORANGE EDGE',
     weaponHint: 'No weapon yet — run over a gun on the ground to pick it up.',
-    sideBot: 'BOT · PLAYER 2',
-    sideP1: 'PLAYER 1',
-    sideP2: 'PLAYER 2',
+    sideBot: 'BOT · P2 · BLUE EDGE',
+    sideP1: 'PLAYER 1 · ORANGE EDGE',
+    sideP2: 'PLAYER 2 · BLUE EDGE',
     steps: [
       { title: 'START HERE', body: 'Press FREE BATTLE.' },
       { title: 'FIRST FIGHT', body: 'Choose VS BOT.' },
-      { title: 'READY?', body: 'Pick your fighter, then LOCK IN. You are P1 — blue edge.' },
+      { title: 'READY?', body: 'Pick your fighter, then LOCK IN.' },
       { title: 'CAST SKILL 1', keyboard: 'Press J now.', touch: 'Tap Skill 1 now.' },
       { title: 'CAST SKILL 2', keyboard: 'Press K now.', touch: 'Tap Skill 2 now.' },
       { title: 'REWARDS WAITING', body: 'Open MISSIONS to claim starter rewards and view Mastery.' },
@@ -41,16 +43,16 @@ const COPY = {
     actionKicker: 'LƯỢT CỦA BẠN',
     skip: 'BỎ QUA',
     pausedNote: 'TRẬN ĐANG TẠM DỪNG — CỨ THONG THẢ',
-    sideYou: 'BẠN · NGƯỜI CHƠI 1',
-    identity: 'BẠN · P1 · VIỀN XANH',
+    sideYou: 'BẠN · P1 · VIỀN CAM',
+    identity: 'BẠN · P1 · VIỀN CAM',
     weaponHint: 'Chưa có súng — chạy qua khẩu súng trên sân để nhặt.',
-    sideBot: 'BOT · NGƯỜI CHƠI 2',
-    sideP1: 'NGƯỜI CHƠI 1',
-    sideP2: 'NGƯỜI CHƠI 2',
+    sideBot: 'BOT · P2 · VIỀN XANH',
+    sideP1: 'NGƯỜI CHƠI 1 · VIỀN CAM',
+    sideP2: 'NGƯỜI CHƠI 2 · VIỀN XANH',
     steps: [
       { title: 'BẮT ĐẦU TẠI ĐÂY', body: 'Nhấn ĐẤU TỰ DO.' },
       { title: 'TRẬN ĐẦU TIÊN', body: 'Chọn ĐẤU BOT.' },
-      { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN. Bạn là P1 — viền xanh.' },
+      { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN.' },
       { title: 'TUNG CHIÊU 1', keyboard: 'Nhấn J ngay.', touch: 'Chạm thẻ Kỹ năng 1 ngay.' },
       { title: 'TUNG CHIÊU 2', keyboard: 'Nhấn K ngay.', touch: 'Chạm thẻ Kỹ năng 2 ngay.' },
       { title: 'PHẦN THƯỞNG ĐANG CHỜ', body: 'Mở NHIỆM VỤ để nhận thưởng khởi đầu và xem Tinh thông.' },
@@ -241,7 +243,9 @@ function skillInfo(index) {
   return { element, projected, state, charges, nextIn, ready };
 }
 
-const SIDE_INTRO_KEY = 'apex.alpha.sideIntro.v1';
+// CP5.3: v1 labels never named the edge colors, so the one-time intro is
+// re-issued once per mode under v2 with the color lesson included.
+const SIDE_INTRO_KEY = 'apex.alpha.sideIntro.v2';
 
 function playCoachSfx(key) {
   try { window.apexUiSfx?.play?.(key); } catch { /* sound is optional */ }
@@ -387,8 +391,15 @@ function setSideIntroLabels(labels) {
     let applied = true;
     rows.forEach((row, index) => {
       if (!row) { applied = false; return; }
-      if (labels) row.dataset.introRole = labels[index];
-      else delete row.dataset.introRole;
+      if (labels) {
+        row.dataset.introRole = labels[index];
+        // CP5.3: the intro chip is painted in the exact engine edge
+        // color of that side (P1 orange, P2 blue — APEX_SIDE_EDGE).
+        row.dataset.introEdge = index === 0 ? 'orange' : 'blue';
+      } else {
+        delete row.dataset.introRole;
+        delete row.dataset.introEdge;
+      }
     });
     document.querySelector('#hud')?.classList.toggle('apex-side-intro-on', !!labels);
     return applied;
@@ -952,8 +963,13 @@ export default function FirstPlayGuide() {
         return;
       }
 
-      if (!readSideIntroSeen()[mode] && battleTime <= 6) {
-        intro.activeUntil = now + 4500;
+      // CP5.3: while the coach journey is unfinished, repeat the
+      // battle-start identity at every opening so a new player always
+      // learns which robot is theirs; after that the one-time seen
+      // flag governs.
+      const learning = !!coachRef.current && !coachRef.current.done;
+      if ((!readSideIntroSeen()[mode] || learning) && battleTime <= 6) {
+        intro.activeUntil = now + 6000;
         if (setSideIntroLabels(labels)) {
           intro.applied = true;
           writeSideIntroSeen({ ...readSideIntroSeen(), [mode]: now });

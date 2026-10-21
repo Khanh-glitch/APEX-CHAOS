@@ -169,6 +169,19 @@
   direction:ltr;
   animation:apex-side-intro-in .25s ease-out;
 }
+/* CP5.3: paint each battle-start identity chip in that side's exact
+   engine edge color (APEX_SIDE_EDGE: P1 #FF941F orange, P2 #3AA7FF
+   blue) so the spoken color and the robot silhouette visibly match. */
+#hud.apex-side-intro-on .id-row[data-intro-edge="orange"]::after{
+  color:#ff941f;
+  border-color:rgba(255,148,31,.9);
+  box-shadow:inset 3px 0 0 #ff941f;
+}
+#hud.apex-side-intro-on .id-row[data-intro-edge="blue"]::after{
+  color:#3aa7ff;
+  border-color:rgba(58,167,255,.9);
+  box-shadow:inset 3px 0 0 #3aa7ff;
+}
 @keyframes apex-side-intro-in{
   from{opacity:0}
   to{opacity:1}
@@ -198,11 +211,13 @@
 }
 .apex-guide-identity{
   display:flex;align-items:center;gap:7px;margin:7px 0 0;
-  color:#9fd0ff;font:800 9px/1.3 ui-monospace,monospace;letter-spacing:.14em;
+  color:#ffb066;font:800 9px/1.3 ui-monospace,monospace;letter-spacing:.14em;
 }
 .apex-guide-identity i{
   width:10px;height:10px;flex:none;display:block;
-  background:#3f8cff;box-shadow:0 0 0 2px rgba(63,140,255,.25),0 0 8px rgba(63,140,255,.8);
+  /* Exact P1 engine edge color (#FF941F) — the swatch is the sample
+     the player matches against their own robot's silhouette. */
+  background:#ff941f;box-shadow:0 0 0 2px rgba(255,148,31,.25),0 0 8px rgba(255,148,31,.8);
 }
 .apex-guide-weapon-hint{margin:6px 0 0;color:#ffd27a;font-size:11px;line-height:1.45}
 @media (prefers-reduced-motion: reduce){
