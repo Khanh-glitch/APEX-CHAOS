@@ -537,23 +537,56 @@
       for (const skin of skinUnlocks || []) window.dispatchEvent(new CustomEvent('apex:skin-unlocked', { detail: { skin, source } }));
     } catch (error) {}
   }
-  function recordMasteryUnlocks(events) {
-    if (masteryTestActive()) return { ok: false, reason: 'admin-test', unlocks: [], skinUnlocks: [] };
-    if (!Array.isArray(events)) return { ok: false, reason: 'invalid-events', unlocks: [], skinUnlocks: [] };
-    const before = entitledSkinKeySet();
-    const unlocks = [];
-    let changed = false;
+  function dispatchMasteryProvisionalEvents(provisional) {
+    try {
+      if (provisional?.length) window.dispatchEvent(new CustomEvent('apex:mastery-provisional', {
+        detail: { unlocks: provisional, provisional, source: 'live-match-provisional' },
+      }));
+    } catch (error) {}
+  }
+  // CP3.2 law: live match feedback is provisional only. This path validates
+  // the ledger event against the one owner catalogue and suppresses repeats
+  // for already-earned (including grandfathered) achievements, but it does
+  // NOT write earned ids, bests, recent history, weapon damage, skin gates,
+  // AC, or storage. Permanent mastery is committed only by
+  // awardBattleResult()->foldMasteryResult() inside the valid sealed-match
+  // transaction guarded by claimedMatchIds.
+  function recordMasteryProvisional(events) {
+    if (masteryTestActive()) return { ok: false, reason: 'admin-test', provisional: [], unlocks: [], skinUnlocks: [] };
+    if (!Array.isArray(events)) return { ok: false, reason: 'invalid-events', provisional: [], unlocks: [], skinUnlocks: [] };
+    const provisional = [];
+    const seen = new Set();
     const at = Date.now();
+    const mastery = ensureMastery();
     for (const event of events.slice(0, 64)) {
-      const observed = observeMastery(event, true, at);
-      if (observed.bestChanged) changed = true;
-      if (observed.unlock) { unlocks.push(observed.unlock); changed = true; }
+      const hero = resultHeroId(event?.heroId || event?.hero);
+      const def = awardDef(event?.achievementId || event?.id);
+      if (!def || (def.heroId && def.heroId !== hero)) continue;
+      const key = `${hero}:${def.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const earned = mastery.earned[hero] || {};
+      if (Object.prototype.hasOwnProperty.call(earned, def.id)) continue;
+      let primary = event?.value;
+      if (primary == null && def.params.length && event?.observedParams) primary = event.observedParams[def.params[0].key];
+      if (primary == null && !def.params.length) primary = 1;
+      provisional.push({
+        achievementId: def.id,
+        heroId: hero,
+        at,
+        value: cleanMasteryNumber(primary),
+        provisional: true,
+        sealRequired: true,
+      });
     }
-    const skinUnlocks = collectNewSkinUnlocks(before);
-    if (skinUnlocks.length) changed = true;
-    if (changed) save(state);
-    dispatchMasteryEvents(unlocks, skinUnlocks, 'live-match');
-    return { ok: true, changed, unlocks, skinUnlocks, mastery: cloneMastery() };
+    dispatchMasteryProvisionalEvents(provisional);
+    return { ok: true, changed: false, provisional, unlocks: [], skinUnlocks: [], mastery: cloneMastery() };
+  }
+  // Backward-compatible name for the live caller. Despite the legacy name,
+  // this is deliberately provisional-only under CP3.2; there is no public
+  // live permanent-unlock writer.
+  function recordMasteryUnlocks(events) {
+    return recordMasteryProvisional(events);
   }
   function markSkinUnlockSeen(key) {
     const wanted = String(key || '');
@@ -1076,7 +1109,7 @@
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST, START_CREDITS,
     getState, credits, owns, canPublicSelect, buy, spin, award, awardBattleResult, progressionCatalog, claimProgressReward, filterOwned, setLast,
-    getMastery: cloneMastery, masteryCatalog, heroMasteryProgress, recordMasteryUnlocks,
+    getMastery: cloneMastery, masteryCatalog, heroMasteryProgress, recordMasteryUnlocks, recordMasteryProvisional,
     skinEntitlement, skinProgress, markSkinUnlockSeen, MASTERY_SKIN_GATES,
     masteryResultHeroId: resultHeroId, masteryEngineHeroId: engineHeroId,
     // A1: legacy owner-playtest exports retained for compat; the live rule

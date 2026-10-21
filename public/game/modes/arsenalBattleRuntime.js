@@ -463,11 +463,13 @@
     matchClock += dt;
     state.time += dt;
     state.resultLedger?.tick?.(dt);
-    // CP3: live achievement feedback reads the SAME result ledger and the
-    // SAME observed() predicates as the sealed result. Only monotonic
-    // predicates are exposed by evaluateLive(); final-only awards wait for
-    // seal. BOT records the human P1 track, LOCAL records both device
-    // players. Lab/Quest have no awardable Free Battle ledger path here.
+    // CP3.2: live achievement feedback reads the SAME result ledger and the
+    // SAME observed() predicates as the sealed result, but it is provisional
+    // only. The wallet validates/deduplicates it for display and persists no
+    // earn, best, skin entitlement or AC. BOT previews the human P1 track;
+    // LOCAL previews both device players. Permanent mastery is committed
+    // only by the valid sealed-match wallet transaction. Lab/Quest have no
+    // awardable Free Battle ledger path here.
     if (!state.over && !state.labMode && !state.questMultiActor && !state.questStage && state.resultLedger?.evaluateLive) {
       state.__cp3MasteryLiveClock = (state.__cp3MasteryLiveClock || 0) + dt;
       if (state.__cp3MasteryLiveClock >= 0.4) {
@@ -475,7 +477,11 @@
         try {
           const liveEvents = state.resultLedger.evaluateLive();
           const countable = liveEvents.filter((event) => state.battleMode === 'LOCAL' || event.sideIndex === 0);
-          if (countable.length) window.APEX_ARSENAL_META?.recordMasteryUnlocks?.(countable);
+          if (countable.length) {
+            const recordProvisional = window.APEX_ARSENAL_META?.recordMasteryProvisional
+              || window.APEX_ARSENAL_META?.recordMasteryUnlocks;
+            recordProvisional?.(countable);
+          }
         } catch (error) { /* mastery feedback must never interrupt combat */ }
       }
     }

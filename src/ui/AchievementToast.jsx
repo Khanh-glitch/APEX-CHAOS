@@ -8,20 +8,26 @@ import {
 } from './masteryCatalog.js';
 import './achievementToast.css';
 
-// CP3 live mastery feedback. This component only displays first-lifetime
-// unlock events already recorded by APEX_ARSENAL_META. It never evaluates
-// an achievement itself. The queue is bounded and pointer-transparent so a
-// burst of unlocks cannot cover input or turn a match into toast spam.
+// CP3.2 mastery feedback. This component displays provisional live
+// candidates separately from permanent unlocks committed by a valid sealed
+// match. It never evaluates an achievement itself. The queue is bounded and
+// pointer-transparent so feedback cannot cover input or become toast spam.
 
 const COPY = {
   eng: {
     unlocked: 'ACHIEVEMENT UNLOCKED',
+    provisional: 'ACHIEVEMENT IN REACH',
+    sealNote: 'FINISH THE MATCH TO RECORD IT',
     more: (n) => `+${n} MORE RECORDED IN MASTERY VAULT`,
+    provisionalMore: (n) => `+${n} MORE WAITING FOR MATCH SEAL`,
     progress: (hero, earned, total) => `${hero} MASTERY ${earned}/${total}`,
   },
   vie: {
     unlocked: 'ĐÃ MỞ THÀNH TỰU',
+    provisional: 'THÀNH TỰU ĐANG CHỜ CHỐT',
+    sealNote: 'HOÀN THÀNH TRẬN ĐỂ GHI NHẬN',
     more: (n) => `+${n} THÀNH TỰU NỮA ĐÃ GHI VÀO KHO TINH THÔNG`,
+    provisionalMore: (n) => `+${n} THÀNH TỰU NỮA ĐANG CHỜ CHỐT TRẬN`,
     progress: (hero, earned, total) => `TINH THÔNG ${hero} ${earned}/${total}`,
   },
 };
@@ -89,12 +95,14 @@ export default function AchievementToast() {
           if (!achievement) return null;
           const heroId = masteryResultHeroId(unlock.heroId);
           const at = Number(unlock.at) || Date.now();
+          const provisional = event.type === 'apex:mastery-provisional' || unlock.provisional === true;
           return {
-            key: `${heroId}:${achievement.id}:${at}`,
+            key: `${provisional ? 'provisional' : 'sealed'}:${heroId}:${achievement.id}:${at}`,
             achievement,
             heroId,
             heroName: MASTERY_HEROES.find((hero) => hero.resultId === heroId)?.name || heroId,
             at,
+            provisional,
           };
         })
         .filter(Boolean)
@@ -130,9 +138,11 @@ export default function AchievementToast() {
     };
     const onLanguage = () => setLanguage(currentLanguage());
     window.addEventListener('apex:mastery-unlocked', enqueue);
+    window.addEventListener('apex:mastery-provisional', enqueue);
     window.addEventListener('apex:language-changed', onLanguage);
     return () => {
       window.removeEventListener('apex:mastery-unlocked', enqueue);
+      window.removeEventListener('apex:mastery-provisional', enqueue);
       window.removeEventListener('apex:language-changed', onLanguage);
       window.clearTimeout(hideTimerRef.current);
       window.clearTimeout(nextTimerRef.current);
@@ -149,18 +159,19 @@ export default function AchievementToast() {
 
   return (
     <div
-      className={`apex-achievement-toast rarity-${achievement.rarity}`}
+      className={`apex-achievement-toast rarity-${achievement.rarity}${current.provisional ? ' is-provisional' : ''}`}
       key={current.key}
+      data-provisional={current.provisional ? 'true' : 'false'}
       role="status"
       aria-live="polite"
       data-apex-no-localize=""
     >
       <div className="apex-achievement-toast-medal" aria-hidden="true">{achievement.iconGlyph}</div>
       <div className="apex-achievement-toast-copy">
-        <span>{t.unlocked} · {RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}</span>
+        <span>{current.provisional ? t.provisional : t.unlocked} · {RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}</span>
         <strong>{achievement.name}</strong>
-        <small>{t.progress(current.heroName, progress.earned, progress.total)}</small>
-        {overflow > 0 && <small className="apex-achievement-toast-more">{t.more(overflow)}</small>}
+        <small>{current.provisional ? t.sealNote : t.progress(current.heroName, progress.earned, progress.total)}</small>
+        {overflow > 0 && <small className="apex-achievement-toast-more">{current.provisional ? t.provisionalMore(overflow) : t.more(overflow)}</small>}
       </div>
     </div>
   );

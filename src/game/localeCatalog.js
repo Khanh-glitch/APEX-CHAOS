@@ -463,7 +463,7 @@ export const VIETNAMESE_UI_EN=Object.freeze({
  'HP sau trận tối đa':'Maximum remaining HP',
  'Thời gian trận tối thiểu':'Minimum match duration',
  'Damage nhận tối đa':'Maximum damage taken',
- 'Số vật phẩm đã nhặt':'Items picked up','HP nguy kịch':'Critical HP threshold',
+ 'Số vật phẩm đã nhặt':'Items picked up','Số trang bị đã nhặt':'Equipment picked up','HP nguy kịch':'Critical HP threshold',
  'HP hồi sau nguy kịch':'HP healed after critical condition',
  'Damage đã nhận':'Damage taken','HP kích hoạt':'Activation HP',
  'Thời gian sống thêm':'Additional survival time',
