@@ -426,7 +426,10 @@ function findAnchor(step) {
 function stepSceneMatches(step, scene) {
   if (step === 0 || step === 5) return scene === 'home';
   if (step === 1) return scene === 'mode';
-  if (step === 2) return scene === 'fighter';
+  // CP5.2: during the opponent's pick turn the coached player is not
+  // acting — the guide hides instead of floating over the roster.
+  if (step === 2) return scene === 'fighter'
+    && !stageElement()?.classList?.contains('fighter-active-p2');
   if (step === 3 || step === 4) return scene === 'battle' && isBotBattle();
   return false;
 }
