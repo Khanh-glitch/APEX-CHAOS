@@ -73,3 +73,42 @@ renders both hero portraits and real weapon art (`data-art-state="image"`).
 Out of scope kept intact: Fighter Select/Result layout & typography, hero art, balance,
 progression content, locked-card treatment, R91. Not merged; no production deploy; no
 OWNER ACCEPTED claim.
+
+## CP5.1 addendum — deepening pass (owner judged CP5 r1 too superficial)
+
+Presentation only; still revision `20261021-cp5-r1` (no runtime files changed).
+
+### Toast shows the achieved metric
+- The provisional/sealed payload already carried the primary metric that crossed
+  the threshold (`unlock.value`); the toast now renders it as an
+  achieved-vs-target meter (`current / target + unit`) via the catalog
+  authority (`primaryProgress` + `formatMasteryValue`). Event-type achievements
+  (e.g. first blood) correctly show no meter. Gold left fin on player toasts,
+  blue-grey on BOT chips; sealed medal enlarged.
+
+### Tutorial names the real action
+- Paused lessons append the actual skill being taught, read live from the HUD
+  projection/DOM (`Tap Skill 1 now. · WEAPON DASH`) — no per-hero coach table.
+- The paused pill moved out of the chip to the arena's top edge (measured from
+  the live canvas each render), with CSS pause bars (no font glyph risk).
+- Step ticks (gold up to current step) + speech-bubble nub toward the taught
+  card. Pause lease/opportunity/input unchanged; freeze re-proven.
+
+### Mastery is scannable without opening anything
+- Chapter rows: `NEXT: <nearest unearned>` (or PATH COMPLETE) + up to six
+  shaped mini medal peeks (earned = gold) next to the count.
+- Hero summary: percent in the headline + next-tier destination
+  (`N MORE → EPIC` / `CÒN N → SỬ THI`) from the same tier bands.
+- Next objective: top-1 now renders as a full medal card; hero rail buttons
+  carry mini progress meters; recent unlocks use shaped rarity discs with a
+  `VIEW ALL` expand (8 → 24); ECOBOT goal strip gets the hex recycle mark.
+
+### Verification (CP5.1)
+- CP3 mastery gate, CP4 combat-intelligence gate, Gold generator `--check`
+  (73 files) — PASS. Production build PASS at revision `20261021-cp5-r1`.
+- Real-browser recapture: tutorial paused state (arena pill + ticks + live
+  skill name + freeze), Mastery chapters with NEXT + peeks at 390px and
+  1440px, BOT toast chip (event-type, meter correctly absent), Result art
+  still sealed-image states. Numeric-toast meter is proven by the same
+  payload path + render code; a numeric provisional toast was not isolated in
+  this capture session (BOT earned first blood first in every run).
