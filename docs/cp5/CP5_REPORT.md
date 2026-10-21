@@ -112,3 +112,35 @@ Presentation only; still revision `20261021-cp5-r1` (no runtime files changed).
   still sealed-image states. Numeric-toast meter is proven by the same
   payload path + render code; a numeric provisional toast was not isolated in
   this capture session (BOT earned first blood first in every run).
+
+## CP5.2 addendum — owner playtest fixes (identity, highlight, single-axis Missions)
+
+Owner playtest reported: (1) the player does not know which robot colour is
+theirs, (2) the tutorial does not make the gun/skills stand out and the chip
+invades the arena, (3) Missions scrolls both sideways and vertically on a
+phone. Presentation only; revision stays `20261021-cp5-r1`.
+
+### Fixes
+- **Side identity taught explicitly:** pick-step copy now says "You are P1 —
+  the robot with the blue edge" (VIE identical), and every battle lesson chip
+  carries a blue-swatch identity line `YOU · P1 · BLUE EDGE`. No in-arena
+  markers added (standing law).
+- **Gun + skills highlighted:** chips show "No weapon yet — run over a gun on
+  the ground to pick it up" while the coached player is unarmed (read from the
+  live battle projection). The taught skill card now lifts/brightens and its
+  beacon thickens while paused.
+- **Chip no longer invades the arena:** battle-lesson chips dock under the
+  arena canvas bottom edge (measured live), growing over the HUD strip
+  instead of the fight.
+- **Missions is vertical-only:** the chapter path was still a horizontal
+  scroll-snap carousel — now a single vertical column; hero rail is a
+  wrapping grid; recents wrap; panel clips x-overflow. Measured with a real
+  browser probe (390×844 portrait + 844×390 landscape, both tabs):
+  `scrollWidth == clientWidth`, no horizontal overflow anywhere.
+
+### Verification (CP5.2)
+- CP3 mastery gate, CP4 combat-intelligence gate, Gold generator `--check` —
+  PASS. Production build PASS at `20261021-cp5-r1`.
+- Recapture: tutorial paused chip below the arena with identity line, weapon
+  hint and the ground gun visible; **numeric toast meter now screenshot-proven**
+  ("Bậc Thầy Mưu Mẹo" — 3 / 3 lần, BOT chip); Mastery chapters stacked.
