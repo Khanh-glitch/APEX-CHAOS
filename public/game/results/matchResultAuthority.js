@@ -375,8 +375,10 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const known=['SHOTGUN','AUTO','BURST','PRECISION','SEMI'].includes(fam)?fam:'SEMI';
      const category=known==='SHOTGUN'?'shotgun':known==='AUTO'?'smg':known==='PRECISION'?'marksman':'railgun';
      const atlas=root.APEX_ARSENAL_C_SET?.weapons?.[id]?.file;
-     const art=(cfg.V43_WEAPONS&&cfg.V43_WEAPONS[id])
-       ?'/assets/arsenal/v43/'+id+'.webp'
+     // CP5: consume the V43 spec's declared art path; never guess a filename.
+     const declaredArt=cfg.V43_WEAPONS?.[id]?.art;
+     const art=(typeof declaredArt==='string'&&declaredArt.startsWith('/assets/')&&!declaredArt.includes('..'))
+       ?declaredArt
        :atlas?'/assets/arsenal/'+String(atlas).replace(/^\/+/,''):undefined;
      const shots=tracks.reduce((n,t)=>n+(t.weaponShots.get(id)||0),0);
      const hits=tracks.reduce((n,t)=>n+(t.weaponHits.get(id)||0),0);
