@@ -159,6 +159,13 @@
 #hud.apex-side-intro-on .id-row[data-intro-role]::after{
   content:attr(data-intro-role);
   flex:none;
+  /* CP5.3: the narrow P2 text column (82px at 390px wide) lets a long
+     chip overflow ~10-17px into the neighbouring weapon-slot icon.
+     The chip must win paint order so its teaching text is never the
+     thing being covered; the graze only ever touches the decorative
+     empty-weapon silhouette during the opening seconds. */
+  position:relative;
+  z-index:3;
   padding:2px 6px;
   border:1px solid color-mix(in srgb,var(--acc,#f4efe4) 72%,transparent);
   background:rgba(5,6,7,.82);
@@ -191,7 +198,7 @@
   .apex-guide-card.apex-coach-chip{padding:10px}
   .apex-guide-body{font-size:12px}
   .apex-coach-skip{min-width:54px;min-height:42px;padding:8px}
-  #hud.apex-side-intro-on .id-row[data-intro-role]::after{font-size:8px;padding:1px 4px;letter-spacing:.08em}
+  #hud.apex-side-intro-on .id-row[data-intro-role]::after{font-size:7.5px;padding:1px 3px;letter-spacing:.05em}
 }
 @media (prefers-reduced-motion: reduce){
   .apex-coach-beacon,.apex-guide-card.apex-coach-chip,
