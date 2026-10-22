@@ -319,8 +319,13 @@ export function rosterPagerScript() {
       var list = cards(); var out = [];
       var rr = roster.getBoundingClientRect();
       var maxSl = Math.max(0, roster.scrollWidth - roster.clientWidth);
+      // scroll-snap-align:start targets the snapport, not the scrollport edge.
+      // Portrait owns 4px of scroll-padding so the first card's border stays
+      // clear of the bezel; page offsets must mirror that same inset or taps,
+      // swipes, and keyboard-follow report a false 4px miss after snapping.
+      var snapInset = parseFloat(getComputedStyle(roster).scrollPaddingLeft) || 0;
       for (var i = 0; i < list.length; i += PAGE) {
-        out.push(Math.min(maxSl, Math.max(0, Math.round(roster.scrollLeft + list[i].getBoundingClientRect().left - rr.left))));
+        out.push(Math.min(maxSl, Math.max(0, Math.round(roster.scrollLeft + list[i].getBoundingClientRect().left - rr.left - snapInset))));
       }
       return out.length ? out : [0];
     }

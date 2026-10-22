@@ -181,6 +181,8 @@ check('selection track cursor scales to the live roster size (--cursor-n)',
   count(shell, '#stage .selectionCursorV6{width:calc(100%/var(--cursor-n,6))}') === 1);
 check('pager script keeps selection ownership with the canonical shell (no selectHero rewrite)',
   !rosterPagerScript().includes('selectHero') && !rosterPagerScript().includes('lockCurrent'));
+check('page starts measure from the CSS snapport inset, not the outer scrollport edge',
+  rosterPagerScript().includes('scrollPaddingLeft') && rosterPagerScript().includes('- snapInset'));
 
 console.log(['R52 PICK BAND LAW GATE', ...passes].join('\n'));
 if (failures.length) {

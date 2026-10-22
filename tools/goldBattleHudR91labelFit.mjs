@@ -19,7 +19,7 @@
 // - desk primary decks: wrap was REJECTED by measurement (at 1366x768 the
 //   second line overflows the fixed 108px skill tile by 22px and clips
 //   tile content). Desk instead steps the skill-name size down along the
-//   donor cqh curve (21->18px cap, 16 floor->13) with tighter tracking;
+//   donor cqh curve (18px cap, 12.5px floor) and removes excess tracking;
 //   desk overflow ratios are only 1.12-1.19, so one line always fits and
 //   tile geometry is untouched.
 // - portrait Local 2P .wp-name additionally steps 15->12.5px: wrapping
@@ -37,9 +37,9 @@
 //   audit as separate, unscoped observations).
 export const R91_LABEL_FIT_CSS = `/* R91 LABEL-FIT: primary-deck skill/weapon names fit whole instead of
    eliding (audit D1/D2, browser-measured). land/port wrap to a second
-   line; desk steps size along the donor cqh curve (wrap clips the fixed
-   desk tile at short heights). Short names render unchanged; CPU 1p mini
-   readouts and Quest keep donor elision. */
+   line; desk steps size/tracking only in its dense fixed-tile band (wrap
+   clips the tile at short heights). CPU 1p mini readouts and Quest keep
+   donor elision. */
 #hud:not([data-quest="1"]):not([data-layout="desk"])[data-mode="2p"] .sk-name,
 #hud:not([data-quest="1"]):not([data-layout="desk"])[data-mode="1p"] #p1Side .sk-name{
   white-space:normal;
@@ -51,8 +51,11 @@ export const R91_LABEL_FIT_CSS = `/* R91 LABEL-FIT: primary-deck skill/weapon na
 }
 #hud:not([data-quest="1"])[data-layout="desk"][data-mode="2p"] .sk-name,
 #hud:not([data-quest="1"])[data-layout="desk"][data-mode="1p"] #p1Side .sk-name{
-  font-size:clamp(13px,1.7cqh,18px);
-  letter-spacing:.02em;
+  font-size:clamp(12.5px,1.67cqh,18px);
+  letter-spacing:0;
+}
+#hud:not([data-quest="1"])[data-layout="land"][data-size="tablet"][data-mode="2p"] .sk-name{
+  letter-spacing:.04em;
 }
 #hud:not([data-quest="1"]):not([data-layout="desk"])[data-mode="2p"] .wp-name,
 #hud:not([data-quest="1"]):not([data-layout="desk"])[data-mode="1p"] #p1Side .wp-name{
@@ -65,12 +68,12 @@ export const R91_LABEL_FIT_CSS = `/* R91 LABEL-FIT: primary-deck skill/weapon na
 }
 #hud:not([data-quest="1"])[data-layout="desk"][data-mode="2p"] .wp-name,
 #hud:not([data-quest="1"])[data-layout="desk"][data-mode="1p"] #p1Side .wp-name{
-  font-size:clamp(13px,1.85cqh,14.5px);
-  letter-spacing:.02em;
+  font-size:clamp(12.5px,1.8cqh,14.5px);
+  letter-spacing:0;
 }
 #hud:not([data-quest="1"])[data-layout="port"][data-mode="2p"] .wp-name{
   font-size:12.5px;
-  letter-spacing:.05em;
+  letter-spacing:0;
 }
 /* Owner-approved compact BOT fit: spend the narrow weapon mini-slot on the
    opponent identity, the one label with no other home. Keep skill state/HP.
