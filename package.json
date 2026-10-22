@@ -61,7 +61,13 @@
     "test:hero-rework:robot-gates": "node tools/testHeroReworkRobotPresentationGates.mjs",
     "test:result-gold": "node tools/testResultGoldAuthority.mjs",
     "test:localization": "node tools/testLocalizationGate.mjs",
-    "test:mobile-entry": "node tools/testMobileEntryArchitecture.mjs"
+    "test:mobile-entry": "node tools/testMobileEntryArchitecture.mjs",
+    "test:ra1-tutorial": "node tools/testRa1TutorialInputBrowser.mjs",
+    "test:ra1-result-coverage": "node tools/testRa1ResultArtCoverageBrowser.mjs",
+    "test:ra1-fighter-art": "node tools/testRa1FighterArtCoverageBrowser.mjs",
+    "test:ra1-compatibility": "node tools/testRa1CompatibilityBrowser.mjs",
+    "test:ra1-nested-itch": "node tools/testRa1NestedItchHostingBrowser.mjs",
+    "measure:ra1-bot-duration": "node tools/measureRa1BotMatchDuration.mjs"
   },
   "dependencies": {
     "@fontsource/montserrat": "^5.3.0",
