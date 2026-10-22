@@ -10,18 +10,33 @@ const finite=n=>Number.isFinite(n);
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const heroId=f=>({ROBOT:'NEWBOT',ICE:'FROST',CRYSTAL:'CRYSTALA'}[String(f?.name||'').toUpperCase()]||String(f?.name||'').toUpperCase());
 const heroSlug=id=>({NEWBOT:'newbot',CRYSTALA:'crystala',FROST:'frost'}[id]||id.toLowerCase());
+// OWNER LAW (RA-1): a first-party image path is legal in every shipping
+// spelling. Root hosting publishes '/assets/…'; the portable itch build
+// rewrites those literals to app-relative '../assets/…' (jump out of /gold/),
+// so an exact '/assets/' prefix test silently REJECTED the real SHURI/BOXE
+// art and fell back to a Gold filename those fighters do not have — a 404 and
+// a placeholder portrait in Result on itch only. Accept '/', './', '../' and
+// bare prefixes, while still refusing traversal, protocols and non-images.
+function appAssetPath(value){
+  if(typeof value!=='string')return null;
+  const s=value.trim();
+  const m=/^(?:\/|\.\/|\.\.\/)?(assets\/[A-Za-z0-9._\-\/]+?\.(?:png|webp|jpg|jpeg|avif|svg))(?:[?#].*)?$/i.exec(s);
+  if(!m)return null;
+  if(m[1].split('/').includes('..'))return null;
+  return s;
+}
 // Result consumes the Gold Pick artwork identity, never guesses the filename.
 function heroPortraitSource(id){
   const slug=heroSlug(id);
   const pick=root.APEX_GOLD_ROSTER?.[slug];
   const selected=pick?.art||pick?.portrait||pick?.battleAvatar;
-  if(typeof selected==='string'&&selected.startsWith('/assets/')&&!selected.includes('..'))return selected;
+  if(appAssetPath(selected))return selected;
   // Works before Gold Bridge loads: new heroes publish their actual art in
   // the canonical hero registry, whereas the Core Six retain legacy fallback.
   const registryId=({NEWBOT:'ROBOT',CRYSTALA:'CRYSTAL',FROST:'ICE'}[id]||id);
   const declared=root.APEX_HERO_REWORK_REGISTRY?.HEROES?.[registryId]?.archiveProfile?.artwork;
   const art=typeof declared==='string'?declared:declared?.standing||declared?.cover||declared?.avatar;
-  if(typeof art==='string'&&art.startsWith('/assets/')&&!art.includes('..'))return art;
+  if(appAssetPath(art))return art;
   return '/assets/gold-ui/heroes/'+slug+'/'+(id==='MIRROR'?'pick_roster_cover.webp':'pick_selected_large.webp');
 }
 const accent={NEWBOT:'#ff941f',HUNTER:'#96ca2d',CRYSTALA:'#a066f0',MAGNET:'#c7c5e9',FROST:'#7ee8ff',MIRROR:'#e9e5df'};
@@ -36,8 +51,7 @@ function cosmeticSelection(sideIndex,kind,baseId){
 }
 function skinPreviewSource(selection){
   const p=selection&&selection.preview;
-  return (selection&&selection.id&&selection.id!=='default'
-    &&typeof p==='string'&&p.startsWith('/assets/')&&!p.includes('..'))?p:null;
+  return (selection&&selection.id&&selection.id!=='default'&&appAssetPath(p))?p:null;
 }
 // CP3: only latched/monotonic owner predicates may be announced while the
 // match is still live. Ratio, current-HP, rolling-window, kill-moment and
@@ -377,7 +391,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const atlas=root.APEX_ARSENAL_C_SET?.weapons?.[id]?.file;
      // CP5: consume the V43 spec's declared art path; never guess a filename.
      const declaredArt=cfg.V43_WEAPONS?.[id]?.art;
-     const art=(typeof declaredArt==='string'&&declaredArt.startsWith('/assets/')&&!declaredArt.includes('..'))
+     const art=appAssetPath(declaredArt)
        ?declaredArt
        :atlas?'/assets/arsenal/'+String(atlas).replace(/^\/+/,''):undefined;
      const shots=tracks.reduce((n,t)=>n+(t.weaponShots.get(id)||0),0);
