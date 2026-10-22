@@ -4,7 +4,7 @@
 **PR:** [#101](https://github.com/Khanh-glitch/APEX-CHAOS/pull/101) — still **Draft / Open**
 **Branch:** `arena/d7ff52e8-apex-chaos`
 **Reviewed runtime source SHA:** `cfa70c1417dfa7c055c36980fbda7fbca3ac4fe5`
-**Latest PR head at CI snapshot:** `6adc3b43ac023845c6d0f236a5ab93b814c530e6` (documentation/evidence-only follow-up; no runtime source change)
+**Latest PR head at CI snapshot:** `e484d040c979619b2951bd301259c76e62f298e7` (documentation/evidence-only follow-up; no runtime source change)
 **Candidate state:** exact-SHA isolated preview and requested RA-2 browser suites passed. This is not an owner acceptance or final technical verdict.
 
 ## Exact-SHA isolated preview
@@ -49,13 +49,13 @@
 
 ## Current PR checks
 
-At the latest fully completed PR-check snapshot, head `6adc3b43ac023845c6d0f236a5ab93b814c530e6` (documentation/evidence-only above the runtime SHA), GitHub reports **23 pass, 1 fail, 0 pending**. The complete [Arsenal Product Acceptance run 39781358840](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39781358840) passed, including R77 and Result Gold; the [A1 browser check](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39781358836) passed. The isolated `build-deploy-verify` and Cloudflare Pages checks also pass.
+At the latest fully completed PR-check snapshot, head `e484d040c979619b2951bd301259c76e62f298e7` (documentation/evidence-only above the runtime SHA), GitHub reports **22 pass, 2 fail, 0 pending**. Arsenal Product Acceptance, including R77 and Result Gold, passed; the A1 browser check passed. Both acceptance runs completed successfully. The isolated exact-SHA Cloudflare workflow also passed.
 
-The sole remaining failure is [`actual-preview-entrypoint`](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39781358964): deployed Netlify START URL verification failed, while its local provider-injection regression passed. It is not waived. The isolated Cloudflare preview is independently verified and does not replace this Netlify check. No assertions were weakened; reproduce and measure before any fix, and do not redesign or expand scope.
+Two checks remain failed and unwaived: [`actual-preview-entrypoint`](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39782740970), the deployed Netlify START URL verification, and [`cosmetic-contract`](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39782740977), whose failed steps were “Chrome Gold Home SKINS category desktop + Android” and “Retain CP8 real Chrome Gold screenshots for owner review.” The failure cause has not been established; do not infer it from this RA-2 work. The isolated Cloudflare preview is independently verified and does not replace the Netlify check. No assertions were weakened; reproduce and measure before any fix, and do not redesign or expand scope.
 
 ## Unverified / limits
 
 - No physical iPhone/Safari or Android device testing; browser evidence is Chromium emulation.
 - The integrated compatibility matrix is local-source evidence; the exact-SHA workflow covers the requested RA-2 suites, not every compatibility profile.
-- The independent Netlify START entrypoint and other PR check failures above remain unresolved.
+- The independent Netlify START entrypoint and cosmetic-contract failures above remain unresolved; the cosmetic failure cause is unconfirmed.
 - **RA-2 technical verdict: NOT ISSUED.** No `READY`, `CONDITIONAL`, or `OWNER ACCEPTED` status is claimed. PR #101 remains Draft/Open; no merge, production deployment, or itch publication occurred.
