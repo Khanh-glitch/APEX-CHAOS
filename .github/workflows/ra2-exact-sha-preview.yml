@@ -31,8 +31,6 @@ jobs:
     env:
       TARGET_SHA: ${{ github.sha }}
       TARGET_REVISION: 20261021-cp5-r1
-      PREVIEW_BRANCH: ra2-exact-${{ github.sha }}
-      PREVIEW_URL: https://ra2-exact-${{ github.sha }}.apex-chaos.pages.dev
       PRODUCTION_URL: https://apex-chaos.pages.dev
       CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
     steps:
@@ -79,6 +77,15 @@ jobs:
             console.log('Exact local build receipt:',r.gitCommit,r.revision,r.goldShellSha256);
           "
 
+      - name: Derive short unique per-commit Pages branch
+        run: |
+          set -euo pipefail
+          PREVIEW_BRANCH="ra2-exact-${TARGET_SHA:0:12}"
+          PREVIEW_URL="https://${PREVIEW_BRANCH}.apex-chaos.pages.dev"
+          echo "PREVIEW_BRANCH=$PREVIEW_BRANCH" >> "$GITHUB_ENV"
+          echo "PREVIEW_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
+          echo "Isolated per-commit Pages branch: $PREVIEW_BRANCH"
+
       - name: Fail closed without Cloudflare token or safe isolated target
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -104,24 +111,37 @@ jobs:
             --project-name=apex-chaos \
             --branch="$PREVIEW_BRANCH" \
             --commit-hash="$TARGET_SHA" \
-            --commit-dirty=true
+            --commit-dirty=true 2>&1 | tee /tmp/ra2-pages-deploy.log
+          deployed_url="$(grep -Eo 'https://[a-z0-9-]+\.apex-chaos\.pages\.dev' /tmp/ra2-pages-deploy.log | tail -n 1 || true)"
+          if [ -n "$deployed_url" ]; then
+            test "$deployed_url" != "$PRODUCTION_URL"
+            echo "PREVIEW_URL=$deployed_url" >> "$GITHUB_ENV"
+            echo "Wrangler deployment URL: $deployed_url"
+          else
+            echo "Wrangler did not print a direct pages.dev URL; using branch alias $PREVIEW_URL"
+          fi
 
       - name: Verify served exact-SHA receipt and Gold bytes
         run: |
           set -euo pipefail
           matched=0
+          last_http=000
           for attempt in $(seq 1 30); do
             rm -f /tmp/ra2-live-receipt.json
-            curl -fLsS --max-time 20 "$PREVIEW_URL/CP16_BUILD_RECEIPT.json?sha=$TARGET_SHA&attempt=$attempt" -o /tmp/ra2-live-receipt.json 2>/dev/null || true
+            last_http="$(curl -sSL --max-time 20 -w '%{http_code}' "$PREVIEW_URL/CP16_BUILD_RECEIPT.json?sha=$TARGET_SHA&attempt=$attempt" -o /tmp/ra2-live-receipt.json || true)"
             if [ -s /tmp/ra2-live-receipt.json ] && node --input-type=module -e "
               import fs from 'node:fs';
               const r=JSON.parse(fs.readFileSync('/tmp/ra2-live-receipt.json','utf8'));
               if(r.gitCommit!==process.env.TARGET_SHA||r.revision!==process.env.TARGET_REVISION)process.exit(1);
             " >/dev/null 2>&1; then matched=1; break; fi
-            echo "Waiting for exact-SHA Pages propagation ($attempt/30)"
+            echo "Waiting for exact-SHA Pages propagation ($attempt/30; HTTP ${last_http:-curl-error})"
             sleep 4
           done
-          test "$matched" = 1 || { echo '::error::Cloudflare preview did not serve the exact commit receipt'; exit 1; }
+          if [ "$matched" != 1 ]; then
+            echo "::error::Cloudflare preview did not serve the exact commit receipt from $PREVIEW_URL (last HTTP ${last_http:-curl-error})"
+            if [ -s /tmp/ra2-live-receipt.json ]; then head -c 240 /tmp/ra2-live-receipt.json; echo; fi
+            exit 1
+          fi
           curl -fLsS --max-time 30 "$PREVIEW_URL/" -o /tmp/ra2-preview-index.html
           curl -fLsS --max-time 30 "$PREVIEW_URL/gold/manifest.json" -o /tmp/ra2-preview-gold-manifest.json
           curl -fLsS --max-time 30 "$PREVIEW_URL/gold/shell.html" -o /tmp/ra2-preview-gold-shell.html
