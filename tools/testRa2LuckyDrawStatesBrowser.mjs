@@ -26,7 +26,13 @@ async function openDraw(page,lang){
  await page.evaluate(l=>window.APEX_I18N.setLanguage(l),lang);await page.waitForFunction(l=>document.documentElement.lang===(l==='vie'?'vi':'en'),{timeout:10000},lang);
  await page.click('#openLuckyDraw');await page.waitForFunction(()=>document.querySelector('#luckyDonorHost')?.classList.contains('is-open'),{timeout:60000});await page.waitForFunction(()=>document.body.dataset.apexSceneTransition==='DONE',{timeout:60000});
  await page.waitForFunction(()=>document.querySelector('#luckyDonorFrame')?.contentDocument?.querySelector('#stage[data-state]'),{timeout:20000});
- const frame=page.frames().find(f=>f.url().includes('/gold/lucky-draw.html'));if(!frame)throw Error('Lucky Draw iframe not found');
+ const donorUrl=await page.$eval('#luckyDonorFrame',el=>el.contentWindow?.location?.href||el.src);
+ let frame=null;
+ for(let attempt=0;attempt<40&&!frame;attempt++){
+  frame=page.frames().find(f=>f.url()===donorUrl||f.url().includes('/gold/lucky-draw.html'))||null;
+  if(!frame)await wait(50);
+ }
+ if(!frame)throw Error(`Lucky Draw iframe not found: ${JSON.stringify({donorUrl,src:await page.$eval('#luckyDonorFrame',el=>el.src),frames:page.frames().map(f=>f.url())})}`);
  await frame.waitForFunction(l=>document.documentElement.lang===(l==='vie'?'vi':'en'),{timeout:15000},lang);
  return frame;
 }
