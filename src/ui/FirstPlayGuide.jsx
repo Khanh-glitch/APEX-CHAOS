@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { hasRevealedGun, isPlayerUnarmed } from './firstPlayGuidePickupHints.js';
 import './firstPlayGuide.css';
 
 // APEX CHAOS — Learn by Playing coach (CP3).
@@ -222,14 +223,14 @@ function arenaPillStyle() {
   return { top: '96px', right: '10px' };
 }
 
-// CP5.2: is the coached player still unarmed? Read from the same battle
-// projection the HUD uses; presentation only (hint line in the chip).
+// RA-2.3: tutorial pickup copy is eligible only while the actual P1
+// production fighter has no held Arsenal weapon. The Gold projection does
+// not expose `sides[].data`; use the live combatant. The engine represents
+// unarmed state as a null holder, so require a live fighter/data object and
+// then check the holder's real weapon ID.
 function playerUnarmed() {
-  try {
-    const side = window.APEX_GOLD_PROJECTION?.()?.state?.sides?.[0];
-    if (!side) return false;
-    return !side.data?.arsenal?.weaponId;
-  } catch { return false; }
+  try { return isPlayerUnarmed(liveFighters()[0]); }
+  catch { return false; }
 }
 
 function skillInfo(index) {
@@ -332,6 +333,51 @@ function revealedWeaponSlots() {
   return Array.isArray(slots)
     ? slots.filter((slot) => slot && slot.phase === 'REVEALED' && slot.kind !== 'HEAL' && !!slot.weaponId)
     : [];
+}
+
+// RA-2.3: the pickup copy is a deferred, non-blocking HUD status — never a
+// second instruction during either paused skill lesson. Require the real
+// BOT tutorial to have proved both casts, the actual pause lease to be clear,
+// P1 to be unarmed, and a production-configured revealed gun to exist.
+function pickupOpportunityFrame(step) {
+  try {
+    const state = battleState();
+    if (step < LAST_STEP || currentScene() !== 'battle' || !isBotBattle()
+      || !state?.active || state.over
+      || window.APEX_TUTORIAL_PAUSE?.active === true
+      || document.body?.classList?.contains('apex-tutorial-paused')
+      || !playerUnarmed()) return null;
+
+    const isGun = window.APEX_ARSENAL_CONFIG?.isGun;
+    if (!hasRevealedGun(state.slots, isGun)) return null;
+
+    const row = document.querySelector('#p1Side .weapon');
+    if (!isVisibleAnchor(row)) return null;
+    const rect = row.getBoundingClientRect();
+    const width = window.innerWidth || document.documentElement.clientWidth || 0;
+    const height = window.innerHeight || document.documentElement.clientHeight || 0;
+    // Only use the already-reserved weapon-status row; fail closed rather
+    // than covering the arena or a skill control on an unusually tight HUD.
+    if (rect.width < 112 || rect.height < 28 || rect.left < 0 || rect.top < 0
+      || rect.right > width || rect.bottom > height) return null;
+    const notifications = document.querySelectorAll(
+      '.apex-achievement-toast, .apex-reward-toast, .apex-skin-unlock-dock',
+    );
+    for (const notification of notifications) {
+      if (!isVisibleAnchor(notification)) continue;
+      const box = notification.getBoundingClientRect();
+      const overlaps = rect.left < box.right && rect.right > box.left
+        && rect.top < box.bottom && rect.bottom > box.top;
+      if (overlaps) return null;
+    }
+
+    return {
+      left: Math.round(rect.left),
+      top: Math.round(rect.top),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    };
+  } catch { return null; }
 }
 
 // The softlock guard is intentionally late and still tactical: it requires
@@ -538,6 +584,7 @@ export default function FirstPlayGuide() {
     return !!stored && !stored.done;
   });
   const [frame, setFrame] = useState(null);
+  const [pickupHintFrame, setPickupHintFrame] = useState(null);
   const [pausedSlot, setPausedSlot] = useState(null);
   const [language, setLanguage] = useState(currentLanguage);
   // Input truth for lesson copy. A one-shot (pointer: coarse) read is wrong
@@ -554,6 +601,7 @@ export default function FirstPlayGuide() {
   const coachRef = useRef(coach);
   const activeRef = useRef(active);
   const frameKeyRef = useRef('');
+  const pickupHintKeyRef = useRef('');
   const skillSnapshotsRef = useRef([null, null]);
   const pauseRef = useRef(null);
   const stepSinceRef = useRef({ step: -1, at: 0 });
@@ -785,11 +833,19 @@ export default function FirstPlayGuide() {
     setFrame(nextFrame);
   }, []);
 
+  const setPickupHintIfChanged = useCallback((nextFrame) => {
+    const key = nextFrame ? JSON.stringify(nextFrame) : '';
+    if (pickupHintKeyRef.current === key) return;
+    pickupHintKeyRef.current = key;
+    setPickupHintFrame(nextFrame);
+  }, []);
+
   const syncCoach = useCallback(() => {
     const current = coachRef.current;
     if (!activeRef.current || !current || current.done) {
       releaseTutorialPause();
       clearFrame();
+      setPickupHintIfChanged(null);
       return;
     }
 
@@ -803,6 +859,7 @@ export default function FirstPlayGuide() {
     if (baselineSealedMatches == null && counts && step < 3) baselineSealedMatches = counts.total;
 
     if (step === LAST_STEP && document.querySelector('.apex-progress-panel')) {
+      setPickupHintIfChanged(null);
       finishCoach(false);
       return;
     }
@@ -857,6 +914,8 @@ export default function FirstPlayGuide() {
       updateCoach({ step, baselineBotMatches, baselineSealedMatches });
     }
 
+    setPickupHintIfChanged(pickupOpportunityFrame(step));
+
     if ((step === 3 || step === 4) && (scene !== 'battle' || !isBotBattle())) {
       releaseTutorialPause();
     } else if ((step === 3 || step === 4) && scene === 'battle' && isBotBattle()) {
@@ -899,7 +958,7 @@ export default function FirstPlayGuide() {
     }
 
     setFrameIfChanged(computeFrame(step, findAnchor(step)));
-  }, [clearFrame, engageTutorialPause, finishCoach, releaseTutorialPause, setFrameIfChanged, updateCoach]);
+  }, [clearFrame, engageTutorialPause, finishCoach, releaseTutorialPause, setFrameIfChanged, setPickupHintIfChanged, updateCoach]);
 
   useEffect(() => {
     if (!active || !coach || coach.done) {
@@ -1142,7 +1201,7 @@ export default function FirstPlayGuide() {
     setSideIntroLabels(null);
   }, [releaseTutorialPause]);
 
-  if (!active || !coach || coach.done || !frame) return null;
+  if (!active || !coach || coach.done || (!frame && !pickupHintFrame)) return null;
 
   const lang = language === 'vie' ? 'vie' : 'eng';
   const copy = COPY[lang];
@@ -1155,57 +1214,75 @@ export default function FirstPlayGuide() {
 
   return (
     <div
-      className={`apex-guide-dock apex-coach-layer${isPausedLesson ? ' is-tutorial-paused' : ''}`}
+      className={`apex-guide-dock apex-coach-layer${isPausedLesson ? ' is-tutorial-paused' : ''}${!frame && pickupHintFrame ? ' is-pickup-only' : ''}`}
       data-tutorial-paused={isPausedLesson ? 'true' : 'false'}
       aria-live="polite"
     >
-      <div
-        className="apex-coach-beacon"
-        aria-hidden="true"
-        style={{
-          left: `${frame.beaconLeft}px`,
-          top: `${frame.beaconTop}px`,
-          width: `${frame.beaconWidth}px`,
-          height: `${frame.beaconHeight}px`,
-        }}
-      />
-      {isPausedLesson && (
+      {frame && (
+        <div
+          className="apex-coach-beacon"
+          aria-hidden="true"
+          style={{
+            left: `${frame.beaconLeft}px`,
+            top: `${frame.beaconTop}px`,
+            width: `${frame.beaconWidth}px`,
+            height: `${frame.beaconHeight}px`,
+          }}
+        />
+      )}
+      {frame && isPausedLesson && (
         <div className="apex-guide-paused-note apex-guide-arena-pill" style={arenaPillStyle()} aria-hidden="true">
           <i className="apex-pause-bars"><b /><b /></i>
           <span>{copy.pausedNote}</span>
         </div>
       )}
-      <section
-        className="apex-guide-card apex-coach-chip"
-        role="status"
-        aria-label={`${copy.kicker}: ${item.title}. ${displayBody}${isPausedLesson ? ` ${copy.pausedNote}` : ''}`}
-        data-placement={frame.placement}
-        data-apex-no-localize=""
-        style={{
-          left: `${frame.chipLeft}px`,
-          top: `${frame.chipTop}px`,
-          width: `${frame.chipWidth}px`,
-          transform: frame.chipTransform,
-        }}
-      >
-        <div className="apex-coach-copy">
-          <p className="apex-guide-kicker">{(isPausedLesson ? copy.actionKicker : copy.kicker)} · {coach.step + 1}/{LAST_STEP + 1}</p>
-          <div className="apex-guide-steps" aria-hidden="true">
-            {Array.from({ length: LAST_STEP + 1 }, (_, index) => (
-              <i key={index} className={index <= coach.step ? 'is-done' : ''} />
-            ))}
+      {frame && (
+        <section
+          className="apex-guide-card apex-coach-chip"
+          role="status"
+          aria-label={`${copy.kicker}: ${item.title}. ${displayBody}${isPausedLesson ? ` ${copy.pausedNote}` : ''}`}
+          data-placement={frame.placement}
+          data-apex-no-localize=""
+          style={{
+            left: `${frame.chipLeft}px`,
+            top: `${frame.chipTop}px`,
+            width: `${frame.chipWidth}px`,
+            transform: frame.chipTransform,
+          }}
+        >
+          <div className="apex-coach-copy">
+            <p className="apex-guide-kicker">{(isPausedLesson ? copy.actionKicker : copy.kicker)} · {coach.step + 1}/{LAST_STEP + 1}</p>
+            <div className="apex-guide-steps" aria-hidden="true">
+              {Array.from({ length: LAST_STEP + 1 }, (_, index) => (
+                <i key={index} className={index <= coach.step ? 'is-done' : ''} />
+              ))}
+            </div>
+            <h2>{item.title}</h2>
+            <p className="apex-guide-body">{displayBody}</p>
+            {(coach.step === 3 || coach.step === 4) && (
+              <p className="apex-guide-identity"><i aria-hidden="true" />{copy.identity}</p>
+            )}
           </div>
-          <h2>{item.title}</h2>
-          <p className="apex-guide-body">{displayBody}</p>
-          {(coach.step === 3 || coach.step === 4) && (
-            <p className="apex-guide-identity"><i aria-hidden="true" />{copy.identity}</p>
-          )}
-          {(coach.step === 3 || coach.step === 4) && playerUnarmed() && (
-            <p className="apex-guide-weapon-hint">{copy.weaponHint}</p>
-          )}
-        </div>
-        <button type="button" className="apex-coach-skip" onClick={skipCoach}>{copy.skip}</button>
-      </section>
+          <button type="button" className="apex-coach-skip" onClick={skipCoach}>{copy.skip}</button>
+        </section>
+      )}
+      {pickupHintFrame && (
+        <p
+          className="apex-guide-weapon-hint apex-guide-pickup-prompt"
+          role="status"
+          aria-live="polite"
+          aria-label={copy.weaponHint}
+          data-apex-no-localize=""
+          style={{
+            left: `${pickupHintFrame.left}px`,
+            top: `${pickupHintFrame.top}px`,
+            width: `${pickupHintFrame.width}px`,
+            height: `${pickupHintFrame.height}px`,
+          }}
+        >
+          {copy.weaponHint}
+        </p>
+      )}
     </div>
   );
 }

@@ -429,6 +429,10 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
     'canonical rarity data remains the four-rarity set',
   );
   const toast = read('src/ui/AchievementToast.jsx');
+  assert.match(toast, /const achievementTitle = translateCopy\(achievement\.name, lang\)/,
+    'achievement titles in the toast use the selected locale');
+  assert.match(toast, /<strong>\{achievementTitle\}<\/strong>/,
+    'the localized achievement title is what the real toast renders');
   assert.match(toast, /BOT FEAT — NOT ADDED TO YOUR MASTERY/);
   assert.match(toast, /THÀNH TÍCH CỦA BOT — KHÔNG GHI VÀO TINH THÔNG CỦA BẠN/);
   assert.match(toast, /data-owner-side=/, 'achievement ownership is side-addressable in the DOM');
@@ -437,8 +441,10 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
   const toastCss = read('src/ui/achievementToast.css');
   assert.match(toastCss, /bottom: max\(118px/, 'achievement toast docks in the desktop side-HUD gutter');
   assert.match(toastCss, /\[data-owner-side="P2"\] \{\s*left: auto;\s*right: max\(8px/, 'P2/BOT toast docks to the owner side');
-  assert.match(toastCss, /top: min\(calc\(env\(safe-area-inset-top, 0px\) \+ 80px \+ 100vw\), calc\(100dvh - 232px\)\)/,
-    'portrait toast uses the arena-to-skilldeck band on both tall and short phones');
+  assert.match(toastCss, /top: min\(calc\(env\(safe-area-inset-top, 0px\) \+ 92px \+ 100vw\), calc\(100dvh - 232px\)\)/,
+    'portrait toast starts after the arena edge and stays above the skill deck');
+  assert.match(toastCss, /max-height: 600px[\s\S]*?top: min\(calc\(env\(safe-area-inset-top, 0px\) \+ 92px \+ 100vw\), calc\(100dvh - 208px\)\)/,
+    'short portrait toast compresses within the gap instead of covering arena/skills');
   assert.doesNotMatch(toastCss, /left: 42%|left: 58%/, 'toast is no longer side-shifted inside the arena');
 }
 

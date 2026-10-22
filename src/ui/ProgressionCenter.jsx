@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { cosmetics } from '../game/cosmetics/cosmeticAuthority.js';
+import { translateCopy } from '../game/localeCatalog.js';
 import '../game/cosmetics/approvedGoldSkins.js';
 import {
   CATEGORY_LABELS,
@@ -434,6 +435,7 @@ export default function ProgressionCenter() {
     };
   }
   const ecoSkin = skinVariant('hero', 'ROBOT', 'ecobot');
+  const ecoLabel = translateCopy(ecoSkin?.label || 'ECOBOT — RECYCLE CORE V17', lang);
   const ecoEquipped = selectedSkinId('hero', 'ROBOT') === 'ecobot';
 
   let rpgProgress = null;
@@ -626,11 +628,11 @@ export default function ProgressionCenter() {
               </section>
 
               {selectedHero.resultId === 'NEWBOT' && (
-                <section className="apex-mastery-goal" aria-label={ecoSkin?.label || 'ECOBOT'}>
+                <section className="apex-mastery-goal" aria-label={ecoLabel}>
                   <div className="apex-mastery-goal-head">
                     <span className="apex-mastery-goal-mark" aria-hidden="true">♻</span>
                     <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
-                    <strong>{ecoSkin?.label || 'ECOBOT — RECYCLE CORE V17'}</strong>
+                    <strong>{ecoLabel}</strong>
                     <span>{ecoProgress.current}/{ecoProgress.target}</span>
                   </div>
                   <div className="apex-progress-meter" aria-hidden="true">
@@ -733,7 +735,7 @@ export default function ProgressionCenter() {
                     <>
                       <div className="apex-mastery-terminal-mark" aria-hidden="true">♻</div>
                       <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
-                      <h3>{ecoSkin?.label || 'ECOBOT — RECYCLE CORE V17'}</h3>
+                      <h3>{ecoLabel}</h3>
                       <p>{t.heroSkinCondition}</p>
                       <strong>{ecoProgress.current}/{ecoProgress.target}</strong>
                       <div className="apex-progress-meter" aria-hidden="true">

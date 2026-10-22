@@ -102,7 +102,7 @@ function GoldEcoActor({active,mini=false}){
  if(fallback)return <span className="fa3-render-warning">ECOBOT GOLD PREVIEW UNAVAILABLE</span>;
  return <canvas ref={ref} className={'fa3-eco'+(mini?' fa3-eco-mini':'')} aria-label="Approved ECOBOT V17 Gold actor rendering"/>;
 }
-function DisplayArtwork({kind,item,previewId}){
+function DisplayArtwork({kind,item,previewId,language='eng'}){
  const hero=kind==='hero';
  const image=hero?PICTURE(item.id,item.registry):weaponImage(item.id,{skinId:previewId,art:item.data?.art});
  const isEco=hero&&item.id==='ROBOT'&&previewId==='ecobot';
@@ -119,8 +119,8 @@ function DisplayArtwork({kind,item,previewId}){
  return <div className={'fa3-artwork '+(hero?'fa3-artwork-hero':'fa3-artwork-weapon')} data-visual-ready={ready?'true':'false'} key={kind+item.id+previewId}>
   <span className="fa3-art-code" aria-hidden="true">{hero?(item.family==='LOCKED'?'LOCKED':'PLAYABLE'):'ARSENAL / '+item.tier}</span>
   <div className="fa3-art-orbit" aria-hidden="true"/>
-  {isEco?<GoldEcoActor active/>:!broken?<img src={image} className={(hero?'fa3-hero-img':'fa3-weapon-img')+(ready?' fa3-decoded':' fa3-pending')} alt={item.name+' '+previewId+' approved asset'} decoding="async" onLoad={decodeRealImage} onError={()=>setBadSrc(image)}/>:<div className="fa3-art-missing" role="status">{item.family==='LOCKED'?<>VISUAL RECORD CLASSIFIED <small>Fighter locked — dossier incomplete</small></>:<>VISUAL RECORD UNAVAILABLE <small>Approved image could not be decoded</small></>}</div>}
-  {!ready&&!broken&&<div className="fa3-visual-progress" role="status"><span>◎</span><b>DECODING APPROVED ART</b><small>VISUAL AUTHORITY / {item.id}</small></div>}
+  {isEco?<GoldEcoActor active/>:!broken?<img src={image} className={(hero?'fa3-hero-img':'fa3-weapon-img')+(ready?' fa3-decoded':' fa3-pending')} alt={language==='vie'?`${item.name} — ${previewId==='default'?'mặc định':previewId} — hình ảnh đã duyệt`:item.name+' '+previewId+' approved asset'} decoding="async" onLoad={decodeRealImage} onError={()=>setBadSrc(image)}/>:<div className="fa3-art-missing" role="status">{item.family==='LOCKED'?<>VISUAL RECORD CLASSIFIED <small>Fighter locked — dossier incomplete</small></>:<>VISUAL RECORD UNAVAILABLE <small>Approved image could not be decoded</small></>}</div>}
+  {!ready&&!broken&&<div className="fa3-visual-progress" role="status"><span>◎</span><b>DECODING APPROVED ART</b><small>{language==='vie'?'THẨM QUYỀN HÌNH ẢNH / ':'VISUAL AUTHORITY / '}{item.id}</small></div>}
   <span className="fa3-art-underlay" aria-hidden="true">{item.id.replaceAll('_',' ').slice(0,18)}</span>
   <span className="fa3-art-label">{previewId==='default'?'ORIGINAL':previewId.toUpperCase()} / VISUAL PREVIEW</span>
  </div>;
@@ -240,7 +240,7 @@ export default function FieldArchiveC03(){
  function equip(){if(!current||!chosen||activePreview===worn?.id||chosenLocked)return;const result=cosmetics.equip(side,kind,current.id,chosen.id);if(result.ok)setWarning(result.persisted===false);else if(result.reason==='SKIN_LOCKED')setRev(x=>x+1)}
  return <>
   {pick&&!open&&pickHost&&createPortal(<button type="button" className="fa3-pick-equip-entry" aria-label="Open skins for selected fighter and player" onClick={()=>void launch('pick')} disabled={loading}><span>✦</span> {loading?'PREPARING':'SKINS'} <b>↗</b></button>,pickHost)}
-  {home&&!open&&error&&<div className="apex-skin-error" role="alert">Archive unavailable: {error}<button type="button" onClick={()=>setError('')}>×</button></div>}
+  {home&&!open&&error&&<div className="apex-skin-error" role="alert">{language==='vie'?'Kho hồ sơ không khả dụng: ':'Archive unavailable: '}{error}<button type="button" onClick={()=>setError('')}>×</button></div>}
   {open&&<div className="fa3-overlay apex-cosmetics-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}} onKeyDownCapture={e=>{
     e.stopPropagation();
     if(e.key==='Escape'){e.preventDefault();setOpen(false)}
@@ -271,7 +271,7 @@ export default function FieldArchiveC03(){
       </aside>
       <main className="fa3-center">
        <div className="fa3-record-top"><div><small>{String(idx+1).padStart(2,'0')} / {String(count).padStart(2,'0')}</small><h3>{current?.name||'ARCHIVE'}</h3></div><span className="fa3-record-stamp">{kind==='hero'?'FIGHTER':'WEAPON'}</span></div>
-       {current?<DisplayArtwork kind={kind} item={current} previewId={activePreview}/>:<div className="fa3-empty">Preparing Arsenal records…</div>}
+       {current?<DisplayArtwork kind={kind} item={current} previewId={activePreview} language={language}/>:<div className="fa3-empty">Preparing Arsenal records…</div>}
        <div className="fa3-record-navigation"><button type="button" onClick={()=>shift(-1)} aria-label="Previous record">‹</button><span>{kind==='hero'?(current?.family==='LOCKED'?'LOCKED ROSTER':'ACTIVE ROSTER'):((current?.tier||'—')+' / '+(current?.family||'ARSENAL'))}</span><button type="button" onClick={()=>shift(1)} aria-label="Next record">›</button></div>
       </main>
       <section className="fa3-detail" aria-label="Appearance and record information">

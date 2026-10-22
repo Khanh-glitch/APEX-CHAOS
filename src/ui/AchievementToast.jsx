@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { translateCopy } from '../game/localeCatalog.js';
 import {
   MASTERY_BY_ID,
   MASTERY_HEROES,
@@ -249,6 +250,7 @@ export default function AchievementToast() {
   const lang = language === 'vie' ? 'vie' : 'eng';
   const t = COPY[lang];
   const achievement = current.achievement;
+  const achievementTitle = translateCopy(achievement.name, lang);
   const presentation = achievement.rarityPresentation || {};
   const isBotFeat = current.ownerKind === 'bot';
   const progress = isBotFeat ? null : heroProgress(current.heroId);
@@ -294,7 +296,7 @@ export default function AchievementToast() {
         <span>{isBotFeat
           ? `${current.ownerSide || 'P2'} · ${t.ownerBot} · ${RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}`
           : `${ownerText ? `${ownerText} · ` : ''}${statusText} · ${RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}`}</span>
-        <strong>{achievement.name}</strong>
+        <strong>{achievementTitle}</strong>
         {showMeter && (
           <span className="apex-achievement-toast-meter" aria-hidden="true">
             <i><b style={{ width: `${progressInfo.percent}%` }} /></i>

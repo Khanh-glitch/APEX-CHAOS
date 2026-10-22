@@ -202,15 +202,24 @@
   .apex-achievement-toast[data-owner-side="P2"] {
     left: max(8px, env(safe-area-inset-left, 0px));
     right: max(8px, env(safe-area-inset-right, 0px));
-    top: min(calc(env(safe-area-inset-top, 0px) + 80px + 100vw), calc(100dvh - 232px));
+    top: min(calc(env(safe-area-inset-top, 0px) + 92px + 100vw), calc(100dvh - 232px));
     bottom: auto;
     width: auto;
-    padding: 7px 10px 7px 8px;
+    padding: 4px 8px 4px 6px;
+    gap: 6px;
   }
   .apex-achievement-toast[data-owner-side="P1"] { margin-right: 56px; }
   .apex-achievement-toast[data-owner-side="P2"] { margin-left: 56px; }
   .apex-achievement-toast-medal { width: 40px; height: 40px; font-size: 18px; }
-  .apex-achievement-toast-copy strong { font-size: 16px; }
+  .apex-achievement-toast.is-sealed:not(.is-compact) .apex-achievement-toast-medal { width: 40px; height: 40px; font-size: 18px; }
+  .apex-achievement-toast-copy { gap: 1px; }
+  .apex-achievement-toast-copy > span { font-size: 7px; line-height: 1; letter-spacing: .08em; }
+  .apex-achievement-toast-copy strong { font-size: 14px; line-height: 1; }
+  .apex-achievement-toast-copy small { font-size: 7px; line-height: 1; letter-spacing: .03em; }
+  .apex-achievement-toast-copy .apex-achievement-toast-more { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .apex-achievement-toast-meter { gap: 5px; margin-top: 1px; }
+  .apex-achievement-toast-meter i { height: 3px; }
+  .apex-achievement-toast-meter em { font-size: 7px; }
   /* CP5: the BOT chip leaves the sub-arena band (reserved for the player's
      own unlock) and docks as a small edge signal under the P2 HP segment. */
   .apex-achievement-toast.is-compact,
@@ -225,6 +234,42 @@
     margin: 0;
   }
   .apex-achievement-toast.is-compact .apex-achievement-toast-medal { width: 30px; height: 30px; font-size: 13px; }
+}
+/* Short portrait phones have only a thin strip between the scaled arena and
+   touch cards. Keep the real player toast in that strip instead of overpainting
+   the arena/skills; allow the status, title, and seal note to stay readable in
+   compact Gold typography. The opponent chip keeps its separate top-edge lane. */
+@media (orientation: portrait) and (max-width: 699px) and (max-height: 600px) {
+  .apex-achievement-toast:not(.is-compact),
+  .apex-achievement-toast:not(.is-compact)[data-owner-side="P1"],
+  .apex-achievement-toast:not(.is-compact)[data-owner-side="P2"] {
+    top: min(calc(env(safe-area-inset-top, 0px) + 92px + 100vw), calc(100dvh - 208px));
+    padding: 4px 7px 4px 6px;
+    gap: 6px;
+  }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-medal,
+  .apex-achievement-toast.is-sealed:not(.is-compact) .apex-achievement-toast-medal {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-copy { gap: 1px; }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-copy > span {
+    font-size: 7.5px;
+    line-height: 1;
+    letter-spacing: .015em;
+    white-space: nowrap;
+  }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-copy strong {
+    font-size: 13px;
+    line-height: 1;
+  }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-copy small {
+    font-size: 7.5px;
+    line-height: 1;
+    letter-spacing: .015em;
+    white-space: nowrap;
+  }
 }
 @media (orientation: landscape) and (max-height: 500px) {
   .apex-achievement-toast {

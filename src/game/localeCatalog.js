@@ -71,6 +71,33 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['EQUIP APPLIES INSTANTLY','TRANG BỊ CÓ HIỆU LỰC NGAY'],
   // FIELD ARCHIVE — complete functional chrome; canonical fighter/weapon names stay unchanged.
   ['FIELD ARCHIVE','KHO HỒ SƠ'],['FIGHTERS','ĐẤU SĨ'],['WEAPONS','VŨ KHÍ'],
+  ['Missions and Achievements','Nhiệm vụ và thành tích'],
+  ['Archive category','Danh mục hồ sơ'],['Choose loadout','Chọn đội hình'],
+  ['Fighter and weapon catalogue','Danh mục đấu sĩ và vũ khí'],
+  ['Previous archive page','Trang hồ sơ trước'],['Next archive page','Trang hồ sơ tiếp theo'],
+  ['Previous record','Hồ sơ trước'],['Next record','Hồ sơ tiếp theo'],
+  ['Appearance and record information','Ngoại hình và thông tin hồ sơ'],
+  ['Record details','Chi tiết hồ sơ'],['Skin pages','Trang giao diện'],
+  ['Previous skin page','Trang giao diện trước'],['Next skin page','Trang giao diện tiếp theo'],
+  ['Cosmetic category','Danh mục ngoại hình'],['Player loadout','Đội hình người chơi'],
+  ['Close archive','Đóng kho hồ sơ'],['Close skin locker','Đóng tủ giao diện'],
+  ['Fighters','Đấu sĩ'],['Weapons','Vũ khí'],
+  ['Search catalogue…','Tìm trong danh mục…'],['CHOOSE FIGHTER','CHỌN ĐẤU SĨ'],
+  ['CHOOSE WEAPON','CHỌN VŨ KHÍ'],['No matching entries.','Không tìm thấy mục phù hợp.'],
+  ['DECODING APPROVED ART','ĐANG GIẢI MÃ HÌNH ẢNH ĐÃ DUYỆT'],
+  ['VISUAL RECORD CLASSIFIED','HỒ SƠ HÌNH ẢNH ĐÃ PHÂN LOẠI'],
+  ['VISUAL RECORD UNAVAILABLE','HỒ SƠ HÌNH ẢNH KHÔNG KHẢ DỤNG'],
+  ['Approved image could not be decoded','Không thể giải mã hình ảnh đã duyệt'],
+  ['Approved ECOBOT V17 Gold actor rendering','Hình ảnh nhân vật ECOBOT V17 Gold đã duyệt'],
+  ['ECOBOT GOLD PREVIEW UNAVAILABLE','BẢN XEM TRƯỚC ECOBOT GOLD KHÔNG KHẢ DỤNG'],
+  ['Five-axis combat role radar','Biểu đồ vai trò chiến đấu năm trục'],
+  ['No mechanic evidence','Chưa có bằng chứng cơ chế'],
+  ['PASSIVE: BURST WINDOW SEC','NỘI TẠI: CỬA SỔ BÙNG NỔ (GIÂY)'],
+  ['A1: DASH SPEED / MAX DASH TIME','A1: TỐC ĐỘ LƯỚT / THỜI GIAN LƯỚT TỐI ĐA'],
+  ['A2: ROBOT VIRTUAL ARMOR','A2: GIÁP ẢO ROBOT'],
+  ['A1: ARRIVE RADIUS / TARGET REVEALED PICKUPS','A1: BÁN KÍNH TIẾP CẬN / VŨ KHÍ TRÊN SÂN ĐÃ LỘ DIỆN'],
+
+
   ['PLAYABLE','CÓ THỂ CHƠI'],['ORIGINAL / VISUAL PREVIEW','NGUYÊN BẢN / XEM TRƯỚC'],
   ['VISUAL PREVIEW','XEM TRƯỚC NGOẠI HÌNH'],['/ VISUAL PREVIEW','/ XEM TRƯỚC NGOẠI HÌNH'],
   ['ACTIVE ROSTER','ĐỘI HÌNH ĐANG MỞ'],['LOCKED ROSTER','ĐỘI HÌNH ĐÃ KHÓA'],
@@ -220,6 +247,8 @@ export const COPY = Object.freeze(Object.fromEntries([
   // Lucky Draw
   ['DRAW BAY','KHU VỰC QUAY THƯỞNG'],['DRAW BAY · ACTIVE','KHU QUAY THƯỞNG · ĐANG HOẠT ĐỘNG'],
   ['APEX CHAOS · DRAW BAY','APEX CHAOS · KHU QUAY THƯỞNG'],
+  ['APEX CHAOS Lucky Draw','APEX CHAOS · Vòng quay may mắn'],
+  ['LED fighter wall','Bảng LED đấu sĩ'],
   ['LUCKY DRAW','QUAY MAY MẮN'],['DRAW','QUAY'],
   ['POSSIBLE FIGHTERS','ĐẤU SĨ CÓ THỂ NHẬN'],
   ['Possible fighters','Đấu sĩ có thể nhận'],['CLOSE ✕','ĐÓNG ✕'],
@@ -595,6 +624,10 @@ function phrase(value){
   if(!t||PRESERVE.has(t.toUpperCase()))return t;
   const exact=COPY[t]??QUEST_EXTRA[t]??VISIBLE_MISC[t]??LOOKUP.get(t.toUpperCase());
   if(exact!==undefined)return exact;
+  const resultPlayer=t.match(/^Player\s+([12]):\s*(.+?)\s+—\s*(chiến thắng|thất bại)$/iu);
+  if(resultPlayer)return 'Người chơi '+resultPlayer[1]+': '+resultPlayer[2]+' — '+resultPlayer[3];
+  const visualAuthority=t.match(/^VISUAL AUTHORITY \/ ([A-Z0-9._-]+)$/i);
+  if(visualAuthority)return 'THẨM QUYỀN HÌNH ẢNH / '+visualAuthority[1];
   const masteryCount=t.match(/^(\d+)\/(\d+) NEWBOT MASTERY$/i);
   if(masteryCount)return masteryCount[1]+'/'+masteryCount[2]+' TINH THÔNG NEWBOT';
   const count=t.match(/^(\d+) (HITS?|CRITS?|HOSTILES DOWN|FIGHTERS?)$/i);

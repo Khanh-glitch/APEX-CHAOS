@@ -33,6 +33,9 @@
   position:fixed;inset:0;z-index:2147480750;pointer-events:none;
   font-family:Arial, Helvetica, sans-serif;color:#f4efe4;
 }
+/* Deferred-only copy yields in the stacking order to Achievement/Reward/Skin
+   notifications even during the next 160 ms coach-sync tick. */
+.apex-guide-dock.apex-coach-layer.is-pickup-only{z-index:2147480690}
 .apex-coach-beacon{
   position:fixed;pointer-events:none;box-sizing:border-box;
   border:2px solid rgba(255,201,102,.96);
@@ -227,6 +230,26 @@
   background:#ff941f;box-shadow:0 0 0 2px rgba(255,148,31,.25),0 0 8px rgba(255,148,31,.8);
 }
 .apex-guide-weapon-hint{margin:6px 0 0;color:#ffd27a;font-size:11px;line-height:1.45}
+/* RA-2.3: after both real skill casts, move the existing pickup instruction
+   into the already-reserved P1 weapon-status row. The opaque, pointer-free
+   label stays within that row and yields to overlapping notifications. */
+.apex-guide-pickup-prompt{
+  position:fixed;z-index:2147480751;box-sizing:border-box;
+  display:flex;align-items:center;justify-content:center;
+  margin:0;padding:3px 7px;overflow:hidden;
+  border:1px solid rgba(255,210,122,.72);
+  background:rgba(9,9,11,.96);
+  box-shadow:inset 3px 0 0 #ff941f,0 4px 14px rgba(0,0,0,.48);
+  color:#ffd27a;font:750 clamp(8px,1.1vw,11px)/1.25 Arial,Helvetica,sans-serif;
+  letter-spacing:.015em;text-align:center;text-wrap:balance;
+  pointer-events:none;
+}
+@media (max-width:699px){
+  .apex-guide-pickup-prompt{padding:2px 5px;font-size:clamp(8px,2.25vw,10px);line-height:1.2}
+}
+@media (max-height:420px){
+  .apex-guide-pickup-prompt{padding:2px 4px;font-size:8px;line-height:1.15}
+}
 @media (prefers-reduced-motion: reduce){
   .apex-coach-taught{transform:none;transition:none}
 }

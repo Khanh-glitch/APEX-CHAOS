@@ -6,7 +6,7 @@
 //   page-level horizontal overflow, per-element clipping, covered/hidden
 //   primary controls, the live coach slot, console errors and failed requests.
 //
-// Viewports: 320×568, 360×560, 390×844, 667×375, 844×390, 1284×692, 1440×900
+// Viewports: 320×568, 360×560, 390×844, 667×375, 768×1024, 844×390, 1284×692, 1440×900
 // Languages: ENG and VIE. Modes: BOT (touch) and LOCAL (touch), keyboard at
 // desktop widths. Every row captures a screenshot for visual inspection.
 import { spawn } from 'node:child_process';
@@ -25,6 +25,7 @@ const VIEWPORTS = [
   { name: '360x560', w: 360, h: 560, touch: true },
   { name: '390x844', w: 390, h: 844, touch: true },
   { name: '667x375', w: 667, h: 375, touch: true },
+  { name: '768x1024', w: 768, h: 1024, touch: true },
   { name: '844x390', w: 844, h: 390, touch: true },
   { name: '1284x692', w: 1284, h: 692, touch: false },
   { name: '1440x900', w: 1440, h: 900, touch: false },
