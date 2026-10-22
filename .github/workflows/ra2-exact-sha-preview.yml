@@ -172,7 +172,7 @@ jobs:
           chrome-version: stable
 
       - name: Install test-only Puppeteer runtime
-        run: npm install --no-save --package-lock=false puppeteer-core@24
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
 
       - name: Run Field Archive ENG/VIE acceptance on exact preview
         env:
