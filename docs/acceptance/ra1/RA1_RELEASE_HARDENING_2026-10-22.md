@@ -4,16 +4,16 @@
 **Starting baseline:** `7ecc7f65fc5c0822fd5b257e27e58e9894f15f22`.
 **Exact product/test target:** `856cdf48247aa752b377eb2ddb6071426cf6e494` (`arena/d7ff52e8-apex-chaos`, revision `20261021-cp5-r1`).
 **PR:** #101, Draft / Open.
-**Decision:** **CONDITIONAL — ready for owner acceptance review; not OWNER ACCEPTED.** No merge, production deploy, itch publish, redesign, or gameplay-rule change was performed.
+**Decision:** **CONDITIONAL — exact-SHA external evidence is closed; awaiting owner acceptance review; not OWNER ACCEPTED.** No merge, production deploy, itch publish, redesign, or gameplay-rule change was performed.
 
-This continuation reran the release-critical browser/package checks against the exact target SHA. The exact build receipt reports 70 versioned runtimes. The screenshots and machine-readable results below are tied to the tested SHA. The report/evidence-only delivery commit, if one is added, does not alter application or test sources.
+The release-critical browser/package checks now run against the exact target SHA on an externally reachable, isolated Cloudflare Pages preview. The live build receipt identifies 70 versioned runtimes; runtime revision and selected asset bytes match the locally built exact-SHA candidate. Production's receipt stayed unchanged before and after the preview deploy. The report/evidence-only delivery commits do not alter application runtime or gameplay sources.
 
 ## 1. Verdict and conditions
 
 The RA-1 UI, tutorial, asset delivery, BOT/LOCAL compatibility, and nested-hosting gates pass at the target SHA. No new product defect was reproduced in this verification pass. The decision remains **CONDITIONAL**, not unconditional release approval, because:
 
-1. **KO-only match law remains an owner decision.** Nine BOT matches resolved naturally, but the game still has no time limit or draw rule. No timeout/draw change was made.
-2. **External preview proof is incomplete.** The local isolated production build is exact-SHA and available in the Arena QA preview (port 4173); the existing Cloudflare Pages preview still reports the old SHA. The PR's external Netlify START-entrypoint CI step failed, and its logs/artifact could not be retrieved from the Actions blob host (EOF), so its cause is **UNVERIFIED**.
+1. **KO-only match law remains an owner decision.** All 27 BOT matches across the three separate samples resolved naturally, but the game still has no time limit or draw rule. No timeout/draw change was made.
+2. **Legacy Netlify START gate remains red, but its current availability failure is classified.** The exact-SHA Cloudflare preview is independently live and passes external browser acceptance. A read-only probe of the older Netlify URL returned HTTP 404; the original gate assertion remains unchanged and is still failing. This is a separate provider/preview-entrypoint issue, not a Cloudflare exact-SHA result.
 3. **Physical-device checks remain UNVERIFIED.** Browser tests use headless Chromium with touch emulation; iOS Safari, Samsung Internet, and low-end Android hardware were not available.
 4. **Owner acceptance is pending.** This report does not imply OWNER ACCEPTED or permission to merge/deploy/publish.
 
@@ -28,7 +28,7 @@ The RA-1 UI, tutorial, asset delivery, BOT/LOCAL compatibility, and nested-hosti
 | SEL-1 | P2 | Fighter Select pager | Previously measured from scrollport edge rather than the CSS snapport inset. | Pager/controller uses computed `scroll-padding-left` (present in candidate before this QA rerun). | Existing pager gate 29/29; exact-SHA Fighter Select art/pick gate 136/136, including page-follow case. **FIXED / PASS** |
 | SEL-3 | P3 | Fighter Select rejected move | Old assertion expected a locked-neighbor move to change page even though selection was correctly rejected. | Assertion distinguishes rejected move from a successful selection; page-follow is separately proven by selecting NEWBOT on the next page. | `fighter-selection-follow-390x844.png`; exact-SHA coverage 136/136. **HARNESS CORRECTED / PASS** |
 | SEL-2 | — | Fighter Select art | No missing playable art reproduced. Six future fighters remain deliberately locked. MIRROR has no pose before an opponent is picked. | No new change. Lock state and MIRROR law are preserved. | Exact-SHA coverage: every playable card/preview decodes; locked entries stay locked; MIRROR gets real opponent art only after pick. **NOT REPRODUCED / PASS** |
-| DUR-1 | P1 investigation | BOT match duration | No KO timeout/draw is authored; clock counts up. | No gameplay or reward rule changed. | Nine exact-SHA pairings, 9/9 KO-resolved; median 84.7 s, p90/max 124.6 s, none unresolved at 180/300 s. **OWNER DECISION / OPEN** |
+| DUR-1 | P1 investigation | BOT match duration | No KO timeout/draw is authored; clock counts up. | No gameplay or reward rule changed. | Separate samples: production 9/9 median 57.1 s (p90/max 90.8); dev replication 9/9 median 84.7 s (p90/max 124.6); exact Cloudflare preview 9/9 median 48.9 s (p90/max 143). All resolved naturally. **OWNER DECISION / OPEN** |
 
 ### Live Battle HUD identity/HP measurements
 
@@ -37,6 +37,7 @@ Real integrated BOT battles used the production `setBotOpponent` authority. In b
 - Machine-readable exact-SHA geometry: `hud-identities/hud-identity-matrix.json`.
 - Screenshots: [`320×568 HUNTER`](hud-identities/320x568-en-hunter.png), [`320×568 NEWBOT`](hud-identities/320x568-en-newbot.png), [`320×568 CRYSTALA`](hud-identities/320x568-vi-crystala.png), and equivalent 390×844 images in `hud-identities/`.
 - Full integrated compatibility gate also confirms the live NEWBOT identity across all requested viewport/language rows.
+- **External exact-SHA check:** run `39735511402` measured HUNTER, NEWBOT, and CRYSTALA at 390×844, 844×390, and 320×568: **9/9 PASS**, with zero console errors, zero failed network requests, no identity/HP overlap, and 9 screenshots. The complete browser artifact is linked in the [final evidence index](RA1_FINAL_EVIDENCE_INDEX_2026-10-22.md).
 
 ## 3. Exact-SHA test and package matrix
 
@@ -66,8 +67,8 @@ The production build receipt is `dist/CP16_BUILD_RECEIPT.json` (commit `856cdf�
 | Fighter Select full roster + picking + MIRROR/lock laws | **136/136 PASS** on standalone exact-SHA rerun |
 | Compatibility: 320×568, 360×560, 390×844, 667×375, 844×390, 1284×692, 1440×900; ENG/VIE; BOT/LOCAL; touch/keyboard | **145/145 PASS** across 18 rows; no clipping/page overflow, all first-party network requests successful, no console errors |
 | Nested itch `/html/apex/` package | **13/13 PASS**; 0 first-party 404, 0 exceptions, 0 external hosts |
-| Live Battle HUD HUNTER/NEWBOT/CRYSTALA identity geometry | **6/6 PASS**, 0 name overflow, 0 px² HP overlap |
-| BOT duration investigation | **9/9 naturally KO-resolved**; no timer/draw rule added |
+| Live Battle HUD HUNTER/NEWBOT/CRYSTALA identity geometry | Sandbox exact build **6/6**; external exact-SHA preview **9/9 PASS** across 390×844, 844×390, 320×568; 0 console/network failures and 0 px² HP overlap |
+| BOT duration investigation | **Three separate samples:** production median 57.1 s; dev replication median 84.7 s; external exact preview median 48.9 s. All 9/9 KO-resolved; no timer/draw rule added |
 
 The Fighter Select art script had one earlier development-server run abort at a later mode-card press because its expected visible selector was absent. The same gate was immediately rerun standalone and completed 136/136 without assertion edits, then passed 136/136 again against the exact-SHA production preview. A separate focused development-server HUD attempt needed a repeated touch once at 390×844; diagnostics showed `stage=ready`, the visible Home control still present, and no coach overlay. This did **not** recur in the exact-SHA production-preview run (6/6). These remain recorded as **unresolved development-harness input/transition timing flakes**, not silently waived product failures. No root cause was proven; assertions were unchanged, and production-view compatibility passed 145/145.
 
@@ -103,23 +104,34 @@ Raw exact-SHA data: [`bot-duration-production.json`](bot-duration-production.jso
 | HUNTER | BOXE | 55.9 s | P2 | Yes |
 | SHURI | MAGNET | 86.7 s | P2 | Yes |
 
-Production sample: 9/9 resolved; median **57.1 s**; p90/max **90.8 s**; 0 unresolved at 180 s or 300 s. The independent development-server sample also resolved 9/9 (median 84.7 s, p90/max 124.6 s). Across all 18 observed rounds: median 63.4 s, p90 113.9 s, max 124.6 s; no round remained unresolved at 180/300 s. The variation is natural match-state/run variation; the production sample is the primary release evidence. This does not prove every possible pairing terminates quickly.
+The three datasets below are **separate samples and are not pooled**. All matches were observed through the real production runtime and resolved by KO; the external preview sample is an additional independent run, not a replacement for either recorded production or dev set.
+
+| Sample | Run/environment | Matches | Median | p90 | Max | Unresolved |
+|---|---|---:|---:|---:|---:|---:|
+| Production build (primary production evidence) | `bot-duration-production.json`, port 4173 | 9/9 | **57.1 s** | 90.8 s | 90.8 s | 0 at 180/300 s |
+| Dev-server replication (independent) | `bot-duration.json`, Vite development server | 9/9 | **84.7 s** | 124.6 s | 124.6 s | 0 at 180/300 s |
+| External exact-SHA preview (additional) | Run `39735511402`, Cloudflare preview | 9/9 | **48.9 s** | 143 s | 143 s | 0 |
+
+The spread is natural match-state/run variation. These observations do not prove every possible pairing terminates quickly.
 
 **Current rule:** Arsenal ends on KO only. There is no authored match cap, draw, or sudden-death rule; the HUD clock counts up. The owner must decide whether to retain this rule or explicitly authorize a gameplay/result/reward change. No proposal was implemented; AC, missions, cooldowns, damage, and sealed mastery were not changed.
 
-## 6. CI, exact-SHA preview, and provenance limits
+## 6. CI, exact-SHA preview, and provenance
 
-- PR #101 is Draft/Open. Runtime/browser target SHA is `856cdf48247aa752b377eb2ddb6071426cf6e494`; the pushed evidence-only commit is `7773bf4375aa3f3b8b3172a21d3b080a341756c7` and changes no application/test source.
-- On the runtime target, GitHub run `39725400631`, job `119648027460` (`actual-preview-entrypoint`), failed only at the external deployed-Netlify START-entrypoint step; local production build and provider-injection Chrome passed. On the evidence commit, run `39731933612`, job `119668712040`, reproduced the same failure at step 9. Current rollup on that commit was **23 pass / 1 fail**; all other displayed checks passed. Job metadata confirms the failing step, while annotations report only exit code 1. Both log and diagnostic-artifact downloads returned EOF from the Actions result/blob host, so root cause remains **UNVERIFIED**; it is not attributed to product or environment.
-- The existing Pages preview `https://arena-d7ff52e8-apex-chaos.apex-chaos.pages.dev/` still serves receipt SHA `7ecc7f65fc5c0822fd5b257e27e58e9894f15f22`; it is **not** exact-SHA evidence.
-- An isolated local production build from the runtime target is available in the Arena QA live preview on port **4173**; `/CP16_BUILD_RECEIPT.json` was verified as `856cdf…`. It does not deploy to Cloudflare, Netlify, production, or itch. No external exact-SHA isolated URL was verified.
-- The nested itch fixture on port 4180 was local test infrastructure only; it is not a published itch page.
+- **Runtime tested:** `856cdf48247aa752b377eb2ddb6071426cf6e494`, revision `20261021-cp5-r1`. PR #101 remains **Draft/Open**. Current evidence-only branch HEAD is `d209c81e31473e5101678ea1d049f837be3ff4a5`; it adds QA workflow/tooling and docs only, not a different runtime candidate.
+- **External exact-SHA preview:** [https://ra1-exact-856cdf4.apex-chaos.pages.dev](https://ra1-exact-856cdf4.apex-chaos.pages.dev), isolated Pages branch `ra1-exact-856cdf4`. Workflow [39735511402](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39735511402) passed. The live root returned HTTP 200; `CP16_BUILD_RECEIPT.json` identified the exact target SHA/revision and 70 versioned runtimes; Gold shell and selected runtime byte digests matched the exact local build. The production receipt before/after was unchanged. This is an isolated preview, not production deployment.
+- **External browser evidence:** the same workflow opened the public URL in real headless Chrome and passed Tutorial 16/16, Result art 56/56, Fighter Select 136/136, compatibility 145/145, live HUD identity 9/9, nested itch-style package 13/13, and nine BOT matches. Final artifact: [run #39735511402 artifacts](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39735511402#artifacts) (43.3 MB; 30-day retention). Machine-readable summary and probe are also mirrored in [PR comment](https://github.com/Khanh-glitch/APEX-CHAOS/pull/101#issuecomment-6334800151).
+- **Legacy `actual-preview-entrypoint` remains failed; diagnosis is a stale/unavailable Netlify preview origin.** The PR check [39737455095, job 119686419578](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39737455095/job/119686419578) passed its local production Chrome/Netlify-like provider test, then failed at “Verify main-facing PR's deployed Netlify START entrypoints.” A read-only probe from the successful Cloudflare runner to the same configured Netlify root, `https://deploy-preview-101--apexchaos.netlify.app/`, returned **HTTP 404** (`curl_exit=0`). The legacy browser script first asserts that navigation returned a successful HTTP response before it checks START visibility, geometry, hit testing, image decode, or click-through. Therefore the current probe establishes a missing/404 Netlify preview entrypoint; it does **not** establish a Cloudflare/product defect. Exact browser-specific failure telemetry for the old Netlify run remains unavailable, so the 404 probe is the direct present-time cause evidence, not an assertion-level trace of that earlier attempt. No assertion was weakened, skipped, or removed; the Netlify gate remains red and is not being represented as passing.
+- The pre-existing Pages URL `https://arena-d7ff52e8-apex-chaos.apex-chaos.pages.dev/` still belongs to a different stale deployment and is not used as exact-SHA evidence. Arena preview port 4173 is also sandbox-only and not evidence for the external URL.
+- **RA-2 note:** the gun-pick reminder can still appear while the tutorial is paused. Recorded for RA-2 only; it was not redesigned or changed in RA-1.
+- Physical iOS Safari, Samsung Internet, and low-end Android device checks remain **UNVERIFIED**. Browser acceptance here uses headless Chromium/touch emulation.
 
 ## 7. Remaining risk and owner decisions
 
 1. Decide whether to retain indefinite KO-only match termination, or separately authorize a timeout/draw/sudden-death rule and its AC/mission/sealed-mastery consequences. **Blocked; not implemented.**
 2. Review the narrow compact-BOT HUD fix, including hiding the redundant portrait at ≤340 px. No broader layout/art/typography/flow redesign was made.
-3. Review the exact-SHA local QA preview and screenshots. The external Netlify preview check remains unverified and the old Pages receipt is stale.
+3. Review the externally reachable exact-SHA Cloudflare preview and evidence artifact. The separate legacy Netlify START gate remains red on HTTP 404; its assertion is unchanged.
 4. Physical iOS/Samsung/low-end Android acceptance remains unverified.
+5. Keep the tutorial gun-pick reminder during pause in the RA-2 defect queue; do not treat this RA-1 as a tutorial redesign.
 
-**No production deploy, PR merge, itch publish, owner acceptance, timeout/draw law, or gameplay/balance/reward change occurred.** Screenshot evidence is committed under `docs/acceptance/ra1/`; video was not recorded.
+**No production deploy, PR merge, itch publish, owner acceptance, timeout/draw law, or gameplay/balance/reward change occurred.** Existing sandbox screenshot evidence is committed under `docs/acceptance/ra1/`; the new external-preview screenshots and diagnostics are in the linked 43.3 MB GitHub Actions artifact. Video was not recorded.
