@@ -1,0 +1,281 @@
+# Exact-SHA RA-1 final evidence closure. This workflow can deploy ONLY the
+# pinned 856cdf4 build to a unique Cloudflare Pages preview branch; it never
+# targets main or the production alias. The current branch supplies only the
+# workflow and evidence-tool orchestration; the shipped application is built
+# from the exact pinned runtime commit.
+name: RA-1 Exact 856cdf4 Isolated Preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ra1-exact-856cdf4-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy-and-verify:
+    if: github.ref == 'refs/heads/arena/d7ff52e8-apex-chaos'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      TARGET_SHA: 856cdf48247aa752b377eb2ddb6071426cf6e494
+      TARGET_REVISION: 20261021-cp5-r1
+      SOURCE_BRANCH: arena/d7ff52e8-apex-chaos
+      PREVIEW_BRANCH: ra1-exact-856cdf4
+      PREVIEW_URL: https://ra1-exact-856cdf4.apex-chaos.pages.dev
+      LEGACY_NETLIFY_URL: https://deploy-preview-101--apexchaos.netlify.app/
+      PRODUCTION_URL: https://apex-chaos.pages.dev
+      CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
+    defaults:
+      run:
+        shell: bash
+        working-directory: exact
+    steps:
+      - name: Checkout pinned application/runtime SHA
+        uses: actions/checkout@v4
+        with:
+          ref: 856cdf48247aa752b377eb2ddb6071426cf6e494
+          path: exact
+          fetch-depth: 0
+
+      - name: Checkout current-branch QA orchestration
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: qa
+          fetch-depth: 1
+
+      - name: Verify exact target checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          git diff --quiet
+          echo "RA-1 SOURCE SHA PASS: $(git rev-parse HEAD)"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: exact/pnpm-lock.yaml
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build exact candidate and run source/package gates
+        run: |
+          set -euo pipefail
+          env -u GITHUB_SHA -u CF_PAGES_COMMIT_SHA CF_PAGES_BRANCH="$SOURCE_BRANCH" pnpm build
+          node tools/testRuntimeRevisionGate.mjs
+          node tools/testCP16BuildReceipt.mjs
+          node tools/testCP16AtomicRelease.mjs
+          node tools/testShippingDist.mjs
+          node tools/testProductionSourceHygiene.mjs
+          node tools/testResultGoldAuthority.mjs
+          node tools/testGoldRevisionIntegrityGate.mjs
+          node tools/testGoldBattleHudAdaptationGate.mjs
+          node tools/testGoldPickBandLawGate.mjs
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const r=JSON.parse(fs.readFileSync('dist/CP16_BUILD_RECEIPT.json','utf8'));
+            if(r.gitCommit!==process.env.TARGET_SHA||r.revision!==process.env.TARGET_REVISION||r.versionedRuntimeCount!==70)process.exit(1);
+            console.log('PINNED DIST RECEIPT PASS:',r.gitCommit,r.revision,r.versionedRuntimeCount);
+          "
+
+      - name: Prepare portable nested-hosting fixture
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$TARGET_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          mkdir -p itch-nested-preview/html/apex
+          cp -a dist-itch-html5/. itch-nested-preview/html/apex/
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><title>RA-1 Nested QA</title><iframe src="/html/apex/index.html" width="1440" height="900"></iframe>' > itch-nested-preview/index.html
+
+      - name: Fail closed without credentials or a safe isolated target
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN is absent; no preview was deployed'; exit 1; }
+          test "$PREVIEW_BRANCH" != main
+          test "$PREVIEW_BRANCH" != "$SOURCE_BRANCH"
+          test "$PREVIEW_URL" != "$PRODUCTION_URL"
+          echo "SAFE ISOLATED TARGET: $PREVIEW_BRANCH -> $PREVIEW_URL"
+
+      - name: Record production receipt before isolated deployment
+        run: |
+          set -euo pipefail
+          curl -fLsS --max-time 20 "$PRODUCTION_URL/CP16_BUILD_RECEIPT.json?ra1-before=$TARGET_SHA" -o /tmp/ra1-production-before.json
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const r=JSON.parse(fs.readFileSync('/tmp/ra1-production-before.json','utf8'));
+            if(r.gitCommit===process.env.TARGET_SHA)process.exit(1);
+            console.log('PRODUCTION BASELINE (read-only):',r.gitCommit,r.revision);
+          "
+
+      - name: Deploy only the isolated RA-1 Cloudflare Pages branch
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name=apex-chaos \
+            --branch="$PREVIEW_BRANCH" \
+            --commit-hash="$TARGET_SHA" \
+            --commit-dirty=true
+
+      - name: Verify live receipt, runtime revision and exact runtime bytes
+        run: |
+          set -euo pipefail
+          matched=0
+          for attempt in $(seq 1 30); do
+            rm -f /tmp/ra1-live-receipt.json
+            curl -fLsS --max-time 20 "$PREVIEW_URL/CP16_BUILD_RECEIPT.json?sha=$TARGET_SHA&attempt=$attempt" -o /tmp/ra1-live-receipt.json 2>/dev/null || true
+            if [ -s /tmp/ra1-live-receipt.json ] && node --input-type=module -e "
+              import fs from 'node:fs';
+              const r=JSON.parse(fs.readFileSync('/tmp/ra1-live-receipt.json','utf8'));
+              if(r.gitCommit!==process.env.TARGET_SHA||r.revision!==process.env.TARGET_REVISION||r.versionedRuntimeCount!==70)process.exit(1);
+            " >/dev/null 2>&1; then matched=1; break; fi
+            echo "Waiting for exact-SHA Pages propagation ($attempt/30)"
+            sleep 4
+          done
+          test "$matched" = 1 || { echo '::error::Cloudflare preview did not serve the pinned receipt'; exit 1; }
+          curl -fLsS --max-time 30 "$PREVIEW_URL/" -o /tmp/ra1-preview-index.html
+          curl -fLsS --max-time 30 "$PREVIEW_URL/gold/manifest.json" -o /tmp/ra1-preview-gold-manifest.json
+          curl -fLsS --max-time 30 "$PREVIEW_URL/gold/shell.html" -o /tmp/ra1-preview-gold-shell.html
+          curl -fLsS --max-time 30 "$PREVIEW_URL/game/ui/uiSfxAuthority.js?v=$TARGET_REVISION" -o /tmp/ra1-preview-ui-sfx.js
+          curl -fLsS --max-time 20 "$PRODUCTION_URL/CP16_BUILD_RECEIPT.json?ra1-after=$TARGET_SHA" -o /tmp/ra1-production-after.json
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            import crypto from 'node:crypto';
+            const receipt=JSON.parse(fs.readFileSync('/tmp/ra1-live-receipt.json','utf8'));
+            const manifest=JSON.parse(fs.readFileSync('/tmp/ra1-preview-gold-manifest.json','utf8'));
+            const shell=fs.readFileSync('/tmp/ra1-preview-gold-shell.html');
+            const localShell=fs.readFileSync('dist/gold/shell.html');
+            const runtime=fs.readFileSync('/tmp/ra1-preview-ui-sfx.js');
+            const localRuntime=fs.readFileSync('dist/game/ui/uiSfxAuthority.js');
+            const digest=b=>crypto.createHash('sha256').update(b).digest('hex');
+            const before=JSON.parse(fs.readFileSync('/tmp/ra1-production-before.json','utf8'));
+            const after=JSON.parse(fs.readFileSync('/tmp/ra1-production-after.json','utf8'));
+            if(manifest.runtimeRevision!==receipt.revision||digest(shell)!==digest(localShell)||
+              digest(shell)!==receipt.goldShellSha256||digest(runtime)!==digest(localRuntime))process.exit(1);
+            if(after.gitCommit!==before.gitCommit||after.gitCommit===receipt.gitCommit)process.exit(1);
+            console.log('EXTERNAL EXACT-SHA PASS:',receipt.gitCommit,receipt.revision,'runtimes='+receipt.versionedRuntimeCount);
+            console.log('EXTERNAL APP ENTRYPOINT: HTTP 200; runtime byte digests match local exact build.');
+            console.log('PRODUCTION UNCHANGED:',after.gitCommit,after.revision);
+            console.log('PREVIEW URL:',process.env.PREVIEW_URL);
+          "
+
+      - name: Read-only probe of the legacy Netlify URL used by actual-preview-entrypoint
+        run: |
+          set +e
+          mkdir -p ra1-evidence
+          curl -sS -L --max-time 25 -o /tmp/ra1-legacy-netlify.html -w 'http_code=%{http_code} effective_url=%{url_effective} remote_ip=%{remote_ip}\n' "$LEGACY_NETLIFY_URL" > ra1-evidence/legacy-netlify-probe.txt 2>&1
+          code=$?
+          printf 'curl_exit=%s\n' "$code" >> ra1-evidence/legacy-netlify-probe.txt
+          cat ra1-evidence/legacy-netlify-probe.txt
+          {
+            echo '## Legacy Netlify availability probe (read-only; assertions unchanged)'
+            echo
+            echo 'URL tested by the older actual-preview-entrypoint gate:'
+            echo "$LEGACY_NETLIFY_URL"
+            echo
+            echo 'Probe output:'
+            printf '```text\n'
+            cat ra1-evidence/legacy-netlify-probe.txt
+            printf '```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Locate Chrome and preserve browser evidence
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME" || { echo '::error::Chrome unavailable; external browser acceptance NOT RUN'; exit 1; }
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          mkdir -p ra1-evidence
+
+      - name: Test tutorial on the external exact-SHA preview
+        env:
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          SHOTDIR: ra1-evidence/tutorial
+        run: node tools/testRa1TutorialInputBrowser.mjs
+
+      - name: Test Result art delivery on the external exact-SHA preview
+        env:
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          APEX_EVIDENCE_DIR: ra1-evidence/result
+        run: node tools/testRa1ResultArtCoverageBrowser.mjs
+
+      - name: Test Fighter Select art and picking on the external exact-SHA preview
+        env:
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          APEX_EVIDENCE_DIR: ra1-evidence/fighter
+        run: node tools/testRa1FighterArtCoverageBrowser.mjs
+
+      - name: Test compatibility matrix on the external exact-SHA preview
+        env:
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          APEX_EVIDENCE_DIR: ra1-evidence/compatibility
+        run: node tools/testRa1CompatibilityBrowser.mjs
+
+      - name: Test HUNTER, NEWBOT and CRYSTALA HUD identity/HP on portrait and landscape
+        env:
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          APEX_EVIDENCE_DIR: ra1-evidence/hud-identities
+          RA1_TESTED_SHA: 856cdf48247aa752b377eb2ddb6071426cf6e494
+          CDP_PORT: '9450'
+        run: node ../qa/tools/testRa1LiveHudIdentitiesBrowser.mjs
+
+      - name: Test the portable package in a nested itch-style local iframe
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4180 --bind 127.0.0.1 --directory itch-nested-preview > /tmp/ra1-nested-http.log 2>&1 &
+          echo $! > /tmp/ra1-nested-http.pid
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4180/html/apex/ITCH_GUEST_BUILD_SHA.txt >/dev/null; then break; fi
+            sleep 1
+          done
+          test "$(cat itch-nested-preview/html/apex/ITCH_GUEST_BUILD_SHA.txt)" = "$TARGET_SHA"
+          echo "Nested fixture serves exact build SHA: $TARGET_SHA"
+
+      - name: Run nested itch real-browser acceptance
+        env:
+          ITCH_NESTED_URL: http://127.0.0.1:4180/
+          APEX_EVIDENCE_DIR: ra1-evidence/nested
+        run: node tools/testRa1NestedItchHostingBrowser.mjs
+
+      - name: Measure nine BOT matches on the external exact-SHA preview
+        env:
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          APEX_EVIDENCE_DIR: ra1-evidence/bot-duration-production-preview
+          RA1_PAIRS: newbot:newbot,newbot:hunter,newbot:crystala,newbot:magnet,newbot:frost,boxe:hunter,crystala:newbot,hunter:boxe,shuri:magnet
+        run: node tools/measureRa1BotMatchDuration.mjs
+
+      - name: Write final external evidence summary
+        if: always()
+        run: |
+          {
+            echo '# RA-1 exact-SHA preview verification'
+            echo
+            echo "- Pinned source SHA: \\`$TARGET_SHA\\`"
+            echo "- Preview URL: $PREVIEW_URL"
+            echo "- Runtime revision: $TARGET_REVISION"
+            echo '- Build/receipt/runtime byte parity: see preceding verification step.'
+            echo '- Browser evidence: tutorial, Result art, Fighter Select, compatibility, live HUD identity, nested itch and BOT duration.'
+            echo '- Gameplay law: KO-only; this workflow does not alter or deploy timeout/draw changes.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload final browser screenshots and machine-readable evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ra1-exact-856cdf4-final-evidence
+          path: exact/ra1-evidence/
+          if-no-files-found: warn
+          retention-days: 30
