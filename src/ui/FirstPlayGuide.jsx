@@ -540,7 +540,14 @@ export default function FirstPlayGuide() {
   const [frame, setFrame] = useState(null);
   const [pausedSlot, setPausedSlot] = useState(null);
   const [language, setLanguage] = useState(currentLanguage);
-  const [coarse] = useState(() => {
+  // Input truth for lesson copy. A one-shot (pointer: coarse) read is wrong
+  // on hybrid devices: a phone with a paired mouse reports a fine primary
+  // pointer and would teach "Press J" to a player whose finger is the actual
+  // input. Copy therefore follows the pointer type of the LAST real input
+  // (touch/pen => touch lesson, mouse/key => key lesson) and the live
+  // coarse-pointer media query. Presentation only: both input contracts are
+  // still accepted at all times.
+  const [coarse, setCoarse] = useState(() => {
     try { return !!window.matchMedia?.('(pointer: coarse)').matches; } catch { return false; }
   });
 
@@ -553,6 +560,33 @@ export default function FirstPlayGuide() {
   const pauseCooldownUntilRef = useRef(0);
   const sideIntroRef = useRef({ scene: '', mode: null, activeUntil: 0, applied: false, lastTime: 0 });
   const bootstrappedRef = useRef(false);
+
+  // Follow real input: the lesson must name the control the player can
+  // actually use. Mouse/keys switch the copy back to J/K; touch/pen switch it
+  // to the HUD cards. The coarse media query also stays live so an emulated
+  // or rotated context cannot leave stale copy behind.
+  useEffect(() => {
+    const onPointer = (event) => {
+      const type = String(event?.pointerType || '');
+      if (type === 'touch' || type === 'pen') setCoarse(true);
+      else if (type === 'mouse') setCoarse(false);
+    };
+    const onKey = () => setCoarse(false);
+    let query = null;
+    const onMedia = (event) => setCoarse(!!event.matches);
+    try {
+      query = window.matchMedia?.('(pointer: coarse)') || null;
+      if (query?.matches) setCoarse(true);
+      query?.addEventListener?.('change', onMedia);
+    } catch { query = null; }
+    window.addEventListener('pointerdown', onPointer, true);
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('pointerdown', onPointer, true);
+      window.removeEventListener('keydown', onKey, true);
+      try { query?.removeEventListener?.('change', onMedia); } catch { /* older engines */ }
+    };
+  }, []);
 
   const persistCoach = useCallback((next) => {
     coachRef.current = next;

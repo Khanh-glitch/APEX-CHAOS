@@ -82,6 +82,18 @@ export const R91_LABEL_FIT_CSS = `/* R91 LABEL-FIT: primary-deck skill/weapon na
 #hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .weapon{display:none}
 #hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Side .id-ctrl{display:none}
 #hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Rail .vr-name{display:none}
+/* Compact BOT already shows the opponent's full identity in #p2Side .id-name.
+   Remove the second copy from its narrow HP rail; it overlaps HP by 12px at
+   390×844 and is never the only P2 identity source. */
+#hud:not([data-quest="1"])[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Rail .vr-name{display:none}
+/* At <=340px the P2 card's mirrored identity row cannot fit both its 34px
+   portrait and the full name beside the retained P2 skill summary; HUNTER's
+   leading letters paint outside the text column. The portrait is redundant
+   with the live fighter and P2 badge, so remove it only in this compact band
+   to give the full hero name the card width. Quest remains untouched. */
+@media(max-width:340px){
+  #hud:not([data-quest="1"])[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .portrait{display:none}
+}
 #hud[data-layout="port"][data-size="compact"][data-mode="1p"] .id-name{
   font-size:clamp(14px,4.1vw,16px);letter-spacing:0;overflow:visible;text-overflow:clip
 }
