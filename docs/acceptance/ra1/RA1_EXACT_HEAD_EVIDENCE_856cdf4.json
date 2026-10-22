@@ -139,5 +139,19 @@
     "compatibility": "PASS (145/145)",
     "liveHudIdentity": "PASS (6/6)",
     "hudLabelFit": "PASS (154/154)"
+  },
+  "branchEvidenceCommit": "7773bf4375aa3f3b8b3172a21d3b080a341756c7",
+  "latestCi": {
+    "run": 39731933612,
+    "job": 119668712040,
+    "headSha": "7773bf4375aa3f3b8b3172a21d3b080a341756c7",
+    "check": "actual-preview-entrypoint",
+    "rollup": {
+      "passed": 23,
+      "failed": 1
+    },
+    "localProductionChromeStep": "PASS",
+    "externalNetlifyEntryPointStep": "FAIL",
+    "rootCause": "UNVERIFIED; Actions log and artifact download EOF from result/blob host."
   }
 }

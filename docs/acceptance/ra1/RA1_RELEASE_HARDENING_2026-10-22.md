@@ -109,11 +109,11 @@ Production sample: 9/9 resolved; median **57.1 s**; p90/max **90.8 s**; 0 unreso
 
 ## 6. CI, exact-SHA preview, and provenance limits
 
-- PR #101 remains Draft/Open at exact target SHA `856cdf48247aa752b377eb2ddb6071426cf6e494`.
-- GitHub run `39725400631`, job `119648027460` (`actual-preview-entrypoint`): local production build and provider-injection Chrome step **PASS**; the later external deployed-Netlify START-entrypoint step **FAIL** with exit code 1. Job metadata confirms the failure step; its log and diagnostic artifact downloads returned EOF from the Actions result/blob host. Therefore the external step’s root cause is **UNVERIFIED**, not attributed to the product or environment.
+- PR #101 is Draft/Open. Runtime/browser target SHA is `856cdf48247aa752b377eb2ddb6071426cf6e494`; the pushed evidence-only commit is `7773bf4375aa3f3b8b3172a21d3b080a341756c7` and changes no application/test source.
+- On the runtime target, GitHub run `39725400631`, job `119648027460` (`actual-preview-entrypoint`), failed only at the external deployed-Netlify START-entrypoint step; local production build and provider-injection Chrome passed. On the evidence commit, run `39731933612`, job `119668712040`, reproduced the same failure at step 9. Current rollup on that commit was **23 pass / 1 fail**; all other displayed checks passed. Job metadata confirms the failing step, while annotations report only exit code 1. Both log and diagnostic-artifact downloads returned EOF from the Actions result/blob host, so root cause remains **UNVERIFIED**; it is not attributed to product or environment.
 - The existing Pages preview `https://arena-d7ff52e8-apex-chaos.apex-chaos.pages.dev/` still serves receipt SHA `7ecc7f65fc5c0822fd5b257e27e58e9894f15f22`; it is **not** exact-SHA evidence.
-- An isolated local production build from the exact target is available in the Arena QA live preview on port **4173**; verify `/CP16_BUILD_RECEIPT.json` for `856cdf…`. It does not deploy to Cloudflare, Netlify, production, or itch. No external exact-SHA isolated URL was verified.
-- The nested itch fixture on port 4180 is local test infrastructure only; it is not a published itch page.
+- An isolated local production build from the runtime target is available in the Arena QA live preview on port **4173**; `/CP16_BUILD_RECEIPT.json` was verified as `856cdf…`. It does not deploy to Cloudflare, Netlify, production, or itch. No external exact-SHA isolated URL was verified.
+- The nested itch fixture on port 4180 was local test infrastructure only; it is not a published itch page.
 
 ## 7. Remaining risk and owner decisions
 
