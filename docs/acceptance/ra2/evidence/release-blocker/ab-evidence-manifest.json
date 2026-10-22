@@ -1,0 +1,405 @@
+{
+  "title": "PR #101 RA-2 release-blocker visual/localization A/B evidence",
+  "fixedSourceSha": "49ca23c6814a47160516dbf9fdaccab2cdf8a767",
+  "baselineSourceSha": "4a12ac309f2b81202c5e0d292e48d7be4dbde28a",
+  "deviceScaleFactor": 1,
+  "result": {
+    "fixture": {
+      "mode": "BOT",
+      "P1": "SHURI victory, 1448 damage, 21 awards",
+      "P2": "NEWBOT defeat, 992 damage, 17 awards",
+      "weapon": "STORMBREAKER",
+      "durationSeconds": 78
+    },
+    "viewports": [
+      [
+        1844,
+        829
+      ],
+      [
+        1440,
+        900
+      ],
+      [
+        1560,
+        992
+      ],
+      [
+        844,
+        390
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "redChecks": {
+      "passed": 59,
+      "total": 82,
+      "failed": 23
+    },
+    "greenChecks": {
+      "passed": 82,
+      "total": 82,
+      "failed": 0
+    },
+    "reportBefore": "result-before/result-overlap-report.json",
+    "reportAfter": "result-after/result-overlap-report.json",
+    "abScreenshots": [
+      {
+        "language": "eng",
+        "viewportCssPx": [
+          1844,
+          829
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-eng-1844x829-settled.png",
+          "viewportPx": [
+            1844,
+            829
+          ],
+          "sha256": "3f73656a8f70a42266de14351dd7cab6e8339d6eea2608dbd26e4619271b049e"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-eng-1844x829-settled.png",
+          "viewportPx": [
+            1844,
+            829
+          ],
+          "sha256": "8d55957e3e721226e3afade99c7cf8d8f1443c4c1a8a7656f0a36c51edd8359a"
+        }
+      },
+      {
+        "language": "eng",
+        "viewportCssPx": [
+          1440,
+          900
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-eng-1440x900-settled.png",
+          "viewportPx": [
+            1440,
+            900
+          ],
+          "sha256": "58ed6655894611d07c2ba72eb07273aa01e69d39b8aac0a7f7636e94133f4155"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-eng-1440x900-settled.png",
+          "viewportPx": [
+            1440,
+            900
+          ],
+          "sha256": "fe37dbfafc621689dc38fd4c8bd285b302d4531994273a4f2ce53945322b772c"
+        }
+      },
+      {
+        "language": "eng",
+        "viewportCssPx": [
+          1560,
+          992
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-eng-1560x992-settled.png",
+          "viewportPx": [
+            1560,
+            992
+          ],
+          "sha256": "651f6c9e2e6cbc18724daa1ef05e9f3387570b086ee9d442de547e7c6a251657"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-eng-1560x992-settled.png",
+          "viewportPx": [
+            1560,
+            992
+          ],
+          "sha256": "062a709971f24d902ddad53beafe1d4b46699d4edae7dd0a9e2f02ae1de98641"
+        }
+      },
+      {
+        "language": "eng",
+        "viewportCssPx": [
+          844,
+          390
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-eng-844x390-settled.png",
+          "viewportPx": [
+            844,
+            390
+          ],
+          "sha256": "7683ce0f6cfd77413f73364e3d18fde593a3f81898fe24dad8d7d00831cb02f2"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-eng-844x390-settled.png",
+          "viewportPx": [
+            844,
+            390
+          ],
+          "sha256": "2c20f2d794f8b679de7650a3962e4b77334be31b715dbd7d44149df365667b3c"
+        }
+      },
+      {
+        "language": "eng",
+        "viewportCssPx": [
+          390,
+          844
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-eng-390x844-settled.png",
+          "viewportPx": [
+            390,
+            844
+          ],
+          "sha256": "79155651fb1fa1ddb85ba658df2bc8099f8ca023ee6e89b1a91efcaa250a470f"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-eng-390x844-settled.png",
+          "viewportPx": [
+            390,
+            844
+          ],
+          "sha256": "db1bdc56d7da993debecdc2d45c5dcef4fca34151d6a117c93af2ce00d77a153"
+        }
+      },
+      {
+        "language": "vie",
+        "viewportCssPx": [
+          1844,
+          829
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-vie-1844x829-settled.png",
+          "viewportPx": [
+            1844,
+            829
+          ],
+          "sha256": "c11317cd0d67f9ea539f617d5f71bf2d352aab0da10329426b7112c657e11a2d"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-vie-1844x829-settled.png",
+          "viewportPx": [
+            1844,
+            829
+          ],
+          "sha256": "c49eb43d6be9fd4574d5ce23dd2b75ad677a3238b548275352a0180c94ac7056"
+        }
+      },
+      {
+        "language": "vie",
+        "viewportCssPx": [
+          1440,
+          900
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-vie-1440x900-settled.png",
+          "viewportPx": [
+            1440,
+            900
+          ],
+          "sha256": "2640c67c720b463b6f6abb983b83ad77a83e42b3aa8da6927798c811ab293cdb"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-vie-1440x900-settled.png",
+          "viewportPx": [
+            1440,
+            900
+          ],
+          "sha256": "3b95ea3c3950e611ccf247595f33d65f60beef6f9ad09e7aa0310f980cfbc6b0"
+        }
+      },
+      {
+        "language": "vie",
+        "viewportCssPx": [
+          1560,
+          992
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-vie-1560x992-settled.png",
+          "viewportPx": [
+            1560,
+            992
+          ],
+          "sha256": "3fae5006b909ecaa7f4b24e059363623bfc87852f4ce437ea0353511992afe29"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-vie-1560x992-settled.png",
+          "viewportPx": [
+            1560,
+            992
+          ],
+          "sha256": "e5d457764e551659af8ed3223f9e0ea6945ffd36f742d3cef41fab295106e7b1"
+        }
+      },
+      {
+        "language": "vie",
+        "viewportCssPx": [
+          844,
+          390
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-vie-844x390-settled.png",
+          "viewportPx": [
+            844,
+            390
+          ],
+          "sha256": "56878f53d1f7452d13e0c6facb451d99bf00b83004c5f2328caa4459e19a9202"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-vie-844x390-settled.png",
+          "viewportPx": [
+            844,
+            390
+          ],
+          "sha256": "3053a9dbd0e3ead9fee2c0606446de8de54b718e1be3f28cc86f9f957f0042b5"
+        }
+      },
+      {
+        "language": "vie",
+        "viewportCssPx": [
+          390,
+          844
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-before/dense-native-21v17-vie-390x844-settled.png",
+          "viewportPx": [
+            390,
+            844
+          ],
+          "sha256": "d4526d5ff7708f91c0ec0b467b971ad198fa1490f51c405a6cac60a37847c967"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/result-after/dense-native-21v17-vie-390x844-settled.png",
+          "viewportPx": [
+            390,
+            844
+          ],
+          "sha256": "2be2cd38425f898a273972d2b4d04e4c6b23cbd5d437dacfb62b34838ca5b9b3"
+        }
+      }
+    ]
+  },
+  "mastery": {
+    "profile": {
+      "credits": 550,
+      "total": "21/252",
+      "NEWBOT": "21/42",
+      "recentUnlocks": 8,
+      "expanded": "OFFENSE",
+      "selectedLanguage": "ENG with VIE toggle"
+    },
+    "baselineChecks": {
+      "passed": 4,
+      "total": 10,
+      "failed": 6
+    },
+    "greenChecks": {
+      "passed": 10,
+      "total": 10,
+      "failed": 0
+    },
+    "reportBefore": "mastery-before/mastery-localization-report.json",
+    "reportAfter": "mastery-after/mastery-localization-report.json",
+    "abScreenshots": [
+      {
+        "language": "eng",
+        "profile": {
+          "credits": 550,
+          "total": "21/252",
+          "NEWBOT": "21/42",
+          "recentUnlocks": 8,
+          "expanded": "OFFENSE"
+        },
+        "viewportCssPx": [
+          1440,
+          900
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/mastery-before/progressed-550ac-21of252-newbot-21of42-eng-offense-1440x900.png",
+          "viewportPx": [
+            1440,
+            900
+          ],
+          "sha256": "a50f32599f68f6a4a80a77c45aa1d04e392889ad0c253cec4bfb56faa58fce5f"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/mastery-after/progressed-550ac-21of252-newbot-21of42-eng-offense-1440x900.png",
+          "viewportPx": [
+            1440,
+            900
+          ],
+          "sha256": "b95df51215daf55a5ba3dc68d2db1133e1979cf78e9902a67846b6400e1dc618"
+        }
+      },
+      {
+        "language": "vie",
+        "profile": {
+          "credits": 550,
+          "total": "21/252",
+          "NEWBOT": "21/42",
+          "recentUnlocks": 8,
+          "expanded": "OFFENSE"
+        },
+        "viewportCssPx": [
+          1440,
+          900
+        ],
+        "before": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/mastery-before/progressed-550ac-21of252-newbot-21of42-vie-offense-1440x900.png",
+          "viewportPx": [
+            1440,
+            900
+          ],
+          "sha256": "7e4fd668f6754f144c9506720d8d901e87b67eb38de05cd6e2bafbec64daf3a2"
+        },
+        "after": {
+          "path": "docs/acceptance/ra2/evidence/release-blocker/mastery-after/progressed-550ac-21of252-newbot-21of42-vie-offense-1440x900.png",
+          "viewportPx": [
+            1440,
+            900
+          ],
+          "sha256": "7f4e9d4a0a1ea2054c5764d3656e65a5e89d1d87d1b95c5d20f6434c1295a671"
+        }
+      }
+    ]
+  },
+  "toast": {
+    "defect": "steady-hand toast overlaps K / VIRTUAL ARMOR skill status",
+    "baselineChecks": {
+      "passed": 30,
+      "total": 40,
+      "failed": 10
+    },
+    "greenChecks": {
+      "passed": 40,
+      "total": 40,
+      "failed": 0
+    },
+    "reportBefore": "toast-regression/toast-layout-report.json",
+    "reportAfter": "toast-after/toast-layout-report.json",
+    "abScreenshot": {
+      "case": "P1 human steady-hand provisional, ENG",
+      "viewportCssPx": [
+        844,
+        390
+      ],
+      "before": {
+        "path": "docs/acceptance/ra2/evidence/release-blocker/toast-before/steady-hand-eng-844x390-provisional.png",
+        "viewportPx": [
+          844,
+          390
+        ],
+        "sha256": "0696911ff04bce97b76e14fb757c925fb816e43378a1e1e03df36b3a5b9fb7cb"
+      },
+      "after": {
+        "path": "docs/acceptance/ra2/evidence/release-blocker/toast-after/steady-hand-eng-p1-provisional-844x390.png",
+        "viewportPx": [
+          844,
+          390
+        ],
+        "sha256": "9adf7b6b42268e43f0f650242d5985d60dafa4e0f9a50bb03ca00f51ef6ae17d"
+      }
+    },
+    "afterPlacement": "Safe visible dock at 1844x829; visual toast suppressed when no safe HUD rectangle exists at 320x568, 844x390, and 1024x768. The accessible role=status / aria-live=polite remains."
+  },
+  "scope": "Only Result art/text overlap, Mastery achievement-name localization, and toast-vs-skill overlap. No gameplay, economy, entitlement, award authority, or unrelated visual changes."
+}
