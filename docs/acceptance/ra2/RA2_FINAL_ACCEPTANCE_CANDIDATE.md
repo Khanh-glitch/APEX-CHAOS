@@ -3,7 +3,8 @@
 **Date:** 2026-10-22
 **PR:** [#101](https://github.com/Khanh-glitch/APEX-CHAOS/pull/101) — still **Draft / Open**
 **Branch:** `arena/d7ff52e8-apex-chaos`
-**Reviewed source SHA:** `cfa70c1417dfa7c055c36980fbda7fbca3ac4fe5`
+**Reviewed runtime source SHA:** `cfa70c1417dfa7c055c36980fbda7fbca3ac4fe5`
+**Latest PR head at CI snapshot:** `6adc3b43ac023845c6d0f236a5ab93b814c530e6` (documentation/evidence-only follow-up; no runtime source change)
 **Candidate state:** exact-SHA isolated preview and requested RA-2 browser suites passed. This is not an owner acceptance or final technical verdict.
 
 ## Exact-SHA isolated preview
@@ -48,13 +49,9 @@
 
 ## Current PR checks
 
-At this candidate SHA, GitHub reports **22 pass, 4 fail, 0 pending**. The isolated `build-deploy-verify` and Cloudflare Pages checks pass. The remaining failures are independent PR checks and are not waived:
+At the latest fully completed PR-check snapshot, head `6adc3b43ac023845c6d0f236a5ab93b814c530e6` (documentation/evidence-only above the runtime SHA), GitHub reports **23 pass, 1 fail, 0 pending**. The complete [Arsenal Product Acceptance run 39781358840](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39781358840) passed, including R77 and Result Gold; the [A1 browser check](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39781358836) passed. The isolated `build-deploy-verify` and Cloudflare Pages checks also pass.
 
-1. [`actual-preview-entrypoint`](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39779373049) — deployed Netlify START URL verification failed; its local provider-injection regression passed.
-2. [`A1 browser acceptance (Chrome)`](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39779373119) — the A1 fresh-economy/account/admin-denial/P1+P2 browser step failed; the separate A1 economy/skill-data node gates passed.
-3. Two [Arsenal Product Acceptance runs](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39779373051) and [run 39779363149](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39779363149) failed at `R77 Chrome Home portrait hitbox regression`.
-
-These failures are recorded, but their causal relationship to this RA-2 source change has not been independently established. No assertions were weakened. Reproduce and measure before any fix; do not redesign or expand scope.
+The sole remaining failure is [`actual-preview-entrypoint`](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39781358964): deployed Netlify START URL verification failed, while its local provider-injection regression passed. It is not waived. The isolated Cloudflare preview is independently verified and does not replace this Netlify check. No assertions were weakened; reproduce and measure before any fix, and do not redesign or expand scope.
 
 ## Unverified / limits
 
