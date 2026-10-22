@@ -190,7 +190,16 @@ jobs:
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
           APEX_APP_URL: ${{ env.PREVIEW_URL }}/
-        run: node tools/testRa2LuckyDrawStatesBrowser.mjs
+        run: |
+          set +e
+          node tools/testRa2LuckyDrawStatesBrowser.mjs > /tmp/ra2-lucky-draw.log 2>&1
+          result=$?
+          tail -n 80 /tmp/ra2-lucky-draw.log
+          if [ "$result" -ne 0 ]; then
+            details="$(tail -n 30 /tmp/ra2-lucky-draw.log | tr '\n' ' ' | cut -c1-3000)"
+            echo "::error title=Remote Lucky Draw acceptance detail::$details"
+            exit "$result"
+          fi
 
       - name: Run Result Gold ENG/VIE portrait, landscape and zero-data states
         env:
