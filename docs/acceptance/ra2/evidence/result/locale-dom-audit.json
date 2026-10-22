@@ -118,6 +118,25 @@
     "done": true,
     "visible": "APEXCHAOS\nBÁO CÁO TRẬN ĐẤU\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nXEM LẠI\nNGƯỜI CHƠI 1\nV\nI\nC\nT\nO\nR\nY\nCHIẾN THẮNG\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nCHÍNH XÁC\n100%\nCHÍ MẠNG\n0%\nHỒI PHỤC\n0\nNGƯỜI CHƠI 2\nD\nE\nF\nE\nA\nT\nTHẤT BẠI\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nCHÍNH XÁC\n0%\nCHÍ MẠNG\n0%\nHỒI PHỤC\n0\nP1\n100.0%\n▲ DẪN ĐẦU\n1,000\n1,000\nSÁT THƯƠNG\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 1,000\nP2\n0.0%\n0\n0\nSÁT THƯƠNG\nVŨ KHÍ NỔI BẬT NHẤT TRẬN\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nSÁT THƯƠNG VŨ KHÍ\n\nĐÓNG GÓP CAO NHẤT\nP1\n\nDANH HIỆU\n10\nBấm để xem chi tiết\nDANH HIỆU\n0\nBấm để xem chi tiết\nTIẾP TỤC\nHỒ SƠ DANH HIỆU\nBỎ QUA"
   },
+  "archiveVIE": {
+    "lang": "vi",
+    "text": "APEX CHAOS · match-1720000000000-0\n\nHỒ SƠ DANH HIỆU\nP1\n10\nP2\n0\nBÁCH KHOA DANH HIỆU\n47\nNGUỒN SÁT THƯƠNG\nTẤT CẢ\nHỎA LỰC\nCHÍNH XÁC\nVŨ KHÍ\nSINH TỒN\nCHIẾN THUẬT\nHỖN LOẠN\nDANH HIỆU RIÊNG\nĐÃ ĐẠT TRONG TRẬN\n\nHiển thị 47 / 47\n\nKHÔNG THỂ TRỐN THOÁT\n\nTạo một chuỗi sát thương thực tế ≥ 500 DMG; khoảng cách giữa các lần gây damage không quá 1.2 giây.\n\nHUYỀN THOẠI\nP1\n\nMÁU ĐẦU TIÊN\n\nLà bên đầu tiên gây ra lượng sát thương thực tế lớn hơn 0 lên đối thủ.\n\nTHƯỜNG\nP1\n\nDƯ CHẤN\n\nGây ≥ 250 DMG thực tế trong cửa sổ 0,1 giây.\n\nHIẾM\nP1\n\nVUA BÙNG NỔ\n\nGây ≥ 350 DMG thực trong một cửa sổ trượt 3 giây.\n\nSỬ THI\nP1\n\nĐAO PHỦ\n\nTung đòn kết liễu khi đối thủ trước đòn đánh còn ≤ 20 % HP tối đa.\n\nHIẾM\nCHƯA AI ĐẠT\n\nPHÁO THỦY TINH\n\nGây ít nhất 2 lần damage đã nhận, đồng thời tổng damage gây ra ≥ 450 DMG.\n\nSỬ THI\nP1\n\nBÁCH PHÁT BÁCH TRÚNG\n\nTỷ lệ lượt bắn trúng ≥ 65 %, với tối thiểu 10 lượt bắn hợp lệ.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nSÁT THỦ\n\nTỷ lệ crit ≥ 25 % trên ít nhất 8 lượt trúng có khả năng crit.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nMẮT ĐẠI BÀNG\n\nGây ≥ 250 DMG từ khoảng cách ít nhất 500 đơn vị đấu trường.\n\nHIẾM\nP1\n\nTAY SÚNG VỮNG\n\nCó chuỗi ≥ 6 lượt bắn tầm xa liên tiếp trúng mục tiêu.\n\nHIẾM\nCHƯA AI ĐẠT\n\nCẬN CHIẾN TỬ THẦN\n\nGây ≥ 300 DMG khi khoảng cách tới đối thủ ≤ 240 đơn vị arena.\n\nHIẾM\nCHƯA AI ĐẠT\n\nVIÊN ĐẠN CUỐI\n\nHạ gục đối thủ bằng lượt bắn cuối cùng của một vũ khí có số lượt bắn hữu hạn.\n\nHIẾM\nCHƯA AI ĐẠT\n\nĐẠN NẢY THẦN SẦU\n\nCó ít nhất 1 lần ném vũ khí trúng mục tiêu sau khi vũ khí nảy tường.\n\nHIẾM\nCHƯA AI ĐẠT\n\nTHÔNG TẠO SHOTGUN\n\nGây ≥ 250 DMG bằng vũ khí family SHOTGUN hoặc AUTOSHOT.\n\nHIẾM\nCHƯA AI ĐẠT\n\nTHÔNG TẠO LIÊN THANH\n\nGây ≥ 220 DMG bằng vũ khí family AUTO.\n\nHIẾM\nCHƯA AI ĐẠT\n\nTHÔNG TẠO BẮN LOẠT\n\nGây ≥ 120 DMG bằng vũ khí family BURST.\n\nHIẾM\nCHƯA AI ĐẠT\n\nTHÔNG TẠO BẮN TỈA\n\nGây ≥ 200 DMG bằng vũ khí family PRECISION.\n\nHIẾM\nCHƯA AI ĐẠT\n\nTHÔNG TẠO BÁN TỰ ĐỘNG\n\nGây ≥ 160 DMG bằng vũ khí family SEMI.\n\nHIẾM\nP1\n\nTHÔNG TẠO CẬN CHIẾN\n\nGây ≥ 400 DMG bằng vũ khí cận chiến thật của Arsenal.\n\nHIẾM\nCHƯA AI ĐẠT\n\nVỪA NHẶT ĐÃ BẮN\n\nSau khi nhặt một vũ khí, gây damage bằng nó trong ≤ 2 giây; thực hiện 2 lần trong trận.\n\nTHƯỜNG\nCHƯA AI ĐẠT\n\nKHO VŨ KHÍ DI ĐỘNG\n\nGây damage bằng ít nhất 7 Weapon ID khác nhau trong trận.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nSỐNG DAI THÀNH HUYỀN THOẠI\n\nHồi phục tổng cộng ≥ 350 HP thực trong một trận.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nBỨC TƯỜNG THÉP\n\nNgăn chặn ≥ 250 DMG nhờ cơ chế giảm/hấp thụ damage của Fighter.\n\nHIẾM\nCHƯA AI ĐẠT\n\nĐỨNG VỮNG PHÚT CUỐI\n\nGiành chiến thắng với HP còn lại ≤ 10 % HP tối đa.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nBẤT KHẢ XÂM PHẠM\n\nThắng sau ít nhất 45 giây giao đấu, với tổng damage nhận vào ≤ 150 DMG.\n\nHIẾM\nCHƯA AI ĐẠT\n\nKẺ NHẶT NHẠNH\n\nNhặt thành công ≥ 8 trang bị trên sàn trong trận.\n\nTHƯỜNG\nCHƯA AI ĐẠT\n\nHƠI THỞ THỨ HAI\n\nSau khi HP tụt xuống ≤ 25 %, hồi thực ≥ 140 HP trước khi trận kết thúc.\n\nHIẾM\nCHƯA AI ĐẠT\n\nDA DÀY THỊT CHẮC\n\nChịu tổng cộng ≥ 600 DMG thực tế rồi vẫn thắng trận.\n\nHIẾM\nCHƯA AI ĐẠT\n\nCÒN MỘT HƠI\n\nSau khi HP chạm ≤ 10 %, vẫn sống thêm ít nhất 5 giây.\n\nHIẾM\nCHƯA AI ĐẠT\n\nLỘI NGƯỢC DÒNG\n\nGiành chiến thắng sau khi từng bị dẫn trước ít nhất 300 HP.\n\nHUYỀN THOẠI\nCHƯA AI ĐẠT\n\nYÊU CHUỘNG HÒA BÌNH\n\nCó một đoạn ≥ 30 giây không gây damage, đồng thời di chuyển được ≥ 500 px trong đoạn đó.\n\nTHƯỜNG\nCHƯA AI ĐẠT\n\nKỸ NĂNG LÀ CHÍNH\n\nSử dụng thành công ít nhất 12 lần kỹ năng trong trận.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nĐẢ KÍCH DI ĐỘNG\n\nGây ≥ 250 DMG khi tốc độ di chuyển tại thời điểm gây damage ≥ 150 px/s.\n\nHIẾM\nCHƯA AI ĐẠT\n\nBẬC THẦY MƯU MẸO\n\nCó 3 lần gây damage trong vòng 2.5 giây sau khi gây hiệu ứng đẩy, khống chế hoặc tước súng thành công.\n\nHIẾM\nCHƯA AI ĐẠT\n\nNGHỆ SĨ COMBO\n\nCó 3 lần dùng kỹ năng chủ động thành công rồi gây damage bằng vũ khí trong vòng 2 giây.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nCƠN SỐT ADRENALINE\n\nGây ≥ 250 DMG khi HP bản thân ≤ 25 % tối đa.\n\nHIẾM\nCHƯA AI ĐẠT\n\nPHÚT CHỐT HẠ\n\nGây ≥ 350 DMG trong 30 giây cuối trước khi trận kết thúc.\n\nSỬ THI\nP1\n\nKHÔNG BAO GIỜ BỎ CUỘC\n\nGây ≥ 400 DMG trong những thời điểm HP bản thân thấp hơn HP đối thủ.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nTỐC CHIẾN TỐC THẮNG\n\nGiành chiến thắng khi tổng thời lượng trận ≤ 45 giây.\n\nHIẾM\nP1\n\nBÀN TAY ĐỊNH MỆNH\n\nKết liễu đối thủ bằng một vũ khí vừa nhặt trong ≤ 2 giây trước đó.\n\nSỬ THI\nP1\n\nSỨ GIẢ HỖN LOẠN\n\nTrong 20 giây, gây damage bằng ≥ 3 Weapon ID khác nhau và có ít nhất một hit vũ khí được hỗ trợ bởi kỹ năng.\n\nHUYỀN THOẠI\nCHƯA AI ĐẠT\n\nCỖ MÁY KHÔNG NGỦ\n\nKích hoạt hiệu ứng giảm hồi chiêu của Rolling Burst trong ít nhất 3 chu kỳ kỹ năng khác nhau.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nCON MỒI ĐÃ ĐỊNH\n\nKẹp trúng đối thủ và gây sát thương tiếp nối trong 2 giây, ít nhất 2 lần.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nÝ CHÍ TỬ TINH\n\nGây ≥ 180 DMG thực tế bằng bộ kỹ năng tinh thể của Crystala.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nVẠN VẬT QUY TÂM\n\nTrong cùng một lần Attraction, kéo và nhặt các súng hợp lệ rồi gây tổng ≥ 200 DMG bằng TẤT CẢ những súng đó.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nKỶ BĂNG HÀ\n\nLàm mới thời gian đóng băng bằng Frozen Bullets ít nhất 2 lần.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nGẬY ÔNG ĐẬP LƯNG ÔNG\n\nDùng phản chiếu gây ≥ 150 DMG thực tế lên đối thủ bằng đòn tấn công của họ.\n\nSỬ THI\nCHƯA AI ĐẠT\n\nFixture nhất quán · 60/60 kiểm tra\nDữ liệu cố định, không thay đổi khi tải lại / đổi cỡ / xem lại.",
+    "attrs": [
+      "Đóng hồ sơ",
+      "Chế độ xem",
+      "Lọc danh hiệu"
+    ]
+  },
+  "detailVIE": {
+    "lang": "vi",
+    "text": "APEX CHAOS / DANH HIỆU\n\nHUYỀN THOẠI / HỎA LỰC\n\nKHÔNG THỂ TRỐN THOÁT\n\nP1\n\nTạo một chuỗi sát thương thực tế ≥ 500 DMG; khoảng cách giữa các lần gây damage không quá 1.2 giây.\n\nSÁT THƯƠNG CHUỖI\n1,000 DMG\n\nĐã đạt / Yêu cầu Sát thương chuỗi: ≥ 500 DMG · Khoảng ngắt tối đa: ≤ 1.2 giây\n\n01 / 10\nĐÓNG",
+    "attrs": [
+      "Đóng chi tiết danh hiệu",
+      "Chọn danh hiệu",
+      "Danh hiệu trước",
+      "Danh hiệu tiếp theo"
+    ]
+  },
   "restored": {
     "lang": "en",
     "text": "APEXCHAOS\nMATCH REPORT\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nREPLAY\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\nVICTORY\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n100%\nCRITICAL HITS\n0%\nHEALING\n0\nPLAYER 2\nD\nE\nF\nE\nA\nT\nDEFEAT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n0%\nCRITICAL HITS\n0%\nHEALING\n0\nP1\n100.0%\n▲ LEADING\n1,000\n1,000\nDMG\nTOTAL DAMAGE DEALT\nDAMAGE GAP 1,000\nP2\n0.0%\n0\n0\nDMG\nWEAPON OF THE BATTLE\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nWEAPON DAMAGE\n\nTOP CONTRIBUTOR\nP1\n\nACHIEVEMENT\n10\nSelect to view details\nACHIEVEMENT\n0\nSelect to view details\nCONTINUE\nACHIEVEMENTS ARCHIVE\nSKIP",
@@ -172,6 +191,33 @@
     ],
     "done": true,
     "visible": "APEXCHAOS\nMATCH REPORT\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nREPLAY\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\nVICTORY\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n100%\nCRITICAL HITS\n0%\nHEALING\n0\nPLAYER 2\nD\nE\nF\nE\nA\nT\nDEFEAT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n0%\nCRITICAL HITS\n0%\nHEALING\n0\nP1\n100.0%\n▲ LEADING\n1,000\n1,000\nDMG\nTOTAL DAMAGE DEALT\nDAMAGE GAP 1,000\nP2\n0.0%\n0\n0\nDMG\nWEAPON OF THE BATTLE\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nWEAPON DAMAGE\n\nTOP CONTRIBUTOR\nP1\n\nACHIEVEMENT\n10\nSelect to view details\nACHIEVEMENT\n0\nSelect to view details\nCONTINUE\nACHIEVEMENTS ARCHIVE\nSKIP"
+  },
+  "archiveENG": {
+    "lang": "en",
+    "text": "APEX CHAOS · match-1720000000000-0\n\nACHIEVEMENTS ARCHIVE\nP1\n10\nP2\n0\nCODEX\n47\nDAMAGE SOURCES\nALL\nFIREPOWER\nPRECISION\nWEAPONS\nSURVIVAL\nTACTICS\nCHAOS\nSIGNATURE\nEARNED THIS MATCH\n\nShowing 47 / 47\n\nFixture consistent · 60/60 checks\nRecorded data remains unchanged when reloading, resizing, or replaying.",
+    "attrs": [
+      "Close archive",
+      "View",
+      "Filter achievements"
+    ],
+    "vietnamese": []
+  },
+  "codexENG": {
+    "lang": "en",
+    "text": "ALL\nFIREPOWER\nPRECISION\nWEAPONS\nSURVIVAL\nTACTICS\nCHAOS\nSIGNATURE\nEARNED THIS MATCH\n\nShowing 47 / 47",
+    "locked": 37,
+    "lockedText": "Not earned"
+  },
+  "detailENG": {
+    "lang": "en",
+    "text": "APEX CHAOS / ACHIEVEMENTS\n\nLEGENDARY / FIREPOWER\n\nNO ESCAPE\n\nP1\n\nDeal at least 500 actual damage in one chain, with no more than 1.2 seconds between hits.\n\nCHAIN DAMAGE\n1,000 DMG\n\nEarned / Required Chain damage: ≥ 500 DMG · Maximum gap: ≤ 1.2 seconds\n\n01 / 10\nCLOSE",
+    "attrs": [
+      "Close achievement details",
+      "Choose an achievement",
+      "Previous achievement",
+      "Next achievement"
+    ],
+    "vietnamese": []
   },
   "browserErrors": [],
   "limitation": "Chromium desktop emulation; no physical device or current exact-SHA preview claim"
