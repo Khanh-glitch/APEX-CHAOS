@@ -4,7 +4,7 @@
 **PR:** [#101](https://github.com/Khanh-glitch/APEX-CHAOS/pull/101) — still **Draft / Open**
 **Branch:** `arena/d7ff52e8-apex-chaos`
 **Reviewed runtime source SHA:** `cfa70c1417dfa7c055c36980fbda7fbca3ac4fe5`
-**Latest completed PR-check head:** `ee99b2b3b9da09dfeafeaadfbf35de46f6d9e0a1` (documentation/evidence-only follow-up; no runtime source change)
+**Latest completed PR-check head:** `4f3cc83592832684951c11f39c8b8cb387255b94` (documentation/evidence-only follow-up; no runtime source change)
 **Candidate state:** exact-SHA isolated preview and requested RA-2 browser suites passed. This is not an owner acceptance or final technical verdict.
 
 ## Exact-SHA isolated preview
@@ -49,13 +49,13 @@
 
 ## Current PR checks
 
-At the latest fully completed PR-check snapshot, head `ee99b2b3b9da09dfeafeaadfbf35de46f6d9e0a1` (documentation/evidence-only above the runtime SHA), GitHub reports **23 pass, 1 fail, 0 pending**. Arsenal Product Acceptance, including R77 and Result Gold, passed; A1 browser acceptance, the cosmetic-contract suite, and full-frost-contract passed. Both acceptance runs completed successfully. The isolated exact-SHA Cloudflare workflow also passed.
+At the latest fully completed PR-check snapshot, head `4f3cc83592832684951c11f39c8b8cb387255b94` (documentation/evidence-only above the runtime SHA), GitHub reports **22 pass, 2 fail, 0 pending**. R77, Result Gold, A1 browser acceptance, BOT WAVE, cosmetic-contract, full-frost-contract, Story lock, and the isolated exact-SHA Cloudflare workflow passed. The separate push-triggered Arsenal Product Acceptance run [39789396947](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39789396947) also passed.
 
-The sole remaining failure is [`actual-preview-entrypoint`](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39786484862), the deployed Netlify START URL verification. It remains unwaived. The isolated Cloudflare preview is independently verified and does not replace this Netlify check. No assertions were weakened; reproduce and measure before any fix, and do not redesign or expand scope.
+Two PR check failures remain unwaived: [`actual-preview-entrypoint`](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39789412627), the deployed Netlify START URL verification, and [Arsenal Product Acceptance run 39789412644](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/39789412644), which failed at “Run product-authentic Arsenal headless acceptance.” The failure’s cause has not been established; the attempted Actions log download returned EOF, and no causal connection to the RA-2 documentation-only commits has been established. The isolated Cloudflare preview is independently verified and does not replace the Netlify check. No assertions were weakened; reproduce and measure before any fix, and do not redesign or expand scope.
 
 ## Unverified / limits
 
 - No physical iPhone/Safari or Android device testing; browser evidence is Chromium emulation.
 - The integrated compatibility matrix is local-source evidence; the exact-SHA workflow covers the requested RA-2 suites, not every compatibility profile.
-- The independent Netlify START entrypoint failure remains unresolved.
+- The independent Netlify START entrypoint and Arsenal Product Acceptance headless-step failures remain unresolved; no cause or relationship to RA-2 has been established.
 - **RA-2 technical verdict: NOT ISSUED.** No `READY`, `CONDITIONAL`, or `OWNER ACCEPTED` status is claimed. PR #101 remains Draft/Open; no merge, production deployment, or itch publication occurred.
