@@ -256,6 +256,22 @@ async function main() {
     matrix['bot-' + vp.name] = await walkRoster('BOT ' + vp.name, vp.touch);
     await shot('fighter-bot-' + vp.name);
 
+    if (vp.name === '390x844') {
+      // Selection follow (RA-1): a pick that lands on another page must bring
+      // the deck's port with it. The clean-profile gate can only prove the
+      // no-move case (locked neighbours), so this row proves the crossing.
+      await evl(`document.querySelectorAll('.rosterPagerDot')[0]?.click()`);
+      await sleep(600);
+      const before = await evl(`(()=>{const p=window.APEX_ROSTER_PAGER;const r=document.querySelector('.selectionDeckV6 .roster');return p&&r?{page:p.page,sl:r.scrollLeft}:null})()`);
+      const picked = await selectCard('newbot');
+      await sleep(900);
+      const after = await evl(`(()=>{const p=window.APEX_ROSTER_PAGER;const r=document.querySelector('.selectionDeckV6 .roster');const i=document.querySelector('#p1WorldArt img');return p&&r?{page:p.page,sl:r.scrollLeft,hero:document.querySelector('#p1Side')?.dataset.hero,preview:i?i.naturalWidth:0}:null})()`);
+      check('picking a fighter on the next page moves the pager to that page',
+        picked === true && before?.page === 0 && after?.page === 1 && after?.hero === 'newbot' && after?.preview > 0,
+        JSON.stringify({ before, after, picked }));
+      await shot('fighter-selection-follow-390x844');
+    }
+
     if (vp.name === '390x844' || vp.name === '844x390') {
       await boot(vp.touch);
       await toPick('local', vp.touch);

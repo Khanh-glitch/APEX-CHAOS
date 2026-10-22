@@ -258,6 +258,8 @@ async function main() {
   await evl(`(()=>{ document.activeElement?.blur?.(); return true; })()`);
   const eligible = await evl(`(()=>[...document.querySelectorAll('.rosterCard')].filter(c=>!c.classList.contains('is-locked')&&!c.disabled).map(c=>c.dataset.hero))()`);
   const kbStart = await evl(`(()=>{ const h=document.getElementById('p2Side')?.getAttribute('data-hero'); return ${JSON.stringify(order)}.indexOf(h); })()`);
+  const kbStartHero = order[kbStart];
+  const kbStartPage = (await stableScroll())?.page;
   let kbCur = order[kbStart], kbInvalid = false, kbCrossed = false, kbViolations = [];
   for (let i = 0; i < 4; i++) {
     const prev = kbCur;
@@ -276,9 +278,15 @@ async function main() {
   const kb = await evl(`(()=>{ const h=document.getElementById('p2Side')?.getAttribute('data-hero'); return {hero:h, idx:${JSON.stringify(order)}.indexOf(h)}; })()`);
   check('A keyboard navigation never selects a progression-locked fighter', !kbInvalid && eligible.includes(kb?.hero),
     `eligible=${eligible.join(',')} hero=${kb?.hero}`);
+  // Product law: a keyboard move that CHANGES the selection onto another page
+  // must bring the port to that page (selection follow). A keyboard move that
+  // is rejected (locked neighbours) must not scroll the port at all — the
+  // player's own page position is theirs to keep.
+  const kbSelChanged = !!kb && kb.hero !== kbStartHero;
   check('A pager page follows keyboard selection across pages when a move is legal',
-    (!kbCrossed || kbViolations.length === 0) && kb && kb.idx >= 0 && st && Math.floor(kb.idx / 6) === st.page,
-    `crossed=${kbCrossed} violations=${kbViolations.join(';')} page=${st?.page}`);
+    (!kbCrossed || kbViolations.length === 0) && !!kb && kb.idx >= 0 && !!st
+      && (kbSelChanged ? st.page === Math.floor(kb.idx / 6) : st.page === kbStartPage),
+    `crossed=${kbCrossed} changed=${kbSelChanged} violations=${kbViolations.join(';')} startPage=${kbStartPage} page=${st?.page} hero=${kb?.hero}`);
   // Pick ROBOT (newbot) for the BOT via pager dots, then lock into battle.
   const newbotPage = Math.floor(order.indexOf('newbot') / 6);
   await tapSel(`.rosterPagerDot:nth-child(${newbotPage + 1})`);
