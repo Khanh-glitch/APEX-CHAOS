@@ -6,6 +6,11 @@
 name: RA-1 Exact 856cdf4 Isolated Preview
 
 on:
+  push:
+    branches:
+      - arena/d7ff52e8-apex-chaos
+    paths:
+      - '.github/workflows/ra1-exact-856cdf-preview.yml'
   workflow_dispatch:
 
 permissions:
