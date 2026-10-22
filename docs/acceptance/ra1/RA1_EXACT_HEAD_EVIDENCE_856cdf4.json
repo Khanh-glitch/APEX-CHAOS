@@ -1,0 +1,143 @@
+{
+  "schema": "ra1-exact-head-evidence/v1",
+  "testedCommit": "856cdf48247aa752b377eb2ddb6071426cf6e494",
+  "branch": "arena/d7ff52e8-apex-chaos",
+  "pullRequest": 101,
+  "revision": "20261021-cp5-r1",
+  "browser": "HeadlessChrome/153.0.8010.0",
+  "build": {
+    "receipt": "dist/CP16_BUILD_RECEIPT.json",
+    "versionedRuntimes": 70,
+    "shippingDist": {
+      "files": 480,
+      "firstPartyLeaks": 0
+    },
+    "sourceHygiene": {
+      "productionRuntimes": 75,
+      "quarantined": 34,
+      "retiredOrphans": 5,
+      "stalePointers": 0
+    },
+    "gates": {
+      "runtimeRevision": "PASS",
+      "cp16BuildReceipt": "PASS",
+      "cp16AtomicRelease": "PASS",
+      "shippingDist": "PASS",
+      "productionSourceHygiene": "PASS",
+      "resultGoldAuthority": "PASS (47 owner titles)",
+      "goldRevisionIntegrity": "PASS (18)",
+      "goldBattleHudAdaptation": "PASS (61)",
+      "goldPickBandLaw": "PASS (87)"
+    }
+  },
+  "browserGates": {
+    "battleHudLabelFit": "PASS (154/154)",
+    "tutorialInput": "PASS (16/16)",
+    "resultArtCoverage": "PASS (56/56)",
+    "fighterArtCoverage": "PASS (136/136 on standalone rerun)",
+    "compatibility": "PASS (145/145)",
+    "nestedItch": "PASS (13/13)"
+  },
+  "liveHudIdentity": {
+    "result": "PASS (6/6)",
+    "viewports": [
+      "320x568",
+      "390x844"
+    ],
+    "opponents": [
+      "HUNTER",
+      "NEWBOT",
+      "CRYSTALA"
+    ],
+    "overlapArea": 0,
+    "nameOverflow": 0,
+    "previewOrigin": "port 4173, receipt SHA verified"
+  },
+  "fighterPreviewPerformance": {
+    "decodedPlayableSelections": 42,
+    "medianMs": 437,
+    "p90Ms": 941,
+    "maxMs": 948,
+    "mirrorPrePick": "expected no pose; excluded from decode latency"
+  },
+  "botDuration": {
+    "productionBuild": {
+      "file": "bot-duration-production.json",
+      "matches": 9,
+      "resolved": 9,
+      "unresolved": 0,
+      "medianSeconds": 57.1,
+      "p90Seconds": 90.8,
+      "maxSeconds": 90.8,
+      "unresolvedAt180": 0,
+      "unresolvedAt300": 0
+    },
+    "devServerReplication": {
+      "file": "bot-duration.json",
+      "matches": 9,
+      "resolved": 9,
+      "unresolved": 0,
+      "medianSeconds": 84.7,
+      "p90Seconds": 124.6,
+      "maxSeconds": 124.6,
+      "unresolvedAt180": 0,
+      "unresolvedAt300": 0
+    },
+    "all18": {
+      "resolved": 18,
+      "medianSeconds": 63.4,
+      "p90Seconds": 113.9,
+      "maxSeconds": 124.6
+    }
+  },
+  "nestedHosting": {
+    "result": "PASS (13/13)",
+    "firstParty404": 0,
+    "exceptions": 0,
+    "externalHostRequests": 0,
+    "buildShaReceipt": "856cdf48247aa752b377eb2ddb6071426cf6e494"
+  },
+  "nonReproducibleHarnessEvents": [
+    {
+      "event": "first fighter-art run exited while pressing for a later BOT mode screen because the expected visible modeCard selector was absent; standalone rerun exact HEAD passed 136/136 with unchanged assertions",
+      "classification": "UNRESOLVED HARNESS/INPUT TIMING FLAKE; no product root cause proven"
+    },
+    {
+      "event": "one initial 390x844 touch in targeted live HUD run left stage ready; diagnostic still showed FREE BATTLE present and no coach; repeated real touch transitioned and all six identity checks passed",
+      "classification": "UNRESOLVED INPUT TIMING; no assertion weakened"
+    }
+  ],
+  "ci": {
+    "check": "actual-preview-entrypoint",
+    "run": 39725400631,
+    "job": 119648027460,
+    "headSha": "856cdf48247aa752b377eb2ddb6071426cf6e494",
+    "localProductionChromeStep": "PASS",
+    "externalNetlifyEntrypointStep": "FAIL (exit 1)",
+    "diagnostics": "GitHub API job metadata confirms the failure is only at the external deployed-Netlify step; GitHub Actions log/artifact retrieval returned EOF to actions-results blob host, so root cause is UNVERIFIED."
+  },
+  "preexistingPagesPreview": {
+    "url": "https://arena-d7ff52e8-apex-chaos.apex-chaos.pages.dev",
+    "receiptSha": "7ecc7f65fc5c0822fd5b257e27e58e9894f15f22",
+    "isExactTestSha": false
+  },
+  "externalExactShaPreview": "UNVERIFIED",
+  "rulesChanged": false,
+  "ownerAccepted": false,
+  "exactPreview": {
+    "kind": "local isolated production build",
+    "testedCommit": "856cdf48247aa752b377eb2ddb6071426cf6e494",
+    "receipt": "CP16_BUILD_RECEIPT.json",
+    "receiptVerified": true,
+    "port": 4173,
+    "externalCloudPreview": "UNVERIFIED"
+  },
+  "productionBuildBrowserGates": {
+    "tutorialInput": "PASS (16/16)",
+    "resultArtCoverage": "PASS (56/56)",
+    "fighterArtCoverage": "PASS (136/136)",
+    "compatibility": "PASS (145/145)",
+    "liveHudIdentity": "PASS (6/6)",
+    "hudLabelFit": "PASS (154/154)"
+  }
+}

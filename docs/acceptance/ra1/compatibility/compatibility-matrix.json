@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T04:45:35.816Z",
+  "generatedAt": "2026-10-22T05:56:15.010Z",
   "rows": [
     {
       "tag": "320x568-eng-bot",
@@ -48,7 +48,7 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 52,
+            "x": 51,
             "y": 354,
             "w": 284,
             "h": 59
@@ -684,7 +684,7 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 52,
+            "x": 55,
             "y": 564,
             "w": 346,
             "h": 59
@@ -896,7 +896,7 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 54,
+            "x": 56,
             "y": 564,
             "w": 346,
             "h": 59
@@ -1002,7 +1002,7 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 55,
+            "x": 56,
             "y": 564,
             "w": 346,
             "h": 59
@@ -1320,7 +1320,7 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 434,
+            "x": 433,
             "y": 273,
             "w": 261,
             "h": 55
@@ -1426,7 +1426,7 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 432,
+            "x": 434,
             "y": 273,
             "w": 261,
             "h": 55
@@ -1532,7 +1532,7 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 667,
+            "x": 669,
             "y": 496,
             "w": 381,
             "h": 71
@@ -1638,7 +1638,7 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 669,
+            "x": 670,
             "y": 496,
             "w": 381,
             "h": 71
@@ -1744,10 +1744,10 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 725,
-            "y": 644,
-            "w": 432,
-            "h": 88
+            "x": 745,
+            "y": 645,
+            "w": 428,
+            "h": 87
           },
           "inView": true,
           "hittable": false
@@ -1850,9 +1850,9 @@
           "sel": "#freeBattle",
           "visible": true,
           "rect": {
-            "x": 730,
-            "y": 644,
-            "w": 431,
+            "x": 746,
+            "y": 645,
+            "w": 428,
             "h": 87
           },
           "inView": true,

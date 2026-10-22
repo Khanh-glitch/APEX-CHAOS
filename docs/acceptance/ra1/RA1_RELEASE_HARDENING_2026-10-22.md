@@ -1,174 +1,125 @@
 # RA-1 — Release Hardening Report (2026-10-22)
 
-**Scope:** RA-1 only (release hardening / player-visible defect closure). No RA-2..RA-4.
-**Baseline:** `7ecc7f65fc5c0822fd5b257e27e58e9894f15f22` (verified HEAD before work).
-**Branch:** `arena/d7ff52e8-apex-chaos` → PR #101 (Draft, unmerged).
-**Status:** implementation + self-QA complete. **NOT owner-accepted. Not merged, not deployed, not published.**
+**Scope:** RA-1 only. No RA-2..RA-4 work.
+**Starting baseline:** `7ecc7f65fc5c0822fd5b257e27e58e9894f15f22`.
+**Exact product/test target:** `856cdf48247aa752b377eb2ddb6071426cf6e494` (`arena/d7ff52e8-apex-chaos`, revision `20261021-cp5-r1`).
+**PR:** #101, Draft / Open.
+**Decision:** **CONDITIONAL — ready for owner acceptance review; not OWNER ACCEPTED.** No merge, production deploy, itch publish, redesign, or gameplay-rule change was performed.
 
-All evidence referenced here is committed under `docs/acceptance/ra1/` so the owner can open it
-directly in the repo; the machine-readable matrices are the JSON files in the same folder.
+This continuation reran the release-critical browser/package checks against the exact target SHA. The exact build receipt reports 70 versioned runtimes. The screenshots and machine-readable results below are tied to the tested SHA. The report/evidence-only delivery commit, if one is added, does not alter application or test sources.
 
----
+## 1. Verdict and conditions
 
-## 1. Verdict (scoped to RA-1)
+The RA-1 UI, tutorial, asset delivery, BOT/LOCAL compatibility, and nested-hosting gates pass at the target SHA. No new product defect was reproduced in this verification pass. The decision remains **CONDITIONAL**, not unconditional release approval, because:
 
-**CONDITIONAL — READY FOR OWNER ACCEPTANCE REVIEW.**
-
-Every P1 defect that reproduced was fixed at its source authority and re-verified in a real
-browser. Two items stay open by design and need the owner, not engineering:
-
-1. **Match-duration law (RA-1.D).** The product Arsenal match ends on KO only; no time limit
-   exists. Measured, documented, recommended — **not changed**, because that is a gameplay rule.
-2. **Physical-device proof.** All evidence is Chromium (headless, touch emulation). iOS Safari,
-   Samsung Internet and low-end Android hardware remain **UNVERIFIED**.
-
----
+1. **KO-only match law remains an owner decision.** Nine BOT matches resolved naturally, but the game still has no time limit or draw rule. No timeout/draw change was made.
+2. **External preview proof is incomplete.** The local isolated production build is exact-SHA and available in the Arena QA preview (port 4173); the existing Cloudflare Pages preview still reports the old SHA. The PR's external Netlify START-entrypoint CI step failed, and its logs/artifact could not be retrieved from the Actions blob host (EOF), so its cause is **UNVERIFIED**.
+3. **Physical-device checks remain UNVERIFIED.** Browser tests use headless Chromium with touch emulation; iOS Safari, Samsung Internet, and low-end Android hardware were not available.
+4. **Owner acceptance is pending.** This report does not imply OWNER ACCEPTED or permission to merge/deploy/publish.
 
 ## 2. Defect register
 
-| ID | Severity | Where | Reproduced | Root cause | Fix | Evidence | Status |
-|---|---|---|---|---|---|---|---|
-| HUD-1 | P1 | Battle HUD, compact portrait BOT, 320–430 px | Yes — live match, not fixture | `#p2Rail .vr-name` duplicated the opponent name inside the narrow HP rail; at 390×844 its box (x 291.9→339.6) overlapped `.vr-hp` (x 236→303.8) by **11.95 × 11 px**, painting the trailing `ER` of HUNTER onto the HP numerals | Rail copy suppressed only in `[port][compact][1p]`; the identity card keeps the name | `assets/hud-p2-identity-after-390x844.png` | **FIXED** |
-| HUD-2 | P1 | Same band, ≤340 px | Yes — 320×568 screenshot shows the P2 portrait painting over the name (`…NTER`) | The mirrored identity row cannot hold a 34 px portrait + the full name beside the retained skill summary (`id-txt` was 29 px wide inside a 70 px card; the portrait sat at x 280→314 covering the text’s 234→273 box) | Portrait removed **only** at `max-width:340px` in that band (redundant with the live fighter and the P2 badge); Quest untouched | `assets/hud-p2-identity-before-320x568-crop.png`, `assets/hud-p2-identity-after-320x568.png` | **FIXED** |
-| TUT-1 | P1 | First-play coach, skill lessons | Yes — hybrid context (page reports `(pointer: coarse)` false while the player touches) | Copy was chosen once at mount from `(pointer: coarse)`; a phone with a paired mouse / fine primary pointer taught “Press J” | Copy follows the **last real input modality** (`pointerdown` type) plus a live media-query listener. Both input contracts stay accepted; no gameplay change | `assets/tutorial-hybrid-lesson-390x844-vie.png` (after), gate scenario B | **FIXED** |
-| RES-1 | P1 | Match Result, **nested itch hosting only** | Yes — locally served `/html/apex/` package | `heroPortraitSource()` / weapon art accepted art only when it started with an exact `/assets/`; the portable pack rewrites first-party literals to `../assets/…`, so SHURI/BOXE (dictionary art, not gold-ui) fell back to a fabricated `gold-ui/.../pick_selected_large.webp` → **404 + placeholder portrait** | `appAssetPath()` accepts `/`, `./`, `../` and bare spellings, still rejecting traversal, protocols and non-images | Before: 404 `…/shuri/pick_selected_large.webp` + `Ảnh nhân vật · placeholder`; after: `standing.webp` 1122 px decoded, weapon art decoded, 0 first-party 404 | **FIXED** |
-| SEL-1 | P2 | Fighter Select pager | Yes — pager settled 4 px off the snap target | Page starts measured from the scrollport edge instead of the CSS snapport (`scroll-padding-left`) | Controller and helper use the computed inset (fixed before RA-1, re-verified here) | `testFighterSelectPagerBrowser` 29/29 | **FIXED** |
-| SEL-3 | P3 | Fighter Select, keyboard move rejected | No product defect — harness expectation was wrong | A rejected arrow move (locked neighbours) correctly keeps the player's own page; the gate asserted the port must always equal the selection's page | Assertion now distinguishes "selection changed → port follows" (proved with the QA unlock seam: page 0 → pick NEWBOT → port page 1) from "move rejected → port unchanged" | `assets/fighter-selection-follow-390x844.png` | **HARNESS FIXED** |
-| SEL-2 | — | Fighter Select, all 14 entries | — | — | — | `testRa1FighterArtCoverageBrowser` 135/135 | **NOT REPRODUCED** (art and picking are intact at 320/390/844/1440) |
-| DUR-1 | P1 investigation | BOT match length | Partly | KO-only termination, no cap, clock counts up | Report + recommendation only (below) | `bot-duration-9matches.json` | **OPEN — owner decision** |
-| MIRROR | — | MIRROR preview | — | Owner rule: no static pose until the opponent is picked | Kept exactly; verified both directions | `assets/fighter-mirror-derived-390x844.png` | **EXPECTED BY DESIGN** |
-| LOCKED | — | 6 future fighters | — | Not playable yet | Near-black `LOCKED` state is owner-preserved, not a broken image | `fighter-art-matrix.json` | **EXPECTED BY DESIGN** |
+| ID | Severity | Surface | Reproduction / root cause | Technical change in the RA-1 candidate | Exact-SHA evidence / verdict |
+|---|---|---|---|---|---|
+| HUD-1 | P1 | Compact portrait BOT Battle HUD | At 390×844, the duplicated P2 rail name intruded into the HP strip by about 12×11 px. | Hide only the duplicate `#p2Rail .vr-name` in `[port][compact][1p]`; keep the identity card. | Before/after crops: `assets/hud-p2-identity-before-320x568-crop.png`, `assets/hud-p2-identity-after-320x568.png`, `assets/hud-p2-identity-after-390x844.png`. Live HUNTER/NEWBOT/CRYSTALA: 6/6 pass, 0 px identity/HP overlap. **FIXED / PASS** |
+| HUD-2 | P1 | ≤340 px portrait BOT identity | At 320×568, the redundant portrait covered the end of the duplicated name inside a 70 px rail. | Hide only the redundant portrait in that compact BOT band; preserve Local/landscape/Quest. | Same before/after evidence; current exact-SHA 320×568 identity matrix. **FIXED / PASS** |
+| TUT-1 | P1 | First-play coach, touch and keyboard | Input copy was chosen once from `(pointer: coarse)`, so a hybrid device could touch while being taught “Press J.” | Coach copy follows the last real pointer input plus the live media-query change; touch and keyboard actions remain accepted. Presentation only. | Exact-SHA `testRa1TutorialInputBrowser`: 16/16. Screens: `assets/tutorial-touch-exact-390x844.png`, `assets/tutorial-touch-skip-exact-390x844.png`, `assets/tutorial-hybrid-exact-390x844-vie.png`, `assets/tutorial-keyboard-exact-1280x800.png`. Pause lease, taught-skill cast, SKIP, keyboard J, and pagehide recovery all pass. **FIXED / PASS** |
+| RES-1 | P1 | Result Gold under nested itch path | Result art accepted only exact `/assets/` paths. Portable packaging rewrites paths to `../assets/`, causing dictionary-art fallback/404. | `appAssetPath()` accepts safe `/`, `./`, `../`, and bare first-party asset spellings while rejecting traversal/protocol/non-image values. No Result redesign. | Exact-SHA Result art matrix 56/56; nested test decodes SHURI + NEWBOT portraits and SHOTGUN with no placeholders and zero first-party 404. `nested/nested-result-390x844.png`. **FIXED / PASS** |
+| SEL-1 | P2 | Fighter Select pager | Previously measured from scrollport edge rather than the CSS snapport inset. | Pager/controller uses computed `scroll-padding-left` (present in candidate before this QA rerun). | Existing pager gate 29/29; exact-SHA Fighter Select art/pick gate 136/136, including page-follow case. **FIXED / PASS** |
+| SEL-3 | P3 | Fighter Select rejected move | Old assertion expected a locked-neighbor move to change page even though selection was correctly rejected. | Assertion distinguishes rejected move from a successful selection; page-follow is separately proven by selecting NEWBOT on the next page. | `fighter-selection-follow-390x844.png`; exact-SHA coverage 136/136. **HARNESS CORRECTED / PASS** |
+| SEL-2 | — | Fighter Select art | No missing playable art reproduced. Six future fighters remain deliberately locked. MIRROR has no pose before an opponent is picked. | No new change. Lock state and MIRROR law are preserved. | Exact-SHA coverage: every playable card/preview decodes; locked entries stay locked; MIRROR gets real opponent art only after pick. **NOT REPRODUCED / PASS** |
+| DUR-1 | P1 investigation | BOT match duration | No KO timeout/draw is authored; clock counts up. | No gameplay or reward rule changed. | Nine exact-SHA pairings, 9/9 KO-resolved; median 84.7 s, p90/max 124.6 s, none unresolved at 180/300 s. **OWNER DECISION / OPEN** |
 
----
+### Live Battle HUD identity/HP measurements
 
-## 3. What changed (technical)
+Real integrated BOT battles used the production `setBotOpponent` authority. In both 320×568 and 390×844, identity was measured against the P2 HP element. HUNTER, NEWBOT, and the longer playable name CRYSTALA were each readable, fully inside the viewport, and had `scrollWidth - clientWidth = 0`; identity/HP intersection area was **0 px²** in all six cases. The compact rail duplicate is `display:none` as intended. Font is Oswald (12 px at 320×568, 14 px at 390×844).
 
-1. `tools/goldBattleHudR91labelFit.mjs` — the only HUD authority touched. Adds two scoped rules:
-   `[port][compact][1p] #p2Rail .vr-name{display:none}` and, inside `@media(max-width:340px)`,
-   `#p2Side .portrait{display:none}`. No frame geometry, colours, arena, skill icons or
-   choreography values changed; Local 2P, landscape, tablet, desktop and Quest are untouched.
-   `public/gold/battle-hud.html` + `manifest.json` are regenerated by `tools/buildGoldCutover.mjs`.
-2. `src/ui/FirstPlayGuide.jsx` — input-appropriate copy (see TUT-1). Presentation only.
-3. `public/game/results/matchResultAuthority.js` — `appAssetPath()` (see RES-1).
-4. New gates + measurement tool (all listed in `package.json`):
-   `testRa1TutorialInputBrowser`, `testRa1ResultArtCoverageBrowser`,
-   `testRa1FighterArtCoverageBrowser`, `testRa1CompatibilityBrowser`,
-   `testRa1NestedItchHostingBrowser`, `measureRa1BotMatchDuration`.
-5. Existing gates extended, never loosened: HUD adaptation (+2 checks for the new scoped rules),
-   Result authority (+2 assertions for the portable spelling and for traversal rejection).
+- Machine-readable exact-SHA geometry: `hud-identities/hud-identity-matrix.json`.
+- Screenshots: [`320×568 HUNTER`](hud-identities/320x568-en-hunter.png), [`320×568 NEWBOT`](hud-identities/320x568-en-newbot.png), [`320×568 CRYSTALA`](hud-identities/320x568-vi-crystala.png), and equivalent 390×844 images in `hud-identities/`.
+- Full integrated compatibility gate also confirms the live NEWBOT identity across all requested viewport/language rows.
 
----
+## 3. Exact-SHA test and package matrix
 
-## 4. Test matrix (exact results at this HEAD)
+### Build/runtime/package gates
 
-| Gate | Result |
+The production build receipt is `dist/CP16_BUILD_RECEIPT.json` (commit `856cdf…`, revision `20261021-cp5-r1`, 70 versioned runtimes). The shipping distribution contains 480 files with zero first-party leaks. Source hygiene reports 75 production runtimes, 34 quarantined, 5 retired/orphaned, and zero stale pointers.
+
+| Gate | Exact result |
 |---|---|
-| `testBattleHudLabelFitBrowser` (13 viewport/mode contexts × EN/VI) | **154 / 154** |
-| `testGoldBattleHudAdaptationGate` | **61 checks** |
-| `testGoldBattleVisibilityGate` | **27 checks** |
-| `testGoldBattleLifecycleGate` | **52 checks** |
-| `testFighterSelectPagerBrowser` | **29 / 29** |
-| `testGoldPickBandLawGate` | **87 checks** |
-| `testGoldFighterPickAdaptationGate` | **16 checks** |
-| `testGoldRevisionIntegrityGate` | **18 checks** |
-| `testResultGoldAuthority` | PASS (47 titles, portable-spelling assertions) |
-| `testResultGoldBrowser` (real Chrome, 4 layouts) | **11 checks, 0 failures** |
-| `testRa1TutorialInputBrowser` | **16 / 16** |
-| `testRa1ResultArtCoverageBrowser` | **56 / 56** (8 playable heroes × portrait, 34 weapons, phases, layouts) |
-| `testRa1FighterArtCoverageBrowser` | **136 / 136** (4 viewports × BOT/LOCAL, all 14 entries, + selection-follow) |
-| `testRa1CompatibilityBrowser` | **145 / 145** (18 rows × viewport/language/mode) |
-| `testRa1NestedItchHostingBrowser` | **13 / 13** |
-| `testCp4CombatIntelligenceGate`, `testCp3MasteryGate`, `testLocalizationGate`, `testMobileEntryArchitecture`, `testItchGuestReleaseGate` | PASS |
-| Production build + `testShippingDist` + `testProductionSourceHygiene` + `testResultGoldAuthority` | PASS (480 assets, 75 665 014 B) |
+| Runtime revision | PASS |
+| CP16 build receipt | PASS |
+| CP16 atomic release | PASS |
+| Shipping distribution | PASS — 480 files, 0 leaks |
+| Production source hygiene | PASS — 0 stale pointers |
+| Result Gold authority | PASS — 47 owner titles |
+| Gold revision integrity | PASS — 18 checks |
+| Gold Battle HUD adaptation | PASS — 61 checks |
+| Gold Pick Band law | PASS — 87 checks |
+| Gold Battle HUD label fit, real Chromium | **154/154**, 144 primary label probes, max skill/weapon tile internal overflow 3 px |
 
----
+### RA-1 browser/device/hosting gates
 
-## 5. Device compatibility (RA-1.E)
-
-Real integrated app, ENG + VIE, touch at every phone/tablet width and mouse+keyboard at desktop:
-
-`320×568`, `360×560`, `390×844`, `667×375`, `844×390`, `1284×692`, `1440×900`.
-
-Per row the gate asserts: zero page-level horizontal overflow, zero clipped visible text,
-FREE BATTLE / mode cards / LOCK reachable and hit-tested, hero preview decoded, live battle
-HUD identity readable with **0 px** overlap against HP, ESC always leaves the match, and zero
-console errors. Additional rows: LOCAL 2P at 360×560 and 390×844; a live orientation change on
-the pick screen (390↔844) with LOCK still hittable.
-
-Curated screenshots: `docs/acceptance/ra1/compatibility/` (home / fighter / battle at 320, 390,
-667 landscape, 844 landscape incl. a live rotation, 1284 and 1440, ENG and VIE) plus the full
-machine-readable `compatibility-matrix.json` for that run. The HUD and tutorial close-ups are in
-`docs/acceptance/ra1/assets/`, nested-hosting evidence in `docs/acceptance/ra1/nested/`.
-
----
-
-## 6. Nested itch hosting (RA-1.E)
-
-Local `/html/apex/` nest built from `tools/packItchPortable.mjs` (portability gate: 91 files,
-475 literals made relative). Verified in the nested frame: boot → Home → VS BOT → Fighter
-(preview decoded from the nested base) → live battle HUD with decoded skill icons → ESC back to
-a reusable pick screen → parent-sealed Result payload with **both portraits and the weapon art
-decoded** → reload with the guest save intact. **0 first-party 404, 0 exceptions, 0 external hosts.**
-
----
-
-## 7. BOT match duration (RA-1.D — investigation, no rule change)
-
-Method: real BOT matches in the real browser (production AI on the CPU side, the player side left
-to the same fighter state a non-inputting player produces), advanced with the product's own
-`APEX_ARSENAL.step(dt)` so physics/AI/damage/cooldowns are identical. Raw data:
-`docs/acceptance/ra1/bot-duration-9matches.json` (per-match duration, HP, winner, sealed ledger).
-
-9 natural pairings (`newbot:newbot`, `newbot:hunter`, `newbot:crystala`, `newbot:magnet`,
-`newbot:frost`, `boxe:hunter`, `frost:frost`, `magnet:magnet`, `crystala:magnet`):
-
-| Metric | Value |
+| Gate | Exact result |
 |---|---|
-| Resolved | 9 / 9 |
-| Median | **86.5 s** |
-| p90 | **139.2 s** |
-| Max | **139.2 s** |
-| Unresolved at 180 s / 300 s | **0 / 0** |
-| Termination | KO only (`state.over` sealed, `resultGold` produced, winner side recorded) |
+| Tutorial touch/keyboard/pause/SKIP/recovery | **16/16 PASS** |
+| Result/Fighter Select art delivery | **56/56 PASS** (playable portraits, C weapon atlas, decode, fallback tags, viewports) |
+| Fighter Select full roster + picking + MIRROR/lock laws | **136/136 PASS** on standalone exact-SHA rerun |
+| Compatibility: 320×568, 360×560, 390×844, 667×375, 844×390, 1284×692, 1440×900; ENG/VIE; BOT/LOCAL; touch/keyboard | **145/145 PASS** across 18 rows; no clipping/page overflow, all first-party network requests successful, no console errors |
+| Nested itch `/html/apex/` package | **13/13 PASS**; 0 first-party 404, 0 exceptions, 0 external hosts |
+| Live Battle HUD HUNTER/NEWBOT/CRYSTALA identity geometry | **6/6 PASS**, 0 name overflow, 0 px² HP overlap |
+| BOT duration investigation | **9/9 naturally KO-resolved**; no timer/draw rule added |
 
-**Finding:** the old audit’s “>220 s NEWBOT mirror without an end” **did not reproduce** in any of
-the nine runs; the longest match was 139.2 s. The match still has **no authored time limit or draw
-rule** — the clock counts up and only a KO ends it, which is a real (if unexercised here) tail risk.
+The Fighter Select art script had one earlier development-server run abort at a later mode-card press because its expected visible selector was absent. The same gate was immediately rerun standalone and completed 136/136 without assertion edits, then passed 136/136 again against the exact-SHA production preview. A separate focused development-server HUD attempt needed a repeated touch once at 390×844; diagnostics showed `stage=ready`, the visible Home control still present, and no coach overlay. This did **not** recur in the exact-SHA production-preview run (6/6). These remain recorded as **unresolved development-harness input/transition timing flakes**, not silently waived product failures. No root cause was proven; assertions were unchanged, and production-view compatibility passed 145/145.
 
-**Recommendation for owner (NOT implemented):** an optional cap with a fair resolution, e.g. at
-180 s resolve by remaining HP (higher HP wins, exact tie = draw), announced on the HUD clock from
-the start. Any of that changes gameplay/result rules (AC/missions/sealed mastery), so it stays
-blocked pending approval.
+### Visual, font, asset and performance observations
 
----
+- Compatibility matrix: `compatibility-matrix.json`; curated screenshots: `compatibility/`.
+- Result art coverage: `result-coverage-matrix.json`; images decode across 390×844, 844×390, and 1440×900, with no first-party request failures.
+- Fighter art: `fighter-art-matrix.json`; 42 actual playable-preview swaps (excluding MIRROR’s intentional no-pose state) have median decode/commit 437 ms, p90 941 ms, max 948 ms. MIRROR’s no-image-before-opponent behavior is **EXPECTED BY DESIGN**, not a slow or missing asset.
+- Live HUD label-fit gate measured 144 longest-name/skill/weapon probes in ENG/VIE; zero horizontal elision and max internal tile overflow 3 px.
+- Physical-device FPS and low-end hardware performance were not measured: **UNVERIFIED**.
 
-## 8. Not reproduced / not verified
+## 4. Nested itch-style delivery
 
-- **SEL-2** (Fighter Select missing preview) — not reproducible with any of the 14 entries at
-  320/390/844/1440 in BOT or LOCAL. Owner-observed cases were most likely the near-black
-  `LOCKED` state (by design) or the 1-frame swap animation.
-- **B3** (Result P1 column crop at 390 px) — the settled state is inside the viewport at every
-  tested layout; the earlier capture was a mid-choreography frame.
-- **Physical devices** — iOS Safari, Samsung Internet, low-end Android: **UNVERIFIED** (emulation only).
-- **Real-device FPS** — not measured (out of RA-1 scope).
+`tools/packItchPortable.mjs` passed against the exact target after the normal guest-candidate receipt step was reproduced locally: 91 text files scanned, 30 transformed, 475 URL literals made relative. The local-only `dist/ITCH_GUEST_BUILD_SHA.txt` contains the exact target SHA; it was generated in ignored build output and is not a release/publish action.
 
----
+The real packaged output was served inside a host iframe at `/html/apex/` and driven through boot → Home → BOT → Fighter Select → live Battle HUD → ESC back to reusable Fighter Select → parent-sealed Result → reload. Fighter preview, both Result portraits, and SHOTGUN art decoded under the nested base. The Guest save remained available. Zero first-party 404s, JavaScript exceptions, and external-host requests.
 
-## 9. Remaining risks
+## 5. BOT duration — investigation only, no rule change
 
-1. No match time limit (see §7) — tail risk of long stalemates in unusual pairings.
-2. HUD fix is CSS-scoped to `[data-quest != 1]` compact BOT; a future HUD band change must re-run
-   `testGoldBattleHudAdaptationGate` and the browser label-fit matrix.
-3. `appAssetPath()` is the single gate for Result art identity: new art roles must live under
-   `assets/` and use a supported spelling.
-4. BOT duration evidence is 9 pairings; a much larger sample could still find a >300 s outlier.
+Raw exact-SHA data: [`bot-duration-production.json`](bot-duration-production.json) (production preview on port 4173) and [`bot-duration.json`](bot-duration.json) (independent Vite development-server replication). Both runs advanced the real production runtime with `APEX_ARSENAL.step(0.025)`; durations below are **simulated game seconds**, not wall-clock runtime. P1 was left in its autonomous no-input state. No BOT AI, physics, damage, cooldown, or timer authority was changed.
 
----
+**Primary production-build sample (9 pairings):**
 
-## 10. Decisions reserved for the owner
+| P1 | BOT | Duration | Winner | Sealed |
+|---|---|---:|---|---|
+| NEWBOT | NEWBOT | 53.2 s | P2 | Yes |
+| NEWBOT | HUNTER | 75.5 s | P1 | Yes |
+| NEWBOT | CRYSTALA | 90.8 s | P1 | Yes |
+| NEWBOT | MAGNET | 43.2 s | P2 | Yes |
+| NEWBOT | FROST | 85.1 s | P2 | Yes |
+| BOXE | HUNTER | 57.1 s | P2 | Yes |
+| CRYSTALA | NEWBOT | 45.8 s | P2 | Yes |
+| HUNTER | BOXE | 55.9 s | P2 | Yes |
+| SHURI | MAGNET | 86.7 s | P2 | Yes |
 
-1. **Match-time rule** — implement the cap/draw (and its effect on AC/missions/sealed mastery) or accept KO-only termination. *Blocked pending approval.*
-2. **HUD structure** — the two compact-BOT rules above are the minimum that removes the overlap; confirm the 320 px portrait removal is acceptable (it is the only way to keep the full opponent name in that band).
-3. **Release packaging** — merge/deploy/publish remain owner-gated; nothing here touches `main`, production or itch.
+Production sample: 9/9 resolved; median **57.1 s**; p90/max **90.8 s**; 0 unresolved at 180 s or 300 s. The independent development-server sample also resolved 9/9 (median 84.7 s, p90/max 124.6 s). Across all 18 observed rounds: median 63.4 s, p90 113.9 s, max 124.6 s; no round remained unresolved at 180/300 s. The variation is natural match-state/run variation; the production sample is the primary release evidence. This does not prove every possible pairing terminates quickly.
 
-*Measurement vs judgment: PASS = gate + visual evidence at this HEAD; UNVERIFIED = emulation-only or no physical device; FAIL = reproduced and still open. No assertion was loosened to make CI green.*
+**Current rule:** Arsenal ends on KO only. There is no authored match cap, draw, or sudden-death rule; the HUD clock counts up. The owner must decide whether to retain this rule or explicitly authorize a gameplay/result/reward change. No proposal was implemented; AC, missions, cooldowns, damage, and sealed mastery were not changed.
+
+## 6. CI, exact-SHA preview, and provenance limits
+
+- PR #101 remains Draft/Open at exact target SHA `856cdf48247aa752b377eb2ddb6071426cf6e494`.
+- GitHub run `39725400631`, job `119648027460` (`actual-preview-entrypoint`): local production build and provider-injection Chrome step **PASS**; the later external deployed-Netlify START-entrypoint step **FAIL** with exit code 1. Job metadata confirms the failure step; its log and diagnostic artifact downloads returned EOF from the Actions result/blob host. Therefore the external step’s root cause is **UNVERIFIED**, not attributed to the product or environment.
+- The existing Pages preview `https://arena-d7ff52e8-apex-chaos.apex-chaos.pages.dev/` still serves receipt SHA `7ecc7f65fc5c0822fd5b257e27e58e9894f15f22`; it is **not** exact-SHA evidence.
+- An isolated local production build from the exact target is available in the Arena QA live preview on port **4173**; verify `/CP16_BUILD_RECEIPT.json` for `856cdf…`. It does not deploy to Cloudflare, Netlify, production, or itch. No external exact-SHA isolated URL was verified.
+- The nested itch fixture on port 4180 is local test infrastructure only; it is not a published itch page.
+
+## 7. Remaining risk and owner decisions
+
+1. Decide whether to retain indefinite KO-only match termination, or separately authorize a timeout/draw/sudden-death rule and its AC/mission/sealed-mastery consequences. **Blocked; not implemented.**
+2. Review the narrow compact-BOT HUD fix, including hiding the redundant portrait at ≤340 px. No broader layout/art/typography/flow redesign was made.
+3. Review the exact-SHA local QA preview and screenshots. The external Netlify preview check remains unverified and the old Pages receipt is stale.
+4. Physical iOS/Samsung/low-end Android acceptance remains unverified.
+
+**No production deploy, PR merge, itch publish, owner acceptance, timeout/draw law, or gameplay/balance/reward change occurred.** Screenshot evidence is committed under `docs/acceptance/ra1/`; video was not recorded.

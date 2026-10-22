@@ -2,7 +2,7 @@
   "host": "http://127.0.0.1:4180",
   "passes": [
     "PASS packaged game boots inside the nested /html/apex/ iframe",
-    "PASS nested home reaches the real product Entry (account entry present) :: {\"url\":\"http://127.0.0.1:4180/html/apex/index.html\",\"base\":\"http://127.0.0.1:4180/html/apex/gold/\",\"ac\":1,\"guide\":false}",
+    "PASS nested home reaches the real product Entry (account entry present) :: {\"url\":\"http://127.0.0.1:4180/html/apex/index.html\",\"base\":\"http://127.0.0.1:4180/html/apex/gold/\",\"ac\":1,\"guide\":true}",
     "PASS nested Fighter Select decodes the hero preview from the nested base :: {\"p1\":\"NEWBOT\",\"nw\":819,\"src\":\"../assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}",
     "PASS nested battle reaches the live integrated HUD :: live",
     "PASS nested battle HUD carries the opponent identity and decoded skill icons :: {\"name\":\"NEWBOT\",\"skillIcons\":[true,true],\"hudMode\":\"1p\"}",

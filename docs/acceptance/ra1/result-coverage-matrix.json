@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T04:07:37.024Z",
+  "generatedAt": "2026-10-22T05:51:52.612Z",
   "authoritative": {
     "config": true,
     "atlas": 34,
@@ -19,7 +19,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -32,7 +32,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -42,7 +42,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -63,7 +63,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/hunter/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/hunter/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 1024,
@@ -76,7 +76,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -86,7 +86,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -107,7 +107,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/crystala/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/crystala/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 768,
@@ -120,7 +120,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -130,7 +130,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -151,7 +151,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/magnet/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/magnet/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -164,7 +164,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -174,7 +174,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -195,7 +195,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/frost/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/frost/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -208,7 +208,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -218,7 +218,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -239,7 +239,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/mirror/pick_roster_cover.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/mirror/pick_roster_cover.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 1023,
@@ -252,7 +252,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -262,7 +262,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -283,7 +283,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/dictionary/heroes/boxe/standing.png",
+              "src": "http://127.0.0.1:4173/assets/dictionary/heroes/boxe/standing.png",
               "state": "image",
               "complete": true,
               "naturalWidth": 1086,
@@ -296,7 +296,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -306,7 +306,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -327,7 +327,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+              "src": "http://127.0.0.1:4173/assets/dictionary/heroes/shuri/standing.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 1122,
@@ -340,7 +340,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -350,7 +350,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -371,7 +371,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/black_hole/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/black_hole/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 0,
@@ -384,7 +384,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -394,7 +394,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -424,7 +424,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -434,7 +434,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -455,7 +455,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/rubber/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/rubber/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 0,
@@ -468,7 +468,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -478,7 +478,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -508,7 +508,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -518,7 +518,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -539,7 +539,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/sniper/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/sniper/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 0,
@@ -552,7 +552,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -562,7 +562,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -592,7 +592,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -602,7 +602,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -862,7 +862,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -875,7 +875,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -885,7 +885,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -900,7 +900,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -913,7 +913,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -923,7 +923,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 97,
@@ -941,7 +941,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+              "src": "http://127.0.0.1:4173/assets/dictionary/heroes/shuri/standing.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 1122,
@@ -954,7 +954,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -964,7 +964,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/SHOTGUN.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/SHOTGUN.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 250,
@@ -983,7 +983,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+              "src": "http://127.0.0.1:4173/assets/dictionary/heroes/shuri/standing.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 1122,
@@ -996,7 +996,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -1006,7 +1006,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/SHOTGUN.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/SHOTGUN.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 250,
@@ -1025,7 +1025,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+              "src": "http://127.0.0.1:4173/assets/dictionary/heroes/shuri/standing.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 1122,
@@ -1038,7 +1038,7 @@
             "name": null,
             "artState": "image",
             "image": {
-              "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+              "src": "http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
               "state": "image",
               "complete": true,
               "naturalWidth": 819,
@@ -1048,7 +1048,7 @@
           }
         ],
         "weapon": {
-          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/SHOTGUN.png",
+          "src": "http://127.0.0.1:4173/assets/arsenal/weapons/c/SHOTGUN.png",
           "state": "image",
           "complete": true,
           "naturalWidth": 250,
@@ -1064,59 +1064,59 @@
   "passes": [
     "PASS Result Gold document boots from the canonical build",
     "PASS the live app authorities load inside Result Gold (config, atlas, awards, ledger, registry) :: {\"config\":true,\"atlas\":34,\"v43\":8,\"authority\":true}",
-    "PASS result P1 portrait decodes for NEWBOT :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\",\"natural\":[819,1024],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"}",
-    "PASS result P1 portrait decodes for HUNTER :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/hunter/pick_selected_large.webp\",\"natural\":[1024,768],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/hunter/pick_selected_large.webp\"}",
-    "PASS result P1 portrait decodes for CRYSTALA :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/crystala/pick_selected_large.webp\",\"natural\":[768,1024],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/crystala/pick_selected_large.webp\"}",
-    "PASS result P1 portrait decodes for MAGNET :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/magnet/pick_selected_large.webp\",\"natural\":[819,1024],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/magnet/pick_selected_large.webp\"}",
-    "PASS result P1 portrait decodes for FROST :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/frost/pick_selected_large.webp\",\"natural\":[819,1024],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/frost/pick_selected_large.webp\"}",
-    "PASS result P1 portrait decodes for MIRROR :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/mirror/pick_roster_cover.webp\",\"natural\":[1023,576],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/mirror/pick_roster_cover.webp\"}",
-    "PASS result P1 portrait decodes for BOXE :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/dictionary/heroes/boxe/standing.png\",\"natural\":[1086,1448],\"tags\":[],\"resolved\":\"/assets/dictionary/heroes/boxe/standing.png\"}",
-    "PASS result P1 portrait decodes for SHURI :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp\",\"natural\":[1122,1402],\"tags\":[],\"resolved\":\"/assets/dictionary/heroes/shuri/standing.webp\"}",
-    "PASS result reports locked-future fighter BLACK_HOLE without inventing art :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/black_hole/pick_selected_large.webp\",\"resolved\":\"/assets/gold-ui/heroes/black_hole/pick_selected_large.webp\"}",
+    "PASS result P1 portrait decodes for NEWBOT :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\",\"natural\":[819,1024],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"}",
+    "PASS result P1 portrait decodes for HUNTER :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/hunter/pick_selected_large.webp\",\"natural\":[1024,768],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/hunter/pick_selected_large.webp\"}",
+    "PASS result P1 portrait decodes for CRYSTALA :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/crystala/pick_selected_large.webp\",\"natural\":[768,1024],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/crystala/pick_selected_large.webp\"}",
+    "PASS result P1 portrait decodes for MAGNET :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/magnet/pick_selected_large.webp\",\"natural\":[819,1024],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/magnet/pick_selected_large.webp\"}",
+    "PASS result P1 portrait decodes for FROST :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/frost/pick_selected_large.webp\",\"natural\":[819,1024],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/frost/pick_selected_large.webp\"}",
+    "PASS result P1 portrait decodes for MIRROR :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/mirror/pick_roster_cover.webp\",\"natural\":[1023,576],\"tags\":[],\"resolved\":\"/assets/gold-ui/heroes/mirror/pick_roster_cover.webp\"}",
+    "PASS result P1 portrait decodes for BOXE :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/dictionary/heroes/boxe/standing.png\",\"natural\":[1086,1448],\"tags\":[],\"resolved\":\"/assets/dictionary/heroes/boxe/standing.png\"}",
+    "PASS result P1 portrait decodes for SHURI :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/dictionary/heroes/shuri/standing.webp\",\"natural\":[1122,1402],\"tags\":[],\"resolved\":\"/assets/dictionary/heroes/shuri/standing.webp\"}",
+    "PASS result reports locked-future fighter BLACK_HOLE without inventing art :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/black_hole/pick_selected_large.webp\",\"resolved\":\"/assets/gold-ui/heroes/black_hole/pick_selected_large.webp\"}",
     "PASS result reports locked-future fighter MATH_V2 without inventing art :: {\"artState\":\"fallback-svg\",\"resolved\":\"/assets/gold-ui/heroes/math_v2/pick_selected_large.webp\"}",
-    "PASS result reports locked-future fighter RUBBER without inventing art :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/rubber/pick_selected_large.webp\",\"resolved\":\"/assets/gold-ui/heroes/rubber/pick_selected_large.webp\"}",
+    "PASS result reports locked-future fighter RUBBER without inventing art :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/rubber/pick_selected_large.webp\",\"resolved\":\"/assets/gold-ui/heroes/rubber/pick_selected_large.webp\"}",
     "PASS result reports locked-future fighter SLIME without inventing art :: {\"artState\":\"fallback-svg\",\"resolved\":\"/assets/gold-ui/heroes/slime/pick_selected_large.webp\"}",
-    "PASS result reports locked-future fighter SNIPER without inventing art :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/sniper/pick_selected_large.webp\",\"resolved\":\"/assets/gold-ui/heroes/sniper/pick_selected_large.webp\"}",
+    "PASS result reports locked-future fighter SNIPER without inventing art :: {\"artState\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/sniper/pick_selected_large.webp\",\"resolved\":\"/assets/gold-ui/heroes/sniper/pick_selected_large.webp\"}",
     "PASS result reports locked-future fighter TIME without inventing art :: {\"artState\":\"fallback-svg\",\"resolved\":\"/assets/gold-ui/heroes/time/pick_selected_large.webp\"}",
-    "PASS weapon art decodes in Result for PISTOL :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png\",\"resolved\":\"/assets/arsenal/weapons/c/PISTOL.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SMG :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SMG.png\",\"resolved\":\"/assets/arsenal/weapons/c/SMG.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SHOTGUN :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SHOTGUN.png\",\"resolved\":\"/assets/arsenal/weapons/c/SHOTGUN.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SNIPER :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SNIPER.png\",\"resolved\":\"/assets/arsenal/weapons/c/SNIPER.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for AK_47 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/AK_47.png\",\"resolved\":\"/assets/arsenal/weapons/c/AK_47.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for BERETTA_93R :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/BERETTA_93R.png\",\"resolved\":\"/assets/arsenal/weapons/c/BERETTA_93R.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for MAC_10 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/MAC_10.png\",\"resolved\":\"/assets/arsenal/weapons/c/MAC_10.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for MOSSBERG_500 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/MOSSBERG_500.png\",\"resolved\":\"/assets/arsenal/weapons/c/MOSSBERG_500.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for ZBROYAR_Z15 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/ZBROYAR_Z15.png\",\"resolved\":\"/assets/arsenal/weapons/c/ZBROYAR_Z15.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for ZBROYAR_Z15_S1 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/ZBROYAR_Z15_S1.png\",\"resolved\":\"/assets/arsenal/weapons/c/ZBROYAR_Z15_S1.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for ZBROYAR_Z15_S2 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/ZBROYAR_Z15_S2.png\",\"resolved\":\"/assets/arsenal/weapons/c/ZBROYAR_Z15_S2.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for ZBROYAR_Z15_S3 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/ZBROYAR_Z15_S3.png\",\"resolved\":\"/assets/arsenal/weapons/c/ZBROYAR_Z15_S3.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for DESERT_DEAGLE :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/DESERT_DEAGLE.png\",\"resolved\":\"/assets/arsenal/weapons/c/DESERT_DEAGLE.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for GLOCK_17 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/GLOCK_17.png\",\"resolved\":\"/assets/arsenal/weapons/c/GLOCK_17.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for M16 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/M16.png\",\"resolved\":\"/assets/arsenal/weapons/c/M16.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for M249_SAW :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/M249_SAW.png\",\"resolved\":\"/assets/arsenal/weapons/c/M249_SAW.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for MAGNUM_500 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/MAGNUM_500.png\",\"resolved\":\"/assets/arsenal/weapons/c/MAGNUM_500.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for P90 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/P90.png\",\"resolved\":\"/assets/arsenal/weapons/c/P90.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for JACKHAMMER :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/JACKHAMMER.png\",\"resolved\":\"/assets/arsenal/weapons/c/JACKHAMMER.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for MBR :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/MBR.png\",\"resolved\":\"/assets/arsenal/weapons/c/MBR.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for MBR2 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/MBR2.png\",\"resolved\":\"/assets/arsenal/weapons/c/MBR2.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SAWED_OFF :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SAWED_OFF.png\",\"resolved\":\"/assets/arsenal/weapons/c/SAWED_OFF.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SZECSEI_FUCHS :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SZECSEI_FUCHS.png\",\"resolved\":\"/assets/arsenal/weapons/c/SZECSEI_FUCHS.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for TEC_9 :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/TEC_9.png\",\"resolved\":\"/assets/arsenal/weapons/c/TEC_9.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for GRENADE :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/GRENADE.png\",\"resolved\":\"/assets/arsenal/weapons/c/GRENADE.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for CASING :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/CASING.png\",\"resolved\":\"/assets/arsenal/weapons/c/CASING.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SABRE :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SABRE.png\",\"resolved\":\"/assets/arsenal/weapons/c/SABRE.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for DAGGER :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/DAGGER.png\",\"resolved\":\"/assets/arsenal/weapons/c/DAGGER.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SPEAR :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SPEAR.png\",\"resolved\":\"/assets/arsenal/weapons/c/SPEAR.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for BATTLE_AXE :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/BATTLE_AXE.png\",\"resolved\":\"/assets/arsenal/weapons/c/BATTLE_AXE.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SPIKED_CLUB :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SPIKED_CLUB.png\",\"resolved\":\"/assets/arsenal/weapons/c/SPIKED_CLUB.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for SWIRL_SHIELD :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SWIRL_SHIELD.png\",\"resolved\":\"/assets/arsenal/weapons/c/SWIRL_SHIELD.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for TOWER_SHIELD :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/TOWER_SHIELD.png\",\"resolved\":\"/assets/arsenal/weapons/c/TOWER_SHIELD.png\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS weapon art decodes in Result for STORMBREAKER :: {\"src\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp\",\"resolved\":\"/assets/arsenal/weapons/c/STORMBREAKER.webp\",\"state\":\"image\",\"placeholders\":[]}",
-    "PASS early-animation phase already resolves real hero and weapon art (no placeholder/fallback) :: {\"heroes\":[{\"state\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"},{\"state\":\"image\",\"src\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"}],\"weapon\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png\"}",
-    "PASS settled phase keeps the same decoded art after the authored Skip :: {\"hero\":\"http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\",\"weapon\":97}",
-    "PASS Result art stays decoded at 390x844 :: {\"heroes\":[\"http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp\",\"http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"],\"weapon\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SHOTGUN.png\"}",
-    "PASS Result art stays decoded at 844x390 :: {\"heroes\":[\"http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp\",\"http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"],\"weapon\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SHOTGUN.png\"}",
-    "PASS Result art stays decoded at 1440x900 :: {\"heroes\":[\"http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp\",\"http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"],\"weapon\":\"http://127.0.0.1:5173/assets/arsenal/weapons/c/SHOTGUN.png\"}",
+    "PASS weapon art decodes in Result for PISTOL :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png\",\"resolved\":\"/assets/arsenal/weapons/c/PISTOL.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SMG :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SMG.png\",\"resolved\":\"/assets/arsenal/weapons/c/SMG.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SHOTGUN :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SHOTGUN.png\",\"resolved\":\"/assets/arsenal/weapons/c/SHOTGUN.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SNIPER :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SNIPER.png\",\"resolved\":\"/assets/arsenal/weapons/c/SNIPER.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for AK_47 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/AK_47.png\",\"resolved\":\"/assets/arsenal/weapons/c/AK_47.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for BERETTA_93R :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/BERETTA_93R.png\",\"resolved\":\"/assets/arsenal/weapons/c/BERETTA_93R.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for MAC_10 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/MAC_10.png\",\"resolved\":\"/assets/arsenal/weapons/c/MAC_10.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for MOSSBERG_500 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/MOSSBERG_500.png\",\"resolved\":\"/assets/arsenal/weapons/c/MOSSBERG_500.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for ZBROYAR_Z15 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/ZBROYAR_Z15.png\",\"resolved\":\"/assets/arsenal/weapons/c/ZBROYAR_Z15.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for ZBROYAR_Z15_S1 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/ZBROYAR_Z15_S1.png\",\"resolved\":\"/assets/arsenal/weapons/c/ZBROYAR_Z15_S1.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for ZBROYAR_Z15_S2 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/ZBROYAR_Z15_S2.png\",\"resolved\":\"/assets/arsenal/weapons/c/ZBROYAR_Z15_S2.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for ZBROYAR_Z15_S3 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/ZBROYAR_Z15_S3.png\",\"resolved\":\"/assets/arsenal/weapons/c/ZBROYAR_Z15_S3.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for DESERT_DEAGLE :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/DESERT_DEAGLE.png\",\"resolved\":\"/assets/arsenal/weapons/c/DESERT_DEAGLE.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for GLOCK_17 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/GLOCK_17.png\",\"resolved\":\"/assets/arsenal/weapons/c/GLOCK_17.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for M16 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/M16.png\",\"resolved\":\"/assets/arsenal/weapons/c/M16.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for M249_SAW :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/M249_SAW.png\",\"resolved\":\"/assets/arsenal/weapons/c/M249_SAW.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for MAGNUM_500 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/MAGNUM_500.png\",\"resolved\":\"/assets/arsenal/weapons/c/MAGNUM_500.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for P90 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/P90.png\",\"resolved\":\"/assets/arsenal/weapons/c/P90.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for JACKHAMMER :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/JACKHAMMER.png\",\"resolved\":\"/assets/arsenal/weapons/c/JACKHAMMER.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for MBR :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/MBR.png\",\"resolved\":\"/assets/arsenal/weapons/c/MBR.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for MBR2 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/MBR2.png\",\"resolved\":\"/assets/arsenal/weapons/c/MBR2.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SAWED_OFF :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SAWED_OFF.png\",\"resolved\":\"/assets/arsenal/weapons/c/SAWED_OFF.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SZECSEI_FUCHS :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SZECSEI_FUCHS.png\",\"resolved\":\"/assets/arsenal/weapons/c/SZECSEI_FUCHS.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for TEC_9 :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/TEC_9.png\",\"resolved\":\"/assets/arsenal/weapons/c/TEC_9.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for GRENADE :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/GRENADE.png\",\"resolved\":\"/assets/arsenal/weapons/c/GRENADE.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for CASING :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/CASING.png\",\"resolved\":\"/assets/arsenal/weapons/c/CASING.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SABRE :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SABRE.png\",\"resolved\":\"/assets/arsenal/weapons/c/SABRE.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for DAGGER :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/DAGGER.png\",\"resolved\":\"/assets/arsenal/weapons/c/DAGGER.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SPEAR :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SPEAR.png\",\"resolved\":\"/assets/arsenal/weapons/c/SPEAR.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for BATTLE_AXE :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/BATTLE_AXE.png\",\"resolved\":\"/assets/arsenal/weapons/c/BATTLE_AXE.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SPIKED_CLUB :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SPIKED_CLUB.png\",\"resolved\":\"/assets/arsenal/weapons/c/SPIKED_CLUB.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for SWIRL_SHIELD :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SWIRL_SHIELD.png\",\"resolved\":\"/assets/arsenal/weapons/c/SWIRL_SHIELD.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for TOWER_SHIELD :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/TOWER_SHIELD.png\",\"resolved\":\"/assets/arsenal/weapons/c/TOWER_SHIELD.png\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS weapon art decodes in Result for STORMBREAKER :: {\"src\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/STORMBREAKER.webp\",\"resolved\":\"/assets/arsenal/weapons/c/STORMBREAKER.webp\",\"state\":\"image\",\"placeholders\":[]}",
+    "PASS early-animation phase already resolves real hero and weapon art (no placeholder/fallback) :: {\"heroes\":[{\"state\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"},{\"state\":\"image\",\"src\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"}],\"weapon\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/PISTOL.png\"}",
+    "PASS settled phase keeps the same decoded art after the authored Skip :: {\"hero\":\"http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\",\"weapon\":97}",
+    "PASS Result art stays decoded at 390x844 :: {\"heroes\":[\"http://127.0.0.1:4173/assets/dictionary/heroes/shuri/standing.webp\",\"http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"],\"weapon\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SHOTGUN.png\"}",
+    "PASS Result art stays decoded at 844x390 :: {\"heroes\":[\"http://127.0.0.1:4173/assets/dictionary/heroes/shuri/standing.webp\",\"http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"],\"weapon\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SHOTGUN.png\"}",
+    "PASS Result art stays decoded at 1440x900 :: {\"heroes\":[\"http://127.0.0.1:4173/assets/dictionary/heroes/shuri/standing.webp\",\"http://127.0.0.1:4173/assets/gold-ui/heroes/newbot/pick_selected_large.webp\"],\"weapon\":\"http://127.0.0.1:4173/assets/arsenal/weapons/c/SHOTGUN.png\"}",
     "PASS no first-party Result asset request fails across the matrix :: []"
   ],
   "failures": []
