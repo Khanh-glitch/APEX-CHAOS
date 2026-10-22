@@ -2791,6 +2791,10 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     const prepare=async()=>{
       if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('lucky');
       await ensureLuckyReady();
+      // Runtime/profile hydration may finish after the donor's first iframe
+      // load. Re-hand the single production wallet and refresh its locked pool
+      // after readiness so a reload cannot briefly show the donor demo roster.
+      handLuckyProductionApi();
       // Same-origin donor: wait for its real image decode/font/layout state,
       // not merely the iframe load event, before the door may open.
       const doc=frame.contentDocument;
@@ -2799,6 +2803,9 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     };
     const commit=()=>{
       host.classList.add('is-open');host.setAttribute('aria-hidden','false');
+      // Reconcile once more at the visible-surface boundary; scene preparation
+      // can complete before the host runtime has finished hydrating its profile.
+      handLuckyProductionApi();
       APEX_GOLD.onSurface&&APEX_GOLD.onSurface('lucky');
       window.apexShellSfx&&window.apexShellSfx('lucky.draw.enter_bay');
     };

@@ -11,8 +11,10 @@
 //      must follow the observed input, not the boot-time media query.
 //   C  keyboard session: lesson teaches J, the J key resumes and advances.
 //   D  SKIP ends the coach with no pause lease left behind.
-//   E  pagehide recovery releases a held pause lease (a backgrounded tab can
-//      never leave the match frozen).
+//   E  pagehide/pageshow recovery releases a held pause lease and returns to a
+//      ticking match clock (a backgrounded tab can never leave it frozen).
+//   F  Escape before tutorial completion exits to Fighter Select, releases the
+//      pause and leaves the unfinished coach resumable.
 //
 // Harness: house CDP pattern (dev server via APEX_APP_URL, CHROME_PATH).
 import { spawn } from 'node:child_process';
@@ -211,6 +213,28 @@ async function scenarioHybrid() {
   check('E recovery never leaves an unescapable freeze',
     clockRunning === true || (escape.lease === true && escape.skip === true),
     JSON.stringify({ clockRunning, from: t1?.time, to: t2?.time, ...escape }));
+  // Model the return from the browser's back/forward cache. If the coach
+  // legitimately re-offered the lesson, use its real SKIP control, then prove
+  // the match clock is ticking again rather than assuming a pageshow event did.
+  await evl(`(()=>{window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));return true})()`);
+  if(escape.lease&&escape.skip){await tapSel('.apex-coach-skip');await sleep(400)}
+  const resumeFrom=await evl(CLOCK);await sleep(750);const resumeTo=await evl(CLOCK);
+  check('E pageshow/recovery path returns to a running match clock',!!resumeFrom&&!!resumeTo&&(resumeTo.time-resumeFrom.time)>0.3,`${resumeFrom?.time} -> ${resumeTo?.time}`);
+}
+
+async function scenarioEarlyExit() {
+  await viewport(390,844,true);
+  await boot('eng',true,false);
+  await toBattle(true);
+  await waitLesson(0);
+  const lesson=await settle();
+  check('F early-exit fixture begins inside a genuinely paused first lesson',lesson.pause===true&&lesson.pausedAttr==='true',JSON.stringify(lesson));
+  await shot('F-early-exit-before-escape-390x844');
+  await key('Escape','Escape',27);
+  await waitFor(`!document.querySelector('#battleHudHost')?.classList.contains('is-open') && document.querySelector('#stage')?.classList.contains('screen-fighter') && ${TX_IDLE}`,'early tutorial exit to Fighter Select',25000);
+  const state=await evl(`(()=>{const saved=JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'{}');return{stage:document.querySelector('#stage')?.className||'',hudOpen:!!document.querySelector('#battleHudHost')?.classList.contains('is-open'),lease:!!window.APEX_TUTORIAL_PAUSE?.active,pausedPresentation:document.body.classList.contains('apex-tutorial-paused'),done:saved.done===true,skipped:saved.skipped===true}})()`);
+  check('F early exit releases the pause lease and leaves the unfinished coach resumable',state.hudOpen===false&&!state.lease&&!state.pausedPresentation&&state.done===false&&state.skipped===false&&/screen-fighter/.test(state.stage),JSON.stringify(state));
+  await shot('F-early-exit-after-escape-390x844');
 }
 
 async function scenarioKeyboard() {
@@ -245,6 +269,7 @@ async function main() {
   if (wants('A')) await scenarioTouch();
   if (wants('B')) await scenarioHybrid();
   if (wants('C')) await scenarioKeyboard();
+  if (wants('F')) await scenarioEarlyExit();
 
   console.log('');
   console.log('RA-1 tutorial input gate — evidence dir ' + SHOTDIR);

@@ -137,6 +137,10 @@ async function main() {
     if (m.id && pending.has(m.id)) { const p = pending.get(m.id); pending.delete(m.id); m.error ? p.reject(new Error(m.error.message)) : p.resolve(m.result); }
   };
   await cmd('Page.enable'); await cmd('Runtime.enable'); await cmd('Network.enable');
+  // Deterministic disposable first-play state in the nested game document,
+  // mirroring the root-host tutorial fixture; sessionStorage prevents a later
+  // Result/reload navigation from re-applying the seed.
+  await cmd('Page.addScriptToEvaluateOnNewDocument',{source:`(()=>{if(!location.pathname.startsWith('/html/apex/')||location.pathname.includes('/result-gold/'))return;if(sessionStorage.getItem('__ra2NestedTutorialSeeded'))return;sessionStorage.setItem('__ra2NestedTutorialSeeded','1');localStorage.setItem('apex.alpha.coach.v2',JSON.stringify({version:2,step:0,done:false,skipped:false,baselineBotMatches:0,baselineSealedMatches:0}));localStorage.removeItem('apex.alpha.sideIntro.v2')})()`});
   ws.addEventListener('message', (ev) => {
     const m = JSON.parse(ev.data);
     if (m.method === 'Runtime.executionContextCreated') {
@@ -171,8 +175,11 @@ async function main() {
   const home = await evl(`(()=>({url:location.href,base:document.baseURI,ac:document.querySelector('#apexAccountOpen')?1:0,guide:!!document.querySelector('.apex-coach-skip')||!!document.querySelector('.apex-guide-close')}))()`, await frameContext());
   check('nested home reaches the real product Entry (account entry present)', home?.ac === 1, JSON.stringify(home));
 
-  // Dismiss the returning coach if it is up, then walk into a live battle.
-  if (await evl(`!!document.querySelector('.apex-coach-skip')`, await frameContext())) await pressInFrame('.apex-coach-skip');
+  // Dismiss only the separate first-run control intro. Keep the first-play
+  // coach's SKIP untouched here; the nested acceptance verifies that real
+  // paused lesson and its SKIP behavior inside the /html/apex/ package.
+  const homeCtx=await frameContext();
+  if(await evl(`!!document.querySelector('.apex-guide-close')`,homeCtx))await pressInFrame('.apex-guide-close');
   await pressInFrame('#freeBattle');
   await waitInFrame(`document.querySelector('#stage')?.classList.contains('screen-mode') && ${TX}`, 'nested mode');
   // The mode cards commit a short entrance transform; tap once the card is
@@ -199,6 +206,17 @@ async function main() {
   if (live) {
     await sleep(1200);
     await shot('nested-battle-390x844');
+    const nestedTutorialCtx=await waitInFrame(`(()=>{const c=document.querySelector('.apex-coach-chip');return !!c&&!!document.querySelector('.apex-coach-skip')&&window.APEX_TUTORIAL_PAUSE?.active===true&&document.body.classList.contains('apex-tutorial-paused')})()`, 'nested tutorial paused lesson', 45000).catch(()=>null);
+    const nestedTutorial=nestedTutorialCtx?await evl(`(()=>({kicker:document.querySelector('.apex-guide-kicker')?.textContent||'',body:document.querySelector('.apex-guide-body')?.textContent||'',lease:!!window.APEX_TUTORIAL_PAUSE?.active,skip:!!document.querySelector('.apex-coach-skip'),paused:document.body.classList.contains('apex-tutorial-paused'),base:document.baseURI}))()`,nestedTutorialCtx):null;
+    const nestedTutorialDiag=nestedTutorial||await evl(`(()=>({coach:JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'null'),chip:document.querySelector('.apex-coach-chip')?.innerText||'',kicker:document.querySelector('.apex-guide-kicker')?.innerText||'',lease:window.APEX_TUTORIAL_PAUSE||null,skip:!!document.querySelector('.apex-coach-skip'),intro:!!document.querySelector('.apex-guide-close'),scene:document.querySelector('#stage')?.className||'',battleMode:window.APEX_ARSENAL?.state?.battleMode||null,battleTime:window.APEX_ARSENAL?.state?.time||null,battleOver:window.APEX_ARSENAL?.state?.over||false,body:document.body.className,base:document.baseURI}))()`,await frameContext()).catch(e=>({diagnosticError:String(e)}));
+    check('nested /html/apex tutorial reaches its real paused lesson and SKIP control',!!nestedTutorial&&nestedTutorial.lease&&nestedTutorial.skip&&nestedTutorial.paused&&nestedTutorial.base.includes('/html/apex/'),JSON.stringify(nestedTutorialDiag));
+    if(nestedTutorialCtx){
+      await shot('nested-tutorial-paused-390x844');
+      await pressInFrame('.apex-coach-skip');
+      const nestedSkipCtx=await waitInFrame(`(()=>{const c=JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'{}');return c.done===true&&c.skipped===true&&window.APEX_TUTORIAL_PAUSE?.active!==true&&!document.body.classList.contains('apex-tutorial-paused')})()`, 'nested tutorial skip releases pause', 12000).catch(()=>null);
+      const skipped=nestedSkipCtx?await evl(`(()=>({done:JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'{}').done===true,skipped:JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'{}').skipped===true,lease:!!window.APEX_TUTORIAL_PAUSE?.active,paused:document.body.classList.contains('apex-tutorial-paused')}))()`,nestedSkipCtx):null;
+      check('nested tutorial SKIP persists and releases the nested gameplay pause',!!skipped&&skipped.done&&skipped.skipped&&!skipped.lease&&!skipped.paused,JSON.stringify(skipped));
+    }
     const hud = await evl(`(()=>{const n=document.querySelector('#p2Side .id-name');const gi=[...document.querySelectorAll('#p1Side .skill .apex-skill-icon')].map(i=>i.naturalWidth>0);return{name:n?n.textContent.trim():null,skillIcons:gi,hudMode:document.querySelector('#hud')?.dataset?.mode}})()`, live);
     check('nested battle HUD carries the opponent identity and decoded skill icons',
       hud?.hudMode === '1p' && !!hud?.name && hud.skillIcons.length > 0 && hud.skillIcons.every(Boolean), JSON.stringify(hud));

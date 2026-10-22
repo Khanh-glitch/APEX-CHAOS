@@ -253,6 +253,7 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['POSSIBLE FIGHTERS','ĐẤU SĨ CÓ THỂ NHẬN'],
   ['Possible fighters','Đấu sĩ có thể nhận'],['CLOSE ✕','ĐÓNG ✕'],
   ['CLOSE','ĐÓNG'],['Back','Quay lại'],['DRAW UNAVAILABLE','HIỆN KHÔNG THỂ QUAY'],
+  ['DRAW PENDING','LƯỢT QUAY ĐANG XỬ LÝ'],['ROSTER COMPLETE','ĐÃ ĐỦ ĐẤU SĨ'],
   ['DRAW ASSETS UNAVAILABLE','CHƯA TẢI ĐƯỢC DỮ LIỆU VÒNG QUAY'],
   ['Draw one fighter, cost 350','Quay một đấu sĩ, tốn 350 AC'],
   ['MOTION LANE → LOCK','HƯỚNG CHUYỂN ĐỘNG → KHÓA'],
@@ -663,6 +664,10 @@ export function translateCopy(input,language='eng'){
   const match=input.match(/^(\s*)([\s\S]*?)(\s*)$/);
   if(!match||!match[2])return input;
   const original=match[2];
+  const drawNeedVie=original.match(/^NEED\s+([0-9.,]+)\s+AC$/i);
+  const drawNeedEng=original.match(/^CẦN\s+([0-9.,]+)\s+AC$/iu);
+  if(language==='vie'&&drawNeedVie)return match[1]+'CẦN '+drawNeedVie[1]+' AC'+match[3];
+  if(language!=='vie'&&drawNeedEng)return match[1]+'NEED '+drawNeedEng[1]+' AC'+match[3];
   if(language==='vie')return match[1]+phrase(original)+match[3];
 
   // Only recognized UI patterns: never machine-translate player names, IDs or

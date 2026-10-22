@@ -1,0 +1,385 @@
+{
+  "base": "http://127.0.0.1:5173/",
+  "checks": 24,
+  "failures": [],
+  "cases": {
+    "insufficient-vie": {
+      "before": {
+        "credits": 100,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "visible": {
+        "tag": "CẦN 250 AC",
+        "lang": "vi",
+        "busy": "0",
+        "state": "idle"
+      },
+      "after": {
+        "credits": 100,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      }
+    },
+    "pending-response-vie": {
+      "before": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "visible": {
+        "tag": "LƯỢT QUAY ĐANG XỬ LÝ",
+        "lang": "vi",
+        "busy": "0",
+        "state": "idle"
+      },
+      "after": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      }
+    },
+    "error-response-vie": {
+      "before": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "visible": {
+        "tag": "HIỆN KHÔNG THỂ QUAY",
+        "lang": "vi",
+        "busy": "0",
+        "state": "idle"
+      },
+      "after": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      }
+    },
+    "insufficient-eng": {
+      "before": {
+        "credits": 100,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "visible": {
+        "tag": "NEED 250 AC",
+        "lang": "en",
+        "busy": "0",
+        "state": "idle"
+      },
+      "after": {
+        "credits": 100,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      }
+    },
+    "pending-response-eng": {
+      "before": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "visible": {
+        "tag": "DRAW PENDING",
+        "lang": "en",
+        "busy": "0",
+        "state": "idle"
+      },
+      "after": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      }
+    },
+    "error-response-eng": {
+      "before": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "visible": {
+        "tag": "DRAW UNAVAILABLE",
+        "lang": "en",
+        "busy": "0",
+        "state": "idle"
+      },
+      "after": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      }
+    },
+    "success": {
+      "before": {
+        "credits": 350,
+        "totalSpins": 0,
+        "owned": [
+          "ROBOT"
+        ],
+        "locked": [
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "pending": {
+        "busy": "1",
+        "state": "roll",
+        "drawLabel": "QUAY ×1\n◆ 350",
+        "buttonAria": "Quay một đấu sĩ, tốn 350 AC"
+      },
+      "afterDebit": {
+        "credits": 0,
+        "totalSpins": 1,
+        "owned": [
+          "ROBOT",
+          "HUNTER"
+        ],
+        "locked": [
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "duplicateAttempt": {
+        "credits": 0,
+        "totalSpins": 1,
+        "owned": [
+          "ROBOT",
+          "HUNTER"
+        ],
+        "locked": [
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "success": {
+        "state": "settle",
+        "busy": "0",
+        "winner": "HUNTER",
+        "tag": "HUNTER",
+        "lang": "vi"
+      },
+      "afterSuccess": {
+        "credits": 0,
+        "totalSpins": 1,
+        "owned": [
+          "ROBOT",
+          "HUNTER"
+        ],
+        "locked": [
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      }
+    },
+    "reload": {
+      "wallet": {
+        "credits": 0,
+        "totalSpins": 1,
+        "owned": [
+          "ROBOT",
+          "HUNTER"
+        ],
+        "locked": [
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ]
+      },
+      "donor": {
+        "lang": "en",
+        "title": "APEX CHAOS Lucky Draw",
+        "poolCount": "06",
+        "drawLabel": "Draw one fighter, cost 350",
+        "possible": "POSSIBLE FIGHTERS\n06",
+        "locked": [
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ],
+        "winnerStillLocked": false
+      },
+      "authority": {
+        "credits": 0,
+        "owned": [
+          "ROBOT",
+          "HUNTER"
+        ],
+        "totalSpins": 1
+      }
+    },
+    "successEng": {
+      "pending": {
+        "lang": "en",
+        "busy": "1",
+        "state": "roll"
+      },
+      "final": {
+        "credits": 0,
+        "totalSpins": 1,
+        "owned": [
+          "ROBOT",
+          "HUNTER"
+        ]
+      }
+    }
+  },
+  "browserErrors": [],
+  "limitation": "Chromium desktop emulation. All ledger-changing operations were isolated in disposable browser contexts; production code changes are presentation localization/error-copy only."
+}

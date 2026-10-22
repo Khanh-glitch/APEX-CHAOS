@@ -1093,7 +1093,9 @@ function buildLuckyDonor() {
         `  const res = meta.spin();\n` +
         `  if (!res || res.ok !== true){\n` +
         `    if (res && res.reason === 'complete') showPoolTag('ROSTER COMPLETE');\n` +
-        `    else showPoolTag('NEED ' + (res && res.need ? res.need : 350) + ' AC');\n` +
+        `    else if (res && res.reason === 'spinning') showPoolTag('DRAW PENDING');\n` +
+        `    else if (res && res.reason === 'need') showPoolTag('NEED ' + (res.need || 350) + ' AC');\n` +
+        `    else showPoolTag('DRAW UNAVAILABLE');\n` +
         `    return;\n` +
         `  }\n` +
         `  const winner = productionFighterIndex(res.name);\n` +
