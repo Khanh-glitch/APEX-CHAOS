@@ -23,6 +23,14 @@
   font-family: 'Oswald', Arial, sans-serif;
   animation: apex-achievement-toast-in .26s ease-out;
 }
+.apex-achievement-toast[data-dock-safe="false"] {
+  /* A crowded combat HUD has no legal toast rectangle. Suppress the visual
+     layer instead of placing a fallback over a control; role=status remains
+     available to assistive technology. */
+  opacity: 0 !important;
+  pointer-events: none !important;
+  animation: none !important;
+}
 .apex-achievement-toast[data-owner-side="P1"] {
   left: max(8px, env(safe-area-inset-left, 0px));
   right: auto;

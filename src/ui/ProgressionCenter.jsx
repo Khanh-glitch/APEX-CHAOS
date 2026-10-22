@@ -28,6 +28,13 @@ function playProductSfx(key) {
   try { window.apexUiSfx?.play?.(key); } catch { /* sound is optional */ }
 }
 
+// Award records retain their canonical Vietnamese source name. Translate only
+// the displayed title through the curated locale catalog; IDs, award rules,
+// values and sealed profile data remain unchanged.
+function masteryAchievementName(achievement, language) {
+  return translateCopy(achievement?.name || '', language);
+}
+
 // CP3 Mastery Vault — presentation over the ONE wallet/profile authority.
 // Starter Contracts keep paying through progressionCatalog() +
 // claimProgressReward(). Combat achievements, hero bests and lifetime
@@ -231,12 +238,13 @@ function MedalCard({ achievement, earnedAt, best, recent, language, t }) {
   const unlockedDate = dateLabel(earnedAt, language);
   const presentation = achievement.rarityPresentation || {};
   const rarityLabel = RARITY_LABELS[achievement.rarity]?.[language] || achievement.rarity;
+  const displayName = masteryAchievementName(achievement, language);
   return (
     <article
       className={`apex-mastery-medal rarity-${achievement.rarity} is-${status}`}
       title={achievement.rule[language]}
       tabIndex={0}
-      aria-label={`${achievement.name}. ${rarityLabel}. ${statusLabel}. ${achievement.rule[language]}`}
+      aria-label={`${displayName}. ${rarityLabel}. ${statusLabel}. ${achievement.rule[language]}`}
       data-rarity-shape={presentation.shape || 'circle'}
       data-status={status}
     >
@@ -253,7 +261,7 @@ function MedalCard({ achievement, earnedAt, best, recent, language, t }) {
           <span>{RARITY_LABELS[achievement.rarity]?.[language] || achievement.rarity}</span>
           <span>{statusLabel}</span>
         </div>
-        <h4>{achievement.name}</h4>
+        <h4>{displayName}</h4>
         <p>{achievement.rule[language]}</p>
         <div className="apex-progress-meter" aria-hidden="true">
           <span style={{ width: `${earned ? 100 : progress.percent}%` }} />
@@ -577,7 +585,7 @@ export default function ProgressionCenter() {
                             <span className={`apex-mastery-medal-shape shape-${recentPresentation.shape || 'circle'} pattern-${recentPresentation.pattern || 'plain'}`} />
                             <span className="apex-mastery-medal-glyph">{achievement.iconGlyph}</span>
                           </span>
-                          <span><b>{achievement.name}</b><small>{hero?.name || item.heroId}{dateLabel(item.at, lang) ? ` · ${dateLabel(item.at, lang)}` : ''}</small></span>
+                          <span><b>{masteryAchievementName(achievement, lang)}</b><small>{hero?.name || item.heroId}{dateLabel(item.at, lang) ? ` · ${dateLabel(item.at, lang)}` : ''}</small></span>
                         </span>
                       );
                     })}
@@ -657,7 +665,7 @@ export default function ProgressionCenter() {
                   />
                   {nextObjectives.slice(1).map(({ item, progress }) => (
                     <p key={item.id} className="apex-mastery-next-line">
-                      <b>{item.name}</b>
+                      <b>{masteryAchievementName(item, lang)}</b>
                       <span>{progressText(item, progress, t)}</span>
                     </p>
                   ))}
@@ -690,7 +698,7 @@ export default function ProgressionCenter() {
                             </span>
                             <span className="apex-mastery-chapter-next">
                               {chapterEarned < chapter.length
-                                ? `${t.chapterNext}: ${(chapter.find((item) => !Object.prototype.hasOwnProperty.call(earnedMap, item.id)) || {}).name || ''}`
+                                ? `${t.chapterNext}: ${masteryAchievementName(chapter.find((item) => !Object.prototype.hasOwnProperty.call(earnedMap, item.id)), lang)}`
                                 : t.complete}
                             </span>
                           </span>
@@ -746,7 +754,7 @@ export default function ProgressionCenter() {
                         <details className="apex-mastery-remaining">
                           <summary>{t.remaining(ecoProgress.remainingIds.length)}</summary>
                           <ul>
-                            {ecoProgress.remainingIds.map((id) => <li key={id}>{MASTERY_BY_ID[id]?.name || id}</li>)}
+                            {ecoProgress.remainingIds.map((id) => <li key={id}>{MASTERY_BY_ID[id] ? masteryAchievementName(MASTERY_BY_ID[id], lang) : id}</li>)}
                           </ul>
                         </details>
                       )}

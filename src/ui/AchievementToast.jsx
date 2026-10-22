@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { translateCopy } from '../game/localeCatalog.js';
 import {
   MASTERY_BY_ID,
@@ -133,9 +133,69 @@ function heroProgress(heroId) {
   };
 }
 
+const TOAST_CLEARANCE = 6;
+const GAMEPLAY_BLOCKERS = [
+  '#p1Side .skill', '#p2Side .skill',
+  '#p1Side .weapon', '#p2Side .weapon',
+  '#p1Rail', '#p2Rail', '#matchCenter',
+  '#arena', '#arenaCanvas',
+  '#apexFirstPlayGuide', '#firstPlayGuide', '[data-apex-first-play-guide]',
+  '.apex-first-play-guide', '.first-play-guide',
+];
+
+function findSafeToastDock(element, ownerSide) {
+  if (!element || typeof window === 'undefined') return null;
+  const width = element.offsetWidth;
+  const height = element.offsetHeight;
+  const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+  const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
+  if (!(width > 0 && height > 0 && viewportWidth > 0 && viewportHeight > 0)) return null;
+
+  const blockers = [...new Set(GAMEPLAY_BLOCKERS.flatMap((selector) => {
+    try { return [...document.querySelectorAll(selector)]; } catch { return []; }
+  }))].filter((blocker) => blocker !== element && !element.contains(blocker)).map((blocker) => {
+    const rect = blocker.getBoundingClientRect();
+    const style = getComputedStyle(blocker);
+    return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0
+      && rect.width > 0 && rect.height > 0
+      ? { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
+      : null;
+  }).filter(Boolean);
+
+  const xCandidates = new Set([8, viewportWidth - width - 8]);
+  const yCandidates = new Set([8, viewportHeight - height - 8]);
+  for (const blocker of blockers) {
+    xCandidates.add(blocker.right + TOAST_CLEARANCE);
+    xCandidates.add(blocker.left - width - TOAST_CLEARANCE);
+    yCandidates.add(blocker.bottom + TOAST_CLEARANCE);
+    yCandidates.add(blocker.top - height - TOAST_CLEARANCE);
+  }
+
+  const preferredLeft = ownerSide === 'P2' ? viewportWidth - width - 8 : 8;
+  const preferredTop = viewportHeight - height - 8;
+  let best = null;
+  for (const left of xCandidates) for (const top of yCandidates) {
+    if (left < 8 || top < 8 || left + width > viewportWidth - 8 || top + height > viewportHeight - 8) continue;
+    const candidate = {
+      left: left - TOAST_CLEARANCE,
+      top: top - TOAST_CLEARANCE,
+      right: left + width + TOAST_CLEARANCE,
+      bottom: top + height + TOAST_CLEARANCE,
+    };
+    if (blockers.some((blocker) => candidate.left < blocker.right && candidate.right > blocker.left
+      && candidate.top < blocker.bottom && candidate.bottom > blocker.top)) continue;
+    const score = Math.abs(left - preferredLeft) + Math.abs(top - preferredTop) * 1.15;
+    if (!best || score < best.score) best = { left, top, score };
+  }
+  return best ? { left: best.left, top: best.top, safe: true }
+    : { left: preferredLeft, top: Math.max(8, preferredTop), safe: false };
+}
+
 export default function AchievementToast() {
   const [current, setCurrent] = useState(null);
   const [overflow, setOverflow] = useState(0);
+  const [dock, setDock] = useState(null);
+  const toastRef = useRef(null);
   const [language, setLanguage] = useState(currentLanguage);
   const queueRef = useRef([]);
   const activeRef = useRef(null);
@@ -173,6 +233,42 @@ export default function AchievementToast() {
     }, displayMs);
   }, []);
   showNextRef.current = showNext;
+
+  useLayoutEffect(() => {
+    if (!current) {
+      setDock(null);
+      return undefined;
+    }
+    const element = toastRef.current;
+    if (!element) return undefined;
+    let frame = 0;
+    const place = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const next = findSafeToastDock(element, current.ownerSide);
+        setDock((previous) => previous?.left === next?.left && previous?.top === next?.top
+          && previous?.safe === next?.safe ? previous : next);
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('orientationchange', place);
+    let observer;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(place);
+      observer.observe(element);
+      for (const selector of GAMEPLAY_BLOCKERS) {
+        try { document.querySelectorAll(selector).forEach((blocker) => observer.observe(blocker)); }
+        catch { /* an optional HUD/tutorial anchor is not mounted */ }
+      }
+    }
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('resize', place);
+      window.removeEventListener('orientationchange', place);
+      observer?.disconnect();
+    };
+  }, [current?.key, current?.ownerSide, overflow, language]);
 
   useEffect(() => {
     const enqueue = (event) => {
@@ -280,6 +376,11 @@ export default function AchievementToast() {
       data-owner-side={current.ownerSide || 'unknown'}
       data-owner-kind={current.ownerKind}
       data-wallet-eligible={current.walletEligible ? 'true' : 'false'}
+      data-dock-safe={dock?.safe ? 'true' : 'false'}
+      ref={toastRef}
+      style={dock
+        ? { left: `${dock.left}px`, top: `${dock.top}px`, right: 'auto', bottom: 'auto', ...(dock.safe ? {} : { opacity: 0 }) }
+        : { opacity: 0 }}
       role="status"
       aria-live="polite"
       data-apex-no-localize=""
