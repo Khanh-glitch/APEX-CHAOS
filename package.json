@@ -60,7 +60,8 @@
     "test:hero-accent-language": "node tools/testHeroAccentLanguageGate.mjs",
     "test:hero-rework:robot-gates": "node tools/testHeroReworkRobotPresentationGates.mjs",
     "test:result-gold": "node tools/testResultGoldAuthority.mjs",
-    "test:localization": "node tools/testLocalizationGate.mjs"
+    "test:localization": "node tools/testLocalizationGate.mjs",
+    "test:mobile-entry": "node tools/testMobileEntryArchitecture.mjs"
   },
   "dependencies": {
     "@fontsource/montserrat": "^5.3.0",

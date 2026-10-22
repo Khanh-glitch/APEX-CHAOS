@@ -72,11 +72,26 @@ export const R91_LABEL_FIT_CSS = `/* R91 LABEL-FIT: primary-deck skill/weapon na
   font-size:12.5px;
   letter-spacing:.05em;
 }
+/* Owner-approved compact BOT fit: spend the narrow weapon mini-slot on the
+   opponent identity, the one label with no other home. Keep skill state/HP.
+   The P1 fighter name already has a readable lower identity home; suppress
+   only its redundant top-rail duplicate so it cannot collide with the live HP. */
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .weapon{display:none}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Side .id-ctrl{display:none}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Rail .vr-name{display:none}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] .id-name{
+  font-size:clamp(14px,4.1vw,16px);letter-spacing:0;overflow:visible;text-overflow:clip
+}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .id-name{font-size:clamp(12px,3.6vw,14px)}
 `;
 export function adaptGoldBattleHudR91LabelFit(out) {
   if (out.includes('R91 LABEL-FIT')) throw new Error('R91 duplicate law');
+  const from = "R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TAP';";
+  const to = "R.side[0].ctrl.textContent=S.mode==='1p'?'':(desk?'LOCAL · J K':'LOCAL · TAP');";
+  if (out.split(from).length !== 2) throw new Error('R91 expected the unique P1 control-hint projection');
+  const transformed = out.replace(from, to);
   const anchor = '</style>';
-  const index = out.indexOf(anchor);
+  const index = transformed.indexOf(anchor);
   if (index === -1) throw new Error('R91 expected Gold battle HUD stylesheet');
-  return out.slice(0, index) + R91_LABEL_FIT_CSS + out.slice(index);
+  return transformed.slice(0, index) + R91_LABEL_FIT_CSS + transformed.slice(index);
 }

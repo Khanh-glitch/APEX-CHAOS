@@ -129,6 +129,7 @@ function WeaponFacts({item,skin}){return <WeaponStatConsole item={item} skin={sk
 function HeroFacts({item}){return <AbilityWeb item={item} legacySkills={HERO_META[item.id]?.skills||[]}/>}
 export default function FieldArchiveC03(){
  const [home,setHome]=useState(false),[pick,setPick]=useState(false),[pickHost,setPickHost]=useState(null),[open,setOpen]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
+ const [language,setLanguage]=useState(()=>window.APEX_I18N?.getLanguage?.()||'eng');
  const [kind,setKind]=useState('hero'),[side,setSide]=useState('p1'),[focus,setFocus]=useState('ROBOT');
  const [weapons,setWeapons]=useState([]),[heroes,setHeroes]=useState([]),[view,setView]=useState('SKINS'),[page,setPage]=useState(0),[query,setQuery]=useState('');
  const [preview,setPreview]=useState('default'),[skinPage,setSkinPage]=useState(0),[rev,setRev]=useState(0),[warning,setWarning]=useState(false);
@@ -142,11 +143,13 @@ export default function FieldArchiveC03(){
    if(!current&&!duringPick)setOpen(false);
   };
   const resize=()=>setWindowSize({w:innerWidth,h:innerHeight});
+  const locale=event=>setLanguage(event.detail?.language==='vie'?'vie':'eng');
   const subscription=cosmetics.subscribe(()=>setRev(x=>x+1));
   const masteryEvent=()=>setRev(x=>x+1);
   const interval=setInterval(update,400);
   const event=()=>{void launch()};
   const homeClick=e=>{if(e.target?.closest?.('#apexDictionaryOpen'))void launch()};
+  window.addEventListener('apex:language-changed',locale);
   window.addEventListener('apex-open-cosmetics',event);
   window.addEventListener('apex-open-dictionary',event);
   window.addEventListener('apex:mastery-unlocked',masteryEvent);
@@ -154,7 +157,7 @@ export default function FieldArchiveC03(){
   document.addEventListener('click',homeClick);
   window.addEventListener('resize',resize,{passive:true});
   update();
-  return()=>{clearInterval(interval);subscription();document.removeEventListener('click',homeClick);window.removeEventListener('resize',resize);window.removeEventListener('apex-open-cosmetics',event);window.removeEventListener('apex-open-dictionary',event);window.removeEventListener('apex:mastery-unlocked',masteryEvent);window.removeEventListener('apex:skin-unlocked',masteryEvent)};
+  return()=>{clearInterval(interval);subscription();document.removeEventListener('click',homeClick);window.removeEventListener('resize',resize);window.removeEventListener('apex:language-changed',locale);window.removeEventListener('apex-open-cosmetics',event);window.removeEventListener('apex-open-dictionary',event);window.removeEventListener('apex:mastery-unlocked',masteryEvent);window.removeEventListener('apex:skin-unlocked',masteryEvent)};
  },[]);
  useEffect(()=>{if(!open)return;
   const before=document.activeElement;
@@ -250,7 +253,7 @@ export default function FieldArchiveC03(){
    }} onKeyUpCapture={e=>e.stopPropagation()}>
    <section className="fa3-shell" role="dialog" aria-modal="true" aria-labelledby="fa3-title">
     <div className="fa3-binding" aria-hidden="true"><i/><i/><i/></div>
-    <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS</small><h2 id="fa3-title"><span>THE FIELD </span><em>ARCHIVE</em></h2></div>
+    <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS</small><h2 id="fa3-title" data-apex-no-localize="">{language==='vie'?'KHO HỒ SƠ':<>THE FIELD <em>ARCHIVE</em></>}</h2></div>
      <div className="fa3-primary" role="tablist" aria-label="Archive category"><button role="tab" aria-selected={kind==='hero'} className={kind==='hero'?'on':''} onClick={()=>changeKind('hero')}>FIGHTERS</button><button role="tab" aria-selected={kind==='weapon'} className={kind==='weapon'?'on':''} onClick={()=>changeKind('weapon')}>WEAPONS</button></div>
      <div className="fa3-players" role="group" aria-label="Choose loadout"><button aria-pressed={side==='p1'} className={side==='p1'?'on':''} onClick={()=>changeSide('p1')}>P1</button><button aria-pressed={side==='p2'} className={side==='p2'?'on':''} onClick={()=>changeSide('p2')}>P2 / BOT</button></div>
      <button className="fa3-close apex-cosmetics-close" type="button" onClick={()=>setOpen(false)} aria-label="Close archive">✕</button>

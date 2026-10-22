@@ -76,6 +76,19 @@ html[data-apex-language="vie"] #gold-shell-host #stage .storyTitle{
   font-weight:700;
   line-height:1.035;
 }
+/* The two-line Vietnamese Home headline is taller than the English donor.
+   On phone portrait it must clear the first-play coach instead of being
+   hidden behind it. Preserve the exact copy and silhouette; fit the type role. */
+@media (max-width:600px) and (orientation:portrait){
+  html[data-apex-language="vie"] #gold-shell-host #stage .story{
+    top:calc(41.7vh - 2.7vh);
+  }
+  html[data-apex-language="vie"] #gold-shell-host #stage .storyTitle{
+    font-size:clamp(34px,10.5vw,44px);
+    line-height:1.08;
+    letter-spacing:-.035em;
+  }
+}
 html[data-apex-language="vie"] #gold-shell-host #stage :is(.quest,.modeKicker,.fighterKicker){
   letter-spacing:var(--apex-vie-kicker-track);
 }

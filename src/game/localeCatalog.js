@@ -69,6 +69,44 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['ARSENAL RECORD ·','HỒ SƠ KHO VŨ KHÍ ·'],
   ['APPEARANCE ONLY — NO COMBAT EFFECT','CHỈ ĐỔI NGOẠI HÌNH — KHÔNG ẢNH HƯỞNG CHIẾN ĐẤU'],
   ['EQUIP APPLIES INSTANTLY','TRANG BỊ CÓ HIỆU LỰC NGAY'],
+  // FIELD ARCHIVE — complete functional chrome; canonical fighter/weapon names stay unchanged.
+  ['FIELD ARCHIVE','KHO HỒ SƠ'],['FIGHTERS','ĐẤU SĨ'],['WEAPONS','VŨ KHÍ'],
+  ['PLAYABLE','CÓ THỂ CHƠI'],['ORIGINAL / VISUAL PREVIEW','NGUYÊN BẢN / XEM TRƯỚC'],
+  ['VISUAL PREVIEW','XEM TRƯỚC NGOẠI HÌNH'],['/ VISUAL PREVIEW','/ XEM TRƯỚC NGOẠI HÌNH'],
+  ['ACTIVE ROSTER','ĐỘI HÌNH ĐANG MỞ'],['LOCKED ROSTER','ĐỘI HÌNH ĐÃ KHÓA'],
+  ['NEWBOT MASTERY','TINH THÔNG NEWBOT'],['MASTERY','TINH THÔNG'],
+  ['EQUIPPED /','ĐANG TRANG BỊ /'],['ECOBOT — RECYCLE CORE V17','ECOBOT — LÕI TÁI CHẾ V17'],
+
+  ['SKINS','GIAO DIỆN'],['INFO','THÔNG TIN'],['INDEX','DANH MỤC'],
+  ['SKINS / SELECT & EQUIP','GIAO DIỆN / CHỌN & TRANG BỊ'],['GAMEPLAY','LỐI CHƠI'],
+  ['COMBAT PROFILE','HỒ SƠ CHIẾN ĐẤU'],['EQUIPPED','ĐANG TRANG BỊ'],
+  ['ORIGINAL PRESENTATION','DIỆN MẠO GỐC'],['ORIGINAL','MẶC ĐỊNH'],
+  ['PLAYER 01','NGƯỜI CHƠI 01'],['PLAYER 02 / BOT','NGƯỜI CHƠI 02 / BOT'],
+  ['SEARCH...','TÌM KIẾM...'],['Search archive','Tìm trong kho hồ sơ'],
+  ['No matching records.','Không tìm thấy hồ sơ phù hợp.'],
+  ['Preparing Arsenal records…','Đang chuẩn bị hồ sơ kho vũ khí…'],
+  ['Select a fighter or weapon.','Hãy chọn một đấu sĩ hoặc vũ khí.'],
+  ['RETURN TO SKINS ↗','QUAY LẠI GIAO DIỆN ↗'],
+  ['EQUIP THIS SKIN ↗','TRANG BỊ GIAO DIỆN NÀY ↗'],
+  ['LOCKED — MASTERY REQUIRED','ĐÃ KHÓA — CẦN ĐẠT TINH THÔNG'],
+  ['EQUIPPED ✓','ĐANG TRANG BỊ ✓'],['APPROVED COSMETIC','VẬT PHẨM NGOẠI HÌNH ĐÃ DUYỆT'],
+  ['FIGHTERS & WEAPONS','ĐẤU SĨ & VŨ KHÍ'],
+  ['ESC — CLOSE · ARROWS — NEXT RECORD','ESC — ĐÓNG · PHÍM MŨI TÊN — HỒ SƠ TIẾP'],
+  ['CLOSE ARCHIVE','ĐÓNG KHO HỒ SƠ'],
+  ['NO REGISTERED SKILL','CHƯA CÓ KỸ NĂNG ĐƯỢC ĐĂNG KÝ'],
+  ['UNCLASSIFIED MECHANICS','CƠ CHẾ CHƯA PHÂN LOẠI'],['TACTICAL AFFINITY','THIÊN HƯỚNG CHIẾN THUẬT'],
+  ['ARSENAL RECORD ·','HỒ SƠ KHO VŨ KHÍ ·'],['ROLE PROFILE','HỒ SƠ VAI TRÒ'],
+  ['SPECS','THÔNG SỐ'],['RAW','GỐC'],['PROJECTILE SPEED','TỐC ĐỘ ĐẠN'],
+  ['MAX SPEED','TỐC ĐỘ TỐI ĐA'],['ACCELERATION','GIA TỐC'],['BLAST RADIUS','BÁN KÍNH NỔ'],
+  ['EFFECT RANGE','TẦM HIỆU ỨNG'],['KNOCKBACK','ĐẨY LÙI'],['STUN','CHOÁNG'],
+  ['SLOW','LÀM CHẬM'],['FIRING INTERVAL','NHỊP BẮN'],['SHOT COUNT','SỐ VIÊN'],
+  ['PELLETS','ĐẠN CON'],['CHARGE','TÍCH LỰC'],['DURATION','THỜI LƯỢNG'],
+  ['REFLECT RADIUS','BÁN KÍNH PHẢN ĐẠN'],['DAMAGE TAKEN','SÁT THƯƠNG NHẬN VÀO'],
+  ['SPEED MULT','HỆ SỐ TỐC ĐỘ'],['PROJECTILE LIFE','THỜI GIAN TỒN TẠI CỦA ĐẠN'],['FUSE','NGÒI NỔ'],
+  ['BLAST PEAK','SÁT THƯƠNG NỔ TỐI ĐA'],['DIRECT HIT','SÁT THƯƠNG TRÚNG ĐÍCH'],
+  ['NO SPECS','CHƯA CÓ THÔNG SỐ'],['FIGHTER locked — dossier incomplete.','Hồ sơ đấu sĩ chưa hoàn chỉnh.'],
+  ['Complete every NEWBOT mastery achievement to equip ECOBOT. Preview remains available; an old stored selection renders ORIGINAL until earned.','Hoàn thành toàn bộ thành tích Tinh thông NEWBOT để trang bị ECOBOT. Vẫn có thể xem trước; lựa chọn cũ chưa đủ điều kiện sẽ hiển thị diện mạo gốc.'],
+  ['Deal more than 1,000 lifetime RPG-7 damage in sealed BOT/LOCAL matches to equip VUA HỀ. Preview remains available.','Gây tổng cộng hơn 1.000 sát thương bằng RPG-7 trong các trận BOT/LOCAL đã niêm phong để mở VUA HỀ. Vẫn có thể xem trước.'],
   ['The laughing warhead keeps its full face in frame, trailing thick theatrical smoke.','Đầu đạn mặt cười hiện trọn khuôn mặt, kéo theo làn khói sân khấu dày đặc.'],
   ['Forest-jade mechanical layers over a spring-driven NEWBOT frame.','Các lớp cơ khí xanh ngọc rừng phủ trên khung NEWBOT vận hành bằng lò xo.'],
   ['COMING SOON','SẮP RA MẮT'],
@@ -557,6 +595,8 @@ function phrase(value){
   if(!t||PRESERVE.has(t.toUpperCase()))return t;
   const exact=COPY[t]??QUEST_EXTRA[t]??VISIBLE_MISC[t]??LOOKUP.get(t.toUpperCase());
   if(exact!==undefined)return exact;
+  const masteryCount=t.match(/^(\d+)\/(\d+) NEWBOT MASTERY$/i);
+  if(masteryCount)return masteryCount[1]+'/'+masteryCount[2]+' TINH THÔNG NEWBOT';
   const count=t.match(/^(\d+) (HITS?|CRITS?|HOSTILES DOWN|FIGHTERS?)$/i);
   if(count){const unit=phrase(count[2]);return count[1]+' '+unit;}
   // Production HUD cooldown/charges strings are constructed at runtime;

@@ -839,6 +839,17 @@ kbd{font:inherit}
   font-size:12.5px;
   letter-spacing:.05em;
 }
+/* Owner-approved compact BOT fit: spend the narrow weapon mini-slot on the
+   opponent identity, the one label with no other home. Keep skill state/HP.
+   The P1 fighter name already has a readable lower identity home; suppress
+   only its redundant top-rail duplicate so it cannot collide with the live HP. */
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .weapon{display:none}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Side .id-ctrl{display:none}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Rail .vr-name{display:none}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] .id-name{
+  font-size:clamp(14px,4.1vw,16px);letter-spacing:0;overflow:visible;text-overflow:clip
+}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .id-name{font-size:clamp(12px,3.6vw,14px)}
 </style>
 
 <script>
@@ -1426,7 +1437,7 @@ function renderStatic(){
  // the RIGHT-HAND NUMPAD pair only (Numpad1/Numpad2) — the top-row 1/2
  // pair must not cast, so the hint names NUM. BOT P2 = CPU. No manual
  // swap command exists in production, so no swap key is advertised.
- R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TAP';
+ R.side[0].ctrl.textContent=S.mode==='1p'?'':(desk?'LOCAL · J K':'LOCAL · TAP');
  R.side[1].ctrl.textContent=S.mode==='1p'?'CPU':(desk?'LOCAL · NUM 1 2':'LOCAL · TAP');
  R.side.forEach((s,i)=>s.skills.forEach((u,k)=>{u.slot.textContent=(S.mode==='1p'&&i===1)?'ENEMY':'ABILITY '+(k+1);u.el.setAttribute('aria-disabled',S.mode==='1p'&&i===1?'true':'false');}));
 }
