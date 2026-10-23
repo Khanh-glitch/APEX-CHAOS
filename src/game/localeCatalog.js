@@ -5,6 +5,7 @@ import {englishAwardRule} from './localeAwardRules.js';
 export const COPY = Object.freeze(Object.fromEntries([
   // HOME / global navigation
   ['Player','Người chơi'],['PROFILE','HỒ SƠ'],['Player profile','Hồ sơ người chơi'],
+  ['SCROLL DOWN FOR CONTINUE','CUỘN XUỐNG ĐỂ TIẾP TỤC'],
   ['Player and economy','Người chơi và tài nguyên'],['Settings','Cài đặt'],
   ['Current story','Cốt truyện hiện tại'],['Main routes','Điều hướng chính'],
   ['Primary actions','Thao tác chính'],['QUEST 01','NHIỆM VỤ 01'],

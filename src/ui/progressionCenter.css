@@ -420,5 +420,7 @@
 .apex-mastery-hero-rail button{min-width:0}
 .apex-mastery-recent-row{flex-wrap:wrap;overflow:visible;padding:0}
 @media (min-width:700px){
-  .apex-mastery-hero-rail{grid-template-columns:repeat(4,minmax(0,1fr))}
+  /* The vault remains a narrow side panel on large viewports; four columns
+     shrink cards below the intrinsic width of CRYSTALA and clip its glyphs. */
+  .apex-mastery-hero-rail{grid-template-columns:repeat(2,minmax(0,1fr))}
 }

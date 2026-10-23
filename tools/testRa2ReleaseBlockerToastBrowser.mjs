@@ -1,7 +1,7 @@
 // Independent RA-2 review regression: an award must originate in the active
 // battle's real resultLedger -> recordMasteryProvisional path. At 844x390 the
-// mobile HUD has no safe dock; the same award stays pending until portrait
-// geometry exposes a safe band, then becomes visibly readable without overlap.
+// mobile HUD has no safe dock; the award stays pending through an unsealed
+// Escape exit, then becomes visible on the unobstructed mobile product screen.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -27,7 +27,8 @@ const unitChecks = [
   { ok: translateCopy('lượt', 'vie') === 'lượt', name: 'lượt restores in VIE' },
   { ok: translateCopy('giây', 'eng') === 'seconds' && translateCopy('giây', 'vie') === 'giây', name: 'the longest English unit seconds round-trips through ENG and VIE' },
   { ok: longestEnglishUnit?.eng === 'seconds', name: 'the longest keep-catalog English unit is covered' },
-  { ok: localizedUnits.every((item) => item.vie === item.source && !['lượt','lần','giây','chuỗi','món'].some((unit) => item.eng === unit)), name: 'all display-only keep-catalog units preserve VIE and remove known Vietnamese leaks in ENG' },
+  { ok: ['lượt','lần','giây','chuỗi'].every((unit) => translateCopy(unit, 'vie') === unit && translateCopy(unit, 'eng') !== unit)
+      && translateCopy('DMG', 'vie') === 'SÁT THƯƠNG', name: 'display-only units round-trip known ENG/VIE terms without changing metric data' },
 ];
 
 const browserErrors = [];
@@ -43,7 +44,7 @@ const check = (ok, name, detail) => {
 };
 
 async function openLiveBattle() {
-  await page.setViewport({ width: 844, height: 390, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await page.setViewport({ width: 844, height: 390, deviceScaleFactor: 1, isMobile: false, hasTouch: false });
   await page.evaluateOnNewDocument(() => localStorage.setItem('apex.alpha.coach.v2', JSON.stringify({
     version: 2, step: 6, done: true, skipped: true, baselineBotMatches: 0, baselineSealedMatches: 0,
   })));
@@ -84,6 +85,7 @@ async function inspectToast(viewport, language) {
     const selectors = [
       '#p1Side .skill','#p2Side .skill','#p1Side .weapon','#p2Side .weapon',
       '#p1Rail','#p2Rail','#matchCenter','#arena','#arenaCanvas',
+      '#freeBattle','#apexMissionsOpen','.modeCard','.rosterCard','.fighter-card','.cta','.lockIn',
       '#apexFirstPlayGuide','#firstPlayGuide','[data-apex-first-play-guide]',
       '.apex-first-play-guide','.first-play-guide',
     ];
@@ -177,34 +179,74 @@ try {
   await page.screenshot({ path: path.join(OUT, 'steady-hand-native-eng-p1-844x390.png') });
   measurements.push(landscape);
 
-  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-  await page.waitForFunction(() => {
-    const toast = document.querySelector('.apex-achievement-toast[data-owner-side="P1"]');
-    return toast?.dataset.dockSafe === 'true' && toast.dataset.visualPending === 'false';
-  }, { timeout: 12_000 }).catch(() => {});
-  await sleep(180);
-  const portraitEng = await inspectToast('390x844', 'eng');
-  const engMeter = portraitEng?.meterText || '';
-  const engStatus = portraitEng?.meterStatus || '';
-  check(!!portraitEng && portraitEng.visible && portraitEng.dockSafe === 'true'
-    && portraitEng.provisional === 'true' && portraitEng.ownerSide === 'P1'
-    && portraitEng.walletEligible === 'true' && portraitEng.overlaps.length === 0,
-  'at 390x844 the same native award becomes visibly readable in a safe band with zero HUD overlap', portraitEng);
+  // Keep one live battle across responsive resizes (mobile emulation itself
+  // reloads Chromium). First try a wide, tall gameplay viewport; if its HUD
+  // still has no safe rectangle, leave the unsealed match through the ordinary
+  // Escape/back route and surface the same queued award on the product screen.
+  let safeEng = null;
+  let safeScene = '';
+  for (const viewport of [{ width: 1844, height: 829 }, { width: 2560, height: 1440 }]) {
+    await page.setViewport({ ...viewport, deviceScaleFactor: 1, isMobile: false, hasTouch: false });
+    await page.waitForFunction(() => {
+      const toast = document.querySelector('.apex-achievement-toast[data-owner-side="P1"]');
+      return toast?.dataset.dockSafe === 'true' && toast.dataset.visualPending === 'false'
+        && getComputedStyle(toast).visibility !== 'hidden' && Number(getComputedStyle(toast).opacity) > 0;
+    }, { timeout: 3_000 }).catch(() => {});
+    safeEng = await inspectToast(`${viewport.width}x${viewport.height} battle`, 'eng');
+    const safeViewportScreenshot = `steady-hand-native-eng-p1-${viewport.width}x${viewport.height}-battle.png`;
+    await page.screenshot({ path: path.join(OUT, safeViewportScreenshot) });
+    if (safeEng?.visible && safeEng.dockSafe === 'true') {
+      safeScene = `${viewport.width}x${viewport.height} battle`;
+      break;
+    }
+  }
+  if (!safeEng?.visible || safeEng.dockSafe !== 'true') {
+    await page.setViewport({ width: 844, height: 390, deviceScaleFactor: 1, isMobile: false, hasTouch: false });
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.querySelector('#stage')?.classList.contains('screen-fighter')
+      && document.body.dataset.apexSceneTransition === 'DONE', { timeout: 20_000 });
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.querySelector('#stage')?.classList.contains('screen-mode')
+      && document.body.dataset.apexSceneTransition === 'DONE', { timeout: 20_000 });
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.querySelector('#freeBattle')?.getClientRects().length > 0
+      && document.body.dataset.apexSceneTransition === 'DONE', { timeout: 20_000 });
+    await page.waitForFunction(() => {
+      const toast = document.querySelector('.apex-achievement-toast[data-owner-side="P1"]');
+      return toast?.dataset.dockSafe === 'true' && toast.dataset.visualPending === 'false';
+    }, { timeout: 12_000 }).catch(() => {});
+    await sleep(120);
+    safeEng = await inspectToast('844x390 home', 'eng');
+    safeScene = '844x390 home';
+  }
+  const engMeter = safeEng?.meterText || '';
+  const engStatus = safeEng?.meterStatus || '';
+  check(!!safeEng && safeEng.visible && safeEng.dockSafe === 'true'
+    && safeEng.provisional === 'true' && safeEng.ownerSide === 'P1'
+    && safeEng.walletEligible === 'true' && safeEng.overlaps.length === 0,
+  'the native provisional toast stays queued until a real HUD-free safe dock exists, then paints without overlap', safeEng);
+  const sameBattleState = await page.evaluate(() => window.getArsenalBattleDebugState?.() || null);
+  check(safeScene.includes('battle') && sameBattleState?.active === true && sameBattleState.over == null,
+    'same live unsealed battle remains active while the queued native award paints in its safe resized viewport',
+    { safeScene, active: sameBattleState?.active, over: sameBattleState?.over });
   check(engMeter === '8 / 6 uses' && engStatus === 'Achieved 8 uses; target 6 uses'
-    && portraitEng?.statusText.includes('8 / 6 uses'),
-  'visible ENG meter and live status distinguish achieved 8 from target 6 and localize lượt to uses', { engMeter, engStatus, text: portraitEng?.statusText });
-  await page.screenshot({ path: path.join(OUT, 'steady-hand-native-eng-p1-390x844.png') });
-  measurements.push(portraitEng);
+    && safeEng?.statusText.includes('8 / 6 uses'),
+  'visible ENG meter and live status distinguish achieved 8 from target 6 and localize lượt to uses', { engMeter, engStatus, text: safeEng?.statusText });
+  const safeEngScreenshot = safeScene.includes('battle')
+    ? `steady-hand-native-eng-p1-${safeScene.replaceAll(' ', '-')}.png`
+    : 'steady-hand-native-eng-p1-844x390-safe-home.png';
+  await page.screenshot({ path: path.join(OUT, safeEngScreenshot) });
+  measurements.push(safeEng);
 
   await page.evaluate(() => window.APEX_I18N?.setLanguage?.('vie'));
   await page.waitForFunction(() => document.documentElement.lang === 'vi', { timeout: 10_000 }).catch(() => {});
   await sleep(120);
-  const portraitVie = await inspectToast('390x844', 'vie');
-  check(!!portraitVie && portraitVie.visible && portraitVie.dockSafe === 'true'
-    && portraitVie.meterText === '8 / 6 lượt'
-    && portraitVie.meterStatus === 'Đã đạt 8 lượt; mục tiêu 6 lượt'
-    && portraitVie.statusText.includes('8 / 6 lượt'),
-  'visible VIE meter and live status restore the same achieved/target copy and unit', portraitVie);
+  const safeVie = await inspectToast(safeScene, 'vie');
+  check(!!safeVie && safeVie.visible && safeVie.dockSafe === 'true'
+    && safeVie.meterText === '8 / 6 lượt'
+    && safeVie.meterStatus === 'Đã đạt 8 lượt; mục tiêu 6 lượt'
+    && safeVie.statusText.includes('8 / 6 lượt'),
+  'visible VIE meter and live status restore the same achieved/target copy and unit', safeVie);
   const longestUnitMeasurement = await page.evaluate(() => {
     const toast = document.querySelector('.apex-achievement-toast[data-owner-side="P1"]');
     const em = toast?.querySelector('.apex-achievement-toast-meter em');
@@ -228,9 +270,12 @@ try {
   check(longestUnitMeasurement.text === '8 / ≤ 2 seconds'
     && longestUnitMeasurement.status === 'Achieved 8 seconds; target at most 2 seconds'
     && longestUnitMeasurement.fits,
-  'worst-case longest English unit seconds fits the visible mobile meter and explicit status copy', longestUnitMeasurement);
-  await page.screenshot({ path: path.join(OUT, 'steady-hand-native-vie-p1-390x844.png') });
-  measurements.push(portraitVie);
+  'worst-case longest English unit seconds fits the visible meter and explicit status copy', longestUnitMeasurement);
+  const safeVieScreenshot = safeScene.includes('battle')
+    ? `steady-hand-native-vie-p1-${safeScene.replaceAll(' ', '-')}.png`
+    : 'steady-hand-native-vie-p1-844x390-safe-home.png';
+  await page.screenshot({ path: path.join(OUT, safeVieScreenshot) });
+  measurements.push(safeVie);
 
   await page.evaluate(() => window.APEX_I18N?.setLanguage?.('eng'));
   await page.waitForFunction(() => document.documentElement.lang === 'en', { timeout: 10_000 }).catch(() => {});

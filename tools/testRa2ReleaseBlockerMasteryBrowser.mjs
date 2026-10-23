@@ -7,7 +7,8 @@ import path from 'node:path';
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { CP3_NEWBOT_ACHIEVEMENT_IDS, cp3EntitledProfile } from './cp3MasteryFixture.mjs';
-import { MASTERY_HEROES } from '../src/ui/masteryCatalog.js';
+
+const EXPECTED_HERO_LABELS = ['NEWBOT', 'HUNTER', 'CRYSTALA', 'MAGNET', 'FROST', 'MIRROR'];
 import { translateCopy } from '../src/game/localeCatalog.js';
 
 const APP = process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
@@ -125,10 +126,10 @@ try {
       noGlyphClipping: labels.every((item) => item.withinButton && item.clippingAncestors.length === 0),
       oneLine: labels.every((item) => item.whiteSpace === 'nowrap'),
     };
-  }, { viewport, expectedNames: MASTERY_HEROES.map((hero) => hero.name) });
+  }, { viewport, expectedNames: EXPECTED_HERO_LABELS });
 
   const assertHeroRail = async (width, height) => {
-    await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: width < 600, hasTouch: width < 600 });
+    await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: false, hasTouch: false });
     await page.evaluate(() => document.querySelector('.apex-mastery-hero-rail')?.scrollIntoView({ block: 'center', inline: 'nearest' }));
     await sleep(220);
     const rail = await inspectHeroRail(`${width}x${height}`);

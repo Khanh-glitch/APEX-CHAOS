@@ -90,7 +90,7 @@ async function measure(viewport, language, phase) {
 }
 
 try {
-  await page.setViewport({ width: VIEWPORTS[0][0], height: VIEWPORTS[0][1], deviceScaleFactor: 1 });
+  await page.setViewport({ width: VIEWPORTS[0][0], height: VIEWPORTS[0][1], deviceScaleFactor: 1, isMobile: false, hasTouch: true });
   await page.goto(APP, { waitUntil:'domcontentloaded', timeout:70_000 });
   await page.waitForSelector('#apex-boot-start', { visible:true, timeout:90_000 });
   await page.click('#apex-boot-start');
@@ -146,7 +146,7 @@ try {
   const runSettled = async (language,width,height) => {
     await page.evaluate((lang)=>{const app=window.__apexGoldFidelity?.child()||window;app.APEX_I18N.setLanguage(lang);const root=app.document.querySelector('#ra2-release-blocker-result')?.contentDocument?.querySelector('.ac-root');if(root)root.scrollTop=0;},language);
     await page.waitForFunction((lang)=>{const app=window.__apexGoldFidelity?.child()||window;return app.document.querySelector('#ra2-release-blocker-result')?.contentDocument?.documentElement.lang===(lang==='vie'?'vi':'en');},{timeout:20_000},language);
-    await page.setViewport({width,height,deviceScaleFactor:1});
+    await page.setViewport({width,height,deviceScaleFactor:1,isMobile:false,hasTouch:true});
     await page.evaluate(()=>{const app=window.__apexGoldFidelity?.child()||window;const root=app.document.querySelector('#ra2-release-blocker-result')?.contentDocument?.querySelector('.ac-root');if(root)root.scrollTop=0;});
     await sleep(350);
     const result=await measure({width,height},language,'post-settle');
@@ -177,7 +177,7 @@ try {
   // Short-landscape interaction regression. The Gold Result stays unchanged:
   // prove its own scroll container is discoverable and its real CONTINUE
   // button is reachable/activatable through mouse, touch, and keyboard.
-  await page.setViewport({width:844,height:390,deviceScaleFactor:1,isMobile:true,hasTouch:true});
+  await page.setViewport({width:844,height:390,deviceScaleFactor:1,isMobile:false,hasTouch:true});
   await page.evaluate(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('eng');const root=w.document.querySelector('#ra2-release-blocker-result')?.contentDocument?.querySelector('.ac-root');if(root)root.scrollTop=0;});
   await page.waitForFunction(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#ra2-release-blocker-result')?.contentDocument?.documentElement.lang==='en';},{timeout:15_000});
   await sleep(220);
@@ -202,9 +202,12 @@ try {
     const button=d.querySelector('.dock .btn--primary');
     if(!root||!button)return {missingRoot:!root,missingButton:!button};
     const r=button.getBoundingClientRect(),rr=root.getBoundingClientRect(),cs=getComputedStyle(root),bs=getComputedStyle(button);
+    const cueElement=d.querySelector('.ac-scroll-hint'),cueStyle=cueElement?getComputedStyle(cueElement):null,cueBox=cueElement?.getBoundingClientRect();
     return {label:button.innerText.replace(/\s+/g,' ').trim(),disabled:button.disabled,
+      scrollCue:{text:cueElement?.textContent.trim()||'',position:cueStyle?.position||'',height:cueStyle?.height||'',display:cueStyle?.display||'none',
+        visible:!!cueElement&&cueElement.getClientRects().length>0&&cueBox?.bottom<=innerHeight&&cueBox?.top>=0},
       root:{clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,clientHeight:root.clientHeight,scrollHeight:root.scrollHeight,scrollTop:root.scrollTop,
-        overflowY:cs.overflowY,scrollbarWidth:cs.scrollbarWidth,box:{left:rr.left,top:rr.top,right:rr.right,bottom:rr.bottom}},
+        overflowY:cs.overflowY,scrollbarWidth:cs.scrollbarWidth,scrollbarColor:cs.scrollbarColor,box:{left:rr.left,top:rr.top,right:rr.right,bottom:rr.bottom}},
       button:{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height,
         visible:bs.display!=='none'&&bs.visibility!=='hidden'&&Number(bs.opacity)>0&&r.width>0&&r.height>0,
         inViewport:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight},
@@ -212,8 +215,11 @@ try {
   });
   const initialContinue=await readContinue();
   check(!initialContinue.missingRoot&&!initialContinue.missingButton&&initialContinue.root.overflowY==='auto'
-    &&initialContinue.root.scrollHeight>initialContinue.root.clientHeight,
-    '844x390 exposes a genuinely scrollable Result container with native scroll affordance',initialContinue);
+    &&initialContinue.root.clientHeight===390&&initialContinue.root.scrollHeight>initialContinue.root.clientHeight
+    &&initialContinue.root.scrollbarWidth==='thin'&&initialContinue.root.scrollbarColor.includes('244, 196, 48')
+    &&initialContinue.scrollCue.text==='SCROLL DOWN FOR CONTINUE'&&initialContinue.scrollCue.position==='fixed'
+    &&initialContinue.scrollCue.display!=='none'&&initialContinue.scrollCue.visible,
+    '844x390 exposes real vertical overflow, a styled scrollbar and a visible scroll-to-continue cue',initialContinue);
   check(initialContinue.disabled===false&&initialContinue.button.visible,
     'short-landscape CONTINUE is present, enabled and painted in the Gold result',initialContinue);
   await page.screenshot({path:path.join(OUT,'short-landscape-844x390-result-at-scroll-start.png')});

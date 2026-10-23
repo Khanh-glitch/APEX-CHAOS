@@ -10,6 +10,7 @@ on:
       - ".github/workflows/ra2-exact-sha-preview.yml"
       - "public/**"
       - "src/**"
+      - "result-gold/**"
       - "tools/**"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -235,15 +236,26 @@ jobs:
           echo "Pre-gap exit codes: toast=$toast_status mastery=$mastery_status result=$result_status"
           node --input-type=module -e "
             import fs from 'node:fs';
-            const path='docs/acceptance/ra2/evidence/review-gaps-before/'+process.env.BASELINE_SHA+'/toast/toast-layout-report.json';
-            const report=JSON.parse(fs.readFileSync(path,'utf8'));
-            const failed=new Set(report.checks.filter(x=>!x.ok).map(x=>x.name));
-            const expected=[
-              '844x390 has no legal HUD dock and the real provisional toast remains pending, not visually passed',
-              'visible ENG meter and live status distinguish achieved 8 from target 6 and localize lượt to uses'
-            ];
-            if(!expected.every(name=>failed.has(name))){console.error('Expected pre-gap toast regressions were not reproduced:',[...failed]);process.exit(1)}
-            console.log('RED confirmed at exact baseline SHA:',process.env.BASELINE_SHA,expected);
+            const root='docs/acceptance/ra2/evidence/review-gaps-before/'+process.env.BASELINE_SHA;
+            const toast=JSON.parse(fs.readFileSync(root+'/toast/toast-layout-report.json','utf8'));
+            const mastery=JSON.parse(fs.readFileSync(root+'/mastery/mastery-localization-report.json','utf8'));
+            const result=JSON.parse(fs.readFileSync(root+'/result/result-overlap-report.json','utf8'));
+            const failures=report=>new Set(report.checks.filter(x=>!x.ok).map(x=>x.name));
+            const red={
+              toast:[
+                '844x390 has no legal HUD dock and the real provisional toast remains pending, not visually passed',
+                'visible ENG meter and live status distinguish achieved 8 from target 6 and localize lượt to uses'
+              ],
+              mastery:['1440x900 hero rail has no wrapped or clipped glyphs'],
+              result:[
+                '844x390 exposes real vertical overflow, a styled scrollbar and a visible scroll-to-continue cue',
+                'mouse wheel discovers the short-landscape scroll path and brings CONTINUE into view'
+              ]
+            };
+            const reports={toast,mastery,result};
+            const missed=Object.entries(red).flatMap(([surface,names])=>names.filter(name=>!failures(reports[surface]).has(name)).map(name=>surface+': '+name));
+            if(missed.length){console.error('Expected pre-gap regressions were not reproduced:',missed);process.exit(1)}
+            console.log('RED confirmed at exact baseline SHA:',process.env.BASELINE_SHA,red);
           "
 
       - name: Run Field Archive ENG/VIE acceptance on exact preview

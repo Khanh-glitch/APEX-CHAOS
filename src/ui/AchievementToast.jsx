@@ -147,6 +147,7 @@ const GAMEPLAY_BLOCKERS = [
   '#p1Side .weapon', '#p2Side .weapon',
   '#p1Rail', '#p2Rail', '#matchCenter',
   '#arena', '#arenaCanvas',
+  '#freeBattle', '#apexMissionsOpen', '.modeCard', '.rosterCard', '.fighter-card', '.cta', '.lockIn',
   '#apexFirstPlayGuide', '#firstPlayGuide', '[data-apex-first-play-guide]',
   '.apex-first-play-guide', '.first-play-guide',
 ];

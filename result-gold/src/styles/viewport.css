@@ -490,7 +490,35 @@ body,
   /* A dense sealed report cannot fit its complete medal racks into a 390px
      landscape viewport. Preserve the Gold grid and every entry, but let the
      Result itself scroll instead of shrinking the portrait/weapon lanes to 0. */
-  .ac-root { height: auto; min-height: 100dvh; overflow-x: hidden; overflow-y: auto; }
+  /* Constrain the scroll owner to the actual viewport. With height:auto the
+     Result expands to its full content height and its overflow is never
+     scrollable inside the fixed Gold host on short landscape screens. */
+  .ac-root {
+    height: 100dvh;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(244 196 48 / 85%) rgb(255 255 255 / 10%);
+  }
+  .ac-root::-webkit-scrollbar { width: 8px; }
+  .ac-root::-webkit-scrollbar-track { background: rgb(255 255 255 / 10%); }
+  .ac-root::-webkit-scrollbar-thumb { background: #f4c430; border: 2px solid #121419; border-radius: 999px; }
+  .ac-scroll-hint {
+    position: fixed;
+    z-index: 35;
+    inset-inline: 0;
+    bottom: 0;
+    height: 28px;
+    display: grid;
+    place-items: end center;
+    padding-bottom: 4px;
+    background: linear-gradient(180deg, transparent, rgb(7 8 11 / 92%) 54%);
+    color: #f4c430;
+    font: 700 9px/1 var(--font-mono);
+    letter-spacing: .12em;
+    pointer-events: none;
+  }
   .ac-run { height: auto; min-height: 100dvh; }
   .ac-shell { height: auto; min-height: 100dvh; }
   .ac-stage { flex: 1 0 auto; min-height: 560px; }
