@@ -71,7 +71,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pnpm build
+          # Checkout is deliberately pinned to the approved game SHA, while the
+          # workflow event SHA belongs to the separate packaging-only branch.
+          # The CP16 receipt MUST identify the real checked-out game source.
+          GITHUB_SHA="$SOURCE_SHA" pnpm build
           node tools/testShippingDist.mjs
           node tools/testCP16BuildReceipt.mjs
           test -s dist/index.html
@@ -109,6 +112,24 @@ jobs:
           test ! -e "$ZIP"
           (cd dist-itch-html5 && zip -q -r "$ZIP" .)
           test -s "$ZIP"
+          # itch.io's actual HTML5 hosting limits (from creator documentation).
+          python3 - "$ZIP" <<'PY'
+          import pathlib, sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              items = [item for item in archive.infolist() if not item.is_dir()]
+              count = len(items)
+              uncompressed = sum(item.file_size for item in items)
+              largest = max((item.file_size for item in items), default=0)
+              longest = max((len(item.filename) for item in items), default=0)
+              bad_paths = [item.filename for item in items if pathlib.PurePosixPath(item.filename).is_absolute() or '..' in pathlib.PurePosixPath(item.filename).parts]
+              assert count <= 1000, f'itch file limit exceeded: {count} > 1000'
+              assert uncompressed <= 500 * 1024 * 1024, f'itch extracted size limit exceeded: {uncompressed}'
+              assert largest <= 200 * 1024 * 1024, f'itch single-file size limit exceeded: {largest}'
+              assert longest <= 240, f'itch path length limit exceeded: {longest}'
+              assert not bad_paths, f'unsafe ZIP paths: {bad_paths[:3]}'
+              assert 'index.html' in archive.namelist(), 'missing ZIP-root index.html'
+              print(f'ITCH UPLOAD LIMITS PASS: files={count}, extracted_bytes={uncompressed}, max_file_bytes={largest}, max_path_length={longest}')
+          PY
           unzip -tq "$ZIP"
           unzip -Z1 "$ZIP" | grep -qx index.html
           unzip -Z1 "$ZIP" | grep -qx ITCH_GUEST_BUILD_SHA.txt
