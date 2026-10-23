@@ -128,7 +128,10 @@
   clip-path: polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
 }
 .apex-mastery-hero-rail button.is-active { border-color:rgba(240,214,126,.8); background:linear-gradient(180deg,#4b4124,#211b0d); }
-.apex-mastery-hero-rail b { font-size:13px; font-style:italic; }
+/* Keep every authored hero identity on one complete line in both the four-
+   and two-column rail; the surrounding card may shrink, the label may not. */
+.apex-mastery-hero-rail button { overflow:visible; }
+.apex-mastery-hero-rail b { min-width:0; overflow:visible; white-space:nowrap; text-overflow:clip; font-size:13px; font-style:italic; }
 .apex-mastery-hero-rail span { color:#f0d67e; font:800 10px/1 ui-monospace,monospace; }
 .apex-mastery-hero-rail small { color:#8b96a1; font:800 8px/1 ui-monospace,monospace; letter-spacing:.12em; }
 .apex-mastery-summary { display:flex; align-items:center; gap:18px; }

@@ -7,6 +7,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { CP3_NEWBOT_ACHIEVEMENT_IDS, cp3EntitledProfile } from './cp3MasteryFixture.mjs';
+import { MASTERY_HEROES } from '../src/ui/masteryCatalog.js';
 import { translateCopy } from '../src/game/localeCatalog.js';
 
 const APP = process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
@@ -84,6 +85,56 @@ try {
     nextLines: [...document.querySelectorAll('.apex-mastery-next-line b')].map((el) => el.textContent.trim()),
     visibleText: document.querySelector('.apex-mastery-vault')?.innerText || '',
   }));
+  const inspectHeroRail = async (viewport) => page.evaluate(({ viewport, expectedNames }) => {
+    const rail = document.querySelector('.apex-mastery-hero-rail');
+    if (!rail) return { viewport, missingRail: true, labels: [] };
+    const rectOf = (rect) => ({ left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height });
+    const labels = [...rail.querySelectorAll('button > b')].map((label) => {
+      const button = label.closest('button');
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      const glyphBox = range.getBoundingClientRect();
+      const buttonBox = button.getBoundingClientRect();
+      const style = getComputedStyle(label);
+      const contentLeft = buttonBox.left + button.clientLeft;
+      const contentRight = buttonBox.right - button.clientLeft - (button.offsetWidth - button.clientWidth);
+      const clippingAncestors = [];
+      for (let node = label; node && node !== document.body; node = node.parentElement) {
+        const nodeStyle = getComputedStyle(node);
+        if (!/(hidden|clip|auto|scroll)/.test(`${nodeStyle.overflowX} ${nodeStyle.overflowY}`)) continue;
+        const box = node.getBoundingClientRect();
+        if (glyphBox.left < box.left - 1 || glyphBox.right > box.right + 1
+          || glyphBox.top < box.top - 1 || glyphBox.bottom > box.bottom + 1) {
+          clippingAncestors.push({ tag: node.tagName, className: String(node.className || ''), box: rectOf(box) });
+        }
+      }
+      return {
+        text: label.textContent.trim(), visible: label.getClientRects().length > 0 && glyphBox.width > 0 && glyphBox.height > 0,
+        whiteSpace: style.whiteSpace, overflow: style.overflow, glyphBox: rectOf(glyphBox), buttonBox: rectOf(buttonBox),
+        contentLeft, contentRight, withinButton: glyphBox.left >= contentLeft - 2 && glyphBox.right <= contentRight + 2,
+        labelScrollWidth: label.scrollWidth, labelClientWidth: label.clientWidth,
+        buttonScrollWidth: button.scrollWidth, buttonClientWidth: button.clientWidth, clippingAncestors,
+      };
+    });
+    return { viewport, expectedNames, labels, railBox: rectOf(rail.getBoundingClientRect()),
+      visibleNames: labels.map((item) => item.text),
+      allVisible: labels.length === expectedNames.length && labels.every((item) => item.visible),
+      exactNames: JSON.stringify(labels.map((item) => item.text).sort()) === JSON.stringify([...expectedNames].sort()),
+      noTextOverflow: labels.every((item) => item.labelScrollWidth <= item.labelClientWidth + 1
+        && item.buttonScrollWidth <= item.buttonClientWidth + 1),
+      noGlyphClipping: labels.every((item) => item.withinButton && item.clippingAncestors.length === 0),
+      oneLine: labels.every((item) => item.whiteSpace === 'nowrap'),
+    };
+  }, { viewport, expectedNames: MASTERY_HEROES.map((hero) => hero.name) });
+
+  const assertHeroRail = async (width, height) => {
+    await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: width < 600, hasTouch: width < 600 });
+    await page.evaluate(() => document.querySelector('.apex-mastery-hero-rail')?.scrollIntoView({ block: 'center', inline: 'nearest' }));
+    await sleep(220);
+    const rail = await inspectHeroRail(`${width}x${height}`);
+    return rail;
+  };
+
   const expected = (id, language) => translateCopy(titleById.get(id) || id, language);
   const assertLanguage = async (language) => {
     const actual = await inspectNames();
@@ -127,6 +178,16 @@ try {
   await page.waitForFunction(() => document.documentElement.lang === 'en', { timeout: 10_000 });
   await sleep(200);
   const restored = await assertLanguage('eng');
+  const desktopRail = await assertHeroRail(1440, 900);
+  await page.screenshot({ path: path.join(OUT, 'mastery-hero-rail-six-labels-1440x900.png') });
+  const mobileRail = await assertHeroRail(390, 844);
+  await page.screenshot({ path: path.join(OUT, 'mastery-hero-rail-six-labels-390x844.png') });
+  const heroRailChecks = [
+    [desktopRail.allVisible && desktopRail.exactNames, '1440x900 shows all six complete authored hero labels including CRYSTALA'],
+    [desktopRail.oneLine && desktopRail.noTextOverflow && desktopRail.noGlyphClipping, '1440x900 hero rail has no wrapped or clipped glyphs'],
+    [mobileRail.allVisible && mobileRail.exactNames, '390x844 shows all six complete authored hero labels including CRYSTALA'],
+    [mobileRail.oneLine && mobileRail.noTextOverflow && mobileRail.noGlyphClipping, '390x844 hero rail has no wrapped or clipped glyphs'],
+  ];
   const endingState = await page.evaluate(() => ({ credits: window.APEX_ARSENAL_META.credits(), mastery: JSON.stringify(window.APEX_ARSENAL_META.getMastery()) }));
   const checks = [
     [eng.recentMatches, 'ENG recent achievement names use canonical English'],
@@ -138,12 +199,13 @@ try {
     [vie.recentMatches && vie.medalNamesMatch && vie.ariaNamesMatch && vie.chapterNamesMatch && vie.nextLinesMatch, 'VIE names restore exactly on live language switch'],
     [restored.recentMatches && restored.medalNamesMatch && restored.ariaNamesMatch && restored.chapterNamesMatch && restored.nextLinesMatch, 'ENG names restore after VIE toggle'],
     [endingState.credits === startingState.credits && endingState.mastery === startingState.mastery, 'locale switching does not mutate AC or mastery award data'],
+    ...heroRailChecks,
     [errors.length === 0, 'no uncaught browser errors'],
   ];
-  const report = { viewport: '1440x900', sourceProfile: { credits: 550, total: '21/252', newbot: '21/42', recent: 8, expanded: 'OFFENSE' }, startingState, eng, vie, restored, checks: checks.map(([ok, name]) => ({ ok, name })), browserErrors: errors };
+  const report = { viewports: ['1440x900', '390x844'], sourceProfile: { credits: 550, total: '21/252', newbot: '21/42', recent: 8, expanded: 'OFFENSE' }, startingState, eng, vie, restored, desktopRail, mobileRail, checks: checks.map(([ok, name]) => ({ ok, name })), browserErrors: errors };
   await writeFile(path.join(OUT, 'mastery-localization-report.json'), JSON.stringify(report, null, 2) + '\n');
   console.log('RA-2 release-blocker Mastery checks', JSON.stringify(report.checks));
-  assert.ok(checks.every(([ok]) => ok), 'owner progressed Mastery profile must pass all localized visible/aria name checks');
+  assert.ok(checks.every(([ok]) => ok), 'owner progressed Mastery profile and six-label hero rail must pass localized and clipping checks');
 } finally {
   await context.close();
   await browser.close();

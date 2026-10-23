@@ -173,10 +173,112 @@ try {
 
   const matrix=[];
   for (const language of ['eng','vie']) for (const [width,height] of VIEWPORTS) matrix.push(await runSettled(language,width,height));
-  const report={sealedFixture:sealed,viewports:VIEWPORTS,languages:['eng','vie'],phases:['early','post-skip','post-settle'],early,checks,measurements:matrix,browserErrors:errors};
-  await writeFile(path.join(OUT,'result-overlap-report.json'),JSON.stringify(report,null,2)+'\n');
+
+  // Short-landscape interaction regression. The Gold Result stays unchanged:
+  // prove its own scroll container is discoverable and its real CONTINUE
+  // button is reachable/activatable through mouse, touch, and keyboard.
+  await page.setViewport({width:844,height:390,deviceScaleFactor:1,isMobile:true,hasTouch:true});
+  await page.evaluate(()=>{const w=window.__apexGoldFidelity?.child()||window;w.APEX_I18N.setLanguage('eng');const root=w.document.querySelector('#ra2-release-blocker-result')?.contentDocument?.querySelector('.ac-root');if(root)root.scrollTop=0;});
+  await page.waitForFunction(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#ra2-release-blocker-result')?.contentDocument?.documentElement.lang==='en';},{timeout:15_000});
+  await sleep(220);
+  const shortFrame=await page.$('#ra2-release-blocker-result');
+  const shortGold=await shortFrame.contentFrame();
+  await shortGold.evaluate(()=>{
+    const parent=window.parent;
+    parent.__ra2ContinueCaptures=[];
+    const original=parent.postMessage.bind(parent);
+    parent.__ra2OriginalPostMessage=original;
+    parent.postMessage=(message,targetOrigin)=>{
+      if(message?.type==='APEX_RESULT_GOLD_CONTINUE'){
+        parent.__ra2ContinueCaptures.push({message,targetOrigin});
+        return;
+      }
+      return original(message,targetOrigin);
+    };
+  });
+  const readContinue=()=>shortGold.evaluate(()=>{
+    const d=document;
+    const root=d.querySelector('.ac-root');
+    const button=d.querySelector('.dock .btn--primary');
+    if(!root||!button)return {missingRoot:!root,missingButton:!button};
+    const r=button.getBoundingClientRect(),rr=root.getBoundingClientRect(),cs=getComputedStyle(root),bs=getComputedStyle(button);
+    return {label:button.innerText.replace(/\s+/g,' ').trim(),disabled:button.disabled,
+      root:{clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,clientHeight:root.clientHeight,scrollHeight:root.scrollHeight,scrollTop:root.scrollTop,
+        overflowY:cs.overflowY,scrollbarWidth:cs.scrollbarWidth,box:{left:rr.left,top:rr.top,right:rr.right,bottom:rr.bottom}},
+      button:{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height,
+        visible:bs.display!=='none'&&bs.visibility!=='hidden'&&Number(bs.opacity)>0&&r.width>0&&r.height>0,
+        inViewport:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight},
+      focused:d.activeElement===button};
+  });
+  const initialContinue=await readContinue();
+  check(!initialContinue.missingRoot&&!initialContinue.missingButton&&initialContinue.root.overflowY==='auto'
+    &&initialContinue.root.scrollHeight>initialContinue.root.clientHeight,
+    '844x390 exposes a genuinely scrollable Result container with native scroll affordance',initialContinue);
+  check(initialContinue.disabled===false&&initialContinue.button.visible,
+    'short-landscape CONTINUE is present, enabled and painted in the Gold result',initialContinue);
+  await page.screenshot({path:path.join(OUT,'short-landscape-844x390-result-at-scroll-start.png')});
+
+  const scrollWithWheel=async()=>{
+    await shortGold.evaluate(()=>{const root=document.querySelector('.ac-root');if(root)root.scrollTop=0;});
+    for(let i=0;i<10;i++){
+      await page.mouse.move(420,300);
+      await page.mouse.wheel({deltaY:220});
+      await sleep(90);
+      const state=await readContinue();
+      if(state.button?.inViewport&&!state.button?.disabled)break;
+    }
+    return readContinue();
+  };
+  const mouseReached=await scrollWithWheel();
+  check(mouseReached.root.scrollTop>0&&mouseReached.button.inViewport&&!mouseReached.disabled,
+    'mouse wheel discovers the short-landscape scroll path and brings CONTINUE into view',mouseReached);
+  await page.screenshot({path:path.join(OUT,'short-landscape-844x390-result-continue-reached.png')});
+  await page.mouse.click((mouseReached.button.left+mouseReached.button.right)/2,(mouseReached.button.top+mouseReached.button.bottom)/2);
+  await page.waitForFunction(()=>window.__ra2ContinueCaptures?.length===1,{timeout:8_000}).catch(()=>{});
+  const mouseActivation=await page.evaluate(()=>window.__ra2ContinueCaptures?.[0]||null);
+  check(mouseActivation?.message?.type==='APEX_RESULT_GOLD_CONTINUE'&&mouseActivation.message.matchId===sealed.id,
+    'mouse activation posts the actual sealed match CONTINUE action',mouseActivation);
+
+  await shortGold.evaluate(()=>{const root=document.querySelector('.ac-root');if(root)root.scrollTop=0;});
+  for(let i=0;i<10;i++){
+    await page.touchscreen.touchStart(420,320);
+    await page.touchscreen.touchMove(420,90);
+    await page.touchscreen.touchEnd();
+    await sleep(100);
+    const state=await readContinue();
+    if(state.button?.inViewport&&!state.disabled)break;
+  }
+  const touchReached=await readContinue();
+  check(touchReached.root.scrollTop>0&&touchReached.button.inViewport&&!touchReached.disabled,
+    'touch swipe discovers the short-landscape scroll path and reaches CONTINUE',touchReached);
+  await page.touchscreen.tap((touchReached.button.left+touchReached.button.right)/2,(touchReached.button.top+touchReached.button.bottom)/2);
+  await page.waitForFunction(()=>window.__ra2ContinueCaptures?.length===2,{timeout:8_000}).catch(()=>{});
+  const touchActivation=await page.evaluate(()=>window.__ra2ContinueCaptures?.[1]||null);
+  check(touchActivation?.message?.type==='APEX_RESULT_GOLD_CONTINUE'&&touchActivation.message.matchId===sealed.id,
+    'touch activation posts the actual sealed match CONTINUE action',touchActivation);
+
+  await shortGold.evaluate(()=>{const root=document.querySelector('.ac-root');if(root)root.scrollTop=0;const first=[...root.querySelectorAll('button:not(:disabled),a[href],[tabindex]:not([tabindex="-1"])')].find(el=>el.getClientRects().length);first?.focus();});
+  let keyboardReached=null;
+  for(let i=0;i<160;i++){
+    await page.keyboard.press('Tab');
+    keyboardReached=await readContinue();
+    if(keyboardReached.focused)break;
+  }
+  check(!!keyboardReached?.focused&&keyboardReached.button.inViewport&&keyboardReached.root.scrollTop>0&&!keyboardReached.disabled,
+    'keyboard Tab traversal scrolls the Result to the enabled CONTINUE control',keyboardReached);
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>window.__ra2ContinueCaptures?.length===3,{timeout:8_000}).catch(()=>{});
+  const keyboardActivation=await page.evaluate(()=>window.__ra2ContinueCaptures?.[2]||null);
+  check(keyboardActivation?.message?.type==='APEX_RESULT_GOLD_CONTINUE'&&keyboardActivation.message.matchId===sealed.id,
+    'keyboard Enter activates the actual sealed match CONTINUE action',keyboardActivation);
+  const shortLandscape={initial:initialContinue,mouseReached,mouseActivation,touchReached,touchActivation,keyboardReached,keyboardActivation,
+    captures:await page.evaluate(()=>window.__ra2ContinueCaptures||[])};
+  await page.evaluate(()=>{if(window.__ra2OriginalPostMessage)window.postMessage=window.__ra2OriginalPostMessage;delete window.__ra2OriginalPostMessage;});
+
   check(errors.length===0,'no uncaught browser errors',errors);
-  assert.ok(checks.every((item)=>item.ok),'owner Result counterexample must pass all art visibility and overlap checks');
+  const report={sealedFixture:sealed,viewports:VIEWPORTS,languages:['eng','vie'],phases:['early','post-skip','post-settle'],early,shortLandscape,checks,measurements:matrix,browserErrors:errors};
+  await writeFile(path.join(OUT,'result-overlap-report.json'),JSON.stringify(report,null,2)+'\n');
+  assert.ok(checks.every((item)=>item.ok),'owner Result art and short-landscape CONTINUE checks must pass');
 } finally {
   await browser.close();
 }

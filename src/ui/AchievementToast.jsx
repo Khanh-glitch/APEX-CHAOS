@@ -100,6 +100,14 @@ function compareQueueItems(a, b) {
   return (queueScore(b) - queueScore(a)) || (a.at - b.at);
 }
 
+function toastDisplayMs(item) {
+  return item.ownerKind === 'bot' ? 1800
+    : item.provisional ? 2400
+      : item.achievement.rarity === 'legendary' ? 3400
+        : item.achievement.rarity === 'epic' ? 3000
+          : 2600;
+}
+
 function toastSfxKey(item) {
   if (item.ownerKind === 'bot') return 'achievement.bot';
   if (item.provisional) return 'achievement.provisional';
@@ -203,6 +211,7 @@ export default function AchievementToast() {
   const seenRef = useRef(new Set());
   const hideTimerRef = useRef(0);
   const nextTimerRef = useRef(0);
+  const remainingDisplayRef = useRef(null);
   const showNextRef = useRef(null);
 
   const showNext = useCallback(() => {
@@ -217,20 +226,11 @@ export default function AchievementToast() {
     setCurrent(next);
     setOverflow(overflowRef.current);
     try { window.apexUiSfx?.play?.(toastSfxKey(next)); } catch { /* sound is optional */ }
-    // CP5 emphasis hierarchy: opponent feats are the quietest signal,
-    // provisional candidates sit below sealed unlocks, and sealed
-    // high-rarity achievements earn the longest read.
-    const displayMs = next.ownerKind === 'bot' ? 1800
-      : next.provisional ? 2400
-        : next.achievement.rarity === 'legendary' ? 3400
-          : next.achievement.rarity === 'epic' ? 3000
-            : 2600;
+    // The read timer is owned by the safe-dock effect below. A queued award
+    // must remain pending, not expire invisibly, while every legal HUD lane is
+    // occupied; the visible duration begins only after an actual safe dock.
+    remainingDisplayRef.current = { key: next.key, remaining: toastDisplayMs(next) };
     window.clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = window.setTimeout(() => {
-      activeRef.current = null;
-      setCurrent(null);
-      nextTimerRef.current = window.setTimeout(() => showNextRef.current?.(), 140);
-    }, displayMs);
   }, []);
   showNextRef.current = showNext;
 
@@ -269,6 +269,30 @@ export default function AchievementToast() {
       observer?.disconnect();
     };
   }, [current?.key, current?.ownerSide, overflow, language]);
+
+  useEffect(() => {
+    if (!current) return undefined;
+    if (remainingDisplayRef.current?.key !== current.key) {
+      remainingDisplayRef.current = { key: current.key, remaining: toastDisplayMs(current) };
+    }
+    if (!dock?.safe) return undefined;
+    const remaining = Math.max(0, remainingDisplayRef.current.remaining);
+    const startedAt = Date.now();
+    let completed = false;
+    hideTimerRef.current = window.setTimeout(() => {
+      completed = true;
+      remainingDisplayRef.current = { key: current.key, remaining: 0 };
+      activeRef.current = null;
+      setCurrent(null);
+      nextTimerRef.current = window.setTimeout(() => showNextRef.current?.(), 140);
+    }, remaining);
+    return () => {
+      window.clearTimeout(hideTimerRef.current);
+      if (!completed && remainingDisplayRef.current?.key === current.key) {
+        remainingDisplayRef.current.remaining = Math.max(0, remaining - (Date.now() - startedAt));
+      }
+    };
+  }, [current?.key, dock?.safe]);
 
   useEffect(() => {
     const enqueue = (event) => {
@@ -361,8 +385,14 @@ export default function AchievementToast() {
     ? primaryProgress(achievement, current.value, !current.provisional)
     : null;
   const showMeter = !!progressInfo && progressInfo.compare !== 'event' && progressInfo.current != null;
+  const meterUnit = progressInfo?.unit ? translateCopy(progressInfo.unit, lang) : '';
   const meterText = showMeter
-    ? `${formatMasteryValue(progressInfo.current)} / ${progressInfo.compare === 'lte' ? '≤ ' : ''}${formatMasteryValue(progressInfo.target)}${progressInfo.unit ? ` ${progressInfo.unit}` : ''}`
+    ? `${formatMasteryValue(progressInfo.current)} / ${progressInfo.compare === 'lte' ? '≤ ' : ''}${formatMasteryValue(progressInfo.target)}${meterUnit ? ` ${meterUnit}` : ''}`
+    : '';
+  const meterStatus = showMeter
+    ? lang === 'vie'
+      ? `Đã đạt ${formatMasteryValue(progressInfo.current)} ${meterUnit}; mục tiêu ${progressInfo.compare === 'lte' ? 'tối đa ' : ''}${formatMasteryValue(progressInfo.target)} ${meterUnit}`.trim()
+      : `Achieved ${formatMasteryValue(progressInfo.current)} ${meterUnit}; target ${progressInfo.compare === 'lte' ? 'at most ' : ''}${formatMasteryValue(progressInfo.target)} ${meterUnit}`.trim()
     : '';
 
   // CP5: BOT feats render as a compact edge chip (ref: edge-feed hierarchy)
@@ -377,6 +407,7 @@ export default function AchievementToast() {
       data-owner-kind={current.ownerKind}
       data-wallet-eligible={current.walletEligible ? 'true' : 'false'}
       data-dock-safe={dock?.safe ? 'true' : 'false'}
+      data-visual-pending={dock?.safe ? 'false' : 'true'}
       ref={toastRef}
       style={dock
         ? { left: `${dock.left}px`, top: `${dock.top}px`, right: 'auto', bottom: 'auto', ...(dock.safe ? {} : { opacity: 0 }) }
@@ -399,8 +430,9 @@ export default function AchievementToast() {
           : `${ownerText ? `${ownerText} · ` : ''}${statusText} · ${RARITY_LABELS[achievement.rarity]?.[lang] || achievement.rarity}`}</span>
         <strong>{achievementTitle}</strong>
         {showMeter && (
-          <span className="apex-achievement-toast-meter" aria-hidden="true">
-            <i><b style={{ width: `${progressInfo.percent}%` }} /></i>
+          <span className="apex-achievement-toast-meter" role="group" aria-label={meterStatus}
+            data-achieved={progressInfo.current} data-threshold={progressInfo.target} data-compare={progressInfo.compare}>
+            <i aria-hidden="true"><b style={{ width: `${progressInfo.percent}%` }} /></i>
             <em>{meterText}</em>
           </span>
         )}

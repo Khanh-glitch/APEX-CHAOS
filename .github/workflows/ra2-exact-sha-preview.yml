@@ -30,6 +30,8 @@ jobs:
     timeout-minutes: 55
     env:
       TARGET_SHA: ${{ github.sha }}
+      # Exact pre-gap commit for same-run red-before-green Chromium screenshots.
+      BASELINE_SHA: 96a25ee61040153ad1c640b8ade236916622d6a2
       TARGET_REVISION: 20261021-cp5-r1
       PRODUCTION_URL: https://apex-chaos.pages.dev
       CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
@@ -172,7 +174,76 @@ jobs:
           chrome-version: stable
 
       - name: Install test-only Puppeteer runtime
+        id: browser-tools
         run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+
+      - name: Build the exact pre-gap source for matching A/B browser evidence
+        if: always() && steps.browser-tools.outcome == 'success'
+        run: |
+          set -euo pipefail
+          BASELINE_DIR="$RUNNER_TEMP/ra2-before"
+          mkdir -p "$BASELINE_DIR"
+          git archive "$BASELINE_SHA" | tar -x -C "$BASELINE_DIR"
+          cd "$BASELINE_DIR"
+          pnpm install --frozen-lockfile
+          node tools/buildResultGold.mjs
+          pnpm arsenal:sfx:materialize
+          pnpm exec vite build
+          node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json
+          node tools/pruneShippingDist.mjs
+          echo "RA-2 A/B baseline source: $BASELINE_SHA"
+          echo "RA2_BASELINE_DIR=$BASELINE_DIR" >> "$GITHUB_ENV"
+
+      - name: Serve exact pre-gap source for browser A/B checks
+        if: always() && steps.browser-tools.outcome == 'success'
+        run: |
+          set -euo pipefail
+          cd "$RA2_BASELINE_DIR"
+          nohup pnpm exec vite preview --host 0.0.0.0 --port 4174 --strictPort > "$RUNNER_TEMP/ra2-before-vite.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/ra2-before-vite.pid"
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4174/ >/dev/null; then ready=1; break; fi
+            sleep 2
+          done
+          test "$ready" = 1
+          echo 'Pre-gap baseline browser server is ready at http://127.0.0.1:4174/'
+
+      - name: Capture red-before screenshots against exact pre-gap source
+        if: always() && steps.browser-tools.outcome == 'success'
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: http://127.0.0.1:4174/
+          RA2_RELEASE_EVIDENCE_DIR: docs/acceptance/ra2/evidence/review-gaps-before/${{ env.BASELINE_SHA }}
+        run: |
+          set -uo pipefail
+          trap 'kill "$(cat "$RUNNER_TEMP/ra2-before-vite.pid")" 2>/dev/null || true' EXIT
+          mkdir -p "$RA2_RELEASE_EVIDENCE_DIR/toast" "$RA2_RELEASE_EVIDENCE_DIR/mastery" "$RA2_RELEASE_EVIDENCE_DIR/result"
+          set +e
+          RA2_RELEASE_EVIDENCE_DIR="$RA2_RELEASE_EVIDENCE_DIR/toast" node tools/testRa2ReleaseBlockerToastBrowser.mjs > "$RUNNER_TEMP/ra2-before-toast.log" 2>&1
+          toast_status=$?
+          RA2_RELEASE_EVIDENCE_DIR="$RA2_RELEASE_EVIDENCE_DIR/mastery" node tools/testRa2ReleaseBlockerMasteryBrowser.mjs > "$RUNNER_TEMP/ra2-before-mastery.log" 2>&1
+          mastery_status=$?
+          RA2_RELEASE_EVIDENCE_DIR="$RA2_RELEASE_EVIDENCE_DIR/result" node tools/testRa2ReleaseBlockerResultBrowser.mjs > "$RUNNER_TEMP/ra2-before-result.log" 2>&1
+          result_status=$?
+          set -e
+          for name in toast mastery result; do
+            echo "--- pre-gap $name browser log ---"
+            tail -n 50 "$RUNNER_TEMP/ra2-before-$name.log"
+          done
+          echo "Pre-gap exit codes: toast=$toast_status mastery=$mastery_status result=$result_status"
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const path='docs/acceptance/ra2/evidence/review-gaps-before/'+process.env.BASELINE_SHA+'/toast/toast-layout-report.json';
+            const report=JSON.parse(fs.readFileSync(path,'utf8'));
+            const failed=new Set(report.checks.filter(x=>!x.ok).map(x=>x.name));
+            const expected=[
+              '844x390 has no legal HUD dock and the real provisional toast remains pending, not visually passed',
+              'visible ENG meter and live status distinguish achieved 8 from target 6 and localize lượt to uses'
+            ];
+            if(!expected.every(name=>failed.has(name))){console.error('Expected pre-gap toast regressions were not reproduced:',[...failed]);process.exit(1)}
+            console.log('RED confirmed at exact baseline SHA:',process.env.BASELINE_SHA,expected);
+          "
 
       - name: Run Field Archive ENG/VIE acceptance on exact preview
         env:
@@ -206,6 +277,33 @@ jobs:
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
           APEX_APP_URL: ${{ env.PREVIEW_URL }}/
         run: node tools/testRa2ResultLocaleBrowser.mjs
+
+      # Run the four independently reviewed gaps even when an earlier legacy
+      # acceptance step fails, so the exact-SHA artifact still carries the
+      # targeted red/green evidence rather than silently omitting it.
+      - name: Run native result-ledger toast regression on exact preview
+        if: always()
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          RA2_RELEASE_EVIDENCE_DIR: docs/acceptance/ra2/evidence/review-gaps-after/${{ github.sha }}/toast
+        run: node tools/testRa2ReleaseBlockerToastBrowser.mjs
+
+      - name: Run six-label Mastery clipping regression
+        if: always()
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          RA2_RELEASE_EVIDENCE_DIR: docs/acceptance/ra2/evidence/review-gaps-after/${{ github.sha }}/mastery
+        run: node tools/testRa2ReleaseBlockerMasteryBrowser.mjs
+
+      - name: Run short-landscape Result CONTINUE interaction regression
+        if: always()
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          RA2_RELEASE_EVIDENCE_DIR: docs/acceptance/ra2/evidence/review-gaps-after/${{ github.sha }}/result
+        run: node tools/testRa2ReleaseBlockerResultBrowser.mjs
 
       - name: Run tutorial SKIP, resume, pagehide and early-exit acceptance
         env:
