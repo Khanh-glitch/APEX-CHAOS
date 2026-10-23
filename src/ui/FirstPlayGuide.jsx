@@ -28,7 +28,7 @@ const COPY = {
     // tag, and the P2 row is narrow on phones.
     sideYou: 'YOU · ORANGE EDGE',
     identity: 'YOU · P1 · ORANGE EDGE',
-    weaponHint: 'No weapon yet — run over a gun on the ground to pick it up.',
+    weaponHint: 'AUTO PICKUP · Your fighter collects a ground gun on contact.',
     sideBot: 'BOT · BLUE EDGE',
     sideP1: 'P1 · ORANGE EDGE',
     sideP2: 'P2 · BLUE EDGE',
@@ -48,7 +48,7 @@ const COPY = {
     pausedNote: 'TRẬN ĐANG TẠM DỪNG — CỨ THONG THẢ',
     sideYou: 'BẠN · VIỀN CAM',
     identity: 'BẠN · P1 · VIỀN CAM',
-    weaponHint: 'Chưa có súng — chạy qua khẩu súng trên sân để nhặt.',
+    weaponHint: 'TỰ NHẶT SÚNG · Robot sẽ nhặt súng khi tự chạm vào súng trên sân.',
     sideBot: 'BOT · VIỀN XANH',
     sideP1: 'P1 · VIỀN CAM',
     sideP2: 'P2 · VIỀN XANH',
