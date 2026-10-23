@@ -2444,6 +2444,9 @@ function draw() {
         const sideIdentityMode = apexSideIdentityContext();
         if (fighters[0]) drawFighterWithSideEdge(ctx, fighters[0], 0, sideIdentityMode);
         if (fighters[1]) drawFighterWithSideEdge(ctx, fighters[1], 1, sideIdentityMode);
+        if (window.APEX_ROBOT_PRESENTATION && window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay) {
+            window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay(ctx);
+        }
         for (const f of fighters) { if (f && f.name==='SNIPER' && f.data && f.data.aim>0) { const enemy = fighters.find(q=>q.id!==f.id); if(enemy){ ctx.save(); ctx.globalAlpha=.9; ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(enemy.x,enemy.y); ctx.stroke(); ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.radius+16, 0, TAU); ctx.moveTo(enemy.x-(enemy.radius+28), enemy.y); ctx.lineTo(enemy.x+(enemy.radius+28), enemy.y); ctx.moveTo(enemy.x, enemy.y-(enemy.radius+28)); ctx.lineTo(enemy.x, enemy.y+(enemy.radius+28)); ctx.stroke(); ctx.restore(); }} }
         for (const t of floatingTexts) t.draw(ctx);
         if (arenaFlash.a > 0) { ctx.fillStyle=`rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a})`; ctx.fillRect(0,0,GAME_SIZE,GAME_SIZE); }

@@ -156,8 +156,13 @@ const GAMEPLAY_BLOCKERS = [
 
 function findSafeToastDock(element, ownerSide) {
   if (!element || typeof window === 'undefined') return null;
+  // Always measure full natural toast dimensions without .is-arena-edge so
+  // ResizeObserver never oscillates between compact arena-edge and safe-dock.
+  const hadArenaEdge = element.classList.contains('is-arena-edge');
+  if (hadArenaEdge) element.classList.remove('is-arena-edge');
   const width = element.offsetWidth;
   const height = element.offsetHeight;
+  if (hadArenaEdge) element.classList.add('is-arena-edge');
   const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
   const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
   if (!(width > 0 && height > 0 && viewportWidth > 0 && viewportHeight > 0)) return null;
@@ -272,15 +277,17 @@ export default function AchievementToast() {
     const element = toastRef.current;
     if (!element) return undefined;
     let frame = 0;
+    const applyDock = () => {
+      const next = findSafeToastDock(element, current.ownerSide);
+      setDock((previous) => previous?.left === next?.left && previous?.top === next?.top
+        && previous?.safe === next?.safe && previous?.visualFallback === next?.visualFallback
+        ? previous : next);
+    };
     const place = () => {
       window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const next = findSafeToastDock(element, current.ownerSide);
-        setDock((previous) => previous?.left === next?.left && previous?.top === next?.top
-          && previous?.safe === next?.safe ? previous : next);
-      });
+      frame = window.requestAnimationFrame(applyDock);
     };
-    place();
+    applyDock();
     window.addEventListener('resize', place);
     window.addEventListener('orientationchange', place);
     let observer;
@@ -382,10 +389,12 @@ export default function AchievementToast() {
       showNext();
     };
     const onLanguage = () => setLanguage(currentLanguage());
+    const unsubI18n = window.APEX_I18N?.subscribe?.(onLanguage);
     window.addEventListener('apex:mastery-unlocked', enqueue);
     window.addEventListener('apex:mastery-provisional', enqueue);
     window.addEventListener('apex:language-changed', onLanguage);
     return () => {
+      if (typeof unsubI18n === 'function') unsubI18n();
       window.removeEventListener('apex:mastery-unlocked', enqueue);
       window.removeEventListener('apex:mastery-provisional', enqueue);
       window.removeEventListener('apex:language-changed', onLanguage);
@@ -397,7 +406,7 @@ export default function AchievementToast() {
   }, [showNext]);
 
   if (!current) return null;
-  const lang = language === 'vie' ? 'vie' : 'eng';
+  const lang = (currentLanguage() === 'vie' || (language === 'vie' && !window.APEX_I18N?.getLanguage)) ? 'vie' : 'eng';
   const t = COPY[lang];
   const achievement = current.achievement;
   const achievementTitle = translateCopy(achievement.name, lang);

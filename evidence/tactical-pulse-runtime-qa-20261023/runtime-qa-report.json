@@ -1,0 +1,5339 @@
+{
+  "generatedAt": "2026-10-23T09:52:41.486Z",
+  "appUrl": "http://127.0.0.1:4173/?goldViewport=native",
+  "viewports": {
+    "844x390-land": {
+      "viewport": {
+        "id": "844x390-land",
+        "width": 844,
+        "height": 390,
+        "touch": true,
+        "isMobile": true,
+        "label": "Mobile Landscape 844x390 (Priority 1)"
+      },
+      "shots": {
+        "01-home": "844x390-land-01-home.png",
+        "02-mode-select": "844x390-land-02-mode-select.png",
+        "03-fighter-select": "844x390-land-03-fighter-select.png",
+        "04-match-j-no-target-coach-k": "844x390-land-04-match-j-no-target-coach-k.png",
+        "05-match-k-active": "844x390-land-05-match-k-active.png",
+        "06-match-j-castable-with-target": "844x390-land-06-match-j-castable-with-target.png",
+        "07-match-cooldown": "844x390-land-07-match-cooldown.png",
+        "08-result-gold": "844x390-land-08-result-gold.png",
+        "09-returned-fighter-select": "844x390-land-09-returned-fighter-select.png"
+      },
+      "states": {
+        "openingNoTarget": {
+          "stateTag": "04-match-j-no-target-coach-k",
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "hudDataset": {
+            "layout": "land",
+            "mode": "1p",
+            "size": "compact",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 0.165,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "condition",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": false,
+              "remainSec": 0,
+              "mitigationPct": 0
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": {
+                "x": 101.39983428590836,
+                "y": 810.7798529799283,
+                "remainSec": 1.8679999999999999,
+                "slotId": 1
+              }
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 338,
+              "top": 46,
+              "right": 676,
+              "bottom": 384,
+              "width": 338,
+              "height": 338
+            },
+            "p1Rail": {
+              "left": 6,
+              "top": 6,
+              "right": 507,
+              "bottom": 40,
+              "width": 501,
+              "height": 34
+            },
+            "p2Rail": {
+              "left": 507,
+              "top": 6,
+              "right": 838,
+              "bottom": 40,
+              "width": 331,
+              "height": 34
+            },
+            "matchCenter": {
+              "left": 468,
+              "top": 6,
+              "right": 546,
+              "bottom": 40,
+              "width": 78,
+              "height": 34
+            },
+            "p1HpVal": {
+              "left": 399.55,
+              "top": 5.98,
+              "right": 464,
+              "bottom": 19,
+              "width": 64.45,
+              "height": 13.02
+            },
+            "p1HpBar": {
+              "left": 6,
+              "top": 21,
+              "right": 464,
+              "bottom": 34,
+              "width": 458,
+              "height": 13
+            },
+            "p1Ident": {
+              "left": 6,
+              "top": 46,
+              "right": 332,
+              "bottom": 88,
+              "width": 326,
+              "height": 42
+            },
+            "p1Skills": {
+              "left": 6,
+              "top": 94,
+              "right": 332,
+              "bottom": 322,
+              "width": 326,
+              "height": 228
+            },
+            "p1Skill0": {
+              "left": 6,
+              "top": 94,
+              "right": 332,
+              "bottom": 205,
+              "width": 326,
+              "height": 111
+            },
+            "p1Skill1": {
+              "left": 6,
+              "top": 209.71,
+              "right": 332,
+              "bottom": 320.71,
+              "width": 326,
+              "height": 111
+            },
+            "p1Weapon": {
+              "left": 6,
+              "top": 328,
+              "right": 332,
+              "bottom": 384,
+              "width": 326,
+              "height": 56
+            },
+            "p2Ident": {
+              "left": 682,
+              "top": 46,
+              "right": 838,
+              "bottom": 80,
+              "width": 156,
+              "height": 34
+            },
+            "p2Skills": {
+              "left": 682,
+              "top": 86,
+              "right": 838,
+              "bottom": 172,
+              "width": 156,
+              "height": 86
+            },
+            "p2Weapon": {
+              "left": 682,
+              "top": 332,
+              "right": 838,
+              "bottom": 384,
+              "width": 156,
+              "height": 52
+            },
+            "coachChip": {
+              "left": 684,
+              "top": 196.23,
+              "right": 836,
+              "bottom": 321.85,
+              "width": 152,
+              "height": 125.63
+            },
+            "coachSkip": {
+              "left": 694,
+              "top": 270.85,
+              "right": 828,
+              "bottom": 314.85,
+              "width": 134,
+              "height": 44
+            }
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "standby",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "STANDBY",
+              "slotLabel": "NO TARGET YET",
+              "ariaLabel": "WEAPON DASH (J) — STANDBY",
+              "clientWidth": 326,
+              "scrollWidth": 326,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 94,
+                "right": 332,
+                "bottom": 205,
+                "width": 326,
+                "height": 111
+              }
+            },
+            {
+              "idx": 1,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "READY AGAIN",
+              "slotLabel": "ACTIVE WINDOW",
+              "ariaLabel": "VIRTUAL ARMOR (K) — READY AGAIN",
+              "clientWidth": 326,
+              "scrollWidth": 326,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 209.71,
+                "right": 332,
+                "bottom": 320.71,
+                "width": 326,
+                "height": 111
+              }
+            }
+          ]
+        },
+        "kActive": {
+          "stateTag": "05-match-k-active",
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "hudDataset": {
+            "layout": "land",
+            "mode": "1p",
+            "size": "compact",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 1.1725999999999968,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "condition",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": true,
+              "remainSec": 2.835000000000001,
+              "mitigationPct": 55
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "ZBROYAR Z-15",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 338,
+              "top": 46,
+              "right": 676,
+              "bottom": 384,
+              "width": 338,
+              "height": 338
+            },
+            "p1Rail": {
+              "left": 6,
+              "top": 6,
+              "right": 507,
+              "bottom": 40,
+              "width": 501,
+              "height": 34
+            },
+            "p2Rail": {
+              "left": 507,
+              "top": 6,
+              "right": 838,
+              "bottom": 40,
+              "width": 331,
+              "height": 34
+            },
+            "matchCenter": {
+              "left": 468,
+              "top": 6,
+              "right": 546,
+              "bottom": 40,
+              "width": 78,
+              "height": 34
+            },
+            "p1HpVal": {
+              "left": 399.55,
+              "top": 5.98,
+              "right": 464,
+              "bottom": 19,
+              "width": 64.45,
+              "height": 13.02
+            },
+            "p1HpBar": {
+              "left": 6,
+              "top": 21,
+              "right": 464,
+              "bottom": 34,
+              "width": 458,
+              "height": 13
+            },
+            "p1Ident": {
+              "left": 6,
+              "top": 46,
+              "right": 332,
+              "bottom": 88,
+              "width": 326,
+              "height": 42
+            },
+            "p1Skills": {
+              "left": 6,
+              "top": 94,
+              "right": 332,
+              "bottom": 322,
+              "width": 326,
+              "height": 228
+            },
+            "p1Skill0": {
+              "left": 6,
+              "top": 94,
+              "right": 332,
+              "bottom": 205,
+              "width": 326,
+              "height": 111
+            },
+            "p1Skill1": {
+              "left": 4.82,
+              "top": 210.6,
+              "right": 333.18,
+              "bottom": 322.4,
+              "width": 328.37,
+              "height": 111.81
+            },
+            "p1Weapon": {
+              "left": 6,
+              "top": 328,
+              "right": 332,
+              "bottom": 384,
+              "width": 326,
+              "height": 56
+            },
+            "p2Ident": {
+              "left": 682,
+              "top": 46,
+              "right": 838,
+              "bottom": 80,
+              "width": 156,
+              "height": 34
+            },
+            "p2Skills": {
+              "left": 682,
+              "top": 86,
+              "right": 838,
+              "bottom": 172,
+              "width": 156,
+              "height": 86
+            },
+            "p2Weapon": {
+              "left": 682,
+              "top": 332,
+              "right": 838,
+              "bottom": 384,
+              "width": 156,
+              "height": 52
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "standby",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "NO TARGET",
+              "slotLabel": "AUTO PICKUP",
+              "ariaLabel": "WEAPON DASH (J) — NO TARGET",
+              "clientWidth": 326,
+              "scrollWidth": 326,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 94,
+                "right": 332,
+                "bottom": 205,
+                "width": 326,
+                "height": 111
+              }
+            },
+            {
+              "idx": 1,
+              "state": "active",
+              "tpState": "active",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "ACTIVE 2.9s · -55%",
+              "slotLabel": "-55% DMG SHIELD",
+              "ariaLabel": "VIRTUAL ARMOR (K) — ACTIVE 2.9s · -55%",
+              "clientWidth": 326,
+              "scrollWidth": 326,
+              "overflowPx": 0,
+              "box": {
+                "left": 4.82,
+                "top": 210.6,
+                "right": 333.18,
+                "bottom": 322.4,
+                "width": 328.37,
+                "height": 111.81
+              }
+            }
+          ]
+        },
+        "jCastable": {
+          "stateTag": "06-match-j-castable-with-target",
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "hudDataset": {
+            "layout": "land",
+            "mode": "1p",
+            "size": "compact",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 3.698499999999996,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            940.1500000000001
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.weapon_dash",
+              "targetWeaponId": "SHOTGUN",
+              "targetSlotId": 2,
+              "targetX": 747.1532517309288,
+              "targetY": 554.2501920998586
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": true,
+              "remainSec": 0.30910000000000126,
+              "mitigationPct": 55
+            },
+            "floorTarget": {
+              "target": {
+                "x": 747.1532517309288,
+                "y": 554.2501920998586,
+                "weaponId": "SHOTGUN",
+                "slotId": 2
+              },
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 338,
+              "top": 46,
+              "right": 676,
+              "bottom": 384,
+              "width": 338,
+              "height": 338
+            },
+            "p1Rail": {
+              "left": 6,
+              "top": 6,
+              "right": 507,
+              "bottom": 40,
+              "width": 501,
+              "height": 34
+            },
+            "p2Rail": {
+              "left": 507,
+              "top": 6,
+              "right": 838,
+              "bottom": 40,
+              "width": 331,
+              "height": 34
+            },
+            "matchCenter": {
+              "left": 468,
+              "top": 6,
+              "right": 546,
+              "bottom": 40,
+              "width": 78,
+              "height": 34
+            },
+            "p1HpVal": {
+              "left": 399.55,
+              "top": 5.98,
+              "right": 464,
+              "bottom": 19,
+              "width": 64.45,
+              "height": 13.02
+            },
+            "p1HpBar": {
+              "left": 6,
+              "top": 21,
+              "right": 464,
+              "bottom": 34,
+              "width": 458,
+              "height": 13
+            },
+            "p1Ident": {
+              "left": 6,
+              "top": 46,
+              "right": 332,
+              "bottom": 88,
+              "width": 326,
+              "height": 42
+            },
+            "p1Skills": {
+              "left": 6,
+              "top": 94,
+              "right": 332,
+              "bottom": 322,
+              "width": 326,
+              "height": 228
+            },
+            "p1Skill0": {
+              "left": 6,
+              "top": 94,
+              "right": 332,
+              "bottom": 205,
+              "width": 326,
+              "height": 111
+            },
+            "p1Skill1": {
+              "left": 6,
+              "top": 211,
+              "right": 332,
+              "bottom": 322,
+              "width": 326,
+              "height": 111
+            },
+            "p1Weapon": {
+              "left": 6,
+              "top": 328,
+              "right": 332,
+              "bottom": 384,
+              "width": 326,
+              "height": 56
+            },
+            "p2Ident": {
+              "left": 682,
+              "top": 46,
+              "right": 838,
+              "bottom": 80,
+              "width": 156,
+              "height": 34
+            },
+            "p2Skills": {
+              "left": 682,
+              "top": 86,
+              "right": 838,
+              "bottom": 172,
+              "width": 156,
+              "height": 86
+            },
+            "p2Weapon": {
+              "left": 682,
+              "top": 332,
+              "right": 838,
+              "bottom": 384,
+              "width": 156,
+              "height": 52
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "1",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "TAP · DASH",
+              "slotLabel": "TARGET: SPAS-12",
+              "ariaLabel": "WEAPON DASH (J) — TAP · DASH — TARGET: SPAS-12",
+              "clientWidth": 326,
+              "scrollWidth": 326,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 94,
+                "right": 332,
+                "bottom": 205,
+                "width": 326,
+                "height": 111
+              }
+            },
+            {
+              "idx": 1,
+              "state": "active",
+              "tpState": "active",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "ACTIVE 0.3s · -55%",
+              "slotLabel": "-55% DMG SHIELD",
+              "ariaLabel": "VIRTUAL ARMOR (K) — ACTIVE 0.3s · -55%",
+              "clientWidth": 326,
+              "scrollWidth": 326,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 211,
+                "right": 332,
+                "bottom": 322,
+                "width": 326,
+                "height": 111
+              }
+            }
+          ]
+        },
+        "cooldown": {
+          "stateTag": "07-match-cooldown",
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "hudDataset": {
+            "layout": "land",
+            "mode": "1p",
+            "size": "compact",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 8.831600000000021,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            874,
+            940.1500000000001
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": false,
+              "remainSec": 0,
+              "mitigationPct": 0
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "GLOCK-17",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 338,
+              "top": 46,
+              "right": 676,
+              "bottom": 384,
+              "width": 338,
+              "height": 338
+            },
+            "p1Rail": {
+              "left": 6,
+              "top": 6,
+              "right": 507,
+              "bottom": 40,
+              "width": 501,
+              "height": 34
+            },
+            "p2Rail": {
+              "left": 507,
+              "top": 6,
+              "right": 838,
+              "bottom": 40,
+              "width": 331,
+              "height": 34
+            },
+            "matchCenter": {
+              "left": 468,
+              "top": 6,
+              "right": 546,
+              "bottom": 40,
+              "width": 78,
+              "height": 34
+            },
+            "p1HpVal": {
+              "left": 409.7,
+              "top": 5.98,
+              "right": 464,
+              "bottom": 19,
+              "width": 54.3,
+              "height": 13.02
+            },
+            "p1HpBar": {
+              "left": 6,
+              "top": 21,
+              "right": 464,
+              "bottom": 34,
+              "width": 458,
+              "height": 13
+            },
+            "p1Ident": {
+              "left": 6,
+              "top": 46,
+              "right": 332,
+              "bottom": 88,
+              "width": 326,
+              "height": 42
+            },
+            "p1Skills": {
+              "left": 6,
+              "top": 94,
+              "right": 332,
+              "bottom": 322,
+              "width": 326,
+              "height": 228
+            },
+            "p1Skill0": {
+              "left": 6,
+              "top": 94,
+              "right": 332,
+              "bottom": 205,
+              "width": 326,
+              "height": 111
+            },
+            "p1Skill1": {
+              "left": 6,
+              "top": 211,
+              "right": 332,
+              "bottom": 322,
+              "width": 326,
+              "height": 111
+            },
+            "p1Weapon": {
+              "left": 6,
+              "top": 328,
+              "right": 332,
+              "bottom": 384,
+              "width": 326,
+              "height": 56
+            },
+            "p2Ident": {
+              "left": 682,
+              "top": 46,
+              "right": 838,
+              "bottom": 80,
+              "width": 156,
+              "height": 34
+            },
+            "p2Skills": {
+              "left": 682,
+              "top": 86,
+              "right": 838,
+              "bottom": 172,
+              "width": 156,
+              "height": 86
+            },
+            "p2Weapon": {
+              "left": 682,
+              "top": 332,
+              "right": 838,
+              "bottom": 384,
+              "width": 156,
+              "height": 52
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "cd",
+              "tpState": "cd",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "COOLDOWN 9.4s",
+              "slotLabel": "ABILITY 1",
+              "ariaLabel": "WEAPON DASH (J) — COOLDOWN 9.4s",
+              "clientWidth": 326,
+              "scrollWidth": 326,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 94,
+                "right": 332,
+                "bottom": 205,
+                "width": 326,
+                "height": 111
+              }
+            },
+            {
+              "idx": 1,
+              "state": "cd",
+              "tpState": "cd",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "COOLDOWN 2.2s",
+              "slotLabel": "ACTIVE WINDOW",
+              "ariaLabel": "VIRTUAL ARMOR (K) — COOLDOWN 2.2s",
+              "clientWidth": 326,
+              "scrollWidth": 326,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 211,
+                "right": 332,
+                "bottom": 322,
+                "width": 326,
+                "height": 111
+              }
+            }
+          ]
+        }
+      },
+      "resultAudit": {
+        "innerWidth": 844,
+        "innerHeight": 390,
+        "scrollWidth": 844,
+        "scrollHeight": 390,
+        "horizOverflowPx": 0,
+        "winnerAttr": "2",
+        "playerCards": 6,
+        "buttons": [
+          {
+            "text": "Replay",
+            "w": 101,
+            "h": 44,
+            "top": 6,
+            "bottom": 50
+          },
+          {
+            "text": "P115",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "P220",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 452,
+            "bottom": 496
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 452,
+            "bottom": 496
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 452,
+            "bottom": 496
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 452,
+            "bottom": 496
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 452,
+            "bottom": 496
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 500,
+            "bottom": 544
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 500,
+            "bottom": 544
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 500,
+            "bottom": 544
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 500,
+            "bottom": 544
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 500,
+            "bottom": 544
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 548,
+            "bottom": 592
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 548,
+            "bottom": 592
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 548,
+            "bottom": 592
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 548,
+            "bottom": 592
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 548,
+            "bottom": 592
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 428,
+            "bottom": 472
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 428,
+            "bottom": 472
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 428,
+            "bottom": 472
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 428,
+            "bottom": 472
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 428,
+            "bottom": 472
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 476,
+            "bottom": 520
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 476,
+            "bottom": 520
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 476,
+            "bottom": 520
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 476,
+            "bottom": 520
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 476,
+            "bottom": 520
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 524,
+            "bottom": 568
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 524,
+            "bottom": 568
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 524,
+            "bottom": 568
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 524,
+            "bottom": 568
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 524,
+            "bottom": 568
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 572,
+            "bottom": 616
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 572,
+            "bottom": 616
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 572,
+            "bottom": 616
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 572,
+            "bottom": 616
+          },
+          {
+            "text": "",
+            "w": 50,
+            "h": 44,
+            "top": 572,
+            "bottom": 616
+          },
+          {
+            "text": "Continue",
+            "w": 255,
+            "h": 44,
+            "top": 475,
+            "bottom": 519
+          },
+          {
+            "text": "Achievements archive",
+            "w": 255,
+            "h": 44,
+            "top": 525,
+            "bottom": 569
+          },
+          {
+            "text": "SkipSpace",
+            "w": 84,
+            "h": 44,
+            "top": 16,
+            "bottom": 60
+          }
+        ]
+      },
+      "returnState": {
+        "resultGone": true,
+        "battleClosed": true,
+        "stageClass": "ready fighter-bot screen-fighter fighter-active-p2 fighter-p2-locked",
+        "tutorialPauseActive": false
+      }
+    },
+    "1440x900-desk": {
+      "viewport": {
+        "id": "1440x900-desk",
+        "width": 1440,
+        "height": 900,
+        "touch": false,
+        "isMobile": false,
+        "label": "Desktop 1440x900"
+      },
+      "shots": {
+        "01-home": "1440x900-desk-01-home.png",
+        "02-mode-select": "1440x900-desk-02-mode-select.png",
+        "03-fighter-select": "1440x900-desk-03-fighter-select.png",
+        "04-match-j-no-target-coach-k": "1440x900-desk-04-match-j-no-target-coach-k.png",
+        "05-match-k-active": "1440x900-desk-05-match-k-active.png",
+        "06-match-j-castable-with-target": "1440x900-desk-06-match-j-castable-with-target.png",
+        "07-match-cooldown": "1440x900-desk-07-match-cooldown.png",
+        "08-result-gold": "1440x900-desk-08-result-gold.png",
+        "09-returned-fighter-select": "1440x900-desk-09-returned-fighter-select.png"
+      },
+      "states": {
+        "openingNoTarget": {
+          "stateTag": "04-match-j-no-target-coach-k",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "hudDataset": {
+            "layout": "desk",
+            "mode": "1p",
+            "size": "desktop",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 0.033,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "condition",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": false,
+              "remainSec": 0,
+              "mitigationPct": 0
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": {
+                "x": 594.4361653597693,
+                "y": 327.0317654364096,
+                "remainSec": 2,
+                "slotId": 1
+              }
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 306,
+              "top": 64,
+              "right": 1134,
+              "bottom": 892,
+              "width": 828,
+              "height": 828
+            },
+            "p1Rail": {
+              "left": 8,
+              "top": 8,
+              "right": 720,
+              "bottom": 56,
+              "width": 712,
+              "height": 48
+            },
+            "p2Rail": {
+              "left": 720,
+              "top": 8,
+              "right": 1432,
+              "bottom": 56,
+              "width": 712,
+              "height": 48
+            },
+            "matchCenter": {
+              "left": 666,
+              "top": 8,
+              "right": 774,
+              "bottom": 56,
+              "width": 108,
+              "height": 48
+            },
+            "p1HpVal": {
+              "left": 572.8,
+              "top": 6.42,
+              "right": 662,
+              "bottom": 27,
+              "width": 89.2,
+              "height": 20.58
+            },
+            "p1HpBar": {
+              "left": 8,
+              "top": 29,
+              "right": 662,
+              "bottom": 49,
+              "width": 654,
+              "height": 20
+            },
+            "p1Ident": {
+              "left": 8,
+              "top": 72,
+              "right": 298,
+              "bottom": 184.31,
+              "width": 290,
+              "height": 112.31
+            },
+            "p1Skills": {
+              "left": 8,
+              "top": 357.66,
+              "right": 298,
+              "bottom": 619.66,
+              "width": 290,
+              "height": 262
+            },
+            "p1Skill0": {
+              "left": 8,
+              "top": 357.66,
+              "right": 298,
+              "bottom": 483.66,
+              "width": 290,
+              "height": 126
+            },
+            "p1Skill1": {
+              "left": 8,
+              "top": 493.66,
+              "right": 298,
+              "bottom": 619.66,
+              "width": 290,
+              "height": 126
+            },
+            "p1Weapon": {
+              "left": 8,
+              "top": 793,
+              "right": 298,
+              "bottom": 892,
+              "width": 290,
+              "height": 99
+            },
+            "p2Ident": {
+              "left": 1142,
+              "top": 72,
+              "right": 1432,
+              "bottom": 184.31,
+              "width": 290,
+              "height": 112.31
+            },
+            "p2Skills": {
+              "left": 1142,
+              "top": 204.31,
+              "right": 1432,
+              "bottom": 330.31,
+              "width": 290,
+              "height": 126
+            },
+            "p2Weapon": {
+              "left": 1142,
+              "top": 793,
+              "right": 1432,
+              "bottom": 892,
+              "width": 290,
+              "height": 99
+            },
+            "coachChip": {
+              "left": 12,
+              "top": 628,
+              "right": 294,
+              "bottom": 714.41,
+              "width": 282,
+              "height": 86.41
+            },
+            "coachSkip": {
+              "left": 227,
+              "top": 649.2,
+              "right": 283,
+              "bottom": 693.2,
+              "width": 56,
+              "height": 44
+            }
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "standby",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "STANDBY",
+              "slotLabel": "NO TARGET YET",
+              "ariaLabel": "WEAPON DASH (J) — STANDBY",
+              "clientWidth": 290,
+              "scrollWidth": 290,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 357.66,
+                "right": 298,
+                "bottom": 483.66,
+                "width": 290,
+                "height": 126
+              }
+            },
+            {
+              "idx": 1,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "READY AGAIN",
+              "slotLabel": "ACTIVE WINDOW",
+              "ariaLabel": "VIRTUAL ARMOR (K) — READY AGAIN",
+              "clientWidth": 290,
+              "scrollWidth": 290,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 493.66,
+                "right": 298,
+                "bottom": 619.66,
+                "width": 290,
+                "height": 126
+              }
+            }
+          ]
+        },
+        "kActive": {
+          "stateTag": "05-match-k-active",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "hudDataset": {
+            "layout": "desk",
+            "mode": "1p",
+            "size": "desktop",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 0.8912999999999998,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "condition",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": true,
+              "remainSec": 2.6367000000000007,
+              "mitigationPct": 55
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": {
+                "x": 594.4361653597693,
+                "y": 327.0317654364096,
+                "remainSec": 1.1417000000000002,
+                "slotId": 1
+              }
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 306,
+              "top": 64,
+              "right": 1134,
+              "bottom": 892,
+              "width": 828,
+              "height": 828
+            },
+            "p1Rail": {
+              "left": 8,
+              "top": 8,
+              "right": 720,
+              "bottom": 56,
+              "width": 712,
+              "height": 48
+            },
+            "p2Rail": {
+              "left": 720,
+              "top": 8,
+              "right": 1432,
+              "bottom": 56,
+              "width": 712,
+              "height": 48
+            },
+            "matchCenter": {
+              "left": 666,
+              "top": 8,
+              "right": 774,
+              "bottom": 56,
+              "width": 108,
+              "height": 48
+            },
+            "p1HpVal": {
+              "left": 572.8,
+              "top": 6.42,
+              "right": 662,
+              "bottom": 27,
+              "width": 89.2,
+              "height": 20.58
+            },
+            "p1HpBar": {
+              "left": 8,
+              "top": 29,
+              "right": 662,
+              "bottom": 49,
+              "width": 654,
+              "height": 20
+            },
+            "p1Ident": {
+              "left": 8,
+              "top": 72,
+              "right": 298,
+              "bottom": 184.31,
+              "width": 290,
+              "height": 112.31
+            },
+            "p1Skills": {
+              "left": 8,
+              "top": 357.66,
+              "right": 298,
+              "bottom": 619.66,
+              "width": 290,
+              "height": 262
+            },
+            "p1Skill0": {
+              "left": 8,
+              "top": 357.66,
+              "right": 298,
+              "bottom": 483.66,
+              "width": 290,
+              "height": 126
+            },
+            "p1Skill1": {
+              "left": 8,
+              "top": 493.66,
+              "right": 298,
+              "bottom": 619.66,
+              "width": 290,
+              "height": 126
+            },
+            "p1Weapon": {
+              "left": 8,
+              "top": 793,
+              "right": 298,
+              "bottom": 892,
+              "width": 290,
+              "height": 99
+            },
+            "p2Ident": {
+              "left": 1142,
+              "top": 72,
+              "right": 1432,
+              "bottom": 184.31,
+              "width": 290,
+              "height": 112.31
+            },
+            "p2Skills": {
+              "left": 1142,
+              "top": 204.31,
+              "right": 1432,
+              "bottom": 330.31,
+              "width": 290,
+              "height": 126
+            },
+            "p2Weapon": {
+              "left": 1142,
+              "top": 793,
+              "right": 1432,
+              "bottom": 892,
+              "width": 290,
+              "height": 99
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "standby",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "NO TARGET",
+              "slotLabel": "AUTO PICKUP",
+              "ariaLabel": "WEAPON DASH (J) — NO TARGET",
+              "clientWidth": 290,
+              "scrollWidth": 290,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 357.66,
+                "right": 298,
+                "bottom": 483.66,
+                "width": 290,
+                "height": 126
+              }
+            },
+            {
+              "idx": 1,
+              "state": "active",
+              "tpState": "active",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "ACTIVE 2.7s · -55%",
+              "slotLabel": "-55% DMG SHIELD",
+              "ariaLabel": "VIRTUAL ARMOR (K) — ACTIVE 2.7s · -55%",
+              "clientWidth": 290,
+              "scrollWidth": 290,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 493.66,
+                "right": 298,
+                "bottom": 619.66,
+                "width": 290,
+                "height": 126
+              }
+            }
+          ]
+        },
+        "jCastable": {
+          "stateTag": "06-match-j-castable-with-target",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "hudDataset": {
+            "layout": "desk",
+            "mode": "1p",
+            "size": "desktop",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 2.5937000000000126,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.weapon_dash",
+              "targetWeaponId": "SMG",
+              "targetSlotId": 1,
+              "targetX": 594.4361653597693,
+              "targetY": 327.0317654364096
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": true,
+              "remainSec": 0.9342999999999879,
+              "mitigationPct": 55
+            },
+            "floorTarget": {
+              "target": {
+                "x": 594.4361653597693,
+                "y": 327.0317654364096,
+                "weaponId": "SMG",
+                "slotId": 1
+              },
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 306,
+              "top": 64,
+              "right": 1134,
+              "bottom": 892,
+              "width": 828,
+              "height": 828
+            },
+            "p1Rail": {
+              "left": 8,
+              "top": 8,
+              "right": 720,
+              "bottom": 56,
+              "width": 712,
+              "height": 48
+            },
+            "p2Rail": {
+              "left": 720,
+              "top": 8,
+              "right": 1432,
+              "bottom": 56,
+              "width": 712,
+              "height": 48
+            },
+            "matchCenter": {
+              "left": 666,
+              "top": 8,
+              "right": 774,
+              "bottom": 56,
+              "width": 108,
+              "height": 48
+            },
+            "p1HpVal": {
+              "left": 572.8,
+              "top": 6.42,
+              "right": 662,
+              "bottom": 27,
+              "width": 89.2,
+              "height": 20.58
+            },
+            "p1HpBar": {
+              "left": 8,
+              "top": 29,
+              "right": 662,
+              "bottom": 49,
+              "width": 654,
+              "height": 20
+            },
+            "p1Ident": {
+              "left": 8,
+              "top": 72,
+              "right": 298,
+              "bottom": 184.31,
+              "width": 290,
+              "height": 112.31
+            },
+            "p1Skills": {
+              "left": 8,
+              "top": 357.66,
+              "right": 298,
+              "bottom": 619.66,
+              "width": 290,
+              "height": 262
+            },
+            "p1Skill0": {
+              "left": 8,
+              "top": 357.66,
+              "right": 298,
+              "bottom": 483.66,
+              "width": 290,
+              "height": 126
+            },
+            "p1Skill1": {
+              "left": 8,
+              "top": 493.66,
+              "right": 298,
+              "bottom": 619.66,
+              "width": 290,
+              "height": 126
+            },
+            "p1Weapon": {
+              "left": 8,
+              "top": 793,
+              "right": 298,
+              "bottom": 892,
+              "width": 290,
+              "height": 99
+            },
+            "p2Ident": {
+              "left": 1142,
+              "top": 72,
+              "right": 1432,
+              "bottom": 184.31,
+              "width": 290,
+              "height": 112.31
+            },
+            "p2Skills": {
+              "left": 1142,
+              "top": 204.31,
+              "right": 1432,
+              "bottom": 330.31,
+              "width": 290,
+              "height": 126
+            },
+            "p2Weapon": {
+              "left": 1142,
+              "top": 793,
+              "right": 1432,
+              "bottom": 892,
+              "width": 290,
+              "height": 99
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "1",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "PRESS J",
+              "slotLabel": "TARGET: MP5",
+              "ariaLabel": "WEAPON DASH (J) — PRESS J — TARGET: MP5",
+              "clientWidth": 290,
+              "scrollWidth": 290,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 357.66,
+                "right": 298,
+                "bottom": 483.66,
+                "width": 290,
+                "height": 126
+              }
+            },
+            {
+              "idx": 1,
+              "state": "active",
+              "tpState": "active",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "ACTIVE 1.0s · -55%",
+              "slotLabel": "-55% DMG SHIELD",
+              "ariaLabel": "VIRTUAL ARMOR (K) — ACTIVE 1.0s · -55%",
+              "clientWidth": 290,
+              "scrollWidth": 290,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 493.66,
+                "right": 298,
+                "bottom": 619.66,
+                "width": 290,
+                "height": 126
+              }
+            }
+          ]
+        },
+        "cooldown": {
+          "stateTag": "07-match-cooldown",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "hudDataset": {
+            "layout": "desk",
+            "mode": "1p",
+            "size": "desktop",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 3.9310000000000054,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            984.25,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": false,
+              "remainSec": 0,
+              "mitigationPct": 0
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 306,
+              "top": 64,
+              "right": 1134,
+              "bottom": 892,
+              "width": 828,
+              "height": 828
+            },
+            "p1Rail": {
+              "left": 8,
+              "top": 8,
+              "right": 720,
+              "bottom": 56,
+              "width": 712,
+              "height": 48
+            },
+            "p2Rail": {
+              "left": 720,
+              "top": 8,
+              "right": 1432,
+              "bottom": 56,
+              "width": 712,
+              "height": 48
+            },
+            "matchCenter": {
+              "left": 666,
+              "top": 8,
+              "right": 774,
+              "bottom": 56,
+              "width": 108,
+              "height": 48
+            },
+            "p1HpVal": {
+              "left": 586.05,
+              "top": 6.42,
+              "right": 662,
+              "bottom": 27,
+              "width": 75.95,
+              "height": 20.58
+            },
+            "p1HpBar": {
+              "left": 8,
+              "top": 29,
+              "right": 662,
+              "bottom": 49,
+              "width": 654,
+              "height": 20
+            },
+            "p1Ident": {
+              "left": 8,
+              "top": 72,
+              "right": 298,
+              "bottom": 184.31,
+              "width": 290,
+              "height": 112.31
+            },
+            "p1Skills": {
+              "left": 8,
+              "top": 357.66,
+              "right": 298,
+              "bottom": 619.66,
+              "width": 290,
+              "height": 262
+            },
+            "p1Skill0": {
+              "left": 8,
+              "top": 357.66,
+              "right": 298,
+              "bottom": 483.66,
+              "width": 290,
+              "height": 126
+            },
+            "p1Skill1": {
+              "left": 8,
+              "top": 493.66,
+              "right": 298,
+              "bottom": 619.66,
+              "width": 290,
+              "height": 126
+            },
+            "p1Weapon": {
+              "left": 8,
+              "top": 793,
+              "right": 298,
+              "bottom": 892,
+              "width": 290,
+              "height": 99
+            },
+            "p2Ident": {
+              "left": 1142,
+              "top": 72,
+              "right": 1432,
+              "bottom": 184.31,
+              "width": 290,
+              "height": 112.31
+            },
+            "p2Skills": {
+              "left": 1142,
+              "top": 204.31,
+              "right": 1432,
+              "bottom": 330.31,
+              "width": 290,
+              "height": 126
+            },
+            "p2Weapon": {
+              "left": 1142,
+              "top": 793,
+              "right": 1432,
+              "bottom": 892,
+              "width": 290,
+              "height": 99
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "cd",
+              "tpState": "cd",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "COOLDOWN 9.3s",
+              "slotLabel": "ABILITY 1",
+              "ariaLabel": "WEAPON DASH (J) — COOLDOWN 9.3s",
+              "clientWidth": 290,
+              "scrollWidth": 290,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 357.66,
+                "right": 298,
+                "bottom": 483.66,
+                "width": 290,
+                "height": 126
+              }
+            },
+            {
+              "idx": 1,
+              "state": "cd",
+              "tpState": "cd",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "COOLDOWN 6.6s",
+              "slotLabel": "ACTIVE WINDOW",
+              "ariaLabel": "VIRTUAL ARMOR (K) — COOLDOWN 6.6s",
+              "clientWidth": 290,
+              "scrollWidth": 290,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 493.66,
+                "right": 298,
+                "bottom": 619.66,
+                "width": 290,
+                "height": 126
+              }
+            }
+          ]
+        }
+      },
+      "resultAudit": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 900,
+        "horizOverflowPx": 0,
+        "winnerAttr": "2",
+        "playerCards": 6,
+        "buttons": [
+          {
+            "text": "Replay",
+            "w": 101,
+            "h": 44,
+            "top": 12,
+            "bottom": 56
+          },
+          {
+            "text": "P120",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "P229",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 579,
+            "bottom": 626
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 579,
+            "bottom": 626
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 579,
+            "bottom": 626
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 579,
+            "bottom": 626
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 579,
+            "bottom": 626
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 632,
+            "bottom": 679
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 685,
+            "bottom": 732
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 738,
+            "bottom": 784
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 790,
+            "bottom": 837
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 843,
+            "bottom": 890
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 843,
+            "bottom": 890
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 843,
+            "bottom": 890
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 47,
+            "top": 843,
+            "bottom": 890
+          },
+          {
+            "text": "Continue",
+            "w": 310,
+            "h": 52,
+            "top": 661,
+            "bottom": 713
+          },
+          {
+            "text": "Achievements archive",
+            "w": 310,
+            "h": 44,
+            "top": 721,
+            "bottom": 765
+          },
+          {
+            "text": "SkipSpace",
+            "w": 84,
+            "h": 44,
+            "top": 18,
+            "bottom": 62
+          }
+        ]
+      },
+      "returnState": {
+        "resultGone": true,
+        "battleClosed": true,
+        "stageClass": "ready fighter-bot screen-fighter fighter-active-p2 fighter-p2-locked",
+        "tutorialPauseActive": false
+      }
+    },
+    "900x900-p90": {
+      "viewport": {
+        "id": "900x900-p90",
+        "width": 900,
+        "height": 900,
+        "touch": false,
+        "isMobile": false,
+        "label": "P90 Square 900x900"
+      },
+      "shots": {
+        "01-home": "900x900-p90-01-home.png",
+        "02-mode-select": "900x900-p90-02-mode-select.png",
+        "03-fighter-select": "900x900-p90-03-fighter-select.png",
+        "04-match-j-no-target-coach-k": "900x900-p90-04-match-j-no-target-coach-k.png",
+        "05-match-k-active": "900x900-p90-05-match-k-active.png",
+        "06-match-j-castable-with-target": "900x900-p90-06-match-j-castable-with-target.png",
+        "07-match-cooldown": "900x900-p90-07-match-cooldown.png",
+        "08-result-gold": "900x900-p90-08-result-gold.png",
+        "09-returned-fighter-select": "900x900-p90-09-returned-fighter-select.png"
+      },
+      "states": {
+        "openingNoTarget": {
+          "stateTag": "04-match-j-no-target-coach-k",
+          "viewport": {
+            "width": 900,
+            "height": 900
+          },
+          "hudDataset": {
+            "layout": "land",
+            "mode": "1p",
+            "size": "tablet",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 0.033,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "condition",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": false,
+              "remainSec": 0,
+              "mitigationPct": 0
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": {
+                "x": 423.6187006819963,
+                "y": 308.91396614451605,
+                "remainSec": 2,
+                "slotId": 1
+              }
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 216,
+              "top": 60,
+              "right": 728,
+              "bottom": 572,
+              "width": 512,
+              "height": 512
+            },
+            "p1Rail": {
+              "left": 8,
+              "top": 8,
+              "right": 472,
+              "bottom": 52,
+              "width": 464,
+              "height": 44
+            },
+            "p2Rail": {
+              "left": 472,
+              "top": 8,
+              "right": 892,
+              "bottom": 52,
+              "width": 420,
+              "height": 44
+            },
+            "matchCenter": {
+              "left": 424,
+              "top": 8,
+              "right": 520,
+              "bottom": 52,
+              "width": 96,
+              "height": 44
+            },
+            "p1HpVal": {
+              "left": 344.3,
+              "top": 7.98,
+              "right": 420,
+              "bottom": 26,
+              "width": 75.7,
+              "height": 18.02
+            },
+            "p1HpBar": {
+              "left": 8,
+              "top": 28,
+              "right": 420,
+              "bottom": 45,
+              "width": 412,
+              "height": 17
+            },
+            "p1Ident": {
+              "left": 8,
+              "top": 60,
+              "right": 208,
+              "bottom": 112,
+              "width": 200,
+              "height": 52
+            },
+            "p1Skills": {
+              "left": 8,
+              "top": 122,
+              "right": 208,
+              "bottom": 386,
+              "width": 200,
+              "height": 264
+            },
+            "p1Skill0": {
+              "left": 8,
+              "top": 122,
+              "right": 208,
+              "bottom": 250,
+              "width": 200,
+              "height": 128
+            },
+            "p1Skill1": {
+              "left": 8,
+              "top": 258,
+              "right": 208,
+              "bottom": 386,
+              "width": 200,
+              "height": 128
+            },
+            "p1Weapon": {
+              "left": 8,
+              "top": 810,
+              "right": 208,
+              "bottom": 892,
+              "width": 200,
+              "height": 82
+            },
+            "p2Ident": {
+              "left": 736,
+              "top": 60,
+              "right": 892,
+              "bottom": 112,
+              "width": 156,
+              "height": 52
+            },
+            "p2Skills": {
+              "left": 736,
+              "top": 122,
+              "right": 892,
+              "bottom": 210,
+              "width": 156,
+              "height": 88
+            },
+            "p2Weapon": {
+              "left": 736,
+              "top": 816,
+              "right": 892,
+              "bottom": 892,
+              "width": 156,
+              "height": 76
+            },
+            "coachChip": {
+              "left": 12,
+              "top": 394,
+              "right": 204,
+              "bottom": 492,
+              "width": 192,
+              "height": 98
+            },
+            "coachSkip": {
+              "left": 139,
+              "top": 421,
+              "right": 195,
+              "bottom": 465,
+              "width": 56,
+              "height": 44
+            }
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "standby",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "STANDBY",
+              "slotLabel": "NO TARGET YET",
+              "ariaLabel": "WEAPON DASH (J) — STANDBY",
+              "clientWidth": 200,
+              "scrollWidth": 200,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 122,
+                "right": 208,
+                "bottom": 250,
+                "width": 200,
+                "height": 128
+              }
+            },
+            {
+              "idx": 1,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "READY AGAIN",
+              "slotLabel": "ACTIVE WINDOW",
+              "ariaLabel": "VIRTUAL ARMOR (K) — READY AGAIN",
+              "clientWidth": 200,
+              "scrollWidth": 200,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 258,
+                "right": 208,
+                "bottom": 386,
+                "width": 200,
+                "height": 128
+              }
+            }
+          ]
+        },
+        "kActive": {
+          "stateTag": "05-match-k-active",
+          "viewport": {
+            "width": 900,
+            "height": 900
+          },
+          "hudDataset": {
+            "layout": "land",
+            "mode": "1p",
+            "size": "tablet",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 0.9744000000000019,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "condition",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": true,
+              "remainSec": 2.603600000000002,
+              "mitigationPct": 55
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": {
+                "x": 423.6187006819963,
+                "y": 308.91396614451605,
+                "remainSec": 1.058599999999998,
+                "slotId": 1
+              }
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 216,
+              "top": 60,
+              "right": 728,
+              "bottom": 572,
+              "width": 512,
+              "height": 512
+            },
+            "p1Rail": {
+              "left": 8,
+              "top": 8,
+              "right": 472,
+              "bottom": 52,
+              "width": 464,
+              "height": 44
+            },
+            "p2Rail": {
+              "left": 472,
+              "top": 8,
+              "right": 892,
+              "bottom": 52,
+              "width": 420,
+              "height": 44
+            },
+            "matchCenter": {
+              "left": 424,
+              "top": 8,
+              "right": 520,
+              "bottom": 52,
+              "width": 96,
+              "height": 44
+            },
+            "p1HpVal": {
+              "left": 344.3,
+              "top": 7.98,
+              "right": 420,
+              "bottom": 26,
+              "width": 75.7,
+              "height": 18.02
+            },
+            "p1HpBar": {
+              "left": 8,
+              "top": 28,
+              "right": 420,
+              "bottom": 45,
+              "width": 412,
+              "height": 17
+            },
+            "p1Ident": {
+              "left": 8,
+              "top": 60,
+              "right": 208,
+              "bottom": 112,
+              "width": 200,
+              "height": 52
+            },
+            "p1Skills": {
+              "left": 8,
+              "top": 122,
+              "right": 208,
+              "bottom": 386,
+              "width": 200,
+              "height": 264
+            },
+            "p1Skill0": {
+              "left": 8,
+              "top": 122,
+              "right": 208,
+              "bottom": 250,
+              "width": 200,
+              "height": 128
+            },
+            "p1Skill1": {
+              "left": 7.99,
+              "top": 258,
+              "right": 208.01,
+              "bottom": 386,
+              "width": 200.01,
+              "height": 128.01
+            },
+            "p1Weapon": {
+              "left": 8,
+              "top": 810,
+              "right": 208,
+              "bottom": 892,
+              "width": 200,
+              "height": 82
+            },
+            "p2Ident": {
+              "left": 736,
+              "top": 60,
+              "right": 892,
+              "bottom": 112,
+              "width": 156,
+              "height": 52
+            },
+            "p2Skills": {
+              "left": 736,
+              "top": 122,
+              "right": 892,
+              "bottom": 210,
+              "width": 156,
+              "height": 88
+            },
+            "p2Weapon": {
+              "left": 736,
+              "top": 816,
+              "right": 892,
+              "bottom": 892,
+              "width": 156,
+              "height": 76
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "standby",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "NO TARGET",
+              "slotLabel": "AUTO PICKUP",
+              "ariaLabel": "WEAPON DASH (J) — NO TARGET",
+              "clientWidth": 200,
+              "scrollWidth": 200,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 122,
+                "right": 208,
+                "bottom": 250,
+                "width": 200,
+                "height": 128
+              }
+            },
+            {
+              "idx": 1,
+              "state": "active",
+              "tpState": "active",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "-55% · 2.6s",
+              "slotLabel": "-55% DMG SHIELD",
+              "ariaLabel": "VIRTUAL ARMOR (K) — -55% · 2.6s",
+              "clientWidth": 200,
+              "scrollWidth": 200,
+              "overflowPx": 0,
+              "box": {
+                "left": 7.99,
+                "top": 258,
+                "right": 208.01,
+                "bottom": 386,
+                "width": 200.01,
+                "height": 128.01
+              }
+            }
+          ]
+        },
+        "jCastable": {
+          "stateTag": "06-match-j-castable-with-target",
+          "viewport": {
+            "width": 900,
+            "height": 900
+          },
+          "hudDataset": {
+            "layout": "land",
+            "mode": "1p",
+            "size": "tablet",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 3.077999999999998,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.weapon_dash",
+              "targetWeaponId": "SHOTGUN",
+              "targetSlotId": 1,
+              "targetX": 423.6187006819963,
+              "targetY": 308.91396614451605
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": true,
+              "remainSec": 0.5000000000000058,
+              "mitigationPct": 55
+            },
+            "floorTarget": {
+              "target": {
+                "x": 423.6187006819963,
+                "y": 308.91396614451605,
+                "weaponId": "SHOTGUN",
+                "slotId": 1
+              },
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 216,
+              "top": 60,
+              "right": 728,
+              "bottom": 572,
+              "width": 512,
+              "height": 512
+            },
+            "p1Rail": {
+              "left": 8,
+              "top": 8,
+              "right": 472,
+              "bottom": 52,
+              "width": 464,
+              "height": 44
+            },
+            "p2Rail": {
+              "left": 472,
+              "top": 8,
+              "right": 892,
+              "bottom": 52,
+              "width": 420,
+              "height": 44
+            },
+            "matchCenter": {
+              "left": 424,
+              "top": 8,
+              "right": 520,
+              "bottom": 52,
+              "width": 96,
+              "height": 44
+            },
+            "p1HpVal": {
+              "left": 344.3,
+              "top": 7.98,
+              "right": 420,
+              "bottom": 26,
+              "width": 75.7,
+              "height": 18.02
+            },
+            "p1HpBar": {
+              "left": 8,
+              "top": 28,
+              "right": 420,
+              "bottom": 45,
+              "width": 412,
+              "height": 17
+            },
+            "p1Ident": {
+              "left": 8,
+              "top": 60,
+              "right": 208,
+              "bottom": 112,
+              "width": 200,
+              "height": 52
+            },
+            "p1Skills": {
+              "left": 8,
+              "top": 122,
+              "right": 208,
+              "bottom": 386,
+              "width": 200,
+              "height": 264
+            },
+            "p1Skill0": {
+              "left": 8,
+              "top": 122,
+              "right": 208,
+              "bottom": 250,
+              "width": 200,
+              "height": 128
+            },
+            "p1Skill1": {
+              "left": 8,
+              "top": 258,
+              "right": 208,
+              "bottom": 386,
+              "width": 200,
+              "height": 128
+            },
+            "p1Weapon": {
+              "left": 8,
+              "top": 810,
+              "right": 208,
+              "bottom": 892,
+              "width": 200,
+              "height": 82
+            },
+            "p2Ident": {
+              "left": 736,
+              "top": 60,
+              "right": 892,
+              "bottom": 112,
+              "width": 156,
+              "height": 52
+            },
+            "p2Skills": {
+              "left": 736,
+              "top": 122,
+              "right": 892,
+              "bottom": 210,
+              "width": 156,
+              "height": 88
+            },
+            "p2Weapon": {
+              "left": 736,
+              "top": 816,
+              "right": 892,
+              "bottom": 892,
+              "width": 156,
+              "height": 76
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "1",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "TAP · DASH",
+              "slotLabel": "TARGET: SPAS-12",
+              "ariaLabel": "WEAPON DASH (J) — TAP · DASH — TARGET: SPAS-12",
+              "clientWidth": 200,
+              "scrollWidth": 200,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 122,
+                "right": 208,
+                "bottom": 250,
+                "width": 200,
+                "height": 128
+              }
+            },
+            {
+              "idx": 1,
+              "state": "active",
+              "tpState": "active",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "-55% · 0.5s",
+              "slotLabel": "-55% DMG SHIELD",
+              "ariaLabel": "VIRTUAL ARMOR (K) — -55% · 0.5s",
+              "clientWidth": 200,
+              "scrollWidth": 200,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 258,
+                "right": 208,
+                "bottom": 386,
+                "width": 200,
+                "height": 128
+              }
+            }
+          ]
+        },
+        "cooldown": {
+          "stateTag": "07-match-cooldown",
+          "viewport": {
+            "width": 900,
+            "height": 900
+          },
+          "hudDataset": {
+            "layout": "land",
+            "mode": "1p",
+            "size": "tablet",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 4.034999999999997,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": false,
+              "remainSec": 0,
+              "mitigationPct": 0
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "SPAS-12",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 216,
+              "top": 60,
+              "right": 728,
+              "bottom": 572,
+              "width": 512,
+              "height": 512
+            },
+            "p1Rail": {
+              "left": 8,
+              "top": 8,
+              "right": 472,
+              "bottom": 52,
+              "width": 464,
+              "height": 44
+            },
+            "p2Rail": {
+              "left": 472,
+              "top": 8,
+              "right": 892,
+              "bottom": 52,
+              "width": 420,
+              "height": 44
+            },
+            "matchCenter": {
+              "left": 424,
+              "top": 8,
+              "right": 520,
+              "bottom": 52,
+              "width": 96,
+              "height": 44
+            },
+            "p1HpVal": {
+              "left": 344.3,
+              "top": 7.98,
+              "right": 420,
+              "bottom": 26,
+              "width": 75.7,
+              "height": 18.02
+            },
+            "p1HpBar": {
+              "left": 8,
+              "top": 28,
+              "right": 420,
+              "bottom": 45,
+              "width": 412,
+              "height": 17
+            },
+            "p1Ident": {
+              "left": 8,
+              "top": 60,
+              "right": 208,
+              "bottom": 112,
+              "width": 200,
+              "height": 52
+            },
+            "p1Skills": {
+              "left": 8,
+              "top": 122,
+              "right": 208,
+              "bottom": 386,
+              "width": 200,
+              "height": 264
+            },
+            "p1Skill0": {
+              "left": 8,
+              "top": 122,
+              "right": 208,
+              "bottom": 250,
+              "width": 200,
+              "height": 128
+            },
+            "p1Skill1": {
+              "left": 8,
+              "top": 258,
+              "right": 208,
+              "bottom": 386,
+              "width": 200,
+              "height": 128
+            },
+            "p1Weapon": {
+              "left": 8,
+              "top": 810,
+              "right": 208,
+              "bottom": 892,
+              "width": 200,
+              "height": 82
+            },
+            "p2Ident": {
+              "left": 736,
+              "top": 60,
+              "right": 892,
+              "bottom": 112,
+              "width": 156,
+              "height": 52
+            },
+            "p2Skills": {
+              "left": 736,
+              "top": 122,
+              "right": 892,
+              "bottom": 210,
+              "width": 156,
+              "height": 88
+            },
+            "p2Weapon": {
+              "left": 736,
+              "top": 816,
+              "right": 892,
+              "bottom": 892,
+              "width": 156,
+              "height": 76
+            },
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "cd",
+              "tpState": "cd",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "CD 9.4s",
+              "slotLabel": "ABILITY 1",
+              "ariaLabel": "WEAPON DASH (J) — CD 9.4s",
+              "clientWidth": 200,
+              "scrollWidth": 200,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 122,
+                "right": 208,
+                "bottom": 250,
+                "width": 200,
+                "height": 128
+              }
+            },
+            {
+              "idx": 1,
+              "state": "cd",
+              "tpState": "cd",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "CD 6.6s",
+              "slotLabel": "ACTIVE WINDOW",
+              "ariaLabel": "VIRTUAL ARMOR (K) — CD 6.6s",
+              "clientWidth": 200,
+              "scrollWidth": 200,
+              "overflowPx": 0,
+              "box": {
+                "left": 8,
+                "top": 258,
+                "right": 208,
+                "bottom": 386,
+                "width": 200,
+                "height": 128
+              }
+            }
+          ]
+        }
+      },
+      "resultAudit": {
+        "innerWidth": 900,
+        "innerHeight": 900,
+        "scrollWidth": 900,
+        "scrollHeight": 900,
+        "horizOverflowPx": 0,
+        "winnerAttr": "2",
+        "playerCards": 6,
+        "buttons": [
+          {
+            "text": "Replay",
+            "w": 101,
+            "h": 44,
+            "top": 12,
+            "bottom": 56
+          },
+          {
+            "text": "P118",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "P216",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 788,
+            "bottom": 832
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 788,
+            "bottom": 832
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 788,
+            "bottom": 832
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 690,
+            "bottom": 734
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 739,
+            "bottom": 783
+          },
+          {
+            "text": "",
+            "w": 58,
+            "h": 44,
+            "top": 788,
+            "bottom": 832
+          },
+          {
+            "text": "Continue",
+            "w": 320,
+            "h": 48,
+            "top": 841,
+            "bottom": 889
+          },
+          {
+            "text": "Achievements archive",
+            "w": 230,
+            "h": 48,
+            "top": 842,
+            "bottom": 890
+          },
+          {
+            "text": "SkipSpace",
+            "w": 84,
+            "h": 44,
+            "top": 18,
+            "bottom": 62
+          }
+        ]
+      },
+      "returnState": {
+        "resultGone": true,
+        "battleClosed": true,
+        "stageClass": "ready fighter-bot screen-fighter fighter-active-p2 fighter-p2-locked",
+        "tutorialPauseActive": false
+      }
+    },
+    "390x844-port": {
+      "viewport": {
+        "id": "390x844-port",
+        "width": 390,
+        "height": 844,
+        "touch": true,
+        "isMobile": true,
+        "label": "Mobile Portrait 390x844"
+      },
+      "shots": {
+        "01-home": "390x844-port-01-home.png",
+        "02-mode-select": "390x844-port-02-mode-select.png",
+        "03-fighter-select": "390x844-port-03-fighter-select.png",
+        "04-match-j-no-target-coach-k": "390x844-port-04-match-j-no-target-coach-k.png",
+        "05-match-k-active": "390x844-port-05-match-k-active.png",
+        "06-match-j-castable-with-target": "390x844-port-06-match-j-castable-with-target.png",
+        "07-match-cooldown": "390x844-port-07-match-cooldown.png",
+        "08-result-gold": "390x844-port-08-result-gold.png",
+        "09-returned-fighter-select": "390x844-port-09-returned-fighter-select.png"
+      },
+      "states": {
+        "openingNoTarget": {
+          "stateTag": "04-match-j-no-target-coach-k",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "hudDataset": {
+            "layout": "port",
+            "mode": "1p",
+            "size": "compact",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 0.231,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "condition",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": false,
+              "remainSec": 0,
+              "mitigationPct": 0
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": {
+                "x": 682.7424338890581,
+                "y": 270.77587116059783,
+                "remainSec": 1.802,
+                "slotId": 1
+              }
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 6,
+              "top": 104,
+              "right": 384,
+              "bottom": 482,
+              "width": 378,
+              "height": 378
+            },
+            "p1Rail": {
+              "left": 6,
+              "top": 60,
+              "right": 195,
+              "bottom": 98,
+              "width": 189,
+              "height": 38
+            },
+            "p2Rail": {
+              "left": 195,
+              "top": 60,
+              "right": 384,
+              "bottom": 98,
+              "width": 189,
+              "height": 38
+            },
+            "matchCenter": {
+              "left": 158,
+              "top": 60,
+              "right": 232,
+              "bottom": 98,
+              "width": 74,
+              "height": 38
+            },
+            "p1HpVal": {
+              "left": 85.45,
+              "top": 60.48,
+              "right": 154,
+              "bottom": 75.5,
+              "width": 68.55,
+              "height": 15.02
+            },
+            "p1HpBar": {
+              "left": 6,
+              "top": 77.5,
+              "right": 154,
+              "bottom": 91.5,
+              "width": 148,
+              "height": 14
+            },
+            "p1Ident": {
+              "left": 6,
+              "top": 488,
+              "right": 192,
+              "bottom": 532,
+              "width": 186,
+              "height": 44
+            },
+            "p1Skills": {
+              "left": 6,
+              "top": 646,
+              "right": 384,
+              "bottom": 836,
+              "width": 378,
+              "height": 190
+            },
+            "p1Skill0": {
+              "left": 6,
+              "top": 646,
+              "right": 191,
+              "bottom": 836,
+              "width": 185,
+              "height": 190
+            },
+            "p1Skill1": {
+              "left": 199,
+              "top": 645.24,
+              "right": 384,
+              "bottom": 835.24,
+              "width": 185,
+              "height": 190
+            },
+            "p1Weapon": {
+              "left": 198,
+              "top": 488,
+              "right": 384,
+              "bottom": 532,
+              "width": 186,
+              "height": 44
+            },
+            "p2Ident": {
+              "left": 237.28,
+              "top": 6,
+              "right": 384,
+              "bottom": 54,
+              "width": 146.72,
+              "height": 48
+            },
+            "p2Skills": {
+              "left": 6,
+              "top": 10,
+              "right": 221.28,
+              "bottom": 50,
+              "width": 215.28,
+              "height": 40
+            },
+            "p2Weapon": null,
+            "coachChip": {
+              "left": 10,
+              "top": 537.28,
+              "right": 350,
+              "bottom": 611.77,
+              "width": 340,
+              "height": 74.48
+            },
+            "coachSkip": {
+              "left": 285,
+              "top": 552.52,
+              "right": 341,
+              "bottom": 596.52,
+              "width": 56,
+              "height": 44
+            }
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "standby",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "STANDBY",
+              "slotLabel": "NO TARGET YET",
+              "ariaLabel": "WEAPON DASH (J) — STANDBY",
+              "clientWidth": 185,
+              "scrollWidth": 185,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 646,
+                "right": 191,
+                "bottom": 836,
+                "width": 185,
+                "height": 190
+              }
+            },
+            {
+              "idx": 1,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "READY AGAIN",
+              "slotLabel": "ACTIVE WINDOW",
+              "ariaLabel": "VIRTUAL ARMOR (K) — READY AGAIN",
+              "clientWidth": 185,
+              "scrollWidth": 185,
+              "overflowPx": 0,
+              "box": {
+                "left": 199,
+                "top": 645.24,
+                "right": 384,
+                "bottom": 835.24,
+                "width": 185,
+                "height": 190
+              }
+            }
+          ]
+        },
+        "kActive": {
+          "stateTag": "05-match-k-active",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "hudDataset": {
+            "layout": "port",
+            "mode": "1p",
+            "size": "compact",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 1.4047999999999996,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "condition",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": true,
+              "remainSec": 2.6030999999999986,
+              "mitigationPct": 55
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": {
+                "x": 682.7424338890581,
+                "y": 270.77587116059783,
+                "remainSec": 0.6282000000000003,
+                "slotId": 1
+              }
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 6,
+              "top": 104,
+              "right": 384,
+              "bottom": 482,
+              "width": 378,
+              "height": 378
+            },
+            "p1Rail": {
+              "left": 6,
+              "top": 60,
+              "right": 195,
+              "bottom": 98,
+              "width": 189,
+              "height": 38
+            },
+            "p2Rail": {
+              "left": 195,
+              "top": 60,
+              "right": 384,
+              "bottom": 98,
+              "width": 189,
+              "height": 38
+            },
+            "matchCenter": {
+              "left": 158,
+              "top": 60,
+              "right": 232,
+              "bottom": 98,
+              "width": 74,
+              "height": 38
+            },
+            "p1HpVal": {
+              "left": 85.45,
+              "top": 60.48,
+              "right": 154,
+              "bottom": 75.5,
+              "width": 68.55,
+              "height": 15.02
+            },
+            "p1HpBar": {
+              "left": 6,
+              "top": 77.5,
+              "right": 154,
+              "bottom": 91.5,
+              "width": 148,
+              "height": 14
+            },
+            "p1Ident": {
+              "left": 6,
+              "top": 488,
+              "right": 192,
+              "bottom": 532,
+              "width": 186,
+              "height": 44
+            },
+            "p1Skills": {
+              "left": 6,
+              "top": 646,
+              "right": 384,
+              "bottom": 836,
+              "width": 378,
+              "height": 190
+            },
+            "p1Skill0": {
+              "left": 6,
+              "top": 646,
+              "right": 191,
+              "bottom": 836,
+              "width": 185,
+              "height": 190
+            },
+            "p1Skill1": {
+              "left": 199,
+              "top": 646,
+              "right": 384,
+              "bottom": 836,
+              "width": 185,
+              "height": 190
+            },
+            "p1Weapon": {
+              "left": 198,
+              "top": 488,
+              "right": 384,
+              "bottom": 532,
+              "width": 186,
+              "height": 44
+            },
+            "p2Ident": {
+              "left": 237.28,
+              "top": 6,
+              "right": 384,
+              "bottom": 54,
+              "width": 146.72,
+              "height": 48
+            },
+            "p2Skills": {
+              "left": 6,
+              "top": 10,
+              "right": 221.28,
+              "bottom": 50,
+              "width": 215.28,
+              "height": 40
+            },
+            "p2Weapon": null,
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "standby",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "NO TARGET",
+              "slotLabel": "AUTO PICKUP",
+              "ariaLabel": "WEAPON DASH (J) — NO TARGET",
+              "clientWidth": 185,
+              "scrollWidth": 185,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 646,
+                "right": 191,
+                "bottom": 836,
+                "width": 185,
+                "height": 190
+              }
+            },
+            {
+              "idx": 1,
+              "state": "active",
+              "tpState": "active",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "-55% · 2.6s",
+              "slotLabel": "-55% DMG SHIELD",
+              "ariaLabel": "VIRTUAL ARMOR (K) — -55% · 2.6s",
+              "clientWidth": 185,
+              "scrollWidth": 185,
+              "overflowPx": 0,
+              "box": {
+                "left": 199,
+                "top": 646,
+                "right": 384,
+                "bottom": 836,
+                "width": 185,
+                "height": 190
+              }
+            }
+          ]
+        },
+        "jCastable": {
+          "stateTag": "06-match-j-castable-with-target",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "hudDataset": {
+            "layout": "port",
+            "mode": "1p",
+            "size": "compact",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 3.0824999999999974,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            1000,
+            1000
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.weapon_dash",
+              "targetWeaponId": "TEC_9",
+              "targetSlotId": 1,
+              "targetX": 682.7424338890581,
+              "targetY": 270.77587116059783
+            },
+            "kObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": true,
+              "remainSec": 0.9254000000000011,
+              "mitigationPct": 55
+            },
+            "floorTarget": {
+              "target": {
+                "x": 682.7424338890581,
+                "y": 270.77587116059783,
+                "weaponId": "TEC_9",
+                "slotId": 1
+              },
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "UNARMED",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 6,
+              "top": 104,
+              "right": 384,
+              "bottom": 482,
+              "width": 378,
+              "height": 378
+            },
+            "p1Rail": {
+              "left": 6,
+              "top": 60,
+              "right": 195,
+              "bottom": 98,
+              "width": 189,
+              "height": 38
+            },
+            "p2Rail": {
+              "left": 195,
+              "top": 60,
+              "right": 384,
+              "bottom": 98,
+              "width": 189,
+              "height": 38
+            },
+            "matchCenter": {
+              "left": 158,
+              "top": 60,
+              "right": 232,
+              "bottom": 98,
+              "width": 74,
+              "height": 38
+            },
+            "p1HpVal": {
+              "left": 85.45,
+              "top": 60.48,
+              "right": 154,
+              "bottom": 75.5,
+              "width": 68.55,
+              "height": 15.02
+            },
+            "p1HpBar": {
+              "left": 6,
+              "top": 77.5,
+              "right": 154,
+              "bottom": 91.5,
+              "width": 148,
+              "height": 14
+            },
+            "p1Ident": {
+              "left": 6,
+              "top": 488,
+              "right": 192,
+              "bottom": 532,
+              "width": 186,
+              "height": 44
+            },
+            "p1Skills": {
+              "left": 6,
+              "top": 646,
+              "right": 384,
+              "bottom": 836,
+              "width": 378,
+              "height": 190
+            },
+            "p1Skill0": {
+              "left": 6,
+              "top": 646,
+              "right": 191,
+              "bottom": 836,
+              "width": 185,
+              "height": 190
+            },
+            "p1Skill1": {
+              "left": 199,
+              "top": 646,
+              "right": 384,
+              "bottom": 836,
+              "width": 185,
+              "height": 190
+            },
+            "p1Weapon": {
+              "left": 198,
+              "top": 488,
+              "right": 384,
+              "bottom": 532,
+              "width": 186,
+              "height": 44
+            },
+            "p2Ident": {
+              "left": 237.28,
+              "top": 6,
+              "right": 384,
+              "bottom": 54,
+              "width": 146.72,
+              "height": 48
+            },
+            "p2Skills": {
+              "left": 6,
+              "top": 10,
+              "right": 221.28,
+              "bottom": 50,
+              "width": 215.28,
+              "height": 40
+            },
+            "p2Weapon": null,
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "1",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "TAP · DASH",
+              "slotLabel": "TARGET: TEC-9",
+              "ariaLabel": "WEAPON DASH (J) — TAP · DASH — TARGET: TEC-9",
+              "clientWidth": 185,
+              "scrollWidth": 185,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 646,
+                "right": 191,
+                "bottom": 836,
+                "width": 185,
+                "height": 190
+              }
+            },
+            {
+              "idx": 1,
+              "state": "active",
+              "tpState": "active",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "-55% · 1.0s",
+              "slotLabel": "-55% DMG SHIELD",
+              "ariaLabel": "VIRTUAL ARMOR (K) — -55% · 1.0s",
+              "clientWidth": 185,
+              "scrollWidth": 185,
+              "overflowPx": 0,
+              "box": {
+                "left": 199,
+                "top": 646,
+                "right": 384,
+                "bottom": 836,
+                "width": 185,
+                "height": 190
+              }
+            }
+          ]
+        },
+        "cooldown": {
+          "stateTag": "07-match-cooldown",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "hudDataset": {
+            "layout": "port",
+            "mode": "1p",
+            "size": "compact",
+            "roundAuthority": "0",
+            "quest": "0"
+          },
+          "simTime": 15.23169999999992,
+          "tutorialPauseActive": false,
+          "fighterHp": [
+            884.5,
+            867
+          ],
+          "engineTruth": {
+            "jObs": {
+              "known": true,
+              "castable": false,
+              "reason": "cooldown",
+              "mechanic": "robot.weapon_dash"
+            },
+            "kObs": {
+              "known": true,
+              "castable": true,
+              "reason": "ready",
+              "mechanic": "robot.virtual_armor"
+            },
+            "kWin": {
+              "active": false,
+              "remainSec": 0,
+              "mitigationPct": 0
+            },
+            "floorTarget": {
+              "target": null,
+              "nextSpawn": null
+            }
+          },
+          "p1RoleSub": "YOU · AUTO FIGHT",
+          "p2RoleSub": "BOT · AUTO AI",
+          "p1WeaponName": "ZBROYAR Z-15 · SKIN 1",
+          "p1WeaponAmmo": "",
+          "boxes": {
+            "arena": {
+              "left": 6,
+              "top": 104,
+              "right": 384,
+              "bottom": 482,
+              "width": 378,
+              "height": 378
+            },
+            "p1Rail": {
+              "left": 6,
+              "top": 60,
+              "right": 195,
+              "bottom": 98,
+              "width": 189,
+              "height": 38
+            },
+            "p2Rail": {
+              "left": 195,
+              "top": 60,
+              "right": 384,
+              "bottom": 98,
+              "width": 189,
+              "height": 38
+            },
+            "matchCenter": {
+              "left": 158,
+              "top": 60,
+              "right": 232,
+              "bottom": 98,
+              "width": 74,
+              "height": 38
+            },
+            "p1HpVal": {
+              "left": 95.64,
+              "top": 60.48,
+              "right": 154,
+              "bottom": 75.5,
+              "width": 58.36,
+              "height": 15.02
+            },
+            "p1HpBar": {
+              "left": 6,
+              "top": 77.5,
+              "right": 154,
+              "bottom": 91.5,
+              "width": 148,
+              "height": 14
+            },
+            "p1Ident": {
+              "left": 6,
+              "top": 488,
+              "right": 192,
+              "bottom": 532,
+              "width": 186,
+              "height": 44
+            },
+            "p1Skills": {
+              "left": 6,
+              "top": 646,
+              "right": 384,
+              "bottom": 836,
+              "width": 378,
+              "height": 190
+            },
+            "p1Skill0": {
+              "left": 6,
+              "top": 646,
+              "right": 191,
+              "bottom": 836,
+              "width": 185,
+              "height": 190
+            },
+            "p1Skill1": {
+              "left": 199,
+              "top": 646,
+              "right": 384,
+              "bottom": 836,
+              "width": 185,
+              "height": 190
+            },
+            "p1Weapon": {
+              "left": 198,
+              "top": 488,
+              "right": 384,
+              "bottom": 532,
+              "width": 186,
+              "height": 44
+            },
+            "p2Ident": {
+              "left": 237.28,
+              "top": 6,
+              "right": 384,
+              "bottom": 54,
+              "width": 146.72,
+              "height": 48
+            },
+            "p2Skills": {
+              "left": 6,
+              "top": 10,
+              "right": 221.28,
+              "bottom": 50,
+              "width": 215.28,
+              "height": 40
+            },
+            "p2Weapon": null,
+            "coachChip": null,
+            "coachSkip": null
+          },
+          "overlaps": {
+            "p1IdentVsSkills": 0,
+            "p1SkillsVsArena": 0,
+            "p1WeaponVsArena": 0,
+            "p1HpValVsBar": 0,
+            "coachVsArena": 0,
+            "coachVsP1Skills": 0,
+            "coachVsP1Ident": 0
+          },
+          "arenaInViewport": true,
+          "arenaSquareDeltaPx": 0,
+          "skillCards": [
+            {
+              "idx": 0,
+              "state": "cd",
+              "tpState": "cd",
+              "tpCastable": "0",
+              "tpTarget": "0",
+              "name": "WEAPON DASH",
+              "key": "J",
+              "stateLabel": "CD 9.4s",
+              "slotLabel": "ABILITY 1",
+              "ariaLabel": "WEAPON DASH (J) — CD 9.4s",
+              "clientWidth": 185,
+              "scrollWidth": 185,
+              "overflowPx": 0,
+              "box": {
+                "left": 6,
+                "top": 646,
+                "right": 191,
+                "bottom": 836,
+                "width": 185,
+                "height": 190
+              }
+            },
+            {
+              "idx": 1,
+              "state": "ready",
+              "tpState": "ready",
+              "tpCastable": "1",
+              "tpTarget": "0",
+              "name": "VIRTUAL ARMOR",
+              "key": "K",
+              "stateLabel": "TAP · CAST",
+              "slotLabel": "ACTIVE WINDOW",
+              "ariaLabel": "VIRTUAL ARMOR (K) — TAP · CAST",
+              "clientWidth": 185,
+              "scrollWidth": 185,
+              "overflowPx": 0,
+              "box": {
+                "left": 199,
+                "top": 646,
+                "right": 384,
+                "bottom": 836,
+                "width": 185,
+                "height": 190
+              }
+            }
+          ]
+        }
+      },
+      "resultAudit": {
+        "innerWidth": 390,
+        "innerHeight": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 844,
+        "horizOverflowPx": 0,
+        "winnerAttr": "1",
+        "playerCards": 6,
+        "buttons": [
+          {
+            "text": "Replay",
+            "w": 44,
+            "h": 44,
+            "top": 8,
+            "bottom": 52
+          },
+          {
+            "text": "P121",
+            "w": 180,
+            "h": 44,
+            "top": 491,
+            "bottom": 535
+          },
+          {
+            "text": "P222",
+            "w": 180,
+            "h": 44,
+            "top": 491,
+            "bottom": 535
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 545,
+            "bottom": 589
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 545,
+            "bottom": 589
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 545,
+            "bottom": 589
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 545,
+            "bottom": 589
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 545,
+            "bottom": 589
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 593,
+            "bottom": 637
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 593,
+            "bottom": 637
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 593,
+            "bottom": 637
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 593,
+            "bottom": 637
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 593,
+            "bottom": 637
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 641,
+            "bottom": 685
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 689,
+            "bottom": 733
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 689,
+            "bottom": 733
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 689,
+            "bottom": 733
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 689,
+            "bottom": 733
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 689,
+            "bottom": 733
+          },
+          {
+            "text": "",
+            "w": 70,
+            "h": 44,
+            "top": 737,
+            "bottom": 781
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "",
+            "w": 0,
+            "h": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          {
+            "text": "Continue",
+            "w": 314,
+            "h": 44,
+            "top": 790,
+            "bottom": 834
+          },
+          {
+            "text": "Achievements archive",
+            "w": 44,
+            "h": 44,
+            "top": 790,
+            "bottom": 834
+          },
+          {
+            "text": "SkipSpace",
+            "w": 84,
+            "h": 44,
+            "top": 18,
+            "bottom": 62
+          }
+        ]
+      },
+      "returnState": {
+        "resultGone": true,
+        "battleClosed": true,
+        "stageClass": "ready fighter-bot screen-fighter fighter-active-p2 fighter-p2-locked",
+        "tutorialPauseActive": false
+      }
+    }
+  },
+  "localVieAudit": {
+    "stateTag": "local-1v1-vie",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "hudDataset": {
+      "layout": "desk",
+      "mode": "2p",
+      "size": "desktop",
+      "roundAuthority": "0",
+      "quest": "0"
+    },
+    "simTime": 0.46279999999999943,
+    "tutorialPauseActive": false,
+    "fighterHp": [
+      1000,
+      1000
+    ],
+    "engineTruth": {
+      "jObs": {
+        "known": true,
+        "castable": false,
+        "reason": "condition",
+        "mechanic": "robot.weapon_dash"
+      },
+      "kObs": {
+        "known": true,
+        "castable": true,
+        "reason": "ready",
+        "mechanic": "robot.virtual_armor"
+      },
+      "kWin": {
+        "active": false,
+        "remainSec": 0,
+        "mitigationPct": 0
+      },
+      "floorTarget": {
+        "target": null,
+        "nextSpawn": {
+          "x": 500.9224035877633,
+          "y": 359.6404935019687,
+          "remainSec": 1.5702000000000007,
+          "slotId": 1
+        }
+      }
+    },
+    "p1RoleSub": "P1 · TỰ ĐÁNH",
+    "p2RoleSub": "P2 · TỰ ĐÁNH",
+    "p1WeaponName": "TAY KHÔNG",
+    "p1WeaponAmmo": "",
+    "boxes": {
+      "arena": {
+        "left": 306,
+        "top": 64,
+        "right": 1134,
+        "bottom": 892,
+        "width": 828,
+        "height": 828
+      },
+      "p1Rail": {
+        "left": 8,
+        "top": 8,
+        "right": 720,
+        "bottom": 56,
+        "width": 712,
+        "height": 48
+      },
+      "p2Rail": {
+        "left": 720,
+        "top": 8,
+        "right": 1432,
+        "bottom": 56,
+        "width": 712,
+        "height": 48
+      },
+      "matchCenter": {
+        "left": 666,
+        "top": 8,
+        "right": 774,
+        "bottom": 56,
+        "width": 108,
+        "height": 48
+      },
+      "p1HpVal": {
+        "left": 572.8,
+        "top": 6.42,
+        "right": 662,
+        "bottom": 27,
+        "width": 89.2,
+        "height": 20.58
+      },
+      "p1HpBar": {
+        "left": 8,
+        "top": 29,
+        "right": 662,
+        "bottom": 49,
+        "width": 654,
+        "height": 20
+      },
+      "p1Ident": {
+        "left": 8,
+        "top": 72,
+        "right": 298,
+        "bottom": 184.31,
+        "width": 290,
+        "height": 112.31
+      },
+      "p1Skills": {
+        "left": 8,
+        "top": 359.91,
+        "right": 298,
+        "bottom": 621.91,
+        "width": 290,
+        "height": 262
+      },
+      "p1Skill0": {
+        "left": 8,
+        "top": 359.91,
+        "right": 298,
+        "bottom": 485.91,
+        "width": 290,
+        "height": 126
+      },
+      "p1Skill1": {
+        "left": 8,
+        "top": 495.91,
+        "right": 298,
+        "bottom": 621.91,
+        "width": 290,
+        "height": 126
+      },
+      "p1Weapon": {
+        "left": 8,
+        "top": 797.5,
+        "right": 298,
+        "bottom": 892,
+        "width": 290,
+        "height": 94.5
+      },
+      "p2Ident": {
+        "left": 1142,
+        "top": 72,
+        "right": 1432,
+        "bottom": 184.31,
+        "width": 290,
+        "height": 112.31
+      },
+      "p2Skills": {
+        "left": 1142,
+        "top": 359.91,
+        "right": 1432,
+        "bottom": 621.91,
+        "width": 290,
+        "height": 262
+      },
+      "p2Weapon": {
+        "left": 1142,
+        "top": 797.5,
+        "right": 1432,
+        "bottom": 892,
+        "width": 290,
+        "height": 94.5
+      },
+      "coachChip": null,
+      "coachSkip": null
+    },
+    "overlaps": {
+      "p1IdentVsSkills": 0,
+      "p1SkillsVsArena": 0,
+      "p1WeaponVsArena": 0,
+      "p1HpValVsBar": 0,
+      "coachVsArena": 0,
+      "coachVsP1Skills": 0,
+      "coachVsP1Ident": 0
+    },
+    "arenaInViewport": true,
+    "arenaSquareDeltaPx": 0,
+    "skillCards": [
+      {
+        "idx": 0,
+        "state": "ready",
+        "tpState": "standby",
+        "tpCastable": "0",
+        "tpTarget": "0",
+        "name": "LAO TỚI VŨ KHÍ",
+        "key": "J",
+        "stateLabel": "CHỜ SÚNG",
+        "slotLabel": "CHƯA CÓ MỤC TIÊU",
+        "ariaLabel": "WEAPON DASH (J) — CHỜ SÚNG",
+        "clientWidth": 290,
+        "scrollWidth": 290,
+        "overflowPx": 0,
+        "box": {
+          "left": 8,
+          "top": 359.91,
+          "right": 298,
+          "bottom": 485.91,
+          "width": 290,
+          "height": 126
+        }
+      },
+      {
+        "idx": 1,
+        "state": "ready",
+        "tpState": "ready",
+        "tpCastable": "1",
+        "tpTarget": "0",
+        "name": "GIÁP ẢO",
+        "key": "K",
+        "stateLabel": "READY AGAIN",
+        "slotLabel": "THỜI GIAN HIỆU LỰC",
+        "ariaLabel": "VIRTUAL ARMOR (K) — READY AGAIN",
+        "clientWidth": 290,
+        "scrollWidth": 290,
+        "overflowPx": 0,
+        "box": {
+          "left": 8,
+          "top": 495.91,
+          "right": 298,
+          "bottom": 621.91,
+          "width": 290,
+          "height": 126
+        }
+      }
+    ]
+  }
+}

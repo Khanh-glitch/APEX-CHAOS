@@ -1,26 +1,27 @@
-// RA-1.B — Tutorial input truth, pause lease, resume, SKIP and recovery.
+// RA-1.B (Tactical Pulse Non-Blocking Contract) — Tutorial input truth,
+// zero pause lease, live clock continuity, K-first castability when J lacks a
+// floor gun, single-cast forwarding, >=44x44 SKIP hit target, pagehide/pageshow
+// continuity, and Escape early exit to Fighter Select.
 //
-// Owner-reported risk: a phone lesson teaching "Press J" while the player
-// only has touch. This gate drives the REAL integrated app and the REAL
-// coach, not a fixture:
-//   A  touch session (CDP touch input): lesson names the HUD card, pause
-//      lease freezes the clock, tapping the taught card resumes once and
-//      advances the step.
-//   B  hybrid session: the page LIES about (pointer: coarse) (a paired mouse
-//      makes the primary pointer fine) and the player still touches. Copy
-//      must follow the observed input, not the boot-time media query.
-//   C  keyboard session: lesson teaches J, the J key resumes and advances.
-//   D  SKIP ends the coach with no pause lease left behind.
-//   E  pagehide/pageshow recovery releases a held pause lease and returns to a
-//      ticking match clock (a backgrounded tab can never leave it frozen).
-//   F  Escape before tutorial completion exits to Fighter Select, releases the
-//      pause and leaves the unfinished coach resumable.
-//
-// Harness: house CDP pattern (dev server via APEX_APP_URL, CHROME_PATH).
+// Drives the REAL integrated app and REAL combat simulation in Chromium:
+//   A  touch session (390x844): coach teaches castable K first while J awaits a
+//      floor gun, holds NO pause lease, match clock advances live, tapping K
+//      casts VIRTUAL ARMOR once, then when floor gun spawns coach teaches J,
+//      SKIP >= 44x44px ends coach cleanly with zero pause lease.
+//   B  hybrid session (lying `(pointer: coarse)` = false while human touches):
+//      observed touch wins over lying media query (VIE copy); pagehide/pageshow
+//      keep lease false and match clock continuously running.
+//   C  keyboard session (1280x800): pressing J without a floor gun consumes NO
+//      cooldown; coach teaches K key first; pressing K casts once & activates
+//      durational armor; once floor gun spawns coach teaches J key and J casts
+//      once to advance coach to step 5.
+//   F  Escape before tutorial completion exits cleanly to Fighter Select with
+//      zero pause lease and leaves unfinished coach resumable.
+
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-const APP = process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
+const APP = process.env.APEX_APP_URL || 'http://127.0.0.1:4173/';
 const BIN = process.env.CHROME_PATH;
 if (!BIN) throw new Error('CHROME_PATH not set');
 const PORT = Number(process.env.CDP_PORT || 9434);
@@ -66,7 +67,7 @@ async function waitFor(expr, label, timeoutMs = 60000) {
     try { v = await evl(expr); } catch { /* navigations */ }
     if (v) return true;
     if (Date.now() - t0 > timeoutMs) throw new Error('waitFor timeout: ' + label);
-    await sleep(300);
+    await sleep(180);
   }
 }
 async function shot(name) {
@@ -100,7 +101,23 @@ async function key(code, keyName, vk) {
   await cmd('Input.dispatchKeyEvent', { type: 'keyUp', windowsVirtualKeyCode: vk, code, key: keyName });
   await sleep(150);
 }
-const CHIP = `(()=>{ const c=document.querySelector('.apex-coach-chip'); const layer=document.querySelector('.apex-guide-dock'); return c?{body:document.querySelector('.apex-guide-body')?.textContent||'',kicker:document.querySelector('.apex-guide-kicker')?.textContent||'',pause:!!window.APEX_TUTORIAL_PAUSE?.active,pausedAttr:layer?layer.getAttribute('data-tutorial-paused'):null,bodyClass:document.body.classList.contains('apex-tutorial-paused'),chipRect:(()=>{const r=c.getBoundingClientRect();return{x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.width),h:Math.round(r.height)}})()}:null; })()`;
+
+const CHIP = `(()=>{
+  const c=document.querySelector('.apex-coach-chip');
+  const layer=document.querySelector('.apex-guide-dock');
+  const skip=document.querySelector('.apex-coach-skip');
+  const sr=skip?skip.getBoundingClientRect():null;
+  return c?{
+    body:document.querySelector('.apex-guide-body')?.textContent||'',
+    kicker:document.querySelector('.apex-guide-kicker')?.textContent||'',
+    taughtSlot:layer?layer.getAttribute('data-taught-slot'):null,
+    pause:!!window.APEX_TUTORIAL_PAUSE?.active,
+    pausedAttr:layer?layer.getAttribute('data-tutorial-paused'):null,
+    bodyClass:document.body.classList.contains('apex-tutorial-paused'),
+    skipRect:sr?{w:Math.round(sr.width),h:Math.round(sr.height)}:null,
+    chipRect:(()=>{const r=c.getBoundingClientRect();return{x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.width),h:Math.round(r.height)}})()
+  }:null;
+})()`;
 const CLOCK = `(()=>{const s=window.APEX_ARSENAL?.state; return s?{time:Number(s.time)||0,over:!!s.over}:null})()`;
 
 async function boot(lang = 'eng', touch = true, lieAboutPointer = false) {
@@ -108,8 +125,6 @@ async function boot(lang = 'eng', touch = true, lieAboutPointer = false) {
   await sleep(250);
   await cmd('Page.enable'); await cmd('Runtime.enable');
   if (lieAboutPointer) {
-    // A phone with a paired mouse: the primary pointer reads fine even
-    // though the human is touching. Reproduces the owner's risk class.
     await cmd('Page.addScriptToEvaluateOnNewDocument', { source: `(()=>{const original=window.matchMedia.bind(window);window.matchMedia=(q)=>{if(String(q)==='(pointer: coarse)'||String(q)==='(pointer: exact)'){const fake={matches:false,media:String(q),onchange:null,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){},dispatchEvent(){return false}};return fake}return original(q)}})()` });
   }
   await cmd('Page.navigate', { url: APP });
@@ -120,69 +135,62 @@ async function boot(lang = 'eng', touch = true, lieAboutPointer = false) {
   await waitFor(`!!document.querySelector('#apex-boot-start')`, 'boot action');
   if (touch) await tapSel('#apex-boot-start'); else { await evl(`document.querySelector('#apex-boot-start').click()`); }
   await waitFor(`!!document.querySelector('#freeBattle') && ${TX_IDLE}`, 'home');
-  await sleep(500);
+  await sleep(400);
   await evl(`window.APEX_I18N && window.APEX_I18N.setLanguage(${JSON.stringify(lang)})`);
 }
+
 async function toBattle(touch) {
   const tapOrClick = async (sel) => { if (touch) await tapSel(sel); else await evl(`document.querySelector(${JSON.stringify(sel)}).click()`); };
   await tapOrClick('#freeBattle');
   await waitFor(`document.querySelector('#stage')?.classList.contains('screen-mode') && ${TX_IDLE}`, 'mode screen');
-  await sleep(500);
+  await sleep(400);
   await tapOrClick('.modeCard[data-mode="bot"]');
   await waitFor(`document.querySelector('#stage')?.classList.contains('screen-fighter') && ${TX_IDLE}`, 'fighter select');
-  await sleep(600);
+  await sleep(500);
   await tapOrClick('#lockIn');
   await waitFor(`document.querySelector('#stage')?.classList.contains('fighter-active-p2')`, 'BOT pick turn', 30000);
   await tapOrClick('#lockIn');
   await waitFor(`document.querySelector('#battleHudHost')?.classList.contains('is-open') && !!document.querySelector('#p1Side .skill')`, 'live battle HUD');
 }
-async function waitLesson(slot) {
-  const expr = `(()=>{const c=document.querySelector('.apex-coach-chip'); if(!c) return false; const k=document.querySelector('.apex-guide-kicker')?.textContent||''; const layer=document.querySelector('.apex-guide-dock'); return k.includes('/6') && !!layer && layer.getAttribute('data-tutorial-paused')==='true' && !!window.APEX_TUTORIAL_PAUSE?.active;})()`;
-  const timeoutMs = 150000;
-  try {
-    await waitFor(expr, 'paused lesson', timeoutMs);
-  } catch (error) {
-    const diag = await evl(`(()=>{const c=document.querySelector('.apex-coach-chip');const s=window.APEX_ARSENAL?.state;return{chip:c?c.innerText.split('\\n').join(' | '):null,lease:window.APEX_TUTORIAL_PAUSE||null,mode:s?.battleMode,time:s?.time,over:s?.over,live:(window.fighters||[]).map(f=>({hp:f.hp})),hud:document.querySelector('#hud')?.dataset.mode}})()`);
-    console.log('LESSON DIAG', JSON.stringify(diag));
-    throw error;
-  }
-}
 
-const settle = async () => { await sleep(400); return evl(CHIP); };
+async function waitBattleLesson(stepLabel = '4/6') {
+  const expr = `(()=>{const c=document.querySelector('.apex-coach-chip'); if(!c) return false; const k=document.querySelector('.apex-guide-kicker')?.textContent||''; return k.includes(${JSON.stringify(stepLabel)});})()`;
+  await waitFor(expr, `live non-blocking lesson ${stepLabel}`, 45000);
+  return evl(CHIP);
+}
 
 async function scenarioTouch() {
   await viewport(390, 844, true);
   await boot('eng', true, false);
   await toBattle(true);
-  await waitLesson(0);
-  const lesson = await settle();
-  check('A touch lesson names the HUD card, never a keyboard key',
-    /Tap Skill 1 now\./.test(lesson.body) && !/Press J|Nhấn J/.test(lesson.body), lesson.body);
-  check('A touch lesson holds the pause lease and the paused presentation',
-    lesson.pause === true && lesson.pausedAttr === 'true' && lesson.bodyClass === true, JSON.stringify(lesson));
-  const c1 = await evl(CLOCK); await sleep(700); const c2 = await evl(CLOCK);
-  check('A paused lesson freezes the match clock', !!c1 && !!c2 && Math.abs(c2.time - c1.time) < 0.05, `${c1?.time} -> ${c2?.time}`);
-  await shot('A-touch-lesson-390x844');
-  await tapSel('#p1Side .skill[data-i="0"]');
-  const after = await waitFor(`!window.APEX_TUTORIAL_PAUSE?.active`, 'lease released after tap', 8000).catch(() => false);
-  check('A tapping the taught card releases the pause lease', after === true);
-  const castForwarded = await waitFor(`(()=>{const s=document.querySelector('#p1Side .skill[data-i="0"]');const st=s?.dataset?.state;return !!st && st!=='ready';})()`, 'skill 1 entered its real cast state', 8000).catch(() => false);
-  check('A the taught tap is forwarded once into the real skill 1 cast', castForwarded === true,
-    await evl(`document.querySelector('#p1Side .skill[data-i="0"]')?.dataset?.state || 'unknown'`));
-  await sleep(600);
-  const c3 = await evl(CLOCK); await sleep(700); const c4 = await evl(CLOCK);
-  check('A the match resumes running after the lesson', !!c3 && !!c4 && (c4.time - c3.time) > 0.3, `${c3?.time} -> ${c4?.time}`);
-  // The skill-2 lesson is offered next; its paused chip is the SKIP surface.
-  await waitLesson(1);
-  const second = await settle();
-  check('A the touched cast advances the coach to the skill 2 lesson', /5\/6/.test(second.kicker), second.kicker);
-  check('A the skill 2 lesson offers SKIP while it holds the lease',
-    !!(await evl(`!!document.querySelector('.apex-coach-skip')`)) && second.pause === true && second.pausedAttr === 'true', JSON.stringify({ pause: second.pause, pausedAttr: second.pausedAttr }));
-  await shot('A-touch-lesson2-390x844');
+  const lesson = await waitBattleLesson('4/6');
+
+  check('A touch lesson names HUD card (never keyboard key J/K)',
+    /Tap Skill (1|2) now/i.test(lesson.body) && !/Press J|Press K|Nhấn J|Nhấn K/.test(lesson.body), lesson.body);
+  check('A non-blocking coach holds NO pause lease (active=false, data-tutorial-paused=false)',
+    lesson.pause === false && lesson.pausedAttr === 'false' && lesson.bodyClass === false, JSON.stringify(lesson));
+  check('A SKIP button satisfies >=44x44px WCAG touch hit target',
+    !!lesson.skipRect && lesson.skipRect.w >= 44 && lesson.skipRect.h >= 44, JSON.stringify(lesson.skipRect));
+
+  const c1 = await evl(CLOCK); await sleep(650); const c2 = await evl(CLOCK);
+  check('A live match clock keeps advancing while lesson prompt is visible',
+    !!c1 && !!c2 && (c2.time - c1.time) > 0.25, `${c1?.time} -> ${c2?.time}`);
+  await shot('A-touch-lesson1-nonblocking-390x844');
+
+  const slotIdx = Number(lesson.taughtSlot || 0);
+  await tapSel(`#p1Side .skill[data-i="${slotIdx}"]`);
+  const singleCast = await waitFor(`(()=>{const by=window.fighters?.[0]?.__hrCombatant?.telemetry?.bySkill; const n=Number(by?.${slotIdx === 1 ? 'A2' : 'A1'})||0; return n===1;})()`, 'single cast receipt', 8000).catch(() => false);
+  check('A tapping taught skill card casts it ONCE (no double-cast)', singleCast === true);
+
+  const second = await waitBattleLesson('5/6');
+  check('A first real cast advances non-blocking coach to remaining skill lesson (5/6)',
+    /5\/6/.test(second.kicker) && second.pause === false, JSON.stringify(second));
+  await shot('A-touch-lesson2-nonblocking-390x844');
+
   await tapSel('.apex-coach-skip');
-  await sleep(600);
+  await sleep(450);
   const skipped = await evl(`(()=>{const raw=JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'{}');return{done:raw.done===true,skip:raw.skipped===true,chip:!!document.querySelector('.apex-coach-chip'),lease:!!window.APEX_TUTORIAL_PAUSE?.active,bodyClass:document.body.classList.contains('apex-tutorial-paused')}})()`);
-  check('A SKIP ends the coach with no pause lease left behind',
+  check('D SKIP cleanly finishes coach with done=true, skipped=true, and zero pause lease',
     skipped.done === true && skipped.skip === true && skipped.chip === false && skipped.lease === false && skipped.bodyClass === false, JSON.stringify(skipped));
 }
 
@@ -190,67 +198,86 @@ async function scenarioHybrid() {
   await viewport(390, 844, true);
   await boot('vie', true, true);
   await toBattle(true);
-  await waitLesson(0);
+  const lesson = await waitBattleLesson('4/6');
   const media = await evl(`({coarse:matchMedia('(pointer: coarse)').matches})`);
-  await evl(`(()=>{const c=JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'{}');window.__ra1coach=c})()`);
-  const lesson = await settle();
-  check('B the hybrid page really reports a fine (non-coarse) pointer', media.coarse === false, JSON.stringify(media));
-  check('B observed touch wins over the lying media query (VIE copy)',
-    /Chạm thẻ Kỹ năng 1 ngay/.test(lesson.body) && !/Nhấn J/.test(lesson.body), lesson.body);
+  check('B hybrid page genuinely reports fine pointer (coarse=false)', media.coarse === false, JSON.stringify(media));
+  check('B observed touch wins over lying media query (VIE touch copy, never Nhấn J/K)',
+    /chạm thẻ Kỹ năng (1|2) ngay/i.test(lesson.body) && !/Nhấn J|Nhấn K/.test(lesson.body), lesson.body);
   await shot('B-hybrid-lesson-390x844-vie');
-  // Recovery: a backgrounded page must never leave the match frozen.
-  // pagehide dispatch is synchronous: if the listener is attached, the lease
-  // is already released in the same task (a later read could race the coach
-  // legitimately offering the same lesson again).
-  const recovered = await evl(`(()=>{window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:false}));return{lease:!!window.APEX_TUTORIAL_PAUSE?.active}})()`);
-  check('E pagehide recovery releases the gameplay pause lease synchronously', recovered.lease === false, JSON.stringify(recovered));
-  // After a return the coach may honestly re-offer the same lesson; what must
-  // never happen is an unescapable freeze. Either the match is running again
-  // or the re-offered lesson exposes SKIP.
-  const t1 = await evl(CLOCK); await sleep(900); const t2 = await evl(CLOCK);
-  const escape = await evl(`(()=>{const c=document.querySelector('.apex-coach-chip');return{lease:!!window.APEX_TUTORIAL_PAUSE?.active,skip:!!document.querySelector('.apex-coach-skip'),presentationPaused:document.body.classList.contains('apex-tutorial-paused')}})()`);
-  const clockRunning = !!t1 && !!t2 && (t2.time - t1.time) > 0.3;
-  check('E recovery never leaves an unescapable freeze',
-    clockRunning === true || (escape.lease === true && escape.skip === true),
-    JSON.stringify({ clockRunning, from: t1?.time, to: t2?.time, ...escape }));
-  // Model the return from the browser's back/forward cache. If the coach
-  // legitimately re-offered the lesson, use its real SKIP control, then prove
-  // the match clock is ticking again rather than assuming a pageshow event did.
-  await evl(`(()=>{window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));return true})()`);
-  if(escape.lease&&escape.skip){await tapSel('.apex-coach-skip');await sleep(400)}
-  const resumeFrom=await evl(CLOCK);await sleep(750);const resumeTo=await evl(CLOCK);
-  check('E pageshow/recovery path returns to a running match clock',!!resumeFrom&&!!resumeTo&&(resumeTo.time-resumeFrom.time)>0.3,`${resumeFrom?.time} -> ${resumeTo?.time}`);
-}
 
-async function scenarioEarlyExit() {
-  await viewport(390,844,true);
-  await boot('eng',true,false);
-  await toBattle(true);
-  await waitLesson(0);
-  const lesson=await settle();
-  check('F early-exit fixture begins inside a genuinely paused first lesson',lesson.pause===true&&lesson.pausedAttr==='true',JSON.stringify(lesson));
-  await shot('F-early-exit-before-escape-390x844');
-  await key('Escape','Escape',27);
-  await waitFor(`!document.querySelector('#battleHudHost')?.classList.contains('is-open') && document.querySelector('#stage')?.classList.contains('screen-fighter') && ${TX_IDLE}`,'early tutorial exit to Fighter Select',25000);
-  const state=await evl(`(()=>{const saved=JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'{}');return{stage:document.querySelector('#stage')?.className||'',hudOpen:!!document.querySelector('#battleHudHost')?.classList.contains('is-open'),lease:!!window.APEX_TUTORIAL_PAUSE?.active,pausedPresentation:document.body.classList.contains('apex-tutorial-paused'),done:saved.done===true,skipped:saved.skipped===true}})()`);
-  check('F early exit releases the pause lease and leaves the unfinished coach resumable',state.hudOpen===false&&!state.lease&&!state.pausedPresentation&&state.done===false&&state.skipped===false&&/screen-fighter/.test(state.stage),JSON.stringify(state));
-  await shot('F-early-exit-after-escape-390x844');
+  const recovered = await evl(`(()=>{window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:false}));window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));return{lease:!!window.APEX_TUTORIAL_PAUSE?.active}})()`);
+  check('E pagehide/pageshow keeps pause lease strictly false', recovered.lease === false, JSON.stringify(recovered));
+  const t1 = await evl(CLOCK); await sleep(650); const t2 = await evl(CLOCK);
+  check('E match clock ticks continuously across pagehide/pageshow',
+    !!t1 && !!t2 && (t2.time - t1.time) > 0.25, `${t1?.time} -> ${t2?.time}`);
 }
 
 async function scenarioKeyboard() {
   await viewport(1280, 800, false);
   await boot('eng', false, false);
   await toBattle(false);
-  await waitLesson(0);
-  const lesson = await settle();
-  check('C keyboard lesson teaches the J key', /Press J now\./.test(lesson.body) && !/Tap Skill 1/.test(lesson.body), lesson.body);
-  await shot('C-keyboard-lesson-1280x800');
+
+  // Immediately inspect t~0 before first floor gun finishes 2.0s telegraph:
+  const opening = await waitBattleLesson('4/6');
+  const openingTruth = await evl(`(()=>{
+    const p1=window.fighters?.[0];
+    const jObs=window.APEX_HERO_REWORK?.observeAbilityCastability?.(p1,'A1');
+    const kObs=window.APEX_HERO_REWORK?.observeAbilityCastability?.(p1,'A2');
+    const jCard=document.querySelector('#p1Side .skill[data-i="0"]');
+    const kCard=document.querySelector('#p1Side .skill[data-i="1"]');
+    return {
+      jCastable:jObs?.castable, jTpState:jCard?.dataset?.tpState,
+      kCastable:kObs?.castable, kTpState:kCard?.dataset?.tpState,
+      taughtSlot:document.querySelector('.apex-guide-dock')?.getAttribute('data-taught-slot')
+    };
+  })()`);
+  if (openingTruth.jCastable === false) {
+    check('C opening before floor gun: J is STANDBY (not falsely READY) and K is taught first',
+      openingTruth.jTpState === 'standby' && openingTruth.kCastable === true && openingTruth.taughtSlot === '1'
+      && /Press K now/.test(opening.body), JSON.stringify({ openingTruth, body: opening.body }));
+    // Invalid J press before floor gun must NOT consume cooldown or increment casts.
+    await key('KeyJ', 'j', 74);
+    const afterInvalidJ = await evl(`(()=>{const ct=window.fighters?.[0]?.__hrCombatant;return{cdLeft:ct?.skills?.A1?.cdLeft||0,casts:ct?.telemetry?.bySkill?.A1||0}})()`);
+    check('C invalid J press without floor gun consumes ZERO cooldown',
+      afterInvalidJ.cdLeft === 0 && afterInvalidJ.casts === 0, JSON.stringify(afterInvalidJ));
+  } else {
+    check('C keyboard lesson teaches castable keyboard shortcut (never touch copy)',
+      /Press (J|K) now/.test(opening.body) && !/Tap Skill/.test(opening.body), opening.body);
+  }
+  await shot('C-keyboard-lesson1-1280x800');
+
+  // Cast K via keyboard, confirm active window & advancement to 5/6 (remaining skill J).
+  await key('KeyK', 'k', 75);
+  const kActive = await waitFor(`(()=>{const w=window.APEX_HERO_REWORK?.observeAbilityActiveWindow?.(window.fighters?.[0],'A2');return !!w?.active && w.mitigationPct>0;})()`, 'K active armor window', 5000).catch(() => false);
+  check('C casting K activates simulation-clock armor window with live mitigation%', kActive === true);
+
+  // Now wait for real floor gun reveal -> J becomes CASTABLE and coach teaches J (5/6).
+  const jLesson = await waitBattleLesson('5/6');
+  check('C once floor gun spawns, coach teaches J (5/6) with live target cue',
+    /Press J now/i.test(jLesson.body) && jLesson.taughtSlot === '0', JSON.stringify(jLesson));
+  await shot('C-keyboard-lesson2-j-castable-1280x800');
+
+  // Re-confirm live floor target right before pressing J since non-blocking combat continues running during screenshot capture.
+  await waitFor(`window.APEX_HERO_REWORK?.observeAbilityCastability?.(window.fighters?.[0],'A1')?.castable === true`, 'live floor gun ready for J cast', 25000);
   await key('KeyJ', 'j', 74);
-  const released = await waitFor(`!window.APEX_TUTORIAL_PAUSE?.active`, 'keyboard lease release', 8000).catch(() => false);
-  check('C the taught J key releases the pause lease', released === true);
-  const advanced = await waitFor(`(()=>{const k=document.querySelector('.apex-guide-kicker')?.textContent||'';return k.includes('5/6')})()`, 'skill-2 lesson after the J cast', 15000).catch(() => false);
-  const next = await evl(CHIP);
-  check('C the J cast advances the coach to skill 2', advanced === true && !!next && /5\/6/.test(next.kicker), next?.kicker || 'no chip');
+  const completedBoth = await waitFor(`window.APEX_LEARN_BY_PLAYING?.state?.()?.step === 5`, 'coach advances to step 5 after J+K casts', 10000).catch(() => false);
+  check('C casting J advances coach to step 5 with both battle skills completed', completedBoth === true);
+}
+
+async function scenarioEarlyExit() {
+  await viewport(390, 844, true);
+  await boot('eng', true, false);
+  await toBattle(true);
+  const lesson = await waitBattleLesson('4/6');
+  check('F early-exit begins inside live non-paused first battle lesson',
+    lesson.pause === false && lesson.pausedAttr === 'false', JSON.stringify(lesson));
+  await shot('F-early-exit-before-escape-390x844');
+  await key('Escape', 'Escape', 27);
+  await waitFor(`!document.querySelector('#battleHudHost')?.classList.contains('is-open') && document.querySelector('#stage')?.classList.contains('screen-fighter') && ${TX_IDLE}`, 'early tutorial exit to Fighter Select', 25000);
+  const state = await evl(`(()=>{const saved=JSON.parse(localStorage.getItem('apex.alpha.coach.v2')||'{}');return{stage:document.querySelector('#stage')?.className||'',hudOpen:!!document.querySelector('#battleHudHost')?.classList.contains('is-open'),lease:!!window.APEX_TUTORIAL_PAUSE?.active,pausedPresentation:document.body.classList.contains('apex-tutorial-paused'),done:saved.done===true,skipped:saved.skipped===true}})()`);
+  check('F early Escape exits cleanly to Fighter Select with zero pause lease and leaves unfinished coach resumable',
+    state.hudOpen === false && !state.lease && !state.pausedPresentation && state.done === false && state.skipped === false && /screen-fighter/.test(state.stage), JSON.stringify(state));
+  await shot('F-early-exit-after-escape-390x844');
 }
 
 async function main() {

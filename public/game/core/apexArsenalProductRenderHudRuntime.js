@@ -54,6 +54,9 @@
           else fighter.draw(ctx);
         }
       }
+      if (window.APEX_ROBOT_PRESENTATION && typeof window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay === 'function') {
+        window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay(ctx);
+      }
       for (const particle of particles) {
         if (particle && typeof particle.draw === 'function') particle.draw(ctx);
       }

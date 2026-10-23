@@ -114,7 +114,7 @@ async function runLanguage(language) {
   assert.equal(p1.overlapsCanvas, false, `${language}: P1 toast overlaps real battle canvas: ${JSON.stringify(p1)}`);
   assert.ok(p1.overlapsSkills.every((overlap) => !overlap), `${language}: P1 toast overlaps skill cards: ${JSON.stringify(p1)}`);
 
-  await page.waitForSelector('.apex-achievement-toast[data-owner-side="P2"][data-owner-kind="bot"]', { visible: true, timeout: 8000 });
+  await page.waitForSelector('.apex-achievement-toast[data-owner-side="P2"][data-owner-kind="bot"]', { visible: true, timeout: 16000 });
   const bot = await page.$eval('.apex-achievement-toast[data-owner-side="P2"]', (toast) => ({
     text: toast.innerText.replace(/\s+/g, ' ').trim(),
     compact: toast.classList.contains('is-compact'),

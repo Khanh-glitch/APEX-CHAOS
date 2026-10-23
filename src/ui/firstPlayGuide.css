@@ -1,19 +1,19 @@
-/* APEX CHAOS Learn by Playing — anchored, pointer-transparent coach.
-   The beacon and chip never capture input; only SKIP is interactive. */
-
-/* "?" replay control inside the Gold stage, below the ENG|VIE cluster. */
+/* APEX CHAOS — Learn by Playing Coach (Tactical Pulse Non-Blocking Edition) */
 #gold-shell-host #stage #apex-guide-open{
-  position:absolute;z-index:39;
-  top:calc(var(--safeT,0px) + 2.55vh + 104px);
-  right:calc(var(--safeR,0px) + 2.55vw);
-  width:40px;height:40px;
-  display:grid;place-items:center;
-  background:linear-gradient(180deg,rgba(25,26,30,.91),rgba(10,11,14,.91));
-  border:1px solid rgba(238,231,219,.22);
-  clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));
-  color:#f3ede2;cursor:pointer;
-  font:700 17px/1 'Oswald',sans-serif;
-  box-shadow:0 6px 20px rgba(0,0,0,.25);
+  position:absolute;
+  right:max(14px,env(safe-area-inset-right));
+  bottom:max(14px,env(safe-area-inset-bottom));
+  z-index:48;
+  min-width:44px;
+  min-height:44px;
+  border-radius:6px;
+  border:1px solid rgba(232,180,90,.34);
+  background:rgba(10,12,16,.88);
+  color:#efe6d5;
+  font:800 16px/1 "Chakra Petch","Barlow Condensed",sans-serif;
+  cursor:pointer;
+  display:grid;
+  place-items:center;
 }
 #gold-shell-host #stage #apex-guide-open:hover{color:#ffd27a;border-color:rgba(232,180,90,.55)}
 #gold-shell-host #stage #apex-guide-open:focus-visible{outline:2px solid #ffad3d;outline-offset:2px}
@@ -21,235 +21,173 @@
 #gold-shell-host #stage.screen-fighter #apex-guide-open,
 #gold-shell-host #stage.screen-draw #apex-guide-open,
 #gold-shell-host #stage.screen-battle #apex-guide-open{visibility:hidden;pointer-events:none}
-@media (orientation:portrait){
-  #gold-shell-host #stage #apex-guide-open{
-    top:calc(var(--safeT,0px) + 1.8vh + 96px);
-    right:calc(var(--safeR,0px) + 4vw);
-    width:44px;height:44px;
-  }
-}
 
+/* Strictly below .apex-achievement-toast (2147480700) so rewards/mastery win */
 .apex-guide-dock.apex-coach-layer{
-  position:fixed;inset:0;z-index:2147480750;pointer-events:none;
-  font-family:Arial, Helvetica, sans-serif;color:#f4efe4;
+  position:fixed;
+  inset:0;
+  z-index:2147480650;
+  pointer-events:none;
 }
-/* Deferred-only copy yields in the stacking order to Achievement/Reward/Skin
-   notifications even during the next 160 ms coach-sync tick. */
-.apex-guide-dock.apex-coach-layer.is-pickup-only{z-index:2147480690}
 .apex-coach-beacon{
-  position:fixed;pointer-events:none;box-sizing:border-box;
-  border:2px solid rgba(255,201,102,.96);
-  box-shadow:0 0 0 1px rgba(12,8,2,.82),0 0 22px rgba(255,166,45,.48),inset 0 0 18px rgba(255,166,45,.12);
-  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  position:fixed;
+  border:1.5px solid rgba(86,224,255,.88);
+  border-radius:4px;
+  box-shadow:0 0 18px rgba(86,224,255,.26),inset 0 0 12px rgba(86,224,255,.12);
+  pointer-events:none;
   animation:apex-coach-beacon-pulse 1.45s ease-in-out infinite;
 }
 .apex-coach-beacon::before,
 .apex-coach-beacon::after{
-  content:"";position:absolute;width:15px;height:15px;border-color:#fff0bc;border-style:solid;
+  content:"";
+  position:absolute;
+  width:10px;
+  height:10px;
+  border-color:#ffd27a;
+  border-style:solid;
 }
 .apex-coach-beacon::before{left:-2px;top:-2px;border-width:3px 0 0 3px}
 .apex-coach-beacon::after{right:-2px;bottom:-2px;border-width:0 3px 3px 0}
 
 .apex-guide-card.apex-coach-chip{
-  position:fixed;pointer-events:none;box-sizing:border-box;
-  display:flex;align-items:flex-start;gap:12px;
-  padding:11px 12px;
-  background:linear-gradient(155deg, rgba(25,22,15,.97), rgba(7,8,10,.98));
-  border:1px solid rgba(232,180,90,.68);
-  box-shadow:0 18px 46px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.08);
-  clip-path:polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-  animation:apex-coach-chip-in .22s ease-out;
+  position:fixed;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 10px;
+  border:1px solid rgba(86,224,255,.52);
+  border-left:3px solid #56e0ff;
+  border-radius:5px;
+  background:linear-gradient(180deg,rgba(11,16,22,.95),rgba(7,10,14,.97));
+  box-shadow:0 12px 28px rgba(0,0,0,.55);
+  color:#eef4f8;
+  font-family:"Chakra Petch","Barlow Condensed",sans-serif;
+  pointer-events:none;
+  animation:apex-coach-chip-in .2s ease-out;
+}
+.apex-guide-card.apex-coach-chip.is-compact{
+  padding:6px 8px;
+  gap:7px;
+}
+.apex-guide-card.apex-coach-chip.is-narrow{
+  flex-direction:column;
+  align-items:stretch;
+  padding:6px 7px;
+  gap:4px;
 }
 .apex-coach-copy{flex:1;min-width:0}
 .apex-guide-kicker{
-  margin:0 0 3px;color:#e8b45a;
-  font:800 8px/1.25 ui-monospace,monospace;letter-spacing:.16em;
-}
-.apex-guide-card.apex-coach-chip h2{
-  margin:0;color:#fff;font-family:'Oswald',Arial,sans-serif;
-  font-size:clamp(16px,2.2vw,20px);line-height:1.05;
-  font-style:italic;font-weight:900;letter-spacing:.03em;text-transform:uppercase;
-}
-.apex-guide-body{
-  margin:5px 0 0;color:#dfe6ed;
-  font-size:12.5px;font-weight:650;line-height:1.42;
-}
-.apex-coach-skip{
-  pointer-events:auto;flex:none;min-width:58px;min-height:38px;
-  padding:8px 10px;cursor:pointer;
-  border:1px solid rgba(255,255,255,.26);background:#191b20;color:#fff;
-  font:800 10px/1 'Oswald',Arial,sans-serif;letter-spacing:.1em;
-  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
-}
-.apex-coach-skip:hover{border-color:rgba(255,201,102,.72);color:#ffd27a}
-.apex-coach-skip:focus-visible{outline:2px solid #fff;outline-offset:2px}
-
-@keyframes apex-coach-beacon-pulse{
-  0%,100%{opacity:.78;box-shadow:0 0 0 1px rgba(12,8,2,.82),0 0 14px rgba(255,166,45,.34),inset 0 0 12px rgba(255,166,45,.08)}
-  50%{opacity:1;box-shadow:0 0 0 1px rgba(12,8,2,.9),0 0 28px rgba(255,166,45,.62),inset 0 0 20px rgba(255,166,45,.16)}
-}
-@keyframes apex-coach-chip-in{
-  from{opacity:0}
-  to{opacity:1}
-}
-
-.apex-guide-paused-note{
-  display:inline-block;
-  margin:8px 0 0;
-  padding:4px 9px;
-  border:1px solid rgba(255,210,122,.55);
-  border-radius:999px;
-  background:rgba(20,14,2,.72);
-  color:#ffd27a;
-  font:800 9px/1.35 ui-monospace,monospace;
-  letter-spacing:.12em;
+  margin:0 0 3px;
+  color:#7ee8ff;
+  font:800 9.5px/1.15 "Chakra Petch",sans-serif;
+  letter-spacing:.1em;
   text-transform:uppercase;
 }
-/* CP5.1: paused pill anchored inside the arena's top edge + step ticks +
-   taught-card lift. Pause bars are CSS rectangles (no font glyph risk). */
-.apex-guide-arena-pill{
-  position:fixed;
-  z-index:2147480749;
+.apex-guide-steps{display:flex;gap:4px;margin:0 0 4px}
+.apex-guide-steps i{display:block;width:12px;height:2.5px;background:rgba(255,255,255,.16)}
+.apex-guide-steps i.is-done{background:#56e0ff}
+.apex-guide-card.apex-coach-chip.is-narrow .apex-guide-steps{display:none}
+.apex-guide-card.apex-coach-chip h2{
+  margin:0 0 2px;
+  color:#ffffff;
+  font:800 13px/1.12 "Chakra Petch",sans-serif;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+.apex-guide-card.apex-coach-chip.is-compact h2{font-size:11.5px}
+.apex-guide-card.apex-coach-chip.is-narrow h2{font-size:11px}
+.apex-guide-body{
   margin:0;
-  display:inline-flex;
+  color:#d7e3ee;
+  font:600 11.5px/1.28 "Chakra Petch",sans-serif;
+}
+.apex-guide-card.apex-coach-chip.is-compact .apex-guide-body{font-size:10.5px;line-height:1.2}
+.apex-guide-card.apex-coach-chip.is-narrow .apex-guide-body{font-size:10px;line-height:1.18}
+
+/* WCAG / mobile touch requirement: >= 44x44px hit target everywhere */
+.apex-coach-skip{
+  pointer-events:auto;
+  flex:0 0 auto;
+  min-width:56px;
+  min-height:44px;
+  padding:8px 10px;
+  border:1px solid rgba(255,201,102,.46);
+  border-radius:4px;
+  background:rgba(19,25,33,.96);
+  color:#ffe0a3;
+  font:800 11px/1 "Chakra Petch",sans-serif;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  cursor:pointer;
+  display:grid;
+  place-items:center;
+  touch-action:manipulation;
+}
+.apex-guide-card.apex-coach-chip.is-narrow .apex-coach-skip{
+  width:100%;
+  min-height:44px;
+  padding:6px 8px;
+}
+.apex-coach-skip:hover{border-color:rgba(255,201,102,.85);color:#ffffff;background:rgba(30,40,52,.98)}
+.apex-coach-skip:focus-visible{outline:2px solid #56e0ff;outline-offset:2px}
+
+.apex-guide-pickup-prompt{
+  position:fixed;
+  box-sizing:border-box;
+  display:flex;
   align-items:center;
-  gap:7px;
-  padding:6px 11px;
+  padding:3px 7px;
+  border:1px solid rgba(86,224,255,.45);
+  border-left:2.5px solid #56e0ff;
+  border-radius:4px;
+  background:linear-gradient(90deg,rgba(9,16,23,.95),rgba(8,12,17,.94));
+  color:#dff5ff;
+  font:700 10.5px/1.18 "Chakra Petch","Barlow Condensed",sans-serif;
+  letter-spacing:.02em;
+  overflow:hidden;
   pointer-events:none;
-  background:rgba(8,8,10,.88);
-  box-shadow:0 10px 26px rgba(0,0,0,.5);
-  animation:apex-coach-chip-in .22s ease-out;
 }
-.apex-pause-bars{display:inline-flex;gap:3px;flex:none}
-.apex-pause-bars b{display:block;width:3px;height:10px;background:#ffd27a}
-.apex-guide-steps{display:flex;gap:4px;margin:0 0 7px}
-.apex-guide-steps i{display:block;width:15px;height:3px;background:rgba(255,255,255,.16)}
-.apex-guide-steps i.is-done{background:#e8b45a}
-.apex-guide-card.apex-coach-chip[data-placement="above"]::after,
-.apex-guide-card.apex-coach-chip[data-placement="below"]::after{
-  content:"";position:absolute;left:50%;width:14px;height:10px;
-  background:rgba(10,9,9,.98);
-  border-right:1px solid rgba(232,180,90,.68);
-  border-bottom:1px solid rgba(232,180,90,.68);
-}
-.apex-guide-card.apex-coach-chip[data-placement="above"]::after{
-  bottom:-6px;transform:translateX(-50%) rotate(45deg);
-}
-.apex-guide-card.apex-coach-chip[data-placement="below"]::after{
-  top:-6px;transform:translateX(-50%) rotate(225deg);
-}
-.apex-coach-layer.is-tutorial-paused .apex-coach-beacon{
-  animation:none;
-  opacity:1;
-}
-/* CP5 spotlight: during a paused lesson the arena and the un-taught skill
-   card recede; the taught card keeps full presence next to the beacon. */
-.apex-coach-dimmed{
-  filter:brightness(.52) saturate(.68)!important;
-  transition:filter .18s ease-out;
-}
-.apex-coach-taught{
-  filter:none!important;
-  transition:filter .18s ease-out;
-}
-@media (prefers-reduced-motion: reduce){
-  .apex-coach-dimmed,.apex-coach-taught{transition:none}
+.apex-guide-pickup-prompt.is-compact{
+  padding:2px 5px;
+  font-size:8.5px;
+  line-height:1.1;
+  letter-spacing:0;
 }
 
-/* CP4 first-fight side introduction: the role word lives inside the
-   existing HUD identity row and inherits that side's accent. It adds no
-   arena marker, ring, arrow, or separate surface. */
+.apex-coach-taught{
+  outline:1.5px solid rgba(86,224,255,.82)!important;
+  outline-offset:1px;
+}
+
+#hud.apex-side-intro-on .id-ctrl{display:none!important}
 #hud.apex-side-intro-on .id-row[data-intro-role]::after{
   content:attr(data-intro-role);
-  flex:none;
-  /* CP5.3: the narrow P2 text column (82px at 390px wide) lets a long
-     chip overflow ~10-17px into the neighbouring weapon-slot icon.
-     The chip must win paint order so its teaching text is never the
-     thing being covered; the graze only ever touches the decorative
-     empty-weapon silhouette during the opening seconds. */
-  position:relative;
-  z-index:3;
-  padding:2px 6px;
-  border:1px solid color-mix(in srgb,var(--acc,#f4efe4) 72%,transparent);
-  background:rgba(5,6,7,.82);
-  color:var(--bone,#f4efe4);
-  font:800 9px/1.25 'Oswald',Arial,sans-serif;
-  letter-spacing:.12em;
+  display:inline-block;
+  margin-top:0;
+  padding:1px 4px;
+  border-radius:3px;
   white-space:nowrap;
-  direction:ltr;
-  animation:apex-side-intro-in .25s ease-out;
-}
-/* CP5.3: paint each battle-start identity chip in that side's exact
-   engine edge color (APEX_SIDE_EDGE: P1 #FF941F orange, P2 #3AA7FF
-   blue) so the spoken color and the robot silhouette visibly match. */
-#hud.apex-side-intro-on .id-row[data-intro-edge="orange"]::after{
-  color:#ff941f;
-  border-color:rgba(255,148,31,.9);
-  box-shadow:inset 3px 0 0 #ff941f;
+  font:800 7.5px/1.2 "Chakra Petch",sans-serif;
+  letter-spacing:.04em;
+  background:rgba(255,148,31,.16);
+  border:1px solid rgba(255,148,31,.55);
+  color:#ffd09b;
 }
 #hud.apex-side-intro-on .id-row[data-intro-edge="blue"]::after{
-  color:#3aa7ff;
-  border-color:rgba(58,167,255,.9);
-  box-shadow:inset 3px 0 0 #3aa7ff;
-}
-@keyframes apex-side-intro-in{
-  from{opacity:0}
-  to{opacity:1}
+  background:rgba(58,167,255,.16);
+  border-color:rgba(58,167,255,.55);
+  color:#b6e1ff;
 }
 
-@media (max-width: 699px){
-  .apex-guide-card.apex-coach-chip{padding:10px}
-  .apex-guide-body{font-size:12px}
-  .apex-coach-skip{min-width:54px;min-height:42px;padding:8px}
-  #hud.apex-side-intro-on .id-row[data-intro-role]::after{font-size:7.5px;padding:1px 3px;letter-spacing:.05em}
+@keyframes apex-coach-beacon-pulse{
+  0%,100%{opacity:.95;transform:scale(1)}
+  50%{opacity:.62;transform:scale(.992)}
 }
-@media (prefers-reduced-motion: reduce){
-  .apex-coach-beacon,.apex-guide-card.apex-coach-chip,
-  #hud.apex-side-intro-on .id-row[data-intro-role]::after{animation:none}
+@keyframes apex-coach-chip-in{
+  from{opacity:.96;transform:translateY(3px)}
+  to{opacity:1;transform:translateY(0)}
 }
-/* CP5.2: taught card lifts toward the player; identity + weapon hint lines. */
-.apex-coach-taught{
-  filter:brightness(1.14) saturate(1.08)!important;
-  transform:translateY(-6px) scale(1.015);
-  box-shadow:0 14px 30px rgba(0,0,0,.55),0 0 0 1px rgba(255,210,122,.35);
-  z-index:5;position:relative;
-  transition:filter .18s ease-out,transform .18s ease-out;
-}
-.apex-coach-layer.is-tutorial-paused .apex-coach-beacon{
-  border-width:3px;
-  box-shadow:0 0 0 1px rgba(12,8,2,.85),0 0 30px rgba(255,166,45,.65),inset 0 0 22px rgba(255,166,45,.16);
-}
-.apex-guide-identity{
-  display:flex;align-items:center;gap:7px;margin:7px 0 0;
-  color:#ffb066;font:800 9px/1.3 ui-monospace,monospace;letter-spacing:.14em;
-}
-.apex-guide-identity i{
-  width:10px;height:10px;flex:none;display:block;
-  /* Exact P1 engine edge color (#FF941F) — the swatch is the sample
-     the player matches against their own robot's silhouette. */
-  background:#ff941f;box-shadow:0 0 0 2px rgba(255,148,31,.25),0 0 8px rgba(255,148,31,.8);
-}
-.apex-guide-weapon-hint{margin:6px 0 0;color:#ffd27a;font-size:11px;line-height:1.45}
-/* RA-2.3: after both real skill casts, move the existing pickup instruction
-   into the already-reserved P1 weapon-status row. The opaque, pointer-free
-   label stays within that row and yields to overlapping notifications. */
-.apex-guide-pickup-prompt{
-  position:fixed;z-index:2147480751;box-sizing:border-box;
-  display:flex;align-items:center;justify-content:center;
-  margin:0;padding:3px 7px;overflow:hidden;
-  border:1px solid rgba(255,210,122,.72);
-  background:rgba(9,9,11,.96);
-  box-shadow:inset 3px 0 0 #ff941f,0 4px 14px rgba(0,0,0,.48);
-  color:#ffd27a;font:750 clamp(8px,1.1vw,11px)/1.25 Arial,Helvetica,sans-serif;
-  letter-spacing:.015em;text-align:center;text-wrap:balance;
-  pointer-events:none;
-}
-@media (max-width:699px){
-  .apex-guide-pickup-prompt{padding:2px 5px;font-size:clamp(8px,2.25vw,10px);line-height:1.2}
-}
-@media (max-height:420px){
-  .apex-guide-pickup-prompt{padding:2px 4px;font-size:8px;line-height:1.15}
-}
-@media (prefers-reduced-motion: reduce){
-  .apex-coach-taught{transform:none;transition:none}
+@media (prefers-reduced-motion:reduce){
+  .apex-coach-beacon,.apex-guide-card.apex-coach-chip{animation:none!important}
 }

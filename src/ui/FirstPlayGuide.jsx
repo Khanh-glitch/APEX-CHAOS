@@ -1,63 +1,75 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { hasRevealedGun, isPlayerUnarmed } from './firstPlayGuidePickupHints.js';
 import './firstPlayGuide.css';
 
-// APEX CHAOS — Learn by Playing coach (CP3).
-// This replaces the static first-play carousel with one anchored prompt at
-// a time. The coach is presentation only: it never clicks, selects, locks,
-// casts or opens anything for the player. Its persisted step advances from
-// real DOM/scene/projection proof of the player's own action.
-//
-// Source-verified Free Battle controls: P1 J = Skill 1, K = Skill 2; touch
-// uses the real HUD skill cards. BOT WAVE and Quest are deliberately out of
-// scope. The beacon/chip are pointer-transparent; only SKIP captures input.
+// APEX CHAOS — Learn by Playing Coach (Tactical Pulse Non-Blocking Edition).
+// Non-negotiable product laws:
+//   1. Non-blocking: match clock, AI, projectiles, weapon spawns, and cooldowns
+//      NEVER pause. No input is intercepted, swallowed, or dimmed.
+//   2. Executor-truth gating: prompts appear ONLY for an untaught skill that
+//      observeAbilityCastability confirms castable RIGHT NOW. When NEWBOT J has
+//      no floor gun yet, Coach teaches castable K first without locking J or K.
+//   3. Proven cast advancement: steps 3 & 4 advance strictly when the real
+//      combat engine emits a confirmed P1 Cast / telemetry increment.
+//   4. Zero arena & control occlusion: battle chip docks strictly in measured
+//      open HUD slots with >= 44x44px SKIP hit target across all viewports.
 
 const COACH_KEY = 'apex.alpha.coach.v2';
 const LEGACY_KEY = 'apex.alpha.guide.v1';
+const SIDE_INTRO_KEY = 'apex.alpha.sideIntro.v2';
 const LAST_STEP = 5;
 
 const COPY = {
   eng: {
     kicker: 'LEARN BY PLAYING',
-    actionKicker: 'YOUR MOVE',
+    actionKicker: 'TACTICAL PULSE',
     skip: 'SKIP',
-    pausedNote: 'MATCH PAUSED — TAKE YOUR TIME',
-    // Engine truth (APEX_SIDE_EDGE in public/apexEngine.js): fighters[0]
-    // = P1 wears the ORANGE edge (#FF941F); P2 wears blue (#3AA7FF).
-    // Intro labels stay short: each HUD row already carries its P1/P2
-    // tag, and the P2 row is narrow on phones.
     sideYou: 'YOU · ORANGE EDGE',
-    identity: 'YOU · P1 · ORANGE EDGE',
-    weaponHint: 'AUTO PICKUP · Your fighter collects a ground gun on contact.',
+    identity: 'YOU · AUTO FIGHT',
     sideBot: 'BOT · BLUE EDGE',
     sideP1: 'P1 · ORANGE EDGE',
     sideP2: 'P2 · BLUE EDGE',
+    pickupPrompt: 'AUTO PICKUP · Your fighter collects a ground gun on contact.',
     steps: [
       { title: 'START HERE', body: 'Press FREE BATTLE.' },
       { title: 'FIRST FIGHT', body: 'Choose VS BOT.' },
       { title: 'READY?', body: 'Pick your fighter, then LOCK IN.' },
-      { title: 'CAST SKILL 1', keyboard: 'Press J when a target is available.', touch: 'Tap Skill 1 when a target is available.' },
-      { title: 'CAST SKILL 2', keyboard: 'Press K to activate Skill 2.', touch: 'Tap Skill 2 to activate it.' },
+      {
+        title: 'CAST SKILL 1',
+        keyboard: 'Press J now — target live.',
+        touch: 'Tap Skill 1 now — target live.',
+      },
+      {
+        title: 'CAST SKILL 2',
+        keyboard: 'Press K now to activate Skill 2.',
+        touch: 'Tap Skill 2 now to activate.',
+      },
       { title: 'REWARDS WAITING', body: 'Open MISSIONS to claim starter rewards and view Mastery.' },
     ],
   },
   vie: {
     kicker: 'HỌC BẰNG CÁCH CHƠI',
-    actionKicker: 'LƯỢT CỦA BẠN',
+    actionKicker: 'NHỊP CHIẾN THUẬT',
     skip: 'BỎ QUA',
-    pausedNote: 'TRẬN ĐANG TẠM DỪNG — CỨ THONG THẢ',
     sideYou: 'BẠN · VIỀN CAM',
-    identity: 'BẠN · P1 · VIỀN CAM',
-    weaponHint: 'TỰ NHẶT SÚNG · Robot sẽ nhặt súng khi tự chạm vào súng trên sân.',
+    identity: 'BẠN · TỰ ĐÁNH',
     sideBot: 'BOT · VIỀN XANH',
     sideP1: 'P1 · VIỀN CAM',
     sideP2: 'P2 · VIỀN XANH',
+    pickupPrompt: 'TỰ NHẶT SÚNG · Robot tự nhặt súng khi chạm súng trên sân.',
     steps: [
       { title: 'BẮT ĐẦU TẠI ĐÂY', body: 'Nhấn ĐẤU TỰ DO.' },
       { title: 'TRẬN ĐẦU TIÊN', body: 'Chọn ĐẤU BOT.' },
       { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN.' },
-      { title: 'TUNG CHIÊU 1', keyboard: 'Nhấn J khi có mục tiêu hợp lệ.', touch: 'Chạm Kỹ năng 1 khi có mục tiêu.' },
-      { title: 'TUNG CHIÊU 2', keyboard: 'Nhấn K để kích hoạt Kỹ năng 2.', touch: 'Chạm Kỹ năng 2 để kích hoạt.' },
+      {
+        title: 'DÙNG CHIÊU 1',
+        keyboard: 'Nhấn J ngay — đã có mục tiêu.',
+        touch: 'Chạm thẻ Kỹ năng 1 ngay — đã có mục tiêu.',
+      },
+      {
+        title: 'DÙNG CHIÊU 2',
+        keyboard: 'Nhấn K ngay để bật Chiêu 2.',
+        touch: 'Chạm thẻ Kỹ năng 2 ngay để kích hoạt.',
+      },
       { title: 'PHẦN THƯỞNG ĐANG CHỜ', body: 'Mở NHIỆM VỤ để nhận thưởng khởi đầu và xem Tinh thông.' },
     ],
   },
@@ -66,6 +78,16 @@ const COPY = {
 function currentLanguage() {
   try { return window.APEX_I18N?.getLanguage?.() === 'vie' ? 'vie' : 'eng'; }
   catch { return 'eng'; }
+}
+
+function publishNonBlockingTutorialState() {
+  try {
+    window.APEX_TUTORIAL_PAUSE = { active: false, slot: null, since: 0 };
+  } catch { /* read-only global guard */ }
+}
+
+function playCoachSfx(key) {
+  try { window.apexUiSfx?.play?.(key); } catch { /* audio is optional */ }
 }
 
 function sealedCounts() {
@@ -126,12 +148,17 @@ function bootGateVisible() {
   return rect.width > 0 && rect.height > 0 && style?.display !== 'none' && style?.visibility !== 'hidden';
 }
 
+function battleState() {
+  try { return window.APEX_ARSENAL?.state || null; } catch { return null; }
+}
+
+function liveFighters() {
+  try { return Array.isArray(window.fighters) ? window.fighters : []; }
+  catch { return []; }
+}
+
 function battleVisible() {
   try {
-    // The production Battle HUD is a same-document donor mounted outside the
-    // Gold shell stage: its own #stage carries no screen-battle class, while
-    // the shell stage is hidden. Detect combat from the HUD/body/state
-    // authorities instead of mistaking that hidden shell stage for Home.
     if (document.body?.classList?.contains('battle-hud-open')) return true;
     if (document.querySelector('#battleHudHost.is-open')) return true;
     if (battleState()?.active) return true;
@@ -148,10 +175,6 @@ function currentScene() {
   if (stage.classList.contains('screen-mode')) return 'mode';
   if (['screen-draw', 'flow-transition'].some((name) => stage.classList.contains(name))) return 'other';
   return 'home';
-}
-
-function battleState() {
-  try { return window.APEX_ARSENAL?.state || null; } catch { return null; }
 }
 
 function isBotBattle() {
@@ -185,9 +208,6 @@ function projectedSkill(index) {
   } catch { return null; }
 }
 
-// CP5.1: the instruction names the actual skill being taught, read from
-// the live HUD projection/DOM at render time — never a per-hero table in
-// the coach. Falls back to the generic Skill 1/2 wording when unavailable.
 function taughtSkillName(index) {
   try {
     const projected = projectedSkill(index);
@@ -196,227 +216,49 @@ function taughtSkillName(index) {
       return fromProjection.trim().slice(0, 28).toUpperCase();
     }
     const element = skillAnchor(index);
-    const named = element?.querySelector?.('[data-name], .skillName, .skill-name, strong, h3, h4, b');
+    const named = element?.querySelector?.('.sk-name, [data-name], .skillName, .skill-name, strong, h3, h4, b');
     const text = String(named?.textContent || '').trim();
     if (text.length >= 2 && text.length <= 28 && /[A-Za-zÀ-ỹ]/.test(text)) return text.toUpperCase();
   } catch { /* presentation only */ }
   return '';
 }
 
-// CP5.1: the paused pill docks inside the arena's top edge (measured from
-// the live arena canvas each render), so "the match is paused" reads at
-// the place the player is looking — not buried inside the coach chip.
-function arenaPillStyle() {
-  try {
-    let best = null;
-    document.querySelectorAll('canvas').forEach((canvas) => {
-      const rect = canvas.getBoundingClientRect();
-      if (rect.width > 200 && rect.height > 200 && (!best || rect.width * rect.height > best.width * best.height)) best = rect;
-    });
-    if (best) {
-      return {
-        top: `${Math.round(best.top + 10)}px`,
-        right: `${Math.max(8, Math.round(window.innerWidth - best.right + 10))}px`,
-      };
-    }
-  } catch { /* fall through to the safe default */ }
-  return { top: '96px', right: '10px' };
-}
-
-// RA-2.3: tutorial pickup copy is eligible only while the actual P1
-// production fighter has no held Arsenal weapon. The Gold projection does
-// not expose `sides[].data`; use the live combatant. The engine represents
-// unarmed state as a null holder, so require a live fighter/data object and
-// then check the holder's real weapon ID.
-function playerUnarmed() {
-  try { return isPlayerUnarmed(liveFighters()[0]); }
-  catch { return false; }
-}
-
 function skillInfo(index) {
   const element = skillAnchor(index);
   const projected = projectedSkill(index);
+  const fighter = liveFighters()[0] || null;
+  const slot = index === 0 ? 'A1' : 'A2';
+  let engineCastable = null;
+  try {
+    if (fighter && typeof window.APEX_HERO_REWORK?.observeAbilityCastability === 'function') {
+      const verdict = window.APEX_HERO_REWORK.observeAbilityCastability(fighter, slot);
+      if (verdict && verdict.known) engineCastable = verdict.castable === true;
+    }
+  } catch { engineCastable = null; }
   const state = element?.dataset?.state || '';
+  const tpState = element?.dataset?.tpState || '';
   let charges = Number(projected?.charges);
   if (!Number.isFinite(charges)) charges = state === 'ready' ? 1 : 0;
   const nextIn = Number(projected?.nextIn) || 0;
-  const ready = element
-    ? state === 'ready' && projected?.locked !== true && projected?.castable !== false
-    : !!projected && projected.locked !== true && charges > 0 && projected.castable === true;
+  const castable = engineCastable !== null
+    ? engineCastable
+    : (projected?.truth === true && projected?.castable === true && charges > 0);
+  const ready = castable
+    && projected?.locked !== true
+    && state !== 'locked'
+    && tpState !== 'standby';
   return { element, projected, state, charges, nextIn, ready };
 }
 
-// CP5.3: v1 labels never named the edge colors, so the one-time intro is
-// re-issued once per mode under v2 with the color lesson included.
-const SIDE_INTRO_KEY = 'apex.alpha.sideIntro.v2';
-
-function playCoachSfx(key) {
-  try { window.apexUiSfx?.play?.(key); } catch { /* sound is optional */ }
-}
-
-function publishTutorialPause(slot) {
+function readP1SkillCastCounts() {
   try {
-    window.APEX_TUTORIAL_PAUSE = {
-      active: true,
-      slot,
-      updatedAt: Date.now(),
-      source: 'cp4-coach',
-    };
-  } catch { /* hero-rework lease is fail-closed without this object */ }
-}
-
-function clearTutorialPause() {
-  try {
-    window.APEX_TUTORIAL_PAUSE = {
-      active: false,
-      updatedAt: Date.now(),
-      source: 'cp4-coach',
-    };
-  } catch { /* nothing to release */ }
-}
-
-function liveFighters() {
-  try { return Array.isArray(window.fighters) ? window.fighters : []; }
-  catch { return []; }
-}
-
-function bodyVelocity(body) {
-  const measured = body?.__hrVel;
-  if (measured && Number.isFinite(measured.x) && Number.isFinite(measured.y)) {
-    return { x: Number(measured.x), y: Number(measured.y) };
-  }
-  let mult = 1;
-  try {
-    if (typeof body?.speedMult === 'function') mult = Number(body.speedMult()) || 0;
-  } catch { mult = 1; }
-  const speed = (Number(body?.baseSpeed) || 0) * mult;
-  return {
-    x: (Number(body?.dir?.x) || 0) * speed,
-    y: (Number(body?.dir?.y) || 0) * speed,
-  };
-}
-
-function closestApproach(from, velocity, point, horizon) {
-  const rx = point.x - from.x;
-  const ry = point.y - from.y;
-  const vv = (velocity.x * velocity.x) + (velocity.y * velocity.y);
-  const t = vv > 1 ? Math.max(0, Math.min(horizon, (rx * velocity.x + ry * velocity.y) / vv)) : 0;
-  const qx = from.x + velocity.x * t;
-  const qy = from.y + velocity.y * t;
-  return { t, distance: Math.hypot(point.x - qx, point.y - qy) };
-}
-
-function incomingThreat(self, horizon = 0.65) {
-  try {
-    const selfVelocity = bodyVelocity(self);
-    const threatRadius = Math.max(90, (Number(self?.radius) || 40) + 55);
-    for (const p of window.projectiles || []) {
-      if (!p || p.owner === self || !(Number(p.life) > 0)) continue;
-      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)
-        || !Number.isFinite(p.vx) || !Number.isFinite(p.vy)) continue;
-      const relative = { x: Number(p.vx) - selfVelocity.x, y: Number(p.vy) - selfVelocity.y };
-      if ((relative.x * relative.x) + (relative.y * relative.y) <= 1) continue;
-      const hit = closestApproach(
-        { x: Number(p.x), y: Number(p.y) },
-        relative,
-        { x: self.x, y: self.y },
-        horizon,
-      );
-      if (hit.distance <= threatRadius) return true;
-    }
-  } catch { /* fall through to geometry-only fallback */ }
-  return false;
-}
-
-function revealedWeaponSlots() {
-  const slots = battleState()?.slots;
-  return Array.isArray(slots)
-    ? slots.filter((slot) => slot && slot.phase === 'REVEALED' && slot.kind !== 'HEAL' && !!slot.weaponId)
-    : [];
-}
-
-// RA-2.3: the pickup copy is a deferred, non-blocking HUD status — never a
-// second instruction during either paused skill lesson. Require the real
-// BOT tutorial to have proved both casts, the actual pause lease to be clear,
-// P1 to be unarmed, and a production-configured revealed gun to exist.
-function pickupOpportunityFrame(step) {
-  try {
-    const state = battleState();
-    if (step < LAST_STEP || currentScene() !== 'battle' || !isBotBattle()
-      || !state?.active || state.over
-      || window.APEX_TUTORIAL_PAUSE?.active === true
-      || document.body?.classList?.contains('apex-tutorial-paused')
-      || !playerUnarmed()) return null;
-
-    const isGun = window.APEX_ARSENAL_CONFIG?.isGun;
-    if (!hasRevealedGun(state.slots, isGun)) return null;
-
-    const row = document.querySelector('#p1Side .weapon');
-    if (!isVisibleAnchor(row)) return null;
-    const rect = row.getBoundingClientRect();
-    const width = window.innerWidth || document.documentElement.clientWidth || 0;
-    const height = window.innerHeight || document.documentElement.clientHeight || 0;
-    // Only use the already-reserved weapon-status row; fail closed rather
-    // than covering the arena or a skill control on an unusually tight HUD.
-    if (rect.width < 112 || rect.height < 28 || rect.left < 0 || rect.top < 0
-      || rect.right > width || rect.bottom > height) return null;
-    const notifications = document.querySelectorAll(
-      '.apex-achievement-toast, .apex-reward-toast, .apex-skin-unlock-dock',
-    );
-    for (const notification of notifications) {
-      if (!isVisibleAnchor(notification)) continue;
-      const box = notification.getBoundingClientRect();
-      const overlaps = rect.left < box.right && rect.right > box.left
-        && rect.top < box.bottom && rect.bottom > box.top;
-      if (overlaps) return null;
-    }
-
-    return {
-      left: Math.round(rect.left),
-      top: Math.round(rect.top),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height),
-    };
+    const p1 = liveFighters()[0];
+    const bySkill = p1?.__hrCombatant?.telemetry?.bySkill;
+    if (!bySkill) return null;
+    const c0 = typeof bySkill.A1 === 'number' ? bySkill.A1 : (Number(bySkill.A1?.casts) || 0);
+    const c1 = typeof bySkill.A2 === 'number' ? bySkill.A2 : (Number(bySkill.A2?.casts) || 0);
+    return [c0, c1];
   } catch { return null; }
-}
-
-// The softlock guard is intentionally late and still tactical: it requires
-// a live threat, a contested pickup while unarmed, or a genuinely closing
-// opponent. Cooldown-zero alone can never open the pause.
-function observableFallbackOpportunity(index, waitedMs) {
-  if (waitedMs < 22000) return false;
-  const [self, foe] = liveFighters();
-  if (!self || !foe || !(self.hp > 0) || !(foe.hp > 0)) return false;
-  if (incomingThreat(self)) return true;
-  const selfArmed = !!self.data?.arsenal?.weaponId;
-  if (index === 0 && !selfArmed && revealedWeaponSlots().length) return true;
-  const dx = foe.x - self.x;
-  const dy = foe.y - self.y;
-  const distance = Math.hypot(dx, dy);
-  if (distance > 560 || distance < 1) return false;
-  const foeVelocity = bodyVelocity(foe);
-  const selfVelocity = bodyVelocity(self);
-  const closingSpeed = -(((foeVelocity.x - selfVelocity.x) * dx)
-    + ((foeVelocity.y - selfVelocity.y) * dy)) / distance;
-  return closingSpeed > 30;
-}
-
-function tacticalOpportunity(index, waitedMs) {
-  const state = battleState();
-  if (!state || state.over || (Number(state.time) || 0) < 1.6) return false;
-  const [self, foe] = liveFighters();
-  if (!self || !foe || !(self.hp > 0) || !(foe.hp > 0)) return false;
-
-  try {
-    const decision = window.APEX_HERO_REWORK?.observeAbilityOpportunity?.(
-      self,
-      index === 1 ? 'A2' : 'A1',
-    );
-    if (decision?.shouldCast && Number(decision.score) >= 0.6
-      && decision.reason !== 'ready-default') return true;
-  } catch { /* use the late observable fallback below */ }
-
-  return observableFallbackOpportunity(index, waitedMs);
 }
 
 function readSideIntroSeen() {
@@ -441,8 +283,6 @@ function setSideIntroLabels(labels) {
       if (!row) { applied = false; return; }
       if (labels) {
         row.dataset.introRole = labels[index];
-        // CP5.3: the intro chip is painted in the exact engine edge
-        // color of that side (P1 orange, P2 blue — APEX_SIDE_EDGE).
         row.dataset.introEdge = index === 0 ? 'orange' : 'blue';
       } else {
         delete row.dataset.introRole;
@@ -465,34 +305,6 @@ function isVisibleAnchor(element) {
   } catch { return false; }
 }
 
-function findAnchor(step) {
-  const stage = stageElement();
-  if (step === 0) return document.querySelector('#freeBattle');
-  if (step === 1) {
-    return stage?.querySelector('.modeCard[data-mode="bot"]')
-      || document.querySelector('.modeCard[data-mode="bot"]')
-      || findByText(stage || document, 'button, [role="button"]', ['VS BOT', 'BOT BATTLE', 'ĐẤU BOT']);
-  }
-  if (step === 2) return document.querySelector('#lockIn') || stage?.querySelector('.lockIn');
-  if (step === 3 || step === 4) {
-    const element = skillInfo(step - 3).element;
-    return isVisibleAnchor(element) ? element : null;
-  }
-  if (step === 5) return document.querySelector('#apexMissionsOpen');
-  return null;
-}
-
-function stepSceneMatches(step, scene) {
-  if (step === 0 || step === 5) return scene === 'home';
-  if (step === 1) return scene === 'mode';
-  // CP5.2: during the opponent's pick turn the coached player is not
-  // acting — the guide hides instead of floating over the roster.
-  if (step === 2) return scene === 'fighter'
-    && !stageElement()?.classList?.contains('fighter-active-p2');
-  if (step === 3 || step === 4) return scene === 'battle' && isBotBattle();
-  return false;
-}
-
 function anchorReceivesHit(anchor, rect) {
   if (!document.elementFromPoint) return true;
   const width = window.innerWidth || document.documentElement.clientWidth || 0;
@@ -507,15 +319,211 @@ function anchorReceivesHit(anchor, rect) {
   });
 }
 
-function computeFrame(step, anchor) {
+function rectOf(selector) {
+  try {
+    const el = document.querySelector(selector);
+    if (!isVisibleAnchor(el)) return null;
+    return el.getBoundingClientRect();
+  } catch { return null; }
+}
+
+function intersectionArea(a, b) {
+  if (!a || !b) return 0;
+  const w = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+  const h = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  return w * h;
+}
+
+function computePickupPromptFrame() {
+  const state = battleState();
+  if (!state?.active || state?.over || !isBotBattle()) return null;
+  if (document.querySelector('#apex-real-match-result')) return null;
+  const self = liveFighters()[0];
+  const unarmed = !!self?.data && !self.data.arsenal?.weaponId;
+  if (!unarmed) return null;
+  const isGun = window.APEX_ARSENAL_CONFIG?.isGun;
+  const gunAvailable = typeof isGun === 'function'
+    && Array.isArray(state?.slots)
+    && state.slots.some((slot) => slot?.phase === 'REVEALED' && isGun(slot.weaponId) === true);
+  if (!gunAvailable) return null;
+  const row = rectOf('#p1Side .weapon');
+  const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  if (!row || row.width < 112 || row.height < 28 || row.left < 0 || row.top < 0 || row.right > vw || row.bottom > vh) {
+    return null;
+  }
+  const overlappingNotification = [...document.querySelectorAll('.apex-achievement-toast, .apex-reward-toast, .apex-skin-unlock-dock')]
+    .some((el) => {
+      try {
+        const s = window.getComputedStyle(el);
+        if (s.display === 'none' || s.visibility === 'hidden' || Number(s.opacity || 1) <= 0) return false;
+        return intersectionArea(el.getBoundingClientRect(), row) > 0;
+      } catch { return false; }
+    });
+  if (overlappingNotification) return null;
+  const compact = row.width < 220 || row.height < 58;
+  return {
+    left: Math.round(row.left + 1),
+    top: Math.round(row.top + 1),
+    width: Math.max(108, Math.floor(row.width - 2)),
+    height: Math.max(26, Math.floor(row.height - 2)),
+    compact,
+  };
+}
+
+// Compute a strictly non-occluding dock slot during live combat across
+// 1440x900, 844x390, 900x900 (P90), and 390x844 without covering fighters,
+// arena canvas, HP bars, timer, identity plates, or skill buttons.
+function computeBattleFrame(anchor, measuredChipHeight) {
+  const rect = anchor.getBoundingClientRect();
+  const vw = window.innerWidth || document.documentElement.clientWidth || rect.right;
+  const vh = window.innerHeight || document.documentElement.clientHeight || rect.bottom;
+  const chipH = Math.max(60, Math.min(114, Number(measuredChipHeight) || 78));
+
+  const p1Side = rectOf('#p1Side');
+  const p1Ident = rectOf('#p1Side .ident');
+  const p1Skills = rectOf('#p1Side .skills');
+  const p1Weapon = rectOf('#p1Side .weapon');
+  const p2Side = rectOf('#p2Side');
+  const p2Skills = rectOf('#p2Side .skills');
+  const p2Weapon = rectOf('#p2Side .weapon');
+  const arena = rectOf('#arena') || rectOf('#arenaCanvas');
+
+  const blockers = [
+    arena,
+    rectOf('#versusRail'),
+    rectOf('#p1Rail'),
+    rectOf('#p2Rail'),
+    rectOf('#matchCenter'),
+    p1Ident,
+    p1Skills,
+    p1Weapon,
+    rectOf('#p2Side .ident'),
+    p2Skills,
+    p2Weapon,
+  ].filter(Boolean);
+
+  const candidates = [];
+
+  // Candidate 1: Open space inside #p1Side below .skills and above .weapon (Desktop 1440x900, P90 900x900)
+  if (p1Side && p1Skills && p1Weapon && p1Weapon.top - p1Skills.bottom >= chipH + 6) {
+    const w = Math.min(300, Math.max(176, Math.floor(p1Side.width - 8)));
+    candidates.push({
+      left: Math.round(p1Side.left + 4),
+      top: Math.round(p1Skills.bottom + 5),
+      width: w,
+      compact: w < 210,
+      narrow: w < 180,
+    });
+  }
+
+  // Candidate 2: Open space inside #p1Side between .ident and .skills (390x844 portrait + tall side layouts)
+  if (p1Side && p1Ident && p1Skills && p1Skills.top - p1Ident.bottom >= chipH + 6) {
+    const w = Math.min(340, Math.max(180, Math.floor(p1Side.width - 8)));
+    candidates.push({
+      left: Math.round(p1Side.left + 4),
+      top: Math.round(p1Ident.bottom + 5),
+      width: w,
+      compact: true,
+      narrow: w < 180,
+    });
+  }
+
+  // Candidate 3: Open spacer cell inside #p2Side on 844x390 landscape solo ("." row between #p2Side .skills and .weapon)
+  if (p2Side && p2Skills && p2Weapon && p2Weapon.top - p2Skills.bottom >= 86) {
+    const w = Math.min(260, Math.max(146, Math.floor(p2Side.width - 4)));
+    const narrowH = Math.min(chipH, Math.max(84, p2Weapon.top - p2Skills.bottom - 8));
+    candidates.push({
+      left: Math.max(8, Math.min(vw - w - 6, Math.round(p2Side.left + 2))),
+      top: Math.round(p2Skills.bottom + Math.max(3, Math.floor((p2Weapon.top - p2Skills.bottom - narrowH) / 2))),
+      width: w,
+      heightOverride: narrowH,
+      compact: true,
+      narrow: w < 185,
+    });
+  }
+
+  // Candidate 4: Open space below .skills inside #p1Side
+  if (p1Side && p1Skills && p1Side.bottom - p1Skills.bottom >= chipH + 4) {
+    const w = Math.min(340, Math.max(190, Math.floor(p1Side.width - 8)));
+    candidates.push({
+      left: Math.round(p1Side.left + 4),
+      top: Math.round(p1Skills.bottom + 4),
+      width: w,
+      compact: true,
+      narrow: w < 185,
+    });
+  }
+
+  let best = null;
+  let bestPenalty = Infinity;
+  for (const cand of candidates) {
+    const h = cand.heightOverride || chipH;
+    const box = {
+      left: cand.left,
+      top: cand.top,
+      right: cand.left + cand.width,
+      bottom: cand.top + h,
+    };
+    if (box.left < 4 || box.top < 4 || box.right > vw - 4 || box.bottom > vh - 4) continue;
+    let hudPenalty = 0;
+    let arenaPenalty = 0;
+    for (const blk of blockers) {
+      const area = intersectionArea(box, blk);
+      if (area <= 0) continue;
+      if (blk === arena) arenaPenalty += area;
+      else hudPenalty += area * 10;
+    }
+    const totalPenalty = hudPenalty + arenaPenalty;
+    if (totalPenalty < bestPenalty) {
+      bestPenalty = totalPenalty;
+      best = cand;
+      if (totalPenalty === 0) break;
+    }
+  }
+
+  const chosen = best || {
+    left: Math.max(8, Math.min(vw - 240, Math.round(rect.left))),
+    top: Math.max(8, Math.round(rect.top - chipH - 8)),
+    width: Math.min(250, vw - 16),
+    compact: true,
+    narrow: false,
+  };
+
+  return {
+    beaconLeft: Math.round(rect.left - 3),
+    beaconTop: Math.round(rect.top - 3),
+    beaconWidth: Math.round(rect.width + 6),
+    beaconHeight: Math.round(rect.height + 6),
+    chipLeft: chosen.left,
+    chipTop: chosen.top,
+    chipWidth: chosen.width,
+    chipTransform: 'none',
+    placement: 'docked',
+    compact: !!chosen.compact,
+    narrow: !!chosen.narrow,
+  };
+}
+
+function findMenuAnchor(step) {
+  const stage = stageElement();
+  if (step === 0) return document.querySelector('#freeBattle');
+  if (step === 1) {
+    return stage?.querySelector('.modeCard[data-mode="bot"]')
+      || document.querySelector('.modeCard[data-mode="bot"]')
+      || findByText(stage || document, 'button, [role="button"]', ['VS BOT', 'BOT BATTLE', 'ĐẤU BOT']);
+  }
+  if (step === 2) return document.querySelector('#lockIn') || stage?.querySelector('.lockIn');
+  if (step === 5) return document.querySelector('#apexMissionsOpen');
+  return null;
+}
+
+function computeMenuFrame(step, anchor) {
   if (!anchor?.isConnected) return null;
   const rect = anchor.getBoundingClientRect();
   if (!Number.isFinite(rect.width) || rect.width < 2 || rect.height < 2) return null;
   const style = window.getComputedStyle?.(anchor);
   if (style?.display === 'none' || style?.visibility === 'hidden' || Number(style?.opacity) === 0) return null;
-  // A modal product surface (Archive/Account/Locker) can cover the Home
-  // anchor without changing the coach step. Hide until the real control is
-  // the hit target again instead of floating a chip over that surface.
   if (!anchorReceivesHit(anchor, rect)) return null;
 
   const viewportWidth = window.innerWidth || document.documentElement.clientWidth || rect.right;
@@ -523,45 +531,16 @@ function computeFrame(step, anchor) {
   const cardWidth = Math.min(320, Math.max(220, viewportWidth - 24));
   const gap = 10;
   const clampLeft = (value) => Math.max(12, Math.min(Math.max(12, viewportWidth - cardWidth - 12), value));
-  const clampTop = (value) => Math.max(12, Math.min(Math.max(12, viewportHeight - 96), value));
 
   let placement = 'above';
-  let chipLeft = clampLeft(rect.left + (rect.width / 2) - (cardWidth / 2));
+  const chipLeft = clampLeft(rect.left + (rect.width / 2) - (cardWidth / 2));
   let chipTop = Math.max(12, rect.top - gap);
   let chipTransform = 'translateY(-100%)';
 
-  if ((step === 3 || step === 4) && rect.left > cardWidth + gap + 12) {
-    placement = 'left';
-    chipLeft = rect.left - cardWidth - gap;
-    chipTop = clampTop(rect.top);
-    chipTransform = 'none';
-  } else if ((step === 3 || step === 4) && viewportWidth - rect.right > cardWidth + gap + 12) {
-    placement = 'right';
-    chipLeft = rect.right + gap;
-    chipTop = clampTop(rect.top);
-    chipTransform = 'none';
-  } else if (rect.top < 118) {
+  if (rect.top < 118) {
     placement = 'below';
     chipTop = Math.min(Math.max(12, viewportHeight - 96), rect.bottom + gap);
     chipTransform = 'none';
-  }
-
-  // CP5.2: in battle lessons the chip must never cover the arena. When the
-  // taught card sits below the arena canvas, dock the chip under the
-  // canvas bottom edge (over the HUD strip / card tops) instead of growing
-  // upward into the fight.
-  if ((step === 3 || step === 4) && placement === 'above') {
-    try {
-      let arenaBottom = 0;
-      document.querySelectorAll('canvas').forEach((canvas) => {
-        const r = canvas.getBoundingClientRect();
-        if (r.width > 200 && r.height > 200 && r.bottom <= rect.top + 4 && r.bottom > arenaBottom) arenaBottom = r.bottom;
-      });
-      if (arenaBottom > 0) {
-        chipTop = Math.round(arenaBottom + 6);
-        chipTransform = 'none';
-      }
-    } catch { /* keep the classic above-anchor placement */ }
   }
 
   return {
@@ -574,7 +553,18 @@ function computeFrame(step, anchor) {
     chipWidth: Math.round(cardWidth),
     chipTransform,
     placement,
+    compact: false,
+    narrow: false,
   };
+}
+
+function stepSceneMatches(step, scene) {
+  if (step === 0 || step === 5) return scene === 'home';
+  if (step === 1) return scene === 'mode';
+  if (step === 2) return scene === 'fighter'
+    && !stageElement()?.classList?.contains('fighter-active-p2');
+  if (step === 3 || step === 4) return scene === 'battle' && isBotBattle();
+  return false;
 }
 
 export default function FirstPlayGuide() {
@@ -584,16 +574,9 @@ export default function FirstPlayGuide() {
     return !!stored && !stored.done;
   });
   const [frame, setFrame] = useState(null);
-  const [pickupHintFrame, setPickupHintFrame] = useState(null);
-  const [pausedSlot, setPausedSlot] = useState(null);
+  const [pickupFrame, setPickupFrame] = useState(null);
+  const [hintSlot, setHintSlot] = useState(null);
   const [language, setLanguage] = useState(currentLanguage);
-  // Input truth for lesson copy. A one-shot (pointer: coarse) read is wrong
-  // on hybrid devices: a phone with a paired mouse reports a fine primary
-  // pointer and would teach "Press J" to a player whose finger is the actual
-  // input. Copy therefore follows the pointer type of the LAST real input
-  // (touch/pen => touch lesson, mouse/key => key lesson) and the live
-  // coarse-pointer media query. Presentation only: both input contracts are
-  // still accepted at all times.
   const [coarse, setCoarse] = useState(() => {
     try { return !!window.matchMedia?.('(pointer: coarse)').matches; } catch { return false; }
   });
@@ -601,27 +584,38 @@ export default function FirstPlayGuide() {
   const coachRef = useRef(coach);
   const activeRef = useRef(active);
   const frameKeyRef = useRef('');
-  const pickupHintKeyRef = useRef('');
-  const skillSnapshotsRef = useRef([null, null]);
-  const taughtFirstSlotRef = useRef(null);
-  const [hintSlot, setHintSlot] = useState(null);
-  const pauseRef = useRef(null);
-  const stepSinceRef = useRef({ step: -1, at: 0 });
-  const pauseCooldownUntilRef = useRef(0);
+  const pickupKeyRef = useRef('');
+  const chipRef = useRef(null);
+  const battleSessionRef = useRef({ active: false, casted: [false, false], baseCasts: [0, 0] });
   const sideIntroRef = useRef({ scene: '', mode: null, activeUntil: 0, applied: false, lastTime: 0 });
   const bootstrappedRef = useRef(false);
 
-  // Follow real input: the lesson must name the control the player can
-  // actually use. Mouse/keys switch the copy back to J/K; touch/pen switch it
-  // to the HUD cards. The coarse media query also stays live so an emulated
-  // or rotated context cannot leave stale copy behind.
+  // Enforce non-blocking tutorial state unconditionally across lifecycle events.
+  useEffect(() => {
+    publishNonBlockingTutorialState();
+    const keepUnpaused = () => publishNonBlockingTutorialState();
+    window.addEventListener('pagehide', keepUnpaused);
+    window.addEventListener('pageshow', keepUnpaused);
+    document.addEventListener('visibilitychange', keepUnpaused);
+    return () => {
+      window.removeEventListener('pagehide', keepUnpaused);
+      window.removeEventListener('pageshow', keepUnpaused);
+      document.removeEventListener('visibilitychange', keepUnpaused);
+      publishNonBlockingTutorialState();
+    };
+  }, []);
+
   useEffect(() => {
     const onPointer = (event) => {
       const type = String(event?.pointerType || '');
       if (type === 'touch' || type === 'pen') setCoarse(true);
       else if (type === 'mouse') setCoarse(false);
     };
-    const onKey = () => setCoarse(false);
+    const onTouchStart = () => setCoarse(true);
+    const onKey = (event) => {
+      if (event?.key === 'Escape') return;
+      setCoarse(false);
+    };
     let query = null;
     const onMedia = (event) => setCoarse(!!event.matches);
     try {
@@ -629,9 +623,11 @@ export default function FirstPlayGuide() {
       if (query?.matches) setCoarse(true);
       query?.addEventListener?.('change', onMedia);
     } catch { query = null; }
+    window.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
     window.addEventListener('pointerdown', onPointer, true);
     window.addEventListener('keydown', onKey, true);
     return () => {
+      window.removeEventListener('touchstart', onTouchStart, { capture: true });
       window.removeEventListener('pointerdown', onPointer, true);
       window.removeEventListener('keydown', onKey, true);
       try { query?.removeEventListener?.('change', onMedia); } catch { /* older engines */ }
@@ -641,8 +637,15 @@ export default function FirstPlayGuide() {
   const persistCoach = useCallback((next) => {
     coachRef.current = next;
     setCoach(next);
-    try { localStorage.setItem(COACH_KEY, JSON.stringify(next)); } catch { /* session-only if storage is unavailable */ }
+    try { localStorage.setItem(COACH_KEY, JSON.stringify(next)); } catch { /* session-only */ }
     return next;
+  }, []);
+
+  const setPickupIfChanged = useCallback((nextPickup) => {
+    const key = nextPickup ? JSON.stringify(nextPickup) : '';
+    if (pickupKeyRef.current === key) return;
+    pickupKeyRef.current = key;
+    setPickupFrame(nextPickup);
   }, []);
 
   const clearFrame = useCallback(() => {
@@ -650,52 +653,8 @@ export default function FirstPlayGuide() {
       frameKeyRef.current = '';
       setFrame(null);
     }
+    setHintSlot((prev) => (prev === null ? prev : null));
   }, []);
-
-  const releaseTutorialPause = useCallback(() => {
-    if (!pauseRef.current && !window.APEX_TUTORIAL_PAUSE?.active) return;
-    pauseRef.current = null;
-    setPausedSlot(null);
-    clearTutorialPause();
-  }, []);
-
-  const engageTutorialPause = useCallback((slot) => {
-    if (pauseRef.current?.slot === slot) {
-      publishTutorialPause(slot);
-      return;
-    }
-    pauseRef.current = { slot, since: Date.now() };
-    publishTutorialPause(slot);
-    setPausedSlot(slot);
-    playCoachSfx('tutorial.pause');
-  }, []);
-
-  const acceptTutorialInput = useCallback((slot, source, key) => {
-    // The event being handled is the player's real J/K or touch input.
-    // Release the freeze first, then forward that one input through the
-    // canonical ability executor exactly once on the next frame.
-    releaseTutorialPause();
-    pauseCooldownUntilRef.current = Date.now() + 4000;
-    playCoachSfx('tutorial.resume');
-    window.requestAnimationFrame(() => {
-      try {
-        if (source === 'pointer' && typeof window.APEX_GOLD_HUD?.pressSkill === 'function') {
-          window.APEX_GOLD_HUD.pressSkill(0, slot, { source: 'pointer' });
-          return;
-        }
-        if (source === 'pointer' && typeof window.APEX_GOLD?.pressSkill === 'function') {
-          window.APEX_GOLD.pressSkill(0, slot, { source: 'pointer' });
-          return;
-        }
-        const fighter = liveFighters()[0];
-        window.APEX_HERO_REWORK?.pressAbility?.(
-          fighter,
-          slot === 1 ? 'A2' : 'A1',
-          { side: 'p1', source: source === 'pointer' ? 'pointer' : 'keyboard', key: key || (slot === 1 ? 'KeyK' : 'KeyJ') },
-        );
-      } catch { /* a failed cast leaves the match running and re-teachable */ }
-    });
-  }, [releaseTutorialPause]);
 
   const updateCoach = useCallback((patch) => {
     const current = coachRef.current;
@@ -704,54 +663,54 @@ export default function FirstPlayGuide() {
     if (JSON.stringify(next) === JSON.stringify(current)) return current;
     if (Object.prototype.hasOwnProperty.call(patch, 'step') && patch.step !== current.step) {
       clearFrame();
-      stepSinceRef.current = { step: patch.step, at: Date.now() };
-      const expectedSlot = patch.step === 3 ? 0 : patch.step === 4 ? 1 : null;
-      if (pauseRef.current && pauseRef.current.slot !== expectedSlot) releaseTutorialPause();
     }
     return persistCoach(next);
-  }, [clearFrame, persistCoach, releaseTutorialPause]);
+  }, [clearFrame, persistCoach]);
 
   const setActiveBoth = useCallback((next) => {
     activeRef.current = next;
     setActive(next);
+    publishNonBlockingTutorialState();
     if (!next) {
-      releaseTutorialPause();
       clearFrame();
+      setPickupIfChanged(null);
     }
-  }, [clearFrame, releaseTutorialPause]);
+  }, [clearFrame, setPickupIfChanged]);
 
   const finishCoach = useCallback((skipped = false) => {
-    releaseTutorialPause();
+    publishNonBlockingTutorialState();
     const current = coachRef.current || freshCoach(sealedCounts());
     persistCoach({ ...current, done: true, skipped: skipped || current.skipped });
     activeRef.current = false;
     setActive(false);
     clearFrame();
-  }, [clearFrame, persistCoach, releaseTutorialPause]);
+    setPickupIfChanged(null);
+  }, [clearFrame, persistCoach, setPickupIfChanged]);
 
-  const skipCoach = useCallback(() => finishCoach(true), [finishCoach]);
+  const skipCoach = useCallback(() => {
+    playCoachSfx('ui.back.cancel');
+    finishCoach(true);
+  }, [finishCoach]);
 
   const replayCoach = useCallback(() => {
-    releaseTutorialPause();
+    publishNonBlockingTutorialState();
     setLanguage(currentLanguage());
-    persistCoach(freshCoach(sealedCounts()));
-    skillSnapshotsRef.current = [null, null];
-    taughtFirstSlotRef.current = null;
-    stepSinceRef.current = { step: 0, at: Date.now() };
-    pauseCooldownUntilRef.current = Date.now() + 1500;
+    const counts = sealedCounts();
+    persistCoach(freshCoach(counts));
+    const liveCasts = readP1SkillCastCounts() || [0, 0];
+    battleSessionRef.current = { active: battleVisible(), casted: [false, false], baseCasts: liveCasts };
     writeSideIntroSeen({ ...readSideIntroSeen(), bot: 0, local: 0 });
     activeRef.current = true;
     setActive(true);
     clearFrame();
-  }, [clearFrame, persistCoach, releaseTutorialPause]);
+    setPickupIfChanged(null);
+  }, [clearFrame, persistCoach, setPickupIfChanged]);
 
   const hideCoach = useCallback(() => setActiveBoth(false), [setActiveBoth]);
 
   useEffect(() => { coachRef.current = coach; }, [coach]);
   useEffect(() => { activeRef.current = active; }, [active]);
 
-  // Bootstrap/resume. A v2 record resumes exactly where it stopped; a v1
-  // dismissal is honoured; a brand-new zero-match profile starts at step 0.
   useEffect(() => {
     if (bootstrappedRef.current) return undefined;
     bootstrappedRef.current = true;
@@ -759,7 +718,6 @@ export default function FirstPlayGuide() {
       setActiveBoth(!coachRef.current.done);
       return undefined;
     }
-
     let tries = 0;
     const poll = window.setInterval(() => {
       tries += 1;
@@ -779,11 +737,10 @@ export default function FirstPlayGuide() {
     return () => window.clearInterval(poll);
   }, [persistCoach, setActiveBoth]);
 
-  // Replay "?" lives in the Gold stage, as before. CSS hides it away from
-  // Home so it can never sit over pick or battle controls.
   useEffect(() => {
     const onOpen = () => replayCoach();
     const onLanguage = () => setLanguage(currentLanguage());
+    const unsubI18n = window.APEX_I18N?.subscribe?.(onLanguage);
     window.addEventListener('apex:guide-open', onOpen);
     window.addEventListener('apex:language-changed', onLanguage);
 
@@ -806,6 +763,7 @@ export default function FirstPlayGuide() {
     guard.observe(document.body, { subtree: true, childList: true });
 
     return () => {
+      if (typeof unsubI18n === 'function') unsubI18n();
       window.removeEventListener('apex:guide-open', onOpen);
       window.removeEventListener('apex:language-changed', onLanguage);
       guard.disconnect();
@@ -836,19 +794,12 @@ export default function FirstPlayGuide() {
     setFrame(nextFrame);
   }, []);
 
-  const setPickupHintIfChanged = useCallback((nextFrame) => {
-    const key = nextFrame ? JSON.stringify(nextFrame) : '';
-    if (pickupHintKeyRef.current === key) return;
-    pickupHintKeyRef.current = key;
-    setPickupHintFrame(nextFrame);
-  }, []);
-
   const syncCoach = useCallback(() => {
+    publishNonBlockingTutorialState();
     const current = coachRef.current;
     if (!activeRef.current || !current || current.done) {
-      releaseTutorialPause();
       clearFrame();
-      setPickupHintIfChanged(null);
+      setPickupIfChanged(null);
       return;
     }
 
@@ -862,9 +813,29 @@ export default function FirstPlayGuide() {
     if (baselineSealedMatches == null && counts && step < 3) baselineSealedMatches = counts.total;
 
     if (step === LAST_STEP && document.querySelector('.apex-progress-panel')) {
-      setPickupHintIfChanged(null);
       finishCoach(false);
       return;
+    }
+
+    const inLiveBotBattle = scene === 'battle' && isBotBattle();
+    const session = battleSessionRef.current;
+    if (inLiveBotBattle && !session.active) {
+      const initialCasts = readP1SkillCastCounts() || [0, 0];
+      session.active = true;
+      session.casted = [initialCasts[0] > 0, initialCasts[1] > 0];
+      session.baseCasts = initialCasts;
+    } else if (!inLiveBotBattle && session.active) {
+      session.active = false;
+      session.casted = [false, false];
+      session.baseCasts = [0, 0];
+    }
+
+    if (inLiveBotBattle) {
+      const liveCasts = readP1SkillCastCounts();
+      if (liveCasts) {
+        if (liveCasts[0] > session.baseCasts[0]) session.casted[0] = true;
+        if (liveCasts[1] > session.baseCasts[1]) session.casted[1] = true;
+      }
     }
 
     if (step >= 3 && step <= 4 && scene !== 'battle') {
@@ -873,13 +844,11 @@ export default function FirstPlayGuide() {
       else if (scene === 'home') step = 0;
       else if (scene === 'mode') step = 1;
       else if (scene === 'fighter') step = 2;
-      releaseTutorialPause();
-      skillSnapshotsRef.current = [null, null];
     } else if (step < 3) {
       if (scene === 'home') step = 0;
       else if (scene === 'mode') step = 1;
       else if (scene === 'fighter') step = 2;
-      else if (scene === 'battle' && isBotBattle()) step = 3;
+      else if (inLiveBotBattle) step = 3;
     }
 
     if (step >= 2 && step < LAST_STEP && scene === 'home' && counts
@@ -887,207 +856,151 @@ export default function FirstPlayGuide() {
       step = LAST_STEP;
     }
 
-    // Real skill-cast proof: a ready production skill transitions into a
-    // cast/active/cooldown state, loses a charge, or gains real cooldown.
-    if ((step === 3 || step === 4) && scene === 'battle' && isBotBattle()) {
-      // On the first lesson, K may be cast before J if no floor gun exists.
-      // The next lesson then watches the remaining skill, not a fixed order.
-      const watchedIndex = step === 3
-        ? (skillInfo(0).ready ? 0 : skillInfo(1).ready ? 1 : 0)
-        : (taughtFirstSlotRef.current === 1 ? 0 : 1);
-      const infos = [skillInfo(0), skillInfo(1)];
-      infos.forEach((info, index) => {
-        const previous = skillSnapshotsRef.current[index];
-        const cast = !!previous?.ready && (
-          ['cast', 'active', 'cd'].includes(info.state)
-          || info.charges < previous.charges
-          || info.nextIn > previous.nextIn + 0.25
-        );
-        if (index === watchedIndex && cast) {
-          if (step === 3) taughtFirstSlotRef.current = index;
-          step += 1;
-        }
-        skillSnapshotsRef.current[index] = {
-          ready: info.ready,
-          charges: info.charges,
-          nextIn: info.nextIn,
-          state: info.state,
-        };
-      });
-    } else if (scene !== 'battle') {
-      releaseTutorialPause();
-      skillSnapshotsRef.current = [null, null];
+    if (inLiveBotBattle && (step === 3 || step === 4)) {
+      const uniqueCasts = (session.casted[0] ? 1 : 0) + (session.casted[1] ? 1 : 0);
+      if (uniqueCasts >= 2) {
+        step = LAST_STEP;
+      } else if (uniqueCasts === 1 && step === 3) {
+        step = 4;
+      }
     }
 
-    if (step !== current.step || baselineBotMatches !== current.baselineBotMatches
+    if (step !== current.step
+      || baselineBotMatches !== current.baselineBotMatches
       || baselineSealedMatches !== current.baselineSealedMatches) {
       updateCoach({ step, baselineBotMatches, baselineSealedMatches });
     }
 
-    setPickupHintIfChanged(pickupOpportunityFrame(step));
-
-    if ((step === 3 || step === 4) && (scene !== 'battle' || !isBotBattle())) {
-      releaseTutorialPause();
-    } else if ((step === 3 || step === 4) && scene === 'battle' && isBotBattle()) {
-      const slot = step - 3;
-      const info = skillInfo(slot);
-      const now = Date.now();
-      if (stepSinceRef.current.step !== step) stepSinceRef.current = { step, at: now };
-      const waitedMs = Math.max(0, now - stepSinceRef.current.at);
-      const [self, foe] = liveFighters();
-      const battleEnded = !!battleState()?.over || !(self?.hp > 0) || !(foe?.hp > 0);
-
-      if (pauseRef.current) {
-        if (pauseRef.current.slot !== slot || !info.ready || battleEnded) {
-          releaseTutorialPause();
-          pauseCooldownUntilRef.current = now + 4000;
-        } else if (now - pauseRef.current.since > 30000) {
-          // Recovery guard: a forgotten lesson resumes the fight and can
-          // be offered again later instead of trapping the match forever.
-          releaseTutorialPause();
-          pauseCooldownUntilRef.current = now + 30000;
-        } else {
-          publishTutorialPause(slot);
-        }
-      } // Tactical Pulse never requests a gameplay pause.
+    if (document.querySelector('#apex-real-match-result')) {
+      clearFrame();
+      setPickupIfChanged(null);
+      return;
     }
+
+    if (step === LAST_STEP && inLiveBotBattle) {
+      clearFrame();
+      setPickupIfChanged(computePickupPromptFrame());
+      return;
+    }
+
+    setPickupIfChanged(null);
 
     if (!stepSceneMatches(step, scene)) {
-      setFrameIfChanged(null);
+      clearFrame();
       return;
     }
 
-    // A coach prompt is advisory only: present it when the real executor
-    // reports an eligible skill, but never hold the engine or suppress K.
     if (step === 3 || step === 4) {
-      const slot = step === 3
-        ? (skillInfo(0).ready ? 0 : skillInfo(1).ready ? 1 : 0)
-        : (taughtFirstSlotRef.current === 1 ? 0 : 1);
-      if (!skillInfo(slot).ready) {
-        setFrameIfChanged(null);
+      const state = battleState();
+      if (!state?.active || state?.over) {
+        clearFrame();
         return;
       }
-      setHintSlot(slot);
-      // Dock to the existing side-card slot only; no arena-covering overlay.
-      setFrameIfChanged(computeFrame(step, skillAnchor(slot)));
+      const s0 = skillInfo(0);
+      const s1 = skillInfo(1);
+      let chosenSlot = null;
+      if (step === 3) {
+        if (!session.casted[0] && s0.ready) chosenSlot = 0;
+        else if (!session.casted[1] && s1.ready) chosenSlot = 1;
+      } else {
+        const remainingSlot = session.casted[0] ? 1 : 0;
+        const info = remainingSlot === 0 ? s0 : s1;
+        if (info.ready) chosenSlot = remainingSlot;
+      }
+
+      if (chosenSlot === null) {
+        clearFrame();
+        return;
+      }
+
+      const anchor = (chosenSlot === 0 ? s0.element : s1.element);
+      if (!isVisibleAnchor(anchor)) {
+        clearFrame();
+        return;
+      }
+      setHintSlot((prev) => (prev === chosenSlot ? prev : chosenSlot));
+      const measuredH = chipRef.current?.offsetHeight || 78;
+      setFrameIfChanged(computeBattleFrame(anchor, measuredH));
       return;
     }
-    setHintSlot(null);
-    setFrameIfChanged(computeFrame(step, findAnchor(step)));
-  }, [clearFrame, engageTutorialPause, finishCoach, releaseTutorialPause, setFrameIfChanged, setPickupHintIfChanged, updateCoach]);
 
+    setHintSlot((prev) => (prev === null ? prev : null));
+    const menuAnchor = findMenuAnchor(step);
+    setFrameIfChanged(computeMenuFrame(step, menuAnchor));
+  }, [clearFrame, finishCoach, setFrameIfChanged, setPickupIfChanged, updateCoach]);
+
+  // Listen directly to authoritative combat engine Cast events for immediate step sync.
   useEffect(() => {
-    if (!active || !coach || coach.done) {
-      clearFrame();
-      return undefined;
-    }
-
-    const onClick = (event) => {
-      if (event.target?.closest?.('.apex-coach-skip')) return;
-      const current = coachRef.current;
-      if (!activeRef.current || !current || current.done) return;
-      const step = current.step;
-      if (step === 0 && event.target?.closest?.('#freeBattle')) {
-        updateCoach({ step: 1 });
-      } else if (step === 1 && event.target?.closest?.('.modeCard[data-mode="bot"]')) {
-        updateCoach({ step: 2 });
-      } else if (step === LAST_STEP && event.target?.closest?.('#apexMissionsOpen')) {
-        // The progress-panel proof is checked on the next sync; also finish
-        // shortly after the real click if the panel mounted synchronously.
-        window.setTimeout(syncCoach, 40);
+    let attachedBus = null;
+    const onEngineCast = (evt) => {
+      const payload = evt?.payload;
+      if (!payload) return;
+      const side = String(payload.side || payload.combatantId || '').toLowerCase();
+      if (side !== 'p1' && side !== '0') return;
+      const slotIdx = payload.slot === 'A2' ? 1 : 0;
+      battleSessionRef.current.casted[slotIdx] = true;
+      syncCoach();
+    };
+    const bindBus = () => {
+      const bus = window.APEX_HERO_REWORK_AIL?.bus;
+      if (bus && bus !== attachedBus && typeof bus.on === 'function') {
+        attachedBus = bus;
+        try { bus.on('Cast', onEngineCast); } catch { /* idempotent observer */ }
       }
     };
-
-    syncCoach();
-    document.addEventListener('click', onClick, true);
-    window.addEventListener('resize', syncCoach, { passive: true });
-    window.addEventListener('scroll', syncCoach, { passive: true, capture: true });
-    const interval = window.setInterval(syncCoach, 160);
-    const host = document.querySelector('#gold-shell-host') || document.body;
-    const observer = new MutationObserver(syncCoach);
-    observer.observe(host, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['class', 'data-state', 'aria-hidden'],
-    });
-
+    bindBus();
+    const interval = window.setInterval(() => {
+      bindBus();
+      syncCoach();
+    }, 100);
+    const onResize = () => syncCoach();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
     return () => {
-      document.removeEventListener('click', onClick, true);
-      window.removeEventListener('resize', syncCoach);
-      window.removeEventListener('scroll', syncCoach, true);
       window.clearInterval(interval);
-      observer.disconnect();
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
     };
-  }, [active, coach, coach?.done, clearFrame, syncCoach, updateCoach]);
+  }, [syncCoach]);
 
-  // CP4 first-fight side introduction: a one-time role word inside each
-  // existing HUD identity row (BOT: YOU/OPPONENT, LOCAL: PLAYER 1/2).
-  // No arena marker, ring, arrow or extra surface is created.
+  // Brief non-blocking side-color intro badge on HUD identity headers.
   useEffect(() => {
     const poll = () => {
-      const intro = sideIntroRef.current;
       const scene = currentScene();
       const state = battleState();
-      const mode = state?.battleMode === 'BOT'
-        ? 'bot'
-        : state?.battleMode === 'LOCAL' ? 'local' : null;
-      const battleTime = Number(state?.time) || 0;
-      const now = Date.now();
-
-      const enteredBattle = intro.scene !== 'battle' && scene === 'battle';
-      const restarted = scene === 'battle' && battleTime + 0.5 < intro.lastTime;
-      if (enteredBattle || restarted || intro.mode !== mode) {
-        intro.mode = mode;
-        intro.activeUntil = 0;
-        intro.applied = false;
-        setSideIntroLabels(null);
-      }
-      intro.scene = scene;
-      intro.lastTime = battleTime;
-
-      if (scene !== 'battle' || !state || state.over || !mode) {
-        if (intro.activeUntil) {
-          intro.activeUntil = 0;
-          intro.applied = false;
+      const mode = String(state?.battleMode || '').toUpperCase();
+      const validMode = mode === 'BOT' ? 'bot' : mode === 'LOCAL' ? 'local' : null;
+      const ref = sideIntroRef.current;
+      if (scene !== 'battle' || !validMode) {
+        if (ref.applied) {
           setSideIntroLabels(null);
+          ref.applied = false;
         }
+        ref.scene = scene;
+        ref.mode = null;
+        ref.activeUntil = 0;
         return;
       }
-
-      const copy = COPY[currentLanguage() === 'vie' ? 'vie' : 'eng'];
-      const labels = mode === 'bot'
-        ? [copy.sideYou, copy.sideBot]
-        : [copy.sideP1, copy.sideP2];
-
-      if (intro.activeUntil) {
-        if (now < intro.activeUntil) {
-          if (setSideIntroLabels(labels) && !intro.applied) {
-            intro.applied = true;
-            writeSideIntroSeen({ ...readSideIntroSeen(), [mode]: now });
-          }
+      if (ref.mode !== validMode || Number(state?.time || 0) + 0.5 < ref.lastTime) {
+        ref.mode = validMode;
+        const seen = readSideIntroSeen();
+        if (!seen[validMode]) {
+          ref.activeUntil = Date.now() + 4200;
+          writeSideIntroSeen({ ...seen, [validMode]: 1 });
         } else {
-          intro.activeUntil = 0;
-          intro.applied = false;
-          setSideIntroLabels(null);
+          ref.activeUntil = 0;
         }
-        return;
       }
-
-      // CP5.3: while the coach journey is unfinished, repeat the
-      // battle-start identity at every opening so a new player always
-      // learns which robot is theirs; after that the one-time seen
-      // flag governs.
-      const learning = !!coachRef.current && !coachRef.current.done;
-      if ((!readSideIntroSeen()[mode] || learning) && battleTime <= 6) {
-        intro.activeUntil = now + 6000;
-        if (setSideIntroLabels(labels)) {
-          intro.applied = true;
-          writeSideIntroSeen({ ...readSideIntroSeen(), [mode]: now });
-        }
+      ref.lastTime = Number(state?.time || 0);
+      if (Date.now() < ref.activeUntil) {
+        const t = COPY[currentLanguage()];
+        const labels = validMode === 'bot' ? [t.sideYou, t.sideBot] : [t.sideP1, t.sideP2];
+        ref.applied = setSideIntroLabels(labels);
+      } else if (ref.applied) {
+        setSideIntroLabels(null);
+        ref.applied = false;
       }
     };
-
     poll();
     const interval = window.setInterval(poll, 200);
     return () => {
@@ -1096,211 +1009,108 @@ export default function FirstPlayGuide() {
     };
   }, []);
 
-  // While a lesson is paused, only the taught slot can resume it. The
-  // canonical executor is closed during the lease, so accepting the real
-  // input here cannot double-cast: release first, forward once next frame.
+  // Soft highlight ring on the currently taught castable skill card ONLY;
+  // NEVER dims the arena canvas or locks/dims the other skill card.
   useEffect(() => {
-    if (pausedSlot == null) return undefined;
-    const slot = pausedSlot;
-    const expectedCode = slot === 1 ? 'KeyK' : 'KeyJ';
-    const expectedKey = slot === 1 ? 'k' : 'j';
-
-    const heartbeat = window.setInterval(() => {
-      if (pauseRef.current?.slot === slot) publishTutorialPause(slot);
-    }, 500);
-
-    const onKeyDown = (event) => {
-      if (event.repeat) return;
-      const key = String(event.key || '').toLowerCase();
-      if (event.code !== expectedCode && key !== expectedKey) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      acceptTutorialInput(slot, 'keyboard', event.code || expectedCode);
-    };
-
-    // Gold's real pointer contract casts on release. Mirror it exactly:
-    // hold the taught P1 skill card on pointerdown, accept on pointerup,
-    // and swallow both events so Gold cannot cast a second time.
-    let pendingPointer = null;
-    const taughtSkillCard = (event) => {
-      const card = event.target?.closest?.('#p1Side .skill, .skill[data-p="1"]');
-      return card && Number(card.dataset.i) === slot ? card : null;
-    };
-
-    const clearPendingPointer = () => {
-      if (!pendingPointer) return;
-      pendingPointer.card.classList.remove('is-held');
-      try {
-        if (pendingPointer.card.hasPointerCapture?.(pendingPointer.id)) {
-          pendingPointer.card.releasePointerCapture(pendingPointer.id);
-        }
-      } catch { /* pointer already released */ }
-      pendingPointer = null;
-    };
-
-    const onPointerDown = (event) => {
-      const card = taughtSkillCard(event);
-      if (!card || pendingPointer) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      pendingPointer = { id: event.pointerId, card };
-      card.classList.add('is-held');
-      try { card.setPointerCapture?.(event.pointerId); } catch { /* capture is optional */ }
-    };
-
-    const onPointerUp = (event) => {
-      if (!pendingPointer || event.pointerId !== pendingPointer.id) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      clearPendingPointer();
-      acceptTutorialInput(slot, 'pointer', expectedCode);
-    };
-
-    const onPointerCancel = (event) => {
-      if (!pendingPointer || event.pointerId !== pendingPointer.id) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      clearPendingPointer();
-    };
-
-    const releaseForRecovery = () => releaseTutorialPause();
-    const onVisibility = () => { if (document.hidden) releaseForRecovery(); };
-
-    window.addEventListener('keydown', onKeyDown, true);
-    document.addEventListener('pointerdown', onPointerDown, true);
-    document.addEventListener('pointerup', onPointerUp, true);
-    document.addEventListener('pointercancel', onPointerCancel, true);
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', releaseForRecovery);
-
+    if (!active || !coach || coach.done || (coach.step !== 3 && coach.step !== 4) || hintSlot == null) {
+      return undefined;
+    }
+    const element = skillAnchor(hintSlot);
+    if (!element?.classList) return undefined;
+    element.classList.add('apex-coach-taught');
     return () => {
-      window.clearInterval(heartbeat);
-      window.removeEventListener('keydown', onKeyDown, true);
-      document.removeEventListener('pointerdown', onPointerDown, true);
-      document.removeEventListener('pointerup', onPointerUp, true);
-      document.removeEventListener('pointercancel', onPointerCancel, true);
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', releaseForRecovery);
-      clearPendingPointer();
-      releaseTutorialPause();
+      try { element.classList.remove('apex-coach-taught'); } catch { /* detached */ }
     };
-  }, [acceptTutorialInput, pausedSlot, releaseTutorialPause]);
+  }, [active, coach, hintSlot]);
 
-  // CP5 spotlight (presentation only): while a lesson is paused, dim the
-  // arena canvas and the skill card that is NOT being taught, so the one
-  // real control to use is unmistakable. The pause lease, opportunity
-  // logic and input contract are untouched.
-  useEffect(() => {
-    if (pausedSlot == null) return undefined;
-    const touched = [];
-    const mark = (element, className) => {
-      if (!element?.classList) return;
-      element.classList.add(className);
-      touched.push([element, className]);
-    };
-    try {
-      document.body.classList.add('apex-tutorial-paused');
-      mark(skillInfo(pausedSlot).element, 'apex-coach-taught');
-      mark(skillInfo(1 - pausedSlot).element, 'apex-coach-dimmed');
-      document.querySelectorAll('canvas').forEach((canvas) => {
-        if (canvas.width > 200 && !canvas.closest('.apex-coach-layer')) mark(canvas, 'apex-coach-dimmed');
-      });
-    } catch { /* spotlight is decoration; the lesson itself never depends on it */ }
-    return () => {
-      document.body.classList.remove('apex-tutorial-paused');
-      touched.forEach(([element, className]) => { try { element.classList.remove(className); } catch { /* detached */ } });
-    };
-  }, [pausedSlot]);
+  if (!active || !coach || coach.done || (!frame && !pickupFrame)) return null;
 
-  useEffect(() => () => {
-    releaseTutorialPause();
-    setSideIntroLabels(null);
-  }, [releaseTutorialPause]);
-
-  if (!active || !coach || coach.done || (!frame && !pickupHintFrame)) return null;
-
-  const lang = language === 'vie' ? 'vie' : 'eng';
+  const lang = (currentLanguage() === 'vie' || (language === 'vie' && !window.APEX_I18N?.getLanguage)) ? 'vie' : 'eng';
   const copy = COPY[lang];
-  const item = (coach.step === 3 || coach.step === 4) && hintSlot != null
+
+  if (pickupFrame && !frame) {
+    return (
+      <div
+        className="apex-guide-dock apex-coach-layer"
+        data-tutorial-paused="false"
+        aria-live="polite"
+      >
+        <div
+          className={`apex-guide-pickup-prompt${pickupFrame.compact ? ' is-compact' : ''}`}
+          role="status"
+          aria-label={copy.pickupPrompt}
+          data-apex-no-localize=""
+          style={{
+            left: `${pickupFrame.left}px`,
+            top: `${pickupFrame.top}px`,
+            width: `${pickupFrame.width}px`,
+            height: `${pickupFrame.height}px`,
+          }}
+        >
+          {copy.pickupPrompt}
+        </div>
+      </div>
+    );
+  }
+
+  const isBattleStep = (coach.step === 3 || coach.step === 4) && hintSlot != null;
+  const item = isBattleStep
     ? copy.steps[hintSlot === 0 ? 3 : 4]
     : (copy.steps[coach.step] || copy.steps[0]);
-  const body = item.body || (coarse ? item.touch : item.keyboard);
-  const isPausedLesson = (coach.step === 3 || coach.step === 4)
-    && pausedSlot === coach.step - 3;
-  const skillName = isPausedLesson ? taughtSkillName(coach.step - 3) : '';
-  const displayBody = skillName ? `${body} · ${skillName}` : body;
+  const rawBody = item.body || (coarse ? item.touch : item.keyboard);
+  const skillName = isBattleStep ? taughtSkillName(hintSlot) : '';
+  const displayBody = skillName ? `${rawBody} · ${skillName}` : rawBody;
 
   return (
     <div
-      className={`apex-guide-dock apex-coach-layer${isPausedLesson ? ' is-tutorial-paused' : ''}${!frame && pickupHintFrame ? ' is-pickup-only' : ''}`}
-      data-tutorial-paused={isPausedLesson ? 'true' : 'false'}
+      className="apex-guide-dock apex-coach-layer"
+      data-tutorial-paused="false"
+      data-taught-slot={isBattleStep ? String(hintSlot) : ''}
       aria-live="polite"
     >
-      {frame && (
-        <div
-          className="apex-coach-beacon"
-          aria-hidden="true"
-          style={{
-            left: `${frame.beaconLeft}px`,
-            top: `${frame.beaconTop}px`,
-            width: `${frame.beaconWidth}px`,
-            height: `${frame.beaconHeight}px`,
-          }}
-        />
-      )}
-      {frame && isPausedLesson && (
-        <div className="apex-guide-paused-note apex-guide-arena-pill" style={arenaPillStyle()} aria-hidden="true">
-          <i className="apex-pause-bars"><b /><b /></i>
-          <span>{copy.pausedNote}</span>
-        </div>
-      )}
-      {frame && (
-        <section
-          className="apex-guide-card apex-coach-chip"
-          role="status"
-          aria-label={`${copy.kicker}: ${item.title}. ${displayBody}${isPausedLesson ? ` ${copy.pausedNote}` : ''}`}
-          data-placement={frame.placement}
-          data-apex-no-localize=""
-          style={{
-            left: `${frame.chipLeft}px`,
-            top: `${frame.chipTop}px`,
-            width: `${frame.chipWidth}px`,
-            transform: frame.chipTransform,
-          }}
-        >
-          <div className="apex-coach-copy">
-            <p className="apex-guide-kicker">{(isPausedLesson ? copy.actionKicker : copy.kicker)} · {coach.step + 1}/{LAST_STEP + 1}</p>
-            <div className="apex-guide-steps" aria-hidden="true">
-              {Array.from({ length: LAST_STEP + 1 }, (_, index) => (
-                <i key={index} className={index <= coach.step ? 'is-done' : ''} />
-              ))}
-            </div>
-            <h2>{item.title}</h2>
-            <p className="apex-guide-body">{displayBody}</p>
-            {(coach.step === 3 || coach.step === 4) && (
-              <p className="apex-guide-identity"><i aria-hidden="true" />{copy.identity}</p>
-            )}
+      <div
+        className="apex-coach-beacon"
+        aria-hidden="true"
+        style={{
+          left: `${frame.beaconLeft}px`,
+          top: `${frame.beaconTop}px`,
+          width: `${frame.beaconWidth}px`,
+          height: `${frame.beaconHeight}px`,
+        }}
+      />
+      <section
+        ref={chipRef}
+        className={`apex-guide-card apex-coach-chip${frame.compact ? ' is-compact' : ''}${frame.narrow ? ' is-narrow' : ''}`}
+        role="status"
+        aria-label={`${copy.kicker}: ${item.title}. ${displayBody}`}
+        data-placement={frame.placement}
+        data-apex-no-localize=""
+        style={{
+          left: `${frame.chipLeft}px`,
+          top: `${frame.chipTop}px`,
+          width: `${frame.chipWidth}px`,
+          transform: frame.chipTransform,
+        }}
+      >
+        <div className="apex-coach-copy">
+          <p className="apex-guide-kicker">{(isBattleStep ? copy.actionKicker : copy.kicker)} · {coach.step + 1}/{LAST_STEP + 1}</p>
+          <div className="apex-guide-steps" aria-hidden="true">
+            {Array.from({ length: LAST_STEP + 1 }, (_, index) => (
+              <i key={index} className={index <= coach.step ? 'is-done' : ''} />
+            ))}
           </div>
-          <button type="button" className="apex-coach-skip" onClick={skipCoach}>{copy.skip}</button>
-        </section>
-      )}
-      {pickupHintFrame && (
-        <p
-          className="apex-guide-weapon-hint apex-guide-pickup-prompt"
-          role="status"
-          aria-live="polite"
-          aria-label={copy.weaponHint}
-          data-apex-no-localize=""
-          style={{
-            left: `${pickupHintFrame.left}px`,
-            top: `${pickupHintFrame.top}px`,
-            width: `${pickupHintFrame.width}px`,
-            height: `${pickupHintFrame.height}px`,
-          }}
+          <h2>{item.title}</h2>
+          <p className="apex-guide-body">{displayBody}</p>
+        </div>
+        <button
+          type="button"
+          className="apex-coach-skip apex-guide-close"
+          onClick={skipCoach}
+          aria-label={copy.skip}
         >
-          {copy.weaponHint}
-        </p>
-      )}
+          {copy.skip}
+        </button>
+      </section>
     </div>
   );
 }

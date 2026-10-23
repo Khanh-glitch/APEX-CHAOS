@@ -1313,6 +1313,21 @@
           });
         } catch (e) {}
       });
+      ail.bus.on('CastFailCue', (evt) => {
+        if (!hudMounted) return;
+        const seam = window.APEX_GOLD_HUD;
+        const payload = evt && evt.payload;
+        if (!seam || !payload || payload.source === 'p2-ai') return;
+        let targetIndex = payload.side === 'p2' || payload.combatantId === 'p2' ? 1
+          : (payload.side === 'p1' || payload.combatantId === 'p1' ? 0 : -1);
+        if (targetIndex < 0) return;
+        const slot = payload.slot === 'A2' ? 1 : 0;
+        try {
+          if (typeof seam.castFail === 'function') {
+            seam.castFail(targetIndex, slot, String(payload.reason || 'condition'));
+          }
+        } catch (e) {}
+      });
     }
   }
   function stopEventTranslation() {
@@ -1567,6 +1582,11 @@
         nextIn: 0,
         castUntil: false,
         truth: false,
+        castable: false,
+        castReason: 'syncing',
+        mechanic: '',
+        activeRemainSec: 0,
+        mitigationPct: 0,
         kind: meta.kind,
         duration: meta.duration,
         icon: meta.icon,
@@ -1649,25 +1669,40 @@
       const art = heroUiArt(shellKey) || {};
       const copy = GOLD_HERO_COPY[shellKey] || {};
       const skills = skillProjection(f);
-      // Read-only legality comes from the same rework controller/mechanic
-      // predicates used by the actual cast executor. Unknown stays unknown.
-      if (f && window.APEX_HERO_REWORK?.observeAbilityCastability) {
+      // Read-only legality + real simulation active duration come strictly from
+      // heroReworkRuntime authorities (zero side effects, zero wall-clock drift).
+      if (f && window.APEX_HERO_REWORK) {
+        const hr = window.APEX_HERO_REWORK;
+        const cfg = window.APEX_ARSENAL_CONFIG;
         for (let k = 0; k < skills.length; k++) {
-          const legality = window.APEX_HERO_REWORK.observeAbilityCastability(f, k ? 'A2' : 'A1');
-          if (!legality) continue;
-          skills[k].castable = legality.castable === true;
-          skills[k].castReason = legality.reason;
-          if (legality.targetWeaponId) skills[k].targetWeaponId = legality.targetWeaponId;
-          if (legality.targetSlotId != null) skills[k].targetSlotId = legality.targetSlotId;
+          const slot = k ? 'A2' : 'A1';
+          if (typeof hr.observeAbilityCastability === 'function') {
+            const legality = hr.observeAbilityCastability(f, slot);
+            if (legality) {
+              skills[k].castable = legality.known !== false && legality.castable === true;
+              skills[k].castReason = legality.reason || 'condition';
+              skills[k].mechanic = legality.mechanic || '';
+              if (legality.targetWeaponId) {
+                skills[k].targetWeaponId = legality.targetWeaponId;
+                const disp = (cfg && typeof cfg.weaponDisplayName === 'function')
+                  ? cfg.weaponDisplayName(legality.targetWeaponId)
+                  : String(legality.targetWeaponId).replace(/_/g, ' ');
+                skills[k].targetName = String(disp || legality.targetWeaponId).toUpperCase();
+              } else {
+                skills[k].targetWeaponId = '';
+                skills[k].targetName = '';
+              }
+              if (legality.targetSlotId != null) skills[k].targetSlotId = legality.targetSlotId;
+            }
+          }
+          if (typeof hr.observeAbilityActiveWindow === 'function') {
+            const activeWin = hr.observeAbilityActiveWindow(f, slot);
+            if (activeWin) {
+              skills[k].activeRemainSec = activeWin.active ? activeWin.remainSec : 0;
+              skills[k].mitigationPct = activeWin.active ? (activeWin.mitigationPct || 0) : 0;
+            }
+          }
         }
-      }
-      if (liveHeroId === 'ROBOT' && f?.__hrCombatant) {
-        const ct = f.__hrCombatant;
-        const armor = ct.store?.['robot.virtual_armor'];
-        const clock = window.APEX_HERO_REWORK?.clock;
-        // Clock is injected below when exported; no wall-time guesses.
-        if (armor && Number.isFinite(armor.armorUntil) && typeof clock === 'function')
-          skills[1].activeRemainSec = Math.max(0, armor.armorUntil - clock());
       }
       // E01 J unlock after R2, K unlock only on successful J Cast.
       if(state?.questReflex===true&&i===0){
@@ -1675,7 +1710,18 @@
         skills[0].locked=!['J_CAST','K_CAST','BOTH_HALF'].includes(phase);
         skills[1].locked=!['K_CAST','BOTH_HALF'].includes(phase);
       }
-      const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'UNARMED', asset: '', tier: '', tierColor: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
+      const isVie = window.APEX_I18N?.getLanguage?.() === 'vie';
+      const battleMode = String(state?.battleMode || '').toUpperCase();
+      const isBotMode = battleMode === 'BOT' || !!state?.questMultiActor;
+      const roleHint = isBotMode
+        ? (i === 0 ? (isVie ? 'BẠN · TỰ ĐÁNH' : 'YOU · AUTO FIGHT') : (isVie ? 'BOT · TỰ ĐỘNG' : 'BOT · AUTO AI'))
+        : (i === 0 ? (isVie ? 'P1 · TỰ ĐÁNH' : 'P1 · AUTO FIGHT') : (isVie ? 'P2 · TỰ ĐÁNH' : 'P2 · AUTO FIGHT'));
+      const unarmedType = isVie ? 'TỰ ĐỘNG NHẶT' : 'AUTO PICKUP';
+      const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'AUTO PICKUP', asset: '', tier: '', tierColor: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
+      if (weapon.id === 'UNARMED') {
+        weapon.name = isVie ? 'TAY KHÔNG' : 'UNARMED';
+        weapon.type = unarmedType;
+      }
       const vitalsFallback = vitalsProjection(f) || { hp: 0, maxHp: 1000 };
       const teamVitals = group ? {
         hp: group.reduce((sum, actor) => sum + Math.max(0, Number(actor.hp) || 0), 0),
@@ -1692,6 +1738,7 @@
           heroId: liveHeroId,
           name: teamName || identity.name || (f && f.name) || '',
           tag: copy.tag || '',
+          roleHint,
           battleAvatar: art.battleAvatar || art.portrait || '',
           accent: identity.color || (f && f.color) || '#ffffff',
         },

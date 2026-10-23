@@ -44,6 +44,7 @@ import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
 import { adaptGoldBattleHudR83 } from './goldBattleHudR83.mjs';
 import { adaptGoldBattleHudR91LabelFit } from './goldBattleHudR91labelFit.mjs';
+import { adaptGoldBattleHudTacticalPulse } from './goldBattleHudTacticalPulse.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
 import { adaptGoldShellR83 } from './goldShellR83.mjs';
@@ -2660,6 +2661,24 @@ function main() {
     .replace(storyGateBefore,storyGateAfter)
     .replace('</head>',storyLockStyle),'utf8'));
   log('F2 story lock built (status chip + Free Battle primary; entry gated by product authority)');
+
+  // Tactical Pulse HUD B: transform generated battle-hud.html deterministically
+  // and re-embed the exact matching Base64 payload into shell.html so standalone
+  // and shell-mounted HUD bytes remain 100% identical across all checks.
+  const prePulseHud = outputs.get('battle-hud.html').toString('utf8');
+  const postPulseHud = adaptGoldBattleHudTacticalPulse(prePulseHud);
+  outputs.set('battle-hud.html', Buffer.from(postPulseHud, 'utf8'));
+  const prePulseShell = outputs.get('shell.html').toString('utf8');
+  const payloadRe = /(<script id="battleHudPayload" type="text\/plain">)([\s\S]*?)(<\/script>)/;
+  if (!payloadRe.test(prePulseShell)) {
+    throw new Error('TacticalPulse expected embedded battleHudPayload in shell.html');
+  }
+  const postPulseShell = prePulseShell.replace(
+    payloadRe,
+    (_, open, _oldB64, close) => open + Buffer.from(postPulseHud, 'utf8').toString('base64') + close
+  );
+  outputs.set('shell.html', Buffer.from(postPulseShell, 'utf8'));
+  log('Tactical Pulse HUD B built + embedded into shell.html');
 
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
