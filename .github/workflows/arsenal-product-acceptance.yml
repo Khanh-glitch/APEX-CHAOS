@@ -315,19 +315,27 @@ jobs:
           ITCH_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/itch-nested-candidate
         run: |
           set -euo pipefail
-          node tools/testItchGuestReleaseGate.mjs
-          pnpm test:owner-playtest-economy
-          pnpm test:battle-outcome-side
-          node tools/testCloudSecurityContracts.mjs
-          node tools/testCloudLifecycleRaces.mjs
-          pnpm build
-          node tools/testShippingDist.mjs
-          node tools/testCP16BuildReceipt.mjs
-          printf '%s\n' "${GITHUB_SHA}" > dist/ITCH_GUEST_BUILD_SHA.txt
-          node tools/packItchPortable.mjs
-          EXPECTED_GIT_SHA="${GITHUB_SHA}" node tools/auditItchNestedCandidateE2e.mjs
-          rm -rf dist-itch-html5 dist/ITCH_GUEST_BUILD_SHA.txt
-          ! ls *itch*.zip >/dev/null 2>&1
+          {
+            node tools/testItchGuestReleaseGate.mjs
+            pnpm test:owner-playtest-economy
+            pnpm test:battle-outcome-side
+            node tools/testCloudSecurityContracts.mjs
+            node tools/testCloudLifecycleRaces.mjs
+            pnpm build
+            node tools/testShippingDist.mjs
+            node tools/testCP16BuildReceipt.mjs
+            printf '%s\n' "${GITHUB_SHA}" > dist/ITCH_GUEST_BUILD_SHA.txt
+            node tools/packItchPortable.mjs
+            EXPECTED_GIT_SHA="${GITHUB_SHA}" node tools/auditItchNestedCandidateE2e.mjs
+            rm -rf dist-itch-html5 dist/ITCH_GUEST_BUILD_SHA.txt
+            test -z "$(find . -maxdepth 1 -iname '*itch*.zip' -print -quit)"
+          } > /tmp/step46-itch-gate.log 2>&1 || {
+            cat /tmp/step46-itch-gate.log
+            TAIL="$(tail -n 30 /tmp/step46-itch-gate.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            echo "::error title=Step46ItchCandidateGate::${TAIL}"
+            exit 1
+          }
+          cat /tmp/step46-itch-gate.log
 
       - name: Upload build and acceptance evidence
         if: always()
