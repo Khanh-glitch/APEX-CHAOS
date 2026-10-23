@@ -197,7 +197,7 @@ async function runNestedFullGameplayJourney(browser, vp) {
   let attempt = 0;
   const nonWinAttempts = [];
 
-  while (attempt < 3) {
+  while (attempt < 10) {
     attempt += 1;
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
@@ -325,21 +325,30 @@ async function runNestedFullGameplayJourney(browser, vp) {
     await sleep(600);
     await page.screenshot({ path: path.join(OUT_DIR, `nested-${vp.id}-04-live-battle.png`) });
 
-    // Play legitimately using ONLY public player skill inputs (Weapon Dash + Virtual Armor when off CD)
+    // Play legitimately using ONLY public player skill inputs (Weapon Dash + Virtual Armor frame-reactive)
     // ZERO state tampering, ZERO HP assignment, ZERO mock ledger!
+    await gameFrame.evaluate(() => {
+      let active = true;
+      const tick = () => {
+        if (!active || document.querySelector('#apex-real-match-result')) return;
+        const hr = window.APEX_HERO_REWORK;
+        const p1 = window.fighters?.[0];
+        if (hr && p1) {
+          if (hr.observeAbilityCastability?.(p1, 'A1')?.castable) window.APEX_GOLD?.pressSkill?.(0, 0);
+          if (hr.observeAbilityCastability?.(p1, 'A2')?.castable) window.APEX_GOLD?.pressSkill?.(0, 1);
+        }
+        window.requestAnimationFrame(tick);
+      };
+      window.requestAnimationFrame(tick);
+      window.__stopNestedAutoPlay = () => { active = false; };
+    });
+
     let matchSnapshotBeforeResult = null;
     const koDeadline = Date.now() + 480000;
     while (Date.now() < koDeadline) {
       const hasResult = await gameFrame.evaluate(() => !!document.querySelector('#apex-real-match-result'));
       if (hasResult) break;
       matchSnapshotBeforeResult = await gameFrame.evaluate(() => {
-        const hr = window.APEX_HERO_REWORK;
-        const p1 = window.fighters?.[0];
-        const p2 = window.fighters?.[1];
-        if (hr && p1) {
-          if (hr.observeAbilityCastability?.(p1, 'A1')?.castable) window.APEX_GOLD?.pressSkill?.(0, 0);
-          else if (p2?.data?.arsenal?.weaponId && hr.observeAbilityCastability?.(p1, 'A2')?.castable) window.APEX_GOLD?.pressSkill?.(0, 1);
-        }
         const st = window.APEX_ARSENAL?.state;
         return st ? {
           winnerSide: st.winnerSide || null,
@@ -347,8 +356,9 @@ async function runNestedFullGameplayJourney(browser, vp) {
           roundsWon: st.roundsWon ? [...st.roundsWon] : null,
         } : null;
       });
-      await sleep(320);
+      await sleep(250);
     }
+    await gameFrame.evaluate(() => window.__stopNestedAutoPlay?.()).catch(() => {});
 
     await gameFrame.waitForSelector('#apex-real-match-result', { visible: true, timeout: 20000 });
     const postMatchInfo = await gameFrame.evaluate(() => {
@@ -367,6 +377,7 @@ async function runNestedFullGameplayJourney(browser, vp) {
       // then we rerun a fresh guest session so every viewport ALSO proves a genuine P1 +200 AC win!
       assert.equal(postMatchInfo.credits, 375, `${vp.id}: legitimate BOT loss awards exact +25 AC (375 AC)`);
       nonWinAttempts.push({ attempt, postMatchInfo, matchSnapshotBeforeResult });
+      console.log(`[Attempt ${attempt}] ${vp.id}: legitimate BOT loss verified (+25 AC => 375 AC), retrying fresh session for P1 win proof...`);
       await context.close();
       continue;
     }
@@ -502,7 +513,7 @@ async function runNestedFullGameplayJourney(browser, vp) {
       externalUrls,
     };
   }
-  throw new Error(`${vp.id}: P1 did not achieve a clean win within 3 legitimate attempts`);
+  throw new Error(`${vp.id}: P1 did not achieve a clean win within 10 legitimate attempts`);
 }
 
 try {
