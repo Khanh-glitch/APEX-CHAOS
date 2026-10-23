@@ -1649,6 +1649,26 @@
       const art = heroUiArt(shellKey) || {};
       const copy = GOLD_HERO_COPY[shellKey] || {};
       const skills = skillProjection(f);
+      // Read-only legality comes from the same rework controller/mechanic
+      // predicates used by the actual cast executor. Unknown stays unknown.
+      if (f && window.APEX_HERO_REWORK?.observeAbilityCastability) {
+        for (let k = 0; k < skills.length; k++) {
+          const legality = window.APEX_HERO_REWORK.observeAbilityCastability(f, k ? 'A2' : 'A1');
+          if (!legality) continue;
+          skills[k].castable = legality.castable === true;
+          skills[k].castReason = legality.reason;
+          if (legality.targetWeaponId) skills[k].targetWeaponId = legality.targetWeaponId;
+          if (legality.targetSlotId != null) skills[k].targetSlotId = legality.targetSlotId;
+        }
+      }
+      if (liveHeroId === 'ROBOT' && f?.__hrCombatant) {
+        const ct = f.__hrCombatant;
+        const armor = ct.store?.['robot.virtual_armor'];
+        const clock = window.APEX_HERO_REWORK?.clock;
+        // Clock is injected below when exported; no wall-time guesses.
+        if (armor && Number.isFinite(armor.armorUntil) && typeof clock === 'function')
+          skills[1].activeRemainSec = Math.max(0, armor.armorUntil - clock());
+      }
       // E01 J unlock after R2, K unlock only on successful J Cast.
       if(state?.questReflex===true&&i===0){
         const phase=state.questReflexGate?.snapshot()?.phase;
