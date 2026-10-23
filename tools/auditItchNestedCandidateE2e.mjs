@@ -325,41 +325,39 @@ async function runNestedFullGameplayJourney(browser, vp) {
     await sleep(600);
     await page.screenshot({ path: path.join(OUT_DIR, `nested-${vp.id}-04-live-battle.png`) });
 
-    // Play legitimately using ONLY public player skill inputs (Weapon Dash + Virtual Armor frame-reactive)
+    // Play legitimately using ONLY public player skill inputs (Weapon Dash A1 + Virtual Armor A2)
+    // polled at 500ms so P1 decisively out-trades BOT with zero per-frame rAF overhead.
     // ZERO state tampering, ZERO HP assignment, ZERO mock ledger!
-    await gameFrame.evaluate(() => {
-      let active = true;
-      const tick = () => {
-        if (!active || document.querySelector('#apex-real-match-result')) return;
+    let matchSnapshotBeforeResult = null;
+    const koDeadline = Date.now() + 420000;
+    while (Date.now() < koDeadline) {
+      const step = await gameFrame.evaluate(() => {
+        if (document.querySelector('#apex-real-match-result')) return { done: true, snap: null };
         const hr = window.APEX_HERO_REWORK;
         const hud = window.APEX_GOLD_HUD || window.APEX_GOLD_BRIDGE;
         const p1 = window.fighters?.[0];
         if (hr && hud && p1) {
-          if (hr.observeAbilityCastability?.(p1, 'A1')?.castable) hud.pressSkill?.(0, 0, { source: 'test-player' });
-          if (hr.observeAbilityCastability?.(p1, 'A2')?.castable) hud.pressSkill?.(0, 1, { source: 'test-player' });
+          if (hr.observeAbilityCastability?.(p1, 'A1')?.castable) {
+            hud.pressSkill?.(0, 0, { source: 'test-player' });
+          }
+          if (hr.observeAbilityCastability?.(p1, 'A2')?.castable) {
+            hud.pressSkill?.(0, 1, { source: 'test-player' });
+          }
         }
-        window.requestAnimationFrame(tick);
-      };
-      window.requestAnimationFrame(tick);
-      window.__stopNestedAutoPlay = () => { active = false; };
-    });
-
-    let matchSnapshotBeforeResult = null;
-    const koDeadline = Date.now() + 480000;
-    while (Date.now() < koDeadline) {
-      const hasResult = await gameFrame.evaluate(() => !!document.querySelector('#apex-real-match-result'));
-      if (hasResult) break;
-      matchSnapshotBeforeResult = await gameFrame.evaluate(() => {
         const st = window.APEX_ARSENAL?.state;
-        return st ? {
-          winnerSide: st.winnerSide || null,
-          battleMode: st.battleMode || null,
-          roundsWon: st.roundsWon ? [...st.roundsWon] : null,
-        } : null;
+        return {
+          done: false,
+          snap: st ? {
+            winnerSide: st.winnerSide || null,
+            battleMode: st.battleMode || null,
+            roundsWon: st.roundsWon ? [...st.roundsWon] : null,
+          } : null,
+        };
       });
-      await sleep(250);
+      if (step.done) break;
+      matchSnapshotBeforeResult = step.snap;
+      await sleep(500);
     }
-    await gameFrame.evaluate(() => window.__stopNestedAutoPlay?.()).catch(() => {});
 
     await gameFrame.waitForSelector('#apex-real-match-result', { visible: true, timeout: 20000 });
     const postMatchInfo = await gameFrame.evaluate(() => {
