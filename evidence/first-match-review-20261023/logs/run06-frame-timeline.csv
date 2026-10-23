@@ -1,0 +1,14 @@
+index,wall_seconds,match_clock,viewport,file,active,ko,p1_hp,p2_hp,p1_weapon,p2_weapon
+1,15.7,0,1440x900,01-home-1440x900.png,,,,,,
+2,29.3,0,1440x900,02-home-first-play.png,,,,,,
+3,34.5,0,1440x900,03-mode-select.png,,,,,,
+4,45.1,0,1440x900,04-fighter-select.png,,,,,,
+5,95.7,3.0689999999999955,1440x900,05-battle-coach-skill1-1440x900.png,true,,916,1000,,
+6,98.9,3.4319999999999946,1440x900,06-battle-live-after-skip-1440x900.png,true,,916,1000,,
+7,101.1,3.728999999999994,1440x900,07-battle-desktop-1440x900.png,true,,916,1000,,
+8,103.8,3.8279999999999936,844x390,08-battle-mobile-844x390.png,true,,916,1000,,
+9,106.5,3.8279999999999936,844x390,09-battle-after-k-844x390.png,true,,916,1000,,
+10,138.6,4.686000000000001,844x390,10-battle-mobile-after-skills-844x390.png,true,,916,1000,,BERETTA_93R
+11,170.2,7.986000000000037,844x390,11-battle-timeline-1-844x390.png,true,,895,1000,,
+12,201.9,9.537000000000013,844x390,12-battle-timeline-2-844x390.png,true,,895,1000,,
+13,385.1,21.86600000000014,1440x900,13-ko-or-result-transition-1440x900.png,true,,835.5,871.1300000000001,,
