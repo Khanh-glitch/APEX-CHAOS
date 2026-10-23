@@ -1064,6 +1064,10 @@ kbd{font:inherit}
           const sk=s.skills[k],a=p.abil[k];if(!a||!sk)continue;
           const u=R.side[i].skills[k];
           if(sk.name){a.name=sk.name;if(u.name&&u.name.textContent!==sk.name)u.name.textContent=sk.name;}
+          // Accessibility must follow live production skill and key projection.
+          const liveKey=String(u.el.querySelector('.sk-key')?.textContent||'').trim();
+          const skillAria=String(a.name||'SKILL')+(liveKey?' ('+liveKey+')':'');
+          if(u.el.getAttribute('aria-label')!==skillAria)u.el.setAttribute('aria-label',skillAria);
           if(sk.desc&&u.desc&&u.desc.textContent!==sk.desc)u.desc.textContent=sk.desc;
           if(sk.kind){a.kind=sk.kind;u.slot.textContent=sk.kind==='charges'?'CHARGES':(sk.kind==='duration'?'ACTIVE WINDOW':'ABILITY '+(k+1));}
           if(Number.isFinite(sk.duration))a.duration=Math.max(0,sk.duration);
