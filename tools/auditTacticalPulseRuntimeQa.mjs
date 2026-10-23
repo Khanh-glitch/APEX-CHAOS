@@ -359,14 +359,33 @@ async function runViewportJourney(browser, vp) {
   });
   await saveShot('08-result-gold');
 
-  // 9. Click the real Continue button inside #apex-real-match-result to return cleanly!
-  await resultFrame.evaluate(() => {
+  // 9. Reach the actual Result Gold Continue control, then activate it with
+  // native Chromium input. A DOM .click() here would hide hit-target failures:
+  // it succeeds even when the CTA is outside the viewport or covered by UI.
+  const continueHandle = await resultFrame.evaluateHandle(() => {
     const btns = [...document.querySelectorAll('main.ac-stage button')];
-    const cont = btns.find((b) => /tiếp tục|continue|quay lại|return/i.test(b.textContent || '')) || btns[btns.length - 1];
-    if (!cont) throw new Error('Continue button missing in Result Gold');
-    cont.scrollIntoView({ block: 'center', behavior: 'instant' });
-    cont.click();
+    return btns.find((b) => /tiếp tục|continue|quay lại|return/i.test(b.textContent || ''))
+      || btns[btns.length - 1] || null;
   });
+  const continueButton = continueHandle.asElement();
+  assert.ok(continueButton, `${vp.id}: Result Continue control must exist`);
+  // Result Gold is intentionally scrollable on short landscape screens.
+  await continueButton.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }));
+  await sleep(180);
+  const continueBox = await continueButton.boundingBox();
+  assert.ok(
+    continueBox && continueBox.width >= 44 && continueBox.height >= 44
+      && continueBox.x >= 0 && continueBox.y >= 0
+      && continueBox.x + continueBox.width <= vp.width + 1
+      && continueBox.y + continueBox.height <= vp.height + 1,
+    `${vp.id}: Result Continue must be a fully onscreen >=44px hit target after scrolling (${JSON.stringify(continueBox)})`,
+  );
+  await saveShot('08b-result-continue-reachable');
+  const continueX = continueBox.x + continueBox.width / 2;
+  const continueY = continueBox.y + continueBox.height / 2;
+  if (vp.touch) await page.touchscreen.tap(continueX, continueY);
+  else await page.mouse.click(continueX, continueY);
+  await continueHandle.dispose();
 
   await page.waitForFunction(
     () => !document.querySelector('#apex-real-match-result')
