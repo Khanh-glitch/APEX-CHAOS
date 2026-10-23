@@ -1703,6 +1703,7 @@
   // Tactical Pulse read-only legality: shares the EXACT guard order and
   // mechanic canCast predicate with tryCast, without invoking cast or emitting
   // CastFailCue. HUD/coach never become gameplay authorities.
+  HR.clock = () => AIL.clock();
   HR.observeAbilityCastability = function observeAbilityCastability(fighter, slot) {
     if (!M || !MECH || !MECH.EXECUTORS) return null;
     const ct = combatantOfBody(fighter);
