@@ -36,8 +36,8 @@ const COPY = {
       { title: 'START HERE', body: 'Press FREE BATTLE.' },
       { title: 'FIRST FIGHT', body: 'Choose VS BOT.' },
       { title: 'READY?', body: 'Pick your fighter, then LOCK IN.' },
-      { title: 'CAST SKILL 1', keyboard: 'Press J now.', touch: 'Tap Skill 1 now.' },
-      { title: 'CAST SKILL 2', keyboard: 'Press K now.', touch: 'Tap Skill 2 now.' },
+      { title: 'CAST SKILL 1', keyboard: 'Press J when a target is available.', touch: 'Tap Skill 1 when a target is available.' },
+      { title: 'CAST SKILL 2', keyboard: 'Press K to activate Skill 2.', touch: 'Tap Skill 2 to activate it.' },
       { title: 'REWARDS WAITING', body: 'Open MISSIONS to claim starter rewards and view Mastery.' },
     ],
   },
@@ -56,8 +56,8 @@ const COPY = {
       { title: 'BẮT ĐẦU TẠI ĐÂY', body: 'Nhấn ĐẤU TỰ DO.' },
       { title: 'TRẬN ĐẦU TIÊN', body: 'Chọn ĐẤU BOT.' },
       { title: 'SẴN SÀNG CHƯA?', body: 'Chọn tướng rồi nhấn LOCK IN.' },
-      { title: 'TUNG CHIÊU 1', keyboard: 'Nhấn J ngay.', touch: 'Chạm thẻ Kỹ năng 1 ngay.' },
-      { title: 'TUNG CHIÊU 2', keyboard: 'Nhấn K ngay.', touch: 'Chạm thẻ Kỹ năng 2 ngay.' },
+      { title: 'TUNG CHIÊU 1', keyboard: 'Nhấn J khi có mục tiêu hợp lệ.', touch: 'Chạm Kỹ năng 1 khi có mục tiêu.' },
+      { title: 'TUNG CHIÊU 2', keyboard: 'Nhấn K để kích hoạt Kỹ năng 2.', touch: 'Chạm Kỹ năng 2 để kích hoạt.' },
       { title: 'PHẦN THƯỞNG ĐANG CHỜ', body: 'Mở NHIỆM VỤ để nhận thưởng khởi đầu và xem Tinh thông.' },
     ],
   },
@@ -241,8 +241,8 @@ function skillInfo(index) {
   if (!Number.isFinite(charges)) charges = state === 'ready' ? 1 : 0;
   const nextIn = Number(projected?.nextIn) || 0;
   const ready = element
-    ? state === 'ready' && projected?.locked !== true
-    : !!projected && projected.locked !== true && charges > 0;
+    ? state === 'ready' && projected?.locked !== true && projected?.castable !== false
+    : !!projected && projected.locked !== true && charges > 0 && projected.castable === true;
   return { element, projected, state, charges, nextIn, ready };
 }
 
@@ -939,10 +939,7 @@ export default function FirstPlayGuide() {
         } else {
           publishTutorialPause(slot);
         }
-      } else if (!battleEnded && info.ready && now >= pauseCooldownUntilRef.current
-        && tacticalOpportunity(slot, waitedMs)) {
-        engageTutorialPause(slot);
-      }
+      } // Tactical Pulse never requests a gameplay pause.
     }
 
     if (!stepSceneMatches(step, scene)) {
@@ -950,13 +947,12 @@ export default function FirstPlayGuide() {
       return;
     }
 
-    // CP4 replaces the old persistent ready prompt: battle skill steps are
-    // visible only while the real pause lease is held for that exact slot.
-    if ((step === 3 || step === 4) && pauseRef.current?.slot !== step - 3) {
+    // A coach prompt is advisory only: present it when the real executor
+    // reports an eligible skill, but never hold the engine or suppress K.
+    if ((step === 3 || step === 4) && !skillInfo(step - 3).ready) {
       setFrameIfChanged(null);
       return;
     }
-
     setFrameIfChanged(computeFrame(step, findAnchor(step)));
   }, [clearFrame, engageTutorialPause, finishCoach, releaseTutorialPause, setFrameIfChanged, setPickupHintIfChanged, updateCoach]);
 
