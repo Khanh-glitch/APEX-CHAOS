@@ -332,10 +332,11 @@ async function runNestedFullGameplayJourney(browser, vp) {
       const tick = () => {
         if (!active || document.querySelector('#apex-real-match-result')) return;
         const hr = window.APEX_HERO_REWORK;
+        const hud = window.APEX_GOLD_HUD || window.APEX_GOLD_BRIDGE;
         const p1 = window.fighters?.[0];
-        if (hr && p1) {
-          if (hr.observeAbilityCastability?.(p1, 'A1')?.castable) window.APEX_GOLD?.pressSkill?.(0, 0);
-          if (hr.observeAbilityCastability?.(p1, 'A2')?.castable) window.APEX_GOLD?.pressSkill?.(0, 1);
+        if (hr && hud && p1) {
+          if (hr.observeAbilityCastability?.(p1, 'A1')?.castable) hud.pressSkill?.(0, 0, { source: 'test-player' });
+          if (hr.observeAbilityCastability?.(p1, 'A2')?.castable) hud.pressSkill?.(0, 1, { source: 'test-player' });
         }
         window.requestAnimationFrame(tick);
       };
