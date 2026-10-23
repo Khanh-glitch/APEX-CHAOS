@@ -1,0 +1,160 @@
+# Owner-approved Alpha packaging rehearsal. Creates a private GitHub Actions
+# artifact only. NEVER deploys Cloudflare, publishes itch.io, or changes PR #101.
+name: ITCH Alpha ZIP — Owner Review (No Deploy)
+
+on:
+  push:
+    branches:
+      - release/itch-alpha-package-qa-20261024
+    paths:
+      - .github/workflows/itch-alpha-package-qa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: itch-alpha-owner-zip-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      SOURCE_SHA: 63cc83544f8ec92e2437e9944f41f14a4561a88b
+      APEX_BUILD_CHANNEL: owner-playtest
+      APEX_BUILD_SHA: 63cc83544f8ec92e2437e9944f41f14a4561a88b
+      VITE_SUPABASE_URL: ''
+      VITE_SUPABASE_ANON_KEY: ''
+      VITE_APEX_DEV_ADMIN: '0'
+      VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+      VITE_APEX_EMAIL_CODE_ENABLED: '0'
+    steps:
+      - name: Checkout exactly the visually approved game SHA
+        uses: actions/checkout@v4
+        with:
+          ref: 63cc83544f8ec92e2437e9944f41f14a4561a88b
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install frozen game and QA harness dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          pnpm install --frozen-lockfile
+          npm --prefix tools/probe ci --no-audit --no-fund
+
+      - name: Verify Alpha Guest policy, real match rewards and immutable revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/testItchGuestReleaseGate.mjs
+          pnpm test:owner-playtest-economy
+          pnpm test:battle-outcome-side
+          node tools/testRuntimeRevisionGate.mjs
+          node tools/buildGoldCutover.mjs --check
+
+      - name: Build final source-pinned HTML5 product and stamp its identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm build
+          node tools/testShippingDist.mjs
+          node tools/testCP16BuildReceipt.mjs
+          test -s dist/index.html
+          printf '%s\n' "$SOURCE_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+          test "$(cat dist/ITCH_GUEST_BUILD_SHA.txt)" = "$SOURCE_SHA"
+
+      - name: Build portable itch.io HTML5 directory without publishing
+        run: node tools/packItchPortable.mjs
+
+      - name: Locate real Chrome for nested iframe QA
+        id: chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          "$CHROME" --version
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+
+      - name: Baseline native-input E2E of exact portable directory
+        shell: bash
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          EXPECTED_GIT_SHA: 63cc83544f8ec92e2437e9944f41f14a4561a88b
+          ITCH_EVIDENCE_DIR: ${{ github.workspace }}/release-receipts/prezip
+        run: |
+          set -euo pipefail
+          node tools/auditItchNestedCandidateE2e.mjs
+
+      - name: Package ZIP, verify CRC, and restore files from that same ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP="$RUNNER_TEMP/apex-chaos-itch-alpha-63cc8354.zip"
+          test ! -e "$ZIP"
+          (cd dist-itch-html5 && zip -q -r "$ZIP" .)
+          test -s "$ZIP"
+          unzip -tq "$ZIP"
+          unzip -Z1 "$ZIP" | grep -qx index.html
+          unzip -Z1 "$ZIP" | grep -qx ITCH_GUEST_BUILD_SHA.txt
+          mv dist-itch-html5 dist-itch-html5-prezip
+          mkdir -p dist-itch-html5
+          unzip -q "$ZIP" -d dist-itch-html5
+          test "$(cat dist-itch-html5/ITCH_GUEST_BUILD_SHA.txt)" = "$SOURCE_SHA"
+          cmp dist-itch-html5/index.html dist-itch-html5-prezip/index.html
+          printf 'Source SHA: %s\n' "$SOURCE_SHA" > release-receipts/SOURCE_SHA.txt
+          sha256sum "$ZIP" | sed "s|$ZIP|apex-chaos-itch-alpha-63cc8354.zip|" > release-receipts/SHA256SUMS.txt
+          printf 'Archive entries: %s\n' "$(unzip -Z1 "$ZIP" | wc -l)" >> release-receipts/SOURCE_SHA.txt
+
+      - name: Final real-Chromium E2E against EXTRACTED ZIP, not source folder
+        shell: bash
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          EXPECTED_GIT_SHA: 63cc83544f8ec92e2437e9944f41f14a4561a88b
+          ITCH_EVIDENCE_DIR: ${{ github.workspace }}/release-receipts/postzip
+        run: |
+          set -euo pipefail
+          node tools/auditItchNestedCandidateE2e.mjs
+          echo "::notice title=ItchAlphaZip::EXTRACTED ZIP passed real Chromium nested gameplay + Guest 200 AC"
+
+      - name: Archive owner-review ZIP and verification receipts ONLY
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-deliverables
+          cp "$RUNNER_TEMP/apex-chaos-itch-alpha-63cc8354.zip" release-deliverables/
+          cp release-receipts/SHA256SUMS.txt release-receipts/SOURCE_SHA.txt release-deliverables/
+          (cd release-deliverables && sha256sum -c SHA256SUMS.txt)
+          printf 'NO DEPLOY — NO ICH.IO PUBLISH — OWNER REVIEW ONLY\n' >> release-deliverables/SOURCE_SHA.txt
+
+      - name: Upload downloadable candidate artifact, never publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-itch-alpha-63cc8354-owner-review
+          path: release-deliverables/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload ZIP-extraction E2E receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-itch-alpha-zip-qa-receipts
+          path: release-receipts/
+          if-no-files-found: warn
+          retention-days: 14
