@@ -310,6 +310,7 @@ export default function AchievementToast() {
     };
     const syncAndPlace = () => {
       syncObservedBlockers();
+      applyDock();
       place();
     };
     if (typeof ResizeObserver !== 'undefined') {

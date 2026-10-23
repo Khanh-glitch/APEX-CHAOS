@@ -277,7 +277,7 @@ async function runViewportJourney(browser, vp) {
         if (!toast) return null;
         const st = getComputedStyle(toast);
         const r = toast.getBoundingClientRect();
-        if (st.display === 'none' || st.visibility === 'hidden' || r.width <= 0 || r.height <= 0) return null;
+        if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity || 1) <= 0 || r.width <= 0 || r.height <= 0) return null;
         const boxOf = (sel) => {
           const el = document.querySelector(sel);
           if (!el) return null;
@@ -342,7 +342,7 @@ async function runViewportJourney(browser, vp) {
   await page.evaluate(() => {
     const checkToast = () => {
       const el = document.querySelector('.apex-achievement-toast');
-      if (el && el.getBoundingClientRect().width > 0) {
+      if (el && !el.classList.contains('is-pending') && Number(getComputedStyle(el).opacity || 1) > 0 && el.getBoundingClientRect().width > 0) {
         window.__onTpToastVisible?.();
       }
     };
@@ -1017,26 +1017,40 @@ const report = {
   localVieAudit: null,
 };
 
-// Run viewports sequentially so 2-core CI/sandbox software rasterization
-// sustains full 60Hz simulation frame rate without multi-browser CPU starvation.
-for (const vp of VIEWPORTS) {
-  const vpBrowser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: BROWSER_ARGS });
-  try {
-    report.viewports[vp.id] = await runViewportJourney(vpBrowser, vp);
-  } finally {
-    await vpBrowser.close();
-  }
-}
-
-const auditBrowser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: BROWSER_ARGS });
 try {
-  report.localVieAudit = await runMultiHeroAndLocaleAudit(auditBrowser);
-  report.portraitMiniLabelAudit = await runPortraitOpponentMiniLabelAudit(auditBrowser);
-  report.combinedCoachToastAudit = await runCombinedCoachToastAudit(auditBrowser);
-} finally {
-  await auditBrowser.close();
-}
+  // Run viewports sequentially so 2-core CI/sandbox software rasterization
+  // sustains full 60Hz simulation frame rate without multi-browser CPU starvation.
+  for (const vp of VIEWPORTS) {
+    const vpBrowser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: BROWSER_ARGS });
+    try {
+      report.viewports[vp.id] = await runViewportJourney(vpBrowser, vp);
+    } finally {
+      await vpBrowser.close();
+    }
+  }
 
-const reportPath = path.join(OUT_DIR, 'runtime-qa-report.json');
-fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-console.log(`\nALL 4 VIEWPORT E2E JOURNEYS + LOCAL/VIE AUDIT PASSED 100%! Report -> ${reportPath}`);
+  const auditBrowser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: BROWSER_ARGS });
+  try {
+    report.localVieAudit = await runMultiHeroAndLocaleAudit(auditBrowser);
+    report.portraitMiniLabelAudit = await runPortraitOpponentMiniLabelAudit(auditBrowser);
+    report.combinedCoachToastAudit = await runCombinedCoachToastAudit(auditBrowser);
+  } finally {
+    await auditBrowser.close();
+  }
+
+  const reportPath = path.join(OUT_DIR, 'runtime-qa-report.json');
+  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  const summaryMsg = `TacticalPulseRuntimeQA: PASS 4 full viewport journeys + LOCAL/VIE + Portrait 1P + Combined Coach/Toast (${Object.keys(report.combinedCoachToastAudit).length}/6)`;
+  console.log(`\nALL 4 VIEWPORT E2E JOURNEYS + LOCAL/VIE AUDIT PASSED 100%! Report -> ${reportPath}`);
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    console.log(`::notice title=TacticalPulseRuntimeQA::${summaryMsg}`);
+  }
+} catch (err) {
+  const raw = String(err?.stack || err?.message || err || 'unknown error');
+  console.error('TacticalPulseRuntimeQA FAILED:', raw);
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const flat = raw.replace(/\r?\n/g, ' | ').slice(0, 900);
+    console.log(`::error title=TacticalPulseRuntimeQA::${flat}`);
+  }
+  process.exit(1);
+}
