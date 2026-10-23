@@ -300,6 +300,14 @@ kbd{font:inherit}
 .skill[data-state="cd"] .sk-art svg{opacity:.35}
 .skill[data-state="cd"] .sk-cdn{opacity:1}
 .skill[data-state="cd"] .sk-state{color:var(--mute)}
+/* Tactical Pulse: eligibility is separate from cooldown recovery. */
+.skill[data-state="standby"]::before{opacity:.22;background:#87929b}
+.skill[data-state="standby"] .sk-art{filter:brightness(.42) saturate(.55)}
+.skill[data-state="standby"] .sk-key{color:#9aa2ab;background:#14191e;box-shadow:inset 0 0 0 1px #68717a}
+.skill[data-state="standby"] .sk-state{color:#9aa2ab}
+.skill[data-state="active"] .sk-key{background:#56e0ff;color:#060708}
+.skill[data-state="active"] .sk-state{color:#56e0ff}
+.skill[data-state="active"] .sk-bar i{background:#56e0ff}
 .skill[data-state="cd"]::before{opacity:.18}
 .skill[data-state="cast"]{background:linear-gradient(90deg,var(--accA),#0d1013)}
 .skill:hover::after{border-color:rgba(255,255,255,.14)}
@@ -1088,6 +1096,9 @@ kbd{font:inherit}
           // increments charges or fabricates its own cooldown completion.
           a.next=Number.isFinite(sk.nextIn)&&sk.nextIn>0?now+sk.nextIn*1000:0;
           a.__truth=!!sk.truth;
+          a.__castable=typeof sk.castable==='boolean'?sk.castable:null;
+          a.__targetWeaponId=sk.targetWeaponId||'';
+          a.__activeRemainSec=Number.isFinite(sk.activeRemainSec)?Math.max(0,sk.activeRemainSec):null;
           a.locked=sk.locked===true;
           if(sk.castUntil)a.castUntil=now+380;
         }
@@ -1547,9 +1558,9 @@ function renderSkills(now){
   const a=S.players[i].abil[k],u=R.side[i].skills[k];
   const remaining=a.next?Math.max(0,(a.next-now)/1000):0;
   const frac=a.next?clamp(remaining/Math.max(.05,a.cd),0,1):0;
-  const activeRemaining=a.activeUntil?Math.max(0,(a.activeUntil-now)/1000):0;
+  const activeRemaining=a.__activeRemainSec!=null?a.__activeRemainSec:(a.activeUntil?Math.max(0,(a.activeUntil-now)/1000):0);
   const activeFrac=a.duration>0?clamp(activeRemaining/a.duration,0,1):0;
-  const st=a.locked===true?'locked':now<a.castUntil?'cast':activeRemaining>0?'active':a.charges>0?'ready':'cd';
+  const st=a.locked===true?'locked':activeRemaining>0?'active':now<a.castUntil?'cast':a.charges>0?(a.__castable===false?'standby':'ready'):'cd';
   const prevSt=u.st;
   if(st!==prevSt){
    if(prevSt==='cd'&&st==='ready'){u.readyAgainUntil=now+720;readyPop(u,i,k);}
@@ -1565,7 +1576,9 @@ function renderSkills(now){
   let txt='READY';
   if(st==='locked')txt='LOCKED';
   else if(st==='cast')txt='PRESS-CAST';
+  else if(st==='standby')txt=a.__targetWeaponId?'WAIT · TARGET':'WAIT · TARGET';
   else if(activeRemaining>0)txt='ACTIVE '+activeSecs+'s';
+  else if(st==='ready'&&a.__castable===true)txt=(a.__targetWeaponId?'TARGET: '+a.__targetWeaponId:'CASTABLE');
   else if(st==='ready'&&now<(u.readyAgainUntil||0))txt='READY AGAIN';
   else if(st==='cd')txt='COOLDOWN '+secs+'s';
   else if(a.kind==='charges')txt=a.next&&a.charges<a.max?('READY · '+a.charges+'/'+a.max+' · '+secs+'s'):('READY · '+a.charges+'/'+a.max);
