@@ -1700,6 +1700,55 @@
     return res;
   };
 
+  // Tactical Pulse read-only legality: shares the EXACT guard order and
+  // mechanic canCast predicate with tryCast, without invoking cast or emitting
+  // CastFailCue. HUD/coach never become gameplay authorities.
+  HR.observeAbilityCastability = function observeAbilityCastability(fighter, slot) {
+    if (!M || !MECH || !MECH.EXECUTORS) return null;
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || !ct.skills || !ct.skills[slot]) return null;
+    const s = ct.skills[slot];
+    const out = { castable: false, reason: 'condition' };
+    const state = globalScope.APEX_ARSENAL?.state;
+    if (state?.questReflex === true && ct.anchor?.questId === 'NEWBOT') {
+      const phase = state.questReflexGate?.snapshot()?.phase;
+      const allowJ = ['J_CAST', 'K_CAST', 'BOTH_HALF'].includes(phase);
+      const allowK = ['K_CAST', 'BOTH_HALF'].includes(phase);
+      if ((slot === 'A1' && !allowJ) || (slot === 'A2' && !allowK))
+        return { ...out, reason: 'quest-stage-locked' };
+    }
+    const a = ct.anchor;
+    if (!a || a.hp <= 0) return { ...out, reason: 'dead' };
+    if (typeof a.hardCC === 'function' && a.hardCC())
+      return { ...out, reason: 'cc' };
+    // BOXE A1 has a distinct recast path; avoid claiming ready from a
+    // generic cooldown or a predicate that does not cover that path.
+    if (slot === 'A1' && ct.heroId === 'BOXE' && ct.store.__boxeBattle?.rocket)
+      return { ...out, reason: 'recast-special' };
+    if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0)
+      return { ...out, reason: 'cooldown' };
+    const exec = MECH.EXECUTORS[s.def.mechanicId];
+    if (!exec || typeof exec.cast !== 'function')
+      return { ...out, reason: 'no-executor' };
+    try {
+      const ctx = mechCtx(ct, slot);
+      if (exec.canCast && !exec.canCast(ctx)) return out;
+      const result = { castable: true, reason: 'ready' };
+      if (ct.heroId === 'ROBOT' && slot === 'A1') {
+        const target = ctx.api.nearestRevealedPickup(ct, { excludeT6: true });
+        if (target) {
+          result.targetWeaponId = target.weaponId;
+          result.targetSlotId = target.id;
+          result.targetX = target.x;
+          result.targetY = target.y;
+        }
+      }
+      return result;
+    } catch (_) {
+      return { ...out, reason: 'probe-error' };
+    }
+  };
+
   function normalizeAiDecision(raw) {
     if (raw == null) return { shouldCast:true, score:1, reason:'ready-default', retryAfter:.35 };
     if (typeof raw === 'boolean') return { shouldCast:raw, score:raw?1:0, reason:raw?'allowed':'rejected', retryAfter:.35 };
