@@ -102,7 +102,9 @@ function compareQueueItems(a, b) {
 
 function toastDisplayMs(item) {
   return item.ownerKind === 'bot' ? 1800
-    : item.provisional ? 2400
+    // Provisional meters include an achieved/threshold pair and a seal note;
+    // once a safe dock opens, allow enough time to actually read the full copy.
+    : item.provisional ? 5000
       : item.achievement.rarity === 'legendary' ? 3400
         : item.achievement.rarity === 'epic' ? 3000
           : 2600;
