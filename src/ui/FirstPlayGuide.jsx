@@ -603,6 +603,8 @@ export default function FirstPlayGuide() {
   const frameKeyRef = useRef('');
   const pickupHintKeyRef = useRef('');
   const skillSnapshotsRef = useRef([null, null]);
+  const taughtFirstSlotRef = useRef(null);
+  const [hintSlot, setHintSlot] = useState(null);
   const pauseRef = useRef(null);
   const stepSinceRef = useRef({ step: -1, at: 0 });
   const pauseCooldownUntilRef = useRef(0);
@@ -734,6 +736,7 @@ export default function FirstPlayGuide() {
     setLanguage(currentLanguage());
     persistCoach(freshCoach(sealedCounts()));
     skillSnapshotsRef.current = [null, null];
+    taughtFirstSlotRef.current = null;
     stepSinceRef.current = { step: 0, at: Date.now() };
     pauseCooldownUntilRef.current = Date.now() + 1500;
     writeSideIntroSeen({ ...readSideIntroSeen(), bot: 0, local: 0 });
@@ -887,7 +890,11 @@ export default function FirstPlayGuide() {
     // Real skill-cast proof: a ready production skill transitions into a
     // cast/active/cooldown state, loses a charge, or gains real cooldown.
     if ((step === 3 || step === 4) && scene === 'battle' && isBotBattle()) {
-      const watchedIndex = step - 3;
+      // On the first lesson, K may be cast before J if no floor gun exists.
+      // The next lesson then watches the remaining skill, not a fixed order.
+      const watchedIndex = step === 3
+        ? (skillInfo(0).ready ? 0 : skillInfo(1).ready ? 1 : 0)
+        : (taughtFirstSlotRef.current === 1 ? 0 : 1);
       const infos = [skillInfo(0), skillInfo(1)];
       infos.forEach((info, index) => {
         const previous = skillSnapshotsRef.current[index];
@@ -896,7 +903,10 @@ export default function FirstPlayGuide() {
           || info.charges < previous.charges
           || info.nextIn > previous.nextIn + 0.25
         );
-        if (index === watchedIndex && cast) step += 1;
+        if (index === watchedIndex && cast) {
+          if (step === 3) taughtFirstSlotRef.current = index;
+          step += 1;
+        }
         skillSnapshotsRef.current[index] = {
           ready: info.ready,
           charges: info.charges,
@@ -949,10 +959,20 @@ export default function FirstPlayGuide() {
 
     // A coach prompt is advisory only: present it when the real executor
     // reports an eligible skill, but never hold the engine or suppress K.
-    if ((step === 3 || step === 4) && !skillInfo(step - 3).ready) {
-      setFrameIfChanged(null);
+    if (step === 3 || step === 4) {
+      const slot = step === 3
+        ? (skillInfo(0).ready ? 0 : skillInfo(1).ready ? 1 : 0)
+        : (taughtFirstSlotRef.current === 1 ? 0 : 1);
+      if (!skillInfo(slot).ready) {
+        setFrameIfChanged(null);
+        return;
+      }
+      setHintSlot(slot);
+      // Dock to the existing side-card slot only; no arena-covering overlay.
+      setFrameIfChanged(computeFrame(step, skillAnchor(slot)));
       return;
     }
+    setHintSlot(null);
     setFrameIfChanged(computeFrame(step, findAnchor(step)));
   }, [clearFrame, engageTutorialPause, finishCoach, releaseTutorialPause, setFrameIfChanged, setPickupHintIfChanged, updateCoach]);
 
@@ -1201,7 +1221,9 @@ export default function FirstPlayGuide() {
 
   const lang = language === 'vie' ? 'vie' : 'eng';
   const copy = COPY[lang];
-  const item = copy.steps[coach.step] || copy.steps[0];
+  const item = (coach.step === 3 || coach.step === 4) && hintSlot != null
+    ? copy.steps[hintSlot === 0 ? 3 : 4]
+    : (copy.steps[coach.step] || copy.steps[0]);
   const body = item.body || (coarse ? item.touch : item.keyboard);
   const isPausedLesson = (coach.step === 3 || coach.step === 4)
     && pausedSlot === coach.step - 3;
