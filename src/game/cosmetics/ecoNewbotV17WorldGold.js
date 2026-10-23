@@ -36,8 +36,12 @@ function impact(s,at,armored){
  s.flecks.splice(0,Math.max(0,s.flecks.length-90));
 }
 function wallImpact(s,at,body){
- s.scuff={x:at.x,y:at.y,t:0,life:2.15};
- for(let i=0;i<16;i++){const a=(-1.15+(i/15)*2.3)+(rnd(s)-.5)*.6,sp=24+rnd(s)*110;
+ // CP4: remember which arena edge was struck so the scuff is drawn as a
+ // scrape ALONG that wall, never as a free-floating radial oval.
+ const edge=Math.min(body.x,1000-body.x,body.y,1000-body.y);
+ const axis=(edge===body.x||edge===1000-body.x)?'y':'x';
+ s.scuff={x:at.x,y:at.y,t:0,life:2.15,axis};
+ for(let i=0;i<9;i++){const a=(-1.15+(i/8)*2.3)+(rnd(s)-.5)*.6,sp=24+rnd(s)*110;
   s.puffs.push({x:at.x+rnd(s)*5,y:at.y+(rnd(s)-.5)*17,
    vx:Math.max(12,Math.cos(a)*sp),vy:Math.sin(a)*sp*.72-7,
    radius:7+rnd(s)*14,age:0,life:.85+rnd(s)*.65,
@@ -138,18 +142,26 @@ export function drawEcoGoldWorldBack(ctx,pose){
  const s=sync(pose);if(!s)return false;
  trail(ctx,s,Number(pose.robot.time));
  if(s.scuff){const q=s.scuff,t=q.t/q.life,a=Math.pow(1-t,2);
-  ctx.save();ctx.globalAlpha=a;const g=ctx.createRadialGradient(q.x-2,q.y,1,q.x+2,q.y,30+t*6);
-  g.addColorStop(0,'rgba(17,20,18,.60)');g.addColorStop(.35,'rgba(34,40,33,.37)');
-  g.addColorStop(1,'rgba(34,40,33,0)');ctx.fillStyle=g;
-  ctx.beginPath();ctx.ellipse(q.x-2,q.y,11,33,0,0,TAU);ctx.fill();ctx.restore();}
+  // CP4: three short scrape strokes parallel to the struck wall. The mark
+  // stays readable as material contact without a radial filled oval.
+  ctx.save();ctx.globalAlpha=a;ctx.lineCap='round';
+  const along=q.axis==='y'?{x:0,y:1}:{x:1,y:0},perp={x:along.y,y:along.x};
+  for(let i=0;i<3;i++){const off=(i-1)*4.5,len=30-i*5+t*8;
+   ctx.strokeStyle=i?'rgba(34,40,33,.40)':'rgba(17,20,18,.58)';ctx.lineWidth=i?2:3;
+   ctx.beginPath();
+   ctx.moveTo(q.x+perp.x*off-along.x*len/2,q.y+perp.y*off-along.y*len/2);
+   ctx.lineTo(q.x+perp.x*off+along.x*len/2,q.y+perp.y*off+along.y*len/2);ctx.stroke();}
+  ctx.restore();}
  for(const p of s.puffs){const q=p.age/p.life,fade=Math.min(1,p.age/.09)*Math.pow(1-q,1.85);
-  const radius=p.radius*(.65+q*2.5);
-  ctx.save();ctx.globalAlpha=fade*(p.brown?.18:.22);
-  const g=ctx.createRadialGradient(p.x-radius*.14,p.y-radius*.16,0,p.x,p.y,radius);
-  if(p.brown){g.addColorStop(0,'rgba(130,95,69,.8)');g.addColorStop(.47,'rgba(81,68,55,.38)');}
-  else{g.addColorStop(0,'rgba(135,144,126,.68)');g.addColorStop(.47,'rgba(83,102,87,.34)');}
-  g.addColorStop(1,'rgba(42,47,38,0)');ctx.fillStyle=g;ctx.beginPath();
-  ctx.ellipse(p.x,p.y,radius,radius*(.7+.35*Math.sin(p.phase)),p.phase*.2,0,TAU);ctx.fill();ctx.restore();}
+  // CP4: smoke leaves as two broken wisps along the puff velocity. No
+  // radial-gradient filled ellipse can form a colored wall blob.
+  const sp=Math.hypot(p.vx,p.vy),len=Math.max(8,Math.min(30,sp*.12+p.radius*(.5+q)));
+  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(p.vy,p.vx));
+  ctx.globalAlpha=fade*(p.brown?.30:.34);ctx.lineCap='round';
+  ctx.strokeStyle=p.brown?'rgba(130,95,69,.75)':'rgba(120,138,116,.7)';
+  for(const off of [-2.6,2.2]){ctx.lineWidth=off<0?2.4:1.5;ctx.beginPath();
+   ctx.moveTo(-len/2,off);ctx.quadraticCurveTo(0,off+Math.sin(p.phase)*2.4,len/2,off*.6);ctx.stroke();}
+  ctx.restore();}
  return true;
 }
 export function drawEcoGoldWorldFront(ctx,pose){

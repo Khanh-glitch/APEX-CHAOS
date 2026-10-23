@@ -57,6 +57,8 @@ export const GOLD_SHIPPING_ASSETS = Object.freeze([
   '/gold/assets/placeholders/pick/pose/mirror-world-runtime-opponent-ghost.svg',
   '/gold/battle-hud.html',
   '/gold/fonts.css',
+  '/gold/fonts/APEX-OSWALD-OFL.txt',
+  '/gold/fonts/apex-oswald-vietnamese.ttf',
   '/gold/fonts/jetbrains-mono-latin-400-normal.woff2',
   '/gold/fonts/jetbrains-mono-latin-600-normal.woff2',
   '/gold/fonts/jetbrains-mono-latin-ext-400-normal.woff2',
@@ -287,7 +289,7 @@ export const HERO_BATTLE_RIG_ASSETS = Object.freeze(
   Object.values(HERO_BATTLE_RIGS).flat(),
 );
 
-export const GOLD_SHELL_URL = '/gold/shell.html?v=20261020-a1-r20&fieldArchive=c03';
-export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261020-a1-r20';
-export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261020-a1-r20';
-export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261020-a1-r20';
+export const GOLD_SHELL_URL = '/gold/shell.html?v=20261021-cp5-r1&fieldArchive=c03';
+export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261021-cp5-r1';
+export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261021-cp5-r1';
+export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261021-cp5-r1';

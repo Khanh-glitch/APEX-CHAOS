@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { PointerEvent } from "react";
 import type { WeaponSpotlight } from "../lib/match";
@@ -24,6 +24,7 @@ export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
 
   const tiltRef = useRef<HTMLDivElement>(null);
   const raf = useRef(0);
+  const [artFailed, setArtFailed] = useState(false);
 
   const onMove = (e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== "mouse") return;
@@ -93,11 +94,11 @@ export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
         </svg>
         <div className="weapon__tilt" ref={tiltRef}>
           <div className="weapon__float ac-loop">
-            <WeaponArt weapon={weapon} />
+            <WeaponArt weapon={weapon} ownerSlot={owner.slot} onArtError={() => setArtFailed(true)} />
           </div>
         </div>
         <div className="weapon__sweep" aria-hidden="true" />
-        {!weapon.artSrc && <span className="art-tag">Minh họa vũ khí · placeholder</span>}
+        {(!weapon.artSrc || artFailed) && <span className="art-tag">Minh họa vũ khí · placeholder</span>}
       </div>
 
       <div className="weapon__info">

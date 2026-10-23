@@ -1681,6 +1681,10 @@
    * ------------------------------------------------------------------ */
   HR.pressAbility = function pressAbility(f, slot, sourceMeta) {
     if (!M) return { ok: false, reason: 'no-match' };
+    // While the beginner tutorial holds its BOT-only pause lease, the one
+    // shared input executor stays closed. The coach captures the player's
+    // real input, releases the lease, then forwards that input here once.
+    if (tutorialPauseActive()) return { ok: false, reason: 'tutorial-paused' };
     const ct = combatantOfBody(f);
     if (!ct || ct.facade) return { ok: false, reason: 'not-rework' };
     const input = normalizeCastInput(ct, sourceMeta || { source: ct.side, side: ct.side });
@@ -1704,6 +1708,26 @@
     const retryAfter = Number.isFinite(raw.retryAfter) ? clamp(raw.retryAfter,.1,2) : .35;
     return { shouldCast, score, reason:String(raw.reason || (shouldCast?'selected':'rejected')), retryAfter };
   }
+
+  // CP4: one read-only tactical-opportunity seam shared by BOT scheduling
+  // and the beginner tutorial. It only evaluates the hero mechanic's own
+  // aiEvaluate against live observable state; it never emits AI telemetry,
+  // mutates cast plans, or casts. A missing policy fails closed instead of
+  // treating cooldown-zero as an opportunity.
+  HR.observeAbilityOpportunity = function observeAbilityOpportunity(fighter, slot) {
+    if (!M || !MECH || !MECH.EXECUTORS) return null;
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || !ct.skills || !ct.skills[slot]) return null;
+    const exec = MECH.EXECUTORS[ct.skills[slot].def.mechanicId];
+    if (!exec || typeof exec.aiEvaluate !== 'function') return null;
+    try {
+      const raw = exec.aiEvaluate(mechCtx(ct, slot));
+      if (raw == null) return { shouldCast:false, score:0, reason:'no-policy', retryAfter:.5 };
+      return normalizeAiDecision(raw);
+    } catch (_) {
+      return { shouldCast:false, score:0, reason:'policy-error', retryAfter:.5 };
+    }
+  };
 
   function emitAiDecision(type, ct, slot, plan, extra) {
     const payload = {
@@ -1731,7 +1755,11 @@
       const plan = (M.aiCastPlan[key] = M.aiCastPlan[key] || {});
       if (plan.at == null) {
         // Deterministic post-ready delay prevents frame-zero reflex casts.
-        plan.at = AIL.clock() + 0.4 + rng() * 0.6;
+        // CP4: MIRROR's authored cast startup is canonical and untouched;
+        // only the scheduler's excess think-time is shorter so its
+        // snap-projected A2 decision is evaluated inside the real window.
+        const thinkDelay = ct.heroId === 'MIRROR' ? 0.18 + rng() * 0.25 : 0.4 + rng() * 0.6;
+        plan.at = AIL.clock() + thinkDelay;
       } else if (AIL.clock() >= plan.at) {
         const exec = MECH.EXECUTORS[ct.skills[slot].def.mechanicId];
         const ctx = mechCtx(ct, slot);
@@ -1764,6 +1792,16 @@
           plan.at = null; // re-plan only when the skill is ready again
         } else {
           plan.at = AIL.clock() + Math.max(.5, decision.retryAfter);
+        }
+        if (res.ok) {
+          // CP4 sequencing: at most one successful cast per AI tick. The
+          // sibling slot re-plans shortly after, so paired skills sequence
+          // like a player's inputs instead of firing in the same frame.
+          const otherSlot = slot === 'A1' ? 'A2' : 'A1';
+          const otherKey = `${ct.heroId}:${otherSlot}`;
+          const otherPlan = (M.aiCastPlan[otherKey] = M.aiCastPlan[otherKey] || {});
+          otherPlan.at = AIL.clock() + 0.35;
+          break;
         }
       }
     }
@@ -3660,6 +3698,29 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * CP4 beginner-BOT tutorial pause lease. The React coach publishes a
+   * heartbeat lease; while it is fresh the ENTIRE rework step (pre-tick,
+   * Arsenal simulation, post-tick, rubber debts) is skipped, so match
+   * clock, AI, cooldowns, projectiles and presentation clocks freeze
+   * together. Drawing continues. A stale lease (coach gone, tab hidden,
+   * crash) auto-expires — the pause can never softlock a match. LOCAL,
+   * Quest, Lab and finished matches are never paused.
+   * ------------------------------------------------------------------ */
+  function tutorialPauseActive() {
+    try {
+      const lease = globalScope.APEX_TUTORIAL_PAUSE;
+      if (!lease || lease.active !== true) return false;
+      const updated = Number(lease.updatedAt) || 0;
+      if (!updated || Date.now() - updated > 2500) return false;
+      const st = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+      if (!st || st.battleMode !== 'BOT' || st.labMode
+          || st.questMultiActor || st.questStage || st.over) return false;
+      return true;
+    } catch (_) { return false; }
+  }
+  HR.tutorialPauseActive = tutorialPauseActive;
+
+  /* ------------------------------------------------------------------ *
    * Entry/exit wrapping + step wrapping + draw wrapping.
    * ------------------------------------------------------------------ */
   function installIntegration() {
@@ -3688,6 +3749,7 @@
     if (AQ && AQ.step && !AQ.step.__hrWrapped) {
       const baseStep = AQ.step;
       const wrappedStep = function aqStepHR(dt) {
+        if (tutorialPauseActive()) return;
         hrPreTick(dt);
         baseStep(dt);
         hrPostTick(dt);
@@ -3702,6 +3764,7 @@
       const baseUpdateFn = globalScope.update;
       const wrappedUpdate = function updateHR(dt) {
         if (globalScope.gameState === 'ARSENAL' && M) {
+          if (tutorialPauseActive()) return;
           hrPreTick(dt);
           baseUpdateFn(dt);
           hrPostTick(dt);

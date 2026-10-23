@@ -9,6 +9,10 @@ for(const name of ['WEAPON DASH','VIRTUAL ARMOR','HEXA CONSTRUCT','AWAKENING','M
 assert.equal(translateCopy('4.5S COOLDOWN','vie'),'HỒI CHIÊU 4,5s');
 assert.equal(translateCopy('2 CHARGES · 4.5S RECHARGE','vie'),'2 LẦN · NẠP 4,5s');
 assert.equal(translateCopy('1.0S ACTIVE · 11.0S CD','vie'),'HIỆU LỰC 1,0s · HỒI 11,0s');
+assert.equal(translateCopy('VISUAL AUTHORITY / ROBOT','vie'),'THẨM QUYỀN HÌNH ẢNH / ROBOT');
+assert.equal(translateCopy('VISUAL AUTHORITY / RPG_7','vie'),'THẨM QUYỀN HÌNH ẢNH / RPG_7');
+assert.equal(translateCopy('Missions and Achievements','vie'),'Nhiệm vụ và thành tích');
+assert.equal(translateCopy('Archive category','vie'),'Danh mục hồ sơ');
 
 assert.equal(translateCopy('  LOCK IN  ','vie'),'  XÁC NHẬN  ');
 assert.equal(translateCopy('SCRAP BASIN','vie'),'SCRAP BASIN');
@@ -26,6 +30,7 @@ assert.equal(translateCopy('THẤT BẠI','eng'),'DEFEAT');
 assert.equal(translateCopy('Xem chi tiết: Không Thể Trốn Thoát, Huyền Thoại','eng'),'View details: No Escape, Legendary');
 assert.equal(translateCopy('Độ hiếm Hiếm','eng'),'Rarity Rare');
 assert.equal(translateCopy('Đóng góp cao nhất: REDLINE_KAI','eng'),'Top contributor: REDLINE_KAI');
+assert.equal(translateCopy('Player 1: REDLINE_KAI — chiến thắng','vie'),'Người chơi 1: REDLINE_KAI — chiến thắng');
 assert.equal(translateCopy('Player 1: REDLINE_KAI — chiến thắng','eng'),'Player 1: REDLINE_KAI — victory');
 assert.equal(translateCopy('REDLINE_KAI gây 6,240 sát thương, chiếm 57%. NULL.SPECTRE gây 4,710 sát thương, chiếm 43%.','eng'),'REDLINE_KAI dealt 6,240 damage (57%). NULL.SPECTRE dealt 4,710 damage (43%).');
 assert.equal(translateCopy('32 lần','eng'),'32 times');
@@ -58,6 +63,7 @@ assert.match(englishAwardRule('Gây ≥ 250 DMG thực tế trong cửa sổ 0,1
 assert.match(englishAwardRule('Trong cùng một lần Attraction, kéo và nhặt các súng hợp lệ rồi gây tổng ≥ 200 DMG bằng TẤT CẢ những súng đó.'),/200/);
 for(const a of awards){
  assert.ok(VIETNAMESE_UI_EN[a.name],`Missing translated achievement name: ${a.id} / ${a.name}`);
+ assert.notEqual(translateCopy(a.name,'eng'),a.name,`Achievement title must resolve to English: ${a.id} / ${a.name}`);
  for(const p of a.params){
   if(/[À-ỹ]/u.test(p.label))assert.ok(VIETNAMESE_UI_EN[p.label],`Missing English metric label: ${a.id} / ${p.label}`);
  }
@@ -67,7 +73,7 @@ for(const [en,vi] of Object.entries(COPY)){
   assert.ok(en.length&&vi.length);
   assert.equal(translateCopy(en,'vie'),vi,'missing phrase: '+en);
 }
-const dom=new JSDOM('<!doctype html><html><head></head><body><div id="gold-shell-host"><main id="stage"><section class="profile" aria-label="Header controls"></section><button id="freeBattle" aria-label="Free Battle">FREE BATTLE</button><div id="text">NEWBOT</div></main></div></body></html>',{url:'https://game.example/',pretendToBeVisual:true});
+const dom=new JSDOM('<!doctype html><html><head></head><body><div id="gold-shell-host"><main id="stage"><button id="freeBattle" aria-label="Free Battle">FREE BATTLE</button><div id="text">NEWBOT</div><input id="archiveSearch" placeholder="Search archive" title="Open Field Archive"><img id="archiveIcon" alt="FIGHTERS"></main></div></body></html>',{url:'https://game.example/',pretendToBeVisual:true});
 globalThis.window=dom.window;
 globalThis.document=dom.window.document;
 globalThis.localStorage=dom.window.localStorage;
@@ -91,15 +97,18 @@ installLocalization();
 const settle=()=>new Promise(r=>setTimeout(r,0));
 const label=()=>document.querySelector('#freeBattle').textContent;
 assert.equal(label(),'FREE BATTLE');
-const picker=document.querySelector('#apex-language-select');
-assert.ok(picker,'HOME picker must mount');
-assert.equal(picker.closest('.profile')?.closest('#stage')?.id,'stage','language picker must live in the upper Home header');
-assert.equal(picker.value,'eng');
-picker.value='vie';picker.dispatchEvent(new window.Event('change',{bubbles:true}));
+const vieBtn=document.querySelector('#apex-language-vie');
+assert.ok(vieBtn,'HOME picker must mount');
+assert.equal(document.querySelector('#apex-language-eng').getAttribute('aria-pressed'),'true','ENG starts pressed');
+vieBtn.click();
+assert.equal(vieBtn.getAttribute('aria-pressed'),'true','VIE pressed after click');
 await settle();
 assert.equal(label(),'ĐẤU TỰ DO');
 assert.equal(document.querySelector('#freeBattle').getAttribute('aria-label'),'ĐẤU TỰ DO');
 assert.equal(document.querySelector('#text').textContent,'NEWBOT');
+assert.equal(document.querySelector('#archiveSearch').getAttribute('placeholder'),'Tìm trong kho hồ sơ');
+assert.equal(document.querySelector('#archiveSearch').getAttribute('title'),'Mở Kho hồ sơ');
+assert.equal(document.querySelector('#archiveIcon').getAttribute('alt'),'ĐẤU SĨ');
 assert.equal(localStorage.getItem('apex-chaos.ui-language.v1'),'vie');
 assert.equal(document.documentElement.lang,'vi');
 
@@ -124,7 +133,15 @@ assert.equal(changing.textContent,'XÁC NHẬN','dynamic UI text must translate'
 changing.textContent='BOTH FIGHTERS LOCKED';
 await settle();
 assert.equal(changing.textContent,'CẢ HAI ĐÃ KHÓA CHỌN','in-place mutations must translate');
-picker.value='eng';picker.dispatchEvent(new window.Event('change',{bubbles:true}));
+const dynamicAttrs=document.createElement('div');
+dynamicAttrs.innerHTML='<input id="dynamicSearch" placeholder="Search archive" title="Open Field Archive"><img id="dynamicArchiveIcon" alt="FIGHTERS"><div id="dynamicArchiveTabs" role="tablist" aria-label="Archive category"></div>';
+document.querySelector('#stage').append(dynamicAttrs);
+await settle();
+assert.equal(document.querySelector('#dynamicSearch').getAttribute('placeholder'),'Tìm trong kho hồ sơ','dynamic placeholder must translate');
+assert.equal(document.querySelector('#dynamicSearch').getAttribute('title'),'Mở Kho hồ sơ','dynamic title must translate');
+assert.equal(document.querySelector('#dynamicArchiveIcon').getAttribute('alt'),'ĐẤU SĨ','dynamic alt must translate');
+assert.equal(document.querySelector('#dynamicArchiveTabs').getAttribute('aria-label'),'Danh mục hồ sơ','dynamic Archive aria-label must translate');
+document.querySelector('#apex-language-eng').click();
 await settle();
 assert.equal(label(),'FREE BATTLE','English restoration must use original copy');
 context.fillText('WAVE 02',500,455);
@@ -133,4 +150,11 @@ assert.equal(context.fillText===baseFill,false,'only installed 2D context is dec
 
 assert.equal(changing.textContent,'BOTH FIGHTERS LOCKED','English restoration must be lossless');
 assert.equal(document.querySelector('#freeBattle').getAttribute('aria-label'),'Free Battle');
-console.log('i18n VIE/ENG contract: PASS ('+Object.keys(COPY).length+' curated phrases, '+PROPER_NAMES.length+' proper names, '+Object.keys(VIETNAMESE_DIALOGUE_EN).length+' dialogue lines)');
+assert.equal(document.querySelector('#archiveSearch').getAttribute('placeholder'),'Search archive');
+assert.equal(document.querySelector('#archiveSearch').getAttribute('title'),'Open Field Archive');
+assert.equal(document.querySelector('#archiveIcon').getAttribute('alt'),'FIGHTERS');
+assert.equal(document.querySelector('#dynamicSearch').getAttribute('placeholder'),'Search archive');
+assert.equal(document.querySelector('#dynamicSearch').getAttribute('title'),'Open Field Archive');
+assert.equal(document.querySelector('#dynamicArchiveIcon').getAttribute('alt'),'FIGHTERS');
+assert.equal(document.querySelector('#dynamicArchiveTabs').getAttribute('aria-label'),'Archive category','English restoration must preserve original Archive aria-label');
+console.log('i18n VIE/ENG contract: PASS ('+Object.keys(COPY).length+' curated phrases, '+PROPER_NAMES.length+' proper names, '+Object.keys(VIETNAMESE_DIALOGUE_EN).length+' dialogue lines; text + aria-label/title/placeholder/alt + dynamic mutations)');

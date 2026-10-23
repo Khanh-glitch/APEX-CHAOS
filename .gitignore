@@ -1,6 +1,8 @@
 node_modules/
 .pnpm-store/
 dist/
+dist-itch-html5/
+/public/result-gold/
 reports/
 replays/
 

@@ -1,0 +1,340 @@
+/* CP4 achievement toast: owner-side HUD gutter placement. The toast stays
+   out of the square arena, HP/clock rail and skill cards on desktop and
+   landscape; portrait uses the band between the arena and touch skills. */
+.apex-achievement-toast {
+  position: fixed;
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: auto;
+  top: auto;
+  bottom: max(118px, calc(env(safe-area-inset-bottom, 0px) + 118px));
+  transform: none;
+  z-index: 2147480700;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(292px, calc(100vw - 24px));
+  padding: 10px 14px 10px 10px;
+  color: #f4f0e6;
+  background: linear-gradient(155deg, rgba(27,24,16,.97), rgba(7,8,10,.97));
+  border: 1px solid rgba(232,180,90,.68);
+  box-shadow: 0 18px 46px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.08);
+  clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+  font-family: 'Oswald', Arial, sans-serif;
+  animation: apex-achievement-toast-in .26s ease-out;
+}
+.apex-achievement-toast[data-visual-pending="true"] {
+  /* Suppress only while no visible layout exists. The short-landscape
+     arena-edge fallback is separately measured against every HUD control. */
+  opacity: 0 !important;
+  pointer-events: none !important;
+  animation: none !important;
+}
+.apex-achievement-toast[data-owner-side="P1"] {
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: auto;
+}
+.apex-achievement-toast[data-owner-side="P2"] {
+  left: auto;
+  right: max(8px, env(safe-area-inset-right, 0px));
+}
+.apex-achievement-toast.is-provisional { border-style: dashed; }
+.apex-achievement-toast.is-sealed { border-style: solid; }
+.apex-achievement-toast.owner-bot {
+  border-color: rgba(148,163,184,.62);
+  background: linear-gradient(155deg, rgba(18,24,31,.97), rgba(6,8,10,.97));
+  filter: saturate(.72);
+}
+/* CP5 compact opponent chip: BOT feats are edge-feed signals, never a
+   full-size unlock card. Same side dock, smaller footprint and type. */
+.apex-achievement-toast.is-compact {
+  width: min(226px, calc(100vw - 24px));
+  padding: 7px 10px 7px 7px;
+  gap: 8px;
+}
+.apex-achievement-toast.is-compact .apex-achievement-toast-medal {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+.apex-achievement-toast.is-compact .apex-achievement-toast-copy strong { font-size: 14px; }
+.apex-achievement-toast.is-compact .apex-achievement-toast-copy small { font-size: 7.5px; letter-spacing: .06em; }
+.apex-achievement-toast-medal {
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #111820;
+  font-size: 22px;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #b8c2cc 42%, #5c6874 74%, #161c22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -8px 14px rgba(0,0,0,.25), 0 8px 18px rgba(0,0,0,.3);
+}
+.apex-achievement-toast-medal.shape-circle { border-radius: 50%; }
+.apex-achievement-toast-medal.shape-octagon {
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+}
+.apex-achievement-toast-medal.shape-shield {
+  clip-path: polygon(50% 0, 92% 12%, 88% 58%, 50% 100%, 12% 58%, 8% 12%);
+}
+.apex-achievement-toast-medal.shape-starburst {
+  clip-path: polygon(50% 0, 59% 18%, 76% 7%, 75% 27%, 95% 24%, 84% 41%, 100% 50%, 84% 59%, 95% 76%, 75% 73%, 76% 93%, 59% 82%, 50% 100%, 41% 82%, 24% 93%, 25% 73%, 5% 76%, 16% 59%, 0 50%, 16% 41%, 5% 24%, 25% 27%, 24% 7%, 41% 18%);
+}
+.apex-achievement-toast-medal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.apex-achievement-toast-medal.pattern-facet::before {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 3px, transparent 3px 8px);
+}
+.apex-achievement-toast-medal.pattern-chevron::before {
+  background: repeating-linear-gradient(135deg, rgba(255,255,255,.16) 0 4px, transparent 4px 9px);
+}
+.apex-achievement-toast-medal.pattern-rays::before {
+  background: conic-gradient(from 0deg, rgba(255,255,255,.24) 0deg 8deg, transparent 8deg 24deg, rgba(255,255,255,.24) 24deg 32deg, transparent 32deg 48deg, rgba(255,255,255,.24) 48deg 56deg, transparent 56deg 72deg, rgba(255,255,255,.24) 72deg 80deg, transparent 80deg 96deg, rgba(255,255,255,.24) 96deg 104deg, transparent 104deg 120deg, rgba(255,255,255,.24) 120deg 128deg, transparent 128deg 144deg, rgba(255,255,255,.24) 144deg 152deg, transparent 152deg 168deg, rgba(255,255,255,.24) 168deg 176deg, transparent 176deg 360deg);
+}
+.apex-achievement-toast-glyph {
+  position: relative;
+  z-index: 1;
+  transform: translateY(-3px);
+  line-height: 1;
+}
+.apex-rarity-pips {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 5px;
+  display: flex;
+  gap: 2px;
+  transform: translateX(-50%);
+}
+.apex-rarity-pips i {
+  width: 4px;
+  height: 4px;
+  transform: rotate(45deg);
+  background: currentColor;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.35);
+}
+.apex-achievement-toast.rarity-legendary {
+  border-color: rgba(255,177,46,.92);
+  box-shadow: 0 18px 52px rgba(0,0,0,.62), 0 0 28px rgba(255,177,46,.18), inset 0 1px rgba(255,255,255,.1);
+}
+.apex-achievement-toast.rarity-legendary .apex-achievement-toast-medal {
+  color: #1d1302;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #d7a83f 40%, #75530d 72%, #201505);
+}
+.apex-achievement-toast.rarity-legendary.is-sealed {
+  animation: apex-achievement-toast-in .26s ease-out, apex-achievement-legendary-pulse 1.15s ease-in-out .3s 2;
+}
+.apex-achievement-toast.rarity-epic .apex-achievement-toast-medal {
+  animation: apex-achievement-medal-in .42s ease-out;
+}
+.apex-achievement-toast.rarity-epic .apex-achievement-toast-medal {
+  background: radial-gradient(circle at 35% 30%, #f1dcff, #a066f0 42%, #442064 76%, #160a24);
+  color: #fff7ff;
+}
+.apex-achievement-toast.rarity-rare .apex-achievement-toast-medal {
+  background: radial-gradient(circle at 35% 30%, #dff4ff, #58b6e8 42%, #1d587c 76%, #071722);
+  color: #f4fbff;
+}
+.apex-achievement-toast-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.apex-achievement-toast-copy > span {
+  color: #e8b45a;
+  font: 800 8px/1.2 ui-monospace, monospace;
+  letter-spacing: .16em;
+}
+.apex-achievement-toast-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(17px, 3.8vw, 21px);
+  line-height: 1.08;
+  font-style: italic;
+  font-weight: 900;
+}
+.apex-achievement-toast-copy small {
+  color: #c9d2db;
+  font: 800 9px/1.3 ui-monospace, monospace;
+  letter-spacing: .1em;
+}
+.apex-achievement-toast-copy .apex-achievement-toast-more { color: #f0d67e; }
+/* CP5.1 achieved-vs-target meter + left gold fin: the toast now shows the
+   real metric that crossed the threshold, not just the achievement name. */
+.apex-achievement-toast { box-shadow: 0 18px 46px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.08), inset 4px 0 0 #e8b45a; }
+.apex-achievement-toast.owner-bot { box-shadow: 0 14px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06), inset 4px 0 0 #8ea0b5; }
+.apex-achievement-toast.is-sealed:not(.is-compact) .apex-achievement-toast-medal { width: 54px; height: 54px; font-size: 25px; }
+.apex-achievement-toast-meter {
+  display: flex; align-items: center; gap: 8px; margin-top: 3px;
+}
+.apex-achievement-toast-meter i {
+  flex: 1; height: 4px; background: rgba(255,255,255,.14); overflow: hidden; display: block;
+}
+.apex-achievement-toast-meter i b {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #c8a24d, #f0d67e);
+}
+.apex-achievement-toast.owner-bot .apex-achievement-toast-meter i b {
+  background: linear-gradient(90deg, #7186a0, #b9c9dc);
+}
+.apex-achievement-toast-meter em {
+  font: 800 9px/1 ui-monospace, monospace; font-style: normal;
+  letter-spacing: .08em; color: #f0d67e; white-space: nowrap;
+}
+.apex-achievement-toast.owner-bot .apex-achievement-toast-meter em { color: #b9c9dc; }
+@keyframes apex-achievement-toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes apex-achievement-legendary-pulse {
+  0%, 100% { box-shadow: 0 18px 52px rgba(0,0,0,.62), 0 0 18px rgba(255,177,46,.14), inset 0 1px rgba(255,255,255,.1); }
+  50% { box-shadow: 0 18px 52px rgba(0,0,0,.62), 0 0 34px rgba(255,177,46,.28), inset 0 1px rgba(255,255,255,.14); }
+}
+@keyframes apex-achievement-medal-in {
+  from { transform: scale(.82); }
+  to { transform: scale(1); }
+}
+@media (orientation: portrait) and (max-width: 699px) {
+  /* Portrait battle geometry is HP rail + 100vw arena + skill deck. Dock
+     in the narrow band immediately below the arena, before the skills. */
+  .apex-achievement-toast,
+  .apex-achievement-toast[data-owner-side="P1"],
+  .apex-achievement-toast[data-owner-side="P2"] {
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    top: min(calc(env(safe-area-inset-top, 0px) + 92px + 100vw), calc(100dvh - 232px));
+    bottom: auto;
+    width: auto;
+    padding: 4px 8px 4px 6px;
+    gap: 6px;
+  }
+  .apex-achievement-toast[data-owner-side="P1"] { margin-right: 56px; }
+  .apex-achievement-toast[data-owner-side="P2"] { margin-left: 56px; }
+  .apex-achievement-toast-medal { width: 40px; height: 40px; font-size: 18px; }
+  .apex-achievement-toast.is-sealed:not(.is-compact) .apex-achievement-toast-medal { width: 40px; height: 40px; font-size: 18px; }
+  .apex-achievement-toast-copy { gap: 1px; }
+  .apex-achievement-toast-copy > span { font-size: 7px; line-height: 1; letter-spacing: .08em; }
+  .apex-achievement-toast-copy strong { font-size: 14px; line-height: 1; }
+  .apex-achievement-toast-copy small { font-size: 7px; line-height: 1; letter-spacing: .03em; }
+  .apex-achievement-toast-copy .apex-achievement-toast-more { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .apex-achievement-toast-meter { gap: 5px; margin-top: 1px; }
+  .apex-achievement-toast-meter i { height: 3px; }
+  .apex-achievement-toast-meter em { font-size: 7px; }
+  /* CP5: the BOT chip leaves the sub-arena band (reserved for the player's
+     own unlock) and docks as a small edge signal under the P2 HP segment. */
+  .apex-achievement-toast.is-compact,
+  .apex-achievement-toast.is-compact[data-owner-side="P1"],
+  .apex-achievement-toast.is-compact[data-owner-side="P2"] {
+    left: auto;
+    right: max(8px, env(safe-area-inset-right, 0px));
+    top: calc(env(safe-area-inset-top, 0px) + 84px);
+    bottom: auto;
+    width: auto;
+    max-width: min(238px, 66vw);
+    margin: 0;
+  }
+  .apex-achievement-toast.is-compact .apex-achievement-toast-medal { width: 30px; height: 30px; font-size: 13px; }
+}
+/* Short portrait phones have only a thin strip between the scaled arena and
+   touch cards. Keep the real player toast in that strip instead of overpainting
+   the arena/skills; allow the status, title, and seal note to stay readable in
+   compact Gold typography. The opponent chip keeps its separate top-edge lane. */
+@media (orientation: portrait) and (max-width: 699px) and (max-height: 600px) {
+  .apex-achievement-toast:not(.is-compact),
+  .apex-achievement-toast:not(.is-compact)[data-owner-side="P1"],
+  .apex-achievement-toast:not(.is-compact)[data-owner-side="P2"] {
+    top: min(calc(env(safe-area-inset-top, 0px) + 92px + 100vw), calc(100dvh - 208px));
+    padding: 4px 7px 4px 6px;
+    gap: 6px;
+  }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-medal,
+  .apex-achievement-toast.is-sealed:not(.is-compact) .apex-achievement-toast-medal {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-copy { gap: 1px; }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-copy > span {
+    font-size: 7.5px;
+    line-height: 1;
+    letter-spacing: .015em;
+    white-space: nowrap;
+  }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-copy strong {
+    font-size: 13px;
+    line-height: 1;
+  }
+  .apex-achievement-toast:not(.is-compact) .apex-achievement-toast-copy small {
+    font-size: 7.5px;
+    line-height: 1;
+    letter-spacing: .015em;
+    white-space: nowrap;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .apex-achievement-toast {
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: min(218px, calc(100vw - 16px));
+    padding: 7px 9px 7px 7px;
+    gap: 8px;
+  }
+  .apex-achievement-toast-medal { width: 38px; height: 38px; font-size: 17px; }
+  .apex-achievement-toast-copy strong { font-size: 15px; }
+  .apex-achievement-toast-copy small { font-size: 8px; }
+  .apex-achievement-toast.is-compact { width: min(196px, calc(100vw - 16px)); }
+  .apex-achievement-toast.is-compact .apex-achievement-toast-medal { width: 30px; height: 30px; font-size: 13px; }
+  .apex-achievement-toast.is-compact .apex-achievement-toast-copy strong { font-size: 13px; }
+}
+/* When compact landscape HUD geometry leaves no clean rectangle, pin a small
+   read-only ribbon to the arena's top edge. The DOM placement algorithm has
+   already measured this rectangle against every HUD blocker; only canvas pixels
+   are covered, and the ribbon never intercepts touch/mouse input. */
+.apex-achievement-toast.is-arena-edge {
+  box-sizing: border-box;
+  width: min(218px, calc(100vw - 24px));
+  max-height: 58px;
+  padding: 4px 7px;
+  gap: 0;
+  border-radius: 3px;
+  clip-path: none;
+  overflow: hidden;
+  background: linear-gradient(110deg, rgba(22,19,12,.96), rgba(7,8,10,.93));
+  box-shadow: 0 4px 14px rgba(0,0,0,.44), inset 3px 0 0 #e8b45a;
+  animation: apex-achievement-toast-in .18s ease-out;
+}
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-medal { display: none; }
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-copy { width: 100%; gap: 0; }
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-copy > span {
+  font-size: 6px;
+  line-height: 1.05;
+  letter-spacing: .015em;
+  white-space: nowrap;
+}
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-copy strong {
+  font-size: 11px;
+  line-height: 1.08;
+}
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-copy small {
+  font-size: 6px;
+  line-height: 1.05;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-meter { gap: 5px; margin-top: 1px; }
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-meter i { height: 2px; }
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-meter em {
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .apex-achievement-toast,
+  .apex-achievement-toast.rarity-epic .apex-achievement-toast-medal { animation: none; }
+}

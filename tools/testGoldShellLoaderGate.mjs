@@ -21,8 +21,15 @@ check('executable inert scripts are removed before DOM import',
   mount.indexOf('executableScripts.forEach((node) => node.remove())') < mount.indexOf('document.importNode(node, true)'));
 check('text/plain battle payload is preserved by executable-only filter',
   /return !type \|\| type === 'text\/javascript' \|\| type === 'application\/javascript' \|\| type === 'module';/.test(mount));
-check('external scripts preserve authored raw src',
-  /src: node\.getAttribute\('src'\) \|\| ''/.test(mount) && /run\.src = planned\.src;/.test(mount) && !/run\.src\s*=\s*src\.src/.test(mount));
+// Authored srcs must keep their authored RESOLUTION (against the Gold
+// <base>), but the assigned value is materialized through
+// document.baseURI: under nested hosting the raw '../game/...' spelling
+// would break the runtime loader's entry-base identity dedupe
+// (apexAppUrl would resolve '..' above the app root and double-load).
+// The old raw-assignment law predates subpath hosting; resolution
+// semantics are identical, identity is now stable.
+check('external scripts preserve authored src resolution against the document base',
+  /src: node\.getAttribute\('src'\) \|\| ''/.test(mount) && /run\.src = new URL\(planned\.src, document\.baseURI\)\.href;/.test(mount) && !/run\.src\s*=\s*src\.src/.test(mount));
 check('Gold-loaded scripts publish shared apexLoaded completion flag',
   /run\.dataset\.apexLoaded = 'true';/.test(mount) && /existing\.dataset\.apexLoaded = 'true';/.test(mount));
 check('Gold mount normalizes script identity before dedupe',

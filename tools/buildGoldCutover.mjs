@@ -1093,7 +1093,9 @@ function buildLuckyDonor() {
         `  const res = meta.spin();\n` +
         `  if (!res || res.ok !== true){\n` +
         `    if (res && res.reason === 'complete') showPoolTag('ROSTER COMPLETE');\n` +
-        `    else showPoolTag('NEED ' + (res && res.need ? res.need : 350) + ' AC');\n` +
+        `    else if (res && res.reason === 'spinning') showPoolTag('DRAW PENDING');\n` +
+        `    else if (res && res.reason === 'need') showPoolTag('NEED ' + (res.need || 350) + ' AC');\n` +
+        `    else showPoolTag('DRAW UNAVAILABLE');\n` +
         `    return;\n` +
         `  }\n` +
         `  const winner = productionFighterIndex(res.name);\n` +
@@ -2192,7 +2194,7 @@ function buildShell(hudProductionHtml) {
   {
     const re = /  function renderWorldHero\(container,id,player\)\{[\s\S]*?\n  \}(?=\n\n  function renderSide\(side,id,player,locked\))/;
     if (!re.test(out)) throw new Error('R48A renderWorldHero seam mismatch');
-    out = out.replace(re, "  function mirrorOpponentHero(player){\n    if(battleMode==='bot') return null;\n    if(player==='p1'){\n      if(!p2HasPicked || p2Empty || p2Hero==='mirror') return null;\n      return p2Hero;\n    }\n    if(!p1HasPicked || p1Hero==='mirror') return null;\n    return p1Hero;\n  }\n\n  function renderWorldHero(container,id,player){\n    const h=HEROES[id];\n    const mirrorSource=id==='mirror'?mirrorOpponentHero(player):null;\n    const renderId=id==='mirror'?mirrorSource:id;\n    const sourceHero=renderId?HEROES[renderId]:null;\n    const nextKey=id==='mirror'?('mirror:'+(renderId||'empty')):id;\n    const oldKey=container.dataset.renderKey||container.dataset.hero||'';\n    const changed=oldKey!==nextKey;\n    let ghost=null;\n    if(changed&&motion){\n      const prev=container.querySelector('.worldHeroBody');\n      if(prev){ghost=prev.cloneNode(true);ghost.classList.add('worldHeroGhost');ghost.dataset.oldHero=container.dataset.hero||'';}\n    }\n    container.style.setProperty('--heroTint',h?.accent||'#ff941f');\n    container.dataset.hero=id;\n    container.dataset.renderKey=nextKey;\n    container.innerHTML='';\n    if(ghost){container.appendChild(ghost);setTimeout(()=>ghost.remove(),260)}\n    if(!renderId || !sourceHero?.art){\n      if(changed&&motion){container.classList.remove('is-changing');setTimeout(()=>container.classList.remove('is-changing'),360);}\n      return;\n    }\n    const body=document.createElement('div'); body.className='worldHeroBody';\n    const img=new Image(); img.className='worldHeroAsset'; img.alt=''; img.draggable=false; img.src=sourceHero.art;\n    if(id==='mirror') img.classList.add('mirrorOpponentAsset');\n    body.appendChild(img);\n    if(id==='hunter'||id==='frost'){const echo=img.cloneNode(); echo.className='worldHeroFxAsset '+id; body.appendChild(echo);}\n    if(id==='magnet') body.insertAdjacentHTML('beforeend','<span class=\"magnetOrbit ringA\"></span><span class=\"magnetOrbit ringB\"></span>');\n    if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class=\"crystalPulse\"></span>');\n    container.appendChild(body);\n    if(changed&&motion){container.classList.remove('is-changing'); void container.offsetWidth; container.classList.add('is-changing');setTimeout(()=>container.classList.remove('is-changing'),380);}\n  }");
+    out = out.replace(re, "  function mirrorOpponentHero(player){\n    // CP5 (owner): copy the other side once it has picked — BOT mode too; empty until then.\n    if(player==='p1'){\n      if(!p2HasPicked || p2Empty || p2Hero==='mirror') return null;\n      return p2Hero;\n    }\n    if(!p1HasPicked || p1Hero==='mirror') return null;\n    return p1Hero;\n  }\n\n  function renderWorldHero(container,id,player){\n    const h=HEROES[id];\n    const mirrorSource=id==='mirror'?mirrorOpponentHero(player):null;\n    const renderId=id==='mirror'?mirrorSource:id;\n    const sourceHero=renderId?HEROES[renderId]:null;\n    const nextKey=id==='mirror'?('mirror:'+(renderId||'empty')):id;\n    const oldKey=container.dataset.renderKey||container.dataset.hero||'';\n    const changed=oldKey!==nextKey;\n    let ghost=null;\n    if(changed&&motion){\n      const prev=container.querySelector('.worldHeroBody');\n      if(prev){ghost=prev.cloneNode(true);ghost.classList.add('worldHeroGhost');ghost.dataset.oldHero=container.dataset.hero||'';}\n    }\n    container.style.setProperty('--heroTint',h?.accent||'#ff941f');\n    container.dataset.hero=id;\n    container.dataset.renderKey=nextKey;\n    container.innerHTML='';\n    if(ghost){container.appendChild(ghost);setTimeout(()=>ghost.remove(),260)}\n    if(!renderId || !sourceHero?.art){\n      if(changed&&motion){container.classList.remove('is-changing');setTimeout(()=>container.classList.remove('is-changing'),360);}\n      return;\n    }\n    const body=document.createElement('div'); body.className='worldHeroBody';\n    const img=new Image(); img.className='worldHeroAsset'; img.alt=''; img.draggable=false; img.src=sourceHero.art;\n    if(id==='mirror') img.classList.add('mirrorOpponentAsset');\n    body.appendChild(img);\n    if(id==='hunter'||id==='frost'){const echo=img.cloneNode(); echo.className='worldHeroFxAsset '+id; body.appendChild(echo);}\n    if(id==='magnet') body.insertAdjacentHTML('beforeend','<span class=\"magnetOrbit ringA\"></span><span class=\"magnetOrbit ringB\"></span>');\n    if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class=\"crystalPulse\"></span>');\n    container.appendChild(body);\n    if(changed&&motion){container.classList.remove('is-changing'); void container.offsetWidth; container.classList.add('is-changing');setTimeout(()=>container.classList.remove('is-changing'),380);}\n  }");
   }
   {
     const re = /  function buildRoster\(\)\{[\s\S]*?\n  \}(?=\n\n  function renderFighter\(\))/;
@@ -2548,6 +2550,32 @@ function main() {
   if(rawArchiveShell.split(dictionaryBefore).length!==2)throw new Error('C03 Dictionary route source anchor drift');
   outputs.set('shell.html',Buffer.from(rawArchiveShell.replace(dictionaryBefore,dictionaryAfter),'utf8'));
   log('shell.html built (canonical shell + production patches + active C03 Dictionary route)');
+  // Alpha Home authority (pre-release acceptance): MISSIONS and ACCOUNT
+  // are live product routes, and the duplicated/dead top header controls
+  // are removed at the generator — never by runtime DOM surgery.
+  //   * The bottom-nav ACCOUNT is the ONE account entry (real Account
+  //     Center). The canonical top-right identity chip duplicated it and
+  //     was display:none on portrait phones, leaving mobile players with
+  //     no account access at all.
+  //   * The sun/gear "settings" button never implemented settings/theme.
+  //   * MISSIONS opens the one-wallet progression panel (missions +
+  //     achievements). The live AC readout is untouched.
+  const missionsBefore='<button class="route is-locked" type="button" aria-label="Missions (locked)" aria-disabled="true" data-locked-route="missions" title="COMING SOON">';
+  const missionsAfter='<button class="route" id="apexMissionsOpen" type="button" aria-label="Missions and Achievements">';
+  const accountBefore='<button class="route is-locked" type="button" aria-label="Account (locked)" aria-disabled="true" data-locked-route="account-profile" title="COMING SOON">';
+  const accountAfter='<button class="route" id="apexAccountOpen" type="button" aria-label="Account">';
+  let alphaShell=outputs.get('shell.html').toString('utf8');
+  if(alphaShell.split(missionsBefore).length!==2)throw new Error('Alpha Missions route source anchor drift');
+  if(alphaShell.split(accountBefore).length!==2)throw new Error('Alpha Account route source anchor drift');
+  alphaShell=alphaShell.replace(missionsBefore,missionsAfter).replace(accountBefore,accountAfter);
+  const settingsBtn=alphaShell.match(/\n\s*<button class="settings"[^>]*>[\s\S]*?<\/button>/);
+  if(!settingsBtn)throw new Error('Alpha settings-button anchor drift');
+  alphaShell=alphaShell.replace(settingsBtn[0],'');
+  const identityBtn=alphaShell.match(/\n\s*<button class="profileIdentity"[^>]*>[\s\S]*?<\/button>/);
+  if(!identityBtn)throw new Error('Alpha profile-identity anchor drift');
+  alphaShell=alphaShell.replace(identityBtn[0],'');
+  outputs.set('shell.html',Buffer.from(alphaShell,'utf8'));
+  log('shell.html Alpha routes live (Missions + Account); dead header controls removed');
   // R7: The live Wave iframe needs to pause the ALREADY APPROVED Gold Home
   // presentation loop while keeping Home resident across Door V4 transitions.
   // This is an explicit generated patch, never a manual output-only change.

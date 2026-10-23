@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261020-a1-r20",
+  "runtimeRevision": "20261021-cp5-r1",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -200,12 +200,20 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 145840,
-      "sha256": "83feb24740b5ff8ba7f4c33328feebd74e2b1eae9986afc527b90cdd920f42ec"
+      "bytes": 147664,
+      "sha256": "2ba29841e725e9df423be53fb9dc71b178d4651cff3d53ac87a526c9667140f9"
     },
     "fonts.css": {
       "bytes": 6552,
       "sha256": "ff9a537038dfdae7e66bf951967fcee93550a3478ec0062c3ce2cbb46442386d"
+    },
+    "fonts/APEX-OSWALD-OFL.txt": {
+      "bytes": 4483,
+      "sha256": "0fd731a904b729a4e02eaf5e8ebd06783edd9abe400e8882760160230675b652"
+    },
+    "fonts/apex-oswald-vietnamese.ttf": {
+      "bytes": 172088,
+      "sha256": "5b38c246e255a12f5712d640d56bcced0472466fc68983d2d0410ec0457c2817"
     },
     "fonts/jetbrains-mono-latin-400-normal.woff2": {
       "bytes": 21168,
@@ -272,12 +280,12 @@
       "sha256": "60d64d7bbba149b12b6dff1a81cb9d25fc4d24cc123a6dfef23b8f7d39298e8b"
     },
     "lucky-draw.html": {
-      "bytes": 100260,
-      "sha256": "81db014007a74715ad149140e57edd85d6667b14348d1a796a00f26986b51034"
+      "bytes": 100395,
+      "sha256": "8386c1f38f46a5760b07a4d3c6a12fc1d0020cbff8312abfa494ef0aaac9fa70"
     },
     "shell.html": {
-      "bytes": 449375,
-      "sha256": "728b2a3c9ae97aa0e6c252318dbf58687b5df6260ae97561851d3fe85170c385"
+      "bytes": 452804,
+      "sha256": "20bc3ead37bf289c27db511e1913de2d859609981714f49cc6955e03c9bab57d"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,

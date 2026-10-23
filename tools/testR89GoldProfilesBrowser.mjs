@@ -233,7 +233,7 @@ try{
     if(v.name!=='iphone-se')link.searchParams.set('goldDevice',v.device);
     await command('Page.navigate',{url:link.href});
     if(!(await wait(childReady)))throw Error('R89 intermediate START unavailable '+v.name);
-    if(v.name==='iphone-se')check('R89 mobile auto-entry retains real-game query and redirects once',await evalJS("location.pathname==='/gold-fidelity-lab.html'&&window.__apexGoldFidelity.child().location.search.includes('goldViewport=native')&&window.__apexGoldFidelity.child().location.search.includes('apexR89PassThrough=1')"));
+    if(v.name==='iphone-se')check('owner-approved universal native entry: handheld boots directly without a Lab wrapper',await evalJS("location.pathname==='/'&&!window.__apexGoldFidelity&&!document.querySelector('#gold-document')&&new URLSearchParams(location.search).has('apexR89PassThrough')"));
     const meta=await evalJS('window.__apexGoldFidelity?.snapshot()');
     check(v.name+' aspect-fit/zero-letterbox',
       meta?.deviceClass===v.device&&

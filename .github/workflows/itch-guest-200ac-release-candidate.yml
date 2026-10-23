@@ -140,7 +140,7 @@ jobs:
         run: |
           set -euo pipefail
           (cd dist-itch-html5 && zip -q -r ../apex-chaos-itch-guest-200ac-rc.zip .)
-          unzip -l apex-chaos-itch-guest-200ac-rc.zip | grep -Eq '[[:space:]]index.html
+          unzip -l apex-chaos-itch-guest-200ac-rc.zip | grep -Eq '[[:space:]]index\.html$'
           ls -lh apex-chaos-itch-guest-200ac-rc.zip
       - name: Archive owner-review package
         uses: actions/upload-artifact@v4

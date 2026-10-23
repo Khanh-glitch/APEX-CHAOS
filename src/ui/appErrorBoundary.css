@@ -1,0 +1,8 @@
+.apex-fatal-error{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:clamp(24px,6vw,64px);overflow:auto;background:radial-gradient(ellipse at 50% 18%,#2b2118 0,#0b0d10 68%);color:#f2eee7;text-align:center;font:500 16px/1.5 system-ui,sans-serif}
+.apex-fatal-error>*{max-width:min(680px,100%);margin:0}
+.apex-fatal-mark{color:#f7a34a;font:900 clamp(18px,3vw,28px)/1 Impact,"Arial Narrow",sans-serif;letter-spacing:.18em}
+.apex-fatal-kicker{color:#d4a56d;font:800 11px/1 ui-monospace,monospace;letter-spacing:.2em}
+.apex-fatal-error h1{font:800 clamp(26px,5vw,46px)/1.08 system-ui,sans-serif}
+.apex-fatal-error button{min-height:48px;padding:12px 24px;border:1px solid #ffb060;background:linear-gradient(180deg,#ffb454,#db762d);color:#1a110a;font:900 14px/1 system-ui,sans-serif;letter-spacing:.08em;cursor:pointer}
+.apex-fatal-error button:focus-visible{outline:3px solid #fff;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){.apex-fatal-error *{animation:none!important;transition:none!important}}

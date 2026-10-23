@@ -19,9 +19,10 @@ check('Guest-only release flag is versioned and true',/export const GUEST_ONLY_R
 check('main still installs genuine local player authority',main.includes('installPlayerAccountAuthority(window)'));
 check('Cloud Auth startup skipped under release flag',main.includes('if (!GUEST_ONLY_RELEASE) void initCloudAccount()'));
 check('Supabase adapter fails closed even with stale env keys',cloud.includes('!GUEST_ONLY_RELEASE && !!SUPABASE_URL && !!SUPABASE_ANON_KEY'));
-check('Account Center Guest release branch has no sign-in actions',account.includes('{GUEST_ONLY_RELEASE ? (') && account.includes('CHƠI NGAY, KHÔNG CẦN ĐĂNG NHẬP'));
+const catalog=read('src/game/localeCatalog.js');
+check('Account Center Guest release branch has no sign-in actions',account.includes('{GUEST_ONLY_RELEASE ? (') && account.includes('PLAY INSTANTLY — NO SIGN-IN') && catalog.includes('CHƠI NGAY — KHÔNG CẦN ĐĂNG NHẬP'));
 check('Account Center preserves display-name editor',account.includes('account.setDisplayName(nameDraft)'));
-check('Account Center shows local-only save limitation',account.includes('Đừng xóa dữ liệu trang web'));
+check('Account Center shows local-only save limitation',account.includes('Clearing site data erases them') && catalog.includes('Xóa dữ liệu trang web sẽ xóa hết'));
 check('fresh local AC remains 350 (no surprise refills)',economy.includes('const START_CREDITS = 350;'));
 check('BOT wins pay exactly 200 real local AC',economy.includes('BOT_WIN: 200, BOT_LOSS: 25, LOCAL_COMPLETE: 50'));
 check('Product graph matches 200/25/50 wallet reward law',product.includes('matchRewards: Object.freeze({ botWin: 200, botLoss: 25, localComplete: 50 })'));

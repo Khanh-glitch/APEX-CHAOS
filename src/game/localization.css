@@ -1,9 +1,13 @@
-/* Checkpoint 3: isolated HOME language control, Gold source remains untouched. */
+/* HOME language control: segmented ENG|VIE in the top utility cluster,
+   directly under the AC readout. Gold source remains untouched; this is
+   the localization layer's own control (owner Requirement A: both
+   languages visible at once, active side unambiguous). */
 #gold-shell-host #stage #apex-language-picker{
-  position:relative;z-index:39;
-  top:auto;right:auto;flex:0 0 auto;
-  display:flex;align-items:center;gap:7px;
-  padding:5px 7px 5px 10px;min-height:29px;
+  position:absolute;z-index:39;
+  top:calc(var(--safeT,0px) + 2.55vh + 52px);
+  right:calc(var(--safeR,0px) + 2.55vw);
+  display:flex;align-items:center;gap:8px;
+  padding:5px 6px 5px 10px;min-height:34px;
   background:linear-gradient(180deg,rgba(25,26,30,.91),rgba(10,11,14,.91));
   border:1px solid rgba(238,231,219,.17);
   clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%);
@@ -13,13 +17,20 @@
 #gold-shell-host #stage #apex-language-picker .apex-language-caption{
   font-size:9px;font-weight:600;letter-spacing:.14em;color:#d4a35d;
 }
-#gold-shell-host #stage #apex-language-select{
+#gold-shell-host #stage #apex-language-picker .apex-language-options{
+  display:flex;gap:2px;padding:2px;background:#0d1014;
+  border:1px solid rgba(238,231,219,.14);
+}
+#gold-shell-host #stage #apex-language-picker [data-apex-language-option]{
   appearance:none;-webkit-appearance:none;border:0;border-radius:0;
-  background:#1b1d21;color:#f3ede2;cursor:pointer;
-  padding:4px 15px 4px 7px;min-width:58px;
+  background:transparent;color:#c9c2b4;cursor:pointer;
+  min-width:46px;min-height:26px;padding:4px 9px;
   font:600 12px/1.2 'Oswald',sans-serif;letter-spacing:.08em;
 }
-#gold-shell-host #stage #apex-language-select:focus-visible{
+#gold-shell-host #stage #apex-language-picker [data-apex-language-option].is-active{
+  background:linear-gradient(180deg,#e8b45a,#b97f2e);color:#171208;font-weight:700;
+}
+#gold-shell-host #stage #apex-language-picker [data-apex-language-option]:focus-visible{
   outline:2px solid #ffad3d;outline-offset:2px;
 }
 #gold-shell-host #stage.screen-mode #apex-language-picker,
@@ -28,14 +39,16 @@
 }
 @media (orientation:portrait){
   #gold-shell-host #stage #apex-language-picker{
-    top:auto;right:auto;
-    padding:3px 5px;gap:4px;min-height:26px;
+    top:calc(var(--safeT,0px) + 1.8vh + 39px);
+    right:calc(var(--safeR,0px) + 4vw);
+    padding:3px 5px;gap:5px;min-height:34px;
   }
   #gold-shell-host #stage #apex-language-picker .apex-language-caption{font-size:8px}
-  #gold-shell-host #stage #apex-language-select{font-size:11px;min-width:52px;padding:3px 8px 3px 5px}
+  /* Touch law: each language side keeps a >=40px-tall tap target. */
+  #gold-shell-host #stage #apex-language-picker [data-apex-language-option]{font-size:11px;min-width:46px;min-height:34px;padding:4px 7px}
 }
 @media (max-height:600px) and (orientation:portrait){
-  #gold-shell-host #stage #apex-language-picker{top:auto}
+  #gold-shell-host #stage #apex-language-picker{top:calc(var(--safeT,0px) + 1.8vh + 37px)}
 }
 /* Typography contract: VIE must keep Gold's condensed display proportions.
    Self-hosted SIL OFL Oswald variable includes the Vietnamese subset, unlike
@@ -62,6 +75,19 @@ html[data-apex-language="vie"] #gold-shell-host #stage .storyTitle{
   font-family:var(--fDisplay);
   font-weight:700;
   line-height:1.035;
+}
+/* The two-line Vietnamese Home headline is taller than the English donor.
+   On phone portrait it must clear the first-play coach instead of being
+   hidden behind it. Preserve the exact copy and silhouette; fit the type role. */
+@media (max-width:600px) and (orientation:portrait){
+  html[data-apex-language="vie"] #gold-shell-host #stage .story{
+    top:calc(41.7vh - 2.7vh);
+  }
+  html[data-apex-language="vie"] #gold-shell-host #stage .storyTitle{
+    font-size:clamp(34px,10.5vw,44px);
+    line-height:1.08;
+    letter-spacing:-.035em;
+  }
 }
 html[data-apex-language="vie"] #gold-shell-host #stage :is(.quest,.modeKicker,.fighterKicker){
   letter-spacing:var(--apex-vie-kicker-track);

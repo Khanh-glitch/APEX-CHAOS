@@ -13,6 +13,117 @@
     Object.freeze({ id: 'bot-veteran', kind: 'achievement', stat: 'botWins', target: 3, ac: 250, vie: 'CHIẾN BINH ĐẤU TRƯỜNG', eng: 'ARENA VETERAN' }),
     Object.freeze({ id: 'bot-survivor', kind: 'achievement', stat: 'botMatches', target: 5, ac: 200, vie: 'KHÔNG BỎ CUỘC', eng: 'NEVER GIVE UP' }),
   ]);
+  // CP3 mastery lives in THIS one wallet/profile state. It records the
+  // owner-approved combat achievements already evaluated by the match
+  // result ledger; it is not a second achievement authority and it never
+  // pays AC. Sealed folding happens inside awardBattleResult(), behind the
+  // same claimedMatchIds guard as the match AC award.
+  const RESULT_HERO_BY_ENGINE = Object.freeze({ ROBOT: 'NEWBOT', ICE: 'FROST', CRYSTAL: 'CRYSTALA' });
+  const ENGINE_HERO_BY_RESULT = Object.freeze({ NEWBOT: 'ROBOT', FROST: 'ICE', CRYSTALA: 'CRYSTAL' });
+  const MASTERY_SKIN_GATES = Object.freeze([
+    Object.freeze({ key: 'hero:ROBOT:ecobot', kind: 'hero', baseId: 'ROBOT', skinId: 'ecobot', resultHeroId: 'NEWBOT' }),
+    Object.freeze({ key: 'weapon:RPG_7:vua-he', kind: 'weapon', baseId: 'RPG_7', skinId: 'vua-he', weaponId: 'RPG_7', damageThreshold: 1000 }),
+  ]);
+  const MASTERY_MAX_VALUE = 1000000000000;
+  // Epoch-millisecond earn timestamps need a separate ceiling: real
+  // Date.now() values already exceed 1e12, so clamping them to the damage
+  // cap rewrote every live earn date to 2001 after reload (CP3.1 audit).
+  const MASTERY_MAX_AT = 4102444800000; // 2100-01-01T00:00:00.000Z
+  function resultHeroId(id) {
+    const raw = String(id || '').trim().toUpperCase();
+    return RESULT_HERO_BY_ENGINE[raw] || raw;
+  }
+  function engineHeroId(id) {
+    const raw = String(id || '').trim().toUpperCase();
+    return ENGINE_HERO_BY_RESULT[raw] || raw;
+  }
+  function resultCatalog() {
+    try {
+      const catalog = window.APEX_RESULT_OWNER_CATALOG;
+      return Array.isArray(catalog)
+        ? catalog.filter((def) => def && typeof def.id === 'string' && Array.isArray(def.params))
+        : [];
+    } catch (error) { return []; }
+  }
+  function awardDef(id) {
+    const wanted = String(id || '');
+    return resultCatalog().find((def) => def.id === wanted) || null;
+  }
+  function applicableAwardDefs(heroId) {
+    const hero = resultHeroId(heroId);
+    return resultCatalog().filter((def) => !def.heroId || def.heroId === hero);
+  }
+  function emptyMastery() {
+    return { earned: {}, best: {}, weaponDamage: {}, recent: [], unseenSkinUnlocks: [] };
+  }
+  function cleanMasteryNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.min(MASTERY_MAX_VALUE, Math.max(0, n)) : null;
+  }
+  function cleanMasteryAt(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? Math.min(MASTERY_MAX_AT, n) : 0;
+  }
+  function sanitizeMastery(raw) {
+    const out = emptyMastery();
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+    const catalog = resultCatalog();
+    const validIds = catalog.length ? new Set(catalog.map((def) => def.id)) : null;
+    const validAward = (hero, id) => {
+      if (typeof id !== 'string' || !/^[a-z0-9-]{1,80}$/.test(id)) return false;
+      if (validIds && !validIds.has(id)) return false;
+      const def = catalog.find((entry) => entry.id === id);
+      return !def?.heroId || def.heroId === hero;
+    };
+    const cleanHeroMap = (source, cleanValue) => {
+      const result = {};
+      if (!source || typeof source !== 'object' || Array.isArray(source)) return result;
+      for (const [rawHero, entry] of Object.entries(source).slice(0, 32)) {
+        const hero = resultHeroId(rawHero);
+        if (!/^[A-Z0-9_]{1,32}$/.test(hero)) continue;
+        const target = result[hero] || (result[hero] = {});
+        if (Array.isArray(entry)) {
+          for (const id of entry.slice(0, 128)) if (validAward(hero, id)) target[id] = 0;
+        } else if (entry && typeof entry === 'object') {
+          for (const [id, value] of Object.entries(entry).slice(0, 128)) {
+            if (!validAward(hero, id)) continue;
+            const cleaned = cleanValue(value);
+            if (cleaned != null) target[id] = cleaned;
+          }
+        }
+        if (!Object.keys(target).length) delete result[hero];
+      }
+      return result;
+    };
+    out.earned = cleanHeroMap(raw.earned, cleanMasteryAt);
+    out.best = cleanHeroMap(raw.best, cleanMasteryNumber);
+    if (raw.weaponDamage && typeof raw.weaponDamage === 'object' && !Array.isArray(raw.weaponDamage)) {
+      for (const [rawId, value] of Object.entries(raw.weaponDamage).slice(0, 256)) {
+        const weaponId = String(rawId || '').trim().toUpperCase();
+        if (!/^[A-Z0-9_]{1,64}$/.test(weaponId)) continue;
+        const cleaned = cleanMasteryNumber(value);
+        if (cleaned != null) out.weaponDamage[weaponId] = cleaned;
+      }
+    }
+    if (Array.isArray(raw.recent)) {
+      out.recent = raw.recent.slice(0, 64).map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const hero = resultHeroId(item.heroId || item.hero);
+        const id = String(item.achievementId || item.id || '');
+        return validAward(hero, id)
+          ? { achievementId: id, heroId: hero, at: cleanMasteryAt(item.at) }
+          : null;
+      }).filter(Boolean)
+        .sort((a, b) => b.at - a.at)
+        .filter((item, index, arr) => arr.findIndex((x) => x.heroId === item.heroId && x.achievementId === item.achievementId) === index)
+        .slice(0, 12);
+    }
+    const gateKeys = new Set(MASTERY_SKIN_GATES.map((gate) => gate.key));
+    if (Array.isArray(raw.unseenSkinUnlocks)) {
+      out.unseenSkinUnlocks = [...new Set(raw.unseenSkinUnlocks.map(String).filter((key) => gateKeys.has(key)))].slice(0, 8);
+    }
+    return out;
+  }
   // Product availability is centralized in src/game/productSurface.js and is
   // registered on window before classic runtimes load. These adapters never
   // invent a fallback broad roster: a missing authority fails closed to ROBOT.
@@ -122,6 +233,7 @@
       // completed match pays exactly once, even across reload/retries.
       claimedMatchIds: [],
       progression: { botMatches: 0, botWins: 0, localMatches: 0, claimedIds: [] },
+      mastery: emptyMastery(),
     };
   }
   function sanitize(raw) {
@@ -142,6 +254,7 @@
       s.progression[key] = Math.max(0, Math.min(1000000, Number(progress[key]) | 0));
     s.progression.claimedIds = Array.isArray(progress.claimedIds)
       ? [...new Set(progress.claimedIds.filter(id => PROGRESSION_CATALOG.some(d => d.id === id)))]:[];
+    s.mastery = sanitizeMastery(raw.mastery);
     s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
     // The owner-playtest AC seed marker must survive sanitization, otherwise a
     // refresh would look "unseeded" and refill the balance.
@@ -288,6 +401,301 @@
   // Idempotency is two-layered: the in-memory productResultAwarded flag stops
   // duplicate callbacks, and the sealed result id (resultGold.meta.id) is
   // persisted in claimedMatchIds so a reload/retry can never pay twice.
+  function masteryTestActive() {
+    try { return adminTestSessionActive() || window.APEX_ARSENAL_OWNER_TEST?.active === true; }
+    catch (error) { return adminTestSessionActive(); }
+  }
+  function ensureMastery() {
+    if (!state.mastery || typeof state.mastery !== 'object' || Array.isArray(state.mastery)) state.mastery = emptyMastery();
+    const mastery = state.mastery;
+    if (!mastery.earned || typeof mastery.earned !== 'object' || Array.isArray(mastery.earned)) mastery.earned = {};
+    if (!mastery.best || typeof mastery.best !== 'object' || Array.isArray(mastery.best)) mastery.best = {};
+    if (!mastery.weaponDamage || typeof mastery.weaponDamage !== 'object' || Array.isArray(mastery.weaponDamage)) mastery.weaponDamage = {};
+    if (!Array.isArray(mastery.recent)) mastery.recent = [];
+    if (!Array.isArray(mastery.unseenSkinUnlocks)) mastery.unseenSkinUnlocks = [];
+    return mastery;
+  }
+  function cloneMastery() { return JSON.parse(JSON.stringify(ensureMastery())); }
+  function masteryCatalog() {
+    return resultCatalog().map((def) => ({
+      id: def.id,
+      heroId: def.heroId || null,
+      params: def.params.map((param) => ({ ...param })),
+    }));
+  }
+  function isBetterMasteryBest(def, current, next) {
+    if (!Number.isFinite(next)) return false;
+    if (!Number.isFinite(current)) return true;
+    return def?.params?.[0]?.compare === 'lte' ? next < current : next > current;
+  }
+  function updateMasteryBest(hero, def, value) {
+    const cleaned = cleanMasteryNumber(value);
+    if (cleaned == null) return false;
+    const mastery = ensureMastery();
+    const byHero = mastery.best[hero] || (mastery.best[hero] = {});
+    if (!isBetterMasteryBest(def, Number(byHero[def.id]), cleaned)) return false;
+    byHero[def.id] = cleaned;
+    return true;
+  }
+  // CP4 presentation ownership. This is derived only from the event's
+  // side/mode authority and is never inferred from hero identity. It is
+  // attached to transient unlock/provisional payloads for UI placement and
+  // copy; persisted mastery and wallet eligibility law remain unchanged.
+  function masteryPresentationOwner(source) {
+    const input = source && typeof source === 'object' ? source : {};
+    let sideIndex = Number.isInteger(input.sideIndex) ? input.sideIndex
+      : Number.isInteger(input.ownerSideIndex) ? input.ownerSideIndex : null;
+    const sideText = String(input.ownerSide || input.side || '').trim().toUpperCase();
+    if (sideIndex == null && (sideText === 'P1' || sideText === '1')) sideIndex = 0;
+    if (sideIndex == null && (sideText === 'P2' || sideText === '2')) sideIndex = 1;
+    if (sideIndex !== 0 && sideIndex !== 1) sideIndex = null;
+
+    let battleMode = String(input.battleMode || input.mode || '').trim().toUpperCase();
+    if (battleMode !== 'BOT' && battleMode !== 'LOCAL') {
+      try {
+        const liveMode = String(window.APEX_ARSENAL?.state?.battleMode || '').trim().toUpperCase();
+        if (liveMode === 'BOT' || liveMode === 'LOCAL') battleMode = liveMode;
+      } catch (error) { /* presentation owner stays unknown */ }
+    }
+
+    const ownerSide = sideIndex == null ? null : (sideIndex === 0 ? 'P1' : 'P2');
+    let ownerKind = 'unknown';
+    let walletEligible = false;
+    if (sideIndex != null && battleMode === 'BOT') {
+      ownerKind = sideIndex === 0 ? 'human' : 'bot';
+      walletEligible = sideIndex === 0;
+    } else if (sideIndex != null && battleMode === 'LOCAL') {
+      ownerKind = sideIndex === 0 ? 'player1' : 'player2';
+      walletEligible = true;
+    }
+    return {
+      ownerSide,
+      ownerSideIndex: sideIndex,
+      ownerKind,
+      walletEligible,
+      ...(battleMode === 'BOT' || battleMode === 'LOCAL' ? { battleMode } : {}),
+    };
+  }
+
+  function observeMastery(input, unlockIt, at) {
+    const hero = resultHeroId(input?.heroId || input?.hero);
+    const def = awardDef(input?.achievementId || input?.id);
+    if (!def || (def.heroId && def.heroId !== hero)) return { unlock: null, bestChanged: false };
+    let primary = input?.value;
+    if (primary == null && def.params.length && input?.observedParams) primary = input.observedParams[def.params[0].key];
+    if (primary == null && !def.params.length && unlockIt) primary = 1;
+    const bestChanged = updateMasteryBest(hero, def, primary);
+    if (!unlockIt) return { unlock: null, bestChanged };
+    const mastery = ensureMastery();
+    const earned = mastery.earned[hero] || (mastery.earned[hero] = {});
+    if (Object.prototype.hasOwnProperty.call(earned, def.id)) return { unlock: null, bestChanged };
+    earned[def.id] = at;
+    const unlock = {
+      achievementId: def.id,
+      heroId: hero,
+      at,
+      value: cleanMasteryNumber(primary),
+      ...masteryPresentationOwner(input),
+    };
+    mastery.recent = [
+      { achievementId: def.id, heroId: hero, at },
+      ...mastery.recent.filter((item) => !(item.heroId === hero && item.achievementId === def.id)),
+    ].slice(0, 12);
+    return { unlock, bestChanged };
+  }
+  function heroMasteryProgress(heroId) {
+    const hero = resultHeroId(heroId || 'ROBOT');
+    const defs = applicableAwardDefs(hero);
+    const earned = ensureMastery().earned[hero] || {};
+    const earnedIds = defs.filter((def) => Object.prototype.hasOwnProperty.call(earned, def.id)).map((def) => def.id);
+    const missingIds = defs.filter((def) => !Object.prototype.hasOwnProperty.call(earned, def.id)).map((def) => def.id);
+    return {
+      heroId: hero,
+      engineHeroId: engineHeroId(hero),
+      earned: earnedIds.length,
+      total: defs.length,
+      earnedIds,
+      missingIds,
+      complete: defs.length > 0 && missingIds.length === 0,
+    };
+  }
+  function skinGateFor(kind, baseId, skinId) {
+    const cleanKind = String(kind || '').toLowerCase();
+    const cleanBase = cleanKind === 'hero' ? engineHeroId(baseId) : String(baseId || '').trim().toUpperCase();
+    const cleanSkin = String(skinId || '');
+    return MASTERY_SKIN_GATES.find((gate) => gate.kind === cleanKind && gate.baseId === cleanBase && gate.skinId === cleanSkin) || null;
+  }
+  function skinProgress(kind, baseId, skinId) {
+    const cleanSkin = String(skinId || 'default');
+    const gate = skinGateFor(kind, baseId, cleanSkin);
+    if (cleanSkin === 'default' || !gate) return { gated: false, entitled: true, key: null };
+    if (gate.resultHeroId) {
+      const progress = heroMasteryProgress(gate.resultHeroId);
+      return {
+        gated: true,
+        entitled: progress.complete,
+        key: gate.key,
+        kind: gate.kind,
+        baseId: gate.baseId,
+        skinId: gate.skinId,
+        heroId: progress.heroId,
+        current: progress.earned,
+        target: progress.total,
+        remainingIds: progress.missingIds,
+      };
+    }
+    const current = ensureMastery().weaponDamage[gate.weaponId] || 0;
+    return {
+      gated: true,
+      entitled: current > gate.damageThreshold,
+      key: gate.key,
+      kind: gate.kind,
+      baseId: gate.baseId,
+      skinId: gate.skinId,
+      weaponId: gate.weaponId,
+      current,
+      target: gate.damageThreshold,
+      strictlyGreater: true,
+    };
+  }
+  function skinEntitlement(kind, baseId, skinId) {
+    return skinProgress(kind, baseId, skinId).entitled === true;
+  }
+  function entitledSkinKeySet() {
+    return new Set(MASTERY_SKIN_GATES
+      .filter((gate) => skinEntitlement(gate.kind, gate.baseId, gate.skinId))
+      .map((gate) => gate.key));
+  }
+  function collectNewSkinUnlocks(before) {
+    const after = entitledSkinKeySet();
+    const mastery = ensureMastery();
+    const found = [];
+    for (const gate of MASTERY_SKIN_GATES) {
+      if (!after.has(gate.key) || before.has(gate.key)) continue;
+      found.push({ ...gate, progress: skinProgress(gate.kind, gate.baseId, gate.skinId) });
+      if (!mastery.unseenSkinUnlocks.includes(gate.key)) mastery.unseenSkinUnlocks.push(gate.key);
+    }
+    return found;
+  }
+  function dispatchMasteryEvents(unlocks, skinUnlocks, source) {
+    try {
+      if (unlocks?.length) window.dispatchEvent(new CustomEvent('apex:mastery-unlocked', { detail: { unlocks, source } }));
+      for (const skin of skinUnlocks || []) window.dispatchEvent(new CustomEvent('apex:skin-unlocked', { detail: { skin, source } }));
+    } catch (error) {}
+  }
+  function dispatchMasteryProvisionalEvents(provisional) {
+    try {
+      if (provisional?.length) window.dispatchEvent(new CustomEvent('apex:mastery-provisional', {
+        detail: { unlocks: provisional, provisional, source: 'live-match-provisional' },
+      }));
+    } catch (error) {}
+  }
+  // CP3.2 law: live match feedback is provisional only. This path validates
+  // the ledger event against the one owner catalogue and suppresses repeats
+  // for already-earned (including grandfathered) achievements, but it does
+  // NOT write earned ids, bests, recent history, weapon damage, skin gates,
+  // AC, or storage. Permanent mastery is committed only by
+  // awardBattleResult()->foldMasteryResult() inside the valid sealed-match
+  // transaction guarded by claimedMatchIds.
+  function recordMasteryProvisional(events) {
+    if (masteryTestActive()) return { ok: false, reason: 'admin-test', provisional: [], unlocks: [], skinUnlocks: [] };
+    if (!Array.isArray(events)) return { ok: false, reason: 'invalid-events', provisional: [], unlocks: [], skinUnlocks: [] };
+    const provisional = [];
+    const seen = new Set();
+    const at = Date.now();
+    const mastery = ensureMastery();
+    for (const event of events.slice(0, 64)) {
+      const hero = resultHeroId(event?.heroId || event?.hero);
+      const def = awardDef(event?.achievementId || event?.id);
+      if (!def || (def.heroId && def.heroId !== hero)) continue;
+      const owner = masteryPresentationOwner(event);
+      const key = `${owner.ownerSide || 'unknown'}:${hero}:${def.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const earned = mastery.earned[hero] || {};
+      if (Object.prototype.hasOwnProperty.call(earned, def.id)) continue;
+      let primary = event?.value;
+      if (primary == null && def.params.length && event?.observedParams) primary = event.observedParams[def.params[0].key];
+      if (primary == null && !def.params.length) primary = 1;
+      provisional.push({
+        achievementId: def.id,
+        heroId: hero,
+        at,
+        value: cleanMasteryNumber(primary),
+        provisional: true,
+        sealRequired: true,
+        ...owner,
+      });
+    }
+    dispatchMasteryProvisionalEvents(provisional);
+    return { ok: true, changed: false, provisional, unlocks: [], skinUnlocks: [], mastery: cloneMastery() };
+  }
+  // Backward-compatible name for the live caller. Despite the legacy name,
+  // this is deliberately provisional-only under CP3.2; there is no public
+  // live permanent-unlock writer.
+  function recordMasteryUnlocks(events) {
+    return recordMasteryProvisional(events);
+  }
+  function markSkinUnlockSeen(key) {
+    const wanted = String(key || '');
+    const mastery = ensureMastery();
+    const before = mastery.unseenSkinUnlocks.length;
+    mastery.unseenSkinUnlocks = mastery.unseenSkinUnlocks.filter((item) => item !== wanted);
+    if (mastery.unseenSkinUnlocks.length !== before) save(state);
+    return { ok: true, unseenSkinUnlocks: [...mastery.unseenSkinUnlocks] };
+  }
+  function foldMasteryResult(result, mode) {
+    const before = entitledSkinKeySet();
+    const unlocks = [];
+    let changed = false;
+    const at = Date.now();
+    const players = Array.isArray(result?.players) ? result.players : [];
+    const indexes = mode === 'BOT' ? [0] : [0, 1];
+    for (const index of indexes) {
+      const player = players[index];
+      if (!player) continue;
+      const hero = resultHeroId(player.character?.heroId || player.character?.name);
+      const bests = player.achievementBests && typeof player.achievementBests === 'object' ? player.achievementBests : {};
+      for (const [achievementId, rawBest] of Object.entries(bests)) {
+        const best = rawBest && typeof rawBest === 'object' ? rawBest : { value: rawBest };
+        const observed = observeMastery({
+          heroId: hero,
+          achievementId,
+          value: best.value,
+          observedParams: best.observedParams,
+          sideIndex: index,
+          battleMode: mode,
+        }, false, at);
+        if (observed.bestChanged) changed = true;
+      }
+      for (const earnedAward of Array.isArray(player.awards) ? player.awards : []) {
+        const observed = observeMastery({
+          heroId: hero,
+          achievementId: earnedAward?.achievementId,
+          value: earnedAward?.value,
+          observedParams: earnedAward?.observedParams,
+          sideIndex: index,
+          battleMode: mode,
+        }, true, at);
+        if (observed.bestChanged) changed = true;
+        if (observed.unlock) { unlocks.push(observed.unlock); changed = true; }
+      }
+      const sources = Array.isArray(player.damage?.sources) ? player.damage.sources : [];
+      for (const source of sources) {
+        if (source?.kind !== 'weapon') continue;
+        const weaponId = String(source.weaponId || '').trim().toUpperCase();
+        if (!/^[A-Z0-9_]{1,64}$/.test(weaponId)) continue;
+        const damage = cleanMasteryNumber(source.damage);
+        if (!(damage > 0)) continue;
+        const mastery = ensureMastery();
+        mastery.weaponDamage[weaponId] = Math.min(MASTERY_MAX_VALUE, (mastery.weaponDamage[weaponId] || 0) + damage);
+        changed = true;
+      }
+    }
+    const skinUnlocks = collectNewSkinUnlocks(before);
+    if (skinUnlocks.length) changed = true;
+    return { unlocks, skinUnlocks, changed };
+  }
   const MATCH_REWARDS = Object.freeze({ BOT_WIN: 200, BOT_LOSS: 25, LOCAL_COMPLETE: 50 });
   function awardBattleResult(winnerSide, battleState) {
     const current = battleState || (window.APEX_ARSENAL && window.APEX_ARSENAL.state);
@@ -332,12 +740,18 @@
         state.claimedMatchIds = state.claimedMatchIds.slice(-200);
       }
     }
-    // Persist progression with the exact match claim and normal AC in one save.
+    // Persist progression and CP3 mastery with the exact match claim and
+    // normal AC in one save. foldMasteryResult is behind the duplicate
+    // claim guard above, so a retry can neither re-pay AC nor re-fold RPG
+    // damage/bests. BOT folds P1 only; LOCAL folds both device players.
     if (mode === 'BOT') {
       state.progression.botMatches += 1;
       if (p1Won) state.progression.botWins += 1;
     } else state.progression.localMatches += 1;
-    return award(reasons, amount);
+    const masteryFold = foldMasteryResult(current.resultGold, mode);
+    const paid = award(reasons, amount);
+    dispatchMasteryEvents(masteryFold.unlocks, masteryFold.skinUnlocks, 'sealed-match');
+    return { ...paid, mastery: { unlocks: masteryFold.unlocks, skinUnlocks: masteryFold.skinUnlocks } };
   }
   function progressionCatalog() { return PROGRESSION_CATALOG.map(d => ({ ...d })); }
   function claimProgressReward(id) {
@@ -747,6 +1161,9 @@
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST, START_CREDITS,
     getState, credits, owns, canPublicSelect, buy, spin, award, awardBattleResult, progressionCatalog, claimProgressReward, filterOwned, setLast,
+    getMastery: cloneMastery, masteryCatalog, heroMasteryProgress, recordMasteryUnlocks, recordMasteryProvisional,
+    skinEntitlement, skinProgress, markSkinUnlockSeen, MASTERY_SKIN_GATES,
+    masteryResultHeroId: resultHeroId, masteryEngineHeroId: engineHeroId,
     // A1: legacy owner-playtest exports retained for compat; the live rule
     // is the Admin-authority test session (selection only — Lucky Draw, Shop
     // and ownership keep reading production truth).

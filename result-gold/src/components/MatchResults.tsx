@@ -155,6 +155,7 @@ export function MatchResults({ match, catalog, onContinue }: MatchResultsProps) 
         </div>
       </div>
 
+      <p className="ac-scroll-hint" role="note">SCROLL DOWN FOR CONTINUE</p>
       <SkipPill visible={!ch.done} onSkip={ch.skip} />
 
       {selected && (

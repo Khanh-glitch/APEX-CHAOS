@@ -21,6 +21,8 @@
     "test:gold-battle-visibility": "node tools/testGoldBattleVisibilityGate.mjs",
     "test:gold-battle-lifecycle": "node tools/testGoldBattleLifecycleGate.mjs",
     "test:owner-playtest-economy": "node tools/testOwnerPlaytestEconomyGate.mjs",
+    "test:cp3-mastery": "node tools/testCp3MasteryGate.mjs",
+    "test:cp4-combat-intelligence": "node tools/testCp4CombatIntelligenceGate.mjs",
     "test:core-six-art": "node tools/testCoreSixArtAuthorityGate.mjs",
     "test:core-six-art-delivery": "node tools/testCoreSixArtDeliveryGate.mjs",
     "test:gold-fighter-pick-adaptation": "node tools/testGoldFighterPickAdaptationGate.mjs",
@@ -58,9 +60,23 @@
     "test:hero-accent-language": "node tools/testHeroAccentLanguageGate.mjs",
     "test:hero-rework:robot-gates": "node tools/testHeroReworkRobotPresentationGates.mjs",
     "test:result-gold": "node tools/testResultGoldAuthority.mjs",
-    "test:localization": "node tools/testLocalizationGate.mjs"
+    "test:localization": "node tools/testLocalizationGate.mjs",
+    "test:mobile-entry": "node tools/testMobileEntryArchitecture.mjs",
+    "test:ra1-tutorial": "node tools/testRa1TutorialInputBrowser.mjs",
+    "test:ra2-pickup-hint": "node tools/testRa2PickupHintContract.mjs && node tools/testRa2PickupHintBrowser.mjs",
+    "test:ra2-toast-presentation": "node tools/testRa2ToastPresentationBrowser.mjs",
+    "test:ra2-vietnamese-glyphs": "node tools/testRa2VietnameseGlyphBrowser.mjs",
+    "test:ra2-locale-panels": "node tools/testRa2LocalePanelsBrowser.mjs",
+    "test:ra2-result-locale": "node tools/testRa2ResultLocaleBrowser.mjs",
+    "test:ra1-result-coverage": "node tools/testRa1ResultArtCoverageBrowser.mjs",
+    "test:ra1-fighter-art": "node tools/testRa1FighterArtCoverageBrowser.mjs",
+    "test:ra1-compatibility": "node tools/testRa1CompatibilityBrowser.mjs",
+    "test:ra1-nested-itch": "node tools/testRa1NestedItchHostingBrowser.mjs",
+    "measure:ra1-bot-duration": "node tools/measureRa1BotMatchDuration.mjs",
+    "test:ra1-live-hud-identities": "node tools/testRa1LiveHudIdentitiesBrowser.mjs"
   },
   "dependencies": {
+    "@fontsource/montserrat": "^5.3.0",
     "@supabase/supabase-js": "^2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

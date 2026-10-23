@@ -1,0 +1,33 @@
+{
+  "buildSHA": "18bc21b07d73b881dafbb732630ca6bcd1c21214",
+  "status": "UNVERIFIED — real KO/Result not reached",
+  "requestedCase": {
+    "players": "NEWBOT vs NEWBOT",
+    "spotlightWeapon": "P90",
+    "p1": "defeat",
+    "p2": "victory"
+  },
+  "observedRun06": {
+    "matchClockSeconds": 21.86600000000014,
+    "p1Hp": 835.5,
+    "p2Hp": 871.1300000000001,
+    "bothAlive": true,
+    "resultIframeCreated": false,
+    "p90DamageEventObserved": false,
+    "continueActivationObserved": false
+  },
+  "paintedAssetMeasurements": {
+    "p1HeroNaturalPixels": null,
+    "p1HeroCssRect": null,
+    "p1HeroPaintedAlphaBounds": null,
+    "p2HeroNaturalPixels": null,
+    "p2HeroCssRect": null,
+    "p2HeroPaintedAlphaBounds": null,
+    "p90NaturalPixels": null,
+    "p90CssRect": null,
+    "p90PaintedAlphaBounds": null,
+    "reason": "No real Result DOM/asset decode occurred. Measuring a static fixture would not answer the owner's runtime question, so no fixture was substituted."
+  },
+  "resultCompositionChangeProposed": false,
+  "ownerApprovalRequestedBeforeAnyResultCompositionChange": true
+}

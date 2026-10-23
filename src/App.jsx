@@ -19,15 +19,17 @@ import {
   markLoaderHidden,
 } from './game/performanceMetrics.js';
 import { GOLD_SHELL_URL, HERO_BATTLE_RIGS, HERO_BATTLE_RIG_ASSETS } from './game/goldAssetManifest.js';
+import { apexAppUrl } from './game/appRoot.js';
 import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
 import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
 import AccountCenter from './ui/AccountCenter.jsx';
-import FirstBattleGuide from './ui/FirstBattleGuide.jsx';
 import ProgressionCenter from './ui/ProgressionCenter.jsx';
-import { installAlphaHomeUsability } from './game/alphaHomeUsability.js';
-import './game/alphaHomeUsability.css';
+import FirstPlayGuide from './ui/FirstPlayGuide.jsx';
+import RewardToast from './ui/RewardToast.jsx';
+import AchievementToast from './ui/AchievementToast.jsx';
+import SkinUnlockCelebration from './ui/SkinUnlockCelebration.jsx';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -464,10 +466,10 @@ export default function App() {
               target:document.getElementById('gold-shell-host'),
               prepare:()=>Promise.resolve(),
               commit:()=>{cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;
-                if(location.pathname!=='/')history.replaceState({},'','/');
+                if(location.href!==apexAppUrl('/'))history.replaceState({},'',apexAppUrl('/'));
                 playMenuMusic();}});
           }else{
-            cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;history.replaceState({},'','/');
+            cleanup();window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;history.replaceState({},'',apexAppUrl('/'));
             playMenuMusic();
           }
         }finally{
@@ -500,11 +502,11 @@ export default function App() {
           if(!doc?.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
           if(!doc.getElementById('bw-v2-styles')){
             const css=doc.createElement('link');css.rel='stylesheet';css.id='bw-v2-styles';
-            css.href='/game/bot-wave/botWavePresentationV2.css?v=20261019-botwave-hud-r17b';doc.head.append(css);
+            css.href=apexAppUrl('/game/bot-wave/botWavePresentationV2.css?v=20261019-botwave-hud-r17b');doc.head.append(css);
           }
           if(!doc.getElementById('bw-v2-script')){
             const script=doc.createElement('script');script.id='bw-v2-script';
-            script.src='/game/bot-wave/botWavePresentationV2.js?v=20261019-botwave-hud-r17b';doc.head.append(script);
+            script.src=apexAppUrl('/game/bot-wave/botWavePresentationV2.js?v=20261019-botwave-hud-r17b');doc.head.append(script);
           }
           const win=frame.contentWindow;
           if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&
@@ -521,9 +523,9 @@ export default function App() {
         const result=await coordinator.run({
           name:'bot-wave-enter',
           source:document.getElementById('gold-shell-host'),target:cover,
-          prepare:()=>{frame.src='/bot-wave/game.html';return waitReady();},
+          prepare:()=>{frame.src=apexAppUrl('/bot-wave/game.html');return waitReady();},
           commit:()=>{cover.style.opacity='1';cover.style.pointerEvents='auto';status.remove();
-            history.pushState({apexWave:true},'','/bot-wave/index.html');
+            history.pushState({apexWave:true},'',apexAppUrl('/bot-wave/index.html'));
             window.APEX_GOLD_PARENT_RUNTIME?.pause?.();stopMenuMusic();},
           rollback:()=>{window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;cleanup();}
         });
@@ -536,15 +538,27 @@ export default function App() {
         return false;
       }
     }
-    if (surface.route === 'progress') {
-      window.dispatchEvent(new Event('apex:progress-open'));
-      return true;
-    }
     if (surface.route === 'skins') {
       // The locker is a sibling product surface, never an alternate Gold
       // shell or a replacement for the locked Fighter Shop. One existing
       // arsenalHub manifest owns the catalogue metadata.
       window.dispatchEvent(new Event('apex-open-cosmetics'));
+      return true;
+    }
+    if (surface.route === 'account') {
+      // The single account entry opens the real Account Center (the
+      // component owns open/close/focus; this seam is only routing).
+      const center = window.APEX_ACCOUNT_CENTER;
+      if (!center || typeof center.open !== 'function') return false;
+      center.open();
+      return true;
+    }
+    if (surface.route === 'progress') {
+      // Missions + Achievements share one progression panel; the surface
+      // id selects its initial tab.
+      window.dispatchEvent(new CustomEvent('apex:progress-open', {
+        detail: { tab: surface.id === 'achievements' ? 'achievement' : 'mission' },
+      }));
       return true;
     }
     if (surface.route === 'shop' || surface.route === 'draw' || surface.route === 'local' || surface.route === 'bot') {
@@ -623,10 +637,6 @@ export default function App() {
   // occupy the donor's authored arena slot (same-document mount).
   const [goldReady, setGoldReady] = useState(false);
   useEffect(() => {
-    if (!goldReady) return undefined;
-    return installAlphaHomeUsability();
-  }, [goldReady]);
-  useEffect(() => {
     if (!gameReady || goldReady) return;
     const host = document.getElementById('gold-shell-host');
     if (!host || host.dataset.apexGoldMounted === '1') return;
@@ -668,7 +678,7 @@ export default function App() {
         // styles so both shell and embedded battle use the same WOFF2 bytes.
         const faceSheet = document.createElement('link');
         faceSheet.rel = 'stylesheet';
-        faceSheet.href = '/gold/fonts.css';
+        faceSheet.href = apexAppUrl('/gold/fonts.css');
         faceSheet.id = 'apex-gold-font-faces';
         const fontSheetReady = new Promise((resolve) => {
           faceSheet.onload = () => resolve(true);
@@ -754,9 +764,13 @@ export default function App() {
                 resolve();
               };
               run.onerror = () => reject(new Error(`gold script failed: ${planned.src}`));
-              // Preserve the authored raw src instead of src.src (which becomes
-              // absolute and breaks the runtime loader's shared identity).
-              run.src = planned.src;
+              // Resolve the authored src (never the parsed node's IDL src,
+              // which absolutizes against the donor document) against the
+              // live document base — the Gold <base> is already imported —
+              // and assign the ABSOLUTE URL. The runtime loader assigns
+              // absolute app-root URLs too, so script identity is shared
+              // and stable on root and subpath (itch) hosting alike.
+              run.src = new URL(planned.src, document.baseURI).href;
               run.async = false;
               host.appendChild(run);
             });
@@ -952,7 +966,7 @@ export default function App() {
         if (cancelled) return;
         // Decode the only START art before presenting it; Home and music readiness
         // remain the authority. The original vector is a safe asset-failure fallback.
-        const startArtUrl = '/assets/ui/apex-transition-start-r72.webp';
+        const startArtUrl = apexAppUrl('/assets/ui/apex-transition-start-r72.webp');
         const startArt = new Image();
         startArt.src = startArtUrl;
         try { await startArt.decode(); } catch (_) {}
@@ -963,7 +977,7 @@ export default function App() {
           start.type = 'button';
           start.id = 'apex-boot-start';
           start.innerHTML = '<img class="apex-boot-start-art" src="' +
-            (startArt.naturalWidth ? startArtUrl : '/assets/ui/apex-transition-start-plate.svg') +
+            (startArt.naturalWidth ? startArtUrl : apexAppUrl('/assets/ui/apex-transition-start-plate.svg')) +
             '" alt="" draggable="false">';
           start.setAttribute('aria-label', 'Start APEX CHAOS');
           start.className = 'apex-boot-start-plate';
@@ -981,7 +995,6 @@ export default function App() {
             if (activated) return;
             activated = true;
             stopStartGuard();
-            window.dispatchEvent(new Event('apex:boot-started'));
             // Visual disappears in the SAME trusted event, while the old
             // invisible hit surface intercepts the remaining pointer sequence.
             start.style.transition = 'none';
@@ -1050,7 +1063,7 @@ export default function App() {
     const entry=document.createElement('button');
     entry.id='botWaveEntry';entry.type='button';entry.className='apex-special-wave-emblem';
     entry.setAttribute('aria-label','BOT WAVE — chế độ sinh tồn đặc biệt');
-    entry.innerHTML='<span class="apex-wave-entry-art" aria-hidden="true"><img src="/assets/dictionary/heroes/boxe/avatar.png" alt="" decoding="async" draggable="false"></span><span class="apex-wave-entry-copy"><span class="apex-special-wave-top">SPECIAL EVENT <i></i></span><strong>BOT WAVE</strong><small>BOXE / ARSENAL SURVIVAL</small><span class="apex-wave-entry-go" aria-hidden="true">↗</span></span>';
+    entry.innerHTML='<span class="apex-wave-entry-art" aria-hidden="true"><img src="'+apexAppUrl('/assets/dictionary/heroes/boxe/avatar.png')+'" alt="" decoding="async" draggable="false"></span><span class="apex-wave-entry-copy"><span class="apex-special-wave-top">SPECIAL EVENT <i></i></span><strong>BOT WAVE</strong><small>BOXE / ARSENAL SURVIVAL</small><span class="apex-wave-entry-go" aria-hidden="true">↗</span></span>';
     const onClick=async ()=>{
       if(window.APEX_SCENE_TRANSITION?.active?.())return;
       entry.disabled=true;
@@ -1081,8 +1094,11 @@ export default function App() {
     <>
     <CosmeticLocker />
     <AccountCenter />
-    <FirstBattleGuide />
     <ProgressionCenter />
+    <FirstPlayGuide />
+    <RewardToast />
+    <AchievementToast />
+    <SkinUnlockCelebration />
     <div id="apex-boot-blackout" aria-hidden="true" />
     <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount

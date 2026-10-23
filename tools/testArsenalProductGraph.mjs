@@ -127,13 +127,17 @@ gate('semantic-graph-and-admin-boundary', () => {
   const locked = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.LOCKED);
   assert.equal(graph.length, 12);
   // Bot, Local, Lucky, cosmetic shortcut and the unified Dictionary Field Archive are active.
+  // Alpha: Missions/Achievements (one-wallet progression panel) and the
+  // Account Center are live too — the bottom nav owns both entries.
   // The separate Fighter Shop remains LOCKED until its owner cutover.
-  assert.equal(active.length, 8);
-  assert.equal(locked.length, 4);
-  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'bot-wave', 'cosmetic-locker', 'lucky-draw', 'dictionary', 'missions', 'achievements']);
-  assert.equal(canLaunchProductSurface('cosmetic-locker'), true);
+  assert.equal(active.length, 9);
+  assert.equal(locked.length, 3);
+  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'bot-wave', 'cosmetic-locker', 'lucky-draw', 'dictionary', 'missions', 'achievements', 'account-profile']);
+  assert.deepEqual(locked.map((surface) => surface.id), ['fighter-shop', 'quest-01', 'fighter-upgrade']);
   assert.equal(canLaunchProductSurface('missions'), true);
   assert.equal(canLaunchProductSurface('achievements'), true);
+  assert.equal(canLaunchProductSurface('account-profile'), true);
+  assert.equal(canLaunchProductSurface('cosmetic-locker'), true);
   assert.equal(canLaunchProductSurface('bot-wave'), true);
   assert.equal(graph.find(x=>x.id==='bot-wave')?.route,'wave');
   assert.equal(graph.find(x=>x.id==='bot-wave')?.preview,true);

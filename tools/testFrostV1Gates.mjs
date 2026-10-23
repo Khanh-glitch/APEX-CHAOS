@@ -15,6 +15,14 @@ import crypto from 'node:crypto';
 
 const H = await bootHarness();
 const { win, T } = H;
+// F12 measures hero/ice sprite pixels against Gold parity baselines.
+// The combat side-marker overlay (P1/P2 rings + head tags, owner
+// Requirement C) is product-duel presentation ink the Gold original
+// never had; leaving it on shifts crop bounds by the ring/tag pixels
+// and says nothing about Frost. Disable the overlay for measurement
+// via its shipped kill-switch — marker behavior itself is covered by
+// the outcome-side gate and real-browser acceptance, not here.
+win.__apexSideMarkers = false;
 const report = { gates: {}, failures: [] };
 function gate(name, ok, detail) {
   report.gates[name] = { pass: !!ok, detail };

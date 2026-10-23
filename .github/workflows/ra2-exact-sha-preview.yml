@@ -1,0 +1,347 @@
+# RA-2 isolated Cloudflare Pages preview. The only deploy target is a
+# per-commit Pages branch; production and itch publishing are never targeted.
+name: RA-2 Exact-SHA Isolated Preview
+
+on:
+  push:
+    branches:
+      - arena/d7ff52e8-apex-chaos
+    paths:
+      - ".github/workflows/ra2-exact-sha-preview.yml"
+      - "public/**"
+      - "src/**"
+      - "result-gold/**"
+      - "tools/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "vite.config.js"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ra2-exact-preview-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  build-deploy-verify:
+    if: github.ref == 'refs/heads/arena/d7ff52e8-apex-chaos'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      TARGET_SHA: ${{ github.sha }}
+      # Exact pre-gap commit for same-run red-before-green Chromium screenshots.
+      BASELINE_SHA: 96a25ee61040153ad1c640b8ade236916622d6a2
+      TARGET_REVISION: 20261021-cp5-r1
+      PRODUCTION_URL: https://apex-chaos.pages.dev
+      CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
+    steps:
+      - name: Checkout exact pushed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify branch, exact SHA and clean source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          test "$GITHUB_REF_TYPE" = branch
+          test "$GITHUB_REF_NAME" = "arena/d7ff52e8-apex-chaos"
+          test -z "$(git status --porcelain)"
+          echo "RA-2 source commit: $TARGET_SHA"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build exact commit and run source/shipping gates
+        run: |
+          set -euo pipefail
+          pnpm build
+          pnpm test:localization
+          node tools/testGoldRevisionIntegrityGate.mjs
+          pnpm test:shipping-dist
+          node tools/testCP16BuildReceipt.mjs
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const r=JSON.parse(fs.readFileSync('dist/CP16_BUILD_RECEIPT.json','utf8'));
+            if(r.gitCommit!==process.env.TARGET_SHA||r.revision!==process.env.TARGET_REVISION)process.exit(1);
+            console.log('Exact local build receipt:',r.gitCommit,r.revision,r.goldShellSha256);
+          "
+
+      - name: Derive short unique per-commit Pages branch
+        run: |
+          set -euo pipefail
+          PREVIEW_BRANCH="ra2-exact-${TARGET_SHA:0:12}"
+          PREVIEW_URL="https://${PREVIEW_BRANCH}.apex-chaos.pages.dev"
+          echo "PREVIEW_BRANCH=$PREVIEW_BRANCH" >> "$GITHUB_ENV"
+          echo "PREVIEW_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
+          echo "Isolated per-commit Pages branch: $PREVIEW_BRANCH"
+
+      - name: Fail closed without Cloudflare token or safe isolated target
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN is absent; no preview was deployed'; exit 1; }
+          test "$PREVIEW_BRANCH" != main
+          test "$PREVIEW_BRANCH" != "$GITHUB_REF_NAME"
+          test "$PREVIEW_URL" != "$PRODUCTION_URL"
+          echo "Safe isolated Pages branch: $PREVIEW_BRANCH"
+
+      - name: Record production receipt before isolated deploy (read-only)
+        run: |
+          set -euo pipefail
+          curl -fLsS --max-time 25 "$PRODUCTION_URL/CP16_BUILD_RECEIPT.json?ra2-before=$TARGET_SHA" -o /tmp/ra2-production-before.json
+
+      - name: Deploy only the per-commit Cloudflare Pages preview branch
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name=apex-chaos \
+            --branch="$PREVIEW_BRANCH" \
+            --commit-hash="$TARGET_SHA" \
+            --commit-dirty=true 2>&1 | tee /tmp/ra2-pages-deploy.log
+          deployed_url="$(grep -Eo 'https://[a-z0-9-]+\.apex-chaos\.pages\.dev' /tmp/ra2-pages-deploy.log | tail -n 1 || true)"
+          if [ -n "$deployed_url" ]; then
+            test "$deployed_url" != "$PRODUCTION_URL"
+            echo "PREVIEW_URL=$deployed_url" >> "$GITHUB_ENV"
+            echo "Wrangler deployment URL: $deployed_url"
+          else
+            echo "Wrangler did not print a direct pages.dev URL; using branch alias $PREVIEW_URL"
+          fi
+
+      - name: Verify served exact-SHA receipt and Gold bytes
+        run: |
+          set -euo pipefail
+          matched=0
+          last_http=000
+          for attempt in $(seq 1 30); do
+            rm -f /tmp/ra2-live-receipt.json
+            last_http="$(curl -sSL --max-time 20 -w '%{http_code}' "$PREVIEW_URL/CP16_BUILD_RECEIPT.json?sha=$TARGET_SHA&attempt=$attempt" -o /tmp/ra2-live-receipt.json || true)"
+            if [ -s /tmp/ra2-live-receipt.json ] && node --input-type=module -e "
+              import fs from 'node:fs';
+              const r=JSON.parse(fs.readFileSync('/tmp/ra2-live-receipt.json','utf8'));
+              if(r.gitCommit!==process.env.TARGET_SHA||r.revision!==process.env.TARGET_REVISION)process.exit(1);
+            " >/dev/null 2>&1; then matched=1; break; fi
+            echo "Waiting for exact-SHA Pages propagation ($attempt/30; HTTP ${last_http:-curl-error})"
+            sleep 4
+          done
+          if [ "$matched" != 1 ]; then
+            echo "::error::Cloudflare preview did not serve the exact commit receipt from $PREVIEW_URL (last HTTP ${last_http:-curl-error})"
+            if [ -s /tmp/ra2-live-receipt.json ]; then head -c 240 /tmp/ra2-live-receipt.json; echo; fi
+            exit 1
+          fi
+          curl -fLsS --max-time 30 "$PREVIEW_URL/" -o /tmp/ra2-preview-index.html
+          curl -fLsS --max-time 30 "$PREVIEW_URL/gold/manifest.json" -o /tmp/ra2-preview-gold-manifest.json
+          curl -fLsS --max-time 30 "$PREVIEW_URL/gold/shell.html" -o /tmp/ra2-preview-gold-shell.html
+          curl -fLsS --max-time 30 "$PREVIEW_URL/game/ui/uiSfxAuthority.js?v=$TARGET_REVISION" -o /tmp/ra2-preview-ui-sfx.js
+          curl -fLsS --max-time 25 "$PRODUCTION_URL/CP16_BUILD_RECEIPT.json?ra2-after=$TARGET_SHA" -o /tmp/ra2-production-after.json
+          node --input-type=module -e "
+            import fs from 'node:fs';import crypto from 'node:crypto';
+            const r=JSON.parse(fs.readFileSync('/tmp/ra2-live-receipt.json','utf8'));
+            const m=JSON.parse(fs.readFileSync('/tmp/ra2-preview-gold-manifest.json','utf8'));
+            const shell=fs.readFileSync('/tmp/ra2-preview-gold-shell.html');
+            const local=fs.readFileSync('dist/gold/shell.html');
+            const sfx=fs.readFileSync('/tmp/ra2-preview-ui-sfx.js');
+            const localSfx=fs.readFileSync('dist/game/ui/uiSfxAuthority.js');
+            const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+            const before=JSON.parse(fs.readFileSync('/tmp/ra2-production-before.json','utf8'));
+            const after=JSON.parse(fs.readFileSync('/tmp/ra2-production-after.json','utf8'));
+            if(m.runtimeRevision!==r.revision||hash(shell)!==hash(local)||hash(shell)!==r.goldShellSha256||hash(sfx)!==hash(localSfx))process.exit(1);
+            if(after.gitCommit!==before.gitCommit||after.gitCommit===r.gitCommit)process.exit(1);
+            console.log('Exact served receipt:',r.gitCommit,r.revision,'Gold shell SHA-256:',hash(shell));
+            console.log('Production receipt unchanged:',after.gitCommit,after.revision);
+            console.log('Isolated preview URL:',process.env.PREVIEW_URL);
+          "
+
+      - name: Install Chrome and Puppeteer for external browser acceptance
+        uses: browser-actions/setup-chrome@v1
+        id: chrome
+        with:
+          chrome-version: stable
+
+      - name: Install test-only Puppeteer runtime
+        id: browser-tools
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
+
+      - name: Build the exact pre-gap source for matching A/B browser evidence
+        if: always() && steps.browser-tools.outcome == 'success'
+        run: |
+          set -euo pipefail
+          BASELINE_DIR="$RUNNER_TEMP/ra2-before"
+          mkdir -p "$BASELINE_DIR"
+          git archive "$BASELINE_SHA" | tar -x -C "$BASELINE_DIR"
+          cd "$BASELINE_DIR"
+          pnpm install --frozen-lockfile
+          node tools/buildResultGold.mjs
+          pnpm arsenal:sfx:materialize
+          node tools/assetAudit.mjs
+          pnpm exec vite build
+          node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json
+          node tools/pruneShippingDist.mjs
+          echo "RA-2 A/B baseline source: $BASELINE_SHA"
+          echo "RA2_BASELINE_DIR=$BASELINE_DIR" >> "$GITHUB_ENV"
+
+      - name: Serve exact pre-gap source for browser A/B checks
+        if: always() && steps.browser-tools.outcome == 'success'
+        run: |
+          set -euo pipefail
+          cd "$RA2_BASELINE_DIR"
+          nohup pnpm exec vite preview --host 0.0.0.0 --port 4174 --strictPort > "$RUNNER_TEMP/ra2-before-vite.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/ra2-before-vite.pid"
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4174/ >/dev/null; then ready=1; break; fi
+            sleep 2
+          done
+          test "$ready" = 1
+          echo 'Pre-gap baseline browser server is ready at http://127.0.0.1:4174/'
+
+      - name: Capture red-before screenshots against exact pre-gap source
+        if: always() && steps.browser-tools.outcome == 'success'
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: http://127.0.0.1:4174/
+          RA2_RELEASE_EVIDENCE_DIR: docs/acceptance/ra2/evidence/review-gaps-before/${{ env.BASELINE_SHA }}
+        run: |
+          set -uo pipefail
+          trap 'kill "$(cat "$RUNNER_TEMP/ra2-before-vite.pid")" 2>/dev/null || true' EXIT
+          mkdir -p "$RA2_RELEASE_EVIDENCE_DIR/toast" "$RA2_RELEASE_EVIDENCE_DIR/mastery" "$RA2_RELEASE_EVIDENCE_DIR/result"
+          set +e
+          RA2_RELEASE_EVIDENCE_DIR="$RA2_RELEASE_EVIDENCE_DIR/toast" node tools/testRa2ReleaseBlockerToastBrowser.mjs > "$RUNNER_TEMP/ra2-before-toast.log" 2>&1
+          toast_status=$?
+          RA2_RELEASE_EVIDENCE_DIR="$RA2_RELEASE_EVIDENCE_DIR/mastery" node tools/testRa2ReleaseBlockerMasteryBrowser.mjs > "$RUNNER_TEMP/ra2-before-mastery.log" 2>&1
+          mastery_status=$?
+          RA2_RELEASE_EVIDENCE_DIR="$RA2_RELEASE_EVIDENCE_DIR/result" node tools/testRa2ReleaseBlockerResultBrowser.mjs > "$RUNNER_TEMP/ra2-before-result.log" 2>&1
+          result_status=$?
+          set -e
+          for name in toast mastery result; do
+            echo "--- pre-gap $name browser log ---"
+            tail -n 50 "$RUNNER_TEMP/ra2-before-$name.log"
+          done
+          echo "Pre-gap exit codes: toast=$toast_status mastery=$mastery_status result=$result_status"
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const root='docs/acceptance/ra2/evidence/review-gaps-before/'+process.env.BASELINE_SHA;
+            const toast=JSON.parse(fs.readFileSync(root+'/toast/toast-layout-report.json','utf8'));
+            const mastery=JSON.parse(fs.readFileSync(root+'/mastery/mastery-localization-report.json','utf8'));
+            const result=JSON.parse(fs.readFileSync(root+'/result/result-overlap-report.json','utf8'));
+            const failures=report=>new Set(report.checks.filter(x=>!x.ok).map(x=>x.name));
+            const red={
+              toast:[
+                '844x390 shows the native award in a visible arena-edge fallback, clear of HUD with measured minimal canvas coverage',
+                'mobile VIE fallback visibly localizes the award and preserves achieved/target status without HUD overlap',
+                'visible ENG meter and live status distinguish achieved 8 from target 6 and localize lượt to uses'
+              ],
+              mastery:['1440x900 hero rail has no wrapped or clipped glyphs'],
+              result:[
+                '844x390 exposes real vertical overflow, a styled scrollbar and a visible scroll-to-continue cue',
+                'mouse wheel discovers the short-landscape scroll path and brings CONTINUE into view'
+              ]
+            };
+            const reports={toast,mastery,result};
+            const missed=Object.entries(red).flatMap(([surface,names])=>names.filter(name=>!failures(reports[surface]).has(name)).map(name=>surface+': '+name));
+            if(missed.length){console.error('Expected pre-gap regressions were not reproduced:',missed);process.exit(1)}
+            console.log('RED confirmed at exact baseline SHA:',process.env.BASELINE_SHA,red);
+          "
+
+      - name: Run Field Archive ENG/VIE acceptance on exact preview
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+        run: node tools/testRa2ArchiveDossierBrowser.mjs
+
+      - name: Run progressed Mastery acceptance on exact preview
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+        run: node tools/testRa2MasteryStatesBrowser.mjs
+
+      - name: Run Lucky Draw ENG/VIE states on exact preview
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+        run: |
+          set +e
+          node tools/testRa2LuckyDrawStatesBrowser.mjs > /tmp/ra2-lucky-draw.log 2>&1
+          result=$?
+          tail -n 80 /tmp/ra2-lucky-draw.log
+          if [ "$result" -ne 0 ]; then
+            details="$(tail -n 30 /tmp/ra2-lucky-draw.log | tr '\n' ' ' | cut -c1-3000)"
+            echo "::error title=Remote Lucky Draw acceptance detail::$details"
+            exit "$result"
+          fi
+
+      - name: Run Result Gold ENG/VIE portrait, landscape and zero-data states
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+        run: node tools/testRa2ResultLocaleBrowser.mjs
+
+      # Run the four independently reviewed gaps even when an earlier legacy
+      # acceptance step fails, so the exact-SHA artifact still carries the
+      # targeted red/green evidence rather than silently omitting it.
+      - name: Run native result-ledger toast regression on exact preview
+        if: always()
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          RA2_RELEASE_EVIDENCE_DIR: docs/acceptance/ra2/evidence/review-gaps-after/${{ github.sha }}/toast
+        run: node tools/testRa2ReleaseBlockerToastBrowser.mjs
+
+      - name: Run six-label Mastery clipping regression
+        if: always()
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          RA2_RELEASE_EVIDENCE_DIR: docs/acceptance/ra2/evidence/review-gaps-after/${{ github.sha }}/mastery
+        run: node tools/testRa2ReleaseBlockerMasteryBrowser.mjs
+
+      - name: Run short-landscape Result CONTINUE interaction regression
+        if: always()
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+          RA2_RELEASE_EVIDENCE_DIR: docs/acceptance/ra2/evidence/review-gaps-after/${{ github.sha }}/result
+        run: node tools/testRa2ReleaseBlockerResultBrowser.mjs
+
+      - name: Run tutorial SKIP, resume, pagehide and early-exit acceptance
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          APEX_APP_URL: ${{ env.PREVIEW_URL }}/
+        run: node tools/testRa1TutorialInputBrowser.mjs
+
+      - name: Record exact preview result
+        if: always()
+        run: |
+          {
+            echo '# RA-2 exact-SHA isolated preview'
+            echo
+            echo "- Source SHA: $TARGET_SHA"
+            echo "- Isolated Cloudflare Pages URL: $PREVIEW_URL"
+            echo "- Gold/runtime receipt and served byte verification: see deployment verification step."
+            echo '- The existing actual-preview-entrypoint Netlify check remains independent and is not waived by this Cloudflare preview.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload exact-preview browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ra2-exact-preview-${{ github.sha }}-evidence
+          path: docs/acceptance/ra2/evidence/
+          if-no-files-found: warn
+          retention-days: 30

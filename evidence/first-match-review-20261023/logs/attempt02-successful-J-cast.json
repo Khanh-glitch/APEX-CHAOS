@@ -1,0 +1,157 @@
+{
+  "buildSHA": "18bc21b07d73b881dafbb732630ca6bcd1c21214",
+  "run": "full-run-02 (separate real Home→Mode→Fighter→BOT attempt; no KO/result)",
+  "phase": {
+    "t": 94.6,
+    "name": "j-cast-observation",
+    "pause": {
+      "active": false,
+      "updatedAt": 1792726062887,
+      "source": "cp4-coach"
+    },
+    "events": [
+      {
+        "seq": 27,
+        "t": 2.507999999999997,
+        "type": "AICastReject",
+        "payload": {
+          "hero": "ROBOT",
+          "slot": "A1",
+          "side": "p2",
+          "combatantId": "p2",
+          "at": 2.507999999999997,
+          "score": 0,
+          "reason": "no-eligible-pickup"
+        }
+      },
+      {
+        "seq": 28,
+        "t": 2.6399999999999966,
+        "type": "AICastConsider",
+        "payload": {
+          "hero": "ROBOT",
+          "slot": "A2",
+          "side": "p2",
+          "combatantId": "p2",
+          "at": 2.6399999999999966,
+          "score": 0,
+          "reason": "no-credible-threat",
+          "shouldCast": false
+        }
+      },
+      {
+        "seq": 29,
+        "t": 2.6399999999999966,
+        "type": "AICastReject",
+        "payload": {
+          "hero": "ROBOT",
+          "slot": "A2",
+          "side": "p2",
+          "combatantId": "p2",
+          "at": 2.6399999999999966,
+          "score": 0,
+          "reason": "no-credible-threat"
+        }
+      },
+      {
+        "seq": 30,
+        "t": 2.870999999999996,
+        "type": "AICastConsider",
+        "payload": {
+          "hero": "ROBOT",
+          "slot": "A2",
+          "side": "p2",
+          "combatantId": "p2",
+          "at": 2.870999999999996,
+          "score": 0,
+          "reason": "no-credible-threat",
+          "shouldCast": false
+        }
+      },
+      {
+        "seq": 31,
+        "t": 2.870999999999996,
+        "type": "AICastReject",
+        "payload": {
+          "hero": "ROBOT",
+          "slot": "A2",
+          "side": "p2",
+          "combatantId": "p2",
+          "at": 2.870999999999996,
+          "score": 0,
+          "reason": "no-credible-threat"
+        }
+      },
+      {
+        "seq": 32,
+        "t": 3.0359999999999956,
+        "type": "RobotA1Lock",
+        "payload": {
+          "hero": "ROBOT",
+          "target": "SHOTGUN",
+          "slotId": 1,
+          "fighterId": 1,
+          "combatantId": "p1",
+          "side": "p1",
+          "heroId": "ROBOT"
+        }
+      },
+      {
+        "seq": 33,
+        "t": 3.0359999999999956,
+        "type": "RobotA1Acquire",
+        "payload": {
+          "hero": "ROBOT",
+          "target": "SHOTGUN",
+          "slotId": 1,
+          "alias": true,
+          "fighterId": 1,
+          "combatantId": "p1",
+          "side": "p1",
+          "heroId": "ROBOT"
+        }
+      },
+      {
+        "seq": 34,
+        "t": 3.0359999999999956,
+        "type": "Cast",
+        "payload": {
+          "hero": "ROBOT",
+          "slot": "A1",
+          "mechanic": "robot.weapon_dash",
+          "side": "p1",
+          "combatantId": "p1",
+          "fighterId": 1,
+          "source": "keyboard"
+        }
+      },
+      {
+        "seq": 35,
+        "t": 3.0359999999999956,
+        "type": "AbilityPress",
+        "payload": {
+          "slot": "A1",
+          "ok": true,
+          "side": "p1",
+          "combatantId": "p1",
+          "source": "keyboard"
+        }
+      },
+      {
+        "seq": 36,
+        "t": 3.0359999999999956,
+        "type": "P1Press",
+        "payload": {
+          "slot": "A1",
+          "ok": true,
+          "side": "p1",
+          "combatantId": "p1",
+          "source": "keyboard"
+        }
+      }
+    ],
+    "skill": "J\nABILITY 1\nWEAPON DASH\n10.0S COOLDOWN\nPRESS-CAST"
+  },
+  "frame": "/screens/11-separate-attempt-J-success-1440x900.png",
+  "note": "Real runtime event evidence from a second attempt; not a fixture and not part of run06. The active J press emitted RobotA1Lock(target=SHOTGUN), RobotA1Acquire, Cast(mechanic=robot.weapon_dash, side=p1, source=keyboard), AbilityPress(ok=true), and P1Press(ok=true)."
+}

@@ -54,6 +54,22 @@ export const PICK_BAND_SEAM = '.selectionDeckV6 .roster{padding:5px 4px!importan
 // roughly 5px + this value.
 export const PICK_BAND_GAP_VH = 0.2;
 
+// Owner-approved compact short-landscape sub-band. It is emitted INSIDE the
+// R52 law so deck clearance and lock footprint still have a single authority.
+// The fighter arena/identity panels, roster page behavior, art, and colors are
+// intentionally untouched.
+export const SHORT_LANDSCAPE_PICK_FIT = Object.freeze({
+  marker: 'id="apex-approved-landscape-fighter-fit"',
+  media: '@media (max-width:980px) and (orientation:landscape) and (max-height:500px)',
+  css: [
+    '#stage{--apexLockH:34px;--apexLockB:4.5vh;--apexLockGap:3px}',
+    '#stage.screen-fighter .selectionDeckV6{top:71.5vh!important;bottom:calc(var(--apexLockB) + var(--apexLockH) + var(--apexLockGap))!important;height:auto!important;min-height:0!important}',
+    '#stage.screen-fighter .selectionHeadV6{top:-2px!important;height:12px!important}',
+    '#stage.screen-fighter .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important}',
+    '#stage.screen-fighter .lockMechanismV6{bottom:var(--apexLockB)!important;height:var(--apexLockH)!important;min-height:var(--apexLockH)!important;width:30vw!important;min-width:175px!important}',
+  ].join(String.fromCharCode(10)),
+});
+
 const round2 = (n) => Math.round(n * 100) / 100;
 const num = (n) => String(round2(n));
 
@@ -303,8 +319,13 @@ export function rosterPagerScript() {
       var list = cards(); var out = [];
       var rr = roster.getBoundingClientRect();
       var maxSl = Math.max(0, roster.scrollWidth - roster.clientWidth);
+      // scroll-snap-align:start targets the snapport, not the scrollport edge.
+      // Portrait owns 4px of scroll-padding so the first card's border stays
+      // clear of the bezel; page offsets must mirror that same inset or taps,
+      // swipes, and keyboard-follow report a false 4px miss after snapping.
+      var snapInset = parseFloat(getComputedStyle(roster).scrollPaddingLeft) || 0;
       for (var i = 0; i < list.length; i += PAGE) {
-        out.push(Math.min(maxSl, Math.max(0, Math.round(roster.scrollLeft + list[i].getBoundingClientRect().left - rr.left))));
+        out.push(Math.min(maxSl, Math.max(0, Math.round(roster.scrollLeft + list[i].getBoundingClientRect().left - rr.left - snapInset))));
       }
       return out.length ? out : [0];
     }
@@ -427,7 +448,9 @@ export function pickBandLawCss(law) {
   return `\n/* ${PICK_BAND_MARKER} — the deck is the band ABOVE the LOCK band (see adapter header). */\n`
     + `/* ${ROSTER_PAGER_MARKER} — pager chrome + cursor scale (see adapter). */\n`
     + rosterPagerCss() + '\n'
-    + law.bands.map((band) => bandRules(band, law.gapVh)).join('\n') + '\n';
+    + law.bands.map((band) => bandRules(band, law.gapVh)).join('\n') + '\n'
+    + `/* ${SHORT_LANDSCAPE_PICK_FIT.marker} — owner-approved short-landscape Fighter Select sub-band */\n`
+    + `${SHORT_LANDSCAPE_PICK_FIT.media}{\n${SHORT_LANDSCAPE_PICK_FIT.css}\n}\n`;
 }
 
 export function adaptGoldShellR52PickBand(input) {
@@ -499,13 +522,16 @@ export function pickBandFor(width, height) {
 export function pickBandGeometry(law, width, height, applied) {
   const band = law.bands.find((candidate) => candidate.id === pickBandFor(width, height));
   if (!band) throw new Error('R52 pick band: no band for ' + width + 'x' + height);
-  const lockOffset = band.lockBottomVh / 100 * height;
-  const lockHeight = band.lockHeightPx;
+  const shortLandscape = applied && band.id === 'compact-landscape' && height <= 500;
+  const lockOffset = shortLandscape ? 4.5 / 100 * height : band.lockBottomVh / 100 * height;
+  const lockHeight = shortLandscape ? 34 : band.lockHeightPx;
   const lockTopY = height - lockOffset - lockHeight;
-  const deckTopY = band.deckTopVh / 100 * height;
-  const deckOffsetY = applied
-    ? Math.max(band.deckBottomVh / 100 * height, lockOffset + lockHeight + law.gapVh / 100 * height)
-    : band.deckBottomVh / 100 * height;
+  const deckTopY = (shortLandscape ? 71.5 : band.deckTopVh) / 100 * height;
+  const deckOffsetY = shortLandscape
+    ? lockOffset + lockHeight + 3
+    : applied
+      ? Math.max(band.deckBottomVh / 100 * height, lockOffset + lockHeight + law.gapVh / 100 * height)
+      : band.deckBottomVh / 100 * height;
   const deckBottomY = height - deckOffsetY;
   const deckHeight = applied
     ? height - deckTopY - deckOffsetY

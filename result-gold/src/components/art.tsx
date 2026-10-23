@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import type { PlayerResult, WeaponDef } from "../data/types";
 
 /**
@@ -149,15 +149,26 @@ function GenericBust({ uid }: { uid: string }) {
   );
 }
 
-export function HeroArt({ player }: { player: PlayerResult }) {
+export function HeroArt({ player, onArtError }: { player: PlayerResult; onArtError?: () => void }) {
   const uid = `h${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const [failed, setFailed] = useState(false);
   const { portraitSrc, artKind, name } = player.character;
-  if (portraitSrc) {
-    return <img className="hero__img" src={portraitSrc} alt={`${name} — ${player.handle}`} draggable={false} />;
+  if (portraitSrc && !failed) {
+    return (
+      <img
+        className="hero__img"
+        src={portraitSrc}
+        alt={`${name} — ${player.handle}`}
+        draggable={false}
+        data-art-state="image"
+        onError={() => { setFailed(true); onArtError?.(); }}
+      />
+    );
   }
   return (
     <svg
       className="hero__svg"
+      data-art-state="fallback"
       viewBox="0 0 400 520"
       preserveAspectRatio="xMidYMax meet"
       role="img"
@@ -284,14 +295,36 @@ function GenericWeaponArt({ uid }: { uid: string }) {
   );
 }
 
-export function WeaponArt({ weapon }: { weapon: WeaponDef }) {
+export function WeaponArt({ weapon, ownerSlot, onArtError }: {
+  weapon: WeaponDef;
+  ownerSlot?: number;
+  onArtError?: () => void;
+}) {
   const uid = `w${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
-  if (weapon.artSrc) {
-    return <img className="wart wart--img" src={weapon.artSrc} alt={weapon.name} draggable={false} />;
+  // CP4: the top contributor's own sealed skin art wins; a failed skin
+  // preview falls back to the base weapon art before any placeholder.
+  const skinSrc = ownerSlot ? weapon.skinArtBySide?.[String(ownerSlot)] : undefined;
+  const [stage, setStage] = useState(skinSrc ? 0 : 1);
+  const src = stage === 0 ? skinSrc : weapon.artSrc;
+  if (src && stage < 2) {
+    return (
+      <img
+        className="wart wart--img"
+        src={src}
+        alt={weapon.name}
+        draggable={false}
+        data-art-state={stage === 0 && skinSrc ? "skin-image" : "image"}
+        onError={() => {
+          if (stage === 0 && weapon.artSrc && weapon.artSrc !== skinSrc) setStage(1);
+          else { setStage(2); onArtError?.(); }
+        }}
+      />
+    );
   }
   return (
     <svg
       className="wart"
+      data-art-state="fallback"
       viewBox="0 0 640 230"
       role="img"
       aria-label={`${weapon.name} — placeholder illustration`}

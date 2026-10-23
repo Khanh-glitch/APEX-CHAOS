@@ -1,6 +1,10 @@
 import { GOLD_TRANSITION_URL } from './goldAssetManifest.js';
+import { apexAppUrl } from './appRoot.js';
 
-const GOLD_DOOR_RUNTIME_URL = GOLD_TRANSITION_URL;
+// Absolute app-root URL: the door loads during scene transitions, long
+// after the Gold <base> exists, so a relative/absolute-path spelling
+// would resolve into <app>/gold/gold/... under nested hosting.
+const GOLD_DOOR_RUNTIME_URL = apexAppUrl(GOLD_TRANSITION_URL);
 
 async function decodeLoadedImages(root) {
   if (!root || !root.querySelectorAll) return;
@@ -114,7 +118,7 @@ function loadGoldDoorRuntime() {
     const existing = [...document.scripts].find((s) => {
       try {
         return s.type === 'module'
-          && new URL(s.src, document.baseURI).pathname === '/gold/transition/mechanical-door-v4.gold.js';
+          && new URL(s.src, document.baseURI).pathname.endsWith('/gold/transition/mechanical-door-v4.gold.js');
       } catch (_) { return false; }
     });
     const script = existing || document.createElement('script');

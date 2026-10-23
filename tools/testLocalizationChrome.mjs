@@ -112,13 +112,13 @@ try{
    await cmd('Page.navigate',{url:base});
    checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-boot-start'))"),view.id+' boot loads');
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#apex-boot-start')?.click()})()");
-   checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-language-select'))"),view.id+' language picker loads');
+   checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-language-eng'))"),view.id+' language picker loads');
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('ready')})()"),view.id+' HOME ready');
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.body?.dataset?.apexSceneTransition==='DONE'})()"),view.id+' transition fully opened');
    await sleep(200);
    const report=await run(`(async()=>{
      const w=window.__apexGoldFidelity?.child()||window,d=w.document;
-     const picker=d.querySelector('#apex-language-select');
+     const picker=d.querySelector('#apex-language-picker');
      w.APEX_I18N.setLanguage('vie');
      await d.fonts.ready;
      await new Promise(r=>w.requestAnimationFrame(()=>w.requestAnimationFrame(r)));
@@ -136,7 +136,7 @@ try{
      const overlap=Boolean(skinVisible&&pickBox.left<skinBox.right&&
        pickBox.right>skinBox.left&&pickBox.top<skinBox.bottom&&pickBox.bottom>skinBox.top);
      return {
-       chosen:picker.value,persist:w.localStorage.getItem('apex-chaos.ui-language.v1'),
+       chosen:picker.querySelector('[aria-pressed=\"true\"]')?.dataset.apexLanguageOption,persist:w.localStorage.getItem('apex-chaos.ui-language.v1'),
        title:title.innerText,cta:button.innerText,ctaState:d.querySelector('#continueStory .storyState')?.innerText,htmlLang:d.documentElement.lang,
        font:w.getComputedStyle(title).fontFamily,
        viewport:{width:w.innerWidth,height:w.innerHeight},

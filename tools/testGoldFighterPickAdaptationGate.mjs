@@ -98,6 +98,18 @@ check('generator re-applies R49 root authority after historical R48A intermediat
   && generator.includes('const HERO_PRESENTATION=Object.freeze')
   && generator.includes('r49-fighter-presentation-authority'));
 
+const pickLawStart = shell.indexOf('R52 PICK BAND LAW');
+const pickLawEnd = pickLawStart < 0 ? -1 : shell.indexOf('</style>', pickLawStart);
+const landscapeFit = pickLawEnd < 0 ? '' : shell.slice(pickLawStart, pickLawEnd);
+check('owner-approved short-landscape Fighter Select is scoped inside the sole R52 authority',
+  landscapeFit.includes('id="apex-approved-landscape-fighter-fit"')
+  && landscapeFit.includes('@media (max-width:980px) and (orientation:landscape) and (max-height:500px)')
+  && landscapeFit.includes('#stage{--apexLockH:34px;--apexLockB:4.5vh;--apexLockGap:3px}')
+  && landscapeFit.includes('#stage.screen-fighter .selectionDeckV6{top:71.5vh!important;bottom:calc(var(--apexLockB) + var(--apexLockH) + var(--apexLockGap))!important;height:auto!important;min-height:0!important}')
+  && landscapeFit.includes('#stage.screen-fighter .selectionHeadV6{top:-2px!important;height:12px!important}')
+  && landscapeFit.includes('#stage.screen-fighter .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important}')
+  && landscapeFit.includes('#stage.screen-fighter .lockMechanismV6{bottom:var(--apexLockB)!important;height:var(--apexLockH)!important;min-height:var(--apexLockH)!important;width:30vw!important;min-width:175px!important}'));
+
 const out = ['GOLD FIGHTER PICK ADAPTATION GATE (R49D root authority)', ...passes];
 if (failures.length) {
   out.push('', ...failures, '', 'RESULT: FAIL (' + failures.length + ')');

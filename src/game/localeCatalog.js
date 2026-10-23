@@ -5,6 +5,7 @@ import {englishAwardRule} from './localeAwardRules.js';
 export const COPY = Object.freeze(Object.fromEntries([
   // HOME / global navigation
   ['Player','Người chơi'],['PROFILE','HỒ SƠ'],['Player profile','Hồ sơ người chơi'],
+  ['SCROLL DOWN FOR CONTINUE','CUỘN XUỐNG ĐỂ TIẾP TỤC'],
   ['Player and economy','Người chơi và tài nguyên'],['Settings','Cài đặt'],
   ['Current story','Cốt truyện hiện tại'],['Main routes','Điều hướng chính'],
   ['Primary actions','Thao tác chính'],['QUEST 01','NHIỆM VỤ 01'],
@@ -22,6 +23,10 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['OWNED FIGHTERS','ĐẤU SĨ ĐÃ SỞ HỮU'],['OWNED','ĐÃ SỞ HỮU'],['TOTAL DRAWS','TỔNG LƯỢT QUAY'],
   ['DISPLAY NAME','TÊN HIỂN THỊ'],['SAVE NAME','LƯU TÊN'],['PLAYER ID','MÃ NGƯỜI CHƠI'],
   ['SYNC STATUS','TRẠNG THÁI ĐỒNG BỘ'],['LOCAL ONLY','CHỈ TRÊN MÁY'],['SAVED','ĐÃ LƯU'],['SYNCING','ĐANG ĐỒNG BỘ'],
+  ['GUEST PROFILE · SAVED ON THIS DEVICE','HỒ SƠ KHÁCH · LƯU TRÊN THIẾT BỊ'],['SAVE STATUS','TRẠNG THÁI LƯU'],['DEVICE SAVE ACTIVE','ĐÃ BẬT LƯU TRÊN THIẾT BỊ'],
+  ['PLAY INSTANTLY — NO SIGN-IN','CHƠI NGAY — KHÔNG CẦN ĐĂNG NHẬP'],
+  ['Progress, AC and fighters are saved in this browser. Clearing site data erases them; this Alpha has no account sync.','Tiến độ, AC và tướng được lưu trong trình duyệt này. Xóa dữ liệu trang web sẽ xóa hết; bản Alpha chưa có đồng bộ tài khoản.'],
+  ['BOT win: +200 AC · BOT loss: +25 AC · Completed LOCAL match: +50 AC. Lucky Draw spends AC on this device; Fighter Shop is not open yet. Missions pay extra AC for completed battles.','Thắng BOT: +200 AC · Thua BOT: +25 AC · Đấu LOCAL hoàn tất: +50 AC. Vòng quay dùng AC trên thiết bị này; Cửa hàng đấu sĩ chưa mở. Nhiệm vụ thưởng thêm AC cho các trận đã hoàn thành.'],
   ['OFFLINE','NGOẠI TUYẾN'],['CONFLICT','XUNG ĐỘT'],['UPLOAD SNAPSHOT','TẢI BẢN SAO LÊN ĐÁM MÂY'],
   ['REQUEST DELETION','YÊU CẦU XÓA TÀI KHOẢN'],['CONFIRM REQUEST','XÁC NHẬN YÊU CẦU'],
   ['DELETION PENDING','ĐANG CHỜ XÓA'],['DELETION REQUESTED — PENDING','ĐÃ GỬI YÊU CẦU XÓA — ĐANG CHỜ XỬ LÝ'],
@@ -65,6 +70,71 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['ARSENAL RECORD ·','HỒ SƠ KHO VŨ KHÍ ·'],
   ['APPEARANCE ONLY — NO COMBAT EFFECT','CHỈ ĐỔI NGOẠI HÌNH — KHÔNG ẢNH HƯỞNG CHIẾN ĐẤU'],
   ['EQUIP APPLIES INSTANTLY','TRANG BỊ CÓ HIỆU LỰC NGAY'],
+  // FIELD ARCHIVE — complete functional chrome; canonical fighter/weapon names stay unchanged.
+  ['FIELD ARCHIVE','KHO HỒ SƠ'],['FIGHTERS','ĐẤU SĨ'],['WEAPONS','VŨ KHÍ'],
+  ['Missions and Achievements','Nhiệm vụ và thành tích'],
+  ['Archive category','Danh mục hồ sơ'],['Choose loadout','Chọn đội hình'],
+  ['Fighter and weapon catalogue','Danh mục đấu sĩ và vũ khí'],
+  ['Previous archive page','Trang hồ sơ trước'],['Next archive page','Trang hồ sơ tiếp theo'],
+  ['Previous record','Hồ sơ trước'],['Next record','Hồ sơ tiếp theo'],
+  ['Appearance and record information','Ngoại hình và thông tin hồ sơ'],
+  ['Record details','Chi tiết hồ sơ'],['Skin pages','Trang giao diện'],
+  ['Previous skin page','Trang giao diện trước'],['Next skin page','Trang giao diện tiếp theo'],
+  ['Cosmetic category','Danh mục ngoại hình'],['Player loadout','Đội hình người chơi'],
+  ['Close archive','Đóng kho hồ sơ'],['Close skin locker','Đóng tủ giao diện'],
+  ['Fighters','Đấu sĩ'],['Weapons','Vũ khí'],
+  ['Search catalogue…','Tìm trong danh mục…'],['CHOOSE FIGHTER','CHỌN ĐẤU SĨ'],
+  ['CHOOSE WEAPON','CHỌN VŨ KHÍ'],['No matching entries.','Không tìm thấy mục phù hợp.'],
+  ['DECODING APPROVED ART','ĐANG GIẢI MÃ HÌNH ẢNH ĐÃ DUYỆT'],
+  ['VISUAL RECORD CLASSIFIED','HỒ SƠ HÌNH ẢNH ĐÃ PHÂN LOẠI'],
+  ['VISUAL RECORD UNAVAILABLE','HỒ SƠ HÌNH ẢNH KHÔNG KHẢ DỤNG'],
+  ['Approved image could not be decoded','Không thể giải mã hình ảnh đã duyệt'],
+  ['Approved ECOBOT V17 Gold actor rendering','Hình ảnh nhân vật ECOBOT V17 Gold đã duyệt'],
+  ['ECOBOT GOLD PREVIEW UNAVAILABLE','BẢN XEM TRƯỚC ECOBOT GOLD KHÔNG KHẢ DỤNG'],
+  ['Five-axis combat role radar','Biểu đồ vai trò chiến đấu năm trục'],
+  ['No mechanic evidence','Chưa có bằng chứng cơ chế'],
+  ['PASSIVE: BURST WINDOW SEC','NỘI TẠI: CỬA SỔ BÙNG NỔ (GIÂY)'],
+  ['A1: DASH SPEED / MAX DASH TIME','A1: TỐC ĐỘ LƯỚT / THỜI GIAN LƯỚT TỐI ĐA'],
+  ['A2: ROBOT VIRTUAL ARMOR','A2: GIÁP ẢO ROBOT'],
+  ['A1: ARRIVE RADIUS / TARGET REVEALED PICKUPS','A1: BÁN KÍNH TIẾP CẬN / VŨ KHÍ TRÊN SÂN ĐÃ LỘ DIỆN'],
+
+
+  ['PLAYABLE','CÓ THỂ CHƠI'],['ORIGINAL / VISUAL PREVIEW','NGUYÊN BẢN / XEM TRƯỚC'],
+  ['VISUAL PREVIEW','XEM TRƯỚC NGOẠI HÌNH'],['/ VISUAL PREVIEW','/ XEM TRƯỚC NGOẠI HÌNH'],
+  ['ACTIVE ROSTER','ĐỘI HÌNH ĐANG MỞ'],['LOCKED ROSTER','ĐỘI HÌNH ĐÃ KHÓA'],
+  ['NEWBOT MASTERY','TINH THÔNG NEWBOT'],['MASTERY','TINH THÔNG'],
+  ['EQUIPPED /','ĐANG TRANG BỊ /'],['ECOBOT — RECYCLE CORE V17','ECOBOT — LÕI TÁI CHẾ V17'],
+
+  ['SKINS','GIAO DIỆN'],['INFO','THÔNG TIN'],['INDEX','DANH MỤC'],
+  ['SKINS / SELECT & EQUIP','GIAO DIỆN / CHỌN & TRANG BỊ'],['GAMEPLAY','LỐI CHƠI'],
+  ['COMBAT PROFILE','HỒ SƠ CHIẾN ĐẤU'],['EQUIPPED','ĐANG TRANG BỊ'],
+  ['ORIGINAL PRESENTATION','DIỆN MẠO GỐC'],['ORIGINAL','MẶC ĐỊNH'],
+  ['PLAYER 01','NGƯỜI CHƠI 01'],['PLAYER 02 / BOT','NGƯỜI CHƠI 02 / BOT'],
+  ['SEARCH...','TÌM KIẾM...'],['Search archive','Tìm trong kho hồ sơ'],
+  ['No matching records.','Không tìm thấy hồ sơ phù hợp.'],
+  ['Preparing Arsenal records…','Đang chuẩn bị hồ sơ kho vũ khí…'],
+  ['Select a fighter or weapon.','Hãy chọn một đấu sĩ hoặc vũ khí.'],
+  ['RETURN TO SKINS ↗','QUAY LẠI GIAO DIỆN ↗'],
+  ['EQUIP THIS SKIN ↗','TRANG BỊ GIAO DIỆN NÀY ↗'],
+  ['LOCKED — MASTERY REQUIRED','ĐÃ KHÓA — CẦN ĐẠT TINH THÔNG'],
+  ['EQUIPPED ✓','ĐANG TRANG BỊ ✓'],['APPROVED COSMETIC','VẬT PHẨM NGOẠI HÌNH ĐÃ DUYỆT'],
+  ['FIGHTERS & WEAPONS','ĐẤU SĨ & VŨ KHÍ'],
+  ['ESC — CLOSE · ARROWS — NEXT RECORD','ESC — ĐÓNG · PHÍM MŨI TÊN — HỒ SƠ TIẾP'],
+  ['CLOSE ARCHIVE','ĐÓNG KHO HỒ SƠ'],
+  ['NO REGISTERED SKILL','CHƯA CÓ KỸ NĂNG ĐƯỢC ĐĂNG KÝ'],
+  ['UNCLASSIFIED MECHANICS','CƠ CHẾ CHƯA PHÂN LOẠI'],['TACTICAL AFFINITY','THIÊN HƯỚNG CHIẾN THUẬT'],
+  ['ARSENAL RECORD ·','HỒ SƠ KHO VŨ KHÍ ·'],['ROLE PROFILE','HỒ SƠ VAI TRÒ'],
+  ['SPECS','THÔNG SỐ'],['RAW','GỐC'],['PROJECTILE SPEED','TỐC ĐỘ ĐẠN'],
+  ['MAX SPEED','TỐC ĐỘ TỐI ĐA'],['ACCELERATION','GIA TỐC'],['BLAST RADIUS','BÁN KÍNH NỔ'],
+  ['EFFECT RANGE','TẦM HIỆU ỨNG'],['KNOCKBACK','ĐẨY LÙI'],['STUN','CHOÁNG'],
+  ['SLOW','LÀM CHẬM'],['FIRING INTERVAL','NHỊP BẮN'],['SHOT COUNT','SỐ VIÊN'],
+  ['PELLETS','ĐẠN CON'],['CHARGE','TÍCH LỰC'],['DURATION','THỜI LƯỢNG'],
+  ['REFLECT RADIUS','BÁN KÍNH PHẢN ĐẠN'],['DAMAGE TAKEN','SÁT THƯƠNG NHẬN VÀO'],
+  ['SPEED MULT','HỆ SỐ TỐC ĐỘ'],['PROJECTILE LIFE','THỜI GIAN TỒN TẠI CỦA ĐẠN'],['FUSE','NGÒI NỔ'],
+  ['BLAST PEAK','SÁT THƯƠNG NỔ TỐI ĐA'],['DIRECT HIT','SÁT THƯƠNG TRÚNG ĐÍCH'],
+  ['NO SPECS','CHƯA CÓ THÔNG SỐ'],['FIGHTER locked — dossier incomplete.','Hồ sơ đấu sĩ chưa hoàn chỉnh.'],
+  ['Complete every NEWBOT mastery achievement to equip ECOBOT. Preview remains available; an old stored selection renders ORIGINAL until earned.','Hoàn thành toàn bộ thành tích Tinh thông NEWBOT để trang bị ECOBOT. Vẫn có thể xem trước; lựa chọn cũ chưa đủ điều kiện sẽ hiển thị diện mạo gốc.'],
+  ['Deal more than 1,000 lifetime RPG-7 damage in sealed BOT/LOCAL matches to equip VUA HỀ. Preview remains available.','Gây tổng cộng hơn 1.000 sát thương bằng RPG-7 trong các trận BOT/LOCAL đã niêm phong để mở VUA HỀ. Vẫn có thể xem trước.'],
   ['The laughing warhead keeps its full face in frame, trailing thick theatrical smoke.','Đầu đạn mặt cười hiện trọn khuôn mặt, kéo theo làn khói sân khấu dày đặc.'],
   ['Forest-jade mechanical layers over a spring-driven NEWBOT frame.','Các lớp cơ khí xanh ngọc rừng phủ trên khung NEWBOT vận hành bằng lò xo.'],
   ['COMING SOON','SẮP RA MẮT'],
@@ -178,10 +248,13 @@ export const COPY = Object.freeze(Object.fromEntries([
   // Lucky Draw
   ['DRAW BAY','KHU VỰC QUAY THƯỞNG'],['DRAW BAY · ACTIVE','KHU QUAY THƯỞNG · ĐANG HOẠT ĐỘNG'],
   ['APEX CHAOS · DRAW BAY','APEX CHAOS · KHU QUAY THƯỞNG'],
+  ['APEX CHAOS Lucky Draw','APEX CHAOS · Vòng quay may mắn'],
+  ['LED fighter wall','Bảng LED đấu sĩ'],
   ['LUCKY DRAW','QUAY MAY MẮN'],['DRAW','QUAY'],
   ['POSSIBLE FIGHTERS','ĐẤU SĨ CÓ THỂ NHẬN'],
   ['Possible fighters','Đấu sĩ có thể nhận'],['CLOSE ✕','ĐÓNG ✕'],
   ['CLOSE','ĐÓNG'],['Back','Quay lại'],['DRAW UNAVAILABLE','HIỆN KHÔNG THỂ QUAY'],
+  ['DRAW PENDING','LƯỢT QUAY ĐANG XỬ LÝ'],['ROSTER COMPLETE','ĐÃ ĐỦ ĐẤU SĨ'],
   ['DRAW ASSETS UNAVAILABLE','CHƯA TẢI ĐƯỢC DỮ LIỆU VÒNG QUAY'],
   ['Draw one fighter, cost 350','Quay một đấu sĩ, tốn 350 AC'],
   ['MOTION LANE → LOCK','HƯỚNG CHUYỂN ĐỘNG → KHÓA'],
@@ -459,7 +532,7 @@ export const VIETNAMESE_UI_EN=Object.freeze({
  'HP sau trận tối đa':'Maximum remaining HP',
  'Thời gian trận tối thiểu':'Minimum match duration',
  'Damage nhận tối đa':'Maximum damage taken',
- 'Số vật phẩm đã nhặt':'Items picked up','HP nguy kịch':'Critical HP threshold',
+ 'Số vật phẩm đã nhặt':'Items picked up','Số trang bị đã nhặt':'Equipment picked up','HP nguy kịch':'Critical HP threshold',
  'HP hồi sau nguy kịch':'HP healed after critical condition',
  'Damage đã nhận':'Damage taken','HP kích hoạt':'Activation HP',
  'Thời gian sống thêm':'Additional survival time',
@@ -553,6 +626,12 @@ function phrase(value){
   if(!t||PRESERVE.has(t.toUpperCase()))return t;
   const exact=COPY[t]??QUEST_EXTRA[t]??VISIBLE_MISC[t]??LOOKUP.get(t.toUpperCase());
   if(exact!==undefined)return exact;
+  const resultPlayer=t.match(/^Player\s+([12]):\s*(.+?)\s+—\s*(chiến thắng|thất bại)$/iu);
+  if(resultPlayer)return 'Người chơi '+resultPlayer[1]+': '+resultPlayer[2]+' — '+resultPlayer[3];
+  const visualAuthority=t.match(/^VISUAL AUTHORITY \/ ([A-Z0-9._-]+)$/i);
+  if(visualAuthority)return 'THẨM QUYỀN HÌNH ẢNH / '+visualAuthority[1];
+  const masteryCount=t.match(/^(\d+)\/(\d+) NEWBOT MASTERY$/i);
+  if(masteryCount)return masteryCount[1]+'/'+masteryCount[2]+' TINH THÔNG NEWBOT';
   const count=t.match(/^(\d+) (HITS?|CRITS?|HOSTILES DOWN|FIGHTERS?)$/i);
   if(count){const unit=phrase(count[2]);return count[1]+' '+unit;}
   // Production HUD cooldown/charges strings are constructed at runtime;
@@ -586,6 +665,10 @@ export function translateCopy(input,language='eng'){
   const match=input.match(/^(\s*)([\s\S]*?)(\s*)$/);
   if(!match||!match[2])return input;
   const original=match[2];
+  const drawNeedVie=original.match(/^NEED\s+([0-9.,]+)\s+AC$/i);
+  const drawNeedEng=original.match(/^CẦN\s+([0-9.,]+)\s+AC$/iu);
+  if(language==='vie'&&drawNeedVie)return match[1]+'CẦN '+drawNeedVie[1]+' AC'+match[3];
+  if(language!=='vie'&&drawNeedEng)return match[1]+'NEED '+drawNeedEng[1]+' AC'+match[3];
   if(language==='vie')return match[1]+phrase(original)+match[3];
 
   // Only recognized UI patterns: never machine-translate player names, IDs or

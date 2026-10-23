@@ -22,7 +22,7 @@ function getWeaponEntries(){
   const config=window.APEX_ARSENAL_CONFIG;
   if(!config?.WEAPONS)return [];
   return sortWeapons(Object.entries(config.WEAPONS).map(([id,data])=>({
-    id,name:data?.name||data?.art||id.replaceAll('_',' '),
+    id,name:config.weaponDisplayName?.(id)||data?.name||data?.art||id.replaceAll('_',' '),
     tier:config.tierOf?.(id)||data?.tier||'—',
     family:data?.family||data?.kind||'Equipment',
   })).filter(o=>o.id!=='T6' && o.id!=='STORMBREAKER_INTERNAL'));
@@ -55,10 +55,13 @@ export default function CosmeticLocker() {
     };
     const t=setInterval(update,400);
     const stop=cosmetics.subscribe(()=>setRevision(n=>n+1));
+    const masteryEvent=()=>setRevision(n=>n+1);
     const openEvent=()=>void launch();
     window.addEventListener('apex-open-cosmetics',openEvent);
+    window.addEventListener('apex:mastery-unlocked',masteryEvent);
+    window.addEventListener('apex:skin-unlocked',masteryEvent);
     update();
-    return ()=>{clearInterval(t);stop();window.removeEventListener('apex-open-cosmetics',openEvent)};
+    return ()=>{clearInterval(t);stop();window.removeEventListener('apex-open-cosmetics',openEvent);window.removeEventListener('apex:mastery-unlocked',masteryEvent);window.removeEventListener('apex:skin-unlocked',masteryEvent)};
   },[]);
   useEffect(()=>{
     if(!open)return;
@@ -89,10 +92,23 @@ export default function CosmeticLocker() {
   const skins=active?cosmetics.variants(tab,active.id):[];
   const equipped=active?cosmetics.selected(side,tab,active.id):null;
   const variantsAvailable=skins.length>1;
+  const progressForSkin=(skin)=>{try{return active&&skin?window.APEX_ARSENAL_META?.skinProgress?.(tab,active.id,skin.id)||null:null}catch{return null}};
+  const entitledSkin=(skin)=>!active||!skin||skin.id==='default'||cosmetics.isEntitled(tab,active.id,skin.id);
+  const lockLabelForSkin=(skin)=>{
+    if(!skin||skin.id==='default'||entitledSkin(skin))return '';
+    const progress=progressForSkin(skin);
+    if(!progress)return 'LOCKED · MASTERY REQUIRED';
+    return progress.weaponId
+      ? `LOCKED · ${Math.round(Number(progress.current)||0).toLocaleString('en-US')} / >1,000 RPG-7 DMG`
+      : `LOCKED · ${progress.current}/${progress.target} NEWBOT MASTERY`;
+  };
   const onEquip=(id)=>{
     if(!active)return;
+    const skin=skins.find(item=>item.id===id);
+    if(skin&&!entitledSkin(skin)){setRevision(n=>n+1);return}
     const result=cosmetics.equip(side,tab,active.id,id);
     if(result.ok)setSaveWarning(result.persisted===false);
+    else if(result.reason==='SKIN_LOCKED')setRevision(n=>n+1);
   };
   function changeTab(t){
     setTab(t);setQuery('');setFocusId(t==='hero'?'ROBOT':weapons[0]?.id||'');
@@ -171,14 +187,18 @@ export default function CosmeticLocker() {
               </div>
               <div className="apex-cosmetics-skinlabel">AVAILABLE APPEARANCES <span>{skins.length}</span></div>
               <div className="apex-cosmetics-skins">
-                {skins.map(skin=><button type="button" key={skin.id}
-                  className={'apex-cosmetics-skin'+(equipped?.id===skin.id?' selected':'')}
-                  onClick={()=>onEquip(skin.id)} aria-pressed={equipped?.id===skin.id}>
-                  <span className="apex-cosmetics-skin-swatch">{skin.preview?<img src={skin.preview} alt="" />:'✦'}</span>
-                  <span className="apex-cosmetics-skin-copy"><strong>{skin.label}</strong>
-                    <small>{skin.id==='default'?'Base visual identity':skin.detail||'Alternate presentation'}</small></span>
-                  <span className="apex-cosmetics-skin-status">{equipped?.id===skin.id?'EQUIPPED':'EQUIP'}</span>
-                </button>)}
+                {skins.map(skin=>{
+                  const locked=!entitledSkin(skin);
+                  const lockLabel=lockLabelForSkin(skin);
+                  return <button type="button" key={skin.id} disabled={locked}
+                    className={'apex-cosmetics-skin'+(equipped?.id===skin.id?' selected':'')+(locked?' locked':'')}
+                    onClick={()=>onEquip(skin.id)} aria-pressed={equipped?.id===skin.id}>
+                    <span className="apex-cosmetics-skin-swatch">{skin.preview?<img src={skin.preview} alt="" />:'✦'}</span>
+                    <span className="apex-cosmetics-skin-copy"><strong>{skin.label}</strong>
+                      <small>{lockLabel||(skin.id==='default'?'Base visual identity':skin.detail||'Alternate presentation')}</small></span>
+                    <span className="apex-cosmetics-skin-status">{equipped?.id===skin.id?'EQUIPPED':(locked?'LOCKED':'EQUIP')}</span>
+                  </button>
+                })}
               </div>
               {!variantsAvailable&&<p className="apex-cosmetics-notice">
                 Alternate skins will appear here when their approved artwork and effect packs are registered.

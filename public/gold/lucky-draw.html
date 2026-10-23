@@ -964,7 +964,9 @@ function startDraw(count){
   const res = meta.spin();
   if (!res || res.ok !== true){
     if (res && res.reason === 'complete') showPoolTag('ROSTER COMPLETE');
-    else showPoolTag('NEED ' + (res && res.need ? res.need : 350) + ' AC');
+    else if (res && res.reason === 'spinning') showPoolTag('DRAW PENDING');
+    else if (res && res.reason === 'need') showPoolTag('NEED ' + (res.need || 350) + ' AC');
+    else showPoolTag('DRAW UNAVAILABLE');
     return;
   }
   const winner = productionFighterIndex(res.name);

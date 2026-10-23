@@ -1,0 +1,92 @@
+# Surface machine-readable outputs from the completed RA-1 exact-SHA preview
+# run into a durable PR comment. This workflow is read-only with respect to
+# deployments and source; it only downloads the already-produced artifact and
+# posts its measured results to PR #101.
+name: RA-1 Publish Final Evidence Summary
+
+on:
+  push:
+    branches:
+      - arena/d7ff52e8-apex-chaos
+    paths:
+      - '.github/workflows/ra1-publish-final-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  publish-summary:
+    if: github.ref == 'refs/heads/arena/d7ff52e8-apex-chaos'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download completed exact-SHA evidence artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ra1-exact-856cdf4-final-evidence
+          path: evidence
+          run-id: 39735511402
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish measured results to PR #101 (no gate changes)
+        uses: actions/github-script@v7
+        env:
+          EVIDENCE_RUN_ID: '39735511402'
+          EXACT_SHA: 856cdf48247aa752b377eb2ddb6071426cf6e494
+          PREVIEW_URL: https://ra1-exact-856cdf4.apex-chaos.pages.dev
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const root = 'evidence';
+            const bot = JSON.parse(fs.readFileSync(path.join(root, 'bot-duration-production-preview', 'bot-duration.json'), 'utf8'));
+            const hud = JSON.parse(fs.readFileSync(path.join(root, 'hud-identities', 'hud-identity-matrix.json'), 'utf8'));
+            const netlify = fs.readFileSync(path.join(root, 'legacy-netlify-probe.txt'), 'utf8').trim();
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runId = Number(process.env.EVIDENCE_RUN_ID);
+            const { data: run } = await github.rest.actions.getWorkflowRun({ owner, repo, run_id: runId });
+            if (run.conclusion !== 'success' || run.head_sha !== 'a067a39ba4c8a3b1f15c253ec964bad7ed10a879') {
+              throw new Error(`Evidence run identity/status mismatch: ${run.head_sha} ${run.conclusion}`);
+            }
+            const botRows = bot.rows.map(row => `| ${row.p1 ?? row.pair?.[0] ?? '?'} vs ${row.p2 ?? row.pair?.[1] ?? '?'} | ${row.over ? 'KO resolved' : row.error ? `error: ${row.error}` : 'unresolved'} | ${row.duration ?? '—'} |`).join('\n');
+            const marker = '<!-- RA1_FINAL_EVIDENCE_CLOSURE_856CDF4 -->';
+            const body = `${marker}
+            ## RA-1 final evidence closure — exact runtime SHA
+
+            - **Exact app/runtime:** \`${process.env.EXACT_SHA}\` (revision \`20261021-cp5-r1\`, 70 versioned runtime modules).
+            - **External isolated Cloudflare preview:** ${process.env.PREVIEW_URL}
+            - **Cloudflare verification:** run [#${run.run_number}](${run.html_url}) passed live receipt/revision and runtime byte-parity checks; production receipt remained unchanged.
+            - **Browser acceptance:** tutorial, Result art, Fighter Select, compatibility, live HUD identity/HP, nested itch package, and BOT duration steps all completed successfully on the exact preview. HUD matrix: **${hud.passes}/${hud.rows.length}**; console errors ${hud.consoleErrors.length}; network failures ${hud.networkFailures.length}.
+            - **BOT duration sets remain distinct:** previously recorded production set **9/9, median 57.1 s**; dev-server replication **9/9, median 84.7 s**. New exact-preview sample: ${bot.stats.resolved}/${bot.rows.length} resolved, median **${bot.stats.median ?? 'n/a'} s**, p90 **${bot.stats.p90 ?? 'n/a'} s**, max **${bot.stats.max ?? 'n/a'} s**.
+
+            | Exact-preview BOT pairing | Outcome | Duration (s) |
+            | --- | --- | ---: |
+            ${botRows}
+
+            ### Legacy Netlify gate diagnosis
+
+            The separate PR check **actual-preview-entrypoint** still checks the older Netlify URL. Its read-only live probe from the successful Cloudflare workflow runner was:
+
+            \`\`\`text
+            ${netlify}
+            \`\`\`
+
+            This diagnostic does not relax or replace the existing assertion. A successful exact-SHA Cloudflare preview is a separate result; it does not retroactively turn the legacy Netlify check green.
+
+            ### Scope and owner decision
+
+            Gun-pick reminder appearing during tutorial pause is recorded for **RA-2** only. No gameplay, KO-only law, Fighter Select, Result layout, or tutorial design change was made for RA-1. No production deploy, merge, itch publish, or OWNER ACCEPTED decision occurred. **Owner acceptance remains pending.**
+
+            Evidence artifact: [ra1-exact-856cdf4-final-evidence](${run.html_url}#artifacts).`;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number: 101, per_page: 100 });
+            const previous = comments.find(comment => comment.body?.includes(marker));
+            if (previous) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: previous.id, body });
+              core.info(`Updated RA-1 closure comment ${previous.html_url}`);
+            } else {
+              const created = await github.rest.issues.createComment({ owner, repo, issue_number: 101, body });
+              core.info(`Posted RA-1 closure comment ${created.data.html_url}`);
+            }

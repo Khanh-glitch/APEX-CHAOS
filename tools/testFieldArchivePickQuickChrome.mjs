@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import {seedCp3EntitledProfile} from './cp3MasteryFixture.mjs';
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']});
 const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
 const output=path.resolve('docs/field-archive/pick-quick-equip');
@@ -13,6 +14,9 @@ try {
   await page.setViewport({...v,deviceScaleFactor:1});
   const errors=[];page.on('pageerror',e=>errors.push(String(e)));
   try{
+   // This flow really selects HUNTER after the NEWBOT equip, so its saved
+   // profile must legitimately own him as well as carry CP3 mastery.
+   await seedCp3EntitledProfile(page,{credits:425,ownedFighters:['ROBOT','HUNTER'],totalSpins:1,unlockedAt:{ROBOT:0,HUNTER:1}});
    await page.goto(url,{waitUntil:'domcontentloaded',timeout:65000});
    await page.waitForSelector('#apex-boot-start',{visible:true,timeout:85000});
    await page.click('#apex-boot-start');
