@@ -23,10 +23,9 @@
   font-family: 'Oswald', Arial, sans-serif;
   animation: apex-achievement-toast-in .26s ease-out;
 }
-.apex-achievement-toast[data-dock-safe="false"] {
-  /* A crowded combat HUD has no legal toast rectangle. Suppress the visual
-     layer instead of placing a fallback over a control; role=status remains
-     available to assistive technology. */
+.apex-achievement-toast[data-visual-pending="true"] {
+  /* Suppress only while no visible layout exists. The short-landscape
+     arena-edge fallback is separately measured against every HUD control. */
   opacity: 0 !important;
   pointer-events: none !important;
   animation: none !important;
@@ -292,6 +291,48 @@
   .apex-achievement-toast.is-compact { width: min(196px, calc(100vw - 16px)); }
   .apex-achievement-toast.is-compact .apex-achievement-toast-medal { width: 30px; height: 30px; font-size: 13px; }
   .apex-achievement-toast.is-compact .apex-achievement-toast-copy strong { font-size: 13px; }
+}
+/* When compact landscape HUD geometry leaves no clean rectangle, pin a small
+   read-only ribbon to the arena's top edge. The DOM placement algorithm has
+   already measured this rectangle against every HUD blocker; only canvas pixels
+   are covered, and the ribbon never intercepts touch/mouse input. */
+.apex-achievement-toast.is-arena-edge {
+  box-sizing: border-box;
+  width: min(218px, calc(100vw - 24px));
+  max-height: 58px;
+  padding: 4px 7px;
+  gap: 0;
+  border-radius: 3px;
+  clip-path: none;
+  overflow: hidden;
+  background: linear-gradient(110deg, rgba(22,19,12,.96), rgba(7,8,10,.93));
+  box-shadow: 0 4px 14px rgba(0,0,0,.44), inset 3px 0 0 #e8b45a;
+  animation: apex-achievement-toast-in .18s ease-out;
+}
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-medal { display: none; }
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-copy { width: 100%; gap: 0; }
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-copy > span {
+  font-size: 6px;
+  line-height: 1.05;
+  letter-spacing: .015em;
+  white-space: nowrap;
+}
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-copy strong {
+  font-size: 11px;
+  line-height: 1.08;
+}
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-copy small {
+  font-size: 6px;
+  line-height: 1.05;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-meter { gap: 5px; margin-top: 1px; }
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-meter i { height: 2px; }
+.apex-achievement-toast.is-arena-edge .apex-achievement-toast-meter em {
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: 0;
 }
 @media (prefers-reduced-motion: reduce) {
   .apex-achievement-toast,

@@ -1,7 +1,7 @@
 // Independent RA-2 review regression: an award must originate in the active
-// battle's real resultLedger -> recordMasteryProvisional path. At 844x390 the
-// mobile HUD has no safe dock; the award stays pending through an unsealed
-// Escape exit, then becomes visible on the unobstructed mobile product screen.
+// battle's real resultLedger -> recordMasteryProvisional path. At 844x390, if
+// no HUD-free dock exists, a measured arena-edge ribbon must still be visible
+// without intersecting controls/rails; the same live match must remain active.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -92,17 +92,25 @@ async function inspectToast(viewport, language) {
     const blockers = [...new Set(selectors.flatMap((selector) => [...document.querySelectorAll(selector)]))]
       .filter(visible).map((element) => {
         const rect = element.getBoundingClientRect();
-        return { selector: element.id ? `#${element.id}` : String(element.className || element.tagName),
+        const selector = element.id ? `#${element.id}` : String(element.className || element.tagName);
+        return { selector, kind: selector === '#arena' || selector === '#arenaCanvas' ? 'arena' : 'hud',
           box: rect.toJSON(), overlap: overlap(box, rect) };
       });
+    const arena = document.querySelector('#arena')?.getBoundingClientRect();
+    const intersection = arena ? Math.max(0, Math.min(box.right, arena.right) - Math.max(box.left, arena.left))
+      * Math.max(0, Math.min(box.bottom, arena.bottom) - Math.max(box.top, arena.top)) : 0;
+    const arenaCoveragePercent = arena?.width && arena.height ? 100 * intersection / (arena.width * arena.height) : 0;
     const meter = toast.querySelector('.apex-achievement-toast-meter');
     return {
       viewport, language, title: toast.querySelector('strong')?.textContent.trim() || '',
       visible: visible(toast), role: toast.getAttribute('role'), ariaLive: toast.getAttribute('aria-live'),
       statusText: toast.innerText.replace(/\s+/g, ' ').trim(), meterText: meter?.innerText.replace(/\s+/g, ' ').trim() || '',
       meterStatus: meter?.getAttribute('aria-label') || '', dockSafe: toast.dataset.dockSafe,
-      visualPending: toast.dataset.visualPending, box: box.toJSON(), blockers,
+      visualPending: toast.dataset.visualPending, visualMode: toast.dataset.visualMode,
+      box: box.toJSON(), blockers, arenaCoveragePercent,
       overlaps: blockers.filter((item) => item.overlap),
+      hudOverlaps: blockers.filter((item) => item.kind === 'hud' && item.overlap),
+      arenaOverlaps: blockers.filter((item) => item.kind === 'arena' && item.overlap),
       ownerSide: toast.dataset.ownerSide, ownerKind: toast.dataset.ownerKind,
       provisional: toast.dataset.provisional, walletEligible: toast.dataset.walletEligible,
     };
@@ -171,18 +179,36 @@ try {
   check(nativeEvidence.credits === baseline.credits && nativeEvidence.mastery === baseline.mastery,
     'provisional record does not mutate wallet or permanent mastery', { credits: nativeEvidence.credits });
 
-  await sleep(3_000); // Longer than the provisional display duration: no safe dock must pause it.
-  const landscape = await inspectToast('844x390', 'eng');
-  check(!!landscape && landscape.dockSafe === 'false' && landscape.visualPending === 'true'
-    && landscape.visible === false,
-  '844x390 has no legal HUD dock and the real provisional toast remains pending, not visually passed', landscape);
+  await page.waitForFunction(() => {
+    const toast = document.querySelector('.apex-achievement-toast[data-owner-side="P1"]');
+    return toast?.dataset.visualMode === 'arena-edge' && getComputedStyle(toast).opacity !== '0';
+  }, { timeout: 3_000 }).catch(() => {});
+  const mobileEng = await inspectToast('844x390', 'eng');
+  check(!!mobileEng && mobileEng.visible && mobileEng.dockSafe === 'false'
+    && mobileEng.visualPending === 'false' && mobileEng.visualMode === 'arena-edge'
+    && mobileEng.hudOverlaps.length === 0 && mobileEng.arenaCoveragePercent <= 9
+    && mobileEng.meterText === '8 / 6 uses' && mobileEng.statusText.includes('Steady Hand'),
+  '844x390 shows the native award in a visible arena-edge fallback, clear of HUD with measured minimal canvas coverage', mobileEng);
   await page.screenshot({ path: path.join(OUT, 'steady-hand-native-eng-p1-844x390.png') });
-  measurements.push(landscape);
+  measurements.push(mobileEng);
 
-  // Keep one live battle across responsive resizes (mobile emulation itself
-  // reloads Chromium). First try a wide, tall gameplay viewport; if its HUD
-  // still has no safe rectangle, leave the unsealed match through the ordinary
-  // Escape/back route and surface the same queued award on the product screen.
+  await page.evaluate(() => window.APEX_I18N?.setLanguage?.('vie'));
+  await page.waitForFunction(() => document.documentElement.lang === 'vi', { timeout: 10_000 }).catch(() => {});
+  await sleep(80);
+  const mobileVie = await inspectToast('844x390', 'vie');
+  check(!!mobileVie && mobileVie.visible && mobileVie.visualMode === 'arena-edge'
+    && mobileVie.hudOverlaps.length === 0 && mobileVie.meterText === '8 / 6 lượt'
+    && mobileVie.meterStatus === 'Đã đạt 8 lượt; mục tiêu 6 lượt'
+    && mobileVie.statusText.includes('Tay Súng Vững'),
+  'mobile VIE fallback visibly localizes the award and preserves achieved/target status without HUD overlap', mobileVie);
+  await page.screenshot({ path: path.join(OUT, 'steady-hand-native-vie-p1-844x390.png') });
+  measurements.push(mobileVie);
+  await page.evaluate(() => window.APEX_I18N?.setLanguage?.('eng'));
+  await page.waitForFunction(() => document.documentElement.lang === 'en', { timeout: 10_000 }).catch(() => {});
+
+  // Keep the same native award and unsealed match while checking the normal
+  // HUD-free dock at a larger responsive size; do not leave gameplay to fake a
+  // mobile visual pass on a different screen.
   let safeEng = null;
   let safeScene = '';
   for (const viewport of [{ width: 1844, height: 829 }, { width: 2560, height: 1440 }]) {
@@ -200,50 +226,30 @@ try {
       break;
     }
   }
-  if (!safeEng?.visible || safeEng.dockSafe !== 'true') {
-    await page.setViewport({ width: 844, height: 390, deviceScaleFactor: 1, isMobile: false, hasTouch: false });
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(() => document.querySelector('#stage')?.classList.contains('screen-fighter')
-      && document.body.dataset.apexSceneTransition === 'DONE', { timeout: 20_000 });
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(() => document.querySelector('#stage')?.classList.contains('screen-mode')
-      && document.body.dataset.apexSceneTransition === 'DONE', { timeout: 20_000 });
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(() => document.querySelector('#freeBattle')?.getClientRects().length > 0
-      && document.body.dataset.apexSceneTransition === 'DONE', { timeout: 20_000 });
-    await page.waitForFunction(() => {
-      const toast = document.querySelector('.apex-achievement-toast[data-owner-side="P1"]');
-      return toast?.dataset.dockSafe === 'true' && toast.dataset.visualPending === 'false';
-    }, { timeout: 12_000 }).catch(() => {});
-    await sleep(120);
-    safeEng = await inspectToast('844x390 home', 'eng');
-    safeScene = '844x390 home';
-  }
   const engMeter = safeEng?.meterText || '';
   const engStatus = safeEng?.meterStatus || '';
   check(!!safeEng && safeEng.visible && safeEng.dockSafe === 'true'
     && safeEng.provisional === 'true' && safeEng.ownerSide === 'P1'
-    && safeEng.walletEligible === 'true' && safeEng.overlaps.length === 0,
-  'the native provisional toast stays queued until a real HUD-free safe dock exists, then paints without overlap', safeEng);
+    && safeEng.walletEligible === 'true' && safeEng.hudOverlaps.length === 0
+    && safeEng.arenaOverlaps.length === 0,
+  'the same native provisional award also uses a real HUD-free safe dock without overlap', safeEng);
   const sameBattleState = await page.evaluate(() => window.getArsenalBattleDebugState?.() || null);
   check(safeScene.includes('battle') && sameBattleState?.active === true && sameBattleState.over == null,
-    'same live unsealed battle remains active while the queued native award paints in its safe resized viewport',
+    'same live unsealed battle remains active while mobile fallback and safe resized dock are inspected',
     { safeScene, active: sameBattleState?.active, over: sameBattleState?.over });
   check(engMeter === '8 / 6 uses' && engStatus === 'Achieved 8 uses; target 6 uses'
     && safeEng?.statusText.includes('8 / 6 uses'),
   'visible ENG meter and live status distinguish achieved 8 from target 6 and localize lượt to uses', { engMeter, engStatus, text: safeEng?.statusText });
-  const safeEngScreenshot = safeScene.includes('battle')
-    ? `steady-hand-native-eng-p1-${safeScene.replaceAll(' ', '-')}.png`
-    : 'steady-hand-native-eng-p1-844x390-safe-home.png';
+  const safeEngScreenshot = `steady-hand-native-eng-p1-${safeScene.replaceAll(' ', '-')}.png`;
   await page.screenshot({ path: path.join(OUT, safeEngScreenshot) });
   measurements.push(safeEng);
 
   await page.evaluate(() => window.APEX_I18N?.setLanguage?.('vie'));
   await page.waitForFunction(() => document.documentElement.lang === 'vi', { timeout: 10_000 }).catch(() => {});
-  await sleep(120);
+  await sleep(80);
   const safeVie = await inspectToast(safeScene, 'vie');
   check(!!safeVie && safeVie.visible && safeVie.dockSafe === 'true'
-    && safeVie.meterText === '8 / 6 lượt'
+    && safeVie.hudOverlaps.length === 0 && safeVie.meterText === '8 / 6 lượt'
     && safeVie.meterStatus === 'Đã đạt 8 lượt; mục tiêu 6 lượt'
     && safeVie.statusText.includes('8 / 6 lượt'),
   'visible VIE meter and live status restore the same achieved/target copy and unit', safeVie);

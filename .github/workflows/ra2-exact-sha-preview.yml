@@ -243,7 +243,8 @@ jobs:
             const failures=report=>new Set(report.checks.filter(x=>!x.ok).map(x=>x.name));
             const red={
               toast:[
-                '844x390 has no legal HUD dock and the real provisional toast remains pending, not visually passed',
+                '844x390 shows the native award in a visible arena-edge fallback, clear of HUD with measured minimal canvas coverage',
+                'mobile VIE fallback visibly localizes the award and preserves achieved/target status without HUD overlap',
                 'visible ENG meter and live status distinguish achieved 8 from target 6 and localize lượt to uses'
               ],
               mastery:['1440x900 hero rail has no wrapped or clipped glyphs'],

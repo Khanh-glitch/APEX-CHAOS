@@ -103,8 +103,8 @@ function compareQueueItems(a, b) {
 function toastDisplayMs(item) {
   return item.ownerKind === 'bot' ? 1800
     // Provisional meters include an achieved/threshold pair and a seal note;
-    // once a safe dock opens, allow enough time to actually read the full copy.
-    : item.provisional ? 5000
+    // once a visible dock opens, allow enough time to actually read the full copy.
+    : item.provisional ? 6500
       : item.achievement.rarity === 'legendary' ? 3400
         : item.achievement.rarity === 'epic' ? 3000
           : 2600;
@@ -162,14 +162,20 @@ function findSafeToastDock(element, ownerSide) {
   const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
   if (!(width > 0 && height > 0 && viewportWidth > 0 && viewportHeight > 0)) return null;
 
-  const blockers = [...new Set(GAMEPLAY_BLOCKERS.flatMap((selector) => {
-    try { return [...document.querySelectorAll(selector)]; } catch { return []; }
-  }))].filter((blocker) => blocker !== element && !element.contains(blocker)).map((blocker) => {
-    const rect = blocker.getBoundingClientRect();
-    const style = getComputedStyle(blocker);
+  const blockerElements = new Map();
+  for (const selector of GAMEPLAY_BLOCKERS) {
+    try {
+      document.querySelectorAll(selector).forEach((blocker) => {
+        if (blocker !== element && !element.contains(blocker)) blockerElements.set(blocker, selector);
+      });
+    } catch { /* optional HUD/tutorial anchor is not mounted */ }
+  }
+  const blockers = [...blockerElements].map(([element, selector]) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
     return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0
       && rect.width > 0 && rect.height > 0
-      ? { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
+      ? { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
       : null;
   }).filter(Boolean);
 
@@ -198,8 +204,29 @@ function findSafeToastDock(element, ownerSide) {
     const score = Math.abs(left - preferredLeft) + Math.abs(top - preferredTop) * 1.15;
     if (!best || score < best.score) best = { left, top, score };
   }
-  return best ? { left: best.left, top: best.top, safe: true }
-    : { left: preferredLeft, top: Math.max(8, preferredTop), safe: false };
+  if (best) return { left: best.left, top: best.top, safe: true, visualFallback: false };
+
+  // On short landscape phones the side controls and square arena can consume
+  // every HUD-free rectangle. Use a low-profile, pointer-transparent ribbon
+  // against the arena's top edge as a last-resort *visual* signal. It may cover
+  // only the game canvas, never controls/rails; its measured area is kept small.
+  const arena = document.querySelector('#arena');
+  const arenaRect = arena?.getBoundingClientRect();
+  const shortLandscape = viewportWidth <= 900 && viewportHeight <= 500 && viewportWidth > viewportHeight;
+  if (shortLandscape && arenaRect?.width > 0 && arenaRect.height > 0) {
+    const fallbackWidth = Math.min(218, viewportWidth - 24, arenaRect.width - 8);
+    const fallbackHeight = 58;
+    const left = arenaRect.left + 4;
+    const top = arenaRect.top + 4;
+    const fallback = { left, top, right: left + fallbackWidth, bottom: top + fallbackHeight };
+    const hudBlockers = blockers.filter((blocker) => blocker.selector !== '#arena' && blocker.selector !== '#arenaCanvas');
+    const onCanvas = fallback.left >= arenaRect.left && fallback.right <= arenaRect.right
+      && fallback.top >= arenaRect.top && fallback.bottom <= arenaRect.bottom;
+    const noHudOverlap = !hudBlockers.some((blocker) => fallback.left < blocker.right && fallback.right > blocker.left
+      && fallback.top < blocker.bottom && fallback.bottom > blocker.top);
+    if (onCanvas && noHudOverlap) return { left, top, safe: false, visualFallback: true };
+  }
+  return { left: preferredLeft, top: Math.max(8, preferredTop), safe: false, visualFallback: false };
 }
 
 export default function AchievementToast() {
@@ -229,9 +256,9 @@ export default function AchievementToast() {
     setCurrent(next);
     setOverflow(overflowRef.current);
     try { window.apexUiSfx?.play?.(toastSfxKey(next)); } catch { /* sound is optional */ }
-    // The read timer is owned by the safe-dock effect below. A queued award
-    // must remain pending, not expire invisibly, while every legal HUD lane is
-    // occupied; the visible duration begins only after an actual safe dock.
+    // The read timer is owned by the visual-dock effect below. A queued award
+    // must not expire invisibly; its visible duration begins only after either
+    // a HUD-free dock or the compact arena-edge fallback is actually painted.
     remainingDisplayRef.current = { key: next.key, remaining: toastDisplayMs(next) };
     window.clearTimeout(hideTimerRef.current);
   }, []);
@@ -278,7 +305,7 @@ export default function AchievementToast() {
     if (remainingDisplayRef.current?.key !== current.key) {
       remainingDisplayRef.current = { key: current.key, remaining: toastDisplayMs(current) };
     }
-    if (!dock?.safe) return undefined;
+    if (!dock?.safe && !dock?.visualFallback) return undefined;
     const remaining = Math.max(0, remainingDisplayRef.current.remaining);
     const startedAt = Date.now();
     let completed = false;
@@ -295,7 +322,7 @@ export default function AchievementToast() {
         remainingDisplayRef.current.remaining = Math.max(0, remaining - (Date.now() - startedAt));
       }
     };
-  }, [current?.key, dock?.safe]);
+  }, [current?.key, dock?.safe, dock?.visualFallback]);
 
   useEffect(() => {
     const enqueue = (event) => {
@@ -403,17 +430,18 @@ export default function AchievementToast() {
   // unlock. Ownership, rarity shape and the not-recorded note all survive.
   return (
     <div
-      className={`apex-achievement-toast rarity-${achievement.rarity} owner-${current.ownerKind}${current.provisional ? ' is-provisional' : ' is-sealed'}${isBotFeat ? ' is-compact' : ''}`}
+      className={`apex-achievement-toast rarity-${achievement.rarity} owner-${current.ownerKind}${current.provisional ? ' is-provisional' : ' is-sealed'}${isBotFeat ? ' is-compact' : ''}${dock?.visualFallback ? ' is-arena-edge' : ''}`}
       key={current.key}
       data-provisional={current.provisional ? 'true' : 'false'}
       data-owner-side={current.ownerSide || 'unknown'}
       data-owner-kind={current.ownerKind}
       data-wallet-eligible={current.walletEligible ? 'true' : 'false'}
       data-dock-safe={dock?.safe ? 'true' : 'false'}
-      data-visual-pending={dock?.safe ? 'false' : 'true'}
+      data-visual-mode={dock?.safe ? 'safe-dock' : dock?.visualFallback ? 'arena-edge' : 'pending'}
+      data-visual-pending={dock?.safe || dock?.visualFallback ? 'false' : 'true'}
       ref={toastRef}
       style={dock
-        ? { left: `${dock.left}px`, top: `${dock.top}px`, right: 'auto', bottom: 'auto', ...(dock.safe ? {} : { opacity: 0 }) }
+        ? { left: `${dock.left}px`, top: `${dock.top}px`, right: 'auto', bottom: 'auto', ...(dock.safe || dock.visualFallback ? {} : { opacity: 0 }) }
         : { opacity: 0 }}
       role="status"
       aria-live="polite"
