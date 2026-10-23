@@ -152,6 +152,7 @@ const GAMEPLAY_BLOCKERS = [
   '#freeBattle', '#apexMissionsOpen', '.modeCard', '.rosterCard', '.fighter-card', '.cta', '.lockIn',
   '#apexFirstPlayGuide', '#firstPlayGuide', '[data-apex-first-play-guide]',
   '.apex-first-play-guide', '.first-play-guide',
+  '.apex-coach-chip', '.apex-coach-skip', '.apex-guide-pickup-prompt',
 ];
 
 function findSafeToastDock(element, ownerSide) {
@@ -211,14 +212,16 @@ function findSafeToastDock(element, ownerSide) {
   }
   if (best) return { left: best.left, top: best.top, safe: true, visualFallback: false };
 
-  // On short landscape phones the side controls and square arena can consume
-  // every HUD-free rectangle. Use a low-profile, pointer-transparent ribbon
-  // against the arena's top edge as a last-resort *visual* signal. It may cover
-  // only the game canvas, never controls/rails; its measured area is kept small.
+  // On short landscape phones — or compact portrait phones when the live
+  // Tactical Pulse coach occupies the sub-arena strip — the side/bottom controls
+  // and square arena can consume every HUD-free rectangle. Use a low-profile,
+  // pointer-transparent ribbon against the arena's top edge as a last-resort
+  // *visual* signal. It may cover only the game canvas, never controls/rails/coach.
   const arena = document.querySelector('#arena');
   const arenaRect = arena?.getBoundingClientRect();
   const shortLandscape = viewportWidth <= 900 && viewportHeight <= 500 && viewportWidth > viewportHeight;
-  if (shortLandscape && arenaRect?.width > 0 && arenaRect.height > 0) {
+  const compactPortrait = viewportWidth <= 699 && viewportWidth <= viewportHeight;
+  if ((shortLandscape || compactPortrait) && arenaRect?.width > 0 && arenaRect.height > 0) {
     const fallbackWidth = Math.min(218, viewportWidth - 24, arenaRect.width - 8);
     const fallbackHeight = 58;
     const left = arenaRect.left + 4;
@@ -291,18 +294,35 @@ export default function AchievementToast() {
     window.addEventListener('resize', place);
     window.addEventListener('orientationchange', place);
     let observer;
+    const observedBlockers = new Set();
+    const syncObservedBlockers = () => {
+      if (!observer) return;
+      for (const selector of GAMEPLAY_BLOCKERS) {
+        try {
+          document.querySelectorAll(selector).forEach((blocker) => {
+            if (blocker !== element && !element.contains(blocker) && !observedBlockers.has(blocker)) {
+              observedBlockers.add(blocker);
+              observer.observe(blocker);
+            }
+          });
+        } catch { /* an optional HUD/tutorial anchor is not mounted */ }
+      }
+    };
+    const syncAndPlace = () => {
+      syncObservedBlockers();
+      place();
+    };
     if (typeof ResizeObserver !== 'undefined') {
       observer = new ResizeObserver(place);
       observer.observe(element);
-      for (const selector of GAMEPLAY_BLOCKERS) {
-        try { document.querySelectorAll(selector).forEach((blocker) => observer.observe(blocker)); }
-        catch { /* an optional HUD/tutorial anchor is not mounted */ }
-      }
+      syncObservedBlockers();
     }
+    window.addEventListener('apex:coach-layout-changed', syncAndPlace);
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', place);
       window.removeEventListener('orientationchange', place);
+      window.removeEventListener('apex:coach-layout-changed', syncAndPlace);
       observer?.disconnect();
     };
   }, [current?.key, current?.ownerSide, overflow, language]);

@@ -106,7 +106,9 @@ async function measureBattleDom(page, stateTag) {
     const p1HpVal = rOf('#p1Rail .vr-hp');
     const p1HpBar = rOf('#p1Rail .vr-bar');
     const coachChip = rOf('.apex-coach-chip');
+    const coachCopy = rOf('.apex-coach-copy');
     const coachSkip = rOf('.apex-coach-skip');
+    const toastBox = rOf('.apex-achievement-toast');
 
     const skillCards = [...document.querySelectorAll('#p1Side .skill')].map((el, idx) => ({
       idx,
@@ -163,7 +165,9 @@ async function measureBattleDom(page, stateTag) {
         p2Skills,
         p2Weapon,
         coachChip,
+        coachCopy,
         coachSkip,
+        toastBox,
       },
       overlaps: {
         p1IdentVsSkills: areaOverlap(p1Ident, p1Skills),
@@ -173,6 +177,11 @@ async function measureBattleDom(page, stateTag) {
         coachVsArena: areaOverlap(coachChip, arena),
         coachVsP1Skills: areaOverlap(coachChip, p1Skills),
         coachVsP1Ident: areaOverlap(coachChip, p1Ident),
+        toastVsCoachChip: areaOverlap(toastBox, coachChip),
+        toastVsCoachCopy: areaOverlap(toastBox, coachCopy),
+        toastVsCoachSkip: areaOverlap(toastBox, coachSkip),
+        toastVsP1Skill0: areaOverlap(toastBox, p1Skill0),
+        toastVsP1Skill1: areaOverlap(toastBox, p1Skill1),
       },
       arenaInViewport: !!arena
         && arena.left >= 0 && arena.top >= 0
@@ -591,6 +600,11 @@ async function runViewportJourney(browser, vp) {
     assert.equal(snap.overlaps.coachVsArena, 0, `${vp.id}/${k}: Coach card must have 0px arena overlap`);
     assert.equal(snap.overlaps.coachVsP1Skills, 0, `${vp.id}/${k}: Coach card must have 0px skill card overlap`);
     assert.equal(snap.overlaps.coachVsP1Ident, 0, `${vp.id}/${k}: Coach card must have 0px P1 ident overlap`);
+    assert.equal(snap.overlaps.toastVsCoachChip, 0, `${vp.id}/${k}: Achievement toast must have 0px overlap with Coach chip`);
+    assert.equal(snap.overlaps.toastVsCoachCopy, 0, `${vp.id}/${k}: Achievement toast must have 0px overlap with Coach instruction copy`);
+    assert.equal(snap.overlaps.toastVsCoachSkip, 0, `${vp.id}/${k}: Achievement toast must have 0px overlap with Coach SKIP target`);
+    assert.equal(snap.overlaps.toastVsP1Skill0, 0, `${vp.id}/${k}: Achievement toast must have 0px overlap with P1 Skill 0`);
+    assert.equal(snap.overlaps.toastVsP1Skill1, 0, `${vp.id}/${k}: Achievement toast must have 0px overlap with P1 Skill 1`);
     if (snap.boxes.coachSkip) {
       assert.ok(snap.boxes.coachSkip.width >= 44 && snap.boxes.coachSkip.height >= 44,
         `${vp.id}/${k}: SKIP hit target must be >=44x44px (${JSON.stringify(snap.boxes.coachSkip)})`);
@@ -723,6 +737,206 @@ async function runPortraitOpponentMiniLabelAudit(browser) {
   return out;
 }
 
+async function runCombinedCoachToastAudit(browser) {
+  const cases = [
+    { id: '390x844-eng', w: 390, h: 844, lang: 'eng' },
+    { id: '390x844-vie', w: 390, h: 844, lang: 'vie' },
+    { id: '320x568-eng', w: 320, h: 568, lang: 'eng' },
+    { id: '320x568-vie', w: 320, h: 568, lang: 'vie' },
+    { id: '844x390-eng', w: 844, h: 390, lang: 'eng' },
+    { id: '844x390-vie', w: 844, h: 390, lang: 'vie' },
+  ];
+  const out = {};
+  for (const c of cases) {
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.setViewport({ width: c.w, height: c.h, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    await page.evaluateOnNewDocument(() => {
+      localStorage.setItem('apex.alpha.coach.v2', JSON.stringify({
+        version: 2, step: 0, done: false, skipped: false, baselineBotMatches: 0, baselineSealedMatches: 0,
+      }));
+    });
+    const tapSel = async (sel) => {
+      await page.waitForSelector(sel, { visible: true, timeout: 60000 });
+      const pt = await page.$eval(sel, (el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+      await page.touchscreen.tap(pt.x, pt.y);
+      await sleep(160);
+    };
+    await page.goto(APP, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await tapSel('#apex-boot-start');
+    await page.waitForSelector('#freeBattle', { visible: true, timeout: 60000 });
+    await page.waitForFunction(() => document.body?.dataset?.apexSceneTransition === 'DONE', { timeout: 60000 });
+    await page.evaluate((lang) => window.APEX_I18N?.setLanguage?.(lang), c.lang);
+    await tapSel('#freeBattle');
+    await page.waitForFunction(
+      () => document.querySelector('#stage')?.classList.contains('screen-mode')
+        && document.body?.dataset?.apexSceneTransition === 'DONE',
+      { timeout: 30000 }
+    );
+    await tapSel('.modeCard[data-mode="bot"]');
+    await page.waitForFunction(
+      () => document.querySelector('#stage')?.classList.contains('screen-fighter')
+        && document.body?.dataset?.apexSceneTransition === 'DONE',
+      { timeout: 30000 }
+    );
+    await tapSel('#lockIn');
+    await page.waitForSelector('.fighter-active-p2', { timeout: 30000 });
+    await tapSel('#lockIn');
+    await page.waitForSelector('#battleHudHost.is-open #p1Side .skill', { timeout: 60000 });
+    await page.waitForFunction(() => !!document.querySelector('.apex-coach-chip') && !!window.fighters?.[0], { timeout: 20000 });
+
+    // Order A: Coach already mounted -> First Blood provisional toast fires simultaneously.
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('apex:mastery-provisional', { detail: { unlocks: [
+        { achievementId: 'first-blood', heroId: 'ROBOT', ownerSide: 'P1', ownerKind: 'human', walletEligible: true, battleMode: 'BOT', value: 1, at: Date.now() },
+      ] } }));
+    });
+    await page.waitForSelector('.apex-achievement-toast[data-owner-side="P1"]', { visible: true, timeout: 10000 });
+    await sleep(360);
+
+    const sampleCombined = () => page.evaluate(() => {
+      const box = (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return null;
+        const st = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity || 1) <= 0 || r.width <= 0 || r.height <= 0) {
+          return null;
+        }
+        return {
+          left: +r.left.toFixed(2),
+          top: +r.top.toFixed(2),
+          right: +r.right.toFixed(2),
+          bottom: +r.bottom.toFixed(2),
+          width: +r.width.toFixed(2),
+          height: +r.height.toFixed(2),
+        };
+      };
+      const ov = (a, b) => (!a || !b
+        ? 0
+        : +(Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+          * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))).toFixed(2));
+      const hitUnoccluded = (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        const pts = [
+          [r.left + r.width * 0.5, r.top + r.height * 0.5],
+          [r.left + 8, r.top + 8],
+          [r.right - 8, r.top + 8],
+          [r.left + 8, r.bottom - 8],
+          [r.right - 8, r.bottom - 8],
+        ];
+        return pts.every(([x, y]) => {
+          const hit = document.elementFromPoint(x, y);
+          return !!hit && (hit === el || el.contains(hit));
+        });
+      };
+      const toastEl = document.querySelector('.apex-achievement-toast[data-owner-side="P1"]');
+      const bodyEl = document.querySelector('.apex-guide-body');
+      const toast = box('.apex-achievement-toast[data-owner-side="P1"]');
+      const coachChip = box('.apex-coach-chip');
+      const coachCopy = box('.apex-coach-copy');
+      const coachBody = box('.apex-guide-body');
+      const coachSkip = box('.apex-coach-skip');
+      const arena = box('#arena');
+      const p1Skill0 = box('#p1Side .skill[data-i="0"]');
+      const p1Skill1 = box('#p1Side .skill[data-i="1"]');
+      const p1Weapon = box('#p1Side .weapon');
+      const p2Skills = box('#p2Side .skills');
+      const p1Rail = box('#p1Rail');
+      const p2Rail = box('#p2Rail');
+      const matchCenter = box('#matchCenter');
+      const toastHit = toast ? document.elementFromPoint(toast.left + toast.width / 2, toast.top + toast.height / 2) : null;
+      return {
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        toastMode: toastEl?.dataset?.visualMode || null,
+        toastPending: toastEl?.dataset?.visualPending || null,
+        toastPointerEvents: toastEl ? getComputedStyle(toastEl).pointerEvents : null,
+        tutorialPaused: !!window.APEX_TUTORIAL_PAUSE?.active,
+        coachText: document.querySelector('.apex-coach-chip')?.innerText?.replace(/\s+/g, ' ')?.trim() || '',
+        toastText: toastEl?.innerText?.replace(/\s+/g, ' ')?.trim() || '',
+        coachInViewport: !!coachChip
+          && coachChip.left >= 0 && coachChip.top >= 0
+          && coachChip.right <= window.innerWidth + 1 && coachChip.bottom <= window.innerHeight + 1,
+        coachBodyClipPx: bodyEl ? Math.max(0, bodyEl.scrollHeight - bodyEl.clientHeight) : null,
+        boxes: { toast, coachChip, coachCopy, coachBody, coachSkip, arena, p1Skill0, p1Skill1, p1Weapon, p2Skills },
+        overlaps: {
+          toastVsCoachChip: ov(toast, coachChip),
+          toastVsCoachCopy: ov(toast, coachCopy),
+          toastVsCoachBody: ov(toast, coachBody),
+          toastVsCoachSkip: ov(toast, coachSkip),
+          toastVsP1Skill0: ov(toast, p1Skill0),
+          toastVsP1Skill1: ov(toast, p1Skill1),
+          toastVsP1Weapon: ov(toast, p1Weapon),
+          toastVsP2Skills: ov(toast, p2Skills),
+          toastVsRails: +(ov(toast, p1Rail) + ov(toast, p2Rail) + ov(toast, matchCenter)).toFixed(2),
+          toastVsArena: ov(toast, arena),
+        },
+        hitTargets: {
+          coachSkipUnoccluded: hitUnoccluded('.apex-coach-skip'),
+          p1Skill0Unoccluded: hitUnoccluded('#p1Side .skill[data-i="0"]'),
+          p1Skill1Unoccluded: hitUnoccluded('#p1Side .skill[data-i="1"]'),
+          toastContainsHitElement: !!(toastEl && toastHit && (toastHit === toastEl || toastEl.contains(toastHit))),
+          toastHitThroughTag: toastHit ? `${toastHit.tagName.toLowerCase()}${toastHit.id ? `#${toastHit.id}` : ''}` : null,
+        },
+      };
+    });
+
+    const combinedCoachFirst = await sampleCombined();
+    await page.screenshot({ path: path.join(OUT_DIR, `after-${c.id}-coach-toast.png`) });
+
+    // Order B (exact 05 -> 06 live race): temporarily close coach, trigger toast FIRST, then reopen coach!
+    await page.evaluate(() => {
+      window.APEX_FIRST_PLAY_GUIDE?.close?.();
+    });
+    await page.waitForFunction(() => !document.querySelector('.apex-coach-chip'), { timeout: 5000 });
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('apex:mastery-provisional', { detail: { unlocks: [
+        { achievementId: 'first-blood', heroId: 'ROBOT', ownerSide: 'P1', ownerKind: 'human', walletEligible: true, battleMode: 'BOT', value: 1, at: Date.now() + 99 },
+      ] } }));
+    });
+    await sleep(160);
+    await page.evaluate(() => {
+      window.APEX_FIRST_PLAY_GUIDE?.open?.();
+    });
+    await page.waitForFunction(() => !!document.querySelector('.apex-coach-chip'), { timeout: 8000 });
+    await sleep(220);
+    const combinedToastFirst = await sampleCombined();
+
+    for (const [orderLabel, m] of [['coachFirst', combinedCoachFirst], ['toastFirst', combinedToastFirst]]) {
+      assert.equal(m.tutorialPaused, false, `${c.id} (${orderLabel}): tutorial pause must stay false`);
+      assert.ok(m.boxes.toast && m.toastPending === 'false', `${c.id} (${orderLabel}): achievement toast must remain visible (not hidden)`);
+      assert.ok(m.boxes.coachChip && m.coachInViewport, `${c.id} (${orderLabel}): coach chip must fit inside viewport (${JSON.stringify(m.boxes.coachChip)})`);
+      assert.ok((m.coachBodyClipPx ?? 0) <= 2, `${c.id} (${orderLabel}): coach copy must not vertically clip (${m.coachBodyClipPx})`);
+      assert.equal(m.overlaps.toastVsCoachChip, 0, `${c.id} (${orderLabel}): 0px toast vs coach card overlap (${JSON.stringify(m.overlaps)})`);
+      assert.equal(m.overlaps.toastVsCoachCopy, 0, `${c.id} (${orderLabel}): 0px toast vs coach copy overlap`);
+      assert.equal(m.overlaps.toastVsCoachBody, 0, `${c.id} (${orderLabel}): 0px toast vs coach body overlap`);
+      assert.equal(m.overlaps.toastVsCoachSkip, 0, `${c.id} (${orderLabel}): 0px toast vs coach SKIP overlap`);
+      assert.equal(m.overlaps.toastVsP1Skill0, 0, `${c.id} (${orderLabel}): 0px toast vs P1 Skill 0 overlap`);
+      assert.equal(m.overlaps.toastVsP1Skill1, 0, `${c.id} (${orderLabel}): 0px toast vs P1 Skill 1 overlap`);
+      assert.equal(m.overlaps.toastVsP1Weapon, 0, `${c.id} (${orderLabel}): 0px toast vs P1 Weapon overlap`);
+      assert.equal(m.overlaps.toastVsP2Skills, 0, `${c.id} (${orderLabel}): 0px toast vs P2 Skills overlap`);
+      assert.equal(m.overlaps.toastVsRails, 0, `${c.id} (${orderLabel}): 0px toast vs HP/Timer rails overlap`);
+      assert.equal(m.toastPointerEvents, 'none', `${c.id} (${orderLabel}): toast must stay pointer-events:none`);
+      assert.equal(m.hitTargets.toastContainsHitElement, false, `${c.id} (${orderLabel}): toast must never intercept pointer hit-testing`);
+      assert.equal(m.hitTargets.coachSkipUnoccluded, true, `${c.id} (${orderLabel}): Coach SKIP target must be 100% unoccluded`);
+      assert.equal(m.hitTargets.p1Skill0Unoccluded, true, `${c.id} (${orderLabel}): P1 Skill 0 target must be 100% unoccluded`);
+      assert.equal(m.hitTargets.p1Skill1Unoccluded, true, `${c.id} (${orderLabel}): P1 Skill 1 target must be 100% unoccluded`);
+    }
+    assert.deepEqual(errors, [], `${c.id}: zero browser runtime errors`);
+    out[c.id] = { coachFirst: combinedCoachFirst, toastFirst: combinedToastFirst };
+    console.log(`PASS Combined Coach + Toast (${c.id}) — mode=${combinedCoachFirst.toastMode}, coachOverlap=0px, hitTargetsUnoccluded=true`);
+    await context.close();
+  }
+  return out;
+}
+
 async function runMultiHeroAndLocaleAudit(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
@@ -817,6 +1031,7 @@ const auditBrowser = await puppeteer.launch({ executablePath: CHROME, headless: 
 try {
   report.localVieAudit = await runMultiHeroAndLocaleAudit(auditBrowser);
   report.portraitMiniLabelAudit = await runPortraitOpponentMiniLabelAudit(auditBrowser);
+  report.combinedCoachToastAudit = await runCombinedCoachToastAudit(auditBrowser);
 } finally {
   await auditBrowser.close();
 }

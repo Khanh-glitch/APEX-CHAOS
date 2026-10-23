@@ -301,6 +301,33 @@ jobs:
           done
           test "$ready" = "1" || { cat /tmp/tactical-pulse-preview.log; exit 1; }
           node tools/auditTacticalPulseRuntimeQa.mjs
+          kill $TP_PREVIEW_PID 2>/dev/null || true
+
+      - name: Verify itch.io Guest-first 200 AC and local nested /html/apex/ Chromium E2E (no publish, no ZIP)
+        shell: bash
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          VITE_SUPABASE_URL: ''
+          VITE_SUPABASE_ANON_KEY: ''
+          VITE_APEX_DEV_ADMIN: '0'
+          VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+          VITE_APEX_EMAIL_CODE_ENABLED: '0'
+          ITCH_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/itch-nested-candidate
+        run: |
+          set -euo pipefail
+          node tools/testItchGuestReleaseGate.mjs
+          pnpm test:owner-playtest-economy
+          pnpm test:battle-outcome-side
+          node tools/testCloudSecurityContracts.mjs
+          node tools/testCloudLifecycleRaces.mjs
+          pnpm build
+          node tools/testShippingDist.mjs
+          node tools/testCP16BuildReceipt.mjs
+          printf '%s\n' "${GITHUB_SHA}" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          EXPECTED_GIT_SHA="${GITHUB_SHA}" node tools/auditItchNestedCandidateE2e.mjs
+          rm -rf dist-itch-html5 dist/ITCH_GUEST_BUILD_SHA.txt
+          ! ls *itch*.zip >/dev/null 2>&1
 
       - name: Upload build and acceptance evidence
         if: always()

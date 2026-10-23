@@ -1,0 +1,211 @@
+{
+  "generatedAt": "2026-10-23T13:42:21.438Z",
+  "gitSha": "5b5ea5b3b4567d5cbbe7f36a333aa631ebbaf430",
+  "nestedEntryPath": "/html/apex/index.html",
+  "totalServedRequests": 1826,
+  "serverErrors": [],
+  "zipCreated": false,
+  "cloudflarePublished": false,
+  "subGateReceipts": {
+    "testItchNestedChrome": {
+      "command": "node tools/testItchNestedChrome.mjs",
+      "exitCode": 0,
+      "stdoutTail": [
+        "NESTED ITCH BROWSER RUNTIME PASS: real Chrome /html/apex/ iframe boot, Guest +200 AC, 350 starter AC, no login UI"
+      ],
+      "stderrTail": []
+    },
+    "testRa1NestedItchHostingBrowser (390x844 portrait)": {
+      "command": "node tools/testRa1NestedItchHostingBrowser.mjs",
+      "exitCode": 0,
+      "stdoutTail": [
+        "PASS nested Result Gold receives the parent-sealed payload unchanged :: {\"delivered\":\"../assets/dictionary/heroes/shuri/standing.webp\",\"sealed\":\"../assets/dictionary/heroes/shuri/standing.webp\",\"portable\":true}",
+        "PASS nested Result Gold decodes hero portraits and weapon art (no placeholders) :: {\"imgs\":[{\"src\":\"http://127.0.0.1:37419/html/apex/assets/dictionary/heroes/shuri/standing.webp\",\"nw\":1122},{\"src\":\"http://127.0.0.1:37419/html/apex/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261023-tp-r1\",\"nw\":819}],\"gun\":{\"src\":\"http://127.0.0.1:37419/html/apex/assets/arsenal/weapons/c/SHOTGUN.png\",\"nw\":250},\"tags\":[]}",
+        "PASS nested reload keeps the guest save reachable :: {\"has\":true,\"keys\":12}",
+        "PASS nested hosting produces no first-party 404 and no page exception :: []",
+        "PASS nested hosting requests no external host (Guest-only release law) :: []",
+        "",
+        "RA-1 nested itch hosting — evidence /tmp/evidence-issue-103/itch-nested/ra1-nested-390x844",
+        "RESULT: PASS (15 pass, 0 fail)"
+      ],
+      "stderrTail": []
+    }
+  },
+  "journeys": {
+    "844x390-phone-touch": {
+      "viewport": {
+        "id": "844x390-phone-touch",
+        "width": 844,
+        "height": 390,
+        "touch": true
+      },
+      "attemptsUsed": 2,
+      "nonWinAttempts": [
+        {
+          "attempt": 1,
+          "postMatchInfo": {
+            "credits": 375,
+            "winnerSide": "P2",
+            "battleMode": "BOT",
+            "claimedMatchIds": [
+              "match-1792762478780-83396"
+            ]
+          },
+          "matchSnapshotBeforeResult": {
+            "winnerSide": "P2",
+            "battleMode": "BOT",
+            "roundsWon": null
+          }
+        }
+      ],
+      "guestBefore": {
+        "credits": 350,
+        "ownedFighters": [
+          "ROBOT"
+        ],
+        "baseURI": "http://127.0.0.1:37419/html/apex/gold/",
+        "frameHref": "http://127.0.0.1:37419/html/apex/index.html"
+      },
+      "accountAudit": {
+        "text": "GUEST PROFILE · SAVED ON THIS DEVICE GUEST-2076 PLAYER ID · 8882e57d-4f73-4b02 ✕ APEX CREDITS 350 AC OWNED FIGHTERS 1 / 8 TOTAL DRAWS 0 OWNED FIGHTERS NEWBOT HUNTER · LOCKED CRYSTALA · LOCKED MAGNET · LOCKED FROST · LOCKED MIRROR · LOCKED BOXE · LOCKED SHURI · LOCKED DISPLAY NAME SAVE NAME SAVE STATUS DEVICE SAVE ACTIVE Progress, AC and fighters are saved in this browser. Clearing site data erases them; this Alpha has no account sync. PLAY INSTANTLY — NO SIGN-IN BOT win: +200 AC · BOT loss: +25 AC · Completed LOCAL match: +50 AC. Lucky Draw spends AC on this device; Fighter Shop is not open yet. Missions pay extra AC for completed battles. CONTINUE PLAYING",
+        "passwordInputs": 0,
+        "emailInputs": 0,
+        "oauthButtons": 0
+      },
+      "postMatchInfo": {
+        "credits": 550,
+        "winnerSide": "P1",
+        "battleMode": "BOT",
+        "claimedMatchIds": [
+          "match-1792762589107-105451"
+        ]
+      },
+      "idempotencyAndAbuseAudit": {
+        "before": 550,
+        "afterDuplicate": 550,
+        "afterInvalidAndBot": 550,
+        "masteryUnchangedOnBotEvent": true,
+        "dup1": {
+          "ok": false,
+          "reason": "not-awardable",
+          "balance": 550
+        },
+        "dup2": {
+          "ok": false,
+          "reason": "not-awardable",
+          "balance": 550
+        },
+        "invalidNull": {
+          "ok": false,
+          "reason": "not-awardable",
+          "balance": 550
+        },
+        "invalidLab": {
+          "ok": false,
+          "reason": "invalid-mode",
+          "balance": 550
+        },
+        "invalidUnknown": {
+          "ok": false,
+          "reason": "invalid-mode",
+          "balance": 550
+        }
+      },
+      "resultContinueBox": {
+        "x": 294.546875,
+        "y": 219,
+        "height": 44,
+        "width": 254.890625
+      },
+      "persistedAfterReload": {
+        "credits": 550,
+        "claimedMatchIds": [
+          "match-1792762589107-105451"
+        ]
+      },
+      "pageErrors": [],
+      "consoleErrors": [],
+      "badHttp": [],
+      "externalUrls": []
+    },
+    "1440x900-desktop": {
+      "viewport": {
+        "id": "1440x900-desktop",
+        "width": 1440,
+        "height": 900,
+        "touch": false
+      },
+      "attemptsUsed": 1,
+      "nonWinAttempts": [],
+      "guestBefore": {
+        "credits": 350,
+        "ownedFighters": [
+          "ROBOT"
+        ],
+        "baseURI": "http://127.0.0.1:37419/html/apex/gold/",
+        "frameHref": "http://127.0.0.1:37419/html/apex/index.html"
+      },
+      "accountAudit": {
+        "text": "GUEST PROFILE · SAVED ON THIS DEVICE GUEST-1161 PLAYER ID · f16060bb-f1b0-4692 ✕ APEX CREDITS 350 AC OWNED FIGHTERS 1 / 8 TOTAL DRAWS 0 OWNED FIGHTERS NEWBOT HUNTER · LOCKED CRYSTALA · LOCKED MAGNET · LOCKED FROST · LOCKED MIRROR · LOCKED BOXE · LOCKED SHURI · LOCKED DISPLAY NAME SAVE NAME SAVE STATUS DEVICE SAVE ACTIVE Progress, AC and fighters are saved in this browser. Clearing site data erases them; this Alpha has no account sync. PLAY INSTANTLY — NO SIGN-IN BOT win: +200 AC · BOT loss: +25 AC · Completed LOCAL match: +50 AC. Lucky Draw spends AC on this device; Fighter Shop is not open yet. Missions pay extra AC for completed battles. CONTINUE PLAYING",
+        "passwordInputs": 0,
+        "emailInputs": 0,
+        "oauthButtons": 0
+      },
+      "postMatchInfo": {
+        "credits": 550,
+        "winnerSide": "P1",
+        "battleMode": "BOT",
+        "claimedMatchIds": [
+          "match-1792762739370-75240"
+        ]
+      },
+      "idempotencyAndAbuseAudit": {
+        "before": 550,
+        "afterDuplicate": 550,
+        "afterInvalidAndBot": 550,
+        "masteryUnchangedOnBotEvent": true,
+        "dup1": {
+          "ok": false,
+          "reason": "not-awardable",
+          "balance": 550
+        },
+        "dup2": {
+          "ok": false,
+          "reason": "not-awardable",
+          "balance": 550
+        },
+        "invalidNull": {
+          "ok": false,
+          "reason": "not-awardable",
+          "balance": 550
+        },
+        "invalidLab": {
+          "ok": false,
+          "reason": "invalid-mode",
+          "balance": 550
+        },
+        "invalidUnknown": {
+          "ok": false,
+          "reason": "invalid-mode",
+          "balance": 550
+        }
+      },
+      "resultContinueBox": {
+        "x": 564.984375,
+        "y": 713.90625,
+        "height": 52,
+        "width": 310
+      },
+      "persistedAfterReload": {
+        "credits": 550,
+        "claimedMatchIds": [
+          "match-1792762739370-75240"
+        ]
+      },
+      "pageErrors": [],
+      "consoleErrors": [],
+      "badHttp": [],
+      "externalUrls": []
+    }
+  }
+}

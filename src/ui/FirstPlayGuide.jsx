@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './firstPlayGuide.css';
 
 // APEX CHAOS — Learn by Playing Coach (Tactical Pulse Non-Blocking Edition).
@@ -482,10 +482,11 @@ function computeBattleFrame(anchor, measuredChipHeight) {
     }
   }
 
+  const fallbackWidth = Math.min(250, vw - 16);
   const chosen = best || {
-    left: Math.max(8, Math.min(vw - 240, Math.round(rect.left))),
+    left: Math.max(8, Math.min(vw - fallbackWidth - 8, Math.round(rect.left))),
     top: Math.max(8, Math.round(rect.top - chipH - 8)),
-    width: Math.min(250, vw - 16),
+    width: fallbackWidth,
     compact: true,
     narrow: false,
   };
@@ -518,7 +519,7 @@ function findMenuAnchor(step) {
   return null;
 }
 
-function computeMenuFrame(step, anchor) {
+function computeMenuFrame(step, anchor, chipHeight = 82) {
   if (!anchor?.isConnected) return null;
   const rect = anchor.getBoundingClientRect();
   if (!Number.isFinite(rect.width) || rect.width < 2 || rect.height < 2) return null;
@@ -529,18 +530,18 @@ function computeMenuFrame(step, anchor) {
   const viewportWidth = window.innerWidth || document.documentElement.clientWidth || rect.right;
   const viewportHeight = window.innerHeight || document.documentElement.clientHeight || rect.bottom;
   const cardWidth = Math.min(320, Math.max(220, viewportWidth - 24));
+  const h = Math.max(68, Math.min(130, chipHeight || 82));
   const gap = 10;
   const clampLeft = (value) => Math.max(12, Math.min(Math.max(12, viewportWidth - cardWidth - 12), value));
 
   let placement = 'above';
   const chipLeft = clampLeft(rect.left + (rect.width / 2) - (cardWidth / 2));
-  let chipTop = Math.max(12, rect.top - gap);
-  let chipTransform = 'translateY(-100%)';
+  let chipTop = Math.max(12, rect.top - gap - h);
+  const chipTransform = 'none';
 
-  if (rect.top < 118) {
+  if (rect.top < h + gap + 12) {
     placement = 'below';
-    chipTop = Math.min(Math.max(12, viewportHeight - 96), rect.bottom + gap);
-    chipTransform = 'none';
+    chipTop = Math.min(Math.max(12, viewportHeight - h - 12), rect.bottom + gap);
   }
 
   return {
@@ -926,7 +927,8 @@ export default function FirstPlayGuide() {
 
     setHintSlot((prev) => (prev === null ? prev : null));
     const menuAnchor = findMenuAnchor(step);
-    setFrameIfChanged(computeMenuFrame(step, menuAnchor));
+    const measuredMenuH = chipRef.current?.offsetHeight || 82;
+    setFrameIfChanged(computeMenuFrame(step, menuAnchor, measuredMenuH));
   }, [clearFrame, finishCoach, setFrameIfChanged, setPickupIfChanged, updateCoach]);
 
   // Listen directly to authoritative combat engine Cast events for immediate step sync.
@@ -1022,6 +1024,13 @@ export default function FirstPlayGuide() {
       try { element.classList.remove('apex-coach-taught'); } catch { /* detached */ }
     };
   }, [active, coach, hintSlot]);
+
+  // Notify live overlays (e.g. AchievementToast safe-dock solver) whenever the
+  // non-blocking coach mounts, relocates, switches lessons, or unmounts.
+  useLayoutEffect(() => {
+    try { window.dispatchEvent(new CustomEvent('apex:coach-layout-changed')); }
+    catch { /* environment without CustomEvent */ }
+  }, [active, coach?.done, coach?.step, frame, pickupFrame, hintSlot, language]);
 
   if (!active || !coach || coach.done || (!frame && !pickupFrame)) return null;
 

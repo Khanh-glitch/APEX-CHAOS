@@ -2,7 +2,20 @@
 // HTTP 200 on its index.html / assets is insufficient: cosmetic registry and
 // other client runtime initialization must execute successfully too.
 import assert from 'node:assert/strict';
-import puppeteer from 'puppeteer-core';
+import { createRequire } from 'node:module';
+
+async function loadPuppeteer() {
+  try {
+    const mod = await import('puppeteer-core');
+    return mod.default ?? mod;
+  } catch {
+    const probeReq = createRequire(new URL('./probe/package.json', import.meta.url));
+    const mod = await import(probeReq.resolve('puppeteer-core'));
+    return mod.default ?? mod;
+  }
+}
+
+const puppeteer = await loadPuppeteer();
 const target = process.env.ITCH_NESTED_URL || 'https://itch-html5-subpath-20261020.apex-chaos.pages.dev/';
 const browserPath = process.env.CHROME_PATH;
 if (!browserPath) throw Error('CHROME_PATH required for real Chrome QA');

@@ -1,0 +1,446 @@
+{
+  "390x844-eng": {
+    "toastMode": "safe-dock",
+    "toastDockSafe": "true",
+    "tutorialPaused": false,
+    "coachText": "TACTICAL PULSE · 4/6 CAST SKILL 2 Press K now to activate Skill 2. · VIRTUAL ARMOR SKIP",
+    "toastText": "◍ YOU · ACHIEVEMENT IN REACH · COMMON First Blood FINISH THE MATCH TO RECORD IT",
+    "boxes": {
+      "toast": {
+        "left": 8,
+        "top": 589.98,
+        "right": 237.11,
+        "bottom": 639.98,
+        "width": 229.11,
+        "height": 50
+      },
+      "coachChip": {
+        "left": 10,
+        "top": 537,
+        "right": 350,
+        "bottom": 611.48,
+        "width": 340,
+        "height": 74.48
+      },
+      "coachCopy": {
+        "left": 21,
+        "top": 544,
+        "right": 278,
+        "bottom": 604.48,
+        "width": 257,
+        "height": 60.48
+      },
+      "coachSkip": {
+        "left": 285,
+        "top": 552.23,
+        "right": 341,
+        "bottom": 596.23,
+        "width": 56,
+        "height": 44
+      },
+      "arena": {
+        "left": 6,
+        "top": 104,
+        "right": 384,
+        "bottom": 482,
+        "width": 378,
+        "height": 378
+      },
+      "p1Skill0": {
+        "left": 6,
+        "top": 646,
+        "right": 191,
+        "bottom": 836,
+        "width": 185,
+        "height": 190
+      },
+      "p1Skill1": {
+        "left": 199,
+        "top": 646,
+        "right": 384,
+        "bottom": 836,
+        "width": 185,
+        "height": 190
+      }
+    },
+    "overlaps": {
+      "toastVsCoachChip": 4882.87,
+      "toastVsCoachCopy": 3133.6,
+      "toastVsCoachSkip": 0,
+      "toastVsArena": 0,
+      "toastVsP1Skill0": 0,
+      "toastVsP1Skill1": 0
+    },
+    "skipHitTargetTag": "apex-coach-skip apex-guide-close"
+  },
+  "390x844-vie": {
+    "toastMode": "safe-dock",
+    "toastDockSafe": "true",
+    "tutorialPaused": false,
+    "coachText": "NHỊP CHIẾN THUẬT · 4/6 DÙNG CHIÊU 2 Nhấn K ngay để bật Chiêu 2. · VIRTUAL ARMOR BỎ QUA",
+    "toastText": "◍ BẠN · THÀNH TỰU ĐANG CHỜ CHỐT · THƯỜNG Máu Đầu Tiên HOÀN THÀNH TRẬN ĐỂ GHI NHẬN",
+    "boxes": {
+      "toast": {
+        "left": 8,
+        "top": 590,
+        "right": 251.44,
+        "bottom": 640,
+        "width": 243.44,
+        "height": 50
+      },
+      "coachChip": {
+        "left": 10,
+        "top": 537,
+        "right": 350,
+        "bottom": 611.48,
+        "width": 340,
+        "height": 74.48
+      },
+      "coachCopy": {
+        "left": 21,
+        "top": 544,
+        "right": 258.69,
+        "bottom": 604.48,
+        "width": 237.69,
+        "height": 60.48
+      },
+      "coachSkip": {
+        "left": 265.69,
+        "top": 552.23,
+        "right": 341,
+        "bottom": 596.23,
+        "width": 75.31,
+        "height": 44
+      },
+      "arena": {
+        "left": 6,
+        "top": 104,
+        "right": 384,
+        "bottom": 482,
+        "width": 378,
+        "height": 378
+      },
+      "p1Skill0": {
+        "left": 6,
+        "top": 646,
+        "right": 191,
+        "bottom": 836,
+        "width": 185,
+        "height": 190
+      },
+      "p1Skill1": {
+        "left": 199,
+        "top": 646,
+        "right": 384,
+        "bottom": 836,
+        "width": 185,
+        "height": 190
+      }
+    },
+    "overlaps": {
+      "toastVsCoachChip": 5186.13,
+      "toastVsCoachCopy": 3336.77,
+      "toastVsCoachSkip": 0,
+      "toastVsArena": 0,
+      "toastVsP1Skill0": 0,
+      "toastVsP1Skill1": 0
+    },
+    "skipHitTargetTag": "apex-coach-skip apex-guide-close"
+  },
+  "320x568-eng": {
+    "toastMode": "pending",
+    "toastDockSafe": "false",
+    "tutorialPaused": false,
+    "coachText": "TACTICAL PULSE · 4/6 CAST SKILL 2 Press K now to activate Skill 2. · VIRTUAL ARMOR SKIP",
+    "toastText": "◍ YOU · ACHIEVEMENT IN REACH · COMMON First Blood FINISH THE MATCH TO RECORD IT",
+    "boxes": {
+      "toast": {
+        "left": 8,
+        "top": 520,
+        "right": 218.98,
+        "bottom": 560,
+        "width": 210.98,
+        "height": 40
+      },
+      "coachChip": {
+        "left": 80,
+        "top": 332,
+        "right": 330,
+        "bottom": 406.48,
+        "width": 250,
+        "height": 74.48
+      },
+      "coachCopy": {
+        "left": 91,
+        "top": 339,
+        "right": 258,
+        "bottom": 399.48,
+        "width": 167,
+        "height": 60.48
+      },
+      "coachSkip": {
+        "left": 265,
+        "top": 347.23,
+        "right": 321,
+        "bottom": 391.23,
+        "width": 56,
+        "height": 44
+      },
+      "arena": {
+        "left": 34,
+        "top": 104,
+        "right": 286,
+        "bottom": 356,
+        "width": 252,
+        "height": 252
+      },
+      "p1Skill0": {
+        "left": 6,
+        "top": 414,
+        "right": 156,
+        "bottom": 560,
+        "width": 150,
+        "height": 146
+      },
+      "p1Skill1": {
+        "left": 164,
+        "top": 414,
+        "right": 314,
+        "bottom": 560,
+        "width": 150,
+        "height": 146
+      }
+    },
+    "overlaps": {
+      "toastVsCoachChip": 0,
+      "toastVsCoachCopy": 0,
+      "toastVsCoachSkip": 0,
+      "toastVsArena": 0,
+      "toastVsP1Skill0": 5920,
+      "toastVsP1Skill1": 2199.2
+    },
+    "skipHitTargetTag": "apex-coach-skip apex-guide-close"
+  },
+  "320x568-vie": {
+    "toastMode": "pending",
+    "toastDockSafe": "false",
+    "tutorialPaused": false,
+    "coachText": "NHỊP CHIẾN THUẬT · 4/6 DÙNG CHIÊU 2 Nhấn K ngay để bật Chiêu 2. · VIRTUAL ARMOR BỎ QUA",
+    "toastText": "◍ BẠN · THÀNH TỰU ĐANG CHỜ CHỐT · THƯỜNG Máu Đầu Tiên HOÀN THÀNH TRẬN ĐỂ GHI NHẬN",
+    "boxes": {
+      "toast": {
+        "left": 8,
+        "top": 520,
+        "right": 232.86,
+        "bottom": 560,
+        "width": 224.86,
+        "height": 40
+      },
+      "coachChip": {
+        "left": 80,
+        "top": 308,
+        "right": 330,
+        "bottom": 406,
+        "width": 250,
+        "height": 98
+      },
+      "coachCopy": {
+        "left": 91,
+        "top": 315,
+        "right": 238.69,
+        "bottom": 399,
+        "width": 147.69,
+        "height": 84
+      },
+      "coachSkip": {
+        "left": 245.69,
+        "top": 335,
+        "right": 321,
+        "bottom": 379,
+        "width": 75.31,
+        "height": 44
+      },
+      "arena": {
+        "left": 34,
+        "top": 104,
+        "right": 286,
+        "bottom": 356,
+        "width": 252,
+        "height": 252
+      },
+      "p1Skill0": {
+        "left": 6,
+        "top": 414,
+        "right": 156,
+        "bottom": 560,
+        "width": 150,
+        "height": 146
+      },
+      "p1Skill1": {
+        "left": 164,
+        "top": 414,
+        "right": 314,
+        "bottom": 560,
+        "width": 150,
+        "height": 146
+      }
+    },
+    "overlaps": {
+      "toastVsCoachChip": 0,
+      "toastVsCoachCopy": 0,
+      "toastVsCoachSkip": 0,
+      "toastVsArena": 0,
+      "toastVsP1Skill0": 5920,
+      "toastVsP1Skill1": 2754.4
+    },
+    "skipHitTargetTag": "apex-coach-skip apex-guide-close"
+  },
+  "844x390-eng": {
+    "toastMode": "arena-edge",
+    "toastDockSafe": "false",
+    "tutorialPaused": false,
+    "coachText": "TACTICAL PULSE · 4/6 CAST SKILL 2 Press K now to activate Skill 2. · VIRTUAL ARMOR SKIP",
+    "toastText": "YOU · ACHIEVEMENT IN REACH · COMMON First Blood FINISH THE MATCH TO RECORD IT",
+    "boxes": {
+      "toast": {
+        "left": 342,
+        "top": 50,
+        "right": 560,
+        "bottom": 84.47,
+        "width": 218,
+        "height": 34.47
+      },
+      "coachChip": {
+        "left": 684,
+        "top": 195,
+        "right": 836,
+        "bottom": 320.63,
+        "width": 152,
+        "height": 125.63
+      },
+      "coachCopy": {
+        "left": 694,
+        "top": 202,
+        "right": 828,
+        "bottom": 265.63,
+        "width": 134,
+        "height": 63.63
+      },
+      "coachSkip": {
+        "left": 694,
+        "top": 269.63,
+        "right": 828,
+        "bottom": 313.63,
+        "width": 134,
+        "height": 44
+      },
+      "arena": {
+        "left": 338,
+        "top": 46,
+        "right": 676,
+        "bottom": 384,
+        "width": 338,
+        "height": 338
+      },
+      "p1Skill0": {
+        "left": 6,
+        "top": 94,
+        "right": 332,
+        "bottom": 205,
+        "width": 326,
+        "height": 111
+      },
+      "p1Skill1": {
+        "left": 6,
+        "top": 211,
+        "right": 332,
+        "bottom": 322,
+        "width": 326,
+        "height": 111
+      }
+    },
+    "overlaps": {
+      "toastVsCoachChip": 0,
+      "toastVsCoachCopy": 0,
+      "toastVsCoachSkip": 0,
+      "toastVsArena": 7514.46,
+      "toastVsP1Skill0": 0,
+      "toastVsP1Skill1": 0
+    },
+    "skipHitTargetTag": "apex-coach-skip apex-guide-close"
+  },
+  "844x390-vie": {
+    "toastMode": "arena-edge",
+    "toastDockSafe": "false",
+    "tutorialPaused": false,
+    "coachText": "NHỊP CHIẾN THUẬT · 4/6 DÙNG CHIÊU 2 Nhấn K ngay để bật Chiêu 2. · VIRTUAL ARMOR BỎ QUA",
+    "toastText": "BẠN · THÀNH TỰU ĐANG CHỜ CHỐT · THƯỜNG Máu Đầu Tiên HOÀN THÀNH TRẬN ĐỂ GHI NHẬN",
+    "boxes": {
+      "toast": {
+        "left": 342,
+        "top": 50,
+        "right": 560,
+        "bottom": 84.47,
+        "width": 218,
+        "height": 34.47
+      },
+      "coachChip": {
+        "left": 684,
+        "top": 195,
+        "right": 836,
+        "bottom": 331.55,
+        "width": 152,
+        "height": 136.55
+      },
+      "coachCopy": {
+        "left": 694,
+        "top": 202,
+        "right": 828,
+        "bottom": 276.55,
+        "width": 134,
+        "height": 74.55
+      },
+      "coachSkip": {
+        "left": 694,
+        "top": 280.55,
+        "right": 828,
+        "bottom": 324.55,
+        "width": 134,
+        "height": 44
+      },
+      "arena": {
+        "left": 338,
+        "top": 46,
+        "right": 676,
+        "bottom": 384,
+        "width": 338,
+        "height": 338
+      },
+      "p1Skill0": {
+        "left": 6,
+        "top": 94,
+        "right": 332,
+        "bottom": 205,
+        "width": 326,
+        "height": 111
+      },
+      "p1Skill1": {
+        "left": 6,
+        "top": 211,
+        "right": 332,
+        "bottom": 322,
+        "width": 326,
+        "height": 111
+      }
+    },
+    "overlaps": {
+      "toastVsCoachChip": 0,
+      "toastVsCoachCopy": 0,
+      "toastVsCoachSkip": 0,
+      "toastVsArena": 7514.46,
+      "toastVsP1Skill0": 0,
+      "toastVsP1Skill1": 0
+    },
+    "skipHitTargetTag": "apex-coach-skip apex-guide-close"
+  }
+}
