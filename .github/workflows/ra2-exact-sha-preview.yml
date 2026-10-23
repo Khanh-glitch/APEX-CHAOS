@@ -188,6 +188,7 @@ jobs:
           pnpm install --frozen-lockfile
           node tools/buildResultGold.mjs
           pnpm arsenal:sfx:materialize
+          node tools/assetAudit.mjs
           pnpm exec vite build
           node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json
           node tools/pruneShippingDist.mjs
