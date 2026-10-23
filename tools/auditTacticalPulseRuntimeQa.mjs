@@ -369,7 +369,40 @@ async function runViewportJourney(browser, vp) {
   });
   const continueButton = continueHandle.asElement();
   assert.ok(continueButton, `${vp.id}: Result Continue control must exist`);
-  // Result Gold is intentionally scrollable on short landscape screens.
+  // Gold's <760/height> short landscape layout intentionally exposes the
+  // CTA by scrolling .ac-root; the real touch swipe is part of acceptance.
+  // JS scrollIntoView() alone cannot detect a broken touch scroll owner.
+  if (vp.touch && vp.width >= 760 && vp.height <= 449 && vp.width > vp.height) {
+    const rootBefore = await resultFrame.evaluate(() => {
+      const root = document.querySelector('.ac-root');
+      if (!root) return null;
+      return {
+        top: root.scrollTop,
+        extent: root.scrollHeight - root.clientHeight,
+        overflowY: getComputedStyle(root).overflowY,
+      };
+    });
+    assert.ok(
+      rootBefore && rootBefore.extent > 50 && rootBefore.overflowY === 'auto',
+      `${vp.id}: short-landscape Result .ac-root must be a natural vertical scroll owner (${JSON.stringify(rootBefore)})`,
+    );
+    const sx = Math.round(vp.width * 0.5);
+    const startY = Math.round(vp.height * 0.82);
+    const endY = Math.round(vp.height * 0.22);
+    await page.touchscreen.touchStart(sx, startY);
+    for (let i = 1; i <= 8; i++) {
+      await page.touchscreen.touchMove(sx, Math.round(startY + (endY - startY) * i / 8));
+      await sleep(35);
+    }
+    await page.touchscreen.touchEnd();
+    await sleep(450);
+    const rootAfter = await resultFrame.evaluate(() => document.querySelector('.ac-root')?.scrollTop ?? -1);
+    assert.ok(
+      rootAfter > rootBefore.top + 8,
+      `${vp.id}: native touch swipe must scroll Result Gold (before=${rootBefore.top}, after=${rootAfter})`,
+    );
+  }
+  // Ensure the actual CTA is fully inside the viewport for a native tap/click.
   await continueButton.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }));
   await sleep(180);
   const continueBox = await continueButton.boundingBox();
