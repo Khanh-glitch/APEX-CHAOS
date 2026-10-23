@@ -137,12 +137,22 @@ for (const transform of copyTransforms) {
   }
   if (!warmed) throw Error('itch warm-bank transform found no bundle audio literals');
 }
-const index = fs.readFileSync(path.join(OUTPUT, 'index.html'), 'utf8');
+const indexPath = path.join(OUTPUT, 'index.html');
+let index = fs.readFileSync(indexPath, 'utf8');
 if (!/src="\.\/assets\//.test(index)) throw Error('index JS entrypoint must be relative');
 if (!/href="\.\/assets\//.test(index)) throw Error('index CSS entrypoint must be relative');
 for (const m of index.matchAll(/(?:src|href)="\.\/([^"?#]+)"/g)) {
   if (!fs.existsSync(path.join(OUTPUT, m[1]))) throw Error('missing ZIP-root asset: ' + m[1]);
 }
+// Pin entry <head> <link href> elements (e.g. ./gold/assets/gold/favicon-r72-owner.png)
+// to their resolved entry-directory URLs BEFORE goldShellLoader inserts <base href="./gold/">;
+// otherwise Chromium re-resolves relative <link rel="icon"> on head mutation to ./gold/gold/... (404).
+if (!index.includes('</head>')) throw Error('index.html missing </head>');
+index = index.replace(
+  '</head>',
+  '  <script>for(const l of document.querySelectorAll("link[href]"))l.setAttribute("href",l.href);</script>\n  </head>',
+);
+fs.writeFileSync(indexPath, index);
 if (!fs.existsSync(path.join(OUTPUT, 'ITCH_GUEST_BUILD_SHA.txt'))) throw Error('missing build receipt');
 console.log('ITCH PORTABILITY PASS: ' + scanned + ' text files scanned, ' + modifiedFiles
   + ' transformed, ' + replacements + ' URL literals made relative');
