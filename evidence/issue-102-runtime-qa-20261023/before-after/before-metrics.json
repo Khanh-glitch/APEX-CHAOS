@@ -1,0 +1,442 @@
+{
+  "390x844-eng": {
+    "layout": {},
+    "arenaRect": {
+      "x": 6,
+      "y": 104,
+      "width": 378,
+      "height": 378,
+      "top": 104,
+      "right": 384,
+      "bottom": 482,
+      "left": 6
+    },
+    "p2SideRect": {
+      "x": 6,
+      "y": 6,
+      "width": 378,
+      "height": 48,
+      "top": 6,
+      "right": 384,
+      "bottom": 54,
+      "left": 6
+    },
+    "idName": {
+      "text": "NEWBOT",
+      "clientWidth": 104,
+      "scrollWidth": 104,
+      "rect": {
+        "x": 239,
+        "y": 32.5625,
+        "width": 104,
+        "height": 12.875,
+        "top": 32.5625,
+        "right": 343,
+        "bottom": 45.4375,
+        "left": 239
+      }
+    },
+    "tiles": [
+      {
+        "slot": 1,
+        "text": "WEAPON DASH",
+        "direction": "rtl",
+        "whiteSpace": "nowrap",
+        "maxWidth": "64px",
+        "clientWidth": 64,
+        "scrollWidth": 87,
+        "horizClipPx": 23,
+        "clientHeight": 10,
+        "scrollHeight": 10,
+        "tileClientHeight": 40,
+        "tileScrollHeight": 40,
+        "tileOverflowPx": 0,
+        "rect": {
+          "x": 123,
+          "y": 13,
+          "width": 64,
+          "height": 9.5,
+          "top": 13,
+          "right": 187,
+          "bottom": 22.5,
+          "left": 123
+        },
+        "stateRect": {
+          "x": 132.65625,
+          "y": 25.5,
+          "width": 54.34375,
+          "height": 10,
+          "top": 25.5,
+          "right": 187,
+          "bottom": 35.5,
+          "left": 132.65625
+        }
+      },
+      {
+        "slot": 2,
+        "text": "VIRTUAL ARMOR",
+        "direction": "rtl",
+        "whiteSpace": "nowrap",
+        "maxWidth": "64px",
+        "clientWidth": 64,
+        "scrollWidth": 95,
+        "horizClipPx": 31,
+        "clientHeight": 10,
+        "scrollHeight": 10,
+        "tileClientHeight": 40,
+        "tileScrollHeight": 40,
+        "tileOverflowPx": 0,
+        "rect": {
+          "x": 12,
+          "y": 13,
+          "width": 64,
+          "height": 9.5,
+          "top": 13,
+          "right": 76,
+          "bottom": 22.5,
+          "left": 12
+        },
+        "stateRect": {
+          "x": 37.21875,
+          "y": 25.5,
+          "width": 38.78125,
+          "height": 10,
+          "top": 25.5,
+          "right": 76,
+          "bottom": 35.5,
+          "left": 37.21875
+        }
+      }
+    ]
+  },
+  "390x844-vie": {
+    "layout": {},
+    "arenaRect": {
+      "x": 6,
+      "y": 104,
+      "width": 378,
+      "height": 378,
+      "top": 104,
+      "right": 384,
+      "bottom": 482,
+      "left": 6
+    },
+    "p2SideRect": {
+      "x": 6,
+      "y": 6,
+      "width": 378,
+      "height": 48,
+      "top": 6,
+      "right": 384,
+      "bottom": 54,
+      "left": 6
+    },
+    "idName": {
+      "text": "NEWBOT",
+      "clientWidth": 107,
+      "scrollWidth": 107,
+      "rect": {
+        "x": 236.125,
+        "y": 32.5625,
+        "width": 106.875,
+        "height": 12.875,
+        "top": 32.5625,
+        "right": 343,
+        "bottom": 45.4375,
+        "left": 236.125
+      }
+    },
+    "tiles": [
+      {
+        "slot": 1,
+        "text": "BÀN TAY TỪ TÍNH",
+        "direction": "rtl",
+        "whiteSpace": "nowrap",
+        "maxWidth": "64px",
+        "clientWidth": 64,
+        "scrollWidth": 100,
+        "horizClipPx": 36,
+        "clientHeight": 10,
+        "scrollHeight": 10,
+        "tileClientHeight": 40,
+        "tileScrollHeight": 40,
+        "tileOverflowPx": 0,
+        "rect": {
+          "x": 120.125,
+          "y": 13,
+          "width": 64,
+          "height": 9.5,
+          "top": 13,
+          "right": 184.125,
+          "bottom": 22.5,
+          "left": 120.125
+        },
+        "stateRect": {
+          "x": 121.640625,
+          "y": 25.5,
+          "width": 62.484375,
+          "height": 10,
+          "top": 25.5,
+          "right": 184.125,
+          "bottom": 35.5,
+          "left": 121.640625
+        }
+      },
+      {
+        "slot": 2,
+        "text": "GIÁP ẢO",
+        "direction": "rtl",
+        "whiteSpace": "nowrap",
+        "maxWidth": "64px",
+        "clientWidth": 61,
+        "scrollWidth": 61,
+        "horizClipPx": 0,
+        "clientHeight": 10,
+        "scrollHeight": 10,
+        "tileClientHeight": 40,
+        "tileScrollHeight": 40,
+        "tileOverflowPx": 0,
+        "rect": {
+          "x": 12,
+          "y": 13,
+          "width": 61.125,
+          "height": 9.5,
+          "top": 13,
+          "right": 73.125,
+          "bottom": 22.5,
+          "left": 12
+        },
+        "stateRect": {
+          "x": 12,
+          "y": 25.5,
+          "width": 61.125,
+          "height": 10,
+          "top": 25.5,
+          "right": 73.125,
+          "bottom": 35.5,
+          "left": 12
+        }
+      }
+    ]
+  },
+  "320x568-eng": {
+    "layout": {},
+    "arenaRect": {
+      "x": 34,
+      "y": 104,
+      "width": 252,
+      "height": 252,
+      "top": 104,
+      "right": 286,
+      "bottom": 356,
+      "left": 34
+    },
+    "p2SideRect": {
+      "x": 6,
+      "y": 6,
+      "width": 308,
+      "height": 48,
+      "top": 6,
+      "right": 314,
+      "bottom": 54,
+      "left": 6
+    },
+    "idName": {
+      "text": "NEWBOT",
+      "clientWidth": 68,
+      "scrollWidth": 68,
+      "rect": {
+        "x": 239,
+        "y": 33.484375,
+        "width": 68,
+        "height": 11.03125,
+        "top": 33.484375,
+        "right": 307,
+        "bottom": 44.515625,
+        "left": 239
+      }
+    },
+    "tiles": [
+      {
+        "slot": 1,
+        "text": "WEAPON DASH",
+        "direction": "rtl",
+        "whiteSpace": "nowrap",
+        "maxWidth": "64px",
+        "clientWidth": 64,
+        "scrollWidth": 87,
+        "horizClipPx": 23,
+        "clientHeight": 10,
+        "scrollHeight": 10,
+        "tileClientHeight": 40,
+        "tileScrollHeight": 40,
+        "tileOverflowPx": 0,
+        "rect": {
+          "x": 123,
+          "y": 13,
+          "width": 64,
+          "height": 9.5,
+          "top": 13,
+          "right": 187,
+          "bottom": 22.5,
+          "left": 123
+        },
+        "stateRect": {
+          "x": 132.65625,
+          "y": 25.5,
+          "width": 54.34375,
+          "height": 10,
+          "top": 25.5,
+          "right": 187,
+          "bottom": 35.5,
+          "left": 132.65625
+        }
+      },
+      {
+        "slot": 2,
+        "text": "VIRTUAL ARMOR",
+        "direction": "rtl",
+        "whiteSpace": "nowrap",
+        "maxWidth": "64px",
+        "clientWidth": 64,
+        "scrollWidth": 95,
+        "horizClipPx": 31,
+        "clientHeight": 10,
+        "scrollHeight": 10,
+        "tileClientHeight": 40,
+        "tileScrollHeight": 40,
+        "tileOverflowPx": 0,
+        "rect": {
+          "x": 12,
+          "y": 13,
+          "width": 64,
+          "height": 9.5,
+          "top": 13,
+          "right": 76,
+          "bottom": 22.5,
+          "left": 12
+        },
+        "stateRect": {
+          "x": 37.21875,
+          "y": 25.5,
+          "width": 38.78125,
+          "height": 10,
+          "top": 25.5,
+          "right": 76,
+          "bottom": 35.5,
+          "left": 37.21875
+        }
+      }
+    ]
+  },
+  "320x568-vie": {
+    "layout": {},
+    "arenaRect": {
+      "x": 34,
+      "y": 104,
+      "width": 252,
+      "height": 252,
+      "top": 104,
+      "right": 286,
+      "bottom": 356,
+      "left": 34
+    },
+    "p2SideRect": {
+      "x": 6,
+      "y": 6,
+      "width": 308,
+      "height": 48,
+      "top": 6,
+      "right": 314,
+      "bottom": 54,
+      "left": 6
+    },
+    "idName": {
+      "text": "CRYSTALA",
+      "clientWidth": 68,
+      "scrollWidth": 68,
+      "rect": {
+        "x": 238.796875,
+        "y": 33.484375,
+        "width": 68.203125,
+        "height": 11.03125,
+        "top": 33.484375,
+        "right": 307,
+        "bottom": 44.515625,
+        "left": 238.796875
+      }
+    },
+    "tiles": [
+      {
+        "slot": 1,
+        "text": "KHO VŨ KHÍ PHẢN CHIẾU",
+        "direction": "rtl",
+        "whiteSpace": "nowrap",
+        "maxWidth": "64px",
+        "clientWidth": 64,
+        "scrollWidth": 145,
+        "horizClipPx": 81,
+        "clientHeight": 10,
+        "scrollHeight": 10,
+        "tileClientHeight": 40,
+        "tileScrollHeight": 40,
+        "tileOverflowPx": 0,
+        "rect": {
+          "x": 123,
+          "y": 13,
+          "width": 64,
+          "height": 9.5,
+          "top": 13,
+          "right": 187,
+          "bottom": 22.5,
+          "left": 123
+        },
+        "stateRect": {
+          "x": 124.515625,
+          "y": 25.5,
+          "width": 62.484375,
+          "height": 10,
+          "top": 25.5,
+          "right": 187,
+          "bottom": 35.5,
+          "left": 124.515625
+        }
+      },
+      {
+        "slot": 2,
+        "text": "KIẾN TẠO THÍCH ỨNG",
+        "direction": "rtl",
+        "whiteSpace": "nowrap",
+        "maxWidth": "64px",
+        "clientWidth": 64,
+        "scrollWidth": 124,
+        "horizClipPx": 60,
+        "clientHeight": 10,
+        "scrollHeight": 10,
+        "tileClientHeight": 40,
+        "tileScrollHeight": 40,
+        "tileOverflowPx": 0,
+        "rect": {
+          "x": 12,
+          "y": 13,
+          "width": 64,
+          "height": 9.5,
+          "top": 13,
+          "right": 76,
+          "bottom": 22.5,
+          "left": 12
+        },
+        "stateRect": {
+          "x": 14.875,
+          "y": 25.5,
+          "width": 61.125,
+          "height": 10,
+          "top": 25.5,
+          "right": 76,
+          "bottom": 35.5,
+          "left": 14.875
+        }
+      }
+    ]
+  }
+}

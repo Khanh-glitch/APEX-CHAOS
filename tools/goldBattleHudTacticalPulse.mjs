@@ -79,6 +79,46 @@ export const TACTICAL_PULSE_HUD_CSS = `/* TACTICAL PULSE HUD B: distinct STANDBY
   align-self:end;
   height:min(100%,190px);
 }
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p1Side .sk-art{
+  aspect-ratio:auto!important;
+  height:100%!important;
+  min-height:0;
+  overflow:hidden;
+}
+/* Scoped 1p opponent mini-skill label readability: isolate LTR reading order inside
+   mirrored #p2Side (prevents RTL left-prefix clipping such as "...TUAL ARMOR") and
+   allow 2 compact lines within the existing 64px column on portrait 1p without
+   expanding column width or shrinking the arena on 320x568 / 390x844 ENG/VIE. */
+#hud:not([data-quest="1"])[data-mode="1p"] #p2Side .sk-name{
+  direction:ltr;
+  unicode-bidi:isolate;
+}
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p2Side .skills{
+  height:44px;
+}
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p2Side .sk-info{
+  padding:2px 4px;
+  gap:2px;
+}
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p2Side .sk-name{
+  text-align:right;
+  padding:2px 2px 0;
+  white-space:normal;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  line-clamp:2;
+  font-size:9px;
+  line-height:1.1;
+  letter-spacing:0;
+  max-width:66px;
+}
+@media(max-width:340px){
+  #hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p2Side .sk-name{
+    font-size:8.5px;
+    max-width:76px;
+  }
+}
 `;
 
 function replaceOnce(src, label, before, after) {

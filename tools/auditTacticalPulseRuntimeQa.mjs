@@ -21,12 +21,34 @@
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-import puppeteer from 'puppeteer-core';
 
+async function loadPuppeteer() {
+  try {
+    const mod = await import('puppeteer-core');
+    return mod.default ?? mod;
+  } catch {
+    const probeReq = createRequire(new URL('./probe/package.json', import.meta.url));
+    const mod = await import(probeReq.resolve('puppeteer-core'));
+    return mod.default ?? mod;
+  }
+}
+
+async function resolveChromeExecutable() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  try {
+    const probeReq = createRequire(new URL('./probe/package.json', import.meta.url));
+    const chromium = (await import(probeReq.resolve('@sparticuz/chromium'))).default;
+    return await chromium.executablePath();
+  } catch {
+    throw new Error('CHROME_PATH is required when @sparticuz/chromium is unavailable');
+  }
+}
+
+const puppeteer = await loadPuppeteer();
 const APP = process.env.APEX_APP_URL || 'http://127.0.0.1:4173/?goldViewport=native';
-const CHROME = process.env.CHROME_PATH;
-if (!CHROME) throw new Error('CHROME_PATH is required');
+const CHROME = await resolveChromeExecutable();
 
 const OUT_DIR = path.resolve(
   process.env.QA_EVIDENCE_DIR || '/tmp/impl-repo/evidence/tactical-pulse-runtime-qa-20261023'
@@ -234,6 +256,91 @@ async function runViewportJourney(browser, vp) {
   await saveShot('03-fighter-select');
 
   // 4. Lock P1 + Lock BOT -> Live Match
+  let ribbonAudit = null;
+  let ribbonCaptureInFlight = false;
+  await page.exposeFunction('__onTpToastVisible', async () => {
+    if (ribbonAudit || ribbonCaptureInFlight) return;
+    ribbonCaptureInFlight = true;
+    try {
+      await sleep(280);
+      const snap = await page.evaluate(() => {
+        const toast = document.querySelector('.apex-achievement-toast');
+        if (!toast) return null;
+        const st = getComputedStyle(toast);
+        const r = toast.getBoundingClientRect();
+        if (st.display === 'none' || st.visibility === 'hidden' || r.width <= 0 || r.height <= 0) return null;
+        const boxOf = (sel) => {
+          const el = document.querySelector(sel);
+          if (!el) return null;
+          const b = el.getBoundingClientRect();
+          return b.width > 0 && b.height > 0 ? {
+            left: Math.round(b.left * 100) / 100,
+            top: Math.round(b.top * 100) / 100,
+            right: Math.round(b.right * 100) / 100,
+            bottom: Math.round(b.bottom * 100) / 100,
+            width: Math.round(b.width * 100) / 100,
+            height: Math.round(b.height * 100) / 100,
+          } : null;
+        };
+        const ov = (a, b) => {
+          if (!a || !b) return 0;
+          const w = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+          const h = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+          return Math.round(w * h * 100) / 100;
+        };
+        const tBox = {
+          left: Math.round(r.left * 100) / 100,
+          top: Math.round(r.top * 100) / 100,
+          right: Math.round(r.right * 100) / 100,
+          bottom: Math.round(r.bottom * 100) / 100,
+          width: Math.round(r.width * 100) / 100,
+          height: Math.round(r.height * 100) / 100,
+        };
+        const cx = tBox.left + tBox.width / 2;
+        const cy = tBox.top + tBox.height / 2;
+        const hitEl = document.elementFromPoint(cx, cy);
+        const titleEl = toast.querySelector('.apex-achievement-toast__title, strong, h4') || toast;
+        return {
+          text: (toast.textContent || '').replace(/\s+/g, ' ').trim(),
+          classes: [...toast.classList],
+          isArenaEdge: toast.classList.contains('is-arena-edge'),
+          pointerEvents: st.pointerEvents,
+          hitThroughTarget: hitEl ? `${hitEl.tagName.toLowerCase()}${hitEl.id ? '#' + hitEl.id : ''}` : null,
+          toastContainsHitElement: hitEl ? toast.contains(hitEl) : false,
+          toastBox: tBox,
+          arenaBox: boxOf('#arena'),
+          overlaps: {
+            p1Skill0: ov(tBox, boxOf('#p1Side .skill[data-i="0"]')),
+            p1Skill1: ov(tBox, boxOf('#p1Side .skill[data-i="1"]')),
+            p1Weapon: ov(tBox, boxOf('#p1Side .weapon')),
+            p2Skills: ov(tBox, boxOf('#p2Side .skills')),
+            versusRail: ov(tBox, boxOf('#versusRail')),
+            coachSkip: ov(tBox, boxOf('.apex-coach-skip')),
+          },
+          titleHorizClipPx: Math.max(0, titleEl.scrollWidth - titleEl.clientWidth),
+        };
+      });
+      if (snap) {
+        await saveShot('04b-achievement-ribbon');
+        ribbonAudit = snap;
+      }
+    } catch {
+      // Page transitioning; ignore if race at KO boundary.
+    } finally {
+      ribbonCaptureInFlight = false;
+    }
+  });
+  await page.evaluate(() => {
+    const checkToast = () => {
+      const el = document.querySelector('.apex-achievement-toast');
+      if (el && el.getBoundingClientRect().width > 0) {
+        window.__onTpToastVisible?.();
+      }
+    };
+    const mo = new MutationObserver(checkToast);
+    mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+  });
+
   await tapOrClick('#lockIn');
   await page.waitForSelector('.fighter-active-p2', { timeout: 30000 });
   await tapOrClick('#lockIn');
@@ -306,8 +413,9 @@ async function runViewportJourney(browser, vp) {
   await saveShot('07-match-cooldown');
 
   // 8. Let real autonomous combat run until organic KO opens #apex-real-match-result!
-  // Periodically spend available P1 skills like a real player while waiting for organic KO.
-  const koDeadline = Date.now() + 240000;
+  // Spend offensive Weapon Dash (A1) so P1 aggressively acquires weapons for a brisk organic KO
+  // without stalling two tank Robots with repeated -55% Virtual Armor windows on software CPU rasterization.
+  const koDeadline = Date.now() + 660000;
   while (Date.now() < koDeadline) {
     const hasResult = await page.evaluate(() => !!document.querySelector('#apex-real-match-result'));
     if (hasResult) break;
@@ -316,7 +424,6 @@ async function runViewportJourney(browser, vp) {
       const p1 = window.fighters?.[0];
       if (!hr || !p1) return;
       if (hr.observeAbilityCastability(p1, 'A1')?.castable) window.APEX_GOLD?.pressSkill?.(0, 0);
-      if (hr.observeAbilityCastability(p1, 'A2')?.castable) window.APEX_GOLD?.pressSkill?.(0, 1);
     });
     await sleep(600);
   }
@@ -336,6 +443,9 @@ async function runViewportJourney(browser, vp) {
 
   const resultAudit = await resultFrame.evaluate(() => {
     const docEl = document.documentElement;
+    const hint = document.querySelector('.ac-scroll-hint');
+    const hintStyle = hint ? getComputedStyle(hint) : null;
+    const hintRect = hint ? hint.getBoundingClientRect() : null;
     const buttons = [...document.querySelectorAll('button')].map((b) => {
       const r = b.getBoundingClientRect();
       return {
@@ -354,6 +464,19 @@ async function runViewportJourney(browser, vp) {
       horizOverflowPx: Math.max(0, docEl.scrollWidth - window.innerWidth),
       winnerAttr: document.querySelector('.ac-root')?.getAttribute('data-winner') || null,
       playerCards: document.querySelectorAll('main.ac-stage section').length,
+      scrollHint: hint && hintStyle && hintRect ? {
+        text: (hint.textContent || '').replace(/\s+/g, ' ').trim(),
+        display: hintStyle.display,
+        pointerEvents: hintStyle.pointerEvents,
+        rect: {
+          left: Math.round(hintRect.left),
+          top: Math.round(hintRect.top),
+          right: Math.round(hintRect.right),
+          bottom: Math.round(hintRect.bottom),
+          width: Math.round(hintRect.width),
+          height: Math.round(hintRect.height),
+        },
+      } : null,
       buttons,
     };
   });
@@ -373,11 +496,22 @@ async function runViewportJourney(browser, vp) {
   // CTA by scrolling .ac-root; the real touch swipe is part of acceptance.
   // JS scrollIntoView() alone cannot detect a broken touch scroll owner.
   if (vp.touch && vp.width >= 760 && vp.height <= 449 && vp.width > vp.height) {
+    assert.ok(
+      resultAudit.scrollHint
+        && resultAudit.scrollHint.display !== 'none'
+        && resultAudit.scrollHint.rect.width > 0
+        && resultAudit.scrollHint.rect.height >= 20
+        && resultAudit.scrollHint.rect.bottom <= vp.height + 1
+        && resultAudit.scrollHint.pointerEvents === 'none',
+      `${vp.id}: short-landscape Result scroll hint must be visible above fold and non-intercepting (${JSON.stringify(resultAudit.scrollHint)})`,
+    );
     const rootBefore = await resultFrame.evaluate(() => {
       const root = document.querySelector('.ac-root');
       if (!root) return null;
       return {
         top: root.scrollTop,
+        clientHeight: root.clientHeight,
+        scrollHeight: root.scrollHeight,
         extent: root.scrollHeight - root.clientHeight,
         overflowY: getComputedStyle(root).overflowY,
       };
@@ -401,6 +535,13 @@ async function runViewportJourney(browser, vp) {
       rootAfter > rootBefore.top + 8,
       `${vp.id}: native touch swipe must scroll Result Gold (before=${rootBefore.top}, after=${rootAfter})`,
     );
+    resultAudit.touchScrollReceipt = {
+      scrollBefore: rootBefore.top,
+      scrollAfter: rootAfter,
+      scrollDelta: Math.round((rootAfter - rootBefore.top) * 100) / 100,
+      scrollExtent: rootBefore.extent,
+      overflowY: rootBefore.overflowY,
+    };
   }
   // Ensure the actual CTA is fully inside the viewport for a native tap/click.
   await continueButton.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }));
@@ -413,9 +554,12 @@ async function runViewportJourney(browser, vp) {
       && continueBox.y + continueBox.height <= vp.height + 1,
     `${vp.id}: Result Continue must be a fully onscreen >=44px hit target after scrolling (${JSON.stringify(continueBox)})`,
   );
+  resultAudit.continueBox = continueBox;
   await saveShot('08b-result-continue-reachable');
   const continueX = continueBox.x + continueBox.width / 2;
   const continueY = continueBox.y + continueBox.height / 2;
+  const inputMethod = vp.touch ? 'touchscreen.tap' : 'mouse.click';
+  resultAudit.activationInput = { method: inputMethod, x: continueX, y: continueY };
   if (vp.touch) await page.touchscreen.tap(continueX, continueY);
   else await page.mouse.click(continueX, continueY);
   await continueHandle.dispose();
@@ -469,9 +613,114 @@ async function runViewportJourney(browser, vp) {
   assert.equal(returnState.battleClosed, true, `${vp.id}: Battle HUD cleanly closed on return`);
   assert.deepEqual(runtimeErrors, [], `${vp.id}: zero uncaught browser errors`);
 
+  if (ribbonAudit) {
+    assert.equal(ribbonAudit.pointerEvents, 'none', `${vp.id}: achievement ribbon must keep pointer-events: none`);
+    assert.equal(ribbonAudit.toastContainsHitElement, false, `${vp.id}: achievement ribbon must never intercept hit testing`);
+    assert.equal(ribbonAudit.overlaps.p1Skill0, 0, `${vp.id}: achievement ribbon must not overlap P1 Skill 0`);
+    assert.equal(ribbonAudit.overlaps.p1Skill1, 0, `${vp.id}: achievement ribbon must not overlap P1 Skill 1`);
+    assert.equal(ribbonAudit.overlaps.p1Weapon, 0, `${vp.id}: achievement ribbon must not overlap P1 weapon`);
+    assert.equal(ribbonAudit.overlaps.versusRail, 0, `${vp.id}: achievement ribbon must not overlap versus rail`);
+    assert.equal(ribbonAudit.overlaps.coachSkip, 0, `${vp.id}: achievement ribbon must not overlap Coach SKIP target`);
+  }
+
   await context.close();
   console.log(`PASS ${vp.label} — arena=${states.openingNoTarget.boxes.arena.width}x${states.openingNoTarget.boxes.arena.height}, 0 overlaps, Result horizOverflow=${resultAudit.horizOverflowPx}px`);
-  return { viewport: vp, shots, states, resultAudit, returnState };
+  return { viewport: vp, shots, states, ribbonAudit, resultAudit, returnState };
+}
+
+async function runPortraitOpponentMiniLabelAudit(browser) {
+  const hudUrl = new URL('/gold/battle-hud.html', APP).toString();
+  const cases = [
+    { id: '390x844-eng', w: 390, h: 844, lang: 'eng', s1: 'WEAPON DASH', s2: 'VIRTUAL ARMOR', idName: 'NEWBOT' },
+    { id: '390x844-vie', w: 390, h: 844, lang: 'vie', s1: 'BÀN TAY TỪ TÍNH', s2: 'GIÁP ẢO', idName: 'NEWBOT' },
+    { id: '320x568-eng', w: 320, h: 568, lang: 'eng', s1: 'WEAPON DASH', s2: 'VIRTUAL ARMOR', idName: 'NEWBOT' },
+    { id: '320x568-vie', w: 320, h: 568, lang: 'vie', s1: 'KHO VŨ KHÍ PHẢN CHIẾU', s2: 'KIẾN TẠO THÍCH ỨNG', idName: 'CRYSTALA' },
+  ];
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  const out = {};
+  for (const c of cases) {
+    await page.setViewport({ width: c.w, height: c.h, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    await page.goto(hudUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.evaluate(async (cfg) => {
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = 'fonts.css';
+      document.head.appendChild(l);
+      await document.fonts.ready;
+      const hud = document.getElementById('hud');
+      // eslint-disable-next-line no-undef
+      if (typeof S !== 'undefined' && S) S.mode = '1p';
+      hud.dataset.mode = '1p';
+      window.dispatchEvent(new Event('resize'));
+      await new Promise((r) => setTimeout(r, 250));
+      const names = [...document.querySelectorAll('#p2Side .sk-name')];
+      const states = [...document.querySelectorAll('#p2Side .sk-state')];
+      if (names[0]) names[0].textContent = cfg.s1;
+      if (names[1]) names[1].textContent = cfg.s2;
+      if (states[0]) states[0].textContent = cfg.lang === 'vie' ? 'CHỜ SÚNG' : 'STANDBY';
+      if (states[1]) states[1].textContent = cfg.lang === 'vie' ? 'SẴN SÀNG' : 'READY';
+      const idEl = document.querySelector('#p2Side .id-name');
+      if (idEl) idEl.textContent = cfg.idName;
+      await new Promise((r) => setTimeout(r, 120));
+    }, c);
+
+    const m = await page.evaluate(() => {
+      const arena = document.getElementById('arena');
+      const p2 = document.getElementById('p2Side');
+      const idEl = document.querySelector('#p2Side .id-name');
+      const tiles = [...document.querySelectorAll('#p2Side .skill')].map((sk, idx) => {
+        const nm = sk.querySelector('.sk-name');
+        const st = sk.querySelector('.sk-state');
+        const cs = getComputedStyle(nm);
+        return {
+          slot: idx + 1,
+          text: nm.textContent,
+          direction: cs.direction,
+          unicodeBidi: cs.unicodeBidi,
+          clientWidth: nm.clientWidth,
+          scrollWidth: nm.scrollWidth,
+          horizClipPx: Math.max(0, nm.scrollWidth - nm.clientWidth),
+          clientHeight: nm.clientHeight,
+          scrollHeight: nm.scrollHeight,
+          tileClientHeight: sk.clientHeight,
+          tileScrollHeight: sk.scrollHeight,
+          tileOverflowPx: Math.max(0, sk.scrollHeight - sk.clientHeight),
+          rect: nm.getBoundingClientRect().toJSON(),
+          stateRect: st.getBoundingClientRect().toJSON(),
+        };
+      });
+      return {
+        arenaRect: arena ? arena.getBoundingClientRect().toJSON() : null,
+        p2SideRect: p2 ? p2.getBoundingClientRect().toJSON() : null,
+        idName: idEl ? {
+          text: idEl.textContent,
+          clientWidth: idEl.clientWidth,
+          scrollWidth: idEl.scrollWidth,
+          horizClipPx: Math.max(0, idEl.scrollWidth - idEl.clientWidth),
+        } : null,
+        tiles,
+      };
+    });
+    const expectedArena = c.w === 390 ? 378 : 252;
+    assert.equal(m.arenaRect.width, expectedArena, `${c.id}: arena width preserved (${m.arenaRect.width})`);
+    assert.equal(m.arenaRect.height, expectedArena, `${c.id}: arena height preserved (${m.arenaRect.height})`);
+    assert.equal(m.idName.horizClipPx, 0, `${c.id}: P2 hero name "${m.idName.text}" must remain unclipped`);
+    for (const t of m.tiles) {
+      assert.equal(t.direction, 'ltr', `${c.id} slot ${t.slot}: #p2Side .sk-name must isolate LTR direction`);
+      assert.ok(t.horizClipPx <= 1, `${c.id} slot ${t.slot} ("${t.text}"): horizClipPx=${t.horizClipPx}px must fit without left truncation`);
+      assert.ok(t.tileOverflowPx <= 2, `${c.id} slot ${t.slot}: tileOverflowPx=${t.tileOverflowPx}px`);
+    }
+    await page.screenshot({ path: path.join(OUT_DIR, `p2-after-${c.id}-portrait-bot.png`) });
+    await page.screenshot({
+      path: path.join(OUT_DIR, `p2-after-${c.id}-topstrip-crop.png`),
+      clip: { x: 0, y: 0, width: c.w, height: 112 },
+    });
+    out[c.id] = m;
+  }
+  await context.close();
+  console.log('PASS Portrait 1P opponent mini-skill label audit (390x844 + 320x568 ENG/VIE) — 0 truncation, 0 arena shrink');
+  return out;
 }
 
 async function runMultiHeroAndLocaleAudit(browser) {
@@ -553,26 +802,21 @@ const report = {
   localVieAudit: null,
 };
 
-const runPair = async (pair) => Promise.all(
-  pair.map(async (vp) => {
-    const vpBrowser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: BROWSER_ARGS });
-    try {
-      return await runViewportJourney(vpBrowser, vp);
-    } finally {
-      await vpBrowser.close();
-    }
-  })
-);
-const batchA = await runPair(VIEWPORTS.slice(0, 2));
-const batchB = await runPair(VIEWPORTS.slice(2, 4));
-const results = [...batchA, ...batchB];
-for (let i = 0; i < VIEWPORTS.length; i++) {
-  report.viewports[VIEWPORTS[i].id] = results[i];
+// Run viewports sequentially so 2-core CI/sandbox software rasterization
+// sustains full 60Hz simulation frame rate without multi-browser CPU starvation.
+for (const vp of VIEWPORTS) {
+  const vpBrowser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: BROWSER_ARGS });
+  try {
+    report.viewports[vp.id] = await runViewportJourney(vpBrowser, vp);
+  } finally {
+    await vpBrowser.close();
+  }
 }
 
 const auditBrowser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: BROWSER_ARGS });
 try {
   report.localVieAudit = await runMultiHeroAndLocaleAudit(auditBrowser);
+  report.portraitMiniLabelAudit = await runPortraitOpponentMiniLabelAudit(auditBrowser);
 } finally {
   await auditBrowser.close();
 }

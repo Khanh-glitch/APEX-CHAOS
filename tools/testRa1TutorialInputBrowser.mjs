@@ -177,9 +177,19 @@ async function scenarioTouch() {
     !!c1 && !!c2 && (c2.time - c1.time) > 0.25, `${c1?.time} -> ${c2?.time}`);
   await shot('A-touch-lesson1-nonblocking-390x844');
 
-  const slotIdx = Number(lesson.taughtSlot || 0);
+  // Re-read current live taughtSlot right before tapping because simulation never pauses
+  // during clock sampling + screenshot capture (a floor gun may spawn or be collected live).
+  let liveBeforeTap = await evl(CHIP);
+  let slotIdx = Number(liveBeforeTap.taughtSlot || lesson.taughtSlot || 0);
   await tapSel(`#p1Side .skill[data-i="${slotIdx}"]`);
-  const singleCast = await waitFor(`(()=>{const by=window.fighters?.[0]?.__hrCombatant?.telemetry?.bySkill; const n=Number(by?.${slotIdx === 1 ? 'A2' : 'A1'})||0; return n===1;})()`, 'single cast receipt', 8000).catch(() => false);
+  let singleCast = await waitFor(`(()=>{const by=window.fighters?.[0]?.__hrCombatant?.telemetry?.bySkill; const n=Number(by?.${slotIdx === 1 ? 'A2' : 'A1'})||0; return n===1;})()`, 'single cast receipt', 2500).catch(() => false);
+  if (!singleCast && slotIdx === 0) {
+    // Floor gun was collected by autonomous fighter during touch dispatch; cast the live taught slot.
+    liveBeforeTap = await evl(CHIP);
+    slotIdx = Number(liveBeforeTap.taughtSlot || 1);
+    await tapSel(`#p1Side .skill[data-i="${slotIdx}"]`);
+    singleCast = await waitFor(`(()=>{const by=window.fighters?.[0]?.__hrCombatant?.telemetry?.bySkill; const n=Number(by?.${slotIdx === 1 ? 'A2' : 'A1'})||0; return n===1;})()`, 'single cast receipt', 6000).catch(() => false);
+  }
   check('A tapping taught skill card casts it ONCE (no double-cast)', singleCast === true);
 
   const second = await waitBattleLesson('5/6');

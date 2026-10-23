@@ -33,7 +33,7 @@ jobs:
       TARGET_SHA: ${{ github.sha }}
       # Exact pre-gap commit for same-run red-before-green Chromium screenshots.
       BASELINE_SHA: 96a25ee61040153ad1c640b8ade236916622d6a2
-      TARGET_REVISION: 20261021-cp5-r1
+      TARGET_REVISION: 20261023-tp-r1
       PRODUCTION_URL: https://apex-chaos.pages.dev
       CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
     steps:

@@ -1705,17 +1705,6 @@
   // state, or emitting CastFailCue. HUD/coach never become gameplay authorities.
   HR.clock = () => AIL.clock();
 
-  function questSlotLocked(ct, slot) {
-    const state = globalScope.APEX_ARSENAL?.state;
-    if (state?.questReflex === true && ct.anchor?.questId === 'NEWBOT') {
-      const phase = state.questReflexGate?.snapshot()?.phase;
-      const allowJ = ['J_CAST', 'K_CAST', 'BOTH_HALF'].includes(phase);
-      const allowK = ['K_CAST', 'BOTH_HALF'].includes(phase);
-      if ((slot === 'A1' && !allowJ) || (slot === 'A2' && !allowK)) return true;
-    }
-    return false;
-  }
-
   HR.observeAbilityCastability = function observeAbilityCastability(fighter, slot) {
     if (!M || !MECH || !MECH.EXECUTORS) {
       return { known: false, castable: false, reason: 'no-combatant', mechanic: '' };

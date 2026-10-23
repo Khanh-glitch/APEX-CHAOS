@@ -1229,11 +1229,13 @@ function renderRig(g) {
       const fighters = globalScope.fighters || [];
       const sideIdx = fighters[0] === fighter ? 0 : fighters[1] === fighter ? 1 : -1;
       if (sideIdx < 0) return;
-      const mode = String(aq.battleMode || '').toUpperCase();
+      const mode = String(aq.battleMode || aq.mode || globalScope.battleMode || '').toUpperCase();
       // Only human-controlled Robot sides display player action callouts.
       if (sideIdx === 1 && mode === 'BOT') return;
       const isVie = globalScope.APEX_I18N?.getLanguage?.() === 'vie';
       const isTouch = !!(globalScope.matchMedia && globalScope.matchMedia('(pointer: coarse)').matches);
+      const cssW = Number(ctx?.canvas?.getBoundingClientRect?.().width) || 1000;
+      const invScale = Math.min(2.05, Math.max(1, 660 / Math.max(240, cssW)));
 
       // Live Virtual Armor duration arc synced directly to simulation clock.
       if (typeof hr.observeAbilityActiveWindow === 'function') {
@@ -1303,17 +1305,18 @@ function renderRig(g) {
         ctx.stroke();
 
         // Fighter-avoiding & arena-clamped callout pill above/below target.
-        ctx.font = '800 18px "Chakra Petch", "Barlow Condensed", sans-serif';
+        const pillFontPx = Math.round(18 * invScale);
+        ctx.font = `800 ${pillFontPx}px "Chakra Petch", "Barlow Condensed", sans-serif`;
         const tw = Math.ceil(ctx.measureText(pillText).width);
-        const pw = tw + 24;
-        const ph = 30;
+        const pw = tw + Math.round(24 * invScale);
+        const ph = Math.round(30 * invScale);
         const px = Math.max(20 + pw / 2, Math.min(980 - pw / 2, tx));
-        const py = pickClearPillY(px, ty, 60, fighters);
+        const py = pickClearPillY(px, ty, Math.round(60 + (ph - 30) * 0.5), fighters);
         ctx.fillStyle = 'rgba(7, 13, 18, 0.94)';
         ctx.strokeStyle = 'rgba(86, 224, 255, 0.94)';
-        ctx.lineWidth = 2.0;
+        ctx.lineWidth = Math.max(2.0, 2.0 * invScale * 0.85);
         ctx.beginPath();
-        ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, 5);
+        ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, Math.round(5 * invScale * 0.85));
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = '#f0fdff';
@@ -1327,24 +1330,25 @@ function renderRig(g) {
         const label = isVie ? 'SÚNG SẮP RƠI' : 'NEXT GUN SPAWN';
         ctx.save();
         ctx.strokeStyle = 'rgba(86, 224, 255, 0.56)';
-        ctx.lineWidth = 2.2;
+        ctx.lineWidth = Math.max(2.2, 2.0 * invScale);
         ctx.setLineDash([7, 6]);
         ctx.beginPath();
-        ctx.arc(sx, sy, 30, 0, Math.PI * 2);
+        ctx.arc(sx, sy, Math.round(30 * Math.min(1.35, invScale)), 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.font = '700 15px "Chakra Petch", "Barlow Condensed", sans-serif';
+        const spawnFontPx = Math.round(15 * invScale);
+        ctx.font = `700 ${spawnFontPx}px "Chakra Petch", "Barlow Condensed", sans-serif`;
         const tw = Math.ceil(ctx.measureText(label).width);
-        const pw = tw + 20;
-        const ph = 26;
+        const pw = tw + Math.round(20 * invScale);
+        const ph = Math.round(26 * invScale);
         const px = Math.max(18 + pw / 2, Math.min(982 - pw / 2, sx));
-        const py = pickClearPillY(px, sy, 56, fighters);
+        const py = pickClearPillY(px, sy, Math.round(56 + (ph - 26) * 0.5), fighters);
         ctx.fillStyle = 'rgba(8, 14, 19, 0.90)';
         ctx.strokeStyle = 'rgba(126, 232, 255, 0.68)';
-        ctx.lineWidth = 1.6;
+        ctx.lineWidth = Math.max(1.6, 1.6 * invScale * 0.85);
         ctx.beginPath();
-        ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, 4);
+        ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, Math.round(4 * invScale * 0.85));
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = '#d8f8ff';

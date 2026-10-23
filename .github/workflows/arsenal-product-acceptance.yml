@@ -276,6 +276,32 @@ jobs:
           APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser
         run: node tools/profileCoreSixColdLoad.mjs
 
+      - name: Verify Tactical Pulse HUD B atomic lock and production-preview Chromium E2E
+        shell: bash
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:4173/?goldViewport=native
+          QA_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/tactical-pulse-runtime-qa
+        run: |
+          npm ci --prefix tools/probe --no-audit --no-fund
+          node tools/testCP16AtomicRelease.mjs
+          node tools/writeCP16BuildReceipt.mjs
+          node tools/testCP16BuildReceipt.mjs
+          node tools/testGoldEmbeddedHudParity.mjs
+          node tools/testBattleHudLiveTruthGate.mjs
+          node tools/auditR90BattleHudGate.mjs
+          node tools/testBattleHudLabelFitBrowser.mjs
+          pnpm preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/tactical-pulse-preview.log 2>&1 &
+          TP_PREVIEW_PID=$!
+          trap 'kill $TP_PREVIEW_PID 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/ -o /dev/null && { ready=1; break; }
+            sleep 1
+          done
+          test "$ready" = "1" || { cat /tmp/tactical-pulse-preview.log; exit 1; }
+          node tools/auditTacticalPulseRuntimeQa.mjs
+
       - name: Upload build and acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -93,7 +93,10 @@ async function runLanguage(language, options = {}) {
   assert.equal(lesson1.hint, false, `${language}: pickup copy must not compete with skill lesson 1`);
   await page.screenshot({ path: path.join(OUT, `${language}-${input}-skill-1-live-${width}x${height}.png`) });
 
-  await castSlot(lesson1.taughtSlot);
+  // Re-read live taughtSlot right after screenshot because match simulation never pauses.
+  const activeSlot1 = await page.evaluate(() => Number(document.querySelector('.apex-guide-dock')?.getAttribute('data-taught-slot')));
+  const slot1Used = Number.isFinite(activeSlot1) ? activeSlot1 : lesson1.taughtSlot;
+  await castSlot(slot1Used);
   await waitLiveStep(4);
   const lesson2 = await page.evaluate(() => ({
     body: document.querySelector('.apex-guide-body')?.textContent || '',
@@ -103,7 +106,7 @@ async function runLanguage(language, options = {}) {
     hint: !!document.querySelector('.apex-guide-weapon-hint, .apex-guide-pickup-prompt'),
   }));
   assert.equal(lesson2.paused, false, `${language}: skill lesson 2 must NOT pause simulation`);
-  assert.notEqual(lesson2.taughtSlot, lesson1.taughtSlot, `${language}: lesson 2 must teach the remaining skill`);
+  assert.notEqual(lesson2.taughtSlot, slot1Used, `${language}: lesson 2 must teach the remaining skill`);
   assert.equal(lesson2.hint, false, `${language}: pickup copy must not compete with skill lesson 2`);
   await page.screenshot({ path: path.join(OUT, `${language}-${input}-skill-2-live-${width}x${height}.png`) });
 
