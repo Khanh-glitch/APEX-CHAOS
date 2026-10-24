@@ -476,14 +476,14 @@ export default function ProgressionCenter() {
       className="apex-progress-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label={t.title}
+      aria-label={tab === 'mission' ? t.contracts : t.mastery}
       onPointerDown={(e) => { if (e.target === e.currentTarget) closePanel(); }}
     >
       <section className="apex-progress-panel" ref={panelRef} data-apex-no-localize="">
         <header className="apex-progress-head">
           <div>
             <div className="apex-progress-kicker">{t.kicker}</div>
-            <h2 className="apex-progress-title">{t.title}</h2>
+            <h2 className="apex-progress-title">{tab === 'mission' ? t.contracts : t.mastery}</h2>
           </div>
           <button
             type="button"
