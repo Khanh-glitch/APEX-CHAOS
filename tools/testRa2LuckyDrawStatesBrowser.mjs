@@ -56,19 +56,19 @@ async function refusalCase({id,credits,lang,reason,need,expected,shot}){
  }finally{await context.close()}
 }
 try{
- await refusalCase({id:'insufficient-vie',credits:100,lang:'vie',expected:'CẦN 250 AC',shot:'insufficient-vie'});
- await refusalCase({id:'pending-response-vie',credits:350,lang:'vie',reason:'spinning',expected:'LƯỢT QUAY ĐANG XỬ LÝ',shot:'pending-response-vie'});
- await refusalCase({id:'error-response-vie',credits:350,lang:'vie',reason:'test-error',expected:'HIỆN KHÔNG THỂ QUAY',shot:'error-vie'});
- await refusalCase({id:'insufficient-eng',credits:100,lang:'eng',expected:'NEED 250 AC',shot:'insufficient-eng'});
- await refusalCase({id:'pending-response-eng',credits:350,lang:'eng',reason:'spinning',expected:'DRAW PENDING',shot:'pending-response-eng'});
- await refusalCase({id:'error-response-eng',credits:350,lang:'eng',reason:'test-error',expected:'DRAW UNAVAILABLE',shot:'error-eng'});
- // Real production spin in an isolated 350-AC profile, with an injected RNG
+ await refusalCase({id:'insufficient-vie',credits:100,lang:'vie',expected:'CẦN 900 AC',shot:'insufficient-vie'});
+ await refusalCase({id:'pending-response-vie',credits:1000,lang:'vie',reason:'spinning',expected:'LƯỢT QUAY ĐANG XỬ LÝ',shot:'pending-response-vie'});
+ await refusalCase({id:'error-response-vie',credits:1000,lang:'vie',reason:'test-error',expected:'HIỆN KHÔNG THỂ QUAY',shot:'error-vie'});
+ await refusalCase({id:'insufficient-eng',credits:100,lang:'eng',expected:'NEED 900 AC',shot:'insufficient-eng'});
+ await refusalCase({id:'pending-response-eng',credits:1000,lang:'eng',reason:'spinning',expected:'DRAW PENDING',shot:'pending-response-eng'});
+ await refusalCase({id:'error-response-eng',credits:1000,lang:'eng',reason:'test-error',expected:'DRAW UNAVAILABLE',shot:'error-eng'});
+ // Real production spin in an isolated labelled 1000-AC profile (draw price), with an injected RNG
  // argument to the actual authority for deterministic winner selection.
- const profile=cp3EntitledProfile({credits:350,progression:{botMatches:0,botWins:0,localMatches:0,claimedIds:[]}});
+ const profile=cp3EntitledProfile({credits:1000,progression:{botMatches:0,botWins:0,localMatches:0,claimedIds:[]}});
  const {context,page}=await boot(profile);
  try{
   const frame=await openDraw(page,'vie');
-  const before=await wallet(page);check(before.credits===350&&before.totalSpins===0&&before.owned.length===1,'success fixture starts with one owned fighter and exactly one draw balance',before);
+  const before=await wallet(page);check(before.credits===1000&&before.totalSpins===0&&before.owned.length===1,'success fixture starts with one owned fighter and exactly one draw balance',before);
   await page.evaluate(()=>{const m=window.APEX_ARSENAL_META;m.__ra2Spin=m.spin;m.spin=()=>m.__ra2Spin(()=>0)});
   await frame.click('#btn1');
   await frame.waitForFunction(()=>document.querySelector('#stage')?.dataset.busy==='1',{timeout:5000});
@@ -93,14 +93,14 @@ try{
   const reloadedWallet=await wallet(page);check(reloadedWallet.credits===0&&reloadedWallet.totalSpins===1&&reloadedWallet.owned.includes('HUNTER'),'reload retains the successful draw exactly once',reloadedWallet);
   const frameENG=await openDraw(page,'eng');
   const reloadENG=await frameENG.evaluate(()=>({lang:document.documentElement.lang,title:document.querySelector('#stage')?.getAttribute('aria-label'),poolCount:document.querySelector('#poolCount')?.innerText.trim(),drawLabel:document.querySelector('#btn1')?.getAttribute('aria-label'),possible:document.querySelector('#infoD')?.innerText.trim(),locked:window.APEX_ARSENAL_META?.poolLocked?.()||[],winnerStillLocked:(window.APEX_ARSENAL_META?.poolLocked?.()||[]).includes('HUNTER')}));
-  check(reloadENG.lang==='en'&&reloadENG.title==='APEX CHAOS Lucky Draw'&&reloadENG.drawLabel==='Draw one fighter, cost 350'&&reloadENG.poolCount==='06'&&!reloadENG.winnerStillLocked,'ENG reload restores donor copy and syncs the production six-fighter pool after HUNTER unlock',reloadENG);
+  check(reloadENG.lang==='en'&&reloadENG.title==='APEX CHAOS Lucky Draw'&&reloadENG.drawLabel==='Draw one fighter, cost 1000'&&reloadENG.poolCount==='06'&&!reloadENG.winnerStillLocked,'ENG reload restores donor copy and syncs the production six-fighter pool after HUNTER unlock',reloadENG);
   const status=await page.evaluate(()=>({credits:window.APEX_ARSENAL_META.credits(),owned:window.APEX_ARSENAL_META.getState().ownedFighters,totalSpins:window.APEX_ARSENAL_META.getState().totalSpins}));
   check(status.credits===0&&status.totalSpins===1&&status.owned.includes('HUNTER'),'ENG reload surface retains the same production authority values',status);
   await page.screenshot({path:`${OUT}/reload-eng.png`});
   reports.reload={wallet:reloadedWallet,donor:reloadENG,authority:status};
  }finally{await context.close()}
  // Independent ENG success transaction, likewise isolated and deterministic.
- const engProfile=cp3EntitledProfile({credits:350,progression:{botMatches:0,botWins:0,localMatches:0,claimedIds:[]}});
+ const engProfile=cp3EntitledProfile({credits:1000,progression:{botMatches:0,botWins:0,localMatches:0,claimedIds:[]}});
  const engRun=await boot(engProfile);
  try{
   const frame=await openDraw(engRun.page,'eng');

@@ -2303,80 +2303,69 @@ var APEX_SIDE_EDGE = [
     { color: '#FF941F', double: false },
     { color: '#3AA7FF', double: true },
 ];
-var __apexEdgePool = [null, null];
-function __apexEdgeCanvases(idx, px, bodyPx) {
-    let slot = __apexEdgePool[idx];
+// Issue #105 compositor. One shared device-sized body canvas (origin pinned
+// to the frame origin) so every fighter draw keeps its exact device semantics:
+// hero code that resets to identity, blits full-frame layers (FROST ice) or
+// snapshots the frame matrix paints the same pixels as a direct draw. The
+// silhouette/keyline is derived only from the body core at device resolution.
+// Each fighter is drawn ONCE; the composite is a 1:1 device copy.
+var __apexEdgePool = null;
+var __APEX_EDGE_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+function __apexEdgeSlot(bodyW, bodyH, silW, silH) {
+    let slot = __apexEdgePool;
     if (!slot) {
-        slot = __apexEdgePool[idx] = {
+        slot = __apexEdgePool = {
             body: document.createElement('canvas'),
             sil: document.createElement('canvas'),
             edge: document.createElement('canvas'),
         };
-    }
-    // Body stays full resolution (artwork fidelity); silhouette + edge
-    // run at half resolution (an outline needs no more).
-    if (slot.body.width !== bodyPx || slot.body.height !== bodyPx) { slot.body.width = bodyPx; slot.body.height = bodyPx; }
-    for (const name of ['sil', 'edge']) {
-        const c = slot[name];
-        if (c.width !== px || c.height !== px) { c.width = px; c.height = px; }
-    }
-    // Cache the three 2D contexts with the pooled canvases: getContext()
-    // in the per-frame path is pure overhead on software renderers.
-    if (!slot.bodyCtx) {
         slot.bodyCtx = slot.body.getContext('2d');
         slot.silCtx = slot.sil.getContext('2d');
         slot.edgeCtx = slot.edge.getContext('2d');
     }
+    if (slot.body.width !== bodyW || slot.body.height !== bodyH) { slot.body.width = bodyW; slot.body.height = bodyH; }
+    if (slot.sil.width !== silW || slot.sil.height !== silH) { slot.sil.width = silW; slot.sil.height = silH; }
+    if (slot.edge.width !== silW || slot.edge.height !== silH) { slot.edge.width = silW; slot.edge.height = silH; }
     return slot;
 }
-// 4-direction dilation is indistinguishable from 8 at outline widths of
-// 1-3 silhouette pixels (the downscale already feathers diagonals) and
-// halves the composite cost — measured in the CP3 FPS A/B.
-var __APEX_EDGE_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 function drawFighterWithSideEdge(ctx, f, idx, mode) {
     if (!f || typeof f.draw !== 'function') return;
     if (!mode || f.hp <= 0 || !isFinite(f.x) || !isFinite(f.y) || typeof document === 'undefined') { f.draw(ctx); return; }
     try {
         const st = APEX_SIDE_EDGE[idx] || APEX_SIDE_EDGE[0];
         const r = Math.max(20, f.radius || 75);
-        const S = Math.ceil(r * 4.4);          // world-unit bounds around the fighter
-        const half = S / 2;
-        const RES = 0.4;                        // silhouette needs no full resolution
-        // CP3.1 perf: the silhouette is masked to a 1.55r core, so the
-        // silhouette/edge canvases only need that core's bounding square
-        // (+ dilation margin), not the whole 4.4r body bounds. Cropping
-        // is lossless for the edge — every pixel outside the crop was
-        // discarded by the circular mask before — while the full-res
-        // body canvas and composite stay untouched.
-        const cropS = Math.min(S, Math.ceil(r * 3.1 + 28));
-        const cropHalf = cropS / 2;
-        const cropOffset = (S - cropS) / 2;
-        const px = Math.max(56, Math.ceil(cropS * RES));
-        const silScale = px / cropS;
-        const slot = __apexEdgeCanvases(idx, px, S);
-        // 1) Render the fighter ONCE at FULL resolution into the body
-        //    canvas (identical world transform: fighter.draw translates
-        //    to f.x/f.y itself) so Gold artwork never loses a pixel.
+        const m = ctx.getTransform();              // world -> device (camera zoom, shake, scale)
+        const sx = Math.hypot(m.a, m.b) || 1;
+        const sy = Math.hypot(m.c, m.d) || 1;
+        const W = ctx.canvas.width, H = ctx.canvas.height;   // device backing store
+        const coreHalf = Math.ceil(r * 1.55 + 14);
+        const silW = Math.ceil(coreHalf * 2 * sx), silH = Math.ceil(coreHalf * 2 * sy);
+        const slot = __apexEdgeSlot(W, H, silW, silH);
+        // Device-space centre of the fighter and the core crop origin (whole px).
+        const cx = m.a * f.x + m.c * f.y + m.e;
+        const cy = m.b * f.x + m.d * f.y + m.f;
+        const cropX = Math.round(cx - silW / 2), cropY = Math.round(cy - silH / 2);
+        // 1) Render the fighter ONCE into the body canvas through the frame's own
+        //    device mapping (origin = frame origin, so identity means identity).
         const b = slot.bodyCtx;
         b.setTransform(1, 0, 0, 1, 0, 0);
         b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; b.filter = 'none';
-        b.clearRect(0, 0, S, S);
-        b.save(); b.translate(half - f.x, half - f.y); f.draw(b); b.restore();
-        // 2) Silhouette: sample the body down, keep only the body core
-        //    (status text/rings beyond the core never grow an edge),
-        //    then tint its alpha solid.
+        b.clearRect(0, 0, W, H);
+        b.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+        f.draw(b);
+        b.setTransform(1, 0, 0, 1, 0, 0);
+        // 2) Silhouette: copy the core 1:1, keep only the core disc, tint solid.
         const s2 = slot.silCtx;
         s2.setTransform(1, 0, 0, 1, 0, 0);
         s2.globalCompositeOperation = 'source-over'; s2.globalAlpha = 1; s2.filter = 'none';
-        s2.clearRect(0, 0, px, px);
-        s2.drawImage(slot.body, cropOffset, cropOffset, cropS, cropS, 0, 0, px, px);
+        s2.clearRect(0, 0, silW, silH);
+        s2.drawImage(slot.body, cropX, cropY, silW, silH, 0, 0, silW, silH);
         s2.globalCompositeOperation = 'destination-in';
-        s2.beginPath(); s2.arc(px / 2, px / 2, r * 1.55 * silScale, 0, TAU); s2.fillStyle = '#000'; s2.fill();
+        s2.beginPath(); s2.arc(cx - cropX, cy - cropY, r * 1.55 * sx, 0, TAU); s2.fillStyle = '#000'; s2.fill();
         s2.globalCompositeOperation = 'source-in';
-        s2.fillStyle = st.color; s2.fillRect(0, 0, px, px);
-        // 3) Edge canvas: dark keyline offsets first, then the side color
-        //    closer in; P2 adds a faint outer hairline (the non-color
-        //    pattern). Overlap boost widens + strengthens both edges.
+        s2.fillStyle = st.color; s2.fillRect(0, 0, silW, silH);
+        // 3) Keyline canvas: dark outer offsets first, then the side colour closer
+        //    in; P2 adds a faint outer hairline. Overlap boost widens both edges.
         const other = fighters && fighters[1 - idx];
         const dist = (other && isFinite(other.x) && isFinite(other.y))
             ? Math.hypot(f.x - other.x, f.y - other.y) : Infinity;
@@ -2384,11 +2373,11 @@ function drawFighterWithSideEdge(ctx, f, idx, mode) {
         const e = slot.edgeCtx;
         e.setTransform(1, 0, 0, 1, 0, 0);
         e.filter = 'none';
-        e.clearRect(0, 0, px, px);
-        const wKey = 3.4 * silScale * boost, wCol = 2.1 * silScale * boost, wHair = 5.6 * silScale * boost;
+        e.clearRect(0, 0, silW, silH);
+        const wKey = 3.4 * sx * boost, wCol = 2.1 * sx * boost, wHair = 5.6 * sx * boost;
         e.globalCompositeOperation = 'source-over'; e.globalAlpha = 0.92;
         for (const [dx, dy] of __APEX_EDGE_DIRS) e.drawImage(slot.sil, dx * wKey, dy * wKey);
-        e.globalCompositeOperation = 'source-in'; e.fillStyle = 'rgba(4,6,10,0.95)'; e.fillRect(0, 0, px, px);
+        e.globalCompositeOperation = 'source-in'; e.fillStyle = 'rgba(4,6,10,0.95)'; e.fillRect(0, 0, silW, silH);
         e.globalCompositeOperation = 'source-over';
         e.globalAlpha = boost > 1 ? 1 : 0.96;
         for (const [dx, dy] of __APEX_EDGE_DIRS) e.drawImage(slot.sil, dx * wCol, dy * wCol);
@@ -2397,11 +2386,13 @@ function drawFighterWithSideEdge(ctx, f, idx, mode) {
             for (const [dx, dy] of __APEX_EDGE_DIRS) e.drawImage(slot.sil, dx * wHair, dy * wHair);
         }
         e.globalAlpha = 1;
-        // 4) Composite into the world: edge first, the untouched fighter on top.
+        // 4) Composite in DEVICE space (identity transform, integer origins):
+        //    keyline first, then the untouched fighter on top.
         ctx.save();
-        ctx.imageSmoothingEnabled = true;
-        ctx.drawImage(slot.edge, f.x - cropHalf, f.y - cropHalf, cropS, cropS);
-        ctx.drawImage(slot.body, f.x - half, f.y - half, S, S);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 1; ctx.filter = 'none';
+        ctx.drawImage(slot.edge, cropX, cropY);
+        ctx.drawImage(slot.body, 0, 0, W, H, 0, 0, W, H);
         ctx.restore();
     } catch (err) {
         // Presentation must never break combat: fall back to the plain draw.

@@ -44,7 +44,7 @@ const PUBLIC_SURFACES = Object.freeze([
   // visible in the product graph, not launchable. The route stays declared
   // (no future-surface metadata is rewritten); only its availability changes.
   surface('fighter-shop', 'Fighter Shop', LOCKED, 'Fighter Shop is not available yet.'),
-  surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available fighter for 350 AC.', { route: 'draw' }),
+  surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available fighter for 1000 AC.', { route: 'draw' }),
   surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available yet.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available yet.'),
   surface('dictionary', 'Field Archive', ACTIVE, 'Browse playable fighters and Arsenal, inspect approved Gold art and equip cosmetic skins for P1/P2.', { route: 'skins' }),
@@ -111,7 +111,7 @@ export const PRODUCT_ROSTER = Object.freeze({
 
 export const PRODUCT_ECONOMY = Object.freeze({
   shopCost: 1000,
-  drawCost: 350,
+  drawCost: 1000,
   // A1 production law: a genuinely new player profile starts at exactly
   // 350 AC with ROBOT (NEWBOT) as the only owned fighter. The r44
   // owner-playtest 12,000 AC seed is retired; existing balances are

@@ -28,5 +28,5 @@ check('BOT wins pay exactly 200 real local AC',economy.includes('BOT_WIN: 200, B
 check('Product graph matches 200/25/50 wallet reward law',product.includes('matchRewards: Object.freeze({ botWin: 200, botLoss: 25, localComplete: 50 })'));
 check('Fighter Shop remains locked in public navigation',product.includes("surface('fighter-shop', 'Fighter Shop', LOCKED,"));
 check('Claim history still protects against duplicate rewards',economy.includes('state.claimedMatchIds.includes(claimKey)') && economy.includes('current.productResultAwarded'));
-check('Shop / Lucky draw costs unchanged',economy.includes('const SHOP_COST = 1000;') && economy.includes('const DRAW_COST = 350;'));
+check('Shop / Lucky draw costs unchanged',economy.includes('const SHOP_COST = 1000;') && economy.includes('const DRAW_COST = 1000;'));
 console.log('ITCH GUEST FIRST CONTRACT PASS ('+count+' checks)');

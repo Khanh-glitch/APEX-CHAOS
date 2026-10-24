@@ -181,21 +181,24 @@ gate('economy-clean-state-and-mutation-legality', () => {
   assert.ok(meta.poolLocked().includes('BOXE'));
   assert.ok(meta.poolLocked().includes('HUNTER'));
   assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));
-  // A Lucky Draw costs the real 350 AC and can only take from the unowned pool.
+  // A Lucky Draw costs the real 1000 AC (Issue #105) and can only take from the unowned pool.
+  // Labelled isolated test seed: top the fresh 350 AC up to the 1000 AC draw price.
+  meta.award('issue-105-labelled-draw-seed', 650);
+  assert.equal(meta.credits(), 1000);
   const draw = meta.spin(() => 0.999999);
   assert.equal(draw.ok, true);
   assert.ok(PRODUCT_ROSTER.playableIds.includes(draw.name));
   assert.ok(!PRODUCT_ROSTER.lockedIds.includes(draw.name));
-  assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost);
+  assert.equal(meta.credits(), 1000 - PRODUCT_ECONOMY.drawCost);
   // The shop enforces the real balance: a fresh player cannot afford 1,000 AC yet.
   assert.equal(meta.buy('HUNTER').reason, 'need');
   // Earned AC (the real award path) then funds the real 1,000 AC shop cost.
   meta.award('proof', 2000);
   const bought = meta.buy('HUNTER');
   assert.equal(bought.ok, true);
-  assert.equal(bought.credits, PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost);
+  assert.equal(bought.credits, 1000 - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost);
   meta.award('proof', 1000);
-  assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost + 1000);
+  assert.equal(meta.credits(), 1000 - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost + 1000);
   return {
     credits: meta.credits(), draw: draw.name, shopCost: meta.SHOP_COST, drawCost: meta.DRAW_COST,
   };

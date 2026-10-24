@@ -928,7 +928,7 @@ function buildLuckyDonor() {
       find: /<div id="lab" hidden>[\s\S]*?<\/div>\n<div id="labTab"[^>]*>LAB<\/div>\n<div id="pvLabel"><\/div>\n/,
       replace: '',
     },
-    // ── L4: production economy exposes one draw (350 AC); no ×10 bundle ────
+    // ── L4: production economy exposes one draw (1000 AC, Issue #105); no ×10 bundle ────
     {
       id: 'LKY-L4',
       why: 'remove the donor ×10 draw bundle (production economy has a single draw)',
@@ -937,9 +937,9 @@ function buildLuckyDonor() {
     },
     {
       id: 'LKY-L5',
-      why: 'single draw button carries the production cost (350 AC)',
+      why: 'single draw button carries the production cost (1000 AC, Issue #105)',
       find: /aria-label="Draw one fighter, cost 160">\n      <i class="dk"><\/i><span class="dl"><span>DRAW <em>×1<\/em><\/span><span class="dc">◆ 160<\/span><\/span>/,
-      replace: 'aria-label="Draw one fighter, cost 350">\n      <i class="dk"></i><span class="dl"><span>DRAW <em>×1</em></span><span class="dc">◆ 350</span></span>',
+      replace: 'aria-label="Draw one fighter, cost 1000">\n      <i class="dk"></i><span class="dl"><span>DRAW <em>×1</em></span><span class="dc">◆ 1000</span></span>',
     },
     {
       id: 'LKY-L6',
@@ -1095,7 +1095,7 @@ function buildLuckyDonor() {
         `  if (!res || res.ok !== true){\n` +
         `    if (res && res.reason === 'complete') showPoolTag('ROSTER COMPLETE');\n` +
         `    else if (res && res.reason === 'spinning') showPoolTag('DRAW PENDING');\n` +
-        `    else if (res && res.reason === 'need') showPoolTag('NEED ' + (res.need || 350) + ' AC');\n` +
+        `    else if (res && res.reason === 'need') showPoolTag('NEED ' + (res.need || 1000) + ' AC');\n` +
         `    else showPoolTag('DRAW UNAVAILABLE');\n` +
         `    return;\n` +
         `  }\n` +
@@ -2352,6 +2352,20 @@ function buildShell(hudProductionHtml) {
 
   out = adaptGoldShellR50k(out);
   log('  R50K (shell): Mechanical Door V4 scene coordinator wiring adapted');
+
+  // ── R105 (Issue #105): Pick roster rebuilt on every Fighter entry ────────
+  // The donor built the roster only when empty, so a fighter drawn by Lucky
+  // Draw AFTER the roster was first built still showed LOCKED in Pick. Lock
+  // state is production truth (APEX_GOLD_LOCKED -> canPublicSelect), read at
+  // each Fighter entry. Every seam is counted and asserted before mutation.
+  {
+    const needle = 'if(!roster.childElementCount)buildRoster();';
+    const hits = out.split(needle).length - 1;
+    if (hits < 1) throw new Error(`R105 roster rebuild seam mismatch (${hits})`);
+    out = out.split(needle).join('buildRoster();');
+    log(`  R105 (shell): Pick roster rebuilt on every Fighter entry (${hits} seams)`);
+  }
+
 
   out = adaptGoldShellR52PickBand(out);
   log('  R52 (shell): Fighter-Pick bottom band law derived from the canonical deck/lock rules');

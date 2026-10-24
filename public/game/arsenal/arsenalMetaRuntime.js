@@ -4,7 +4,7 @@
   if (window.apexArsenalMetaRuntime === 'ready') return;
   const KEY = 'apexChaos.arsenalMeta.v1';
   const SHOP_COST = 1000;
-  const DRAW_COST = 350;
+  const DRAW_COST = 1000; // Issue #105 owner rule: one Lucky draw = exactly 1000 AC
   const START_CREDITS = 350;
   const PROGRESSION_CATALOG = Object.freeze([
     Object.freeze({ id: 'first-bot', kind: 'mission', stat: 'botMatches', target: 1, ac: 100, vie: 'TRẬN ĐẤU ĐẦU TIÊN', eng: 'FIRST BOT MATCH' }),
@@ -1091,9 +1091,9 @@
           </div>
           <aside class="aq-draw-side">
             <div class="aq-kicker">NO DUPLICATES</div><h2>ONE NEW FIGHTER</h2>
-            <div class="aq-draw-facts"><div class="aq-draw-fact"><span>COST</span><b>350 AC</b></div><div class="aq-draw-fact"><span>POOL</span><b>${locked.length} LEFT</b></div></div>
+            <div class="aq-draw-facts"><div class="aq-draw-fact"><span>COST</span><b>${DRAW_COST} AC</b></div><div class="aq-draw-fact"><span>POOL</span><b>${locked.length} LEFT</b></div></div>
             <p class="aq-note">The draw only contains fighters you do not own. When the pool is empty, the roster is complete.</p>
-            <button id="aq-spin" class="aq-spin" type="button" ${(!locked.length || drawBusy) ? 'disabled' : ''}>${!locked.length ? 'ROSTER COMPLETE' : drawBusy ? 'SPINNING…' : 'SPIN · 350 AC'}</button>
+            <button id="aq-spin" class="aq-spin" type="button" ${(!locked.length || drawBusy) ? 'disabled' : ''}>${!locked.length ? 'ROSTER COMPLETE' : drawBusy ? 'SPINNING…' : `SPIN · ${DRAW_COST} AC`}</button>
             <div id="aq-draw-message" class="aq-detail-message"></div>
             ${result}
           </aside>

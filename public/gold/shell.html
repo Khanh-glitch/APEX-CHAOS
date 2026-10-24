@@ -1740,7 +1740,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface(next,{heroIds});
       if(next==='mode')hydrateDeferredImages(modeScreen);
       if(next==='fighter'){
-        if(!roster.childElementCount)buildRoster();
+        buildRoster();
         renderFighter();
       }
       // The visible Fighter composition includes world-stage art OUTSIDE the
@@ -1801,7 +1801,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     // then the player's to change.
     if(mode==='bot')p2Hero=botHeroId();
     fighterModeBadge.textContent=mode==='bot'?'VS BOT':'LOCAL 1 VS 1';
-    setTimeout(()=>{if(!roster.childElementCount)buildRoster();renderFighter();void setScreen('fighter')},360);
+    setTimeout(()=>{buildRoster();renderFighter();void setScreen('fighter')},360);
     setTimeout(()=>{stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-committing'))},820);
   }
 

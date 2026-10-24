@@ -270,7 +270,14 @@ async function main() {
     sameOrigin: frameWin.location.origin === win.location.origin,
   });
 
-  // 4) displayed credits synchronize from real production credits
+  // 4) displayed credits synchronize from real production credits.
+  // Labelled isolated test seed: exactly the 1000 AC draw price (not a grant).
+  const drawSeed = meta.getState();
+  drawSeed.credits = 1000;
+  drawSeed.testSeed = 'issue-105-labelled-1000-ac-draw-fixture';
+  meta.save(drawSeed);
+  // Production resync path (the same donor sync the shell triggers on credits change).
+  if (typeof frameWin.APEX_LUCKY_SYNC === 'function') frameWin.APEX_LUCKY_SYNC();
   const creditsBefore = meta.credits();
   const shownBefore = frameDoc.getElementById('scrap').textContent;
   gate('displayed-credits-sync-from-production', shownBefore === Number(creditsBefore).toLocaleString('en-US'), {
@@ -278,7 +285,7 @@ async function main() {
   });
 
   // 5+6+7+8) clicking the real Draw control calls REAL meta.spin() exactly
-  // once, costs exactly 350 AC through production truth, decreases the real
+  // once, costs exactly 1000 AC through production truth, decreases the real
   // production balance, and the result maps to a real production fighter.
   const ownedBefore = meta.getState().ownedFighters.slice();
   let spinCalls = 0;
@@ -296,7 +303,7 @@ async function main() {
   const ownedAfter = meta.getState().ownedFighters.slice();
   const poolTag = frameDoc.getElementById('poolTag');
   gate('real-draw-control-calls-production-spin-once', spinCalls === 1, { spinCalls, rngArg: typeof lastSpinArg });
-  gate('successful-draw-costs-exactly-350-ac', creditsAfterDraw === creditsBefore - 350, {
+  gate('successful-draw-costs-exactly-1000-ac', creditsAfterDraw === creditsBefore - 1000, {
     before: creditsBefore, after: creditsAfterDraw, delta: creditsBefore - creditsAfterDraw,
   });
   gate('credits-decrease-through-real-production-economy', creditsAfterDraw === meta.getState().credits, {
@@ -341,7 +348,7 @@ async function main() {
   const needTag = poolTag ? poolTag.textContent : '';
   const creditsAfterBroke = meta.credits();
   gate('insufficient-funds-comes-from-production-meta', spinCallsBroke === 1
-    && creditsAfterBroke === 100 && /NEED 250 AC/.test(needTag), {
+    && creditsAfterBroke === 100 && /NEED 900 AC/.test(needTag), {
     spinCalls: spinCallsBroke, credits: creditsAfterBroke, tag: needTag, shownBroke,
   });
 

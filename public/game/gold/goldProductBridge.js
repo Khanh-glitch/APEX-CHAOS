@@ -305,12 +305,25 @@
     return !hero.owned;
   };
   // Full production-visible roster (playable + locked) for the shell picker.
+  // Issue #105 Pick order (product rule): NEWBOT (production ROBOT) first and
+  // playable; then the remaining playable fighters alphabetically; then the six
+  // roadmap-locked fighters in roadmap order. Ownership never changes position.
+  const PICK_ROADMAP_LOCKED_ORDER = ['BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER'];
+  function pickGroupRank(entry) {
+    const pid = String(entry.productionId);
+    if (entry.playable === false) {
+      const i = PICK_ROADMAP_LOCKED_ORDER.indexOf(pid);
+      return { group: 2, index: i < 0 ? 999 : i };
+    }
+    return pid === 'ROBOT' ? { group: 0, index: 0 } : { group: 1, index: 0 };
+  }
   window.APEX_GOLD_ROSTER_ORDER = function goldRosterOrder() {
     const roster = rosterFromProduction();
     return Object.keys(roster).sort((a, b) => {
-      const pa = roster[a].playable === false ? 1 : 0;
-      const pb = roster[b].playable === false ? 1 : 0;
-      if (pa !== pb) return pa - pb;
+      const ra = pickGroupRank(roster[a]);
+      const rb = pickGroupRank(roster[b]);
+      if (ra.group !== rb.group) return ra.group - rb.group;
+      if (ra.group === 2) return ra.index - rb.index;
       return String(roster[a].productionId).localeCompare(String(roster[b].productionId));
     });
   };

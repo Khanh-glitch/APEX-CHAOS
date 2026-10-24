@@ -256,7 +256,7 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['CLOSE','ĐÓNG'],['Back','Quay lại'],['DRAW UNAVAILABLE','HIỆN KHÔNG THỂ QUAY'],
   ['DRAW PENDING','LƯỢT QUAY ĐANG XỬ LÝ'],['ROSTER COMPLETE','ĐÃ ĐỦ ĐẤU SĨ'],
   ['DRAW ASSETS UNAVAILABLE','CHƯA TẢI ĐƯỢC DỮ LIỆU VÒNG QUAY'],
-  ['Draw one fighter, cost 350','Quay một đấu sĩ, tốn 350 AC'],
+  ['Draw one fighter, cost 1000','Quay một đấu sĩ, tốn 1000 AC'],
   ['MOTION LANE → LOCK','HƯỚNG CHUYỂN ĐỘNG → KHÓA'],
   ['HERO SAFE BOX','VÙNG HIỂN THỊ ĐẤU SĨ'],
   ['LAYOUT','BỐ CỤC'],['SAFE AREA','VÙNG AN TOÀN'],['LED WALL','BẢNG LED'],

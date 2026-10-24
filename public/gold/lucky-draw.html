@@ -495,8 +495,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   <div class="console" id="console"><i class="lamp a"></i><i class="lamp b"></i></div>
 
   <div class="controls" id="controls">
-    <button class="draw d1" id="btn1" data-n="1" aria-label="Draw one fighter, cost 350">
-      <i class="dk"></i><span class="dl"><span>DRAW <em>×1</em></span><span class="dc">◆ 350</span></span>
+    <button class="draw d1" id="btn1" data-n="1" aria-label="Draw one fighter, cost 1000">
+      <i class="dk"></i><span class="dl"><span>DRAW <em>×1</em></span><span class="dc">◆ 1000</span></span>
     </button>
   </div>
   <button class="info-d" id="infoD">POSSIBLE FIGHTERS <b id="poolCount">03</b></button>
@@ -965,7 +965,7 @@ function startDraw(count){
   if (!res || res.ok !== true){
     if (res && res.reason === 'complete') showPoolTag('ROSTER COMPLETE');
     else if (res && res.reason === 'spinning') showPoolTag('DRAW PENDING');
-    else if (res && res.reason === 'need') showPoolTag('NEED ' + (res.need || 350) + ' AC');
+    else if (res && res.reason === 'need') showPoolTag('NEED ' + (res.need || 1000) + ' AC');
     else showPoolTag('DRAW UNAVAILABLE');
     return;
   }

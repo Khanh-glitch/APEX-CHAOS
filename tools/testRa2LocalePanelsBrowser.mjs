@@ -171,7 +171,7 @@ try{
    check(drawVie.title==='APEX CHAOS · Vòng quay may mắn','Lucky Draw iframe title is localized '+view.name,drawVie.title);
    check(drawVie.labels.includes('APEX CHAOS · Vòng quay may mắn'),'Lucky Draw main aria-label is localized '+view.name,drawVie.labels[0]);
    check(drawVie.labels.includes('Bảng LED đấu sĩ'),'Lucky Draw LED aria-label is localized '+view.name,drawVie.labels[1]);
-   check(drawVie.labels.includes('Quay một đấu sĩ, tốn 350 AC')&&drawVie.labels.includes('Quay lại'),'Lucky Draw action aria labels are localized '+view.name,drawVie.labels);
+   check(drawVie.labels.includes('Quay một đấu sĩ, tốn 1000 AC')&&drawVie.labels.includes('Quay lại'),'Lucky Draw action aria labels are localized '+view.name,drawVie.labels);
    check(drawVie.text.includes('KHU QUAY THƯỞNG · ĐANG HOẠT ĐỘNG')&&drawVie.text.includes('ĐẤU SĨ CÓ THỂ NHẬN'),'Lucky Draw live copy renders VIE '+view.name,drawVie.text.slice(0,350));
    check(drawVie.text.includes('APEX CHAOS ⁄ SECTOR D')&&drawVie.text.includes('NEWBOT'),'Lucky Draw event/fighter identities stay invariant '+view.name);
    await page.screenshot({path:`docs/acceptance/ra2/evidence/localization/${view.name}-lucky-draw-vie.png`});

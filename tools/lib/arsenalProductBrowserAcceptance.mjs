@@ -597,7 +597,7 @@ export async function runArsenalProductBrowserAcceptance({
       futureInPool: (M?.poolLocked?.() || []).some(id => ${JSON.stringify(lockedFighterIds)}.includes(id)),
     };
   })()`, value => value && value.visible, { attempts: 80, interval: 80 });
-  evidence.push(await screenshot('arsenal-product-lucky-draw-clean-350-ac'));
+  evidence.push(await screenshot('arsenal-product-lucky-draw-clean-1000-ac'));
   const firstSpin = await clickVisible('#aq-spin');
   const drawResult = await poll(`(() => {
     const M = window.APEX_ARSENAL_META;
@@ -624,7 +624,7 @@ export async function runArsenalProductBrowserAcceptance({
   })()`);
   const drawBack = await clickVisible('#aq-draw-back');
   const drawReturned = await awaitMenu();
-  pass('lucky-draw-physical-route-pool-core-six-and-exactly-one-350-ac-draw',
+  pass('lucky-draw-physical-route-pool-core-six-and-exactly-one-1000-ac-draw',
     drawRoute.pointer.hitWithin === true && drawBefore?.visible === true
       && drawBefore.credits === economy.cleanStateCredits && drawBefore.spins === 0
       && drawBefore.drawCost === economy.drawCost && drawBefore.authorityDrawCost === economy.drawCost

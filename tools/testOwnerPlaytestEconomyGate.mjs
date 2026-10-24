@@ -9,7 +9,8 @@
 //     as the only owned fighter — no 12,000 AC seed, no roster override,
 //   · existing balances/ownership are preserved verbatim (no refill, no
 //     clawback, no destructive reset) and a refresh NEVER refills AC,
-//   · Lucky Draw still costs the real 350 AC against the REAL unowned pool,
+//   · Lucky Draw costs exactly 1000 AC (one charge) against the REAL unowned pool,
+//     and a fresh 350 AC profile is refused for the real reason (need 650),
 //   · normal selection requires real ownership; the playable roster is
 //     test-selectable ONLY inside an authorized Admin Test session, which
 //     still fabricates no ownership and never widens the draw pool,
@@ -122,16 +123,32 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   check('refreshing it never refills', refreshed.meta.credits() === 11650);
 }
 
-// ── 3. ordinary refresh / re-login never refills ──────────────────────────
+// ── 3. Lucky Draw costs exactly 1000 AC; a refresh never refills ─────────
 {
-  const { meta, storage } = boot({});
+  // Fresh 350 AC profile cannot draw: refused for the real reason, no debit.
+  const { meta } = boot({});
+  const refused0 = meta.spin(() => 0);
+  check('fresh 350 AC profile is refused a draw for the real reason (need 650)',
+    refused0.ok === false && refused0.reason === 'need' && refused0.need === 650,
+    JSON.stringify(refused0));
+  check('a refused draw neither debits nor grants (350 stays 350, 0 spins)',
+    meta.credits() === 350 && meta.getState().totalSpins === 0, `credits=${meta.credits()}`);
+}
+{
+  // Labelled isolated test seed (NOT a player grant): exactly 1000 AC.
+  const seeded = {
+    version: 1, credits: 1000, ownedFighters: ['ROBOT'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT',
+    totalSpins: 0, unlockedAt: { ROBOT: 0 }, arenaPaletteId: null,
+    testSeed: 'issue-105-labelled-1000-ac-draw-fixture',
+  };
+  const { meta, storage } = boot({ [KEY]: JSON.stringify(seeded) });
   const spin = meta.spin(() => 0);
-  check('Lucky Draw costs the real 350 AC (fresh 350 → 0)',
-    spin.ok === true && spin.credits === 0, JSON.stringify(spin));
+  check('Lucky Draw costs exactly 1000 AC (1000 → 0), one charge',
+    spin.ok === true && spin.credits === 0 && meta.getState().totalSpins === 1, JSON.stringify(spin));
   check('the drawn fighter becomes really owned', meta.owns(spin.name) === true);
   const refused = meta.spin(() => 0);
-  check('a second draw is refused for the real reason (need 350)',
-    refused.ok === false && refused.reason === 'need' && refused.need === 350,
+  check('a second draw is refused for the real reason (need 1000)',
+    refused.ok === false && refused.reason === 'need' && refused.need === 1000,
     JSON.stringify(refused));
   const refreshed = boot({ [KEY]: storage.getItem(KEY) });
   check('an ordinary refresh does NOT refill (0 stays 0)',
@@ -232,7 +249,8 @@ const matchState = (mode, id) => ({ battleMode: mode, resultGold: { meta: { id }
 
 // ── Atomic Lucky Draw save: never debit AC before ownership persists ────
 {
-  const {meta, storage}=boot({});
+  // Labelled isolated test seed at the 1000 AC draw price (not a grant).
+  const {meta, storage}=boot({[KEY]: JSON.stringify({version:1,credits:1000,ownedFighters:['ROBOT'],lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:0,unlockedAt:{ROBOT:0},arenaPaletteId:null,testSeed:'issue-105-labelled-1000-ac-draw-fixture'})});
   let writes=0;
   const originalSet=storage.setItem;
   storage.setItem=(key,value)=>{writes++;originalSet(key,value)};
