@@ -42,7 +42,9 @@ try{
     entryLabel:document.querySelector('#apexMissionsOpen')?.getAttribute('aria-label'),
     text:document.querySelector('.apex-progress-panel')?.innerText.slice(0,500),
    }));
-   check(missions.title==='KHO TINH THÔNG','Missions title renders VIE '+view.name,missions);
+   // #105 §7: the header follows the active tab. The default Missions tab is
+   // STARTER CONTRACTS (HỢP ĐỒNG KHỞI ĐẦU); the Mastery label is only for the Mastery tab.
+   check(missions.title==='HỢP ĐỒNG KHỞI ĐẦU','Missions title renders VIE on the Starter Contracts tab '+view.name,missions);
    check(missions.entryLabel==='Nhiệm vụ và thành tích','Missions aria label remains localized while modal is open',missions.entryLabel);
    check(!missions.text.includes('Missions and Achievements'),'no English source aria phrase leaks into visible panel',missions.text);
    await page.screenshot({path:`docs/acceptance/ra2/evidence/localization/${view.name}-missions-vie.png`});
