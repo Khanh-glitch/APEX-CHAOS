@@ -1,8 +1,10 @@
 /* APEX CHAOS — Learn by Playing Coach (Tactical Pulse Non-Blocking Edition) */
 #gold-shell-host #stage #apex-guide-open{
   position:absolute;
-  right:max(14px,env(safe-area-inset-right));
-  bottom:max(14px,env(safe-area-inset-bottom));
+  /* #105 §5: the home bottom nav owns the bottom-right corner (ACCOUNT tile),
+     so Help sits in the header, left of the balance chip, at every viewport. */
+  right:110px;
+  top:max(10px,env(safe-area-inset-top));
   z-index:48;
   min-width:44px;
   min-height:44px;
