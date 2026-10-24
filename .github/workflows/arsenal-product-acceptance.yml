@@ -274,7 +274,9 @@ jobs:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
           APEX_APP_URL: http://127.0.0.1:5173/
           ISSUE105_OUT: /tmp/issue105-browser
-        run: pnpm test:issue105:browser
+        run: |
+          npm ci --prefix tools/probe --no-audit --no-fund
+          pnpm test:issue105:browser
 
       - name: Profile Core Six cold-load phases
         env:

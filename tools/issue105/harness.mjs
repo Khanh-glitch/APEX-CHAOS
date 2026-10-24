@@ -1,7 +1,12 @@
 // Shared real-Chromium harness for the Issue #105 gates.
 // Requires CHROME_PATH (headless Chromium) and a running app at APEX_APP_URL
 // (default http://127.0.0.1:5173/). Every profile uses its own launch().
-import puppeteer from 'puppeteer-core';
+import { createRequire } from 'node:module';
+// Same resolution as tools/auditTacticalPulseRuntimeQa.mjs: the root install if
+// present, otherwise the tools/probe install that CI provisions.
+const probeReq = createRequire(new URL('../probe/package.json', import.meta.url));
+const puppeteerModule = await import('puppeteer-core').catch(() => import(probeReq.resolve('puppeteer-core')));
+const puppeteer = puppeteerModule.default ?? puppeteerModule;
 import { writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
