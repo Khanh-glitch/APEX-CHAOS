@@ -174,6 +174,12 @@ async function main() {
   await shot('nested-home-390x844');
   const home = await evl(`(()=>({url:location.href,base:document.baseURI,ac:document.querySelector('#apexAccountOpen')?1:0,guide:!!document.querySelector('.apex-coach-skip')||!!document.querySelector('.apex-guide-close')}))()`, await frameContext());
   check('nested home reaches the real product Entry (account entry present)', home?.ac === 1, JSON.stringify(home));
+  // Owner option B: cramped-portrait instructions live in the menu Help sheet, before combat.
+  // The Help control exists on the menu (not inside a battle), so the check runs here.
+  await pressInFrame('#apex-guide-open');
+  const helpNote = await waitInFrame(`(()=>{const n=document.querySelector('[data-testid="apex-help-portrait-note"]');return !!n&&n.textContent.trim().length>20})()`, 'nested Help portrait note', 10000).catch(() => null);
+  check('nested menu Help sheet carries the cramped-portrait instructions before combat', !!helpNote, helpNote ? 'present' : 'missing');
+  await evl(`document.querySelector('.apex-help-close')?.click()`, await frameContext());
 
   // Dismiss only the separate first-run control intro. Keep the first-play
   // coach's SKIP untouched here; the nested acceptance verifies that real
@@ -213,10 +219,6 @@ async function main() {
     const clean = await evl(`(()=>({chip:!!document.querySelector('.apex-coach-chip'),skip:!!document.querySelector('.apex-coach-skip'),lease:!!window.APEX_TUTORIAL_PAUSE?.active,paused:document.body.classList.contains('apex-tutorial-paused'),pickup:!!document.querySelector('.apex-guide-pickup-prompt'),base:document.baseURI}))()`, cleanCtx);
     check('nested portrait battle stays CLEAN by owner option B: no chip, no SKIP, no pause lease, no pickup prompt, nested base', !!clean && !clean.chip && !clean.skip && !clean.lease && !clean.paused && !clean.pickup && String(clean.base).includes('/html/apex/'), JSON.stringify(clean));
     await shot('nested-battle-portrait-clean-390x844');
-    await pressInFrame('#apex-guide-open');
-    const helpNote = await waitInFrame(`(()=>{const n=document.querySelector('[data-testid="apex-help-portrait-note"]');return !!n&&n.textContent.trim().length>20})()`, 'nested Help portrait note', 10000).catch(() => null);
-    check('nested Help sheet carries the cramped-portrait instructions before combat', !!helpNote, helpNote ? 'present' : 'missing');
-    await evl(`document.querySelector('.apex-help-close')?.click()`, cleanCtx);
     const hud = await evl(`(()=>{const n=document.querySelector('#p2Side .id-name');const gi=[...document.querySelectorAll('#p1Side .skill .apex-skill-icon')].map(i=>i.naturalWidth>0);return{name:n?n.textContent.trim():null,skillIcons:gi,hudMode:document.querySelector('#hud')?.dataset?.mode}})()`, live);
     check('nested battle HUD carries the opponent identity and decoded skill icons',
       hud?.hudMode === '1p' && !!hud?.name && hud.skillIcons.length > 0 && hud.skillIcons.every(Boolean), JSON.stringify(hud));
