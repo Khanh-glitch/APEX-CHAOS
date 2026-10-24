@@ -75,10 +75,7 @@ export const TACTICAL_PULSE_HUD_CSS = `/* TACTICAL PULSE HUD B: distinct STANDBY
 #hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p1Side .ident{
   align-self:start;
 }
-#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p1Side .skills{
-  align-self:end;
-  height:min(100%,190px);
-}
+/* Issue #105: VS BOT portrait 1P. The P1 row reserves only its content minimum\n   (ident 44 + gap 8 + J/K >=96). The square arena takes the freed height on\n   short phones; J/K sit directly under the identity row, capped, so no empty\n   band remains between them. This later rule wins the cascade over the donor 200px. */\n#hud:not([data-quest=\"1\"])[data-layout=\"port\"][data-mode=\"1p\"]{--p1Min:150px}\n#hud:not([data-quest=\"1\"])[data-layout=\"port\"][data-mode=\"1p\"] #p1Side .skills{\n  align-self:start;\n  height:min(100%,280px);\n}
 #hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p1Side .sk-art{
   aspect-ratio:auto!important;
   height:100%!important;
