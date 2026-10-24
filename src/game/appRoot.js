@@ -23,6 +23,9 @@ export const APEX_APP_ENTRY_BASE = ENTRY_BASE;
 
 export function apexAppUrl(path) {
   const raw = String(path ?? '');
+  // An empty path is "no art", never the app root: resolving '' to the entry
+  // directory produced <img src=".../html/apex/"> placeholders that 0-decode.
+  if (!raw) return '';
   if (!ENTRY_BASE) return raw;
   try {
     return new URL(raw.replace(/^\//, ''), ENTRY_BASE).href;
