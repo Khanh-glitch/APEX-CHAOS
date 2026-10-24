@@ -2353,6 +2353,9 @@ function buildShell(hudProductionHtml) {
   out = adaptGoldShellR50k(out);
   log('  R50K (shell): Mechanical Door V4 scene coordinator wiring adapted');
 
+  out = adaptGoldShellR52PickBand(out);
+  log('  R52 (shell): Fighter-Pick bottom band law derived from the canonical deck/lock rules');
+
   // ── R105 (Issue #105): Pick roster rebuilt on every Fighter entry ────────
   // The donor built the roster only when empty, so a fighter drawn by Lucky
   // Draw AFTER the roster was first built still showed LOCKED in Pick. Lock
@@ -2365,10 +2368,6 @@ function buildShell(hudProductionHtml) {
     out = out.split(needle).join('buildRoster();');
     log(`  R105 (shell): Pick roster rebuilt on every Fighter entry (${hits} seams)`);
   }
-
-
-  out = adaptGoldShellR52PickBand(out);
-  log('  R52 (shell): Fighter-Pick bottom band law derived from the canonical deck/lock rules');
 
 
   // R77: shipping source and generated shell must carry the same
