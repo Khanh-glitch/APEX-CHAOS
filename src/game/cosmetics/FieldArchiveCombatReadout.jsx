@@ -1,5 +1,6 @@
 import React,{useState,useEffect} from 'react';
 import {heroProfile,weaponProfile,skillRecords} from './fieldArchiveProfiles.js';
+import {apexAppUrl} from '../appRoot.js';
 import './fieldArchiveCombatReadout.css';
 import './fieldArchiveC04.css';
 
@@ -30,9 +31,9 @@ const GOLD_SKILL_ART=Object.freeze({
 function skillArtwork(item,slot){
  const declared=item?.registry?.archiveProfile?.skillArt?.[slot];
  if(typeof declared==='string'&&declared.startsWith('/assets/')&&/\.(png|webp|jpg)$/.test(declared)&&!declared.includes('..'))
-   return declared;
+   return apexAppUrl(declared);
  const slug=GOLD_SKILL_ART[item?.id];
- return slug?'/assets/gold-ui/heroes/'+slug+'/skill_'+slot.toLowerCase()+'.webp':null;
+ return slug?apexAppUrl('/assets/gold-ui/heroes/'+slug+'/skill_'+slot.toLowerCase()+'.webp'):null;
 }
 function SkillThumbnail({src,slot}){
  const [failed,setFailed]=useState(false);

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { PRODUCT_ROSTER } from '../productSurface.js';
+import { apexAppUrl } from '../appRoot.js';
 import { cosmetics } from './cosmeticAuthority.js';
 import { loadDeferredGameRuntimes } from '../runtimeLoader.js';
 import './cosmeticLocker.css';
@@ -193,7 +194,7 @@ export default function CosmeticLocker() {
                   return <button type="button" key={skin.id} disabled={locked}
                     className={'apex-cosmetics-skin'+(equipped?.id===skin.id?' selected':'')+(locked?' locked':'')}
                     onClick={()=>onEquip(skin.id)} aria-pressed={equipped?.id===skin.id}>
-                    <span className="apex-cosmetics-skin-swatch">{skin.preview?<img src={skin.preview} alt="" />:'✦'}</span>
+                    <span className="apex-cosmetics-skin-swatch">{skin.preview?<img src={apexAppUrl(skin.preview)} alt="" />:'✦'}</span>
                     <span className="apex-cosmetics-skin-copy"><strong>{skin.label}</strong>
                       <small>{lockLabel||(skin.id==='default'?'Base visual identity':skin.detail||'Alternate presentation')}</small></span>
                     <span className="apex-cosmetics-skin-status">{equipped?.id===skin.id?'EQUIPPED':(locked?'LOCKED':'EQUIP')}</span>

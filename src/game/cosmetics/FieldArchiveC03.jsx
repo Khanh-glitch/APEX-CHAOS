@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {PRODUCT_ROSTER} from '../productSurface.js';
+import {apexAppUrl} from '../appRoot.js';
 import {cosmetics} from './cosmeticAuthority.js';
 import {loadDeferredGameRuntimes} from '../runtimeLoader.js';
 import './approvedGoldSkins.js';
@@ -20,15 +21,15 @@ const HERO_META=Object.freeze({
 const PICTURE=(id,definition)=>{const artwork=definition?.archiveProfile?.artwork;
  const declared=(typeof artwork==='string'?artwork:artwork?.standing||artwork?.avatar)||
    definition?.artwork?.pickSelected||definition?.artwork?.selected;
- if(typeof declared==='string'&&/^\/assets\/[a-zA-Z0-9_./-]+\.(webp|png|jpg)$/.test(declared)&&!declared.includes('..'))return declared;
- const legacy=HERO_META[id];return legacy?'/assets/gold-ui/heroes/'+legacy.file+'/pick_'+(id==='MIRROR'?'roster_cover':'selected_large')+'.webp':null;
+ if(typeof declared==='string'&&/^\/assets\/[a-zA-Z0-9_./-]+\.(webp|png|jpg)$/.test(declared)&&!declared.includes('..'))return apexAppUrl(declared);
+ const legacy=HERO_META[id];return legacy?apexAppUrl('/assets/gold-ui/heroes/'+legacy.file+'/pick_'+(id==='MIRROR'?'roster_cover':'selected_large')+'.webp'):null;
 };
 const WEAPON_C_IMAGES=new Set('PISTOL SHOTGUN SMG SNIPER GRENADE SABRE BATTLE_AXE DAGGER SPEAR SPIKED_CLUB SWIRL_SHIELD TOWER_SHIELD AK_47 BERETTA_93R DESERT_DEAGLE GLOCK_17 JACKHAMMER M16 M249_SAW MAC_10 MAGNUM_500 MBR MBR2 MOSSBERG_500 P90 SAWED_OFF SZECSEI_FUCHS TEC_9 ZBROYAR_Z15'.split(' '));
 const WEAPON_V43_IMAGES=new Set('BOLT COMBAT_BOOMERANG FLAMETHROWER FLARE_GUN PLASMA_SPLITTER RPG_7 SHRAPNEL_MINE_LAUNCHER STEEL_BALL_LAUNCHER TACTICAL_CROSSBOW'.split(' '));
-function weaponImage(id,meta){if(id==='RPG_7'&&meta?.skinId==='vua-he')return '/assets/skins/rocket-vua-he/launcher.png';
- if(WEAPON_V43_IMAGES.has(id))return '/assets/arsenal/v43/'+id+'.webp';
- if(WEAPON_C_IMAGES.has(id))return '/assets/arsenal/weapons/c/'+id+'.png';
- return typeof meta?.art==='string'&&/^\/assets\/arsenal\//.test(meta.art)?meta.art:null;
+function weaponImage(id,meta){if(id==='RPG_7'&&meta?.skinId==='vua-he')return apexAppUrl('/assets/skins/rocket-vua-he/launcher.png');
+ if(WEAPON_V43_IMAGES.has(id))return apexAppUrl('/assets/arsenal/v43/'+id+'.webp');
+ if(WEAPON_C_IMAGES.has(id))return apexAppUrl('/assets/arsenal/weapons/c/'+id+'.png');
+ return typeof meta?.art==='string'&&/^\/assets\/arsenal\//.test(meta.art)?apexAppUrl(meta.art):null;
 }
 // The real Gold fighter-pick is a separate screen from HOME. Read its
 // DOM selection authority instead of copying or mutating Gold pick state.
@@ -282,7 +283,7 @@ export default function FieldArchiveC03(){
        {view==='SKINS'&&<div className="fa3-appear">
         <p className="fa3-description">{kind==='hero'?(current?.registry?.archiveProfile?.intro||HERO_META[current?.id]?.intro||'Fighter locked — dossier incomplete.'):'Tier marks drop rarity: T1 29% · T2 29% · T3 23% · T4 12% · T5 5% · T6 2%.'}</p>
         <div className="fa3-skin-list">{visibleSkins.map(s=><button type="button" key={s.id} className={'fa3-skin'+(s.id===activePreview?' preview':'')+(s.id===worn?.id?' equipped':'')+(lockLabelForSkin(s)?' locked':'')} onClick={()=>setPreview(s.id)} aria-pressed={s.id===activePreview}>
-          <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:<img src={kind==='hero'?(s.preview||PICTURE(current.id,current.registry)):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||''} alt=""/>}</span>
+          <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:<img src={apexAppUrl(kind==='hero'?(s.preview||PICTURE(current.id,current.registry)):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||'')} alt=""/>}</span>
           <span className="fa3-skin-name"><b>{s.label}</b><small>{lockLabelForSkin(s)||(s.id==='default'?'ORIGINAL PRESENTATION':s.detail||'APPROVED COSMETIC')}</small></span>
           <strong>{s.id===worn?.id?'✓':(lockLabelForSkin(s)?'▣':'↗')}</strong></button>)}</div>
         {skinMaxPage>0&&<div className="fa3-skin-pager" aria-label="Skin pages"><button disabled={safeSkinPage===0} onClick={()=>setSkinPage(p=>Math.max(0,p-1))} aria-label="Previous skin page">‹</button><span>{String(safeSkinPage+1).padStart(2,'0')} / {String(skinMaxPage+1).padStart(2,'0')}</span><button disabled={safeSkinPage===skinMaxPage} onClick={()=>setSkinPage(p=>Math.min(skinMaxPage,p+1))} aria-label="Next skin page">›</button></div>}

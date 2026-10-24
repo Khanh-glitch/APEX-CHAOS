@@ -8,7 +8,10 @@
 }
 .apex-progress-panel {
   text-align: left;
-  width: min(620px, calc(100vw - 20px)); max-height: min(90dvh, 820px); overflow: auto;
+  /* Issue #105 §7: ONE surface width for Missions and Mastery (no per-tab width
+     jump). Sized from the fixed overlay (100%), not 100vw, so scrollbars do not
+     push the panel off-centre. */
+  width: min(1080px, calc(100% - 24px)); max-height: min(90dvh, 820px); overflow: auto;
   overscroll-behavior: contain; border: 1px solid rgba(215,189,114,.45);
   background: linear-gradient(180deg,#141a21,#0a0e13 78%);
   box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 1px rgba(255,255,255,.04);
@@ -77,9 +80,7 @@
   .apex-progress-body { padding:14px 14px 16px; }
 }
 
-/* CP3 Mastery Vault. The mission panel keeps its compact width; only the
-   mastery path expands into the wider horizontal track. */
-.apex-progress-panel:has(.apex-mastery-vault) { width: min(1080px, calc(100vw - 20px)); }
+/* CP3 Mastery Vault shares the unified panel width (Issue #105 §7). */
 .apex-progress-row.is-current {
   border-color: rgba(240,214,126,.78);
   box-shadow: inset 3px 0 #f0d67e, 0 0 22px rgba(240,214,126,.08);
