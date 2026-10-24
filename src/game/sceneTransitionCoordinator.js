@@ -268,8 +268,14 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       // doing its job) and holdTime/sitting numbers grow while it renders
       // nothing, so those must never read as progress - a dead render loop used
       // to reset the stall timer once per sample and defeat the whole guard.
+      // Stall signature = the door's WALL clock (getDebug().wallTime, the rAF
+      // timestamp in SECONDS since the state began). A frozen render loop stops
+      // that clock, which is the stall; a slow but moving door keeps advancing it.
+      // Bucketed at 50 ms (x20). The previous /50 bucket was 50 SECONDS, so any
+      // door state lasting ~6 s of wall time on a starved renderer read as dead
+      // while still moving (#105 root cause of the false fail-open trigger).
       const signature = debug
-        ? `${debug.state}|${Math.round((debug.wallTime ?? debug.stateTime ?? 0) / 50)}`
+        ? `${debug.state}|${Math.round((Number(debug.wallTime ?? debug.stateTime) || 0) * 20)}`
         : '';
       const now = performance.now();
       if (signature !== watchdogSignature) {

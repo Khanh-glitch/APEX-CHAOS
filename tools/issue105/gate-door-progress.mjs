@@ -69,12 +69,14 @@ async function openProfile(credits) {
 async function driveOpen(page, { freezeAtOpening = false, sampleMs = 50, maxMs = 60000 } = {}) {
   await page.waitForSelector('#openLuckyDraw', { visible: true, timeout: 60000 });
   const t0 = Date.now();
+  // The render-loop sampler is installed BEFORE the click: a stall between the click
+  // and a late install would be invisible to the justification below (#105).
+  const sample = await page.evaluate(() => { window.__frameN = 0; window.__maxGap = 0; let last = performance.now(); const tick = () => { const n = performance.now(); window.__maxGap = Math.max(window.__maxGap, n - last); last = n; window.__frameN += 1; requestAnimationFrame(tick); }; requestAnimationFrame(tick); return true; }).catch(() => false);
   await page.click('#openLuckyDraw');
   let openingAt = null; let doneAt = null; let frozenAt = null; let fps = null; let queued = null;
   // Largest render-loop gap (ms between rAF callbacks) observed during the open.
   // A recovery warning is only justified when the render loop really stopped for
   // the guard's STALL_MS; otherwise the warning would be a false positive.
-  const sample = await page.evaluate(() => { window.__frameN = 0; window.__maxGap = 0; let last = performance.now(); const tick = () => { const n = performance.now(); window.__maxGap = Math.max(window.__maxGap, n - last); last = n; window.__frameN += 1; requestAnimationFrame(tick); }; requestAnimationFrame(tick); return true; }).catch(() => false);
   while (Date.now() - t0 < maxMs) {
     const s = await page.evaluate(() => document.body.dataset.apexSceneTransition || 'IDLE').catch(() => 'ERR');
     const now = Date.now();

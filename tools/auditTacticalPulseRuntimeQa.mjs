@@ -197,6 +197,19 @@ async function runViewportJourney(browser, vp) {
   const page = await context.newPage();
   const runtimeErrors = [];
   page.on('pageerror', (err) => runtimeErrors.push(String(err)));
+  // #105 §5: the coach is optional and OFF by default. This journey asserts the
+  // coach chip in battle, so it seeds the persisted "Yes" answer
+  // (apex.alpha.tutorial.v1 = 'on') and a fresh step-0 coach. Nothing is granted.
+  await page.evaluateOnNewDocument(() => {
+    // Opaque-origin documents (about:blank) deny localStorage; the seed then runs
+    // again on the real app origin, which is the one that matters.
+    try {
+      localStorage.setItem('apex.alpha.tutorial.v1', 'on');
+      localStorage.setItem('apex.alpha.coach.v2', JSON.stringify({
+        version: 2, step: 0, done: false, skipped: false, baselineBotMatches: 0, baselineSealedMatches: 0,
+      }));
+    } catch { /* opaque origin */ }
+  });
 
   await page.setViewport({
     width: vp.width,
@@ -356,10 +369,26 @@ async function runViewportJourney(browser, vp) {
   await page.waitForSelector('#battleHudHost.is-open #p1Side .skill[data-i="0"]', { timeout: 45000 });
 
   // Wait briefly for non-blocking Coach chip to mount on castable K while J has no floor gun.
-  await page.waitForFunction(
-    () => !!document.querySelector('.apex-coach-chip') && !!window.fighters?.[0],
-    { timeout: 15000 }
-  );
+  try {
+    await page.waitForFunction(
+      () => !!document.querySelector('.apex-coach-chip') && !!window.fighters?.[0],
+      { timeout: 15000 }
+    );
+  } catch (err) {
+    // Diagnostic only (#105 §10): report the coach/battle state at the timeout.
+    const diag = await page.evaluate(() => ({
+      coach: localStorage.getItem('apex.alpha.coach.v2'),
+      pref: localStorage.getItem('apex.alpha.tutorial.v1'),
+      chips: document.querySelectorAll('.apex-coach-chip').length,
+      layers: document.querySelectorAll('.apex-coach-layer').length,
+      fighters: !!(window.fighters && window.fighters[0]),
+      scene: document.querySelector('#stage')?.className || null,
+      skills: [0, 1].map((i) => document.querySelector(`#p1Side .skill[data-i="${i}"]`)?.className || null),
+      hudOpen: document.querySelector('#battleHudHost')?.className || null,
+    })).catch((e) => ({ diagError: String(e) }));
+    console.error('[tp-audit] coach chip never mounted at battle entry:', JSON.stringify(diag));
+    throw err;
+  }
   states.openingNoTarget = await measureBattleDom(page, '04-match-j-no-target-coach-k');
   await saveShot('04-match-j-no-target-coach-k');
 
@@ -755,9 +784,15 @@ async function runCombinedCoachToastAudit(browser) {
     page.on('pageerror', (e) => errors.push(String(e)));
     await page.setViewport({ width: c.w, height: c.h, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await page.evaluateOnNewDocument(() => {
-      localStorage.setItem('apex.alpha.coach.v2', JSON.stringify({
-        version: 2, step: 0, done: false, skipped: false, baselineBotMatches: 0, baselineSealedMatches: 0,
-      }));
+      // #105 §5: the coach is optional and OFF by default. This audit exercises the
+      // coach chip, so it seeds the same persisted answer a player gives with "Yes"
+      // (apex.alpha.tutorial.v1 = 'on'). Nothing is granted or hidden.
+      try {
+        localStorage.setItem('apex.alpha.tutorial.v1', 'on');
+        localStorage.setItem('apex.alpha.coach.v2', JSON.stringify({
+          version: 2, step: 0, done: false, skipped: false, baselineBotMatches: 0, baselineSealedMatches: 0,
+        }));
+      } catch { /* opaque origin (about:blank); the app origin reseeds */ }
     });
     const tapSel = async (sel) => {
       await page.waitForSelector(sel, { visible: true, timeout: 60000 });
