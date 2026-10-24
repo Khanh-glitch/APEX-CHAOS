@@ -192,73 +192,63 @@
   .apex-coach-beacon,.apex-guide-card.apex-coach-chip{animation:none!important}
 }
 
-/* Issue #105: Help-row tutorial toggle (beside `?`, same screen rules). */
-#gold-shell-host #stage #apex-tutorial-toggle{
-  position:absolute;
-  right:calc(max(14px,env(safe-area-inset-right)) + 56px);
-  bottom:max(14px,env(safe-area-inset-bottom));
-  z-index:48;
-  min-height:44px;
-  max-width:min(320px,calc(100% - 140px));
-  padding:0 12px;
-  border-radius:6px;
-  border:1px solid rgba(232,180,90,.34);
-  background:rgba(10,12,16,.88);
-  color:#efe6d5;
-  font:700 12px/1.2 "Chakra Petch","Barlow Condensed",sans-serif;
-  letter-spacing:.03em;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  text-align:left;
-}
-#gold-shell-host #stage #apex-tutorial-toggle .apex-tt-state{
-  flex:none;
-  padding:2px 7px;
-  border-radius:4px;
-  background:rgba(255,255,255,.08);
-  color:#9aa3ad;
-}
-#gold-shell-host #stage #apex-tutorial-toggle[aria-checked="true"] .apex-tt-state{background:rgba(232,180,90,.22);color:#ffd27a}
-#gold-shell-host #stage #apex-tutorial-toggle:hover{border-color:rgba(232,180,90,.55)}
-#gold-shell-host #stage #apex-tutorial-toggle:focus-visible{outline:2px solid #ffad3d;outline-offset:2px}
-#gold-shell-host #stage.screen-mode #apex-tutorial-toggle,
-#gold-shell-host #stage.screen-fighter #apex-tutorial-toggle,
-#gold-shell-host #stage.screen-draw #apex-tutorial-toggle,
-#gold-shell-host #stage.screen-battle #apex-tutorial-toggle{visibility:hidden;pointer-events:none}
-
-/* Issue #105: one-time question. Non-blocking card: no backdrop, no focus trap. */
-.apex-tutorial-ask{
+/* Issue #105: Help sheet (opened by `?`) holds the tutorial toggle. */
+#gold-shell-host #stage .apex-help-sheet,
+.apex-help-sheet{
   position:fixed;
   left:50%;
   transform:translateX(-50%);
-  bottom:calc(max(14px,env(safe-area-inset-bottom)) + 64px);
+  top:max(12px,env(safe-area-inset-top));
   z-index:2147479000;
-  width:min(calc(100vw - 24px),380px);
+  width:min(calc(100vw - 24px),340px);
   box-sizing:border-box;
-  padding:12px 14px;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid rgba(232,180,90,.45);
+  background:rgba(10,12,16,.96);
+  color:#efe6d5;
+  font-family:"Chakra Petch","Barlow Condensed",sans-serif;
+  box-shadow:0 8px 24px rgba(0,0,0,.45);
+  display:grid;
+  gap:8px;
+}
+.apex-help-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.apex-help-title{font-weight:800;font-size:14px;letter-spacing:.03em}
+.apex-help-close,.apex-help-replay,.apex-help-toggle,.apex-tutorial-ask button{
+  min-height:44px;
+  min-width:44px;
+  border-radius:6px;
+  font:800 13px/1.2 "Chakra Petch","Barlow Condensed",sans-serif;
+  letter-spacing:.03em;
+  cursor:pointer;
+  border:1px solid rgba(232,180,90,.4);
+  background:rgba(255,255,255,.04);
+  color:#efe6d5;
+  padding:0 12px;
+}
+.apex-help-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left}
+.apex-help-toggle .apex-tt-state{flex:none;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.08);color:#9aa3ad}
+.apex-help-toggle[aria-checked="true"] .apex-tt-state{background:rgba(232,180,90,.22);color:#ffd27a}
+.apex-help-replay{width:100%}
+.apex-help-close:focus-visible,.apex-help-replay:focus-visible,.apex-help-toggle:focus-visible,.apex-tutorial-ask button:focus-visible{outline:2px solid #ffad3d;outline-offset:2px}
+
+/* Issue #105: one-time question. One compact row, placed only over free space
+   (see freeStripPlacement); never covers an interactive control. */
+.apex-tutorial-ask{
+  position:fixed;
+  z-index:2147479000;
+  width:min(calc(100vw - 16px),340px);
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 8px;
   border-radius:8px;
   border:1px solid rgba(232,180,90,.45);
   background:rgba(10,12,16,.94);
   color:#efe6d5;
   font-family:"Chakra Petch","Barlow Condensed",sans-serif;
-  box-shadow:0 8px 24px rgba(0,0,0,.45);
 }
-.apex-tutorial-ask-title{margin:0 0 4px;font-weight:800;font-size:15px;letter-spacing:.02em}
-.apex-tutorial-ask-body{margin:0 0 10px;font-size:13px;line-height:1.35;color:#c9c1b0}
-.apex-tutorial-ask-actions{display:flex;gap:8px;flex-wrap:wrap}
-.apex-tutorial-ask-actions button{
-  min-height:44px;
-  min-width:44px;
-  flex:1 1 140px;
-  border-radius:6px;
-  font:800 13px/1 "Chakra Petch","Barlow Condensed",sans-serif;
-  letter-spacing:.04em;
-  cursor:pointer;
-  border:1px solid rgba(232,180,90,.4);
-  background:rgba(255,255,255,.04);
-  color:#efe6d5;
-}
+.apex-tutorial-ask-title{flex:1 1 auto;min-width:0;font-weight:800;font-size:13px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apex-tutorial-ask button{flex:none;min-width:56px;padding:0 10px}
 .apex-tutorial-ask-yes{background:rgba(232,180,90,.2)!important;color:#ffd27a!important}
-.apex-tutorial-ask-actions button:focus-visible{outline:2px solid #ffad3d;outline-offset:2px}

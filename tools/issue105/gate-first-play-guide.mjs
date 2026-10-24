@@ -20,7 +20,26 @@ const askVisible = (page) => page.evaluate(() => {
   return r.width > 0 && r.height > 0;
 });
 const pref = (page) => page.evaluate(() => localStorage.getItem('apex.alpha.tutorial.v1'));
-const toggleState = (page) => page.evaluate(() => document.querySelector('#apex-tutorial-toggle')?.getAttribute('aria-checked') ?? null);
+// The toggle lives in the Help sheet opened by `?` (home only).
+const openHelp = async (page) => {
+  if (!(await page.$('#apex-tutorial-toggle'))) {
+    await page.click('#apex-guide-open');
+    await page.waitForSelector('#apex-tutorial-toggle', { timeout: 5000 });
+  }
+};
+const toggleState = async (page) => { await openHelp(page); return page.evaluate(() => document.querySelector('#apex-tutorial-toggle')?.getAttribute('aria-checked') ?? null); };
+// Question strip must not overlap any interactive control (input never blocked).
+const askOverlap = (page) => page.evaluate(() => {
+  const ask = document.querySelector('.apex-tutorial-ask');
+  if (!ask) return null;
+  const a = ask.getBoundingClientRect();
+  const hits = [...document.querySelectorAll('button, [role="button"], a, .modeCard, .route, input, select')]
+    .filter((el) => !ask.contains(el))
+    .map((el) => ({ el, r: el.getBoundingClientRect() }))
+    .filter(({ r }) => r.width > 0 && r.height > 0 && !(r.right <= a.left || r.left >= a.right || r.bottom <= a.top || r.top >= a.bottom))
+    .map(({ el }) => (el.id || el.textContent || '').trim().slice(0, 24));
+  return { box: [Math.round(a.left), Math.round(a.top), Math.round(a.right), Math.round(a.bottom)], hits };
+});
 
 async function freshHome(opts) {
   const session = await openApp(browser, opts);
@@ -33,6 +52,8 @@ try {
   {
     const { page, errors, context } = await freshHome({ width: 1440, height: 900 });
     check(results, await askVisible(page), 'A1 fresh profile shows the one-time tutorial question at a safe menu');
+    const ov = await askOverlap(page);
+    check(results, ov && ov.hits.length === 0, 'A1b question strip covers no interactive control (320x568 is the tightest)', ov);
     check(results, (await pref(page)) === null, 'A2 no preference is written before the player answers', await pref(page));
     check(results, !(await coachLayerPresent(page)), 'A3 coach is not running on the menu before an answer');
     const ctaHit = await page.evaluate(() => {
@@ -46,6 +67,8 @@ try {
     await page.waitForFunction(() => localStorage.getItem('apex.alpha.tutorial.v1') === 'off', { timeout: 10000 });
     check(results, !(await askVisible(page)), 'A5 answering NO hides the question');
     check(results, (await toggleState(page)) === 'false', 'A6 Help toggle reflects OFF');
+    await page.keyboard.press('Escape');
+    await wait(200);
     await startBotBattle(page);
     const samples = await page.evaluate(async () => {
       const seen = { coach: 0, beacon: 0, pickup: 0, taught: 0, ask: 0 };
@@ -104,13 +127,17 @@ try {
     await page.waitForFunction(() => localStorage.getItem('apex.alpha.tutorial.v1') === 'off', { timeout: 10000 });
     await wait(400);
     check(results, !(await coachLayerPresent(page)) && (await toggleState(page)) === 'false', 'C3 Help toggle turns the tutorial OFF and removes the coach');
-    const box = await page.evaluate(() => {
-      const r = document.querySelector('#apex-tutorial-toggle').getBoundingClientRect();
-      const cta = document.querySelector('#freeBattle').getBoundingClientRect();
-      const overlap = !(r.right <= cta.left || r.left >= cta.right || r.bottom <= cta.top || r.top >= cta.bottom);
-      return { w: r.width, h: r.height, overlapsCta: overlap };
+    // The Help sheet is opened by the player, so it may cover the menu. Its own rules:
+    // fully inside the viewport and every control >= 44px.
+    const sheet = await page.evaluate(() => {
+      const sh = document.querySelector('.apex-help-sheet')?.getBoundingClientRect();
+      const btns = [...document.querySelectorAll('.apex-help-sheet button')].map((b) => b.getBoundingClientRect().height);
+      return { inside: !!sh && sh.left >= 0 && sh.top >= 0 && sh.right <= innerWidth && sh.bottom <= innerHeight, minBtnH: Math.min(...btns) };
     });
-    check(results, box.h >= 44 && !box.overlapsCta, 'C4 toggle hit target is >=44px and does not overlap FREE BATTLE (390x844)', box);
+    check(results, sheet.inside && sheet.minBtnH >= 44, 'C4 Help sheet stays inside the viewport with >=44px controls (390x844)', sheet);
+    await page.keyboard.press('Escape');
+    await wait(200);
+    check(results, !(await page.$('.apex-help-sheet')), 'C5 Escape closes the Help sheet');
     await context.close();
   }
 
@@ -118,12 +145,13 @@ try {
   {
     const { page, context } = await freshHome({ width: 390, height: 844, mobile: true, lang: 'vie' });
     const text = await page.evaluate(() => document.querySelector('.apex-tutorial-ask')?.innerText || '');
-    check(results, /Bật hướng dẫn tân thủ/.test(text) && /CÓ, HƯỚNG DẪN/.test(text), 'D1 VIE question copy is shown', text.slice(0, 120));
+    check(results, /Bật hướng dẫn\?/.test(text) && /CÓ/.test(text) && /KHÔNG/.test(text), 'D1 VIE question copy is shown', text.slice(0, 120));
     await page.click('.apex-tutorial-ask-no');
     await page.waitForFunction(() => localStorage.getItem('apex.alpha.tutorial.v1') === 'off', { timeout: 10000 });
     // textContent, not innerText: the shell uppercases buttons with CSS text-transform.
+    await openHelp(page);
     const label = await page.evaluate(() => document.querySelector('#apex-tutorial-toggle')?.textContent || '');
-    check(results, label.includes('Tutorial / Hướng dẫn tân thủ') && label.includes('TẮT'), 'D2 VIE toggle label and state', label);
+    check(results, label.includes('Tutorial / Hướng dẫn tân thủ') && label.includes('TẮT'), 'D2 VIE toggle label and state (Help sheet)', label);
     await context.close();
   }
 

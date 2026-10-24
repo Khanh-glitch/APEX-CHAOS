@@ -387,7 +387,8 @@ function computePickupPromptFrame() {
 // Compute a strictly non-occluding dock slot during live combat across
 // 1440x900, 844x390, 900x900 (P90), and 390x844 without covering fighters,
 // arena canvas, HP bars, timer, identity plates, or skill buttons.
-function computeBattleFrame(anchor, measuredChipHeight, prevId = null) {
+function computeBattleFrame(anchor, measuredChipHeight, prev = null) {
+  const prevId = prev?.candidate || null;
   const rect = anchor.getBoundingClientRect();
   const vw = window.innerWidth || document.documentElement.clientWidth || rect.right;
   const vh = window.innerHeight || document.documentElement.clientHeight || rect.bottom;
@@ -521,17 +522,22 @@ function computeBattleFrame(anchor, measuredChipHeight, prevId = null) {
     narrow: false,
   };
 
+  // Geometry hysteresis: while the same candidate stays chosen, a drift of <=4px
+  // (HUD still animating in) keeps the previous chip box instead of trembling.
+  const chosenId = chosen.id || 'fallback';
+  const steady = prev && prev.candidate === chosenId && prev.chipWidth === chosen.width
+    && Math.abs(prev.chipLeft - chosen.left) <= 4 && Math.abs(prev.chipTop - chosen.top) <= 4;
   return {
     beaconLeft: Math.round(rect.left - 3),
     beaconTop: Math.round(rect.top - 3),
     beaconWidth: Math.round(rect.width + 6),
     beaconHeight: Math.round(rect.height + 6),
-    chipLeft: chosen.left,
-    chipTop: chosen.top,
+    chipLeft: steady ? prev.chipLeft : chosen.left,
+    chipTop: steady ? prev.chipTop : chosen.top,
     chipWidth: chosen.width,
     chipTransform: 'none',
     placement: 'docked',
-    candidate: chosen.id || 'fallback',
+    candidate: chosenId,
     compact: !!chosen.compact,
     narrow: !!chosen.narrow,
   };
@@ -805,7 +811,9 @@ function FirstPlayGuideCoach() {
       guideBtn.dataset.apexNoLocalize = '';
       guideBtn.setAttribute('aria-label', 'How to play / Hướng dẫn chơi');
       guideBtn.textContent = '?';
-      guideBtn.addEventListener('click', replayCoach);
+      guideBtn.addEventListener('click', () => {
+        try { window.dispatchEvent(new CustomEvent('apex:help-open')); } catch { /* no CustomEvent */ }
+      });
       stage.appendChild(guideBtn);
     };
     mountBtn();
@@ -841,7 +849,7 @@ function FirstPlayGuideCoach() {
     const key = nextFrame ? JSON.stringify(nextFrame) : '';
     if (frameKeyRef.current === key) return;
     frameKeyRef.current = key;
-    lastCandidateRef.current = nextFrame?.candidate || null;
+    lastCandidateRef.current = nextFrame || null;
     setFrame(nextFrame);
   }, []);
 
@@ -1184,29 +1192,37 @@ function FirstPlayGuideCoach() {
 }
 
 // ---------------------------------------------------------------------------
-// Tutorial preference UI (Issue #105). Non-blocking by design: the question is a
-// small card at the bottom edge (no backdrop, no focus trap) and the toggle is a
-// Help-row control beside `?`. Both write through the coach component via the
-// 'apex:tutorial-answer' event so there is exactly one preference authority.
+// Tutorial preference UI (Issue #105). Non-blocking by design.
+//  - The one-time question is a compact one-row strip placed ONLY where it covers
+//    no interactive element (scanned from the top; if nothing is free it waits for
+//    the next safe menu instead of covering a control).
+//  - The toggle "Tutorial / Hướng dẫn tân thủ" lives in the Help sheet opened by
+//    `?` (no floating control over the menu grid).
+// Both write through the coach component via 'apex:tutorial-answer' so there is
+// exactly one preference authority.
 const TUTORIAL_COPY = {
   eng: {
-    ask: 'Enable the optional tutorial?',
-    body: 'Short hints during your first battle. Change it anytime in Help.',
-    yes: 'YES, GUIDE ME',
-    no: 'NO THANKS',
+    ask: 'Enable the tutorial?',
+    yes: 'YES',
+    no: 'NO',
     toggle: 'Tutorial / Hướng dẫn tân thủ',
     on: 'ON',
     off: 'OFF',
+    helpTitle: 'Help / Trợ giúp',
+    replay: 'REPLAY GUIDE',
+    close: 'CLOSE',
     label: 'Tutorial preference',
   },
   vie: {
-    ask: 'Bật hướng dẫn tân thủ?',
-    body: 'Gợi ý ngắn trong trận đầu. Đổi bất cứ lúc nào trong Trợ giúp.',
-    yes: 'CÓ, HƯỚNG DẪN',
-    no: 'KHÔNG CẦN',
+    ask: 'Bật hướng dẫn?',
+    yes: 'CÓ',
+    no: 'KHÔNG',
     toggle: 'Tutorial / Hướng dẫn tân thủ',
     on: 'BẬT',
     off: 'TẮT',
+    helpTitle: 'Trợ giúp / Help',
+    replay: 'XEM LẠI HƯỚNG DẪN',
+    close: 'ĐÓNG',
     label: 'Cài đặt hướng dẫn',
   },
 };
@@ -1227,15 +1243,33 @@ function requestTutorial(enable) {
   catch { /* no CustomEvent */ }
 }
 
+// Finds the top-most strip of the given size that overlaps no interactive control
+// in the shell stage. Returns null when the viewport has no free strip.
+function freeStripPlacement(width, height) {
+  const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  if (!vw || !vh || width > vw - 8 || height > vh - 8) return null;
+  const blockers = [...document.querySelectorAll('#stage button, #stage [role="button"], #stage a, #stage .modeCard, #stage .route, #stage input, #stage select')]
+    .map((el) => el.getBoundingClientRect())
+    .filter((r) => r.width > 0 && r.height > 0);
+  const xs = [Math.round((vw - width) / 2), 8, Math.max(8, vw - width - 8)];
+  for (let top = 8; top + height <= vh - 8; top += 4) {
+    for (const left of xs) {
+      const box = { left, top, right: left + width, bottom: top + height };
+      const hit = blockers.some((r) => !(r.right <= box.left || r.left >= box.right || r.bottom <= box.top || r.top >= box.bottom));
+      if (!hit) return { left, top };
+    }
+  }
+  return null;
+}
+
 function TutorialPreference() {
   const [pref, setPref] = useState(readPref);
   const [lang, setLang] = useState(tutorialLang);
   const [askOpen, setAskOpen] = useState(false);
-  const toggleRef = useRef(null);
-  const prefRef = useRef(pref);
-  prefRef.current = pref;
-  const langRef = useRef(lang);
-  langRef.current = lang;
+  const [askPos, setAskPos] = useState(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const askRef = useRef(null);
 
   useEffect(() => {
     const sync = () => {
@@ -1243,92 +1277,85 @@ function TutorialPreference() {
       setPref(nextPref);
       setLang(tutorialLang());
       // Ask only once: while no answer is stored and a coach record exists (so the
-      // coach has finished bootstrapping), and only at a safe menu.
-      setAskOpen(nextPref === null && !!readCoach() && safeMenuNow());
+      // coach finished bootstrapping), and only at a safe menu.
+      const wantAsk = nextPref === null && !!readCoach() && safeMenuNow();
+      setAskOpen(wantAsk);
+      if (!wantAsk) { setAskPos(null); return; }
+      const rect = askRef.current?.getBoundingClientRect();
+      const width = Math.min(rect?.width || 340, (window.innerWidth || 360) - 16);
+      const height = rect?.height || 56;
+      setAskPos(freeStripPlacement(width, height));
     };
     sync();
     const interval = window.setInterval(sync, 300);
+    const onHelp = () => setHelpOpen(true);
     window.addEventListener('apex:tutorial-pref-changed', sync);
     window.addEventListener('apex:language-changed', sync);
+    window.addEventListener('apex:help-open', onHelp);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener('apex:tutorial-pref-changed', sync);
       window.removeEventListener('apex:language-changed', sync);
+      window.removeEventListener('apex:help-open', onHelp);
     };
   }, []);
 
-  // Help-row toggle: DOM-mounted beside `?` (same visibility rules as `?`).
   useEffect(() => {
-    // paint() only writes when the value changed: this button lives inside the
-    // observed body subtree, so unconditional writes would re-trigger the observer.
-    const paint = () => {
-      const btn = toggleRef.current;
-      if (!btn?.isConnected) return;
-      const copy = TUTORIAL_COPY[langRef.current] || TUTORIAL_COPY.eng;
-      const on = prefRef.current === 'on';
-      const checked = on ? 'true' : 'false';
-      const label = `${copy.toggle}: ${on ? copy.on : copy.off}`;
-      const stateText = on ? copy.on : copy.off;
-      if (btn.getAttribute('aria-checked') !== checked) btn.setAttribute('aria-checked', checked);
-      if (btn.getAttribute('aria-label') !== label) btn.setAttribute('aria-label', label);
-      const stateEl = btn.querySelector('.apex-tt-state');
-      if (stateEl && stateEl.textContent === stateText && btn.querySelector('.apex-tt-name')?.textContent === copy.toggle) return;
-      btn.textContent = '';
-      const name = document.createElement('span');
-      name.className = 'apex-tt-name';
-      name.textContent = copy.toggle;
-      const state = document.createElement('span');
-      state.className = 'apex-tt-state';
-      state.textContent = stateText;
-      btn.append(name, state);
-    };
-    const mount = () => {
-      if (toggleRef.current?.isConnected) return;
-      const stage = stageElement();
-      if (!stage) return;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'apex-tutorial-toggle';
-      btn.setAttribute('role', 'switch');
-      btn.dataset.apexNoLocalize = '';
-      btn.addEventListener('click', () => requestTutorial(prefRef.current !== 'on'));
-      stage.appendChild(btn);
-      toggleRef.current = btn;
-      paint();
-    };
-    mount();
-    const guard = new MutationObserver(mount);
-    guard.observe(document.body, { subtree: true, childList: true });
-    const repaint = window.setInterval(paint, 300);
-    paint();
-    return () => {
-      window.clearInterval(repaint);
-      guard.disconnect();
-      toggleRef.current?.remove();
-      toggleRef.current = null;
-    };
-  }, []);
+    if (!helpOpen) return undefined;
+    const onKey = (event) => { if (event.key === 'Escape') setHelpOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [helpOpen]);
 
-  if (!askOpen) return null;
   const copy = TUTORIAL_COPY[lang] || TUTORIAL_COPY.eng;
-  return (
+  const on = pref === 'on';
+  const ask = askOpen && askPos ? (
     <section
+      ref={askRef}
       className="apex-tutorial-ask"
       role="region"
       aria-label={copy.label}
       data-apex-no-localize=""
+      style={{ left: `${askPos.left}px`, top: `${askPos.top}px` }}
     >
-      <p className="apex-tutorial-ask-title">{copy.ask}</p>
-      <p className="apex-tutorial-ask-body">{copy.body}</p>
-      <div className="apex-tutorial-ask-actions">
-        <button type="button" className="apex-tutorial-ask-yes" onClick={() => requestTutorial(true)}>
-          {copy.yes}
-        </button>
-        <button type="button" className="apex-tutorial-ask-no" onClick={() => requestTutorial(false)}>
-          {copy.no}
-        </button>
-      </div>
+      <span className="apex-tutorial-ask-title">{copy.ask}</span>
+      <button type="button" className="apex-tutorial-ask-yes" onClick={() => requestTutorial(true)}>{copy.yes}</button>
+      <button type="button" className="apex-tutorial-ask-no" onClick={() => requestTutorial(false)}>{copy.no}</button>
     </section>
+  ) : null;
+
+  return (
+    <>
+      {ask}
+      {helpOpen ? (
+        <section className="apex-help-sheet" role="dialog" aria-modal="false" aria-label={copy.helpTitle} data-apex-no-localize="">
+          <div className="apex-help-head">
+            <span className="apex-help-title">{copy.helpTitle}</span>
+            <button type="button" className="apex-help-close" onClick={() => setHelpOpen(false)}>{copy.close}</button>
+          </div>
+          <button
+            type="button"
+            id="apex-tutorial-toggle"
+            role="switch"
+            aria-checked={on ? 'true' : 'false'}
+            aria-label={`${copy.toggle}: ${on ? copy.on : copy.off}`}
+            className="apex-help-toggle"
+            onClick={() => requestTutorial(!on)}
+          >
+            <span className="apex-tt-name">{copy.toggle}</span>
+            <span className="apex-tt-state">{on ? copy.on : copy.off}</span>
+          </button>
+          <button
+            type="button"
+            id="apex-help-replay"
+            className="apex-help-replay"
+            onClick={() => { setHelpOpen(false); window.dispatchEvent(new CustomEvent('apex:guide-open')); }}
+          >
+            {copy.replay}
+          </button>
+        </section>
+      ) : null}
+    </>
   );
 }
 
