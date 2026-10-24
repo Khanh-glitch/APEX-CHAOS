@@ -15,6 +15,8 @@ import './firstPlayGuide.css';
 
 const COACH_KEY = 'apex.alpha.coach.v2';
 const LEGACY_KEY = 'apex.alpha.guide.v1';
+// Tutorial preference (Issue #105). Absent = not asked yet; battles stay CLEAN.
+const PREF_KEY = 'apex.alpha.tutorial.v1';
 const SIDE_INTRO_KEY = 'apex.alpha.sideIntro.v2';
 const LAST_STEP = 5;
 
@@ -116,6 +118,17 @@ function sanitizeCoach(raw) {
     baselineBotMatches: cleanCount(raw.baselineBotMatches),
     baselineSealedMatches: cleanCount(raw.baselineSealedMatches),
   };
+}
+
+function readPref() {
+  try {
+    const value = localStorage.getItem(PREF_KEY);
+    return value === 'on' || value === 'off' ? value : null;
+  } catch { return null; }
+}
+
+function writePref(value) {
+  try { localStorage.setItem(PREF_KEY, value); } catch { /* session-only */ }
 }
 
 function readCoach() {
@@ -374,7 +387,7 @@ function computePickupPromptFrame() {
 // Compute a strictly non-occluding dock slot during live combat across
 // 1440x900, 844x390, 900x900 (P90), and 390x844 without covering fighters,
 // arena canvas, HP bars, timer, identity plates, or skill buttons.
-function computeBattleFrame(anchor, measuredChipHeight) {
+function computeBattleFrame(anchor, measuredChipHeight, prevId = null) {
   const rect = anchor.getBoundingClientRect();
   const vw = window.innerWidth || document.documentElement.clientWidth || rect.right;
   const vh = window.innerHeight || document.documentElement.clientHeight || rect.bottom;
@@ -409,6 +422,7 @@ function computeBattleFrame(anchor, measuredChipHeight) {
   if (p1Side && p1Skills && p1Weapon && p1Weapon.top - p1Skills.bottom >= chipH + 6) {
     const w = Math.min(300, Math.max(176, Math.floor(p1Side.width - 8)));
     candidates.push({
+      id: 'p1-skills-weapon',
       left: Math.round(p1Side.left + 4),
       top: Math.round(p1Skills.bottom + 5),
       width: w,
@@ -421,6 +435,7 @@ function computeBattleFrame(anchor, measuredChipHeight) {
   if (p1Side && p1Ident && p1Skills && p1Skills.top - p1Ident.bottom >= chipH + 6) {
     const w = Math.min(340, Math.max(180, Math.floor(p1Side.width - 8)));
     candidates.push({
+      id: 'p1-ident-skills',
       left: Math.round(p1Side.left + 4),
       top: Math.round(p1Ident.bottom + 5),
       width: w,
@@ -434,6 +449,7 @@ function computeBattleFrame(anchor, measuredChipHeight) {
     const w = Math.min(260, Math.max(146, Math.floor(p2Side.width - 4)));
     const narrowH = Math.min(chipH, Math.max(84, p2Weapon.top - p2Skills.bottom - 8));
     candidates.push({
+      id: 'p2-spacer',
       left: Math.max(8, Math.min(vw - w - 6, Math.round(p2Side.left + 2))),
       top: Math.round(p2Skills.bottom + Math.max(3, Math.floor((p2Weapon.top - p2Skills.bottom - narrowH) / 2))),
       width: w,
@@ -447,6 +463,7 @@ function computeBattleFrame(anchor, measuredChipHeight) {
   if (p1Side && p1Skills && p1Side.bottom - p1Skills.bottom >= chipH + 4) {
     const w = Math.min(340, Math.max(190, Math.floor(p1Side.width - 8)));
     candidates.push({
+      id: 'p1-below-skills',
       left: Math.round(p1Side.left + 4),
       top: Math.round(p1Skills.bottom + 4),
       width: w,
@@ -455,8 +472,14 @@ function computeBattleFrame(anchor, measuredChipHeight) {
     });
   }
 
+  // Candidate choice is sticky (hysteresis): the previously chosen candidate is
+  // kept while it still fits with zero overlap. The HUD animates its rects for
+  // several hundred ms after a battle starts; re-ranking on every sample made the
+  // chip hop between candidates. A new candidate wins only when the previous one
+  // stops fitting, so the chip cannot oscillate frame to frame.
   let best = null;
   let bestPenalty = Infinity;
+  let prevPenalty = null;
   for (const cand of candidates) {
     const h = cand.heightOverride || chipH;
     const box = {
@@ -475,17 +498,24 @@ function computeBattleFrame(anchor, measuredChipHeight) {
       else hudPenalty += area * 10;
     }
     const totalPenalty = hudPenalty + arenaPenalty;
+    if (prevId && cand.id === prevId) prevPenalty = totalPenalty;
     if (totalPenalty < bestPenalty) {
       bestPenalty = totalPenalty;
       best = cand;
-      if (totalPenalty === 0) break;
     }
   }
+  if (prevId && prevPenalty === 0) {
+    best = candidates.find((cand) => cand.id === prevId) || best;
+  }
 
+  // Fallback is anchored to the stable P1 column, never to the per-frame skill
+  // anchor (which alternates between skill slots and made the chip jump 54px).
   const fallbackWidth = Math.min(250, vw - 16);
+  const columnRect = p1Side || rect;
   const chosen = best || {
-    left: Math.max(8, Math.min(vw - fallbackWidth - 8, Math.round(rect.left))),
-    top: Math.max(8, Math.round(rect.top - chipH - 8)),
+    id: 'fallback',
+    left: Math.max(8, Math.min(vw - fallbackWidth - 8, Math.round(columnRect.left))),
+    top: Math.max(8, Math.round(columnRect.top - chipH - 8)),
     width: fallbackWidth,
     compact: true,
     narrow: false,
@@ -501,6 +531,7 @@ function computeBattleFrame(anchor, measuredChipHeight) {
     chipWidth: chosen.width,
     chipTransform: 'none',
     placement: 'docked',
+    candidate: chosen.id || 'fallback',
     compact: !!chosen.compact,
     narrow: !!chosen.narrow,
   };
@@ -568,11 +599,11 @@ function stepSceneMatches(step, scene) {
   return false;
 }
 
-export default function FirstPlayGuide() {
+function FirstPlayGuideCoach() {
   const [coach, setCoach] = useState(readCoach);
   const [active, setActive] = useState(() => {
     const stored = readCoach();
-    return !!stored && !stored.done;
+    return !!stored && !stored.done && readPref() !== 'off';
   });
   const [frame, setFrame] = useState(null);
   const [pickupFrame, setPickupFrame] = useState(null);
@@ -590,6 +621,8 @@ export default function FirstPlayGuide() {
   const battleSessionRef = useRef({ active: false, casted: [false, false], baseCasts: [0, 0] });
   const sideIntroRef = useRef({ scene: '', mode: null, activeUntil: 0, applied: false, lastTime: 0 });
   const bootstrappedRef = useRef(false);
+  const lastSlotRef = useRef(null);
+  const lastCandidateRef = useRef(null);
 
   // Enforce non-blocking tutorial state unconditionally across lifecycle events.
   useEffect(() => {
@@ -716,7 +749,10 @@ export default function FirstPlayGuide() {
     if (bootstrappedRef.current) return undefined;
     bootstrappedRef.current = true;
     if (coachRef.current) {
-      setActiveBoth(!coachRef.current.done);
+      // Existing coach record keeps its meaning: an unfinished lesson means the
+      // tutorial was on; a finished or skipped one means it is off.
+      if (readPref() === null) writePref(coachRef.current.done ? 'off' : 'on');
+      setActiveBoth(!coachRef.current.done && readPref() === 'on');
       return undefined;
     }
     let tries = 0;
@@ -727,16 +763,29 @@ export default function FirstPlayGuide() {
       window.clearInterval(poll);
       let legacySeen = false;
       try { legacySeen = localStorage.getItem(LEGACY_KEY) === '1'; } catch { legacySeen = false; }
-      if (legacySeen || !counts || counts.total > 0) {
-        persistCoach(freshCoach(counts, true, legacySeen));
-        setActiveBoth(false);
-        return;
-      }
-      persistCoach(freshCoach(counts));
-      setActiveBoth(true);
+      if (legacySeen && readPref() === null) writePref('off');
+      // New profile: tutorial OFF until the player answers the one-time question
+      // at a safe menu. The record is created done so nothing runs in battle.
+      persistCoach(freshCoach(counts, true, legacySeen));
+      setActiveBoth(false);
     }, 250);
     return () => window.clearInterval(poll);
   }, [persistCoach, setActiveBoth]);
+
+  // Single authority for the tutorial preference. Yes starts the lesson from step 0;
+  // No persists OFF and closes the lesson without running it.
+  const answerTutorial = useCallback((enable) => {
+    writePref(enable ? 'on' : 'off');
+    if (enable) replayCoach();
+    else finishCoach(true);
+    try { window.dispatchEvent(new CustomEvent('apex:tutorial-pref-changed')); } catch { /* no CustomEvent */ }
+  }, [finishCoach, replayCoach]);
+
+  useEffect(() => {
+    const onAnswer = (event) => answerTutorial(!!event?.detail?.enable);
+    window.addEventListener('apex:tutorial-answer', onAnswer);
+    return () => window.removeEventListener('apex:tutorial-answer', onAnswer);
+  }, [answerTutorial]);
 
   useEffect(() => {
     const onOpen = () => replayCoach();
@@ -792,6 +841,7 @@ export default function FirstPlayGuide() {
     const key = nextFrame ? JSON.stringify(nextFrame) : '';
     if (frameKeyRef.current === key) return;
     frameKeyRef.current = key;
+    lastCandidateRef.current = nextFrame?.candidate || null;
     setFrame(nextFrame);
   }, []);
 
@@ -822,6 +872,8 @@ export default function FirstPlayGuide() {
     const session = battleSessionRef.current;
     if (inLiveBotBattle && !session.active) {
       const initialCasts = readP1SkillCastCounts() || [0, 0];
+      lastSlotRef.current = null;
+      lastCandidateRef.current = null;
       session.active = true;
       session.casted = [initialCasts[0] > 0, initialCasts[1] > 0];
       session.baseCasts = initialCasts;
@@ -900,14 +952,20 @@ export default function FirstPlayGuide() {
       const s0 = skillInfo(0);
       const s1 = skillInfo(1);
       let chosenSlot = null;
+      const stickySlot = lastSlotRef.current;
       if (step === 3) {
-        if (!session.casted[0] && s0.ready) chosenSlot = 0;
-        else if (!session.casted[1] && s1.ready) chosenSlot = 1;
+        const eligible0 = !session.casted[0] && s0.ready;
+        const eligible1 = !session.casted[1] && s1.ready;
+        if (stickySlot === 1 && eligible1) chosenSlot = 1;
+        else if (stickySlot === 0 && eligible0) chosenSlot = 0;
+        else if (eligible0) chosenSlot = 0;
+        else if (eligible1) chosenSlot = 1;
       } else {
         const remainingSlot = session.casted[0] ? 1 : 0;
         const info = remainingSlot === 0 ? s0 : s1;
         if (info.ready) chosenSlot = remainingSlot;
       }
+      lastSlotRef.current = chosenSlot;
 
       if (chosenSlot === null) {
         clearFrame();
@@ -921,7 +979,7 @@ export default function FirstPlayGuide() {
       }
       setHintSlot((prev) => (prev === chosenSlot ? prev : chosenSlot));
       const measuredH = chipRef.current?.offsetHeight || 78;
-      setFrameIfChanged(computeBattleFrame(anchor, measuredH));
+      setFrameIfChanged(computeBattleFrame(anchor, measuredH, lastCandidateRef.current));
       return;
     }
 
@@ -1093,6 +1151,7 @@ export default function FirstPlayGuide() {
         role="status"
         aria-label={`${copy.kicker}: ${item.title}. ${displayBody}`}
         data-placement={frame.placement}
+        data-candidate={frame.candidate || ''}
         data-apex-no-localize=""
         style={{
           left: `${frame.chipLeft}px`,
@@ -1121,5 +1180,163 @@ export default function FirstPlayGuide() {
         </button>
       </section>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tutorial preference UI (Issue #105). Non-blocking by design: the question is a
+// small card at the bottom edge (no backdrop, no focus trap) and the toggle is a
+// Help-row control beside `?`. Both write through the coach component via the
+// 'apex:tutorial-answer' event so there is exactly one preference authority.
+const TUTORIAL_COPY = {
+  eng: {
+    ask: 'Enable the optional tutorial?',
+    body: 'Short hints during your first battle. Change it anytime in Help.',
+    yes: 'YES, GUIDE ME',
+    no: 'NO THANKS',
+    toggle: 'Tutorial / Hướng dẫn tân thủ',
+    on: 'ON',
+    off: 'OFF',
+    label: 'Tutorial preference',
+  },
+  vie: {
+    ask: 'Bật hướng dẫn tân thủ?',
+    body: 'Gợi ý ngắn trong trận đầu. Đổi bất cứ lúc nào trong Trợ giúp.',
+    yes: 'CÓ, HƯỚNG DẪN',
+    no: 'KHÔNG CẦN',
+    toggle: 'Tutorial / Hướng dẫn tân thủ',
+    on: 'BẬT',
+    off: 'TẮT',
+    label: 'Cài đặt hướng dẫn',
+  },
+};
+
+function tutorialLang() {
+  try { return window.APEX_I18N?.getLanguage?.() === 'vie' ? 'vie' : 'eng'; }
+  catch { return 'eng'; }
+}
+
+// A safe menu is any shell screen outside a live battle, once boot has finished.
+function safeMenuNow() {
+  if (!stageElement() || bootGateVisible() || battleVisible()) return false;
+  return currentScene() !== 'battle';
+}
+
+function requestTutorial(enable) {
+  try { window.dispatchEvent(new CustomEvent('apex:tutorial-answer', { detail: { enable: !!enable } })); }
+  catch { /* no CustomEvent */ }
+}
+
+function TutorialPreference() {
+  const [pref, setPref] = useState(readPref);
+  const [lang, setLang] = useState(tutorialLang);
+  const [askOpen, setAskOpen] = useState(false);
+  const toggleRef = useRef(null);
+  const prefRef = useRef(pref);
+  prefRef.current = pref;
+  const langRef = useRef(lang);
+  langRef.current = lang;
+
+  useEffect(() => {
+    const sync = () => {
+      const nextPref = readPref();
+      setPref(nextPref);
+      setLang(tutorialLang());
+      // Ask only once: while no answer is stored and a coach record exists (so the
+      // coach has finished bootstrapping), and only at a safe menu.
+      setAskOpen(nextPref === null && !!readCoach() && safeMenuNow());
+    };
+    sync();
+    const interval = window.setInterval(sync, 300);
+    window.addEventListener('apex:tutorial-pref-changed', sync);
+    window.addEventListener('apex:language-changed', sync);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('apex:tutorial-pref-changed', sync);
+      window.removeEventListener('apex:language-changed', sync);
+    };
+  }, []);
+
+  // Help-row toggle: DOM-mounted beside `?` (same visibility rules as `?`).
+  useEffect(() => {
+    // paint() only writes when the value changed: this button lives inside the
+    // observed body subtree, so unconditional writes would re-trigger the observer.
+    const paint = () => {
+      const btn = toggleRef.current;
+      if (!btn?.isConnected) return;
+      const copy = TUTORIAL_COPY[langRef.current] || TUTORIAL_COPY.eng;
+      const on = prefRef.current === 'on';
+      const checked = on ? 'true' : 'false';
+      const label = `${copy.toggle}: ${on ? copy.on : copy.off}`;
+      const stateText = on ? copy.on : copy.off;
+      if (btn.getAttribute('aria-checked') !== checked) btn.setAttribute('aria-checked', checked);
+      if (btn.getAttribute('aria-label') !== label) btn.setAttribute('aria-label', label);
+      const stateEl = btn.querySelector('.apex-tt-state');
+      if (stateEl && stateEl.textContent === stateText && btn.querySelector('.apex-tt-name')?.textContent === copy.toggle) return;
+      btn.textContent = '';
+      const name = document.createElement('span');
+      name.className = 'apex-tt-name';
+      name.textContent = copy.toggle;
+      const state = document.createElement('span');
+      state.className = 'apex-tt-state';
+      state.textContent = stateText;
+      btn.append(name, state);
+    };
+    const mount = () => {
+      if (toggleRef.current?.isConnected) return;
+      const stage = stageElement();
+      if (!stage) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'apex-tutorial-toggle';
+      btn.setAttribute('role', 'switch');
+      btn.dataset.apexNoLocalize = '';
+      btn.addEventListener('click', () => requestTutorial(prefRef.current !== 'on'));
+      stage.appendChild(btn);
+      toggleRef.current = btn;
+      paint();
+    };
+    mount();
+    const guard = new MutationObserver(mount);
+    guard.observe(document.body, { subtree: true, childList: true });
+    const repaint = window.setInterval(paint, 300);
+    paint();
+    return () => {
+      window.clearInterval(repaint);
+      guard.disconnect();
+      toggleRef.current?.remove();
+      toggleRef.current = null;
+    };
+  }, []);
+
+  if (!askOpen) return null;
+  const copy = TUTORIAL_COPY[lang] || TUTORIAL_COPY.eng;
+  return (
+    <section
+      className="apex-tutorial-ask"
+      role="region"
+      aria-label={copy.label}
+      data-apex-no-localize=""
+    >
+      <p className="apex-tutorial-ask-title">{copy.ask}</p>
+      <p className="apex-tutorial-ask-body">{copy.body}</p>
+      <div className="apex-tutorial-ask-actions">
+        <button type="button" className="apex-tutorial-ask-yes" onClick={() => requestTutorial(true)}>
+          {copy.yes}
+        </button>
+        <button type="button" className="apex-tutorial-ask-no" onClick={() => requestTutorial(false)}>
+          {copy.no}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export default function FirstPlayGuide() {
+  return (
+    <>
+      <FirstPlayGuideCoach />
+      <TutorialPreference />
+    </>
   );
 }
