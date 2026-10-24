@@ -362,6 +362,9 @@ function computePickupPromptFrame() {
   const row = rectOf('#p1Side .weapon');
   const vw = window.innerWidth || document.documentElement.clientWidth || 0;
   const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  // Owner policy (#105): cramped portrait shows no pickup overlay. Its only
+  // dock is the P1 weapon row, which must stay unobstructed.
+  if (vh > vw) return null;
   if (!row || row.width < 112 || row.height < 28 || row.left < 0 || row.top < 0 || row.right > vw || row.bottom > vh) {
     return null;
   }
@@ -478,9 +481,13 @@ function computeBattleFrame(anchor, measuredChipHeight, prev = null) {
   // several hundred ms after a battle starts; re-ranking on every sample made the
   // chip hop between candidates. A new candidate wins only when the previous one
   // stops fitting, so the chip cannot oscillate frame to frame.
+  // Owner policy (#105, option B): a dock is admissible ONLY with zero overlap
+  // against the arena, HUD rails, identity plates, skills and weapon rows.
+  // When no admissible slot exists (cramped portrait 1P, 320x568) the battle
+  // stays clean: no chip, beacon or connector is mounted. There is no fallback
+  // onto the arena or skills, and nothing shrinks to make room.
   let best = null;
-  let bestPenalty = Infinity;
-  let prevPenalty = null;
+  let prevHit = null;
   for (const cand of candidates) {
     const h = cand.heightOverride || chipH;
     const box = {
@@ -490,37 +497,19 @@ function computeBattleFrame(anchor, measuredChipHeight, prev = null) {
       bottom: cand.top + h,
     };
     if (box.left < 4 || box.top < 4 || box.right > vw - 4 || box.bottom > vh - 4) continue;
-    let hudPenalty = 0;
-    let arenaPenalty = 0;
+    let overlap = 0;
     for (const blk of blockers) {
-      const area = intersectionArea(box, blk);
-      if (area <= 0) continue;
-      if (blk === arena) arenaPenalty += area;
-      else hudPenalty += area * 10;
+      overlap += intersectionArea(box, blk);
     }
-    const totalPenalty = hudPenalty + arenaPenalty;
-    if (prevId && cand.id === prevId) prevPenalty = totalPenalty;
-    if (totalPenalty < bestPenalty) {
-      bestPenalty = totalPenalty;
-      best = cand;
-    }
+    if (overlap > 0) continue;
+    if (prevId && cand.id === prevId) prevHit = cand;
+    if (!best) best = cand;
   }
-  if (prevId && prevPenalty === 0) {
-    best = candidates.find((cand) => cand.id === prevId) || best;
-  }
+  // Sticky hysteresis: keep the previously chosen zero-overlap candidate.
+  if (prevHit) best = prevHit;
+  if (!best) return null;
 
-  // Fallback is anchored to the stable P1 column, never to the per-frame skill
-  // anchor (which alternates between skill slots and made the chip jump 54px).
-  const fallbackWidth = Math.min(250, vw - 16);
-  const columnRect = p1Side || rect;
-  const chosen = best || {
-    id: 'fallback',
-    left: Math.max(8, Math.min(vw - fallbackWidth - 8, Math.round(columnRect.left))),
-    top: Math.max(8, Math.round(columnRect.top - chipH - 8)),
-    width: fallbackWidth,
-    compact: true,
-    narrow: false,
-  };
+  const chosen = best;
 
   // Geometry hysteresis: while the same candidate stays chosen, a drift of <=4px
   // (HUD still animating in) keeps the previous chip box instead of trembling.
@@ -987,7 +976,12 @@ function FirstPlayGuideCoach() {
       }
       setHintSlot((prev) => (prev === chosenSlot ? prev : chosenSlot));
       const measuredH = chipRef.current?.offsetHeight || 78;
-      setFrameIfChanged(computeBattleFrame(anchor, measuredH, lastCandidateRef.current));
+      const battleFrame = computeBattleFrame(anchor, measuredH, lastCandidateRef.current);
+      if (!battleFrame) {
+        clearFrame();
+        return;
+      }
+      setFrameIfChanged(battleFrame);
       return;
     }
 
@@ -1212,6 +1206,7 @@ const TUTORIAL_COPY = {
     replay: 'REPLAY GUIDE',
     close: 'CLOSE',
     label: 'Tutorial preference',
+    portraitNote: 'Narrow portrait screens keep battles clean, so no tutorial chip covers the arena. Before you fight: J and K are the skill buttons below the arena. Replay the guide any time from this sheet.',
   },
   vie: {
     ask: 'Bật hướng dẫn?',
@@ -1224,6 +1219,7 @@ const TUTORIAL_COPY = {
     replay: 'XEM LẠI HƯỚNG DẪN',
     close: 'ĐÓNG',
     label: 'Cài đặt hướng dẫn',
+    portraitNote: 'Màn hình dọc hẹp giữ trận đấu gọn sạch, nên không có thẻ hướng dẫn che đấu trường. Trước khi đấu: J và K là hai nút kỹ năng bên dưới đấu trường. Bạn có thể xem lại hướng dẫn bất cứ lúc nào từ bảng này.',
   },
 };
 
@@ -1345,6 +1341,7 @@ function TutorialPreference() {
             <span className="apex-tt-name">{copy.toggle}</span>
             <span className="apex-tt-state">{on ? copy.on : copy.off}</span>
           </button>
+          <p className="apex-help-portrait-note" data-testid="apex-help-portrait-note">{copy.portraitNote}</p>
           <button
             type="button"
             id="apex-help-replay"

@@ -19,6 +19,8 @@
 //
 // STALL_MS_GATE mirrors the coordinator's default stall guard (6000 ms).
 const STALL_MS_GATE = 6000;
+const REVEAL_GRACE_MS_GATE = 4000; // coordinator default revealGraceMs (no raise)
+const HARD_CAP_MS_GATE = 30000;   // coordinator default hardCapMs
 // Usage: APEX_APP_URL=... CHROME_PATH=... node tools/issue105/gate-door-progress.mjs
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -48,11 +50,16 @@ const FREEZE_HOOK = `(() => {
   // any queued intent. Thawing here means the queued intent runs on a live renderer
   // (the test isolates the stall to the frozen door only).
   const warn = console.warn.bind(console);
-  console.warn = (...a) => { if (String(a[0]).includes('[scene-transition]')) window.__rafThaw(); return warn(...a); };
+  console.warn = (...a) => { if (String(a[0]).includes('[scene-transition]')) { if (window.__warnAt == null) window.__warnAt = performance.now(); window.__rafThaw(); } return warn(...a); };
 })();`;
 
 async function openProfile(credits) {
   const { page, context, errors } = await openApp(browser, { width: 1440, height: 900, dpr: 1, seed: seed(credits), storage: { 'apex.alpha.tutorial.v1': 'off' } });
+  const cpuRate = Number(process.env.DOOR_CPU_THROTTLE || 1);
+  if (cpuRate > 1) {
+    const cdp = await page.createCDPSession();
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuRate });
+  }
   await page.evaluate(FREEZE_HOOK);
   const warnings = [];
   // Capture the FULL console text, including the Error object's message, so a
@@ -82,7 +89,7 @@ async function driveOpen(page, { freezeAtOpening = false, sampleMs = 50, maxMs =
     const now = Date.now();
     if (s === 'OPENING' && openingAt == null) openingAt = now;
     if (freezeAtOpening && s === 'OPENING' && frozenAt == null) {
-      await page.evaluate(() => { window.__rafFrozen = true; });
+      await page.evaluate(() => { window.__frozenAtPerf = performance.now(); window.__rafFrozen = true; });
       frozenAt = now;
       // An intent issued DURING the stall must be queued (latest intent wins), not
       // swallowed, and must run once the coordinator recovers the scene.
@@ -143,13 +150,19 @@ try {
       if (queuedState !== 'pending') break;
       await wait(200);
     }
-    report.B = { ...r, frozenFor, bodyPhase, coverHidden, recovered, queuedState };
+    const timeline = await page.evaluate(() => ({ warnAt: window.__warnAt ?? null, frozenAtPerf: window.__frozenAtPerf ?? null }));
+    report.B = { ...r, frozenFor, bodyPhase, coverHidden, recovered, queuedState, ...timeline };
     check(results, r.queued === 'issued', 'B an intent issued during the stall is accepted (not swallowed)', { queued: r.queued });
     check(results, queuedState === 'committed' || queuedState === 'ok', 'B the queued intent runs after recovery (commit reached)', { queuedState });
     check(results, r.frozenAt != null, 'B the door was actually frozen in OPENING (stall injected)', { frozenAt: r.frozenAt });
     check(results, recovered.length >= 1, 'B frozen door: watchdog reports the genuine stall (warning expected)', { recovered: recovered.slice(0, 2) });
     check(results, bodyPhase !== 'OPENING', 'B frozen door: scene phase leaves OPENING (input not dead)', { bodyPhase });
-    check(results, frozenFor != null && frozenFor < 15000, 'B frozen door: recovery is prompt (< 15s after freeze)', { frozenFor });
+    // Detection bound, derived from the coordinator's own constants: the reveal guard
+    // fires REVEAL_GRACE_MS after the last OPENING phase advance, and the watchdog
+    // samples every <=400 ms (three intervals of slack). Nothing here raises a timeout.
+    const detectMs = report.B.warnAt != null && report.B.frozenAtPerf != null ? report.B.warnAt - report.B.frozenAtPerf : null;
+    check(results, detectMs != null && detectMs <= REVEAL_GRACE_MS_GATE + 3 * 400, 'B frozen door: stall is DETECTED within REVEAL_GRACE_MS + 3 watchdog intervals', { detectMs, bound: REVEAL_GRACE_MS_GATE + 3 * 400, cpuRate: Number(process.env.DOOR_CPU_THROTTLE || 1) });
+    check(results, frozenFor != null && frozenFor < 30000, 'B frozen door: total freeze-to-DONE stays under the 30 s HARD_CAP ceiling (door animation at the measured fps included)', { frozenFor, hardCapMs: HARD_CAP_MS_GATE });
     await context.close();
   }
 

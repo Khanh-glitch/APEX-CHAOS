@@ -14,7 +14,7 @@ try {
     await wait(350);
     const mission = await page.evaluate(() => { const r = document.querySelector('.apex-progress-panel').getBoundingClientRect(); return { w: Math.round(r.width), l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom) }; });
     const vaultBtn = await page.evaluate(() => [...document.querySelectorAll('.apex-progress-panel button')].find((b) => /MASTERY/i.test(b.textContent || ''))?.getBoundingClientRect().width || 0);
-    // Mastery: click the in-panel MASTERY VAULT button (progress-open detail does not switch sub-tab).
+    // Mastery: click the in-panel MASTERY VAULT button. (apex:progress-open with tab 'mastery' also selects it now; see gate-progress-title.mjs.)
     await page.evaluate(() => [...document.querySelectorAll('.apex-progress-panel button')].find((b) => /MASTERY/i.test(b.textContent || ''))?.click());
     await page.waitForSelector('.apex-mastery-vault', { timeout: 10000 }).catch(() => {});
     await wait(350);

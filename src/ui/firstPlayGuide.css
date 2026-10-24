@@ -254,3 +254,6 @@
 .apex-tutorial-ask-title{flex:1 1 auto;min-width:0;font-weight:800;font-size:13px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .apex-tutorial-ask button{flex:none;min-width:56px;padding:0 10px}
 .apex-tutorial-ask-yes{background:rgba(232,180,90,.2)!important;color:#ffd27a!important}
+
+/* Issue #105 owner option B: cramped-portrait instructions live in Help, not over the arena. */
+.apex-help-portrait-note{margin:0;font-size:12px;line-height:1.45;color:#c9d1d9;max-width:100%;overflow-wrap:anywhere}

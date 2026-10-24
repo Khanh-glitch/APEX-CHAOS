@@ -369,31 +369,43 @@ async function runViewportJourney(browser, vp) {
   await page.waitForSelector('#battleHudHost.is-open #p1Side .skill[data-i="0"]', { timeout: 45000 });
 
   // Wait briefly for non-blocking Coach chip to mount on castable K while J has no floor gun.
-  try {
-    await page.waitForFunction(
-      () => !!document.querySelector('.apex-coach-chip') && !!window.fighters?.[0],
-      { timeout: 15000 }
-    );
-  } catch (err) {
-    // Diagnostic only (#105 §10): report the coach/battle state at the timeout.
-    const diag = await page.evaluate(() => ({
-      coach: localStorage.getItem('apex.alpha.coach.v2'),
-      pref: localStorage.getItem('apex.alpha.tutorial.v1'),
-      chips: document.querySelectorAll('.apex-coach-chip').length,
-      layers: document.querySelectorAll('.apex-coach-layer').length,
-      fighters: !!(window.fighters && window.fighters[0]),
-      scene: document.querySelector('#stage')?.className || null,
-      skills: [0, 1].map((i) => document.querySelector(`#p1Side .skill[data-i="${i}"]`)?.className || null),
-      hudOpen: document.querySelector('#battleHudHost')?.className || null,
-    })).catch((e) => ({ diagError: String(e) }));
-    console.error('[tp-audit] coach chip never mounted at battle entry:', JSON.stringify(diag));
-    throw err;
+  // Owner policy B (#105): cramped portrait (height > width) has no safe coach dock.
+  // The battle must stay clean: no chip, beacon or layer, and nothing is waited for.
+  // Landscape/desktop must mount the chip in a genuinely free slot.
+  if (vp.height > vp.width) {
+    await sleep(1200);
+    const leftover = await page.evaluate(() => document.querySelectorAll('.apex-coach-chip, .apex-coach-beacon, .apex-coach-layer').length);
+    assert.equal(leftover, 0, `${vp.id}: portrait battle must stay clean (no coach chip/beacon/layer)`);
+  } else {
+    try {
+      await page.waitForFunction(
+        () => !!document.querySelector('.apex-coach-chip') && !!window.fighters?.[0],
+        { timeout: 15000 }
+      );
+    } catch (err) {
+      // Diagnostic only (#105 §10): report the coach/battle state at the timeout.
+      const diag = await page.evaluate(() => ({
+        coach: localStorage.getItem('apex.alpha.coach.v2'),
+        pref: localStorage.getItem('apex.alpha.tutorial.v1'),
+        chips: document.querySelectorAll('.apex-coach-chip').length,
+        layers: document.querySelectorAll('.apex-coach-layer').length,
+        fighters: !!(window.fighters && window.fighters[0]),
+        scene: document.querySelector('#stage')?.className || null,
+        skills: [0, 1].map((i) => document.querySelector(`#p1Side .skill[data-i="${i}"]`)?.className || null),
+        hudOpen: document.querySelector('#battleHudHost')?.className || null,
+      })).catch((e) => ({ diagError: String(e) }));
+      console.error('[tp-audit] coach chip never mounted at battle entry:', JSON.stringify(diag));
+      throw err;
+    }
   }
   states.openingNoTarget = await measureBattleDom(page, '04-match-j-no-target-coach-k');
   await saveShot('04-match-j-no-target-coach-k');
 
   // Test invalid J attempt when J is not castable -> verify 0 cooldown consumed & no sticky banner
-  if (states.openingNoTarget.engineTruth.jObs?.castable === false) {
+  // The invalid-press probe must use J's castability at the moment of the press.
+  // The snapshot above can be stale: J may have become castable during the wait.
+  const jCastableNow = await page.evaluate(() => !!window.APEX_HERO_REWORK?.observeAbilityCastability?.(window.fighters?.[0], 'A1')?.castable);
+  if (states.openingNoTarget.engineTruth.jObs?.castable === false && !jCastableNow) {
     await castSkill(0);
     const invalidProbe = await page.evaluate(() => {
       const ct = window.fighters?.[0]?.__hrCombatant;
@@ -746,7 +758,8 @@ async function runPortraitOpponentMiniLabelAudit(browser) {
         tiles,
       };
     });
-    const expectedArena = c.w === 390 ? 378 : 252;
+    // #105 §6 square arena: 390x844 = 378 and 320x568 = 302 (the port-1p gate asserts the same).
+    const expectedArena = c.w === 390 ? 378 : c.w === 320 ? 302 : 252;
     assert.equal(m.arenaRect.width, expectedArena, `${c.id}: arena width preserved (${m.arenaRect.width})`);
     assert.equal(m.arenaRect.height, expectedArena, `${c.id}: arena height preserved (${m.arenaRect.height})`);
     assert.equal(m.idName.horizClipPx, 0, `${c.id}: P2 hero name "${m.idName.text}" must remain unclipped`);
@@ -824,7 +837,12 @@ async function runCombinedCoachToastAudit(browser) {
     await page.waitForSelector('.fighter-active-p2', { timeout: 30000 });
     await tapSel('#lockIn');
     await page.waitForSelector('#battleHudHost.is-open #p1Side .skill', { timeout: 60000 });
-    await page.waitForFunction(() => !!document.querySelector('.apex-coach-chip') && !!window.fighters?.[0], { timeout: 20000 });
+    // Owner policy B (#105): cramped portrait has no safe coach dock, so the
+    // battle stays clean there and the chip is NOT waited for. Landscape/desktop keep it.
+    const coachDock = c.h <= c.w;
+    if (coachDock) {
+      await page.waitForFunction(() => !!document.querySelector('.apex-coach-chip') && !!window.fighters?.[0], { timeout: 20000 });
+    }
 
     // Order A: Coach already mounted -> First Blood provisional toast fires simultaneously.
     await page.evaluate(() => {
@@ -924,6 +942,26 @@ async function runCombinedCoachToastAudit(browser) {
       };
     });
 
+    if (!coachDock) {
+      await sleep(1200);
+      const m = await sampleCombined();
+      const leftover = await page.evaluate(() => document.querySelectorAll('.apex-coach-chip, .apex-coach-beacon, .apex-coach-layer').length);
+      assert.equal(leftover, 0, `${c.id}: portrait battle must stay clean (no coach chip/beacon/layer)`);
+      assert.ok(m.boxes.toast && m.toastPending === 'false', `${c.id}: achievement toast must remain visible in clean portrait battle`);
+      assert.equal(m.tutorialPaused, false, `${c.id}: tutorial pause must stay false`);
+      assert.equal(m.overlaps.toastVsP1Skill0, 0, `${c.id}: 0px toast vs P1 Skill 0 overlap`);
+      assert.equal(m.overlaps.toastVsP1Skill1, 0, `${c.id}: 0px toast vs P1 Skill 1 overlap`);
+      assert.equal(m.overlaps.toastVsP1Weapon, 0, `${c.id}: 0px toast vs P1 Weapon overlap`);
+      assert.equal(m.overlaps.toastVsP2Skills, 0, `${c.id}: 0px toast vs P2 Skills overlap`);
+      assert.equal(m.overlaps.toastVsRails, 0, `${c.id}: 0px toast vs HP/Timer rails overlap`);
+      assert.equal(m.hitTargets.p1Skill0Unoccluded, true, `${c.id}: P1 Skill 0 target must be 100% unoccluded`);
+      assert.equal(m.hitTargets.p1Skill1Unoccluded, true, `${c.id}: P1 Skill 1 target must be 100% unoccluded`);
+      assert.deepEqual(errors, [], `${c.id}: zero browser runtime errors`);
+      out[c.id] = { portraitCleanBattle: m };
+      console.log(`PASS Combined Toast, clean portrait battle (${c.id}) — no coach dock by policy, toast clear of skills/weapon`);
+      await context.close();
+      continue;
+    }
     const combinedCoachFirst = await sampleCombined();
     await page.screenshot({ path: path.join(OUT_DIR, `after-${c.id}-coach-toast.png`) });
 

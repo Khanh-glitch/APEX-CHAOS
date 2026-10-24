@@ -4,7 +4,8 @@
 //  - Help-row toggle "Tutorial / Hướng dẫn tân thủ" (EN + VIE) flips the preference
 //  - legacy guide key and in-progress coach v2 records are honoured without a prompt
 //  - the guide never blocks input (hit-test on the primary CTA)
-//  - battle chip is stable over 60 consecutive frames at 5 viewports (no left-right hop)
+//  - battle chip is stable over 60 consecutive frames on landscape/square (no left-right hop);
+//    cramped portrait stays clean with no chip and no coach nodes (owner option B)
 import { mkdir, writeFile } from 'node:fs/promises';
 import { launchBrowser, openApp, startBotBattle, wait, check } from './harness.mjs';
 
@@ -202,7 +203,15 @@ try {
     const jumps = rows.reduce((n, r, i) => (i && Math.abs(r.x - rows[i - 1].x) > 3 ? n + 1 : n), 0);
     const receipt = { viewport: `${w}x${h}`, frames: rows.length, xRangePx: Math.round(xRange * 10) / 10, candidateSwitches: switches, jumpsOver3px: jumps };
     frameReceipts.push(receipt);
-    check(results, rows.length === 60 && xRange <= 2 && switches === 0 && jumps === 0, `G ${w}x${h} chip is stable over 60 frames`, receipt);
+    // Owner option B (#105 comment 6387282487): cramped portrait (h > w) has no safe slot,
+    // so the battle stays clean: no chip, no coach nodes, while the lesson keeps running.
+    const coachNodes = await page.evaluate(() => document.querySelectorAll('[class*="apex-coach"]').length);
+    receipt.coachNodes = coachNodes;
+    if (h > w) {
+      check(results, rows.length === 0 && coachNodes === 0, `G ${w}x${h} portrait battle stays clean: no chip, no coach nodes (owner option B)`, receipt);
+    } else {
+      check(results, rows.length === 60 && xRange <= 2 && switches === 0 && jumps === 0, `G ${w}x${h} chip is stable over 60 frames`, receipt);
+    }
     await context.close();
   }
   receipts.frames = frameReceipts;

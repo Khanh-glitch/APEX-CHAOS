@@ -297,7 +297,10 @@ export default function ProgressionCenter() {
   const openPanel = useCallback((nextTab, invoker) => {
     invokerRef.current = invoker || document.activeElement || null;
     setLanguage(window.APEX_I18N?.getLanguage?.() || 'eng');
-    setTab(nextTab === 'achievement' ? 'achievement' : 'mission');
+    // The Mastery surface is the 'achievement' sub-tab. Callers may say 'mastery'
+    // (the surface name); without this alias the title showed STARTER CONTRACTS under
+    // a MASTERY VAULT open (#105 owner item).
+    setTab(nextTab === 'achievement' || nextTab === 'mastery' ? 'achievement' : 'mission');
     setMessage('');
     setOpen(true);
     refresh();
