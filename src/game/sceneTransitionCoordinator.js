@@ -277,12 +277,26 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
         watchdogSignatureAt = now;
       }
       if (debug && debug.state === 'OPENING' && !tx.openingAt) tx.openingAt = now;
+      // Reveal budget measures ENGINE PROGRESS, not wall time (owner law, #105).
+      // The door's phase clock (getDebug().stateTime) advances on every rendered
+      // tick, with dt clamped per frame. On a starved renderer the authored
+      // 1.68s opening legitimately takes longer than 4s of wall time, yet it is
+      // still moving. Only a door whose phase clock stops advancing for
+      // REVEAL_GRACE_MS is a stall. Wall time alone never is.
+      if (debug && debug.state === 'OPENING') {
+        const phase = Number(debug.stateTime) || 0;
+        if (tx.openPhase == null || phase > tx.openPhase) {
+          tx.openPhase = phase;
+          tx.openAdvanceAt = now;
+        }
+      }
       // Explicit boot START is an intentional user-paced sealed hold, not a
       // stalled scene. Never consume the 30s watchdog budget while waiting.
       if (tx.boot && !bootReadySignalled) return;
       const stalledFor = now - watchdogSignatureAt;
       const age = now - tx.startedAt;
-      const revealOverdue = Boolean(tx.openingAt) && now - tx.openingAt >= REVEAL_GRACE_MS;
+      const revealOverdue = Boolean(tx.openingAt) && debug?.state === 'OPENING'
+        && tx.openAdvanceAt != null && now - tx.openAdvanceAt >= REVEAL_GRACE_MS;
       // A dead door is only recoverable once the destination could survive
       // without its cover. Releasing while prepare() is still in flight swaps
       // the player onto an unprepared surface AND loses the intent - measured
@@ -293,7 +307,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       const doorDead = stalledFor >= STALL_MS && (tx.prepared || age >= HARD_CAP_MS);
       if (doorDead || age >= HARD_CAP_MS || revealOverdue) {
         const reason = revealOverdue
-          ? `scene transaction ${tx.name} left the destination behind a still-opening door for ${Math.round(now - tx.openingAt)}ms`
+          ? `scene transaction ${tx.name} still-opening door made no OPENING phase progress for ${Math.round(now - tx.openAdvanceAt)}ms`
           : doorDead
           ? `scene transaction ${tx.name} made no progress for ${Math.round(stalledFor)}ms`
           : `scene transaction ${tx.name} exceeded ${Math.round(age)}ms`;
