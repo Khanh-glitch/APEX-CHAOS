@@ -9,11 +9,14 @@
 // Usage: node tools/issue105/compositor-ab.mjs [heroes...]  (env DPRS="1 2")
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { launchBrowser, openApp, startBotBattle, wait, check } from './harness.mjs';
 
 const HEROES = process.argv.slice(2).length ? process.argv.slice(2) : ['shuri', 'hunter', 'newbot', 'boxe', 'crystala', 'magnet', 'frost', 'mirror'];
 const DPRS = (process.env.DPRS || '1 2').split(' ').map(Number);
-const OUT = process.env.COMP_OUT || '/home/user/issue105-backup/evidence/compositor';
+// Evidence location: COMP_OUT if set, else under ISSUE105_OUT (CI) or the OS temp dir.
+// Never a sandbox-only absolute path: a GitHub runner cannot create /home/user.
+const OUT = process.env.COMP_OUT || path.join(process.env.ISSUE105_OUT || os.tmpdir(), 'compositor');
 const results = [];
 const receipts = [];
 const browser = await launchBrowser();
@@ -93,6 +96,9 @@ try {
   for (const dpr of DPRS) {
     for (const hero of HEROES) {
       const { page, context, errors } = await openApp(browser, { width: 1440, height: 900, dpr, storage: { 'apex.alpha.tutorial.v1': 'off' } });
+      // Optional CPU throttle (diagnostic, default 1 = off) to model a slower CI runner.
+      const cpuRate = Number(process.env.COMP_CPU_THROTTLE || 1);
+      if (cpuRate > 1) { const cdp = await page.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuRate }); }
       await startBotBattle(page, { hero });
       await wait(900);
       const rows = await driveAndSample(page, 14);
