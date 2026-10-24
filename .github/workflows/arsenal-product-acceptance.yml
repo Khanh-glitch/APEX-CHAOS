@@ -269,6 +269,13 @@ jobs:
           APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser
         run: pnpm test:arsenal:browser
 
+      - name: Issue #105 targeted browser gates (Vite 5173, real Chromium)
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173/
+          ISSUE105_OUT: /tmp/issue105-browser
+        run: pnpm test:issue105:browser
+
       - name: Profile Core Six cold-load phases
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
@@ -326,6 +333,8 @@ jobs:
           printf '%s\n' "${GITHUB_SHA}" > dist/ITCH_GUEST_BUILD_SHA.txt
           node tools/packItchPortable.mjs
           EXPECTED_GIT_SHA="${GITHUB_SHA}" node tools/auditItchNestedCandidateE2e.mjs
+          ISSUE105_OUT=/tmp/issue105-nested node tools/issue105/gate-archive-nested.mjs
+          ISSUE105_OUT=/tmp/issue105-result-embed node tools/issue105/gate-result-gold-embed.mjs
           rm -rf dist-itch-html5 dist/ITCH_GUEST_BUILD_SHA.txt
           test -z "$(find . -maxdepth 1 -iname '*itch*.zip' -print -quit)"
 

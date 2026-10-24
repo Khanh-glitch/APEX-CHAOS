@@ -73,7 +73,18 @@
     "test:ra1-compatibility": "node tools/testRa1CompatibilityBrowser.mjs",
     "test:ra1-nested-itch": "node tools/testRa1NestedItchHostingBrowser.mjs",
     "measure:ra1-bot-duration": "node tools/measureRa1BotMatchDuration.mjs",
-    "test:ra1-live-hud-identities": "node tools/testRa1LiveHudIdentitiesBrowser.mjs"
+    "test:ra1-live-hud-identities": "node tools/testRa1LiveHudIdentitiesBrowser.mjs",
+    "test:issue105:first-play": "node tools/issue105/gate-first-play-guide.mjs",
+    "test:issue105:port-1p": "node tools/issue105/gate-port-1p-layout.mjs",
+    "test:issue105:progress": "node tools/issue105/gate-progress-surface.mjs && node tools/issue105/gate-progress-keyboard.mjs",
+    "test:issue105:help-account": "node tools/issue105/measure-help-account.mjs",
+    "test:issue105:pick-before-draw": "node tools/issue105/gate-pick-before-draw.mjs",
+    "test:issue105:door": "node tools/issue105/gate-door-progress.mjs",
+    "test:issue105:lucky-pick": "node tools/issue105/gate-lucky-pick.mjs",
+    "test:issue105:compositor": "node tools/issue105/compositor-ab.mjs",
+    "test:issue105:archive-nested": "node tools/issue105/gate-archive-nested.mjs",
+    "test:issue105:result-embed": "node tools/issue105/gate-result-gold-embed.mjs",
+    "test:issue105:browser": "pnpm test:issue105:first-play && pnpm test:issue105:port-1p && pnpm test:issue105:progress && pnpm test:issue105:help-account && pnpm test:issue105:pick-before-draw && pnpm test:issue105:door && pnpm test:issue105:lucky-pick && pnpm test:issue105:compositor"
   },
   "dependencies": {
     "@fontsource/montserrat": "^5.3.0",
