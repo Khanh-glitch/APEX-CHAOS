@@ -359,7 +359,36 @@ async function runNestedFullGameplayJourney(browser, vp) {
       await sleep(500);
     }
 
-    await gameFrame.waitForSelector('#apex-real-match-result', { visible: true, timeout: 20000 });
+    // A fight that reaches the 420 s budget without any result is a stalemate, not a
+    // proof either way: it is a non-win like a legitimate loss, so a fresh session is
+    // played. The P1 +200 AC proof below is still required; nothing is skipped.
+    const resultShownBeforeWait = await gameFrame.evaluate(() => !!document.querySelector('#apex-real-match-result')).catch(() => false);
+    if (!resultShownBeforeWait) {
+      console.log(`[Attempt ${attempt}] ${vp.id}: no decisive result within the 420 s match budget (stalemate), retrying fresh session for P1 win proof...`);
+      nonWinAttempts.push({ attempt, stalemate: true, matchSnapshotBeforeResult });
+      await context.close();
+      continue;
+    }
+    try {
+      await gameFrame.waitForSelector('#apex-real-match-result', { visible: true, timeout: 20000 });
+    } catch (err) {
+      // Diagnostic only: record the scene transition state the Result wait was blocked on.
+      const diag = await gameFrame.evaluate(() => ({
+        transition: document.body?.dataset?.apexSceneTransition || null,
+        stage: document.querySelector('#stage')?.className || null,
+        resultPresent: !!document.querySelector('#apex-real-match-result'),
+        battleHost: document.querySelector('#battleHudHost')?.className || null,
+        stageExists: !!document.querySelector('#stage'),
+        fighterHp: (window.fighters || []).slice(0, 2).map((f) => { const c = f?.__hrCombatant; return { hp: c?.hp ?? c?.stats?.hp ?? f?.hp ?? null, alive: c?.alive ?? null }; }),
+        roundsWon: window.APEX_ARSENAL?.state?.roundsWon ? [...window.APEX_ARSENAL.state.roundsWon] : null,
+        battleActive: window.APEX_ARSENAL?.state?.active ?? null,
+        winnerSide: window.APEX_ARSENAL?.state?.winnerSide || null,
+        battleMode: window.APEX_ARSENAL?.state?.battleMode || null,
+        coordinator: { active: window.APEX_SCENE_TRANSITION?.active?.() ?? null, pending: window.APEX_SCENE_TRANSITION?.pending?.() ?? null, state: window.APEX_SCENE_TRANSITION?.state?.() ?? null, guard: window.APEX_SCENE_TRANSITION?.guard?.() ?? null },
+      })).catch((e) => ({ evalError: String(e) }));
+      console.log('RESULT WAIT DIAG', JSON.stringify({ ...diag, lastLoopSnap: matchSnapshotBeforeResult, loopMsLeft: koDeadline - Date.now() }).slice(0, 1600));
+      throw err;
+    }
     const postMatchInfo = await gameFrame.evaluate(() => {
       const st = window.APEX_ARSENAL?.state;
       const metaState = window.APEX_ARSENAL_META?.getState?.();
