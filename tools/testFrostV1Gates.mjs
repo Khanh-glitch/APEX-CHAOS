@@ -158,7 +158,10 @@ try {
   gate('F01.6-save-round-trip',
     again.lastSelectedP1 === 'ICE' && again.credits === 500
     && META.OWNER_PLAYTEST_AC_SEED === 0
-    && again.ownedFighters.join(',') === 'ROBOT,ICE' && again.unlockedAt.ICE === 2,
+    // Issue #105 P0-B: the additive HUNTER ownership migration runs once on a legacy save. ROBOT and ICE are kept
+    // in order, HUNTER is appended exactly once, and nothing else changes.
+    && again.ownedFighters.join(',') === 'ROBOT,ICE,HUNTER' && again.ownedFighters.filter((f) => f === 'HUNTER').length === 1
+    && again.unlockedAt.ICE === 2,
     { p1: again.lastSelectedP1, credits: again.credits, seed: META.OWNER_PLAYTEST_AC_SEED });
 } catch (e) { gate('F01.5-legacy-ice-save-loads', false, String(e && e.message)); }
 
