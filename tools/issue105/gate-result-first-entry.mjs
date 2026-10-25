@@ -125,21 +125,69 @@ async function run(browser, { w, h }) {
     await page.waitForFunction(() => window.APEX_ARSENAL?.state?.active === true, { timeout: 90000 });
     await wait(1500);
     await page.evaluate(INSTRUMENT);
-    // Real player input: click castable P1 skills. Real reveals and real hits land weapon damage
-    // in the production ledger. Once the BOT has taken real damage, the finishing K.O. is sealed
-    // by setting its HP to 0 (the production endMatch path only fires on a 0-HP event; a 1-HP
-    // seed does not). The weapon damage in the Result is therefore real combat, not seeded.
-    let clicks = 0;
-    const deadline = Date.now() + 300000;
-    let botHp = 1000;
-    while (Date.now() < deadline) {
-      botHp = await page.evaluate(() => { const f = (window.fighters || []).find((x) => x && x.id !== 1); return f ? Number(f.hp) : 1000; });
-      if (botHp <= 900) break;
-      const btn = await page.$('#battleHudHost.is-open #p1Side .skill:not([disabled]):not(.is-locked):not(.is-cooldown)');
-      if (btn) { await btn.click().catch(() => {}); clicks += 1; }
-      await wait(350);
+    // Deterministic QA setup for the FIRST-ENTRY Result lifecycle. The older
+    // driver spammed J/K for up to five minutes and assumed a weapon hit;
+    // NEWBOT's two abilities do NOT guarantee a PISTOL hit, so Hunter could
+    // still have 986 HP after 691 presses. That was a test-driver dead end,
+    // not evidence about the Result screen.
+    //
+    // Keep a REAL live BOT match and the production weapon/projectile/ledger
+    // pipeline. This fixture equips the real player and aims a native PISTOL
+    // projectile using the production weapon API; damage is resolved by the
+    // NORMAL swept collision, not forged via ledger.onDamage/result objects.
+    // The test already uses an HP=0 terminator AFTER verifying real damage.
+    // This is a deterministic first-paint fixture, NOT a claim that an owner
+    // physically fired the injected setup shot; player inputs have other gates.
+    const setup = await page.evaluate(() => {
+      const fighters = window.fighters || [];
+      const player = fighters[0];
+      const bot = fighters.find((x) => x && x !== player && x.hp > 0);
+      const weaponApi = window.APEX_ARSENAL?.weaponApi;
+      if (!player || !bot || !weaponApi?.equip || !weaponApi?.fireBullet) {
+        return { ok: false, reason: 'production fighter/weapon authority missing' };
+      }
+      weaponApi.equip(player, 'PISTOL');
+      return { ok: true, hp: Number(bot.hp), playerId: player.id, botId: bot.id };
+    });
+    if (!setup.ok) throw Error('Result first-entry real weapon fixture unavailable: ' + JSON.stringify(setup));
+    let botHp = setup.hp;
+    let shots = 0;
+    const shotReceipts = [];
+    for (; shots < 8 && botHp >= setup.hp - 1; shots++) {
+      const fired = await page.evaluate(() => {
+        const fighters = window.fighters || [];
+        const player = fighters[0];
+        const bot = fighters.find((x) => x && x !== player && x.hp > 0);
+        const api = window.APEX_ARSENAL?.weaponApi;
+        if (!player || !bot || !api?.fireBullet) return { ok: false, reason: 'match no longer active' };
+        const angle = Math.atan2(bot.y - player.y, bot.x - player.x);
+        // Place the QA player's firing position near the live target so the
+        // actual physics determines whether the projectile connects; never
+        // edit opponent HP/damage totals for this prerequisite.
+        player.x = Math.max(45, Math.min(955, bot.x - 110 * Math.cos(angle)));
+        player.y = Math.max(45, Math.min(955, bot.y - 110 * Math.sin(angle)));
+        const aim = Math.atan2(bot.y - player.y, bot.x - player.x);
+        api.fireBullet({
+          owner: player, x: player.x, y: player.y,
+          angle: aim, speed: 1700, damage: 90,
+          weapon: 'PISTOL', radius: 7, life: 1.5,
+        });
+        return { ok: true, playerHp: player.hp, botHp: bot.hp };
+      });
+      shotReceipts.push(fired);
+      if (!fired.ok) break;
+      await wait(650);
+      botHp = await page.evaluate(() => {
+        const player = window.fighters?.[0];
+        const bot = (window.fighters || []).find((x) => x && x !== player);
+        return bot ? Number(bot.hp) : null;
+      });
+      if (botHp == null) break;
     }
-    if (botHp > 900) throw new Error(`BOT took no real damage after ${clicks} skill clicks (hp=${botHp})`);
+    if (!(botHp < setup.hp - 1)) {
+      throw new Error('No production PISTOL projectile damage in live BOT match: '
+        + JSON.stringify({ setup, botHp, shots, shotReceipts }));
+    }
     // Rework combatants die when ALL their bodies are dead (HRW.bodyKO), so every opponent body is sealed.
     await page.evaluate(() => { (window.fighters || []).filter((x) => x && x.id !== 1).forEach((f) => { f.hp = 0; }); });
     await page.waitForFunction(() => !!window.__fe && window.__fe.doneAt > 0, { timeout: 60000 });
