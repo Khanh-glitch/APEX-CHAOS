@@ -76,7 +76,7 @@
     "test:ra1-live-hud-identities": "node tools/testRa1LiveHudIdentitiesBrowser.mjs",
     "test:issue105:first-play": "node tools/issue105/gate-first-play-guide.mjs && node tools/issue105/gate-portrait-help-copy.mjs",
     "test:issue105:port-1p": "node tools/issue105/gate-port-1p-layout.mjs",
-    "test:issue105:progress": "node tools/issue105/gate-progress-surface.mjs && node tools/issue105/gate-progress-keyboard.mjs && node tools/issue105/gate-progress-title.mjs",
+    "test:issue105:progress": "node tools/issue105/gate-progress-surface.mjs && node tools/issue105/gate-progress-keyboard.mjs && node tools/issue105/gate-progress-title.mjs && node tools/issue105/gate-progress-pages.mjs",
     "test:issue105:help-account": "node tools/issue105/measure-help-account.mjs",
     "test:issue105:pick-before-draw": "node tools/issue105/gate-pick-before-draw.mjs",
     "test:issue105:door": "node tools/issue105/gate-door-progress.mjs",

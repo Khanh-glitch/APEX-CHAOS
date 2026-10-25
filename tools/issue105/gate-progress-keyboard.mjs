@@ -35,34 +35,53 @@ try {
     check(results, focusedIsMastery && masteryState.title === 'MASTERY VAULT' && masteryState.selected[1] === 'true',
       `${id} keyboard Tab + Enter switches to MASTERY VAULT and aria-selected follows`, { focusedIsMastery, masteryState });
 
-    // Claim-style buttons: real buttons, named, scrollable fully into view.
-    const claims = await page.evaluate(() => {
-      const panel = document.querySelector('.apex-progress-panel');
-      const pr = panel.getBoundingClientRect();
-      const list = Array.from(panel.querySelectorAll('button')).filter((b) => /CLAIM|CLAIMED|INCOMPLETE|NHẬN|NHAN/i.test(b.textContent || ''));
-      return list.map((b) => {
-        b.scrollIntoView({ block: 'center' });
-        const r = b.getBoundingClientRect();
-        return {
-          text: b.textContent.trim().slice(0, 24),
-          named: (b.textContent || b.getAttribute('aria-label') || '').trim().length > 0,
-          disabled: b.disabled,
-          inViewport: r.top >= -1 && r.bottom <= innerHeight + 1 && r.left >= -1 && r.right <= innerWidth + 1,
-          inPanel: r.left >= pr.left - 1 && r.right <= pr.right + 1,
-          size: [Math.round(r.width), Math.round(r.height)],
-        };
+    // Claim-style buttons (Issue #105 R2 P0-A): the scene is paginated, so a claim is
+    // reachable only when it is on the visible page. Walk every page with the real Next
+    // control; each claim must be named, a real enabled-or-disabled button, inside the
+    // viewport and panel, and the hit-test target at its centre on the page that shows it.
+    // The keyboard step above left the scene on MASTERY; claims live on the Missions tab.
+    await page.evaluate(() => document.querySelector('.apex-progress-tabs [role=tab]')?.click());
+    await wait(300);
+    const seenClaims = new Map();
+    const pageCount = async () => page.evaluate(() => document.querySelectorAll('.apex-pager-item').length);
+    for (let guard = 0; guard < 40; guard += 1) {
+      const rows = await page.evaluate(() => {
+        const stage = document.querySelector('.apex-pager-stage');
+        const sr = stage.getBoundingClientRect();
+        const pr = document.querySelector('.apex-progress-panel').getBoundingClientRect();
+        return Array.from(stage.querySelectorAll('[data-pager-item]:not(.is-page-hidden) button'))
+          .filter((b) => /CLAIM|CLAIMED|INCOMPLETE|NHẬN|NHAN|ĐÃ NHẬN|CHƯA ĐẠT/i.test(b.textContent || ''))
+          .map((b, i) => {
+            const r = b.getBoundingClientRect();
+            const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            return {
+              key: `${b.closest('[data-pager-item]').textContent.trim().slice(0, 24)}|${b.textContent.trim().slice(0, 24)}`,
+              named: (b.textContent || b.getAttribute('aria-label') || '').trim().length > 0,
+              hitOk: !!hit && (b === hit || b.contains(hit)),
+              inViewport: r.top >= -1 && r.bottom <= innerHeight + 1 && r.left >= -1 && r.right <= innerWidth + 1,
+              inPanel: r.left >= pr.left - 1 && r.right <= pr.right + 1 && r.top >= sr.top - 1 && r.bottom <= sr.bottom + 1,
+              size: [Math.round(r.width), Math.round(r.height)],
+            };
+          });
       });
+      rows.forEach((row) => seenClaims.set(row.key, row));
+      const nextDisabled = await page.evaluate(() => document.querySelectorAll('.apex-pager-arrow')[1]?.disabled ?? true);
+      if (nextDisabled) break;
+      await page.click('.apex-pager-nav .apex-pager-arrow:last-child');
+      await wait(150);
+    }
+    const claims = [...seenClaims.values()];
+    const totalClaims = await page.evaluate(() => document.querySelectorAll('.apex-progress-panel [data-pager-item] .apex-progress-claim').length);
+    const bad = claims.filter((c) => !c.named || !c.hitOk || !c.inViewport || !c.inPanel || c.size[0] < 44 || c.size[1] < 44);
+    check(results, claims.length === totalClaims && totalClaims > 0 && bad.length === 0, `${id} every claim-style button is named, on a page, hit-testable and at least 44px`, {
+      visibleOnPages: claims.length, total: totalClaims, bad: bad.slice(0, 4),
     });
-    const bad = claims.filter((c) => !c.named || !c.inViewport || !c.inPanel || c.size[0] < 8 || c.size[1] < 8);
-    check(results, bad.length === 0, `${id} every claim-style button is named, reachable and inside the viewport`, { count: claims.length, bad: bad.slice(0, 4) });
 
-    // Scroll the panel body, then close with the Close control (back).
-    await page.evaluate(() => {
-      const panel = document.querySelector('.apex-progress-panel');
-      const sc = Array.from(panel.querySelectorAll('*')).find((el) => el.scrollHeight > el.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(el).overflowY));
-      if (sc) sc.scrollTop = sc.scrollHeight;
-    });
+    // Page back to the first page, then close with the Close control (back).
+    await page.keyboard.press('Home');
     await wait(150);
+    const pagesTotal = await pageCount();
+    check(results, pagesTotal > 0, `${id} scene has items to page`, { pagesTotal });
     await page.click('.apex-progress-panel [aria-label="Close"]');
     await wait(300);
     const closedByButton = !(await page.$('.apex-progress-panel'));

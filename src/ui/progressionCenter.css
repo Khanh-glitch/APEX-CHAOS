@@ -2,24 +2,22 @@
    Center): dark steel plates, gold hairlines, corner cuts. Presentation
    only; all values come from APEX_ARSENAL_META. */
 .apex-progress-overlay {
-  position: fixed; inset: 0; z-index: 2147480900; display: grid; place-items: center;
-  padding: 14px; background: rgba(3,4,6,.72); backdrop-filter: blur(3px);
-  font-family: "ApcKanit","Segoe UI",sans-serif; color: #f4f0e6;
+  /* Issue #105 owner R2 (P0-A): the Missions/Mastery surface is an edge-to-edge
+     Gold viewport scene, not a centred web dialog. It fills the viewport and never
+     scrolls: content is split into fitting pages (ScenePager). */
+  position: fixed; inset: 0; z-index: 2147480900; display: block;
+  background: #0a0e13; font-family: "ApcKanit","Segoe UI",sans-serif; color: #f4f0e6;
 }
 .apex-progress-panel {
-  text-align: left;
-  /* Issue #105 §7: ONE surface width for Missions and Mastery (no per-tab width
-     jump). Sized from the fixed overlay (100%), not 100vw, so scrollbars do not
-     push the panel off-centre. */
-  width: min(1080px, calc(100% - 24px)); max-height: min(90dvh, 820px); overflow: auto;
-  overscroll-behavior: contain; border: 1px solid rgba(215,189,114,.45);
+  position: absolute; inset: 0; width: 100%; height: 100%; max-height: none;
+  box-sizing: border-box; text-align: left; overflow: hidden;
+  display: flex; flex-direction: column; border: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: linear-gradient(180deg,#141a21,#0a0e13 78%);
-  box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 1px rgba(255,255,255,.04);
-  clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
 }
 .apex-progress-head {
   position: relative; display: flex; gap: 16px; align-items: flex-start;
-  padding: 18px 20px 14px; border-bottom: 1px solid rgba(238,231,219,.1);
+  padding: 16px 20px 12px; border-bottom: 1px solid rgba(238,231,219,.1); flex: 0 0 auto;
 }
 .apex-progress-head::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:#d7bd72; }
 .apex-progress-kicker { color:#d7bd72; font: 800 9px/1 ui-monospace,monospace; letter-spacing:.22em; }
@@ -29,7 +27,10 @@
   border:1px solid #4a5057; background:linear-gradient(180deg,#2b3138,#151a20); color:#f4f0e6; cursor:pointer;
   font: 900 15px/1 sans-serif; clip-path: polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
 }
-.apex-progress-body { padding: 16px 20px 20px; display: grid; gap: 14px; }
+.apex-progress-body {
+  flex: 1 1 auto; min-height: 0; width: 100%; max-width: 980px; margin: 0 auto; box-sizing: border-box;
+  padding: 14px 20px 12px; display: flex; flex-direction: column; gap: 10px;
+}
 .apex-progress-balance {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   padding: 10px 12px; border:1px solid #303842; background:#0d1217;
@@ -77,7 +78,7 @@
 @media (max-width: 540px) {
   .apex-progress-row { flex-direction:column; align-items:stretch; }
   .apex-progress-claim { width:100%; min-height:48px; }
-  .apex-progress-body { padding:14px 14px 16px; }
+  .apex-progress-body { padding:12px 14px 10px; }
 }
 
 /* CP3 Mastery Vault shares the unified panel width (Issue #105 §7). */
@@ -85,7 +86,7 @@
   border-color: rgba(240,214,126,.78);
   box-shadow: inset 3px 0 #f0d67e, 0 0 22px rgba(240,214,126,.08);
 }
-.apex-mastery-vault { display: grid; gap: 14px; }
+.apex-mastery-vault, .apex-progress-list { display: block; }
 .apex-mastery-total {
   display: grid; gap: 9px; padding: 12px; border: 1px solid rgba(215,189,114,.42);
   background: linear-gradient(120deg, rgba(75,65,36,.55), rgba(13,18,23,.92) 58%);
@@ -329,33 +330,6 @@
   .apex-mastery-hero-rail { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; }
   .apex-mastery-hero-rail button { min-width:0; }
 }
-/* CP5 desktop: overview on the left, chapter list on the right — the same
-   component and state, arranged by grid areas only. */
-@media (min-width: 1024px) {
-  .apex-mastery-vault {
-    grid-template-columns: minmax(300px, 380px) 1fr;
-    grid-template-areas:
-      "total total"
-      "recent recent"
-      "rail path"
-      "summary path"
-      "goal path"
-      "next path"
-      "weapon weapon";
-    align-items:start;
-  }
-  .apex-mastery-total { grid-area:total; }
-  .apex-mastery-recent { grid-area:recent; }
-  .apex-mastery-hero-rail { grid-area:rail; flex-wrap:wrap; overflow:visible; }
-  .apex-mastery-summary { grid-area:summary; }
-  .apex-mastery-goal { grid-area:goal; }
-  .apex-mastery-next { grid-area:next; }
-  .apex-mastery-path {
-    grid-area:path; grid-auto-flow:row; grid-auto-columns:auto; grid-template-columns:1fr;
-    overflow:visible; padding:0; scroll-snap-type:none; align-content:start;
-  }
-  .apex-mastery-weapon { grid-area:weapon; }
-}
 @media (prefers-reduced-motion: reduce) {
   .apex-progress-panel * { transition-duration:.01ms !important; animation-duration:.01ms !important; }
 }
@@ -424,4 +398,78 @@
   /* The vault remains a narrow side panel on large viewports; four columns
      shrink cards below the intrinsic width of CRYSTALA and clip its glyphs. */
   .apex-mastery-hero-rail{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* Issue #105 owner R2 (P0-A): ScenePager. Items are measured in the live DOM and
+   packed into pages that fit the stage height. Only the current page is in flow;
+   other pages are visibility:hidden + inert, so they cannot be seen, clicked or
+   focused. Nothing inside the scene scrolls. */
+.apex-pager { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.apex-pager-stage { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; }
+/* Visibility changes between pages must be instant: a page-open transition on the
+   inherited visibility left the first ~200ms of a revealed page hit-untestable. */
+.apex-pager-stage, .apex-pager-stage * { transition: none !important; }
+.apex-mastery-terminal.is-continued, .apex-mastery-weapon.is-continued { border-top: 0; }
+.apex-mastery-terminal.is-head, .apex-mastery-weapon.is-head { padding-bottom: 12px; }
+.apex-mastery-remaining-title { margin: 6px 0 0; }
+.apex-mastery-remaining-chunk { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.apex-mastery-remaining-chunk li { padding: 7px 9px; background: rgba(255,255,255,.04); color: #a7b1bb; font: 700 11px/1.3 ui-monospace,monospace; min-width: 0; overflow-wrap: anywhere; }
+.apex-pager-item.is-page-hidden { transition: none; }
+.apex-pager-item { position: relative; padding-bottom: 10px; min-width: 0; }
+.apex-pager-item.is-page-hidden {
+  position: absolute; left: 0; right: 0; top: 0; visibility: hidden; pointer-events: none;
+}
+.apex-pager-nav {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding-top: 8px; border-top: 1px solid rgba(238,231,219,.1);
+}
+.apex-pager-arrow {
+  min-width: 44px; min-height: 44px; padding: 10px 12px; cursor: pointer;
+  border: 1px solid #5a5541; background: linear-gradient(180deg,#4b4124,#282311); color: #f7e7ac;
+  font: 900 11px/1.2 "ApcKanit","Segoe UI",sans-serif; letter-spacing: .08em; text-transform: uppercase;
+  clip-path: polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+}
+.apex-pager-arrow:disabled { cursor: default; color: #6f7a85; border-color: #333c45; background: #12171c; }
+.apex-pager-arrow:focus-visible, .apex-pager-dot:focus-visible { outline: 2px solid #f0d67e; outline-offset: 2px; }
+.apex-pager-count {
+  color: #d7bd72; font: 800 10px/1 ui-monospace,monospace; letter-spacing: .14em; white-space: nowrap;
+}
+.apex-pager-dots { display: flex; align-items: center; justify-content: center; gap: 0; }
+.apex-pager-dot {
+  width: 44px; height: 44px; padding: 0; cursor: pointer; background: none; border: 0;
+  display: grid; place-items: center;
+}
+.apex-pager-dot::before {
+  content: ""; width: 9px; height: 9px; transform: rotate(45deg);
+  border: 1px solid #8b7a48; background: #1a1f25;
+}
+.apex-pager-dot.is-active::before { background: #f0d67e; border-color: #f0d67e; }
+@media (max-width: 539px) {
+  .apex-pager-dots { display: none; }
+  .apex-pager-arrow { flex: 1 1 0; }
+}
+/* Short landscape phones: the chrome compacts so a page still holds real content. */
+@media (max-height: 520px) {
+  .apex-progress-head { padding: 8px 14px 6px; }
+  .apex-progress-kicker { display: none; }
+  .apex-progress-title { margin: 0; font-size: 18px; }
+  .apex-progress-body { padding: 8px 14px 6px; gap: 6px; }
+  .apex-progress-balance { padding: 5px 10px; }
+  .apex-progress-tabs button { min-height: 40px; padding: 6px 10px; }
+  .apex-progress-note { font-size: 11px; line-height: 1.4; }
+  .apex-mastery-summary { padding: 8px 12px; gap: 12px; }
+  .apex-mastery-ring { width: 76px; height: 76px; }
+  .apex-mastery-ring::before { inset: 6px; }
+  .apex-mastery-ring strong { font-size: 15px; }
+  .apex-mastery-terminal { padding: 8px 12px; gap: 6px; }
+  .apex-mastery-terminal-mark { width: 44px; height: 44px; font-size: 22px; }
+  .apex-mastery-weapon-head img { max-height: 84px; }
+}
+/* Landscape phones and short laptops: the four hero cards sit on one row. */
+@media (max-height: 520px) and (min-width: 640px) {
+  .apex-mastery-hero-rail { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .apex-mastery-hero-rail button { min-height: 46px; padding: 6px 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .apex-pager-item { transition: none; }
 }

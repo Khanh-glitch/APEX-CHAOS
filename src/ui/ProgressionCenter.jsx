@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cosmetics } from '../game/cosmetics/cosmeticAuthority.js';
 import { translateCopy } from '../game/localeCatalog.js';
 import '../game/cosmetics/approvedGoldSkins.js';
@@ -62,6 +62,11 @@ const COPY = {
     totalMastery: 'TOTAL MASTERY',
     recentUnlocks: 'RECENT UNLOCKS',
     viewAll: 'VIEW ALL',
+    pagesNav: 'Pages',
+    prevPage: 'PREV',
+    nextPage: 'NEXT',
+    pageOf: (n, total) => `PAGE ${n} / ${total}`,
+    gotoPage: (n) => `PAGE ${n}`,
     toNextTier: (n, tierName) => `${n} MORE → ${tierName}`,
     chapterNext: 'NEXT',
     noRecent: 'No combat achievements yet. Finish a BOT or LOCAL match to start the record.',
@@ -107,6 +112,11 @@ const COPY = {
     totalMastery: 'TỔNG TINH THÔNG',
     recentUnlocks: 'MỞ KHÓA GẦN ĐÂY',
     viewAll: 'XEM TẤT CẢ',
+    pagesNav: 'Các trang',
+    prevPage: 'TRƯỚC',
+    nextPage: 'SAU',
+    pageOf: (n, total) => `TRANG ${n} / ${total}`,
+    gotoPage: (n) => `TRANG ${n}`,
     toNextTier: (n, tierName) => `CÒN ${n} → ${tierName}`,
     chapterNext: 'KẾ TIẾP',
     noRecent: 'Chưa có thành tựu chiến đấu. Hoàn thành một trận BOT hoặc LOCAL để bắt đầu hồ sơ.',
@@ -273,6 +283,153 @@ function MedalCard({ achievement, earnedAt, best, recent, language, t }) {
         </small>
       </div>
     </article>
+  );
+}
+
+// Issue #105 owner R2 (P0-A): Missions and Mastery are a paginated viewport scene,
+// not a scrolling dialog. ScenePager measures every item's real rendered height and
+// packs items into pages that fit the stage exactly; only the current page is visible
+// and interactive. Hidden items are visibility:hidden + inert, so they cannot be
+// clicked, focused or read. Nothing scrolls inside the scene.
+function packPages(heights, available) {
+  const pages = [];
+  let start = 0;
+  let used = 0;
+  for (let i = 0; i < heights.length; i += 1) {
+    const h = heights[i];
+    if (i === start) { used = h; continue; }
+    if (used + h <= available) { used += h; continue; }
+    pages.push([start, i]);
+    start = i;
+    used = h;
+  }
+  if (heights.length) pages.push([start, heights.length]);
+  return pages;
+}
+
+function ScenePager({ items, className, labels }) {
+  const stageRef = useRef(null);
+  const packedKey = useRef('');
+  const [pages, setPages] = useState(() => [[0, items.length]]);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [, setTick] = useState(0);
+  const total = pages.length;
+  const current = Math.min(pageIndex, Math.max(0, total - 1));
+  const [start, end] = pages[current] || [0, items.length];
+
+  // Re-measure after every commit. Heights come from the live DOM, so content changes
+  // (claims, toggles, language, view-all) repack without a separate invalidation path.
+  // The key guard makes the loop converge: a second pass with equal pages does nothing.
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const available = stage.clientHeight;
+    if (!available) return;
+    const heights = Array.from(stage.children, (node) => node.offsetHeight);
+    const next = packPages(heights, available);
+    const key = `${available}|${next.map((p) => p.join('-')).join(',')}`;
+    if (key !== packedKey.current) {
+      packedKey.current = key;
+      setPages(next);
+    }
+  });
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    const bump = () => setTick((n) => n + 1);
+    const ro = stage && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(bump) : null;
+    if (ro && stage) ro.observe(stage);
+    window.addEventListener('resize', bump);
+    document.fonts?.ready?.then(bump).catch(() => {});
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', bump);
+    };
+  }, []);
+
+  const go = useCallback((n) => {
+    setPageIndex(Math.max(0, Math.min(total - 1, n)));
+  }, [total]);
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const tag = event.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (event.key === 'ArrowRight' || event.key === 'PageDown') { event.preventDefault(); go(current + 1); }
+      else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); go(current - 1); }
+      else if (event.key === 'Home') { event.preventDefault(); go(0); }
+      else if (event.key === 'End') { event.preventDefault(); go(total - 1); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [go, current, total]);
+
+  // If the focused control lives on a page that just hid, move focus to this page.
+  useEffect(() => {
+    const stage = stageRef.current;
+    const active = document.activeElement;
+    if (!stage || !active || !stage.contains(active)) return;
+    const item = active.closest('[data-pager-item]');
+    if (!item || !item.classList.contains('is-page-hidden')) return;
+    const next = stage.querySelector('[data-pager-item]:not(.is-page-hidden) button, [data-pager-item]:not(.is-page-hidden) [tabindex="0"]');
+    next?.focus({ preventScroll: true });
+  }, [current]);
+
+  return (
+    <div className="apex-pager" data-apex-pager="">
+      <div className={`apex-pager-stage ${className || ''}`} ref={stageRef}>
+        {items.map((node, i) => {
+          const hidden = !(i >= start && i < end);
+          const hiddenAttrs = hidden ? { inert: '', 'aria-hidden': 'true' } : {};
+          return (
+            <div
+              key={node?.key ?? i}
+              data-pager-item=""
+              className={`apex-pager-item${hidden ? ' is-page-hidden' : ''}`}
+              {...hiddenAttrs}
+            >
+              {node}
+            </div>
+          );
+        })}
+      </div>
+      {total > 1 && (
+        <nav className="apex-pager-nav" aria-label={labels.nav}>
+          <button
+            type="button"
+            className="apex-pager-arrow"
+            disabled={current <= 0}
+            onClick={() => go(current - 1)}
+          >
+            ‹ {labels.prev}
+          </button>
+          {total <= 8 && (
+            <div className="apex-pager-dots" role="group" aria-label={labels.nav}>
+              {pages.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`apex-pager-dot${i === current ? ' is-active' : ''}`}
+                  aria-label={labels.goto(i + 1, total)}
+                  aria-current={i === current ? 'page' : undefined}
+                  onClick={() => go(i)}
+                />
+              ))}
+            </div>
+          )}
+          <span className="apex-pager-count" aria-live="polite">{labels.pageOf(current + 1, total)}</span>
+          <button
+            type="button"
+            className="apex-pager-arrow"
+            disabled={current >= total - 1}
+            onClick={() => go(current + 1)}
+          >
+            {labels.next} ›
+          </button>
+        </nav>
+      )}
+    </div>
   );
 }
 
@@ -474,13 +631,345 @@ export default function ProgressionCenter() {
     </button>
   );
 
+  const pagerLabels = {
+    nav: t.pagesNav,
+    prev: t.prevPage,
+    next: t.nextPage,
+    pageOf: (n, total) => t.pageOf(n, total),
+    goto: (n, total) => t.gotoPage(n, total),
+  };
+
+  const missionItems = catalog.length === 0
+    ? [<p key="loading" className="apex-progress-note">{t.loading}</p>]
+    : catalog.map((d) => {
+      const done = claimedIds.includes(d.id);
+      const count = Math.min(Math.max(0, Number(progress[d.stat]) || 0), d.target);
+      const eligible = count >= d.target && !done;
+      const current = d.id === currentContractId;
+      return (
+        <article className={`apex-progress-row${done ? ' is-claimed' : ''}${current ? ' is-current' : ''}`} key={d.id}>
+          <div className="apex-progress-row-info">
+            <h3>{language === 'vie' ? d.vie : d.eng}</h3>
+            <p>{count} / {d.target} · +{d.ac} AC{current ? ` · ${t.currentObjective}` : ''}</p>
+            <div className="apex-progress-meter"><span style={{ width: `${(count / d.target) * 100}%` }} /></div>
+          </div>
+          <button
+            type="button"
+            className="apex-progress-claim"
+            disabled={!eligible}
+            onClick={() => claim(d.id)}
+          >
+            {done ? t.claimed : eligible ? t.ready(d.ac) : t.incomplete}
+          </button>
+        </article>
+      );
+    });
+  missionItems.push(<p key="note" className="apex-progress-note">{t.note}</p>);
+
+  const masteryItems = [];
+  masteryItems.push(
+    <div key="total" className="apex-mastery-total">
+      <div>
+        <span>{t.totalMastery}</span>
+        <strong>{totalEarned}/{totalAvailable}</strong>
+      </div>
+      <div className="apex-progress-meter" aria-hidden="true"><span style={{ width: `${totalPercent}%` }} /></div>
+    </div>,
+  );
+  masteryItems.push(
+    <section key="recent" className="apex-mastery-recent" aria-labelledby="apex-mastery-recent-title">
+      <div className="apex-mastery-recent-head">
+        <h3 id="apex-mastery-recent-title">{t.recentUnlocks}</h3>
+        {recentAll.length > 8 && !showAllRecent && (
+          <button type="button" className="apex-mastery-view-all" onClick={() => setShowAllRecent(true)}>
+            {t.viewAll}
+          </button>
+        )}
+      </div>
+      {recentItems.length ? (
+        <div className="apex-mastery-recent-row">
+          {recentItems.map((item) => {
+            const achievement = MASTERY_BY_ID[item.achievementId];
+            if (!achievement) return null;
+            const hero = MASTERY_HEROES.find((entry) => entry.resultId === masteryResultHeroId(item.heroId));
+            const recentPresentation = achievement.rarityPresentation || {};
+            return (
+              <span className="apex-mastery-recent-chip" key={`${item.heroId}-${item.achievementId}-${item.at}`}>
+                <span
+                  className={`apex-mastery-recent-disc rarity-${achievement.rarity}`}
+                  data-rarity-shape={recentPresentation.shape || 'circle'}
+                  aria-hidden="true"
+                >
+                  <span className={`apex-mastery-medal-shape shape-${recentPresentation.shape || 'circle'} pattern-${recentPresentation.pattern || 'plain'}`} />
+                  <span className="apex-mastery-medal-glyph">{achievement.iconGlyph}</span>
+                </span>
+                <span><b>{masteryAchievementName(achievement, lang)}</b><small>{hero?.name || item.heroId}{dateLabel(item.at, lang) ? ` · ${dateLabel(item.at, lang)}` : ''}</small></span>
+              </span>
+            );
+          })}
+        </div>
+      ) : <p>{t.noRecent}</p>}
+    </section>,
+  );
+  masteryItems.push(
+    <div key="rail" className="apex-mastery-hero-rail" aria-label={t.heroMastery}>
+      {heroes.map((hero) => {
+        const itemProgress = heroProgress(meta, safeMastery, hero.resultId);
+        const owned = typeof meta?.owns === 'function' ? meta.owns(hero.engineId) : true;
+        return (
+          <button
+            type="button"
+            key={hero.resultId}
+            className={hero.resultId === selectedHero.resultId ? 'is-active' : ''}
+            aria-pressed={hero.resultId === selectedHero.resultId}
+            onClick={() => setSelectedResultHero(hero.resultId)}
+          >
+            <b>{hero.name}</b>
+            <span>{itemProgress.earned}/{itemProgress.total}</span>
+            <span className="apex-mastery-rail-meter" aria-hidden="true">
+              <span style={{ width: `${itemProgress.total ? (itemProgress.earned / itemProgress.total) * 100 : 0}%` }} />
+            </span>
+            {!owned && <small>{t.locked}</small>}
+          </button>
+        );
+      })}
+    </div>,
+  );
+  masteryItems.push(
+    <section key="summary" className="apex-mastery-summary">
+      <div
+        className={`apex-mastery-ring tier-${tier.id}`}
+        style={{ '--mastery-deg': `${selectedPercent * 3.6}deg` }}
+        aria-label={`${selectedHero.name}: ${selectedProgress.earned}/${selectedProgress.total}`}
+      >
+        <strong>{selectedProgress.earned}/{selectedProgress.total}</strong>
+        <span>{selectedHero.name}</span>
+      </div>
+      <div>
+        <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
+        <h3>{selectedHero.name} · {tier[lang]} · {Math.round(selectedPercent)}%</h3>
+        <p>{selectedProgress.complete ? t.complete : t.remaining(selectedProgress.missingIds.length)}</p>
+        {nextTier && (
+          <p className="apex-mastery-next-tier">{t.toNextTier(nextTier.needed, nextTier.tier[lang])}</p>
+        )}
+      </div>
+    </section>,
+  );
+  if (selectedHero.resultId === 'NEWBOT') {
+    masteryItems.push(
+      <section key="goal" className="apex-mastery-goal" aria-label={ecoLabel}>
+        <div className="apex-mastery-goal-head">
+          <span className="apex-mastery-goal-mark" aria-hidden="true">♻</span>
+          <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
+          <strong>{ecoLabel}</strong>
+          <span>{ecoProgress.current}/{ecoProgress.target}</span>
+        </div>
+        <div className="apex-progress-meter" aria-hidden="true">
+          <span style={{ width: `${ecoProgress.target ? (ecoProgress.current / ecoProgress.target) * 100 : 0}%` }} />
+        </div>
+        <p>{ecoProgress.entitled
+          ? (ecoEquipped ? t.equipped : t.unlocked)
+          : t.heroSkinLocked(ecoProgress.current, ecoProgress.target)}</p>
+      </section>,
+    );
+  }
+  if (nextObjectives.length > 0) {
+    masteryItems.push(
+      <section key="next" className="apex-mastery-next" aria-label={t.currentObjective}>
+        <p className="apex-mastery-section-kicker">{t.currentObjective}</p>
+        <MedalCard
+          achievement={nextObjectives[0].item}
+          earnedAt={undefined}
+          best={bestMap[nextObjectives[0].item.id]}
+          recent={false}
+          language={lang}
+          t={t}
+        />
+        {nextObjectives.slice(1).map(({ item, progress }) => (
+          <p key={item.id} className="apex-mastery-next-line">
+            <b>{masteryAchievementName(item, lang)}</b>
+            <span>{progressText(item, progress, t)}</span>
+          </p>
+        ))}
+      </section>,
+    );
+  }
+  // Chapters flatten into the page list: a chapter header is one item, and an open
+  // chapter contributes one item per medal, so each page holds only what fits.
+  MASTERY_CATEGORIES.forEach((category, chapterIndex) => {
+    const chapter = achievements.filter((item) => item.category === category);
+    if (!chapter.length) return;
+    const chapterEarned = chapter.filter((item) => Object.prototype.hasOwnProperty.call(earnedMap, item.id)).length;
+    const isOpen = openCategory === category;
+    masteryItems.push(
+      <section key={`chapter-${category}`} className={`apex-mastery-chapter${isOpen ? ' is-open' : ''}`}>
+        <header>
+          <button
+            type="button"
+            className="apex-mastery-chapter-toggle"
+            aria-expanded={isOpen}
+            onClick={() => setChapterChoice({
+              heroId: selectedHero.resultId,
+              category: isOpen ? null : category,
+            })}
+          >
+            <span className="apex-mastery-chapter-num">{String(chapterIndex + 1).padStart(2, '0')}</span>
+            <span className="apex-mastery-chapter-meta">
+              <span className="apex-mastery-chapter-name">{CATEGORY_LABELS[category][lang]}</span>
+              <span className="apex-progress-meter" aria-hidden="true">
+                <span style={{ width: `${chapter.length ? (chapterEarned / chapter.length) * 100 : 0}%` }} />
+              </span>
+              <span className="apex-mastery-chapter-next">
+                {chapterEarned < chapter.length
+                  ? `${t.chapterNext}: ${masteryAchievementName(chapter.find((item) => !Object.prototype.hasOwnProperty.call(earnedMap, item.id)), lang)}`
+                  : t.complete}
+              </span>
+            </span>
+            <span className="apex-mastery-chapter-peek" aria-hidden="true">
+              {chapter.slice(0, 6).map((item) => {
+                const peek = item.rarityPresentation || {};
+                const had = Object.prototype.hasOwnProperty.call(earnedMap, item.id);
+                return (
+                  <i
+                    key={item.id}
+                    className={`apex-mastery-peek-disc rarity-${item.rarity} shape-${peek.shape || 'circle'}${had ? ' is-earned' : ''}`}
+                    data-rarity-shape={peek.shape || 'circle'}
+                  />
+                );
+              })}
+            </span>
+            <small>{chapterEarned}/{chapter.length}</small>
+            <span className="apex-mastery-chapter-chevron" aria-hidden="true">›</span>
+          </button>
+        </header>
+      </section>,
+    );
+    if (isOpen) {
+      chapter.forEach((achievement) => {
+        masteryItems.push(
+          <MedalCard
+            key={`medal-${category}-${achievement.id}`}
+            achievement={achievement}
+            earnedAt={earnedMap[achievement.id]}
+            best={bestMap[achievement.id]}
+            recent={recentKeys.has(`${selectedHero.resultId}:${achievement.id}`)}
+            language={lang}
+            t={t}
+          />,
+        );
+      });
+    }
+  });
+  if (selectedHero.resultId === 'NEWBOT') {
+    masteryItems.push(
+      <section key="terminal" className="apex-mastery-terminal is-head">
+        <div className="apex-mastery-terminal-mark" aria-hidden="true">♻</div>
+        <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
+        <h3>{ecoLabel}</h3>
+      </section>,
+    );
+    masteryItems.push(
+      <section key="terminal-desc" className="apex-mastery-terminal is-continued">
+        <p>{t.heroSkinCondition}</p>
+        <strong>{ecoProgress.current}/{ecoProgress.target}</strong>
+        <div className="apex-progress-meter" aria-hidden="true">
+          <span style={{ width: `${ecoProgress.target ? (ecoProgress.current / ecoProgress.target) * 100 : 0}%` }} />
+        </div>
+      </section>,
+    );
+    masteryItems.push(
+      <section key="terminal-action" className="apex-mastery-terminal is-continued">
+        {!ecoProgress.entitled && <p>{t.heroSkinLocked(ecoProgress.current, ecoProgress.target)}</p>}
+        {renderSkinButton({
+          kind: 'hero', baseId: 'ROBOT', skinId: 'ecobot', gateKey: ecoProgress.key,
+          entitled: ecoProgress.entitled, equipped: ecoEquipped,
+        })}
+      </section>,
+    );
+    // Remaining achievements: fixed chunks of four chips. The list never scrolls inside
+    // its own box; each chunk is a page item like everything else.
+    const remainingIds = ecoProgress.remainingIds || [];
+    if (remainingIds.length > 0) {
+      masteryItems.push(
+        <p key="remaining-title" className="apex-mastery-section-kicker apex-mastery-remaining-title">
+          {t.remaining(remainingIds.length)}
+        </p>,
+      );
+      for (let i = 0; i < remainingIds.length; i += 4) {
+        const chunk = remainingIds.slice(i, i + 4);
+        masteryItems.push(
+          <ul key={`remaining-${i}`} className="apex-mastery-remaining-chunk">
+            {chunk.map((id) => (
+              <li key={id}>{MASTERY_BY_ID[id] ? masteryAchievementName(MASTERY_BY_ID[id], lang) : id}</li>
+            ))}
+          </ul>,
+        );
+      }
+    }
+  } else {
+    masteryItems.push(
+      <section key="terminal" className="apex-mastery-terminal is-head">
+        <div className="apex-mastery-terminal-mark" aria-hidden="true">★</div>
+        <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
+        <h3>{selectedHero.name}</h3>
+      </section>,
+    );
+    masteryItems.push(
+      <section key="terminal-desc" className="apex-mastery-terminal is-continued">
+        <p>{t.noHeroSkin}</p>
+        <strong>{selectedProgress.earned}/{selectedProgress.total}</strong>
+        <div className="apex-progress-meter" aria-hidden="true"><span style={{ width: `${selectedPercent}%` }} /></div>
+        <p>{selectedProgress.complete ? t.complete : t.remaining(selectedProgress.missingIds.length)}</p>
+      </section>,
+    );
+  }
+  masteryItems.push(
+    <section key="weapon" className="apex-mastery-weapon is-head">
+      <div className="apex-mastery-weapon-head">
+        <div>
+          <p className="apex-mastery-section-kicker">{t.weaponMastery}</p>
+          <h3>{rocketSkin?.label || 'VUA HỀ — THE LAST LAUGH'}</h3>
+          <p>{t.rpgCondition}</p>
+        </div>
+        {rocketSkin?.preview && <img src={rocketSkin.preview} alt="" />}
+      </div>
+    </section>,
+  );
+  masteryItems.push(
+    <section key="weapon-track" className="apex-mastery-weapon is-continued">
+      <div className="apex-mastery-rpg-track">
+        <div className="apex-mastery-rpg-score">
+          <span>{t.lifetimeRpg}</span>
+          <strong>{t.rpgProgress(rpgProgress.current)}</strong>
+        </div>
+        <div className="apex-progress-meter" aria-hidden="true"><span style={{ width: `${rpgPercent}%` }} /></div>
+        {renderSkinButton({
+          kind: 'weapon', baseId: 'RPG_7', skinId: 'vua-he', gateKey: rpgProgress.key,
+          entitled: rpgProgress.entitled, equipped: rocketEquipped,
+        })}
+      </div>
+    </section>,
+  );
+  masteryItems.push(
+    <section key="weapon-records" className="apex-mastery-weapon is-continued">
+      <h4>{t.topWeapons}</h4>
+      {topWeapons.length ? (
+        <div className="apex-mastery-weapon-records">
+          {topWeapons.map(([weaponId, value]) => (
+            <span key={weaponId}><b>{weaponLabel(weaponId)}</b><small>{formatMasteryValue(value)} DMG</small></span>
+          ))}
+        </div>
+      ) : <p>{t.noWeaponDamage}</p>}
+    </section>,
+  );
+  masteryItems.push(<p key="note" className="apex-progress-note">{t.note}</p>);
+
   return (
     <div
       className="apex-progress-overlay"
       role="dialog"
       aria-modal="true"
       aria-label={tab === 'mission' ? t.contracts : t.mastery}
-      onPointerDown={(e) => { if (e.target === e.currentTarget) closePanel(); }}
     >
       <section className="apex-progress-panel" ref={panelRef} data-apex-no-localize="">
         <header className="apex-progress-head">
@@ -523,296 +1012,12 @@ export default function ProgressionCenter() {
               {t.mastery}
             </button>
           </div>
-
-          {tab === 'mission' ? (
-            <div className="apex-progress-list" role="tabpanel">
-              {catalog.length === 0 ? (
-                <p className="apex-progress-note">{t.loading}</p>
-              ) : catalog.map((d) => {
-                const done = claimedIds.includes(d.id);
-                const count = Math.min(Math.max(0, Number(progress[d.stat]) || 0), d.target);
-                const eligible = count >= d.target && !done;
-                const current = d.id === currentContractId;
-                return (
-                  <article className={`apex-progress-row${done ? ' is-claimed' : ''}${current ? ' is-current' : ''}`} key={d.id}>
-                    <div className="apex-progress-row-info">
-                      <h3>{language === 'vie' ? d.vie : d.eng}</h3>
-                      <p>{count} / {d.target} · +{d.ac} AC{current ? ` · ${t.currentObjective}` : ''}</p>
-                      <div className="apex-progress-meter"><span style={{ width: `${(count / d.target) * 100}%` }} /></div>
-                    </div>
-                    <button
-                      type="button"
-                      className="apex-progress-claim"
-                      disabled={!eligible}
-                      onClick={() => claim(d.id)}
-                    >
-                      {done ? t.claimed : eligible ? t.ready(d.ac) : t.incomplete}
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="apex-mastery-vault" role="tabpanel">
-              <div className="apex-mastery-total">
-                <div>
-                  <span>{t.totalMastery}</span>
-                  <strong>{totalEarned}/{totalAvailable}</strong>
-                </div>
-                <div className="apex-progress-meter" aria-hidden="true"><span style={{ width: `${totalPercent}%` }} /></div>
-              </div>
-
-              <section className="apex-mastery-recent" aria-labelledby="apex-mastery-recent-title">
-                <div className="apex-mastery-recent-head">
-                  <h3 id="apex-mastery-recent-title">{t.recentUnlocks}</h3>
-                  {recentAll.length > 8 && !showAllRecent && (
-                    <button type="button" className="apex-mastery-view-all" onClick={() => setShowAllRecent(true)}>
-                      {t.viewAll}
-                    </button>
-                  )}
-                </div>
-                {recentItems.length ? (
-                  <div className="apex-mastery-recent-row">
-                    {recentItems.map((item) => {
-                      const achievement = MASTERY_BY_ID[item.achievementId];
-                      if (!achievement) return null;
-                      const hero = MASTERY_HEROES.find((entry) => entry.resultId === masteryResultHeroId(item.heroId));
-                      const recentPresentation = achievement.rarityPresentation || {};
-                      return (
-                        <span className="apex-mastery-recent-chip" key={`${item.heroId}-${item.achievementId}-${item.at}`}>
-                          <span
-                            className={`apex-mastery-recent-disc rarity-${achievement.rarity}`}
-                            data-rarity-shape={recentPresentation.shape || 'circle'}
-                            aria-hidden="true"
-                          >
-                            <span className={`apex-mastery-medal-shape shape-${recentPresentation.shape || 'circle'} pattern-${recentPresentation.pattern || 'plain'}`} />
-                            <span className="apex-mastery-medal-glyph">{achievement.iconGlyph}</span>
-                          </span>
-                          <span><b>{masteryAchievementName(achievement, lang)}</b><small>{hero?.name || item.heroId}{dateLabel(item.at, lang) ? ` · ${dateLabel(item.at, lang)}` : ''}</small></span>
-                        </span>
-                      );
-                    })}
-                  </div>
-                ) : <p>{t.noRecent}</p>}
-              </section>
-
-              <div className="apex-mastery-hero-rail" aria-label={t.heroMastery}>
-                {heroes.map((hero) => {
-                  const itemProgress = heroProgress(meta, safeMastery, hero.resultId);
-                  const owned = typeof meta?.owns === 'function' ? meta.owns(hero.engineId) : true;
-                  return (
-                    <button
-                      type="button"
-                      key={hero.resultId}
-                      className={hero.resultId === selectedHero.resultId ? 'is-active' : ''}
-                      aria-pressed={hero.resultId === selectedHero.resultId}
-                      onClick={() => setSelectedResultHero(hero.resultId)}
-                    >
-                      <b>{hero.name}</b>
-                      <span>{itemProgress.earned}/{itemProgress.total}</span>
-                      <span className="apex-mastery-rail-meter" aria-hidden="true">
-                        <span style={{ width: `${itemProgress.total ? (itemProgress.earned / itemProgress.total) * 100 : 0}%` }} />
-                      </span>
-                      {!owned && <small>{t.locked}</small>}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <section className="apex-mastery-summary">
-                <div
-                  className={`apex-mastery-ring tier-${tier.id}`}
-                  style={{ '--mastery-deg': `${selectedPercent * 3.6}deg` }}
-                  aria-label={`${selectedHero.name}: ${selectedProgress.earned}/${selectedProgress.total}`}
-                >
-                  <strong>{selectedProgress.earned}/{selectedProgress.total}</strong>
-                  <span>{selectedHero.name}</span>
-                </div>
-                <div>
-                  <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
-                  <h3>{selectedHero.name} · {tier[lang]} · {Math.round(selectedPercent)}%</h3>
-                  <p>{selectedProgress.complete ? t.complete : t.remaining(selectedProgress.missingIds.length)}</p>
-                  {nextTier && (
-                    <p className="apex-mastery-next-tier">{t.toNextTier(nextTier.needed, nextTier.tier[lang])}</p>
-                  )}
-                </div>
-              </section>
-
-              {selectedHero.resultId === 'NEWBOT' && (
-                <section className="apex-mastery-goal" aria-label={ecoLabel}>
-                  <div className="apex-mastery-goal-head">
-                    <span className="apex-mastery-goal-mark" aria-hidden="true">♻</span>
-                    <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
-                    <strong>{ecoLabel}</strong>
-                    <span>{ecoProgress.current}/{ecoProgress.target}</span>
-                  </div>
-                  <div className="apex-progress-meter" aria-hidden="true">
-                    <span style={{ width: `${ecoProgress.target ? (ecoProgress.current / ecoProgress.target) * 100 : 0}%` }} />
-                  </div>
-                  <p>{ecoProgress.entitled
-                    ? (ecoEquipped ? t.equipped : t.unlocked)
-                    : t.heroSkinLocked(ecoProgress.current, ecoProgress.target)}</p>
-                </section>
-              )}
-
-              {nextObjectives.length > 0 && (
-                <section className="apex-mastery-next" aria-label={t.currentObjective}>
-                  <p className="apex-mastery-section-kicker">{t.currentObjective}</p>
-                  <MedalCard
-                    achievement={nextObjectives[0].item}
-                    earnedAt={undefined}
-                    best={bestMap[nextObjectives[0].item.id]}
-                    recent={false}
-                    language={lang}
-                    t={t}
-                  />
-                  {nextObjectives.slice(1).map(({ item, progress }) => (
-                    <p key={item.id} className="apex-mastery-next-line">
-                      <b>{masteryAchievementName(item, lang)}</b>
-                      <span>{progressText(item, progress, t)}</span>
-                    </p>
-                  ))}
-                </section>
-              )}
-
-              <div className="apex-mastery-path">
-                {MASTERY_CATEGORIES.map((category, chapterIndex) => {
-                  const chapter = achievements.filter((item) => item.category === category);
-                  if (!chapter.length) return null;
-                  const chapterEarned = chapter.filter((item) => Object.prototype.hasOwnProperty.call(earnedMap, item.id)).length;
-                  const isOpen = openCategory === category;
-                  return (
-                    <section className={`apex-mastery-chapter${isOpen ? ' is-open' : ''}`} key={category}>
-                      <header>
-                        <button
-                          type="button"
-                          className="apex-mastery-chapter-toggle"
-                          aria-expanded={isOpen}
-                          onClick={() => setChapterChoice({
-                            heroId: selectedHero.resultId,
-                            category: isOpen ? null : category,
-                          })}
-                        >
-                          <span className="apex-mastery-chapter-num">{String(chapterIndex + 1).padStart(2, '0')}</span>
-                          <span className="apex-mastery-chapter-meta">
-                            <span className="apex-mastery-chapter-name">{CATEGORY_LABELS[category][lang]}</span>
-                            <span className="apex-progress-meter" aria-hidden="true">
-                              <span style={{ width: `${chapter.length ? (chapterEarned / chapter.length) * 100 : 0}%` }} />
-                            </span>
-                            <span className="apex-mastery-chapter-next">
-                              {chapterEarned < chapter.length
-                                ? `${t.chapterNext}: ${masteryAchievementName(chapter.find((item) => !Object.prototype.hasOwnProperty.call(earnedMap, item.id)), lang)}`
-                                : t.complete}
-                            </span>
-                          </span>
-                          <span className="apex-mastery-chapter-peek" aria-hidden="true">
-                            {chapter.slice(0, 6).map((item) => {
-                              const peek = item.rarityPresentation || {};
-                              const had = Object.prototype.hasOwnProperty.call(earnedMap, item.id);
-                              return (
-                                <i
-                                  key={item.id}
-                                  className={`apex-mastery-peek-disc rarity-${item.rarity} shape-${peek.shape || 'circle'}${had ? ' is-earned' : ''}`}
-                                  data-rarity-shape={peek.shape || 'circle'}
-                                />
-                              );
-                            })}
-                          </span>
-                          <small>{chapterEarned}/{chapter.length}</small>
-                          <span className="apex-mastery-chapter-chevron" aria-hidden="true">›</span>
-                        </button>
-                      </header>
-                      {isOpen && (
-                        <div className="apex-mastery-medals">
-                          {chapter.map((achievement) => (
-                            <MedalCard
-                              key={achievement.id}
-                              achievement={achievement}
-                              earnedAt={earnedMap[achievement.id]}
-                              best={bestMap[achievement.id]}
-                              recent={recentKeys.has(`${selectedHero.resultId}:${achievement.id}`)}
-                              language={lang}
-                              t={t}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </section>
-                  );
-                })}
-
-                <section className="apex-mastery-terminal">
-                  {selectedHero.resultId === 'NEWBOT' ? (
-                    <>
-                      <div className="apex-mastery-terminal-mark" aria-hidden="true">♻</div>
-                      <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
-                      <h3>{ecoLabel}</h3>
-                      <p>{t.heroSkinCondition}</p>
-                      <strong>{ecoProgress.current}/{ecoProgress.target}</strong>
-                      <div className="apex-progress-meter" aria-hidden="true">
-                        <span style={{ width: `${ecoProgress.target ? (ecoProgress.current / ecoProgress.target) * 100 : 0}%` }} />
-                      </div>
-                      {!ecoProgress.entitled && <p>{t.heroSkinLocked(ecoProgress.current, ecoProgress.target)}</p>}
-                      {ecoProgress.remainingIds?.length > 0 && (
-                        <details className="apex-mastery-remaining">
-                          <summary>{t.remaining(ecoProgress.remainingIds.length)}</summary>
-                          <ul>
-                            {ecoProgress.remainingIds.map((id) => <li key={id}>{MASTERY_BY_ID[id] ? masteryAchievementName(MASTERY_BY_ID[id], lang) : id}</li>)}
-                          </ul>
-                        </details>
-                      )}
-                      {renderSkinButton({
-                        kind: 'hero', baseId: 'ROBOT', skinId: 'ecobot', gateKey: ecoProgress.key,
-                        entitled: ecoProgress.entitled, equipped: ecoEquipped,
-                      })}
-                    </>
-                  ) : (
-                    <>
-                      <div className="apex-mastery-terminal-mark" aria-hidden="true">★</div>
-                      <p className="apex-mastery-section-kicker">{t.heroMastery}</p>
-                      <h3>{selectedHero.name}</h3>
-                      <p>{t.noHeroSkin}</p>
-                      <strong>{selectedProgress.earned}/{selectedProgress.total}</strong>
-                      <div className="apex-progress-meter" aria-hidden="true"><span style={{ width: `${selectedPercent}%` }} /></div>
-                      <p>{selectedProgress.complete ? t.complete : t.remaining(selectedProgress.missingIds.length)}</p>
-                    </>
-                  )}
-                </section>
-              </div>
-
-              <section className="apex-mastery-weapon">
-                <div className="apex-mastery-weapon-head">
-                  <div>
-                    <p className="apex-mastery-section-kicker">{t.weaponMastery}</p>
-                    <h3>{rocketSkin?.label || 'VUA HỀ — THE LAST LAUGH'}</h3>
-                    <p>{t.rpgCondition}</p>
-                  </div>
-                  {rocketSkin?.preview && <img src={rocketSkin.preview} alt="" />}
-                </div>
-                <div className="apex-mastery-rpg-track">
-                  <div className="apex-mastery-rpg-score">
-                    <span>{t.lifetimeRpg}</span>
-                    <strong>{t.rpgProgress(rpgProgress.current)}</strong>
-                  </div>
-                  <div className="apex-progress-meter" aria-hidden="true"><span style={{ width: `${rpgPercent}%` }} /></div>
-                  {renderSkinButton({
-                    kind: 'weapon', baseId: 'RPG_7', skinId: 'vua-he', gateKey: rpgProgress.key,
-                    entitled: rpgProgress.entitled, equipped: rocketEquipped,
-                  })}
-                </div>
-                <h4>{t.topWeapons}</h4>
-                {topWeapons.length ? (
-                  <div className="apex-mastery-weapon-records">
-                    {topWeapons.map(([weaponId, value]) => (
-                      <span key={weaponId}><b>{weaponLabel(weaponId)}</b><small>{formatMasteryValue(value)} DMG</small></span>
-                    ))}
-                  </div>
-                ) : <p>{t.noWeaponDamage}</p>}
-              </section>
-            </div>
-          )}
-
-          <p className="apex-progress-note">{t.note}</p>
+          <ScenePager
+            key={tab}
+            className={tab === 'mission' ? 'apex-progress-list' : 'apex-mastery-vault'}
+            items={tab === 'mission' ? missionItems : masteryItems}
+            labels={pagerLabels}
+          />
           <div className="apex-progress-feedback" role="status" aria-live="polite">{message}</div>
         </div>
       </section>
