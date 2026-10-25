@@ -15,6 +15,7 @@ import {
   primaryProgress,
 } from './masteryCatalog.js';
 import './progressionCenter.css';
+import { GoldWallet, GoldMeter, GoldCoin } from './GoldMissionAccountKit.jsx';
 
 // CP4: weapon labels come from the ONE arsenal display-name authority when
 // the classic config runtime is present; the ID spelling is only a boot-time
@@ -621,6 +622,8 @@ export default function ProgressionCenter() {
     goto: (n, total) => t.gotoPage(n, total),
   };
 
+  const readyContracts = catalog.filter(d=>!claimedIds.includes(d.id) && (Number(progress[d.stat])||0)>=d.target);
+  const readyCredits = readyContracts.reduce((sum,d)=>sum+d.ac,0);
   const missionItems = catalog.length === 0
     ? [<p key="loading" className="apex-progress-note">{t.loading}</p>]
     : catalog.map((d) => {
@@ -633,7 +636,7 @@ export default function ProgressionCenter() {
           <div className="apex-progress-row-info">
             <h3>{language === 'vie' ? d.vie : d.eng}</h3>
             <p>{count} / {d.target} · +{d.ac} AC{current ? ` · ${t.currentObjective}` : ''}</p>
-            <div className="apex-progress-meter"><span style={{ width: `${(count / d.target) * 100}%` }} /></div>
+            <GoldMeter value={count} max={d.target} label={d.eng} />
           </div>
           <button
             type="button"
@@ -646,7 +649,7 @@ export default function ProgressionCenter() {
         </article>
       );
     });
-  missionItems.push(<p key="note" className="apex-progress-note">{t.note}</p>);
+
 
   const masteryItems = [];
   masteryItems.push(
@@ -948,16 +951,16 @@ export default function ProgressionCenter() {
 
   return (
     <div
-      className="apex-progress-overlay"
+      className="apex-progress-overlay agm-overlay agm-missions"
       role="dialog"
       aria-modal="true"
       aria-label={tab === 'mission' ? t.contracts : t.mastery}
     >
-      <section className="apex-progress-panel" ref={panelRef} data-apex-no-localize="">
-        <header className="apex-progress-head">
+      <section className="apex-progress-panel agm-page" ref={panelRef} data-apex-no-localize="">
+        <header className="apex-progress-head agm-top">\n          <div className="agm-wordmark"><span>APEX</span><small>CHAOS</small></div>
           <div>
             <div className="apex-progress-kicker">{t.kicker}</div>
-            <h2 className="apex-progress-title">{tab === 'mission' ? t.contracts : t.mastery}</h2>
+            <h2 className="apex-progress-title" id="apex-progress-title">{tab === 'mission' ? t.contracts : t.mastery}</h2>
           </div>
           <button
             type="button"
@@ -969,12 +972,12 @@ export default function ProgressionCenter() {
             ✕
           </button>
         </header>
-        <div className="apex-progress-body">
+        <div className="apex-progress-body agm-main">
           <div className="apex-progress-balance">
             <span>{t.balance}</span>
             <strong>{state && Number.isFinite(state.credits) ? state.credits : 0} AC</strong>
           </div>
-          <div className="apex-progress-tabs" role="tablist">
+          <div className="apex-progress-tabs agm-tabs" role="tablist">
             <button
               type="button"
               role="tab"
