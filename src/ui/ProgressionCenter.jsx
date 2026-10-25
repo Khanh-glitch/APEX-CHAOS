@@ -633,6 +633,7 @@ export default function ProgressionCenter() {
       const current = d.id === currentContractId;
       return (
         <article className={`apex-progress-row${done ? ' is-claimed' : ''}${current ? ' is-current' : ''}`} key={d.id}>
+          <div className="agm-node-hex" aria-hidden="true"><span>{done ? '✓' : eligible ? '✦' : '◆'}</span></div>
           <div className="apex-progress-row-info">
             <h3>{language === 'vie' ? d.vie : d.eng}</h3>
             <p>{count} / {d.target} · +{d.ac} AC{current ? ` · ${t.currentObjective}` : ''}</p>
