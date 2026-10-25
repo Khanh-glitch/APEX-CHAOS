@@ -344,8 +344,9 @@ try {
   const p1Selected=await poll(`document.querySelector('.rosterCard[data-hero="newbot"]')?.classList.contains('p1-selected')||false`);
   const p1Lock=await physicalClick('#lockIn');
   const p2Turn=await poll(`document.getElementById('stage')?.classList.contains('fighter-active-p2')||false`);
-  const p2Pick=await physicalClick('.rosterCard[data-hero="newbot"]');
-  const p2Selected=await poll(`document.querySelector('.rosterCard[data-hero="newbot"]')?.classList.contains('p2-selected')||false`);
+  // Issue #105 P0-B: Local P1 and P2 may not lock the same fighter, so P2 picks HUNTER.
+  const p2Pick=await physicalClick('.rosterCard[data-hero="hunter"]');
+  const p2Selected=await poll(`document.querySelector('.rosterCard[data-hero="hunter"]')?.classList.contains('p2-selected')||false`);
   const lockClick=await physicalClick('#lockIn');
   const battle=await poll(`(() => ({
     open:document.body.classList.contains('battle-hud-open'),
