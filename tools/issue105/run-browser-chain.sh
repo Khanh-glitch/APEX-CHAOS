@@ -7,7 +7,7 @@
 set -u
 OUT_DIR="${ISSUE105_OUT:-/tmp/issue105-browser}/chain"
 mkdir -p "$OUT_DIR"
-GATES="first-play port-1p progress help-account pick-before-draw roster-pairs door lucky-pick battle-popup no-side-outline"
+GATES="first-play port-1p progress help-account pick-before-draw roster-pairs door lucky-pick battle-popup no-side-outline result-first-entry"
 for g in $GATES; do
   echo "::group::issue105 gate ${g}"
   log="$OUT_DIR/${g}.log"

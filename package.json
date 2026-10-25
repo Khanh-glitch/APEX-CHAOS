@@ -86,6 +86,7 @@
     "test:issue105:no-side-outline": "node tools/issue105/gate-no-side-outline.mjs",
     "test:issue105:archive-nested": "node tools/issue105/gate-archive-nested.mjs",
     "test:issue105:result-embed": "node tools/issue105/gate-result-gold-embed.mjs",
+    "test:issue105:result-first-entry": "node tools/issue105/gate-result-first-entry.mjs",
     "test:issue105:browser": "bash tools/issue105/run-browser-chain.sh"
   },
   "dependencies": {

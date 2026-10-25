@@ -102,7 +102,7 @@ export function WeaponSpotlightPanel({ spot, phase, force }: WeaponProps) {
       </div>
 
       <div className="weapon__info">
-        <h3 className="weapon__name">
+        <h3 className="weapon__name" title={weapon.name}>
           <span className="mask">
             <span>{weapon.name}</span>
           </span>

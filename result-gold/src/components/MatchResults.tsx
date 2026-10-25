@@ -100,7 +100,9 @@ export function MatchResults({ match, catalog, onContinue }: MatchResultsProps) 
         <IntroDoor meta={match.meta} />
 
         <div className="ac-shell">
-          <TopBar meta={match.meta} onReplay={ch.replay} />
+          <TopBar meta={match.meta} onReplay={ch.replay}>
+            <SkipPill visible={!ch.done} onSkip={ch.skip} />
+          </TopBar>
 
           <main className="ac-stage" aria-label="Kết quả trận đấu">
             <HeroPanel player={p1} phase={ch.phase} force={ch.skipped} />
@@ -156,7 +158,6 @@ export function MatchResults({ match, catalog, onContinue }: MatchResultsProps) 
       </div>
 
       <p className="ac-scroll-hint" role="note">SCROLL DOWN FOR CONTINUE</p>
-      <SkipPill visible={!ch.done} onSkip={ch.skip} />
 
       {selected && (
         <AwardDetails
