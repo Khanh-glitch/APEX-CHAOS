@@ -75,15 +75,15 @@ export function GoldShell({ type, title, subtitle, onClose, closeRef, children, 
     <div className={`agm-overlay agm-${type} ${legacyClass}`} role="dialog" aria-modal="true"
       aria-labelledby={roleTitleId} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="agm-stage" aria-hidden="true"/>
-      <section className="agm-page">
-        <header className="agm-top">
+      <section className={type === "account" ? "agm-page apex-account-panel" : "agm-page"}>
+        <header className={type === "account" ? "agm-top apex-account-head" : "agm-top"}>
           <div className="agm-wordmark"><span>APEX</span><small>CHAOS</small></div>
           <div className="agm-top-center">APEX CHAOS <b>◈</b> PILOT SYSTEM</div>
-          <button className="agm-exit" type="button" onClick={onClose} ref={closeRef} aria-label="Close panel">
+          <button className={type === "account" ? "agm-exit apex-account-close" : "agm-exit"} type="button" onClick={onClose} ref={closeRef} aria-label="Close panel">
             <span>✕</span><small>BACK TO GAME</small>
           </button>
         </header>
-        <div className="agm-main">
+        <div className={type === "account" ? "agm-main apex-account-body" : "agm-main"}>
           <div className="agm-heading">
             <div><p>APEX CHAOS // {subtitle}</p><h2 id={roleTitleId}>{title}</h2></div>
             <span className="agm-heading-rule" aria-hidden="true">◆ ◆ ◆</span>
