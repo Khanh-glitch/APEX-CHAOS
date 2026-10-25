@@ -1,0 +1,7 @@
+/* Integration-only mobile viewport safety. The Gold UI and owner CSS remain
+ * byte-identical. The prototype has intentionally off-canvas decorative embers
+ * and an overshooting background watermark; they must not cause horizontal
+ * page panning within the game's itch.io iframe. */
+@media (max-width: 600px) {
+  html, body, #root { max-width: 100%; overflow-x: clip; }
+}
