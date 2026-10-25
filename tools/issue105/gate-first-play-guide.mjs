@@ -176,11 +176,17 @@ try {
 
   // G. Battle chip (tutorial ON, lesson step 3), Issue #105 chip diagnosis.
   // The chip is shown only while a skill is castable (chosenSlot in FirstPlayGuide.jsx), so it is correctly
-  // absent during the opening cooldowns. The gate therefore starts sampling at the SEMANTIC battle-ready point
-  // (HUD open and P1 has a castable skill by the engine's own verdict), not after a fixed delay, and asserts:
+  // absent during opening cooldowns and during tpState 'standby'. The gate samples at the SEMANTIC readiness
+  // point: a slot is READY when the engine verdict (observeAbilityCastability) AND the DOM agree (state 'ready',
+  // tpState not 'standby'), the same two signals the chip requires.
+  // Diagnosis (#105 chip, CI 40200236130): the chip refreshes on a 100 ms coach sync interval
+  // (FirstPlayGuide.jsx). A READY skill is therefore chipped about one sync tick later by design. The blocked
+  // stretch is measured in MILLISECONDS, not rAF frames, whose rate varies per runner. The gate asserts:
   //   (a) while the chip is shown it is stable (x range <= 2px, no jump > 3px, no candidate switch);
-  //   (b) no invisible step: a castable skill never goes without the chip for more than 6 consecutive frames;
-  //   (c) portrait stays clean (owner option B).
+  //   (b) no invisible step: a READY skill never goes without the chip for longer than CHIP_LAG_BOUND_MS
+  //       (2.5x the 100 ms sync). A persistent block lasts seconds and fails this bound;
+  //   (c) portrait stays clean (owner option B), and an invisible step that blocks progression fails.
+  const CHIP_LAG_BOUND_MS = 250;
   const frameReceipts = [];
   for (const [w, h] of [[320, 568], [390, 844], [844, 390], [900, 900], [1440, 900]]) {
     // Tutorial ON with a live lesson record (step 0, not done): the same state the
@@ -193,22 +199,35 @@ try {
       },
     });
     await startBotBattle(page);
-    await page.waitForFunction(() => {
-      if (!document.querySelector('#battleHudHost.is-open')) return false;
+    // Semantic battle-ready: a slot is READY when the engine verdict AND the DOM agree.
+    const readySlotExpr = `(() => {
       const f = (window.fighters || []).find((x) => x && x.id === 1);
       const castable = window.APEX_HERO_REWORK?.observeAbilityCastability;
       if (!f || typeof castable !== 'function') return false;
-      return ['A1', 'A2'].some((slot) => { const v = castable(f, slot); return !!v && v.known === true && v.castable === true; });
-    }, { timeout: 90000, polling: 'raf' });
+      return [0, 1].some((k) => {
+        const v = castable(f, k === 0 ? 'A1' : 'A2');
+        const el = document.querySelector('#p1Side .skill[data-i="' + k + '"]');
+        return !!v && v.known === true && v.castable === true && !!el && el.dataset.state === 'ready' && el.dataset.tpState !== 'standby';
+      });
+    })()`;
+    await page.waitForFunction(`!!document.querySelector('#battleHudHost.is-open') && ${readySlotExpr}`, { timeout: 90000, polling: 'raf' });
     const rows = await page.evaluate(async () => {
       const out = [];
-      const f1 = () => (window.fighters || []).find((x) => x && x.id === 1);
-      const anyCastable = () => { const f = f1(); const c = window.APEX_HERO_REWORK?.observeAbilityCastability; if (!f || typeof c !== 'function') return false; return ['A1', 'A2'].some((slot) => { const v = c(f, slot); return !!v && v.known === true && v.castable === true; }); };
-      const domReady = () => [0, 1].some((k) => { const el = document.querySelector(`#p1Side .skill[data-i="${k}"]`); return !!el && el.dataset.state === 'ready' && el.dataset.tpState !== 'standby'; });
+      const readyNow = () => {
+        const f = (window.fighters || []).find((x) => x && x.id === 1);
+        const c = window.APEX_HERO_REWORK?.observeAbilityCastability;
+        if (!f || typeof c !== 'function') return false;
+        return [0, 1].some((k) => {
+          const v = c(f, k === 0 ? 'A1' : 'A2');
+          const el = document.querySelector('#p1Side .skill[data-i="' + k + '"]');
+          return !!v && v.known === true && v.castable === true && !!el && el.dataset.state === 'ready' && el.dataset.tpState !== 'standby';
+        });
+      };
+      const t0 = performance.now();
       for (let i = 0; i < 120; i++) {
         const chip = document.querySelector('.apex-coach-chip');
         const rect = chip ? chip.getBoundingClientRect() : null;
-        out.push({ x: rect ? rect.left : null, c: chip ? (chip.dataset.candidate || '') : null, castable: anyCastable() && domReady() });
+        out.push({ t: performance.now() - t0, x: rect ? rect.left : null, c: chip ? (chip.dataset.candidate || '') : null, castable: readyNow() });
         await new Promise((res) => requestAnimationFrame(() => res()));
       }
       return out;
@@ -218,9 +237,17 @@ try {
     const xRange = xs.length ? Math.max(...xs) - Math.min(...xs) : -1;
     const switches = shown.reduce((n, r, i) => (i && r.c !== shown[i - 1].c ? n + 1 : n), 0);
     const jumps = shown.reduce((n, r, i) => (i && Math.abs(r.x - shown[i - 1].x) > 3 ? n + 1 : n), 0);
-    let run = 0, blockedRun = 0;
-    for (const r of rows) { run = r.castable && r.x === null ? run + 1 : 0; blockedRun = Math.max(blockedRun, run); }
-    const receipt = { viewport: `${w}x${h}`, frames: rows.length, shownFrames: shown.length, xRangePx: Math.round(xRange * 10) / 10, candidateSwitches: switches, jumpsOver3px: jumps, longestCastableWithoutChip: blockedRun };
+    // Longest contiguous stretch (ms) in which a READY skill has no chip.
+    let runStart = null, blockedMs = 0, blockedFrames = 0, runFrames = 0;
+    for (const r of rows) {
+      if (r.castable && r.x === null) {
+        if (runStart === null) { runStart = r.t; runFrames = 0; }
+        runFrames += 1;
+        blockedMs = Math.max(blockedMs, r.t - runStart);
+        blockedFrames = Math.max(blockedFrames, runFrames);
+      } else { runStart = null; }
+    }
+    const receipt = { viewport: `${w}x${h}`, frames: rows.length, shownFrames: shown.length, xRangePx: Math.round(xRange * 10) / 10, candidateSwitches: switches, jumpsOver3px: jumps, longestReadyWithoutChipMs: Math.round(blockedMs), longestReadyWithoutChipFrames: blockedFrames, lagBoundMs: CHIP_LAG_BOUND_MS };
     frameReceipts.push(receipt);
     // Coach nodes are checked on the same page, so the portrait clean-state assertion is not a separate sample.
     const coachNodes = await page.evaluate(() => document.querySelectorAll('[class*="apex-coach"]').length);
@@ -230,13 +257,15 @@ try {
       // Owner rule: an absent chip is PASS on cramped portrait, but an invisible step that blocks progression is FAIL.
       // Real input: press a castable P1 skill while the chip is absent; the lesson must advance on its own.
       // Real mouse press at the skill centre (a synthetic el.click() does not reach the skill's pointer handler).
-      const target = await page.evaluate(() => {
+      // Wait for the semantic READY point (engine + DOM), not one instant that can land in a standby window.
+      const readyOk = await page.waitForFunction(readySlotExpr, { timeout: 15000, polling: 'raf' }).then(() => true, () => false);
+      const target = readyOk ? await page.evaluate(() => {
         const el = Array.from(document.querySelectorAll('#battleHudHost.is-open #p1Side .skill[data-i]')).find((x) => x.dataset.state === 'ready' && x.dataset.tpState !== 'standby' && !x.disabled);
         if (!el) return null;
         el.scrollIntoView({ block: 'center' });
         const b = el.getBoundingClientRect();
         return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
-      });
+      }) : null;
       const pressed = !!target;
       if (target) await page.mouse.click(target.x, target.y);
       const advanced = pressed && await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('apex.alpha.coach.v2') || 'null')?.step >= 4; } catch { return false; } }, { timeout: 15000, polling: 'raf' }).then(() => true, () => false);
@@ -244,7 +273,7 @@ try {
       receipt.lessonAdvancedWithoutChip = !!advanced;
       check(results, !!pressed && !!advanced, `G ${w}x${h} portrait: pressing a castable skill advances the lesson without the chip (no invisible blocking step)`, receipt);
     } else {
-      check(results, shown.length > 0 && xRange <= 2 && switches === 0 && jumps === 0 && blockedRun <= 6, `G ${w}x${h} chip is stable while shown and never missing while a skill is castable (from battle-ready)`, receipt);
+      check(results, shown.length > 0 && xRange <= 2 && switches === 0 && jumps === 0 && blockedMs <= CHIP_LAG_BOUND_MS, `G ${w}x${h} chip is stable while shown and never missing longer than ${CHIP_LAG_BOUND_MS}ms while a skill is ready (from battle-ready)`, receipt);
     }
     await context.close();
   }
