@@ -55,7 +55,7 @@ export function GoldWallet({ amount, caption = 'APEX CREDITS', large = false }) 
   return (
     <div className={large ? 'agm-wallet is-large' : 'agm-wallet'} data-gold-ac-wallet="">
       <GoldCoin size={large ? 76 : 38} motion={large}/>
-      <div><small>{caption}</small><strong>{acText(amount)} <em>AC</em></strong></div>
+      <div><small>{caption}</small><strong data-account-credits={large ? "" : undefined}>{acText(amount)} <em>AC</em></strong></div>
     </div>
   );
 }
