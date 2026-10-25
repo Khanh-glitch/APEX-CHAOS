@@ -38,10 +38,16 @@ function safeSnapshot(displayHero) {
     const count=applicable.filter(a=>Object.hasOwn(earned,a.id)).length;
     const skins=[];
     if(id==='ROBOT' && meta?.skinProgress?.('hero','ROBOT','ecobot')?.entitled)skins.push('ECOBOT — RECYCLE CORE V17');
+    // The live Gold Fighter Pick roster owns the hero's approved portraits.
+    // Do not use prototype fighters or a made-up SHURI placeholder.
+    const ownerArt=window.APEX_GOLD_ROSTER?.[String(id).toLowerCase()] || null;
+    const src=ownerArt?.art || ownerArt?.portrait || (
+      id==='BOXE'?'/assets/boxe-gold/bot.png':
+      `/gold/assets/placeholders/pick/cover/${art}.svg`);
+    const img=/^(https?:|data:|blob:)/i.test(String(src))?String(src):apexAppUrl(src);
     return {id,name:meta?.displayNameFor?.(id)||defaultName,element,
       epithet: owned.has(id)?'ĐÃ SỞ HỮU':'CHƯA SỞ HỮU',color,
-      img: id==='BOXE'?apexAppUrl('/assets/boxe-gold/bot.png') : id==='SHURI'?apexAppUrl('/gold/assets/gold/favicon-apex-chaos.png'):
-        apexAppUrl(`/gold/assets/placeholders/pick/cover/${art}.svg`),
+      img,
       pos:'50% 50%',owned:owned.has(id),resultId,
       rank:count,xp:count,xpNext:applicable.length,matches:0,wins:0,skins};
   });
