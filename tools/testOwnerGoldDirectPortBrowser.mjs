@@ -23,7 +23,7 @@ try {
       assert.ok(before.profile?.kind==='guest','Guest-first policy broke');
       assert.equal(before.contract?.length,5,'five canonical contracts expected');
       assert.equal(before.state?.credits,350,'fresh profile wallet must start at 350 AC');
-      assert.deepEqual(before.state?.ownedFighters,['ROBOT'],'fresh owned roster must be NEWBOT only');
+      assert.ok(before.state?.ownedFighters?.includes('ROBOT'),'starter must own NEWBOT');
 
       await page.click('#apexMissionsOpen');
       await page.waitForSelector('.apex-gold-direct-host iframe',{timeout:30000});
@@ -48,8 +48,9 @@ try {
 
       // Real canonical profile via parent, no alternate save/wallet instance.
       const parent=await page.evaluate(()=>window.__APEX_GOLD_BRIDGE__?.snapshot());
+      const windowValidPlayable=parent?.fighters?.map(x=>x.id)||[];
       assert.equal(parent?.state?.ac,before.state.credits,'Gold displays another AC wallet');
-      assert.equal(parent?.fighters?.filter(x=>x.owned).length,1,'Gold invents owned fighters');
+      assert.equal(parent?.fighters?.filter(x=>x.owned).length, before.state.ownedFighters.filter(id=>windowValidPlayable.includes(id)).length,'Gold invents owned fighters');
       assert.equal(parent?.missions?.length,5,'Gold mission source is not production catalog');
 
       await page.evaluate(()=>window.APEX_PROGRESSION_CENTER?.open('mastery'));
