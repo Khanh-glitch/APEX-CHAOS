@@ -18,6 +18,18 @@ const HERO_META = Object.freeze({
 });
 const RESULT_IDS = Object.freeze({ ROBOT:'NEWBOT', CRYSTAL:'CRYSTALA', ICE:'FROST' });
 const ICONS = Object.freeze({ offense:'blade', precision:'target', weapon:'blade',survival:'shield',tactics:'target',chaos:'flame',signature:'star' });
+// Verified against the production Gold Product Bridge's HERO_UI_ART manifest.
+// These are ORIGINAL approved fighter visuals, never /gold/assets/placeholders.
+const APPROVED_PORTRAITS = Object.freeze({
+  ROBOT:'/assets/gold-ui/heroes/newbot/pick_selected_large.webp',
+  HUNTER:'/assets/gold-ui/heroes/hunter/pick_selected_large.webp',
+  CRYSTAL:'/assets/gold-ui/heroes/crystala/pick_selected_large.webp',
+  MAGNET:'/assets/gold-ui/heroes/magnet/pick_selected_large.webp',
+  ICE:'/assets/gold-ui/heroes/frost/pick_selected_large.webp',
+  MIRROR:'/assets/gold-ui/heroes/mirror/pick_roster_cover.webp',
+  BOXE:'/assets/dictionary/heroes/boxe/standing.png',
+  SHURI:'/assets/dictionary/heroes/shuri/standing.webp',
+});
 function safeSnapshot(displayHero) {
   const meta=window.APEX_ARSENAL_META;
   const player=window.APEX_PLAYER_ACCOUNT;
@@ -41,9 +53,8 @@ function safeSnapshot(displayHero) {
     // The live Gold Fighter Pick roster owns the hero's approved portraits.
     // Do not use prototype fighters or a made-up SHURI placeholder.
     const ownerArt=window.APEX_GOLD_ROSTER?.[String(id).toLowerCase()] || null;
-    const src=ownerArt?.art || ownerArt?.portrait || (
-      id==='BOXE'?'/assets/boxe-gold/bot.png':
-      `/gold/assets/placeholders/pick/cover/${art}.svg`);
+    const src=ownerArt?.art || ownerArt?.portrait || APPROVED_PORTRAITS[id] ||
+      '/gold/assets/gold/favicon-apex-chaos.png';
     const img=/^(https?:|data:|blob:)/i.test(String(src))?String(src):apexAppUrl(src);
     return {id,name:meta?.displayNameFor?.(id)||defaultName,element,
       epithet: owned.has(id)?'ĐÃ SỞ HỮU':'CHƯA SỞ HỮU',color,
