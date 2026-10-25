@@ -146,3 +146,50 @@
  .agm-stat-grid{gap:8px}
 }
 @media(prefers-reduced-motion:reduce){.agm-coin-live{animation:none}.agm-overlay *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Replaces the retired Progression Center chrome without touching authority. */
+.agm-missions .apex-progress-panel{position:relative;inset:auto;height:100dvh;width:100%;max-height:none;display:flex;flex-direction:column;overflow:hidden;padding:0;background:transparent;border:0}
+.agm-missions .apex-progress-head{flex:0 0 auto;min-height:76px;display:flex;align-items:center;gap:20px;padding:max(9px,env(safe-area-inset-top)) 24px 9px;border:0;border-bottom:1px solid rgba(255,144,31,.37);background:rgba(10,5,6,.8)}
+.agm-missions .apex-progress-head::before{display:none}
+.agm-missions .apex-progress-kicker{font-size:10px;color:#f9bf75;letter-spacing:.24em}
+.agm-missions .apex-progress-title{font:italic 1000 clamp(35px,5.7vw,76px)/1 'Montserrat',sans-serif;letter-spacing:-.055em;color:#ffb32c;text-shadow:0 3px #933009,0 10px 30px rgba(255,99,8,.48);margin:3px 0 0}
+.agm-missions .apex-progress-close{margin-left:auto;min-width:48px;min-height:48px;background:#33130d;border:1px solid #b46227;color:#ffd895;font-size:22px}
+.agm-missions .apex-progress-body{display:flex;flex-direction:column;min-height:0;width:min(1250px,100%);max-width:none;margin:0 auto;gap:13px;padding:15px 22px max(16px,env(safe-area-inset-bottom));flex:1}
+.agm-missions .apex-progress-balance{display:flex;justify-content:space-between;align-items:center;min-height:70px;padding:10px 22px;background:linear-gradient(95deg,#301309dd,#100709f2);border:1px solid #b86024;clip-path:polygon(11px 0,100% 0,100% calc(100% - 11px),calc(100% - 11px) 100%,0 100%,0 11px)}
+.agm-missions .apex-progress-tabs{display:flex;gap:10px}
+.agm-missions .apex-progress-tabs button{flex:1;min-height:52px;background:rgba(18,8,8,.92);border:1px solid #864216;color:#ffbd73;font:italic 1000 14px 'Montserrat',sans-serif;letter-spacing:.08em}
+.agm-missions .apex-progress-tabs button.is-active{background:linear-gradient(#ffe18d,#fda31e 55%,#f36c13);color:#250c00;border-color:#ffebbd;box-shadow:0 0 22px #e3670b66}
+.agm-missions .agm-claim-overview{display:flex;justify-content:space-between;align-items:center;gap:15px;flex:0 0 auto;padding:12px 18px;background:rgba(16,7,7,.9);border-left:4px solid #ffae2c}
+.agm-missions .agm-claim-overview strong{display:flex;gap:9px;align-items:center;font-size:26px;color:#ffb52c;font-style:italic}
+.agm-missions .apex-pager{display:flex;flex:1;flex-direction:column;min-height:0}
+.agm-missions .apex-pager-stage{flex:1;min-height:0}
+.agm-missions .apex-progress-row{display:flex;gap:12px;align-items:center;padding:13px 18px;min-height:92px;background:linear-gradient(100deg,#1b0b09ed,#090509f7);border:1px solid #8d491d;clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)}
+.agm-missions .apex-progress-row.is-current{border-color:#ffd270;box-shadow:inset 4px 0 #ffb529,0 0 18px rgba(245,123,21,.16)}
+.agm-missions .apex-progress-row.is-claimed{opacity:.63}
+.agm-missions .apex-progress-row h3{font:italic 1000 clamp(13px,1.8vw,19px)/1.15 'Montserrat',sans-serif;letter-spacing:.01em;color:#fff4e0;margin:0 0 6px}
+.agm-missions .apex-progress-row p{font-size:10px;color:#ebac78;line-height:1.4}
+.agm-missions .apex-progress-claim{background:linear-gradient(#ffdf87,#ffa61b,#e5690e);border:1px solid #e49b38;color:#260e02;font:italic 1000 11px 'Montserrat',sans-serif;min-height:45px;padding:8px 16px}
+.agm-missions .apex-progress-claim:disabled{background:#21120d;color:#9d7460;border-color:#593a25}
+.agm-missions .apex-mastery-vault .apex-progress-meter>span,.agm-missions .apex-progress-meter>span{background:linear-gradient(90deg,#f76b13,#ffbc3e)}
+.agm-missions .apex-mastery-total,.agm-missions .apex-mastery-summary,.agm-missions .apex-mastery-recent,.agm-missions .apex-mastery-chapter,.agm-missions .apex-mastery-weapon,.agm-missions .apex-mastery-terminal{background:linear-gradient(120deg,#26110ced,#0e0709);border-color:#975020;color:#fff2dc}
+.agm-missions .apex-progress-feedback{color:#ffd18b}
+.agm-missions .apex-progress-close:focus-visible{outline:3px solid #ffe6a0;outline-offset:2px}
+@media(max-width:560px){
+ .agm-missions .apex-progress-head{gap:10px;padding:8px 13px;min-height:72px}
+ .agm-missions .apex-progress-title{font-size:33px}
+ .agm-missions .agm-wordmark{display:none}
+ .agm-missions .apex-progress-body{padding:9px 10px 12px;gap:8px}
+ .agm-missions .apex-progress-balance{min-height:65px;padding:8px 12px}
+ .agm-missions .apex-progress-balance .agm-mini{display:none}
+ .agm-missions .apex-progress-tabs button{min-height:46px}
+ .agm-missions .agm-claim-overview{padding:7px 10px}
+ .agm-missions .agm-claim-overview strong{font-size:17px}
+ .agm-missions .agm-claim-overview .agm-button{min-height:44px;padding:8px 12px;font-size:11px!important}
+ .agm-missions .apex-progress-row{padding:9px 10px;flex-direction:row;min-height:90px;gap:8px}
+ .agm-missions .agm-node-hex{width:39px;height:45px;font-size:19px}
+ .agm-missions .apex-progress-claim{width:auto;min-width:90px;font-size:9px;min-height:44px;padding:7px 9px}
+ .agm-missions .apex-progress-row-info{min-width:0}
+ .agm-missions .apex-progress-row h3{font-size:12px}
+ .agm-missions .apex-progress-row p{font-size:9px}
+}
+.agm-missions .apex-progress-panel button:focus-visible{outline:3px solid #ffe4a1;outline-offset:2px}
