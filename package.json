@@ -81,6 +81,7 @@
     "test:issue105:pick-before-draw": "node tools/issue105/gate-pick-before-draw.mjs",
     "test:issue105:door": "node tools/issue105/gate-door-progress.mjs",
     "test:issue105:lucky-pick": "node tools/issue105/gate-lucky-pick.mjs",
+    "test:issue105:battle-popup": "node tools/issue105/gate-battle-no-popup.mjs",
     "test:issue105:compositor": "node tools/issue105/compositor-ab.mjs",
     "test:issue105:archive-nested": "node tools/issue105/gate-archive-nested.mjs",
     "test:issue105:result-embed": "node tools/issue105/gate-result-gold-embed.mjs",
