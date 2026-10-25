@@ -566,10 +566,11 @@ export async function runArsenalProductBrowserAcceptance({
 
   // Exact clean-state Lucky Draw law: the production-authorized clean credit
   // amount buys one draw from unowned playable fighters only.
+  // Issue #105 P0-B: a fresh Guest owns ROBOT and HUNTER (test seed of the fresh-Guest state).
   const cleanDrawSeed = {
-    version: 1, credits: economy.cleanStateCredits, ownedFighters: ['ROBOT'],
+    version: 1, credits: economy.cleanStateCredits, ownedFighters: ['ROBOT', 'HUNTER'],
     lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 0,
-    unlockedAt: { ROBOT: 0 },
+    unlockedAt: { ROBOT: 0, HUNTER: 0 },
   };
   result.drawSeed = await evaluate(`(() => {
     const M = window.APEX_ARSENAL_META;

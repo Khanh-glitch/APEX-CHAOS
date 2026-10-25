@@ -4,10 +4,11 @@
 // (annulus 1.0r..1.9r, outside the body alpha of that fighter drawn alone) that carry
 // the Gold side colours P1 #FF941F or P2 #3AA7FF AND touch the body within 3 px. The old
 // compositor painted exactly that keyline. Baseline (7ef2dc0) fails; HEAD must pass.
-// Rule (measured, not guessed): the old edge is intermittent (it appears while fighters overlap), so a sample
-// that catches it shows a burst of side-coloured pixels touching the body. Baseline 7ef2dc0 peaks at 26-85 px in a
-// sample; HEAD measured 0 in every sample across 10+ runs (newbot, hunter, magnet, shuri; DPR1 and DPR2).
-// Pass iff the peak per sample is <= 8 px.
+// Rule (measured, not guessed): the keyline is a continuous ring in the exact Gold side colours hugging the
+// body. Metric = edge coverage: the fraction of body-boundary pixels with an exact P1 (#FF941F) or P2 (#3AA7FF)
+// pixel outside them within 2 px (colour tolerance 6). Peak per sample must be <= 0.002.
+// Measured: HEAD 0 in every sample for all 8 heroes at DPR1 and DPR2 (16 runs). Baseline 7ef2dc0 shows
+// 0.007-0.059 in samples, and FAILS on several hero-runs. The edge is intermittent (while fighters overlap).
 // Also writes crops (2x, nearest) of each fighter from the live canvas for DPR receipts.
 // Usage: APEX_APP_URL=... [ISSUE105_OUT=dir] node tools/issue105/gate-no-side-outline.mjs
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -33,6 +34,7 @@ const SAMPLE_JS = `(() => {
   const main2 = ctx.getImageData(0, 0, W, H).data;
   const P1 = [255, 148, 31], P2 = [58, 167, 255];
   const near = (p, c) => Math.abs(p[0] - c[0]) <= 20 && Math.abs(p[1] - c[1]) <= 20 && Math.abs(p[2] - c[2]) <= 20;
+  const exact = (p, c) => Math.abs(p[0] - c[0]) <= 6 && Math.abs(p[1] - c[1]) <= 6 && Math.abs(p[2] - c[2]) <= 6;
   const out = [];
   for (const { f, i } of live) {
     const scale = Math.hypot(m.a, m.b) || 1;
@@ -41,7 +43,7 @@ const SAMPLE_JS = `(() => {
     oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, W, H);
     oc.setTransform(m.a, m.b, m.c, m.d, m.e, m.f); f.draw(oc); oc.setTransform(1, 0, 0, 1, 0, 0);
     const body = oc.getImageData(0, 0, W, H).data;
-    const band = { ring: 0, p1: 0, p2: 0, sideLike: 0 };
+    const band = { ring: 0, p1: 0, p2: 0, sideLike: 0, perim: 0, cov: 0 };
     const x0 = Math.max(0, Math.floor(cx - 1.9 * r)), x1 = Math.min(W, Math.ceil(cx + 1.9 * r));
     const y0 = Math.max(0, Math.floor(cy - 1.9 * r)), y1 = Math.min(H, Math.ceil(cy + 1.9 * r));
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
@@ -67,12 +69,31 @@ const SAMPLE_JS = `(() => {
       if (isP2) band.p2++;
     }
     band.sideLike = band.p1 + band.p2;
+    // Edge coverage: the keyline is a continuous ring hugging the silhouette. Count body-boundary pixels that have
+    // a side-coloured pixel outside them within 2 px. Blobs of VFX (ice, gloves) touch only a small part of the boundary.
+    for (let y = y0 + 1; y < y1 - 1; y++) for (let x = x0 + 1; x < x1 - 1; x++) {
+      const p = (y * W + x) * 4;
+      if (body[p + 3] === 0) continue;
+      const boundary = body[p - 4 + 3] === 0 || body[p + 4 + 3] === 0 || body[p - W * 4 + 3] === 0 || body[p + W * 4 + 3] === 0;
+      if (!boundary) continue;
+      band.perim++;
+      let hit = false;
+      for (let dy = -2; dy <= 2 && !hit; dy++) for (let dx = -2; dx <= 2 && !hit; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        const q = (yy * W + xx) * 4;
+        if (body[q + 3] !== 0) continue;
+        const px = [main2[q], main2[q + 1], main2[q + 2]];
+        if (exact(px, P1) || exact(px, P2)) hit = true;
+      }
+      if (hit) band.cov++;
+    }
     const half = Math.round(2.4 * r);
     const sx = Math.max(0, Math.round(cx - half)), sy = Math.max(0, Math.round(cy - half));
     const cw = Math.max(8, Math.min(W - sx, half * 2)), ch = Math.max(8, Math.min(H - sy, half * 2));
     const crop = document.createElement('canvas'); crop.width = cw * 2; crop.height = ch * 2;
     const k = crop.getContext('2d'); k.imageSmoothingEnabled = false; k.drawImage(main, sx, sy, cw, ch, 0, 0, cw * 2, ch * 2);
-    out.push({ idx: i, id: f.id || f.name || null, rPx: Math.round(r), dpr: window.devicePixelRatio, ring: band.ring, sideLike: band.sideLike, p1: band.p1, p2: band.p2, crop: crop.toDataURL('image/png') });
+    out.push({ idx: i, id: f.id || f.name || null, rPx: Math.round(r), dpr: window.devicePixelRatio, ring: band.ring, sideLike: band.sideLike, p1: band.p1, p2: band.p2, perim: band.perim, cov: band.cov, crop: crop.toDataURL('image/png') });
   }
   return out;
 })()`;
@@ -104,14 +125,16 @@ try {
       // in one sample is not an outline (it is art/effect colour). Count samples over threshold, per sample.
       const perSample = Array.from({ length: 14 }, (_, t) => rows.filter((r) => r.t === t).reduce((a, r) => a + r.sideLike, 0));
       const peakSample = Math.max(...perSample);
+      const perSampleCoverage = Array.from({ length: 14 }, (_, t) => { const rs = rows.filter((r) => r.t === t); return rs.length ? Math.max(...rs.map((r) => (r.perim ? r.cov / r.perim : 0))) : 0; });
+      const peakCoverage = Math.max(...perSampleCoverage);
       const dir = path.join(OUT, `dpr${dpr}`, hero);
       await mkdir(dir, { recursive: true });
       const withCrop = rows.filter((r) => r.crop);
       const pick = withCrop.sort((a, b) => b.ring - a.ring)[0];
       if (pick) await writeFile(path.join(dir, 'crop-live-2x.png'), Buffer.from(pick.crop.split(',')[1], 'base64'));
-      const receipt = { hero, dpr, samples: rows.length, ringPx: ring, sideColourPx: sideLike, peakSampleSideColourPx: peakSample, perSampleSideColourPx: perSample, pctOfRing: ring ? Math.round((sideLike / ring) * 10000) / 100 : 0, errors: errors.slice(0, 3) };
+      const receipt = { hero, dpr, samples: rows.length, ringPx: ring, sideColourPx: sideLike, peakSampleSideColourPx: peakSample, perSampleSideColourPx: perSample, peakCoverage: Math.round(peakCoverage * 1000) / 1000, perSampleCoverage: perSampleCoverage.map((v) => Math.round(v * 1000) / 1000), pctOfRing: ring ? Math.round((sideLike / ring) * 10000) / 100 : 0, errors: errors.slice(0, 3) };
       receipts.push(receipt);
-      check(results, peakSample <= 8, `${hero} dpr${dpr}: no P1/P2 side outline touching the actor`, { peakSampleSideColourPx: peakSample, adjacentSideColourPx: sideLike });
+      check(results, peakCoverage <= 0.002, `${hero} dpr${dpr}: no P1/P2 side outline touching the actor`, { peakEdgeCoverage: Math.round(peakCoverage * 1000) / 1000, limit: 0.002, adjacentSideColourPx: sideLike });
       console.log('RECEIPT', JSON.stringify(receipt));
     }
   }
