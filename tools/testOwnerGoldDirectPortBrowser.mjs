@@ -43,8 +43,19 @@ try {
       assert.equal(content.pathNodes,5,'Gold original hex mission path lost a node');
       assert.ok(content.coinHex,'original Gold AC hexagon missing');
       assert.ok(!content.missionText.includes('Guest_Raven')&&!content.missionText.includes('1,850'),'demo profile leaked');
-      assert.ok(!content.overflow,'Gold Mission horizontal clipping at '+width+'x'+height);
       await page.screenshot({path:`${destination}/${width}x${height}-missions.png`});
+      if(content.overflow) {
+        const offenders=await frame.evaluate(()=>({
+          innerWidth,scrollWidth:document.documentElement.scrollWidth,
+          bodyWidth:document.body.scrollWidth,
+          offenders:[...document.querySelectorAll('body *')].map(el=>{
+            const r=el.getBoundingClientRect();
+            return {tag:el.tagName,className:typeof el.className==='string'?el.className.slice(0,120):'',text:el.innerText?.slice(0,38),left:Math.round(r.left),right:Math.round(r.right),width:Math.round(r.width)};
+          }).filter(r=>r.right>innerWidth+3 || r.left < -3).slice(0,35)
+        }));
+        console.error('GOLD MISSION OVERFLOW',JSON.stringify(offenders));
+      }
+      assert.ok(!content.overflow,'Gold Mission horizontal clipping at '+width+'x'+height);
 
       // Real canonical profile via parent, no alternate save/wallet instance.
       const parent=await page.evaluate(()=>window.__APEX_GOLD_BRIDGE__?.snapshot());
