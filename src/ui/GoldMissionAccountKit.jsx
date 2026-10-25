@@ -70,9 +70,9 @@ export function GoldHeroArt({ id, name, large = false }) {
     </div>
   );
 }
-export function GoldShell({ type, title, subtitle, onClose, closeRef, children, roleTitleId }) {
+export function GoldShell({ type, title, subtitle, onClose, closeRef, children, roleTitleId, legacyClass = '' }) {
   return (
-    <div className={`agm-overlay agm-${type}`} role="dialog" aria-modal="true"
+    <div className={`agm-overlay agm-${type} ${legacyClass}`} role="dialog" aria-modal="true"
       aria-labelledby={roleTitleId} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="agm-stage" aria-hidden="true"/>
       <section className="agm-page">
