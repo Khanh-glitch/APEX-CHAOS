@@ -47,6 +47,7 @@ import { adaptGoldBattleHudR91LabelFit } from './goldBattleHudR91labelFit.mjs';
 import { adaptGoldBattleHudTacticalPulse } from './goldBattleHudTacticalPulse.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
+import { adaptGoldShellR2RosterPick } from './goldShellR2RosterPick.mjs';
 import { adaptGoldShellR83 } from './goldShellR83.mjs';
 import { adaptBreachGoldShellB6i } from './questB6iGoldShell.mjs';
 import { adaptRivetGoldShellB7 } from './questB7GoldShell.mjs';
@@ -2355,6 +2356,9 @@ function buildShell(hudProductionHtml) {
 
   out = adaptGoldShellR52PickBand(out);
   log('  R52 (shell): Fighter-Pick bottom band law derived from the canonical deck/lock rules');
+
+  out = adaptGoldShellR2RosterPick(out);
+  log('  R2 P0-B (shell): BOT follows P1 (HUNTER default, P1 HUNTER -> ROBOT); Local P1/P2 never lock the same fighter');
 
   // ── R105 (Issue #105): Pick roster rebuilt on every Fighter entry ────────
   // The donor built the roster only when empty, so a fighter drawn by Lucky

@@ -199,8 +199,9 @@ function assertDetails(state, heroKey, sideLabelPart) {
   }));
   assert.equal(home.ac, '350 AC', 'Home AC chip shows the A1 fresh balance');
   assert.equal(home.credits, 350, 'wallet boots at exactly 350');
-  assert.deepEqual(home.owned, ['ROBOT'], 'fresh ownership is NEWBOT only');
-  assert.equal(home.canSelectHunter, false, 'unowned fighter is not selectable');
+  // Owner R2 P0-B: a fresh Guest owns NEWBOT and HUNTER.
+  assert.deepEqual(home.owned, ['ROBOT', 'HUNTER'], 'fresh ownership is NEWBOT and HUNTER');
+  assert.equal(home.canSelectHunter, true, 'owned HUNTER is selectable');
   assert.equal(home.canSelectRobot, true, 'NEWBOT selectable');
   // Alpha Home law: exactly ONE account entry (bottom nav); the retired
   // top identity chip and the dead settings button are absent.
@@ -227,9 +228,9 @@ function assertDetails(state, heroKey, sideLabelPart) {
       .find((b) => b.textContent.includes('GOOGLE'))?.disabled,
   }));
   assert.equal(acct.credits, '350 AC');
-  assert.equal(acct.owned, '1 / 8');
-  assert.deepEqual(acct.ownedChips, ['ROBOT']);
-  assert.equal(acct.lockedChips, 7);
+  assert.equal(acct.owned, '2 / 8');
+  assert.deepEqual(acct.ownedChips, ['ROBOT', 'HUNTER']);
+  assert.equal(acct.lockedChips, 6);
   if (home.cloud === false) {
     if (GUEST_ONLY_RELEASE) {
       assert.ok(acct.sync.includes('DEVICE SAVE ACTIVE'), 'Guest release truthfully labels local save');
@@ -248,7 +249,8 @@ function assertDetails(state, heroKey, sideLabelPart) {
   await enterFighterSelect(page, 'SOLO');
   let st = await sideState(page);
   assert.equal(st.p1Hero, 'newbot');
-  assert.equal(st.p2Hero, 'newbot', 'BOT opponent defaults to production NEWBOT');
+  // Owner R2 P0-B: the BOT CPU defaults to HUNTER while P1 holds NEWBOT.
+  assert.equal(st.p2Hero, 'hunter', 'BOT opponent defaults to HUNTER (owner P0-B default)');
   assert.equal(st.p1BtnHidden, false, 'P1 details control visible');
   assert.equal(st.p2BtnHidden, false, 'P2/BOT details control visible');
 
@@ -288,17 +290,17 @@ function assertDetails(state, heroKey, sideLabelPart) {
   // BOT (P2) details — exercised independently
   await openDetails(page, 'p2');
   st = await sideState(page);
-  assertDetails(st, 'newbot', 'BOT');
-  await shot(page, 'desktop-p2-bot-details-newbot');
+  assertDetails(st, 'hunter', 'BOT');
+  await shot(page, 'desktop-p2-bot-details-hunter');
   await page.click('[data-sd-close]');
   await waitModalOpen(page, false);
   assert.equal((await sideState(page)).modalOpen, false, 'close button closes');
 
-  // Locked fighter cannot be selected (fresh player owns NEWBOT only)
-  await page.evaluate(() => document.querySelector('.rosterCard[data-hero="hunter"]')?.click());
+  // Locked fighter cannot be selected (fresh player owns NEWBOT and HUNTER; CRYSTAL is unowned)
+  await page.evaluate(() => document.querySelector('.rosterCard[data-hero="crystala"]')?.click());
   await sleep(400);
   st = await sideState(page);
-  assert.equal(st.p1Hero, 'newbot', 'locked HUNTER stays unselectable');
+  assert.equal(st.p1Hero, 'newbot', 'locked CRYSTAL stays unselectable');
 
   // Admin denial for a normal player
   await page.keyboard.down('Control');
@@ -424,7 +426,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   await sleep(600);
   await openDetails(page, 'p2', 'tap');
   st = await sideState(page);
-  assertDetails(st, 'newbot', 'BOT');
+  assertDetails(st, 'hunter', 'BOT');
   const box2 = await page.evaluate(() => {
     const r = document.querySelector('.apex-sd-panel')?.getBoundingClientRect();
     return r ? { left: r.left, right: r.right, top: r.top, bottom: r.bottom, vw: innerWidth, vh: innerHeight } : null;

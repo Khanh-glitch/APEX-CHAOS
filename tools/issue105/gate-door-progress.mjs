@@ -28,7 +28,7 @@ import { launchBrowser, openApp, check, wait, BASE } from './harness.mjs';
 
 const OUT = process.env.ISSUE105_OUT || '/tmp/i105-door-progress';
 const results = [];
-const seed = (credits) => ({ version: 1, testFixture: 'ISSUE-105-LABELLED-TEST-SEED-DOOR', credits, ownedFighters: ['ROBOT'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 0, unlockedAt: { ROBOT: 0 } });
+const seed = (credits) => ({ version: 1, testFixture: 'ISSUE-105-LABELLED-TEST-SEED-DOOR', credits, ownedFighters: ['ROBOT', 'HUNTER'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 0, unlockedAt: { ROBOT: 0, HUNTER: 0 } });
 const browser = await launchBrowser();
 const report = {};
 

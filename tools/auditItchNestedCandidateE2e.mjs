@@ -280,7 +280,7 @@ async function runNestedFullGameplayJourney(browser, vp) {
       frameHref: window.location.href,
     }));
     assert.equal(guestBefore.credits, 350, `${vp.id}: fresh Guest starts at exact 350 AC`);
-    assert.deepEqual(guestBefore.ownedFighters, ['ROBOT'], `${vp.id}: fresh Guest owns ROBOT only`);
+    assert.deepEqual(guestBefore.ownedFighters, ['ROBOT', 'HUNTER'], `${vp.id}: fresh Guest owns ROBOT and HUNTER`);
     assert.match(guestBefore.baseURI, /\/html\/apex\/gold\/$/, `${vp.id}: Gold post-mount <base> points to /html/apex/gold/`);
 
     await clickInFrame(gameFrame, '#apexAccountOpen');

@@ -177,9 +177,10 @@ gate('economy-clean-state-and-mutation-legality', () => {
   // A1 production law: a genuinely new profile starts at exactly 350 AC.
   assert.equal(meta.getState().credits, 350);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
-  assert.equal(meta.poolLocked().length, PRODUCT_ROSTER.playableIds.length-1); // ROBOT starts owned; every other active fighter joins canonical economy pool
+  // Owner R2 P0-B: ROBOT and HUNTER start owned; every other playable fighter is in the economy pool.
+  assert.equal(meta.poolLocked().length, PRODUCT_ROSTER.playableIds.length-2);
   assert.ok(meta.poolLocked().includes('BOXE'));
-  assert.ok(meta.poolLocked().includes('HUNTER'));
+  assert.ok(!meta.poolLocked().includes('HUNTER'));
   assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));
   // A Lucky Draw costs the real 1000 AC (Issue #105) and can only take from the unowned pool.
   // Labelled isolated test seed: top the fresh 350 AC up to the 1000 AC draw price.
@@ -191,10 +192,12 @@ gate('economy-clean-state-and-mutation-legality', () => {
   assert.ok(!PRODUCT_ROSTER.lockedIds.includes(draw.name));
   assert.equal(meta.credits(), 1000 - PRODUCT_ECONOMY.drawCost);
   // The shop enforces the real balance: a fresh player cannot afford 1,000 AC yet.
-  assert.equal(meta.buy('HUNTER').reason, 'need');
+  // Owner R2 P0-B: HUNTER is owned from the start, so buying it is refused as 'owned' (no debit).
+  assert.equal(meta.buy('HUNTER').reason, 'owned');
+  assert.equal(meta.buy('MIRROR').reason, 'need');
   // Earned AC (the real award path) then funds the real 1,000 AC shop cost.
   meta.award('proof', 2000);
-  const bought = meta.buy('HUNTER');
+  const bought = meta.buy('MIRROR');
   assert.equal(bought.ok, true);
   assert.equal(bought.credits, 1000 - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost);
   meta.award('proof', 1000);
@@ -286,19 +289,27 @@ gate('shell-public-selection-and-bot-profile-seam', () => {
   assert.equal(win.__apexPendingGoldNavigation?.target, 'fighter');
   assert.equal(win.__apexPendingGoldNavigation?.options?.mode, 'local');
 
-  // Local is the accepted Free Battle handoff.
+  // Owner R2 P0-B: a Local duel never pairs a fighter with itself. The same pair is refused
+  // without starting a battle, and a pair of two different owned fighters is the accepted handoff.
+  const startsBefore = calls.starts.length;
   context.p1Selection = shells.typeFor('ROBOT');
   context.p2Selection = shells.typeFor('ROBOT');
   win.__apexArsenalSelectPending = true;
   win.__apexArsenalSelectionMode = 'local';
   win.startMatch();
-  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'ROBOT', profile: 'LOCAL' });
+  assert.equal(calls.starts.length, startsBefore, 'Local ROBOT vs ROBOT must not start');
+  context.p2Selection = shells.typeFor('HUNTER');
+  win.__apexArsenalSelectPending = true;
+  win.__apexArsenalSelectionMode = 'local';
+  win.startMatch();
+  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'HUNTER', profile: 'LOCAL' });
 
   // Bot uses the same safe handoff with the existing P2-AI profile marker.
   win.__apexArsenalSelectPending = true;
   win.__apexArsenalSelectionMode = 'bot';
   win.startMatch();
-  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'ROBOT', profile: 'BOT' });
+  // Owner R2 P0-B: the BOT CPU defaults to HUNTER when P1 holds ROBOT.
+  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'HUNTER', profile: 'BOT' });
   return { visible: shells.ids.length, selectable: shells.roster().length, starts: calls.starts };
 });
 

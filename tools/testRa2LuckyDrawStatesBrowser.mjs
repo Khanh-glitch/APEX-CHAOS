@@ -36,6 +36,9 @@ async function openDraw(page,lang){
  await frame.waitForFunction(l=>document.documentElement.lang===(l==='vie'?'vi':'en'),{timeout:15000},lang);
  return frame;
 }
+// Owner R2 P0-B: a fresh Guest owns ROBOT and HUNTER, so the deterministic draw (RNG 0 -> pool[0])
+// grants the first UNOWNED playable fighter. Labelled test constant, asserted on the real pool below.
+const DRAW_FIRST_POOL_ID='CRYSTAL';
 async function wallet(page){return page.evaluate(()=>{const m=window.APEX_ARSENAL_META,s=m.getState();return{credits:m.credits(),totalSpins:s.totalSpins,owned:[...s.ownedFighters],locked:m.poolLocked()}})}
 async function refusalCase({id,credits,lang,reason,need,expected,shot}){
  const profile=cp3EntitledProfile({credits,progression:{botMatches:0,botWins:0,localMatches:0,claimedIds:[]}});
@@ -68,34 +71,34 @@ try{
  const {context,page}=await boot(profile);
  try{
   const frame=await openDraw(page,'vie');
-  const before=await wallet(page);check(before.credits===1000&&before.totalSpins===0&&before.owned.length===1,'success fixture starts with one owned fighter and exactly one draw balance',before);
+  const before=await wallet(page);check(before.credits===1000&&before.totalSpins===0&&before.owned.join()==='ROBOT,HUNTER'&&before.locked[0]===DRAW_FIRST_POOL_ID,'success fixture starts with ROBOT+HUNTER owned, one draw balance, and the deterministic draw target first in the pool',before);
   await page.evaluate(()=>{const m=window.APEX_ARSENAL_META;m.__ra2Spin=m.spin;m.spin=()=>m.__ra2Spin(()=>0)});
   await frame.click('#btn1');
   await frame.waitForFunction(()=>document.querySelector('#stage')?.dataset.busy==='1',{timeout:5000});
   const pending=await frame.evaluate(()=>({busy:document.querySelector('#stage')?.dataset.busy,state:document.querySelector('#stage')?.dataset.state,drawLabel:document.querySelector('#btn1')?.innerText.trim(),buttonAria:document.querySelector('#btn1')?.getAttribute('aria-label')}));
   const afterDebit=await wallet(page);
   check(pending.busy==='1'&&['roll','decel','near','lock'].includes(pending.state),'real draw enters pending animation state',pending);
-  check(afterDebit.credits===0&&afterDebit.totalSpins===1&&afterDebit.owned.includes('HUNTER'),'real spin atomically debits once and persists its deterministic result',afterDebit);
+  check(afterDebit.credits===0&&afterDebit.totalSpins===1&&afterDebit.owned.includes(DRAW_FIRST_POOL_ID),'real spin atomically debits once and persists its deterministic result',afterDebit);
   await page.screenshot({path:`${OUT}/pending-vie.png`});
   await frame.click('#btn1');await wait(160);
   const duplicateAttempt=await wallet(page);
-  check(duplicateAttempt.totalSpins===1&&duplicateAttempt.credits===0&&duplicateAttempt.owned.filter(x=>x==='HUNTER').length===1,'second input during pending animation is ignored without another draw',duplicateAttempt);
+  check(duplicateAttempt.totalSpins===1&&duplicateAttempt.credits===0&&duplicateAttempt.owned.filter(x=>x===DRAW_FIRST_POOL_ID).length===1,'second input during pending animation is ignored without another draw',duplicateAttempt);
   await frame.waitForFunction(()=>document.querySelector('#stage')?.dataset.busy==='0'&&document.querySelector('#stage')?.dataset.state==='settle',{timeout:30000});
   const success=await frame.evaluate(()=>({state:document.querySelector('#stage')?.dataset.state,busy:document.querySelector('#stage')?.dataset.busy,winner:document.querySelector('.hero-slot[style*="opacity: 1"] img')?.alt||document.querySelector('#tagN')?.textContent.trim(),tag:document.querySelector('#tagN')?.innerText.trim(),lang:document.documentElement.lang}));
   const afterSuccess=await wallet(page);
-  check(success.state==='settle'&&success.busy==='0'&&success.lang==='vi'&&(success.winner==='HUNTER'||success.tag==='HUNTER'),'VIE draw completes and reveals the awarded fighter',success);
-  check(afterSuccess.credits===0&&afterSuccess.totalSpins===1&&afterSuccess.owned.includes('HUNTER'),'success leaves the authority ledger at the exact expected balance/ownership',afterSuccess);
+  check(success.state==='settle'&&success.busy==='0'&&success.lang==='vi'&&(success.winner===DRAW_FIRST_POOL_ID||String(success.tag||'').startsWith(DRAW_FIRST_POOL_ID)),'VIE draw completes and reveals the awarded fighter',success);
+  check(afterSuccess.credits===0&&afterSuccess.totalSpins===1&&afterSuccess.owned.includes(DRAW_FIRST_POOL_ID),'success leaves the authority ledger at the exact expected balance/ownership',afterSuccess);
   await page.screenshot({path:`${OUT}/success-vie.png`});
   reports.success={before,pending,afterDebit,duplicateAttempt,success,afterSuccess};
   // Reload is real, then we reopen in ENG and verify persisted receipt, pool,
   // translated labels and balance. No second draw is performed.
   await page.reload({waitUntil:'domcontentloaded',timeout:70000});await page.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});await page.click('#apex-boot-start');await page.waitForSelector('#freeBattle',{visible:true,timeout:60000});await page.click('#freeBattle');await page.waitForFunction(()=>document.body.dataset.apexSceneTransition==='DONE',{timeout:60000});await page.waitForFunction(()=>window.APEX_ARSENAL_META,{timeout:30000});
-  const reloadedWallet=await wallet(page);check(reloadedWallet.credits===0&&reloadedWallet.totalSpins===1&&reloadedWallet.owned.includes('HUNTER'),'reload retains the successful draw exactly once',reloadedWallet);
+  const reloadedWallet=await wallet(page);check(reloadedWallet.credits===0&&reloadedWallet.totalSpins===1&&reloadedWallet.owned.includes(DRAW_FIRST_POOL_ID),'reload retains the successful draw exactly once',reloadedWallet);
   const frameENG=await openDraw(page,'eng');
-  const reloadENG=await frameENG.evaluate(()=>({lang:document.documentElement.lang,title:document.querySelector('#stage')?.getAttribute('aria-label'),poolCount:document.querySelector('#poolCount')?.innerText.trim(),drawLabel:document.querySelector('#btn1')?.getAttribute('aria-label'),possible:document.querySelector('#infoD')?.innerText.trim(),locked:window.APEX_ARSENAL_META?.poolLocked?.()||[],winnerStillLocked:(window.APEX_ARSENAL_META?.poolLocked?.()||[]).includes('HUNTER')}));
-  check(reloadENG.lang==='en'&&reloadENG.title==='APEX CHAOS Lucky Draw'&&reloadENG.drawLabel==='Draw one fighter, cost 1000'&&reloadENG.poolCount==='06'&&!reloadENG.winnerStillLocked,'ENG reload restores donor copy and syncs the production six-fighter pool after HUNTER unlock',reloadENG);
+  const reloadENG=await frameENG.evaluate(()=>({lang:document.documentElement.lang,title:document.querySelector('#stage')?.getAttribute('aria-label'),poolCount:document.querySelector('#poolCount')?.innerText.trim(),drawLabel:document.querySelector('#btn1')?.getAttribute('aria-label'),possible:document.querySelector('#infoD')?.innerText.trim(),locked:window.APEX_ARSENAL_META?.poolLocked?.()||[],winnerStillLocked:(window.APEX_ARSENAL_META?.poolLocked?.()||[]).includes('CRYSTAL')}));
+  check(reloadENG.lang==='en'&&reloadENG.title==='APEX CHAOS Lucky Draw'&&reloadENG.drawLabel==='Draw one fighter, cost 1000'&&reloadENG.poolCount==='05'&&reloadENG.locked.length===5&&!reloadENG.winnerStillLocked,'ENG reload restores donor copy and syncs the production pool (six unowned minus the drawn CRYSTAL = five)',reloadENG);
   const status=await page.evaluate(()=>({credits:window.APEX_ARSENAL_META.credits(),owned:window.APEX_ARSENAL_META.getState().ownedFighters,totalSpins:window.APEX_ARSENAL_META.getState().totalSpins}));
-  check(status.credits===0&&status.totalSpins===1&&status.owned.includes('HUNTER'),'ENG reload surface retains the same production authority values',status);
+  check(status.credits===0&&status.totalSpins===1&&status.owned.includes(DRAW_FIRST_POOL_ID),'ENG reload surface retains the same production authority values',status);
   await page.screenshot({path:`${OUT}/reload-eng.png`});
   reports.reload={wallet:reloadedWallet,donor:reloadENG,authority:status};
  }finally{await context.close()}
@@ -110,7 +113,7 @@ try{
   await frame.waitForFunction(()=>document.querySelector('#stage')?.dataset.busy==='0'&&document.querySelector('#stage')?.dataset.state==='settle',{timeout:30000});
   const final=await engRun.page.evaluate(()=>({credits:window.APEX_ARSENAL_META.credits(),totalSpins:window.APEX_ARSENAL_META.getState().totalSpins,owned:window.APEX_ARSENAL_META.getState().ownedFighters}));
   check(pending.lang==='en'&&pending.busy==='1'&&['roll','decel','near','lock'].includes(pending.state),'ENG success enters the pending animation state',pending);
-  check(final.credits===0&&final.totalSpins===1&&final.owned.includes('HUNTER'),'ENG success commits once to the isolated production wallet',final);
+  check(final.credits===0&&final.totalSpins===1&&final.owned.includes(DRAW_FIRST_POOL_ID),'ENG success commits once to the isolated production wallet',final);
   await engRun.page.screenshot({path:`${OUT}/success-eng.png`});reports.successEng={pending,final};
  }finally{await engRun.context.close()}
  check(errors.length===0,'no uncaught browser errors in Lucky Draw state audit',errors);

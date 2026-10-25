@@ -335,12 +335,27 @@
         const id = shells.botOpponentId();
         if (id) return String(id).toUpperCase();
       }
-      return 'ROBOT';
+      return 'HUNTER';
     };
     const BRIDGE0 = window.APEX_GOLD || (window.APEX_GOLD = {});
     BRIDGE0.botOpponentProductionId = botProductionId;
     BRIDGE0.botOpponentShellKey = function botOpponentShellKey() {
       const id = botProductionId();
+      return GOLD_SHELL_KEY_BY_PRODUCTION_ID[id] || id.toLowerCase();
+    };
+    // Owner R2 P0-B: the effective CPU for a given P1 (production ids). Production
+    // resolves it (P1 HUNTER -> ROBOT, never a mirror). Falls back to the choice.
+    BRIDGE0.botOpponentProductionIdFor = function botOpponentProductionIdFor(p1ProductionId) {
+      const shells = window.APEX_ARSENAL_SHELLS;
+      if (shells && typeof shells.botOpponentFor === 'function') {
+        const id = shells.botOpponentFor(String(p1ProductionId || '').toUpperCase());
+        if (id) return String(id).toUpperCase();
+      }
+      return botProductionId();
+    };
+    BRIDGE0.botOpponentShellKeyFor = function botOpponentShellKeyFor(p1ShellKey) {
+      const p1Prod = PRODUCTION_ID_BY_SHELL_KEY[String(p1ShellKey || '').toLowerCase()] || '';
+      const id = BRIDGE0.botOpponentProductionIdFor(p1Prod);
       return GOLD_SHELL_KEY_BY_PRODUCTION_ID[id] || id.toLowerCase();
     };
     // The player's BOT choice (owner law 2026-10-06) is written through the ONE
@@ -991,11 +1006,13 @@
     // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
     // hardcoded presentation identity.
     const p2Shell = questPreview ? 'newbot'
-      : mode === 'BOT' ? BRIDGE.botOpponentShellKey()
+      : mode === 'BOT' ? BRIDGE.botOpponentShellKeyFor(p1Shell)
       : String((pick && pick.p2) || 'newbot').toLowerCase();
     const p1 = PRODUCTION_ID_BY_SHELL_KEY[p1Shell] || 'ROBOT';
     const p2 = PRODUCTION_ID_BY_SHELL_KEY[p2Shell] || 'ROBOT';
     if (window.APEX_GOLD_LOCKED && (window.APEX_GOLD_LOCKED(p1Shell) || window.APEX_GOLD_LOCKED(p2Shell))) return false;
+    // Owner R2 P0-B: no battle may pair a fighter with itself. Quest is the only exception.
+    if (!questPreview && p1 === p2) return false;
     clearGoldResult();
     battleLiveRunning = true;
     try {

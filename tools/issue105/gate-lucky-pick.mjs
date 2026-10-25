@@ -30,11 +30,11 @@ const seedFor = (credits) => ({
   version: 1,
   testFixture: TEST_SEED_ID,
   credits,
-  ownedFighters: ['ROBOT'],
+  ownedFighters: ['ROBOT', 'HUNTER'],
   lastSelectedP1: 'ROBOT',
   lastSelectedP2: 'ROBOT',
   totalSpins: 0,
-  unlockedAt: { ROBOT: 0 },
+  unlockedAt: { ROBOT: 0, HUNTER: 0 },
   arenaPaletteId: null,
   claimedMatchIds: [],
   progression: { botMatches: 0, botWins: 0, localMatches: 0, claimedIds: [] },
@@ -101,7 +101,7 @@ try {
     await openLuckyFromHome(page);
     await clickDraw(page);
     const after = await meta(page);
-    check(results, before && after && after.credits === 350 && after.owned.length === 1 && after.totalSpins === 0,
+    check(results, before && after && after.credits === 350 && after.owned.length === 2 && after.totalSpins === 0,
       'A insufficient (350 AC): click charges 0, grants nothing', { before, after });
     await closeLuckyToHome(page);
     pageErrs.push(...errors);
@@ -161,7 +161,7 @@ try {
   await page.waitForFunction(() => document.body.dataset.apexSceneTransition === 'DONE', { timeout: 120000 });
   await wait(600);
   const reloadMeta = await meta(page);
-  check(results, reloadMeta && reloadMeta.credits === 0 && reloadMeta.owned.length === 2, 'D1 reload preserves balance 0 and the drawn ownership', reloadMeta);
+  check(results, reloadMeta && reloadMeta.credits === 0 && reloadMeta.owned.length === 3, 'D1 reload preserves balance 0 and the drawn ownership (ROBOT + HUNTER + one drawn)', reloadMeta);
   const d = await pickTruth('after-reload', reloadMeta.owned);
   check(results, d.issues.length === 0, 'D2 after reload Pick truth identical', { issues: d.issues, ids: d.ids });
 

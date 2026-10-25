@@ -121,7 +121,16 @@
   // 2026-10-06: "cho chế độ BOT người chơi có quyền pick bên BOT thay vì auto
   // ROBOT"), so the shell can hand the player's choice to the ONE authority and
   // every derivation downstream (transition, HUD, spawned CPU) follows.
-  let botOpponentId = 'ROBOT';
+  // Owner R2 P0-B (decided defaults): the CPU opens on HUNTER. A player's
+  // choice is stored here; the effective opponent for a given P1 is resolved by
+  // botOpponentFor(), so BOT can never mirror P1 (P1 HUNTER -> BOT ROBOT).
+  let botOpponentId = 'HUNTER';
+  function botOpponentFor(p1Name) {
+    const p1 = canonicalId(p1Name);
+    const choice = botOpponentId;
+    if (choice !== p1) return choice;
+    return p1 === 'HUNTER' ? 'ROBOT' : 'HUNTER';
+  }
   function setBotOpponentId(name) {
     const id = canonicalId(name);
     if (!id) return false;
@@ -147,6 +156,11 @@
       return false;
     };
     if (!p1 || !p2 || !canPublicSelect(p1.name) || !canPublicSelect(p2.name)) {
+      return Promise.resolve(fail());
+    }
+    // Owner R2 P0-B: a Local duel never locks the same fighter for both slots.
+    // Quest pilots NEWBOT on both sides through its own route, not this path.
+    if (mode === 'LOCAL' && canonicalId(p1.name) === canonicalId(p2.name)) {
       return Promise.resolve(fail());
     }
 
@@ -202,6 +216,7 @@
     // The one BOT opponent authority: the production CPU identity every layer
     // (presentation, transition, handoff, HUD, spawned fighter) derives from.
     botOpponentId: () => botOpponentId,
+    botOpponentFor,
     // Explicit, validated write path for the player's BOT choice.
     setBotOpponentId,
   };

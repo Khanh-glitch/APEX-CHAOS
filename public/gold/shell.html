@@ -1236,6 +1236,11 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 .rosterLock b{font-size:8px;font-weight:800;letter-spacing:.22em}
 .rosterCard.art-missing:not(.is-locked) .rosterLockedVisual{opacity:.32}
 </style>
+<style id="r2-roster-pick-rules">
+/* Owner R2 P0-B: P1 fighter is visibly TAKEN while P2 chooses (Local) or the CPU slot chooses (BOT). */
+#stage .rosterCard.is-taken{opacity:.42!important;filter:grayscale(.75) brightness(.62)!important;cursor:not-allowed!important;transform:none!important}
+#stage .rosterCard.is-taken::after{content:"P1";position:absolute;top:6px;right:6px;z-index:3;background:#ff941f;color:#160b00;font:900 11px/1 monospace;padding:3px 5px;letter-spacing:.06em}
+</style>
 <style id="r81-portrait-compact">
 @media (orientation:portrait) and (max-width:420px) and (max-height:650px) {
 #stage.ready:not(.screen-mode):not(.screen-fighter) .story{top:37.5vh;transition-property:opacity,transform,translate,filter}
@@ -1871,6 +1876,11 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     try{
       const g=window.APEX_GOLD;
       // ONE truth read through the bridge: the production CPU identity.
+      // Owner R2 P0-B: the CPU for THIS P1 (P1 HUNTER -> ROBOT, never a mirror).
+      if(g&&typeof g.botOpponentShellKeyFor==='function'){
+        const key=g.botOpponentShellKeyFor(p1Hero);
+        if(key&&HEROES[key])return key;
+      }
       if(g&&typeof g.botOpponentShellKey==='function'){
         const key=g.botOpponentShellKey();
         if(key&&HEROES[key])return key;
@@ -2410,7 +2420,10 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       p2Side.classList.remove('is-locked','bot-side');
       p2Flag.textContent='P2'; p2Name.textContent='AWAITING FIGHTER'; p2Tag.textContent='LOCK P1 TO DEPLOY'; p2Skills.innerHTML='';
     } else renderSide(p2Side,p2Hero,'p2',p2Locked);
-    document.querySelectorAll('.rosterCard').forEach(card=>{card.classList.toggle('p1-selected',card.dataset.hero===p1Hero);card.classList.toggle('p2-selected',!p2Empty&&(battleMode!=='bot'||p1Locked)&&card.dataset.hero===p2Hero)});
+    // Owner R2 P0-B: while P2 (or the BOT slot) is choosing, P1's fighter is visibly TAKEN.
+    const takenNow=p1Locked&&!p2Locked&&(battleMode==='bot'||activePlayer==='p2');
+    document.querySelectorAll('.rosterCard').forEach(card=>{card.classList.toggle('p1-selected',card.dataset.hero===p1Hero);card.classList.toggle('p2-selected',!p2Empty&&(battleMode!=='bot'||p1Locked)&&card.dataset.hero===p2Hero);const taken=!!takenNow&&card.dataset.hero===p1Hero;card.classList.toggle('is-taken',taken);if(taken)card.setAttribute('aria-disabled','true');else card.removeAttribute('aria-disabled')});
+    if(takenNow&&battleMode!=='bot'&&!p2Empty&&p2Tag)p2Tag.textContent=p2Hero===p1Hero?'P1 HAS THIS FIGHTER':'PICK A DIFFERENT FIGHTER';
     if(battleMode==='bot') lockLabel.textContent=!p1Locked?'LOCK IN':(p2Locked?'READY':'LOCK BOT');
     else if(!p1Locked) lockLabel.textContent='LOCK P1'; else if(!p2Locked) lockLabel.textContent='LOCK P2'; else lockLabel.textContent='READY';
     if(selectionPrompt){
@@ -2448,8 +2461,11 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     uiFocusMove();
     // BOT two-slot pick: before P1 is locked a tap means "my fighter"; after
     // that the same tap means "the CPU's fighter".
-    if(battleMode==='bot'){if(!p1Locked){p1Hero=id;p1HasPicked=true;activePlayer='p1'}else if(!p2Locked){p2Hero=id;p2Empty=false;p2HasPicked=true}else return}
-    else if(activePlayer==='p1'&&!p1Locked){p1Hero=id;p1HasPicked=true} else if(activePlayer==='p2'&&!p2Locked){p2Hero=id;p2Empty=false;p2HasPicked=true} else return;
+    if(battleMode==='bot'){
+      if(!p1Locked){p1Hero=id;p1HasPicked=true;activePlayer='p1';if(!p2Locked)p2Hero=botHeroId()}
+      else if(!p2Locked){if(id===p1Hero){uiSfx('ui.action.rejected');renderFighter();return}p2Hero=id;p2Empty=false;p2HasPicked=true}
+      else return}
+    else if(activePlayer==='p1'&&!p1Locked){p1Hero=id;p1HasPicked=true} else if(activePlayer==='p2'&&!p2Locked){if(id===p1Hero){uiSfx('ui.action.rejected');renderFighter();return}p2Hero=id;p2Empty=false;p2HasPicked=true} else return;
     uiSfx('ui.option.confirm');
     renderFighter();
     revealRosterCard(id);
@@ -2477,14 +2493,14 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       // The pick becomes production truth BEFORE the handoff (validated by the
       // ONE selection authority), so presentation can never advertise a fighter
       // the CPU will not use.
-      try{window.APEX_GOLD&&window.APEX_GOLD.setBotOpponent&&window.APEX_GOLD.setBotOpponent(p2Hero)}catch(_){}
+      if(p1Hero!=='hunter')try{window.APEX_GOLD&&window.APEX_GOLD.setBotOpponent&&window.APEX_GOLD.setBotOpponent(p2Hero)}catch(_){}
       renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE READY';
       uiSfx('fighter.match_ready');
       launchBattleHud();
       return;
     }
-    if(activePlayer==='p1'&&!p1Locked){p1HasPicked=true;p1Locked=true;activePlayer='p2';p2Hero='newbot';p2Empty=false;p2HasPicked=false;renderFighter();setTimeout(()=>document.querySelector(`.rosterCard[data-hero="${p2Hero}"]`)?.focus({preventScroll:true}),80);return}
-    if(activePlayer==='p2'&&!p2Locked){p2HasPicked=true;p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';
+    if(activePlayer==='p1'&&!p1Locked){p1HasPicked=true;p1Locked=true;activePlayer='p2';p2Hero=p1Hero==='newbot'?'hunter':'newbot';p2Empty=false;p2HasPicked=false;renderFighter();setTimeout(()=>document.querySelector(`.rosterCard[data-hero="${p2Hero}"]`)?.focus({preventScroll:true}),80);return}
+    if(activePlayer==='p2'&&!p2Locked){if(p2Hero===p1Hero){uiSfx('ui.action.rejected');renderFighter();return}p2HasPicked=true;p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';
     uiSfx('fighter.match_ready');
     launchBattleHud()}
   }

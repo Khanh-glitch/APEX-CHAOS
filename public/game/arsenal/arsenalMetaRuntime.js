@@ -217,15 +217,33 @@
     return st;
   }
 
+  // Owner R2 P0-B: a fresh Guest owns ROBOT (NEWBOT) and HUNTER. HUNTER is the
+  // BOT CPU default and P2's natural pair, so it ships owned. Credits are unchanged.
+  const FRESH_OWNED_FIGHTERS = Object.freeze(['ROBOT', 'HUNTER']);
+  const HUNTER_OWNED_MIGRATION = 'hunter-owned-r2-20261025';
+  // Additive, idempotent, once. Adds HUNTER to an existing save and records the
+  // migration so it is never re-applied. Never removes or re-orders anything,
+  // never touches credits, achievements, mastery, selections or other heroes.
+  function migrateHunterOwnership(st) {
+    if (!st || typeof st !== 'object') return st;
+    if (!st.rosterMigrations || typeof st.rosterMigrations !== 'object') st.rosterMigrations = {};
+    if (st.rosterMigrations[HUNTER_OWNED_MIGRATION]) return st;
+    if (!Array.isArray(st.ownedFighters)) st.ownedFighters = ['ROBOT'];
+    if (!st.ownedFighters.includes('HUNTER')) st.ownedFighters.push('HUNTER');
+    if (st.unlockedAt && typeof st.unlockedAt === 'object' && st.unlockedAt.HUNTER == null) st.unlockedAt.HUNTER = 0;
+    st.rosterMigrations[HUNTER_OWNED_MIGRATION] = 1;
+    return st;
+  }
   function emptyState() {
     return {
       version: 1,
       credits: START_CREDITS,
-      ownedFighters: ['ROBOT'],
+      ownedFighters: FRESH_OWNED_FIGHTERS.slice(),
       lastSelectedP1: 'ROBOT',
       lastSelectedP2: 'ROBOT',
       totalSpins: 0,
-      unlockedAt: { ROBOT: 0 },
+      unlockedAt: { ROBOT: 0, HUNTER: 0 },
+      rosterMigrations: { [HUNTER_OWNED_MIGRATION]: 1 },
       // §D: Chamber-01 arena palette lives in THIS authority — no second
       // storage island. Null means the curated default.
       arenaPaletteId: null,
@@ -256,6 +274,8 @@
       ? [...new Set(progress.claimedIds.filter(id => PROGRESSION_CATALOG.some(d => d.id === id)))]:[];
     s.mastery = sanitizeMastery(raw.mastery);
     s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
+    s.rosterMigrations = raw.rosterMigrations && typeof raw.rosterMigrations === 'object'
+      ? { ...raw.rosterMigrations } : {};
     // The owner-playtest AC seed marker must survive sanitization, otherwise a
     // refresh would look "unseeded" and refill the balance.
     s.ownerPlaytestAcSeed = (raw.ownerPlaytestAcSeed && typeof raw.ownerPlaytestAcSeed === 'object')
@@ -272,6 +292,7 @@
     const P = window.APEX_CHAMBER_PALETTE;
     s.arenaPaletteId = (typeof raw.arenaPaletteId === 'string' && P && P.isKnown(raw.arenaPaletteId)) ? raw.arenaPaletteId : null;
     migrateNewbieToRobot(s);
+    migrateHunterOwnership(s);
     // A stale historical selection is safe only when it is both owned and in
     // the current public Core Six. Locked visibility never implies selectability.
     if (!isProductPlayable(s.lastSelectedP1) || !s.ownedFighters.includes(s.lastSelectedP1)) s.lastSelectedP1 = 'ROBOT';

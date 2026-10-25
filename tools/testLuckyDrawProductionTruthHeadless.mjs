@@ -373,7 +373,7 @@ async function main() {
   // 11) reopening re-syncs changed parent credits/pool (production award).
   const reopenState = meta.getState();
   reopenState.credits = 0;
-  reopenState.ownedFighters = ['ROBOT'];
+  reopenState.ownedFighters = ['ROBOT', 'HUNTER'];
   meta.save(reopenState);
   meta.award('test-reopen', 425); // real production reward path
   handLuckyProductionApi(); // second open -> re-sync

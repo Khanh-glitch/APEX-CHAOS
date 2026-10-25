@@ -19,7 +19,7 @@ const SHELL_KEY = { ROBOT: 'newbot', HUNTER: 'hunter', CRYSTAL: 'crystala', MAGN
 const PLAYABLE_PROD = Object.keys(SHELL_KEY);
 const ROADMAP = ['black_hole', 'math_v2', 'rubber', 'time', 'slime', 'sniper'];
 
-const seed = (credits) => ({ version: 1, testFixture: TEST_SEED_ID, credits, ownedFighters: ['ROBOT'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 0, unlockedAt: { ROBOT: 0 } });
+const seed = (credits) => ({ version: 1, testFixture: TEST_SEED_ID, credits, ownedFighters: ['ROBOT', 'HUNTER'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 0, unlockedAt: { ROBOT: 0, HUNTER: 0 } });
 const meta = (page) => page.evaluate(() => { const s = window.APEX_ARSENAL_META?.getState?.(); return s ? { credits: s.credits, owned: s.ownedFighters.slice(), totalSpins: s.totalSpins } : null; });
 
 async function bootAgain(page) {
@@ -71,8 +71,8 @@ try {
   const { page, context, errors } = await openApp(browser, { width: 1440, height: 900, dpr: 1, seed: seed(1000), storage: { 'apex.alpha.tutorial.v1': 'off' } });
   errorsAll.push(...errors);
   // 1. Pick visited BEFORE the draw
-  const pre = await pickTruth(page, 'pre-draw', ['ROBOT']);
-  check(results, pre.issues.length === 0, 'P1 Pick before draw: truth (NEWBOT first, only ROBOT owned, 13 others locked)', { issues: pre.issues, ids: pre.ids });
+  const pre = await pickTruth(page, 'pre-draw', ['ROBOT', 'HUNTER']);
+  check(results, pre.issues.length === 0, 'P1 Pick before draw: truth (NEWBOT first, ROBOT and HUNTER owned, the rest locked)', { issues: pre.issues, ids: pre.ids });
   await bootAgain(page);
   // 2. Lucky UI draw from home
   await page.waitForSelector('#openLuckyDraw', { visible: true, timeout: 60000 });
@@ -84,7 +84,7 @@ try {
   await frame.evaluate(() => document.getElementById('btn1').click());
   await wait(3500);
   const afterDraw = await meta(page);
-  const drawn = afterDraw.owned.filter((x) => x !== 'ROBOT');
+  const drawn = afterDraw.owned.filter((x) => x !== 'ROBOT' && x !== 'HUNTER');
   check(results, afterDraw.credits === 0 && drawn.length === 1, 'P2 Lucky UI draw after Pick-before-draw: 1000 -> 0 and exactly one new fighter', { afterDraw });
   // 3. Pick in the same session after the draw (reload-free route from home)
   await page.evaluate(() => document.getElementById('luckyDonorHost')?.getAttribute('aria-hidden') === 'true' || true);

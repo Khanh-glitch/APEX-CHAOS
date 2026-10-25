@@ -79,8 +79,9 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   const { meta, storage } = boot({});
   check('meta runtime registers', !!meta);
   check('fresh profile starts at exactly 350 AC', meta.credits() === 350, `credits=${meta.credits()}`);
-  check('fresh profile owns ROBOT (NEWBOT) only',
-    JSON.stringify(meta.getState().ownedFighters) === '["ROBOT"]',
+  // Owner R2 P0-B: a fresh Guest owns ROBOT (NEWBOT) and HUNTER, and nothing else.
+  check('fresh profile owns ROBOT (NEWBOT) and HUNTER only',
+    JSON.stringify(meta.getState().ownedFighters) === '["ROBOT","HUNTER"]',
     JSON.stringify(meta.getState().ownedFighters));
   check('fresh default selection is ROBOT on both sides',
     meta.getState().lastSelectedP1 === 'ROBOT' && meta.getState().lastSelectedP2 === 'ROBOT');
@@ -162,19 +163,19 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   const { meta } = boot({});
   const pool = meta.poolLocked();
   check('Lucky Draw pool is the real unowned playable pool',
-    Array.isArray(pool) && pool.length === CORE_SIX.length - 1 && !pool.includes('ROBOT') && pool.includes('MIRROR'),
+    Array.isArray(pool) && pool.length === CORE_SIX.length - 2 && !pool.includes('ROBOT') && !pool.includes('HUNTER') && pool.includes('MIRROR'),
     JSON.stringify(pool));
   check('no override widens the Lucky Draw pool', !pool.includes(FUTURE[0]), JSON.stringify(pool));
   check('visibility never fabricates ownership',
-    meta.owns('MIRROR') === false && meta.owns('HUNTER') === false);
+    meta.owns('MIRROR') === false && meta.owns('CRYSTAL') === false);
 }
 
 // ── 5. selection: ownership for players, admin session for owner testing ──
 {
   const { meta } = boot({});
-  check('a normal new player can select NEWBOT only',
-    meta.canPublicSelect('ROBOT') === true &&
-    CORE_SIX.filter((id) => id !== 'ROBOT').every((id) => meta.canPublicSelect(id) === false),
+  check('a normal new player can select NEWBOT and HUNTER only',
+    meta.canPublicSelect('ROBOT') === true && meta.canPublicSelect('HUNTER') === true &&
+    CORE_SIX.filter((id) => id !== 'ROBOT' && id !== 'HUNTER').every((id) => meta.canPublicSelect(id) === false),
     CORE_SIX.map((id) => `${id}:${meta.canPublicSelect(id)}`).join(' '));
   check('a future visible-but-locked fighter stays locked',
     FUTURE.every((id) => meta.canPublicSelect(id) === false));
@@ -193,7 +194,7 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   check('the admin session fabricates no ownership and no credits',
     meta.owns('MIRROR') === false && meta.credits() === 350);
   check('the admin session does not widen the Lucky Draw pool',
-    meta.poolLocked().length === CORE_SIX.length - 1);
+    meta.poolLocked().length === CORE_SIX.length - 2);
 }
 
 // ── 6. match rewards: A1 table by actual mode + outcome, paid once ────────
