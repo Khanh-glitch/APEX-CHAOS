@@ -55,8 +55,21 @@ try {
 
       await page.evaluate(()=>window.APEX_PROGRESSION_CENTER?.open('mastery'));
       await page.waitForFunction(()=>document.querySelector('.apex-gold-direct-host iframe')?.src.includes('tab=mastery'),{timeout:15000});
+      await page.waitForFunction(()=>{
+        const f=document.querySelector('.apex-gold-direct-host iframe');
+        try {return f?.contentDocument?.readyState==='complete' &&
+          f.contentWindow.location.search.includes('tab=mastery');}catch{return false;}
+      },{timeout:18000});
       const second=await (await page.$('.apex-gold-direct-host iframe')).contentFrame();
-      await second.waitForFunction(()=>document.body.innerText.includes('MASTERY'),{timeout:18000});
+      const goldMasteryDiagnostic=await second.evaluate(()=>({
+        href:location.href,body:document.body.innerText.slice(0,1200),
+        h1:document.querySelector('h1')?.textContent,
+        tabs:[...document.querySelectorAll('[role=tab]')].map(x=>({text:x.textContent,selected:x.getAttribute('aria-selected')})),
+      }));
+      console.log('GOLD MASTERY INITIAL',JSON.stringify(goldMasteryDiagnostic));
+      await second.waitForFunction(()=>
+        document.querySelector('[role=tab][aria-selected=true]')?.textContent?.includes('MASTERY'),
+        {timeout:18000});
       const stats=await second.evaluate(()=>({
         title:document.querySelector('h1')?.innerText,
         text:document.body.innerText,
