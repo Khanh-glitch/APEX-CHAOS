@@ -422,15 +422,50 @@ async function runViewportJourney(browser, vp) {
   // K is pressed only once the engine reports it castable. BOT P2 defaults to
   // HUNTER (owner R2 P0-B), whose opening hits can hard-CC P1 (reason 'cc'), and
   // a press in that state is correctly refused, so the wait is on the real state.
-  await page.waitForFunction(
-    () => window.APEX_HERO_REWORK?.observeAbilityCastability?.(window.fighters?.[0], 'A2')?.castable === true,
-    { timeout: 30000 }
-  );
-  await castSkill(1);
-  await page.waitForFunction(
-    () => document.querySelector('#p1Side .skill[data-i="1"]')?.dataset?.state === 'active',
-    { timeout: 8000 }
-  );
+  // The live BOT is HUNTER (#105 P0-B). Its short hard-CC windows may arrive
+  // between observing K as castable and the physical key/touch press. That
+  // first press can legitimately be rejected by the engine; waiting for
+  // 'active' after ONE rejected press falsely fails a healthy game.
+  // Retry only a REAL castable press, and still REQUIRE the real HUD 'active'
+  // state. No mock cast, cooldown reset, AI freeze or time-bound relaxation.
+  const kAttemptLog = [];
+  const kActiveDeadline = Date.now() + 25000;
+  let kActivated = false;
+  while (Date.now() < kActiveDeadline) {
+    const kState = await page.evaluate(() => {
+      const f = window.fighters?.[0];
+      const ct = f?.__hrCombatant;
+      const legality = f ? window.APEX_HERO_REWORK?.observeAbilityCastability?.(f, 'A2') : null;
+      return {
+        hud: document.querySelector('#p1Side .skill[data-i="1"]')?.dataset?.state || '',
+        castable: legality?.castable === true,
+        reason: legality?.reason || null,
+        hp: f?.hp ?? null,
+        over: !!window.APEX_ARSENAL?.state?.over,
+        casts: ct?.telemetry?.bySkill?.A2 ?? null,
+        cdLeft: ct?.skills?.A2?.cdLeft ?? null,
+      };
+    });
+    if (kState.hud === 'active') { kActivated = true; break; }
+    if (kState.hp == null || kState.hp <= 0 || kState.over) {
+      kAttemptLog.push({ stage: 'battle-ended-before-K', ...kState });
+      break;
+    }
+    if (kState.castable) {
+      kAttemptLog.push({ stage: 'physical-K-press', ...kState });
+      await castSkill(1);
+    } else {
+      if (kAttemptLog.length < 15) kAttemptLog.push({ stage: 'wait-for-castable', ...kState });
+      await sleep(120);
+    }
+  }
+  if (!kActivated) {
+    console.error('[tp-audit] K never entered ACTIVE after legal physical attempts:',
+      JSON.stringify(kAttemptLog.slice(-20)));
+    await saveShot('05-k-activation-failure');
+  }
+  assert.ok(kActivated,
+    `${vp.id}: K must enter real HUD ACTIVE during BOT combat; trace=${JSON.stringify(kAttemptLog.slice(-8))}`);
   states.kActive = await measureBattleDom(page, '05-match-k-active');
   await saveShot('05-match-k-active');
 
