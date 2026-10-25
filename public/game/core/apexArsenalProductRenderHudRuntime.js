@@ -41,17 +41,10 @@
         });
       }
 
-      // CP3 silhouette edge lighting (presentation only): each duelist
-      // is composited with a fine side-colored edge hugging its real
-      // silhouette — no rings, glyphs or floating tags. Helpers +
-      // gating live in apexEngine.js (apexSideIdentityContext).
-      const sideIdentityMode = (typeof apexSideIdentityContext === 'function') ? apexSideIdentityContext() : null;
-
       for (let i = 0; i < 2; i++) {
         const fighter = fighters[i];
         if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') {
-          if (sideIdentityMode && typeof drawFighterWithSideEdge === 'function') drawFighterWithSideEdge(ctx, fighter, i, sideIdentityMode);
-          else fighter.draw(ctx);
+          fighter.draw(ctx);
         }
       }
       if (window.APEX_ROBOT_PRESENTATION && typeof window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay === 'function') {

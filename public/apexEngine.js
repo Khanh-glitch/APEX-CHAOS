@@ -2267,139 +2267,6 @@ function update(dt) {
     if (arenaFlash.a > 0) arenaFlash.a=Math.max(0,arenaFlash.a-dt*1.6); if(cameraShake>0)cameraShake=Math.max(0,cameraShake-dt*22); cameraZoom=lerp(cameraZoom,1,dt*2);
     if (fighters[0].hp <= 0 || fighters[1].hp <= 0) endMatch();
 }
-// CP3 — Side-Aware Silhouette Edge Lighting (presentation only).
-// In a mirror match (same hero, same skin) the sprites are identical, so
-// each duelist carries a fine edge of light that hugs the ACTUAL rendered
-// silhouette: Gold's canonical side colors (--p1:#ff941f / --p2:#3aa7ff,
-// the same words spoken by the HP bars and the fighter-select chips) over
-// a hairline dark keyline, so the edge survives bright and dark ground
-// alike. The cue is never color-alone: P1's edge is a single solid line,
-// P2's is a fine double hairline (pattern difference, visible in
-// grayscale), the two colors differ in luminance, and the corner HUD
-// keeps its P1/P2 plates. No rings, arrows, glyphs or floating tags.
-// Strength steps up while the fighters overlap — identity is strongest
-// exactly when reading is hardest. This draws only: the fighter's own
-// draw() is rendered once into a pooled offscreen and composited; no
-// physics, hitbox, damage, AI, animation or VFX values change.
-// Gated to active product duels (BOT/LOCAL): Lab and quest multi-actor
-// fixtures are excluded, and BOT WAVE never activates this state.
-var __apexSideMarkerMode = null; // null = no side edge; else 'BOT' | 'LOCAL'
-var __apexSideMarkerCheckedAt = 0;
-function apexSideIdentityContext() {
-    if (window.__apexSideMarkers === false) return null;
-    if (!fighters || !fighters[0] || !fighters[1]) return null;
-    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    if (now - __apexSideMarkerCheckedAt > 400) {
-        __apexSideMarkerCheckedAt = now;
-        try {
-            const s = (typeof window.getArsenalBattleDebugState === 'function') ? window.getArsenalBattleDebugState() : null;
-            __apexSideMarkerMode = (s && s.active && !s.labMode && !s.questMultiActor)
-                ? (s.battleMode === 'BOT' ? 'BOT' : 'LOCAL') : null;
-        } catch (e) { __apexSideMarkerMode = null; }
-    }
-    return __apexSideMarkerMode;
-}
-var APEX_SIDE_EDGE = [
-    { color: '#FF941F', double: false },
-    { color: '#3AA7FF', double: true },
-];
-// Issue #105 compositor. One shared device-sized body canvas (origin pinned
-// to the frame origin) so every fighter draw keeps its exact device semantics:
-// hero code that resets to identity, blits full-frame layers (FROST ice) or
-// snapshots the frame matrix paints the same pixels as a direct draw. The
-// silhouette/keyline is derived only from the body core at device resolution.
-// Each fighter is drawn ONCE; the composite is a 1:1 device copy.
-var __apexEdgePool = null;
-var __APEX_EDGE_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-function __apexEdgeSlot(bodyW, bodyH, silW, silH) {
-    let slot = __apexEdgePool;
-    if (!slot) {
-        slot = __apexEdgePool = {
-            body: document.createElement('canvas'),
-            sil: document.createElement('canvas'),
-            edge: document.createElement('canvas'),
-        };
-        slot.bodyCtx = slot.body.getContext('2d');
-        slot.silCtx = slot.sil.getContext('2d');
-        slot.edgeCtx = slot.edge.getContext('2d');
-    }
-    if (slot.body.width !== bodyW || slot.body.height !== bodyH) { slot.body.width = bodyW; slot.body.height = bodyH; }
-    if (slot.sil.width !== silW || slot.sil.height !== silH) { slot.sil.width = silW; slot.sil.height = silH; }
-    if (slot.edge.width !== silW || slot.edge.height !== silH) { slot.edge.width = silW; slot.edge.height = silH; }
-    return slot;
-}
-function drawFighterWithSideEdge(ctx, f, idx, mode) {
-    if (!f || typeof f.draw !== 'function') return;
-    if (!mode || f.hp <= 0 || !isFinite(f.x) || !isFinite(f.y) || typeof document === 'undefined') { f.draw(ctx); return; }
-    try {
-        const st = APEX_SIDE_EDGE[idx] || APEX_SIDE_EDGE[0];
-        const r = Math.max(20, f.radius || 75);
-        const m = ctx.getTransform();              // world -> device (camera zoom, shake, scale)
-        const sx = Math.hypot(m.a, m.b) || 1;
-        const sy = Math.hypot(m.c, m.d) || 1;
-        const W = ctx.canvas.width, H = ctx.canvas.height;   // device backing store
-        const coreHalf = Math.ceil(r * 1.55 + 14);
-        const silW = Math.ceil(coreHalf * 2 * sx), silH = Math.ceil(coreHalf * 2 * sy);
-        const slot = __apexEdgeSlot(W, H, silW, silH);
-        // Device-space centre of the fighter and the core crop origin (whole px).
-        const cx = m.a * f.x + m.c * f.y + m.e;
-        const cy = m.b * f.x + m.d * f.y + m.f;
-        const cropX = Math.round(cx - silW / 2), cropY = Math.round(cy - silH / 2);
-        // 1) Render the fighter ONCE into the body canvas through the frame's own
-        //    device mapping (origin = frame origin, so identity means identity).
-        const b = slot.bodyCtx;
-        b.setTransform(1, 0, 0, 1, 0, 0);
-        b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; b.filter = 'none';
-        b.clearRect(0, 0, W, H);
-        b.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
-        f.draw(b);
-        b.setTransform(1, 0, 0, 1, 0, 0);
-        // 2) Silhouette: copy the core 1:1, keep only the core disc, tint solid.
-        const s2 = slot.silCtx;
-        s2.setTransform(1, 0, 0, 1, 0, 0);
-        s2.globalCompositeOperation = 'source-over'; s2.globalAlpha = 1; s2.filter = 'none';
-        s2.clearRect(0, 0, silW, silH);
-        s2.drawImage(slot.body, cropX, cropY, silW, silH, 0, 0, silW, silH);
-        s2.globalCompositeOperation = 'destination-in';
-        s2.beginPath(); s2.arc(cx - cropX, cy - cropY, r * 1.55 * sx, 0, TAU); s2.fillStyle = '#000'; s2.fill();
-        s2.globalCompositeOperation = 'source-in';
-        s2.fillStyle = st.color; s2.fillRect(0, 0, silW, silH);
-        // 3) Keyline canvas: dark outer offsets first, then the side colour closer
-        //    in; P2 adds a faint outer hairline. Overlap boost widens both edges.
-        const other = fighters && fighters[1 - idx];
-        const dist = (other && isFinite(other.x) && isFinite(other.y))
-            ? Math.hypot(f.x - other.x, f.y - other.y) : Infinity;
-        const boost = dist < r * 2.3 ? 1.55 : 1;
-        const e = slot.edgeCtx;
-        e.setTransform(1, 0, 0, 1, 0, 0);
-        e.filter = 'none';
-        e.clearRect(0, 0, silW, silH);
-        const wKey = 3.4 * sx * boost, wCol = 2.1 * sx * boost, wHair = 5.6 * sx * boost;
-        e.globalCompositeOperation = 'source-over'; e.globalAlpha = 0.92;
-        for (const [dx, dy] of __APEX_EDGE_DIRS) e.drawImage(slot.sil, dx * wKey, dy * wKey);
-        e.globalCompositeOperation = 'source-in'; e.fillStyle = 'rgba(4,6,10,0.95)'; e.fillRect(0, 0, silW, silH);
-        e.globalCompositeOperation = 'source-over';
-        e.globalAlpha = boost > 1 ? 1 : 0.96;
-        for (const [dx, dy] of __APEX_EDGE_DIRS) e.drawImage(slot.sil, dx * wCol, dy * wCol);
-        if (st.double) {
-            e.globalAlpha = 0.5;
-            for (const [dx, dy] of __APEX_EDGE_DIRS) e.drawImage(slot.sil, dx * wHair, dy * wHair);
-        }
-        e.globalAlpha = 1;
-        // 4) Composite in DEVICE space (identity transform, integer origins):
-        //    keyline first, then the untouched fighter on top.
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.globalAlpha = 1; ctx.filter = 'none';
-        ctx.drawImage(slot.edge, cropX, cropY);
-        ctx.drawImage(slot.body, 0, 0, W, H, 0, 0, W, H);
-        ctx.restore();
-    } catch (err) {
-        // Presentation must never break combat: fall back to the plain draw.
-        try { f.draw(ctx); } catch (e2) {}
-    }
-}
-
 function draw() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
@@ -2432,17 +2299,16 @@ function draw() {
                 background: true, projectiles: true, particles: true, fighters: false,
             });
         }
-        const sideIdentityMode = apexSideIdentityContext();
-        if (fighters[0]) drawFighterWithSideEdge(ctx, fighters[0], 0, sideIdentityMode);
-        if (fighters[1]) drawFighterWithSideEdge(ctx, fighters[1], 1, sideIdentityMode);
+        // Owner R2 P0-B: playable heroes are drawn as themselves. No side outline.
+        if (fighters[0]) fighters[0].draw(ctx);
+        if (fighters[1]) fighters[1].draw(ctx);
         if (window.APEX_ROBOT_PRESENTATION && window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay) {
             window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay(ctx);
         }
         for (const f of fighters) { if (f && f.name==='SNIPER' && f.data && f.data.aim>0) { const enemy = fighters.find(q=>q.id!==f.id); if(enemy){ ctx.save(); ctx.globalAlpha=.9; ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(enemy.x,enemy.y); ctx.stroke(); ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.radius+16, 0, TAU); ctx.moveTo(enemy.x-(enemy.radius+28), enemy.y); ctx.lineTo(enemy.x+(enemy.radius+28), enemy.y); ctx.moveTo(enemy.x, enemy.y-(enemy.radius+28)); ctx.lineTo(enemy.x, enemy.y+(enemy.radius+28)); ctx.stroke(); ctx.restore(); }} }
         for (const t of floatingTexts) t.draw(ctx);
         if (arenaFlash.a > 0) { ctx.fillStyle=`rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a})`; ctx.fillRect(0,0,GAME_SIZE,GAME_SIZE); }
-        // CP3: side identity lives on the silhouette edge (drawn with each
-        // fighter above) — no floating tags wash out in the arena flash.
+        // Team identity lives in the Gold HUD (plates and nameplate chips), not on the actor.
     } finally {
         ctx.restore();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
