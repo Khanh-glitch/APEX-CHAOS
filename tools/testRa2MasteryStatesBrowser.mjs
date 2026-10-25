@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import puppeteer from 'puppeteer-core';
+import { revealScene, sceneClick } from './issue105/harness.mjs';
 import {CP3_NEWBOT_ACHIEVEMENT_IDS,cp3EntitledProfile} from './cp3MasteryFixture.mjs';
 
 const CHROME=process.env.CHROME_PATH;
@@ -41,16 +42,23 @@ try{
  const recentAll=await page.evaluate(()=>({count:document.querySelectorAll('.apex-mastery-recent-chip').length,button:document.querySelector('.apex-mastery-view-all')?.innerText.trim()||'',names:[...document.querySelectorAll('.apex-mastery-recent-chip b')].map(e=>e.textContent.trim()),dates:[...document.querySelectorAll('.apex-mastery-recent-chip small')].map(e=>e.textContent.trim())}));
  check(recentAll.count===12&&!recentAll.button,'VIE VIEW ALL exposes all 12 entries and removes overflow control',recentAll);
  await page.screenshot({path:`${OUT}/recent-overflow-vie.png`});
- const terminal=await page.$('.apex-mastery-terminal');await terminal.evaluate(e=>e.scrollIntoView({block:'center'}));
- const ecoBefore=await page.evaluate(()=>({name:document.querySelector('.apex-mastery-terminal h3')?.textContent.trim(),progress:document.querySelector('.apex-mastery-terminal strong')?.textContent.trim(),button:document.querySelector('.apex-mastery-terminal .apex-mastery-equip')?{text:document.querySelector('.apex-mastery-terminal .apex-mastery-equip').innerText.trim(),disabled:document.querySelector('.apex-mastery-terminal .apex-mastery-equip').disabled}:null,entitled:window.APEX_ARSENAL_META.skinProgress('hero','ROBOT','ecobot').entitled,selected:window.APEX_ARSENAL_COSMETICS?.selected?.('p1','hero','ROBOT')?.id||null}));
+
+ await revealScene(page,'.apex-mastery-terminal h3',{text:'ECOBOT'});
+ const ecoName=await page.evaluate(()=>document.querySelector('.apex-mastery-terminal h3')?.textContent.trim());
+ await revealScene(page,'.apex-mastery-terminal strong');
+ const ecoProgressText=await page.evaluate(()=>document.querySelector('.apex-mastery-terminal strong')?.textContent.trim());
+ await revealScene(page,'.apex-mastery-terminal .apex-mastery-equip');
+ const ecoBefore=await page.evaluate(()=>({name:null,progress:null,button:document.querySelector('.apex-mastery-terminal .apex-mastery-equip')?{text:document.querySelector('.apex-mastery-terminal .apex-mastery-equip').innerText.trim(),disabled:document.querySelector('.apex-mastery-terminal .apex-mastery-equip').disabled}:null,entitled:window.APEX_ARSENAL_META.skinProgress('hero','ROBOT','ecobot').entitled,selected:window.APEX_ARSENAL_COSMETICS?.selected?.('p1','hero','ROBOT')?.id||null}));
+ ecoBefore.name=ecoName; ecoBefore.progress=ecoProgressText;
  check(ecoBefore.name==='ECOBOT — LÕI TÁI CHẾ V17'&&ecoBefore.progress==='42/42'&&ecoBefore.entitled&&ecoBefore.button?.text==='TRANG BỊ CHO P1'&&!ecoBefore.button.disabled,'VIE earned ECOBOT presents a valid enabled equip action',ecoBefore);
  await page.screenshot({path:`${OUT}/ecobot-entitled-vie.png`});
- await page.click('.apex-mastery-terminal .apex-mastery-equip');await wait(160);
+ await sceneClick(page,'.apex-mastery-terminal .apex-mastery-equip');await wait(160);
  const equippedVie=await page.evaluate(()=>({button:document.querySelector('.apex-mastery-terminal .apex-mastery-equip')?.innerText.trim(),disabled:document.querySelector('.apex-mastery-terminal .apex-mastery-equip')?.disabled,message:document.querySelector('.apex-progress-feedback')?.innerText.trim(),credits:window.APEX_ARSENAL_META.credits(),skin:window.APEX_ARSENAL_META.skinEntitlement('hero','ROBOT','ecobot')}));
  check(equippedVie.button==='ĐANG TRANG BỊ'&&equippedVie.disabled&&equippedVie.message==='ĐÃ TRANG BỊ SKIN CHO P1'&&equippedVie.credits===350&&equippedVie.skin,'VIE equip succeeds, becomes disabled/equipped, and does not alter AC or entitlement',equippedVie);
  await page.screenshot({path:`${OUT}/ecobot-equipped-vie.png`});
- await page.evaluate(()=>window.APEX_I18N.setLanguage('eng'));await page.waitForFunction(()=>document.documentElement.lang==='en'&&document.querySelector('.apex-mastery-terminal .apex-mastery-equip')?.innerText.trim()==='EQUIPPED',{timeout:12000});
+ await page.evaluate(()=>window.APEX_I18N.setLanguage('eng'));await page.waitForFunction(()=>document.documentElement.lang==='en');await revealScene(page,'.apex-mastery-terminal .apex-mastery-equip');await page.waitForFunction(()=>document.querySelector('.apex-mastery-terminal .apex-mastery-equip')?.innerText.trim()==='EQUIPPED',{timeout:12000});
  check(await page.$eval('.apex-mastery-terminal .apex-mastery-equip',e=>e.disabled),'ENG equipped state remains non-actionable');
+ await revealScene(page,'#apex-mastery-recent-title');
  const engRecent=await page.evaluate(()=>({title:document.querySelector('#apex-mastery-recent-title')?.innerText.trim(),count:document.querySelectorAll('.apex-mastery-recent-chip').length}));
  check(engRecent.title==='RECENT UNLOCKS'&&engRecent.count===12,'ENG restores recent history label while retaining expanded overflow',engRecent);
  await page.screenshot({path:`${OUT}/recent-overflow-eng.png`});

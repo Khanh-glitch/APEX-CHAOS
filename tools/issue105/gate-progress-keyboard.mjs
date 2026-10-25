@@ -49,7 +49,7 @@ try {
         const stage = document.querySelector('.apex-pager-stage');
         const sr = stage.getBoundingClientRect();
         const pr = document.querySelector('.apex-progress-panel').getBoundingClientRect();
-        return Array.from(stage.querySelectorAll('[data-pager-item]:not(.is-page-hidden) button'))
+        return Array.from(stage.querySelectorAll('[data-pager-item] button'))
           .filter((b) => /CLAIM|CLAIMED|INCOMPLETE|NHẬN|NHAN|ĐÃ NHẬN|CHƯA ĐẠT/i.test(b.textContent || ''))
           .map((b, i) => {
             const r = b.getBoundingClientRect();
@@ -71,7 +71,9 @@ try {
       await wait(150);
     }
     const claims = [...seenClaims.values()];
-    const totalClaims = await page.evaluate(() => document.querySelectorAll('.apex-progress-panel [data-pager-item] .apex-progress-claim').length);
+    // Five starter contracts (ECOBOT/VUA HỀ are not contracts). Fixed, so a claim that
+    // never reaches a page cannot pass by being absent from the DOM.
+    const totalClaims = 5;
     const bad = claims.filter((c) => !c.named || !c.hitOk || !c.inViewport || !c.inPanel || c.size[0] < 44 || c.size[1] < 44);
     check(results, claims.length === totalClaims && totalClaims > 0 && bad.length === 0, `${id} every claim-style button is named, on a page, hit-testable and at least 44px`, {
       visibleOnPages: claims.length, total: totalClaims, bad: bad.slice(0, 4),

@@ -29,15 +29,16 @@ const snapshot = (page) => page.evaluate(() => {
   const stage = document.querySelector('.apex-pager-stage');
   const pr = panel.getBoundingClientRect();
   const sr = stage.getBoundingClientRect();
+  // Only the current page is mounted (ScenePager), so every item here is visible.
   const items = Array.from(stage.querySelectorAll(':scope > [data-pager-item]'));
-  const visible = items.filter((el) => !el.classList.contains('is-page-hidden'));
+  const visible = items;
   const overflowItems = visible.filter((el) => {
     const r = el.getBoundingClientRect();
     return r.top < sr.top - 1 || r.bottom > sr.bottom + 1;
   }).map((el) => el.textContent.trim().slice(0, 40));
   const controls = [];
   for (const it of visible) for (const el of it.querySelectorAll('button, article.apex-mastery-medal')) {
-    const item = items.indexOf(it);
+    const item = it.textContent.trim().slice(0, 30);
     const r = el.getBoundingClientRect();
     const cx = r.left + r.width / 2;
     const cy = r.top + r.height / 2;

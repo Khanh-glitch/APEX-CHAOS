@@ -287,10 +287,10 @@ function MedalCard({ achievement, earnedAt, best, recent, language, t }) {
 }
 
 // Issue #105 owner R2 (P0-A): Missions and Mastery are a paginated viewport scene,
-// not a scrolling dialog. ScenePager measures every item's real rendered height and
-// packs items into pages that fit the stage exactly; only the current page is visible
-// and interactive. Hidden items are visibility:hidden + inert, so they cannot be
-// clicked, focused or read. Nothing scrolls inside the scene.
+// not a scrolling dialog. ScenePager measures every item's real rendered height
+// (a full layout pass before paint) and packs items into pages that fit the stage.
+// Only the current page is mounted, so the DOM is exactly what the player sees: no
+// hidden copies, nothing focusable or clickable off-page, and nothing scrolls.
 function packPages(heights, available) {
   const pages = [];
   let start = 0;
@@ -309,34 +309,32 @@ function packPages(heights, available) {
 
 function ScenePager({ items, className, labels }) {
   const stageRef = useRef(null);
-  const packedKey = useRef('');
   const [pages, setPages] = useState(() => [[0, items.length]]);
   const [pageIndex, setPageIndex] = useState(0);
+  // needMeasure: content changed (new items identity from the parent) or the stage
+  // resized. While set, every item is mounted in flow so the layout pass can measure it.
+  const [needMeasure, setNeedMeasure] = useState(true);
   const [, setTick] = useState(0);
   const total = pages.length;
   const current = Math.min(pageIndex, Math.max(0, total - 1));
   const [start, end] = pages[current] || [0, items.length];
 
-  // Re-measure after every commit. Heights come from the live DOM, so content changes
-  // (claims, toggles, language, view-all) repack without a separate invalidation path.
-  // The key guard makes the loop converge: a second pass with equal pages does nothing.
+  useLayoutEffect(() => { setNeedMeasure(true); }, [items]);
+
   useLayoutEffect(() => {
+    if (!needMeasure) return;
     const stage = stageRef.current;
     if (!stage) return;
     const available = stage.clientHeight;
     if (!available) return;
     const heights = Array.from(stage.children, (node) => node.offsetHeight);
-    const next = packPages(heights, available);
-    const key = `${available}|${next.map((p) => p.join('-')).join(',')}`;
-    if (key !== packedKey.current) {
-      packedKey.current = key;
-      setPages(next);
-    }
+    setPages(packPages(heights, available));
+    setNeedMeasure(false);
   });
 
   useEffect(() => {
     const stage = stageRef.current;
-    const bump = () => setTick((n) => n + 1);
+    const bump = () => { setNeedMeasure(true); setTick((n) => n + 1); };
     const ro = stage && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(bump) : null;
     if (ro && stage) ro.observe(stage);
     window.addEventListener('resize', bump);
@@ -365,30 +363,14 @@ function ScenePager({ items, className, labels }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [go, current, total]);
 
-  // If the focused control lives on a page that just hid, move focus to this page.
-  useEffect(() => {
-    const stage = stageRef.current;
-    const active = document.activeElement;
-    if (!stage || !active || !stage.contains(active)) return;
-    const item = active.closest('[data-pager-item]');
-    if (!item || !item.classList.contains('is-page-hidden')) return;
-    const next = stage.querySelector('[data-pager-item]:not(.is-page-hidden) button, [data-pager-item]:not(.is-page-hidden) [tabindex="0"]');
-    next?.focus({ preventScroll: true });
-  }, [current]);
-
+  const showAll = needMeasure;
   return (
     <div className="apex-pager" data-apex-pager="">
       <div className={`apex-pager-stage ${className || ''}`} ref={stageRef}>
         {items.map((node, i) => {
-          const hidden = !(i >= start && i < end);
-          const hiddenAttrs = hidden ? { inert: '', 'aria-hidden': 'true' } : {};
+          if (!showAll && !(i >= start && i < end)) return null;
           return (
-            <div
-              key={node?.key ?? i}
-              data-pager-item=""
-              className={`apex-pager-item${hidden ? ' is-page-hidden' : ''}`}
-              {...hiddenAttrs}
-            >
+            <div key={node?.key ?? i} data-pager-item="" className="apex-pager-item">
               {node}
             </div>
           );

@@ -6,6 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
+import { revealScene, everyScenePage } from './issue105/harness.mjs';
 import { CP3_NEWBOT_ACHIEVEMENT_IDS, cp3EntitledProfile } from './cp3MasteryFixture.mjs';
 
 const EXPECTED_HERO_LABELS = ['NEWBOT', 'HUNTER', 'CRYSTALA', 'MAGNET', 'FROST', 'MIRROR'];
@@ -52,6 +53,8 @@ try {
   await page.click('.apex-progress-tabs button:last-child');
   await page.waitForSelector('.apex-mastery-vault', { visible: true, timeout: 10_000 });
   await page.waitForFunction(() => document.querySelectorAll('.apex-mastery-recent-chip').length === 8, { timeout: 10_000 });
+  // Issue #105 R2 (P0-A): the OFFENSE chapter may sit on a later page; reveal it first.
+  await revealScene(page, '.apex-mastery-chapter-toggle', { text: 'OFFENSE' });
   const offense = await page.$$('.apex-mastery-chapter-toggle');
   for (const button of offense) {
     if ((await button.evaluate((el) => el.innerText)).includes('OFFENSE')) {
@@ -64,20 +67,31 @@ try {
       && chapter.classList.contains('is-open')), { timeout: 10_000 });
   await sleep(250);
 
-  const startingState = await page.evaluate(() => ({
-    credits: window.APEX_ARSENAL_META.credits(),
-    mastery: JSON.stringify(window.APEX_ARSENAL_META.getMastery()),
-    total: document.querySelector('.apex-mastery-total strong')?.textContent.trim(),
-    selected: document.querySelector('.apex-mastery-ring strong')?.textContent.trim(),
-    recentCount: document.querySelectorAll('.apex-mastery-recent-chip').length,
-    expanded: [...document.querySelectorAll('.apex-mastery-chapter.is-open .apex-mastery-chapter-name')].map((el) => el.textContent.trim()),
-  }));
+  // Issue #105 R2 (P0-A): each Mastery value is read on the page that holds it.
+  await revealScene(page, '.apex-mastery-total strong');
+  const startTotal = await page.evaluate(() => document.querySelector('.apex-mastery-total strong')?.textContent.trim());
+  await revealScene(page, '.apex-mastery-ring strong');
+  const startSelected = await page.evaluate(() => document.querySelector('.apex-mastery-ring strong')?.textContent.trim());
+  await revealScene(page, '.apex-mastery-recent-chip');
+  const startRecent = await page.evaluate(() => document.querySelectorAll('.apex-mastery-recent-chip').length);
+  await revealScene(page, '.apex-mastery-chapter.is-open .apex-mastery-chapter-name');
+  const startExpanded = await page.evaluate(() => [...document.querySelectorAll('.apex-mastery-chapter.is-open .apex-mastery-chapter-name')].map((el) => el.textContent.trim()));
+  const startingState = {
+    credits: await page.evaluate(() => window.APEX_ARSENAL_META.credits()),
+    mastery: await page.evaluate(() => JSON.stringify(window.APEX_ARSENAL_META.getMastery())),
+    total: startTotal,
+    selected: startSelected,
+    recentCount: startRecent,
+    expanded: startExpanded,
+  };
   assert.deepEqual({ credits: startingState.credits, total: startingState.total, selected: startingState.selected, recentCount: startingState.recentCount, expanded: startingState.expanded },
     { credits: 550, total: '21/252', selected: '21/42', recentCount: 8, expanded: ['OFFENSE'] }, 'owner progressed state is reproduced exactly');
 
-  const inspectNames = async () => page.evaluate(() => ({
+  // Issue #105 R2 (P0-A): names are gathered from every page of the scene.
+  const inspectNames = async () => { const pages = await everyScenePage(page, () => ({
     recent: [...document.querySelectorAll('.apex-mastery-recent-chip b')].map((el) => el.textContent.trim()),
-    medals: [...document.querySelectorAll('.apex-mastery-chapter.is-open .apex-mastery-medal')].map((el) => ({
+    // Medals render only inside the open chapter, which can be split across pages, so no is-open ancestor here.
+    medals: [...document.querySelectorAll('.apex-mastery-medal')].map((el) => ({
       name: el.querySelector('h4')?.textContent.trim() || '',
       aria: el.getAttribute('aria-label') || '',
       title: el.getAttribute('title') || '',
@@ -85,7 +99,10 @@ try {
     chapterNext: [...document.querySelectorAll('.apex-mastery-chapter-next')].map((el) => el.textContent.trim()),
     nextLines: [...document.querySelectorAll('.apex-mastery-next-line b')].map((el) => el.textContent.trim()),
     visibleText: document.querySelector('.apex-mastery-vault')?.innerText || '',
-  }));
+  })); return {
+    recent: pages.flatMap((p) => p.recent), medals: pages.flatMap((p) => p.medals), chapterNext: pages.flatMap((p) => p.chapterNext),
+    nextLines: pages.flatMap((p) => p.nextLines), visibleText: pages.map((p) => p.visibleText).join('\n'),
+  }; };
   const inspectHeroRail = async (viewport) => page.evaluate(({ viewport, expectedNames }) => {
     const rail = document.querySelector('.apex-mastery-hero-rail');
     if (!rail) return { viewport, missingRail: true, labels: [] };
@@ -130,6 +147,7 @@ try {
 
   const assertHeroRail = async (width, height) => {
     await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: false, hasTouch: false });
+    await revealScene(page, '.apex-mastery-hero-rail');
     await page.evaluate(() => document.querySelector('.apex-mastery-hero-rail')?.scrollIntoView({ block: 'center', inline: 'nearest' }));
     await sleep(220);
     const rail = await inspectHeroRail(`${width}x${height}`);
@@ -206,7 +224,7 @@ try {
   const report = { viewports: ['1440x900', '390x844'], sourceProfile: { credits: 550, total: '21/252', newbot: '21/42', recent: 8, expanded: 'OFFENSE' }, startingState, eng, vie, restored, desktopRail, mobileRail, checks: checks.map(([ok, name]) => ({ ok, name })), browserErrors: errors };
   await writeFile(path.join(OUT, 'mastery-localization-report.json'), JSON.stringify(report, null, 2) + '\n');
   console.log('RA-2 release-blocker Mastery checks', JSON.stringify(report.checks));
-  assert.ok(checks.every(([ok]) => ok), 'owner progressed Mastery profile and six-label hero rail must pass localized and clipping checks');
+  assert.deepEqual(checks.filter(([ok]) => !ok).map(([, name]) => name), [], 'owner progressed Mastery profile and six-label hero rail must pass localized and clipping checks');
 } finally {
   await context.close();
   await browser.close();

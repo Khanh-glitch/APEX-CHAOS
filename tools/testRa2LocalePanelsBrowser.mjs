@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 import puppeteer from 'puppeteer-core';
+import { revealScene } from './issue105/harness.mjs';
 
 const CHROME=process.env.CHROME_PATH;
 if(!CHROME)throw Error('CHROME_PATH is required for the RA-2 locale panels browser gate');
@@ -50,22 +51,32 @@ try{
    await page.screenshot({path:`docs/acceptance/ra2/evidence/localization/${view.name}-missions-vie.png`});
    await page.click('.apex-progress-tabs button:last-child');
    await page.waitForSelector('.apex-mastery-vault',{visible:true,timeout:10000});
+   // Issue #105 R2 (P0-A): Mastery shows one fitting page at a time. Each read reveals
+   // its element on the page that holds it first; the values are the same state.
+   await revealScene(page,'.apex-mastery-chapter-toggle');
    await page.waitForFunction(()=>document.querySelector('.apex-mastery-chapter-toggle')?.getAttribute('aria-expanded')==='true',{timeout:10000});
-   const mastery=await page.evaluate(()=>{
+   await revealScene(page,'.apex-mastery-goal strong');
+   const ecoRead=await page.evaluate(()=>({
+    ecoLabel:document.querySelector('.apex-mastery-goal strong')?.textContent.trim(),
+    ecoAria:document.querySelector('.apex-mastery-goal')?.getAttribute('aria-label'),
+   }));
+   await revealScene(page,'#apex-mastery-recent-title');
+   const recentRead=await page.evaluate(()=>document.querySelector('.apex-mastery-recent')?.innerText);
+   await revealScene(page,'.apex-mastery-chapter-toggle');
+   const chapterRead=await page.evaluate(()=>({
+    title:document.querySelector('.apex-progress-title')?.textContent.trim(),
+    tab:[...document.querySelectorAll('.apex-progress-tabs [role=tab]')].map(e=>({text:e.textContent.trim(),selected:e.getAttribute('aria-selected')})),
+    chapter:document.querySelector('.apex-mastery-chapter-toggle')?.innerText,
+   }));
+   await revealScene(page,'.apex-mastery-medal');
+   const medalRead=await page.evaluate(()=>{
     const medal=document.querySelector('.apex-mastery-medal');
-    const equip=document.querySelector('.apex-mastery-equip');
-    return {
-     title:document.querySelector('.apex-progress-title')?.textContent.trim(),
-     ecoLabel:document.querySelector('.apex-mastery-goal strong')?.textContent.trim(),
-     ecoAria:document.querySelector('.apex-mastery-goal')?.getAttribute('aria-label'),
-     tab:[...document.querySelectorAll('.apex-progress-tabs [role=tab]')].map(e=>({text:e.textContent.trim(),selected:e.getAttribute('aria-selected')})),
-     empty:document.querySelector('.apex-mastery-recent')?.innerText,
-     chapter:document.querySelector('.apex-mastery-chapter-toggle')?.innerText,
-     medal:medal?{title:medal.title,aria:medal.getAttribute('aria-label'),text:medal.innerText}:null,
-     equip:equip?{text:equip.innerText,disabled:equip.disabled}:null,
-     rarityShapes:[...document.querySelectorAll('.apex-mastery-medal')].map(e=>e.getAttribute('data-rarity-shape')),
-    };
+    return medal?{title:medal.title,aria:medal.getAttribute('aria-label'),text:medal.innerText}:null;
    });
+   const rarityShapes=await page.evaluate(()=>[...document.querySelectorAll('.apex-mastery-medal')].map(e=>e.getAttribute('data-rarity-shape')));
+   await revealScene(page,'.apex-mastery-equip');
+   const equipRead=await page.evaluate(()=>{const equip=document.querySelector('.apex-mastery-equip');return equip?{text:equip.innerText,disabled:equip.disabled}:null;});
+   const mastery={title:chapterRead.title,ecoLabel:ecoRead.ecoLabel,ecoAria:ecoRead.ecoAria,tab:chapterRead.tab,empty:recentRead,chapter:chapterRead.chapter,medal:medalRead,equip:equipRead,rarityShapes};
    check(mastery.title==='KHO TINH THÔNG','Mastery tab title renders VIE '+view.name,mastery.title);
    check(mastery.ecoLabel==='ECOBOT — LÕI TÁI CHẾ V17'&&mastery.ecoAria==='ECOBOT — LÕI TÁI CHẾ V17','Mastery ECOBOT name and aria label are localized '+view.name,mastery);
    check(mastery.tab[1]?.selected==='true'&&mastery.tab[0]?.selected==='false','Mastery tab selection semantics '+view.name,mastery.tab);
@@ -74,6 +85,7 @@ try{
    check(/[À-ỹ]/u.test(mastery.medal?.title||''),'Mastery medal title rule is VIE '+view.name,mastery.medal?.title);
    check(mastery.equip?.disabled===true,'locked skin equip remains disabled '+view.name,mastery.equip);
    check(new Set(mastery.rarityShapes).size>=2,'Mastery uses multiple rarity shapes '+view.name,mastery.rarityShapes);
+   await revealScene(page,'.apex-mastery-chapter-toggle');
    await page.click('.apex-mastery-chapter-toggle');
    await page.waitForFunction(()=>document.querySelector('.apex-mastery-chapter-toggle')?.getAttribute('aria-expanded')==='false',{timeout:10000});
    await page.click('.apex-mastery-chapter-toggle');
@@ -81,7 +93,9 @@ try{
    await page.screenshot({path:`docs/acceptance/ra2/evidence/localization/${view.name}-mastery-vie.png`});
    await page.evaluate(()=>window.APEX_I18N?.setLanguage('eng'));
    await page.waitForFunction(()=>document.querySelector('.apex-progress-title')?.textContent.trim()==='MASTERY VAULT',{timeout:10000});
+   await revealScene(page,'.apex-mastery-medal');
    check(await page.$eval('.apex-mastery-medal',e=>e.title.includes('Deal at least 500 actual damage in one chain')),'Mastery rule title restores English '+view.name);
+   await revealScene(page,'.apex-mastery-goal strong');
    check(await page.$eval('.apex-mastery-goal strong',e=>e.textContent.trim()==='ECOBOT — RECYCLE CORE V17'),'Mastery ECOBOT name restores English '+view.name);
    await page.evaluate(()=>window.APEX_I18N?.setLanguage('vie'));
    await page.waitForFunction(()=>document.querySelector('.apex-progress-title')?.textContent.trim()==='KHO TINH THÔNG',{timeout:10000});

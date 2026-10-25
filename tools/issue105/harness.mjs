@@ -87,3 +87,59 @@ export function check(results, ok, name, details) {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${details === undefined ? '' : ' ' + JSON.stringify(details).slice(0, 400)}`);
   return !!ok;
 }
+
+// Issue #105 R2 (P0-A): Missions/Mastery show one fitting page at a time, and only the
+// current page is mounted. revealScene pages (from the first page) with the real Next
+// control until a matching element is on screen. It never edits DOM or state.
+export async function revealScene(page, selector, { text = null } = {}) {
+  const prev = async () => page.$('.apex-pager-nav .apex-pager-arrow');
+  const next = async () => page.$('.apex-pager-nav .apex-pager-arrow:last-child');
+  for (let i = 0; i < 60; i += 1) {
+    const b = await prev();
+    if (!b || await b.evaluate((el) => el.disabled)) break;
+    await b.click();
+    await wait(120);
+  }
+  for (let i = 0; i < 60; i += 1) {
+    const found = await page.evaluate((sel, txt) => Array.from(document.querySelectorAll(sel))
+      .some((el) => !txt || el.textContent.includes(txt)), selector, text);
+    if (found) return true;
+    const b = await next();
+    if (!b || await b.evaluate((el) => el.disabled)) return false;
+    await b.click();
+    await wait(120);
+  }
+  return false;
+}
+
+// Reveals the element on its page, then clicks it with a real pointer event.
+export async function sceneClick(page, selector, { text = null } = {}) {
+  if (!(await revealScene(page, selector, { text }))) throw new Error(`sceneClick: not on any page: ${selector} ${text || ''}`);
+  const handle = await page.evaluateHandle((sel, txt) => Array.from(document.querySelectorAll(sel))
+    .find((el) => !txt || el.textContent.includes(txt)) || null, selector, text);
+  const el = handle.asElement();
+  if (!el) throw new Error(`sceneClick: missing ${selector}`);
+  await el.click();
+  return true;
+}
+
+// Runs a read on every Mastery/Missions page (from the first page, with the real Next
+// control) and returns one result per page. The scene is left on the last page.
+export async function everyScenePage(page, read) {
+  for (let i = 0; i < 60; i += 1) {
+    const b = await page.$('.apex-pager-nav .apex-pager-arrow');
+    if (!b || await b.evaluate((el) => el.disabled)) break;
+    await b.click();
+    await wait(120);
+  }
+  const out = [];
+  for (let i = 0; i < 60; i += 1) {
+    out.push(await page.evaluate(read));
+    const arrows = await page.$$('.apex-pager-nav .apex-pager-arrow');
+    const nb = arrows[arrows.length - 1];
+    if (!nb || await nb.evaluate((el) => el.disabled)) break;
+    await nb.click();
+    await wait(120);
+  }
+  return out;
+}
