@@ -419,6 +419,13 @@ async function runViewportJourney(browser, vp) {
   }
 
   // 5. Cast K -> capture K ACTIVE window (damage mitigation + shield ring + live countdown)
+  // K is pressed only once the engine reports it castable. BOT P2 defaults to
+  // HUNTER (owner R2 P0-B), whose opening hits can hard-CC P1 (reason 'cc'), and
+  // a press in that state is correctly refused, so the wait is on the real state.
+  await page.waitForFunction(
+    () => window.APEX_HERO_REWORK?.observeAbilityCastability?.(window.fighters?.[0], 'A2')?.castable === true,
+    { timeout: 30000 }
+  );
   await castSkill(1);
   await page.waitForFunction(
     () => document.querySelector('#p1Side .skill[data-i="1"]')?.dataset?.state === 'active',
@@ -850,8 +857,13 @@ async function runCombinedCoachToastAudit(browser) {
         { achievementId: 'first-blood', heroId: 'ROBOT', ownerSide: 'P1', ownerKind: 'human', walletEligible: true, battleMode: 'BOT', value: 1, at: Date.now() },
       ] } }));
     });
-    await page.waitForSelector('.apex-achievement-toast[data-owner-side="P1"]', { visible: true, timeout: 10000 });
-    await sleep(360);
+    // P0-D (owner, #105): no mission/achievement toast is presented during a live
+    // battle, so the provisional event is held, not shown. The settle window is the
+    // same negative window gate-battle-no-popup uses; the menu control proves the
+    // event is delivered and not dropped.
+    await sleep(1500);
+    assert.equal(await page.evaluate(() => document.querySelectorAll('.apex-achievement-toast').length), 0,
+      `${c.id}: no mission/achievement toast during live battle (Order A)`);
 
     const sampleCombined = () => page.evaluate(() => {
       const box = (sel) => {
@@ -909,6 +921,7 @@ async function runCombinedCoachToastAudit(browser) {
       const toastHit = toast ? document.elementFromPoint(toast.left + toast.width / 2, toast.top + toast.height / 2) : null;
       return {
         viewport: { width: window.innerWidth, height: window.innerHeight },
+        toastCount: document.querySelectorAll('.apex-achievement-toast').length,
         toastMode: toastEl?.dataset?.visualMode || null,
         toastPending: toastEl?.dataset?.visualPending || null,
         toastPointerEvents: toastEl ? getComputedStyle(toastEl).pointerEvents : null,
@@ -921,16 +934,11 @@ async function runCombinedCoachToastAudit(browser) {
         coachBodyClipPx: bodyEl ? Math.max(0, bodyEl.scrollHeight - bodyEl.clientHeight) : null,
         boxes: { toast, coachChip, coachCopy, coachBody, coachSkip, arena, p1Skill0, p1Skill1, p1Weapon, p2Skills },
         overlaps: {
-          toastVsCoachChip: ov(toast, coachChip),
-          toastVsCoachCopy: ov(toast, coachCopy),
-          toastVsCoachBody: ov(toast, coachBody),
-          toastVsCoachSkip: ov(toast, coachSkip),
-          toastVsP1Skill0: ov(toast, p1Skill0),
-          toastVsP1Skill1: ov(toast, p1Skill1),
-          toastVsP1Weapon: ov(toast, p1Weapon),
-          toastVsP2Skills: ov(toast, p2Skills),
-          toastVsRails: +(ov(toast, p1Rail) + ov(toast, p2Rail) + ov(toast, matchCenter)).toFixed(2),
-          toastVsArena: ov(toast, arena),
+          coachCardVsP1Skill0: ov(coachChip, p1Skill0),
+          coachCardVsP1Skill1: ov(coachChip, p1Skill1),
+          coachCardVsP1Weapon: ov(coachChip, p1Weapon),
+          coachCardVsP2Skills: ov(coachChip, p2Skills),
+          coachCardVsRails: +(ov(coachChip, p1Rail) + ov(coachChip, p2Rail) + ov(coachChip, matchCenter)).toFixed(2),
         },
         hitTargets: {
           coachSkipUnoccluded: hitUnoccluded('.apex-coach-skip'),
@@ -947,21 +955,19 @@ async function runCombinedCoachToastAudit(browser) {
       const m = await sampleCombined();
       const leftover = await page.evaluate(() => document.querySelectorAll('.apex-coach-chip, .apex-coach-beacon, .apex-coach-layer').length);
       assert.equal(leftover, 0, `${c.id}: portrait battle must stay clean (no coach chip/beacon/layer)`);
-      assert.ok(m.boxes.toast && m.toastPending === 'false', `${c.id}: achievement toast must remain visible in clean portrait battle`);
+      assert.equal(m.toastCount, 0, `${c.id}: no toast presented in clean portrait battle (P0-D)`);
       assert.equal(m.tutorialPaused, false, `${c.id}: tutorial pause must stay false`);
-      assert.equal(m.overlaps.toastVsP1Skill0, 0, `${c.id}: 0px toast vs P1 Skill 0 overlap`);
-      assert.equal(m.overlaps.toastVsP1Skill1, 0, `${c.id}: 0px toast vs P1 Skill 1 overlap`);
-      assert.equal(m.overlaps.toastVsP1Weapon, 0, `${c.id}: 0px toast vs P1 Weapon overlap`);
-      assert.equal(m.overlaps.toastVsP2Skills, 0, `${c.id}: 0px toast vs P2 Skills overlap`);
-      assert.equal(m.overlaps.toastVsRails, 0, `${c.id}: 0px toast vs HP/Timer rails overlap`);
       assert.equal(m.hitTargets.p1Skill0Unoccluded, true, `${c.id}: P1 Skill 0 target must be 100% unoccluded`);
       assert.equal(m.hitTargets.p1Skill1Unoccluded, true, `${c.id}: P1 Skill 1 target must be 100% unoccluded`);
       assert.deepEqual(errors, [], `${c.id}: zero browser runtime errors`);
       out[c.id] = { portraitCleanBattle: m };
-      console.log(`PASS Combined Toast, clean portrait battle (${c.id}) — no coach dock by policy, toast clear of skills/weapon`);
+      console.log(`PASS Live battle, clean portrait (${c.id}) — no coach dock by policy, no toast presented (P0-D)`);
       await context.close();
       continue;
     }
+    // The coach chip is state-driven: it yields during opening cooldowns and
+    // returns when K is castable. Sample only once it is genuinely mounted again.
+    await page.waitForFunction(() => !!document.querySelector('.apex-coach-chip'), { timeout: 20000 });
     const combinedCoachFirst = await sampleCombined();
     await page.screenshot({ path: path.join(OUT_DIR, `after-${c.id}-coach-toast.png`) });
 
@@ -985,27 +991,20 @@ async function runCombinedCoachToastAudit(browser) {
 
     for (const [orderLabel, m] of [['coachFirst', combinedCoachFirst], ['toastFirst', combinedToastFirst]]) {
       assert.equal(m.tutorialPaused, false, `${c.id} (${orderLabel}): tutorial pause must stay false`);
-      assert.ok(m.boxes.toast && m.toastPending === 'false', `${c.id} (${orderLabel}): achievement toast must remain visible (not hidden)`);
+      assert.equal(m.toastCount, 0, `${c.id} (${orderLabel}): no toast presented during live battle (P0-D)`);
       assert.ok(m.boxes.coachChip && m.coachInViewport, `${c.id} (${orderLabel}): coach chip must fit inside viewport (${JSON.stringify(m.boxes.coachChip)})`);
       assert.ok((m.coachBodyClipPx ?? 0) <= 2, `${c.id} (${orderLabel}): coach copy must not vertically clip (${m.coachBodyClipPx})`);
-      assert.equal(m.overlaps.toastVsCoachChip, 0, `${c.id} (${orderLabel}): 0px toast vs coach card overlap (${JSON.stringify(m.overlaps)})`);
-      assert.equal(m.overlaps.toastVsCoachCopy, 0, `${c.id} (${orderLabel}): 0px toast vs coach copy overlap`);
-      assert.equal(m.overlaps.toastVsCoachBody, 0, `${c.id} (${orderLabel}): 0px toast vs coach body overlap`);
-      assert.equal(m.overlaps.toastVsCoachSkip, 0, `${c.id} (${orderLabel}): 0px toast vs coach SKIP overlap`);
-      assert.equal(m.overlaps.toastVsP1Skill0, 0, `${c.id} (${orderLabel}): 0px toast vs P1 Skill 0 overlap`);
-      assert.equal(m.overlaps.toastVsP1Skill1, 0, `${c.id} (${orderLabel}): 0px toast vs P1 Skill 1 overlap`);
-      assert.equal(m.overlaps.toastVsP1Weapon, 0, `${c.id} (${orderLabel}): 0px toast vs P1 Weapon overlap`);
-      assert.equal(m.overlaps.toastVsP2Skills, 0, `${c.id} (${orderLabel}): 0px toast vs P2 Skills overlap`);
-      assert.equal(m.overlaps.toastVsRails, 0, `${c.id} (${orderLabel}): 0px toast vs HP/Timer rails overlap`);
-      assert.equal(m.toastPointerEvents, 'none', `${c.id} (${orderLabel}): toast must stay pointer-events:none`);
-      assert.equal(m.hitTargets.toastContainsHitElement, false, `${c.id} (${orderLabel}): toast must never intercept pointer hit-testing`);
+      assert.equal(m.overlaps.coachCardVsP1Skill0, 0, `${c.id} (${orderLabel}): 0px coach card vs P1 Skill 0 overlap`);
+      assert.equal(m.overlaps.coachCardVsP1Skill1, 0, `${c.id} (${orderLabel}): 0px coach card vs P1 Skill 1 overlap`);
+      assert.equal(m.overlaps.coachCardVsP1Weapon, 0, `${c.id} (${orderLabel}): 0px coach card vs P1 Weapon overlap`);
+      assert.equal(m.overlaps.coachCardVsP2Skills, 0, `${c.id} (${orderLabel}): 0px coach card vs P2 Skills overlap`);
       assert.equal(m.hitTargets.coachSkipUnoccluded, true, `${c.id} (${orderLabel}): Coach SKIP target must be 100% unoccluded`);
       assert.equal(m.hitTargets.p1Skill0Unoccluded, true, `${c.id} (${orderLabel}): P1 Skill 0 target must be 100% unoccluded`);
       assert.equal(m.hitTargets.p1Skill1Unoccluded, true, `${c.id} (${orderLabel}): P1 Skill 1 target must be 100% unoccluded`);
     }
     assert.deepEqual(errors, [], `${c.id}: zero browser runtime errors`);
     out[c.id] = { coachFirst: combinedCoachFirst, toastFirst: combinedToastFirst };
-    console.log(`PASS Combined Coach + Toast (${c.id}) — mode=${combinedCoachFirst.toastMode}, coachOverlap=0px, hitTargetsUnoccluded=true`);
+    console.log(`PASS Live battle coach, no toast presented (${c.id}) — coachOverlap=0px, hitTargetsUnoccluded=true (P0-D)`);
     await context.close();
   }
   return out;

@@ -265,8 +265,14 @@ async function runHero(hero, index) {
     await cdp.poll(`document.getElementById('stage')?.classList.contains('fighter-active-p2')||false`,
       Boolean, { attempts:400, interval:50 });
 
-    await cdp.physicalClick('.rosterCard[data-hero="newbot"]');
-    await cdp.poll(`document.querySelector('.rosterCard[data-hero="newbot"]')?.classList.contains('p2-selected')||false`,
+    // Owner R2 P0-B: BOT never mirrors P1. After P1 locks, a tap on P1's own
+    // card is refused (ui.action.rejected) and the CPU keeps the other
+    // fighter. The CPU pick is therefore any roster fighter that is NOT the
+    // P1 hero under test: NEWBOT is the CPU for every P1 except NEWBOT, where
+    // the CPU is HUNTER (the owner-decided BOT default).
+    const cpuHero = hero === 'newbot' ? 'hunter' : 'newbot';
+    await cdp.physicalClick(`.rosterCard[data-hero="${cpuHero}"]`);
+    await cdp.poll(`document.querySelector('.rosterCard[data-hero="${cpuHero}"]')?.classList.contains('p2-selected')||false`,
       Boolean, { attempts:400, interval:50 });
 
     await cdp.physicalClick('#lockIn');
