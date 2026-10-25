@@ -9,6 +9,7 @@ import {
   masteryResultHeroId,
   primaryProgress,
 } from './masteryCatalog.js';
+import { isLiveBattleActive } from './liveBattle.js';
 import './achievementToast.css';
 
 // CP3.2 mastery feedback. This component displays provisional live
@@ -254,6 +255,15 @@ export default function AchievementToast() {
 
   const showNext = useCallback(() => {
     if (activeRef.current) return;
+    // Owner R2 P0-D: no mission/achievement popup while a battle is live. Anything
+    // still queued from the battle is dropped (no after-battle spam). The ledger
+    // keeps every award; the Mastery Vault and sealed result still show it.
+    if (isLiveBattleActive()) {
+      queueRef.current = [];
+      overflowRef.current = 0;
+      setOverflow(0);
+      return;
+    }
     const next = queueRef.current.shift();
     if (!next) {
       overflowRef.current = 0;
@@ -352,8 +362,31 @@ export default function AchievementToast() {
     };
   }, [current?.key, dock?.safe, dock?.visualFallback]);
 
+  // Owner R2 P0-D: a toast already on screen when a battle starts is dismissed at once.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!activeRef.current || !isLiveBattleActive()) return;
+      window.clearTimeout(hideTimerRef.current);
+      window.clearTimeout(nextTimerRef.current);
+      remainingDisplayRef.current = null;
+      activeRef.current = null;
+      queueRef.current = [];
+      overflowRef.current = 0;
+      setCurrent(null);
+      setOverflow(0);
+    }, 200);
+    return () => window.clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     const enqueue = (event) => {
+      // Owner R2 P0-D: live-battle achievement feedback is not presented (see liveBattle.js).
+      if (isLiveBattleActive()) {
+        queueRef.current = [];
+        overflowRef.current = 0;
+        setOverflow(0);
+        return;
+      }
       const unlocks = Array.isArray(event?.detail?.unlocks) ? event.detail.unlocks : [];
       const incoming = unlocks
         .map((unlock) => {

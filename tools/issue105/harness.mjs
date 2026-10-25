@@ -65,8 +65,11 @@ export async function startBotBattle(page, { hero = null } = {}) {
     await page.evaluate((h) => document.querySelector(`.rosterCard[data-hero="${h}"]`).click(), hero);
     await wait(700);
   }
-  await page.click('#lockIn');
   const hudSel = '#battleHudHost.is-open #p1Side .skill[data-i="0"]';
+  await page.click('#lockIn');
+  // P1 lock must render (stage gets fighter-p1-locked) before the BOT lock click;
+  // clicking earlier was lost to the re-render and left the battle unopened.
+  await page.waitForFunction(() => document.querySelector('#stage')?.classList.contains('fighter-p1-locked') || !!document.querySelector('#battleHudHost.is-open'), { timeout: 30000 }).catch(() => {});
   if (!(await page.$(hudSel))) await page.click('#lockIn').catch(() => {});
   await page.waitForSelector(hudSel, { timeout: 90000 });
   await wait(1200);
