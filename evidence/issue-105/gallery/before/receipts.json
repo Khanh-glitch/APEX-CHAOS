@@ -1,0 +1,16 @@
+{
+  "label": "before",
+  "url": "http://127.0.0.1:5176/",
+  "shots": [
+    "missions-desktop-1440x900",
+    "mastery-desktop-1440x900",
+    "missions-phone-390x844",
+    "mastery-phone-390x844",
+    "pick-bot-desktop-1440x900",
+    "menu-control-toast-phone-390x844",
+    "battle-live-phone-390x844-toast-1"
+  ],
+  "notes": [],
+  "menuToastCount": 1,
+  "liveBattleToastCount": 1
+}
