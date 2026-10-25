@@ -24,8 +24,7 @@ import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordin
 import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
-import AccountCenter from './ui/AccountCenter.jsx';
-import ProgressionCenter from './ui/ProgressionCenter.jsx';
+import GoldMissionAccountHost from './ui/GoldMissionAccountHost.jsx';
 import FirstPlayGuide from './ui/FirstPlayGuide.jsx';
 import RewardToast from './ui/RewardToast.jsx';
 import AchievementToast from './ui/AchievementToast.jsx';
@@ -1093,8 +1092,7 @@ export default function App() {
   return (
     <>
     <CosmeticLocker />
-    <AccountCenter />
-    <ProgressionCenter />
+    <GoldMissionAccountHost />
     <FirstPlayGuide />
     <RewardToast />
     <AchievementToast />
