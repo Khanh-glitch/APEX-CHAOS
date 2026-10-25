@@ -1,0 +1,148 @@
+/* APEX CHAOS — owner-supplied Missions / Account GOLD cutover.
+ * Scoped to agm-*; never paints the combat HUD, Home, or Lucky Draw.
+ * No font CDN or alternate AC asset source. */
+.agm-overlay{position:fixed;inset:0;z-index:2147480900;display:block!important;color:#fff5e7;font-family:'Montserrat','ApcKanit','Segoe UI',sans-serif;isolation:isolate;background:#07050a;overflow:hidden;text-align:left}
+.agm-overlay,.agm-overlay *{box-sizing:border-box}
+.agm-overlay button,.agm-overlay input{font:inherit}
+.agm-overlay button{cursor:pointer}
+.agm-overlay button:disabled{cursor:default}
+.agm-overlay button:focus-visible,.agm-overlay input:focus-visible{outline:3px solid #fff3ad;outline-offset:3px}
+.agm-stage{position:absolute;inset:0;z-index:-1;pointer-events:none;background:
+ linear-gradient(180deg,rgba(10,5,8,.52),rgba(7,5,10,.42) 29%,rgba(7,5,10,.93)),
+ radial-gradient(ellipse at 73% 21%,rgba(255,96,20,.30),transparent 53%),
+ url('/gold/assets/gold/home-world-background.png') center/cover no-repeat}
+.agm-stage::before{content:'';position:absolute;inset:0;background:
+ repeating-linear-gradient(0deg,transparent 0 5px,rgba(255,230,170,.018) 6px),
+ linear-gradient(90deg,rgba(2,2,4,.84),transparent 25%,transparent 75%,rgba(2,2,4,.82))}
+.agm-page{position:relative;width:100%;height:100dvh;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.agm-top{min-height:66px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:max(8px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) 8px max(20px,env(safe-area-inset-left));border-bottom:1px solid rgba(255,166,56,.27);background:linear-gradient(180deg,rgba(5,3,6,.96),rgba(9,5,5,.72))}
+.agm-wordmark{font-weight:1000;font-style:italic;line-height:.72;letter-spacing:-.06em;flex:0 0 auto}
+.agm-wordmark>span{display:block;font-size:25px;background:linear-gradient(#fff5c6,#ffb51c 55%,#ed6114);color:transparent;background-clip:text;-webkit-background-clip:text}
+.agm-wordmark>small{display:block;color:#f5bc75;font-size:12px;letter-spacing:.36em;margin-top:5px}
+.agm-top-center{color:#a38570;font:800 10px/1.3 'Montserrat',sans-serif;letter-spacing:.35em}
+.agm-top-center b{color:#ffd47b;margin:0 12px}
+.agm-exit{display:flex;align-items:center;gap:10px;border:1px solid #b26935;background:#170b0bdf;color:#ffc98b;min-height:44px;padding:4px 13px;font-weight:900;font-size:14px;clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)}
+.agm-exit span{font-size:20px}.agm-exit small{font-size:10px;letter-spacing:.12em}
+.agm-main{width:min(1260px,100%);min-height:0;flex:1;margin:auto;display:flex;flex-direction:column;padding:18px clamp(14px,3vw,38px) max(15px,env(safe-area-inset-bottom));gap:13px}
+.agm-heading{display:flex;justify-content:space-between;align-items:end;gap:12px;flex:0 0 auto}
+.agm-heading p{color:#ffc27b;font-size:10px;font-weight:900;letter-spacing:.36em;margin:0 0 3px}
+.agm-heading h2{font:italic 1000 clamp(45px,6.5vw,88px)/.89 'Montserrat','ApcKanit',sans-serif;letter-spacing:-.065em;margin:0;color:#ffb529;text-shadow:0 4px #a43209,0 12px 44px rgba(255,97,11,.53)}
+.agm-heading-rule{color:#ff8a26;opacity:.5;letter-spacing:1em;font-size:12px}
+.agm-panel{min-width:0;min-height:0;padding:20px;background:linear-gradient(140deg,rgba(37,17,11,.95),rgba(9,5,7,.95) 66%);border:1px solid #b96529;box-shadow:0 20px 50px rgba(0,0,0,.45),inset 0 0 60px rgba(225,73,10,.07);clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px)}
+.agm-mini{display:block;color:#d6a178;font:900 10px/1.45 'Montserrat',sans-serif;letter-spacing:.18em}
+.agm-wallet{display:flex;align-items:center;gap:11px;min-width:0}.agm-wallet>div{min-width:0}
+.agm-wallet small{display:block;color:#d9a27b;font-size:9px;font-weight:900;letter-spacing:.20em}
+.agm-wallet strong{display:block;font:italic 1000 clamp(22px,2.7vw,32px)/1 'Montserrat',sans-serif;color:#ffb620;white-space:nowrap;text-shadow:0 0 18px rgba(251,127,19,.35)}
+.agm-wallet strong em{font-size:.55em;font-style:normal;color:#ffe29c}
+.agm-wallet.is-large strong{font-size:clamp(30px,4.2vw,56px);letter-spacing:-.04em}
+.agm-coin{flex:none;filter:drop-shadow(0 0 9px rgba(255,158,17,.5))}
+.agm-coin-live{animation:agm-float 2.6s ease-in-out infinite}
+@keyframes agm-float{50%{transform:translateY(-5px);filter:drop-shadow(0 0 18px rgba(255,187,41,.9))}}
+.agm-meter{height:10px;background:#26160f;border:1px solid rgba(255,174,61,.24);position:relative;overflow:hidden}
+.agm-meter>span{display:block;height:100%;background:linear-gradient(90deg,#ed6114,#ffaf19 75%,#ffe597);box-shadow:0 0 16px #ff820f;transition:width .35s ease}
+.agm-hero-art{width:63px;height:72px;flex:none;display:grid;place-items:center;clip-path:polygon(50% 0,100% 22%,100% 78%,50% 100%,0 78%,0 22%);background:linear-gradient(155deg,#fff6ba,#ff8c15,#4e1607);padding:3px;filter:drop-shadow(0 0 10px #ea6408)}
+.agm-hero-art img{width:100%;height:100%;object-fit:contain;background:#160b0b;clip-path:polygon(50% 0,100% 22%,100% 78%,50% 100%,0 78%,0 22%)}
+.agm-hero-art.is-large{width:clamp(122px,17vw,183px);height:clamp(138px,19vw,211px)}
+.agm-button{border:0;min-height:45px;padding:10px 18px;background:linear-gradient(#ffde70,#ffab16 46%,#f16b08);color:#1c0a01;font:italic 1000 13px/1.1 'Montserrat',sans-serif!important;letter-spacing:.08em;text-shadow:none;clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);box-shadow:0 0 22px rgba(255,145,28,.25)}
+.agm-button:disabled{background:rgba(255,255,255,.08);color:#97847d;box-shadow:none}
+.agm-button.is-secondary{background:#2b1512;color:#ffe1b3;border:1px solid #9c5929}
+.agm-overlay button:hover:not(:disabled){filter:brightness(1.2)}
+.agm-status{font-size:12px;color:#ffd289;font-weight:800;min-height:18px}
+.agm-account-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:22px;min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;padding-bottom:12px}
+.agm-license{position:relative;min-height:360px;background:linear-gradient(130deg,rgba(35,16,10,.97),#090609 72%);border:2px solid #ef982d;box-shadow:0 22px 70px rgba(255,104,14,.19)}
+.agm-license::before{content:'';position:absolute;inset:6px;border:1px solid rgba(255,205,98,.18);pointer-events:none}
+.agm-license-head{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:27px}
+.agm-license-head strong{font-size:17px;font-style:italic;letter-spacing:.16em}
+.agm-guest-stamp{border:2px solid #f57a16;color:#fb9f38;padding:6px 13px;font-size:13px;font-weight:1000;letter-spacing:.18em;transform:rotate(-6deg)}
+.agm-license-player{display:flex;align-items:center;gap:23px;min-width:0}
+.agm-license-player h3{font:italic 1000 clamp(24px,3vw,42px)/1.06 'Montserrat',sans-serif;overflow-wrap:anywhere;margin:4px 0 8px}
+.agm-profile-id{margin-top:22px}
+.agm-profile-id button{background:none;border:0;color:#ffce6d;font-weight:900;letter-spacing:.08em;overflow-wrap:anywhere;text-align:left;padding:5px 0}
+.agm-name-editor{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.agm-name-editor input,.agm-signin input{flex:1;min-width:120px;min-height:46px;padding:8px 12px;background:#12090b;color:#fff;border:1px solid #b96827}
+.agm-name-editor button{min-width:64px}
+.agm-account-side{display:grid;align-content:start;gap:15px}
+.agm-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.agm-stat b{display:block;color:#fff;font-size:clamp(27px,3vw,42px);font-weight:1000;margin-top:8px}
+.agm-portraits{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.agm-portrait-item{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:0;padding:2px;color:#ffe0ad;font-size:10px;font-weight:900}
+.agm-portrait-item[aria-pressed=true] .agm-hero-art{outline:2px solid #ffd465;filter:drop-shadow(0 0 15px #f90)}
+.agm-portrait-item.is-locked{opacity:.47;filter:grayscale(1)}
+.agm-save{display:flex;gap:11px;align-items:start}.agm-save-dot{width:13px;height:13px;flex:none;border-radius:50%;background:#66de8f;box-shadow:0 0 12px #66de8f;margin-top:3px}
+.agm-save-dot.is-offline{background:#ffcb4f;box-shadow:0 0 9px #ffcb4f}
+.agm-save p{font-size:12px;color:#c6a996;line-height:1.5;margin-top:5px}
+.agm-meta-line{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.agm-meta-line strong{font-size:19px;color:#fff}
+.agm-profile-actions{display:flex;flex-wrap:wrap;gap:9px}
+.agm-signin{display:grid;gap:10px}
+.agm-signin .agm-button{min-width:130px}
+.agm-contract-top{display:flex;justify-content:space-between;gap:13px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
+.agm-contract-summary{display:flex;align-items:center;gap:23px;flex-wrap:wrap;min-width:0;flex:1}
+.agm-contract-total{flex:1;min-width:170px}.agm-contract-total .agm-mini{display:flex;justify-content:space-between;gap:10px}
+.agm-tabs{display:flex;gap:8px;align-items:center;flex:0 0 auto}
+.agm-tabs button{min-height:45px;padding:9px 15px;background:rgba(16,8,8,.91);border:1px solid #954517;color:#ffc88a;font:italic 1000 12px 'Montserrat',sans-serif;letter-spacing:.09em}
+.agm-tabs button[aria-selected=true]{background:linear-gradient(#ffd476,#ff801b);color:#240d00;border-color:#fff0c7}
+.agm-contracts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;min-height:0;flex:1}
+.agm-contract-rail{display:flex;flex-direction:column;gap:7px;min-height:0}
+.agm-contract-list{display:grid;gap:7px;align-content:start;overflow-y:auto;max-height:100%;padding:3px 4px 12px}
+.agm-contract-node{display:grid;grid-template-columns:65px minmax(0,1fr) auto;align-items:center;gap:10px;text-align:left;min-height:82px;padding:10px;background:rgba(10,5,7,.86);border:1px solid rgba(251,130,27,.34);color:#fff}
+.agm-contract-node[aria-pressed=true]{background:linear-gradient(90deg,rgba(130,49,10,.48),rgba(10,5,7,.92));border-color:#ffbc43;box-shadow:inset 4px 0 #ff9c19}
+.agm-contract-node.is-claimed{opacity:.55}
+.agm-contract-node .agm-node-hex{width:57px;height:63px;display:grid;place-items:center;clip-path:polygon(50% 0,100% 24%,100% 76%,50% 100%,0 76%,0 24%);background:linear-gradient(135deg,#fabb43,#af3b09);font-size:30px;color:#ffe7a7}
+.agm-node-hex>span{width:calc(100% - 6px);height:calc(100% - 6px);display:grid;place-items:center;clip-path:inherit;background:#210e0b}
+.agm-contract-node small{color:#e6ae79;font-size:9px;font-weight:900;letter-spacing:.14em}
+.agm-contract-node strong{display:block;font:italic 1000 clamp(13px,1.5vw,18px)/1.13 'Montserrat',sans-serif;margin:4px 0 8px}
+.agm-contract-node b{color:#ffbd50;font-size:12px;white-space:nowrap}
+.agm-contract-detail{align-self:start;position:relative;overflow:auto}
+.agm-contract-detail h3{font:italic 1000 clamp(25px,2.7vw,39px)/1.02 'Montserrat',sans-serif;margin:10px 0 12px}
+.agm-contract-detail p{color:#ddc1ac;font-size:13px;line-height:1.55}
+.agm-contract-detail-head{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.agm-tag{background:#fc7d1e;color:#200800;font-size:10px;font-weight:1000;letter-spacing:.12em;padding:5px 9px}
+.agm-tag.is-ready{background:#fff0c0;color:#963700}.agm-tag.is-claimed{background:#392319;color:#e2b78c}
+.agm-reward{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:17px;padding-top:17px;border-top:1px solid rgba(255,170,42,.27)}
+.agm-reward strong{color:#ffc341;font-size:clamp(22px,3vw,38px);font-style:italic}
+.agm-mastery-layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:16px;min-height:0;flex:1}
+.agm-mastery-heroes{display:grid;align-content:start;gap:9px;overflow:auto}
+.agm-mastery-heroes button{min-width:0;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid #814621;background:rgba(12,6,7,.9);text-align:left;color:#ffe3bc;font-weight:1000}
+.agm-mastery-heroes button[aria-pressed=true]{border-color:#ffbd4d;background:#4d200e}
+.agm-mastery-heroes small{display:block;color:#dca26b;font-size:10px}
+.agm-mastery-body{min-height:0;overflow:auto;display:grid;align-content:start;gap:13px}
+.agm-mastery-summary{display:flex;gap:17px;align-items:center;justify-content:space-between}
+.agm-medal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px}
+.agm-medal{display:grid;gap:6px;align-content:start;min-height:128px;background:rgba(21,9,8,.86);border:1px solid #713515;color:#fbead7;padding:11px;text-align:left}
+.agm-medal[aria-pressed=true]{border-color:#ffda62;background:#4d1b0b}
+.agm-medal.is-earned{border-color:#d99b36}
+.agm-medal-mark{font-size:28px;color:#ffb923}
+.agm-medal strong{font-size:13px;line-height:1.25}.agm-medal small{color:#d5a678;font-size:10px}
+.agm-medal-detail{display:grid;gap:8px}
+.agm-account .agm-main{max-width:1280px}
+.agm-overlay [hidden]{display:none!important}
+@media(max-width:820px){
+ .agm-top-center{display:none}
+ .agm-main{padding:12px 13px max(12px,env(safe-area-inset-bottom));gap:11px}
+ .agm-heading h2{font-size:clamp(43px,10vw,69px)}
+ .agm-account-layout{grid-template-columns:1fr;overflow:auto}
+ .agm-contracts{grid-template-columns:1fr;overflow:auto}
+ .agm-contract-list{max-height:240px}
+ .agm-mastery-layout{grid-template-columns:1fr;overflow:auto}
+ .agm-mastery-heroes{display:flex;overflow-x:auto}
+ .agm-mastery-heroes button{flex:none;min-width:125px}
+ .agm-mastery-body{overflow:visible}
+}
+@media(max-width:560px){
+ .agm-exit small,.agm-heading-rule{display:none}
+ .agm-heading h2{font-size:46px}
+ .agm-top{min-height:58px}
+ .agm-license-player{flex-direction:column;align-items:flex-start}
+ .agm-license{min-height:0}
+ .agm-account-layout{gap:12px}
+ .agm-contract-summary{gap:10px}
+ .agm-contract-top{align-items:stretch}
+ .agm-wallet.is-large strong{font-size:36px}
+ .agm-tabs{width:100%}.agm-tabs button{flex:1}
+ .agm-contract-node{grid-template-columns:50px minmax(0,1fr) auto;min-height:67px}
+ .agm-contract-node .agm-node-hex{width:46px;height:51px}
+ .agm-contract-detail{min-height:240px}
+ .agm-stat-grid{gap:8px}
+}
+@media(prefers-reduced-motion:reduce){.agm-coin-live{animation:none}.agm-overlay *{scroll-behavior:auto!important;transition:none!important}}
