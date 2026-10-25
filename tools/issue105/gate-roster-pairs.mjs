@@ -51,7 +51,7 @@ async function lockAndWaitBattle(page) {
   await wait(1200);
   return page.evaluate(() => (window.fighters || []).map((f) => String(f.name || '').toUpperCase()));
 }
-const shot = (page, name) => page.screenshot({ path: path.join(OUT, `${name}.png`) });
+const shot = async (page, name) => { await mkdir(OUT, { recursive: true }); return page.screenshot({ path: path.join(OUT, `${name}.png`) }); };
 
 try {
   // ── S0 fresh Guest: ownership, economy, pool, BOT default ──────────────────────
