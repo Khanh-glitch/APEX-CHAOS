@@ -112,6 +112,18 @@ export default function GoldMissionAccountHost() {
   const refresh=useCallback(()=>{
     try {frame.current?.contentWindow?.postMessage({type:'APEX_GOLD_UPDATE'},location.origin);}catch{}
   },[]);
+  // Keyboard can still be focused on the invoking game nav after opening the
+  // Gold iframe. Escape must close from BOTH focus contexts (Gold handles
+  // iframe-focused Escape itself), never leave a trapped overlay.
+  useEffect(()=>{
+    if(view===null)return;
+    const onEscape=e=>{
+      if(e.key!=='Escape')return;
+      e.preventDefault();e.stopPropagation();close();
+    };
+    window.addEventListener('keydown',onEscape,true);
+    return()=>window.removeEventListener('keydown',onEscape,true);
+  },[view,close]);
   useEffect(()=>{
     const api=Object.freeze({
       snapshot:()=>safeSnapshot(displayHero),
