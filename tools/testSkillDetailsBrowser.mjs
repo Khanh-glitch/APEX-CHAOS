@@ -217,33 +217,47 @@ function assertDetails(state, heroKey, sideLabelPart) {
   // can never cover the nav on small stages.
   await page.evaluate(() => document.querySelector('.apex-guide-close')?.click());
   await page.click('#apexAccountOpen');
-  await page.waitForSelector('.apex-account-overlay.is-open', { timeout: 15000 });
-  const acct = await page.evaluate(() => ({
-    credits: document.querySelector('[data-account-credits]')?.textContent,
-    owned: document.querySelector('[data-account-owned]')?.textContent,
-    ownedChips: [...document.querySelectorAll('[data-owned-fighter]')].map((e) => e.dataset.ownedFighter),
-    lockedChips: document.querySelectorAll('[data-locked-fighter]').length,
-    sync: document.querySelector('[data-account-sync]')?.textContent,
-    googleDisabled: [...document.querySelectorAll('.apex-account-btn')]
-      .find((b) => b.textContent.includes('GOOGLE'))?.disabled,
+  // Direct owner Gold replaces the retired Account React HUD. Check the
+  // same real profile/wallet invariants through the shipped same-origin Gold
+  // iframe and authoritative parent bridge; never restore mock legacy chips.
+  await page.waitForSelector('.apex-gold-direct-host iframe', { timeout: 15000 });
+  const goldFrame=await (await page.$('.apex-gold-direct-host iframe')).contentFrame();
+  await goldFrame.waitForFunction(() => document.querySelector('h1')?.textContent?.trim()==='ACCOUNT', { timeout: 15000 });
+  const acct=await page.evaluate(()=>{
+    const bridge=window.__APEX_GOLD_BRIDGE__;
+    const snap=bridge?.snapshot();
+    const real=window.APEX_ARSENAL_META?.getState();
+    return {
+      credits: snap?.state?.ac,
+      owned: snap?.fighters?.filter(x=>x.owned).map(x=>x.id),
+      ownedCount: snap?.fighters?.filter(x=>x.owned).length,
+      rosterCount: snap?.fighters?.length,
+      saved: snap?.persisted,
+      cloudConfigured:window.APEX_CLOUD_ACCOUNT?.isCloudConfigured?.(),
+      realCredits:real?.credits,
+      player:window.APEX_PLAYER_ACCOUNT?.profile?.(),
+    };
+  });
+  const accountUi=await goldFrame.evaluate(()=>({
+    text:document.body.innerText,
+    buttons:[...document.querySelectorAll('button')].map(x=>x.textContent.trim()),
+    visibleImages:[...document.images].filter(x=>x.complete&&x.naturalWidth>0).length,
   }));
-  assert.equal(acct.credits, '350 AC');
-  assert.equal(acct.owned, '2 / 8');
-  assert.deepEqual(acct.ownedChips, ['ROBOT', 'HUNTER']);
-  assert.equal(acct.lockedChips, 6);
-  if (home.cloud === false) {
-    if (GUEST_ONLY_RELEASE) {
-      assert.ok(acct.sync.includes('DEVICE SAVE ACTIVE'), 'Guest release truthfully labels local save');
-      assert.equal(acct.googleDisabled, undefined, 'Guest release renders no disabled fake Google button');
-      assert.equal(await page.$('[aria-label="SIGN IN"]'), null, 'Guest release has no Cloud login section');
-    } else {
-      assert.ok(acct.sync.includes('CLOUD NOT CONFIGURED'), 'honest unconfigured sync state');
-      assert.equal(acct.googleDisabled, true, 'no fake login button when cloud is unconfigured');
-    }
+  assert.equal(acct.credits, 350, 'Gold Account displays real 350 AC wallet');
+  assert.equal(acct.realCredits, acct.credits, 'Gold Account cannot diverge from canonical wallet');
+  assert.equal(acct.ownedCount,2,'Account displays both owned fighters');
+  assert.equal(acct.rosterCount,8,'Account displays 8 canonical playable fighters');
+  assert.deepEqual(acct.owned,['ROBOT','HUNTER'],'Gold owned hero chips match source wallet');
+  assert.ok(accountUi.text.includes(acct.player.displayName),'Gold Account displays actual guest name');
+  assert.ok(accountUi.text.includes('350'),'Gold Account shows actual AC number');
+  assert.ok(accountUi.visibleImages > 0,'Gold avatar art decoded');
+  if(home.cloud===false && GUEST_ONLY_RELEASE) {
+    assert.ok(accountUi.text.includes('ĐÃ LƯU TRÊN THIẾT BỊ'),'guest device-local save disclosure');
+    assert.equal(accountUi.buttons.some(b=>/GOOGLE|SIGN IN WITH/i.test(b)),false,'Guest Alpha hides Cloud sign-in');
   }
   await shot(page, 'desktop-account-guest');
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => !document.querySelector('.apex-account-overlay'), { timeout: 10000 });
+  await page.waitForFunction(()=>!document.querySelector('.apex-gold-direct-host'),{timeout:10000});
 
   // Fighter Select vs BOT — symmetric details
   await enterFighterSelect(page, 'SOLO');
