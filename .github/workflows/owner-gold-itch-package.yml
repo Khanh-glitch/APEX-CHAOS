@@ -6,6 +6,7 @@ on:
     branches:
       - feature/owner-gold-direct-port-20261026
       - feat/bot-wave-mobile-landscape-floating-stick-20261026
+      - fix/mobile-onboarding-guides-botwave-performance-20261026
     paths:
       - '.github/workflows/owner-gold-itch-package.yml'
       - 'gold-mission-account/**'
@@ -47,6 +48,10 @@ jobs:
         run: |
           node tools/verifyGoldSourceParity.mjs
           node tools/testBotWaveMobileImmersive.mjs
+          node tools/testFirstSessionRelease.mjs
+          node tools/testBotWaveHudFlow.mjs
+          node tools/testBotWaveNativeParity.mjs
+          node tools/testBotWaveLosslessR5.mjs
           pnpm build
           pnpm test:shipping-dist
           pnpm test:gold-direct-port
@@ -93,6 +98,12 @@ jobs:
               assert.ok(game,'itch wrapper missing game frame');
               await game.waitForSelector('#apex-boot-start',{visible:true,timeout:120000});
               await game.evaluate(()=>document.querySelector('#apex-boot-start')?.click());
+              await game.waitForSelector('#apex-welcome-name',{visible:true,timeout:90000});
+              await game.type('#apex-welcome-name','APEX TEST');
+              await game.click('.apex-welcome-primary');
+              await game.waitForSelector('.apex-welcome-experience',{visible:true,timeout:20000});
+              await game.evaluate(()=>[...document.querySelectorAll('.apex-welcome-experience button')][1]?.click());
+              await game.waitForFunction(()=>!document.querySelector('.apex-welcome-gate'),{timeout:10000});
               await game.waitForSelector('#apexMissionsOpen',{timeout:90000});
               await game.evaluate(()=>document.querySelector('#apexMissionsOpen')?.click());
               await game.waitForSelector('.apex-gold-direct-host iframe',{timeout:30000});
