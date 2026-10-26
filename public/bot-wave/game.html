@@ -7427,43 +7427,6 @@ engine.basicAttack=function(){
 };
 
 // Capture true CPU costs; never drop sprites, particles, resolution or frames.
-// The Gold bloom's first Canvas filter is applied to a downscaled image.
-// Pre-rasterizing the same source at the final bloom resolution prevents
-// Chromium from running a full-source filtered draw before shrinking it.
-// The ORIGINAL color/saturation/blur filter and the final bloom size remain
-// unchanged. No particles, passes, quality options or render frames are cut.
-// Owner's immutable Gold core remains byte-identical; only the Wave adapter
-// alters the preparation of this ONE intermediate pass.
-const BLOOM_FAST={enabled:true,prepared:0,fallback:0,cacheResizes:0};
-const bloomPost=engine.post;
-const bloomCanvas=document.createElement('canvas');
-const bloomPreCtx=bloomCanvas.getContext('2d');
-if(bloomPreCtx&&bloomPost?.actx){
- const bloomDraw=bloomPost.actx.drawImage.bind(bloomPost.actx);
- bloomPost.actx.drawImage=function(source,...args){
-  if(BLOOM_FAST.enabled&&source===bloomPost.scene&&args.length===4&&
-     this.filter?.includes('contrast(2.05)')&&this.filter?.includes('blur(1.1px)')){
-   const width=Math.round(args[2]),height=Math.round(args[3]);
-   if(width>=2&&height>=2&&Number.isFinite(width+height)){
-    if(bloomCanvas.width!==width||bloomCanvas.height!==height){
-     bloomCanvas.width=width;bloomCanvas.height=height;BLOOM_FAST.cacheResizes++;
-    }
-    bloomPreCtx.setTransform(1,0,0,1,0,0);
-    bloomPreCtx.clearRect(0,0,width,height);
-    bloomPreCtx.filter='none';
-    bloomPreCtx.imageSmoothingEnabled=this.imageSmoothingEnabled;
-    bloomPreCtx.imageSmoothingQuality=this.imageSmoothingQuality;
-    bloomPreCtx.drawImage(source,...args);
-    BLOOM_FAST.prepared++;
-    return bloomDraw(bloomCanvas,0,0,width,height);
-   }
-  }
-  BLOOM_FAST.fallback++;
-  return bloomDraw(source,...args);
- };
-}
-window.APEX_BOT_WAVE_BLOOM_PREPASS=Object.freeze({snapshot:()=>({...BLOOM_FAST,bufferWidth:bloomCanvas.width,bufferHeight:bloomCanvas.height}),setEnabled:(v)=>{BLOOM_FAST.enabled=!!v;}});
-
 // Observe full-frame, render and post-processing costs independently. The
 // Gold renderer, texture sizes, bloom chain and effects remain byte-identical.
 const PERF={samples:0,lastMs:0,maxMs:0,overBudget:0,avgMs:0,
@@ -7576,6 +7539,29 @@ engine.update=function(dt){
  if(PERF.lastMs>16.67)PERF.overBudget++;
  recordPerfCost('update',PERF.lastMs);
 };
+// Gold intentionally clamps a single RAF simulation delta to 50ms. On a
+// long rendering frame (e.g. 100-160ms) that made WASD/joystick movement,
+// cooldowns and the world clock run at half or one-third real speed.
+// Restore the elapsed time with bounded native Gold substeps; render ONCE,
+// preserve Gold collision/damage/AI integration and every visual effect.
+// No substeps are accumulated through hidden-tab or long resume stalls.
+const waveSingleStep=engine.update.bind(engine);
+let lastWaveStepAt=0;
+const WAVE_CATCHUP={extraSteps:0,recoveredSeconds:0,cappedFrameGaps:0};
+engine.update=function(dt){
+ const stamp=performance.now(),wallSeconds=lastWaveStepAt?(stamp-lastWaveStepAt)/1000:dt;
+ lastWaveStepAt=stamp;
+ waveSingleStep(dt);
+ if(this.paused||document.hidden||!Number.isFinite(wallSeconds)||wallSeconds>.36)return;
+ let debt=Math.min(.18,Math.max(dt,wallSeconds))-dt;
+ if(wallSeconds>.18)WAVE_CATCHUP.cappedFrameGaps++;
+ for(let i=0;i<4&&debt>.002&&!this.paused;i++){
+  const step=Math.min(.05,debt);
+  waveSingleStep(step);
+  debt-=step;WAVE_CATCHUP.extraSteps++;WAVE_CATCHUP.recoveredSeconds+=step;
+ }
+};
+window.APEX_WAVE_CATCHUP=Object.freeze({snapshot:()=>({...WAVE_CATCHUP})});
 const nativeOnKeyDown=engine.onKeyDown;
 engine.onKeyDown=function(e){
  // Event dispatch lag isolates main-thread starvation from movement rules.
