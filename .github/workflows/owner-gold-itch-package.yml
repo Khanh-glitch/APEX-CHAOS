@@ -11,6 +11,8 @@ on:
       - '.github/workflows/owner-gold-itch-package.yml'
       - 'gold-mission-account/**'
       - 'tools/packItchPortable.mjs'
+      - 'tools/testBotWaveBalance.mjs'
+      - 'tools/testFirstSessionRelease.mjs'
       - 'src/**'
       - 'public/**'
   workflow_dispatch:
@@ -87,7 +89,8 @@ jobs:
           const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']});
           try {
             for (const [width,height] of [[1440,900],[390,844]]) {
-              const page=await browser.newPage();
+              const context=await browser.createBrowserContext();
+              const page=await context.newPage();
               await page.setViewport({width,height,isMobile:width<600,hasTouch:width<600});
               const errors=[];
               page.on('pageerror',e=>errors.push(String(e)));
@@ -104,6 +107,16 @@ jobs:
               await game.waitForSelector('.apex-welcome-experience',{visible:true,timeout:20000});
               await game.evaluate(()=>[...document.querySelectorAll('.apex-welcome-experience button')][1]?.click());
               await game.waitForFunction(()=>!document.querySelector('.apex-welcome-gate'),{timeout:10000});
+              const homeControls=await game.evaluate(()=>{
+                const a=document.querySelector('#apex-guide-open')?.getBoundingClientRect();
+                const b=document.querySelector('#stage .profile .ac')?.getBoundingClientRect();
+                const intersection=a&&b?Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)):null;
+                const inert=[...document.querySelectorAll('#stage button[data-locked-route]')].filter(x=>getComputedStyle(x).display!=='none').length;
+                return {help:!!a,wallet:!!b,intersection,inert};
+              });
+              assert.ok(homeControls.help&&homeControls.wallet,'Help or AC is missing');
+              assert.equal(homeControls.intersection,0,'Help overlaps the AC wallet in mobile/desktop');
+              assert.equal(homeControls.inert,0,'Inactive Home routes are still rendered as buttons');
               await game.waitForSelector('#apexMissionsOpen',{timeout:90000});
               await game.evaluate(()=>document.querySelector('#apexMissionsOpen')?.click());
               await game.waitForSelector('.apex-gold-direct-host iframe',{timeout:30000});
@@ -119,6 +132,7 @@ jobs:
               assert.deepEqual(errors,[], 'Browser page errors: '+errors.slice(0,5).join('; '));
               console.log('PASS nested itch owner Gold',width,height,mission,'-> Account, missing assets 0');
               await page.close();
+              await context.close();
             }
           } finally { await browser.close(); await server.close(); }
           NODE
