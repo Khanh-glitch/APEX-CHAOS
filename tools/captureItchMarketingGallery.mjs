@@ -165,7 +165,7 @@ try{
  await shoot(page,'01-home');
  try{await goldCapture(game,page);}catch(e){console.error('GOLD_CAPTURE_FAILED',String(e));note.push({error:'Gold: '+String(e)})}
  try{await combatCapture(game,page);}catch(e){console.error('COMBAT_CAPTURE_FAILED',String(e));note.push({error:'Combat: '+String(e)})}
- await captureLocalOrPhone({mode:'local',width:1600,height:900,tag:'09-local-desktop',play:false});
+ await captureLocalOrPhone({mode:'local',width:1600,height:900,tag:'09-local-desktop',play:true});
  await captureLocalOrPhone({mode:'bot',width:390,height:844,tag:'10-bot-phone',play:true});
  await captureLocalOrPhone({mode:'local',width:390,height:844,tag:'11-local-phone',play:true});
  console.log('BROWSER_ERRORS',JSON.stringify(errs.slice(0,25)));
