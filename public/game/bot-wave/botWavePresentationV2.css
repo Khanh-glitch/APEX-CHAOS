@@ -1253,3 +1253,24 @@
  #wave-hud .bw-pause-actions .is-confirming,
  #arena-experience-hud #r2-boss-panel .boss-r2-meter b{animation:none!important}
 }
+
+
+/* Floating touch origin: a transparent lower-left arena half, never the
+   right-side skill deck. Capture stays on the zone during drag. */
+@media (pointer:coarse){
+ #wave-hud .bw-floating-move-zone{position:fixed;left:0;bottom:0;width:49vw;height:65dvh;
+  z-index:8;pointer-events:auto;touch-action:none;background:transparent}
+ #wave-hud .bw-movement:before{display:none!important}
+ #wave-hud .bw-movement #wave-stick{display:none!important}
+ #wave-hud .bw-movement #wave-stick.is-floating{display:block!important;
+  position:fixed!important;left:var(--bw-stick-x)!important;top:var(--bw-stick-y)!important;
+  bottom:auto!important;transform:translate(-50%,-50%)!important;
+  pointer-events:none!important;z-index:9;animation:none!important}
+ #wave-hud .bw-command-deck:has(.bw-pause-menu:not([hidden])) .bw-floating-move-zone,
+ body:has(#wave-modal:not([hidden])) #wave-hud .bw-floating-move-zone{pointer-events:none!important}
+}
+@media (max-width:1024px) and (pointer:coarse){
+ #wave-hud .bw-bottom{pointer-events:none}
+ #wave-hud .bw-movement{pointer-events:none}
+ #wave-hud .bw-floating-move-zone{pointer-events:auto}
+}
