@@ -56,7 +56,12 @@ function safeSnapshot(displayHero) {
     const ownerArt=window.APEX_GOLD_ROSTER?.[String(id).toLowerCase()] || null;
     const src=ownerArt?.art || ownerArt?.portrait || APPROVED_PORTRAITS[id] ||
       '/gold/assets/gold/favicon-apex-chaos.png';
-    const img=/^(https?:|data:|blob:)/i.test(String(src))?String(src):apexAppUrl(src);
+    // The itch-only copy rewrites Gold classic-script art paths to ../assets/
+    // because those scripts run under the Gold base. This React bridge runs
+    // under the entry directory instead; normalize those approved app assets
+    // BEFORE apexAppUrl or /html/apex/ would incorrectly escape to /html/assets/.
+    const appArt=String(src).replace(/^(?:\\.\\.\\/)+(assets|gold)\\//, '/$1/');
+    const img=/^(https?:|data:|blob:)/i.test(appArt)?appArt:apexAppUrl(appArt);
     return {id,name:meta?.displayNameFor?.(id)||defaultName,element:lang==='vie'?element:elementEnglish,
       epithet: owned.has(id)?(lang==='vie'?'ĐÃ SỞ HỮU':'OWNED'):(lang==='vie'?'CHƯA SỞ HỮU':'NOT OWNED'),color,
       img,
