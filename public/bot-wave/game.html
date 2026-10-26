@@ -7534,6 +7534,26 @@ function perfPercentile(key,p=.95){
 }
 let lastRenderStart=0;
 const nativeRender=engine.render.bind(engine);
+// Lossless Canvas2D backend hint (no change to filters, DPR, sprites or
+// pixel operations). Chromium may move costly Gold bloom/refraction buffers
+// off its blocking main-thread path when desynchronized contexts are used.
+// Keep a transparent/alpha-capable canvas in every case, including Safari.
+(function preparePostBuffers(post){
+ const names=[['a','actx'],['b','bctx'],['cp','cpctx']];
+ const state={enabled:[],unsupported:[]};
+ for(const [canvasKey,ctxKey] of names){
+  const source=post[canvasKey];
+  const backing=document.createElement('canvas');
+  backing.width=source.width;backing.height=source.height;
+  const context=backing.getContext('2d',{alpha:true,desynchronized:true});
+  if(!context){state.unsupported.push(canvasKey);continue;}
+  if(context.getContextAttributes?.().desynchronized!==true){state.unsupported.push(canvasKey);continue;}
+  post[canvasKey]=backing;
+  post[ctxKey]=context;
+  state.enabled.push(canvasKey);
+ }
+ window.APEX_WAVE_POST_BACKEND=Object.freeze(state);
+})(engine.post);
 const nativePostEnd=engine.post.end.bind(engine.post);
 engine.post.end=function(...args){
  const started=performance.now();
