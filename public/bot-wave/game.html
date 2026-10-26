@@ -7534,35 +7534,6 @@ function perfPercentile(key,p=.95){
 }
 let lastRenderStart=0;
 const nativeRender=engine.render.bind(engine);
-// Chrome profile: a complex CSS filter on a 1.3-megapixel source stalls the
-// quarter-resolution bloom pass for up to 169ms in headless Chromium.
-// Resample the source *first*, then apply the same color/blur filters to the
-// actual quarter-size bloom buffer. Keep full-resolution scene, same bloom
-// radii/weights, glow passes, film grain and refraction intact.
-const BLOOM_FAST={resamples:0,filteredPasses:0};
-(function installBloomSourceResample(post){
- const a=post.a,ctx=post.actx,draw=ctx.drawImage.bind(ctx);
- const source=document.createElement('canvas'),srcCtx=source.getContext('2d');
- if(!srcCtx)return;
- ctx.drawImage=function(image,...args){
-  const bloomImage=image===post.scene&&args.length===4 &&
-   (this.filter||'').includes('brightness(');
-  if(!bloomImage)return draw(image,...args);
-  const [dx,dy,w,h]=args;
-  const bw=Math.max(2,Math.round(w)),bh=Math.max(2,Math.round(h));
-  if(source.width!==bw||source.height!==bh){source.width=bw;source.height=bh;}
-  srcCtx.setTransform(1,0,0,1,0,0);
-  srcCtx.imageSmoothingEnabled=true;
-  srcCtx.imageSmoothingQuality='high';
-  srcCtx.clearRect(0,0,bw,bh);
-  srcCtx.drawImage(image,0,0,bw,bh);
-  BLOOM_FAST.resamples++;
-  const result=draw(source,dx,dy,w,h);
-  BLOOM_FAST.filteredPasses++;
-  return result;
- };
-})(engine.post);
-window.APEX_WAVE_BLOOM_FAST=Object.freeze({snapshot:()=>({...BLOOM_FAST})});
 const nativePostEnd=engine.post.end.bind(engine.post);
 engine.post.end=function(...args){
  const started=performance.now();
