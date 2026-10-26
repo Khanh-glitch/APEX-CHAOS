@@ -174,9 +174,10 @@ const attackReplacement = await page.evaluate(() => {
     sessionActive: window.APEX_ADMIN_AUTHORITY?.isAdminTestSessionActive?.(),
     kind: window.APEX_PLAYER_ACCOUNT?.profile?.()?.kind,
     cloudConfigured: window.APEX_CLOUD_ACCOUNT?.isCloudConfigured?.(),
-    // The decision that matters: locked fighters must stay locked for a
-    // non-admin even after every global has been "replaced".
-    canSelectHunter: window.APEX_ARSENAL_META?.canPublicSelect?.('HUNTER'),
+    // The decision that matters: an unowned fighter must remain locked for a
+    // non-admin even after every global has been "replaced". HUNTER is now a
+    // legitimate starter fighter, so CRYSTAL is the admission-negative probe.
+    canSelectCrystal: window.APEX_ARSENAL_META?.canPublicSelect?.('CRYSTAL'),
     credits: window.APEX_ARSENAL_META?.getState?.()?.credits,
   };
 });
@@ -187,7 +188,7 @@ check('authority binding replacement is rejected end-to-end', () => {
   assert.equal(attackReplacement.sessionActive, false);
   assert.equal(attackReplacement.kind, 'guest');
   assert.equal(attackReplacement.cloudConfigured, false);
-  assert.equal(attackReplacement.canSelectHunter, false);
+  assert.equal(attackReplacement.canSelectCrystal, false);
   assert.equal(attackReplacement.credits, 350);
 });
 
@@ -240,13 +241,13 @@ const f8Probe = await page.evaluate(() => ({
   ownerTest: window.APEX_ARSENAL_OWNER_TEST?.active,
   sessionActive: window.APEX_ADMIN_AUTHORITY?.isAdminTestSessionActive?.(),
   isAdmin: window.APEX_ADMIN_AUTHORITY?.isAdmin?.(),
-  canSelectHunter: window.APEX_ARSENAL_META?.canPublicSelect?.('HUNTER'),
+  canSelectCrystal: window.APEX_ARSENAL_META?.canPublicSelect?.('CRYSTAL'),
 }));
 check('Ctrl+Shift+F8 does not authorize a guest', () => {
   assert.equal(f8Probe.ownerTest, false);
   assert.equal(f8Probe.sessionActive, false);
   assert.equal(f8Probe.isAdmin, false);
-  assert.equal(f8Probe.canSelectHunter, false);
+  assert.equal(f8Probe.canSelectCrystal, false);
 });
 
 // ── 7. Admin/Test-shaped rewards never pay AC ───────────────────────────────

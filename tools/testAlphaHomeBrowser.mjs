@@ -55,6 +55,23 @@ page.on('pageerror', (e) => errors.push(String(e)));
 await page.setViewport({ width: 1440, height: 900 });
 await bootHome(page);
 
+// Issue #105 changed the fresh-guest contract: the coach must NOT start
+// without consent. Verify the actual one-time question, then opt in through
+// the real UI before testing the complete six-step coach lifecycle.
+await page.waitForSelector('.apex-tutorial-ask .apex-tutorial-ask-yes', { visible: true, timeout: 15000 });
+const prefBefore = await page.evaluate(() => ({
+  preference: localStorage.getItem('apex.alpha.tutorial.v1'),
+  coachVisible: !!document.querySelector('.apex-guide-card'),
+}));
+check('fresh guest is asked first; tutorial does not start without consent', () => {
+  assert.equal(prefBefore.preference, null);
+  assert.equal(prefBefore.coachVisible, false);
+});
+await page.click('.apex-tutorial-ask-yes');
+await page.waitForSelector('.apex-guide-card', { visible: true, timeout: 15000 });
+const prefAfter = await page.evaluate(() => localStorage.getItem('apex.alpha.tutorial.v1'));
+check('real YES choice persists tutorial ON', () => assert.equal(prefAfter, 'on'));
+
 const home = await page.evaluate(() => ({
   account: document.querySelectorAll('#apexAccountOpen').length,
   missions: document.querySelectorAll('#apexMissionsOpen').length,
@@ -81,7 +98,7 @@ check('AC readout equals the live wallet (350 fresh)', () => {
 check('ENG|VIE segmented control mounted with ENG active', () => {
   assert.deepEqual(home.langOptions, ['eng:true', 'vie:false']);
 });
-check('CP3 coach auto-shows for a genuinely new guest at step 1/6', () => {
+check('CP3 coach starts at step 1/6 after explicit YES', () => {
   assert.equal(home.guideOpen, true);
   assert.equal(home.coach?.version, 2);
   assert.equal(home.coach?.step, 0);
@@ -130,9 +147,14 @@ await bootHome(page);
 const afterReload = await page.evaluate(() => !!document.querySelector('.apex-guide-card'));
 check('CP3 coach does not auto-show again after SKIP + reload', () => assert.equal(afterReload, false));
 await page.click('#apex-guide-open');
+// Issue #105: "?" opens the help sheet; REPLAY (not "?") explicitly starts
+// the coach again. Exercise the actual user path instead of the retired
+// direct-replay shortcut.
+await page.waitForSelector('#apex-help-replay', { visible: true, timeout: 10000 });
+await page.click('#apex-help-replay');
 await page.waitForSelector('.apex-coach-skip', { visible: true, timeout: 10000 });
 const replayedCoach = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.alpha.coach.v2') || 'null'));
-check('"?" control replays the CP3 coach on demand', () => {
+check('"?" → Help → Replay restarts the CP3 coach on demand', () => {
   assert.equal(replayedCoach?.step, 0);
   assert.equal(replayedCoach?.done, false);
   assert.equal(replayedCoach?.skipped, false);
@@ -150,35 +172,49 @@ await page.waitForFunction(
   () => /FREE BATTLE/.test(document.querySelector('#freeBattle')?.textContent || ''), { timeout: 10000 });
 check('ENG switch restores the original copy', () => {});
 
-// Account + Missions from the one bottom nav, Escapable.
+// Account + Missions are genuine owner Gold documents, not the retired
+// .apex-account-overlay / .apex-progress-panel React products.
 await page.click('#apexAccountOpen');
-await page.waitForSelector('.apex-account-overlay.is-open', { timeout: 15000 });
-const acct = await page.evaluate(() => ({
-  credits: document.querySelector('[data-account-credits]')?.textContent,
-  signInButtons: [...document.querySelectorAll('.apex-account-btn')]
-    .filter((b) => /GOOGLE|SIGN IN|OTP/.test(b.textContent || '') && !b.disabled).length,
-}));
-check('Account Center opens; no sign-in is demanded in Guest Alpha', () => {
-  assert.equal(acct.credits, '350 AC');
-  assert.equal(acct.signInButtons, 0);
+await page.waitForFunction(() => /ACCOUNT|TÀI KHOẢN/.test(
+ document.querySelector('.apex-gold-direct-host iframe')?.contentDocument?.querySelector('main h1')?.textContent || ''
+), { timeout: 15000 });
+const acct = await page.evaluate(() => {
+ const doc=document.querySelector('.apex-gold-direct-host iframe')?.contentDocument;
+ return {
+  credits:window.__APEX_GOLD_BRIDGE__?.snapshot?.()?.state?.ac,
+  signInButtons:[...(doc?.querySelectorAll('button')||[])]
+   .filter(b=>/GOOGLE|SIGN IN|OTP/.test(b.textContent||'')&&!b.disabled).length,
+  text:doc?.body?.innerText||'',
+ };
+});
+check('real Gold Account opens; Guest Alpha never demands sign-in', () => {
+ assert.equal(acct.credits, 350);
+ assert.equal(acct.signInButtons, 0);
+ assert.match(acct.text,/SAVED ON THIS DEVICE|ĐÃ LƯU TRÊN THIẾT BỊ/);
 });
 await page.keyboard.press('Escape');
-await page.waitForFunction(() => !document.querySelector('.apex-account-overlay'), { timeout: 10000 });
+await page.waitForFunction(() => !document.querySelector('.apex-gold-direct-host'), { timeout: 10000 });
 
 await page.click('#apexMissionsOpen');
-await page.waitForSelector('.apex-progress-panel', { visible: true, timeout: 15000 });
-const prog = await page.evaluate(() => ({
-  rows: document.querySelectorAll('.apex-progress-row').length,
-  balance: document.querySelector('.apex-progress-balance strong')?.textContent,
-  claimButtonsEnabled: [...document.querySelectorAll('.apex-progress-claim')].filter((b) => !b.disabled).length,
-}));
-check('Missions panel opens with locked (not pre-claimable) rewards', () => {
-  assert.equal(prog.rows, 5, 'CP3 Starter Contracts shows all five real-AC contracts');
-  assert.equal(prog.balance, '350 AC');
-  assert.equal(prog.claimButtonsEnabled, 0);
+await page.waitForFunction(() => /MISSIONS|NHIỆM VỤ/.test(
+ document.querySelector('.apex-gold-direct-host iframe')?.contentDocument?.querySelector('main h1')?.textContent || ''
+), { timeout: 15000 });
+const prog=await page.evaluate(() => {
+ const snap=window.__APEX_GOLD_BRIDGE__?.snapshot?.();
+ const doc=document.querySelector('.apex-gold-direct-host iframe')?.contentDocument;
+ return {
+  rows:snap?.missions?.length,
+  credits:snap?.state?.ac,
+  claimable:[...(doc?.querySelectorAll('.gold-mission-claim-button')||[])].filter(b=>!b.disabled).length,
+ };
+});
+check('real Gold Missions shows all five contracts and no premature claim', () => {
+ assert.equal(prog.rows, 5);
+ assert.equal(prog.credits, 350);
+ assert.equal(prog.claimable, 0);
 });
 await page.keyboard.press('Escape');
-await page.waitForFunction(() => !document.querySelector('.apex-progress-panel'), { timeout: 10000 });
+await page.waitForFunction(() => !document.querySelector('.apex-gold-direct-host'), { timeout: 10000 });
 await shot(page, 'alpha-home-desktop-after-panels');
 await ctx.close();
 
@@ -187,6 +223,8 @@ const mctx = await browser.createBrowserContext();
 const mpage = await mctx.newPage();
 await mpage.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
 await bootHome(mpage);
+await mpage.waitForSelector('.apex-tutorial-ask-yes', { visible: true, timeout: 15000 });
+await mpage.click('.apex-tutorial-ask-yes');
 await mpage.waitForSelector('.apex-guide-card', { visible: true, timeout: 15000 });
 const tapTarget = await mpage.evaluate(() => {
   const el = document.querySelector('#freeBattle');

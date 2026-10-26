@@ -44,7 +44,7 @@ async function archive(page){
    donorOpen:document.getElementById('luckyDonorHost')?.classList.contains('is-open'),
    donorStage:document.getElementById('luckyDonorFrame')?.contentDocument?.getElementById('stage')?.dataset.busy,
    ready:document.getElementById('luckyDonorFrame')?.contentDocument?.documentElement.dataset.apexSectionSwipeReady,
-   navigator:document.querySelector('.apex-session-interchange')?.dataset.sessionIndex,
+   navigator:document.querySelector('#luckyDonorFrame')?.contentDocument?.querySelector('.apex-inline-session')?.dataset.sessionIndex || document.querySelector('.fa3-overlay .apex-inline-session')?.dataset.sessionIndex,
    goldOverlay:!!document.querySelector('.apex-gold-direct-host'),
    archiveOverlay:!!document.querySelector('.fa3-overlay'),
    stageClasses:document.getElementById('stage')?.className,
@@ -102,10 +102,11 @@ try{
    await swipeGold(page,'left');
    await lucky(page);
    assert.equal(await page.evaluate(()=>!!document.querySelector('.apex-gold-direct-host')),false,'Gold iframe left over Lucky');
+   assert.equal(await page.evaluate(()=>!!document.querySelector('.apex-session-interchange')),false,'Obscuring legacy navigation panel remains');
    const wallet=await page.evaluate(()=>({
     actual:window.APEX_ARSENAL_META?.getState?.()?.credits,
     donor:!!document.getElementById('luckyDonorFrame')?.contentWindow?.APEX_ARSENAL_META,
-    index:document.querySelector('.apex-session-interchange')?.dataset.sessionIndex,
+    index:document.querySelector('#luckyDonorFrame')?.contentDocument?.querySelector('.apex-inline-session')?.dataset.sessionIndex || document.querySelector('.fa3-overlay .apex-inline-session')?.dataset.sessionIndex,
    }));
    assert.equal(wallet.actual,original,'cross-screen swipe mutated canonical AC');
    assert.ok(wallet.donor,'real Lucky iframe lost game authority');
@@ -116,8 +117,9 @@ try{
    await archive(page);
    assert.equal(await page.evaluate(()=>document.querySelector('#luckyDonorHost')?.classList.contains('is-open')),false,
     'Lucky still showing underneath Archive');
-   assert.equal(await page.evaluate(()=>document.querySelector('.apex-session-interchange')?.dataset.sessionIndex),'4');
+   assert.equal(await page.evaluate(()=>document.querySelector('#luckyDonorFrame')?.contentDocument?.querySelector('.apex-inline-session')?.dataset.sessionIndex || document.querySelector('.fa3-overlay .apex-inline-session')?.dataset.sessionIndex),'4');
    assert.ok(await page.$('.fa3-record-navigation button'),'original Field Archive records replaced');
+   assert.ok(await page.$('.fa3-header .apex-inline-session'),'Archive navigation is not inside its native header');
    await page.screenshot({path:`${output}/${width}x${height}-archive.png`});
 
    await swipeArchive(page,'right');

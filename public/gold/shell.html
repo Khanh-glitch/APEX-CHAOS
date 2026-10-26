@@ -2800,7 +2800,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       }catch(error){reject(error)}
     });
   }
-  async function openLucky(){
+  async function openLucky(direct=false){
     const tr=window.APEX_SCENE_TRANSITION;
     // Owner law: a scene intent is never dropped. If the Door is mid-
     // transaction the coordinator QUEUES this request (latest intent wins).
@@ -2825,7 +2825,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       APEX_GOLD.onSurface&&APEX_GOLD.onSurface('lucky');
       window.apexShellSfx&&window.apexShellSfx('lucky.draw.enter_bay');
     };
-    if(!tr?.run){try{await prepare();commit()}catch(err){console.error('[APEX Lucky Draw] donor load failed',err)}return}
+    if(direct||!tr?.run){await prepare();commit();return}
     const result=await tr.run({
       name:'home->lucky',
       source:()=>document.getElementById('stage'),
@@ -2836,7 +2836,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     });
     if(result?.ok===false)console.error('[APEX Lucky Draw] transition recovered.',result.error);
   }
-  async function closeLucky(){
+  async function closeLucky(direct=false){
     const tr=window.APEX_SCENE_TRANSITION;
     // Same law in the closing direction: BACK pressed while the bay is still
     // moving is queued, never swallowed (this is the Lucky-Draw-is-stuck
@@ -2845,7 +2845,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       host.classList.remove('is-open');host.setAttribute('aria-hidden','true');
       APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');
     };
-    if(!tr?.run){commit();openBtn?.focus?.({preventScroll:true});return}
+    if(direct||!tr?.run){commit();if(!direct)openBtn?.focus?.({preventScroll:true});return}
     await tr.run({
       name:'lucky->home',
       source:()=>host,
@@ -2859,6 +2859,19 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     });
     openBtn?.focus?.({preventScroll:true});
   }
+  // Session navigation uses the SAME real donor/authority, but skips the
+  // home-scene door. The shared Gold wipe lives above both destinations;
+  // showing Home even for one frame would violate the single-session flow.
+  // Normal HOME entry and Lucky BACK retain the original scene door.
+  window.APEX_LUCKY_SESSION=Object.freeze({
+    openFromSection:()=>openLucky(true),
+    closeToSection:()=>{
+      const busy=frame.contentDocument?.getElementById('stage')?.dataset.busy;
+      if(host.classList.contains('is-open')&&busy!=='0')return Promise.reject(Error('Paid Lucky Draw still in progress'));
+      return closeLucky(true);
+    },
+    isOpen:()=>host.classList.contains('is-open'),
+  });
   openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});
   window.addEventListener('message',e=>{if(e?.data?.type==='APEX_CHAOS_LUCKY_DRAW_EXIT')void closeLucky();});
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&host.classList.contains('is-open')){e.preventDefault();void closeLucky();}},true);

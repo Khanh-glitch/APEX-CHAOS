@@ -1,30 +1,64 @@
-/* Integration-only bridge between Gold donor Lucky Draw and Field Archive.
- * Original owner Gold typography, art, animations, wheel and HUD are untouched. */
-.apex-session-interchange{
- position:fixed; z-index:1000005; top:calc(69px + env(safe-area-inset-top,0px));left:50%;
- transform:translateX(-50%);display:flex;align-items:center;justify-content:space-between;
- gap:8px;width:min(318px,calc(100vw - 22px));padding:5px 7px;box-sizing:border-box;
- background:linear-gradient(135deg,rgba(12,10,10,.94),rgba(55,29,13,.94));
- border:1px solid rgba(255,173,75,.7);border-radius:7px;
- box-shadow:0 8px 28px #0009,0 0 18px #d96b2b30;
- font:800 10px/1.2 "ApcKanit",system-ui,sans-serif;letter-spacing:.04em;color:#ffdf99;
+/* Shared Account/Mission Gold scene-wipe across genuine product documents.
+ * Navigation occupies existing HUD/header, never a floating information panel. */
+.apex-session-wipe{
+ position:fixed;inset:0;z-index:2147483000;overflow:hidden;
+ pointer-events:all;isolation:isolate;
 }
-.apex-session-interchange button{
- display:flex;align-items:center;justify-content:center;gap:4px;
- min-width:44px;min-height:44px;padding:0 5px;flex:1;
- background:transparent;color:inherit;border:0;cursor:pointer;
- font:inherit;white-space:nowrap;
+.apex-session-wipe-plate{
+ position:absolute;inset:0;display:grid;place-items:center;
+ background:linear-gradient(100deg,#ff5a0a,#ffb21f 50%,#ff5a0a);
+ transform:translateX(-115%) skewX(-16deg);
+ will-change:transform;
 }
-.apex-session-interchange button:focus-visible{outline:2px solid #ffe3a1;outline-offset:1px}
-.apex-session-interchange button:disabled{opacity:.35;cursor:default}
-.apex-session-interchange-pos{display:flex;align-items:center;gap:4px;flex:none}
-.apex-session-interchange-pos i{width:7px;height:3px;background:#836041;display:block;border-radius:3px}
-.apex-session-interchange-pos i.on{width:13px;background:#ffbe59;box-shadow:0 0 8px #ff9c45}
-@media(max-width:480px){
- .apex-session-interchange{top:calc(61px + env(safe-area-inset-top,0px));width:min(274px,calc(100vw - 16px));gap:4px;padding:3px 5px}
- .apex-session-interchange button{font-size:9px}
+.apex-session-wipe.is-covering .apex-session-wipe-plate{
+ animation:apex-session-cover .425s cubic-bezier(.7,0,.3,1) both;
 }
-@media(max-height:430px){
- .apex-session-interchange{top:calc(52px + env(safe-area-inset-top,0px));width:min(250px,calc(100vw - 14px))}
- .apex-session-interchange button{min-height:38px}
+.apex-session-wipe.is-releasing .apex-session-wipe-plate{
+ animation:apex-session-release .435s cubic-bezier(.7,0,.3,1) both;
+}
+.apex-session-wipe-plate span{
+ font:italic 900 clamp(28px,6.5vw,90px)/1 "ApcKanit",Impact,system-ui,sans-serif;
+ letter-spacing:.02em;color:#1a0900;text-align:center;
+ transform:skewX(16deg);padding:0 22px;
+}
+@keyframes apex-session-cover{
+ from{transform:translateX(-115%) skewX(-16deg)}
+ to{transform:translateX(0) skewX(-16deg)}
+}
+@keyframes apex-session-release{
+ from{transform:translateX(0) skewX(-16deg)}
+ to{transform:translateX(115%) skewX(-16deg)}
+}
+.apex-cosmetics-overlay .fa3-header .apex-inline-session{
+ display:inline-flex;flex:none;align-items:center;gap:3px;margin-left:auto;
+ min-width:0;font:900 10px/1 "ApcKanit",Impact,system-ui,sans-serif;color:#ffe1ac;
+}
+.apex-cosmetics-overlay .fa3-header .apex-inline-session button{
+ min-width:39px;min-height:39px;padding:0 9px;display:inline-flex;
+ gap:5px;align-items:center;justify-content:center;white-space:nowrap;
+ color:#ffe1ac;background:#25201b;border:1px solid #a06c38;
+ font:inherit;letter-spacing:.03em;
+}
+.apex-cosmetics-overlay .fa3-header .apex-inline-session button:focus-visible{
+ outline:2px solid #fff2cb;outline-offset:2px;
+}
+.apex-cosmetics-overlay .fa3-header .apex-inline-dots{display:flex;gap:3px;align-items:center}
+.apex-cosmetics-overlay .fa3-header .apex-inline-dots i{display:block;width:7px;height:3px;background:#826046}
+.apex-cosmetics-overlay .fa3-header .apex-inline-dots i.current{width:13px;background:#ffce68}
+@media(max-width:1150px){
+ .apex-cosmetics-overlay .fa3-header .apex-inline-session button span,
+ .apex-cosmetics-overlay .fa3-header .apex-inline-dots{display:none}
+}
+@media(max-width:900px){
+ .apex-cosmetics-overlay .fa3-header .apex-inline-session{margin-left:0;gap:2px}
+ .apex-cosmetics-overlay .fa3-header .apex-inline-session button{min-width:31px;min-height:31px;padding:0 7px;font-size:15px}
+ .apex-cosmetics-overlay .fa3-header .fa3-brand{margin-right:auto}
+}
+@media(max-width:420px){
+ .apex-cosmetics-overlay .fa3-header .apex-inline-session button{min-width:27px;min-height:28px;padding:0 5px}
+ .apex-cosmetics-overlay .fa3-header .fa3-players button{padding:5px 3px}
+}
+@media(prefers-reduced-motion:reduce){
+ .apex-session-wipe.is-covering .apex-session-wipe-plate{animation:none;transform:translateX(0)}
+ .apex-session-wipe.is-releasing .apex-session-wipe-plate{animation:none;transform:translateX(115%)}
 }

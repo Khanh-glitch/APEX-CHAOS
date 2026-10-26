@@ -252,7 +252,7 @@ function assertDetails(state, heroKey, sideLabelPart) {
   assert.ok(accountUi.text.includes('350'),'Gold Account shows actual AC number');
   assert.ok(accountUi.visibleImages > 0,'Gold avatar art decoded');
   if(home.cloud===false && GUEST_ONLY_RELEASE) {
-    assert.ok(accountUi.text.includes('ĐÃ LƯU TRÊN THIẾT BỊ'),'guest device-local save disclosure');
+    assert.ok(/SAVED ON THIS DEVICE|ĐÃ LƯU TRÊN THIẾT BỊ/.test(accountUi.text),'guest device-local save disclosure in current locale');
     assert.equal(accountUi.buttons.some(b=>/GOOGLE|SIGN IN WITH/i.test(b)),false,'Guest Alpha hides Cloud sign-in');
   }
   await shot(page, 'desktop-account-guest');
