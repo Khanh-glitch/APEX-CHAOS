@@ -2694,8 +2694,38 @@ function main() {
     payloadRe,
     (_, open, _oldB64, close) => open + Buffer.from(postPulseHud, 'utf8').toString('base64') + close
   );
-  outputs.set('shell.html', Buffer.from(postPulseShell, 'utf8'));
-  log('Tactical Pulse HUD B built + embedded into shell.html');
+  // Generated Gold session-direct bridge: preserve the approved Lucky donor
+  // but bypass the Home scene Door only for the cross-section Gold wipe.
+  // This is built from canonical output, never hand-edited in public/gold/.
+  const luckySessionSwaps = [
+  [
+    "async function openLucky(){\n    const tr=window.APEX_SCENE_TRANSITION;",
+    "async function openLucky(direct=false){\n    const tr=window.APEX_SCENE_TRANSITION;"
+  ],
+  [
+    "if(!tr?.run){try{await prepare();commit()}catch(err){console.error('[APEX Lucky Draw] donor load failed',err)}return}",
+    "if(direct||!tr?.run){await prepare();commit();return}"
+  ],
+  [
+    "async function closeLucky(){\n    const tr=window.APEX_SCENE_TRANSITION;",
+    "async function closeLucky(direct=false){\n    const tr=window.APEX_SCENE_TRANSITION;"
+  ],
+  [
+    "if(!tr?.run){commit();openBtn?.focus?.({preventScroll:true});return}",
+    "if(direct||!tr?.run){commit();if(!direct)openBtn?.focus?.({preventScroll:true});return}"
+  ],
+  [
+    "  openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});",
+    "  // Session navigation uses the SAME real donor/authority, but skips the\n  // home-scene door. The shared Gold wipe lives above both destinations;\n  // showing Home even for one frame would violate the single-session flow.\n  // Normal HOME entry and Lucky BACK retain the original scene door.\n  window.APEX_LUCKY_SESSION=Object.freeze({\n    openFromSection:()=>openLucky(true),\n    closeToSection:()=>{\n      const busy=frame.contentDocument?.getElementById('stage')?.dataset.busy;\n      if(host.classList.contains('is-open')&&busy!=='0')return Promise.reject(Error('Paid Lucky Draw still in progress'));\n      return closeLucky(true);\n    },\n    isOpen:()=>host.classList.contains('is-open'),\n  });\n  openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});"
+  ]
+];
+  let sessionShell=postPulseShell;
+  for(const [before,after] of luckySessionSwaps){
+    if(sessionShell.split(before).length!==2)throw Error('Lucky session patch not unique in generated shell');
+    sessionShell=sessionShell.replace(before,after);
+  }
+  outputs.set('shell.html', Buffer.from(sessionShell, 'utf8'));
+  log('Tactical Pulse HUD B + direct session Lucky bridge built into shell.html');
 
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
