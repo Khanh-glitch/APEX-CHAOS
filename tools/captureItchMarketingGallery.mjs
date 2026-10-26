@@ -31,7 +31,11 @@ async function prepare(){
  await game.evaluate(()=>document.querySelector('#apex-boot-start')?.click());
  await game.waitForSelector('#freeBattle',{visible:true,timeout:60000});
  await game.waitForFunction(()=>document.body.dataset.apexSceneTransition==='DONE',{timeout:120000});
+ await game.waitForSelector('.apex-tutorial-ask-no',{visible:true,timeout:10000}).catch(()=>{});
  await game.evaluate(()=>{
+   // An actual player choosing NO dismisses the first-run question
+   // without hiding/mutating any authored UI for the marketing capture.
+   document.querySelector('.apex-tutorial-ask-no')?.click();
    document.querySelector('.apex-guide-close:not(.apex-coach-skip)')?.click();
    document.querySelector('.apex-coach-skip')?.click();
    document.querySelector('.apex-help-close')?.click();
