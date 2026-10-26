@@ -16,6 +16,18 @@ export default function FirstSessionWelcome({ready=false}){
  const [error,setError]=useState('');
  const field=useRef(null);
  useEffect(()=>{if(ready&&!done&&step==='name')field.current?.focus();},[ready,done,step]);
+ useEffect(()=>{
+  // Legacy Gold and Apex keyboard shortcuts are global. They must never
+  // consume or prevent characters in the first-run name field.
+  const trap=e=>{
+   if(e.target?.closest?.('.apex-welcome-gate input')){
+    e.stopImmediatePropagation();
+   }
+  };
+  for(const type of ['keydown','keyup','keypress'])window.addEventListener(type,trap,true);
+  return()=>{for(const type of ['keydown','keyup','keypress'])window.removeEventListener(type,trap,true);};
+ },[]);
+
  if(!ready||done)return null;
  const lang=window.APEX_I18N?.getLanguage?.()==='vie'?'vie':'eng';
  const t=copy[lang];
