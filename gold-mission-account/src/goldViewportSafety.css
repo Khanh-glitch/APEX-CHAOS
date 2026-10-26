@@ -77,3 +77,10 @@ html[lang='vi'] #root .gold-page-heading {
   #root .gold-ac-chip { font-size: .85em; }
   #root .gold-page-kicker { letter-spacing: .14em; }
 }
+
+/* Keep the unchanged Gold account portrait visible but inside its content
+ * bounds. The original -right-16 offsets it 32px off desktop viewport,
+ * increasing document.scrollWidth and introducing horizontal panning. */
+@media (min-width: 1024px) {
+  #root .gold-account-hero-art { right: 0; }
+}

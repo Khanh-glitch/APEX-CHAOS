@@ -81,7 +81,7 @@ export function Account({ g }: { g: Game }) {
   return (
     <div className="relative">
       {/* Giant fighter portrait */}
-      <div className="hidden lg:block absolute -right-16 -top-10 w-[60%] h-[760px] pointer-events-none" style={{ WebkitMaskImage: "linear-gradient(90deg,transparent,#000 40%), linear-gradient(180deg,#000 55%,transparent)", WebkitMaskComposite: "source-in", maskComposite: "intersect", maskImage: "linear-gradient(90deg,transparent,#000 40%), linear-gradient(180deg,#000 55%,transparent)" }}>
+      <div className="gold-account-hero-art hidden lg:block absolute -right-16 -top-10 w-[60%] h-[760px] pointer-events-none" style={{ WebkitMaskImage: "linear-gradient(90deg,transparent,#000 40%), linear-gradient(180deg,#000 55%,transparent)", WebkitMaskComposite: "source-in", maskComposite: "intersect", maskImage: "linear-gradient(90deg,transparent,#000 40%), linear-gradient(180deg,#000 55%,transparent)" }}>
         <img key={fighter.id} src={fighter.img} alt="" className="w-full h-full object-cover anim-fade-in" style={{ objectPosition: fighter.pos, opacity: 0.8 }} />
       </div>
 
