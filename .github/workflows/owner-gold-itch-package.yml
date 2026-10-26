@@ -103,7 +103,9 @@ jobs:
               await game.evaluate(()=>document.querySelector('#apex-boot-start')?.click());
               await game.waitForSelector('#apex-welcome-name',{visible:true,timeout:90000});
               await game.type('#apex-welcome-name','APEX TEST');
+              console.log('FIRST RUN FORM BEFORE',await game.evaluate(()=>({value:document.querySelector('#apex-welcome-name')?.value,valid:document.querySelector('.apex-welcome-card form')?.checkValidity(),step:!!document.querySelector('.apex-welcome-experience')})));
               await game.click('.apex-welcome-primary');
+              console.log('FIRST RUN FORM AFTER',await game.evaluate(()=>({value:document.querySelector('#apex-welcome-name')?.value,error:document.querySelector('.apex-welcome-error')?.textContent,step:!!document.querySelector('.apex-welcome-experience'),gate:!!document.querySelector('.apex-welcome-gate')})));
               await game.waitForSelector('.apex-welcome-experience',{visible:true,timeout:20000});
               await game.evaluate(()=>[...document.querySelectorAll('.apex-welcome-experience button')][1]?.click());
               await game.waitForFunction(()=>!document.querySelector('.apex-welcome-gate'),{timeout:10000});
