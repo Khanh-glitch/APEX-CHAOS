@@ -7279,6 +7279,14 @@ engine.drawProjs=function(ctx){
 };
 const nativeDrawEnemy=engine.drawEnemy.bind(engine);
 engine.drawEnemy=function(ctx,e){
+ // Raster-space conservative cull: enemies well outside the actual lens can
+ // contribute no pixels, including held weapons/boss label/glows (420-unit
+ // gutter). Their simulation, AI, attacks, damage and particles remain live.
+ // Gold's visible draw order/effects are never changed.
+ const lens=Math.max(.1,this.camZoom||.875),camera=this.cam||this.player;
+ const halfW=(this.w||960)/(2*lens),halfH=(this.h||540)/(2*lens);
+ if(Math.abs((e.x||0)-(camera.x||0))>halfW+420 ||
+    Math.abs((e.y||0)-(camera.y||0))>halfH+420)return;
  nativeDrawEnemy(ctx,e);
  if(!e.waveGunId)return;
  // The exact Free Battle held-weapon art, pose recoil, aim and casing
