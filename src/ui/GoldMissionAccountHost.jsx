@@ -60,7 +60,7 @@ function safeSnapshot(displayHero) {
     // because those scripts run under the Gold base. This React bridge runs
     // under the entry directory instead; normalize those approved app assets
     // BEFORE apexAppUrl or /html/apex/ would incorrectly escape to /html/assets/.
-    const appArt=String(src).replace(/^(?:\\.\\.\\/)+(assets|gold)\\//, '/$1/');
+    const appArt=String(src).replace(/^(?:\.\.\/)+(assets|gold)\//, '/$1/');
     const img=/^(https?:|data:|blob:)/i.test(appArt)?appArt:apexAppUrl(appArt);
     return {id,name:meta?.displayNameFor?.(id)||defaultName,element:lang==='vie'?element:elementEnglish,
       epithet: owned.has(id)?(lang==='vie'?'ĐÃ SỞ HỮU':'OWNED'):(lang==='vie'?'CHƯA SỞ HỮU':'NOT OWNED'),color,
