@@ -17,3 +17,8 @@
 .apex-welcome-experience button strong{font:900 16px system-ui;letter-spacing:.08em}
 .apex-welcome-experience button small{font:500 12px/1.4 system-ui;color:#d7bd9f}
 @media(max-height:470px){.apex-welcome-card{padding:14px 18px}.apex-welcome-card h1{font-size:20px;margin:6px 0}.apex-welcome-rule{margin-bottom:10px}.apex-welcome-experience button{padding:8px 12px;min-height:42px}}
+
+
+.apex-welcome-identity{display:flex;align-items:center;gap:12px}
+.apex-welcome-identity img{display:block;width:66px;height:66px;object-fit:cover;object-position:center 22%;flex:none;border:1px solid #cc9b5c;box-shadow:0 0 0 3px #d49b5340,0 10px 20px #0009;clip-path:polygon(0 9px,9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%)}
+@media(max-height:470px){.apex-welcome-identity img{width:40px;height:40px}}
