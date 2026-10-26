@@ -51,7 +51,7 @@
  .layout.editing-idle .idle-editor{flex-basis:38dvh}
  .idle-note{display:none}
 }
-</style></head><body><div id="app">
+</style><script src="../game/bot-wave/botWaveGpuPost.js"></script></head><body><div id="app">
  <header class="topbar">
   <div class="brand"><div class="brand-logo">✦</div><div class="brand-title"><strong>THE HAND <span class="goldtext">GOLD LAB</span></strong><small>SKILL & MOTION TEST · ORIGINAL VFX BUILD</small></div></div>
   <div class="header-right"><span class="chip" id="cast-status">READY TO FIGHT</span><span class="metric" id="fps">— FPS</span><span class="metric" id="enemy-count">— MỤC TIÊU</span><button id="left-toggle" class="mini mobile-toggle" title="Mục tiêu & cấu hình">☷</button><button id="right-toggle" class="mini mobile-toggle" title="Thông tin & chỉ số">◈</button><button id="idle-toggle" class="mini idle-open" title="Chỉnh vị trí, góc và thứ tự găng idle" aria-expanded="false">✋ IDLE</button><button id="pause" class="mini" title="Tạm dừng (P)">Ⅱ</button><button id="sound" class="mini" title="Bật/tắt âm thanh">♫</button><button id="reset" class="reset">↻ RESET LAB</button></div>
@@ -7549,7 +7549,11 @@ const nativeRender=engine.render.bind(engine);
 const nativePostEnd=engine.post.end.bind(engine.post);
 engine.post.end=function(...args){
  const started=performance.now();
- try{return nativePostEnd(...args);}
+ try{
+  // Hardware WebGL compositor; if unsupported/error, identical native Gold Post.
+  if(window.APEX_WAVE_GPU_POST?.render(engine.post,...args))return;
+  return nativePostEnd(...args);
+ }
  finally{
   const elapsed=performance.now()-started;
   PERF.lastPostMs=elapsed;PERF.postSamples++;PERF.maxPostMs=Math.max(PERF.maxPostMs,elapsed);
