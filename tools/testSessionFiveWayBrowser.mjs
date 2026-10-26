@@ -8,8 +8,8 @@ const output='reports/five-session-navigation';
 await mkdir(output,{recursive:true});
 const sizes=[[390,844,true],[844,390,true],[1440,900,false]];
 const browser=await launchBrowser();
-async function until(page,test,why,timeout=33000){
- try{await page.waitForFunction(test,{timeout});}
+async function until(page,test,why,timeout=33000,...args){
+ try{await page.waitForFunction(test,{timeout},...args);}
  catch(e){throw new Error(why+': '+String(e));}
 }
 async function gold(page,index){
