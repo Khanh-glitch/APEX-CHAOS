@@ -95,3 +95,10 @@ html[lang='vi'] #root .gold-page-heading {
   #root .gold-tier-summary { grid-template-columns: minmax(0,1fr); }
   #root .gold-account-guest-badge { letter-spacing: .12em; }
 }
+
+/* The original disabled claim button may shrink below the width of a word at
+ * tablet breakpoint. Wrap at word boundaries, never inside REMAINING/VIỆT. */
+#root .gold-mission-claim-button { overflow-wrap: normal; word-break: normal; white-space: normal; line-height: 1.3; }
+@media (min-width:1024px) and (max-width:1279px) {
+  #root .gold-mission-claim-button { flex-basis: 100%; }
+}

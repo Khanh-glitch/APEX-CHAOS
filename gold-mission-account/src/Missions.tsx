@@ -106,7 +106,7 @@ function MissionDetail({ m, g, onClaim }: { m: Mission; g: Game; onClaim: (ids: 
           <button
             disabled={status !== "ready"}
             onClick={(e) => onClaim([m.id], e)}
-            className={`relative cut-sm font-display font-bold italic tracking-wider text-lg px-8 py-3.5 flex-1 min-w-[190px] ${
+            className={`gold-mission-claim-button relative cut-sm font-display font-bold italic tracking-wider text-base sm:text-lg px-4 sm:px-6 py-3.5 flex-1 min-w-[190px] ${
               status === "ready" ? "btn-claim shine" : "bg-white/8 text-white/45 border border-white/10"
             }`}
           >
