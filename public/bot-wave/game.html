@@ -7434,14 +7434,14 @@ engine.basicAttack=function(){
 // unchanged. No particles, passes, quality options or render frames are cut.
 // Owner's immutable Gold core remains byte-identical; only the Wave adapter
 // alters the preparation of this ONE intermediate pass.
-const BLOOM_FAST={prepared:0,fallback:0,cacheResizes:0};
+const BLOOM_FAST={enabled:true,prepared:0,fallback:0,cacheResizes:0};
 const bloomPost=engine.post;
 const bloomCanvas=document.createElement('canvas');
 const bloomPreCtx=bloomCanvas.getContext('2d');
 if(bloomPreCtx&&bloomPost?.actx){
  const bloomDraw=bloomPost.actx.drawImage.bind(bloomPost.actx);
  bloomPost.actx.drawImage=function(source,...args){
-  if(source===bloomPost.scene&&args.length===4&&
+  if(BLOOM_FAST.enabled&&source===bloomPost.scene&&args.length===4&&
      this.filter?.includes('contrast(2.05)')&&this.filter?.includes('blur(1.1px)')){
    const width=Math.round(args[2]),height=Math.round(args[3]);
    if(width>=2&&height>=2&&Number.isFinite(width+height)){
@@ -7462,7 +7462,7 @@ if(bloomPreCtx&&bloomPost?.actx){
   return bloomDraw(source,...args);
  };
 }
-window.APEX_BOT_WAVE_BLOOM_PREPASS=Object.freeze({snapshot:()=>({...BLOOM_FAST,bufferWidth:bloomCanvas.width,bufferHeight:bloomCanvas.height})});
+window.APEX_BOT_WAVE_BLOOM_PREPASS=Object.freeze({snapshot:()=>({...BLOOM_FAST,bufferWidth:bloomCanvas.width,bufferHeight:bloomCanvas.height}),setEnabled:(v)=>{BLOOM_FAST.enabled=!!v;}});
 
 // Observe full-frame, render and post-processing costs independently. The
 // Gold renderer, texture sizes, bloom chain and effects remain byte-identical.
