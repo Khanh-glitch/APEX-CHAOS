@@ -147,9 +147,14 @@ await bootHome(page);
 const afterReload = await page.evaluate(() => !!document.querySelector('.apex-guide-card'));
 check('CP3 coach does not auto-show again after SKIP + reload', () => assert.equal(afterReload, false));
 await page.click('#apex-guide-open');
+// Issue #105: "?" opens the help sheet; REPLAY (not "?") explicitly starts
+// the coach again. Exercise the actual user path instead of the retired
+// direct-replay shortcut.
+await page.waitForSelector('#apex-help-replay', { visible: true, timeout: 10000 });
+await page.click('#apex-help-replay');
 await page.waitForSelector('.apex-coach-skip', { visible: true, timeout: 10000 });
 const replayedCoach = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.alpha.coach.v2') || 'null'));
-check('"?" control replays the CP3 coach on demand', () => {
+check('"?" → Help → Replay restarts the CP3 coach on demand', () => {
   assert.equal(replayedCoach?.step, 0);
   assert.equal(replayedCoach?.done, false);
   assert.equal(replayedCoach?.skipped, false);
