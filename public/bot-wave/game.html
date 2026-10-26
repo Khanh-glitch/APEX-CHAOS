@@ -7539,7 +7539,7 @@ const nativeRender=engine.render.bind(engine);
 // off its blocking main-thread path when desynchronized contexts are used.
 // Keep a transparent/alpha-capable canvas in every case, including Safari.
 (function preparePostBuffers(post){
- const names=[['a','actx'],['b','bctx'],['cp','cpctx']];
+ const names=[['a','actx'],['b','bctx']];
  const state={enabled:[],unsupported:[]};
  for(const [canvasKey,ctxKey] of names){
   const source=post[canvasKey];
