@@ -47,10 +47,17 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
     'public/game/results/matchResultAuthority.js',
     'src/game/cosmetics/CosmeticLocker.jsx',
     'src/game/cosmetics/FieldArchiveC03.jsx',
-    'src/ui/ProgressionCenter.jsx',
   ]) {
     assert.match(read(rel), /weaponDisplayName/, `${rel} consumes the display-name authority`);
   }
+  // Owner Gold cutover: the retired ProgressionCenter weapon-history rows
+  // are gone. Gold Mastery displays canonical combat-achievement metadata,
+  // not weapon-name rows, so no new weapon display-name mapper is allowed.
+  const goldHost = read('src/ui/GoldMissionAccountHost.jsx');
+  assert.match(goldHost, /applicableAchievements\(/, 'Gold Mastery reads the canonical applicable achievement catalog');
+  assert.match(goldHost, /meta\?\.getMastery\?\.\(\)/, 'Gold Mastery reads the real sealed wallet mastery state');
+  assert.doesNotMatch(goldHost, /WEAPON_DISPLAY_NAMES\s*=|weaponDisplayName\s*:/,
+    'Gold does not recreate a second weapon-name authority');
 }
 
 // ── 2. CP4 wall feedback removes filled radial discs only ──────────────────
