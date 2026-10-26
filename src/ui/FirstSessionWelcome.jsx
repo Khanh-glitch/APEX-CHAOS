@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import playerAccount from '../game/playerAccount.js';
+import {apexAppUrl} from '../game/appRoot.js';
 import './firstSessionWelcome.css';
 
 const KEY = 'apex.firstSessionWelcome.v1';
@@ -33,7 +34,7 @@ export default function FirstSessionWelcome({ready=false}){
  };
  return <div className="apex-welcome-gate" role="dialog" aria-modal="true" aria-label={t.title} data-apex-no-localize="">
   <section className="apex-welcome-card">
-   <small className="apex-welcome-kicker">{t.tag}</small>
+   <div className="apex-welcome-identity"><img src={apexAppUrl('/assets/dictionary/heroes/boxe/avatar.png')} alt="BOXE" loading="eager" decoding="async"/><small className="apex-welcome-kicker">{t.tag}</small></div>
    <h1>{t.title}</h1>
    <div className="apex-welcome-rule"/>
    {step==='name'?<form onSubmit={advance}>
