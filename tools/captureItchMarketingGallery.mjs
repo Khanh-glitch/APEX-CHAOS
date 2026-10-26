@@ -18,9 +18,9 @@ async function shoot(page,name){
   note.push({name,url:page.url(),time:new Date().toISOString()});
   console.log('CAPTURE',name);
 }
-async function prepare(){
+async function prepare({width=1600,height=900}={}){
  const page=await browser.newPage();
- await page.setViewport({width:1600,height:900,deviceScaleFactor:1});
+ await page.setViewport({width,height,deviceScaleFactor:1,isMobile:width<600,hasTouch:width<600});
  const errs=[];
  page.on('pageerror',e=>errs.push('page:'+String(e).slice(0,260)));
  page.on('response',r=>{if(r.status()>=400&&r.url().includes('/html/'))errs.push(r.status()+' '+r.url().slice(0,140))});
@@ -102,11 +102,72 @@ async function combatCapture(game,page){
    await shoot(page,'08-live-combat-'+(i+1));
  }
 }
+
+async function captureLocalOrPhone({mode,width,height,tag,play}) {
+ const {page,game,errs}=await prepare({width,height});
+ try {
+  await game.evaluate(()=>document.querySelector('#freeBattle')?.click());
+  await game.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('screen-mode') && document.body.dataset.apexSceneTransition==='DONE',{timeout:45000});
+  await wait(850);
+  const modes=await game.evaluate(()=>[...document.querySelectorAll('.modeCard')].map(x=>({mode:x.dataset.mode,title:x.textContent?.trim()?.slice(0,120)})));
+  console.log('MODE OPTIONS',tag,JSON.stringify(modes));
+  // Only the actual supported mode control may be used. Never fake a mode.
+  const selected=await game.evaluate(m=>{
+   const cards=[...document.querySelectorAll('.modeCard')];
+   const el=cards.find(c=>String(c.dataset.mode||'').toLowerCase()===m)
+      ||cards.find(c=>m==='local'&&/local|2\s*players/i.test(c.textContent||''));
+   if(!el)return null;
+   const picked={mode:el.dataset.mode,text:el.textContent?.trim()?.slice(0,100)};
+   el.click();return picked;
+  },mode);
+  if(!selected)throw Error('No actual mode button for '+mode+': '+JSON.stringify(modes));
+  await game.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('screen-fighter')&&document.body.dataset.apexSceneTransition==='DONE',{timeout:60000});
+  await wait(1100);
+  await shoot(page,tag+'-fighter-select');
+  if(!play)return;
+  await game.evaluate(()=>document.querySelector('#lockIn')?.click());
+  await game.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('fighter-p1-locked')||document.querySelector('#battleHudHost')?.classList.contains('is-open'),{timeout:40000});
+  if(!(await game.$('#battleHudHost.is-open'))){
+    await wait(450);
+    await game.evaluate(()=>document.querySelector('#lockIn')?.click());
+  }
+  await game.waitForSelector('#battleHudHost.is-open #p1Side .skill[data-i="0"]',{timeout:90000});
+  await game.waitForFunction(()=>window.APEX_ARSENAL?.state?.active===true,{timeout:45000});
+  const actualMode=await game.evaluate(()=>window.APEX_ARSENAL?.state?.battleMode);
+  console.log('BATTLE MODE',tag,JSON.stringify({requested:mode,selected,actualMode}));
+  // Check the UI really entered the requested match mode.
+  if(mode==='bot' && String(actualMode).toUpperCase()!=='BOT')throw Error('BOT mislabeled: '+actualMode);
+  if(mode==='local' && String(actualMode).toUpperCase()==='BOT')throw Error('Local mislabeled: '+actualMode);
+  await wait(650);
+  for(let n=0;n<6;n++) {
+   if(n>0)await game.evaluate(()=>{
+     const hud=window.APEX_GOLD_HUD||window.APEX_GOLD_BRIDGE;
+     const hr=window.APEX_HERO_REWORK;
+     const p1=window.fighters?.[0];
+     if(!hud||!hr||!p1)return;
+     for(const [slot,i] of [['A1',0],['A2',1]]) {
+       if(hr.observeAbilityCastability?.(p1,slot)?.castable)hud.pressSkill?.(0,i,{source:'player'});
+     }
+   });
+   await wait(770);
+   await shoot(page,tag+'-battle-'+String(n+1).padStart(2,'0'));
+  }
+  console.log('CAPTURED REAL',tag,'mode',actualMode,'viewport',width,height);
+ }catch(e){console.error('ADDITIONAL_CAPTURE_FAILED',tag,String(e));note.push({error:tag+': '+String(e)});}
+ finally{
+  console.log('ADDITIONAL_BROWSER_ERRORS',tag,JSON.stringify(errs.slice(0,12)));
+  await page.close();
+ }
+}
+
 try{
  const {page,game,errs}=await prepare();
  await shoot(page,'01-home');
  try{await goldCapture(game,page);}catch(e){console.error('GOLD_CAPTURE_FAILED',String(e));note.push({error:'Gold: '+String(e)})}
  try{await combatCapture(game,page);}catch(e){console.error('COMBAT_CAPTURE_FAILED',String(e));note.push({error:'Combat: '+String(e)})}
+ await captureLocalOrPhone({mode:'local',width:1600,height:900,tag:'09-local-desktop',play:false});
+ await captureLocalOrPhone({mode:'bot',width:390,height:844,tag:'10-bot-phone',play:true});
+ await captureLocalOrPhone({mode:'local',width:390,height:844,tag:'11-local-phone',play:true});
  console.log('BROWSER_ERRORS',JSON.stringify(errs.slice(0,25)));
  console.log('SERVER_ERRORS',JSON.stringify(server.serverErrors.slice(0,25)));
  await writeFile(path.join(OUT,'capture-report.json'),JSON.stringify({note,errs,serverErrors:server.serverErrors},null,2));
