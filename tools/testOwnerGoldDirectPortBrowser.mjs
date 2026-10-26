@@ -136,7 +136,21 @@ try {
       await account.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('TÀI KHOẢN'),{timeout:10000});
       const viAccountFit = await fitHeading(account);
       assert.ok(viAccountFit.titleBounds.left >= -2 && viAccountFit.titleBounds.right <= width+2,'Vietnamese account heading crop');
-      assert.ok(!viAccountFit.overflow,'Vietnamese account overflow');
+      if (viAccountFit.overflow) {
+        const offending = await account.evaluate(() => ({
+          viewport:document.documentElement.clientWidth,
+          htmlWidth:document.documentElement.scrollWidth,
+          bodyWidth:document.body.scrollWidth,
+          offenders:[...document.querySelectorAll('body *')].map(el=>{
+            const rect=el.getBoundingClientRect();
+            return {tag:el.tagName, className:typeof el.className==='string'?el.className.slice(0,140):'',
+              text:el.textContent?.trim()?.slice(0,80),left:Math.round(rect.left),
+              right:Math.round(rect.right),width:Math.round(rect.width)};
+          }).filter(el=>el.right>innerWidth+3||el.left< -3).slice(0,35),
+        }));
+        console.error('GOLD ACCOUNT OVERFLOW DIAGNOSTIC',width,height,JSON.stringify(offending));
+      }
+      assert.ok(!viAccountFit.overflow,'Vietnamese account overflow at '+width+'x'+height);
 
       await account.waitForFunction(()=>document.documentElement.lang==='vi',{timeout:10000});
       const vieProfile=await account.evaluate(()=>({title:document.querySelector('h1')?.innerText,text:document.body.innerText,overflow:document.documentElement.scrollWidth>innerWidth+3}));
