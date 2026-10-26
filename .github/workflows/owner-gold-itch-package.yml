@@ -8,6 +8,7 @@ on:
       - feat/bot-wave-mobile-landscape-floating-stick-20261026
       - fix/mobile-onboarding-guides-botwave-performance-20261026
       - perf/botwave-lossless-refraction-fit-20261027
+      - fix/gold-home-onboarding-botwave-20261027
     paths:
       - '.github/workflows/owner-gold-itch-package.yml'
       - 'gold-mission-account/**'
@@ -82,6 +83,8 @@ jobs:
           test -n "$CHROME"
           CHROME_PATH="$CHROME" node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          fs.mkdirSync('evidence/gold-home-onboarding',{recursive:true});
           import {createRequire} from 'node:module';
           import {startNestedServer} from './tools/issue105/nestedServer.mjs';
           const require=createRequire(import.meta.url);
@@ -103,11 +106,13 @@ jobs:
               await game.waitForSelector('#apex-boot-start',{visible:true,timeout:120000});
               await game.evaluate(()=>document.querySelector('#apex-boot-start')?.click());
               await game.waitForSelector('#apex-welcome-name',{visible:true,timeout:90000});
+              await page.screenshot({path:'evidence/gold-home-onboarding/welcome-name-'+width+'.png'});
               await game.type('#apex-welcome-name','APEX TEST');
               console.log('FIRST RUN FORM BEFORE',await game.evaluate(()=>({value:document.querySelector('#apex-welcome-name')?.value,valid:document.querySelector('.apex-welcome-card form')?.checkValidity(),step:!!document.querySelector('.apex-welcome-experience')})));
               await game.click('.apex-welcome-primary');
               console.log('FIRST RUN FORM AFTER',await game.evaluate(()=>({value:document.querySelector('#apex-welcome-name')?.value,error:document.querySelector('.apex-welcome-error')?.textContent,step:!!document.querySelector('.apex-welcome-experience'),gate:!!document.querySelector('.apex-welcome-gate')})));
               await game.waitForSelector('.apex-welcome-experience',{visible:true,timeout:20000});
+              await page.screenshot({path:'evidence/gold-home-onboarding/welcome-experience-'+width+'.png'});
               await game.evaluate(()=>[...document.querySelectorAll('.apex-welcome-experience button')][1]?.click());
               await game.waitForFunction(()=>!document.querySelector('.apex-welcome-gate'),{timeout:10000});
               const homeControls=await game.evaluate(()=>{
@@ -120,6 +125,17 @@ jobs:
               assert.ok(homeControls.help&&homeControls.wallet,'Help or AC is missing');
               assert.equal(homeControls.intersection,0,'Help overlaps the AC wallet in mobile/desktop');
               assert.equal(homeControls.inert,0,'Inactive Home routes are still rendered as buttons');
+              const homeDeck=await game.evaluate(()=>{
+                const nav=document.querySelector('#stage .routes');
+                const buttons=[...nav.querySelectorAll('.route:not(.is-locked)')];
+                return {count:buttons.length,columns:getComputedStyle(nav).gridTemplateColumns.split(' ').length,
+                  rightEdge:Math.max(...buttons.map(x=>x.getBoundingClientRect().right)),
+                  viewport:innerWidth};
+              });
+              assert.equal(homeDeck.count,4,'Gold Home must expose exactly four working sections');
+              assert.equal(homeDeck.columns,width<600?2:4,'Gold Home donor still has the six-column layout');
+              assert.ok(homeDeck.rightEdge>homeDeck.viewport*.77,'Gold Home routes leave a blank right-side gap');
+              await page.screenshot({path:'evidence/gold-home-onboarding/home-'+width+'.png'});
               await game.waitForSelector('#apexMissionsOpen',{timeout:90000});
               await game.evaluate(()=>document.querySelector('#apexMissionsOpen')?.click());
               await game.waitForSelector('.apex-gold-direct-host iframe',{timeout:30000});
@@ -139,6 +155,13 @@ jobs:
             }
           } finally { await browser.close(); await server.close(); }
           NODE
+      - name: Upload Gold Home + first-run visual QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-home-onboarding-visual-qa
+          path: evidence/gold-home-onboarding/
+          if-no-files-found: warn
       - name: Create itch.io HTML5 ZIP (index.html at ZIP root)
         shell: bash
         run: |
