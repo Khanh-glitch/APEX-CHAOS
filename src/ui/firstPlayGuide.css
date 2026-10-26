@@ -257,3 +257,21 @@
 
 /* Issue #105 owner option B: cramped-portrait instructions live in Help, not over the arena. */
 .apex-help-portrait-note{margin:0;font-size:12px;line-height:1.45;color:#c9d1d9;max-width:100%;overflow-wrap:anywhere}
+
+
+/* All coach steps share one true spotlight: only the measured target stays
+   bright. No blocking mask, so input and Gold simulation keep functioning. */
+.apex-coach-layer .apex-coach-beacon{
+  box-shadow:0 0 0 9999px rgba(0,0,0,.79),0 0 24px #56e0ff88,inset 0 0 12px #56e0ff24!important;
+}
+.apex-coach-layer .apex-guide-pickup-prompt{
+  box-shadow:0 0 0 9999px rgba(0,0,0,.72),0 8px 30px #000!important;
+}
+#gold-shell-host #stage .profile #apex-guide-open{
+  position:relative!important;right:auto!important;top:auto!important;
+  inset:auto!important;flex:0 0 44px;order:-1;
+  margin:0 8px 0 0;transform:none!important;
+}
+@media(max-width:520px){
+ #gold-shell-host #stage .profile #apex-guide-open{flex-basis:36px;min-width:36px;min-height:38px;margin-right:5px}
+}
