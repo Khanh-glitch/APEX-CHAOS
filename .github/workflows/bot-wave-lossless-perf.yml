@@ -10,6 +10,7 @@ on:
       - 'src/game/botWave/**'
       - 'src/ui/**'
       - '.github/workflows/bot-wave-lossless-perf.yml'
+      - 'tools/profileBotWaveLosslessBrowser.mjs'
   pull_request:
     paths:
       - 'public/bot-wave/game.html'
