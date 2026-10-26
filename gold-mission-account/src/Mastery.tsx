@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { ACHIEVEMENTS, FIGHTERS, MILESTONE_RANKS, SKIN_FILTERS, TIERS, fighterById, isDone, type Achievement, type Fighter, type Tier } from "./data";
 import { EnergyBar, GlyphIcon, Medal, fmt } from "./ui";
+import { tr, type Language } from "./locale";
+const tierName=(lang:Language,tier:Tier)=>tr(lang,`tier.${tier}`);
 
 const TIER_SIZE: Record<Tier, number> = { legendary: 112, epic: 94, rare: 84, common: 76 };
 
 /* ---------------- Summary ---------------- */
-function Summary() {
+function Summary({lang}:{lang:Language}) {
   const done = ACHIEVEMENTS.filter(isDone).length;
   const total = ACHIEVEMENTS.length;
   const C = 2 * Math.PI * 70;
@@ -15,19 +17,19 @@ function Summary() {
       <div className="relative mx-auto w-[190px] h-[190px] sm:w-[210px] sm:h-[210px]">
         <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
           <circle cx="80" cy="80" r="70" fill="none" stroke="#2c1d12" strokeWidth="12" />
-          <circle cx="80" cy="80" r="70" fill="none" stroke="#ffb21f" strokeWidth="12" strokeLinecap="butt" strokeDasharray={`${(done / total) * C} ${C}`} style={{ filter: "drop-shadow(0 0 8px #ff8a2a)", transition: "stroke-dasharray 1s ease" }} />
+          <circle cx="80" cy="80" r="70" fill="none" stroke="#ffb21f" strokeWidth="12" strokeLinecap="butt" strokeDasharray={`${(done / Math.max(1,total)) * C} ${C}`} style={{ filter: "drop-shadow(0 0 8px #ff8a2a)", transition: "stroke-dasharray 1s ease" }} />
           <circle cx="80" cy="80" r="56" fill="none" stroke="#ffb21f" strokeOpacity=".25" strokeDasharray="2 6" style={{ transformOrigin: "80px 80px", animation: "spin-slow 30s linear infinite" }} />
         </svg>
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
             <div className="font-display italic font-bold text-6xl leading-none text-molten">{done}</div>
-            <div className="font-display text-sm tracking-[.3em] text-orange-200/70 mt-1">/ {total} THÀNH TỰU</div>
+            <div className="font-display text-sm tracking-[.3em] text-orange-200/70 mt-1">/ {total} {tr(lang,"achievements")}</div>
           </div>
         </div>
       </div>
 
       <div className="relative min-w-0">
-        <p className="font-display text-xs tracking-[.4em] text-amber">BỘ SƯU TẬP HUY CHƯƠNG</p>
+        <p className="font-display text-xs tracking-[.4em] text-amber">{tr(lang,"medal.collection")}</p>
         <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3">
           {TIERS.slice()
             .reverse()
@@ -40,7 +42,7 @@ function Summary() {
                   <Medal tier={t.id} glyph={sample?.glyph || "star"} unlocked size={46} />
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between font-display text-sm font-bold" style={{ color: t.color }}>
-                      <span className="truncate">{t.label.toUpperCase()}</span>
+                      <span className="truncate">{tierName(lang,t.id)}</span>
                       <span className="tabular-nums text-white/80">
                         {d}/{all.length}
                       </span>
@@ -54,7 +56,7 @@ function Summary() {
         <div className="mt-5 flex items-start gap-3 bg-amber-400/10 border-l-4 border-gold px-4 py-3 text-[15px] text-amber-100/90">
           <GlyphIcon name="star" className="w-5 h-5 shrink-0 mt-0.5 text-gold" />
           <p>
-            Thành tựu dùng để <b className="text-white">ghi nhận thành tích và mở khóa skin</b>. Hoàn thành thành tựu <b className="text-white">không thưởng AC</b> — AC chỉ đến từ nhiệm vụ.
+            {tr(lang,"medal.info.1")} <b className="text-white">{tr(lang,"medal.info.2")}</b>. <b className="text-white">{tr(lang,"medal.info.3")}</b> {tr(lang,"medal.info.4")}
           </p>
         </div>
       </div>
@@ -63,7 +65,7 @@ function Summary() {
 }
 
 /* ---------------- Fighter slat ---------------- */
-function Slat({ f, active, onSelect }: { f: Fighter; active: boolean; onSelect: () => void }) {
+function Slat({ f, active, onSelect, lang }: { f: Fighter; active: boolean; onSelect: () => void; lang:Language }) {
   const [preview, setPreview] = useState<number | null>(null);
   useEffect(() => {
     if (!active) setPreview(null);
@@ -110,7 +112,7 @@ function Slat({ f, active, onSelect }: { f: Fighter; active: boolean; onSelect: 
               {f.rank}
             </div>
             <div className="font-display text-xs tracking-[.4em] -mt-1" style={{ color: f.color }}>
-              HUY CHƯƠNG ĐÃ ĐẠT
+              {tr(lang,"medals.earned")}
             </div>
           </div>
 
@@ -126,18 +128,18 @@ function Slat({ f, active, onSelect }: { f: Fighter; active: boolean; onSelect: 
             <div className="mt-4 max-w-md">
               <div className="flex justify-between font-display text-xs tracking-wider text-white/70 mb-1.5">
                 <span>
-                  ĐÃ ĐẠT {f.xp}/{f.xpNext}
+                  {tr(lang,"earned")} {f.xp}/{f.xpNext}
                 </span>
-                <span>THÀNH TỰU THẬT</span>
+                <span>{tr(lang,"real.achievements")}</span>
               </div>
               <EnergyBar value={f.xp} max={f.xpNext} cells={14} height={9} color={f.color} />
             </div>
 
             <dl className="mt-4 flex gap-6 font-display">
               {[
-                ["HUY CHƯƠNG", f.xp],
-                ["TỔNG", f.xpNext],
-                ["CÒN", Math.max(0, f.xpNext - f.xp)],
+                [tr(lang,"medals"), f.xp],
+                [tr(lang,"total"), f.xpNext],
+                [tr(lang,"left"), Math.max(0, f.xpNext - f.xp)],
               ].map(([k, v]) => (
                 <div key={k}>
                   <dt className="text-[10px] tracking-[.3em] text-white/50">{k}</dt>
@@ -147,9 +149,9 @@ function Slat({ f, active, onSelect }: { f: Fighter; active: boolean; onSelect: 
             </dl>
 
             <div className="mt-5">
-              <div className="font-display text-[11px] tracking-[.3em] text-white/60 mb-2">SKIN MASTERY ĐƯỢC GAME XÁC NHẬN</div>
+              <div className="font-display text-[11px] tracking-[.3em] text-white/60 mb-2">{tr(lang,"mastery.skin")}</div>
               <p className="text-[15px] text-orange-50/90 min-h-[44px]">
-                {f.skins.length ? f.skins.join(" · ") : "Tướng này hiện chưa có skin Mastery được xác nhận. Tiến độ thành tựu vẫn được ghi nhận."}
+                {f.skins.length ? f.skins.join(" · ") : tr(lang,"mastery.no.skin")}
               </p>
             </div>
           </div>
@@ -159,14 +161,14 @@ function Slat({ f, active, onSelect }: { f: Fighter; active: boolean; onSelect: 
   );
 }
 
-function Roster() {
-  const [sel, setSel] = useState(FIGHTERS[0].id);
+function Roster({lang}:{lang:Language}) {
+  const [sel, setSel] = useState(FIGHTERS[0]?.id || "");
   return (
     <section className="mt-12">
-      <SectionTitle kicker={`${FIGHTERS.length} TƯỚNG ĐƯỢC THEO DÕI`} title="ĐỘ TINH THÔNG" />
+      <SectionTitle kicker={`${FIGHTERS.length} ${tr(lang,"tracked.fighters")}`} title={tr(lang,"hero.mastery")} />
       <div className="mt-5 flex flex-col lg:flex-row gap-2 lg:gap-0">
         {FIGHTERS.map((f) => (
-          <Slat key={f.id} f={f} active={sel === f.id} onSelect={() => setSel(f.id)} />
+          <Slat key={f.id} f={f} lang={lang} active={sel === f.id} onSelect={() => setSel(f.id)} />
         ))}
       </div>
     </section>
@@ -186,7 +188,7 @@ export function SectionTitle({ kicker, title }: { kicker: string; title: string 
 }
 
 /* ---------------- Medal wall ---------------- */
-function Wall() {
+function Wall({lang}:{lang:Language}) {
   const [tier, setTier] = useState<Tier | "all">("all");
   const [status, setStatus] = useState<"all" | "done" | "locked">("all");
   const [open, setOpen] = useState<Achievement | null>(null);
@@ -198,22 +200,22 @@ function Wall() {
 
   return (
     <section className="mt-14">
-      <SectionTitle kicker="THÀNH TỰU CHIẾN ĐẤU" title="BỨC TƯỜNG HUY CHƯƠNG" />
+      <SectionTitle kicker={tr(lang,"battle.achievements")} title={tr(lang,"medal.wall")} />
       <div className="mt-5 flex flex-wrap gap-2 items-center">
         <button className={chip(tier === "all")} onClick={() => setTier("all")}>
-          TẤT CẢ {ACHIEVEMENTS.length}
+          {tr(lang,"all")} {ACHIEVEMENTS.length}
         </button>
         {TIERS.map((t) => (
           <button key={t.id} className={chip(tier === t.id, t.color)} style={tier === t.id ? { background: t.color } : { borderBottom: `2px solid ${t.color}66` }} onClick={() => setTier(t.id)}>
-            {t.label.toUpperCase()}
+            {tierName(lang,t.id)}
           </button>
         ))}
         <span className="hidden sm:block w-px h-6 bg-white/20 mx-1" />
         {(
           [
-            ["all", "MỌI TRẠNG THÁI"],
-            ["done", "ĐÃ MỞ"],
-            ["locked", "CHƯA MỞ"],
+            ["all", tr(lang,"status.all")],
+            ["done", tr(lang,"status.unlocked")],
+            ["locked", tr(lang,"status.locked")],
           ] as const
         ).map(([k, l]) => (
           <button key={k} className={chip(status === k) + " !text-[11px]"} onClick={() => setStatus(k)}>
@@ -231,7 +233,7 @@ function Wall() {
             <div key={t.id} className="relative">
               <div className="flex items-center gap-3 mb-3">
                 <span className="font-display font-bold tracking-[.3em] text-sm" style={{ color: t.color }}>
-                  {t.label.toUpperCase()}
+                  {tierName(lang,t.id)}
                 </span>
                 <span className="font-display text-xs text-white/50">
                   {all.filter(isDone).length}/{all.length}
@@ -261,15 +263,15 @@ function Wall() {
             </div>
           );
         })}
-        {list.length === 0 && <p className="text-white/60 py-10">Không có huy chương nào khớp bộ lọc.</p>}
+        {list.length === 0 && <p className="text-white/60 py-10">{tr(lang,"medal.none")}</p>}
       </div>
 
-      {open && <Drawer a={open} onClose={() => setOpen(null)} />}
+      {open && <Drawer a={open} lang={lang} onClose={() => setOpen(null)} />}
     </section>
   );
 }
 
-function Drawer({ a, onClose }: { a: Achievement; onClose: () => void }) {
+function Drawer({ a, onClose, lang }: { a: Achievement; onClose: () => void; lang:Language }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", h);
@@ -286,14 +288,14 @@ function Drawer({ a, onClose }: { a: Achievement; onClose: () => void }) {
       <div className="sheet absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto sm:inset-y-0 sm:left-auto sm:right-0 sm:w-[440px] sm:max-h-none cut-lg p-[2px]" style={{ background: `linear-gradient(160deg, ${t.color}, transparent 60%)` }}>
         <div className="relative h-full cut-lg bg-[#0b0706] p-6 sm:p-8 overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-72 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 30%, ${t.color}44, transparent 65%)` }} />
-          <button onClick={onClose} aria-label="Đóng" className="absolute top-4 right-4 w-10 h-10 hex bg-white/10 hover:bg-white/25 grid place-items-center z-10">
+          <button onClick={onClose} aria-label={tr(lang,"close")} className="absolute top-4 right-4 w-10 h-10 hex bg-white/10 hover:bg-white/25 grid place-items-center z-10">
             <GlyphIcon name="x" className="w-4 h-4" />
           </button>
 
           <div className="relative flex flex-col items-center text-center pt-4">
             <Medal tier={a.tier} glyph={a.glyph} unlocked={done} size={168} />
             <span className="slant mt-5 font-display font-bold text-xs tracking-[.3em] px-5 py-1 text-black" style={{ background: t.color }}>
-              {t.label.toUpperCase()}
+              {tierName(lang,t.id)}
             </span>
             <h3 className="font-display italic font-bold text-3xl leading-tight mt-3">{a.name}</h3>
             <p className="text-orange-50/80 mt-2 max-w-xs">{a.desc}</p>
@@ -301,13 +303,13 @@ function Drawer({ a, onClose }: { a: Achievement; onClose: () => void }) {
 
           <div className="relative mt-6">
             <div className="flex justify-between font-display text-xs tracking-[.25em] text-white/60 mb-1.5">
-              <span>TIẾN ĐỘ</span>
+              <span>{tr(lang,"progress")}</span>
               <span className="text-white tabular-nums">
                 {fmt(Math.min(a.p, a.t))} / {fmt(a.t)}
               </span>
             </div>
             <EnergyBar value={Math.min(a.p, a.t)} max={a.t} cells={10} height={14} color={t.color} />
-            <div className={`mt-3 font-display font-bold tracking-widest text-sm ${done ? "text-gold" : "text-white/50"}`}>{done ? "✓ ĐÃ MỞ KHÓA" : "CHƯA MỞ KHÓA"}</div>
+            <div className={`mt-3 font-display font-bold tracking-widest text-sm ${done ? "text-gold" : "text-white/50"}`}>{tr(lang,done ? "unlocked" : "locked")}</div>
           </div>
 
           <div className="relative mt-6">
@@ -322,15 +324,15 @@ function Drawer({ a, onClose }: { a: Achievement; onClose: () => void }) {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="font-display text-[11px] tracking-[.3em] text-amber">PHẦN THƯỞNG · SKIN</div>
+                  <div className="font-display text-[11px] tracking-[.3em] text-amber">{tr(lang,"reward.skin")}</div>
                   <div className="font-display font-bold text-xl leading-tight">{a.skin.name}</div>
                   <div className="text-sm text-white/60">{sf.name}</div>
                 </div>
               </div>
             ) : (
-              <div className="bg-white/5 border border-white/10 p-4 cut-sm text-sm text-white/70">Huy chương ghi nhận thành tích. Không kèm skin.</div>
+              <div className="bg-white/5 border border-white/10 p-4 cut-sm text-sm text-white/70">{tr(lang,"medal.no.skin")}</div>
             )}
-            <p className="mt-3 text-sm text-white/50">Thành tựu không thưởng AC.</p>
+            <p className="mt-3 text-sm text-white/50">{tr(lang,"achievements.no.ac")}</p>
           </div>
         </div>
       </div>
@@ -338,12 +340,12 @@ function Drawer({ a, onClose }: { a: Achievement; onClose: () => void }) {
   );
 }
 
-export function Mastery() {
+export function Mastery({lang}:{lang:Language}) {
   return (
     <div>
-      <Summary />
-      <Roster />
-      <Wall />
+      <Summary lang={lang} />
+      <Roster lang={lang} />
+      <Wall lang={lang} />
     </div>
   );
 }

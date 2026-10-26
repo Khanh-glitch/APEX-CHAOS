@@ -3,6 +3,7 @@ import { FIGHTERS, fighterById } from "./data";
 import type { Game } from "./store";
 import { AnimatedNumber, Coin, GlyphIcon, fmt } from "./ui";
 import { useFx } from "./fx";
+import { tr } from "./locale";
 
 const NAME_RE = /^[\p{L}\p{N} _]+$/u;
 
@@ -32,6 +33,7 @@ function Wheel({ spin }: { spin: number }) {
 export function Account({ g }: { g: Game }) {
   const fx = useFx();
   const { s } = g;
+  const t=(key:string)=>tr(g.lang,key);
   const fighter = fighterById(s.avatar);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(s.name);
@@ -49,12 +51,12 @@ export function Account({ g }: { g: Game }) {
   };
   const commit = () => {
     const v = draft.trim().replace(/\s+/g, " ");
-    if (v.length < 3 || v.length > 16) return setErr("Tên phải có từ 3 đến 16 ký tự.");
-    if (!NAME_RE.test(v)) return setErr("Chỉ dùng chữ, số, khoảng trắng và dấu gạch dưới.");
+    if (v.length < 3 || v.length > 16) return setErr(t("name.length"));
+    if (!NAME_RE.test(v)) return setErr(t("name.characters"));
     if (v === s.name) return setEditing(false);
     g.patch({ name: v });
     setEditing(false);
-    fx.toast(`Đã đổi tên hiển thị thành “${v}”`);
+    fx.toast(`${t("name.changed")} “${v}”`);
   };
 
   const onMove = (e: MouseEvent<HTMLDivElement>) => {
@@ -69,12 +71,12 @@ export function Account({ g }: { g: Game }) {
       await navigator.clipboard.writeText(text);
       fx.toast(msg);
     } catch {
-      fx.toast("Trình duyệt không cho phép sao chép tự động", "warn");
+      fx.toast(t("copy.denied"), "warn");
     }
   };
-  const backup = () => copy(s.playerId, "Đã sao chép PLAYER ID. Đây không phải mã khôi phục.");
+  const backup = () => copy(s.playerId, t("copy.id.warning"));
 
-  const savedTime = "trình duyệt hiện tại";
+  
 
   return (
     <div className="relative">
@@ -100,7 +102,7 @@ export function Account({ g }: { g: Game }) {
                 <div className="relative flex items-start justify-between gap-3">
                   <div>
                     <p className="font-display text-[11px] tracking-[.4em] text-amber">APEX CHAOS</p>
-                    <p className="font-display font-bold text-sm tracking-[.25em] text-white/80">PILOT LICENSE</p>
+                    <p className="font-display font-bold text-sm tracking-[.25em] text-white/80">{t("pilot.license")}</p>
                   </div>
                   <div className="font-display font-bold tracking-[.3em] text-sm text-orange-400 border-2 border-orange-500/80 px-3 py-1 -rotate-6" style={{ boxShadow: "0 0 14px rgba(255,100,20,.35) inset" }}>
                     GUEST
@@ -123,13 +125,13 @@ export function Account({ g }: { g: Game }) {
                   </div>
 
                   <div className="min-w-0 w-full flex-1 text-center sm:text-left">
-                    <p className="font-display text-[11px] tracking-[.35em] text-orange-200/60">TÊN HIỂN THỊ</p>
+                    <p className="font-display text-[11px] tracking-[.35em] text-orange-200/60">{t("display.name")}</p>
                     {!editing ? (
                       <div className="flex items-start justify-center sm:justify-start gap-3 mt-1">
                         <h2 className="font-display italic font-bold text-4xl sm:text-5xl leading-[1.05] break-all text-white" style={{ textShadow: "0 0 30px rgba(255,150,30,.35)" }}>
                           {s.name}
                         </h2>
-                        <button onClick={startEdit} aria-label="Đổi tên" title="Đổi tên" className="mt-1 shrink-0 w-10 h-10 hex bg-gold text-black grid place-items-center hover:scale-110 transition">
+                        <button onClick={startEdit} aria-label=t("rename") title=t("rename") className="mt-1 shrink-0 w-10 h-10 hex bg-gold text-black grid place-items-center hover:scale-110 transition">
                           <GlyphIcon name="pen" className="w-4 h-4" />
                         </button>
                       </div>
@@ -149,24 +151,24 @@ export function Account({ g }: { g: Game }) {
                               if (e.key === "Escape") setEditing(false);
                             }}
                             className="min-w-0 flex-1 cut-sm bg-black/60 border-2 border-gold/80 focus:border-white outline-none px-4 py-2.5 font-display font-bold text-2xl text-white"
-                            aria-label="Tên hiển thị mới"
+                            aria-label=t("new.name")
                           />
-                          <button onClick={commit} aria-label="Lưu tên" className="w-12 cut-sm btn-claim grid place-items-center">
+                          <button onClick={commit} aria-label=t("save.name") className="w-12 cut-sm btn-claim grid place-items-center">
                             <GlyphIcon name="check" className="w-5 h-5" />
                           </button>
-                          <button onClick={() => setEditing(false)} aria-label="Hủy" className="w-12 cut-sm bg-white/10 hover:bg-white/20 grid place-items-center">
+                          <button onClick={() => setEditing(false)} aria-label=t("cancel") className="w-12 cut-sm bg-white/10 hover:bg-white/20 grid place-items-center">
                             <GlyphIcon name="x" className="w-4 h-4" />
                           </button>
                         </div>
                         <div className="flex justify-between mt-1.5 text-xs">
-                          <span className={err ? "text-red-400 font-semibold" : "text-orange-100/60"}>{err || "3–16 ký tự · chữ, số, khoảng trắng, _"}</span>
+                          <span className={err ? "text-red-400 font-semibold" : "text-orange-100/60"}>{err || "{t("name.hint")}"}</span>
                           <span className="text-white/50 tabular-nums">{draft.length}/16</span>
                         </div>
                       </div>
                     )}
 
-                    <p className="font-display text-[11px] tracking-[.35em] text-orange-200/60 mt-5">PLAYER ID</p>
-                    <button onClick={() => copy(s.playerId, "Đã sao chép Player ID")} className="group mt-1 inline-flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-[.12em] text-gold hover:text-white transition">
+                    <p className="font-display text-[11px] tracking-[.35em] text-orange-200/60 mt-5">{t("player.id")}</p>
+                    <button onClick={() => copy(s.playerId, t("copy.id"))} className="gold-player-id group mt-1 inline-flex items-center gap-2 font-display font-bold text-base sm:text-xl tracking-[.06em] text-gold hover:text-white transition">
                       {s.playerId}
                       <GlyphIcon name="copy" className="w-4 h-4 opacity-60 group-hover:opacity-100" />
                     </button>
@@ -179,7 +181,7 @@ export function Account({ g }: { g: Game }) {
                       <span key={i} className="bg-amber-200/80 h-full" style={{ width: w * 1.5 }} />
                     ))}
                   </div>
-                  <span className="font-display text-[10px] tracking-[.3em] text-white/40 text-right">TÀI KHOẢN LƯU TRÊN THIẾT BỊ</span>
+                  <span className="font-display text-[10px] tracking-[.3em] text-white/40 text-right">{t("local.account")}</span>
                 </div>
               </div>
             </div>
@@ -187,7 +189,7 @@ export function Account({ g }: { g: Game }) {
 
           {/* Avatar picker */}
           <div className="mt-8">
-            <p className="font-display text-xs tracking-[.4em] text-amber mb-3">CHỌN AVATAR</p>
+            <p className="font-display text-xs tracking-[.4em] text-amber mb-3">{t("avatar.choose")}</p>
             <div className="flex flex-wrap gap-2.5 sm:gap-3">
               {FIGHTERS.map((f) => {
                 const on = f.id === s.avatar;
@@ -200,7 +202,7 @@ export function Account({ g }: { g: Game }) {
                 );
               })}
               {[0, 1].map((i) => (
-                <div key={i} className="w-[62px] h-[70px] sm:w-[72px] sm:h-[82px] hex grid place-items-center bg-white/5 text-white/25" title="Chưa sở hữu">
+                <div key={i} className="w-[62px] h-[70px] sm:w-[72px] sm:h-[82px] hex grid place-items-center bg-white/5 text-white/25" title=t("not.owned")>
                   <GlyphIcon name="lock" className="w-5 h-5" />
                 </div>
               ))}
@@ -218,7 +220,7 @@ export function Account({ g }: { g: Game }) {
                 <Coin size={84} spin />
               </div>
               <div className="relative min-w-0">
-                <p className="font-display text-[11px] tracking-[.35em] text-orange-200/60">SỐ DƯ APEX CREDITS</p>
+                <p className="font-display text-[11px] tracking-[.35em] text-orange-200/60">{t("ac.balance")}</p>
                 <div className="font-display italic font-bold text-5xl sm:text-6xl leading-none text-molten mt-1">
                   <AnimatedNumber value={s.ac} delay={0} /> <span className="text-2xl">AC</span>
                 </div>
@@ -229,7 +231,7 @@ export function Account({ g }: { g: Game }) {
           <div className="grid sm:grid-cols-2 gap-5">
             {/* Fighters owned */}
             <div className="cut bg-black/60 backdrop-blur-md border-l-4 border-gold p-5">
-              <p className="font-display text-[11px] tracking-[.3em] text-orange-200/60">TƯỚNG SỞ HỮU</p>
+              <p className="font-display text-[11px] tracking-[.3em] text-orange-200/60">{t("fighters.owned")}</p>
               <div className="flex items-center justify-between gap-3 mt-2">
                 <div className="font-display italic font-bold text-5xl leading-none text-white">{FIGHTERS.filter(f => f.owned).length}</div>
                 <div className="flex pl-4">
@@ -245,8 +247,8 @@ export function Account({ g }: { g: Game }) {
             </div>
 
             {/* Lucky draw */}
-            <button onClick={() => setSpin((v) => v + 720 + Math.round(Math.random() * 360))} className="text-left cut bg-black/60 backdrop-blur-md border-l-4 border-gold p-5 group" aria-label="Xoay vòng quay minh họa">
-              <p className="font-display text-[11px] tracking-[.3em] text-orange-200/60">TỔNG LƯỢT LUCKY DRAW</p>
+            <button onClick={() => setSpin((v) => v + 720 + Math.round(Math.random() * 360))} className="text-left cut bg-black/60 backdrop-blur-md border-l-4 border-gold p-5 group" aria-label=t("wheel.demo")>
+              <p className="font-display text-[11px] tracking-[.3em] text-orange-200/60">{t("lucky.spins")}</p>
               <div className="flex items-center justify-between gap-3 mt-2">
                 <div className="font-display italic font-bold text-5xl leading-none text-white">{fmt(s.lucky)}</div>
                 <Wheel spin={spin} />
@@ -261,15 +263,15 @@ export function Account({ g }: { g: Game }) {
                 <span className={`block w-4 h-4 rounded-full ${!g.persisted ? "bg-red-500" : g.syncing ? "bg-amber-400" : "bg-emerald-400"}`} style={{ boxShadow: `0 0 14px ${!g.persisted ? "#ef4444" : g.syncing ? "#fbbf24" : "#34d399"}`, animation: g.syncing ? "pulse-glow .5s infinite" : "pulse-glow 2.4s infinite" }} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-display font-bold tracking-[.2em] text-sm">{!g.persisted ? "KHÔNG GHI ĐƯỢC BỘ NHỚ" : g.syncing ? "ĐANG LƯU TIẾN TRÌNH…" : "ĐÃ LƯU TRÊN THIẾT BỊ"}</p>
-                <p className="text-sm text-orange-100/65 mt-0.5">Tiến trình được hệ thống APEX CHAOS lưu tại {savedTime}. Chưa có chức năng đồng bộ đám mây.</p>
+                <p className="font-display font-bold tracking-[.2em] text-sm">{t(!g.persisted ? "storage.failed" : g.syncing ? "storage.sync" : "storage.saved")}</p>
+                <p className="text-sm text-orange-100/65 mt-0.5">{t("storage.note")}</p>
                 <div className="relative h-1.5 bg-white/10 mt-3 overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-gold" style={{ transform: g.syncing ? undefined : "translateX(0)", animation: g.syncing ? "sync .9s ease-in-out" : undefined }} />
                 </div>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => { g.saveNow(); fx.toast("Đã kiểm tra dữ liệu tiến trình đang lưu trong game"); }} className="cut-sm btn-claim font-display font-bold tracking-wider text-sm px-5 py-2.5 inline-flex items-center gap-2">
+              <button onClick={() => { g.saveNow(); fx.toast(t("storage.checked")); }} className="cut-sm btn-claim font-display font-bold tracking-wider text-sm px-5 py-2.5 inline-flex items-center gap-2">
                 <GlyphIcon name="disk" className="w-4 h-4" /> KIỂM TRA LƯU
               </button>
               <button onClick={backup} className="cut-sm bg-white/10 hover:bg-white/20 transition font-display font-bold tracking-wider text-sm px-5 py-2.5 inline-flex items-center gap-2">
@@ -285,16 +287,16 @@ export function Account({ g }: { g: Game }) {
               <div className="flex items-start gap-3">
                 <GlyphIcon name="user" className="w-6 h-6 text-gold shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-display font-bold tracking-[.2em] text-sm text-gold">TÀI KHOẢN GUEST</p>
-                  <p className="text-[15px] text-orange-50/85 mt-1">Dữ liệu chỉ được lưu trên thiết bị này, chưa có đăng nhập online. Xóa dữ liệu ứng dụng hoặc gỡ game có thể làm mất tiến trình — PLAYER ID không phải mã khôi phục dữ liệu.</p>
+                  <p className="font-display font-bold tracking-[.2em] text-sm text-gold">{t("guest.account")}</p>
+                  <p className="text-[15px] text-orange-50/85 mt-1">{t("guest.warning")}</p>
                 </div>
               </div>
               <button
                 onClick={() => {
                   setShake((v) => v + 1);
-                  fx.toast("Đăng nhập online chưa khả dụng trong phiên bản này", "warn");
+                  fx.toast(t("online.unavailable"), "warn");
                 }}
-                className="mt-4 w-full cut-sm border border-white/15 bg-white/5 text-white/55 font-display font-bold tracking-[.2em] text-sm py-3 inline-flex items-center justify-center gap-2 hover:bg-white/10"
+                className="mt-4 w-full cut-sm break-words px-3 border border-white/15 bg-white/5 text-white/55 font-display font-bold tracking-[.2em] text-sm py-3 inline-flex items-center justify-center gap-2 hover:bg-white/10"
               >
                 <GlyphIcon name="lock" className="w-4 h-4" /> LIÊN KẾT TÀI KHOẢN ONLINE · SẮP RA MẮT
               </button>

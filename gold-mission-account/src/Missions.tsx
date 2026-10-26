@@ -3,12 +3,9 @@ import { MISSIONS, type Mission } from "./data";
 import { missionProgress, missionStatus, type Game, type MissionStatus } from "./store";
 import { Coin, EnergyBar, Glyph, GlyphIcon, fmt } from "./ui";
 import { useFx } from "./fx";
+import { tr } from "./locale";
 
-const STATUS_LABEL: Record<MissionStatus, string> = {
-  active: "ĐANG TIẾN HÀNH",
-  ready: "SẴN SÀNG NHẬN",
-  claimed: "ĐÃ NHẬN",
-};
+const statusLabel = (g: Game, s: MissionStatus) => tr(g.lang, `status.${s}`);
 const OFFSETS = ["ml-0", "ml-[9%]", "ml-[2%]", "ml-[12%]", "ml-[5%]"];
 
 function centerOf(e: MouseEvent<HTMLElement>) {
@@ -76,7 +73,7 @@ function MissionDetail({ m, g, onClaim }: { m: Mission; g: Game; onClaim: (ids: 
               status === "ready" ? "bg-white text-[#b53d00]" : status === "claimed" ? "bg-white/10 text-amber-200/70" : "bg-amber-400/15 text-amber-300"
             }`}
           >
-            {STATUS_LABEL[status]}
+            {statusLabel(g,status)}
           </span>
         </div>
 
@@ -86,7 +83,7 @@ function MissionDetail({ m, g, onClaim }: { m: Mission; g: Game; onClaim: (ids: 
 
         <div className="relative mt-6">
           <div className="flex items-end justify-between mb-2">
-            <span className="font-display text-xs tracking-[.3em] text-orange-200/60">TIẾN ĐỘ</span>
+            <span className="font-display text-xs tracking-[.3em] text-orange-200/60">{tr(g.lang,"progress")}</span>
             <span className="font-display font-bold text-2xl leading-none">
               <span className={status === "active" ? "text-gold" : "text-white"}>{progress}</span>
               <span className="text-white/40"> / {m.target}</span>
@@ -99,7 +96,7 @@ function MissionDetail({ m, g, onClaim }: { m: Mission; g: Game; onClaim: (ids: 
           <div className="flex items-center gap-3">
             <Coin size={54} spin={status !== "claimed"} />
             <div>
-              <div className="font-display text-[11px] tracking-[.3em] text-orange-200/60">PHẦN THƯỞNG</div>
+              <div className="font-display text-[11px] tracking-[.3em] text-orange-200/60">{tr(g.lang,"reward")}</div>
               <div className="font-display italic font-bold text-4xl leading-none text-molten">
                 +{fmt(m.reward)} <span className="text-xl">AC</span>
               </div>
@@ -113,7 +110,7 @@ function MissionDetail({ m, g, onClaim }: { m: Mission; g: Game; onClaim: (ids: 
               status === "ready" ? "btn-claim shine" : "bg-white/8 text-white/45 border border-white/10"
             }`}
           >
-            {status === "ready" ? "NHẬN THƯỞNG" : status === "claimed" ? "✓ ĐÃ NHẬN" : `CÒN ${remaining} ${m.metric === "botWon" ? "CHIẾN THẮNG" : "TRẬN"}`}
+            {status === "ready" ? tr(g.lang,"claim") : status === "claimed" ? tr(g.lang,"claimed") : `${tr(g.lang,"remaining")} ${remaining} ${tr(g.lang,m.metric === "botWon" ? "wins" : "matches")}`}
           </button>
         </div>
       </div>
@@ -171,13 +168,13 @@ export function Contracts({ g }: { g: Game }) {
 
 
 
-  if (!MISSIONS.length) return <div className="mt-8 cut-lg bg-black/65 border border-gold/40 p-8" role="status">Nhiệm vụ đang được tải từ game. Không có dữ liệu mẫu.</div>;
+  if (!MISSIONS.length) return <div className="mt-8 cut-lg bg-black/65 border border-gold/40 p-8" role="status">{tr(g.lang,"missions.empty")}</div>;
   return (
     <div>
       {/* Charge strip */}
       <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 cut bg-black/55 backdrop-blur-md border-l-4 border-gold px-5 py-4">
         <div>
-          <div className="font-display text-[11px] tracking-[.35em] text-orange-200/60">SẴN SÀNG NHẬN</div>
+          <div className="font-display text-[11px] tracking-[.35em] text-orange-200/60">{tr(g.lang,"claimable")}</div>
           <div className="flex items-center gap-2 font-display italic font-bold text-3xl leading-none mt-1">
             <Coin size={30} />
             <span className={readyTotal > 0 ? "text-molten" : "text-white/40"}>{fmt(readyTotal)} AC</span>
@@ -186,7 +183,7 @@ export function Contracts({ g }: { g: Game }) {
         <div className="flex-1 min-w-[180px]">
           <div className="flex justify-between font-display text-[11px] tracking-[.25em] text-orange-200/60 mb-1.5">
             <span>
-              HOÀN THÀNH {doneCount}/{MISSIONS.length}
+              {tr(g.lang,"completed")} {doneCount}/{MISSIONS.length}
             </span>
             <span>
               {fmt(claimedTotal)} / {fmt(total)} AC
@@ -199,7 +196,7 @@ export function Contracts({ g }: { g: Game }) {
           onClick={(e) => onClaim(ready.map((m) => m.id), e)}
           className={`cut-sm font-display font-bold italic tracking-wider px-6 py-3 ${ready.length ? "btn-claim shine" : "bg-white/8 text-white/40 border border-white/10"}`}
         >
-          NHẬN TẤT CẢ {ready.length > 0 && `(${ready.length})`}
+          {tr(g.lang,"claim.all")} {ready.length > 0 && `(${ready.length})`}
         </button>
       </div>
 
@@ -243,7 +240,7 @@ export function Contracts({ g }: { g: Game }) {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="font-display font-bold text-[10px] tracking-widest px-2 py-[1px] bg-orange-500 text-black slant">{m.mode}</span>
-                        <span className={`font-display text-[10px] tracking-[.2em] ${status === "ready" ? "text-white" : status === "claimed" ? "text-amber-200/50" : "text-amber-300/80"}`}>{STATUS_LABEL[status]}</span>
+                        <span className={`font-display text-[10px] tracking-[.2em] ${status === "ready" ? "text-white" : status === "claimed" ? "text-amber-200/50" : "text-amber-300/80"}`}>{statusLabel(g,status)}</span>
                       </div>
                       <div className={`font-display font-bold text-lg sm:text-xl leading-tight break-words ${status === "claimed" ? "text-white/50 line-through decoration-amber-500/50" : "text-white"}`}>{m.title}</div>
                       <div className="mt-2 flex items-center gap-3">
