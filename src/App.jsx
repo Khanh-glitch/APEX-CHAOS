@@ -206,6 +206,7 @@ export default function App() {
   // Product music lifecycle is owned by productMusicAuthority. React keeps
   // only the single persistent element ref for diagnostics/fallback cleanup.
   const [gameReady, setGameReady] = useState(false);
+  const [bootTransitionDone, setBootTransitionDone] = useState(false);
 
   useEffect(() => {
     // In-battle hero rig intent (ONE authority, generated): the product asset
@@ -228,6 +229,7 @@ export default function App() {
     const coordinator = installSceneTransitionCoordinator({ canvas, blackout, contentRoot });
     const onBootTransitionComplete = () => {
       markLoaderHidden();
+      setBootTransitionDone(true);
       window.dispatchEvent(new CustomEvent('apex:boot-interactive'));
     };
     window.addEventListener('apex:boot-transition-complete', onBootTransitionComplete);
@@ -1102,7 +1104,7 @@ export default function App() {
     <GoldMissionAccountHost />
     <ProductSessionNavigator />
     <FirstPlayGuide />
-    <FirstSessionWelcome ready={goldReady} />
+    <FirstSessionWelcome ready={goldReady && bootTransitionDone} />
     <RewardToast />
     <AchievementToast />
     <SkinUnlockCelebration />
