@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { MISSIONS, ACHIEVEMENTS, fighterById, isDone } from "./data";
 import { missionStatus, useGame, type Game } from "./store";
 import { AnimatedNumber, Coin, GlobalDefs, Stage, type StageVariant } from "./ui";
@@ -112,13 +112,13 @@ function Shell() {
   const goTab = (t: Tab) => t !== tab && goSection(t === "ops" ? 0 : 1);
   // A horizontal swipe changes the Gold section; native vertical scrolling,
   // tappable contract cards, modal sheets, and editable account fields remain intact.
-  const onSwipeDown = (e: React.PointerEvent<HTMLElement>) => {
+  const onSwipeDown = (e: ReactPointerEvent<HTMLElement>) => {
     if (!e.isPrimary || (e.pointerType !== "touch" && e.pointerType !== "pen" && e.pointerType !== "mouse")) return;
     if (e.pointerType === "mouse" && (e.button !== 0 || (e.target as HTMLElement)?.closest("button,a,[role='button']"))) return;
     if ((e.target as HTMLElement)?.closest("input,textarea,select,[contenteditable],.sheet,[role='dialog'],[data-gold-swipe-ignore],.overflow-x-auto")) return;
     swipeStart.current = {id:e.pointerId,x:e.clientX,y:e.clientY,at:performance.now()};
   };
-  const onSwipeEnd = (e: React.PointerEvent<HTMLElement>) => {
+  const onSwipeEnd = (e: ReactPointerEvent<HTMLElement>) => {
     const start = swipeStart.current;
     swipeStart.current = null;
     if (!start || e.pointerId !== start.id) return;
