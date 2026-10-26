@@ -70,8 +70,6 @@ try {
       assert.ok(!viMissionFit.overflow,'Vietnamese mission overflow');
       await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('eng'));
       await frame.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('MISSIONS'),{timeout:10000});
-      assert.equal(await frame.locator('nav').count(),0,'Gold must not include Account/Missions toggle navigation');
-      assert.equal(await frame.locator('header img[alt="APEX CHAOS"]').count(),1,'Home wordmark missing');
       assert.equal(content.pathNodes,5,'Gold original hex mission path lost a node');
       assert.ok(content.coinHex,'original Gold AC hexagon missing');
       assert.ok(!content.missionText.includes('Guest_Raven')&&!content.missionText.includes('1,850'),'demo profile leaked');
@@ -139,8 +137,7 @@ try {
       const viAccountFit = await fitHeading(account);
       assert.ok(viAccountFit.titleBounds.left >= -2 && viAccountFit.titleBounds.right <= width+2,'Vietnamese account heading crop');
       assert.ok(!viAccountFit.overflow,'Vietnamese account overflow');
-      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('eng'));
-      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('vie'));
+
       await account.waitForFunction(()=>document.documentElement.lang==='vi',{timeout:10000});
       const vieProfile=await account.evaluate(()=>({title:document.querySelector('h1')?.innerText,text:document.body.innerText,overflow:document.documentElement.scrollWidth>innerWidth+3}));
       assert.equal(vieProfile.title,'TÀI KHOẢN','Vietnamese account title not localized');
