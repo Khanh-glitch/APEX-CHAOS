@@ -66,27 +66,43 @@ try{
    const Post=window.handLab.post.constructor;
    const classic=new Post(),partial=new Post();
    window.APEX_WAVE_REFRACTION_COPY.installForTest(partial);
-   const w=420,h=280,opts={time:1.2,
-    shocks:[{x:165,y:125,r:78,width:22,strength:.12,squash:.62},
-     {x:305,y:232,r:25,width:35,strength:.06,squash:.62}],
-    heat:[{x:90,y:164,w:80,h:85,heat:.8},
-     {x:318,y:80,w:76,h:60,heat:.9}]
-   };
-   for(const post of [classic,partial]){
-    post.scene.width=w;post.scene.height=h;
-    const ctx=post.sctx;
-    const g=ctx.createLinearGradient(0,0,w,h);
-    g.addColorStop(0,'#c98d45');g.addColorStop(.5,'#24386c');g.addColorStop(1,'#080d13');
-    ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-    ctx.strokeStyle='#ffcf69';ctx.lineWidth=5;
-    for(let i=0;i<25;i++){ctx.beginPath();ctx.arc(i*27%w,i*59%h,8+i%6,0,Math.PI*2);ctx.stroke();}
-    post.distort(w,h,1,opts);
+   // Six successive uses of the SAME Gold copy buffer: the very first
+   // refraction resizes it, later ones prove the no-clear path is pixel-exact.
+   const w=420,h=280;
+   const trials=[
+    {x:165,y:125,r:78,heatX:90,heatY:164},
+    {x:292,y:99,r:48,heatX:195,heatY:155},
+    {x:95,y:205,r:68,heatX:260,heatY:85},
+    {x:218,y:170,r:94,heatX:70,heatY:120},
+    {x:330,y:190,r:38,heatX:185,heatY:215},
+    {x:120,y:79,r:79,heatX:280,heatY:170}
+   ];
+   for(const post of [classic,partial]){post.scene.width=w;post.scene.height=h;}
+   let changed=0,maxDiff=0,sum=0,totalChannels=0;
+   for(const [pass,c] of trials.entries()){
+    const opts={time:1.2+pass*.37,
+     shocks:[{x:c.x,y:c.y,r:c.r,width:22,strength:.12,squash:.62},
+      {x:305-pass*17,y:232-pass*21,r:25,width:35,strength:.06,squash:.62}],
+     heat:[{x:c.heatX,y:c.heatY,w:80,h:85,heat:.8},
+      {x:318-pass*29,y:80+pass*20,w:76,h:60,heat:.9}]};
+    for(const post of [classic,partial]){
+     const ctx=post.sctx;
+     const g=ctx.createLinearGradient(0,0,w,h);
+     g.addColorStop(0,pass%2?'#315d79':'#c98d45');
+     g.addColorStop(.5,'#24386c');g.addColorStop(1,'#080d13');
+     ctx.setTransform(1,0,0,1,0,0);
+     ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
+     ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+     ctx.strokeStyle='#ffcf69';ctx.lineWidth=5;
+     for(let k=0;k<25;k++){ctx.beginPath();ctx.arc((k*27+pass*13)%w,(k*59+pass*29)%h,8+k%6,0,Math.PI*2);ctx.stroke();}
+     post.distort(w,h,1,opts);
+    }
+    const a=classic.sctx.getImageData(0,0,w,h).data;
+    const b=partial.sctx.getImageData(0,0,w,h).data;
+    for(let k=0;k<a.length;k++){const d=Math.abs(a[k]-b[k]);if(d)changed++;sum+=d;maxDiff=Math.max(d,maxDiff);}
+    totalChannels+=a.length;
    }
-   const a=classic.sctx.getImageData(0,0,w,h).data;
-   const b=partial.sctx.getImageData(0,0,w,h).data;
-   let changed=0,maxDiff=0,sum=0;
-   for(let i=0;i<a.length;i++){const d=Math.abs(a[i]-b[i]);if(d)changed++;sum+=d;maxDiff=Math.max(d,maxDiff);}
-   return {changedChannels:changed,maxChannelDiff:maxDiff,meanChannelDiff:sum/a.length,totalChannels:a.length};
+   return {changedChannels:changed,maxChannelDiff:maxDiff,meanChannelDiff:sum/totalChannels,totalChannels,passes:trials.length};
   });
   assert.equal(refractionParity.changedChannels,0,
    profile.name+': sampled-region refraction does not match canonical full-copy Gold: '+JSON.stringify(refractionParity));
