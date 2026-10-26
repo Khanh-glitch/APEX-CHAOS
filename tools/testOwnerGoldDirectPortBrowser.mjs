@@ -40,6 +40,8 @@ try {
         overflow:document.documentElement.scrollWidth>innerWidth+3,
       }));
       assert.equal(content.title,'MISSIONS');
+      assert.equal(await frame.locator('nav').count(),0,'Gold must not include Account/Missions toggle navigation');
+      assert.equal(await frame.locator('header img[alt="APEX CHAOS"]').count(),1,'Home wordmark missing');
       assert.equal(content.pathNodes,5,'Gold original hex mission path lost a node');
       assert.ok(content.coinHex,'original Gold AC hexagon missing');
       assert.ok(!content.missionText.includes('Guest_Raven')&&!content.missionText.includes('1,850'),'demo profile leaked');
@@ -87,7 +89,7 @@ try {
         medals:document.querySelectorAll('button').length,
       }));
       assert.equal(stats.title,'MISSIONS','Mastery must remain within original Gold Missions scene');
-      assert.ok(stats.text.includes('THÀNH TỰU'),'Mastery native Gold medals did not load');
+      assert.ok(stats.text.includes('ACHIEVEMENTS'),'Mastery native Gold medals did not load in English');
       await page.screenshot({path:`${destination}/${width}x${height}-mastery.png`});
 
       await page.evaluate(()=>window.APEX_ACCOUNT_CENTER?.open());
@@ -100,6 +102,12 @@ try {
         imageCount:[...document.images].filter(x=>x.complete&&x.naturalWidth>0).length,
       }));
       assert.equal(profile.title,'ACCOUNT');
+      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('vie'));
+      await account.waitForFunction(()=>document.documentElement.lang==='vi',{timeout:10000});
+      const vieProfile=await account.evaluate(()=>({title:document.querySelector('h1')?.innerText,text:document.body.innerText,overflow:document.documentElement.scrollWidth>innerWidth+3}));
+      assert.equal(vieProfile.title,'TÀI KHOẢN','Vietnamese account title not localized');
+      assert.ok(vieProfile.text.includes('TÀI KHOẢN KHÁCH'),'Vietnamese guest account note not localized');
+      assert.ok(!vieProfile.overflow,'Vietnamese account horizontal overflow');
       assert.ok(profile.text.includes(before.profile.displayName),'Gold displayed an invented account name');
       assert.ok(profile.imageCount>0,'Gold account lacks decoded fighter art');
       await page.screenshot({path:`${destination}/${width}x${height}-account.png`});

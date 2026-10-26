@@ -67,7 +67,7 @@ function MissionDetail({ m, g, onClaim }: { m: Mission; g: Game; onClaim: (ids: 
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 85% 0%, rgba(255,120,20,.28), transparent 55%)" }} />
 
         <div className="relative flex flex-wrap items-center gap-2 mb-4">
-          <span className="slant font-display font-bold text-xs tracking-widest px-4 py-1 bg-orange-500 text-black">{m.mode}</span>
+          <span className="slant font-display font-bold text-xs tracking-widest px-4 py-1 bg-orange-500 text-black">{m.mode === "LOCAL" && g.lang === "vie" ? "CÙNG MÁY" : m.mode}</span>
           <span
             className={`slant font-display font-bold text-xs tracking-widest px-4 py-1 ${
               status === "ready" ? "bg-white text-[#b53d00]" : status === "claimed" ? "bg-white/10 text-amber-200/70" : "bg-amber-400/15 text-amber-300"
@@ -239,7 +239,7 @@ export function Contracts({ g }: { g: Game }) {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-display font-bold text-[10px] tracking-widest px-2 py-[1px] bg-orange-500 text-black slant">{m.mode}</span>
+                        <span className="font-display font-bold text-[10px] tracking-widest px-2 py-[1px] bg-orange-500 text-black slant">{m.mode === "LOCAL" && g.lang === "vie" ? "CÙNG MÁY" : m.mode}</span>
                         <span className={`font-display text-[10px] tracking-[.2em] ${status === "ready" ? "text-white" : status === "claimed" ? "text-amber-200/50" : "text-amber-300/80"}`}>{statusLabel(g,status)}</span>
                       </div>
                       <div className={`font-display font-bold text-lg sm:text-xl leading-tight break-words ${status === "claimed" ? "text-white/50 line-through decoration-amber-500/50" : "text-white"}`}>{m.title}</div>

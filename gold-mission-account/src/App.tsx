@@ -62,7 +62,7 @@ function Hud({ g }: { g: Game }) {
 
 function Shell() {
   const g = useGame();
-  const [screen, setScreen] = useState<Screen>(() => new URLSearchParams(location.search).get("screen") === "account" ? "account" : "missions");
+  const [screen] = useState<Screen>(() => new URLSearchParams(location.search).get("screen") === "account" ? "account" : "missions");
   const [tab, setTab] = useState<Tab>(() => new URLSearchParams(location.search).get("tab") === "mastery" ? "mastery" : "ops");
   const [wipe, setWipe] = useState<{ n: number; label: string }>({ n: 0, label: "" });
   const busy = useRef(false);
