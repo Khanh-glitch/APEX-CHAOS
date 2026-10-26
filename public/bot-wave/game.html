@@ -7433,7 +7433,7 @@ engine.basicAttack=function(){
 // pixel density, with an 8px filtering gutter; all original optical passes,
 // lens strengths, sampling, blur, heat and effects remain untouched.
 const REFRACTION_COPY={partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pixelsAvoided:0};
-const goldPost=engine.post;
+function installPartialRefraction(goldPost,REFRACTION_COPY){
 const originalGoldDistort=goldPost.distort.bind(goldPost);
 const originalGoldCopy=goldPost.cpctx.drawImage.bind(goldPost.cpctx);
 let refractionRegions=null;
@@ -7487,7 +7487,13 @@ goldPost.cpctx.drawImage=function(source,...args){
  if(source===goldPost.scene&&args.length===2)REFRACTION_COPY.fullFrames++;
  return originalGoldCopy(source,...args);
 };
-window.APEX_WAVE_REFRACTION_COPY=Object.freeze({snapshot:()=>({...REFRACTION_COPY})});
+}
+installPartialRefraction(engine.post,REFRACTION_COPY);
+window.APEX_WAVE_REFRACTION_COPY=Object.freeze({
+ snapshot:()=>({...REFRACTION_COPY}),
+ // For Chrome-only deterministic parity proof on isolated Post instances.
+ installForTest:(post)=>installPartialRefraction(post,{partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pixelsAvoided:0})
+});
 
 // Observe full-frame, render and post-processing costs independently. The
 // Gold renderer, texture sizes, bloom chain and effects remain byte-identical.
