@@ -57,6 +57,12 @@ async function archive(page){
  }
 }
 async function swipeLucky(page,dir){
+ const check=await page.evaluate(()=>({
+  door:window.APEX_SCENE_TRANSITION?.active?.(),
+  busy:document.getElementById('luckyDonorFrame')?.contentDocument?.getElementById('stage')?.dataset.busy,
+  bound:document.getElementById('luckyDonorFrame')?.contentDocument?.documentElement.dataset.apexSectionSwipeReady,
+ }));
+ console.log('FIVE SESSION LUCKY GESTURE',dir,JSON.stringify(check));
  const f=await (await page.$('#luckyDonorFrame')).contentFrame();
  await f.evaluate(d=>{
   const stage=document.querySelector('#stage'),width=innerWidth;
