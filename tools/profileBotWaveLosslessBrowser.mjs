@@ -40,6 +40,28 @@ try{
   await frame.waitForSelector('#w-go',{visible:true,timeout:20000});
   await frame.click('#w-go');
   await until('combat',()=>frame.evaluate(()=>window.BOXE_WAVE_PILOT?.state?.phase==='combat'),20000);
+  await frame.evaluate(()=>{
+   const post=window.handLab?.post;
+   if(!post)return;
+   const counts=window.__botwavePassCosts={};
+   for(const name of ['sctx','actx','bctx','rctx1','rctx2','rbctx','cpctx']){
+    const ctx=post[name];if(!ctx)continue;
+    const stat=counts[name]={draws:0,drawMs:0,fillMs:0,clearMs:0,maxDrawMs:0};
+    for(const [method,totalKey] of [['drawImage','drawMs'],['fillRect','fillMs'],['clearRect','clearMs']]){
+     const original=ctx[method]?.bind(ctx);
+     if(!original)continue;
+     ctx[method]=function(...args){
+      const start=performance.now();
+      try{return original(...args);}
+      finally{
+       const cost=performance.now()-start;
+       stat[totalKey]+=cost;
+       if(method==='drawImage'){stat.draws++;stat.maxDrawMs=Math.max(stat.maxDrawMs,cost);}
+      }
+     };
+    }
+   }
+  });
   const before=await frame.evaluate(()=>({
    x:window.handLab.player.x,y:window.handLab.player.y,
    t:window.handLab.time
@@ -55,7 +77,10 @@ try{
   const movement=Math.hypot(after.x-before.x,after.y-before.y);
   // Give the engine and V2 a representative live sample window.
   await sleep(4500);
-  const stat=await frame.evaluate(()=>window.APEX_WAVE_PERF?.snapshot());
+  const stat=await frame.evaluate(()=>({
+   ...window.APEX_WAVE_PERF?.snapshot(),
+   passCosts:window.__botwavePassCosts||{}
+  }));
   assert.ok(stat&&stat.renderSamples>10&&stat.postSamples>10,
    profile.name+': render/post instrumentation never sampled');
   assert.ok(Number.isFinite(stat.renderP95Ms)&&Number.isFinite(stat.frameGapP95Ms),
@@ -75,7 +100,8 @@ try{
    maxRenderMs:+stat.maxRenderMs.toFixed(2),
    longTasks:stat.longTasks,longTaskMaxMs:+stat.longTaskMaxMs.toFixed(2),
    canvasPixels:stat.canvasPixels,renderDpr:stat.renderDpr,
-   goldParticles:stat.goldParticles,livingBots:stat.livingBots
+   goldParticles:stat.goldParticles,livingBots:stat.livingBots,
+   passCosts:stat.passCosts
   };
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
