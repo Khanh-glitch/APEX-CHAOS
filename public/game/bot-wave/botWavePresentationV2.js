@@ -782,18 +782,12 @@ function install(){
   if(!['combat','intermission'].includes(phase))return;
   event.preventDefault();setPauseFromInterface(!window.handLab?.paused);
  });
- const drawMinimap=(lab,s,live)=>{
-  const size=minimapCanvas.clientWidth||0;
-  if(!size||!lab?.player)return;
-  let ctx=null;
-  try{ctx=minimapCanvas.getContext('2d');}catch(_){return;}
-  if(!ctx)return;
-  const dpr=Math.min(2,window.devicePixelRatio||1),pixels=Math.max(2,Math.round(size*dpr));
-  if(minimapCanvas.width!==pixels||minimapCanvas.height!==pixels){minimapCanvas.width=pixels;minimapCanvas.height=pixels;}
-  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,size,size);
-  const cx=size/2,cy=size/2,radius=size/2-8,scale=radius/ARENA_RADIUS,time=Number(lab.time)||0;
-  const px=x=>cx+(Number(x)||0)*scale,py=y=>cy+(Number(y)||0)*scale;
-  const beatIndex=Number.isInteger(s.hudBeatIndex)?clamp(s.hudBeatIndex,0,9):0,accent=BEATS[beatIndex]?.accent||'#8fe8ff';
+ // Static geometry and the gradient are rasterized once per exact pixel size.
+ // Dynamic sweep, bots, trails, threat arcs and FX still paint every spatial frame.
+ let minimapBackdrop=null;
+ const paintMinimapBackdrop=(ctx,size,dpr)=>{
+  const cx=size/2,cy=size/2,radius=size/2-8;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
   const bg=ctx.createRadialGradient(cx-radius*.22,cy-radius*.28,radius*.06,cx,cy,radius);
   bg.addColorStop(0,'#2a4a6c');bg.addColorStop(.38,'#1a3552');bg.addColorStop(.72,'#0c2138');bg.addColorStop(1,'#04101f');
   ctx.fillStyle=bg;ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.fill();
@@ -814,6 +808,31 @@ function install(){
   }
   ctx.strokeStyle='rgba(143,232,255,.15)';
   ctx.beginPath();ctx.moveTo(cx-radius,cy);ctx.lineTo(cx+radius,cy);ctx.moveTo(cx,cy-radius);ctx.lineTo(cx,cy+radius);ctx.stroke();
+ };
+ const drawMinimap=(lab,s,live)=>{
+  const size=minimapCanvas.clientWidth||0;
+  if(!size||!lab?.player)return;
+  let ctx=null;
+  try{ctx=minimapCanvas.getContext('2d');}catch(_){return;}
+  if(!ctx)return;
+  const dpr=Math.min(2,window.devicePixelRatio||1),pixels=Math.max(2,Math.round(size*dpr));
+  if(minimapCanvas.width!==pixels||minimapCanvas.height!==pixels){minimapCanvas.width=pixels;minimapCanvas.height=pixels;}
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,size,size);
+  const cx=size/2,cy=size/2,radius=size/2-8,scale=radius/ARENA_RADIUS,time=Number(lab.time)||0;
+  const px=x=>cx+(Number(x)||0)*scale,py=y=>cy+(Number(y)||0)*scale;
+  const beatIndex=Number.isInteger(s.hudBeatIndex)?clamp(s.hudBeatIndex,0,9):0,accent=BEATS[beatIndex]?.accent||'#8fe8ff';
+  const backdropKey=pixels+':'+size+':'+dpr;
+  if(!minimapBackdrop||minimapBackdrop.key!==backdropKey){
+   const backing=doc.createElement('canvas');
+   backing.width=backing.height=pixels;
+   const backingCtx=backing.getContext('2d');
+   if(backingCtx){
+    paintMinimapBackdrop(backingCtx,size,dpr);
+    minimapBackdrop={key:backdropKey,canvas:backing};
+   }
+  }
+  if(minimapBackdrop?.key===backdropKey)ctx.drawImage(minimapBackdrop.canvas,0,0,size,size);
+  else paintMinimapBackdrop(ctx,size,dpr);
   const quadrant=[0,0,0,0],edges=['top','right','bottom','left'];
   for(const q of s.queue||[]){const i=edges.indexOf(q.edge);if(i>=0)quadrant[i]+=.35+(Number(q.pressure)||0)/260+(q.boss?1.3:0);}
   for(const e of live){const i=Math.abs(e.y||0)>Math.abs(e.x||0)?((e.y||0)<0?0:2):((e.x||0)<0?3:1);quadrant[i]+=.25+(Number(e.wavePressure)||0)/300+(e.waveBoss?1.2:0);}
@@ -1129,13 +1148,15 @@ function install(){
   lastGuardState=guardState;
   status.dataset.kind=(Number(s.waveToastT)>0&&s.waveToast)?'toast':'hint';
   syncPauseMenu();
-  updateSpatial();
+  // The 30 Hz spatial RAF already paints the full minimap and ForgeFire;
+  // painting again in the 90ms HUD timer caused duplicate canvas passes.
  };
  const spatialLoop=timestamp=>{
   if(!lastSpatialAt||timestamp-lastSpatialAt>=33){try{updateSpatial();}catch(_){}lastSpatialAt=timestamp;}
   spatialFrame=window.requestAnimationFrame(spatialLoop);
  };
  update();
+ updateSpatial(); // initial full-fidelity spatial paint, before RAF owns subsequent frames
  if(typeof window.requestAnimationFrame==='function')spatialFrame=window.requestAnimationFrame(spatialLoop);
  refresh=window.setInterval(update,90);
  window.addEventListener('pagehide',()=>{if(refresh)clearInterval(refresh);if(spatialFrame)window.cancelAnimationFrame?.(spatialFrame);if(heroHitTimer)clearTimeout(heroHitTimer);if(pauseConfirmTimer)clearTimeout(pauseConfirmTimer);for(const timer of eventTimers.values())clearTimeout(timer);for(const motion of actionMotion.values()){if(motion.readyTimer)clearTimeout(motion.readyTimer);if(motion.unlockTimer)clearTimeout(motion.unlockTimer);}cardObserver?.disconnect?.();forgeFire.dispose();},{once:true});
