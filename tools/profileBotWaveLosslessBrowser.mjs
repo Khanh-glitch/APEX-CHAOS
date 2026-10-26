@@ -104,6 +104,44 @@ try{
   const movement=Math.hypot(after.x-before.x,after.y-before.y);
   // Give the engine and V2 a representative live sample window.
   await sleep(4500);
+  // ABBA on a paused, pixel-identical Gold scene, using the same Chrome
+  // process and exact canvas size; keeps shared-host variance out of claims.
+  await frame.evaluate(()=>{
+   const p=window.handLab.post,original=p.end.bind(p);
+   window.handLab.paused=true;
+   window.__bloomAB={active:null,samples:{native:[],optimized:[]}};
+   p.end=function(...args){
+    const start=performance.now();
+    try{return original(...args);}
+    finally{
+     const test=window.__bloomAB;
+     if(test?.active){const a=test.samples[test.active];if(a.length<200)a.push(performance.now()-start);}
+    }
+   };
+  });
+  for(const mode of ['native','optimized','optimized','native']){
+   await frame.evaluate(mode=>{
+    window.__bloomAB.active=null;
+    window.APEX_BOT_WAVE_BLOOM_PREPASS.setEnabled(mode==='optimized');
+   },mode);
+   await sleep(250);
+   await frame.evaluate(mode=>{window.__bloomAB.active=mode;},mode);
+   await sleep(1150);
+  }
+  const bloomAB=await frame.evaluate(()=>{
+   const test=window.__bloomAB;
+   test.active=null;
+   window.APEX_BOT_WAVE_BLOOM_PREPASS.setEnabled(true);
+   window.handLab.paused=false;
+   const stats=a=>{
+    const items=a.slice().sort((x,y)=>x-y),n=items.length;
+    return {count:n,medianMs:n?items[Math.floor(n/2)]:0,
+     p95Ms:n?items[Math.floor((n-1)*.95)]:0,meanMs:n?a.reduce((x,y)=>x+y,0)/n:0};
+   };
+   return {native:stats(test.samples.native),optimized:stats(test.samples.optimized)};
+  });
+  assert.ok(bloomAB.native.count>=5&&bloomAB.optimized.count>=5,
+   profile.name+': insufficient ABBA post frames '+JSON.stringify(bloomAB));
   const stat=await frame.evaluate(()=>({
    ...window.APEX_WAVE_PERF?.snapshot(),
    passCosts:window.__botwavePassCosts||{}
@@ -130,7 +168,7 @@ try{
    goldParticles:stat.goldParticles,livingBots:stat.livingBots,
    passCosts:stat.passCosts,
    bloomPrepass:await frame.evaluate(()=>window.APEX_BOT_WAVE_BLOOM_PREPASS?.snapshot()),
-   bloomParity
+   bloomParity,bloomAB
   };
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
