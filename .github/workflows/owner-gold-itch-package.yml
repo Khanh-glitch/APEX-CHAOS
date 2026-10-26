@@ -46,6 +46,7 @@ jobs:
       - name: Build shipping game including owner Gold
         run: |
           node tools/verifyGoldSourceParity.mjs
+          node tools/testBotWaveMobileImmersive.mjs
           pnpm build
           pnpm test:shipping-dist
           pnpm test:gold-direct-port
