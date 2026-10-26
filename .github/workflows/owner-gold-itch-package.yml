@@ -119,22 +119,26 @@ jobs:
                 const a=document.querySelector('#apex-guide-open')?.getBoundingClientRect();
                 const b=document.querySelector('#stage .profile .ac')?.getBoundingClientRect();
                 const intersection=a&&b?Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)):null;
-                const inert=[...document.querySelectorAll('#stage button[data-locked-route]')].filter(x=>getComputedStyle(x).display!=='none').length;
-                return {help:!!a,wallet:!!b,intersection,inert};
+                const locked=[...document.querySelectorAll('#stage button[data-locked-route]')];
+                return {help:!!a,wallet:!!b,intersection,
+                  lockedCount:locked.length,lockedDisabled:locked.every(x=>x.getAttribute('aria-disabled')==='true')};
               });
               assert.ok(homeControls.help&&homeControls.wallet,'Help or AC is missing');
               assert.equal(homeControls.intersection,0,'Help overlaps the AC wallet in mobile/desktop');
-              assert.equal(homeControls.inert,0,'Inactive Home routes are still rendered as buttons');
+              assert.equal(homeControls.lockedCount,2,'Gold donor has two disabled future routes');
+              assert.ok(homeControls.lockedDisabled,'Locked routes must remain nonfunctional');
               const homeDeck=await game.evaluate(()=>{
                 const nav=document.querySelector('#stage .routes');
-                const buttons=[...nav.querySelectorAll('.route:not(.is-locked)')];
-                return {count:buttons.length,columns:getComputedStyle(nav).gridTemplateColumns.split(' ').length,
-                  rightEdge:Math.max(...buttons.map(x=>x.getBoundingClientRect().right)),
-                  viewport:innerWidth};
+                const all=[...nav.querySelectorAll('.route')];
+                const active=all.filter(x=>!x.classList.contains('is-locked'));
+                const track=getComputedStyle(nav).gridTemplateColumns.split(' ').filter(Boolean);
+                return {count:all.length,active:active.length,columns:track.length,
+                  rightEdge:Math.max(...all.map(x=>x.getBoundingClientRect().right)),viewport:innerWidth};
               });
-              assert.equal(homeDeck.count,4,'Gold Home must expose exactly four working sections');
-              assert.equal(homeDeck.columns,width<600?2:4,'Gold Home donor still has the six-column layout');
-              assert.ok(homeDeck.rightEdge>homeDeck.viewport*.77,'Gold Home routes leave a blank right-side gap');
+              assert.equal(homeDeck.count,6,'Canonical Gold Home has six original route slots');
+              assert.equal(homeDeck.active,4,'The four genuine destinations must remain actionable');
+              assert.equal(homeDeck.columns,width<600?3:6,'Restore donor Gold grid without custom four-column treatment');
+              assert.ok(homeDeck.rightEdge>homeDeck.viewport*.77,'Gold route rail is clipped');
               await page.screenshot({path:'evidence/gold-home-onboarding/home-'+width+'.png'});
               await game.waitForSelector('#apexMissionsOpen',{timeout:90000});
               await game.evaluate(()=>document.querySelector('#apexMissionsOpen')?.click());
