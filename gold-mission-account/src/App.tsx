@@ -33,17 +33,17 @@ function Hud({ g }: { g: Game }) {
   return (
     <>
       <header className="fixed top-0 inset-x-0 z-40 h-16" style={{ background: "linear-gradient(180deg,rgba(7,5,10,.95),rgba(7,5,10,.6) 70%,transparent)" }}>
-        <div className="max-w-[1280px] mx-auto h-full px-4 sm:px-8 flex items-center justify-between gap-4">
-          <button aria-label={tr(g.lang,"back")} title={tr(g.lang,"back")} onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }} className="shrink-0 min-w-0 bg-transparent border-0 p-0 text-left"><img className="block w-[142px] sm:w-[190px] max-h-[54px] object-contain object-left" src="./assets/gold/apex-chaos-wordmark.png" alt="APEX CHAOS" draggable={false} /></button>
-          <div className="flex items-center gap-3">
-            <div id="ac-chip" className={`slant-r flex items-center gap-2 pl-2 pr-5 py-1 bg-black/70 border-b-2 border-gold ${hit ? "anim-hit" : ""}`}>
+        <div className="gold-hud-header-inner max-w-[1280px] mx-auto h-full px-4 sm:px-8 flex items-center justify-between gap-3 sm:gap-4">
+          <button aria-label={tr(g.lang,"back")} title={tr(g.lang,"back")} onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }} className="gold-hud-wordmark shrink-0 min-w-0 bg-transparent border-0 p-0 text-left"><img className="block w-full h-auto max-h-[54px] object-contain object-left" src="./assets/gold/apex-chaos-wordmark.png" alt="APEX CHAOS" draggable={false} /></button>
+          <div className="gold-hud-identity flex min-w-0 items-center gap-2 sm:gap-3">
+            <div id="ac-chip" className={`gold-ac-chip slant-r flex shrink-0 items-center gap-1.5 sm:gap-2 pl-2 pr-3 sm:pr-5 py-1 bg-black/70 border-b-2 border-gold ${hit ? "anim-hit" : ""}`}>
               <Coin size={26} />
               <span className="font-display font-bold text-lg tabular-nums leading-none">
                 <AnimatedNumber value={g.s.ac} delay={950} />
               </span>
               <span className="font-display text-[10px] tracking-[.2em] text-gold -ml-0.5">AC</span>
             </div>
-            <div aria-label={tr(g.lang,"profile")} className="hidden sm:flex items-center gap-2 group">
+            <div aria-label={tr(g.lang,"profile")} className="hidden md:flex min-w-0 items-center gap-2 group">
               <div className="w-10 h-11 hex p-[2px]" style={{ background: av.color }}>
                 <div className="w-full h-full hex overflow-hidden bg-black">
                   <img src={av.img} alt="" className="w-full h-full object-cover" style={{ objectPosition: av.pos }} />
@@ -102,10 +102,10 @@ function Shell() {
       role="tab"
       aria-selected={tab === id}
       onClick={() => goTab(id)}
-      className={`slant font-display font-bold italic tracking-[.12em] text-sm sm:text-base px-5 sm:px-8 py-3 flex items-center gap-2.5 transition-all ${tab === id ? "bg-gradient-to-b from-gold to-orange-500 text-black shadow-[0_0_24px_rgba(255,140,20,.55)]" : "bg-black/55 text-white/75 hover:bg-white/15"}`}
+      className={`slant font-display font-bold italic tracking-[.07em] sm:tracking-[.12em] text-xs sm:text-base px-4 sm:px-8 py-3 flex min-w-0 items-center gap-1.5 sm:gap-2.5 transition-all ${tab === id ? "bg-gradient-to-b from-gold to-orange-500 text-black shadow-[0_0_24px_rgba(255,140,20,.55)]" : "bg-black/55 text-white/75 hover:bg-white/15"}`}
     >
       {label}
-      <span className={`not-italic text-[11px] px-2 py-[1px] ${tab === id ? "bg-black/80 text-gold" : hot ? "bg-orange-500 text-black" : "bg-white/15 text-white/80"}`}>{badge}</span>
+      <span className={`not-italic text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-[1px] ${tab === id ? "bg-black/80 text-gold" : hot ? "bg-orange-500 text-black" : "bg-white/15 text-white/80"}`}>{badge}</span>
     </button>
   );
 
@@ -120,14 +120,14 @@ function Shell() {
         <div key={screen + tab} className="anim-fade-up">
           {screen === "missions" ? (
             <>
-              <div className="flex flex-wrap items-end justify-between gap-5">
-                <div>
-                  <p className="font-display text-xs tracking-[.5em] text-amber">{tr(g.lang,"missions.kicker")}</p>
-                  <h1 className="font-display italic font-bold text-5xl sm:text-8xl leading-[1.02] sm:leading-[0.9] break-words text-molten" style={{ filter: "drop-shadow(0 6px 30px rgba(255,100,10,.45))" }}>
+              <div className="gold-page-hero flex min-w-0 flex-wrap items-end justify-between gap-5">
+                <div className="min-w-0 w-full">
+                  <p className="gold-page-kicker font-display text-[10px] sm:text-xs tracking-[.18em] sm:tracking-[.3em] text-amber">{tr(g.lang,"missions.kicker")}</p>
+                  <h1 className="gold-page-heading font-display italic font-bold text-molten" style={{ filter: "drop-shadow(0 6px 30px rgba(255,100,10,.45))" }}>
                     {tr(g.lang,"missions.title")}
                   </h1>
                 </div>
-                <div role="tablist" className="flex gap-1.5">
+                <div role="tablist" className="gold-page-tabs flex flex-wrap gap-1.5 max-w-full">
                   {tabBtn("ops", tr(g.lang,"contracts"), ready > 0 ? `${ready} ${tr(g.lang,"ready.short")}` : tr(g.lang,"earn.ac"), ready > 0)}
                   {tabBtn("mastery", tr(g.lang,"mastery"), `${done}/${ACHIEVEMENTS.length}`)}
                 </div>
@@ -136,8 +136,8 @@ function Shell() {
             </>
           ) : (
             <>
-              <p className="font-display text-xs tracking-[.5em] text-amber">{tr(g.lang,"account.kicker")}</p>
-              <h1 className="font-display italic font-bold text-5xl sm:text-8xl leading-[1.02] sm:leading-[0.9] break-words text-molten" style={{ filter: "drop-shadow(0 6px 30px rgba(255,100,10,.45))" }}>
+              <p className="gold-page-kicker font-display text-[10px] sm:text-xs tracking-[.18em] sm:tracking-[.3em] text-amber">{tr(g.lang,"account.kicker")}</p>
+              <h1 className="gold-page-heading font-display italic font-bold text-molten" style={{ filter: "drop-shadow(0 6px 30px rgba(255,100,10,.45))" }}>
                 {tr(g.lang,"account.title")}
               </h1>
               <Account g={g} />

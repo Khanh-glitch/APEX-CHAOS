@@ -42,6 +42,36 @@ try {
       assert.equal(content.title,'MISSIONS');
       assert.equal(await frame.locator('nav').count(),0,'Gold must not include Account/Missions toggle navigation');
       assert.equal(await frame.locator('header img[alt="APEX CHAOS"]').count(),1,'Home wordmark missing');
+      const fitHeading = async (goldFrame) => goldFrame.evaluate(async () => {
+        await document.fonts.ready;
+        const title = document.querySelector('main h1');
+        const brand = document.querySelector('header img[alt="APEX CHAOS"]');
+        const tr = title?.getBoundingClientRect();
+        const br = brand?.getBoundingClientRect();
+        const viewport = document.documentElement.clientWidth;
+        return {
+          viewport,
+          title: title?.textContent?.trim(),
+          titleBounds: tr && {left:tr.left,right:tr.right,top:tr.top,bottom:tr.bottom},
+          logoBounds: br && {left:br.left,right:br.right,top:br.top,bottom:br.bottom},
+          brandLoaded: !!brand?.complete && brand.naturalWidth>0,
+          overflow: document.documentElement.scrollWidth>viewport+2,
+        };
+      });
+      const enMissionFit = await fitHeading(frame);
+      assert.ok(enMissionFit.brandLoaded,'Home wordmark failed to load');
+      assert.ok(enMissionFit.logoBounds.left >= -2 && enMissionFit.logoBounds.right <= width+2,'Home wordmark horizontal crop');
+      assert.ok(enMissionFit.titleBounds.left >= -2 && enMissionFit.titleBounds.right <= width+2,'English mission heading crop');
+      assert.ok(!enMissionFit.overflow,'English mission overflow');
+      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('vie'));
+      await frame.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('NHIỆM VỤ'),{timeout:10000});
+      const viMissionFit = await fitHeading(frame);
+      assert.ok(viMissionFit.titleBounds.left >= -2 && viMissionFit.titleBounds.right <= width+2,'Vietnamese mission heading crop');
+      assert.ok(!viMissionFit.overflow,'Vietnamese mission overflow');
+      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('eng'));
+      await frame.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('MISSIONS'),{timeout:10000});
+      assert.equal(await frame.locator('nav').count(),0,'Gold must not include Account/Missions toggle navigation');
+      assert.equal(await frame.locator('header img[alt="APEX CHAOS"]').count(),1,'Home wordmark missing');
       assert.equal(content.pathNodes,5,'Gold original hex mission path lost a node');
       assert.ok(content.coinHex,'original Gold AC hexagon missing');
       assert.ok(!content.missionText.includes('Guest_Raven')&&!content.missionText.includes('1,850'),'demo profile leaked');
@@ -102,6 +132,14 @@ try {
         imageCount:[...document.images].filter(x=>x.complete&&x.naturalWidth>0).length,
       }));
       assert.equal(profile.title,'ACCOUNT');
+      const enAccountFit = await fitHeading(account);
+      assert.ok(enAccountFit.titleBounds.left >= -2 && enAccountFit.titleBounds.right <= width+2,'English account heading crop');
+      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('vie'));
+      await account.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('TÀI KHOẢN'),{timeout:10000});
+      const viAccountFit = await fitHeading(account);
+      assert.ok(viAccountFit.titleBounds.left >= -2 && viAccountFit.titleBounds.right <= width+2,'Vietnamese account heading crop');
+      assert.ok(!viAccountFit.overflow,'Vietnamese account overflow');
+      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('eng'));
       await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('vie'));
       await account.waitForFunction(()=>document.documentElement.lang==='vi',{timeout:10000});
       const vieProfile=await account.evaluate(()=>({title:document.querySelector('h1')?.innerText,text:document.body.innerText,overflow:document.documentElement.scrollWidth>innerWidth+3}));

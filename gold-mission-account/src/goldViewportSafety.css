@@ -23,9 +23,58 @@ html[lang='vi'] body { font-family: var(--font-body); }
 #root main button { min-width: 0; overflow-wrap: anywhere; }
 #root .gold-player-id { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-all; }
 @media (max-width: 639px) {
-  #root main h1 { font-size: clamp(2.75rem, 14vw, 4.6rem); line-height: 1.05; }
   #root main .tracking-\\[\\.5em\\], #root main .tracking-\\[\\.4em\\], #root main .tracking-\\[\\.35em\\] { letter-spacing: 0.15em; }
   #root main [role='tablist'] { flex-wrap: wrap; max-width: 100%; }
   #root main .cut-sm, #root main .cut, #root main .cut-lg { max-width: 100%; }
   #root main button { white-space: normal; }
+}
+
+/* Owner Gold keeps its original visuals; only the translated header's geometry
+ * is bounded so longer Vietnamese headlines/kickers never paint off-canvas. */
+#root .gold-page-heading {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  font-size: clamp(48px, 9.25vw, 96px);
+  line-height: 1.2;
+  letter-spacing: -.035em;
+  padding: .09em .13em .09em 0;
+  margin: -.09em -.13em -.09em 0;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: balance;
+}
+html[lang='vi'] #root .gold-page-heading {
+  font-size: clamp(42px, 8.2vw, 96px);
+  line-height: 1.25;
+  letter-spacing: -.045em;
+}
+#root .gold-page-kicker {
+  max-width: 100%;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+#root .gold-page-tabs button {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.15;
+}
+#root .gold-hud-wordmark {
+  width: clamp(92px, 30vw, 190px);
+  max-height: 54px;
+  display: flex;
+  align-items: center;
+}
+#root .gold-hud-wordmark img {
+  max-height: 54px;
+  height: auto;
+  object-fit: contain;
+}
+#root .gold-hud-header-inner,
+#root .gold-hud-identity {
+  min-width: 0;
+}
+@media (max-width: 420px) {
+  #root .gold-ac-chip { font-size: .85em; }
+  #root .gold-page-kicker { letter-spacing: .14em; }
 }
