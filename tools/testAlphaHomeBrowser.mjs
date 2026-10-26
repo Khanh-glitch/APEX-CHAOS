@@ -55,6 +55,23 @@ page.on('pageerror', (e) => errors.push(String(e)));
 await page.setViewport({ width: 1440, height: 900 });
 await bootHome(page);
 
+// Issue #105 changed the fresh-guest contract: the coach must NOT start
+// without consent. Verify the actual one-time question, then opt in through
+// the real UI before testing the complete six-step coach lifecycle.
+await page.waitForSelector('.apex-tutorial-ask .apex-tutorial-ask-yes', { visible: true, timeout: 15000 });
+const prefBefore = await page.evaluate(() => ({
+  preference: localStorage.getItem('apex.alpha.tutorial.v1'),
+  coachVisible: !!document.querySelector('.apex-guide-card'),
+}));
+check('fresh guest is asked first; tutorial does not start without consent', () => {
+  assert.equal(prefBefore.preference, null);
+  assert.equal(prefBefore.coachVisible, false);
+});
+await page.click('.apex-tutorial-ask-yes');
+await page.waitForSelector('.apex-guide-card', { visible: true, timeout: 15000 });
+const prefAfter = await page.evaluate(() => localStorage.getItem('apex.alpha.tutorial.v1'));
+check('real YES choice persists tutorial ON', () => assert.equal(prefAfter, 'on'));
+
 const home = await page.evaluate(() => ({
   account: document.querySelectorAll('#apexAccountOpen').length,
   missions: document.querySelectorAll('#apexMissionsOpen').length,
@@ -81,7 +98,7 @@ check('AC readout equals the live wallet (350 fresh)', () => {
 check('ENG|VIE segmented control mounted with ENG active', () => {
   assert.deepEqual(home.langOptions, ['eng:true', 'vie:false']);
 });
-check('CP3 coach auto-shows for a genuinely new guest at step 1/6', () => {
+check('CP3 coach starts at step 1/6 after explicit YES', () => {
   assert.equal(home.guideOpen, true);
   assert.equal(home.coach?.version, 2);
   assert.equal(home.coach?.step, 0);
