@@ -530,7 +530,7 @@ function install(){
   };
   touchZone.addEventListener('pointerdown',e=>{
    if(activePointer!==null||e.pointerType==='mouse'||e.button!==0)return;
-   if(!pauseMenu?.hidden || !modal.hidden || window.handLab?.paused)return;
+   if(!pauseMenu?.hidden || !doc.getElementById('wave-modal')?.hidden || window.handLab?.paused)return;
    e.preventDefault();
    activePointer=e.pointerId;
    originX=e.clientX;originY=e.clientY;
