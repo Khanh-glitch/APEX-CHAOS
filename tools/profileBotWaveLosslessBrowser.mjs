@@ -166,7 +166,14 @@ try{
     changedChannelsOver24:differences,totalChannels:count,
     brightnessRatio:meanG/Math.max(1,meanN),bridge:bridge.snapshot()};
   });
-  if(bloomVisual)console.log('GPU BLOOM IMAGE PARITY',JSON.stringify(bloomVisual));
+  if(bloomVisual){
+   console.log('GPU BLOOM IMAGE PARITY',JSON.stringify(bloomVisual));
+   assert.ok(bloomVisual.meanAbsoluteError<3.5 &&
+       bloomVisual.changedChannelsOver24<=15 &&
+       bloomVisual.brightnessRatio>=0.96 &&
+       bloomVisual.brightnessRatio<=1.04,
+     profile.name+': visual fidelity exceeds allowed Gold bright-pass delta: '+JSON.stringify(bloomVisual));
+  }
   const before=await frame.evaluate(()=>({
    x:window.handLab.player.x,y:window.handLab.player.y,
    t:window.handLab.time
