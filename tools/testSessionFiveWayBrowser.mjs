@@ -33,9 +33,28 @@ async function swipeGold(page,direction){
 }
 async function lucky(page){
  await until(page,()=>document.querySelector('#luckyDonorHost.is-open #luckyDonorFrame')?.contentDocument?.getElementById('backBtn'),'original Lucky donor open',45000);
+ await until(page,()=>document.querySelector('#luckyDonorFrame')?.contentDocument?.documentElement.dataset.apexSectionSwipeReady==='1',
+  'native Lucky iframe gesture binding ready',5000);
 }
 async function archive(page){
- await until(page,()=>!!document.querySelector('.fa3-overlay.apex-cosmetics-overlay .fa3-shell'),'actual Field Archive open',45000);
+ try{
+  await until(page,()=>!!document.querySelector('.fa3-overlay.apex-cosmetics-overlay .fa3-shell'),'actual Field Archive open',12000);
+ }catch(e){
+  const diag=await page.evaluate(()=>({
+   donorOpen:document.getElementById('luckyDonorHost')?.classList.contains('is-open'),
+   donorStage:document.getElementById('luckyDonorFrame')?.contentDocument?.getElementById('stage')?.dataset.busy,
+   ready:document.getElementById('luckyDonorFrame')?.contentDocument?.documentElement.dataset.apexSectionSwipeReady,
+   navigator:document.querySelector('.apex-session-interchange')?.dataset.sessionIndex,
+   goldOverlay:!!document.querySelector('.apex-gold-direct-host'),
+   archiveOverlay:!!document.querySelector('.fa3-overlay'),
+   stageClasses:document.getElementById('stage')?.className,
+   goldMounted:document.body.classList.contains('apex-gold-mounted'),
+   transitionActive:window.APEX_SCENE_TRANSITION?.active?.(),
+   waveActive:document.body.classList.contains('apex-bot-wave-active'),
+  }));
+  console.error('FIVE SESSION ARCHIVE DEBUG',JSON.stringify(diag));
+  throw e;
+ }
 }
 async function swipeLucky(page,dir){
  const f=await (await page.$('#luckyDonorFrame')).contentFrame();
@@ -58,6 +77,7 @@ try{
  for(const [width,height,mobile] of sizes){
   const {page,context,errors}=await openApp(browser,{width,height,mobile,storage:{'apex.alpha.tutorial.v1':'off'}});
   try{
+   page.on('console',m=>{if(/apex-section-nav/.test(m.text()))console.log('FIVE SESSION ROUTE',m.text());});
    const original=await page.evaluate(()=>window.APEX_ARSENAL_META?.getState?.()?.credits);
    await page.click('#apexMissionsOpen');
    await gold(page,0);
