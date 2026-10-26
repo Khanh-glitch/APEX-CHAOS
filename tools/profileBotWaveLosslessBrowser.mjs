@@ -32,7 +32,7 @@ try{
   const errors=[];
   page.on('pageerror',err=>errors.push(String(err)));
   await page.setViewport(profile.viewport);
-  await page.goto(base+'/bot-wave/index.html',{waitUntil:'domcontentloaded',timeout:65000});
+  await page.goto(base+'/bot-wave/index.html'+(process.env.APEX_GPU_POST_FORCE==='1'?'?gpuPost=force':''),{waitUntil:'domcontentloaded',timeout:65000});
   const frame=await until('Gold iframe',async()=>page.frames().find(f=>f.url().includes('/bot-wave/game.html')));
   await until('Gold + pilot + full V2 presentation',()=>frame.evaluate(()=>
    !!window.handLab&&!!window.BOXE_WAVE_PILOT&&window.APEX_BOT_WAVE_INTERFACE_V2?.installed===true
@@ -129,6 +129,9 @@ try{
    profile.name+': render/post instrumentation never sampled');
   assert.ok(Number.isFinite(stat.renderP95Ms)&&Number.isFinite(stat.frameGapP95Ms),
    profile.name+': invalid latency samples');
+  const gpuStat=await frame.evaluate(()=>window.APEX_WAVE_GPU_POST?.snapshot());
+  if(process.env.APEX_GPU_POST_FORCE==='1')
+   assert.ok(gpuStat?.frames>5,profile.name+': GPU hardware path never rendered: '+JSON.stringify(gpuStat));
   assert.ok(after.t>before.t&&movement>8,
    profile.name+': native movement did not advance under held keyboard input');
   assert.deepEqual(errors,[],profile.name+': uncaught browser errors');
@@ -147,6 +150,7 @@ try{
    goldParticles:stat.goldParticles,livingBots:stat.livingBots,
    passCosts:stat.passCosts,
    catchup:await frame.evaluate(()=>window.APEX_WAVE_CATCHUP?.snapshot()),
+   gpuPost:gpuStat,
    refractionCopy:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_COPY?.snapshot()),
    refractionParity
   };
