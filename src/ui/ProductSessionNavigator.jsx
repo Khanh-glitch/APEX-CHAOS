@@ -51,7 +51,7 @@ export default function ProductSessionNavigator(){
  const [visible,setVisible]=useState(-1);
  const [mount,setMount]=useState(null);
  const [wipe,setWipe]=useState(null);
- const moving=useRef(false),gesture=useRef(null);
+ const moving=useRef(false),gesture=useRef(null),queued=useRef(null);
  const activeSurface=useCallback(()=>{
   if(archiveActive())return 4;
   if(luckyActive())return 3;
@@ -59,7 +59,11 @@ export default function ProductSessionNavigator(){
  },[]);
 
  const navigate=useCallback(async(index)=>{
-  if(!Number.isInteger(index)||index<0||index>=SECTIONS.length||moving.current)return false;
+  if(!Number.isInteger(index)||index<0||index>=SECTIONS.length)return false;
+  // A destination is already interactive while its final Gold wipe
+  // retracts. Never drop an immediate second swipe: keep the latest intent
+  // and execute it once the preceding transition settles.
+  if(moving.current){queued.current=index;return false;}
   const current=activeSurface();
   if(current===index)return true;
   if(document.getElementById('apex-wave-host')||busyDraw())return false;
@@ -113,6 +117,9 @@ export default function ProductSessionNavigator(){
   }finally{
    setWipe(null);
    moving.current=false;
+   const next=queued.current;
+   queued.current=null;
+   if(Number.isInteger(next))window.setTimeout(()=>{void navigate(next);},0);
   }
  },[activeSurface]);
 
