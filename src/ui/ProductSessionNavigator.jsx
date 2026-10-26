@@ -20,6 +20,7 @@ const luckyActive=()=>!!luckyHost()?.classList.contains('is-open');
 const archiveActive=()=>!!document.querySelector('.fa3-overlay.apex-cosmetics-overlay');
 const goldActive=()=>!!document.querySelector('.apex-gold-direct-host iframe');
 const busyDraw=()=>{
+ if(!luckyActive())return false;
  const stage=document.getElementById('luckyDonorFrame')?.contentDocument?.getElementById('stage');
  return !!stage&&stage.dataset.busy!=='0';
 };
@@ -133,16 +134,19 @@ export default function ProductSessionNavigator(){
    try{doc=frame?.contentDocument?.getElementById('stage')?frame.contentDocument:null;}catch{}
    if(doc===attachedDoc)return;
    if(attachedDoc){attachedDoc.removeEventListener('pointerdown',onLuckyDown,true);
-     attachedDoc.removeEventListener('pointerup',onLuckyUp,true);}
+     attachedDoc.removeEventListener('pointerup',onLuckyUp,true);
+     delete attachedDoc.documentElement.dataset.apexSectionSwipeReady;}
    attachedDoc=doc;
-   if(doc){doc.addEventListener('pointerdown',onLuckyDown,true);doc.addEventListener('pointerup',onLuckyUp,true);}
+   if(doc){doc.addEventListener('pointerdown',onLuckyDown,true);doc.addEventListener('pointerup',onLuckyUp,true);
+     doc.documentElement.dataset.apexSectionSwipeReady='1';}
   },190);
   return()=>{
    window.clearInterval(interval);
    document.removeEventListener('pointerdown',onArchiveDown,true);
    document.removeEventListener('pointerup',onArchiveUp,true);
    if(attachedDoc){attachedDoc.removeEventListener('pointerdown',onLuckyDown,true);
-     attachedDoc.removeEventListener('pointerup',onLuckyUp,true);}
+     attachedDoc.removeEventListener('pointerup',onLuckyUp,true);
+     delete attachedDoc.documentElement.dataset.apexSectionSwipeReady;}
   };
  },[navigate,activeSurface]);
 
