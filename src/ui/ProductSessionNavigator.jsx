@@ -41,10 +41,15 @@ export default function ProductSessionNavigator(){
   if(!Number.isInteger(index)||index<0||index>=SECTIONS.length||moving.current)return false;
   const current=activeSurface();
   if(current===index)return true;
-  if(window.APEX_SCENE_TRANSITION?.active?.()||document.getElementById('apex-wave-host'))return false;
+  if(document.getElementById('apex-wave-host'))return false;
   if(luckyActive()&&busyDraw())return false; // NEVER interrupt a paid draw.
   moving.current=true;
   try{
+   // The Gold door marks its donor visible before its opening transition has
+   // fully ended. Queue the swipe, never silently discard an early gesture.
+   if(window.APEX_SCENE_TRANSITION?.active?.()){
+    await waitFor(()=>!window.APEX_SCENE_TRANSITION?.active?.(),20000);
+   }
    if(archiveActive()){
     window.dispatchEvent(new Event('apex-close-cosmetics'));
     await waitFor(()=>!archiveActive());
@@ -104,7 +109,7 @@ export default function ProductSessionNavigator(){
   const usePointer=(getSection)=>{
    const down=e=>{
     if(!e.isPrimary||!['touch','pen','mouse'].includes(e.pointerType)||e.button!==0)return;
-    if(window.APEX_SCENE_TRANSITION?.active?.()||busyDraw()||isProtectedTarget(e.target))return;
+    if(busyDraw()||isProtectedTarget(e.target))return;
     if(document.querySelector('.fa3-overlay .sheet'))return;
     gesture.current={pointerId:e.pointerId,x:e.clientX,y:e.clientY,time:performance.now(),from:getSection()};
    };
