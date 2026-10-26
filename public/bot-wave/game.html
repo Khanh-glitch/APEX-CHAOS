@@ -6741,6 +6741,17 @@ const _ownerStageStyle=document.createElement('style');_ownerStageStyle.textCont
  stick.addEventListener('pointerup',end);stick.addEventListener('pointercancel',end);
 }
 let stickDX=0,stickDY=0;
+// One input authority for the mobile floating zone; Gold movement, collision
+// and physics continue to consume stickDX/stickDY unchanged. No second engine.
+window.APEX_BOT_WAVE_FLOATING_STICK=Object.freeze({
+ setVector(dx,dy){
+  let x=Number(dx),y=Number(dy);
+  if(!Number.isFinite(x)||!Number.isFinite(y)){x=0;y=0}
+  const mag=Math.max(1,Math.hypot(x,y));stickDX=x/mag;stickDY=y/mag;
+ },
+ reset(){stickDX=0;stickDY=0;},
+ vector(){return {x:stickDX,y:stickDY};}
+});
 function formatHudInt(value){const n=Number(value);return Number.isFinite(n)?Math.max(0,Math.round(n)).toLocaleString('en-US'):'0'}
 function formatCombatText(text){
  // Presentation-only number hygiene: canonical damage and HP stay exact
