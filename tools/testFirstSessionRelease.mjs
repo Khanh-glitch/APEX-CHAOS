@@ -10,7 +10,11 @@ const presentation=read('public/game/bot-wave/botWavePresentationV2.js');
 for(const id of ['apex.firstSessionWelcome.v1','apex-welcome-name','apex:tutorial-answer','playerAccount.setDisplayName','choose(true)','choose(false)'])
  assert.ok(welcome.includes(id),'welcome missing '+id);
 assert.match(welcome,/guest/i,'must honestly declare guest-only release');
-assert.match(welcome,/apexAppUrl\('\/assets\/dictionary\/heroes\/boxe\/avatar.png'\)/);
+assert.match(welcome,/home-robot-body\.png/);
+assert.match(welcome,/home-world-background\.png/);
+assert.match(welcome,/apex-chaos-wordmark\.png/);
+assert.match(homeCSS,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+assert.match(homeCSS,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 assert.match(guide,/stage\.querySelector\('\.profile/,'Help must belong to wallet row');
 assert.match(guide,/const wantAsk = false/,'legacy yes/no prompt must not overlap first-run gate');
 assert.match(guideCSS,/9999px rgba\(0,0,0/,'tutorial must spotlight rather than leave background bright');
