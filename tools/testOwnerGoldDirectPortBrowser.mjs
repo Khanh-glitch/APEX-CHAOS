@@ -148,9 +148,9 @@ try {
       assert.equal(profile.title,'ACCOUNT');
       const enAccountFit = await fitHeading(account);
       assert.ok(enAccountFit.titleBounds.left >= -2 && enAccountFit.titleBounds.right <= width+2,'English account heading crop');
+      await page.screenshot({path:`${destination}/${width}x${height}-account-eng.png`});
       await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('vie'));
       await account.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('TÀI KHOẢN'),{timeout:10000});
-      await page.screenshot({path:`${destination}/${width}x${height}-account-eng.png`});
       const viAccountFit = await fitHeading(account);
       assert.ok(viAccountFit.titleBounds.left >= -2 && viAccountFit.titleBounds.right <= width+2,'Vietnamese account heading crop');
       if (viAccountFit.overflow) {
