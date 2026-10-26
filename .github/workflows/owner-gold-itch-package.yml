@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/owner-gold-direct-port-20261026
+      - feat/bot-wave-mobile-landscape-floating-stick-20261026
     paths:
       - '.github/workflows/owner-gold-itch-package.yml'
       - 'gold-mission-account/**'
