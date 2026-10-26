@@ -62,6 +62,33 @@ try{
     }
    }
   });
+  // Same live scene, same quarter-resolution bloom filter, both paths in
+  // one browser task. The comparison is pixel-level, not just screenshots.
+  const bloomParity=await frame.evaluate(()=>{
+   const source=window.handLab?.post?.scene;
+   if(!source)return null;
+   const width=Math.max(2,Math.round(source.width/4)),height=Math.max(2,Math.round(source.height/4));
+   const make=()=>{const c=document.createElement('canvas');c.width=width;c.height=height;return c;};
+   const native=make(),nctx=native.getContext('2d',{willReadFrequently:true});
+   const pre=make(),pctx=pre.getContext('2d');
+   const optimized=make(),octx=optimized.getContext('2d',{willReadFrequently:true});
+   if(!nctx||!pctx||!octx)return null;
+   const filter='brightness(1.06) contrast(2.05) saturate(1.18) blur(1.1px)';
+   nctx.filter=filter;nctx.drawImage(source,0,0,width,height);nctx.filter='none';
+   pctx.drawImage(source,0,0,width,height);
+   octx.filter=filter;octx.drawImage(pre,0,0,width,height);octx.filter='none';
+   const a=nctx.getImageData(0,0,width,height).data,b=octx.getImageData(0,0,width,height).data;
+   let totalDiff=0,maxDiff=0,changedChannels=0;
+   for(let i=0;i<a.length;i++){
+    const delta=Math.abs(a[i]-b[i]);totalDiff+=delta;
+    if(delta>maxDiff)maxDiff=delta;
+    if(delta)changedChannels++;
+   }
+   return {width,height,meanChannelDiff:totalDiff/a.length,maxChannelDiff:maxDiff,
+    changedChannels,channelCount:a.length};
+  });
+  assert.ok(bloomParity&&bloomParity.meanChannelDiff<=0.3&&bloomParity.maxChannelDiff<=5,
+   profile.name+': pre-scaled bloom differs materially from canonical Gold bloom: '+JSON.stringify(bloomParity));
   const before=await frame.evaluate(()=>({
    x:window.handLab.player.x,y:window.handLab.player.y,
    t:window.handLab.time
@@ -101,7 +128,9 @@ try{
    longTasks:stat.longTasks,longTaskMaxMs:+stat.longTaskMaxMs.toFixed(2),
    canvasPixels:stat.canvasPixels,renderDpr:stat.renderDpr,
    goldParticles:stat.goldParticles,livingBots:stat.livingBots,
-   passCosts:stat.passCosts
+   passCosts:stat.passCosts,
+   bloomPrepass:await frame.evaluate(()=>window.APEX_BOT_WAVE_BLOOM_PREPASS?.snapshot()),
+   bloomParity
   };
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
