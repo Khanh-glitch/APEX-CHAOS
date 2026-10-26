@@ -60,12 +60,22 @@ try{
    await page.screenshot({path:`${output}/${width}x${height}-tutorial.png`});
 
    // The guide is informative, not a blocking full-screen layer.
-   await gesture(frame,width*.72,width*.24);
+   // Exercise a true Chrome finger gesture in mobile viewports, not only
+   // JavaScript-dispatched PointerEvents, including an intermediate move.
+   if(mobile){
+    const y=158;
+    await page.touchscreen.touchStart(Math.round(width*.72),y);
+    await page.touchscreen.touchMove(Math.round(width*.48),y+1);
+    await page.touchscreen.touchMove(Math.round(width*.24),y+1);
+    await page.touchscreen.touchEnd();
+   }else await gesture(frame,width*.72,width*.24);
    await selectIndex(frame,1);
+   await wait(550); // screenshot the settled Gold page, never its cinematic wipe
    await page.screenshot({path:`${output}/${width}x${height}-mastery.png`});
    await wait(900);
    await gesture(frame,width*.72,width*.24);
    await selectIndex(frame,2);
+   await wait(550);
    await page.screenshot({path:`${output}/${width}x${height}-account.png`});
    await wait(900);
    await gesture(frame,width*.24,width*.72);
