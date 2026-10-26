@@ -1150,6 +1150,8 @@ function install(){
   syncPauseMenu();
   // The 30 Hz spatial RAF already paints the full minimap and ForgeFire;
   // painting again in the 90ms HUD timer caused duplicate canvas passes.
+  // No-RAF DOM (and legacy browsers) still needs the spatial paint via timer.
+  if(typeof window.requestAnimationFrame!=='function')updateSpatial();
  };
  const spatialLoop=timestamp=>{
   if(!lastSpatialAt||timestamp-lastSpatialAt>=33){try{updateSpatial();}catch(_){}lastSpatialAt=timestamp;}
