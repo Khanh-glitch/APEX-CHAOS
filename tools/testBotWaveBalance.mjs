@@ -249,7 +249,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(campaign.survival.healthPack)), {
 const game = fs.readFileSync('public/bot-wave/game.html', 'utf8');
 assert.ok(game.includes('function activePressure()'), 'Gold spawn loop must measure active carrier pressure');
 assert.ok(
-  game.includes('activePressure()+(nextSpawn.pressure||0)<=state.pressureBudget'),
+  game.includes('pressureNow+(nextSpawn.pressure||0)<=state.pressureBudget'),
   'Gold spawn loop must enforce the campaign pressure budget',
 );
 assert.ok(game.includes('wavePressure:desc.pressure||0'), 'spawned BOTs must retain their planned pressure score');
