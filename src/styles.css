@@ -4387,3 +4387,79 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
 #gold-shell-host #stage .routes button[data-locked-route][aria-disabled="true"]{
   display:none!important;
 }
+
+
+/* HOME GOLD NAV CORRECTION — 4 real routes, never 6 empty slots.
+   The earlier 6-column donor grid showed four gray controls crushed to the
+   left after the two COMING SOON routes were retired. Retain the real Gold
+   control IDs/handlers and make the four destinations a coherent deck. */
+#gold-shell-host #stage .routes{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:clamp(5px,.65vw,12px)!important;
+  height:clamp(56px,9vh,78px)!important;
+  padding:0 clamp(8px,1.2vw,22px)!important;
+  border-top:1px solid rgba(255,178,76,.47)!important;
+  background:linear-gradient(180deg,rgba(10,11,14,.15),rgba(8,9,11,.88) 19%,rgba(5,7,9,.98))!important;
+  box-shadow:0 -12px 36px #0009,inset 0 1px rgba(255,236,190,.035)!important;
+}
+#gold-shell-host #stage .routes>.route:not(.is-locked){
+  display:flex!important;
+  position:relative;
+  min-width:0;height:calc(100% - 9px)!important;
+  padding:5px clamp(8px,1vw,21px)!important;
+  justify-content:flex-start!important;
+  gap:clamp(8px,.9vw,15px)!important;
+  color:#ded1b9!important;
+  font:800 clamp(11px,1.05vw,17px)/1.1 "Bahnschrift Condensed","Arial Narrow",Impact,sans-serif!important;
+  letter-spacing:.1em!important;
+  white-space:nowrap;
+  background:linear-gradient(125deg,rgba(41,38,35,.9),rgba(14,16,19,.93) 55%,rgba(10,11,13,.98))!important;
+  border:1px solid rgba(220,190,142,.24)!important;
+  border-bottom:2px solid rgba(255,148,31,.32)!important;
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,10px 100%,0 calc(100% - 10px))!important;
+  box-shadow:inset 0 1px rgba(255,238,203,.085)!important;
+  transition:background .18s ease,color .18s ease,filter .18s ease!important;
+}
+#gold-shell-host #stage .routes>.route:not(.is-locked)::before{
+  content:"";position:absolute;top:0;left:10px;width:25%;height:2px;
+  background:linear-gradient(90deg,#ff9c24,transparent);
+  opacity:.7;pointer-events:none;
+}
+#gold-shell-host #stage .routes>.route:not(.is-locked)::after{
+  content:"";position:absolute;right:12px;bottom:9px;width:18px;height:3px;
+  background:linear-gradient(90deg,transparent,#f9a53d);
+  opacity:.45;pointer-events:none;
+}
+#gold-shell-host #stage .routes>.route:not(.is-locked) svg{
+  width:clamp(21px,1.65vw,31px)!important;
+  height:clamp(21px,1.65vw,31px)!important;
+  color:#f6a945!important;opacity:1!important;
+  filter:drop-shadow(0 0 5px rgba(255,149,39,.24));
+}
+#gold-shell-host #stage .routes>.route:not(.is-locked):hover,
+#gold-shell-host #stage .routes>.route:not(.is-locked):focus-visible{
+  color:#fff3da!important;
+  background:linear-gradient(125deg,rgba(100,57,23,.92),rgba(43,28,19,.94) 54%,rgba(18,17,18,.99))!important;
+  filter:brightness(1.12);
+  outline:2px solid #ffb343;outline-offset:-3px;
+  transform:translateY(-2px);
+}
+#gold-shell-host #stage .routes>.route.is-locked{display:none!important}
+@media(max-width:980px) and (orientation:landscape){
+ #gold-shell-host #stage .routes{height:48px!important;padding:0 6px!important;gap:5px!important}
+ #gold-shell-host #stage .routes>.route:not(.is-locked){height:41px!important;padding:3px 7px!important;gap:6px!important;font-size:clamp(9px,1.17vw,12px)!important;letter-spacing:.04em!important}
+ #gold-shell-host #stage .routes>.route:not(.is-locked) svg{width:19px!important;height:19px!important}
+}
+@media(orientation:portrait){
+ #gold-shell-host #stage .routes{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  height:auto!important;gap:5px!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;
+ }
+ #gold-shell-host #stage .routes>.route:not(.is-locked){
+  height:clamp(43px,5.8dvh,56px)!important;flex-direction:row!important;
+  gap:9px!important;font-size:clamp(10px,2.85vw,13px)!important;
+  padding:6px 10px!important;justify-content:flex-start!important;
+ }
+ #gold-shell-host #stage .routes>.route:not(.is-locked) svg{width:21px!important;height:21px!important}
+}
