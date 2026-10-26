@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { MISSIONS, ACHIEVEMENTS, fighterById, isDone } from "./data";
 import { missionStatus, useGame, type Game } from "./store";
 import { AnimatedNumber, Coin, GlobalDefs, Stage, type StageVariant } from "./ui";
@@ -34,7 +34,16 @@ function Hud({ g }: { g: Game }) {
     <>
       <header className="fixed top-0 inset-x-0 z-40 h-16" style={{ background: "linear-gradient(180deg,rgba(7,5,10,.95),rgba(7,5,10,.6) 70%,transparent)" }}>
         <div className="gold-hud-header-inner max-w-[1280px] mx-auto h-full px-4 sm:px-8 flex items-center justify-between gap-3 sm:gap-4">
-          <button aria-label={tr(g.lang,"back")} title={tr(g.lang,"back")} onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }} className="gold-hud-wordmark shrink-0 min-w-0 bg-transparent border-0 p-0 text-left"><img className="block w-full h-auto max-h-[54px] object-contain object-left" src="./assets/gold/apex-chaos-wordmark.png" alt="APEX CHAOS" draggable={false} /></button>
+          <div className="gold-hud-nav">
+            <button type="button" className="gold-session-back" aria-label={tr(g.lang,"back")} title={tr(g.lang,"back")}
+              onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5m7-7-7 7 7 7" />
+              </svg>
+              <span>{g.lang === "vie" ? "VỀ" : "BACK"}</span>
+            </button>
+            <button type="button" aria-label={tr(g.lang,"back")} title={tr(g.lang,"back")} onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }} className="gold-hud-wordmark shrink-0 min-w-0 bg-transparent border-0 p-0 text-left"><img className="block w-full h-auto max-h-[54px] object-contain object-left" src="./assets/gold/apex-chaos-wordmark.png" alt="APEX CHAOS" draggable={false} /></button>
+          </div>
           <div className="gold-hud-identity flex min-w-0 items-center gap-2 sm:gap-3">
             <div id="ac-chip" className={`gold-ac-chip slant-r flex shrink-0 items-center gap-1.5 sm:gap-2 pl-2 pr-3 sm:pr-5 py-1 bg-black/70 border-b-2 border-gold ${hit ? "anim-hit" : ""}`}>
               <Coin size={26} />
@@ -62,10 +71,28 @@ function Hud({ g }: { g: Game }) {
 
 function Shell() {
   const g = useGame();
-  const [screen] = useState<Screen>(() => new URLSearchParams(location.search).get("screen") === "account" ? "account" : "missions");
+  const [screen, setScreen] = useState<Screen>(() => new URLSearchParams(location.search).get("screen") === "account" ? "account" : "missions");
   const [tab, setTab] = useState<Tab>(() => new URLSearchParams(location.search).get("tab") === "mastery" ? "mastery" : "ops");
   const [wipe, setWipe] = useState<{ n: number; label: string }>({ n: 0, label: "" });
   const busy = useRef(false);
+  const swipeStart = useRef<{id:number;x:number;y:number;at:number}|null>(null);
+  const swallowSwipeClick = useRef(0);
+  const [showSwipeCoach, setShowSwipeCoach] = useState(false);
+  const sectionIndex = screen === "account" ? 2 : tab === "mastery" ? 1 : 0;
+  const SWIPE_HINT_KEY = "apex.gold.sections.swipe.v2";
+  useEffect(() => {
+    if (!g.ready) return;
+    let firstEntry = true;
+    try {
+      firstEntry = localStorage.getItem(SWIPE_HINT_KEY) !== "seen";
+      if (firstEntry) localStorage.setItem(SWIPE_HINT_KEY, "seen");
+    } catch { /* Storage denied: show the lesson but never block navigation. */ }
+    if (firstEntry) setShowSwipeCoach(true);
+    // Always register the dismissal timer: React StrictMode re-runs effects
+    // after their cleanup, even when the persisted first-visit flag is set.
+    const timer = window.setTimeout(() => setShowSwipeCoach(false), 6200);
+    return () => window.clearTimeout(timer);
+  }, [g.ready]);
 
   const run = (label: string, fn: () => void) => {
     if (busy.current) return;
@@ -77,7 +104,51 @@ function Shell() {
     }, 400);
     setTimeout(() => (busy.current = false), 850);
   };
-  const goTab = (t: Tab) => t !== tab && run(tr(g.lang, t === "ops" ? "contracts" : "mastery"), () => setTab(t));
+  const goSection = (index: number) => {
+    if (index < 0 || index > 4 || index === sectionIndex || busy.current) return;
+    if (index > 2) {
+      setShowSwipeCoach(false);
+      busy.current = true;
+      try { (window.parent as any).__APEX_GOLD_BRIDGE__?.navigateSection?.(index); }
+      finally { window.setTimeout(() => { busy.current = false; }, 850); }
+      return;
+    }
+    const nextScreen: Screen = index === 2 ? "account" : "missions";
+    const nextTab: Tab = index === 1 ? "mastery" : "ops";
+    const label = index === 2 ? tr(g.lang, "account.title") : tr(g.lang, index === 1 ? "mastery" : "contracts");
+    setShowSwipeCoach(false);
+    run(label, () => { setScreen(nextScreen); setTab(nextTab); });
+  };
+  const goTab = (t: Tab) => t !== tab && goSection(t === "ops" ? 0 : 1);
+  // A horizontal swipe changes the Gold section; native vertical scrolling,
+  // tappable contract cards, modal sheets, and editable account fields remain intact.
+  const onSwipeDown = (e: ReactPointerEvent<HTMLElement>) => {
+    if (!e.isPrimary || (e.pointerType !== "touch" && e.pointerType !== "pen" && e.pointerType !== "mouse")) return;
+    if (document.querySelector(".sheet,[role='dialog']")) return;
+    if (e.pointerType === "mouse" && (e.button !== 0 || (e.target as HTMLElement)?.closest("button,a,[role='button']"))) return;
+    if ((e.target as HTMLElement)?.closest("input,textarea,select,[contenteditable],.sheet,[role='dialog'],[data-gold-swipe-ignore],.overflow-x-auto")) return;
+    swipeStart.current = {id:e.pointerId,x:e.clientX,y:e.clientY,at:performance.now()};
+  };
+  const onSwipeEnd = (e: ReactPointerEvent<HTMLElement>) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start || e.pointerId !== start.id) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.45 || performance.now() - start.at > 1400) return;
+    swallowSwipeClick.current = performance.now();
+    goSection(sectionIndex + (dx < 0 ? 1 : -1));
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.altKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+      if ((e.target as HTMLElement)?.closest("input,textarea,select,[contenteditable],.sheet,[role='dialog']")) return;
+      if (document.querySelector(".sheet")) return;
+      e.preventDefault();
+      goSection(sectionIndex + (e.key === "ArrowRight" ? 1 : -1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sectionIndex, g.lang]);
 
   useEffect(() => {
     document.documentElement.lang = g.lang === "vie" ? "vi" : "en";
@@ -92,6 +163,17 @@ function Shell() {
     window.addEventListener('keydown',onEscape);
     return()=>window.removeEventListener('keydown',onEscape);
   },[]);
+  useEffect(() => {
+    const onSelect = (event: MessageEvent) => {
+      if (event.source !== window.parent || event.origin !== location.origin) return;
+      if (event.data?.type !== "APEX_GOLD_SECTION_SELECT") return;
+      const index = Number(event.data?.index);
+      if (index >= 0 && index <= 2) goSection(index);
+    };
+    window.addEventListener("message", onSelect);
+    return () => window.removeEventListener("message", onSelect);
+  }, [sectionIndex, g.lang]);
+
   const variant: StageVariant = screen === "account" ? "account" : tab === "mastery" ? "mastery" : "missions";
   const ready = MISSIONS.filter((m) => missionStatus(g.s, m) === "ready").length;
   const done = ACHIEVEMENTS.filter(isDone).length;
@@ -116,7 +198,10 @@ function Shell() {
       <Stage variant={variant} />
       <Hud g={g} />
 
-      <main className="max-w-[1280px] mx-auto min-w-0 px-4 sm:px-8 pt-24 pb-20">
+      <main className="gold-swipe-surface max-w-[1280px] mx-auto min-w-0 px-4 sm:px-8 pt-24 pb-20"
+        onPointerDownCapture={onSwipeDown} onPointerUpCapture={onSwipeEnd}
+        onPointerCancelCapture={() => { swipeStart.current = null; }}
+        onClickCapture={(e) => { if (performance.now() - swallowSwipeClick.current < 450) { e.preventDefault(); e.stopPropagation(); swallowSwipeClick.current = 0; } }}>
         <div key={screen + tab} className="anim-fade-up">
           {screen === "missions" ? (
             <>
@@ -146,6 +231,29 @@ function Shell() {
         </div>
       </main>
 
+      {showSwipeCoach && (
+        <div className="gold-swipe-coach" role="status" aria-live="polite" data-testid="gold-swipe-coach">
+          <div className="gold-swipe-coach-copy">
+            <span className="gold-swipe-coach-kicker">{g.lang === "vie" ? "MẸO ĐIỀU HƯỚNG" : "NAVIGATION TIP"}</span>
+            <strong>{g.lang === "vie" ? "VUỐT TRÁI / PHẢI" : "SWIPE LEFT / RIGHT"}</strong>
+            <small>{g.lang === "vie" ? "NHIỆM VỤ · TINH THÔNG · TÀI KHOẢN · MAY MẮN · KHO HỒ SƠ" : "MISSIONS · MASTERY · ACCOUNT · LUCKY DRAW · ARCHIVE"}</small>
+          </div>
+          <div className="gold-swipe-coach-track" aria-hidden="true">
+            <span className="gold-swipe-coach-arrow">‹</span>
+            <svg className="gold-swipe-coach-hand" viewBox="0 0 56 68" width="56" height="68" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 30v-6a4 4 0 018 0V11a4 4 0 018 0v17-9a4 4 0 018 0v12-7a4 4 0 018 0v19c0 8-4 14-12 17l-10 3-11-9L5 42a5 5 0 017-6l8 6V30" fill="#FFE5AE" stroke="#78380F" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+              <path d="M23 27v13m8-13v13m8-10v10" stroke="#AA6F3F" strokeWidth="2" strokeLinecap="round" />
+              <path d="M20 43l-5-3" stroke="#AA6F3F" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span className="gold-swipe-coach-arrow">›</span>
+          </div>
+          <button type="button" className="gold-swipe-coach-dismiss" onClick={() => setShowSwipeCoach(false)}
+            aria-label={g.lang === "vie" ? "Đóng hướng dẫn vuốt" : "Dismiss swipe tutorial"}>×</button>
+        </div>
+      )}
+      <div className="gold-section-position" aria-label={g.lang === "vie" ? "Vị trí mục hiện tại" : "Current section"} aria-live="off">
+        {[0,1,2,3,4].map((i) => <span key={i} className={i === sectionIndex ? "is-current" : ""} aria-current={i === sectionIndex ? "step" : undefined} />)}
+      </div>
       {wipe.n > 0 && (
         <div key={wipe.n} className="fixed inset-0 z-[80] pointer-events-none overflow-hidden">
           <div className="absolute inset-y-0 -left-[20%] w-[140%] grid place-items-center" style={{ animation: "wipe .85s cubic-bezier(.7,0,.3,1) both", background: "linear-gradient(100deg,#ff5a0a,#ffb21f 50%,#ff5a0a)" }}>

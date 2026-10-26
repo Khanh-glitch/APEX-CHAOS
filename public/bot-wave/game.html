@@ -7427,9 +7427,135 @@ engine.basicAttack=function(){
 };
 
 // Capture true CPU costs; never drop sprites, particles, resolution or frames.
-const PERF={samples:0,lastMs:0,maxMs:0,overBudget:0,avgMs:0};
+// Gold refraction copies the ENTIRE rendered scene before drawing small
+// shock/heat regions. Its full-size CPU/GPU readback can stall input by
+// hundreds of ms. Copy only the actual source sampling footprint at native
+// pixel density, with an 8px filtering gutter; all original optical passes,
+// lens strengths, sampling, blur, heat and effects remain untouched.
+const REFRACTION_COPY={partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pixelsAvoided:0};
+function installPartialRefraction(goldPost,REFRACTION_COPY){
+const originalGoldDistort=goldPost.distort.bind(goldPost);
+const originalGoldCopy=goldPost.cpctx.drawImage.bind(goldPost.cpctx);
+let refractionRegions=null;
+function regionUnion(rects){
+ for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;){
+  const a=rects[i],b=rects[j];
+  if(a.x<=b.x+b.w+2&&b.x<=a.x+a.w+2&&a.y<=b.y+b.h+2&&b.y<=a.y+a.h+2){
+   const x=Math.min(a.x,b.x),y=Math.min(a.y,b.y);
+   a.w=Math.max(a.x+a.w,b.x+b.w)-x;a.h=Math.max(a.y+a.h,b.y+b.h)-y;
+   a.x=x;a.y=y;rects.splice(j,1);i=-1;break;
+  }else j++;
+ }
+ return rects;
+}
+goldPost.distort=function(w,h,dpr,o){
+ const pw=this.scene.width,ph=this.scene.height,boxes=[];
+ const add=(left,top,right,bottom)=>{
+  const x=Math.max(0,Math.floor((left-8)*dpr)),y=Math.max(0,Math.floor((top-8)*dpr));
+  const rx=Math.min(pw,Math.ceil((right+8)*dpr)),by=Math.min(ph,Math.ceil((bottom+8)*dpr));
+  if(rx>x&&by>y)boxes.push({x,y,w:rx-x,h:by-y});
+ };
+ // Keep the exact Gold admission predicates and top-five/top-fourteen
+ // ordering, so even highly overlapping waves retain identical content.
+ for(const sh of (o.shocks||[]).filter(s=>s.strength>.002&&s.x+s.r>-40&&s.x-s.r<w+40&&s.y+s.r>-40&&s.y-s.r<h+40)
+   .sort((a,b)=>b.strength-a.strength).slice(0,5)){
+  const r=Math.max(1,sh.r+sh.width*.6),ry=r*Math.max(0,sh.squash||1);
+  add(sh.x-r,sh.y-ry,sh.x+r,sh.y+ry);
+ }
+ for(const hr of (o.heat||[]).filter(q=>q.heat>.22&&q.x+q.w>0&&q.x<w&&q.y+q.h>0&&q.y-q.h<h)
+   .sort((a,b)=>b.heat-a.heat).slice(0,14)){
+  add(hr.x,hr.y-hr.h*.9,hr.x+hr.w,hr.y+hr.h*.1);
+ }
+ regionUnion(boxes);
+ const footprint=boxes.reduce((sum,r)=>sum+r.w*r.h,0);
+ // Full frame may be cheaper when regions genuinely occupy most pixels.
+ refractionRegions=boxes.length&&footprint<pw*ph*.78?boxes:null;
+ try{return originalGoldDistort(w,h,dpr,o);}
+ finally{refractionRegions=null;}
+};
+goldPost.cpctx.drawImage=function(source,...args){
+ if(source===goldPost.scene&&args.length===2&&args[0]===0&&args[1]===0&&refractionRegions){
+  let copied=0;
+  for(const r of refractionRegions){
+   originalGoldCopy(source,r.x,r.y,r.w,r.h,r.x,r.y,r.w,r.h);
+   copied+=r.w*r.h;
+  }
+  REFRACTION_COPY.partialFrames++;REFRACTION_COPY.regions+=refractionRegions.length;
+  REFRACTION_COPY.pixelsCopied+=copied;REFRACTION_COPY.pixelsAvoided+=source.width*source.height-copied;
+  return;
+ }
+ if(source===goldPost.scene&&args.length===2)REFRACTION_COPY.fullFrames++;
+ return originalGoldCopy(source,...args);
+};
+}
+installPartialRefraction(engine.post,REFRACTION_COPY);
+window.APEX_WAVE_REFRACTION_COPY=Object.freeze({
+ snapshot:()=>({...REFRACTION_COPY}),
+ // For Chrome-only deterministic parity proof on isolated Post instances.
+ installForTest:(post)=>installPartialRefraction(post,{partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pixelsAvoided:0})
+});
+
+// Observe full-frame, render and post-processing costs independently. The
+// Gold renderer, texture sizes, bloom chain and effects remain byte-identical.
+const PERF={samples:0,lastMs:0,maxMs:0,overBudget:0,avgMs:0,
+ renderSamples:0,lastRenderMs:0,maxRenderMs:0,avgRenderMs:0,
+ postSamples:0,lastPostMs:0,maxPostMs:0,avgPostMs:0,
+ lastFrameGapMs:0,lastInputQueueMs:0,longTasks:0,longTaskMaxMs:0};
+const perfHistory=Object.fromEntries(['update','render','post','frame','input']
+ .map(key=>[key,{data:new Float32Array(240),count:0}]));
+function recordPerfCost(key,value){
+ if(!Number.isFinite(value)||value<0)return;
+ const h=perfHistory[key];h.data[h.count%h.data.length]=value;h.count++;
+}
+function perfPercentile(key,p=.95){
+ const h=perfHistory[key],n=Math.min(h.count,h.data.length);
+ if(!n)return 0;
+ const ordered=Array.from(h.data.subarray(0,n)).sort((a,b)=>a-b);
+ return ordered[Math.min(n-1,Math.floor((n-1)*p))];
+}
+let lastRenderStart=0;
+const nativeRender=engine.render.bind(engine);
+const nativePostEnd=engine.post.end.bind(engine.post);
+engine.post.end=function(...args){
+ const started=performance.now();
+ try{return nativePostEnd(...args);}
+ finally{
+  const elapsed=performance.now()-started;
+  PERF.lastPostMs=elapsed;PERF.postSamples++;PERF.maxPostMs=Math.max(PERF.maxPostMs,elapsed);
+  PERF.avgPostMs+=(elapsed-PERF.avgPostMs)/Math.min(180,PERF.postSamples);
+  recordPerfCost('post',elapsed);
+ }
+};
+engine.render=function(){
+ const started=performance.now();
+ if(lastRenderStart&&!this.paused){
+  PERF.lastFrameGapMs=started-lastRenderStart;
+  recordPerfCost('frame',PERF.lastFrameGapMs);
+ }
+ lastRenderStart=started;
+ try{return nativeRender();}
+ finally{
+  const elapsed=performance.now()-started;
+  PERF.lastRenderMs=elapsed;PERF.renderSamples++;PERF.maxRenderMs=Math.max(PERF.maxRenderMs,elapsed);
+  PERF.avgRenderMs+=(elapsed-PERF.avgRenderMs)/Math.min(180,PERF.renderSamples);
+  recordPerfCost('render',elapsed);
+ }
+};
+try{
+ const observer=new PerformanceObserver(list=>{
+  for(const task of list.getEntries()){
+   PERF.longTasks++;PERF.longTaskMaxMs=Math.max(PERF.longTaskMaxMs,task.duration);
+  }
+ });
+ observer.observe({entryTypes:['longtask']});
+ window.addEventListener('pagehide',()=>observer.disconnect(),{once:true});
+}catch(_){/* Long Task API is optional, never a gameplay dependency. */}
 window.APEX_WAVE_PERF=Object.freeze({snapshot:()=>({
- ...PERF,projectiles:window.projectiles?.length||0,
+ ...PERF,updateP95Ms:perfPercentile('update'),renderP95Ms:perfPercentile('render'),
+ postP95Ms:perfPercentile('post'),frameGapP95Ms:perfPercentile('frame'),
+ frameGapP99Ms:perfPercentile('frame',.99),inputQueueP95Ms:perfPercentile('input'),
+ canvasPixels:engine.canvas.width*engine.canvas.height,renderDpr:engine.dpr,
+ projectiles:window.projectiles?.length||0,
  goldParticles:engine.particles.length,livingBots:engine.enemies.filter(e=>!e.dead).length
 })});
 const nativeUpdate=engine.update.bind(engine);
@@ -7479,9 +7605,36 @@ engine.update=function(dt){
  PERF.avgMs+=(PERF.lastMs-PERF.avgMs)/Math.min(180,PERF.samples);
  PERF.maxMs=Math.max(PERF.maxMs,PERF.lastMs);
  if(PERF.lastMs>16.67)PERF.overBudget++;
+ recordPerfCost('update',PERF.lastMs);
 };
+// Gold intentionally clamps a single RAF simulation delta to 50ms. On a
+// long rendering frame (e.g. 100-160ms) that made WASD/joystick movement,
+// cooldowns and the world clock run at half or one-third real speed.
+// Restore the elapsed time with bounded native Gold substeps; render ONCE,
+// preserve Gold collision/damage/AI integration and every visual effect.
+// No substeps are accumulated through hidden-tab or long resume stalls.
+const waveSingleStep=engine.update.bind(engine);
+let lastWaveStepAt=0;
+const WAVE_CATCHUP={extraSteps:0,recoveredSeconds:0,cappedFrameGaps:0};
+engine.update=function(dt){
+ const stamp=performance.now(),wallSeconds=lastWaveStepAt?(stamp-lastWaveStepAt)/1000:dt;
+ lastWaveStepAt=stamp;
+ waveSingleStep(dt);
+ if(this.paused||document.hidden||!Number.isFinite(wallSeconds)||wallSeconds>.36)return;
+ let debt=Math.min(.18,Math.max(dt,wallSeconds))-dt;
+ if(wallSeconds>.18)WAVE_CATCHUP.cappedFrameGaps++;
+ for(let i=0;i<4&&debt>.002&&!this.paused;i++){
+  const step=Math.min(.05,debt);
+  waveSingleStep(step);
+  debt-=step;WAVE_CATCHUP.extraSteps++;WAVE_CATCHUP.recoveredSeconds+=step;
+ }
+};
+window.APEX_WAVE_CATCHUP=Object.freeze({snapshot:()=>({...WAVE_CATCHUP})});
 const nativeOnKeyDown=engine.onKeyDown;
 engine.onKeyDown=function(e){
+ // Event dispatch lag isolates main-thread starvation from movement rules.
+ const queueDelay=performance.now()-e.timeStamp;
+ if(queueDelay>=0&&queueDelay<10000){PERF.lastInputQueueMs=queueDelay;recordPerfCost('input',queueDelay);}
  if(e.code.startsWith('Digit')){e.preventDefault();return;}
  if(['KeyJ','KeyK','KeyL','KeyU','KeyI'].includes(e.code)){
   e.preventDefault();if(!e.repeat)act(e.code.slice(3),true);

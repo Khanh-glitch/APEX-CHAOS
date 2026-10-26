@@ -1,0 +1,30 @@
+/* Integration-only bridge between Gold donor Lucky Draw and Field Archive.
+ * Original owner Gold typography, art, animations, wheel and HUD are untouched. */
+.apex-session-interchange{
+ position:fixed; z-index:1000005; top:calc(69px + env(safe-area-inset-top,0px));left:50%;
+ transform:translateX(-50%);display:flex;align-items:center;justify-content:space-between;
+ gap:8px;width:min(318px,calc(100vw - 22px));padding:5px 7px;box-sizing:border-box;
+ background:linear-gradient(135deg,rgba(12,10,10,.94),rgba(55,29,13,.94));
+ border:1px solid rgba(255,173,75,.7);border-radius:7px;
+ box-shadow:0 8px 28px #0009,0 0 18px #d96b2b30;
+ font:800 10px/1.2 "ApcKanit",system-ui,sans-serif;letter-spacing:.04em;color:#ffdf99;
+}
+.apex-session-interchange button{
+ display:flex;align-items:center;justify-content:center;gap:4px;
+ min-width:44px;min-height:44px;padding:0 5px;flex:1;
+ background:transparent;color:inherit;border:0;cursor:pointer;
+ font:inherit;white-space:nowrap;
+}
+.apex-session-interchange button:focus-visible{outline:2px solid #ffe3a1;outline-offset:1px}
+.apex-session-interchange button:disabled{opacity:.35;cursor:default}
+.apex-session-interchange-pos{display:flex;align-items:center;gap:4px;flex:none}
+.apex-session-interchange-pos i{width:7px;height:3px;background:#836041;display:block;border-radius:3px}
+.apex-session-interchange-pos i.on{width:13px;background:#ffbe59;box-shadow:0 0 8px #ff9c45}
+@media(max-width:480px){
+ .apex-session-interchange{top:calc(61px + env(safe-area-inset-top,0px));width:min(274px,calc(100vw - 16px));gap:4px;padding:3px 5px}
+ .apex-session-interchange button{font-size:9px}
+}
+@media(max-height:430px){
+ .apex-session-interchange{top:calc(52px + env(safe-area-inset-top,0px));width:min(250px,calc(100vw - 14px))}
+ .apex-session-interchange button{min-height:38px}
+}

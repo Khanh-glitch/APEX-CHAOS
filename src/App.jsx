@@ -25,6 +25,7 @@ import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
 import GoldMissionAccountHost from './ui/GoldMissionAccountHost.jsx';
+import ProductSessionNavigator from './ui/ProductSessionNavigator.jsx';
 import FirstPlayGuide from './ui/FirstPlayGuide.jsx';
 import RewardToast from './ui/RewardToast.jsx';
 import AchievementToast from './ui/AchievementToast.jsx';
@@ -501,11 +502,11 @@ export default function App() {
           if(!doc?.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
           if(!doc.getElementById('bw-v2-styles')){
             const css=doc.createElement('link');css.rel='stylesheet';css.id='bw-v2-styles';
-            css.href=apexAppUrl('/game/bot-wave/botWavePresentationV2.css?v=20261019-botwave-hud-r17b');doc.head.append(css);
+            css.href=apexAppUrl('/game/bot-wave/botWavePresentationV2.css?v=20261026-botwave-lossless-perf-r1');doc.head.append(css);
           }
           if(!doc.getElementById('bw-v2-script')){
             const script=doc.createElement('script');script.id='bw-v2-script';
-            script.src=apexAppUrl('/game/bot-wave/botWavePresentationV2.js?v=20261019-botwave-hud-r17b');doc.head.append(script);
+            script.src=apexAppUrl('/game/bot-wave/botWavePresentationV2.js?v=20261026-botwave-lossless-perf-r1');doc.head.append(script);
           }
           const win=frame.contentWindow;
           if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&
@@ -1093,6 +1094,7 @@ export default function App() {
     <>
     <CosmeticLocker />
     <GoldMissionAccountHost />
+    <ProductSessionNavigator />
     <FirstPlayGuide />
     <RewardToast />
     <AchievementToast />
