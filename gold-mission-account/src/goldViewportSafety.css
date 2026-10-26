@@ -23,7 +23,6 @@ html[lang='vi'] body { font-family: var(--font-body); }
 #root main button { min-width: 0; overflow-wrap: anywhere; }
 #root .gold-player-id { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-all; }
 @media (max-width: 639px) {
-  #root main .tracking-\\[\\.5em\\], #root main .tracking-\\[\\.4em\\], #root main .tracking-\\[\\.35em\\] { letter-spacing: 0.15em; }
   #root main [role='tablist'] { flex-wrap: wrap; max-width: 100%; }
   #root main .cut-sm, #root main .cut, #root main .cut-lg { max-width: 100%; }
   #root main button { white-space: normal; }

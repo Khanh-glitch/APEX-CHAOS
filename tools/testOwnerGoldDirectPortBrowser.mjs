@@ -40,8 +40,8 @@ try {
         overflow:document.documentElement.scrollWidth>innerWidth+3,
       }));
       assert.equal(content.title,'MISSIONS');
-      assert.equal(await frame.locator('nav').count(),0,'Gold must not include Account/Missions toggle navigation');
-      assert.equal(await frame.locator('header img[alt="APEX CHAOS"]').count(),1,'Home wordmark missing');
+      assert.equal(await frame.evaluate(()=>document.querySelectorAll('nav').length),0,'Gold must not include Account/Missions toggle navigation');
+      assert.equal(await frame.evaluate(()=>document.querySelectorAll('header img[alt="APEX CHAOS"]').length),1,'Home wordmark missing');
       const fitHeading = async (goldFrame) => goldFrame.evaluate(async () => {
         await document.fonts.ready;
         const title = document.querySelector('main h1');
