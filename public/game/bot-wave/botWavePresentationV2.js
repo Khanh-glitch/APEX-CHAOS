@@ -968,21 +968,36 @@ function install(){
   ctx.fillStyle='rgba(255,231,194,.88)';ctx.font='600 9px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('N',cx,11);ctx.fillText('S',cx,size-11);ctx.fillText('W',11,cy);ctx.fillText('E',size-11,cy);
  };
+ let spatialGeometry=null,spatialGeometryAt=0;
  const updateSpatial=()=>{
   const pilot=window.BOXE_WAVE_PILOT,lab=window.handLab,s=pilot?.state||{},player=lab?.player;
   if(!pilot||!lab||!player){
    for(const marker of spatialMarkers)marker.style.opacity='0';
    peripheral.style.opacity='0';return;
   }
-  const width=spatial.clientWidth||window.innerWidth||lab.w||960,height=spatial.clientHeight||window.innerHeight||lab.h||540;
-  const frame=refreshScreenFrame(spatial),frameRight=frame.left+(frame.width||width),frameBottom=frame.top+(frame.height||height);
-  const layerRect=spatial.getBoundingClientRect?.(),panelRects=[];
-  if(layerRect)for(const el of [hero,center,threat,move,skill,bossPanel,...(announce.classList.contains('is-show')?[announce]:[])]){
-   const rect=el?.getBoundingClientRect?.();
-   if(rect&&rect.width>0&&rect.height>0)panelRects.push({
-    left:rect.left-layerRect.left-7,top:rect.top-layerRect.top-7,
-    right:rect.right-layerRect.left+7,bottom:rect.bottom-layerRect.top+7});
+  // The six HUD instrument rectangles and canvas transform are static
+  // between responsive layout/announcement changes. Reading every rect at
+  // 30 Hz forced repeated full-layout synchronization after DOM HUD writes.
+  // Cache geometry only; positions, minimap, VFX and all particles still
+  // draw on their original cadence and at original pixel resolution.
+  const stamp=performance.now(),width=window.innerWidth||lab.w||960,height=window.innerHeight||lab.h||540;
+  const announcing=announce.classList.contains('is-show');
+  if(!spatialGeometry || stamp-spatialGeometryAt>280 ||
+     spatialGeometry.width!==width || spatialGeometry.height!==height ||
+     spatialGeometry.announcing!==announcing){
+   const frame=refreshScreenFrame(spatial);
+   const layerRect=spatial.getBoundingClientRect?.(),panelRects=[];
+   if(layerRect)for(const el of [hero,center,threat,move,skill,bossPanel,...(announcing?[announce]:[])]){
+    const rect=el?.getBoundingClientRect?.();
+    if(rect&&rect.width>0&&rect.height>0)panelRects.push({
+     left:rect.left-layerRect.left-7,top:rect.top-layerRect.top-7,
+     right:rect.right-layerRect.left+7,bottom:rect.bottom-layerRect.top+7});
+   }
+   spatialGeometry={frame,panelRects,width,height,announcing};
+   spatialGeometryAt=stamp;
   }
+  const {frame,panelRects}=spatialGeometry;
+  const frameRight=frame.left+(frame.width||width),frameBottom=frame.top+(frame.height||height);
   const pointInPanel=point=>panelRects.some(rect=>point.x>=rect.left&&point.x<=rect.right&&point.y>=rect.top&&point.y<=rect.bottom);
   const avoidPanels=point=>{
    const result={x:point.x,y:point.y};
