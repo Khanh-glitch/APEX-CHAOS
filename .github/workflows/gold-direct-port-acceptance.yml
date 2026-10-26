@@ -5,11 +5,15 @@ on:
     paths:
       - 'gold-mission-account/**'
       - 'src/ui/GoldMissionAccountHost.jsx'
+      - 'src/ui/ProductSessionNavigator.jsx'
+      - 'src/ui/productSessionNavigation.css'
+      - 'src/game/cosmetics/FieldArchiveC03.jsx'
       - 'src/App.jsx'
       - 'tools/buildGoldMissionAccount.mjs'
       - 'tools/verifyGoldSourceParity.mjs'
       - 'tools/testOwnerGoldDirectPortBrowser.mjs'
       - 'tools/testGoldSwipeNavigationBrowser.mjs'
+      - 'tools/testSessionFiveWayBrowser.mjs'
       - '.github/workflows/gold-direct-port-acceptance.yml'
   workflow_dispatch:
 
@@ -61,6 +65,7 @@ jobs:
           done
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testOwnerGoldDirectPortBrowser.mjs
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testGoldSwipeNavigationBrowser.mjs
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testSessionFiveWayBrowser.mjs
       - name: Upload owner Gold screenshots and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,6 +74,7 @@ jobs:
           path: |
             reports/owner-gold-evidence/
             reports/owner-gold-swipe-evidence/
+            reports/five-session-navigation/
             /tmp/apex-gold-preview.log
           if-no-files-found: warn
           retention-days: 14
