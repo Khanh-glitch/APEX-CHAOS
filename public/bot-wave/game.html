@@ -7427,9 +7427,67 @@ engine.basicAttack=function(){
 };
 
 // Capture true CPU costs; never drop sprites, particles, resolution or frames.
-const PERF={samples:0,lastMs:0,maxMs:0,overBudget:0,avgMs:0};
+// Observe full-frame, render and post-processing costs independently. The
+// Gold renderer, texture sizes, bloom chain and effects remain byte-identical.
+const PERF={samples:0,lastMs:0,maxMs:0,overBudget:0,avgMs:0,
+ renderSamples:0,lastRenderMs:0,maxRenderMs:0,avgRenderMs:0,
+ postSamples:0,lastPostMs:0,maxPostMs:0,avgPostMs:0,
+ lastFrameGapMs:0,lastInputQueueMs:0,longTasks:0,longTaskMaxMs:0};
+const perfHistory=Object.fromEntries(['update','render','post','frame','input']
+ .map(key=>[key,{data:new Float32Array(240),count:0}]));
+function recordPerfCost(key,value){
+ if(!Number.isFinite(value)||value<0)return;
+ const h=perfHistory[key];h.data[h.count%h.data.length]=value;h.count++;
+}
+function perfPercentile(key,p=.95){
+ const h=perfHistory[key],n=Math.min(h.count,h.data.length);
+ if(!n)return 0;
+ const ordered=Array.from(h.data.subarray(0,n)).sort((a,b)=>a-b);
+ return ordered[Math.min(n-1,Math.floor((n-1)*p))];
+}
+let lastRenderStart=0;
+const nativeRender=engine.render.bind(engine);
+const nativePostEnd=engine.post.end.bind(engine.post);
+engine.post.end=function(...args){
+ const started=performance.now();
+ try{return nativePostEnd(...args);}
+ finally{
+  const elapsed=performance.now()-started;
+  PERF.lastPostMs=elapsed;PERF.postSamples++;PERF.maxPostMs=Math.max(PERF.maxPostMs,elapsed);
+  PERF.avgPostMs+=(elapsed-PERF.avgPostMs)/Math.min(180,PERF.postSamples);
+  recordPerfCost('post',elapsed);
+ }
+};
+engine.render=function(){
+ const started=performance.now();
+ if(lastRenderStart&&!this.paused){
+  PERF.lastFrameGapMs=started-lastRenderStart;
+  recordPerfCost('frame',PERF.lastFrameGapMs);
+ }
+ lastRenderStart=started;
+ try{return nativeRender();}
+ finally{
+  const elapsed=performance.now()-started;
+  PERF.lastRenderMs=elapsed;PERF.renderSamples++;PERF.maxRenderMs=Math.max(PERF.maxRenderMs,elapsed);
+  PERF.avgRenderMs+=(elapsed-PERF.avgRenderMs)/Math.min(180,PERF.renderSamples);
+  recordPerfCost('render',elapsed);
+ }
+};
+try{
+ const observer=new PerformanceObserver(list=>{
+  for(const task of list.getEntries()){
+   PERF.longTasks++;PERF.longTaskMaxMs=Math.max(PERF.longTaskMaxMs,task.duration);
+  }
+ });
+ observer.observe({entryTypes:['longtask']});
+ window.addEventListener('pagehide',()=>observer.disconnect(),{once:true});
+}catch(_){/* Long Task API is optional, never a gameplay dependency. */}
 window.APEX_WAVE_PERF=Object.freeze({snapshot:()=>({
- ...PERF,projectiles:window.projectiles?.length||0,
+ ...PERF,updateP95Ms:perfPercentile('update'),renderP95Ms:perfPercentile('render'),
+ postP95Ms:perfPercentile('post'),frameGapP95Ms:perfPercentile('frame'),
+ frameGapP99Ms:perfPercentile('frame',.99),inputQueueP95Ms:perfPercentile('input'),
+ canvasPixels:engine.canvas.width*engine.canvas.height,renderDpr:engine.dpr,
+ projectiles:window.projectiles?.length||0,
  goldParticles:engine.particles.length,livingBots:engine.enemies.filter(e=>!e.dead).length
 })});
 const nativeUpdate=engine.update.bind(engine);
@@ -7479,9 +7537,13 @@ engine.update=function(dt){
  PERF.avgMs+=(PERF.lastMs-PERF.avgMs)/Math.min(180,PERF.samples);
  PERF.maxMs=Math.max(PERF.maxMs,PERF.lastMs);
  if(PERF.lastMs>16.67)PERF.overBudget++;
+ recordPerfCost('update',PERF.lastMs);
 };
 const nativeOnKeyDown=engine.onKeyDown;
 engine.onKeyDown=function(e){
+ // Event dispatch lag isolates main-thread starvation from movement rules.
+ const queueDelay=performance.now()-e.timeStamp;
+ if(queueDelay>=0&&queueDelay<10000){PERF.lastInputQueueMs=queueDelay;recordPerfCost('input',queueDelay);}
  if(e.code.startsWith('Digit')){e.preventDefault();return;}
  if(['KeyJ','KeyK','KeyL','KeyU','KeyI'].includes(e.code)){
   e.preventDefault();if(!e.repeat)act(e.code.slice(3),true);
