@@ -7210,18 +7210,18 @@ function updateWave(rawDt){
  if(state.phase!=='combat')return;
  updateGuard(dt);
  state.aliveTime+=dt;
- // Auto target on ALL devices, not just touch. Tie-break by stable enemy ID.
- if(Math.hypot(stickDX,stickDY)>.2){for(const k of ['KeyW','KeyA','KeyS','KeyD'])engine.keys.delete(k);
-  if(stickDX>.22)engine.keys.add('KeyD');if(stickDX<-.22)engine.keys.add('KeyA');if(stickDY>.22)engine.keys.add('KeyS');if(stickDY<-.22)engine.keys.add('KeyW');}
- autoAimNow();
+ // Gold movement keys and nearest-target lock were already prepared by
+ // engine.update before entering this wave tick. Do not repeat them here.
  for(const e of engine.enemies){if(e.dead)continue;gunFire(e,dt)}
  state.spawnT-=dt;
- const nextSpawn=state.queue[0],activeCount=activeGuns();
+ let activeCount=0,pressureNow=0;
+ for(const e of engine.enemies)if(!e.dead&&e.waveGunId){activeCount++;pressureNow+=e.wavePressure||0;}
+ const nextSpawn=state.queue[0];
  if(state.spawnT<=0&&nextSpawn&&activeCount<state.softCap&&
-  (!activeCount||activePressure()+(nextSpawn.pressure||0)<=state.pressureBudget)){
+  (!activeCount||pressureNow+(nextSpawn.pressure||0)<=state.pressureBudget)){
   makeEnemy(state.queue.shift());state.spawnT=state.spawnInterval||.37}
  updateHealthPacks();
- if(!state.queue.length&&!activeGuns()&&!state.levelsPending)completeWave();
+ if(!state.queue.length&&!activeCount&&!state.levelsPending)completeWave();
  if(engine.player.hp<=0)lose();
  if(performance.now()-lastUI>90){refreshUI();lastUI=performance.now()}
 }
@@ -7585,10 +7585,25 @@ const nativeUpdate=engine.update.bind(engine);
 // radii, projectile travel and AI ranges remain in canonical Gold units.
 const BOT_WAVE_CAMERA_ZOOM=1.75;
 engine.botWaveCameraZoom=BOT_WAVE_CAMERA_ZOOM;
+// Capture physical keys separately so releasing a virtual stick never
+// leaves synthetic WASD stuck, nor erases a genuinely held keyboard key.
+const physicalMoveKeys=new Set(),moveCodes=['KeyW','KeyA','KeyS','KeyD'];
+window.addEventListener('keydown',e=>{if(moveCodes.includes(e.code))physicalMoveKeys.add(e.code);},true);
+window.addEventListener('keyup',e=>{if(moveCodes.includes(e.code))physicalMoveKeys.delete(e.code);},true);
+window.addEventListener('blur',()=>physicalMoveKeys.clear());
+let stickWasActive=false;
 engine.update=function(dt){
  const _start=performance.now();
- if(state.phase==='combat'&&Math.hypot(stickDX,stickDY)>.2){let k=this.keys;for(const code of ['KeyW','KeyA','KeyS','KeyD'])k.delete(code);
- if(stickDX>.22)k.add('KeyD');if(stickDX<-.22)k.add('KeyA');if(stickDY>.22)k.add('KeyS');if(stickDY<-.22)k.add('KeyW');}
+ const stickActive=state.phase==='combat'&&Math.hypot(stickDX,stickDY)>.2;
+ if(stickActive||stickWasActive){
+  const k=this.keys;
+  for(const code of moveCodes)k.delete(code);
+  if(stickActive){
+   if(stickDX>.22)k.add('KeyD');if(stickDX<-.22)k.add('KeyA');
+   if(stickDY>.22)k.add('KeyS');if(stickDY<-.22)k.add('KeyW');
+  }else for(const code of physicalMoveKeys)k.add(code);
+ }
+ stickWasActive=stickActive;
  const originalX=this.player.x,originalY=this.player.y;
  autoAimNow();
  this.camZoom=(this.camZoom||.5)/BOT_WAVE_CAMERA_ZOOM;
@@ -7599,7 +7614,7 @@ engine.update=function(dt){
  if(state.phase==='combat')ARMORY.update(Math.min(.05,dt));
  if(state.stickyEngage)advanceStickyJ();
  if(state.phase==='combat'){
-  autoAimNow();
+  // Aim is resolved once before Gold's update, and wave update runs later.
   // Passively enter the exact native Gold heat presentation at fury=100,
   // then shorten 8s Gold lab tuning to canonical BOXE 3s, x2 recovery.
   if(state.passiveReady&&!state.empowered&&this.player.empoweredT>0){
