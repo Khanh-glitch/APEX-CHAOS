@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
+const game=fs.readFileSync('public/bot-wave/game.html','utf8');
+const art=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.js','utf8');
+const css=fs.readFileSync('public/game/bot-wave/botWavePresentationV2.css','utf8');
+const app=fs.readFileSync('src/App.jsx','utf8');
+const immersive=fs.readFileSync('src/game/botWave/mobileImmersive.js','utf8');
+for(const p of ['public/game/bot-wave/botWavePresentationV2.js','src/game/botWave/mobileImmersive.js'])
+  execFileSync(process.execPath,['--check',p],{stdio:'pipe'});
+assert.match(game,/APEX_BOT_WAVE_FLOATING_STICK=Object.freeze/);
+assert.match(game,/setVector\(dx,dy\)/);
+assert.match(art,/originX=e.clientX;originY=e.clientY/);
+assert.match(art,/goldStick\.setVector\(dx,dy\)/);
+assert.match(art,/pointercancel',reset/);
+assert.match(art,/lostpointercapture',reset/);
+assert.match(art,/!doc\.getElementById\('wave-modal'\)\?\.hidden/);
+assert.match(css,/\.bw-floating-move-zone\{/);
+assert.match(css,/#wave-stick\.is-floating/);
+assert.match(app,/mobileImmersive\.request\(\)/);
+assert.match(app,/mobileImmersive\.release\(\)/);
+assert.match(immersive,/requestFullscreen/);
+assert.match(immersive,/orientation\.lock\('landscape'\)/);
+assert.match(immersive,/orientation: portrait/);
+console.log('PASS BOT WAVE mobile immersive and floating movement contracts');
