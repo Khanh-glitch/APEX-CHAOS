@@ -110,7 +110,7 @@ function MissionDetail({ m, g, onClaim }: { m: Mission; g: Game; onClaim: (ids: 
               status === "ready" ? "btn-claim shine" : "bg-white/8 text-white/45 border border-white/10"
             }`}
           >
-            {status === "ready" ? tr(g.lang,"claim") : status === "claimed" ? tr(g.lang,"claimed") : `${tr(g.lang,"remaining")} ${remaining} ${tr(g.lang,m.metric === "botWon" ? "wins" : "matches")}`}
+            {status === "ready" ? tr(g.lang,"claim") : status === "claimed" ? tr(g.lang,"claimed") : g.lang === "vie" ? `${tr(g.lang,"remaining")} ${remaining} ${tr(g.lang,m.metric === "botWon" ? "wins" : "matches")}` : `${remaining} ${m.metric === "botWon" ? (remaining === 1 ? "WIN" : "WINS") : (remaining === 1 ? "MATCH" : "MATCHES")} LEFT`}
           </button>
         </div>
       </div>
