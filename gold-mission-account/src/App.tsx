@@ -117,6 +117,7 @@ function Shell() {
   // tappable contract cards, modal sheets, and editable account fields remain intact.
   const onSwipeDown = (e: ReactPointerEvent<HTMLElement>) => {
     if (!e.isPrimary || (e.pointerType !== "touch" && e.pointerType !== "pen" && e.pointerType !== "mouse")) return;
+    if (document.querySelector(".sheet,[role='dialog']")) return;
     if (e.pointerType === "mouse" && (e.button !== 0 || (e.target as HTMLElement)?.closest("button,a,[role='button']"))) return;
     if ((e.target as HTMLElement)?.closest("input,textarea,select,[contenteditable],.sheet,[role='dialog'],[data-gold-swipe-ignore],.overflow-x-auto")) return;
     swipeStart.current = {id:e.pointerId,x:e.clientX,y:e.clientY,at:performance.now()};
