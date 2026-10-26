@@ -27,6 +27,7 @@ import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
 import GoldMissionAccountHost from './ui/GoldMissionAccountHost.jsx';
 import ProductSessionNavigator from './ui/ProductSessionNavigator.jsx';
 import FirstPlayGuide from './ui/FirstPlayGuide.jsx';
+import FirstSessionWelcome from './ui/FirstSessionWelcome.jsx';
 import RewardToast from './ui/RewardToast.jsx';
 import AchievementToast from './ui/AchievementToast.jsx';
 import SkinUnlockCelebration from './ui/SkinUnlockCelebration.jsx';
@@ -1101,6 +1102,7 @@ export default function App() {
     <GoldMissionAccountHost />
     <ProductSessionNavigator />
     <FirstPlayGuide />
+    <FirstSessionWelcome ready={goldReady} />
     <RewardToast />
     <AchievementToast />
     <SkinUnlockCelebration />
