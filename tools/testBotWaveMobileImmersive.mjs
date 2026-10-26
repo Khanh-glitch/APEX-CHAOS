@@ -21,5 +21,7 @@ assert.match(app,/mobileImmersive\.request\(\)/);
 assert.match(app,/mobileImmersive\.release\(\)/);
 assert.match(immersive,/requestFullscreen/);
 assert.match(immersive,/orientation\.lock\('landscape'\)/);
-assert.match(immersive,/orientation: portrait/);
+assert.match(immersive,/orientation:\\s*portrait/);
+assert.match(immersive,/rotate\\(90deg\\)/);
+assert.doesNotMatch(immersive,/XOAY NGANG|ROTATE YOUR PHONE/);
 console.log('PASS BOT WAVE mobile immersive and floating movement contracts');
