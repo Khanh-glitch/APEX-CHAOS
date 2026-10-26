@@ -105,7 +105,7 @@ export function Account({ g }: { g: Game }) {
                     <p className="font-display font-bold text-sm tracking-[.25em] text-white/80">{t("pilot.license")}</p>
                   </div>
                   <div className="font-display font-bold tracking-[.3em] text-sm text-orange-400 border-2 border-orange-500/80 px-3 py-1 -rotate-6" style={{ boxShadow: "0 0 14px rgba(255,100,20,.35) inset" }}>
-                    GUEST
+                    {t("guest")}
                   </div>
                 </div>
 
@@ -131,7 +131,7 @@ export function Account({ g }: { g: Game }) {
                         <h2 className="font-display italic font-bold text-4xl sm:text-5xl leading-[1.05] break-all text-white" style={{ textShadow: "0 0 30px rgba(255,150,30,.35)" }}>
                           {s.name}
                         </h2>
-                        <button onClick={startEdit} aria-label=t("rename") title=t("rename") className="mt-1 shrink-0 w-10 h-10 hex bg-gold text-black grid place-items-center hover:scale-110 transition">
+                        <button onClick={startEdit} aria-label={t("rename")} title={t("rename")} className="mt-1 shrink-0 w-10 h-10 hex bg-gold text-black grid place-items-center hover:scale-110 transition">
                           <GlyphIcon name="pen" className="w-4 h-4" />
                         </button>
                       </div>
@@ -151,17 +151,17 @@ export function Account({ g }: { g: Game }) {
                               if (e.key === "Escape") setEditing(false);
                             }}
                             className="min-w-0 flex-1 cut-sm bg-black/60 border-2 border-gold/80 focus:border-white outline-none px-4 py-2.5 font-display font-bold text-2xl text-white"
-                            aria-label=t("new.name")
+                            aria-label={t("new.name")}
                           />
-                          <button onClick={commit} aria-label=t("save.name") className="w-12 cut-sm btn-claim grid place-items-center">
+                          <button onClick={commit} aria-label={t("save.name")} className="w-12 cut-sm btn-claim grid place-items-center">
                             <GlyphIcon name="check" className="w-5 h-5" />
                           </button>
-                          <button onClick={() => setEditing(false)} aria-label=t("cancel") className="w-12 cut-sm bg-white/10 hover:bg-white/20 grid place-items-center">
+                          <button onClick={() => setEditing(false)} aria-label={t("cancel")} className="w-12 cut-sm bg-white/10 hover:bg-white/20 grid place-items-center">
                             <GlyphIcon name="x" className="w-4 h-4" />
                           </button>
                         </div>
                         <div className="flex justify-between mt-1.5 text-xs">
-                          <span className={err ? "text-red-400 font-semibold" : "text-orange-100/60"}>{err || "{t("name.hint")}"}</span>
+                          <span className={err ? "text-red-400 font-semibold" : "text-orange-100/60"}>{err || t("name.hint")}</span>
                           <span className="text-white/50 tabular-nums">{draft.length}/16</span>
                         </div>
                       </div>
@@ -202,7 +202,7 @@ export function Account({ g }: { g: Game }) {
                 );
               })}
               {[0, 1].map((i) => (
-                <div key={i} className="w-[62px] h-[70px] sm:w-[72px] sm:h-[82px] hex grid place-items-center bg-white/5 text-white/25" title=t("not.owned")>
+                <div key={i} className="w-[62px] h-[70px] sm:w-[72px] sm:h-[82px] hex grid place-items-center bg-white/5 text-white/25" title={t("not.owned")}>
                   <GlyphIcon name="lock" className="w-5 h-5" />
                 </div>
               ))}
@@ -247,7 +247,7 @@ export function Account({ g }: { g: Game }) {
             </div>
 
             {/* Lucky draw */}
-            <button onClick={() => setSpin((v) => v + 720 + Math.round(Math.random() * 360))} className="text-left cut bg-black/60 backdrop-blur-md border-l-4 border-gold p-5 group" aria-label=t("wheel.demo")>
+            <button onClick={() => setSpin((v) => v + 720 + Math.round(Math.random() * 360))} className="text-left cut bg-black/60 backdrop-blur-md border-l-4 border-gold p-5 group" aria-label={t("wheel.demo")}>
               <p className="font-display text-[11px] tracking-[.3em] text-orange-200/60">{t("lucky.spins")}</p>
               <div className="flex items-center justify-between gap-3 mt-2">
                 <div className="font-display italic font-bold text-5xl leading-none text-white">{fmt(s.lucky)}</div>
@@ -272,10 +272,10 @@ export function Account({ g }: { g: Game }) {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button onClick={() => { g.saveNow(); fx.toast(t("storage.checked")); }} className="cut-sm btn-claim font-display font-bold tracking-wider text-sm px-5 py-2.5 inline-flex items-center gap-2">
-                <GlyphIcon name="disk" className="w-4 h-4" /> KIỂM TRA LƯU
+                <GlyphIcon name="disk" className="w-4 h-4" /> {t("storage.check")}
               </button>
               <button onClick={backup} className="cut-sm bg-white/10 hover:bg-white/20 transition font-display font-bold tracking-wider text-sm px-5 py-2.5 inline-flex items-center gap-2">
-                <GlyphIcon name="copy" className="w-4 h-4" /> SAO CHÉP PLAYER ID
+                <GlyphIcon name="copy" className="w-4 h-4" /> {t("player.id.copy")}
               </button>
             </div>
           </div>
@@ -298,7 +298,7 @@ export function Account({ g }: { g: Game }) {
                 }}
                 className="mt-4 w-full cut-sm break-words px-3 border border-white/15 bg-white/5 text-white/55 font-display font-bold tracking-[.2em] text-sm py-3 inline-flex items-center justify-center gap-2 hover:bg-white/10"
               >
-                <GlyphIcon name="lock" className="w-4 h-4" /> LIÊN KẾT TÀI KHOẢN ONLINE · SẮP RA MẮT
+                <GlyphIcon name="lock" className="w-4 h-4" /> {t("online.soon")}
               </button>
             </div>
           </div>
