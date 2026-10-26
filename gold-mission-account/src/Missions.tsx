@@ -92,7 +92,7 @@ function MissionDetail({ m, g, onClaim }: { m: Mission; g: Game; onClaim: (ids: 
           <EnergyBar value={progress} max={m.target} height={20} />
         </div>
 
-        <div className="relative mt-6 flex flex-wrap items-center gap-x-6 gap-y-4">
+        <div className="gold-mission-reward-actions relative mt-6 flex flex-wrap items-center gap-x-6 gap-y-4">
           <div className="flex items-center gap-3">
             <Coin size={54} spin={status !== "claimed"} />
             <div>

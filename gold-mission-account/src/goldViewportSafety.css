@@ -100,10 +100,11 @@ html[lang='vi'] #root .gold-page-heading {
  * tablet breakpoint. Wrap at word boundaries, never inside REMAINING/VIỆT. */
 #root .gold-mission-claim-button { overflow-wrap: normal; word-break: normal; white-space: normal; line-height: 1.3; }
 @media (min-width:1024px) and (max-width:1279px) {
+  #root .gold-mission-reward-actions { column-gap: 10px; }
   #root .gold-mission-claim-button {
-    flex-basis: 148px;
-    min-width: 148px;
-    padding-inline: 10px;
-    font-size: 15px;
+    flex-basis: 142px;
+    min-width: 142px;
+    padding-inline: 8px;
+    font-size: 14px;
   }
 }
