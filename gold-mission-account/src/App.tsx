@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { MISSIONS, ACHIEVEMENTS, fighterById, isDone } from "./data";
 import { missionStatus, useGame, type Game } from "./store";
-import { AnimatedNumber, Coin, GlobalDefs, GlyphIcon, Logo, Stage, type StageVariant } from "./ui";
+import { AnimatedNumber, Coin, GlobalDefs, Stage, type StageVariant } from "./ui";
+import { tr } from "./locale";
 import { FxProvider } from "./fx";
 import { Contracts } from "./Missions";
 import { Mastery } from "./Mastery";
@@ -10,7 +11,7 @@ import { Account } from "./Account";
 type Screen = "missions" | "account";
 type Tab = "ops" | "mastery";
 
-function Hud({ g, screen, go }: { g: Game; screen: Screen; go: (s: Screen) => void }) {
+function Hud({ g }: { g: Game }) {
   const [hit, setHit] = useState(false);
   const prev = useRef(g.s.ac);
   useEffect(() => {
@@ -26,30 +27,14 @@ function Hud({ g, screen, go }: { g: Game; screen: Screen; go: (s: Screen) => vo
     prev.current = g.s.ac;
   }, [g.s.ac]);
 
-  const readyCount = MISSIONS.filter((m) => missionStatus(g.s, m) === "ready").length;
   const av = fighterById(g.s.avatar);
 
-  const nav = (id: Screen, label: string) => (
-    <button
-      key={id}
-      onClick={() => go(id)}
-      aria-current={screen === id}
-      className={`relative slant font-display font-bold italic tracking-[.18em] text-sm px-8 py-2.5 transition-all ${screen === id ? "bg-gradient-to-b from-gold to-orange-500 text-black shadow-[0_0_24px_rgba(255,140,20,.6)]" : "bg-white/8 text-white/75 hover:bg-white/15 hover:text-white"}`}
-    >
-      {label}
-      {id === "missions" && readyCount > 0 && <span className="absolute top-1 right-3 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_8px_#fff]" style={{ animation: "pulse-glow 1s infinite" }} />}
-    </button>
-  );
 
   return (
     <>
       <header className="fixed top-0 inset-x-0 z-40 h-16" style={{ background: "linear-gradient(180deg,rgba(7,5,10,.95),rgba(7,5,10,.6) 70%,transparent)" }}>
         <div className="max-w-[1280px] mx-auto h-full px-4 sm:px-8 flex items-center justify-between gap-4">
-          <button aria-label="Đóng Gold và trở về APEX CHAOS" title="Trở về game" onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }} className="shrink-0 bg-transparent border-0 p-0 text-left"><Logo /></button>
-          <nav className="hidden md:flex gap-2" aria-label="Điều hướng chính">
-            {nav("missions", "MISSIONS")}
-            {nav("account", "ACCOUNT")}
-          </nav>
+          <button aria-label={tr(g.lang,"back")} title={tr(g.lang,"back")} onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }} className="shrink-0 min-w-0 bg-transparent border-0 p-0 text-left"><img className="block w-[142px] sm:w-[190px] max-h-[54px] object-contain object-left" src="./assets/gold/apex-chaos-wordmark.png" alt="APEX CHAOS" draggable={false} /></button>
           <div className="flex items-center gap-3">
             <div id="ac-chip" className={`slant-r flex items-center gap-2 pl-2 pr-5 py-1 bg-black/70 border-b-2 border-gold ${hit ? "anim-hit" : ""}`}>
               <Coin size={26} />
@@ -58,34 +43,19 @@ function Hud({ g, screen, go }: { g: Game; screen: Screen; go: (s: Screen) => vo
               </span>
               <span className="font-display text-[10px] tracking-[.2em] text-gold -ml-0.5">AC</span>
             </div>
-            <button onClick={() => go("account")} aria-label="Hồ sơ" className="hidden sm:flex items-center gap-2 group">
+            <div aria-label={tr(g.lang,"profile")} className="hidden sm:flex items-center gap-2 group">
               <div className="w-10 h-11 hex p-[2px]" style={{ background: av.color }}>
                 <div className="w-full h-full hex overflow-hidden bg-black">
                   <img src={av.img} alt="" className="w-full h-full object-cover" style={{ objectPosition: av.pos }} />
                 </div>
               </div>
-              <span className="hidden lg:block font-display font-semibold text-sm max-w-[120px] truncate group-hover:text-gold">{g.s.name}</span>
-            </button>
+              <span className="hidden lg:block font-display font-semibold text-sm max-w-[120px] truncate">{g.s.name}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-2 bg-black/90 backdrop-blur-lg border-t border-orange-500/40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Điều hướng chính">
-        {(
-          [
-            ["missions", "MISSIONS", "target"],
-            ["account", "ACCOUNT", "user"],
-          ] as const
-        ).map(([id, label, icon]) => (
-          <button key={id} onClick={() => go(id)} aria-current={screen === id} className={`relative flex flex-col items-center gap-0.5 py-2.5 font-display font-bold italic tracking-[.15em] text-xs ${screen === id ? "text-gold" : "text-white/55"}`}>
-            {screen === id && <span className="absolute top-0 inset-x-6 h-[3px] bg-gold shadow-[0_0_12px_#ffc43d]" />}
-            <GlyphIcon name={icon} className="w-6 h-6" />
-            {label}
-            {id === "missions" && readyCount > 0 && <span className="absolute top-2 right-[calc(50%-26px)] w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_8px_#ff8a2a]" />}
-          </button>
-        ))}
-      </nav>
+
     </>
   );
 }
@@ -107,9 +77,12 @@ function Shell() {
     }, 400);
     setTimeout(() => (busy.current = false), 850);
   };
-  const go = (s: Screen) => s !== screen && run(s === "account" ? "ACCOUNT" : "MISSIONS", () => setScreen(s));
-  const goTab = (t: Tab) => t !== tab && run(t === "ops" ? "CHAOS CONTRACTS" : "MASTERY", () => setTab(t));
+  const goTab = (t: Tab) => t !== tab && run(tr(g.lang, t === "ops" ? "contracts" : "mastery"), () => setTab(t));
 
+  useEffect(() => {
+    document.documentElement.lang = g.lang === "vie" ? "vi" : "en";
+    document.documentElement.dataset.apexLanguage = g.lang;
+  }, [g.lang]);
   useEffect(() => {
     const onEscape=(e:KeyboardEvent)=>{
       if(e.key==='Escape' && !document.querySelector('.sheet')){
@@ -136,36 +109,36 @@ function Shell() {
     </button>
   );
 
-  if (!g.ready) return <div role="alert" className="p-8 text-gold">Gold cần được mở từ APEX CHAOS. Dữ liệu chưa sẵn sàng.</div>;
+  if (!g.ready) return <div role="alert" className="p-8 text-gold">{tr(g.lang,"unavailable")}</div>;
   return (
     <div className="relative min-h-screen">
       <GlobalDefs />
       <Stage variant={variant} />
-      <Hud g={g} screen={screen} go={go} />
+      <Hud g={g} />
 
-      <main className="max-w-[1280px] mx-auto px-4 sm:px-8 pt-24 pb-28 md:pb-20">
+      <main className="max-w-[1280px] mx-auto min-w-0 px-4 sm:px-8 pt-24 pb-20">
         <div key={screen + tab} className="anim-fade-up">
           {screen === "missions" ? (
             <>
               <div className="flex flex-wrap items-end justify-between gap-5">
                 <div>
-                  <p className="font-display text-xs tracking-[.5em] text-amber">APEX CHAOS // NHIỆM VỤ</p>
-                  <h1 className="font-display italic font-bold text-6xl sm:text-8xl leading-[0.9] text-molten" style={{ filter: "drop-shadow(0 6px 30px rgba(255,100,10,.45))" }}>
-                    MISSIONS
+                  <p className="font-display text-xs tracking-[.5em] text-amber">{tr(g.lang,"missions.kicker")}</p>
+                  <h1 className="font-display italic font-bold text-5xl sm:text-8xl leading-[1.02] sm:leading-[0.9] break-words text-molten" style={{ filter: "drop-shadow(0 6px 30px rgba(255,100,10,.45))" }}>
+                    {tr(g.lang,"missions.title")}
                   </h1>
                 </div>
                 <div role="tablist" className="flex gap-1.5">
-                  {tabBtn("ops", "CONTRACTS", ready > 0 ? `${ready} SẴN SÀNG` : "NHẬN AC", ready > 0)}
-                  {tabBtn("mastery", "MASTERY", `${done}/${ACHIEVEMENTS.length}`)}
+                  {tabBtn("ops", tr(g.lang,"contracts"), ready > 0 ? `${ready} ${tr(g.lang,"ready.short")}` : tr(g.lang,"earn.ac"), ready > 0)}
+                  {tabBtn("mastery", tr(g.lang,"mastery"), `${done}/${ACHIEVEMENTS.length}`)}
                 </div>
               </div>
-              {tab === "ops" ? <Contracts g={g} /> : <Mastery />}
+              {tab === "ops" ? <Contracts g={g} /> : <Mastery lang={g.lang} />}
             </>
           ) : (
             <>
-              <p className="font-display text-xs tracking-[.5em] text-amber">APEX CHAOS // HỒ SƠ NGƯỜI CHƠI</p>
-              <h1 className="font-display italic font-bold text-6xl sm:text-8xl leading-[0.9] text-molten" style={{ filter: "drop-shadow(0 6px 30px rgba(255,100,10,.45))" }}>
-                ACCOUNT
+              <p className="font-display text-xs tracking-[.5em] text-amber">{tr(g.lang,"account.kicker")}</p>
+              <h1 className="font-display italic font-bold text-5xl sm:text-8xl leading-[1.02] sm:leading-[0.9] break-words text-molten" style={{ filter: "drop-shadow(0 6px 30px rgba(255,100,10,.45))" }}>
+                {tr(g.lang,"account.title")}
               </h1>
               <Account g={g} />
             </>

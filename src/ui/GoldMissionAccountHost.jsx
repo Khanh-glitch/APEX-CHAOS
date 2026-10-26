@@ -44,6 +44,7 @@ function safeSnapshot(displayHero) {
   const lang=window.APEX_I18N?.getLanguage?.() === 'vie' ? 'vie' : 'eng';
   const fighters=roster.map((id)=>{
     const [defaultName,element,color,art]=HERO_META[id] || [id,'FIGHTER','#ffc43d','newbot'];
+    const elementEnglish={CƠ_KHÍ:'MECHANICAL',HUNTER:'HUNT',CRYSTAL:'CRYSTAL',MAGNET:'MAGNETISM',ICE:'ICE',MIRROR:'REFLECTION',BOXE:'MELEE',SHURI:'TECHNIQUE'}[id] || ({'CƠ KHÍ':'MECHANICAL','SĂN ĐUỔI':'HUNT','PHA LÊ':'CRYSTAL','TỪ TRƯỜNG':'MAGNETISM','BĂNG GIÁ':'ICE','PHẢN CHIẾU':'REFLECTION','CẬN CHIẾN':'MELEE','THỦ PHÁP':'TECHNIQUE'}[element] || element);
     const resultId=RESULT_IDS[id] || id;
     const earned=mastery.earned?.[resultId] || {};
     const applicable=MASTERY_HEROES.some(h=>h.engineId===id)?applicableAchievements(resultId):[];
@@ -56,15 +57,15 @@ function safeSnapshot(displayHero) {
     const src=ownerArt?.art || ownerArt?.portrait || APPROVED_PORTRAITS[id] ||
       '/gold/assets/gold/favicon-apex-chaos.png';
     const img=/^(https?:|data:|blob:)/i.test(String(src))?String(src):apexAppUrl(src);
-    return {id,name:meta?.displayNameFor?.(id)||defaultName,element,
-      epithet: owned.has(id)?'ĐÃ SỞ HỮU':'CHƯA SỞ HỮU',color,
+    return {id,name:meta?.displayNameFor?.(id)||defaultName,element:lang==='vie'?element:elementEnglish,
+      epithet: owned.has(id)?(lang==='vie'?'ĐÃ SỞ HỮU':'OWNED'):(lang==='vie'?'CHƯA SỞ HỮU':'NOT OWNED'),color,
       img,
       pos:'50% 50%',owned:owned.has(id),resultId,
       rank:count,xp:count,xpNext:applicable.length,matches:0,wins:0,skins};
   });
   const claimed=Array.isArray(progress.claimedIds)?progress.claimedIds:[];
   const missions=catalog.map((d,i)=>({id:d.id,title:lang==='vie'?d.vie:d.eng,
-    flavor:`CONTRACT ${String(i+1).padStart(2,'0')}`,
+    flavor:`${lang==='vie'?'HỢP ĐỒNG':'CONTRACT'} ${String(i+1).padStart(2,'0')}`,
     hint:lang==='vie'?d.vie:d.eng,
     mode:/local/i.test(d.stat||'')?'LOCAL':'BOT',
     metric:d.stat,target:d.target,reward:d.ac,
@@ -78,7 +79,7 @@ function safeSnapshot(displayHero) {
       const threshold=Number(stat.target)||1;
       const current=Number.isFinite(Number(stat.current))?Math.max(0,Number(stat.current)):0;
       return {id:`${h.resultId}:${a.id}`,name:`${translateCopy(a.name,lang)} · ${h.name}`,
-        desc:a.rule?.[lang] || a.rule?.vie || '',tier:a.rarity,glyph:ICONS[a.category] || 'star',
+        desc:a.rule?.[lang] || (lang==='vie' ? a.rule?.vie : 'Complete this combat feat to earn the medal.') || '',tier:a.rarity,glyph:ICONS[a.category] || 'star',
         earned:done,p:done?threshold:current,t:threshold};
     });
   });
@@ -93,7 +94,7 @@ function safeSnapshot(displayHero) {
       localPlayed:Number(progress.localMatches)||0,claimed,lucky:state?.totalSpins||0,
       playerId:String(profile?.profileId||'—'),savedAt:Number(profile?.createdAt)||0,
       ...Object.fromEntries(catalog.map(d=>[d.stat, Number(progress[d.stat])||0]))},
-    fighters,missions,achievements,persisted,
+    fighters,missions,achievements,persisted,language:lang,
   };
 }
 export default function GoldMissionAccountHost() {

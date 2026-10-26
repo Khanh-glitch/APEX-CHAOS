@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MISSIONS, updateCanonicalData, type FighterId, type Mission } from './data';
+import type { Language } from './locale';
 
 // The original prototype localStorage demo wallet has been completely removed.
 // The host bridge is the *only* route to canonical game data and actions.
@@ -13,6 +14,7 @@ interface GoldSnapshot {
   missions: Mission[];
   achievements: import('./data').Achievement[];
   persisted:boolean;
+  language?:Language;
 }
 interface GoldBridge {
   snapshot():GoldSnapshot;
@@ -39,7 +41,8 @@ export function useGame() {
   const initial=useRef(read());
   const [s,setS]=useState<GameState|null>(initial.current?.state || null);
   const [persisted,setPersisted]=useState(initial.current?.persisted || false);
-  const refresh=useCallback(()=>{const next=read();if(next){setS(next.state);setPersisted(next.persisted);}},[]);
+  const [lang,setLang]=useState<Language>(initial.current?.language === "vie" || new URLSearchParams(location.search).get("lang") === "vie" ? "vie" : "eng");
+  const refresh=useCallback(()=>{const next=read();if(next){setS(next.state);setPersisted(next.persisted);setLang(next.language === "vie" ? "vie" : "eng");}},[]);
   useEffect(()=>{
     const onMessage=(e:MessageEvent)=>{if(e.source!==window.parent || e.origin!==location.origin)return;
       if(e.data?.type==='APEX_GOLD_UPDATE')refresh();
@@ -58,7 +61,7 @@ export function useGame() {
     refresh();
   },[s,refresh]);
   const claim=useCallback((ids:string[])=>{const amount=bridge()?.claim(ids) || 0; refresh();return amount;},[refresh]);
-  return {s:s as GameState,ready:!!s,patch,claim,refresh,syncing:false,persisted,
+  return {s:s as GameState,ready:!!s,patch,claim,refresh,syncing:false,persisted,lang,
     playBot:()=>{},playLocal:()=>{},reset:()=>{},saveNow:()=>refresh()};
 }
 export type Game=ReturnType<typeof useGame>;

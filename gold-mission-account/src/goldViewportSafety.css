@@ -5,3 +5,27 @@
 @media (max-width: 600px) {
   html, body, #root { max-width: 100%; overflow-x: clip; }
 }
+
+/* Language-specific integration typography, preserving the original Gold CSS. */
+@font-face {
+  font-family: 'ApexGoldVietnamese';
+  src: url('/gold/fonts/apex-oswald-vietnamese.ttf') format('truetype');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+html[lang='vi'] { --font-display: 'ApexGoldVietnamese', 'Arial Narrow', sans-serif; --font-body: 'Arial', 'Segoe UI', system-ui, sans-serif; }
+html[lang='vi'] .font-display { font-family: var(--font-display); }
+html[lang='vi'] body { font-family: var(--font-body); }
+#root { min-width: 0; }
+#root main { max-width: 100%; }
+#root main h1, #root main h2, #root main h3, #root main p { overflow-wrap: anywhere; }
+#root main button { min-width: 0; overflow-wrap: anywhere; }
+#root .gold-player-id { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-all; }
+@media (max-width: 639px) {
+  #root main h1 { font-size: clamp(2.75rem, 14vw, 4.6rem); line-height: 1.05; }
+  #root main .tracking-\\[\\.5em\\], #root main .tracking-\\[\\.4em\\], #root main .tracking-\\[\\.35em\\] { letter-spacing: 0.15em; }
+  #root main [role='tablist'] { flex-wrap: wrap; max-width: 100%; }
+  #root main .cut-sm, #root main .cut, #root main .cut-lg { max-width: 100%; }
+  #root main button { white-space: normal; }
+}
