@@ -32,7 +32,8 @@ try{
   const errors=[];
   page.on('pageerror',err=>errors.push(String(err)));
   await page.setViewport(profile.viewport);
-  await page.goto(base+'/bot-wave/index.html',{waitUntil:'domcontentloaded',timeout:65000});
+  const cpuMode=process.env.APEX_CPU_BLOOM_MODE||'off';
+  await page.goto(base+'/bot-wave/index.html?cpuBloom='+cpuMode,{waitUntil:'domcontentloaded',timeout:65000});
   const frame=await until('Gold iframe',async()=>page.frames().find(f=>f.url().includes('/bot-wave/game.html')));
   await until('Gold + pilot + full V2 presentation',()=>frame.evaluate(()=>
    !!window.handLab&&!!window.BOXE_WAVE_PILOT&&window.APEX_BOT_WAVE_INTERFACE_V2?.installed===true
@@ -40,6 +41,17 @@ try{
   await frame.waitForSelector('#w-go',{visible:true,timeout:20000});
   await frame.click('#w-go');
   await until('combat',()=>frame.evaluate(()=>window.BOXE_WAVE_PILOT?.state?.phase==='combat'),20000);
+  const cpuLoad=await frame.evaluate(()=>({
+    script:window.APEX_CPU_BLOOM_SCRIPT_STATUS,
+    bridge:!!window.APEX_WAVE_CPU_BLOOM,
+    src:document.querySelector('script[src*="botWaveBloomGpuBridge"]')?.src||null
+  }));
+  console.log('CPU BLOOM INITIALIZATION',cpuMode,JSON.stringify(cpuLoad));
+  if(cpuMode==='force'){
+   assert.ok(cpuLoad.bridge,'CPU bridge did not load (network/script fault): '+JSON.stringify(cpuLoad));
+   await until('GPU bloom actual draws',()=>frame.evaluate(()=>window.APEX_WAVE_CPU_BLOOM?.snapshot()?.frames>=8).catch(()=>false),22000)
+    .catch(async e=>{const snapshot=await frame.evaluate(()=>window.APEX_WAVE_CPU_BLOOM?.snapshot());throw Error(String(e)+' '+JSON.stringify(snapshot));});
+  }
   await frame.evaluate(()=>{
    const post=window.handLab?.post;
    if(!post)return;
@@ -106,6 +118,62 @@ try{
   });
   assert.equal(refractionParity.changedChannels,0,
    profile.name+': sampled-region refraction does not match canonical full-copy Gold: '+JSON.stringify(refractionParity));
+  // Gold visual quality gate: compare actual quarter-resolution bright
+  // pass pixels, not a fabricated frame-time-only acceptance criterion.
+  const bloomVisual=await frame.evaluate(()=>{
+   if(new URLSearchParams(location.search).get('cpuBloom')!=='force')return null;
+   const bridge=window.APEX_WAVE_CPU_BLOOM;
+   if(!bridge)return {error:'missing CPU bridge'};
+   const Post=window.handLab.post.constructor;
+   const native=new Post(),cpu=new Post();
+   const w=512,h=288,bw=128,bh=72;
+   const fill=post=>{
+    post.scene.width=w;post.scene.height=h;
+    const c=post.sctx;
+    c.setTransform(1,0,0,1,0,0);
+    c.fillStyle='#202a35';c.fillRect(0,0,w,h);
+    const a=c.createLinearGradient(0,0,w,h);
+    a.addColorStop(0,'#fba72c');a.addColorStop(.4,'#241b4c');
+    a.addColorStop(1,'#78e5ff');
+    c.fillStyle=a;c.fillRect(15,22,w-30,h-44);
+    for(let i=0;i<23;i++){
+     c.fillStyle=i%2?'#fff5cf':'#ff6b37';
+     c.fillRect((i*43+3)%w,(i*17+6)%h,7+i%6,9+i%7);
+    }
+   };
+   fill(native);fill(cpu);
+   const filter='brightness(1.06) contrast(2.05) saturate(1.18) blur(1.1px)';
+   const bright=post=>{
+    post.fit(post.a,post.actx,bw,bh);
+    post.actx.filter=filter;
+    post.actx.drawImage(post.scene,0,0,bw,bh);
+    post.actx.filter='none';
+    return post.actx.getImageData(0,0,bw,bh).data;
+   };
+   const normal=bright(native);
+   bridge.install(cpu);
+   const accelerated=bright(cpu);
+   let differences=0,absSum=0,rmsSum=0,meanN=0,meanG=0;
+   for(let i=0;i<normal.length;i+=4){
+    for(let c=0;c<3;c++){
+     const a=normal[i+c],b=accelerated[i+c],d=Math.abs(a-b);
+     absSum+=d;rmsSum+=d*d;differences+=d>24?1:0;
+     meanN+=a;meanG+=b;
+    }
+   }
+   const count=normal.length/4*3;
+   return {meanAbsoluteError:absSum/count,rootMeanSquareError:Math.sqrt(rmsSum/count),
+    changedChannelsOver24:differences,totalChannels:count,
+    brightnessRatio:meanG/Math.max(1,meanN),bridge:bridge.snapshot()};
+  });
+  if(bloomVisual){
+   console.log('CPU BLOOM IMAGE PARITY',JSON.stringify(bloomVisual));
+   assert.ok(bloomVisual.meanAbsoluteError<3.5 &&
+       bloomVisual.changedChannelsOver24<=15 &&
+       bloomVisual.brightnessRatio>=0.96 &&
+       bloomVisual.brightnessRatio<=1.04,
+     profile.name+': visual fidelity exceeds allowed Gold bright-pass delta: '+JSON.stringify(bloomVisual));
+  }
   const before=await frame.evaluate(()=>({
    x:window.handLab.player.x,y:window.handLab.player.y,
    t:window.handLab.time
@@ -122,10 +190,12 @@ try{
   // Give the engine and V2 a representative live sample window.
   await sleep(4500);
   const stat=await frame.evaluate(()=>({
+   cpuBloom:window.APEX_WAVE_CPU_BLOOM?.snapshot(),
+   cpuScript:window.APEX_CPU_BLOOM_SCRIPT_STATUS,
    ...window.APEX_WAVE_PERF?.snapshot(),
    passCosts:window.__botwavePassCosts||{}
   }));
-  assert.ok(stat&&stat.renderSamples>10&&stat.postSamples>10,
+  assert.ok(stat&&stat.renderSamples>20&&stat.postSamples>20,
    profile.name+': render/post instrumentation never sampled');
   assert.ok(Number.isFinite(stat.renderP95Ms)&&Number.isFinite(stat.frameGapP95Ms),
    profile.name+': invalid latency samples');
@@ -145,10 +215,10 @@ try{
    longTasks:stat.longTasks,longTaskMaxMs:+stat.longTaskMaxMs.toFixed(2),
    canvasPixels:stat.canvasPixels,renderDpr:stat.renderDpr,
    goldParticles:stat.goldParticles,livingBots:stat.livingBots,
-   passCosts:stat.passCosts,
+   passCosts:stat.passCosts,cpuBloom:stat.cpuBloom,cpuScript:stat.cpuScript,cpuMode,
    catchup:await frame.evaluate(()=>window.APEX_WAVE_CATCHUP?.snapshot()),
    refractionCopy:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_COPY?.snapshot()),
-   refractionParity
+   refractionParity,bloomVisual
   };
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
