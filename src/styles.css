@@ -4378,3 +4378,12 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
     animation:none!important;transform:translate(-50%,-50%) scale(1.014)!important;
   }
 }
+
+
+/* Owner UI audit: retired destinations are not actions. Do not render live
+   button affordances for the locked Story, Fighter Shop, or Upgrade paths.
+   Leave the registry and future route extension points intact. */
+#gold-shell-host #stage #continueStory.is-locked,
+#gold-shell-host #stage .routes button[data-locked-route][aria-disabled="true"]{
+  display:none!important;
+}
