@@ -118,6 +118,55 @@ try{
   });
   assert.equal(refractionParity.changedChannels,0,
    profile.name+': sampled-region refraction does not match canonical full-copy Gold: '+JSON.stringify(refractionParity));
+  // Gold visual quality gate: compare actual quarter-resolution bright
+  // pass pixels, not a fabricated frame-time-only acceptance criterion.
+  const bloomVisual=await frame.evaluate(()=>{
+   if(new URLSearchParams(location.search).get('gpuBloom')!=='force')return null;
+   const bridge=window.APEX_WAVE_GPU_BLOOM;
+   if(!bridge)return {error:'missing GPU bridge'};
+   const Post=window.handLab.post.constructor;
+   const native=new Post(),gpu=new Post();
+   const w=512,h=288,bw=128,bh=72;
+   const fill=post=>{
+    post.scene.width=w;post.scene.height=h;
+    const c=post.sctx;
+    c.setTransform(1,0,0,1,0,0);
+    c.fillStyle='#202a35';c.fillRect(0,0,w,h);
+    const a=c.createLinearGradient(0,0,w,h);
+    a.addColorStop(0,'#fba72c');a.addColorStop(.4,'#241b4c');
+    a.addColorStop(1,'#78e5ff');
+    c.fillStyle=a;c.fillRect(15,22,w-30,h-44);
+    for(let i=0;i<23;i++){
+     c.fillStyle=i%2?'#fff5cf':'#ff6b37';
+     c.fillRect((i*43+3)%w,(i*17+6)%h,7+i%6,9+i%7);
+    }
+   };
+   fill(native);fill(gpu);
+   const filter='brightness(1.06) contrast(2.05) saturate(1.18) blur(1.1px)';
+   const bright=post=>{
+    post.fit(post.a,post.actx,bw,bh);
+    post.actx.filter=filter;
+    post.actx.drawImage(post.scene,0,0,bw,bh);
+    post.actx.filter='none';
+    return post.actx.getImageData(0,0,bw,bh).data;
+   };
+   const normal=bright(native);
+   bridge.install(gpu);
+   const accelerated=bright(gpu);
+   let differences=0,absSum=0,rmsSum=0,meanN=0,meanG=0;
+   for(let i=0;i<normal.length;i+=4){
+    for(let c=0;c<3;c++){
+     const a=normal[i+c],b=accelerated[i+c],d=Math.abs(a-b);
+     absSum+=d;rmsSum+=d*d;differences+=d>24?1:0;
+     meanN+=a;meanG+=b;
+    }
+   }
+   const count=normal.length/4*3;
+   return {meanAbsoluteError:absSum/count,rootMeanSquareError:Math.sqrt(rmsSum/count),
+    changedChannelsOver24:differences,totalChannels:count,
+    brightnessRatio:meanG/Math.max(1,meanN),bridge:bridge.snapshot()};
+  });
+  if(bloomVisual)console.log('GPU BLOOM IMAGE PARITY',JSON.stringify(bloomVisual));
   const before=await frame.evaluate(()=>({
    x:window.handLab.player.x,y:window.handLab.player.y,
    t:window.handLab.time
@@ -162,7 +211,7 @@ try{
    passCosts:stat.passCosts,gpuBloom:stat.gpuBloom,gpuScript:stat.gpuScript,gpuMode,
    catchup:await frame.evaluate(()=>window.APEX_WAVE_CATCHUP?.snapshot()),
    refractionCopy:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_COPY?.snapshot()),
-   refractionParity
+   refractionParity,bloomVisual
   };
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
