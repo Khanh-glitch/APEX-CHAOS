@@ -25,6 +25,7 @@ import goldFontParityCSS from './game/goldFontParity.css?raw';
 import goldSkillArtBoundsCSS from './game/goldSkillArtBounds.css?raw';
 import CosmeticLocker from './game/cosmetics/FieldArchiveC03.jsx';
 import GoldMissionAccountHost from './ui/GoldMissionAccountHost.jsx';
+import ProductSessionNavigator from './ui/ProductSessionNavigator.jsx';
 import FirstPlayGuide from './ui/FirstPlayGuide.jsx';
 import RewardToast from './ui/RewardToast.jsx';
 import AchievementToast from './ui/AchievementToast.jsx';
@@ -1093,6 +1094,7 @@ export default function App() {
     <>
     <CosmeticLocker />
     <GoldMissionAccountHost />
+    <ProductSessionNavigator />
     <FirstPlayGuide />
     <RewardToast />
     <AchievementToast />
