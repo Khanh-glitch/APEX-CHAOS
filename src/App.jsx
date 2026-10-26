@@ -31,6 +31,7 @@ import RewardToast from './ui/RewardToast.jsx';
 import AchievementToast from './ui/AchievementToast.jsx';
 import SkinUnlockCelebration from './ui/SkinUnlockCelebration.jsx';
 import './game/botWave/wavePreviewEntry.css';
+import { createBotWaveMobileImmersive } from './game/botWave/mobileImmersive.js';
 
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
@@ -431,6 +432,9 @@ export default function App() {
       // seals it. One native Gold iframe (not a nested wrapper) is mounted
       // behind the cover, so returning needs neither browser reload nor START.
       if(waveOverlayRef.current)return true;
+      const mobileImmersive=createBotWaveMobileImmersive();
+      // request() runs within Home's entry-click gesture; browsers may refuse.
+      mobileImmersive.request();
       const cover=document.createElement('section');
       cover.id='apex-wave-host';
       cover.setAttribute('aria-label','BOT WAVE — BOXE / ARSENAL SURVIVAL');
@@ -488,7 +492,8 @@ export default function App() {
       window.addEventListener('message',onMessage);
       const cleanup=()=>{window.removeEventListener('popstate',onPop);
         window.removeEventListener('message',onMessage);
-        document.body.classList.remove('apex-bot-wave-active')};
+        document.body.classList.remove('apex-bot-wave-active');
+        mobileImmersive.release();};
       const waitReady=()=>new Promise((resolve,reject)=>{
         let done=false;
         const timeout=setTimeout(()=>finish(Error('BOT WAVE Gold V2 admission timed out')),24000);
