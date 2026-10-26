@@ -68,6 +68,7 @@ try {
       const viMissionFit = await fitHeading(frame);
       assert.ok(viMissionFit.titleBounds.left >= -2 && viMissionFit.titleBounds.right <= width+2,'Vietnamese mission heading crop');
       assert.ok(!viMissionFit.overflow,'Vietnamese mission overflow');
+      await page.screenshot({path:`${destination}/${width}x${height}-missions-vie.png`});
       await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('eng'));
       await frame.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('MISSIONS'),{timeout:10000});
       assert.equal(content.pathNodes,5,'Gold original hex mission path lost a node');
@@ -119,6 +120,21 @@ try {
       assert.equal(stats.title,'MISSIONS','Mastery must remain within original Gold Missions scene');
       assert.ok(stats.text.includes('ACHIEVEMENTS'),'Mastery native Gold medals did not load in English');
       await page.screenshot({path:`${destination}/${width}x${height}-mastery.png`});
+      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('vie'));
+      await second.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('NHIỆM VỤ'),{timeout:10000});
+      const masteryTierFit=await second.evaluate(()=>{
+        const items=[...document.querySelectorAll('.gold-tier-summary .gold-tier-name')];
+        return items.map(el=>({name:el.textContent,visible:el.getBoundingClientRect().width>0,
+          width:el.clientWidth,scroll:el.scrollWidth,style:getComputedStyle(el).textOverflow}));
+      });
+      assert.equal(masteryTierFit.length,4,'Gold medal tier labels disappeared');
+      for(const tier of masteryTierFit){
+        assert.ok(tier.visible&&tier.scroll<=tier.width+2&&tier.style!=='ellipsis',
+          'Medal tier label clipped: '+JSON.stringify(tier));
+      }
+      await page.screenshot({path:`${destination}/${width}x${height}-mastery-vie.png`});
+      await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('eng'));
+      await second.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('MISSIONS'),{timeout:10000});
 
       await page.evaluate(()=>window.APEX_ACCOUNT_CENTER?.open());
       await page.waitForFunction(()=>document.querySelector('.apex-gold-direct-host iframe')?.src.includes('screen=account'),{timeout:15000});
@@ -134,6 +150,7 @@ try {
       assert.ok(enAccountFit.titleBounds.left >= -2 && enAccountFit.titleBounds.right <= width+2,'English account heading crop');
       await page.evaluate(()=>window.APEX_I18N?.setLanguage?.('vie'));
       await account.waitForFunction(()=>document.querySelector('main h1')?.textContent?.includes('TÀI KHOẢN'),{timeout:10000});
+      await page.screenshot({path:`${destination}/${width}x${height}-account-eng.png`});
       const viAccountFit = await fitHeading(account);
       assert.ok(viAccountFit.titleBounds.left >= -2 && viAccountFit.titleBounds.right <= width+2,'Vietnamese account heading crop');
       if (viAccountFit.overflow) {
@@ -151,6 +168,20 @@ try {
         console.error('GOLD ACCOUNT OVERFLOW DIAGNOSTIC',width,height,JSON.stringify(offending));
       }
       assert.ok(!viAccountFit.overflow,'Vietnamese account overflow at '+width+'x'+height);
+      const cardFit=await account.evaluate(()=>{
+        const viewport=document.documentElement.clientWidth;
+        const selectors=['.gold-account-license','.gold-account-guest-badge','.gold-player-id','.gold-player-id-value'];
+        return selectors.map(selector=>{
+          const el=document.querySelector(selector), r=el?.getBoundingClientRect();
+          return {selector,left:r?.left,right:r?.right,viewport,scroll:el?.scrollWidth,client:el?.clientWidth};
+        });
+      });
+      for(const item of cardFit){
+        assert.ok(item.left>=-2 && item.right<=item.viewport+2,
+          'Gold Account text or license cropped: '+JSON.stringify(item));
+        assert.ok(item.scroll<=item.client+2,
+          'Gold Account text content overflows its box: '+JSON.stringify(item));
+      }
 
       await account.waitForFunction(()=>document.documentElement.lang==='vi',{timeout:10000});
       const vieProfile=await account.evaluate(()=>({title:document.querySelector('h1')?.innerText,text:document.body.innerText,overflow:document.documentElement.scrollWidth>innerWidth+3}));

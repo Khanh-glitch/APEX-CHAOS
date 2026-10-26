@@ -30,7 +30,7 @@ function Summary({lang}:{lang:Language}) {
 
       <div className="relative min-w-0">
         <p className="font-display text-xs tracking-[.4em] text-amber">{tr(lang,"medal.collection")}</p>
-        <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3">
+        <ul className="gold-tier-summary mt-3 grid grid-cols-1 min-[520px]:grid-cols-2 gap-x-6 gap-y-3">
           {TIERS.slice()
             .reverse()
             .map((t) => {
@@ -42,7 +42,7 @@ function Summary({lang}:{lang:Language}) {
                   <Medal tier={t.id} glyph={sample?.glyph || "star"} unlocked size={46} />
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between font-display text-sm font-bold" style={{ color: t.color }}>
-                      <span className="truncate">{tierName(lang,t.id)}</span>
+                      <span className="gold-tier-name min-w-0 whitespace-normal break-words">{tierName(lang,t.id)}</span>
                       <span className="tabular-nums text-white/80">
                         {d}/{all.length}
                       </span>

@@ -84,3 +84,14 @@ html[lang='vi'] #root .gold-page-heading {
 @media (min-width: 1024px) {
   #root .gold-account-hero-art { right: 0; }
 }
+
+/* Account: preserve Gold license layout but never let the unbreakable player
+ * identifier enlarge the license beyond the actual phone width. */
+#root .gold-account-license,
+#root .gold-player-id,
+#root .gold-player-id-value { box-sizing: border-box; max-width: 100%; min-width: 0; }
+#root .gold-player-id-value { overflow-wrap: anywhere; word-break: break-all; }
+@media (max-width: 519px) {
+  #root .gold-tier-summary { grid-template-columns: minmax(0,1fr); }
+  #root .gold-account-guest-badge { letter-spacing: .12em; }
+}

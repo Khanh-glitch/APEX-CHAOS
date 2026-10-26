@@ -85,17 +85,17 @@ export function Account({ g }: { g: Game }) {
         <img key={fighter.id} src={fighter.img} alt="" className="w-full h-full object-cover anim-fade-in" style={{ objectPosition: fighter.pos, opacity: 0.8 }} />
       </div>
 
-      <div className="relative mt-6 grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-8 lg:gap-12 items-start">
+      <div className="relative mt-6 grid min-w-0 grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-8 lg:gap-12 items-start">
         {/* LEFT: license + avatar */}
-        <div>
+        <div className="min-w-0 max-w-full">
           <div style={{ perspective: 1100 }}>
             <div
               onMouseMove={onMove}
               onMouseLeave={() => setTilt({ rx: 0, ry: 0, mx: 50, my: 30 })}
-              className="cut-lg p-[2px] transition-transform duration-200 ease-out"
+              className="gold-account-license w-full min-w-0 max-w-full cut-lg p-[2px] transition-transform duration-200 ease-out"
               style={{ background: "linear-gradient(135deg,#fff0b0,#ffa31a 30%,#ff5a0a 60%,#5a2000)", transform: `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`, boxShadow: "0 30px 80px -20px rgba(255,120,20,.45)" }}
             >
-              <div className="cut-lg relative overflow-hidden p-5 sm:p-8" style={{ background: "linear-gradient(135deg,#1c100a 0%,#0a0605 70%)" }}>
+              <div className="cut-lg relative min-w-0 overflow-hidden p-5 sm:p-8" style={{ background: "linear-gradient(135deg,#1c100a 0%,#0a0605 70%)" }}>
                 <div className="absolute inset-0 hexgrid opacity-60 pointer-events-none" />
                 <div className="absolute inset-0 pointer-events-none mix-blend-screen" style={{ background: `radial-gradient(circle at ${tilt.mx}% ${tilt.my}%, rgba(255,214,120,.38), transparent 45%), conic-gradient(from ${tilt.mx * 3}deg at 50% 50%, rgba(255,90,10,.14), rgba(255,220,100,.12), rgba(255,90,10,.14))` }} />
 
@@ -104,7 +104,7 @@ export function Account({ g }: { g: Game }) {
                     <p className="font-display text-[11px] tracking-[.4em] text-amber">APEX CHAOS</p>
                     <p className="font-display font-bold text-sm tracking-[.25em] text-white/80">{t("pilot.license")}</p>
                   </div>
-                  <div className="font-display font-bold tracking-[.3em] text-sm text-orange-400 border-2 border-orange-500/80 px-3 py-1 -rotate-6" style={{ boxShadow: "0 0 14px rgba(255,100,20,.35) inset" }}>
+                  <div className="gold-account-guest-badge shrink-0 font-display font-bold tracking-[.17em] sm:tracking-[.3em] text-xs sm:text-sm text-orange-400 border-2 border-orange-500/80 px-3 py-1 -rotate-6" style={{ boxShadow: "0 0 14px rgba(255,100,20,.35) inset" }}>
                     {t("guest")}
                   </div>
                 </div>
@@ -168,20 +168,20 @@ export function Account({ g }: { g: Game }) {
                     )}
 
                     <p className="font-display text-[11px] tracking-[.35em] text-orange-200/60 mt-5">{t("player.id")}</p>
-                    <button onClick={() => copy(s.playerId, t("copy.id"))} className="gold-player-id group mt-1 inline-flex items-center gap-2 font-display font-bold text-base sm:text-xl tracking-[.06em] text-gold hover:text-white transition">
-                      {s.playerId}
-                      <GlyphIcon name="copy" className="w-4 h-4 opacity-60 group-hover:opacity-100" />
+                    <button onClick={() => copy(s.playerId, t("copy.id"))} className="gold-player-id group mt-1 flex w-full max-w-full min-w-0 items-start gap-2 text-left font-display font-bold text-sm sm:text-xl tracking-[.015em] sm:tracking-[.06em] text-gold hover:text-white transition">
+                      <span className="gold-player-id-value block min-w-0 flex-1 break-all">{s.playerId}</span>
+                      <GlyphIcon name="copy" className="mt-0.5 w-4 h-4 shrink-0 opacity-60 group-hover:opacity-100" />
                     </button>
                   </div>
                 </div>
 
-                <div className="relative mt-8 flex items-end justify-between gap-4">
-                  <div className="flex items-end gap-[2px] h-9 opacity-80 overflow-hidden">
+                <div className="relative mt-8 flex min-w-0 items-end justify-between gap-3 sm:gap-4">
+                  <div className="flex min-w-0 max-w-[54%] flex-1 items-end gap-[2px] h-9 opacity-80 overflow-hidden">
                     {bars.map((w, i) => (
                       <span key={i} className="bg-amber-200/80 h-full" style={{ width: w * 1.5 }} />
                     ))}
                   </div>
-                  <span className="font-display text-[10px] tracking-[.3em] text-white/40 text-right">{t("local.account")}</span>
+                  <span className="min-w-0 flex-1 font-display text-[9px] sm:text-[10px] tracking-[.1em] sm:tracking-[.3em] leading-snug text-white/40 text-right break-words">{t("local.account")}</span>
                 </div>
               </div>
             </div>
