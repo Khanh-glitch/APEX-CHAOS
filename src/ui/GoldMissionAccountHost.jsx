@@ -152,6 +152,13 @@ export default function GoldMissionAccountHost() {
         if(state?.ownedFighters?.includes(id)){displayHero.current=id;refresh();}
       },
       close,
+      // Session carousel is routed by the app. Never invent a second Lucky
+      // wallet or mount a cloned Archive inside the Gold iframe.
+      navigateSection:(index)=>{
+        if(!Number.isInteger(index)||index<0||index>4)return false;
+        window.dispatchEvent(new CustomEvent('apex:session-navigate',{detail:{index,from:'gold'}}));
+        return true;
+      },
     });
     // Deliberately not an authorization seam; only real game authorities can
     // process claim or mutate a profile. Do not expose cloud role methods.
