@@ -9,7 +9,7 @@ const dest=process.env.APEX_EVIDENCE_DIR||'docs/boxe/bot-wave-perf';
 fs.mkdirSync(dest,{recursive:true});
 const browser=await puppeteer.launch({
  executablePath:process.env.CHROME_PATH,headless:true,
- args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']
+ args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required','--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader']
 });
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const probes=[
@@ -32,7 +32,8 @@ try{
   const errors=[];
   page.on('pageerror',err=>errors.push(String(err)));
   await page.setViewport(profile.viewport);
-  await page.goto(base+'/bot-wave/index.html',{waitUntil:'domcontentloaded',timeout:65000});
+  const gpuMode=process.env.APEX_GPU_BLOOM_MODE||'off';
+  await page.goto(base+'/bot-wave/index.html?gpuBloom='+gpuMode,{waitUntil:'domcontentloaded',timeout:65000});
   const frame=await until('Gold iframe',async()=>page.frames().find(f=>f.url().includes('/bot-wave/game.html')));
   await until('Gold + pilot + full V2 presentation',()=>frame.evaluate(()=>
    !!window.handLab&&!!window.BOXE_WAVE_PILOT&&window.APEX_BOT_WAVE_INTERFACE_V2?.installed===true
@@ -40,6 +41,17 @@ try{
   await frame.waitForSelector('#w-go',{visible:true,timeout:20000});
   await frame.click('#w-go');
   await until('combat',()=>frame.evaluate(()=>window.BOXE_WAVE_PILOT?.state?.phase==='combat'),20000);
+  const gpuLoad=await frame.evaluate(()=>({
+    script:window.APEX_GPU_BLOOM_SCRIPT_STATUS,
+    bridge:!!window.APEX_WAVE_GPU_BLOOM,
+    src:document.querySelector('script[src*="botWaveBloomGpuBridge"]')?.src||null
+  }));
+  console.log('GPU BLOOM INITIALIZATION',gpuMode,JSON.stringify(gpuLoad));
+  if(gpuMode==='force'){
+   assert.ok(gpuLoad.bridge,'GPU bridge did not load (network/script fault): '+JSON.stringify(gpuLoad));
+   await until('GPU bloom actual draws',()=>frame.evaluate(()=>window.APEX_WAVE_GPU_BLOOM?.snapshot()?.frames>=8).catch(()=>false),22000)
+    .catch(async e=>{const snapshot=await frame.evaluate(()=>window.APEX_WAVE_GPU_BLOOM?.snapshot());throw Error(String(e)+' '+JSON.stringify(snapshot));});
+  }
   await frame.evaluate(()=>{
    const post=window.handLab?.post;
    if(!post)return;
@@ -122,6 +134,8 @@ try{
   // Give the engine and V2 a representative live sample window.
   await sleep(4500);
   const stat=await frame.evaluate(()=>({
+   gpuBloom:window.APEX_WAVE_GPU_BLOOM?.snapshot(),
+   gpuScript:window.APEX_GPU_BLOOM_SCRIPT_STATUS,
    ...window.APEX_WAVE_PERF?.snapshot(),
    passCosts:window.__botwavePassCosts||{}
   }));
@@ -145,7 +159,7 @@ try{
    longTasks:stat.longTasks,longTaskMaxMs:+stat.longTaskMaxMs.toFixed(2),
    canvasPixels:stat.canvasPixels,renderDpr:stat.renderDpr,
    goldParticles:stat.goldParticles,livingBots:stat.livingBots,
-   passCosts:stat.passCosts,
+   passCosts:stat.passCosts,gpuBloom:stat.gpuBloom,gpuScript:stat.gpuScript,gpuMode,
    catchup:await frame.evaluate(()=>window.APEX_WAVE_CATCHUP?.snapshot()),
    refractionCopy:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_COPY?.snapshot()),
    refractionParity
