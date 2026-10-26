@@ -6,7 +6,7 @@
 // Capability-gated and fail-closed: zero GPU support => exact Gold filter.
 (()=>{
  'use strict';
- const state={ready:false,failed:false,frames:0,errors:0,ms:0,lastError:'',renderer:'',forced:false};
+ const state={ready:false,failed:false,frames:0,errors:0,ms:0,steadyFrames:0,steadyMs:0,lastError:'',renderer:'',forced:false};
  let gpu=null,gl=null,pgm=null,tex=null,canvas=null,pos=null,sizeW=0,sizeH=0;
  const VERT=`#version 300 es
  in vec2 a_position;
@@ -90,7 +90,18 @@
     ctx.filter='none';
     rawDraw(canvas,...args);
    }finally{ctx.filter=savedFilter;}
-   state.frames++;state.ms+=performance.now()-began;
+   const cost=performance.now()-began;
+   state.frames++;state.ms+=cost;
+   // Hardware-only self-protection. Ignore GPU shader compilation/warmup
+   // and preserve the original Gold post chain if steady frames remain slow.
+   // The forced benchmark deliberately disables this heuristic so it can
+   // measure the candidate even on GitHub's software SwiftShader renderer.
+   if(state.frames>5){state.steadyFrames++;state.steadyMs+=cost;}
+   if(!state.forced && state.steadyFrames>=18 &&
+      state.steadyMs/state.steadyFrames>40){
+     state.failed=true;
+     state.lastError='GPU bright-pass too slow; restored native Gold';
+   }
    return true;
   }catch(e){
    state.failed=true;state.errors++;state.lastError=String(e);
