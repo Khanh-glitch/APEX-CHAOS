@@ -185,10 +185,23 @@ export default function GoldMissionAccountHost() {
     };
   },[open,close,view,refresh]);
   if(view===null)return null;
+  const onGoldLoad=()=>{
+    // Integration-only spotlight on the owner's swipe tutorial.
+    try{
+      const doc=frame.current?.contentDocument;
+      if(doc && !doc.getElementById('apex-owner-guide-spotlight')){
+        const style=doc.createElement('style');
+        style.id='apex-owner-guide-spotlight';
+        style.textContent='#root:has(.gold-swipe-coach)::before{content:"";position:fixed;inset:0;z-index:64;background:rgba(0,0,0,.78);pointer-events:none}#root .gold-swipe-coach{z-index:65!important}';
+        doc.head.appendChild(style);
+      }
+    }catch(_){/* Do not mutate a cross-origin frame. */}
+    refresh();
+  };
   const href=apexAppUrl(`/gold/mission-account.html?screen=${view==='account'?'account':'missions'}&tab=${view==='mastery'?'mastery':'ops'}`);
   return <div className="apex-gold-direct-host" role="dialog" aria-modal="true" aria-label="Gold Missions Account"
     style={{position:'fixed',inset:0,zIndex:2147480900,background:'#07050a'}}>
     <iframe key={view} ref={frame} title="APEX CHAOS GOLD — MISSIONS / ACCOUNT" src={href}
-      style={{width:'100%',height:'100%',border:0}} onLoad={refresh}/>
+      style={{width:'100%',height:'100%',border:0}} onLoad={onGoldLoad}/>
   </div>;
 }
