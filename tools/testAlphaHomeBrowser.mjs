@@ -205,7 +205,6 @@ const prog=await page.evaluate(() => {
  return {
   rows:snap?.missions?.length,
   credits:snap?.state?.ac,
-  claimButtons:[...(doc?.querySelectorAll('.gold-mission-claim-button')||[])],
   claimable:[...(doc?.querySelectorAll('.gold-mission-claim-button')||[])].filter(b=>!b.disabled).length,
  };
 });
