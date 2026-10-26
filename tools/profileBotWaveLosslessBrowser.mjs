@@ -9,7 +9,7 @@ const dest=process.env.APEX_EVIDENCE_DIR||'docs/boxe/bot-wave-perf';
 fs.mkdirSync(dest,{recursive:true});
 const browser=await puppeteer.launch({
  executablePath:process.env.CHROME_PATH,headless:true,
- args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required','--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader']
+ args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required','--enable-webgl','--enable-unsafe-swiftshader']
 });
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const probes=[
@@ -188,7 +188,7 @@ try{
    ...window.APEX_WAVE_PERF?.snapshot(),
    passCosts:window.__botwavePassCosts||{}
   }));
-  assert.ok(stat&&stat.renderSamples>10&&stat.postSamples>10,
+  assert.ok(stat&&stat.renderSamples>20&&stat.postSamples>20,
    profile.name+': render/post instrumentation never sampled');
   assert.ok(Number.isFinite(stat.renderP95Ms)&&Number.isFinite(stat.frameGapP95Ms),
    profile.name+': invalid latency samples');
