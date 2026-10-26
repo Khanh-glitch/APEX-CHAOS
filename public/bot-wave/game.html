@@ -7455,7 +7455,19 @@ const REFRACTION_COPY={partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pix
 function installPartialRefraction(goldPost,REFRACTION_COPY){
 const originalGoldDistort=goldPost.distort.bind(goldPost);
 const originalGoldCopy=goldPost.cpctx.drawImage.bind(goldPost.cpctx);
+const originalGoldFit=goldPost.fit.bind(goldPost);
 let refractionRegions=null;
+// Cropped refraction fills opaque scene pixels in every sampled region;
+// clearing the entire full-resolution Gold copy buffer first is redundant.
+// Keep the dimensions, transform and exact same texels/filtering.
+goldPost.fit=function(canvas,ctx,w,h){
+ if(canvas===this.cp&&ctx===this.cpctx&&refractionRegions &&
+    canvas.width===w&&canvas.height===h){
+  ctx.setTransform(1,0,0,1,0,0);
+  return;
+ }
+ return originalGoldFit(canvas,ctx,w,h);
+};
 function regionUnion(rects){
  for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;){
   const a=rects[i],b=rects[j];
