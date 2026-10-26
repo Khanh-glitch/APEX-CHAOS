@@ -79,7 +79,7 @@ function Shell() {
   const swallowSwipeClick = useRef(0);
   const [showSwipeCoach, setShowSwipeCoach] = useState(false);
   const sectionIndex = screen === "account" ? 2 : tab === "mastery" ? 1 : 0;
-  const SWIPE_HINT_KEY = "apex.gold.sections.swipe.v1";
+  const SWIPE_HINT_KEY = "apex.gold.sections.swipe.v2";
   useEffect(() => {
     if (!g.ready) return;
     let firstEntry = true;
@@ -105,7 +105,14 @@ function Shell() {
     setTimeout(() => (busy.current = false), 850);
   };
   const goSection = (index: number) => {
-    if (index < 0 || index > 2 || index === sectionIndex || busy.current) return;
+    if (index < 0 || index > 4 || index === sectionIndex || busy.current) return;
+    if (index > 2) {
+      setShowSwipeCoach(false);
+      busy.current = true;
+      try { (window.parent as any).__APEX_GOLD_BRIDGE__?.navigateSection?.(index); }
+      finally { window.setTimeout(() => { busy.current = false; }, 850); }
+      return;
+    }
     const nextScreen: Screen = index === 2 ? "account" : "missions";
     const nextTab: Tab = index === 1 ? "mastery" : "ops";
     const label = index === 2 ? tr(g.lang, "account.title") : tr(g.lang, index === 1 ? "mastery" : "contracts");
@@ -156,6 +163,17 @@ function Shell() {
     window.addEventListener('keydown',onEscape);
     return()=>window.removeEventListener('keydown',onEscape);
   },[]);
+  useEffect(() => {
+    const onSelect = (event: MessageEvent) => {
+      if (event.source !== window.parent || event.origin !== location.origin) return;
+      if (event.data?.type !== "APEX_GOLD_SECTION_SELECT") return;
+      const index = Number(event.data?.index);
+      if (index >= 0 && index <= 2) goSection(index);
+    };
+    window.addEventListener("message", onSelect);
+    return () => window.removeEventListener("message", onSelect);
+  }, [sectionIndex, g.lang]);
+
   const variant: StageVariant = screen === "account" ? "account" : tab === "mastery" ? "mastery" : "missions";
   const ready = MISSIONS.filter((m) => missionStatus(g.s, m) === "ready").length;
   const done = ACHIEVEMENTS.filter(isDone).length;
@@ -218,7 +236,7 @@ function Shell() {
           <div className="gold-swipe-coach-copy">
             <span className="gold-swipe-coach-kicker">{g.lang === "vie" ? "MẸO ĐIỀU HƯỚNG" : "NAVIGATION TIP"}</span>
             <strong>{g.lang === "vie" ? "VUỐT TRÁI / PHẢI" : "SWIPE LEFT / RIGHT"}</strong>
-            <small>{g.lang === "vie" ? "ĐỔI MỤC · MISSIONS / MASTERY / ACCOUNT" : "CHANGE SECTION · MISSIONS / MASTERY / ACCOUNT"}</small>
+            <small>{g.lang === "vie" ? "NHIỆM VỤ · TINH THÔNG · TÀI KHOẢN · MAY MẮN · KHO HỒ SƠ" : "MISSIONS · MASTERY · ACCOUNT · LUCKY DRAW · ARCHIVE"}</small>
           </div>
           <div className="gold-swipe-coach-track" aria-hidden="true">
             <span className="gold-swipe-coach-arrow">‹</span>
@@ -234,7 +252,7 @@ function Shell() {
         </div>
       )}
       <div className="gold-section-position" aria-label={g.lang === "vie" ? "Vị trí mục hiện tại" : "Current section"} aria-live="off">
-        {[0,1,2].map((i) => <span key={i} className={i === sectionIndex ? "is-current" : ""} aria-current={i === sectionIndex ? "step" : undefined} />)}
+        {[0,1,2,3,4].map((i) => <span key={i} className={i === sectionIndex ? "is-current" : ""} aria-current={i === sectionIndex ? "step" : undefined} />)}
       </div>
       {wipe.n > 0 && (
         <div key={wipe.n} className="fixed inset-0 z-[80] pointer-events-none overflow-hidden">
