@@ -497,6 +497,59 @@ function install(){
  const move=node('div','bw-movement');
  const moveLabel=node('div','bw-joystick-caption','MOVE / EVADE');
  move.append(stick,moveLabel);
+ // Mobile-only floating joystick: each new touch in the lower-left play zone
+ // becomes the neutral origin. Real Gold movement still owns the vector.
+ const goldStick=window.APEX_BOT_WAVE_FLOATING_STICK;
+ if(goldStick && (window.matchMedia?.('(pointer: coarse)')?.matches ||
+   (window.navigator.maxTouchPoints>0 && window.innerWidth<=1024))){
+  const touchZone=node('div','bw-floating-move-zone');
+  touchZone.id='bw-floating-move-zone';
+  touchZone.setAttribute('aria-label','Vùng điều khiển di chuyển BOT WAVE');
+  move.append(touchZone);
+  let activePointer=null,originX=0,originY=0;
+  const reset=()=>{
+   if(activePointer===null)return;
+   activePointer=null;
+   goldStick.reset();
+   stick.style.setProperty('--dx','0px');
+   stick.style.setProperty('--dy','0px');
+   stick.classList.remove('is-floating');
+   stick.style.removeProperty('--bw-stick-x');
+   stick.style.removeProperty('--bw-stick-y');
+  };
+  const steer=e=>{
+   if(e.pointerId!==activePointer)return;
+   e.preventDefault();
+   const radius=Math.max(28,(stick.getBoundingClientRect().width||60)*.42);
+   let dx=(e.clientX-originX)/radius,dy=(e.clientY-originY)/radius;
+   const norm=Math.max(1,Math.hypot(dx,dy));dx/=norm;dy/=norm;
+   goldStick.setVector(dx,dy);
+   const travel=(stick.getBoundingClientRect().width||60)*.22;
+   stick.style.setProperty('--dx',(dx*travel)+'px');
+   stick.style.setProperty('--dy',(dy*travel)+'px');
+  };
+  touchZone.addEventListener('pointerdown',e=>{
+   if(activePointer!==null||e.pointerType==='mouse'||e.button!==0)return;
+   if(!pauseMenu?.hidden || !modal.hidden || window.handLab?.paused)return;
+   e.preventDefault();
+   activePointer=e.pointerId;
+   originX=e.clientX;originY=e.clientY;
+   stick.style.setProperty('--bw-stick-x',originX+'px');
+   stick.style.setProperty('--bw-stick-y',originY+'px');
+   stick.style.setProperty('--dx','0px');
+   stick.style.setProperty('--dy','0px');
+   stick.classList.add('is-floating');
+   goldStick.reset();
+   try{touchZone.setPointerCapture(e.pointerId)}catch(_){/* release still clears */}
+  },{passive:false});
+  touchZone.addEventListener('pointermove',steer,{passive:false});
+  touchZone.addEventListener('pointerup',reset);
+  touchZone.addEventListener('pointercancel',reset);
+  touchZone.addEventListener('lostpointercapture',reset);
+  window.addEventListener('blur',reset);
+  window.addEventListener('orientationchange',reset,{passive:true});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)reset()});
+ }
  const skill=node('div','bw-skill-deck bw-skill-fan bw-skill-console');
  skill.setAttribute('aria-label','Kỹ năng chiến đấu của BOXE');
  // Native J/K/L/U/I controls keep their key labels and ability states. R16
