@@ -9,6 +9,7 @@ on:
       - 'tools/buildGoldMissionAccount.mjs'
       - 'tools/verifyGoldSourceParity.mjs'
       - 'tools/testOwnerGoldDirectPortBrowser.mjs'
+      - 'tools/testGoldSwipeNavigationBrowser.mjs'
       - '.github/workflows/gold-direct-port-acceptance.yml'
   workflow_dispatch:
 
@@ -59,6 +60,7 @@ jobs:
             sleep 1
           done
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testOwnerGoldDirectPortBrowser.mjs
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testGoldSwipeNavigationBrowser.mjs
       - name: Upload owner Gold screenshots and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -66,6 +68,7 @@ jobs:
           name: owner-gold-direct-port-${{ github.sha }}
           path: |
             reports/owner-gold-evidence/
+            reports/owner-gold-swipe-evidence/
             /tmp/apex-gold-preview.log
           if-no-files-found: warn
           retention-days: 14
