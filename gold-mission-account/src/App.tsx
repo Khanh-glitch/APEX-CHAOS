@@ -82,11 +82,14 @@ function Shell() {
   const SWIPE_HINT_KEY = "apex.gold.sections.swipe.v1";
   useEffect(() => {
     if (!g.ready) return;
+    let firstEntry = true;
     try {
-      if (localStorage.getItem(SWIPE_HINT_KEY) === "seen") return;
-      localStorage.setItem(SWIPE_HINT_KEY, "seen");
-    } catch { /* Private browsing still gets this one entry's tutorial. */ }
-    setShowSwipeCoach(true);
+      firstEntry = localStorage.getItem(SWIPE_HINT_KEY) !== "seen";
+      if (firstEntry) localStorage.setItem(SWIPE_HINT_KEY, "seen");
+    } catch { /* Storage denied: show the lesson but never block navigation. */ }
+    if (firstEntry) setShowSwipeCoach(true);
+    // Always register the dismissal timer: React StrictMode re-runs effects
+    // after their cleanup, even when the persisted first-visit flag is set.
     const timer = window.setTimeout(() => setShowSwipeCoach(false), 6200);
     return () => window.clearTimeout(timer);
   }, [g.ready]);
