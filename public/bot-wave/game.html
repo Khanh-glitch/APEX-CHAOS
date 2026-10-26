@@ -2236,11 +2236,11 @@ function mk() { const c = document.createElement('canvas'); c.width = 2; c.heigh
 class Post {
     constructor() {
         this.scene = mk();
-        this.sctx = this.scene.getContext('2d');
+        this.sctx = this.scene.getContext('2d', { desynchronized:true });
         this.a = mk();
-        this.actx = this.a.getContext('2d'); // bloom tight
+        this.actx = this.a.getContext('2d', { desynchronized:true }); // bloom tight
         this.b = mk();
-        this.bctx = this.b.getContext('2d'); // bloom wide
+        this.bctx = this.b.getContext('2d', { desynchronized:true }); // bloom wide
         this.r1 = mk();
         this.rctx1 = this.r1.getContext('2d'); // chroma red
         this.r2 = mk();
@@ -2249,7 +2249,7 @@ class Post {
         this.rbctx = this.rb.getContext('2d'); // radial
         this.grainPattern = null;
         this.cp = mk();
-        this.cpctx = this.cp.getContext('2d'); // scene copy for refraction
+        this.cpctx = this.cp.getContext('2d', { desynchronized:true }); // scene copy for refraction
     }
     /** returns a context to draw the world into, already scaled by dpr */
     begin(w, h, dpr) {
