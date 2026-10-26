@@ -803,7 +803,10 @@ function FirstPlayGuideCoach() {
       guideBtn.addEventListener('click', () => {
         try { window.dispatchEvent(new CustomEvent('apex:help-open')); } catch { /* no CustomEvent */ }
       });
-      stage.appendChild(guideBtn);
+      // Profile row owns top-right controls; fixed right:110px previously
+      // put Help directly over the AC wallet in narrow portrait.
+      const profile = stage.querySelector('.profile.e-brand') || stage.querySelector('.profile');
+      (profile || stage).appendChild(guideBtn);
     };
     mountBtn();
     const guard = new MutationObserver(mountBtn);
@@ -1071,8 +1074,8 @@ function FirstPlayGuideCoach() {
     };
   }, []);
 
-  // Soft highlight ring on the currently taught castable skill card ONLY;
-  // NEVER dims the arena canvas or locks/dims the other skill card.
+  // The coach spotlight dims all non-focused areas, without consuming input.
+  // Live Gold simulation/cooldowns remain fully running.
   useEffect(() => {
     if (!active || !coach || coach.done || (coach.step !== 3 && coach.step !== 4) || hintSlot == null) {
       return undefined;
@@ -1274,7 +1277,9 @@ function TutorialPreference() {
       setLang(tutorialLang());
       // Ask only once: while no answer is stored and a coach record exists (so the
       // coach finished bootstrapping), and only at a safe menu.
-      const wantAsk = nextPref === null && !!readCoach() && safeMenuNow();
+      // The first-session welcome now owns the New/Veteran choice.
+      // Do not stack the legacy tutorial prompt above its login/onboarding.
+      const wantAsk = false;
       setAskOpen(wantAsk);
       if (!wantAsk) { setAskPos(null); return; }
       const rect = askRef.current?.getBoundingClientRect();
