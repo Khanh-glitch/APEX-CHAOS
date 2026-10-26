@@ -7427,6 +7427,68 @@ engine.basicAttack=function(){
 };
 
 // Capture true CPU costs; never drop sprites, particles, resolution or frames.
+// Gold refraction copies the ENTIRE rendered scene before drawing small
+// shock/heat regions. Its full-size CPU/GPU readback can stall input by
+// hundreds of ms. Copy only the actual source sampling footprint at native
+// pixel density, with an 8px filtering gutter; all original optical passes,
+// lens strengths, sampling, blur, heat and effects remain untouched.
+const REFRACTION_COPY={partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pixelsAvoided:0};
+const goldPost=engine.post;
+const originalGoldDistort=goldPost.distort.bind(goldPost);
+const originalGoldCopy=goldPost.cpctx.drawImage.bind(goldPost.cpctx);
+let refractionRegions=null;
+function regionUnion(rects){
+ for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;){
+  const a=rects[i],b=rects[j];
+  if(a.x<=b.x+b.w+2&&b.x<=a.x+a.w+2&&a.y<=b.y+b.h+2&&b.y<=a.y+a.h+2){
+   const x=Math.min(a.x,b.x),y=Math.min(a.y,b.y);
+   a.w=Math.max(a.x+a.w,b.x+b.w)-x;a.h=Math.max(a.y+a.h,b.y+b.h)-y;
+   a.x=x;a.y=y;rects.splice(j,1);i=-1;break;
+  }else j++;
+ }
+ return rects;
+}
+goldPost.distort=function(w,h,dpr,o){
+ const pw=this.scene.width,ph=this.scene.height,boxes=[];
+ const add=(left,top,right,bottom)=>{
+  const x=Math.max(0,Math.floor((left-8)*dpr)),y=Math.max(0,Math.floor((top-8)*dpr));
+  const rx=Math.min(pw,Math.ceil((right+8)*dpr)),by=Math.min(ph,Math.ceil((bottom+8)*dpr));
+  if(rx>x&&by>y)boxes.push({x,y,w:rx-x,h:by-y});
+ };
+ // Keep the exact Gold admission predicates and top-five/top-fourteen
+ // ordering, so even highly overlapping waves retain identical content.
+ for(const sh of (o.shocks||[]).filter(s=>s.strength>.002&&s.x+s.r>-40&&s.x-s.r<w+40&&s.y+s.r>-40&&s.y-s.r<h+40)
+   .sort((a,b)=>b.strength-a.strength).slice(0,5)){
+  const r=Math.max(1,sh.r+sh.width*.6),ry=r*Math.max(0,sh.squash||1);
+  add(sh.x-r,sh.y-ry,sh.x+r,sh.y+ry);
+ }
+ for(const hr of (o.heat||[]).filter(q=>q.heat>.22&&q.x+q.w>0&&q.x<w&&q.y+q.h>0&&q.y-q.h<h)
+   .sort((a,b)=>b.heat-a.heat).slice(0,14)){
+  add(hr.x,hr.y-hr.h*.9,hr.x+hr.w,hr.y+hr.h*.1);
+ }
+ regionUnion(boxes);
+ const footprint=boxes.reduce((sum,r)=>sum+r.w*r.h,0);
+ // Full frame may be cheaper when regions genuinely occupy most pixels.
+ refractionRegions=boxes.length&&footprint<pw*ph*.78?boxes:null;
+ try{return originalGoldDistort(w,h,dpr,o);}
+ finally{refractionRegions=null;}
+};
+goldPost.cpctx.drawImage=function(source,...args){
+ if(source===goldPost.scene&&args.length===2&&args[0]===0&&args[1]===0&&refractionRegions){
+  let copied=0;
+  for(const r of refractionRegions){
+   originalGoldCopy(source,r.x,r.y,r.w,r.h,r.x,r.y,r.w,r.h);
+   copied+=r.w*r.h;
+  }
+  REFRACTION_COPY.partialFrames++;REFRACTION_COPY.regions+=refractionRegions.length;
+  REFRACTION_COPY.pixelsCopied+=copied;REFRACTION_COPY.pixelsAvoided+=source.width*source.height-copied;
+  return;
+ }
+ if(source===goldPost.scene&&args.length===2)REFRACTION_COPY.fullFrames++;
+ return originalGoldCopy(source,...args);
+};
+window.APEX_WAVE_REFRACTION_COPY=Object.freeze({snapshot:()=>({...REFRACTION_COPY})});
+
 // Observe full-frame, render and post-processing costs independently. The
 // Gold renderer, texture sizes, bloom chain and effects remain byte-identical.
 const PERF={samples:0,lastMs:0,maxMs:0,overBudget:0,avgMs:0,
