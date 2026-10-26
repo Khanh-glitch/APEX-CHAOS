@@ -100,6 +100,7 @@
  };
  // Install after Gold engine exists, without touching Gold's engine code.
  const install=post=>{
+  if(new URLSearchParams(location.search).get('gpuBloom')==='off')return false;
   if(!post?.scene||!post?.actx||post.actx.__apexGpuBloomBridge)return false;
   const actx=post.actx,raw=actx.drawImage.bind(actx);
   actx.__apexGpuBloomBridge=true;
