@@ -7519,7 +7519,113 @@ goldPost.cpctx.drawImage=function(source,...args){
  return originalGoldCopy(source,...args);
 };
 }
+
+// Experimental refraction tile backend. Only changes how the underlying
+// native-density source texels are staged, NEVER the original Gold shock/heat
+// paths, visual settings, scene resolution or owner-owned HUD.
+// A frame with widely distributed refractions falls back to the canonical
+// partial-copy Gold backend. Failure is fail-closed to the established path.
+const REFRACTION_TILES={enabled:new URLSearchParams(location.search).get('refTile')!=='off',
+ tileFrames:0,fallbackFrames:0,sourcePixels:0,avoidedPixels:0,shockBlits:0,heatBlits:0,errors:0};
+function installRefractionTiles(post, stats=REFRACTION_TILES){
+ const oldDistort=post.distort.bind(post);
+ const oldFit=post.fit.bind(post);
+ const oldCopy=post.cpctx.drawImage.bind(post.cpctx);
+ const oldStage=post.sctx.drawImage.bind(post.sctx);
+ const tile=document.createElement('canvas');
+ const tctx=tile.getContext('2d',{alpha:true});
+ if(!tctx)return false;
+ let active=null;
+ const pad=14;
+ const full=(x,y,w,h,pw,ph)=>({
+  x:Math.max(0,Math.floor(x)),
+  y:Math.max(0,Math.floor(y)),
+  right:Math.min(pw,Math.ceil(x+w)),
+  bottom:Math.min(ph,Math.ceil(y+h))
+ });
+ post.distort=function(w,h,dpr,o){
+  active=null;
+  if(stats.enabled){
+   const pw=post.scene.width,ph=post.scene.height,rects=[];
+   const shocks=(o.shocks||[]).filter(s=>s.strength>.002&&s.x+s.r>-40&&s.x-s.r<w+40&&s.y+s.r>-40&&s.y-s.r<h+40)
+      .sort((a,b)=>b.strength-a.strength).slice(0,5);
+   const heat=(o.heat||[]).filter(hr=>hr.heat>.22&&hr.x+hr.w>0&&hr.x<w&&hr.y+hr.h>0&&hr.y-hr.h<h)
+      .sort((a,b)=>b.heat-a.heat).slice(0,14);
+   const add=(x,y,rw,rh)=>{
+    const r=full((x-pad)*dpr,(y-pad)*dpr,(rw+pad*2)*dpr,(rh+pad*2)*dpr,pw,ph);
+    if(r.right>r.x&&r.bottom>r.y)rects.push(r);
+   };
+   for(const sh of shocks){
+    const outer=Math.max(1,sh.r+sh.width*.6),vertical=outer*Math.max(0,sh.squash||1);
+    add(sh.x-outer,sh.y-vertical,outer*2,vertical*2);
+   }
+   for(const hr of heat)add(hr.x,hr.y-hr.h*.9,hr.w,hr.h);
+   if(rects.length){
+    const x=Math.min(...rects.map(r=>r.x)),y=Math.min(...rects.map(r=>r.y));
+    const right=Math.max(...rects.map(r=>r.right)),bottom=Math.max(...rects.map(r=>r.bottom));
+    const width=right-x,height=bottom-y;
+    if(width>1&&height>1&&width*height<pw*ph*.72){
+     active={x,y,w:width,h:height,dpr};
+     stats.tileFrames++;
+     stats.sourcePixels+=width*height;
+     stats.avoidedPixels+=pw*ph-width*height;
+    }else stats.fallbackFrames++;
+   }
+  }
+  try{return oldDistort(w,h,dpr,o);}
+  catch(error){stats.errors++;throw error;}
+  finally{active=null;}
+ };
+ post.fit=function(canvas,ctx,w,h){
+  // Gold's full-sized cp is unused during a tile frame. The native Gold
+  // effect still receives all the same texels from this frame's tile.
+  if(active&&canvas===post.cp&&ctx===post.cpctx)return;
+  return oldFit(canvas,ctx,w,h);
+ };
+ post.cpctx.drawImage=function(source,...args){
+  if(active&&source===post.scene&&args.length===2&&args[0]===0&&args[1]===0){
+   if(tile.width!==active.w||tile.height!==active.h){
+    tile.width=active.w;tile.height=active.h;
+   }
+   tctx.setTransform(1,0,0,1,0,0);
+   tctx.globalAlpha=1;
+   tctx.globalCompositeOperation='copy';
+   tctx.drawImage(source,active.x,active.y,active.w,active.h,0,0,active.w,active.h);
+   tctx.globalCompositeOperation='source-over';
+   return;
+  }
+  return oldCopy(source,...args);
+ };
+ post.sctx.drawImage=function(source,...args){
+  if(!active||source!==post.cp||args.length!==8)return oldStage(source,...args);
+  const [sx,sy,sw,sh,dx,dy,dw,dh]=args;
+  if(sw<=0||sh<=0||dw===0||dh===0)return oldStage(source,...args);
+  const x=Math.max(sx,active.x),y=Math.max(sy,active.y);
+  const right=Math.min(sx+sw,active.x+active.w);
+  const bottom=Math.min(sy+sh,active.y+active.h);
+  if(right<=x||bottom<=y)return;
+  // Exact original source<->destination affine mapping, with source
+  // coordinates translated into the cropped full-resolution tile.
+  const mappedX=dx+(x-sx)/sw*dw,mappedY=dy+(y-sy)/sh*dh;
+  const mappedW=(right-x)/sw*dw,mappedH=(bottom-y)/sh*dh;
+  if(sx===0&&sy===0&&sw===post.scene.width&&sh===post.scene.height)stats.shockBlits++;
+  else stats.heatBlits++;
+  return oldStage(tile,x-active.x,y-active.y,right-x,bottom-y,
+    mappedX,mappedY,mappedW,mappedH);
+ };
+ return true;
+}
 installPartialRefraction(engine.post,REFRACTION_COPY);
+installRefractionTiles(engine.post);
+window.APEX_WAVE_REFRACTION_TILES=Object.freeze({
+ snapshot:()=>({...REFRACTION_TILES}),
+ installForTest(post){
+  installPartialRefraction(post,{partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pixelsAvoided:0});
+  const stats={enabled:true,tileFrames:0,fallbackFrames:0,sourcePixels:0,avoidedPixels:0,shockBlits:0,heatBlits:0,errors:0};
+  installRefractionTiles(post,stats);
+  return stats;
+ }
+});
 window.APEX_WAVE_REFRACTION_COPY=Object.freeze({
  snapshot:()=>({...REFRACTION_COPY}),
  // For Chrome-only deterministic parity proof on isolated Post instances.
