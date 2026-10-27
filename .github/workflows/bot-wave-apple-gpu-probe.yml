@@ -6,13 +6,16 @@ on:
     paths:
       - '.github/workflows/bot-wave-apple-gpu-probe.yml'
       - 'tools/profileBotWaveHardware.mjs'
+      - 'tools/botWaveFluidProjectCandidate.mjs'
+      - 'tools/testBotWaveFluidProjectParity.mjs'
+      - 'tools/compareBotWaveFluidProfiles.mjs'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   metal-gpu-probe:
     runs-on: macos-26
-    timeout-minutes: 12
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -76,7 +79,9 @@ jobs:
           done
           cat /tmp/apex-metal-vite.log
           exit 1
-      - name: Capture real GPU/compositor/raster BOT WAVE trace on Apple Silicon
+      - name: Confirm Gold fluid mathematical parity before profiling
+        run: node tools/testBotWaveFluidProjectParity.mjs
+      - name: Capture BASELINE Metal combat trace
         shell: bash
         env:
           CHROME_PATH: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
@@ -89,8 +94,38 @@ jobs:
           APEX_PROFILE_BOTS: '14'
           APEX_CAPTURE_CPU_PROFILE: '1'
           APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
+          APEX_PROFILE_FLUID_VARIANT: baseline
+          APEX_PROFILE_RUN_ID: baseline
         run: |
           node tools/profileBotWaveHardware.mjs
+      - name: Capture LOSSLESS CANDIDATE Metal combat trace
+        shell: bash
+        env:
+          CHROME_PATH: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_PROFILE_HEADLESS: '1'
+          APEX_PROFILE_AUTOPLAY: '1'
+          APEX_PROFILE_VIEWPORT: mobile
+          APEX_PROFILE_DURATION_MS: '65000'
+          APEX_PROFILE_SAMPLE_MS: '5000'
+          APEX_PROFILE_BOTS: '14'
+          APEX_CAPTURE_CPU_PROFILE: '1'
+          APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
+          APEX_PROFILE_FLUID_VARIANT: lossless
+          APEX_PROFILE_RUN_ID: lossless
+        run: |
+          node tools/profileBotWaveHardware.mjs
+      - name: Compare SAME-RUN Metal hardware performance
+        if: always()
+        env:
+          APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
+        run: |
+          if [ -s reports/bot-wave-metal-hardware/bot-wave-baseline.summary.json ] && [ -s reports/bot-wave-metal-hardware/bot-wave-lossless.summary.json ]; then
+            node tools/compareBotWaveFluidProfiles.mjs
+          else
+            echo "A/B INCOMPLETE; both valid hardware captures required"
+            exit 1
+          fi
       - name: Upload hardware trace even on failure
         if: always()
         uses: actions/upload-artifact@v4
