@@ -83,10 +83,12 @@ try{
    let changed=0,maxDiff=0,sum=0,totalChannels=0,tiledChanged=0,tileMaxDiff=0,tileSum=0;
    for(const [pass,c] of trials.entries()){
     const opts={time:1.2+pass*.37,
-     shocks:[{x:c.x,y:c.y,r:c.r,width:22,strength:.12,squash:.62},
-      {x:305-pass*17,y:232-pass*21,r:25,width:35,strength:.06,squash:.62}],
-     heat:[{x:c.heatX,y:c.heatY,w:80,h:85,heat:.8},
-      {x:318-pass*29,y:80+pass*20,w:76,h:60,heat:.9}]};
+     shocks:pass<2?[{x:c.x,y:c.y,r:c.r,width:22,strength:.12,squash:.62}]:
+      [{x:c.x,y:c.y,r:c.r,width:22,strength:.12,squash:.62},
+       {x:305-pass*17,y:232-pass*21,r:25,width:35,strength:.06,squash:.62}],
+     heat:pass<2?[]:
+      [{x:c.heatX,y:c.heatY,w:80,h:85,heat:.8},
+       {x:318-pass*29,y:80+pass*20,w:76,h:60,heat:.9}]};
     for(const post of [classic,partial,tiled]){
      const ctx=post.sctx;
      const g=ctx.createLinearGradient(0,0,w,h);
@@ -101,10 +103,10 @@ try{
     }
     const a=classic.sctx.getImageData(0,0,w,h).data;
     const b=partial.sctx.getImageData(0,0,w,h).data;
-    const c=tiled.sctx.getImageData(0,0,w,h).data;
+    const tilePixels=tiled.sctx.getImageData(0,0,w,h).data;
     for(let k=0;k<a.length;k++){
      const d=Math.abs(a[k]-b[k]);if(d)changed++;sum+=d;maxDiff=Math.max(d,maxDiff);
-     const t=Math.abs(a[k]-c[k]);if(t)tiledChanged++;tileSum+=t;tileMaxDiff=Math.max(tileMaxDiff,t);
+     const t=Math.abs(a[k]-tilePixels[k]);if(t)tiledChanged++;tileSum+=t;tileMaxDiff=Math.max(tileMaxDiff,t);
     }
     totalChannels+=a.length;
    }
