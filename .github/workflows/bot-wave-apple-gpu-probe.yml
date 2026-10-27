@@ -9,6 +9,9 @@ on:
       - 'tools/compareBotWaveFluidProfiles.mjs'
       - 'tools/botWaveSmokeCacheCandidate.mjs'
       - 'tools/testBotWaveSmokeCacheParity.mjs'
+      - 'tools/botWavePressureWasmCandidate.mjs'
+      - 'tools/testBotWavePressureWasmParity.mjs'
+      - 'tools/pressure-solver.c'
   workflow_dispatch:
 permissions:
   contents: read
@@ -81,8 +84,8 @@ jobs:
           exit 1
       - name: Confirm Gold fluid mathematical parity before profiling
         run: node tools/testBotWaveFluidProjectParity.mjs
-      - name: Verify exact smoke raster/compositing parity
-        run: node tools/testBotWaveSmokeCacheParity.mjs
+      - name: Verify Gold-versus-WASM solver parity (120 complete states)
+        run: node tools/testBotWavePressureWasmParity.mjs
       - name: Capture BASELINE Metal combat trace
         shell: bash
         env:
@@ -100,7 +103,7 @@ jobs:
           APEX_PROFILE_RUN_ID: baseline
         run: |
           node tools/profileBotWaveHardware.mjs
-      - name: Capture SMOKE CACHE Metal combat trace
+      - name: Capture BITWISE WASM PRESSURE Metal combat trace
         shell: bash
         env:
           CHROME_PATH: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
@@ -113,17 +116,17 @@ jobs:
           APEX_PROFILE_BOTS: '14'
           APEX_CAPTURE_CPU_PROFILE: '1'
           APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
-          APEX_PROFILE_FLUID_VARIANT: smoke-cache
-          APEX_PROFILE_RUN_ID: smoke-cache
+          APEX_PROFILE_FLUID_VARIANT: wasm
+          APEX_PROFILE_RUN_ID: wasm
         run: |
           node tools/profileBotWaveHardware.mjs
       - name: Compare SAME-RUN Metal hardware performance
         if: always()
         env:
           APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
-          APEX_COMPARE_VARIANT: smoke-cache
+          APEX_COMPARE_VARIANT: wasm
         run: |
-          if [ -s reports/bot-wave-metal-hardware/bot-wave-baseline.summary.json ] && [ -s reports/bot-wave-metal-hardware/bot-wave-smoke-cache.summary.json ]; then
+          if [ -s reports/bot-wave-metal-hardware/bot-wave-baseline.summary.json ] && [ -s reports/bot-wave-metal-hardware/bot-wave-wasm.summary.json ]; then
             node tools/compareBotWaveFluidProfiles.mjs
           else
             echo "A/B INCOMPLETE; both valid hardware captures required"
