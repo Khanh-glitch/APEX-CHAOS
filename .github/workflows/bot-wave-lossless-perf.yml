@@ -9,6 +9,8 @@ on:
       - 'tools/profileBotWaveHardware.mjs'
       - 'tools/botWaveFluidProjectCandidate.mjs'
       - 'tools/testBotWaveFluidProjectParity.mjs'
+      - 'tools/botWaveSmokeCacheCandidate.mjs'
+      - 'tools/testBotWaveSmokeCacheParity.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/bot-wave-lossless-perf.yml'
@@ -22,6 +24,8 @@ on:
       - 'tools/profileBotWaveHardware.mjs'
       - 'tools/botWaveFluidProjectCandidate.mjs'
       - 'tools/testBotWaveFluidProjectParity.mjs'
+      - 'tools/botWaveSmokeCacheCandidate.mjs'
+      - 'tools/testBotWaveSmokeCacheParity.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/bot-wave-lossless-perf.yml'
@@ -46,6 +50,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Verify exact Gold fluid pressure solver parity
         run: node tools/testBotWaveFluidProjectParity.mjs
+      - name: Verify lossless smoke render pixels and cache invalidation
+        run: node tools/testBotWaveSmokeCacheParity.mjs
       - name: Validate hardware profiler syntax
         run: node --check tools/profileBotWaveHardware.mjs
       - name: Build exact production assets
