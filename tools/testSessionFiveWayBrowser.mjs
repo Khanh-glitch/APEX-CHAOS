@@ -116,7 +116,7 @@ try{
    const first=await page.evaluate(()=>({
     guide:!!document.querySelector('.apex-gold-direct-host iframe')?.contentDocument?.querySelector('[data-testid="gold-swipe-coach"]'),
     dots:document.querySelector('.apex-gold-direct-host iframe')?.contentDocument?.querySelectorAll('.gold-section-position span').length,
-    persisted:document.querySelector('.apex-gold-direct-host iframe')?.contentWindow?.localStorage?.getItem('apex.gold.sections.swipe.v2')
+    persisted:document.querySelector('.apex-gold-direct-host iframe')?.contentWindow?.localStorage?.getItem('apex.gold.sections.swipe.v3')
    }));
    assert.ok(first.guide&&first.dots===5&&first.persisted==='seen','five-section lesson missing');
    await swipeGold(page,'left');
