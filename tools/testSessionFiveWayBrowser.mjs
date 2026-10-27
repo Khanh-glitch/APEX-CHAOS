@@ -12,6 +12,10 @@ async function until(page,test,why,timeout=33000,...args){
  try{await page.waitForFunction(test,{timeout},...args);}
  catch(e){throw new Error(why+': '+String(e));}
 }
+async function waitForSettledGoldWipe(page){
+ await page.waitForFunction(()=>!document.querySelector('[data-testid="apex-session-wipe"]'),{timeout:12000});
+ await wait(200); // repaint finished; screenshots must show the real section
+}
 async function gold(page,index){
  await until(page,()=>document.querySelector('.apex-gold-direct-host iframe')?.contentDocument?.querySelector('main h1'),"Gold iframe admission");
  await until(page,i=>{
@@ -139,6 +143,7 @@ try{
    assert.equal(wallet.index,'3','global section indicator out of sync on Lucky');
    assert.equal(await page.evaluate(()=>document.querySelector('#luckyDonorFrame')?.contentDocument?.querySelector('.apex-inline-session')),null,
      'Lucky HUD still contains obsolete Account/Archive button panel');
+   await waitForSettledGoldWipe(page);
    await page.screenshot({path:`${output}/${width}x${height}-lucky.png`});
 
    await swipeLucky(page,'left');
@@ -150,6 +155,7 @@ try{
    assert.equal(await page.$('.fa3-header .apex-inline-session'),null,'Old Archive buttons obscure the original HUD');
    assert.equal(await page.evaluate(()=>document.querySelectorAll('.apex-session-position span').length),5,
      'Five original-order position markers missing in Archive');
+   await waitForSettledGoldWipe(page);
    await page.screenshot({path:`${output}/${width}x${height}-archive.png`});
 
    await swipeArchive(page,'right');
@@ -186,6 +192,7 @@ try{
    }));
    assert.ok(hint.hand&&hint.rail===String(index)&&hint.items===5&&!hint.buttonPanel,
     'Direct-open section lacks unobtrusive five-item hand coaching: '+JSON.stringify(hint));
+   await waitForSettledGoldWipe(page);
    await page.screenshot({path:`${output}/first-entry-${index===3?'lucky':'archive'}-844x390.png`});
    // Actual Chromium finger movement through the entire viewport. Synthetic
    // PointerEvent on #stage/.fa3-center alone cannot prove phone gesture UX.
