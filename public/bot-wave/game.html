@@ -7455,6 +7455,10 @@ const REFRACTION_COPY={partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pix
 function installPartialRefraction(goldPost,REFRACTION_COPY){
 const originalGoldDistort=goldPost.distort.bind(goldPost);
 const originalGoldCopy=goldPost.cpctx.drawImage.bind(goldPost.cpctx);
+const originalShockDraw=goldPost.sctx.drawImage.bind(goldPost.sctx);
+const shockCropEnabled=new URLSearchParams(location.search).get('shockCrop')!=='off';
+const SHOCK_CROP={enabled:shockCropEnabled,croppedDraws:0,originalDraws:0,srcPixelsAvoided:0};
+let refractionShockSamples=null,shockDrawIndex=0;
 const originalGoldFit=goldPost.fit.bind(goldPost);
 let refractionRegions=null;
 // Cropped refraction fills opaque scene pixels in every sampled region;
@@ -7488,8 +7492,9 @@ goldPost.distort=function(w,h,dpr,o){
  };
  // Keep the exact Gold admission predicates and top-five/top-fourteen
  // ordering, so even highly overlapping waves retain identical content.
- for(const sh of (o.shocks||[]).filter(s=>s.strength>.002&&s.x+s.r>-40&&s.x-s.r<w+40&&s.y+s.r>-40&&s.y-s.r<h+40)
-   .sort((a,b)=>b.strength-a.strength).slice(0,5)){
+ const shocks=(o.shocks||[]).filter(s=>s.strength>.002&&s.x+s.r>-40&&s.x-s.r<w+40&&s.y+s.r>-40&&s.y-s.r<h+40)
+   .sort((a,b)=>b.strength-a.strength).slice(0,5);
+ for(const sh of shocks){
   const r=Math.max(1,sh.r+sh.width*.6),ry=r*Math.max(0,sh.squash||1);
   add(sh.x-r,sh.y-ry,sh.x+r,sh.y+ry);
  }
@@ -7501,9 +7506,39 @@ goldPost.distort=function(w,h,dpr,o){
  const footprint=boxes.reduce((sum,r)=>sum+r.w*r.h,0);
  // Full frame may be cheaper when regions genuinely occupy most pixels.
  refractionRegions=boxes.length&&footprint<pw*ph*.78?boxes:null;
+ refractionShockSamples=shocks;
+ shockDrawIndex=0;
  try{return originalGoldDistort(w,h,dpr,o);}
- finally{refractionRegions=null;}
+ finally{refractionRegions=null;refractionShockSamples=null;}
 };
+// Shock refraction's full-scene draw is clipped to a *small ring*, but the
+// original operation submits a 1.3-Mpixel image per ring. Source/dest crop
+// share identical pixel coordinates and original Gold's existing transform,
+// clipping, alpha, interpolation and ordering. No effect is removed.
+goldPost.sctx.drawImage=function(source,...args){
+ const isShock=source===goldPost.cp && args.length===8 &&
+  args[0]===0&&args[1]===0&&args[2]===goldPost.scene.width&&
+  args[3]===goldPost.scene.height && refractionShockSamples;
+ if(!isShock)return originalShockDraw(source,...args);
+ const sh=refractionShockSamples[shockDrawIndex++];
+ if(!shockCropEnabled || !sh){SHOCK_CROP.originalDraws++;return originalShockDraw(source,...args);}
+ const pw=goldPost.scene.width,ph=goldPost.scene.height;
+ const dpr=pw/Math.max(1,args[6]);
+ const radius=Math.max(1,sh.r+sh.width*.6),ry=radius*Math.max(0,sh.squash||1);
+ const pad=12;
+ const left=Math.max(0,Math.floor((sh.x-radius-pad)*dpr));
+ const top=Math.max(0,Math.floor((sh.y-ry-pad)*dpr));
+ const right=Math.min(pw,Math.ceil((sh.x+radius+pad)*dpr));
+ const bottom=Math.min(ph,Math.ceil((sh.y+ry+pad)*dpr));
+ if(right<=left||bottom<=top){SHOCK_CROP.originalDraws++;return originalShockDraw(source,...args);}
+ SHOCK_CROP.croppedDraws++;
+ SHOCK_CROP.srcPixelsAvoided+=pw*ph-(right-left)*(bottom-top);
+ // The source pixel box maps back to exactly the same Gold world-space
+ // coordinates. In the current Gold clip/transform, visible texels match.
+ return originalShockDraw(source,left,top,right-left,bottom-top,
+  left/dpr,top/dpr,(right-left)/dpr,(bottom-top)/dpr);
+};
+window.APEX_WAVE_SHOCK_CROP=Object.freeze({snapshot:()=>({...SHOCK_CROP})});
 goldPost.cpctx.drawImage=function(source,...args){
  if(source===goldPost.scene&&args.length===2&&args[0]===0&&args[1]===0&&refractionRegions){
   let copied=0;
