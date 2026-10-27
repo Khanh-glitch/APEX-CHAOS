@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 const dir = process.env.APEX_EVIDENCE_DIR || 'reports/bot-wave-metal-hardware';
 const baseline = JSON.parse(fs.readFileSync(`${dir}/bot-wave-baseline.summary.json`, 'utf8'));
 const variant = process.env.APEX_COMPARE_VARIANT || 'lossless';
-assert.ok(['lossless', 'smoke-cache'].includes(variant), 'Unsupported A/B variant');
+assert.ok(['lossless', 'smoke-cache', 'wasm'].includes(variant), 'Unsupported A/B variant');
 const candidate = JSON.parse(fs.readFileSync(`${dir}/bot-wave-${variant}.summary.json`, 'utf8'));
 assert.equal(baseline.fluidVariant, 'baseline');
 assert.equal(candidate.fluidVariant, variant);
