@@ -7519,7 +7519,43 @@ goldPost.cpctx.drawImage=function(source,...args){
  return originalGoldCopy(source,...args);
 };
 }
+
+// Candidate: preserve 100% Gold optical draw calls and source coordinates,
+// but route the refraction copy to a CPU-readable offscreen 2D backing store.
+// It may avoid repeated GPU readback stalls on some browser renderers.
+// Runtime falls back to original Gold canvas if OffscreenCanvas is unavailable.
+const REFRACTION_BACKEND={mode:new URLSearchParams(location.search).get('cpBackend')||'off',
+ supported:false,installed:false,fallback:null};
+function installRefractionBackend(post,mode=REFRACTION_BACKEND.mode,state=REFRACTION_BACKEND){
+ if(mode==='off')return false;
+ try{
+  let candidate;
+  if(mode==='offscreen'){
+   if(typeof OffscreenCanvas!=='function')throw Error('OffscreenCanvas unsupported');
+   candidate=new OffscreenCanvas(2,2);
+  }else{
+   candidate=document.createElement('canvas');
+   candidate.width=2;candidate.height=2;
+  }
+  const ctx=candidate.getContext('2d',mode==='default'?
+    {alpha:true}:{alpha:true,willReadFrequently:true});
+  if(!ctx)throw Error('No suitable 2D context');
+  post.cp=candidate;post.cpctx=ctx;
+  state.supported=true;state.installed=true;
+  return true;
+ }catch(e){state.fallback=String(e);return false;}
+}
+installRefractionBackend(engine.post);
 installPartialRefraction(engine.post,REFRACTION_COPY);
+window.APEX_WAVE_REFRACTION_BACKEND=Object.freeze({
+ snapshot:()=>({...REFRACTION_BACKEND}),
+ installForTest(post,mode='offscreen'){
+  const state={mode,supported:false,installed:false,fallback:null};
+  installRefractionBackend(post,mode,state);
+  installPartialRefraction(post,{partialFrames:0,fullFrames:0,regions:0,pixelsCopied:0,pixelsAvoided:0});
+  return state;
+ }
+});
 window.APEX_WAVE_REFRACTION_COPY=Object.freeze({
  snapshot:()=>({...REFRACTION_COPY}),
  // For Chrome-only deterministic parity proof on isolated Post instances.
