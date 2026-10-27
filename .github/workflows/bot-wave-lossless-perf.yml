@@ -4,6 +4,7 @@ on:
     branches:
       - fix/mobile-onboarding-guides-botwave-performance-20261026
       - perf/botwave-lossless-refraction-fit-20261027
+      - perf/botwave-bloom-cpu-simd-20261027
     paths:
       - 'public/bot-wave/**'
       - 'public/game/bot-wave/**'
@@ -61,7 +62,8 @@ jobs:
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
-          CHROME_PATH="$CHROME" node tools/profileBotWaveLosslessBrowser.mjs
+          CHROME_PATH="$CHROME" APEX_CPU_BLOOM_MODE=off APEX_EVIDENCE_DIR=docs/boxe/bot-wave-perf/native node tools/profileBotWaveLosslessBrowser.mjs
+          CHROME_PATH="$CHROME" APEX_CPU_BLOOM_MODE=force APEX_EVIDENCE_DIR=docs/boxe/bot-wave-perf/cpu node tools/profileBotWaveLosslessBrowser.mjs
       - name: Publish timings and screenshots
         if: always()
         uses: actions/upload-artifact@v4
