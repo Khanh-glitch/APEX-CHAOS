@@ -1,8 +1,6 @@
 name: BOT WAVE Apple Silicon GPU availability probe
 on:
-  push:
-    branches:
-      - arena/960d6673-apex-chaos
+  pull_request:
     paths:
       - '.github/workflows/bot-wave-apple-gpu-probe.yml'
       - 'tools/profileBotWaveHardware.mjs'
