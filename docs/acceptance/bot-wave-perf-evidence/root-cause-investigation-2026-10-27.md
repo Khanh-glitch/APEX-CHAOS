@@ -47,13 +47,15 @@ Chrome `SystemInfo.getInfo` identified the renderer as **ANGLE_SWIFTSHADER**, `A
 
 ## Desktop movement and iframe QA
 
-The old wrapper smoke only waited 800 ms after KeyD, which could land entirely inside a renderer/GPU stall and incorrectly passed on key delivery alone. It now holds KeyD for six seconds, records phase/visibility/focus/RAF time diagnostics, and requires both movement and simulation-clock advance. A fresh desktop wrapper run passed with **67.4 world units moved** and **0.250 s game-clock advance**; phase was combat, unpaused, visible, and focused. This establishes eventual desktop movement in that smoke, **not** acceptable input latency or a performance fix. The 14-bot stress still has multi-second input-to-next-frame P95/P99.
+The old wrapper smoke only waited 800 ms after KeyD, which could land entirely inside a renderer/GPU stall and incorrectly passed on key delivery alone. It now holds KeyD for six seconds, records phase/visibility/focus/RAF time diagnostics, and requires both movement and simulation-clock advance. A fresh desktop wrapper run passed with **67.4 world units moved** and **0.250 s game-clock advance**. The mobile-landscape wrapper QA also passed with **15.6 units moved** and **0.233 s game-clock advance**. Both were combat, unpaused, visible, and focused. These establish eventual movement in the smokes, **not** acceptable input latency, smoothness, or a performance fix. The 14-bot stress still has multi-second input-to-next-frame P95/P99.
 
-## Candidate Chrome CI failure: exact cause still unavailable
+## Candidate Chrome CI failure: no longer reproduces; original cause unavailable
 
-Run [40491444677](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40491444677) passed baseline profiling and failed the candidate profiling step after about 18 seconds. GitHub's job/check-run metadata and annotations only expose the generic `Process completed with exit code 1`; the run-log download returned EOF from `results-receiver.actions.githubusercontent.com`. A same-condition local 12-second desktop candidate run passed, so it does not reproduce the CI failure. **The original failure's exact assertion/runtime cause remains unknown; it is not safe to guess.**
+Run [40491444677](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40491444677) passed baseline profiling and failed the candidate profiling step after about 18 seconds. GitHub's job/check-run metadata and annotations only expose the generic `Process completed with exit code 1`; the run-log download returned EOF from `results-receiver.actions.githubusercontent.com`. A same-condition local 12-second desktop candidate run passed, so the original failure could not be reproduced locally.
 
-The profiler now writes a failure JSON with profile, mode, stage, runtime state/counters, console/network errors, and a best-effort screenshot; it also writes the failure into `GITHUB_STEP_SUMMARY`. The existing `if: always()` artifact upload will preserve that detail for the next run.
+After adding failure diagnostics, the new BOT WAVE workflow run [40499986580](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40499986580) **passed all steps**, including both baseline and candidate profiles, wrapper QA, render contracts, pixel parity, build, and artifact upload. Thus there is no current candidate CI failure; however, the original run's exact assertion/runtime cause remains unknown and should not be guessed. The uploaded artifact and log endpoint could not be downloaded in this environment (EOF), and because the rerun passed, the new failure-detail path was not exercised.
+
+If a later candidate run fails, the profiler now writes a failure JSON with profile, mode, stage, runtime state/counters, console/network errors, and a best-effort screenshot; it also writes details into `GITHUB_STEP_SUMMARY`. The workflow's `if: always()` artifact upload preserves that detail.
 
 ## Inherited Shuri revision-gate classification
 
@@ -65,12 +67,12 @@ The profiler now writes a failure JSON with profile, mode, stage, runtime state/
 - `public/game/hero-rework/shuriGoldLibrary.js`
 - `public/game/hero-rework/shuriGoldPresentationRuntime.js`
 
-All five are present in the PR base and absent from this PR's changed-file set. They are inherited revision-gate debt, not BOT WAVE performance regressions. **Scope decision:** do not edit unrelated Shuri files or loosen the revision gate in this performance PR; track/fix that baseline issue separately. The aggregate Product Acceptance check remains red until its owner resolves the inherited gate.
+All five are present in the PR base and absent from this PR's changed-file set. They are inherited revision-gate debt, not BOT WAVE performance regressions. **Scope decision:** do not edit unrelated Shuri files or loosen the revision gate in this performance PR; track/fix that baseline issue separately. The new Product Acceptance run [40499986527](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40499986527) remains red at the aggregate “Verify product graph, source hygiene, runtime revision, and generated audio bank” step. Local validation confirms the runtime-revision subcheck is the inherited five-file mismatch listed above; do not misattribute this to the BOT WAVE changes. The aggregate check remains red until its owner resolves the inherited gate.
 
 ## Follow-up / release gate
 
 - Keep the candidate opt-in and keep PR #110 draft.
 - Do not claim READY, stable improvement, or physical mobile performance from this evidence.
 - Preserve the failed candidate and inherited Shuri classifications; neither is hidden or relaxed.
-- Re-run the newly instrumented Chrome CI candidate step to obtain a concrete failure artifact if it fails again.
+- The newly instrumented Chrome CI rerun passed; if a later candidate run fails, inspect its failure JSON/artifact before assigning a root cause.
 - Require a repeated, counterbalanced hardware-accelerated desktop A/B, gameplay validation, acceptable frame/input P95/P99, and all applicable CI gates before changing readiness. No release ZIP was made.
