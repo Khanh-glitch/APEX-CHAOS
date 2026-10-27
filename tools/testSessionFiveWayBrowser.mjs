@@ -43,6 +43,8 @@ async function lucky(page){
 async function archive(page){
  try{
   await until(page,()=>!!document.querySelector('.fa3-overlay.apex-cosmetics-overlay .fa3-shell'),'actual Field Archive open',12000);
+  await until(page,()=>document.querySelector('.apex-session-position')?.dataset.sessionIndex==='4',
+    'Archive position synchronized after React/portal hydration',6000);
  }catch(e){
   const diag=await page.evaluate(()=>({
    donorOpen:document.getElementById('luckyDonorHost')?.classList.contains('is-open'),
