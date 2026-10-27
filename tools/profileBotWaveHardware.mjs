@@ -15,6 +15,8 @@ const botCount = Number(process.env.APEX_PROFILE_BOTS || 14);
 const sampleMs = Number(process.env.APEX_PROFILE_SAMPLE_MS || 5000);
 const remote = process.env.APEX_CHROME_REMOTE || '';
 const captureCpuProfile = process.env.APEX_CAPTURE_CPU_PROFILE === '1';
+const ciHeadless = process.env.APEX_PROFILE_HEADLESS === '1';
+const ciAutoplay = process.env.APEX_PROFILE_AUTOPLAY === '1';
 fs.mkdirSync(output, { recursive: true });
 assert.ok(durationMs >= 60_000, 'Real-hardware profile must run at least 60 seconds; use 180000 or longer for acceptance evidence.');
 assert.ok(botCount >= 8 && botCount <= 40, 'APEX_PROFILE_BOTS must be between 8 and 40.');
@@ -69,8 +71,10 @@ try {
     const executablePath = resolveChrome();
     assert.ok(executablePath,
       'No system Chrome found. Set CHROME_PATH to installed Chrome; bundled/SwiftShader Chromium is deliberately not a fallback.');
-    browser = await puppeteer.launch({ executablePath, headless: false, defaultViewport: null,
-      args: ['--start-maximized', '--no-first-run', '--no-default-browser-check'] });
+    browser = await puppeteer.launch({ executablePath, headless: ciHeadless, defaultViewport: null,
+      args: ciHeadless
+        ? ['--enable-gpu', '--use-angle=metal', '--disable-software-rasterizer', '--no-first-run', '--no-default-browser-check']
+        : ['--start-maximized', '--no-first-run', '--no-default-browser-check'] });
     ownsBrowser = true;
   }
   page = await browser.newPage();
@@ -233,7 +237,21 @@ try {
   if (captureCpuProfile) { await pageCdp.send('Profiler.enable'); await pageCdp.send('Profiler.start'); }
   await page.tracing.start({ path: tracePath, screenshots: false, categories: traceCategories });
   traceStarted = true;
-  await new Promise(resolve => setTimeout(resolve, durationMs));
+  // Optional CI-only real CDP keyboard events. Nothing changes in the game.
+  // Puppeteer keyboard events are trusted browser input, unlike dispatched JS events.
+  let autoplayTimer=null,autoBusy=false,autoIndex=0;
+  if(ciAutoplay){
+    const sequence=['w','d','s','a','j','k','w','d','s','a'];
+    autoplayTimer=setInterval(async()=>{
+      if(autoBusy)return;
+      autoBusy=true;
+      try{await page.keyboard.press(sequence[autoIndex++%sequence.length],{delay:75});}
+      catch(e){console.warn('AUTOPLAY INPUT',String(e));}
+      finally{autoBusy=false;}
+    },480);
+  }
+  try{await new Promise(resolve => setTimeout(resolve, durationMs));}
+  finally{if(autoplayTimer)clearInterval(autoplayTimer);}
   await page.tracing.stop();
   traceStarted = false;
   const cpuProfile = captureCpuProfile
