@@ -7,13 +7,14 @@
    workerTotalMs:0,workerAvgMs:0,transferMs:0,zeroCopyFrames:0,snapshotMs:0,swappedScene:false,failed:false,error:''};
  if(mode==='off')return void(window.APEX_WAVE_POST_WORKER={snapshot:()=>({...state})});
  let worker=null,last=null,pending=false,seq=0,disabled=false,sourcePost=null;
+ const probes=new Map();
  function workerScript(){
   let post=null,out=null,ctx=null;
   self.onmessage=e=>{
    const q=e.data;
    try{
     if(q.type==='ping'){post=new Post();self.postMessage({type:'ready'});return;}
-    if(q.type!=='frame')return;
+    if(q.type!=='frame'&&q.type!=='probe')return;
     const {bitmap,w,h,dpr,o}=q,pw=Math.max(2,Math.round(w*dpr)),ph=Math.max(2,Math.round(h*dpr));
     if(post.scene.width!==pw||post.scene.height!==ph){
      post.scene.width=pw;post.scene.height=ph;
@@ -29,7 +30,7 @@
     post.end(ctx,w,h,dpr,o);
     const ms=performance.now()-t;
     const img=out.transferToImageBitmap();
-    self.postMessage({type:'frame',img,ms},[img]);
+    self.postMessage({type:q.type,id:q.id,img,ms},[img]);
    }catch(err){self.postMessage({type:'error',msg:String(err?.stack||err)})}
   };
  }
@@ -63,6 +64,11 @@
     const q=e.data;
     if(q.type==='error'){failure(q.msg);return;}
     if(q.type==='ready'){state.ready=true;return;}
+    if(q.type==='probe'){
+     const done=probes.get(q.id);probes.delete(q.id);
+     if(done)done(q.img);else q.img.close();
+     return;
+    }
     if(q.type==='frame'){
      pending=false;state.frames++;state.workerTotalMs+=q.ms;
      state.workerAvgMs=state.workerTotalMs/state.frames;
@@ -124,7 +130,16 @@
   };
   return true;
  }
- window.APEX_WAVE_POST_WORKER={install,snapshot:()=>({...state})};
+ async function probe(source,w,h,dpr,o){
+  if(!state.ready||disabled)throw Error('Gold worker not ready: '+state.error);
+  const id=++seq,bitmap=await createImageBitmap(source);
+  return await new Promise((resolve,reject)=>{
+   const timeout=setTimeout(()=>{probes.delete(id);reject(Error('Gold worker parity timeout'));},12000);
+   probes.set(id,img=>{clearTimeout(timeout);resolve(img);});
+   worker.postMessage({type:'probe',id,bitmap,w,h,dpr,o},[bitmap]);
+  });
+ }
+ window.APEX_WAVE_POST_WORKER={install,probe,snapshot:()=>({...state})};
  let tries=0;
  const timer=setInterval(()=>{if(install(window.handLab?.post)||++tries>=500)clearInterval(timer)},40);
 })();
