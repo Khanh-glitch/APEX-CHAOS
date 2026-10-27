@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import puppeteer from 'puppeteer-core';
 import { losslessProject } from './botWaveFluidProjectCandidate.mjs';
 import { smokeCacheCandidateHtml } from './botWaveSmokeCacheCandidate.mjs';
+import { pressureWasmBase64 } from './botWavePressureWasmCandidate.mjs';
 
 const base = (process.env.APEX_APP_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
 const output = process.env.APEX_EVIDENCE_DIR || 'reports/bot-wave-hardware';
@@ -21,7 +22,7 @@ const ciHeadless = process.env.APEX_PROFILE_HEADLESS === '1';
 const ciAutoplay = process.env.APEX_PROFILE_AUTOPLAY === '1';
 // CI-only browser response substitution. Never alters the shipping file or build.
 const fluidVariant = process.env.APEX_PROFILE_FLUID_VARIANT || 'baseline';
-assert.ok(['baseline', 'lossless', 'smoke-cache'].includes(fluidVariant), 'Unknown fluid solver A/B variant');
+assert.ok(['baseline', 'lossless', 'smoke-cache', 'wasm'].includes(fluidVariant), 'Unknown fluid solver A/B variant');
 fs.mkdirSync(output, { recursive: true });
 assert.ok(durationMs >= 60_000, 'Real-hardware profile must run at least 60 seconds; use 180000 or longer for acceptance evidence.');
 assert.ok(botCount >= 8 && botCount <= 40, 'APEX_PROFILE_BOTS must be between 8 and 40.');
@@ -155,6 +156,37 @@ try {
   assert.equal(await gameFrame.evaluate(() => window.BOXE_WAVE_PILOT?.state?.phase), 'combat',
     'Gold onboarding did not enter combat.');
 
+  if (fluidVariant === 'wasm') {
+    // Switch pressure backend after Gold combat starts but before any measured
+    // trace. The JS solver, fluid grid and all rendering code remain canonical.
+    // All four Float32 working fields share WASM memory with no per-frame copies.
+    await gameFrame.evaluate(async (base64) => {
+      const engine = window.handLab, fluid = engine?.fluid;
+      if (!engine || !fluid) throw Error('Missing real fluid scene for WASM A/B');
+      const wasPaused = engine.paused;
+      engine.paused = true;
+      try {
+        const n = fluid.n, len = n * n, stride = len * 4;
+        const memory = new WebAssembly.Memory({ initial: Math.max(16, Math.ceil(stride * 4 / 65536)), maximum: 32 });
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const instance = await WebAssembly.instantiate(bytes, { env: { memory } });
+        const solver = instance.instance.exports.project;
+        for (let i = 0; i < 4; i++) {
+          const field = ['u', 'v', 'p', 'div'][i];
+          const array = new Float32Array(memory.buffer, i * stride, len);
+          array.set(fluid[field]); fluid[field] = array;
+        }
+        fluid.project = function(i0, i1, j0, j1) {
+          solver(n, i0, i1, j0, j1, 0, stride, 2 * stride, 3 * stride);
+        };
+        window.__apexPressureWasm = { active: true, memory, backend: 'WASM f64 parity 14-iteration' };
+      } finally {
+        engine.paused = wasPaused;
+      }
+    }, pressureWasmBase64);
+    assert.ok(await gameFrame.evaluate(() => !!window.__apexPressureWasm?.active),
+      'WASM candidate not installed; refuse to claim A/B');
+  }
   await pageCdp.send('Performance.enable');
   const browserPerformanceSamples = [];
   const sampleBrowserPerformance = async () => {
