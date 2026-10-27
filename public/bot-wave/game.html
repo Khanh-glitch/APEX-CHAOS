@@ -58,9 +58,9 @@
 (()=>{
  const mode=new URLSearchParams(location.search).get('postWorker');
  const state={mode,ready:false,frames:0,display:0,fallback:0,skipped:0,
-   workerTotalMs:0,workerAvgMs:0,transferMs:0,failed:false,error:''};
+   workerTotalMs:0,workerAvgMs:0,transferMs:0,zeroCopyFrames:0,snapshotMs:0,swappedScene:false,failed:false,error:''};
  if(mode==='off')return void(window.APEX_WAVE_POST_WORKER={snapshot:()=>({...state})});
- let worker=null,last=null,pending=false,seq=0,disabled=false;
+ let worker=null,last=null,pending=false,seq=0,disabled=false,sourcePost=null;
  function workerScript(){
   let post=null,out=null,ctx=null;
   self.onmessage=e=>{
@@ -121,6 +121,17 @@
      pending=false;state.frames++;state.workerTotalMs+=q.ms;
      state.workerAvgMs=state.workerTotalMs/state.frames;
      if(last)last.close();last=q.img;
+     if(!state.swappedScene&&mode!=='bitmap'&&sourcePost){
+      try{
+       const off=new OffscreenCanvas(sourcePost.scene.width,sourcePost.scene.height);
+       const ctx=off.getContext('2d',{alpha:true});
+       if(ctx && typeof off.transferToImageBitmap==='function'){
+        ctx.drawImage(sourcePost.scene,0,0);
+        sourcePost.scene=off;sourcePost.sctx=ctx;
+        state.swappedScene=true;
+       }
+      }catch(err){state.error='Zero-copy not available: '+String(err);}
+     }
      if(mode!=='force'&&state.frames>=16&&state.workerAvgMs>48)
       failure('Slow Gold worker post: reverting to original renderer');
     }
@@ -133,17 +144,26 @@
  function install(post){
   if(!post||post.__apexOffthread||!start(post))return false;
   const native=post.end.bind(post);
+  sourcePost=post;
   post.__apexOffthread=true;
   post.end=function(dst,w,h,dpr,o){
    if(disabled||!state.ready)return native(dst,w,h,dpr,o);
    // Snapshot the pristine Gold world before any post pass mutates it.
    if(!pending){
     pending=true;const t=performance.now();
-    createImageBitmap(post.scene).then(img=>{
-     if(disabled){img.close();return;}
-     state.transferMs+=performance.now()-t;
-     worker.postMessage({type:'frame',bitmap:img,w,h,dpr,o},[img]);
-    }).catch(failure);
+    if(state.swappedScene&&typeof post.scene.transferToImageBitmap==='function'){
+     try{
+      const img=post.scene.transferToImageBitmap();
+      state.snapshotMs+=performance.now()-t;state.zeroCopyFrames++;
+      worker.postMessage({type:'frame',bitmap:img,w,h,dpr,o},[img]);
+     }catch(err){failure('Zero-copy transfer: '+String(err));return native(dst,w,h,dpr,o);}
+    }else{
+     createImageBitmap(post.scene).then(img=>{
+      if(disabled){img.close();return;}
+      state.transferMs+=performance.now()-t;
+      worker.postMessage({type:'frame',bitmap:img,w,h,dpr,o},[img]);
+     }).catch(failure);
+    }
    }else state.skipped++;
    const pw=Math.max(2,Math.round(w*dpr)),ph=Math.max(2,Math.round(h*dpr));
    if(last&&last.width===pw&&last.height===ph){
