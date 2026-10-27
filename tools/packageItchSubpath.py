@@ -21,6 +21,12 @@ def rewrite_js(s,name):
         s=s.replace('function(e){return"/"+e}','function(e){return globalThis.__APEX_ITCH_ROOT__+e}')
         s=s.replace('location.pathname!=="/"','location.pathname!==globalThis.__APEX_ITCH_ROOT__')
         s=s.replace('history.replaceState({},"","/")','history.replaceState({},"",globalThis.__APEX_ITCH_ROOT__)')
+        # Keep first-party skin-path validation; strip only the trusted itch
+        # package prefix for validation, preserving the scoped URL in return.
+        old='function Hc(e){if(typeof e!="string"||!/^\\/(assets|gold\\/assets)\\/[a-zA-Z0-9_./-]+\\.(png|webp|jpg|jpeg|svg|ogg|mp3)$/.test(e)||e.includes(".."))throw new Error("Cosmetic asset must be a declared first-party path");return e}'
+        new='function Hc(e){const b=globalThis.__APEX_ITCH_ROOT__||"/",v=typeof e==="string"&&e.startsWith(b)?"/"+e.slice(b.length):e;if(typeof v!="string"||!/^\\/(assets|gold\\/assets)\\/[a-zA-Z0-9_./-]+\\.(png|webp|jpg|jpeg|svg|ogg|mp3)$/.test(v)||v.includes(".."))throw new Error("Cosmetic asset must be a declared first-party path");return e}'
+        if s.count(old)!=1:raise ValueError('Cosmetic authority validator changed: '+str(s.count(old)))
+        s=s.replace(old,new)
     return s
 def rewrite_css(s,name):
     rel='../'*name.count('/') or './'
