@@ -5,12 +5,17 @@ on:
   push:
     branches:
       - feature/owner-gold-direct-port-20261026
+      - fix/latest-gold-bot-wave-itch-20261027
     paths:
       - '.github/workflows/owner-gold-itch-package.yml'
       - 'gold-mission-account/**'
       - 'tools/packItchPortable.mjs'
       - 'src/**'
       - 'public/**'
+      - 'tools/testBotWavePressureWasmParity.mjs'
+      - 'tools/qaLatestGoldItchBrowser.mjs'
+  pull_request:
+    branches: [fix/unified-gold-session-navigation-20261026]
   workflow_dispatch:
 
 permissions:
@@ -45,6 +50,7 @@ jobs:
       - name: Build shipping game including owner Gold
         run: |
           node tools/verifyGoldSourceParity.mjs
+          node tools/testBotWavePressureWasmParity.mjs
           pnpm build
           pnpm test:shipping-dist
           pnpm test:gold-direct-port
@@ -52,7 +58,17 @@ jobs:
           test -s dist/gold/mission-account.html
           printf '%s\n' "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
       - name: Rewrite copy for itch HTML5 nested asset resolution
-        run: node tools/packItchPortable.mjs
+        run: |
+          node tools/packItchPortable.mjs
+          for f in smoke_01.webp smoke_03.webp spark_05.webp spark_07.webp; do
+            src="public/assets/arsenal/av/vfx/c/$f"
+            dst="dist-itch-html5/assets/arsenal/av/vfx/c/$f"
+            if [ ! -s "$dst" ]; then
+              test -s "$src" || { echo "Missing official VFX: $src"; exit 1; }
+              mkdir -p "$(dirname "$dst")"
+              cp "$src" "$dst"
+            fi
+          done
       - name: Check packed ZIP root and asset integrity
         shell: bash
         run: |
@@ -109,22 +125,29 @@ jobs:
             }
           } finally { await browser.close(); await server.close(); }
           NODE
+      - name: Check CURRENT Gold native entry and BOT WAVE WASM in nested Chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/qaLatestGoldItchBrowser.mjs
       - name: Create itch.io HTML5 ZIP (index.html at ZIP root)
         shell: bash
         run: |
           set -euo pipefail
-          (cd dist-itch-html5 && zip -q -r ../apex-chaos-itch-gold-html5.zip .)
-          unzip -tq apex-chaos-itch-gold-html5.zip
-          unzip -Z -1 apex-chaos-itch-gold-html5.zip | grep -qx 'index.html'
-          unzip -Z -1 apex-chaos-itch-gold-html5.zip | grep -qx 'gold/mission-account.html'
-          ls -lh apex-chaos-itch-gold-html5.zip
-          sha256sum apex-chaos-itch-gold-html5.zip | tee apex-chaos-itch-gold-html5.sha256
+          (cd dist-itch-html5 && zip -q -r ../APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip .)
+          unzip -tq APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip
+          unzip -Z -1 APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip | grep -qx 'index.html'
+          unzip -Z -1 APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip | grep -qx 'gold/mission-account.html'
+          ls -lh APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip
+          sha256sum APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip | tee APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.sha256
       - name: Upload ZIP and checksum for owner
         uses: actions/upload-artifact@v4
         with:
-          name: apex-chaos-itch-owner-gold-html5
+          name: apex-chaos-latest-gold-wasm-itch-${{ github.sha }}
           path: |
-            apex-chaos-itch-gold-html5.zip
-            apex-chaos-itch-gold-html5.sha256
+            APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip
+            APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.sha256
+            reports/latest-gold-itch/
           retention-days: 30
           if-no-files-found: error
