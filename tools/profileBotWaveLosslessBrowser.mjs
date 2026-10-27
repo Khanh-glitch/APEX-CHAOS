@@ -32,7 +32,8 @@ try{
   const errors=[];
   page.on('pageerror',err=>errors.push(String(err)));
   await page.setViewport(profile.viewport);
-  await page.goto(base+'/bot-wave/index.html',{waitUntil:'domcontentloaded',timeout:65000});
+  const shockMode=process.env.APEX_SHOCK_CROP_MODE||'on';
+  await page.goto(base+'/bot-wave/index.html?shockCrop='+shockMode,{waitUntil:'domcontentloaded',timeout:65000});
   const frame=await until('Gold iframe',async()=>page.frames().find(f=>f.url().includes('/bot-wave/game.html')));
   await until('Gold + pilot + full V2 presentation',()=>frame.evaluate(()=>
    !!window.handLab&&!!window.BOXE_WAVE_PILOT&&window.APEX_BOT_WAVE_INTERFACE_V2?.installed===true
@@ -122,6 +123,7 @@ try{
   // Give the engine and V2 a representative live sample window.
   await sleep(4500);
   const stat=await frame.evaluate(()=>({
+   shockCrop:window.APEX_WAVE_SHOCK_CROP?.snapshot(),
    ...window.APEX_WAVE_PERF?.snapshot(),
    passCosts:window.__botwavePassCosts||{}
   }));
@@ -148,8 +150,10 @@ try{
    passCosts:stat.passCosts,
    catchup:await frame.evaluate(()=>window.APEX_WAVE_CATCHUP?.snapshot()),
    refractionCopy:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_COPY?.snapshot()),
-   refractionParity
+   refractionParity,shockMode,shockCrop:stat.shockCrop
   };
+  if(shockMode!=='off')assert.ok(result.shockCrop?.enabled,
+    profile.name+': shock cropping candidate did not initialize');
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
   console.log('BOT WAVE PERF SAMPLE',JSON.stringify(result));
