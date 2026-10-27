@@ -63,6 +63,7 @@ jobs:
           test -n "$CHROME"
           pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
           CHROME_PATH="$CHROME" APEX_POST_WORKER_MODE=off APEX_EVIDENCE_DIR=docs/boxe/bot-wave-perf/main node tools/profileBotWaveLosslessBrowser.mjs
+          CHROME_PATH="$CHROME" APEX_POST_WORKER_MODE=bitmap APEX_EVIDENCE_DIR=docs/boxe/bot-wave-perf/bitmap node tools/profileBotWaveLosslessBrowser.mjs
           CHROME_PATH="$CHROME" APEX_POST_WORKER_MODE=force APEX_EVIDENCE_DIR=docs/boxe/bot-wave-perf/worker node tools/profileBotWaveLosslessBrowser.mjs
       - name: Publish timings and screenshots
         if: always()
