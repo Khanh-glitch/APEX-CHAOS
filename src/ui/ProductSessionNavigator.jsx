@@ -160,8 +160,8 @@ export default function ProductSessionNavigator(){
     lessonShown.current=true;
     let first=false;
     try{
-     first=localStorage.getItem('apex.gold.sections.swipe.v2')!=='seen';
-     if(first)localStorage.setItem('apex.gold.sections.swipe.v2','seen');
+     first=localStorage.getItem('apex.gold.sections.swipe.v3')!=='seen';
+     if(first)localStorage.setItem('apex.gold.sections.swipe.v3','seen');
     }catch{first=true;}
     if(first){
      setCoach(true);
