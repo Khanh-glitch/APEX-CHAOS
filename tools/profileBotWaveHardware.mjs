@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import puppeteer from 'puppeteer-core';
+import { losslessProject } from './botWaveFluidProjectCandidate.mjs';
 
 const base = (process.env.APEX_APP_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
 const output = process.env.APEX_EVIDENCE_DIR || 'reports/bot-wave-hardware';
@@ -17,6 +18,9 @@ const remote = process.env.APEX_CHROME_REMOTE || '';
 const captureCpuProfile = process.env.APEX_CAPTURE_CPU_PROFILE === '1';
 const ciHeadless = process.env.APEX_PROFILE_HEADLESS === '1';
 const ciAutoplay = process.env.APEX_PROFILE_AUTOPLAY === '1';
+// CI-only browser response substitution. Never alters the shipping file or build.
+const fluidVariant = process.env.APEX_PROFILE_FLUID_VARIANT || 'baseline';
+assert.ok(['baseline', 'lossless'].includes(fluidVariant), 'Unknown fluid solver A/B variant');
 fs.mkdirSync(output, { recursive: true });
 assert.ok(durationMs >= 60_000, 'Real-hardware profile must run at least 60 seconds; use 180000 or longer for acceptance evidence.');
 assert.ok(botCount >= 8 && botCount <= 40, 'APEX_PROFILE_BOTS must be between 8 and 40.');
@@ -106,6 +110,27 @@ try {
     remote: !!remote, userAgent: await page.evaluate(() => navigator.userAgent).catch(() => null),
   }));
 
+  if (fluidVariant === 'lossless') {
+    // Substitute exactly ONE self-contained method in Chrome's requested HTML.
+    // Keep every other shipping byte unchanged for a controlled browser A/B.
+    const gold = fs.readFileSync('public/bot-wave/game.html', 'utf8');
+    const method = gold.match(/\n    project\(i0b, i1b, j0b, j1b\) \{[\s\S]*?\n    \}\n    step\(dt\) \{/);
+    assert.ok(method && gold.match(/\n    project\(i0b, i1b, j0b, j1b\) \{/g)?.length === 1,
+      'Cannot uniquely identify shipping Gold Fluid.project; do not run candidate');
+    const replacement = '\n    ' + losslessProject.toString()
+      .replace(/^function losslessProject/, 'project')
+      .split('\n').join('\n    ');
+    const candidateHtml = gold.replace(method[0], replacement + '\n    step(dt) {');
+    assert.notEqual(candidateHtml, gold, 'Fluid A/B substitution did nothing');
+    await page.setRequestInterception(true);
+    page.on('request', request => {
+      const url = new URL(request.url());
+      if (url.origin === new URL(base).origin && url.pathname === '/bot-wave/game.html') {
+        request.respond({ status: 200, contentType: 'text/html; charset=utf-8', body: candidateHtml })
+          .catch(e => console.error('BROWSER FLUID A/B RESPOND FAILED', String(e)));
+      } else request.continue().catch(e => console.error('BROWSER FLUID A/B CONTINUE FAILED', String(e)));
+    });
+  }
   await page.goto(`${base}/bot-wave/index.html`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   const readyDeadline = Date.now() + 60_000;
   while (Date.now() < readyDeadline) {
@@ -345,7 +370,7 @@ try {
       devicePixelRatio, visibility: document.visibilityState, focused: document.hasFocus() },
   }));
   const report = {
-    runId, appUrl: `${base}/bot-wave/index.html`, durationMs, sampleIntervalMs: sampleMs,
+    runId, fluidVariant, appUrl: `${base}/bot-wave/index.html`, durationMs, sampleIntervalMs: sampleMs,
     browser: { version: chromeVersion, ...browserContext, remote: !!remote },
     gpu: { devices: gpuInfo.gpu.devices, auxAttributes: gpuInfo.gpu.auxAttributes,
       featureStatus: gpuInfo.gpu.featureStatus, processInfo: processInfo.processInfo || processInfo,
