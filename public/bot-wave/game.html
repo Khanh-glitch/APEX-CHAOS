@@ -7519,7 +7519,51 @@ goldPost.cpctx.drawImage=function(source,...args){
  return originalGoldCopy(source,...args);
 };
 }
+// Lossless bloom surface experiment: retain the exact Gold CSS filter,
+// quarter-res sampling, both bloom passes, opacity and final blend math.
+// Only substitute the 2D backing store. Feature support is checked before
+// changing Gold runtime; unsupported browsers retain the original canvases.
+const BLOOM_BACKEND={mode:new URLSearchParams(location.search).get('bloomBacking')||'off',
+ installed:false,surfaces:[],fallback:null};
+function installBloomBacking(post,mode=BLOOM_BACKEND.mode,state=BLOOM_BACKEND){
+ if(mode==='off')return false;
+ try{
+  const proposed=[];
+  for(const [canvasKey,ctxKey] of [['a','actx'],['b','bctx']]){
+   let canvas;
+   if(mode==='offscreen'){
+    if(typeof OffscreenCanvas!=='function')throw Error('OffscreenCanvas unsupported');
+    canvas=new OffscreenCanvas(2,2);
+   }else canvas=document.createElement('canvas');
+   const options=mode==='default'?{alpha:true}:
+    mode==='desync'?{alpha:true,desynchronized:true}:
+    {alpha:true,willReadFrequently:true};
+   const context=canvas.getContext('2d',options);
+   if(!context)throw Error('2D surface unsupported');
+   // The filter property is mandatory: do not silently downgrade bloom.
+   context.filter='brightness(1.06) contrast(2.05) saturate(1.18) blur(1.1px)';
+   if(!String(context.filter).includes('brightness('))throw Error('CSS filter unsupported');
+   context.filter='none';
+   proposed.push([canvasKey,ctxKey,canvas,context]);
+  }
+  for(const [key,contextName,canvas,context] of proposed){
+   post[key]=canvas;post[contextName]=context;
+   state.surfaces.push(key);
+  }
+  state.installed=true;
+  return true;
+ }catch(error){state.fallback=String(error);return false;}
+}
+installBloomBacking(engine.post);
 installPartialRefraction(engine.post,REFRACTION_COPY);
+window.APEX_WAVE_BLOOM_BACKEND=Object.freeze({
+ snapshot:()=>({...BLOOM_BACKEND}),
+ installForTest(post,mode='offscreen'){
+  const state={mode,installed:false,surfaces:[],fallback:null};
+  installBloomBacking(post,mode,state);
+  return state;
+ }
+});
 window.APEX_WAVE_REFRACTION_COPY=Object.freeze({
  snapshot:()=>({...REFRACTION_COPY}),
  // For Chrome-only deterministic parity proof on isolated Post instances.
