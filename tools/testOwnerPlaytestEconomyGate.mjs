@@ -124,6 +124,29 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   check('refreshing it never refills', refreshed.meta.credits() === 11650);
 }
 
+// Retire the exact 12,000 AC untouched owner DEMO seed without destroying
+// a real earned balance, spent seeded balance, or legitimate current profile.
+{
+  const demo = {
+    version:1, credits:12000, ownedFighters:['ROBOT','HUNTER'],
+    lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:0,
+    ownerPlaytestAcSeed:{revision:'20261005-owner-playtest-r44',profile:KEY,at:1}
+  };
+  const {meta,storage}=boot({[KEY]:JSON.stringify(demo)});
+  check('untouched owner 12,000 AC demo wallet retires to the 350 AC production start',meta.credits()===350);
+  const after=JSON.parse(storage.getItem(KEY));
+  check('demo balance migration is recorded and idempotent',after.rosterMigrations['retired-owner-demo-wallet-20261028']===1);
+  check('reopening retired demo never refills',boot({[KEY]:storage.getItem(KEY)}).meta.credits()===350);
+}
+{
+  const player = {version:1,credits:12000,ownedFighters:['ROBOT'],totalSpins:0};
+  check('real untagged 12,000 AC wallet is never modified',boot({[KEY]:JSON.stringify(player)}).meta.credits()===12000);
+  const usedDemo={...player,totalSpins:1,
+    ownerPlaytestAcSeed:{revision:'20261005-owner-playtest-r44',profile:KEY,at:1}};
+  check('12,000 AC owner wallet with recorded play activity stays untouched',
+    boot({[KEY]:JSON.stringify(usedDemo)}).meta.credits()===12000);
+}
+
 // ── 3. Lucky Draw costs exactly 1000 AC; a refresh never refills ─────────
 {
   // Fresh 350 AC profile cannot draw: refused for the real reason, no debit.
