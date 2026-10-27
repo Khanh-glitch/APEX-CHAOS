@@ -1,5 +1,5 @@
-/* Shared Account/Mission Gold scene-wipe across genuine product documents.
- * Navigation occupies existing HUD/header, never a floating information panel. */
+/* APEX sections: retain cinematic Gold wipe; never cover header content with
+   duplicate navigation buttons. The five markers are purely positional. */
 .apex-session-wipe{
  position:fixed;inset:0;z-index:2147483000;overflow:hidden;
  pointer-events:all;isolation:isolate;
@@ -29,36 +29,47 @@
  from{transform:translateX(0) skewX(-16deg)}
  to{transform:translateX(115%) skewX(-16deg)}
 }
-.apex-cosmetics-overlay .fa3-header .apex-inline-session{
- display:inline-flex;flex:none;align-items:center;gap:3px;margin-left:auto;
- min-width:0;font:900 10px/1 "ApcKanit",Impact,system-ui,sans-serif;color:#ffe1ac;
+.apex-session-position{
+ position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));
+ transform:translateX(-50%);z-index:2147481900;display:flex;align-items:center;gap:6px;
+ pointer-events:none;filter:drop-shadow(0 2px 4px #050201);
 }
-.apex-cosmetics-overlay .fa3-header .apex-inline-session button{
- min-width:39px;min-height:39px;padding:0 9px;display:inline-flex;
- gap:5px;align-items:center;justify-content:center;white-space:nowrap;
- color:#ffe1ac;background:#25201b;border:1px solid #a06c38;
- font:inherit;letter-spacing:.03em;
+.apex-session-position span{width:14px;height:3px;background:#a88354a6;border-radius:4px}
+.apex-session-position span.is-current{width:26px;background:#ffc43d;box-shadow:0 0 8px #ffac38a8}
+.apex-session-coach{
+ position:fixed;left:50%;bottom:calc(31px + env(safe-area-inset-bottom,0px));
+ transform:translateX(-50%);z-index:2147481901;
+ width:min(320px,calc(100vw - 30px));padding:7px 12px 3px;
+ text-align:center;pointer-events:none;color:#ffdfa4;
+ text-shadow:0 1px 9px #060302,0 2px 6px #060302;
+ animation:apex-coach-fade .24s ease both;
 }
-.apex-cosmetics-overlay .fa3-header .apex-inline-session button:focus-visible{
- outline:2px solid #fff2cb;outline-offset:2px;
+.apex-session-coach-copy{font:900 12px/1.3 "ApcKanit",Impact,system-ui,sans-serif;letter-spacing:.08em}
+.apex-session-coach-track{
+ position:relative;margin:auto;width:180px;height:57px;display:flex;
+ align-items:center;justify-content:space-between;
+ color:#ffb858;font:700 40px/1 "ApcKanit",system-ui;
 }
-.apex-cosmetics-overlay .fa3-header .apex-inline-dots{display:flex;gap:3px;align-items:center}
-.apex-cosmetics-overlay .fa3-header .apex-inline-dots i{display:block;width:7px;height:3px;background:#826046}
-.apex-cosmetics-overlay .fa3-header .apex-inline-dots i.current{width:13px;background:#ffce68}
-@media(max-width:1150px){
- .apex-cosmetics-overlay .fa3-header .apex-inline-session button span,
- .apex-cosmetics-overlay .fa3-header .apex-inline-dots{display:none}
+.apex-session-coach-hand{
+ position:absolute;left:calc(50% - 23px);top:1px;
+ filter:drop-shadow(0 4px 4px #000) drop-shadow(0 0 6px #f9944b);
+ animation:apex-session-hand 2.5s ease-in-out infinite;
 }
-@media(max-width:900px){
- .apex-cosmetics-overlay .fa3-header .apex-inline-session{margin-left:0;gap:2px}
- .apex-cosmetics-overlay .fa3-header .apex-inline-session button{min-width:31px;min-height:31px;padding:0 7px;font-size:15px}
- .apex-cosmetics-overlay .fa3-header .fa3-brand{margin-right:auto}
+@keyframes apex-session-hand{
+ 0%,100%{transform:translateX(40px) rotate(5deg);opacity:.65}
+ 26%{transform:translateX(-40px) rotate(-7deg);opacity:1}
+ 55%{transform:translateX(-40px) rotate(-7deg);opacity:.65}
+ 79%{transform:translateX(40px) rotate(5deg);opacity:1}
 }
-@media(max-width:420px){
- .apex-cosmetics-overlay .fa3-header .apex-inline-session button{min-width:27px;min-height:28px;padding:0 5px}
- .apex-cosmetics-overlay .fa3-header .fa3-players button{padding:5px 3px}
+@keyframes apex-coach-fade{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(max-height:450px){
+ .apex-session-coach{bottom:16px;right:14px;left:auto;transform:none;width:215px;}
+ .apex-session-coach-copy{font-size:9px}
+ .apex-session-coach-track{height:35px;transform:scale(.75);transform-origin:center top}
+ .apex-session-position{bottom:6px;}
 }
 @media(prefers-reduced-motion:reduce){
  .apex-session-wipe.is-covering .apex-session-wipe-plate{animation:none;transform:translateX(0)}
- .apex-session-wipe.is-releasing .apex-session-wipe-plate{animation:none;transform:translateX(115%)}
+ .apex-session-wipe.is-releasing .apex-session-wipe-plate{animation:none;transform:translateX(115%)} 
+ .apex-session-coach,.apex-session-coach-hand{animation:none}
 }
