@@ -28,6 +28,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build game from source
         run: pnpm build
+      - name: Restore original VFX sprites required by BOT WAVE (no quality reduction)
+        run: |
+          for file in smoke_01.webp smoke_03.webp spark_05.webp spark_07.webp; do
+            src="public/assets/arsenal/av/vfx/c/$file"
+            dst="dist/assets/arsenal/av/vfx/c/$file"
+            test -s "$src" || { echo "Missing original first-party VFX: $src"; exit 1; }
+            mkdir -p "$(dirname "$dst")"
+            cp "$src" "$dst"
+            cmp "$src" "$dst" || exit 1
+          done
       - name: Create itch subpath-safe ZIP from exact production dist
         run: |
           (cd dist && zip -qr ../original-itch.zip .)
