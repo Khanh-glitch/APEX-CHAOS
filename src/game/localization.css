@@ -103,3 +103,19 @@ html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .p
   content:"  ĐÃ KHÓA";
   letter-spacing:.02em;
 }
+
+/* The Gold HOME wallet sits above the language picker. Do not let a large
+   three-part picker obscure the player's AC chip on smaller viewports. */
+@media (max-width:900px), (max-height:480px) {
+  #gold-shell-host #stage #apex-language-picker {
+    box-sizing:border-box;max-width:min(42vw,148px);
+    top:calc(var(--safeT,0px) + 2.55vh + 51px);
+    right:calc(var(--safeR,0px) + 2vw);
+    gap:0;padding:2px 3px;min-height:31px;
+  }
+  #gold-shell-host #stage #apex-language-picker .apex-language-caption {display:none;}
+  #gold-shell-host #stage #apex-language-picker .apex-language-options {padding:1px;gap:1px;}
+  #gold-shell-host #stage #apex-language-picker [data-apex-language-option] {
+    min-width:39px;min-height:30px;padding:3px 6px;font-size:11px;
+  }
+}
