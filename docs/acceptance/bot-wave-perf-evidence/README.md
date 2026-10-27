@@ -6,7 +6,7 @@
 
 - `public/bot-wave/game.html` matches the PR base again. The failed refraction-copy and diagnostic wrappers are not shipped.
 - The wrapper's Home control remains bottom-centered rather than overlapping the wave title. Desktop and mobile-landscape wrapper entry/combat screenshots were visually reviewed; Gold HUD, Home navigation, onboarding, and joystick remain present.
-- CI has been changed to treat headless SwiftShader as **compatibility QA only**: build and wrapper/input smoke. It no longer runs performance A/B or draws product conclusions from SwiftShader. The post-rollback workflow result is pending the next push; prior green runs were before the candidate was removed.
+- CI has been changed to treat headless SwiftShader as **compatibility QA only**: build and wrapper/input smoke. It no longer runs performance A/B or draws product conclusions from SwiftShader. Post-rollback compatibility run `40510020583` passed build, profiler syntax, desktop wrapper/input and mobile-landscape emulated-touch smoke. This is compatibility only, not a performance result.
 - No release ZIP was made. PR #110 remains draft.
 
 ## Environment blocker — exact
@@ -55,8 +55,8 @@ Required owner evidence to proceed: (1) the `.summary.json`, (2) matching raw `.
 
 ## CI separation and unrelated gates
 
-- The prior BOT WAVE candidate CI failure was intermittent. The latest hardware-agnostic compatibility run passed after candidate removal; no GPU-performance claim is attached to it. A historical candidate failure artifact exists, but its exact assertion was not readable in this sandbox because GitHub's artifact/log endpoint returned EOF.
-- Localization run `40505086104` failed at **“Verify real Chrome desktop and portrait glyphs”** after 21 seconds; the run lists no artifact. The script polls for Chrome CDP for exactly 20 seconds, so startup failure is the leading hypothesis, not a glyph-layout regression. I could not inspect the raw CI log to confirm it. A local attempt with bundled Chrome failed at that same startup stage because `libnspr4.so` is missing. Do not change locale code based on this; confirm with system-Chrome stderr/exit-code diagnostics or rerun the workflow on a Chrome-equipped host.
+- The prior BOT WAVE candidate CI failure was intermittent. Post-rollback compatibility run `40510020583` passed build, profiler syntax, desktop wrapper/input and mobile-landscape emulated-touch smoke; it makes no GPU-performance claim. A historical candidate failure artifact exists, but its exact assertion was not readable in this sandbox because GitHub's artifact/log endpoint returned EOF.
+- Localization run `40505086104` failed at **“Verify real Chrome desktop and portrait glyphs”** after 21 seconds; it listed no artifact and its raw log was unavailable. Its 20-second CDP startup poll made startup failure the leading, unconfirmed hypothesis. The unchanged gate then passed on rerun `40510020582` (2m16s), so the failure is not reproducible and is consistent with a transient Chrome/CDP startup flake; no locale code was changed. The separate local repro still cannot start bundled Chrome because `libnspr4.so` is missing.
 - Product Acceptance remains red on the inherited runtime-revision gate for five Shuri files unchanged from the PR base. Those files are out of scope and must not be edited or the gate relaxed in this PR.
 
 ## Existing visual captures

@@ -32,9 +32,9 @@ The previous region-copy optimization reduced pixels copied in the software benc
 
 ## Separate CI findings
 
-- BOT WAVE run `40505086078` passed on the pre-rollback code, but it still included the candidate profile. The simplified compatibility-only workflow has not yet run post-rollback. A green SwiftShader compatibility result will mean only that the Gold wrapper/control path loads and accepts emulated input.
-- Localization run `40505086104` failed at “Verify real Chrome desktop and portrait glyphs” after 21 seconds; GitHub lists no artifact and the raw job log is unavailable here. The script's CDP startup loop is exactly 20 seconds, making Chrome process/CDP startup the leading hypothesis rather than a glyph assertion. A local attempt with the bundled Chromium failed at the same startup stage because `libnspr4.so` is missing. This is a separate localization test harness issue; do not edit locale code without confirmation. Rerun with system Chrome while capturing child stderr/exit status or add a focused startup diagnostic before changing visual expectations.
-- Product Acceptance continues to fail the inherited runtime-revision gate on five Shuri files verified unchanged from the PR base. Those files are out of scope; do not modify them or loosen that gate in this PR.
+- Post-rollback BOT WAVE compatibility run `40510020583` passed build, profiler syntax, desktop wrapper/input and mobile-landscape emulated-touch smoke. This does not measure performance; the earlier pre-rollback pass `40505086078` is not used as rollback evidence.
+- Localization run `40505086104` failed at “Verify real Chrome desktop and portrait glyphs” after 21 seconds, with no artifact and unavailable raw log. The unchanged gate passed on rerun `40510020582` in 2m16s. The initial failure is not reproducible and is consistent with the 20-second CDP startup window expiring transiently, but its exact assertion remains unconfirmed. No locale code was changed. The local bundled-Chrome repro still cannot start because `libnspr4.so` is missing.
+- Product Acceptance run `40510020667` still fails the inherited runtime-revision gate on five Shuri files verified unchanged from the PR base. Those files are out of scope; do not modify them or loosen that gate in this PR.
 
 ## Visual/gameplay scope
 
