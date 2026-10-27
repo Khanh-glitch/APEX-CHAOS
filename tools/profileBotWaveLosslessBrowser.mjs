@@ -32,7 +32,8 @@ try{
   const errors=[];
   page.on('pageerror',err=>errors.push(String(err)));
   await page.setViewport(profile.viewport);
-  await page.goto(base+'/bot-wave/index.html',{waitUntil:'domcontentloaded',timeout:65000});
+  const workerMode=process.env.APEX_POST_WORKER_MODE||'off';
+  await page.goto(base+'/bot-wave/index.html?postWorker='+workerMode,{waitUntil:'domcontentloaded',timeout:65000});
   const frame=await until('Gold iframe',async()=>page.frames().find(f=>f.url().includes('/bot-wave/game.html')));
   await until('Gold + pilot + full V2 presentation',()=>frame.evaluate(()=>
    !!window.handLab&&!!window.BOXE_WAVE_PILOT&&window.APEX_BOT_WAVE_INTERFACE_V2?.installed===true
@@ -122,6 +123,7 @@ try{
   // Give the engine and V2 a representative live sample window.
   await sleep(4500);
   const stat=await frame.evaluate(()=>({
+   offthread:window.APEX_WAVE_POST_WORKER?.snapshot(),
    ...window.APEX_WAVE_PERF?.snapshot(),
    passCosts:window.__botwavePassCosts||{}
   }));
@@ -148,8 +150,10 @@ try{
    passCosts:stat.passCosts,
    catchup:await frame.evaluate(()=>window.APEX_WAVE_CATCHUP?.snapshot()),
    refractionCopy:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_COPY?.snapshot()),
-   refractionParity
+   refractionParity,workerMode,offthread:stat.offthread
   };
+  if(workerMode==='force')assert.ok(result.offthread?.frames>3,
+   profile.name+': Gold post worker failed to process real frames '+JSON.stringify(result.offthread));
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
   console.log('BOT WAVE PERF SAMPLE',JSON.stringify(result));
