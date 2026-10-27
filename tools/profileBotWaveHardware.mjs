@@ -213,6 +213,10 @@ try {
       e.fluid.addHeat(e.player.x + Math.cos(k + 1.5) * 54,
         e.player.y + Math.sin(k + 1.5) * 42, 32, .55, .2);
       const state = window.BOXE_WAVE_PILOT.state;
+      // Preserve the authentic game upgrade flow under automated stress:
+      // a real user would choose one of the three cards and continue.
+      // The previous 65s trace entered upgrade and stopped rendering combat.
+      if(state.phase==='upgrade')document.querySelector('#w-cards .w-card')?.click();
       const living = e.enemies.filter(enemy => !enemy.dead).length;
       const missing = window.__apexHardwareDesiredBots - living - state.queue.length;
       for (let i = 0; i < missing; i++) state.queue.push(window.__apexHardwareQueueEntry(window.__apexHardwareBotSequence++));
@@ -297,6 +301,9 @@ try {
         name: key, width: e.post[key]?.width || 0, height: e.post[key]?.height || 0 })) } };
   });
   clearInterval(browserMetricsTimer);
+  const activeSamples=final.probe.runtimeSamples.filter(x=>x.phase==='combat'&&!x.paused).length;
+  assert.ok(activeSamples>=final.probe.runtimeSamples.length*.75,
+    'Stress fixture did not sustain actual combat for majority of the capture: '+activeSamples+'/'+final.probe.runtimeSamples.length);
   assert.equal(final.runtime.phase,'combat','Stress fixture ended combat early; hardware profile is INVALID');
   assert.ok(final.runtime.gameTime>=durationMs/1000*.6,
     'Insufficient active combat simulation time; hardware profile is INVALID: '+final.runtime.gameTime);
