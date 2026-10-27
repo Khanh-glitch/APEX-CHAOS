@@ -45,7 +45,7 @@ try{
    const first=await frame.evaluate(()=>({
     guide:!!document.querySelector('[data-testid="gold-swipe-coach"]'),
     hand:!!document.querySelector('.gold-swipe-coach-hand'),
-    key:localStorage.getItem('apex.gold.sections.swipe.v2'),
+    key:localStorage.getItem('apex.gold.sections.swipe.v3'),
     back:document.querySelector('.gold-session-back')?.getBoundingClientRect().toJSON(),
     width:document.documentElement.clientWidth,
     overflow:document.documentElement.scrollWidth>innerWidth+2,
