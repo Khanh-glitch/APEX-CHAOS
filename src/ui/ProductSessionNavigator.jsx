@@ -10,6 +10,9 @@ const SECTIONS=[
  {id:'lucky',label:'Lucky Draw'},
  {id:'archive',label:'Archive'},
 ];
+ // HOME toolbar visual order (unavailable Fighter Shop/Upgrade are reserved).
+ // Route indices are fixed by existing Gold bridges, not reordered here.
+ const VISUAL_ORDER=[3,4,0,1,2];
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
 const waitFor=(test,maxMs=18000)=>new Promise((resolve,reject)=>{
  const started=performance.now();
@@ -133,8 +136,9 @@ export default function ProductSessionNavigator(){
    if(!start||start.pointerId!==e.pointerId||start.from<3||activeSurface()!==start.from)return;
    const dx=e.clientX-start.x,dy=e.clientY-start.y;
    if(Math.abs(dx)<72||Math.abs(dx)<1.45*Math.abs(dy)||performance.now()-start.time>1350)return;
-   const next=start.from+(dx<0?1:-1);
-   if(next>=0&&next<SECTIONS.length)void navigate(next);
+   const position=VISUAL_ORDER.indexOf(start.from);
+   const next=VISUAL_ORDER[position+(dx<0?1:-1)];
+   if(Number.isInteger(next))void navigate(next);
   };
   const cancel=()=>{gesture.current=null;};
   const onArchiveDown=e=>{if(archiveActive()&&e.target?.closest?.('.fa3-overlay'))down(e);};
@@ -147,7 +151,8 @@ export default function ProductSessionNavigator(){
    const current=activeSurface();
    if(current<3)return; // Gold owns the other three sections.
    e.preventDefault();
-   void navigate(current+(e.key==='ArrowRight'?1:-1));
+   const next=VISUAL_ORDER[VISUAL_ORDER.indexOf(current)+(e.key==='ArrowRight'?1:-1)];
+   if(Number.isInteger(next))void navigate(next);
   };
   document.addEventListener('pointerdown',onArchiveDown,true);
   document.addEventListener('pointerup',onArchiveUp,true);
@@ -207,7 +212,7 @@ export default function ProductSessionNavigator(){
       A five-position progress rail is visual-only; swipe is the navigation. */}
   {visible>=3&&<div className="apex-session-position" data-session-index={visible}
     role="status" aria-label={SECTIONS[visible].label+" — swipe horizontally to change section"}>
-    {SECTIONS.map((section,index)=><span key={section.id}
+    {VISUAL_ORDER.map(index=><span key={SECTIONS[index].id}
       className={visible===index?'is-current':''} aria-current={visible===index?'step':undefined}/>)}
   </div>}
   {visible>=3&&coach&&<div className="apex-session-coach" data-testid="apex-session-swipe-coach"
