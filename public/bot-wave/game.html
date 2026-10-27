@@ -749,6 +749,47 @@ class Fluid {
         this.cvs.height = exports.N;
         this.cctx = this.cvs.getContext('2d');
         this.img = this.cctx.createImageData(exports.N, exports.N);
+        // Exact 14-iteration pressure projection, WASM backend with safe Gold
+        // JavaScript fallback. This changes no graphics, simulation resolution,
+        // effect count, gameplay state, HUD, or composition pass.
+        this._pressureBackend = 'gold-js';
+        if (typeof WebAssembly !== 'undefined' && typeof atob === 'function') {
+            this._pressureBackend = 'wasm-loading';
+            try {
+                const encoded = 'AGFzbQEAAAABDQFgCX9/f39/f39/fwACDwEDZW52Bm1lbW9yeQIAAgMCAQAEBQFwAQEBBggBfwFBgIgECwcLAQdwcm9qZWN0AAAKvAYBuQYCE38BfQJAIAMgBEoiCQ0AIAEgAkoiCg0AIAYgACADQX9qbEECdCABQQJ0amohCyAGIABBAnQiDCABIAMgAGxqIg1BAnQiDmpqIQ8gAkEBaiEQIAcgDmohESAIIA5qIRIgBSAOaiETQQAhDiADIRQDQCARIRUgEiEWIAshFyATIRggDyEZIBAhGgNAIBYgDmogGCAOaiIbQQRqKgIAuyAbQXxqKgIAu6EgGSAOaioCALugIBcgDmoqAgC7oUQAAAAAAADgv6K2OAIAIBUgDmpBADYCACAVQQRqIRUgFkEEaiEWIBdBBGohFyAYQQRqIRggGUEEaiEZIAEgGkF/aiIaRw0ACyAOIAxqIQ4gFCAERiEVIBRBAWohFCAVRQ0ACyAJDQAgCg0AIAcgACADQX9qbEECdCABQQJ0amohFyAHIABBAnQiDCANQQJ0Ig5qaiEYIAJBAWohDyAIIA5qIRkgByAOaiIaQXxqIRBBACERA0BBACEbQQAhFCADIQsDQCAQIAwgFGxqKgIAIRwgGyEOIA8hFQNAIBogDmoiFiAZIA5qKgIAuyAcu6AgFkEEaioCALugIBcgDmoqAgC7oCAYIA5qKgIAu6BEAAAAAAAA0D+itiIcOAIAIA5BBGohDiABIBVBf2oiFUcNAAsgGyAMaiEbIBRBAWohFCALIARGIQ4gC0EBaiELIA5FDQALIBFBAWoiEUEORw0ACyAJDQAgCg0AIAcgACADQX9qbEECdCABQQJ0amohGyAHIABBAnQiFCANQQJ0Ig5qaiELIAIgAWtBAWohDCAGIA5qIQ8gBSAOaiEQIAcgDmohEUEAIQ4DQCAbIRUgDyEWIBAhASARIRcgCyEYIAwhGQNAIAEgDmoiGiAaKgIAuyAXIA5qIhpBBGoqAgC7IBpBfGoqAgC7oUQAAAAAAADgP6KhtjgCACAWIA5qIhogGioCALsgGCAOaioCALsgFSAOaioCALuhRAAAAAAAAOA/oqG2OAIAIBVBBGohFSAWQQRqIRYgAUEEaiEBIBdBBGohFyAYQQRqIRggGUF/aiIZDQALIA4gFGohDiADIARGIRUgA0EBaiEDIBVFDQALCwsANQRuYW1lAA4NcHJlc3N1cmUud2FzbQEKAQAHcHJvamVjdAcSAQAPX19zdGFja19wb2ludGVyAH8JcHJvZHVjZXJzAQxwcm9jZXNzZWQtYnkBBWNsYW5nXzE3LjAuMCAoaHR0cHM6Ly9naXRodWIuY29tL3N3aWZ0bGFuZy9sbHZtLXByb2plY3QuZ2l0IDEwOTk5YjZkMDM0ZmUzMThmM2Q1NmM4M2JkZGI2NTcyNTkzYThiYjApAEkPdGFyZ2V0X2ZlYXR1cmVzBCsKbXVsdGl2YWx1ZSsPbXV0YWJsZS1nbG9iYWxzKw9yZWZlcmVuY2UtdHlwZXMrCHNpZ24tZXh0';
+                const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+                const n = this.n, len = n * n, stride = len * 4;
+                const memory = new WebAssembly.Memory({
+                    initial: Math.max(16, Math.ceil(stride * 4 / 65536)), maximum: 32
+                });
+                this._pressureWasmReady = WebAssembly.instantiate(bytes, { env: { memory } })
+                    .then(result => {
+                        const solve = result.instance.exports.project;
+                        if (typeof solve !== 'function')
+                            throw new Error('WASM pressure solver export unavailable');
+                        const keys = ['u', 'v', 'p', 'div'];
+                        const mapped = keys.map((key, i) => {
+                            const data = new Float32Array(memory.buffer, i * stride, len);
+                            data.set(this[key]);
+                            return data;
+                        });
+                        for (let i = 0; i < keys.length; i++)
+                            this[keys[i]] = mapped[i];
+                        this.project = function(i0, i1, j0, j1) {
+                            solve(n, i0, i1, j0, j1, 0, stride, stride * 2, stride * 3);
+                        };
+                        this._pressureBackend = 'wasm-exact-14-iter';
+                    })
+                    .catch(error => {
+                        this._pressureBackend = 'gold-js-fallback';
+                        console.warn('BOT WAVE pressure WASM fallback:', error);
+                    });
+            }
+            catch (error) {
+                this._pressureBackend = 'gold-js-fallback';
+                console.warn('BOT WAVE pressure WASM unavailable:', error);
+            }
+        }
     }
     /* ---------------------------------------------------------------- coords */
     toCell(x, y) {
