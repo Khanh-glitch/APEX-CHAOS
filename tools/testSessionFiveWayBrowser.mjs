@@ -187,6 +187,16 @@ try{
    assert.ok(hint.hand&&hint.rail===String(index)&&hint.items===5&&!hint.buttonPanel,
     'Direct-open section lacks unobtrusive five-item hand coaching: '+JSON.stringify(hint));
    await page.screenshot({path:`${output}/first-entry-${index===3?'lucky':'archive'}-844x390.png`});
+   // Actual Chromium finger movement through the entire viewport. Synthetic
+   // PointerEvent on #stage/.fa3-center alone cannot prove phone gesture UX.
+   const left=index===3,from=left?650:190,to=left?190:650,y=182;
+   await page.touchscreen.touchStart(from,y);
+   await page.touchscreen.touchMove(Math.round((from+to)/2),y+2);
+   await page.touchscreen.touchMove(to,y+2);
+   await page.touchscreen.touchEnd();
+   if(left)await archive(page);else await lucky(page);
+   console.log('FIVE SESSION REAL TOUCH FIRST ENTRY',index,'->',left?4:3);
+
    assert.deepEqual(errors,[],'Errors on external-first entry '+index+': '+errors.join('; '));
   }finally{await context.close();}
  }
