@@ -129,7 +129,22 @@ try{
    await swipeGold(page,'left');
    await gold(page,2);
    await wait(920);
-   await swipeGold(page,'left');
+   // HOME left-to-right is Lucky → Archive → Missions → Mastery → Account:
+   // from Account, right-swiping walks to Missions and then Archive.
+   await swipeGold(page,'right');
+   await gold(page,1);
+   await wait(920);
+   await swipeGold(page,'right');
+   await gold(page,0);
+   await wait(920);
+   await swipeGold(page,'right');
+   await archive(page);
+   await waitForSettledGoldWipe(page);
+   assert.equal(await page.evaluate(()=>document.querySelectorAll('.apex-session-position .is-current').length),1);
+   assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.apex-session-position span')].findIndex(x=>x.classList.contains('is-current'))),1,
+     'Archive is the second HOME-order position');
+   await page.screenshot({path:`${output}/${width}x${height}-archive.png`});
+   await swipeArchive(page,'right');
    await lucky(page);
    assert.equal(await page.evaluate(()=>!!document.querySelector('.apex-gold-direct-host')),false,'Gold iframe left over Lucky');
    assert.equal(await page.evaluate(()=>!!document.querySelector('.apex-session-interchange')),false,'Obscuring legacy navigation panel remains');
@@ -156,11 +171,14 @@ try{
    assert.equal(await page.evaluate(()=>document.querySelectorAll('.apex-session-position span').length),5,
      'Five original-order position markers missing in Archive');
    await waitForSettledGoldWipe(page);
-   await page.screenshot({path:`${output}/${width}x${height}-archive.png`});
-
-   await swipeArchive(page,'right');
-   await lucky(page);
-   await swipeLucky(page,'right');
+   // Archive left returns to Missions; never bounces through Home.
+   await swipeArchive(page,'left');
+   await gold(page,0);
+   await wait(920);
+   await swipeGold(page,'left');
+   await gold(page,1);
+   await wait(920);
+   await swipeGold(page,'left');
    await gold(page,2);
    await page.evaluate(()=>window.__APEX_GOLD_BRIDGE__?.close?.());
    await until(page,()=>!document.querySelector('.apex-gold-direct-host'),'return to Home');
