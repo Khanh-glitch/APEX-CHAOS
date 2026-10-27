@@ -52,7 +52,7 @@ function Hud({ g }: { g: Game }) {
               </span>
               <span className="font-display text-[10px] tracking-[.2em] text-gold -ml-0.5">AC</span>
             </div>
-            <div aria-label={tr(g.lang,"profile")} className="hidden md:flex min-w-0 items-center gap-2 group">
+            <div aria-label={tr(g.lang,"profile")} className="hidden xl:flex min-w-0 items-center gap-2 group">
               <div className="w-10 h-11 hex p-[2px]" style={{ background: av.color }}>
                 <div className="w-full h-full hex overflow-hidden bg-black">
                   <img src={av.img} alt="" className="w-full h-full object-cover" style={{ objectPosition: av.pos }} />
