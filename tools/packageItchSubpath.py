@@ -19,8 +19,8 @@ def rewrite_js(s,name):
     s=lit.sub(repl,s)
     if name.startswith('assets/index-'):
         s=s.replace('function(e){return"/"+e}','function(e){return globalThis.__APEX_ITCH_ROOT__+e}')
-        s=s.replace('location.pathname!=="/"','location.pathname!==globalThis.__APEX_ITCH_ROOT__')
-        s=s.replace('history.replaceState({},"","/")','history.replaceState({},"",globalThis.__APEX_ITCH_ROOT__)')
+        s=s.replace('location.pathname!=="/"','location.pathname!==globalThis.__APEX_ITCH_ROOT__+"index.html"')
+        s=s.replace('history.replaceState({},"","/")','history.replaceState({},"",globalThis.__APEX_ITCH_ROOT__+"index.html")')
         # Keep first-party skin-path validation; strip only the trusted itch
         # package prefix for validation, preserving the scoped URL in return.
         old='function Hc(e){if(typeof e!="string"||!/^\\/(assets|gold\\/assets)\\/[a-zA-Z0-9_./-]+\\.(png|webp|jpg|jpeg|svg|ogg|mp3)$/.test(e)||e.includes(".."))throw new Error("Cosmetic asset must be a declared first-party path");return e}'
@@ -43,8 +43,8 @@ def rewrite_html(s,name):
     s=scripts.sub(lambda m:m[1]+(m[2] if 'id="apex-itch-base"' in m[1] else rewrite_js(m[2],name))+m[3],s)
     s=styles.sub(lambda m:m[1]+rewrite_css(m[2],name)+m[3],s)
     if name=='gold-fidelity-lab.html':
-        s=s.replace("new URL('/', location.origin)","new URL(globalThis.__APEX_ITCH_ROOT__, location.origin)")
-    s=s.replace("location.assign('/')","location.assign(globalThis.__APEX_ITCH_ROOT__)")
+        s=s.replace("new URL('/', location.origin)","new URL(globalThis.__APEX_ITCH_ROOT__+'index.html', location.origin)")
+    s=s.replace("location.assign('/')","location.assign(globalThis.__APEX_ITCH_ROOT__+'index.html')")
     return s
 def package(src,out):
     with zipfile.ZipFile(src) as zin,zipfile.ZipFile(out,'w') as zout:
@@ -65,7 +65,7 @@ def package(src,out):
         if 'src="./assets/index-' not in html or 'href="./assets/index-' not in html:
             raise ValueError('Vite root scripts not relocated')
         mobile=z.read('gold-fidelity-lab.html').decode()
-        if 'new URL(globalThis.__APEX_ITCH_ROOT__, location.origin)' not in mobile:
+        if "new URL(globalThis.__APEX_ITCH_ROOT__+'index.html', location.origin)" not in mobile:
             raise ValueError('Mobile iframe still escapes itch subpath')
     print('ITHC PACKAGE PASS',out,len(names),dict(counts))
 if __name__=='__main__':package(*sys.argv[1:3])
