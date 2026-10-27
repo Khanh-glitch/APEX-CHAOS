@@ -46,7 +46,7 @@ try {
    page.on('requestfailed',r=>failures.push({profile:name,url:r.url(),failure:r.failure()?.errorText}));
    await page.goto(origin+base+'index.html',{waitUntil:'domcontentloaded',timeout:60000});
    await new Promise(r=>setTimeout(r,11000));
-   const url=page.url;
+   const url=page.url();
    const deepest=page.frames().find(f=>f.url().includes('goldViewport=native')) || page.mainFrame();
    const state=await deepest.evaluate(()=>({
      url:location.href, rootChildren:document.querySelector('#root')?.children.length||0,
