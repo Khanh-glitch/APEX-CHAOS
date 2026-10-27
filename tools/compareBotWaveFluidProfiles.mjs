@@ -5,9 +5,11 @@ import assert from 'node:assert/strict';
 
 const dir = process.env.APEX_EVIDENCE_DIR || 'reports/bot-wave-metal-hardware';
 const baseline = JSON.parse(fs.readFileSync(`${dir}/bot-wave-baseline.summary.json`, 'utf8'));
-const candidate = JSON.parse(fs.readFileSync(`${dir}/bot-wave-lossless.summary.json`, 'utf8'));
+const variant = process.env.APEX_COMPARE_VARIANT || 'lossless';
+assert.ok(['lossless', 'smoke-cache'].includes(variant), 'Unsupported A/B variant');
+const candidate = JSON.parse(fs.readFileSync(`${dir}/bot-wave-${variant}.summary.json`, 'utf8'));
 assert.equal(baseline.fluidVariant, 'baseline');
-assert.equal(candidate.fluidVariant, 'lossless');
+assert.equal(candidate.fluidVariant, variant);
 assert.equal(baseline.fixture.canvas.dpr, candidate.fixture.canvas.dpr);
 assert.deepEqual(baseline.fixture.canvas, candidate.fixture.canvas);
 assert.equal(baseline.durationMs, candidate.durationMs);
@@ -34,11 +36,11 @@ const metrics = {
     maxLongTaskMs: metric('maxLongTaskMs', s => s.longTasks.maxMs)
 };
 const comparison = {
-    timestamp: new Date().toISOString(), baselineRun: baseline.runId,
+    timestamp: new Date().toISOString(), variant, baselineRun: baseline.runId,
     candidateRun: candidate.runId, browser: baseline.browser.version.product,
     gpu: baseline.gpu.devices, viewport: baseline.browser.viewport, durationMs: baseline.durationMs,
     metrics,
     conclusion: 'Diagnostic only. One paired virtualized-Apple-Metal A/B is not physical-mobile acceptance. Compare repeat runs and bitwise solver parity; only ship if substantial gains recur.'
 };
-fs.writeFileSync(`${dir}/fluid-comparison.json`, JSON.stringify(comparison, null, 2) + '\n');
+fs.writeFileSync(`${dir}/fluid-comparison-${variant}.json`, JSON.stringify(comparison, null, 2) + '\n');
 console.log('BOT WAVE SAME-HOST HARDWARE A/B', JSON.stringify(metrics, null, 2));
