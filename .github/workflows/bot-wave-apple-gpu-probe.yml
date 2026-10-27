@@ -1,0 +1,154 @@
+name: BOT WAVE Apple Silicon GPU availability probe
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/bot-wave-apple-gpu-probe.yml'
+      - 'tools/profileBotWaveHardware.mjs'
+      - 'tools/botWaveFluidProjectCandidate.mjs'
+      - 'tools/testBotWaveFluidProjectParity.mjs'
+      - 'tools/compareBotWaveFluidProfiles.mjs'
+      - 'tools/botWaveSmokeCacheCandidate.mjs'
+      - 'tools/testBotWaveSmokeCacheParity.mjs'
+      - 'tools/botWavePressureWasmCandidate.mjs'
+      - 'tools/testBotWavePressureWasmParity.mjs'
+      - 'tools/pressure-solver.c'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  metal-gpu-probe:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Freeze one Chrome version for the complete baseline/candidate A-B
+        shell: bash
+        run: |
+          pinned="$RUNNER_TEMP/apex-chrome-pinned/Google Chrome.app"
+          mkdir -p "$(dirname "$pinned")"
+          ditto "/Applications/Google Chrome.app" "$pinned"
+          "$pinned/Contents/MacOS/Google Chrome" --version
+          echo "CHROME_PATH=$pinned/Contents/MacOS/Google Chrome" >> "$GITHUB_ENV"
+      - name: Confirm real Chrome Apple GPU (no SwiftShader accepted)
+        shell: bash
+        run: |
+          mkdir -p reports/bot-wave-metal-probe
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import puppeteer from 'puppeteer-core';
+          const executablePath=process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+          const result={runner:process.platform,arch:process.arch,chrome:executablePath};
+          let browser;
+          try {
+            browser=await puppeteer.launch({
+              executablePath, headless:true,
+              args:['--enable-gpu','--use-angle=metal','--disable-software-rasterizer','--no-first-run']
+            });
+            const session=await browser.target().createCDPSession();
+            const data=await session.send('SystemInfo.getInfo');
+            const page=await browser.newPage();
+            const webgl=await page.evaluate(()=>{
+              const canvas=document.createElement('canvas');
+              const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');
+              if(!gl)return {available:false};
+              const ext=gl.getExtension('WEBGL_debug_renderer_info');
+              return {available:true,renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)};
+            });
+            result.devices=data.gpu?.devices||[];
+            result.featureStatus=data.gpu?.featureStatus||{};
+            result.auxAttributes=data.gpu?.auxAttributes||{};
+            result.webgl=webgl;
+            result.hardware=!!result.devices.some(x=>
+              /apple/i.test(JSON.stringify(x)) && x.active!==false
+            ) && !/swiftshader|llvmpipe|software|basic render|lavapipe/i.test(
+              JSON.stringify(result.devices)+' '+JSON.stringify(result.auxAttributes)+' '+webgl.renderer
+            ) && /^enabled/.test(result.featureStatus.gpu_compositing||'');
+            console.log('APEX HARDWARE GPU CHECK',JSON.stringify(result));
+            if(!result.hardware)throw Error('Chrome does not expose a verified Apple hardware GPU; no performance conclusion');
+          }catch(e){result.error=String(e);console.error('HARDWARE PROBE FAILED',e);}
+          finally{
+            fs.writeFileSync('reports/bot-wave-metal-probe/gpu-probe.json',JSON.stringify(result,null,2)+'\n');
+            await browser?.close().catch(()=>{});
+          }
+          if(result.error)process.exitCode=1;
+          NODE
+      - name: Build production game for verified Metal GPU
+        run: |
+          pnpm build
+          (nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/apex-metal-vite.log 2>&1 &)
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:4173 -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apex-metal-vite.log
+          exit 1
+      - name: Confirm Gold fluid mathematical parity before profiling
+        run: node tools/testBotWaveFluidProjectParity.mjs
+      - name: Verify Gold-versus-WASM solver parity (120 complete states)
+        run: node tools/testBotWavePressureWasmParity.mjs
+      - name: Capture BASELINE Metal combat trace
+        shell: bash
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_PROFILE_HEADLESS: '1'
+          APEX_PROFILE_AUTOPLAY: '1'
+          APEX_PROFILE_VIEWPORT: mobile
+          APEX_PROFILE_DURATION_MS: '65000'
+          APEX_PROFILE_SAMPLE_MS: '5000'
+          APEX_PROFILE_BOTS: '14'
+          APEX_CAPTURE_CPU_PROFILE: '1'
+          APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
+          APEX_PROFILE_FLUID_VARIANT: baseline
+          APEX_PROFILE_RUN_ID: baseline
+        run: |
+          node tools/profileBotWaveHardware.mjs
+      - name: Capture BITWISE WASM PRESSURE Metal combat trace
+        shell: bash
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_PROFILE_HEADLESS: '1'
+          APEX_PROFILE_AUTOPLAY: '1'
+          APEX_PROFILE_VIEWPORT: mobile
+          APEX_PROFILE_DURATION_MS: '65000'
+          APEX_PROFILE_SAMPLE_MS: '5000'
+          APEX_PROFILE_BOTS: '14'
+          APEX_CAPTURE_CPU_PROFILE: '1'
+          APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
+          APEX_PROFILE_FLUID_VARIANT: wasm
+          APEX_PROFILE_RUN_ID: wasm
+        run: |
+          node tools/profileBotWaveHardware.mjs
+      - name: Compare SAME-RUN Metal hardware performance
+        if: always()
+        env:
+          APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
+          APEX_COMPARE_VARIANT: wasm
+        run: |
+          if [ -s reports/bot-wave-metal-hardware/bot-wave-baseline.summary.json ] && [ -s reports/bot-wave-metal-hardware/bot-wave-wasm.summary.json ]; then
+            node tools/compareBotWaveFluidProfiles.mjs
+          else
+            echo "A/B INCOMPLETE; both valid hardware captures required"
+            exit 1
+          fi
+      - name: Upload hardware trace even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-bot-wave-metal-hardware-trace
+          path: reports/bot-wave-metal-hardware/
+          if-no-files-found: warn
+      - name: Upload hardware probe report even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-bot-wave-apple-gpu-probe
+          path: reports/bot-wave-metal-probe/
+          if-no-files-found: warn

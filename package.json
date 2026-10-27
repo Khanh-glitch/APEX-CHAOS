@@ -17,6 +17,8 @@
     "test:arsenal:legacy-isolation": "node tools/testArsenalLegacyMechanicIsolation.mjs",
     "test:product-graph": "node tools/testArsenalProductGraph.mjs",
     "test:runtime-revision": "node tools/testRuntimeRevisionGate.mjs",
+    "profile:bot-wave:hardware": "node tools/profileBotWaveHardware.mjs",
+    "qa:bot-wave:wrapper": "node tools/captureBotWaveWrapperQa.mjs",
     "test:gold-shell-loader": "node tools/testGoldShellLoaderGate.mjs",
     "test:gold-battle-visibility": "node tools/testGoldBattleVisibilityGate.mjs",
     "test:gold-battle-lifecycle": "node tools/testGoldBattleLifecycleGate.mjs",
@@ -68,8 +70,10 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@napi-rs/canvas": "1.0.9",
     "@resvg/resvg-js": "2.6.2",
+    "@sparticuz/chromium": "153.0.0",
     "@vitejs/plugin-react": "^4.4.1",
     "jsdom": "30.1.1",
+    "puppeteer-core": "25.16.0",
     "vite": "^5.4.0"
   }
 }

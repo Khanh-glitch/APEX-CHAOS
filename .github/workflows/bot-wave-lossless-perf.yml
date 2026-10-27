@@ -1,0 +1,95 @@
+name: BOT WAVE compatibility QA
+
+on:
+  pull_request:
+    paths:
+      - 'public/bot-wave/**'
+      - 'public/game/bot-wave/**'
+      - 'tools/captureBotWaveWrapperQa.mjs'
+      - 'tools/profileBotWaveHardware.mjs'
+      - 'tools/botWaveFluidProjectCandidate.mjs'
+      - 'tools/testBotWaveFluidProjectParity.mjs'
+      - 'tools/botWaveSmokeCacheCandidate.mjs'
+      - 'tools/testBotWaveSmokeCacheParity.mjs'
+      - 'tools/botWavePressureWasmCandidate.mjs'
+      - 'tools/testBotWavePressureWasmParity.mjs'
+      - 'tools/pressure-solver.c'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/bot-wave-lossless-perf.yml'
+  push:
+    branches:
+      - 'arena/**'
+    paths:
+      - 'public/bot-wave/**'
+      - 'public/game/bot-wave/**'
+      - 'tools/captureBotWaveWrapperQa.mjs'
+      - 'tools/profileBotWaveHardware.mjs'
+      - 'tools/botWaveFluidProjectCandidate.mjs'
+      - 'tools/testBotWaveFluidProjectParity.mjs'
+      - 'tools/botWaveSmokeCacheCandidate.mjs'
+      - 'tools/testBotWaveSmokeCacheParity.mjs'
+      - 'tools/botWavePressureWasmCandidate.mjs'
+      - 'tools/testBotWavePressureWasmParity.mjs'
+      - 'tools/pressure-solver.c'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/bot-wave-lossless-perf.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify exact Gold fluid pressure solver parity
+        run: node tools/testBotWaveFluidProjectParity.mjs
+      - name: Verify lossless smoke render pixels and cache invalidation
+        run: node tools/testBotWaveSmokeCacheParity.mjs
+      - name: Verify WASM pressure solver against actual Gold bitwise output
+        run: node tools/testBotWavePressureWasmParity.mjs
+      - name: Validate hardware profiler syntax
+        run: node --check tools/profileBotWaveHardware.mjs
+      - name: Build exact production assets
+        run: pnpm build
+      - name: Start production preview
+        shell: bash
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/bot-wave-compat-preview.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/bot-wave/game.html -o /dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/bot-wave-compat-preview.log
+          exit 1
+      - name: Desktop Gold wrapper and eventual keyboard movement compatibility
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_PERF_PROFILE: desktop
+          APEX_EVIDENCE_DIR: reports/bot-wave-compat
+        run: pnpm qa:bot-wave:wrapper
+      - name: Mobile-landscape wrapper and emulated touch compatibility
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_PERF_PROFILE: mobile-landscape
+          APEX_EVIDENCE_DIR: reports/bot-wave-compat
+        run: pnpm qa:bot-wave:wrapper
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-wave-compatibility-${{ github.sha }}
+          path: reports/bot-wave-compat/
+          if-no-files-found: warn
