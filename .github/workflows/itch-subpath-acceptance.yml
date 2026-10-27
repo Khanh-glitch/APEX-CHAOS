@@ -32,6 +32,7 @@ jobs:
         run: |
           (cd dist && zip -qr ../original-itch.zip .)
           python3 tools/packageItchSubpath.py original-itch.zip apex-chaos-itch-no-white-screen.zip
+          mkdir -p reports/itch-nested/html/123456
           unzip -q apex-chaos-itch-no-white-screen.zip -d reports/itch-nested/html/123456
       - name: Inspect real Chrome boot under /html/123456, mobile, BOT WAVE
         run: node tools/qaItchSubpathBrowser.mjs
