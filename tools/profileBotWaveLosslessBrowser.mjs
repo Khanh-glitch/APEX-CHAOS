@@ -32,7 +32,8 @@ try{
   const errors=[];
   page.on('pageerror',err=>errors.push(String(err)));
   await page.setViewport(profile.viewport);
-  await page.goto(base+'/bot-wave/index.html',{waitUntil:'domcontentloaded',timeout:65000});
+  const bloomBackingMode=process.env.APEX_BLOOM_BACKING_MODE||'off';
+  await page.goto(base+'/bot-wave/index.html?bloomBacking='+bloomBackingMode,{waitUntil:'domcontentloaded',timeout:65000});
   const frame=await until('Gold iframe',async()=>page.frames().find(f=>f.url().includes('/bot-wave/game.html')));
   await until('Gold + pilot + full V2 presentation',()=>frame.evaluate(()=>
    !!window.handLab&&!!window.BOXE_WAVE_PILOT&&window.APEX_BOT_WAVE_INTERFACE_V2?.installed===true
@@ -106,6 +107,35 @@ try{
   });
   assert.equal(refractionParity.changedChannels,0,
    profile.name+': sampled-region refraction does not match canonical full-copy Gold: '+JSON.stringify(refractionParity));
+  const bloomParity=await frame.evaluate(()=>{
+   const Post=window.handLab.post.constructor,base=new Post(),candidate=new Post();
+   const probe=window.APEX_WAVE_BLOOM_BACKEND.installForTest(candidate,'offscreen');
+   if(!probe.installed)return {failure:probe.fallback};
+   const width=320,height=192,totalFrames=4;
+   let altered=0,maxDiff=0,pixels=0;
+   const c1=document.createElement('canvas'),c2=document.createElement('canvas');
+   c1.width=c2.width=width;c1.height=c2.height=height;
+   const d1=c1.getContext('2d'),d2=c2.getContext('2d');
+   for(let frameIndex=0;frameIndex<totalFrames;frameIndex++){
+    for(const post of [base,candidate]){
+     const sc=post.begin(width,height,1);
+     const grad=sc.createLinearGradient(0,0,width,height);
+     grad.addColorStop(0,'#f67e31');grad.addColorStop(.5,'#14273f');grad.addColorStop(1,'#e1c575');
+     sc.fillStyle=grad;sc.fillRect(0,0,width,height);
+     sc.fillStyle='#fff9c6';
+     for(let i=0;i<21;i++)sc.fillRect((i*41+frameIndex*17)%width,(i*19+frameIndex*11)%height,5+i%5,10+i%9);
+    }
+    const opts={grain:0,bloom:1,vignette:.45,fx:145,fy:80,shocks:[],heat:[],chroma:0,radial:0};
+    base.end(d1,width,height,1,opts);candidate.end(d2,width,height,1,opts);
+    const a=d1.getImageData(0,0,width,height).data,b=d2.getImageData(0,0,width,height).data;
+    for(let i=0;i<a.length;i++){
+     const delta=Math.abs(a[i]-b[i]);if(delta)altered++;maxDiff=Math.max(maxDiff,delta);
+    }
+    pixels+=a.length;
+   }
+   return {changedChannels:altered,maxDiff,totalChannels:pixels,frames:totalFrames,probe};
+  });
+  assert.equal(bloomParity.changedChannels,0,profile.name+': alternative bloom backing differs from canonical Gold '+JSON.stringify(bloomParity));
   const before=await frame.evaluate(()=>({
    x:window.handLab.player.x,y:window.handLab.player.y,
    t:window.handLab.time
@@ -148,7 +178,7 @@ try{
    passCosts:stat.passCosts,
    catchup:await frame.evaluate(()=>window.APEX_WAVE_CATCHUP?.snapshot()),
    refractionCopy:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_COPY?.snapshot()),
-   refractionParity
+   refractionParity,bloomBackingMode,bloomParity,bloomBackend:await frame.evaluate(()=>window.APEX_WAVE_BLOOM_BACKEND?.snapshot())
   };
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
