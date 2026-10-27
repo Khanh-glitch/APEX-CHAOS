@@ -85,6 +85,32 @@ try{
   try{
    page.on('console',m=>{if(/apex-section-nav/.test(m.text()))console.log('FIVE SESSION ROUTE',m.text());});
    const original=await page.evaluate(()=>window.APEX_ARSENAL_META?.getState?.()?.credits);
+   const home=await page.evaluate(()=>{
+    const node=s=>document.querySelector('#gold-shell-host #stage '+s);
+    const box=s=>node(s)?.getBoundingClientRect()?.toJSON()||null;
+    const wallet=node('.ac'),language=node('#apex-language-picker'),profile=node('.profileIdentity');
+    const intersects=(a,b)=>a&&b&&Math.min(a.right,b.right)-Math.max(a.left,b.left)>3 &&
+      Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>3;
+    return {
+      realWallet:window.APEX_ARSENAL_META?.getState?.()?.credits,
+      displayedWallet:wallet?.querySelector('[data-apex-ac]')?.textContent,
+      wallet:box('.ac'),language:box('#apex-language-picker'),
+      avatar:box('.profileIdentity'),brand:box('.brand'),
+      avatarVisible:profile ? getComputedStyle(profile).display!=='none':false,
+      languageVisible:language ? getComputedStyle(language).visibility!=='hidden':false,
+      overlapsPicker:intersects(box('.ac'),box('#apex-language-picker')),
+      overlapsBrand:intersects(box('.ac'),box('.brand'))
+    };
+   });
+   assert.ok(home.wallet,'Actual Gold Home wallet missing');
+   assert.ok(Number.isFinite(home.realWallet),'Home lacks canonical AC authority');
+   assert.ok(home.displayedWallet?.includes(String(home.realWallet).toLocaleString('en-US')),
+     'Gold Home HUD AC differs from saved wallet: '+JSON.stringify(home));
+   assert.equal(home.overlapsBrand,false,'Gold Home AC overlaps brand: '+JSON.stringify(home));
+   assert.equal(home.overlapsPicker,false,'Gold Home AC overlaps language control: '+JSON.stringify(home));
+   if(mobile&&width>height)assert.equal(home.avatarVisible,false,'Generic avatar crowds landscape AC wallet');
+   await page.screenshot({path:`${output}/${width}x${height}-home.png`});
+
    await page.click('#apexMissionsOpen');
    await gold(page,0);
    const first=await page.evaluate(()=>({
