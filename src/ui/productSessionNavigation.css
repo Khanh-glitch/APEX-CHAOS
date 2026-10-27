@@ -1,3 +1,6 @@
+/* Archive dossier owns its buttons but not horizontal viewport panning.
+   Let Chrome deliver real finger drags to shared section gesture listeners. */
+.apex-cosmetics-overlay .fa3-center{touch-action:pan-y pinch-zoom;}
 /* APEX sections: retain cinematic Gold wipe; never cover header content with
    duplicate navigation buttons. The five markers are purely positional. */
 .apex-session-wipe{
