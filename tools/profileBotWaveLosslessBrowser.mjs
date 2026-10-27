@@ -32,7 +32,8 @@ try{
   const errors=[];
   page.on('pageerror',err=>errors.push(String(err)));
   await page.setViewport(profile.viewport);
-  await page.goto(base+'/bot-wave/index.html',{waitUntil:'domcontentloaded',timeout:65000});
+  const backendMode=process.env.APEX_CP_BACKEND_MODE||'off';
+  await page.goto(base+'/bot-wave/index.html?cpBackend='+backendMode,{waitUntil:'domcontentloaded',timeout:65000});
   const frame=await until('Gold iframe',async()=>page.frames().find(f=>f.url().includes('/bot-wave/game.html')));
   await until('Gold + pilot + full V2 presentation',()=>frame.evaluate(()=>
    !!window.handLab&&!!window.BOXE_WAVE_PILOT&&window.APEX_BOT_WAVE_INTERFACE_V2?.installed===true
@@ -64,8 +65,10 @@ try{
   });
   const refractionParity=await frame.evaluate(()=>{
    const Post=window.handLab.post.constructor;
-   const classic=new Post(),partial=new Post();
+   const classic=new Post(),partial=new Post(),backend=new Post();
    window.APEX_WAVE_REFRACTION_COPY.installForTest(partial);
+   const backendProbe=window.APEX_WAVE_REFRACTION_BACKEND.installForTest(backend,'offscreen');
+   if(!backendProbe.installed)throw Error('OffscreenCanvas missing: '+backendProbe.fallback);
    // Six successive uses of the SAME Gold copy buffer: the very first
    // refraction resizes it, later ones prove the no-clear path is pixel-exact.
    const w=420,h=280;
@@ -77,15 +80,15 @@ try{
     {x:330,y:190,r:38,heatX:185,heatY:215},
     {x:120,y:79,r:79,heatX:280,heatY:170}
    ];
-   for(const post of [classic,partial]){post.scene.width=w;post.scene.height=h;}
-   let changed=0,maxDiff=0,sum=0,totalChannels=0;
+   for(const post of [classic,partial,backend]){post.scene.width=w;post.scene.height=h;}
+   let changed=0,maxDiff=0,sum=0,totalChannels=0,backendChanged=0,backendMax=0;
    for(const [pass,c] of trials.entries()){
     const opts={time:1.2+pass*.37,
      shocks:[{x:c.x,y:c.y,r:c.r,width:22,strength:.12,squash:.62},
       {x:305-pass*17,y:232-pass*21,r:25,width:35,strength:.06,squash:.62}],
      heat:[{x:c.heatX,y:c.heatY,w:80,h:85,heat:.8},
       {x:318-pass*29,y:80+pass*20,w:76,h:60,heat:.9}]};
-    for(const post of [classic,partial]){
+    for(const post of [classic,partial,backend]){
      const ctx=post.sctx;
      const g=ctx.createLinearGradient(0,0,w,h);
      g.addColorStop(0,pass%2?'#315d79':'#c98d45');
@@ -99,11 +102,16 @@ try{
     }
     const a=classic.sctx.getImageData(0,0,w,h).data;
     const b=partial.sctx.getImageData(0,0,w,h).data;
-    for(let k=0;k<a.length;k++){const d=Math.abs(a[k]-b[k]);if(d)changed++;sum+=d;maxDiff=Math.max(d,maxDiff);}
+    const c=backend.sctx.getImageData(0,0,w,h).data;
+    for(let k=0;k<a.length;k++){
+     const d=Math.abs(a[k]-b[k]);if(d)changed++;sum+=d;maxDiff=Math.max(d,maxDiff);
+     const q=Math.abs(a[k]-c[k]);if(q)backendChanged++;backendMax=Math.max(backendMax,q);
+    }
     totalChannels+=a.length;
    }
-   return {changedChannels:changed,maxChannelDiff:maxDiff,meanChannelDiff:sum/totalChannels,totalChannels,passes:trials.length};
+   return {changedChannels:changed,maxChannelDiff:maxDiff,meanChannelDiff:sum/totalChannels,backendChanged,backendMax,backendProbe,totalChannels,passes:trials.length};
   });
+  assert.equal(refractionParity.backendChanged,0,profile.name+': OffscreenCanvas refraction differs from Gold '+JSON.stringify(refractionParity));
   assert.equal(refractionParity.changedChannels,0,
    profile.name+': sampled-region refraction does not match canonical full-copy Gold: '+JSON.stringify(refractionParity));
   const before=await frame.evaluate(()=>({
@@ -148,7 +156,7 @@ try{
    passCosts:stat.passCosts,
    catchup:await frame.evaluate(()=>window.APEX_WAVE_CATCHUP?.snapshot()),
    refractionCopy:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_COPY?.snapshot()),
-   refractionParity
+   refractionParity,backendMode,refractionBackend:await frame.evaluate(()=>window.APEX_WAVE_REFRACTION_BACKEND?.snapshot())
   };
   results.push(result);
   await page.screenshot({path:dest+'/'+profile.name+'.png'});
