@@ -245,6 +245,9 @@ try {
   };
   fs.writeFileSync(failurePath, JSON.stringify(failure, null, 2) + '\n');
   console.error('BOT WAVE profile failure detail', JSON.stringify({ failurePath, ...failure }));
+  const annotation = `${context.mode || 'unknown'}/${context.profile || 'unknown'} failed at ${context.stage}: ${String(error)} (details: ${path.basename(failurePath)})`
+    .replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+  console.error(`::error title=BOT WAVE profiling diagnostic::${annotation}`);
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
     `\n### BOT WAVE browser profile failure\n\n- Mode/profile: ${context.mode || 'unknown'} / ${context.profile || 'unknown'}\n- Stage: ${context.stage}\n- Error: \`${String(error).replace(/`/g, "'")}\`\n- Details: \`${failurePath}\`\n`);
   throw error;

@@ -49,13 +49,13 @@ Chrome `SystemInfo.getInfo` identified the renderer as **ANGLE_SWIFTSHADER**, `A
 
 The old wrapper smoke only waited 800 ms after KeyD, which could land entirely inside a renderer/GPU stall and incorrectly passed on key delivery alone. It now holds KeyD for six seconds, records phase/visibility/focus/RAF time diagnostics, and requires both movement and simulation-clock advance. A fresh desktop wrapper run passed with **67.4 world units moved** and **0.250 s game-clock advance**. The mobile-landscape wrapper QA also passed with **15.6 units moved** and **0.233 s game-clock advance**. Both were combat, unpaused, visible, and focused. These establish eventual movement in the smokes, **not** acceptable input latency, smoothness, or a performance fix. The 14-bot stress still has multi-second input-to-next-frame P95/P99.
 
-## Candidate Chrome CI failure: no longer reproduces; original cause unavailable
+## Candidate Chrome CI failure: intermittent; exact assertion still unavailable
 
-Run [40491444677](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40491444677) passed baseline profiling and failed the candidate profiling step after about 18 seconds. GitHub's job/check-run metadata and annotations only expose the generic `Process completed with exit code 1`; the run-log download returned EOF from `results-receiver.actions.githubusercontent.com`. A same-condition local 12-second desktop candidate run passed, so the original failure could not be reproduced locally.
+Run [40491444677](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40491444677) passed baseline profiling and failed the candidate profiling step after about 18 seconds, with only the generic `Process completed with exit code 1` exposed. The instrumented rerun [40499986580](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40499986580) passed all BOT WAVE steps, including candidate profiling, so the original failure did not reproduce in that run.
 
-After adding failure diagnostics, the new BOT WAVE workflow run [40499986580](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40499986580) **passed all steps**, including both baseline and candidate profiles, wrapper QA, render contracts, pixel parity, build, and artifact upload. Thus there is no current candidate CI failure; however, the original run's exact assertion/runtime cause remains unknown and should not be guessed. The uploaded artifact and log endpoint could not be downloaded in this environment (EOF), and because the rerun passed, the new failure-detail path was not exercised.
+However, the next run [40501946197](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40501946197) again passed the baseline and failed the candidate step, this time after **21 seconds**. Wrapper QA, render contracts, parity, and build all passed. The `if: always()` upload succeeded and GitHub reports an 8.16 MB evidence artifact containing the failure JSON/screenshot. The sandbox could list the artifact but both the log and ZIP download endpoints returned EOF; unauthenticated GitHub pages expose only the generic annotation. Therefore the exact failing assertion/runtime detail is captured by CI but **not yet inspectable from this environment**; it is not safe to guess.
 
-If a later candidate run fails, the profiler now writes a failure JSON with profile, mode, stage, runtime state/counters, console/network errors, and a best-effort screenshot; it also writes details into `GITHUB_STEP_SUMMARY`. The workflow's `if: always()` artifact upload preserves that detail.
+The profiler writes the failure stage, runtime state/counters, console/network errors, and best-effort screenshot to JSON and `GITHUB_STEP_SUMMARY`. A GitHub `::error` annotation with profile, mode, stage, assertion message, and failure-file name has now been added so the next failure's precise cause can be retrieved from check-run metadata even if artifact downloading remains blocked.
 
 ## Inherited Shuri revision-gate classification
 
@@ -74,5 +74,5 @@ All five are present in the PR base and absent from this PR's changed-file set. 
 - Keep the candidate opt-in and keep PR #110 draft.
 - Do not claim READY, stable improvement, or physical mobile performance from this evidence.
 - Preserve the failed candidate and inherited Shuri classifications; neither is hidden or relaxed.
-- The newly instrumented Chrome CI rerun passed; if a later candidate run fails, inspect its failure JSON/artifact before assigning a root cause.
+- Candidate CI remains intermittent (one pass, two failures); inspect the captured failure detail, now surfaced through a GitHub error annotation, before assigning a root cause. Do not loosen or hide the failed gate.
 - Require a repeated, counterbalanced hardware-accelerated desktop A/B, gameplay validation, acceptable frame/input P95/P99, and all applicable CI gates before changing readiness. No release ZIP was made.
