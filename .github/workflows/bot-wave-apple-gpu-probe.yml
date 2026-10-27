@@ -1,0 +1,74 @@
+name: BOT WAVE Apple Silicon GPU availability probe
+on:
+  push:
+    branches:
+      - arena/960d6673-apex-chaos
+    paths:
+      - '.github/workflows/bot-wave-apple-gpu-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  metal-gpu-probe:
+    runs-on: macos-26
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Confirm real Chrome Apple GPU (no SwiftShader accepted)
+        shell: bash
+        run: |
+          mkdir -p reports/bot-wave-metal-probe
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import puppeteer from 'puppeteer-core';
+          const executablePath='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+          const result={runner:process.platform,arch:process.arch,chrome:executablePath};
+          let browser;
+          try {
+            browser=await puppeteer.launch({
+              executablePath, headless:true,
+              args:['--enable-gpu','--use-angle=metal','--disable-software-rasterizer','--no-first-run']
+            });
+            const session=await browser.target().createCDPSession();
+            const data=await session.send('SystemInfo.getInfo');
+            const page=await browser.newPage();
+            const webgl=await page.evaluate(()=>{
+              const canvas=document.createElement('canvas');
+              const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');
+              if(!gl)return {available:false};
+              const ext=gl.getExtension('WEBGL_debug_renderer_info');
+              return {available:true,renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)};
+            });
+            result.devices=data.gpu?.devices||[];
+            result.featureStatus=data.gpu?.featureStatus||{};
+            result.auxAttributes=data.gpu?.auxAttributes||{};
+            result.webgl=webgl;
+            result.hardware=!!result.devices.some(x=>
+              /apple/i.test(JSON.stringify(x)) && x.active!==false
+            ) && !/swiftshader|llvmpipe|software|basic render|lavapipe/i.test(
+              JSON.stringify(result.devices)+' '+JSON.stringify(result.auxAttributes)+' '+webgl.renderer
+            ) && /^enabled/.test(result.featureStatus.gpu_compositing||'');
+            console.log('APEX HARDWARE GPU CHECK',JSON.stringify(result));
+            if(!result.hardware)throw Error('Chrome does not expose a verified Apple hardware GPU; no performance conclusion');
+          }catch(e){result.error=String(e);console.error('HARDWARE PROBE FAILED',e);}
+          finally{
+            fs.writeFileSync('reports/bot-wave-metal-probe/gpu-probe.json',JSON.stringify(result,null,2)+'\n');
+            await browser?.close().catch(()=>{});
+          }
+          if(result.error)process.exitCode=1;
+          NODE
+      - name: Upload hardware probe report even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-bot-wave-apple-gpu-probe
+          path: reports/bot-wave-metal-probe/
+          if-no-files-found: warn
