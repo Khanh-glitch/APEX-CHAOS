@@ -4378,3 +4378,20 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
     animation:none!important;transform:translate(-50%,-50%) scale(1.014)!important;
   }
 }
+
+/* Owner Gold HOME: the landscape HUD used to squeeze the donor's generic
+   profile-avatar block into the real AC wallet, especially for five digits.
+   At phone landscape dimensions keep the real currency and settings, not the
+   fake donor-avatar tile or an overlapping third information panel. */
+@media (max-width:980px) and (orientation:landscape){
+  #gold-shell-host #stage .profile{
+    right:calc(var(--safeR,0px) + 1.6vw);
+    max-width:calc(100vw - 30vw);
+    gap:5px;
+  }
+  #gold-shell-host #stage .profileIdentity{display:none!important}
+  #gold-shell-host #stage .ac{flex:none;min-width:0;max-width:100%;gap:5px;
+    padding-inline:8px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  #gold-shell-host #stage .ac [data-apex-ac]{font-size:clamp(10px,1.4vw,13px)}
+  #gold-shell-host #stage .acMark{flex:0 0 auto}
+}
