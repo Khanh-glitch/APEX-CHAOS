@@ -29,6 +29,14 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Freeze one Chrome version for the complete baseline/candidate A-B
+        shell: bash
+        run: |
+          pinned="$RUNNER_TEMP/apex-chrome-pinned/Google Chrome.app"
+          mkdir -p "$(dirname "$pinned")"
+          ditto "/Applications/Google Chrome.app" "$pinned"
+          "$pinned/Contents/MacOS/Google Chrome" --version
+          echo "CHROME_PATH=$pinned/Contents/MacOS/Google Chrome" >> "$GITHUB_ENV"
       - name: Confirm real Chrome Apple GPU (no SwiftShader accepted)
         shell: bash
         run: |
@@ -36,7 +44,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import puppeteer from 'puppeteer-core';
-          const executablePath='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+          const executablePath=process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
           const result={runner:process.platform,arch:process.arch,chrome:executablePath};
           let browser;
           try {
@@ -89,7 +97,6 @@ jobs:
       - name: Capture BASELINE Metal combat trace
         shell: bash
         env:
-          CHROME_PATH: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
           APEX_APP_URL: http://127.0.0.1:4173
           APEX_PROFILE_HEADLESS: '1'
           APEX_PROFILE_AUTOPLAY: '1'
@@ -106,7 +113,6 @@ jobs:
       - name: Capture BITWISE WASM PRESSURE Metal combat trace
         shell: bash
         env:
-          CHROME_PATH: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
           APEX_APP_URL: http://127.0.0.1:4173
           APEX_PROFILE_HEADLESS: '1'
           APEX_PROFILE_AUTOPLAY: '1'
