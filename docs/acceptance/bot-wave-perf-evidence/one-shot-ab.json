@@ -1,0 +1,122 @@
+{
+  "status": "diagnostic-only-not-release-evidence",
+  "renderer": "headless Chromium 153 / SwiftShader software rendering",
+  "sample": {
+    "durationMs": 1000,
+    "warmupMs": 500,
+    "stress": "scripted wave + heat VFX every 800 ms; 4 bots at sample end",
+    "repetitionsPerMode": 1,
+    "randomizedOrder": false,
+    "physicalDevice": false
+  },
+  "profiles": [
+    {
+      "profile": "desktop-1440x900-dpr1",
+      "baseline": {
+        "mode": "off",
+        "framesSampled": 42,
+        "fpsAverageEstimate": 42.0,
+        "fps1PercentLowEstimate": 12.97,
+        "frameTimeMs": { "p50": 16.9, "p95": 36.1, "p99": 77.1 },
+        "updateMs": { "p50": 1.6, "p95": 2.7, "p99": 3.0 },
+        "renderMs": { "p50": 2.1, "p95": 16.9, "p99": 25.6 },
+        "postMs": { "p50": 0.3, "p95": 2.1, "p99": 4.8 },
+        "inputQueueP95Ms": 0.3,
+        "longTasks": 2,
+        "longTaskMaxMs": 66,
+        "refractionPixelsAvoided": 0
+      },
+      "candidate": {
+        "mode": "on",
+        "framesSampled": 45,
+        "fpsAverageEstimate": 45.28,
+        "fps1PercentLowEstimate": 13.99,
+        "frameTimeMs": { "p50": 17.0, "p95": 40.5, "p99": 71.5 },
+        "updateMs": { "p50": 1.6, "p95": 2.7, "p99": 3.4 },
+        "renderMs": { "p50": 1.9, "p95": 17.1, "p99": 23.7 },
+        "postMs": { "p50": 0.3, "p95": 0.9, "p99": 2.1 },
+        "inputQueueP95Ms": 0.2,
+        "longTasks": 0,
+        "longTaskMaxMs": 0,
+        "refractionCopy": {
+          "partialFrames": 33,
+          "fullFrames": 0,
+          "regions": 36,
+          "pixelsCopied": 577321,
+          "pixelsAvoided": 42190679,
+          "fallbacks": 0
+        }
+      }
+    },
+    {
+      "profile": "mobile-landscape-844x390-dpr2",
+      "baseline": {
+        "mode": "off",
+        "framesSampled": 37,
+        "fpsAverageEstimate": 37.49,
+        "fps1PercentLowEstimate": 11.17,
+        "frameTimeMs": { "p50": 16.9, "p95": 77.0, "p99": 89.5 },
+        "updateMs": { "p50": 1.5, "p95": 4.8, "p99": 5.6 },
+        "renderMs": { "p50": 2.0, "p95": 49.6, "p99": 52.3 },
+        "postMs": { "p50": 0.4, "p95": 4.0, "p99": 4.7 },
+        "inputQueueP95Ms": 0.3,
+        "longTasks": 2,
+        "longTaskMaxMs": 66,
+        "refractionPixelsAvoided": 0
+      },
+      "candidate": {
+        "mode": "on",
+        "framesSampled": 42,
+        "fpsAverageEstimate": 41.8,
+        "fps1PercentLowEstimate": 15.6,
+        "frameTimeMs": { "p50": 17.3, "p95": 39.1, "p99": 64.1 },
+        "updateMs": { "p50": 1.6, "p95": 4.4, "p99": 4.7 },
+        "renderMs": { "p50": 1.7, "p95": 9.9, "p99": 23.2 },
+        "postMs": { "p50": 0.3, "p95": 0.7, "p99": 4.4 },
+        "inputQueueP95Ms": 0.3,
+        "longTasks": 0,
+        "longTaskMaxMs": 0,
+        "refractionCopy": {
+          "partialFrames": 34,
+          "fullFrames": 0,
+          "regions": 34,
+          "pixelsCopied": 2110018,
+          "pixelsAvoided": 42655742,
+          "fallbacks": 0
+        }
+      },
+      "candidateRepeatUnpaired": {
+        "mode": "on",
+        "framesSampled": 44,
+        "fpsAverageEstimate": 44.2,
+        "fps1PercentLowEstimate": 14.35,
+        "frameTimeMs": { "p50": 16.6, "p95": 51.0, "p99": 69.7 },
+        "renderMs": { "p50": 1.6, "p95": 9.4, "p99": 38.0 },
+        "postMs": { "p50": 0.3, "p95": 0.9, "p99": 5.3 },
+        "inputQueueP95Ms": 0.2,
+        "longTasks": 1,
+        "longTaskMaxMs": 63,
+        "refractionCopy": {
+          "partialFrames": 30,
+          "fullFrames": 0,
+          "regions": 32,
+          "pixelsCopied": 2035923,
+          "pixelsAvoided": 37463277,
+          "fallbacks": 0
+        },
+        "pairedWithBaseline": false
+      }
+    }
+  ],
+  "comparison": {
+    "browserPixelParity": { "frames": 6, "changedChannels": 0, "maxChannelDiff": 0 },
+    "deterministicCanvasPixelParity": {
+      "profiles": 4,
+      "framesPerProfile": 12,
+      "changedChannels": 0,
+      "maxChannelDiff": 0,
+      "fallbackErrors": 0
+    },
+    "acceptanceDecision": "candidate remains opt-in; results are too short, noisy and software-rendered to establish a reliable speedup"
+  }
+}
