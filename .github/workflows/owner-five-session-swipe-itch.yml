@@ -176,6 +176,7 @@ jobs:
             APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.sha256
             reports/latest-gold-itch/
             reports/owner-gold-swipe-evidence/
+            reports/five-session-navigation/
             reports/owner-five-session-evidence/
           retention-days: 30
           if-no-files-found: error
