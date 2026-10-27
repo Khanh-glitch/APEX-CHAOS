@@ -1,76 +1,41 @@
-# BOT WAVE performance root-cause investigation — 2026-10-27
+# BOT WAVE lag — status and hardware blocker (2026-10-27)
 
 ## Decision
 
-**Not READY.** The opt-in refraction-copy candidate remains disabled by default. Three counterbalanced 60-second stress pairs did not show stable improvement in frame-time or input-latency P95/P99. The strongest Chrome trace is from `@sparticuz/chromium` on SwiftShader, so it diagnoses this headless run but cannot establish physical desktop/mobile GPU performance. No release package was produced.
+**NOT READY. The lag is not fixed.** The refraction-copy experiment and its app-side diagnostics have been reverted from `public/bot-wave/game.html`, which now matches the PR base. Three same-host SwiftShader A/B pairs produced no stable gain, so the failed renderer experiment, candidate-only tests and repetitive A/B jobs were removed. No visual-quality or gameplay reduction was used.
 
-## Reproducible stress conditions
+## Exact blocker
 
-`tools/benchmarkBotWaveStressAB.mjs` launched a fresh Chromium process for each treatment. Each pair used the same seed, viewport, initial campaign state, and input/effect schedule; treatment order was counterbalanced `off/on`, `on/off`, `off/on`.
+This execution environment cannot produce the evidence needed to choose a product rendering optimization:
 
-- 1440 × 900, DPR 1; Chrome `HeadlessChrome/153.0.8010.0`.
-- 14 live enemies created through campaign-authored weapon descriptors; six existing Gold/native abilities were unlocked for the test fixture.
-- Real browser keyboard input: D movement plus J/K/L/U/I skill presses; simultaneous pressure-wave/heat VFX injected at 450 ms intervals.
-- 60 seconds measured per run; 3 paired seeds (180 measured seconds per treatment). No one-second sample is used as benchmark evidence.
-- Full machine-readable results: `reports/bot-wave-stress-ab-repeatable/ab-summary-desktop-1440x900-1793101636329.json` and its Markdown summary. Individual run files sit in the same directory.
-- Reproduction command (against a production preview): `APEX_APP_URL=http://127.0.0.1:4173 APEX_STRESS_REPLICATES=3 APEX_STRESS_DURATION_MS=60000 APEX_PERF_WARMUP_MS=4000 APEX_PERF_BOTS=14 APEX_STRESS_SEED=20261027 APEX_PERF_PROFILE=desktop-1440x900 pnpm benchmark:bot-wave:stress-ab`.
-- Wrapper trace command: `APEX_APP_URL=http://127.0.0.1:4173 APEX_TRACE_WRAPPER=1 APEX_PERF_MODE=off APEX_PERF_PROFILE=desktop-wrapper APEX_TRACE_DURATION_MS=12000 APEX_TRACE_BOTS=14 pnpm profile:bot-wave:trace`.
+- `/dev/dri` is absent; no `nvidia-smi`, system Chrome or Chromium is installed.
+- The only bundled Chromium is software-backed. It reports `ANGLE_SWIFTSHADER` / `SwiftShader Device (Subzero)`.
+- A local attempt to run the Localization Chrome test with the bundled binary failed before browser startup: `libnspr4.so: cannot open shared object file`.
+- Therefore there is no hardware-accelerated Chrome trace, physical GPU timing, or real-device input-latency result from this sandbox. Do not infer the production bottleneck from those SwiftShader stalls.
 
-### Paired results (ms)
+The owner-run capture is prepared in `tools/profileBotWaveHardware.mjs`; details and exact Windows/Android commands are in [`README.md`](README.md). It refuses known software renderers and disabled GPU compositing, preserves native display resolution/DPR, uses the actual Gold wrapper and existing Canvas2D pipeline, exercises 14 campaign-described bots/six existing skills with simultaneous wave/heat effects, captures five minutes by default, and writes:
 
-| Pair / seed | Frame P95 off → on | Frame P99 off → on | Input-to-next-RAF P95 off → on | Input-to-next-RAF P99 off → on |
-|---|---:|---:|---:|---:|
-| 1 / 20261027 | 4107.0 → 4450.2 (+8.4%) | 4473.6 → 5042.9 (+12.7%) | 3557.7 → 3717.6 (+4.5%) | 4415.6 → 4619.2 (+4.6%) |
-| 2 / 20261028 | 4286.5 → 3099.7 (−27.7%) | 4588.3 → 4909.8 (+7.0%) | 3624.9 → 3346.7 (−7.7%) | 4230.1 → 4567.1 (+8.0%) |
-| 3 / 20261029 | 4676.7 → 4989.4 (+6.7%) | 4943.5 → 5161.3 (+4.4%) | 3918.2 → 4199.5 (+7.2%) | 4452.0 → 4803.8 (+7.9%) |
-| **Median paired delta** | **+6.7%** | **+7.0%** | **+4.5%** | **+7.9%** |
+- Chrome Performance trace with GPU/Viz/raster/compositor and scheduling events;
+- reported adapter, driver/backend and GPU feature status;
+- RAF interval percentiles, FPS estimate and 1% low;
+- trusted DOM input-to-next-RAF latency, Long Tasks and CDP task/script/layout metrics;
+- periodic heap/game-state samples and start/end screenshots;
+- optional V8 CPU profile.
 
-The candidate avoided roughly 44.6–51.0 million full-frame pixels per run, but that did **not** translate into stable frame or input-latency improvement. Candidate render/post timing also did not improve consistently. Each run retained 13–14 live actors and stayed in combat, but the game clock advanced only about 0.78–1.09 seconds over each 60-second wall-clock sample in this environment. These are severe failures for the headless stress setup, not acceptable performance results.
+**Owner data needed:** `*.summary.json`, matching `*.trace.json`, start/end screenshots, GPU make/model/driver, Chrome version, OS/device model, native resolution/DPR/refresh mode, and the movement/skill sequence during the capture. For a mobile result, run on the real Android Chrome device over USB/CDP or provide a device-side trace. One capture is for classification; only after it identifies a plausible cost center should a specific lossless renderer change be tested before/after on that same device.
 
-## Chrome Performance trace findings
+## What code inspection establishes (not a measured root cause)
 
-Representative wrapper/iframe trace and machine-readable analysis:
+The original Gold post renderer uses a full-DPR scene canvas and refraction-copy canvas, plus quarter-resolution bloom, chroma and radial surfaces. On active shock/heat frames it copies the scene into the refraction canvas, then samples that copy for shock and heat passes; it also downsamples/composites bloom and conditionally applies RGB split/radial work. This identifies measurable questions for the hardware trace—Canvas2D draw/clear/snapshot cost, raster/compositor queueing, texture/resource uploads, and main-thread scheduling—but does not say which one dominates on the owner device.
 
-- `reports/bot-wave-wrapper-trace-cpu/desktop-wrapper-off-1793100993990.trace.json`
-- `reports/bot-wave-wrapper-trace-cpu/desktop-wrapper-off-1793100993990.summary.json`
+The previous region-copy optimization reduced pixels copied in the software benchmark but did not improve paired frame/input P95/P99. It is now removed. I did not replace it with OffscreenCanvas, WebGL/WebGPU, cached layers, or another speculative pipeline: none can be justified without a hardware trace and pixel/interaction parity proof. The exact historical candidate CI assertion remains unknown because its uploaded failure artifact/log could not be downloaded from this sandbox (EOF); the later candidate runs passed intermittently. The new workflow no longer treats candidate performance as a gate.
 
-The trace includes the actual Gold wrapper and its `wave` iframe, 14 campaign-authored enemies, simultaneous VFX/skills, and D/skill keyboard input. The iframe was visible and focused; gameplay was unpaused. The wrapper and game appeared as separate frame records. In this repro, the issue is **not explained by a hidden/background iframe or ignored key delivery**.
+## Separate CI findings
 
-Chrome `SystemInfo.getInfo` identified the renderer as **ANGLE_SWIFTSHADER**, `ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)))`, `inProcessGpu: true`; the profiling launcher explicitly selects SwiftShader. In that environment:
+- BOT WAVE run `40505086078` passed on the pre-rollback code, but it still included the candidate profile. The simplified compatibility-only workflow has not yet run post-rollback. A green SwiftShader compatibility result will mean only that the Gold wrapper/control path loads and accepts emulated input.
+- Localization run `40505086104` failed at “Verify real Chrome desktop and portrait glyphs” after 21 seconds; GitHub lists no artifact and the raw job log is unavailable here. The script's CDP startup loop is exactly 20 seconds, making Chrome process/CDP startup the leading hypothesis rather than a glyph assertion. A local attempt with the bundled Chromium failed at the same startup stage because `libnspr4.so` is missing. This is a separate localization test harness issue; do not edit locale code without confirmation. Rerun with system Chrome while capturing child stderr/exit status or add a focused startup diagnostic before changing visual expectations.
+- Product Acceptance continues to fail the inherited runtime-revision gate on five Shuri files verified unchanged from the PR base. Those files are out of scope; do not modify them or loosen that gate in this PR.
 
-- App frame-gap P95/P99 were about **1,228 / 1,406 ms**; input-event-to-next-RAF P95/P99 were about **1,203 / 1,208 ms**. D movement did move the player, but responsiveness was poor.
-- Chrome trace recorded GPU-thread `GPUTask` / `RasterDecoderImpl::DoEndRasterCHROMIUM::Flush` work up to about **1.4 s**. Compositor/Viz tasks were comparatively short. The renderer-main thread's longest top-level task was about **71 ms**; the app long-task observer reported one such task. Update/render/post P95 were about **9.3 / 15 / 4.4 ms**.
-- The JS CPU profile sampled the game `render` function for about 89 ms total and `drawImage` for about 92 ms over the 12-second diagnostic window; `putImageData` accounted for about 60 ms. Chrome's Canvas2D trace saw thousands of `Canvas2DResourceProvider::Snapshot` events and `WritePixels` work (about 76 ms total, maximum about 13 ms in this trace).
-- Eight major/minor GC root events totalled roughly 19 ms, with the largest about 8 ms. GC does not explain the multi-second gaps in this trace.
+## Visual/gameplay scope
 
-**Interpretation:** the directly observed long gap is dominated by the in-process SwiftShader GPU/raster path and missed frame scheduling, not multi-second JavaScript tasks or GC. Canvas2D submissions and post/VFX work feed that path. This is a diagnosis of the sandbox's software-rendered Chromium run; it does not prove that physical-GPU Chrome has the same root cause or severity. A hardware-accelerated desktop/mobile trace is still required before making a device-performance claim.
-
-## Desktop movement and iframe QA
-
-The old wrapper smoke only waited 800 ms after KeyD, which could land entirely inside a renderer/GPU stall and incorrectly passed on key delivery alone. It now holds KeyD for six seconds, records phase/visibility/focus/RAF time diagnostics, and requires both movement and simulation-clock advance. A fresh desktop wrapper run passed with **67.4 world units moved** and **0.250 s game-clock advance**. The mobile-landscape wrapper QA also passed with **15.6 units moved** and **0.233 s game-clock advance**. Both were combat, unpaused, visible, and focused. These establish eventual movement in the smokes, **not** acceptable input latency, smoothness, or a performance fix. The 14-bot stress still has multi-second input-to-next-frame P95/P99.
-
-## Candidate Chrome CI failure: intermittent; exact assertion still unavailable
-
-Run [40491444677](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40491444677) passed baseline profiling and failed candidate profiling after about 18 seconds; the old profiler exposed only a generic exit code. After adding failure JSON, [40499986580](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40499986580) passed all BOT WAVE steps. The next run [40501946197](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40501946197) again passed baseline and failed candidate after **21 seconds**; wrapper QA, render contracts, parity, and build passed. GitHub uploaded an 8.16 MB artifact containing the failure JSON/screenshot. The sandbox could list the artifact but the log/ZIP endpoints returned EOF; unauthenticated GitHub pages expose only the generic annotation. The exact assertion/runtime detail is captured by CI but **not inspectable from this environment**; it is not safe to guess.
-
-The subsequent workflow run [40502228713](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40502228713) passed. The latest code, including a GitHub `::error` annotation with profile, mode, stage, assertion message, and failure-file name, passed twice: [40503332963](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40503332963) and [40503338072](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40503338072). The error annotation has not yet been exercised because these runs passed. The failure is intermittent across this sequence, not resolved by an identified assertion; the current head's candidate step is green.
-
-## Inherited Shuri revision-gate classification
-
-`test:runtime-revision` flags these files under the inherited `20261017-shuri-boxe-sfx-r2` lock:
-
-- `public/game/arsenal/arsenalWeaponRuntime.js`
-- `public/game/hero-rework/heroRegistry.js`
-- `public/game/hero-rework/shuriBattleRuntime.js`
-- `public/game/hero-rework/shuriGoldLibrary.js`
-- `public/game/hero-rework/shuriGoldPresentationRuntime.js`
-
-All five are present in the PR base and absent from this PR's changed-file set. They are inherited revision-gate debt, not BOT WAVE performance regressions. **Scope decision:** do not edit unrelated Shuri files or loosen the revision gate in this performance PR; track/fix that baseline issue separately. Product Acceptance runs [40503338073](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40503338073) and [40503332837](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40503332837), along with earlier runs [40499986527](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40499986527) and [40501936630](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40501936630), fail at the aggregate “Verify product graph, source hygiene, runtime revision, and generated audio bank” step. Local validation confirms the runtime-revision subcheck is the inherited five-file mismatch listed above; do not misattribute this to the BOT WAVE changes. The aggregate check remains red until its owner resolves the inherited gate.
-
-## Follow-up / release gate
-
-- Keep the candidate opt-in and keep PR #110 draft.
-- Do not claim READY, stable improvement, or physical mobile performance from this evidence.
-- Preserve the failed candidate and inherited Shuri classifications; neither is hidden or relaxed.
-- The current candidate CI head passes, but earlier runs include intermittent failures whose captured detail is not yet readable here. Inspect the uploaded failure JSON or a future GitHub error annotation before assigning a root cause. Do not loosen or hide the failed gate.
-- Require a repeated, counterbalanced hardware-accelerated desktop A/B, gameplay validation, acceptable frame/input P95/P99, and all applicable CI gates before changing readiness. No release ZIP was made.
+The wrapper Home control remains bottom-centered so it does not cover the centered wave title. Previously captured desktop and mobile-landscape wrapper entry/combat screenshots were inspected; the Gold HUD, onboarding, Home control and lower-left mobile joystick remain. The game renderer itself has been restored to the PR base. There is no claim of acceptable latency, no hardware/mobile acceptance, and no release ZIP.

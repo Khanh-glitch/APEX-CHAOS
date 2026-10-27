@@ -1,17 +1,12 @@
-name: BOT WAVE lossless render performance QA
+name: BOT WAVE compatibility QA
 
 on:
   pull_request:
     paths:
       - 'public/bot-wave/**'
       - 'public/game/bot-wave/**'
-      - 'tools/profileBotWaveLosslessBrowser.mjs'
-      - 'tools/profileBotWaveStressRun.mjs'
-      - 'tools/benchmarkBotWaveStressAB.mjs'
-      - 'tools/traceBotWaveChrome.mjs'
       - 'tools/captureBotWaveWrapperQa.mjs'
-      - 'tools/testBotWaveLosslessRenderContract.mjs'
-      - 'tools/testBotWaveRefractionPixelParity.mjs'
+      - 'tools/profileBotWaveHardware.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/bot-wave-lossless-perf.yml'
@@ -21,13 +16,8 @@ on:
     paths:
       - 'public/bot-wave/**'
       - 'public/game/bot-wave/**'
-      - 'tools/profileBotWaveLosslessBrowser.mjs'
-      - 'tools/profileBotWaveStressRun.mjs'
-      - 'tools/benchmarkBotWaveStressAB.mjs'
-      - 'tools/traceBotWaveChrome.mjs'
       - 'tools/captureBotWaveWrapperQa.mjs'
-      - 'tools/testBotWaveLosslessRenderContract.mjs'
-      - 'tools/testBotWaveRefractionPixelParity.mjs'
+      - 'tools/profileBotWaveHardware.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/bot-wave-lossless-perf.yml'
@@ -37,9 +27,9 @@ permissions:
   contents: read
 
 jobs:
-  render-ab:
+  compatibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -50,56 +40,36 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Gold render contracts and deterministic pixel parity
-        run: |
-          pnpm test:bot-wave:render-contract
-          pnpm test:bot-wave:refraction-parity
+      - name: Validate hardware profiler syntax
+        run: node --check tools/profileBotWaveHardware.mjs
       - name: Build exact production assets
         run: pnpm build
       - name: Start production preview
         shell: bash
         run: |
-          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/bot-wave-perf-preview.log 2>&1 &
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/bot-wave-compat-preview.log 2>&1 &
           for i in $(seq 1 60); do
             curl -fsS http://127.0.0.1:4173/bot-wave/game.html -o /dev/null && exit 0
             sleep 1
           done
-          cat /tmp/bot-wave-perf-preview.log
+          cat /tmp/bot-wave-compat-preview.log
           exit 1
-      - name: Desktop Gold wrapper, onboarding, HUD, input and navigation smoke
+      - name: Desktop Gold wrapper and eventual keyboard movement compatibility
         env:
           APEX_APP_URL: http://127.0.0.1:4173
           APEX_PERF_PROFILE: desktop
-          APEX_EVIDENCE_DIR: reports/bot-wave-perf
+          APEX_EVIDENCE_DIR: reports/bot-wave-compat
         run: pnpm qa:bot-wave:wrapper
-      - name: Mobile-landscape Gold wrapper and touch-viewport smoke
+      - name: Mobile-landscape wrapper and emulated touch compatibility
         env:
           APEX_APP_URL: http://127.0.0.1:4173
           APEX_PERF_PROFILE: mobile-landscape
-          APEX_EVIDENCE_DIR: reports/bot-wave-perf
+          APEX_EVIDENCE_DIR: reports/bot-wave-compat
         run: pnpm qa:bot-wave:wrapper
-      - name: Paired Chrome baseline (original Gold post path)
-        env:
-          APEX_APP_URL: http://127.0.0.1:4173
-          APEX_PERF_MODE: off
-          APEX_PERF_STRESS: '1'
-          APEX_PERF_DURATION_MS: '12000'
-          APEX_PERF_WARMUP_MS: '2000'
-          APEX_EVIDENCE_DIR: reports/bot-wave-perf
-        run: pnpm profile:bot-wave
-      - name: Paired Chrome candidate (opt-in lossless region copy)
-        env:
-          APEX_APP_URL: http://127.0.0.1:4173
-          APEX_PERF_MODE: on
-          APEX_PERF_STRESS: '1'
-          APEX_PERF_DURATION_MS: '12000'
-          APEX_PERF_WARMUP_MS: '2000'
-          APEX_EVIDENCE_DIR: reports/bot-wave-perf
-        run: pnpm profile:bot-wave
-      - name: Upload performance report
+      - name: Upload compatibility evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bot-wave-render-qa-${{ github.sha }}
-          path: reports/bot-wave-perf/
+          name: bot-wave-compatibility-${{ github.sha }}
+          path: reports/bot-wave-compat/
           if-no-files-found: warn

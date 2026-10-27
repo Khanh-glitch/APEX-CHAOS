@@ -41,7 +41,7 @@ try {
       commandBar: !!document.querySelector('#wave-hud .bw-bottom'),
       joystick: !!document.querySelector('#wave-hud .bw-movement #wave-stick'),
       startButton: !!document.getElementById('w-go'),
-      productionPerfDiagnosticsEnabled: window.APEX_WAVE_PERF.snapshot().enabled,
+      productionPerfDiagnosticsEnabled: window.APEX_WAVE_PERF?.snapshot?.().enabled === true,
     }));
     hud.returnButton = returnButton;
     assert.ok(hud.pilot && hud.presentation && hud.waveHud && hud.commandBar && hud.joystick && hud.startButton && hud.returnButton,
