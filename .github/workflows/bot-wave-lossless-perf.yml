@@ -7,6 +7,8 @@ on:
       - 'public/game/bot-wave/**'
       - 'tools/captureBotWaveWrapperQa.mjs'
       - 'tools/profileBotWaveHardware.mjs'
+      - 'tools/botWaveFluidProjectCandidate.mjs'
+      - 'tools/testBotWaveFluidProjectParity.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/bot-wave-lossless-perf.yml'
@@ -18,6 +20,8 @@ on:
       - 'public/game/bot-wave/**'
       - 'tools/captureBotWaveWrapperQa.mjs'
       - 'tools/profileBotWaveHardware.mjs'
+      - 'tools/botWaveFluidProjectCandidate.mjs'
+      - 'tools/testBotWaveFluidProjectParity.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/bot-wave-lossless-perf.yml'
@@ -40,6 +44,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Verify exact Gold fluid pressure solver parity
+        run: node tools/testBotWaveFluidProjectParity.mjs
       - name: Validate hardware profiler syntax
         run: node --check tools/profileBotWaveHardware.mjs
       - name: Build exact production assets
