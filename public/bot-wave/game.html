@@ -7065,7 +7065,7 @@ let resetPerfSamples=()=>{};
 let perfSnapshotExtras=()=>({enabled:false});
 if(PERF_DIAGNOSTICS_ENABLED){
  const perfHistory=Object.fromEntries(['update','render','post','frame','input']
-  .map(key=>[key,{data:new Float32Array(300),count:0}]));
+  .map(key=>[key,{data:new Float32Array(12000),count:0}]));
  recordPerfCost=(key,value)=>{
   if(!Number.isFinite(value)||value<0)return;
   const h=perfHistory[key];h.data[h.count%h.data.length]=value;h.count++;

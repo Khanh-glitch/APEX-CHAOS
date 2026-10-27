@@ -1,6 +1,6 @@
 # BOT WAVE lossless-render performance investigation
 
-**Status: NOT READY for release.** The lossless refraction-copy adapter remains opt-in (`?refractionCopy=on`); the shipping default is the approved baseline. The measurements below do not establish a repeatable overall win, and there has been no physical Android/iOS device test or long-session acceptance run. Do not publish this as a performance fix or call mobile performance fixed.
+**Status: NOT READY for release.** The lossless refraction-copy adapter remains opt-in (`?refractionCopy=on`); the shipping default is the approved baseline. The historical one-shot measurements below are not acceptance evidence. The 2026-10-27 root-cause investigation adds Chrome Performance traces and three 60-second paired stress runs; they still show no stable candidate improvement, and there has been no physical Android/iOS device test. Do not publish this as a performance fix or call mobile performance fixed. See [the root-cause report](root-cause-investigation-2026-10-27.md).
 
 ## Scope and safety
 
@@ -14,13 +14,19 @@
 
 - `corepack pnpm test:bot-wave:render-contract`: PASS.
 - `corepack pnpm test:bot-wave:refraction-parity`: PASS; four profiles (1440×900 DPR1, 844×390 DPR2, 390×844 DPR3, compact 420×280 DPR1), 12 frames/profile, **zero changed pixel channels**. Compact profile exercised the full-frame fallback without errors.
-- Actual production-preview Chromium wrapper smoke: desktop and 844×390 DPR2 mobile-landscape loaded the Gold pilot, HUD, command bar, onboarding/start control and wrapper Home control without page exceptions; detailed telemetry was confirmed disabled by default. Emulated mobile touch moved the player 15.6 px; the joystick was visible at x=7, y=328, 55×55 CSS px, anchored lower-left. A desktop KeyD event reached the game canvas, but the latest production-preview sample showed 0 px movement and 0 game-clock delta over its short interval (an earlier dev-server smoke moved 12.0 px). Desktop wrapper movement is therefore not accepted as verified. This is automated headless input QA, not a physical touch-device test.
+- Actual production-preview Chromium wrapper QA: desktop and 844×390 DPR2 mobile-landscape loaded the Gold pilot, HUD, command bar, onboarding/start control and wrapper Home control without page exceptions; detailed telemetry was confirmed disabled by default. In the latest six-second input-window check, desktop KeyD moved 67.4 world units with 0.250 s of game-clock advance; emulated mobile touch moved 15.6 units with 0.233 s of game-clock advance. Both assert eventual movement only; neither establishes acceptable input latency, smoothness, or physical-device behavior. The mobile joystick remains visible at x=7, y=328, 55×55 CSS px, anchored lower-left.
 - Browser pixel comparison: six synthetic effect frames, zero changed channels, max difference 0. Deterministic browser-canvas comparison is not a full-game screenshot/video comparison.
 - Production build completed with the repository build script. One pre-existing Vite warning remains about the `ecoNewbotV17Gold.js` static/dynamic import mix.
 
-## One-shot A/B measurements (diagnostic only)
+## Repeated 60-second A/B and Chrome trace (latest; still not acceptance)
 
-The direct-game Chromium profiles used a single 1,000 ms sample after 500 ms warmup, with scripted wave/heat VFX and four bots at sample end. One run per mode is far too short/noisy for acceptance; conditions were not repeated in randomized order. The browser was headless Chromium with SwiftShader/software rendering, not a phone GPU.
+The full paired results and trace analysis are in [the root-cause report](root-cause-investigation-2026-10-27.md). Three counterbalanced 60-second off/on pairs used the same desktop 1440×900 conditions, 14 live bots, 84 descriptors, six skills, and recurring VFX. Candidate median paired changes were frame P95 **+6.69%**, frame P99 **+7.01%**, input-to-next-frame P95 **+4.49%**, input P99 **+7.90%**, render P95 **+0.61%**, and post P95 **+4.85%**. Stable improvement was false; keep the candidate opt-in.
+
+A separate 12-second wrapper trace used headless Chrome with ANGLE SwiftShader / in-process GPU. It found severe GPU-thread stalls and sparse RAF delivery, while the longest recorded main-thread long task was 71.5 ms. This localizes the headless test bottleneck but cannot establish physical-GPU/mobile behavior or explain the owner's real-device stalls. Repeated stress reports and raw trace are retained in the ignored `reports/` evidence directory.
+
+## Historical one-shot A/B measurements (diagnostic only)
+
+The direct-game Chromium profiles used a single 1,000 ms sample after 500 ms warmup, with scripted wave/heat VFX and four bots at sample end. These are superseded by the longer paired run above, too short/noisy for acceptance, and were not repeated in randomized order. The browser was headless Chromium with SwiftShader/software rendering, not a phone GPU.
 
 | Viewport | Mode | FPS estimate / 1% low | Frame gap P50 / P95 / P99 (ms) | Render P95 (ms) | Post P95 (ms) | Long tasks / max (ms) | Refraction pixels avoided |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -48,7 +54,9 @@ The actual wrapper entry and combat frames were opened and inspected during QA. 
 
 ## What is not established
 
-- The root cause of the owner's reported 180–300 ms stalls is still unknown. The probe did record individual scene-pass image draws up to 5.3 ms and large post-canvas copies up to a few ms, but these are correlations in a software-rendered sample—not proof of the production-device bottleneck.
+- The root cause of the owner's reported 180–300 ms stalls on real hardware is still unknown. The wrapper trace's severe GPU-thread stalls are specifically from headless SwiftShader; main-thread long tasks peaked at 71.5 ms in that trace. These are not proof of the production-device bottleneck.
+- The exact failure point in BOT WAVE candidate CI run `40491444677` remains unknown because the earlier profiler emitted only a generic exit code. The browser profiler now records stage, runtime/counters, console/network errors, and a best-effort screenshot on failure; rerunning the workflow is needed to capture a precise cause.
+- Product Acceptance also has an inherited runtime-revision gate failure on five Shuri files verified unchanged from the PR base. This is unrelated baseline debt and has not been fixed or hidden in this BOT WAVE scope; see the root-cause report.
 - No 60 FPS / 1% low target was demonstrated; the headless results are below 60 FPS and noisy.
 - No real Android/iOS browser, high-refresh phone, physical touch latency, fullscreen/rotation cycle, Home-navigation return flow, long-session memory/GC trend, or multi-wave/boss session has been verified.
 - Screenshots are point-in-time visual checks, not a full Gold UI acceptance or full-game video parity capture. They show VFX timing differences and must not be compared pixelwise as identical gameplay states.

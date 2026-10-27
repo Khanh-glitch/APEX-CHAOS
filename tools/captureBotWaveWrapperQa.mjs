@@ -55,7 +55,12 @@ try {
     const phase = await frame.evaluate(() => window.BOXE_WAVE_PILOT.state.phase);
     assert.equal(phase, 'combat', `${profile.name}: combat starts through Gold onboarding`);
     await new Promise(resolve => setTimeout(resolve, 1500));
-    const before = await frame.evaluate(() => ({ x: window.handLab.player.x, y: window.handLab.player.y, t: window.handLab.time }));
+    const diagnostic = () => frame.evaluate(() => ({ x: window.handLab.player.x, y: window.handLab.player.y, t: window.handLab.time,
+      phase: window.BOXE_WAVE_PILOT.state.phase, paused: window.handLab.paused, fpsEma: window.handLab.fpsEma,
+      visibility: document.visibilityState, focused: document.hasFocus(), keys: [...window.handLab.keys],
+      vx: window.handLab.player.vx, vy: window.handLab.player.vy, castLockT: window.handLab.player.castLockT,
+      leap: !!window.handLab.leap, ultLockT: window.handLab.ultLockT, raf: window.handLab.raf, lastTs: window.handLab.lastTs }));
+    const before = await diagnostic();
     let touchStick = null;
     let keyboardEvents = [];
     if (profile.dpr > 1) {
@@ -83,19 +88,23 @@ try {
         window.handLab.canvas.focus(); window.focus(); window.__qaKeys = [];
         window.addEventListener('keydown', e => window.__qaKeys.push({ code: e.code, target: e.target?.tagName }), true);
       });
-      await page.keyboard.down('d'); await new Promise(resolve => setTimeout(resolve, 800));
+      await page.bringToFront();
+      await page.keyboard.down('d');
+      await new Promise(resolve => setTimeout(resolve, Number(process.env.APEX_WRAPPER_KEY_DURATION_MS || 6000)));
       const keyState = await frame.evaluate(() => ({ events: window.__qaKeys, keys: [...window.handLab.keys] }));
       keyboardEvents = keyState.events;
       assert.ok(keyState.events.some(e => e.code === 'KeyD') && keyState.keys.includes('KeyD'),
         `${profile.name}: keyboard input reaches Gold runtime: ${JSON.stringify(keyState)}`);
       await page.keyboard.up('d');
     }
-    const after = await frame.evaluate(() => ({ x: window.handLab.player.x, y: window.handLab.player.y, t: window.handLab.time }));
+    const after = await diagnostic();
     const movementPx = Math.hypot(after.x - before.x, after.y - before.y);
     if (profile.dpr > 1) assert.ok(movementPx > 8, `${profile.name}: touch drag moves the Gold player`);
+    else assert.ok(movementPx > 8 && after.t - before.t > .25,
+      `${profile.name}: desktop KeyD must advance the live Gold simulation and move the player: ${JSON.stringify({ movementPx, gameTimeDelta: after.t - before.t, before, after, keyboardEvents })}`);
     await page.screenshot({ path: path.join(output, `${profile.name}-combat.png`) });
     assert.deepEqual(errors, [], `${profile.name}: no runtime exceptions`);
-    results.push({ profile: profile.name, viewport: profile, hud, inputMode: profile.dpr > 1 ? 'emulated-touch joystick drag' : 'keyboard KeyD', touchStick, keyboardEvents, movementPx, gameTimeDelta: after.t - before.t, errors });
+    results.push({ profile: profile.name, viewport: profile, hud, inputMode: profile.dpr > 1 ? 'emulated-touch joystick drag' : 'keyboard KeyD', touchStick, keyboardEvents, movementPx, gameTimeDelta: after.t - before.t, before, after, errors });
     await frame.evaluate(() => window.handLab?.destroy());
     await page.close({ runBeforeUnload: false });
   }

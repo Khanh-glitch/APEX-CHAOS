@@ -23,6 +23,8 @@ const viewports = [
   { name: 'mobile-landscape-844x390-dpr2', width: 844, height: 390, dpr: 2 },
 ].filter(profile => !process.env.APEX_PERF_PROFILE || profile.name === process.env.APEX_PERF_PROFILE);
 const all = [];
+const runId = process.env.APEX_PERF_RUN_ID || new Date().toISOString().replace(/[:.]/g, '-');
+let activeFailureContext = { stage: 'startup', profile: null, mode: null, page: null };
 const modes = process.env.APEX_PERF_MODE ? [process.env.APEX_PERF_MODE] : ['off', 'on'];
 for (const mode of modes) assert.ok(['off', 'on'].includes(mode), 'APEX_PERF_MODE must be off or on');
 
@@ -106,14 +108,20 @@ async function parityProof(page) {
 async function runOne(profile, mode) {
   console.log('BOT WAVE profile start', profile.name, mode);
   const page = await browser.newPage();
-  const errors = [];
+  const errors = [], consoleErrors = [], failedRequests = [];
+  activeFailureContext = { stage: 'page-created', profile: profile.name, mode, page, consoleErrors, failedRequests };
   page.on('pageerror', error => errors.push(String(error)));
+  page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  page.on('requestfailed', request => failedRequests.push({ url: request.url(), error: request.failure()?.errorText }));
   await page.setViewport({ width: profile.width, height: profile.height, deviceScaleFactor: profile.dpr, isMobile: profile.dpr > 1, hasTouch: profile.dpr > 1 });
+  activeFailureContext.stage = 'navigation';
   await page.goto(`${base}/bot-wave/game.html?refractionCopy=${mode}&wavePerf=on`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   console.log('BOT WAVE loaded', profile.name, mode);
   await page.waitForSelector('#w-go', { visible: true, timeout: 30000 });
+  activeFailureContext.stage = 'campaign-start';
   await page.click('#w-go');
   await waitFor(page, () => page.evaluate(() => window.BOXE_WAVE_PILOT?.state?.phase === 'combat'), 'wave combat');
+  activeFailureContext.stage = 'stress-sample';
   console.log('BOT WAVE combat started', profile.name, mode);
   await page.evaluate(stress => {
     const e = window.handLab;
@@ -150,7 +158,9 @@ async function runOne(profile, mode) {
     return { x: window.handLab.player.x, y: window.handLab.player.y, t: window.handLab.time };
   });
   const final = samples.at(-1)?.perf;
+  activeFailureContext.stage = 'render-sample-assertion';
   assert.ok(final?.renderSamples > 10 && final?.postSamples > 10, `${profile.name}/${mode}: render pipeline did not sample: ${JSON.stringify(final)}`);
+  activeFailureContext.stage = 'pixel-parity';
   const parity = await parityProof(page);
   for (const [index, frame] of parity.frames.entries()) for (const [kind, url] of Object.entries(frame)) {
     const base64 = url.slice(url.indexOf(',') + 1);
@@ -161,7 +171,7 @@ async function runOne(profile, mode) {
   assert.deepEqual(errors, [], `${profile.name}/${mode}: uncaught browser errors`);
   const heaps = samples.map(s => s.memory).filter(Number.isFinite);
   const report = {
-    profile: profile.name, mode, viewport: { width: profile.width, height: profile.height, dpr: profile.dpr },
+    runId, profile: profile.name, mode, viewport: { width: profile.width, height: profile.height, dpr: profile.dpr },
     durationMs, framesSampled: final.renderSamples, botsAtEnd: final.livingBots,
     movementPx: Math.hypot(afterMove.x - beforeMove.x, afterMove.y - beforeMove.y),
     gameClockSeconds: afterMove.t - beforeMove.t,
@@ -178,12 +188,17 @@ async function runOne(profile, mode) {
     refractionCopy: await page.evaluate(() => window.APEX_WAVE_REFRACTION_COPY.snapshot()),
     canvasPassCosts: final.canvasPassCosts, parity,
   };
-  if (mode === 'on') assert.ok(report.refractionCopy.partialFrames > 0 && report.refractionCopy.pixelsAvoided > 0,
-    `${profile.name}: candidate refraction copy did not exercise sparse sampling`);
+  if (mode === 'on') {
+    activeFailureContext.stage = 'candidate-copy-assertion';
+    assert.ok(report.refractionCopy.partialFrames > 0 && report.refractionCopy.pixelsAvoided > 0,
+      `${profile.name}: candidate refraction copy did not exercise sparse sampling`);
+  }
+  activeFailureContext.stage = 'movement-and-clock-assertion';
   assert.ok(report.movementPx > 8 && report.gameClockSeconds > .25, `${profile.name}/${mode}: movement or clock stalled: ${JSON.stringify(report)}`);
   await page.evaluate(() => { clearInterval(window.__botWaveVfxTimer); window.handLab?.destroy(); });
   await page.screenshot({ path: path.join(output, `${profile.name}-${mode}-combat.png`) });
   await page.close({ runBeforeUnload: false });
+  activeFailureContext = { stage: 'profile-complete', profile: profile.name, mode, page: null };
   console.log('BOT WAVE profile ready', profile.name, mode);
   return report;
 }
@@ -195,12 +210,44 @@ try {
     all.push({ profile: profile.name, results: pair });
     console.log('BOT WAVE profile pair', JSON.stringify(all.at(-1)));
   }
-  const reportName = `profile-${all.map(item => item.profile).join('_')}-${modes.join('-')}.json`;
+  const reportName = `profile-${runId}-${all.map(item => item.profile).join('_')}-${modes.join('-')}.json`;
   fs.writeFileSync(path.join(output, reportName), JSON.stringify({
     note: 'Headless Chromium/SwiftShader profile, not representative of physical mobile GPUs. Run mode=off and mode=on separately for paired same-host A/B. Image parity is separately checked pixel by pixel.',
     results: all,
   }, null, 2) + '\n');
   console.log('BOT WAVE lossless refraction browser profile PASS');
+} catch (error) {
+  const context = activeFailureContext;
+  let runtime = null, screenshot = null;
+  if (context.page && !context.page.isClosed()) {
+    runtime = await Promise.race([
+      context.page.evaluate(() => ({
+        url: location.href, phase: window.BOXE_WAVE_PILOT?.state?.phase,
+        paused: window.handLab?.paused, visibility: document.visibilityState,
+        focus: document.hasFocus(), time: window.handLab?.time,
+        player: window.handLab?.player && { x: window.handLab.player.x, y: window.handLab.player.y },
+        bots: window.handLab?.enemies?.filter(e => !e.dead).length,
+        perf: window.APEX_WAVE_PERF?.snapshot?.(), refractionCopy: window.APEX_WAVE_REFRACTION_COPY?.snapshot?.(),
+      })).catch(e => ({ error: String(e) })),
+      wait(2500).then(() => ({ error: 'diagnostics timeout' })),
+    ]);
+    screenshot = path.join(output, `failure-${runId}-${context.profile || 'startup'}-${context.mode || 'unknown'}.png`);
+    await Promise.race([
+      context.page.screenshot({ path: screenshot }).catch(() => { screenshot = null; }),
+      wait(2500),
+    ]);
+  }
+  const failurePath = path.join(output, `failure-${runId}-${context.profile || 'startup'}-${context.mode || 'unknown'}.json`);
+  const failure = {
+    message: String(error), stack: error.stack, runId, profile: context.profile,
+    mode: context.mode, stage: context.stage, url: context.page?.url() || null,
+    runtime, screenshot, consoleErrors: context.consoleErrors || [], failedRequests: context.failedRequests || [],
+  };
+  fs.writeFileSync(failurePath, JSON.stringify(failure, null, 2) + '\n');
+  console.error('BOT WAVE profile failure detail', JSON.stringify({ failurePath, ...failure }));
+  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+    `\n### BOT WAVE browser profile failure\n\n- Mode/profile: ${context.mode || 'unknown'} / ${context.profile || 'unknown'}\n- Stage: ${context.stage}\n- Error: \`${String(error).replace(/`/g, "'")}\`\n- Details: \`${failurePath}\`\n`);
+  throw error;
 } finally {
   // Heavy canvas pages can make graceful single-process Chromium teardown take
   // minutes on constrained CI hosts. All evidence is flushed before this point.
