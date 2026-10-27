@@ -163,4 +163,31 @@ try{
    console.log('FIVE SESSION NAV PASS',width,height,JSON.stringify({first,wallet,credits:original}));
   }finally{await context.close();}
  }
+
+ // Enter Lucky/Archive DIRECTLY from Home on a fresh save. Both routes must
+ // present the shared first-use animated hand without adding a button panel.
+ for(const index of [3,4]){
+  const {page,context,errors}=await openApp(browser,{
+   width:844,height:390,mobile:true,
+   storage:{'apex.alpha.tutorial.v1':'off'}
+  });
+  try{
+   await page.evaluate(i=>window.dispatchEvent(
+    new CustomEvent('apex:session-navigate',{detail:{index:i}})),index);
+   await until(page,()=>!!document.querySelector('[data-testid="apex-session-swipe-coach"]'),
+    'first-entry hand coach on external section '+index,30000);
+   assert.equal(await page.evaluate(()=>localStorage.getItem('apex.gold.sections.swipe.v3')),
+    'seen','Guide not persisted for external-first entry');
+   const hint=await page.evaluate(()=>({
+    hand:!!document.querySelector('.apex-session-coach-hand'),
+    rail:document.querySelector('.apex-session-position')?.dataset.sessionIndex,
+    items:document.querySelectorAll('.apex-session-position span').length,
+    buttonPanel:!!document.querySelector('.apex-inline-session')
+   }));
+   assert.ok(hint.hand&&hint.rail===String(index)&&hint.items===5&&!hint.buttonPanel,
+    'Direct-open section lacks unobtrusive five-item hand coaching: '+JSON.stringify(hint));
+   await page.screenshot({path:`${output}/first-entry-${index===3?'lucky':'archive'}-844x390.png`});
+   assert.deepEqual(errors,[],'Errors on external-first entry '+index+': '+errors.join('; '));
+  }finally{await context.close();}
+ }
 }finally{await browser.close();}
