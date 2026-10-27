@@ -2,6 +2,8 @@ name: LATEST Gold + BOT WAVE WASM itch owner acceptance
 on:
   push:
     branches: ['fix/latest-gold-bot-wave-itch-20261027']
+  pull_request:
+    branches: ['fix/unified-gold-session-navigation-20261026']
   workflow_dispatch:
 permissions:
   contents: read
