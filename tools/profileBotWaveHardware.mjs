@@ -78,6 +78,8 @@ try {
     ownsBrowser = true;
   }
   page = await browser.newPage();
+  if(ciHeadless && process.env.APEX_PROFILE_VIEWPORT === 'mobile')
+    await page.setViewport({width:844,height:390,deviceScaleFactor:2,isMobile:true,hasTouch:true});
   page.on('pageerror', e => errors.push(String(e)));
   page.on('requestfailed', r => failedRequests.push({ url: r.url(), error: r.failure()?.errorText }));
   page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -149,6 +151,11 @@ try {
     for (const id of ['jab', 'rocket', 'uppercut', 'counter', 'phantom', 'ult']) state.owned.add(id);
     engine.waveCounterUnlocked = true;
     engine.paused = false;
+    // Synthetic stress fixture only: extend player life so the entire
+    // capture remains a live, hostile 14-bot combat sample, not game-over UI.
+    // This is never saved or applied to shipping game code.
+    engine.player.maxHp=Math.max(engine.player.maxHp,1000000);
+    engine.player.hp=engine.player.maxHp;
     for (let i = 0; i < count && state.queue.length; i++) { state.spawnT = 0; engine.update(.016); }
     const probe = { frameIntervals: [], inputToRafMs: [], inputEvents: [], longTasks: [], memorySamples: [],
       runtimeSamples: [], listeners: [], priorFrame: null, frames: 0, lastPointerMove: 0, active: true };
@@ -290,6 +297,9 @@ try {
         name: key, width: e.post[key]?.width || 0, height: e.post[key]?.height || 0 })) } };
   });
   clearInterval(browserMetricsTimer);
+  assert.equal(final.runtime.phase,'combat','Stress fixture ended combat early; hardware profile is INVALID');
+  assert.ok(final.runtime.gameTime>=durationMs/1000*.6,
+    'Insufficient active combat simulation time; hardware profile is INVALID: '+final.runtime.gameTime);
   await sampleBrowserPerformance();
   const cpuProfilePath = captureCpuProfile ? path.join(output, `bot-wave-${runId}.cpu-profile.json`) : null;
   if (captureCpuProfile && cpuProfile) fs.writeFileSync(cpuProfilePath, JSON.stringify(cpuProfile));
