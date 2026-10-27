@@ -28,7 +28,9 @@ const goldFrame=()=>document.querySelector('.apex-gold-direct-host iframe');
 const goldActive=()=>!!goldFrame();
 const goldReady=()=>!!goldFrame()?.contentDocument?.querySelector('main h1');
 const busyDraw=()=>luckyActive()&&luckyFrame()?.contentDocument?.getElementById('stage')?.dataset.busy!=='0';
-const interactive='button,a,input,textarea,select,[contenteditable],[role="button"],[role="tab"],.drawer,.fa3-index-list,.fa3-record-navigation,.fa3-appear,.fa3-detail';
+// Read-only Archive dossier content must remain swipeable. Protect only
+// actual commands, forms, horizontal selectors and open modal sheets.
+const interactive='button,a,input,textarea,select,[contenteditable],[role="button"],[role="tab"],.drawer,.fa3-index-list,.fa3-record-navigation,[role="dialog"],.overflow-x-auto';
 const isProtectedTarget=target=>!!target?.closest?.(interactive);
 
 export default function ProductSessionNavigator(){
