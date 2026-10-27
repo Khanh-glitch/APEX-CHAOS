@@ -117,7 +117,7 @@ try{
     selected:[...document.querySelectorAll('.gold-section-position span')].findIndex(x=>x.classList.contains('is-current')),
     hand:!!document.querySelector('.gold-swipe-coach-hand')
    }));
-   assert.equal(final.selected,0,'section dots not synced after reverse swipes');
+   assert.equal(final.selected,2,'HOME-order dot for Missions must be third after Lucky, Archive');
    assert.equal(final.overflow,false,'Gold horizontal overflow after navigation');
 
    // Explicit button closes the entire modal and restores the Home entry.
