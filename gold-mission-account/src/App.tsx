@@ -79,7 +79,7 @@ function Shell() {
   const swallowSwipeClick = useRef(0);
   const [showSwipeCoach, setShowSwipeCoach] = useState(false);
   const sectionIndex = screen === "account" ? 2 : tab === "mastery" ? 1 : 0;
-  const SWIPE_HINT_KEY = "apex.gold.sections.swipe.v2";
+  const SWIPE_HINT_KEY = "apex.gold.sections.swipe.v3";
   useEffect(() => {
     if (!g.ready) return;
     let firstEntry = true;
