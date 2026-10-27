@@ -61,7 +61,7 @@
  pointer-events:auto; touch-action:manipulation;
 }
 #root .gold-section-position {
- position:fixed; right:clamp(14px,3vw,28px); bottom:calc(15px + env(safe-area-inset-bottom,0px));
+ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(15px + env(safe-area-inset-bottom,0px));
  display:flex; gap:6px; align-items:center; z-index:39; pointer-events:none;
 }
 #root .gold-section-position span {
@@ -100,4 +100,28 @@
  #root .gold-swipe-coach-hand {animation:none;transform:translateX(0);}
  #root .gold-swipe-coach {animation:none;}
  #root .gold-session-back {transition:none;}
+}
+
+/* Viewport-safe Gold account/mission HUD: prevent avatar art and long saved
+   AC values from colliding with the brand or currency readout. */
+#root .gold-hud-header-inner {box-sizing:border-box;min-width:0;}
+#root .gold-hud-nav {min-width:0;max-width:calc(100% - 135px);}
+#root .gold-hud-wordmark {min-width:0;display:block;}
+#root .gold-hud-wordmark img {object-fit:contain;}
+#root .gold-hud-identity {flex:0 0 auto;justify-content:flex-end;}
+#root .gold-ac-chip {box-sizing:border-box;min-width:0;max-width:100%;white-space:nowrap;position:relative;isolation:isolate;}
+#root .gold-ac-chip svg {display:block;flex-shrink:0;}
+#root .gold-ac-chip .tabular-nums {font-variant-numeric:tabular-nums;white-space:nowrap;}
+@media(max-width:1023px){
+ #root .gold-hud-identity [aria-label="Profile"],
+ #root .gold-hud-identity [aria-label="Hồ sơ"] {display:none!important;}
+ #root .gold-ac-chip {padding-right:10px;}
+ #root .gold-ac-chip .tabular-nums {font-size:clamp(14px,3.4vw,19px);}
+}
+@media(max-width:480px){
+ #root .gold-hud-header-inner {padding-left:10px;padding-right:10px;}
+ #root .gold-hud-nav {max-width:calc(100% - 128px);}
+ #root .gold-hud-wordmark {max-width:clamp(76px,23vw,115px);}
+ #root .gold-ac-chip {gap:3px;padding-left:5px;padding-right:6px;}
+ #root .gold-ac-chip svg {width:22px;height:22px;}
 }
