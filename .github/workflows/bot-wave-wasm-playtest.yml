@@ -2,6 +2,8 @@ name: BOT WAVE WASM candidate playtest acceptance
 on:
   push:
     branches: ['arena/bot-wave-wasm-playtest-candidate-20261027']
+  pull_request:
+    branches: ['arena/960d6673-apex-chaos']
   workflow_dispatch:
 permissions:
   contents: read
