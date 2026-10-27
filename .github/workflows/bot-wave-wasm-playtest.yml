@@ -1,0 +1,67 @@
+name: BOT WAVE WASM candidate playtest acceptance
+on:
+  push:
+    branches: ['arena/bot-wave-wasm-playtest-candidate-20261027']
+  pull_request:
+    branches: ['arena/960d6673-apex-chaos']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-parity-playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prove bitwise-identical Gold versus WASM pressure fields
+        run: node tools/testBotWavePressureWasmParity.mjs
+      - name: Exact production build
+        run: pnpm build
+      - name: Verify shipping archive integrity
+        run: pnpm test:shipping-dist
+      - name: Start production preview
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/apex-playtest-preview.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/bot-wave/game.html -o /dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/apex-playtest-preview.log
+          exit 1
+      - name: Gold desktop wrapper, actual WASM activation and keyboard movement
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_REQUIRE_WASM: '1'
+          APEX_PERF_PROFILE: desktop
+          APEX_EVIDENCE_DIR: reports/bot-wave-wasm-playtest
+        run: pnpm qa:bot-wave:wrapper
+      - name: Gold mobile-landscape wrapper, WASM activation and touch movement
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_REQUIRE_WASM: '1'
+          APEX_PERF_PROFILE: mobile-landscape
+          APEX_EVIDENCE_DIR: reports/bot-wave-wasm-playtest
+        run: pnpm qa:bot-wave:wrapper
+      - name: Package playtest-only itch HTML5 ZIP (not release)
+        run: |
+          cd dist
+          zip -q -r ../apex-chaos-bot-wave-wasm-playtest.zip .
+          cd ..
+          ls -lh apex-chaos-bot-wave-wasm-playtest.zip
+      - name: Upload candidate ZIP and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-bot-wave-wasm-playtest-${{ github.sha }}
+          path: |
+            apex-chaos-bot-wave-wasm-playtest.zip
+            reports/bot-wave-wasm-playtest/
+          if-no-files-found: warn

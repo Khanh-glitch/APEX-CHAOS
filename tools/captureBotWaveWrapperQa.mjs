@@ -55,6 +55,14 @@ try {
     const phase = await frame.evaluate(() => window.BOXE_WAVE_PILOT.state.phase);
     assert.equal(phase, 'combat', `${profile.name}: combat starts through Gold onboarding`);
     await new Promise(resolve => setTimeout(resolve, 1500));
+    const wasmBackend = await frame.evaluate(async () => {
+      await window.handLab.fluid._pressureWasmReady;
+      return window.handLab.fluid._pressureBackend || 'gold-js';
+    });
+    if (process.env.APEX_REQUIRE_WASM === '1') {
+      assert.equal(wasmBackend, 'wasm-exact-14-iter',
+        `${profile.name}: WASM backend must be active, not silently falling back to Gold JS`);
+    }
     const diagnostic = () => frame.evaluate(() => ({ x: window.handLab.player.x, y: window.handLab.player.y, t: window.handLab.time,
       phase: window.BOXE_WAVE_PILOT.state.phase, paused: window.handLab.paused, fpsEma: window.handLab.fpsEma,
       visibility: document.visibilityState, focused: document.hasFocus(), keys: [...window.handLab.keys],
@@ -104,7 +112,7 @@ try {
       `${profile.name}: desktop KeyD must advance the live Gold simulation and move the player: ${JSON.stringify({ movementPx, gameTimeDelta: after.t - before.t, before, after, keyboardEvents })}`);
     await page.screenshot({ path: path.join(output, `${profile.name}-combat.png`) });
     assert.deepEqual(errors, [], `${profile.name}: no runtime exceptions`);
-    results.push({ profile: profile.name, viewport: profile, hud, inputMode: profile.dpr > 1 ? 'emulated-touch joystick drag' : 'keyboard KeyD', touchStick, keyboardEvents, movementPx, gameTimeDelta: after.t - before.t, before, after, errors });
+    results.push({ profile: profile.name, viewport: profile, hud, wasmBackend, inputMode: profile.dpr > 1 ? 'emulated-touch joystick drag' : 'keyboard KeyD', touchStick, keyboardEvents, movementPx, gameTimeDelta: after.t - before.t, before, after, errors });
     await frame.evaluate(() => window.handLab?.destroy());
     await page.close({ runBeforeUnload: false });
   }

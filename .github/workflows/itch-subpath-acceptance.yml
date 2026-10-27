@@ -1,0 +1,57 @@
+name: itch CDN subpath white-screen acceptance
+on:
+  push:
+    branches: ['arena/bot-wave-wasm-playtest-candidate-20261027']
+    paths:
+      - 'tools/packageItchSubpath.py'
+      - 'tools/qaItchSubpathBrowser.mjs'
+      - '.github/workflows/itch-subpath-acceptance.yml'
+      - 'public/bot-wave/**'
+  pull_request:
+    branches: ['arena/960d6673-apex-chaos']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  itch-subpath:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build game from source
+        run: pnpm build
+      - name: Restore original VFX sprites required by BOT WAVE (no quality reduction)
+        run: |
+          for file in smoke_01.webp smoke_03.webp spark_05.webp spark_07.webp; do
+            src="public/assets/arsenal/av/vfx/c/$file"
+            dst="dist/assets/arsenal/av/vfx/c/$file"
+            test -s "$src" || { echo "Missing original first-party VFX: $src"; exit 1; }
+            mkdir -p "$(dirname "$dst")"
+            cp "$src" "$dst"
+            cmp "$src" "$dst" || exit 1
+          done
+      - name: Create itch subpath-safe ZIP from exact production dist
+        run: |
+          (cd dist && zip -qr ../original-itch.zip .)
+          python3 tools/packageItchSubpath.py original-itch.zip apex-chaos-itch-no-white-screen.zip
+          mkdir -p reports/itch-nested/html/123456
+          unzip -q apex-chaos-itch-no-white-screen.zip -d reports/itch-nested/html/123456
+      - name: Inspect real Chrome boot under /html/123456, mobile, BOT WAVE
+        run: node tools/qaItchSubpathBrowser.mjs
+      - name: Upload itch ZIP and browser screenshots on any outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-itch-white-screen-fixed-${{ github.sha }}
+          path: |
+            apex-chaos-itch-no-white-screen.zip
+            reports/itch-browser-qa/
+          if-no-files-found: warn
