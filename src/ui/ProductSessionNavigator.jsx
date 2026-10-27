@@ -187,6 +187,15 @@ export default function ProductSessionNavigator(){
    }
    attachedDoc=doc;
    if(doc){
+    // Native mobile drags are cancelled by the browser when the viewport
+    // defaults to touch-action:auto. Reserve horizontal motion for the
+    // five-section gesture while allowing normal vertical scroll/zoom.
+    if(!doc.getElementById('apex-session-touch-action')){
+     const touchStyle=doc.createElement('style');
+     touchStyle.id='apex-session-touch-action';
+     touchStyle.textContent='#viewport,#stage,#stageWrap{touch-action:pan-y pinch-zoom;}';
+     doc.head.appendChild(touchStyle);
+    }
     doc.addEventListener('pointerdown',onLuckyDown,true);
     doc.addEventListener('pointerup',onLuckyUp,true);
     doc.documentElement.dataset.apexSectionSwipeReady='1';
