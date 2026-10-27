@@ -5,6 +5,7 @@ on:
       - arena/960d6673-apex-chaos
     paths:
       - '.github/workflows/bot-wave-apple-gpu-probe.yml'
+      - 'tools/profileBotWaveHardware.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -65,6 +66,37 @@ jobs:
           }
           if(result.error)process.exitCode=1;
           NODE
+      - name: Build production game for verified Metal GPU
+        run: |
+          pnpm build
+          (nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/apex-metal-vite.log 2>&1 &)
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:4173 -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apex-metal-vite.log
+          exit 1
+      - name: Capture real GPU/compositor/raster BOT WAVE trace on Apple Silicon
+        shell: bash
+        env:
+          CHROME_PATH: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_PROFILE_HEADLESS: '1'
+          APEX_PROFILE_AUTOPLAY: '1'
+          APEX_PROFILE_DURATION_MS: '65000'
+          APEX_PROFILE_SAMPLE_MS: '5000'
+          APEX_PROFILE_BOTS: '14'
+          APEX_CAPTURE_CPU_PROFILE: '1'
+          APEX_EVIDENCE_DIR: reports/bot-wave-metal-hardware
+        run: |
+          node tools/profileBotWaveHardware.mjs
+      - name: Upload hardware trace even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-bot-wave-metal-hardware-trace
+          path: reports/bot-wave-metal-hardware/
+          if-no-files-found: warn
       - name: Upload hardware probe report even on failure
         if: always()
         uses: actions/upload-artifact@v4
