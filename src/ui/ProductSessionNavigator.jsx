@@ -1,5 +1,4 @@
 import React, {useCallback,useEffect,useRef,useState} from 'react';
-import {createPortal} from 'react-dom';
 import './productSessionNavigation.css';
 
 // Single ordered registry. Upgrade and Fighter Shop can join here once they
@@ -32,26 +31,13 @@ const busyDraw=()=>luckyActive()&&luckyFrame()?.contentDocument?.getElementById(
 const interactive='button,a,input,textarea,select,[contenteditable],[role="button"],[role="tab"],.drawer,.fa3-index-list,.fa3-record-navigation,.fa3-appear,.fa3-detail';
 const isProtectedTarget=target=>!!target?.closest?.(interactive);
 
-// The donor owns its own document. This integration-only skin is injected
-// into its native HUD without modifying the approved Gold draw artwork.
-const LUCKY_STYLE=`
-#stage .apex-inline-session{display:flex;align-items:center;gap:4px;height:var(--hud-btn);margin:0;padding:0;font:800 11px/1 Arial,sans-serif}
-#stage .apex-inline-session button{display:flex;align-items:center;justify-content:center;gap:5px;height:var(--hud-btn);min-width:var(--hud-btn);padding:0 8px;background:rgba(15,12,10,.9);color:#ffe1ac;box-shadow:inset 0 0 0 1px rgba(255,162,59,.55);cursor:pointer;font:inherit;letter-spacing:.04em}
-#stage .apex-inline-session button:focus-visible{outline:2px solid #fff2cb;outline-offset:2px}
-#stage .apex-inline-dots{display:flex;align-items:center;gap:3px;margin:0 2px}
-#stage .apex-inline-dots i{width:8px;height:3px;background:#8a6240}
-#stage .apex-inline-dots i.current{width:14px;background:#ffd16f}
-#stage:not([data-layout="desk"]) .apex-inline-session button{padding:0}
-#stage:not([data-layout="desk"]) .apex-inline-session button span,#stage:not([data-layout="desk"]) .apex-inline-dots{display:none}
-#stage[data-layout="port"] .apex-inline-session{gap:3px}
-#stage[data-layout="port"] .hud-l:has(.apex-inline-session) .title{display:none}
-`;
-
 export default function ProductSessionNavigator(){
  const [visible,setVisible]=useState(-1);
- const [mount,setMount]=useState(null);
  const [wipe,setWipe]=useState(null);
+ const [coach,setCoach]=useState(false);
  const moving=useRef(false),gesture=useRef(null),queued=useRef(null);
+ const hintTimer=useRef(null);
+ const lessonShown=useRef(false);
  const activeSurface=useCallback(()=>{
   if(archiveActive())return 4;
   if(luckyActive())return 3;
@@ -153,18 +139,39 @@ export default function ProductSessionNavigator(){
   const onArchiveUp=e=>{if(archiveActive())up(e);};
   const onLuckyDown=e=>{if(luckyActive())down(e);};
   const onLuckyUp=e=>{if(luckyActive())up(e);};
+  const onKeys=e=>{
+   if(!e.altKey||!['ArrowLeft','ArrowRight'].includes(e.key)||e.repeat)return;
+   if(e.target?.closest?.('input,textarea,select,[contenteditable],[role="dialog"]'))return;
+   const current=activeSurface();
+   if(current<3)return; // Gold owns the other three sections.
+   e.preventDefault();
+   void navigate(current+(e.key==='ArrowRight'?1:-1));
+  };
   document.addEventListener('pointerdown',onArchiveDown,true);
   document.addEventListener('pointerup',onArchiveUp,true);
   document.addEventListener('pointercancel',cancel,true);
+  window.addEventListener('keydown',onKeys);
   const interval=window.setInterval(()=>{
    const current=activeSurface();
    setVisible(old=>old===current?old:current);
+   // One unified first-entry instruction for the complete five-section rail.
+   // The same key is used by the Gold Missions/Mastery/Account document.
+   if(current>=3&&!lessonShown.current){
+    lessonShown.current=true;
+    let first=false;
+    try{
+     first=localStorage.getItem('apex.gold.sections.swipe.v2')!=='seen';
+     if(first)localStorage.setItem('apex.gold.sections.swipe.v2','seen');
+    }catch{first=true;}
+    if(first){
+     setCoach(true);
+     hintTimer.current=window.setTimeout(()=>setCoach(false),6000);
+    }
+   }
+   if(current<3)setCoach(false);
    const frame=luckyFrame();
    let doc=null;
    try{doc=frame?.contentDocument?.getElementById('stage')?frame.contentDocument:null;}catch{}
-   const node=current===3?doc?.querySelector('.hud-l'):
-    current===4?document.querySelector('.fa3-overlay .fa3-header'):null;
-   setMount(old=>old?.node===node&&old?.section===current?old:node?{node,section:current}:null);
    if(doc===attachedDoc)return;
    if(attachedDoc){
     attachedDoc.removeEventListener('pointerdown',onLuckyDown,true);
@@ -180,6 +187,8 @@ export default function ProductSessionNavigator(){
   },125);
   return()=>{
    window.clearInterval(interval);
+   if(hintTimer.current)window.clearTimeout(hintTimer.current);
+   window.removeEventListener('keydown',onKeys);
    document.removeEventListener('pointerdown',onArchiveDown,true);
    document.removeEventListener('pointerup',onArchiveUp,true);
    document.removeEventListener('pointercancel',cancel,true);
@@ -191,23 +200,26 @@ export default function ProductSessionNavigator(){
   };
  },[navigate,activeSurface]);
 
- const nav=visible>=3?<nav className="apex-inline-session" aria-label="APEX section navigation" data-session-index={visible}>
-  <button type="button" disabled={moving.current||visible===0} onClick={()=>void navigate(visible-1)}
-   aria-label={'Previous section: '+SECTIONS[visible-1]?.label}>‹ <span>{SECTIONS[visible-1]?.label.toUpperCase()}</span></button>
-  <div className="apex-inline-dots" aria-label={SECTIONS[visible].label}>
-   {SECTIONS.map((s,i)=><i key={s.id} className={i===visible?'current':''}/>)}
-  </div>
-  {visible<SECTIONS.length-1&&<button type="button" disabled={moving.current} onClick={()=>void navigate(visible+1)}
-   aria-label={'Next section: '+SECTIONS[visible+1].label}>
-    <span>{SECTIONS[visible+1].label.toUpperCase()}</span> ›
-  </button>}
- </nav>:null;
-
  return <>
-  {mount?.section===visible&&createPortal(<>
-   {visible===3&&<style>{LUCKY_STYLE}</style>}
-   {nav}
-  </>,mount.node)}
+  {/* The native Gold HUD / Lucky HUD / Archive header remains unobstructed.
+      A five-position progress rail is visual-only; swipe is the navigation. */}
+  {visible>=3&&<div className="apex-session-position" data-session-index={visible}
+    role="status" aria-label={SECTIONS[visible].label+" — swipe horizontally to change section"}>
+    {SECTIONS.map((section,index)=><span key={section.id}
+      className={visible===index?'is-current':''} aria-current={visible===index?'step':undefined}/>)}
+  </div>}
+  {visible>=3&&coach&&<div className="apex-session-coach" data-testid="apex-session-swipe-coach"
+    role="status" aria-live="polite">
+    <div className="apex-session-coach-copy">VUỐT TRÁI / PHẢI · SWIPE LEFT / RIGHT</div>
+    <div className="apex-session-coach-track" aria-hidden="true">
+      <span>‹</span>
+      <svg className="apex-session-coach-hand" viewBox="0 0 56 68" width="46" height="56" fill="none">
+        <path d="M15 30v-6a4 4 0 018 0V11a4 4 0 018 0v17-9a4 4 0 018 0v12-7a4 4 0 018 0v19c0 8-4 14-12 17l-10 3-11-9L5 42a5 5 0 017-6l8 6V30"
+          fill="#ffe5ae" stroke="#78380f" strokeWidth="2.5" strokeLinejoin="round"/>
+      </svg>
+      <span>›</span>
+    </div>
+  </div>}
   {wipe&&<div className={'apex-session-wipe '+(wipe.phase==='release'?'is-releasing':'is-covering')}
    aria-hidden="true" data-testid="apex-session-wipe">
    <div className="apex-session-wipe-plate"><span>{wipe.label}</span></div>
