@@ -102,10 +102,10 @@ try{
     }
     const a=classic.sctx.getImageData(0,0,w,h).data;
     const b=partial.sctx.getImageData(0,0,w,h).data;
-    const c=backend.sctx.getImageData(0,0,w,h).data;
+    const pixelBackend=backend.sctx.getImageData(0,0,w,h).data;
     for(let k=0;k<a.length;k++){
      const d=Math.abs(a[k]-b[k]);if(d)changed++;sum+=d;maxDiff=Math.max(d,maxDiff);
-     const q=Math.abs(a[k]-c[k]);if(q)backendChanged++;backendMax=Math.max(backendMax,q);
+     const q=Math.abs(a[k]-pixelBackend[k]);if(q)backendChanged++;backendMax=Math.max(backendMax,q);
     }
     totalChannels+=a.length;
    }
