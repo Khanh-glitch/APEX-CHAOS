@@ -292,7 +292,7 @@
     const demoMarker = s.ownerPlaytestAcSeed;
     const untouchedDemoWallet =
       s.credits === 12000 &&
-      demoMarker?.revision === OWNER_PLAYTEST_AC_SEED_REVISION &&
+      ['20261005-owner-playtest-r44', OWNER_PLAYTEST_AC_SEED_REVISION].includes(demoMarker?.revision) &&
       demoMarker.profile === KEY &&
       s.totalSpins === 0 &&
       s.progression.botMatches === 0 &&
