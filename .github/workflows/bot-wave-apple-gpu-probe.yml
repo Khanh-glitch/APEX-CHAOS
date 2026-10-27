@@ -83,6 +83,7 @@ jobs:
           APEX_APP_URL: http://127.0.0.1:4173
           APEX_PROFILE_HEADLESS: '1'
           APEX_PROFILE_AUTOPLAY: '1'
+          APEX_PROFILE_VIEWPORT: mobile
           APEX_PROFILE_DURATION_MS: '65000'
           APEX_PROFILE_SAMPLE_MS: '5000'
           APEX_PROFILE_BOTS: '14'
