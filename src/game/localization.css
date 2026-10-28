@@ -235,7 +235,7 @@ html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .p
  letter-spacing:.12em;color:#a8a19a;
 }
 @keyframes apex-utility-enter{
- from{opacity:.55;transform:translateY(-5px)}
+ from{opacity:1;transform:translateY(-5px)}
  to{opacity:1;transform:translateY(0)}
 }
 @media(max-height:480px) and (orientation:landscape){
