@@ -215,7 +215,7 @@ function mountPicker(){
   if(pickerEl?.isConnected && document.getElementById('apex-utility-toggle')?.isConnected)return;
   const stage=document.querySelector('#gold-shell-host #stage');
   const profile=stage?.querySelector('.profile');
-  if(!stage||!profile)return;
+  if(!stage)return;
   // Store the EXISTING language controls and Help in a deliberate command
   // drawer. No permanent 3-button toolbar floats over game art.
   const picker=document.createElement('div');
@@ -248,7 +248,7 @@ function mountPicker(){
     +'<circle cx="16" cy="12" r="2" fill="#101015"/>'
     +'<circle cx="11" cy="17" r="2" fill="#101015"/>'
     +'</svg>';
-  profile.appendChild(toggle);
+  (profile||stage).appendChild(toggle);
   const collapse=()=>{
     picker.hidden=true;
     picker.classList.remove('is-expanded');
