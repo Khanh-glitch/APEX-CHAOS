@@ -152,3 +152,47 @@ html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .p
   right:calc(var(--safeR,0px) + 2vw);
  }
 }
+
+/* R115 VISUAL REPAIR — one native Gold utility rail instead of detached
+   absolute boxes. Its parent is .profile (the actual AC header authority).
+   Landscape: ENG/VIE/HELP share the AC's top row, never the quest/title.
+   Portrait: utilities dock immediately beneath the AC within the same
+   parent, away from the middle-screen story artwork and CTA.
+   This is integration CSS: protected Gold sources are untouched. */
+#gold-shell-host #stage .profile{
+ align-items:center;
+}
+#gold-shell-host #stage .profile > #apex-language-picker{
+ position:static;
+ inset:auto;
+ margin:0;
+ flex:0 0 auto;
+ width:max-content;
+ max-width:none;
+ min-height:44px;
+ height:44px;
+ padding:0 2px;
+ gap:2px;
+ align-self:center;
+ box-shadow:0 6px 14px rgba(0,0,0,.3);
+}
+#gold-shell-host #stage .profile > #apex-language-picker .apex-language-caption{
+ display:none!important;
+}
+#gold-shell-host #stage .profile > #apex-language-picker [data-apex-language-option]{
+ min-height:44px;
+ min-width:44px;
+}
+@media (orientation:portrait){
+ #gold-shell-host #stage .profile > #apex-language-picker{
+  position:absolute;
+  inset:auto 0 auto auto;
+  top:calc(100% + 5px);
+ }
+}
+@media (orientation:landscape) and (max-height:500px){
+ #gold-shell-host #stage .profile{
+  min-height:44px;
+  gap:6px;
+ }
+}

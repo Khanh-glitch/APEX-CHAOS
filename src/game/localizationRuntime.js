@@ -225,7 +225,12 @@ function mountPicker(){
     +'<button type="button" id="apex-language-eng" data-apex-language-option="eng" aria-pressed="false">ENG</button>'
     +'<button type="button" id="apex-language-vie" data-apex-language-option="vie" aria-pressed="false">VIE</button>'
     +'</span>';
-  stage.appendChild(picker);
+  // The currency badge and language/Help utilities form one top-right HUD
+  // rail. Keep their geometry under the same native Gold profile container;
+  // a second absolute top offset used to cover the HOME headline on 522x320.
+  const profile = stage.querySelector('.profile');
+  if (profile) profile.insertBefore(picker, profile.firstChild);
+  else stage.appendChild(picker);
   pickerEl=picker;
   picker.addEventListener('click',(event)=>{
     const btn=event.target?.closest?.('[data-apex-language-option]');
