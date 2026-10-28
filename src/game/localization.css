@@ -260,3 +260,11 @@ html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .p
 @media(prefers-reduced-motion:reduce){
  #gold-shell-host #stage #apex-language-picker.is-expanded{animation:none}
 }
+
+/* Home-only control. Don't leave settings gear over fighter select/battles. */
+#gold-shell-host #stage.screen-mode #apex-utility-toggle,
+#gold-shell-host #stage.screen-fighter #apex-utility-toggle,
+#gold-shell-host #stage.screen-draw #apex-utility-toggle,
+#gold-shell-host #stage.screen-battle #apex-utility-toggle{
+ visibility:hidden;pointer-events:none;
+}
