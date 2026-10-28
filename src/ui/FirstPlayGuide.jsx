@@ -791,9 +791,8 @@ function FirstPlayGuideCoach() {
 
     let guideBtn = null;
     const mountBtn = () => {
-      // The old 44px floating '?' at right:110px overlapped the native
-      // Gold AC coin on phone viewports. Keep Help accessible, but mount
-      // inside the localization utility row instead of covering the wallet.
+      // Expose real Help only inside the user's explicitly opened command
+      // drawer. Never put floating instructional tiles over character art.
       const picker = stageElement()?.querySelector('#apex-language-picker');
       if (!picker) return;
       if (guideBtn?.isConnected && guideBtn.parentElement === picker) return;
@@ -803,7 +802,7 @@ function FirstPlayGuideCoach() {
         guideBtn.id = 'apex-guide-open';
         guideBtn.dataset.apexNoLocalize = '';
         guideBtn.setAttribute('aria-label', 'How to play / Hướng dẫn chơi');
-        guideBtn.textContent = 'HELP';
+        guideBtn.textContent = 'OPEN PLAY GUIDE';
         guideBtn.addEventListener('click', () => {
           try { window.dispatchEvent(new CustomEvent('apex:help-open')); } catch { /* no CustomEvent */ }
         });
