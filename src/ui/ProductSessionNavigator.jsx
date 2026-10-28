@@ -193,7 +193,11 @@ export default function ProductSessionNavigator(){
     if(!doc.getElementById('apex-session-touch-action')){
      const touchStyle=doc.createElement('style');
      touchStyle.id='apex-session-touch-action';
-     touchStyle.textContent='#viewport,#stage,#stageWrap{touch-action:pan-y pinch-zoom;}';
+     touchStyle.textContent='#viewport,#stage,#stageWrap{touch-action:pan-y pinch-zoom;}'+
+       'html,body,body *:not(input):not(textarea):not([contenteditable]):not([contenteditable] *)'+
+       '{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}'+
+       'input,textarea,[contenteditable],[contenteditable] *'+
+       '{user-select:text!important;-webkit-user-select:text!important;-webkit-touch-callout:default!important;}';
      doc.head.appendChild(touchStyle);
     }
     doc.addEventListener('pointerdown',onLuckyDown,true);

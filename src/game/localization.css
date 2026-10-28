@@ -119,3 +119,36 @@ html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .p
     min-width:39px;min-height:30px;padding:3px 6px;font-size:11px;
   }
 }
+
+/* Home utility cluster: exactly the live ENG/VIE switch plus an accessible
+   Help shortcut; no oversized separate LANG panel under the 350 AC chip. */
+#gold-shell-host #stage #apex-language-picker{
+ box-sizing:border-box;left:auto;
+ width:max-content;max-width:calc(100vw - 24px);
+ display:flex;align-items:center;justify-content:flex-end;gap:2px;
+ padding:2px;min-height:48px;border-radius:3px;
+ clip-path:none;
+ top:calc(var(--safeT,0px) + 2.55vh + 51px);
+ right:calc(var(--safeR,0px) + 2.55vw);
+}
+#gold-shell-host #stage #apex-language-picker .apex-language-caption{display:none!important;}
+#gold-shell-host #stage #apex-language-picker .apex-language-options{
+ display:flex;gap:2px;padding:0;border:0;background:transparent;
+}
+#gold-shell-host #stage #apex-language-picker [data-apex-language-option]{
+ box-sizing:border-box;min-width:44px;min-height:44px;padding:4px 8px;
+ font-size:12px;letter-spacing:.055em;white-space:nowrap;
+}
+@media(orientation:portrait){
+ #gold-shell-host #stage #apex-language-picker{
+  top:calc(var(--safeT,0px) + 1.8vh + 39px);
+  right:calc(var(--safeR,0px) + 4vw);
+  max-width:calc(100vw - 24px);
+ }
+}
+@media(max-height:480px) and (orientation:landscape){
+ #gold-shell-host #stage #apex-language-picker{
+  top:calc(var(--safeT,0px) + 2.55vh + 43px);
+  right:calc(var(--safeR,0px) + 2vw);
+ }
+}
