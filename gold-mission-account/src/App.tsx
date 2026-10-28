@@ -52,7 +52,7 @@ function Hud({ g }: { g: Game }) {
               </span>
               <span className="font-display text-[10px] tracking-[.2em] text-gold -ml-0.5">AC</span>
             </div>
-            <div aria-label={tr(g.lang,"profile")} className="hidden md:flex min-w-0 items-center gap-2 group">
+            <div aria-label={tr(g.lang,"profile")} className="hidden xl:flex min-w-0 items-center gap-2 group">
               <div className="w-10 h-11 hex p-[2px]" style={{ background: av.color }}>
                 <div className="w-full h-full hex overflow-hidden bg-black">
                   <img src={av.img} alt="" className="w-full h-full object-cover" style={{ objectPosition: av.pos }} />
@@ -79,7 +79,14 @@ function Shell() {
   const swallowSwipeClick = useRef(0);
   const [showSwipeCoach, setShowSwipeCoach] = useState(false);
   const sectionIndex = screen === "account" ? 2 : tab === "mastery" ? 1 : 0;
-  const SWIPE_HINT_KEY = "apex.gold.sections.swipe.v2";
+  // Match the visual HOME shortcuts (Lucky → Archive → Missions → Mastery → Account).
+  const HOME_SECTIONS = [3, 4, 0, 1, 2] as const;
+  const advance = (direction: 1 | -1) => {
+    const orderIndex = HOME_SECTIONS.indexOf(sectionIndex as typeof HOME_SECTIONS[number]);
+    const next = HOME_SECTIONS[orderIndex + direction];
+    if (next !== undefined) goSection(next);
+  };
+  const SWIPE_HINT_KEY = "apex.gold.sections.swipe.v3";
   useEffect(() => {
     if (!g.ready) return;
     let firstEntry = true;
@@ -136,7 +143,7 @@ function Shell() {
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.45 || performance.now() - start.at > 1400) return;
     swallowSwipeClick.current = performance.now();
-    goSection(sectionIndex + (dx < 0 ? 1 : -1));
+    advance(dx < 0 ? 1 : -1);
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -144,7 +151,7 @@ function Shell() {
       if ((e.target as HTMLElement)?.closest("input,textarea,select,[contenteditable],.sheet,[role='dialog']")) return;
       if (document.querySelector(".sheet")) return;
       e.preventDefault();
-      goSection(sectionIndex + (e.key === "ArrowRight" ? 1 : -1));
+      advance(e.key === "ArrowRight" ? 1 : -1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -236,7 +243,7 @@ function Shell() {
           <div className="gold-swipe-coach-copy">
             <span className="gold-swipe-coach-kicker">{g.lang === "vie" ? "MẸO ĐIỀU HƯỚNG" : "NAVIGATION TIP"}</span>
             <strong>{g.lang === "vie" ? "VUỐT TRÁI / PHẢI" : "SWIPE LEFT / RIGHT"}</strong>
-            <small>{g.lang === "vie" ? "NHIỆM VỤ · TINH THÔNG · TÀI KHOẢN · MAY MẮN · KHO HỒ SƠ" : "MISSIONS · MASTERY · ACCOUNT · LUCKY DRAW · ARCHIVE"}</small>
+            <small>{g.lang === "vie" ? "MAY MẮN · KHO HỒ SƠ · NHIỆM VỤ · TINH THÔNG · TÀI KHOẢN" : "LUCKY DRAW · ARCHIVE · MISSIONS · MASTERY · ACCOUNT"}</small>
           </div>
           <div className="gold-swipe-coach-track" aria-hidden="true">
             <span className="gold-swipe-coach-arrow">‹</span>
@@ -252,7 +259,7 @@ function Shell() {
         </div>
       )}
       <div className="gold-section-position" aria-label={g.lang === "vie" ? "Vị trí mục hiện tại" : "Current section"} aria-live="off">
-        {[0,1,2,3,4].map((i) => <span key={i} className={i === sectionIndex ? "is-current" : ""} aria-current={i === sectionIndex ? "step" : undefined} />)}
+        {HOME_SECTIONS.map((i) => <span key={i} className={i === sectionIndex ? "is-current" : ""} aria-current={i === sectionIndex ? "step" : undefined} />)}
       </div>
       {wipe.n > 0 && (
         <div key={wipe.n} className="fixed inset-0 z-[80] pointer-events-none overflow-hidden">

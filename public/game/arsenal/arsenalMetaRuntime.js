@@ -285,6 +285,28 @@
         at: Number(raw.ownerPlaytestAcSeed.at) || 0,
       }
       : null;
+    // Legacy r44 owner playtest seeded 12,000 AC into the *real* device save.
+    // Only retire an untouched, explicitly tagged demo balance. Never reset
+    // an ordinary 12,000 AC wallet or a save with actual match/draw/purchase
+    // history, claimed rewards or mastery progression.
+    const demoMarker = s.ownerPlaytestAcSeed;
+    const untouchedDemoWallet =
+      s.credits === 12000 &&
+      ['20261005-owner-playtest-r44', OWNER_PLAYTEST_AC_SEED_REVISION].includes(demoMarker?.revision) &&
+      demoMarker.profile === KEY &&
+      s.totalSpins === 0 &&
+      s.progression.botMatches === 0 &&
+      s.progression.botWins === 0 &&
+      s.progression.localMatches === 0 &&
+      s.progression.claimedIds.length === 0 &&
+      s.claimedMatchIds.length === 0 &&
+      Object.keys(s.mastery?.earned || {}).every(hero =>
+        Object.keys(s.mastery.earned[hero] || {}).length === 0) &&
+      !s.rosterMigrations['retired-owner-demo-wallet-20261028'];
+    if (untouchedDemoWallet) {
+      s.credits = START_CREDITS;
+      s.rosterMigrations['retired-owner-demo-wallet-20261028'] = 1;
+    }
     // AUDIT-E: state truth must match rendered truth — unknown/stale palette
     // ids sanitize to the canonical default representation (null => graphite-mid
     // in the palette runtime). Validated against the curated list when the

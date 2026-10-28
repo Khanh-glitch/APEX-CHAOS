@@ -257,3 +257,10 @@
 
 /* Issue #105 owner option B: cramped-portrait instructions live in Help, not over the arena. */
 .apex-help-portrait-note{margin:0;font-size:12px;line-height:1.45;color:#c9d1d9;max-width:100%;overflow-wrap:anywhere}
+
+/* R77 short-phone hard stop: the one-time Battle tutorial question must not
+   cover the primary FREE BATTLE hitbox. Help retains the tutorial toggle and
+   the portrait guidance; Gold's first-entry section swipe hand is separate. */
+@media (max-width:420px) and (max-height:600px) and (orientation:portrait) {
+  .apex-tutorial-ask {display:none!important;pointer-events:none!important;}
+}

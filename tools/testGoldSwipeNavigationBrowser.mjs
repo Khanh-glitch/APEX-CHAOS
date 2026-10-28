@@ -45,7 +45,7 @@ try{
    const first=await frame.evaluate(()=>({
     guide:!!document.querySelector('[data-testid="gold-swipe-coach"]'),
     hand:!!document.querySelector('.gold-swipe-coach-hand'),
-    key:localStorage.getItem('apex.gold.sections.swipe.v2'),
+    key:localStorage.getItem('apex.gold.sections.swipe.v3'),
     back:document.querySelector('.gold-session-back')?.getBoundingClientRect().toJSON(),
     width:document.documentElement.clientWidth,
     overflow:document.documentElement.scrollWidth>innerWidth+2,
@@ -57,6 +57,21 @@ try{
    assert.ok(first.back.x>=0&&first.back.right<=width+1,'Back off-screen');
    assert.equal(first.oldToggle,0,'old Account/Mission top navigation must not return');
    assert.equal(first.overflow,false,'Gold horizontal overflow in initial section');
+   const hud=await frame.evaluate(()=>{
+    const bounds=s=>document.querySelector(s)?.getBoundingClientRect()?.toJSON()||null;
+    return {brand:bounds('.gold-hud-nav'),wallet:bounds('#ac-chip'),
+      displayWallet:document.querySelector('#ac-chip')?.innerText,
+      realWallet:window.parent.APEX_ARSENAL_META?.getState?.()?.credits,
+      profileVisible:!!document.querySelector('.gold-hud-identity [aria-label]') &&
+        getComputedStyle(document.querySelector('.gold-hud-identity [aria-label]')).display!=='none'};
+   });
+   assert.ok(hud.brand&&hud.wallet,'Gold real player wallet or native brand missing');
+   assert.ok(hud.brand.right<=hud.wallet.left+1,
+      'Gold brand/back overlaps live AC header at '+width+'px: '+JSON.stringify(hud));
+   assert.ok(hud.wallet.right<=width+1 && hud.wallet.x>=0,
+      'Live AC is clipped offscreen at '+width+'px: '+JSON.stringify(hud));
+   assert.ok(Number.isFinite(hud.realWallet),'Account uses fake AC rather than real wallet');
+
    await page.screenshot({path:`${output}/${width}x${height}-tutorial.png`});
 
    // The guide is informative, not a blocking full-screen layer.
@@ -102,7 +117,7 @@ try{
     selected:[...document.querySelectorAll('.gold-section-position span')].findIndex(x=>x.classList.contains('is-current')),
     hand:!!document.querySelector('.gold-swipe-coach-hand')
    }));
-   assert.equal(final.selected,0,'section dots not synced after reverse swipes');
+   assert.equal(final.selected,2,'HOME-order dot for Missions must be third after Lucky, Archive');
    assert.equal(final.overflow,false,'Gold horizontal overflow after navigation');
 
    // Explicit button closes the entire modal and restores the Home entry.
