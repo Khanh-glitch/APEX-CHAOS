@@ -212,25 +212,70 @@ function syncPicker(){
   }
 }
 function mountPicker(){
-  if(pickerEl?.isConnected)return;
+  if(pickerEl?.isConnected && document.getElementById('apex-utility-toggle')?.isConnected)return;
   const stage=document.querySelector('#gold-shell-host #stage');
+  const profile=stage?.querySelector('.profile');
   if(!stage)return;
+  // Store the EXISTING language controls and Help in a deliberate command
+  // drawer. No permanent 3-button toolbar floats over game art.
   const picker=document.createElement('div');
   picker.id='apex-language-picker';
   picker.dataset.apexNoLocalize='';
   picker.setAttribute('role','group');
-  picker.setAttribute('aria-label','Language / Ngôn ngữ');
-  picker.innerHTML='<span class="apex-language-caption">LANG</span>'
+  picker.setAttribute('aria-label','Interface / Giao diện');
+  picker.hidden=true;
+  picker.innerHTML='<div class="apex-utility-head"><span class="apex-utility-kicker">APEX / SYSTEM</span>'
+    +'<span class="apex-utility-edition">UI SETTINGS</span></div>'
+    +'<div class="apex-utility-section"><span class="apex-language-caption">LANGUAGE</span>'
     +'<span class="apex-language-options">'
     +'<button type="button" id="apex-language-eng" data-apex-language-option="eng" aria-pressed="false">ENG</button>'
     +'<button type="button" id="apex-language-vie" data-apex-language-option="vie" aria-pressed="false">VIE</button>'
-    +'</span>';
+    +'</span></div>'
+    +'<div class="apex-utility-help-label">GUIDE / HƯỚNG DẪN</div>';
   stage.appendChild(picker);
   pickerEl=picker;
+  const toggle=document.createElement('button');
+  toggle.type='button';
+  toggle.id='apex-utility-toggle';
+  toggle.dataset.apexNoLocalize='';
+  toggle.setAttribute('aria-label','Interface settings / Cài đặt giao diện');
+  toggle.setAttribute('aria-controls',picker.id);
+  toggle.setAttribute('aria-expanded','false');
+  toggle.setAttribute('aria-haspopup','true');
+  toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round">'
+    +'<path d="M4 7h16M4 12h16M4 17h16"/>'
+    +'<circle cx="9" cy="7" r="2" fill="#101015"/>'
+    +'<circle cx="16" cy="12" r="2" fill="#101015"/>'
+    +'<circle cx="11" cy="17" r="2" fill="#101015"/>'
+    +'</svg>';
+  (profile||stage).appendChild(toggle);
+  const collapse=()=>{
+    picker.hidden=true;
+    picker.classList.remove('is-expanded');
+    toggle.setAttribute('aria-expanded','false');
+  };
+  const expand=()=>{
+    picker.hidden=false;
+    picker.classList.add('is-expanded');
+    toggle.setAttribute('aria-expanded','true');
+  };
+  toggle.addEventListener('click',()=>{
+    if(picker.hidden)expand();
+    else collapse();
+  });
   picker.addEventListener('click',(event)=>{
     const btn=event.target?.closest?.('[data-apex-language-option]');
-    if(btn)setLanguage(btn.dataset.apexLanguageOption);
+    if(btn){setLanguage(btn.dataset.apexLanguageOption);collapse();toggle.focus({preventScroll:true});}
+    if(event.target?.closest?.('#apex-guide-open'))collapse();
   });
+  document.addEventListener('pointerdown',(event)=>{
+    if(!picker.hidden&&!picker.contains(event.target)&&!toggle.contains(event.target))collapse();
+  },true);
+  document.addEventListener('keydown',(event)=>{
+    if(event.key==='Escape'&&!picker.hidden){
+      collapse();toggle.focus({preventScroll:true});event.stopPropagation();
+    }
+  },true);
   syncPicker();
 }
 export function installLocalization(){

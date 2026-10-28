@@ -20,7 +20,7 @@ try{
   const {page,context,errors}=await openApp(browser,{
     width,height,mobile,seed:legacy,storage:{'apex.alpha.tutorial.v1':'off'}});
   try{
-   await page.waitForSelector('#apex-language-picker #apex-guide-open',{timeout:30000});
+   await page.waitForSelector('#apex-utility-toggle',{visible:true,timeout:30000});
    await wait(250);
    const d=await page.evaluate(()=>{
     const el=sel=>document.querySelector(sel);
@@ -38,6 +38,11 @@ try{
      help:rect('#apex-guide-open'),
      helpParent:help?.parentElement?.id,
      helpLabel:help?.textContent,
+     utilityToggle:rect('#apex-utility-toggle'),
+     utilityParent:el('#apex-utility-toggle')?.parentElement?.className,
+     drawerHidden:picker?.hidden,
+     expanded:el('#apex-utility-toggle')?.getAttribute('aria-expanded'),
+     title:rect('#gold-shell-host #stage .storyTitle'),
      pickerCaption:getComputedStyle(el('#apex-language-picker .apex-language-caption')).display,
      actionUserSelect:getComputedStyle(el('#freeBattle')).userSelect,
      rootUserSelect:getComputedStyle(root).userSelect,
@@ -49,16 +54,17 @@ try{
    assert.equal(d.backupCredits,12000,'Original wallet recovery backup not written');
    assert.equal(d.walletLabel,'350 AC','Home AC readout disagrees with single economy authority');
    assert.equal(d.helpCount,1,'Only one Help control may be mounted');
-   assert.equal(d.helpParent,'apex-language-picker','Floating Help is still outside language utility');
-   assert.equal(d.helpLabel,'HELP','Oversized question-mark widget still present');
-   assert.equal(d.pickerCaption,'none','Decorative LANG caption still consumes space');
-   assert.ok(d.wallet&&d.picker&&d.help&&d.acMark,JSON.stringify(d));
-   assert.equal(overlaps(d.help,d.wallet),false,'HELP overlaps currency wallet');
-   assert.equal(overlaps(d.help,d.acMark),false,'HELP covers AC coin');
-   assert.equal(overlaps(d.picker,d.wallet),false,'Language control overlaps currency wallet');
-   assert.ok(d.picker.width<=176 && d.picker.right<=width+1 && d.picker.left>=0,
-     'Language utility clips or consumes too much space: '+JSON.stringify(d));
-   assert.ok(d.help.width>=44&&d.help.height>=44,'Help touch target is too small');
+   assert.equal(d.helpParent,'apex-language-picker','Help must live INSIDE the drawer');
+   assert.equal(d.helpLabel,'OPEN PLAY GUIDE');
+   assert.equal(d.drawerHidden,true,'Permanent ENG/VIE/HELP boxes are still on Home');
+   assert.equal(d.expanded,'false','Closed toggle incorrectly announced expanded');
+   assert.ok(d.wallet&&d.acMark&&d.utilityToggle&&d.title,JSON.stringify(d));
+   assert.ok(d.utilityParent?.includes('profile'),'SYSTEM toggle must be aligned with Gold AC');
+   assert.ok(d.utilityToggle.width>=36&&d.utilityToggle.height>=36,'System touch target too small');
+   assert.equal(overlaps(d.utilityToggle,d.acMark),false,'SYSTEM overlaps AC coin');
+   assert.equal(overlaps(d.utilityToggle,d.wallet),false,'SYSTEM overlaps AC wallet');
+   assert.equal(overlaps(d.utilityToggle,d.title),false,'SYSTEM covers Quest heading');
+   assert.ok(d.utilityToggle.right<=width+1&&d.utilityToggle.left>=0,'SYSTEM offscreen');
    assert.equal(d.actionUserSelect,'none','Game button labels still select on drag');
    assert.equal(d.rootUserSelect,'none','Game root permits blue text selection');
    // Text-input UX must remain intact despite kiosk selection rules.
@@ -70,12 +76,46 @@ try{
    });
    assert.equal(input,'text','Native editable text was accidentally blocked');
    await page.screenshot({path:`${evidence}/home-${width}x${height}.png`});
+   await page.click('#apex-utility-toggle');
+   await page.waitForFunction(()=>!document.querySelector('#apex-language-picker')?.hidden);
+   const menu=await page.evaluate(()=>{
+     const b=s=>document.querySelector(s)?.getBoundingClientRect()?.toJSON();
+     return {
+       panel:b('#apex-language-picker'),
+       eng:b('#apex-language-eng'),vie:b('#apex-language-vie'),
+       help:b('#apex-guide-open'),
+       expanded:document.querySelector('#apex-utility-toggle')?.getAttribute('aria-expanded')
+     };
+   });
+   assert.ok(menu.panel&&menu.eng&&menu.vie&&menu.help,JSON.stringify(menu));
+   assert.equal(menu.expanded,'true','Settings drawer inaccessible');
+   assert.ok(menu.panel.left>=0&&menu.panel.right<=width+1,
+     'Drawer clips horizontally '+JSON.stringify(menu));
+   assert.ok(menu.panel.bottom<=height+1,'Drawer clips vertically '+JSON.stringify(menu));
+   assert.equal(overlaps(menu.panel,d.wallet),false,'Settings drawer overlaps persistent currency');
+   // Never visual-approve a half-animated translucent UI. Verify composited
+   // final frame after the command drawer has fully settled.
+   await wait(260);
+   const resolved=await page.evaluate(()=>({
+     opacity:getComputedStyle(document.querySelector('#apex-language-picker')).opacity,
+     background:getComputedStyle(document.querySelector('#apex-language-picker')).backgroundImage
+   }));
+   assert.equal(Number(resolved.opacity),1,'Drawer still translucent at acceptance capture');
+   await page.screenshot({path:`${evidence}/home-${width}x${height}-settings-open.png`});
+   await page.click('#apex-language-vie');
+   await page.waitForFunction(()=>document.documentElement.dataset.apexLanguage==='vie');
+   assert.equal(await page.evaluate(()=>document.querySelector('#apex-language-picker')?.hidden),true,
+     'Selecting language should automatically dismiss drawer');
+   await page.click('#apex-utility-toggle');
+   await page.click('#apex-language-eng');
+   await page.waitForFunction(()=>document.documentElement.dataset.apexLanguage==='eng');
+   await page.click('#apex-utility-toggle');
    await page.click('#apex-guide-open');
    await page.waitForSelector('#apex-tutorial-toggle',{timeout:5000});
    await page.keyboard.press('Escape');
    assert.deepEqual(errors,[],'HOME has browser exceptions: '+JSON.stringify(errors));
    results.push({width,height,credits:d.credits,backup:d.backupCredits,
-      helpInLanguagePicker:d.helpParent,pickerWidth:d.picker.width,selectionDisabled:true});
+      helpInDrawer:d.helpParent,commandDock:true,selectionDisabled:true});
   }finally{await context.close();}
  }
  // A valid 12k wallet with real match progress must remain 12k.

@@ -152,3 +152,119 @@ html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .p
   right:calc(var(--safeR,0px) + 2vw);
  }
 }
+
+
+/* R118 premium HOME command dock. Visibility discipline: the game artwork
+   and Quest headline get visual priority. The AC is always visible, but
+   language / guide exist only in a one-tap utility drawer. */
+#gold-shell-host #stage #apex-utility-toggle {
+  appearance:none;-webkit-appearance:none;
+  position:relative;display:grid;place-items:center;flex:0 0 43px;
+  box-sizing:border-box;width:43px;height:46px;min-width:43px;
+  padding:0;border:1px solid rgba(231,172,81,.28);
+  border-radius:0 2px 2px 0;
+  background:linear-gradient(180deg,rgba(29,27,28,.84),rgba(7,9,12,.91));
+  color:#f1c578;cursor:pointer;
+  box-shadow:inset 0 1px rgba(255,213,129,.08),0 5px 12px rgba(0,0,0,.2);
+  transition:background .14s,border-color .14s,color .14s;
+  touch-action:manipulation;
+}
+#gold-shell-host #stage #apex-utility-toggle svg{width:18px;height:18px}
+#gold-shell-host #stage #apex-utility-toggle:is(:hover,[aria-expanded="true"]){
+  background:linear-gradient(180deg,#33251a,#13120f);
+  border-color:rgba(246,183,60,.7);color:#ffd785;
+}
+#gold-shell-host #stage #apex-utility-toggle:focus-visible{
+ outline:2px solid #ffd26b;outline-offset:2px;
+}
+#gold-shell-host #stage #apex-language-picker[hidden]{
+ display:none!important;visibility:hidden!important;pointer-events:none!important;
+}
+#gold-shell-host #stage #apex-language-picker.is-expanded {
+ display:flex!important;flex-direction:column;align-items:stretch;justify-content:flex-start;
+ position:absolute;z-index:120;box-sizing:border-box;
+ width:214px;max-width:calc(100% - 18px);min-height:unset;
+ top:calc(var(--safeT,0px) + 2.55vh + 52px);
+ right:calc(var(--safeR,0px) + 2.55vw);
+ margin:0;padding:0;gap:0;
+ border:1px solid rgba(232,169,70,.52);border-radius:0;
+ clip-path:none;background:linear-gradient(155deg,#24201b 0%,#111317 43%,#0b0e11 100%);
+ box-shadow:0 18px 38px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07);
+ color:#eaddc8;overflow:hidden;
+ animation:apex-utility-enter .13s ease-out both;
+}
+#gold-shell-host #stage #apex-language-picker.is-expanded::before{
+ content:"";position:absolute;left:0;right:0;top:0;height:2px;pointer-events:none;
+ background:linear-gradient(90deg,#ff9a29,#ffd580 45%,transparent);
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-head{
+ width:100%;box-sizing:border-box;display:flex;justify-content:space-between;
+ padding:11px 12px 9px;align-items:baseline;
+ border-bottom:1px solid rgba(240,183,91,.15);gap:8px;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-kicker{
+ font:800 10px/1.1 "Oswald","Chakra Petch",sans-serif;
+ letter-spacing:.11em;color:#ffd08a;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-edition{
+ font:700 8px/1.1 "Oswald",sans-serif;letter-spacing:.13em;color:#8b8174;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-section{
+ display:flex;flex-direction:column;align-items:stretch;gap:7px;
+ padding:12px 12px 11px;border-bottom:1px solid rgba(240,183,91,.12);
+}
+#gold-shell-host #stage #apex-language-picker .apex-language-caption{
+ display:block!important;font:700 9px/1 "Oswald",sans-serif;
+ letter-spacing:.12em;color:#a8a19a;
+}
+#gold-shell-host #stage #apex-language-picker .apex-language-options{
+ display:flex;gap:4px;padding:0;background:transparent;border:0;width:100%;
+}
+#gold-shell-host #stage #apex-language-picker [data-apex-language-option]{
+ display:grid;place-items:center;flex:1;min-width:0;min-height:38px;
+ padding:0 8px;border:1px solid rgba(188,165,130,.28);
+ background:rgba(0,0,0,.18);color:#c8c5ba;
+ font:700 12px/1 "Oswald","Chakra Petch",sans-serif;letter-spacing:.08em;
+}
+#gold-shell-host #stage #apex-language-picker [data-apex-language-option].is-active{
+ background:linear-gradient(180deg,#f4c475,#bf8530);color:#19130c;
+ border-color:#e2aa50;box-shadow:inset 0 1px rgba(255,255,255,.18);
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-help-label{
+ padding:10px 12px 5px;font:700 9px/1 "Oswald",sans-serif;
+ letter-spacing:.12em;color:#a8a19a;
+}
+@keyframes apex-utility-enter{
+ from{opacity:1;transform:translateY(-5px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@media(max-height:480px) and (orientation:landscape){
+ #gold-shell-host #stage #apex-utility-toggle{
+  flex-basis:36px;width:36px;height:36px;min-width:36px;
+ }
+ #gold-shell-host #stage #apex-utility-toggle svg{width:16px;height:16px}
+ #gold-shell-host #stage #apex-language-picker.is-expanded{
+  top:calc(var(--safeT,0px) + 2.55vh + 42px);
+  right:calc(var(--safeR,0px) + 1.6vw);
+ }
+}
+@media(orientation:portrait){
+ #gold-shell-host #stage #apex-utility-toggle{
+  flex-basis:36px;min-width:36px;width:36px;height:36px;
+ }
+ #gold-shell-host #stage #apex-language-picker.is-expanded{
+  top:calc(var(--safeT,0px) + 1.8vh + 46px);
+  right:calc(var(--safeR,0px) + 4vw);
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #gold-shell-host #stage #apex-language-picker.is-expanded{animation:none}
+}
+
+/* Home-only control. Don't leave settings gear over fighter select/battles. */
+#gold-shell-host #stage.screen-mode #apex-utility-toggle,
+#gold-shell-host #stage.screen-fighter #apex-utility-toggle,
+#gold-shell-host #stage.screen-draw #apex-utility-toggle,
+#gold-shell-host #stage.screen-battle #apex-utility-toggle{
+ visibility:hidden;pointer-events:none;
+}
