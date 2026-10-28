@@ -85,7 +85,7 @@ try{
  try{
   assert.equal(await page.evaluate(()=>window.APEX_ARSENAL_META?.credits()),12000,
    'Real progressed balance was incorrectly reset');
-  assert.equal(await page.evaluate(()=>localStorage.getItem(KEY+'.legacyDemoWalletBackup.20261028')),null,
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key+'.legacyDemoWalletBackup.20261028'),KEY),null,
    'Real progressed wallet must not be labelled as demo');
  }finally{await context.close();}
  console.log('HOME HELP + WALLET + SELECTION REAL CHROME PASS',JSON.stringify(results));
