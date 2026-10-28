@@ -4395,3 +4395,16 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
   #gold-shell-host #stage .ac [data-apex-ac]{font-size:clamp(10px,1.4vw,13px)}
   #gold-shell-host #stage .acMark{flex:0 0 auto}
 }
+
+/* Kiosk/game interaction: dragging a fighter or swiping sessions must never
+   highlight UI text. Inputs and editable fields retain native selection. */
+#root,#root *:not(input):not(textarea):not([contenteditable]),
+#gold-shell-host,#gold-shell-host *:not(input):not(textarea):not([contenteditable]){
+ -webkit-user-select:none;user-select:none;
+ -webkit-touch-callout:none;
+}
+#root input,#root textarea,#root [contenteditable],
+#gold-shell-host input,#gold-shell-host textarea,#gold-shell-host [contenteditable]{
+ -webkit-user-select:text!important;user-select:text!important;
+ -webkit-touch-callout:default!important;
+}
