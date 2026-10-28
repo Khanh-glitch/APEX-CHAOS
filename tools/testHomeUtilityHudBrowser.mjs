@@ -16,7 +16,7 @@ function overlaps(a,b){
   Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>2;
 }
 try{
- for(const [width,height,mobile] of [[390,844,true],[844,390,true],[1440,900,false],[522,320,true]]){
+ for(const [width,height,mobile] of [[522,320,true],[667,375,true],[844,390,true],[390,844,true],[360,640,true],[1440,900,false]]){
   const {page,context,errors}=await openApp(browser,{
     width,height,mobile,seed:legacy,storage:{'apex.alpha.tutorial.v1':'off'}});
   try{
@@ -41,7 +41,23 @@ try{
      pickerCaption:getComputedStyle(el('#apex-language-picker .apex-language-caption')).display,
      actionUserSelect:getComputedStyle(el('#freeBattle')).userSelect,
      rootUserSelect:getComputedStyle(root).userSelect,
-     helpCount:document.querySelectorAll('#apex-guide-open').length
+     helpCount:document.querySelectorAll('#apex-guide-open').length,
+     pickerProfile:picker?.parentElement?.classList.contains('profile')||false,
+     // Text glyph bounds, not full-width containers: this gate must fail for
+     // the original 522x320 screenshot where language controls covered the
+     // text "THE ONES THROWN AWAY".
+     protectedText:['.quest','.storyTitle span','.location'].flatMap(selector=>
+       [...document.querySelectorAll('#gold-shell-host #stage '+selector)].map((node,index)=>{
+         const range=document.createRange();
+         range.selectNodeContents(node);
+         const r=range.getBoundingClientRect().toJSON();
+         return {selector,index,text:node.textContent,rect:r};
+       })),
+     protectedUi:['.brandWordmark','#freeBattle','#continueStory'].flatMap(selector=>
+       [...document.querySelectorAll('#gold-shell-host #stage '+selector)].map(node=>({
+         selector,rect:node.getBoundingClientRect().toJSON()
+       })))
+
     };
    });
    assert.equal(d.credits,350,'Untouched 12k legacy demo wallet was not retired');
@@ -50,12 +66,31 @@ try{
    assert.equal(d.walletLabel,'350 AC','Home AC readout disagrees with single economy authority');
    assert.equal(d.helpCount,1,'Only one Help control may be mounted');
    assert.equal(d.helpParent,'apex-language-picker','Floating Help is still outside language utility');
+   assert.equal(d.pickerProfile,true,'Language and AC are in two unrelated header layers');
    assert.equal(d.helpLabel,'HELP','Oversized question-mark widget still present');
    assert.equal(d.pickerCaption,'none','Decorative LANG caption still consumes space');
    assert.ok(d.wallet&&d.picker&&d.help&&d.acMark,JSON.stringify(d));
    assert.equal(overlaps(d.help,d.wallet),false,'HELP overlaps currency wallet');
    assert.equal(overlaps(d.help,d.acMark),false,'HELP covers AC coin');
    assert.equal(overlaps(d.picker,d.wallet),false,'Language control overlaps currency wallet');
+   assert.equal(d.protectedText.filter(x=>x.selector==='.storyTitle span').length,2,
+     'Missing Gold story headline in the visual acceptance gate');
+   for(const target of [...d.protectedText,...d.protectedUi]){
+     assert.equal(overlaps(d.picker,target.rect),false,
+       'Visual FAIL: language / HELP obscures '+target.selector+' '+(target.text||'')+
+       ' at '+width+'x'+height+': '+JSON.stringify({picker:d.picker,target}));
+     assert.equal(overlaps(d.help,target.rect),false,
+       'Visual FAIL: HELP obscures '+target.selector+' '+(target.text||'')+
+       ' at '+width+'x'+height+': '+JSON.stringify({help:d.help,target}));
+   }
+   // Landscape must be a single top HUD row: the picker cannot consume a
+   // dedicated second row behind the quest, as the rejected screenshot did.
+   if(width>height){
+     assert.ok(Math.abs(d.wallet.top-d.picker.top)<=14,
+       'Visual FAIL: language fell underneath wallet onto story headline');
+     assert.ok(d.picker.right<=d.wallet.left-2,
+       'Visual FAIL: top utility rail is not adjacent to the wallet');
+   }
    assert.ok(d.picker.width<=176 && d.picker.right<=width+1 && d.picker.left>=0,
      'Language utility clips or consumes too much space: '+JSON.stringify(d));
    assert.ok(d.help.width>=44&&d.help.height>=44,'Help touch target is too small');
@@ -75,7 +110,8 @@ try{
    await page.keyboard.press('Escape');
    assert.deepEqual(errors,[],'HOME has browser exceptions: '+JSON.stringify(errors));
    results.push({width,height,credits:d.credits,backup:d.backupCredits,
-      helpInLanguagePicker:d.helpParent,pickerWidth:d.picker.width,selectionDisabled:true});
+      helpInLanguagePicker:d.helpParent,pickerWidth:d.picker.width,
+      protectedTitleRegions:d.protectedText.length,selectionDisabled:true});
   }finally{await context.close();}
  }
  // A valid 12k wallet with real match progress must remain 12k.
