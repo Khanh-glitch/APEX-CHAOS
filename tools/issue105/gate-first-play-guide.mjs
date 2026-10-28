@@ -24,6 +24,8 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('apex.alpha.tuto
 // The toggle lives in the Help sheet opened by `?` (home only).
 const openHelp = async (page) => {
   if (!(await page.$('#apex-tutorial-toggle'))) {
+    await page.click('#apex-utility-toggle');
+    await page.waitForSelector('#apex-guide-open', { visible: true, timeout: 5000 });
     await page.click('#apex-guide-open');
     await page.waitForSelector('#apex-tutorial-toggle', { timeout: 5000 });
   }
