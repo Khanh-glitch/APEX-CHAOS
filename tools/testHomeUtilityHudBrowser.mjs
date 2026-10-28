@@ -93,6 +93,14 @@ try{
      'Drawer clips horizontally '+JSON.stringify(menu));
    assert.ok(menu.panel.bottom<=height+1,'Drawer clips vertically '+JSON.stringify(menu));
    assert.equal(overlaps(menu.panel,d.wallet),false,'Settings drawer overlaps persistent currency');
+   // Never visual-approve a half-animated translucent UI. Verify composited
+   // final frame after the command drawer has fully settled.
+   await wait(260);
+   const resolved=await page.evaluate(()=>({
+     opacity:getComputedStyle(document.querySelector('#apex-language-picker')).opacity,
+     background:getComputedStyle(document.querySelector('#apex-language-picker')).backgroundImage
+   }));
+   assert.equal(Number(resolved.opacity),1,'Drawer still translucent at acceptance capture');
    await page.screenshot({path:`${evidence}/home-${width}x${height}-settings-open.png`});
    await page.click('#apex-language-vie');
    await page.waitForFunction(()=>document.documentElement.dataset.apexLanguage==='vie');
