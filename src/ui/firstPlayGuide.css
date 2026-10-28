@@ -276,3 +276,18 @@
  color:#ffd18e;font:700 10px/1 "Oswald","Chakra Petch",sans-serif;
  letter-spacing:.03em;cursor:pointer;
 }
+
+
+/* Drawer-only Guide action. Never an independent black 44px HUD box. */
+#gold-shell-host #stage #apex-language-picker #apex-guide-open{
+ box-sizing:border-box;display:flex;align-items:center;justify-content:center;
+ flex:0 0 auto;width:auto;height:40px;min-width:0;min-height:40px;
+ margin:0 12px 12px;padding:0 10px;
+ border:1px solid rgba(232,180,90,.38);
+ background:linear-gradient(180deg,#29241d,#141514);
+ color:#ffda99;font:700 11px/1 "Oswald",sans-serif;
+ letter-spacing:.085em;
+}
+#gold-shell-host #stage #apex-language-picker #apex-guide-open:hover{
+ border-color:rgba(255,200,115,.8);background:#382a1d;
+}
