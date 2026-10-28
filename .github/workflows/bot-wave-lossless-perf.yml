@@ -4,6 +4,11 @@ on:
     paths:
       - 'public/bot-wave/game.html'
       - 'public/game/bot-wave/botWavePresentationV2.js'
+      - 'public/game/bot-wave/losslessFluidRuntime.js'
+      - 'src/game/runtimeManifest.js'
+      - 'test-fixtures/bot-wave/**'
+      - 'tools/testBotWaveLosslessFluid*.mjs'
+      - 'tools/testBotWaveForgeLosslessBrowser.mjs'
       - 'tools/profileBotWaveLosslessBrowser.mjs'
       - '.github/workflows/bot-wave-lossless-perf.yml'
   workflow_dispatch:
@@ -30,6 +35,8 @@ jobs:
           node tools/testBotWaveLosslessR5.mjs
           node tools/testBotWaveR7NativePhysics.mjs
           node tools/testBotWaveShippingAssets.mjs
+          node tools/testBotWaveLosslessFluid.mjs
+          node tools/testBotWavePressureWasmParity.mjs
       - name: Build and verify original Gold bytes
         run: |
           pnpm build
@@ -51,10 +58,15 @@ jobs:
           test -n "$CHROME"
           pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
           CHROME_PATH="$CHROME" node tools/profileBotWaveLosslessBrowser.mjs
+          CHROME_PATH="$CHROME" node tools/testBotWaveLosslessFluidBrowser.mjs
+          CHROME_PATH="$CHROME" node tools/testBotWaveForgeLosslessBrowser.mjs
       - name: Publish timings and screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bot-wave-lossless-perf-${{ github.sha }}
-          path: docs/boxe/bot-wave-perf/
+          path: |
+            docs/boxe/bot-wave-perf/
+            reports/bot-wave-lossless-fluid/
+            reports/bot-wave-forge-lossless/
           if-no-files-found: warn

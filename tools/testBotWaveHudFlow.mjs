@@ -762,11 +762,11 @@ assert.match(r12doc.getElementById('bw-oracle-title')?.textContent || '', /WAVE 
 r12window.dispatchEvent(new r12window.Event('pagehide'));
 r12window.close();
 
-assert.ok(app.includes('botWavePresentationV2.css?v=20261026-botwave-lossless-perf-r1'));
-assert.ok(app.includes('botWavePresentationV2.js?v=20261026-botwave-lossless-perf-r1'));
+assert.ok(app.includes('botWavePresentationV2.css?v=20261028-lossless-fluid-r1'));
+assert.ok(app.includes('botWavePresentationV2.js?v=20261028-lossless-fluid-r1'));
 assert.ok(app.includes('close.hidden=true;'), 'App host return chrome must not cover R16 gameplay');
-assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261026-botwave-lossless-perf-r1'));
-assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261026-botwave-lossless-perf-r1'));
+assert.ok(wrapper.includes('botWavePresentationV2.css?v=20261028-lossless-fluid-r1'));
+assert.ok(wrapper.includes('botWavePresentationV2.js?v=20261028-lossless-fluid-r1'));
 assert.ok(wrapper.includes("event.data?.type==='APEX_BOT_WAVE_EXIT'"), 'standalone wrapper must honor the saved-exit message');
 assert.ok(wrapper.includes("document.getElementById('return').hidden=true"), 'standalone return chrome retires once Ironworks Command is installed');
 
