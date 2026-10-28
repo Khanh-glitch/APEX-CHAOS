@@ -51,7 +51,19 @@
  .layout.editing-idle .idle-editor{flex-basis:38dvh}
  .idle-note{display:none}
 }
-</style></head><body><div id="app">
+</style><style id="apex-no-text-selection">
+/* Game is a touch-first interactive surface. Text dragging must not
+   highlight buttons, HUD labels or lore while swiping. Editable controls
+   retain native selection, caret, clipboard and accessibility. */
+html,body,body *:not(input):not(textarea):not([contenteditable]):not([contenteditable] *){
+ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+}
+input,textarea,[contenteditable],[contenteditable] *{
+ -webkit-user-select:text!important;user-select:text!important;
+ -webkit-touch-callout:default!important;
+}
+</style>
+</head><body><div id="app">
  <header class="topbar">
   <div class="brand"><div class="brand-logo">✦</div><div class="brand-title"><strong>THE HAND <span class="goldtext">GOLD LAB</span></strong><small>SKILL & MOTION TEST · ORIGINAL VFX BUILD</small></div></div>
   <div class="header-right"><span class="chip" id="cast-status">READY TO FIGHT</span><span class="metric" id="fps">— FPS</span><span class="metric" id="enemy-count">— MỤC TIÊU</span><button id="left-toggle" class="mini mobile-toggle" title="Mục tiêu & cấu hình">☷</button><button id="right-toggle" class="mini mobile-toggle" title="Thông tin & chỉ số">◈</button><button id="idle-toggle" class="mini idle-open" title="Chỉnh vị trí, góc và thứ tự găng idle" aria-expanded="false">✋ IDLE</button><button id="pause" class="mini" title="Tạm dừng (P)">Ⅱ</button><button id="sound" class="mini" title="Bật/tắt âm thanh">♫</button><button id="reset" class="reset">↻ RESET LAB</button></div>
