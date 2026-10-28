@@ -290,18 +290,32 @@
     // an ordinary 12,000 AC wallet or a save with actual match/draw/purchase
     // history, claimed rewards or mastery progression.
     const demoMarker = s.ownerPlaytestAcSeed;
-    const untouchedDemoWallet =
-      s.credits === 12000 &&
-      ['20261005-owner-playtest-r44', OWNER_PLAYTEST_AC_SEED_REVISION].includes(demoMarker?.revision) &&
-      demoMarker.profile === KEY &&
-      s.totalSpins === 0 &&
+    const noGameplay = s.totalSpins === 0 &&
       s.progression.botMatches === 0 &&
       s.progression.botWins === 0 &&
       s.progression.localMatches === 0 &&
       s.progression.claimedIds.length === 0 &&
       s.claimedMatchIds.length === 0 &&
-      Object.keys(s.mastery?.earned || {}).every(hero =>
-        Object.keys(s.mastery.earned[hero] || {}).length === 0) &&
+      Object.keys(s.mastery?.earned || {}).length === 0 &&
+      Object.keys(s.mastery?.best || {}).length === 0 &&
+      Object.keys(s.mastery?.weaponDamage || {}).length === 0 &&
+      (s.mastery?.recent || []).length === 0 &&
+      (s.mastery?.unseenSkinUnlocks || []).length === 0;
+    const taggedDemo = ['20261005-owner-playtest-r44', OWNER_PLAYTEST_AC_SEED_REVISION]
+      .includes(demoMarker?.revision) && demoMarker.profile === KEY;
+    // The earlier playtest sometimes persisted exactly 12,000 AC without
+    // its seed marker. Detect that *only* when it is otherwise identical to
+    // an untouched starter account: zero progression, only free fighters,
+    // no paid unlock timestamps and no real-purchase / reward evidence.
+    // Preserve ANY wallet with activity, custom roster or other seed markers.
+    const pristineUntaggedDemo = !demoMarker &&
+      !raw.testSeed && !raw.adminWalletGrant &&
+      s.ownedFighters.every(hero => hero === 'ROBOT' || hero === 'HUNTER') &&
+      Object.entries(s.unlockedAt).every(([hero,at]) =>
+        (hero === 'ROBOT' || hero === 'HUNTER') && !Number(at)) &&
+      !Object.keys(s.rosterMigrations).some(key => /wallet|credit|ac-grant/i.test(key));
+    const untouchedDemoWallet =
+      s.credits === 12000 && noGameplay && (taggedDemo || pristineUntaggedDemo) &&
       !s.rosterMigrations['retired-owner-demo-wallet-20261028'];
     if (untouchedDemoWallet) {
       s.credits = START_CREDITS;
@@ -342,7 +356,18 @@
     try {
       const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
       if (!raw) return save(applyOwnerPlaytestAcSeed(emptyState()));
-      const clean = sanitize(JSON.parse(raw));
+      const parsed = JSON.parse(raw);
+      const clean = sanitize(parsed);
+      // Keep the original on-device save for recovery before any legacy
+      // demo balance normalization. It is never uploaded or shared.
+      if (parsed?.credits === 12000 &&
+          clean.rosterMigrations?.['retired-owner-demo-wallet-20261028']) {
+        try {
+          const backupKey = KEY + '.legacyDemoWalletBackup.20261028';
+          if (localStorage.getItem(backupKey) == null)
+            localStorage.setItem(backupKey, raw);
+        } catch (error) { /* private storage unavailable */ }
+      }
       // Migration is durable: a NEWBIE/stale selection cannot reappear after
       // the next reload, while all historic ownership and balances survive.
       const seeded = applyOwnerPlaytestAcSeed(clean);
