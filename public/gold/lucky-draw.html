@@ -399,18 +399,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 }
 #stage[data-rm="1"] .haze,#stage[data-rm="1"] .hero-inner,#stage[data-rm="1"] .h-fx{animation:none!important}
 </style>
-<style id="apex-no-text-selection">
-/* Game is a touch-first interactive surface. Text dragging must not
-   highlight buttons, HUD labels or lore while swiping. Editable controls
-   retain native selection, caret, clipboard and accessibility. */
-html,body,body *:not(input):not(textarea):not([contenteditable]):not([contenteditable] *){
- -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
-}
-input,textarea,[contenteditable],[contenteditable] *{
- -webkit-user-select:text!important;user-select:text!important;
- -webkit-touch-callout:default!important;
-}
-</style>
 </head>
 <body>
 
