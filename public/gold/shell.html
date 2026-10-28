@@ -1299,18 +1299,6 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 #continueStory.is-locked .storyState{display:block;grid-column:2;grid-row:2;font-size:clamp(10px,.92vw,12.5px);letter-spacing:.24em;font-weight:700;line-height:1.2;color:rgba(255,180,90,.82);white-space:nowrap}
 @media (orientation:portrait){#continueStory.is-locked{align-self:stretch;grid-template-columns:auto auto 1fr;grid-template-rows:auto;min-height:46px}#continueStory.is-locked::before{grid-row:1}#continueStory.is-locked .label{grid-row:1}#continueStory.is-locked .storyState{grid-column:3;grid-row:1;justify-self:end}}
 </style>
-<style id="apex-no-text-selection">
-/* Game is a touch-first interactive surface. Text dragging must not
-   highlight buttons, HUD labels or lore while swiping. Editable controls
-   retain native selection, caret, clipboard and accessibility. */
-html,body,body *:not(input):not(textarea):not([contenteditable]):not([contenteditable] *){
- -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
-}
-input,textarea,[contenteditable],[contenteditable] *{
- -webkit-user-select:text!important;user-select:text!important;
- -webkit-touch-callout:default!important;
-}
-</style>
 </head>
 <body>
 <main id="stage" data-apex-shell-stage="true" aria-label="APEX CHAOS Home">
