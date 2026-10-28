@@ -399,14 +399,3 @@ button:disabled {
     display: none;
   }
 }
-
-/* Game is a touch-first interactive surface. Text dragging must not
-   highlight buttons, HUD labels or lore while swiping. Editable controls
-   retain native selection, caret, clipboard and accessibility. */
-html,body,body *:not(input):not(textarea):not([contenteditable]):not([contenteditable] *){
- -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
-}
-input,textarea,[contenteditable],[contenteditable] *{
- -webkit-user-select:text!important;user-select:text!important;
- -webkit-touch-callout:default!important;
-}
