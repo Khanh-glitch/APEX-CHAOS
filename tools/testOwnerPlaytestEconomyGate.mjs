@@ -139,12 +139,31 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   check('reopening retired demo never refills',boot({[KEY]:storage.getItem(KEY)}).meta.credits()===350);
 }
 {
-  const player = {version:1,credits:12000,ownedFighters:['ROBOT'],totalSpins:0};
-  check('real untagged 12,000 AC wallet is never modified',boot({[KEY]:JSON.stringify(player)}).meta.credits()===12000);
-  const usedDemo={...player,totalSpins:1,
+  const staleUnmarked={version:1,credits:12000,ownedFighters:['ROBOT','HUNTER'],totalSpins:0,
+    unlockedAt:{ROBOT:0,HUNTER:0}};
+  const {meta,storage}=boot({[KEY]:JSON.stringify(staleUnmarked)});
+  check('untouched unmarked legacy 12,000 AC demo normalizes to 350 AC',meta.credits()===350);
+  check('the original 12k save is backed up on device for recovery',
+    JSON.parse(storage.getItem(KEY+'.legacyDemoWalletBackup.20261028')).credits===12000);
+  check('reloading converted legacy wallet cannot repeatedly migrate or refill',
+    boot({[KEY]:storage.getItem(KEY)}).meta.credits()===350);
+
+  const spentDemo={...staleUnmarked,totalSpins:1};
+  check('12,000 AC wallet with a Lucky draw is never reset',
+    boot({[KEY]:JSON.stringify(spentDemo)}).meta.credits()===12000);
+  const played={...staleUnmarked,progression:{botMatches:1,botWins:1,localMatches:0,claimedIds:[]}};
+  check('12,000 AC wallet with a recorded match is preserved',
+    boot({[KEY]:JSON.stringify(played)}).meta.credits()===12000);
+  const purchased={...staleUnmarked,ownedFighters:['ROBOT','HUNTER','MIRROR'],unlockedAt:{ROBOT:0,HUNTER:0,MIRROR:Date.now()}};
+  check('12,000 AC wallet with purchased fighter and unlock timestamp is preserved',
+    boot({[KEY]:JSON.stringify(purchased)}).meta.credits()===12000);
+  const sponsored={...staleUnmarked,testSeed:'explicit-12000'};
+  check('explicit independent 12,000 AC test grant is untouched',
+    boot({[KEY]:JSON.stringify(sponsored)}).meta.credits()===12000);
+  const usedTagged={...staleUnmarked,totalSpins:1,
     ownerPlaytestAcSeed:{revision:'20261005-owner-playtest-r44',profile:KEY,at:1}};
-  check('12,000 AC owner wallet with recorded play activity stays untouched',
-    boot({[KEY]:JSON.stringify(usedDemo)}).meta.credits()===12000);
+  check('12,000 AC tagged owner wallet with activity stays untouched',
+    boot({[KEY]:JSON.stringify(usedTagged)}).meta.credits()===12000);
 }
 
 // ── 3. Lucky Draw costs exactly 1000 AC; a refresh never refills ─────────
