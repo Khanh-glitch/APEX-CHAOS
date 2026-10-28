@@ -791,19 +791,24 @@ function FirstPlayGuideCoach() {
 
     let guideBtn = null;
     const mountBtn = () => {
-      if (guideBtn?.isConnected) return;
-      const stage = stageElement();
-      if (!stage) return;
-      guideBtn = document.createElement('button');
-      guideBtn.type = 'button';
-      guideBtn.id = 'apex-guide-open';
-      guideBtn.dataset.apexNoLocalize = '';
-      guideBtn.setAttribute('aria-label', 'How to play / Hướng dẫn chơi');
-      guideBtn.textContent = '?';
-      guideBtn.addEventListener('click', () => {
-        try { window.dispatchEvent(new CustomEvent('apex:help-open')); } catch { /* no CustomEvent */ }
-      });
-      stage.appendChild(guideBtn);
+      // The old 44px floating '?' at right:110px overlapped the native
+      // Gold AC coin on phone viewports. Keep Help accessible, but mount
+      // inside the localization utility row instead of covering the wallet.
+      const picker = stageElement()?.querySelector('#apex-language-picker');
+      if (!picker) return;
+      if (guideBtn?.isConnected && guideBtn.parentElement === picker) return;
+      if (!guideBtn) {
+        guideBtn = document.createElement('button');
+        guideBtn.type = 'button';
+        guideBtn.id = 'apex-guide-open';
+        guideBtn.dataset.apexNoLocalize = '';
+        guideBtn.setAttribute('aria-label', 'How to play / Hướng dẫn chơi');
+        guideBtn.textContent = 'HELP';
+        guideBtn.addEventListener('click', () => {
+          try { window.dispatchEvent(new CustomEvent('apex:help-open')); } catch { /* no CustomEvent */ }
+        });
+      }
+      picker.appendChild(guideBtn);
     };
     mountBtn();
     const guard = new MutationObserver(mountBtn);
