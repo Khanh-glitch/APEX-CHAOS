@@ -1,0 +1,192 @@
+# Produces a downloadable itch.io HTML5 ZIP from the exact Gold owner-review
+# branch, without deployment, merge or publication. index.html is at ZIP root.
+name: Owner Gold home command dock visual + itch acceptance
+on:
+  push:
+    branches:
+      - design/home-command-dock-gold-20261028
+    paths:
+      - '.github/workflows/owner-gold-itch-package.yml'
+      - 'gold-mission-account/**'
+      - 'tools/packItchPortable.mjs'
+      - 'src/**'
+      - 'public/**'
+      - 'src/ui/**'
+      - 'src/game/localization.css'
+      - 'gold-mission-account/**'
+      - 'tools/testSessionFiveWayBrowser.mjs'
+      - 'tools/testOwnerPlaytestEconomyGate.mjs'
+      - 'tools/testHomeUtilityHudBrowser.mjs'
+      - 'tools/testGoldSwipeNavigationBrowser.mjs'
+      - 'tools/testBotWavePressureWasmParity.mjs'
+      - 'tools/qaLatestGoldItchBrowser.mjs'
+  pull_request:
+    branches: [fix/home-help-wallet-selection-20261028]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  html5-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VITE_SUPABASE_URL: ''
+      VITE_SUPABASE_ANON_KEY: ''
+      VITE_APEX_DEV_ADMIN: '0'
+      VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+      VITE_APEX_EMAIL_CODE_ENABLED: '0'
+    steps:
+      - name: Checkout exact owner Gold SHA
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install exact dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          npm --prefix tools/probe ci --no-audit --no-fund
+      - name: Build shipping game including owner Gold
+        run: |
+          node tools/verifyGoldSourceParity.mjs
+          node tools/testBotWavePressureWasmParity.mjs
+          pnpm build
+          pnpm test:shipping-dist
+          pnpm test:gold-direct-port
+          test -s dist/index.html
+          test -s dist/gold/mission-account.html
+          printf '%s\n' "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+      - name: Verify 350 AC fresh, retire only untouched old demo 12000 AC
+        run: |
+          node tools/testOwnerPlaytestEconomyGate.mjs
+      - name: Start built Gold preview for real swipe and wallet QA
+        shell: bash
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/apex-five-session-preview.log 2>&1 &
+          for i in $(seq 1 80); do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/apex-five-session-preview.log; exit 1
+      - name: Gold five-session gesture, coach, zero menu-panel and AC integrity
+        shell: bash
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173/
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testSessionFiveWayBrowser.mjs
+          CHROME_PATH="$CHROME" node tools/testGoldSwipeNavigationBrowser.mjs
+      - name: Home screenshot regression ? Help, 12k AC demo, text selection
+        shell: bash
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173/
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/testHomeUtilityHudBrowser.mjs
+      - name: Rewrite copy for itch HTML5 nested asset resolution
+        run: |
+          node tools/packItchPortable.mjs
+          for f in smoke_01.webp smoke_03.webp spark_05.webp spark_07.webp; do
+            src="public/assets/arsenal/av/vfx/c/$f"
+            dst="dist-itch-html5/assets/arsenal/av/vfx/c/$f"
+            if [ ! -s "$dst" ]; then
+              test -s "$src" || { echo "Missing official VFX: $src"; exit 1; }
+              mkdir -p "$(dirname "$dst")"
+              cp "$src" "$dst"
+            fi
+          done
+      - name: Check packed ZIP root and asset integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist-itch-html5/index.html
+          test -s dist-itch-html5/gold/mission-account.html
+          test -s dist-itch-html5/ITCH_GUEST_BUILD_SHA.txt
+          test "$(cat dist-itch-html5/ITCH_GUEST_BUILD_SHA.txt)" = "$GITHUB_SHA"
+          test -d dist-itch-html5/assets
+          test -d dist-itch-html5/game
+          du -sh dist-itch-html5
+      - name: Chrome nested itch.io smoke test (desktop and phone)
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createRequire} from 'node:module';
+          import {startNestedServer} from './tools/issue105/nestedServer.mjs';
+          const require=createRequire(import.meta.url);
+          const puppeteer=require('./tools/probe/node_modules/puppeteer-core');
+          const server=await startNestedServer();
+          const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']});
+          try {
+            for (const [width,height] of [[1440,900],[390,844]]) {
+              const page=await browser.newPage();
+              await page.setViewport({width,height,isMobile:width<600,hasTouch:width<600});
+              const errors=[];
+              page.on('pageerror',e=>errors.push(String(e)));
+              const resp=await page.goto(server.url+'/',{waitUntil:'domcontentloaded',timeout:60000});
+              assert.equal(resp.status(),200);
+              const iframe=await page.waitForSelector('#itch-game-drop',{timeout:20000});
+              const game=await iframe.contentFrame();
+              assert.ok(game,'itch wrapper missing game frame');
+              await game.waitForSelector('#apex-boot-start',{visible:true,timeout:120000});
+              await game.evaluate(()=>document.querySelector('#apex-boot-start')?.click());
+              await game.waitForSelector('#apexMissionsOpen',{timeout:90000});
+              await game.evaluate(()=>document.querySelector('#apexMissionsOpen')?.click());
+              await game.waitForSelector('.apex-gold-direct-host iframe',{timeout:30000});
+              const gold=await (await game.$('.apex-gold-direct-host iframe')).contentFrame();
+              await gold.waitForSelector('main h1',{timeout:20000});
+              const mission=await gold.evaluate(()=>document.querySelector('main h1')?.textContent?.trim());
+              assert.match(mission,/MISSIONS|NHIỆM VỤ/);
+              await game.evaluate(()=>window.APEX_ACCOUNT_CENTER?.open());
+              await game.waitForFunction(()=>document.querySelector('.apex-gold-direct-host iframe')?.src.includes('screen=account'),{timeout:20000});
+              const account=await (await game.$('.apex-gold-direct-host iframe')).contentFrame();
+              await account.waitForFunction(()=>/ACCOUNT|TÀI KHOẢN/.test(document.querySelector('main h1')?.textContent||''),{timeout:20000});
+              assert.deepEqual(server.serverErrors,[], 'Missing/escaped nested itch assets: '+server.serverErrors.slice(0,5).join('; '));
+              assert.deepEqual(errors,[], 'Browser page errors: '+errors.slice(0,5).join('; '));
+              console.log('PASS nested itch owner Gold',width,height,mission,'-> Account, missing assets 0');
+              await page.close();
+            }
+          } finally { await browser.close(); await server.close(); }
+          NODE
+      - name: Check CURRENT Gold native entry and BOT WAVE WASM in nested Chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          CHROME_PATH="$CHROME" node tools/qaLatestGoldItchBrowser.mjs
+      - name: Create itch.io HTML5 ZIP (index.html at ZIP root)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist-itch-html5 && zip -q -r ../APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip .)
+          unzip -tq APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip
+          unzip -Z -1 APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip | grep -qx 'index.html'
+          unzip -Z -1 APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip | grep -qx 'gold/mission-account.html'
+          ls -lh APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip
+          sha256sum APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip | tee APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.sha256
+      - name: Upload ZIP and checksum for owner
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-gold-home-command-dock-itch-${{ github.sha }}
+          path: |
+            APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.zip
+            APEX-CHAOS-LATEST-GOLD-BOT-WAVE-WASM-ITCH.sha256
+            reports/latest-gold-itch/
+            reports/owner-gold-swipe-evidence/
+            reports/five-session-navigation/
+            reports/home-utility-fix/
+            reports/owner-five-session-evidence/
+          retention-days: 30
+          if-no-files-found: error
