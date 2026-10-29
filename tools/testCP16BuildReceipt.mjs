@@ -20,7 +20,7 @@ for(const name of boxe)assert.ok(Object.keys(l.files).some(f=>f.endsWith('/'+nam
 const shuri=['shuriBattleRuntime.js','shuriGoldLibrary.js','shuriGoldPresentationRuntime.js'];
 for(const name of shuri)assert.ok(Object.keys(l.files).some(f=>f.endsWith('/'+name)),'missing SHURI versioned runtime '+name);
 // BOT WAVE r19 registered its three versioned runtimes in the same graph.
-const botwave=['waveCampaign.js','nativeArsenalGoldBridge.js','botWavePresentationV2.js'];
+const botwave=['waveCampaign.js','nativeArsenalGoldBridge.js','botWavePresentationV2.js','losslessFluidRuntime.js'];
 for(const name of botwave)assert.ok(Object.keys(l.files).some(f=>f.endsWith('/'+name)),'missing BOT WAVE versioned runtime '+name);
 // A1 r20 registered the P1/P2 skill-details presentation runtime.
 const a1=['skillDetailsRuntime.js'];

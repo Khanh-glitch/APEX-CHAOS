@@ -318,8 +318,12 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
    vy:-(4+Math.random()*6),life:.8+Math.random()*.8,size:7+Math.random()*8});
   state.particles.push(base);
  };
+ let particleFrameEmpty=false,glFrameEmpty=false;
  const drawParticles=(size,dt,fill,intensity)=>{
   if(!pctx||!size)return;
+  // A retained, already transparent canvas needs no new dirty frame. Resize
+  // also clears it to transparent; clocks and intensity still advance above.
+  if(intensity===0&&!state.particles.length&&particleFrameEmpty)return;
   pctx.setTransform(size.scale,0,0,size.scale,0,0);pctx.clearRect(0,0,size.width,size.height);
   if(!reducedMotion&&intensity>.08){
    if(!gl){state.flameSpawn+=dt*42*intensity;while(state.flameSpawn>=1){state.flameSpawn--;spawn('flame',size.width,size.height,fill,intensity);}}
@@ -358,15 +362,28 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
    }
   }
   pctx.globalAlpha=1;pctx.globalCompositeOperation='source-over';
+  particleFrameEmpty=state.particles.length===0;
  };
  const drawGL=(size,fill,hp)=>{
   if(!gl||!program||!size)return;
+  if(state.intensity===0&&glFrameEmpty)return;
   gl.viewport(0,0,size.pixelsW,size.pixelsH);gl.useProgram(program);
+  gl.disable(gl.SCISSOR_TEST);
   gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+  // Every shader alpha term is multiplied by intensity. At exact zero the
+  // Gold output is transparent; clearing already produces that same frame.
+  if(state.intensity===0){glFrameEmpty=true;return;}
+  glFrameEmpty=false;
   gl.uniform2f(uniforms.u_res,size.pixelsW,size.pixelsH);
   gl.uniform1f(uniforms.u_time,state.clock);gl.uniform1f(uniforms.u_intensity,state.intensity);
   gl.uniform1f(uniforms.u_fill,fill);gl.uniform1f(uniforms.u_hp,hp);gl.uniform1f(uniforms.u_seed,state.seed);
+  // Keep the original shader byte-for-byte. Its front is zero at x>=fill+.075;
+  // tongueHeight<=.68, body is zero above .725, coals above .13. The .73
+  // conservative bound includes all edge/filter rounding. Outside is clear.
+  gl.enable(gl.SCISSOR_TEST);
+  gl.scissor(0,0,Math.min(size.pixelsW,Math.ceil((fill+.075)*size.pixelsW)),Math.min(size.pixelsH,Math.ceil(.73*size.pixelsH)));
   gl.drawArrays(gl.TRIANGLES,0,6);
+  gl.disable(gl.SCISSOR_TEST);
  };
  return Object.freeze({
   get mode(){return state.mode;},
@@ -988,6 +1005,12 @@ function install(){
      (FAMILY_SHORT[e.waveFamily]||e.waveFamily||'HOSTILE')+' · '+distanceLabel(item.distance),
      familyGlyph(e.waveFamily),e.waveFamily||'',{force:true,count:group.length,meter:e.maxHp?e.hp/e.maxHp:null});
    });
+  // Canvas sizing reads layout. Paint both independent HUD canvases before
+  // moving/updating marker DOM, so those writes cannot force another layout
+  // during this spatial frame. Cadence, sizes and all drawing remain identical.
+  drawMinimap(lab,s,live);
+  const hpPct=player.maxHp?clamp(player.hp/player.maxHp):1;
+  forgeFire.render({fury:s.empowered?1:clamp((Number(s.passiveProgress)||0)/300),hp:hpPct});
   const placedMarkers=[];
   spatialMarkers.forEach((marker,index)=>{
    const entry=entries[index];
@@ -1027,12 +1050,9 @@ function install(){
    if(fill)fill.style.width=Math.round((entry.meter||0)*100)+'%';
   });
   syncActionMotion();
-  drawMinimap(lab,s,live);
   const hpNow=Number(player.hp)||0;
   if(lastHeroHp!=null&&hpNow<lastHeroHp-1&&hpNow>0)pulseHeroHit();
   lastHeroHp=hpNow;
-  const hpPct=player.maxHp?clamp(player.hp/player.maxHp):1;
-  forgeFire.render({fury:s.empowered?1:clamp((Number(s.passiveProgress)||0)/300),hp:hpPct});
   peripheral.style.opacity=String(player.hp>0&&hpPct<=.35?.32+.68*(1-hpPct/.35):0);
  };
  const update=()=>{

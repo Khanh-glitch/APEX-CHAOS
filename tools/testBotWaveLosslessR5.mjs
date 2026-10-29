@@ -4,13 +4,15 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
-const game=fs.readFileSync('public/bot-wave/game.html','utf8');
+const game=fs.readFileSync('public/bot-wave/game.html','utf8').replace(/\r\n/g,'\n');
 const start=game.indexOf('const modules='),end=game.indexOf('/* BOXE BOT WAVE pilot',start);
 assert.ok(start>0&&end>start,'Gold modules/adapter boundary missing');
 const core=game.slice(start,end);
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
-assert.equal(core.length,901831,'Owner Gold source length changed');
-assert.equal(sha(core),'00a14304c6c82efc337e78cbeb4f68ff9d1f15b4413016b6355a6c43dd3ffbc7',
+// Latest whole-repository baseline cccc6ac includes the previously shipped
+// exact pressure WASM backend. Lock that complete core, including the backend.
+assert.equal(core.length,905635,'Baseline Gold source length changed');
+assert.equal(sha(core),'bf365b1b40261af35d607d9024922f705b99dce6363195fee87bbfd8e90f26f7',
  'Owner-approved Gold engine/VFX/BOXE sound banks mutated');
 for(const item of ['class BoxeSoundDirector','const BOXE_AUDIO_BANK','const BOXE_FINAL_AUDIO_BANK',
  'BOXE_SFX','BOXE_FINAL_SFX','this.fire.draw(ctx)','this.lightning.draw(ctx)',

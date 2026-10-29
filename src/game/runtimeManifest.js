@@ -52,6 +52,7 @@ export const BOT_WAVE_SPECIAL_RUNTIMES = Object.freeze([
   ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],
   ['/game/bot-wave/waveCampaign.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveCampaign'],
   ['/game/bot-wave/nativeArsenalGoldBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveNativeBridge'],
+  ['/game/bot-wave/losslessFluidRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveLosslessFluid'],
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
   ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalPresentationRuntime'],
   ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalWeaponRuntime'],

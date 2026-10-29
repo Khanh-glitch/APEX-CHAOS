@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { installPressureWasm, pressureWasmBytes } from './botWavePressureWasmCandidate.mjs';
 
-const gold = fs.readFileSync(new URL('../public/bot-wave/game.html', import.meta.url), 'utf8');
+const gold = fs.readFileSync(new URL('../public/bot-wave/game.html', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const match = gold.match(/\n    project\(i0b, i1b, j0b, j1b\) \{[\s\S]*?\n    \}\n    step\(dt\) \{/);
 assert.ok(match && gold.match(/\n    project\(i0b, i1b, j0b, j1b\) \{/g)?.length === 1);
 const source = match[0].slice(1).replace(/\n    step\(dt\) \{$/, '');

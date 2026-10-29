@@ -11,7 +11,7 @@
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalPresentationRuntime.js": "fba92bff4cb49afac3ff18c7d5c022686f8c35e9406061e00fe036fdbe4794cc",
     "public/game/arsenal/arsenalWeaponRuntime.js": "9c86db8783c762c5fbf8a0c6f74cdb8330aedd552294df8cfd94cdbf03ca4dbe",
-    "public/game/bot-wave/botWavePresentationV2.js": "a0eb52c43e4df898f4b33cbb523a2825877887f5488980d1d3082349c92973dc",
+    "public/game/bot-wave/botWavePresentationV2.js": "503013e2c9db75313206171c9b8c654d711373817a5ca745336a4d80ae932d0c",
     "public/game/ui/apexCombatHudRuntime.js": "b83c3923e2424f58f2a7a890e0372c527bc81f6da9d2c776ede679820a6f9d63",
     "public/game/ui/uiSfxAuthority.js": "d91a9c6b8d7d40ec54e36d582d54a09f176ff193f90e02edb39e5707c2b16d98",
     "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",
@@ -70,6 +70,7 @@
     "public/game/hero-rework/magnetPresentationRuntime.js": "606fb1cd063804cbf67589f2220a96db1ccb56a7641d7a7c9e3d2e856769b719",
     "public/game/hero-rework/mirrorPresentationRuntime.js": "3713f25305cb588042898e6137ae1c0c7d1b7214b92e32f0393a4cdf4bf96155",
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
-    "public/game/ui/skillDetailsRuntime.js": "badb4d805fd1ae043984121dd31fca7dedb7c87cc0f5ed96a15375e4a73cdc18"
+    "public/game/ui/skillDetailsRuntime.js": "badb4d805fd1ae043984121dd31fca7dedb7c87cc0f5ed96a15375e4a73cdc18",
+    "public/game/bot-wave/losslessFluidRuntime.js": "d2587644108959016ea195e78c08accff9da804480c7ba3a30f108996a2dbc67"
   }
 }
