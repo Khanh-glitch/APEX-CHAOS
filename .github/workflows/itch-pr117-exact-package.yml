@@ -47,7 +47,7 @@ jobs:
         env:
           GITHUB_SHA: '094c3e883c0ebc6b70e8a93c64759356a01df2c1'
         run: |
-          pnpm build
+          GITHUB_SHA="$SOURCE_SHA" pnpm build
           pnpm test:shipping-dist
           pnpm test:gold-direct-port
           node tools/testOwnerPlaytestEconomyGate.mjs
