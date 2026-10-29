@@ -1,0 +1,97 @@
+name: PR117 exact-SHA itch.io HTML5 package
+
+on:
+  push:
+    branches: [release/itch-pr117-094c3e8]
+    paths: [.github/workflows/itch-pr117-exact-package.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VITE_SUPABASE_URL: ''
+      VITE_SUPABASE_ANON_KEY: ''
+      VITE_APEX_DEV_ADMIN: '0'
+      VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+      VITE_APEX_EMAIL_CODE_ENABLED: '0'
+      SOURCE_SHA: '094c3e883c0ebc6b70e8a93c64759356a01df2c1'
+    steps:
+      - name: Checkout exact approved PR117 commit, not workflow branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - name: Verify immutable source SHA
+        run: test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install locked dependencies and browser probe
+        run: |
+          pnpm install --frozen-lockfile
+          npm --prefix tools/probe ci --no-audit --no-fund
+      - name: Verify Gold and BOT WAVE WASM parity
+        run: |
+          node tools/verifyGoldSourceParity.mjs
+          node tools/testBotWavePressureWasmParity.mjs
+      - name: Build and test shipping distribution
+        run: |
+          pnpm build
+          pnpm test:shipping-dist
+          pnpm test:gold-direct-port
+          node tools/testOwnerPlaytestEconomyGate.mjs
+          test -s dist/index.html
+          test -s dist/gold/mission-account.html
+          test -s dist/bot-wave/game.html
+          printf '%s\n' "$SOURCE_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+      - name: Repackage for itch nested HTML5 hosting
+        run: |
+          node tools/packItchPortable.mjs
+          for f in smoke_01.webp smoke_03.webp spark_05.webp spark_07.webp; do
+            src="public/assets/arsenal/av/vfx/c/$f"
+            dst="dist-itch-html5/assets/arsenal/av/vfx/c/$f"
+            if [ ! -s "$dst" ]; then
+              test -s "$src" || { echo "Missing official VFX asset $src"; exit 1; }
+              mkdir -p "$(dirname "$dst")"
+              cp "$src" "$dst"
+            fi
+          done
+          test "$(cat dist-itch-html5/ITCH_GUEST_BUILD_SHA.txt)" = "$SOURCE_SHA"
+          test -s dist-itch-html5/index.html
+          test -s dist-itch-html5/gold/mission-account.html
+          test -s dist-itch-html5/bot-wave/game.html
+      - name: Full nested itch HTML5 desktop and mobile smoke
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME" || { echo "Chrome missing"; exit 1; }
+          CHROME_PATH="$CHROME" node tools/qaLatestGoldItchBrowser.mjs
+      - name: ZIP game content with index.html at root
+        run: |
+          set -euo pipefail
+          (cd dist-itch-html5 && zip -q -r ../APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.zip .)
+          unzip -tq APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.zip
+          unzip -Z -1 APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.zip | grep -qx 'index.html'
+          unzip -Z -1 APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.zip | grep -qx 'gold/mission-account.html'
+          unzip -Z -1 APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.zip | grep -qx 'bot-wave/game.html'
+          sha256sum APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.zip > APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.sha256
+          ls -lh APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.zip
+      - name: Upload verified ZIP to GitHub Actions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-pr117-094c3e8-itch-html5
+          path: |
+            APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.zip
+            APEX-CHAOS-PR117-094c3e8-ITCH-HTML5.sha256
+            reports/latest-gold-itch/
+          if-no-files-found: warn
+          retention-days: 30
