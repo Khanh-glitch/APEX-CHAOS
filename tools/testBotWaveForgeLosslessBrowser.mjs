@@ -31,10 +31,11 @@ try{
    let seed=117;Math.random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
    const renderer=factory(glCanvas,particles,false),gl=glCanvas.getContext('webgl');
    if(renderer.mode!=='webgl-fbm-domain-warp')throw Error('WebGL unavailable');
-   const original=gl.drawArrays.bind(gl);let draws=0,fragments=0;
+   const original=gl.drawArrays.bind(gl),clear=gl.clear.bind(gl);let draws=0,fragments=0,clears=0;
+   gl.clear=function(...args){clears++;return clear(...args);};
    gl.drawArrays=function(...args){draws++;const box=gl.getParameter(gl.SCISSOR_BOX);
     fragments+=gl.isEnabled(gl.SCISSOR_TEST)?box[2]*box[3]:gl.drawingBufferWidth*gl.drawingBufferHeight;return original(...args);};
-   return {renderer,gl,glCanvas,particles,stats:()=>({draws,fragments})};
+   return {renderer,gl,glCanvas,particles,stats:()=>({draws,fragments,clears})};
   };
   const originalRandom=Math.random;
   const a=make(baseline),b=make(candidate);
@@ -69,9 +70,25 @@ try{
   for(let i=0;i<120;i++){
    stamp+=50;render(a,0,1);render(b,0,1);
   }
+  const beforeIdle=b.stats();
   for(let i=0;i<20;i++){
    stamp+=33;
    for(const [name,branch] of i%2?[['candidate',b],['baseline',a]]:[['baseline',a],['candidate',b]])idle[name].push(render(branch,0,1));
+  }
+  const afterIdle=b.stats();
+  if(afterIdle.draws!==beforeIdle.draws||afterIdle.clears!==beforeIdle.clears)
+   throw Error('Stable transparent Fury must not dirty the GPU canvas');
+  // Retained transparency must survive a real canvas resize and subsequently
+  // restart the original effect with its continuously advancing clock.
+  for(const [width,height,fury] of [[333,57,0],[333,57,0],[320,60,1],[320,60,.3]]){
+   for(const branch of [a,b]){branch.glCanvas.style.width=branch.particles.style.width=width+'px';branch.glCanvas.style.height=branch.particles.style.height=height+'px';}
+   stamp+=33;render(a,fury,1);render(b,fury,1);
+   const x=pixels(a),y=pixels(b);
+   for(let i=0;i<x.length;i++){const diff=Math.abs(x[i]-y[i]);if(diff)changedChannels++;maxDiff=Math.max(maxDiff,diff);}
+   const px=a.particles.getContext('2d').getImageData(0,0,a.particles.width,a.particles.height).data;
+   const py=b.particles.getContext('2d').getImageData(0,0,b.particles.width,b.particles.height).data;
+   for(let i=0;i<px.length;i++)if(px[i]!==py[i])particleDifferences++;
+   cases++;
   }
   Math.random=originalRandom;
   const median=v=>[...v].sort((a,b)=>a-b)[Math.floor(v.length/2)];
@@ -82,6 +99,7 @@ try{
  assert.equal(result.changedChannels,0,'Forge framebuffer must exactly match Gold');
  assert.equal(result.particleDifferences,0,'Forge particles must exactly match Gold');
  assert.ok(result.shaderDraws.candidate.fragments<result.shaderDraws.baseline.fragments);
+ assert.ok(result.shaderDraws.candidate.clears<result.shaderDraws.baseline.clears,'Retain already transparent idle GPU frames');
  fs.writeFileSync(output+'/comparison.json',JSON.stringify({...result,baselineFixtureSha256:crypto.createHash('sha256').update(baseline).digest('hex')},null,2)+'\n');
  console.log('BOT WAVE FORGE CHROME PARITY PASS',JSON.stringify(result));
 }finally{await browser.close();}

@@ -7618,7 +7618,12 @@ window.APEX_WAVE_PERF=Object.freeze({snapshot:()=>({
  canvasPixels:engine.canvas.width*engine.canvas.height,renderDpr:engine.dpr,
  projectiles:window.projectiles?.length||0,
  goldParticles:engine.particles.length,livingBots:engine.enemies.filter(e=>!e.dead).length
-})});
+}),reset(){
+ // Measurement windows may restart without changing the simulation or its RNG.
+ for(const key of Object.keys(PERF))PERF[key]=0;
+ for(const h of Object.values(perfHistory)){h.count=0;h.data.fill(0);}
+ lastRenderStart=0;
+}});
 const nativeUpdate=engine.update.bind(engine);
 // R13 camera law: BOT WAVE renders through Gold's own lens at exactly 1.75x.
 // Gold's normal/slow-mo/ultimate bases (.50/.48/.45) and its impact easing are
@@ -7713,22 +7718,6 @@ engine.player.hp=CAMPAIGN.survival.startingHP;engine.player.maxHp=CAMPAIGN.survi
 // Gold's rendered combat lens is .50; R13's owner-locked BOT WAVE lens is .875.
 engine.camZoom=.875;engine.camZoomBase=.875;
 window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave:state.wave,beat:{id:state.hudBeatId,index:state.hudBeatIndex,pattern:state.hudPattern,newWeapons:[...state.hudNewWeapons]},waveKills:state.waveKills,waveDamageDealt:state.waveDamageDealt,waveDamageReceived:state.waveDamageReceived,lastDamage:{at:state.lastDamageAt,angle:state.lastDamageAngle,amount:state.lastDamageAmount},lastHeal:{at:state.lastHealAt,amount:state.lastHealAmount},nextWaveT:state.nextWaveT,autoNextWave:state.autoNextWave,guard:{held:state.guardHeld,counterLive:state.guardCounterLive,cdT:state.guardCdT,cdMax:state.guardCdMax,holdT:state.guardHoldT},owned:[...state.owned],stacks:{...state.stacks},sticky:{...state.stickyStats},rocketProcs:state.rocketProcs,healthPacks:state.healthPacks.length,healthPackDrops:state.healthPackDrops,healthPackPickups:state.healthPackPickups,savedWave:state.waveSnapshot?.wave||0,clusterWave:state.clusterSnapshot?.wave||0,enemies:engine.enemies.length,camera:{zoom:engine.camZoom,base:engine.camZoomBase,multiplier:engine.botWaveCameraZoom||1,dpr:engine.dpr||1,arenaBaseScale:ARENA_STAGE.baseScale||1},player:{x:engine.player.x,y:engine.player.y,hp:engine.player.hp,maxHp:engine.player.maxHp}}),source:'APEX_GOLD_R5'};
-// Build the exact deterministic Gold texture cache before exposing START.
-// First movement/guard used to compile several 128x128 four-octave smoke
-// textures inside the combat render. Yield between jobs, keep every original
-// texture/seed, and consume no combat RNG or simulation time.
-engine.paused=true;
-const goldTextures=load('src/game/fx/textures.ts');
-const textureWarmStarted=performance.now();
-const smokeWarmKeys=[['#5d5852',1],['#a99b83',2],['#a99b83',3],['#a99b83',4],
- ['#a6a49c',1],['#a6a49c',2],['#a6a49c',3],['#728287',2],['#9e9180',2],
- ['#d8bc78',1],['#b48c45',2],['#d8bc78',3],['#b48c45',4]];
-for(const [color,seed] of smokeWarmKeys){
- await new Promise(resolve=>setTimeout(resolve,0));goldTextures.smokeTex(color,seed);
-}
-await new Promise(resolve=>setTimeout(resolve,0));engine.fire.textures();
-PERF.textureWarmupMs=performance.now()-textureWarmStarted;
-PERF.prewarmedSmokeTextures=smokeWarmKeys.length;
 createUI();refreshUI();presentRunIntro();engine.paused=true;
 // Native combat already refreshes the HUD and handles defeat in updateWave.
  // Avoid duplicated DOM churn from a second independent timer.

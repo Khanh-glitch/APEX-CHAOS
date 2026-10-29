@@ -318,8 +318,12 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
    vy:-(4+Math.random()*6),life:.8+Math.random()*.8,size:7+Math.random()*8});
   state.particles.push(base);
  };
+ let particleFrameEmpty=false,glFrameEmpty=false;
  const drawParticles=(size,dt,fill,intensity)=>{
   if(!pctx||!size)return;
+  // A retained, already transparent canvas needs no new dirty frame. Resize
+  // also clears it to transparent; clocks and intensity still advance above.
+  if(intensity===0&&!state.particles.length&&particleFrameEmpty)return;
   pctx.setTransform(size.scale,0,0,size.scale,0,0);pctx.clearRect(0,0,size.width,size.height);
   if(!reducedMotion&&intensity>.08){
    if(!gl){state.flameSpawn+=dt*42*intensity;while(state.flameSpawn>=1){state.flameSpawn--;spawn('flame',size.width,size.height,fill,intensity);}}
@@ -358,15 +362,18 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
    }
   }
   pctx.globalAlpha=1;pctx.globalCompositeOperation='source-over';
+  particleFrameEmpty=state.particles.length===0;
  };
  const drawGL=(size,fill,hp)=>{
   if(!gl||!program||!size)return;
+  if(state.intensity===0&&glFrameEmpty)return;
   gl.viewport(0,0,size.pixelsW,size.pixelsH);gl.useProgram(program);
   gl.disable(gl.SCISSOR_TEST);
   gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
   // Every shader alpha term is multiplied by intensity. At exact zero the
   // Gold output is transparent; clearing already produces that same frame.
-  if(state.intensity===0)return;
+  if(state.intensity===0){glFrameEmpty=true;return;}
+  glFrameEmpty=false;
   gl.uniform2f(uniforms.u_res,size.pixelsW,size.pixelsH);
   gl.uniform1f(uniforms.u_time,state.clock);gl.uniform1f(uniforms.u_intensity,state.intensity);
   gl.uniform1f(uniforms.u_fill,fill);gl.uniform1f(uniforms.u_hp,hp);gl.uniform1f(uniforms.u_seed,state.seed);

@@ -10,6 +10,7 @@ on:
       - 'tools/testBotWaveLosslessFluid*.mjs'
       - 'tools/testBotWaveForgeLosslessBrowser.mjs'
       - 'tools/profileBotWaveLosslessBrowser.mjs'
+      - 'tools/compareBotWaveWholeFrameBrowser.mjs'
       - '.github/workflows/bot-wave-lossless-perf.yml'
   workflow_dispatch:
 permissions:
@@ -20,6 +21,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch pinned latest-repository baseline for ABBA
+        run: git fetch --depth=1 origin cccc6acac918e9b5f05891641f9fed2fcc044175
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.9
@@ -60,6 +63,7 @@ jobs:
           CHROME_PATH="$CHROME" node tools/profileBotWaveLosslessBrowser.mjs
           CHROME_PATH="$CHROME" node tools/testBotWaveLosslessFluidBrowser.mjs
           CHROME_PATH="$CHROME" node tools/testBotWaveForgeLosslessBrowser.mjs
+          CHROME_PATH="$CHROME" node tools/compareBotWaveWholeFrameBrowser.mjs
       - name: Publish timings and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,4 +73,5 @@ jobs:
             docs/boxe/bot-wave-perf/
             reports/bot-wave-lossless-fluid/
             reports/bot-wave-forge-lossless/
+            reports/bot-wave-whole-frame/
           if-no-files-found: warn

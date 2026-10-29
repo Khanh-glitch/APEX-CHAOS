@@ -20,7 +20,10 @@ try {
       const { page, context, errors } = await openApp(browser, {
         width: v.w, height: v.h, mobile: true, lang, storage: { 'apex.alpha.tutorial.v1': 'off' },
       });
-      await page.waitForSelector('#apex-guide-open', { timeout: 20000 });
+      // Latest Gold Home keeps Help inside the real SYSTEM drawer.
+      await page.waitForSelector('#apex-utility-toggle', { visible: true, timeout: 20000 });
+      await page.click('#apex-utility-toggle');
+      await page.waitForSelector('#apex-guide-open', { visible: true, timeout: 20000 });
       await page.click('#apex-guide-open');
       await page.waitForSelector('[data-testid="apex-help-portrait-note"]', { timeout: 10000 });
       await wait(250);

@@ -75,17 +75,12 @@ for(let count=0;count<80;count++){
   ((a.x-player.x)**2+(a.y-player.y)**2)-((b.x-player.x)**2+(b.y-player.y)**2)||a.id-b.id)[0]||null;
  assert.equal(nearest.call({player,enemies}),expected,'nearest target must retain distance/ID ordering');
 }
-// Warming uses Gold's own seeded texture cache and must consume no combat RNG.
-const textureStart=game.indexOf("'src/game/fx/textures.ts': function(module,exports,require){");
-const textureEnd=game.indexOf("\n},\n'src/",textureStart);
-const textureExports={},textureMath=Object.create(Math);
-textureMath.random=()=>{throw Error('Texture warmup consumed combat RNG');};
-vm.runInNewContext(game.slice(game.indexOf('\n',textureStart)+1,textureEnd),
- {...context,exports:textureExports,Math:textureMath});
-const warmKeys=new Function('return '+game.match(/const smokeWarmKeys=(\[[\s\S]*?\]);/)[1])();
-assert.equal(warmKeys.length,13);
-for(const [color,seed] of warmKeys){
- const first=textureExports.smokeTex(color,seed);
- assert.equal(textureExports.smokeTex(color,seed),first,'Warmed texture must be the original cached canvas');
-}
+const perfStart=game.indexOf('window.APEX_WAVE_PERF=Object.freeze(');
+const perfEnd=game.indexOf('const nativeUpdate=',perfStart);
+const diagnostic={window:{},PERF:{samples:8,lastMs:12,longTasks:2},
+ perfHistory:{frame:{count:3,data:new Float32Array([16,90,17])}},lastRenderStart:123};
+vm.runInNewContext(game.slice(perfStart,perfEnd)+'window.APEX_WAVE_PERF.reset();',diagnostic);
+assert.equal(diagnostic.PERF.samples,0);assert.equal(diagnostic.PERF.longTasks,0);
+assert.equal(diagnostic.perfHistory.frame.count,0);assert.equal(diagnostic.lastRenderStart,0);
+assert.deepEqual([...diagnostic.perfHistory.frame.data],[0,0,0]);
 console.log(`BOT WAVE lossless fluid PASS: ${comparisons} bitwise field comparisons, composite/raster parity, mutation invalidation, standalone calls`);
