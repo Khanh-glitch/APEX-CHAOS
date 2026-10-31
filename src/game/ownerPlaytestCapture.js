@@ -100,6 +100,67 @@ function passwordPanel() {
   field.focus();
 }
 
+// The itch.io host is a cross-origin parent document. Its iframe does not
+// delegate display-capture, so the embedded game cannot prompt for permission.
+// Do NOT suggest changing a browser setting or retrying in the same iframe.
+function displayCapturePolicyDenied() {
+  try {
+    const policy = document.permissionsPolicy || document.featurePolicy;
+    if (typeof policy?.allowsFeature === 'function')
+      return policy.allowsFeature('display-capture') === false;
+  } catch (_) { /* policies differ between browsers */ }
+  return false;
+}
+
+function isDisplayCapturePolicyError(error) {
+  const msg = String(error?.message || error || '').toLowerCase();
+  return msg.includes('display-capture') &&
+    (msg.includes('permissions policy') || msg.includes('permission policy')
+      || msg.includes('disallowed by'));
+}
+
+function standaloneRecordingPanel() {
+  if (document.getElementById('apex-owner-standalone-recording')) return;
+  document.getElementById('apex-owner-notice')?.remove();
+  const shade = document.createElement('div');
+  shade.id = 'apex-owner-standalone-recording';
+  shade.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:#02050bed;backdrop-filter:blur(8px);color:#ffedd7;font-family:system-ui,sans-serif';
+  const panel = document.createElement('div');
+  panel.setAttribute('role','dialog'); panel.setAttribute('aria-modal','true');
+  panel.setAttribute('aria-label','Mở APEX CHAOS ở tab riêng để quay');
+  panel.style.cssText = 'width:min(490px,100%);padding:24px;border:1px solid #edb15f;background:#10151ff7;border-radius:12px;box-shadow:0 25px 90px #000c;line-height:1.6';
+  const title = document.createElement('h2');
+  title.textContent = 'APEX CHAOS · RECORDING MODE';
+  title.style.cssText = 'margin:0 0 12px;color:#ffbe60;font-size:19px';
+  const message = document.createElement('p');
+  message.textContent = 'itch.io không cấp quyền quay màn hình cho game trong khung nhúng. Bạn cần mở game ở tab độc lập. Trận hiện tại không thể chuyển sang tab mới; hãy vào lại BOT Battle rồi nhấn Ctrl + Shift + F7 để quay.';
+  message.style.cssText = 'margin:0 0 16px;font-size:14px;color:#f2dfc5';
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;align-items:center';
+  const open = document.createElement('a');
+  open.id='apex-owner-record-standalone-link';
+  open.textContent='MỞ GAME Ở TAB RIÊNG';
+  // The browser controls user-initiated navigation and popup restrictions.
+  // No automatic screen-sharing request or cross-origin permission bypass.
+  open.href=window.location.href;
+  open.target='_blank'; open.rel='noopener noreferrer';
+  open.style.cssText='display:inline-flex;align-items:center;min-height:42px;padding:10px 16px;background:#d58a31;color:#15100a;text-decoration:none;font-weight:900;border-radius:6px;font-size:13px';
+  const cancel=document.createElement('button');
+  cancel.type='button'; cancel.textContent='ĐÓNG';
+  cancel.style.cssText='min-height:42px;padding:10px 16px;background:#252a34;color:#f2dfc5;border:1px solid #5b5862;border-radius:6px;cursor:pointer;font-weight:700';
+  actions.append(open,cancel);
+  const note=document.createElement('p');
+  note.textContent='Nếu trình duyệt không mở tab, hãy nhấp chuột phải vào nút trên và chọn Open link in new tab. Nếu tab riêng cũng bị chặn bởi máy hoặc trình duyệt, hãy quay bằng OBS.';
+  note.style.cssText='font-size:12px;color:#b7b8c0;margin:12px 0 0';
+  panel.append(title,message,actions,note);
+  shade.append(panel); document.body.append(shade);
+  const close=()=>shade.remove();
+  cancel.addEventListener('click',close);
+  shade.addEventListener('click',event=>{if(event.target===shade)close();});
+  shade.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();close();}});
+  open.focus();
+}
+
 function stopRecording(reason) {
   const item = session;
   if (!item) return;
@@ -134,6 +195,9 @@ async function startRecording() {
   const hud = document.getElementById('battleHudHost');
   if (!game?.active || game.battleMode !== 'BOT' || game.over || !hud?.classList.contains('is-open')) {
     notice('Shift + Ctrl + F7 chỉ ghi khi đang trong BOT Battle Gold HUD.',true); return;
+  }
+  if (displayCapturePolicyDenied()) {
+    standaloneRecordingPanel(); return;
   }
   if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === 'undefined') {
     notice('Cần Chrome/Edge có hỗ trợ ghi tab trên HTTPS.',true); return;
@@ -197,7 +261,8 @@ async function startRecording() {
       console.warn('[owner-capture] Tab is not 9:16: letterbox preserves actual HUD. Resize the captured game tab to portrait for a full-frame TikTok result.');
   } catch (error) {
     if (display && !session) display.getTracks().forEach(t=>t.stop());
-    notice('Không bắt đầu ghi: '+String(error?.message||error),true);
+    if (isDisplayCapturePolicyError(error)) standaloneRecordingPanel();
+    else notice('Không bắt đầu ghi: '+String(error?.message||error),true);
   } finally { starting = false; }
 }
 
@@ -217,7 +282,8 @@ export function installOwnerPlaytestCapture(scope = window) {
     version:'owner-playtest-capture-v1',
     isPlaytestActive:() => unlocked,
     isRecording:() => !!session,
-    isRecordingResultHold:() => !!session?.tailTimer
+    isRecordingResultHold:() => !!session?.tailTimer,
+    isCaptureBlockedByPolicy:displayCapturePolicyDenied
   });
   Object.defineProperty(scope,'APEX_OWNER_TOOLS',{value:api,writable:false,configurable:false,enumerable:true});
   scope.addEventListener('keydown',event => {
