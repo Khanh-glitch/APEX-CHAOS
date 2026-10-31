@@ -530,6 +530,8 @@
     // Ctrl+Shift+F8 is deliberately uncommon in Chrome/Windows. A browser
     // cannot override a shortcut reserved by the host OS.
     if(ev.ctrlKey&&ev.shiftKey&&!ev.altKey&&!ev.metaKey&&ev.code==='F8'&&!ev.repeat){
+      // Password-gated owner playtest handles F8 in an earlier capture listener.
+      if (window.APEX_OWNER_TOOLS) return;
       ev.preventDefault();ev.stopPropagation();
       // A1.4: the shortcut is an interface, NOT authorization. Entry requires
       // the Admin authority (verified cloud admin role, or dev-build opt-in);
