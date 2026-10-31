@@ -63,9 +63,9 @@ window.dispatchEvent(new window.KeyboardEvent('keydown',{
   code:'F7',key:'F7',ctrlKey:true,shiftKey:true
 }));
 assert.equal(authority.isCaptureBlockedByPolicy(),true);
-const panel=document.getElementById('apex-owner-standalone-recording');
-assert.ok(panel,'blocked embedded F7 offers standalone rather than reporting raw policy exception');
-assert.equal(panel.querySelector('a').href,window.location.href);
-assert.equal(panel.querySelector('a').target,'_blank');
+const policyPanel=document.getElementById('apex-owner-standalone-recording');
+assert.ok(policyPanel,'blocked embedded F7 offers standalone rather than reporting raw policy exception');
+assert.equal(policyPanel.querySelector('a').href,window.location.href);
+assert.equal(policyPanel.querySelector('a').target,'_blank');
 assert.equal(authority.isRecording(),false);
 console.log('PASS owner shortcuts: F8 invalid/valid, BOT navigation, selection-session scope, second F8 off, Gold HUD recording contracts');
