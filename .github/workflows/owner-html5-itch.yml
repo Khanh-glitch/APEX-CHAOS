@@ -46,8 +46,8 @@ jobs:
           printf '%s\n' "$(git rev-parse HEAD)" > dist/ITCH_GUEST_BUILD_SHA.txt
           node tools/packItchPortable.mjs
           test -s dist-itch-html5/index.html
-          grep -Eq 'src="\\./assets/' dist-itch-html5/index.html
-          grep -Eq 'href="\\./assets/' dist-itch-html5/index.html
+          grep -F 'src="./assets/' dist-itch-html5/index.html
+          grep -F 'href="./assets/' dist-itch-html5/index.html
       - name: Zip ONLY portable itch output, never raw Vite dist
         run: |
           (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5-r2.zip .)
