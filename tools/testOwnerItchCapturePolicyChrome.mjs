@@ -81,28 +81,40 @@ try {
   assert.equal(dialog.blocked,true);
   assert.equal(dialog.target,'_blank');
   assert.match(dialog.rel,/noopener/);
-  assert.equal(dialog.href,game.url(),'opens exact packaged game entry independent of parent iframe');
-  assert.equal(dialog.directUrl,game.url(),'selectable URL remains usable if itch sandbox blocks popups');
-  assert.match(dialog.text,/tab độc lập/);
+  const expectedStudio=new URL('portrait-studio.html',game.url()).href;
+  assert.equal(dialog.href,expectedStudio,'direct link opens actual phone studio rather than desktop game');
+  assert.equal(dialog.directUrl,expectedStudio,'selectable studio URL works if itch sandbox blocks popups');
+  assert.match(dialog.text,/432 × 768/);
   await page.screenshot({path:path.join(output,'policy-denied-itch-f7-modal.png')});
-  // This top-level page does not inherit the cross-origin parent's policy;
-  // the browser can now request user permission. Headless Chrome cannot
-  // stand in for an owner approving the live getDisplayMedia picker.
+  // The same hosted game is opened inside a top-level, same-origin STUDIO,
+  // with a real 432×768 iframe viewport. Only that iframe can invoke F7.
   const standalone=await browser.newPage();
+  await standalone.setViewport({width:1440,height:900});
   await standalone.goto(dialog.href,{waitUntil:'domcontentloaded',timeout:60000});
-  await standalone.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
-  const direct=await standalone.evaluate(()=>({
+  const stage=await standalone.waitForSelector('#apex-portrait-stage',{timeout:15000});
+  const phone=await stage.contentFrame();
+  assert.ok(phone,'studio iframe exists');
+  await phone.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
+  const direct=await phone.evaluate(()=>({
     allowed:(document.permissionsPolicy||document.featurePolicy)?.allowsFeature?.('display-capture'),
     blocked:window.APEX_OWNER_TOOLS?.isCaptureBlockedByPolicy?.(),
+    studio:window.APEX_OWNER_TOOLS?.isPortraitStudio?.(),
+    dims:{w:window.innerWidth,h:window.innerHeight},
     top:window.top===window
   }));
-  assert.equal(direct.allowed,true,'top-level HTML5 game may use display-capture');
+  assert.equal(direct.allowed,true,'same-origin portrait studio iframe may ask for display-capture');
   assert.equal(direct.blocked,false);
-  assert.equal(direct.top,true);
+  assert.equal(direct.studio,true);
+  assert.deepEqual(direct.dims,{w:432,h:768},'phone breakpoint independent of laptop size');
+  assert.equal(direct.top,false);
+  const region=await standalone.evaluate(()=>window.APEX_PORTRAIT_STUDIO?.getCropRect());
+  assert.ok(region && Math.abs(region.width/region.height-9/16)<0.001,
+    'live phone frame rectangle stays exactly 9:16');
+  await standalone.screenshot({path:path.join(output,'standalone-portrait-studio-1440x900.png')});
   assert.deepEqual(nested.serverErrors,[],'no escaping asset requests in cross-origin policy scenario');
   fs.writeFileSync(path.join(output,'capture-policy-receipt.json'),
     JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct},null,2));
-  console.log('PASS ITCH DISPLAY-CAPTURE POLICY: cross-origin embed denies F7 safely, opens standalone entry; direct top-level may request capture.');
+  console.log('PASS ITCH PORTRAIT STUDIO: cross-origin itch embed directs to standalone 9:16 game; same-origin phone viewport 432×768 receives capture permission.');
 } finally {
   if(browser) await browser.close();
   if(outer) await new Promise(ok=>outer.close(ok));
