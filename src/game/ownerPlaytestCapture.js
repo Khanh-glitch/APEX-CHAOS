@@ -87,7 +87,7 @@ function passwordPanel() {
     if (!setUnlocked(true)) { close(); return; }
     close();
     try {
-      const ok = await window.apexLaunchProductSurface?.('bot');
+      const ok = await window.apexLaunchProductSurface?.('bot-battle');
       if (ok !== true) {
         setUnlocked(false);
         notice('Chưa mở được Fighter Pick. Hãy đợi Home sẵn sàng rồi thử lại.',true);
