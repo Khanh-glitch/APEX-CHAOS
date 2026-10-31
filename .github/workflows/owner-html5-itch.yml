@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - feature/owner-password-portrait-record-20261101
+  pull_request:
+    types: [opened, synchronize]
+    branches: [perf/bot-wave-lossless-20261028]
   workflow_dispatch:
 permissions:
   contents: write
