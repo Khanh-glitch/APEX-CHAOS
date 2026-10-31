@@ -46,37 +46,39 @@ jobs:
           printf '%s\n' "$(git rev-parse HEAD)" > dist/ITCH_GUEST_BUILD_SHA.txt
           node tools/packItchPortable.mjs
           test -s dist-itch-html5/index.html
+          test -s dist-itch-html5/portrait-studio.html
           grep -F 'src="./assets/' dist-itch-html5/index.html
           grep -F 'href="./assets/' dist-itch-html5/index.html
       - name: Zip ONLY portable itch output, never raw Vite dist
         run: |
-          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5-r3.zip .)
-          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r3.zip | grep -Fx 'index.html'
-          sha256sum APEX-CHAOS-owner-F7-F8-HTML5-r3.zip | tee APEX-CHAOS-owner-F7-F8-HTML5-r3.sha256
-          du -h APEX-CHAOS-owner-F7-F8-HTML5-r3.zip
+          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5-r4.zip .)
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r4.zip | grep -Fx 'index.html'
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r4.zip | grep -Fx 'portrait-studio.html'
+          sha256sum APEX-CHAOS-owner-F7-F8-HTML5-r4.zip | tee APEX-CHAOS-owner-F7-F8-HTML5-r4.sha256
+          du -h APEX-CHAOS-owner-F7-F8-HTML5-r4.zip
       - name: Unpack ZIP and run real Chrome against nested itch iframe
         run: |
           mv dist-itch-html5 dist-itch-html5-transform-source
           mkdir dist-itch-html5
-          unzip -q APEX-CHAOS-owner-F7-F8-HTML5-r3.zip -d dist-itch-html5
+          unzip -q APEX-CHAOS-owner-F7-F8-HTML5-r4.zip -d dist-itch-html5
           npm ci --prefix tools/probe --ignore-scripts
           command -v google-chrome || command -v chromium
           CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchPackagedChrome.mjs
           CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchCapturePolicyChrome.mjs
-      - name: Publish ONLY after verified packaged runtime (new r3 prerelease)
+      - name: Publish ONLY after verified packaged runtime (new r4 prerelease)
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: owner-html5-f7-f8-20261101-r3
+          TAG: owner-html5-f7-f8-20261101-r4
           SHA: ${{ github.sha }}
         run: |
           test -s reports/owner-itch-qa/receipt.json
           test -s reports/owner-itch-qa/capture-policy-receipt.json
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r3.zip APEX-CHAOS-owner-F7-F8-HTML5-r3.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json --clobber
+            gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r4.zip APEX-CHAOS-owner-F7-F8-HTML5-r4.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json --clobber
           else
-            gh release create "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r3.zip APEX-CHAOS-owner-F7-F8-HTML5-r3.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json \
+            gh release create "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r4.zip APEX-CHAOS-owner-F7-F8-HTML5-r4.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json \
               --target "$SHA" \
-              --title "APEX CHAOS · verified itch HTML5 owner F7/F8 r3" \
-              --notes "Portable ZIP verified: real Chrome desktop+phone Start/Home/BOT live battle plus itch-style CROSS-ORIGIN iframe with display-capture denied; F7 opens actionable standalone link to the same packaged game, where top-level capture policy allows user permission. Actual MediaRecorder output still requires a human permission gesture. See both receipts." \
+              --title "APEX CHAOS · verified itch HTML5 owner F7/F8 r4" \
+              --notes "Portable HTML5 ZIP: real Chrome desktop+phone Start/Home/BOT Gold battle, blocked itch iframe routes F7 to a new standalone 432x768 real phone viewport. Chrome also checks 1080x1920 MediaRecorder canvas pixels from simulated tab share: NO laptop desktop, no sidebar, no letterbox. Actual browser tab permission still requires user action." \
               --prerelease
           fi
