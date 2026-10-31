@@ -5,6 +5,7 @@ import { installPlayerAccountAuthority } from './game/playerAccount.js';
 import { installAdminAuthority } from './game/adminAuthority.js';
 import { installCloudAccount, initCloudAccount } from './game/cloudAccount.js';
 import { GUEST_ONLY_RELEASE } from './game/releasePolicy.js';
+import './game/ownerPlaytestCapture.js';
 import App from './App.jsx';
 import AppErrorBoundary from './ui/AppErrorBoundary.jsx';
 // Montserrat 900 is self-hosted (Fontsource, OFL) so the shell renders
