@@ -41,24 +41,40 @@ jobs:
           test -s dist/index.html
           test -d dist/assets
           test -f dist/game/arsenal/arsenalMetaRuntime.js
-      - name: Create itch-ready ZIP (index.html at archive root)
+      - name: Port production build to itch nested HTML5
         run: |
-          (cd dist && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5.zip .)
-          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5.zip | grep -Fx 'index.html'
-          sha256sum APEX-CHAOS-owner-F7-F8-HTML5.zip | tee APEX-CHAOS-owner-F7-F8-HTML5.sha256
-          du -h APEX-CHAOS-owner-F7-F8-HTML5.zip
-      - name: Attach itch ZIP to GitHub prerelease (bypasses Actions artifact quota)
+          printf '%s\n' "$(git rev-parse HEAD)" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          test -s dist-itch-html5/index.html
+          grep -Eq 'src="\\./assets/' dist-itch-html5/index.html
+          grep -Eq 'href="\\./assets/' dist-itch-html5/index.html
+      - name: Zip ONLY portable itch output, never raw Vite dist
+        run: |
+          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5-r2.zip .)
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r2.zip | grep -Fx 'index.html'
+          sha256sum APEX-CHAOS-owner-F7-F8-HTML5-r2.zip | tee APEX-CHAOS-owner-F7-F8-HTML5-r2.sha256
+          du -h APEX-CHAOS-owner-F7-F8-HTML5-r2.zip
+      - name: Unpack ZIP and run real Chrome against nested itch iframe
+        run: |
+          mv dist-itch-html5 dist-itch-html5-transform-source
+          mkdir dist-itch-html5
+          unzip -q APEX-CHAOS-owner-F7-F8-HTML5-r2.zip -d dist-itch-html5
+          npm ci --prefix tools/probe --ignore-scripts
+          command -v google-chrome || command -v chromium
+          CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchPackagedChrome.mjs
+      - name: Publish ONLY after verified packaged runtime (new r2 prerelease)
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: owner-html5-f7-f8-20261101
+          TAG: owner-html5-f7-f8-20261101-r2
           SHA: ${{ github.sha }}
         run: |
+          test -s reports/owner-itch-qa/receipt.json
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5.zip APEX-CHAOS-owner-F7-F8-HTML5.sha256 --clobber
+            gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r2.zip APEX-CHAOS-owner-F7-F8-HTML5-r2.sha256 reports/owner-itch-qa/receipt.json --clobber
           else
-            gh release create "$TAG" APEX-CHAOS-owner-F7-F8-HTML5.zip APEX-CHAOS-owner-F7-F8-HTML5.sha256 \
+            gh release create "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r2.zip APEX-CHAOS-owner-F7-F8-HTML5-r2.sha256 reports/owner-itch-qa/receipt.json \
               --target "$SHA" \
-              --title "APEX CHAOS · Owner HTML5 F7/F8 candidate" \
-              --notes "HTML5 itch.io ZIP at archive root (index.html). Owner password-gated playtest and authentic 9:16 BOT Gold HUD tab recording; browser tab-sharing permission required. PR #118 draft candidate." \
+              --title "APEX CHAOS · verified itch HTML5 owner F7/F8 r2" \
+              --notes "Nested /html/apex/ iframe production ZIP built using packItchPortable. Real Chrome desktop+phone START, HOME, BOT pick, live integrated Gold HUD; no first-party HTTP errors; zip was extracted and tested before publishing. See receipt.json. Owner capture still needs a user-granted tab capture gesture." \
               --prerelease
           fi
