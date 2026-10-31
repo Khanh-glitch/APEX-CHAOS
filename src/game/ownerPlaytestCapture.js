@@ -313,14 +313,21 @@ async function startRecording(providedDisplay=null) {
         ctx.fillStyle = '#020304'; ctx.fillRect(0,0,W,H);
         // The source video is the browser TAB. The CROP is precisely the
         // responsive phone viewport's current rectangle within that tab.
-        const rect=studio.getCropRect();
-        const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
-        ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
+        try{
+          const rect=studio.getCropRect();
+          const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+          ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
+        }catch(err){
+          stopRecording('invalid-portrait-viewport');
+          notice('Không thể quay đúng vùng phone: '+String(err?.message||err),true);
+          return;
+        }
       }
       item.frame = requestAnimationFrame(paint);
     };
-    paint(performance.now());
     rec.start(1000);
+    paint(performance.now());
+    if(session!==item) return;
     studioRecordStatus(true);
     document.getElementById('apex-owner-notice')?.remove();
     document.title = '● REC BOT · APEX CHAOS';
@@ -329,7 +336,14 @@ async function startRecording(providedDisplay=null) {
     },{once:true});
     console.info('[owner-capture] Phone viewport crop active: 432×768 → 1080×1920. Desktop and sidebar excluded.');
   } catch (error) {
-    if (display && !session) display.getTracks().forEach(t=>t.stop());
+    if(session && session.recorder.state==='inactive'){
+      const stale=session; session=null;
+      cancelAnimationFrame(stale.frame);
+      stale.output.getTracks().forEach(t=>t.stop());
+      stale.video.pause();stale.video.srcObject=null;
+      studioRecordStatus(false);
+    }
+    if(display && !session) display.getTracks().forEach(t=>t.stop());
     if (isDisplayCapturePolicyError(error)) notice('Quyền display-capture bị chặn. Mở Portrait Studio ở tab riêng (không chạy trong itch iframe).',true);
     else notice('Không bắt đầu ghi: '+String(error?.message||error),true);
   } finally { starting = false; }
