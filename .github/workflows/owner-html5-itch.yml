@@ -1,0 +1,61 @@
+name: Owner HTML5 itch release candidate
+on:
+  push:
+    branches:
+      - feature/owner-password-portrait-record-20261101
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  html5:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Owner shortcut and compatibility verification
+        run: |
+          node --check src/game/ownerPlaytestCapture.js
+          node tools/testOwnerShortcutCapture.mjs
+          pnpm test:runtime-revision
+          pnpm test:product-graph
+          pnpm test:owner-playtest-economy
+          pnpm test:gold-battle-lifecycle
+          pnpm test:result-gold
+      - name: Build HTML5 production game
+        run: pnpm build
+      - name: Shipping tree verification
+        run: |
+          pnpm test:shipping-dist
+          test -s dist/index.html
+          test -d dist/assets
+          test -f dist/game/arsenal/arsenalMetaRuntime.js
+      - name: Create itch-ready ZIP (index.html at archive root)
+        run: |
+          (cd dist && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5.zip .)
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5.zip | grep -Fx 'index.html'
+          sha256sum APEX-CHAOS-owner-F7-F8-HTML5.zip | tee APEX-CHAOS-owner-F7-F8-HTML5.sha256
+          du -h APEX-CHAOS-owner-F7-F8-HTML5.zip
+      - name: Attach itch ZIP to GitHub prerelease (bypasses Actions artifact quota)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: owner-html5-f7-f8-20261101
+          SHA: ${{ github.sha }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5.zip APEX-CHAOS-owner-F7-F8-HTML5.sha256 --clobber
+          else
+            gh release create "$TAG" APEX-CHAOS-owner-F7-F8-HTML5.zip APEX-CHAOS-owner-F7-F8-HTML5.sha256 \
+              --target "$SHA" \
+              --title "APEX CHAOS · Owner HTML5 F7/F8 candidate" \
+              --notes "HTML5 itch.io ZIP at archive root (index.html). Owner password-gated playtest and authentic 9:16 BOT Gold HUD tab recording; browser tab-sharing permission required. PR #118 draft candidate." \
+              --prerelease
+          fi
