@@ -225,6 +225,7 @@ function stopRecording(reason) {
   clearTimeout(item.tailTimer);
   cancelAnimationFrame(item.frame);
   item.recorder.onstop = () => {
+    if(reason==='invalid-portrait-viewport'||reason==='media-error') return;
     const type = item.recorder.mimeType || 'video/webm';
     const ext = type.includes('mp4') ? 'mp4' : 'webm';
     const blob = new Blob(item.chunks,{type});
