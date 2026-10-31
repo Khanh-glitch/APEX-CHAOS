@@ -246,27 +246,36 @@ function stopRecording(reason) {
   document.title = item.title;
 }
 
-async function startRecording() {
-  if (starting || session) return;
+async function startRecording(providedDisplay=null) {
+  if (starting || session) {
+    providedDisplay?.getTracks?.().forEach(t=>t.stop());
+    return;
+  }
   const studio=portraitStudio();
-  if(!studio){ standaloneRecordingPanel(); return; }
+  if(!studio){
+    providedDisplay?.getTracks?.().forEach(t=>t.stop());
+    standaloneRecordingPanel(); return;
+  }
   const game = window.APEX_ARSENAL?.state;
   const hud = document.getElementById('battleHudHost');
   if (!game?.active || game.battleMode !== 'BOT' || game.over || !hud?.classList.contains('is-open')) {
+    providedDisplay?.getTracks?.().forEach(t=>t.stop());
     notice('Shift + Ctrl + F7 chỉ ghi khi đang trong BOT Battle Gold HUD.',true); return;
   }
-  if (displayCapturePolicyDenied()) {
+  if (displayCapturePolicyDenied()) { 
+    providedDisplay?.getTracks?.().forEach(t=>t.stop());
     notice('Trình duyệt chặn quyền quay tab trong Portrait Studio. Hãy mở URL studio trực tiếp ở tab mới.',true); return;
   }
-  if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === 'undefined') {
+  if ((!providedDisplay && !navigator.mediaDevices?.getDisplayMedia) || typeof MediaRecorder === 'undefined') {
+    providedDisplay?.getTracks?.().forEach(t=>t.stop());
     notice('Cần Chrome/Edge có hỗ trợ ghi tab trên HTTPS.',true); return;
   }
   starting = true;
-  let display = null;
+  let display = providedDisplay;
   try {
     // The browser must show its real permission picker. Choose THIS TAB and
     // enable tab audio if wanted; no screen content is read before permission.
-    display = await navigator.mediaDevices.getDisplayMedia({
+    if(!display) display = await navigator.mediaDevices.getDisplayMedia({
       video:{displaySurface:'browser',frameRate:30},audio:true,
       preferCurrentTab:true,selfBrowserSurface:'include'
     });
@@ -345,10 +354,20 @@ export function installOwnerPlaytestCapture(scope = window) {
     isRecordingResultHold:() => !!session?.tailTimer,
     isCaptureBlockedByPolicy:displayCapturePolicyDenied,
     isPortraitStudio:()=>!!portraitStudio(),
-    toggleStudioRecording:()=>{
-      if(!portraitStudio())return false;
-      if(session)stopRecording('manual-studio-button');
-      else void startRecording();
+    canStudioRecord:()=>{
+      const st=window.APEX_ARSENAL?.state;
+      return !!portraitStudio()&&!!st?.active&&st.battleMode==='BOT'&&!st.over
+        &&document.getElementById('battleHudHost')?.classList.contains('is-open');
+    },
+    toggleStudioRecording:(providedDisplay=null)=>{
+      if(!portraitStudio()){
+        providedDisplay?.getTracks?.().forEach(t=>t.stop());
+        return false;
+      }
+      if(session){
+        providedDisplay?.getTracks?.().forEach(t=>t.stop());
+        stopRecording('manual-studio-button');
+      } else void startRecording(providedDisplay);
       return true;
     }
   });
