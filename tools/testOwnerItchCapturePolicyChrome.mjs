@@ -111,10 +111,78 @@ try {
   assert.ok(region && Math.abs(region.width/region.height-9/16)<0.001,
     'live phone frame rectangle stays exactly 9:16');
   await standalone.screenshot({path:path.join(output,'standalone-portrait-studio-1440x900.png')});
+  assert.ok(region.left>=0&&region.top>=0&&region.left+region.width<=region.viewportWidth+1
+    &&region.top+region.height<=region.viewportHeight+1,'phone region is visible and entirely inside the tab');
+  await phone.$eval('#apex-boot-start',el=>el.click());
+  await phone.waitForSelector('#freeBattle',{visible:true,timeout:90000});
+  await phone.$eval('#freeBattle',el=>el.click());
+  await phone.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('screen-mode'),{timeout:30000});
+  await phone.$eval('.modeCard[data-mode="bot"]',el=>el.click());
+  await phone.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('screen-fighter'),{timeout:40000});
+  await standalone.screenshot({path:path.join(output,'portrait-studio-real-fighter-pick.png')});
+  await phone.$eval('#lockIn',el=>el.click());
+  await phone.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('fighter-active-p2')
+    ||document.querySelector('#battleHudHost')?.classList.contains('is-open'),{timeout:45000});
+  if(!(await phone.evaluate(()=>document.querySelector('#battleHudHost')?.classList.contains('is-open'))))
+    await phone.$eval('#lockIn',el=>el.click());
+  await phone.waitForFunction(()=>document.querySelector('#battleHudHost')?.classList.contains('is-open')
+    &&window.APEX_ARSENAL?.state?.active&&window.APEX_ARSENAL?.state?.battleMode==='BOT',{timeout:100000});
+  await standalone.screenshot({path:path.join(output,'portrait-studio-real-bot-hud.png')});
+  // Deterministic test of the actual MediaRecorder source canvas: inject a
+  // tab-sized synthetic capture (red everywhere, green ONLY within the real
+  // phone iframe). F7 must crop to all-green 1080x1920. A whole-tab recording
+  // would produce red pixels on the sides and fail this assertion.
+  await phone.evaluate(()=>{
+    const original=HTMLCanvasElement.prototype.captureStream;
+    HTMLCanvasElement.prototype.captureStream=function(fps){
+      const stream=original.call(this,fps);
+      if(this.width===1080&&this.height===1920)window.__qaPortraitOutput=this;
+      return stream;
+    };
+    const rect=window.parent.APEX_PORTRAIT_STUDIO.getCropRect();
+    const src=document.createElement('canvas');
+    src.width=rect.viewportWidth;src.height=rect.viewportHeight;
+    const ctx=src.getContext('2d',{alpha:false});
+    ctx.fillStyle='#f00000';ctx.fillRect(0,0,src.width,src.height);
+    ctx.fillStyle='#00f000';ctx.fillRect(rect.left,rect.top,rect.width,rect.height);
+    const stream=src.captureStream(30);
+    const track=stream.getVideoTracks()[0];
+    track.getSettings=()=>({displaySurface:'browser',width:src.width,height:src.height});
+    Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{
+      configurable:true,value:()=>Promise.resolve(stream)
+    });
+    window.__qaSyntheticSource=src;
+  });
+  await standalone.$eval('#apex-portrait-rec',el=>el.click());
+  await phone.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===true,{timeout:12000});
+  await phone.waitForFunction(()=>{
+    const c=window.__qaPortraitOutput;
+    if(!c)return false;
+    const ctx=c.getContext('2d');
+    const p=ctx.getImageData(540,960,1,1).data;
+    return p[1]>160&&p[0]<90&&p[2]<90;
+  },{timeout:12000});
+  const outputAudit=await phone.evaluate(()=>{
+    const c=window.__qaPortraitOutput;
+    const ctx=c.getContext('2d');
+    const sample=(x,y)=>[...ctx.getImageData(x,y,1,1).data];
+    return {size:[c.width,c.height],pixels:{
+      top:sample(16,16),center:sample(540,960),bottom:sample(1060,1900),
+      left:sample(16,960),right:sample(1060,960)
+    }};
+  });
+  assert.deepEqual(outputAudit.size,[1080,1920]);
+  for(const [key,p] of Object.entries(outputAudit.pixels)){
+    assert.ok(p[1]>160&&p[0]<90&&p[2]<90,
+      'cropped '+key+' must be real phone pixels, not surrounding desktop: '+JSON.stringify(outputAudit));
+  }
+  await standalone.$eval('#apex-portrait-rec',el=>el.click());
+  await phone.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===false,{timeout:12000});
+
   assert.deepEqual(nested.serverErrors,[],'no escaping asset requests in cross-origin policy scenario');
   fs.writeFileSync(path.join(output,'capture-policy-receipt.json'),
-    JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct},null,2));
-  console.log('PASS ITCH PORTRAIT STUDIO: cross-origin itch embed directs to standalone 9:16 game; same-origin phone viewport 432×768 receives capture permission.');
+    JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct,outputAudit},null,2));
+  console.log('PASS ITCH PORTRAIT STUDIO: cross-origin itch iframe -> real 432x768 Gold BOT battle; synthetic tab capture cropped to ALL phone-only pixels across 1080x1920 MediaRecorder canvas; no desktop edges.');
 } finally {
   if(browser) await browser.close();
   if(outer) await new Promise(ok=>outer.close(ok));
