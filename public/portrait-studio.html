@@ -77,9 +77,39 @@ small{font-size:11px;color:#b2b1b4}
       status.textContent='Game chưa sẵn sàng. Nhấn START trong khung game trước.';
       return;
     }
-    // Called synchronously from a genuine user click; the child must invoke
-    // getDisplayMedia immediately to retain transient user activation.
-    controls.toggleStudioRecording();
+    if(controls.isRecording()){
+      controls.toggleStudioRecording();
+      return;
+    }
+    if(!controls.canStudioRecord()){
+      status.textContent='Hãy vào BOT Battle và bắt đầu trận trong khung phone trước khi quay.';
+      return;
+    }
+    if(!navigator.mediaDevices?.getDisplayMedia){
+      status.textContent='Trình duyệt không hỗ trợ quay tab. Hãy dùng Chrome/Edge trên HTTPS.';
+      return;
+    }
+    // This is an actual top-level click. Request display capture HERE,
+    // before any awaited work, to guarantee transient user activation.
+    // Pass the approved MediaStream into the phone game for crop + recording.
+    let pending;
+    try{
+      pending=navigator.mediaDevices.getDisplayMedia({
+        video:{displaySurface:'browser',frameRate:30},audio:true,
+        preferCurrentTab:true,selfBrowserSurface:'include'
+      });
+    }catch(e){
+      status.textContent='Không xin được quyền quay tab: '+String(e?.message||e);
+      return;
+    }
+    status.textContent='Chọn THIS TAB trong cửa sổ chia sẻ của Chrome.';
+    Promise.resolve(pending).then(stream=>{
+      const next=stage.contentWindow?.APEX_OWNER_TOOLS;
+      if(!next?.canStudioRecord()||!next.toggleStudioRecording(stream))
+        stream.getTracks().forEach(t=>t.stop());
+    }).catch(e=>{
+      status.textContent='Không bắt đầu quay: '+String(e?.message||e);
+    });
   });
 })();
 </script>
