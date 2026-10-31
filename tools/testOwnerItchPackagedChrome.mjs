@@ -101,8 +101,8 @@ try {
     }
 
     // Drive the authentic Gold picker -> integrated battle, no mock engine/HUD.
-    const gameMode = await game.evaluate(()=>window.__apexArsenalSelectionMode);
-    assert.equal(gameMode,'bot','selected gameplay profile must be BOT');
+    const fighterMode = await game.evaluate(()=>document.querySelector('#stage')?.classList.contains('fighter-bot'));
+    assert.equal(fighterMode,true,'Gold fighter screen must display BOT selection');
     await game.waitForSelector('#lockIn',{visible:true,timeout:20000});
     await game.$eval('#lockIn',el=>el.click());
     await game.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('fighter-active-p2')
