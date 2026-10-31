@@ -15,6 +15,8 @@ assert.match(bridge, /apex:owner-result-recorded/, 'continue waits for recording
 assert.match(config, /if \(window\.APEX_OWNER_TOOLS\) return/, 'old F8 handler delegates');
 assert.match(text, /const TAIL_MS = 10000/);
 assert.match(text, /const W = 1080, H = 1920/);
+assert.match(text, /portraitFrameCrop/, 'real phone viewport is cropped from tab');
+assert.match(text, /portraitStudio\(\)/, 'only active phone viewport can record');
 assert.match(text, /navigator\.mediaDevices\.getDisplayMedia/, 'uses authentic browser tab capture');
 assert.match(text, /document\.getElementById\('battleHudHost'\)/, 'requires real Gold HUD');
 assert.match(text, /getSettings\?\.\(\)\.displaySurface/, 'rejects wrong capture surface');
@@ -65,7 +67,14 @@ window.dispatchEvent(new window.KeyboardEvent('keydown',{
 assert.equal(authority.isCaptureBlockedByPolicy(),true);
 const policyPanel=document.getElementById('apex-owner-standalone-recording');
 assert.ok(policyPanel,'blocked embedded F7 offers standalone rather than reporting raw policy exception');
-assert.equal(policyPanel.querySelector('a').href,window.location.href);
+assert.equal(policyPanel.querySelector('a').href,new URL('portrait-studio.html',window.location.href).href);
 assert.equal(policyPanel.querySelector('a').target,'_blank');
 assert.equal(authority.isRecording(),false);
+assert.equal(authority.isPortraitStudio(),false,'desktop game never records its screen as the TikTok video');
+const crop=mod.portraitFrameCrop(1920,1080,{left:500,top:20,width:432,height:768,viewportWidth:1440,viewportHeight:900});
+assert.ok(Math.abs(crop.sx-500*1920/1440)<0.01);
+assert.ok(Math.abs(crop.sw-432*1920/1440)<0.01);
+assert.ok(Math.abs(crop.sy-20*1080/900)<0.01);
+assert.ok(Math.abs(crop.sh-768*1080/900)<0.01);
+assert.throws(()=>mod.portraitFrameCrop(1920,1080,{left:0,top:20,width:768,height:432,viewportWidth:1440,viewportHeight:900}),/Khung/);
 console.log('PASS owner shortcuts: F8 invalid/valid, BOT navigation, selection-session scope, second F8 off, Gold HUD recording contracts');
