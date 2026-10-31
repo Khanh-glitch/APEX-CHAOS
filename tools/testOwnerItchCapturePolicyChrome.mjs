@@ -152,6 +152,7 @@ try {
       configurable:true,value:()=>Promise.resolve(stream)
     });
     window.__qaSyntheticSource=src;
+    window.__qaSyntheticTimer=setInterval(()=>{ctx.fillStyle='#00f000';ctx.fillRect(rect.left,rect.top,rect.width,rect.height);},100);
   });
   await standalone.$eval('#apex-portrait-rec',el=>el.click());
   await phone.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===true,{timeout:12000});
@@ -178,6 +179,7 @@ try {
   }
   await standalone.$eval('#apex-portrait-rec',el=>el.click());
   await phone.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===false,{timeout:12000});
+  await phone.evaluate(()=>clearInterval(window.__qaSyntheticTimer));
 
   assert.deepEqual(nested.serverErrors,[],'no escaping asset requests in cross-origin policy scenario');
   fs.writeFileSync(path.join(output,'capture-policy-receipt.json'),
