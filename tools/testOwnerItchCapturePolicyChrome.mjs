@@ -133,6 +133,11 @@ try {
   // phone iframe). F7 must crop to all-green 1080x1920. A whole-tab recording
   // would produce red pixels on the sides and fail this assertion.
   await phone.evaluate(()=>{
+    const originalBlobUrl=URL.createObjectURL.bind(URL);
+    URL.createObjectURL=(blob)=>{
+      if(blob instanceof Blob && blob.type.startsWith('video/'))window.__qaRecordedVideoBlob=blob;
+      return originalBlobUrl(blob);
+    };
     const original=HTMLCanvasElement.prototype.captureStream;
     HTMLCanvasElement.prototype.captureStream=function(fps){
       const stream=original.call(this,fps);
@@ -179,12 +184,29 @@ try {
   }
   await standalone.$eval('#apex-portrait-rec',el=>el.click());
   await phone.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===false,{timeout:12000});
+  await phone.waitForFunction(()=>window.__qaRecordedVideoBlob?.size>1024,{timeout:20000});
+  const videoReceipt=await phone.evaluate(async()=>{
+    const blob=window.__qaRecordedVideoBlob;
+    const uri=URL.createObjectURL(blob);
+    const media=document.createElement('video');
+    media.muted=true;media.preload='metadata';
+    media.src=uri;
+    await new Promise((resolve,reject)=>{
+      media.onloadedmetadata=resolve;
+      media.onerror=()=>reject(new Error('encoded video metadata failed to decode'));
+      setTimeout(()=>reject(new Error('encoded video metadata timeout')),15000);
+    });
+    return {bytes:blob.size,type:blob.type,width:media.videoWidth,height:media.videoHeight};
+  });
+  assert.ok(videoReceipt.bytes>1024,'recorded file contains encoded video data');
+  assert.equal(videoReceipt.width,1080,'DECODED video width must be TikTok 1080');
+  assert.equal(videoReceipt.height,1920,'DECODED video height must be TikTok 1920');
   await phone.evaluate(()=>clearInterval(window.__qaSyntheticTimer));
 
   assert.deepEqual(nested.serverErrors,[],'no escaping asset requests in cross-origin policy scenario');
   fs.writeFileSync(path.join(output,'capture-policy-receipt.json'),
-    JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct,outputAudit},null,2));
-  console.log('PASS ITCH PORTRAIT STUDIO: cross-origin itch iframe -> real 432x768 Gold BOT battle; synthetic tab capture cropped to ALL phone-only pixels across 1080x1920 MediaRecorder canvas; no desktop edges.');
+    JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct,outputAudit,videoReceipt},null,2));
+  console.log('PASS ITCH PORTRAIT STUDIO: cross-origin itch iframe -> real 432x768 Gold BOT battle; synthetic tab capture crops ALL phone pixels and decodes output MediaRecorder video at 1080x1920; no desktop edges.');
 } finally {
   if(browser) await browser.close();
   if(outer) await new Promise(ok=>outer.close(ok));
