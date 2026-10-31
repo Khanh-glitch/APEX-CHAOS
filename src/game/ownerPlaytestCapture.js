@@ -119,6 +119,46 @@ function isDisplayCapturePolicyError(error) {
       || msg.includes('disallowed by'));
 }
 
+// F7 never records a desktop/tab layout. The sole supported capture host is a
+// same-origin TOP-LEVEL portrait studio whose *real game iframe* has a phone
+// viewport. This is a new game session, not a second unsynchronized renderer.
+function portraitStudio() {
+  try {
+    const frame=window.frameElement;
+    const parent=window.parent;
+    if(!frame||frame.id!=='apex-portrait-stage'||parent===window||
+       parent.top!==parent) return null;
+    const studio=parent.APEX_PORTRAIT_STUDIO;
+    return studio?.version==='tiktok-portrait-v1' ? studio : null;
+  }catch(_){return null;}
+}
+function studioEntryURL() {
+  return new URL('portrait-studio.html',window.location.href).href;
+}
+function studioRecordStatus(recording) {
+  if(!portraitStudio()) return;
+  try{window.parent.postMessage({type:'apex:portrait-record-status',recording},window.location.origin);}
+  catch(_){}
+}
+// Crop the live captured browser tab to EXACTLY the phone iframe surface.
+// Browser screen/window chrome, desktop layout and studio sidebar are excluded.
+export function portraitFrameCrop(sourceWidth,sourceHeight,geometry) {
+  const {left,top,width,height,viewportWidth,viewportHeight}=geometry||{};
+  if(![sourceWidth,sourceHeight,left,top,width,height,viewportWidth,viewportHeight]
+      .every(x=>Number.isFinite(x)&&x>0) || sourceWidth<2 || sourceHeight<2)
+    throw new Error('Khung 9:16 chưa sẵn sàng.');
+  const sx=left*sourceWidth/viewportWidth;
+  const sy=top*sourceHeight/viewportHeight;
+  const sw=width*sourceWidth/viewportWidth;
+  const sh=height*sourceHeight/viewportHeight;
+  if(sx<-1||sy<-1||sx+sw>sourceWidth+1||sy+sh>sourceHeight+1)
+    throw new Error('Khung phone đang nằm ngoài vùng tab. Hãy mở rộng cửa sổ trình duyệt.');
+  if(Math.abs(width/height-W/H)>0.008)
+    throw new Error('Khung game chưa đúng tỷ lệ 9:16.');
+  return {sx:Math.max(0,sx),sy:Math.max(0,sy),sw:Math.min(sw,sourceWidth-Math.max(0,sx)),
+    sh:Math.min(sh,sourceHeight-Math.max(0,sy))};
+}
+
 function standaloneRecordingPanel() {
   if (document.getElementById('apex-owner-standalone-recording')) return;
   document.getElementById('apex-owner-notice')?.remove();
@@ -127,22 +167,22 @@ function standaloneRecordingPanel() {
   shade.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:#02050bed;backdrop-filter:blur(8px);color:#ffedd7;font-family:system-ui,sans-serif';
   const panel = document.createElement('div');
   panel.setAttribute('role','dialog'); panel.setAttribute('aria-modal','true');
-  panel.setAttribute('aria-label','Mở APEX CHAOS ở tab riêng để quay');
+  panel.setAttribute('aria-label','Mở TikTok Portrait Studio 9:16');
   panel.style.cssText = 'width:min(490px,100%);padding:24px;border:1px solid #edb15f;background:#10151ff7;border-radius:12px;box-shadow:0 25px 90px #000c;line-height:1.6';
   const title = document.createElement('h2');
   title.textContent = 'APEX CHAOS · RECORDING MODE';
   title.style.cssText = 'margin:0 0 12px;color:#ffbe60;font-size:19px';
   const message = document.createElement('p');
-  message.textContent = 'itch.io không cấp quyền quay màn hình cho game trong khung nhúng. Bạn cần mở game ở tab độc lập. Trận hiện tại không thể chuyển sang tab mới; hãy vào lại BOT Battle rồi nhấn Ctrl + Shift + F7 để quay.';
+  message.textContent = 'Để video có đúng HUD phone 9:16 trên laptop, hãy chơi trong Portrait Studio. Studio chạy game thật ở viewport 432 × 768 và chỉ quay khu vực này thành 1080 × 1920, không quay desktop. Đây là phiên chơi mới, nên cần vào lại BOT Battle.';
   message.style.cssText = 'margin:0 0 16px;font-size:14px;color:#f2dfc5';
   const actions = document.createElement('div');
   actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;align-items:center';
   const open = document.createElement('a');
   open.id='apex-owner-record-standalone-link';
-  open.textContent='MỞ GAME Ở TAB RIÊNG';
+  open.textContent='MỞ PORTRAIT STUDIO 9:16';
   // The browser controls user-initiated navigation and popup restrictions.
   // No automatic screen-sharing request or cross-origin permission bypass.
-  open.href=window.location.href;
+  open.href=studioEntryURL();
   open.target='_blank'; open.rel='noopener noreferrer';
   open.style.cssText='display:inline-flex;align-items:center;min-height:42px;padding:10px 16px;background:#d58a31;color:#15100a;text-decoration:none;font-weight:900;border-radius:6px;font-size:13px';
   const cancel=document.createElement('button');
@@ -154,7 +194,7 @@ function standaloneRecordingPanel() {
   actions.append(open,copy,cancel);
   const urlField=document.createElement('input');
   urlField.id='apex-owner-record-direct-url';
-  urlField.type='text';urlField.readOnly=true;urlField.value=window.location.href;
+  urlField.type='text';urlField.readOnly=true;urlField.value=studioEntryURL();
   urlField.setAttribute('aria-label','Đường dẫn trực tiếp của game');
   urlField.style.cssText='margin-top:12px;box-sizing:border-box;width:100%;padding:9px;background:#080b12;color:#d7dbe3;border:1px solid #585a62;border-radius:5px;font:12px/1.5 ui-monospace,monospace';
   copy.addEventListener('click',async()=>{
@@ -166,7 +206,7 @@ function standaloneRecordingPanel() {
     }catch(_){copy.textContent='LINK ĐÃ CHỌN · CTRL+C';}
   });
   const note=document.createElement('p');
-  note.textContent='Nếu itch chặn mở tab mới, sao chép đường dẫn trên và dán trực tiếp vào thanh địa chỉ của một tab mới. Tab này không kế thừa quyền bị chặn từ iframe. Nếu vẫn không quay được, hãy sử dụng OBS.';
+  note.textContent='Nếu itch chặn mở tab mới, sao chép URL studio và dán vào thanh địa chỉ tab mới. Vào game trong khung 9:16 rồi bấm F7 (hoặc nút REC) và chọn This Tab. Không thể quay đồng thời trận desktop đang chơi thành một bản phone riêng mà không đồng bộ hai phiên game.';
   note.style.cssText='font-size:12px;color:#b7b8c0;margin:12px 0 0';
   panel.append(title,message,actions,urlField,note);
   shade.append(panel); document.body.append(shade);
@@ -181,6 +221,7 @@ function stopRecording(reason) {
   const item = session;
   if (!item) return;
   session = null;
+  studioRecordStatus(false);
   clearTimeout(item.tailTimer);
   cancelAnimationFrame(item.frame);
   item.recorder.onstop = () => {
@@ -207,13 +248,15 @@ function stopRecording(reason) {
 
 async function startRecording() {
   if (starting || session) return;
+  const studio=portraitStudio();
+  if(!studio){ standaloneRecordingPanel(); return; }
   const game = window.APEX_ARSENAL?.state;
   const hud = document.getElementById('battleHudHost');
   if (!game?.active || game.battleMode !== 'BOT' || game.over || !hud?.classList.contains('is-open')) {
     notice('Shift + Ctrl + F7 chỉ ghi khi đang trong BOT Battle Gold HUD.',true); return;
   }
   if (displayCapturePolicyDenied()) {
-    standaloneRecordingPanel(); return;
+    notice('Trình duyệt chặn quyền quay tab trong Portrait Studio. Hãy mở URL studio trực tiếp ở tab mới.',true); return;
   }
   if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === 'undefined') {
     notice('Cần Chrome/Edge có hỗ trợ ghi tab trên HTTPS.',true); return;
@@ -259,25 +302,26 @@ async function startRecording() {
       if (now - last >= 1000 / 30) {
         last = now;
         ctx.fillStyle = '#020304'; ctx.fillRect(0,0,W,H);
-        // Preserve every displayed HUD pixel (contain, never stretch/crop).
-        const scale = Math.min(W/video.videoWidth,H/video.videoHeight);
-        const w = video.videoWidth*scale,h = video.videoHeight*scale;
-        ctx.drawImage(video,(W-w)/2,(H-h)/2,w,h);
+        // The source video is the browser TAB. The CROP is precisely the
+        // responsive phone viewport's current rectangle within that tab.
+        const rect=studio.getCropRect();
+        const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+        ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
       }
       item.frame = requestAnimationFrame(paint);
     };
     paint(performance.now());
     rec.start(1000);
+    studioRecordStatus(true);
     document.getElementById('apex-owner-notice')?.remove();
     document.title = '● REC BOT · APEX CHAOS';
     track.addEventListener('ended',() => {
       if (session === item) stopRecording('sharing-ended');
     },{once:true});
-    if (Math.abs(video.videoWidth/video.videoHeight - W/H) > 0.045)
-      console.warn('[owner-capture] Tab is not 9:16: letterbox preserves actual HUD. Resize the captured game tab to portrait for a full-frame TikTok result.');
+    console.info('[owner-capture] Phone viewport crop active: 432×768 → 1080×1920. Desktop and sidebar excluded.');
   } catch (error) {
     if (display && !session) display.getTracks().forEach(t=>t.stop());
-    if (isDisplayCapturePolicyError(error)) standaloneRecordingPanel();
+    if (isDisplayCapturePolicyError(error)) notice('Quyền display-capture bị chặn. Mở Portrait Studio ở tab riêng (không chạy trong itch iframe).',true);
     else notice('Không bắt đầu ghi: '+String(error?.message||error),true);
   } finally { starting = false; }
 }
@@ -299,7 +343,14 @@ export function installOwnerPlaytestCapture(scope = window) {
     isPlaytestActive:() => unlocked,
     isRecording:() => !!session,
     isRecordingResultHold:() => !!session?.tailTimer,
-    isCaptureBlockedByPolicy:displayCapturePolicyDenied
+    isCaptureBlockedByPolicy:displayCapturePolicyDenied,
+    isPortraitStudio:()=>!!portraitStudio(),
+    toggleStudioRecording:()=>{
+      if(!portraitStudio())return false;
+      if(session)stopRecording('manual-studio-button');
+      else void startRecording();
+      return true;
+    }
   });
   Object.defineProperty(scope,'APEX_OWNER_TOOLS',{value:api,writable:false,configurable:false,enumerable:true});
   scope.addEventListener('keydown',event => {
