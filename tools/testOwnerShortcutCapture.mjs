@@ -51,4 +51,21 @@ window.dispatchEvent(new window.KeyboardEvent('keydown', { code:'F8', ctrlKey:tr
 assert.equal(authority.isPlaytestActive(),false, 'second F8 disables owner playtest');
 assert.equal(window.APEX_ARSENAL_OWNER_TEST.active,false);
 assert.equal(authority.isRecording(),false);
+// Regress the exact policy failure observed in the itch.io cross-origin embed:
+// no display-capture prompt may be attempted when policy rejects the feature.
+Object.defineProperty(document,'featurePolicy',{configurable:true,value:{
+  allowsFeature(feature){ return feature !== 'display-capture'; }
+}});
+window.APEX_ARSENAL = { state: { active:true, battleMode:'BOT', over:null } };
+const liveHud=document.createElement('div');
+liveHud.id='battleHudHost';liveHud.classList.add('is-open');document.body.append(liveHud);
+window.dispatchEvent(new window.KeyboardEvent('keydown',{
+  code:'F7',key:'F7',ctrlKey:true,shiftKey:true
+}));
+assert.equal(authority.isCaptureBlockedByPolicy(),true);
+const panel=document.getElementById('apex-owner-standalone-recording');
+assert.ok(panel,'blocked embedded F7 offers standalone rather than reporting raw policy exception');
+assert.equal(panel.querySelector('a').href,window.location.href);
+assert.equal(panel.querySelector('a').target,'_blank');
+assert.equal(authority.isRecording(),false);
 console.log('PASS owner shortcuts: F8 invalid/valid, BOT navigation, selection-session scope, second F8 off, Gold HUD recording contracts');
