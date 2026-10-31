@@ -73,6 +73,7 @@ try {
     const box=document.getElementById('apex-owner-standalone-recording');
     const link=box.querySelector('a');
     return {text:box.textContent,href:link.href,target:link.target,
+      directUrl:box.querySelector('#apex-owner-record-direct-url')?.value,
       rel:link.rel,recording:window.APEX_OWNER_TOOLS.isRecording(),
       blocked:window.APEX_OWNER_TOOLS.isCaptureBlockedByPolicy()};
   });
@@ -81,6 +82,7 @@ try {
   assert.equal(dialog.target,'_blank');
   assert.match(dialog.rel,/noopener/);
   assert.equal(dialog.href,game.url(),'opens exact packaged game entry independent of parent iframe');
+  assert.equal(dialog.directUrl,game.url(),'selectable URL remains usable if itch sandbox blocks popups');
   assert.match(dialog.text,/tab độc lập/);
   await page.screenshot({path:path.join(output,'policy-denied-itch-f7-modal.png')});
   // This top-level page does not inherit the cross-origin parent's policy;
