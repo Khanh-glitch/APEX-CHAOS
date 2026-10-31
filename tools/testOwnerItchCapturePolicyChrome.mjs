@@ -148,7 +148,7 @@ try {
     const stream=src.captureStream(30);
     const track=stream.getVideoTracks()[0];
     track.getSettings=()=>({displaySurface:'browser',width:src.width,height:src.height});
-    Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{
+    Object.defineProperty(window.parent.navigator.mediaDevices,'getDisplayMedia',{
       configurable:true,value:()=>Promise.resolve(stream)
     });
     window.__qaSyntheticSource=src;
