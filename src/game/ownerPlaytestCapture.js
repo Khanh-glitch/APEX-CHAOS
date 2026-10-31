@@ -148,11 +148,27 @@ function standaloneRecordingPanel() {
   const cancel=document.createElement('button');
   cancel.type='button'; cancel.textContent='ĐÓNG';
   cancel.style.cssText='min-height:42px;padding:10px 16px;background:#252a34;color:#f2dfc5;border:1px solid #5b5862;border-radius:6px;cursor:pointer;font-weight:700';
-  actions.append(open,cancel);
+  const copy=document.createElement('button');
+  copy.type='button';copy.textContent='SAO CHÉP LINK';
+  copy.style.cssText='min-height:42px;padding:10px 12px;background:#252a34;color:#f2dfc5;border:1px solid #5b5862;border-radius:6px;cursor:pointer;font-weight:700';
+  actions.append(open,copy,cancel);
+  const urlField=document.createElement('input');
+  urlField.id='apex-owner-record-direct-url';
+  urlField.type='text';urlField.readOnly=true;urlField.value=window.location.href;
+  urlField.setAttribute('aria-label','Đường dẫn trực tiếp của game');
+  urlField.style.cssText='margin-top:12px;box-sizing:border-box;width:100%;padding:9px;background:#080b12;color:#d7dbe3;border:1px solid #585a62;border-radius:5px;font:12px/1.5 ui-monospace,monospace';
+  copy.addEventListener('click',async()=>{
+    urlField.focus();urlField.select();
+    try {
+      if(!navigator.clipboard?.writeText)throw new Error('clipboard unavailable');
+      await navigator.clipboard.writeText(urlField.value);
+      copy.textContent='ĐÃ SAO CHÉP';
+    }catch(_){copy.textContent='LINK ĐÃ CHỌN · CTRL+C';}
+  });
   const note=document.createElement('p');
-  note.textContent='Nếu trình duyệt không mở tab, hãy nhấp chuột phải vào nút trên và chọn Open link in new tab. Nếu tab riêng cũng bị chặn bởi máy hoặc trình duyệt, hãy quay bằng OBS.';
+  note.textContent='Nếu itch chặn mở tab mới, sao chép đường dẫn trên và dán trực tiếp vào thanh địa chỉ của một tab mới. Tab này không kế thừa quyền bị chặn từ iframe. Nếu vẫn không quay được, hãy sử dụng OBS.';
   note.style.cssText='font-size:12px;color:#b7b8c0;margin:12px 0 0';
-  panel.append(title,message,actions,note);
+  panel.append(title,message,actions,urlField,note);
   shade.append(panel); document.body.append(shade);
   const close=()=>shade.remove();
   cancel.addEventListener('click',close);
