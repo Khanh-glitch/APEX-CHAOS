@@ -58,7 +58,13 @@ function playNoise(duration, gainValue, filterFreq = 900, type = 'bandpass') {
     if (window.apexRegisterBattleAudioSource) window.apexRegisterBattleAudioSource(src);
 }
 function playTone(freq, endFreq, dur, wave, gainValue, when = 0) {
-    if (window.__apexStatsSilent) return;
+    // Portrait Studio video should contain the authored game sound assets,
+    // never the synthetic pitched fallback that sounds like repeated beeps.
+    // Do not affect ordinary gameplay, and do not suppress curated files.
+    if (window.__apexStatsSilent || (
+        window.APEX_OWNER_TOOLS?.isPortraitStudio?.() &&
+        window.APEX_OWNER_TOOLS?.isRecording?.()
+    )) return;
     const now = audioCtx.currentTime + when;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
