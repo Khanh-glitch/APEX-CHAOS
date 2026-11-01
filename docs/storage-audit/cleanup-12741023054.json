@@ -1,0 +1,53 @@
+{
+  "verified_at_utc": "2026-11-01T06:53:46.399544+00:00",
+  "status": "deletion_denied",
+  "reason": "API reports identical SHA-256 archive digest, size, name and head SHA. Distinct run associations recorded; survivor remains protected. Independent archive download was not available.",
+  "artifacts": [
+    {
+      "id": 12741023054,
+      "name": "arsenal-product-acceptance",
+      "size_in_bytes": 7929,
+      "digest": "sha256:fe810e4c5ff383fed641266db180cdf8eec5aa5d54d8d43ae1663e4a06d08c82",
+      "created_at": "2026-10-27T14:31:23Z",
+      "expires_at": "2027-01-25T14:28:43Z",
+      "expired": false,
+      "workflow_run": {
+        "id": 40521473408,
+        "repository_id": 1247302538,
+        "head_repository_id": 1247302538,
+        "head_branch": "arena/960d6673-apex-chaos",
+        "head_sha": "46f9dc63c51709a1cd633ff4170711ee6e86e6e6"
+      },
+      "run_url": "https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40521473408",
+      "run_event": "push",
+      "run_conclusion": "failure",
+      "workflow_path": ".github/workflows/arsenal-product-acceptance.yml"
+    },
+    {
+      "id": 12741543396,
+      "name": "arsenal-product-acceptance",
+      "size_in_bytes": 7929,
+      "digest": "sha256:fe810e4c5ff383fed641266db180cdf8eec5aa5d54d8d43ae1663e4a06d08c82",
+      "created_at": "2026-10-27T14:31:21Z",
+      "expires_at": "2027-01-25T14:28:48Z",
+      "expired": false,
+      "workflow_run": {
+        "id": 40521485515,
+        "repository_id": 1247302538,
+        "head_repository_id": 1247302538,
+        "head_branch": "arena/960d6673-apex-chaos",
+        "head_sha": "46f9dc63c51709a1cd633ff4170711ee6e86e6e6"
+      },
+      "run_url": "https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/40521485515",
+      "run_event": "pull_request",
+      "run_conclusion": "failure",
+      "workflow_path": ".github/workflows/arsenal-product-acceptance.yml"
+    }
+  ],
+  "delete_attempt_at_utc": "2026-11-01T06:53:46Z",
+  "delete_api_status": 403,
+  "delete_api_message": "Resource not accessible by integration; actions=write required",
+  "target_still_present_after_attempt": true,
+  "survivor_still_present_after_attempt": true,
+  "actual_bytes_reclaimed": 0
+}
