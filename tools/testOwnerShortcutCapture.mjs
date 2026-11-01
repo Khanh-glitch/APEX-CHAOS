@@ -76,5 +76,7 @@ assert.ok(Math.abs(crop.sx-500*1920/1440)<0.01);
 assert.ok(Math.abs(crop.sw-432*1920/1440)<0.01);
 assert.ok(Math.abs(crop.sy-20*1080/900)<0.01);
 assert.ok(Math.abs(crop.sh-768*1080/900)<0.01);
+const edgeAligned=mod.portraitFrameCrop(1440,900,{left:380,top:0,width:506.25,height:900,viewportWidth:1440,viewportHeight:900});
+assert.equal(edgeAligned.sy,0,'full-height phone viewport starts at top edge without failing capture');
 assert.throws(()=>mod.portraitFrameCrop(1920,1080,{left:0,top:20,width:768,height:432,viewportWidth:1440,viewportHeight:900}),/Khung/);
 console.log('PASS owner shortcuts: F8 invalid/valid, BOT navigation, selection-session scope, second F8 off, Gold HUD recording contracts');
