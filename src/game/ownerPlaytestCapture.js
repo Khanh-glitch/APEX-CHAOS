@@ -277,7 +277,8 @@ async function startRecording(providedDisplay=null) {
     // The browser must show its real permission picker. Choose THIS TAB and
     // enable tab audio if wanted; no screen content is read before permission.
     if(!display) display = await navigator.mediaDevices.getDisplayMedia({
-      video:{displaySurface:'browser',frameRate:30},audio:true,
+      video:{displaySurface:'browser',frameRate:30,width:{ideal:3840},height:{ideal:2160}},
+      audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},
       preferCurrentTab:true,selfBrowserSurface:'include'
     });
     if (!window.APEX_ARSENAL?.state?.active || window.APEX_ARSENAL.state.over)
@@ -286,7 +287,11 @@ async function startRecording(providedDisplay=null) {
     if (!track) throw new Error('Không có video track.');
     const surface = track.getSettings?.().displaySurface;
     if (surface && surface !== 'browser')
-      throw new Error('Hãy chọn tab APEX CHAOS, không chọn màn hình/cửa sổ.');
+      throw new Error('Hãy chọn This Tab (Portrait Studio), không chọn màn hình/cửa sổ.');
+    const handle=track.getCaptureHandle?.();
+    if(handle && (handle.handle!=='apex-chaos-portrait-studio-v2'
+          || handle.origin!==window.location.origin))
+      throw new Error('Đang chọn sai tab. Chỉ được chọn This Tab chứa APEX CHAOS Portrait Studio.');
     const video = document.createElement('video');
     video.muted = true; video.playsInline = true;
     video.srcObject = new MediaStream([track]);
@@ -294,15 +299,33 @@ async function startRecording(providedDisplay=null) {
     if (!video.videoWidth || !video.videoHeight) throw new Error('Tab chưa cung cấp video frame.');
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d',{alpha:false});
+    const ctx = canvas.getContext('2d',{alpha:false,desynchronized:false});
     if (!ctx || !canvas.captureStream) throw new Error('Canvas capture không khả dụng.');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     const output = canvas.captureStream(30);
-    display.getAudioTracks().forEach(audio => output.addTrack(audio));
-    const mime = ['video/mp4;codecs=avc1.42E01E','video/webm;codecs=vp9,opus',
-      'video/webm;codecs=vp8,opus','video/webm']
-      .find(type => MediaRecorder.isTypeSupported(type));
-    const rec = new MediaRecorder(output,mime?{mimeType:mime,videoBitsPerSecond:8000000}:{videoBitsPerSecond:8000000});
-    const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title};
+    // Never open a microphone, oscillator, or replacement SFX player.
+    // Copy ONLY the original sound track from the verified game tab once.
+    const tabAudio=display.getAudioTracks();
+    if(tabAudio.length>1) throw new Error('Tab cung cấp nhiều luồng âm thanh không rõ nguồn; dừng ghi.');
+    if(tabAudio.length===1){
+      const audio=tabAudio[0];
+      if(audio.readyState!=='live') throw new Error('Âm thanh tab không hoạt động.');
+      output.addTrack(audio.clone());
+    }
+    const mimeCandidates=tabAudio.length?[
+      'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus',
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/webm'
+    ]:[
+      'video/webm;codecs=vp9','video/webm;codecs=vp8',
+      'video/mp4;codecs=avc1.42E01E','video/webm'
+    ];
+    const mime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
+    if(!mime) throw new Error('Trình duyệt chưa hỗ trợ mã hóa video TikTok.');
+    const rec = new MediaRecorder(output,{mimeType:mime,
+      videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
+    const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
+      sourceWidth:video.videoWidth,sourceHeight:video.videoHeight,audioTrackCount:tabAudio.length};
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
     session = item;
@@ -331,11 +354,23 @@ async function startRecording(providedDisplay=null) {
     if(session!==item) return;
     studioRecordStatus(true);
     document.getElementById('apex-owner-notice')?.remove();
+    try {
+      const rect=studio.getCropRect();
+      const source=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+      const sourcePx=Math.round(source.sw)+'×'+Math.round(source.sh);
+      const warning=Math.min(source.sw/W,source.sh/H)<0.75
+        ? ' · Nguồn '+sourcePx+' sẽ phải phóng lên 1080×1920; màn hình laptop không cung cấp đủ pixel gốc.'
+        : '';
+      window.parent.postMessage({type:'apex:portrait-capture-quality',
+        source:sourcePx,codec:mime,videoBitrate:rec.videoBitsPerSecond,
+        audioTracks:tabAudio.length,warning},window.location.origin);
+    } catch (_) {}
     document.title = '● REC BOT · APEX CHAOS';
     track.addEventListener('ended',() => {
       if (session === item) stopRecording('sharing-ended');
     },{once:true});
-    console.info('[owner-capture] Phone viewport crop active: 432×768 → 1080×1920. Desktop and sidebar excluded.');
+    console.info('[owner-capture] Verified portrait source:',video.videoWidth,video.videoHeight,
+      'codec',mime,'video bitrate',rec.videoBitsPerSecond,'tab audio tracks',tabAudio.length);
   } catch (error) {
     if(session && session.recorder.state==='inactive'){
       const stale=session; session=null;
