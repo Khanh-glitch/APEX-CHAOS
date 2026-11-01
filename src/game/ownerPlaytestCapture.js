@@ -145,7 +145,9 @@ function studioRecordStatus(recording) {
 export function portraitFrameCrop(sourceWidth,sourceHeight,geometry) {
   const {left,top,width,height,viewportWidth,viewportHeight}=geometry||{};
   if(![sourceWidth,sourceHeight,left,top,width,height,viewportWidth,viewportHeight]
-      .every(x=>Number.isFinite(x)&&x>0) || sourceWidth<2 || sourceHeight<2)
+      .every(Number.isFinite)
+    || [sourceWidth,sourceHeight,width,height,viewportWidth,viewportHeight].some(x=>x<=0)
+    || sourceWidth<2 || sourceHeight<2 || left< -1 || top< -1)
     throw new Error('Khung 9:16 chưa sẵn sàng.');
   const sx=left*sourceWidth/viewportWidth;
   const sy=top*sourceHeight/viewportHeight;
