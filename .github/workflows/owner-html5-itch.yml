@@ -51,34 +51,36 @@ jobs:
           grep -F 'href="./assets/' dist-itch-html5/index.html
       - name: Zip ONLY portable itch output, never raw Vite dist
         run: |
-          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5-r4.zip .)
-          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r4.zip | grep -Fx 'index.html'
-          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r4.zip | grep -Fx 'portrait-studio.html'
-          sha256sum APEX-CHAOS-owner-F7-F8-HTML5-r4.zip | tee APEX-CHAOS-owner-F7-F8-HTML5-r4.sha256
-          du -h APEX-CHAOS-owner-F7-F8-HTML5-r4.zip
+          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5-r5.zip .)
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r5.zip | grep -Fx 'index.html'
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r5.zip | grep -Fx 'portrait-studio.html'
+          sha256sum APEX-CHAOS-owner-F7-F8-HTML5-r5.zip | tee APEX-CHAOS-owner-F7-F8-HTML5-r5.sha256
+          du -h APEX-CHAOS-owner-F7-F8-HTML5-r5.zip
       - name: Unpack ZIP and run real Chrome against nested itch iframe
         run: |
           mv dist-itch-html5 dist-itch-html5-transform-source
           mkdir dist-itch-html5
-          unzip -q APEX-CHAOS-owner-F7-F8-HTML5-r4.zip -d dist-itch-html5
+          unzip -q APEX-CHAOS-owner-F7-F8-HTML5-r5.zip -d dist-itch-html5
+          node tools/testOwnerPortraitShippingAudio.mjs
           npm ci --prefix tools/probe --ignore-scripts
           command -v google-chrome || command -v chromium
           CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchPackagedChrome.mjs
           CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchCapturePolicyChrome.mjs
-      - name: Publish ONLY after verified packaged runtime (new r4 prerelease)
+      - name: Publish ONLY after verified packaged runtime (new r5 prerelease)
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: owner-html5-f7-f8-20261101-r4
+          TAG: owner-html5-f7-f8-20261101-r5
           SHA: ${{ github.sha }}
         run: |
           test -s reports/owner-itch-qa/receipt.json
           test -s reports/owner-itch-qa/capture-policy-receipt.json
+          test -s reports/owner-itch-qa/audio-assets-receipt.json
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r4.zip APEX-CHAOS-owner-F7-F8-HTML5-r4.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json --clobber
+            gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r5.zip APEX-CHAOS-owner-F7-F8-HTML5-r5.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json reports/owner-itch-qa/audio-assets-receipt.json --clobber
           else
-            gh release create "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r4.zip APEX-CHAOS-owner-F7-F8-HTML5-r4.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json \
+            gh release create "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r5.zip APEX-CHAOS-owner-F7-F8-HTML5-r5.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json reports/owner-itch-qa/audio-assets-receipt.json \
               --target "$SHA" \
-              --title "APEX CHAOS · verified itch HTML5 owner F7/F8 r4" \
-              --notes "Portable HTML5 ZIP: real Chrome desktop+phone Start/Home/BOT Gold battle, blocked itch iframe routes F7 to a new standalone 432x768 real phone viewport. Chrome also checks 1080x1920 MediaRecorder canvas pixels from simulated tab share: NO laptop desktop, no sidebar, no letterbox. Actual browser tab permission still requires user action." \
+              --title "APEX CHAOS · verified itch HTML5 owner F7/F8 r5" \
+              --notes "Portable HTML5 ZIP: real Chrome desktop+phone Start/Home/BOT Gold battle, blocked itch iframe routes F7 to a new standalone 432x768 real phone viewport. Chrome also checks 1080x1920 MediaRecorder canvas pixels from simulated tab share: NO laptop desktop, no sidebar, no letterbox. High-bitrate 22Mbps VP9 first; only selected portrait tab audio track; synthetic pitch oscillators suppressed ONLY during studio recording. Audio shipping asset SHA parity verified. Source pixel density depends on laptop display. Browser tab permission still requires user gesture." \
               --prerelease
           fi
