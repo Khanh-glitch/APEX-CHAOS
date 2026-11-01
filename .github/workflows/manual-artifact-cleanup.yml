@@ -1,0 +1,130 @@
+name: Manual reviewed artifact cleanup
+
+# SAFETY: No automatic triggers. Owner must run it explicitly on main.
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_id:
+        description: "Only 12741023054 is currently approved"
+        required: true
+        type: string
+        default: "12741023054"
+      mode:
+        description: "Start with DRY_RUN; DELETE requires exact confirmation"
+        required: true
+        type: choice
+        options:
+          - DRY_RUN
+          - DELETE
+        default: DRY_RUN
+      confirmation:
+        description: "In DELETE mode type exactly DELETE 12741023054"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: apex-manual-reviewed-artifact-cleanup
+  cancel-in-progress: false
+
+jobs:
+  reviewed-delete:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Revalidate exact approved target and protected survivor
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TARGET_ID: ${{ inputs.artifact_id }}
+          MODE: ${{ inputs.mode }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          # This allowlist is deliberately one exact ID. Every additional ID
+          # requires separate source review and a reviewed workflow PR.
+          readonly approved_id="12741023054"
+          readonly survivor_id="12741543396"
+          readonly target_run="40521473408"
+          readonly survivor_run="40521485515"
+          readonly expected_sha="46f9dc63c51709a1cd633ff4170711ee6e86e6e6"
+          readonly expected_digest="sha256:fe810e4c5ff383fed641266db180cdf8eec5aa5d54d8d43ae1663e4a06d08c82"
+          readonly expected_bytes="7929"
+          readonly expected_name="arsenal-product-acceptance"
+          readonly expected_branch="arena/960d6673-apex-chaos"
+
+          [[ "$GH_REPO" == "Khanh-glitch/APEX-CHAOS" ]] || { echo "::error::Wrong repository"; exit 1; }
+          [[ "$GITHUB_REF" == "refs/heads/main" ]] || { echo "::error::Run only on main"; exit 1; }
+          [[ "$TARGET_ID" == "$approved_id" ]] || { echo "::error::ID is not allowlisted"; exit 1; }
+          case "$MODE" in
+            DRY_RUN) ;;
+            DELETE)
+              [[ "$CONFIRMATION" == "DELETE $approved_id" ]] || {
+                echo "::error::Exact deletion confirmation is required"; exit 1;
+              }
+              ;;
+            *) echo "::error::Unsupported mode"; exit 1 ;;
+          esac
+
+          target=$(gh api "repos/$GH_REPO/actions/artifacts/$approved_id")
+          survivor=$(gh api "repos/$GH_REPO/actions/artifacts/$survivor_id")
+          verify() {
+            local payload="$1" id="$2" run="$3"
+            jq -e --argjson id "$id" --argjson run "$run" \
+              --argjson bytes "$expected_bytes" --arg digest "$expected_digest" \
+              --arg sha "$expected_sha" --arg name "$expected_name" \
+              --arg branch "$expected_branch" \
+              '(.id == $id) and (.size_in_bytes == $bytes) and
+               (.name == $name) and (.digest == $digest) and
+               (.expired == false) and (.workflow_run.id == $run) and
+               (.workflow_run.head_sha == $sha) and
+               (.workflow_run.head_branch == $branch)' <<<"$payload" >/dev/null || {
+                echo "::error::Metadata/provenance mismatch for artifact $id; refusing to delete"; exit 1;
+              }
+          }
+          verify "$target" "$approved_id" "$target_run"
+          verify "$survivor" "$survivor_id" "$survivor_run"
+          echo "Verified target ID, digest, size, run and SHA; separately verified protected survivor."
+
+          if [[ "$MODE" == "DELETE" ]]; then
+            gh api --method DELETE "repos/$GH_REPO/actions/artifacts/$approved_id" >/dev/null
+            # A successful DELETE response is not enough; re-read both IDs.
+            set +e
+            after=$(gh api "repos/$GH_REPO/actions/artifacts/$approved_id" 2>&1)
+            check_rc=$?
+            set -e
+            if [[ "$check_rc" -eq 0 ]] || ! grep -qE 'HTTP 404|Not Found' <<<"$after"; then
+              echo "::error::Target absence could not be independently verified"; exit 1
+            fi
+            surviving=$(gh api "repos/$GH_REPO/actions/artifacts/$survivor_id")
+            verify "$surviving" "$survivor_id" "$survivor_run"
+            result="DELETED_AND_VERIFIED"
+            reclaimed="$expected_bytes"
+          else
+            result="DRY_RUN_ONLY"
+            reclaimed="0"
+          fi
+
+          {
+            echo "## Artifact cleanup receipt"
+            echo ""
+            echo "- Result: **$result**"
+            echo "- Repository: $GH_REPO"
+            echo "- Target ID: $approved_id"
+            echo "- Survivor ID (verified present): $survivor_id"
+            echo "- Target workflow run: $target_run"
+            echo "- Survivor workflow run: $survivor_run"
+            echo "- Source commit: $expected_sha"
+            echo "- Target SHA-256: $expected_digest"
+            echo "- GitHub artifact metadata bytes removed: **$reclaimed**"
+            echo "- Attempt: $GITHUB_RUN_ID"
+            echo "- Timestamp UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "Save this receipt externally: Actions job logs and summaries expire."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
