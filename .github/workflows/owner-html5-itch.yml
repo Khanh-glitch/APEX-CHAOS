@@ -28,6 +28,7 @@ jobs:
         run: |
           node --check src/game/ownerPlaytestCapture.js
           node tools/testOwnerShortcutCapture.mjs
+          node tools/testOwnerStudioSfxPolicy.mjs
           pnpm test:runtime-revision
           pnpm test:product-graph
           pnpm test:owner-playtest-economy
