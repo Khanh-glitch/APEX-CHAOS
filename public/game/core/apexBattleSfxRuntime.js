@@ -61,10 +61,7 @@ function playTone(freq, endFreq, dur, wave, gainValue, when = 0) {
     // Portrait Studio video should contain the authored game sound assets,
     // never the synthetic pitched fallback that sounds like repeated beeps.
     // Do not affect ordinary gameplay, and do not suppress curated files.
-    if (window.__apexStatsSilent || (
-        window.APEX_OWNER_TOOLS?.isPortraitStudio?.() &&
-        window.APEX_OWNER_TOOLS?.isRecording?.()
-    )) return;
+    if (window.__apexStatsSilent || window.APEX_OWNER_TOOLS?.isPortraitStudio?.()) return;
     const now = audioCtx.currentTime + when;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
