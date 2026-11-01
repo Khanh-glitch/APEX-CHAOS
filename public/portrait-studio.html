@@ -34,7 +34,7 @@ small{font-size:11px;color:#b2b1b4}
   <button type="button" id="apex-portrait-rec">● REC / STOP · F7</button>
   <div id="apex-studio-status" role="status" aria-live="polite">PHONE 9:16 · READY</div>
   <p><strong>F8:</strong> Mở mật khẩu owner trong game. Bản studio là phiên chơi mới; trận ở tab cũ không tự chuyển sang đây.</p>
-  <p><small>Đầu ra 1080 × 1920, 30 FPS mục tiêu. Trình duyệt có thể yêu cầu xác nhận chia sẻ tab và âm thanh. Bản ghi giữ màn kết quả 10 giây.</small></p>
+  <p><small>High bitrate VP9 nếu trình duyệt hỗ trợ. Đầu ra 1080 × 1920, 30 FPS mục tiêu; độ chi tiết phụ thuộc số pixel Chrome thực cấp. Chọn This Tab và bật Share tab audio. Giữ tổng kết 10 giây.</small></p>
 </aside>
 <script>
 (()=>{
@@ -42,9 +42,18 @@ small{font-size:11px;color:#b2b1b4}
   const stage=document.getElementById('apex-portrait-stage');
   const area=document.getElementById('apex-portrait-area');
   const status=document.getElementById('apex-studio-status');
+  // Chrome's Capture Handle identifies the EXACT studio tab to the recorder.
+  // Never infer the selected tab solely from displaySurface === 'browser'.
+  try{
+    navigator.mediaDevices?.setCaptureHandleConfig?.({
+      handle:'apex-chaos-portrait-studio-v2',
+      exposeOrigin:true,
+      permittedOrigins:['*']
+    });
+  }catch(_){/* Browser may not implement Capture Handle */}
   const fit=()=>{
     const w=area.clientWidth,h=area.clientHeight;
-    const scale=Math.min(w/432,h/768,1.7)*0.97;
+    const scale=Math.min(w/432,h/768,1.7);
     stage.style.transform='translate(-50%,-50%) scale('+Math.max(0.01,scale)+')';
   };
   new ResizeObserver(fit).observe(area);
@@ -56,7 +65,8 @@ small{font-size:11px;color:#b2b1b4}
   const getCropRect=()=>{
     const r=stage.getBoundingClientRect();
     return {left:r.left,top:r.top,width:r.width,height:r.height,
-      viewportWidth:window.innerWidth,viewportHeight:window.innerHeight};
+      viewportWidth:window.innerWidth,viewportHeight:window.innerHeight,
+      devicePixelRatio:window.devicePixelRatio};
   };
   Object.defineProperty(window,'APEX_PORTRAIT_STUDIO',{
     configurable:false,writable:false,
@@ -95,7 +105,7 @@ small{font-size:11px;color:#b2b1b4}
     let pending;
     try{
       pending=navigator.mediaDevices.getDisplayMedia({
-        video:{displaySurface:'browser',frameRate:30},audio:true,
+        video:{displaySurface:'browser',frameRate:30,width:{ideal:3840},height:{ideal:2160}},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},
         preferCurrentTab:true,selfBrowserSurface:'include'
       });
     }catch(e){
