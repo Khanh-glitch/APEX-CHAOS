@@ -78,7 +78,7 @@ small{font-size:11px;color:#b2b1b4}
     if(event.origin!==location.origin||event.source!==stage.contentWindow)return;
     const m=event.data;
     if(m?.type==='apex:portrait-capture-quality'){
-      const info='REC VP9/HQ · nguồn '+m.source+' · '+Math.round(m.videoBitrate/1000000)+' Mbps · '+m.audioTracks+' audio track';
+      const info='REC HQ · '+(m.codec||'video')+' · nguồn '+m.source+' · '+Math.round(m.videoBitrate/1000000)+' Mbps · '+m.audioTracks+' audio track';
       status.textContent=info+(m.warning||'');
       status.style.color=m.warning?'#ffb77c':'#ffcf84';
       status.title=m.warning||'Chỉ ghi âm thanh gốc từ tab game; không thu mic hoặc desktop.';
