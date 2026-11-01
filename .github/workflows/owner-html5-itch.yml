@@ -1,0 +1,94 @@
+name: Owner HTML5 itch release candidate
+concurrency:
+  group: owner-html5-itch-r5
+  cancel-in-progress: true
+on:
+  push:
+    branches:
+      - feature/owner-password-portrait-record-20261101
+  pull_request:
+    types: [opened, synchronize]
+    branches: [perf/bot-wave-lossless-20261028]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  html5:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Owner shortcut and compatibility verification
+        run: |
+          node --check src/game/ownerPlaytestCapture.js
+          node tools/testOwnerShortcutCapture.mjs
+          node tools/testOwnerStudioSfxPolicy.mjs
+          pnpm test:runtime-revision
+          pnpm test:product-graph
+          pnpm test:owner-playtest-economy
+          pnpm test:gold-battle-lifecycle
+          pnpm test:result-gold
+      - name: Build HTML5 production game
+        run: pnpm build
+      - name: Shipping tree verification
+        run: |
+          pnpm test:shipping-dist
+          test -s dist/index.html
+          test -d dist/assets
+          test -f dist/game/arsenal/arsenalMetaRuntime.js
+      - name: Port production build to itch nested HTML5
+        run: |
+          printf '%s\n' "$(git rev-parse HEAD)" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          test -s dist-itch-html5/index.html
+          test -s dist-itch-html5/portrait-studio.html
+          grep -F 'src="./assets/' dist-itch-html5/index.html
+          grep -F 'href="./assets/' dist-itch-html5/index.html
+      - name: Zip ONLY portable itch output, never raw Vite dist
+        run: |
+          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-HTML5-r5.zip .)
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r5.zip | grep -Fx 'index.html'
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r5.zip | grep -Fx 'portrait-studio.html'
+          sha256sum APEX-CHAOS-owner-F7-F8-HTML5-r5.zip | tee APEX-CHAOS-owner-F7-F8-HTML5-r5.sha256
+          du -h APEX-CHAOS-owner-F7-F8-HTML5-r5.zip
+      - name: Unpack ZIP and run real Chrome against nested itch iframe
+        run: |
+          mv dist-itch-html5 dist-itch-html5-transform-source
+          mkdir dist-itch-html5
+          unzip -q APEX-CHAOS-owner-F7-F8-HTML5-r5.zip -d dist-itch-html5
+          node tools/testOwnerPortraitShippingAudio.mjs
+          npm ci --prefix tools/probe --ignore-scripts
+          command -v google-chrome || command -v chromium
+          CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchPackagedChrome.mjs
+          CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchCapturePolicyChrome.mjs
+      - name: Publish ONLY after verified packaged runtime (new r5 prerelease)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: owner-html5-f7-f8-20261101-r5
+          SHA: ${{ github.sha }}
+        run: |
+          test -s reports/owner-itch-qa/receipt.json
+          test -s reports/owner-itch-qa/capture-policy-receipt.json
+          test -s reports/owner-itch-qa/audio-assets-receipt.json
+          # Reject outdated parallel runs before writing to the r5 Release.
+          TIP="$(git ls-remote origin refs/heads/feature/owner-password-portrait-record-20261101 | cut -f1)"
+          test -n "$TIP"
+          test "$TIP" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r5.zip APEX-CHAOS-owner-F7-F8-HTML5-r5.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json reports/owner-itch-qa/audio-assets-receipt.json --clobber
+          else
+            gh release create "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r5.zip APEX-CHAOS-owner-F7-F8-HTML5-r5.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json reports/owner-itch-qa/audio-assets-receipt.json \
+              --target "$SHA" \
+              --title "APEX CHAOS · verified itch HTML5 owner F7/F8 r5" \
+              --notes "Portable HTML5 ZIP: real Chrome desktop+phone Start/Home/BOT Gold battle, blocked itch iframe routes F7 to a new standalone 432x768 real phone viewport. Chrome also checks 1080x1920 MediaRecorder canvas pixels from simulated tab share: NO laptop desktop, no sidebar, no letterbox. High-bitrate 22Mbps VP9 first; only selected portrait tab audio track; synthetic pitch oscillators suppressed ONLY during studio recording. Audio shipping asset SHA parity verified. Source pixel density depends on laptop display. Browser tab permission still requires user gesture." \
+              --prerelease
+          fi

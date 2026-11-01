@@ -177,7 +177,7 @@
     return false;
   }
   function adminTestSelectionUnlocked(name) {
-    if (!adminTestSessionActive()) return false;
+    if (!adminTestSessionActive() && window.APEX_OWNER_TOOLS?.isPlaytestActive?.() !== true) return false;
     // ONLY the current production playable roster. A future
     // visible-but-locked fighter is never unlocked by the test session.
     return isProductPlayable(name);
@@ -470,7 +470,7 @@
   // duplicate callbacks, and the sealed result id (resultGold.meta.id) is
   // persisted in claimedMatchIds so a reload/retry can never pay twice.
   function masteryTestActive() {
-    try { return adminTestSessionActive() || window.APEX_ARSENAL_OWNER_TEST?.active === true; }
+    try { return adminTestSessionActive() || window.APEX_OWNER_TOOLS?.isPlaytestActive?.() === true || window.APEX_ARSENAL_OWNER_TEST?.active === true; }
     catch (error) { return adminTestSessionActive(); }
   }
   function ensureMastery() {

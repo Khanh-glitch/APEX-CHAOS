@@ -1145,6 +1145,7 @@
   // Gold shell owns the destination. The engine runtime only tears the live
   // match down; it must not open the legacy product menu or restart BGM.
   BRIDGE.exitBattle = function exitBattle() {
+    window.dispatchEvent(new Event('apex:gold-battle-exited'));
     const hadBattle = battleLiveRunning || window.__apexGoldBattleHosted === true;
     // Always invalidate a deferred launch, even when startMatch has not been
     // reached yet. This makes ESC-during-load a real cancellation.
@@ -1876,13 +1877,16 @@
         ||event.origin!==window.location.origin)return;
     if(event.data?.type==='APEX_RESULT_GOLD_READY'){
       resultReady=true;
+      window.dispatchEvent(new Event('apex:gold-result-ready'));
       if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=0;}
       resultFrame.contentWindow.postMessage({
         type:'APEX_RESULT_GOLD_PAYLOAD',match:resultData
       },window.location.origin);
     }else if(event.data?.type==='APEX_RESULT_GOLD_CONTINUE'
       &&resultReady&&event.data.matchId===resultData?.meta?.id){
-      returnFromGoldResult();
+      if (window.APEX_OWNER_TOOLS?.isRecordingResultHold?.()) {
+        window.addEventListener('apex:owner-result-recorded',returnFromGoldResult,{once:true});
+      } else returnFromGoldResult();
     }
   });
 
