@@ -141,7 +141,10 @@ try {
     const original=HTMLCanvasElement.prototype.captureStream;
     HTMLCanvasElement.prototype.captureStream=function(fps){
       const stream=original.call(this,fps);
-      if(this.width===1080&&this.height===1920)window.__qaPortraitOutput=this;
+      if(this.width===1080&&this.height===1920){
+        window.__qaPortraitOutput=this;
+        window.__qaFinalVideoStream=stream;
+      }
       return stream;
     };
     const rect=window.parent.APEX_PORTRAIT_STUDIO.getCropRect();
@@ -153,6 +156,21 @@ try {
     const stream=src.captureStream(30);
     const track=stream.getVideoTracks()[0];
     track.getSettings=()=>({displaySurface:'browser',width:src.width,height:src.height});
+    track.getCaptureHandle=()=>({
+      handle:'apex-chaos-portrait-studio-v2',origin:window.location.origin
+    });
+    // Synthetic AUDIO is QA-only: verifies that the original selected tab
+    // audio track is present and survives into the final video stream.
+    const audioCtx=new AudioContext();
+    const dest=audioCtx.createMediaStreamDestination();
+    const oscillator=audioCtx.createOscillator();
+    oscillator.frequency.value=220;
+    const gain=audioCtx.createGain();
+    gain.gain.value=0.08;
+    oscillator.connect(gain).connect(dest);
+    oscillator.start();
+    stream.addTrack(dest.stream.getAudioTracks()[0]);
+    window.__qaAudioContext=audioCtx;window.__qaAudioOscillator=oscillator;
     Object.defineProperty(window.parent.navigator.mediaDevices,'getDisplayMedia',{
       configurable:true,value:()=>Promise.resolve(stream)
     });
@@ -161,6 +179,14 @@ try {
   });
   await standalone.$eval('#apex-portrait-rec',el=>el.click());
   await phone.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===true,{timeout:12000});
+  const audioSourceAudit=await phone.evaluate(()=>({
+    audioTracks:window.__qaFinalVideoStream?.getAudioTracks().length,
+    active:window.__qaFinalVideoStream?.getAudioTracks()[0]?.readyState,
+    qualityNotice:window.parent.document.getElementById('apex-studio-status')?.textContent
+  }));
+  assert.equal(audioSourceAudit.audioTracks,1,'recorder must use exactly one authentic tab audio source track');
+  assert.equal(audioSourceAudit.active,'live','original tab audio track is live');
+  assert.match(audioSourceAudit.qualityNotice,/22 Mbps/,'high bitrate displayed transparently');
   await phone.waitForFunction(()=>{
     const c=window.__qaPortraitOutput;
     if(!c)return false;
@@ -182,6 +208,7 @@ try {
     assert.ok(p[1]>160&&p[0]<90&&p[2]<90,
       'cropped '+key+' must be real phone pixels, not surrounding desktop: '+JSON.stringify(outputAudit));
   }
+  await new Promise(resolve=>setTimeout(resolve,750));
   await standalone.$eval('#apex-portrait-rec',el=>el.click());
   await phone.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===false,{timeout:12000});
   await phone.waitForFunction(()=>window.__qaRecordedVideoBlob?.size>1024,{timeout:20000});
@@ -201,11 +228,12 @@ try {
   assert.ok(videoReceipt.bytes>1024,'recorded file contains encoded video data');
   assert.equal(videoReceipt.width,1080,'DECODED video width must be TikTok 1080');
   assert.equal(videoReceipt.height,1920,'DECODED video height must be TikTok 1920');
-  await phone.evaluate(()=>clearInterval(window.__qaSyntheticTimer));
+  assert.match(videoReceipt.type,/webm|mp4/,'recorder must produce browser-decodable video');
+  await phone.evaluate(()=>{clearInterval(window.__qaSyntheticTimer);window.__qaAudioOscillator?.stop();window.__qaAudioContext?.close();});
 
   assert.deepEqual(nested.serverErrors,[],'no escaping asset requests in cross-origin policy scenario');
   fs.writeFileSync(path.join(output,'capture-policy-receipt.json'),
-    JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct,outputAudit,videoReceipt},null,2));
+    JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct,outputAudit,videoReceipt,audioSourceAudit},null,2));
   console.log('PASS ITCH PORTRAIT STUDIO: cross-origin itch iframe -> real 432x768 Gold BOT battle; synthetic tab capture crops ALL phone pixels and decodes output MediaRecorder video at 1080x1920; no desktop edges.');
 } finally {
   if(browser) await browser.close();
