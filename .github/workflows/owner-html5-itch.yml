@@ -1,4 +1,7 @@
 name: Owner HTML5 itch release candidate
+concurrency:
+  group: owner-html5-itch-r5
+  cancel-in-progress: true
 on:
   push:
     branches:
@@ -76,6 +79,10 @@ jobs:
           test -s reports/owner-itch-qa/receipt.json
           test -s reports/owner-itch-qa/capture-policy-receipt.json
           test -s reports/owner-itch-qa/audio-assets-receipt.json
+          # Reject outdated parallel runs before writing to the r5 Release.
+          TIP="$(git ls-remote origin refs/heads/feature/owner-password-portrait-record-20261101 | cut -f1)"
+          test -n "$TIP"
+          test "$TIP" = "${{ github.event.pull_request.head.sha || github.sha }}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" APEX-CHAOS-owner-F7-F8-HTML5-r5.zip APEX-CHAOS-owner-F7-F8-HTML5-r5.sha256 reports/owner-itch-qa/receipt.json reports/owner-itch-qa/capture-policy-receipt.json reports/owner-itch-qa/audio-assets-receipt.json --clobber
           else
