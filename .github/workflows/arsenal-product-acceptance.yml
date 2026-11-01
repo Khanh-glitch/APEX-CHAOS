@@ -17,6 +17,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   acceptance:
@@ -209,6 +210,29 @@ jobs:
           test "$PORT1" != "$PORT2"
           echo "LAUNCHER SMOKE PASS: ports $PORT1 and $PORT2, source SHA $SHA"
 
+      - name: Verify deduplicated launcher artifacts and reconstructed server
+        id: launcher-layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/testArsenalArtifactLayout.mjs
+          node tools/arsenalArtifactLayout.mjs prepare dist release/arsenal-product-windows /tmp/arsenal-launcher-shell
+          node /tmp/arsenal-launcher-shell/restore-launcher.mjs restore dist /tmp/arsenal-launcher-shell /tmp/arsenal-restored-launcher
+          test "$(cat /tmp/arsenal-restored-launcher/app/ARSENAL_BUILD_SHA.txt)" = "$(git rev-parse HEAD)"
+          cd /tmp/arsenal-restored-launcher
+          pwsh -NoProfile -File serve.ps1 >/tmp/arsenal-restored-launcher.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            grep -q 'URL       :' /tmp/arsenal-restored-launcher.log && break
+            sleep 1
+          done
+          PORT=$(sed -n 's|.*localhost:\([0-9]*\)/.*|\1|p' /tmp/arsenal-restored-launcher.log | head -1)
+          test -n "$PORT"
+          test "$(curl -fsS "http://localhost:$PORT/ARSENAL_BUILD_SHA.txt")" = "$(cat app/ARSENAL_BUILD_SHA.txt)"
+          curl -fsS "http://localhost:$PORT/" | grep -q 'id="root"'
+          curl -fsS "http://localhost:$PORT/assets/arsenal/av/vfx/c/muzzle_0.png" -o /dev/null
+
       - name: Start Vite for browser acceptance
         shell: bash
         run: |
@@ -276,17 +300,52 @@ jobs:
           APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser
         run: node tools/profileCoreSixColdLoad.mjs
 
-      - name: Upload build and acceptance evidence
+      # Keep build, launcher identity and acceptance evidence at the repository
+      # default retention until durable accepted-evidence storage exists.
+      - name: Upload production build (single dist copy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arsenal-product-build
+          path: dist/
+          if-no-files-found: warn
+
+      - name: Upload verified launcher shell and reconstruction manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arsenal-product-windows-launcher
+          path: /tmp/arsenal-launcher-shell/
+          if-no-files-found: warn
+
+      # If verification did not complete, preserve the original launcher rather
+      # than losing non-dist files; this exceptional fallback may duplicate dist.
+      - name: Preserve original launcher if reconstruction verification failed
+        if: ${{ always() && steps.launcher-layout.outcome != 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: arsenal-product-windows-fallback
+          path: release/arsenal-product-windows/
+          if-no-files-found: warn
+
+      - name: Upload browser acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: arsenal-product-acceptance
+          path: docs/acceptance/arsenal-product/browser/
+          if-no-files-found: warn
+
+      - name: Upload temporary diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arsenal-product-diagnostics
           path: |
-            dist/
-            release/arsenal-product-windows/
-            docs/acceptance/arsenal-product/browser/
             /tmp/apex-v43-branch-dryrun.json.log
             /tmp/arsenal-vite.log
             /tmp/arsenal-launcher-1.log
             /tmp/arsenal-launcher-2.log
+            /tmp/arsenal-restored-launcher.log
+          retention-days: 7
           if-no-files-found: warn
