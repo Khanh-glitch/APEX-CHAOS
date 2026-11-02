@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Implementation branch | `arena/30956463-apex-chaos` (repo `Khanh-glitch/APEX-CHAOS`) |
-| Commit | `COMMIT_SHA_PLACEHOLDER` |
+| Commit | `20a4f209547952e22546fee83c31d19fb761c725` (the code + evidence commit; the only later commit on this branch substitutes this line and rebuilds the ZIP) |
 | Work tree | `soh-greywater-pilot/` (a full Map Studio v3 copy; the pilot is that tree + patch) |
 | Input | Soul-of-Hero branch `input/greywater-poi-pilot-20261102`, commit `0602b59af626d96fc2f76351cdf95ad66863f66e` |
 | Custody | outer archive SHA-256 `4fbf68d10d3627de15aada1bb324649a6232aea3eceb84cb1911728fbc606bb8`, inner `INPUT_SHA256.txt` verified (`01 fa955382…`, `02 887a389c…`, `03 9a98e6a7…`, seed `f39847a1…`) → **INPUT_CUSTODY_OK** |
