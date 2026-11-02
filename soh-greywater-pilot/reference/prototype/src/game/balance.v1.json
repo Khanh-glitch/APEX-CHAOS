@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "version": 1,
+    "status_legend": "LOCKED_CANON = Bible [CHỐT] law; TUNABLE_BALANCE = editable number; PROPOSED_MECHANISM = reversible design choice ([ĐỀ XUẤT])",
+    "note": "All numbers here are TUNABLE_BALANCE unless marked. Edit and rebuild."
+  },
+  "run": {
+    "_status": "LOCKED_CANON",
+    "maxRunHours": 336,
+    "ragnarokFinalHours": 72,
+    "dangerStartsDay": 12,
+    "eldersAwakenDay": 14
+  },
+  "dayNight": {
+    "_status": "TUNABLE_BALANCE (fictional clock, separate from run clock)",
+    "dayLengthMinutes": 24,
+    "nightFraction": 0.38
+  },
+  "player": {
+    "_status": "TUNABLE_BALANCE",
+    "maxHp": 100,
+    "maxStamina": 100,
+    "speed": 72,
+    "rollCost": 22,
+    "rollSpeed": 190,
+    "rollMs": 260,
+    "staminaRegen": 26,
+    "carryLimit": 60,
+    "hungerDrainPerMin": 2.4,
+    "thirstDrainPerMin": 3.6,
+    "offlineDrainFactor": 0.35,
+    "starveDamagePerMin": 4,
+    "coldDamagePerMin": 6,
+    "radDamagePerMinOver50": 5
+  },
+  "terrainSpeed": {
+    "_status": "TUNABLE_BALANCE",
+    "road": 1.28, "bridge": 1.28, "floor": 1.1, "grass": 1.0, "meadow": 1.0, "forest": 0.86, "sand": 0.88,
+    "marsh": 0.62, "shallow": 0.5, "snow": 0.78, "hill": 0.9, "ash": 0.92, "toxic": 0.95, "burnt": 1.0, "ice": 1.05
+  },
+  "cart": {
+    "_status": "PROPOSED_MECHANISM (cart custody/weight) + TUNABLE_BALANCE numbers",
+    "slots": 24,
+    "maxWeight": 240,
+    "speedOnRoad": 1.05,
+    "speedOffRoad": 0.55,
+    "speedRough": 0.32,
+    "weightPenaltyPer100": 0.18
+  },
+  "traces": {
+    "_status": "TUNABLE_BALANCE seconds of footprint life by surface; rain multiplies decay",
+    "snow": 900, "marsh": 600, "sand": 260, "ash": 420, "grass": 180, "meadow": 180, "forest": 140, "hill": 120,
+    "road": 40, "bridge": 20, "floor": 60, "burnt": 300, "toxic": 200, "ice": 300,
+    "rainDecayMult": 4, "stormDecayMult": 9, "snowfallSnowMult": 6
+  },
+  "ai": {
+    "_status": "TUNABLE_BALANCE",
+    "activeRadiusTiles": 30,
+    "sightDay": 110,
+    "sightNight": 70,
+    "traceSenseRadius": 20,
+    "respawnIntervalSec": 150,
+    "ragnarokCapMult": 1.6
+  },
+  "fuel": {
+    "_status": "TUNABLE_BALANCE fuel seconds per item",
+    "wood": 20, "charcoal": 55, "coal": 80, "fiber": 4
+  },
+  "garden": {
+    "_status": "TUNABLE_BALANCE",
+    "growSeconds": 300,
+    "waterSecondsPerUnit": 240
+  },
+  "economy": {
+    "_status": "PROPOSED_MECHANISM vendor/price/ownership; LOCKED_CANON cash-only escrow purchase",
+    "escrowChestPrice": 30,
+    "claimRadius": 6,
+    "maxClaims": 2,
+    "claimMinDistFromPoi": 10,
+    "reclaimRefund": 0.5
+  },
+  "research": {
+    "_status": "TUNABLE_BALANCE",
+    "randomSparesCost": 4,
+    "directedSparesCost": 9,
+    "randomSeconds": 25,
+    "directedSeconds": 45,
+    "specimenSeconds": 30
+  },
+  "weather": {
+    "_status": "PROPOSED_MECHANISM seeded schedule; TUNABLE weights",
+    "slotMinutes": 9,
+    "weights": { "clear": 5, "cloudy": 3, "rain": 3, "storm": 1, "fog": 2 },
+    "forecastSlots": 1
+  }
+}

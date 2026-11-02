@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@import "@fontsource/vt323/400.css";
+@import "@fontsource/pixelify-sans/400.css";
+@import "@fontsource/pixelify-sans/700.css";
+
+html, body, #root { height: 100%; margin: 0; background: #07060c; overflow: hidden; }
+body { font-family: 'VT323', monospace; color: #f2e8d8; -webkit-font-smoothing: none; user-select: none; }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+img.px { image-rendering: pixelated; image-rendering: crisp-edges; }
+.stage { position: absolute; left: 0; top: 0; width: 640px; height: 360px; transform-origin: 0 0; overflow: hidden; }
+.title-font { font-family: 'Pixelify Sans', 'VT323', monospace; }
+.panel { background: linear-gradient(#211a2c, #17121f); border: 1px solid #0a070e; box-shadow: inset 0 0 0 1px #5a4a6a, inset 0 0 0 2px #2a2034, 0 3px 0 #05030a; border-radius: 2px; }
+.panel-h { font-family: 'Pixelify Sans', monospace; font-size: 11px; letter-spacing: .5px; color: #ffd98a; text-shadow: 1px 1px 0 #2a1406; }
+.btn { font-family: 'VT323', monospace; font-size: 12px; line-height: 1; padding: 3px 7px 4px; color: #fff3dc; background: linear-gradient(#6a4a2c, #4a321c); border: 1px solid #1a0e06; box-shadow: inset 0 1px 0 #a07a4a, inset 0 -1px 0 #2a1a0c; cursor: pointer; border-radius: 1px; }
+.btn:hover:not(:disabled) { background: linear-gradient(#8a623a, #5e4024); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.gold { background: linear-gradient(#c8902a, #8a5a14); box-shadow: inset 0 1px 0 #ffe08a, inset 0 -1px 0 #4a2a06; color: #1e1206; }
+.btn.danger { background: linear-gradient(#9a2a22, #621812); box-shadow: inset 0 1px 0 #e06a5a; }
+.btn.ghost { background: transparent; box-shadow: none; border-color: #4a3a5a; color: #cdbfe0; }
+.slot { width: 20px; height: 20px; background: #0e0b14; border: 1px solid #3c3048; box-shadow: inset 1px 1px 0 #05030a; position: relative; cursor: pointer; }
+.slot:hover { border-color: #ffd98a; }
+.slot.sel { border-color: #ffe27a; box-shadow: 0 0 0 1px #ffe27a; }
+.slot.active { border-color: #ffd040; background: #2a2010; }
+.slot .q { position: absolute; right: 1px; bottom: -2px; font-size: 9px; color: #fff; text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000; }
+.slot .k { position: absolute; left: 1px; top: -2px; font-size: 8px; color: #b8a8c8; text-shadow: 1px 1px 0 #000; }
+.slot .dur { position: absolute; left: 2px; right: 2px; bottom: 1px; height: 1px; background: #300; }
+.slot .dur > i { display: block; height: 1px; background: #7aff6a; }
+.bar { height: 5px; background: #0a0710; border: 1px solid #000; box-shadow: 0 0 0 1px #3a2e46; position: relative; }
+.bar > i { display: block; height: 100%; }
+.tag { font-size: 9px; padding: 0 3px; border: 1px solid currentColor; border-radius: 1px; }
+.scroll::-webkit-scrollbar { width: 4px; } .scroll::-webkit-scrollbar-thumb { background: #5a4a6a; }
+.fadein { animation: fadein .25s ease-out; } @keyframes fadein { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.pulse { animation: pulse 1.2s ease-in-out infinite; } @keyframes pulse { 50% { opacity: .55; } }
+.banner { animation: banner 3.6s ease-out forwards; } @keyframes banner { 0% { opacity: 0; letter-spacing: 6px; } 12% { opacity: 1; letter-spacing: 2px; } 80% { opacity: 1; } 100% { opacity: 0; } }

@@ -1,0 +1,6 @@
+# pilot work tree — build artifacts & local installs
+node_modules/
+.next/
+tsconfig.tsbuildinfo
+qa/tmp/*.mjs
+public/downloads/*.zip

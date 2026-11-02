@@ -1,0 +1,197 @@
+{
+ "when": "2026-11-01T17:35:42.600Z",
+ "url": "http://localhost:3000/",
+ "results": [
+  {
+   "name": "App opens at 1280x720 without JS error",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Whole page does not scroll (1280x720)",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Seed map is loaded and editable data",
+   "ok": true,
+   "info": "{\"land\":8,\"rivers\":17,\"roads\":92,\"pois\":81,\"zones\":23,\"elders\":6,\"res\":280,\"bridges\":12,\"docks\":27}"
+  },
+  {
+   "name": "All 22 tool buttons visible & not occluded (1280x720)",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Canvas occupies most of the screen",
+   "ok": true,
+   "info": "870x641"
+  },
+  {
+   "name": "7 view modes render",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Wheel zoom keeps point under cursor",
+   "ok": true,
+   "info": "0.42→0.80 drift 0.5,0.6"
+  },
+  {
+   "name": "Space+drag pans",
+   "ok": true,
+   "info": "dx=-189"
+  },
+  {
+   "name": "Brush creates a new island in the sea",
+   "ok": true,
+   "info": "8→9"
+  },
+  {
+   "name": "Subtract brush edits an existing island (bay / split)",
+   "ok": true,
+   "info": "64→48"
+  },
+  {
+   "name": "Draw river creates a tributary",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Tributary mouth auto-attached to parent river",
+   "ok": true,
+   "info": "{\"kind\":\"river\",\"ref\":\"rv_silver\"}"
+  },
+  {
+   "name": "Validation HYD-LINK: graph agrees with geometry",
+   "ok": true,
+   "info": "18 dòng; mọi hợp lưu/hồ/cửa biển khớp trong dung sai 7u và cùng thành phần liên thông."
+  },
+  {
+   "name": "Drag POI moves it",
+   "ok": true,
+   "info": "Δ=(40,30)"
+  },
+  {
+   "name": "Drag build-zone vertex reshapes zone",
+   "ok": true,
+   "info": "moved (-25,22)"
+  },
+  {
+   "name": "Draw new build zone",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Bridge tool places a bridge at a road/river crossing",
+   "ok": true,
+   "info": "12→12"
+  },
+  {
+   "name": "Dock tool places a dock on a lake shore",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Undo/redo multi-step",
+   "ok": true,
+   "info": "history=11; after undo {\"land\":9,\"docks\":27,\"zones\":23}; after redo {\"land\":9,\"docks\":28,\"zones\":24}"
+  },
+  {
+   "name": "House test returns tradeoffs",
+   "ok": true,
+   "info": "13 lines"
+  },
+  {
+   "name": "Smart tool yields a PREVIEW proposal (no auto-edit)",
+   "ok": true,
+   "info": "proposals=1"
+  },
+  {
+   "name": "Dock suggestion proposals appear with explanation",
+   "ok": true,
+   "info": "8 proposals"
+  },
+  {
+   "name": "Validation engine reports PASS/WARNING/UNKNOWN/FAIL",
+   "ok": true,
+   "info": "{\"PASS\":30,\"WARNING\":3,\"UNKNOWN\":5,\"FAIL\":2}"
+  },
+  {
+   "name": "Block test re-runs validation with blocked bridge",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Save project downloads JSON",
+   "ok": true,
+   "info": "326 KB"
+  },
+  {
+   "name": "Autosave restores edited project after reload",
+   "ok": true,
+   "info": "[9,18,81,24,28,12] vs [9,18,81,24,28,12]"
+  },
+  {
+   "name": "Open/import project restores identical structure",
+   "ok": true,
+   "info": "[9,18,81,24,28,12] vs [9,18,81,24,28,12]"
+  },
+  {
+   "name": "Terrain rasters round-trip through JSON",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Snapshot A/B compare detects the change",
+   "ok": true,
+   "info": "changed=1"
+  },
+  {
+   "name": "Export PNG (2×) works",
+   "ok": true,
+   "info": "18274 KB"
+  },
+  {
+   "name": "Export SVG works",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Export for Map Tower ZIP contains maps, overlays, JSON, reports, brief",
+   "ok": true,
+   "info": "---------                     -------  66611880                     23 files "
+  },
+  {
+   "name": "Re-import JSON from Map Tower ZIP loses nothing",
+   "ok": true,
+   "info": "[9,18,81,24,28,12] vs [9,18,81,24,28,12]"
+  },
+  {
+   "name": "View-only mode hides editor panels",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Command palette finds & selects an object",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Context menu opens",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "App opens at 1600x900 without JS error",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Whole page does not scroll (1600x900)",
+   "ok": true,
+   "info": ""
+  }
+ ],
+ "errors": []
+}

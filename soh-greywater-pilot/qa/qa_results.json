@@ -1,0 +1,120 @@
+{
+ "when": "2026-11-02T12:09:30.789Z",
+ "harness": "puppeteer-core + @sparticuz/chromium (headless Chromium), 1680x1050, deviceScaleFactor 1",
+ "app": "http://localhost:3000/ (Next dev build of soh-greywater-pilot)",
+ "initial": {
+  "hash": "72e847f2",
+  "seed": 20261102,
+  "buildings": 15,
+  "props": 72,
+  "trees": 236,
+  "conns": 3,
+  "frame": [
+   41,
+   28
+  ]
+ },
+ "results": [
+  {
+   "name": "play mode starts a session",
+   "ok": true
+  },
+  {
+   "name": "keyboard moves the hero — Δ=(0.00,-2.38)",
+   "ok": true
+  },
+  {
+   "name": "walls block movement — y=8.86 wallTileY=7",
+   "ok": true
+  },
+  {
+   "name": "door tile puts the hero inside (roof fades) — inside=b_hall",
+   "ok": true
+  },
+  {
+   "name": "well interaction increments water — water=1 msg=\"Múc nước sạch +1 · tổng 1\"",
+   "ok": true
+  },
+  {
+   "name": "crate is usable exactly once — first=\"Nhặt vật tư +1 · tổng 1 (muối, dây, đinh)\" second=\"Thùng này đã lấy hết.\"",
+   "ok": true
+  },
+  {
+   "name": "notice board opens a readable notice",
+   "ok": true
+  },
+  {
+   "name": "lantern toggles — {\"lamps\":1,\"on\":[true]}",
+   "ok": true
+  },
+  {
+   "name": "HUD mirrors the session counters — {\"water\":\"1\",\"supplies\":\"1\",\"lamps\":\"1\"}",
+   "ok": true
+  },
+  {
+   "name": "play state is written to the detail record — {\"water\":1,\"supplies\":1,\"reads\":1,\"lamps\":1,\"used\":{\"crate_market\":true},\"lampsOn\":{\"lamp_plaza\":true}}",
+   "ok": true
+  },
+  {
+   "name": "drag moves a building and records an override — x 26→27 ov={\"x\":27,\"y\":2,\"door\":{\"x\":32,\"y\":8,\"side\":\"s\"}}",
+   "ok": true
+  },
+  {
+   "name": "undo restores the building — x=26",
+   "ok": true
+  },
+  {
+   "name": "redo re-applies the move — x=27",
+   "ok": true
+  },
+  {
+   "name": "layout lock blocks dragging — {\"locked\":true,\"x\":27}",
+   "ok": true
+  },
+  {
+   "name": "add-building tool creates a new building — {\"n\":1,\"total\":16}",
+   "ok": true
+  },
+  {
+   "name": "delete removes the added building — {\"n\":0,\"total\":15}",
+   "ok": true
+  },
+  {
+   "name": "seed field accepts a new seed — 12345",
+   "ok": true
+  },
+  {
+   "name": "regenerate with a new seed is deterministic output — 72e847f2→7ccf8148",
+   "ok": true
+  },
+  {
+   "name": "manual overrides survive regeneration — {\"x\":27,\"y\":2,\"door\":{\"x\":32,\"y\":8,\"side\":\"s\"}}",
+   "ok": true
+  },
+  {
+   "name": "autosave stores the POI detail record — {\"hash\":\"7ccf8148\",\"seed\":12345}",
+   "ok": true
+  },
+  {
+   "name": "autosave keeps overrides and play counters — {\"x\":27,\"y\":2,\"door\":{\"x\":32,\"y\":8,\"side\":\"s\"}}",
+   "ok": true
+  },
+  {
+   "name": "reload restores the same layout hash — 7ccf8148 vs 7ccf8148",
+   "ok": true
+  },
+  {
+   "name": "reload restores overrides — {\"x\":27,\"y\":2,\"door\":{\"x\":32,\"y\":8,\"side\":\"s\"}}",
+   "ok": true
+  },
+  {
+   "name": "reload restores play progress — {\"water\":1,\"supplies\":1,\"reads\":1,\"lamps\":1,\"used\":{\"crate_market\":true},\"lampsOn\":{\"lamp_plaza\":true}}",
+   "ok": true
+  },
+  {
+   "name": "project export still carries all 81 POIs and the detail layer — {\"hasDetails\":true,\"bytes\":249378,\"pois\":81,\"roads\":92}",
+   "ok": true
+  }
+ ],
+ "errors": []
+}

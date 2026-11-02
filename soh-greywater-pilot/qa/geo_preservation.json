@@ -1,0 +1,512 @@
+{
+ "orderSensitiveDiffOnly": [],
+ "collections": {
+  "land": {
+   "refCount": 8,
+   "appCount": 8,
+   "identical": true
+  },
+  "lakes": {
+   "refCount": 5,
+   "appCount": 5,
+   "identical": true
+  },
+  "rivers": {
+   "refCount": 17,
+   "appCount": 17,
+   "identical": true
+  },
+  "roads": {
+   "refCount": 92,
+   "appCount": 92,
+   "identical": true
+  },
+  "bridges": {
+   "refCount": 12,
+   "appCount": 12,
+   "identical": true
+  },
+  "docks": {
+   "refCount": 27,
+   "appCount": 27,
+   "identical": true
+  },
+  "zones": {
+   "refCount": 23,
+   "appCount": 23,
+   "identical": true
+  },
+  "resources": {
+   "refCount": 280,
+   "appCount": 280,
+   "identical": true
+  },
+  "spawns": {
+   "refCount": 4,
+   "appCount": 4,
+   "identical": true
+  },
+  "elders": {
+   "refCount": 6,
+   "appCount": 6,
+   "identical": true
+  },
+  "labels": {
+   "refCount": 24,
+   "appCount": 24,
+   "identical": true
+  },
+  "pois": {
+   "refCount": 81,
+   "appCount": 81,
+   "identical": false
+  }
+ },
+ "poisByIdentity": {
+  "count": 81,
+  "missingOrChanged": [
+   {
+    "id": "po_observatory",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_lantern",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_lanternstn",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_viaduct",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_freightyard",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_fracquarry",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_greywater",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_pumphouse",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_confluence",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_sawaion",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_mill",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_kilns",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_ranger",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_glade",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_sapgrove",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_siloc",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_strait",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_ridgestop",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_rapids",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_hook",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_mere",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_timberyard",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_ember",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_slag",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_southfoot",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_gulfhead",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_filter",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_westbank",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_westmouth",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_greyquarry",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_westwood",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_fishcamp",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_oasis",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_bonestop",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_sandgate",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_dpier",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_beacon",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_wreck",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_tidecamp",
+    "keys": [
+     "deep",
+     "elder"
+    ]
+   },
+   {
+    "id": "po_gullnest",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_gullpier",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_netcamp",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_cindercamp",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_obsq",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_emberwatch",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_saltharbor",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_saltpans",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_saltlight",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_racks",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_gullwreck",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_ironharbor",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_ironwh",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_rc_meridian",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_rc_ironvein",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_rc_kestrel",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_rc_dam",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_rc_sandgate",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_rc_salt",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_vend_gulf",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_vend_strait",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_evac_west",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_evac_south",
+    "keys": [
+     "deep"
+    ]
+   },
+   {
+    "id": "po_evac_hook",
+    "keys": [
+     "deep"
+    ]
+   }
+  ]
+ },
+ "detailsOnPois": [],
+ "terrain": {
+  "refSeed": 2026,
+  "appSeed": 2026,
+  "sameElev": true,
+  "sameBiome": true,
+  "cell": 8
+ },
+ "world": {
+  "ref": {
+   "w": 2000,
+   "h": 1400
+  },
+  "app": {
+   "w": 2000,
+   "h": 1400
+  }
+ },
+ "greywaterFoot": {
+  "ref": [
+   [
+    797.3655319998907,
+    571.4339516106331
+   ],
+   [
+    836.4427114405089,
+    585.7004875239418
+   ],
+   [
+    826.6344680001093,
+    612.5660483893669
+   ],
+   [
+    787.5572885594911,
+    598.2995124760582
+   ]
+  ],
+  "app": [
+   [
+    797.3655319998907,
+    571.4339516106331
+   ],
+   [
+    836.4427114405089,
+    585.7004875239418
+   ],
+   [
+    826.6344680001093,
+    612.5660483893669
+   ],
+   [
+    787.5572885594911,
+    598.2995124760582
+   ]
+  ]
+ },
+ "poisNullInsensitiveIdentical": true,
+ "poiNullKeyNote": "63/81 POIs + po_tidecamp(elder) differ only by archived null-valued keys (deep, elder); seed.ts (untouched by the patch) builds them as undefined so JSON.stringify omits them. Stock, layer-independent.",
+ "detailsKeys": [
+  "po_greywater"
+ ],
+ "detailBuildings": 15,
+ "verdict": "GEOGRAPHY_PRESERVED"
+}

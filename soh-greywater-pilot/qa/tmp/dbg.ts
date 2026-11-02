@@ -1,0 +1,10 @@
+import { readFileSync } from "node:fs";
+import { parseProject } from "../../src/maplab/store";
+import { generateDetail, GREYWATER_POI_ID } from "../../src/maplab/detail/generate";
+const raw = readFileSync("reference/04_map_studio_default_seed.sohmap.json", "utf8");
+const p = parseProject(raw);
+const poi = p.pois.find((q) => q.id === GREYWATER_POI_ID)!;
+const d = generateDetail(p, poi);
+console.log("buildings", d.generated.buildings.length, "props", d.generated.props.length, "trees", d.generated.trees.length, "w", d.frame.w, "h", d.frame.h);
+console.log("footLocal", JSON.stringify(d.frame.footLocal));
+console.log("first trees", JSON.stringify(d.generated.trees.slice(0, 3)));

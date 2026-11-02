@@ -1,0 +1,136 @@
+{
+ "when": "2026-11-01T17:33:21.039Z",
+ "results": [
+  {
+   "name": "Elevation brush raises terrain",
+   "ok": true,
+   "info": "Σelev 865330→865567"
+  },
+  {
+   "name": "Undo reverts elevation painting exactly",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Biome brush paints desert cells",
+   "ok": true,
+   "info": "1308→1595"
+  },
+  {
+   "name": "Canal tool creates canal linked to lake/river",
+   "ok": true,
+   "info": "[{\"kind\":\"lake\",\"ref\":\"lk_grey\"},{\"kind\":\"river\",\"ref\":\"rv_grey_low\"}]"
+  },
+  {
+   "name": "Moving a parent river vertex keeps tributary attached (graph still connected)",
+   "ok": true,
+   "info": "HYD-LINK=PASS; parent moved Δ=22u; tributary mouth=river"
+  },
+  {
+   "name": "Deleting a river updates dependants (mouth reset, dead-end flagged)",
+   "ok": true,
+   "info": "mouth=none, HYD-DEAD=WARNING"
+  },
+  {
+   "name": "Smooth proposal does not change map before approval",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Approved smoothing changes coastline",
+   "ok": true,
+   "info": "372:2049062.2 → 252:1371398.7 (đỉnh:chữ ký tọa độ)"
+  },
+  {
+   "name": "Undo reverts automatic smoothing",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Local regeneration changes only the selected region",
+   "ok": true,
+   "info": "inside=120 cells changed, outside=0"
+  },
+  {
+   "name": "POI placement suggestions come with explanations",
+   "ok": true,
+   "info": "#1 Xưởng cưa (4.0) :: Phù hợp «Xưởng cưa» · wood cách 0u · nước ngọt 11u · đường 0u · Rừng lá rộng · nội địa"
+  },
+  {
+   "name": "Applying a suggestion adds exactly one POI",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Quick-create archetype cluster adds a grouped set of POIs",
+   "ok": true,
+   "info": "+4 POI, group size 4"
+  },
+  {
+   "name": "Opportunity / POI-density / build-viability heatmaps render",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Reachability overlay computed from selected POI",
+   "ok": true,
+   "info": "3 overlay layers"
+  },
+  {
+   "name": "Block-a-bridge test registers and re-validates",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Group (Ctrl+G) links objects",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Dragging one grouped object moves the whole group",
+   "ok": true,
+   "info": "[[1330,345],[1280,378]]"
+  },
+  {
+   "name": "Ungroup (Ctrl+Shift+G)",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Duplicate (Ctrl+D)",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Delete removes duplicate",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Locked object cannot be dragged",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Hidden layer objects are not selectable",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Elder tool adds a combat arena to Argus",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Elder view + Ragnarok overlay renders",
+   "ok": true,
+   "info": ""
+  },
+  {
+   "name": "Validation still runs after all edits (no engine error)",
+   "ok": true,
+   "info": ""
+  }
+ ],
+ "errors": []
+}

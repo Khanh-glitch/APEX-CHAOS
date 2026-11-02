@@ -1,0 +1,3456 @@
+diff -ruN a/src/maplab/detail/frame.ts b/src/maplab/detail/frame.ts
+--- a/src/maplab/detail/frame.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/detail/frame.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,192 @@
++// POI Detail Layer — site frame and Map Studio geography sampling.
++//
++// The detail grid is built *from* the POI's authored footprint: the footprint
++// is the site boundary. Nothing here mutates the project; it only reads
++// geography so the village can respect rivers, lakes, roads and biome.
++
++import { catmull, centroid, nearestOnLine, pip } from "../geom";
++import { BIOMES } from "../types";
++import type { Poi, Project, Pt } from "../types";
++import { biomeAt } from "../terrain";
++import type { DetailConnection, DetailFrame, SiteContextInfo, TilePt } from "./types";
++
++export const TILE_PX = 16;      // native pixels per detail tile (same grammar as the prototype)
++export const UNITS_PER_TILE = 1; // 1 detail tile = 1 Map Studio unit
++export const SITE_MARGIN = 4;    // tiles of surrounding world drawn around the site
++
++export interface FrameBuild {
++  frame: DetailFrame;
++  /** site dimensions in tiles */
++  w: number;
++  h: number;
++}
++
++/** Deterministically derive the detail grid from a POI's foot polygon. */
++export function buildFrame(project: Project, poi: Poi): DetailFrame {
++  const foot: Pt[] = (poi.foot && poi.foot.length >= 4)
++    ? poi.foot
++    : rectFoot(poi.at, poi.scale || 1, poi.rot || 0);
++  const c = centroid(foot);
++  // Long edge → local +x. Rotate with the POI so authoring stays predictable.
++  let best = 0, bestLen = -1;
++  for (let i = 0; i < foot.length; i++) {
++    const a = foot[i], b = foot[(i + 1) % foot.length];
++    const l = Math.hypot(b[0] - a[0], b[1] - a[1]);
++    if (l > bestLen) { bestLen = l; best = i; }
++  }
++  const a = foot[best], b = foot[(best + 1) % foot.length];
++  let ux = (b[0] - a[0]) / (bestLen || 1), uy = (b[1] - a[1]) / (bestLen || 1);
++  // Keep +x pointing east-ish so the detail view reads like a map.
++  if (ux < 0) { ux = -ux; uy = -uy; }
++  const vx = -uy, vy = ux;
++  let umin = Infinity, umax = -Infinity, vmin = Infinity, vmax = -Infinity;
++  for (const q of foot) {
++    const du = (q[0] - c[0]) * ux + (q[1] - c[1]) * uy;
++    const dv = (q[0] - c[0]) * vx + (q[1] - c[1]) * vy;
++    umin = Math.min(umin, du); umax = Math.max(umax, du);
++    vmin = Math.min(vmin, dv); vmax = Math.max(vmax, dv);
++  }
++  const w = Math.max(16, Math.floor(umax - umin));
++  const h = Math.max(12, Math.floor(vmax - vmin));
++  const origin: Pt = [c[0] + ux * umin + vx * vmin, c[1] + uy * umin + vy * vmin];
++  const rot = Math.atan2(uy, ux);
++  const footLocal = foot.map((q) => {
++    const du = (q[0] - c[0]) * ux + (q[1] - c[1]) * uy - umin;
++    const dv = (q[0] - c[0]) * vx + (q[1] - c[1]) * vy - vmin;
++    return [round2(du / UNITS_PER_TILE), round2(dv / UNITS_PER_TILE)] as TilePt;
++  });
++  const context = sampleContext(project, poi, w, h, origin, ux, uy, vx, vy);
++  return {
++    w, h, rot, origin: [round2(origin[0]), round2(origin[1])],
++    unitsPerTile: UNITS_PER_TILE, tilePx: TILE_PX,
++    footLocal, footWorld: foot.map((q) => [round2(q[0]), round2(q[1])] as TilePt),
++    context,
++  };
++}
++
++function rectFoot(at: Pt, scale: number, rot: number): Pt[] {
++  const R = 26 * (scale || 1);
++  const w = R * 0.8, h = R * 0.55;
++  return [[-w, -h], [w, -h], [w, h], [-w, h]].map(([x, y]) => [
++    at[0] + x * Math.cos(rot) - y * Math.sin(rot),
++    at[1] + x * Math.sin(rot) + y * Math.cos(rot),
++  ] as Pt);
++}
++
++const round2 = (v: number) => Math.round(v * 100) / 100;
++
++export interface FrameAxes { ux: number; uy: number; vx: number; vy: number }
++export function frameAxes(f: DetailFrame): FrameAxes {
++  const ux = Math.cos(f.rot), uy = Math.sin(f.rot);
++  return { ux, uy, vx: -uy, vy: ux };
++}
++
++export function localToWorld(f: DetailFrame, p: TilePt): Pt {
++  const { ux, uy, vx, vy } = frameAxes(f);
++  const s = f.unitsPerTile;
++  return [f.origin[0] + (ux * p[0] + vx * p[1]) * s, f.origin[1] + (uy * p[0] + vy * p[1]) * s];
++}
++export function worldToLocal(f: DetailFrame, p: Pt): TilePt {
++  const { ux, uy, vx, vy } = frameAxes(f);
++  const dx = p[0] - f.origin[0], dy = p[1] - f.origin[1];
++  return [(dx * ux + dy * uy) / f.unitsPerTile, (dx * vx + dy * vy) / f.unitsPerTile];
++}
++
++export function insideSite(f: DetailFrame, px: number, py: number, inset = 0): boolean {
++  const p: TilePt = [px, py];
++  if (f.footLocal.length < 3) return px >= inset && py >= inset && px <= f.w - inset && py <= f.h - inset;
++  // fast reject in the axis-aligned local box, then exact polygon test
++  if (px < -inset || py < -inset || px > f.w + inset || py > f.h + inset) return false;
++  if (inset > 0) {
++    const xs = f.footLocal.map((q) => q[0]), ys = f.footLocal.map((q) => q[1]);
++    return px >= Math.min(...xs) + inset && px <= Math.max(...xs) - inset && py >= Math.min(...ys) + inset && py <= Math.max(...ys) - inset;
++  }
++  return pip(p, f.footLocal);
++}
++
++function sampleContext(project: Project, poi: Poi, w: number, h: number, origin: Pt, ux: number, uy: number, vx: number, vy: number): SiteContextInfo {
++  const center = localToWorld({ origin, rot: Math.atan2(uy, ux), w, h, unitsPerTile: UNITS_PER_TILE, tilePx: TILE_PX, footLocal: [], footWorld: [], context: emptyCtx() }, [w / 2, h / 2]);
++  const biome = biomeAt(project, center[0], center[1]);
++  let river: SiteContextInfo["nearestRiver"];
++  for (const r of project.rivers) {
++    if (!r.points || r.points.length < 2) continue;
++    const pts = catmull(r.points).pts;
++    const d = nearestOnLine(pts, center).d - (r.width || 1) / 2;
++    if (!river || d < river.distance) river = { id: r.id, name: r.name, distance: round2(d), width: r.width };
++  }
++  let lake: SiteContextInfo["nearestLake"];
++  for (const l of project.lakes) {
++    const d = nearestOnLine(l.ring, center, true).d;
++    if (!lake || d < lake.distance) lake = { id: l.id, name: l.name, distance: round2(d) };
++  }
++  const roadHits: SiteContextInfo["roadHits"] = [];
++  for (const r of project.roads) {
++    if (!r.points || r.points.length < 2) continue;
++    const pts = catmull(r.points).pts;
++    const near = nearestOnLine(pts, center);
++    const d = near.d;
++    if (d > 48) continue;
++    const ang = Math.atan2(near.pt[1] - center[1], near.pt[0] - center[0]);
++    roadHits.push({ id: r.id, name: r.name, kind: r.kind, distance: round2(d), angle: ang });
++  }
++  roadHits.sort((a, b) => a.distance - b.distance);
++  return {
++    biome: BIOMES[biome]?.key || "meadow",
++    biomeName: BIOMES[biome]?.name || "Bình nguyên",
++    nearestRiver: river, nearestLake: lake,
++    roadHits: roadHits.slice(0, 6),
++    poiAt: [round2(poi.at[0]), round2(poi.at[1])],
++  };
++}
++function emptyCtx(): SiteContextInfo {
++  return { biome: "meadow", biomeName: "", roadHits: [], poiAt: [0, 0] };
++}
++
++/** Cardinal gate on the boundary for a world-space direction. */
++export function gateForAngle(angle: number, w: number, h: number): { side: "n" | "s" | "e" | "w"; pt: TilePt } {
++  const dx = Math.cos(angle), dy = Math.sin(angle);
++  const cx = w / 2, cy = h / 2;
++  const cands: { side: "n" | "s" | "e" | "w"; t: number; pt: TilePt }[] = [];
++  if (dx > 1e-6) { const t = (w - cx) / dx; cands.push({ side: "e", t, pt: [w, cy + dy * t] }); }
++  if (dx < -1e-6) { const t = -cx / dx; cands.push({ side: "w", t, pt: [0, cy + dy * t] }); }
++  if (dy > 1e-6) { const t = (h - cy) / dy; cands.push({ side: "s", t, pt: [cx + dx * t, h] }); }
++  if (dy < -1e-6) { const t = -cy / dy; cands.push({ side: "n", t, pt: [cx + dx * t, 0] }); }
++  cands.sort((a, b) => a.t - b.t);
++  const c = cands[0];
++  const pt: TilePt = [clamp(c.pt[0], 2, w - 2), clamp(c.pt[1], 2, h - 2)];
++  return { side: c.side, pt: [Math.round(pt[0]), Math.round(pt[1])] };
++}
++const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
++
++/** Build road connections from the geography the site actually touches. */
++export function buildConnections(f: DetailFrame, centerLocal: TilePt): DetailConnection[] {
++  const out: DetailConnection[] = [];
++  const seen: number[] = [];
++  for (const hit of f.context.roadHits) {
++    // local direction of the road, relative to the site frame
++    const wx = Math.cos(hit.angle), wy = Math.sin(hit.angle);
++    const { ux, uy, vx, vy } = frameAxes(f);
++    const lx = wx * ux + wy * uy;
++    const ly = wx * vx + wy * vy;
++    const ang = Math.atan2(ly, lx);
++    if (seen.some((a) => Math.abs(a - ang) < 0.42)) continue;
++    seen.push(ang);
++    const gate = gateForAngle(ang, f.w, f.h);
++    const anchorWorld = localToWorld(f, gate.pt);
++    const dir = [Math.cos(ang), Math.sin(ang)];
++    const spur: TilePt[] = [
++      centerLocal,
++      gate.pt,
++      [Math.round(gate.pt[0] + dir[0] * SITE_MARGIN), Math.round(gate.pt[1] + dir[1] * SITE_MARGIN)],
++    ];
++    out.push({
++      id: "cx_" + hit.id,
++      roadId: hit.id, roadName: hit.name, roadKind: hit.kind,
++      gate: gate.side, gatePt: gate.pt,
++      anchor: [round2(anchorWorld[0]), round2(anchorWorld[1])],
++      angle: round2(ang),
++      spur,
++    });
++  }
++  return out;
++}
+diff -ruN a/src/maplab/detail/generate.ts b/src/maplab/detail/generate.ts
+--- a/src/maplab/detail/generate.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/detail/generate.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,462 @@
++// POI Detail Layer — deterministic site generation.
++//
++// Composition is authored (a hamlet square with lanes, a hall, cottages, a
++// smithy and a barn), while every seedable detail — roof variants, yard props,
++// tree scatter, names, interior furniture — is derived from the seed plus the
++// Map Studio geography under the site. Same seed + same geography ⇒ byte-equal
++// layout (see layoutHash).
++
++import { hash2, mulberry32 } from "../geom";
++import { biomeAt } from "../terrain";
++import type { Poi, Project, Pt } from "../types";
++import { buildConnections, buildFrame, frameAxes, gateForAngle, insideSite, localToWorld, SITE_MARGIN } from "./frame";
++import type { DetailBuilding, DetailConnection, DetailFence, DetailFrame, DetailPath, DetailProp, DetailTree, GeneratedLayout, PoiDetail, ResolvedPlan, TilePt } from "./types";
++import { EMPTY_OVERRIDES, applyOverrides, layoutHash } from "./types";
++
++const BASE_W = 41, BASE_H = 28;
++
++export const GREYWATER_POI_ID = "po_greywater";
++export const DEFAULT_SEED = 20261102;
++
++/** Generate a fresh detail record (no hand edits). */
++export function generateDetail(project: Project, poi: Poi, seed = DEFAULT_SEED): PoiDetail {
++  const frame = buildFrame(project, poi);
++  const generated = generateLayout(project, poi, frame, seed);
++  return {
++    v: 1, poiId: poi.id, poiName: poi.name, seed, frame, generated,
++    overrides: EMPTY_OVERRIDES(), locked: false, edited: false, hash: hashOf(generated), notes: "",
++  };
++}
++
++/**
++ * Re-run the generator. Hand edits are preserved because they live in
++ * `overrides`, keyed by stable object ids. Orphaned overrides are dropped.
++ */
++export function regenerateDetail(project: Project, poi: Poi, detail: PoiDetail, seed: number): PoiDetail {
++  const frame = buildFrame(project, poi);
++  const generated = generateLayout(project, poi, frame, seed);
++  const ids = new Set([...generated.buildings, ...generated.props, ...generated.trees].map((o) => o.id));
++  const o = detail.overrides;
++  const keep = <T>(m: Record<string, T>) => Object.fromEntries(Object.entries(m).filter(([k]) => ids.has(k)));
++  return {
++    ...detail, seed, frame, generated,
++    overrides: {
++      ...o,
++      buildings: keep(o.buildings) as typeof o.buildings,
++      props: keep(o.props) as typeof o.props,
++      trees: keep(o.trees) as typeof o.trees,
++    },
++    hash: hashOf(generated),
++  };
++}
++
++/** Recompute geometry (frame/context) after the POI itself was edited. */
++export function reframeDetail(project: Project, poi: Poi, detail: PoiDetail): PoiDetail {
++  return { ...detail, frame: buildFrame(project, poi) };
++}
++
++export function resolveDetail(detail: PoiDetail): ResolvedPlan {
++  return applyOverrides(detail.generated, detail.overrides);
++}
++
++export const hashOf = layoutHash;
++
++// ---------------------------------------------------------------- layout ----
++
++interface Lot {
++  id: string; name: string; kind: DetailBuilding["kind"];
++  x: number; y: number; w: number; h: number;
++  wall: DetailBuilding["wall"]; roof: DetailBuilding["roof"]; floor: DetailBuilding["floor"];
++  side: DetailBuilding["door"]["side"];
++  chimney?: boolean; note?: string;
++}
++
++/** Base composition on the 41×28 Greywater footprint. Scaled for other sites. */
++const LOTS: Lot[] = [
++  { id: "b_hall", name: "Greywater Hall", kind: "hall", x: 26, y: 2, w: 10, h: 6, wall: "stone", roof: "tile", floor: "stone", side: "s", chimney: true, note: "Nhà hội làng: nơi họp chợ, kho muối và sổ đinh." },
++  { id: "b_shed", name: "Chái củi", kind: "shed", x: 2, y: 2, w: 4, h: 4, wall: "wood", roof: "wood", floor: "wood", side: "s" },
++  { id: "b_cottage_a", name: "Nhà bà Mây", kind: "cottage", x: 7, y: 2, w: 6, h: 5, wall: "wood", roof: "thatch", floor: "wood", side: "s" },
++  { id: "b_cottage_b", name: "Nhà ông Vện", kind: "cottage", x: 14, y: 2, w: 5, h: 4, wall: "brick", roof: "thatch", floor: "wood", side: "s" },
++  { id: "b_wash", name: "Nhà giặt", kind: "washhouse", x: 2, y: 9, w: 5, h: 4, wall: "stone", roof: "tin", floor: "stone", side: "s", note: "Bể hứng nước mưa và chỗ giặt chung." },
++  { id: "b_cottage_c", name: "Nhà chị Sen", kind: "cottage", x: 8, y: 9, w: 5, h: 4, wall: "wood", roof: "thatch", floor: "wood", side: "s" },
++  { id: "b_pump", name: "Nhà bơm", kind: "pumphouse", x: 13, y: 9, w: 4, h: 4, wall: "brick", roof: "tin", floor: "stone", side: "s", note: "Bơm nước từ sông Greywater lên bể làng." },
++  { id: "b_stable", name: "Chuồng ngựa", kind: "stable", x: 26, y: 10, w: 7, h: 4, wall: "wood", roof: "wood", floor: "wood", side: "s" },
++  { id: "b_storehouse", name: "Quán đầu Đông", kind: "shed", x: 36, y: 9, w: 4, h: 5, wall: "wood", roof: "thatch", floor: "wood", side: "s" },
++  { id: "b_store", name: "Nhà kho Đông", kind: "barn", x: 36, y: 2, w: 4, h: 4, wall: "wood", roof: "tin", floor: "wood", side: "s" },
++  { id: "b_cottage_d", name: "Nhà bác Lâm", kind: "cottage", x: 2, y: 19, w: 5, h: 5, wall: "wood", roof: "tile", floor: "wood", side: "s" },
++  { id: "b_cottage_e", name: "Nhà chú Hợi", kind: "cottage", x: 8, y: 19, w: 6, h: 5, wall: "brick", roof: "thatch", floor: "wood", side: "s" },
++  { id: "b_cottage_f", name: "Nhà cô Thắm", kind: "cottage", x: 15, y: 19, w: 5, h: 4, wall: "wood", roof: "tile", floor: "wood", side: "s" },
++  { id: "b_smithy", name: "Lò rèn", kind: "smithy", x: 26, y: 18, w: 6, h: 5, wall: "stone", roof: "wood", floor: "stone", side: "s", chimney: true, note: "Lò than, đe sắt và bễ thổi." },
++  { id: "b_barn", name: "Kho thóc", kind: "barn", x: 33, y: 18, w: 7, h: 6, wall: "wood", roof: "tin", floor: "wood", side: "s" },
++];
++
++const ROOF_ALT: Record<string, DetailBuilding["roof"][]> = {
++  thatch: ["thatch", "thatch", "wood"], tile: ["tile", "tile", "thatch"], tin: ["tin", "tin", "wood"], wood: ["wood", "wood", "thatch"],
++};
++
++function generateLayout(project: Project, poi: Poi, frame: DetailFrame, seed: number): GeneratedLayout {
++  const w = frame.w, h = frame.h;
++  const sx = w / BASE_W, sy = h / BASE_H;
++  const rng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
++  const sInt = (v: number, s: number, min = 1) => Math.max(min, Math.round(v * s));
++  const center: TilePt = [w / 2, h / 2];
++
++  const ctxBiome = biomeAt(project, ...localToWorld(frame, center));
++
++  // ---- buildings ----
++  const buildings: DetailBuilding[] = [];
++  for (const lot of LOTS) {
++    const bw = sInt(lot.w, sx, 4), bh = sInt(lot.h, sy, 3);
++    const bx = Math.min(w - bw - 1, sInt(lot.x, sx));
++    const by = Math.min(h - bh - 1, sInt(lot.y, sy));
++    if (bx < 1 || by < 1) continue;
++    const roll = hash2(bx * 7 + by, seed & 1023, 11);
++    const roof = roll > 0.82 ? (ROOF_ALT[lot.roof] || [lot.roof])[Math.floor(rng() * 3)] : lot.roof;
++    const name = lot.name;
++    const door = doorTile(bx, by, bw, bh, lot.side);
++    buildings.push({
++      id: `${lot.id}`, name, kind: lot.kind, x: bx, y: by, w: bw, h: bh,
++      wall: lot.wall, roof, floor: lot.floor, door,
++      chimney: !!lot.chimney || hash2(bx, by, 77) > 0.72,
++      props: [], note: lot.note,
++    });
++  }
++
++  // ---- paths: a gently bent main street, a north–south lane, a market plaza ----
++  const paths: DetailPath[] = [];
++  const plaza = { x: 17, y: 11, w: 9, h: 7 };
++  const streetY = 15.5;
++  const laneX = 20;
++  paths.push({ id: "p_main", kind: "dirt", width: 2.6, points: [[0, 16.5], [9, 15.8], [19, 15.3], [29, 15.8], [41, 16.8]] });
++  paths.push({ id: "p_north", kind: "dirt", width: 2.2, points: [[laneX, 0], [laneX + 0.4, 6], [laneX, 11]] });
++  paths.push({ id: "p_south", kind: "dirt", width: 2.2, points: [[laneX, 18], [laneX - 0.5, 22], [laneX, 28]] });
++  const backY = Math.round(h * 0.89);
++  paths.push({ id: "p_back", kind: "dirt", width: 1.6, points: [[3, backY], [w - 3, backY + 0.4]] });
++  paths.push({ id: "p_plaza", kind: "plaza", width: 0, points: [[plaza.x, plaza.y], [plaza.x + plaza.w, plaza.y], [plaza.x + plaza.w, plaza.y + plaza.h], [plaza.x, plaza.y + plaza.h], [plaza.x, plaza.y]] });
++
++  // door paths: step out of the doorway, then elbow onto the nearest lane/plaza edge
++  const network: TilePt[] = [[laneX, streetY], [plaza.x + plaza.w / 2, plaza.y + plaza.h], [plaza.x, streetY], [plaza.x + plaza.w, streetY], [laneX, backY]];
++  for (const b of buildings) {
++    const d = b.door;
++    const out: TilePt = d.side === "n" ? [d.x, d.y - 1] : d.side === "s" ? [d.x, d.y + 1] : d.side === "w" ? [d.x - 1, d.y] : [d.x + 1, d.y];
++    let best = network[0], bd = Infinity;
++    for (const t of network) { const dist = Math.abs(t[0] - d.x) + Math.abs(t[1] - d.y); if (dist < bd) { bd = dist; best = t; } }
++    const elbow: TilePt = d.side === "n" || d.side === "s" ? [d.x, best[1]] : [best[0], d.y];
++    paths.push({ id: `p_door_${b.id}`, kind: "dirt", width: 1, points: simplify([out, elbow, best]) });
++  }
++
++  const junction: TilePt = [laneX, streetY];
++  const connections = buildConnections(frame, junction);
++  const blocked = new Uint8Array(w * h);
++  for (const b of buildings) for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) if (x >= 0 && y >= 0 && x < w && y < h) blocked[y * w + x] = 1;
++  for (const c of connections) {
++    const route = routeBFS(c.gatePt, junction, blocked, w, h);
++    if (route) paths.push({ id: `p_gate_${c.id}`, kind: "dirt", width: 1.6, points: slim(route) });
++  }
++
++  // ---- fences / yards (rail fences with walk-through gates) ----
++  const fences: DetailFence[] = ([
++    { id: "f_a_front", x0: 6.5, y0: 8.6, x1: 13, y1: 8.6, kind: "rail" },
++    { id: "f_a_side", x0: 13, y0: 6, x1: 13, y1: 8.6, kind: "rail" },
++    { id: "f_c_front", x0: 7.5, y0: 13.6, x1: 12.8, y1: 13.6, kind: "rail" },
++    { id: "f_wash_yard", x0: 1.4, y0: 13.6, x1: 6, y1: 13.6, kind: "rail" },
++    { id: "f_d_yard", x0: 2, y0: 24.4, x1: 7.6, y1: 24.4, kind: "rail" },
++    { id: "f_e_yard", x0: 8, y0: 24.4, x1: 13.6, y1: 24.4, kind: "rail" },
++    { id: "f_garden_w", x0: 1.2, y0: 16.4, x1: 1.2, y1: 21, kind: "hedge" },
++    { id: "f_garden_e", x0: 39.4, y0: 22.4, x1: 39.4, y1: 26, kind: "hedge" },
++  ] as DetailFence[]).map((f) => ({ ...f, x0: Math.round(f.x0 * sx * 2) / 2, x1: Math.round(f.x1 * sx * 2) / 2, y0: Math.round(f.y0 * sy * 2) / 2, y1: Math.round(f.y1 * sy * 2) / 2 }));
++
++  // ---- props (authored composition, seeded variants) ----
++  const props: DetailProp[] = [];
++  const P = (type: string, x: number, y: number, solid: boolean, extra: Partial<DetailProp> = {}) => {
++    props.push({ id: `x_${type}_${props.length}`, type, x, y, solid, variant: Math.floor(hash2(props.length, seed, 3) * 4), ...extra });
++  };
++  const px = (v: number) => Math.round(v * sx * 2) / 2;
++  const py = (v: number) => Math.round(v * sy * 2) / 2;
++
++  // village square: well, notice board, signpost, lanterns, market stalls
++  P("well", px(20), py(12.6), true, { interact: { kind: "well", text: "Giếng làng Greywater — múc nước sạch", key: "well" } });
++  P("notice", px(15.6), py(12.4), true, { interact: { kind: "notice", text: "Bảng tin làng", key: "notice" } });
++  P("signpost", px(24.6), py(12.6), true, { interact: { kind: "sign", text: "Ngã tư Greywater", key: "sign" } });
++  P("bench", px(16.5), py(14.2), true, {});
++  P("bench", px(24.2), py(14.2), true, {});
++  P("stall", px(18.2), py(17.4), true, {});
++  P("stall", px(23.4), py(17.4), true, {});
++  P("lantern", px(16.4), py(11.2), true, { interact: { kind: "lantern", text: "Đèn lồng quảng trường", key: "lamp_plaza" } });
++  P("lantern", px(25.2), py(11.4), true, {});
++  P("lantern", px(16.4), py(18.2), true, {});
++  P("lantern", px(25.2), py(18.4), true, {});
++  P("barrel", px(18.6), py(13.4), true, {});
++  P("crate", px(18.6), py(14.1), true, { interact: { kind: "crate", text: "Thùng hàng chợ", charges: 1, key: "crate_market" } });
++  P("crate", px(23.2), py(13.6), true, {});
++  P("bench", px(21.6), py(13.8), true, {});
++  // street furniture along the main lane
++  P("lantern", px(8.2), py(14.4), true, { interact: { kind: "lantern", text: "Đèn đường", key: "lamp_west" } });
++  P("lantern", px(31.4), py(14.4), true, {});
++  P("bench", px(12.4), py(14.2), true, {});
++  P("barrel", px(29.2), py(14.4), true, {});
++  P("cart", px(10.4), py(17.4), true, {});
++  P("haystack", px(12.6), py(17.6), true, {});
++  // hall forecourt (north-east)
++  P("crate", px(30.2), py(9.4), true, { interact: { kind: "crate", text: "Thùng muối của nhà hội", charges: 1, key: "crate_hall" } });
++  P("crate", px(31.2), py(9.4), true, {});
++  P("barrel", px(29.4), py(8.8), true, {});
++  P("bench", px(26.4), py(9.6), true, {});
++  P("woodpile", px(35.4), py(9.2), true, {});
++  // cottage A yard
++  P("woodpile", px(7.4), py(8.2), true, {});
++  P("laundry", px(9.4), py(7.6), false, {});
++  P("bench", px(11.4), py(8.1), true, {});
++  P("garden", px(12.2), py(8.0), false, {});
++  P("crate", px(6.2), py(5.2), true, {});
++  // washhouse + troughs
++  P("trough", px(2.6), py(12.9), true, {});
++  P("barrel", px(5.4), py(13.0), true, {});
++  P("barrel", px(6.0), py(12.2), true, {});
++  P("laundry", px(3.4), py(8.6), false, {});
++  P("reeds", px(1.2), py(12.2), false, {});
++  // cottage C / pump yard
++  P("woodpile", px(12.6), py(13.0), true, {});
++  P("crate", px(9.0), py(13.0), true, {});
++  P("garden", px(10.4), py(13.2), false, {});
++  P("garden", px(11.2), py(13.2), false, {});
++  P("stump", px(15.6), py(8.6), true, {});
++  P("lantern", px(17.2), py(13.8), true, {});
++  // stable / east
++  P("haystack", px(28.4), py(14.4), true, {});
++  P("trough", px(32.6), py(14.4), true, {});
++  P("haystack", px(39.2), py(13.4), true, {});
++  P("cart", px(34.6), py(16.6), true, {});
++  P("crate", px(37.2), py(16.8), true, {});
++  // smithy yard
++  P("anvil", px(25.2), py(20.4), true, {});
++  P("barrel", px(25.4), py(21.4), true, {});
++  P("woodpile", px(32.4), py(20.4), true, {});
++  P("crate", px(32.2), py(21.6), true, { interact: { kind: "crate", text: "Thùng phôi sắt", charges: 1, key: "crate_smithy" } });
++  P("lantern", px(25.6), py(17.4), true, {});
++  // barn / east yard
++  P("haystack", px(39.2), py(17.4), true, {});
++  P("haystack", px(34.4), py(26.2), true, {});
++  P("cart", px(30.4), py(24.4), true, {});
++  P("crate", px(39.2), py(26.2), true, {});
++  P("barrel", px(38.2), py(26.6), true, {});
++  P("trough", px(32.2), py(26.4), true, {});
++  // south courtyards + kitchen gardens
++  P("woodpile", px(18.6), py(24.4), true, {});
++  P("bench", px(3.2), py(24.2), true, {});
++  P("garden", px(9.0), py(24.6), false, {});
++  P("garden", px(10.0), py(24.6), false, {});
++  P("garden", px(11.0), py(24.6), false, {});
++  P("garden", px(12.0), py(24.6), false, {});
++  P("garden", px(13.0), py(24.6), false, {});
++  P("barrel", px(2.4), py(24.4), true, {});
++  P("laundry", px(16.4), py(23.6), false, {});
++  // outer edge detail
++  P("stump", px(1.4), py(2.4), true, {});
++  P("log", px(37.4), py(1.6), true, {});
++  P("reeds", px(1.2), py(19.4), false, {});
++  P("reeds", px(1.2), py(20.2), false, {});
++  P("reeds", px(39.4), py(11.2), false, {});
++
++  // ---- trees ----
++  const reserved = new Uint8Array(w * h);
++  const mark = (x0: number, y0: number, x1: number, y1: number, pad = 1) => {
++    for (let y = Math.floor(y0 - pad); y <= Math.ceil(y1 + pad); y++) for (let x = Math.floor(x0 - pad); x <= Math.ceil(x1 + pad); x++) {
++      if (x >= 0 && y >= 0 && x < w && y < h) reserved[y * w + x] = 1;
++    }
++  };
++  for (const b of buildings) mark(b.x, b.y, b.x + b.w - 1, b.y + b.h - 1, 0);
++  for (const p of paths) {
++    if (p.kind === "plaza") { const xs = p.points.map((q) => q[0]), ys = p.points.map((q) => q[1]); mark(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), 1); }
++    else for (let i = 0; i < p.points.length - 1; i++) {
++      const a = p.points[i], b2 = p.points[i + 1];
++      const steps = Math.ceil(Math.max(Math.abs(b2[0] - a[0]), Math.abs(b2[1] - a[1])) * 2) + 1;
++      for (let k = 0; k <= steps; k++) { const t = k / steps; mark(a[0] + (b2[0] - a[0]) * t, a[1] + (b2[1] - a[1]) * t, a[0] + (b2[0] - a[0]) * t, a[1] + (b2[1] - a[1]) * t, Math.max(0.6, p.width / 2 - 0.35)); }
++    }
++  }
++  for (const p of props) mark(p.x, p.y, p.x, p.y, 0);
++  for (const f of fences) mark(Math.min(f.x0, f.x1), Math.min(f.y0, f.y1), Math.max(f.x0, f.x1), Math.max(f.y0, f.y1), 0.3);
++  for (const b of buildings) mark(b.door.x, b.door.y, b.door.x, b.door.y, 0.6);
++
++  const trees: DetailTree[] = [];
++  const isForest = ctxBiome === 1 || ctxBiome === 2;
++  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
++    if (reserved[y * w + x]) continue;
++    if (!insideSite(frame, x + 0.5, y + 0.5, 0.6)) continue;
++    const dCenter = Math.hypot((x - w / 2) / (w / 2), (y - h / 2) / (h / 2));
++    const edge = Math.max(0, dCenter - 0.5) / 0.5; // 0 centre → 1 edge
++    const hsh = hash2(x, y, seed);
++    const chance = (isForest ? 0.12 : 0.07) + edge * (isForest ? 0.4 : 0.3);
++    if (hsh > chance) continue;
++    // no trees on water
++    const wpt = localToWorld(frame, [x + 0.5, y + 0.5]);
++    if (waterDepth(project, wpt) > 0) continue;
++    const kind: DetailTree["kind"] = hsh < chance * 0.2 ? "bush" : (isForest ? (hsh > 0.7 ? "willow" : "oak") : (hsh > 0.78 ? "pine" : "oak"));
++    trees.push({ id: `t_${x}_${y}`, kind, x: x + 0.2 + hash2(x, y, 5) * 0.6, y: y + 0.2 + hash2(x, y, 6) * 0.6, v: Math.floor(hash2(x, y, 7) * 100) });
++  }
++  // authored street trees / yard trees where the village needs shade
++  const AT: [DetailTree["kind"], number, number][] = [
++    ["oak", 6.2, 16.4], ["oak", 13.4, 16.6], ["willow", 3.2, 10.6], ["oak", 34.6, 8.6],
++    ["willow", 38.4, 15.6], ["oak", 24.8, 6.4], ["oak", 5.4, 21.6], ["pine", 21.6, 3.2],
++    ["bush", 16.6, 16.6], ["bush", 26.2, 16.4], ["oak", 36.4, 26.4], ["willow", 1.6, 24.6],
++  ];
++  for (let k = 0; k < AT.length; k++) {
++    const [kind, ax, ay] = AT[k];
++    const X = px(ax), Y = py(ay);
++    if (X < 1 || Y < 1 || X > w - 2 || Y > h - 2) continue;
++    if (reserved[Math.floor(Y) * w + Math.floor(X)]) continue;
++    trees.push({ id: `ta_${k}`, kind, x: X, y: Y, v: Math.floor(hash2(k, 9, 3) * 100) });
++  }
++
++  // a wooded frame just outside the site boundary — the hamlet should sit *in*
++  // the Greywater woods, not on a floating green rectangle
++  for (let y = -SITE_MARGIN + 1; y < h + SITE_MARGIN - 1; y++) for (let x = -SITE_MARGIN + 1; x < w + SITE_MARGIN - 1; x++) {
++    if (insideSite(frame, x + 0.5, y + 0.5, 1.5)) continue;
++    if (x < -2 || y < -2 || x > w + 1 || y > h + 1) continue;
++    const hsh = hash2(x, y, seed ^ 0x51ed);
++    if (hsh > 0.46) continue;
++    const wpt = localToWorld(frame, [x + 0.5, y + 0.5]);
++    if (waterDepth(project, wpt) > 0) continue;
++    const kind: DetailTree["kind"] = hsh < 0.1 ? "bush" : isForest ? (hsh > 0.62 ? "pine" : "oak") : (hsh > 0.7 ? "pine" : "oak");
++    trees.push({ id: `tm_${x}_${y}`, kind, x: x + 0.15 + hash2(x, y, 8) * 0.7, y: y + 0.15 + hash2(x, y, 9) * 0.7, v: Math.floor(hash2(x, y, 10) * 100) });
++  }
++
++  // ---- interiors (furniture inside each footprint) ----
++  for (const b of buildings) b.props = interiorFor(b, seed);
++
++  const spawn: TilePt = [laneX + 0.6, h - 3.2];
++  const summary = `${buildings.length} nhà · ${props.length} vật thể · ${trees.length} cây · ${connections.length} lối vào từ đường Map Studio`;
++
++  return {
++    seed, buildings, props, trees, paths, fences, connections, spawn, summary,
++  };
++}
++
++
++function doorTile(x: number, y: number, w: number, h: number, side: DetailBuilding["door"]["side"]): DetailBuilding["door"] {
++  switch (side) {
++    case "n": return { x: x + (w >> 1), y, side };
++    case "s": return { x: x + (w >> 1), y: y + h - 1, side };
++    case "w": return { x, y: y + (h >> 1), side };
++    default: return { x: x + w - 1, y: y + (h >> 1), side: "e" };
++  }
++}
++
++function interiorFor(b: DetailBuilding, seed: number): DetailProp[] {
++  const out: DetailProp[] = [];
++  const r = mulberry32((seed ^ (b.x * 31 + b.y * 17 + b.w * 7 + b.h)) >>> 0);
++  const free = new Set<string>();
++  for (let y = b.y + 1; y < b.y + b.h - 1; y++) for (let x = b.x + 1; x < b.x + b.w - 1; x++) free.add(`${x},${y}`);
++  const put = (type: string, dx: number, dy: number, solid: boolean) => {
++    for (let k = 0; k < 12; k++) {
++      const x = b.x + Math.max(1, Math.min(b.w - 2, dx + (k > 3 ? (k % 3) - 1 : 0)));
++      const y = b.y + Math.max(1, Math.min(b.h - 2, dy + (k > 6 ? (k % 2) : 0)));
++      const key = `${x},${y}`;
++      if (free.has(key)) {
++        free.delete(key);
++        out.push({ id: `${b.id}_${type}_${out.length}`, type, x, y, solid, variant: Math.floor(r() * 4) });
++        return;
++      }
++    }
++  };
++  switch (b.kind) {
++    case "hall":
++      put("hearth", 2, 2, true); put("table", 5, 3, true); put("shelf", 7, 2, true);
++      put("barrel", 8, 4, true); put("chest", 2, 4, true); put("stool", 4, 3, false); put("stool", 6, 2, false);
++      break;
++    case "smithy":
++      put("forge", 2, 2, true); put("anvil_i", 4, 3, true); put("barrel", 1, 3, true); put("shelf", 3, 1, true);
++      break;
++    case "barn":
++      put("hay", 2, 2, true); put("hay", 3, 3, true); put("sack", 1, 3, true); put("crate", 5, 2, true); put("crate", 5, 3, true);
++      break;
++    case "washhouse":
++      put("tub", 2, 2, true); put("tub", 1, 2, true); put("shelf", 3, 1, true);
++      break;
++    case "shed":
++      put("crate", 1, 1, true); put("woodpile_i", 2, 2, true); put("sack", 1, 2, true);
++      break;
++    default:
++      put("bed", 1, 1, true); put("table", 3, 2, true); put("hearth", 1, 2, true); put("stool", 2, 2, false); put("chest", 3, 1, true);
++      if (r() > 0.4) put("sack", 1, 3, false); if (r() > 0.6) put("pot", 1, 3, false);
++  }
++  return out;
++}
++
++/** >0 when the point is under water (river/lake), in Map Studio units. */
++export function waterDepth(project: Project, p: Pt): number {
++  let depth = 0;
++  for (const r of project.rivers) {
++    if (!r.points || r.points.length < 2) continue;
++    const half = Math.max(0.6, (r.width || 1) / 2);
++    let best = Infinity;
++    for (let i = 0; i < r.points.length - 1; i++) {
++      const a = r.points[i], b = r.points[i + 1];
++      const dx = b[0] - a[0], dy = b[1] - a[1];
++      const l2 = dx * dx + dy * dy;
++      let t = l2 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2 : 0;
++      t = Math.max(0, Math.min(1, t));
++      best = Math.min(best, Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy));
++    }
++    if (best < half) depth = Math.max(depth, half - best);
++  }
++  for (const l of project.lakes) {
++    if (pointInRing(p, l.ring)) depth = Math.max(depth, 1);
++  }
++  return depth;
++}
++function pointInRing(p: Pt, ring: Pt[]): boolean {
++  let inside = false;
++  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
++    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
++    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside;
++  }
++  return inside;
++}
++
++/** 4-dir BFS around blocked tiles; returns tile path or null. */
++function routeBFS(a: TilePt, b: TilePt, blocked: Uint8Array, w: number, h: number): TilePt[] | null {
++  const sx = Math.max(0, Math.min(w - 1, Math.round(a[0]))), sy = Math.max(0, Math.min(h - 1, Math.round(a[1])));
++  const gx = Math.max(0, Math.min(w - 1, Math.round(b[0]))), gy = Math.max(0, Math.min(h - 1, Math.round(b[1])));
++  const prev = new Int32Array(w * h).fill(-1);
++  const seen = new Uint8Array(w * h);
++  const q: number[] = [sy * w + sx]; seen[sy * w + sx] = 1;
++  for (let head = 0; head < q.length; head++) {
++    const i = q[head];
++    if (i === gy * w + gx) {
++      const out: TilePt[] = [];
++      for (let k = i; k !== -1; k = prev[k]) out.push([k % w, Math.floor(k / w)]);
++      return out.reverse();
++    }
++    const x = i % w, y = Math.floor(i / w);
++    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) {
++      const nx = x + dx, ny = y + dy;
++      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
++      const j = ny * w + nx;
++      if (seen[j] || blocked[j]) continue;
++      seen[j] = 1; prev[j] = i; q.push(j);
++    }
++  }
++  return null;
++}
++
++function slim(pts: TilePt[]): TilePt[] {
++  if (pts.length < 3) return pts;
++  const out: TilePt[] = [pts[0]];
++  for (let i = 1; i < pts.length - 1; i++) {
++    const a = out[out.length - 1], b = pts[i], c = pts[i + 1];
++    const cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
++    if (cross !== 0) out.push(b);
++  }
++  out.push(pts[pts.length - 1]);
++  return out;
++}
++
++function simplify(pts: TilePt[]): TilePt[] {
++  const out: TilePt[] = [];
++  for (const p of pts) { const l = out[out.length - 1]; if (!l || Math.hypot(l[0] - p[0], l[1] - p[1]) > 0.4) out.push([Math.round(p[0] * 2) / 2, Math.round(p[1] * 2) / 2]); }
++  return out.length > 1 ? out : pts;
++}
++
++export { gateForAngle, frameAxes, SITE_MARGIN };
++export type { DetailConnection };
+diff -ruN a/src/maplab/detail/grid.ts b/src/maplab/detail/grid.ts
+--- a/src/maplab/detail/grid.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/detail/grid.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,178 @@
++// POI Detail Layer — ground/collision raster shared by renderer, play mode and QA.
++
++import { biomeAt } from "../terrain";
++import { hash2 } from "../geom";
++import type { Project } from "../types";
++import { frameAxes, localToWorld, SITE_MARGIN } from "./frame";
++import type { DetailFrame, ResolvedPlan, TilePt } from "./types";
++import { waterDepth } from "./generate";
++
++export type Ground = "grass" | "meadow" | "forest" | "marsh" | "sand" | "water" | "dirt" | "stone" | "plaza" | "floor_wood" | "floor_stone" | "wall" | "door";
++
++export interface SiteGrid {
++  x0: number; y0: number; W: number; H: number;
++  base: Ground[];
++  ground: Ground[];
++  water: Uint8Array;
++  pathMask: Uint8Array;
++  /** static collision: walls, furniture, solid props, tree trunks, water */
++  solid: Uint8Array;
++  buildingId: (string | null)[];
++  /** tile is inside a building footprint (for roof occlusion + interiors) */
++  interior: Uint8Array;
++}
++
++const waterCache = new WeakMap<object, Uint8Array>();
++function waterMask(project: Project, frame: DetailFrame, x0: number, y0: number, W: number, H: number): Uint8Array {
++  const hit = waterCache.get(frame);
++  if (hit && hit.length === W * H) return hit;
++  const out = new Uint8Array(W * H);
++  for (let y = y0; y < y0 + H; y++) for (let x = x0; x < x0 + W; x++) {
++    const p = localToWorld(frame, [x + 0.5, y + 0.5]);
++    if (waterDepth(project, p) > 0) out[(y - y0) * W + (x - x0)] = 1;
++  }
++  waterCache.set(frame, out);
++  return out;
++}
++
++export function makeGrid(project: Project, frame: DetailFrame, plan: ResolvedPlan): SiteGrid {
++  const x0 = -SITE_MARGIN, y0 = -SITE_MARGIN;
++  const W = frame.w + SITE_MARGIN * 2, H = frame.h + SITE_MARGIN * 2;
++  const N = W * H;
++  const base: Ground[] = new Array(N).fill("grass");
++  const ground: Ground[] = new Array(N).fill("grass");
++  const water = new Uint8Array(N);
++  const pathMask = new Uint8Array(N);
++  const solid = new Uint8Array(N);
++  const buildingId: (string | null)[] = new Array(N).fill(null);
++  const interior = new Uint8Array(N);
++  const idx = (x: number, y: number) => (y - y0) * W + (x - x0);
++  const inb = (x: number, y: number) => x >= x0 && y >= y0 && x < x0 + W && y < y0 + H;
++  const waterM = waterMask(project, frame, x0, y0, W, H);
++
++  // ---- geography under the site (read-only) ----
++  const biome = biomeAt(project, ...localToWorld(frame, [frame.w / 2, frame.h / 2]));
++  const defaultGround: Ground = biome === 2 ? "forest" : biome === 1 ? "forest" : biome === 4 ? "marsh" : biome === 0 ? "meadow" : biome === 11 ? "sand" : "grass";
++  for (let y = y0; y < y0 + H; y++) for (let x = x0; x < x0 + W; x++) {
++    const p = localToWorld(frame, [x + 0.5, y + 0.5]);
++    const i = idx(x, y);
++    if (waterM[i]) { water[i] = 1; base[i] = "water"; }
++    else {
++      // dither the biome lookup at tile scale so Map Studio's 8u cells do not
++      // show up as hard rectangles inside the site
++      let bx = p[0], by = p[1];
++      if (hash2(x, y, 71) < 0.34) { bx += (hash2(x, y, 72) - 0.5) * 9; by += (hash2(x, y, 73) - 0.5) * 9; }
++      const b = biomeAt(project, bx, by);
++      base[i] = b === 4 ? "marsh" : b === 11 ? "sand" : b === 2 ? "forest" : b === 1 ? "forest" : b === 0 ? "meadow" : defaultGround;
++    }
++    ground[i] = base[i];
++  }
++
++  // ---- paths ----
++  const stampPath = (x: number, y: number, kind: Ground) => {
++    if (!inb(x, y)) return;
++    const i = idx(x, y);
++    if (water[i]) return;
++    pathMask[i] = 1;
++    ground[i] = kind;
++  };
++  for (const p of plan.paths) {
++    const gk: Ground = p.kind === "plaza" ? "plaza" : p.kind === "stone" ? "stone" : "dirt";
++    if (p.kind === "plaza") {
++      const xs = p.points.map((q) => q[0]), ys = p.points.map((q) => q[1]);
++      for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++)
++        for (let x = Math.floor(Math.min(...xs)); x <= Math.ceil(Math.max(...xs)); x++) stampPath(x, y, gk);
++      continue;
++    }
++    const half = Math.max(0.5, p.width / 2);
++    for (let i = 0; i < p.points.length - 1; i++) {
++      const a = p.points[i], b = p.points[i + 1];
++      const steps = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 3) + 1;
++      for (let k = 0; k <= steps; k++) {
++        const t = k / steps;
++        const cx = a[0] + (b[0] - a[0]) * t, cy = a[1] + (b[1] - a[1]) * t;
++        const r = Math.ceil(half);
++        for (let dy = -r - 1; dy <= r + 1; dy++) for (let dx = -r - 1; dx <= r + 1; dx++) {
++          const tx = Math.floor(cx) + dx, ty = Math.floor(cy) + dy;
++          // ragged, hand-worn edge: per-tile jitter instead of a clean circle
++          const jitter = (hash2(tx, ty, 17) - 0.5) * 1.05;
++          if (Math.hypot(dx + 0.5, dy + 0.5) <= half + 0.25 + jitter) stampPath(tx, ty, gk);
++        }
++      }
++    }
++  }
++
++  // ---- buildings ----
++  for (const b of plan.buildings) {
++    for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) {
++      if (!inb(x, y)) continue;
++      const i = idx(x, y);
++      const edge = x === b.x || y === b.y || x === b.x + b.w - 1 || y === b.y + b.h - 1;
++      const isDoor = x === b.door.x && y === b.door.y;
++      buildingId[i] = b.id;
++      interior[i] = 1;
++      pathMask[i] = 0;
++      if (isDoor) { ground[i] = "door"; solid[i] = 0; }
++      else if (edge) { ground[i] = "wall"; solid[i] = 1; }
++      else { ground[i] = b.floor === "stone" ? "floor_stone" : "floor_wood"; solid[i] = 0; }
++    }
++    for (const p of b.props) {
++      if (p.solid && inb(p.x, p.y)) solid[idx(p.x, p.y)] = 1;
++    }
++  }
++
++  // ---- exterior props + tree trunks ----
++  for (const p of plan.props) {
++    if (p.solid && inb(Math.floor(p.x), Math.floor(p.y))) solid[idx(Math.floor(p.x), Math.floor(p.y))] = 1;
++  }
++  for (const t of plan.trees) {
++    if (!inb(Math.floor(t.x), Math.floor(t.y))) continue;
++    if (t.kind === "bush") continue;
++    solid[idx(Math.floor(t.x), Math.floor(t.y))] = 1;
++  }
++  // fences block their line, leaving a walk-through gate every 6 posts
++  for (const f of plan.fences) {
++    const n = Math.ceil(Math.hypot(f.x1 - f.x0, f.y1 - f.y0));
++    for (let k = 0; k <= n; k++) {
++      if (k % 6 === 3) continue;
++      const t = n ? k / n : 0;
++      const x = Math.round(f.x0 + (f.x1 - f.x0) * t), y = Math.round(f.y0 + (f.y1 - f.y0) * t);
++      if (inb(x, y)) solid[idx(x, y)] = 1;
++    }
++  }
++
++  return { x0, y0, W, H, base, ground, water, pathMask, solid, buildingId, interior };
++}
++
++export function gridIndex(g: SiteGrid, x: number, y: number): number {
++  const gx = Math.floor(x) - g.x0, gy = Math.floor(y) - g.y0;
++  if (gx < 0 || gy < 0 || gx >= g.W || gy >= g.H) return -1;
++  return gy * g.W + gx;
++}
++export function groundAt(g: SiteGrid, x: number, y: number): Ground {
++  const i = gridIndex(g, x, y);
++  return i < 0 ? "grass" : g.ground[i];
++}
++export function solidAt(g: SiteGrid, x: number, y: number): boolean {
++  const i = gridIndex(g, x, y);
++  return i < 0 ? true : !!g.solid[i];
++}
++export function buildingAt(g: SiteGrid, x: number, y: number): string | null {
++  const i = gridIndex(g, x, y);
++  return i < 0 ? null : g.buildingId[i];
++}
++export function insideInterior(g: SiteGrid, x: number, y: number): boolean {
++  const i = gridIndex(g, x, y);
++  return i < 0 ? false : !!g.interior[i];
++}
++
++/** Tile coordinate → pixel rect inside the detail canvas (margin included). */
++export function tilePx(frame: DetailFrame, x: number, y: number): TilePt {
++  return [(x - -SITE_MARGIN) * frame.tilePx, (y - -SITE_MARGIN) * frame.tilePx];
++}
++
++export function canvasSize(frame: DetailFrame): { w: number; h: number } {
++  return { w: (frame.w + SITE_MARGIN * 2) * frame.tilePx, h: (frame.h + SITE_MARGIN * 2) * frame.tilePx };
++}
++
++export { SITE_MARGIN, frameAxes };
+diff -ruN a/src/maplab/detail/play.ts b/src/maplab/detail/play.ts
+--- a/src/maplab/detail/play.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/detail/play.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,211 @@
++// POI Detail Layer — walk-and-interact session for the Greywater pilot.
++// Movement, tile collision, roof-aware interiors and finite interactions.
++// Deterministic: no Math.random in simulation, only in cosmetic particles.
++
++import { hash2 } from "../geom";
++import { buildingAt, gridIndex, type SiteGrid } from "./grid";
++import type { DetailProp, ResolvedPlan, TilePt } from "./types";
++
++export type Dir = 0 | 1 | 2 | 3; // down, left, right, up (prototype convention)
++
++export interface Particle { x: number; y: number; vx: number; vy: number; col: string; life: number; max: number }
++
++export interface PlaySession {
++  x: number; y: number;
++  vx: number; vy: number;
++  dir: Dir;
++  moving: boolean;
++  anim: number;
++  inside: string | null;
++  counters: { water: number; supplies: number; reads: number; lamps: number };
++  used: Record<string, boolean>;
++  lamps: Record<string, boolean>;
++  toast: string;
++  toastT: number;
++  noticeOpen: boolean;
++  particles: Particle[];
++  target: { id: string; label: string; kind: string; kindLabel: string } | null;
++  steps: number;
++}
++
++const RADIUS = 0.3;
++const SPEED = 3.1; // tiles / second
++
++export function createSession(plan: ResolvedPlan, saved?: { water?: number; supplies?: number; reads?: number; lamps?: number; used?: Record<string, boolean>; lampsOn?: Record<string, boolean> }): PlaySession {
++  return {
++    x: plan.spawn[0], y: plan.spawn[1], vx: 0, vy: 0, dir: 3, moving: false, anim: 0,
++    inside: null,
++    counters: { water: saved?.water || 0, supplies: saved?.supplies || 0, reads: saved?.reads || 0, lamps: saved?.lamps || 0 },
++    used: { ...(saved?.used || {}) },
++    lamps: { ...(saved?.lampsOn || {}) },
++    toast: "", toastT: 0, noticeOpen: false, particles: [], target: null, steps: 0,
++  };
++}
++
++export interface PlayInput { up: boolean; down: boolean; left: boolean; right: boolean }
++
++export function stepSession(s: PlaySession, grid: SiteGrid, plan: ResolvedPlan, dt: number, input: PlayInput) {
++  const sp = SPEED * dt;
++  let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
++  let dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
++  const len = Math.hypot(dx, dy);
++  if (len > 0) { dx /= len; dy /= len; }
++  const moving = len > 0;
++  s.moving = moving;
++  if (moving) {
++    // prototype dir convention: 0 down, 1 left, 2 right, 3 up
++    if (Math.abs(dy) > Math.abs(dx)) s.dir = dy > 0 ? 0 : 3;
++    else s.dir = dx > 0 ? 2 : 1;
++    s.anim += dt * 7;
++    s.steps += dt;
++  } else {
++    s.anim += dt * 1.6;
++  }
++
++  const tryMove = (nx: number, ny: number) => {
++    if (!blocked(grid, nx, s.y)) s.x = nx;
++    if (!blocked(grid, s.x, ny)) s.y = ny;
++  };
++  // axis-separated so wall sliding feels right
++  tryMove(s.x + dx * sp, s.y + dy * sp);
++
++  s.vx = dx; s.vy = dy;
++  s.inside = insideBuilding(grid, s.x, s.y);
++  updateTarget(s, plan);
++  updateParticles(s, dt);
++  if (s.toastT > 0) { s.toastT -= dt; if (s.toastT <= 0) s.toast = ""; }
++}
++
++function blocked(grid: SiteGrid, x: number, y: number): boolean {
++  const pts: TilePt[] = [[x, y], [x + RADIUS, y], [x - RADIUS, y], [x, y + RADIUS], [x, y - RADIUS], [x + RADIUS, y + RADIUS], [x - RADIUS, y - RADIUS], [x + RADIUS, y - RADIUS], [x - RADIUS, y + RADIUS]];
++  for (const [px, py] of pts) {
++    const i = gridIndex(grid, px, py);
++    if (i < 0) return true;
++    if (grid.solid[i]) return true;
++    if (grid.water[i]) return true;
++  }
++  return false;
++}
++
++export function insideBuilding(grid: SiteGrid, x: number, y: number): string | null {
++  const i = gridIndex(grid, x, y);
++  if (i < 0) return null;
++  const id = grid.buildingId[i];
++  if (!id) return null;
++  const gr = grid.ground[i];
++  return gr === "wall" ? null : id;
++}
++
++const KIND_LABEL: Record<string, string> = { well: "Giếng nước", crate: "Thùng đồ", notice: "Bảng tin", sign: "Biển chỉ dẫn", lantern: "Đèn lồng", door: "Cửa", bench: "Ghế" };
++
++function updateTarget(s: PlaySession, plan: ResolvedPlan) {
++  let best: PlaySession["target"] = null;
++  let bd = 1.55;
++  for (const p of plan.props) {
++    if (!p.interact) continue;
++    const d = Math.hypot(p.x + 0.5 - s.x, p.y + 0.5 - s.y);
++    if (d < bd) {
++      bd = d;
++      const used = p.interact.key ? s.used[p.interact.key] : false;
++      const label = p.interact.kind === "crate" && used ? "Thùng đã lấy hết" : (p.interact.text || KIND_LABEL[p.interact.kind] || p.type);
++      best = { id: p.id, label, kind: p.interact.kind, kindLabel: KIND_LABEL[p.interact.kind] || p.type };
++    }
++  }
++  if (!best) {
++    for (const b of plan.buildings) {
++      const d = Math.hypot(b.door.x + 0.5 - s.x, b.door.y + 0.5 - s.y);
++      if (d < 1.2) {
++        best = { id: b.id, label: `${b.name} — ${s.inside === b.id ? "đang ở trong" : "cửa vào"}`, kind: "door", kindLabel: KIND_LABEL.door };
++        break;
++      }
++    }
++  }
++  s.target = best;
++}
++
++export interface InteractResult { ok: boolean; message: string; openNotice?: boolean; sound?: "water" | "pickup" | "read" | "lamp" | "none" }
++
++export function interact(s: PlaySession, plan: ResolvedPlan): InteractResult {
++  const t = s.target;
++  if (!t) return { ok: false, message: "Không có gì để dùng ở đây" };
++  const p = plan.props.find((q) => q.id === t.id);
++  if (!p || !p.interact) {
++    if (t.kind === "door") return { ok: true, message: "Bước qua cửa để vào nhà — mái sẽ mờ đi khi bạn ở trong." };
++    return { ok: false, message: "Không dùng được" };
++  }
++  const it = p.interact;
++  switch (it.kind) {
++    case "well": {
++      s.counters.water++;
++      burst(s, p.x + 0.5, p.y + 0.3, ["#bfeaff", "#ffffff", "#6ab0d8"], 12);
++      return { ok: true, message: `Múc nước sạch +1 · tổng ${s.counters.water}`, sound: "water" };
++    }
++    case "crate": {
++      if (it.key && s.used[it.key]) return { ok: false, message: "Thùng này đã lấy hết." };
++      if (it.key) s.used[it.key] = true;
++      s.counters.supplies++;
++      burst(s, p.x + 0.5, p.y + 0.3, ["#ffe27a", "#c9935a", "#ffffff"], 10);
++      return { ok: true, message: `Nhặt vật tư +1 · tổng ${s.counters.supplies} (muối, dây, đinh)`, sound: "pickup" };
++    }
++    case "notice": {
++      s.counters.reads++;
++      return { ok: true, message: "Đọc bảng tin làng Greywater", openNotice: true, sound: "read" };
++    }
++    case "sign": {
++      s.counters.reads++;
++      burst(s, p.x + 0.5, p.y + 0.2, ["#fff0c0", "#ffe27a"], 6);
++      return { ok: true, message: "Biển chỉ dẫn: Đông → bến sông · Tây → rừng già · Bắc → hồ Greywater · Nam → đường mòn Elderwood", sound: "read" };
++    }
++    case "lantern": {
++      const key = it.key || p.id;
++      s.lamps[key] = !s.lamps[key];
++      s.counters.lamps++;
++      burst(s, p.x + 0.5, p.y + 0.2, ["#ffd070", "#ffb040", "#fff0b0"], 8);
++      return { ok: true, message: s.lamps[key] ? "Thắp đèn lồng — quảng trường sáng hơn" : "Tắt đèn lồng", sound: "lamp" };
++    }
++    default:
++      return { ok: false, message: "Không dùng được" };
++  }
++}
++
++function burst(s: PlaySession, x: number, y: number, cols: string[], n: number) {
++  for (let i = 0; i < n; i++) {
++    if (s.particles.length > 120) break;
++    const a = (i / n) * Math.PI * 2 + hash2(i, Math.round(x * 10), 3) * 0.6;
++    const sp = 0.6 + hash2(i, Math.round(y * 10), 5) * 1.2;
++    s.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.1, col: cols[i % cols.length], life: 0, max: 0.5 + hash2(i, 1, 7) * 0.5 });
++  }
++}
++
++function updateParticles(s: PlaySession, dt: number) {
++  for (let i = s.particles.length - 1; i >= 0; i--) {
++    const p = s.particles[i];
++    p.life += dt;
++    if (p.life >= p.max) { s.particles.splice(i, 1); continue; }
++    p.x += p.vx * dt; p.y += p.vy * dt;
++    p.vy += 3.2 * dt; p.vx *= 0.97;
++  }
++}
++
++export function sessionSave(s: PlaySession) {
++  return { water: s.counters.water, supplies: s.counters.supplies, reads: s.counters.reads, lamps: s.counters.lamps, used: s.used, lampsOn: s.lamps };
++}
++
++export function propAt(plan: ResolvedPlan, x: number, y: number): DetailProp | null {
++  let best: DetailProp | null = null, bd = 0.9;
++  for (const p of plan.props) {
++    const d = Math.hypot(p.x + 0.5 - x, p.y + 0.5 - y);
++    if (d < bd) { bd = d; best = p; }
++  }
++  return best;
++}
++
++export const NOTICE_TEXT = [
++  "BẢNG TIN LÀNG GREYWATER",
++  "— Mùa nước lớn: ghe từ Bến Bắc ghé cầu gỗ lúc chiều.",
++  "— Nhà hội giữ muối và sổ đinh; ai lấy nhớ ghi tên.",
++  "— Lò rèn nhận sửa lưỡi hái, đổi than lấy phôi sắt.",
++  "— Đêm nay có đèn ở quảng trường; đi đường mòn Elderwood cẩn thận.",
++  "",
++  "(Bảng tin do POI Detail Layer đặt — nội dung là hư cấu, không phải canon.)",
++].join("\n");
+diff -ruN a/src/maplab/detail/proto-art.ts b/src/maplab/detail/proto-art.ts
+--- a/src/maplab/detail/proto-art.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/detail/proto-art.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,179 @@
++/* eslint-disable */
++// ============================================================================
++// REUSED FROM THE ORIGINAL PROTOTYPE
++// Source: Soul of Hero browser prototype, `src/game/art.ts` and `src/game/render.ts`
++// (input archive 01_original_prototype.zip, sha256 fa95538271fd…).
++//
++// Reuse is direct for: the sprite `mk`/outline pipeline, pixel primitives,
++// the hero sprite sheets (HEAD/HEAD_F/drawHero/buildHero), the terrain palette
++// and the texel variation logic, and the shadow mask builder.
++// Adaptations are marked `// ADAPTED:` — they only decouple the code from the
++// prototype's RunState / world singleton so it can serve a POI site.
++// New village props live in `sprites.ts`; they are newly authored but use the
++// same primitives, palette discipline and 1px outline convention.
++// ============================================================================
++
++import { hash2 } from "../geom";
++
++export type G = CanvasRenderingContext2D;
++export type Sprite = HTMLCanvasElement;
++export const OUT = "#140c14";
++
++export function mk(w: number, h: number, fn: (g: G) => void, outline: string | null = OUT): Sprite {
++  const c = document.createElement("canvas"); c.width = w; c.height = h;
++  const g = c.getContext("2d")!; g.imageSmoothingEnabled = false; fn(g);
++  if (outline) outlineCanvas(c, outline);
++  return c;
++}
++export function outlineCanvas(c: Sprite, col: string) {
++  const g = c.getContext("2d")!; const d = g.getImageData(0, 0, c.width, c.height); const a = d.data;
++  const W = c.width, H = c.height; const src = new Uint8Array(W * H);
++  for (let i = 0; i < W * H; i++) src[i] = a[i * 4 + 3] > 40 ? 1 : 0;
++  const [r, gg, b] = hex(col);
++  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
++    const i = y * W + x; if (src[i]) continue;
++    if ((x > 0 && src[i - 1]) || (x < W - 1 && src[i + 1]) || (y > 0 && src[i - W]) || (y < H - 1 && src[i + W])) {
++      a[i * 4] = r; a[i * 4 + 1] = gg; a[i * 4 + 2] = b; a[i * 4 + 3] = 255;
++    }
++  }
++  g.putImageData(d, 0, 0);
++}
++export function hex(c: string): [number, number, number] {
++  const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
++}
++export const P = (g: G, x: number, y: number, c: string) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, 1, 1); };
++export const R = (g: G, x: number, y: number, w: number, h: number, c: string) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, w | 0, h | 0); };
++export function ell(g: G, cx: number, cy: number, rx: number, ry: number, c: string | ((nx: number, ny: number, x: number, y: number) => string | null)) {
++  for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
++    const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry; if (nx * nx + ny * ny > 1) continue;
++    const col = typeof c === "string" ? c : c(nx, ny, x, y); if (col) P(g, x, y, col);
++  }
++}
++export const shade = (b: string, l: string, d: string, s = 0) => (nx: number, ny: number, x: number, y: number) => {
++  const v = -nx * 0.55 - ny * 0.8 + (hash2(x, y, s) - 0.5) * 0.35;
++  return v > 0.45 ? l : v < -0.35 ? d : b;
++};
++export function strs(g: G, ox: number, oy: number, rows: string[], pal: Record<string, string>, flip = false) {
++  rows.forEach((row, y) => {
++    for (let x = 0; x < row.length; x++) { const ch = row[flip ? row.length - 1 - x : x]; if (ch !== "." && pal[ch]) P(g, ox + x, oy + y, pal[ch]); }
++  });
++}
++
++// ===================== HERO (reused verbatim) =====================
++const HEAD: Record<string, string[]> = {
++  down: ['...hhhh...', '.hhhhhhhh.', 'hhhHhhHhhh', 'hHssssssHh', 'hseesseesh', 'hssssssssh', '.sssSSsss.', '..ssssss..', '...SSSS...'],
++  side: ['..hhhhh...', '.hhhhhhhh.', 'hhhhhhhhh.', 'hhhhsssss.', 'hhhssssesS', 'hhHsssssss', '.hHssssSs.', '..hsssss..', '...SSSS...'],
++  up: ['...hhhh...', '.hhhhhhhh.', 'hhhhhhhhhh', 'hhhHhhHhhh', 'hhhhhhhhhh', 'hhHhhhhHhh', '.hhhhhhhh.', '.hHhhhhHh.', '...SSSS...'],
++};
++const HEAD_F: Record<string, string[]> = {
++  down: ['..hhhhhh..', '.hhhhhhhh.', 'hhhhHHhhhh', 'hhssssssHh', 'hseesseesh', 'hssssssssh', 'hsssSSsssh', 'h.ssssss.h', 'h..SSSS..h'],
++  side: ['..hhhhhh..', '.hhhhhhhhh', 'hhhhhhhhhh', 'hhhhsssss.', 'hhhssssesS', 'hhHsssssss', 'hhHssssSs.', 'hh.sssss..', 'hh.SSSS...'],
++  up: ['..hhhhhh..', '.hhhhhhhh.', 'hhhhhhhhhh', 'hhhHhhHhhh', 'hhhhhhhhhh', 'hhHhhhhHhh', 'hhhhhhhhhh', '.hHhhhhHh.', '...hhhh...'],
++};
++export interface HeroSet { [k: string]: Sprite[] }
++function drawHero(g: G, dir: number, pose: string, f: number, female: boolean) {
++  const pal = female
++    ? { h: '#b4482a', H: '#7e2e1c', s: '#f2c39c', S: '#c98a68', e: '#2a1a2a', t: '#2f8f8a', T: '#1e5e66', l: '#d0a050', p: '#3c3456', k: '#2a1e1a', a: '#ffe0b0', c: '#6ad0c0' }
++    : { h: '#5a3a22', H: '#3a2414', s: '#eab894', S: '#c08060', e: '#2a1a2a', t: '#b4532a', T: '#7a3420', l: '#6a4a2a', p: '#33304a', k: '#2a1e1a', a: '#ffe0b0', c: '#e09050' };
++  const side = dir === 1 || dir === 2, flip = dir === 1;
++  const ox = 3, bob = pose === 'idle' ? (f % 2) : pose === 'walk' ? (f % 2) : 0;
++  const lean = pose === 'wind' ? -1 : pose === 'hit' ? 1 : 0;
++  const lx = side ? (flip ? -lean : lean) : 0, ly = !side ? (dir === 0 ? lean : -lean) : 0;
++  const legY = 17;
++  if (pose === 'walk') {
++    if (side) { const s = [0, 2, 0, -2][f]; R(g, 7 + s, legY, 2, 4, pal.p); R(g, 7 - s, legY, 2, 4, pal.T === '#1e5e66' ? '#2a2440' : '#26223a'); R(g, 7 + s, legY + 4, 3, 1, pal.k); R(g, 7 - s, legY + 4, 3, 1, pal.k); }
++    else { const a = [0, -1, 0, 1][f]; R(g, 5, legY + Math.min(0, a), 2, 4 + Math.max(0, -a) - Math.max(0, a), pal.p); R(g, 9, legY + Math.min(0, -a), 2, 4 - Math.max(0, -a) + Math.max(0, a), pal.p); R(g, 5, legY + 4 - Math.max(0, a), 2, 1, pal.k); R(g, 9, legY + 4 - Math.max(0, -a), 2, 1, pal.k); }
++  } else { R(g, side ? 7 : 5, legY, 2, 4, pal.p); R(g, side ? 8 : 9, legY, 2, 4, pal.p); R(g, side ? 7 : 5, legY + 4, side ? 4 : 2, 1, pal.k); if (!side) R(g, 9, legY + 4, 2, 1, pal.k); }
++  const ty = 10 - bob + ly;
++  R(g, 4 + lx, ty, 8, 7, pal.t); R(g, (flip ? 4 : 10) + lx, ty, 2, 7, pal.T); R(g, 4 + lx, ty + 5, 8, 1, pal.l);
++  if (female) { R(g, 4 + lx, ty + 6, 8, 1, pal.t); P(g, 7 + lx, ty + 1, pal.c); P(g, 8 + lx, ty + 1, pal.c); } else { P(g, 7 + lx, ty + 1, pal.a); R(g, 6 + lx, ty, 4, 1, pal.T); }
++  if (dir === 3) R(g, 5 + lx, ty + 1, 6, 3, female ? '#245a5a' : '#6a3a22');
++  const sw = pose === 'walk' ? [0, 1, 0, -1][f] : 0;
++  if (side) { const ax = flip ? 5 : 9; R(g, ax + lx + sw, ty + 1, 2, 5, pal.T); P(g, ax + lx + sw, ty + 6, pal.s); P(g, ax + 1 + lx + sw, ty + 6, pal.s); }
++  else { R(g, 3 + lx, ty + 1 + sw, 1, 5, pal.T); R(g, 12 + lx, ty + 1 - sw, 1, 5, pal.T); P(g, 3 + lx, ty + 6 + sw, pal.s); P(g, 12 + lx, ty + 6 - sw, pal.s); }
++  const hk = side ? 'side' : dir === 3 ? 'up' : 'down'; const rows = (female ? HEAD_F : HEAD)[hk];
++  strs(g, ox + lx, 1 - bob + ly, rows, pal, flip);
++  if (female && dir === 3) R(g, 7 + lx, 10 - bob, 2, 5, pal.h);
++  if (female && side) { const bx = flip ? 12 : 3; R(g, bx + lx, 6 - bob, 1, 6, pal.h); P(g, bx + lx, 12 - bob, pal.l); }
++  if (!female && dir === 0) { P(g, 6 + lx, 8 - bob, pal.H); P(g, 9 + lx, 8 - bob, pal.H); }
++}
++function drawHeroRoll(g: G, f: number, female: boolean) {
++  const t = female ? '#2f8f8a' : '#b4532a', h = female ? '#b4482a' : '#5a3a22';
++  ell(g, 8, 15, 6, 6, (nx, ny) => { const a = Math.atan2(ny, nx) + f * Math.PI / 2; return Math.sin(a) > 0.3 ? h : Math.cos(a) > 0.5 ? '#33304a' : t; });
++}
++function drawHeroDead(g: G, female: boolean) {
++  const t = female ? '#2f8f8a' : '#b4532a', h = female ? '#b4482a' : '#5a3a22';
++  R(g, 2, 17, 4, 5, h); R(g, 3, 18, 3, 3, '#eab894'); R(g, 6, 17, 7, 5, t); R(g, 13, 18, 3, 3, '#33304a');
++}
++export function buildHero(female: boolean): HeroSet {
++  const set: HeroSet = {};
++  for (let dir = 0; dir < 4; dir++) {
++    set['idle' + dir] = [0, 1].map((f) => mk(16, 24, (g) => drawHero(g, dir, 'idle', f, female)));
++    set['walk' + dir] = [0, 1, 2, 3].map((f) => mk(16, 24, (g) => drawHero(g, dir, 'walk', f, female)));
++    set['wind' + dir] = [mk(16, 24, (g) => drawHero(g, dir, 'wind', 0, female))];
++    set['hit' + dir] = [mk(16, 24, (g) => drawHero(g, dir, 'hit', 0, female))];
++  }
++  set.roll = [0, 1, 2, 3].map((f) => mk(16, 24, (g) => drawHeroRoll(g, f, female)));
++  set.dead = [mk(16, 24, (g) => drawHeroDead(g, female))];
++  return set;
++}
++
++// ===================== TERRAIN (reused palette + texel logic) =====================
++export type RGB = [number, number, number];
++const H = (c: string): RGB => hex(c);
++export type PalKey = "grass" | "meadow" | "forest" | "marsh" | "sand" | "road" | "floor" | "wall" | "water";
++export const PAL: Record<PalKey, RGB[]> = {
++  grass: ['#4f8a3a', '#5a9a42', '#3f7a32', '#76b24e', '#e8d870'].map(H),
++  meadow: ['#7aa84a', '#86b452', '#6a983e', '#a2cc6a', '#c08ad8'].map(H),
++  forest: ['#3a6e30', '#33662a', '#24501e', '#4c863a', '#6a5a2a'].map(H),
++  marsh: ['#4a6a3e', '#42603a', '#2e4a2a', '#6a8a4e', '#4a3e2a'].map(H),
++  sand: ['#dcc68e', '#e4d098', '#c4aa74', '#f2e4b4', '#f0e0d0'].map(H),
++  road: ['#a08060', '#9a7a58', '#7a5e40', '#b89470', '#6a5a4a'].map(H),
++  floor: ['#9a6a3e', '#8a5e36', '#5a3a22', '#b0804a', '#7a7a7e'].map(H),
++  wall: ['#4a4048', '#544a52', '#2e2830', '#6a5e66', '#7a5a4a'].map(H),
++  water: ['#2e6ea0', '#3478aa', '#24609a', '#4a90c0', '#3a82a8'].map(H),
++};
++
++/**
++ * ADAPTED: prototype `texel()` from render.ts, reduced to the ground types a POI
++ * site can have. Same palette entries, same hash/fbm-free variation rules.
++ * (fbm is replaced with a two-octave hash lattice to keep generation local.)
++ */
++export function texel(kind: PalKey, wx: number, wy: number): RGB {
++  const p = PAL[kind];
++  const h = hash2(wx, wy, kind.length * 13 + 1);
++  const hb = hash2(wx, wy >> 1, kind.length + 3);
++  let c = hb > 0.5 ? p[1] : p[0];
++  if (hb < 0.11) c = p[2]; else if (hb > 0.94) c = p[3];
++  if (kind === "grass" || kind === "meadow" || kind === "forest") {
++    if (hash2(wx >> 1, wy >> 1, 9) > (kind === "meadow" ? 0.988 : 0.996)) c = p[4];
++    if (kind === "forest" && h < 0.3) c = p[4];
++  }
++  if (kind === "road") {
++    const lx = wx % 16, ly = wy % 16;
++    if (hash2(wx >> 1, wy >> 1, 6) > 0.98) c = p[4];
++    if (ly < 1 || ly > 14) c = p[2];
++    void lx;
++  }
++  if (kind === "wall") { const ly = wy % 16; if (ly >= 6) c = (ly % 3 === 0 || (wx + (Math.floor(ly / 3) % 2) * 3) % 6 === 0) ? H('#4a3428') : p[4]; }
++  return c;
++}
++
++/** Reused prototype shadow mask builder (render.ts `shadow`). */
++const shadowCache = new Map<number, Sprite>();
++export function shadowSprite(rw: number): Sprite {
++  let s = shadowCache.get(rw);
++  if (!s) {
++    const SW = rw * 2 + 2, SH = Math.max(3, rw) + 2;
++    s = mk(SW, SH, (gg) => {
++      gg.fillStyle = "rgba(10,8,20,0.32)";
++      const ry = Math.max(1.5, rw * 0.45);
++      for (let yy = 0; yy < SH; yy++) for (let xx = 0; xx < SW; xx++) {
++        const nx = (xx + 0.5 - rw - 1) / rw, ny = (yy + 0.5 - (ry + 1)) / ry;
++        if (nx * nx + ny * ny <= 1) gg.fillRect(xx, yy, 1, 1);
++      }
++    }, null);
++    shadowCache.set(rw, s);
++  }
++  return s;
++}
+diff -ruN a/src/maplab/detail/render.ts b/src/maplab/detail/render.ts
+--- a/src/maplab/detail/render.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/detail/render.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,551 @@
++// POI Detail Layer — village renderer.
++//
++// Rendering grammar follows the original prototype's `render.ts`:
++//   • cached terrain texels with palette variation (no gradients in the world layer)
++//   • buildings as a baked wall ring + a tiled roof drawn *above* actors
++//   • roof alpha collapse when the player is inside (prototype roof occlusion)
++//   • 1px shadow masks under trees/props, depth sorting by feet
++// The site's own geography (biome tint, margins, road exits) comes from Map Studio.
++
++import { hash2 } from "../geom";
++import { canvasSize, SITE_MARGIN, type SiteGrid } from "./grid";
++import { getVillageArt } from "./sprites";
++import { PAL, shadowSprite, texel, type PalKey, type Sprite } from "./proto-art";
++import type { DetailBuilding, DetailFrame, DetailSide, ResolvedPlan } from "./types";
++
++export interface RenderActor { x: number; y: number; dir: 0 | 1 | 2 | 3; moving: boolean; anim: number }
++export interface Selection { kind: "building" | "prop" | "tree"; id: string }
++
++export interface RenderOpts {
++  plan: ResolvedPlan;
++  grid: SiteGrid;
++  frame: DetailFrame;
++  time: number;
++  actor?: RenderActor;
++  selection?: Selection | null;
++  hover?: Selection | null;
++  edit: boolean;
++  showGrid?: boolean;
++  showLabels?: boolean;
++  seed: number;
++  hideRoofs?: boolean;
++  particles?: { x: number; y: number; col: string; life: number; max: number }[];
++}
++
++const groundCache = new WeakMap<SiteGrid, { key: string; canvas: HTMLCanvasElement }>();
++
++function keyOf(o: RenderOpts) {
++  return `${o.seed}:${o.plan.buildings.length}:${o.frame.w}x${o.frame.h}:${o.grid.ground.join("").length}:${fnv(o.grid.ground.join(""))}`;
++}
++function fnv(s: string) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36); }
++
++export function villageCanvas(frame: DetailFrame): HTMLCanvasElement {
++  const c = document.createElement("canvas");
++  const s = canvasSize(frame);
++  c.width = s.w; c.height = s.h;
++  return c;
++}
++
++/** Draw one full frame into `cv`. `scale` is an integer device-pixel multiplier. */
++export function renderVillage(cv: HTMLCanvasElement, o: RenderOpts, scale = 1) {
++  const { frame, plan, grid } = o;
++  const size = canvasSize(frame);
++  const g = cv.getContext("2d")!;
++  g.setTransform(1, 0, 0, 1, 0, 0);
++  g.imageSmoothingEnabled = false;
++  g.clearRect(0, 0, cv.width, cv.height);
++  g.save();
++  g.scale(scale, scale);
++
++  const ground = getGround(o);
++  g.drawImage(ground, 0, 0);
++
++  const T = frame.tilePx;
++  const px = (x: number) => (x + SITE_MARGIN) * T;
++  const art = getVillageArt();
++
++  // ---- ambient water sparkle ----
++  for (let gy = 0; gy < grid.H; gy++) for (let gx = 0; gx < grid.W; gx++) {
++    const i = gy * grid.W + gx;
++    if (!grid.water[i]) continue;
++    const X = gx * T, Y = gy * T;
++    const ph = Math.floor(o.time / 420);
++    for (let k = 0; k < 2; k++) {
++      const hx = hash2(gx * 3 + k, gy, ph), hy = hash2(gx, gy * 3 + k, ph + 1);
++      if (hash2(gx, gy, ph + k) > 0.55) { g.fillStyle = "rgba(220,240,255,0.65)"; g.fillRect(X + ((hx * 14) | 0), Y + ((hy * 15) | 0), 2, 1); }
++    }
++  }
++
++  // ---- static shadows (buildings) ----
++  g.fillStyle = "rgba(12,10,26,0.20)";
++  for (const b of plan.buildings) {
++    g.fillRect(px(b.x) + 4, px(b.y) + 6, b.w * T, b.h * T);
++    g.fillStyle = "rgba(12,10,26,0.14)";
++    g.fillRect(px(b.x) + 8, px(b.y) + 9, b.w * T, b.h * T);
++    g.fillStyle = "rgba(12,10,26,0.20)";
++  }
++
++  // ---- path shoulder shading: thin dark edge where a lane meets grass ----
++  for (let gy = 0; gy < grid.H; gy++) for (let gx = 0; gx < grid.W; gx++) {
++    const i = gy * grid.W + gx;
++    const gr = grid.ground[i];
++    if (gr !== "dirt" && gr !== "plaza" && gr !== "stone") continue;
++    const X = gx * T, Y = gy * T;
++    const nb: [number, number, number, number][] = [[gx, gy - 1, 0, 0], [gx, gy + 1, 0, 15], [gx - 1, gy, 0, 0], [gx + 1, gy, 15, 0]];
++    g.fillStyle = "rgba(40,30,20,0.20)";
++    for (const [nx, ny, ox, oy] of nb) {
++      if (nx < 0 || ny < 0 || nx >= grid.W || ny >= grid.H) continue;
++      const n = grid.ground[ny * grid.W + nx];
++      if (n === "dirt" || n === "plaza" || n === "stone" || n === "floor_wood" || n === "floor_stone" || n === "wall" || n === "door") continue;
++      if (ox === 0 && oy === 0) g.fillRect(X, Y, 16, 1);
++      else if (oy === 15) g.fillRect(X, Y + 15, 16, 1);
++      else if (ox === 15) g.fillRect(X + 15, Y, 1, 16);
++      else g.fillRect(X, Y, 1, 16);
++    }
++  }
++
++  // ---- y-sorted world ----
++  type D = { y: number; f: () => void };
++  const list: D[] = [];
++
++  // exterior props
++  for (const p of plan.props) {
++    const spr = art.prop[p.type]?.[(p.variant || 0) % (art.prop[p.type]?.length || 1)];
++    if (!spr) continue;
++    const bob = p.type === "lantern" ? 0 : 0;
++    list.push({ y: p.y * T + T + bob, f: () => {
++      if (p.type !== "garden" && p.type !== "reeds" && p.type !== "laundry") {
++        const sh = shadowSprite(Math.max(3, Math.round(spr.width / 3)));
++        g.drawImage(sh, Math.round(px(p.x) + T / 2 - sh.width / 2), Math.round(px(p.y) + T - 2 - sh.height / 2));
++      }
++      g.drawImage(spr, Math.round(px(p.x) + T / 2 - spr.width / 2), Math.round(px(p.y) + T - spr.height + 1));
++    }});
++  }
++
++  // interior furniture
++  for (const b of plan.buildings) for (const p of b.props) {
++    const spr = art.prop[p.type]?.[(p.variant || 0) % (art.prop[p.type]?.length || 1)];
++    if (!spr) continue;
++    list.push({ y: (p.y + 1) * T, f: () => {
++      g.drawImage(spr, Math.round(px(p.x) + T / 2 - spr.width / 2), Math.round(px(p.y) + T - spr.height + 1));
++    }});
++  }
++
++  // trees
++  for (const t of plan.trees) {
++    const arr = art.tree[t.kind] || art.tree.oak;
++    const spr = arr[t.v % arr.length];
++    const sway = t.kind === "bush" ? 0 : Math.round(Math.sin(o.time / 900 + t.x * 0.7 + t.y * 0.3) * 0.6);
++    list.push({ y: t.y * T + T, f: () => {
++      const sh = shadowSprite(Math.max(4, Math.round(spr.width / 3)));
++      g.drawImage(sh, Math.round(px(t.x) + T / 2 - sh.width / 2), Math.round(px(t.y) + T - 3 - sh.height / 2));
++      g.drawImage(spr, Math.round(px(t.x) + T / 2 - spr.width / 2) + sway, Math.round(px(t.y) + T - spr.height + 1));
++    }});
++  }
++
++  // fences
++  for (const f of plan.fences) {
++    const n = Math.max(1, Math.ceil(Math.hypot(f.x1 - f.x0, f.y1 - f.y0)));
++    for (let k = 0; k <= n; k++) {
++      const t = k / n;
++      const x = f.x0 + (f.x1 - f.x0) * t, y = f.y0 + (f.y1 - f.y0) * t;
++      list.push({ y: y * T + T, f: () => {
++        const X = px(x), Y = py(o.frame, y);
++        if (f.kind === "hedge") {
++          g.fillStyle = "#2e5a26"; g.fillRect(X + 1, Y + 6, 15, 8);
++          g.fillStyle = "#3f7a32"; g.fillRect(X + 2, Y + 4, 13, 6);
++          g.fillStyle = "#6aa84a"; g.fillRect(X + 4, Y + 5, 3, 2); g.fillRect(X + 10, Y + 7, 3, 2);
++        } else {
++          g.fillStyle = "#5a3a22"; g.fillRect(X + 7, Y + 6, 2, 9);
++          g.fillStyle = "#7a5232"; g.fillRect(X + 7, Y + 6, 1, 9);
++          if (k % 3 !== 1) { g.fillStyle = "#8a5a32"; g.fillRect(X + 1, Y + 8, 14, 2); g.fillStyle = "#a8763f"; g.fillRect(X + 1, Y + 8, 14, 1); }
++          if (k % 3 === 0) { g.fillStyle = "#4a2e1a"; g.fillRect(X + 6, Y + 5, 4, 2); }
++        }
++      }});
++    }
++  }
++
++  // connections: gravel spurs leaving the site (drawn under the boundary)
++  g.fillStyle = "rgba(120,95,62,0.55)";
++  for (const c of plan.connections) {
++    for (let i = 0; i < c.spur.length - 1; i++) {
++      const a = c.spur[i], b = c.spur[i + 1];
++      const steps = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 4) + 1;
++      for (let k = 0; k <= steps; k++) {
++        const t = k / steps;
++        if (t < 0.18) continue;
++        g.fillRect(Math.round(px(a[0] + (b[0] - a[0]) * t)), Math.round(px(a[1] + (b[1] - a[1]) * t)), 3, 3);
++      }
++    }
++  }
++
++  // actor
++  if (o.actor) {
++    const a = o.actor;
++    list.push({ y: a.y * T + T, f: () => {
++      const set = getHero();
++      const spr = a.moving ? set["walk" + a.dir][Math.floor(a.anim) % 4] : set["idle" + a.dir][Math.floor(a.anim) % 2];
++      const X = px(a.x), Y = py(o.frame, a.y);
++      const sh = shadowSprite(5);
++      g.drawImage(sh, Math.round(X + T / 2 - sh.width / 2), Math.round(Y + T - 4 - sh.height / 2));
++      g.drawImage(spr, Math.round(X + T / 2 - 8), Math.round(Y + T - spr.height + 1));
++    }});
++  }
++
++  // roofs (above actors) — prototype roof occlusion: fade when the player is inside
++  if (!o.hideRoofs) {
++    for (const b of plan.buildings) {
++      const inside = o.actor ? o.actor.x >= b.x && o.actor.x < b.x + b.w && o.actor.y >= b.y && o.actor.y < b.y + b.h : false;
++      list.push({ y: (b.y + b.h) * T + 2, f: () => drawBuilding(g, o, b, inside) });
++    }
++  }
++
++  list.sort((p, q) => p.y - q.y);
++  for (const d of list) d.f();
++
++  // smoke from chimneys (above roofs)
++  for (const b of plan.buildings) {
++    if (!b.chimney) continue;
++    const X = px(b.x + b.w - 2) + 4, Y = px(b.y) - 12;
++    for (let k = 0; k < 4; k++) {
++      const t = (o.time / 1400 + k / 4 + b.x * 0.13) % 1;
++      const a = (1 - t) * 0.35;
++      g.fillStyle = `rgba(220,220,228,${a})`;
++      g.fillRect(Math.round(X + Math.sin(t * 6 + b.y) * 3), Math.round(Y - t * 22), t > 0.6 ? 2 : 1, t > 0.6 ? 2 : 1);
++    }
++  }
++
++  // lantern glow (pixel dither, no smooth gradients)
++  for (const p of plan.props) {
++    if (p.type !== "lantern") continue;
++    const cx = px(p.x) + T / 2, cy = px(p.y) + 4;
++    for (let r = 4; r <= 12; r += 2) {
++      const dots = Math.floor(r * 2.2);
++      for (let k = 0; k < dots; k++) {
++        const a = (k / dots) * Math.PI * 2;
++        const jitter = hash2(p.x, p.y, Math.floor(o.time / 220) + r);
++        if (jitter < 0.35) continue;
++        g.fillStyle = `rgba(255,190,90,${0.16 - r * 0.008})`;
++        g.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), 1, 1);
++      }
++    }
++  }
++
++  // interaction particles (sparks, water droplets) — 1px pixels, no gradients
++  if (o.particles && o.particles.length) {
++    for (const p of o.particles) {
++      const a = 1 - p.life / p.max;
++      if (a <= 0) continue;
++      g.globalAlpha = Math.max(0, Math.min(1, a));
++      g.fillStyle = p.col;
++      g.fillRect(Math.round(px(p.x)), Math.round(py(o.frame, p.y)), 2, 2);
++    }
++    g.globalAlpha = 1;
++  }
++
++  // site boundary, edit mode only
++  if (o.edit) {
++    g.save();
++    g.strokeStyle = "rgba(255,236,180,0.45)"; g.setLineDash([3, 3]); g.lineWidth = 1;
++    g.beginPath();
++    frame.footLocal.forEach((q, i) => { const X = px(q[0]), Y = px(q[1]); if (i) g.lineTo(X, Y); else g.moveTo(X, Y); });
++    g.closePath(); g.stroke();
++    g.restore();
++  }
++
++  // selection highlight
++  if (o.selection) drawSelection(g, o, o.selection, "#ffd24a");
++  if (o.hover && (!o.selection || o.hover.id !== o.selection.id)) drawSelection(g, o, o.hover, "rgba(255,255,255,0.55)");
++
++  // labels
++  if (o.showLabels) {
++    g.font = "8px monospace"; g.textAlign = "center";
++    for (const b of plan.buildings) {
++      const X = px(b.x) + b.w * T / 2, Y = px(b.y) - 13;
++      g.fillStyle = "rgba(10,10,20,0.55)"; g.fillRect(X - b.name.length * 2.4 - 2, Y - 8, b.name.length * 4.8 + 4, 9);
++      g.fillStyle = "#ffeccc"; g.fillText(b.name, X, Y);
++    }
++  }
++
++  // grid
++  if (o.showGrid) {
++    g.strokeStyle = "rgba(255,255,255,0.07)"; g.lineWidth = 1;
++    for (let x = 0; x <= frame.w; x++) { g.beginPath(); g.moveTo(px(x) + 0.5, px(0)); g.lineTo(px(x) + 0.5, px(frame.h)); g.stroke(); }
++    for (let y = 0; y <= frame.h; y++) { g.beginPath(); g.moveTo(px(0), px(y) + 0.5); g.lineTo(px(frame.w), px(y) + 0.5); g.stroke(); }
++  }
++
++  // subtle vignette + warm sunlight (kept under 8% so palette stays readable)
++  const vg = g.createRadialGradient(size.w / 2, size.h / 2, Math.min(size.w, size.h) * 0.35, size.w / 2, size.h / 2, Math.max(size.w, size.h) * 0.72);
++  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(8,12,24,0.20)");
++  g.fillStyle = vg; g.fillRect(0, 0, size.w, size.h);
++  g.restore();
++}
++
++let HERO: Record<string, Sprite[]> | null = null;
++function getHero() { return HERO || (HERO = getVillageArt().hero); }
++
++function py(f: DetailFrame, y: number) { return (y + SITE_MARGIN) * f.tilePx; }
++
++function drawBuilding(g: CanvasRenderingContext2D, o: RenderOpts, b: DetailBuilding, inside: boolean) {
++  const art = getVillageArt();
++  const T = o.frame.tilePx;
++  const px = (x: number) => (x + SITE_MARGIN) * T;
++  const x0 = px(b.x), x1 = px(b.x + b.w);
++  const yTop = px(b.y), yBot = px(b.y + b.h);
++  const faceH = Math.round(Math.min(34, Math.max(20, T * 1.6)));
++  const eaveY = yBot - faceH;
++  const roofTop = yTop - 10;
++  const wallSpr = art.wall[b.wall] || art.wall.wood;
++  const w0 = x0, w1 = x1;
++
++  // ---- facade: real wall face under the eave, so the house reads as a box ----
++  g.save();
++  g.fillStyle = b.wall === "stone" ? "#6e6e76" : b.wall === "brick" ? "#8a4634" : "#6a4626";
++  g.fillRect(w0, eaveY, w1 - w0, faceH);
++  for (let x = w0; x < w1; x += T) {
++    const cw = Math.min(T, w1 - x);
++    g.drawImage(wallSpr, 0, 11, Math.max(1, Math.round((cw / T) * 16)), 13, x, eaveY, cw, faceH);
++  }
++  // eave shadow falls on the top of the facade
++  g.fillStyle = "rgba(14,8,10,0.45)"; g.fillRect(w0, eaveY, w1 - w0, 1);
++  g.fillStyle = "rgba(14,8,10,0.26)"; g.fillRect(w0, eaveY + 1, w1 - w0, 2);
++  // base plinth + ground contact shadow
++  g.fillStyle = "rgba(26,18,14,0.55)"; g.fillRect(w0, eaveY + faceH - 2, w1 - w0, 2);
++  g.fillStyle = "rgba(0,0,0,0.22)"; g.fillRect(w0 + 1, eaveY + faceH, w1 - w0 - 2, 2);
++  // corner posts give the box a little volume
++  g.fillStyle = "rgba(30,18,12,0.35)"; g.fillRect(w0, eaveY, 2, faceH);
++  g.fillStyle = "rgba(30,18,12,0.5)"; g.fillRect(w1 - 2, eaveY, 2, faceH);
++
++  // door: a framed leaf cut into the south wall (readable at 1×)
++  if (b.door.side === "s") {
++    const dw = 12, dh = Math.max(14, Math.min(24, faceH - 3));
++    const dx = px(b.door.x) + 2, dy = yBot - dh - 2;
++    g.fillStyle = "#241610"; g.fillRect(dx - 1, dy - 1, dw + 2, dh + 2);          // frame
++    g.fillStyle = "#8a5a32"; g.fillRect(dx, dy, dw, dh);                            // leaf
++    for (let x = dx + 2; x < dx + dw - 1; x += 3) { g.fillStyle = "#6e4626"; g.fillRect(x, dy + 1, 1, dh - 2); }
++    g.fillStyle = "#a8763f"; g.fillRect(dx + 1, dy + 1, dw - 2, 1);
++    g.fillStyle = "#5a3a22"; g.fillRect(dx, dy + Math.round(dh * 0.5), dw, 1);
++    g.fillStyle = "#e0c060"; g.fillRect(dx + dw - 3, dy + Math.round(dh * 0.62), 1, 2); // handle
++    g.fillStyle = "#4a2e1a"; g.fillRect(dx - 2, dy - 3, dw + 4, 2);                 // lintel
++    g.fillStyle = "#8a867e"; g.fillRect(dx - 2, yBot - 2, dw + 4, 2);                // threshold
++    g.fillStyle = "#b8b4ac"; g.fillRect(dx - 2, yBot - 2, dw + 4, 1);
++    g.fillStyle = "rgba(255,205,120,0.10)"; g.fillRect(dx, yBot - 3, dw, 1);
++  }
++  // windows: warm panes with frame, shutters and a sill
++  for (let wx = b.x + 1; wx < b.x + b.w - 1; wx++) {
++    if (Math.abs(wx - b.door.x) < 2) continue;
++    if ((wx + b.y) % 3 !== 0) continue;
++    const X = px(wx) + 3, Y = eaveY + Math.round(faceH * 0.28);
++    g.fillStyle = "#3a2a1e"; g.fillRect(X - 1, Y - 1, 12, 11);
++    g.fillStyle = (wx * 7 + b.y) % 5 === 0 ? "#8a7c58" : "#ffcf6a"; g.fillRect(X, Y, 10, 9);
++    g.fillStyle = "#1e1a22"; g.fillRect(X + 4, Y, 2, 9); g.fillRect(X, Y + 4, 10, 1);
++    g.fillStyle = "#fff0b0"; g.fillRect(X + 1, Y + 1, 2, 2);
++    g.fillStyle = "#5a3a22"; g.fillRect(X - 2, Y, 2, 9); g.fillRect(X + 10, Y, 2, 9);
++    g.fillStyle = "#6a4426"; g.fillRect(X - 2, Y + 10, 14, 2);
++    g.fillStyle = "#8a6a3e"; g.fillRect(X - 2, Y + 10, 14, 1);
++  }
++  g.restore();
++
++  // ---- roof: pitched field with ridge, eave overhang and inside-fade ----
++  const rspr = art.roof[b.roof] || art.roof.wood;
++  const rx0 = x0 - 5, rx1 = x1 + 5, ry0 = roofTop, ry1 = eaveY + 1;
++  g.save();
++  g.globalAlpha = inside ? 0.12 : 1;
++  for (let y = ry0; y < ry1; y += T) for (let x = rx0; x < rx1; x += T) {
++    const w = Math.min(T, rx1 - x), h = Math.min(T, ry1 - y);
++    g.drawImage(rspr, 0, 0, w, h, x, y, w, h);
++  }
++  const rh = Math.max(1, ry1 - ry0);
++  // ridge: the roof is pitched, so the crest sits across the middle of the slab
++  const ridgeY = Math.round(ry0 + rh * 0.46);
++  g.fillStyle = "rgba(255,246,214,0.16)"; g.fillRect(rx0 + 2, ridgeY - 1, rx1 - rx0 - 4, 1);
++  g.fillStyle = "rgba(28,16,10,0.5)"; g.fillRect(rx0 + 2, ridgeY, rx1 - rx0 - 4, 2);
++  g.fillStyle = "rgba(255,246,214,0.10)"; g.fillRect(rx0 + 2, ridgeY + 2, rx1 - rx0 - 4, 1);
++  // ridge tiles
++  for (let x = rx0 + 3; x < rx1 - 3; x += 5) { g.fillStyle = "rgba(20,10,8,0.5)"; g.fillRect(x, ridgeY - 1, 1, 4); }
++  // the lower slope catches less light than the upper slope
++  g.fillStyle = "rgba(24,12,10,0.10)"; g.fillRect(rx0, ridgeY + 3, rx1 - rx0, Math.max(1, ry1 - ridgeY - 5));
++  g.fillStyle = "rgba(255,250,230,0.05)"; g.fillRect(rx0, ry0 + 1, rx1 - rx0, Math.max(1, Math.round(rh * 0.3)));
++  // fascia board at the very top edge
++  g.fillStyle = "rgba(28,16,10,0.40)"; g.fillRect(rx0 + 1, ry0 - 1, rx1 - rx0 - 2, 1);
++  g.fillStyle = "rgba(255,244,210,0.10)"; g.fillRect(rx0 + 1, ry0, rx1 - rx0 - 2, 1);
++  // hip shading at both ends so the roof does not read as a flat slab
++  for (let k = 0; k < 5; k++) {
++    g.fillStyle = `rgba(20,10,8,${0.05 + k * 0.02})`;
++    g.fillRect(rx0 + k, ry0 + k, 1, rh - k * 2);
++    g.fillRect(rx1 - 1 - k, ry0 + k, 1, rh - k * 2);
++  }
++  // eaves: overhang lip + shadow on the facade
++  g.fillStyle = "rgba(22,12,8,0.65)"; g.fillRect(rx0, ry1, rx1 - rx0, 2);
++  g.fillStyle = "rgba(255,238,200,0.10)"; g.fillRect(rx0, ry1 - 1, rx1 - rx0, 1);
++  g.globalAlpha = 1;
++  if (b.chimney) {
++    const cx = x1 - 18, cy = ry0 + 5;
++    g.fillStyle = "#4a4448"; g.fillRect(cx, cy, 8, 13);
++    g.fillStyle = "#6a6068"; g.fillRect(cx + 1, cy - 3, 6, 4);
++    g.fillStyle = "#2e2a2c"; g.fillRect(cx + 2, cy - 3, 4, 2);
++    for (let y = cy + 4; y < cy + 12; y += 3) { g.fillStyle = "#7a7078"; g.fillRect(cx, y, 8, 1); }
++  }
++  g.restore();
++}
++
++function drawSelection(g: CanvasRenderingContext2D, o: RenderOpts, sel: Selection, col: string) {
++  const T = o.frame.tilePx;
++  const px = (x: number) => (x + SITE_MARGIN) * T;
++  g.save();
++  g.strokeStyle = col; g.lineWidth = 1; g.setLineDash([4, 2]);
++  if (sel.kind === "building") {
++    const b = o.plan.buildings.find((q) => q.id === sel.id);
++    if (!b) { g.restore(); return; }
++    g.strokeRect(px(b.x) - 1.5, px(b.y) - 10.5, b.w * T + 3, b.h * T + 12);
++    g.setLineDash([]);
++    g.fillStyle = "rgba(255,210,74,0.75)";
++    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) g.fillRect(px(b.x + b.w * dx) - 2, px(b.y + b.h * dy) - 2, 4, 4);
++  } else {
++    const p = sel.kind === "prop" ? o.plan.props.find((q) => q.id === sel.id) : o.plan.trees.find((q) => q.id === sel.id);
++    if (!p) { g.restore(); return; }
++    g.strokeRect(px(p.x) + 1.5, px(p.y) - 6.5, T - 3, T + 6);
++  }
++  g.restore();
++}
++
++// ------------------------------------------------------------------ ground ----
++function getGround(o: RenderOpts): HTMLCanvasElement {
++  const cached = groundCache.get(o.grid);
++  const key = keyOf(o);
++  if (cached && cached.key === key) return cached.canvas;
++  const cv = buildGround(o);
++  groundCache.set(o.grid, { key, canvas: cv });
++  return cv;
++}
++
++function buildGround(o: RenderOpts): HTMLCanvasElement {
++  const { frame, grid, plan } = o;
++  const T = frame.tilePx;
++  const { w, h } = canvasSize(frame);
++  const cv = document.createElement("canvas");
++  cv.width = w; cv.height = h;
++  const g = cv.getContext("2d")!;
++  g.imageSmoothingEnabled = false;
++  const art = getVillageArt();
++  const img = g.createImageData(w, h);
++  const buf = new Uint32Array(img.data.buffer);
++  const seedOff = o.seed % 997;
++
++  const put = (X: number, Y: number, c: [number, number, number]) => {
++    if (X < 0 || Y < 0 || X >= w || Y >= h) return;
++    buf[Y * w + X] = (255 << 24) | ((c[2] & 255) << 16) | ((c[1] & 255) << 8) | (c[0] & 255);
++  };
++
++  for (let gy = 0; gy < grid.H; gy++) for (let gx = 0; gx < grid.W; gx++) {
++    const i = gy * grid.W + gx;
++    const kind = grid.ground[i];
++    const base = kind === "wall" || kind === "door" ? "floor" : kind;
++    const X0 = gx * T, Y0 = gy * T;
++    const wx0 = (gx + SITE_MARGIN) * T + seedOff * 7;
++    const wy0 = (gy + SITE_MARGIN) * T + seedOff * 13;
++
++    if (kind === "plaza" || kind === "stone") {
++      // cobbles: 8×8 stones with mortar
++      for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
++        const cxp = Math.floor(x / 8), cyp = Math.floor(y / 8);
++        const hsh = hash2(gx * 2 + cxp, gy * 2 + cyp, 21);
++        const shadeBase = hsh > 0.72 ? [168, 164, 156] : hsh > 0.4 ? [150, 146, 138] : [134, 130, 122];
++        const edge = x % 8 === 0 || y % 8 === 0;
++        const c = edge ? [96, 92, 86] : (y % 8 === 1 ? [Math.min(255, shadeBase[0] + 14), Math.min(255, shadeBase[1] + 14), Math.min(255, shadeBase[2] + 12)] : shadeBase);
++        put(X0 + x, Y0 + y, c as [number, number, number]);
++      }
++    } else if (kind === "water") {
++      for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
++        const p = PAL.water[(x + y) % 2 ? 0 : 1];
++        put(X0 + x, Y0 + y, p);
++      }
++      // gentle prototype-style wave lines (1px, deterministic per tile)
++      for (let k = 0; k < 2; k++) {
++        const wy = Math.floor(hash2(gx, gy, k + 5) * 13) + 2;
++        const wx = Math.floor(hash2(gx, gy, k + 9) * 6);
++        for (let x = wx; x < wx + 7; x++) if (X0 + x < (gx + 1) * T) put(X0 + x, Y0 + wy + (x - wx > 3 ? 1 : 0), [176, 224, 246]);
++      }
++    } else if (kind === "floor_wood" || kind === "floor_stone" || kind === "wall") {
++      for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) put(X0 + x, Y0 + y, [90, 70, 52]);
++    } else {
++      const pal: PalKey = kind === "dirt" ? "road" : kind === "meadow" ? "meadow" : kind === "forest" ? "forest" : kind === "marsh" ? "marsh" : kind === "sand" ? "sand" : "grass";
++      for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
++        put(X0 + x, Y0 + y, texel(pal, wx0 + x, wy0 + y));
++      }
++    }
++  }
++
++  // decorative details: grass tufts, pebbles, path ruts
++  for (let gy = 0; gy < grid.H; gy++) for (let gx = 0; gx < grid.W; gx++) {
++    const i = gy * grid.W + gx;
++    const kind = grid.ground[i];
++    const X0 = gx * T, Y0 = gy * T;
++    if (kind === "grass" || kind === "meadow" || kind === "forest") {
++      for (let k = 0; k < 3; k++) {
++        const hsh = hash2(gx * 5 + k, gy * 7 + k, 31);
++        if (hsh < 0.45) continue;
++        const x = (hash2(gx, gy, k * 3 + 1) * 15) | 0, y = (hash2(gx, gy, k * 3 + 2) * 15) | 0;
++        g.fillStyle = hsh > 0.8 ? "rgba(180,220,120,0.5)" : "rgba(30,60,26,0.35)";
++        g.fillRect(X0 + x, Y0 + y, 1, 2);
++        if (hsh > 0.86) g.fillRect(X0 + x + 1, Y0 + y + 1, 1, 1);
++      }
++      if (hash2(gx, gy, 44) > 0.9) {
++        const cols = ["rgba(232,208,112,0.8)", "rgba(240,240,238,0.8)", "rgba(224,120,130,0.75)", "rgba(200,160,240,0.7)"];
++        g.fillStyle = cols[(hash2(gx, gy, 47) * cols.length) | 0];
++        g.fillRect(X0 + 4 + ((hash2(gx, gy, 45) * 8) | 0), Y0 + 4 + ((hash2(gx, gy, 46) * 8) | 0), 1, 1);
++      }
++    } else if (kind === "dirt") {
++      for (let k = 0; k < 2; k++) {
++        if (hash2(gx, gy, k + 61) < 0.6) continue;
++        g.fillStyle = "rgba(70,52,36,0.5)";
++        g.fillRect(X0 + ((hash2(gx, gy, k + 71) * 14) | 0), Y0 + ((hash2(gx, gy, k + 81) * 14) | 0), 2, 1);
++      }
++      if (hash2(gx, gy, 91) > 0.9) { g.fillStyle = "rgba(200,190,170,0.6)"; g.fillRect(X0 + ((hash2(gx, gy, 92) * 14) | 0), Y0 + ((hash2(gx, gy, 93) * 14) | 0), 1, 1); }
++    }
++  }
++
++  g.putImageData(img, 0, 0);
++
++  // re-draw floors/walls (drawImage above happened before putImageData, so do another pass)
++  for (let gy = 0; gy < grid.H; gy++) for (let gx = 0; gx < grid.W; gx++) {
++    const i = gy * grid.W + gx;
++    const kind = grid.ground[i];
++    const X0 = gx * T, Y0 = gy * T;
++    if (kind === "floor_wood" || kind === "floor_stone") {
++      g.drawImage(kind === "floor_wood" ? art.floor.wood : art.floor.stone, X0, Y0);
++      g.fillStyle = "rgba(30,18,10,0.10)"; g.fillRect(X0, Y0, T, T);
++    } else if (kind === "wall") {
++      const spr = sprForWall(plan, gx, gy, art);
++      g.drawImage(spr, X0, Y0 - 8);
++    }
++  }
++
++  // door thresholds + interior shadow gradient near walls
++  for (const b of plan.buildings) {
++    const X0 = (b.x + SITE_MARGIN) * T, Y0 = (b.y + SITE_MARGIN) * T;
++    g.fillStyle = "rgba(20,12,18,0.18)";
++    g.fillRect(X0 + 1, Y0 + 1, b.w * T - 2, 2);
++    g.fillRect(X0 + 1, Y0 + 1, 2, b.h * T - 2);
++    g.fillRect(X0 + b.w * T - 3, Y0 + 1, 2, b.h * T - 2);
++  }
++
++  return cv;
++}
++
++function sprForWall(plan: ResolvedPlan, gx: number, gy: number, art: ReturnType<typeof getVillageArt>): Sprite {
++  for (const b of plan.buildings) {
++    if (gx >= b.x && gx < b.x + b.w && gy >= b.y && gy < b.y + b.h) {
++      const front = gy === b.y + b.h - 1;
++      const spr = art.wall[b.wall] || art.wall.wood;
++      if (front) return spr;
++      // side/back walls sit under the roof and read only as a thin top edge
++      return spr;
++    }
++  }
++  return art.wall.wood;
++}
++
++export function sideLabel(s: DetailSide): string {
++  return s === "n" ? "bắc" : s === "s" ? "nam" : s === "e" ? "đông" : "tây";
++}
+diff -ruN a/src/maplab/detail/sprites.ts b/src/maplab/detail/sprites.ts
+--- a/src/maplab/detail/sprites.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/detail/sprites.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,365 @@
++/* eslint-disable */
++// Village sprite set for the Greywater POI detail layer.
++//
++// DIRECT REUSE (copied from the original prototype `src/game/art.ts`):
++//   floor_wood, floor_stone, wall_wood/stone/brick, door_wood/iron, roof_*,
++//   the oak / pine / willow / bush tree painters and `reeds`.
++// NEWLY AUTHORED, same grammar: every village prop and interior furnishing
++// below (well, notice, signpost, bench, stall, lantern, haystack, cart,
++// woodpile, stump, log, garden, laundry, anvil, trough, bed, table, …).
++// They are painted with the prototype's own primitives (`mk`, `ell`, `shade`,
++// `R`, `P`) at the same 1px scale, and get the same 1px automatic outline.
++
++import { ell, buildHero, mk, P, R, shade, type G, type Sprite } from "./proto-art";
++import { hash2 } from "../geom";
++
++export interface SpriteSet {
++  floor: Record<string, Sprite>;
++  wall: Record<string, Sprite>;
++  door: Record<string, Sprite>;
++  roof: Record<string, Sprite>;
++  tree: Record<string, Sprite[]>;
++  prop: Record<string, Sprite[]>;
++  item: Record<string, Sprite>;
++  hero: Record<string, Sprite[]>;
++}
++
++let SET: SpriteSet | null = null;
++export function getVillageArt(): SpriteSet {
++  return SET || (SET = buildVillageArt());
++}
++
++function buildVillageArt(): SpriteSet {
++  const floor: Record<string, Sprite> = {};
++  // ---- reused: prototype floors ----
++  floor.wood = mk(16, 16, (g) => { for (let y = 0; y < 16; y += 4) { R(g, 0, y, 16, 4, y % 8 ? "#9a6a3e" : "#8a5e36"); R(g, 0, y + 3, 16, 1, "#5a3a22"); P(g, (y * 5) % 16, y + 1, "#b0804a"); } }, null);
++  floor.stone = mk(16, 16, (g) => {
++    R(g, 0, 0, 16, 16, "#8a8a90");
++    for (const [x, y, w, h] of [[0, 0, 8, 8], [8, 0, 8, 8], [0, 8, 8, 8], [8, 8, 8, 8]]) {
++      R(g, x, y, w, 1, "#a8a8b0"); R(g, x, y + h - 1, w, 1, "#5e5e66"); R(g, x + w - 1, y, 1, h, "#6a6a72");
++    }
++  }, null);
++
++  // ---- reused: prototype walls (16x24, top strip + face) ----
++  const wall = (top: string, face: string, line: string, kind: string) => mk(16, 24, (g) => {
++    R(g, 0, 0, 16, 10, top); R(g, 0, 10, 16, 14, face);
++    if (kind === "wood") { for (let x = 0; x < 16; x += 4) { R(g, x, 0, 1, 24, line); R(g, x + 1, 0, 1, 10, "#b08050"); P(g, x + 2, 1, "#c89a60"); } R(g, 0, 15, 16, 1, line); }
++    if (kind === "stone") { for (let y = 10; y < 24; y += 4) { R(g, 0, y, 16, 1, line); for (let x = (y % 8 ? 0 : 4); x < 16; x += 8) R(g, x, y, 1, 4, line); } R(g, 0, 0, 16, 1, "#c0c0c8"); }
++    if (kind === "brick") { for (let y = 10; y < 24; y += 3) { R(g, 0, y, 16, 1, line); for (let x = (y % 6 ? 0 : 3); x < 16; x += 6) R(g, x, y, 1, 3, line); } R(g, 0, 0, 16, 1, "#e09a7a"); }
++    R(g, 0, 9, 16, 1, "rgba(0,0,0,0.35)");
++  });
++  const wallSet: Record<string, Sprite> = {};
++  wallSet.wood = wall("#8a5e36", "#7a5230", "#4a2e1a", "wood");
++  wallSet.stone = wall("#9a9aa2", "#7a7a82", "#55555e", "stone");
++  wallSet.brick = wall("#b0624a", "#9a4e3a", "#5a2a1e", "brick");
++
++  // ---- reused: prototype doors ----
++  const door = (c: string, band: string, open: boolean) => mk(16, 24, (g) => {
++    R(g, 0, 0, 16, 10, "#5a3a22");
++    if (open) { R(g, 0, 10, 2, 14, c); R(g, 14, 10, 2, 14, c); R(g, 2, 10, 12, 14, "rgba(20,12,20,0.6)"); }
++    else { R(g, 1, 8, 14, 16, c); R(g, 1, 12, 14, 1, band); R(g, 1, 19, 14, 1, band); P(g, 12, 16, "#e0c060"); R(g, 7, 8, 1, 16, "rgba(0,0,0,0.3)"); }
++  });
++  const doorSet: Record<string, Sprite> = {};
++  doorSet.wood = door("#9a6a3e", "#4a4e56", false);
++  doorSet.wood_open = door("#9a6a3e", "#4a4e56", true);
++  doorSet.iron = door("#6a7280", "#3a3e46", false);
++  doorSet.iron_open = door("#6a7280", "#3a3e46", true);
++
++  // ---- reused: prototype roof tiles ----
++  const roof: Record<string, Sprite> = {};
++  roof.thatch = mk(16, 16, (g) => { for (let y = 0; y < 16; y += 3) { R(g, 0, y, 16, 3, y % 6 ? "#c8a050" : "#b08a40"); for (let x = (y % 6 ? 1 : 3); x < 16; x += 4) P(g, x, y + 2, "#8a6a2a"); } }, null);
++  roof.tile = mk(16, 16, (g) => { for (let y = 0; y < 16; y += 4) for (let x = (y % 8 ? 0 : 2); x < 16; x += 4) { R(g, x, y, 4, 4, "#a84a32"); R(g, x, y + 3, 4, 1, "#6a2a1e"); P(g, x + 1, y, "#d07a5a"); } }, null);
++  roof.tin = mk(16, 16, (g) => { R(g, 0, 0, 16, 16, "#7a8288"); for (let x = 0; x < 16; x += 3) R(g, x, 0, 1, 16, "#5a6268"); for (let k = 0; k < 6; k++) P(g, (hash2(k, 1, 3) * 16) | 0, (hash2(k, 2, 3) * 16) | 0, "#a0602a"); }, null);
++  roof.wood = mk(16, 16, (g) => { for (let y = 0; y < 16; y += 2) R(g, 0, y, 16, 2, y % 4 ? "#7a5230" : "#6a4426"); for (let x = 0; x < 16; x += 5) R(g, x, 0, 1, 16, "#4a2e1a"); }, null);
++
++  // ---- reused: prototype trees ----
++  const tree: Record<string, Sprite[]> = {};
++  tree.oak = [0, 1, 2].map((v) => mk(24, 32, (g) => oak(g, v)));
++  tree.pine = [0, 1].map((v) => mk(24, 32, (g) => pine(g, v)));
++  tree.willow = [0, 1].map((v) => mk(24, 32, (g) => willow(g, v)));
++  tree.bush = [0, 1].map((v) => mk(16, 16, (g) => bush(g, v)));
++
++  // ---- village props ----
++  const prop: Record<string, Sprite[]> = {};
++  prop.well = [mk(24, 32, (g) => well(g))];
++  prop.crate = [0, 1].map((v) => mk(16, 16, (g) => crate(g, v)));
++  prop.barrel = [mk(14, 18, (g) => barrel(g))];
++  prop.notice = [mk(20, 26, (g) => notice(g))];
++  prop.signpost = [mk(18, 30, (g) => signpost(g))];
++  prop.bench = [mk(22, 14, (g) => bench(g))];
++  prop.stall = [0, 1].map((v) => mk(26, 28, (g) => stall(g, v)));
++  prop.lantern = [mk(12, 26, (g) => lantern(g))];
++  prop.haystack = [mk(22, 22, (g) => haystack(g))];
++  prop.cart = [mk(28, 22, (g) => cart(g))];
++  prop.woodpile = [mk(20, 16, (g) => woodpile(g, 20, 16))];
++  prop.stump = [mk(16, 12, (g) => { ell(g, 8, 8, 5, 3, shade("#7a5232", "#c9935a", "#4a2e1a", 3)); R(g, 3, 8, 10, 3, "#6a4426"); P(g, 8, 7, "#8a5a32"); })];
++  prop.log = [mk(22, 12, (g) => { R(g, 2, 5, 18, 6, "#6a4426"); R(g, 2, 5, 18, 1, "#a07040"); ell(g, 20, 8, 2.5, 3, "#c9935a"); P(g, 20, 7, "#8a5a32"); for (let x = 5; x < 18; x += 4) R(g, x, 6, 1, 4, "#4a2e1a"); })];
++  prop.reeds = [0, 1].map((v) => mk(16, 16, (g) => reeds(g, v), null));
++  prop.garden = [0, 1].map((v) => mk(16, 16, (g) => garden(g, v), null));
++  prop.laundry = [mk(26, 24, (g) => laundry(g))];
++  prop.anvil = [mk(16, 14, (g) => anvil(g))];
++  prop.trough = [mk(20, 12, (g) => trough(g))];
++
++  // ---- interiors ----
++  prop.bed = [mk(16, 22, (g) => bed(g))];
++  prop.table = [mk(18, 14, (g) => table(g))];
++  prop.stool = [mk(10, 10, (g) => { R(g, 2, 2, 6, 3, "#a8763f"); R(g, 2, 2, 6, 1, "#c9935a"); R(g, 2, 5, 1, 4, "#5a3a22"); R(g, 7, 5, 1, 4, "#5a3a22"); })];
++  prop.hearth = [mk(16, 16, (g) => hearth(g))];
++  prop.shelf = [mk(16, 18, (g) => shelf(g))];
++  prop.chest = [mk(16, 14, (g) => chest(g))];
++  prop.forge = [mk(18, 20, (g) => forge(g))];
++  prop.anvil_i = [mk(16, 14, (g) => anvil(g))];
++  prop.hay = [mk(16, 12, (g) => { ell(g, 8, 8, 7, 4, shade("#c8a050", "#e8c878", "#8a6a2a", 4)); for (let x = 2; x < 14; x += 3) P(g, x, 7 + (x % 2), "#8a6a2a"); })];
++  prop.sack = [mk(12, 12, (g) => { ell(g, 6, 7, 5, 4, shade("#c8b088", "#e0d0a8", "#8a7a58", 6)); R(g, 4, 2, 4, 2, "#a89068"); P(g, 5, 3, "#6a5a3a"); })];
++  prop.tub = [mk(16, 14, (g) => { R(g, 1, 4, 14, 8, "#6a4426"); R(g, 1, 4, 14, 2, "#8a5a32"); R(g, 3, 6, 10, 4, "#2e6ea0"); R(g, 3, 6, 10, 1, "#6ab0d8"); for (const x of [2, 13]) R(g, x, 4, 1, 8, "#4a2e1a"); })];
++  prop.pot = [mk(10, 10, (g) => { ell(g, 5, 6, 3.5, 3, "#8a5a32"); R(g, 3, 2, 4, 2, "#a8763f"); P(g, 4, 5, "#c9935a"); })];
++  prop.woodpile_i = [mk(18, 14, (g) => woodpile(g, 18, 14))];
++
++  return {
++    floor,
++    wall: wallSet,
++    door: doorSet,
++    roof,
++    tree,
++    prop,
++    item: {},
++    hero: buildHero(false) as unknown as Record<string, Sprite[]>,
++  };
++}
++
++// ================= direct prototype tree painters =================
++function oak(g: G, v: number) {
++  R(g, 10, 22, 4, 9, "#5a3a22"); R(g, 12, 22, 2, 9, "#7a5232"); P(g, 9, 30, "#5a3a22"); P(g, 14, 30, "#5a3a22");
++  const blobs = [[12, 12, 9], [6 + v, 15, 5], [18 - v, 15, 5], [12, 6, 6], [8, 9, 5], [16, 9, 5]];
++  for (const [x, y, r] of blobs) ell(g, x, y, r, r * 0.85, shade("#3f7a32", "#6aa84a", "#24501e", x * 7 + y + v));
++  for (let k = 0; k < 14; k++) {
++    const x = (4 + hash2(k, v, 1) * 16) | 0, y = (3 + hash2(k, v, 2) * 16) | 0;
++    if (g.getImageData(x, y, 1, 1).data[3]) P(g, x, y, hash2(k, v, 3) > 0.5 ? "#8ac25a" : "#2d5a27");
++  }
++}
++function pine(g: G, v: number) {
++  R(g, 11, 26, 3, 6, "#4a2e1a");
++  for (let tier = 0; tier < 4; tier++) {
++    const y0 = 3 + tier * 6, w = 4 + tier * 2.4;
++    for (let y = 0; y < 8; y++) {
++      const hw = (y / 8) * w;
++      for (let x = Math.round(12 - hw); x <= Math.round(12 + hw); x++) {
++        const nx = (x - 12) / (w + 0.1);
++        P(g, x, y0 + y, nx < -0.3 ? "#4a8a4a" : nx > 0.35 ? "#1e4628" : "#2e6a3a");
++      }
++    }
++  }
++  for (let k = 0; k < 4; k++) P(g, (10 + hash2(k, v, 4) * 4) | 0, 8 + k * 4, "#3f7a32");
++}
++function willow(g: G, v: number) {
++  R(g, 10, 20, 4, 11, "#4a3a26"); ell(g, 12, 10, 10, 8, shade("#4a6a3a", "#7a9a5a", "#2a3a22", v));
++  for (let x = 3; x < 22; x += 2) { const l = 8 + ((hash2(x, v, 5) * 10) | 0); for (let y = 12; y < 12 + l; y++) P(g, x, y, y % 2 ? "#5a7a42" : "#3a5a2e"); }
++}
++function bush(g: G, v: number) {
++  ell(g, 8, 10, 7, 5, shade("#3f7a32", "#6aa84a", "#24501e", 50 + v));
++  ell(g, 5, 8, 3.5, 3, shade("#4a8a3a", "#7ab85a", "#2a5a22", 51 + v));
++  for (let k = 0; k < 5; k++) { const x = (3 + hash2(k, v, 8) * 10) | 0, y = (6 + hash2(k, v, 9) * 7) | 0; P(g, x, y, "#e03a5a"); P(g, x, y - 1, "#ff8aa0"); }
++}
++function reeds(g: G, v: number) {
++  for (let k = 0; k < 9; k++) {
++    const x = 3 + k + ((hash2(k, v, 10) * 2) | 0), h = 4 + ((hash2(k, v, 11) * 6) | 0);
++    for (let y = 0; y < h; y++) P(g, x + (y > h - 3 ? (k % 2 ? 1 : -1) : 0), 14 - y, ["#5a9a3c", "#8ac258", "#3f7a32"][(k + y) % 3]);
++  }
++  for (let k = 0; k < 3; k++) R(g, 4 + k * 4, 3 + k, 1, 3, "#7a4a2a");
++}
++
++// ================= new village props =================
++function well(g: G) {
++  // peaked shingle roof
++  for (let y = 0; y < 7; y++) {
++    const w = 2 + y;
++    R(g, 12 - w, y + 1, w * 2, 1, y % 2 ? "#8a5a32" : "#a06a3a");
++  }
++  R(g, 2, 7, 20, 2, "#5a3a22"); R(g, 3, 7, 18, 1, "#c8a050");
++  // posts
++  R(g, 4, 8, 2, 14, "#6a4426"); R(g, 5, 8, 1, 14, "#8a5a32");
++  R(g, 18, 8, 2, 14, "#6a4426"); R(g, 18, 8, 1, 14, "#8a5a32");
++  // stone ring
++  ell(g, 12, 24, 8, 4.5, shade("#8a8a90", "#b0b0b8", "#5e5e66", 7));
++  ell(g, 12, 22.5, 6, 3, "#3a5a6a");
++  ell(g, 12, 22.5, 4.2, 2, "#2a4a5a");
++  P(g, 9, 21, "#7ab0c8"); P(g, 14, 23, "#6aa0b8");
++  for (const [x, y] of [[7, 24], [10, 26], [14, 25], [16, 23], [8, 22]]) P(g, x, y, "#6e6e76");
++  // bucket + rope
++  R(g, 11, 9, 2, 6, "#c8a878"); P(g, 11, 9, "#e0c8a0"); P(g, 12, 9, "#e0c8a0");
++  R(g, 11, 13, 3, 3, "#8a5a32"); R(g, 11, 13, 3, 1, "#4a4e56"); R(g, 12, 14, 1, 1, "#a8763f");
++  R(g, 12, 8, 1, 2, "#4a4e56");
++  // crank
++  R(g, 2, 10, 3, 1, "#4a4e56"); P(g, 2, 11, "#4a4e56"); P(g, 2, 9, "#4a4e56");
++}
++function crate(g: G, v: number) {
++  R(g, 1, 5, 14, 10, v ? "#8a5a32" : "#9a6a3e");
++  R(g, 1, 5, 14, 2, v ? "#a8763f" : "#b0804a");
++  for (let x = 3; x < 14; x += 4) R(g, x, 6, 1, 8, "#6a4426");
++  R(g, 1, 12, 14, 1, "#4a2e1a");
++  R(g, 1, 5, 1, 10, "#5a3a22"); R(g, 14, 5, 1, 10, "#5a3a22");
++  for (const [x, y] of [[2, 6], [13, 6], [2, 13], [13, 13]]) P(g, x, y, "#d0c090");
++  if (v) P(g, 8, 9, "#c8b088");
++}
++function barrel(g: G) {
++  ell(g, 7, 9, 6, 8, shade("#8a5a32", "#b07a45", "#5a3a22", 12));
++  R(g, 1, 5, 12, 2, "#4a4e56"); R(g, 1, 11, 12, 2, "#4a4e56");
++  R(g, 2, 3, 10, 1, "#a8763f"); ell(g, 7, 4, 5, 2, "#6a4426");
++  for (let x = 3; x < 12; x += 3) R(g, x, 4, 1, 10, "rgba(60,30,10,0.35)");
++  P(g, 5, 7, "#c9935a");
++}
++function notice(g: G) {
++  R(g, 3, 10, 2, 15, "#6a4426"); R(g, 15, 10, 2, 15, "#6a4426");
++  R(g, 1, 2, 18, 11, "#7a5232"); R(g, 1, 2, 18, 2, "#a8763f"); R(g, 1, 11, 18, 2, "#5a3a22");
++  R(g, 3, 5, 6, 6, "#e8e0c8"); R(g, 10, 5, 7, 4, "#dccfae");
++  for (let y = 6; y < 10; y += 2) R(g, 4, y, 4, 1, "#8a7a58");
++  for (let y = 6; y < 8; y += 2) R(g, 11, y, 5, 1, "#8a7a58");
++  P(g, 14, 9, "#b03a2a"); P(g, 9, 8, "#b03a2a");
++  R(g, 2, 1, 16, 1, "#4a2e1a");
++}
++function signpost(g: G) {
++  R(g, 7, 7, 3, 22, "#6a4426"); R(g, 8, 7, 1, 22, "#8a5a32");
++  // right-pointing board
++  R(g, 8, 4, 8, 5, "#a8763f"); R(g, 8, 4, 8, 1, "#c9935a"); P(g, 16, 6, "#a8763f"); P(g, 15, 5, "#a8763f"); P(g, 15, 7, "#a8763f");
++  for (let x = 10; x < 15; x += 2) P(g, x, 6, "#5a3a22");
++  // left-pointing board
++  R(g, 2, 11, 8, 5, "#9a6a3e"); R(g, 2, 11, 8, 1, "#c9935a"); P(g, 1, 13, "#9a6a3e"); P(g, 2, 12, "#9a6a3e"); P(g, 2, 14, "#9a6a3e");
++  for (let x = 4; x < 9; x += 2) P(g, x, 13, "#5a3a22");
++  // small lower board
++  R(g, 8, 18, 7, 4, "#b0804a"); P(g, 15, 19, "#b0804a"); P(g, 15, 20, "#b0804a");
++  for (let x = 10; x < 14; x += 2) P(g, x, 20, "#5a3a22");
++}
++function bench(g: G) {
++  R(g, 1, 4, 20, 3, "#a8763f"); R(g, 1, 4, 20, 1, "#c9935a");
++  for (let x = 3; x < 20; x += 4) P(g, x, 5, "#7a5232");
++  R(g, 2, 8, 2, 5, "#6a4426"); R(g, 18, 8, 2, 5, "#6a4426");
++  R(g, 1, 9, 20, 2, "#8a5a32"); R(g, 1, 9, 20, 1, "#b0804a");
++  R(g, 1, 1, 20, 2, "#7a5232"); R(g, 1, 1, 20, 1, "#a8763f");
++  R(g, 2, 3, 1, 2, "#6a4426"); R(g, 19, 3, 1, 2, "#6a4426");
++}
++function stall(g: G, v: number) {
++  // awning
++  for (let y = 0; y < 6; y++) {
++    for (let x = 0; x < 26; x++) {
++      const stripe = Math.floor((x + y * 0.6) / 3) % 2 === 0;
++      P(g, x, y, y === 5 ? "#7a4a2a" : stripe ? (v ? "#b0442e" : "#a83a2e") : "#e8dcc0");
++    }
++  }
++  for (let x = 0; x < 26; x++) { P(g, x, 6, "#5a3a22"); }
++  R(g, 1, 7, 2, 20, "#6a4426"); R(g, 23, 7, 2, 20, "#6a4426");
++  // counter
++  R(g, 2, 17, 22, 5, "#8a5a32"); R(g, 2, 17, 22, 2, "#b0804a"); R(g, 2, 21, 22, 1, "#5a3a22");
++  // goods
++  R(g, 4, 13, 5, 4, "#c9935a"); P(g, 5, 12, "#e0b060"); P(g, 7, 12, "#e0b060");
++  for (let k = 0; k < 4; k++) { ell(g, 13 + k * 2.4, 15, 1.6, 1.8, k % 2 ? "#b03a2a" : "#d07a2a"); P(g, 12 + k * 2.4, 13, "#4a9a3a"); }
++  R(g, 19, 13, 4, 4, "#6a7280"); R(g, 20, 12, 2, 2, "#a8a8b0");
++}
++function lantern(g: G) {
++  R(g, 5, 8, 2, 17, "#5a3a22"); R(g, 6, 8, 1, 17, "#7a5232");
++  R(g, 4, 7, 4, 2, "#4a4e56");
++  // lamp housing
++  R(g, 3, 4, 6, 2, "#4a4e56");
++  R(g, 4, 6, 4, 5, "#4a4e56");
++  R(g, 5, 6, 2, 5, "#ffd070");
++  P(g, 5, 7, "#fff0b0"); P(g, 6, 7, "#fff0b0"); P(g, 5, 8, "#ffe8a0");
++  P(g, 4, 10, "#ff9a3a"); P(g, 7, 10, "#ff9a3a");
++  R(g, 3, 11, 6, 1, "#4a4e56");
++  R(g, 3, 24, 6, 2, "#5a3a22");
++}
++function haystack(g: G) {
++  ell(g, 11, 14, 10, 8, shade("#c8a050", "#e8c878", "#8a6a2a", 24));
++  R(g, 1, 18, 20, 3, "#a8802e");
++  for (let x = 2; x < 20; x += 3) P(g, x, 16 + (x % 2), "#8a6a2a");
++  for (let y = 8; y < 19; y += 3) for (let x = 2; x < 21; x += 4) P(g, x + (y % 2), y, "#b08a40");
++  P(g, 11, 5, "#6a4426"); R(g, 10, 2, 3, 4, "#8a5a32");
++}
++function cart(g: G) {
++  R(g, 3, 4, 20, 10, "#8a5a32"); R(g, 3, 4, 20, 2, "#b07a4a");
++  for (let x = 5; x < 23; x += 4) R(g, x, 6, 1, 8, "#5a3a22");
++  ell(g, 7, 16, 4, 4, "#4a2e1a"); ell(g, 7, 16, 2, 2, "#8a8a90");
++  ell(g, 19, 16, 4, 4, "#4a2e1a"); ell(g, 19, 16, 2, 2, "#8a8a90");
++  R(g, 23, 8, 5, 1, "#6a4426");
++  R(g, 4, 3, 3, 2, "#c8a050"); P(g, 4, 2, "#e0c878");
++}
++function woodpile(g: G, w: number, h: number) {
++  const rows = Math.max(2, Math.floor(h / 5));
++  for (let r = 0; r < rows; r++) {
++    const y = h - 4 - r * 4;
++    for (let x = 1 + (r % 2); x < w - 3; x += 5) {
++      R(g, x, y, 4, 3, r % 2 ? "#8a5a32" : "#7a4e2c");
++      P(g, x + 3, y + 1, "#c9935a"); P(g, x, y, "#a8763f");
++    }
++  }
++  R(g, 2, h - 2, w - 4, 1, "#4a2e1a");
++}
++function garden(g: G, v: number) {
++  R(g, 1, 3, 14, 12, "#5a3a22");
++  for (let y = 4; y < 14; y += 3) R(g, 2, y, 12, 1, "#7a4e2c");
++  for (let k = 0; k < 3; k++) {
++    const x = 3 + k * 4;
++    R(g, x, 6 + (v % 2), 1, 4, "#4a9a3a");
++    P(g, x - 1, 6 + (v % 2), "#6ac04a"); P(g, x + 1, 7 + (v % 2), "#6ac04a");
++    if (v) P(g, x, 5 + (v % 2), "#e0b040");
++  }
++}
++function laundry(g: G) {
++  R(g, 1, 4, 2, 19, "#6a4426"); R(g, 23, 4, 2, 19, "#6a4426");
++  R(g, 2, 5, 22, 1, "#c8b088");
++  R(g, 5, 6, 6, 8, "#dce4e8"); R(g, 5, 6, 6, 1, "#f4f8fa"); P(g, 10, 10, "#b0c0c8");
++  R(g, 14, 6, 7, 6, "#c8b8e0"); R(g, 14, 6, 7, 1, "#e0d8f0");
++  P(g, 13, 6, "#8a7a58"); P(g, 22, 6, "#8a7a58");
++}
++function anvil(g: G) {
++  R(g, 2, 8, 12, 4, "#5a3e22"); R(g, 2, 8, 12, 1, "#8a5a32");
++  R(g, 3, 4, 10, 4, "#4a4e56"); R(g, 3, 4, 10, 1, "#8a9098");
++  R(g, 12, 3, 3, 2, "#4a4e56"); P(g, 14, 3, "#8a9098");
++  R(g, 6, 2, 5, 2, "#3a3e46"); P(g, 7, 2, "#6a7280");
++}
++function trough(g: G) {
++  R(g, 1, 5, 18, 5, "#6a4426"); R(g, 1, 5, 18, 1, "#a8763f");
++  R(g, 3, 6, 14, 3, "#2e6ea0"); R(g, 3, 6, 14, 1, "#6ab0d8");
++  R(g, 2, 9, 2, 2, "#4a2e1a"); R(g, 16, 9, 2, 2, "#4a2e1a");
++  P(g, 7, 7, "#a0d8f0");
++}
++
++// ================= interiors =================
++function bed(g: G) {
++  R(g, 2, 2, 12, 18, "#6a4426"); R(g, 3, 3, 10, 16, "#8a5e36");
++  R(g, 3, 3, 10, 5, "#e8e0d0"); R(g, 4, 3, 8, 4, "#f4efe4");
++  R(g, 3, 8, 10, 11, "#a83a3a"); R(g, 3, 8, 10, 1, "#d06060");
++  for (let y = 10; y < 19; y += 3) P(g, 6, y, "#8a2a2a");
++  R(g, 1, 1, 14, 2, "#4a2e1a"); R(g, 1, 1, 2, 20, "#4a2e1a"); R(g, 13, 1, 2, 20, "#4a2e1a");
++}
++function table(g: G) {
++  R(g, 1, 1, 16, 8, "#a8763f"); R(g, 1, 1, 16, 2, "#c9935a"); R(g, 1, 7, 16, 2, "#7a5232");
++  R(g, 3, 9, 2, 4, "#5a3a22"); R(g, 13, 9, 2, 4, "#5a3a22");
++  R(g, 4, 3, 3, 2, "#e8e0c8"); P(g, 8, 3, "#b03a2a"); P(g, 10, 4, "#4a9a3a");
++}
++function hearth(g: G) {
++  R(g, 1, 6, 14, 9, "#6e6e76"); R(g, 1, 6, 14, 1, "#9a9aa2");
++  for (let y = 7; y < 15; y += 3) R(g, 1, y, 14, 1, "#4e4e56");
++  R(g, 4, 8, 8, 6, "#2a2224"); R(g, 5, 11, 6, 3, "#ff7a2a"); R(g, 6, 12, 4, 2, "#ffd070");
++  P(g, 7, 11, "#fff0a0"); P(g, 9, 13, "#ff9a3a");
++  R(g, 5, 3, 2, 3, "#4e4e56"); R(g, 9, 3, 2, 3, "#4e4e56");
++  ell(g, 8, 3, 3, 1.5, "#2a2224");
++}
++function shelf(g: G) {
++  R(g, 1, 1, 14, 16, "#7a5232"); R(g, 2, 2, 12, 14, "#4a2e1a");
++  for (const y of [5, 10, 14]) { R(g, 2, y, 12, 1, "#a8763f"); }
++  for (const [x, y, c] of [[3, 3, "#c8a050"], [6, 2, "#8ab0c8"], [9, 3, "#b03a2a"], [4, 7, "#dce4e8"], [8, 8, "#6a8a3a"], [11, 12, "#c8b088"]] as [number, number, string][]) {
++    R(g, x, y, 2, 2, c); P(g, x, y, "#f0f0f0");
++  }
++}
++function chest(g: G) {
++  R(g, 1, 4, 14, 9, "#8a5a32"); R(g, 1, 4, 14, 3, "#a8763f");
++  R(g, 1, 8, 14, 1, "#5a3a22"); R(g, 7, 4, 2, 7, "#4a4e56");
++  R(g, 7, 7, 2, 2, "#e0c060"); P(g, 1, 5, "#c0c0c8"); P(g, 14, 5, "#c0c0c8");
++  R(g, 2, 12, 12, 1, "#5a3a22");
++}
++function forge(g: G) {
++  R(g, 1, 5, 16, 13, "#5e5e66"); R(g, 1, 5, 16, 1, "#8a8a92");
++  for (let y = 7; y < 18; y += 3) R(g, 1, y, 16, 1, "#3e3e46");
++  R(g, 5, 8, 8, 6, "#2a1e1a"); R(g, 6, 11, 6, 3, "#ff6a1e"); R(g, 7, 12, 4, 2, "#ffd040");
++  P(g, 8, 11, "#fff0a0"); P(g, 10, 13, "#ff9a3a");
++  R(g, 7, 1, 4, 4, "#3e3e46"); R(g, 6, 0, 6, 2, "#2a2a30");
++}
+diff -ruN a/src/maplab/detail/types.ts b/src/maplab/detail/types.ts
+--- a/src/maplab/detail/types.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/detail/types.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,265 @@
++// POI Detail Layer — data model (v1, backward compatible with .sohmap.json v1).
++//
++// A POI in Map Studio is a *site*, not a finished village. This module adds an
++// optional, keyed-by-POI-ID detail record that expands one site into an
++// editable settlement plan: buildings, roofs, doors, floors, lanes, yards,
++// vegetation, props and interaction anchors.
++//
++// Only `po_greywater` (Greywater Hamlet) is generated in this pilot. Every
++// other POI keeps the exact geometry it had before this layer existed.
++
++export type DetailSide = "n" | "s" | "e" | "w";
++export type WallKind = "wood" | "stone" | "brick";
++export type RoofKind = "thatch" | "tile" | "tin" | "wood";
++export type FloorKind = "wood" | "stone";
++export type BuildingKind = "hall" | "cottage" | "barn" | "smithy" | "pumphouse" | "shed" | "washhouse" | "stable";
++export type TreeKind = "oak" | "pine" | "willow" | "bush";
++export type PathKind = "dirt" | "stone" | "plaza";
++
++/** Local detail coordinates are in *tiles*. 1 tile = `unitsPerTile` Map Studio units. */
++export type TilePt = [number, number];
++
++export interface DetailInteract {
++  kind: "well" | "crate" | "notice" | "sign" | "lantern" | "door" | "bench";
++  /** Player-facing line. */
++  text?: string;
++  /** Remaining pickups for crates (finite, saved). */
++  charges?: number;
++  /** Stable id used by the save format for the "already used" bookkeeping. */
++  key?: string;
++}
++
++export interface DetailBuilding {
++  id: string;
++  name: string;
++  kind: BuildingKind;
++  /** Top-left tile of the footprint. */
++  x: number;
++  y: number;
++  w: number;
++  h: number;
++  wall: WallKind;
++  roof: RoofKind;
++  floor: FloorKind;
++  /** Door tile (world detail tile coords) + which wall it cuts. */
++  door: { x: number; y: number; side: DetailSide };
++  chimney?: boolean;
++  /** Interior furniture/props (tile coords, inside the footprint). */
++  props: DetailProp[];
++  note?: string;
++}
++
++export interface DetailProp {
++  id: string;
++  type: string;
++  /** Tile coordinates. Props are drawn with their base near (x, y). */
++  x: number;
++  y: number;
++  solid: boolean;
++  variant?: number;
++  rot?: number;
++  interact?: DetailInteract;
++}
++
++export interface DetailTree {
++  id: string;
++  kind: TreeKind;
++  x: number;
++  y: number;
++  v: number;
++}
++
++export interface DetailPath {
++  id: string;
++  kind: PathKind;
++  /** Width in tiles. */
++  width: number;
++  points: TilePt[];
++}
++
++export interface DetailFence {
++  id: string;
++  x0: number;
++  y0: number;
++  x1: number;
++  y1: number;
++  kind: "post" | "rail" | "hedge";
++}
++
++export interface DetailConnection {
++  id: string;
++  /** Map Studio road that physically meets this site (may be absent). */
++  roadId?: string;
++  roadName?: string;
++  roadKind?: string;
++  /** Cardinal gate on the site boundary. */
++  gate: DetailSide;
++  gatePt: TilePt;
++  /** World-space anchor of the connecting road (Map Studio units). */
++  anchor: [number, number];
++  /** Direction (radians, world) the road leaves along. */
++  angle: number;
++  /** Local spur drawn from the gate into the surrounding margin. */
++  spur: TilePt[];
++}
++
++/** Orientation of the detail grid inside Map Studio's world. */
++export interface DetailFrame {
++  w: number;
++  h: number;
++  rot: number;
++  /** World position of local tile (0,0). */
++  origin: [number, number];
++  /** Map Studio units per detail tile. */
++  unitsPerTile: number;
++  /** Native pixels per tile for rendering. */
++  tilePx: number;
++  /** Foot polygon in local tile coordinates (site boundary). */
++  footLocal: TilePt[];
++  /** Foot polygon in world units (as authored in Map Studio). */
++  footWorld: TilePt[];
++  /** Sample of Map Studio geography under the site (documented, not gameplay authority). */
++  context: SiteContextInfo;
++}
++
++export interface SiteContextInfo {
++  biome: string;
++  biomeName: string;
++  nearestRiver?: { id: string; name: string; distance: number; width: number };
++  nearestLake?: { id: string; name: string; distance: number };
++  /** Roads that physically reach the site. */
++  roadHits: { id: string; name: string; kind: string; distance: number; angle: number }[];
++  /** Elevated Map Studio POI centre, for the "site inside the world" proof. */
++  poiAt: [number, number];
++}
++
++/** Deterministic output of the generator for one seed + one site. */
++export interface GeneratedLayout {
++  seed: number;
++  buildings: DetailBuilding[];
++  props: DetailProp[];
++  trees: DetailTree[];
++  paths: DetailPath[];
++  fences: DetailFence[];
++  connections: DetailConnection[];
++  spawn: TilePt;
++  /** Extra flavour recorded in the plan inspector. */
++  summary: string;
++}
++
++/**
++ * Hand edits, applied *on top of* the generated layout. Regenerating with a new
++ * seed keeps these overrides, which is what makes "regenerate" safe to use
++ * inside a hand-tuned site.
++ */
++export interface LayoutOverrides {
++  buildings: Record<string, Partial<Pick<DetailBuilding, "x" | "y" | "w" | "h" | "roof" | "wall" | "floor" | "name" | "door" | "kind">> & { removed?: boolean }>;
++  props: Record<string, Partial<DetailProp> & { removed?: boolean }>;
++  trees: Record<string, Partial<DetailTree> & { removed?: boolean }>;
++  addedBuildings: DetailBuilding[];
++  addedProps: DetailProp[];
++  addedTrees: DetailTree[];
++  spawn?: TilePt;
++}
++
++export const EMPTY_OVERRIDES = (): LayoutOverrides => ({ buildings: {}, props: {}, trees: {}, addedBuildings: [], addedProps: [], addedTrees: [] });
++
++export function newDetail(poiId: string, poiName: string, frame: DetailFrame, generated: GeneratedLayout): PoiDetail {
++  return {
++    v: 1,
++    poiId,
++    poiName,
++    seed: generated.seed,
++    frame,
++    generated,
++    overrides: EMPTY_OVERRIDES(),
++    locked: false,
++    edited: false,
++    hash: layoutHash(generated),
++    notes: "",
++  };
++}
++
++export interface PoiDetail {
++  v: 1;
++  poiId: string;
++  poiName: string;
++  seed: number;
++  frame: DetailFrame;
++  generated: GeneratedLayout;
++  overrides: LayoutOverrides;
++  /** Hand-tuned: blocks drag/resize/regenerate until unlocked. */
++  locked: boolean;
++  edited: boolean;
++  /** Deterministic fingerprint of `generated` (not of hand edits). */
++  hash: string;
++  notes?: string;
++  /** Optional saved walk/interaction state (created by play mode). */
++  play?: { water: number; supplies: number; reads: number; lamps: number; used: Record<string, boolean>; lampsOn: Record<string, boolean> };
++}
++
++/** A resolved, render-ready plan (generated + overrides). */
++export interface ResolvedPlan {
++  seed: number;
++  buildings: DetailBuilding[];
++  props: DetailProp[];
++  trees: DetailTree[];
++  paths: DetailPath[];
++  fences: DetailFence[];
++  connections: DetailConnection[];
++  spawn: TilePt;
++  summary: string;
++}
++
++export function applyOverrides(g: GeneratedLayout, o: LayoutOverrides): ResolvedPlan {
++  const patch = <T extends { id: string }>(list: T[], map: Record<string, Partial<T> & { removed?: boolean }>): T[] => {
++    const out: T[] = [];
++    for (const it of list) {
++      const p = map[it.id];
++      if (!p) { out.push(it); continue; }
++      if (p.removed) continue;
++      out.push({ ...it, ...p, id: it.id } as T);
++    }
++    return out;
++  };
++  const buildings = patch([...g.buildings, ...o.addedBuildings], o.buildings);
++  const props = patch([...g.props, ...o.addedProps], o.props);
++  const trees = patch([...g.trees, ...o.addedTrees], o.trees);
++  return {
++    seed: g.seed,
++    buildings, props, trees,
++    paths: g.paths, fences: g.fences, connections: g.connections,
++    spawn: o.spawn ? [o.spawn[0], o.spawn[1]] : [g.spawn[0], g.spawn[1]],
++    summary: g.summary,
++  };
++}
++
++/** FNV-1a over a canonical JSON form: stable across runs/platforms. */
++export function stableStringify(v: unknown): string {
++  if (v === null || typeof v !== "object") return JSON.stringify(v);
++  if (Array.isArray(v)) return "[" + v.map(stableStringify).join(",") + "]";
++  const o = v as Record<string, unknown>;
++  return "{" + Object.keys(o).sort().map((k) => JSON.stringify(k) + ":" + stableStringify(o[k])).join(",") + "}";
++}
++export function fnv1a(s: string): string {
++  let h = 0x811c9dc5;
++  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
++  return ((h >>> 0).toString(16) + "00000000").slice(0, 8);
++}
++export function layoutHash(g: GeneratedLayout): string {
++  // Connections and trees are included: they depend on Map Studio geography.
++  return fnv1a(stableStringify({ s: g.seed, b: g.buildings, p: g.props, t: g.trees, pa: g.paths, f: g.fences, c: g.connections, sp: g.spawn }));
++}
++
++export function overridesEmpty(o: LayoutOverrides): boolean {
++  return Object.keys(o.buildings).length === 0 && Object.keys(o.props).length === 0 && Object.keys(o.trees).length === 0
++    && o.addedBuildings.length === 0 && o.addedProps.length === 0 && o.addedTrees.length === 0 && !o.spawn;
++}
++
++export const BUILDING_LABEL: Record<BuildingKind, string> = {
++  hall: "Nhà hội làng", cottage: "Nhà dân", barn: "Kho thóc / chuồng", smithy: "Lò rèn",
++  pumphouse: "Nhà bơm", shed: "Chái kho", washhouse: "Nhà giặt / sên nước", stable: "Chuồng ngựa",
++};
++export const ROOF_LABEL: Record<RoofKind, string> = { thatch: "Mái rơm", tile: "Mái ngói", tin: "Mái tôn", wood: "Mái gỗ" };
++export const WALL_LABEL: Record<WallKind, string> = { wood: "Vách gỗ", stone: "Tường đá", brick: "Tường gạch" };
++export const TREE_LABEL: Record<TreeKind, string> = { oak: "Sồi", pine: "Thông", willow: "Liễu", bush: "Bụi rậm" };
+diff -ruN a/src/maplab/store.ts b/src/maplab/store.ts
+--- a/src/maplab/store.ts	2026-11-02 12:09:49.119733076 +0000
++++ b/src/maplab/store.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -7,6 +7,9 @@
+ import { validate } from "./validate";
+ import type { Check } from "./validate";
+ import { ARCHE_BY_ID, CELL, COLLS, COLL_PREFIX, GH, GW, WORLD_H, WORLD_W, uid, allObjects, findObj, collOf } from "./types";
++import { DEFAULT_SEED, GREYWATER_POI_ID, generateDetail, hashOf, reframeDetail, regenerateDetail, resolveDetail } from "./detail/generate";
++import { EMPTY_OVERRIDES, overridesEmpty } from "./detail/types";
++import type { PoiDetail } from "./detail/types";
+ import type { Base, CollKey, Poi, Project, Pt, River, RoadKind, ToolId, ViewMode } from "./types";
+ 
+ export type AnyObj = Base & Record<string, any>;
+@@ -26,6 +29,7 @@
+   const t = q.terrain;
+   const p: Project = { ...q, terrain: { gw: t.gw, gh: t.gh, cell: t.cell, seed: t.seed, elev: unb64(t.elev), biome: unb64(t.biome) } };
+   for (const c of COLLS) if (!Array.isArray((p as any)[c])) (p as any)[c] = [];
++  if (!p.details || typeof p.details !== "object") p.details = {};
+   p.baseId = nextBase();
+   return p;
+ }
+@@ -35,7 +39,7 @@
+ 
+ export function newBlankProject(name = "Dự án trống"): Project {
+   const now = new Date().toISOString();
+-  return { v: 1, name, world: { w: WORLD_W, h: WORLD_H }, meta: { created: now, modified: now, author: "", status: "Bản nháp" }, land: [], lakes: [], rivers: [], roads: [], bridges: [], docks: [], pois: [], zones: [], resources: [], spawns: [], elders: [], labels: [], terrain: emptyTerrain(GW, GH, CELL, 1), baseId: nextBase() };
++  return { v: 1, name, world: { w: WORLD_W, h: WORLD_H }, meta: { created: now, modified: now, author: "", status: "Bản nháp" }, details: {}, land: [], lakes: [], rivers: [], roads: [], bridges: [], docks: [], pois: [], zones: [], resources: [], spawns: [], elders: [], labels: [], terrain: emptyTerrain(GW, GH, CELL, 1), baseId: nextBase() };
+ }
+ 
+ // ---------- object helpers ----------
+@@ -108,6 +112,8 @@
+   heat: "none" | "opp" | "poi" | "build"; panel: "inspect" | "layers" | "smart" | "snap"; leftHidden: boolean; bottomOpen: boolean;
+   selVertex: number; hoverSeg: number; blocked: Set<string>; testResult: { at: Pt; lines: { tone: string; text: string }[] } | null; reach: { at: Pt; mode: string } | null;
+   lockedColls: Set<string>; paletteOpen: boolean; toast: string; regionRect: [number, number, number, number] | null; changed?: { added: Set<string>; moved: Set<string> };
++  /** POI Detail Layer studio currently open (stable POI id). */
++  detailOpen?: string | null;
+ }
+ 
+ interface Snap { label: string; project: Project }
+@@ -257,6 +263,67 @@
+     this.sel = new Set(out); this.emit();
+   }
+ 
++  // ----- POI Detail Layer (backward-compatible, keyed by stable POI id) -----
++  /** Only Greywater is implemented in this pilot. Other POIs are never auto-populated. */
++  detailSupported(poiId: string) { return poiId === GREYWATER_POI_ID; }
++  getDetail(poiId: string): PoiDetail | null { return this.project.details?.[poiId] || null; }
++  ensureDetail(poiId: string, seed = DEFAULT_SEED): PoiDetail | null {
++    const existing = this.getDetail(poiId);
++    if (existing) return existing;
++    const poi = this.project.pois.find((q) => q.id === poiId);
++    if (!poi) return null;
++    if (!this.detailSupported(poiId)) { this.toast("Lớp chi tiết POI: pilot này chỉ mở cho Greywater Hamlet."); return null; }
++    const d = generateDetail(this.project, poi, seed);
++    this.commit("Tạo POI Detail: " + poi.name, (q) => {
++      if (!q.details) q.details = {};
++      q.details[poiId] = d;
++    });
++    return this.getDetail(poiId);
++  }
++  /** Every hand edit goes through here so undo/redo, autosave and reload stay in sync. */
++  editDetail(poiId: string, label: string, fn: (d: PoiDetail) => void) {
++    this.commit("Detail: " + label, (q) => {
++      const d = q.details?.[poiId];
++      if (!d) return;
++      fn(d);
++      d.edited = !overridesEmpty(d.overrides);
++      d.hash = hashOf(d.generated);
++    });
++  }
++  regenerateDetail(poiId: string, seed: number) {
++    const poi = this.project.pois.find((q) => q.id === poiId);
++    if (!poi) return;
++    this.commit("Detail: tái sinh (seed " + seed + ")", (q) => {
++      const d = q.details?.[poiId];
++      if (!d) return;
++      q.details![poiId] = regenerateDetail(q, poi, d, seed);
++    });
++  }
++  /** Re-derive the site frame from the (possibly edited) POI footprint. */
++  reframeDetail(poiId: string) {
++    const poi = this.project.pois.find((q) => q.id === poiId);
++    if (!poi) return;
++    this.commit("Detail: cập nhật khung theo footprint", (q) => {
++      const d = q.details?.[poiId];
++      if (!d) return;
++      q.details![poiId] = reframeDetail(q, poi, d);
++    });
++  }
++  setDetailLocked(poiId: string, locked: boolean) {
++    this.editDetail(poiId, locked ? "khóa bố cục" : "mở khóa bố cục", (d) => { d.locked = locked; });
++  }
++  clearDetailOverrides(poiId: string) {
++    this.editDetail(poiId, "bỏ sửa tay", (d) => { d.overrides = EMPTY_OVERRIDES(); });
++  }
++  saveDetailPlay(poiId: string, play: PoiDetail["play"]) {
++    // play state is saved with the project, but does not create an undo step per step
++    this.mutate((q) => { const d = q.details?.[poiId]; if (d) d.play = play; });
++  }
++  resolvedDetail(poiId: string) {
++    const d = this.getDetail(poiId);
++    return d ? resolveDetail(d) : null;
++  }
++
+   // ----- validation / analysis cache -----
+   runChecks(force = false): Check[] {
+     if (force || this.checksVersion !== this.version) {
+diff -ruN a/src/maplab/types.ts b/src/maplab/types.ts
+--- a/src/maplab/types.ts	2026-11-02 12:09:49.119733076 +0000
++++ b/src/maplab/types.ts	2026-11-02 12:09:49.127733116 +0000
+@@ -56,6 +56,8 @@
+ export interface Terrain { gw: number; gh: number; cell: number; elev: Uint8Array; biome: Uint8Array; seed: number; }
+ export interface Project {
+   v: 1;
++  /** Optional POI Detail Layer records keyed by stable POI id (v1 pilot: po_greywater only). */
++  details?: Record<string, import("./detail/types").PoiDetail>;
+   name: string;
+   world: { w: number; h: number };
+   meta: { created: string; modified: string; status: string; author: string };
+diff -ruN a/src/maplab/ui/DetailStudio.tsx b/src/maplab/ui/DetailStudio.tsx
+--- a/src/maplab/ui/DetailStudio.tsx	1970-01-01 00:00:00.000000000 +0000
++++ b/src/maplab/ui/DetailStudio.tsx	2026-11-02 12:09:49.127733116 +0000
+@@ -0,0 +1,765 @@
++/* eslint-disable @typescript-eslint/no-explicit-any */
++"use client";
++// POI Detail Layer — editor + walk mode for the Greywater pilot.
++//
++// This is a *layer on top of Map Studio*, not a separate app: it reads the POI
++// out of the open project (`po_greywater`), edits its detail record through the
++// same Store (so undo / redo / autosave / .sohmap.json keep working) and draws
++// with the prototype-derived pixel renderer.
++
++import { useCallback, useEffect, useMemo, useRef, useState } from "react";
++import "./maplab.css";
++import type { Store } from "../store";
++import { serializeProject } from "../store";
++import { canvasSize, SITE_MARGIN } from "../detail/grid";
++import { makeGrid } from "../detail/grid";
++import { resolveDetail } from "../detail/generate";
++import { createSession, interact, NOTICE_TEXT, sessionSave, stepSession, type PlaySession } from "../detail/play";
++import type { DetailBuilding, DetailProp, DetailTree, PoiDetail, ResolvedPlan } from "../detail/types";
++import { BUILDING_LABEL, ROOF_LABEL, WALL_LABEL, TREE_LABEL } from "../detail/types";
++import { renderVillage, type Selection } from "../detail/render";
++
++const T = 16;
++const TILE = 16;
++
++const BUILDING_KINDS = Object.keys(BUILDING_LABEL) as (keyof typeof BUILDING_LABEL)[];
++const ROOF_KINDS = Object.keys(ROOF_LABEL) as (keyof typeof ROOF_LABEL)[];
++const WALL_KINDS = Object.keys(WALL_LABEL) as (keyof typeof WALL_LABEL)[];
++const TREE_KINDS = Object.keys(TREE_LABEL) as (keyof typeof TREE_LABEL)[];
++const PROP_TYPES = ["crate", "barrel", "well", "notice", "signpost", "lantern", "bench", "haystack", "cart", "woodpile", "stump", "log", "garden", "laundry", "trough", "stall", "reeds", "fence"];
++
++function useVer(st: Store) {
++  const [v, setV] = useState(0);
++  useEffect(() => {
++    let raf = 0;
++    const un = st.subscribe(() => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; setV((x) => x + 1); }); });
++    return () => { un(); cancelAnimationFrame(raf); };
++  }, [st]);
++  return v;
++}
++
++function downloadBlob(name: string, blob: Blob) {
++  const a = document.createElement("a");
++  a.href = URL.createObjectURL(blob);
++  a.download = name;
++  a.click();
++  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
++}
++
++function propInteract(id: string, type: string): DetailProp["interact"] {
++  switch (type) {
++    case "well": return { kind: "well", text: "Giếng làng — múc nước" };
++    case "crate": return { kind: "crate", key: id, text: "Thùng vật tư" };
++    case "notice": return { kind: "notice", text: "Bảng tin làng" };
++    case "signpost": return { kind: "sign", text: "Biển chỉ dẫn" };
++    case "lantern": return { kind: "lantern", key: id, text: "Đèn lồng" };
++    case "bench": return { kind: "bench", text: "Ghế nghỉ" };
++    default: return undefined;
++  }
++}
++const SOLID_PROPS = new Set(["well", "barrel", "crate", "haystack", "cart", "woodpile", "stump", "log", "trough", "stall", "signpost", "notice", "lantern", "laundry", "bench"]);
++
++function newBuilding(id: string, x: number, y: number): DetailBuilding {
++  return {
++    id, name: "Nhà mới", kind: "cottage", x, y, w: 6, h: 5, wall: "wood", roof: "thatch", floor: "wood",
++    door: { x: x + 3, y: y + 5, side: "s" }, props: [],
++  };
++}
++function newProp(id: string, type: string, x: number, y: number): DetailProp {
++  return { id, type, x, y, solid: SOLID_PROPS.has(type), variant: 0, interact: propInteract(id, type) };
++}
++
++function doorFor(b: DetailBuilding, side: DetailBuilding["door"]["side"]): DetailBuilding["door"] {
++  if (side === "s") return { x: b.x + Math.floor(b.w / 2), y: b.y + b.h, side };
++  if (side === "n") return { x: b.x + Math.floor(b.w / 2), y: b.y - 1, side };
++  if (side === "e") return { x: b.x + b.w, y: b.y + Math.floor(b.h / 2), side };
++  return { x: b.x - 1, y: b.y + Math.floor(b.h / 2), side };
++}
++
++interface DragState { sel: Selection; startX: number; startY: number; origX: number; origY: number; moved: boolean }
++
++export function DetailStudio({ st, poiId, onClose }: { st: Store; poiId: string; onClose: () => void }) {
++  useVer(st);
++  const d = st.getDetail(poiId);
++
++  // create the detail record on first open (one undoable step)
++  useEffect(() => { if (!st.getDetail(poiId)) st.ensureDetail(poiId); /* eslint-disable-next-line */ }, []);
++
++  const snap = useMemo(() => {
++    const d2 = st.getDetail(poiId);
++    if (!d2) return null;
++    const plan = resolveDetail(d2);
++    return { d: d2, plan, grid: makeGrid(st.project, d2.frame, plan) };
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [poiId, st, st.version]);
++
++  const [mode, setMode] = useState<"edit" | "play">("edit");
++  const [zoom, setZoom] = useState(1);
++  const [tool, setTool] = useState<"select" | "add_building" | "add_prop" | "add_tree" | "spawn">("select");
++  const [addType, setAddType] = useState("crate");
++  const [addTreeKind, setAddTreeKind] = useState<DetailTree["kind"]>("oak");
++  const [sel, setSel] = useState<Selection | null>(null);
++  const [hover, setHover] = useState<Selection | null>(null);
++  const [showGrid, setShowGrid] = useState(false);
++  const [showLabels, setShowLabels] = useState(false);
++  const [seedDraft, setSeedDraft] = useState<string>("");
++  const [notice, setNotice] = useState(false);
++  const [hud, setHud] = useState<{ water: number; supplies: number; reads: number; lamps: number; target: string | null; targetKind: string | null; toast: string; inside: string | null }>({ water: 0, supplies: 0, reads: 0, lamps: 0, target: null, targetKind: null, toast: "", inside: null });
++  const [savedPlay, setSavedPlay] = useState(!!d?.play);
++
++  const cvRef = useRef<HTMLCanvasElement | null>(null);
++  const wrapRef = useRef<HTMLDivElement | null>(null);
++  const scrollRef = useRef<HTMLDivElement | null>(null);
++  const snapRef = useRef(snap);
++  const uiRef = useRef({ mode, sel, hover, showGrid, showLabels, zoom, tool });
++  const dragRef = useRef<DragState | null>(null);
++  const selRef = useRef<Selection | null>(null);
++  const sessionRef = useRef<PlaySession | null>(null);
++  const inputRef = useRef({ up: false, down: false, left: false, right: false });
++  const hudAt = useRef(0);
++
++  useEffect(() => { snapRef.current = snap; selRef.current = sel; });
++
++  // QA / automation hook: read-only handles + a couple of test helpers.
++  useEffect(() => {
++    (window as any).__greywater = {
++      st, poiId,
++      get plan() { return snapRef.current?.plan ?? null; },
++      get grid() { return snapRef.current?.grid ?? null; },
++      get detail() { return st.getDetail(poiId); },
++      get session() { return sessionRef.current; },
++      get mode() { return uiRef.current.mode; },
++      teleport(x: number, y: number) { const s = sessionRef.current; if (s) { s.x = x; s.y = y; } },
++      save: () => { const s = sessionRef.current; if (s) st.saveDetailPlay(poiId, sessionSave(s)); },
++      hash: () => st.getDetail(poiId)?.hash,
++    };
++    return () => { delete (window as any).__greywater; };
++  }, [st, poiId]);
++  uiRef.current = { mode, sel, hover, showGrid, showLabels, zoom, tool };
++
++  const size = d ? canvasSize(d.frame) : { w: 1, h: 1 };
++
++  // ---------- render loop (also steps the walk session) ----------
++  // rAF drives it while the tab is visible; a timer keeps the simulation alive
++  // when the browser throttles rAF (background tab / headless capture).
++  useEffect(() => {
++    let raf = 0;
++    let last = performance.now();
++    const tick = (now: number) => {
++      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
++      if (dt < 0.012) return;
++      last = now;
++      const s = snapRef.current;
++      const u = uiRef.current;
++      const cv = cvRef.current;
++      if (!s || !cv) return;
++      const sess = sessionRef.current;
++      try {
++        if (u.mode === "play" && sess) {
++          stepSession(sess, s.grid, s.plan, dt, inputRef.current);
++          if (now - hudAt.current > 120) {
++            hudAt.current = now;
++            setHud((h) => {
++              const next = {
++                water: sess.counters.water, supplies: sess.counters.supplies, reads: sess.counters.reads, lamps: sess.counters.lamps,
++                target: sess.target?.label ?? null, targetKind: sess.target?.kind ?? null, toast: sess.toast, inside: sess.inside,
++              };
++              return JSON.stringify(h) === JSON.stringify(next) ? h : next;
++            });
++          }
++        }
++        renderVillage(cv, {
++          plan: s.plan, grid: s.grid, frame: s.d.frame, time: now,
++          actor: u.mode === "play" && sess ? { x: sess.x, y: sess.y, dir: sess.dir, moving: sess.moving, anim: sess.anim } : undefined,
++          selection: u.mode === "edit" ? u.sel : null,
++          hover: u.mode === "edit" ? u.hover : null,
++          edit: u.mode === "edit",
++          showGrid: u.showGrid, showLabels: u.showLabels, seed: s.d.seed,
++          particles: u.mode === "play" && sess ? sess.particles : undefined,
++        }, 1);
++        // follow camera: keep the hero centred while walking
++        const stage = scrollRef.current;
++        if (u.mode === "play" && sess && stage) {
++          const cx = (sess.x + SITE_MARGIN) * TILE * u.zoom;
++          const cy = (sess.y + SITE_MARGIN) * TILE * u.zoom;
++          const tl = cx - stage.clientWidth / 2, tt = cy - stage.clientHeight / 2;
++          if (Math.abs(stage.scrollLeft - tl) > 3) stage.scrollLeft += (tl - stage.scrollLeft) * 0.3;
++          if (Math.abs(stage.scrollTop - tt) > 3) stage.scrollTop += (tt - stage.scrollTop) * 0.3;
++        }
++      } catch (err) {
++        // never kill the loop on a draw error: log once and keep the studio usable
++        console.error("detail render", err);
++      }
++    };
++    const loop = (now: number) => { tick(now); raf = requestAnimationFrame(loop); };
++    raf = requestAnimationFrame(loop);
++    const iv = window.setInterval(() => tick(performance.now()), 60);
++    return () => { cancelAnimationFrame(raf); window.clearInterval(iv); };
++  }, []);
++
++  const savePlay = useCallback(() => {
++    const sess = sessionRef.current;
++    if (!sess) return;
++    st.saveDetailPlay(poiId, sessionSave(sess));
++    setSavedPlay(true);
++  }, [st, poiId]);
++
++  useEffect(() => () => { if (sessionRef.current) st.saveDetailPlay(poiId, sessionSave(sessionRef.current)); }, [st, poiId]);
++
++  const enterPlay = () => {
++    const dv = st.getDetail(poiId);
++    if (!dv) return;
++    sessionRef.current = createSession(resolveDetail(dv), dv.play);
++    setSel(null);
++    setZoom((z) => Math.max(z, 2));
++    setMode("play");
++    setHud({ water: dv.play?.water || 0, supplies: dv.play?.supplies || 0, reads: dv.play?.reads || 0, lamps: dv.play?.lamps || 0, target: null, targetKind: null, toast: "", inside: null });
++  };
++  const leavePlay = () => {
++    savePlay();
++    setMode("edit");
++    setNotice(false);
++  };
++
++  // ---------- keyboard ----------
++  useEffect(() => {
++    const down = (e: KeyboardEvent) => {
++      const tgt = e.target as HTMLElement | null;
++      if (tgt && (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA" || tgt.tagName === "SELECT")) return;
++      const u = uiRef.current;
++      if (u.mode === "play") {
++        const k = e.key.toLowerCase();
++        if (k === "w" || k === "arrowup") { inputRef.current.up = true; e.preventDefault(); }
++        if (k === "s" || k === "arrowdown") { inputRef.current.down = true; e.preventDefault(); }
++        if (k === "a" || k === "arrowleft") { inputRef.current.left = true; e.preventDefault(); }
++        if (k === "d" || k === "arrowright") { inputRef.current.right = true; e.preventDefault(); }
++        if (k === "e" && !e.repeat) {
++          const sess = sessionRef.current;
++          const s = snapRef.current;
++          if (sess && s) {
++            const res = interact(sess, s.plan);
++            sess.toast = res.message; sess.toastT = 2.6;
++            if (res.openNotice) { sess.noticeOpen = true; setNotice(true); }
++            e.preventDefault();
++          }
++        }
++        if (e.key === "Escape") { leavePlay(); e.preventDefault(); }
++        if (e.key === " " || e.key === "Enter") { e.preventDefault(); }
++        e.stopImmediatePropagation();
++        return;
++      }
++      if (e.key === "Escape") { onClose(); e.preventDefault(); e.stopImmediatePropagation(); return; }
++      if (e.key === "Delete" || e.key === "Backspace") { deleteSelection(); e.preventDefault(); e.stopImmediatePropagation(); return; }
++      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { if (e.shiftKey) st.redo(); else st.undo(); e.preventDefault(); e.stopImmediatePropagation(); }
++    };
++    const up = (e: KeyboardEvent) => {
++      const k = e.key.toLowerCase();
++      if (k === "w" || k === "arrowup") inputRef.current.up = false;
++      if (k === "s" || k === "arrowdown") inputRef.current.down = false;
++      if (k === "a" || k === "arrowleft") inputRef.current.left = false;
++      if (k === "d" || k === "arrowright") inputRef.current.right = false;
++    };
++    window.addEventListener("keydown", down, true);
++    window.addEventListener("keyup", up, true);
++    return () => { window.removeEventListener("keydown", down, true); window.removeEventListener("keyup", up, true); };
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, []);
++
++  // ---------- edit helpers ----------
++  const patch = useCallback((label: string, fn: (dv: PoiDetail) => void) => {
++    st.editDetail(poiId, label, fn);
++  }, [st, poiId]);
++
++  const patchOne = (s: Selection, p: Record<string, unknown>, meta = false) => {
++    const label = s.kind === "building" ? "sửa nhà" : s.kind === "prop" ? "sửa vật dụng" : "sửa cây";
++    if (meta) {
++      patch(label, (dv) => {
++        const map = s.kind === "building" ? dv.overrides.buildings : s.kind === "prop" ? dv.overrides.props : dv.overrides.trees;
++        (map as any)[s.id] = { ...((map as any)[s.id] || {}), ...p };
++      });
++    } else {
++      st.mutate((q) => {
++        const dv = q.details?.[poiId];
++        if (!dv) return;
++        const map = s.kind === "building" ? dv.overrides.buildings : s.kind === "prop" ? dv.overrides.props : dv.overrides.trees;
++        (map as any)[s.id] = { ...((map as any)[s.id] || {}), ...p };
++      });
++    }
++  };
++
++  const deleteSelection = () => {
++    const s = selRef.current;
++    const dv = st.getDetail(poiId);
++    if (!s || !dv || dv.locked) return;
++    patch("xóa " + s.kind, (q) => {
++      const kind = s.kind;
++      if (kind === "building") {
++        q.overrides.buildings[s.id] = { ...(q.overrides.buildings[s.id] || {}), removed: true };
++        q.overrides.addedBuildings = q.overrides.addedBuildings.filter((b) => b.id !== s.id);
++      } else if (kind === "prop") {
++        q.overrides.props[s.id] = { ...(q.overrides.props[s.id] || {}), removed: true };
++        q.overrides.addedProps = q.overrides.addedProps.filter((b) => b.id !== s.id);
++      } else {
++        q.overrides.trees[s.id] = { ...(q.overrides.trees[s.id] || {}), removed: true };
++        q.overrides.addedTrees = q.overrides.addedTrees.filter((b) => b.id !== s.id);
++      }
++    });
++    setSel(null);
++  };
++
++  const tileAt = (e: React.PointerEvent | React.MouseEvent): [number, number] | null => {
++    const cv = cvRef.current;
++    if (!cv) return null;
++    const r = cv.getBoundingClientRect();
++    const z = zoom;
++    const x = (e.clientX - r.left) / z / T - SITE_MARGIN;
++    const y = (e.clientY - r.top) / z / T - SITE_MARGIN;
++    return [x, y];
++  };
++
++  const hitTest = (plan: ResolvedPlan, x: number, y: number): Selection | null => {
++    for (let i = plan.props.length - 1; i >= 0; i--) {
++      const p = plan.props[i];
++      if (Math.abs(p.x + 0.5 - x) < 0.8 && Math.abs(p.y + 0.6 - y) < 0.95) return { kind: "prop", id: p.id };
++    }
++    for (let i = plan.trees.length - 1; i >= 0; i--) {
++      const t = plan.trees[i];
++      if (Math.hypot(t.x + 0.5 - x, t.y + 0.45 - y) < 0.85) return { kind: "tree", id: t.id };
++    }
++    for (let i = plan.buildings.length - 1; i >= 0; i--) {
++      const b = plan.buildings[i];
++      if (x >= b.x - 0.25 && x < b.x + b.w + 0.25 && y >= b.y - 1 && y < b.y + b.h + 0.45) return { kind: "building", id: b.id };
++    }
++    return null;
++  };
++
++  const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
++    if (mode !== "edit" || !snap || !d) return;
++    if (e.button !== 0) return;
++    const p = tileAt(e);
++    if (!p) return;
++    (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
++
++    if (tool === "spawn") {
++      patch("đặt điểm spawn", (dv) => { dv.overrides.spawn = [Math.round(p[0] * 4) / 4, Math.round(p[1] * 4) / 4]; });
++      setTool("select");
++      return;
++    }
++    if (tool === "add_building") {
++      if (d.locked) { st.toast("Bố cục đang khóa — mở khóa để thêm nhà."); return; }
++      const id = "ab_" + Date.now().toString(36);
++      const x = Math.max(0, Math.min(d.frame.w - 6, Math.round(p[0] - 3)));
++      const y = Math.max(0, Math.min(d.frame.h - 5, Math.round(p[1] - 2)));
++      const b = newBuilding(id, x, y);
++      patch("thêm nhà", (dv) => { dv.overrides.addedBuildings.push(b); });
++      setSel({ kind: "building", id });
++      setTool("select");
++      return;
++    }
++    if (tool === "add_prop" || tool === "add_tree") {
++      if (d.locked) { st.toast("Bố cục đang khóa — mở khóa để thêm."); return; }
++      const id = (tool === "add_prop" ? "ap_" : "at_") + Date.now().toString(36);
++      const x = Math.round(p[0] * 4) / 4, y = Math.round(p[1] * 4) / 4;
++      if (tool === "add_prop") {
++        const pr = newProp(id, addType, x, y);
++        patch("thêm vật dụng", (dv) => { dv.overrides.addedProps.push(pr); });
++        setSel({ kind: "prop", id });
++      } else {
++        const tr: DetailTree = { id, kind: addTreeKind, x, y, v: Math.floor(Math.random() * 3) };
++        patch("thêm cây", (dv) => { dv.overrides.addedTrees.push(tr); });
++        setSel({ kind: "tree", id });
++      }
++      setTool("select");
++      return;
++    }
++
++    const hit = hitTest(snap.plan, p[0], p[1]);
++    setSel(hit);
++    if (hit && !d.locked) {
++      const plan = snap.plan;
++      const obj = hit.kind === "building" ? plan.buildings.find((b) => b.id === hit.id) : hit.kind === "prop" ? plan.props.find((b) => b.id === hit.id) : plan.trees.find((b) => b.id === hit.id);
++      if (obj) {
++        dragRef.current = { sel: hit, startX: p[0], startY: p[1], origX: obj.x, origY: obj.y, moved: false };
++        st.beginTx("Di chuyển " + (hit.kind === "building" ? "nhà" : hit.kind === "prop" ? "vật dụng" : "cây"));
++      }
++    } else if (!hit) {
++      dragRef.current = null;
++    }
++  };
++
++  const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
++    if (!snap || !d) return;
++    const p = tileAt(e);
++    if (!p) return;
++    if (mode !== "edit") return;
++    const dr = dragRef.current;
++    if (dr && !d.locked) {
++      const dx = p[0] - dr.startX, dy = p[1] - dr.startY;
++      if (!dr.moved && Math.hypot(dx, dy) < 0.2) return;
++      dr.moved = true;
++      const frame = d.frame;
++      if (dr.sel.kind === "building") {
++        const b = snap.plan.buildings.find((q) => q.id === dr.sel.id);
++        if (!b) return;
++        const nx = Math.max(0, Math.min(frame.w - b.w, Math.round(dr.origX + dx)));
++        const ny = Math.max(0, Math.min(frame.h - b.h, Math.round(dr.origY + dy)));
++        patchOne(dr.sel, { x: nx, y: ny, door: doorFor({ ...b, x: nx, y: ny }, b.door.side) });
++      } else if (dr.sel.kind === "prop") {
++        const nx = Math.max(0, Math.min(frame.w - 1, Math.round((dr.origX + dx) * 4) / 4));
++        const ny = Math.max(0, Math.min(frame.h - 1, Math.round((dr.origY + dy) * 4) / 4));
++        patchOne(dr.sel, { x: nx, y: ny });
++      } else {
++        const nx = Math.max(0, Math.min(frame.w - 1, Math.round((dr.origX + dx) * 4) / 4));
++        const ny = Math.max(0, Math.min(frame.h - 1, Math.round((dr.origY + dy) * 4) / 4));
++        patchOne(dr.sel, { x: nx, y: ny });
++      }
++      return;
++    }
++    const h = hitTest(snap.plan, p[0], p[1]);
++    setHover((cur: Selection | null) => (cur?.kind === h?.kind && cur?.id === h?.id ? cur : h));
++  };
++
++  const onPointerUp = () => {
++    if (dragRef.current) {
++      st.endTx();
++      dragRef.current = null;
++    }
++  };
++
++  // ---------- exports ----------
++  const exportPNG = (scale: number) => {
++    if (!snap) return;
++    const cv = document.createElement("canvas");
++    const s = canvasSize(snap.d.frame);
++    cv.width = s.w * scale; cv.height = s.h * scale;
++    const sess = sessionRef.current;
++    renderVillage(cv, {
++      plan: snap.plan, grid: snap.grid, frame: snap.d.frame, time: 0,
++      actor: sess && mode === "play" ? { x: sess.x, y: sess.y, dir: sess.dir, moving: false, anim: 0 } : undefined,
++      edit: false, showGrid: false, showLabels, seed: snap.d.seed,
++    }, scale);
++    cv.toBlob((b) => { if (b) downloadBlob(`greywater_poi_${scale}x.png`, b); }, "image/png");
++  };
++
++  const exportJSON = () => {
++    if (!snap) return;
++    downloadBlob("greywater_poi_detail.json", new Blob([JSON.stringify(snap.d, null, 2)], { type: "application/json" }));
++  };
++  const saveProjectFile = () => {
++    st.saveLocal();
++    downloadBlob("SoulOfHero_MapLab.sohmap.json", new Blob([serializeProject(st.project)], { type: "application/json" }));
++    st.toast("Đã lưu dự án (kèm lớp chi tiết POI).");
++  };
++
++  if (!d || !snap) {
++    return (
++      <div className="ds-root" data-testid="detail-studio">
++        <div className="ds-loading">Đang tạo lớp chi tiết cho POI…</div>
++      </div>
++    );
++  }
++
++  const plan = snap.plan;
++  const selObj = sel ? (sel.kind === "building" ? plan.buildings.find((b) => b.id === sel.id) : sel.kind === "prop" ? plan.props.find((b) => b.id === sel.id) : plan.trees.find((b) => b.id === sel.id)) : null;
++  const siteTiles = Math.round(d.frame.w * d.frame.h);
++  const ctx = d.frame.context;
++  const overCount = Object.keys(d.overrides.buildings).length + Object.keys(d.overrides.props).length + Object.keys(d.overrides.trees).length + d.overrides.addedBuildings.length + d.overrides.addedProps.length + d.overrides.addedTrees.length;
++  const warnings = buildingWarnings(plan);
++  const doorsOk = plan.buildings.filter((b) => !plan.buildings.some((o) => o.id !== b.id && b.door.x >= o.x && b.door.x < o.x + o.w && b.door.y >= o.y && b.door.y < o.y + o.h)).length;
++
++  return (
++    <div className="ds-root" data-testid="detail-studio">
++      <header className="ds-head">
++        <div className="ds-title">
++          <span className="ds-badge">POI DETAIL · v1</span>
++          <b>{d.poiName}</b>
++          <code>{d.poiId}</code>
++          <span className="ds-dim">{Math.round(d.frame.w)}×{Math.round(d.frame.h)} tiles · {siteTiles} ô · 1u = 1 tile = 16px</span>
++        </div>
++        <div className="ds-tabs">
++          <button className={"ds-tab" + (mode === "edit" ? " on" : "")} data-testid="tab-edit" onClick={() => (mode === "play" ? leavePlay() : null)}>Chỉnh sửa</button>
++          <button className={"ds-tab" + (mode === "play" ? " on" : "")} data-testid="tab-play" onClick={() => (mode === "edit" ? enterPlay() : null)}>Đi bộ / tương tác</button>
++        </div>
++        <div className="ds-actions">
++          <button className="ds-btn" onClick={() => st.undo()} title="Undo (Ctrl+Z)" data-testid="undo">↶</button>
++          <button className="ds-btn" onClick={() => st.redo()} title="Redo (Ctrl+Shift+Z)" data-testid="redo">↷</button>
++          <button className={"ds-btn" + (d.locked ? " on" : "")} data-testid="lock" onClick={() => { st.setDetailLocked(poiId, !d.locked); st.toast(d.locked ? "Đã mở khóa bố cục." : "Đã khóa bố cục — không sửa/xóa/tái sinh được."); }}>{d.locked ? "🔒 Đã khóa" : "🔓 Khóa bố cục"}</button>
++          <button className="ds-btn" data-testid="clear-overrides" onClick={() => { if (confirm("Bỏ toàn bộ sửa tay của Greywater? (dùng được Ctrl+Z)")) st.clearDetailOverrides(poiId); }}>Bỏ sửa tay</button>
++          <button className="ds-btn primary" data-testid="save-project" onClick={saveProjectFile}>Lưu dự án</button>
++          <button className="ds-btn" data-testid="close" onClick={() => { if (mode === "play") leavePlay(); onClose(); }}>Đóng ✕</button>
++        </div>
++      </header>
++
++      <div className="ds-body">
++        <aside className="ds-side ds-left">
++          <div className="ds-sec">
++            <div className="ds-h">Công cụ</div>
++            <div className={"ds-tool" + (tool === "select" ? " on" : "")} onClick={() => setTool("select")}>🖱 Chọn / kéo di chuyển <kbd>V</kbd></div>
++            <div className={"ds-tool" + (tool === "add_building" ? " on" : "")} data-testid="tool-add-building" onClick={() => setTool("add_building")}>🏠 Thêm nhà <kbd>B</kbd></div>
++            <div className={"ds-tool" + (tool === "add_prop" ? " on" : "")} data-testid="tool-add-prop" onClick={() => setTool("add_prop")}>📦 Thêm vật dụng <kbd>P</kbd></div>
++            <div className={"ds-tool" + (tool === "add_tree" ? " on" : "")} onClick={() => setTool("add_tree")}>🌳 Thêm cây <kbd>T</kbd></div>
++            <div className={"ds-tool" + (tool === "spawn" ? " on" : "")} onClick={() => setTool("spawn")}>🚩 Đặt điểm spawn</div>
++            {tool === "add_prop" && (
++              <label className="ds-fld">Loại
++                <select value={addType} onChange={(e) => setAddType(e.target.value)}>
++                  {PROP_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
++                </select>
++              </label>
++            )}
++            {tool === "add_tree" && (
++              <label className="ds-fld">Cây
++                <select value={addTreeKind} onChange={(e) => setAddTreeKind(e.target.value as DetailTree["kind"])}>
++                  {TREE_KINDS.map((p) => <option key={p} value={p}>{TREE_LABEL[p]}</option>)}
++                </select>
++              </label>
++            )}
++            <div className="ds-hint">Click lên bản đồ để đặt · kéo để dời · Delete để xóa · Esc thoát.</div>
++          </div>
++
++          <div className="ds-sec">
++            <div className="ds-h">Hiển thị</div>
++            <label className="ds-chk"><input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Lưới ô ({T}px)</label>
++            <label className="ds-chk"><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> Nhãn tên công trình</label>
++            <div className="ds-zoom">
++              {[1, 2, 3, 4].map((z) => <button key={z} className={"ds-mini" + (zoom === z ? " on" : "")} data-testid={"zoom-" + z} onClick={() => setZoom(z)}>{z}×</button>)}
++              <span className="ds-dim">1× = {size.w}×{size.h}px</span>
++            </div>
++          </div>
++
++          <div className="ds-sec">
++            <div className="ds-h">Tái sinh / seed</div>
++            <div className="ds-row">
++              <input className="ds-inp" type="number" placeholder={String(d.seed)} value={seedDraft} onChange={(e) => setSeedDraft(e.target.value)} data-testid="seed-input" />
++              <button className="ds-btn" data-testid="regen" disabled={d.locked} onClick={() => {
++                const seed = seedDraft ? Math.floor(+seedDraft) : d.seed;
++                st.regenerateDetail(poiId, seed);
++                st.toast("Đã tái sinh bố cục với seed " + seed + " (giữ sửa tay).");
++              }}>Tái sinh</button>
++            </div>
++            <div className="ds-dim">seed hiện tại <code>{d.seed}</code> · hash <code data-testid="hash">{d.hash}</code></div>
++            <div className="ds-dim">Bố cục {d.edited ? <b>đã sửa tay</b> : "khớp bản sinh tự động"} · {overCount} override</div>
++            <button className="ds-btn" data-testid="reframe" disabled={d.locked} onClick={() => { st.reframeDetail(poiId); st.toast("Đã cập nhật khung theo footprint POI."); }}>Cập nhật khung theo footprint</button>
++          </div>
++
++          <div className="ds-sec">
++            <div className="ds-h">Xuất</div>
++            <div className="ds-row">
++              <button className="ds-mini" data-testid="png-1x" onClick={() => exportPNG(1)}>PNG 1×</button>
++              <button className="ds-mini" data-testid="png-2x" onClick={() => exportPNG(2)}>PNG 2×</button>
++              <button className="ds-mini" onClick={() => exportPNG(3)}>PNG 3×</button>
++            </div>
++            <button className="ds-btn" data-testid="export-json" onClick={exportJSON}>JSON lớp chi tiết</button>
++            <div className="ds-hint">Ảnh xuất là pixel gốc (không upscale mượt), đúng tỉ lệ 16px/ô.</div>
++          </div>
++        </aside>
++
++        <main className="ds-stage" ref={wrapRef}>
++          <div className="ds-stagebar">
++            <span>Site <b>{d.poiName}</b> · khung {d.frame.w.toFixed(0)}×{d.frame.h.toFixed(0)} ô</span>
++            <span className="ds-dim">rot {d.frame.rot.toFixed(3)} rad · {plan.buildings.length} nhà · {plan.props.length} vật dụng · {plan.trees.length} cây · {plan.fences.length} hàng rào · {plan.connections.length} lối ra đường</span>
++          </div>
++          <div className="ds-scroll" ref={scrollRef}>
++          <div className="ds-canvaswrap" style={{ width: size.w * zoom, height: size.h * zoom }}>
++            <canvas
++              ref={cvRef}
++              width={size.w}
++              height={size.h}
++              data-testid="detail-canvas"
++              className={"ds-canvas" + (tool !== "select" && mode === "edit" ? " placing" : "")}
++              style={{ width: size.w * zoom, height: size.h * zoom }}
++              onPointerDown={onPointerDown}
++              onPointerMove={onPointerMove}
++              onPointerUp={onPointerUp}
++              onPointerLeave={() => { onPointerUp(); setHover(null); }}
++              onContextMenu={(e) => e.preventDefault()}
++            />
++          </div>
++          </div>
++          {mode === "play" && (
++              <div className="ds-hud">
++                <div className="ds-chips">
++                  <span className="chip">💧 Nước <b data-testid="hud-water">{hud.water}</b></span>
++                  <span className="chip">📦 Vật tư <b data-testid="hud-supplies">{hud.supplies}</b></span>
++                  <span className="chip">📖 Lượt đọc <b data-testid="hud-reads">{hud.reads}</b></span>
++                  <span className="chip">🏮 Đèn <b data-testid="hud-lamps">{hud.lamps}</b></span>
++                  {hud.inside && <span className="chip inside">🏠 Trong nhà — mái mờ</span>}
++                </div>
++                <div className="ds-prompt">
++                  {hud.target ? <><kbd>E</kbd> {hud.target}</> : <span className="ds-dim">Đi bằng WASD / phím mũi tên · Esc để về chế độ sửa</span>}
++                </div>
++                {hud.toast && <div className="ds-toast" data-testid="play-toast">{hud.toast}</div>}
++                <div className="ds-playbtns">
++                  <button className="ds-btn" data-testid="reset-spawn" onClick={() => {
++                    const sess = sessionRef.current; const dv = st.getDetail(poiId);
++                    if (sess && dv) { const p = resolveDetail(dv); sess.x = p.spawn[0]; sess.y = p.spawn[1]; sess.inside = null; }
++                  }}>Về điểm spawn</button>
++                  <button className="ds-btn" data-testid="save-play" onClick={() => { savePlay(); st.toast("Đã lưu trạng thái đi bộ vào dự án."); }}>Lưu trạng thái</button>
++                  <button className="ds-btn" onClick={leavePlay}>Về chỉnh sửa</button>
++                </div>
++              </div>
++          )}
++          {notice && (
++              <div className="ds-modal" data-testid="notice" onPointerDown={(e) => e.stopPropagation()}>
++                <div className="ds-modal-box">
++                  <pre>{NOTICE_TEXT}</pre>
++                  <button className="ds-btn primary" data-testid="notice-close" onClick={() => { setNotice(false); const s = sessionRef.current; if (s) s.noticeOpen = false; }}>Đọc xong</button>
++                </div>
++              </div>
++          )}
++          <div className="ds-legend">
++            <span><i className="lg roof" /> Máy che & mờ khi vào nhà</span>
++            <span><i className="lg door" /> Cửa vào</span>
++            <span><i className="lg prop" /> Vật dụng tương tác</span>
++            <span><i className="lg road" /> Lối ra đường Map Studio</span>
++            <span><i className="lg water" /> Nước (sông/hồ Map Studio)</span>
++          </div>
++        </main>
++
++        <aside className="ds-side ds-right" data-testid="inspector">
++          <div className="ds-sec">
++            <div className="ds-h">Bố cục</div>
++            <div className="ds-kv"><span>Nhà</span><b>{plan.buildings.length}</b></div>
++            <div className="ds-kv"><span>Vật dụng</span><b>{plan.props.length}</b></div>
++            <div className="ds-kv"><span>Cây</span><b>{plan.trees.length}</b></div>
++            <div className="ds-kv"><span>Cửa thông thoáng</span><b>{doorsOk}/{plan.buildings.length}</b></div>
++            <div className="ds-kv"><span>Lối ra đường</span><b>{plan.connections.length}</b></div>
++            <div className="ds-kv"><span>Cảnh báo hình học</span><b className={warnings.length ? "warn" : ""}>{warnings.length}</b></div>
++            {warnings.slice(0, 4).map((w, i) => <div key={i} className="ds-warn">• {w}</div>)}
++          </div>
++
++          <div className="ds-sec">
++            <div className="ds-h">Địa lý Map Studio</div>
++            <div className="ds-kv"><span>Biome</span><b>{ctx.biomeName}</b></div>
++            <div className="ds-kv"><span>Sông gần nhất</span><b>{ctx.nearestRiver ? `${ctx.nearestRiver.name} · ${ctx.nearestRiver.distance.toFixed(0)}u` : "—"}</b></div>
++            <div className="ds-kv"><span>Hồ gần nhất</span><b>{ctx.nearestLake ? `${ctx.nearestLake.name} · ${ctx.nearestLake.distance.toFixed(0)}u` : "—"}</b></div>
++            <div className="ds-kv"><span>Đường chạm site</span><b>{ctx.roadHits.length ? ctx.roadHits.map((r) => r.name).join(", ") : "—"}</b></div>
++            <div className="ds-hint">Foot polygon chỉ là <b>ranh site</b>; bố cục làng do lớp chi tiết sinh ra và giữ nguyên sông/hồ/đường của Map Studio (không sửa GOLD geography).</div>
++          </div>
++
++          <div className="ds-sec">
++            <div className="ds-h">Đối tượng đang chọn</div>
++            {!selObj && <div className="ds-dim">Chưa chọn. Click một nhà / vật dụng / cây trên bản đồ.</div>}
++            {selObj && sel?.kind === "building" && <BuildingForm key={selObj.id} b={selObj as DetailBuilding} locked={d.locked} onPatch={(p) => patchOne(sel!, p, true)} onDelete={deleteSelection} />}
++            {selObj && sel?.kind === "prop" && <PropForm key={selObj.id} p={selObj as DetailProp} locked={d.locked} onPatch={(p) => patchOne(sel!, p, true)} onDelete={deleteSelection} />}
++            {selObj && sel?.kind === "tree" && <TreeForm key={selObj.id} t={selObj as DetailTree} locked={d.locked} onPatch={(p) => patchOne(sel!, p, true)} onDelete={deleteSelection} />}
++          </div>
++
++          <div className="ds-sec">
++            <div className="ds-h">Đi bộ</div>
++            <div className="ds-kv"><span>Điểm spawn</span><b>{plan.spawn[0].toFixed(1)}, {plan.spawn[1].toFixed(1)}</b></div>
++            <div className="ds-kv"><span>Trạng thái đã lưu</span><b>{savedPlay ? "có" : "—"}</b></div>
++            <div className="ds-hint">Vào tab “Đi bộ / tương tác” để đi trong làng; mái nhà mờ khi vào trong; <kbd>E</kbd> dùng giếng / thùng / bảng tin / đèn.</div>
++          </div>
++
++          <div className="ds-sec">
++            <div className="ds-h">Nguồn gốc code</div>
++            <div className="ds-hint">
++              Dựng hình pixel &amp; nhân vật: lấy từ prototype <code>src/game/art.ts</code> (<code>mk/outlineCanvas/hex/P/R/ell/shade/strs</code>, <code>buildHero</code>).
++              Nền, bóng, thứ tự vẽ theo <code>render.ts</code> (<code>PAL/texel</code>, y-sort, mái <code>alpha 0.12</code> khi ở trong).
++              Địa hình/đường/sông đọc từ Map Studio; toàn bộ bố cục làng là code mới viết cho site này.
++            </div>
++          </div>
++        </aside>
++      </div>
++
++      <footer className="ds-foot">
++        <span>Greywater Hamlet · pilot 1 POI · dữ liệu nằm trong <code>project.details["{poiId}"]</code> (.sohmap.json vẫn tương thích ngược)</span>
++        <span className="ds-dim">Không sửa geography GOLD · A0/A3 và Map Tower không đổi</span>
++      </footer>
++    </div>
++  );
++}
++
++// ---------------- inspector sub-forms ----------------
++
++function NumStep({ label, value, disabled, onChange }: { label: string; value: number; disabled?: boolean; onChange: (v: number) => void }) {
++  return (
++    <div className="ds-kv">
++      <span>{label}</span>
++      <span className="ds-num">
++        <button className="ds-mini" disabled={disabled} onClick={() => onChange(Math.max(2, value - 1))}>−</button>
++        <b>{value}</b>
++        <button className="ds-mini" disabled={disabled} onClick={() => onChange(Math.min(24, value + 1))}>+</button>
++      </span>
++    </div>
++  );
++}
++
++function BuildingForm({ b, locked, onPatch, onDelete }: { b: DetailBuilding; locked: boolean; onPatch: (p: Record<string, unknown>) => void; onDelete: () => void }) {
++  return (
++    <div className="ds-form" data-testid="form-building">
++      <label className="ds-fld">Tên<input className="ds-inp" value={b.name} disabled={locked} onChange={(e) => onPatch({ name: e.target.value })} /></label>
++      <label className="ds-fld">Loại
++        <select value={b.kind} disabled={locked} onChange={(e) => onPatch({ kind: e.target.value })}>
++          {BUILDING_KINDS.map((k) => <option key={k} value={k}>{BUILDING_LABEL[k]}</option>)}
++        </select>
++      </label>
++      <label className="ds-fld">Mái
++        <select value={b.roof} disabled={locked} onChange={(e) => onPatch({ roof: e.target.value })}>
++          {ROOF_KINDS.map((k) => <option key={k} value={k}>{ROOF_LABEL[k]}</option>)}
++        </select>
++      </label>
++      <label className="ds-fld">Vách
++        <select value={b.wall} disabled={locked} onChange={(e) => onPatch({ wall: e.target.value })}>
++          {WALL_KINDS.map((k) => <option key={k} value={k}>{WALL_LABEL[k]}</option>)}
++        </select>
++      </label>
++      <NumStep label="Rộng (ô)" value={b.w} disabled={locked} onChange={(v) => onPatch({ w: v, door: doorFor({ ...b, w: v }, b.door.side) })} />
++      <NumStep label="Sâu (ô)" value={b.h} disabled={locked} onChange={(v) => onPatch({ h: v, door: doorFor({ ...b, h: v }, b.door.side) })} />
++      <label className="ds-fld">Hướng cửa
++        <select value={b.door.side} disabled={locked} onChange={(e) => onPatch({ door: doorFor(b, e.target.value as DetailBuilding["door"]["side"]) })}>
++          <option value="s">Nam (ra đường làng)</option><option value="n">Bắc</option><option value="e">Đông</option><option value="w">Tây</option>
++        </select>
++      </label>
++      <label className="ds-chk"><input type="checkbox" checked={!!b.chimney} disabled={locked} onChange={(e) => onPatch({ chimney: e.target.checked })} /> Ống khói</label>
++      <div className="ds-kv"><span>Toạ độ</span><b>{b.x}, {b.y} · {b.w}×{b.h}</b></div>
++      <div className="ds-kv"><span>Cửa</span><b>{b.door.x}, {b.door.y} ({b.door.side})</b></div>
++      <button className="ds-btn danger" disabled={locked} onClick={onDelete} data-testid="delete-object">Xóa nhà này</button>
++    </div>
++  );
++}
++
++function PropForm({ p, locked, onPatch, onDelete }: { p: DetailProp; locked: boolean; onPatch: (q: Record<string, unknown>) => void; onDelete: () => void }) {
++  return (
++    <div className="ds-form" data-testid="form-prop">
++      <div className="ds-kv"><span>Loại</span><b>{p.type}</b></div>
++      <label className="ds-fld">Loại
++        <select value={p.type} disabled={locked} onChange={(e) => { const type = e.target.value; onPatch({ type, solid: SOLID_PROPS.has(type), interact: propInteract(p.id, type) }); }}>
++          {PROP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
++        </select>
++      </label>
++      <label className="ds-chk"><input type="checkbox" checked={p.solid} disabled={locked} onChange={(e) => onPatch({ solid: e.target.checked })} /> Chặn đường</label>
++      <div className="ds-kv"><span>Toạ độ</span><b>{p.x.toFixed(2)}, {p.y.toFixed(2)}</b></div>
++      <div className="ds-kv"><span>Tương tác</span><b>{p.interact ? p.interact.kind : "—"}</b></div>
++      {p.interact && <label className="ds-fld">Lời nhắc<input className="ds-inp" value={p.interact.text || ""} disabled={locked} onChange={(e) => onPatch({ interact: { ...p.interact!, text: e.target.value } })} /></label>}
++      <button className="ds-btn danger" disabled={locked} onClick={onDelete} data-testid="delete-object">Xóa vật dụng</button>
++    </div>
++  );
++}
++
++function TreeForm({ t, locked, onPatch, onDelete }: { t: DetailTree; locked: boolean; onPatch: (q: Record<string, unknown>) => void; onDelete: () => void }) {
++  return (
++    <div className="ds-form" data-testid="form-tree">
++      <label className="ds-fld">Loại
++        <select value={t.kind} disabled={locked} onChange={(e) => onPatch({ kind: e.target.value })}>
++          {TREE_KINDS.map((k) => <option key={k} value={k}>{TREE_LABEL[k]}</option>)}
++        </select>
++      </label>
++      <div className="ds-kv"><span>Toạ độ</span><b>{t.x.toFixed(2)}, {t.y.toFixed(2)}</b></div>
++      <button className="ds-btn danger" disabled={locked} onClick={onDelete} data-testid="delete-object">Xóa cây</button>
++    </div>
++  );
++}
++
++function buildingWarnings(plan: ResolvedPlan): string[] {
++  const out: string[] = [];
++  for (let i = 0; i < plan.buildings.length; i++) {
++    for (let j = i + 1; j < plan.buildings.length; j++) {
++      const a = plan.buildings[i], b = plan.buildings[j];
++      if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) out.push(`${a.name} chồng lấn ${b.name}`);
++    }
++    const b = plan.buildings[i];
++    if (b.door.x < 0 || b.door.y < 0) out.push(`${b.name}: cửa nằm ngoài site`);
++  }
++  return out;
++}
+diff -ruN a/src/maplab/ui/MapLabApp.tsx b/src/maplab/ui/MapLabApp.tsx
+--- a/src/maplab/ui/MapLabApp.tsx	2026-11-02 12:09:49.119733076 +0000
++++ b/src/maplab/ui/MapLabApp.tsx	2026-11-02 12:09:49.127733116 +0000
+@@ -11,6 +11,7 @@
+ import { ARCHES, BIOMES, COLL_NAME, ELDERS, RES_KINDS, allObjects } from "../types";
+ import type { ToolId, ViewMode } from "../types";
+ import { Inspector, LayersPanel, SmartPanel, SnapshotsPanel, ValidationBar } from "./Panels";
++import { DetailStudio } from "./DetailStudio";
+ import { proposeSmooth } from "../smart";
+ 
+ const ICONS: Record<string, string> = {
+@@ -155,6 +156,7 @@
+   useEffect(() => {
+     const kd = (e: KeyboardEvent) => {
+       const tg = e.target as HTMLElement;
++      if (st.ui.detailOpen) return; // POI Detail Studio owns the keyboard while open
+       if (["INPUT", "TEXTAREA", "SELECT"].includes(tg?.tagName)) { if (e.key === "Escape") (tg as HTMLElement).blur(); return; }
+       const it = itRef.current!, k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+       if (mod) {
+@@ -267,6 +269,7 @@
+         <div className="spacer" />
+         <button className="btn" onClick={() => { st.setUI({ paletteOpen: true }); setPalQ(""); setPalI(0); }} title="Command palette / tìm kiếm (Ctrl+K)">🔍 Tìm / lệnh <span className="kbd">Ctrl+K</span></button>
+         <button className={"btn" + (ui.ragnarok ? " on" : "")} onClick={() => st.setUI({ ragnarok: !ui.ragnarok })} title="Overlay Ragnarok 72h">Ragnarok</button>
++        <button className={"btn" + (ui.detailOpen ? " on" : "")} data-testid="open-detail" onClick={() => st.setUI({ detailOpen: ui.detailOpen ? null : "po_greywater" })} title="Lớp chi tiết POI — pilot Greywater Hamlet">🏘 Chi tiết POI</button>
+         <button className="btn" onClick={() => st.setUI({ viewOnly: true })} title="Chế độ chỉ xem (Tab)">👁 Chỉ xem</button>
+         <span className="status hide-sm">{st.lastSaved ? "Tự lưu " + st.lastSaved : "Chưa tự lưu"}</span>
+       </header>
+@@ -366,6 +369,10 @@
+           <div className="row"><button className="btn acc" onClick={() => { setHelp(false); try { localStorage.setItem("soh-maplab-seen", "1"); } catch { /* */ } }}>Bắt đầu chỉnh sửa</button></div>
+         </div>
+       </div>}
++      {ui.detailOpen && st.detailSupported(ui.detailOpen) && (
++        <DetailStudio st={st} poiId={ui.detailOpen} onClose={() => st.setUI({ detailOpen: null })} />
++      )}
++
+     </div>
+   );
+ }
+diff -ruN a/src/maplab/ui/maplab.css b/src/maplab/ui/maplab.css
+--- a/src/maplab/ui/maplab.css	2026-11-02 12:09:49.119733076 +0000
++++ b/src/maplab/ui/maplab.css	2026-11-02 12:09:49.127733116 +0000
+@@ -110,3 +110,91 @@
+ .minitoggle { position: absolute; bottom: 150px; z-index: 5; opacity: .9; }
+ .minimap { bottom: 10px; }
+ @media (max-width: 1500px) { .top .kbd, .top .hide-md { display: none; } .top .btn { padding: 5px 8px; } .top select { max-width: 155px; } .hintbar { max-width: 46%; } }
++
++/* ================= POI DETAIL STUDIO (Greywater pilot) ================= */
++.ds-root {
++  --dbg: #0b1119; --dbg2: #101a25; --dbg3: #16232f; --dline: #263a4d; --dtxt: #dbe6f1; --ddim: #8ea6bd;
++  --dacc: #ffce6a; --dacc2: #5fc8ff; --dok: #48d489; --dwarn: #ffb02c; --dbad: #ff5e6c;
++  position: fixed; inset: 0; z-index: 300; display: grid; grid-template-rows: 46px minmax(0, 1fr) 26px;
++  background: radial-gradient(120% 90% at 50% 0%, #16202c, #080d13 70%);
++  color: var(--dtxt); font: 13px/1.35 "Segoe UI", system-ui, sans-serif; user-select: none; overflow: hidden;
++}
++.ds-root * { box-sizing: border-box; }
++.ds-root code, .ds-root kbd { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; }
++.ds-root code { color: #ffd98a; background: #00000040; padding: 0 4px; border-radius: 4px; font-size: 11.5px; }
++.ds-root kbd { background: #1d3143; border: 1px solid #35536e; border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; font-size: 11px; color: #dceaf7; }
++
++.ds-head { display: flex; align-items: center; gap: 10px; padding: 0 10px; background: linear-gradient(#182838, #0f1a25); border-bottom: 1px solid var(--dline); min-width: 0; }
++.ds-title { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; white-space: nowrap; }
++.ds-title b { color: #fff; font-size: 14px; }
++.ds-badge { font-size: 10px; letter-spacing: .08em; color: #0a1219; background: var(--dacc); border-radius: 4px; padding: 2px 6px; font-weight: 700; }
++.ds-dim { color: var(--ddim); font-size: 11.5px; }
++.ds-tabs { display: flex; gap: 4px; margin-left: auto; background: #0a1219; padding: 3px; border-radius: 8px; border: 1px solid var(--dline); }
++.ds-tab { background: none; border: 0; color: var(--ddim); font: inherit; padding: 5px 12px; border-radius: 6px; cursor: pointer; }
++.ds-tab:hover { color: #fff; background: #16232f; }
++.ds-tab.on { background: #1f4e73; color: #fff; box-shadow: inset 0 0 0 1px #3f86b8; }
++.ds-actions { display: flex; gap: 5px; align-items: center; }
++
++.ds-btn { background: var(--dbg3); color: var(--dtxt); border: 1px solid var(--dline); border-radius: 6px; padding: 5px 9px; cursor: pointer; font: inherit; white-space: nowrap; }
++.ds-btn:hover { background: #1e3245; border-color: #3c5c78; }
++.ds-btn:disabled { opacity: .42; cursor: not-allowed; }
++.ds-btn.primary { background: #1c5d88; border-color: #3789ba; color: #fff; }
++.ds-btn.primary:hover { background: #2472a5; }
++.ds-btn.on { background: #7a4a06; border-color: #d08b1c; color: #ffe0a0; }
++.ds-btn.danger { border-color: #6d2b33; color: #ffb3ba; }
++.ds-btn.danger:hover { background: #4a1c22; }
++.ds-mini { background: #14212d; color: var(--dtxt); border: 1px solid var(--dline); border-radius: 5px; padding: 3px 7px; cursor: pointer; font: inherit; font-size: 12px; }
++.ds-mini:hover { background: #1d3143; }
++.ds-mini.on { background: #1f4e73; border-color: #3f86b8; }
++
++.ds-body { display: grid; grid-template-columns: 250px minmax(0, 1fr) 300px; min-height: 0; }
++.ds-side { background: var(--dbg2); border-right: 1px solid var(--dline); overflow: auto; padding: 8px 9px 26px; min-height: 0; }
++.ds-right { border-right: 0; border-left: 1px solid var(--dline); }
++.ds-sec { border: 1px solid #1c2b3a; background: #0d1721; border-radius: 8px; padding: 7px 8px; margin-bottom: 8px; }
++.ds-h { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #7fa3c2; margin-bottom: 6px; font-weight: 700; }
++.ds-tool { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 6px; cursor: pointer; color: #c6d7e6; font-size: 12.5px; }
++.ds-tool:hover { background: #14212d; }
++.ds-tool.on { background: #1b4463; box-shadow: inset 0 0 0 1px #3f86b8; color: #fff; }
++.ds-tool kbd { margin-left: auto; }
++.ds-hint { color: #85a0b8; font-size: 11.5px; margin-top: 5px; line-height: 1.4; }
++.ds-fld { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: #92abc2; margin-top: 5px; }
++.ds-inp, .ds-fld select { background: #0a131c; color: var(--dtxt); border: 1px solid var(--dline); border-radius: 5px; padding: 4px 6px; font: inherit; width: 100%; user-select: text; }
++.ds-inp:focus, .ds-fld select:focus { outline: 1px solid #3f86b8; }
++.ds-chk { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #bdd0e0; padding: 2px 0; cursor: pointer; }
++.ds-row { display: flex; gap: 5px; align-items: center; }
++.ds-zoom { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
++.ds-kv { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #90a8be; padding: 1.5px 0; }
++.ds-kv b { color: #dfeaf5; font-weight: 600; text-align: right; }
++.ds-kv b.warn { color: var(--dwarn); }
++.ds-warn { font-size: 11.5px; color: #ffc46b; }
++.ds-num { display: flex; align-items: center; gap: 4px; }
++.ds-num b { min-width: 18px; text-align: center; }
++.ds-form { display: flex; flex-direction: column; gap: 2px; }
++
++.ds-stage { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #070c11; }
++.ds-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; }
++.ds-stagebar { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 5px 10px; border-bottom: 1px solid #16232f; background: #0b141c; font-size: 12px; color: #bed2e3; white-space: nowrap; overflow: hidden; }
++.ds-canvaswrap { position: relative; margin: auto; flex: none; box-shadow: 0 0 0 1px #23384a, 0 18px 50px #000a; background: #0a1620; flex: 0 0 auto; }
++.ds-canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; cursor: crosshair; }
++.ds-canvas.placing { cursor: copy; }
++.ds-legend { display: flex; gap: 14px; align-items: center; justify-content: center; padding: 6px 10px; color: #7f9bb3; font-size: 11.5px; flex-wrap: wrap; }
++.ds-legend .lg { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; vertical-align: -1px; }
++.ds-legend .lg.roof { background: #b5673a; }
++.ds-legend .lg.door { background: #3b2a1a; }
++.ds-legend .lg.prop { background: #c9935a; }
++.ds-legend .lg.road { background: #6a5a45; }
++.ds-legend .lg.water { background: #3d7fa6; }
++
++.ds-hud { position: absolute; inset: 44px 0 26px 0; pointer-events: none; z-index: 6; }
++.ds-chips { position: absolute; left: 8px; top: 8px; display: flex; gap: 5px; flex-wrap: wrap; max-width: calc(100% - 16px); }
++.chip { background: #081018e0; border: 1px solid #2b4256; border-radius: 999px; padding: 2px 9px; font-size: 11.5px; color: #cfe1f1; }
++.chip b { color: #ffe09a; }
++.chip.inside { border-color: #5b8a4f; color: #cdf0b8; }
++.ds-prompt { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: #081018e0; border: 1px solid #2b4256; border-radius: 8px; padding: 4px 10px; font-size: 12px; color: #eaf4ff; max-width: 60%; text-align: center; }
++.ds-toast { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); background: #0a121bf2; border: 1px solid #3f6d8c; border-radius: 8px; padding: 6px 12px; font-size: 12.5px; color: #fff6dd; max-width: 80%; text-align: center; }
++.ds-playbtns { position: absolute; left: 8px; bottom: 8px; display: flex; gap: 5px; pointer-events: auto; }
++.ds-modal { position: absolute; inset: 44px 0 26px 0; z-index: 10; background: #000000b8; display: grid; place-items: center; pointer-events: auto; }
++.ds-modal-box { background: #101c26; border: 1px solid #3f627e; border-radius: 10px; padding: 14px 16px; max-width: 420px; box-shadow: 0 20px 60px #000; }
++.ds-modal-box pre { margin: 0 0 10px; font: 12.5px/1.55 ui-monospace, Menlo, monospace; color: #ffeec8; white-space: pre-wrap; }
++.ds-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 12px; background: #0a121a; border-top: 1px solid var(--dline); font-size: 11px; color: #8ba4ba; white-space: nowrap; overflow: hidden; }
++.ds-loading { display: grid; place-items: center; height: 100%; color: #cfe1f1; }
