@@ -223,9 +223,14 @@ async function runMatch(caseDef) {
         const bound=window.__apexIceBlitDebug?.crop;
         if(bound){
           crop.save();crop.beginPath();
-          crop.rect(bound.sx,bound.sy,bound.sw,bound.sh);
-          crop.clip();
-          crop.drawImage(z.source,0,0);crop.restore();
+          if(window.__apexIceBlitMode==='sourceCrop'){
+            crop.drawImage(z.source,bound.sx,bound.sy,bound.sw,bound.sh,
+              bound.sx,bound.sy,bound.sw,bound.sh);
+          }else{
+            crop.rect(bound.sx,bound.sy,bound.sw,bound.sh);
+            crop.clip();
+            crop.drawImage(z.source,0,0);
+          }crop.restore();
         } else crop.drawImage(z.source,0,0);
         const a=full.getImageData(0,0,w,h).data,b=crop.getImageData(0,0,w,h).data;
         let errors=0,max=0;
@@ -266,6 +271,7 @@ async function runMatch(caseDef) {
         sections:results.sections,wrapped:results.wrapped,parity};
     }
     // Match start and asset decode settle without modifying combat/clock.
+    await game.evaluate(()=>{window.__apexIceBlitMode='sourceCrop';});
     await sleep(1600);
     const unrecorded=await phase('LIVE_BATTLE_NO_REC',3500);
     // Interleaved within the SAME live match, without changing assets,
@@ -278,6 +284,7 @@ async function runMatch(caseDef) {
         for(let i=0;i<20;i++){
           const isFull=(i%2===0);
           window.__apexIceBlitForceOriginal=isFull;
+          window.__apexIceBlitMode='sourceCrop';
           perf.current='AB';perf.acc={};
           await new Promise(ok=>setTimeout(ok,300));
           perf.current=null;
