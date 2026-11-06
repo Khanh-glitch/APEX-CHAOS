@@ -351,6 +351,7 @@ async function runMatch(caseDef) {
     });
     await game.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===false,{timeout:15000});
     const recovered=await phase('LIVE_BATTLE_AFTER_REC',3500);
+    console.log('[BOXE FROST QA] CANVAS-STATE '+JSON.stringify(await game.evaluate(()=>window.__boxeFrostSections.lastCanvasState)));
     if(caseDef.second==='ice'){
       const samples=[unrecorded,recorded,recovered].filter(p=>p.parity?.available);
       assert.ok(samples.length>0,'No active ice source for pixel parity QA');
