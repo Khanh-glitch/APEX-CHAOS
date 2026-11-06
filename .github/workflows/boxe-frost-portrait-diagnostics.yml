@@ -24,6 +24,7 @@ jobs:
       - name: Build unmodified game and package the portable itch HTML5
         run: |
           pnpm build
+          printf '%s\n' "$(git rev-parse HEAD)" > dist/ITCH_GUEST_BUILD_SHA.txt
           node tools/packItchPortable.mjs
           test -s dist-itch-html5/index.html
           test -s dist-itch-html5/portrait-studio.html
