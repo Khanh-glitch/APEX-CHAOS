@@ -388,7 +388,9 @@ async function startRecording(providedDisplay=null) {
   } catch (error) {
     if(session && session.recorder.state==='inactive'){
       const stale=session; session=null;
-      cancelAnimationFrame(stale.frame);
+      if (stale.frameMode === 'video' && typeof stale.video.cancelVideoFrameCallback === 'function')
+        stale.video.cancelVideoFrameCallback(stale.frame);
+      else cancelAnimationFrame(stale.frame);
       stale.output.getTracks().forEach(t=>t.stop());
       stale.video.pause();stale.video.srcObject=null;
       studioRecordStatus(false);
