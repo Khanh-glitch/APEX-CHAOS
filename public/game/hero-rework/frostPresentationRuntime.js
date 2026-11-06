@@ -1849,12 +1849,13 @@ function drawIceComposite(S, ctx, px) {
             const crop=iceCompositeSourceCrop(e,m);
             if (g.__apexIceBlitDebug) g.__apexIceBlitDebug.crop = crop;
             if (crop) {
-              // Preserve the exact historic 3-argument drawImage sampling.
-              // A clip discards only fully transparent source margins.
+              // Integer, same-size source-to-target copy. Nearest sampling
+              // preserves crisp source pixels (no filter or visual downscale).
               ctx.save();
               try {
-                ctx.beginPath(); ctx.rect(crop.sx,crop.sy,crop.sw,crop.sh); ctx.clip();
-                ctx.drawImage(e.iceCanvas,0,0);
+                ctx.imageSmoothingEnabled=false;
+                ctx.drawImage(e.iceCanvas,crop.sx,crop.sy,crop.sw,crop.sh,
+                  crop.sx,crop.sy,crop.sw,crop.sh);
               } finally { ctx.restore(); }
             } else ctx.drawImage(e.iceCanvas,0,0);
           } finally { ctx.restore(); }
