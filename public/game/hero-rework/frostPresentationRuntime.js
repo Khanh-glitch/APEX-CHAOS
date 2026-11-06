@@ -1849,16 +1849,21 @@ function drawIceComposite(S, ctx, px) {
             const crop=g.__apexIceBlitForceOriginal ? null : iceCompositeSourceCrop(e,m);
             if (g.__apexIceBlitDebug) g.__apexIceBlitDebug.crop = crop;
             if (crop) {
-              // Identical original 3-argument image copy, but clip its fully
-              // transparent margins. Avoid the source-resampling path that
-              // introduced ±1 channel differences in RC visual regression.
-              ctx.save();
-              try {
-                ctx.beginPath();
-                ctx.rect(crop.sx,crop.sy,crop.sw,crop.sh);
-                ctx.clip();
-                ctx.drawImage(e.iceCanvas,0,0);
-              } finally { ctx.restore(); }
+              if (g.__apexIceBlitMode === 'sourceCrop') {
+                // Diagnostic candidate only: no pixel rescale; keep the
+                // browser's default interpolation state unchanged.
+                ctx.drawImage(e.iceCanvas,crop.sx,crop.sy,crop.sw,crop.sh,
+                  crop.sx,crop.sy,crop.sw,crop.sh);
+              } else {
+                // Known exact-parity reference (destination clip).
+                ctx.save();
+                try {
+                  ctx.beginPath();
+                  ctx.rect(crop.sx,crop.sy,crop.sw,crop.sh);
+                  ctx.clip();
+                  ctx.drawImage(e.iceCanvas,0,0);
+                } finally { ctx.restore(); }
+              }
             } else ctx.drawImage(e.iceCanvas,0,0);
           } finally { ctx.restore(); }
         }
