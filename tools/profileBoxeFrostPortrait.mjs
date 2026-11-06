@@ -233,9 +233,23 @@ async function runMatch(caseDef) {
           const delta=Math.abs(a[i]-b[i]);
           if(delta){errors++;if(delta>max)max=delta;}
         }
+        const times={original:[],bounded:[]};
+        for(let k=0;k<10;k++){
+          for(const mode of (k%2?['bounded','original']:['original','bounded'])){
+            const target=mode==='original'?full:crop;
+            const start=performance.now();
+            target.save();
+            if(mode==='bounded'&&bound){
+              target.beginPath();target.rect(bound.sx,bound.sy,bound.sw,bound.sh);target.clip();
+            }
+            target.drawImage(z.source,0,0);target.restore();
+            times[mode].push(performance.now()-start);
+          }
+        }
+        const median=xs=>xs.slice().sort((x,y)=>x-y)[Math.floor(xs.length/2)];
         const rect=bound?[bound.sx,bound.sy,bound.sw,bound.sh]:[0,0,w,h];
         return {available:true,errorChannels:errors,maxChannelDifference:max,
-          copiedArea: +(rect[2]*rect[3]/(w*h)).toFixed(4)};
+          copiedArea: +(rect[2]*rect[3]/(w*h)).toFixed(4), microbench:{full:median(times.original),clip:median(times.bounded)}};
 
         })():null;
         return {...base,sections:sections.acc,wrapped:sections.wrappers,parity};
