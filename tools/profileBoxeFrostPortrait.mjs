@@ -285,6 +285,13 @@ async function runMatch(caseDef) {
     });
     await game.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===false,{timeout:15000});
     const recovered=await phase('LIVE_BATTLE_AFTER_REC',3500);
+    if(caseDef.second==='ice'){
+      const samples=[unrecorded,recorded,recovered].filter(p=>p.parity?.available);
+      assert.ok(samples.length>0,'No active ice source for pixel parity QA');
+      for(const sample of samples)
+        assert.equal(sample.parity.errorChannels,0,
+          'cropped Frost blit must match original full-source pixels exactly');
+    }
     assert.deepEqual(errs,[],'Unexpected JavaScript or network errors');
     return {case:caseDef.name,selected:pair,unrecorded,recorded,recovered,
       diagnostics:{syntheticSource:setup,errors:errs}};
