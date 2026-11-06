@@ -1849,13 +1849,15 @@ function drawIceComposite(S, ctx, px) {
             const crop=iceCompositeSourceCrop(e,m);
             if (g.__apexIceBlitDebug) g.__apexIceBlitDebug.crop = crop;
             if (crop) {
-              // Integer, same-size source-to-target copy. Nearest sampling
-              // preserves crisp source pixels (no filter or visual downscale).
+              // Identical original 3-argument image copy, but clip its fully
+              // transparent margins. Avoid the source-resampling path that
+              // introduced ±1 channel differences in RC visual regression.
               ctx.save();
               try {
-                ctx.imageSmoothingEnabled=false;
-                ctx.drawImage(e.iceCanvas,crop.sx,crop.sy,crop.sw,crop.sh,
-                  crop.sx,crop.sy,crop.sw,crop.sh);
+                ctx.beginPath();
+                ctx.rect(crop.sx,crop.sy,crop.sw,crop.sh);
+                ctx.clip();
+                ctx.drawImage(e.iceCanvas,0,0);
               } finally { ctx.restore(); }
             } else ctx.drawImage(e.iceCanvas,0,0);
           } finally { ctx.restore(); }
