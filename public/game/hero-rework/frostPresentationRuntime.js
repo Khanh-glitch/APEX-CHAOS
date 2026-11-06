@@ -1847,9 +1847,16 @@ function drawIceComposite(S, ctx, px) {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.globalAlpha = 0.97;
             const crop=iceCompositeSourceCrop(e,m);
-            if(crop)ctx.drawImage(e.iceCanvas,crop.sx,crop.sy,crop.sw,crop.sh,
-              crop.sx,crop.sy,crop.sw,crop.sh);
-            else ctx.drawImage(e.iceCanvas,0,0);
+            if (g.__apexIceBlitDebug) g.__apexIceBlitDebug.crop = crop;
+            if (crop) {
+              // Preserve the exact historic 3-argument drawImage sampling.
+              // A clip discards only fully transparent source margins.
+              ctx.save();
+              try {
+                ctx.beginPath(); ctx.rect(crop.sx,crop.sy,crop.sw,crop.sh); ctx.clip();
+                ctx.drawImage(e.iceCanvas,0,0);
+              } finally { ctx.restore(); }
+            } else ctx.drawImage(e.iceCanvas,0,0);
           } finally { ctx.restore(); }
         }
         return;
