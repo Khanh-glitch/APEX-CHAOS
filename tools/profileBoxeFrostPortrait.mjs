@@ -147,6 +147,8 @@ async function runMatch(caseDef) {
           const src=args[0],width=src?.width||0,height=src?.height||0;
           const size=width&&height?(width+'x'+height):'';
           const name='FROST.canvas.'+operation+(size?'.'+size:'');
+          if(active&&operation==='drawImage'&&width===1000&&height===1000)
+            perf.lastIceBlit={source:src,args:args.slice(1),size:[width,height]};
           const started=active?performance.now():0;
           try{return Reflect.apply(previous,this,args);}
           finally{if(active){
