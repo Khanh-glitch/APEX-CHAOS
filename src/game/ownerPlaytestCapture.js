@@ -219,6 +219,88 @@ function standaloneRecordingPanel() {
   open.focus();
 }
 
+
+let lastCapturePerfReport = null;
+// Diagnostic-only, bounded and source-independent. No graphics, sound or
+// simulation state is modified; all samples are read-only observations.
+function startCapturePerformanceProbe(meta) {
+  const started = performance.now();
+  const limit = 9000;
+  const series = {rafGapMs:[], frostIceClearMs:[], frostIceRenderMs:[],
+    frostIceBlitMs:[], recordingDrawMs:[], longTaskMs:[]};
+  const add = (key,ms) => {
+    if (Number.isFinite(ms) && ms>=0 && series[key].length<limit)
+      series[key].push(Math.round(ms*1000)/1000);
+  };
+  let lastFrame = 0, frameId=0, stopped=false;
+  const trackFrame = now => {
+    if (stopped) return;
+    if (lastFrame>0) add('rafGapMs',now-lastFrame);
+    lastFrame=now;
+    frameId=requestAnimationFrame(trackFrame);
+  };
+  frameId=requestAnimationFrame(trackFrame);
+  let observer=null, longTasksSupported=false;
+  try {
+    if(typeof PerformanceObserver==='function'){
+      observer=new PerformanceObserver(entries=>{
+        for(const e of entries.getEntries())add('longTaskMs',e.duration);
+      });
+      observer.observe({entryTypes:['longtask']});
+      longTasksSupported=true;
+    }
+  }catch(_){observer=null;}
+  const summary=values=>{
+    const a=values.slice().sort((x,y)=>x-y);
+    if(!a.length)return {count:0};
+    const pick=q=>a[Math.min(a.length-1,Math.floor(q*(a.length-1)))];
+    return {count:a.length,min:a[0],p50:pick(.5),p95:pick(.95),
+      max:a[a.length-1],over50:a.filter(x=>x>50).length,
+      over100:a.filter(x=>x>100).length,
+      totalMs:Math.round(a.reduce((p,x)=>p+x,0)*100)/100};
+  };
+  return {
+    active:true,
+    markIceClear:ms=>add('frostIceClearMs',ms),
+    markIceRender:ms=>add('frostIceRenderMs',ms),
+    markIceBlit:ms=>add('frostIceBlitMs',ms),
+    markRecordingDraw:ms=>add('recordingDrawMs',ms),
+    finish(reason) {
+      if(stopped)return lastCapturePerfReport;
+      stopped=true;this.active=false;
+      cancelAnimationFrame(frameId);observer?.disconnect();
+      if(window.__apexOwnerPerfProbe===this)delete window.__apexOwnerPerfProbe;
+      const elapsedMs=Math.round(performance.now()-started);
+      const all={};
+      for(const [key,values] of Object.entries(series))all[key]=summary(values);
+      lastCapturePerfReport={schema:'APEX-CHAOS-owner-recording-perf-v1',
+        warning:'On-device measurements only; rAF gaps are NOT encoded-video FPS. No GPU trace was collected.',
+        matchup:window.APEX_HERO_REWORK?.match?.combatants?.map(x=>x.heroId)||[],
+        meta:{...meta,elapsedMs,stopReason:reason,
+          viewport:[window.innerWidth,window.innerHeight],
+          devicePixelRatio:window.devicePixelRatio||1,
+          longTasksSupported},
+        summary:all,raw:series};
+      console.info('[owner-perf] Recording trace ready; press Shift+Ctrl+F6 to download JSON.',
+        JSON.stringify(all));
+      return lastCapturePerfReport;
+    }
+  };
+}
+function downloadLastCapturePerf() {
+  if(!lastCapturePerfReport){notice('Chưa có bản đo: hãy quay một trận trong Portrait Studio.',true);return false;}
+  const url=URL.createObjectURL(new Blob(
+    [JSON.stringify(lastCapturePerfReport,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='APEX-CHAOS-BOXE-FROST-RECORDING-PERF-'+
+    new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  notice('Đã tải báo cáo PERF JSON. Gửi file này để đối chiếu lag BOXE vs FROST.');
+  return true;
+}
+
 function stopRecording(reason) {
   const item = session;
   if (!item) return;
