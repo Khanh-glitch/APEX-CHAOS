@@ -36,14 +36,15 @@ async function runMatch(caseDef) {
     await game.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
     await game.$eval('#apex-boot-start',el=>el.click());
     await game.waitForSelector('#freeBattle',{visible:true,timeout:90000});
-    await game.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{
-      code:'F8',key:'F8',ctrlKey:true,shiftKey:true,bubbles:true
-    })));
-    await game.waitForSelector('#apex-owner-password-panel input',{visible:true,timeout:20000});
-    await game.$eval('#apex-owner-password-panel input',el=>{el.value='500509'});
-    await game.$eval('#apex-owner-password-panel form',el=>el.requestSubmit());
-    await game.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('screen-fighter')&&
-      window.APEX_OWNER_TOOLS?.isPlaytestActive?.()===true,{timeout:90000});
+    // Use the public, previously verified BOT route. F8 owner launch is
+    // not reliable in the synthetic headless Studio, and changing game code
+    // to accommodate a profiler would invalidate the measurement.
+    await game.$eval('#freeBattle',el=>el.click());
+    await game.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('screen-mode'),
+      {timeout:30000});
+    await game.$eval('.modeCard[data-mode="bot"]',el=>el.click());
+    await game.waitForFunction(()=>document.querySelector('#stage')?.classList.contains('screen-fighter'),
+      {timeout:45000});
     const roster=await game.evaluate(()=>[...document.querySelectorAll('.rosterCard')].map(el=>({
       hero:el.getAttribute('data-hero'),disabled:!!el.disabled,
       locked:el.classList.contains('is-locked'),label:el.textContent.trim().slice(0,35)})));
