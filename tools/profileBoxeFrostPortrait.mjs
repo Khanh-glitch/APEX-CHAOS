@@ -247,24 +247,9 @@ async function runMatch(caseDef) {
           }
         }
         const median=xs=>xs.slice().sort((x,y)=>x-y)[Math.floor(xs.length/2)];
-        // Experimental alternative: 2D CanvasPattern should shade only the
-        // ice bounds. It is NOT shipped unless pixel-identical and faster.
-        const pat=ctx();
-        const texture=pat.createPattern(z.source,'no-repeat');
-        let patternErrors=-1,patternMax=0;
-        if(texture){
-          pat.fillStyle=texture;
-          pat.fillRect(bound?.sx??0,bound?.sy??0,bound?.sw??w,bound?.sh??h);
-          const c=pat.getImageData(0,0,w,h).data;
-          patternErrors=0;
-          for(let i=0;i<a.length;i++){
-            const diff=Math.abs(a[i]-c[i]);
-            if(diff){patternErrors++;patternMax=Math.max(patternMax,diff);}
-          }
-        }
         const rect=bound?[bound.sx,bound.sy,bound.sw,bound.sh]:[0,0,w,h];
         return {available:true,errorChannels:errors,maxChannelDifference:max,
-          copiedArea: +(rect[2]*rect[3]/(w*h)).toFixed(4),patternErrors,patternMax, microbench:{full:median(times.original),clip:median(times.bounded)}};
+          copiedArea: +(rect[2]*rect[3]/(w*h)).toFixed(4), microbench:{full:median(times.original),clip:median(times.bounded)}};
 
         })():null;
         return {...base,sections:sections.acc,wrapped:sections.wrappers,parity};
