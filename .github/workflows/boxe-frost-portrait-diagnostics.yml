@@ -29,6 +29,12 @@ jobs:
           node tools/packItchPortable.mjs
           test -s dist-itch-html5/index.html
           test -s dist-itch-html5/portrait-studio.html
+      - name: Frost gameplay/visual law + unchanged owner recorder + studio audio gates
+        run: |
+          node --check public/game/hero-rework/frostPresentationRuntime.js
+          node tools/testFrostV1Gates.mjs
+          node tools/testOwnerStudioSfxPolicy.mjs
+          node tools/testOwnerRecordingFrameBudget.mjs
       - name: Install diagnostic Chromium driver
         run: npm ci --prefix tools/probe --ignore-scripts
       - name: Profile actual BOXE-FROST and BOXE-NEWBOT BOT matches
