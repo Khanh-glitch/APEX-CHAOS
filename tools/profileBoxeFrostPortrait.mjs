@@ -360,6 +360,7 @@ async function runMatch(caseDef) {
     }
     assert.deepEqual(errs,[],'Unexpected JavaScript or network errors');
     return {case:caseDef.name,selected:pair,unrecorded,recorded,recovered,iceBlitAB,
+      canvasState:await game.evaluate(()=>window.__boxeFrostSections.lastCanvasState),
       diagnostics:{syntheticSource:setup,errors:errs}};
   } finally {
     await page.close();
