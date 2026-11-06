@@ -149,8 +149,8 @@ async function runMatch(caseDef) {
     });
     // Sample genuine game-frame scheduling; one passive RAF observer per phase.
     async function phase(label,ms) {
-      await game.evaluate(()=>{
-        window.__boxeFrostSections.current=label;
+      await game.evaluate((phaseName)=>{
+        window.__boxeFrostSections.current=phaseName;
         window.__boxeFrostSections.acc={};
         const mark=performance.now(), gaps=[],longs=[];
         let last=mark,live=true,n=0,handle=0;
@@ -174,7 +174,7 @@ async function runMatch(caseDef) {
             active:window.APEX_ARSENAL?.state?.active===true,
             recording:window.APEX_OWNER_TOOLS?.isRecording?.()===true};
         }};
-      });
+      },label);
       await sleep(ms);
       const results=await game.evaluate(()=>{
         const sections=window.__boxeFrostSections;
