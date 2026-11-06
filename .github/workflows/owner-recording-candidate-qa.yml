@@ -45,22 +45,22 @@ jobs:
           node tools/testOwnerItchCapturePolicyChrome.mjs
       - name: Package verified candidate, never overwrite r5
         run: |
-          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-recfix-rc1.zip .)
-          unzip -tq APEX-CHAOS-owner-F7-F8-recfix-rc1.zip
-          sha256sum APEX-CHAOS-owner-F7-F8-recfix-rc1.zip > APEX-CHAOS-owner-F7-F8-recfix-rc1.sha256
-      - name: Publish private review candidate as a separate prerelease
+          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-audioonly-rc2.zip .)
+          unzip -tq APEX-CHAOS-owner-F7-F8-audioonly-rc2.zip
+          sha256sum APEX-CHAOS-owner-F7-F8-audioonly-rc2.zip > APEX-CHAOS-owner-F7-F8-audioonly-rc2.sha256
+      - name: Publish owner-review audio-only RC2 as a separate prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           test "${{ github.ref_name }}" = "fix/r5-portrait-audio-framepressure-20261106"
-          tag="owner-html5-f7-f8-recfix-20261106-rc1"
+          tag="owner-html5-f7-f8-audioonly-20261106-rc2"
           ! gh release view "$tag" >/dev/null 2>&1
           gh release create "$tag" \
-            APEX-CHAOS-owner-F7-F8-recfix-rc1.zip \
-            APEX-CHAOS-owner-F7-F8-recfix-rc1.sha256 \
+            APEX-CHAOS-owner-F7-F8-audioonly-rc2.zip \
+            APEX-CHAOS-owner-F7-F8-audioonly-rc2.sha256 \
             --target "$GITHUB_SHA" \
-            --title "APEX CHAOS · Recording and asset-audio fix RC1 — owner hardware review" \
-            --notes "Separate prerelease candidate, NOT deployed to itch. Verified: 1080x1920 output, 30fps target, 22 Mbps, tab audio, first-play Chrome, asset inventory, studio synthesized-tone gates. Unverified: sustained hardware-GPU FPS across heavy matchups and actual acoustic quality of captured asset audio. Do not replace r5 until owner A/B acceptance." \
+            --title "APEX CHAOS · Audio-only fix RC2 / r5 recording restored — owner hardware review" \
+            --notes "Separate prerelease candidate, NOT deployed to itch. RC1 rejected: owner measured severe regression. This RC2 restores the r5 video recorder byte-for-byte, retaining only studio synth-audio suppression. Verified: r5 capture source parity, 1080x1920 output, 30fps target, 22 Mbps, tab audio, first-play Chrome, asset inventory, studio synthesized-tone gates. Unverified: sustained hardware-GPU FPS across heavy matchups and acoustic quality on real devices. Do not replace r5 until owner acceptance." \
             --prerelease
       # No upload-artifact: GitHub Actions artifact quota was exhausted.
       # Existing owner r5 release remains untouched.
