@@ -100,6 +100,7 @@ async function runMatch(caseDef) {
     // times public runtime methods, never modifies their arguments or output.
     await game.evaluate(()=>{
       const perf=window.__boxeFrostSections={current:null,acc:{},wrappers:[]};
+      window.__apexIceBlitDebug={crop:null};
       const add=(name,obj,key)=>{
         if(!obj||typeof obj[key]!=='function')return;
         const orig=obj[key];
@@ -147,6 +148,10 @@ async function runMatch(caseDef) {
           const src=args[0],width=src?.width||0,height=src?.height||0;
           const size=width&&height?(width+'x'+height):'';
           const name='FROST.canvas.'+operation+(size?'.'+size:'');
+          if(active&&operation==='drawImage'&&width===1000&&height===1000)
+            perf.lastIceBlit={source:src,args:args.slice(1),size:[width,height]};
+          if(active&&operation==='drawImage'&&width===1000&&height===1000)
+            perf.lastCanvasState={filter:this.filter,blur:this.shadowBlur,alpha:this.globalAlpha,composite:this.globalCompositeOperation};
           const started=active?performance.now():0;
           try{return Reflect.apply(previous,this,args);}
           finally{if(active){
@@ -201,9 +206,62 @@ async function runMatch(caseDef) {
       await sleep(ms);
       const results=await game.evaluate(()=>{
         const sections=window.__boxeFrostSections;
+        const base=window.__boxeFrostProbe.stop();
         sections.current=null;
-        return {...window.__boxeFrostProbe.stop(),sections:sections.acc,wrapped:sections.wrappers};
+        // Synchronous readout in this exact frame; no intervening animation
+        // may mutate the ice source between crop and original-copy checks.
+        const parity=base.match?.includes('ICE')?(()=>{
+        const z=window.__boxeFrostSections.lastIceBlit;
+        if(!z)return {available:false};
+        const [w,h]=z.size;
+        const ctx=()=>{
+          const c=document.createElement('canvas');c.width=w;c.height=h;
+          const k=c.getContext('2d',{alpha:false});
+          k.fillStyle='#15253c';k.fillRect(0,0,w,h);k.globalAlpha=.97;
+          return k;
+        };
+        const full=ctx(),crop=ctx();
+        full.drawImage(z.source,0,0);
+        const bound=window.__apexIceBlitDebug?.crop;
+        if(bound){
+          crop.save();crop.beginPath();
+          if(window.__apexIceBlitMode==='sourceCrop'){
+            crop.drawImage(z.source,bound.sx,bound.sy,bound.sw,bound.sh,
+              bound.sx,bound.sy,bound.sw,bound.sh);
+          }else{
+            crop.rect(bound.sx,bound.sy,bound.sw,bound.sh);
+            crop.clip();
+            crop.drawImage(z.source,0,0);
+          }crop.restore();
+        } else crop.drawImage(z.source,0,0);
+        const a=full.getImageData(0,0,w,h).data,b=crop.getImageData(0,0,w,h).data;
+        let errors=0,max=0;
+        for(let i=0;i<a.length;i++){
+          const delta=Math.abs(a[i]-b[i]);
+          if(delta){errors++;if(delta>max)max=delta;}
+        }
+        const times={original:[],bounded:[]};
+        for(let k=0;k<10;k++){
+          for(const mode of (k%2?['bounded','original']:['original','bounded'])){
+            const target=mode==='original'?full:crop;
+            const start=performance.now();
+            target.save();
+            if(mode==='bounded'&&bound){
+              target.beginPath();target.rect(bound.sx,bound.sy,bound.sw,bound.sh);target.clip();
+            }
+            target.drawImage(z.source,0,0);target.restore();
+            times[mode].push(performance.now()-start);
+          }
+        }
+        const median=xs=>xs.slice().sort((x,y)=>x-y)[Math.floor(xs.length/2)];
+        const rect=bound?[bound.sx,bound.sy,bound.sw,bound.sh]:[0,0,w,h];
+        return {available:true,errorChannels:errors,maxChannelDifference:max,
+          copiedArea: +(rect[2]*rect[3]/(w*h)).toFixed(4), microbench:{full:median(times.original),clip:median(times.bounded)}};
+
+        })():null;
+        return {...base,sections:sections.acc,wrapped:sections.wrappers,parity};
       });
+      const parity=results.parity;
       const gaps=results.gaps.filter(x=>Number.isFinite(x)&&x>=0);
       return {phase:label,elapsedMs:results.elapsed,frames:gaps.length,
         p50GapMs:quant(gaps,.50),p95GapMs:quant(gaps,.95),maxGapMs:Math.max(0,...gaps),
@@ -212,11 +270,45 @@ async function runMatch(caseDef) {
         longTasks:results.longs.length,
         longTaskTotalMs:results.longs.reduce((sum,x)=>sum+x.duration,0),
         match:results.match,active:results.active,recording:results.recording,
-        sections:results.sections,wrapped:results.wrapped};
+        sections:results.sections,wrapped:results.wrapped,parity};
     }
     // Match start and asset decode settle without modifying combat/clock.
+    await game.evaluate(()=>{window.__apexIceBlitMode='sourceCrop';});
     await sleep(1600);
     const unrecorded=await phase('LIVE_BATTLE_NO_REC',3500);
+    // Interleaved within the SAME live match, without changing assets,
+    // hero state or rendering outcome. This measures full-blit vs clipped-blit
+    // in near-adjacent temporal windows. CI software GPU is not owner hardware.
+    const iceBlitAB=caseDef.second==='ice' ? await game.evaluate(async()=>{
+      const measures=[];
+      const perf=window.__boxeFrostSections;
+      try{
+        for(let i=0;i<20;i++){
+          const isFull=(i%2===0);
+          window.__apexIceBlitForceOriginal=isFull;
+          window.__apexIceBlitMode='sourceCrop';
+          perf.current='AB';perf.acc={};
+          await new Promise(ok=>setTimeout(ok,300));
+          perf.current=null;
+          const entry=perf.acc['FROST.presentation.renderSurfaceUnderWeapons'];
+          const paint=perf.acc['FROST.canvas.drawImage.1000x1000'];
+          measures.push({mode:isFull?'original':'clipped',frames:entry?.count||0,
+            surfaceMs:entry?.totalMs||0,blitMs:paint?.totalMs||0});
+        }
+      } finally {
+        perf.current=null;
+        delete window.__apexIceBlitForceOriginal;
+      }
+      const sums={original:{frames:0,surfaceMs:0,blitMs:0},
+        clipped:{frames:0,surfaceMs:0,blitMs:0}};
+      for(const e of measures){
+        sums[e.mode].frames+=e.frames;
+        sums[e.mode].surfaceMs+=e.surfaceMs;
+        sums[e.mode].blitMs+=e.blitMs;
+      }
+      return {sums,windows:measures,comparison:'alternating 300ms windows; different live effect states'};
+    }) : null;
+    if(iceBlitAB)console.log('[BOXE FROST QA] SAME-MATCH BLIT AB '+JSON.stringify(iceBlitAB));
 
     // Same full-resolution r5 recording path. Source pixels are the actual
     // live gameCanvas, presented in a synthetic tab frame at 30 fps, NOT a
@@ -259,8 +351,17 @@ async function runMatch(caseDef) {
     });
     await game.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===false,{timeout:15000});
     const recovered=await phase('LIVE_BATTLE_AFTER_REC',3500);
+    console.log('[BOXE FROST QA] CANVAS-STATE '+JSON.stringify(await game.evaluate(()=>window.__boxeFrostSections.lastCanvasState)));
+    if(caseDef.second==='ice'){
+      const samples=[unrecorded,recorded,recovered].filter(p=>p.parity?.available);
+      assert.ok(samples.length>0,'No active ice source for pixel parity QA');
+      for(const sample of samples)
+        assert.equal(sample.parity.errorChannels,0,
+          'Ice crop mismatch '+JSON.stringify(sample.parity));
+    }
     assert.deepEqual(errs,[],'Unexpected JavaScript or network errors');
-    return {case:caseDef.name,selected:pair,unrecorded,recorded,recovered,
+    return {case:caseDef.name,selected:pair,unrecorded,recorded,recovered,iceBlitAB,
+      canvasState:await game.evaluate(()=>window.__boxeFrostSections.lastCanvasState),
       diagnostics:{syntheticSource:setup,errors:errs}};
   } finally {
     await page.close();

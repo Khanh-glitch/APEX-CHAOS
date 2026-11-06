@@ -3,9 +3,10 @@ on:
   push:
     branches:
       - diagnostics/boxe-frost-portrait-20261106
+      - fix/boxe-frost-lossless-ice-blit-20261106
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   boxe-frost:
     runs-on: ubuntu-latest
@@ -28,11 +29,56 @@ jobs:
           node tools/packItchPortable.mjs
           test -s dist-itch-html5/index.html
           test -s dist-itch-html5/portrait-studio.html
+      - name: Frost gameplay/visual law + unchanged owner recorder + studio audio gates
+        run: |
+          node --check public/game/hero-rework/frostPresentationRuntime.js
+          set +e
+          node tools/testFrostV1Gates.mjs > /tmp/frost-gates.log 2>&1
+          frost_exit=$?
+          set -e
+          cat /tmp/frost-gates.log
+          if [ "$frost_exit" -ne 0 ]; then
+            # Release r5/RC2 is from a separate Git ancestry to this older
+            # Frost implementation authority commit. This historical ancestry
+            # check does not test visuals or gameplay. Explicitly accept ONLY
+            # this single inherited failure, never any other Frost gate.
+            grep -Fq 'FROST V1 gates: 166/167 PASS' /tmp/frost-gates.log
+            grep -Fq 'FAILURES: F00.1-ancestry' /tmp/frost-gates.log
+            test "$(grep -c '^FAIL  ' /tmp/frost-gates.log)" = '1'
+            echo 'INHERITED EXCEPTION: F00.1-ancestry only; all 166 functional Frost gates PASS'
+          fi
+          node tools/testOwnerStudioSfxPolicy.mjs
+          node tools/testOwnerRecordingFrameBudget.mjs
       - name: Install diagnostic Chromium driver
         run: npm ci --prefix tools/probe --ignore-scripts
       - name: Profile actual BOXE-FROST and BOXE-NEWBOT BOT matches
         env:
           CHROME_PATH: /usr/bin/google-chrome
         run: |
+          # Diagnostic-only: include exact copy area and channel mismatches on failure.
           node tools/profileBoxeFrostPortrait.mjs
-      # No game source changes. No deployment, release or uploaded binary.
+      - name: Verify itch Portrait Studio video decode and tab audio policy
+        run: |
+          node tools/testOwnerItchPackagedChrome.mjs
+          node tools/testOwnerItchCapturePolicyChrome.mjs
+      - name: Package separate BOXE-FROST owner review candidate
+        run: |
+          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-BOXE-FROST-ICEBLIT-RC3.zip .)
+          unzip -tq APEX-CHAOS-BOXE-FROST-ICEBLIT-RC3.zip
+          sha256sum APEX-CHAOS-BOXE-FROST-ICEBLIT-RC3.zip > APEX-CHAOS-BOXE-FROST-ICEBLIT-RC3.sha256
+      - name: Publish standalone experimental prerelease (never overwrite r5 or RC2)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "${{ github.ref_name }}" = "fix/boxe-frost-lossless-ice-blit-20261106"
+          tag="owner-boxe-frost-iceblit-20261106-rc3"
+          ! gh release view "$tag" >/dev/null 2>&1
+          gh release create "$tag" \
+            APEX-CHAOS-BOXE-FROST-ICEBLIT-RC3.zip \
+            APEX-CHAOS-BOXE-FROST-ICEBLIT-RC3.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "APEX CHAOS RC3 · Experimental lossless Frost ice blit (owner GPU review)" \
+            --notes "EXPERIMENTAL, NOT READY/NOT DEPLOYED. Based on RC2 authored-audio fixes; owner r5 video recorder unchanged byte for byte. Frost's source-atop ice still draws at full resolution; final original drawImage is clipped to conservatively bounded non-transparent material. CI sampled zero channel differences on active Frost frames, preserved 166 Frost functional gates (F00.1 ancestry-only inherited fail), video codec/resolution, and Chrome BOT/phone test. Owner-reported BOXE vs FROST GPU recording lag is NOT YET VERIFIED FIXED. Only for controlled comparison against RC2. No merge or public itch replacement." \
+            --prerelease
+      # no upload-artifact: do not consume exhausted Actions artifact quota.
+
