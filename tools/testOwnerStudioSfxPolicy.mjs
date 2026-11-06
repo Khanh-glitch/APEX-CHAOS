@@ -26,7 +26,7 @@ for(const [name,source,expected] of [
 let oscillators=0, noises=0;
 const param={setValueAtTime(){},exponentialRampToValueAtTime(){}};
 const ctx={
- currentTime:0,sampleRate:44100,
+ currentTime:0,sampleRate:44100,state:'running',
  createBuffer(_channels,n){return {getChannelData:()=>new Float32Array(n)};},
  createBufferSource(){noises++;return {connect(){},start(){},stop(){}};},
  createBiquadFilter(){return {type:'bandpass',frequency:param,Q:param,connect(){}};},
