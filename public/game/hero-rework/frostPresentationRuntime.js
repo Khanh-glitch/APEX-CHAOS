@@ -1769,6 +1769,45 @@ function drawStatusRings(ctx, f) {
   }
 }
 
+// Clip only the transparent MARGINS of an already rendered ice union.
+// The full Gold material, offscreen rendering, all draw layers and opacity are unchanged.
+// Source and destination are equal-sized integer pixel rectangles (no up/downscale).
+function iceCompositeSourceCrop(e,m) {
+  const ice=e.ice,t=e.t,w=e.iceCanvas.width,h=e.iceCanvas.height;
+  if(!ice||!m||w<2||h<2||![m.a,m.b,m.c,m.d,m.e,m.f].every(Number.isFinite))return null;
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  const add=(x,y,rx,ry)=>{
+    if(![x,y,rx,ry].every(Number.isFinite))return false;
+    x0=Math.min(x0,x-rx);y0=Math.min(y0,y-ry);
+    x1=Math.max(x1,x+rx);y1=Math.max(y1,y+ry);return true;
+  };
+  // Extra margin covers Frost's spur tips, growth overshoot, shadows and strokes.
+  for(const n of ice.nodes){
+    if(!n||n.dead||t<=n.born)continue;
+    const L=Math.abs(n.L)*2.25+20,W=Math.abs(n.W)*2.65+20;
+    if(!add(n.x,n.y,Math.abs(n.ca)*L+Math.abs(n.sa)*W,
+      Math.abs(n.sa)*L+Math.abs(n.ca)*W))return null;
+  }
+  for(const c of ice.carves){
+    if(!c||c.dead||t<=c.born)continue;
+    const r=Math.abs(c.Rc)+Math.abs(c.off)+Math.abs(c.T)*2.4+24;
+    if(!add(c.x,c.y,r,r))return null;
+  }
+  if(!Number.isFinite(x0))return null;
+  let sx0=Infinity,sy0=Infinity,sx1=-Infinity,sy1=-Infinity;
+  for(const [x,y] of [[x0,y0],[x0,y1],[x1,y0],[x1,y1]]){
+    const tx=m.a*x+m.c*y+m.e,ty=m.b*x+m.d*y+m.f;
+    if(!Number.isFinite(tx)||!Number.isFinite(ty))return null;
+    sx0=Math.min(sx0,tx);sy0=Math.min(sy0,ty);
+    sx1=Math.max(sx1,tx);sy1=Math.max(sy1,ty);
+  }
+  const sx=Math.max(0,Math.floor(sx0-16)),sy=Math.max(0,Math.floor(sy0-16));
+  const sw=Math.min(w,Math.ceil(sx1+16))-sx;
+  const sh=Math.min(h,Math.ceil(sy1+16))-sy;
+  if(sw<=0||sh<=0||sw*sh>=w*h*0.96)return null;
+  return {sx,sy,sw,sh};
+}
+
 // Gold ice law: union layer composited offscreen (no stacking where paths
 // overlap), then blitted at alpha 0.97. Falls back to direct draw when the
 // canvas transform cannot be mirrored (headless shims).
@@ -1807,7 +1846,10 @@ function drawIceComposite(S, ctx, px) {
           try {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.globalAlpha = 0.97;
-            ctx.drawImage(e.iceCanvas, 0, 0);
+            const crop=iceCompositeSourceCrop(e,m);
+            if(crop)ctx.drawImage(e.iceCanvas,crop.sx,crop.sy,crop.sw,crop.sh,
+              crop.sx,crop.sy,crop.sw,crop.sh);
+            else ctx.drawImage(e.iceCanvas,0,0);
           } finally { ctx.restore(); }
         }
         return;
