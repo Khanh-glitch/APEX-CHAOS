@@ -4567,6 +4567,8 @@ async function audioOn() {
     }
 }
 function accent(kind, start, amount, bus) {
+    // Portrait Studio records asset-backed cues, not procedural pitched accents.
+    if (globalThis.APEX_OWNER_TOOLS?.isPortraitStudio?.()) return;
     if (!ctx || !buses)
         return;
     const notes = {
