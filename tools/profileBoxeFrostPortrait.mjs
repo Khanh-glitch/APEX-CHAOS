@@ -96,9 +96,62 @@ async function runMatch(caseDef) {
       'must measure actual selected matchup, never a proxy '+JSON.stringify(pair));
     console.log('[BOXE FROST QA] ACTUAL MATCH '+JSON.stringify(pair));
 
+    // Instrument source-level section timings on the real live game; only
+    // times public runtime methods, never modifies their arguments or output.
+    await game.evaluate(()=>{
+      const perf=window.__boxeFrostSections={current:null,acc:{},wrappers:[]};
+      const add=(name,obj,key)=>{
+        if(!obj||typeof obj[key]!=='function')return;
+        const orig=obj[key];
+        function measured(...args){
+          const active=perf.current, t=active?performance.now():0;
+          try{return Reflect.apply(orig,this,args);}
+          finally{
+            if(active){
+              const elapsed=performance.now()-t;
+              const bucket=perf.acc[name]||(perf.acc[name]={count:0,totalMs:0,maxMs:0});
+              bucket.count++;bucket.totalMs+=elapsed;bucket.maxMs=Math.max(bucket.maxMs,elapsed);
+            }
+          }
+        }
+        obj[key]=measured;
+        perf.wrappers.push({name});
+      };
+      const frost=window.APEX_FROST_GOLD || {};
+      const pres=window.APEX_FROST_PRESENTATION || {};
+      add('FROST.ice.render',frost.IceField?.prototype,'render');
+      add('FROST.ice.polyNode',frost.IceField?.prototype,'polyNode');
+      add('FROST.engine.drawFrost',frost.FrostEngine?.prototype,'drawFrost');
+      add('FROST.engine.drawA1MacroFront',frost.FrostEngine?.prototype,'drawA1MacroFront');
+      add('FROST.engine.updateIdle',frost.FrostEngine?.prototype,'updateIdle');
+      add('FROST.engine.updateA1',frost.FrostEngine?.prototype,'updateA1');
+      add('FROST.engine.updateA2',frost.FrostEngine?.prototype,'updateA2');
+      add('FROST.presentation.tick',pres,'tick');
+      add('FROST.presentation.renderSurfaceUnderWeapons',pres,'renderSurfaceUnderWeapons');
+      add('FROST.presentation.renderPostWorld',pres,'renderPostWorld');
+      add('FROST.drawFloorShapes',frost,'drawFloorShapes');
+      add('FROST.updateShapes',frost,'updateShapes');
+      add('FROST.drawAirShapes',frost,'drawAirShapes');
+      add('FROST.drawRibbonLayer',frost,'drawRibbonLayer');
+      const original=window.Fighter?.prototype?.draw;
+      if(original)window.Fighter.prototype.draw=function(...args){
+        const category=this?.type?.__hrHero || this?.__hrCombatant?.heroId || '';
+        const name=category==='BOXE'?'FIGHTER.draw.BOXE':
+          category==='ICE'?'FIGHTER.draw.FROST':'FIGHTER.draw.OTHER';
+        const active=perf.current,t=active?performance.now():0;
+        try{return Reflect.apply(original,this,args);}
+        finally{if(active){
+          const elapsed=performance.now()-t;
+          const b=perf.acc[name]||(perf.acc[name]={count:0,totalMs:0,maxMs:0});
+          b.count++;b.totalMs+=elapsed;b.maxMs=Math.max(b.maxMs,elapsed);
+        }}
+      };
+    });
     // Sample genuine game-frame scheduling; one passive RAF observer per phase.
     async function phase(label,ms) {
       await game.evaluate(()=>{
+        window.__boxeFrostSections.current=label;
+        window.__boxeFrostSections.acc={};
         const mark=performance.now(), gaps=[],longs=[];
         let last=mark,live=true,n=0,handle=0;
         const tick=now=>{
@@ -123,7 +176,11 @@ async function runMatch(caseDef) {
         }};
       });
       await sleep(ms);
-      const results=await game.evaluate(()=>window.__boxeFrostProbe.stop());
+      const results=await game.evaluate(()=>{
+        const sections=window.__boxeFrostSections;
+        sections.current=null;
+        return {...window.__boxeFrostProbe.stop(),sections:sections.acc,wrapped:sections.wrappers};
+      });
       const gaps=results.gaps.filter(x=>Number.isFinite(x)&&x>=0);
       return {phase:label,elapsedMs:results.elapsed,frames:gaps.length,
         p50GapMs:quant(gaps,.50),p95GapMs:quant(gaps,.95),maxGapMs:Math.max(0,...gaps),
@@ -131,7 +188,8 @@ async function runMatch(caseDef) {
         gapOver100Ms:gaps.filter(x=>x>100).length,
         longTasks:results.longs.length,
         longTaskTotalMs:results.longs.reduce((sum,x)=>sum+x.duration,0),
-        match:results.match,active:results.active,recording:results.recording};
+        match:results.match,active:results.active,recording:results.recording,
+        sections:results.sections,wrapped:results.wrapped};
     }
     // Match start and asset decode settle without modifying combat/clock.
     await sleep(1600);
