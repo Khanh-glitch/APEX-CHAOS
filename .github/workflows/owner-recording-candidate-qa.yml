@@ -5,7 +5,7 @@ on:
       - fix/r5-portrait-audio-framepressure-20261106
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   recording-candidate:
     runs-on: ubuntu-latest
@@ -43,5 +43,24 @@ jobs:
           test -n "$CHROME_PATH"
           node tools/testOwnerItchPackagedChrome.mjs
           node tools/testOwnerItchCapturePolicyChrome.mjs
-      # Intentionally NO upload-artifact and NO GitHub release upload.
-      # Candidate must not replace the existing owner r5 release.
+      - name: Package verified candidate, never overwrite r5
+        run: |
+          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-owner-F7-F8-recfix-rc1.zip .)
+          unzip -tq APEX-CHAOS-owner-F7-F8-recfix-rc1.zip
+          sha256sum APEX-CHAOS-owner-F7-F8-recfix-rc1.zip > APEX-CHAOS-owner-F7-F8-recfix-rc1.sha256
+      - name: Publish private review candidate as a separate prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "${{ github.ref_name }}" = "fix/r5-portrait-audio-framepressure-20261106"
+          tag="owner-html5-f7-f8-recfix-20261106-rc1"
+          ! gh release view "$tag" >/dev/null 2>&1
+          gh release create "$tag" \
+            APEX-CHAOS-owner-F7-F8-recfix-rc1.zip \
+            APEX-CHAOS-owner-F7-F8-recfix-rc1.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "APEX CHAOS · Recording and asset-audio fix RC1 — owner hardware review" \
+            --notes "Separate prerelease candidate, NOT deployed to itch. Verified: 1080x1920 output, 30fps target, 22 Mbps, tab audio, first-play Chrome, asset inventory, studio synthesized-tone gates. Unverified: sustained hardware-GPU FPS across heavy matchups and actual acoustic quality of captured asset audio. Do not replace r5 until owner A/B acceptance." \
+            --prerelease
+      # No upload-artifact: GitHub Actions artifact quota was exhausted.
+      # Existing owner r5 release remains untouched.
