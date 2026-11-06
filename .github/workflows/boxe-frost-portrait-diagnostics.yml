@@ -1,0 +1,37 @@
+name: BOXE vs FROST Portrait Lag Diagnostics (read-only game)
+on:
+  push:
+    branches:
+      - diagnostics/boxe-frost-portrait-20261106
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  boxe-frost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install exact project dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build unmodified game and package the portable itch HTML5
+        run: |
+          pnpm build
+          node tools/packItchPortable.mjs
+          test -s dist-itch-html5/index.html
+          test -s dist-itch-html5/portrait-studio.html
+      - name: Install diagnostic Chromium driver
+        run: npm ci --prefix tools/probe --ignore-scripts
+      - name: Profile actual BOXE-FROST and BOXE-BOXE BOT matches
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          node tools/profileBoxeFrostPortrait.mjs
+      # No game source changes. No deployment, release or uploaded binary.
