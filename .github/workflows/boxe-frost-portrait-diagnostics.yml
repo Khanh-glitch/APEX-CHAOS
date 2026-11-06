@@ -35,5 +35,7 @@ jobs:
         env:
           CHROME_PATH: /usr/bin/google-chrome
         run: |
+          # Diagnostic-only: include exact copy area and channel mismatches on failure.
+          node -e "const fs=require('fs'),p='tools/profileBoxeFrostPortrait.mjs';let s=fs.readFileSync(p,'utf8');s=s.replace('cropped Frost blit must match original full-source pixels exactly','Frost crop parity '+JSON.stringify(sample.parity));fs.writeFileSync(p,s)"
           node tools/profileBoxeFrostPortrait.mjs
       # No game source changes. No deployment, release or uploaded binary.
