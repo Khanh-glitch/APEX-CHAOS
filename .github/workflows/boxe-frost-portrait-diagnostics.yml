@@ -30,7 +30,7 @@ jobs:
           test -s dist-itch-html5/portrait-studio.html
       - name: Install diagnostic Chromium driver
         run: npm ci --prefix tools/probe --ignore-scripts
-      - name: Profile actual BOXE-FROST and BOXE-BOXE BOT matches
+      - name: Profile actual BOXE-FROST and BOXE-NEWBOT BOT matches
         env:
           CHROME_PATH: /usr/bin/google-chrome
         run: |
