@@ -268,6 +268,38 @@ async function runMatch(caseDef) {
     // Match start and asset decode settle without modifying combat/clock.
     await sleep(1600);
     const unrecorded=await phase('LIVE_BATTLE_NO_REC',3500);
+    // Interleaved within the SAME live match, without changing assets,
+    // hero state or rendering outcome. This measures full-blit vs clipped-blit
+    // in near-adjacent temporal windows. CI software GPU is not owner hardware.
+    const iceBlitAB=caseDef.second==='ice' ? await game.evaluate(async()=>{
+      const measures=[];
+      const perf=window.__boxeFrostSections;
+      try{
+        for(let i=0;i<20;i++){
+          const isFull=(i%2===0);
+          window.__apexIceBlitForceOriginal=isFull;
+          perf.current='AB';perf.acc={};
+          await new Promise(ok=>setTimeout(ok,300));
+          perf.current=null;
+          const entry=perf.acc['FROST.presentation.renderSurfaceUnderWeapons'];
+          const paint=perf.acc['FROST.canvas.drawImage.1000x1000'];
+          measures.push({mode:isFull?'original':'clipped',frames:entry?.count||0,
+            surfaceMs:entry?.totalMs||0,blitMs:paint?.totalMs||0});
+        }
+      } finally {
+        perf.current=null;
+        delete window.__apexIceBlitForceOriginal;
+      }
+      const sums={original:{frames:0,surfaceMs:0,blitMs:0},
+        clipped:{frames:0,surfaceMs:0,blitMs:0}};
+      for(const e of measures){
+        sums[e.mode].frames+=e.frames;
+        sums[e.mode].surfaceMs+=e.surfaceMs;
+        sums[e.mode].blitMs+=e.blitMs;
+      }
+      return {sums,windows:measures,comparison:'alternating 300ms windows; different live effect states'};
+    }) : null;
+    if(iceBlitAB)console.log('[BOXE FROST QA] SAME-MATCH BLIT AB '+JSON.stringify(iceBlitAB));
 
     // Same full-resolution r5 recording path. Source pixels are the actual
     // live gameCanvas, presented in a synthetic tab frame at 30 fps, NOT a
@@ -318,7 +350,7 @@ async function runMatch(caseDef) {
           'Ice crop mismatch '+JSON.stringify(sample.parity));
     }
     assert.deepEqual(errs,[],'Unexpected JavaScript or network errors');
-    return {case:caseDef.name,selected:pair,unrecorded,recorded,recovered,
+    return {case:caseDef.name,selected:pair,unrecorded,recorded,recovered,iceBlitAB,
       diagnostics:{syntheticSource:setup,errors:errs}};
   } finally {
     await page.close();
