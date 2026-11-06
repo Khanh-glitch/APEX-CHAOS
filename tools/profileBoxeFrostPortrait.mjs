@@ -105,8 +105,10 @@ async function runMatch(caseDef) {
         const orig=obj[key];
         function measured(...args){
           const active=perf.current, t=active?performance.now():0;
+          if(name==='FROST.presentation.renderSurfaceUnderWeapons')perf.inFrostSurface=(perf.inFrostSurface||0)+1;
           try{return Reflect.apply(orig,this,args);}
           finally{
+            if(name==='FROST.presentation.renderSurfaceUnderWeapons')perf.inFrostSurface--;
             if(active){
               const elapsed=performance.now()-t;
               const bucket=perf.acc[name]||(perf.acc[name]={count:0,totalMs:0,maxMs:0});
@@ -133,6 +135,27 @@ async function runMatch(caseDef) {
       add('FROST.updateShapes',frost,'updateShapes');
       add('FROST.drawAirShapes',frost,'drawAirShapes');
       add('FROST.drawRibbonLayer',frost,'drawRibbonLayer');
+      // Probe 2D canvas operations only while the Frost world-surface pass
+      // executes: classify expensive offscreen -> host drawImage blits.
+      // Instrumentation is diagnostic and never reaches the game release.
+      const ctxProto=window.CanvasRenderingContext2D?.prototype;
+      if(ctxProto)for(const operation of ['drawImage','clearRect','fill','stroke']){
+        const previous=ctxProto[operation];
+        if(typeof previous!=='function')continue;
+        ctxProto[operation]=function(...args){
+          const active=perf.current&&perf.inFrostSurface>0;
+          const src=args[0],width=src?.width||0,height=src?.height||0;
+          const size=width&&height?(width+'x'+height):'';
+          const name='FROST.canvas.'+operation+(size?'.'+size:'');
+          const started=active?performance.now():0;
+          try{return Reflect.apply(previous,this,args);}
+          finally{if(active){
+            const ms=performance.now()-started;
+            const b=perf.acc[name]||(perf.acc[name]={count:0,totalMs:0,maxMs:0});
+            b.count++;b.totalMs+=ms;b.maxMs=Math.max(b.maxMs,ms);
+          }}
+        };
+      }
       const original=window.Fighter?.prototype?.draw;
       if(original)window.Fighter.prototype.draw=function(...args){
         const category=this?.type?.__hrHero || this?.__hrCombatant?.heroId || '';
