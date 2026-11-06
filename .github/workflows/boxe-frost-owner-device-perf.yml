@@ -1,0 +1,61 @@
+name: BOXE-FROST Owner Device Performance Trace (Diagnostic)
+on:
+  push:
+    branches:
+      - diagnostics/boxe-frost-owner-gpu-20261106
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  packaged-owner-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Frost runtime, synth sound and syntax gates
+        run: |
+          node --check src/game/ownerPlaytestCapture.js
+          node --check public/game/hero-rework/frostPresentationRuntime.js
+          node tools/testOwnerStudioSfxPolicy.mjs
+          node tools/testFrostV1Gates.mjs
+      - name: Production build and shipping hygiene
+        run: |
+          pnpm build
+          pnpm test:shipping-dist
+          printf '%s\n' "$(git rev-parse HEAD)" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+      - name: Packaged Chrome battle and real MediaRecorder QA
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          npm ci --prefix tools/probe --ignore-scripts
+          node tools/testOwnerItchPackagedChrome.mjs
+          node tools/testOwnerItchCapturePolicyChrome.mjs
+      - name: Package diagnostic build for owner only
+        run: |
+          (cd dist-itch-html5 && zip -q -r -9 ../APEX-CHAOS-BOXE-FROST-PERF-DIAGNOSTICS.zip .)
+          unzip -tq APEX-CHAOS-BOXE-FROST-PERF-DIAGNOSTICS.zip
+          sha256sum APEX-CHAOS-BOXE-FROST-PERF-DIAGNOSTICS.zip > APEX-CHAOS-BOXE-FROST-PERF-DIAGNOSTICS.sha256
+      - name: Publish separate prerelease after all checks pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "${{ github.ref_name }}" = "diagnostics/boxe-frost-owner-gpu-20261106"
+          tag="owner-boxe-frost-hardware-perf-20261106-r1"
+          ! gh release view "$tag" >/dev/null 2>&1
+          gh release create "$tag" \
+            APEX-CHAOS-BOXE-FROST-PERF-DIAGNOSTICS.zip \
+            APEX-CHAOS-BOXE-FROST-PERF-DIAGNOSTICS.sha256 \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "APEX CHAOS BOXE-FROST actual device profiling — NOT FOR PUBLIC ITCH" \
+            --notes "Diagnostic-only: based on RC2. No graphics, gameplay, shaders, sound assets, recording codec, dimensions, bitrate, or frame scheduling modified. Browser on owner laptop: record actual BOXE vs FROST in Portrait Studio, stop video, then press Ctrl+Shift+F6 and send the downloaded PERF JSON. It includes measured rAF intervals, Frost ice render/clear/blit time, 1080x1920 capture scaling time, and long tasks. A CI pass does NOT establish an FPS fix. Never replace public r5." 
+      # No GitHub Actions artifact uploads; storage quota was previously exhausted.
