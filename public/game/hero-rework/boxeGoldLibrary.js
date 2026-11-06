@@ -2986,6 +2986,7 @@ class Engine {
         return;
     }
     sfx(kind, power = 1) {
+        if (globalThis.APEX_OWNER_TOOLS?.isPortraitStudio?.()) return;
         if (!this.opts.sound || !this.actx)
             return;
         const now = performance.now();

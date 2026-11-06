@@ -33,7 +33,8 @@ function ensureBattleAudioReady() {
     }
 }
 function playNoise(duration, gainValue, filterFreq = 900, type = 'bandpass') {
-    if (window.__apexStatsSilent) return;
+    // Match the tone policy: studio recordings contain authored sample audio only.
+    if (window.__apexStatsSilent || window.APEX_OWNER_TOOLS?.isPortraitStudio?.()) return;
     ensureBattleAudioReady();
     const now = audioCtx.currentTime;
     const bufferSize = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
