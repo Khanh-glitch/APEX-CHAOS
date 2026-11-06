@@ -74,7 +74,7 @@ async function runMatch(caseDef) {
       await game.waitForFunction(({slot,expected})=>{
         const label=document.querySelector(slot==='P1'?'#p1Name':'#p2Name')?.textContent?.trim()?.toUpperCase();
         return label===expected;
-      },{timeout:15000},{slot,expected:hero==='ice'?'FROST':'BOXE'});
+      },{timeout:15000},{slot,expected:hero==='ice'?'FROST':hero==='newbot'?'NEWBOT':'BOXE'});
       await game.$eval('#lockIn',el=>el.click());
     }
     await choose('boxe','P1');
@@ -92,7 +92,7 @@ async function runMatch(caseDef) {
       gameView:[innerWidth,innerHeight],
       s:window.APEX_ARSENAL?.state?.battleMode
     }));
-    assert.deepEqual(pair.ids,['BOXE',caseDef.second==='ice'?'ICE':'BOXE'],
+    assert.deepEqual(pair.ids,['BOXE',caseDef.second==='ice'?'ICE':caseDef.second==='newbot'?'ROBOT':'BOXE'],
       'must measure actual selected matchup, never a proxy '+JSON.stringify(pair));
     console.log('[BOXE FROST QA] ACTUAL MATCH '+JSON.stringify(pair));
 
@@ -187,7 +187,7 @@ async function runMatch(caseDef) {
 }
 try{
   for(const x of [{name:'BOXE_vs_FROST',second:'ice'},
-                  {name:'BOXE_vs_BOXE_control',second:'boxe'}]){
+                  {name:'BOXE_vs_NEWBOT_control',second:'newbot'}]){
     try{
       const res=await runMatch(x);
       output.results.push(res);
