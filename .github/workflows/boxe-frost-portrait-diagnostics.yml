@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - diagnostics/boxe-frost-portrait-20261106
+      - fix/boxe-frost-h264-recording-probe-20261106
   workflow_dispatch:
 permissions:
   contents: read
@@ -35,4 +36,4 @@ jobs:
           CHROME_PATH: /usr/bin/google-chrome
         run: |
           node tools/profileBoxeFrostPortrait.mjs
-      # No game source changes. No deployment, release or uploaded binary.
+      # Separate codec test only; no deploy, release, or uploaded binary.
