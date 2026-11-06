@@ -1,0 +1,47 @@
+name: R5 Portrait Recording Candidate QA (NO RELEASE)
+on:
+  push:
+    branches:
+      - fix/r5-portrait-audio-framepressure-20261106
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recording-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install lockfile dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Regression gates — no asset loss / no codec resolution reduction
+        run: |
+          node --check src/game/ownerPlaytestCapture.js
+          node tools/testOwnerShortcutCapture.mjs
+          node tools/testOwnerStudioSfxPolicy.mjs
+          node tools/testOwnerRecordingFrameBudget.mjs
+      - name: Production build and shipping hygiene
+        run: |
+          pnpm build
+          pnpm test:shipping-dist
+      - name: Portable itch structure and shipped audio
+        run: |
+          printf '%s\n' "$(git rev-parse HEAD)" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          node tools/testOwnerPortraitShippingAudio.mjs
+      - name: Actual Chrome packaged-game and portrait recording regression
+        run: |
+          npm ci --prefix tools/probe --ignore-scripts
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium)"
+          test -n "$CHROME_PATH"
+          node tools/testOwnerItchPackagedChrome.mjs
+          node tools/testOwnerItchCapturePolicyChrome.mjs
+      # Intentionally NO upload-artifact and NO GitHub release upload.
+      # Candidate must not replace the existing owner r5 release.
