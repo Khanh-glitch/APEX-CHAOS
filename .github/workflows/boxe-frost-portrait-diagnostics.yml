@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - diagnostics/boxe-frost-portrait-20261106
+      - fix/boxe-frost-lossless-ice-blit-20261106
   workflow_dispatch:
 permissions:
   contents: read
