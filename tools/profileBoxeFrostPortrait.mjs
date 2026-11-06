@@ -100,6 +100,7 @@ async function runMatch(caseDef) {
     // times public runtime methods, never modifies their arguments or output.
     await game.evaluate(()=>{
       const perf=window.__boxeFrostSections={current:null,acc:{},wrappers:[]};
+      window.__apexIceBlitDebug={crop:null};
       const add=(name,obj,key)=>{
         if(!obj||typeof obj[key]!=='function')return;
         const orig=obj[key];
@@ -219,14 +220,19 @@ async function runMatch(caseDef) {
         };
         const full=ctx(),crop=ctx();
         full.drawImage(z.source,0,0);
-        crop.drawImage(z.source,...z.args);
+        const bound=window.__apexIceBlitDebug?.crop;
+        if(bound){
+          crop.save();crop.beginPath();
+          crop.rect(bound.sx,bound.sy,bound.sw,bound.sh);crop.clip();
+          crop.drawImage(z.source,0,0);crop.restore();
+        } else crop.drawImage(z.source,0,0);
         const a=full.getImageData(0,0,w,h).data,b=crop.getImageData(0,0,w,h).data;
         let errors=0,max=0;
         for(let i=0;i<a.length;i++){
           const delta=Math.abs(a[i]-b[i]);
           if(delta){errors++;if(delta>max)max=delta;}
         }
-        const rect=z.args.length===8?z.args.slice(0,4):[0,0,w,h];
+        const rect=bound?[bound.sx,bound.sy,bound.sw,bound.sh]:[0,0,w,h];
         return {available:true,errorChannels:errors,maxChannelDifference:max,
           copiedArea: +(rect[2]*rect[3]/(w*h)).toFixed(4)};
 
