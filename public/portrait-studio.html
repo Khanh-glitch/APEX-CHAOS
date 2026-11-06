@@ -32,6 +32,7 @@ small{font-size:11px;color:#b2b1b4}
   <p>Đây là <strong>game thật ở viewport 432 × 768 (9:16)</strong>, chạy trên laptop bằng chuột và bàn phím. Video chỉ lấy đúng khu vực game này, không lấy desktop, trình duyệt hay bảng điều khiển bên cạnh.</p>
   <p>Vào <strong>BOT Battle</strong> trong khung game, sau đó bấm <strong>Ctrl + Shift + F7</strong> hoặc nút REC. Trong hộp cấp quyền, chọn <strong>This Tab / tab hiện tại</strong>.</p>
   <button type="button" id="apex-portrait-rec">● REC / STOP · F7</button>
+  <button type="button" id="apex-portrait-perf">⬇ PERF JSON · sau khi quay</button>
   <div id="apex-studio-status" role="status" aria-live="polite">PHONE 9:16 · READY</div>
   <p><strong>F8:</strong> Mở mật khẩu owner trong game. Bản studio là phiên chơi mới; trận ở tab cũ không tự chuyển sang đây.</p>
   <p><small>High bitrate VP9 nếu trình duyệt hỗ trợ. Đầu ra 1080 × 1920, 30 FPS mục tiêu; độ chi tiết phụ thuộc số pixel Chrome thực cấp. Chọn This Tab và bật Share tab audio. Giữ tổng kết 10 giây.</small></p>
@@ -87,6 +88,14 @@ small{font-size:11px;color:#b2b1b4}
     if(m?.type!=='apex:portrait-record-status')return;
     status.textContent=m.recording?'● REC · 1080 × 1920':'PHONE 9:16 · READY';
     status.style.color=m.recording?'#ff8170':'#ffcc81';
+  });
+  document.getElementById('apex-portrait-perf').addEventListener('click',()=>{
+    const ready=stage.contentWindow?.APEX_OWNER_TOOLS;
+    if(!ready?.downloadRecordingPerfReport?.()){
+      status.textContent='Hãy quay xong BOXE vs FROST trước khi tải PERF JSON.';
+      return;
+    }
+    status.textContent='Đã xuất PERF JSON. Gửi file này để phân tích lag.';
   });
   document.getElementById('apex-portrait-rec').addEventListener('click',()=>{
     const controls=stage.contentWindow?.APEX_OWNER_TOOLS;
