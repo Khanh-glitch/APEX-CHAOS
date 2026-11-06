@@ -301,7 +301,7 @@ async function runMatch(caseDef) {
       assert.ok(samples.length>0,'No active ice source for pixel parity QA');
       for(const sample of samples)
         assert.equal(sample.parity.errorChannels,0,
-          'cropped Frost blit must match original full-source pixels exactly');
+          'Ice crop mismatch '+JSON.stringify(sample.parity));
     }
     assert.deepEqual(errs,[],'Unexpected JavaScript or network errors');
     return {case:caseDef.name,selected:pair,unrecorded,recorded,recovered,
