@@ -1793,11 +1793,16 @@ function drawIceComposite(S, ctx, px) {
       if (ic) {
         const m = ctx.getTransform();
         ic.setTransform(1, 0, 0, 1, 0, 0);
+        const perfProbe = g.__apexOwnerPerfProbe?.active ? g.__apexOwnerPerfProbe : null;
+        const clearStart=perfProbe?performance.now():0;
         ic.clearRect(0, 0, e.iceCanvas.width, e.iceCanvas.height);
+        if(perfProbe)perfProbe.markIceClear(performance.now()-clearStart);
         const trace = currentIntegrity(S);
         if (trace && trace.simFrame === renderAudit.frame) trace.canvas.cleared = true;
         ic.setTransform(m);
+        const renderStart=perfProbe?performance.now():0;
         const painted = e.ice.render(ic, e.t, px);
+        if(perfProbe)perfProbe.markIceRender(performance.now()-renderStart);
         if (trace && trace.simFrame === renderAudit.frame) trace.canvas.painted = !!painted;
         ic.setTransform(1, 0, 0, 1, 0, 0);
         if (painted) {
@@ -1807,7 +1812,9 @@ function drawIceComposite(S, ctx, px) {
           try {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.globalAlpha = 0.97;
+            const blitStart=perfProbe?performance.now():0;
             ctx.drawImage(e.iceCanvas, 0, 0);
+            if(perfProbe)perfProbe.markIceBlit(performance.now()-blitStart);
           } finally { ctx.restore(); }
         }
         return;
