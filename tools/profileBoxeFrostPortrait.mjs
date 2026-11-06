@@ -223,9 +223,9 @@ async function runMatch(caseDef) {
         const bound=window.__apexIceBlitDebug?.crop;
         if(bound){
           crop.save();crop.beginPath();
-          crop.imageSmoothingEnabled=false;
-          crop.drawImage(z.source,bound.sx,bound.sy,bound.sw,bound.sh,
-            bound.sx,bound.sy,bound.sw,bound.sh);crop.restore();
+          crop.rect(bound.sx,bound.sy,bound.sw,bound.sh);
+          crop.clip();
+          crop.drawImage(z.source,0,0);crop.restore();
         } else crop.drawImage(z.source,0,0);
         const a=full.getImageData(0,0,w,h).data,b=crop.getImageData(0,0,w,h).data;
         let errors=0,max=0;
