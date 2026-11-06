@@ -308,6 +308,7 @@ function stopRecording(reason) {
   studioRecordStatus(false);
   clearTimeout(item.tailTimer);
   cancelAnimationFrame(item.frame);
+  item.profiler?.finish?.(reason);
   item.recorder.onstop = () => {
     if(reason==='invalid-portrait-viewport'||reason==='media-error') return;
     const type = item.recorder.mimeType || 'video/webm';
@@ -410,6 +411,8 @@ async function startRecording(providedDisplay=null) {
       videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
     const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
       sourceWidth:video.videoWidth,sourceHeight:video.videoHeight,audioTrackCount:tabAudio.length};
+    item.profiler=startCapturePerformanceProbe({codec:mime,sourceResolution:[video.videoWidth,video.videoHeight],targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,audioTracks:tabAudio.length});
+    window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
     session = item;
@@ -424,7 +427,9 @@ async function startRecording(providedDisplay=null) {
         try{
           const rect=studio.getCropRect();
           const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+          const drawStart=performance.now();
           ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
+          item.profiler?.markRecordingDraw(performance.now()-drawStart);
         }catch(err){
           stopRecording('invalid-portrait-viewport');
           notice('Không thể quay đúng vùng phone: '+String(err?.message||err),true);
@@ -486,6 +491,8 @@ export function installOwnerPlaytestCapture(scope = window) {
     isPlaytestActive:() => unlocked,
     isRecording:() => !!session,
     isRecordingResultHold:() => !!session?.tailTimer,
+    getLastRecordingPerfReport:()=>lastCapturePerfReport,
+    downloadRecordingPerfReport:downloadLastCapturePerf,
     isCaptureBlockedByPolicy:displayCapturePolicyDenied,
     isPortraitStudio:()=>!!portraitStudio(),
     canStudioRecord:()=>{
@@ -508,8 +515,9 @@ export function installOwnerPlaytestCapture(scope = window) {
   Object.defineProperty(scope,'APEX_OWNER_TOOLS',{value:api,writable:false,configurable:false,enumerable:true});
   scope.addEventListener('keydown',event => {
     if (!event.ctrlKey || !event.shiftKey || event.altKey || event.metaKey || event.repeat) return;
-    if (event.code !== 'F8' && event.code !== 'F7') return;
+    if (event.code !== 'F8' && event.code !== 'F7' && event.code !== 'F6') return;
     event.preventDefault(); event.stopImmediatePropagation();
+    if (event.code === 'F6'){downloadLastCapturePerf();return;}
     if (event.code === 'F8') {
       if (unlocked) { if (setUnlocked(false)) notice('OWNER PLAYTEST OFF'); }
       else passwordPanel();
