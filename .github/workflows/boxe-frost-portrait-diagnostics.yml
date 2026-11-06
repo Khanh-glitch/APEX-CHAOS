@@ -36,6 +36,5 @@ jobs:
           CHROME_PATH: /usr/bin/google-chrome
         run: |
           # Diagnostic-only: include exact copy area and channel mismatches on failure.
-          sed -i "/assert.equal(sample.parity.errorChannels,0,/i\\        console.log('FROST_PARITY',JSON.stringify(sample.parity));" tools/profileBoxeFrostPortrait.mjs
           node tools/profileBoxeFrostPortrait.mjs
       # No game source changes. No deployment, release or uploaded binary.
