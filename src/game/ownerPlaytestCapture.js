@@ -328,6 +328,7 @@ async function startRecording(providedDisplay=null) {
     ];
     const mime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
     if(!mime) throw new Error('Trình duyệt chưa hỗ trợ mã hóa video TikTok.');
+    console.info('[owner-capture] selected codec:',mime);
     const rec = new MediaRecorder(output,{mimeType:mime,
       videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
     const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
