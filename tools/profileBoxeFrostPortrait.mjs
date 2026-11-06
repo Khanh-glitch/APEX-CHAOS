@@ -203,11 +203,11 @@ async function runMatch(caseDef) {
       await sleep(ms);
       const results=await game.evaluate(()=>{
         const sections=window.__boxeFrostSections;
+        const base=window.__boxeFrostProbe.stop();
         sections.current=null;
-        return {...window.__boxeFrostProbe.stop(),sections:sections.acc,wrapped:sections.wrappers};
-      });
-      let parity=null;
-      if(results.match?.includes('ICE'))parity=await game.evaluate(()=>{
+        // Synchronous readout in this exact frame; no intervening animation
+        // may mutate the ice source between crop and original-copy checks.
+        const parity=base.match?.includes('ICE')?(()=>{
         const z=window.__boxeFrostSections.lastIceBlit;
         if(!z)return {available:false};
         const [w,h]=z.size;
@@ -229,7 +229,11 @@ async function runMatch(caseDef) {
         const rect=z.args.length===8?z.args.slice(0,4):[0,0,w,h];
         return {available:true,errorChannels:errors,maxChannelDifference:max,
           copiedArea: +(rect[2]*rect[3]/(w*h)).toFixed(4)};
+
+        })():null;
+        return {...base,sections:sections.acc,wrapped:sections.wrappers,parity};
       });
+      const parity=results.parity;
       const gaps=results.gaps.filter(x=>Number.isFinite(x)&&x>=0);
       return {phase:label,elapsedMs:results.elapsed,frames:gaps.length,
         p50GapMs:quant(gaps,.50),p95GapMs:quant(gaps,.95),maxGapMs:Math.max(0,...gaps),
