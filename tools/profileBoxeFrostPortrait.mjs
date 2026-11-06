@@ -206,6 +206,30 @@ async function runMatch(caseDef) {
         sections.current=null;
         return {...window.__boxeFrostProbe.stop(),sections:sections.acc,wrapped:sections.wrappers};
       });
+      let parity=null;
+      if(results.match?.includes('ICE'))parity=await game.evaluate(()=>{
+        const z=window.__boxeFrostSections.lastIceBlit;
+        if(!z)return {available:false};
+        const [w,h]=z.size;
+        const ctx=()=>{
+          const c=document.createElement('canvas');c.width=w;c.height=h;
+          const k=c.getContext('2d',{alpha:false});
+          k.fillStyle='#15253c';k.fillRect(0,0,w,h);k.globalAlpha=.97;
+          return k;
+        };
+        const full=ctx(),crop=ctx();
+        full.drawImage(z.source,0,0);
+        crop.drawImage(z.source,...z.args);
+        const a=full.getImageData(0,0,w,h).data,b=crop.getImageData(0,0,w,h).data;
+        let errors=0,max=0;
+        for(let i=0;i<a.length;i++){
+          const delta=Math.abs(a[i]-b[i]);
+          if(delta){errors++;if(delta>max)max=delta;}
+        }
+        const rect=z.args.length===8?z.args.slice(0,4):[0,0,w,h];
+        return {available:true,errorChannels:errors,maxChannelDifference:max,
+          copiedArea: +(rect[2]*rect[3]/(w*h)).toFixed(4)};
+      });
       const gaps=results.gaps.filter(x=>Number.isFinite(x)&&x>=0);
       return {phase:label,elapsedMs:results.elapsed,frames:gaps.length,
         p50GapMs:quant(gaps,.50),p95GapMs:quant(gaps,.95),maxGapMs:Math.max(0,...gaps),
@@ -214,7 +238,7 @@ async function runMatch(caseDef) {
         longTasks:results.longs.length,
         longTaskTotalMs:results.longs.reduce((sum,x)=>sum+x.duration,0),
         match:results.match,active:results.active,recording:results.recording,
-        sections:results.sections,wrapped:results.wrapped};
+        sections:results.sections,wrapped:results.wrapped,parity};
     }
     // Match start and asset decode settle without modifying combat/clock.
     await sleep(1600);
