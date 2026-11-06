@@ -315,12 +315,16 @@ async function startRecording(providedDisplay=null) {
       if(audio.readyState!=='live') throw new Error('Âm thanh tab không hoạt động.');
       output.addTrack(audio.clone());
     }
+    // Codec comparison candidate: H.264/AAC may use a more efficient
+    // encoder on the owner laptop than VP9. This is a preference, not a
+    // claim of hardware acceleration. If MP4 is unsupported keep r5 codecs.
+    // Frame size 1080x1920, cadence 30fps, 22Mbps target and tab audio stay.
     const mimeCandidates=tabAudio.length?[
-      'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus',
-      'video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/webm'
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'
     ]:[
-      'video/webm;codecs=vp9','video/webm;codecs=vp8',
-      'video/mp4;codecs=avc1.42E01E','video/webm'
+      'video/mp4;codecs=avc1.42E01E',
+      'video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'
     ];
     const mime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
     if(!mime) throw new Error('Trình duyệt chưa hỗ trợ mã hóa video TikTok.');
