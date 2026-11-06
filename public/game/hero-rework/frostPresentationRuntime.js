@@ -1846,7 +1846,7 @@ function drawIceComposite(S, ctx, px) {
           try {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.globalAlpha = 0.97;
-            const crop=iceCompositeSourceCrop(e,m);
+            const crop=g.__apexIceBlitForceOriginal ? null : iceCompositeSourceCrop(e,m);
             if (g.__apexIceBlitDebug) g.__apexIceBlitDebug.crop = crop;
             if (crop) {
               // Identical original 3-argument image copy, but clip its fully
