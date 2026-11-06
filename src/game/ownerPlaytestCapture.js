@@ -225,7 +225,9 @@ function stopRecording(reason) {
   session = null;
   studioRecordStatus(false);
   clearTimeout(item.tailTimer);
-  cancelAnimationFrame(item.frame);
+  if (item.frameMode === 'video' && typeof item.video.cancelVideoFrameCallback === 'function')
+    item.video.cancelVideoFrameCallback(item.frame);
+  else cancelAnimationFrame(item.frame);
   item.recorder.onstop = () => {
     if(reason==='invalid-portrait-viewport'||reason==='media-error') return;
     const type = item.recorder.mimeType || 'video/webm';
@@ -331,25 +333,35 @@ async function startRecording(providedDisplay=null) {
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
     session = item;
+    // Prefer a fresh-frame callback over a 60/120 Hz RAF that repeatedly
+    // scales the same tab frame. Keep the 1080x1920 / 30fps / 22Mbps output.
+    // The RAF fallback preserves recording on older browsers.
+    item.frameMode = typeof video.requestVideoFrameCallback === 'function'
+      && typeof video.cancelVideoFrameCallback === 'function' ? 'video' : 'raf';
     let last = -Infinity;
+    const schedule = () => {
+      if (session !== item) return;
+      item.frame = item.frameMode === 'video'
+        ? video.requestVideoFrameCallback(paint)
+        : requestAnimationFrame(paint);
+    };
     const paint = now => {
       if (session !== item) return;
-      if (now - last >= 1000 / 30) {
+      if (now - last >= 1000 / 30 - 1) {
         last = now;
-        ctx.fillStyle = '#020304'; ctx.fillRect(0,0,W,H);
-        // The source video is the browser TAB. The CROP is precisely the
-        // responsive phone viewport's current rectangle within that tab.
-        try{
+        try {
+          // drawImage covers the complete opaque recording canvas; no full
+          // 1080x1920 clear pass is needed on every recorded frame.
           const rect=studio.getCropRect();
           const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
           ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
-        }catch(err){
+        } catch(err) {
           stopRecording('invalid-portrait-viewport');
           notice('Không thể quay đúng vùng phone: '+String(err?.message||err),true);
           return;
         }
       }
-      item.frame = requestAnimationFrame(paint);
+      schedule();
     };
     rec.start(1000);
     paint(performance.now());
