@@ -24,7 +24,8 @@ const output={environment:{kind:'Chrome headless / software-GPU CI',realTabCaptu
 
 async function runMatch(caseDef) {
   const page=await browser.newPage();
-  const errs=[];
+  const errs=[],captureCodec=[];
+  page.on('console',m=>{if(m.text().includes('[owner-capture] selected codec'))captureCodec.push(m.text());});
   page.on('pageerror',e=>errs.push('page: '+String(e)));
   page.on('requestfailed',r=>errs.push('request: '+r.url()+' '+r.failure()?.errorText));
   try {
@@ -180,7 +181,7 @@ async function runMatch(caseDef) {
     const recovered=await phase('LIVE_BATTLE_AFTER_REC',3500);
     assert.deepEqual(errs,[],'Unexpected JavaScript or network errors');
     return {case:caseDef.name,selected:pair,unrecorded,recorded,recovered,
-      diagnostics:{syntheticSource:setup,errors:errs}};
+      diagnostics:{syntheticSource:setup,captureCodec,errors:errs}};
   } finally {
     await page.close();
   }
