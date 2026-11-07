@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture } from '../src/game/ownerPlaytestCapture.js';
+import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture, ownerPreferManualCrop } from '../src/game/ownerPlaytestCapture.js';
 
 const candidates = [
   'video/webm;codecs=vp9,opus',
@@ -99,3 +99,10 @@ test('region API rejection propagates so caller safely uses the manual path',asy
   },{}, {fromElement:async()=>({})}),/crop unavailable/);
 });
 
+
+test('owner hardware evidence: avoid native crop at 6.1ms median',()=>{
+  assert.equal(ownerPreferManualCrop(6.1),true);
+  assert.equal(ownerPreferManualCrop(12),true);
+  assert.equal(ownerPreferManualCrop(1.2),false);
+  assert.equal(ownerPreferManualCrop(NaN),false);
+});
