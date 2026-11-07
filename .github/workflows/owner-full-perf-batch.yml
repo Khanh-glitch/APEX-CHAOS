@@ -9,6 +9,7 @@ on:
       - 'public/game/hero-rework/frostPresentationRuntime.js'
       - 'public/game/arsenal/arsenalWeaponRuntime.js'
       - 'tools/testV43EnemyQueryPerformance.mjs'
+      - 'tools/testOwnerRecordingOpaqueFrameParity.mjs'
       - 'tools/testBoxeGoldFxCompaction.mjs'
       - '.github/workflows/owner-full-perf-batch.yml'
   workflow_dispatch:
@@ -97,6 +98,10 @@ jobs:
           pnpm build
           printf '%s\n' "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
           node tools/packItchPortable.mjs
+      - name: Verify lossless recording draw pixel parity at 1080x1920
+        run: |
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          node tools/testOwnerRecordingOpaqueFrameParity.mjs
       - name: Real browser game and recorder smoke
         run: |
           export CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
