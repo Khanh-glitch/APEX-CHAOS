@@ -576,7 +576,10 @@ async function startRecording(providedDisplay=null) {
     let last = -Infinity;
     const paint = now => {
       if (session !== item) return;
-      if (now - last >= 1000 / 30) {
+      // Source video callbacks commonly arrive slightly ahead of the ideal
+      // 33.333ms boundary. Permit <=1ms scheduler jitter rather than
+      // accidentally dropping every other 30fps frame.
+      if (now - last + 1 >= 1000 / 30) {
         last = now;
         // The opaque tab video is drawn over the entire 1080x1920 canvas.
         // Clearing/filling 2,073,600 pixels before each full-size draw was
