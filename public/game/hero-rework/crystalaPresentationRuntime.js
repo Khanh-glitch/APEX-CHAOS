@@ -527,6 +527,10 @@
     const prevDraw = Fighter.prototype.draw;
     Fighter.prototype.__crystalaPresentationWrapped = true;
     Fighter.prototype.draw = function (ctx) {
+      const profileCrystal=isCrystal(this);
+      const perfProbe=profileCrystal&&g.__apexOwnerPerfProbe?.active?g.__apexOwnerPerfProbe:null;
+      const perfStart=perfProbe?performance.now():0;
+      try {
       let bypassedPrevDraw = false;
       if (isCrystal(this)) {
         if (this.hp > 0) { body(ctx, this); bypassedPrevDraw = true; }
@@ -544,6 +548,9 @@
         }
         renderWorldConstructsAndFx(ctx, false, true);
         runBloomPass(ctx);
+      }
+      } finally {
+        if(perfProbe)perfProbe.markHeroRender('CRYSTAL',performance.now()-perfStart);
       }
     };
   }
