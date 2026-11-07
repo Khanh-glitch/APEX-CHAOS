@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chooseOwnerRecordingCodec } from '../src/game/ownerPlaytestCapture.js';
+import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream } from '../src/game/ownerPlaytestCapture.js';
 
 const candidates = [
   'video/webm;codecs=vp9,opus',
@@ -18,30 +18,57 @@ const hints = result => ({encodingInfo: async ({video,type}) => {
   return result(video.contentType);
 }});
 
-test('legacy codec priority stays unchanged without reliable power evidence',async () => {
-  assert.equal(await chooseOwnerRecordingCodec(candidates,supports,undefined),candidates[0]);
-  assert.equal(await chooseOwnerRecordingCodec(candidates,supports,hints(()=>({supported:true,powerEfficient:true}))),candidates[0]);
-  assert.equal(await chooseOwnerRecordingCodec(candidates,supports,hints(()=>({supported:true,powerEfficient:false}))),candidates[0]);
+test('AVC is chosen instead of software-heavy VP9 when MediaRecorder accepts it',async () => {
+  assert.equal(await chooseOwnerRecordingCodec(candidates,supports,undefined),candidates[2]);
+  assert.equal(await chooseOwnerRecordingCodec(candidates,supports,hints(()=>({supported:true,powerEfficient:false}))),candidates[2]);
+  assert.equal(await chooseOwnerRecordingCodec(candidates,supports,hints(()=>({supported:true,powerEfficient:true}))),candidates[2]);
 });
 
-test('falls back safely when capabilities reject',async () => {
-  assert.equal(await chooseOwnerRecordingCodec(candidates,supports,{encodingInfo:async()=>{throw Error('unsupported codec');}}),candidates[0]);
-});
-
-test('selects supported efficient encoder only if original is reported inefficient',async () => {
-  const chosen=await chooseOwnerRecordingCodec(candidates,supports,hints(mime => ({
-    supported:true,powerEfficient:mime.includes('avc1')
+test('explicit AVC unsupported signal keeps proven VP9 fallback',async () => {
+  const selected=await chooseOwnerRecordingCodec(candidates,supports,hints(mime=>({
+    supported:!mime.includes('avc1'),powerEfficient:false
   })));
-  assert.equal(chosen,candidates[2]);
+  assert.equal(selected,candidates[0]);
 });
 
-test('never selects a codec MediaRecorder rejects',async () => {
-  const chosen=await chooseOwnerRecordingCodec(candidates,type=>!type.includes('mp4'),hints(mime => ({
-    supported:true,powerEfficient:mime.includes('avc1')
-  })));
-  assert.equal(chosen,candidates[0]);
+test('MediaCapabilities exceptions cannot disable a supported encoder',async () => {
+  assert.equal(await chooseOwnerRecordingCodec(candidates,supports,{
+    encodingInfo:async()=>{throw Error('unimplemented')}
+  }),candidates[2]);
 });
 
-test('no codec support fails closed',async () => {
-  assert.equal(await chooseOwnerRecordingCodec(candidates,()=>false,hints(()=>({supported:true,powerEfficient:true}))),null);
+test('AVC not supported by MediaRecorder retains old codec order',async () => {
+  assert.equal(await chooseOwnerRecordingCodec(candidates,type=>!type.includes('mp4'),undefined),candidates[0]);
+});
+
+test('no supported codec fails closed',async () => {
+  assert.equal(await chooseOwnerRecordingCodec(candidates,()=>false,undefined),null);
+});
+
+test('manual frame source requests one encode per new drawn frame',()=>{
+  let calls=0,manualSettings=[];
+  const manual={requestFrame:()=>{calls++}};
+  const canvas={captureStream:fps=>{
+    manualSettings.push(fps);
+    return {getVideoTracks:()=>[manual],getTracks:()=>[manual]};
+  }};
+  const source=createOwnerRecordingCanvasStream(canvas);
+  assert.equal(source.mode,'source-frame-driven');
+  assert.deepEqual(manualSettings,[0]);
+  source.frame();source.frame();
+  assert.equal(calls,2);
+});
+
+test('manual unsupported fallback keeps fixed 30Hz stream',()=>{
+  let stops=0;
+  const canvas={captureStream:fps=>({
+    getVideoTracks:()=>[{}],
+    getTracks:()=>[{stop:()=>{stops++}}],
+    fps
+  })};
+  const source=createOwnerRecordingCanvasStream(canvas);
+  assert.equal(source.mode,'fixed-fps-fallback');
+  assert.equal(source.stream.fps,30);
+  assert.equal(stops,1);
+  source.frame();
 });
