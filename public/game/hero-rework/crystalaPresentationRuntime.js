@@ -296,6 +296,7 @@
   // old constructs with their rig and preserves the exact authored blur,
   // blend weights, region bounds, and per-frame clearing on every pass.
   const emitterBloomSystems = new WeakMap();
+  const bloomSurfaceStats={systems:0,passes:0,regionSizeChanges:0};
   function bloomForEmitter(emitter) {
     if (!emitter || !GOLD || typeof GOLD.createBloomSystem !== 'function')
       return null;
@@ -304,6 +305,17 @@
       // The first begin(worldTransform,region) sizes it to the actual cropped
       // source. Avoid allocating a huge unused 1000x1000 buffer up front.
       bloom=GOLD.createBloomSystem({width:1,height:1,scale:0.5});
+      const realBegin=bloom.begin.bind(bloom);
+      let lastW=-1,lastH=-1;
+      bloom.begin=function(transform,region){
+        bloomSurfaceStats.passes++;
+        if(region&&region.w>0&&region.h>0&&(region.w!==lastW||region.h!==lastH)){
+          bloomSurfaceStats.regionSizeChanges++;
+          lastW=region.w;lastH=region.h;
+        }
+        return realBegin(transform,region);
+      };
+      bloomSurfaceStats.systems++;
       emitterBloomSystems.set(emitter,bloom);
     }
     return bloom;
@@ -612,6 +624,7 @@
     renderWorldConstructsAndFx,
     runBloomPass,
     constructCacheStats,
+    bloomSurfaceStats,
   };
 
   g.APEX_CRYSTALA_PRESENTATION = api;
