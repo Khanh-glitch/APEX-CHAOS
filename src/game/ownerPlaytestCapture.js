@@ -359,6 +359,10 @@ export async function chooseOwnerRecordingCodec(candidates, supports, capabiliti
 export function ownerPreferManualCrop(regionMedianMs, thresholdMs=4) {
   return Number.isFinite(regionMedianMs) && regionMedianMs>thresholdMs;
 }
+export function ownerPreferMediumSmoothing(highMs,mediumMs) {
+  return Number.isFinite(highMs) && Number.isFinite(mediumMs) &&
+    highMs>4 && mediumMs>=0 && mediumMs<highMs*0.8;
+}
 async function ownerMeasurePortraitDraw(video,ctx,crop,frames=9){
   const t=[];
   for(let i=0;i<frames;i++){
