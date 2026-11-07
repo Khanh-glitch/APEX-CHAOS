@@ -526,6 +526,8 @@
       if(!isShuri(this)||this.hp<=0)return oldDraw.call(this,ctx);
       const rec=ensure(this);
       if(!sprites)return; // Never replace unfinished Gold with a generic blob.
+      const perfProbe=global.__apexOwnerPerfProbe?.active?global.__apexOwnerPerfProbe:null;
+      const perfStart=perfProbe?performance.now():0;
       ctx.save();
       try{
         advance(rec);
@@ -541,7 +543,10 @@
         // The mounted gun is rigidly bound to the rack head's frame
         // (hub pivot + head-spring angle) with authored transfer flights.
         drawRackGun(ctx,rec);
-      }finally{ctx.restore();}
+      }finally{
+        ctx.restore();
+        if(perfProbe)perfProbe.markHeroRender('SHURI',performance.now()-perfStart);
+      }
     };
   }
   // Persistent machine wreckage and delayed Gold VFX are world visuals,
