@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream } from '../src/game/ownerPlaytestCapture.js';
+import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture } from '../src/game/ownerPlaytestCapture.js';
 
 const candidates = [
   'video/webm;codecs=vp9,opus',
@@ -71,4 +71,30 @@ test('manual unsupported fallback keeps fixed 30Hz stream',()=>{
   assert.equal(source.stream.fps,30);
   assert.equal(stops,1);
   source.frame();
+});
+
+test('region capture requests exact iframe, does not resize or rewrite art',async()=>{
+  const iframe={id:'apex-portrait-stage'};
+  const target={crop:'phone-iframe'};
+  let actual=null,created=null;
+  const track={getSettings:()=>({displaySurface:'browser'}),cropTo:async t=>{actual=t}};
+  const api={fromElement:async el=>{created=el;return target}};
+  assert.equal(await tryOwnerRegionCapture(track,iframe,api),true);
+  assert.equal(created,iframe);
+  assert.equal(actual,target);
+});
+
+test('unsupported or non-tab capture falls back without cropping',async()=>{
+  let called=0;
+  const api={fromElement:async()=>{called++;return {}}};
+  assert.equal(await tryOwnerRegionCapture({getSettings:()=>({displaySurface:'monitor'}),cropTo:async()=>{}},{},api),false);
+  assert.equal(await tryOwnerRegionCapture({getSettings:()=>({displaySurface:'browser'})},{},api),false);
+  assert.equal(called,0);
+});
+
+test('region API rejection propagates so caller safely uses the manual path',async()=>{
+  await assert.rejects(()=>tryOwnerRegionCapture({
+    getSettings:()=>({displaySurface:'browser'}),
+    cropTo:async()=>{throw Error('crop unavailable')}
+  },{}, {fromElement:async()=>({})}),/crop unavailable/);
 });
