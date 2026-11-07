@@ -278,7 +278,7 @@ function startCapturePerformanceProbe(meta) {
       lastCapturePerfReport={schema:'APEX-CHAOS-owner-recording-perf-v1',
         warning:'On-device measurements only; rAF gaps are NOT encoded-video FPS. No GPU trace was collected.',
         matchup:window.APEX_HERO_REWORK?.match?.combatants?.map(x=>x.heroId)||[],
-        meta:{...meta,elapsedMs,stopReason:reason,
+        meta:{...meta,submittedFrames:this.submittedFrames??null,elapsedMs,stopReason:reason,
           viewport:[window.innerWidth,window.innerHeight],
           devicePixelRatio:window.devicePixelRatio||1,
           longTasksSupported},
@@ -318,28 +318,45 @@ function toggleIdlePerfProbe() {
 // power-efficient recording encoder over software-heavy VP9 when available.
 // MediaCapabilities is advisory, not proof of hardware encoding; unsupported
 // APIs or unknown answers retain original codec priority.
+// Prefer AVC/H.264 in an MP4 container when the BROWSER RECORDING API says
+// it is supported. Previous MediaCapabilities gating left the owner on VP9
+// ("original-priority"), so it did not change encoder load at all.
+// This is a recording-only transport choice: canvas pixels, music, SFX,
+// source resolution, output dimensions and video bitrate are unchanged.
 export async function chooseOwnerRecordingCodec(candidates, supports, capabilities) {
   const eligible = candidates.filter(type => supports(type));
   if (!eligible.length) return null;
-  if (typeof capabilities?.encodingInfo !== 'function') return eligible[0];
-  const hints = await Promise.all(eligible.map(async mime => {
-    const videoCodec = mime.split(';codecs=')[1]?.split(',')[0];
-    if (!videoCodec) return null;
+  const avc = eligible.find(type => /^video\/mp4;codecs=avc1\./i.test(type));
+  if (!avc) return eligible[0];
+  // Some browsers report H.264 support yet MediaCapabilities can explicitly
+  // reject the same 1080x1920/22Mbps stream. Respect an explicit rejection.
+  if (typeof capabilities?.encodingInfo === 'function') {
     try {
-      return await capabilities.encodingInfo({type:'record',video:{
-        contentType:mime.split(';')[0]+';codecs='+videoCodec,
+      const videoCodec = avc.split(';codecs=')[1].split(',')[0];
+      const hint = await capabilities.encodingInfo({type:'record',video:{
+        contentType:'video/mp4;codecs='+videoCodec,
         width:W,height:H,bitrate:22000000,framerate:30
       }});
-    } catch (_) { return null; }
-  }));
-  // Switch only when there is affirmative evidence that the original first
-  // choice is NOT power-efficient and the replacement IS power-efficient.
-  if (hints[0]?.supported && hints[0]?.powerEfficient === false) {
-    const index = hints.findIndex((hint,i) => i>0 && hint?.supported && hint.powerEfficient === true);
-    if (index > 0) return eligible[index];
+      if (hint?.supported === false) return eligible[0];
+    } catch (_) { /* MediaCapabilities unavailable: MediaRecorder is authority. */ }
   }
-  return eligible[0];
+  return avc;
 }
+
+// Avoid forcing the encoder to process repeated copies of a canvas image when
+// the heavy BOXE/FROST match cannot produce 30 unique frames per second.
+// captureStream(0) + requestFrame submits EXACTLY the game pixels we drew.
+// Browsers without manual frame requests retain the former 30fps stream.
+export function createOwnerRecordingCanvasStream(canvas, fps=30) {
+  const manual = canvas.captureStream(0);
+  const track = manual.getVideoTracks()[0];
+  if (typeof track?.requestFrame === 'function') {
+    return {stream:manual,frame:()=>track.requestFrame(),mode:'source-frame-driven'};
+  }
+  manual.getTracks().forEach(t=>t.stop());
+  return {stream:canvas.captureStream(fps),frame:()=>{},mode:'fixed-fps-fallback'};
+}
+
 function downloadLastCapturePerf() {
   if(!lastCapturePerfReport){notice('Chưa có bản đo: hãy quay một trận trong Portrait Studio.',true);return false;}
   const url=URL.createObjectURL(new Blob(
@@ -361,6 +378,7 @@ function stopRecording(reason) {
   studioRecordStatus(false);
   clearTimeout(item.tailTimer);
   cancelAnimationFrame(item.frame);
+  if (item.profiler) item.profiler.submittedFrames = item.submittedFrames || 0;
   item.profiler?.finish?.(reason);
   item.recorder.onstop = () => {
     if(reason==='invalid-portrait-viewport'||reason==='media-error') return;
@@ -442,7 +460,8 @@ async function startRecording(providedDisplay=null) {
     if (!ctx || !canvas.captureStream) throw new Error('Canvas capture không khả dụng.');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    const output = canvas.captureStream(30);
+    const capture = createOwnerRecordingCanvasStream(canvas,30);
+    const output = capture.stream;
     // Never open a microphone, oscillator, or replacement SFX player.
     // Copy ONLY the original sound track from the verified game tab once.
     const tabAudio=display.getAudioTracks();
@@ -462,12 +481,28 @@ async function startRecording(providedDisplay=null) {
     const mime=await chooseOwnerRecordingCodec(mimeCandidates,
       type=>MediaRecorder.isTypeSupported(type),navigator.mediaCapabilities);
     if(!mime) throw new Error('Trình duyệt chưa hỗ trợ mã hóa video TikTok.');
-    const rec = new MediaRecorder(output,{mimeType:mime,
-      videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
+    // MediaRecorder.isTypeSupported() is advisory; if actual construction
+    // rejects AVC, use the previously working first candidate without
+    // changing output dimensions, bitrate, or authentic tab audio.
+    const originalMime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
+    let actualMime=mime,rec;
+    try {
+      rec = new MediaRecorder(output,{mimeType:actualMime,
+        videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
+    } catch (error) {
+      if (actualMime===originalMime) throw error;
+      actualMime=originalMime;
+      rec=new MediaRecorder(output,{mimeType:actualMime,
+        videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
+    }
     const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
       sourceWidth:video.videoWidth,sourceHeight:video.videoHeight,audioTrackCount:tabAudio.length};
-    item.profiler=startCapturePerformanceProbe({captureMode:'recording-on',codec:mime,sourceResolution:[video.videoWidth,video.videoHeight],targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,audioTracks:tabAudio.length,
-      encoderSelection:mime===mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type))?'original-priority':'power-efficient-hint'});
+    item.profiler=startCapturePerformanceProbe({captureMode:'recording-on',codec:actualMime,
+      sourceResolution:[video.videoWidth,video.videoHeight],
+      targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,
+      audioTracks:tabAudio.length,encoderSelection:actualMime===originalMime?'legacy-fallback':'avc-preferred',
+      frameSubmission:capture.mode});
+    item.submittedFrames=0;
     window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
@@ -486,6 +521,8 @@ async function startRecording(providedDisplay=null) {
           const drawStart=performance.now();
           ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
           item.profiler?.markRecordingDraw(performance.now()-drawStart);
+          capture.frame();
+          item.submittedFrames++;
         }catch(err){
           stopRecording('invalid-portrait-viewport');
           notice('Không thể quay đúng vùng phone: '+String(err?.message||err),true);
@@ -507,7 +544,7 @@ async function startRecording(providedDisplay=null) {
         ? ' · Nguồn '+sourcePx+' sẽ phải phóng lên 1080×1920; màn hình laptop không cung cấp đủ pixel gốc.'
         : '';
       window.parent.postMessage({type:'apex:portrait-capture-quality',
-        source:sourcePx,codec:mime,videoBitrate:rec.videoBitsPerSecond,
+        source:sourcePx,codec:actualMime,videoBitrate:rec.videoBitsPerSecond,
         audioTracks:tabAudio.length,warning},window.location.origin);
     } catch (_) {}
     document.title = '● REC BOT · APEX CHAOS';
@@ -515,7 +552,8 @@ async function startRecording(providedDisplay=null) {
       if (session === item) stopRecording('sharing-ended');
     },{once:true});
     console.info('[owner-capture] Verified portrait source:',video.videoWidth,video.videoHeight,
-      'codec',mime,'video bitrate',rec.videoBitsPerSecond,'tab audio tracks',tabAudio.length);
+      'codec',actualMime,'video bitrate',rec.videoBitsPerSecond,'frameSubmission',capture.mode,
+      'tab audio tracks',tabAudio.length);
   } catch (error) {
     if(session && session.recorder.state==='inactive'){
       const stale=session; session=null;
