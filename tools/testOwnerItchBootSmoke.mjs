@@ -27,7 +27,15 @@ const server=createServer((req,res)=>{
   fs.createReadStream(file).pipe(res);
 });
 await new Promise(r=>server.listen(port,'127.0.0.1',r));
-const chrome=spawn(chromePath,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--remote-allow-origins=*','--remote-debugging-port='+cdpPort,'--user-data-dir=/tmp/apex-itch-smoke-'+process.pid,'about:blank'],{stdio:'ignore'});
+let chrome=null;
+let chromeError='';
+function launchChrome(attempt){
+  chromeError='';
+  chrome=spawn(chromePath,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--remote-allow-origins=*','--remote-debugging-port='+cdpPort,
+    '--user-data-dir=/tmp/apex-itch-smoke-'+process.pid+'-'+attempt,'about:blank'],{stdio:['ignore','ignore','pipe']});
+  chrome.stderr?.on('data',chunk=>{chromeError=(chromeError+String(chunk)).slice(-2400)});
+}
+
 let ws=null,id=0;
 const pending=new Map(),exceptions=[];
 const failAfter=()=>{for(const p of pending.values())p.reject(new Error('CDP disconnected'));pending.clear()};
@@ -51,7 +59,20 @@ const wait=async(code,label,ms=45000)=>{
   }throw Error('Timeout '+label);
 };
 try{
-  for(let j=0;j<100;j++){try{await httpJson('/json/version');break}catch{await sleep(150);if(j===99)throw Error('Chrome failed to start')}}
+  let ready=false;
+  for(let attempt=1;attempt<=3 && !ready;attempt++){
+    launchChrome(attempt);
+    for(let j=0;j<90;j++){
+      try{await httpJson('/json/version');ready=true;break}
+      catch{await sleep(200)}
+    }
+    if(!ready){
+      console.warn('Chrome attempt '+attempt+' did not start: '+chromeError.slice(-500));
+      chrome.kill('SIGKILL');
+      await sleep(500);
+    }
+  }
+  if(!ready)throw Error('Chrome failed to start after three attempts: '+chromeError.slice(-700));
   const targets=await httpJson('/json/list');
   ws=new WebSocket(targets.find(x=>x.type==='page').webSocketDebuggerUrl);
   await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject});
@@ -79,4 +100,4 @@ try{
   if(exceptions.length)throw Error('Studio JavaScript exception: '+exceptions.slice(0,3).join('; '));
   console.log('PASS: Portrait Studio loads 432x768 real game iframe; no 404/JS exception');
 }catch(err){console.error('FAIL: owner itch boot smoke',err);process.exitCode=1}
-finally{try{ws?.close()}catch{};chrome.kill('SIGKILL');await new Promise(r=>server.close(r))}
+finally{try{ws?.close()}catch{};chrome?.kill('SIGKILL');await new Promise(r=>server.close(r))}
