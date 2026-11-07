@@ -7,7 +7,7 @@ on:
       - '.github/workflows/owner-recording-codec-gate.yml'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   codec-selection:
     runs-on: ubuntu-latest
@@ -36,9 +36,24 @@ jobs:
         run: |
           test -s dist/index.html
           test -s dist/portrait-studio.html
-      - uses: actions/upload-artifact@v4
-        with:
-          name: apex-chaos-recording-codec-preview
-          path: dist/
-          if-no-files-found: error
-          retention-days: 3
+      - name: Package and verify owner HTML5 ZIP
+        run: |
+          cd dist
+          zip -qr ../apex-chaos-owner-recording-rc1.zip .
+          cd ..
+          unzip -tqq apex-chaos-owner-recording-rc1.zip
+          unzip -Z1 apex-chaos-owner-recording-rc1.zip | grep -qx 'portrait-studio.html'
+          unzip -Z1 apex-chaos-owner-recording-rc1.zip | grep -qx 'index.html'
+          ls -lh apex-chaos-owner-recording-rc1.zip
+      - name: Upload to GitHub draft release (no Actions artifact quota)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="owner-boxe-frost-recording-pr125-${GITHUB_SHA:0:8}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" apex-chaos-owner-recording-rc1.zip --clobber
+          else
+            gh release create "$TAG" apex-chaos-owner-recording-rc1.zip --target "$GITHUB_SHA" --title "APEX CHAOS Owner Recording RC1 — test only" --notes "PRIVATE DIAGNOSTIC. No owner-device FPS or visual/audio acceptance yet. Do not publish to itch." --draft --prerelease
+          fi
+          gh release view "$TAG" --json isDraft,assets --jq '{draft:.isDraft,assets:[.assets[]|{name:.name,size:.size}]}'
