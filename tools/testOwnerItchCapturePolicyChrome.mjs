@@ -212,6 +212,13 @@ try {
   await standalone.$eval('#apex-portrait-rec',el=>el.click());
   await phone.waitForFunction(()=>window.APEX_OWNER_TOOLS?.isRecording()===false,{timeout:12000});
   await phone.waitForFunction(()=>window.__qaRecordedVideoBlob?.size>1024,{timeout:20000});
+  const perfReport=await phone.evaluate(()=>window.APEX_OWNER_TOOLS?.getLastRecordingPerfReport?.());
+  assert.equal(perfReport?.schema,'APEX-CHAOS-owner-recording-perf-v1','diagnostic report must exist after capture');
+  assert.deepEqual(perfReport.meta.targetResolution,[1080,1920]);
+  assert.equal(perfReport.meta.targetFps,30);
+  assert.ok(perfReport.summary.rafGapMs?.count>0,'real game-frame samples recorded');
+  assert.ok(perfReport.summary.recordingDrawMs?.count>0,'1080x1920 recorder scaling samples recorded');
+  assert.ok(perfReport.meta.elapsedMs>0,'capture interval valid');
   const videoReceipt=await phone.evaluate(async()=>{
     const blob=window.__qaRecordedVideoBlob;
     const uri=URL.createObjectURL(blob);
@@ -233,7 +240,7 @@ try {
 
   assert.deepEqual(nested.serverErrors,[],'no escaping asset requests in cross-origin policy scenario');
   fs.writeFileSync(path.join(output,'capture-policy-receipt.json'),
-    JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct,outputAudit,videoReceipt,audioSourceAudit},null,2));
+    JSON.stringify({pass:true,crossOriginIframe:policy,modal:dialog,standalone:direct,outputAudit,videoReceipt,audioSourceAudit,performanceSummary:perfReport.summary},null,2));
   console.log('PASS ITCH PORTRAIT STUDIO: cross-origin itch iframe -> real 432x768 Gold BOT battle; synthetic tab capture crops ALL phone pixels and decodes output MediaRecorder video at 1080x1920; no desktop edges.');
 } finally {
   if(browser) await browser.close();
