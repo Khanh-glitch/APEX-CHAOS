@@ -52,22 +52,22 @@ jobs:
       - name: Package and verify ONLY tested itch directory
         run: |
           cd dist-itch-html5
-          zip -qr ../apex-chaos-owner-recording-rc3-frame-driven-itch.zip .
+          zip -qr ../apex-chaos-owner-recording-rc4-region-capture-itch.zip .
           cd ..
-          unzip -tqq apex-chaos-owner-recording-rc3-frame-driven-itch.zip
-          unzip -Z1 apex-chaos-owner-recording-rc3-frame-driven-itch.zip | grep -qx 'portrait-studio.html'
-          unzip -Z1 apex-chaos-owner-recording-rc3-frame-driven-itch.zip | grep -qx 'index.html'
-          unzip -p apex-chaos-owner-recording-rc3-frame-driven-itch.zip index.html | grep -q 'src="./assets/'
-          ls -lh apex-chaos-owner-recording-rc3-frame-driven-itch.zip
+          unzip -tqq apex-chaos-owner-recording-rc4-region-capture-itch.zip
+          unzip -Z1 apex-chaos-owner-recording-rc4-region-capture-itch.zip | grep -qx 'portrait-studio.html'
+          unzip -Z1 apex-chaos-owner-recording-rc4-region-capture-itch.zip | grep -qx 'index.html'
+          unzip -p apex-chaos-owner-recording-rc4-region-capture-itch.zip index.html | grep -q 'src="./assets/'
+          ls -lh apex-chaos-owner-recording-rc4-region-capture-itch.zip
       - name: Upload to GitHub draft release (no Actions artifact quota)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="owner-boxe-frost-itch-rc3-${GITHUB_SHA:0:8}"
+          TAG="owner-boxe-frost-itch-rc4-${GITHUB_SHA:0:8}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" apex-chaos-owner-recording-rc3-frame-driven-itch.zip --clobber
+            gh release upload "$TAG" apex-chaos-owner-recording-rc4-region-capture-itch.zip --clobber
           else
-            gh release create "$TAG" apex-chaos-owner-recording-rc3-frame-driven-itch.zip --target "$GITHUB_SHA" --title "APEX CHAOS Owner Recording RC3 — H264 preferred + source frames" --notes "Owner-only RC3: AVC prioritized when supported, source-frame-driven recording and nested itch Chromium encoder boot proof. Actual owner GPU FPS improvement not yet verified. Do not replace public itch." --draft --prerelease
+            gh release create "$TAG" apex-chaos-owner-recording-rc4-region-capture-itch.zip --target "$GITHUB_SHA" --title "APEX CHAOS Owner Recording RC4 — native region crop" --notes "Owner-only RC4: native Chrome Region Capture crops directly to phone iframe; fallback to existing JS crop. AVC and frame-driven output. Laptop FPS improvement not yet verified. Do not replace public itch." --draft --prerelease
           fi
           gh release view "$TAG" --json isDraft,assets --jq '{draft:.isDraft,assets:[.assets[]|{name:.name,size:.size}]}'
