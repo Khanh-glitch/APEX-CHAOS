@@ -7,6 +7,8 @@ on:
       - 'public/game/hero-rework/crystalaPresentationRuntime.js'
       - 'public/game/hero-rework/shuriGoldPresentationRuntime.js'
       - 'public/game/hero-rework/frostPresentationRuntime.js'
+      - 'public/game/arsenal/arsenalWeaponRuntime.js'
+      - 'tools/testV43EnemyQueryPerformance.mjs'
       - 'tools/testBoxeGoldFxCompaction.mjs'
       - '.github/workflows/owner-full-perf-batch.yml'
   workflow_dispatch:
@@ -33,6 +35,9 @@ jobs:
           node --check public/game/hero-rework/crystalaPresentationRuntime.js
           node --check public/game/hero-rework/shuriGoldPresentationRuntime.js
           node --check public/game/hero-rework/frostPresentationRuntime.js
+          node --check public/game/arsenal/arsenalWeaponRuntime.js
+      - name: All-hero V43 projectile-target stable-order parity + CPU benchmark
+        run: node tools/testV43EnemyQueryPerformance.mjs
       - name: BOXE particle parity and stress benchmark
         run: node tools/testBoxeGoldFxCompaction.mjs
       - name: SHURI gameplay & Gold composition
