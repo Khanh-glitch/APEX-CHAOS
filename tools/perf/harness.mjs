@@ -17,7 +17,7 @@ export const qaProfileSource = fs.readFileSync(path.join(HERE, 'qaProfile.js'), 
 export const instrumentSource = probeSource;
 
 export async function launch({ distRoot, args = [] }) {
-  const srv = await startServer({ root: path.isAbsolute(distRoot) ? distRoot : path.join(REPO_ROOT, distRoot) });
+  const srv = await startServer({ root: path.resolve(REPO_ROOT, distRoot) });
   const browser = await puppeteer.launch({
     executablePath: await chromium.executablePath(),
     headless: true,

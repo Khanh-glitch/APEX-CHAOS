@@ -14,31 +14,51 @@
       "pass": true,
       "detail": "NEWBIE→ROBOT idempotent"
     },
-    "smoke-newbie-retired": {
+    "smoke-newbie-save-token-only": {
       "pass": true,
-      "detail": "typeFor('NEWBIE') -> ROBOT (REWORK)"
+      "detail": {
+        "newbieType": null,
+        "newbieLaunch": false,
+        "robot": "ROBOT"
+      }
     },
-    "smoke-ladder-20-bosses-preserved": {
+    "smoke-neutral-arsenal-api-no-retired-ladder": {
       "pass": true,
-      "detail": "PAINTER,DRUM,CARD,ICE,MATH,BLADE,TOXIC,ORBIT,FLASH,ELECTRIC,VAMPIRE,SAW,HUNTER,WOLF,CRYSTAL,MAGNET,BLACK_HOLE,WITCH,TIME,MONK"
+      "detail": {
+        "battleRuntime": "ready",
+        "noRetiredQuestApi": true
+      }
     },
-    "smoke-playable-pool-12-no-boss-leak": {
+    "smoke-product-visible14-playable8-locked6": {
       "pass": true,
       "detail": {
         "ids": [
           "ROBOT",
+          "HUNTER",
           "CRYSTAL",
           "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI",
           "BLACK_HOLE",
           "MATH_V2",
-          "ICE",
           "RUBBER",
-          "HUNTER",
           "TIME",
-          "MIRROR",
           "SLIME",
           "SNIPER"
         ],
+        "playable": [
+          "ROBOT",
+          "HUNTER",
+          "CRYSTAL",
+          "MAGNET",
+          "ICE",
+          "MIRROR",
+          "BOXE",
+          "SHURI"
+        ],
+        "lockedNoPlay": true,
         "buyRejected": true
       }
     },
@@ -50,6 +70,55 @@
           "hero": 1000,
           "rival": 1000
         }
+      }
+    },
+    "smoke-bot-profile-real-p2-ai": {
+      "pass": true,
+      "detail": {
+        "botMode": "BOT",
+        "aiEnabled": true,
+        "events": [
+          {
+            "type": "Cast",
+            "payload": {
+              "hero": "CRYSTAL",
+              "slot": "A2",
+              "mechanic": "crystal.awakening",
+              "side": "p2",
+              "combatantId": "p2",
+              "fighterId": 2,
+              "source": "ai",
+              "input": {
+                "side": "p2",
+                "declaredSide": "p2",
+                "combatantId": "p2",
+                "source": "ai",
+                "key": "",
+                "pointerId": null
+              }
+            }
+          },
+          {
+            "type": "Cast",
+            "payload": {
+              "hero": "CRYSTAL",
+              "slot": "A1",
+              "mechanic": "crystal.context_construct",
+              "side": "p2",
+              "combatantId": "p2",
+              "fighterId": 2,
+              "source": "ai",
+              "input": {
+                "side": "p2",
+                "declaredSide": "p2",
+                "combatantId": "p2",
+                "source": "ai",
+                "key": "",
+                "pointerId": null
+              }
+            }
+          }
+        ]
       }
     },
     "smoke-invariants": {
@@ -78,12 +147,14 @@
       }
     },
     "smoke-robot-dash-moves-to-pickup": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "dashRes": {
           "ok": true
         },
-        "moved": 0
+        "moved": 466,
+        "dx": 466,
+        "dy": 0
       }
     },
     "smoke-j-a1-routing": {
@@ -131,11 +202,12 @@
         "baseRun": {
           "hp": {
             "hero": 1000,
-            "rival": 971.6500000000001
+            "rival": 905.5
           },
           "hits": [
-            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
-            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5"
+            "[ARSENAL] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
+            "[ARSENAL] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
+            "[ARSENAL] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5"
           ],
           "uses": 1,
           "projectiles": 0
@@ -143,11 +215,12 @@
         "reworkRun": {
           "hp": {
             "hero": 1000,
-            "rival": 971.6500000000001
+            "rival": 905.5
           },
           "hits": [
-            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
-            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5"
+            "[ARSENAL] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
+            "[ARSENAL] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
+            "[ARSENAL] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5"
           ],
           "uses": 1,
           "projectiles": 0
@@ -159,9 +232,7 @@
       "detail": "no-match debug OK"
     }
   },
-  "failures": [
-    "smoke-robot-dash-moves-to-pickup"
-  ],
+  "failures": [],
   "loadErrors": [
     {
       "file": "/game/fighters/soccerChampionRuntime.js",

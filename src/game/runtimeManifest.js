@@ -73,6 +73,9 @@ export const GRAPHICS_QUALITY_RUNTIMES = Object.freeze([
   ['/game/core/graphicsQualitySettings.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGraphicsQualitySettings'],
   ['/game/core/graphicsQualityRecommendation.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGraphicsQualityRecommendation'],
   ['/game/core/graphicsQualityFrontendRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGraphicsQualityFrontend'],
+  // PERFORMANCE-mode renderer adapter: publishes the per-candidate budgets the
+  // hero renderers read. Last in the group so the authority already exists.
+  ['/game/core/graphicsQualityModeRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGraphicsQualityModeRuntime'],
 ]);
 
 // Current-neutral combat services shared by Arsenal and the generic engine.

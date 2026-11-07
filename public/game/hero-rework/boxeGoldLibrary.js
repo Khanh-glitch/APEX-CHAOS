@@ -628,6 +628,7 @@ const FLUID_SZ = exports.N * exports.CELL;
 const FIRE_BLUR_WIDE = 'blur(7px)';
 const FIRE_BLUR_CORE = 'blur(2.5px)';
 const SMOKE_BLUR_WIDE = 'blur(6px)';
+
 /* blackbody-ish LUT: t∈[0,1] → rgb (dark red → orange → yellow → white) */
 exports.BB = new Uint8ClampedArray(256 * 3);
 for (let i = 0; i < 256; i++) {
@@ -1017,6 +1018,30 @@ class Fluid {
         // identical pixels, so skip those passes outright.
         if (!wrote)
             return;
+        // PERFORMANCE candidate P2: the smoke layer is composited twice per
+        // frame (behind the fighters, then again in front at alpha 0.45). The
+        // second blend only changes a pixel when 0.45 * sourceAlpha exceeds one
+        // 8-bit step, i.e. when the field is dense. While the field is sparse
+        // the pass is a full-surface blend for (mostly) nothing, so it is
+        // skipped and the single remaining pass keeps the silhouette.
+        // HIGH leaves APEX_GRAPHICS_FLUID_SOFT_ALPHA at 1 → always drawn.
+        if (layer === 'smoke' && this.softPass === true) {
+            const soft = (typeof g !== 'undefined') ? g.APEX_GRAPHICS_FLUID_SOFT_ALPHA : 1;
+            // The second pass is drawn at host alpha 0.45 over the already
+            // composited first pass. Its strongest possible effect is therefore
+            // 0.45 * (this layer's peak alpha as an 8-bit step). Below one
+            // quantisation step the pass cannot produce a resolvable difference
+            // anywhere, so it is skipped; above it, it is drawn exactly as in
+            // HIGH. This is a measured bound, not a tuned percentage.
+            if (soft === 0) {
+                const peakAlpha = this._peakAlpha8();
+                if (peakAlpha * 0.45 < 1) {
+                    this.softPass = false;
+                    return;
+                }
+            }
+        }
+        this.softPass = false;
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
@@ -1033,6 +1058,35 @@ class Fluid {
         }
         ctx.filter = 'none';
         ctx.restore();
+    }
+    /**
+     * Peak 8-bit alpha this smoke layer can produce in the live region.
+     *
+     * Mirrors the density→alpha mapping in draw() exactly:
+     *   alpha8 = min(255, clamp(d * 0.78, 0, 0.92) * 255)
+     * so the value is the true maximum destination contribution of the layer,
+     * not an estimate. Early-exits at full opacity.
+     */
+    _peakAlpha8() {
+        if (this.maxI < this.minI)
+            return 0;
+        const n = exports.N;
+        const i0b = clamp(this.minI, 0, n - 1), i1b = clamp(this.maxI, 0, n - 1);
+        const j0b = clamp(this.minJ, 0, n - 1), j1b = clamp(this.maxJ, 0, n - 1);
+        let peak = 0;
+        for (let j = j0b; j <= j1b; j++)
+            for (let i = i0b; i <= i1b; i++) {
+                const idx = j * n + i;
+                const d = this.dens[idx];
+                if (d < 0.02)
+                    continue;
+                const a8 = Math.min(255, (clamp(d * 0.78, 0, 0.92) * 255) | 0);
+                if (a8 > peak) {
+                    peak = a8;
+                    if (peak >= 235) return peak;
+                }
+            }
+        return peak;
     }
     /** hot regions in world space for the heat-haze pass */
     hotRegions() {

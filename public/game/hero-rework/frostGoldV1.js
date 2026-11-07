@@ -946,6 +946,38 @@ class IceField {
             return null;
         return { x: bx, y: by, w: bx1 - bx, h: by1 - by };
     }
+    /**
+     * Normalised motion of the ice field: mean per-frame displacement of the
+     * live nodes, expressed as a fraction of their own size. 0 = settled ice.
+     * Used only to decide whether sub-pixel flow detail can still be resolved.
+     */
+    _motionRatio(t) {
+        const live = this.nodes;
+        if (!live.length)
+            return 0;
+        let prev = this._motionPrev;
+        if (!prev || prev.t <= 0 || t <= prev.t) {
+            this._motionPrev = { t, x: live.map((n) => n.x), y: live.map((n) => n.y) };
+            return 0;
+        }
+        const dt = Math.max(1e-3, t - prev.t);
+        let sum = 0, count = 0;
+        for (let i = 0; i < live.length && i < prev.x.length; i++) {
+            const n = live[i];
+            if (n.dead)
+                continue;
+            const size = Math.max(1, Math.max(n.L, n.W));
+            const d = Math.hypot(n.x - prev.x[i], n.y - prev.y[i]);
+            sum += d / size;
+            count += 1;
+        }
+        this._motionPrev = { t, x: live.map((n) => n.x), y: live.map((n) => n.y) };
+        if (!count)
+            return 0;
+        // per-second, normalised: 0.55 ≈ more than half the slab's own length
+        // travelled per second (measured at the 60 Hz sim step).
+        return (sum / count) / dt;
+    }
     /** Reusable entry slot so the batched passes never allocate per frame. */
     iceSlot(idx) {
         const pool = ICE_SLOTS;
@@ -997,13 +1029,24 @@ class IceField {
         // P1: steel-blue slab edge.
         // Both passes are a single authored colour, so all nodes go into one
         // path and take one fill() — identical coverage, fewer path fills.
-        ICE_RUN.length = 0;
-        for (let i = 0; i < live.length; i++) {
-            const slot = this.iceSlot(i);
-            slot.n = live[i]; slot.sL = 1; slot.sW = 1; slot.e = 1.8; slot.ox = 1.2; slot.oy = 2.2; slot.style = "#c3cad0";
-            ICE_RUN.push(slot);
+        //
+        // PERFORMANCE candidate P3: the P0 drop shadow is the lowest-contrast
+        // layer of the stack. Once the field is dense the slabs cover it
+        // anyway, so above the budget the shadow pass is skipped — the moment
+        // it costs the most and reads the least. HIGH sets the budget to
+        // Infinity, which is byte-identical to the previous behaviour.
+        const shadowBudget = (typeof g !== 'undefined' && Number.isFinite(g.APEX_ICE_SHADOW_NODE_BUDGET))
+            ? g.APEX_ICE_SHADOW_NODE_BUDGET
+            : Infinity;
+        if (live.length <= shadowBudget) {
+            ICE_RUN.length = 0;
+            for (let i = 0; i < live.length; i++) {
+                const slot = this.iceSlot(i);
+                slot.n = live[i]; slot.sL = 1; slot.sW = 1; slot.e = 1.8; slot.ox = 1.2; slot.oy = 2.2; slot.style = "#c3cad0";
+                ICE_RUN.push(slot);
+            }
+            this.fillRunBatched(ctx, ICE_RUN, t);
         }
-        this.fillRunBatched(ctx, ICE_RUN, t);
         for (let i = 0; i < live.length; i++) {
             const slot = this.iceSlot(i);
             slot.n = live[i]; slot.sL = 1; slot.sW = 1; slot.e = 1.5; slot.ox = 0; slot.oy = 0; slot.style = "#5a92c4";
@@ -1116,6 +1159,15 @@ class IceField {
         ctx.fill(this.sheen);
         ctx.restore();
         // directional flow marks (sparse, stable ice only)
+        // PERFORMANCE candidate P4: while the field is moving faster than the
+        // eye can resolve the marks as texture they contribute smear, not
+        // detail, so the pass is skipped above the motion budget. HIGH sets
+        // the budget to Infinity (marks always drawn).
+        const flowBudget = (typeof g !== 'undefined' && Number.isFinite(g.APEX_ICE_FLOW_MOTION_BUDGET))
+            ? g.APEX_ICE_FLOW_MOTION_BUDGET
+            : Infinity;
+        if (this._motionRatio(t) > flowBudget)
+            return true;
         ctx.lineCap = "round";
         ctx.strokeStyle = "rgba(255,255,255,0.58)";
         ctx.lineWidth = Math.max(px, 1);

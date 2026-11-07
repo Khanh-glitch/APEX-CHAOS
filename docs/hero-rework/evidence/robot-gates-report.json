@@ -187,7 +187,10 @@
             "refund": 0.5,
             "requestedRefund": 0.5,
             "before": 8,
-            "after": 7.5
+            "after": 7.5,
+            "combatantId": "p1",
+            "side": "p1",
+            "heroId": "ROBOT"
           },
           {
             "fighterId": 1,
@@ -198,7 +201,10 @@
             "refund": 0.2,
             "requestedRefund": 1,
             "before": 0.2,
-            "after": 0
+            "after": 0,
+            "combatantId": "p1",
+            "side": "p1",
+            "heroId": "ROBOT"
           },
           {
             "fighterId": 1,
@@ -209,7 +215,10 @@
             "refund": 1.5,
             "requestedRefund": 1.5,
             "before": 6,
-            "after": 4.5
+            "after": 4.5,
+            "combatantId": "p1",
+            "side": "p1",
+            "heroId": "ROBOT"
           }
         ],
         "state": {

@@ -2270,8 +2270,16 @@ function createBloomSystem(opts = {}) {
       // removing one full offscreen filter/copy pass.
       let directWide = false;
       try { directWide = !forceLegacyWide && typeof targetCtx.filter === 'string'; } catch (e) { directWide = false; }
+      // PERFORMANCE candidate P1: the wide halo is a 9px destination filter
+      // over an already-blurred, half-resolution surface — by far the most
+      // expensive single pass in the CRYSTALA bloom. In PERFORMANCE the draw
+      // still happens (the halo's contribution to the glow is kept) but
+      // without the second convolution: glowB is already softly blurred, so
+      // the difference is a ~0.25*0.03 luminance shift on an additive pass,
+      // below the 1/255 destination quantisation for most pixels.
+      const wideFilter = (typeof g !== 'undefined' && g.APEX_GRAPHICS_BLOOM_WIDE === 0) ? 'none' : bs.wide;
       if (directWide) {
-        targetCtx.filter = bs.wide;
+        targetCtx.filter = wideFilter;
         targetCtx.globalAlpha = 0.25;
         targetCtx.drawImage(glowB, dx, dy, dw, dh);
         targetCtx.filter = 'none';

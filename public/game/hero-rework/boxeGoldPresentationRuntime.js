@@ -299,7 +299,9 @@
     g.fluid.draw(ctx,'smoke');
     g.drawPlayer(ctx);g.drawProjs(ctx);
     g.material.drawAtmosphere(ctx);
-    ctx.save();ctx.globalAlpha=.45;g.fluid.draw(ctx,'smoke');ctx.restore();
+    // Second smoke pass (front of the fighters). Marked so the fluid can apply
+    // PERFORMANCE candidate P2; HIGH draws it unconditionally.
+    ctx.save();ctx.globalAlpha=.45;g.fluid.softPass=true;g.fluid.draw(ctx,'smoke');ctx.restore();
     g.fluid.draw(ctx,'fire');
     g.fire.draw(ctx);g.lightning.draw(ctx);
     g.drawFx(ctx);g.fx.drawTop(ctx);
