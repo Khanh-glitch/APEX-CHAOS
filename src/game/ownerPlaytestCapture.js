@@ -229,7 +229,9 @@ function startCapturePerformanceProbe(meta) {
   const started = performance.now();
   const limit = 9000;
   const series = {rafGapMs:[], frostIceClearMs:[], frostIceRenderMs:[],
-    frostIceBlitMs:[], recordingDrawMs:[], recordingSubmitMs:[], longTaskMs:[]};
+    frostIceBlitMs:[], recordingDrawMs:[], recordingSubmitMs:[],
+    shuriRenderMs:[],crystalaRenderMs:[],frostRenderMs:[],boxeRenderMs:[],
+    frostTickMs:[], longTaskMs:[]};
   const add = (key,ms) => {
     if (Number.isFinite(ms) && ms>=0 && series[key].length<limit)
       series[key].push(Math.round(ms*1000)/1000);
@@ -268,6 +270,8 @@ function startCapturePerformanceProbe(meta) {
     markIceBlit:ms=>add('frostIceBlitMs',ms),
     markRecordingDraw:ms=>add('recordingDrawMs',ms),
     markRecordingSubmit:ms=>add('recordingSubmitMs',ms),
+    markHeroRender:(id,ms)=>{const key=({SHURI:'shuriRenderMs',CRYSTAL:'crystalaRenderMs',FROST:'frostRenderMs',BOXE:'boxeRenderMs'})[id];if(key)add(key,ms);},
+    markFrostTick:ms=>add('frostTickMs',ms),
     finish(reason) {
       if(stopped)return lastCapturePerfReport;
       stopped=true;this.active=false;
