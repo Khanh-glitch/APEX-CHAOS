@@ -468,12 +468,16 @@ function createState(ct) {
 }
 
 function sweepStates() {
+  // One pass builds exact Frost anchor -> combatant ownership. Formerly
+  // allocated a Set and scanned all combatants again for every Frost body,
+  // on EVERY game tick (even while a long ice-skill visual is active).
   const cts = combatants();
-  const alive = new Set();
-  for (const ct of cts) if (isFrostCt(ct) && ct.anchor) alive.add(ct.anchor);
+  const currentByAnchor = new Map();
+  for (const ct of cts) if (isFrostCt(ct) && ct.anchor) currentByAnchor.set(ct.anchor,ct);
   for (const [f, S] of liveStates) {
-    if (!alive.has(f)) liveStates.delete(f);
-    else { S.ct = cts.find((c) => c.anchor === f) || S.ct; S.fighter = f; }
+    const ct=currentByAnchor.get(f);
+    if(!ct)liveStates.delete(f);
+    else { S.ct=ct; S.fighter=f; }
   }
   const m = HR ? HR.match : null;
   if (m !== lastMatch) {
