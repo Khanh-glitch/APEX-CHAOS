@@ -1526,6 +1526,8 @@ api.tick = function (dt) {
   const auditT1 = (g.performance && typeof g.performance.now === 'function') ? g.performance.now() : Date.now();
   renderAudit.lastFrameMs = auditT1 - auditT0;
   renderAudit.maxFrameMs = Math.max(renderAudit.maxFrameMs, renderAudit.lastFrameMs);
+  const perfProbe=g.__apexOwnerPerfProbe?.active?g.__apexOwnerPerfProbe:null;
+  if(perfProbe)perfProbe.markFrostTick(renderAudit.lastFrameMs);
 };
 
 // ------------------------------------------------------------------ draws
@@ -1560,7 +1562,10 @@ function ensureDrawWraps() {
         const S = liveStates.get(this);
         if (S) {
           let drew = false;
+          const perfProbe=g.__apexOwnerPerfProbe?.active?g.__apexOwnerPerfProbe:null;
+          const perfStart=perfProbe?performance.now():0;
           isolated(ctx, () => { drawFrostBody(ctx, this, S); drew = true; });
+          if(perfProbe)perfProbe.markHeroRender('FROST',performance.now()-perfStart);
           bypassed = drew;
           if (!drew) { noteRenderSource(S, 'inner-fighter-fallback'); try { prevDraw.call(this, ctx); } catch (e2) {} }
         } else {
