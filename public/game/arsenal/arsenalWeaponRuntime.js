@@ -666,7 +666,7 @@
     const enemies=[];
     if(!list)return enemies;
     for(const f of list){
-      if(!f||f.hp<=0||f.withdrawn===true)continue;
+      if(!f||!(f.hp>0)||f.withdrawn===true)continue;
       if(!quest&&f===owner)continue;
       if(teamFilter&&f.questTeam===owner?.questTeam)continue;
       enemies.push(f);
