@@ -520,6 +520,30 @@ async function startRecording(providedDisplay=null) {
     if (!ctx || !canvas.captureStream) throw new Error('Canvas capture không khả dụng.');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
+    let captureRouteProbe={regionDrawMedianMs:null,decision:'manual-or-native-not-tested'};
+    if(browserRegionCrop){
+      const median=await ownerMeasurePortraitDraw(video,ctx,()=>
+        ({sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}));
+      captureRouteProbe.regionDrawMedianMs=+median.toFixed(2);
+      if(ownerPreferManualCrop(median)){
+        const originalSize=[video.videoWidth,video.videoHeight];
+        await track.cropTo(null);
+        let restored=false;
+        for(let i=0;i<32;i++){
+          if(video.videoWidth && video.videoHeight &&
+             (video.videoWidth!==originalSize[0]||
+              video.videoHeight!==originalSize[1])){
+            restored=true;break;
+          }
+          await new Promise(resolve=>setTimeout(resolve,70));
+        }
+        if(!restored)throw new Error('Chrome Region Capture did not restore whole tab');
+        browserRegionCrop=false;
+        captureRouteProbe.decision='manual-crop-faster';
+      }else{
+        captureRouteProbe.decision='native-region-kept';
+      }
+    }
     const capture = createOwnerRecordingCanvasStream(canvas,30);
     const output = capture.stream;
     // Never open a microphone, oscillator, or replacement SFX player.
@@ -561,7 +585,8 @@ async function startRecording(providedDisplay=null) {
       sourceResolution:[video.videoWidth,video.videoHeight],
       targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,
       audioTracks:tabAudio.length,encoderSelection:actualMime===originalMime?'legacy-fallback':'avc-preferred',
-      frameSubmission:capture.mode,captureRegion:browserRegionCrop?'browser-region':'canvas-manual-crop'});
+      frameSubmission:capture.mode,captureRegion:browserRegionCrop?'browser-region':'canvas-manual-crop',
+      captureRouteProbe});
     item.submittedFrames=0;
     window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
