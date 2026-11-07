@@ -557,11 +557,14 @@ async function startRecording(providedDisplay=null) {
       if (session !== item) return;
       if (now - last >= 1000 / 30) {
         last = now;
-        ctx.fillStyle = '#020304'; ctx.fillRect(0,0,W,H);
-        // The source video is the browser TAB. The CROP is precisely the
-        // responsive phone viewport's current rectangle within that tab.
+        // The opaque tab video is drawn over the entire 1080x1920 canvas.
+        // Clearing/filling 2,073,600 pixels before each full-size draw was
+        // a redundant second canvas write, often GPU-bound during REC.
+        // Do not touch output resolution, scaling, alpha or skill visuals.
         try{
-          const rect=studio.getCropRect();
+          // Native crop already supplies only the phone iframe; avoid a
+          // forced parent-page getBoundingClientRect() on each recorded frame.
+          const rect=browserRegionCrop?null:studio.getCropRect();
           const crop=browserRegionCrop
             ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
             : portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
@@ -586,7 +589,7 @@ async function startRecording(providedDisplay=null) {
     studioRecordStatus(true);
     document.getElementById('apex-owner-notice')?.remove();
     try {
-      const rect=studio.getCropRect();
+      const rect=browserRegionCrop?null:studio.getCropRect();
       const source=browserRegionCrop
         ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
         : portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
