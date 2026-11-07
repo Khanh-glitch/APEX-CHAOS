@@ -5,6 +5,7 @@ on:
       - 'public/game/hero-rework/crystalaPresentationRuntime.js'
       - 'tools/profileCrystalaPerformance.mjs'
       - 'tools/compareCrystalaProfilePair.mjs'
+      - 'tools/profileFourHeroScenesBrowser.mjs'
       - '.github/workflows/owner-crystala-bloom-ab.yml'
   workflow_dispatch:
 permissions:
@@ -69,4 +70,26 @@ jobs:
           grep -E 'crystal-prison|crystal-k-wall|crystal-wall|BLOOM_PARITY' /tmp/crystala-rc5.log | tail -n 15 || true
           echo '===== CANDIDATE ====='
           grep -E 'crystal-prison|crystal-k-wall|crystal-wall|BLOOM_PARITY' /tmp/crystala-candidate.log | tail -n 15 || true
+      - name: Four-hero RC5 baseline (real skill casts, same browser)
+        env:
+          APEX_APP_URL: http://127.0.0.1:4174
+          APEX_PROFILE_FILE: /tmp/four-hero-rc5.json
+        run: node tools/profileFourHeroScenesBrowser.mjs
+      - name: Four-hero candidate (real skill casts, same browser)
+        env:
+          APEX_APP_URL: http://127.0.0.1:4173
+          APEX_PROFILE_FILE: /tmp/four-hero-candidate.json
+        run: node tools/profileFourHeroScenesBrowser.mjs
+      - name: Report four-hero frame timing comparison
+        run: |
+          node --input-type=module -e '
+          import fs from "node:fs";
+          const old=JSON.parse(fs.readFileSync("/tmp/four-hero-rc5.json"));
+          const now=JSON.parse(fs.readFileSync("/tmp/four-hero-candidate.json"));
+          if(old.pageErrors?.length||now.pageErrors?.length||old.rows.length!==4||now.rows.length!==4)throw Error("invalid browser comparison");
+          for(let i=0;i<4;i++){
+            const a=old.rows[i],b=now.rows[i];
+            if(String(a.matchup)!==String(b.matchup))throw Error("unmatched matchup");
+            console.log(JSON.stringify({matchup:a.matchup,oldP95:a.frame.p95,newP95:b.frame.p95,oldDrawP95:a.draw.p95,newDrawP95:b.draw.p95,ratio:Math.round(100*a.frame.p95/b.frame.p95)/100,cast:b.cast}));
+          }'
       # GitHub Actions artifact quota is exhausted; summary stays in job logs.
