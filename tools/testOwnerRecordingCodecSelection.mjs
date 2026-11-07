@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture, chooseOwnerCaptureFrameClock } from '../src/game/ownerPlaytestCapture.js';
+import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture, chooseOwnerCaptureFrameClock, shouldOwnerSubmitFrame } from '../src/game/ownerPlaytestCapture.js';
 
 const candidates = [
   'video/webm;codecs=vp9,opus',
@@ -124,4 +124,14 @@ test('frame clock falls back to RAF when video-frame callbacks are unavailable',
   assert.equal(clock.request(()=>{}),9);
   clock.cancel(9);
   assert.equal(canceled,9);
+});
+
+test('30fps source frame timestamp jitter does not halve encoded frames',()=>{
+  let last=-Infinity,submissions=0;
+  for(let i=0;i<60;i++){
+    const now=i*(1000/30-0.08);
+    if(shouldOwnerSubmitFrame(now,last)){last=now;submissions++;}
+  }
+  assert.equal(submissions,60,'must submit each ~33.25ms video frame');
+  assert.equal(shouldOwnerSubmitFrame(20,0),false,'cannot exceed 30fps by 2x');
 });
