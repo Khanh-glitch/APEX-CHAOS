@@ -424,16 +424,18 @@
 
   function transformedRegion(m, bounds, cw, ch, pad = 40) {
     if (!bounds) return null;
-    const pts = [
-      [bounds.minX, bounds.minY], [bounds.maxX, bounds.minY],
-      [bounds.minX, bounds.maxY], [bounds.maxX, bounds.maxY],
-    ].map(([x, y]) => m
-      ? { x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f }
-      : { x, y });
-    let minX = Math.min(...pts.map(p => p.x)) - pad;
-    let maxX = Math.max(...pts.map(p => p.x)) + pad;
-    let minY = Math.min(...pts.map(p => p.y)) - pad;
-    let maxY = Math.max(...pts.map(p => p.y)) + pad;
+    // Exact 4-corner bounds, without five temporary arrays per construct
+    // per frame. Important during CRYSTALA wall/prison bloom spells.
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    for(let i=0;i<4;i++){
+      const x=(i&1)?bounds.maxX:bounds.minX;
+      const y=(i&2)?bounds.maxY:bounds.minY;
+      const tx=m?m.a*x+m.c*y+m.e:x;
+      const ty=m?m.b*x+m.d*y+m.f:y;
+      minX=Math.min(minX,tx);maxX=Math.max(maxX,tx);
+      minY=Math.min(minY,ty);maxY=Math.max(maxY,ty);
+    }
+    minX-=pad;maxX+=pad;minY-=pad;maxY+=pad;
     minX = Math.max(0, Math.floor(minX)); minY = Math.max(0, Math.floor(minY));
     maxX = Math.min(cw, Math.ceil(maxX)); maxY = Math.min(ch, Math.ceil(maxY));
     if (maxX <= minX || maxY <= minY) return null;
@@ -484,8 +486,7 @@
   function runBloomPass(ctx) {
     const M = HR && HR.match;
     if (!M || !GOLD) return;
-    const crystals = M.combatants.filter(ct => ct.heroId === 'CRYSTAL');
-    if (!crystals.length) return;
+    if (!M.combatants.some(ct => ct.heroId === 'CRYSTAL')) return;
 
     const gameCanvas = ctx.canvas || (typeof document !== 'undefined' ? document.getElementById('game-canvas') : null);
     const cw = gameCanvas ? gameCanvas.width : (g.GAME_SIZE || 1000);
@@ -496,7 +497,8 @@
     // each emitter group is cropped before the same two Gold blur passes.
     const worldTransform = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null;
 
-    for (const ct of crystals) {
+    for (const ct of M.combatants) {
+      if(ct.heroId!=='CRYSTAL')continue;
       const crySt = CRY ? CRY.stateOf(ct) : null;
       const rig = crySt ? crySt.rig : null;
       if (!rig) continue;
