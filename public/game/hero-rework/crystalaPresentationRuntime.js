@@ -290,6 +290,24 @@
     }
     return bloomSystem;
   }
+  // Each construct previously resized the SAME three Canvas2D backing
+  // stores, and every body/construct switch invalidated their GPU surfaces.
+  // Keep one Gold bloom compositor per live emitter instead. WeakMap releases
+  // old constructs with their rig and preserves the exact authored blur,
+  // blend weights, region bounds, and per-frame clearing on every pass.
+  const emitterBloomSystems = new WeakMap();
+  function bloomForEmitter(emitter) {
+    if (!emitter || !GOLD || typeof GOLD.createBloomSystem !== 'function')
+      return null;
+    let bloom = emitterBloomSystems.get(emitter);
+    if (!bloom) {
+      // The first begin(worldTransform,region) sizes it to the actual cropped
+      // source. Avoid allocating a huge unused 1000x1000 buffer up front.
+      bloom=GOLD.createBloomSystem({width:1,height:1,scale:0.5});
+      emitterBloomSystems.set(emitter,bloom);
+    }
+    return bloom;
+  }
 
   // Hexa/Wall used to pay seeded cell-mesh derivation on the cast frame.
   // Warm likely early construct seeds opportunistically while the browser is
@@ -491,8 +509,7 @@
     const gameCanvas = ctx.canvas || (typeof document !== 'undefined' ? document.getElementById('game-canvas') : null);
     const cw = gameCanvas ? gameCanvas.width : (g.GAME_SIZE || 1000);
     const ch = gameCanvas ? gameCanvas.height : (g.GAME_SIZE || 1000);
-    const bloom = getBloom(cw, ch);
-    if (!bloom) return;
+    if (typeof GOLD.createBloomSystem !== 'function') return;
     // Keep the exact production camera matrix. Only transparent acreage outside
     // each emitter group is cropped before the same two Gold blur passes.
     const worldTransform = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null;
@@ -503,7 +520,8 @@
       const rig = crySt ? crySt.rig : null;
       if (!rig) continue;
 
-      renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
+      const bodyBloom=bloomForEmitter(rig);
+      if (bodyBloom) renderBloomRegion(ctx, bodyBloom, worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
         for (const s of rig.stones) GOLD.drawStone(gx, s, 1, true);
         GOLD.drawCrystala(gx, rig.hero, true, 1);
       });
@@ -513,7 +531,9 @@
       for (const cons of rig.constructs) {
         const bounds = constructBloomBounds(cons);
         if (!bounds) continue;
-        renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bounds, gx => {
+        const constructBloom=bloomForEmitter(cons);
+        if (!constructBloom) continue;
+        renderBloomRegion(ctx, constructBloom, worldTransform, cw, ch, bounds, gx => {
           if (cons.kind === 'wall' && cons.geom) GOLD.drawWall(gx, cons.geom, true);
           else if (cons.kind === 'prison' && cons.prison) {
             GOLD.drawPrison(gx, cons.prison, true, false);
