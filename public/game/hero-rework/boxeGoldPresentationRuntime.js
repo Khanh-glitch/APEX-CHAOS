@@ -83,23 +83,42 @@
     }
     if(g.rocketCatch){g.rocketCatch.t+=dt;if(g.rocketCatch.t>=g.rocketCatch.life)g.rocketCatch=null;}
     g.rocketCatchApproach=Math.max(0,g.rocketCatchApproach-dt*4.2);
-    for(const a of [...g.pressure]){a.life-=dt;if(a.life<=0)g.pressure.splice(g.pressure.indexOf(a),1);else{
-      const k=1-a.life/a.max;a.r=6+(a.r1-6)*(1-Math.pow(1-k,2.4));}}
-    for(const a of [...g.rings]){a.life-=dt;a.r+=a.vr*dt;if(a.life<=0)g.rings.splice(g.rings.indexOf(a),1);}
-    for(const a of [...g.arcs]){a.life-=dt;if(a.life<=0)g.arcs.splice(g.arcs.indexOf(a),1);}
-    for(const a of [...g.afters]){a.life-=dt;if(a.life<=0)g.afters.splice(g.afters.indexOf(a),1);}
-    for(const a of [...g.particles]){
+    // Compact live Gold FX in-place in ONE stable-order pass. Previously
+    // every frame cloned six arrays, then indexOf+splice scanned/shifted them
+    // for each expired spark, arc and particle (quadratic during J flurry).
+    // Preserve update order, dt, random calls, and every authored particle.
+    function compact(list, step) {
+      let write=0;
+      const size=list.length;
+      for(let read=0;read<size;read++){
+        const value=list[read];
+        if(step(value))list[write++]=value;
+      }
+      list.length=write;
+    }
+    compact(g.pressure,a=>{
+      a.life-=dt;
+      if(a.life<=0)return false;
+      const k=1-a.life/a.max;
+      a.r=6+(a.r1-6)*(1-Math.pow(1-k,2.4));
+      return true;
+    });
+    compact(g.rings,a=>{a.life-=dt;a.r+=a.vr*dt;return a.life>0;});
+    compact(g.arcs,a=>{a.life-=dt;return a.life>0;});
+    compact(g.afters,a=>{a.life-=dt;return a.life>0;});
+    compact(g.particles,a=>{
       a.life-=dt;a.vy+=(a.grav||0)*dt;
       const drag=Math.exp(-(a.drag||0)*dt);a.vx*=drag;a.vy*=drag;
       a.x+=a.vx*dt;a.y+=a.vy*dt;a.rot+=(a.vr||0)*dt;
-      if(a.life<=0)g.particles.splice(g.particles.indexOf(a),1);
-    }
-    for(const zone of [...g.zones]){
+      return a.life>0;
+    });
+    compact(g.zones,zone=>{
       zone.t+=dt;
-      if(zone.kind==='flame'&&!zone.pulsed&&zone.t>.12){zone.pulsed=true;
-        g.fire.column(zone.x,zone.y,42,150,.65,.8);}
-      if(zone.t>=zone.dur)g.zones.splice(g.zones.indexOf(zone),1);
-    }
+      if(zone.kind==='flame'&&!zone.pulsed&&zone.t>.12){
+        zone.pulsed=true;g.fire.column(zone.x,zone.y,42,150,.65,.8);
+      }
+      return zone.t<zone.dur;
+    });
     g.material.update(dt);g.fluid.step(Math.min(dt,.034));
     g.fire.update(dt);g.lightning.update(dt);g.fx.update(dt,dt);
   }
@@ -293,6 +312,8 @@
       if(!isBoxe(this)||this.hp<=0)return oldDraw.call(this,ctx);
       const rec=live.get(this)||make(this);
       if(!rec.g.sprites)return; // UI readiness gate preloads real Gold sprites; no impostor body
+      const perfProbe=global.__apexOwnerPerfProbe?.active?global.__apexOwnerPerfProbe:null;
+      const perfStart=perfProbe?performance.now():0;
       ctx.save();
       try{
         advance(rec,this);
@@ -329,7 +350,10 @@
           fg.drawFx(ctx);fg.fx.drawTop(ctx);
           ctx.restore();
         }
-      }finally{ctx.restore();}
+      }finally{
+        ctx.restore();
+        if(perfProbe)perfProbe.markHeroRender('BOXE',performance.now()-perfStart);
+      }
     };
   }
   global.APEX_BOXE_GOLD_PRESENTATION={version:'r2-owner-gold-choreography',

@@ -654,11 +654,24 @@
   const v43min=(n,a,b)=>Math.max(a,Math.min(b,n));
   const v43Normalize=(x,y)=>{const d=Math.hypot(x,y)||1;return {x:x/d,y:y/d};};
   function v43Enemies(owner){
-    const list=AQ.state?.questMultiActor===true
+    // A projectile can query enemies several times per simulation step.
+    // Avoid the former two filter passes and two intermediate arrays per
+    // query. Preserve ordered identity, quest delegation, alive/withdrawn
+    // checks, owner exclusion in normal play and team constraints exactly.
+    const quest=AQ.state?.questMultiActor===true;
+    const teamFilter=!!AQ.state?.questMultiActor;
+    const list=quest
       ?window.APEX_QUEST_MULTI_ACTOR_CORE?.livingEnemies?.(owner,fighters)
-      :fighters.filter(f=>f&&f!==owner&&f.hp>0);
-    return (list||[]).filter(f=>f&&f.hp>0&&f.withdrawn!==true
-      &&(!AQ.state?.questMultiActor||f.questTeam!==owner?.questTeam));
+      :fighters;
+    const enemies=[];
+    if(!list)return enemies;
+    for(const f of list){
+      if(!f||!(f.hp>0)||f.withdrawn===true)continue;
+      if(!quest&&f===owner)continue;
+      if(teamFilter&&f.questTeam===owner?.questTeam)continue;
+      enemies.push(f);
+    }
+    return enemies;
   }
   // All collision consumers (Fighter + Crystal + Magnet) observe the ONE
   // ordered frame path. A kinetic V4.3 bullet bent by Magnet A2 cannot test

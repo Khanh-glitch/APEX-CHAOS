@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture } from '../src/game/ownerPlaytestCapture.js';
+import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture, ownerPreferManualCrop, ownerPreferMediumSmoothing } from '../src/game/ownerPlaytestCapture.js';
 
 const candidates = [
   'video/webm;codecs=vp9,opus',
@@ -97,4 +97,18 @@ test('region API rejection propagates so caller safely uses the manual path',asy
     getSettings:()=>({displaySurface:'browser'}),
     cropTo:async()=>{throw Error('crop unavailable')}
   },{}, {fromElement:async()=>({})}),/crop unavailable/);
+});
+
+
+test('owner hardware evidence: avoid native crop at 6.1ms median',()=>{
+  assert.equal(ownerPreferManualCrop(6.1),true);
+  assert.equal(ownerPreferManualCrop(12),true);
+  assert.equal(ownerPreferManualCrop(1.2),false);
+  assert.equal(ownerPreferManualCrop(NaN),false);
+});
+
+test('encoded video interpolation quality reduces only if GPU draw improves at least 20%',()=>{
+  assert.equal(ownerPreferMediumSmoothing(9.1,5),true);
+  assert.equal(ownerPreferMediumSmoothing(6.2,5.5),false);
+  assert.equal(ownerPreferMediumSmoothing(3,1),false);
 });

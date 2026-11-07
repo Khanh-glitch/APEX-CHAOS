@@ -290,6 +290,36 @@
     }
     return bloomSystem;
   }
+  // Each construct previously resized the SAME three Canvas2D backing
+  // stores, and every body/construct switch invalidated their GPU surfaces.
+  // Keep one Gold bloom compositor per live emitter instead. WeakMap releases
+  // old constructs with their rig and preserves the exact authored blur,
+  // blend weights, region bounds, and per-frame clearing on every pass.
+  const emitterBloomSystems = new WeakMap();
+  const bloomSurfaceStats={systems:0,passes:0,regionSizeChanges:0};
+  function bloomForEmitter(emitter) {
+    if (!emitter || !GOLD || typeof GOLD.createBloomSystem !== 'function')
+      return null;
+    let bloom = emitterBloomSystems.get(emitter);
+    if (!bloom) {
+      // The first begin(worldTransform,region) sizes it to the actual cropped
+      // source. Avoid allocating a huge unused 1000x1000 buffer up front.
+      bloom=GOLD.createBloomSystem({width:1,height:1,scale:0.5});
+      const realBegin=bloom.begin.bind(bloom);
+      let lastW=-1,lastH=-1;
+      bloom.begin=function(transform,region){
+        bloomSurfaceStats.passes++;
+        if(region&&region.w>0&&region.h>0&&(region.w!==lastW||region.h!==lastH)){
+          bloomSurfaceStats.regionSizeChanges++;
+          lastW=region.w;lastH=region.h;
+        }
+        return realBegin(transform,region);
+      };
+      bloomSurfaceStats.systems++;
+      emitterBloomSystems.set(emitter,bloom);
+    }
+    return bloom;
+  }
 
   // Hexa/Wall used to pay seeded cell-mesh derivation on the cast frame.
   // Warm likely early construct seeds opportunistically while the browser is
@@ -424,16 +454,18 @@
 
   function transformedRegion(m, bounds, cw, ch, pad = 40) {
     if (!bounds) return null;
-    const pts = [
-      [bounds.minX, bounds.minY], [bounds.maxX, bounds.minY],
-      [bounds.minX, bounds.maxY], [bounds.maxX, bounds.maxY],
-    ].map(([x, y]) => m
-      ? { x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f }
-      : { x, y });
-    let minX = Math.min(...pts.map(p => p.x)) - pad;
-    let maxX = Math.max(...pts.map(p => p.x)) + pad;
-    let minY = Math.min(...pts.map(p => p.y)) - pad;
-    let maxY = Math.max(...pts.map(p => p.y)) + pad;
+    // Exact 4-corner bounds, without five temporary arrays per construct
+    // per frame. Important during CRYSTALA wall/prison bloom spells.
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    for(let i=0;i<4;i++){
+      const x=(i&1)?bounds.maxX:bounds.minX;
+      const y=(i&2)?bounds.maxY:bounds.minY;
+      const tx=m?m.a*x+m.c*y+m.e:x;
+      const ty=m?m.b*x+m.d*y+m.f:y;
+      minX=Math.min(minX,tx);maxX=Math.max(maxX,tx);
+      minY=Math.min(minY,ty);maxY=Math.max(maxY,ty);
+    }
+    minX-=pad;maxX+=pad;minY-=pad;maxY+=pad;
     minX = Math.max(0, Math.floor(minX)); minY = Math.max(0, Math.floor(minY));
     maxX = Math.min(cw, Math.ceil(maxX)); maxY = Math.min(ch, Math.ceil(maxY));
     if (maxX <= minX || maxY <= minY) return null;
@@ -484,24 +516,24 @@
   function runBloomPass(ctx) {
     const M = HR && HR.match;
     if (!M || !GOLD) return;
-    const crystals = M.combatants.filter(ct => ct.heroId === 'CRYSTAL');
-    if (!crystals.length) return;
+    if (!M.combatants.some(ct => ct.heroId === 'CRYSTAL')) return;
 
     const gameCanvas = ctx.canvas || (typeof document !== 'undefined' ? document.getElementById('game-canvas') : null);
     const cw = gameCanvas ? gameCanvas.width : (g.GAME_SIZE || 1000);
     const ch = gameCanvas ? gameCanvas.height : (g.GAME_SIZE || 1000);
-    const bloom = getBloom(cw, ch);
-    if (!bloom) return;
+    if (typeof GOLD.createBloomSystem !== 'function') return;
     // Keep the exact production camera matrix. Only transparent acreage outside
     // each emitter group is cropped before the same two Gold blur passes.
     const worldTransform = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null;
 
-    for (const ct of crystals) {
+    for (const ct of M.combatants) {
+      if(ct.heroId!=='CRYSTAL')continue;
       const crySt = CRY ? CRY.stateOf(ct) : null;
       const rig = crySt ? crySt.rig : null;
       if (!rig) continue;
 
-      renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
+      const bodyBloom=bloomForEmitter(rig);
+      if (bodyBloom) renderBloomRegion(ctx, bodyBloom, worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
         for (const s of rig.stones) GOLD.drawStone(gx, s, 1, true);
         GOLD.drawCrystala(gx, rig.hero, true, 1);
       });
@@ -511,7 +543,9 @@
       for (const cons of rig.constructs) {
         const bounds = constructBloomBounds(cons);
         if (!bounds) continue;
-        renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bounds, gx => {
+        const constructBloom=bloomForEmitter(cons);
+        if (!constructBloom) continue;
+        renderBloomRegion(ctx, constructBloom, worldTransform, cw, ch, bounds, gx => {
           if (cons.kind === 'wall' && cons.geom) GOLD.drawWall(gx, cons.geom, true);
           else if (cons.kind === 'prison' && cons.prison) {
             GOLD.drawPrison(gx, cons.prison, true, false);
@@ -527,6 +561,10 @@
     const prevDraw = Fighter.prototype.draw;
     Fighter.prototype.__crystalaPresentationWrapped = true;
     Fighter.prototype.draw = function (ctx) {
+      const profileCrystal=isCrystal(this);
+      const perfProbe=profileCrystal&&g.__apexOwnerPerfProbe?.active?g.__apexOwnerPerfProbe:null;
+      const perfStart=perfProbe?performance.now():0;
+      try {
       let bypassedPrevDraw = false;
       if (isCrystal(this)) {
         if (this.hp > 0) { body(ctx, this); bypassedPrevDraw = true; }
@@ -544,6 +582,9 @@
         }
         renderWorldConstructsAndFx(ctx, false, true);
         runBloomPass(ctx);
+      }
+      } finally {
+        if(perfProbe)perfProbe.markHeroRender('CRYSTAL',performance.now()-perfStart);
       }
     };
   }
@@ -583,6 +624,7 @@
     renderWorldConstructsAndFx,
     runBloomPass,
     constructCacheStats,
+    bloomSurfaceStats,
   };
 
   g.APEX_CRYSTALA_PRESENTATION = api;

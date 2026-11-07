@@ -1,0 +1,15 @@
+name: Owner Runner Fallback Availability
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/owner-runner-fallback-smoke.yml'
+  workflow_dispatch:
+jobs:
+  slim-availability:
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    steps:
+      - run: |
+          echo OWNER_SLIM_RUNNER_AVAILABLE
+          node --version
+          test -n "${GITHUB_SHA}"

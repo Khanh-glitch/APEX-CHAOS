@@ -229,7 +229,9 @@ function startCapturePerformanceProbe(meta) {
   const started = performance.now();
   const limit = 9000;
   const series = {rafGapMs:[], frostIceClearMs:[], frostIceRenderMs:[],
-    frostIceBlitMs:[], recordingDrawMs:[], recordingSubmitMs:[], longTaskMs:[]};
+    frostIceBlitMs:[], recordingDrawMs:[], recordingSubmitMs:[],
+    shuriRenderMs:[],crystalaRenderMs:[],frostRenderMs:[],boxeRenderMs:[],
+    frostTickMs:[], longTaskMs:[]};
   const add = (key,ms) => {
     if (Number.isFinite(ms) && ms>=0 && series[key].length<limit)
       series[key].push(Math.round(ms*1000)/1000);
@@ -268,6 +270,8 @@ function startCapturePerformanceProbe(meta) {
     markIceBlit:ms=>add('frostIceBlitMs',ms),
     markRecordingDraw:ms=>add('recordingDrawMs',ms),
     markRecordingSubmit:ms=>add('recordingSubmitMs',ms),
+    markHeroRender:(id,ms)=>{const key=({SHURI:'shuriRenderMs',CRYSTAL:'crystalaRenderMs',FROST:'frostRenderMs',BOXE:'boxeRenderMs'})[id];if(key)add(key,ms);},
+    markFrostTick:ms=>add('frostTickMs',ms),
     finish(reason) {
       if(stopped)return lastCapturePerfReport;
       stopped=true;this.active=false;
@@ -352,6 +356,25 @@ export async function chooseOwnerRecordingCodec(candidates, supports, capabiliti
 // only the 9:16 iframe pixels instead of a 2880x1282 desktop-wide tab frame.
 // It does not rescale the game canvas or alter HUD/art quality. This is
 // strictly optional; unsupported browsers retain the previously tested crop.
+export function ownerPreferManualCrop(regionMedianMs, thresholdMs=4) {
+  return Number.isFinite(regionMedianMs) && regionMedianMs>thresholdMs;
+}
+export function ownerPreferMediumSmoothing(highMs,mediumMs) {
+  return Number.isFinite(highMs) && Number.isFinite(mediumMs) &&
+    highMs>4 && mediumMs>=0 && mediumMs<highMs*0.8;
+}
+async function ownerMeasurePortraitDraw(video,ctx,crop,frames=9){
+  const t=[];
+  for(let i=0;i<frames;i++){
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const r=crop();
+    const start=performance.now();
+    ctx.drawImage(video,r.sx,r.sy,r.sw,r.sh,0,0,W,H);
+    t.push(performance.now()-start);
+  }
+  t.sort((a,b)=>a-b);
+  return t[Math.floor(t.length/2)];
+}
 export async function tryOwnerRegionCapture(track, element, CropTargetAPI) {
   if (!track || typeof track.cropTo !== 'function' ||
       !element || typeof CropTargetAPI?.fromElement !== 'function' ||
@@ -390,7 +413,7 @@ function stopRecording(reason) {
   session = null;
   studioRecordStatus(false);
   clearTimeout(item.tailTimer);
-  cancelAnimationFrame(item.frame);
+  if(item.frame!=null)cancelAnimationFrame(item.frame);
   if (item.profiler) item.profiler.submittedFrames = item.submittedFrames || 0;
   item.profiler?.finish?.(reason);
   item.recorder.onstop = () => {
@@ -463,7 +486,7 @@ async function startRecording(providedDisplay=null) {
           || handle.origin!==window.location.origin))
       throw new Error('Đang chọn sai tab. Chỉ được chọn This Tab chứa APEX CHAOS Portrait Studio.');
     let browserRegionCrop=false;
-    try {
+    if(window.devicePixelRatio<3) try {
       browserRegionCrop=await tryOwnerRegionCapture(
         track,window.frameElement,window.parent?.CropTarget);
     } catch (e) {
@@ -501,6 +524,49 @@ async function startRecording(providedDisplay=null) {
     if (!ctx || !canvas.captureStream) throw new Error('Canvas capture không khả dụng.');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
+    let captureRouteProbe={regionDrawMedianMs:null,decision:window.devicePixelRatio>=3?'manual-for-high-dpr':'manual-or-native-not-tested'};
+    if(browserRegionCrop){
+      const median=await ownerMeasurePortraitDraw(video,ctx,()=>
+        ({sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}));
+      captureRouteProbe.regionDrawMedianMs=+median.toFixed(2);
+      if(ownerPreferManualCrop(median)){
+        const originalSize=[video.videoWidth,video.videoHeight];
+        await track.cropTo(null);
+        let restored=false;
+        for(let i=0;i<32;i++){
+          if(video.videoWidth && video.videoHeight &&
+             (video.videoWidth!==originalSize[0]||
+              video.videoHeight!==originalSize[1])){
+            restored=true;break;
+          }
+          await new Promise(resolve=>setTimeout(resolve,70));
+        }
+        if(!restored)throw new Error('Chrome Region Capture did not restore whole tab');
+        browserRegionCrop=false;
+        captureRouteProbe.decision='manual-crop-faster';
+      }else{
+        captureRouteProbe.decision='native-region-kept';
+      }
+    }
+    // If the selected path still spends >4ms drawing a video frame,
+    // compare high/medium resampling on this very GPU before REC begins.
+    // Prefer original high quality unless medium saves >20% of draw time.
+    const selectedCrop=()=>browserRegionCrop
+      ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
+      : portraitFrameCrop(video.videoWidth,video.videoHeight,studio.getCropRect());
+    const highMedian=await ownerMeasurePortraitDraw(video,ctx,selectedCrop,5);
+    let smoothingQuality='high';
+    if(highMedian>4){
+      ctx.imageSmoothingQuality='medium';
+      const mediumMedian=await ownerMeasurePortraitDraw(video,ctx,selectedCrop,5);
+      if(ownerPreferMediumSmoothing(highMedian,mediumMedian)){
+        smoothingQuality='medium';
+      }else{
+        ctx.imageSmoothingQuality='high';
+      }
+    }
+    captureRouteProbe.smoothingQuality=smoothingQuality;
+    captureRouteProbe.selectedHighDrawMedianMs=+highMedian.toFixed(2);
     const capture = createOwnerRecordingCanvasStream(canvas,30);
     const output = capture.stream;
     // Never open a microphone, oscillator, or replacement SFX player.
@@ -542,7 +608,8 @@ async function startRecording(providedDisplay=null) {
       sourceResolution:[video.videoWidth,video.videoHeight],
       targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,
       audioTracks:tabAudio.length,encoderSelection:actualMime===originalMime?'legacy-fallback':'avc-preferred',
-      frameSubmission:capture.mode,captureRegion:browserRegionCrop?'browser-region':'canvas-manual-crop'});
+      frameSubmission:capture.mode,captureRegion:browserRegionCrop?'browser-region':'canvas-manual-crop',
+      captureRouteProbe});
     item.submittedFrames=0;
     window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
@@ -551,13 +618,16 @@ async function startRecording(providedDisplay=null) {
     let last = -Infinity;
     const paint = now => {
       if (session !== item) return;
-      if (now - last >= 1000 / 30) {
+      if (now-last>=1000/30) {
         last = now;
-        ctx.fillStyle = '#020304'; ctx.fillRect(0,0,W,H);
-        // The source video is the browser TAB. The CROP is precisely the
-        // responsive phone viewport's current rectangle within that tab.
+        // The opaque tab video is drawn over the entire 1080x1920 canvas.
+        // Clearing/filling 2,073,600 pixels before each full-size draw was
+        // a redundant second canvas write, often GPU-bound during REC.
+        // Do not touch output resolution, scaling, alpha or skill visuals.
         try{
-          const rect=studio.getCropRect();
+          // Native crop already supplies only the phone iframe; avoid a
+          // forced parent-page getBoundingClientRect() on each recorded frame.
+          const rect=browserRegionCrop?null:studio.getCropRect();
           const crop=browserRegionCrop
             ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
             : portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
@@ -582,7 +652,7 @@ async function startRecording(providedDisplay=null) {
     studioRecordStatus(true);
     document.getElementById('apex-owner-notice')?.remove();
     try {
-      const rect=studio.getCropRect();
+      const rect=browserRegionCrop?null:studio.getCropRect();
       const source=browserRegionCrop
         ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
         : portraitFrameCrop(video.videoWidth,video.videoHeight,rect);

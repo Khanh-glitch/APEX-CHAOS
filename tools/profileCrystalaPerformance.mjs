@@ -301,6 +301,7 @@ const result = await page.evaluate(async () => {
     kProbe,
     bloomParity,
     constructCacheStats: G.APEX_CRYSTALA_PRESENTATION?.constructCacheStats ? {...G.APEX_CRYSTALA_PRESENTATION.constructCacheStats} : null,
+    bloomSurfaceStats:G.APEX_CRYSTALA_PRESENTATION?.bloomSurfaceStats ? {...G.APEX_CRYSTALA_PRESENTATION.bloomSurfaceStats} : null,
   };
 });
 
