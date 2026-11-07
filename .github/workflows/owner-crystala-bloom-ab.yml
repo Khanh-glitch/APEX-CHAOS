@@ -102,7 +102,7 @@ jobs:
           APEX_APP_URL: http://127.0.0.1:4174
           APEX_PROFILE_FILE: /tmp/four-hero-rc5-repeat.json
         run: node tools/profileFourHeroScenesBrowser.mjs
-      - name: Combined alternating-order acceptance: no major regression
+      - name: 'Combined alternating-order acceptance - no major regression'
         run: |
           node --input-type=module -e '
           import fs from "node:fs";
