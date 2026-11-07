@@ -18,3 +18,27 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tools/testOwnerRecordingCodecSelection.mjs
+  build-recording-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Verify portrait studio in shipping bundle
+        run: |
+          test -s dist/index.html
+          test -s dist/portrait-studio.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-recording-codec-preview
+          path: dist/
+          if-no-files-found: error
+          retention-days: 3
