@@ -97,6 +97,11 @@ jobs:
           export CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
           test -n "$CHROME_PATH"
           node tools/testOwnerItchBootSmoke.mjs
+      - name: Real packaged itch BOT match on desktop and phone
+        run: |
+          npm ci --prefix tools/probe --ignore-scripts
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          node tools/testOwnerItchPackagedChrome.mjs
       - name: Build and validate single final trial ZIP
         run: |
           (cd dist-itch-html5 && zip -qr ../apex-chaos-four-hero-perf-batch-rc5.zip .)
