@@ -367,6 +367,12 @@ export async function tryOwnerRegionCapture(track, element, CropTargetAPI) {
 // Native video-frame callbacks avoid another full-speed RAF loop competing
 // with the battle renderer. They run only when the captured tab supplies a
 // video frame. Keep the previously proven RAF clock on older browsers.
+export function shouldOwnerSubmitFrame(now, last, fps=30) {
+  // 1ms tolerance avoids treating 33.2ms source frames as 15fps; the
+  // source-driven scheduler already fires only on real video frames.
+  return now-last+1>=1000/fps;
+}
+
 export function chooseOwnerCaptureFrameClock(video, rafRequest, rafCancel) {
   if (typeof video?.requestVideoFrameCallback === 'function') {
     return {
@@ -579,7 +585,7 @@ async function startRecording(providedDisplay=null) {
       // Source video callbacks commonly arrive slightly ahead of the ideal
       // 33.333ms boundary. Permit <=1ms scheduler jitter rather than
       // accidentally dropping every other 30fps frame.
-      if (now - last + 1 >= 1000 / 30) {
+      if (shouldOwnerSubmitFrame(now,last,30)) {
         last = now;
         // The opaque tab video is drawn over the entire 1080x1920 canvas.
         // Clearing/filling 2,073,600 pixels before each full-size draw was
