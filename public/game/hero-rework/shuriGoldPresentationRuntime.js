@@ -162,6 +162,11 @@
   }
   function syncNative(rec) {
     const {w,f}=rec,st=f.__hrCombatant?.store?.__shuri;
+    // The native rack holder is already read here to aim the Gold head.
+    // Reuse the SAME authoritative holder for the subsequent draw rather
+    // than querying Arsenal again mid-frame. Never retain across ticks.
+    rec.rackEmitter=null;
+    rec.rackHolder=null;
     w.shuri.pos.x=f.x;w.shuri.pos.y=f.y;
     w.shuri.hp=f.hp;w.shuri.max=f.maxHp||1000;
     if(st){
@@ -196,6 +201,8 @@
         // MUST NEVER autonomously aim/fire, generate damage or audition shots.
         w.st.mounted=null;w.st.incoming=false;
         const holder=global.APEX_ARSENAL?.weaponApi?.getHolder?.(st.structure.emitter);
+        rec.rackEmitter=st.structure.emitter;
+        rec.rackHolder=holder;
         // Rack head ownership: the adapter springs the head with Gold's own
         // authored constants (aim k=55 z=.7; idle sway k=30 z=.8 toward
         // -PI/2+sin(t*.6)*.5) and writes the result into Gold's headAng, so
@@ -477,7 +484,9 @@
     const s=f.__hrCombatant?.store?.__shuri?.structure;
     if(!s||s.phase!=='ACTIVE'||s.recovery||!s.emitter||!w.st)return;
     const hub=w.st.pos,head=rec.headX??w.st.headAng.x,tNow=now();
-    const holder=global.APEX_ARSENAL?.weaponApi?.getHolder(s.emitter);
+    const holder=rec.rackEmitter===s.emitter
+      ? rec.rackHolder
+      : global.APEX_ARSENAL?.weaponApi?.getHolder(s.emitter);
     let docking=false;
     const mf=rec.mountFlight;
     if(mf){
