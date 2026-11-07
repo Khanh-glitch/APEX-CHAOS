@@ -268,3 +268,39 @@ html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .p
 #gold-shell-host #stage.screen-battle #apex-utility-toggle{
  visibility:hidden;pointer-events:none;
 }
+
+/* ============================================================================
+   GRAPHICS row inside the ONE Gold utility drawer.
+   The row is a shell-styled stub; the panel/advisor chrome lives in
+   /game/core/graphicsQualityUi.css so the battle HUD iframe shares it.
+   ========================================================================== */
+#gold-shell-host #stage #apex-language-picker #apex-graphics-open{
+ display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;
+ width:100%;box-sizing:border-box;margin:0;padding:10px 12px;
+ border:0;border-top:1px solid rgba(240,183,91,.12);border-bottom:1px solid rgba(240,183,91,.12);
+ background:linear-gradient(100deg,rgba(255,154,41,.13),rgba(0,0,0,0) 78%);
+ color:#f3ede2;font:inherit;text-align:left;cursor:pointer;
+}
+#gold-shell-host #stage #apex-language-picker #apex-graphics-open:hover{
+ background:linear-gradient(100deg,rgba(255,154,41,.22),rgba(0,0,0,0) 82%);
+}
+#gold-shell-host #stage #apex-language-picker #apex-graphics-open:focus-visible{
+ outline:2px solid #ffb343;outline-offset:-2px;
+}
+#gold-shell-host #stage #apex-language-picker #apex-graphics-open .apex-graphics-open-label{
+ display:block;font:700 9px/1 "Oswald",sans-serif;letter-spacing:.12em;color:#a8a19a;
+}
+#gold-shell-host #stage #apex-language-picker #apex-graphics-open .apex-graphics-open-sub{
+ display:block;margin-top:3px;font:600 11.5px/1.2 "Oswald","Chakra Petch",sans-serif;
+ letter-spacing:.02em;color:rgba(243,237,226,.72);
+}
+#gold-shell-host #stage #apex-language-picker #apex-graphics-open .apex-graphics-open-value{
+ font:800 12px/1 "Oswald","Chakra Petch",sans-serif;letter-spacing:.09em;
+ color:#ffd08a;padding:5px 8px;border:1px solid rgba(240,183,91,.4);white-space:nowrap;
+}
+#gold-shell-host #stage #apex-language-picker #apex-graphics-open[data-aqs-mode="performance"] .apex-graphics-open-value{
+ color:#9be3ff;border-color:rgba(120,210,255,.46);
+}
+/* The panel is a body-level dialog; it must be able to escape the Gold
+   stage's stacking/overflow context when invoked from the drawer. */
+#gold-shell-host #apex-graphics-settings{position:fixed;z-index:1200}

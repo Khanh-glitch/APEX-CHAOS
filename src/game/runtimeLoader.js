@@ -1,6 +1,7 @@
 import {
   ARSENAL_HUB_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
+  MENU_INTERACTIVE_RUNTIMES_WITH_GRAPHICS,
   arsenalBattleRuntimesFor,
   PRODUCT_MUSIC_BOOT_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
@@ -286,7 +287,10 @@ export function loadProductMusicBootRuntime() {
 
 export async function loadMenuInteractiveRuntimes() {
   preloadRuntimeSources();
-  return loadRuntimeList(MENU_INTERACTIVE_RUNTIMES);
+  // Menu tier + the graphics-quality stack (authority, panel, advisor, shell
+  // bootstrap). They must exist before the Gold shell mounts so the drawer row
+  // and the settings panel are live on HOME, not only inside a battle.
+  return loadRuntimeList(MENU_INTERACTIVE_RUNTIMES_WITH_GRAPHICS);
 }
 
 // Back-compat name: the required-at-boot set is now exactly the menu tier.

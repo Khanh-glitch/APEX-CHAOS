@@ -369,6 +369,10 @@ function blobPath(ctx, rx, ry, seed, n = 7, amp = 0.28) {
     }
     ctx.closePath();
 }
+// Scratch slots for IceField.fillRunBatched (per-frame allocation free).
+const ICE_SLOTS = [];
+const ICE_RUN = [];
+
 function drawLobes(ctx, px) {
     for (const l of LOBES) {
         if (!l.on || l.age < 0)
@@ -838,11 +842,14 @@ class IceField {
         n.cracks.push(new Float32Array(pts));
         n.crackAt.push(at);
     }
-    polyNode(ctx, n, sL, sW, e, t, ox = 0, oy = 0) {
+    polyNode(ctx, n, sL, sW, e, t, ox = 0, oy = 0, keepPath = false) {
         const d = (t - n.decayAt) / n.decayDur;
         const g = this.growF(n, t);
         const L = n.L * g * sL + e, W = n.W * g * sW + e;
-        ctx.beginPath();
+        // keepPath: caller already opened a path and will fill several nodes
+        // with one fill() call (see fillRunBatched).
+        if (!keepPath)
+            ctx.beginPath();
         for (let k = 0; k < NV; k++) {
             let er = 1;
             if (d > 0)
@@ -861,6 +868,93 @@ class IceField {
             }
         }
         ctx.closePath();
+    }
+    /**
+     * Fill ice polygons with ONE path/fill per run of consecutive same-colour
+     * nodes.
+     *
+     * Why this is safe: every style used by the ice passes is a single authored
+     * opaque colour. Nodes that share a colour are appended to the same path and
+     * filled once, which produces the same pixels as filling them one by one
+     * (overlapping areas of an opaque fill are indistinguishable, and the
+     * anti-aliased seam between two same-colour fills resolves to that same
+     * colour). Runs are only merged when the styles are strictly consecutive, so
+     * the original painter's-order z-stacking between different colours is
+     * untouched — this is not a global re-sort of the pass.
+     *
+     * Gain: a wall wave is typically 6-14 nodes in one or two colours, so the
+     * ice passes drop from ~4 path builds + 4 fills per node to a handful per
+     * frame, cutting the dominant fill/beginPath volume in the FROST profile.
+     *
+     * The entry buffer is reused across frames (no per-frame array/object churn).
+     */
+    fillRunBatched(ctx, entries, t) {
+        const n = entries.length;
+        if (!n)
+            return;
+        let i = 0;
+        while (i < n) {
+            const style = entries[i].style;
+            ctx.beginPath();
+            let j = i;
+            while (j < n && entries[j].style === style) {
+                const en = entries[j];
+                this.polyNode(ctx, en.n, en.sL, en.sW, en.e, t, en.ox, en.oy, true);
+                j++;
+            }
+            ctx.fillStyle = style;
+            ctx.fill();
+            i = j;
+        }
+    }
+    /**
+     * Pixel bounds the last render() could have touched, padded for the
+     * anti-aliased edge and the flow strokes. The ice composite blits only
+     * this region instead of the whole arena surface: identical pixels, but
+     * the per-frame blend/upload volume follows the ice, not the canvas.
+     * Returns null when there is nothing to draw.
+     */
+    blitBounds(t, cvW, cvH) {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const n of this.nodes) {
+            if (n.dead || t <= n.born)
+                continue;
+            const r = Math.max(n.L, n.W) * 1.9 + 6;
+            if (n.x - r < x0) x0 = n.x - r;
+            if (n.y - r < y0) y0 = n.y - r;
+            if (n.x + r > x1) x1 = n.x + r;
+            if (n.y + r > y1) y1 = n.y + r;
+        }
+        for (const c of this.carves) {
+            if (c.dead || t <= c.born)
+                continue;
+            const r = c.Rc + c.off + c.T + 8;
+            if (c.x - r < x0) x0 = c.x - r;
+            if (c.y - r < y0) y0 = c.y - r;
+            if (c.x + r > x1) x1 = c.x + r;
+            if (c.y + r > y1) y1 = c.y + r;
+        }
+        if (!(x1 > x0) || !(y1 > y0))
+            return null;
+        const pad = 8;
+        const maxW = cvW > 1 ? cvW : 1e9, maxH = cvH > 1 ? cvH : 1e9;
+        const bx = Math.max(0, Math.floor(x0 - pad));
+        const by = Math.max(0, Math.floor(y0 - pad));
+        const bx1 = Math.min(maxW, Math.ceil(x1 + pad));
+        const by1 = Math.min(maxH, Math.ceil(y1 + pad));
+        if (!(bx1 > bx) || !(by1 > by))
+            return null;
+        return { x: bx, y: by, w: bx1 - bx, h: by1 - by };
+    }
+    /** Reusable entry slot so the batched passes never allocate per frame. */
+    iceSlot(idx) {
+        const pool = ICE_SLOTS;
+        let slot = pool[idx];
+        if (!slot) {
+            slot = { n: null, sL: 1, sW: 1, e: 0, ox: 0, oy: 0, style: "" };
+            pool[idx] = slot;
+        }
+        return slot;
     }
     carvePath(ctx, c, t, inset, grow) {
         const reveal = smooth(0, 0.08, t - c.born);
@@ -900,61 +994,89 @@ class IceField {
         if (!live.length && !carves.length)
             return false;
         // P0: cast shadow of the ice slab (opaque, merged) – physical elevation on light floor
-        ctx.fillStyle = "#c3cad0";
-        for (const n of live) {
-            this.polyNode(ctx, n, 1, 1, 1.8, t, 1.2, 2.2);
-            ctx.fill();
+        // P1: steel-blue slab edge.
+        // Both passes are a single authored colour, so all nodes go into one
+        // path and take one fill() — identical coverage, fewer path fills.
+        ICE_RUN.length = 0;
+        for (let i = 0; i < live.length; i++) {
+            const slot = this.iceSlot(i);
+            slot.n = live[i]; slot.sL = 1; slot.sW = 1; slot.e = 1.8; slot.ox = 1.2; slot.oy = 2.2; slot.style = "#c3cad0";
+            ICE_RUN.push(slot);
         }
-        // P1: steel-blue slab edge
-        ctx.fillStyle = "#5a92c4";
-        for (const n of live) {
-            this.polyNode(ctx, n, 1, 1, 1.5, t);
-            ctx.fill();
+        this.fillRunBatched(ctx, ICE_RUN, t);
+        for (let i = 0; i < live.length; i++) {
+            const slot = this.iceSlot(i);
+            slot.n = live[i]; slot.sL = 1; slot.sW = 1; slot.e = 1.5; slot.ox = 0; slot.oy = 0; slot.style = "#5a92c4";
+            ICE_RUN[i] = slot;
         }
+        ICE_RUN.length = live.length;
+        this.fillRunBatched(ctx, ICE_RUN, t);
         for (const c of carves)
             if (this.carvePath(ctx, c, t, -1.5, 1))
                 ctx.fill();
         // P2: packed frost band (white). Disappears first during decay (edge loses frost)
-        for (const n of live) {
-            const d = (t - n.decayAt) / n.decayDur;
-            ctx.fillStyle = d > 0 ? (d > 0.3 ? "#b4d6ec" : "#dcecf6") : "#f4f9fd";
-            this.polyNode(ctx, n, 1, 1, 0, t);
-            ctx.fill();
+        {
+            const p2n = live.length;
+            for (let i = 0; i < p2n; i++) {
+                const n = live[i];
+                const d = (t - n.decayAt) / n.decayDur;
+                const slot = this.iceSlot(i);
+                slot.n = n; slot.sL = 1; slot.sW = 1; slot.e = 0; slot.ox = 0; slot.oy = 0;
+                slot.style = d > 0 ? (d > 0.3 ? "#b4d6ec" : "#dcecf6") : "#f4f9fd";
+                ICE_RUN[i] = slot;
+            }
+            ICE_RUN.length = p2n;
+            this.fillRunBatched(ctx, ICE_RUN, t);
         }
         ctx.fillStyle = "#f4f9fd";
         for (const c of carves)
             if (this.carvePath(ctx, c, t, 0, 1))
                 ctx.fill();
         // P3: ice body – grows from the plate centre outward as frost converts (lock)
-        for (const n of live) {
-            const age = t - n.born;
-            const lock = smooth(0.06, n.lockDur, age);
-            if (lock <= 0.01)
-                continue;
-            const d = (t - n.decayAt) / n.decayDur;
-            const rim = (n.kind === "trail" ? 2.6 : 3.4) * n.rimK * (d > 0 ? 1 - smooth(0, 0.3, d) : 1);
-            const sW = lock * Math.max(0, 1 - rim / n.W);
-            const sL = lock * Math.max(0, 1 - rim / n.L);
-            ctx.fillStyle = d > 0.25 ? "#a0c7e2" : lock < 0.8 ? "#c9e6f6" : "#a9d2ec";
-            this.polyNode(ctx, n, sL, sW, 0, t);
-            ctx.fill();
+        {
+            let c3 = 0;
+            for (let i = 0; i < live.length; i++) {
+                const n = live[i];
+                const age = t - n.born;
+                const lock = smooth(0.06, n.lockDur, age);
+                if (lock <= 0.01)
+                    continue;
+                const d = (t - n.decayAt) / n.decayDur;
+                const rim = (n.kind === "trail" ? 2.6 : 3.4) * n.rimK * (d > 0 ? 1 - smooth(0, 0.3, d) : 1);
+                const sW = lock * Math.max(0, 1 - rim / n.W);
+                const sL = lock * Math.max(0, 1 - rim / n.L);
+                const slot = this.iceSlot(c3);
+                slot.n = n; slot.sL = sL; slot.sW = sW; slot.e = 0; slot.ox = 0; slot.oy = 0;
+                slot.style = d > 0.25 ? "#a0c7e2" : lock < 0.8 ? "#c9e6f6" : "#a9d2ec";
+                ICE_RUN[c3++] = slot;
+            }
+            ICE_RUN.length = c3;
+            this.fillRunBatched(ctx, ICE_RUN, t);
         }
         // P3b: lighter slab core -> inner edge band reads as thickness (cel banding like the source art)
-        for (const n of live) {
-            const age = t - n.born;
-            const lock = smooth(0.2, n.lockDur + 0.25, age);
-            if (lock <= 0.01)
-                continue;
-            const d = (t - n.decayAt) / n.decayDur;
-            const k = lock * (d > 0 ? 1 - smooth(0, 0.5, d) : 1);
-            if (k <= 0.01)
-                continue;
-            const inner = n.kind === "trail" ? 0.6 : 0.68;
-            ctx.fillStyle = d > 0.1 ? "#b2d4ea" : "#bfe0f2";
-            const strip = n.kind === "lane" || n.kind === "trail";
-            const along = strip ? 1.05 * k : Math.max(0, 1 - 4.5 / n.L) * inner * k;
-            this.polyNode(ctx, n, along + 0.001, Math.max(0, 1 - 5 / n.W) * inner * k + 0.001, 0, t);
-            ctx.fill();
+        {
+            let cb = 0;
+            for (let i = 0; i < live.length; i++) {
+                const n = live[i];
+                const age = t - n.born;
+                const lock = smooth(0.2, n.lockDur + 0.25, age);
+                if (lock <= 0.01)
+                    continue;
+                const d = (t - n.decayAt) / n.decayDur;
+                const k = lock * (d > 0 ? 1 - smooth(0, 0.5, d) : 1);
+                if (k <= 0.01)
+                    continue;
+                const inner = n.kind === "trail" ? 0.6 : 0.68;
+                const strip = n.kind === "lane" || n.kind === "trail";
+                const along = strip ? 1.05 * k : Math.max(0, 1 - 4.5 / n.L) * inner * k;
+                const slot = this.iceSlot(cb);
+                slot.n = n; slot.sL = along + 0.001; slot.sW = Math.max(0, 1 - 5 / n.W) * inner * k + 0.001;
+                slot.e = 0; slot.ox = 0; slot.oy = 0;
+                slot.style = d > 0.1 ? "#b2d4ea" : "#bfe0f2";
+                ICE_RUN[cb++] = slot;
+            }
+            ICE_RUN.length = cb;
+            this.fillRunBatched(ctx, ICE_RUN, t);
         }
         // P4: clipped material detail
         ctx.globalCompositeOperation = "source-atop";

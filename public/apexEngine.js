@@ -2272,7 +2272,8 @@ function draw() {
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     ctx.filter = 'none';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // The opaque full-canvas fill covers every pixel, so the preceding
+    // clearRect was pure redundant work.
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();

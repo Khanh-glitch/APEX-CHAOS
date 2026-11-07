@@ -231,7 +231,21 @@ function mountPicker(){
     +'<button type="button" id="apex-language-eng" data-apex-language-option="eng" aria-pressed="false">ENG</button>'
     +'<button type="button" id="apex-language-vie" data-apex-language-option="vie" aria-pressed="false">VIE</button>'
     +'</span></div>'
+    // GRAPHICS row: the row is the ENTRY POINT only. It never stores a mode —
+    // graphicsQualityFrontendRuntime owns the button behaviour and every read
+    // goes through APEX_GRAPHICS_QUALITY.
+    +'<button type="button" id="apex-graphics-open" data-apex-no-localize="" aria-haspopup="dialog" data-aqs-mode="high">'
+    +'<span><span class="apex-graphics-open-label">GRAPHICS / ĐỒ HOẠ</span>'
+    +'<span class="apex-graphics-open-sub">Quality mode / Chế độ hiển thị</span></span>'
+    +'<span class="apex-graphics-open-value" id="apex-graphics-open-value">HIGH</span>'
+    +'</button>'
     +'<div class="apex-utility-help-label">GUIDE / HƯỚNG DẪN</div>';
+  // One row in the document, ever: the graphics runtime may have created its
+  // fallback row before this drawer mounted (it retries until the drawer
+  // exists). Remove any stray before adopting this picker as the single host.
+  for(const stray of document.querySelectorAll('#apex-graphics-open')){
+    if(!picker.contains(stray)) stray.remove();
+  }
   stage.appendChild(picker);
   pickerEl=picker;
   const toggle=document.createElement('button');
@@ -266,6 +280,15 @@ function mountPicker(){
   picker.addEventListener('click',(event)=>{
     const btn=event.target?.closest?.('[data-apex-language-option]');
     if(btn){setLanguage(btn.dataset.apexLanguageOption);collapse();toggle.focus({preventScroll:true});}
+    // GRAPHICS: hand off to the ONE settings UI, then close the drawer.
+    const gfx=event.target?.closest?.('#apex-graphics-open');
+    if(gfx){
+      const ui=window.APEX_GRAPHICS_SETTINGS_UI;
+      if(ui&&typeof ui.open==='function'){ui.open(document.body);}
+      else if(window.APEX_GRAPHICS_FRONTEND){window.APEX_GRAPHICS_FRONTEND.mount?.();}
+      collapse();
+      return;
+    }
     if(event.target?.closest?.('#apex-guide-open'))collapse();
   });
   document.addEventListener('pointerdown',(event)=>{

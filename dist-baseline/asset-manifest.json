@@ -1,0 +1,2417 @@
+{
+  "generatedAt": "2026-11-07T17:09:08.051Z",
+  "authority": "reports/asset-audit.json shipping reachability",
+  "loadingAssets": {
+    "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
+    "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
+    "gameTitle": "/assets/loading/apex-chaos-title.webp",
+    "loadingBarFrame": "/assets/loading/loading-bar-frame.webp"
+  },
+  "assets": [
+    {
+      "path": "/apexEngine.js",
+      "type": "script",
+      "bytes": 210419
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_body.mp3",
+      "type": "audio",
+      "bytes": 6765
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_contact.mp3",
+      "type": "audio",
+      "bytes": 21069
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_motion.mp3",
+      "type": "audio",
+      "bytes": 19149
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/DAGGER/dagger_contact.mp3",
+      "type": "audio",
+      "bytes": 5997
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/DAGGER/dagger_motion.mp3",
+      "type": "audio",
+      "bytes": 4701
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/GRENADE/grenade_core.mp3",
+      "type": "audio",
+      "bytes": 14829
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/GRENADE/grenade_low.mp3",
+      "type": "audio",
+      "bytes": 12093
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/PISTOL/pistol_mech_click.mp3",
+      "type": "audio",
+      "bytes": 3117
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SABRE/sabre_cut.mp3",
+      "type": "audio",
+      "bytes": 9645
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SABRE/sabre_motion.mp3",
+      "type": "audio",
+      "bytes": 10677
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SHOTGUN/shotgun_rack_pull.mp3",
+      "type": "audio",
+      "bytes": 7101
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SHOTGUN/shotgun_rack_push.mp3",
+      "type": "audio",
+      "bytes": 15549
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
+      "type": "audio",
+      "bytes": 7821
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SNIPER/sniper_chamber.mp3",
+      "type": "audio",
+      "bytes": 12141
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SPEAR/spear_impact.mp3",
+      "type": "audio",
+      "bytes": 4413
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SPEAR/spear_motion.mp3",
+      "type": "audio",
+      "bytes": 12765
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_body.mp3",
+      "type": "audio",
+      "bytes": 6765
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_swing.mp3",
+      "type": "audio",
+      "bytes": 10413
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3",
+      "type": "audio",
+      "bytes": 5949
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3",
+      "type": "audio",
+      "bytes": 15453
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_01.mp3",
+      "type": "audio",
+      "bytes": 3800
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_02.mp3",
+      "type": "audio",
+      "bytes": 3305
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_03.mp3",
+      "type": "audio",
+      "bytes": 3878
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_04.mp3",
+      "type": "audio",
+      "bytes": 3513
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_05.mp3",
+      "type": "audio",
+      "bytes": 5994
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/pickup_pistol.mp3",
+      "type": "audio",
+      "bytes": 11441
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/pickup_shotgun.mp3",
+      "type": "audio",
+      "bytes": 10554
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/pickup_sniper.mp3",
+      "type": "audio",
+      "bytes": 12285
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_01.mp3",
+      "type": "audio",
+      "bytes": 7893
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_02.mp3",
+      "type": "audio",
+      "bytes": 4060
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_03.mp3",
+      "type": "audio",
+      "bytes": 6905
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_04.mp3",
+      "type": "audio",
+      "bytes": 7269
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_05.mp3",
+      "type": "audio",
+      "bytes": 7740
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_07.mp3",
+      "type": "audio",
+      "bytes": 7763
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_08.mp3",
+      "type": "audio",
+      "bytes": 7973
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_09.mp3",
+      "type": "audio",
+      "bytes": 3930
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_10.mp3",
+      "type": "audio",
+      "bytes": 6956
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_11.mp3",
+      "type": "audio",
+      "bytes": 7634
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/shell_01.mp3",
+      "type": "audio",
+      "bytes": 3593
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/shell_02.mp3",
+      "type": "audio",
+      "bytes": 2915
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/shell_03.mp3",
+      "type": "audio",
+      "bytes": 2862
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/guns/cz.mp3",
+      "type": "audio",
+      "bytes": 113949
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/guns/mosin.mp3",
+      "type": "audio",
+      "bytes": 252957
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/guns/shotty.mp3",
+      "type": "audio",
+      "bytes": 13821
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/guns/sks.mp3",
+      "type": "audio",
+      "bytes": 277197
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactGeneric_light_002.ogg",
+      "type": "audio",
+      "bytes": 5795
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactPlate_light_001.ogg",
+      "type": "audio",
+      "bytes": 11730
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/metalClick.ogg",
+      "type": "audio",
+      "bytes": 13615
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/metalLatch.ogg",
+      "type": "audio",
+      "bytes": 10208
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/scifi/forceField_001.ogg",
+      "type": "audio",
+      "bytes": 28947
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/muzzle_0.png",
+      "type": "image",
+      "bytes": 12430
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/muzzle_1.png",
+      "type": "image",
+      "bytes": 14138
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/muzzle_2.png",
+      "type": "image",
+      "bytes": 20916
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/muzzle_3.png",
+      "type": "image",
+      "bytes": 10493
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/muzzle_4.png",
+      "type": "image",
+      "bytes": 9523
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/muzzle_5.png",
+      "type": "image",
+      "bytes": 15447
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/smoke_01.webp",
+      "type": "image",
+      "bytes": 42252
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/smoke_03.webp",
+      "type": "image",
+      "bytes": 27818
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/spark_05.webp",
+      "type": "image",
+      "bytes": 23534
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/c/spark_07.webp",
+      "type": "image",
+      "bytes": 17498
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/explosion_pack_2/half/1.webp",
+      "type": "image",
+      "bytes": 838468
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/explosion_pack_2/half/2.webp",
+      "type": "image",
+      "bytes": 979996
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/explosion_pack_2/half/3.webp",
+      "type": "image",
+      "bytes": 659406
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/explosion_pack_2/half/4.webp",
+      "type": "image",
+      "bytes": 592424
+    },
+    {
+      "path": "/assets/arsenal/feel/damage/damage1.png",
+      "type": "image",
+      "bytes": 19751
+    },
+    {
+      "path": "/assets/arsenal/feel/heals/runtime/heal_t1_field_dressing.png",
+      "type": "image",
+      "bytes": 34340
+    },
+    {
+      "path": "/assets/arsenal/feel/heals/runtime/heal_t2_medication.png",
+      "type": "image",
+      "bytes": 31048
+    },
+    {
+      "path": "/assets/arsenal/feel/heals/runtime/heal_t3_autoinjector.png",
+      "type": "image",
+      "bytes": 30075
+    },
+    {
+      "path": "/assets/arsenal/feel/heals/runtime/heal_t4_iv_pack.png",
+      "type": "image",
+      "bytes": 42898
+    },
+    {
+      "path": "/assets/arsenal/feel/heals/runtime/heal_t5_trauma_case.webp",
+      "type": "image",
+      "bytes": 35144
+    },
+    {
+      "path": "/assets/arsenal/v43/BOLT.webp",
+      "type": "image",
+      "bytes": 5322
+    },
+    {
+      "path": "/assets/arsenal/v43/COMBAT_BOOMERANG.webp",
+      "type": "image",
+      "bytes": 43200
+    },
+    {
+      "path": "/assets/arsenal/v43/FLAMETHROWER.webp",
+      "type": "image",
+      "bytes": 49080
+    },
+    {
+      "path": "/assets/arsenal/v43/FLARE_GUN.webp",
+      "type": "image",
+      "bytes": 40698
+    },
+    {
+      "path": "/assets/arsenal/v43/PLASMA_SPLITTER.webp",
+      "type": "image",
+      "bytes": 37910
+    },
+    {
+      "path": "/assets/arsenal/v43/RPG_7.webp",
+      "type": "image",
+      "bytes": 29422
+    },
+    {
+      "path": "/assets/arsenal/v43/RPG_ROCKET.webp",
+      "type": "image",
+      "bytes": 8024
+    },
+    {
+      "path": "/assets/arsenal/v43/SHRAPNEL_MINE_LAUNCHER.webp",
+      "type": "image",
+      "bytes": 43816
+    },
+    {
+      "path": "/assets/arsenal/v43/SHRAPNEL_MINE.webp",
+      "type": "image",
+      "bytes": 18526
+    },
+    {
+      "path": "/assets/arsenal/v43/STEEL_BALL_LAUNCHER.webp",
+      "type": "image",
+      "bytes": 46392
+    },
+    {
+      "path": "/assets/arsenal/v43/STEEL_BALL.webp",
+      "type": "image",
+      "bytes": 8782
+    },
+    {
+      "path": "/assets/arsenal/v43/TACTICAL_CROSSBOW.webp",
+      "type": "image",
+      "bytes": 47396
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/AK_47.png",
+      "type": "image",
+      "bytes": 12410
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/BATTLE_AXE.png",
+      "type": "image",
+      "bytes": 6150
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/BERETTA_93R.png",
+      "type": "image",
+      "bytes": 5735
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/CASING.png",
+      "type": "image",
+      "bytes": 590
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/DAGGER.png",
+      "type": "image",
+      "bytes": 3670
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/DESERT_DEAGLE.png",
+      "type": "image",
+      "bytes": 5783
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/GLOCK_17.png",
+      "type": "image",
+      "bytes": 5653
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/GRENADE.png",
+      "type": "image",
+      "bytes": 5023
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/JACKHAMMER.png",
+      "type": "image",
+      "bytes": 10230
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/M16.png",
+      "type": "image",
+      "bytes": 8249
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/M249_SAW.png",
+      "type": "image",
+      "bytes": 21577
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/MAC_10.png",
+      "type": "image",
+      "bytes": 5523
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/MAGNUM_500.png",
+      "type": "image",
+      "bytes": 4602
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/MBR.png",
+      "type": "image",
+      "bytes": 16950
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/MBR2.png",
+      "type": "image",
+      "bytes": 19773
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/MOSSBERG_500.png",
+      "type": "image",
+      "bytes": 6388
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/P90.png",
+      "type": "image",
+      "bytes": 6523
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/PISTOL.png",
+      "type": "image",
+      "bytes": 3347
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SABRE.png",
+      "type": "image",
+      "bytes": 6225
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SAWED_OFF.png",
+      "type": "image",
+      "bytes": 3599
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SHOTGUN.png",
+      "type": "image",
+      "bytes": 8101
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SMG.png",
+      "type": "image",
+      "bytes": 8193
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SNIPER.png",
+      "type": "image",
+      "bytes": 20226
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SPEAR.png",
+      "type": "image",
+      "bytes": 2414
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SPIKED_CLUB.png",
+      "type": "image",
+      "bytes": 6441
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "type": "image",
+      "bytes": 534088
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SWIRL_SHIELD.png",
+      "type": "image",
+      "bytes": 29097
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/SZECSEI_FUCHS.png",
+      "type": "image",
+      "bytes": 9142
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/TEC_9.png",
+      "type": "image",
+      "bytes": 3222
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/TOWER_SHIELD.png",
+      "type": "image",
+      "bytes": 11314
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/ZBROYAR_Z15_S1.png",
+      "type": "image",
+      "bytes": 14852
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/ZBROYAR_Z15_S2.png",
+      "type": "image",
+      "bytes": 13025
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/ZBROYAR_Z15_S3.png",
+      "type": "image",
+      "bytes": 12762
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/ZBROYAR_Z15.png",
+      "type": "image",
+      "bytes": 12762
+    },
+    {
+      "path": "/assets/audio/forward_drive_theme.ogg",
+      "type": "audio",
+      "bytes": 618594
+    },
+    {
+      "path": "/assets/audio/menu_bgm.mp3",
+      "type": "audio",
+      "bytes": 3186752
+    },
+    {
+      "path": "/assets/audio/ui-sfx/01_UI_CORE/ui_action_rejected.ogg",
+      "type": "audio",
+      "bytes": 26591
+    },
+    {
+      "path": "/assets/audio/ui-sfx/01_UI_CORE/ui_back_cancel.ogg",
+      "type": "audio",
+      "bytes": 16180
+    },
+    {
+      "path": "/assets/audio/ui-sfx/01_UI_CORE/ui_button_press.ogg",
+      "type": "audio",
+      "bytes": 11604
+    },
+    {
+      "path": "/assets/audio/ui-sfx/01_UI_CORE/ui_focus_move.ogg",
+      "type": "audio",
+      "bytes": 2316
+    },
+    {
+      "path": "/assets/audio/ui-sfx/01_UI_CORE/ui_option_confirm.ogg",
+      "type": "audio",
+      "bytes": 21326
+    },
+    {
+      "path": "/assets/audio/ui-sfx/01_UI_CORE/ui_panel_open.ogg",
+      "type": "audio",
+      "bytes": 12807
+    },
+    {
+      "path": "/assets/audio/ui-sfx/01_UI_CORE/ui_screen_transition.ogg",
+      "type": "audio",
+      "bytes": 9710
+    },
+    {
+      "path": "/assets/audio/ui-sfx/02_FIGHTER_SELECT/fighter_lock_in.ogg",
+      "type": "audio",
+      "bytes": 13380
+    },
+    {
+      "path": "/assets/audio/ui-sfx/02_FIGHTER_SELECT/fighter_match_ready.ogg",
+      "type": "audio",
+      "bytes": 20208
+    },
+    {
+      "path": "/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_clamp_rail.ogg",
+      "type": "audio",
+      "bytes": 20623
+    },
+    {
+      "path": "/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_lock_impact.ogg",
+      "type": "audio",
+      "bytes": 25268
+    },
+    {
+      "path": "/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_seam_open.ogg",
+      "type": "audio",
+      "bytes": 12260
+    },
+    {
+      "path": "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_enter_bay.ogg",
+      "type": "audio",
+      "bytes": 27436
+    },
+    {
+      "path": "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_machine_run.ogg",
+      "type": "audio",
+      "bytes": 110948
+    },
+    {
+      "path": "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_machine_start.ogg",
+      "type": "audio",
+      "bytes": 12467
+    },
+    {
+      "path": "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_reveal_charge.ogg",
+      "type": "audio",
+      "bytes": 38554
+    },
+    {
+      "path": "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_reward_reveal.ogg",
+      "type": "audio",
+      "bytes": 16780
+    },
+    {
+      "path": "/assets/audio/ui-sfx/05_HUD_STATE/hud_critical_warning.ogg",
+      "type": "audio",
+      "bytes": 42915
+    },
+    {
+      "path": "/assets/boxe-gold/bot.png",
+      "type": "image",
+      "bytes": 1979202
+    },
+    {
+      "path": "/assets/boxe-gold/char-body-new.png",
+      "type": "image",
+      "bytes": 1315996
+    },
+    {
+      "path": "/assets/boxe-gold/char-body.png",
+      "type": "image",
+      "bytes": 2185208
+    },
+    {
+      "path": "/assets/boxe-gold/char-body2.png",
+      "type": "image",
+      "bytes": 1687472
+    },
+    {
+      "path": "/assets/boxe-gold/dummy.png",
+      "type": "image",
+      "bytes": 2248733
+    },
+    {
+      "path": "/assets/boxe-gold/fx-fire.png",
+      "type": "image",
+      "bytes": 1430667
+    },
+    {
+      "path": "/assets/boxe-gold/fx-fracture.png",
+      "type": "image",
+      "bytes": 2423396
+    },
+    {
+      "path": "/assets/boxe-gold/fx-rock.png",
+      "type": "image",
+      "bytes": 1640664
+    },
+    {
+      "path": "/assets/boxe-gold/fx-rubble.png",
+      "type": "image",
+      "bytes": 1756538
+    },
+    {
+      "path": "/assets/boxe-gold/glove.png",
+      "type": "image",
+      "bytes": 2380148
+    },
+    {
+      "path": "/assets/dictionary/heroes/boxe/a1.png",
+      "type": "image",
+      "bytes": 2736667
+    },
+    {
+      "path": "/assets/dictionary/heroes/boxe/a2.png",
+      "type": "image",
+      "bytes": 2966297
+    },
+    {
+      "path": "/assets/dictionary/heroes/boxe/avatar.png",
+      "type": "image",
+      "bytes": 1759019
+    },
+    {
+      "path": "/assets/dictionary/heroes/boxe/cover.png",
+      "type": "image",
+      "bytes": 2817260
+    },
+    {
+      "path": "/assets/dictionary/heroes/boxe/passive.png",
+      "type": "image",
+      "bytes": 2212327
+    },
+    {
+      "path": "/assets/dictionary/heroes/boxe/standing.png",
+      "type": "image",
+      "bytes": 2200771
+    },
+    {
+      "path": "/assets/dictionary/heroes/shuri/a1.webp",
+      "type": "image",
+      "bytes": 65698
+    },
+    {
+      "path": "/assets/dictionary/heroes/shuri/a2.webp",
+      "type": "image",
+      "bytes": 68336
+    },
+    {
+      "path": "/assets/dictionary/heroes/shuri/avatar.webp",
+      "type": "image",
+      "bytes": 77870
+    },
+    {
+      "path": "/assets/dictionary/heroes/shuri/cover.webp",
+      "type": "image",
+      "bytes": 148050
+    },
+    {
+      "path": "/assets/dictionary/heroes/shuri/passive.webp",
+      "type": "image",
+      "bytes": 64168
+    },
+    {
+      "path": "/assets/dictionary/heroes/shuri/standing.webp",
+      "type": "image",
+      "bytes": 82552
+    },
+    {
+      "path": "/assets/fang_v1/speckBlood.webp",
+      "type": "image",
+      "bytes": 275720
+    },
+    {
+      "path": "/assets/gold-ui/heroes/crystala/battle_avatar.webp",
+      "type": "image",
+      "bytes": 77544
+    },
+    {
+      "path": "/assets/gold-ui/heroes/crystala/pick_roster_cover.webp",
+      "type": "image",
+      "bytes": 117504
+    },
+    {
+      "path": "/assets/gold-ui/heroes/crystala/pick_selected_large.webp",
+      "type": "image",
+      "bytes": 276054
+    },
+    {
+      "path": "/assets/gold-ui/heroes/crystala/skill_a1.webp",
+      "type": "image",
+      "bytes": 72972
+    },
+    {
+      "path": "/assets/gold-ui/heroes/crystala/skill_a2.webp",
+      "type": "image",
+      "bytes": 79852
+    },
+    {
+      "path": "/assets/gold-ui/heroes/crystala/skill_passive.webp",
+      "type": "image",
+      "bytes": 54916
+    },
+    {
+      "path": "/assets/gold-ui/heroes/frost/battle_avatar.webp",
+      "type": "image",
+      "bytes": 51428
+    },
+    {
+      "path": "/assets/gold-ui/heroes/frost/pick_roster_cover.webp",
+      "type": "image",
+      "bytes": 111200
+    },
+    {
+      "path": "/assets/gold-ui/heroes/frost/pick_selected_large.webp",
+      "type": "image",
+      "bytes": 91292
+    },
+    {
+      "path": "/assets/gold-ui/heroes/frost/skill_a1.webp",
+      "type": "image",
+      "bytes": 71026
+    },
+    {
+      "path": "/assets/gold-ui/heroes/frost/skill_a2.webp",
+      "type": "image",
+      "bytes": 30174
+    },
+    {
+      "path": "/assets/gold-ui/heroes/frost/skill_passive.webp",
+      "type": "image",
+      "bytes": 20718
+    },
+    {
+      "path": "/assets/gold-ui/heroes/hunter/battle_avatar.webp",
+      "type": "image",
+      "bytes": 42294
+    },
+    {
+      "path": "/assets/gold-ui/heroes/hunter/pick_roster_cover.webp",
+      "type": "image",
+      "bytes": 107570
+    },
+    {
+      "path": "/assets/gold-ui/heroes/hunter/pick_selected_large.webp",
+      "type": "image",
+      "bytes": 271278
+    },
+    {
+      "path": "/assets/gold-ui/heroes/hunter/skill_a1.webp",
+      "type": "image",
+      "bytes": 35674
+    },
+    {
+      "path": "/assets/gold-ui/heroes/hunter/skill_a2.webp",
+      "type": "image",
+      "bytes": 60750
+    },
+    {
+      "path": "/assets/gold-ui/heroes/hunter/skill_passive.webp",
+      "type": "image",
+      "bytes": 33540
+    },
+    {
+      "path": "/assets/gold-ui/heroes/magnet/battle_avatar.webp",
+      "type": "image",
+      "bytes": 48946
+    },
+    {
+      "path": "/assets/gold-ui/heroes/magnet/pick_roster_cover.webp",
+      "type": "image",
+      "bytes": 121654
+    },
+    {
+      "path": "/assets/gold-ui/heroes/magnet/pick_selected_large.webp",
+      "type": "image",
+      "bytes": 229972
+    },
+    {
+      "path": "/assets/gold-ui/heroes/magnet/skill_a1.webp",
+      "type": "image",
+      "bytes": 47272
+    },
+    {
+      "path": "/assets/gold-ui/heroes/magnet/skill_a2.webp",
+      "type": "image",
+      "bytes": 21446
+    },
+    {
+      "path": "/assets/gold-ui/heroes/magnet/skill_passive.webp",
+      "type": "image",
+      "bytes": 16934
+    },
+    {
+      "path": "/assets/gold-ui/heroes/mirror/battle_avatar.webp",
+      "type": "image",
+      "bytes": 96126
+    },
+    {
+      "path": "/assets/gold-ui/heroes/mirror/pick_roster_cover.webp",
+      "type": "image",
+      "bytes": 71896
+    },
+    {
+      "path": "/assets/gold-ui/heroes/mirror/skill_a1.webp",
+      "type": "image",
+      "bytes": 35712
+    },
+    {
+      "path": "/assets/gold-ui/heroes/mirror/skill_a2.webp",
+      "type": "image",
+      "bytes": 49204
+    },
+    {
+      "path": "/assets/gold-ui/heroes/mirror/skill_passive.webp",
+      "type": "image",
+      "bytes": 40694
+    },
+    {
+      "path": "/assets/gold-ui/heroes/newbot/battle_avatar.webp",
+      "type": "image",
+      "bytes": 48432
+    },
+    {
+      "path": "/assets/gold-ui/heroes/newbot/pick_roster_cover.webp",
+      "type": "image",
+      "bytes": 114824
+    },
+    {
+      "path": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+      "type": "image",
+      "bytes": 145010
+    },
+    {
+      "path": "/assets/gold-ui/heroes/newbot/skill_a1.webp",
+      "type": "image",
+      "bytes": 51102
+    },
+    {
+      "path": "/assets/gold-ui/heroes/newbot/skill_a2.webp",
+      "type": "image",
+      "bytes": 52030
+    },
+    {
+      "path": "/assets/gold-ui/heroes/newbot/skill_passive.webp",
+      "type": "image",
+      "bytes": 56882
+    },
+    {
+      "path": "/assets/hero-rework/crystala-curated/sfx/crystala_a2_awaken.mp3",
+      "type": "audio",
+      "bytes": 28315
+    },
+    {
+      "path": "/assets/hero-rework/crystala-curated/sfx/crystala_construct_hit_optional.mp3",
+      "type": "audio",
+      "bytes": 4073
+    },
+    {
+      "path": "/assets/hero-rework/crystala-curated/sfx/crystala_projectile_reflect.mp3",
+      "type": "audio",
+      "bytes": 7417
+    },
+    {
+      "path": "/assets/hero-rework/crystala-curated/sfx/crystala_shard_pulse.mp3",
+      "type": "audio",
+      "bytes": 3804
+    },
+    {
+      "path": "/assets/hero-rework/crystala-curated/sfx/crystala_wall_construct.mp3",
+      "type": "audio",
+      "bytes": 15358
+    },
+    {
+      "path": "/assets/hero-rework/frost-curated/sfx/frost_a1_breath.mp3",
+      "type": "audio",
+      "bytes": 13868
+    },
+    {
+      "path": "/assets/hero-rework/frost-curated/sfx/frost_enemy_freeze.mp3",
+      "type": "audio",
+      "bytes": 15404
+    },
+    {
+      "path": "/assets/hero-rework/frost-curated/sfx/frost_floor_contact_optional.mp3",
+      "type": "audio",
+      "bytes": 4652
+    },
+    {
+      "path": "/assets/hero-rework/frost-curated/sfx/frost_weapon_freeze_a.mp3",
+      "type": "audio",
+      "bytes": 8492
+    },
+    {
+      "path": "/assets/hero-rework/frost-curated/sfx/frost_weapon_freeze_b.mp3",
+      "type": "audio",
+      "bytes": 8876
+    },
+    {
+      "path": "/assets/hero-rework/frost-curated/sfx/frost_weapon_freeze_c.mp3",
+      "type": "audio",
+      "bytes": 8876
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/base.png",
+      "type": "image",
+      "bytes": 213812
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/browL.png",
+      "type": "image",
+      "bytes": 25540
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/browR.png",
+      "type": "image",
+      "bytes": 25009
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/cavity.png",
+      "type": "image",
+      "bytes": 140968
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/crack.png",
+      "type": "image",
+      "bytes": 27343
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/crest.png",
+      "type": "image",
+      "bytes": 58227
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/eyes.png",
+      "type": "image",
+      "bytes": 11761
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/jaw.png",
+      "type": "image",
+      "bytes": 102171
+    },
+    {
+      "path": "/assets/hero-rework/frost-v1/sil.png",
+      "type": "image",
+      "bytes": 31609
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/clean/part-10.png",
+      "type": "image",
+      "bytes": 80934
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/clean/part-11.png",
+      "type": "image",
+      "bytes": 56177
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/clean/part-12.png",
+      "type": "image",
+      "bytes": 56632
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/clean/part-13.png",
+      "type": "image",
+      "bytes": 58456
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/clean/part-14.png",
+      "type": "image",
+      "bytes": 108676
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/clean/part-15.png",
+      "type": "image",
+      "bytes": 119329
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/clean/part-16.png",
+      "type": "image",
+      "bytes": 132953
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-0.png",
+      "type": "image",
+      "bytes": 84135
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-1.png",
+      "type": "image",
+      "bytes": 52533
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-10.png",
+      "type": "image",
+      "bytes": 136814
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-11.png",
+      "type": "image",
+      "bytes": 153881
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-12.png",
+      "type": "image",
+      "bytes": 115846
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-13.png",
+      "type": "image",
+      "bytes": 111607
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-14.png",
+      "type": "image",
+      "bytes": 251031
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-15.png",
+      "type": "image",
+      "bytes": 225487
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-16.png",
+      "type": "image",
+      "bytes": 326263
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-2.png",
+      "type": "image",
+      "bytes": 51099
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-3.png",
+      "type": "image",
+      "bytes": 140032
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/part-4.png",
+      "type": "image",
+      "bytes": 139501
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_charge_personal.mp3",
+      "type": "audio",
+      "bytes": 28882
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_clamp.mp3",
+      "type": "audio",
+      "bytes": 26374
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_deploy_mechanism.mp3",
+      "type": "audio",
+      "bytes": 47852
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_unfold_blade.mp3",
+      "type": "audio",
+      "bytes": 31390
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a2_catch_flesh.mp3",
+      "type": "audio",
+      "bytes": 31148
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a2_pounce_sweep.mp3",
+      "type": "audio",
+      "bytes": 24493
+    },
+    {
+      "path": "/assets/hero-rework/magnet-curated/sfx/magnet_a1_attraction.mp3",
+      "type": "audio",
+      "bytes": 9238
+    },
+    {
+      "path": "/assets/hero-rework/magnet-curated/sfx/magnet_a2_bullet_deflect.mp3",
+      "type": "audio",
+      "bytes": 6572
+    },
+    {
+      "path": "/assets/hero-rework/magnet-curated/sfx/magnet_a2_repulsion.mp3",
+      "type": "audio",
+      "bytes": 25538
+    },
+    {
+      "path": "/assets/hero-rework/mirror-curated/sfx/mirror_a1_cast.mp3",
+      "type": "audio",
+      "bytes": 18851
+    },
+    {
+      "path": "/assets/hero-rework/mirror-curated/sfx/mirror_a2_exchange_snap.mp3",
+      "type": "audio",
+      "bytes": 6581
+    },
+    {
+      "path": "/assets/hero-rework/mirror-curated/sfx/mirror_passive_node_fold_optional.mp3",
+      "type": "audio",
+      "bytes": 10492
+    },
+    {
+      "path": "/assets/hero-rework/mirror-curated/sfx/mirror_passive_node_form.mp3",
+      "type": "audio",
+      "bytes": 15507
+    },
+    {
+      "path": "/assets/hero-rework/mirror-curated/sfx/mirror_passive_shard_drop_a.mp3",
+      "type": "audio",
+      "bytes": 6163
+    },
+    {
+      "path": "/assets/hero-rework/mirror-curated/sfx/mirror_passive_shard_drop_b.mp3",
+      "type": "audio",
+      "bytes": 5327
+    },
+    {
+      "path": "/assets/hero-rework/mirror-curated/sfx/mirror_passive_shard_drop_c.mp3",
+      "type": "audio",
+      "bytes": 6581
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a1_dash.mp3",
+      "type": "audio",
+      "bytes": 41591
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a1_lock.mp3",
+      "type": "audio",
+      "bytes": 81493
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a1_no_weapon.mp3",
+      "type": "audio",
+      "bytes": 24044
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a2_activate.mp3",
+      "type": "audio",
+      "bytes": 35084
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a2_armor_hit.mp3",
+      "type": "audio",
+      "bytes": 41591
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a2_end.mp3",
+      "type": "audio",
+      "bytes": 51673
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_passive_milestone.mp3",
+      "type": "audio",
+      "bytes": 26444
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_passive_upgrade.mp3",
+      "type": "audio",
+      "bytes": 36044
+    },
+    {
+      "path": "/assets/loading/apex-chaos-title.webp",
+      "type": "image",
+      "bytes": 177358
+    },
+    {
+      "path": "/assets/loading/loading-bar-frame.webp",
+      "type": "image",
+      "bytes": 74300
+    },
+    {
+      "path": "/assets/loading/loading-bg-landscape.webp",
+      "type": "image",
+      "bytes": 513300
+    },
+    {
+      "path": "/assets/loading/loading-bg-portrait.webp",
+      "type": "image",
+      "bytes": 289600
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-half-base.png",
+      "type": "image",
+      "bytes": 159766
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-half-eyes-dim.png",
+      "type": "image",
+      "bytes": 6191
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-half-eyes-glow.png",
+      "type": "image",
+      "bytes": 8635
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-half-eyes-gold.png",
+      "type": "image",
+      "bytes": 4278
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-half-main-dim.png",
+      "type": "image",
+      "bytes": 11605
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-half-main-glow.png",
+      "type": "image",
+      "bytes": 18957
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-half-main-gold.png",
+      "type": "image",
+      "bytes": 6066
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-quarter-base.png",
+      "type": "image",
+      "bytes": 49767
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-quarter-eyes-dim.png",
+      "type": "image",
+      "bytes": 2079
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-quarter-eyes-glow.png",
+      "type": "image",
+      "bytes": 3161
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-quarter-eyes-gold.png",
+      "type": "image",
+      "bytes": 1514
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-quarter-main-dim.png",
+      "type": "image",
+      "bytes": 3994
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-quarter-main-glow.png",
+      "type": "image",
+      "bytes": 7010
+    },
+    {
+      "path": "/assets/magnet_v1/gold/core-quarter-main-gold.png",
+      "type": "image",
+      "bytes": 2349
+    },
+    {
+      "path": "/assets/magnet_v1/gold/lobeL-half-base.png",
+      "type": "image",
+      "bytes": 15012
+    },
+    {
+      "path": "/assets/magnet_v1/gold/lobeL-quarter-base.png",
+      "type": "image",
+      "bytes": 5124
+    },
+    {
+      "path": "/assets/magnet_v1/gold/lobeR-half-base.png",
+      "type": "image",
+      "bytes": 14633
+    },
+    {
+      "path": "/assets/magnet_v1/gold/lobeR-quarter-base.png",
+      "type": "image",
+      "bytes": 4859
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-half-base.png",
+      "type": "image",
+      "bytes": 121560
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-half-in-dim.png",
+      "type": "image",
+      "bytes": 4532
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-half-in-glow.png",
+      "type": "image",
+      "bytes": 6535
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-half-in-gold.png",
+      "type": "image",
+      "bytes": 2978
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-half-out-dim.png",
+      "type": "image",
+      "bytes": 10694
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-half-out-glow.png",
+      "type": "image",
+      "bytes": 13691
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-half-out-gold.png",
+      "type": "image",
+      "bytes": 6518
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-quarter-base.png",
+      "type": "image",
+      "bytes": 36106
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-quarter-in-dim.png",
+      "type": "image",
+      "bytes": 1632
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-quarter-in-glow.png",
+      "type": "image",
+      "bytes": 2498
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-quarter-in-gold.png",
+      "type": "image",
+      "bytes": 1154
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-quarter-out-dim.png",
+      "type": "image",
+      "bytes": 3671
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-quarter-out-glow.png",
+      "type": "image",
+      "bytes": 5138
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polL-quarter-out-gold.png",
+      "type": "image",
+      "bytes": 2389
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-half-base.png",
+      "type": "image",
+      "bytes": 119807
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-half-in-dim.png",
+      "type": "image",
+      "bytes": 4804
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-half-in-glow.png",
+      "type": "image",
+      "bytes": 6973
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-half-in-gold.png",
+      "type": "image",
+      "bytes": 3094
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-half-out-dim.png",
+      "type": "image",
+      "bytes": 10718
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-half-out-glow.png",
+      "type": "image",
+      "bytes": 13615
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-half-out-gold.png",
+      "type": "image",
+      "bytes": 6602
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-quarter-base.png",
+      "type": "image",
+      "bytes": 35833
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-quarter-in-dim.png",
+      "type": "image",
+      "bytes": 1787
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-quarter-in-glow.png",
+      "type": "image",
+      "bytes": 2724
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-quarter-in-gold.png",
+      "type": "image",
+      "bytes": 1194
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-quarter-out-dim.png",
+      "type": "image",
+      "bytes": 3638
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-quarter-out-glow.png",
+      "type": "image",
+      "bytes": 5177
+    },
+    {
+      "path": "/assets/magnet_v1/gold/polR-quarter-out-gold.png",
+      "type": "image",
+      "bytes": 2398
+    },
+    {
+      "path": "/assets/magnet_v1/gold/spine-half-base.png",
+      "type": "image",
+      "bytes": 38680
+    },
+    {
+      "path": "/assets/magnet_v1/gold/spine-half-main-dim.png",
+      "type": "image",
+      "bytes": 11058
+    },
+    {
+      "path": "/assets/magnet_v1/gold/spine-half-main-glow.png",
+      "type": "image",
+      "bytes": 12669
+    },
+    {
+      "path": "/assets/magnet_v1/gold/spine-half-main-gold.png",
+      "type": "image",
+      "bytes": 6550
+    },
+    {
+      "path": "/assets/magnet_v1/gold/spine-quarter-base.png",
+      "type": "image",
+      "bytes": 11988
+    },
+    {
+      "path": "/assets/magnet_v1/gold/spine-quarter-main-dim.png",
+      "type": "image",
+      "bytes": 3678
+    },
+    {
+      "path": "/assets/magnet_v1/gold/spine-quarter-main-glow.png",
+      "type": "image",
+      "bytes": 4700
+    },
+    {
+      "path": "/assets/magnet_v1/gold/spine-quarter-main-gold.png",
+      "type": "image",
+      "bytes": 2361
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/01-select-screen-background.webp",
+      "type": "image",
+      "bytes": 1305146
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/11-start-normal.webp",
+      "type": "image",
+      "bytes": 761918
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/12-start-hover.webp",
+      "type": "image",
+      "bytes": 809628
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/13-start-pressed.webp",
+      "type": "image",
+      "bytes": 712366
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/14-exit-normal.webp",
+      "type": "image",
+      "bytes": 605458
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/15-exit-hover.webp",
+      "type": "image",
+      "bytes": 669676
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/16-exit-pressed.webp",
+      "type": "image",
+      "bytes": 565352
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/fullFace.png",
+      "type": "image",
+      "bytes": 236079
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/launcher.png",
+      "type": "image",
+      "bytes": 626732
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/projectile.png",
+      "type": "image",
+      "bytes": 250688
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s0.png",
+      "type": "image",
+      "bytes": 63309
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s1.png",
+      "type": "image",
+      "bytes": 66239
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s2.png",
+      "type": "image",
+      "bytes": 75153
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s3.png",
+      "type": "image",
+      "bytes": 70302
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s4.png",
+      "type": "image",
+      "bytes": 65571
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s5.png",
+      "type": "image",
+      "bytes": 60964
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s6.png",
+      "type": "image",
+      "bytes": 64786
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s7.png",
+      "type": "image",
+      "bytes": 56430
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s8.png",
+      "type": "image",
+      "bytes": 54741
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/s9.png",
+      "type": "image",
+      "bytes": 74967
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v0.png",
+      "type": "image",
+      "bytes": 81321
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v1.png",
+      "type": "image",
+      "bytes": 101571
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v2.png",
+      "type": "image",
+      "bytes": 111760
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v3.png",
+      "type": "image",
+      "bytes": 107657
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v4.png",
+      "type": "image",
+      "bytes": 107900
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v5.png",
+      "type": "image",
+      "bytes": 89380
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v6.png",
+      "type": "image",
+      "bytes": 86634
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v7.png",
+      "type": "image",
+      "bytes": 77300
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v8.png",
+      "type": "image",
+      "bytes": 73202
+    },
+    {
+      "path": "/assets/skins/rocket-vua-he/v9.png",
+      "type": "image",
+      "bytes": 120617
+    },
+    {
+      "path": "/assets/status_vfx/stun_swirl.webp",
+      "type": "image",
+      "bytes": 53774
+    },
+    {
+      "path": "/assets/ui_2026/fighter-pick-bg.webp",
+      "type": "image",
+      "bytes": 101222
+    },
+    {
+      "path": "/assets/ui_2026/menu-bg-landscape.webp",
+      "type": "image",
+      "bytes": 396330
+    },
+    {
+      "path": "/assets/ui_2026/menu-bg-portrait.webp",
+      "type": "image",
+      "bytes": 307042
+    },
+    {
+      "path": "/assets/ui_2026/menu-pvp.webp",
+      "type": "image",
+      "bytes": 47414
+    },
+    {
+      "path": "/assets/ui_2026/menu-vfx-overlay.webp",
+      "type": "image",
+      "bytes": 88066
+    },
+    {
+      "path": "/assets/ui/apex-transition-start-plate.svg",
+      "type": "image",
+      "bytes": 1119
+    },
+    {
+      "path": "/assets/ui/apex-transition-start-r72.webp",
+      "type": "image",
+      "bytes": 14166
+    },
+    {
+      "path": "/game/arsenal/arsenalChamberPaletteRuntime.js",
+      "type": "script",
+      "bytes": 16805
+    },
+    {
+      "path": "/game/arsenal/arsenalConfig.js",
+      "type": "script",
+      "bytes": 44984
+    },
+    {
+      "path": "/game/arsenal/arsenalCWeaponSet.generated.js",
+      "type": "script",
+      "bytes": 10242
+    },
+    {
+      "path": "/game/arsenal/arsenalFeelRuntime.js",
+      "type": "script",
+      "bytes": 52707
+    },
+    {
+      "path": "/game/arsenal/arsenalIdentityRuntime.js",
+      "type": "script",
+      "bytes": 19442
+    },
+    {
+      "path": "/game/arsenal/arsenalManualSkillGate.js",
+      "type": "script",
+      "bytes": 8011
+    },
+    {
+      "path": "/game/arsenal/arsenalMetaRuntime.js",
+      "type": "script",
+      "bytes": 71769
+    },
+    {
+      "path": "/game/arsenal/arsenalPresentationRuntime.js",
+      "type": "script",
+      "bytes": 59112
+    },
+    {
+      "path": "/game/arsenal/arsenalShellSelectRuntime.js",
+      "type": "script",
+      "bytes": 9815
+    },
+    {
+      "path": "/game/arsenal/arsenalSpawnRuntime.js",
+      "type": "script",
+      "bytes": 47114
+    },
+    {
+      "path": "/game/arsenal/arsenalStormbreakerVfxRuntime.js",
+      "type": "script",
+      "bytes": 48769
+    },
+    {
+      "path": "/game/arsenal/arsenalWeaponRuntime.js",
+      "type": "script",
+      "bytes": 166646
+    },
+    {
+      "path": "/game/bot-wave/botWavePresentationV2.js",
+      "type": "script",
+      "bytes": 77527
+    },
+    {
+      "path": "/game/bot-wave/losslessFluidRuntime.js",
+      "type": "script",
+      "bytes": 4172
+    },
+    {
+      "path": "/game/bot-wave/nativeArsenalGoldBridge.js",
+      "type": "script",
+      "bytes": 12342
+    },
+    {
+      "path": "/game/bot-wave/waveCampaign.js",
+      "type": "script",
+      "bytes": 12723
+    },
+    {
+      "path": "/game/core/apexArsenalProductCollisionRuntime.js",
+      "type": "script",
+      "bytes": 1580
+    },
+    {
+      "path": "/game/core/apexArsenalProductDrawRecoveryRuntime.js",
+      "type": "script",
+      "bytes": 895
+    },
+    {
+      "path": "/game/core/apexArsenalProductRenderHudRuntime.js",
+      "type": "script",
+      "bytes": 3427
+    },
+    {
+      "path": "/game/core/apexBattleAudioRuntime.js",
+      "type": "script",
+      "bytes": 16905
+    },
+    {
+      "path": "/game/core/apexBattleSfxRuntime.js",
+      "type": "script",
+      "bytes": 7488
+    },
+    {
+      "path": "/game/core/apexCombatEffectsRuntime.js",
+      "type": "script",
+      "bytes": 2370
+    },
+    {
+      "path": "/game/core/apexRenderPrimitives.js",
+      "type": "script",
+      "bytes": 2278
+    },
+    {
+      "path": "/game/gold/goldProductBridge.js",
+      "type": "script",
+      "bytes": 93815
+    },
+    {
+      "path": "/game/hero-rework/ailRuntime.js",
+      "type": "script",
+      "bytes": 21877
+    },
+    {
+      "path": "/game/hero-rework/boxeBattleRuntime.js",
+      "type": "script",
+      "bytes": 37427
+    },
+    {
+      "path": "/game/hero-rework/boxeGoldLibrary.js",
+      "type": "script",
+      "bytes": 244461
+    },
+    {
+      "path": "/game/hero-rework/boxeGoldPresentationRuntime.js",
+      "type": "script",
+      "bytes": 18674
+    },
+    {
+      "path": "/game/hero-rework/boxeSfxAuthority.js",
+      "type": "script",
+      "bytes": 636082
+    },
+    {
+      "path": "/game/hero-rework/crystalaGoldV6.js",
+      "type": "script",
+      "bytes": 95444
+    },
+    {
+      "path": "/game/hero-rework/crystalaPresentationRuntime.js",
+      "type": "script",
+      "bytes": 26478
+    },
+    {
+      "path": "/game/hero-rework/crystalGameplayRuntime.js",
+      "type": "script",
+      "bytes": 58407
+    },
+    {
+      "path": "/game/hero-rework/frostGameplayRuntime.js",
+      "type": "script",
+      "bytes": 33948
+    },
+    {
+      "path": "/game/hero-rework/frostGoldV1.js",
+      "type": "script",
+      "bytes": 115041
+    },
+    {
+      "path": "/game/hero-rework/frostPresentationRuntime.js",
+      "type": "script",
+      "bytes": 94726
+    },
+    {
+      "path": "/game/hero-rework/heroMechanicsRuntime.js",
+      "type": "script",
+      "bytes": 94452
+    },
+    {
+      "path": "/game/hero-rework/heroRegistry.js",
+      "type": "script",
+      "bytes": 44116
+    },
+    {
+      "path": "/game/hero-rework/heroReworkRuntime.js",
+      "type": "script",
+      "bytes": 207141
+    },
+    {
+      "path": "/game/hero-rework/hunterGoldV10.js",
+      "type": "script",
+      "bytes": 98764
+    },
+    {
+      "path": "/game/hero-rework/hunterPresentationRuntime.js",
+      "type": "script",
+      "bytes": 11374
+    },
+    {
+      "path": "/game/hero-rework/magnetGameplayRuntime.js",
+      "type": "script",
+      "bytes": 44288
+    },
+    {
+      "path": "/game/hero-rework/magnetGoldV1.js",
+      "type": "script",
+      "bytes": 48628
+    },
+    {
+      "path": "/game/hero-rework/magnetPresentationRuntime.js",
+      "type": "script",
+      "bytes": 17106
+    },
+    {
+      "path": "/game/hero-rework/mirrorGoldV1.js",
+      "type": "script",
+      "bytes": 137228
+    },
+    {
+      "path": "/game/hero-rework/mirrorPresentationRuntime.js",
+      "type": "script",
+      "bytes": 51702
+    },
+    {
+      "path": "/game/hero-rework/robotPresentationRuntime.js",
+      "type": "script",
+      "bytes": 96174
+    },
+    {
+      "path": "/game/hero-rework/shuriBattleRuntime.js",
+      "type": "script",
+      "bytes": 26223
+    },
+    {
+      "path": "/game/hero-rework/shuriGoldLibrary.js",
+      "type": "script",
+      "bytes": 1756948
+    },
+    {
+      "path": "/game/hero-rework/shuriGoldPresentationRuntime.js",
+      "type": "script",
+      "bytes": 28544
+    },
+    {
+      "path": "/game/heroes/coreSixCuratedSfxAuthority.js",
+      "type": "script",
+      "bytes": 15926
+    },
+    {
+      "path": "/game/heroes/coreSixCuratedSfxBridge.js",
+      "type": "script",
+      "bytes": 5476
+    },
+    {
+      "path": "/game/modes/arsenalBattleRuntime.js",
+      "type": "script",
+      "bytes": 139045
+    },
+    {
+      "path": "/game/product/productAssetRuntime.js",
+      "type": "script",
+      "bytes": 18400
+    },
+    {
+      "path": "/game/product/productMusicAuthority.js",
+      "type": "script",
+      "bytes": 14497
+    },
+    {
+      "path": "/game/quest/quest01Director.js",
+      "type": "script",
+      "bytes": 41575
+    },
+    {
+      "path": "/game/quest/questBreachRetreatAuthority.js",
+      "type": "script",
+      "bytes": 3312
+    },
+    {
+      "path": "/game/quest/questBreachRigAuthority.js",
+      "type": "script",
+      "bytes": 3173
+    },
+    {
+      "path": "/game/quest/questBreachWavesCore.js",
+      "type": "script",
+      "bytes": 10325
+    },
+    {
+      "path": "/game/quest/questCompanionNativeRuntime.js",
+      "type": "script",
+      "bytes": 19247
+    },
+    {
+      "path": "/game/quest/questEnemyAbilities.js",
+      "type": "script",
+      "bytes": 14474
+    },
+    {
+      "path": "/game/quest/questGoldEnemyVisuals.js",
+      "type": "script",
+      "bytes": 6716
+    },
+    {
+      "path": "/game/quest/questGoldV12Rig.js",
+      "type": "script",
+      "bytes": 131079
+    },
+    {
+      "path": "/game/quest/questMultiActorCore.js",
+      "type": "script",
+      "bytes": 22832
+    },
+    {
+      "path": "/game/quest/questReflexReceipts.js",
+      "type": "script",
+      "bytes": 8315
+    },
+    {
+      "path": "/game/quest/questRivetRealDamageAdapter.js",
+      "type": "script",
+      "bytes": 3076
+    },
+    {
+      "path": "/game/quest/questRivetThresholdAuthority.js",
+      "type": "script",
+      "bytes": 3284
+    },
+    {
+      "path": "/game/quest/questStoryInterludes.js",
+      "type": "script",
+      "bytes": 3952
+    },
+    {
+      "path": "/game/quest/questStoryPresentation.js",
+      "type": "script",
+      "bytes": 23256
+    },
+    {
+      "path": "/game/quest/questTotLastChoiceAuthority.js",
+      "type": "script",
+      "bytes": 4811
+    },
+    {
+      "path": "/game/quest/questTotNativeStormRuntime.js",
+      "type": "script",
+      "bytes": 7318
+    },
+    {
+      "path": "/game/quest/questTotRealDamageAdapter.js",
+      "type": "script",
+      "bytes": 2444
+    },
+    {
+      "path": "/game/results/matchResultAuthority.js",
+      "type": "script",
+      "bytes": 27674
+    },
+    {
+      "path": "/game/results/ownerAwards.generated.js",
+      "type": "script",
+      "bytes": 5275
+    },
+    {
+      "path": "/game/ui/apexCombatHudRuntime.js",
+      "type": "script",
+      "bytes": 31041
+    },
+    {
+      "path": "/game/ui/skillDetailsRuntime.js",
+      "type": "script",
+      "bytes": 16726
+    },
+    {
+      "path": "/game/ui/uiSfxAuthority.js",
+      "type": "script",
+      "bytes": 15895
+    },
+    {
+      "path": "/gold/assets/gold/apex-chaos-wordmark.png",
+      "type": "image",
+      "bytes": 496066
+    },
+    {
+      "path": "/gold/assets/gold/favicon-apex-chaos.png",
+      "type": "image",
+      "bytes": 32526
+    },
+    {
+      "path": "/gold/assets/gold/favicon-r72-owner.png",
+      "type": "image",
+      "bytes": 3481
+    },
+    {
+      "path": "/gold/assets/gold/favicon-tab-apex.svg",
+      "type": "image",
+      "bytes": 5283
+    },
+    {
+      "path": "/gold/assets/gold/home-foreground.png",
+      "type": "image",
+      "bytes": 378049
+    },
+    {
+      "path": "/gold/assets/gold/home-robot-body.png",
+      "type": "image",
+      "bytes": 1583426
+    },
+    {
+      "path": "/gold/assets/gold/home-robot-core.png",
+      "type": "image",
+      "bytes": 616346
+    },
+    {
+      "path": "/gold/assets/gold/home-robot-eye.png",
+      "type": "image",
+      "bytes": 118272
+    },
+    {
+      "path": "/gold/assets/gold/home-world-background.png",
+      "type": "image",
+      "bytes": 1848695
+    },
+    {
+      "path": "/gold/assets/gold/mode-local.webp",
+      "type": "image",
+      "bytes": 10048
+    },
+    {
+      "path": "/gold/assets/gold/mode-solo.webp",
+      "type": "image",
+      "bytes": 12572
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/avatar/crystala.svg",
+      "type": "image",
+      "bytes": 753
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/avatar/frost.svg",
+      "type": "image",
+      "bytes": 750
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/avatar/hunter.svg",
+      "type": "image",
+      "bytes": 751
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/avatar/magnet.svg",
+      "type": "image",
+      "bytes": 751
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/avatar/mirror.svg",
+      "type": "image",
+      "bytes": 751
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/avatar/newbot.svg",
+      "type": "image",
+      "bytes": 751
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/crystala-a1.svg",
+      "type": "image",
+      "bytes": 742
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/crystala-a2.svg",
+      "type": "image",
+      "bytes": 742
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/crystala-passive.svg",
+      "type": "image",
+      "bytes": 747
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/frost-a1.svg",
+      "type": "image",
+      "bytes": 739
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/frost-a2.svg",
+      "type": "image",
+      "bytes": 739
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/frost-passive.svg",
+      "type": "image",
+      "bytes": 744
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/hunter-a1.svg",
+      "type": "image",
+      "bytes": 740
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/hunter-a2.svg",
+      "type": "image",
+      "bytes": 740
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/hunter-passive.svg",
+      "type": "image",
+      "bytes": 745
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/magnet-a1.svg",
+      "type": "image",
+      "bytes": 740
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/magnet-a2.svg",
+      "type": "image",
+      "bytes": 740
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/magnet-passive.svg",
+      "type": "image",
+      "bytes": 745
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/mirror-a1.svg",
+      "type": "image",
+      "bytes": 740
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/mirror-a2.svg",
+      "type": "image",
+      "bytes": 740
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/mirror-passive.svg",
+      "type": "image",
+      "bytes": 745
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/newbot-a1.svg",
+      "type": "image",
+      "bytes": 740
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/newbot-a2.svg",
+      "type": "image",
+      "bytes": 740
+    },
+    {
+      "path": "/gold/assets/placeholders/battle/skill-icons/newbot-passive.svg",
+      "type": "image",
+      "bytes": 745
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/cover/crystala.svg",
+      "type": "image",
+      "bytes": 745
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/cover/frost.svg",
+      "type": "image",
+      "bytes": 742
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/cover/hunter.svg",
+      "type": "image",
+      "bytes": 743
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/cover/magnet.svg",
+      "type": "image",
+      "bytes": 743
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/cover/mirror.svg",
+      "type": "image",
+      "bytes": 743
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/cover/newbot.svg",
+      "type": "image",
+      "bytes": 743
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/pose/crystala.svg",
+      "type": "image",
+      "bytes": 744
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/pose/frost-world.svg",
+      "type": "image",
+      "bytes": 747
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/pose/frost.svg",
+      "type": "image",
+      "bytes": 741
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/pose/hunter-world.svg",
+      "type": "image",
+      "bytes": 748
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/pose/hunter.svg",
+      "type": "image",
+      "bytes": 742
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/pose/magnet.svg",
+      "type": "image",
+      "bytes": 742
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/pose/mirror-runtime-opponent-ghost.svg",
+      "type": "image",
+      "bytes": 760
+    },
+    {
+      "path": "/gold/assets/placeholders/pick/pose/mirror-world-runtime-opponent-ghost.svg",
+      "type": "image",
+      "bytes": 758
+    },
+    {
+      "path": "/gold/manifest.json",
+      "type": "data",
+      "bytes": 12118
+    },
+    {
+      "path": "/gold/transition/mechanical-door-v4.gold.js",
+      "type": "script",
+      "bytes": 2666593
+    }
+  ]
+}

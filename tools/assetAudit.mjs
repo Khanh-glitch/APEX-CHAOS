@@ -30,6 +30,7 @@ import {
   ARSENAL_PRODUCT_RUNTIMES,
   BOT_WAVE_SPECIAL_RUNTIMES,
   BOT_WAVE_PRESENTATION_RUNTIMES,
+  GRAPHICS_QUALITY_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
   SELECT_RUNTIMES,
   UI_SFX_RUNTIMES,
@@ -81,6 +82,13 @@ for (const file of shellHtmlSources()) {
 }
 
 const runtimePublicFiles = [
+  // The graphics-quality stack (authority + panel + advisor + shell bootstrap).
+  // It is listed explicitly because the audit classifies /game/*.js purely from
+  // these groups: anything missing here is LEGACY_NON_SHIPPING and gets DELETED
+  // from the shipping dist by pruneShippingDist (this is exactly how the first
+  // attempt at this feature ended up with the authority in dist/ and the
+  // runtime 404ing).
+  ...GRAPHICS_QUALITY_RUNTIMES,
   ...MENU_INTERACTIVE_RUNTIMES,
   ...ARSENAL_HUB_RUNTIMES,
   ...ARSENAL_PRODUCT_RUNTIMES,

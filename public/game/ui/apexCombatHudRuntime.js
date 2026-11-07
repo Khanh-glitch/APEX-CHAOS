@@ -263,20 +263,26 @@
     if (!r || !r.panel || !f) return;
     const identity = identityProjection(f);
     const vitals = vitalsProjection(f);
+    // Written-value memo (perf). Reading back `style.color` yields the CSS
+    // normalised `rgb(...)` form, which never equals the authored hex colour,
+    // so the old comparisons wrote both colours on every frame. Remember what
+    // we wrote and compare against that: identical DOM, zero steady-state
+    // style writes, no style recalculation churn per frame.
+    const last = sides[i].last || (sides[i].last = {});
     if (r.name) {
       if (r.name.innerText !== identity.name) { r.name.innerText = identity.name; stats.vitalWrites += 1; }
-      if (r.name.style.color !== identity.color) { r.name.style.color = identity.color; stats.vitalWrites += 1; }
+      if (last.nameColor !== identity.color) { r.name.style.color = identity.color; last.nameColor = identity.color; stats.vitalWrites += 1; }
     }
     if (r.hp) {
-      if (r.hp.style.backgroundColor !== identity.color) { r.hp.style.backgroundColor = identity.color; stats.vitalWrites += 1; }
+      if (last.hpColor !== identity.color) { r.hp.style.backgroundColor = identity.color; last.hpColor = identity.color; stats.vitalWrites += 1; }
       updateHpLossTrail(r.hp, r.hpLoss, vitals.visiblePct);
     }
     if (r.hpText && r.hpText.innerText !== vitals.label) { r.hpText.innerText = vitals.label; stats.vitalWrites += 1; }
     if (r.rage) {
       const opacity = vitals.rage ? '1' : '0';
       const display = vitals.rage ? 'block' : 'none';
-      if (String(r.rage.style.opacity) !== opacity) { r.rage.style.opacity = opacity; stats.vitalWrites += 1; }
-      if (r.rage.style.display !== display) { r.rage.style.display = display; stats.vitalWrites += 1; }
+      if (last.rageOpacity !== opacity) { r.rage.style.opacity = opacity; last.rageOpacity = opacity; stats.vitalWrites += 1; }
+      if (last.rageDisplay !== display) { r.rage.style.display = display; last.rageDisplay = display; stats.vitalWrites += 1; }
     }
   }
 
@@ -360,7 +366,7 @@
     if (r.burstFill) {
       const w = `${fillPct.toFixed(1)}%`;
       if (r.burstFill.style.width !== w) r.burstFill.style.width = w;
-      r.burstFill.style.backgroundColor = color;
+      if (s.burstColor !== color) { r.burstFill.style.backgroundColor = color; s.burstColor = color; }
     }
     if (r.burst) {
       r.burst.style.setProperty('--cp-heat', color);

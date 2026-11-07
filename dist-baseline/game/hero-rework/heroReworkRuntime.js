@@ -1,0 +1,4373 @@
+/* =============================================================================
+ * APEX CHAOS — Hero Rework integration runtime.
+ *
+ * Owns: match installation, combatant graph, AbilityController, the shared
+ * locomotion law latch (heading/bounce = original APEX physics; no pickup
+ * seek, no chase/kite, no ideal-distance steering — explicit mechanics only),
+ * damage adapter, projectile pass (parity-preserving), world entities, SLIME
+ * body collections, P2 cast AI, telemetry, public API.
+ *
+ * Authority: docs/hero-rework/phase1/00..05 + 06_POSTFREEZE_ROSTER_CORRECTION.
+ *
+ * Compatibility roster law (doc 06): the canonical 12 resolve rework
+ * mechanics. The pre-pilot product graph separately narrows normal-public
+ * selection to Core Six; boss identities outside the 12 keep their audited
+ * legacy encounter behavior via a facade combatant.
+ *
+ * SLIME law (doc 06): one logical Combatant per side; child Bodies live in
+ * per-combatant AIL collections and are NEVER pushed into the global
+ * fighters[] array. Exactly one anchor body per side occupies fighters[].
+ *
+ * Parity law (doc 06): with no hero transform active, this runtime's
+ * projectile pass must reproduce base Arsenal projectile behavior exactly
+ * (trajectory, hit time, hit target, realized damage, ricochet, grenade and
+ * thrown semantics). `APEX_HERO_REWORK._forceBasePass` delegates to the
+ * saved base pass for deterministic no-transform parity tests.
+ * ========================================================================== */
+
+(function (globalScope) {
+  'use strict';
+
+  if (globalScope.APEX_HERO_REWORK) return; // idempotent
+
+  const AIL = globalScope.APEX_HERO_REWORK_AIL;
+  const REG = globalScope.APEX_HERO_REWORK_REGISTRY;
+  const MECH = globalScope.APEX_HERO_REWORK_MECHANICS;
+  if (!AIL || !REG || !MECH) throw new Error('heroReworkRuntime requires ail+registry+mechanics');
+
+  const HR = {
+    version: '1.0.0-rebuild1',
+    productCutover: true, // playable roster = canonical 12 (doc 06)
+    aiEnabled: true,      // P2 rework cast AI master switch
+    _forceBasePass: false, // parity test hook: delegate to base pass
+  };
+  globalScope.APEX_HERO_REWORK = HR;
+  globalScope.apexHeroReworkRuntime = 'ready';
+
+  /* ------------------------------------------------------------------ *
+   * Match state
+   * ------------------------------------------------------------------ */
+  let M = null; // active rework match
+
+  function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+  function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
+  function angleTo(ax, ay, bx, by) { return Math.atan2(by - ay, bx - ax); }
+
+  let seed = 20260928;
+  let rng = AIL.makeSeededRng(seed);
+  HR.setSeed = function (s) { seed = (s >>> 0) || 1; rng = AIL.makeSeededRng(seed); };
+
+  let childIdSeq = 100;
+
+  /* ------------------------------------------------------------------ *
+   * Combatant graph
+   * ------------------------------------------------------------------ */
+  function makeCombatant(idx, anchor, heroId) {
+    const def = heroId ? REG.HEROES[heroId] : null;
+    const ct = {
+      idx,
+      side: idx === 0 ? 'p1' : 'p2',
+      combatantId: idx === 0 ? 'p1' : 'p2',
+      heroId: heroId || `LEGACY_${anchor.name}`,
+      def,
+      facade: !heroId,
+      anchor,
+      bodies: [anchor],
+      skills: {},
+      store: {},
+      telemetry: {
+        casts: 0, castFails: 0, damageDealt: 0, damageTaken: 0,
+        bySkill: {}, firstSkillCastAt: null,
+      },
+    };
+    if (def) {
+      for (const slot of ['A1', 'A2', 'PASSIVE']) {
+        const skillDef = def.skills[slot];
+        ct.skills[slot] = {
+          def: skillDef,
+          level: 1,
+          cfg: REG.resolveSkillLevel(heroId, slot, 1),
+          cdLeft: 0,
+          charges: REG.resolveSkillLevel(heroId, slot, 1).maxCharges, rechargeLeft: 0,
+        };
+      }
+    }
+    ct.weakUntil = 0; // combatant-owned WEAK debuff (owner law 2026-09-29)
+    anchor.__hrCombatant = ct;
+    anchor.__hrRefHp = anchor.maxHp;
+    return ct;
+  }
+
+  function combatantOfBody(body) {
+    if (!body) return null;
+    if (body.__hrCombatant) return body.__hrCombatant;
+    if (M) {
+      for (const ct of M.combatants) {
+        if (ct.anchor === body) return ct;
+      }
+    }
+    return null;
+  }
+  HR.byCombatant = combatantOfBody;
+  HR.isReworkFighter = function (f) {
+    const ct = combatantOfBody(f);
+    return !!(ct && !ct.facade);
+  };
+
+  function livingBodies(ct) {
+    return (ct.bodies || []).filter((b) => b && b.hp > 0);
+  }
+  HR.getTargetableBodies = function (ct) { return livingBodies(ct || { bodies: [] }); };
+  HR.getPickupActors = function (ct) { return livingBodies(ct || { bodies: [] }); };
+
+  /* Generic body enumeration (doc 14 R1/R2). Every living physical body
+   * that is NOT already represented in the global fighters[] array — extra
+   * SLIME Bodies (never enter fighters[], doc 06) and any promoted anchor
+   * (the retired husk stays in the slot). Non-rework matches return [].
+   * Consumers merge this with fighters[] to cover the whole eligible set
+   * exactly once. Retired/dead/invisible anchors are never returned. */
+  function extraLivingBodies() {
+    if (!M) return [];
+    const arr = globalScope.fighters;
+    const inList = new Set();
+    if (arr) for (const f of arr) if (f) inList.add(f);
+    const out = [];
+    for (const ct of M.combatants) {
+      for (const b of livingBodies(ct)) {
+        if (!b || (b.data && b.data.__hrRetiredAnchor)) continue;
+        if (inList.has(b)) continue; // anchor already covered via fighters[]
+        out.push(b);
+      }
+    }
+    return out;
+  }
+  HR.extraLivingBodies = extraLivingBodies;
+  // R2: generic environment-target query — normal fighters plus every
+  // eligible living rework body. No SLIME-name conditional anywhere.
+  HR.environmentTargets = function () {
+    const arr = globalScope.fighters || [];
+    const normal = [];
+    for (const f of arr) if (f && f.hp > 0 && !(f.data && f.data.__hrRetiredAnchor)) normal.push(f);
+    return normal.concat(extraLivingBodies());
+  };
+  // R3 read-model for the temporary body-local HP indicators (drives the
+  // in-canvas bars and lets gates/probes observe the same truth).
+  HR.bodyLocalHpIndicators = function () {
+    if (!M) return [];
+    const out = [];
+    for (const ct of M.combatants) {
+      const living = livingBodies(ct);
+      if (living.length <= 1) continue;
+      for (const b of living) {
+        const pool = b.__hrRefHp || b.maxHp || 1;
+        out.push({
+          id: b.id,
+          kind: b.__hrChild ? b.__hrChild.kind : 'anchor',
+          x: +b.x.toFixed(1), y: +b.y.toFixed(1),
+          hp: +b.hp.toFixed(2), pool: +pool.toFixed(2),
+          frac: +Math.max(0, Math.min(1, b.hp / pool)).toFixed(3),
+        });
+      }
+    }
+    return out;
+  };
+
+  function enemyOf(ct) {
+    if (!M || !ct) return null;
+    return M.combatants[0] === ct ? M.combatants[1] : M.combatants[0];
+  }
+
+  /* ------------------------------------------------------------------ *
+   * AbilityController
+   * ------------------------------------------------------------------ */
+  function abilityController(ct) {
+    if (!ct.__ctl) ct.__ctl = makeAbilityController(ct);
+    return ct.__ctl;
+  }
+
+  function normalizeCastInput(ct, source) {
+    const meta = source && typeof source === 'object'
+      ? source
+      : { source: String(source || '') };
+    // OWNER LAW (input side authority): a cast belongs to the fighter that
+    // executes it. The caller may describe WHAT triggered the cast
+    // (source/key/pointerId) but it may never re-own the side — before this
+    // law, a key handler that hardcoded {side:'p1'} made a P2 cast light up the
+    // P1 panel and emit P1Press (the "J/K triggers both sides" report).
+    const side = ct.side || (ct.idx === 1 ? 'p2' : 'p1');
+    return {
+      side,
+      declaredSide: meta.side === 'p2' ? 'p2' : (meta.side === 'p1' ? 'p1' : null),
+      combatantId: ct.combatantId || side,
+      source: String(meta.source || meta.kind || (side === 'p2' ? 'p2' : 'p1')),
+      key: meta.key ? String(meta.key) : '',
+      pointerId: meta.pointerId == null ? null : meta.pointerId,
+    };
+  }
+
+  function makeAbilityController(ct) {
+    return {
+      cooldownLeft(slot) { const s=ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0,s.cdLeft)) : 0; },
+      refundCooldown(slot, sec) {
+        const s = ct.skills[slot];
+        if (s && sec > 0) { s.cdLeft = Math.max(0, s.cdLeft - sec); }
+      },
+      setCooldown(slot, sec) { const s = ct.skills[slot]; if (s) s.cdLeft = sec; },
+      tick(dt) {
+        const a = ct.anchor;
+        const paused = typeof a.cooldownPaused === 'function' ? a.cooldownPaused() : false;
+        if (paused) return;
+        for (const slot of ['A1', 'A2']) {
+          const s = ct.skills[slot];
+          if (s && s.cfg.maxCharges && s.charges < s.cfg.maxCharges) {
+            s.rechargeLeft -= dt;
+            while(s.rechargeLeft <= 1e-9 && s.charges < s.cfg.maxCharges) { s.charges++; s.rechargeLeft += s.cfg.cooldown; }
+            if(s.charges === s.cfg.maxCharges) s.rechargeLeft = 0;
+          }
+          if (s && s.cdLeft > 0) s.cdLeft = Math.max(0, s.cdLeft - dt);
+        }
+      },
+      tryCast(slot, source) {
+        const input = normalizeCastInput(ct, source);
+        const s = ct.skills[slot];
+        if (!s) return { ok: false, reason: 'no-skill' };
+        // E01 stage lock lives in the actual executor, never the HUD only.
+        const quest=globalScope.APEX_ARSENAL?.state;
+        if(quest?.questReflex===true&&ct.anchor?.questId==='NEWBOT'){
+          const phase=quest.questReflexGate?.snapshot()?.phase;
+          const allowJ=['J_CAST','K_CAST','BOTH_HALF'].includes(phase);
+          const allowK=['K_CAST','BOTH_HALF'].includes(phase);
+          if((slot==='A1'&&!allowJ)||(slot==='A2'&&!allowK))
+            return {ok:false,reason:'quest-stage-locked'};
+        }
+        const a = ct.anchor;
+        if (!a || a.hp <= 0) return { ok: false, reason: 'dead' };
+        if (typeof a.hardCC === 'function' && a.hardCC()) return { ok: false, reason: 'cc' };
+        const exec = MECH.EXECUTORS[s.def.mechanicId];
+        if(slot==='A1'&&ct.heroId==='BOXE'&&ct.store.__boxeBattle?.rocket){
+          const recall=exec?.recast?.(mechCtx(ct,slot));
+          return recall?{ok:true,recast:true}:{ok:false,reason:'already-returning'};
+        }
+        if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
+        const ctx = mechCtx(ct, slot);
+        if (exec && exec.canCast && !exec.canCast(ctx)) {
+          ct.telemetry.castFails += 1;
+          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'condition', side: input.side, combatantId: input.combatantId, fighterId: bodyOfCombatant(ct)?.id ?? null, source: input.source, input });
+          return { ok: false, reason: 'condition', failCue: true };
+        }
+        const ok = exec && exec.cast ? exec.cast(ctx) : false;
+        if (!ok) {
+          ct.telemetry.castFails += 1;
+          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'whiff', side: input.side, combatantId: input.combatantId, fighterId: bodyOfCombatant(ct)?.id ?? null, source: input.source, input });
+          return { ok: false, reason: 'whiff', failCue: true };
+        }
+        if(s.cfg.maxCharges) { if(s.charges === s.cfg.maxCharges) s.rechargeLeft = s.cfg.cooldown; s.charges--; }
+        else s.cdLeft = s.cfg.cooldown;
+        if(ct.heroId==='BOXE'&&slot==='A1')s.cdLeft=0;
+        ct.telemetry.casts += 1;
+        ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
+        if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
+        globalScope.APEX_ARSENAL?.state?.resultLedger?.onCast?.(bodyOfCombatant(ct),slot);
+        AIL.bus.emit('Cast', { hero: ct.heroId, slot, mechanic: s.def.mechanicId, side: input.side, combatantId: input.combatantId, fighterId: bodyOfCombatant(ct)?.id ?? null, source: input.source, input });
+        return { ok: true };
+      },
+    };
+  }
+  HR.abilityController = abilityController;
+
+  // The ONE body resolver: a combatant owns exactly one arena body, and every
+  // body-scoped presentation event must name it (owner report: J/K ran the
+  // motion on BOTH robots because the mechanics layer emitted RobotA1* events
+  // with only `hero: 'ROBOT'` and no fighter identity).
+  function bodyOfCombatant(ct) {
+    if (!ct || ct.facade) return null;
+    // doc-06 law: the global fighters[] slot holds this combatant's arena body.
+    const list = globalScope.fighters || [];
+    const body = list[ct.idx];
+    return body && !body.facade ? body : null;
+  }
+  HR.bodyOfCombatant = bodyOfCombatant;
+
+  // Per-context view of the executor api: identical to the shared api, except
+  // that every event it emits carries the caster's identity, so presentation can
+  // never guess (and can never animate the wrong side).
+  function castBoundApi(ct) {
+    const base = M ? M.api : null;
+    if (!base) return null;
+    const body = bodyOfCombatant(ct);
+    const identity = {
+      fighterId: body ? body.id : null,
+      combatantId: ct.combatantId || ct.side,
+      side: ct.side,
+      heroId: ct.heroId,
+    };
+    return Object.create(base, {
+      emitEvent: {
+        value: (type, payload) => base.emitEvent(type, Object.assign({}, payload, identity)),
+      },
+    });
+  }
+
+  function mechCtx(ct, slot) {
+    const s = ct.skills[slot];
+    return {
+      slot,
+      id: s.def.id,
+      mechanicId: s.def.mechanicId,
+      cfg: s.cfg,
+      hero: ct.def,
+      combatant: ct,
+      store: (ct.store[s.def.mechanicId] = ct.store[s.def.mechanicId] || {}),
+      api: castBoundApi(ct),
+      AIL,
+      bus: AIL.bus,
+      rng,
+      clock: AIL.clock,
+      gameSize: globalScope.GAME_SIZE || 1000,
+    };
+  }
+
+  function eachExecutor(ct, fn) {
+    if (!ct || ct.facade) return;
+    for (const slot of ['A1', 'A2', 'PASSIVE']) {
+      const s = ct.skills[slot];
+      if (!s) continue;
+      const exec = MECH.EXECUTORS[s.def.mechanicId];
+      if (exec) fn(exec, mechCtx(ct, slot), slot);
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Install / teardown
+   * ------------------------------------------------------------------ */
+  function installMatch() {
+    // Rematch/direct re-entry calls startArsenalBattleMode again: tear down any live match first so its delayed jobs, executor
+    // teardown hooks and body bookkeeping never leak into the new match.
+    if (M) teardownMatch();
+    const fighters = globalScope.fighters;
+    if (!fighters || !fighters[0] || !fighters[1]) return;
+    const isRework = (f) => !!(f.type && f.type.__hrHero && REG.isCanonicalHero(f.type.__hrHero));
+    const r1 = isRework(fighters[0]);
+    const r2 = isRework(fighters[1]);
+    if (!r1 && !r2) { M = null; return; } // pure legacy match: no rework layer
+
+    const world = {
+      walls: [], gates: [], singularities: [], lanes: [], snares: [], snareSeq: 0,
+      graphs: [], mirrors: [], shards: [],
+      wallSeq: 0, gateSeq: 0, mirrorSeq: 0,
+    };
+    M = {
+      combatants: [
+        makeCombatant(0, fighters[0], r1 ? fighters[0].type.__hrHero : null),
+        makeCombatant(1, fighters[1], r2 ? fighters[1].type.__hrHero : null),
+      ],
+      world,
+      startedAt: AIL.clock(),
+      // P2 rework cast AI is ON by default; HR.setAiEnabled() syncs both
+      // switches AND PERSISTS across installs (an operator-set switch must
+      // not be silently reset by the next match). (Deterministic scheduling
+      // time = global matchClock, which updateArsenalBattle — the single
+      // shared sim step for rAF AND headless Arsenal.step — advances exactly
+      // once per step.)
+      aiEnabled: HR.aiEnabled,
+      aiCastPlan: {},
+      p1Queue: [],
+    };
+    M.api = makeApi();
+    AIL.bus.emit('ReworkMatchInstall', {
+      p1: M.combatants[0].heroId, p2: M.combatants[1].heroId,
+    });
+    notifyCombatHudMatchInstalled();
+  }
+
+  // Product display identity is projected through APEX_COMBAT_HUD. The
+  // rework runtime owns identity truth but never writes HUD DOM directly.
+  function notifyCombatHudMatchInstalled() {
+    try { globalScope.APEX_COMBAT_HUD?.onProjectionChanged?.(); }
+    catch (e) { /* HUD notification never breaks match install */ }
+  }
+
+  function teardownMatch() {
+    if (!M) return;
+    // Delayed gameplay callbacks (singularity release, TIME loop replays…)
+    // belong to THIS match — cancel them so they cannot fire into the next
+    // match after a rematch or mode switch.
+    AIL.hrScheduler.clear();
+    for (const ct of M.combatants) {
+      eachExecutor(ct, (exec, ctx) => { if (exec.onTeardown) exec.onTeardown(ctx); });
+      // Restore anchor bookkeeping.
+      for (const b of ct.bodies) { if (b) { b.__hrCombatant = null; } }
+      ct.bodies = [];
+    }
+    M = null;
+    AIL.bus.emit('ReworkMatchTeardown', {});
+  }
+  HR.installMatch = installMatch;
+  Object.defineProperty(HR, 'match', { get: () => M });
+
+  /* ------------------------------------------------------------------ *
+   * Executor-facing api (built per match).
+   * ------------------------------------------------------------------ */
+  function makeApi() {
+    const api = {
+      AIL,
+      bus: AIL.bus,
+      clock: AIL.clock,
+      rng,
+      get gameSize() { return globalScope.GAME_SIZE || 1000; },
+
+      enemyOf,
+      ownBodies: (ct) => livingBodies(ct),
+      enemyBodies: (ct) => livingBodies(enemyOf(ct)),
+      allBodies: () => (M ? M.combatants.flatMap((ct) => livingBodies(ct)) : []),
+      ownsBody: (ct, body) => !!body && !!ct && ct.bodies.includes(body),
+      combatantOfBody,
+
+      aqDamageBody(body, amount, sourceCombatant, weaponId, opts) {
+        const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+        if (!W || !W.aqDamage) return 0;
+        return W.aqDamage(body, amount, sourceCombatant ? sourceCombatant.anchor : null, weaponId, opts || {});
+      },
+
+      applyChillTo(body, duration) {
+        if (!body || body.hp <= 0) return;
+        const dur = duration == null ? AIL.STATUS_LAWS.CHILL.duration : duration;
+        AIL.StatusResolver.apply(body, 'CHILL', dur);
+        body.applyStatus('slow', dur, { mult: 1 - AIL.STATUS_LAWS.CHILL.slowPct });
+        AIL.bus.emit('ChillApplied', { target: body.id, duration: dur });
+      },
+      chillRemaining: (body) => AIL.StatusResolver.remaining(body, 'CHILL'),
+      applyWeakTo(ct, duration) { return M.api.applyWeakCombatant(ct, duration); },
+      applyWeakCombatant(ct, duration) {
+        if (!ct) return;
+        const now = AIL.clock();
+        const dur = duration == null ? 1.0 : duration;
+        // Refresh, never stack: the multipliers are constants of the law.
+        ct.weakUntil = Math.max(ct.weakUntil || 0, now + dur);
+        const remaining = ct.weakUntil - now;
+        for (const b of livingBodies(ct)) {
+          AIL.StatusResolver.apply(b, 'WEAK', remaining); // presentation/query mirror only
+        }
+        AIL.bus.emit('WeakApplied', { combatant: ct.heroId, duration: dur, remaining });
+      },
+      weakRemaining: (ct) => ct && ct.weakUntil ? Math.max(0, ct.weakUntil - AIL.clock()) : 0,
+      isWeak: (ct) => !!ct && (ct.weakUntil || 0) > AIL.clock(),
+      isWeakBody: (body) => AIL.StatusResolver.has(body, 'WEAK'),
+      isTrapped: (body) => AIL.StatusResolver.has(body, 'ROOT') || AIL.StatusResolver.has(body, 'STUN'),
+      applyRootTo(body, duration) {
+        if (!body || body.hp <= 0) return;
+        AIL.StatusResolver.apply(body, 'ROOT', duration);
+        body.data.positionLocked = true;
+        AIL.bus.emit('RootApplied', { target: body.id, duration });
+      },
+      applyFreezeTo(body, duration) {
+        if (!body || body.hp <= 0) return;
+        AIL.StatusResolver.apply(body, 'STUN', duration);
+        body.applyStatus('freeze', duration, {});
+        AIL.bus.emit('FreezeApplied', { target: body.id, duration });
+      },
+      applyStunTo(body, duration) {
+        if (!body || body.hp <= 0) return;
+        AIL.StatusResolver.apply(body, 'STUN', duration);
+        body.applyStatus('stun', duration, {});
+      },
+
+      /* world entities ------------------------------------------------ */
+      nearestFreeWorldCircle: (x,y,r,opts) => nearestFreeWorldCircle(x,y,r,opts),
+      spawnWall(o) {
+        // Unified world-solid record: the existing capsule is the default.
+        // A zero-length capsule is a physically accurate circle with the
+        // SAME swept body/projectile collision and HP lifetime as a wall.
+        // No alternate deployed-structure collision engine.
+        const circle = o.shape === 'circle';
+        const radius = circle ? Math.max(1, Number(o.radius) || 75) : null;
+        const w = {
+          id: ++M.world.wallSeq, owner: o.owner, x: o.x, y: o.y,
+          shape: circle ? 'circle' : 'capsule',
+          angle: circle ? 0 : (o.angle || 0),
+          len: circle ? 0 : (o.len || 220),
+          radius, thickness: circle ? radius * 2 : 26,
+          hp: o.hp, maxHp: o.hp, bornAt: AIL.clock(),
+          lifetime: o.lifetime === Infinity ? Infinity : (o.lifetime || 4),
+          // Friendly pass-through is an explicit OWNERSHIP policy on the
+          // world-solid, never a global bullet immunity.
+          friendlyProjectilePassThrough: o.friendlyProjectilePassThrough === true,
+          kind: o.kind || (circle ? 'deployed-circle' : 'wall'),
+        };
+        M.world.walls.push(w);
+        AIL.bus.emit('WallSpawned', { id: w.id, hp: w.hp });
+        return w;
+      },
+      spawnGate(o) {
+        const g = {
+          id: ++M.world.gateSeq, kind: o.kind, owner: o.owner,
+          x: (globalScope.GAME_SIZE || 1000) / 2, y: (globalScope.GAME_SIZE || 1000) / 2,
+          radius: 46, bornAt: AIL.clock(), lifetime: o.duration || 2,
+        };
+        M.world.gates.push(g);
+        AIL.bus.emit('GateSpawned', { kind: g.kind });
+        return g;
+      },
+      spawnSingularity(o) {
+        const s = {
+          id: M.world.singularities.length + 1, owner: o.owner, x: o.x, y: o.y,
+          radius: o.radius || 120, bornAt: AIL.clock(), lifetime: o.duration || 2.7,
+          capacity: o.capacity || 8, transitDelay: o.transitDelay || 0.35,
+          exitDistance: o.exitDistance || 120, stored: [],
+        };
+        M.world.singularities.push(s);
+        AIL.bus.emit('SingularitySpawned', { radius: s.radius });
+        return s;
+      },
+      spawnLane(o) {
+        const l = {
+          id: M.world.lanes.length + 1, owner: o.owner, x: o.x, y: o.y,
+          angle: o.angle || 0, width: o.width || 120, speed: o.speed || 1800,
+          windupLeft: o.windup || 0.25, bornAt: AIL.clock(), traveled: 0,
+        };
+        M.world.lanes.push(l);
+        return l;
+      },
+      // Explicit body movement for authored movers (Hunter pounce / A1 recoil).
+      //
+      // H-PHYS2 §13: a hostile Magnet field must participate DURING this
+      // movement, not be added afterwards as an unrelated nudge. The caller's
+      // target point is therefore treated as a PROPOSED velocity which the
+      // field decelerates substep by substep, so the calibration (which is an
+      // energy argument about the mover's real motion) actually governs the
+      // outcome. Solid-world authority via wallsBlockPoint is unchanged, and
+      // the real travelled sub-segments are recorded for contact adjudication.
+      moveHunterBody(body, x, y) {
+        const from={x:body.x,y:body.y},r=body.radius||40,size=globalScope.GAME_SIZE||1000;
+        x=clamp(x,r,size-r);y=clamp(y,r,size-r);
+        const dt=HR._magnetStepPendingDt>0?HR._magnetStepPendingDt:1/60;
+        const magnet=globalScope.APEX_MAGNET;
+        const accelAt=magnet&&magnet.fieldAccelerationAt?magnet.fieldAccelerationAt:null;
+        const steps=Math.max(1,Math.ceil(Math.hypot(x-from.x,y-from.y)/4));
+        const h=dt/steps;
+        const pvx=(x-from.x)/dt, pvy=(y-from.y)/dt;  // authored pursuit velocity
+        // Field-induced velocity PERSISTS across frames. The mover re-proposes
+        // its authored pursuit velocity every frame, so a per-frame-only
+        // deceleration would be discarded and the field could never actually
+        // stop anything. Accumulating it is what makes the energy calibration
+        // govern the real outcome over the whole movement window.
+        const fv=body.__hrFieldVel||(body.__hrFieldVel={x:0,y:0});
+        let cx=from.x, cy=from.y, influenced=false;
+        const path=body.__hrBodyPath;
+        for(let k=0;k<steps;k++){
+          if(accelAt){
+            const a=accelAt(cx,cy,body,combatantOfBody,AIL.clock());
+            if(a.active){
+              influenced=true; fv.x+=a.ax*h; fv.y+=a.ay*h;
+              const CEIL=(globalScope.APEX_MAGNET&&globalScope.APEX_MAGNET.EXPLICIT_MOVER_CEILING)||18000;
+              const sp=Math.hypot(fv.x,fv.y);
+              if(sp>CEIL){const kk=CEIL/sp; fv.x*=kk; fv.y*=kk;}
+            }
+          }
+          const vx=pvx+fv.x, vy=pvy+fv.y;
+          const nx=cx+vx*h, ny=cy+vy*h;
+          if(wallsBlockPoint(nx,ny,r)) break;
+          const sx=cx, sy=cy;
+          cx=clamp(nx,r,size-r); cy=clamp(ny,r,size-r);
+          body.x=cx; body.y=cy;
+          if(path) path.push({stage:'explicit',x0:sx,y0:sy,x1:cx,y1:cy});
+        }
+        // Claim the field for this frame so prepareBodies does not apply it
+        // a second time to this body.
+        if(influenced) body.__hrExplicitFieldFrame=HR.__frameSeq;
+        else if(body.__hrFieldVel){ body.__hrFieldVel.x*=0.80; body.__hrFieldVel.y*=0.80; }
+        return from;
+      },
+      sweptHunterContact: segmentToPointToi,
+      // Explicit-body-motion contact seam.
+      //
+      // An explicit mover proposes its movement through moveHunterBody (which
+      // remains the solid-world/Crystala capsule authority) and then defers
+      // CONTACT ADJUDICATION to here instead of self-certifying a hit. The
+      // request is resolved in hrPostTick, after Magnet's A2 body force and
+      // canonical Fighter.update movement have been applied to the mover AND
+      // after the target's own real movement for the frame. Tracking a target
+      // therefore no longer implies touching it.
+      //
+      // This is deliberately NOT a second integrator and contains no
+      // hero-specific force equation: it only reads the paths both bodies
+      // actually travelled this frame.
+      deferBodyContact(req) {
+        if (!req || !req.mover) return null;
+        (M.pendingBodyContacts || (M.pendingBodyContacts = [])).push(req);
+        return req;
+      },
+      spawnSnare(o) {
+        const s = {
+          id: ++M.world.snareSeq, owner: o.owner, x: o.x, y: o.y,
+          radius: o.radius || 46, bornAt: AIL.clock(), lifetime: o.lifetime || 8,
+          rootDuration: o.rootDuration || 1.25, consumed: false, phase: 'unfold', phaseTime: 0,
+        };
+        M.world.snares.push(s);
+        globalScope.APEX_HUNTER_PRESENTATION?.trapCreated(s);
+        AIL.bus.emit('SnarePlaced', { id:s.id, x: s.x, y: s.y });
+        return s;
+      },
+      canPlaceSnare(ct, maxActive) {
+        return M.world.snares.filter((s) => s.owner === ct && !s.consumed).length < (maxActive || 1);
+      },
+      spawnGraph(o) {
+        if (o.recastReplaces) {
+          M.world.graphs = M.world.graphs.filter((g) => g.owner !== o.owner);
+        }
+        const g = {
+          id: M.world.graphs.length + 1, owner: o.owner, x: o.x, y: o.y,
+          angle: o.angle || 0, span: o.span || 520, height: o.height || 200,
+          bornAt: AIL.clock(), lifetime: o.lifetime || 10, endedBy: null,
+        };
+        M.world.graphs.push(g);
+        return g;
+      },
+      endGraphsOf(ct) {
+        for (const g of M.world.graphs) {
+          if (g.owner === ct && !g.endedBy) g.endedBy = 'equipment';
+        }
+      },
+      // Virtual Armor lifecycle end -> route to the owning hero's PASSIVE
+      // executor hooks (single authority for the /2 gate law).
+      armorEnded(ct) {
+        eachExecutor(ct, (exec, ctx) => { if (exec.onArmorEnded) exec.onArmorEnded(ctx); });
+      },
+      /* CHECKPOINT F1 — Gold-first shard provenance seam. This is the ONLY
+       * passive shard authority: realized MIRROR HP loss reaches this and
+       * nothing else spawns F1 shards. Per-owner 16-slot pool, Gold
+       * replacement law, no immediate formation (scans run on the per-owner
+       * 0.3s cadence inside mirrorPassiveTick). */
+      mirrorShardProc(ct, x, y, n, prov) {
+        const made = mirrorProcShards(ct, x, y, n, prov || null);
+        // Hit-time side capture is presentation-only. It consumes the exact
+        // real shard identities after spawn; failure must never gate damage or
+        // alter the unchanged F1 pool/lifecycle.
+        const presentation = globalScope.APEX_MIRROR_PRESENTATION;
+        if (made.length && presentation && typeof presentation.capturePassiveShardSeeds === 'function') {
+          try { presentation.capturePassiveShardSeeds(ct, made); } catch (error) { /* fail open: gameplay owns F1 */ }
+        }
+        return made;
+      },
+      /* F1 per-owner passive lifecycle step (FREE motion/expiry, formation
+       * scans, assembly, ACTIVE/FOLD). Driven from the executor onTick so it
+       * runs exactly once per shared fixed step per MIRROR owner. */
+      mirrorPassiveStep(ct, dt) {
+        if (!M) return;
+        mirrorPassiveTick(ct, dt);
+      },
+      /* F2 NON-SHIPPING TEST SEAM — inject a ready-ACTIVE F1 node with the
+       * REAL node shape and REAL lifecycle (it ages and folds through
+       * mirrorPassiveStep exactly like any formed node, owns five shard
+       * slots through the real 16-slot pool, and is routed by the same F2
+       * surface/escrow authority). Focused gates, the protected ordered
+       * foundations and the historical goldens need precise node geometry
+       * without running the full damage->formation pipeline; gameplay code
+       * never calls this. The legacy pre-F1 scaffold (spawnShards /
+       * tryFormMirrors / spawnMirrorPortal, circular M.world.mirrors
+       * router, permanent lastPortalId) was RETIRED at Checkpoint F2 — the
+       * shipping projectile pass routes Mirror behavior only through the
+       * real F1 node network below. */
+      mirrorTestNode(ct, x, y, rot) {
+        if (!M || !ct) return null;
+        const st = mirrorPassiveState(ct);
+        const node = {
+          owner: ct, x, y, rot: rot || 0,
+          st: 2,                       // ACTIVE (same state machine as formed nodes)
+          t: 0, age: 0, t3: 0, tlock: 0,
+          activeAtClock: AIL.clock(), formedAtClock: AIL.clock(),
+          sh: [], id: mirrorNodeId(),
+        };
+        // Economy truth: an ACTIVE node owns FIVE shard slots for its whole
+        // life. Create five owned shards occupying the first free slots so
+        // the 16/5 accounting stays exact.
+        for (let k = 0; k < 5 && node.sh.length < 5; k++) {
+          const si = st.slots.findIndex((s) => !s);
+          if (si < 0) break;
+          const w = mirrorNodeToWorld(node, MIRROR_NV[k][0], MIRROR_NV[k][1]);
+          const sh = {
+            on: true, st: 3, node, x: w.x, y: w.y, vx: 0, vy: 0,
+            age: 1, moving: false, mt0: 0, fx: w.x, fy: w.y, tx: w.x, ty: w.y,
+            trot: node.rot, dist: 0, prov: null,
+          };
+          st.slots[si] = sh;
+          node.sh.push(sh);
+        }
+        st.nodes.push(node);
+        return node;
+      },
+
+      /* SLIME bodies (doc 06: never in global fighters[]) ------------- */
+      // Physical split/spawn pose (doc 10): children NEVER spawn overlapping
+      // the source body — placement sits at sourceRadius+childRadius+gap
+      // along the caller's seeded axis and is clamped into the arena
+      // interior (flipping to the opposite axis / arena center if the raw
+      // position would escape the wall).
+      slimeSplitPose(source, radius, axisX, axisY, gap) {
+        const S = globalScope.GAME_SIZE || 1000;
+        const need = (source.radius || 75) + radius + (gap != null ? gap : 8);
+        const place = (sx, sy) => ({
+          x: clamp(source.x + sx * need, radius + 2, S - radius - 2),
+          y: clamp(source.y + sy * need, radius + 2, S - radius - 2),
+        });
+        let pos = place(axisX, axisY);
+        if (dist(pos.x, pos.y, source.x, source.y) < need * 0.7) pos = place(-axisX, -axisY);
+        if (dist(pos.x, pos.y, source.x, source.y) < need * 0.7) {
+          const cx = S / 2 - source.x, cy = S / 2 - source.y;
+          const n = Math.hypot(cx, cy) || 1;
+          pos = place(cx / n, cy / n);
+        }
+        return pos;
+      },
+      spawnSlimeChild(ct, o) {
+        const anchor = ct.anchor;
+        const type = SLIME_CHILD_TYPE;
+        const child = new globalScope.Fighter(++childIdSeq, o.x, o.y, type);
+        child.maxHp = o.maxHp != null ? o.maxHp : o.hp;
+        child.hp = o.hp;
+        child.radius = o.radius || 45;
+        child.baseRadius = o.radius || 45;
+        // Speed law (doc 10): split halves / emergency halves are ordinary
+        // hero Bodies at PARENT speed; only A2 shed children move at 90% of
+        // parent speed (speedPct supplied by that executor's config).
+        child.baseSpeed = (anchor.baseSpeed || 450) * (o.speedPct != null ? o.speedPct : 1);
+        child.__hrCombatant = ct;
+        child.__hrRefHp = o.hp; // reference HP = creation state (doc 10 passive)
+        child.__hrChild = { kind: o.kind || 'shed', lifetime: o.lifetime || 0, bornAt: AIL.clock() };
+        // R4 heading law (doc 14): an authored heading (A1 divergence) wins.
+        // Otherwise the new child inherits the SPAWNING SOURCE BODY's current
+        // normalized heading. Never the SLIME_CHILD_TYPE constructor fallback
+        // (unrelated default-left), never random steering; normal APEX
+        // movement + wall bounce own the trajectory from the next frame.
+        if (o.dirX != null && o.dirY != null) {
+          child.setDir(o.dirX, o.dirY);
+        } else if (o.sourceBody && o.sourceBody.dir) {
+          const d = o.sourceBody.dir;
+          const n = Math.hypot(d.x, d.y) || 1;
+          child.setDir(d.x / n, d.y / n);
+        } else {
+          child.setDir(1, 0);
+        }
+        ct.bodies.push(child);
+        const weakLeft = M.api.weakRemaining(ct);
+        if (weakLeft > 0) AIL.StatusResolver.apply(child, 'WEAK', weakLeft); // combatant law owns the window
+        AIL.bus.emit('SlimeBodySpawned', { id: child.id, hp: o.hp, kind: o.kind });
+        return child;
+      },
+      mergeSlimeChild(ct, childId, o) {
+        const idx = ct.bodies.findIndex((b) => b && b.id === childId);
+        if (idx <= 0) return false; // 0 = anchor, never merge into itself
+        const child = ct.bodies[idx];
+        const survivors = livingBodies(ct).filter((b) => b !== child);
+        if (!survivors.length) return false; // never delete the last living body
+        // Nearest valid surviving body receives the child's HP (sum, no dup).
+        let best = null, bestD = Infinity;
+        for (const s of survivors) {
+          const d = dist(child.x, child.y, s.x, s.y);
+          if (d < bestD) { bestD = d; best = s; }
+        }
+        const kind = child.__hrChild && child.__hrChild.kind;
+        const isSplitMerge = kind === 'mitosis' || kind === 'emergency';
+        // Merge law (doc 10 A1): split-half merges restore the HP pool to the
+        // summed split pools (no heal beyond source max). A2 shed children
+        // carved their HP out of the pool already — their expiry returns HP
+        // ONLY, capped at the receiver's pool (never heals past max).
+        if (isSplitMerge) {
+          best.maxHp = (best.maxHp || 0) + (child.maxHp || 0);
+        }
+        const total = Math.min(best.maxHp || ct.anchor.maxHp || 1000, best.hp + child.hp);
+        best.hp = total;
+        // Footprint law (doc 10 A1 merge): merging SPLIT halves restores the
+        // original physical area — r = sqrt(rA^2 + rB^2). A2 shed children
+        // must NEVER merge their physical area/radius into the receiver
+        // (owner correction: A2 expiry returns HP only).
+        if (isSplitMerge) {
+          const r = Math.sqrt((best.radius || 75) ** 2 + (child.radius || 45) ** 2);
+          best.radius = r;
+          best.baseRadius = r;
+        }
+        // Deterministic equipment merge (doc 10): items NEVER duplicate.
+        // Split-merge: an unarmed survivor takes the child's weapon; a
+        // second armed item is dropped as exactly one pickup slot. A2 child
+        // expiry drops the weapon as a normal pickup (its spec).
+        const held = heldWeaponOfBody(child);
+        if (held && (o && o.equipmentMerge)) {
+          const heldBest = heldWeaponOfBody(best);
+          const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+          if (!heldBest && W && W.equip) {
+            W.equip(best, held.weaponId); // transfer — one item in the world
+          } else {
+            api.dropWeaponSlot(held.weaponId, child.x, child.y); // one slot, no dup
+          }
+        } else if (held && (o && o.dropWeapon)) {
+          api.dropWeaponSlot(held.weaponId, child.x, child.y);
+        }
+        ct.bodies.splice(idx, 1);
+        AIL.bus.emit('SlimeBodyMerged', { id: child.id, into: best.id, hp: total });
+        return true;
+      },
+      slimeChildrenOf: (ct, kind) => livingBodies(ct).filter((b) => b.__hrChild && (kind == null || b.__hrChild.kind === kind)),
+
+      relocate(body, x, y, reason) {
+        const tx = new AIL.RelocationTransaction(AIL.bus);
+        tx.move(body, x, y, reason);
+        return tx.commit();
+      },
+      setAimLost(ct, duration) {
+        if (!ct) return;
+        const st = (ct.store.__aimLost = ct.store.__aimLost || {});
+        st.until = AIL.clock() + duration;
+      },
+
+      /* queries --------------------------------------------------------- */
+      revealedPickups(opts) {
+        const st = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+        const out = [];
+        if (!st || !st.slots) return out;
+        for (const slot of st.slots) {
+          if (!slot || slot.phase !== 'REVEALED' || slot.kind === 'HEAL' || !slot.weaponId) continue;
+          // T6/Stormbreaker is NEVER an auto-target (ROBOT A1 law) — same id
+          // authority as api.isT6Weapon.
+          const isT6 = slot.weaponId === 'STORMBREAKER' || slot.weaponId === 'T6';
+          if (opts && opts.excludeT6 && isT6) continue;
+          out.push({ slot, id: slot.id, x: slot.x, y: slot.y, weaponId: slot.weaponId, isT6 });
+        }
+        return out;
+      },
+      nearestRevealedPickup(ct, opts) {
+        const list = api.revealedPickups({ excludeT6: opts && opts.excludeT6 });
+        if (!list.length) return null;
+        if (opts && opts.weaponsOnly) {
+          // All listed entries are weapons already (HEAL excluded).
+        }
+        const a = ct.anchor;
+        let best = null, bestD = Infinity;
+        for (const p of list) {
+          let d = dist(a.x, a.y, p.x, p.y);
+          if (opts && opts.preferSlotId != null && p.id === opts.preferSlotId) d -= 10000;
+          if (d < bestD) { bestD = d; best = p; }
+        }
+        return best;
+      },
+      revealedSlotById(id) {
+        const st = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+        if (!st || !st.slots) return null;
+        return st.slots.find((s) => s && s.id === id && s.phase === 'REVEALED') || null;
+      },
+      dropWeaponSlot(weaponId, x, y) {
+        const SPAWN = globalScope.APEX_ARSENAL_SPAWN;
+        const st = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+        if (!SPAWN || !st || !st.slots) return null;
+        const slot = {
+          id: st.nextSlotId++,
+          x: clamp(x, 60, (globalScope.GAME_SIZE || 1000) - 60),
+          y: clamp(y, 60, (globalScope.GAME_SIZE || 1000) - 60),
+          phase: 'REVEALED', kind: 'WEAPON', weaponId,
+          revealLeadSeconds: 0, revealedFor: 0, pickedBy: null, rejectedFor: {},
+          spawnTime: st.time, predictedHeroETA: null, predictedRivalETA: null,
+          earliestETA: null, predictedFighter: null,
+        };
+        st.slots.push(slot);
+        return slot;
+      },
+      heldWeapon: (ct) => (ct && ct.anchor ? heldWeaponOfBody(ct.anchor) : null),
+      isT6Weapon: (weaponId) => weaponId === 'STORMBREAKER' || weaponId === 'T6',
+      // MIRROR A1 copy: a FRESH same-weapon instance with fresh use/ammo
+      // state (equip() always builds a brand-new holder). The opponent
+      // keeps the original. Temporary: the mirror.arsenal executor expires
+      // it after the copy lifetime (only if still held and still the copy).
+      /* ---------------- MIRROR V1 (Checkpoint E) ---------------------- *
+       * Canonical Gold fixed-step action timeline. Gold advances `t += STEP`
+       * and tests `t/TS >= threshold`, so the FIRST CROSSING is produced by
+       * repeated float addition -- which is why A2 SNAP lands on step 31
+       * (0.25833s) and not step 30 (0.25s). This reproduces that exactly;
+       * it is NOT a raw after(.25)/after(.928) timer and never depends on
+       * render fps. */
+      mirrorStep() { return 1 / 120; },
+      mirrorAdvance(st, dt) {
+        const STEP = 1 / 120;
+        const edges = [];
+        st.acc = (st.acc || 0) + dt;
+        while (st.acc >= STEP - 1e-12) {
+          st.acc -= STEP;
+          st.t = (st.t || 0) + STEP;
+          st.steps = (st.steps || 0) + 1;
+          edges.push({ step: st.steps, t: st.t });
+        }
+        return edges;
+      },
+      /* Mirror A2 snap requests are resolved in the POST-MOVEMENT seam, never
+       * in executor onTick. Normal movement, Magnet H-PHYS2 field motion,
+       * walls/body physics and Hunter explicit-contact adjudication all
+       * resolve first, so a real contact that happened during actual movement
+       * is never retroactively erased by the exchange. */
+      mirrorEnqueueSnap(req) {
+        if (!req || !req.a || !req.b) return null;
+        (M.pendingMirrorSnaps || (M.pendingMirrorSnaps = [])).push(req);
+        return req;
+      },
+      mirrorPendingSnaps() { return (M.pendingMirrorSnaps || []).slice(); },
+      grantWeaponCopy(ct, weaponId, lifetime) {
+        const a = ct && ct.anchor;
+        if (!a || a.hp <= 0) return false;
+        const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+        if (!W || !W.equip) return false;
+        const ok = W.equip(a, weaponId);
+        if (!ok) return false;
+        if (a.data && a.data.arsenal) a.data.arsenal.__hrMirrorCopy = true;
+        ct.store.__mirrorCopy = { weaponId, until: AIL.clock() + (lifetime || 6) };
+        AIL.bus.emit('MirrorCopy', { hero: ct.heroId, weaponId, lifetime: lifetime || 6 });
+        return true;
+      },
+      liveProjectiles: () => (globalScope.projectiles || []),
+      abilityController,
+      note(skillId, kind, data) {
+        const parts = String(skillId).split('.');
+        const prefix = parts[0].toUpperCase();
+        // FROST V1 (authority §1): frost.* telemetry attributes to the
+        // canonical ICE storage hero. Dormant until frost.* mechanics exist.
+        const heroId = prefix === 'MATH' ? 'MATH_V2' : prefix === 'FROST' ? 'ICE' : prefix;
+        for (const ct of M ? M.combatants : []) {
+          if (ct.heroId === heroId) {
+            ct.telemetry.bySkill[`${skillId}:${kind}`] = (ct.telemetry.bySkill[`${skillId}:${kind}`] || 0) + 1;
+          }
+        }
+      },
+      emitEvent: (type, payload) => AIL.bus.emit(type, payload),
+      after: (delay, fn, label) => AIL.hrScheduler.after(delay, fn, label),
+      cancel: (entry) => AIL.hrScheduler.cancel(entry),
+      rollChance: (p) => rng() < p,
+      baseCritChance(weaponId) {
+        const CFG = globalScope.APEX_ARSENAL_CONFIG;
+        return (CFG && CFG.CRIT_CHANCE && CFG.CRIT_CHANCE[weaponId]) || 0;
+      },
+      /* rubber compression support ------------------------------------ */
+      releaseRubberStored(ct) {
+        const st = ct.store['rubber.compression'];
+        if (!st || !st.held || !st.held.length) return;
+        const held = st.held.slice();
+        st.held = [];
+        const a = ct.anchor;
+        const n = held.length;
+        for (let i = 0; i < n; i++) {
+          const d = held[i];
+          const ang = (i / n) * Math.PI * 2 + (rng() * 0.2);
+          const p = {
+            type: 'aq_bullet', aq: true, owner: a, weapon: d.weapon,
+            critical: !!d.critical, family: d.family || 'SEMI', heavy: !!d.heavy,
+            x: a.x, y: a.y, px: a.x, py: a.y,
+            vx: Math.cos(ang) * d.speed, vy: Math.sin(ang) * d.speed,
+            radius: d.radius, damage: d.damage, life: d.life, maxLife: d.life,
+            knockback: d.knockback, stun: d.stun, color: d.color,
+            __hr: { rubberDebt: d.damage, chill: !!(d.tags && d.tags.chill) },
+          };
+          globalScope.projectiles.push(p);
+        }
+        AIL.bus.emit('RubberRelease', { count: n });
+      },
+      replayEmission(kind, params, loop) {
+        if (kind === 'bullet') {
+          globalScope.projectiles.push({
+            type: 'aq_bullet', aq: true, owner: params.owner, weapon: params.weapon,
+            critical: !!params.critical, family: params.family || 'SEMI',
+            heavy: params.family === 'PRECISION',
+            x: params.x, y: params.y, px: params.x, py: params.y,
+            vx: Math.cos(params.angle) * params.speed,
+            vy: Math.sin(params.angle) * params.speed,
+            radius: params.radius, damage: params.damage, life: params.life, maxLife: params.life,
+            knockback: params.knockback, stun: params.stun, color: params.color,
+            __hr: { replay: loop, chill: !!(params.__hr && params.__hr.chill) },
+          });
+        } else if (kind === 'grenade-throw') {
+          const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+          if (W && W.throwGrenade) W.throwGrenade({ ...params, __hrReplay: loop });
+        } else if (kind === 'thrown-melee') {
+          const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+          if (W && W.spawnThrownMelee) W.spawnThrownMelee(params.owner, params.weapon, params.angle, { __hrReplay: loop });
+        }
+      },
+    };
+    return api;
+  }
+
+  function heldWeaponOfBody(body) {
+    const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+    if (!W || !W.getHolder || !body) return null;
+    const h = W.getHolder(body);
+    // Stable equipment read-model for mechanic policy: preserve the real holder
+    // while exposing the immutable definition and live metadata that tactical
+    // evaluators need. Consumers must not reach back into fighter.data directly.
+    return h && h.weaponId ? {
+      weaponId: h.weaponId, holder: h,
+      def: h.def || null, meta: h.meta || null,
+    } : null;
+  }
+
+  /* ==================================================================== *
+   * CHECKPOINT F1 — MIRROR GOLD-FIRST PER-OWNER SHARD / NODE FORMATION.
+   *
+   * One coherent passive lifecycle, per MIRROR owner (doc 08 §4/§5/§6,
+   * doc 02 P01-P18 binding text, canonical Gold executable state machine):
+   *
+   *   realized MIRROR HP loss -> mirrorShardProc
+   *     -> per-owner 16-slot shard pool (OFF/FREE/RESERVED/NODE_OWNED)
+   *     -> FREE shards: real position, motion with decay, 6s free lifetime
+   *     -> deterministic 0.3s per-owner formation scan
+   *     -> age > .7 gate, same-owner only
+   *     -> seed + 4 nearest, FOURTH-nearest strictly < 170 (seed radius,
+   *        NOT all-pairs)
+   *     -> immediate reservation (no double claim, free expiry paused)
+   *     -> Gold 5-shard assembly choreography (.18 + i*.06 stagger, .4 travel)
+   *     -> fill/lock, ACTIVE at ~1.20s from formation start
+   *     -> 10s ACTIVE lifetime (clock starts AT ACTIVE)
+   *     -> .55s FOLD, then node OFF and its 5 shard slots OFF (no
+   *        return-to-free)
+   *
+   * CONCURRENCY CAP IS THE ECONOMY, NOT A COUNTER: 16 slots / 5 per node.
+   * Three nodes own 15 slots leaving 1 free shard — never the 5 tryForm
+   * needs — so a fourth concurrent node is unproducible. There is no
+   * node-count cap branch and no oldest-node retirement on purpose.
+   *
+   * ROUTING IS DISABLED IN F1: nodes carry the shared oriented transform
+   * (NV, v0->v3 surface) for F2/G, but nothing in THIS block captures or
+   * moves a projectile. Checkpoint F2 routes through these ACTIVE nodes via
+   * mirrorF2Candidate/mirrorF2Capture below; the legacy circular router was
+   * retired there.
+   * ==================================================================== */
+  const MIRROR_NV = [[-5, -60], [28, -27], [20, 28], [0, 62], [-28, 31]];
+  const MIRROR_SHARD_SLOTS = 16;
+
+  function mirrorPassiveState(ct) {
+    const st = ct.store['mirror.passive'] || (ct.store['mirror.passive'] = {
+      slots: new Array(MIRROR_SHARD_SLOTS).fill(null),
+      nodes: [],
+      scanT: 0,                 // Gold fcT=0: the first scan runs on tick 1
+    });
+    return st;
+  }
+
+  /* Shared node transform authority (doc 02 P17). F2 gameplay collision and
+   * G presentation MUST both consume HR.mirrorNode — never a second
+   * transform. */
+  function mirrorNodeToWorld(n, lx, ly) {
+    const c = Math.cos(n.rot), s = Math.sin(n.rot);
+    return { x: n.x + lx * c - ly * s, y: n.y + lx * s + ly * c };
+  }
+  function mirrorNodeSurface(n) {
+    const a = mirrorNodeToWorld(n, MIRROR_NV[0][0], MIRROR_NV[0][1]);
+    const b = mirrorNodeToWorld(n, MIRROR_NV[3][0], MIRROR_NV[3][1]);
+    return { ax: a.x, ay: a.y, bx: b.x, by: b.y };
+  }
+  function mirrorNodePolygon(n) {
+    return MIRROR_NV.map((v) => mirrorNodeToWorld(n, v[0], v[1]));
+  }
+  HR.mirrorNode = { NV: MIRROR_NV, toWorld: mirrorNodeToWorld, surface: mirrorNodeSurface, polygon: mirrorNodePolygon };
+
+  /* Per-owner pool spawn with the Gold replacement law: OFF slot first,
+   * else OLDEST FREE slot replaced, RESERVED/NODE_OWNED slots are never
+   * stolen, and if nothing is replaceable the new shard is dropped. */
+  function mirrorProcShards(ct, x, y, n, prov) {
+    if (!M || !ct || ct.facade) return [];
+    const st = mirrorPassiveState(ct);
+    const S = globalScope.GAME_SIZE || 1000;
+    // Gold passiveProc: shards scatter around the REAL impact point along the
+    // real incoming hit direction (alternating spread), with match-seeded
+    // gameplay speed/angle jitter. Never Math.random.
+    const base = (prov && Number.isFinite(prov.dirX) && Number.isFinite(prov.dirY)
+      && (prov.dirX !== 0 || prov.dirY !== 0))
+      ? Math.atan2(prov.dirY, prov.dirX)
+      : rng() * Math.PI * 2;
+    const made = [];
+    for (let i = 0; i < n; i++) {
+      let slotIdx = st.slots.findIndex((z) => !z);
+      if (slotIdx < 0) {
+        let old = -1;
+        for (let k = 0; k < st.slots.length; k++) {
+          const z = st.slots[k];
+          if (z && z.st === 0 && (old < 0 || z.age > st.slots[old].age)) old = k;
+        }
+        slotIdx = old;                       // -1 => unreplaceable: dropped
+      }
+      if (slotIdx < 0) continue;
+      const a = base + (i === 0 ? (rng() * 0.5 - 0.25) : (i % 2 ? 1 : -1) * (0.3 + rng() * 0.5));
+      const sp = 100 + rng() * 75;
+      const sh = {
+        on: true, st: 0, node: null,
+        x: clamp(x + (rng() * 12 - 6), 30, Math.max(30, S - 30)),
+        y: clamp(y + (rng() * 12 - 6), 30, Math.max(30, S - 30)),
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        age: 0, mt0: 0, moving: false,
+        fx: 0, fy: 0, tx: 0, ty: 0, trot: 0, dist: 0,
+        // F1-CLOSURE: IMMUTABLE spawn provenance. G later needs the REAL
+        // realized-hit location and the exact incoming direction — both
+        // captured here, before spawn jitter/scatter, and never re-derived
+        // from the scattered vx/vy (which carry gameplay jitter by design).
+        prov: prov ? {
+          hitX: x, hitY: y,
+          dirX: Number.isFinite(prov.dirX) ? prov.dirX : null,
+          dirY: Number.isFinite(prov.dirY) ? prov.dirY : null,
+          weaponId: prov.weaponId || null,
+          sourceId: prov.sourceId != null ? prov.sourceId : null,
+        } : null,
+      };
+      st.slots[slotIdx] = sh;
+      made.push(sh);
+    }
+    // No detach bus event in F1: the pool IS the positional/lifecycle truth
+    // and presentation hooks belong to G. Keeping event pressure off the
+    // shared bounded ring also protects historical capture windows.
+    return made;
+  }
+
+  /* Clamp the node center only as required to keep the transformed Gold NV
+   * polygon inside the REAL arena (never the demo's literal 90/910/100/900). */
+  function mirrorClampCenter(cx, cy, rot) {
+    const S = globalScope.GAME_SIZE || 1000;
+    const c = Math.cos(rot), s = Math.sin(rot);
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const v of MIRROR_NV) {
+      const lx = v[0] * c - v[1] * s, ly = v[0] * s + v[1] * c;
+      if (lx < minX) minX = lx; if (lx > maxX) maxX = lx;
+      if (ly < minY) minY = ly; if (ly > maxY) maxY = ly;
+    }
+    let lo = -minX, hi = S - maxX;
+    const nx = lo > hi ? (lo + hi) / 2 : clamp(cx, lo, hi);
+    lo = -minY; hi = S - maxY;
+    const ny = lo > hi ? (lo + hi) / 2 : clamp(cy, lo, hi);
+    return { x: nx, y: ny };
+  }
+
+  /* Gold tryForm: per-owner, eligible = FREE and age STRICTLY > .7, seeds in
+   * deterministic slot order, seed-radius topology (fourth-nearest strictly
+   * < 170). */
+  function mirrorTryForm(ct) {
+    if (!ct || ct.facade) return null;
+    const cfg = (ct.skills.PASSIVE && ct.skills.PASSIVE.cfg) || {};
+    const ageGate = cfg.formAgeGate ?? 0.7;
+    const seedR = cfg.seedRadius ?? 170;
+    const st = mirrorPassiveState(ct);
+    const free = [];
+    for (let i = 0; i < st.slots.length; i++) {
+      const z = st.slots[i];
+      if (z && z.st === 0 && z.age > ageGate) free.push(z);
+    }
+    if (free.length < 5) return null;
+    for (const s of free) {
+      const nb = free.filter((o) => o !== s)
+        .map((o) => ({ o, d: Math.hypot(o.x - s.x, o.y - s.y) }))
+        .sort((a, b) => a.d - b.d);
+      if (nb.length >= 4 && nb[3].d < seedR) {
+        return mirrorFormNode(ct, [s, nb[0].o, nb[1].o, nb[2].o, nb[3].o]);
+      }
+    }
+    return null;
+  }
+
+  /* Gold formNode: centroid + seeded orientation + clamped center, edge-slot
+   * mapping minimising travel, immediate reservation of all five slots. */
+  function mirrorFormNode(ct, group) {
+    const cfg = (ct.skills.PASSIVE && ct.skills.PASSIVE.cfg) || {};
+    let cx = 0, cy = 0;
+    for (const s of group) { cx += s.x; cy += s.y; }
+    cx /= 5; cy /= 5;
+    const rotRange = cfg.orientationRange ?? 0.35;
+    const rot = rng() * 2 * rotRange - rotRange;   // match-seeded gameplay RNG
+    const center = mirrorClampCenter(cx, cy, rot);
+    const node = {
+      owner: ct, x: center.x, y: center.y, rot,
+      st: 1,                       // 1 FORMING, 2 ACTIVE, 3 FOLD
+      t: 0, age: 0, t3: 0, tlock: -1,
+      activeAtClock: -1, formedAtClock: AIL.clock(),
+      sh: [],
+      id: mirrorNodeId(),        // F2: stable identity for routing events
+    };
+    // Edge target slots from transformed NV edge midpoints (Gold law).
+    const edges = [];
+    for (let i = 0; i < 5; i++) {
+      const a = MIRROR_NV[i], b = MIRROR_NV[(i + 1) % 5];
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      const w = mirrorNodeToWorld(node, mx, my);
+      edges.push({ x: w.x, y: w.y, ang: Math.atan2(w.y - node.y, w.x - node.x) });
+    }
+    edges.sort((a, b) => a.ang - b.ang);
+    const sh = group.slice().sort((a, b) =>
+      Math.atan2(a.y - node.y, a.x - node.x) - Math.atan2(b.y - node.y, b.x - node.x));
+    let bestShift = 0, bestD = Infinity;
+    for (let sft = 0; sft < 5; sft++) {
+      let t = 0;
+      for (let i = 0; i < 5; i++) {
+        const e = edges[(i + sft) % 5];
+        t += Math.hypot(sh[i].x - e.x, sh[i].y - e.y);
+      }
+      if (t < bestD) { bestD = t; bestShift = sft; }
+    }
+    sh.forEach((s, i) => {
+      const e = edges[(i + bestShift) % 5];
+      s.tx = e.x; s.ty = e.y;
+      s.dist = Math.hypot(s.x - e.x, s.y - e.y);
+    });
+    sh.sort((a, b) => a.dist - b.dist);            // travel-distance order
+    const start0 = cfg.assemblyStart ?? 0.18;
+    const stagger = cfg.assemblyStagger ?? 0.06;
+    sh.forEach((s, i) => {
+      // IMMEDIATE RESERVATION: leaves FREE before any later scan can see it;
+      // the 6s free expiry no longer applies while reserved/node-owned.
+      s.st = 1; s.node = node;
+      s.vx = 0; s.vy = 0; s.moving = false;
+      s.mt0 = start0 + i * stagger;
+      s.fx = s.x; s.fy = s.y;
+    });
+    node.sh = sh;
+    mirrorPassiveState(ct).nodes.push(node);
+    AIL.bus.emit('MirrorNodeForming', { owner: ct.idx, x: node.x, y: node.y, rot: node.rot });
+    return node;
+  }
+
+  const eo3 = (p) => 1 - Math.pow(1 - p, 3);
+
+  function mirrorPassiveTick(ct, dt) {
+    if (!ct || ct.facade) return;
+    const cfg = (ct.skills.PASSIVE && ct.skills.PASSIVE.cfg) || {};
+    const st = mirrorPassiveState(ct);
+    const S = globalScope.GAME_SIZE || 1000;
+    const freeLife = cfg.freeShardLifetime ?? 6;
+    // Shard aging + FREE motion/expiry.
+    for (let i = 0; i < st.slots.length; i++) {
+      const s = st.slots[i];
+      if (!s || !s.on) continue;
+      s.age += dt;
+      if (s.st === 0) {
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        const f = Math.exp(-3.2 * dt);             // Gold free-shard decay
+        s.vx *= f; s.vy *= f;
+        s.x = clamp(s.x, 30, Math.max(30, S - 30));
+        s.y = clamp(s.y, 30, Math.max(30, S - 30));
+        if (s.age >= freeLife) { s.on = false; st.slots[i] = null; } // FREE expiry -> slot OFF
+      }
+    }
+    // Deterministic per-owner formation scan cadence (Gold fcT = .3).
+    st.scanT -= dt;
+    while (st.scanT <= 0) {
+      st.scanT += (cfg.scanCadence ?? 0.3);
+      mirrorTryForm(ct);
+    }
+    // Node lifecycle.
+    const travel = cfg.shardTravel ?? 0.4;
+    const activeDelay = cfg.activeDelayAfterLock ?? 0.38;
+    const activeLife = cfg.activeLifetime ?? 10;
+    const foldDur = cfg.foldDuration ?? 0.55;
+    for (let i = st.nodes.length - 1; i >= 0; i--) {
+      const n = st.nodes[i];
+      n.t += dt;
+      if (n.st === 1) {
+        let done = true;
+        for (const s of n.sh) {
+          if (n.t < s.mt0) { done = false; continue; }
+          if (!s.moving) { s.moving = true; s.fx = s.x; s.fy = s.y; }
+          const p = clamp((n.t - s.mt0) / travel, 0, 1);
+          const e = eo3(p);
+          s.x = s.fx + (s.tx - s.fx) * e;
+          s.y = s.fy + (s.ty - s.fy) * e;
+          if (p < 1) done = false;
+        }
+        if (done && n.tlock < 0) n.tlock = n.t;    // fill only after ALL arrive
+        if (n.tlock >= 0 && n.t > n.tlock + activeDelay) {
+          n.st = 2; n.age = 0; n.activeAtClock = AIL.clock();
+          for (const s of n.sh) s.st = 3;          // NODE_OWNED
+          AIL.bus.emit('MirrorNodeActive', { owner: ct.idx, x: n.x, y: n.y, rot: n.rot });
+        }
+      } else if (n.st === 2) {
+        n.age += dt;
+        if (n.age >= activeLife) { n.st = 3; n.t3 = 0; }
+      } else if (n.st === 3) {
+        n.t3 += dt;
+        if (n.t3 >= foldDur) {
+          // Gold fold completion: node OFF and its five shard slots OFF.
+          // They never return to FREE.
+          for (const s of n.sh) {
+            s.on = false;
+            const k = st.slots.indexOf(s);
+            if (k >= 0) st.slots[k] = null;
+          }
+          st.nodes.splice(i, 1);
+          AIL.bus.emit('MirrorNodeOff', { owner: ct.idx });
+        }
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * SLIME child type — neutral body, no legacy kit.
+   * ------------------------------------------------------------------ */
+  const SLIME_CHILD_TYPE = {
+    name: 'SLIME_CHILD',
+    color: '#7ee08a',
+    speed: 405,
+    startDx: 1, startDy: 0,
+    init() {},
+    update() {}, // driven by HR (child AI), never a legacy kit
+  };
+
+  /* ------------------------------------------------------------------ *
+   * Movement law — rework shells and SLIME children.
+   *
+   * HARD LOCOMOTION LAW (docs 02 / 09 §S1 / 10): ordinary reworked body
+   * movement is ORIGINAL APEX locomotion — the body preserves its heading,
+   * the engine integrates it at baseSpeed, and wall/body interactions change
+   * motion only through normal physics. There is NO automatic pickup
+   * seeking, NO chase/kite steering and NO ideal-distance controller. The
+   * previous shellUpdate pickup-seek + hold-band steer was an illegal global
+   * autopilot that contaminated every Hero (owner-failure root cause S1/S2).
+   *
+   * The ONLY steering allowed is an explicit Hero mechanic active window
+   * (ROBOT A1 Weapon Dash, HUNTER A2 Pounce) — those executors integrate
+   * their own motion and latch positionLocked themselves.
+   *
+   * This hook therefore only latches mechanic-driven movement locks (the
+   * engine resets data.positionLocked every frame) and otherwise leaves
+   * heading untouched.
+   * ------------------------------------------------------------------ */
+  HR.shellUpdate = function shellUpdate(f, enemy, dt) {
+    const ct = combatantOfBody(f);
+    if (!M || !ct || ct.facade) return;
+    // Test/freeze hold (weapon-pose laws): never move a test-pinned body.
+    // Explicit-mechanic integrators (dash/pounce) are unaffected.
+    if (f.data.__hrHoldBody) { f.data.positionLocked = true; return; }
+    // Explicit-mechanic motion states (dash/pounce/nest) already integrated
+    // by executor onTicks; they set positionLocked for the engine skip.
+    if (f.data.positionLocked) return;
+    // ROOT (HUNTER A1 snare / explicit mechanic status): re-latch the engine
+    // movement lock every frame while rooted. Nothing else may steer here.
+    if (AIL.StatusResolver.has(f, 'ROOT')) { f.data.positionLocked = true; }
+    // Otherwise: original APEX law — preserve heading; engine movement +
+    // wall/body bounce own the trajectory.
+  };
+
+  function childAI(child, dt) {
+    const ct = child.__hrCombatant;
+    if (!ct) return;
+    const enemy = enemyOf(ct);
+    HR.shellUpdate(child, enemy ? enemy.anchor : null, dt);
+    // Children run the FULL engine per-fighter pipeline themselves.
+    const enemyBody = enemy ? (livingBodies(enemy)[0] || null) : null;
+    child.update(dt, enemyBody);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Damage adapter (wraps the AQ-adapted Fighter.takeDamage).
+   * ------------------------------------------------------------------ */
+  function installDamageAdapter() {
+    const F = globalScope.Fighter;
+    if (!F || F.prototype.__hrAdapt) return;
+    F.prototype.__hrAdapt = true;
+    const prevTake = F.prototype.takeDamage;
+    F.prototype.takeDamage = function hrTakeDamage(amount, source, label, statusDamage) {
+      if (!M || !(amount > 0)) return prevTake.call(this, amount, source, label, statusDamage);
+      const ct = combatantOfBody(this);
+      if (!ct) return prevTake.call(this, amount, source, label, statusDamage);
+      // F1 PROVENANCE CORRECTION: capture the real firearm impact metadata at
+      // the ENTRY of this synchronous damage transaction. aqDamage sets
+      // __aqImpact immediately before calling takeDamage and clears it when
+      // the transaction unwinds, so this snapshot is bound to exactly THIS
+      // damage event — a stale impact from an earlier hit can never leak into
+      // a later direct/status/non-impact transaction (the field is null then).
+      const impact = this.__aqImpact || null;
+      const weaponId = String(label || '').startsWith('arsenal-')
+        ? String(label).slice('arsenal-'.length).toUpperCase() : null;
+      let packet = { amount, source, weaponId, statusDamage };
+      if (!ct.facade) {
+        eachExecutor(ct, (exec, ctx) => {
+          if (!exec.onTakeDamage) return;
+          const out = exec.onTakeDamage(ctx, this, packet);
+          if (out) packet = out;
+        });
+        eachExecutor(ct, (exec, ctx) => {
+          if (!exec.onTakeDamageLate) return;
+          const out = exec.onTakeDamageLate(ctx, this, packet);
+          if (out) packet = out;
+        });
+      }
+      // POST-PLAYTEST 2026-09-29 WEAK law, exactly once, before realized HP
+      // loss: Hunter-controlled damage into a WEAK combatant x1.25; positive
+      // damage dealt BY a WEAK combatant x0.75. Neutral/self/unrelated
+      // sources never receive the Hunter vulnerability.
+      const srcCt = packet.source ? combatantOfBody(packet.source) : null;
+      if (srcCt && srcCt !== ct) {
+        if ((srcCt.weakUntil || 0) > AIL.clock()) packet = { ...packet, amount: packet.amount * 0.75 };
+        if (srcCt.heroId === 'HUNTER' && (ct.weakUntil || 0) > AIL.clock()) {
+          packet = { ...packet, amount: packet.amount * 1.25 };
+        }
+      }
+      if (!(packet.amount > 0)) {
+        AIL.bus.emit('DamageFullyAbsorbed', { victim: this.id, original: amount });
+        return;
+      }
+      const before = this.hp;
+      const out = prevTake.call(this, packet.amount, packet.source, label, statusDamage);
+      const dealt = Math.max(0, before - this.hp);
+      if (dealt > 0) {
+        const sourceCt = combatantOfBody(packet.source);
+        onRealized({
+          victimBody: this, victimCombatant: ct, amount: dealt,
+          creditedTo: sourceCt || null, sourceBody: packet.source || null,
+          weaponId, label, impact,
+        });
+        // Immediate anchor promotion when the anchor body died (SLIME law:
+        // the combatant lives while any body lives; the array keeps exactly
+        // one slot per side).
+        if (this === ct.anchor && this.hp <= 0) promoteAnchor(ct);
+      }
+      return out;
+    };
+  }
+
+  function onRealized(ev) {
+    if (!M) return;
+    // Telemetry.
+    if (ev.creditedTo && ev.creditedTo !== ev.victimCombatant) ev.creditedTo.telemetry.damageDealt += ev.amount;
+    if (ev.victimCombatant) ev.victimCombatant.telemetry.damageTaken += ev.amount;
+    AIL.bus.emit('RealizedDamageEvent', {
+      victim: ev.victimBody.id, amount: ev.amount,
+      creditedTo: ev.creditedTo ? ev.creditedTo.heroId : null,
+      weaponId: ev.weaponId,
+      // Presentation-only impact provenance. Existing damage law is complete
+      // before emission; consumers may read the real source point/direction
+      // without changing damage, push, or collision resolution.
+      sourceBody: ev.sourceBody && ev.sourceBody.id,
+      sourceX: ev.sourceBody && ev.sourceBody.x,
+      sourceY: ev.sourceBody && ev.sourceBody.y,
+      label: ev.label || null,
+    });
+    for (const ct of M.combatants) eachExecutor(ct, (exec, ctx) => {
+      if (exec.onRealizedDamage) exec.onRealizedDamage(ctx, ev);
+    });
+  }
+
+  function promoteAnchor(ct) {
+    const living = livingBodies(ct).filter((b) => b !== ct.anchor);
+    if (!living.length) return; // combatant truly dead — engine KO stands
+    // DOC-06 SLIME LAW: child Bodies never enter the legacy fighters[]
+    // array. The retired anchor stays in the slot as a neutralized
+    // representative (still, invisible, untouchable); the promoted anchor
+    // is driven + drawn by the rework runtime instead of the engine.
+    const retired = ct.anchor;
+    const next = living[0];
+    retired.baseSpeed = 0;
+    retired.data.positionLocked = true;
+    retired.data.__hrRetiredAnchor = true;
+    retired.draw = function retiredAnchorDraw() {}; // engine draw -> nothing
+    ct.anchor = next;
+    next.__hrRefHp = next.__hrRefHp || next.maxHp;
+    AIL.bus.emit('SlimeAnchorPromoted', { combatant: ct.heroId, newAnchor: next.id });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Combatant-level HP authority (doc 02: logical victory/HUD/save =
+   * Combatant; body-local HP stays the physical damage authority; a
+   * Combatant dies only when no living Body remains). Shared body
+   * queries (KO check, HUD) route through these instead of reading the
+   * current anchor's hp directly.
+   * ------------------------------------------------------------------ */
+  function combatantHp(ct) {
+    const living = livingBodies(ct);
+    let hp = 0, maxHp = 0;
+    for (const b of living) { hp += b.hp; maxHp += (b.__hrRefHp || b.maxHp); }
+    return { hp, maxHp: maxHp || 1, bodies: living.length };
+  }
+  HR.combatantHp = combatantHp;
+  HR.bodyKO = function bodyKO(f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return (f ? f.hp <= 0 : true); // legacy body
+    return livingBodies(ct).length === 0; // rework: Combatant death law
+  };
+  HR.bodyHudHp = function bodyHudHp(f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return { hp: f.hp, maxHp: f.maxHp };
+    return combatantHp(ct);
+  };
+  HR.hudIdentity = function hudIdentity(f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return { name: f ? f.name : '', color: f ? f.color : '#ffffff', heroId: null };
+    return {
+      name: REG.displayNameFor ? REG.displayNameFor(ct.heroId) : ct.heroId,
+      color: (f && f.color) || '#ffffff',
+      heroId: ct.heroId,
+    };
+  };
+
+  /* ------------------------------------------------------------------ *
+   * Fire hooks (audited call-sites in arsenalWeaponRuntime).
+   * ------------------------------------------------------------------ */
+  HR.onFireBullet = function onFireBullet(spec) {
+    if (!M) return null;
+    if (spec.__hrReplay) {
+      return { replay: spec.__hrReplay, chill: !!(spec.__hrTags && spec.__hrTags.chill) };
+    }
+    const owner = spec.owner;
+    const ct = combatantOfBody(owner);
+    if (!ct || ct.facade) return null;
+    const tag = {};
+    // SNIPER predictive intercept (nest) — retarget before the muzzle.
+    const snipe = ct.skills.A2 && ct.store['sniper.nest'];
+    if (snipe && snipe.nestUntil && AIL.clock() < snipe.nestUntil && ct.heroId === 'SNIPER') {
+      const enemy = enemyOf(ct);
+      const ea = enemy && livingBodies(enemy)[0];
+      if (ea) {
+        const vel = bodyVelocity(ea);
+        const t = solveIntercept(spec.x, spec.y, ea.x, ea.y, vel.x, vel.y, spec.speed);
+        if (t > 0) {
+          const px = ea.x + vel.x * t, py = ea.y + vel.y * t;
+          spec.angle = Math.atan2(py - spec.y, px - spec.x);
+        }
+      }
+    }
+    // Executor hooks (magnet speed, ice chill, sniper crit, time record).
+    // A projectile stand-in exposes exactly the fields executors may touch;
+    // mutations map back onto the spec BEFORE the base push.
+    const standin = { weapon: spec.weapon, critical: !!spec.critical, __hr: tag };
+    Object.defineProperty(standin, 'critical', {
+      get() { return !!spec.critical; },
+      set(v) { spec.critical = !!v; },
+    });
+    const descriptor = { kind: 'bullet', params: { ...spec, owner } };
+    for (const slot of ['A1', 'A2', 'PASSIVE']) {
+      const s = ct.skills[slot];
+      if (!s) continue;
+      const exec = MECH.EXECUTORS[s.def.mechanicId];
+      if (!exec || !exec.onProjectileFired) continue;
+      exec.onProjectileFired(mechCtx(ct, slot), standin, descriptor);
+    }
+    // Narrow live-spec bridge: descriptor speed was historically a detached
+    // copy, so Magnet's pre-emission multiplier never reached fireBullet().
+    if (descriptor.params.speed !== spec.speed) spec.speed = descriptor.params.speed;
+    return Object.keys(tag).length ? tag : null;
+  };
+
+  function solveIntercept(sx, sy, tx, ty, tvx, tvy, projSpeed) {
+    const dx = tx - sx, dy = ty - sy;
+    const a = tvx * tvx + tvy * tvy - projSpeed * projSpeed;
+    const b = 2 * (dx * tvx + dy * tvy);
+    const c = dx * dx + dy * dy;
+    if (Math.abs(a) < 1e-6) {
+      return b !== 0 ? -c / b : 0;
+    }
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) return 0;
+    const sq = Math.sqrt(disc);
+    const t1 = (-b - sq) / (2 * a), t2 = (-b + sq) / (2 * a);
+    const cands = [t1, t2].filter((t) => t > 0);
+    return cands.length ? Math.min(...cands) : 0;
+  }
+
+  function bodyVelocity(body) {
+    const v = body.__hrVel || { x: 0, y: 0 };
+    return v;
+  }
+
+  HR.onThrownMelee = function onThrownMelee(f, weaponId, angle, extra) {
+    if (!M) return null;
+    const ct = combatantOfBody(f);
+    if (extra && extra.__hrReplay) return { replay: extra.__hrReplay };
+    if (!ct || ct.facade) return null;
+    const tag = {};
+    for (const slot of ['A1', 'A2', 'PASSIVE']) {
+      const s = ct.skills[slot];
+      if (!s) continue;
+      const exec = MECH.EXECUTORS[s.def.mechanicId];
+      if (!exec || !exec.onProjectileFired) continue;
+      const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+      const t = W && W.thrownSpec ? W.thrownSpec(weaponId) : {};
+      exec.onProjectileFired(mechCtx(ct, slot), { weapon: weaponId, __hr: tag }, {
+        kind: 'thrown-melee',
+        params: { owner: f, weapon: weaponId, angle },
+        speed: t.speed, ricochets: t.ricochets,
+      });
+    }
+    return Object.keys(tag).length ? tag : null;
+  };
+
+  HR.onGrenade = function onGrenade(spec) {
+    if (!M) return null;
+    if (spec && spec.__hrReplay) return { replay: spec.__hrReplay };
+    const ct = combatantOfBody(spec.owner);
+    if (!ct || ct.facade) return null;
+    const tag = {};
+    for (const slot of ['A1', 'A2', 'PASSIVE']) {
+      const s = ct.skills[slot];
+      if (!s) continue;
+      const exec = MECH.EXECUTORS[s.def.mechanicId];
+      if (!exec || !exec.onProjectileFired) continue;
+      exec.onProjectileFired(mechCtx(ct, slot), { __hr: tag, weapon: 'GRENADE' }, {
+        kind: 'grenade-throw',
+        params: { ...spec },
+      });
+    }
+    return Object.keys(tag).length ? tag : null;
+  };
+
+  /* ------------------------------------------------------------------ *
+   * Equip hook (weapon pickup by a rework combatant).
+   * ------------------------------------------------------------------ */
+  function onEquipped(f, weaponId) {
+    if (!M) return;
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return;
+    eachExecutor(ct, (exec, ctx) => {
+      if (exec.onEquipOffensive) exec.onEquipOffensive(ctx, weaponId);
+    });
+    AIL.bus.emit('ReworkEquip', { combatant: ct.heroId, weaponId });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Enemy resolution hook (makeCtx) — body-aware + SNIPER aim-lost.
+   * ------------------------------------------------------------------ */
+  HR.resolveEnemyBody = function resolveEnemyBody(f, baseEnemy) {
+    const quest = globalScope.APEX_ARSENAL?.state?.questMultiActor
+      && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
+    if (quest) return quest.nearestEnemy(f, globalScope.fighters || []);
+    if (!M) return undefined; // no rework match: keep base resolution
+    const ct = combatantOfBody(f);
+    if (!ct) return undefined;
+    // Aim-lost: no auto-aim target (opponent may still fire last aim).
+    const aimLost = ct.store.__aimLost && ct.store.__aimLost.until > AIL.clock();
+    if (aimLost) return null;
+    const enemy = enemyOf(ct);
+    if (!enemy) return baseEnemy || null;
+    const bodies = livingBodies(enemy);
+    if (!bodies.length) return null;
+    if (bodies.length === 1) return bodies[0] === baseEnemy ? baseEnemy : bodies[0];
+    let best = null, bestD = Infinity;
+    for (const b of bodies) {
+      const d = dist(f.x, f.y, b.x, b.y);
+      if (d < bestD) { bestD = d; best = b; }
+    }
+    return best;
+  };
+
+  /* ------------------------------------------------------------------ *
+   * Pickup actors hook (resolvePickups) + splash hook (explodeGrenade).
+   * ------------------------------------------------------------------ */
+  HR.pickupActors = function pickupActors() {
+    if (!M) return undefined; // base path
+    return M.combatants.flatMap((ct) => livingBodies(ct));
+  };
+  HR.splashTargets = function splashTargets(owner) {
+    const quest = globalScope.APEX_ARSENAL?.state?.questMultiActor
+      && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
+    if (quest) return quest.splashEnemies(owner, globalScope.fighters || []);
+    if (!M) return undefined;
+    const ownerCt = combatantOfBody(owner);
+    const out = [];
+    for (const ct of M.combatants) {
+      for (const b of livingBodies(ct)) if (b !== owner) out.push(b);
+    }
+    return out;
+  };
+  HR.spreadScaleFor = function spreadScaleFor(f) {
+    if (!M) return 1;
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade || ct.heroId !== 'SNIPER') return 1;
+    const st = ct.store['sniper.nest'];
+    if (st && st.nestUntil && AIL.clock() < st.nestUntil) {
+      const cfg = ct.skills.A2.cfg;
+      return cfg.spreadMultiplier || 0.25;
+    }
+    return 1;
+  };
+
+  /* ------------------------------------------------------------------ *
+   * Side-aware ability input. Keyboard/touch/AI all hit this same executor;
+   * presentation never infers side from hero identity.
+   * ------------------------------------------------------------------ */
+  HR.pressAbility = function pressAbility(f, slot, sourceMeta) {
+    if (!M) return { ok: false, reason: 'no-match' };
+    // While the beginner tutorial holds its BOT-only pause lease, the one
+    // shared input executor stays closed. The coach captures the player's
+    // real input, releases the lease, then forwards that input here once.
+    if (tutorialPauseActive()) return { ok: false, reason: 'tutorial-paused' };
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return { ok: false, reason: 'not-rework' };
+    const input = normalizeCastInput(ct, sourceMeta || { source: ct.side, side: ct.side });
+    const res = abilityController(ct).tryCast(slot, input);
+    const press = {
+      slot, ok: res.ok, reason: res.reason,
+      side: input.side, combatantId: input.combatantId,
+      source: input.source, input,
+    };
+    AIL.bus.emit('AbilityPress', press);
+    if (input.side === 'p1') AIL.bus.emit('P1Press', press);
+    else AIL.bus.emit('P2Press', press);
+    return res;
+  };
+
+  // Tactical Pulse read-only legality: shares the EXACT guard order and
+  // mechanic canCast predicate with tryCast, without invoking cast, mutating
+  // state, or emitting CastFailCue. HUD/coach never become gameplay authorities.
+  HR.clock = () => AIL.clock();
+
+  HR.observeAbilityCastability = function observeAbilityCastability(fighter, slot) {
+    if (!M || !MECH || !MECH.EXECUTORS) {
+      return { known: false, castable: false, reason: 'no-combatant', mechanic: '' };
+    }
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || !ct.skills || !ct.skills[slot]) {
+      return { known: false, castable: false, reason: 'no-combatant', mechanic: '' };
+    }
+    const s = ct.skills[slot];
+    const mechanic = String(s.def?.mechanicId || s.mechanic || '');
+    const base = { known: true, castable: false, reason: 'condition', mechanic };
+    const quest = globalScope.APEX_ARSENAL?.state;
+    if (quest?.questReflex === true && ct.anchor?.questId === 'NEWBOT') {
+      const phase = quest.questReflexGate?.snapshot()?.phase;
+      const allowJ = ['J_CAST', 'K_CAST', 'BOTH_HALF'].includes(phase);
+      const allowK = ['K_CAST', 'BOTH_HALF'].includes(phase);
+      if ((slot === 'A1' && !allowJ) || (slot === 'A2' && !allowK)) {
+        return { ...base, reason: 'quest-stage-locked' };
+      }
+    }
+    const a = ct.anchor;
+    if (!a || a.hp <= 0 || ct.dead) return { ...base, reason: 'dead' };
+    if (typeof a.hardCC === 'function' && a.hardCC()) return { ...base, reason: 'cc' };
+    // BOXE A1 owns a dedicated mid-flight recall recast before normal cooldown.
+    if (slot === 'A1' && ct.heroId === 'BOXE' && ct.store.__boxeBattle?.rocket) {
+      const rocket = ct.store.__boxeBattle.rocket;
+      const returning = !!(rocket.returning || rocket.phase === 'return');
+      return returning
+        ? { ...base, reason: 'recast-returning' }
+        : { known: true, castable: true, reason: 'recast', mechanic };
+    }
+    if (s.cfg?.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ...base, reason: 'cooldown' };
+    const exec = MECH.EXECUTORS[mechanic];
+    if (!exec || typeof exec.cast !== 'function') return { ...base, reason: 'no-executor' };
+    try {
+      const ctx = mechCtx(ct, slot);
+      if (exec.canCast && !exec.canCast(ctx)) return base;
+      const result = { known: true, castable: true, reason: 'ready', mechanic };
+      if (ct.heroId === 'ROBOT' && slot === 'A1') {
+        const target = ctx.api?.nearestRevealedPickup?.(ct, { excludeT6: true });
+        if (target) {
+          result.targetWeaponId = target.weaponId;
+          result.targetSlotId = target.slot?.id ?? target.id;
+          result.targetX = target.x;
+          result.targetY = target.y;
+        }
+      }
+      return result;
+    } catch (_) {
+      return { ...base, reason: 'probe-error' };
+    }
+  };
+
+  // Authoritative simulation-clock active windows across durational mechanics.
+  // Never guesses from wall-clock timers; reads AIL.clock() + live mechanic store.
+  HR.observeAbilityActiveWindow = function observeAbilityActiveWindow(fighter, slot) {
+    if (!M) return { active: false, remainSec: 0, mitigationPct: 0 };
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || !ct.skills || !ct.skills[slot]) {
+      return { active: false, remainSec: 0, mitigationPct: 0 };
+    }
+    const s = ct.skills[slot];
+    const mechanic = String(s.def?.mechanicId || s.mechanic || '');
+    const st = ct.store && ct.store[mechanic];
+    const now = AIL.clock();
+    let until = 0;
+    let mitigationPct = 0;
+    if (mechanic === 'robot.virtual_armor') {
+      until = Number(st && st.armorUntil) || 0;
+      const mult = Number.isFinite(Number(s.cfg?.incomingMult)) ? Number(s.cfg.incomingMult) : 0.45;
+      mitigationPct = Math.max(0, Math.round((1 - mult) * 100));
+    } else if (mechanic === 'black_hole.damage_singularity') {
+      until = Number(st && st.escrowUntil) || 0;
+    } else if (mechanic === 'rubber.elastic_state') {
+      until = Number(st && st.windowUntil) || 0;
+    } else if (mechanic === 'rubber.compression') {
+      until = Number(st && st.storeUntil) || 0;
+    } else if (mechanic === 'slime.damage_shedding') {
+      until = Number(st && st.shedUntil) || 0;
+    } else if (mechanic === 'sniper.nest') {
+      until = Number(st && st.nestUntil) || 0;
+    }
+    const remainSec = Math.max(0, until - now);
+    return {
+      active: remainSec > 0.02,
+      remainSec: remainSec > 0.02 ? remainSec : 0,
+      mitigationPct: remainSec > 0.02 ? mitigationPct : 0,
+    };
+  };
+
+  // Read-only floor target + incoming spawn telegraph observer for Robot A1.
+  // Coordinates come strictly from live Arsenal slots; never fabricated.
+  HR.observeRobotFloorTarget = function observeRobotFloorTarget(fighter) {
+    if (!M) return { target: null, nextSpawn: null };
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || ct.heroId !== 'ROBOT') return { target: null, nextSpawn: null };
+    const pickup = M.api?.nearestRevealedPickup?.(ct, { excludeT6: true });
+    if (pickup && Number.isFinite(pickup.x) && Number.isFinite(pickup.y)) {
+      return {
+        target: {
+          x: pickup.x,
+          y: pickup.y,
+          weaponId: String(pickup.weaponId || ''),
+          slotId: pickup.slot?.id ?? pickup.id,
+        },
+        nextSpawn: null,
+      };
+    }
+    const aq = globalScope.APEX_ARSENAL?.state;
+    const slots = Array.isArray(aq?.slots) ? aq.slots : [];
+    let best = null;
+    let bestRemain = Infinity;
+    const nowTime = Number(aq?.time) || 0;
+    for (const slot of slots) {
+      if (!slot || slot.phase !== 'TELEGRAPH' || slot.kind !== 'WEAPON' || slot.questNarrativeOnly) continue;
+      if (!Number.isFinite(slot.x) || !Number.isFinite(slot.y)) continue;
+      const lead = Number.isFinite(slot.revealLeadSeconds) ? slot.revealLeadSeconds : 2.0;
+      const remain = Math.max(0, lead - Math.max(0, nowTime - (Number(slot.spawnTime) || 0)));
+      if (remain < bestRemain) {
+        bestRemain = remain;
+        best = { x: slot.x, y: slot.y, remainSec: remain, slotId: slot.id };
+      }
+    }
+    return { target: null, nextSpawn: best };
+  };
+
+  function normalizeAiDecision(raw) {
+    if (raw == null) return { shouldCast:true, score:1, reason:'ready-default', retryAfter:.35 };
+    if (typeof raw === 'boolean') return { shouldCast:raw, score:raw?1:0, reason:raw?'allowed':'rejected', retryAfter:.35 };
+    const shouldCast = raw.shouldCast !== false;
+    const score = Number.isFinite(raw.score) ? clamp(raw.score,0,1) : (shouldCast?1:0);
+    const retryAfter = Number.isFinite(raw.retryAfter) ? clamp(raw.retryAfter,.1,2) : .35;
+    return { shouldCast, score, reason:String(raw.reason || (shouldCast?'selected':'rejected')), retryAfter };
+  }
+
+  // CP4: one read-only tactical-opportunity seam shared by BOT scheduling
+  // and the beginner tutorial. It only evaluates the hero mechanic's own
+  // aiEvaluate against live observable state; it never emits AI telemetry,
+  // mutates cast plans, or casts. A missing policy fails closed instead of
+  // treating cooldown-zero as an opportunity.
+  HR.observeAbilityOpportunity = function observeAbilityOpportunity(fighter, slot) {
+    if (!M || !MECH || !MECH.EXECUTORS) return null;
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || !ct.skills || !ct.skills[slot]) return null;
+    const exec = MECH.EXECUTORS[ct.skills[slot].def.mechanicId];
+    if (!exec || typeof exec.aiEvaluate !== 'function') return null;
+    try {
+      const raw = exec.aiEvaluate(mechCtx(ct, slot));
+      if (raw == null) return { shouldCast:false, score:0, reason:'no-policy', retryAfter:.5 };
+      return normalizeAiDecision(raw);
+    } catch (_) {
+      return { shouldCast:false, score:0, reason:'policy-error', retryAfter:.5 };
+    }
+  };
+
+  function emitAiDecision(type, ct, slot, plan, extra) {
+    const payload = {
+      hero:ct.heroId, slot, side:ct.side, combatantId:ct.combatantId,
+      at:AIL.clock(), ...(extra || {}),
+    };
+    plan.lastDecision = { type, ...payload };
+    AIL.bus.emit(type, payload);
+  }
+
+  function p2CastAI(ct, dt) {
+    if (!HR.aiEnabled || !M.aiEnabled) return;
+    const AQS = globalScope.APEX_ARSENAL;
+    if (AQS && AQS.state && AQS.state.labMode) return;
+    if (ct.idx !== 1) return; // P2 only
+    // Owner law 2026-10-05: in LOCAL 1v1 the P2 abilities belong to the second
+    // human player (Digit1/Digit2), so the cast AI is disabled ONLY for that
+    // player-controlled P2. BOT matches keep the AI on P2.
+    if (AQS && AQS.state && AQS.state.battleMode === 'LOCAL') return;
+    const ctl = abilityController(ct);
+    for (const slot of ['A1', 'A2']) {
+      if(ct.heroId==='BOXE'&&slot==='A1'&&ct.store.__boxeBattle?.rocket)continue;
+      if (ctl.cooldownLeft(slot) > 0) continue;
+      const key = `${ct.heroId}:${slot}`;
+      const plan = (M.aiCastPlan[key] = M.aiCastPlan[key] || {});
+      if (plan.at == null) {
+        // Deterministic post-ready delay prevents frame-zero reflex casts.
+        // CP4: MIRROR's authored cast startup is canonical and untouched;
+        // only the scheduler's excess think-time is shorter so its
+        // snap-projected A2 decision is evaluated inside the real window.
+        const thinkDelay = ct.heroId === 'MIRROR' ? 0.18 + rng() * 0.25 : 0.4 + rng() * 0.6;
+        plan.at = AIL.clock() + thinkDelay;
+      } else if (AIL.clock() >= plan.at) {
+        const exec = MECH.EXECUTORS[ct.skills[slot].def.mechanicId];
+        const ctx = mechCtx(ct, slot);
+        let decision;
+        try { decision = normalizeAiDecision(exec && exec.aiEvaluate ? exec.aiEvaluate(ctx) : null); }
+        catch (error) { decision = { shouldCast:false, score:0, reason:'policy-error', retryAfter:.5 }; }
+
+        emitAiDecision('AICastConsider', ct, slot, plan, {
+          score:decision.score, reason:decision.reason, shouldCast:decision.shouldCast,
+        });
+        if (!decision.shouldCast) {
+          emitAiDecision('AICastReject', ct, slot, plan, { score:decision.score, reason:decision.reason });
+          plan.at = AIL.clock() + decision.retryAfter;
+          continue;
+        }
+
+        // Legacy mechanic preflight remains supported for heroes not yet moved
+        // to aiEvaluate(). It prevents impossible casts; tactical utility stays
+        // a separate decision above.
+        if (exec && exec.aiCanAttempt && !exec.aiCanAttempt(ctx)) {
+          emitAiDecision('AICastReject', ct, slot, plan, { score:decision.score, reason:'mechanic-unavailable' });
+          plan.at = AIL.clock() + Math.max(.25, decision.retryAfter);
+          continue;
+        }
+
+        emitAiDecision('AICastSelect', ct, slot, plan, { score:decision.score, reason:decision.reason });
+        const res = ctl.tryCast(slot, { side: 'p2', source: 'ai' });
+        emitAiDecision('AICastOutcome', ct, slot, plan, { ok:!!res.ok, reason:res.reason || (res.ok?'cast':'unknown') });
+        if (res.ok || res.reason === 'cooldown' || res.reason === 'cc') {
+          plan.at = null; // re-plan only when the skill is ready again
+        } else {
+          plan.at = AIL.clock() + Math.max(.5, decision.retryAfter);
+        }
+        if (res.ok) {
+          // CP4 sequencing: at most one successful cast per AI tick. The
+          // sibling slot re-plans shortly after, so paired skills sequence
+          // like a player's inputs instead of firing in the same frame.
+          const otherSlot = slot === 'A1' ? 'A2' : 'A1';
+          const otherKey = `${ct.heroId}:${otherSlot}`;
+          const otherPlan = (M.aiCastPlan[otherKey] = M.aiCastPlan[otherKey] || {});
+          otherPlan.at = AIL.clock() + 0.35;
+          break;
+        }
+      }
+    }
+  }
+  HR.setAiEnabled = function (v) { HR.aiEnabled = !!v; if (M) M.aiEnabled = HR.aiEnabled; };
+
+  /* ------------------------------------------------------------------ *
+   * Step wrapping — AQ.step (headless) and global update (rAF).
+   * ------------------------------------------------------------------ */
+  HR.applyExternalBodyMotion = function applyExternalBodyMotion(body) {
+    const magnet = globalScope.APEX_MAGNET;
+    if (!M || !magnet || !magnet.consumeBodyMotion || !body) return null;
+    // W3: capture the field's REAL ordered sub-segments before the summed
+    // displacement is applied, so the curve is never collapsed to a chord.
+    if (body.__hrBodyPath && magnet.bodyFieldPath) {
+      const fp = magnet.bodyFieldPath(body);
+      if (fp) for (const g of fp) body.__hrBodyPath.push({ stage: 'field', x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1 });
+    }
+    const motion = magnet.consumeBodyMotion(body);
+    body.__hrExternalVelocity = motion
+      ? { x: motion.vx, y: motion.vy }
+      : { x: 0, y: 0 };
+    return motion;
+  };
+  HR.renderArenaWorldEffects = function renderArenaWorldEffects(ctx, provenance) {
+    if (!M || provenance?.stage !== 'after-world-before-fighters') return;
+    globalScope.APEX_MAGNET_PRESENTATION?.renderArenaDistortion?.(ctx, provenance);
+    globalScope.APEX_MIRROR_PRESENTATION?.renderArenaWorldEffects?.(ctx, provenance);
+  };
+
+  function hrPreTick(dt) {
+    if (!M) return;
+    HR._magnetStepPendingDt = dt;
+    HR.__frameSeq = (HR.__frameSeq || 0) + 1;
+    // Frame-start body positions. Explicit movers (Hunter pounce) run inside
+    // executor onTick, BEFORE Magnet body force and before canonical
+    // Fighter.update movement. Any contact they adjudicate inline therefore
+    // uses a pre-physics mover path and a stale target position. These samples
+    // let contact be resolved after movement against both bodies' REAL paths.
+    for (const b of M.api.allBodies()) {
+      if (!b) continue;
+      if (!b.__hrFrameStart) b.__hrFrameStart = { x: 0, y: 0 };
+      b.__hrFrameStart.x = b.x; b.__hrFrameStart.y = b.y;
+      // W3: ordered body path for the frame. Stages are appended as they
+      // actually happen (authored explicit movement, Magnet field
+      // sub-segments, canonical movement) so physical-contact consumers can
+      // query the REAL travelled path instead of a frame chord.
+      b.__hrBodyPath = b.__hrBodyPath || [];
+      b.__hrBodyPath.length = 0;
+    }
+    // Presentation root sampling starts before canonical fighter movement.
+    // The matching post-movement sample is consumed exactly once in
+    // hrPostTick for both AQ.step (headless) and global update (real rAF).
+    globalScope.APEX_MAGNET_PRESENTATION?.capturePreMovement?.();
+    AIL.bindClock(() => globalScope.matchClock || 0);
+    AIL.hrScheduler.tick();
+    for (const ct of M.combatants) {
+      if (ct.facade) continue;
+      abilityController(ct).tick(dt);
+      p2CastAI(ct, dt);
+      eachExecutor(ct, (exec, ctx) => { if (exec.onTick) exec.onTick(ctx, dt); });
+    }
+    // W3: authored explicit movement has now run. moveHunterBody records its
+    // own field-integrated sub-segments; anything else that moved a body
+    // directly (e.g. Robot dash) gets one explicit stage here.
+    for (const b of M.api.allBodies()) {
+      if (!b || !b.__hrFrameStart || !b.__hrBodyPath) continue;
+      const fs = b.__hrFrameStart;
+      const last = b.__hrBodyPath.length ? b.__hrBodyPath[b.__hrBodyPath.length - 1] : null;
+      const cx = last ? last.x1 : fs.x, cy = last ? last.y1 : fs.y;
+      if (Math.abs(b.x - cx) > 1e-9 || Math.abs(b.y - cy) > 1e-9) {
+        b.__hrBodyPath.push({ stage: 'explicit', x0: cx, y0: cy, x1: b.x, y1: b.y });
+      }
+    }
+    // Child bodies: full engine pipeline + holder updates. The anchor is
+    // driven by the ENGINE while it is the fighters[] entry; a PROMOTED
+    // anchor (SLIME, doc-06: children never enter fighters[]) is driven
+    // here instead so it keeps moving/fighting after promotion.
+    const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+    const engineDrives = (ct) => {
+      const arr = globalScope.fighters;
+      return !!(arr && arr[ct.idx] === ct.anchor);
+    };
+    // Prepare summed A2 body velocity before any Fighter.update. Each body
+    // consumes its own displacement inside Fighter.update, before canonical
+    // walls and anchor collision. This replaces the rejected post-collision
+    // sidecar position integration.
+    const magnet = globalScope.APEX_MAGNET;
+    if (magnet?.prepareBodyForces) {
+      magnet.prepareBodyForces(dt, {
+        now: AIL.clock(), bodies: HR.pickupActors ? HR.pickupActors() : (globalScope.fighters || []),
+        combatantOfBody, gameSize: globalScope.GAME_SIZE || 1000,
+      });
+    }
+    for (const ct of M.combatants) {
+      for (const b of ct.bodies) {
+        if (!b || b.hp <= 0) continue;
+        if (b === ct.anchor && engineDrives(ct)) continue;
+        childAI(b, dt);
+        if (W && W.updateHolder) W.updateHolder(b, dt);
+      }
+    }
+    // Velocity tracking (for SNIPER intercept).
+    for (const ct of M.combatants) {
+      for (const b of ct.bodies) {
+        if (!b) continue;
+        b.__hrVel = b.__hrLast
+          ? { x: (b.x - b.__hrLast.x) / Math.max(dt, 1e-4), y: (b.y - b.__hrLast.y) / Math.max(dt, 1e-4) }
+          : { x: 0, y: 0 };
+        b.__hrLast = { x: b.x, y: b.y };
+      }
+    }
+  }
+
+  // Narrow mode-loop bridge. Arsenal Battle calls this after canonical fighter
+  // movement/collisions and immediately before its pickup transaction.
+  HR.stepMagnetWorld = function stepMagnetWorld(dt) {
+    const magnet = globalScope.APEX_MAGNET;
+    const arsenal = globalScope.APEX_ARSENAL;
+    if (!M || !magnet || !arsenal || !arsenal.state
+      || !M.combatants.some((ct) => !ct.facade && ct.heroId === 'MAGNET')) return;
+    const bodies = HR.pickupActors ? HR.pickupActors() : (globalScope.fighters || []);
+    magnet.stepWorld(dt, {
+      now: AIL.clock(), slots: arsenal.state.slots || [], bodies,
+      combatantOfBody, gameSize: globalScope.GAME_SIZE || 1000,
+      // Body motion was prepared pre-Fighter.update and already consumed at
+      // the canonical physics seam. The pickup seam owns floor objects only.
+      skipBodyForces: true,
+    });
+  };
+
+  /* Resolve explicit-body-motion contact requests against the REAL paths both
+   * bodies travelled this frame. Runs after Fighter.update, so the mover's
+   * position already includes hostile physics (Magnet A2 body force) and
+   * canonical walls, and the target position is this frame's actual one rather
+   * than a pre-movement sample.
+   *
+   * Moving circle vs moving circle: with both paths linear over the frame the
+   * separation vector is itself linear, so the earliest contact is the TOI of
+   * the RELATIVE path against the origin at the summed radius. */
+  /* W3: the ordered path a body actually travelled this frame.
+   * Always terminated by the canonical post-movement endpoint, so the last
+   * point equals the body's real resting position after walls/collision. */
+  function bodyPathSegments(b) {
+    const fs = b && b.__hrFrameStart;
+    if (!fs) return [{ x0: b.x, y0: b.y, x1: b.x, y1: b.y }];
+    const raw = (b.__hrBodyPath || []).filter((g) =>
+      Number.isFinite(g.x0) && Number.isFinite(g.y0) && Number.isFinite(g.x1) && Number.isFinite(g.y1));
+    const out = [];
+    let cx = fs.x, cy = fs.y;
+    for (const g of raw) {
+      if (Math.abs(g.x0 - cx) > 1e-6 || Math.abs(g.y0 - cy) > 1e-6) {
+        out.push({ stage: 'link', x0: cx, y0: cy, x1: g.x0, y1: g.y0 });
+      }
+      out.push(g); cx = g.x1; cy = g.y1;
+    }
+    if (Math.abs(b.x - cx) > 1e-6 || Math.abs(b.y - cy) > 1e-6) {
+      out.push({ stage: 'canonical', x0: cx, y0: cy, x1: b.x, y1: b.y });
+    }
+    if (!out.length) out.push({ stage: 'still', x0: fs.x, y0: fs.y, x1: b.x, y1: b.y });
+    return out;
+  }
+  /* Resample an ordered path to n+1 points by arc length, so two bodies with
+   * different sub-segment counts can be compared on a common parameter. */
+  function samplePath(segs, n) {
+    const pts = [{ x: segs[0].x0, y: segs[0].y0 }];
+    const lens = segs.map((g) => Math.hypot(g.x1 - g.x0, g.y1 - g.y0));
+    const total = lens.reduce((a, c) => a + c, 0);
+    if (!(total > 1e-9)) { for (let i = 1; i <= n; i++) pts.push({ x: segs[segs.length - 1].x1, y: segs[segs.length - 1].y1 }); return pts; }
+    for (let i = 1; i <= n; i++) {
+      let want = (i / n) * total, k = 0;
+      while (k < segs.length && want > lens[k]) { want -= lens[k]; k++; }
+      if (k >= segs.length) { pts.push({ x: segs[segs.length - 1].x1, y: segs[segs.length - 1].y1 }); continue; }
+      const u = lens[k] > 1e-9 ? want / lens[k] : 0;
+      pts.push({ x: segs[k].x0 + (segs[k].x1 - segs[k].x0) * u, y: segs[k].y0 + (segs[k].y1 - segs[k].y0) * u });
+    }
+    return pts;
+  }
+  const CONTACT_SAMPLES = 16;
+
+  function resolvePendingBodyContacts() {
+    const list = M.pendingBodyContacts;
+    if (!list || !list.length) return;
+    M.pendingBodyContacts = [];
+    for (const req of list) {
+      const mover = req.mover;
+      if (!mover || mover.hp <= 0) { if (req.onMiss) req.onMiss(); continue; }
+      const ms = mover.__hrFrameStart || { x: mover.x, y: mover.y };
+      // W4: adjudicate against the ORDERED relative motion of the two real
+      // body paths. A Magnet-curved path is no longer approximated by a
+      // frame-start -> frame-end chord, so there is neither a false catch
+      // through a curve nor a false miss when the real curves touch.
+      const moverPts = samplePath(bodyPathSegments(mover), CONTACT_SAMPLES);
+      let best = null, bestT = Infinity;
+      for (const tgt of (req.targets || [])) {
+        if (!tgt || tgt === mover || tgt.hp <= 0) continue;
+        const R = (mover.radius || 75) + (tgt.radius || 75);
+        const tgtPts = samplePath(bodyPathSegments(tgt), CONTACT_SAMPLES);
+        for (let i = 0; i < CONTACT_SAMPLES; i++) {
+          const ax = moverPts[i].x - tgtPts[i].x, ay = moverPts[i].y - tgtPts[i].y;
+          const bx = moverPts[i + 1].x - tgtPts[i + 1].x, by = moverPts[i + 1].y - tgtPts[i + 1].y;
+          const u = segmentToPointToi(ax, ay, bx, by, 0, 0, R);
+          if (u == null) continue;
+          const t = (i + u) / CONTACT_SAMPLES;
+          if (t < bestT) { bestT = t; best = tgt; }
+          break;
+        }
+      }
+      if (best) { if (req.onContact) req.onContact(best, bestT, ms); }
+      else if (req.onMiss) req.onMiss();
+    }
+  }
+
+  /* MIRROR A2 — true observer-atomic coordinate exchange.
+   *
+   * The generic RelocationTransaction writes A, emits, then writes B, so a
+   * synchronous listener can observe a half-swapped world. Mirror requires
+   * BOTH writes to complete before ANY event is emitted.
+   *
+   * Mirror-vs-Mirror: if both combatants reach SNAP for the SAME unordered
+   * pair in the same batch, the pair's pre-batch state is snapshotted ONCE and
+   * exchanged ONCE -- processing the second request against already-swapped
+   * coordinates would swap them straight back. Each accepted cast still gets
+   * its own resolution event. */
+  function resolvePendingMirrorSnaps() {
+    const list = M.pendingMirrorSnaps;
+    if (!list || !list.length) return;
+    M.pendingMirrorSnaps = [];
+    const pairKey = (x, y) => (x.id < y.id ? `${x.id}:${y.id}` : `${y.id}:${x.id}`);
+    const done = new Map();            // pairKey -> exchange result
+    for (const req of list) {
+      const a = req.a, b = req.b;
+      if (!a || !b || a.hp <= 0 || b.hp <= 0) {
+        if (req.onCancel) req.onCancel(a && a.hp <= 0 ? 'self-dead' : 'target-dead');
+        continue;
+      }
+      const key = pairKey(a, b);
+      let ex = done.get(key);
+      if (!ex) {
+        // Read BOTH live POST-MOVEMENT positions, snapshot, then write BOTH
+        // before anything observable happens.
+        const ax = a.x, ay = a.y, bx = b.x, by = b.y;
+        a.x = bx; a.y = by;
+        b.x = ax; b.y = ay;
+        // TELEPORT IS NOT A DASH (E-A2-14 pre-F1 proof): the exchange is an
+        // instantaneous coordinate swap, so the solid-wall sweep origin is
+        // rebased to the arrival points. Without this, the next frame's
+        // resolveWorldWalls sweep would test the entire teleport gap against
+        // solid capsules and fabricate a skipped-path contact/clamp — the
+        // same previous-position-reset law routed emergence already applies.
+        a.__hrWallPos = { x: a.x, y: a.y };
+        b.__hrWallPos = { x: b.x, y: b.y };
+        ex = { ax, ay, bx, by, coalesced: 0 };
+        done.set(key, ex);
+      } else {
+        ex.coalesced += 1;             // simultaneous same-pair snap: one swap
+      }
+      if (req.onExchanged) req.onExchanged(ex);
+    }
+    // Events only after every write in the batch has landed.
+    for (const req of list) if (req.onEmit) req.onEmit();
+  }
+
+  function hrPostTick(dt) {
+    if (!M) return;
+    // Physical contact for explicit movers is adjudicated first, so a catch and
+    // its whole consequence bundle derive from post-movement truth.
+    resolvePendingBodyContacts();
+    // Mirror A2 exchanges resolve after all movement + contact truth.
+    resolvePendingMirrorSnaps();
+    tickWorld(dt);
+    // Frost A2 presentation history must observe the post-Fighter.update,
+    // post-wall/body-collision position consumed by the body renderer below.
+    // Capturing during executor onTick is one integration frame stale.
+    const frostRuntime = globalScope.APEX_FROST;
+    if (frostRuntime?.capturePostMovement) {
+      for (const ct of M.combatants) if (!ct.facade && ct.heroId === 'ICE') frostRuntime.capturePostMovement(ct);
+    }
+    globalScope.APEX_HUNTER_PRESENTATION?.tick(dt);
+    globalScope.APEX_FROST_PRESENTATION?.tick(dt);
+    // Sole MAGNET presentation clock. Both production frame paths enter this
+    // seam, so neither an AQ.step-only wrapper nor a second rAF clock exists.
+    globalScope.APEX_MAGNET_PRESENTATION?.tick(dt);
+    separateExtraBodies(dt);
+    // SLIME child lifecycle.
+    for (const ct of M.combatants) {
+      for (let i = ct.bodies.length - 1; i >= 0; i--) {
+        const b = ct.bodies[i];
+        if (!b || b.hp <= 0) { if (b !== ct.anchor) ct.bodies.splice(i, 1); continue; }
+        const ch = b.__hrChild;
+        if (ch && ch.lifetime > 0 && AIL.clock() - ch.bornAt >= ch.lifetime && b !== ct.anchor) {
+          // Timed expiry: surviving HP returns to nearest surviving body.
+          M.api.mergeSlimeChild(ct, b.id, { dropWeapon: true });
+        }
+      }
+      if (ct.anchor && ct.anchor.hp <= 0) promoteAnchor(ct);
+    }
+    // Sole MIRROR presentation clock: AQ.step (headless) and rAF both enter
+    // hrPostTick after gameplay movement, contacts, world updates and swaps.
+    globalScope.APEX_MIRROR_PRESENTATION?.tick(dt);
+  }
+
+  function tickWorld(dt) {
+    const w = M.world;
+    const now = AIL.clock();
+    // Walls
+    for (let i = w.walls.length - 1; i >= 0; i--) {
+      const wall = w.walls[i];
+      if (wall.hp <= 0 || now - wall.bornAt >= wall.lifetime) {
+        if (wall.hp <= 0) AIL.bus.emit('WallShattered', { id: wall.id, by: wall.__shatteredBy || 'damage' });
+        w.walls.splice(i, 1);
+      }
+    }
+    // Gates
+    for (let i = w.gates.length - 1; i >= 0; i--) {
+      if (now - w.gates[i].bornAt >= w.gates[i].lifetime) w.gates.splice(i, 1);
+    }
+    // Singularities
+    for (let i = w.singularities.length - 1; i >= 0; i--) {
+      const s = w.singularities[i];
+      if (now - s.bornAt >= s.lifetime) {
+        // Release everything still stored.
+        for (const d of s.stored) releaseFromSingularity(s, d);
+        w.singularities.splice(i, 1);
+      }
+    }
+    // Lanes
+    for (let i = w.lanes.length - 1; i >= 0; i--) {
+      const l = w.lanes[i];
+      if (l.windupLeft > 0) { l.windupLeft -= dt; continue; }
+      l.x += Math.cos(l.angle) * l.speed * dt;
+      l.y += Math.sin(l.angle) * l.speed * dt;
+      l.traveled += l.speed * dt;
+      const enemy = enemyOf(l.owner);
+      for (const b of livingBodies(enemy || {})) {
+        const d = pointToSegmentDist(b.x, b.y, l.x, l.y,
+          l.x - Math.cos(l.angle) * 160, l.y - Math.sin(l.angle) * 160);
+        if (d <= l.width / 2 + b.radius) {
+          M.api.applyChillTo(b);
+          AIL.bus.emit('LaneChill', { target: b.id });
+        }
+      }
+      if (l.x < -200 || l.x > (globalScope.GAME_SIZE || 1000) + 200 || l.y < -200 || l.y > (globalScope.GAME_SIZE || 1000) + 200) {
+        w.lanes.splice(i, 1);
+      }
+    }
+    // Logical snare lifecycle. Presentation never decides trigger/root success.
+    for (let i=w.snares.length-1;i>=0;i--) {
+      const s=w.snares[i]; s.phaseTime+=dt;
+      const phase=p=>{s.phase=p;s.phaseTime=0;AIL.bus.emit('HunterTrapPhase',{id:s.id,phase:p});};
+      if(s.phase==='release'){if(s.phaseTime>=.92){w.snares.splice(i,1);continue;}}
+      else if(s.triggeredAt!=null && (now-s.triggeredAt>=s.rootDuration || !s.prey || s.prey.hp<=0)) phase('release');
+      else if(!s.consumed && now-s.bornAt>=s.lifetime) {s.consumed=true;phase('release');}
+      else if(s.phase==='unfold' && s.phaseTime>=.62) phase('armed');
+      else if(s.phase==='tension' && s.phaseTime>=.1) phase('snap');
+      else if(s.phase==='snap' && s.phaseTime>=.34) phase('pin');
+      if(!s.consumed && (s.phase==='armed'||s.phase==='unfold')) {
+        // Owner playtest: gameplay footprint must not exceed the rendered trap.
+        for(const b of livingBodies(enemyOf(s.owner)||{})) if(dist(b.x,b.y,s.x,s.y)<=s.radius) {
+          s.consumed=true;s.prey=b;s.triggeredAt=now;M.api.applyRootTo(b,s.rootDuration);
+          M.api.applyWeakCombatant(combatantOfBody(b), (s.owner.skills.A1.cfg.weakDuration ?? 1.0));phase('tension');
+          AIL.bus.emit('SnareTriggered',{id:s.id,target:b.id,root:s.rootDuration,
+            ownerFighterId:s.owner?.anchor?.id});break;
+        }
+      }
+      globalScope.APEX_HUNTER_PRESENTATION?.trapTick(s,dt);
+    }
+    // Graphs
+    for (let i = w.graphs.length - 1; i >= 0; i--) {
+      const g = w.graphs[i];
+      const expired = now - g.bornAt >= g.lifetime;
+      if (expired || g.endedBy) {
+        w.graphs.splice(i, 1);
+        // Passive: graph ending produces the x2 gate.
+        eachExecutor(g.owner, (exec, ctx) => { if (exec.onGraphEnded) exec.onGraphEnded(ctx); });
+      }
+    }
+    // Shards
+    for (let i = w.shards.length - 1; i >= 0; i--) {
+      if (now - w.shards[i].bornAt >= w.shards[i].lifetime) w.shards.splice(i, 1);
+    }
+    // Mirrors
+    for (let i = w.mirrors.length - 1; i >= 0; i--) {
+      if (now - w.mirrors[i].bornAt >= w.mirrors[i].lifetime) w.mirrors.splice(i, 1);
+    }
+  }
+
+  function pointToSegmentDist(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return Math.hypot(px - ax, py - ay);
+    let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+    t = clamp(t, 0, 1);
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
+
+  /* ------------------------------------------------------------------ *
+   * SHARED GEOMETRY AUTHORITY (CRYSTALA anti-tunnelling).
+   * Swept point-vs-capsule time of impact + the provider of every SOLID
+   * world capsule (Crystal material that has actually grown/locked, and any
+   * legacy world wall). Bodies, authored displacement (Robot A1 dash, Hunter
+   * pounce) and bullets all consult the same authority, so nothing tunnels and
+   * no hero's semantics had to be rewritten for it.
+   * ------------------------------------------------------------------ */
+  function segCircleT(x0, y0, dx, dy, cx, cy, r) {
+    const fx = x0 - cx, fy = y0 - cy;
+    const a = dx * dx + dy * dy;
+    if (a < 1e-12) return null;
+    const b = 2 * (fx * dx + fy * dy);
+    const c = fx * fx + fy * fy - r * r;
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) return null;
+    const t1 = (-b - Math.sqrt(disc)) / (2 * a);
+    return t1 >= 0 && t1 <= 1 ? t1 : null;
+  }
+  // Earliest t in [0,1] at which the point moving (x0,y0)->(x1,y1) is within r
+  // of segment AB. Normal points from the capsule toward the mover.
+  function capsuleToi(x0, y0, x1, y1, ax, ay, bx, by, r) {
+    const dx = x1 - x0, dy = y1 - y0;
+    const abx = bx - ax, aby = by - ay, L2 = abx * abx + aby * aby;
+    const s0 = L2 > 0 ? clamp(((x0 - ax) * abx + (y0 - ay) * aby) / L2, 0, 1) : 0;
+    const cx = ax + abx * s0, cy = ay + aby * s0;
+    const ox = x0 - cx, oy = y0 - cy, od = Math.hypot(ox, oy);
+    if (od <= r) { // already overlapping: push out along the closest-point normal
+      let nx, ny;
+      if (od > 1e-6) { nx = ox / od; ny = oy / od; }
+      else { const L = Math.sqrt(L2) || 1; nx = -aby / L; ny = abx / L; if (nx * dx + ny * dy > 0) { nx = -nx; ny = -ny; } }
+      return { t: 0, nx, ny };
+    }
+    let best = null;
+    const consider = (t, nx, ny) => { if (t >= 0 && t <= 1 && (!best || t < best.t)) best = { t, nx, ny }; };
+    for (const e of [[ax, ay], [bx, by]]) {
+      const t = segCircleT(x0, y0, dx, dy, e[0], e[1], r);
+      if (t != null) {
+        const px = x0 + dx * t - e[0], py = y0 + dy * t - e[1], m = Math.hypot(px, py) || 1;
+        consider(t, px / m, py / m);
+      }
+    }
+    if (L2 > 0) {
+      const L = Math.sqrt(L2), ux = abx / L, uy = aby / L, nx0 = -uy, ny0 = ux;
+      const sd0 = (x0 - ax) * nx0 + (y0 - ay) * ny0, sdv = dx * nx0 + dy * ny0;
+      for (const side of [1, -1]) {
+        const den = side * sdv;
+        if (den >= 0) continue;
+        const t = (r - side * sd0) / den;
+        if (t < 0 || t > 1) continue;
+        const along = (x0 + dx * t - ax) * ux + (y0 + dy * t - ay) * uy;
+        if (along < 0 || along > L) continue;
+        consider(t, nx0 * side, ny0 * side);
+      }
+    }
+    return best;
+  }
+  function solidCapsules() {
+    const out = [];
+    if (!M) return out;
+    for (const w of M.world.walls) {
+      if (!(w.hp > 0)) continue;
+      const c = Math.cos(w.angle), s = Math.sin(w.angle), h = w.len / 2;
+      out.push({ ax: w.x - c * h, ay: w.y - s * h, bx: w.x + c * h, by: w.y + s * h, r: w.thickness / 2, owner: w.owner, legacy: w });
+    }
+    const CRY = globalScope.APEX_CRYSTAL;
+    if (CRY) for (const c of CRY.capsules()) out.push(c);
+    return out;
+  }
+  function wallsBlockPoint(x, y, r) {
+    for (const c of solidCapsules()) if (pointToSegmentDist(x, y, c.ax, c.ay, c.bx, c.by) < r + c.r) return true;
+    return false;
+  }
+  // Deterministic shared world placement query. Uses the SAME collision
+  // capsules and living arena bodies as ordinary movement, never a special
+  // SHURI placement map. No displacement if the anchor is already legal.
+  function nearestFreeWorldCircle(x, y, radius, options={}) {
+    if(!M||!Number.isFinite(x)||!Number.isFinite(y))return null;
+    const S=globalScope.GAME_SIZE||1000;
+    const r=Math.max(1,Number(radius)||75);
+    const capsules=solidCapsules();
+    const bodies=M.api.allBodies();
+    const free=(px,py)=>{
+      if(px<r||py<r||px>S-r||py>S-r)return false;
+      for(const c of capsules){
+        if(pointToSegmentDist(px,py,c.ax,c.ay,c.bx,c.by)<r+c.r)return false;
+      }
+      for(const b of bodies){
+        // Placement at the caster's own anchor is valid. The normal world
+        // solid resolver, not a hero-specific teleport, owns subsequent
+        // overlap separation. Other fighters remain genuine blockers.
+        if(b===options.excludeBody)continue;
+        if(b&&b.hp>0&&Math.hypot(px-b.x,py-b.y)<r+(b.radius||75))return false;
+      }
+      return true;
+    };
+    if(free(x,y))return {x,y,adjusted:false};
+    // Minimal-distance outward scan, deterministic ring/angle tie order.
+    // A capped search fails cleanly instead of embedding a solid into a wall.
+    const step=Math.max(12,r/4);
+    for(let d=step;d<=Math.min(S,5*r);d+=step){
+      const samples=Math.max(16,Math.ceil(Math.PI*2*d/(step*.75)));
+      for(let i=0;i<samples;i++){
+        const a=i*Math.PI*2/samples;
+        const px=x+Math.cos(a)*d,py=y+Math.sin(a)*d;
+        if(free(px,py))return {x:px,y:py,adjusted:true};
+      }
+    }
+    return null;
+  }
+  // Runs after the engine's body separation each step: sweeps every living body
+  // from where it was to where it is against all solid capsules and stands it on
+  // the surface it would have crossed (bounce heading like an arena wall).
+  function resolveWorldWalls() {
+    if (!M) return;
+    const caps = solidCapsules();
+    const bodies = M.api.allBodies();
+    const S = globalScope.GAME_SIZE || 1000;
+    for (const b of bodies) {
+      if (!b || b.hp <= 0) continue;
+      const prev = b.__hrWallPos;
+      if (caps.length && prev) {
+        let px = prev.x, py = prev.y;
+        for (let pass = 0; pass < 3; pass++) {
+          let best = null;
+          for (const c of caps) {
+            const hit = capsuleToi(px, py, b.x, b.y, c.ax, c.ay, c.bx, c.by, (b.radius || 75) + c.r);
+            if (hit && (!best || hit.t < best.hit.t)) best = { hit, c };
+          }
+          if (!best) break;
+          const { hit, c } = best;
+          const qx = px + (b.x - px) * hit.t, qy = py + (b.y - py) * hit.t;
+          const abx = c.bx - c.ax, aby = c.by - c.ay, L2 = abx * abx + aby * aby;
+          const s = L2 > 0 ? clamp(((qx - c.ax) * abx + (qy - c.ay) * aby) / L2, 0, 1) : 0;
+          const rr = (b.radius || 75) + c.r + 0.5;
+          b.x = clamp(c.ax + abx * s + hit.nx * rr, (b.radius || 75), S - (b.radius || 75));
+          b.y = clamp(c.ay + aby * s + hit.ny * rr, (b.radius || 75), S - (b.radius || 75));
+          px = b.x; py = b.y;
+          if (b.dir && typeof globalScope.reflectDir === 'function' && (b.dir.x * hit.nx + b.dir.y * hit.ny) < 0) {
+            b.dir = globalScope.reflectDir(b.dir, hit.nx, hit.ny);
+          }
+          // Presentation telemetry after authoritative swept resolution. This
+          // exposes the real capsule normal/contact point without adding any
+          // force, damage, or alternate collision response.
+          AIL.bus.emit('WorldWallCollision', {
+            body: b.id, nx: hit.nx, ny: hit.ny,
+            x: b.x - hit.nx * (b.radius || 75),
+            y: b.y - hit.ny * (b.radius || 75),
+          });
+        }
+      }
+      b.__hrWallPos = { x: b.x, y: b.y };
+    }
+  }
+  HR.geom = { capsuleToi, solidCapsules, wallsBlockPoint, pointToSegmentDist, segmentToPointToi: (...a) => segmentToPointToi(...a),
+    // The one authoritative ordered movement path (see pathSegments above).
+    pathSegments, pathPointAt, pathVelocityAt, pathToPointDist, globalT, clearPath,
+    bodyPathSegments, samplePath,
+    pendingMagnetToi, supersedeMagnetBoundary, nearestFreeWorldCircle };
+
+
+  function releaseFromSingularity(s, d) {
+    // Safe exit ~exitDistance px away from the nearest living body.
+    const bodies = M.api.allBodies();
+    let ref = null, bestD = Infinity;
+    for (const b of bodies) {
+      const dd = dist(s.x, s.y, b.x, b.y);
+      if (dd < bestD) { bestD = dd; ref = b; }
+    }
+    let ex = s.x, ey = s.y;
+    if (ref) {
+      const ang = angleTo(ref.x, ref.y, s.x, s.y);
+      ex = s.x + Math.cos(ang) * 30;
+      ey = s.y + Math.sin(ang) * 30;
+    }
+    const p = {
+      type: d.type, aq: true, owner: d.owner, weapon: d.weapon,
+      critical: !!d.critical, family: d.family, heavy: !!d.heavy,
+      x: ex, y: ey, px: ex, py: ey,
+      vx: d.vx, vy: d.vy, radius: d.radius, damage: d.damage,
+      life: d.life, maxLife: d.maxLife, knockback: d.knockback, stun: d.stun,
+      color: d.color, rot: d.rot, spin: d.spin, ricochetsLeft: d.ricochetsLeft,
+      state: d.state === 'aq_thrown' ? 'flight' : undefined,
+      fuse: d.fuse, grace: d.grace, flightTime: 0, maxFlight: d.maxFlight,
+      pinAngle: 0, pinnedTo: null, pinTimer: 0,
+      __hr: Object.assign({}, d.tags, { singularityReleased: true }),
+    };
+    if (d.type === 'aq_thrown') p.state = 'flight';
+    globalScope.projectiles.push(p);
+    AIL.bus.emit('SingularityRelease', { weapon: d.weapon });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Body separation for non-anchor bodies (children vs everyone).
+   * The engine's handleCollisions only resolves fighters[0]/[1]; all
+   * pairs involving children are resolved here, physically, plus the
+   * same collision hooks anchors get.
+   * ------------------------------------------------------------------ */
+  function separateExtraBodies(dt) {
+    const all = M.api.allBodies();
+    for (let i = 0; i < all.length; i++) {
+      for (let j = i + 1; j < all.length; j++) {
+        const a = all[i], b = all[j];
+        if (!a || !b || a.hp <= 0 || b.hp <= 0) continue;
+        const bothAnchors = a === M.combatants[0].anchor && b === M.combatants[1].anchor;
+        if (bothAnchors) continue; // engine handleCollisions owns this pair
+        const d = dist(a.x, a.y, b.x, b.y);
+        const minD = a.radius + b.radius;
+        if (d >= minD || d <= 0.001) continue;
+        const ctA = combatantOfBody(a), ctB = combatantOfBody(b);
+        // Physical separation (half each).
+        const push = (minD - d) / 2;
+        const nx = (b.x - a.x) / d, ny = (b.y - a.y) / d;
+        if (!a.data.positionLocked) { a.x -= nx * push; a.y -= ny * push; }
+        if (!b.data.positionLocked) { b.x += nx * push; b.y += ny * push; }
+        // Cross-side contact fires collision hooks (RUBBER/MATH laws).
+        if (ctA && ctB && ctA !== ctB) {
+          const va = bodyVelocity(a), vb = bodyVelocity(b);
+          const closing = Math.abs((va.x - vb.x) * nx + (va.y - vb.y) * ny);
+          const key = `${a.id}:${b.id}`;
+          const w = M.world;
+          w.__contact = w.__contact || {};
+          const inContact = !!w.__contact[key];
+          w.__contact[key] = true;
+          if (!inContact) {
+            fireCollision(ctA, a, b, closing);
+            fireCollision(ctB, b, a, closing);
+          }
+        } else {
+          const key = `${a.id}:${b.id}`;
+          M.world.__contact = M.world.__contact || {};
+          M.world.__contact[key] = true;
+        }
+      }
+    }
+    // Decay contact flags for pairs that separated (approximate: rebuild).
+    const w = M.world;
+    if (w.__contact) {
+      const alive = new Set();
+      for (let i = 0; i < all.length; i++) {
+        for (let j = i + 1; j < all.length; j++) {
+          const a = all[i], b = all[j];
+          if (dist(a.x, a.y, b.x, b.y) < a.radius + b.radius + 8) alive.add(`${a.id}:${b.id}`);
+        }
+      }
+      for (const k of Object.keys(w.__contact)) if (!alive.has(k)) delete w.__contact[k];
+    }
+  }
+
+  function fireCollision(ct, myBody, otherBody, closingSpeed) {
+    eachExecutor(ct, (exec, ctx) => {
+      if (exec.onBodyCollision) exec.onBodyCollision(ctx, myBody, otherBody, closingSpeed);
+    });
+    AIL.bus.emit('BodyCollision', {
+      combatant: ct.heroId, combatantIndex: ct.idx,
+      a: myBody.id, b: otherBody.id, closingSpeed,
+    });
+  }
+
+  HR.noteAnchorContacts = function noteAnchorContacts() {
+    if (!M) return;
+    const a = M.combatants[0].anchor, b = M.combatants[1].anchor;
+    if (!a || !b || a.hp <= 0 || b.hp <= 0) return;
+    const d = dist(a.x, a.y, b.x, b.y);
+    const key = `${a.id}:${b.id}`;
+    M.world.__contact = M.world.__contact || {};
+    const was = !!M.world.__contact[key];
+    M.world.__contact[key] = d < a.radius + b.radius + 8;
+    if (!was && d < a.radius + b.radius + 4) {
+      const va = bodyVelocity(a), vb = bodyVelocity(b);
+      const nx = (b.x - a.x) / (d || 1), ny = (b.y - a.y) / (d || 1);
+      const closing = Math.abs((va.x - vb.x) * nx + (va.y - vb.y) * ny);
+      fireCollision(M.combatants[0], a, b, closing);
+      fireCollision(M.combatants[1], b, a, closing);
+    }
+  };
+
+  /* ------------------------------------------------------------------ *
+   * PROJECTILE PASS — replaces weaponApi.updateArsenalProjectiles.
+   * No-transform behavior is byte-parity with the base pass; hero
+   * transforms are interleaved at deterministic per-segment stages.
+   * ------------------------------------------------------------------ */
+  let baseUpdateArsenalProjectiles = null;
+
+  function reworkUpdateProjectiles(dt) {
+    if (!M) { if (baseUpdateArsenalProjectiles) return baseUpdateArsenalProjectiles(dt); return; }
+    const CFG = globalScope.APEX_ARSENAL_CONFIG;
+    const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+    const projectiles = globalScope.projectiles;
+    const GAME_SIZE = globalScope.GAME_SIZE || 1000;
+    const BULLET_HIT_SCALE = (CFG && CFG.BULLET_HIT_RADIUS_SCALE) || 0.78;
+    // CRYSTALA: shard jobs / K window / construct lifetimes / Gold rig advance.
+    const CRY = globalScope.APEX_CRYSTAL;
+    if (CRY) CRY.tick(dt);
+    // FROST V1: post-hit Freeze roll (authority §6.2). Hooked beside the
+    // live chill line: Stage B hands (p, target) for every confirmed exact
+    // body hit incl. multi-body children. Optional/lazy like CRY.
+    const FR = globalScope.APEX_FROST;
+    // MAGNET V1: sum every active field once, then alter trajectory before
+    // this pass performs the one canonical projectile movement integration.
+    const magnet = globalScope.APEX_MAGNET;
+    const BOXE = globalScope.APEX_BOXE_BATTLE;
+    if (magnet) magnet.stepProjectiles(dt, projectiles, combatantOfBody, AIL.clock());
+
+    // F2 MIRROR ESCROW TRANSIT: advance the canonical fixed-step transit
+    // choreography for every escrowed projectile BEFORE the ordinary pass.
+    // Objects at the canonical emergence edge rejoin the live array here and
+    // are then integrated by the normal lifecycle the same frame. Escrowed
+    // objects are absent from `projectiles`, so the Magnet sum above and
+    // every stage below are physically unable to act on them.
+    mirrorF2EscrowStep(projectiles, dt);
+
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      if (!p || !p.aq) continue;
+
+      if (p.type === 'aq_bullet') {
+        // A bullet held inside a Crystal shard's gem during the refraction beat.
+        if (CRY && CRY.holdStep(p)) continue;
+        p.px = p.x; p.py = p.y;
+        // MAGNET V1 time-of-impact seam. When an A2 field reports a real
+        // boundary crossing this frame, the movement is integrated as two
+        // ordered physical segments instead of one: frameStart -> R=225
+        // boundary with the ORIGINAL velocity, the entry response applied
+        // exactly at that boundary, then the remaining (1-t)*dt with the
+        // post-response velocity. The corner is published as p.__hr.pathVia so
+        // the swept wall/body consumers below see the real inbound path and
+        // not a straight chord across it.
+        const magnetPlan = magnet && magnet.consumeMovementPlan ? magnet.consumeMovementPlan(p) : null;
+        if (magnetPlan) {
+          // H-PHYS2: the field integrated a real CURVE this frame. Velocity is
+          // continuous across field entry (no radial snap); the projectile is
+          // placed at the true end of the integrated path and the whole curve
+          // is published as ordered sub-segments so nothing downstream sees a
+          // false frame-start -> frame-end chord.
+          const ex = Number.isFinite(magnetPlan.entryX) ? magnetPlan.entryX
+            : p.x + magnetPlan.preVx * dt * magnetPlan.entryT;
+          const ey = Number.isFinite(magnetPlan.entryY) ? magnetPlan.entryY
+            : p.y + magnetPlan.preVy * dt * magnetPlan.entryT;
+          p.vx = magnetPlan.postVx; p.vy = magnetPlan.postVy;
+          // A force-integrated plan carries its true endpoint. A plan without
+          // one (no field curve for this frame) still integrates the remaining
+          // fraction straight from the entry point, as before.
+          p.x = Number.isFinite(magnetPlan.finalX) ? magnetPlan.finalX
+            : ex + p.vx * dt * (1 - magnetPlan.entryT);
+          p.y = Number.isFinite(magnetPlan.finalY) ? magnetPlan.finalY
+            : ey + p.vy * dt * (1 - magnetPlan.entryT);
+          if (!p.__hr) p.__hr = {};
+          p.__hr.pathVia = {
+            x: ex, y: ey, t: magnetPlan.entryT,
+            // Kinematic truth per leg (see pathSegments).
+            preVx: magnetPlan.preVx, preVy: magnetPlan.preVy,
+            postVx: magnetPlan.postVx, postVy: magnetPlan.postVy,
+          };
+          p.__hr.pathPoly = (magnetPlan.poly && magnetPlan.poly.length) ? magnetPlan.poly : null;
+        } else {
+          if (p.__hr) { p.__hr.pathVia = null; p.__hr.pathPoly = null; }
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+        }
+        if (p.x < -20 || p.x > GAME_SIZE + 20 || p.y < -20 || p.y > GAME_SIZE + 20) { p.life = 0; continue; }
+
+        // ---- Stage W: walls — swept GLOBAL TOI observed here; the non-T6
+        // absorb is realized only after the global-TOI reconcile with the
+        // F2 mirror surface below. Earliest terminal event on the ONE
+        // ordered path wins; stage order never decides. T6 capability
+        // routes through the shared authority (api.isT6Weapon) and
+        // shatters through — walls are not terminal for T6. --------------
+        const wallHit = sweepWalls(p, BULLET_HIT_SCALE);
+        const rocketShot = BOXE?.candidateProjectile?.(p,1)||null;
+        const wallIsT6 = wallHit && M.api.isT6Weapon && M.api.isT6Weapon(p.weapon);
+        const wallTerminal = !!wallHit && !wallIsT6
+          && !(rocketShot && rocketShot.t < wallHit.t);
+        if (wallHit && wallIsT6) {
+          wallHit.wall.hp -= ((CFG && CFG.WEAPONS && CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446);
+          wallHit.wall.__shatteredBy = 'STORMBREAKER';
+          AIL.bus.emit('WallShatteredByT6', {});
+          if (wallHit.wall.hp <= 0) wallHit.wall.__shatteredBy = wallHit.wall.__shatteredBy || 'damage';
+          // T6 continues through the shattering wall.
+        }
+        // F2 mirror candidacy observed BEFORE the wall-absorb decision so
+        // the reconcile is physical: body TOI and wall TOI bound every
+        // surface event (nothing at/after an earlier terminal event is
+        // presented; preview included).
+        const bodyHit = earliestToiBodyT(p, BULLET_HIT_SCALE);
+        const mf2 = mirrorF2Candidate(p, bodyHit ? bodyHit.t : null, wallTerminal ? wallHit.t : null);
+        const mirrorBeatsWall = wallTerminal && mf2 && mf2.kind === 'capture'
+          && mf2.capT < wallHit.t && !(bodyHit && bodyHit.t < mf2.capT);
+        if (wallTerminal && !mirrorBeatsWall) {
+          // Wall at-or-before any mirror capture on the ordered path:
+          // absorb (unchanged terminal law; the projectile never reaches a
+          // later Magnet boundary, so no capture beat may be presented).
+          wallHit.wall.hp -= scaledProjectileDamage(p);
+          if (wallHit.wall.hp <= 0) wallHit.wall.__shatteredBy = wallHit.wall.__shatteredBy || 'damage';
+          supersedeMagnetBoundary(p, wallHit.t != null ? wallHit.t : 0, { terminal: true });
+          p.life = 0; continue;
+        }
+
+        // ---- Stage G: MATH graph absorb (T6 immune) --------------------
+        if (graphBlocks(p)) {
+          supersedeMagnetBoundary(p, 0, { terminal: true });   // absorbed before any boundary
+          p.life = 0; continue;
+        }
+
+        // ---- Stage T: gates (x2 / div2; T6 unaffected) ------------------
+        gateTransform(p);
+
+        // ---- Stage S: singularity store (T6 immune) ---------------------
+        if (singularityStore(p)) { projectiles.splice(i, 1); continue; }
+
+        // ---- Stage P: F2 mirror surface routing (real F1 ACTIVE nodes;
+        // T6 capability-denied). `bodyHit` / `mf2` were observed above for
+        // the wall global-TOI reconcile. Global TOI ordering against
+        // wall / body / Crystal / Magnet: the earliest terminal event on
+        // the ONE ordered path wins — stage order never decides.
+        // CRYSTALA (K shard contact / J solid material): the earliest of
+        // shard contact, construct surface, body AND mirror capture wins.
+        // There is NO automatic body reflect any more
+        // (docs/hero-rework/crystala-v1 authority). A pending mirror
+        // capture bounds the crystal window exactly like an earlier body:
+        // the projectile is escrowed at the capture TOI and never reaches
+        // anything later on the path.
+        let cryLimit = bodyHit ? bodyHit.t : 2;
+        if (mf2 && mf2.kind === 'capture') cryLimit = Math.min(cryLimit, mf2.capT);
+        if(rocketShot)cryLimit=Math.min(cryLimit,rocketShot.t);
+        if (CRY) {
+          const cr = CRY.resolveBullet(p, cryLimit, dt);
+          if (cr && cr.consumed) continue;
+        }
+        if (rocketShot && (!bodyHit || rocketShot.t < bodyHit.t)
+          && (!mf2 || mf2.kind!=='capture'||rocketShot.t < mf2.capT)){
+          BOXE.confirmProjectileContact(p,rocketShot);
+          // T6 retains original non-absorbed piercing authority, even after
+          // an authentic contact makes the BOXE glove retract.
+          if(!(M.api.isT6Weapon&&M.api.isT6Weapon(p.weapon))){
+            supersedeMagnetBoundary(p,rocketShot.t,{terminal:true});
+            p.x=rocketShot.x;p.y=rocketShot.y;p.life=0;
+            continue;
+          }
+        }
+        if (mf2 && mf2.kind === 'capture' && !(bodyHit && bodyHit.t < mf2.capT)) {
+          mirrorF2Capture(p, mf2, projectiles);
+          continue;
+        }
+        if (mf2 && mf2.kind === 'oneNode' && !(bodyHit && bodyHit.t < mf2.capT)) {
+          mirrorF2LocalResponse(p, mf2);      // non-terminal: no supersede
+        }
+
+        // ---- Stage B: body interactions (earliest TOI winner) ----------
+        const target = bodyHit ? bodyHit.body : null;
+        if (target) {
+          // RUBBER compression storage (enemy projectile into RUBBER).
+          if (tryRubberStore(p, target)) { projectiles.splice(i, 1); continue; }
+
+          const hitR = target.radius * BULLET_HIT_SCALE + p.radius;
+          let hit = null, hitSeg = null;
+          for (const g of pathSegments(p)) {
+            hit = sweptHit(g.x0, g.y0, g.x1, g.y1, target.x, target.y, hitR);
+            if (hit) { hitSeg = g; break; }
+          }
+          if (!hit) hit = { x: p.x, y: p.y };
+          // A body hit consumes the projectile: terminal, so it supersedes a
+          // later Magnet boundary and no capture beat may be presented.
+          supersedeMagnetBoundary(p, bodyHit && bodyHit.t != null ? bodyHit.t : 0, { terminal: true });
+          // Impact direction must be the velocity valid on the leg that
+          // actually reached the body, not Magnet's post-response velocity.
+          const impVx = hitSeg && Number.isFinite(hitSeg.vx) ? hitSeg.vx : p.vx;
+          const impVy = hitSeg && Number.isFinite(hitSeg.vy) ? hitSeg.vy : p.vy;
+          const neutral = p.__hr && p.__hr.neutral;
+          const W2 = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+          const hpBeforeHit = target.hp;
+          if (W2 && W2.aqDamage) {
+            W2.aqDamage(target, p.damage, neutral ? null : p.owner, p.weapon, {
+              knockback: p.knockback, stun: p.stun, hitStop: p.heavy ? 0.05 : 0,
+              critical: !!p.critical,
+              impact: { x: hit.x, y: hit.y, vx: impVx, vy: impVy },
+            });
+          }
+          if (CRY) { CRY.noteBodyHit(p, target); CRY.afterBodyHit(p, target, hpBeforeHit - target.hp); }
+          // ICE payload (survives transforms unless stripped).
+          if (p.__hr && p.__hr.chill) M.api.applyChillTo(target);
+          // FROST V1: Frozen Bullet post-hit Freeze roll (no-op unless tagged).
+          if (FR && p.__hr && p.__hr.frost) FR.noteBodyHit(p, target);
+          // RUBBER debt erase (released projectile hit the opponent).
+          if (p.__hr && p.__hr.rubberDebt) {
+            AIL.bus.emit('RubberDebtErased', { amount: p.__hr.rubberDebt });
+            p.__hr.rubberDebt = null;
+          }
+          const fam = p.family || 'SEMI';
+          if (globalScope.emitParticles) {
+            if (fam === 'AUTO') globalScope.emitParticles(p.x, p.y, p.color, 3, 260, 3, 0.2, 'square');
+            else if (fam === 'SHOTGUN' || fam === 'AUTOSHOT') globalScope.emitParticles(p.x, p.y, p.color, 9, 340, 5, 0.3, 'square');
+            else if (p.heavy) globalScope.emitParticles(p.x, p.y, p.color, 8, 420, 4, 0.3, 'square');
+            else globalScope.emitParticles(p.x, p.y, p.color, 5, 300, 3, 0.25, 'square');
+          }
+          p.life = 0;
+        }
+        continue;
+      }
+
+      if (p.type === 'aq_grenade') {
+        p.px = p.x; p.py = p.y;   // swept-path truth for ordered consumers (F2)
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.rot = (p.rot || 0) + dt * 9;
+        // F2 routes grenades through the real F1 node surface (doc 06 §8:
+        // grenade projectile is an eligible routed family). While escrowed
+        // the grenade is absent from the live array, so its fuse does not
+        // tick and no bounce/wall logic can act on it. GLOBAL TOI: the
+        // grenade's wall interaction is the arena boundary bounce — its
+        // crossing TOI bounds mirror candidacy, so a physically-earlier
+        // bounce always wins and no surface event beyond it is presented.
+        const gWallToi = arenaBoundToi(p, GAME_SIZE);
+        const boxeGrenade = BOXE?.candidateProjectile?.(p,1)||null;
+        const mg = mirrorF2Candidate(p, null, Math.min(gWallToi??2,boxeGrenade?.t??2));
+        if(boxeGrenade&&(gWallToi==null||boxeGrenade.t<gWallToi)
+          &&(!mg||mg.kind!=='capture'||boxeGrenade.t<mg.capT)){
+          BOXE.confirmProjectileContact(p,boxeGrenade);
+          p.x=boxeGrenade.x;p.y=boxeGrenade.y;
+          if(W?.explodeGrenade){W.explodeGrenade(p);continue;}
+        }
+        if (mg && mg.kind === 'capture') { mirrorF2Capture(p, mg, projectiles); continue; }
+        if (mg && mg.kind === 'oneNode') mirrorF2LocalResponse(p, mg);
+        if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); }
+        if (p.x > GAME_SIZE - p.radius) { p.x = GAME_SIZE - p.radius; p.vx = -Math.abs(p.vx); }
+        if (p.y < p.radius) { p.y = p.radius; p.vy = Math.abs(p.vy); }
+        if (p.y > GAME_SIZE - p.radius) { p.y = GAME_SIZE - p.radius; p.vy = -Math.abs(p.vy); }
+        p.fuse -= dt;
+        if (p.fuse <= 0 && W && W.explodeGrenade) W.explodeGrenade(p);
+        continue;
+      }
+
+      if (p.type === 'aq_thrown') {
+        p.grace = Math.max(0, (p.grace || 0) - dt);
+        if (p.state === 'flight') {
+          // Quest RIVET's owner-approved floor-suppression throw must not
+          // home onto either live training Fighter. All ordinary hero
+          // Stormbreaker homing, including E08, remains unchanged.
+          if (p.weapon === 'STORMBREAKER' && p.questRivetSuppression !== true) {
+            const tgt = thrownHomingTarget(p);
+            if (tgt) {
+              let cur = Math.atan2(p.vy, p.vx);
+              const want = Math.atan2(tgt.y - p.y, tgt.x - p.x);
+              let dAng = want - cur;
+              while (dAng > Math.PI) dAng -= 2 * Math.PI;
+              while (dAng < -Math.PI) dAng += 2 * Math.PI;
+              const maxTurn = ((CFG.STORMBREAKER && CFG.STORMBREAKER.homingTurnRateRadPerSec) || 2.6) * dt;
+              cur += Math.max(-maxTurn, Math.min(maxTurn, dAng));
+              const sp = Math.hypot(p.vx, p.vy) || ((CFG.THROWN_MELEE && CFG.THROWN_MELEE.speed && CFG.THROWN_MELEE.speed.STORMBREAKER) || 1350);
+              p.vx = Math.cos(cur) * sp;
+              p.vy = Math.sin(cur) * sp;
+            }
+          }
+          p.px = p.x; p.py = p.y;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.rot += p.spin * dt;
+          // Q4F E01 FLOOR CONTACT: Hero Rework owns the live projectile
+          // pass when active. Adjudicate the actual swept path of ONE
+          // authentic RIVET aq_thrown before other HR body/surface routing.
+          // No damageable dummy, no manufactured bolt, no ally HP damage.
+          if(p.weapon==='STORMBREAKER'&&p.questRivetSuppression===true){
+            const rig=globalScope.APEX_ARSENAL?.state?.questRivetPreview;
+            const floor=rig?.aimPoint;
+            if(rig?.operator===p.owner && !rig.groundImpact && floor
+               && Number.isFinite(floor.x)&&Number.isFinite(floor.y)
+               && pointToSegmentDist(floor.x,floor.y,p.px,p.py,p.x,p.y)<=p.radius+10){
+              rig.groundImpact=Object.freeze({
+                x:floor.x,y:floor.y,owner:p.owner.questId,weapon:p.weapon,
+                projectileType:p.type,flightTime:p.flightTime,
+                kind:'REAL_ARSENAL_FLOOR_CONTACT'
+              });
+              globalScope.APEX_ARSENAL_STORM?.onImpact?.(floor.x,floor.y,null);
+              globalScope.avCue?.('storm_impact',{
+                weapon:'STORMBREAKER',x:floor.x,y:floor.y,questFloorSuppression:true
+              });
+              globalScope.APEX_ARSENAL?.log?.('QUEST_RIVET_FLOOR_STRIKE',
+                `x=${Math.round(floor.x)} y=${Math.round(floor.y)}`);
+              projectiles.splice(i,1);
+              continue;
+            }
+          }
+          // F2 routes normal thrown-melee FLIGHT projectiles through the
+          // real F1 node surface (doc 08 §7 eligible family; T6 already
+          // capability-denied). Ordered against the body contact exactly
+          // like bullets: a strictly-earlier body pin wins. GLOBAL TOI:
+          // the thrown's construct/wall interactions (real Crystal construct
+          // surface, world-wall ricochet, and arena boundary bounce) bound
+          // mirror candidacy by their swept TOI — an earlier construct/wall/
+          // bounce always wins and no surface event beyond it is presented.
+          // While escrowed the thrown object's grace/flight/maxFlight/life
+          // timers do not tick.
+          const tBodyHit = p.questRivetSuppression===true ? null
+            : p.grace <= 0 ? earliestToiBodyT(p, BULLET_HIT_SCALE) : null;
+          const tCrySweep = CRY ? CRY.thrownSurface(p) : null;
+          const tWallSweep = sweepThrownWall(p);
+          const tBoundToi = arenaBoundToi(p, GAME_SIZE);
+          let tWallToi = tCrySweep ? tCrySweep.t : null;
+          if (tWallSweep && (tWallToi == null || tWallSweep.t < tWallToi)) tWallToi = tWallSweep.t;
+          if (tBoundToi != null && (tWallToi == null || tBoundToi < tWallToi)) tWallToi = tBoundToi;
+          const bxThrow = BOXE?.candidateProjectile?.(p,1)||null;
+          const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null,
+            Math.min(tWallToi??2,bxThrow?.t??2));
+          if(bxThrow&&(!tBodyHit||bxThrow.t<tBodyHit.t)
+            &&(tWallToi==null||bxThrow.t<tWallToi)
+            &&(!mt||mt.kind!=='capture'||bxThrow.t<mt.capT)){
+            BOXE.confirmProjectileContact(p,bxThrow);
+            if(!(M.api.isT6Weapon&&M.api.isT6Weapon(p.weapon))){
+              p.x=bxThrow.x;p.y=bxThrow.y;thrownExitLocal(p);
+              continue;
+            }
+          }
+          if (mt && mt.kind === 'capture' && !(tBodyHit && tBodyHit.t < mt.capT)) {
+            mirrorF2Capture(p, mt, projectiles);
+            continue;
+          }
+          if (mt && mt.kind === 'oneNode' && !(tBodyHit && tBodyHit.t < mt.capT)) {
+            mirrorF2LocalResponse(p, mt);     // non-terminal: no supersede
+          }
+          // Walls: T6 shatters through (shared capability authority);
+          // others consume ricochet budget.
+          const tw = tCrySweep || tWallSweep;
+          if (tw) {
+            const isT6 = !!(M.api.isT6Weapon && M.api.isT6Weapon(p.weapon));
+            if (tw.crystal) CRY.thrownHit(p, tw);   // real structural damage + ricochet stand-off
+            else {
+              tw.wall.hp -= isT6 ? ((CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446) : scaledProjectileDamage(p);
+              if (isT6) tw.wall.__shatteredBy = 'STORMBREAKER';
+            }
+            if (!isT6) {
+              // Reflect about the wall normal; budget or exit.
+              const n = tw.normal;
+              const dot = p.vx * n.x + p.vy * n.y;
+              p.vx -= 2 * dot * n.x; p.vy -= 2 * dot * n.y;
+              if (p.ricochetsLeft <= 0) { thrownExitLocal(p); continue; }
+              p.ricochetsLeft -= 1; p.spin *= -1;
+            }
+          }
+          const target = p.questRivetSuppression===true ? null
+            : earliestToiBody(p, BULLET_HIT_SCALE, i);
+          if (target && p.grace <= 0) {
+            const hitR = target.radius * BULLET_HIT_SCALE + p.radius;
+            if (pointToSegmentDist(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
+              const spec = (CFG.WEAPONS && CFG.WEAPONS[p.weapon]) || {};
+              if (p.weapon === 'STORMBREAKER') {
+                const hit = sweptHit(p.px, p.py, p.x, p.y, target.x, target.y, hitR) || { x: p.x, y: p.y };
+                if (CFG.meleeDamage && W && W.aqDamage) {
+                  W.aqDamage(target, CFG.meleeDamage('STORMBREAKER'), p.owner, 'STORMBREAKER', {
+                    knockback: spec.knockback, stun: spec.stun,
+                    shake: spec.shake != null ? spec.shake : 15,
+                    hitStop: spec.hitStop != null ? spec.hitStop : 0.08,
+                  });
+                }
+                if (globalScope.APEX_ARSENAL_STORM && globalScope.APEX_ARSENAL_STORM.onImpact) {
+                  globalScope.APEX_ARSENAL_STORM.onImpact(hit.x, hit.y, target);
+                }
+                if (globalScope.avCue) globalScope.avCue('storm_impact', { weapon: 'STORMBREAKER', x: hit.x, y: hit.y });
+                if (globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.log) {
+                  globalScope.APEX_ARSENAL.log('STORM_IMPACT', `target=${target.name} x=${Math.round(hit.x)} y=${Math.round(hit.y)}`);
+                }
+                projectiles.splice(i, 1);
+                continue;
+              }
+              p.pinAngle = Math.atan2(p.vy, p.vx);
+              if (W && W.aqDamage && CFG.meleeDamage) {
+                W.aqDamage(target, CFG.meleeDamage(p.weapon), p.owner, p.weapon, {
+                  knockback: spec.knockback, stun: spec.stun, shake: 8, hitStop: 0.05,
+                });
+              }
+              if (globalScope.avCue) globalScope.avCue('melee_hit', { weapon: p.weapon, x: target.x, y: target.y, angle: p.pinAngle });
+              p.state = 'pinned';
+              p.pinnedTo = target;
+              p.pinTimer = CFG.THROWN_MELEE.pinSeconds;
+              if (globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.log) {
+                globalScope.APEX_ARSENAL.log('THROWN_PIN', `weapon=${p.weapon} target=${target.name} pin=${CFG.THROWN_MELEE.pinSeconds}s`);
+              }
+              continue;
+            }
+          }
+          let bounced = false;
+          if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); bounced = true; }
+          else if (p.x > GAME_SIZE - p.radius) { p.x = GAME_SIZE - p.radius; p.vx = -Math.abs(p.vx); bounced = true; }
+          if (p.y < p.radius) { p.y = p.radius; p.vy = Math.abs(p.vy); bounced = true; }
+          else if (p.y > GAME_SIZE - p.radius) { p.y = GAME_SIZE - p.radius; p.vy = -Math.abs(p.vy); bounced = true; }
+          if (bounced) {
+            if (p.ricochetsLeft <= 0) {
+              thrownExitLocal(p);
+            } else {
+              p.ricochetsLeft -= 1;
+              p.spin *= -1;
+              if (globalScope.avCue) globalScope.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });
+              if (globalScope.emitParticles) globalScope.emitParticles(p.x, p.y, '#ffe6a8', 10, 320, 4, 0.3, 'square');
+              if (globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.log) {
+                globalScope.APEX_ARSENAL.log('THROWN_RICOCHET', `weapon=${p.weapon} left=${p.ricochetsLeft}`);
+              }
+            }
+          }
+          if (p.state === 'flight' && p.maxFlight > 0) {
+            p.flightTime += dt;
+            if (p.flightTime >= p.maxFlight) {
+              thrownExitLocal(p);
+              if (globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.log) {
+                globalScope.APEX_ARSENAL.log('THROWN_MAXFLIGHT', `weapon=${p.weapon} flight=${p.flightTime.toFixed(2)}s`);
+              }
+            }
+          }
+        } else if (p.state === 'pinned') {
+          const t = p.pinnedTo;
+          if (!t || t.hp <= 0) {
+            thrownExitLocal(p);
+          } else {
+            const long = 60;
+            const depth = t.radius * 0.55 + long * 0.28;
+            p.x = t.x - Math.cos(p.pinAngle) * depth;
+            p.y = t.y - Math.sin(p.pinAngle) * depth;
+            p.rot = p.pinAngle;
+            p.pinTimer -= dt;
+            if (p.pinTimer <= 0) thrownExitLocal(p);
+          }
+        } else {
+          p.vy += 1500 * dt;
+          p.px = p.x; p.py = p.y;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.rot += p.spin * dt;
+          if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx) * 0.4; }
+          else if (p.x > GAME_SIZE - p.radius) { p.x = GAME_SIZE - p.radius; p.vx = -Math.abs(p.vx) * 0.4; }
+          if (p.y > GAME_SIZE - p.radius) { p.y = GAME_SIZE - p.radius; p.vy = -Math.abs(p.vy) * 0.35; p.vx *= 0.7; }
+        }
+        p.life -= dt;
+        if (p.life <= 0 || p.y > GAME_SIZE + 60) { projectiles.splice(i, 1); }
+        continue;
+      }
+    }
+  }
+
+  /* -------- projectile pass helpers -------- */
+  function scaledProjectileDamage(p) {
+    const CFG = globalScope.APEX_ARSENAL_CONFIG;
+    let dmg = p.damage;
+    if (HR.scaledDamageExport) return HR.scaledDamageExport(dmg, p.weapon, !!p.critical);
+    if (CFG && CFG.ARSENAL_DAMAGE_SCALE) dmg *= CFG.ARSENAL_DAMAGE_SCALE;
+    return dmg;
+  }
+
+  // ===================================================================
+  // THE ONE AUTHORITATIVE ORDERED MOVEMENT PATH (shared, see HR.geom)
+  // ===================================================================
+  // Every swept consumer that needs physical truth reads the projectile's
+  // real travelled path through here. Normally that is one straight segment;
+  // a MAGNET A2 time-of-impact frame has a real corner at the field boundary,
+  // and collapsing it into a chord would both hide collisions on the inbound
+  // leg and invent them across the corner.
+  //
+  // Segments are ordered in travel order and carry GLOBAL frame fractions
+  // t0/t1, so earliest-TOI adjudication across different subsystems (Crystal,
+  // Mirror, walls, bodies, Magnet) is directly comparable.
+  //
+  // A frame with no corner returns exactly one segment spanning
+  // p.px,p.py -> p.x,p.y with t0=0,t1=1, which is strictly equivalent to the
+  // pre-existing single-chord behaviour.
+  // Each segment also carries the velocity ACTUALLY VALID on it. On a Magnet
+  // corner frame the integration has already written the post-response
+  // velocity onto p.vx/p.vy, so a consumer adjudicating an event on the
+  // INBOUND leg must not read p.vx: it would reflect/route using a velocity
+  // the projectile does not have until after the boundary it never reached.
+  function pathSegments(p) {
+    // H-PHYS2: a force-integrated Magnet curve publishes its ACTUAL travelled
+    // sub-segments. They are returned verbatim (prefixed by the pre-field leg)
+    // so ordered consumers adjudicate against the real path, never a chord.
+    const poly = p.__hr && p.__hr.pathPoly;
+    if (poly && poly.length) {
+      const first = poly[0];
+      const out = [];
+      if (first.t0 > 0) {
+        out.push({ x0: p.px, y0: p.py, x1: first.x0, y1: first.y0, t0: 0, t1: first.t0,
+          vx: p.__hr.pathVia ? p.__hr.pathVia.preVx : p.vx,
+          vy: p.__hr.pathVia ? p.__hr.pathVia.preVy : p.vy });
+      }
+      for (const g of poly) out.push({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, t0: g.t0, t1: g.t1, vx: g.vx, vy: g.vy });
+      return out;
+    }
+    const via = p.__hr && p.__hr.pathVia;
+    if (via && Number.isFinite(via.x) && Number.isFinite(via.y)
+      && Number.isFinite(via.t) && via.t > 0 && via.t < 1) {
+      const pre = Number.isFinite(via.preVx) ? via.preVx : p.vx;
+      const prey = Number.isFinite(via.preVy) ? via.preVy : p.vy;
+      const post = Number.isFinite(via.postVx) ? via.postVx : p.vx;
+      const posty = Number.isFinite(via.postVy) ? via.postVy : p.vy;
+      return [
+        { x0: p.px, y0: p.py, x1: via.x, y1: via.y, t0: 0, t1: via.t, vx: pre, vy: prey },
+        { x0: via.x, y0: via.y, x1: p.x, y1: p.y, t0: via.t, t1: 1, vx: post, vy: posty },
+      ];
+    }
+    return [{ x0: p.px, y0: p.py, x1: p.x, y1: p.y, t0: 0, t1: 1, vx: p.vx, vy: p.vy }];
+  }
+
+  // Velocity valid at a GLOBAL frame fraction t (the segment containing t).
+  function pathVelocityAt(p, t) {
+    const segs = pathSegments(p);
+    for (const g of segs) if (t <= g.t1 || g.t1 >= 1) return { vx: g.vx, vy: g.vy };
+    const last = segs[segs.length - 1];
+    return { vx: last.vx, vy: last.vy };
+  }
+
+  // Map a sub-segment-local parameter u in [0,1] onto the global frame fraction.
+  function globalT(seg, u) { return seg.t0 + clamp(u, 0, 1) * (seg.t1 - seg.t0); }
+
+  // Point on the real path at a GLOBAL frame fraction t.
+  function pathPointAt(p, t) {
+    for (const g of pathSegments(p)) {
+      if (t <= g.t1 || g.t1 >= 1) {
+        const span = g.t1 - g.t0;
+        const u = span > 1e-12 ? clamp((t - g.t0) / span, 0, 1) : 0;
+        return { x: g.x0 + (g.x1 - g.x0) * u, y: g.y0 + (g.y1 - g.y0) * u };
+      }
+    }
+    return { x: p.x, y: p.y };
+  }
+
+  // Shortest distance from (cx,cy) to the real (possibly cornered) path.
+  function pathToPointDist(p, cx, cy) {
+    let best = Infinity;
+    for (const g of pathSegments(p)) best = Math.min(best, pointToSegmentDist(cx, cy, g.x0, g.y0, g.x1, g.y1));
+    return best;
+  }
+
+  // Terminate the travelled-path metadata. MUST be called by anything that
+  // relocates a projectile mid-frame (Mirror route/escrow/emergence, Crystal
+  // hold, singularity), otherwise downstream consumers would keep seeing
+  // geometry like exitPoint -> oldMagnetBoundary -> exitPoint and invent
+  // phantom collisions across the teleport gap.
+  function clearPath(p) { if (p && p.__hr) { p.__hr.pathVia = null; p.__hr.pathPoly = null; } }
+
+  // The Magnet A2 boundary TOI pending on this projectile this frame, or null.
+  function pendingMagnetToi(p) {
+    const via = p.__hr && p.__hr.pathVia;
+    return via && Number.isFinite(via.t) ? via.t : null;
+  }
+
+  // An earlier physical event (Crystal contact, Mirror capture) means the
+  // projectile never reached the Magnet boundary at all: roll the Magnet
+  // entry episode back so no capture beat is presented for an event that did
+  // not physically happen, and terminate the stale path.
+  // An earlier event supersedes the pending Magnet boundary ONLY when it
+  // actually prevents the projectile from reaching that boundary or changes
+  // its trajectory before it. Being earlier is not sufficient on its own:
+  // a Crystal breaking-shot pass-through resolves first and the SAME
+  // projectile still physically reaches the boundary afterwards, so Magnet
+  // must still be allowed to happen.
+  //
+  // Supersedes:   terminal (consumed/absorbed/stored/escrowed) or
+  //               trajectory-changing (reflected/rerouted) events.
+  // Does NOT:     pass-through damage, previews, non-blocking contact.
+  function supersedeMagnetBoundary(p, tWinner, opts) {
+    const o = opts || {};
+    const changes = o.terminal === true || o.trajectoryChanged === true;
+    if (!changes) return false;
+    const tm = pendingMagnetToi(p);
+    if (tm == null || !(tWinner < tm)) return false;
+    const MAGNET = globalScope.APEX_MAGNET;
+    if (MAGNET && typeof MAGNET.revokeEntry === 'function') MAGNET.revokeEntry(p);
+    clearPath(p);
+    return true;
+  }
+
+  function sweptHit(x0, y0, x1, y1, cx, cy, r) {
+    const d = pointToSegmentDist(cx, cy, x0, y0, x1, y1);
+    if (d >= r) return null;
+    // Approximate contact point: closest point on segment.
+    const dx = x1 - x0, dy = y1 - y0;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 === 0 ? 0 : ((cx - x0) * dx + (cy - y0) * dy) / len2;
+    t = clamp(t, 0, 1);
+    return { x: x0 + t * dx, y: y0 + t * dy };
+  }
+
+  function wallEndpoints(w) {
+    if(w.shape === 'circle')return {ax:w.x,ay:w.y,bx:w.x,by:w.y,nx:0,ny:-1};
+    const dx = Math.cos(w.angle), dy = Math.sin(w.angle);
+    const hx = (w.len / 2), hy = (w.thickness / 2);
+    return {
+      ax: w.x - dx * hx, ay: w.y - dy * hx,
+      bx: w.x + dx * hx, by: w.y + dy * hy,
+      nx: -dy, ny: dx,
+    };
+  }
+
+  function sweepWalls(p, BULLET_HIT_SCALE) {
+    if (!M || !M.world.walls.length) return null;
+    let best = null, bestT = 2;
+    for (const w of M.world.walls) {
+      if(w.hp <= 0 || (w.friendlyProjectilePassThrough && w.owner === combatantOfBody(p.owner)))continue;
+      const e = wallEndpoints(w);
+      const d = pointToSegmentDist(p.x, p.y, e.ax, e.ay, e.bx, e.by);
+      const near = d <= p.radius + w.thickness / 2 + 4;
+      // On a MAGNET time-of-impact frame the endpoint test alone can miss a
+      // wall that only the inbound leg reached, so fall back to the real path.
+      if (!near && pathToPointDist(p, w.x, w.y) > p.radius + w.thickness / 2 + w.len / 2 + 4) continue;
+      for (const g of pathSegments(p)) {
+        const local = w.shape === 'circle'
+          ? segmentToPointToi(g.x0,g.y0,g.x1,g.y1,w.x,w.y,p.radius+w.radius)
+          : segmentCrossT(g.x0, g.y0, g.x1, g.y1, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
+        if (local == null) continue;
+        const toi = globalT(g, local);
+        if (toi < bestT) {
+          const hx=g.x0+(g.x1-g.x0)*local-w.x,hy=g.y0+(g.y1-g.y0)*local-w.y;
+          const magnitude=Math.hypot(hx,hy)||1;
+          bestT = toi; best = { wall: w,
+            normal: w.shape==='circle'?{x:hx/magnitude,y:hy/magnitude}:{x:e.nx,y:e.ny},t:toi,seg:g };
+        }
+        break; // sub-segments are in travel order
+      }
+    }
+    return best;
+  }
+
+  function sweepThrownWall(p) {
+    if (!M || !M.world.walls.length) return null;
+    let best = null, bestT = 2;
+    for (const w of M.world.walls) {
+      if(w.hp <= 0 || (w.friendlyProjectilePassThrough && w.owner === combatantOfBody(p.owner)))continue;
+      const e = wallEndpoints(w);
+      const toi = w.shape === 'circle'
+        ? segmentToPointToi(p.px,p.py,p.x,p.y,w.x,w.y,p.radius+w.radius)
+        : segmentCrossT(p.px,p.py,p.x,p.y,e.ax,e.ay,e.bx,e.by,p.radius+w.thickness/2);
+      if(toi!=null&&toi<bestT){
+        const hx=p.px+(p.x-p.px)*toi-w.x,hy=p.py+(p.y-p.py)*toi-w.y;
+        const mag=Math.hypot(hx,hy)||1;
+        bestT=toi;best={wall:w,normal:w.shape==='circle'?{x:hx/mag,y:hy/mag}:{x:e.nx,y:e.ny},t:toi};
+      }
+    }
+    return best;
+  }
+
+  // Earliest crossing TOI (0..1] of the frame's travelled segment against
+  // the arena play bounds [r, S-r]^2; null while the segment stays inside.
+  // This is the wall interaction for grenades/thrown (boundary bounce); the
+  // returned TOI bounds F2 mirror candidacy exactly like a terminal wall
+  // (global TOI law — earliest event wins, never stage order).
+  function arenaBoundToi(p, S) {
+    const r = p.radius || 0;
+    const dx = p.x - p.px, dy = p.y - p.py;
+    let best = null;
+    const cand = (t) => { if (t != null && t > 0 && t <= 1 && (best == null || t < best)) best = t; };
+    if (dx < 0) cand((p.px - r) / -dx);
+    else if (dx > 0) cand((S - r - p.px) / dx);
+    if (dy < 0) cand((p.py - r) / -dy);
+    else if (dy > 0) cand((S - r - p.py) / dy);
+    return best;
+  }
+
+  function segmentCrossT(x0, y0, x1, y1, ax, ay, bx, by, r) {
+    // Circle (wall treated as capsule) vs moving point — sample-based
+    // deterministic test at 4 sub-segments.
+    for (let s = 1; s <= 4; s++) {
+      const t = s / 4;
+      const px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t;
+      if (pointToSegmentDist(px, py, ax, ay, bx, by) <= r) return t;
+    }
+    return null;
+  }
+
+  function graphBlocks(p) {
+    if (!M || !M.world.graphs.length) return false;
+    if (p.weapon === 'STORMBREAKER') return false; // T6 immune to graph
+    for (const g of M.world.graphs) {
+      // Parabola opening toward g.angle; sample the curve.
+      const cos = Math.cos(g.angle), sin = Math.sin(g.angle);
+      for (let k = -10; k <= 10; k++) {
+        const u = (k / 10) * (g.span / 2);
+        const v = Math.pow(Math.abs(u) / (g.span / 2), 2) * g.height;
+        const gx = g.x + cos * v - sin * u;
+        const gy = g.y + sin * v + cos * u;
+        // Real travelled path: on a Magnet corner frame the chord can both
+        // invent a graph contact across the corner and miss a real one on
+        // the inbound leg.
+        if (pathToPointDist(p, gx, gy) <= p.radius + 12) return true;
+      }
+    }
+    return false;
+  }
+
+  function gateTransform(p) {
+    if (!M || !M.world.gates.length) return;
+    if (p.weapon === 'STORMBREAKER') return; // T6 unaffected
+    for (const g of M.world.gates) {
+      if (p.__hr && p.__hr.gatedIds && p.__hr.gatedIds.includes(g.id)) continue;
+      if (dist(p.x, p.y, g.x, g.y) > g.radius + p.radius) continue;
+      const ownerCt = g.owner;
+      const shooterCt = combatantOfBody(p.owner);
+      (p.__hr = p.__hr || {}).gatedIds = [...(p.__hr.gatedIds || []), g.id];
+      if (g.kind === 'x2' && shooterCt === ownerCt) {
+        // Duplicate: 2 projectiles, each 100% normal damage (Lv1).
+        const clone = { ...p, px: p.x, py: p.y, __hr: { ...p.__hr, gatedIds: [...p.__hr.gatedIds] } };
+        const sep = 0.08; // tuning-slot separation angle
+        const sp = Math.hypot(p.vx, p.vy) || 1;
+        const cur = Math.atan2(p.vy, p.vx);
+        p.vx = Math.cos(cur + sep) * sp; p.vy = Math.sin(cur + sep) * sp;
+        clone.vx = Math.cos(cur - sep) * sp; clone.vy = Math.sin(cur - sep) * sp;
+        globalScope.projectiles.push(clone);
+        AIL.bus.emit('GateDuplicate', { gate: g.id });
+      } else if (g.kind === 'div2' && shooterCt && shooterCt !== ownerCt) {
+        p.damage *= 0.5;
+        p.radius = Math.max(3, p.radius * 0.5);
+        AIL.bus.emit('GateDivide', { gate: g.id });
+      }
+    }
+  }
+
+  function singularityStore(p) {
+    if (!M || !M.world.singularities.length) return false;
+    if (p.weapon === 'STORMBREAKER') return false; // T6 immune
+    for (const s of M.world.singularities) {
+      if (s.stored.length >= s.capacity) continue;
+      if (dist(p.x, p.y, s.x, s.y) > s.radius) continue;
+      if (p.__hr && p.__hr.singularityReleased && dist(p.x, p.y, s.x, s.y) < s.radius + 30) continue; // zero-progress release guard
+      s.stored.push({
+        type: p.type, owner: p.owner, weapon: p.weapon, critical: p.critical,
+        family: p.family, heavy: p.heavy, vx: p.vx, vy: p.vy, radius: p.radius,
+        damage: p.damage, life: Math.max(0.5, (p.life || 1)), maxLife: p.maxLife,
+        knockback: p.knockback, stun: p.stun, color: p.color, rot: p.rot,
+        spin: p.spin, ricochetsLeft: p.ricochetsLeft, state: p.state, fuse: p.fuse,
+        grace: p.grace, maxFlight: p.maxFlight, tags: p.__hr ? { ...p.__hr } : {},
+      });
+      AIL.bus.emit('SingularityStored', { weapon: p.weapon, at: s.id });
+      // Schedule release after the transit delay (identity/payload kept).
+      AIL.hrScheduler.after(s.transitDelay, () => {
+        const idx = s.stored.findIndex((d) => d.vx === p.vx && d.vy === p.vy && d.weapon === p.weapon);
+        if (idx >= 0) {
+          const d = s.stored.splice(idx, 1)[0];
+          releaseFromSingularity(s, d);
+        }
+      }, 'singularity.release');
+      return true;
+    }
+    return false;
+  }
+
+  /* ==================================================================== *
+   * CHECKPOINT F2 — GOLD-FIRST ORIENTED-SURFACE ROUTING / ESCROW.
+   *
+   * THE OLD CIRCULAR M.world.mirrors ROUTER IS RETIRED (removed at F2):
+   * no circular portal radius, no permanent lastPortalId, no instant
+   * teleport, no global owner-blind nearest portal. F2 routes through the
+   * REAL per-owner F1 ACTIVE nodes and the ONE shared transform authority
+   * HR.mirrorNode (local route surface v0 -> v3).
+   *
+   * Laws (doc 08 §7-§9, doc 02 R01-R23, executable Gold CR10-CR14):
+   *   eligible  = firearm bullets, each shotgun pellet entity, grenade,
+   *               normal thrown-melee flight, transformed/replayed
+   *               descendants — capability semantics, no weapon-name
+   *               allowlist; T6/STORMBREAKER immune; never direct melee,
+   *               shields, fields, Hero actives.
+   *   surface   = swept capsule test on every REAL ordered path segment
+   *               (no frame-chord, no tunnelling); capture ~17px + projectile
+   *               radius, preview ~34px FROM surface (no radius expansion).
+   *   one node  = projectile stays WORLD, no escrow/relocation/neutral;
+   *               touched node gets the local response event and the
+   *               projectile gets a ~0.40s capture-attempt cooldown
+   *               (not damage immunity, not a global lock).
+   *   capture   = >=2 ACTIVE same-owner nodes: entry node fixed at the
+   *               actually-crossed surface; destination = nearest OTHER
+   *               ACTIVE same-owner node by center distance, chosen ONCE.
+   *   escrow    = WORLD -> MIRROR_ESCROW -> WORLD on the ACTUAL detached
+   *               object (never a clone): removed from ordinary movement/
+   *               collision; Magnet/walls/bodies/Crystal cannot act on it;
+   *               life/fuse/thrown timers do not tick; exists exactly once.
+   *   transit   = canonical Gold fixed-step edges measured on the
+   *               executable: destination image at t = 0.2083 (authored
+   *               .20), emergence at t = 0.5667 (authored .56), advanced
+   *               through the same 1/120 fixed-step accumulator law as
+   *               mirrorAdvance — never a raw timer.
+   *   emergence = node center + incomingUnitDirection * 20 (1:1 shared
+   *               transform); controller NEUTRAL; damage/provenance
+   *               unchanged; px/py + swept history reset to the emergence
+   *               point (ZERO teleport-gap phantom); destination lost
+   *               before release -> captured entry-node transform fallback
+   *               exactly once (no retarget, no deletion); ~0.45s
+   *               post-exit recapture lock (not immunity), then valid
+   *               later routing is allowed — no global one-portal cap.
+   *   ordering  = capture is a real terminal/trajectory-changing event and
+   *               is reconciled with walls/Crystal/body/Magnet by global
+   *               TOI on the ONE ordered path; preview and one-node local
+   *               response are NON-terminal and never revoke Magnet.
+   * ==================================================================== */
+  const MIRROR_F2 = {
+    previewPx: 34, capturePx: 17,
+    attemptCd: 0.40, recaptureLock: 0.45,
+    imageT: 0.20, emergeT: 0.56, step: 1 / 120, offsetPx: 20,
+  };
+
+  function mirrorF2World() {
+    return M.world.mirrorF2 || (M.world.mirrorF2 = { escrow: [], nodeSeq: 0 });
+  }
+  function mirrorNodeId() { return ++mirrorF2World().nodeSeq; }
+
+  // Eligibility by capability/type semantics (doc 08 §7): detached
+  // projectile entities only. T6 is capability-denied through the SHARED
+  // T6 authority (api.isT6Weapon: STORMBREAKER and T6 aliases alike) —
+  // never an F2-local weapon-name exception. Thrown melees route only
+  // while they are real detached flight projectiles (never pinned or
+  // tumbling drop states). No ad-hoc weapon-name allowlist decides family.
+  function mirrorF2Eligible(p) {
+    if (!M || !p || !p.aq) return false;
+    const auth=AIL.CapabilityAuthority;
+    if (auth) {
+      // CP5.6 canonical family permission; the F2 sweep/cooldown/escrow and
+      // Gold choreography below remain unchanged. Unknown => NOT eligible.
+      return auth.query?.('mirror-f2-projectile',p,{
+        config: globalScope.APEX_ARSENAL_CONFIG, matchActive: !!M,
+      })?.status==='allowed';
+    }
+    // No-AIL standalone compatibility, NEVER a production fallback.
+    if (M.api && M.api.isT6Weapon && M.api.isT6Weapon(p.weapon)) return false;
+    if (p.type === 'aq_bullet') return true;
+    if (p.type === 'aq_grenade') return true;
+    if (p.type === 'aq_thrown') return p.state === 'flight';
+    return false;
+  }
+
+  function mirrorF2CoolingDown(p) {
+    const hr = p.__hr;
+    if (!hr) return false;
+    const now = AIL.clock();
+    if (hr.mirrorRecaptureUntil != null && now < hr.mirrorRecaptureUntil) return true;
+    if (hr.mirrorAttemptCdUntil != null && now < hr.mirrorAttemptCdUntil) return true;
+    return false;
+  }
+
+  // Gold's authored bolt power is a presentation tier derived only from the
+  // actual projectile family. This metadata never feeds collision or damage.
+  function mirrorF2VisualPower(p) {
+    if (!p) return 1;
+    if (p.type === 'aq_grenade' || p.type === 'aq_thrown') return 3;
+    const config = globalScope.APEX_ARSENAL_CONFIG;
+    const family = p.family || (config && config.WEAPONS && config.WEAPONS[p.weapon]
+      && config.WEAPONS[p.weapon].family);
+    if (family === 'PRECISION') return 3;
+    if (family === 'SHOTGUN' || family === 'AUTOSHOT' || family === 'BURST') return 2;
+    return 1;
+  }
+
+  // Preserve real producer truth as non-enumerable presentation metadata so
+  // bounded gameplay telemetry keeps its existing serialized event shape.
+  function attachMirrorF2Visual(payload, projectile, point, vx, vy, power) {
+    if (!payload || !projectile || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return payload;
+    const direction = Object.freeze({
+      x: Number.isFinite(vx) ? vx : (Number.isFinite(projectile.vx) ? projectile.vx : 0),
+      y: Number.isFinite(vy) ? vy : (Number.isFinite(projectile.vy) ? projectile.vy : 0),
+    });
+    Object.defineProperties(payload, {
+      projectile: { value: projectile },
+      point: { value: point },
+      direction: { value: direction },
+      power: { value: Number.isFinite(power) ? power : mirrorF2VisualPower(projectile) },
+    });
+    return payload;
+  }
+
+  // Swept capsule contact of the REAL ordered travelled path against one
+  // node's oriented route surface. Segments are walked in travel order, so
+  // the first contact is the earliest GLOBAL TOI; high-speed projectiles
+  // cannot tunnel (swept test, not a per-frame point test).
+  function mirrorF2Sweep(p, R) {
+    let best = null;
+    for (const ct of M.combatants) {
+      const st = ct.store && ct.store['mirror.passive'];
+      if (!st || !st.nodes || !st.nodes.length) continue;
+      for (const n of st.nodes) {
+        if (n.st !== 2) continue;                 // ACTIVE only (never FORMING/FOLD/OFF)
+        const s = HR.mirrorNode.surface(n);
+        for (const g of pathSegments(p)) {
+          const hit = capsuleToi(g.x0, g.y0, g.x1, g.y1, s.ax, s.ay, s.bx, s.by, R);
+          if (!hit) continue;
+          const t = globalT(g, hit.t);            // GLOBAL frame TOI
+          if (!best || t < best.t) best = {
+            node: n, t, seg: g,
+            // The exact projectile center at the already-computed swept TOI.
+            // Presentation consumes this point; gameplay collision is unchanged.
+            point: { x: g.x0 + (g.x1 - g.x0) * hit.t, y: g.y0 + (g.y1 - g.y0) * hit.t },
+          };
+          break;                                  // segments are in travel order
+        }
+      }
+    }
+    return best;
+  }
+
+  // Destination law: nearest OTHER ACTIVE node of the SAME owner/network by
+  // node-center distance, chosen ONCE at capture (ties broken by node id so
+  // the choice is deterministic). Mirror-vs-Mirror networks never mix.
+  function mirrorF2Destination(entryNode) {
+    const owner = entryNode.owner;
+    const st = owner && owner.store && owner.store['mirror.passive'];
+    if (!st) return null;
+    let dest = null, bestD = Infinity;
+    for (const n2 of st.nodes) {
+      if (n2 === entryNode || n2.st !== 2) continue;
+      const d = dist(entryNode.x, entryNode.y, n2.x, n2.y);
+      if (d < bestD || (d === bestD && dest && n2.id < dest.id)) { bestD = d; dest = n2; }
+    }
+    return dest;
+  }
+
+  // Capture/preview candidacy for one projectile this frame. PURE
+  // observation except for the one-per-node preview event emission: never
+  // mutates the projectile, never revokes Magnet, never alters trajectory.
+  // `bodyToi` is the earliest body-contact TOI already adjudicated for this
+  // frame (null when none / not applicable): surface events that would only
+  // happen AFTER the projectile is consumed by a body are not presented.
+  // `wallToi` is the earliest TERMINAL/trajectory-changing wall TOI on the
+  // same ordered path (bullet wall absorb; grenade/thrown boundary bounce or
+  // world-wall ricochet): surface events at or after it are physically
+  // unreachable and are not presented (capture OR preview). This is the
+  // global-TOI reconcile: earliest event wins, never stage order.
+  function mirrorF2Candidate(p, bodyToi, wallToi) {
+    if (!mirrorF2Eligible(p) || mirrorF2CoolingDown(p)) return null;
+    const captureR = MIRROR_F2.capturePx + (p.radius || 0);
+    const cap = mirrorF2Sweep(p, captureR);
+    if (!cap || (wallToi != null && cap.t >= wallToi)) {
+      // Preview region — Gold authority: ~34px FROM the oriented surface.
+      // NOT expanded by projectile radius (capture alone carries the real
+      // radius). Presentation-facing routing state for Checkpoint G. One
+      // event per (projectile, node) approach; the real projectile is never
+      // removed, frozen, relocated or neutralized here.
+      const previewR = MIRROR_F2.previewPx;
+      const pv = mirrorF2Sweep(p, previewR);
+      if (pv && !(bodyToi != null && bodyToi < pv.t) && !(wallToi != null && pv.t >= wallToi)) {
+        const hr = p.__hr || (p.__hr = {});
+        const seen = hr.mirrorPreviewed || (hr.mirrorPreviewed = []);
+        if (!seen.includes(pv.node.id)) {
+          seen.push(pv.node.id);
+          const dest = mirrorF2Destination(pv.node);
+          const previewEvent = {
+            node: pv.node.id, owner: pv.node.owner ? pv.node.owner.idx : -1,
+            dest: dest ? dest.id : null, toi: pv.t,
+          };
+          attachMirrorF2Visual(previewEvent, p, pv.point,
+            pv.seg && pv.seg.vx, pv.seg && pv.seg.vy);
+          AIL.bus.emit('MirrorRoutePreview', previewEvent);
+        }
+      }
+      return null;
+    }
+    const dest = mirrorF2Destination(cap.node);
+    if (!dest) return { kind: 'oneNode', capT: cap.t, node: cap.node, seg: cap.seg, point: cap.point };
+    return { kind: 'capture', capT: cap.t, node: cap.node, dest, seg: cap.seg, point: cap.point };
+  }
+
+  // Realize a capture: escrow the ACTUAL detached projectile object.
+  function mirrorF2Capture(p, cand, projectiles) {
+    // PHYSICAL ORDERING: an actually-realized capture is terminal AND
+    // trajectory-changing, so it supersedes a pending Magnet boundary that
+    // lies later on the ordered path (the internal TOI check keeps a
+    // physically-earlier boundary intact).
+    supersedeMagnetBoundary(p, cand.capT, { terminal: true, trajectoryChanged: true });
+    // Incoming kinematics valid on the LEG that actually crossed the
+    // surface — never Magnet's post-response velocity for a capture that
+    // happened before that boundary was reached.
+    const inVx = cand.seg && Number.isFinite(cand.seg.vx) ? cand.seg.vx : p.vx;
+    const inVy = cand.seg && Number.isFinite(cand.seg.vy) ? cand.seg.vy : p.vy;
+    const sp = Math.hypot(inVx, inVy) || 1;
+    const nA = cand.node;
+    p.vx = inVx; p.vy = inVy;
+    // Escrow removes the object from ordinary projectile movement and
+    // collision: Magnet sums, walls, bodies, Crystal, bullet life, grenade
+    // fuse and thrown timers all iterate the live array — an escrowed
+    // object is absent from it and therefore untouched by all of them. It
+    // exists exactly once (here), never duplicated.
+    const idx = projectiles.indexOf(p);
+    if (idx >= 0) projectiles.splice(idx, 1);
+    clearPath(p);
+    (p.__hr = p.__hr || {}).mirrorEscrow = true;
+    const escrowEntry = {
+      p,
+      entryId: nA.id,
+      // Entry-node transform SNAPSHOTTED at capture so emergence stays
+      // defined even if the entry node folds/despawns during transit.
+      entrySnap: { x: nA.x, y: nA.y, rot: nA.rot },
+      destRef: cand.dest, destId: cand.dest.id,
+      dirX: inVx / sp, dirY: inVy / sp,
+      vx: inVx, vy: inVy,
+      acc: 0, t: 0, img: false, fallbackUsed: false,
+    };
+    // Non-enumerable presentation provenance keeps gameplay escrow snapshots
+    // stable while preserving the real swept contact and family at capture.
+    Object.defineProperties(escrowEntry, {
+      contactPoint: { value: cand.point },
+      power: { value: mirrorF2VisualPower(p) },
+    });
+    mirrorF2World().escrow.push(escrowEntry);
+    const captureEvent = {
+      entry: nA.id, dest: cand.dest.id,
+      owner: nA.owner ? nA.owner.idx : -1,
+      toi: cand.capT, weapon: p.weapon || null, type: p.type,
+    };
+    // Exact route identity, swept contact and incoming-leg direction remain
+    // presentation metadata; JSON/telemetry retains the established payload.
+    attachMirrorF2Visual(captureEvent, p, cand.point, inVx, inVy, escrowEntry.power);
+    AIL.bus.emit('MirrorRouteCapture', captureEvent);
+  }
+
+  // Emerge at the canonical edge: fixed destination chosen at capture;
+  // lost destination falls back to the captured entry transform EXACTLY
+  // ONCE — never a third-node retarget, never a deletion.
+  function mirrorF2Emerge(e, projectiles) {
+    const p = e.p;
+    let cx, cy, via;
+    if (e.destRef && e.destRef.st === 2) { cx = e.destRef.x; cy = e.destRef.y; via = e.destId; }
+    else { e.fallbackUsed = true; cx = e.entrySnap.x; cy = e.entrySnap.y; via = 'entry-fallback'; }
+    // Gold-equivalent offset: node center + incoming unit direction * 20,
+    // through the shared 1:1 node/world transform (never a portal-radius
+    // jump).
+    p.x = cx + e.dirX * MIRROR_F2.offsetPx;
+    p.y = cy + e.dirY * MIRROR_F2.offsetPx;
+    // Reset previous-position and ALL swept-history to the emergence point:
+    // zero teleport-gap phantom collision (clearPath law).
+    p.px = p.x; p.py = p.y;
+    clearPath(p);
+    p.vx = e.vx; p.vy = e.vy;          // real incoming speed + direction
+    const hr = p.__hr || (p.__hr = {});
+    hr.mirrorEscrow = false;
+    hr.neutral = true;                 // controller NEUTRAL; damage unchanged
+    hr.mirrorRecaptureUntil = AIL.clock() + MIRROR_F2.recaptureLock;
+    projectiles.push(p);
+    const emergeEvent = {
+      entry: e.entryId, via, t: e.t,
+      x: p.x, y: p.y,                       // canonical emergence point
+      weapon: p.weapon || null, type: p.type, fallback: e.fallbackUsed,
+    };
+    attachMirrorF2Visual(emergeEvent, p, { x: p.x, y: p.y }, e.vx, e.vy, e.power);
+    AIL.bus.emit('MirrorRouteEmerge', emergeEvent);
+  }
+
+  // Transit choreography: canonical Gold fixed-step edges. Advances through
+  // the SAME 1/120 accumulator law as mirrorAdvance (Checkpoint E) — repeated
+  // fixed-step addition, first crossing wins, never a raw timer and never
+  // fps-dependent. Runs once per shared fixed step; emerged objects rejoin
+  // the live array before the ordinary pass so their continuation is
+  // integrated by the normal lifecycle.
+  function mirrorF2EscrowStep(projectiles, dt) {
+    if (!M) return;
+    const w = M.world.mirrorF2;
+    if (!w || !w.escrow.length) return;
+    const keep = [];
+    for (const e of w.escrow) {
+      e.acc += dt;
+      let emerged = false;
+      while (e.acc >= MIRROR_F2.step - 1e-12) {
+        e.acc -= MIRROR_F2.step;
+        e.t += MIRROR_F2.step;
+        if (!e.img && e.t > MIRROR_F2.imageT) {
+          e.img = true;                // destination reflected-image edge
+          const imageEvent = {
+            entry: e.entryId, dest: e.destId,
+            destLive: !!(e.destRef && e.destRef.st === 2), t: e.t,
+          };
+          attachMirrorF2Visual(imageEvent, e.p, e.contactPoint, e.vx, e.vy, e.power);
+          AIL.bus.emit('MirrorEscrowImage', imageEvent);
+        }
+        if (e.t > MIRROR_F2.emergeT) { mirrorF2Emerge(e, projectiles); emerged = true; break; }
+      }
+      if (!emerged) keep.push(e);
+    }
+    w.escrow = keep;
+  }
+
+  // Non-terminal one-node surface contact: local Mirror response for the
+  // touched node + ~0.40s capture-attempt cooldown on that projectile.
+  // NEVER an escrow, relocation, neutralization or Magnet revocation.
+  function mirrorF2LocalResponse(p, cand) {
+    const localEvent = {
+      node: cand.node.id, owner: cand.node.owner ? cand.node.owner.idx : -1,
+      toi: cand.capT, weapon: p.weapon || null, type: p.type,
+    };
+    const vx = cand.seg && Number.isFinite(cand.seg.vx) ? cand.seg.vx : p.vx;
+    const vy = cand.seg && Number.isFinite(cand.seg.vy) ? cand.seg.vy : p.vy;
+    attachMirrorF2Visual(localEvent, p, cand.point, vx, vy);
+    AIL.bus.emit('MirrorRouteLocal', localEvent);
+    (p.__hr = p.__hr || {}).mirrorAttemptCdUntil = AIL.clock() + MIRROR_F2.attemptCd;
+  }
+
+  function earliestToiBody(p, BULLET_HIT_SCALE, index) {
+    const r = earliestToiBodyT(p, BULLET_HIT_SCALE);
+    return r ? r.body : null;
+  }
+  function earliestToiBodyT(p, BULLET_HIT_SCALE) {
+    if (!M) return null;
+    const shooterCt = combatantOfBody(p.owner);
+    const neutral = p.__hr && p.__hr.neutral;
+    let best = null, bestToi = 2;
+    const quest = globalScope.APEX_ARSENAL?.state?.questMultiActor
+      && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
+    const eligibleBodies = quest
+      ? quest.livingEnemies(p.owner, globalScope.fighters || [])
+      : M.combatants.flatMap(ct =>
+          (!neutral && ct === shooterCt) ? [] : livingBodies(ct));
+    for (const b of eligibleBodies) {
+        const hitR = b.radius * BULLET_HIT_SCALE + p.radius;
+        if (pathToPointDist(p, b.x, b.y) >= hitR) continue;
+        let t = null;
+        for (const g of pathSegments(p)) {
+          const local = segmentToPointToi(g.x0, g.y0, g.x1, g.y1, b.x, b.y, hitR);
+          if (local == null) continue;
+          t = globalT(g, local); // global time fraction
+          break; // sub-segments are already in travel order
+        }
+        if (t == null) continue;
+        if (t < bestToi || (Math.abs(t - bestToi) < 1e-9 && best
+          && String(b.id) < String(best.id))) { bestToi = t; best = b; }
+    }
+    return best ? { body: best, t: bestToi } : null;
+  }
+
+  function segmentToPointToi(x0, y0, x1, y1, cx, cy, r) {
+    const dx = x1 - x0, dy = y1 - y0;
+    const fx = x0 - cx, fy = y0 - cy;
+    const a = dx * dx + dy * dy;
+    const c = fx * fx + fy * fy - r * r;
+    if (c <= 0) return 0;
+    if (a === 0) return null;
+    const b = 2 * (fx * dx + fy * dy);
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) return null;
+    const sq = Math.sqrt(disc);
+    const t1 = (-b - sq) / (2 * a);
+    const t2 = (-b + sq) / (2 * a);
+    const t = t1 >= 0 ? t1 : (t2 >= 0 ? t2 : -1);
+    if (t < 0 || t > 1) return null;
+    return t;
+  }
+
+  function thrownHomingTarget(p) {
+    // STORMBREAKER pursues the owner's LIVING opponent (first other body —
+    // parity with base first-found anchor; rework adds earliest living body).
+    const quest = globalScope.APEX_ARSENAL?.state?.questMultiActor
+      && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
+    if (quest) return quest.nearestEnemy(p.owner, globalScope.fighters || []);
+    if (!M) return null;
+    const shooterCt = combatantOfBody(p.owner);
+    for (const ct of M.combatants) {
+      if (ct === shooterCt) continue;
+      const bodies = livingBodies(ct);
+      if (bodies.length) return bodies[0];
+    }
+    return null;
+  }
+
+  function tryRubberStore(p, target) {
+    if (p.weapon === 'STORMBREAKER') return false; // T6 immune
+    const ct = combatantOfBody(target);
+    if (!ct || ct.facade || ct.heroId !== 'RUBBER') return false;
+    const st = ct.store['rubber.compression'];
+    if (!st || !st.storeUntil || AIL.clock() >= st.storeUntil) return false;
+    const cfg = ct.skills.A2.cfg;
+    if ((st.held || []).length >= cfg.capacity) return false;
+    st.held = st.held || [];
+    st.held.push({
+      weapon: p.weapon, critical: p.critical, family: p.family, heavy: p.heavy,
+      speed: Math.hypot(p.vx, p.vy), radius: p.radius, damage: p.damage,
+      life: Math.max(0.5, p.life || 1), knockback: p.knockback, stun: p.stun,
+      color: p.color, tags: p.__hr ? { ...p.__hr } : {},
+    });
+    AIL.bus.emit('RubberStored', { weapon: p.weapon, held: st.held.length });
+    return true;
+  }
+
+  function thrownExitLocal(p) {
+    p.state = 'exit';
+    p.vx *= 0.35;
+    p.vy = -140;
+    p.spin *= 1.6;
+    p.life = Math.min(p.life, 0.75);
+  }
+
+  /* Rubber debt settlement on released-projectile despawn: handled in
+   * hrPostTick via a life-watch — Lv1 settles on miss/despawn. */
+  function settleRubberDebts() {
+    if (!M) return;
+    const projectiles = globalScope.projectiles;
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      if (!p || !p.__hr || !p.__hr.rubberDebt) continue;
+      if (p.life > 0) continue;
+      // Despawned without connecting: RUBBER takes the debt.
+      for (const ct of M.combatants) {
+        if (ct.heroId === 'RUBBER' && !ct.facade) {
+          const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+          if (W && W.aqDamage && ct.anchor && ct.anchor.hp > 0) {
+            W.aqDamage(ct.anchor, p.__hr.rubberDebt, null, 'RUBBER_DEBT', { statusDamage: true });
+            AIL.bus.emit('RubberDebtPaid', { amount: p.__hr.rubberDebt });
+          }
+          p.__hr.rubberDebt = null;
+        }
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * CP4 beginner-BOT tutorial pause lease. The React coach publishes a
+   * heartbeat lease; while it is fresh the ENTIRE rework step (pre-tick,
+   * Arsenal simulation, post-tick, rubber debts) is skipped, so match
+   * clock, AI, cooldowns, projectiles and presentation clocks freeze
+   * together. Drawing continues. A stale lease (coach gone, tab hidden,
+   * crash) auto-expires — the pause can never softlock a match. LOCAL,
+   * Quest, Lab and finished matches are never paused.
+   * ------------------------------------------------------------------ */
+  function tutorialPauseActive() {
+    try {
+      const lease = globalScope.APEX_TUTORIAL_PAUSE;
+      if (!lease || lease.active !== true) return false;
+      const updated = Number(lease.updatedAt) || 0;
+      if (!updated || Date.now() - updated > 2500) return false;
+      const st = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+      if (!st || st.battleMode !== 'BOT' || st.labMode
+          || st.questMultiActor || st.questStage || st.over) return false;
+      return true;
+    } catch (_) { return false; }
+  }
+  HR.tutorialPauseActive = tutorialPauseActive;
+
+  /* ------------------------------------------------------------------ *
+   * Entry/exit wrapping + step wrapping + draw wrapping.
+   * ------------------------------------------------------------------ */
+  function installIntegration() {
+    const baseStart = globalScope.startArsenalBattleMode;
+    if (baseStart && !baseStart.__hrWrapped) {
+      const wrapped = function startArsenalBattleModeHR(p1, p2, options) {
+        const out = baseStart.call(this, p1, p2, options);
+        if (out) installMatch();
+        return out;
+      };
+      wrapped.__hrWrapped = true;
+      globalScope.startArsenalBattleMode = wrapped;
+    }
+
+    const baseExit = globalScope.exitArsenalBattleMode;
+    if (baseExit && !baseExit.__hrWrapped) {
+      const wrapped = function exitArsenalBattleModeHR() {
+        teardownMatch();
+        return baseExit.call(this);
+      };
+      wrapped.__hrWrapped = true;
+      globalScope.exitArsenalBattleMode = wrapped;
+    }
+
+    const AQ = globalScope.APEX_ARSENAL;
+    if (AQ && AQ.step && !AQ.step.__hrWrapped) {
+      const baseStep = AQ.step;
+      const wrappedStep = function aqStepHR(dt) {
+        if (tutorialPauseActive()) return;
+        hrPreTick(dt);
+        baseStep(dt);
+        hrPostTick(dt);
+        settleRubberDebts();
+      };
+      wrappedStep.__hrWrapped = true;
+      AQ.step = wrappedStep;
+    }
+
+    // rAF path: global update() (wrapped by the Arsenal Battle runtime).
+    if (typeof globalScope.update === 'function' && !globalScope.update.__hrWrapped) {
+      const baseUpdateFn = globalScope.update;
+      const wrappedUpdate = function updateHR(dt) {
+        if (globalScope.gameState === 'ARSENAL' && M) {
+          if (tutorialPauseActive()) return;
+          hrPreTick(dt);
+          baseUpdateFn(dt);
+          hrPostTick(dt);
+          settleRubberDebts();
+          return;
+        }
+        return baseUpdateFn(dt);
+      };
+      wrappedUpdate.__hrWrapped = true;
+      globalScope.update = wrappedUpdate;
+    }
+
+    // The spawn transaction already runs at the exact canonical seam after
+    // fighter collisions and before pickup resolution. Wrap that seam locally
+    // instead of changing the shared Arsenal mode loop.
+    const spawn = globalScope.APEX_ARSENAL_SPAWN;
+    if (spawn && spawn.resolvePickups && !spawn.resolvePickups.__hrMagnetWrapped) {
+      const baseResolvePickups = spawn.resolvePickups;
+      spawn.resolvePickups = function resolvePickupsHR() {
+        const dt = HR._magnetStepPendingDt;
+        HR._magnetStepPendingDt = null;
+        if (Number.isFinite(dt) && dt > 0) HR.stepMagnetWorld(dt);
+        return baseResolvePickups.apply(this, arguments);
+      };
+      spawn.resolvePickups.__hrMagnetWrapped = true;
+    }
+
+    // Projectile pass replacement (keep base for parity delegation).
+    const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+    if (W && W.scaledDamage) HR.scaledDamageExport = W.scaledDamage;
+    if (W && W.updateArsenalProjectiles && !W.__hrPassSwapped) {
+      baseUpdateArsenalProjectiles = W.updateArsenalProjectiles;
+      W.updateArsenalProjectiles = function updateArsenalProjectilesHR(dt) {
+        if (HR._forceBasePass) return baseUpdateArsenalProjectiles(dt);
+        if (!M) return baseUpdateArsenalProjectiles(dt);
+        // Owner Chrome reproduction: reworkUpdateProjectiles only dispatches
+        // aq_bullet/grenade/thrown. V43 shots otherwise remain at the muzzle
+        // with age=0 until base engine lifetime removes them, causing 0 HP.
+        const outcome = reworkUpdateProjectiles(dt);
+        baseUpdateArsenalProjectiles(dt, 'v43-only');
+        return outcome;
+      };
+      W.__hrPassSwapped = true;
+    }
+
+    // equip wrapper (MATH graph end-on-equipment, telemetry).
+    if (W && W.equip && !W.__hrEquipWrapped) {
+      const baseEquip = W.equip;
+      W.equip = function equipHR(f, weaponId) {
+        const out = baseEquip.call(W, f, weaponId);
+        if (out) onEquipped(f, weaponId);
+        return out;
+      };
+      W.__hrEquipWrapped = true;
+    }
+
+    // Manual skill gate bridge: J -> A1 (gate stays untouched for legacy
+    // shells; we only intercept rework fighters). ONE side authority: the side
+    // is the fighter's own slot in the live fighters array (the same idx law
+    // makeCombatant uses), never a literal in the key handler.
+    const sideOfFighter = (f) => {
+      const list = globalScope.fighters;
+      if (!Array.isArray(list)) return null;
+      const idx = list.indexOf(f);
+      if (idx === 0) return 'p1';
+      if (idx === 1) return 'p2';
+      return null;
+    };
+    const gate = globalScope.APEX_ARSENAL_SKILL_GATE;
+    if (gate && gate.pressJ && !gate.pressJ.__hrWrapped) {
+      const basePressJ = gate.pressJ;
+      gate.pressJ = function pressJHR(f) {
+        if (M && HR.isReworkFighter(f)) {
+          const res = HR.pressAbility(f, 'A1', { side: sideOfFighter(f), source: 'keyboard', key: 'KeyJ' });
+          return res.ok || !!res.failCue;
+        }
+        return basePressJ.call(gate, f);
+      };
+      gate.pressJ.__hrWrapped = true;
+    }
+
+    // K -> A2 for rework P1 (own listener; Arsenal Battle runtime owns J).
+    if (!HR.__keyKInstalled && typeof globalScope.addEventListener === 'function') {
+      HR.__keyKInstalled = true;
+      globalScope.addEventListener('keydown', (e) => {
+        if (e.code !== 'KeyK' || e.repeat) return;
+        if (globalScope.gameState !== 'ARSENAL' || !M) return;
+        const f = globalScope.fighters && globalScope.fighters[0];
+        if (f && !(globalScope.APEX_ARSENAL?.state?.questMultiActor && f.withdrawn===true)
+            && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2', { side: sideOfFighter(f), source: 'keyboard', key: 'KeyK' });
+      });
+    }
+
+    // LOCAL 2P human abilities (owner law 2026-10-06): the P2 pair is the
+    // RIGHT-HAND numpad pair ONLY — Numpad1 -> P2 A1, Numpad2 -> P2 A2.
+    // The earlier mapping also accepted the top-row Digit1/Digit2, and the
+    // owner corrected it: "nút 1 2 để trigger P2 ... nên là nút 1 2 ở bên phải
+    // của bàn phím laptop thôi" (the pair that must cast is the right-side one;
+    // the top-row pair was the pair that wrongly worked). Because both physical
+    // pairs report key '1'/'2', the map is keyed by e.code (physical key), which
+    // is what tells Numpad1 from Digit1 — and still works with NumLock off.
+    // The canonical pressAbility/tryCast path is the ONLY executor (no second
+    // mechanics, no second cooldown authority, no direct executor calls) and
+    // e.repeat guards against auto-repeat activation. BOT mode never reaches
+    // this branch: P2 stays CPU-driven there.
+    if (!HR.__localP2KeysInstalled && typeof globalScope.addEventListener === 'function') {
+      HR.__localP2KeysInstalled = true;
+      const LOCAL_P2_ABILITY_KEYS = { Numpad1: 'A1', Numpad2: 'A2' };
+      globalScope.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        const slot = LOCAL_P2_ABILITY_KEYS[e.code];
+        if (!slot) return;
+        if (globalScope.gameState !== 'ARSENAL' || !M) return;
+        const AQS = globalScope.APEX_ARSENAL;
+        // Production truth owns the profile: only a real LOCAL match hands P2
+        // to a human. BOT matches keep the CPU on P2.
+        if (!AQS || !AQS.state || AQS.state.battleMode !== 'LOCAL') return;
+        const f = globalScope.fighters && globalScope.fighters[1];
+        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, slot, { side: sideOfFighter(f), source: 'keyboard', key: e.code });
+      });
+    }
+
+    // Collision observation for anchor pairs (engine still resolves).
+    if (typeof globalScope.handleCollisions === 'function' && !globalScope.handleCollisions.__hrWrapped) {
+      const baseHC = globalScope.handleCollisions;
+      globalScope.handleCollisions = function handleCollisionsHR(dt) {
+        try { HR.noteAnchorContacts(); } catch (e) { /* never break physics */ }
+        const out = baseHC(dt);
+        // Shared geometry authority: solid world material (Crystal constructs,
+        // legacy walls) stops EVERY body however it moved this step.
+        resolveWorldWalls();
+        return out;
+      };
+      globalScope.handleCollisions.__hrWrapped = true;
+    }
+
+    // World + child-body drawing (temporary neutral visuals, flagged).
+    if (typeof globalScope.drawProjectiles === 'function' && !globalScope.drawProjectiles.__hrWrapped) {
+      const baseDP = globalScope.drawProjectiles;
+      globalScope.drawProjectiles = function drawProjectilesHR(c) {
+        baseDP(c);
+        try { drawReworkWorld(c); } catch (e) { /* visuals never break draw */ }
+      };
+      globalScope.drawProjectiles.__hrWrapped = true;
+    }
+
+    installDamageAdapter();
+    AIL.hrScheduler = new AIL.Scheduler(() => globalScope.matchClock || 0);
+    AIL.bindClock(() => globalScope.matchClock || 0);
+    installFrostProductCopy();
+  }
+
+  // FROST V1 (authority §1): shop/hub/draw/pick product copy shows FROST.
+  // Implemented as wrappers on EXPOSED meta entry points plus a scoped DOM
+  // text patch — the G07-pinned meta file is never edited. Storage ids,
+  // data attributes and selection logic are untouched (text nodes only).
+  const FROST_COPY_SELECTORS = [
+    '.aq-fighter-name', '#aq-shop-detail h2', '.aq-sel',
+    '.aq-wheel-label', '#roster-grid .f-name', '.aq-draw-result strong',
+  ];
+  function patchFrostProductCopy(root) {
+    try {
+      if (!REG || !REG.displayNameFor || REG.productCutover === false) return 0;
+      const scope = root || (typeof document !== 'undefined' ? document : null);
+      if (!scope || !scope.querySelectorAll) return 0;
+      let patched = 0;
+      for (const sel of FROST_COPY_SELECTORS) {
+        const nodes = scope.querySelectorAll(sel);
+        for (const el of nodes) {
+          if (el.textContent === 'ICE') { el.textContent = 'FROST'; patched += 1; }
+        }
+      }
+      return patched;
+    } catch (e) { return 0; }
+  }
+  HR.patchFrostProductCopy = patchFrostProductCopy;
+  function installFrostProductCopy() {
+    if (HR.__frostCopyInstalled) return;
+    HR.__frostCopyInstalled = true;
+    try {
+      const META = globalScope.APEX_ARSENAL_META;
+      if (META) {
+        for (const key of ['paintShop', 'paintDraw', 'openHub', 'paintHub']) {
+          const base = META[key];
+          if (typeof base === 'function' && !base.__frostCopyWrapped) {
+            const wrapped = function (...args) {
+              const out = base.apply(META, args);
+              patchFrostProductCopy();
+              return out;
+            };
+            wrapped.__frostCopyWrapped = true;
+            META[key] = wrapped;
+          }
+        }
+      }
+      // The pick select-title is click-driven (engine selectFighter); keep
+      // it mapped with a mutation observer scoped to that one node.
+      if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+        const title = document.getElementById('select-title');
+        if (title && !title.__frostCopyObserved) {
+          title.__frostCopyObserved = true;
+          const mapTitle = () => {
+            try {
+              if (!REG || !REG.displayNameFor || REG.productCutover === false) return;
+              const t = title.textContent;
+              if (t && t.indexOf('ICE') >= 0) {
+                const mapped = t.replace(/\bICE\b/g, 'FROST');
+                if (mapped !== t) title.textContent = mapped;
+              }
+            } catch (e) { /* copy never breaks selection */ }
+          };
+          new MutationObserver(mapTitle).observe(title, { characterData: true, childList: true, subtree: true });
+          mapTitle();
+        }
+      }
+    } catch (e) { /* copy integration never breaks boot */ }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Temporary neutral world visuals (NOT owner visual direction).
+   * ------------------------------------------------------------------ */
+  function drawReworkWorld(c) {
+    if (!M) return;
+    const w = M.world;
+    c.save();
+    // Walls
+    for (const wall of w.walls) {
+      const e = wallEndpoints(wall);
+      c.strokeStyle = '#9fd8ff';
+      c.lineWidth = wall.thickness;
+      c.globalAlpha = 0.85;
+      c.beginPath(); c.moveTo(e.ax, e.ay); c.lineTo(e.bx, e.by); c.stroke();
+      c.globalAlpha = 1;
+    }
+    // Gates
+    for (const g of w.gates) {
+      c.strokeStyle = g.kind === 'x2' ? '#ffd24a' : '#ff7a7a';
+      c.lineWidth = 4;
+      c.setLineDash([10, 8]);
+      c.beginPath(); c.arc(g.x, g.y, g.radius, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+      c.fillStyle = c.strokeStyle;
+      c.font = '900 20px monospace';
+      c.textAlign = 'center';
+      c.fillText(g.kind === 'x2' ? 'x2' : '÷2', g.x, g.y + 7);
+    }
+    // Singularities
+    for (const s of w.singularities) {
+      c.fillStyle = 'rgba(30,10,50,0.75)';
+      c.beginPath(); c.arc(s.x, s.y, s.radius * 0.5, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#b98aff';
+      c.lineWidth = 3;
+      c.beginPath(); c.arc(s.x, s.y, s.radius, 0, Math.PI * 2); c.stroke();
+    }
+    // Lanes
+    for (const l of w.lanes) {
+      if (l.windupLeft > 0) continue;
+      c.strokeStyle = 'rgba(140,220,255,0.8)';
+      c.lineWidth = l.width;
+      c.globalAlpha = 0.35;
+      c.beginPath();
+      c.moveTo(l.x, l.y);
+      c.lineTo(l.x - Math.cos(l.angle) * 160, l.y - Math.sin(l.angle) * 160);
+      c.stroke();
+      c.globalAlpha = 1;
+    }
+    // Snares
+    for (const s of w.snares.filter(s=>s.owner.heroId!=='HUNTER')) {
+      c.strokeStyle = '#c8a24a';
+      c.lineWidth = 3;
+      c.beginPath(); c.arc(s.x, s.y, s.radius, 0, Math.PI * 2); c.stroke();
+    }
+    // Graph
+    for (const g of w.graphs) {
+      c.strokeStyle = '#7affc8';
+      c.lineWidth = 5;
+      c.beginPath();
+      const cos = Math.cos(g.angle), sin = Math.sin(g.angle);
+      for (let k = -10; k <= 10; k++) {
+        const u = (k / 10) * (g.span / 2);
+        const v = 0.0009 * u * u * 10;
+        const gx = g.x + cos * v - sin * u;
+        const gy = g.y + sin * v + cos * u;
+        if (k === -10) c.moveTo(gx, gy); else c.lineTo(gx, gy);
+      }
+      c.stroke();
+    }
+    // Shards + mirrors
+    c.fillStyle = '#cfe8ff';
+    for (const s of w.shards) {
+      c.globalAlpha = 0.8;
+      c.beginPath(); c.arc(s.x, s.y, 7, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
+    for (const m of w.mirrors) {
+      c.strokeStyle = '#cfe8ff';
+      c.lineWidth = 4;
+      c.beginPath(); c.arc(m.x, m.y, m.radius, 0, Math.PI * 2); c.stroke();
+      c.globalAlpha = 0.18;
+      c.fillStyle = '#cfe8ff';
+      c.fill();
+      c.globalAlpha = 1;
+    }
+    // SLIME child bodies + promoted anchors (not in fighters[] — the
+    // engine never draws them). The CURRENT fighters[] anchor is drawn by
+    // the engine and skipped here.
+    for (const ct of M.combatants) {
+      const arr = globalScope.fighters;
+      const engineDrawsAnchor = !!(arr && arr[ct.idx] === ct.anchor);
+      for (const b of ct.bodies) {
+        if (!b || b.hp <= 0) continue;
+        if (b === ct.anchor && engineDrawsAnchor) continue;
+        if (typeof b.draw === 'function') b.draw(c);
+      }
+    }
+    // Body-local HP readability (doc 14 R3 — TEMPORARY functional combat
+    // readability for owner playtesting, NOT final art). When a combatant
+    // has more than one living Body, a small local HP bar + count follows
+    // EACH living Body (anchor and children). The top HUD stays
+    // Combatant-total HP (HR.bodyHudHp). Single-body combatants draw
+    // nothing here (no duplicate UI).
+    for (const ct of M.combatants) {
+      const living = livingBodies(ct);
+      if (living.length <= 1) continue;
+      for (const b of living) {
+        const pool = b.__hrRefHp || b.maxHp || 1;
+        const frac = Math.max(0, Math.min(1, (b.hp || 0) / pool));
+        const r = b.radius || 45;
+        const w = r * 1.4, hh = 5;
+        const x = b.x - w / 2, y = b.y - r - 18;
+        c.fillStyle = 'rgba(0,0,0,0.55)';
+        c.fillRect(x - 1, y - 1, w + 2, hh + 2);
+        c.fillStyle = frac > 0.5 ? '#66ff8a' : frac > 0.25 ? '#ffd24a' : '#ff5a4a';
+        c.fillRect(x, y, w * frac, hh);
+        c.fillStyle = '#eafff0';
+        c.font = '700 10px monospace';
+        c.textAlign = 'center';
+        c.fillText(String(Math.max(0, Math.ceil(b.hp || 0))), b.x, y - 3);
+      }
+    }
+    // TIME ghost markers (information-only, faint).
+    for (const ct of M.combatants) {
+      const st = ct.store['time.timeline_markers'];
+      if (!st || !st.history || !st.history.length) continue;
+      const now = AIL.clock();
+      for (const h of (ct.skills.PASSIVE.cfg.markerHorizons || [1, 2])) {
+        const want = now - h;
+        let rec = null;
+        for (const r of st.history) if (r.t <= want) rec = r;
+        if (!rec) continue;
+        c.globalAlpha = 0.16;
+        c.fillStyle = ct.anchor.color || '#ffffff';
+        c.beginPath(); c.arc(rec.x, rec.y, (ct.anchor.radius || 75) * 0.9, 0, Math.PI * 2); c.fill();
+        c.globalAlpha = 1;
+      }
+    }
+    c.restore();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Public inspection/test API.
+   * ------------------------------------------------------------------ */
+  HR.AIL = AIL;
+  HR.REGISTRY = REG;
+  HR.MECHANICS = MECH;
+  HR.validateRegistry = () => REG.validateRegistry();
+  HR.setSkillLevel = function (ct, slot, level) {
+    if (!ct || ct.facade || !ct.skills[slot]) return false;
+    const s = ct.skills[slot];
+    s.level = clamp(level | 0, 1, 5);
+    s.cfg = REG.resolveSkillLevel(ct.heroId, slot, s.level);
+    return true;
+  };
+  // Read-only HUD projection of the executor's match-owned state. No HUD counter.
+  HR.robotPassiveHud = function (f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.heroId !== 'ROBOT') return null;
+    const st = ct.store['robot.damage_milestones'] || {};
+    const cfg = ct.skills.PASSIVE.cfg;
+    const now = AIL.clock();
+    const active = !!st.burstDeadline && now <= st.burstDeadline;
+    const burst = active ? (st.burst || 0) : 0;
+    const nextM = active ? (st.next || 1) : 1;
+    const first = cfg.firstThreshold ?? 150, step = cfg.thresholdStep ?? 50;
+    const next = first + (nextM - 1) * step;
+    const previous = nextM > 1 ? first + (nextM - 2) * step : 0;
+    return { reached: active ? nextM - 1 : 0, burst, next, active,
+      fraction: clamp((burst - previous) / (next - previous), 0, 1),
+      crossing: st.crossedAt != null && now - st.crossedAt < 0.8,
+      refund: st.lastRefund && now - st.lastRefund.at < 1.8 ? { ...st.lastRefund } : null };
+  };
+  HR.skillHud = function (f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return [];
+    const lines = [];
+    const ctl = abilityController(ct);
+    // FROST V1 (authority §1): HUD product copy shows the display identity.
+    const REG = globalScope.APEX_HERO_REWORK_REGISTRY;
+    const heroLabel = (REG && REG.displayNameFor) ? REG.displayNameFor(ct.heroId) : ct.heroId;
+    for (const slot of ['A1', 'A2']) {
+      const key = slot === 'A1' ? 'J' : 'K';
+      const cd = ctl.cooldownLeft(slot);
+      const skill=ct.skills[slot];
+      if(skill.cfg.maxCharges){lines.push(`${key} · HUNTER.a1 ${skill.charges}/${skill.cfg.maxCharges}${skill.rechargeLeft>0 ? ' +1 '+skill.rechargeLeft.toFixed(1)+'s' : ''}`);continue;}
+      lines.push(`${key} · ${heroLabel}.${slot.toLowerCase()} ${cd > 0.05 ? cd.toFixed(1) + 's' : 'READY'}`);
+    }
+    return lines;
+  };
+  HR.invariants = function () {
+    const errors = [];
+    const fighters = globalScope.fighters;
+    if (!M) return { ok: true, errors, note: 'no rework match' };
+    if (!fighters || fighters.length !== 2) errors.push('fighters[] must hold exactly 2 anchors');
+    for (const ct of M.combatants) {
+      if (ct.bodies.filter((b) => b && fighters.includes(b)).length > 1) {
+        errors.push(`${ct.heroId}: more than one body in global fighters[] (doc-06 law)`);
+      }
+      // The fighters[] slot holds either a living body of this combatant or
+      // the neutralized retired anchor (post SLIME anchor promotion — the
+      // doc-06 law keeps child Bodies out of the array).
+      if (fighters && !ct.bodies.includes(fighters[ct.idx])
+        && !(fighters[ct.idx] && fighters[ct.idx].data && fighters[ct.idx].data.__hrRetiredAnchor)) {
+        errors.push(`${ct.heroId}: fighters[${ct.idx}] is neither a living body nor the retired anchor`);
+      }
+      // SLIME HP conservation: pool = anchor.hp + sum(other bodies).
+      let total = 0;
+      for (const b of livingBodies(ct)) total += b.hp;
+      if (total > (CFG_MATCH_HP() || 1000) + 1e-6) {
+        errors.push(`${ct.heroId}: living HP total ${total.toFixed(1)} exceeds max-HP budget`);
+      }
+    }
+    // T6 never stored/reflected/ported.
+    for (const s of M.world.singularities) {
+      for (const d of s.stored) if (d.weapon === 'STORMBREAKER') errors.push('T6 stored in singularity (law violation)');
+    }
+    const projectiles = globalScope.projectiles || [];
+    for (const p of projectiles) {
+      if (p && p.weapon === 'STORMBREAKER' && p.__hr && (p.__hr.neutral || p.__hr.lastPortalId || p.__hr.lastReflect || p.__hr.crystalReflected)) {
+        errors.push('T6 flagged as manipulated (law violation)');
+      }
+    }
+    return { ok: errors.length === 0, errors };
+  };
+  function CFG_MATCH_HP() {
+    const CFG = globalScope.APEX_ARSENAL_CONFIG;
+    return CFG && CFG.MATCH_HP;
+  }
+  HR.debugState = function () {
+    if (!M) return { active: false };
+    return {
+      active: true,
+      aiEnabled: !!M.aiEnabled && HR.aiEnabled,
+      combatants: M.combatants.map((ct) => ({
+        heroId: ct.heroId, facade: !!ct.facade, idx: ct.idx, side: ct.side, combatantId: ct.combatantId,
+        bodies: livingBodies(ct).map((b) => ({ id: b.id, hp: Math.round(b.hp * 10) / 10, x: Math.round(b.x), y: Math.round(b.y) })),
+        skills: ct.facade ? {} : {
+          A1: { cd: +abilityController(ct).cooldownLeft('A1').toFixed(2), level: ct.skills.A1.level },
+          A2: { cd: +abilityController(ct).cooldownLeft('A2').toFixed(2), level: ct.skills.A2.level },
+        },
+        telemetry: ct.telemetry,
+      })),
+      world: {
+        walls: M.world.walls.length, gates: M.world.gates.length,
+        singularities: M.world.singularities.length, lanes: M.world.lanes.length,
+        snares: M.world.snares.length, graphs: M.world.graphs.length,
+        mirrors: M.world.mirrors.length, shards: M.world.shards.length,
+        mirrorEscrow: M.world.mirrorF2 ? M.world.mirrorF2.escrow.length : 0,
+      },
+      events: AIL.bus.ring.slice(-30).map((e) => `${e.type}#${e.seq}`),
+    };
+  };
+
+  // Boot.
+  installIntegration();
+})(typeof window !== 'undefined' ? window : globalThis);

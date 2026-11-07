@@ -17,7 +17,9 @@
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     ctx.filter = 'none';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // No clearRect: the opaque full-canvas fill below already covers every
+    // pixel, so clearing first was a second full-surface clear per frame
+    // (a redundant rasterisation pass on software/composited backends).
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();

@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "application": "APEX CHAOS",
+  "gitCommit": "13b42fc81e189a8f88205e1848be938c3b126955",
+  "gitBranch": "arena/008e7af1-apex-chaos",
+  "revision": "20261023-tp-r1",
+  "goldShellSha256": "09fc916116168bac052d3f5db766e4fbf837c83f882e736921f33c6106dcea5a",
+  "versionedRuntimeCount": 71,
+  "provenance": "git-checkout/build: checked before publishing; not a deployment attestation"
+}

@@ -1804,7 +1804,20 @@ function drawIceComposite(S, ctx, px) {
         ic.setTransform(1, 0, 0, 1, 0, 0);
         const perfProbe = g.__apexOwnerPerfProbe?.active ? g.__apexOwnerPerfProbe : null;
         const clearStart=perfProbe?performance.now():0;
-        ic.clearRect(0, 0, e.iceCanvas.width, e.iceCanvas.height);
+        // Dirty-rect clear. The field only ever paints inside its own bounds,
+        // so clearing the union of the previous and current bounds leaves the
+        // surface exactly as clean as a full clear while touching only the ice
+        // region. The union is required: the ice moves/shrinks between frames
+        // and stale pixels outside the current bounds must still be erased.
+        const cur = e.ice.blitBounds ? e.ice.blitBounds(e.t, e.iceCanvas.width, e.iceCanvas.height) : null;
+        const prev = e.ice._blitPrev || null;
+        if (cur || prev) {
+          const cx0 = Math.min(cur ? cur.x : 1e9, prev ? prev.x : 1e9);
+          const cy0 = Math.min(cur ? cur.y : 1e9, prev ? prev.y : 1e9);
+          const cx1 = Math.max(cur ? cur.x + cur.w : -1e9, prev ? prev.x + prev.w : -1e9);
+          const cy1 = Math.max(cur ? cur.y + cur.h : -1e9, prev ? prev.y + prev.h : -1e9);
+          if (cx1 > cx0 && cy1 > cy0) ic.clearRect(cx0, cy0, cx1 - cx0, cy1 - cy0);
+        }
         if(perfProbe)perfProbe.markIceClear(performance.now()-clearStart);
         const trace = currentIntegrity(S);
         if (trace && trace.simFrame === renderAudit.frame) trace.canvas.cleared = true;
@@ -1817,12 +1830,29 @@ function drawIceComposite(S, ctx, px) {
         if (painted) {
           // Blit inside its own save/restore: transform + alpha are restored
           // unconditionally, even if drawImage throws.
+          //
+          // Only the ice bounds are copied. The offscreen is the full arena
+          // size but the ice field paints a bounded region; blitting all W×H
+          // pixels uploaded and alpha-blended the entire surface every frame.
+          // blitBounds() reports the same region the field just painted (it is
+          // computed from the live node/carve extents), so the visible result
+          // is unchanged while the blend covers just the ice.
           ctx.save();
           try {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.globalAlpha = 0.97;
             const blitStart=perfProbe?performance.now():0;
-            ctx.drawImage(e.iceCanvas, 0, 0);
+            // blitBounds is padded past everything render() can touch; if the
+            // field drifted outside the surface between calls, fall back to a
+            // full blit rather than risk clipping visible ice.
+            const full = !cur || cur.x <= 0 || cur.y <= 0 || cur.x + cur.w >= w || cur.y + cur.h >= h;
+            const bb = full ? null : cur;
+            e.ice._blitPrev = cur;
+            if (bb) {
+              ctx.drawImage(e.iceCanvas, bb.x, bb.y, bb.w, bb.h, bb.x, bb.y, bb.w, bb.h);
+            } else {
+              ctx.drawImage(e.iceCanvas, 0, 0);
+            }
             if(perfProbe)perfProbe.markIceBlit(performance.now()-blitStart);
           } finally { ctx.restore(); }
         }

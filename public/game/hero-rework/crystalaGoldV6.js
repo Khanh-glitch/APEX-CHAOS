@@ -2194,6 +2194,7 @@ function createBloomSystem(opts = {}) {
     if (glowCv && (glowCv.width !== bw || glowCv.height !== bh)) {
       glowCv.width = glowB.width = glowC.width = bw;
       glowCv.height = glowB.height = glowC.height = bh;
+      blurStrCache = null;
     }
   }
 
@@ -2224,8 +2225,26 @@ function createBloomSystem(opts = {}) {
     return gx;
   }
 
+  // Authored blur strings are constants for a given dpr/scale. Building them
+  // with toFixed() on every composite allocated a new string per pass per
+  // frame, which the Canvas filter parser then had to re-parse; caching keeps
+  // the exact same radii.
+  let blurStrCache = null;
+  function blurStrings() {
+    const key = dpr + ':' + GS;
+    if (blurStrCache && blurStrCache.key === key) return blurStrCache;
+    blurStrCache = {
+      key,
+      mid: 'blur(' + (2.6 * dpr * GS).toFixed(2) + 'px)',
+      wide: 'blur(' + (9 * dpr).toFixed(2) + 'px)',
+      wideScaled: 'blur(' + (9 * dpr * GS).toFixed(2) + 'px)',
+    };
+    return blurStrCache;
+  }
+
   function composite(targetCtx, destW, destH, region) {
     if (!glowCv || !gx) return;
+    const bs = blurStrings();
     const dw = region ? region.w : (destW || w);
     const dh = region ? region.h : (destH || h);
     const dx = region ? region.x : 0;
@@ -2235,7 +2254,7 @@ function createBloomSystem(opts = {}) {
     if (filterOk && gbx && gcx) {
       gbx.setTransform(1, 0, 0, 1, 0, 0);
       gbx.globalCompositeOperation = 'copy';
-      gbx.filter = 'blur(' + (2.6 * dpr * GS).toFixed(2) + 'px)';
+      gbx.filter = bs.mid;
       gbx.drawImage(glowCv, 0, 0);
       gbx.filter = 'none';
 
@@ -2252,14 +2271,14 @@ function createBloomSystem(opts = {}) {
       let directWide = false;
       try { directWide = !forceLegacyWide && typeof targetCtx.filter === 'string'; } catch (e) { directWide = false; }
       if (directWide) {
-        targetCtx.filter = 'blur(' + (9 * dpr).toFixed(2) + 'px)';
+        targetCtx.filter = bs.wide;
         targetCtx.globalAlpha = 0.25;
         targetCtx.drawImage(glowB, dx, dy, dw, dh);
         targetCtx.filter = 'none';
       } else {
         gcx.setTransform(1, 0, 0, 1, 0, 0);
         gcx.globalCompositeOperation = 'copy';
-        gcx.filter = 'blur(' + (9 * dpr * GS).toFixed(2) + 'px)';
+        gcx.filter = bs.wideScaled;
         gcx.drawImage(glowB, 0, 0);
         gcx.filter = 'none';
         targetCtx.globalAlpha = 0.25;

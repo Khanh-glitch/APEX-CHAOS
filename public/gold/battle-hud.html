@@ -2227,6 +2227,89 @@ function frame(now){
 applyViewport();requestAnimationFrame(frame);
 </script>
 
+<style id="apex-hud-graphics-quality-style">
+/* Graphics-quality consumer inside the battle HUD document. The mode is NOT
+ * decided here: it is adopted from the ONE authority (same-origin mirror from
+ * the shell, or this frame's own authority when the HUD is opened standalone).
+ * The only thing this file owns is the visual contract that follows a mode,
+ * plus projecting the active mode onto #hud[data-gfx] for diagnostics and
+ * tests. */
+#hud[data-gfx="high"] { --apex-hud-gfx: "high"; }
+#hud[data-gfx="performance"] .apex-vfx-heavy {
+  /* Authored heavy-effect containers keep their layout; nothing is hidden. */
+  will-change: auto;
+  contain: layout paint;
+}
+</style>
+<script id="apex-hud-graphics-quality-script">
+(function apexHudGraphicsQualityConsumer(global){
+  'use strict';
+  if(global.APEX_HUD_GRAPHICS_QUALITY) return;
+  var VERSION='apex-hud-graphics-1';
+  var hud=null;
+  function hudEl(){ return hud||(hud=document.getElementById('hud')); }
+  function project(mode){
+    var el=hudEl();
+    if(el){ el.setAttribute('data-gfx',mode); el.dataset.gfxSource='authority'; }
+    global.__APEX_HUD_QUALITY_MODE=mode;
+    // Renderers inside this document may read the HUD projection without a
+    // second authority. Kept as the plain string so a classic script needs no
+    // object shape.
+    return mode;
+  }
+  function localAuthority(){ return global.APEX_GRAPHICS_QUALITY||null; }
+  var mode='high';
+  function adopt(next,source){
+    if(next!=='high'&&next!=='performance') return;
+    mode=next;
+    project(mode);
+    try{
+      global.dispatchEvent(new CustomEvent('apex-hud-graphics-quality',{detail:{mode:mode,source:source||'adopt'}}));
+    }catch(e){}
+  }
+  // Boot: prefer the frame's own authority (it may already be a writer when the
+  // HUD is opened directly), otherwise ask the parent shell for its mode.
+  function boot(){
+    var a=localAuthority();
+    if(a&&typeof a.mode==='string'){ adopt(a.mode,'local-authority'); }
+    else { project(mode); }
+    try{
+      if(global.parent&&global.parent!==global){
+        global.parent.postMessage({type:'apex:graphics-quality-ask'},'*');
+      }
+    }catch(e){}
+  }
+  global.addEventListener('message',function(event){
+    var data=event&&event.data;
+    if(!data||typeof data!=='object') return;
+    if(data.type==='apex:graphics-quality-mirror'||data.type==='apex:graphics-quality-state'){
+      var next=data.detail&&data.detail.mode;
+      if(next){ adopt(next,'parent-mirror'); }
+    }
+  });
+  global.addEventListener('apex-graphics-quality',function(event){
+    var next=event&&event.detail&&event.detail.mode;
+    if(next) adopt(next,'local-event');
+  });
+  var api={
+    version:VERSION,
+    get mode(){return mode;},
+    adopt:adopt,
+    project:project,
+    boot:boot,
+    _test:{set:adopt}
+  };
+  try{Object.defineProperty(global,'APEX_HUD_GRAPHICS_QUALITY',{value:api,writable:false,configurable:true,enumerable:true});}
+  catch(e){global.APEX_HUD_GRAPHICS_QUALITY=api;}
+  boot();
+  // The HUD donor boots before the shell may have mounted this frame's
+  // authority; re-read once the document settles.
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',boot,{once:true});
+  }
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+
 <style id="apex-handoff-bridge-style">
 .portrait>.apex-picked-portrait{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1;background:#0b0e10}
 .portrait>.id-status{z-index:2}

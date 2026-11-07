@@ -619,6 +619,15 @@ exports.CELL = 12; // world px per cell
 exports.HALF = 936; // grid covers [-HALF, HALF]
 exports.N = Math.ceil((exports.HALF * 2) / exports.CELL) + 2; // +2 boundary
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+/* Render constants hoisted out of the per-frame path: the destination rect and
+   the authored blur strings never change, so building them each call only
+   allocated temporaries for the filter parser. Same values as before. */
+const FLUID_OX = -exports.HALF - exports.CELL * 1.5;
+const FLUID_OY = -exports.HALF - exports.CELL * 1.5;
+const FLUID_SZ = exports.N * exports.CELL;
+const FIRE_BLUR_WIDE = 'blur(7px)';
+const FIRE_BLUR_CORE = 'blur(2.5px)';
+const SMOKE_BLUR_WIDE = 'blur(6px)';
 /* blackbody-ish LUT: t∈[0,1] → rgb (dark red → orange → yellow → white) */
 exports.BB = new Uint8ClampedArray(256 * 3);
 for (let i = 0; i < 256; i++) {
@@ -651,11 +660,32 @@ class Fluid {
         this.maxI = 0;
         this.minJ = exports.N;
         this.maxJ = 0;
-        this.cvs = document.createElement('canvas');
-        this.cvs.width = exports.N;
-        this.cvs.height = exports.N;
-        this.cctx = this.cvs.getContext('2d');
-        this.img = this.cctx.createImageData(exports.N, exports.N);
+        // One backing canvas per rendered layer. The frame draws smoke twice
+        // (behind and in front of the fighters) with different alpha; with a
+        // shared canvas the second draw had to re-rasterise the identical
+        // field. Per-layer surfaces let the second draw reuse the first one's
+        // pixels.
+        this.cvsByLayer = Object.create(null);
+        this.ctxByLayer = Object.create(null);
+        this.imgByLayer = Object.create(null);
+        this.stampByLayer = Object.create(null);
+        this.frameMemo = Object.create(null);
+        this.epoch = 0;
+        this.cvs = this.layerCanvas('smoke');
+        this.cctx = this.ctxByLayer.smoke;
+        this.img = this.imgByLayer.smoke;
+    }
+    layerCanvas(layer) {
+        let cv = this.cvsByLayer[layer];
+        if (!cv) {
+            cv = document.createElement('canvas');
+            cv.width = exports.N;
+            cv.height = exports.N;
+            this.cvsByLayer[layer] = cv;
+            this.ctxByLayer[layer] = cv.getContext('2d');
+            this.imgByLayer[layer] = this.ctxByLayer[layer].createImageData(exports.N, exports.N);
+        }
+        return cv;
     }
     /* ---------------------------------------------------------------- coords */
     toCell(x, y) {
@@ -900,58 +930,106 @@ class Fluid {
         this.maxI = nMaxI + 2;
         this.minJ = nMinJ - 2;
         this.maxJ = nMaxJ + 2;
+        // Field changed: cached per-layer rasters are stale.
+        this.epoch++;
     }
     /* ---------------------------------------------------------------- render */
     /** write fire (emission) + smoke into the ImageData then blit to world */
     draw(ctx, layer) {
         if (this.maxI < this.minI)
             return;
-        const n = exports.N, px = this.img.data;
+        const n = exports.N;
         const i0b = clamp(this.minI, 0, n - 1), i1b = clamp(this.maxI, 0, n - 1);
         const j0b = clamp(this.minJ, 0, n - 1), j1b = clamp(this.maxJ, 0, n - 1);
-        px.fill(0);
-        for (let j = j0b; j <= j1b; j++)
-            for (let i = i0b; i <= i1b; i++) {
-                const idx = j * n + i, o = idx * 4;
-                const t = this.temp[idx], d = this.dens[idx];
-                if (layer === 'fire') {
-                    if (t < 0.02)
-                        continue;
-                    const e = clamp(Math.pow(t, 1.15), 0, 1);
-                    const li = Math.min(255, (e * 255) | 0) * 3;
-                    px[o] = exports.BB[li];
-                    px[o + 1] = exports.BB[li + 1];
-                    px[o + 2] = exports.BB[li + 2];
-                    px[o + 3] = Math.min(255, (clamp(t * 1.7, 0, 1) * 255) | 0);
-                }
-                else {
-                    if (d < 0.02)
-                        continue;
-                    const s = this.soot[idx];
-                    // dust: warm khaki; soot: near black. Lit from within by temperature.
-                    const lit = clamp(t * 1.6, 0, 1);
-                    const base = [lerp(132, 36, s), lerp(120, 32, s), lerp(100, 30, s)];
-                    px[o] = clamp(base[0] + lit * 190, 0, 255);
-                    px[o + 1] = clamp(base[1] + lit * 95, 0, 255);
-                    px[o + 2] = clamp(base[2] + lit * 20, 0, 255);
-                    px[o + 3] = Math.min(255, (clamp(d * 0.78, 0, 0.92) * 255) | 0);
-                }
+        const cvs = this.layerCanvas(layer);
+        const cctx = this.ctxByLayer[layer];
+        const img = this.imgByLayer[layer];
+        const stampKey = layer + ':' + this.epoch + ':' + i0b + ',' + i1b + ',' + j0b + ',' + j1b;
+        // ---- rasterise the field into this layer's canvas (memoised) --------
+        // render() is called twice per frame for smoke; the field cannot change
+        // between those calls, so the second call reuses the first's pixels
+        // instead of re-running the per-cell loop and putImageData.
+        let wrote = this.frameMemo[stampKey];
+        if (wrote === undefined) {
+            const px = img.data;
+            // Clear only the previously written rectangle plus this frame's, in
+            // full rows: the cell loop below can only touch [i0b..i1b] within
+            // [j0b..j1b], so everything else is already transparent. This keeps
+            // the canvas byte-identical to a full clear without zeroing the
+            // whole N*N buffer every call.
+            const prev = this.stampByLayer[layer];
+            if (prev) {
+                const pj0 = Math.min(prev[2], j0b), pj1 = Math.max(prev[3], j1b);
+                const pi0 = Math.min(prev[0], i0b), pi1 = Math.max(prev[1], i1b);
+                for (let j = pj0; j <= pj1; j++)
+                    px.fill(0, (j * n + pi0) * 4, (j * n + pi1 + 1) * 4);
             }
-        this.cctx.putImageData(this.img, 0, 0);
+            else {
+                px.fill(0);
+            }
+            this.stampByLayer[layer] = [i0b, i1b, j0b, j1b];
+            let any = 0;
+            if (layer === 'fire') {
+                for (let j = j0b; j <= j1b; j++)
+                    for (let i = i0b; i <= i1b; i++) {
+                        const idx = j * n + i, o = idx * 4;
+                        const t = this.temp[idx];
+                        if (t < 0.02)
+                            continue;
+                        const e = clamp(Math.pow(t, 1.15), 0, 1);
+                        const li = Math.min(255, (e * 255) | 0) * 3;
+                        px[o] = exports.BB[li];
+                        px[o + 1] = exports.BB[li + 1];
+                        px[o + 2] = exports.BB[li + 2];
+                        px[o + 3] = Math.min(255, (clamp(t * 1.7, 0, 1) * 255) | 0);
+                        any = 1;
+                    }
+            }
+            else {
+                for (let j = j0b; j <= j1b; j++)
+                    for (let i = i0b; i <= i1b; i++) {
+                        const idx = j * n + i, o = idx * 4;
+                        const d = this.dens[idx];
+                        if (d < 0.02)
+                            continue;
+                        const t = this.temp[idx];
+                        const s = this.soot[idx];
+                        // dust: warm khaki; soot: near black. Lit from within by temperature.
+                        const lit = clamp(t * 1.6, 0, 1);
+                        px[o] = clamp(lerp(132, 36, s) + lit * 190, 0, 255);
+                        px[o + 1] = clamp(lerp(120, 32, s) + lit * 95, 0, 255);
+                        px[o + 2] = clamp(lerp(100, 30, s) + lit * 20, 0, 255);
+                        px[o + 3] = Math.min(255, (clamp(d * 0.78, 0, 0.92) * 255) | 0);
+                        any = 1;
+                    }
+            }
+            cctx.putImageData(img, 0, 0);
+            wrote = any;
+            this.frameMemo[stampKey] = wrote;
+            // Keep the memo bounded: it is keyed by epoch, so it grows during a
+            // long fight. A handful of entries per frame is all that is live.
+            if (this.size === undefined) this.size = 0;
+            this.size++;
+            if (this.size > 64) { this.frameMemo = Object.create(null); this.size = 1; this.frameMemo[stampKey] = wrote; }
+        }
+        // A layer with no cell above its visibility threshold renders zero alpha.
+        // Blurring and compositing a fully transparent 1896px surface produced
+        // identical pixels, so skip those passes outright.
+        if (!wrote)
+            return;
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         if (layer === 'fire')
             ctx.globalCompositeOperation = 'lighter';
         // cell (i,j) centre is at world ((i-1)*CELL - HALF, (j-1)*CELL - HALF)
-        const ox = -exports.HALF - exports.CELL * 1.5, oy = -exports.HALF - exports.CELL * 1.5, sz = exports.N * exports.CELL;
-        ctx.filter = layer === 'fire' ? 'blur(7px)' : 'blur(6px)';
-        ctx.drawImage(this.cvs, ox, oy, sz, sz);
+        ctx.filter = layer === 'fire' ? FIRE_BLUR_WIDE : SMOKE_BLUR_WIDE;
+        ctx.drawImage(cvs, FLUID_OX, FLUID_OY, FLUID_SZ, FLUID_SZ);
         if (layer === 'fire') {
             // tighter hot core on top of the soft glow
             ctx.globalAlpha = 0.55;
-            ctx.filter = 'blur(2.5px)';
-            ctx.drawImage(this.cvs, ox, oy, sz, sz);
+            ctx.filter = FIRE_BLUR_CORE;
+            ctx.drawImage(cvs, FLUID_OX, FLUID_OY, FLUID_SZ, FLUID_SZ);
         }
         ctx.filter = 'none';
         ctx.restore();
@@ -985,6 +1063,9 @@ class Fluid {
         this.dens.fill(0);
         this.temp.fill(0);
         this.soot.fill(0);
+        this.epoch++;
+        this.frameMemo = Object.create(null);
+        this.stampByLayer = Object.create(null);
         this.minI = exports.N;
         this.maxI = 0;
         this.minJ = exports.N;

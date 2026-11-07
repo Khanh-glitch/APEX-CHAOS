@@ -64,7 +64,21 @@ export const BOT_WAVE_PRESENTATION_RUNTIMES = Object.freeze([
   ['/game/bot-wave/botWavePresentationV2.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWavePresentationV2'],
 ]);
 
+// GRAPHICS QUALITY — the single quality authority and its UI/advisor stack.
+// It must evaluate BEFORE every renderer that reads a mode, so it is the first
+// entry of the shared combat core group. The shell bootstrap is last in its own
+// list so it can observe the authority and the panel.
+export const GRAPHICS_QUALITY_RUNTIMES = Object.freeze([
+  ['/game/core/graphicsQualityAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGraphicsQualityAuthority'],
+  ['/game/core/graphicsQualitySettings.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGraphicsQualitySettings'],
+  ['/game/core/graphicsQualityRecommendation.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGraphicsQualityRecommendation'],
+  ['/game/core/graphicsQualityFrontendRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGraphicsQualityFrontend'],
+]);
+
 // Current-neutral combat services shared by Arsenal and the generic engine.
+// (The graphics-quality stack is NOT repeated here: it ships on the menu tier
+// so it exists before the Gold shell mounts. The runtime loader dedupes by URL
+// anyway, but a single group of record keeps the graph readable.)
 export const CURRENT_COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
   ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
@@ -277,6 +291,16 @@ export const DEFERRED_GAME_RUNTIMES = uniqueRuntimeEntries([
 // and arsenalProduct is requested only at BATTLE/transition intent.
 export const WARMUP_GROUP_SEQUENCE = [];
 
+// Graphics quality must exist on EVERY surface that can show a setting, so its
+// small authority + panel + advisor evaluate with the menu tier, before the
+// Gold shell mounts and long before a battle starts. Renderers never depend on
+// these being present (missing authority simply means HIGH), so this cannot
+// gate a battle.
+export const MENU_INTERACTIVE_RUNTIMES_WITH_GRAPHICS = Object.freeze([
+  ...MENU_INTERACTIVE_RUNTIMES,
+  ...GRAPHICS_QUALITY_RUNTIMES,
+]);
+
 // Product meta's critical path. Shop/Draw/selection needs save/config/shell
 // scripts; combat presentation and AV remain lazy until the battle is entered.
 export const ARSENAL_HUB_RUNTIMES = [
@@ -298,7 +322,8 @@ export const ARSENAL_HUB_RUNTIMES = [
 ];
 
 // Production boot is menu-only; test-only legacy BOOT lives under tools/.
-export const REQUIRED_GAME_RUNTIMES = MENU_INTERACTIVE_RUNTIMES;
+// The graphics-quality stack rides the menu tier (see above).
+export const REQUIRED_GAME_RUNTIMES = MENU_INTERACTIVE_RUNTIMES_WITH_GRAPHICS;
 
 export function hintRuntimeSources(runtimes, rel = 'preload') {
   for (const [src] of runtimes) {
