@@ -548,6 +548,25 @@ async function startRecording(providedDisplay=null) {
         captureRouteProbe.decision='native-region-kept';
       }
     }
+    // If the selected path still spends >4ms drawing a video frame,
+    // compare high/medium resampling on this very GPU before REC begins.
+    // Prefer original high quality unless medium saves >20% of draw time.
+    const selectedCrop=()=>browserRegionCrop
+      ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
+      : portraitFrameCrop(video.videoWidth,video.videoHeight,studio.getCropRect());
+    const highMedian=await ownerMeasurePortraitDraw(video,ctx,selectedCrop,5);
+    let smoothingQuality='high';
+    if(highMedian>4){
+      ctx.imageSmoothingQuality='medium';
+      const mediumMedian=await ownerMeasurePortraitDraw(video,ctx,selectedCrop,5);
+      if(ownerPreferMediumSmoothing(highMedian,mediumMedian)){
+        smoothingQuality='medium';
+      }else{
+        ctx.imageSmoothingQuality='high';
+      }
+    }
+    captureRouteProbe.smoothingQuality=smoothingQuality;
+    captureRouteProbe.selectedHighDrawMedianMs=+highMedian.toFixed(2);
     const capture = createOwnerRecordingCanvasStream(canvas,30);
     const output = capture.stream;
     // Never open a microphone, oscillator, or replacement SFX player.
