@@ -221,13 +221,15 @@ function standaloneRecordingPanel() {
 
 
 let lastCapturePerfReport = null;
+let idlePerfProbe = null;
+let idlePerfTimeout = 0;
 // Diagnostic-only, bounded and source-independent. No graphics, sound or
 // simulation state is modified; all samples are read-only observations.
 function startCapturePerformanceProbe(meta) {
   const started = performance.now();
   const limit = 9000;
   const series = {rafGapMs:[], frostIceClearMs:[], frostIceRenderMs:[],
-    frostIceBlitMs:[], recordingDrawMs:[], longTaskMs:[]};
+    frostIceBlitMs:[], recordingDrawMs:[], recordingSubmitMs:[], longTaskMs:[]};
   const add = (key,ms) => {
     if (Number.isFinite(ms) && ms>=0 && series[key].length<limit)
       series[key].push(Math.round(ms*1000)/1000);
@@ -265,6 +267,7 @@ function startCapturePerformanceProbe(meta) {
     markIceRender:ms=>add('frostIceRenderMs',ms),
     markIceBlit:ms=>add('frostIceBlitMs',ms),
     markRecordingDraw:ms=>add('recordingDrawMs',ms),
+    markRecordingSubmit:ms=>add('recordingSubmitMs',ms),
     finish(reason) {
       if(stopped)return lastCapturePerfReport;
       stopped=true;this.active=false;
@@ -276,17 +279,97 @@ function startCapturePerformanceProbe(meta) {
       lastCapturePerfReport={schema:'APEX-CHAOS-owner-recording-perf-v1',
         warning:'On-device measurements only; rAF gaps are NOT encoded-video FPS. No GPU trace was collected.',
         matchup:window.APEX_HERO_REWORK?.match?.combatants?.map(x=>x.heroId)||[],
-        meta:{...meta,elapsedMs,stopReason:reason,
+        meta:{...meta,submittedFrames:this.submittedFrames??null,elapsedMs,stopReason:reason,
           viewport:[window.innerWidth,window.innerHeight],
           devicePixelRatio:window.devicePixelRatio||1,
           longTasksSupported},
         summary:all,raw:series};
-      console.info('[owner-perf] Recording trace ready; press Shift+Ctrl+F6 to download JSON.',
+      console.info('[owner-perf] Trace ready; press Shift+Ctrl+F6 to download JSON.',
         JSON.stringify(all));
       return lastCapturePerfReport;
     }
   };
 }
+function stopIdlePerfProbe(reason='manual-baseline-stop') {
+  if (!idlePerfProbe) return false;
+  clearTimeout(idlePerfTimeout);
+  idlePerfTimeout = 0;
+  const probe = idlePerfProbe;
+  idlePerfProbe = null;
+  probe.finish(reason);
+  notice('Đã đo baseline không quay. Nhấn Shift+Ctrl+F6 để tải PERF JSON.');
+  return true;
+}
+function toggleIdlePerfProbe() {
+  if (idlePerfProbe) return stopIdlePerfProbe();
+  const game = window.APEX_ARSENAL?.state;
+  if (session || starting || !portraitStudio() || !game?.active ||
+      game.battleMode !== 'BOT' || game.over) {
+    notice('Chỉ đo baseline khi đang chơi BOT Battle trong Portrait Studio và không REC.',true);
+    return false;
+  }
+  idlePerfProbe = startCapturePerformanceProbe({captureMode:'recording-off',
+    targetResolution:[W,H],targetFps:30});
+  window.__apexOwnerPerfProbe = idlePerfProbe;
+  idlePerfTimeout = setTimeout(() => stopIdlePerfProbe('20-second-baseline'),20000);
+  notice('Đang đo 20 giây khi KHÔNG quay. Chơi BOXE vs FROST như bình thường.');
+  return true;
+}
+// Preserve the existing high-bitrate/1080p output. Prefer a browser-reported
+// power-efficient recording encoder over software-heavy VP9 when available.
+// MediaCapabilities is advisory, not proof of hardware encoding; unsupported
+// APIs or unknown answers retain original codec priority.
+// Prefer AVC/H.264 in an MP4 container when the BROWSER RECORDING API says
+// it is supported. Previous MediaCapabilities gating left the owner on VP9
+// ("original-priority"), so it did not change encoder load at all.
+// This is a recording-only transport choice: canvas pixels, music, SFX,
+// source resolution, output dimensions and video bitrate are unchanged.
+export async function chooseOwnerRecordingCodec(candidates, supports, capabilities) {
+  const eligible = candidates.filter(type => supports(type));
+  if (!eligible.length) return null;
+  const avc = eligible.find(type => /^video\/mp4;codecs=avc1\./i.test(type));
+  if (!avc) return eligible[0];
+  // Some browsers report H.264 support yet MediaCapabilities can explicitly
+  // reject the same 1080x1920/22Mbps stream. Respect an explicit rejection.
+  if (typeof capabilities?.encodingInfo === 'function') {
+    try {
+      const videoCodec = avc.split(';codecs=')[1].split(',')[0];
+      const hint = await capabilities.encodingInfo({type:'record',video:{
+        contentType:'video/mp4;codecs='+videoCodec,
+        width:W,height:H,bitrate:22000000,framerate:30
+      }});
+      if (hint?.supported === false) return eligible[0];
+    } catch (_) { /* MediaCapabilities unavailable: MediaRecorder is authority. */ }
+  }
+  return avc;
+}
+
+// Avoid forcing the encoder to process repeated copies of a canvas image when
+// the heavy BOXE/FROST match cannot produce 30 unique frames per second.
+// captureStream(0) + requestFrame submits EXACTLY the game pixels we drew.
+// Browsers without manual frame requests retain the former 30fps stream.
+// Chrome Region Capture is a same-tab optimization: the browser transmits
+// only the 9:16 iframe pixels instead of a 2880x1282 desktop-wide tab frame.
+// It does not rescale the game canvas or alter HUD/art quality. This is
+// strictly optional; unsupported browsers retain the previously tested crop.
+export async function tryOwnerRegionCapture(track, element, CropTargetAPI) {
+  if (!track || typeof track.cropTo !== 'function' ||
+      !element || typeof CropTargetAPI?.fromElement !== 'function' ||
+      track.getSettings?.().displaySurface !== 'browser') return false;
+  const target=await CropTargetAPI.fromElement(element);
+  await track.cropTo(target);
+  return true;
+}
+export function createOwnerRecordingCanvasStream(canvas, fps=30) {
+  const manual = canvas.captureStream(0);
+  const track = manual.getVideoTracks()[0];
+  if (typeof track?.requestFrame === 'function') {
+    return {stream:manual,frame:()=>track.requestFrame(),mode:'source-frame-driven'};
+  }
+  manual.getTracks().forEach(t=>t.stop());
+  return {stream:canvas.captureStream(fps),frame:()=>{},mode:'fixed-fps-fallback'};
+}
+
 function downloadLastCapturePerf() {
   if(!lastCapturePerfReport){notice('Chưa có bản đo: hãy quay một trận trong Portrait Studio.',true);return false;}
   const url=URL.createObjectURL(new Blob(
@@ -308,6 +391,7 @@ function stopRecording(reason) {
   studioRecordStatus(false);
   clearTimeout(item.tailTimer);
   cancelAnimationFrame(item.frame);
+  if (item.profiler) item.profiler.submittedFrames = item.submittedFrames || 0;
   item.profiler?.finish?.(reason);
   item.recorder.onstop = () => {
     if(reason==='invalid-portrait-viewport'||reason==='media-error') return;
@@ -356,6 +440,7 @@ async function startRecording(providedDisplay=null) {
     providedDisplay?.getTracks?.().forEach(t=>t.stop());
     notice('Cần Chrome/Edge có hỗ trợ ghi tab trên HTTPS.',true); return;
   }
+  if (idlePerfProbe) stopIdlePerfProbe('recording-started');
   starting = true;
   let display = providedDisplay;
   try {
@@ -377,18 +462,47 @@ async function startRecording(providedDisplay=null) {
     if(handle && (handle.handle!=='apex-chaos-portrait-studio-v2'
           || handle.origin!==window.location.origin))
       throw new Error('Đang chọn sai tab. Chỉ được chọn This Tab chứa APEX CHAOS Portrait Studio.');
+    let browserRegionCrop=false;
+    try {
+      browserRegionCrop=await tryOwnerRegionCapture(
+        track,window.frameElement,window.parent?.CropTarget);
+    } catch (e) {
+      console.info('[owner-capture] Region Capture unavailable, using exact canvas crop:',e);
+    }
     const video = document.createElement('video');
     video.muted = true; video.playsInline = true;
     video.srcObject = new MediaStream([track]);
     await video.play();
     if (!video.videoWidth || !video.videoHeight) throw new Error('Tab chưa cung cấp video frame.');
+    if (browserRegionCrop) {
+      // Some Chromium builds expose stale pre-crop video dimensions briefly.
+      // Wait for the cropped video source to settle before selecting pixels.
+      const targetAspect=W/H;
+      if (Math.abs(video.videoWidth/video.videoHeight-targetAspect)>0.02) {
+        await new Promise(resolve=>{
+          let settled=false;
+          const done=()=>{if(settled)return;settled=true;video.removeEventListener('resize',done);clearTimeout(timeout);resolve();};
+          const timeout=setTimeout(done,1200);
+          video.addEventListener('resize',done,{once:true});
+        });
+      }
+      if(Math.abs(video.videoWidth/video.videoHeight-targetAspect)>0.02){
+        await track.cropTo(null);
+        browserRegionCrop=false;
+        await new Promise(resolve=>{
+          const timeout=setTimeout(resolve,900);
+          video.addEventListener('resize',()=>{clearTimeout(timeout);resolve()},{once:true});
+        });
+      }
+    }
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d',{alpha:false,desynchronized:false});
     if (!ctx || !canvas.captureStream) throw new Error('Canvas capture không khả dụng.');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    const output = canvas.captureStream(30);
+    const capture = createOwnerRecordingCanvasStream(canvas,30);
+    const output = capture.stream;
     // Never open a microphone, oscillator, or replacement SFX player.
     // Copy ONLY the original sound track from the verified game tab once.
     const tabAudio=display.getAudioTracks();
@@ -405,13 +519,31 @@ async function startRecording(providedDisplay=null) {
       'video/webm;codecs=vp9','video/webm;codecs=vp8',
       'video/mp4;codecs=avc1.42E01E','video/webm'
     ];
-    const mime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
+    const mime=await chooseOwnerRecordingCodec(mimeCandidates,
+      type=>MediaRecorder.isTypeSupported(type),navigator.mediaCapabilities);
     if(!mime) throw new Error('Trình duyệt chưa hỗ trợ mã hóa video TikTok.');
-    const rec = new MediaRecorder(output,{mimeType:mime,
-      videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
+    // MediaRecorder.isTypeSupported() is advisory; if actual construction
+    // rejects AVC, use the previously working first candidate without
+    // changing output dimensions, bitrate, or authentic tab audio.
+    const originalMime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
+    let actualMime=mime,rec;
+    try {
+      rec = new MediaRecorder(output,{mimeType:actualMime,
+        videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
+    } catch (error) {
+      if (actualMime===originalMime) throw error;
+      actualMime=originalMime;
+      rec=new MediaRecorder(output,{mimeType:actualMime,
+        videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
+    }
     const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
       sourceWidth:video.videoWidth,sourceHeight:video.videoHeight,audioTrackCount:tabAudio.length};
-    item.profiler=startCapturePerformanceProbe({codec:mime,sourceResolution:[video.videoWidth,video.videoHeight],targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,audioTracks:tabAudio.length});
+    item.profiler=startCapturePerformanceProbe({captureMode:'recording-on',codec:actualMime,
+      sourceResolution:[video.videoWidth,video.videoHeight],
+      targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,
+      audioTracks:tabAudio.length,encoderSelection:actualMime===originalMime?'legacy-fallback':'avc-preferred',
+      frameSubmission:capture.mode,captureRegion:browserRegionCrop?'browser-region':'canvas-manual-crop'});
+    item.submittedFrames=0;
     window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
@@ -426,10 +558,16 @@ async function startRecording(providedDisplay=null) {
         // responsive phone viewport's current rectangle within that tab.
         try{
           const rect=studio.getCropRect();
-          const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+          const crop=browserRegionCrop
+            ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
+            : portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
           const drawStart=performance.now();
           ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
           item.profiler?.markRecordingDraw(performance.now()-drawStart);
+          const submitStart=performance.now();
+          capture.frame();
+          item.profiler?.markRecordingSubmit(performance.now()-submitStart);
+          item.submittedFrames++;
         }catch(err){
           stopRecording('invalid-portrait-viewport');
           notice('Không thể quay đúng vùng phone: '+String(err?.message||err),true);
@@ -445,13 +583,15 @@ async function startRecording(providedDisplay=null) {
     document.getElementById('apex-owner-notice')?.remove();
     try {
       const rect=studio.getCropRect();
-      const source=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+      const source=browserRegionCrop
+        ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
+        : portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
       const sourcePx=Math.round(source.sw)+'×'+Math.round(source.sh);
       const warning=Math.min(source.sw/W,source.sh/H)<0.75
         ? ' · Nguồn '+sourcePx+' sẽ phải phóng lên 1080×1920; màn hình laptop không cung cấp đủ pixel gốc.'
         : '';
       window.parent.postMessage({type:'apex:portrait-capture-quality',
-        source:sourcePx,codec:mime,videoBitrate:rec.videoBitsPerSecond,
+        source:sourcePx,codec:actualMime,videoBitrate:rec.videoBitsPerSecond,
         audioTracks:tabAudio.length,warning},window.location.origin);
     } catch (_) {}
     document.title = '● REC BOT · APEX CHAOS';
@@ -459,7 +599,8 @@ async function startRecording(providedDisplay=null) {
       if (session === item) stopRecording('sharing-ended');
     },{once:true});
     console.info('[owner-capture] Verified portrait source:',video.videoWidth,video.videoHeight,
-      'codec',mime,'video bitrate',rec.videoBitsPerSecond,'tab audio tracks',tabAudio.length);
+      'codec',actualMime,'video bitrate',rec.videoBitsPerSecond,'regionCrop',browserRegionCrop,'frameSubmission',capture.mode,
+      'tab audio tracks',tabAudio.length);
   } catch (error) {
     if(session && session.recorder.state==='inactive'){
       const stale=session; session=null;
@@ -493,6 +634,7 @@ export function installOwnerPlaytestCapture(scope = window) {
     isRecordingResultHold:() => !!session?.tailTimer,
     getLastRecordingPerfReport:()=>lastCapturePerfReport,
     downloadRecordingPerfReport:downloadLastCapturePerf,
+    toggleBaselinePerformanceProbe:toggleIdlePerfProbe,
     isCaptureBlockedByPolicy:displayCapturePolicyDenied,
     isPortraitStudio:()=>!!portraitStudio(),
     canStudioRecord:()=>{
@@ -515,9 +657,10 @@ export function installOwnerPlaytestCapture(scope = window) {
   Object.defineProperty(scope,'APEX_OWNER_TOOLS',{value:api,writable:false,configurable:false,enumerable:true});
   scope.addEventListener('keydown',event => {
     if (!event.ctrlKey || !event.shiftKey || event.altKey || event.metaKey || event.repeat) return;
-    if (event.code !== 'F8' && event.code !== 'F7' && event.code !== 'F6') return;
+    if (event.code !== 'F8' && event.code !== 'F7' && event.code !== 'F6' && event.code !== 'F5') return;
     event.preventDefault(); event.stopImmediatePropagation();
     if (event.code === 'F6'){downloadLastCapturePerf();return;}
+    if (event.code === 'F5'){toggleIdlePerfProbe();return;}
     if (event.code === 'F8') {
       if (unlocked) { if (setUnlocked(false)) notice('OWNER PLAYTEST OFF'); }
       else passwordPanel();
@@ -526,6 +669,7 @@ export function installOwnerPlaytestCapture(scope = window) {
   },true);
   scope.addEventListener('apex:gold-result-ready',onResultReady);
   scope.addEventListener('apex:gold-battle-exited',() => {
+    if (idlePerfProbe) stopIdlePerfProbe('battle-exit');
     if (session && !session.tailTimer) stopRecording('battle-exit');
   });
   return api;

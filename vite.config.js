@@ -46,6 +46,8 @@ function localReplaySaver() {
 }
 
 export default defineConfig({
+  // Only the dedicated itch packaging build uses nested-path-safe Vite URLs.
+  base: process.env.APEX_ITCH_PORTABLE === '1' ? './' : '/',
   plugins: [react(), localReplaySaver()],
   server: {
     host: '0.0.0.0',

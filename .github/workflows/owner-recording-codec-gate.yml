@@ -1,0 +1,73 @@
+name: Owner Recording Codec Gate
+on:
+  pull_request:
+    paths:
+      - 'src/game/ownerPlaytestCapture.js'
+      - 'vite.config.js'
+      - 'tools/packItchPortable.mjs'
+      - 'tools/testOwnerItchBootSmoke.mjs'
+      - 'tools/testOwnerRecordingCodecSelection.mjs'
+      - '.github/workflows/owner-recording-codec-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  codec-selection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tools/testOwnerRecordingCodecSelection.mjs
+  build-recording-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Build nested-path-safe HTML5
+        env:
+          APEX_ITCH_PORTABLE: '1'
+        run: pnpm build
+      - name: Generate itch portable ZIP with mandatory URL rewriting
+        run: |
+          printf '%s\n' "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          test -s dist-itch-html5/index.html
+          test -s dist-itch-html5/portrait-studio.html
+      - name: Chromium itch nested game + Portrait Studio boot smoke
+        run: |
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_PATH"
+          node tools/testOwnerItchBootSmoke.mjs
+      - name: Package and verify ONLY tested itch directory
+        run: |
+          cd dist-itch-html5
+          zip -qr ../apex-chaos-owner-recording-rc4-region-capture-itch.zip .
+          cd ..
+          unzip -tqq apex-chaos-owner-recording-rc4-region-capture-itch.zip
+          unzip -Z1 apex-chaos-owner-recording-rc4-region-capture-itch.zip | grep -qx 'portrait-studio.html'
+          unzip -Z1 apex-chaos-owner-recording-rc4-region-capture-itch.zip | grep -qx 'index.html'
+          unzip -p apex-chaos-owner-recording-rc4-region-capture-itch.zip index.html | grep -q 'src="./assets/'
+          ls -lh apex-chaos-owner-recording-rc4-region-capture-itch.zip
+      - name: Upload to GitHub draft release (no Actions artifact quota)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="owner-boxe-frost-itch-rc4-${GITHUB_SHA:0:8}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" apex-chaos-owner-recording-rc4-region-capture-itch.zip --clobber
+          else
+            gh release create "$TAG" apex-chaos-owner-recording-rc4-region-capture-itch.zip --target "$GITHUB_SHA" --title "APEX CHAOS Owner Recording RC4 — native region crop" --notes "Owner-only RC4: native Chrome Region Capture crops directly to phone iframe; fallback to existing JS crop. AVC and frame-driven output. Laptop FPS improvement not yet verified. Do not replace public itch." --draft --prerelease
+          fi
+          gh release view "$TAG" --json isDraft,assets --jq '{draft:.isDraft,assets:[.assets[]|{name:.name,size:.size}]}'
