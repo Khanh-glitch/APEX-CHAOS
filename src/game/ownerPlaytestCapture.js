@@ -364,30 +364,6 @@ export async function tryOwnerRegionCapture(track, element, CropTargetAPI) {
   await track.cropTo(target);
   return true;
 }
-// Native video-frame callbacks avoid another full-speed RAF loop competing
-// with the battle renderer. They run only when the captured tab supplies a
-// video frame. Keep the previously proven RAF clock on older browsers.
-export function shouldOwnerSubmitFrame(now, last, fps=30) {
-  // 1ms tolerance avoids treating 33.2ms source frames as 15fps; the
-  // source-driven scheduler already fires only on real video frames.
-  return now-last+1>=1000/fps;
-}
-
-export function chooseOwnerCaptureFrameClock(video, rafRequest, rafCancel) {
-  if (typeof video?.requestVideoFrameCallback === 'function') {
-    return {
-      mode:'source-video-frame',
-      request: callback=>video.requestVideoFrameCallback(callback),
-      cancel: id=>video.cancelVideoFrameCallback?.(id),
-    };
-  }
-  return {
-    mode:'raf-fallback',
-    request: callback=>rafRequest(callback),
-    cancel: id=>rafCancel(id),
-  };
-}
-
 export function createOwnerRecordingCanvasStream(canvas, fps=30) {
   const manual = canvas.captureStream(0);
   const track = manual.getVideoTracks()[0];
@@ -418,7 +394,7 @@ function stopRecording(reason) {
   session = null;
   studioRecordStatus(false);
   clearTimeout(item.tailTimer);
-  if(item.frame!=null)item.frameClock?.cancel(item.frame);
+  if(item.frame!=null)cancelAnimationFrame(item.frame);
   if (item.profiler) item.profiler.submittedFrames = item.submittedFrames || 0;
   item.profiler?.finish?.(reason);
   item.recorder.onstop = () => {
@@ -570,22 +546,16 @@ async function startRecording(providedDisplay=null) {
       sourceResolution:[video.videoWidth,video.videoHeight],
       targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,
       audioTracks:tabAudio.length,encoderSelection:actualMime===originalMime?'legacy-fallback':'avc-preferred',
-      frameSubmission:capture.mode,captureRegion:browserRegionCrop?'browser-region':'canvas-manual-crop',
-      frameClock:typeof video.requestVideoFrameCallback==='function'?'source-video-frame':'raf-fallback'});
+      frameSubmission:capture.mode,captureRegion:browserRegionCrop?'browser-region':'canvas-manual-crop'});
     item.submittedFrames=0;
     window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
     session = item;
-    item.frameClock=chooseOwnerCaptureFrameClock(
-      video,callback=>requestAnimationFrame(callback),id=>cancelAnimationFrame(id));
     let last = -Infinity;
     const paint = now => {
       if (session !== item) return;
-      // Source video callbacks commonly arrive slightly ahead of the ideal
-      // 33.333ms boundary. Permit <=1ms scheduler jitter rather than
-      // accidentally dropping every other 30fps frame.
-      if (shouldOwnerSubmitFrame(now,last,30)) {
+      if (now-last>=1000/30) {
         last = now;
         // The opaque tab video is drawn over the entire 1080x1920 canvas.
         // Clearing/filling 2,073,600 pixels before each full-size draw was
@@ -611,12 +581,9 @@ async function startRecording(providedDisplay=null) {
           return;
         }
       }
-      item.frame = item.frameClock.request(paint);
+      item.frame = requestAnimationFrame(paint);
     };
     rec.start(1000);
-    // First real tab frame is already playing. Subsequent submissions follow
-    // the decoder's frame cadence (or the unchanged RAF fallback), capped at
-    // 30 target FPS in paint(). Source pixels, audio and bitrate are unchanged.
     paint(performance.now());
     if(session!==item) return;
     studioRecordStatus(true);
