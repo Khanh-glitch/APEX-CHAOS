@@ -356,6 +356,21 @@ export async function chooseOwnerRecordingCodec(candidates, supports, capabiliti
 // only the 9:16 iframe pixels instead of a 2880x1282 desktop-wide tab frame.
 // It does not rescale the game canvas or alter HUD/art quality. This is
 // strictly optional; unsupported browsers retain the previously tested crop.
+export function ownerPreferManualCrop(regionMedianMs, thresholdMs=4) {
+  return Number.isFinite(regionMedianMs) && regionMedianMs>thresholdMs;
+}
+async function ownerMeasurePortraitDraw(video,ctx,crop,frames=9){
+  const t=[];
+  for(let i=0;i<frames;i++){
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const r=crop();
+    const start=performance.now();
+    ctx.drawImage(video,r.sx,r.sy,r.sw,r.sh,0,0,W,H);
+    t.push(performance.now()-start);
+  }
+  t.sort((a,b)=>a-b);
+  return t[Math.floor(t.length/2)];
+}
 export async function tryOwnerRegionCapture(track, element, CropTargetAPI) {
   if (!track || typeof track.cropTo !== 'function' ||
       !element || typeof CropTargetAPI?.fromElement !== 'function' ||
