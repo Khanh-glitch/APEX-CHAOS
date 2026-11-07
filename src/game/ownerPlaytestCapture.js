@@ -221,6 +221,8 @@ function standaloneRecordingPanel() {
 
 
 let lastCapturePerfReport = null;
+let idlePerfProbe = null;
+let idlePerfTimeout = 0;
 // Diagnostic-only, bounded and source-independent. No graphics, sound or
 // simulation state is modified; all samples are read-only observations.
 function startCapturePerformanceProbe(meta) {
@@ -281,11 +283,36 @@ function startCapturePerformanceProbe(meta) {
           devicePixelRatio:window.devicePixelRatio||1,
           longTasksSupported},
         summary:all,raw:series};
-      console.info('[owner-perf] Recording trace ready; press Shift+Ctrl+F6 to download JSON.',
+      console.info('[owner-perf] Trace ready; press Shift+Ctrl+F6 to download JSON.',
         JSON.stringify(all));
       return lastCapturePerfReport;
     }
   };
+}
+function stopIdlePerfProbe(reason='manual-baseline-stop') {
+  if (!idlePerfProbe) return false;
+  clearTimeout(idlePerfTimeout);
+  idlePerfTimeout = 0;
+  const probe = idlePerfProbe;
+  idlePerfProbe = null;
+  probe.finish(reason);
+  notice('Đã đo baseline không quay. Nhấn Shift+Ctrl+F6 để tải PERF JSON.');
+  return true;
+}
+function toggleIdlePerfProbe() {
+  if (idlePerfProbe) return stopIdlePerfProbe();
+  const game = window.APEX_ARSENAL?.state;
+  if (session || starting || !portraitStudio() || !game?.active ||
+      game.battleMode !== 'BOT' || game.over) {
+    notice('Chỉ đo baseline khi đang chơi BOT Battle trong Portrait Studio và không REC.',true);
+    return false;
+  }
+  idlePerfProbe = startCapturePerformanceProbe({captureMode:'recording-off',
+    targetResolution:[W,H],targetFps:30});
+  window.__apexOwnerPerfProbe = idlePerfProbe;
+  idlePerfTimeout = setTimeout(() => stopIdlePerfProbe('20-second-baseline'),20000);
+  notice('Đang đo 20 giây khi KHÔNG quay. Chơi BOXE vs FROST như bình thường.');
+  return true;
 }
 function downloadLastCapturePerf() {
   if(!lastCapturePerfReport){notice('Chưa có bản đo: hãy quay một trận trong Portrait Studio.',true);return false;}
@@ -356,6 +383,7 @@ async function startRecording(providedDisplay=null) {
     providedDisplay?.getTracks?.().forEach(t=>t.stop());
     notice('Cần Chrome/Edge có hỗ trợ ghi tab trên HTTPS.',true); return;
   }
+  if (idlePerfProbe) stopIdlePerfProbe('recording-started');
   starting = true;
   let display = providedDisplay;
   try {
@@ -411,7 +439,7 @@ async function startRecording(providedDisplay=null) {
       videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
     const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
       sourceWidth:video.videoWidth,sourceHeight:video.videoHeight,audioTrackCount:tabAudio.length};
-    item.profiler=startCapturePerformanceProbe({codec:mime,sourceResolution:[video.videoWidth,video.videoHeight],targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,audioTracks:tabAudio.length});
+    item.profiler=startCapturePerformanceProbe({captureMode:'recording-on',codec:mime,sourceResolution:[video.videoWidth,video.videoHeight],targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,audioTracks:tabAudio.length});
     window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
@@ -493,6 +521,7 @@ export function installOwnerPlaytestCapture(scope = window) {
     isRecordingResultHold:() => !!session?.tailTimer,
     getLastRecordingPerfReport:()=>lastCapturePerfReport,
     downloadRecordingPerfReport:downloadLastCapturePerf,
+    toggleBaselinePerformanceProbe:toggleIdlePerfProbe,
     isCaptureBlockedByPolicy:displayCapturePolicyDenied,
     isPortraitStudio:()=>!!portraitStudio(),
     canStudioRecord:()=>{
@@ -515,9 +544,10 @@ export function installOwnerPlaytestCapture(scope = window) {
   Object.defineProperty(scope,'APEX_OWNER_TOOLS',{value:api,writable:false,configurable:false,enumerable:true});
   scope.addEventListener('keydown',event => {
     if (!event.ctrlKey || !event.shiftKey || event.altKey || event.metaKey || event.repeat) return;
-    if (event.code !== 'F8' && event.code !== 'F7' && event.code !== 'F6') return;
+    if (event.code !== 'F8' && event.code !== 'F7' && event.code !== 'F6' && event.code !== 'F5') return;
     event.preventDefault(); event.stopImmediatePropagation();
     if (event.code === 'F6'){downloadLastCapturePerf();return;}
+    if (event.code === 'F5'){toggleIdlePerfProbe();return;}
     if (event.code === 'F8') {
       if (unlocked) { if (setUnlocked(false)) notice('OWNER PLAYTEST OFF'); }
       else passwordPanel();
@@ -526,6 +556,7 @@ export function installOwnerPlaytestCapture(scope = window) {
   },true);
   scope.addEventListener('apex:gold-result-ready',onResultReady);
   scope.addEventListener('apex:gold-battle-exited',() => {
+    if (idlePerfProbe) stopIdlePerfProbe('battle-exit');
     if (session && !session.tailTimer) stopRecording('battle-exit');
   });
   return api;
