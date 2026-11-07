@@ -482,7 +482,7 @@ async function startRecording(providedDisplay=null) {
           || handle.origin!==window.location.origin))
       throw new Error('Đang chọn sai tab. Chỉ được chọn This Tab chứa APEX CHAOS Portrait Studio.');
     let browserRegionCrop=false;
-    try {
+    if(window.devicePixelRatio<3) try {
       browserRegionCrop=await tryOwnerRegionCapture(
         track,window.frameElement,window.parent?.CropTarget);
     } catch (e) {
