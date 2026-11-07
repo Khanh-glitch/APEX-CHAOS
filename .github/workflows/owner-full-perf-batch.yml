@@ -1,0 +1,92 @@
+name: APEX Four-Hero Performance Batch Gate
+on:
+  pull_request:
+    paths:
+      - 'src/game/ownerPlaytestCapture.js'
+      - 'public/game/hero-rework/boxeGoldPresentationRuntime.js'
+      - 'public/game/hero-rework/crystalaPresentationRuntime.js'
+      - 'public/game/hero-rework/shuriGoldPresentationRuntime.js'
+      - 'public/game/hero-rework/frostPresentationRuntime.js'
+      - 'tools/testBoxeGoldFxCompaction.mjs'
+      - '.github/workflows/owner-full-perf-batch.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  four-hero-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check modified browser runtimes
+        run: |
+          node --check src/game/ownerPlaytestCapture.js
+          node --check public/game/hero-rework/boxeGoldPresentationRuntime.js
+          node --check public/game/hero-rework/crystalaPresentationRuntime.js
+          node --check public/game/hero-rework/shuriGoldPresentationRuntime.js
+          node --check public/game/hero-rework/frostPresentationRuntime.js
+      - name: BOXE particle parity and stress benchmark
+        run: node tools/testBoxeGoldFxCompaction.mjs
+      - name: SHURI gameplay & Gold composition
+        run: |
+          node tools/testShuriBattleRuntime.mjs
+          node tools/testShuriGoldIntegration.mjs
+      - name: BOXE combat and choreography
+        run: |
+          node tools/testBoxeBattleRuntime.mjs
+          node tools/testBoxeComboR4.mjs
+      - name: CRYSTALA gameplay and owner Gold parity
+        run: |
+          node tools/testCrystalaGameplayGates.mjs
+          node tools/testCrystalaGoldParity.mjs
+      - name: FROST gameplay and owner art integrity
+        run: node tools/testFrostV1Gates.mjs
+  itch-battle-and-recorder:
+    needs: four-hero-regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build exact nested-path-safe HTML5
+        env:
+          APEX_ITCH_PORTABLE: '1'
+        run: |
+          pnpm build
+          printf '%s\n' "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+      - name: Real browser game and recorder smoke
+        run: |
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_PATH"
+          node tools/testOwnerItchBootSmoke.mjs
+      - name: Build and validate single final trial ZIP
+        run: |
+          (cd dist-itch-html5 && zip -qr ../apex-chaos-four-hero-perf-batch-rc5.zip .)
+          unzip -tqq apex-chaos-four-hero-perf-batch-rc5.zip
+          unzip -Z1 apex-chaos-four-hero-perf-batch-rc5.zip | grep -qx 'index.html'
+          unzip -Z1 apex-chaos-four-hero-perf-batch-rc5.zip | grep -qx 'portrait-studio.html'
+          sha256sum apex-chaos-four-hero-perf-batch-rc5.zip
+      - name: Owner-only Draft Release after gates
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="owner-four-hero-perf-batch-${GITHUB_SHA:0:8}"
+          gh release create "$TAG" apex-chaos-four-hero-perf-batch-rc5.zip --target "$GITHUB_SHA" --draft --prerelease --title "APEX CHAOS Four-Hero RC5 - owner trial only" --notes "Combined batch: BOXE FX linear expiry; CRYSTALA bloom bounds; FROST tick state lookup; SHURI/CRYSTALA/BOXE/FROST timings and RC4 browser crop. Do not replace public itch until owner hardware performance/quality acceptance."
+          gh release view "$TAG" --json isDraft,assets --jq '{draft:.isDraft,assets:[.assets[]|{name:.name,size:.size}]}'
