@@ -314,6 +314,32 @@ function toggleIdlePerfProbe() {
   notice('Đang đo 20 giây khi KHÔNG quay. Chơi BOXE vs FROST như bình thường.');
   return true;
 }
+// Preserve the existing high-bitrate/1080p output. Prefer a browser-reported
+// power-efficient recording encoder over software-heavy VP9 when available.
+// MediaCapabilities is advisory, not proof of hardware encoding; unsupported
+// APIs or unknown answers retain original codec priority.
+export async function chooseOwnerRecordingCodec(candidates, supports, capabilities) {
+  const eligible = candidates.filter(type => supports(type));
+  if (!eligible.length) return null;
+  if (typeof capabilities?.encodingInfo !== 'function') return eligible[0];
+  const hints = await Promise.all(eligible.map(async mime => {
+    const videoCodec = mime.split(';codecs=')[1]?.split(',')[0];
+    if (!videoCodec) return null;
+    try {
+      return await capabilities.encodingInfo({type:'record',video:{
+        contentType:mime.split(';')[0]+';codecs='+videoCodec,
+        width:W,height:H,bitrate:22000000,framerate:30
+      }});
+    } catch (_) { return null; }
+  }));
+  // Switch only when there is affirmative evidence that the original first
+  // choice is NOT power-efficient and the replacement IS power-efficient.
+  if (hints[0]?.supported && hints[0]?.powerEfficient === false) {
+    const index = hints.findIndex((hint,i) => i>0 && hint?.supported && hint.powerEfficient === true);
+    if (index > 0) return eligible[index];
+  }
+  return eligible[0];
+}
 function downloadLastCapturePerf() {
   if(!lastCapturePerfReport){notice('Chưa có bản đo: hãy quay một trận trong Portrait Studio.',true);return false;}
   const url=URL.createObjectURL(new Blob(
@@ -433,13 +459,15 @@ async function startRecording(providedDisplay=null) {
       'video/webm;codecs=vp9','video/webm;codecs=vp8',
       'video/mp4;codecs=avc1.42E01E','video/webm'
     ];
-    const mime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
+    const mime=await chooseOwnerRecordingCodec(mimeCandidates,
+      type=>MediaRecorder.isTypeSupported(type),navigator.mediaCapabilities);
     if(!mime) throw new Error('Trình duyệt chưa hỗ trợ mã hóa video TikTok.');
     const rec = new MediaRecorder(output,{mimeType:mime,
       videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
     const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
       sourceWidth:video.videoWidth,sourceHeight:video.videoHeight,audioTrackCount:tabAudio.length};
-    item.profiler=startCapturePerformanceProbe({captureMode:'recording-on',codec:mime,sourceResolution:[video.videoWidth,video.videoHeight],targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,audioTracks:tabAudio.length});
+    item.profiler=startCapturePerformanceProbe({captureMode:'recording-on',codec:mime,sourceResolution:[video.videoWidth,video.videoHeight],targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,audioTracks:tabAudio.length,
+      encoderSelection:mime===mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type))?'original-priority':'power-efficient-hint'});
     window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
