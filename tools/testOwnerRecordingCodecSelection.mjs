@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture } from '../src/game/ownerPlaytestCapture.js';
+import { chooseOwnerRecordingCodec, createOwnerRecordingCanvasStream, tryOwnerRegionCapture, chooseOwnerCaptureFrameClock } from '../src/game/ownerPlaytestCapture.js';
 
 const candidates = [
   'video/webm;codecs=vp9,opus',
@@ -97,4 +97,31 @@ test('region API rejection propagates so caller safely uses the manual path',asy
     getSettings:()=>({displaySurface:'browser'}),
     cropTo:async()=>{throw Error('crop unavailable')}
   },{}, {fromElement:async()=>({})}),/crop unavailable/);
+});
+
+test('source-video-frame scheduler only requests new captured video frames',()=>{
+  let count=0,canceled=null;
+  const video={
+    requestVideoFrameCallback(cb){count++;assert.equal(typeof cb,'function');return 17},
+    cancelVideoFrameCallback(id){canceled=id},
+  };
+  const c=chooseOwnerCaptureFrameClock(video,
+    ()=>{throw Error('unwanted recording RAF')},
+    ()=>{throw Error('unwanted recording RAF cancellation')});
+  assert.equal(c.mode,'source-video-frame');
+  assert.equal(c.request(()=>{}),17);
+  assert.equal(count,1);
+  c.cancel(17);
+  assert.equal(canceled,17);
+});
+
+test('frame clock falls back to RAF when video-frame callbacks are unavailable',()=>{
+  let canceled=null;
+  const clock=chooseOwnerCaptureFrameClock({},cb=>{
+    assert.equal(typeof cb,'function');return 9;
+  },id=>{canceled=id});
+  assert.equal(clock.mode,'raf-fallback');
+  assert.equal(clock.request(()=>{}),9);
+  clock.cancel(9);
+  assert.equal(canceled,9);
 });
