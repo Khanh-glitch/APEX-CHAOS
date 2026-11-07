@@ -229,7 +229,7 @@ function startCapturePerformanceProbe(meta) {
   const started = performance.now();
   const limit = 9000;
   const series = {rafGapMs:[], frostIceClearMs:[], frostIceRenderMs:[],
-    frostIceBlitMs:[], recordingDrawMs:[], longTaskMs:[]};
+    frostIceBlitMs:[], recordingDrawMs:[], recordingSubmitMs:[], longTaskMs:[]};
   const add = (key,ms) => {
     if (Number.isFinite(ms) && ms>=0 && series[key].length<limit)
       series[key].push(Math.round(ms*1000)/1000);
@@ -267,6 +267,7 @@ function startCapturePerformanceProbe(meta) {
     markIceRender:ms=>add('frostIceRenderMs',ms),
     markIceBlit:ms=>add('frostIceBlitMs',ms),
     markRecordingDraw:ms=>add('recordingDrawMs',ms),
+    markRecordingSubmit:ms=>add('recordingSubmitMs',ms),
     finish(reason) {
       if(stopped)return lastCapturePerfReport;
       stopped=true;this.active=false;
@@ -521,7 +522,9 @@ async function startRecording(providedDisplay=null) {
           const drawStart=performance.now();
           ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
           item.profiler?.markRecordingDraw(performance.now()-drawStart);
+          const submitStart=performance.now();
           capture.frame();
+          item.profiler?.markRecordingSubmit(performance.now()-submitStart);
           item.submittedFrames++;
         }catch(err){
           stopRecording('invalid-portrait-viewport');
