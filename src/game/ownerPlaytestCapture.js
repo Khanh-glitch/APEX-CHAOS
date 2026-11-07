@@ -524,7 +524,7 @@ async function startRecording(providedDisplay=null) {
     if (!ctx || !canvas.captureStream) throw new Error('Canvas capture không khả dụng.');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    let captureRouteProbe={regionDrawMedianMs:null,decision:'manual-or-native-not-tested'};
+    let captureRouteProbe={regionDrawMedianMs:null,decision:window.devicePixelRatio>=3?'manual-for-high-dpr':'manual-or-native-not-tested'};
     if(browserRegionCrop){
       const median=await ownerMeasurePortraitDraw(video,ctx,()=>
         ({sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}));
