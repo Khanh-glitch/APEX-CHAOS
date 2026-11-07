@@ -40,7 +40,7 @@ jobs:
           git worktree add --detach /tmp/apex-rc5-control 9a7fd071083104ac11d0fe5ad73f075d017eae34
           ln -s "$GITHUB_WORKSPACE/node_modules" /tmp/apex-rc5-control/node_modules
           cd /tmp/apex-rc5-control
-          pnpm build
+          GITHUB_SHA="$(git rev-parse HEAD)" pnpm build
           (pnpm exec vite preview --host 127.0.0.1 --port 4174 >/tmp/rc5-preview.log 2>&1 &)
           for i in $(seq 1 80); do curl -fsS http://127.0.0.1:4174/ >/dev/null && break || sleep 1; done
           curl -fsS http://127.0.0.1:4174/ >/dev/null
