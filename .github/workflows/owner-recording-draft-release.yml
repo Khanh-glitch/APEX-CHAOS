@@ -33,9 +33,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create owner-boxe-frost-encoder-owner-rc1-20261107 \\
-            ./apex-chaos-boxe-frost-encoder-owner-rc1.zip \\
-            --target "${GITHUB_SHA}" \\
-            --title 'Owner-only BOXE/FROST encoder RC1 — NOT performance-validated' \\
-            --notes 'Built from isolated diagnostics branch. HTML5 test artifact ONLY. No hardware FPS gain has been established; do not replace public itch r5. Keep draft until owner A/B review.' \\
-            --draft --prerelease
+          gh release create owner-boxe-frost-encoder-owner-rc1-20261107 ./apex-chaos-boxe-frost-encoder-owner-rc1.zip --target "${GITHUB_SHA}" --title 'Owner-only BOXE/FROST encoder RC1 — NOT performance-validated' --notes 'HTML5 TEST ONLY. No hardware FPS gain established. Do not replace public itch r5.' --draft --prerelease
