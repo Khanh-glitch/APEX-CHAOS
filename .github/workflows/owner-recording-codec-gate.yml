@@ -57,7 +57,7 @@ jobs:
           unzip -tqq apex-chaos-owner-recording-rc2-itch-fixed.zip
           unzip -Z1 apex-chaos-owner-recording-rc2-itch-fixed.zip | grep -qx 'portrait-studio.html'
           unzip -Z1 apex-chaos-owner-recording-rc2-itch-fixed.zip | grep -qx 'index.html'
-          unzip -Zp apex-chaos-owner-recording-rc2-itch-fixed.zip index.html | grep -q 'src="./assets/'
+          unzip -p apex-chaos-owner-recording-rc2-itch-fixed.zip index.html | grep -q 'src="./assets/'
           ls -lh apex-chaos-owner-recording-rc2-itch-fixed.zip
       - name: Upload to GitHub draft release (no Actions artifact quota)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
