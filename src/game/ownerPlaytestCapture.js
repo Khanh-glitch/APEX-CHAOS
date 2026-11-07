@@ -348,6 +348,18 @@ export async function chooseOwnerRecordingCodec(candidates, supports, capabiliti
 // the heavy BOXE/FROST match cannot produce 30 unique frames per second.
 // captureStream(0) + requestFrame submits EXACTLY the game pixels we drew.
 // Browsers without manual frame requests retain the former 30fps stream.
+// Chrome Region Capture is a same-tab optimization: the browser transmits
+// only the 9:16 iframe pixels instead of a 2880x1282 desktop-wide tab frame.
+// It does not rescale the game canvas or alter HUD/art quality. This is
+// strictly optional; unsupported browsers retain the previously tested crop.
+export async function tryOwnerRegionCapture(track, element, CropTargetAPI) {
+  if (!track || typeof track.cropTo !== 'function' ||
+      !element || typeof CropTargetAPI?.fromElement !== 'function' ||
+      track.getSettings?.().displaySurface !== 'browser') return false;
+  const target=await CropTargetAPI.fromElement(element);
+  await track.cropTo(target);
+  return true;
+}
 export function createOwnerRecordingCanvasStream(canvas, fps=30) {
   const manual = canvas.captureStream(0);
   const track = manual.getVideoTracks()[0];
@@ -450,11 +462,39 @@ async function startRecording(providedDisplay=null) {
     if(handle && (handle.handle!=='apex-chaos-portrait-studio-v2'
           || handle.origin!==window.location.origin))
       throw new Error('Đang chọn sai tab. Chỉ được chọn This Tab chứa APEX CHAOS Portrait Studio.');
+    let browserRegionCrop=false;
+    try {
+      browserRegionCrop=await tryOwnerRegionCapture(
+        track,window.frameElement,window.parent?.CropTarget);
+    } catch (e) {
+      console.info('[owner-capture] Region Capture unavailable, using exact canvas crop:',e);
+    }
     const video = document.createElement('video');
     video.muted = true; video.playsInline = true;
     video.srcObject = new MediaStream([track]);
     await video.play();
     if (!video.videoWidth || !video.videoHeight) throw new Error('Tab chưa cung cấp video frame.');
+    if (browserRegionCrop) {
+      // Some Chromium builds expose stale pre-crop video dimensions briefly.
+      // Wait for the cropped video source to settle before selecting pixels.
+      const targetAspect=W/H;
+      if (Math.abs(video.videoWidth/video.videoHeight-targetAspect)>0.02) {
+        await new Promise(resolve=>{
+          let settled=false;
+          const done=()=>{if(settled)return;settled=true;video.removeEventListener('resize',done);clearTimeout(timeout);resolve();};
+          const timeout=setTimeout(done,1200);
+          video.addEventListener('resize',done,{once:true});
+        });
+      }
+      if(Math.abs(video.videoWidth/video.videoHeight-targetAspect)>0.02){
+        await track.cropTo(null);
+        browserRegionCrop=false;
+        await new Promise(resolve=>{
+          const timeout=setTimeout(resolve,900);
+          video.addEventListener('resize',()=>{clearTimeout(timeout);resolve()},{once:true});
+        });
+      }
+    }
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d',{alpha:false,desynchronized:false});
@@ -502,7 +542,7 @@ async function startRecording(providedDisplay=null) {
       sourceResolution:[video.videoWidth,video.videoHeight],
       targetResolution:[W,H],targetFps:30,videoBitrate:rec.videoBitsPerSecond,
       audioTracks:tabAudio.length,encoderSelection:actualMime===originalMime?'legacy-fallback':'avc-preferred',
-      frameSubmission:capture.mode});
+      frameSubmission:capture.mode,captureRegion:browserRegionCrop?'browser-region':'canvas-manual-crop'});
     item.submittedFrames=0;
     window.__apexOwnerPerfProbe=item.profiler;
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
@@ -518,7 +558,9 @@ async function startRecording(providedDisplay=null) {
         // responsive phone viewport's current rectangle within that tab.
         try{
           const rect=studio.getCropRect();
-          const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+          const crop=browserRegionCrop
+            ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
+            : portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
           const drawStart=performance.now();
           ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
           item.profiler?.markRecordingDraw(performance.now()-drawStart);
@@ -541,7 +583,9 @@ async function startRecording(providedDisplay=null) {
     document.getElementById('apex-owner-notice')?.remove();
     try {
       const rect=studio.getCropRect();
-      const source=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+      const source=browserRegionCrop
+        ? {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight}
+        : portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
       const sourcePx=Math.round(source.sw)+'×'+Math.round(source.sh);
       const warning=Math.min(source.sw/W,source.sh/H)<0.75
         ? ' · Nguồn '+sourcePx+' sẽ phải phóng lên 1080×1920; màn hình laptop không cung cấp đủ pixel gốc.'
@@ -555,7 +599,7 @@ async function startRecording(providedDisplay=null) {
       if (session === item) stopRecording('sharing-ended');
     },{once:true});
     console.info('[owner-capture] Verified portrait source:',video.videoWidth,video.videoHeight,
-      'codec',actualMime,'video bitrate',rec.videoBitsPerSecond,'frameSubmission',capture.mode,
+      'codec',actualMime,'video bitrate',rec.videoBitsPerSecond,'regionCrop',browserRegionCrop,'frameSubmission',capture.mode,
       'tab audio tracks',tabAudio.length);
   } catch (error) {
     if(session && session.recorder.state==='inactive'){
