@@ -102,8 +102,24 @@
   }
 
   function emit(reason) {
-    var detail = snapshot;
-    detail.reason = reason;
+    // state() returns a FROZEN snapshot; annotating it in place threw
+    // "Cannot add property reason, object is not extensible" and aborted the
+    // whole notification (which is why the drawer readout never updated).
+    // Build a fresh detail object instead.
+    var base = snapshot;
+    var detail = {
+      version: base.version,
+      mode: base.mode,
+      chosen: base.chosen,
+      source: base.source,
+      high: base.high,
+      performance: base.performance,
+      stored: base.stored,
+      revision: base.revision,
+      modes: base.modes,
+      storageKey: base.storageKey,
+      reason: reason,
+    };
     try {
       global.dispatchEvent(new global.CustomEvent('apex-graphics-quality', { detail: detail }));
     } catch (e) { /* very old engines */ }

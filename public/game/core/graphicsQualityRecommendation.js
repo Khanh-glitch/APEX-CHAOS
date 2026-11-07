@@ -89,12 +89,23 @@
     rafId = global.requestAnimationFrame(sampleRaf);
   }
 
-  function estimateRefreshHz() {
-    if (!refreshSamples.length) return refreshHz;
-    var sorted = refreshSamples.slice().sort(function (a, b) { return a - b; });
-    var median = sorted[Math.floor(sorted.length * 0.5)];
-    if (!(median > 0)) return refreshHz;
-    var hz = 1000 / median;
+  /**
+   * Panel refresh rate, derived from the FASTEST frames in the window.
+   *
+   * A device that is coping presents some frames exactly at its panel interval,
+   * so the low percentile of frame times is refresh-locked even while the
+   * game is struggling. Using the median instead would report the average
+   * frame rate and make a 60 Hz panel look like a 20 Hz panel — which then
+   * wrongly excuses the slowdown as "refresh capped". The separate rAF stream
+   * is only a fallback for windows with too few samples to trust.
+   */
+  function estimateRefreshHz(frames) {
+    var source = (frames && frames.length >= 30) ? frames : refreshSamples;
+    if (!source || !source.length) return refreshHz;
+    var sorted = source.slice().sort(function (a, b) { return a - b; });
+    var fast = sorted[Math.max(0, Math.floor(sorted.length * 0.1))];
+    if (!(fast > 0)) return refreshHz;
+    var hz = 1000 / fast;
     // Snap to the common panels so a 59.7 Hz measurement still reads as 60.
     var candidates = [24, 30, 48, 50, 60, 72, 75, 90, 120, 144, 165, 240];
     var best = 60;
@@ -123,7 +134,7 @@
     var slow = 0;
     for (var i = 0; i < frames.length; i += 1) if (frames[i] > SLOW_FRAME_MS) slow += 1;
     var slowRatio = slow / frames.length;
-    var hz = estimateRefreshHz();
+    var hz = estimateRefreshHz(frames);
     var bad = p95 > P95_LIMIT_MS && slowRatio >= SLOW_RATIO_LIMIT && hz >= MIN_REFRESH_HZ;
     return {
       ok: bad,
@@ -186,8 +197,9 @@
   }
 
   // ------------------------------------------------------------ evaluation --
-  function evaluate(frames) {
-    var why = suppressionReason();
+  function evaluate(frames, opts) {
+    var force = !!(opts && opts.force);
+    var why = force ? '' : suppressionReason();
     state.suppressedReason = why;
     if (why) {
       // A suppressed window must not count toward the confirmation streak.
@@ -225,7 +237,19 @@
     link.rel = 'stylesheet';
     // Same relative root as every other core runtime; the packaging step makes
     // this URL relative for the nested itch.io path.
-    link.href = '/game/core/graphicsQualityUi.css';
+    // No leading slash on purpose: the itch packaging rewrite would turn a
+    // root-absolute literal into '../game/...', which escapes the app root
+    // whenever this document is the shell (not the Gold subtree). APEX_APP_URL
+    // resolves against the entry base and is immune to <base> retargeting.
+    var rel = 'game/core/graphicsQualityUi.css';
+    var href = '';
+    try {
+      href = (typeof global.APEX_APP_URL === 'function' && global.APEX_APP_URL(rel)) ||
+        new URL(rel, global.document.baseURI || global.location.href).href;
+    } catch (e) {
+      href = rel;
+    }
+    link.href = href;
     link.dataset.apexGraphicsUi = 'true';
     (global.document.head || global.document.documentElement).appendChild(link);
   }
@@ -480,6 +504,10 @@
     _test: {
       analyse: analyse,
       evaluate: evaluate,
+      // Test/diagnostic hooks: `force` skips the "is this a real battle frame"
+      // context gate so the panel can be exercised in isolation. Production
+      // code never passes it.
+      evaluateWithForce: function (frames) { return evaluate(frames, { force: true }); },
       forceRecommend: function () { recommend(analyse([40, 40, 40, 40, 40])); },
       suppressionReason: suppressionReason,
       reset: function () { state.cooldownUntil = 0; state.windows.length = 0; state.recommendCount = 0; },

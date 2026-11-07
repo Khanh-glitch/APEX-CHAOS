@@ -80,6 +80,36 @@
     disposers.push(function () { try { target.removeEventListener(type, fn, opts); } catch (e) {} });
   }
 
+  var CSS_STATE = { loaded: false, error: '' };
+
+  /**
+   * Stylesheet URL through the app-root authority.
+   *
+   * A root-absolute '/game/...' literal is rewritten by the itch packager to
+   * '../game/...', which only resolves AFTER the Gold mount retargets <base> to
+   * <app>/gold/. This runtime can run before that (menu tier), where '../'
+   * escapes the app root entirely and the sheet 404s — so the path is handed to
+   * APEX_APP_URL (immune to <base>) and only falls back to document-relative
+   * resolution when the bundle has not published it yet.
+   */
+  function uiCssHref() {
+    // NOTE: deliberately no leading slash, so the packaging rewrite (which only
+    // matches quote-then-'/game/') leaves this literal alone.
+    var rel = 'game/core/graphicsQualityUi.css';
+    var appUrl = global.APEX_APP_URL;
+    if (typeof appUrl === 'function') {
+      try {
+        var resolved = appUrl(rel);
+        if (resolved) return resolved;
+      } catch (e) { /* fall through */ }
+    }
+    try {
+      return new URL(rel, global.document.baseURI || global.location.href).href;
+    } catch (e) {
+      return rel;
+    }
+  }
+
   function ensureStyles() {
     var d = doc();
     if (!d) return;
@@ -95,8 +125,10 @@
     var link = d.createElement('link');
     link.id = 'apex-graphics-quality-ui-css';
     link.rel = 'stylesheet';
-    link.href = '/game/core/graphicsQualityUi.css';
+    link.href = uiCssHref();
     link.dataset.apexGraphicsUi = 'true';
+    link.addEventListener('load', function () { CSS_STATE.loaded = true; CSS_STATE.error = ''; });
+    link.addEventListener('error', function () { CSS_STATE.loaded = false; CSS_STATE.error = 'stylesheet failed: ' + link.href; });
     (d.head || d.documentElement).appendChild(link);
   }
 
@@ -316,6 +348,9 @@
     sync: sync,
     applyMode: applyMode,
     destroy: destroy,
+    // Install the shared stylesheet without building/opening the panel.
+    preloadStyles: ensureStyles,
+    get stylesheet() { return Object.freeze({ loaded: CSS_STATE.loaded, error: CSS_STATE.error, href: uiCssHref() }); },
     _test: {
       get panel() { return panel; },
       text: text,

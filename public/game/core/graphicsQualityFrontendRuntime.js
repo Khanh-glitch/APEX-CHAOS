@@ -44,12 +44,34 @@
   }
 
   // ------------------------------------------------------------- drawer ----
+  function bindRow(button) {
+    if (!button || button.dataset.aqsBound === 'true') return;
+    button.dataset.aqsBound = 'true';
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      var ui = settings();
+      if (!ui) { note('drawer-open', 'APEX_GRAPHICS_SETTINGS_UI missing'); return; }
+      ui.open(global.document.body);
+      var drawer = global.document.getElementById('apex-language-picker');
+      // Collapse the drawer under the panel so both are not focus traps.
+      if (drawer && !drawer.hidden) {
+        var toggle = global.document.getElementById('apex-utility-toggle');
+        if (toggle) toggle.click();
+      }
+    });
+  }
+
   function installDrawer() {
     var d = global.document;
     if (!d) return false;
     var existing = d.getElementById('apex-graphics-open');
     if (existing && existing.isConnected) {
+      // The Gold drawer markup ships its own row (and the localization runtime
+      // may have replaced our fallback after a remount). Bind to whatever row
+      // is in the document now and re-project the live mode onto it.
+      bindRow(existing);
       STATE.drawerInstalled = true;
+      syncDrawer();
       return true;
     }
     var stage = shellStage();
@@ -75,18 +97,7 @@
     if (guide && guide.parentNode === host) host.insertBefore(button, guide);
     else host.appendChild(button);
 
-    button.addEventListener('click', function (event) {
-      event.preventDefault();
-      var ui = settings();
-      if (!ui) { note('drawer-open', 'APEX_GRAPHICS_SETTINGS_UI missing'); return; }
-      ui.open(d.body);
-      var drawer = d.getElementById('apex-language-picker');
-      // Collapse the drawer under the panel so both are not focus traps.
-      if (drawer && !drawer.hidden) {
-        var toggle = d.getElementById('apex-utility-toggle');
-        if (toggle) toggle.click();
-      }
-    });
+    bindRow(button);
     STATE.drawerInstalled = true;
     syncDrawer();
     return true;
@@ -162,6 +173,9 @@
     if (!ui) { note('settings', 'APEX_GRAPHICS_SETTINGS_UI missing'); return false; }
     installDrawer();
     ui.sync();
+    // Preload the shared stylesheet at mount so the first panel open is not a
+    // visible unstyled flash on a cold cache.
+    try { if (typeof ui.preloadStyles === 'function') ui.preloadStyles(); } catch (e) { /* cosmetic only */ }
     startAdvisor();
     syncHudFrame();
     if (typeof a.subscribe === 'function') {
@@ -178,6 +192,14 @@
       global.addEventListener('apex:battle-hud-mounted', syncHudFrame);
       global.addEventListener('apex:battle-live', syncHudFrame);
       global.addEventListener('apex:graphics-quality-request-sync', syncHudFrame);
+      // The Gold utility drawer is mounted by the localization runtime, which
+      // may run before or after this script and may REPLACE our fallback row.
+      // Re-bind + re-project on its mount instead of polling.
+      global.addEventListener('apex:utility-drawer-mounted', function () {
+        STATE.drawerInstalled = false;
+        installDrawer();
+        try { if (settings()) settings().sync(); } catch (e) { note('sync', e); }
+      });
     } catch (e) { note('listeners', e); }
     STATE.mounted = true;
     return true;

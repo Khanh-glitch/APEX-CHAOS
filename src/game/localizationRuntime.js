@@ -248,6 +248,10 @@ function mountPicker(){
   }
   stage.appendChild(picker);
   pickerEl=picker;
+  // The graphics row ships in this markup, so the quality runtime must (re)bind
+  // to THIS element — its earlier fallback row was just removed above. One
+  // event keeps the two owners from polling each other.
+  try{document.dispatchEvent(new window.CustomEvent('apex:utility-drawer-mounted'));}catch(error){}
   const toggle=document.createElement('button');
   toggle.type='button';
   toggle.id='apex-utility-toggle';
