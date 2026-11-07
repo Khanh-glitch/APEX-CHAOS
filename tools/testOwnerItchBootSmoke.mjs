@@ -99,5 +99,60 @@ try{
   if(requests.length)throw Error('Nested studio 404: '+requests.slice(0,10).join(', '));
   if(exceptions.length)throw Error('Studio JavaScript exception: '+exceptions.slice(0,3).join('; '));
   console.log('PASS: Portrait Studio loads 432x768 real game iframe; no 404/JS exception');
+  // Exercise the actual browser encoder after building the SAME portable
+  // bundle. This catches MediaRecorder tracks that look supported but cannot
+  // encode/decode source-frame-driven portrait content in Chromium.
+  const recording=await expr(`(async()=>{
+    const videoCodecs=[
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus'
+    ];
+    const advertised=videoCodecs.filter(t=>MediaRecorder.isTypeSupported(t));
+    const mime=advertised[0]||'video/webm';
+    const c=document.createElement('canvas');c.width=1080;c.height=1920;
+    const ctx=c.getContext('2d',{alpha:false});
+    const stream=c.captureStream(0);
+    const track=stream.getVideoTracks()[0];
+    if(!track||typeof track.requestFrame!=='function')
+      return {supportedManual:false,advertised};
+    const chunks=[];
+    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:22000000});
+    rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
+    rec.start(250);
+    for(let i=0;i<12;i++){
+      ctx.fillStyle=i%2?'#d18a32':'#284f9e';ctx.fillRect(0,0,1080,1920);
+      ctx.font='bold 80px sans-serif';ctx.fillStyle='#ffffff';
+      ctx.fillText('APEX '+i,50,200);
+      track.requestFrame();
+      await new Promise(r=>setTimeout(r,75));
+    }
+    await new Promise((resolve,reject)=>{
+      rec.onerror=e=>reject(Error('Recorder: '+String(e?.error||e)));
+      rec.onstop=resolve;
+      rec.stop();
+    });
+    track.stop();
+    const type=rec.mimeType||mime;
+    const blob=new Blob(chunks,{type});
+    const url=URL.createObjectURL(blob);
+    const v=document.createElement('video');
+    v.muted=true;v.playsInline=true;v.src=url;
+    try{
+      await new Promise((resolve,reject)=>{
+        const timeout=setTimeout(()=>reject(Error('Encoded video metadata timeout')),12000);
+        v.onloadedmetadata=()=>{clearTimeout(timeout);resolve()};
+        v.onerror=()=>{clearTimeout(timeout);reject(Error('Encoded video cannot decode'))};
+        v.load();
+      });
+      return {supportedManual:true,advertised,mime:type,bytes:blob.size,
+        width:v.videoWidth,height:v.videoHeight,submitted:12};
+    }finally{v.removeAttribute('src');v.load();URL.revokeObjectURL(url)}
+  })()`);
+  if(recording.supportedManual!==true||recording.bytes<1000||
+     recording.width!==1080||recording.height!==1920||
+     recording.submitted!==12)
+    throw Error('Manual-frame media recording output failed: '+JSON.stringify(recording));
+  console.log('PASS: manual-frame MediaRecorder produces decodable 1080x1920 output '+JSON.stringify(recording));
 }catch(err){console.error('FAIL: owner itch boot smoke',err);process.exitCode=1}
 finally{try{ws?.close()}catch{};chrome?.kill('SIGKILL');await new Promise(r=>server.close(r))}
