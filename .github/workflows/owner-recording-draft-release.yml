@@ -1,0 +1,41 @@
+name: Owner Recording Private Draft ZIP
+on:
+  push:
+    branches:
+      - diagnostics/boxe-frost-ab-on-device-20261107
+    paths:
+      - '.github/workflows/owner-recording-draft-release.yml'
+permissions:
+  contents: write
+jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: node --test tools/testOwnerRecordingCodecSelection.mjs
+      - run: pnpm build
+      - name: Package exact shipping dist
+        run: |
+          test -s dist/index.html
+          test -s dist/portrait-studio.html
+          cd dist
+          zip -qr ../apex-chaos-boxe-frost-encoder-owner-rc1.zip .
+      - name: Create private-repository draft release (never publish)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create owner-boxe-frost-encoder-owner-rc1-20261107 \\
+            ./apex-chaos-boxe-frost-encoder-owner-rc1.zip \\
+            --target "${GITHUB_SHA}" \\
+            --title 'Owner-only BOXE/FROST encoder RC1 — NOT performance-validated' \\
+            --notes 'Built from isolated diagnostics branch. HTML5 test artifact ONLY. No hardware FPS gain has been established; do not replace public itch r5. Keep draft until owner A/B review.' \\
+            --draft --prerelease
