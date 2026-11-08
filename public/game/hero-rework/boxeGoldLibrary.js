@@ -671,10 +671,25 @@ class Fluid {
         this.imgByLayer = Object.create(null);
         this.stampByLayer = Object.create(null);
         this.frameMemo = Object.create(null);
+        // Peak alpha per layer for the current epoch (see _peakAlphaCached).
+        this.peakAlphaByLayer = Object.create(null);
+        this.peakStampByLayer = Object.create(null);
         this.epoch = 0;
         this.cvs = this.layerCanvas('smoke');
         this.cctx = this.ctxByLayer.smoke;
         this.img = this.imgByLayer.smoke;
+    }
+    /**
+     * Canvases are keyed by RENDER PASS, not merely by layer.
+     *
+     * `softPass` is the second smoke composite of the frame (drawn in front of
+     * the fighters at alpha 0.45). The field cannot change between the two
+     * smoke draws, so PERFORMANCE serves the second pass from the first pass's
+     * already-rasterised surface: one raster + one putImageData per frame
+     * instead of two, with identical pixels (the same field is sampled).
+     */
+    surfaceKey(layer) {
+        return (layer === 'smoke' && this.softPass === true) ? 'smoke-soft' : layer;
     }
     layerCanvas(layer) {
         let cv = this.cvsByLayer[layer];
@@ -942,10 +957,17 @@ class Fluid {
         const n = exports.N;
         const i0b = clamp(this.minI, 0, n - 1), i1b = clamp(this.maxI, 0, n - 1);
         const j0b = clamp(this.minJ, 0, n - 1), j1b = clamp(this.maxJ, 0, n - 1);
-        const cvs = this.layerCanvas(layer);
-        const cctx = this.ctxByLayer[layer];
-        const img = this.imgByLayer[layer];
-        const stampKey = layer + ':' + this.epoch + ':' + i0b + ',' + i1b + ',' + j0b + ',' + j1b;
+        // Which backing surface this pass paints.
+        //   HIGH          -> one surface per layer (two independent rasters).
+        //   PERFORMANCE   -> the soft (second) smoke pass shares the first
+        //                    pass's surface; the field is identical between the
+        //                    two calls, so this is one raster per frame.
+        const softMode = (typeof g !== 'undefined' && g.APEX_GRAPHICS_FLUID_SOFT_ALPHA === 0);
+        const paintKey = (layer === 'smoke' && this.softPass === true && softMode) ? 'smoke' : layer;
+        const cvs = this.layerCanvas(paintKey);
+        const cctx = this.ctxByLayer[paintKey];
+        const img = this.imgByLayer[paintKey];
+        const stampKey = paintKey + ':' + this.epoch + ':' + i0b + ',' + i1b + ',' + j0b + ',' + j1b;
         // ---- rasterise the field into this layer's canvas (memoised) --------
         // render() is called twice per frame for smoke; the field cannot change
         // between those calls, so the second call reuses the first's pixels
@@ -958,7 +980,7 @@ class Fluid {
             // [j0b..j1b], so everything else is already transparent. This keeps
             // the canvas byte-identical to a full clear without zeroing the
             // whole N*N buffer every call.
-            const prev = this.stampByLayer[layer];
+            const prev = this.stampByLayer[paintKey];
             if (prev) {
                 const pj0 = Math.min(prev[2], j0b), pj1 = Math.max(prev[3], j1b);
                 const pi0 = Math.min(prev[0], i0b), pi1 = Math.max(prev[1], i1b);
@@ -968,8 +990,9 @@ class Fluid {
             else {
                 px.fill(0);
             }
-            this.stampByLayer[layer] = [i0b, i1b, j0b, j1b];
+            this.stampByLayer[paintKey] = [i0b, i1b, j0b, j1b];
             let any = 0;
+            let peak8 = 0;
             if (layer === 'fire') {
                 for (let j = j0b; j <= j1b; j++)
                     for (let i = i0b; i <= i1b; i++) {
@@ -982,7 +1005,9 @@ class Fluid {
                         px[o] = exports.BB[li];
                         px[o + 1] = exports.BB[li + 1];
                         px[o + 2] = exports.BB[li + 2];
-                        px[o + 3] = Math.min(255, (clamp(t * 1.7, 0, 1) * 255) | 0);
+                        const af = Math.min(255, (clamp(t * 1.7, 0, 1) * 255) | 0);
+                        px[o + 3] = af;
+                        if (af > peak8) peak8 = af;
                         any = 1;
                     }
             }
@@ -1000,13 +1025,19 @@ class Fluid {
                         px[o] = clamp(lerp(132, 36, s) + lit * 190, 0, 255);
                         px[o + 1] = clamp(lerp(120, 32, s) + lit * 95, 0, 255);
                         px[o + 2] = clamp(lerp(100, 30, s) + lit * 20, 0, 255);
-                        px[o + 3] = Math.min(255, (clamp(d * 0.78, 0, 0.92) * 255) | 0);
+                        const a8 = Math.min(255, (clamp(d * 0.78, 0, 0.92) * 255) | 0);
+                        px[o + 3] = a8;
+                        if (a8 > peak8) peak8 = a8;
                         any = 1;
                     }
             }
             cctx.putImageData(img, 0, 0);
             wrote = any;
             this.frameMemo[stampKey] = wrote;
+            // Peak 8-bit alpha is accumulated by the same pass that writes the
+            // pixels, so PERFORMANCE's soft-pass decision costs nothing extra.
+            this.peakAlphaByLayer[paintKey] = peak8;
+            this.peakStampByLayer[paintKey] = stampKey;
             // Keep the memo bounded: it is keyed by epoch, so it grows during a
             // long fight. A handful of entries per frame is all that is live.
             if (this.size === undefined) this.size = 0;
@@ -1034,7 +1065,13 @@ class Fluid {
             // anywhere, so it is skipped; above it, it is drawn exactly as in
             // HIGH. This is a measured bound, not a tuned percentage.
             if (soft === 0) {
-                const peakAlpha = this._peakAlpha8();
+                // Read the peak recorded by the rasterisation pass for THIS
+                // layer/epoch. The earlier version recomputed it by scanning
+                // the grid again on every call — including on memo hits — which
+                // made PERFORMANCE measurably SLOWER than HIGH on BOXE
+                // (p50 21.5 -> 30.3 ms, reproduced 3/3). The value is the same
+                // number, obtained for free.
+                const peakAlpha = this._peakAlphaCached(paintKey);
                 if (peakAlpha * 0.45 < 1) {
                     this.softPass = false;
                     return;
@@ -1067,6 +1104,17 @@ class Fluid {
      * so the value is the true maximum destination contribution of the layer,
      * not an estimate. Early-exits at full opacity.
      */
+    /**
+     * Peak 8-bit alpha for `layer` as recorded by the last rasterisation of the
+     * current epoch. Falls back to a direct scan only when no raster exists yet
+     * (first call of a frame before draw() has written pixels).
+     */
+    _peakAlphaCached(layer) {
+        const key = layer + ':' + this.epoch;
+        const stamp = this.peakStampByLayer && this.peakStampByLayer[layer];
+        if (stamp && stamp.indexOf(key + ':') === 0) return this.peakAlphaByLayer[layer] || 0;
+        return this._peakAlpha8();
+    }
     _peakAlpha8() {
         if (this.maxI < this.minI)
             return 0;
@@ -1120,6 +1168,8 @@ class Fluid {
         this.epoch++;
         this.frameMemo = Object.create(null);
         this.stampByLayer = Object.create(null);
+        this.peakAlphaByLayer = Object.create(null);
+        this.peakStampByLayer = Object.create(null);
         this.minI = exports.N;
         this.maxI = 0;
         this.minJ = exports.N;
