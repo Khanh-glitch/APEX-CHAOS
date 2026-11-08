@@ -309,10 +309,26 @@
   font-family: var(--aqs-display);
   color: var(--aqs-ink);
   opacity: 1;
-  /* Decorative slide only — the panel is readable whether or not the
-     animation runs. */
-  animation: aqs-advisor-in 220ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  /* Decorative slide only (class added by JS), and the RESTING position must
+     never depend on the animation advancing.
+
+     Measured failure: at 1440x900 the entry animation reported
+     `playState: running, currentTime: 0` permanently — the frame clock never
+     advanced a single tick on that surface, so `fill: forwards` held the
+     `from` keyframe `matrix(1, 0, 0, 1, 14, -4)` forever and the dialog sat
+     14px right / 4px up from its authored inset, i.e. 2px PAST the right edge
+     (gapRight -2; -6 on a phone). At 390x844 the same animation completed, which
+     is exactly the kind of "works on my device" difference a dialog cannot
+     afford.
+
+     This dialog's position must be correct after one style flush, with zero
+     frames rendered. So the entry is a VISUAL cue only — no transform, no
+     geometry: `aqs-advisor-pulse` animates opacity, which is opacity 1 in the
+     base rule, so a stalled clock leaves the panel fully readable and exactly
+     where it was authored. */
 }
+#apex-quality-advisor:not(.is-open) { animation: none; }
+#apex-quality-advisor.is-open { animation: aqs-advisor-pulse 260ms ease-out 1; }
 #apex-quality-advisor[hidden] { display: none !important; }
 #apex-quality-advisor.is-leaving { animation: aqs-slide-out 160ms ease-in both; }
 
@@ -419,7 +435,8 @@
 #apex-quality-toast[hidden] { display: none !important; }
 
 @keyframes aqs-card-in { from { transform: translateY(10px); } to { transform: none; } }
-@keyframes aqs-advisor-in { from { transform: translate(14px, -4px); } to { transform: none; } }
+/* Opacity-only by design: an entry animation may never move a dialog. */
+@keyframes aqs-advisor-pulse { from { opacity: 0.55; } to { opacity: 1; } }
 /* Exit animations may fade: both callers hide the element (hidden attr)
  * afterwards, and the JS hides it on a timer rather than transitionend. */
 @keyframes aqs-slide-out { from { opacity: 1; } to { opacity: 0; transform: translate(10px, -3px); } }

@@ -1,0 +1,20 @@
+{
+  "schema": "apex-itch-zip-receipt/1",
+  "createdAt": "2026-11-08T11:06:44.215Z",
+  "buildSha": "2f25a40961eeea7b6f88aa9d77c9cb7b1e774140",
+  "zip": {
+    "name": "apex-chaos-itch-2f25a40.zip",
+    "bytes": 74374274,
+    "sha256": "1df0ade239c3423f7734f8a842b60a1e6b1ea0b85acdb796cfc4b05f9b072a7d"
+  },
+  "content": {
+    "files": 543,
+    "bytes": 80908033,
+    "sha256": "9677a0bf0bc940e332174337b9fa08deefa8134cc3255918007ffb724d30efa8"
+  },
+  "compression": {
+    "deflated": 154,
+    "stored": 389
+  },
+  "entry": "index.html at archive root (itch.io HTML5 contract)"
+}
