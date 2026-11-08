@@ -44,6 +44,7 @@ import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
 import { adaptGoldBattleHudR83 } from './goldBattleHudR83.mjs';
 import { adaptGoldBattleHudR91LabelFit } from './goldBattleHudR91labelFit.mjs';
+import { adaptGoldBattleHudGraphicsQuality } from './goldBattleHudGraphicsQuality.mjs';
 import { adaptGoldBattleHudTacticalPulse } from './goldBattleHudTacticalPulse.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
@@ -883,6 +884,11 @@ const seamPatches = [
   log('  R83 (battle-hud): short Local portrait geometry solver candidate');
   out = adaptGoldBattleHudR91LabelFit(out);
   log('  R91 (battle-hud): primary-deck skill/weapon label fit (audit D1/D2)');
+  // Owner graphics-quality modes: project the ONE authority onto #hud[data-gfx].
+  // Information and layout never change with the mode, only redundant render
+  // work. Asserted by tools/goldBattleHudGraphicsQuality.mjs + the gate suite.
+  out = adaptGoldBattleHudGraphicsQuality(out);
+  log('  GFX-HUD (battle-hud): graphics-quality consumer installed (adopts the shell authority)');
   return out;
 }
 
