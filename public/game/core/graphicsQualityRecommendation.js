@@ -36,6 +36,10 @@
   var P95_LIMIT_MS = 38;
   var SLOW_FRAME_MS = 25;
   var SLOW_RATIO_LIMIT = 0.2;
+  // Retained for diagnostics/tests only. The verdict no longer uses a flat Hz
+  // floor (see isRefreshCapped): a 14 Hz device must still be offered
+  // PERFORMANCE, while a genuine 30 Hz panel must not be blamed for its own
+  // refresh rate.
   var MIN_REFRESH_HZ = 50;
   var COOLDOWN_MS = 10 * 60 * 1000;
   var PANEL_MS = 5000;
@@ -124,6 +128,41 @@
     return sorted[idx];
   }
 
+  /**
+   * Is this device simply running at its own panel rate?
+   *
+   * The original rule ("ignore anything under 50 Hz") was wrong: a device
+   * delivering 70 ms frames measured 14 Hz and was silently excluded as
+   * "refresh-capped", so the one machine that most needed the offer never got
+   * it. The honest test for a refresh cap is that the median frame interval
+   * EQUALS a real panel interval — the device is keeping up with a slow
+   * display. A device that is merely slow shows a median well above every
+   * panel interval, which is exactly the case we must not exempt.
+   *
+   * Guarded rates are the panel rates a product actually meets: 24/30/48 Hz.
+   * Anything faster than that is a target the game is expected to hit, so no
+   * exemption applies.
+   */
+  var PANEL_RATES = [24, 30, 48];
+  /**
+   * Decide the cap from the MEDIAN FRAME INTERVAL only.
+   *
+   * The reported `hz` is snapped to a nearby common panel rate for display,
+   * so it must never feed this test: a 38.5 ms cadence rounded to "24 Hz" and
+   * was then exempted as a capped display even though the device was simply
+   * slow. Comparing the raw median against each panel interval with a tight
+   * tolerance (5.5 %, i.e. well under one rAF jitter tick) tests the only claim
+   * that matters — "the median frame landed exactly on a display tick".
+   */
+  function isRefreshCapped(hz, p50) {
+    if (!(p50 > 0)) return false;
+    for (var i = 0; i < PANEL_RATES.length; i += 1) {
+      var interval = 1000 / PANEL_RATES[i];
+      if (Math.abs(p50 - interval) <= interval * 0.055) return true;
+    }
+    return false;
+  }
+
   /** Reduce one window of frame times to its verdict + diagnostics. */
   function analyse(frames) {
     if (!frames || frames.length < 30) {
@@ -135,7 +174,8 @@
     for (var i = 0; i < frames.length; i += 1) if (frames[i] > SLOW_FRAME_MS) slow += 1;
     var slowRatio = slow / frames.length;
     var hz = estimateRefreshHz(frames);
-    var bad = p95 > P95_LIMIT_MS && slowRatio >= SLOW_RATIO_LIMIT && hz >= MIN_REFRESH_HZ;
+    var capped = isRefreshCapped(hz, p50);
+    var bad = p95 > P95_LIMIT_MS && slowRatio >= SLOW_RATIO_LIMIT && !capped;
     return {
       ok: bad,
       n: frames.length,
@@ -143,7 +183,8 @@
       p95: Math.round(p95 * 10) / 10,
       slowRatio: Math.round(slowRatio * 100) / 100,
       hz: hz,
-      reason: bad ? 'slow' : (p95 <= P95_LIMIT_MS ? 'p95-ok' : (slowRatio < SLOW_RATIO_LIMIT ? 'rare-slow' : 'refresh-capped')),
+      capped: capped,
+      reason: bad ? 'slow' : (p95 <= P95_LIMIT_MS ? 'p95-ok' : (capped ? 'refresh-capped' : (slowRatio < SLOW_RATIO_LIMIT ? 'rare-slow' : 'hz-unknown'))),
     };
   }
 
