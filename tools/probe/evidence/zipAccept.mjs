@@ -133,8 +133,15 @@ const perfFlags = await page.evaluate(() => ({
   hudGfx: document.querySelector('#hud')?.getAttribute('data-gfx') ?? null,
   stored: (() => { try { return JSON.parse(localStorage.getItem('apexChaos.graphicsQuality.v1')); } catch (e) { return null; } })(),
 }));
-check('PERFORMANCE applies all four flags', perfFlags.mode === 'performance' && perfFlags.bloom === 0
-  && perfFlags.fluid === 0 && perfFlags.shadow === 5 && perfFlags.flow === 0.55, perfFlags);
+// PERFORMANCE used to set the bloom flag to 0, which did not make the halo
+// cheaper — composite() drew it with filter='none', i.e. without the
+// convolution. Measured against HIGH that is max delta 29/255 over 18-25% of
+// pixels, a visibly different image. The halo is now convolved at half
+// resolution in BOTH modes (max delta 1-2/255, pixel-equivalent), so the
+// correct PERFORMANCE expectation is bloom === 1 with the halo present.
+check('PERFORMANCE applies its flags (halo kept on purpose)', perfFlags.mode === 'performance'
+  && perfFlags.bloom === 1 && perfFlags.fluid === 0 && perfFlags.shadow === 5 && perfFlags.flow === 0.55,
+  perfFlags);
 // The HUD mirror is asserted AFTER the battle mounts (below), where the HUD
 // document actually exists; here only the authority-side effect is checked.
 check('mode persisted', perfFlags.stored?.mode === 'performance', perfFlags.stored);
