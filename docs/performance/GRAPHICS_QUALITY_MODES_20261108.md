@@ -285,7 +285,34 @@ pnpm test:source-hygiene
 pnpm test:shipping-dist
 ```
 
-## 9. Two defects found during final verification
+## 9. Four defects found during final verification
+
+Three of the four share one root cause and are worth stating as a rule, because
+this sandbox reproduces the condition they depend on: **a stalled frame clock**.
+Browser animations here report `playState: running, currentTime: 0` indefinitely.
+Any property that is only "correct" once an animation has advanced is therefore
+wrong on this device, and was wrong in three separate ways:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Advisor 2px past the right edge (`gapRight -2`; -6 on a phone) | entry keyframe `translate(14px,-4px)` held by `fill-mode: both` | the dialog runs no entry animation; it is placed by CSS alone |
+| Advisor invisible while `class="is-open"` | `hide()`'s 180 ms completion timer fired *after* a re-`show()` and set `hidden` | hide completion is token-guarded and refuses to hide an open panel |
+| Advisor permanently at `opacity: 0.55` | the opacity pulse was pinned to its first keyframe | no entry animation at all |
+| Toast ~130 px right of centre | `translateX(-50%)` centring silently overwritten by the entry keyframes | centred with `left/right + margin-inline:auto`, no transform |
+
+The lesson is general: **dialogs may not depend on animation frames for
+position, opacity or visibility**, and an animation with `fill-mode: both` whose
+`to` keyframe is "not visible" will leave the element in that state. Everything
+here now rests on static CSS plus the `hidden` attribute.
+
+This is also why the acceptance suite grew a `painted()` oracle: the old checks
+verified class names and attributes, so all four bugs passed them. `painted()`
+requires the element to be laid out, fully opaque, inside the viewport, and the
+topmost element at its own centre. It caught the 0.55 pin on its first run.
+
+---
+
+## 10. Earlier defects
 
 **The arena `clearRect` was load-bearing.** It was removed in HIGH mode as a
 "redundant full-surface clear" (the opaque fill below covers every pixel). Under a
