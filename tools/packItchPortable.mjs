@@ -153,6 +153,23 @@ index = index.replace(
   '  <script>for(const l of document.querySelectorAll("link[href]"))l.setAttribute("href",l.href);</script>\n  </head>',
 );
 fs.writeFileSync(indexPath, index);
-if (!fs.existsSync(path.join(OUTPUT, 'ITCH_GUEST_BUILD_SHA.txt'))) throw Error('missing build receipt');
+// The build receipt is written BEFORE this script runs (zipItchPortable reads
+// it and requires an exact HEAD SHA). This script starts by rm -rf'ing OUTPUT
+// and copying dist/ over it, so a receipt that existed before the copy is gone
+// by now. Carry it across instead of failing: every caller of this packer
+// writes the receipt first, which is why the check used to pass only when the
+// directory had been packed twice.
+{
+  const receipt = 'ITCH_GUEST_BUILD_SHA.txt';
+  const fromInput = path.join(INPUT, receipt);
+  const toOutput = path.join(OUTPUT, receipt);
+  if (!fs.existsSync(toOutput) && fs.existsSync(fromInput)) {
+    fs.copyFileSync(fromInput, toOutput);
+  }
+  if (!fs.existsSync(toOutput)) {
+    throw Error('missing build receipt: write dist/ITCH_GUEST_BUILD_SHA.txt from '
+      + '`git rev-parse HEAD` before packing (zipItchPortable verifies it)');
+  }
+}
 console.log('ITCH PORTABILITY PASS: ' + scanned + ' text files scanned, ' + modifiedFiles
   + ' transformed, ' + replacements + ' URL literals made relative');

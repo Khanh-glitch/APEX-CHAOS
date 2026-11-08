@@ -48,20 +48,26 @@
   }
 
   // ---------------------------------------------------------------- P1 ------
-  // CRYSTALA bloom wide halo. The bloom system exposes `composite`; the wide
-  // pass is the third drawImage in it. Rather than reimplementing the pass we
-  // hook the one flag the author already provides for the legacy path
-  // (forceLegacyWide is the opposite direction), and instead gate the wide
-  // draw by the alpha it uses: 0.25 * source. We keep it but skip the extra
-  // destination blur filter, which is the expensive half.
+  // CRYSTALA bloom wide halo.
   //
-  // Implementation note: the bloom runtime reads `g.APEX_GRAPHICS_BLOOM_WIDE`
-  // for the target filter; it defaults to 0 (off) and the renderer falls back
-  // to the authored 9px string when it is absent. Setting it to 1 keeps the
-  // exact original path. See crystalaGoldV6.js composite().
+  // History: this candidate used to set the flag to 0 in PERFORMANCE, which
+  // made composite() draw the halo with `filter='none'` — i.e. it did not
+  // remove the cost of the halo, it removed the halo. Measured against the
+  // shipped HIGH path that is max delta 29/255 over 18-25% of the pixels, so
+  // PERFORMANCE was visibly losing the Gold halo.
+  //
+  // The renderer now convolves the halo on a quarter-resolution surface and
+  // upscales it: the same image (max delta 2/255, zero pixels above 2) at
+  // 23-49% of the cost, in both modes. There is therefore nothing left for
+  // this candidate to switch off, and the honest value in PERFORMANCE is 1 —
+  // the same halo at the same quality, cheaper for everyone.
+  //
+  // `APEX_GRAPHICS_BLOOM_WIDE` remains a diagnostic switch inside
+  // crystalaGoldV6.js: 0 = omit the halo, 1 = quarter-res halo (default),
+  // 2 = legacy destination-side filter (for A/B on a real GPU).
   function applyBloomFlag() {
     try {
-      global.APEX_GRAPHICS_BLOOM_WIDE = perf() ? 0 : 1;
+      global.APEX_GRAPHICS_BLOOM_WIDE = 1;
     } catch (e) { /* ignore */ }
   }
 
@@ -113,7 +119,7 @@
         mode: authority() ? authority().mode : null,
         performance: perf(),
         candidates: {
-          P1_bloomWideFilter: { live: perf(), flag: global.APEX_GRAPHICS_BLOOM_WIDE },
+          P1_bloomWideFilter: { live: false, flag: global.APEX_GRAPHICS_BLOOM_WIDE, note: 'halo is now quarter-res in both modes' },
           P2_fluidSoftAlpha: { live: perf(), flag: global.APEX_GRAPHICS_FLUID_SOFT_ALPHA },
           P3_iceShadow: { live: perf(), budget: global.APEX_ICE_SHADOW_NODE_BUDGET },
           P4_iceFlowMarks: { live: perf(), budget: global.APEX_ICE_FLOW_MOTION_BUDGET },

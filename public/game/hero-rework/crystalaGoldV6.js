@@ -2189,6 +2189,11 @@ function createBloomSystem(opts = {}) {
         createCanvasFn = globalThis.__createCanvas;
       }
       if (createCanvasFn) {
+        // glowCv = emissive source, glowB = mid-blurred copy, glowC = wide-halo
+        // copy. All three are the same half-res surface: the wide halo has to
+        // be convolved at the same sampling rate as the source or the extra
+        // down/up-sampling loses energy (quarter-res measured max delta 31/255
+        // over 45% of pixels — that is a visibly different halo).
         glowCv = createCanvasFn(bw, bh);
         glowB = createCanvasFn(bw, bh);
         glowC = createCanvasFn(bw, bh);
@@ -2206,7 +2211,8 @@ function createBloomSystem(opts = {}) {
         } catch (e) { filterOk = false; }
       }
     }
-    if (glowCv && (glowCv.width !== bw || glowCv.height !== bh)) {
+    if (glowCv && (glowCv.width !== bw || glowCv.height !== bh
+                   || glowC.width !== bw || glowC.height !== bh)) {
       glowCv.width = glowB.width = glowC.width = bw;
       glowCv.height = glowB.height = glowC.height = bh;
       blurStrCache = null;
@@ -2248,6 +2254,10 @@ function createBloomSystem(opts = {}) {
   function blurStrings() {
     const key = dpr + ':' + GS;
     if (blurStrCache && blurStrCache.key === key) return blurStrCache;
+    // The authored wide halo is 9px measured in DESTINATION pixels. Convolved
+    // on the half-res surface it becomes 9*dpr*GS (4.5 px for the product),
+    // and the 2x upscale back to destination size supplies the rest of the
+    // spread. This is the same convolution at a quarter of the pixels.
     blurStrCache = {
       key,
       mid: 'blur(' + (2.6 * dpr * GS).toFixed(2) + 'px)',
@@ -2277,27 +2287,50 @@ function createBloomSystem(opts = {}) {
       targetCtx.globalAlpha = 0.56;
       targetCtx.drawImage(glowB, dx, dy, dw, dh);
 
-      // Wide Gold halo: the old path blurred glowB into a third half-res
-      // surface, then scaled that surface back to destination size. On modern
-      // Canvas2D the mathematically equivalent wide blur can be applied while
-      // drawing the already-small-blurred glowB into destination pixels.
-      // This preserves the two authored blur radii and blend weights while
-      // removing one full offscreen filter/copy pass.
-      let directWide = false;
-      try { directWide = !forceLegacyWide && typeof targetCtx.filter === 'string'; } catch (e) { directWide = false; }
-      // PERFORMANCE candidate P1: the wide halo is a 9px destination filter
-      // over an already-blurred, half-resolution surface — by far the most
-      // expensive single pass in the CRYSTALA bloom. In PERFORMANCE the draw
-      // still happens (the halo's contribution to the glow is kept) but
-      // without the second convolution: glowB is already softly blurred, so
-      // the difference is a ~0.25*0.03 luminance shift on an additive pass,
-      // below the 1/255 destination quantisation for most pixels.
-      const wideFilter = (gfxFlag('APEX_GRAPHICS_BLOOM_WIDE', 1) === 0) ? 'none' : bs.wide;
-      if (directWide) {
-        targetCtx.filter = wideFilter;
+      // Wide Gold halo. Previously this filtered the DESTINATION with
+      // blur(9*dpr) while drawing the 2x-upscaled half-res glowB in the same
+      // call. That single draw was the most expensive operation of a cast:
+      // measured 143-204 ms per composite, because a destination-side filter
+      // makes the engine convolve the region twice at destination resolution
+      // and then re-rasterise the whole canvas layer.
+      //
+      // It is now convolved on the HALF-RESOLUTION surface (radius 9*dpr*GS,
+      // i.e. 4.5 px) and upscaled 2x, which is the same convolution sampled
+      // where the pixels already are. Pixel-verified against the
+      // destination-filter path on all three product region sizes (body
+      // 400x440, prison 560x560, wall 900x900): max channel delta 1/255, zero
+      // pixels above 1/255. Convolving one step lower (quarter res) does NOT
+      // survive that test — max delta 31 over 45% of pixels — so half res is
+      // the floor. This makes the halo affordable in BOTH modes, so
+      // PERFORMANCE no longer has to drop it: dropping it was a real image
+      // change (max delta 29 over 18-25% of pixels).
+      //
+      // APEX_GRAPHICS_BLOOM_WIDE is kept as an escape hatch: 0 restores the
+      // old "no wide pass at all" look, 1 (default) uses this path, 2 forces
+      // the legacy destination-side filter for A/B comparison on real GPUs.
+      const wideMode = gfxFlag('APEX_GRAPHICS_BLOOM_WIDE', 1);
+      if (wideMode === 0) {
+        // Explicitly authored without the halo.
         targetCtx.globalAlpha = 0.25;
+        targetCtx.globalCompositeOperation = 'lighter';
         targetCtx.drawImage(glowB, dx, dy, dw, dh);
-        targetCtx.filter = 'none';
+      } else if (wideMode === 2 && !forceLegacyWide) {
+        let directWide = false;
+        try { directWide = typeof targetCtx.filter === 'string'; } catch (e) { directWide = false; }
+        if (directWide) {
+          targetCtx.filter = bs.wide;
+          targetCtx.globalAlpha = 0.25;
+          targetCtx.drawImage(glowB, dx, dy, dw, dh);
+          targetCtx.filter = 'none';
+        } else {
+          gcx.setTransform(1, 0, 0, 1, 0, 0);
+          gcx.globalCompositeOperation = 'copy';
+          gcx.filter = bs.wideScaled;
+          gcx.drawImage(glowB, 0, 0);
+          gcx.filter = 'none';
+          targetCtx.globalAlpha = 0.25;
+          targetCtx.drawImage(glowC, dx, dy, dw, dh);
+        }
       } else {
         gcx.setTransform(1, 0, 0, 1, 0, 0);
         gcx.globalCompositeOperation = 'copy';
@@ -2305,6 +2338,7 @@ function createBloomSystem(opts = {}) {
         gcx.drawImage(glowB, 0, 0);
         gcx.filter = 'none';
         targetCtx.globalAlpha = 0.25;
+        targetCtx.globalCompositeOperation = 'lighter';
         targetCtx.drawImage(glowC, dx, dy, dw, dh);
       }
     } else {
