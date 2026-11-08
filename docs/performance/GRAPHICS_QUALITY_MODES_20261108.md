@@ -204,7 +204,10 @@ The **same arm varies by 26–40 % between runs**, which is larger than any diff
 ## 5. Acceptance evidence (captured, not asserted)
 
 Capture harness: `tools/probe/evidence/acceptance.mjs` (39 checks, screenshots written
-alongside `acceptance.json`). Every row below is a real browser observation on
+alongside `acceptance.json`). The 16 shipped screenshots are in
+`docs/performance/evidence/screenshots/` — eight desktop (1440×900) and eight
+mobile (390×844 @2×), both captured from the packaged build by
+`tools/probe/evidence/battleShot.mjs`. Every row below is a real browser observation on
 the packaged `dist-itch-html5` build served through the nested `/html/apex/`
 path itch.io uses.
 
