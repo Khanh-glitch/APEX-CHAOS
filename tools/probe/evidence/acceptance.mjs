@@ -41,6 +41,31 @@ const settle = async (ms = 900) => {
   await new Promise(r => setTimeout(r, ms));
 };
 
+
+// A dialog is only "shown" if it is laid out, opaque, and the topmost element
+// at its own centre - not merely un-hidden or class-flagged. Each of the three
+// field bugs found in the advisor/toast passed a class/attribute check while
+// being invisible (stale exit timer), pinned at opacity 0 (fill-mode both on a
+// stalled clock), or ~130px off-centre (entry keyframes overwriting
+// translateX(-50%)). This oracle checks what the user would actually see.
+const painted = (sel) => page.evaluate((q) => {
+  const el = document.querySelector(q);
+  if (!el) return { ok: false, why: 'absent' };
+  const cs = getComputedStyle(el);
+  const r = el.getBoundingClientRect();
+  if (cs.display === 'none' || cs.visibility === 'hidden') return { ok: false, why: 'display/visibility' };
+  if (+cs.opacity < 0.99) return { ok: false, why: 'opacity ' + cs.opacity };
+  if (r.width < 24 || r.height < 24) return { ok: false, why: 'collapsed ' + r.width + 'x' + r.height };
+  if (r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1) {
+    return { ok: false, why: 'overflow ' + JSON.stringify([r.left, r.top, r.right, r.bottom]) };
+  }
+  const hit = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+  let n = hit, inside = false;
+  while (n) { if (n === el) { inside = true; break; } n = n.parentElement; }
+  if (!inside) return { ok: false, why: 'covered by ' + (hit && (hit.id || hit.className || hit.tagName)) };
+  return { ok: true, rect: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] };
+}, sel);
+
 // ---------- boot ----------
 const boot = await page.evaluate(() => ({
   authority: !!window.APEX_GRAPHICS_QUALITY,
@@ -116,6 +141,14 @@ const esc = await page.evaluate(() => {
   return { hidden: document.getElementById('apex-graphics-settings')?.hidden };
 });
 check('Escape closes the panel', esc.hidden === true);
+
+// Re-open and prove real paintability (see `painted` above).
+await page.evaluate(() => window.APEX_GRAPHICS_SETTINGS_UI.open(document.body));
+await settle(900);
+const settingsPaint = await painted('#apex-graphics-settings .aqs-card');
+check('settings card is actually painted (not just un-hidden)', settingsPaint.ok, settingsPaint);
+await page.evaluate(() => window.APEX_GRAPHICS_SETTINGS_UI.close());
+await settle(400);
 
 // ---------- persistence across reload ----------
 await page.reload({ waitUntil: 'domcontentloaded' });
@@ -220,6 +253,8 @@ check('advisor needs 3 consecutive windows, not 2',
 check('advisor title', adv.title === 'LOW PERFORMANCE DETECTED', adv.title);
 check('advisor offers SWITCH and KEEP HIGH', adv.actions.includes('switch') && adv.actions.includes('dismiss'), adv.actions);
 check('advisor has the 5 s life rail', adv.hasLife);
+const advisorPaint = await painted('#apex-quality-advisor');
+check('advisor is actually painted while open', advisorPaint.ok, advisorPaint);
 await settle(700);
 await page.screenshot({ path: `${OUT}/advisor.png` });
 
@@ -262,6 +297,8 @@ const accepted = await page.evaluate(() => ({
 }));
 check('SWITCH applies PERFORMANCE', accepted.mode === 'performance');
 check('confirmation toast shown', accepted.toastVisible && /PERFORMANCE/.test(accepted.toast || ''), accepted.toast);
+const toastPaint = await painted('#apex-quality-toast');
+check('confirmation toast is actually painted and centred', toastPaint.ok, toastPaint);
 await page.screenshot({ path: `${OUT}/advisor-accepted.png` });
 
 // ---------- invariants ----------

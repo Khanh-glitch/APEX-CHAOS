@@ -321,14 +321,17 @@
      is exactly the kind of "works on my device" difference a dialog cannot
      afford.
 
-     This dialog's position must be correct after one style flush, with zero
-     frames rendered. So the entry is a VISUAL cue only — no transform, no
-     geometry: `aqs-advisor-pulse` animates opacity, which is opacity 1 in the
-     base rule, so a stalled clock leaves the panel fully readable and exactly
-     where it was authored. */
+     The same applies to opacity: a pulse from 0.55 was measured PINNED at
+     0.55 on that stalled clock, i.e. a permanently half-transparent dialog. So
+     this dialog runs NO entry animation at all. It appears immediately, fully
+     opaque, exactly where it was authored, with zero frames rendered — which is
+     also the behaviour a low-performance warning should have, since it fires
+     precisely when frames are scarce. The exit still animates (transform only,
+     no fill), and `hidden` does the actual hiding. */
 }
 #apex-quality-advisor:not(.is-open) { animation: none; }
-#apex-quality-advisor.is-open { animation: aqs-advisor-pulse 260ms ease-out 1; }
+/* No entry animation on purpose: see the rule above. */
+#apex-quality-advisor.is-open { animation: none; }
 #apex-quality-advisor[hidden] { display: none !important; }
 /* Exit may fade, but must never be the thing that makes the panel readable:
    with fill-mode `both` a stalled frame clock pins the element at the `to`
@@ -449,8 +452,6 @@
 #apex-quality-toast[hidden] { display: none !important; }
 
 @keyframes aqs-card-in { from { transform: translateY(10px); } to { transform: none; } }
-/* Opacity-only by design: an entry animation may never move a dialog. */
-@keyframes aqs-advisor-pulse { from { opacity: 0.55; } to { opacity: 1; } }
 /* Exit animations may fade: both callers hide the element (hidden attr)
  * afterwards, and the JS hides it on a timer rather than transitionend. */
 @keyframes aqs-slide-out { to { transform: translate(10px, -3px); } }
