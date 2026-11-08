@@ -12,7 +12,13 @@ const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261023-tp-r1';
+// The manifest is the single source of truth for the revision string; this
+// constant exists to make a REVISION CHANGE a reviewed, two-file edit instead of
+// a silent side effect. Bump both together, then reseal the lock with
+// UPDATE_LOCK=1. (2026-11-08: the CRYSTALA halo + frame-attribution slice
+// changed shipped runtimes, so the string had to move or players would keep
+// executing cached copies.)
+const expectedRevision = '20261108-cast-r1';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
