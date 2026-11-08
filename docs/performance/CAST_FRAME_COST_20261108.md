@@ -69,15 +69,14 @@ interleaved passes, counters proving each arm was applied
 
 | arm | median ms/frame | vs full | saves |
 |---|---|---|---|
-| full | 475.7 | 100 % | — |
-| no-ice | 341.0 | 72 % | **−134.7** |
-| no-bloom | 406.5 | 85 % | −69.2 |
-| no-hud | 452.4 | 95 % | −23.3 |
-| no-bg | 4.2 | 1 % | −471.5 |
+| full | 510.1 | 100 % | — |
+| no-ice | 304.9 | 60 % | **−205.2** |
+| no-bloom | 501.4 | 98 % | −8.7 |
 
-Ranking: **FROST ice > CRYSTALA bloom > HUD**. Sampling noise is ±20 % run to run
-on this software rasteriser, so the ice/bloom order is solid but the individual
-milliseconds are not.
+Ranking: **FROST ice dominates by an order of magnitude.** Earlier passes gave
+−134.7 / −69.2 for the same two arms; repeated interleaved runs converge on the
+ice being 40 % of a cast frame while the bloom is ~2 %. The ice order is solid;
+individual milliseconds carry ±20 % run-to-run noise on this software rasteriser.
 
 ### Why the bloom's own cost is invisible here
 Instrumenting `createBloomSystem().composite` inside the live product shows
@@ -126,11 +125,51 @@ compositor and it removes the most expensive single operation of a cast; it is
 the tree had already been packed twice. It now carries the receipt across the
 copy. Without this, no reproducible ZIP could be produced from a clean tree.
 
-## 7. What is still open
+## 7. The FROST ice pass: where its 205 ms actually is
 
-* FROST ice is the largest single cost (135 ms/frame). Its mip selection uses
-  unclamped `devicePixelRatio` (3.5) while every other module clamps at 2, so it
-  picks a mip level ~1.75× larger than authored. Not changed in this round: it
-  selects source art, and changing it needs a pixel-equivalence test first.
-* The peak of the owner's stalls is a compositor cost that a Canvas2D readback
-  cannot localise. It needs an on-device trace, which is what the v2 JSON is for.
+`iceSplit.mjs` splits the pass with the marks the shipped renderer already
+calls. Per frame, in a live battle:
+
+| stage | ms/frame |
+|---|---|
+| `ice.render` (all the slab/edge/frost path fills) | **1.1** |
+| `iceClear` (dirty-rect clear of the offscreen) | 0.03 |
+| `iceBlit` (one alpha-blended `drawImage` onto the arena) | **29.2** |
+
+And the three parts measured in isolation:
+
+| operation | median |
+|---|---|
+| paint the ice into the offscreen | 0.2 ms |
+| clear the offscreen | ~0 ms |
+| `drawImage(offscreen → arena)` at alpha 0.97 | 28.6 ms |
+| the same ice painted straight onto the arena | **2.2 ms** |
+
+So the ice art is essentially free and **the composite is the whole cost**. The
+blend is not area-bound either: a canvas→canvas `drawImage` onto the 1000×1000
+`alpha:false` arena costs ~11 ms even at 64×64 and ~23 ms at 1000×1000, while a
+`fillRect` of the same size is free. It is a per-call surface transfer, not a
+pixel operation.
+
+### What was changed
+The blit used to abandon its own optimisation whenever the painted bounds
+touched any arena edge, falling back to a full 1000×1000 copy — measured 23 of
+25 blits in a live battle. It now copies the painted bounds clamped into the
+canvas. Verified **pixel-identical** (maxΔ 0 over the whole canvas) in four
+scenarios including the edge and corner cases that used to trigger the
+fallback (`iceBlitEquivalence.mjs`), and 15 % cheaper in a controlled A/B
+(51.9 → 43.9 ms, 9 alternating repetitions in one process).
+
+### What is still open, with the reason
+The remaining ~40 ms is the per-call surface transfer. Collapsing it needs the
+ice to be painted directly onto the arena — measured 2.2 ms, a 21× win — but
+the ice field's material pass uses `globalCompositeOperation = 'source-atop'`,
+which composites against whatever is already in the destination. On the arena
+that would clip the ice against the background and change the material's
+appearance. Removing the offscreen therefore requires re-expressing that pass
+without a destination-dependent blend mode, and it must be proven pixel-equal
+first. It is not attempted here: it is the next slice, not a finished fix.
+
+Also unverified on real hardware: the owner's peaks are compositor cost that a
+Canvas2D readback cannot localise. The v2 trace is what will make that
+visible.

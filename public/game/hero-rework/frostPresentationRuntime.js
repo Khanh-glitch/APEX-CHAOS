@@ -1849,8 +1849,29 @@ function drawIceComposite(S, ctx, px) {
             // blitBounds is padded past everything render() can touch; if the
             // field drifted outside the surface between calls, fall back to a
             // full blit rather than risk clipping visible ice.
-            const full = !cur || cur.x <= 0 || cur.y <= 0 || cur.x + cur.w >= w || cur.y + cur.h >= h;
-            const bb = full ? null : cur;
+            // Clamp the painted bounds into the canvas and copy only that.
+            //
+            // This used to abandon the optimisation the moment the bounds
+            // touched any edge, falling back to drawImage(iceCanvas, 0, 0) —
+            // a full 1000x1000 alpha blend every frame. Measured on the
+            // shipped build: 23 of 25 ice blits were the full-canvas path even
+            // though the ice covered ~20% of the arena, and the blit cost
+            // 29 ms/frame against 1 ms to actually paint the ice.
+            //
+            // blitBounds() is already clamped to the surface (it takes cvW/cvH),
+            // so intersecting with the canvas cannot clip visible ice: every
+            // pixel the field painted lies inside both rectangles. The full
+            // copy remains only for the genuinely-full case.
+            let bb = cur;
+            if (bb) {
+              const x0 = Math.max(0, Math.floor(bb.x));
+              const y0 = Math.max(0, Math.floor(bb.y));
+              const x1 = Math.min(w, Math.ceil(bb.x + bb.w));
+              const y1 = Math.min(h, Math.ceil(bb.y + bb.h));
+              bb = (x1 > x0 && y1 > y0 && (x1 - x0) * (y1 - y0) < w * h)
+                ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+                : null;   // null => whole surface anyway, keep the cheap 2-arg form
+            }
             e.ice._blitPrev = cur;
             if (bb) {
               ctx.drawImage(e.iceCanvas, bb.x, bb.y, bb.w, bb.h, bb.x, bb.y, bb.w, bb.h);
