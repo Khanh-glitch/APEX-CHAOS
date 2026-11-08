@@ -2322,8 +2322,15 @@ function draw() {
 function loop(timestamp) {
     const rawDt = Math.min(0.033, (timestamp - lastTime) / 1000 || 0);
     lastTime = timestamp;
+    // Frame attribution for the owner probe: the cost the GAME owns per frame
+    // (update + draw), kept separate from the compositor cost that shows up as
+    // the rAF gap. Without this the report could not tell "the game is slow"
+    // from "the browser is slow to present".
+    const frameProbe = window.__apexOwnerPerfProbe;
+    const frameT0 = frameProbe && frameProbe.active ? performance.now() : 0;
     update(rawDt * timeScale);
     draw();
+    if (frameT0) frameProbe.markFrameTotal(performance.now() - frameT0);
     reqId = requestAnimationFrame(loop);
 }
 

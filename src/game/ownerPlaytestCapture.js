@@ -225,13 +225,127 @@ let idlePerfProbe = null;
 let idlePerfTimeout = 0;
 // Diagnostic-only, bounded and source-independent. No graphics, sound or
 // simulation state is modified; all samples are read-only observations.
+// --------------------------------------------------------------- build proof
+// The owner's PERF JSON has to prove WHICH build produced it and WHICH renderer
+// was actually running, not which buttons were lit in the UI. Everything below
+// reads live globals owned by the renderer itself; if a value is unavailable it
+// is reported as null and the report says so, it is never guessed.
+function readRuntimeBuild() {
+  const out = { sha: null, source: null, receiptSha: null, receiptSource: null };
+  try {
+    // Set by the itch packer into ITCH_GUEST_BUILD_SHA.txt and mirrored by the
+    // runtime revision runtime when present.
+    const rev = window.APEX_RUNTIME_REVISION;
+    if (rev && typeof rev === 'object') {
+      out.sha = rev.sha || rev.buildSha || rev.revision || null;
+      out.source = out.sha ? 'APEX_RUNTIME_REVISION' : null;
+      out.receiptSha = rev.receiptSha || null;
+      out.receiptSource = out.receiptSha ? 'APEX_RUNTIME_REVISION.receipt' : null;
+    }
+    if (!out.sha && typeof rev === 'string') { out.sha = rev; out.source = 'APEX_RUNTIME_REVISION'; }
+    if (!out.sha) {
+      // Explicit override the packer may inject.
+      const meta = document.querySelector('meta[name="apex-build-sha"]');
+      if (meta && meta.content) { out.sha = meta.content; out.source = 'meta[apex-build-sha]'; }
+    }
+    if (!out.sha && window.__APEX_BUILD_SHA) {
+      out.sha = window.__APEX_BUILD_SHA; out.source = 'window.__APEX_BUILD_SHA';
+    }
+  } catch (_) { /* reported as null */ }
+  return out;
+}
+
+// Renderer truth: which quality mode the graphics runtimes are ACTING on.
+// The UI toggle is not consulted — these are the same globals composite() and
+// the ice field read on the frame that runs.
+function readRuntimeGraphics() {
+  const g = window;
+  const authority = g.APEX_GRAPHICS_QUALITY;
+  const modeRuntime = g.APEX_GRAPHICS_MODE_RUNTIME;
+  let authoritativeMode = null, modeSource = null;
+  try {
+    if (authority && typeof authority === 'object') {
+      authoritativeMode = authority.mode || null;
+      modeSource = authoritativeMode ? 'APEX_GRAPHICS_QUALITY.mode' : null;
+    }
+    // The mode the runtime believes is live, which is what the flags were
+    // derived from (diagnose() computes it from the same authority).
+    const diag = modeRuntime && typeof modeRuntime.diagnose === 'function'
+      ? modeRuntime.diagnose() : null;
+    if (diag) {
+      authoritativeMode = diag.mode ?? authoritativeMode;
+      modeSource = authoritativeMode ? 'APEX_GRAPHICS_MODE_RUNTIME.diagnose().mode' : modeSource;
+    }
+  } catch (_) { /* keep null */ }
+  // The four VFX flags, read directly. null means "the runtime never set it",
+  // which is different from "set to 0" and must stay distinguishable.
+  const num = (v) => (typeof v === 'number' && Number.isFinite(v)) ? v
+    : (v === undefined ? null : (v === Infinity ? 'Infinity' : (Number.isFinite(v) ? v : null)));
+  return {
+    mode: authoritativeMode,
+    modeSource,
+    flags: {
+      APEX_GRAPHICS_BLOOM_WIDE: num(g.APEX_GRAPHICS_BLOOM_WIDE),
+      APEX_GRAPHICS_FLUID_SOFT_ALPHA: num(g.APEX_GRAPHICS_FLUID_SOFT_ALPHA),
+      APEX_ICE_SHADOW_NODE_BUDGET: num(g.APEX_ICE_SHADOW_NODE_BUDGET),
+      APEX_ICE_FLOW_MOTION_BUDGET: num(g.APEX_ICE_FLOW_MOTION_BUDGET),
+    },
+  };
+}
+
+// Pixel-truth for the recording path: the canvas the recorder actually captures.
+function readCaptureSurface() {
+  try {
+    const cv = document.getElementById('game-canvas');
+    if (!cv) return { cssPx: null, backingPx: null, dpr: window.devicePixelRatio || 1 };
+    const r = cv.getBoundingClientRect();
+    return {
+      cssPx: [Math.round(r.width), Math.round(r.height)],
+      backingPx: [cv.width, cv.height],
+      // What the compositor must rasterise for this canvas.
+      devicePx: [Math.round(r.width * (window.devicePixelRatio || 1)),
+                 Math.round(r.height * (window.devicePixelRatio || 1))],
+      dpr: window.devicePixelRatio || 1,
+    };
+  } catch (_) { return { cssPx: null, backingPx: null, dpr: null }; }
+}
+
+function readCaptureMethod() {
+  const m = { canvasCapture: null, track: null, fps: null, codec: null };
+  try {
+    if (window.__apexOwnerRecorder) {
+      m.canvasCapture = window.__apexOwnerRecorder.captureMethod || null;
+      m.track = window.__apexOwnerRecorder.track || null;
+    }
+  } catch (_) { /* null */ }
+  return m;
+}
+
 function startCapturePerformanceProbe(meta) {
   const started = performance.now();
   const limit = 9000;
   const series = {rafGapMs:[], frostIceClearMs:[], frostIceRenderMs:[],
     frostIceBlitMs:[], recordingDrawMs:[], recordingSubmitMs:[],
     shuriRenderMs:[],crystalaRenderMs:[],frostRenderMs:[],boxeRenderMs:[],
-    frostTickMs:[], longTaskMs:[]};
+    frostTickMs:[], longTaskMs:[],
+    // Per-skill VFX cost. These are the numbers that say what a CAST costs,
+    // separately from what the frame costs.
+    skillVfxMs:[], frameTotalMs:[]};
+  // Captured once at the start so a mid-session quality switch cannot rewrite
+  // history: the report must show the mode the recording STARTED in.
+  const atStart = {
+    at: 0,
+    build: readRuntimeBuild(),
+    graphics: readRuntimeGraphics(),
+    surface: readCaptureSurface(),
+    method: readCaptureMethod(),
+    dpr: (typeof window !== 'undefined' && window.devicePixelRatio) || 1,
+    viewport: [window.innerWidth, window.innerHeight],
+  };
+  // Every skill activation and every frame start, in ms from `started`, so the
+  // trace can be aligned against the video and against rAF gaps.
+  const skillMarks = [];
+  const frameMarks = [];
   const add = (key,ms) => {
     if (Number.isFinite(ms) && ms>=0 && series[key].length<limit)
       series[key].push(Math.round(ms*1000)/1000);
@@ -265,6 +379,19 @@ function startCapturePerformanceProbe(meta) {
   };
   return {
     active:true,
+    // Called by the presentation runtimes when a skill actually fires. `kind`
+    // distinguishes the two VFX families the owner reported (CRYSTALA bloom
+    // vs FROST ice) so the report can separate them instead of averaging.
+    markSkillActivation:(kind,ms,detail)=>{
+      const t=Math.round((performance.now()-started)*100)/100;
+      if(Number.isFinite(ms)&&ms>=0)add('skillVfxMs',ms);
+      if(skillMarks.length<2000)skillMarks.push({
+        t,kind:String(kind||'unknown'),
+        vfxMs:Number.isFinite(ms)?Math.round(ms*100)/100:null,
+        detail:detail||null,
+      });
+    },
+    markFrameTotal:ms=>add('frameTotalMs',ms),
     markIceClear:ms=>add('frostIceClearMs',ms),
     markIceRender:ms=>add('frostIceRenderMs',ms),
     markIceBlit:ms=>add('frostIceBlitMs',ms),
@@ -280,13 +407,43 @@ function startCapturePerformanceProbe(meta) {
       const elapsedMs=Math.round(performance.now()-started);
       const all={};
       for(const [key,values] of Object.entries(series))all[key]=summary(values);
-      lastCapturePerfReport={schema:'APEX-CHAOS-owner-recording-perf-v1',
+      const atEnd={
+        at:elapsedMs,
+        build:readRuntimeBuild(),
+        graphics:readRuntimeGraphics(),
+        surface:readCaptureSurface(),
+        method:readCaptureMethod(),
+        dpr:(typeof window!=='undefined'&&window.devicePixelRatio)||1,
+        viewport:[window.innerWidth,window.innerHeight],
+      };
+      // Mode/flags must be reported for BOTH ends: a quality switch mid-run
+      // means the trace mixes two renderers and has to be discarded.
+      const stable = atStart.graphics.mode === atEnd.graphics.mode &&
+        atStart.dpr === atEnd.dpr &&
+        JSON.stringify(atStart.graphics.flags) === JSON.stringify(atEnd.graphics.flags);
+      lastCapturePerfReport={schema:'APEX-CHAOS-owner-recording-perf-v2',
         warning:'On-device measurements only; rAF gaps are NOT encoded-video FPS. No GPU trace was collected.',
+        build:atStart.build,
+        buildAtEnd:atEnd.build,
+        graphics:{start:atStart.graphics,end:atEnd.graphics,stable,
+          note:'Flags are read from the renderer globals the draw path reads, not from the UI toggle.'},
+        capture:{method:atStart.method,methodAtEnd:atEnd.method,
+          surfaceStart:atStart.surface,surfaceEnd:atEnd.surface,
+          dprStart:atStart.dpr,dprEnd:atEnd.dpr},
         matchup:window.APEX_HERO_REWORK?.match?.combatants?.map(x=>x.heroId)||[],
         meta:{...meta,submittedFrames:this.submittedFrames??null,elapsedMs,stopReason:reason,
           viewport:[window.innerWidth,window.innerHeight],
           devicePixelRatio:window.devicePixelRatio||1,
-          longTasksSupported},
+          longTasksSupported,stableGraphics:stable,
+          timing:{rafGapMs:'ms between requestAnimationFrame callbacks',
+            frameTotalMs:'ms of update()+draw() for the frames this probe saw',
+            skillVfxMs:'ms inside an individual skill VFX render call',
+            recordingDrawMs:'ms spent drawing a frame into the recording surface'}},
+        skills:{count:skillMarks.length,marks:skillMarks,
+          byKind:skillMarks.reduce((acc,m)=>{acc[m.kind]=(acc[m.kind]||0)+1;return acc;},{}),
+          firstAtMs:skillMarks.length?skillMarks[0].t:null,
+          lastAtMs:skillMarks.length?skillMarks[skillMarks.length-1].t:null},
+        frames:{count:frameMarks.length,marks:frameMarks},
         summary:all,raw:series};
       console.info('[owner-perf] Trace ready; press Shift+Ctrl+F6 to download JSON.',
         JSON.stringify(all));

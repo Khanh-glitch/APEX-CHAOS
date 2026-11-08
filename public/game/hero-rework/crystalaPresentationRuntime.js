@@ -506,17 +506,23 @@
 
   function renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bounds, draw) {
     const region = transformedRegion(worldTransform, bounds, cw, ch, 44);
-    if (!region) return;
+    if (!region) return null;
     const gx = bloom.begin(worldTransform, region);
-    if (!gx) return;
+    if (!gx) return null;
     draw(gx);
     bloom.composite(ctx, cw, ch, region);
+    return region;
   }
 
   function runBloomPass(ctx) {
     const M = HR && HR.match;
     if (!M || !GOLD) return;
     if (!M.combatants.some(ct => ct.heroId === 'CRYSTAL')) return;
+    // Per-skill attribution for the CRYSTALA bloom: this pass is the most
+    // expensive VFX in a cast, so each bloom system's composite is timed and
+    // reported with the region it covered.
+    const bloomProbe = g.__apexOwnerPerfProbe?.active ? g.__apexOwnerPerfProbe : null;
+    let bloomMs = 0, bloomPasses = 0, bloomPx = 0;
 
     const gameCanvas = ctx.canvas || (typeof document !== 'undefined' ? document.getElementById('game-canvas') : null);
     const cw = gameCanvas ? gameCanvas.width : (g.GAME_SIZE || 1000);
@@ -533,10 +539,17 @@
       if (!rig) continue;
 
       const bodyBloom=bloomForEmitter(rig);
-      if (bodyBloom) renderBloomRegion(ctx, bodyBloom, worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
-        for (const s of rig.stones) GOLD.drawStone(gx, s, 1, true);
-        GOLD.drawCrystala(gx, rig.hero, true, 1);
-      });
+      if (bodyBloom) {
+        const t0 = bloomProbe ? performance.now() : 0;
+        const region = renderBloomRegion(ctx, bodyBloom, worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
+          for (const s of rig.stones) GOLD.drawStone(gx, s, 1, true);
+          GOLD.drawCrystala(gx, rig.hero, true, 1);
+        });
+        if (bloomProbe) {
+          bloomMs += performance.now() - t0; bloomPasses++;
+          if (region) bloomPx += (region.w|0) * (region.h|0);
+        }
+      }
 
       // Constructs can be far from Crystal. Blur them in their own tight region
       // instead of forcing the body-to-construct union to become arena-sized.
@@ -545,14 +558,25 @@
         if (!bounds) continue;
         const constructBloom=bloomForEmitter(cons);
         if (!constructBloom) continue;
-        renderBloomRegion(ctx, constructBloom, worldTransform, cw, ch, bounds, gx => {
+        const t0 = bloomProbe ? performance.now() : 0;
+        const region = renderBloomRegion(ctx, constructBloom, worldTransform, cw, ch, bounds, gx => {
           if (cons.kind === 'wall' && cons.geom) GOLD.drawWall(gx, cons.geom, true);
           else if (cons.kind === 'prison' && cons.prison) {
             GOLD.drawPrison(gx, cons.prison, true, false);
             GOLD.drawPrison(gx, cons.prison, true, true);
           }
         });
+        if (bloomProbe) {
+          bloomMs += performance.now() - t0; bloomPasses++;
+          if (region) bloomPx += (region.w|0) * (region.h|0);
+        }
       }
+    }
+    if (bloomProbe && bloomPasses) {
+      bloomProbe.markSkillActivation('crystala-bloom', bloomMs, {
+        passes: bloomPasses, regionPx: bloomPx,
+        wideMode: typeof g.APEX_GRAPHICS_BLOOM_WIDE === 'number' ? g.APEX_GRAPHICS_BLOOM_WIDE : null,
+      });
     }
   }
 

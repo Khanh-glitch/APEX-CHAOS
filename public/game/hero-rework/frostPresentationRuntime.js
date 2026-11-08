@@ -1786,6 +1786,10 @@ function drawIceComposite(S, ctx, px) {
   if (!e.ice.nodes.length && !e.ice.carves.length) return;
   renderAudit.iceRenders++;
   noteRenderSource(S, 'frost-ice-pass');
+  // Per-skill attribution: the owner needs to know what a FROST cast costs,
+  // separately from what the rest of the frame costs.
+  const iceProbe = g.__apexOwnerPerfProbe?.active ? g.__apexOwnerPerfProbe : null;
+  const iceProbeStart = iceProbe ? performance.now() : 0;
   const cv = ctx && ctx.canvas;
   const w = (cv && cv.width) | 0, h = (cv && cv.height) | 0;
   // Composite only when the target canvas has a usable backing store AND the
@@ -1856,12 +1860,17 @@ function drawIceComposite(S, ctx, px) {
             if(perfProbe)perfProbe.markIceBlit(performance.now()-blitStart);
           } finally { ctx.restore(); }
         }
+        // One attributed sample per FROST ice composite = one skill VFX cost.
+        if (iceProbe) iceProbe.markSkillActivation('frost-ice',
+          performance.now() - iceProbeStart, { nodes: e.ice.nodes.length, carves: e.ice.carves.length });
         return;
       }
     } catch (err) { warnOnce(err); }
   }
   noteRenderSource(S, 'frost-ice-direct-fallback');
   try { e.ice.render(ctx, e.t, px); } catch (err) { warnOnce(err); }
+  if (iceProbe) iceProbe.markSkillActivation('frost-ice-direct',
+    performance.now() - iceProbeStart, { nodes: e.ice.nodes.length });
 }
 
 function withGunScale(ctx, x, y, longSide, fn) {
