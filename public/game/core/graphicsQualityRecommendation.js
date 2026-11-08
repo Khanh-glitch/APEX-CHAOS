@@ -551,6 +551,13 @@
       evaluateWithForce: function (frames) { return evaluate(frames, { force: true }); },
       forceRecommend: function () { recommend(analyse([40, 40, 40, 40, 40])); },
       suppressionReason: suppressionReason,
+      hide: function () { return hide('test'); },
+      // Detach/reattach the live rAF sampler. Without this a deterministic
+      // three-window sequence cannot be observed: the real sampler keeps
+      // producing its own windows (and on a genuinely slow device it will
+      // legitimately re-show the panel 500 ms after a hide()).
+      pause: function () { stopSampler(); return state.running; },
+      resume: function () { startSampler(); return state.running; },
       reset: function () { state.cooldownUntil = 0; state.windows.length = 0; state.recommendCount = 0; },
       debug: function () {
         return {

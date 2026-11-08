@@ -619,6 +619,21 @@ exports.CELL = 12; // world px per cell
 exports.HALF = 936; // grid covers [-HALF, HALF]
 exports.N = Math.ceil((exports.HALF * 2) / exports.CELL) + 2; // +2 boundary
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+/* Graphics-quality gate.
+ *
+ * These modules are bundled IIFEs with their own scope: the `g` alias used by
+ * the bridge scripts is NOT visible here. `typeof g !== 'undefined'` therefore
+ * evaluated to false on every call, so each PERFORMANCE candidate silently
+ * fell back to its HIGH default and the mode switch changed nothing. Read the
+ * flag off the real global instead, per call, so a mid-battle switch applies on
+ * the next frame. */
+const gfxFlag = (name, dflt) => {
+    const root = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : null);
+    if (!root) return dflt;
+    const v = root[name];
+    return v === undefined ? dflt : v;
+};
+
 /* Render constants hoisted out of the per-frame path: the destination rect and
    the authored blur strings never change, so building them each call only
    allocated temporaries for the filter parser. Same values as before. */
@@ -962,8 +977,14 @@ class Fluid {
         //   PERFORMANCE   -> the soft (second) smoke pass shares the first
         //                    pass's surface; the field is identical between the
         //                    two calls, so this is one raster per frame.
-        const softMode = (typeof g !== 'undefined' && g.APEX_GRAPHICS_FLUID_SOFT_ALPHA === 0);
-        const paintKey = (layer === 'smoke' && this.softPass === true && softMode) ? 'smoke' : layer;
+        const softMode = (gfxFlag('APEX_GRAPHICS_FLUID_SOFT_ALPHA', 1) === 0);
+        // surfaceKey() gives the soft pass its OWN surface in HIGH ('smoke-soft')
+        // and lets it share the first pass's surface in PERFORMANCE. Keying on
+        // the bare layer name would collapse both passes onto one surface and
+        // silently remove the authored double-composite.
+        const paintKey = (layer === 'smoke' && this.softPass === true && softMode)
+            ? layer
+            : this.surfaceKey(layer);
         const cvs = this.layerCanvas(paintKey);
         const cctx = this.ctxByLayer[paintKey];
         const img = this.imgByLayer[paintKey];
@@ -1057,7 +1078,7 @@ class Fluid {
         // skipped and the single remaining pass keeps the silhouette.
         // HIGH leaves APEX_GRAPHICS_FLUID_SOFT_ALPHA at 1 → always drawn.
         if (layer === 'smoke' && this.softPass === true) {
-            const soft = (typeof g !== 'undefined') ? g.APEX_GRAPHICS_FLUID_SOFT_ALPHA : 1;
+            const soft = gfxFlag('APEX_GRAPHICS_FLUID_SOFT_ALPHA', 1);
             // The second pass is drawn at host alpha 0.45 over the already
             // composited first pass. Its strongest possible effect is therefore
             // 0.45 * (this layer's peak alpha as an 8-bit step). Below one

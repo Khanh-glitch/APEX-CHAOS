@@ -369,6 +369,21 @@ function blobPath(ctx, rx, ry, seed, n = 7, amp = 0.28) {
     }
     ctx.closePath();
 }
+/* Graphics-quality gate.
+ *
+ * These modules are bundled IIFEs with their own scope: the `g` alias used by
+ * the bridge scripts is NOT visible here. `typeof g !== 'undefined'` therefore
+ * evaluated to false on every call, so each PERFORMANCE candidate silently
+ * fell back to its HIGH default and the mode switch changed nothing. Read the
+ * flag off the real global instead, per call, so a mid-battle switch applies on
+ * the next frame. */
+const gfxFlag = (name, dflt) => {
+    const root = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : null);
+    if (!root) return dflt;
+    const v = root[name];
+    return v === undefined ? dflt : v;
+};
+
 // Scratch slots for IceField.fillRunBatched (per-frame allocation free).
 const ICE_SLOTS = [];
 const ICE_RUN = [];
@@ -1035,8 +1050,8 @@ class IceField {
         // anyway, so above the budget the shadow pass is skipped — the moment
         // it costs the most and reads the least. HIGH sets the budget to
         // Infinity, which is byte-identical to the previous behaviour.
-        const shadowBudget = (typeof g !== 'undefined' && Number.isFinite(g.APEX_ICE_SHADOW_NODE_BUDGET))
-            ? g.APEX_ICE_SHADOW_NODE_BUDGET
+        const shadowBudget = Number.isFinite(gfxFlag('APEX_ICE_SHADOW_NODE_BUDGET', NaN))
+            ? gfxFlag('APEX_ICE_SHADOW_NODE_BUDGET', NaN)
             : Infinity;
         if (live.length <= shadowBudget) {
             ICE_RUN.length = 0;
@@ -1163,8 +1178,8 @@ class IceField {
         // eye can resolve the marks as texture they contribute smear, not
         // detail, so the pass is skipped above the motion budget. HIGH sets
         // the budget to Infinity (marks always drawn).
-        const flowBudget = (typeof g !== 'undefined' && Number.isFinite(g.APEX_ICE_FLOW_MOTION_BUDGET))
-            ? g.APEX_ICE_FLOW_MOTION_BUDGET
+        const flowBudget = Number.isFinite(gfxFlag('APEX_ICE_FLOW_MOTION_BUDGET', NaN))
+            ? gfxFlag('APEX_ICE_FLOW_MOTION_BUDGET', NaN)
             : Infinity;
         if (this._motionRatio(t) > flowBudget)
             return true;

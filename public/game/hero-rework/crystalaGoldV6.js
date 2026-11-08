@@ -2148,6 +2148,21 @@ function drawDebris(c, list, alpha = 1) {
   }
 }
 
+/* Graphics-quality gate.
+ *
+ * These modules are bundled IIFEs with their own scope: the `g` alias used by
+ * the bridge scripts is NOT visible here. `typeof g !== 'undefined'` therefore
+ * evaluated to false on every call, so each PERFORMANCE candidate silently
+ * fell back to its HIGH default and the mode switch changed nothing. Read the
+ * flag off the real global instead, per call, so a mid-battle switch applies on
+ * the next frame. */
+const gfxFlag = (name, dflt) => {
+    const root = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : null);
+    if (!root) return dflt;
+    const v = root[name];
+    return v === undefined ? dflt : v;
+};
+
 function createBloomSystem(opts = {}) {
   const GS = opts.scale || 0.5;
   const forceLegacyWide = !!opts.forceLegacyWide;
@@ -2277,7 +2292,7 @@ function createBloomSystem(opts = {}) {
       // without the second convolution: glowB is already softly blurred, so
       // the difference is a ~0.25*0.03 luminance shift on an additive pass,
       // below the 1/255 destination quantisation for most pixels.
-      const wideFilter = (typeof g !== 'undefined' && g.APEX_GRAPHICS_BLOOM_WIDE === 0) ? 'none' : bs.wide;
+      const wideFilter = (gfxFlag('APEX_GRAPHICS_BLOOM_WIDE', 1) === 0) ? 'none' : bs.wide;
       if (directWide) {
         targetCtx.filter = wideFilter;
         targetCtx.globalAlpha = 0.25;
