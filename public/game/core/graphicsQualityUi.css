@@ -421,9 +421,19 @@
 #apex-quality-toast {
   position: fixed;
   z-index: 2147479400;
-  left: 50%;
+  /* Centred with inset, NOT with translateX(-50%): the entry animation owns
+     `transform`, so a translate-based centre is silently overwritten by the
+     keyframes (`to { transform: none }`), and a stalled clock leaves it at
+     `translateY(10px)`. Both put the toast off-centre - measured left=720 on a
+     1440 viewport with width 262, i.e. centred on the right half.
+     `inset-inline` + `margin-inline:auto` + a max-width centres it with no
+     transform at all, and keeps it clear of the safe areas. */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: calc(100vw - 32px - var(--aqs-safe-l) - var(--aqs-safe-r));
   bottom: calc(22px + var(--aqs-safe-b));
-  transform: translateX(-50%);
   padding: 9px 18px;
   font-family: var(--aqs-action);
   font-size: 12.5px;
