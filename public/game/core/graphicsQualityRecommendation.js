@@ -268,6 +268,7 @@
   var panel = null;
   var toast = null;
   var panelTimer = 0;
+  var hideToken = 0;
   var toastTimer = 0;
   var previousFocus = null;
 
@@ -347,7 +348,9 @@
     ensureStyles();
     state.panelOpen = true;
     state.shownAt = Date.now();
-    // Re-showing restarts the 5 s life rail from full.
+    // Re-showing restarts the 5 s life rail from full, and invalidates any
+    // pending exit completion so it cannot hide what we are showing now.
+    hideToken += 1;
     el.classList.remove('is-leaving');
     el.hidden = false;
     // Force a style flush so the rail animation restarts on repeat shows.
@@ -371,8 +374,13 @@
     clearTimeout(panelTimer);
     panel.classList.remove('is-open');
     panel.classList.add('is-leaving');
+    // Deferred completion must not land on a panel that has been SHOWN again in
+    // the meantime. Without this guard a show() within the 180 ms exit window
+    // is silently undone by the stale timer: the panel keeps `is-open` (so DOM
+    // assertions still pass) while `hidden` is true, i.e. invisible.
+    var token = ++hideToken;
     var finish = function () {
-      if (!panel) return;
+      if (!panel || token !== hideToken || state.panelOpen) return;
       panel.hidden = true;
       panel.classList.remove('is-leaving');
     };

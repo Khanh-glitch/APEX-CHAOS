@@ -186,7 +186,9 @@ const advBlocked = await page.evaluate(() => {
            suppressed: a._test.debug().suppressedReason,
            // hide() is an animation: `hidden` flips 180 ms later, so the
            // synchronous truth is state.panelOpen / the is-open class.
-           panelOpen: a.state.panelOpen === true || !!(el && el.classList.contains('is-open')),
+           panelOpen: a.state.panelOpen === true
+             || !!(el && el.classList.contains('is-open') && el.hidden === false
+                   && !el.classList.contains('is-leaving')),
            windows: a._test.debug().windows };
 });
 check('advisor never recommends while already PERFORMANCE',
@@ -201,12 +203,13 @@ const adv = await page.evaluate(() => {
   const slow = new Array(30).fill(45);
   const r1 = a._test.evaluate(slow);
   const r2 = a._test.evaluate(slow);
-  const after2 = !!document.getElementById('apex-quality-advisor')?.classList.contains('is-open');
+  const visible = (el) => !!el && el.hidden === false && !el.classList.contains('is-leaving');
+  const after2 = visible(document.getElementById('apex-quality-advisor'));
   const r3 = a._test.evaluate(slow);
   window.__advShownAt = performance.now();
   const p = document.getElementById('apex-quality-advisor');
   return { r1: r1.recommend, r2: r2.recommend, r3: r3.recommend,
-           after2, after3: !!p && p.classList.contains('is-open'),
+           after2, after3: visible(p),
            title: p?.querySelector('.aqa-title')?.textContent,
            actions: [...(p?.querySelectorAll('[data-aqa-action]') || [])].map(b => b.dataset.aqaAction),
            hasLife: !!p?.querySelector('.aqa-life') };

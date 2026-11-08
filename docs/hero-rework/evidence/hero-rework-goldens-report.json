@@ -22,56 +22,56 @@
           {
             "f": 22,
             "x": 467,
-            "y": 486,
+            "y": 487,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 23,
             "x": 467,
-            "y": 486,
+            "y": 487,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 24,
             "x": 467,
-            "y": 486,
+            "y": 487,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 25,
             "x": 467,
-            "y": 486,
+            "y": 487,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 26,
             "x": 467,
-            "y": 486,
+            "y": 487,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 27,
             "x": 467,
-            "y": 486,
+            "y": 487,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 28,
             "x": 467,
-            "y": 486,
+            "y": 487,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 29,
             "x": 467,
-            "y": 486,
+            "y": 487,
             "life": 0.55,
             "chill": false
           }
@@ -291,7 +291,7 @@
       "pass": true,
       "detail": {
         "hpBefore": 1000,
-        "hpAfter": 928.1800000000001,
+        "hpAfter": 892.2700000000001,
         "hpConserved": true,
         "noEquipDup": true,
         "oneRealize": true,

@@ -330,7 +330,11 @@
 #apex-quality-advisor:not(.is-open) { animation: none; }
 #apex-quality-advisor.is-open { animation: aqs-advisor-pulse 260ms ease-out 1; }
 #apex-quality-advisor[hidden] { display: none !important; }
-#apex-quality-advisor.is-leaving { animation: aqs-slide-out 160ms ease-in both; }
+/* Exit may fade, but must never be the thing that makes the panel readable:
+   with fill-mode `both` a stalled frame clock pins the element at the `to`
+   keyframe (opacity 0) instead of merely failing to animate. The panel is
+   hidden by `hidden` anyway, so the exit only needs a transform nudge. */
+#apex-quality-advisor.is-leaving { animation: aqs-slide-out 160ms ease-in 1; }
 
 #apex-quality-advisor .aqa-card {
   position: relative;
@@ -439,7 +443,7 @@
 @keyframes aqs-advisor-pulse { from { opacity: 0.55; } to { opacity: 1; } }
 /* Exit animations may fade: both callers hide the element (hidden attr)
  * afterwards, and the JS hides it on a timer rather than transitionend. */
-@keyframes aqs-slide-out { from { opacity: 1; } to { opacity: 0; transform: translate(10px, -3px); } }
+@keyframes aqs-slide-out { to { transform: translate(10px, -3px); } }
 @keyframes aqa-life { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 /* ================================================== responsive layout == */
