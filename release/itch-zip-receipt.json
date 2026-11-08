@@ -1,16 +1,16 @@
 {
   "schema": "apex-itch-zip-receipt/1",
-  "createdAt": "2026-11-08T16:26:02.468Z",
-  "buildSha": "858401443e5c9a322c02de514ba7153b961c9650",
+  "createdAt": "2026-11-08T17:34:58.671Z",
+  "buildSha": "44ba89c1f0d36422c1b08412dfeeb66863662a1c",
   "zip": {
-    "name": "apex-chaos-itch-8584014.zip",
-    "bytes": 74378039,
-    "sha256": "5be09202408252d2f2ce36c69e9339dda534df5a3787b70e808ca52bcf390877"
+    "name": "apex-chaos-itch-44ba89c.zip",
+    "bytes": 74378478,
+    "sha256": "bf16fdf6fe92a6efe33db31d060966fb755c6a2e1fed1907f96428d4b1c8bc1f"
   },
   "content": {
     "files": 543,
-    "bytes": 80918724,
-    "sha256": "075e8c08659cdc7564dd6875f6b5776f29a7f6250d4fabe9e088692e0b4954ea"
+    "bytes": 80919949,
+    "sha256": "f9bceabb6be3717079f06b6355dbf0eea66f0c0f648aff487731b02bbbf23d2c"
   },
   "compression": {
     "deflated": 154,

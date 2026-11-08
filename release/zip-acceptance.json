@@ -1,11 +1,11 @@
 {
- "source": "/tmp/zip8584",
- "servedFrom": "http://127.0.0.1:36535/html/apex/",
+ "source": "/tmp/zipF",
+ "servedFrom": "http://127.0.0.1:33567/html/apex/",
  "checks": [
   {
    "name": "served from nested /html/apex/ path (itch layout)",
    "pass": true,
-   "detail": "http://127.0.0.1:36535/html/apex/"
+   "detail": "http://127.0.0.1:33567/html/apex/"
   },
   {
    "name": "asset-manifest.json present",
