@@ -75,6 +75,59 @@ So: geometry, coverage, colours and z-order are preserved; the only difference i
 
 Every flag defaults to the HIGH behaviour (`1` / `Infinity`), so a missing authority means HIGH.
 
+### 3.1 All four candidates were dead code — found and fixed
+
+This is the most important correction in this report. The first implementation
+guarded every candidate with:
+
+```js
+(typeof g !== 'undefined' && g.APEX_GRAPHICS_BLOOM_WIDE) // etc.
+```
+
+Each renderer is a bundled IIFE with its own scope. The `g` alias used by the
+bridge *scripts* does not exist in that scope, so `typeof g` was `'undefined'`
+on **every** call and every candidate silently fell back to its HIGH default.
+The mode switch worked, the panel worked, the HUD mirrored, the persistence
+worked — and not one frame was cheaper. Nothing in the UI or behavioural suite
+could see it, because nothing was actually broken from the user's point of view.
+
+`tools/probe/evidence/gateScope.mjs` proves it in all three realms:
+
+```json
+{ "realmTypeofG": "undefined", "windowHasG": "undefined", "globalThisHasG": "undefined" }
+```
+
+The fix (commit `c674db9`) replaces the guard with a per-call reader bound to the
+real global, so a mid-battle switch applies on the next frame:
+
+```js
+const gfxFlag = (name, dflt) => {
+  const root = typeof globalThis !== 'undefined' ? globalThis
+             : (typeof window !== 'undefined' ? window : null);
+  if (!root) return dflt;
+  const v = root[name];
+  return v === undefined ? dflt : v;
+};
+```
+
+`tools/probe/evidence/candidateProof.mjs` then proves each candidate engages,
+driving the real renderers in isolated realms:
+
+| Candidate | HIGH | PERFORMANCE |
+|---|---|---|
+| P2 BOXE fluid | 2 rasters/frame, second pass rasterised, separate surfaces | 1 raster, second pass blitted |
+| P1 CRYSTALA bloom | `bs.wide` filter engaged | `'none'` on the wide pass (`directWide`) |
+| P3/P4 FROST ice | 10 fills | 9 fills, budgets `{shadow:5, flow:0.55}` |
+
+`tools/probe/evidence/boxeFluidEquivalence.mjs` additionally proves the HIGH path
+is unchanged: the two passes rasterise to **byte-identical** surfaces
+(`hash 1684711835` both) and still cost 2 rasters like the original.
+
+**A second bug hid behind the first.** Restoring the gate exposed that the paint
+memo key omitted the *surface* identity, so both smoke passes collapsed onto one
+surface and HIGH silently lost its authored double composite. The memo key now
+includes `surfaceKey(layer)`.
+
 **Regression caught and fixed (commit `c43ab33b`)** — worth recording because it is the kind of thing that would otherwise ship: the first P2 implementation called `_peakAlpha8()`, which re-scanned the entire fluid grid in JS on **every** smoke draw, *including* the cache-hit second draw. It paid a full O(N²) scan to decide whether to skip a blend, then usually drew anyway. Measured effect: PERFORMANCE was **25–40 % slower** than HIGH on BOXE (reproduced 3/3 with alternating runs). It now accumulates peak alpha inside the raster loop that already writes those pixels, cached per layer+epoch.
 
 ---
@@ -90,15 +143,41 @@ From `tools/probe/evidence/renderCost.mjs` (identical input, 60 repetitions, com
 | ice-10 | 59 → 14 | 56 → 11 | **−76 % fills, −80 % path builds** |
 | ice-wall-26 | 155 → 30 | 152 → 27 | **−81 % fills, −82 % path builds** |
 
-In the full product (`tools/probe/evidence/perfMatrix.mjs`, CRYSTALA vs FROST with skills firing):
+### 4.1.1 The mode delta, measured on identical frozen states
 
-| Arm | `fill()` per frame |
-|---|---|
-| baseline | 869 – 929 |
-| HIGH | 551 – 559 |
-| PERFORMANCE | 543 – 567 |
+The numbers above compare the renderer code. The question the owner actually
+cares about is what the **mode** does in the shipped game, so
+`tools/probe/evidence/modeCost.mjs` measures both modes drawing *the same frozen
+state*:
 
-`moveTo`/`lineTo` are unchanged (57 → 57): the same geometry is submitted — it is the **path and fill submission** that drops.
+1. boot the nested shipping build and enter one live match;
+2. neutralise the engine loop, then advance `update(1/60)` deterministically;
+3. cast the expensive abilities so real ice and bloom are on screen;
+4. freeze, then draw **H, P, H, P** on that single state, counting every
+   Canvas2D command.
+
+Repeating HIGH on the same state is a built-in control: if `draw()` mutated the
+state the two HIGH samples would differ and the block is reported unusable
+rather than reported as a result. All blocks proved identical (`control = true`).
+
+| Command per `draw()` | HIGH | PERFORMANCE | Δ |
+|---|---|---|---|
+| `lineTo` | 7 563 | 6 387 | **−15.5 %** |
+| `closePath` | 1 168 | 1 001 | **−14.3 %** |
+| `moveTo` | 1 307 | 1 141 | **−12.7 %** |
+| **total commands** | **11 822** | **10 311** | **−12.8 %** |
+
+with 114 → 193 live ice nodes at the sampled moments, and `fill`/`drawImage`/
+`stroke` unchanged — nothing else about the frame moved.
+
+This also explains an earlier misleading result: sampling only *idle* moments
+gave 0 % difference in both directions, because an empty arena has no duplicated
+work to remove. A mode that does nothing on an idle screen is correct; measuring
+it there proves nothing.
+
+`moveTo`/`lineTo` were unchanged in the **HIGH-mode** measurement (57 → 57) —
+that work removes path and fill *submission* without changing geometry. The
+−12.8 % above is the **mode** delta, a different measurement.
 
 ### 4.2 Frame time — honest statement
 
@@ -174,7 +253,7 @@ Earlier in this work the drawer row rendered but `APEX_GRAPHICS_SETTINGS_UI` was
 
 1. **No on-device FPS number in this report.** See §4.2 — the sandbox cannot measure it and no on-device trace was taken for these changes.
 2. **HIGH is not bit-identical to baseline.** It is output-equivalent up to anti-aliased seams between merged same-colour ice fills: ≤0.72 % of pixels, mean error ≤0.024/255, 100 % on colour boundaries. Quantified in §2.
-3. **PERFORMANCE P1–P4 are individually justified but not individually timed on device.** The cache-scan regression (§3) proves the gate logic was exercised; per-candidate frame-time gain is not claimed.
+3. **PERFORMANCE P1–P4 are individually proven to engage (§3.1) but not individually timed on device.** Command volume is claimed (−12.8 % full-frame, §4.1.1); per-candidate frame-time gain is not.
 4. **The scene-transition door cannot complete in this sandbox** (its rAF clock starves). Evidence captures record `TRANSITION_PATH timeout+forced`, i.e. the cover was removed by the harness after a real transition was attempted and timed out. This affects evidence capture only, not the product.
 5. **Boot-time DOM order** means the drawer row is installed by the frontend runtime with a bounded retry (250 ms × 60) because the localization drawer mounts after it. If the drawer never mounts, the row falls back into `#stage`.
 
@@ -187,5 +266,41 @@ pnpm install --frozen-lockfile
 pnpm build
 printf '%s\n' "$(git rev-parse HEAD)" > dist/ITCH_GUEST_BUILD_SHA.txt
 node tools/packItchPortable.mjs          # -> dist-itch-html5/
-cd tools/probe && bash boot.sh evidence/battleShot.mjs /tmp/evidence
+
+cd tools/probe
+bash boot.sh evidence/gateScope.mjs        # would have caught the dead gates
+bash boot.sh evidence/candidateProof.mjs   # each P1..P4 engages / is inert in HIGH
+bash boot.sh evidence/modeCost.mjs         # -12.8 % on identical frozen states
+bash boot.sh evidence/acceptance.mjs /tmp/acceptance   # 36/36 end-to-end checks
 ```
+
+Gate suite that must stay green:
+
+```bash
+pnpm test:hero-rework:headless          # 369 checks
+pnpm test:arsenal:current-render-hud
+pnpm test:runtime-revision
+pnpm test:gold-battle-hud-adaptation    # 61 checks
+pnpm test:source-hygiene
+pnpm test:shipping-dist
+```
+
+## 9. Two defects found during final verification
+
+**The arena `clearRect` was load-bearing.** It was removed in HIGH mode as a
+"redundant full-surface clear" (the opaque fill below covers every pixel). Under a
+software rasteriser — skia in the headless harness, SwiftShader in a browser —
+skipping it makes the backend retain per-frame surface state instead of
+discarding it: RSS grew to **3.84 GB** and `testFrostV1Gates` was OOM-killed at
+gate 148/166 after ~250 s, while the same test finishes in 35–39 s with the clear
+restored. Isolated to that single line, then restored. The removal never produced
+a resolvable timing gain; a clear is O(1) on a GPU backend and an OOM is not a
+good trade on exactly the weak devices PERFORMANCE exists for.
+
+**The shipping shell embedded a stale HUD payload.** `public/gold/*` is generated
+by `tools/buildGoldCutover.mjs`, so hand-editing `public/gold/battle-hud.html`
+was silently orphaned: the shell's `#battleHudPayload` still carried the old
+bytes and the gate failed with `decoded=156959 hud=160233`. The HUD
+graphics-quality consumer now lives in a source-owned adapter
+(`tools/goldBattleHudGraphicsQuality.mjs`) that asserts its anchor exactly once
+and refuses double application; `buildGoldCutover --check` is clean.
