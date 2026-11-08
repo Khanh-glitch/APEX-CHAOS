@@ -560,6 +560,14 @@
       forceRecommend: function () { recommend(analyse([40, 40, 40, 40, 40])); },
       suppressionReason: suppressionReason,
       hide: function () { return hide('test'); },
+      // Evidence capture only: cancel the 5 s auto-dismiss so a screenshot
+      // (which can take seconds on a starved main thread) cannot race the life
+      // rail. The panel still hides via hide()/dismiss/switch as normal.
+      hold: function () {
+        clearTimeout(panelTimer);
+        panelTimer = 0;
+        return state.panelOpen;
+      },
       // Detach/reattach the live rAF sampler. Without this a deterministic
       // three-window sequence cannot be observed: the real sampler keeps
       // producing its own windows (and on a genuinely slow device it will

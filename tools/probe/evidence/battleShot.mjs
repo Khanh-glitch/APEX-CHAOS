@@ -98,17 +98,37 @@ await page.screenshot({ path: `${OUT}/06-settings-midbattle.png` });
 await page.evaluate(() => window.APEX_GRAPHICS_SETTINGS_UI.close('evidence'));
 await page.evaluate(() => {
   window.APEX_GRAPHICS_QUALITY.set('high', 'evidence');
-  const a = window.APEX_GRAPHICS_ADVISOR; a._test.reset();
+  const a = window.APEX_GRAPHICS_ADVISOR;
+  // Isolate: the live rAF sampler would otherwise judge this genuinely slow
+  // sandbox on its own, hide()/re-show the panel at will and race the shot.
+  a._test.pause(); a._test.hide(); a._test.reset();
   const slow = new Array(30).fill(45);
   a._test.evaluate(slow); a._test.evaluate(slow); a._test.evaluate(slow);
 });
-await settle(page, 1000);
-await page.screenshot({ path: `${OUT}/07-advisor-panel.png` });
+// The panel lives 5 s; this sandbox starves timers and the screenshot path is
+// slow, so re-show it right before the shot instead of racing PANEL_MS. Re-show
+// is also the path that used to be undone by a stale exit timer, so this
+// exercises the fixed code rather than dodging it.
+await settle(page, 500);
+await page.evaluate(() => {
+  const a = window.APEX_GRAPHICS_ADVISOR;
+  if (!a.isOpen()) a.showNow({ p95: 52, slowRatio: 0.42, hz: 60, n: 240 });
+  a._test.hold();   // a screenshot must not race the 5 s life rail
+});
 const advisorState = await page.evaluate(() => {
   const p = document.getElementById('apex-quality-advisor');
-  const r = p?.querySelector('.aqa-card')?.getBoundingClientRect();
-  return { open: !!p && !p.hidden, title: p?.querySelector('.aqa-title')?.textContent, rect: r ? [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)] : null };
+  const card = p?.querySelector('.aqa-card');
+  const r = card?.getBoundingClientRect();
+  const cs = p ? getComputedStyle(p) : null;
+  const hit = r ? document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)) : null;
+  let n = hit, inside = false;
+  while (n) { if (n === p) { inside = true; break; } n = n.parentElement; }
+  return { open: !!p && !p.hidden, painted: !!p && !p.hidden && !!cs && +cs.opacity > 0.99 && inside,
+           title: p?.querySelector('.aqa-title')?.textContent,
+           rect: r ? [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)] : null };
 });
+if (!advisorState.painted) console.log('WARN: advisor not painted before capture', JSON.stringify(advisorState));
+await page.screenshot({ path: `${OUT}/07-advisor-panel.png` });
 console.log('ADVISOR', JSON.stringify(advisorState));
 await page.evaluate(() => document.querySelector('#apex-quality-advisor [data-aqa-action="switch"]')?.click());
 await settle(page, 900);
