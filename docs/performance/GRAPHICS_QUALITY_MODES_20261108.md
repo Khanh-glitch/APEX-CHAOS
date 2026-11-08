@@ -203,7 +203,10 @@ The **same arm varies by 26–40 % between runs**, which is larger than any diff
 
 ## 5. Acceptance evidence (captured, not asserted)
 
-Capture harness: `tools/probe/evidence/battleShot.mjs`; screenshots in the session workspace.
+Capture harness: `tools/probe/evidence/acceptance.mjs` (39 checks, screenshots written
+alongside `acceptance.json`). Every row below is a real browser observation on
+the packaged `dist-itch-html5` build served through the nested `/html/apex/`
+path itch.io uses.
 
 | Check | Result |
 |---|---|
@@ -218,16 +221,17 @@ Capture harness: `tools/probe/evidence/battleShot.mjs`; screenshots in the sessi
 | Advisor fires only after 3 consecutive slow windows in HIGH | PASS |
 | Advisor refuses while already PERFORMANCE | PASS (`suppressedReason: already-performance`) |
 | Advisor title / actions | PASS — "LOW PERFORMANCE DETECTED", SWITCH / KEEP HIGH |
-| Advisor auto-dismiss | PASS — hidden after 5 s |
+| Advisor auto-dismiss | PASS — hidden, never before the 5 s rail (measured 7.4–8.0 s under this sandbox's starved timers, so only the lower bound is asserted) |
 | Toast after accepting | PASS — "PERFORMANCE MODE ACTIVE" |
 | JS exceptions / HTTP 404s during all of the above | **0 / 0** |
 | Mobile portrait (390×844 @2×) layout | PASS — bottom-sheet, stacked tags, full-width CLOSE |
 | Panel composited above the first-play tutorial prompt | PASS (after fix — see below) |
+| Dialogs are actually **painted** (laid out, opaque, in-viewport, topmost at their own centre) | PASS for the settings card, the advisor and the toast |
 | Gameplay invariants (fighters, HP, ability list, cooldowns) identical in both modes | PASS (screenshots) |
 
 ### Two defects found and fixed during acceptance
 
-1. **Panel could render invisible.** The dialog and card used `fill-mode: both` on an opacity animation. In a compositor that stops ticking (this sandbox, battery saver, paused animations) the panel reported `hidden=false`, was hit-testable, and stayed at **opacity 0**. Entrance animations are now **transform-only** and the resting state is `opacity: 1`; the diff is captured in the evidence run that showed `opacity: 1` after the fix versus `0` before.
+1. **Panel could render invisible.** The dialog and card used `fill-mode: both` on an opacity animation. In a compositor that stops ticking (this sandbox, battery saver, paused animations) the panel reported `hidden=false`, was hit-testable, and stayed at **opacity 0**. The settings dialog now paints from static CSS with `opacity: 1`, and its card's entrance is transform-only. The advisor went further (§9) and carries no entry animation at all, because the same trap then reproduced as a 0.55 pin.
 2. **Tutorial prompt painted over the panel.** `.apex-tutorial-ask` sits at `z-index: 2147479000`, far above the panel's original `1200`. The panel is now `2147479500` — above the transient hint, below the mechanical-door boot cover (`2147483001`).
 
 ### The pre-reset 404 bug (root cause, now fixed)
