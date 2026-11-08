@@ -15,7 +15,7 @@
     "public/game/bot-wave/botWavePresentationV2.js": "503013e2c9db75313206171c9b8c654d711373817a5ca745336a4d80ae932d0c",
     "public/game/core/graphicsQualityAuthority.js": "46bc3db1b88d4c46d0bd530554abc0d08e322c2ee7c91cf283cc1ab83c7fe95d",
     "public/game/core/graphicsQualitySettings.js": "fcf9fa94733ddb79c950d4c9e3e105e45499c07b6f23f16cd4121d33d339a077",
-    "public/game/core/graphicsQualityRecommendation.js": "38b7a886945fab492e6ad02a935500ecc9b4cda416551aca46d134e497c06b2c",
+    "public/game/core/graphicsQualityRecommendation.js": "99bf89660482528eead20c239137033d7d4e29657ea61f6345b94e76a7e7a2fe",
     "public/game/core/graphicsQualityFrontendRuntime.js": "fb72724ed4aaa93c4b170bf6cc71bc3b0dddd3201375eee0f1d1b91e095bacb7",
     "public/game/core/graphicsQualityModeRuntime.js": "1d59c3c69fe44e5f461eeb35f71e7c3d8bfd9e0a063554075a43ffe827bea5f8",
     "public/game/ui/apexCombatHudRuntime.js": "bc8f84db9700e77aafc85c38fcde8d955e87fec93fc61e66b9e1c7dde0950991",

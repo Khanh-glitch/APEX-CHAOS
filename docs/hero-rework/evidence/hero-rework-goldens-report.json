@@ -22,62 +22,62 @@
           {
             "f": 22,
             "x": 467,
-            "y": 487,
+            "y": 483,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 23,
             "x": 467,
-            "y": 487,
+            "y": 483,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 24,
             "x": 467,
-            "y": 487,
+            "y": 483,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 25,
             "x": 467,
-            "y": 487,
+            "y": 483,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 26,
             "x": 467,
-            "y": 487,
+            "y": 483,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 27,
             "x": 467,
-            "y": 487,
+            "y": 483,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 28,
             "x": 467,
-            "y": 487,
+            "y": 483,
             "life": 0.55,
             "chill": false
           },
           {
             "f": 29,
             "x": 467,
-            "y": 487,
+            "y": 483,
             "life": 0.55,
             "chill": false
           }
         ],
         "hitLines": [
-          "[ARSENAL] HIT source=CRYSTAL target=ICE weapon=MAGNUM_500 damage=98.0"
+          "[ARSENAL] HIT source=CRYSTAL target=ICE weapon=MAGNUM_500 damage=147.0"
         ],
         "runError": null
       }
@@ -128,49 +128,49 @@
           {
             "f": 22,
             "x": 467,
-            "y": 483,
+            "y": 486,
             "life": 0.55
           },
           {
             "f": 23,
             "x": 467,
-            "y": 483,
+            "y": 486,
             "life": 0.55
           },
           {
             "f": 24,
             "x": 467,
-            "y": 483,
+            "y": 486,
             "life": 0.55
           },
           {
             "f": 25,
             "x": 467,
-            "y": 483,
+            "y": 486,
             "life": 0.55
           },
           {
             "f": 26,
             "x": 467,
-            "y": 483,
+            "y": 486,
             "life": 0.55
           },
           {
             "f": 27,
             "x": 467,
-            "y": 483,
+            "y": 486,
             "life": 0.55
           },
           {
             "f": 28,
             "x": 467,
-            "y": 483,
+            "y": 486,
             "life": 0.55
           },
           {
             "f": 29,
             "x": 467,
-            "y": 483,
+            "y": 486,
             "life": 0.55
           }
         ],
@@ -324,7 +324,7 @@
           "runs": 14,
           "casts": 277,
           "entitiesPeak": 4,
-          "slimeBodyPeak": 2,
+          "slimeBodyPeak": 3,
           "mathProjectiles": 0
         }
       }
@@ -357,7 +357,7 @@
     "runs": 14,
     "casts": 277,
     "entitiesPeak": 4,
-    "slimeBodyPeak": 2,
+    "slimeBodyPeak": 3,
     "mathProjectiles": 0
   },
   "fuzz": {},
