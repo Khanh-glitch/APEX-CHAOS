@@ -1,11 +1,11 @@
 {
- "source": "/tmp/zipverify",
- "servedFrom": "http://127.0.0.1:43617/html/apex/",
+ "source": "/tmp/zip8584",
+ "servedFrom": "http://127.0.0.1:36535/html/apex/",
  "checks": [
   {
    "name": "served from nested /html/apex/ path (itch layout)",
    "pass": true,
-   "detail": "http://127.0.0.1:43617/html/apex/"
+   "detail": "http://127.0.0.1:36535/html/apex/"
   },
   {
    "name": "asset-manifest.json present",
@@ -62,11 +62,11 @@
    }
   },
   {
-   "name": "PERFORMANCE applies all four flags",
+   "name": "PERFORMANCE applies its flags (halo kept on purpose)",
    "pass": true,
    "detail": {
     "mode": "performance",
-    "bloom": 0,
+    "bloom": 1,
     "fluid": 0,
     "shadow": 5,
     "flow": 0.55,
