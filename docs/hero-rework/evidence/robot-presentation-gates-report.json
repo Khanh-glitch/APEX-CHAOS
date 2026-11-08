@@ -439,16 +439,16 @@
     "L-BOT mode keeps the CPU on P2 (no human cast)": {
       "pass": true,
       "detail": {
-        "events": []
+        "events": [
+          "BodyCollision",
+          "BodyCollision"
+        ]
       }
     },
     "L-auto-repeat never re-casts": {
       "pass": true,
       "detail": {
-        "events": [
-          "BodyCollision",
-          "BodyCollision"
-        ]
+        "events": []
       }
     }
   },

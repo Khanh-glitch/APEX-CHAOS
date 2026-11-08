@@ -77,7 +77,7 @@
           }
         ],
         "hitLines": [
-          "[ARSENAL] HIT source=CRYSTAL target=ICE weapon=MAGNUM_500 damage=147.0"
+          "[ARSENAL] HIT source=CRYSTAL target=ICE weapon=MAGNUM_500 damage=98.0"
         ],
         "runError": null
       }
@@ -291,7 +291,7 @@
       "pass": true,
       "detail": {
         "hpBefore": 1000,
-        "hpAfter": 928.1800000000001,
+        "hpAfter": 874.315,
         "hpConserved": true,
         "noEquipDup": true,
         "oneRealize": true,

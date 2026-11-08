@@ -17,9 +17,14 @@
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     ctx.filter = 'none';
-    // No clearRect: the opaque full-canvas fill below already covers every
-    // pixel, so clearing first was a second full-surface clear per frame
-    // (a redundant rasterisation pass on software/composited backends).
+    // Keep the explicit clear even though the opaque fill below covers every
+    // pixel. It was removed once as a "redundant full-surface clear", but a
+    // software rasteriser (skia in the headless harness, SwiftShader in a
+    // browser) then retains per-frame surface state instead of discarding it:
+    // measured 3.8 GB RSS growth and an OOM kill in testFrostV1Gates, and the
+    // removal never showed a resolvable timing gain. A clear is O(1) on a GPU
+    // backend; an OOM is not. Not worth trading for an unmeasurable win.
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();

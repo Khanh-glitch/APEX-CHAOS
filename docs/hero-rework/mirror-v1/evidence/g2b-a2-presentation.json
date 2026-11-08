@@ -6,6 +6,7 @@
     "gold-bound-external-truth-and-applyExchange-false",
     "gold-a2-adapter-draw-reuses-prebound-callbacks",
     "Robot-product-alias-uses-body-only-identity-renderer",
+    "active-a2-keeps-mirror-at-owner-scale-and-opponent-snapshot-at-production-scale",
     "bounded-lazy-opponent-identity-snapshot-no-per-frame-canvas-image",
     "wrong-person-draw-has-zero-gameplay-mutation-and-no-recursive-effects",
     "no-snap-end-closes-cleanly-without-snap-exchange-or-residue",
