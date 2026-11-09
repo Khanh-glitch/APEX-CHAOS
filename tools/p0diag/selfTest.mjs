@@ -33,15 +33,6 @@ const page = await browser.newPage();
 const lines = [];
 page.on('console', (m) => { const t = m.text(); lines.push(t); if (t.includes('[p0diag]')) console.log('  ' + t); });
 page.on('pageerror', (e) => { lines.push('PAGEERROR ' + e.message); console.log('  PAGEERROR ' + e.message); });
-// Self-test only: seed the QA roster so CRYSTALA/FROST are unlocked in this
-// throwaway sandbox profile. On the owner's machine the tool uses their real
-// profile and this seed is never injected -- it would change ownership, which
-// is part of what the run is measuring.
-const seedPath = path.join('/home/user/APEX-CHAOS', 'tools', 'perf', 'qaProfile.js');
-if (fs.existsSync(seedPath) && !process.env.P0_NO_SEED) {
-  await page.evaluateOnNewDocument(fs.readFileSync(seedPath, 'utf8'));
-  console.log('[selftest] seeded sandbox roster (self-test only)');
-}
 // DPR 1 in the self-test on purpose: the job here is to prove the INSTRUMENT
 // boots, casts, arms every switch and posts a report -- not to measure the
 // owner's phone. At DPR 3.5 a software rasteriser needs ~1.3 s per frame, which
@@ -54,9 +45,10 @@ console.log('[selftest] opening', srv.launch);
 // the floor is a SELF-TEST option only (the report records the override and a
 // real run never sets it), and it changes how many frames are demanded -- never
 // what the frames say.
-const launchUrl = process.env.P0_MIN_FRAMES
-  ? srv.launch + '&p0minframes=' + encodeURIComponent(process.env.P0_MIN_FRAMES)
-  : srv.launch;
+const q = [];
+if (process.env.P0_MIN_FRAMES) q.push('p0minframes=' + encodeURIComponent(process.env.P0_MIN_FRAMES));
+q.push('p0scenario=' + encodeURIComponent(process.env.P0_SCENARIO || 'local-high'));
+const launchUrl = srv.launch + (q.length ? '&' + q.join('&') : '');
 await page.goto(launchUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
 
 // Watch progress rather than waiting blind: print what the instrument says.

@@ -39,144 +39,101 @@ function findBrowser() {
   return null;
 }
 
-// Which browser profile to use is a real decision, not a detail.
+// ── profile: always a throwaway, never the owner's ──────────────────────
+// The unlock problem is solved INSIDE the page (the product's own owner-playtest
+// session), so the tool has no reason to read any personal browser data. Every
+// run uses an empty profile created next to the tool. P0_PROFILE is
+// deliberately NOT honoured: accepting it would re-open the "read the owner's
+// real session" path this design exists to avoid.
 //
-// The diagnosis needs the owner's UNLOCKS: a brand-new profile owns only
-// ROBOT/HUNTER, and the product's own gate (APEX_GOLD_LOCKED ->
-// meta.canPublicSelect) then refuses to start a CRYSTALA vs FROST match at all.
-// Seeding unlocks behind the owner's back would change the thing being
-// measured, so instead the tool runs in THEIR profile:
-//
-//   1. the packaged profile (portable copy of their data, when present) or
-//   2. a profile directory the owner points at with P0_PROFILE, or
-//   3. the browser's own default profile.
-//
-// A throwaway profile is used ONLY when the browser refuses a live profile,
-// and the report always records which one was used.
-function resolveProfile() {
-  const packaged = path.join(HERE, 'profile');
-  const explicit = process.env.P0_PROFILE;
-  if (explicit) return { dir: explicit, kind: 'P0_PROFILE', replay: false };
-  const replay = path.join(HERE, 'profile', 'Default');
-  if (fs.existsSync(replay)) return { dir: packaged, kind: 'packaged-owner-profile', replay: true };
-  // 4. the browser's own user-data root, discovered from the OS. This is the
-  //    folder that holds the owner's unlocks, so using it needs no setup step.
-  const discovered = findBrowserProfile();
-  if (discovered) return { dir: discovered, kind: 'browser-default-profile', replay: false, source: true };
-  const fresh = path.join(HERE, '.p0profile');
-  fs.mkdirSync(fresh, { recursive: true });
-  return { dir: fresh, kind: 'throwaway', replay: false };
+// The origin difference (http://127.0.0.1 vs the itchio origin) is handled by
+// serving the frozen build's static files from this local server exactly as the
+// itch build is served -- same relative URLs, one origin, fresh storage.
+function profileDir() {
+  const dir = path.join(HERE, '.p0profile');
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
-// Chrome/Edge keep "User Data" (Windows), "Google/Chrome" (macOS) or
-// "~/.config/google-chrome" (Linux) next to their binaries. Pick the first one
-// that actually contains a profile, so the game sees the owner's unlocks.
-function findBrowserProfile() {
-  const home = process.env.HOME || process.env.USERPROFILE || '';
-  const lad = process.env.LOCALAPPDATA || '';
-  const candidates = [
-    lad && path.join(lad, 'Google/Chrome/User Data'),
-    lad && path.join(lad, 'Microsoft/Edge/User Data'),
-    home && path.join(home, 'AppData/Local/Google/Chrome/User Data'),
-    home && path.join(home, 'Library/Application Support/Google/Chrome'),
-    home && path.join(home, '.config/google-chrome'),
-    home && path.join(home, '.config/chromium'),
-  ].filter(Boolean);
-  for (const c of candidates) {
-    try {
-      if (!fs.existsSync(c)) continue;
-      // Must contain a profile directory, or Chrome will treat it as brand new.
-      const entries = fs.readdirSync(c);
-      if (entries.includes('Default') || entries.some((e) => e.startsWith('Profile '))) return c;
-    } catch (e) { /* keep looking */ }
-  }
-  return null;
-}
+// Three SEPARATE runs of the same instrument, never merged and never averaged:
+//   bot        — production BOT path (the product picks the CPU opponent)
+//   local-perf — LOCAL 1v1 held at PERFORMANCE quality
+//   local-high — LOCAL 1v1 held at HIGH quality (the isolation control)
+const SCENARIOS = ['bot', 'local-perf', 'local-high'];
 
-async function main() {
-  const srv = await startServer({ root: ROOT, resultsDir: RESULTS, instrument: INSTRUMENT });
-  log(`serving ${ROOT}`);
-  log(`open this if the browser does not appear by itself: ${srv.launch}`);
-
-  const browser = findBrowser();
-  let child = null;
-  if (!browser) {
-    console.error('\n[p0] No Chrome/Edge found.');
-    console.error('[p0] Install Chrome, or set P0_BROWSER to the browser executable path,');
-    console.error('[p0] then open this URL by hand: ' + srv.launch);
-    // Keep serving so the manual path still works.
-    await waitForResult(srv);
-    return;
-  }
-  log(`browser: ${browser.name} (${browser.exe})`);
-
-  const prof = resolveProfile();
-  let profileDir = prof.dir;
-
-  // NEVER point the browser at a profile that is in use. Chrome locks its
-  // user-data folder, and even when it opens, the run would write into the
-  // owner's real session. The unlocks only have to be READ, so the profile is
-  // copied once into a scratch folder and the browser runs on the copy.
-  if (prof.source) {
-    const scratch = path.join(HERE, '.p0profile-run');
-    try {
-      log('copying your browser profile (read-only use of the original)...');
-      fs.rmSync(scratch, { recursive: true, force: true });
-      // Only the parts a boot needs: Local State holds the encryption key
-      // reference, Default holds the save data. Caches and history are large
-      // and irrelevant, so they are skipped.
-      fs.mkdirSync(scratch, { recursive: true });
-      const localState = path.join(prof.dir, 'Local State');
-      if (fs.existsSync(localState)) fs.copyFileSync(localState, path.join(scratch, 'Local State'));
-      const src = path.join(prof.dir, 'Default');
-      const dst = path.join(scratch, 'Default');
-      if (fs.existsSync(src)) {
-        fs.cpSync(src, dst, {
-          recursive: true, force: true,
-          // Skip only the bulky caches. 'Media History' must NOT be filtered
-          // out, because that substring also matches 'Media History*' files
-          // that live beside real profile data; the caches alone are the win.
-          filter: (f) => !/(Cache|Service Worker)/.test(path.basename(f)),
-        });
-      }
-      profileDir = scratch;
-      log('profile: copy of ' + prof.kind + ' -> ' + scratch);
-    } catch (e) {
-      log('profile copy failed (' + e.message + '); falling back to a fresh profile.');
-      log('  a fresh profile usually has CRYSTALA/FROST locked, so the run may');
-      log('  report LOCKED. Set P0_PROFILE to a copy of your Chrome "User Data".');
-      profileDir = path.join(HERE, '.p0profile');
-      fs.mkdirSync(profileDir, { recursive: true });
-    }
-  } else {
-    log(`profile: ${prof.kind} (${profileDir})` +
-      (prof.kind === 'throwaway' ? '  <-- a fresh profile usually has CRYSTALA/FROST locked;' : ''));
-  }
-
-  const args = [
-    '--user-data-dir=' + profileDir,
+function browserArgs(profile) {
+  return [
+    '--user-data-dir=' + profile,
     '--no-first-run',
     '--no-default-browser-check',
     '--disable-extensions',
+    '--disable-sync',
     // The diagnosis needs the GPU, NOT a software fallback: silently switching
-    // to SwiftShader would reproduce exactly the wrong thing. If the GPU is
-    // blocked this run is invalid, and the report says so via environment.webgl.
+    // to SwiftShader would reproduce exactly the wrong thing.
     '--enable-gpu-rasterization',
     '--ignore-gpu-blocklist',
     '--autoplay-policy=no-user-gesture-required',
-    srv.launch,
   ];
-  // A window, not headless: the owner must be able to see the match that is
-  // being measured, and headless compositors do not behave like the real one.
-  child = spawn(browser.exe, args, { stdio: 'ignore', detached: false });
-  child.on('error', (e) => log('browser failed to start: ' + e.message));
+}
 
-  const report = await waitForResult(srv);
-  try { if (child) child.kill(); } catch (e) {}
-  try { srv.server.close(); } catch (e) {}
+async function main() {
+  const browser = findBrowser();
+  if (!browser) {
+    console.error('[p0] No Chrome/Edge found. Install one, or set P0_BROWSER to its .exe path.');
+    process.exit(2);
+  }
+  log(`browser: ${browser.name} (${browser.exe})`);
+  const profile = profileDir();
+  log(`profile: throwaway (${profile}) — no personal browser data is read or copied`);
 
-  if (!report) process.exit(1);
-  printVerdict(report);
+  const reports = [];
+  for (const scen of SCENARIOS) {
+    log(`scenario ${scen}: starting`);
+    const srv = await startServer({ root: ROOT, resultsDir: RESULTS, instrument: INSTRUMENT });
+    const url = srv.base + `/?p0diag=1&p0scenario=${encodeURIComponent(scen)}`;
+    const child = spawn(browser.exe, [...browserArgs(profile), url], { stdio: 'ignore', detached: false });
+    child.on('error', (e) => log('browser failed to start: ' + e.message));
+    const report = await waitForResult(srv);
+    try { if (child) child.kill(); } catch (e) {}
+    try { srv.server.close(); } catch (e) {}
+    if (report) {
+      const v = report.summary && report.summary.verdict;
+      log(`scenario ${scen}: ${v}`);
+      reports.push(report);
+    } else {
+      log(`scenario ${scen}: NO REPORT`);
+      reports.push({ scenario: { id: scen }, error: 'no report' });
+    }
+  }
+
+  const combined = {
+    schema: 'APEX-CHAOS-p0-diagnosis-bundle-v1',
+    createdAt: new Date().toISOString(),
+    note: 'Three SEPARATE runs. BOT is the production path; the LOCAL runs are the '
+      + 'control and are labelled by quality tier. They are never averaged together.',
+    runs: reports,
+  };
+  const out = path.join(RESULTS, 'p0-diagnosis-latest.json');
+  fs.writeFileSync(out, JSON.stringify(combined, null, 2));
+  log('wrote ' + out);
+
+  console.log('\n── SUMMARY ─────────────────────────────────────────────────────');
+  for (const r of reports) {
+    const id = (r.scenario && r.scenario.id) || '?';
+    const v = (r.summary && r.summary.verdict) || r.error || 'invalid';
+    const f = r.fighters ? r.fighters.join(' vs ') : '-';
+    console.log(`  ${id.padEnd(11)} ${String(v).padEnd(34)} ${f}`);
+    for (const a of (r.arms || [])) {
+      const c = a.cast || {};
+      const p = a.activationProof || {};
+      console.log(`      ${String(a.id).padEnd(8)} valid=${String(a.valid).padEnd(5)}`
+        + ` cast=${c.confirmed || 0}/${c.presses || 0}`
+        + ` p95=${(a.raf || {}).p95}`);
+      if (p.claim) console.log(`               ${p.claim}`);
+    }
+  }
+  console.log('───────────────────────────────────────────────────────────────\n');
   process.exit(0);
 }
 

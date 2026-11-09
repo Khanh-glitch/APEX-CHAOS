@@ -404,6 +404,25 @@
     return ok;
   }
 
+  // Which (side, slot) pairs the game says are castable right now, straight
+  // from its own debug state -- no guessing about cooldowns.
+  function readyCasts() {
+    var out = [];
+    try {
+      var HR = window.APEX_HERO_REWORK;
+      var dbg = HR && typeof HR.debugState === 'function' ? HR.debugState() : null;
+      var cts = (dbg && dbg.combatants) || [];
+      cts.forEach(function (c, idx) {
+        var side = c.side === 'p1' ? 0 : (c.side === 'p2' ? 1 : idx);
+        ['A1', 'A2'].forEach(function (k, si) {
+          var sk = (c.skills || {})[k];
+          if (sk && (sk.cd === 0 || sk.cd == null)) out.push({ side: side, slot: si });
+        });
+      });
+    } catch (e) {}
+    return out;
+  }
+
   // Deterministic by FRAME INDEX, so every arm receives the identical cast
   // sequence even if one arm runs slower than another.
   function castAt(api, i, stats) {
@@ -434,9 +453,13 @@
       // the arm's counters describe only this arm.
       resetMarks();
       castStats = freshCastStats();
+      runState.castsConfirmed = 0;
+      runState.castsPressed = 0;
       bloomSeam.beginBlocked = 0;
       bloomSeam.compositeCalls = 0;
       if (arm === 'noBloom') bloomSeam.off = true;
+      // Accumulate at run level: whether the GAME cast anything is a property
+      // of the session, not of one 16-second window.
       var armStart = performance.now();
 
       var frames = [];          // rAF intervals
@@ -541,6 +564,7 @@
             renderIntercepted: st.hits || 0,
             paintedFalse: st.paintedFalse || 0,
             castsConfirmedDuringArm: castStats.confirmed,
+            castsConfirmedInRun: runState.castsConfirmed,
             iceSurfaceInkMaxPx: inkMax,
             iceSurfaceInkSamples: series.length,
             controlIceInk: ctlPeak || null,
@@ -552,8 +576,20 @@
             iceRenderMarks: res.ice.render.n,
             iceBlitMarks: res.ice.blit.n,
             frostTickRan: res.frostTick.n > 0,
+            // Whether the SESSION cast anything is a run-level fact, and it is
+            // checked there (see the summary). Requiring a cast inside this
+            // particular window was wrong: ice keeps being drawn for as long as
+            // field nodes exist, so an arm can legitimately be full of ice work
+            // with no fresh cast. What this arm must prove is that the surface
+            // was empty while the field was live, and that the control proves
+            // the same surface paints when unpatched.
+            // Whether the SESSION managed to land a cast is recorded, and the
+            // summary refuses to conclude without one. It is NOT folded into
+            // this arm's verdict, because ice keeps being drawn for as long as
+            // field nodes exist: the arm can be full of ice work with no fresh
+            // cast, and the pixel evidence below is what actually proves the
+            // patch worked.
             ok: (st.hits || 0) > 0
-              && castStats.confirmed > 0
               && res.ice.blit.n === 0
               && ctlPeak > 0
               && inkMax != null && inkMax <= Math.max(2, ctlPeak * 0.02)
@@ -589,6 +625,8 @@
             ok: (as.hits || 0) > 0 && (as.patched || []).length > 0,
           };
         }
+        runState.castsConfirmed += castStats.confirmed;
+        runState.castsPressed += castStats.presses;
         var proofsOk = !!res.activationProof && res.activationProof.ok === true;
         var enoughFrames = frames.length >= CFG.minArmFrames;
         res.valid = proofsOk && enoughFrames;
@@ -617,10 +655,18 @@
           // because cooldowns had not expired, and the proof would be
           // uninterpretable through no fault of the subsystem under test.
           (function prime(attempt) {
-            if (done || attempt > 12 || castStats.confirmed > 0) return;
-            try { pressAndRecord(api, 1, 0, castStats); } catch (e) {}
-            try { pressAndRecord(api, 0, 0, castStats); } catch (e) {}
-            setTimeout(function () { prime(attempt + 1); }, 260);
+            if (done || castStats.confirmed > 0) return;
+            // Ask the game who can actually cast before pressing. On a slow
+            // machine FROST's A1 holds a long cooldown while CRYSTALA's is
+            // free, and blindly pressing the busy side burns the whole arm.
+            var ready = readyCasts();
+            ready.forEach(function (r) { pressAndRecord(api, r.side, r.slot, castStats); });
+            if (!ready.length) {
+              try { pressAndRecord(api, 1, 0, castStats); } catch (e) {}
+              try { pressAndRecord(api, 0, 0, castStats); } catch (e) {}
+            }
+            var left = CFG.armMs - (performance.now() - armStart);
+            if (left > 3000) setTimeout(function () { prime(attempt + 1); }, 400);
           })(0);
         }
         if (measuring && last) {
@@ -968,7 +1014,7 @@
   // clears it at the top of each frame and throws it away at the bottom. So the
   // CONTROL reference is taken where the paint really exists -- by watching the
   // arena's drawImage and measuring the source surface at that moment.
-  var runState = { controlIceInk: null };
+  var runState = { controlIceInk: null, castsConfirmed: 0, castsPressed: 0 };
 
   // Pin the quality mode for every arm so the arms differ in ONE thing only.
   function pinMode(mode) {
@@ -1154,8 +1200,23 @@
     }
     var thinSample = rows.some(function (r) { return r.frames != null && r.frames < 20; });
 
+    // A run in which the game never accepted a cast cannot answer whether the
+    // CAST costs the frame. Saying so is the whole point of this tool.
+    var castEvidence = {
+      pressed: runState.castsPressed,
+      confirmed: runState.castsConfirmed,
+      note: runState.castsConfirmed === 0
+        ? 'no cast was accepted during this run; cooldowns are measured in game '
+          + 'seconds, so on a machine far slower than real time an arm can end '
+          + 'before any cooldown expires. The arm proofs below still show the '
+          + 'renderers were switched off, but the cast-cost question is unanswered.'
+        : null,
+    };
+    report.castEvidence = castEvidence;
+
     var verdict;
     if (!stable) verdict = 'control-unstable-repeat-the-run';
+    else if (runState.castsConfirmed === 0) verdict = 'no-cast-accepted-cannot-judge';
     else if (thinSample) verdict = 'sample-too-thin-to-conclude';
     else if (biggest && biggest.deltaP95Pct <= -10 && significant) verdict = 'subsystem-identified';
     else verdict = 'no-subsystem-explains-the-stutter';
