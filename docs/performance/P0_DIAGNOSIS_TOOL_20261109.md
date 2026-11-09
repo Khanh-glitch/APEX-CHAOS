@@ -70,3 +70,65 @@ owner's machine and are not reported as such.
 * `RUN-DIAGNOSIS.cmd`: 50 CRLF lines, pure ASCII, single double-click
 * the three tool files inside the ZIP are byte-identical to the tree
 * no GitHub Actions anywhere in the path
+
+## 6. What the packaged build actually does now (verified 2026-11-09)
+
+The package is exercised the way the owner runs it — extract, double-click,
+wait — on this build machine. Every claim below comes from that path, not from
+a probe.
+
+### The packaged tool did not work at all
+
+`buildPackage` puts the game at `<package>/game`, but `p0run` resolved
+`<package>/tools/p0diag/game`. `GET /` therefore returned **404**, `index.html`
+was never served, `/__p0diag.js` was never requested, `window.__P0DIAG__` never
+appeared, and all three scenarios sat out their full timeout reporting
+`no report`. The self-tests had been running inside the repository, where
+`tools/p0diag/game` exists, so they could never have caught it.
+
+The root is now resolved explicitly (`<script dir>/game`, then
+`<package>/game`), the chosen path is logged, and the launcher exits with both
+paths printed rather than waiting eight minutes on a wrong root.
+
+### BOT cannot host the FROST arms, and says so
+
+The production BOT path pairs the player against the CPU the product picks
+(`HUNTER` on this build) and refuses a FROST opponent by design. `APEX_FROST_GOLD`
+is never created, so there is no ice renderer and no ambient entry point to
+switch off. Those two arms now report **inapplicable with a reason**:
+
+```
+bot        full ✓  noIce ⊘  noAux ⊘  noBloom ✓  full ✓     3/5
+local-perf full ✓  noIce ✓  noAux ✓  noBloom ✓  full ✓     5/5
+local-high full ✓  noIce ✓  noAux ✓  noBloom ✓  full ✓     5/5
+```
+
+Applicability is decided from whether the seam was ever installed, so a module
+that loads late cannot rewrite an arm after the fact.
+
+### Casts are counted in game seconds, and the report says when that ruins the run
+
+`debugState().skills.A1.cd` decreases 7.93 → 7.31 over 13.5 real seconds on this
+host: cooldowns advance with the simulation, and the software rasteriser here
+runs the simulation roughly twenty times slower than real time. A 16-second arm
+can end before any cooldown expires, so a run can legitimately confirm zero
+casts. When that happens the verdict is **`no-cast-accepted-cannot-judge`**
+rather than a subsystem name — the render proofs below are still valid, but the
+cast-cost question is reported as unanswered instead of guessed.
+
+### Delivery
+
+`uploads.github.com` drops the TLS connection from the build machine and the
+repository is private, so the release cannot take an asset. The ZIP is stored in
+the repository as nine 12 MB parts beside `ASSEMBLE-PACKAGE.cmd`, which joins
+them, verifies the SHA-256 and opens the folder. Current package:
+
+| | |
+|---|---|
+| bytes | `99469262` |
+| sha256 | `c625d2856401d7fab84d63818b753d6668e18074d9b30586b05dc79a649f1559` |
+| game build | `44ba89c1f0d36422c1b08412dfeeb66863662a1c` |
+
+The download path was verified by fetching all nine parts back from GitHub,
+reassembling them and checking the hash and archive integrity, then running the
+extracted launcher: `game: <package>/game`, three scenarios, three reports.
