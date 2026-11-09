@@ -26,8 +26,8 @@ Keep the folder structure: the script expects a `parts` subfolder beside it.
 ## Expected integrity
 
 ```
-sha256 9da76a920fa84ba43775202eff7c8991682596805de1e3eceb5547d8f0823e67
-bytes  99467124
+sha256 c625d2856401d7fab84d63818b753d6668e18074d9b30586b05dc79a649f1559
+bytes  99469262
 ```
 
 The assembler checks this itself and refuses to continue on a mismatch.
