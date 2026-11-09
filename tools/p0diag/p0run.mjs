@@ -77,6 +77,23 @@ function browserArgs(profile) {
   ];
 }
 
+// Which GPU the page actually got. A run on a software rasteriser is not
+// evidence about the owner's machine, so the report has to say which one it was
+// instead of leaving the reader to assume.
+const GPU_PROBE = `(function(){
+  try {
+    var c = document.createElement('canvas');
+    var gl = c.getContext('webgl2') || c.getContext('webgl');
+    if (!gl) return { vendor: 'none', renderer: 'none' };
+    var d = gl.getExtension('WEBGL_debug_renderer_info');
+    return {
+      vendor: d ? gl.getParameter(d.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR),
+      renderer: d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+    };
+  } catch (e) { return { vendor: 'err', renderer: String(e && e.message) }; }
+})()`;
+
+
 async function main() {
   const browser = findBrowser();
   if (!browser) {
@@ -91,11 +108,21 @@ async function main() {
   for (const scen of SCENARIOS) {
     log(`scenario ${scen}: starting`);
     const srv = await startServer({ root: ROOT, resultsDir: RESULTS, instrument: INSTRUMENT });
-    const url = srv.base + `/?p0diag=1&p0scenario=${encodeURIComponent(scen)}`;
+    // No frame target is imposed on the owner: the arms end on their own time
+    // budget so the numbers reflect their machine. The override exists so the
+    // same code path can be exercised end-to-end on a host without a GPU.
+    let url = srv.base + `/?p0diag=1&p0scenario=${encodeURIComponent(scen)}`;
+    if (process.env.P0_MIN_FRAMES) url += '&p0minframes=' + encodeURIComponent(process.env.P0_MIN_FRAMES);
     const child = spawn(browser.exe, [...browserArgs(profile), url], { stdio: 'ignore', detached: false });
     child.on('error', (e) => log('browser failed to start: ' + e.message));
     const report = await waitForResult(srv);
     try { if (child) child.kill(); } catch (e) {}
+    const gpu = report && report.env ? report.env : null;
+    if (gpu && gpu.renderer) {
+      const soft = /swiftshader|llvmpipe|software/i.test(gpu.renderer);
+      if (soft) log(`scenario ${scen}: SOFTWARE RASTERISER (${gpu.renderer}) — `
+        + 'timings are not evidence about a GPU machine');
+    }
     try { srv.server.close(); } catch (e) {}
     if (report) {
       const v = report.summary && report.summary.verdict;
