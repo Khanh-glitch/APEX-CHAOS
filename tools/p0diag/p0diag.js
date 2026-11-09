@@ -471,8 +471,9 @@
       // the arm's counters describe only this arm.
       resetMarks();
       castStats = freshCastStats();
-      runState.castsConfirmed = 0;
-      runState.castsPressed = 0;
+      // castStats is per-arm; runState.* are the independent cumulative counters
+      // and are accumulated at the end of the arm -- never reset here, so a
+      // late cast-free arm cannot wipe casts confirmed in earlier arms.
       bloomSeam.beginBlocked = 0;
       bloomSeam.compositeCalls = 0;
       if (arm === 'noBloom') bloomSeam.off = true;

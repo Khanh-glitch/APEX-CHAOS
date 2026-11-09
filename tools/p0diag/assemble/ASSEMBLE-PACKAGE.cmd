@@ -18,8 +18,8 @@ echo  -----------------------------------
 echo.
 
 set "PARTS=parts"
-set "OUT=APEX-CHAOS-P0-Diagnosis-44ba89c.zip"
-set "EXPECT=c625d2856401d7fab84d63818b753d6668e18074d9b30586b05dc79a649f1559"
+set "OUT=APEX-CHAOS-P0-Diagnosis-44ba89c-fixed.zip"
+set "EXPECT=8fbf345eee46f6f7a1eb460ac99ad31f38a9e062a822d6de103129362399fec8"
 
 if not exist "%PARTS%" (
   echo  ERROR: the "parts" folder is missing next to this script.

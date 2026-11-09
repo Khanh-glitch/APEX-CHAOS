@@ -10,24 +10,43 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { startServer } from './p0serve.mjs';
+import { inflate } from '@sparticuz/chromium';
+import { join } from 'node:path';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(path.join(HERE, '..', 'probe', 'node_modules', '/'));
 const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
 
 const ROOT = path.join(HERE, 'game');
+
+// Resolve the @sparticuz/chromium binary bundled in the package. The
+// chromium.br blob is brotli-compressed; inflate it once to a real executable.
+let CHROMIUM_EXE = '/tmp/chromium';
+try {
+  const bin = join(path.dirname(require.resolve('@sparticuz/chromium')), 'bin');
+  const inflated = await inflate(join(bin, 'chromium.br'));
+  const st = fs.statSync(inflated);
+  CHROMIUM_EXE = st.isDirectory() ? join(inflated, 'chromium') : inflated;
+} catch (e) {
+  /* fall back to the already-inflated /tmp/chromium if present */
+}
+// The AL2023 build needs its bundled shared libraries.
+process.env.LD_LIBRARY_PATH = '/tmp/al2023/lib:' + (process.env.LD_LIBRARY_PATH || '');
+
 const RESULTS = path.join(HERE, 'results', 'selftest');
 const INSTRUMENT = fs.readFileSync(path.join(HERE, 'p0diag.js'), 'utf8');
 const KEEP = process.argv.includes('--keep');
 
 const srv = await startServer({ root: ROOT, resultsDir: RESULTS, instrument: INSTRUMENT });
 const browser = await puppeteer.launch({
-  executablePath: await chromium.executablePath(),
+  executablePath: CHROMIUM_EXE,
   headless: 'new',
   protocolTimeout: 900000,
-  args: [...chromium.args, '--no-sandbox', '--autoplay-policy=no-user-gesture-required',
-    '--use-gl=angle', '--use-angle=swiftshader'],
+  args: [
+    '--no-sandbox', '--disable-dev-shm-usage', '--no-zygote',
+    '--autoplay-policy=no-user-gesture-required',
+    '--disable-gpu',
+  ],
 });
 const page = await browser.newPage();
 const lines = [];
