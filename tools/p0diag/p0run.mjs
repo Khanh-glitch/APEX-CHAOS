@@ -62,7 +62,7 @@ function resolveProfile() {
   // 4. the browser's own user-data root, discovered from the OS. This is the
   //    folder that holds the owner's unlocks, so using it needs no setup step.
   const discovered = findBrowserProfile();
-  if (discovered) return { dir: discovered, kind: 'browser-default-profile', replay: false };
+  if (discovered) return { dir: discovered, kind: 'browser-default-profile', replay: false, source: true };
   const fresh = path.join(HERE, '.p0profile');
   fs.mkdirSync(fresh, { recursive: true });
   return { dir: fresh, kind: 'throwaway', replay: false };
@@ -111,14 +111,50 @@ async function main() {
   log(`browser: ${browser.name} (${browser.exe})`);
 
   const prof = resolveProfile();
-  log(`profile: ${prof.kind} (${prof.dir})` +
-    (prof.kind === 'throwaway' ? '  <-- a fresh profile usually has CRYSTALA/FROST locked;' : ''));
-  if (prof.kind === 'throwaway') {
-    log('    if the run reports "locked", re-run with P0_PROFILE pointing at your');
-    log('    own Chrome user-data folder, or use the packaged profile.');
+  let profileDir = prof.dir;
+
+  // NEVER point the browser at a profile that is in use. Chrome locks its
+  // user-data folder, and even when it opens, the run would write into the
+  // owner's real session. The unlocks only have to be READ, so the profile is
+  // copied once into a scratch folder and the browser runs on the copy.
+  if (prof.source) {
+    const scratch = path.join(HERE, '.p0profile-run');
+    try {
+      log('copying your browser profile (read-only use of the original)...');
+      fs.rmSync(scratch, { recursive: true, force: true });
+      // Only the parts a boot needs: Local State holds the encryption key
+      // reference, Default holds the save data. Caches and history are large
+      // and irrelevant, so they are skipped.
+      fs.mkdirSync(scratch, { recursive: true });
+      const localState = path.join(prof.dir, 'Local State');
+      if (fs.existsSync(localState)) fs.copyFileSync(localState, path.join(scratch, 'Local State'));
+      const src = path.join(prof.dir, 'Default');
+      const dst = path.join(scratch, 'Default');
+      if (fs.existsSync(src)) {
+        fs.cpSync(src, dst, {
+          recursive: true, force: true,
+          // Skip only the bulky caches. 'Media History' must NOT be filtered
+          // out, because that substring also matches 'Media History*' files
+          // that live beside real profile data; the caches alone are the win.
+          filter: (f) => !/(Cache|Service Worker)/.test(path.basename(f)),
+        });
+      }
+      profileDir = scratch;
+      log('profile: copy of ' + prof.kind + ' -> ' + scratch);
+    } catch (e) {
+      log('profile copy failed (' + e.message + '); falling back to a fresh profile.');
+      log('  a fresh profile usually has CRYSTALA/FROST locked, so the run may');
+      log('  report LOCKED. Set P0_PROFILE to a copy of your Chrome "User Data".');
+      profileDir = path.join(HERE, '.p0profile');
+      fs.mkdirSync(profileDir, { recursive: true });
+    }
+  } else {
+    log(`profile: ${prof.kind} (${profileDir})` +
+      (prof.kind === 'throwaway' ? '  <-- a fresh profile usually has CRYSTALA/FROST locked;' : ''));
   }
+
   const args = [
-    '--user-data-dir=' + prof.dir,
+    '--user-data-dir=' + profileDir,
     '--no-first-run',
     '--no-default-browser-check',
     '--disable-extensions',
