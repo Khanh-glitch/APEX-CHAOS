@@ -28,3 +28,12 @@ ARSENAL_PRODUCT_PLAYABLE_WINDOWS.zip
 
 
 dist-itch/
+
+# P0 diagnosis bundle: the game copy is a BUILD OUTPUT (rebuilt by
+# buildPackage.mjs from the frozen tag), and run artefacts are local evidence,
+# never source.
+tools/p0diag/game/
+tools/p0diag/results/
+tools/p0diag/.p0profile/
+tools/p0diag/profile/
+tools/p0diag/dist-package/
