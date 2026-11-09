@@ -9,7 +9,27 @@ import { fileURLToPath } from 'node:url';
 import { startServer } from './p0serve.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.join(HERE, 'game');
+
+// Where the game lives depends on which of the two supported layouts this is:
+//
+//   * the repository — tools/p0diag/game, next to this script
+//   * the owner package — <package>/game, two levels up from this script
+//
+// Resolving only one of them meant the packaged build served nothing at all:
+// every scenario opened a 404 page, so the tool never loaded and the launcher
+// waited out its timeout. Both layouts are therefore tried explicitly, and the
+// chosen root is logged, because a wrong root is silent otherwise.
+function findGameRoot() {
+  const candidates = [path.join(HERE, 'game'), path.resolve(HERE, '..', '..', 'game')];
+  for (const dir of candidates) {
+    try {
+      if (fs.statSync(path.join(dir, 'index.html')).isFile()) return dir;
+    } catch (e) { /* not this one */ }
+  }
+  return null;
+}
+
+const ROOT = findGameRoot();
 const RESULTS = path.join(HERE, 'results');
 const INSTRUMENT = fs.readFileSync(path.join(HERE, 'p0diag.js'), 'utf8');
 const WAIT_MS = Number(process.env.P0_TIMEOUT_MS || 8 * 60 * 1000);
@@ -62,9 +82,16 @@ function profileDir() {
 //   local-high — LOCAL 1v1 held at HIGH quality (the isolation control)
 const SCENARIOS = ['bot', 'local-perf', 'local-high'];
 
+// Support hook: set P0_DEBUG_PORT to keep a DevTools endpoint open on loopback
+// and pipe the browser's own output to this console. Off by default, so a normal
+// run exposes nothing.
+const DEBUG_PORT = process.env.P0_DEBUG_PORT || '';
+
 function browserArgs(profile) {
+  const extra = DEBUG_PORT ? ['--remote-debugging-port=' + DEBUG_PORT] : [];
   return [
     '--user-data-dir=' + profile,
+    ...extra,
     '--no-first-run',
     '--no-default-browser-check',
     '--disable-extensions',
@@ -101,6 +128,16 @@ async function main() {
     process.exit(2);
   }
   log(`browser: ${browser.name} (${browser.exe})`);
+  if (!ROOT) {
+    // Refusing here is the difference between "the tool did not measure" and
+    // "the tool measured a 404 page and reported nothing".
+    console.error('[p0] Could not find the game build. Looked in:');
+    console.error(`       ${path.join(HERE, 'game')}`);
+    console.error(`       ${path.resolve(HERE, '..', '..', 'game')}`);
+    console.error('     The package folder must keep game/ and tools/ side by side.');
+    process.exit(1);
+  }
+  log(`game: ${ROOT}`);
   const profile = profileDir();
   log(`profile: throwaway (${profile}) — no personal browser data is read or copied`);
 
@@ -113,7 +150,9 @@ async function main() {
     // same code path can be exercised end-to-end on a host without a GPU.
     let url = srv.base + `/?p0diag=1&p0scenario=${encodeURIComponent(scen)}`;
     if (process.env.P0_MIN_FRAMES) url += '&p0minframes=' + encodeURIComponent(process.env.P0_MIN_FRAMES);
-    const child = spawn(browser.exe, [...browserArgs(profile), url], { stdio: 'ignore', detached: false });
+    const child = spawn(browser.exe, [...browserArgs(profile), url], {
+      stdio: DEBUG_PORT ? 'inherit' : 'ignore', detached: false,
+    });
     child.on('error', (e) => log('browser failed to start: ' + e.message));
     const report = await waitForResult(srv);
     try { if (child) child.kill(); } catch (e) {}

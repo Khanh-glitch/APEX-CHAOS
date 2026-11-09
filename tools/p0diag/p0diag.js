@@ -262,6 +262,24 @@
     // with stale paint), keeps drawWet and drawA1MacroFront, and keeps every
     // other renderer in that pass. Because render() returns false, the
     // product's own `if (painted)` guard skips the blit.
+    // Hero runtimes are loaded on demand: on the BOT path the frost module can
+    // still be loading when an arm starts, so a patch attempted once at arm
+    // entry finds nothing and the arm proves nothing. The waiters below retry
+    // until the API appears (or the arm ends), and each arm reports whether its
+    // seam was ever installed instead of silently measuring an unpatched build.
+    function waitForApi(pick, cb) {
+      var stop = false;
+      (function attempt(n) {
+        if (stop) return;
+        var api = null;
+        try { api = pick(); } catch (e) { api = null; }
+        if (api) { cb(api); return; }
+        if (n >= 600) return;                  // ~60 s at 100 ms; arm ends first
+        setTimeout(function () { attempt(n + 1); }, 100);
+      })(0);
+      return function () { stop = true; };
+    }
+
     function patchIce() {
       var G = window.APEX_FROST_GOLD;
       if (!G || !G.IceField || !G.IceField.prototype) return null;
@@ -559,6 +577,20 @@
           var st = arms.state.ice || {};
           var series = st.inkSamples || [];
           var inkMax = series.length ? Math.max.apply(null, series) : null;
+          // A FROST-side arm is only meaningful when FROST is actually in the
+          // match. The production BOT path pairs the player against its own CPU
+          // pick (HUNTER on this build) and refuses a FROST opponent by design,
+          // so the frost renderer is never created and there is nothing to
+          // switch off. That is an INAPPLICABLE arm, not a failed one, and the
+          // difference matters: reporting it as invalid would suggest the patch
+          // broke, while reporting it as valid would fabricate evidence.
+          // Decided from whether the seam was EVER installed during this arm,
+          // not from whether the module happens to exist at report time: a late
+          // load would otherwise rewrite the meaning of an arm after the fact.
+          var frostPresent = !!(window.APEX_FROST_GOLD && window.APEX_FROST_GOLD.IceField);
+          res.applicable = frostPresent || !!(st && st.hits);
+          res.inapplicableReason = res.applicable ? null
+            : 'FROST is not in this match, so there is no ice renderer to isolate';
           res.activationProof = {
             claim: 'only IceField.render is off: the ice surface must stay empty',
             renderIntercepted: st.hits || 0,
@@ -589,7 +621,7 @@
             // field nodes exist: the arm can be full of ice work with no fresh
             // cast, and the pixel evidence below is what actually proves the
             // patch worked.
-            ok: (st.hits || 0) > 0
+            ok: res.applicable && (st.hits || 0) > 0
               && res.ice.blit.n === 0
               && ctlPeak > 0
               && inkMax != null && inkMax <= Math.max(2, ctlPeak * 0.02)
@@ -618,21 +650,34 @@
           };
         } else if (armObj.id === 'noAux') {
           var as = arms.state.aux || {};
+          // Same rule as noIce: these entry points belong to the FROST
+          // presentation layer, which does not exist when FROST is not in the
+          // match (the BOT path never pairs a FROST CPU on this build).
+          var aspectPatched = as.patched || as.patchedEntryPoints || [];
+          var auxPresent = !!(aspectPatched.length || as.hits);
+          res.applicable = auxPresent;
+          res.inapplicableReason = auxPresent ? null
+            : 'FROST is not in this match, so its ambient draw entry points do not exist';
           res.activationProof = {
             claim: 'ambient draw entry points intercepted; must be called',
             intercepted: as.hits || 0,
-            patchedEntryPoints: as.patched || [],
-            ok: (as.hits || 0) > 0 && (as.patched || []).length > 0,
+            patchedEntryPoints: aspectPatched,
+            ok: auxPresent && (as.hits || 0) > 0 && aspectPatched.length > 0,
           };
         }
         runState.castsConfirmed += castStats.confirmed;
         runState.castsPressed += castStats.presses;
+        // An arm that could not apply is neither valid nor invalid: it simply
+        // has no evidence to give. Keeping it out of the valid count is what
+        // stops an empty match from looking like a successful isolation.
+        var inapplicable = res.applicable === false;
         var proofsOk = !!res.activationProof && res.activationProof.ok === true;
         var enoughFrames = frames.length >= CFG.minArmFrames;
-        res.valid = proofsOk && enoughFrames;
+        res.valid = !inapplicable && proofsOk && enoughFrames;
         // Say WHY, in the report, instead of leaving a bare false.
         var reasons = [];
-        if (!proofsOk) reasons.push('activation not proven');
+        if (inapplicable) reasons.push('inapplicable: ' + (res.inapplicableReason || 'subsystem absent'));
+        if (!inapplicable && !proofsOk) reasons.push('activation not proven');
         if (!enoughFrames) reasons.push('only ' + frames.length + ' frames (need ' + CFG.minArmFrames + ')');
         if (reasons.length) res.invalidBecause = reasons.join('; ');
         say('arm ' + res.id + ' done: ' + reason + ' frames=' + frames.length + ' valid=' + res.valid
