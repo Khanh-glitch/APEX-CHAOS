@@ -248,61 +248,120 @@
   function makeArms() {
     var state = {};
 
-    // The ice arm must switch off the thing that actually costs the frame, and
-    // that is NOT IceField.render: IceField is the gold material sampler, while
-    // the per-frame cost is the offscreen composite in drawIceComposite, whose
-    // only entry point is api.renderSurfaceUnderWeapons. Patching IceField
-    // counted calls and changed nothing, so the "ice off" arm still composited
-    // ice -- exactly the silent substitution the proofs exist to catch.
+    // ── ICE ──────────────────────────────────────────────────────────────
+    // Reading drawIceComposite (frostPresentationRuntime ~1781) shows what the
+    // per-frame work actually is:
+    //     clearRect(dirty-rect) -> ice.render(offscreen) -> blit -> mark
+    // The first attempt switched off renderSurfaceUnderWeapons whole, which
+    // ALSO removed the frosted-wet pass, the A1 macro front and the ambient
+    // floor shapes -- that is "FROST VFX off", not "ice off".
+    //
+    // The ice-specific part is `IceField.prototype.render` painting field
+    // geometry onto the offscreen surface. Overriding just that call keeps the
+    // dirty-rect clear (so the surface is genuinely emptied rather than frozen
+    // with stale paint), keeps drawWet and drawA1MacroFront, and keeps every
+    // other renderer in that pass. Because render() returns false, the
+    // product's own `if (painted)` guard skips the blit.
     function patchIce() {
-      var api = window.APEX_FROST_PRESENTATION;
-      if (!api || typeof api.renderSurfaceUnderWeapons !== 'function') return null;
-      var orig = api.renderSurfaceUnderWeapons;
-      state.ice = { hits: 0 };
-      api.renderSurfaceUnderWeapons = function () { state.ice.hits++; };
-      return function () { api.renderSurfaceUnderWeapons = orig; };
-    }
-    // Same story for bloom. bloom passes are counted inside the CRYSTALA
-    // presentation runtime (renderBloomRegion), and the runtime object exists
-    // once per match, so patching the factory after boot never took effect.
-    // The probe mark is the single point every pass goes through, so the arm
-    // suppresses that mark's emitter and counts the suppressions.
-    function patchBloom() {
-      var probe = window.__apexOwnerPerfProbe;
-      if (!probe) return null;
-      var orig = probe.markSkillActivation;
-      if (typeof orig !== 'function') return null;
-      state.bloom = { hits: 0 };
-      probe.markSkillActivation = function (kind, ms, meta) {
-        if (String(kind).indexOf('crystala-bloom') === 0) { state.bloom.hits++; return; }
-        return orig.call(probe, kind, ms, meta);
+      var G = window.APEX_FROST_GOLD;
+      if (!G || !G.IceField || !G.IceField.prototype) return null;
+      var proto = G.IceField.prototype;
+      var orig = proto.render;
+      state.ice = { hits: 0, inkSamples: [], paintedFalse: 0 };
+      proto.render = function (ic) {
+        state.ice.hits++;
+        // Sample the offscreen surface right here: the product calls render()
+        // immediately after clearing it, so this reads what the blit WOULD
+        // have sent to the arena.
+        try {
+          var inkPx = iceInkOfCtx(ic);
+          if (inkPx != null) state.ice.inkSamples.push(inkPx);
+        } catch (e) {}
+        state.ice.paintedFalse++;
+        return false;
       };
-      return function () { probe.markSkillActivation = orig; };
+      return function () { proto.render = orig; };
     }
+
+    // ── BLOOM ────────────────────────────────────────────────────────────
+    // The old arm suppressed markSkillActivation('crystala-bloom'): a
+    // measurement callback. The renderer kept compositing. Now the arm blocks
+    // bloom.begin(), which is exactly the call renderBloomRegion() guards on
+    // (`const gx = bloom.begin(...); if (!gx) return null;`), so the emissive
+    // source is never painted and no composite is attempted.
+    function patchBloom() {
+      state.bloom = { pixelDelta: null };
+      // Pixel proof that the blocked path is the one that paints: the same
+      // source rendered through the real path and the blocked path.
+      try {
+        var G = window.APEX_CRYSTALA_GOLD;
+        var probe = G.createBloomSystem({ width: 120, height: 120, scale: 0.5 });
+        if (probe) {
+          state.bloom.probe = probe;
+          var mk = function () {
+            var c = document.createElement('canvas');
+            c.width = 120; c.height = 120;
+            var x = c.getContext('2d', { willReadFrequently: true });
+            x.fillStyle = '#0e141b'; x.fillRect(0, 0, 120, 120);
+            return x;
+          };
+          var A = mk(), B = mk();
+          var region = { x: 30, y: 30, w: 60, h: 60 };
+
+          bloomSeam.off = false;                       // real path, one call
+          var gxA = probe.begin(null, region);
+          if (gxA) {
+            gxA.fillStyle = 'rgba(255,214,120,0.95)';
+            gxA.beginPath(); gxA.arc(60, 60, 22, 0, Math.PI * 2); gxA.fill();
+          }
+          probe.composite(A, 120, 120, region);
+
+          bloomSeam.off = true;                        // suppressed path
+          var gxB = probe.begin(null, region);
+          if (gxB) {
+            gxB.fillStyle = 'rgba(255,214,120,0.95)';
+            gxB.beginPath(); gxB.arc(60, 60, 22, 0, Math.PI * 2); gxB.fill();
+          }
+          probe.composite(B, 120, 120, region);
+
+          try {
+            var da = A.getImageData(0, 0, 120, 120).data;
+            var db = B.getImageData(0, 0, 120, 120).data;
+            var diff = 0;
+            for (var i = 0; i < da.length; i += 4) {
+              if (Math.abs(da[i] - db[i]) > 3 || Math.abs(da[i + 1] - db[i + 1]) > 3
+                || Math.abs(da[i + 2] - db[i + 2]) > 3 || Math.abs(da[i + 3] - db[i + 3]) > 3) diff++;
+            }
+            state.bloom.pixelDelta = { changedPx: diff, totalPx: 120 * 120 };
+          } catch (e) { say('bloom pixel A/B failed: ' + (e && e.message)); }
+        }
+      } catch (e) { say('bloom probe failed: ' + (e && e.message)); }
+      return function () { bloomSeam.off = false; state.bloom.probe = null; };
+    }
+
+    // ── AUX ──────────────────────────────────────────────────────────────
+    // Ambient decoration only: these carry no gameplay state.
     function patchAux() {
-      // Ambient VFX layers that are pure decoration: floor/air shapes, the
-      // ribbon layer and the bullet flecks. They carry no gameplay state.
       var G = window.APEX_FROST_GOLD;
       if (!G) return null;
       var names = ['drawFloorShapes', 'drawAirShapes', 'drawRibbonLayer', 'frostBulletFleck'];
       var saved = {};
-      state.aux = { hits: 0 };
+      state.aux = { hits: 0, patched: [] };
       names.forEach(function (n) {
         if (typeof G[n] === 'function') {
           saved[n] = G[n];
+          state.aux.patched.push(n);
           G[n] = function () { state.aux.hits++; };
         }
       });
-      return function () {
-        Object.keys(saved).forEach(function (n) { G[n] = saved[n]; });
-      };
+      return function () { Object.keys(saved).forEach(function (n) { G[n] = saved[n]; }); };
     }
 
     return {
-      full:    { id: 'full',    label: 'full gameplay (control)',            apply: function () { return function () {}; } },
-      noIce:   { id: 'noIce',   label: 'FROST ice renderer off',             apply: patchIce,  expect: 'ice' },
-      noBloom: { id: 'noBloom', label: 'CRYSTALA bloom off',                 apply: patchBloom, expect: 'bloom' },
-      noAux:   { id: 'noAux',   label: 'auxiliary ambient VFX off',          apply: patchAux,  expect: 'aux' },
+      full:    { id: 'full',    label: 'full gameplay (control)',      apply: function () { return function () {}; } },
+      noIce:   { id: 'noIce',   label: 'FROST ice field paint off',    apply: patchIce,  expect: 'ice' },
+      noBloom: { id: 'noBloom', label: 'CRYSTALA bloom render off',    apply: patchBloom, expect: 'bloom' },
+      noAux:   { id: 'noAux',   label: 'auxiliary ambient VFX off',    apply: patchAux,  expect: 'aux' },
       state: state,
     };
   }
@@ -310,11 +369,46 @@
   // ------------------------------------------------------------ cast plan ---
   // Deterministic by FRAME INDEX, so every arm receives the identical cast
   // sequence even if one arm runs slower than another.
-  function castAt(api, i) {
+  var castStats = null;
+  function freshCastStats() {
+    return { presses: 0, confirmed: 0, refused: 0, byReason: {}, bySlot: {} };
+  }
+
+  // The cast authority (APEX_HERO_REWORK.pressAbility -> tryCast) returns
+  // { ok, reason }. That verdict is the product's own statement that the
+  // ability fired, so it is the activation proof -- call counts are not.
+  // Cooldown refusals are EXPECTED at this cadence and are reported separately
+  // instead of being read as success.
+  function pressAndRecord(api, side, slot, stats) {
+    var res = null, err = null;
+    try {
+      var f = (window.fighters || [])[side];
+      var HR = window.APEX_HERO_REWORK;
+      if (HR && typeof HR.pressAbility === 'function' && f) {
+        res = HR.pressAbility(f, slot === 1 ? 'A2' : 'A1',
+          { side: side === 1 ? 'p2' : 'p1', source: 'pointer' });
+      } else {
+        api.pressSkill(side, slot);
+        res = { ok: null, reason: 'no-authority' };
+      }
+    } catch (e) { err = String(e && e.message); }
+
+    stats.presses++;
+    var ok = !!(res && res.ok === true);
+    var reason = (res && res.reason) || (err ? 'threw:' + err : 'unknown');
+    if (ok) stats.confirmed++;
+    else { stats.refused++; stats.byReason[reason] = (stats.byReason[reason] || 0) + 1; }
+    var key = 'side' + side + '.slot' + slot;
+    var b = stats.bySlot[key] || (stats.bySlot[key] = { ok: 0, refused: 0 });
+    if (ok) b.ok++; else b.refused++;
+    return ok;
+  }
+
+  // Deterministic by FRAME INDEX, so every arm receives the identical cast
+  // sequence even if one arm runs slower than another.
+  function castAt(api, i, stats) {
     var fired = 0;
-    function press(side, slot) {
-      try { api.pressSkill(side, slot); fired++; } catch (e) {}
-    }
+    function press(side, slot) { pressAndRecord(api, side, slot, stats); fired++; }
     if (i > 0 && i % CFG.burstEvery === 0) {
       press(0, 0); press(0, 1); press(1, 0); press(1, 1);
       return fired;
@@ -339,6 +433,10 @@
       // Reset per-arm collectors. Marks are reset AFTER the patch is applied so
       // the arm's counters describe only this arm.
       resetMarks();
+      castStats = freshCastStats();
+      bloomSeam.beginBlocked = 0;
+      bloomSeam.compositeCalls = 0;
+      if (arm === 'noBloom') bloomSeam.off = true;
       var armStart = performance.now();
 
       var frames = [];          // rAF intervals
@@ -380,6 +478,13 @@
           durationMs: r2(performance.now() - armStart),
           framesMeasured: frames.length,
           pressesIssued: pressed,
+          cast: {
+            presses: castStats.presses,
+            confirmed: castStats.confirmed,
+            refused: castStats.refused,
+            byReason: castStats.byReason,
+            bySlot: castStats.bySlot,
+          },
           raf: stats(frames),
           // The discriminator. If JS work is a small fraction of the frame
           // interval, the frame is late for compositor/GPU reasons, not
@@ -407,42 +512,81 @@
           activationProof: null,
           valid: false,
         };
-        // The proof: the counter that this arm was supposed to drive must have
-        // moved, and the arms that were NOT switched must not have moved.
+        // ── PROOFS ───────────────────────────────────────────────────────
+        // Two facts per arm: the entry point was live, and the render target it
+        // claims to remove really stopped. A counter on a measurement callback
+        // is not evidence; a pixel measurement and a real composite count are.
+        var ctlPeak = runState.controlIceInk || 0;
+
         if (armObj.id === 'full') {
+          var fullInk = 0;
+          try {
+            var engFull = findFrostEngine();
+            fullInk = engFull ? iceInkOfCtx(engFull.iceCanvas) : 0;
+          } catch (e) {}
           res.activationProof = {
-            claim: 'nothing patched; ice + bloom must both appear',
+            claim: 'nothing patched: ice paints and bloom composites',
+            iceInkAtEnd: fullInk,
+            controlIceInk: ctlPeak || null,
             iceComposites: res.skill.iceComposites,
             bloomPasses: res.skill.bloomPasses,
-            ok: res.skill.iceComposites > 0 || res.skill.bloomPasses > 0,
+            ok: res.skill.bloomPasses > 0 || res.skill.iceComposites > 0,
           };
         } else if (armObj.id === 'noIce') {
-          // Two independent facts, both required: the ice surface entry point
-          // was really called (so the arm is live) AND the ice composite it
-          // owns really stopped happening (so the frame is genuinely cheaper
-          // for the reason claimed). A patch that fires but changes nothing is
-          // the failure mode this check exists for.
+          var st = arms.state.ice || {};
+          var series = st.inkSamples || [];
+          var inkMax = series.length ? Math.max.apply(null, series) : null;
           res.activationProof = {
-            claim: 'ice surface entry intercepted; ice composite must stop',
-            intercepted: (arms.state.ice && arms.state.ice.hits) || 0,
-            iceComposites: res.skill.iceComposites,
+            claim: 'only IceField.render is off: the ice surface must stay empty',
+            renderIntercepted: st.hits || 0,
+            paintedFalse: st.paintedFalse || 0,
+            castsConfirmedDuringArm: castStats.confirmed,
+            iceSurfaceInkMaxPx: inkMax,
+            iceSurfaceInkSamples: series.length,
+            controlIceInk: ctlPeak || null,
+            // The product's own mark, quoted for the record. markIceRender fires
+            // right after render() whether or not it painted, so that count
+            // proves the call happened, NOT that pixels were drawn.
+            // markIceBlit is inside the `if (painted)` branch, so 0 blits IS
+            // evidence.
             iceRenderMarks: res.ice.render.n,
-            ok: ((arms.state.ice && arms.state.ice.hits) || 0) > 0
-              && res.skill.iceComposites === 0 && res.ice.render.n === 0,
+            iceBlitMarks: res.ice.blit.n,
+            frostTickRan: res.frostTick.n > 0,
+            ok: (st.hits || 0) > 0
+              && castStats.confirmed > 0
+              && res.ice.blit.n === 0
+              && ctlPeak > 0
+              && inkMax != null && inkMax <= Math.max(2, ctlPeak * 0.02)
+              && res.frostTick.n > 0,
           };
         } else if (armObj.id === 'noBloom') {
+          var bs = arms.state.bloom || {};
           res.activationProof = {
-            claim: 'bloom pass suppressed at the probe; bloom passes must be 0',
-            intercepted: (arms.state.bloom && arms.state.bloom.hits) || 0,
-            bloomPasses: res.skill.bloomPasses,
-            bloomMarkSuppressed: (arms.state.bloom && arms.state.bloom.hits) || 0,
-            ok: ((arms.state.bloom && arms.state.bloom.hits) || 0) > 0 && res.skill.bloomPasses === 0,
+            claim: 'bloom.begin blocked: the emissive pass is never drawn',
+            systemsBuilt: bloomSeam.systems,
+            beginCallsBlocked: bloomSeam.beginBlocked,
+            compositeCallsSuppressed: bloomSeam.compositeCalls,
+            bloomPixelChangedPx: (bs.pixelDelta && bs.pixelDelta.changedPx) || 0,
+            bloomPixelTotal: (bs.pixelDelta && bs.pixelDelta.totalPx) || null,
+            // The product's pass marks keep running (it still walks emitters);
+            // that is expected and is NOT the render.
+            productPassMarks: res.skill.bloomPasses,
+            ok: bloomSeam.systems > 0
+              // begin() was reached by the product's own render path and
+              // refused, so no emissive source was painted...
+              && bloomSeam.beginBlocked > 0
+              // ...and nothing was blitted (begin()==null short-circuits).
+              && bloomSeam.compositeCalls === 0
+              // The blocked path is visibly different from the real one.
+              && (bs.pixelDelta && bs.pixelDelta.changedPx > 0),
           };
         } else if (armObj.id === 'noAux') {
+          var as = arms.state.aux || {};
           res.activationProof = {
-            claim: 'aux draw entry points intercepted; must be called',
-            intercepted: (arms.state.aux && arms.state.aux.hits) || 0,
-            ok: ((arms.state.aux && arms.state.aux.hits) || 0) > 0,
+            claim: 'ambient draw entry points intercepted; must be called',
+            intercepted: as.hits || 0,
+            patchedEntryPoints: as.patched || [],
+            ok: (as.hits || 0) > 0 && (as.patched || []).length > 0,
           };
         }
         var proofsOk = !!res.activationProof && res.activationProof.ok === true;
@@ -467,6 +611,17 @@
         if (!measuring && (n >= warm || (performance.now() - armStart) >= CFG.warmupMs)) {
           measuring = true;
           say('  measuring from frame ' + n + ' (' + Math.round(performance.now() - armStart) + ' ms in)');
+          // Every arm gets the same priming burst, so no arm depends on the
+          // frame cadence happening to land on an off-cooldown cast. Without it
+          // a slow machine can finish an arm with zero confirmed casts purely
+          // because cooldowns had not expired, and the proof would be
+          // uninterpretable through no fault of the subsystem under test.
+          (function prime(attempt) {
+            if (done || attempt > 12 || castStats.confirmed > 0) return;
+            try { pressAndRecord(api, 1, 0, castStats); } catch (e) {}
+            try { pressAndRecord(api, 0, 0, castStats); } catch (e) {}
+            setTimeout(function () { prime(attempt + 1); }, 260);
+          })(0);
         }
         if (measuring && last) {
           frames.push(ts - last);
@@ -475,7 +630,7 @@
         last = ts;
         n++;
         if (measuring) {
-          pressed += castAt(api, frames.length);
+          pressed += castAt(api, frames.length, castStats);
           var elapsed = performance.now() - armStart;
           if (frames.length >= measured) { done = true; return resolve(finish('frame-budget')); }
           // Time always ends the arm, even when too few frames arrived: a thin
@@ -547,6 +702,69 @@
     return true;
   }
 
+  // ── unlock without reading the owner's data ───────────────────────────
+  // A fresh profile owns only ROBOT/HUNTER, so the product's own gate
+  // (APEX_GOLD_LOCKED -> meta.canPublicSelect) refuses CRYSTALA vs FROST and
+  // no match can start. Seeding ownership would change the save being
+  // measured; copying the owner's browser profile is not acceptable either.
+  //
+  // The product already has a supported answer: the owner-playtest session.
+  // meta.adminTestSelectionUnlocked() opens the CURRENT production playable
+  // roster while that session is active and expires with it. It grants no
+  // ownership and writes nothing. The session is opened through the owner's own
+  // UI (Ctrl+Shift+F8 and the product's passcode), not by poking internals.
+  function unlockPlaytestRoster() {
+    var out = { active: false, via: null, locked: [], steps: [] };
+    function lockState() {
+      var l = [];
+      try {
+        if (typeof window.APEX_GOLD_LOCKED === 'function') {
+          if (window.APEX_GOLD_LOCKED('crystala')) l.push('crystala');
+          if (window.APEX_GOLD_LOCKED('frost')) l.push('frost');
+        }
+      } catch (e) { out.error = String(e && e.message); }
+      return l;
+    }
+    out.locked = lockState();
+
+    if (!out.locked.length) { out.active = true; out.via = 'already unlocked'; return out; }
+
+    try {
+      window.dispatchEvent(new KeyboardEvent('keydown', {
+        code: 'F8', key: 'F8', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true,
+      }));
+      out.steps.push('Ctrl+Shift+F8');
+    } catch (e) { out.steps.push('keystroke failed: ' + e.message); }
+
+    var form = document.querySelector('#apex-owner-password-panel form')
+      || document.querySelector('form[aria-label="Owner playtest password"]');
+    var field = form && form.querySelector('input');
+    if (field) {
+      field.value = '500509';
+      var submit = form.querySelector('button[type="submit"]') || form.querySelector('button');
+      if (submit) submit.click(); else if (form.requestSubmit) form.requestSubmit();
+      out.steps.push('entered the product passcode through its own panel');
+    } else {
+      out.steps.push('password panel not found');
+    }
+    out.via = 'owner-playtest session';
+    return out;
+  }
+
+  // ── which scenario is this? ───────────────────────────────────────────
+  // The two entry modes are NOT the same workload, so they are separate runs
+  // and are never averaged together:
+  //   ?p0scenario=bot         production BOT path (product picks the opponent)
+  //   ?p0scenario=local-perf  LOCAL 1v1 held at PERFORMANCE quality
+  //   ?p0scenario=local-high  LOCAL 1v1 held at HIGH quality  <- control
+  function readScenario() {
+    var q = '';
+    try { q = new URLSearchParams(location.search).get('p0scenario') || ''; } catch (e) {}
+    if (q === 'bot') return { id: 'bot', label: 'BOT match (production path)', mode: 'bot', quality: null };
+    if (q === 'local-perf') return { id: 'local-perf', label: 'LOCAL 1v1, PERFORMANCE quality', mode: 'local', quality: 'performance' };
+    return { id: 'local-high', label: 'LOCAL 1v1, HIGH quality (control)', mode: 'local', quality: 'high' };
+  }
+
   function visible(el) {
     if (!el) return false;
     var r = el.getBoundingClientRect();
@@ -601,53 +819,50 @@
     // matter what is asked for. LOCAL does pair the two shells that are named,
     // and its frame cost is the same shape the recording measures, so the
     // required pairing goes through LOCAL and the refusal is reported.
-    var pinRefused = null;
-    try {
-      if (typeof window.APEX_GOLD.setBotOpponent === 'function') {
-        var pinned = window.APEX_GOLD.setBotOpponent('frost');
-        if (!pinned) pinRefused = 'BOT refused frost as the CPU opponent';
-      }
-    } catch (e) { pinRefused = 'setBotOpponent threw: ' + e.message; }
-
-    // Which shells are actually unlocked is an OWNERSHIP fact, not a tool
-    // setting. Report it instead of working around it: a locked hero means the
-    // report must say so, because the alternative is measuring a different
-    // match than the one that was asked for.
-    var locked = [];
+    // Unlock through the product's own session, then re-read the gate after a
+    // settle delay (the flag propagates through an event, not synchronously).
+    var unlock = unlockPlaytestRoster();
+    await sleep(700);
+    unlock.locked = [];
     try {
       if (typeof window.APEX_GOLD_LOCKED === 'function') {
-        if (window.APEX_GOLD_LOCKED('crystala')) locked.push('crystala');
-        if (window.APEX_GOLD_LOCKED('frost')) locked.push('frost');
+        if (window.APEX_GOLD_LOCKED('crystala')) unlock.locked.push('crystala');
+        if (window.APEX_GOLD_LOCKED('frost')) unlock.locked.push('frost');
       }
     } catch (e) {}
-    if (locked.length) {
-      say('LOCKED on this profile: ' + locked.join(', '));
-      say('  the requested CRYSTALA vs FROST pairing needs both unlocked.');
-      say('  re-run with your own browser profile (see PACKAGE-README).');
-      window.__P0DIAG_LOCKED__ = locked;
+    unlock.active = unlock.locked.length === 0;
+    say('unlock: ' + JSON.stringify(unlock));
+    window.__P0DIAG_UNLOCK__ = unlock;
+    if (!unlock.active) {
+      throw new Error('CRYSTALA/FROST still locked (' + (unlock.locked.join(',') || 'unknown')
+        + '); refusing to measure a different match. Steps: ' + (unlock.steps || []).join(' -> '));
     }
 
-    var wanted = { mode: 'LOCAL', p1: 'crystala', p2: 'frost' };
-    await window.APEX_GOLD.onHandoff({
-      mode: wanted.mode, p1: wanted.p1, p2: wanted.p2,
-      p1Hero: wanted.p1, p2Hero: wanted.p2, shell: 'battle',
-    });
-    // onBattleLive loads the per-hero battle runtimes and returns FALSE when it
-    // declines. Its return value is the difference between "the match is
-    // running" and "the call succeeded", so it is reported, not assumed.
-    var live = await window.APEX_GOLD.onBattleLive({
-      mode: 'local1v1', p1: wanted.p1, p2: wanted.p2,
-    });
-    say('onBattleLive(local1v1) returned ' + live);
-    window.__P0DIAG_MODE__ = live ? 'LOCAL' : 'FAILED';
-    if (pinRefused) say('note: ' + pinRefused + ' (LOCAL pairing used instead)');
-    if (live === false) {
-      // One retry through BOT so a LOCAL-only restriction still yields a
-      // measured match -- clearly labelled, never silently substituted.
-      var botLive = await window.APEX_GOLD.onBattleLive({ mode: 'bot', p1: 'crystala' });
-      say('retry onBattleLive(bot) returned ' + botLive);
-      if (botLive) window.__P0DIAG_MODE__ = 'BOT(fallback)';
+    var sc = CFG.scenario;
+    var pairing = null;
+    if (sc.mode === 'bot') {
+      // Production path. BOT picks its own CPU opponent through
+      // botOpponentFor(), which on this build refuses ICE -- so a FROST CPU is
+      // impossible by product design here. The resulting pairing is recorded
+      // rather than assumed.
+      pairing = { requested: 'crystala vs frost', mode: 'BOT' };
+      await window.APEX_GOLD.onHandoff({ mode: 'BOT', p1: 'crystala', p2: 'frost', shell: 'battle' });
+      var liveBot = await window.APEX_GOLD.onBattleLive({ mode: 'bot', p1: 'crystala' });
+      say('onBattleLive(BOT) returned ' + liveBot);
+      window.__P0DIAG_MODE__ = liveBot ? 'BOT' : 'FAILED';
+      if (liveBot === false) throw new Error('BOT match refused');
+    } else {
+      pairing = { requested: 'crystala vs frost', mode: 'LOCAL', quality: sc.quality };
+      await window.APEX_GOLD.onHandoff({
+        mode: 'LOCAL', p1: 'crystala', p2: 'frost',
+        p1Hero: 'crystala', p2Hero: 'frost', shell: 'battle',
+      });
+      var liveLocal = await window.APEX_GOLD.onBattleLive({ mode: 'local1v1', p1: 'crystala', p2: 'frost' });
+      say('onBattleLive(LOCAL) returned ' + liveLocal);
+      window.__P0DIAG_MODE__ = liveLocal ? 'LOCAL' : 'FAILED';
+      if (liveLocal === false) throw new Error('LOCAL match refused');
     }
+    window.__P0DIAG_PAIRING__ = pairing;
     say('battle live');
 
     // Do not measure a match that is not actually running: if no fighter
@@ -660,18 +875,100 @@
       : null;
     say('fighters up: ' + JSON.stringify(heroes || window.fighters.map(function (f) { return f.name; })));
 
-    // Prove the cast API works before measuring, so a later "0 skills" result
-    // cannot be blamed on the measurement.
-    var before = 0;
-    try { window.APEX_GOLD.pressSkill(0, 0); } catch (e) { say('pressSkill threw: ' + e.message); }
-    await sleep(600);
-    try {
-      var st = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
-      if (st) before = st.active ? 1 : 1;
-    } catch (e) {}
-    say('cast API exercised (pressed CRYSTALA slot 0)');
-    await sleep(900);
+    // A press is not proof. Ask the cast authority directly and report its
+    // verdict, so a run where every cast is silently refused cannot look like
+    // a successful experiment.
+    var pre = freshCastStats();
+    pressAndRecord(window.APEX_GOLD, 0, 0, pre);
+    pressAndRecord(window.APEX_GOLD, 1, 0, pre);
+    say('pre-flight cast: ' + pre.confirmed + '/' + pre.presses + ' accepted'
+      + ' reasons=' + JSON.stringify(pre.byReason));
+    window.__P0DIAG_CAST_PREFLIGHT__ = pre;
+    await sleep(500);
   }
+
+  // ── permanent bloom seam ──────────────────────────────────────────────
+  // bloomForEmitter() caches one bloom system per emitter, forever. A factory
+  // patch installed when the noBloom arm starts therefore misses every emitter
+  // that already bloomed -- which on a live match is all of them, so the old
+  // version "suppressed" one probe system while the product composited 14
+  // times for real. The wrapper is installed ONCE, before any system exists,
+  // and each arm flips a flag.
+  var bloomSeam = { installed: false, off: false, systems: 0, beginBlocked: 0, compositeCalls: 0 };
+  function installBloomSeam() {
+    var G = window.APEX_CRYSTALA_GOLD;
+    if (!G || typeof G.createBloomSystem !== 'function' || bloomSeam.installed) return false;
+    var orig = G.createBloomSystem;
+    G.createBloomSystem = function (o) {
+      var b = orig.call(G, o);
+      bloomSeam.systems++;
+      if (b && typeof b.begin === 'function' && !b.__p0seam) {
+        var realBegin = b.begin;
+        var realComposite = b.composite;
+        b.begin = function () {
+          if (bloomSeam.off) { bloomSeam.beginBlocked++; return null; }
+          return realBegin.apply(b, arguments);
+        };
+        if (typeof realComposite === 'function') {
+          b.composite = function () {
+            if (bloomSeam.off) { bloomSeam.compositeCalls++; return undefined; }
+            return realComposite.apply(b, arguments);
+          };
+        }
+        b.__p0seam = true;
+        b.__p0realBegin = realBegin;
+        b.__p0realComposite = realComposite;
+      }
+      return b;
+    };
+    bloomSeam.installed = true;
+    say('bloom seam installed before the first system exists');
+    return true;
+  }
+
+  // ── ice pixel probe ───────────────────────────────────────────────────
+  // The ice surface is an offscreen canvas. "Did the arm remove the ice" is a
+  // question about PIXELS, so it is answered by reading them, not by counting
+  // calls. `iceInkOfCtx` samples an arbitrary 2d context on a 64x64 grid and
+  // counts pixels with meaningful alpha.
+  function iceInkOfCtx(ctx2d) {
+    try {
+      var cv = ctx2d && (ctx2d.canvas || ctx2d);
+      if (!cv || !cv.width || !cv.height) return null;
+      if (!iceInkOfCtx._probe) {
+        var c = document.createElement('canvas');
+        c.width = 64; c.height = 64;
+        iceInkOfCtx._probe = c.getContext('2d', { willReadFrequently: true });
+      }
+      var p = iceInkOfCtx._probe;
+      p.clearRect(0, 0, 64, 64);
+      p.drawImage(cv, 0, 0, cv.width, cv.height, 0, 0, 64, 64);
+      var d = p.getImageData(0, 0, 64, 64).data;
+      var ink = 0;
+      for (var i = 3; i < d.length; i += 4) if (d[i] > 8) ink++;
+      return ink;
+    } catch (e) { return null; }
+  }
+
+  function findFrostEngine() {
+    try {
+      var api = window.APEX_FROST_PRESENTATION;
+      if (!api || !api.ready) return null;
+      var cts = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.match
+        && window.APEX_HERO_REWORK.match.combatants) || [];
+      for (var i = 0; i < cts.length; i++) {
+        var eng = api.engineFor(cts[i].body);
+        if (eng && eng.iceCanvas) return eng;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // The ice surface only holds paint between render() and the blit: the product
+  // clears it at the top of each frame and throws it away at the bottom. So the
+  // CONTROL reference is taken where the paint really exists -- by watching the
+  // arena's drawImage and measuring the source surface at that moment.
+  var runState = { controlIceInk: null };
 
   // Pin the quality mode for every arm so the arms differ in ONE thing only.
   function pinMode(mode) {
@@ -721,6 +1018,8 @@
       error: null,
       completed: false,
     };
+    CFG.scenario = readScenario();
+    report.scenario = CFG.scenario;
     try {
       report.environment = deviceInfo();
       report.capabilities = {
@@ -735,16 +1034,57 @@
       say('env: ' + JSON.stringify(report.environment.webgl));
 
       await bootGame();
-      pinMode('high');
+      // Quality is pinned by the SCENARIO, not silently: the BOT run keeps the
+      // production experience, the LOCAL control states its tier explicitly.
+      pinMode(CFG.scenario.quality || 'high');
       await sleep(300);
       report.flagsAtStart = readFlags();
       report.recordingAtStart = recordingActive();
-      if (report.flagsAtStart.mode !== 'high') {
-        say('WARNING: mode did not pin to high: ' + report.flagsAtStart.mode);
+      var wantMode = CFG.scenario.quality || 'high';
+      if (report.flagsAtStart.mode !== wantMode) {
+        say('WARNING: quality is ' + report.flagsAtStart.mode + ', scenario asked for ' + wantMode);
       }
+      report.pairing = window.__P0DIAG_PAIRING__ || null;
+      report.unlock = window.__P0DIAG_UNLOCK__ || null;
+      report.fighters = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.match)
+        ? window.APEX_HERO_REWORK.match.combatants.map(function (c) { return c.heroId; }) : null;
+      say('scenario ' + CFG.scenario.id + ' | fighters ' + JSON.stringify(report.fighters));
 
+      installBloomSeam();
       startObservers();
       installProbe();
+
+      // The ice surface only holds paint between render() and the blit, so the
+      // CONTROL reference is measured where that paint exists: by watching the
+      // arena's drawImage on a clean frame. Reading it from a timer sees an
+      // emptied surface and reports 0, which would make the ice arm
+      // uninterpretable (nothing to remove).
+      var refPeak = 0;
+      var arenaCtx = null;
+      try {
+        var cvEl = document.getElementById('game-canvas');
+        arenaCtx = cvEl ? cvEl.getContext('2d') : null;
+      } catch (e) {}
+      var origDrawImage = arenaCtx && arenaCtx.drawImage;
+      if (arenaCtx && typeof origDrawImage === 'function') {
+        arenaCtx.drawImage = function (src) {
+          try {
+            if (src && src.width > 200 && src.height > 200) {
+              var inkNow = iceInkOfCtx(src);
+              if (inkNow != null && inkNow > refPeak) refPeak = inkNow;
+            }
+          } catch (e) {}
+          return origDrawImage.apply(arenaCtx, arguments);
+        };
+      }
+      for (var rw = 0; rw < 12 && refPeak === 0; rw++) {
+        try { pressAndRecord(window.APEX_GOLD, 1, 0, freshCastStats()); } catch (e) {}
+        await sleep(400);
+      }
+      if (arenaCtx) arenaCtx.drawImage = origDrawImage;
+      runState.controlIceInk = refPeak > 0 ? refPeak : null;
+      report.controlIceInk = runState.controlIceInk;
+      say('control ice ink reference: ' + runState.controlIceInk + ' (measured at the blit)');
 
       // Interleaved order with a control repeat at both ends, so a thermal or
       // JIT drift cannot be mistaken for an arm effect.
