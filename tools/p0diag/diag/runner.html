@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>APEX CHAOS — P0 Diagnosis Runner</title>
+<style>
+  body { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding: 16px; background: #111; color: #cfc8b4; }
+  pre#log { white-space: pre-wrap; background: #0a0a08; border: 1px solid #3a3428; padding: 10px; height: 70vh; overflow: auto; }
+  b.ok { color: #8fbc84; } b.bad { color: #c97866; } b.wrn { color: #d7bd72; }
+</style>
+</head>
+<body>
+<h2>APEX CHAOS — P0 Diagnosis Runner</h2>
+<div id="meta"></div>
+<pre id="log"></pre>
+<script>
+(function () {
+  const params = new URLSearchParams(location.search);
+  const scenario = params.get('scenario') || 'bot';
+  const arm = params.get('arm') || 'full';
+  const seedText = params.get('seed') || '0x1C4C2A5E';
+  const runId = params.get('runId') || 'local';
+  const meta = document.getElementById('meta');
+  const logEl = document.getElementById('log');
+
+  function log(msg) {
+    const line = (new Date().toISOString().slice(11, 19)) + ' ' + msg;
+    logEl.textContent += (logEl.textContent ? '\n' : '') + line;
+    logEl.scrollTop = logEl.scrollHeight;
+    console.log('[RUNNER]', msg);
+  }
+  function err(msg) { log('ERROR: ' + msg); }
+
+  meta.textContent = `scenario=${scenario} arm=${arm} seed=${seedText} runId=${runId} origin=${location.origin}`;
+
+  // -----------------------------------------------------------------------
+  // Seeded deterministic restart. The same seed + same input schedule must
+  // reproduce the same match conditions across arms; render suppression does
+  // not touch gameplay, so accepted-cast sequences are comparable.
+  // -----------------------------------------------------------------------
+  function seedNumber(text) {
+    let h = 0x811c9dc5;
+    const s = String(text);
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = (h * 0x01000193) | 0;
+    }
+    return h === 0 ? 0x9e3779b9 : h;
+  }
+  let rngState = seedNumber(seedText + ':' + arm + ':' + scenario);
+  function seededRandom() {
+    // xorshift32, never returns a degenerate all-zero stream.
+    rngState ^= rngState << 13;
+    rngState ^= rngState >>> 17;
+    rngState ^= rngState << 5;
+    return (rngState >>> 0) / 0xFFFFFFFF;
+  }
+
+  // -----------------------------------------------------------------------
+  // Load the frozen game in a same-origin iframe with a seeded Math.random
+  // installed BEFORE navigation, so every arm restarts from identical
+  // initial conditions (fighter start directions, spawn jitter).
+  // -----------------------------------------------------------------------
+  const frame = document.createElement('iframe');
+  frame.style.cssText = 'position:absolute;left:0;top:0;width:1px;height:1px;border:none;';
+  document.body.appendChild(frame);
+
+  let fw = null;
+  try { fw = frame.contentWindow; } catch (e) { err('cannot access iframe window: ' + e); }
+
+  if (fw) fw.Math.random = seededRandom;
+  frame.src = '/?p0diag=1&scenario=' + encodeURIComponent(scenario);
+
+  function waitFor(fn, timeoutMs) {
+    return new Promise((resolve, reject) => {
+      const t0 = Date.now();
+      function poll() {
+        try { if (fn()) return resolve(); } catch (e) { return reject(e); }
+        if (Date.now() - t0 > timeoutMs) return reject(new Error('timeout waiting for condition'));
+        setTimeout(poll, 50);
+      }
+      poll();
+    });
+  }
+
+  async function failAndReport(reason, fatalCode) {
+    err(reason);
+    try {
+      await postResult({ ok: false, scenario, arm, seed: seedText, runId, reason, fatal: !!fatalCode });
+    } catch (e) { err('could not submit error report: ' + e); }
+  }
+
+  function postResult(payload) {
+    const name = encodeURIComponent(`${scenario}-${arm}-${runId}.json`);
+    return fetch('/__p0diag/result?name=' + name, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then((r) => {
+      if (!r.ok) throw new Error('server status ' + r.status);
+    });
+  }
+
+  (async () => {
+    let startT = null;
+    try {
+      if (!fw) throw new Error('iframe inaccessible (cross-origin?)');
+
+      await waitFor(() => typeof fw.startArsenalBattleMode === 'function', 30000);
+      await waitFor(() => typeof fw.__apexEnsureDeferredRuntimes === 'function', 30000);
+
+      fw.__APEX_TEST_MODE = true;
+      if (scenario === 'bot') fw.__apexArsenalBattleProfile = 'BOT';
+      else fw.__apexArsenalBattleProfile = 'LOCAL';
+
+      await fw.__apexEnsureDeferredRuntimes('arsenalProduct');
+
+      // ---- Runtime suppression targets (patched in-page, build untouched) ----
+      const suppression = { intended: arm, applied: false, subsystemPresent: false, detail: '' };
+
+      if (arm === 'noIce') {
+        const f = fw.APEX_FROST_PRESENTATION;
+        suppression.subsystemPresent = !!(f && typeof f.renderArenaAmbience === 'function');
+        if (suppression.subsystemPresent) {
+          f.renderArenaAmbience = function () { /* suppressed: Frost arena ambience */ };
+          f.renderSurfaceUnderWeapons = function () { /* suppressed: Frost surface ice */ };
+          suppression.applied = true;
+          suppression.detail = 'APEX_FROST_PRESENTATION.renderArenaAmbience + renderSurfaceUnderWeapons no-op';
+        }
+      } else if (arm === 'noAux') {
+        const av = fw.APEX_ARSENAL_AV;
+        suppression.subsystemPresent = !!(av && typeof av.draw === 'function');
+        if (suppression.subsystemPresent) {
+          av.__p0diagDraw = av.draw;
+          av.draw = function () { /* suppressed: Arsenal auxiliary VFX */ };
+          suppression.applied = true;
+          suppression.detail = 'APEX_ARSENAL_AV.draw no-op';
+        }
+      } else if (arm === 'noBloom') {
+        const g = fw.APEX_CRYSTALA_PRESENTATION;
+        suppression.subsystemPresent = !!(g && typeof g.runBloomPass === 'function');
+        if (suppression.subsystemPresent) {
+          g.__p0diagRunBloomPass = g.runBloomPass;
+          g.runBloomPass = function () { /* suppressed: CrystalA bloom pass */ };
+          suppression.applied = true;
+          suppression.detail = 'APEX_CRYSTALA_PRESENTATION.runBloomPass no-op';
+        }
+      } else {
+        suppression.detail = 'full arm — no suppression';
+        suppression.subsystemPresent = true;
+        suppression.applied = true;
+      }
+
+      // ---- Match start: identical deterministic restart per arm ----
+      const started = fw.startArsenalBattleMode(scenario.p1 === 'ICE' ? 'ICE' : scenario.p1, scenario.p2, {
+        testFixture: true,
+      });
+      if (started !== true) throw new Error('startArsenalBattleMode returned ' + started);
+
+      const combatStateAtStart = fw.getArsenalBattleDebugState ? fw.getArsenalBattleDebugState() : null;
+
+      // ---- Cast accounting: authority-accepted casts only ----
+      // AIL.bus.emit('Cast') fires only when tryCast succeeds (cooldown paid,
+      // executor accepted). A J press that fails cooldown produces no event.
+      const castsConfirmed = [];
+      let castsPressed = 0;
+      const bus = fw.APEX_HERO_REWORK_AIL && fw.APEX_HERO_REWORK_AIL.bus;
+      if (bus && typeof bus.on === 'function') {
+        bus.on('Cast', (ev) => {
+          castsConfirmed.push({
+            hero: ev.hero,
+            slot: ev.slot,
+            mechanic: ev.mechanic,
+            side: ev.side,
+            at: fw.APEX_ARSENAL && fw.APEX_ARSENAL.state ? fw.APEX_ARSENAL.state.time : null,
+          });
+        });
+      } else {
+        log('WARN: AIL bus not observable; confirmed casts may be undercounted');
+      }
+
+      function pressJ() {
+        if (!fw || fw.gameState !== 'ARSENAL') return;
+        try {
+          fw.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyJ', key: 'j', bubbles: true, cancelable: true }));
+        } catch (e) { /* input may be blocked by focus; still counted as attempted */ }
+        castsPressed += 1;
+        log('J press #' + castsPressed + ' @t=' + (fw.APEX_ARSENAL && fw.APEX_ARSENAL.state ? fw.APEX_ARSENAL.state.time.toFixed(2) : '?'));
+      }
+
+      // Fixed, validated skill sequence: J presses at fixed match times.
+      // Same schedule every arm; acceptance decided by gameplay authority.
+      const pressTimes = [1.5, 3.0, 4.5, 6.0, 7.5];
+      let pressIdx = 0;
+      function scheduleTick() {
+        const state = fw.APEX_ARSENAL && fw.APEX_ARSENAL.state;
+        const t = state ? state.time : 0;
+        while (pressIdx < pressTimes.length && t >= pressTimes[pressIdx]) {
+          pressJ();
+          pressIdx += 1;
+        }
+      }
+
+      // ---- Frame sampling over the real rAF loop ----
+      const framePromise = fw.apexArsenalObserveRaf(600).catch((e) => ({ error: String(e), samples: 0 }));
+
+      let sampling = true;
+      function tick() {
+        if (!sampling) return;
+        scheduleTick();
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      const frameStats = await framePromise;
+      sampling = false;
+
+      try { fw.exitArsenalBattleMode(); } catch (e) { /* ignore */ }
+
+      // ---- Renderer identification (game canvas is canvas2d) ----
+      let webglRenderer = null;
+      let software = null;
+      try {
+        const c = document.createElement('canvas');
+        const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+        if (gl) {
+          const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          webglRenderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+          software = /swiftshader|llvmpipe|softpipe/i.test(String(webglRenderer || ''));
+        } else {
+          software = null; // no WebGL probe available
+        }
+      } catch (e) { /* probe optional */ }
+
+      const byHeroSkill = {};
+      for (const c of castsConfirmed) {
+        const key = `${c.hero}:${c.slot}`;
+        byHeroSkill[key] = (byHeroSkill[key] || 0) + 1;
+      }
+
+      const payload = {
+        ok: true,
+        schema: 'apex-p0-diagnosis-arm/v1',
+        scenario,
+        arm,
+        seed: seedText,
+        runId,
+        timestamp: new Date().toISOString(),
+        fighters: { p1: scenario.p1, p2: scenario.p2 },
+        battleMode: (fw.APEX_ARSENAL && fw.APEX_ARSENAL.state && fw.APEX_ARSENAL.state.battleMode) || null,
+        graphicsMode: meta.textContent,
+        suppression,
+        applicable: suppression.subsystemPresent,
+        renderer: {
+          gameCanvas: 'canvas2d',
+          webglRenderer,
+          rendererSoftware: software,
+          note: software === true ? 'WebGL renderer reports software (SwiftShader)' : software === false ? 'WebGL renderer hardware' : 'WebGL probe unavailable; game renders canvas2d',
+        },
+        combatStateAtStart,
+        frameSamples: frameStats && frameStats.samples != null ? {
+          count: frameStats.samples,
+          avgMs: frameStats.avgMs,
+          medianMs: frameStats.medianMs,
+          p95Ms: frameStats.p95Ms,
+          p99Ms: frameStats.p99Ms,
+          maxMs: frameStats.maxMs,
+          buckets: frameStats.buckets,
+        } : { count: 0, avgMs: 0, error: frameStats && frameStats.error },
+        presses: castsPressed,
+        acceptedCasts: castsConfirmed.length,
+        casts: castsConfirmed,
+        byHeroSkill,
+        perf: fw.apexArsenalPerfSummary ? fw.apexArsenalPerfSummary() : null,
+      };
+
+      log(`arm complete: presses=${castsPressed} accepted=${castsConfirmed.length} frames=${payload.frameSamples.count} avgMs=${payload.frameSamples.avgMs}`);
+      await postResult(payload);
+      log('report submitted');
+    } catch (e) {
+      await failAndReport(String(e.stack || e), true);
+    }
+  })();
+</script>
+</body>
+</html>

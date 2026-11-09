@@ -24,3 +24,6 @@ ARSENAL_PRODUCT_PLAYABLE_WINDOWS.zip
 .menu-resp-profile/
 .menu-probe-profile/
 
+
+# P0 diagnosis scratch staging (never commit)
+tools/p0diag/.stage/
