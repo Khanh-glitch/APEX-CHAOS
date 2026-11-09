@@ -36,4 +36,4 @@ tools/p0diag/game/
 tools/p0diag/results/
 tools/p0diag/.p0profile/
 tools/p0diag/profile/
-tools/p0diag/dist-package/
+tools/p0diag/dist/
