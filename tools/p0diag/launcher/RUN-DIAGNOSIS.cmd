@@ -3,7 +3,7 @@ REM ===========================================================================
 REM  APEX CHAOS - P0 performance diagnosis
 REM  Double-click this file. Nothing else is required.
 REM  It opens a browser, plays one CRYSTALA vs FROST match by itself, and saves
-REM  one JSON report. Do not click the game while it runs (about 4 minutes).
+REM  one JSON report. Do not click the game while it runs (2-4 minutes).
 REM ===========================================================================
 setlocal
 cd /d "%~dp0"

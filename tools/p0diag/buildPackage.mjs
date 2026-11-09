@@ -30,6 +30,11 @@ function log(m) { console.log('[pkg] ' + m); }
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
+// Record what the package can actually rely on, so the ZIP never claims a
+// self-contained runtime it does not contain.
+let runtimeBundled = null;
+function manifestIncludesRuntime(v) { runtimeBundled = v; }
+
 // ---------------------------------------------------------------- 1. build --
 log(`building frozen baseline ${TAG} in a throwaway worktree`);
 sh('git', ['worktree', 'add', '--force', WORK, TAG]);
@@ -71,7 +76,16 @@ const nodeZip = path.join(OUT, `node-${NODE_VER}-win-x64.zip`);
 if (!fs.existsSync(nodeZip)) {
   const url = `https://nodejs.org/dist/${NODE_VER}/node-${NODE_VER}-win-x64.zip`;
   log(`downloading ${url}`);
-  await download(url, nodeZip);
+  try {
+    await download(url, nodeZip);
+  } catch (e) {
+    // A missing runtime must NOT destroy a package that is otherwise complete:
+    // the launcher already knows how to fall back to a node on PATH, and a
+    // package that says so still gets the owner a diagnosis.
+    log(`WARNING: could not download Node (${e.message}).`);
+    log('         The launcher will fall back to a Node already on PATH.');
+    try { fs.rmSync(nodeZip, { force: true }); } catch (_) {}
+  }
 }
 if (fs.existsSync(nodeZip) && fs.statSync(nodeZip).size > 10e6) {
   log('extracting node runtime');
@@ -82,9 +96,60 @@ if (fs.existsSync(nodeZip) && fs.statSync(nodeZip).size > 10e6) {
   fs.mkdirSync(path.join(STAGE, 'runtime'), { recursive: true });
   fs.copyFileSync(path.join(tar, inner, 'node.exe'), path.join(STAGE, 'runtime', 'node.exe'));
   log('node.exe included');
+  manifestIncludesRuntime(true);
 } else {
-  log('WARNING: no Node runtime bundled; the package needs node on PATH');
+  // Fallback runtime source. nodejs.org is the canonical place for the official
+  // Windows build, but it is not reachable from every build machine, and an
+  // owner package whose launcher needs a Node they do not have is not a
+  // one-double-click package. The PyPI wheel ships the SAME official node.exe
+  // for win-x64, so try it before giving up.
+  const ok = await fetchNodeFromPyPI(path.join(STAGE, 'runtime'));
+  if (ok) {
+    log('node.exe included (PyPI wheel fallback)');
+  } else {
+    log('WARNING: no Node runtime bundled; the package needs node on PATH');
+    manifestIncludesRuntime(false);
+  }
 }
+
+
+// The fallback: pip's nodejs-bin wheel contains the official win-x64 node.exe.
+// Downloaded with pip so no extra tooling is assumed, then unpacked with the
+// stdlib zip reader (the wheel is a plain ZIP).
+async function fetchNodeFromPyPI(runtimeDir) {
+  const tmp = path.join(OUT, 'nodewheel');
+  fs.rmSync(tmp, { recursive: true, force: true });
+  fs.mkdirSync(tmp, { recursive: true });
+  try {
+    sh('pip', ['download', 'nodejs-bin', '--platform', 'win_amd64',
+               '--only-binary=:all:', '--no-deps', '-d', tmp], { stdio: 'pipe' });
+  } catch (e) {
+    log('pip fallback failed: ' + String(e.message).split('\n')[0]);
+    return false;
+  }
+  const wheel = fs.readdirSync(tmp).find((f) => f.endsWith('.whl'));
+  if (!wheel) return false;
+  try {
+    // -j: extract only the executable; the wheel's licenses/docs are not needed.
+    sh('python3', ['-c', `
+import zipfile,sys,os
+src,dst=sys.argv[1],sys.argv[2]
+with zipfile.ZipFile(src) as z:
+    for n in z.namelist():
+        if n.lower().endswith('node.exe'):
+            os.makedirs(dst,exist_ok=True)
+            with z.open(n) as f, open(os.path.join(dst,'node.exe'),'wb') as o:
+                o.write(f.read())
+            print('extracted',n)
+`, path.join(tmp, wheel), runtimeDir], { stdio: 'inherit' });
+  } catch (e) {
+    log('wheel extract failed: ' + String(e.message).split('\n')[0]);
+    return false;
+  }
+  const exe = path.join(runtimeDir, 'node.exe');
+  return fs.existsSync(exe) && fs.statSync(exe).size > 10e6;
+}
+
 
 // -------------------------------------------------------------- 4. manifest --
 const manifest = {
@@ -92,7 +157,9 @@ const manifest = {
   createdAt: new Date().toISOString(),
   baselineTag: TAG,
   gameBuild: receipt,
-  includes: ['game (frozen baseline build)', 'tools/p0diag', 'RUN-DIAGNOSIS.cmd', 'node runtime'],
+  runtimeBundled: runtimeBundled !== false,
+  includes: ['game (frozen baseline build)', 'tools/p0diag', 'RUN-DIAGNOSIS.cmd',
+             runtimeBundled ? 'node runtime (win-x64)' : 'node from PATH (runtime NOT bundled)'],
   entry: 'RUN-DIAGNOSIS.cmd',
   noGitHubActions: true,
   notes: 'Runs entirely offline on the owner machine. Writes only inside this folder.',
