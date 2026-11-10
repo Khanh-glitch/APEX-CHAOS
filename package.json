@@ -14,7 +14,7 @@
     "test:arsenal:current-render-hud": "node tools/testArsenalCurrentRenderHud.mjs",
     "test:arsenal:current-collision": "node tools/testArsenalCurrentCollisionContract.mjs",
     "test:arsenal:current-draw-recovery": "node tools/testArsenalCurrentDrawRecovery.mjs",
-    "test:p0-render": "node tools/testP0FluidRegionGate.mjs && node tools/testP0FluidMemoGate.mjs && node tools/testP0FrostScratchGate.mjs",
+    "test:p0-render": "node tools/testP0FluidRegionGate.mjs && node tools/testP0FluidMemoGate.mjs && node tools/testP0FrostScratchGate.mjs && node tools/testP0FrostFlowDetailGate.mjs",
     "test:arsenal:legacy-isolation": "node tools/testArsenalLegacyMechanicIsolation.mjs",
     "test:product-graph": "node tools/testArsenalProductGraph.mjs",
     "test:runtime-revision": "node tools/testRuntimeRevisionGate.mjs",
