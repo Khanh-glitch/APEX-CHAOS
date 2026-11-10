@@ -1202,32 +1202,31 @@ class IceField {
         const flowBudget = Number.isFinite(gfxFlag('APEX_ICE_FLOW_MOTION_BUDGET', NaN))
             ? gfxFlag('APEX_ICE_FLOW_MOTION_BUDGET', NaN)
             : Infinity;
-        if (this._motionRatio(t) > flowBudget) {
-            // The flow marks are skipped, but all prior ice material has
-            // already been composited. Restore the context state exactly as
-            // in the normal completion path: this offscreen canvas is reused
-            // on the next frame. Leaving 'source-atop' active makes the next
-            // P0/P1 slab fills draw through stale alpha instead of starting
-            // from a clean frame in PERFORMANCE mode.
-            ctx.globalCompositeOperation = "source-over";
-            return true;
+        // Scope the PERFORMANCE budget to FLOW MARKS ONLY. An early return
+        // here used to drop the authored cracks and carved gouges as well,
+        // changing FROST's visible skill identity. Those passes must run in
+        // both quality modes, and source-over is restored at the render end.
+        if (this._motionRatio(t) <= flowBudget) {
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "rgba(255,255,255,0.58)";
+            ctx.lineWidth = Math.max(px, 1);
+            ctx.beginPath();
+            let flowPaths = 0;
+            for (const n of live) {
+                if (n.kind === "patch" || n.kind === "pad" || n.flow > 0.34)
+                    continue;
+                const age = t - n.born;
+                if (age < n.lockDur)
+                    continue;
+                const off = (n.flow * 6 - 1) * n.W * 0.45;
+                const l = n.L * (0.9 + n.flow);
+                ctx.moveTo(n.x - n.ca * l - n.sa * off, n.y - n.sa * l + n.ca * off);
+                ctx.lineTo(n.x + n.ca * l - n.sa * off, n.y + n.sa * l + n.ca * off);
+                flowPaths++;
+            }
+            // No eligible path => no raster/compositor work.
+            if (flowPaths) ctx.stroke();
         }
-        ctx.lineCap = "round";
-        ctx.strokeStyle = "rgba(255,255,255,0.58)";
-        ctx.lineWidth = Math.max(px, 1);
-        ctx.beginPath();
-        for (const n of live) {
-            if (n.kind === "patch" || n.kind === "pad" || n.flow > 0.34)
-                continue;
-            const age = t - n.born;
-            if (age < n.lockDur)
-                continue;
-            const off = (n.flow * 6 - 1) * n.W * 0.45;
-            const l = n.L * (0.9 + n.flow);
-            ctx.moveTo(n.x - n.ca * l - n.sa * off, n.y - n.sa * l + n.ca * off);
-            ctx.lineTo(n.x + n.ca * l - n.sa * off, n.y + n.sa * l + n.ca * off);
-        }
-        ctx.stroke();
         // cracks: dark cut + white bevel, revealed along their length
         for (const n of live) {
             for (let i = 0; i < n.cracks.length; i++) {
