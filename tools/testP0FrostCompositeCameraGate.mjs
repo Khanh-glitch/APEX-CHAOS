@@ -67,4 +67,27 @@ for(let i=0;i<matrices.length;i++){
   assert.equal(ctx.globalAlpha,1,'host alpha is restored after ice');
   previous=now;
 }
-console.log('P0 FROST composite camera PASS: moving, translated and zoomed camera clear/blit.');
+// The camera can move the entire ice field outside the viewport. The old
+// branch interpreted null bounds as a reason for a FULL CANVAS composite,
+// even though the dirty rectangle was just cleared. No composite is needed.
+ctx.m={a:1,b:0,c:0,d:1,e:0,f:0};
+ice.nodes[0].x=3000;
+assert.equal(ice.blitBounds(1,1000,1000,ctx.m),null);
+draw(S,ctx,1);
+assert.equal(blits.length,matrices.length,
+  'offscreen FROST must not perform a full-canvas blend');
+assert.equal(clears.length,matrices.length+1,
+  'offscreen transition erases last visible ice');
+assert.equal(JSON.stringify(clears.at(-1)),JSON.stringify([
+  previous.x,previous.y,previous.w,previous.h]));
+assert.equal(ice._blitPrev,null,'offscreen transition resets old dirty stamp');
+// Re-enter the viewport: no stale ice and a bounded source blend again.
+ice.nodes[0].x=450;
+const reentry=ice.blitBounds(1,1000,1000,ctx.m);
+assert.ok(reentry);
+draw(S,ctx,1);
+assert.equal(blits.length,matrices.length+1);
+assert.equal(JSON.stringify(blits.at(-1).slice(1)),JSON.stringify([
+  reentry.x,reentry.y,reentry.w,reentry.h,reentry.x,reentry.y,reentry.w,reentry.h]));
+assert.equal(ctx.globalAlpha,1);
+console.log('P0 FROST composite camera PASS: moving, zoomed, offscreen skip and re-entry.');
