@@ -1181,8 +1181,16 @@ class IceField {
         const flowBudget = Number.isFinite(gfxFlag('APEX_ICE_FLOW_MOTION_BUDGET', NaN))
             ? gfxFlag('APEX_ICE_FLOW_MOTION_BUDGET', NaN)
             : Infinity;
-        if (this._motionRatio(t) > flowBudget)
+        if (this._motionRatio(t) > flowBudget) {
+            // The flow marks are skipped, but all prior ice material has
+            // already been composited. Restore the context state exactly as
+            // in the normal completion path: this offscreen canvas is reused
+            // on the next frame. Leaving 'source-atop' active makes the next
+            // P0/P1 slab fills draw through stale alpha instead of starting
+            // from a clean frame in PERFORMANCE mode.
+            ctx.globalCompositeOperation = "source-over";
             return true;
+        }
         ctx.lineCap = "round";
         ctx.strokeStyle = "rgba(255,255,255,0.58)";
         ctx.lineWidth = Math.max(px, 1);
