@@ -812,14 +812,14 @@
   // roster while that session is active and expires with it. It grants no
   // ownership and writes nothing. The session is opened through the owner's own
   // UI (Ctrl+Shift+F8 and the product's passcode), not by poking internals.
-  function unlockPlaytestRoster() {
+  function unlockPlaytestRoster(p1, p2) {
     var out = { active: false, via: null, locked: [], steps: [] };
     function lockState() {
       var l = [];
       try {
         if (typeof window.APEX_GOLD_LOCKED === 'function') {
-          if (window.APEX_GOLD_LOCKED('crystala')) l.push('crystala');
-          if (window.APEX_GOLD_LOCKED('frost')) l.push('frost');
+          if (window.APEX_GOLD_LOCKED(p1)) l.push(p1);
+          if (p2 !== p1 && window.APEX_GOLD_LOCKED(p2)) l.push(p2);
         }
       } catch (e) { out.error = String(e && e.message); }
       return l;
@@ -861,6 +861,8 @@
     try { q = new URLSearchParams(location.search).get('p0scenario') || ''; } catch (e) {}
     if (q === 'bot') return { id: 'bot', label: 'BOT match (production path)', mode: 'bot', quality: null };
     if (q === 'local-perf') return { id: 'local-perf', label: 'LOCAL 1v1, PERFORMANCE quality', mode: 'local', quality: 'performance' };
+    if (q === 'boxe-frost-perf') return { id: 'boxe-frost-perf', label: 'BOXE vs FROST, PERFORMANCE', mode: 'local', quality: 'performance', p1: 'boxe', p2: 'frost' };
+    if (q === 'boxe-frost-high') return { id: 'boxe-frost-high', label: 'BOXE vs FROST, HIGH', mode: 'local', quality: 'high', p1: 'boxe', p2: 'frost' };
     return { id: 'local-high', label: 'LOCAL 1v1, HIGH quality (control)', mode: 'local', quality: 'high' };
   }
 
@@ -920,24 +922,25 @@
     // required pairing goes through LOCAL and the refusal is reported.
     // Unlock through the product's own session, then re-read the gate after a
     // settle delay (the flag propagates through an event, not synchronously).
-    var unlock = unlockPlaytestRoster();
+    var sc = CFG.scenario;
+    var desiredP1 = sc.p1 || 'crystala', desiredP2 = sc.p2 || 'frost';
+    var unlock = unlockPlaytestRoster(desiredP1, desiredP2);
     await sleep(700);
     unlock.locked = [];
     try {
       if (typeof window.APEX_GOLD_LOCKED === 'function') {
-        if (window.APEX_GOLD_LOCKED('crystala')) unlock.locked.push('crystala');
-        if (window.APEX_GOLD_LOCKED('frost')) unlock.locked.push('frost');
+        if (window.APEX_GOLD_LOCKED(desiredP1)) unlock.locked.push(desiredP1);
+        if (desiredP2 !== desiredP1 && window.APEX_GOLD_LOCKED(desiredP2)) unlock.locked.push(desiredP2);
       }
     } catch (e) {}
     unlock.active = unlock.locked.length === 0;
     say('unlock: ' + JSON.stringify(unlock));
     window.__P0DIAG_UNLOCK__ = unlock;
     if (!unlock.active) {
-      throw new Error('CRYSTALA/FROST still locked (' + (unlock.locked.join(',') || 'unknown')
+      throw new Error(desiredP1 + '/' + desiredP2 + ' still locked (' + (unlock.locked.join(',') || 'unknown')
         + '); refusing to measure a different match. Steps: ' + (unlock.steps || []).join(' -> '));
     }
 
-    var sc = CFG.scenario;
     var pairing = null;
     if (sc.mode === 'bot') {
       // Production path. BOT picks its own CPU opponent through
@@ -951,12 +954,12 @@
       window.__P0DIAG_MODE__ = liveBot ? 'BOT' : 'FAILED';
       if (liveBot === false) throw new Error('BOT match refused');
     } else {
-      pairing = { requested: 'crystala vs frost', mode: 'LOCAL', quality: sc.quality };
+      pairing = { requested: desiredP1 + ' vs ' + desiredP2, mode: 'LOCAL', quality: sc.quality };
       await window.APEX_GOLD.onHandoff({
-        mode: 'LOCAL', p1: 'crystala', p2: 'frost',
-        p1Hero: 'crystala', p2Hero: 'frost', shell: 'battle',
+        mode: 'LOCAL', p1: desiredP1, p2: desiredP2,
+        p1Hero: desiredP1, p2Hero: desiredP2, shell: 'battle',
       });
-      var liveLocal = await window.APEX_GOLD.onBattleLive({ mode: 'local1v1', p1: 'crystala', p2: 'frost' });
+      var liveLocal = await window.APEX_GOLD.onBattleLive({ mode: 'local1v1', p1: desiredP1, p2: desiredP2 });
       say('onBattleLive(LOCAL) returned ' + liveLocal);
       window.__P0DIAG_MODE__ = liveLocal ? 'LOCAL' : 'FAILED';
       if (liveLocal === false) throw new Error('LOCAL match refused');
@@ -1187,7 +1190,9 @@
 
       // Interleaved order with a control repeat at both ends, so a thermal or
       // JIT drift cannot be mistaken for an arm effect.
-      var ORDER = ['full', 'noIce', 'noAux', 'noBloom', 'full'];
+      var ORDER = CFG.scenario.p1 === 'boxe'
+        ? ['full', 'noIce', 'noAux', 'full']
+        : ['full', 'noIce', 'noAux', 'noBloom', 'full'];
       for (var i = 0; i < ORDER.length; i++) {
         say('arm ' + (i + 1) + '/' + ORDER.length + ' -> ' + ORDER[i]);
         var res = await runArm(ORDER[i], i, ORDER.length);
