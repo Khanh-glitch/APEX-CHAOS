@@ -80,7 +80,17 @@ function profileDir() {
 //   bot        — production BOT path (the product picks the CPU opponent)
 //   local-perf — LOCAL 1v1 held at PERFORMANCE quality
 //   local-high — LOCAL 1v1 held at HIGH quality (the isolation control)
-const SCENARIOS = ['bot', 'local-perf', 'local-high'];
+const SCENARIO_ALLOWLIST = new Set([
+  'bot', 'local-perf', 'local-high', 'boxe-frost-perf', 'boxe-frost-high',
+]);
+const requestedScenarios = (process.env.P0_SCENARIOS || '')
+  .split(/[;,\s]+/).filter(Boolean);
+if (requestedScenarios.some((s) => !SCENARIO_ALLOWLIST.has(s))) {
+  throw new Error('Unknown P0_SCENARIOS entry. Allowed: ' + [...SCENARIO_ALLOWLIST].join(', '));
+}
+const SCENARIOS = requestedScenarios.length
+  ? [...new Set(requestedScenarios)]
+  : ['bot', 'local-perf', 'local-high'];
 
 // Support hook: set P0_DEBUG_PORT to keep a DevTools endpoint open on loopback
 // and pipe the browser's own output to this console. Off by default, so a normal
@@ -176,8 +186,8 @@ async function main() {
   const combined = {
     schema: 'APEX-CHAOS-p0-diagnosis-bundle-v1',
     createdAt: new Date().toISOString(),
-    note: 'Three SEPARATE runs. BOT is the production path; the LOCAL runs are the '
-      + 'control and are labelled by quality tier. They are never averaged together.',
+    note: 'Independent scenarios, never averaged together. BOT follows production '
+      + 'opponent selection. LOCAL uses specified fighter pairs and graphics quality.',
     runs: reports,
   };
   const out = path.join(RESULTS, 'p0-diagnosis-latest.json');
