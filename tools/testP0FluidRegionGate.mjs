@@ -67,6 +67,10 @@ assert.equal((file.match(/drawFluidLiveRegion\(ctx, cvs, i0b, i1b, j0b, j1b\)/g)
 assert.ok(file.includes("ctx.filter = layer === 'fire' ? FIRE_BLUR_WIDE : SMOKE_BLUR_WIDE"),
   'authored wide blur must be intact');
 assert.ok(file.includes('ctx.filter = FIRE_BLUR_CORE'), 'authored fire core blur must be intact');
-assert.match(frost, /if \(this\._motionRatio\(t\) > flowBudget\) \{[\s\S]*?ctx\.globalCompositeOperation = "source-over";[\s\S]*?return true;\s*\}/,
-  'FROST must restore composite state before a flow-skip return');
+assert.match(frost, /if \(this\._motionRatio\(t\) <= flowBudget\) \{/,
+  'FROST flow budget must scope only flow strokes, not cracks or gouges');
+assert.match(frost, /\/\/ cracks: dark cut \+ white bevel/,
+  'authored FROST cracks must remain after the flow-only branch');
+assert.match(frost, /\/\/ carve gouges: scraped deep channel/,
+  'authored FROST gouges must remain after the flow-only branch');
 console.log('P0 fluid crop PASS: ' + cases + ' geometry cases, blur passes and FROST state guard.');
