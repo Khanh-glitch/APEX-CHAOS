@@ -689,6 +689,11 @@ class IceField {
         this.nodes = [];
         this.carves = [];
         this.wets = [];
+        // Scratch arrays are reused every ice render. FROST may remain
+        // present for thousands of frames; allocating two filtered arrays
+        // on every draw causes unnecessary GC pressure during long matches.
+        this._renderLive = [];
+        this._renderCarves = [];
         this.facetPaths = [];
         this.facetStyles = ["rgba(255,255,255,0.26)", "rgba(255,255,255,0.1)", "rgba(38,104,170,0.07)", "rgba(38,104,170,0.15)"];
         // jittered-grid low-poly facet mesh (matches the faceted cel language of the source art)
@@ -971,27 +976,37 @@ class IceField {
         if (!live.length)
             return 0;
         let prev = this._motionPrev;
-        if (!prev || prev.t <= 0 || t <= prev.t) {
-            this._motionPrev = { t, x: live.map((n) => n.x), y: live.map((n) => n.y) };
-            return 0;
+        let ratio = 0;
+        if (prev && prev.t > 0 && t > prev.t) {
+            const dt = Math.max(1e-3, t - prev.t);
+            let sum = 0, count = 0;
+            for (let i = 0; i < live.length && i < prev.x.length; i++) {
+                const n = live[i];
+                if (n.dead)
+                    continue;
+                const size = Math.max(1, Math.max(n.L, n.W));
+                const d = Math.hypot(n.x - prev.x[i], n.y - prev.y[i]);
+                sum += d / size;
+                count += 1;
+            }
+            if (count)
+                ratio = (sum / count) / dt;
         }
-        const dt = Math.max(1e-3, t - prev.t);
-        let sum = 0, count = 0;
-        for (let i = 0; i < live.length && i < prev.x.length; i++) {
-            const n = live[i];
-            if (n.dead)
-                continue;
-            const size = Math.max(1, Math.max(n.L, n.W));
-            const d = Math.hypot(n.x - prev.x[i], n.y - prev.y[i]);
-            sum += d / size;
-            count += 1;
+        // Reuse the previous frame's coordinate buffers rather than calling
+        // live.map() twice and constructing a new holder every frame. The
+        // index alignment and motion ratio are exactly the original law.
+        if (!prev) {
+            prev = { t, x: [], y: [] };
+            this._motionPrev = prev;
         }
-        this._motionPrev = { t, x: live.map((n) => n.x), y: live.map((n) => n.y) };
-        if (!count)
-            return 0;
-        // per-second, normalised: 0.55 ≈ more than half the slab's own length
-        // travelled per second (measured at the 60 Hz sim step).
-        return (sum / count) / dt;
+        prev.t = t;
+        prev.x.length = live.length;
+        prev.y.length = live.length;
+        for (let i = 0; i < live.length; i++) {
+            prev.x[i] = live[i].x;
+            prev.y[i] = live[i].y;
+        }
+        return ratio;
     }
     /** Reusable entry slot so the batched passes never allocate per frame. */
     iceSlot(idx) {
@@ -1036,8 +1051,14 @@ class IceField {
         void ctx; void t;
     }
     render(ctx, t, px) {
-        const live = this.nodes.filter((n) => !n.dead && t > n.born);
-        const carves = this.carves.filter((c) => !c.dead && t > c.born);
+        const live = this._renderLive;
+        const carves = this._renderCarves;
+        live.length = 0;
+        carves.length = 0;
+        for (const n of this.nodes)
+            if (!n.dead && t > n.born) live.push(n);
+        for (const c of this.carves)
+            if (!c.dead && t > c.born) carves.push(c);
         if (!live.length && !carves.length)
             return false;
         // P0: cast shadow of the ice slab (opaque, merged) – physical elevation on light floor
