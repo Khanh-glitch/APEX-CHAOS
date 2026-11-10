@@ -644,6 +644,29 @@ const FIRE_BLUR_WIDE = 'blur(7px)';
 const FIRE_BLUR_CORE = 'blur(2.5px)';
 const SMOKE_BLUR_WIDE = 'blur(6px)';
 
+// P0: A smoke/fire source contains pixels only inside the fluid's live cell
+// bounds. Previously every blur filtered an 1896 x 1896 world-sized draw,
+// even when the source occupied just a few dozen cells. Select the exact
+// source-to-world subrectangle, with a conservative 8-cell / 96-world-pixel
+// transparent guard band on each side for the 7px maximum blur, resampling,
+// and camera transforms. No particle, colour, alpha, blur or HUD setting is
+// reduced. The full-size path remains for nearly full-grid fluid fields.
+const FLUID_BLUR_GUARD_CELLS = 8;
+function drawFluidLiveRegion(ctx, source, i0, i1, j0, j1) {
+    const sx = Math.max(0, i0 - FLUID_BLUR_GUARD_CELLS);
+    const sy = Math.max(0, j0 - FLUID_BLUR_GUARD_CELLS);
+    const ex = Math.min(exports.N, i1 + FLUID_BLUR_GUARD_CELLS + 1);
+    const ey = Math.min(exports.N, j1 + FLUID_BLUR_GUARD_CELLS + 1);
+    const sw = ex - sx, sh = ey - sy;
+    if (sw <= 0 || sh <= 0 || sw * sh >= exports.N * exports.N * 0.9) {
+        ctx.drawImage(source, FLUID_OX, FLUID_OY, FLUID_SZ, FLUID_SZ);
+        return;
+    }
+    ctx.drawImage(source, sx, sy, sw, sh,
+        FLUID_OX + sx * exports.CELL, FLUID_OY + sy * exports.CELL,
+        sw * exports.CELL, sh * exports.CELL);
+}
+
 /* blackbody-ish LUT: t∈[0,1] → rgb (dark red → orange → yellow → white) */
 exports.BB = new Uint8ClampedArray(256 * 3);
 for (let i = 0; i < 256; i++) {
@@ -1107,12 +1130,12 @@ class Fluid {
             ctx.globalCompositeOperation = 'lighter';
         // cell (i,j) centre is at world ((i-1)*CELL - HALF, (j-1)*CELL - HALF)
         ctx.filter = layer === 'fire' ? FIRE_BLUR_WIDE : SMOKE_BLUR_WIDE;
-        ctx.drawImage(cvs, FLUID_OX, FLUID_OY, FLUID_SZ, FLUID_SZ);
+        drawFluidLiveRegion(ctx, cvs, i0b, i1b, j0b, j1b);
         if (layer === 'fire') {
             // tighter hot core on top of the soft glow
             ctx.globalAlpha = 0.55;
             ctx.filter = FIRE_BLUR_CORE;
-            ctx.drawImage(cvs, FLUID_OX, FLUID_OY, FLUID_SZ, FLUID_SZ);
+            drawFluidLiveRegion(ctx, cvs, i0b, i1b, j0b, j1b);
         }
         ctx.filter = 'none';
         ctx.restore();
