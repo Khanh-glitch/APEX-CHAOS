@@ -16,7 +16,7 @@ const Motion = vm.runInNewContext('class FrostMotion {\n' + file.slice(start, en
   + '\n}\nFrostMotion');
 assert.ok(file.includes('this._renderLive = [];') && file.includes('this._renderCarves = [];'));
 assert.match(file, /const live = this\._renderLive;[\s\S]*?const carves = this\._renderCarves;/);
-assert.doesNotMatch(file.slice(start, end), /live\.map\(/,
+assert.doesNotMatch(file.slice(start, end).replace(/\/\/[^\n]*/g, ''), /live\.map\(/,
   'Frost motion must not allocate coordinate arrays per frame');
 
 function reference(nodes, state, t) {
