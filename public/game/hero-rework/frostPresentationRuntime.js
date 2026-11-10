@@ -1813,7 +1813,7 @@ function drawIceComposite(S, ctx, px) {
         // surface exactly as clean as a full clear while touching only the ice
         // region. The union is required: the ice moves/shrinks between frames
         // and stale pixels outside the current bounds must still be erased.
-        const cur = e.ice.blitBounds ? e.ice.blitBounds(e.t, e.iceCanvas.width, e.iceCanvas.height) : null;
+        const cur = e.ice.blitBounds ? e.ice.blitBounds(e.t, e.iceCanvas.width, e.iceCanvas.height, m) : null;
         const prev = e.ice._blitPrev || null;
         if (cur || prev) {
           const cx0 = Math.min(cur ? cur.x : 1e9, prev ? prev.x : 1e9);
