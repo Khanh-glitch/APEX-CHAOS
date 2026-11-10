@@ -22,12 +22,23 @@ const crop = vm.runInNewContext(match[0] + '\ndrawFluidLiveRegion', {
   exports: { N, CELL }, FLUID_OX: OX, FLUID_OY: OY, FLUID_SZ: N * CELL,
   FLUID_BLUR_GUARD_CELLS: 8,
 });
-let cases = 0;
-for (const [i0, i1, j0, j1] of [
+// Cover edge clamping, tiny fields, broad storms and large-field fallback
+// deterministically. This was previously a 9-case smoke test.
+const rectangles = [
   [60, 80, 60, 82], [0, 8, 0, 9], [140, 157, 149, 157],
   [1, 156, 1, 156], [0, 157, 0, 157], [20, 112, 20, 115],
   [55, 56, 78, 79], [70, 100, 90, 122], [75, 145, 80, 115],
-]) {
+];
+for (let i = 0; i <= 150; i += 15) {
+  for (let j = 0; j <= 150; j += 15) {
+    for (const extent of [1, 4, 13, 28, 56, 120]) {
+      rectangles.push([i, Math.min(N - 1, i + extent),
+        j, Math.min(N - 1, j + extent)]);
+    }
+  }
+}
+let cases = 0;
+for (const [i0, i1, j0, j1] of rectangles) {
   const calls = [];
   const source = { width: N, height: N };
   crop({ drawImage: (...args) => calls.push(args) }, source, i0, i1, j0, j1);
