@@ -1813,7 +1813,7 @@ function drawIceComposite(S, ctx, px) {
         // surface exactly as clean as a full clear while touching only the ice
         // region. The union is required: the ice moves/shrinks between frames
         // and stale pixels outside the current bounds must still be erased.
-        const cur = e.ice.blitBounds ? e.ice.blitBounds(e.t, e.iceCanvas.width, e.iceCanvas.height) : null;
+        const cur = e.ice.blitBounds ? e.ice.blitBounds(e.t, e.iceCanvas.width, e.iceCanvas.height, m) : null;
         const prev = e.ice._blitPrev || null;
         if (cur || prev) {
           const cx0 = Math.min(cur ? cur.x : 1e9, prev ? prev.x : 1e9);
@@ -1831,7 +1831,14 @@ function drawIceComposite(S, ctx, px) {
         if(perfProbe)perfProbe.markIceRender(performance.now()-renderStart);
         if (trace && trace.simFrame === renderAudit.frame) trace.canvas.painted = !!painted;
         ic.setTransform(1, 0, 0, 1, 0, 0);
-        if (painted) {
+        // If the transformed ice bounds do not intersect the viewport,
+        // the previous frame's bounds have just been cleared above. There
+        // is no visible ice to composite; a null bound must NOT trigger a
+        // full-canvas drawImage (the old fallback blended 1000x1000 empty
+        // pixels every offscreen frame). Reset the previous stamp so the ice
+        // can re-enter without leaving any ghost pixels.
+        if (!cur) e.ice._blitPrev = null;
+        if (painted && cur) {
           // Blit inside its own save/restore: transform + alpha are restored
           // unconditionally, even if drawImage throws.
           //

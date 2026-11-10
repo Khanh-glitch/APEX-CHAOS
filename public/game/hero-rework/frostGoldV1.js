@@ -689,6 +689,11 @@ class IceField {
         this.nodes = [];
         this.carves = [];
         this.wets = [];
+        // Scratch arrays are reused every ice render. FROST may remain
+        // present for thousands of frames; allocating two filtered arrays
+        // on every draw causes unnecessary GC pressure during long matches.
+        this._renderLive = [];
+        this._renderCarves = [];
         this.facetPaths = [];
         this.facetStyles = ["rgba(255,255,255,0.26)", "rgba(255,255,255,0.1)", "rgba(38,104,170,0.07)", "rgba(38,104,170,0.15)"];
         // jittered-grid low-poly facet mesh (matches the faceted cel language of the source art)
@@ -929,7 +934,7 @@ class IceField {
      * the per-frame blend/upload volume follows the ice, not the canvas.
      * Returns null when there is nothing to draw.
      */
-    blitBounds(t, cvW, cvH) {
+    blitBounds(t, cvW, cvH, transform = null) {
         let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
         for (const n of this.nodes) {
             if (n.dead || t <= n.born)
@@ -951,6 +956,26 @@ class IceField {
         }
         if (!(x1 > x0) || !(y1 > y0))
             return null;
+        // The ice is painted through the host camera matrix into a DEVICE
+        // pixel offscreen canvas. Clamp in DEVICE coordinates, not world
+        // coordinates: zoom/translate/rotation otherwise crop visible slabs
+        // and clear the wrong previous-frame pixels. Transform the four world
+        // bounds corners; their axis-aligned hull encloses all transformed ice.
+        if (transform) {
+            const { a, b, c, d, e, f } = transform;
+            if (![a, b, c, d, e, f].every(Number.isFinite)) {
+                // Unknown transform: fail safe to full-surface clear/blit.
+                return { x: 0, y: 0, w: cvW, h: cvH };
+            }
+            const ax = a * x0 + c * y0 + e, ay = b * x0 + d * y0 + f;
+            const bx = a * x1 + c * y0 + e, by = b * x1 + d * y0 + f;
+            const cx = a * x0 + c * y1 + e, cy = b * x0 + d * y1 + f;
+            const dx = a * x1 + c * y1 + e, dy = b * x1 + d * y1 + f;
+            x0 = Math.min(ax, bx, cx, dx);
+            y0 = Math.min(ay, by, cy, dy);
+            x1 = Math.max(ax, bx, cx, dx);
+            y1 = Math.max(ay, by, cy, dy);
+        }
         const pad = 8;
         const maxW = cvW > 1 ? cvW : 1e9, maxH = cvH > 1 ? cvH : 1e9;
         const bx = Math.max(0, Math.floor(x0 - pad));
@@ -971,27 +996,37 @@ class IceField {
         if (!live.length)
             return 0;
         let prev = this._motionPrev;
-        if (!prev || prev.t <= 0 || t <= prev.t) {
-            this._motionPrev = { t, x: live.map((n) => n.x), y: live.map((n) => n.y) };
-            return 0;
+        let ratio = 0;
+        if (prev && prev.t > 0 && t > prev.t) {
+            const dt = Math.max(1e-3, t - prev.t);
+            let sum = 0, count = 0;
+            for (let i = 0; i < live.length && i < prev.x.length; i++) {
+                const n = live[i];
+                if (n.dead)
+                    continue;
+                const size = Math.max(1, Math.max(n.L, n.W));
+                const d = Math.hypot(n.x - prev.x[i], n.y - prev.y[i]);
+                sum += d / size;
+                count += 1;
+            }
+            if (count)
+                ratio = (sum / count) / dt;
         }
-        const dt = Math.max(1e-3, t - prev.t);
-        let sum = 0, count = 0;
-        for (let i = 0; i < live.length && i < prev.x.length; i++) {
-            const n = live[i];
-            if (n.dead)
-                continue;
-            const size = Math.max(1, Math.max(n.L, n.W));
-            const d = Math.hypot(n.x - prev.x[i], n.y - prev.y[i]);
-            sum += d / size;
-            count += 1;
+        // Reuse the previous frame's coordinate buffers rather than calling
+        // live.map() twice and constructing a new holder every frame. The
+        // index alignment and motion ratio are exactly the original law.
+        if (!prev) {
+            prev = { t, x: [], y: [] };
+            this._motionPrev = prev;
         }
-        this._motionPrev = { t, x: live.map((n) => n.x), y: live.map((n) => n.y) };
-        if (!count)
-            return 0;
-        // per-second, normalised: 0.55 ≈ more than half the slab's own length
-        // travelled per second (measured at the 60 Hz sim step).
-        return (sum / count) / dt;
+        prev.t = t;
+        prev.x.length = live.length;
+        prev.y.length = live.length;
+        for (let i = 0; i < live.length; i++) {
+            prev.x[i] = live[i].x;
+            prev.y[i] = live[i].y;
+        }
+        return ratio;
     }
     /** Reusable entry slot so the batched passes never allocate per frame. */
     iceSlot(idx) {
@@ -1036,8 +1071,14 @@ class IceField {
         void ctx; void t;
     }
     render(ctx, t, px) {
-        const live = this.nodes.filter((n) => !n.dead && t > n.born);
-        const carves = this.carves.filter((c) => !c.dead && t > c.born);
+        const live = this._renderLive;
+        const carves = this._renderCarves;
+        live.length = 0;
+        carves.length = 0;
+        for (const n of this.nodes)
+            if (!n.dead && t > n.born) live.push(n);
+        for (const c of this.carves)
+            if (!c.dead && t > c.born) carves.push(c);
         if (!live.length && !carves.length)
             return false;
         // P0: cast shadow of the ice slab (opaque, merged) – physical elevation on light floor
@@ -1181,24 +1222,31 @@ class IceField {
         const flowBudget = Number.isFinite(gfxFlag('APEX_ICE_FLOW_MOTION_BUDGET', NaN))
             ? gfxFlag('APEX_ICE_FLOW_MOTION_BUDGET', NaN)
             : Infinity;
-        if (this._motionRatio(t) > flowBudget)
-            return true;
-        ctx.lineCap = "round";
-        ctx.strokeStyle = "rgba(255,255,255,0.58)";
-        ctx.lineWidth = Math.max(px, 1);
-        ctx.beginPath();
-        for (const n of live) {
-            if (n.kind === "patch" || n.kind === "pad" || n.flow > 0.34)
-                continue;
-            const age = t - n.born;
-            if (age < n.lockDur)
-                continue;
-            const off = (n.flow * 6 - 1) * n.W * 0.45;
-            const l = n.L * (0.9 + n.flow);
-            ctx.moveTo(n.x - n.ca * l - n.sa * off, n.y - n.sa * l + n.ca * off);
-            ctx.lineTo(n.x + n.ca * l - n.sa * off, n.y + n.sa * l + n.ca * off);
+        // Scope the PERFORMANCE budget to FLOW MARKS ONLY. An early return
+        // here used to drop the authored cracks and carved gouges as well,
+        // changing FROST's visible skill identity. Those passes must run in
+        // both quality modes, and source-over is restored at the render end.
+        if (this._motionRatio(t) <= flowBudget) {
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "rgba(255,255,255,0.58)";
+            ctx.lineWidth = Math.max(px, 1);
+            ctx.beginPath();
+            let flowPaths = 0;
+            for (const n of live) {
+                if (n.kind === "patch" || n.kind === "pad" || n.flow > 0.34)
+                    continue;
+                const age = t - n.born;
+                if (age < n.lockDur)
+                    continue;
+                const off = (n.flow * 6 - 1) * n.W * 0.45;
+                const l = n.L * (0.9 + n.flow);
+                ctx.moveTo(n.x - n.ca * l - n.sa * off, n.y - n.sa * l + n.ca * off);
+                ctx.lineTo(n.x + n.ca * l - n.sa * off, n.y + n.sa * l + n.ca * off);
+                flowPaths++;
+            }
+            // No eligible path => no raster/compositor work.
+            if (flowPaths) ctx.stroke();
         }
-        ctx.stroke();
         // cracks: dark cut + white bevel, revealed along their length
         for (const n of live) {
             for (let i = 0; i < n.cracks.length; i++) {

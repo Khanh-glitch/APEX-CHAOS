@@ -46,6 +46,9 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify P0 BOXE and FROST render fidelity before full acceptance
+        run: pnpm test:p0-render
+
       - name: Validate read-only V43 maintenance inventory and GOLD evidence backlog
         run: |
           node --check tools/maintenance/v43-branch-cleanup.mjs

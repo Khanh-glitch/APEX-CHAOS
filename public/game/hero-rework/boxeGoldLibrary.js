@@ -644,6 +644,29 @@ const FIRE_BLUR_WIDE = 'blur(7px)';
 const FIRE_BLUR_CORE = 'blur(2.5px)';
 const SMOKE_BLUR_WIDE = 'blur(6px)';
 
+// P0: A smoke/fire source contains pixels only inside the fluid's live cell
+// bounds. Previously every blur filtered an 1896 x 1896 world-sized draw,
+// even when the source occupied just a few dozen cells. Select the exact
+// source-to-world subrectangle, with a conservative 8-cell / 96-world-pixel
+// transparent guard band on each side for the 7px maximum blur, resampling,
+// and camera transforms. No particle, colour, alpha, blur or HUD setting is
+// reduced. The full-size path remains for nearly full-grid fluid fields.
+const FLUID_BLUR_GUARD_CELLS = 8;
+function drawFluidLiveRegion(ctx, source, i0, i1, j0, j1) {
+    const sx = Math.max(0, i0 - FLUID_BLUR_GUARD_CELLS);
+    const sy = Math.max(0, j0 - FLUID_BLUR_GUARD_CELLS);
+    const ex = Math.min(exports.N, i1 + FLUID_BLUR_GUARD_CELLS + 1);
+    const ey = Math.min(exports.N, j1 + FLUID_BLUR_GUARD_CELLS + 1);
+    const sw = ex - sx, sh = ey - sy;
+    if (sw <= 0 || sh <= 0 || sw * sh >= exports.N * exports.N * 0.9) {
+        ctx.drawImage(source, FLUID_OX, FLUID_OY, FLUID_SZ, FLUID_SZ);
+        return;
+    }
+    ctx.drawImage(source, sx, sy, sw, sh,
+        FLUID_OX + sx * exports.CELL, FLUID_OY + sy * exports.CELL,
+        sw * exports.CELL, sh * exports.CELL);
+}
+
 /* blackbody-ish LUT: t∈[0,1] → rgb (dark red → orange → yellow → white) */
 exports.BB = new Uint8ClampedArray(256 * 3);
 for (let i = 0; i < 256; i++) {
@@ -676,11 +699,10 @@ class Fluid {
         this.maxI = 0;
         this.minJ = exports.N;
         this.maxJ = 0;
-        // One backing canvas per rendered layer. The frame draws smoke twice
-        // (behind and in front of the fighters) with different alpha; with a
-        // shared canvas the second draw had to re-rasterise the identical
-        // field. Per-layer surfaces let the second draw reuse the first one's
-        // pixels.
+        // One backing canvas per material (smoke/fire). The same smoke pixels
+        // are drawn behind and in front of BOXE, with the original host alpha
+        // for each draw. Reusing a single source is safe even in HIGH: the
+        // fluid simulation epoch and cell bounds uniquely identify the image.
         this.cvsByLayer = Object.create(null);
         this.ctxByLayer = Object.create(null);
         this.imgByLayer = Object.create(null);
@@ -694,18 +716,9 @@ class Fluid {
         this.cctx = this.ctxByLayer.smoke;
         this.img = this.imgByLayer.smoke;
     }
-    /**
-     * Canvases are keyed by RENDER PASS, not merely by layer.
-     *
-     * `softPass` is the second smoke composite of the frame (drawn in front of
-     * the fighters at alpha 0.45). The field cannot change between the two
-     * smoke draws, so PERFORMANCE serves the second pass from the first pass's
-     * already-rasterised surface: one raster + one putImageData per frame
-     * instead of two, with identical pixels (the same field is sampled).
-     */
-    surfaceKey(layer) {
-        return (layer === 'smoke' && this.softPass === true) ? 'smoke-soft' : layer;
-    }
+    // No pass-specific source is needed: the second smoke composite has the
+    // same source pixels, regardless of output alpha or graphics quality.
+    // Both passes retain their separate destination drawImage() calls.
     layerCanvas(layer) {
         let cv = this.cvsByLayer[layer];
         if (!cv) {
@@ -972,19 +985,13 @@ class Fluid {
         const n = exports.N;
         const i0b = clamp(this.minI, 0, n - 1), i1b = clamp(this.maxI, 0, n - 1);
         const j0b = clamp(this.minJ, 0, n - 1), j1b = clamp(this.maxJ, 0, n - 1);
-        // Which backing surface this pass paints.
-        //   HIGH          -> one surface per layer (two independent rasters).
-        //   PERFORMANCE   -> the soft (second) smoke pass shares the first
-        //                    pass's surface; the field is identical between the
-        //                    two calls, so this is one raster per frame.
-        const softMode = (gfxFlag('APEX_GRAPHICS_FLUID_SOFT_ALPHA', 1) === 0);
-        // surfaceKey() gives the soft pass its OWN surface in HIGH ('smoke-soft')
-        // and lets it share the first pass's surface in PERFORMANCE. Keying on
-        // the bare layer name would collapse both passes onto one surface and
-        // silently remove the authored double-composite.
-        const paintKey = (layer === 'smoke' && this.softPass === true && softMode)
-            ? layer
-            : this.surfaceKey(layer);
+        // The destination smoke passes differ only by host alpha, not by
+        // source pixels. Keying the RASTER by material (not pass) avoids a
+        // second full ImageData scan, upload and canvas allocation in HIGH.
+        // The following destination drawImage() still runs for both passes.
+        // Should the simulation advance between them, epoch invalidates the
+        // memo and paints fresh source pixels before the second composite.
+        const paintKey = layer;
         const cvs = this.layerCanvas(paintKey);
         const cctx = this.ctxByLayer[paintKey];
         const img = this.imgByLayer[paintKey];
@@ -1002,11 +1009,19 @@ class Fluid {
             // the canvas byte-identical to a full clear without zeroing the
             // whole N*N buffer every call.
             const prev = this.stampByLayer[paintKey];
+            // Upload only the cells that changed. On the first render after a
+            // clear() / match reset there is no previous stamp, so upload the
+            // WHOLE transparent surface to erase any old pixels retained by
+            // the reused backing canvas. Subsequent frames upload the union
+            // of previous + current rectangles, exactly matching our clears.
+            let dirtyX = 0, dirtyY = 0, dirtyW = n, dirtyH = n;
             if (prev) {
                 const pj0 = Math.min(prev[2], j0b), pj1 = Math.max(prev[3], j1b);
                 const pi0 = Math.min(prev[0], i0b), pi1 = Math.max(prev[1], i1b);
                 for (let j = pj0; j <= pj1; j++)
                     px.fill(0, (j * n + pi0) * 4, (j * n + pi1 + 1) * 4);
+                dirtyX = pi0; dirtyY = pj0;
+                dirtyW = pi1 - pi0 + 1; dirtyH = pj1 - pj0 + 1;
             }
             else {
                 px.fill(0);
@@ -1052,7 +1067,7 @@ class Fluid {
                         any = 1;
                     }
             }
-            cctx.putImageData(img, 0, 0);
+            cctx.putImageData(img, 0, 0, dirtyX, dirtyY, dirtyW, dirtyH);
             wrote = any;
             this.frameMemo[stampKey] = wrote;
             // Peak 8-bit alpha is accumulated by the same pass that writes the
@@ -1107,12 +1122,12 @@ class Fluid {
             ctx.globalCompositeOperation = 'lighter';
         // cell (i,j) centre is at world ((i-1)*CELL - HALF, (j-1)*CELL - HALF)
         ctx.filter = layer === 'fire' ? FIRE_BLUR_WIDE : SMOKE_BLUR_WIDE;
-        ctx.drawImage(cvs, FLUID_OX, FLUID_OY, FLUID_SZ, FLUID_SZ);
+        drawFluidLiveRegion(ctx, cvs, i0b, i1b, j0b, j1b);
         if (layer === 'fire') {
             // tighter hot core on top of the soft glow
             ctx.globalAlpha = 0.55;
             ctx.filter = FIRE_BLUR_CORE;
-            ctx.drawImage(cvs, FLUID_OX, FLUID_OY, FLUID_SZ, FLUID_SZ);
+            drawFluidLiveRegion(ctx, cvs, i0b, i1b, j0b, j1b);
         }
         ctx.filter = 'none';
         ctx.restore();
