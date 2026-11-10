@@ -4,6 +4,7 @@
 // Exit codes: 0 report saved, 1 failure, 2 no browser found.
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { startServer } from './p0serve.mjs';
@@ -70,10 +71,9 @@ function findBrowser() {
 // serving the frozen build's static files from this local server exactly as the
 // itch build is served -- same relative URLs, one origin, fresh storage.
 function profileDir() {
-  const dir = path.join(HERE, '.p0profile');
-  fs.rmSync(dir, { recursive: true, force: true });
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
+  // Use a unique disposable Chrome profile instead of trying to remove a locked
+  // directory. Windows may still have Chrome subprocesses holding files open.
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'apex-chaos-p0-'));
 }
 
 // Three SEPARATE runs of the same instrument, never merged and never averaged:
@@ -138,11 +138,11 @@ async function main() {
     process.exit(1);
   }
   log(`game: ${ROOT}`);
-  const profile = profileDir();
-  log(`profile: throwaway (${profile}) — no personal browser data is read or copied`);
-
   const reports = [];
   for (const scen of SCENARIOS) {
+    // A separate profile per scenario prevents Chrome process overlap.
+    const profile = profileDir();
+    log(`scenario ${scen}: throwaway profile (${profile}) — no personal browser data is read or copied`);
     log(`scenario ${scen}: starting`);
     const srv = await startServer({ root: ROOT, resultsDir: RESULTS, instrument: INSTRUMENT });
     // No frame target is imposed on the owner: the arms end on their own time
