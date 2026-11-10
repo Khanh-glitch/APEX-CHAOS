@@ -31,10 +31,21 @@ function makeFluid(mode) {
       canvas.getContext = () => ({
         canvas,
         createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
-        putImageData(image) {
-          canvas.pixels = new Uint8ClampedArray(image.data);
+        putImageData(image, dx, dy, dirtyX = 0, dirtyY = 0,
+          dirtyW = image.data.length / 4, dirtyH = 1) {
+          assert.equal(dx, 0, 'fluid uploads at source origin');
+          assert.equal(dy, 0, 'fluid uploads at source origin');
+          // Simulate Canvas2D's six-argument putImageData, copying ONLY the
+          // requested dirty rectangle. A fake full-copy here previously let
+          // stale pixels outside an incorrectly computed dirty union pass.
+          if (!canvas.pixels) canvas.pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
+          for (let j = dirtyY; j < dirtyY + dirtyH; j++) {
+            const p = (j * canvas.width + dirtyX) * 4;
+            const bytes = dirtyW * 4;
+            canvas.pixels.set(image.data.subarray(p, p + bytes), p);
+          }
           canvas.writes += 1;
-          writes.push(canvas);
+          writes.push({ canvas, dirtyX, dirtyY, dirtyW, dirtyH });
         },
       });
       return canvas;
@@ -97,5 +108,37 @@ for (const mode of [1, 0]) {
   fluid.draw(ctx, 'smoke');
   assert.equal(writes.length, 2, 'new simulation epoch re-rasterizes once');
   assert.notDeepEqual(draws[2].bytes, first, 'changed density reaches the next frame');
+  const smokeCanvas = fluid.cvsByLayer.smoke;
+  assert.deepEqual(Buffer.from(smokeCanvas.pixels), Buffer.from(fluid.imgByLayer.smoke.data),
+    'partial upload matches the full authoritative image data');
+  assert.equal(writes[0].dirtyW * writes[0].dirtyH, 158 * 158,
+    'first render uploads full backing store to clear any stale pixels');
+  assert.ok(writes[1].dirtyW * writes[1].dirtyH < 158 * 158,
+    'subsequent epoch uploads only the live dirty rectangle');
+
+  // The fluid field MOVES across the grid. Both the old and new regions
+  // must be rewritten; old smoke pixels must not remain behind.
+  fluid.minI = 10; fluid.maxI = 25;
+  fluid.minJ = 22; fluid.maxJ = 38;
+  fluid.dens.fill(0); fluid.temp.fill(0); fluid.soot.fill(0);
+  for (let j = 22; j <= 38; j++) for (let i = 10; i <= 25; i++)
+    fluid.dens[j * 158 + i] = 0.45;
+  fluid.epoch += 1;
+  fluid.draw(ctx, 'smoke');
+  assert.deepEqual(Buffer.from(smokeCanvas.pixels), Buffer.from(fluid.imgByLayer.smoke.data),
+    'moving-field dirty union leaves no stale pixels');
+
+  // clear() resets stamps without replacing the GPU canvas. The next draw
+  // MUST force a full transparent upload to erase prior match imagery.
+  fluid.clear();
+  fluid.minI = 85; fluid.maxI = 100;
+  fluid.minJ = 110; fluid.maxJ = 122;
+  for (let j = 110; j <= 122; j++) for (let i = 85; i <= 100; i++)
+    fluid.dens[j * 158 + i] = 0.55;
+  fluid.draw(ctx, 'smoke');
+  assert.equal(writes.at(-1).dirtyW * writes.at(-1).dirtyH, 158 * 158,
+    'first draw after clear() must fully erase retained backing pixels');
+  assert.deepEqual(Buffer.from(smokeCanvas.pixels), Buffer.from(fluid.imgByLayer.smoke.data),
+    'no ghost pixels after match reset');
 }
-console.log('P0 BOXE memo PASS: HIGH/PERFORMANCE preserve 2 blends, 1 raster per epoch.');
+console.log('P0 BOXE memo PASS: HIGH/PERFORMANCE parity, partial upload, move and reset.');
