@@ -291,10 +291,17 @@
         // Sample the offscreen surface right here: the product calls render()
         // immediately after clearing it, so this reads what the blit WOULD
         // have sent to the arena.
-        try {
-          var inkPx = iceInkOfCtx(ic);
-          if (inkPx != null) state.ice.inkSamples.push(inkPx);
-        } catch (e) {}
+        // Pixel readback is a GPU synchronization point on Windows/ANGLE.
+        // Sampling on EVERY frame substantially inflates the noIce JS work
+        // and contaminates the A/B p95. Keep a small spread-out proof sample
+        // without doing a GPU readback on the other ~98% of measured frames.
+        // The no-blit proof remains independently checked via product marks.
+        if (state.ice.hits === 1 || state.ice.hits % 64 === 0) {
+          try {
+            var inkPx = iceInkOfCtx(ic);
+            if (inkPx != null) state.ice.inkSamples.push(inkPx);
+          } catch (e) {}
+        }
         state.ice.paintedFalse++;
         return false;
       };
