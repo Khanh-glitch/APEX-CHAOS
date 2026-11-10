@@ -934,7 +934,7 @@ class IceField {
      * the per-frame blend/upload volume follows the ice, not the canvas.
      * Returns null when there is nothing to draw.
      */
-    blitBounds(t, cvW, cvH) {
+    blitBounds(t, cvW, cvH, transform = null) {
         let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
         for (const n of this.nodes) {
             if (n.dead || t <= n.born)
@@ -956,6 +956,26 @@ class IceField {
         }
         if (!(x1 > x0) || !(y1 > y0))
             return null;
+        // The ice is painted through the host camera matrix into a DEVICE
+        // pixel offscreen canvas. Clamp in DEVICE coordinates, not world
+        // coordinates: zoom/translate/rotation otherwise crop visible slabs
+        // and clear the wrong previous-frame pixels. Transform the four world
+        // bounds corners; their axis-aligned hull encloses all transformed ice.
+        if (transform) {
+            const { a, b, c, d, e, f } = transform;
+            if (![a, b, c, d, e, f].every(Number.isFinite)) {
+                // Unknown transform: fail safe to full-surface clear/blit.
+                return { x: 0, y: 0, w: cvW, h: cvH };
+            }
+            const ax = a * x0 + c * y0 + e, ay = b * x0 + d * y0 + f;
+            const bx = a * x1 + c * y0 + e, by = b * x1 + d * y0 + f;
+            const cx = a * x0 + c * y1 + e, cy = b * x0 + d * y1 + f;
+            const dx = a * x1 + c * y1 + e, dy = b * x1 + d * y1 + f;
+            x0 = Math.min(ax, bx, cx, dx);
+            y0 = Math.min(ay, by, cy, dy);
+            x1 = Math.max(ax, bx, cx, dx);
+            y1 = Math.max(ay, by, cy, dy);
+        }
         const pad = 8;
         const maxW = cvW > 1 ? cvW : 1e9, maxH = cvH > 1 ? cvH : 1e9;
         const bx = Math.max(0, Math.floor(x0 - pad));
