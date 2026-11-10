@@ -699,11 +699,10 @@ class Fluid {
         this.maxI = 0;
         this.minJ = exports.N;
         this.maxJ = 0;
-        // One backing canvas per rendered layer. The frame draws smoke twice
-        // (behind and in front of the fighters) with different alpha; with a
-        // shared canvas the second draw had to re-rasterise the identical
-        // field. Per-layer surfaces let the second draw reuse the first one's
-        // pixels.
+        // One backing canvas per material (smoke/fire). The same smoke pixels
+        // are drawn behind and in front of BOXE, with the original host alpha
+        // for each draw. Reusing a single source is safe even in HIGH: the
+        // fluid simulation epoch and cell bounds uniquely identify the image.
         this.cvsByLayer = Object.create(null);
         this.ctxByLayer = Object.create(null);
         this.imgByLayer = Object.create(null);
@@ -717,18 +716,9 @@ class Fluid {
         this.cctx = this.ctxByLayer.smoke;
         this.img = this.imgByLayer.smoke;
     }
-    /**
-     * Canvases are keyed by RENDER PASS, not merely by layer.
-     *
-     * `softPass` is the second smoke composite of the frame (drawn in front of
-     * the fighters at alpha 0.45). The field cannot change between the two
-     * smoke draws, so PERFORMANCE serves the second pass from the first pass's
-     * already-rasterised surface: one raster + one putImageData per frame
-     * instead of two, with identical pixels (the same field is sampled).
-     */
-    surfaceKey(layer) {
-        return (layer === 'smoke' && this.softPass === true) ? 'smoke-soft' : layer;
-    }
+    // No pass-specific source is needed: the second smoke composite has the
+    // same source pixels, regardless of output alpha or graphics quality.
+    // Both passes retain their separate destination drawImage() calls.
     layerCanvas(layer) {
         let cv = this.cvsByLayer[layer];
         if (!cv) {
@@ -995,19 +985,13 @@ class Fluid {
         const n = exports.N;
         const i0b = clamp(this.minI, 0, n - 1), i1b = clamp(this.maxI, 0, n - 1);
         const j0b = clamp(this.minJ, 0, n - 1), j1b = clamp(this.maxJ, 0, n - 1);
-        // Which backing surface this pass paints.
-        //   HIGH          -> one surface per layer (two independent rasters).
-        //   PERFORMANCE   -> the soft (second) smoke pass shares the first
-        //                    pass's surface; the field is identical between the
-        //                    two calls, so this is one raster per frame.
-        const softMode = (gfxFlag('APEX_GRAPHICS_FLUID_SOFT_ALPHA', 1) === 0);
-        // surfaceKey() gives the soft pass its OWN surface in HIGH ('smoke-soft')
-        // and lets it share the first pass's surface in PERFORMANCE. Keying on
-        // the bare layer name would collapse both passes onto one surface and
-        // silently remove the authored double-composite.
-        const paintKey = (layer === 'smoke' && this.softPass === true && softMode)
-            ? layer
-            : this.surfaceKey(layer);
+        // The destination smoke passes differ only by host alpha, not by
+        // source pixels. Keying the RASTER by material (not pass) avoids a
+        // second full ImageData scan, upload and canvas allocation in HIGH.
+        // The following destination drawImage() still runs for both passes.
+        // Should the simulation advance between them, epoch invalidates the
+        // memo and paints fresh source pixels before the second composite.
+        const paintKey = layer;
         const cvs = this.layerCanvas(paintKey);
         const cctx = this.ctxByLayer[paintKey];
         const img = this.imgByLayer[paintKey];
