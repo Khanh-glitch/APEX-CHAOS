@@ -1009,11 +1009,19 @@ class Fluid {
             // the canvas byte-identical to a full clear without zeroing the
             // whole N*N buffer every call.
             const prev = this.stampByLayer[paintKey];
+            // Upload only the cells that changed. On the first render after a
+            // clear() / match reset there is no previous stamp, so upload the
+            // WHOLE transparent surface to erase any old pixels retained by
+            // the reused backing canvas. Subsequent frames upload the union
+            // of previous + current rectangles, exactly matching our clears.
+            let dirtyX = 0, dirtyY = 0, dirtyW = n, dirtyH = n;
             if (prev) {
                 const pj0 = Math.min(prev[2], j0b), pj1 = Math.max(prev[3], j1b);
                 const pi0 = Math.min(prev[0], i0b), pi1 = Math.max(prev[1], i1b);
                 for (let j = pj0; j <= pj1; j++)
                     px.fill(0, (j * n + pi0) * 4, (j * n + pi1 + 1) * 4);
+                dirtyX = pi0; dirtyY = pj0;
+                dirtyW = pi1 - pi0 + 1; dirtyH = pj1 - pj0 + 1;
             }
             else {
                 px.fill(0);
@@ -1059,7 +1067,7 @@ class Fluid {
                         any = 1;
                     }
             }
-            cctx.putImageData(img, 0, 0);
+            cctx.putImageData(img, 0, 0, dirtyX, dirtyY, dirtyW, dirtyH);
             wrote = any;
             this.frameMemo[stampKey] = wrote;
             // Peak 8-bit alpha is accumulated by the same pass that writes the
