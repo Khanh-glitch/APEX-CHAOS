@@ -3111,7 +3111,18 @@ class Engine {
         const parent = this.canvas.parentElement;
         if (!parent)
             return;
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        // Opt-in only. HIGH uses the exact historical Gold DPR calculation.
+        // Lower backing-store density reduces 2D raster/composite work without
+        // changing CSS bounds, world units, weapon physics, timing or HUD layout.
+        const perfMode = (() => {
+            try {
+                if (window.parent !== window && window.parent.APEX_GRAPHICS_MODE)
+                    return window.parent.APEX_GRAPHICS_MODE.get() === 'performance';
+            } catch (_) { /* sandboxed parent */ }
+            try { return window.localStorage.getItem('apex.graphics.mode') === 'performance'; }
+            catch (_) { return false; }
+        })();
+        const dpr = Math.min(perfMode ? 1.25 : 2, window.devicePixelRatio || 1);
         this.w = parent.clientWidth;
         this.h = parent.clientHeight;
         this.canvas.width = Math.max(2, Math.floor(this.w * dpr));
