@@ -1,4 +1,5 @@
 import React from 'react';
+import { installGraphicsMode } from './game/graphicsMode.js';
 import { createRoot } from 'react-dom/client';
 import { installProductSurfaceAuthority } from './game/productSurface.js';
 import { installPlayerAccountAuthority } from './game/playerAccount.js';
@@ -19,6 +20,7 @@ import './game/localization.css';
 import './game/sideIdentity.css';
 
 // Install before React and before any deferred classic runtime can evaluate.
+installGraphicsMode();
 installProductSurfaceAuthority(window);
 // A1: identity + admin authorities must exist before classic runtimes probe
 // them (economy selection override, Ctrl+Shift+F8). Cloud init is async and
