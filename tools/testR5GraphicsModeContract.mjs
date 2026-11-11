@@ -6,11 +6,12 @@ const mode=fs.readFileSync('src/game/graphicsMode.js','utf8');
 const wave=fs.readFileSync('public/bot-wave/game.html','utf8');
 assert(main.includes('installGraphicsMode();'), 'graphics mode must initialize before gameplay');
 assert(main.indexOf('installGraphicsMode();') < main.indexOf('installProductSurfaceAuthority(window);'), 'mode must initialize before surfaces');
-assert(wave.includes("const dpr = Math.min(perfMode ? 1.25 : 2, window.devicePixelRatio || 1);"), 'DPR must be gated behind PERFORMANCE');
-assert.equal((wave.match(/const dpr = Math.min\(perfMode \? 1\.25 : 2, window\.devicePixelRatio \|\| 1\);/g)||[]).length, 1);
+assert(wave.includes('if(wavePerformanceMode){'), 'wave-specific performance gate is required');
+assert(wave.includes('const target=Math.min(1.25,window.devicePixelRatio||1);'), 'DPR must be capped only inside the adapter');
+assert(wave.includes('const dpr = Math.min(2, window.devicePixelRatio || 1);'), 'Original renderer DPR must remain unchanged');
 assert(!wave.includes('botWavePerfMode'), 'no broken cross-scope helper from previous failed trial');
-const matches=[...wave.matchAll(/const dpr = Math.min\(perfMode \? 1\.25 : 2, window\.devicePixelRatio \|\| 1\);/g)];
-assert.equal(matches.length,1);
+const gold=wave.slice(wave.indexOf('const modules='),wave.indexOf('/* BOXE BOT WAVE pilot'));
+assert.equal(gold.length,905635,'Immutable Gold source length must remain exact');
 for(const deviceDpr of [1,1.5,2,3]) {
  const high=Math.min(2,deviceDpr);
  const perf=Math.min(1.25,deviceDpr);
