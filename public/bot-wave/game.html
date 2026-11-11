@@ -3111,18 +3111,7 @@ class Engine {
         const parent = this.canvas.parentElement;
         if (!parent)
             return;
-        // Opt-in only. HIGH uses the exact historical Gold DPR calculation.
-        // Lower backing-store density reduces 2D raster/composite work without
-        // changing CSS bounds, world units, weapon physics, timing or HUD layout.
-        const perfMode = (() => {
-            try {
-                if (window.parent !== window && window.parent.APEX_GRAPHICS_MODE)
-                    return window.parent.APEX_GRAPHICS_MODE.get() === 'performance';
-            } catch (_) { /* sandboxed parent */ }
-            try { return window.localStorage.getItem('apex.graphics.mode') === 'performance'; }
-            catch (_) { return false; }
-        })();
-        const dpr = Math.min(perfMode ? 1.25 : 2, window.devicePixelRatio || 1);
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
         this.w = parent.clientWidth;
         this.h = parent.clientHeight;
         this.canvas.width = Math.max(2, Math.floor(this.w * dpr));
@@ -7583,6 +7572,29 @@ function perfPercentile(key,p=.95){
 }
 let lastRenderStart=0;
 const fluidWork=window.APEX_WAVE_LOSSLESS_FLUID.install(engine.fluid);
+// PERFORMANCE is an additive BOT WAVE adapter. Do not modify the
+// immutable, hash-verified Gold engine/VFX/audio modules above.
+const wavePerformanceMode = (() => {
+ try {
+  if(window.parent!==window && window.parent.APEX_GRAPHICS_MODE)
+   return window.parent.APEX_GRAPHICS_MODE.get()==='performance';
+ } catch (_) { /* isolated itch iframe */ }
+ try { return window.localStorage.getItem('apex.graphics.mode')==='performance'; }
+ catch (_) { return false; }
+})();
+if(wavePerformanceMode){
+ const originalWaveResize=engine.resize.bind(engine);
+ engine.resize=function(){
+  originalWaveResize();
+  const target=Math.min(1.25,window.devicePixelRatio||1);
+  if(this.dpr<=target) return;
+  this.dpr=target;
+  this.canvas.width=Math.max(2,Math.floor(this.w*target));
+  this.canvas.height=Math.max(2,Math.floor(this.h*target));
+  this.ctx.setTransform(target,0,0,target,0,0);
+ };
+ engine.resize();
+}
 const nativeRender=engine.render.bind(engine);
 const nativePostEnd=engine.post.end.bind(engine.post);
 engine.post.end=function(...args){
