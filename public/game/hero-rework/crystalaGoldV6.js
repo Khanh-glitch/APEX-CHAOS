@@ -1694,42 +1694,69 @@ function drawStar4(c, cx, cy, size, rot = 0, color = '#ffffff') {
   c.restore();
 }
 
+// Cache the immutable facets of each seeded Gold gem as native paths.
+// Growth, movement, damage, alpha, material tint, blending and layer order
+// remain live in drawGem/drawPrison; only repeated path construction disappears.
+// No graphics-mode switch or reduced-quality fallback is involved.
+const compiledGemPaths = new WeakMap();
+function gemPaths(gem) {
+  const Path = g.Path2D;
+  if (!Path || !gem) return null;
+  let cached = compiledGemPaths.get(gem);
+  if (cached) return cached;
+  const outline = new Path();
+  tracePoly(outline, gem.outline);
+  const facets = (gem.facets || []).map(f => {
+    const path = new Path();
+    tracePoly(path, f.pts);
+    return path;
+  });
+  const rim = new Path();
+  for (const e of gem.rim || []) {
+    rim.moveTo(e[0].x, e[0].y);
+    rim.lineTo(e[1].x, e[1].y);
+  }
+  cached = { outline, facets, rim };
+  compiledGemPaths.set(gem, cached);
+  return cached;
+}
 function drawGem(c, gem, o = {}) {
   if (!gem || !gem.outline) return;
+  const paths = gemPaths(gem);
   c.save();
   const a = c.globalAlpha * (o.alpha != null ? o.alpha : 1);
   c.globalAlpha = a;
-  c.beginPath();
-  tracePoly(c, gem.outline);
+  if (!paths) { c.beginPath(); tracePoly(c, gem.outline); }
   c.fillStyle = (gem.ramp && gem.ramp[1]) || '#58309d';
-  c.fill();
+  paths ? c.fill(paths.outline) : c.fill();
   c.save();
-  c.clip();
+  paths ? c.clip(paths.outline) : c.clip();
   if (gem.facets) {
-    for (const f of gem.facets) {
-      c.beginPath();
-      tracePoly(c, f.pts);
+    for (let i = 0; i < gem.facets.length; i++) {
+      const f = gem.facets[i];
+      if (!paths) { c.beginPath(); tracePoly(c, f.pts); }
       c.fillStyle = f.color;
-      c.fill();
+      paths ? c.fill(paths.facets[i]) : c.fill();
     }
   }
   if (o.tint) {
     c.globalAlpha = a * (o.tintA != null ? o.tintA : 1);
-    c.beginPath();
-    tracePoly(c, gem.outline);
+    if (!paths) { c.beginPath(); tracePoly(c, gem.outline); }
     c.fillStyle = o.tint;
-    c.fill();
+    paths ? c.fill(paths.outline) : c.fill();
     c.globalAlpha = a;
   }
   if (o.rim !== false && gem.rim && gem.rim.length) {
     c.lineWidth = (o.lw || 2.6) * 1.2;
     c.strokeStyle = o.rimColor || '#eee0fb';
-    c.beginPath();
-    for (const e of gem.rim) {
-      c.moveTo(e[0].x, e[0].y);
-      c.lineTo(e[1].x, e[1].y);
+    if (!paths) {
+      c.beginPath();
+      for (const e of gem.rim) {
+        c.moveTo(e[0].x, e[0].y);
+        c.lineTo(e[1].x, e[1].y);
+      }
     }
-    c.stroke();
+    paths ? c.stroke(paths.rim) : c.stroke();
   }
   if (gem.star) {
     const s = gem.r * (gem.starSize || 0.31);
@@ -1741,9 +1768,8 @@ function drawGem(c, gem, o = {}) {
     c.lineWidth = o.lw || 2.8;
     c.strokeStyle = o.stroke || '#190d2a';
     c.lineJoin = 'round';
-    c.beginPath();
-    tracePoly(c, gem.outline);
-    c.stroke();
+    if (!paths) { c.beginPath(); tracePoly(c, gem.outline); }
+    paths ? c.stroke(paths.outline) : c.stroke();
   }
   c.restore();
 }
@@ -1801,9 +1827,10 @@ function drawStone(c, s, alpha = 1, emissive = false, sprites = null) {
     c.globalCompositeOperation = 'lighter';
     c.globalAlpha = 0.09 + (s.energy || 0) * 0.42 + (s.recoil || 0) * 0.25;
     c.beginPath();
-    tracePoly(c, s.gem.outline);
+    const path = gemPaths(s.gem);
+    if (!path) tracePoly(c, s.gem.outline);
     c.fillStyle = '#9b55ee';
-    c.fill();
+    path ? c.fill(path.outline) : c.fill();
     if (spr && spr.glow) {
       if ((s.energy || 0) > 0.5) {
         c.globalAlpha = (s.energy - 0.5) * 0.7;
@@ -1869,9 +1896,10 @@ function drawWall(c, w, emissive = false, sprites = null) {
       const e = 0.055 + (sg.lit || 0) * 0.62 + (sg.stress || 0) * 0.42 + (1 - clamp(sg.grow, 0, 1)) * 0.65;
       c.globalAlpha = clamp(e, 0, 0.88) * fade;
       c.beginPath();
-      tracePoly(c, sg.gem.outline);
+      const path = gemPaths(sg.gem);
+      if (!path) tracePoly(c, sg.gem.outline);
       c.fillStyle = '#a45cf0';
-      c.fill();
+      path ? c.fill(path.outline) : c.fill();
       c.globalCompositeOperation = 'source-over';
       c.restore();
       continue;
@@ -2017,9 +2045,10 @@ function drawPrisonWallCell(c, p, e, sg, grow, emissive = false, fade = 1) {
   if (heavy > 0.99 && p && p.solid) {
     c.globalAlpha *= 0.34;
     c.beginPath();
-    tracePoly(c, sg.gem.outline);
+    const path = gemPaths(sg.gem);
+    if (!path) tracePoly(c, sg.gem.outline);
     c.fillStyle = '#100820';
-    c.fill();
+    path ? c.fill(path.outline) : c.fill();
   }
   c.restore();
 }
