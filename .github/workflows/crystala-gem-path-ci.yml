@@ -35,3 +35,33 @@ jobs:
           pnpm test:shipping-dist
           test -s dist/index.html
           test -s dist/game/hero-rework/crystalaGoldV6.js
+      - name: Verify Chrome's real Canvas2D output and measured work
+        run: |
+          npm ci --prefix tools/probe --ignore-scripts
+          CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testCrystalaGemPathChrome.mjs
+      - name: Package an itch RC only after Gold parity and rendering speed gates
+        run: |
+          echo "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          (cd dist-itch-html5 && zip -qr -9 ../APEX-CHAOS-CRYSTALA-HEXA-PATH-REUSE-ITCH.zip .)
+          unzip -tq APEX-CHAOS-CRYSTALA-HEXA-PATH-REUSE-ITCH.zip
+          unzip -Z1 APEX-CHAOS-CRYSTALA-HEXA-PATH-REUSE-ITCH.zip | grep -qx index.html
+          sha256sum APEX-CHAOS-CRYSTALA-HEXA-PATH-REUSE-ITCH.zip > APEX-CHAOS-CRYSTALA-HEXA-PATH-REUSE-ITCH.sha256
+      - name: Check actual CRYSTALA vs FROST and FROST vs CRYSTALA K-J battles
+        run: |
+          CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchPackagedChrome.mjs
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/crystala-path-preview.log 2>&1 &
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then break; fi
+            sleep 1
+          done
+          CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testCrystalaHexaChrome.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apex-crystala-path-${{ github.sha }}
+          path: |
+            APEX-CHAOS-CRYSTALA-HEXA-PATH-REUSE-ITCH.zip
+            APEX-CHAOS-CRYSTALA-HEXA-PATH-REUSE-ITCH.sha256
+            reports/crystala-hexa-chrome/
+          if-no-files-found: warn
