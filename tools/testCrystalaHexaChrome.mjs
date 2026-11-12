@@ -50,8 +50,22 @@ try{
      bloomReady:typeof G.APEX_CRYSTALA_PRESENTATION?.runBloomPass==='function',
      canvasWidth:G.canvas?.width,canvasHeight:G.canvas?.height};
   },heroes);
-  await page.screenshot({path:out+'/'+heroes.join('-')+'.png'});
-  results.push({...stat,errors});
+  // Owner capture must read real game canvas pixels, not the initial
+  // mechanical-door overlay, which can obscure an internal test fixture.
+  const capture=await page.evaluate(()=>{
+   const c=document.getElementById('game-canvas');
+   if(!c||!c.width||!c.height)throw Error('Missing active battle canvas');
+   const pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+   let lit=0;
+   for(let i=0;i<pixels.length;i+=40){
+    if(pixels[i]>14||pixels[i+1]>14||pixels[i+2]>14)lit++;
+   }
+   return {lit,width:c.width,height:c.height,png:c.toDataURL('image/png')};
+  });
+  assert(capture.lit>1000,'Battle canvas is blank behind the START overlay');
+  fs.writeFileSync(out+'/'+heroes.join('-')+'.png',
+   Buffer.from(capture.png.split(',')[1],'base64'));
+  results.push({...stat,renderedPixelsSampled:capture.lit,errors});
   assert(stat.bloomReady,'CRYSTALA bloom integration unavailable');
   assert(stat.kOk,'K Awakening cast failed: '+stat.kReason);
   assert(stat.jOk,'J HEXA cast failed: '+stat.jReason);
