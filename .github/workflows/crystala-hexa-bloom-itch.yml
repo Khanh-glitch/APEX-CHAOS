@@ -1,0 +1,64 @@
+name: CRYSTALA HEXA lossless bloom — itch RC
+on:
+  push:
+    branches: [fix/crystala-ultimate-bloom-buffers-20261112]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  crystala-a2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      VITE_SUPABASE_URL: ''
+      VITE_SUPABASE_ANON_KEY: ''
+      VITE_APEX_DEV_ADMIN: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: CRYSTALA ultimate image and buffer parity
+        run: |
+          node tools/testCrystalaHexaBloomBuffers.mjs
+          node tools/testCrystalaGoldParity.mjs
+          node tools/testCrystalaGameplayGates.mjs
+      - name: BOXE and shared game compatibility
+        run: |
+          node tools/testBoxeNormalIntegration.mjs
+          node tools/testOwnerShortcutCapture.mjs
+          node tools/testOwnerStudioSfxPolicy.mjs
+      - name: Build game and shipping verification
+        run: |
+          pnpm build
+          pnpm test:shipping-dist
+          test -s dist/index.html
+          test -s dist/game/hero-rework/crystalaPresentationRuntime.js
+      - name: Create itch HTML5 ZIP
+        run: |
+          echo "$GITHUB_SHA" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          test -s dist-itch-html5/index.html
+          test -s dist-itch-html5/game/hero-rework/crystalaPresentationRuntime.js
+          (cd dist-itch-html5 && zip -qr -9 ../APEX-CHAOS-CRYSTALA-HEXA-LOSSLESS-ITCH.zip .)
+          unzip -tq APEX-CHAOS-CRYSTALA-HEXA-LOSSLESS-ITCH.zip
+          unzip -Z1 APEX-CHAOS-CRYSTALA-HEXA-LOSSLESS-ITCH.zip | grep -qx index.html
+          sha256sum APEX-CHAOS-CRYSTALA-HEXA-LOSSLESS-ITCH.zip > APEX-CHAOS-CRYSTALA-HEXA-LOSSLESS-ITCH.sha256
+      - name: Chrome packaged game smoke
+        run: |
+          npm ci --prefix tools/probe --ignore-scripts
+          CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/testOwnerItchPackagedChrome.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apex-crystala-hexa-${{ github.sha }}
+          path: |
+            APEX-CHAOS-CRYSTALA-HEXA-LOSSLESS-ITCH.zip
+            APEX-CHAOS-CRYSTALA-HEXA-LOSSLESS-ITCH.sha256
+            reports/owner-itch-qa/
+          if-no-files-found: warn
