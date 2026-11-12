@@ -10,6 +10,10 @@
   const lib=global.APEX_BOXE_GOLD_LIBRARY;
   if(!AIL||!lib?.Engine)throw Error('BOXE_GOLD_REQUIRES_OWNER_LIBRARY_AND_AIL');
   const live=new Map();
+  // Gold's existing bitwise-parity-verified fluid optimization. It never
+  // changes the solver timestep, smoke source pixels or the two-layer draw.
+  // Missing runtime falls back to the untouched Gold implementation.
+  const fluidWorkFor=(g)=>global.APEX_WAVE_LOSSLESS_FLUID?.install?.(g.fluid)||null;
   const finite=(n)=>Number.isFinite(n);
   const now=()=>AIL.clock();
   // Gold's smoke/fire grid is centered; native match coordinates are not.
@@ -24,7 +28,8 @@
     // visual-only Gold must never register DOM events, spawn lab enemies, or
     // requestAnimationFrame; the patched constructor returns before attach().
     g.enemies=[];g.projs=[];g.ribbons=[];g.paused=true;
-    const rec={g,f,last:now(),rocket:null,flurry:null,punches:[],disposers:[]};live.set(f,rec);
+    const rec={g,f,last:now(),rocket:null,flurry:null,punches:[],disposers:[],
+      fluidWork:fluidWorkFor(g)};live.set(f,rec);
     return rec;
   }
   function purgeStale(){
@@ -162,7 +167,7 @@
       fg.enemies=[];fg.projs=[];fg.ribbons=[];fg.paused=true;
       fg.player.x=toGold(body.x);fg.player.y=toGold(body.y);fg.player.aim=g.player.aim;
       fg.player.empoweredT=body.duration;
-      rec.flurry={g:fg,x:toGold(body.x),y:toGold(body.y),start:now(),until:now()+body.duration,
+      rec.flurry={g:fg,fluidWork:fluidWorkFor(fg),x:toGold(body.x),y:toGold(body.y),start:now(),until:now()+body.duration,
         fromX:toGold(body.sourceX),fromY:toGold(body.sourceY),last:now(),cycle:0};
     }else if(ev.type==='boxe:rocket-shot'){
       // Native physical bullet/gauntlet contact. Gold V3 sound bank stays
@@ -270,7 +275,9 @@
       if(f.endAt&&clock-f.endAt>.32){e.destroy();rec.flurry=null;}
     }
   }
-  function drawLayers(ctx,g){
+  function drawLayers(ctx,g,work){
+    work?.beginFrame();
+    try {
     // Original Gold engine's world-compositing layers in their source order.
     // Excludes Gold's alternative arena, AI, health overlays and second HUD.
     g.material.drawGround(ctx);
@@ -284,6 +291,7 @@
     g.fluid.draw(ctx,'fire');
     g.fire.draw(ctx);g.lightning.draw(ctx);
     g.drawFx(ctx);g.fx.drawTop(ctx);
+    } finally { work?.endFrame(); }
   }
   const oldDraw=global.Fighter?.prototype?.draw;
   if(!oldDraw)throw Error('BOXE_REQUIRES_NATIVE_FIGHTER_DRAW');
@@ -298,7 +306,7 @@
         advance(rec,this);
         const g=rec.g;
         ctx.translate(worldOffset(),worldOffset());
-        drawLayers(ctx,g);
+        drawLayers(ctx,g,rec.fluidWork);
         if(rec.counterFlashUntil>now()){
           // Original Gold screen FX are spatially clipped to the counter
           // contact; other fighters and the Arsenal HUD never get flash.
@@ -309,6 +317,8 @@
         if(rec.flurry){
           const f=rec.flurry,fg=f.g,elapsed=Math.max(0,now()-f.start);
           ctx.save();
+          f.fluidWork?.beginFrame();
+          try {
           // Draw the source Gold punch sprites, not circles or temporary assets.
           fg.drawAfters(ctx);
           fg.material.drawGround(ctx);fg.material.drawWorld(ctx);
@@ -327,7 +337,7 @@
           fg.material.drawAtmosphere(ctx);
           fg.fluid.draw(ctx,'fire');fg.fire.draw(ctx);fg.lightning.draw(ctx);
           fg.drawFx(ctx);fg.fx.drawTop(ctx);
-          ctx.restore();
+          } finally { f.fluidWork?.endFrame(); ctx.restore(); }
         }
       }finally{ctx.restore();}
     };
