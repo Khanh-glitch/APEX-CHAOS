@@ -157,6 +157,8 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/heroReworkRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRuntime'],
   ['/game/hero-rework/boxeSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeSfxAuthority'],
   ['/game/hero-rework/boxeGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldLibrary'],
+  // Reuse the already parity-tested Gold fluid solver optimizer for BOXE's visual-only engine.
+  ['/game/bot-wave/losslessFluidRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveLosslessFluid'],
   ['/game/hero-rework/boxeGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldPresentationRuntime'],
   ['/game/hero-rework/shuriGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldLibrary'],
   ['/game/hero-rework/shuriGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldPresentationRuntime'],
@@ -187,6 +189,7 @@ export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
   boxe: Object.freeze([
     '/game/hero-rework/boxeSfxAuthority.js',
     '/game/hero-rework/boxeGoldLibrary.js',
+    '/game/bot-wave/losslessFluidRuntime.js',
     '/game/hero-rework/boxeGoldPresentationRuntime.js',
   ]),
   newbot: Object.freeze([
