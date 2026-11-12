@@ -284,11 +284,25 @@
   }
 
   let bloomSystem = null;
+  // Each concurrently visible emissive group owns reusable blur surfaces.
+  // A shared 3-canvas set alternated BODY and HEXA/Wall dimensions on every
+  // frame; setting canvas.width/height reallocates/clears the surfaces.
+  // Keeping a per-construct set preserves the same exact crop/filter/scale
+  // parameters, but stops the body/prison size ping-pong during A2.
+  const constructBloomSystems = new WeakMap();
   function getBloom(w = 1000, h = 1000) {
     if (!bloomSystem && GOLD && typeof GOLD.createBloomSystem === 'function') {
       bloomSystem = GOLD.createBloomSystem({ width: w, height: h, scale: 0.5 });
     }
     return bloomSystem;
+  }
+  function getConstructBloom(cons, w, h) {
+    let bloom = constructBloomSystems.get(cons);
+    if (!bloom && GOLD && typeof GOLD.createBloomSystem === 'function') {
+      bloom = GOLD.createBloomSystem({ width: w, height: h, scale: 0.5 });
+      constructBloomSystems.set(cons, bloom);
+    }
+    return bloom;
   }
 
   // Hexa/Wall used to pay seeded cell-mesh derivation on the cast frame.
@@ -511,7 +525,7 @@
       for (const cons of rig.constructs) {
         const bounds = constructBloomBounds(cons);
         if (!bounds) continue;
-        renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bounds, gx => {
+        renderBloomRegion(ctx, getConstructBloom(cons, cw, ch), worldTransform, cw, ch, bounds, gx => {
           if (cons.kind === 'wall' && cons.geom) GOLD.drawWall(gx, cons.geom, true);
           else if (cons.kind === 'prison' && cons.prison) {
             GOLD.drawPrison(gx, cons.prison, true, false);
