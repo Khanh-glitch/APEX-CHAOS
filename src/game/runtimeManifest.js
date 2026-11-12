@@ -147,7 +147,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/quest/questGoldV12Rig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestV12Rig'],
   ['/game/quest/questGoldEnemyVisuals.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestGoldEnemyVisuals'],
   ['/game/modes/arsenalBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalBattleRuntime'],
-  ['/game/hero-rework/crystalaGoldV6.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaGoldV6'],
+  ['/game/hero-rework/crystalaGoldV6.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&gemPathReuse=20261112', 'apexCrystalaGoldV6'],
   ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexCrystalGameplayRuntime'],
   ['/game/hero-rework/frostGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGameplayRuntime'],
   ['/game/hero-rework/magnetGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexMagnetGameplayRuntime'],
