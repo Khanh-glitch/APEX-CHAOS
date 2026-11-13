@@ -96,7 +96,7 @@ try {
   if(!result.casts.some(x=>x.side==='CRYSTAL'&&x.slot==='A1'&&x.ok))throw new Error('HEXA not cast');
   if(!result.prisonConstructed)throw new Error('HEXA Prison missing');
   if(errors.length)throw new Error('Browser errors: '+errors.slice(0,5).join(' | '));
-  const ffmpeg='ffmpeg';
+  const ffmpeg=require('@ffmpeg-installer/ffmpeg').path;
   const silent=path.join(out,'APEX-CHAOS-CRYSTALA-HEXA-60FPS-RAW.mp4');
   execFileSync(ffmpeg,['-hide_banner','-loglevel','error','-y','-framerate',String(FPS),
     '-i',path.join(frameDir,'%05d.jpg'),'-c:v','libx264','-preset','medium','-crf','17',
