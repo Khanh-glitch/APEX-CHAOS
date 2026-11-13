@@ -51,7 +51,7 @@ try {
       G.APEX_ARSENAL.state.spawnTimer=1e6;}
     const hidden = ['menu-screen','loading-screen'];
     for(const id of hidden){const el=document.getElementById(id);if(el){el.style.display='none';el.style.opacity='0';}}
-    G.__PROMO={casts:[],step(frame){
+    G.__PROMO={casts:[],sawPrison:false,step(frame){
       // Every frame advances exactly 1/60 s of *production* gameplay.
       const cast=(fighter,slot)=> {
         const r=G.APEX_HERO_REWORK.pressAbility(fighter,slot);
@@ -65,10 +65,12 @@ try {
       G.APEX_ARSENAL.step(1/60);
       if(G.APEX_COMBAT_HUD?.sync)G.APEX_COMBAT_HUD.sync();
       G.draw();
+      const st=G.APEX_CRYSTAL.stateOf(G.APEX_HERO_REWORK.byCombatant(c));
+      if((st?.rig?.constructs||[]).some(x=>x.kind==='prison'))this.sawPrison=true;
     },inspect(){
       const ct=G.APEX_HERO_REWORK.byCombatant(c);
       const state=G.APEX_CRYSTAL.stateOf(ct);
-      return {casts:this.casts,prisonConstructed:(state?.rig?.constructs||[]).some(x=>x.kind==='prison'),
+      return {casts:this.casts,prisonConstructed:this.sawPrison || (state?.rig?.constructs||[]).some(x=>x.kind==='prison'),
         active:!!G.APEX_ARSENAL?.state?.active,
         canvas:{width:document.querySelector('#game-canvas')?.width,height:document.querySelector('#game-canvas')?.height},
         viewport:{width:innerWidth,height:innerHeight,devicePixelRatio:devicePixelRatio},
