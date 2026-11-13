@@ -1,0 +1,58 @@
+name: APEX CHAOS R5 offline 60fps promo video
+on:
+  push:
+    branches:
+      - tools/offline-promo-capture-r5-20261113
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-promo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      VITE_SUPABASE_URL: ''
+      VITE_SUPABASE_ANON_KEY: ''
+      VITE_APEX_DEV_ADMIN: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build authentic owner R5 game
+        run: pnpm build
+      - name: Start local preview and render independent game frames
+        run: |
+          npm ci --prefix tools/probe --ignore-scripts
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/apex-promo-preview.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then break; fi
+            sleep 1
+          done
+          CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/renderPromoOfflineR5.mjs
+      - name: Validate playable footage and video format
+        run: |
+          test -s reports/promo-offline-r5/APEX-CHAOS-CRYSTALA-HEXA-60FPS-RAW.mp4
+          ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,nb_frames -of json reports/promo-offline-r5/APEX-CHAOS-CRYSTALA-HEXA-60FPS-RAW.mp4
+          python3 - <<'PY'
+          import json,subprocess
+          p='reports/promo-offline-r5/APEX-CHAOS-CRYSTALA-HEXA-60FPS-RAW.mp4'
+          d=json.loads(subprocess.check_output(['ffprobe','-v','error','-select_streams','v:0','-show_entries','stream=width,height,r_frame_rate,nb_frames','-of','json',p]))
+          s=d['streams'][0]
+          assert s['width']==1080 and s['height']==1920,s
+          assert s['r_frame_rate']=='60/1' and int(s['nb_frames'])==420,s
+          print('PASS AUTHENTIC 9:16 60FPS 420-FRAME VIDEO',s)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apex-chaos-r5-crystala-60fps-promo
+          path: |
+            reports/promo-offline-r5/*.mp4
+            reports/promo-offline-r5/receipt.json
+          if-no-files-found: warn
