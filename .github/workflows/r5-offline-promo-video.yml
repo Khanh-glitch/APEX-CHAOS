@@ -35,19 +35,10 @@ jobs:
             sleep 1
           done
           CHROME_PATH="$(command -v google-chrome || command -v chromium)" node tools/renderPromoOfflineR5.mjs
-      - name: Validate playable footage and video format
+      - name: Verify real 1080x1920 video decode and 420 frames at 60fps
         run: |
           test -s reports/promo-offline-r5/APEX-CHAOS-CRYSTALA-HEXA-60FPS-RAW.mp4
-          ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,nb_frames -of json reports/promo-offline-r5/APEX-CHAOS-CRYSTALA-HEXA-60FPS-RAW.mp4
-          python3 - <<'PY'
-          import json,subprocess
-          p='reports/promo-offline-r5/APEX-CHAOS-CRYSTALA-HEXA-60FPS-RAW.mp4'
-          d=json.loads(subprocess.check_output(['ffprobe','-v','error','-select_streams','v:0','-show_entries','stream=width,height,r_frame_rate,nb_frames','-of','json',p]))
-          s=d['streams'][0]
-          assert s['width']==1080 and s['height']==1920,s
-          assert s['r_frame_rate']=='60/1' and int(s['nb_frames'])==420,s
-          print('PASS AUTHENTIC 9:16 60FPS 420-FRAME VIDEO',s)
-          PY
+          node tools/verifyR5PromoVideo.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
