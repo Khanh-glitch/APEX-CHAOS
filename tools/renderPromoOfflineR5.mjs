@@ -62,7 +62,7 @@ try {
       if(frame===205)cast(f,'A1');          // Opponent uses real ability
       if(frame===260)cast(f,'A2');
       // Mild authored positioning for camera readability; abilities use real engine.
-      G.APEX_ARSENAL.step(1/FPS);
+      G.APEX_ARSENAL.step(1/60);
       if(G.APEX_COMBAT_HUD?.sync)G.APEX_COMBAT_HUD.sync();
       G.draw();
     },inspect(){
