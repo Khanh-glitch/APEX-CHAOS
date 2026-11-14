@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { applyVisibleShellWork } from './applyVisibleShellWork.mjs';
 // ---------------------------------------------------------------------------
 // APEX CHAOS — Gold product cutover generator (canonical-preserving).
 //
@@ -2727,6 +2728,7 @@ function main() {
   outputs.set('shell.html', Buffer.from(sessionShell, 'utf8'));
   log('Tactical Pulse HUD B + direct session Lucky bridge built into shell.html');
 
+  outputs.set('shell.html', Buffer.from(applyVisibleShellWork(outputs.get('shell.html').toString('utf8')), 'utf8'));
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     manifestFiles[rel] = { bytes: buf.length, sha256: sha256(buf) };

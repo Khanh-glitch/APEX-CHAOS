@@ -62,9 +62,18 @@ small{font-size:11px;color:#b2b1b4}
   // Exact coordinate authority for the MediaRecorder crop.
   // CSS transforms alter the *on-screen* rectangle but not the iframe's own
   // layout viewport (432x768), preserving mobile media queries on a laptop.
+  let cachedCrop=null;
+  const invalidateCrop=()=>{cachedCrop=null;};
+  new ResizeObserver(invalidateCrop).observe(stage);
+  new MutationObserver(invalidateCrop).observe(stage,{attributes:true,attributeFilter:['style']});
+  window.addEventListener('resize',invalidateCrop);
+  window.addEventListener('scroll',invalidateCrop,true);
+  window.visualViewport?.addEventListener('resize',invalidateCrop);
+  window.visualViewport?.addEventListener('scroll',invalidateCrop);
   const getCropRect=()=>{
+    if(cachedCrop)return cachedCrop;
     const r=stage.getBoundingClientRect();
-    return {left:r.left,top:r.top,width:r.width,height:r.height,
+    return cachedCrop={left:r.left,top:r.top,width:r.width,height:r.height,
       viewportWidth:window.innerWidth,viewportHeight:window.innerHeight,
       devicePixelRatio:window.devicePixelRatio};
   };

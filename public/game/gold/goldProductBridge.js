@@ -624,6 +624,39 @@
     }
     return { rules, frames };
   }
+  // Safari 16 (including iPhone 8) cannot parse @scope. Parse the donor with
+  // the browser's CSS parser and scope selectors without changing declarations.
+  function compatibleBattleHudCss(css) {
+    const sheetNode = document.createElement('style');
+    sheetNode.media = 'not all';
+    sheetNode.textContent = css;
+    document.head.appendChild(sheetNode);
+    function selectors(text) {
+      const out=[];let start=0,depth=0,quote='';
+      for(let i=0;i<text.length;i++){
+        const c=text[i];
+        if(c==='\\'){i++;continue;}
+        if(quote){if(c===quote)quote='';continue;}
+        if(c==='"'||c==="'"){quote=c;continue;}
+        if(c==='('||c==='[')depth++;
+        if(c===')'||c===']')depth--;
+        if(c===','&&!depth){out.push(text.slice(start,i));start=i+1;}
+      }
+      out.push(text.slice(start));
+      return out.map(s=>s.includes(':scope')
+        ? s.replace(/:scope\b/g, ':where(#battleHudHost)')
+        : ':where(#battleHudHost) '+s.trim()).join(',');
+    }
+    function rules(list){
+      return Array.from(list,rule=>{
+        if(rule.type===1)return selectors(rule.selectorText)+'{'+rule.style.cssText+'}';
+        if(rule.cssRules)return rule.cssText.slice(0,rule.cssText.indexOf('{')+1)+rules(rule.cssRules)+'}';
+        return rule.cssText;
+      }).join('\n');
+    }
+    try { return rules(sheetNode.sheet.cssRules); }
+    finally { sheetNode.remove(); }
+  }
   function scopedBattleHudCss(doc) {
     const raw = Array.from(doc.querySelectorAll('style'))
       .map((node) => node.textContent || '')
@@ -634,7 +667,10 @@
     const scopedRules = split.rules
       .replace(/:root\b/g, ':scope')
       .replace(/html\s*,\s*body/g, ':scope');
-    return '@scope (#battleHudHost){\n' + scopedRules + '\n}\n' + split.frames.join('\n');
+    const scoped = typeof window.CSSScopeRule === 'function'
+      ? '@scope (#battleHudHost){\n'+scopedRules+'\n}'
+      : compatibleBattleHudCss(scopedRules);
+    return scoped+'\n'+split.frames.join('\n');
   }
 
   BRIDGE.mountBattleHud = function mountBattleHud(html, onready) {
@@ -728,6 +764,7 @@
     const legacyHud = legacyUiElement('hud');
     if (legacyHud) legacyHud.style.opacity = 0;
   }
+  let arenaSizeObserver = null;
   function relocateArena() {
     const canvas = arenaCanvas();
     const arena = arenaElement();
@@ -749,9 +786,24 @@
     canvas.style.maxWidth = '100%';
     canvas.style.maxHeight = '100%';
     canvas.style.display = 'block';
+    // Explicit equal CSS dimensions also protect replaced-element sizing on
+    // older WebKit. Observe the slot, never the canvas we resize.
+    const fit = () => {
+      const size = Math.floor(Math.min(arena.clientWidth, arena.clientHeight));
+      if(size<=0)return;
+      const px=size+'px';
+      if(canvas.style.width!==px)canvas.style.width=px;
+      if(canvas.style.height!==px)canvas.style.height=px;
+    };
+    arenaSizeObserver?.disconnect();
+    arenaSizeObserver = new ResizeObserver(fit);
+    arenaSizeObserver.observe(arena);
+    fit();
     return true;
   }
   function restoreArena() {
+    arenaSizeObserver?.disconnect();
+    arenaSizeObserver = null;
     const canvas = arenaCanvas();
     if (!canvas || !arenaOriginParent) return;
     canvas.style.cssText = '';

@@ -322,8 +322,28 @@ async function startRecording(providedDisplay=null) {
       'video/webm;codecs=vp9','video/webm;codecs=vp8',
       'video/mp4;codecs=avc1.42E01E','video/webm'
     ];
-    const mime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
+    const supportedMimes=mimeCandidates.filter(type=>MediaRecorder.isTypeSupported(type));
+    let mime=supportedMimes[0];
     if(!mime) throw new Error('Trình duyệt chưa hỗ trợ mã hóa video TikTok.');
+    // Codec support alone says nothing about encoding cost. Prefer an encoder
+    // explicitly reported smooth AND power-efficient at the full output quality.
+    if(navigator.mediaCapabilities?.encodingInfo){
+      const probes=await Promise.all(supportedMimes.map(async type=>{
+        try{
+          const videoType=type.replace(/,opus|,mp4a\.40\.2/g,'');
+          const config={type:'record',video:{contentType:videoType,width:W,height:H,
+            bitrate:22000000,framerate:30}};
+          if(tabAudio.length)config.audio={contentType:type.startsWith('video/mp4')
+            ?'audio/mp4;codecs=mp4a.40.2':'audio/webm;codecs=opus',
+            channels:'2',bitrate:256000,samplerate:48000};
+          const info=await navigator.mediaCapabilities.encodingInfo(config);
+          return info.supported&&info.smooth&&info.powerEfficient?type:null;
+        }catch(_){return null;}
+      }));
+      mime=probes.find(Boolean)||mime;
+    }
+    if(track.readyState!=='live'||!window.APEX_ARSENAL?.state?.active||window.APEX_ARSENAL.state.over)
+      throw new Error('Phiên ghi hoặc trận đấu đã kết thúc trong lúc chuẩn bị encoder.');
     const rec = new MediaRecorder(output,{mimeType:mime,
       videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
     const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
@@ -331,11 +351,18 @@ async function startRecording(providedDisplay=null) {
     rec.ondataavailable = e => { if (e.data?.size) item.chunks.push(e.data); };
     rec.onerror = () => { stopRecording('media-error'); notice('MediaRecorder báo lỗi.',true); };
     session = item;
-    let last = -Infinity;
+    const frameInterval=1000/30;
+    let last = null, lastSourceFrame = -1;
     const paint = now => {
       if (session !== item) return;
-      if (now - last >= 1000 / 30) {
-        last = now;
+      if (last===null || now-last>=frameInterval) {
+        // Carry the fractional remainder: resetting to now turns tiny RAF
+        // jitter into a skipped capture slot (often 20 FPS on a 60 Hz display).
+        last=last===null?now:now-((now-last)%frameInterval);
+        const sourceFrame=video.getVideoPlaybackQuality?.().totalVideoFrames;
+        if(sourceFrame>0 && sourceFrame===lastSourceFrame){
+          item.frame=requestAnimationFrame(paint);return;
+        }
         ctx.fillStyle = '#020304'; ctx.fillRect(0,0,W,H);
         // The source video is the browser TAB. The CROP is precisely the
         // responsive phone viewport's current rectangle within that tab.
@@ -343,6 +370,7 @@ async function startRecording(providedDisplay=null) {
           const rect=studio.getCropRect();
           const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
           ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
+          if(sourceFrame>0)lastSourceFrame=sourceFrame;
         }catch(err){
           stopRecording('invalid-portrait-viewport');
           notice('Không thể quay đúng vùng phone: '+String(err?.message||err),true);
