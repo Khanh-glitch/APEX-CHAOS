@@ -1,4 +1,4 @@
-/* BOT WAVE only: share arithmetic and raster work, never simulation steps,
+/* Shared Gold fluid: share arithmetic and raster work, never simulation steps,
  * cells, particles, optical passes, or resolution. Gold remains the authority.
  */
 (function(root){
@@ -81,6 +81,7 @@ function install(fluid){
  });
  installed.set(fluid,api);return api;
 }
-root.APEX_WAVE_LOSSLESS_FLUID=Object.freeze({install});
+root.APEX_GOLD_LOSSLESS_FLUID=Object.freeze({install});
+root.APEX_WAVE_LOSSLESS_FLUID=root.APEX_GOLD_LOSSLESS_FLUID;
 root.apexBotWaveLosslessFluid='ready';
 })(window);

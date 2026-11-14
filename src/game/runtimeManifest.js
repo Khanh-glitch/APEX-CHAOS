@@ -7,7 +7,7 @@
 // stale cache during owner browser verification.
 import { apexAppUrl } from './appRoot.js';
 
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261023-tp-r1';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261114-retained-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -67,7 +67,8 @@ export const BOT_WAVE_PRESENTATION_RUNTIMES = Object.freeze([
 // Current-neutral combat services shared by Arsenal and the generic engine.
 export const CURRENT_COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
-  ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
+  ['/game/core/apexRenderPrimitives.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexRenderPrimitives'],
+  ['/game/bot-wave/losslessFluidRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveLosslessFluid'],
   ['/game/core/apexCombatEffectsRuntime.js', 'apexCombatEffectsRuntime'],
 ];
 

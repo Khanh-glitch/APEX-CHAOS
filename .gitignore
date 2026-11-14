@@ -3,6 +3,8 @@ node_modules/
 dist/
 dist-itch-html5/
 /public/result-gold/
+/public/gold/mission-account.html
+/gold-mission-account/src/assets/arena.jpg
 reports/
 replays/
 

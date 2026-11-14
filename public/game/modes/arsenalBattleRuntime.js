@@ -1487,7 +1487,10 @@
     // baseDraw renders two primary bodies; Quest extra Fighter anchors use
     // this world-space pass, before real equipment and VFX. No HUD takeover.
     if (AQ.state?.questMultiActor) {
-      for (const f of fighters.slice(2)) if (f) f.draw(ctx);
+      for (let i = 2; i < fighters.length; i++) {
+        const f = fighters[i];
+        if (f) { window.APEX_RETAINED_PRESENTATION?.prepare(f); f.draw(ctx); }
+      }
       // The original Gold HUD already gives two team totals and one
       // independent segment per fighter. Suppress redundant developer IDs
       // above every moving head. Only show compact local HP for injury.

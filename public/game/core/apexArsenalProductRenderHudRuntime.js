@@ -44,6 +44,7 @@
       for (let i = 0; i < 2; i++) {
         const fighter = fighters[i];
         if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') {
+          window.APEX_RETAINED_PRESENTATION?.prepare(fighter);
           fighter.draw(ctx);
         }
       }
@@ -86,6 +87,7 @@
     }
 
     updateHUD();
+    window.APEX_COMBAT_HUD?.flushFrame();
   };
 
   window.apexArsenalProductRenderHudRuntime = 'ready';

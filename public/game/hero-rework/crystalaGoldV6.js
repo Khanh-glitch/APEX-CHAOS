@@ -1696,29 +1696,29 @@ function drawStar4(c, cx, cy, size, rot = 0, color = '#ffffff') {
 
 function drawGem(c, gem, o = {}) {
   if (!gem || !gem.outline) return;
+  const retained=g.APEX_RETAINED_PRESENTATION;
+  const pathOp=(points,op)=>{
+    const path=retained?.polygon(points);
+    if(path)c[op](path);
+    else {c.beginPath();tracePoly(c,points);c[op]();}
+  };
   c.save();
   const a = c.globalAlpha * (o.alpha != null ? o.alpha : 1);
   c.globalAlpha = a;
-  c.beginPath();
-  tracePoly(c, gem.outline);
   c.fillStyle = (gem.ramp && gem.ramp[1]) || '#58309d';
-  c.fill();
+  pathOp(gem.outline,'fill');
   c.save();
-  c.clip();
+  pathOp(gem.outline,'clip');
   if (gem.facets) {
     for (const f of gem.facets) {
-      c.beginPath();
-      tracePoly(c, f.pts);
       c.fillStyle = f.color;
-      c.fill();
+      pathOp(f.pts,'fill');
     }
   }
   if (o.tint) {
     c.globalAlpha = a * (o.tintA != null ? o.tintA : 1);
-    c.beginPath();
-    tracePoly(c, gem.outline);
     c.fillStyle = o.tint;
-    c.fill();
+    pathOp(gem.outline,'fill');
     c.globalAlpha = a;
   }
   if (o.rim !== false && gem.rim && gem.rim.length) {
@@ -1741,9 +1741,7 @@ function drawGem(c, gem, o = {}) {
     c.lineWidth = o.lw || 2.8;
     c.strokeStyle = o.stroke || '#190d2a';
     c.lineJoin = 'round';
-    c.beginPath();
-    tracePoly(c, gem.outline);
-    c.stroke();
+    pathOp(gem.outline,'stroke');
   }
   c.restore();
 }

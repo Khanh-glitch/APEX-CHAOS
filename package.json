@@ -5,6 +5,7 @@
   "packageManager": "pnpm@9.15.9",
   "type": "module",
   "scripts": {
+    "build:itch:retained": "node tools/buildRetainedItch.mjs",
     "dev": "node tools/buildGoldMissionAccount.mjs && node tools/buildResultGold.mjs && pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
     "dev:lan": "node tools/buildGoldMissionAccount.mjs && node tools/buildResultGold.mjs && pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
     "test:arsenal": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleBrowser.mjs",
