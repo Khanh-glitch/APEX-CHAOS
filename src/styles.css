@@ -3221,7 +3221,7 @@ body.apex-battle .combat-panel::after { display: none; }
         justify-content: center;
         gap: 0;
     }
-    body.apex-battle #game-canvas {
+    body.apex-battle #battle-shell #game-canvas {
         width: 100%;
         height: auto;
         aspect-ratio: 1;
@@ -3323,7 +3323,7 @@ body.apex-battle #game-wrapper{
     position:relative;
 }
 
-body.apex-battle #game-canvas{
+body.apex-battle #battle-shell #game-canvas{
     width:100%;
     height:100%;
     max-width:100%;

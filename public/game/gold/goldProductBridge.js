@@ -578,105 +578,17 @@
     parkedIdElements.length = 0;
   }
 
-  // Battle HUD donor is a full-page document. When mounted same-document its
-  // head CSS must come with it, but never as global CSS: broad donor rules
-  // (:root, html/body, *, button, .side, .skill...) would otherwise leak into
-  // Home/Pick. Keep keyframes global by name, and scope every normal/conditional
-  // rule to #battleHudHost. The current donor has no @font-face/import rules.
-  function extractKeyframeBlocks(cssText) {
-    const src = String(cssText || '');
-    const frames = [];
-    let rules = '';
-    let cursor = 0;
-    while (cursor < src.length) {
-      const a = src.indexOf('@keyframes', cursor);
-      const b = src.indexOf('@-webkit-keyframes', cursor);
-      let start = -1;
-      if (a >= 0 && b >= 0) start = Math.min(a, b);
-      else start = Math.max(a, b);
-      if (start < 0) { rules += src.slice(cursor); break; }
-      rules += src.slice(cursor, start);
-      const open = src.indexOf('{', start);
-      if (open < 0) { rules += src.slice(start); break; }
-      let depth = 0, quote = '', comment = false, end = open;
-      for (let i = open; i < src.length; i++) {
-        const ch = src[i], next = src[i + 1];
-        if (comment) {
-          if (ch === '*' && next === '/') { comment = false; i++; }
-          continue;
-        }
-        if (!quote && ch === '/' && next === '*') { comment = true; i++; continue; }
-        if (quote) {
-          if (ch === '\\') { i++; continue; }
-          if (ch === quote) quote = '';
-          continue;
-        }
-        if (ch === '"' || ch === "'") { quote = ch; continue; }
-        if (ch === '{') depth++;
-        else if (ch === '}') {
-          depth--;
-          if (depth === 0) { end = i + 1; break; }
-        }
-      }
-      if (!end || end <= open) { rules += src.slice(start); break; }
-      frames.push(src.slice(start, end));
-      cursor = end;
-    }
-    return { rules, frames };
-  }
-  // Safari 16 (including iPhone 8) cannot parse @scope. Parse the donor with
-  // the browser's CSS parser and scope selectors without changing declarations.
-  function compatibleBattleHudCss(css) {
-    const sheetNode = document.createElement('style');
-    sheetNode.media = 'not all';
-    sheetNode.textContent = css;
-    document.head.appendChild(sheetNode);
-    function selectors(text) {
-      const out=[];let start=0,depth=0,quote='';
-      for(let i=0;i<text.length;i++){
-        const c=text[i];
-        if(c==='\\'){i++;continue;}
-        if(quote){if(c===quote)quote='';continue;}
-        if(c==='"'||c==="'"){quote=c;continue;}
-        if(c==='('||c==='[')depth++;
-        if(c===')'||c===']')depth--;
-        if(c===','&&!depth){out.push(text.slice(start,i));start=i+1;}
-      }
-      out.push(text.slice(start));
-      return out.map(s=>s.includes(':scope')
-        ? s.replace(/:scope\b/g, ':where(#battleHudHost)')
-        : ':where(#battleHudHost) '+s.trim()).join(',');
-    }
-    function rules(list){
-      return Array.from(list,rule=>{
-        if(rule.type===1)return selectors(rule.selectorText)+'{'+rule.style.cssText+'}';
-        if(rule.cssRules)return rule.cssText.slice(0,rule.cssText.indexOf('{')+1)+rules(rule.cssRules)+'}';
-        return rule.cssText;
-      }).join('\n');
-    }
-    try { return rules(sheetNode.sheet.cssRules); }
-    finally { sheetNode.remove(); }
-  }
-  function scopedBattleHudCss(doc) {
-    const raw = Array.from(doc.querySelectorAll('style'))
-      .map((node) => node.textContent || '')
-      .filter((text) => text.trim())
-      .join('\n');
-    if (!raw.trim()) return '';
-    const split = extractKeyframeBlocks(raw);
-    const scopedRules = split.rules
-      .replace(/:root\b/g, ':scope')
-      .replace(/html\s*,\s*body/g, ':scope');
-    const scoped = typeof window.CSSScopeRule === 'function'
-      ? '@scope (#battleHudHost){\n'+scopedRules+'\n}'
-      : compatibleBattleHudCss(scopedRules);
-    return scoped+'\n'+split.frames.join('\n');
+  // Gold CSS is a compiled shell component, never transformed at runtime.
+  function requireBattleComponent() {
+    if (!document.getElementById('apex-battle-component-css'))
+      throw Error('Gold Battle component stylesheet missing; rebuild the shell');
   }
 
   BRIDGE.mountBattleHud = function mountBattleHud(html, onready) {
     const host = document.getElementById('battleHudHost');
     if (!host) return;
     BRIDGE.unmountBattleHud();
+    requireBattleComponent();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const root = doc.body.firstElementChild || doc.documentElement;
     if (root) host.appendChild(document.importNode(root, true));
@@ -685,13 +597,6 @@
     captureLegacyBattleUi();
     // Park BEFORE the donor scripts run so their lookups hit their own DOM.
     parkCollidingIds();
-    const hudCss = scopedBattleHudCss(doc);
-    if (hudCss) {
-      const style = document.createElement('style');
-      style.setAttribute('data-apex-gold-hud-style', 'true');
-      style.textContent = hudCss;
-      host.insertBefore(style, host.firstChild);
-    }
     // The production seam closes over donor-local renderer state. A remount
     // must create a FRESH seam; retaining window.APEX_GOLD_HUD would preserve
     // functions bound to the removed previous donor DOM.
@@ -740,7 +645,7 @@
       if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pumpId);
       pumpId = 0;
     }
-    if (hudHost) hudHost.textContent = '';
+    if (hudHost) { hudHost.textContent = ''; delete hudHost.dataset.layoutReady; }
     hudHost = null;
     hudMounted = false;
     restoreParkedIds();
@@ -764,49 +669,73 @@
     const legacyHud = legacyUiElement('hud');
     if (legacyHud) legacyHud.style.opacity = 0;
   }
-  let arenaSizeObserver = null;
-  function relocateArena() {
-    const canvas = arenaCanvas();
-    const arena = arenaElement();
-    if (!canvas || !arena) return false;
-    if (canvas.parentElement === arena) return true;
-    arenaOriginParent = canvas.parentElement;
-    arenaOriginNext = canvas.nextElementSibling;
-    arena.appendChild(canvas);
-    // Move ONLY the 1000×1000 gameplay canvas. #game-wrapper is engine/combat
-    // infrastructure; public product surfaces belong exclusively to Gold.
-    canvas.style.position = 'absolute';
-    canvas.style.inset = 'auto';
-    canvas.style.left = '50%';
-    canvas.style.top = '50%';
-    canvas.style.transform = 'translate(-50%,-50%)';
-    canvas.style.aspectRatio = '1 / 1';
-    canvas.style.height = '100%';
-    canvas.style.width = 'auto';
-    canvas.style.maxWidth = '100%';
-    canvas.style.maxHeight = '100%';
-    canvas.style.display = 'block';
-    // Explicit equal CSS dimensions also protect replaced-element sizing on
-    // older WebKit. Observe the slot, never the canvas we resize.
-    const fit = () => {
-      const size = Math.floor(Math.min(arena.clientWidth, arena.clientHeight));
-      if(size<=0)return;
+  // This owner alone sizes the live engine canvas while hosted by Gold.
+  // Gold defines the arena slot; engine owns its drawing buffer, never CSS size.
+  const arenaViewport = {
+    canvas:null, slot:null, observer:null, originalStyle:null,
+    fit() {
+      if(!this.canvas||!this.slot)return false;
+      const size=Math.floor(Math.min(this.slot.clientWidth,this.slot.clientHeight));
+      if(size<2)return false;
       const px=size+'px';
-      if(canvas.style.width!==px)canvas.style.width=px;
-      if(canvas.style.height!==px)canvas.style.height=px;
-    };
-    arenaSizeObserver?.disconnect();
-    arenaSizeObserver = new ResizeObserver(fit);
-    arenaSizeObserver.observe(arena);
-    fit();
+      if(this.canvas.style.width!==px)this.canvas.style.setProperty('width',px,'important');
+      if(this.canvas.style.height!==px)this.canvas.style.setProperty('height',px,'important');
+      return true;
+    },
+    attach(canvas,slot) {
+      this.release();this.canvas=canvas;this.slot=slot;
+      this.originalStyle=canvas.getAttribute('style');
+      canvas.setAttribute('data-apex-live-arena','');
+      this.observer=new ResizeObserver(()=>this.fit());
+      this.observer.observe(slot);this.fit();
+    },
+    release() {
+      this.observer?.disconnect();this.observer=null;
+      if(this.canvas){
+        this.canvas.removeAttribute('data-apex-live-arena');
+        if(this.originalStyle===null)this.canvas.removeAttribute('style');
+        else this.canvas.setAttribute('style',this.originalStyle);
+      }
+      this.canvas=null;this.slot=null;this.originalStyle=null;
+    },
+    ready() {
+      if(!this.fit())return false;
+      const {canvas,slot}=this;
+      return canvas.parentElement===slot && Math.abs(slot.clientWidth-slot.clientHeight)<=1
+        &&canvas.offsetWidth>1&&Math.abs(canvas.offsetWidth-canvas.offsetHeight)<=1;
+    }
+  };
+  function relocateArena() {
+    const canvas=arenaCanvas(),arena=arenaElement();
+    if(!canvas||!arena)return false;
+    if(canvas.parentElement===arena)return arenaViewport.canvas===canvas;
+    arenaOriginParent=canvas.parentElement;arenaOriginNext=canvas.nextElementSibling;
+    arena.appendChild(canvas);arenaViewport.attach(canvas,arena);
     return true;
   }
+  async function awaitBattleLayout(token) {
+    const host=document.getElementById('battleHudHost');
+    const deadline=performance.now()+5000;
+    let consecutive=0;
+    host.dataset.layoutReady='pending';
+    while(performance.now()<deadline){
+      if(token!==battleSessionToken||!hudMounted||!battleLiveRunning)
+        throw Error('Gold Battle layout preparation cancelled');
+      const stage=host.querySelector('#stage'),hud=host.querySelector('#hud');
+      const valid=getComputedStyle(host).getPropertyValue('--apex-battle-component').trim()==='1'
+        &&stage&&hud&&getComputedStyle(stage).containerType==='size'
+        &&getComputedStyle(hud).display==='grid'&&arenaViewport.ready();
+      consecutive=valid?consecutive+1:0;
+      if(consecutive>=2){host.dataset.layoutReady='ready';return;}
+      await new Promise(resolve=>setTimeout(resolve,16));
+    }
+    host.dataset.layoutReady='failed';
+    throw Error('Gold Battle layout is not ready; match was not started');
+  }
   function restoreArena() {
-    arenaSizeObserver?.disconnect();
-    arenaSizeObserver = null;
+    arenaViewport.release();
     const canvas = arenaCanvas();
     if (!canvas || !arenaOriginParent) return;
-    canvas.style.cssText = '';
     if (arenaOriginNext && arenaOriginNext.parentElement === arenaOriginParent) {
       arenaOriginParent.insertBefore(canvas, arenaOriginNext);
     } else {
@@ -1123,6 +1052,8 @@
         return false;
       }
 
+      await awaitBattleLayout(sessionToken);
+
       // Gold-hosted status is set BEFORE startMatch so every fallback branch
       // knows it must never resurrect the legacy selection surface.
       window.__apexGoldBattleHosted = true;
@@ -1187,6 +1118,8 @@
       return true;
     } catch (error) {
       console.warn('[gold-bridge] battle live failed.', error);
+      // A cancelled session must not tear down a subsequently mounted match.
+      if (sessionToken !== battleSessionToken) return false;
       battleLiveRunning = false;
       window.__apexGoldBattleHosted = false;
       restoreArena();

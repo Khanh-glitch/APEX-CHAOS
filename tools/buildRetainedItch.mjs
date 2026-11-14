@@ -30,6 +30,7 @@ fs.copyFileSync(path.join(account, 'dist/index.html'), path.join(root, 'public/g
 node('tools/buildResultGold.mjs');
 node('tools/materializeArsenalFinalSfx.mjs');
 // Asset classification is an input to shipping pruning, not a gameplay test.
+node('tools/buildGoldBattleComponent.mjs');
 node('tools/assetAudit.mjs');
 node('node_modules/vite/bin/vite.js', ['build', '--base=./']);
 node('tools/generatePublicAssetManifest.cjs', ['dist/asset-manifest.json']);
