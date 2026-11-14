@@ -638,6 +638,7 @@
     // before removing the donor so it cannot resume against detached DOM.
     battleSessionToken += 1;
     if (battleLiveRunning || window.__apexGoldBattleHosted === true) BRIDGE.exitBattle?.();
+    try { window.APEX_GOLD_HUD?.dispose?.(); } catch (error) { console.warn('[Gold HUD] disposal failed', error); }
     restoreArena();
     showLegacyBattleUi();
     stopEventTranslation();
@@ -1112,6 +1113,9 @@
       const first = projection();
       if (typeof seam.applyState === 'function') seam.applyState(first.state);
       if (typeof seam.syncFighters === 'function') seam.syncFighters(first.fighters);
+      // The host owns presentation now: finish the first skill/FX frame before
+      // READY, rather than waiting for the removed donor RAF to do that work.
+      seam.tick?.(0, performance.now());
       // Audio was already awaited before startMatch; projection can begin with
       // no first-trigger network/decode debt.
       startPump();
@@ -1892,7 +1896,8 @@
     }
   }
 
-  function pump() {
+  let lastHudTick=0;
+  function pump(now) {
     // An already queued callback after unmount clears itself instead of
     // recreating a permanent background RAF chain.
     if (!hudMounted) { pumpId = 0; return; }
@@ -1902,6 +1907,8 @@
     const proj = projection();
     if (typeof seam.applyState === 'function') seam.applyState(proj.state);
     if (typeof seam.syncFighters === 'function') seam.syncFighters(proj.fighters);
+    const dt=lastHudTick?Math.min(.05,Math.max(0,(now-lastHudTick)/1000)):0;
+    lastHudTick=now;seam.tick?.(dt,now);
     const arsenal = window.APEX_ARSENAL;
     const state = arsenal && arsenal.state ? arsenal.state : null;
     // Quest result is owned by the Quest Director, not Gold's 1v1 win
@@ -1942,6 +1949,7 @@
     }
   }
   function startPump() {
+    lastHudTick=0;
     lastKo = null;
     if (document.body.classList.contains('battle-result')) document.body.classList.remove('battle-result');
     cancelResultReturn();

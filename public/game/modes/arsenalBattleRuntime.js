@@ -2682,6 +2682,7 @@
       window.removeEventListener('keydown', keyListener);
       keyListener = null; // no leaked listeners
     }
+    stopBattleFrameLoop();
     disposeArsenalDomHud();
     AQ.log('MODE_EXIT', 'mode=ARSENAL_BATTLE');
 

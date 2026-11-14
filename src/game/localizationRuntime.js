@@ -26,11 +26,12 @@ function localizeText(node,rec){
   if(!eligible(node))return;
   const seen=rec.text.get(node);
   const raw=node.nodeValue;
+  if(seen&&seen.last===raw&&seen.language===language)return;
   // The game may rewrite translated UI content. Retain the original English
   // source while displaying Vietnamese; never treat our translation as source.
   const source=seen && (raw===seen.last || raw===seen.original)?seen.original:raw;
   const next=translateCopy(source,language);
-  rec.text.set(node,{original:source,last:next});
+  rec.text.set(node,{original:source,last:next,language});
   if(next!==raw)node.nodeValue=next;
 }
 function localizeAttrs(el,rec){
@@ -41,9 +42,10 @@ function localizeAttrs(el,rec){
     let state=rec.attrs.get(el);
     if(!state){state=new Map();rec.attrs.set(el,state);}
     const prev=state.get(attr);
+    if(prev&&prev.last===current&&prev.language===language)continue;
     const source=prev && (current===prev.last||current===prev.original)?prev.original:current;
     const next=translateCopy(source,language);
-    state.set(attr,{original:source,last:next});
+    state.set(attr,{original:source,last:next,language});
     if(next!==current)el.setAttribute(attr,next);
   }
 }

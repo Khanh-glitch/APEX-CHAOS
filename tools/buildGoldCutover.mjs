@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { compileGoldBattleShell } from './buildGoldBattleComponent.mjs';
+import { optimizeGoldHudRuntime } from './optimizeGoldHudRuntime.mjs';
 import { applyVisibleShellWork } from './applyVisibleShellWork.mjs';
 // ---------------------------------------------------------------------------
 // APEX CHAOS — Gold product cutover generator (canonical-preserving).
@@ -2730,6 +2731,7 @@ function main() {
   log('Tactical Pulse HUD B + direct session Lucky bridge built into shell.html');
 
   outputs.set('shell.html', Buffer.from(applyVisibleShellWork(outputs.get('shell.html').toString('utf8')), 'utf8'));
+  outputs.set('battle-hud.html', Buffer.from(optimizeGoldHudRuntime(outputs.get('battle-hud.html').toString('utf8')), 'utf8'));
   outputs.set('shell.html', Buffer.from(compileGoldBattleShell(outputs.get('shell.html').toString('utf8')), 'utf8'));
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {

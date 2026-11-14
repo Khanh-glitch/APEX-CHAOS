@@ -2318,10 +2318,25 @@ function draw() {
     }
 }
 
+function stopBattleFrameLoop() {
+    if (reqId) cancelAnimationFrame(reqId);
+    reqId = null;
+    lastTime = 0;
+}
 function loop(timestamp) {
+    // A parked engine must not redraw the previous match behind any menu.
+    // Every match entry already resets lastTime and acquires the RAF lease.
+    if (gameState === 'MENU' || gameState === 'SELECT') {
+        stopBattleFrameLoop();
+        return;
+    }
     const rawDt = Math.min(0.033, (timestamp - lastTime) / 1000 || 0);
     lastTime = timestamp;
     update(rawDt * timeScale);
+    if (gameState === 'MENU' || gameState === 'SELECT') {
+        stopBattleFrameLoop();
+        return;
+    }
     draw();
     reqId = requestAnimationFrame(loop);
 }
@@ -2494,6 +2509,7 @@ function legacyUiElement(id) {
 }
 
 function goToMenu() {
+    stopBattleFrameLoop();
     stopBattleAudio('engine:go-to-menu');
     clearNinjaVisualArtifacts();
     autoBattlePaused = false;
@@ -2507,6 +2523,7 @@ function goToMenu() {
     gameState = 'MENU';
 }
 function goToSelect() {
+    stopBattleFrameLoop();
     stopBattleAudio('engine:go-to-select');
     autoBattlePaused = false;
     autoBattleControlsActive = false;

@@ -1,5 +1,5 @@
 {
-  "revision": "20261114-battle-component-r3",
+  "revision": "20261115-shared-runtime-r4",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -19,7 +19,7 @@
     "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",
     "public/game/core/apexArsenalProductRenderHudRuntime.js": "bc43971c38a7fe7645a1b5b24d2f77440b72bb07b4eb6d9ac6e2919f78b653fc",
     "public/game/core/apexArsenalProductDrawRecoveryRuntime.js": "b8b515fe710642614a4a1a671fe0da7f2295aaff9e439e10a16ecec6cc953c71",
-    "public/game/gold/goldProductBridge.js": "75958bc0318ea4d67f175d922d79c694883a1d0f5c163741505fa82713c49730",
+    "public/game/gold/goldProductBridge.js": "26eed15694ce3030cbe0e43f3ec7894440eaee8451a06ab6bc88225dc07c47ed",
     "public/game/results/ownerAwards.generated.js": "6375b259d52ed6b71730380120693ad3c63674ce5fe69952bdf7b3bc7fc23e6b",
     "public/game/results/matchResultAuthority.js": "9135a0ea1527d0ed69b82f94c74ec7bf0515a7ab30b19e0e124c16a65072de2a",
     "public/game/arsenal/arsenalSpawnRuntime.js": "d363de64b470c243cb9e9c85c1836878769f5bb4a5514fff168847132fb9ee8f",
@@ -49,7 +49,7 @@
     "public/game/quest/questStoryPresentation.js": "fc6bdf3177b68944be2942f9b4d03ae97d2ed141497f8dac5db8466d17f193ac",
     "public/game/quest/questGoldV12Rig.js": "f039b5033263a223d9daa76ad7989bea5180ca6a3b5c9777269feaf3be7f9a39",
     "public/game/quest/questGoldEnemyVisuals.js": "48ea964484252a0477eec340498fbfff5a3ff2a5b5cde30ddd53cdc777006274",
-    "public/game/modes/arsenalBattleRuntime.js": "17e9f01da7e111d27e6033cf5c5f636047ac7d897da80f44bd045414c569bf09",
+    "public/game/modes/arsenalBattleRuntime.js": "0f079c8260f694f3e41fdba74068cbf12c5a82aefa790d6e4af1a9665df09e85",
     "public/game/hero-rework/crystalaGoldV6.js": "b97dd28d659a5c0426643227ff105bb351c261b41dce4eb8cc94353c5c40fafb",
     "public/game/hero-rework/crystalGameplayRuntime.js": "83790660c880b02c220a94c7cfa6491b80217d89c8239dba5541bffc06477b89",
     "public/game/hero-rework/frostGameplayRuntime.js": "0a011484f9ae0903d5c08f8ee3c95cb87b3451d800b3f3ae6adb1b85af7492df",

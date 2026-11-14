@@ -661,7 +661,7 @@ function phrase(value){
   }
   return t;
 }
-export function translateCopy(input,language='eng'){
+function translateCopyUncached(input,language='eng'){
   if(typeof input!=='string')return input;
   const match=input.match(/^(\s*)([\s\S]*?)(\s*)$/);
   if(!match||!match[2])return input;
@@ -716,4 +716,15 @@ export function translateCopy(input,language='eng'){
   const parts=original.split(/(\s+\/\/\s+|\s+·\s+|\s+\|\s+)/);
   if(parts.length>1)return match[1]+parts.map((p,i)=>i%2?p:(VIETNAMESE_UI_EN[p]||p)).join('')+match[3];
   return input;
+}
+
+const translationCache=new Map();
+export function translateCopy(input,language='eng'){
+ if(typeof input!=='string')return input;
+ const key=language+'\0'+input;
+ if(translationCache.has(key))return translationCache.get(key);
+ const output=translateCopyUncached(input,language);
+ if(translationCache.size>=2048)translationCache.delete(translationCache.keys().next().value);
+ if(input.length<=2048)translationCache.set(key,output);
+ return output;
 }

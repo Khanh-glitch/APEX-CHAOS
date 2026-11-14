@@ -1,3 +1,4 @@
+import { optimizeGoldHudRuntime } from './optimizeGoldHudRuntime.mjs';
 // Build the same-document Gold component from the exact embedded donor.
 // CSS is parsed at build time; browsers receive ordinary scoped selectors.
 import fs from 'node:fs';
@@ -9,7 +10,8 @@ const postcss=createRequire(require.resolve('vite/package.json'))('postcss');
 export function compileGoldBattleShell(shell){
   const payload=shell.match(/<script\b[^>]*id=["']battleHudPayload["'][^>]*>([\s\S]*?)<\/script>/i);
   if(!payload)throw Error('Gold battle donor payload missing');
-  const html=Buffer.from(payload[1].trim(),'base64').toString('utf8');
+  const html=optimizeGoldHudRuntime(Buffer.from(payload[1].trim(),'base64').toString('utf8'));
+  shell=shell.replace(payload[0],payload[0].replace(payload[1],Buffer.from(html).toString('base64')));
   const css=[...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(m=>m[1]).join('\n');
   if(!css)throw Error('Gold battle donor CSS missing');
   const root=postcss.parse(css);
