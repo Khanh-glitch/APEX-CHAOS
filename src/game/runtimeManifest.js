@@ -7,7 +7,7 @@
 // stale cache during owner browser verification.
 import { apexAppUrl } from './appRoot.js';
 
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261115-f7-portrait-ready-r5';
+export const APEX_ARSENAL_RUNTIME_REVISION = 'evolution-arena-transplant-20261116-20261115-f7-portrait-ready-r5';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -129,6 +129,17 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/shuriBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriBattle'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
+  ['/game/arsenal/apexBeyondAudioEngine.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBeyondAudioEngine'],
+  // Exact BOOT-FIX Total Evolution arena stack. It replaces—not combines with—the
+  // previous BEYOND arena renderer. VFX/shaders/audio load before the arena bridge.
+  ['/game/evolution/apexEvolutionArtAtlas.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionArtAtlas'],
+  ['/game/evolution/apexEvolutionVfxLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionVfxLibrary'],
+  ['/game/evolution/apexEvolutionShaderCompositor.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionShaderCompositor'],
+  ['/game/evolution/apexEvolutionAudio.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionAudio'],
+  ['/game/evolution/apexEvolutionArenas.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionArenas'],
+  ['/game/arsenal/apexBeyondArenaEngine.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBeyondArenaEngine'],
+  ['/game/arsenal/apexBeyondVfxEngine.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBeyondVfxEngine'],
+  ['/game/arsenal/apexBeyondCombatEngine.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBeyondCombatEngine'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
   // CP04 branch-only: side-effect-free Quest selectors, inactive in BOT/LOCAL.
   ['/game/quest/questMultiActorCore.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestMultiActorCore'],

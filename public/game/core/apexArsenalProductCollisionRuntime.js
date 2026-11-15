@@ -43,6 +43,10 @@
 
     a.dir = reflectDir(a.dir, -nx, -ny);
     b.dir = reflectDir(b.dir, nx, ny);
+
+    if (window.APEX_BEYOND_COMBAT && window.APEX_BEYOND_COMBAT.onFighterContact) {
+      window.APEX_BEYOND_COMBAT.onFighterContact(a, b);
+    }
   };
 
   window.apexArsenalProductCollisionRuntime = 'ready';

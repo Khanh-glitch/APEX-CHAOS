@@ -1,8 +1,0 @@
-# Runtime/Gold receipts hash bytes, so checkout line endings must be stable.
-*.js text eol=lf
-*.mjs text eol=lf
-*.cjs text eol=lf
-*.html text eol=lf
-*.css text eol=lf
-*.json text eol=lf
-*.svg text eol=lf

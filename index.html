@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <meta name="description" content="APEX CHAOS â€” a Gold-inspired arena fighter. Choose your fighter, enter the Scrap Basin, and battle locally or against a BOT." />
+    <meta name="description" content="APEX CHAOS — Beyond the Original. Choose your fighter, enter the Scrap Basin, and battle locally or against an adaptive BOT." />
     <meta name="theme-color" content="#080b0e" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="APEX CHAOS" />
@@ -17,9 +17,72 @@
     <meta name="twitter:description" content="Choose your fighter and enter the Scrap Basin." />
     <title>APEX CHAOS</title>
     <link rel="icon" type="image/png" href="/gold/assets/gold/favicon-r72-owner.png?v=r72" />
+    <style>
+      #apex-recovery-diagnostics[hidden]{display:none!important}
+      #apex-recovery-diagnostics{position:fixed;z-index:2147483647;left:50%;top:50%;transform:translate(-50%,-50%);width:min(640px,calc(100vw - 32px));box-sizing:border-box;padding:24px 27px;background:#14171ded;border:1px solid #e7a93e;border-radius:12px;color:#f3f3f4;font:15px/1.65 system-ui,sans-serif;box-shadow:0 15px 70px #000a}
+      #apex-recovery-diagnostics strong{font-size:18px;color:#ffca74;letter-spacing:.04em}
+      #apex-recovery-diagnostics p{margin:10px 0 0}
+      #apex-recovery-diagnostics code{color:#ffd79c}
+    </style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div id="apex-recovery-diagnostics" role="alert" hidden></div>
+    <script>
+      (function () {
+        var panel = document.getElementById('apex-recovery-diagnostics');
+        var timer = null;
+        function explain(message) {
+          if (!panel) return;
+          panel.hidden = false;
+          panel.innerHTML = '<strong>APEX CHAOS — KHÔNG THỂ KHỞI ĐỘNG</strong>'+
+            '<p>' + String(message).replace(/[&<>]/g,function(x){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[x]}) + '</p>'+
+            '<p>Đây là source Vite, không phải HTML build độc lập. Hãy chạy <code>python RUN-APEX.py</code> từ thư mục đã giải nén để khôi phục asset chính thức và mở game.</p>';
+        }
+        window.__apexShowStartupError = explain;
+        window.addEventListener('error', function (event) {
+          if (event.target && event.target !== window) return;
+          explain(event.message || 'Lỗi JavaScript khi nạp ứng dụng');
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+          explain(event.reason && (event.reason.stack || event.reason.message) || 'Lỗi Promise khi khởi động');
+        });
+        if (location.protocol === 'file:') explain('Không thể chạy source TypeScript/React trực tiếp bằng file://.');
+        timer = setTimeout(function () {
+          if (!document.getElementById('root')?.hasChildNodes() && panel.hidden)
+            explain('Ứng dụng chưa render: thiếu bundle/dependencies, tài nguyên hoặc có lỗi JavaScript.');
+        }, 9000);
+        setTimeout(function () {
+          if (panel.hidden && !window.__apexEngineReady)
+            explain('Engine/Gold chưa hoàn tất khởi tạo. Kiểm tra assets chính thức và lỗi script.');
+        }, 18000);
+        window.addEventListener('apex:boot-interactive',function(){clearTimeout(timer);panel.hidden=true});
+      })();
+    </script>
+    <script type="module">
+      // Ensure the asset-recovery worker controls the page before React boots.
+      // This never replaces the authored art; missing binaries are fetched
+      // from the exact upstream main commit for the user's own APEX repo.
+      if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+        try {
+          await navigator.serviceWorker.register('/asset-recovery-sw.js', { scope:'/' });
+          await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise(resolve => setTimeout(resolve, 1700))
+          ]);
+          if (!navigator.serviceWorker.controller) {
+            await Promise.race([
+              new Promise(resolve => navigator.serviceWorker.addEventListener('controllerchange', resolve, { once:true })),
+              new Promise(resolve => setTimeout(resolve, 600))
+            ]);
+          }
+        } catch (e) { console.warn('[APEX asset recovery]', e); }
+      }
+      try { await import('/src/main.tsx'); }
+      catch (e) {
+        window.__apexShowStartupError?.(e?.stack || e?.message || 'Không nạp được ứng dụng React/Vite');
+        console.error('[APEX bootstrap]', e);
+      }
+    </script>
   </body>
 </html>

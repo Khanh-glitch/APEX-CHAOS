@@ -1,30 +1,12 @@
 node_modules/
-.pnpm-store/
 dist/
-dist-itch-html5/
-/public/result-gold/
-/public/gold/mission-account.html
-/gold-mission-account/src/assets/arena.jpg
-reports/
-replays/
-
-# Local/generated acceptance artifacts and scratch files
-.cache/
-.agents/
-.codex/
-.katana-chrome-profile/
-.control-*-profile/
-.manual-*-chrome-profile/
+.vite/
+.env
+.env.*
+!.env.example
+*.log
 .DS_Store
-release/arsenal-product-windows/app/
-ARSENAL_PRODUCT_PLAYABLE_WINDOWS.zip
-
-# browser test profile artifacts
-.arsenal-chrome-profile/
-
-# CP6 measurement-run browser profiles (never commit)
-.arsenal-entry-profile/
-.arsenal-test-profile/
-.menu-resp-profile/
-.menu-probe-profile/
-
+Thumbs.db
+coverage/
+playwright-report/
+test-results/

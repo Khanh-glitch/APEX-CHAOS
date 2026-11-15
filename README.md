@@ -1,47 +1,47 @@
-# APEX CHAOS
+# APEX CHAOS — Five Arena Evolution (Independent Branch)
 
-Production-ready Vite/React game build.
+Standalone **Vite + React source tree** reconstructed from `APEX-CHAOS-5-ARENAS-EDGE-CLEANUP-FIX.zip` (2026-11-16). This branch deliberately contains only the extracted project—not the parent APEX CHAOS monorepo, archived ZIPs, or unrelated branches.
 
-## Local development
+## Run
 
-```powershell
-pnpm install
-pnpm dev
+Requirements: Node.js 20+.
+
+```bash
+npm ci
+npm run verify:arena
+npm run dev
 ```
 
-Open `http://127.0.0.1:5173/`.
+## Build & deploy
 
-## Production build
-
-```powershell
-pnpm build
+```bash
+npm run build
 ```
 
-Deploy the generated `dist/` directory. For Netlify, use:
+Publish the `dist/` directory. The source root is already the app root (`index.html`, `package.json`, `vite.config.ts`); no nested `APEX-CHAOS/` folder. Framework preset: **Vite**, build command `npm run build`, output directory `dist`.
 
-- Build command: `pnpm build`
-- Publish directory: `dist`
+## Source layout
 
-## Online versus rooms
+- `src/` — React entry, shell, HUD and game integration code.
+- `public/apexEngine.js` — classic core game runtime.
+- `public/game/evolution/` — all five transplanted arena systems (arena rules, VFX, shader compositor, sound and materials).
+- `public/game/arsenal/` — adaptation to original Free Battle, combat systems.
+- `public/game/hero-rework/`, `public/game/quest/`, `public/gold/` — existing character, Quest and Gold UI runtime.
+- `public/assets/evolution/` — supplied arena textures and provenance.
+- `scripts/` — arena integration and wall/corner regression checks.
+- `docs/arena/` — architecture and history of arena integration fixes.
+- `docs/deploy/` — Makers/Vite instructions, recovery notes.
 
-The Vite development server includes the room relay, so local rooms work through
-`pnpm dev`. Production needs a persistent Node host with WebSocket upgrade support:
+## Arena modes
 
-1. Deploy `server/manual-room-relay.js` (the `pnpm room-server` command starts it).
-2. Set `VITE_MANUAL_ROOM_WS_URL` on the frontend deployment to the relay URL, including
-   `/__manual-lab-room`, for example `wss://rooms.example.com/__manual-lab-room`.
-3. Rebuild the frontend because Vite embeds `VITE_*` variables at build time.
+Scrap Foundry, Cryo Vault, Lorentz Railyard, Prism Sanctum and Tournament Pro are provided by the original evolution arena runtime. This snapshot preserves collision/edge and stray-line cleanup from the supplied ZIP.
 
-The static frontend route is not the room relay. Leaving the variable empty makes the
-client try the same-origin route, which is only available from the local Vite server.
-When the production frontend opens, it also sends a non-blocking request to the relay's
-`/health` endpoint so a sleeping free instance can begin waking during game loading.
+## Known asset caveat
 
-## Project structure
+The supplied ZIP lacked some original production assets from the broader APEX CHAOS repository. The existing recovery launcher (`RUN-APEX.py`) and optional service worker may fetch those externally for previews; **this source snapshot is separate from other branches but not guaranteed asset-complete offline**. The five arena material JPGs are supplied substitutes rather than recovered originals.
 
-- `src/App.jsx`: React UI and game shell.
-- `src/styles.css`: responsive UI styling.
-- `public/apexEngine.js`: canonical gameplay runtime.
-- `public/assets/`: canonical production assets; all raster images use WebP.
-- `tools/generatePublicAssetManifest.cjs`: build-time asset manifest generator.
-- `tools/convertAssetsToWebp.py`: verified bulk PNG-to-WebP migration utility.
+## Integrity / testing
+
+`npm run verify:arena` runs both structural integration and edge collision regressions. See `docs/arena/ARENA-EDGE-CLEANUP.md` for scope and known limits. A full production build still requires resolving npm dependencies in an internet-enabled environment.
+
+The provenance note `docs/SOURCE-PROVENANCE.md` records the source ZIP SHA-256.
