@@ -1681,6 +1681,10 @@
    * ------------------------------------------------------------------ */
   HR.pressAbility = function pressAbility(f, slot, sourceMeta) {
     if (!M) return { ok: false, reason: 'no-match' };
+    // While the beginner tutorial holds its BOT-only pause lease, the one
+    // shared input executor stays closed. The coach captures the player's
+    // real input, releases the lease, then forwards that input here once.
+    if (tutorialPauseActive()) return { ok: false, reason: 'tutorial-paused' };
     const ct = combatantOfBody(f);
     if (!ct || ct.facade) return { ok: false, reason: 'not-rework' };
     const input = normalizeCastInput(ct, sourceMeta || { source: ct.side, side: ct.side });
@@ -1696,6 +1700,137 @@
     return res;
   };
 
+  // Tactical Pulse read-only legality: shares the EXACT guard order and
+  // mechanic canCast predicate with tryCast, without invoking cast, mutating
+  // state, or emitting CastFailCue. HUD/coach never become gameplay authorities.
+  HR.clock = () => AIL.clock();
+
+  HR.observeAbilityCastability = function observeAbilityCastability(fighter, slot) {
+    if (!M || !MECH || !MECH.EXECUTORS) {
+      return { known: false, castable: false, reason: 'no-combatant', mechanic: '' };
+    }
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || !ct.skills || !ct.skills[slot]) {
+      return { known: false, castable: false, reason: 'no-combatant', mechanic: '' };
+    }
+    const s = ct.skills[slot];
+    const mechanic = String(s.def?.mechanicId || s.mechanic || '');
+    const base = { known: true, castable: false, reason: 'condition', mechanic };
+    const quest = globalScope.APEX_ARSENAL?.state;
+    if (quest?.questReflex === true && ct.anchor?.questId === 'NEWBOT') {
+      const phase = quest.questReflexGate?.snapshot()?.phase;
+      const allowJ = ['J_CAST', 'K_CAST', 'BOTH_HALF'].includes(phase);
+      const allowK = ['K_CAST', 'BOTH_HALF'].includes(phase);
+      if ((slot === 'A1' && !allowJ) || (slot === 'A2' && !allowK)) {
+        return { ...base, reason: 'quest-stage-locked' };
+      }
+    }
+    const a = ct.anchor;
+    if (!a || a.hp <= 0 || ct.dead) return { ...base, reason: 'dead' };
+    if (typeof a.hardCC === 'function' && a.hardCC()) return { ...base, reason: 'cc' };
+    // BOXE A1 owns a dedicated mid-flight recall recast before normal cooldown.
+    if (slot === 'A1' && ct.heroId === 'BOXE' && ct.store.__boxeBattle?.rocket) {
+      const rocket = ct.store.__boxeBattle.rocket;
+      const returning = !!(rocket.returning || rocket.phase === 'return');
+      return returning
+        ? { ...base, reason: 'recast-returning' }
+        : { known: true, castable: true, reason: 'recast', mechanic };
+    }
+    if (s.cfg?.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ...base, reason: 'cooldown' };
+    const exec = MECH.EXECUTORS[mechanic];
+    if (!exec || typeof exec.cast !== 'function') return { ...base, reason: 'no-executor' };
+    try {
+      const ctx = mechCtx(ct, slot);
+      if (exec.canCast && !exec.canCast(ctx)) return base;
+      const result = { known: true, castable: true, reason: 'ready', mechanic };
+      if (ct.heroId === 'ROBOT' && slot === 'A1') {
+        const target = ctx.api?.nearestRevealedPickup?.(ct, { excludeT6: true });
+        if (target) {
+          result.targetWeaponId = target.weaponId;
+          result.targetSlotId = target.slot?.id ?? target.id;
+          result.targetX = target.x;
+          result.targetY = target.y;
+        }
+      }
+      return result;
+    } catch (_) {
+      return { ...base, reason: 'probe-error' };
+    }
+  };
+
+  // Authoritative simulation-clock active windows across durational mechanics.
+  // Never guesses from wall-clock timers; reads AIL.clock() + live mechanic store.
+  HR.observeAbilityActiveWindow = function observeAbilityActiveWindow(fighter, slot) {
+    if (!M) return { active: false, remainSec: 0, mitigationPct: 0 };
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || !ct.skills || !ct.skills[slot]) {
+      return { active: false, remainSec: 0, mitigationPct: 0 };
+    }
+    const s = ct.skills[slot];
+    const mechanic = String(s.def?.mechanicId || s.mechanic || '');
+    const st = ct.store && ct.store[mechanic];
+    const now = AIL.clock();
+    let until = 0;
+    let mitigationPct = 0;
+    if (mechanic === 'robot.virtual_armor') {
+      until = Number(st && st.armorUntil) || 0;
+      const mult = Number.isFinite(Number(s.cfg?.incomingMult)) ? Number(s.cfg.incomingMult) : 0.45;
+      mitigationPct = Math.max(0, Math.round((1 - mult) * 100));
+    } else if (mechanic === 'black_hole.damage_singularity') {
+      until = Number(st && st.escrowUntil) || 0;
+    } else if (mechanic === 'rubber.elastic_state') {
+      until = Number(st && st.windowUntil) || 0;
+    } else if (mechanic === 'rubber.compression') {
+      until = Number(st && st.storeUntil) || 0;
+    } else if (mechanic === 'slime.damage_shedding') {
+      until = Number(st && st.shedUntil) || 0;
+    } else if (mechanic === 'sniper.nest') {
+      until = Number(st && st.nestUntil) || 0;
+    }
+    const remainSec = Math.max(0, until - now);
+    return {
+      active: remainSec > 0.02,
+      remainSec: remainSec > 0.02 ? remainSec : 0,
+      mitigationPct: remainSec > 0.02 ? mitigationPct : 0,
+    };
+  };
+
+  // Read-only floor target + incoming spawn telegraph observer for Robot A1.
+  // Coordinates come strictly from live Arsenal slots; never fabricated.
+  HR.observeRobotFloorTarget = function observeRobotFloorTarget(fighter) {
+    if (!M) return { target: null, nextSpawn: null };
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || ct.heroId !== 'ROBOT') return { target: null, nextSpawn: null };
+    const pickup = M.api?.nearestRevealedPickup?.(ct, { excludeT6: true });
+    if (pickup && Number.isFinite(pickup.x) && Number.isFinite(pickup.y)) {
+      return {
+        target: {
+          x: pickup.x,
+          y: pickup.y,
+          weaponId: String(pickup.weaponId || ''),
+          slotId: pickup.slot?.id ?? pickup.id,
+        },
+        nextSpawn: null,
+      };
+    }
+    const aq = globalScope.APEX_ARSENAL?.state;
+    const slots = Array.isArray(aq?.slots) ? aq.slots : [];
+    let best = null;
+    let bestRemain = Infinity;
+    const nowTime = Number(aq?.time) || 0;
+    for (const slot of slots) {
+      if (!slot || slot.phase !== 'TELEGRAPH' || slot.kind !== 'WEAPON' || slot.questNarrativeOnly) continue;
+      if (!Number.isFinite(slot.x) || !Number.isFinite(slot.y)) continue;
+      const lead = Number.isFinite(slot.revealLeadSeconds) ? slot.revealLeadSeconds : 2.0;
+      const remain = Math.max(0, lead - Math.max(0, nowTime - (Number(slot.spawnTime) || 0)));
+      if (remain < bestRemain) {
+        bestRemain = remain;
+        best = { x: slot.x, y: slot.y, remainSec: remain, slotId: slot.id };
+      }
+    }
+    return { target: null, nextSpawn: best };
+  };
+
   function normalizeAiDecision(raw) {
     if (raw == null) return { shouldCast:true, score:1, reason:'ready-default', retryAfter:.35 };
     if (typeof raw === 'boolean') return { shouldCast:raw, score:raw?1:0, reason:raw?'allowed':'rejected', retryAfter:.35 };
@@ -1704,6 +1839,26 @@
     const retryAfter = Number.isFinite(raw.retryAfter) ? clamp(raw.retryAfter,.1,2) : .35;
     return { shouldCast, score, reason:String(raw.reason || (shouldCast?'selected':'rejected')), retryAfter };
   }
+
+  // CP4: one read-only tactical-opportunity seam shared by BOT scheduling
+  // and the beginner tutorial. It only evaluates the hero mechanic's own
+  // aiEvaluate against live observable state; it never emits AI telemetry,
+  // mutates cast plans, or casts. A missing policy fails closed instead of
+  // treating cooldown-zero as an opportunity.
+  HR.observeAbilityOpportunity = function observeAbilityOpportunity(fighter, slot) {
+    if (!M || !MECH || !MECH.EXECUTORS) return null;
+    const ct = combatantOfBody(fighter);
+    if (!ct || ct.facade || !ct.skills || !ct.skills[slot]) return null;
+    const exec = MECH.EXECUTORS[ct.skills[slot].def.mechanicId];
+    if (!exec || typeof exec.aiEvaluate !== 'function') return null;
+    try {
+      const raw = exec.aiEvaluate(mechCtx(ct, slot));
+      if (raw == null) return { shouldCast:false, score:0, reason:'no-policy', retryAfter:.5 };
+      return normalizeAiDecision(raw);
+    } catch (_) {
+      return { shouldCast:false, score:0, reason:'policy-error', retryAfter:.5 };
+    }
+  };
 
   function emitAiDecision(type, ct, slot, plan, extra) {
     const payload = {
@@ -1731,7 +1886,11 @@
       const plan = (M.aiCastPlan[key] = M.aiCastPlan[key] || {});
       if (plan.at == null) {
         // Deterministic post-ready delay prevents frame-zero reflex casts.
-        plan.at = AIL.clock() + 0.4 + rng() * 0.6;
+        // CP4: MIRROR's authored cast startup is canonical and untouched;
+        // only the scheduler's excess think-time is shorter so its
+        // snap-projected A2 decision is evaluated inside the real window.
+        const thinkDelay = ct.heroId === 'MIRROR' ? 0.18 + rng() * 0.25 : 0.4 + rng() * 0.6;
+        plan.at = AIL.clock() + thinkDelay;
       } else if (AIL.clock() >= plan.at) {
         const exec = MECH.EXECUTORS[ct.skills[slot].def.mechanicId];
         const ctx = mechCtx(ct, slot);
@@ -1764,6 +1923,16 @@
           plan.at = null; // re-plan only when the skill is ready again
         } else {
           plan.at = AIL.clock() + Math.max(.5, decision.retryAfter);
+        }
+        if (res.ok) {
+          // CP4 sequencing: at most one successful cast per AI tick. The
+          // sibling slot re-plans shortly after, so paired skills sequence
+          // like a player's inputs instead of firing in the same frame.
+          const otherSlot = slot === 'A1' ? 'A2' : 'A1';
+          const otherKey = `${ct.heroId}:${otherSlot}`;
+          const otherPlan = (M.aiCastPlan[otherKey] = M.aiCastPlan[otherKey] || {});
+          otherPlan.at = AIL.clock() + 0.35;
+          break;
         }
       }
     }
@@ -3660,6 +3829,29 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * CP4 beginner-BOT tutorial pause lease. The React coach publishes a
+   * heartbeat lease; while it is fresh the ENTIRE rework step (pre-tick,
+   * Arsenal simulation, post-tick, rubber debts) is skipped, so match
+   * clock, AI, cooldowns, projectiles and presentation clocks freeze
+   * together. Drawing continues. A stale lease (coach gone, tab hidden,
+   * crash) auto-expires — the pause can never softlock a match. LOCAL,
+   * Quest, Lab and finished matches are never paused.
+   * ------------------------------------------------------------------ */
+  function tutorialPauseActive() {
+    try {
+      const lease = globalScope.APEX_TUTORIAL_PAUSE;
+      if (!lease || lease.active !== true) return false;
+      const updated = Number(lease.updatedAt) || 0;
+      if (!updated || Date.now() - updated > 2500) return false;
+      const st = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+      if (!st || st.battleMode !== 'BOT' || st.labMode
+          || st.questMultiActor || st.questStage || st.over) return false;
+      return true;
+    } catch (_) { return false; }
+  }
+  HR.tutorialPauseActive = tutorialPauseActive;
+
+  /* ------------------------------------------------------------------ *
    * Entry/exit wrapping + step wrapping + draw wrapping.
    * ------------------------------------------------------------------ */
   function installIntegration() {
@@ -3688,6 +3880,7 @@
     if (AQ && AQ.step && !AQ.step.__hrWrapped) {
       const baseStep = AQ.step;
       const wrappedStep = function aqStepHR(dt) {
+        if (tutorialPauseActive()) return;
         hrPreTick(dt);
         baseStep(dt);
         hrPostTick(dt);
@@ -3702,6 +3895,7 @@
       const baseUpdateFn = globalScope.update;
       const wrappedUpdate = function updateHR(dt) {
         if (globalScope.gameState === 'ARSENAL' && M) {
+          if (tutorialPauseActive()) return;
           hrPreTick(dt);
           baseUpdateFn(dt);
           hrPostTick(dt);

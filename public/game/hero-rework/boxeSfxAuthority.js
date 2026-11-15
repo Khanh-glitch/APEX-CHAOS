@@ -61,6 +61,7 @@ class BoxeSoundDirector {
   global.apexRegisterBattleAudioSource?.(src); src.start(t);src.stop(t+Math.min(1.5,buf.duration/rate)+.06);
  }
  tone(f0,f1,dur,vol=.14,type='triangle',delay=0,group='special'){
+  if(global.APEX_OWNER_TOOLS?.isPortraitStudio?.())return;
   if(!this.audioCtx)return;
   const a=this.audioCtx,t=a.currentTime+delay,osc=a.createOscillator(),g=a.createGain();
   osc.type=type;osc.frequency.setValueAtTime(Math.max(20,f0),t);
@@ -71,6 +72,7 @@ class BoxeSoundDirector {
   global.apexRegisterBattleAudioSource?.(osc); osc.start(t);osc.stop(t+dur+.01);
  }
  texture(freq,vol=.1,dur=.15,delay=0,group='special'){
+  if(global.APEX_OWNER_TOOLS?.isPortraitStudio?.())return;
   if(!this.audioCtx)return;
   const a=this.audioCtx,t=a.currentTime+delay,src=a.createBufferSource(),filter=a.createBiquadFilter(),g=a.createGain();
   src.buffer=this.noise;filter.type='bandpass';filter.frequency.value=freq;filter.Q.value=1.1;

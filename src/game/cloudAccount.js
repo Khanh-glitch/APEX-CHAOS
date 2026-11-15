@@ -33,6 +33,7 @@ import playerAccountAuthority, {
   setCloudSyncStateInternal,
 } from './playerAccount.js';
 import { setVerifiedCloudAdminInternal } from './adminAuthority.js';
+import { GUEST_ONLY_RELEASE } from './releasePolicy.js';
 
 const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '';
 const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '';
@@ -40,7 +41,10 @@ const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON
 export function isCloudConfigured() {
   // `testClientOverride` is null in every shipped build path; only the
   // module-private lifecycle test seam at the bottom of this file sets it.
-  return !!testClientOverride || (!!SUPABASE_URL && !!SUPABASE_ANON_KEY);
+  // The itch release must NEVER open hosted Auth, even if an old
+  // developer .env accidentally contains Supabase public credentials.
+  // The injected deterministic test client is confined to node QA.
+  return !!testClientOverride || (!GUEST_ONLY_RELEASE && !!SUPABASE_URL && !!SUPABASE_ANON_KEY);
 }
 
 let clientPromise = null;

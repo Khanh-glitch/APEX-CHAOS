@@ -1,0 +1,21 @@
+{
+  "host": "http://127.0.0.1:4180",
+  "passes": [
+    "PASS packaged game boots inside the nested /html/apex/ iframe",
+    "PASS nested home reaches the real product Entry (account entry present) :: {\"url\":\"http://127.0.0.1:4180/html/apex/index.html\",\"base\":\"http://127.0.0.1:4180/html/apex/gold/\",\"ac\":1,\"guide\":true}",
+    "PASS nested Fighter Select decodes the hero preview from the nested base :: {\"p1\":\"NEWBOT\",\"nw\":819,\"src\":\"../assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}",
+    "PASS nested battle reaches the live integrated HUD :: live",
+    "PASS nested battle HUD carries the opponent identity and decoded skill icons :: {\"name\":\"NEWBOT\",\"skillIcons\":[true,true],\"hudMode\":\"1p\"}",
+    "PASS nested ESC (delivered to the game frame) leaves the match and restores Fighter Select :: {\"escDelivered\":true,\"left\":true,\"exitState\":{\"stage\":\"ready fighter-bot screen-fighter fighter-active-p2 fighter-p2-locked\",\"hudOpen\":false,\"body\":\"apex-gold-mounted\"}}",
+    "PASS nested pick screen is reusable after leaving the match :: {\"w\":706,\"h\":42,\"label\":\"LOCK IN›\"}",
+    "PASS parent app seals the match with the real SHURI Pick artwork identity :: ../assets/dictionary/heroes/shuri/standing.webp",
+    "PASS nested Result Gold receives the parent-sealed payload unchanged :: {\"delivered\":\"../assets/dictionary/heroes/shuri/standing.webp\",\"sealed\":\"../assets/dictionary/heroes/shuri/standing.webp\",\"portable\":true}",
+    "PASS nested Result Gold decodes hero portraits and weapon art (no placeholders) :: {\"imgs\":[{\"src\":\"http://127.0.0.1:4180/html/apex/assets/dictionary/heroes/shuri/standing.webp\",\"nw\":1122},{\"src\":\"http://127.0.0.1:4180/html/apex/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\",\"nw\":819}],\"gun\":{\"src\":\"http://127.0.0.1:4180/html/apex/assets/arsenal/weapons/c/SHOTGUN.png\",\"nw\":250},\"tags\":[]}",
+    "PASS nested reload keeps the guest save reachable :: {\"has\":true,\"keys\":12}",
+    "PASS nested hosting produces no first-party 404 and no page exception :: []",
+    "PASS nested hosting requests no external host (Guest-only release law) :: []"
+  ],
+  "failures": [],
+  "badRequests": [],
+  "external": []
+}

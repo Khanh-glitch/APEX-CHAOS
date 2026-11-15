@@ -1,0 +1,33 @@
+/* AC reward toast — docked bottom-center above the Home nav, below the
+   modal layer (2147480900). Pointer-transparent: it can never block a
+   tap. Gold palette mirrors firstPlayGuide.css / accountCenter.css. */
+.apex-reward-toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 118px);
+  transform:translateX(-50%);
+  z-index:2147480800;pointer-events:none;
+  display:flex;align-items:baseline;gap:12px;
+  padding:10px 20px 11px;
+  background:linear-gradient(155deg, rgba(23,21,16,.96), rgba(7,8,10,.97));
+  border:1px solid rgba(232,180,90,.6);
+  box-shadow:0 16px 44px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);
+  clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  font-family:'Oswald',Arial,sans-serif;
+  animation:apex-reward-toast-in .28s ease-out;
+}
+.apex-reward-toast-delta{
+  color:#ffc966;font-size:21px;font-weight:900;font-style:italic;letter-spacing:.04em;white-space:nowrap;
+}
+.apex-reward-toast-balance{
+  color:#c9d2db;font-size:12px;font-weight:700;letter-spacing:.1em;white-space:nowrap;
+}
+@keyframes apex-reward-toast-in{
+  from{opacity:0;transform:translate(-50%,10px)}
+  to{opacity:1;transform:translate(-50%,0)}
+}
+@media (prefers-reduced-motion: reduce){
+  .apex-reward-toast{animation:none}
+}
+@media (max-width: 699px){
+  .apex-reward-toast{bottom:calc(env(safe-area-inset-bottom, 0px) + 150px);padding:9px 16px 10px}
+  .apex-reward-toast-delta{font-size:19px}
+}

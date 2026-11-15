@@ -4,6 +4,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const filename='src/game/runtimeLoader.js';
+// The loader resolves product URLs through the app-root authority
+// (apexAppUrl). Execute the REAL appRoot.js in the fixture — a stubbed
+// reimplementation could silently diverge from the entry-base law this
+// test exists to protect. Only its ESM export keywords are stripped,
+// same fixture-transpile contract as the loader below.
+let appRoot=fs.readFileSync('src/game/appRoot.js','utf8');
+appRoot=appRoot.replace(/^export\s+(?=(?:const|function)\s)/gm,'');
+assert.ok(!/^import\s/m.test(appRoot)&&!/^export\s/m.test(appRoot),
+ 'appRoot fixture transpile must not alter function implementations');
 let loader=fs.readFileSync(filename,'utf8');
 loader=loader.replace(/^import\s+\{[\s\S]*?\}\s+from\s+'[^']+';\s*/gm,'');
 loader=loader.replace(/^export\s+(?=(?:async\s+)?function\s)/gm,'');
@@ -29,6 +38,8 @@ function browser({rules={},warmup=[],battle=[],hub=[]}={}){
  const baseURI='https://unit.apex.invalid/';
  const ruleFor=src=>rules[new URL(src,baseURI).pathname]||{};
  const win={__warmupTuples:warmup,__battleTuples:battle,__hubTuples:hub,
+  // appRoot captures the entry base from window.location at init.
+  location:{href:baseURI},
   addEventListener(type,fn){if(!winListeners.has(type))winListeners.set(type,new Set());winListeners.get(type).add(fn);},
   removeEventListener(type,fn){winListeners.get(type)?.delete(fn);}
  };
@@ -67,11 +78,16 @@ function browser({rules={},warmup=[],battle=[],hub=[]}={}){
   window:win,document:doc,URL,Promise,Map,Set,console,
   queueMicrotask,setTimeout,clearTimeout,performance:{now:()=>0}
  });
- vm.runInContext(bootstrap+'\n'+loader+
+ vm.runInContext(bootstrap+'\n'+appRoot+'\n'+loader+
   '\nglobalThis.__cp15Loader={loadClassicRuntime,loadBattleGameRuntimes,loadDeferredGameRuntimes};',
   context,{filename,timeout:10000});
  return {api:context.__cp15Loader,win,history,nodes,winListeners};
 }
+
+// Entry-base law: the loader emits ABSOLUTE app-root URLs (apexAppUrl),
+// never origin-root spellings that would escape a nested deploy path.
+// History assertions pin that spelling against the fixture entry base.
+const entryUrl=(p)=>'https://unit.apex.invalid'+p;
 
 const good=browser({rules:{'/arsenalConfig.js':{readyMarker:'apexArsenalConfig'}}});
 const passA=good.api.loadClassicRuntime('/arsenalConfig.js','apexArsenalConfig');
@@ -117,7 +133,7 @@ const brokenQueue=browser({
 });
 await assert.rejects(brokenQueue.api.loadBattleGameRuntimes(['frost']),
  /evaluation failure/);
-assert.deepEqual(brokenQueue.history,['/arsenalConfig.js'],
+assert.deepEqual(brokenQueue.history,[entryUrl('/arsenalConfig.js')],
  'a failed critical dependency must cancel every queued dependent script');
 assert.equal(brokenQueue.win.__apexBattleRuntimeState?.ready,false,
  'Battle must not advertise READY after failure');
@@ -139,7 +155,7 @@ const bg=concurrent.api.loadDeferredGameRuntimes('arsenalProduct',{priority:fals
 const active=concurrent.api.loadBattleGameRuntimes(['frost']);
 await Promise.all([bg,active]);
 assert.deepEqual(concurrent.history,
- ['/arsenalConfig.js','/ail.js','/mechanics.js'],
+ ['/arsenalConfig.js','/ail.js','/mechanics.js'].map(entryUrl),
  'warmup/battle must evaluate each runtime once in dependency order');
 assert.equal(concurrent.win.__apexBattleRuntimeState?.ready,true);
 
@@ -170,11 +186,11 @@ const productRace=overlap.api.loadDeferredGameRuntimes('arsenalProduct',{priorit
 const hubRace=overlap.api.loadDeferredGameRuntimes('arsenalHub',{priority:true});
 await Promise.all([productRace,hubRace]);
 assert.deepEqual(overlap.history,
- ['/engineCore.js','/arsenalConfig.js','/arsenalIdentity.js','/ail.js'],
+ ['/engineCore.js','/arsenalConfig.js','/arsenalIdentity.js','/ail.js'].map(entryUrl),
  'joining arsenalHub cannot relocate shared config behind dependent Identity');
 assert.equal(overlap.win.apexArsenalIdentityRuntime,'ready');
 assert.equal(overlap.win.apexArsenalConfig,'ready');
-assert.equal(overlap.nodes.filter(n=>n.src==='/arsenalConfig.js').length,1,
+assert.equal(overlap.nodes.filter(n=>n.src===entryUrl('/arsenalConfig.js')).length,1,
  'hub and product may only evaluate config once');
 console.log('CP16 PRIORITY QUEUE DEPENDENCY ORDER PASS: Home/arsenalProduct concurrent overlap');
 

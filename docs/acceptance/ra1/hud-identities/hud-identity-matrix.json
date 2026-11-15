@@ -1,0 +1,369 @@
+{
+  "schema": "ra1-live-battle-hud-identity/v1",
+  "testedCommit": "856cdf48247aa752b377eb2ddb6071426cf6e494",
+  "browser": "HeadlessChrome/153.0.8010.0",
+  "testedAt": "2026-10-22T06:04:39.666Z",
+  "previewOrigin": "Exact-SHA production build preview at port 4173; CP16 receipt verified before tests.",
+  "method": "Real integrated BOT matches; opponent chosen through production Gold bridge; live opponent-name/HP DOM geometry measured after first-play coach dismissal; no source, game rules, or balance state was changed.",
+  "coverage": {
+    "passed": 6,
+    "failed": 0,
+    "viewports": [
+      "320x568",
+      "390x844"
+    ],
+    "languages": [
+      "ENG",
+      "VIE"
+    ],
+    "opponents": [
+      "HUNTER",
+      "NEWBOT",
+      "CRYSTALA (longest tested playable display name)"
+    ]
+  },
+  "rows": [
+    {
+      "viewport": [
+        320,
+        568
+      ],
+      "language": "ENG",
+      "expectedOpponent": "HUNTER",
+      "actualOpponent": "HUNTER",
+      "identity": {
+        "x": 246.41,
+        "y": 33.48,
+        "right": 307,
+        "bottom": 44.52,
+        "w": 60.59,
+        "h": 11.03,
+        "display": "block",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "12px",
+        "scrollWidth": 61,
+        "clientWidth": 61,
+        "overflow": 0
+      },
+      "hp": {
+        "x": 201,
+        "y": 60.48,
+        "right": 269.55,
+        "bottom": 75.5,
+        "w": 68.55,
+        "h": 15.02,
+        "display": "flex",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "16px",
+        "scrollWidth": 69,
+        "clientWidth": 69,
+        "overflow": 0
+      },
+      "identityHpOverlapArea": 0,
+      "duplicateRailName": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "w": 0,
+        "h": 0,
+        "display": "none",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "11px",
+        "scrollWidth": 0,
+        "clientWidth": 0,
+        "overflow": 0
+      },
+      "mode": "1p",
+      "screenshot": "320x568-en-hunter.png"
+    },
+    {
+      "viewport": [
+        320,
+        568
+      ],
+      "language": "ENG",
+      "expectedOpponent": "NEWBOT",
+      "actualOpponent": "NEWBOT",
+      "identity": {
+        "x": 248.05,
+        "y": 33.48,
+        "right": 307,
+        "bottom": 44.52,
+        "w": 58.95,
+        "h": 11.03,
+        "display": "block",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "12px",
+        "scrollWidth": 59,
+        "clientWidth": 59,
+        "overflow": 0
+      },
+      "hp": {
+        "x": 201,
+        "y": 60.48,
+        "right": 260.36,
+        "bottom": 75.5,
+        "w": 59.36,
+        "h": 15.02,
+        "display": "flex",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "16px",
+        "scrollWidth": 59,
+        "clientWidth": 59,
+        "overflow": 0
+      },
+      "identityHpOverlapArea": 0,
+      "duplicateRailName": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "w": 0,
+        "h": 0,
+        "display": "none",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "11px",
+        "scrollWidth": 0,
+        "clientWidth": 0,
+        "overflow": 0
+      },
+      "mode": "1p",
+      "screenshot": "320x568-en-newbot.png"
+    },
+    {
+      "viewport": [
+        320,
+        568
+      ],
+      "language": "VIE",
+      "expectedOpponent": "CRYSTALA",
+      "actualOpponent": "CRYSTALA",
+      "identity": {
+        "x": 255.09,
+        "y": 33.48,
+        "right": 307,
+        "bottom": 44.52,
+        "w": 51.91,
+        "h": 11.03,
+        "display": "block",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "12px",
+        "scrollWidth": 52,
+        "clientWidth": 52,
+        "overflow": 0
+      },
+      "hp": {
+        "x": 201,
+        "y": 60.48,
+        "right": 269.55,
+        "bottom": 75.5,
+        "w": 68.55,
+        "h": 15.02,
+        "display": "flex",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "16px",
+        "scrollWidth": 69,
+        "clientWidth": 69,
+        "overflow": 0
+      },
+      "identityHpOverlapArea": 0,
+      "duplicateRailName": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "w": 0,
+        "h": 0,
+        "display": "none",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "11px",
+        "scrollWidth": 0,
+        "clientWidth": 0,
+        "overflow": 0
+      },
+      "mode": "1p",
+      "screenshot": "320x568-vi-crystala.png"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "language": "ENG",
+      "expectedOpponent": "HUNTER",
+      "actualOpponent": "HUNTER",
+      "identity": {
+        "x": 271.58,
+        "y": 32.56,
+        "right": 343,
+        "bottom": 45.44,
+        "w": 71.42,
+        "h": 12.88,
+        "display": "block",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "14px",
+        "scrollWidth": 71,
+        "clientWidth": 71,
+        "overflow": 0
+      },
+      "hp": {
+        "x": 236,
+        "y": 60.48,
+        "right": 304.55,
+        "bottom": 75.5,
+        "w": 68.55,
+        "h": 15.02,
+        "display": "flex",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "16px",
+        "scrollWidth": 69,
+        "clientWidth": 69,
+        "overflow": 0
+      },
+      "identityHpOverlapArea": 0,
+      "duplicateRailName": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "w": 0,
+        "h": 0,
+        "display": "none",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "11px",
+        "scrollWidth": 0,
+        "clientWidth": 0,
+        "overflow": 0
+      },
+      "mode": "1p",
+      "screenshot": "390x844-en-hunter.png"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "language": "ENG",
+      "expectedOpponent": "NEWBOT",
+      "actualOpponent": "NEWBOT",
+      "identity": {
+        "x": 248.05,
+        "y": 32.56,
+        "right": 343,
+        "bottom": 45.44,
+        "w": 94.95,
+        "h": 12.88,
+        "display": "block",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "14px",
+        "scrollWidth": 95,
+        "clientWidth": 95,
+        "overflow": 0
+      },
+      "hp": {
+        "x": 236,
+        "y": 60.48,
+        "right": 294.36,
+        "bottom": 75.5,
+        "w": 58.36,
+        "h": 15.02,
+        "display": "flex",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "16px",
+        "scrollWidth": 58,
+        "clientWidth": 58,
+        "overflow": 0
+      },
+      "identityHpOverlapArea": 0,
+      "duplicateRailName": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "w": 0,
+        "h": 0,
+        "display": "none",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "11px",
+        "scrollWidth": 0,
+        "clientWidth": 0,
+        "overflow": 0
+      },
+      "mode": "1p",
+      "screenshot": "390x844-en-newbot.png"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "language": "VIE",
+      "expectedOpponent": "CRYSTALA",
+      "actualOpponent": "CRYSTALA",
+      "identity": {
+        "x": 256.09,
+        "y": 32.56,
+        "right": 343,
+        "bottom": 45.44,
+        "w": 86.91,
+        "h": 12.88,
+        "display": "block",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "14px",
+        "scrollWidth": 87,
+        "clientWidth": 87,
+        "overflow": 0
+      },
+      "hp": {
+        "x": 236,
+        "y": 60.48,
+        "right": 294.36,
+        "bottom": 75.5,
+        "w": 58.36,
+        "h": 15.02,
+        "display": "flex",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "16px",
+        "scrollWidth": 58,
+        "clientWidth": 58,
+        "overflow": 0
+      },
+      "identityHpOverlapArea": 0,
+      "duplicateRailName": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "w": 0,
+        "h": 0,
+        "display": "none",
+        "visibility": "visible",
+        "font": "Oswald, sans-serif",
+        "fontSize": "11px",
+        "scrollWidth": 0,
+        "clientWidth": 0,
+        "overflow": 0
+      },
+      "mode": "1p",
+      "screenshot": "390x844-vi-crystala.png"
+    }
+  ]
+}

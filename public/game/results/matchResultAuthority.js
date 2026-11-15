@@ -10,21 +10,58 @@ const finite=n=>Number.isFinite(n);
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const heroId=f=>({ROBOT:'NEWBOT',ICE:'FROST',CRYSTAL:'CRYSTALA'}[String(f?.name||'').toUpperCase()]||String(f?.name||'').toUpperCase());
 const heroSlug=id=>({NEWBOT:'newbot',CRYSTALA:'crystala',FROST:'frost'}[id]||id.toLowerCase());
+// OWNER LAW (RA-1): a first-party image path is legal in every shipping
+// spelling. Root hosting publishes '/assets/…'; the portable itch build
+// rewrites those literals to app-relative '../assets/…' (jump out of /gold/),
+// so an exact '/assets/' prefix test silently REJECTED the real SHURI/BOXE
+// art and fell back to a Gold filename those fighters do not have — a 404 and
+// a placeholder portrait in Result on itch only. Accept '/', './', '../' and
+// bare prefixes, while still refusing traversal, protocols and non-images.
+function appAssetPath(value){
+  if(typeof value!=='string')return null;
+  const s=value.trim();
+  const m=/^(?:\/|\.\/|\.\.\/)?(assets\/[A-Za-z0-9._\-\/]+?\.(?:png|webp|jpg|jpeg|avif|svg))(?:[?#].*)?$/i.exec(s);
+  if(!m)return null;
+  if(m[1].split('/').includes('..'))return null;
+  return s;
+}
 // Result consumes the Gold Pick artwork identity, never guesses the filename.
 function heroPortraitSource(id){
   const slug=heroSlug(id);
   const pick=root.APEX_GOLD_ROSTER?.[slug];
   const selected=pick?.art||pick?.portrait||pick?.battleAvatar;
-  if(typeof selected==='string'&&selected.startsWith('/assets/')&&!selected.includes('..'))return selected;
+  if(appAssetPath(selected))return selected;
   // Works before Gold Bridge loads: new heroes publish their actual art in
   // the canonical hero registry, whereas the Core Six retain legacy fallback.
   const registryId=({NEWBOT:'ROBOT',CRYSTALA:'CRYSTAL',FROST:'ICE'}[id]||id);
   const declared=root.APEX_HERO_REWORK_REGISTRY?.HEROES?.[registryId]?.archiveProfile?.artwork;
   const art=typeof declared==='string'?declared:declared?.standing||declared?.cover||declared?.avatar;
-  if(typeof art==='string'&&art.startsWith('/assets/')&&!art.includes('..'))return art;
+  if(appAssetPath(art))return art;
   return '/assets/gold-ui/heroes/'+slug+'/'+(id==='MIRROR'?'pick_roster_cover.webp':'pick_selected_large.webp');
 }
 const accent={NEWBOT:'#ff941f',HUNTER:'#96ca2d',CRYSTALA:'#a066f0',MAGNET:'#c7c5e9',FROST:'#7ee8ff',MIRROR:'#e9e5df'};
+// CP4: sealed snapshot records each SIDE's equipped skin (presentation
+// identity only; entitlement/equip stay with the cosmetic authority).
+function cosmeticSelection(sideIndex,kind,baseId){
+  try{
+    const c=root.APEX_COSMETICS;
+    if(!c||typeof c.selected!=='function')return null;
+    return c.selected(sideIndex===0?'p1':'p2',kind,baseId)||null;
+  }catch(_){return null;}
+}
+function skinPreviewSource(selection){
+  const p=selection&&selection.preview;
+  return (selection&&selection.id&&selection.id!=='default'&&appAssetPath(p))?p:null;
+}
+// CP3: only latched/monotonic owner predicates may be announced while the
+// match is still live. Ratio, current-HP, rolling-window, kill-moment and
+// winner-gated predicates remain seal-only so live feedback can never claim
+// an achievement the final sealed result would deny.
+const FINAL_ONLY_LIVE_AWARDS=new Set([
+  'executioner','glass-cannon','sure-shot','assassin','final-round',
+  'last-stand','untouchable','one-breath','comeback','kiter','clutch',
+  'speed-win','fate-hand','thick-skin'
+]);
 const rgb=s=>{const h=(s||'#aaaaaa').replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)).join(' ')};
 function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
  if(!Array.isArray(actors)||actors.length!==2||!['BOT','LOCAL'].includes(mode))
@@ -33,25 +70,52 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
  const tracks=actors.map((f,i)=>({
    f,index:i,id:'P'+(i+1),hero:heroId(f),dealt:0,taken:0,healing:0,blocked:0,
    weaponShots:new Map(),weaponHits:new Map(),weaponMax:new Map(),
-   shots:0,hits:0,critHits:0,hitStreak:0,maxStreak:0,critMax:0,
-   casts:0,pickups:0,sourceMap:new Map(),weapons:new Set(),familyDamage:new Map(),
+   shots:0,hits:0,critHits:0,critEligibleHits:0,hitStreak:0,maxStreak:0,critMax:0,
+   rangedShots:0,rangedHits:0,pendingShots:[],rangedHitStreak:0,rangedMaxStreak:0,shotSequence:0,
+   casts:0,pickups:0,sourceMap:new Map(),weapons:new Set(),damagingWeapons:new Set(),familyDamage:new Map(),
    hitsTimeline:[],maxHit:0,longDamage:0,closeDamage:0,
-   minHp:100,damageAtLow:0,secondsLow:0,distance:0,longMaxRange:0,closeMaxRange:0,
+   minHp:100,damageAtLow:0,secondsLow:0,lowHpSince:null,lowSurvivalSeconds:0,distance:0,longMaxRange:0,closeMaxRange:0,
+   speedNow:0,movingDamage:0,movingDamageSpeed:0,lastDealtDamageAt:0,distanceAtLastDamage:0,pacifistSeconds:0,pacifistTravel:0,pacifistQualified:false,
    lastX:f.x,lastY:f.y,lastDamageAt:0,lastShotAt:-1,
    noDamageTime:0,maxNoDamage:0,ricochets:0,trapHits:0,
    healsFromDanger:0,followups:0,damageWindow:0,maxBurst1:0,maxBurst3:0,
    maxLostLead:0,comebackDeficit:0,skillDamage:0,swapFast:0,lastPickupAt:null,
    kills:0,earlyHit:0,firstBlood:false,
    executionerPreHp:null,fateHandDelay:null,lastPickupWeapon:null,
-   ricochetHits:0,damageWhileBehind:0,comboChains:0,lastComboAt:-Infinity,
+   ricochetHits:0,damageWhileBehind:0,comboChains:0,lastComboAt:-Infinity,chainDamage:0,maxChainDamage:0,lastChainDamageAt:null,pendingFastPickup:null,pendingSkillAssists:[],castSequence:0,
    lastAttack:{weapon:null,skill:null},chaosEvents:[],chaosQualified:false,
    pendingControls:new Map(),refundCycles:new Set(),cooldownCycle:{A1:0,A2:0},
    heroCycles:0,traps:0,trapPending:new Map(),refreshes:0,
    finalRound:false,crystalDamage:0,mirrorDamage:0,magnetDamage:0,
-   magnetHolders:new WeakSet()
+   magnetHolders:new WeakSet(),announcedAwards:new Set()
  }));
  const track=f=>tracks.find(t=>t.f===f)||null;
  function now(){return elapsed}
+ const weaponFamily=id=>weaponConfig?.WEAPONS?.[id]?.family||((weaponConfig?.MELEE_WEAPON_IDS||[]).includes(id)?'MELEE':null);
+ const RANGED_FAMILIES=new Set(['SEMI','AUTO','BURST','PRECISION','SHOTGUN','AUTOSHOT']);
+ const normalizeWeaponId=id=>String(id||'').toUpperCase().replaceAll('-','_');
+ const isRangedWeapon=id=>RANGED_FAMILIES.has(weaponFamily(id));
+ function expirePendingShots(t){
+   const before=t.pendingShots.length;
+   if(!before)return;
+   t.pendingShots=t.pendingShots.filter(shot=>shot.expiresAt>=now());
+   if(t.pendingShots.length!==before)t.rangedHitStreak=0;
+ }
+ function resolveRangedHit(t,id){
+   expirePendingShots(t);
+   const index=t.pendingShots.findIndex(shot=>shot.weaponId===id);
+   if(index<0)return false;
+   t.pendingShots.splice(index,1);
+   t.rangedHits++;t.rangedHitStreak++;
+   t.rangedMaxStreak=Math.max(t.rangedMaxStreak,t.rangedHitStreak);
+   return true;
+ }
+ function consumeSkillAssist(t){
+   while(t.pendingSkillAssists.length&&now()-t.pendingSkillAssists[0].at>2)t.pendingSkillAssists.shift();
+   if(!t.pendingSkillAssists.length)return false;
+   t.pendingSkillAssists.pop();
+   t.comboChains++;t.lastComboAt=now();return true;
+ }
  const cleanups=[];
  const bus=root.APEX_HERO_REWORK_AIL?.bus;
  if(bus?.on){
@@ -64,7 +128,15 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const key=slot+':'+cycle;
      if(!t.refundCycles.has(key)){t.refundCycles.add(key);t.heroCycles++;}
    }));
-   cleanups.push(bus.on('FrostFreezeRefresh',ev=>{
+   // CP3.2: Virtual Armor reports actual pre/post-mitigation amounts.
+  // Iron Wall counts only prevented HP damage, never a miss or dodge.
+  cleanups.push(bus.on('RobotA2Hit',ev=>{
+    if(!live||ev.payload?.alias)return;
+    const t=tracks.find(t=>t.f?.id===ev.payload?.fighterId&&t.hero==='NEWBOT');
+    const before=Number(ev.payload?.amount),after=Number(ev.payload?.reduced);
+    if(t&&finite(before)&&finite(after)&&before>after)t.blocked+=before-after;
+  }));
+  cleanups.push(bus.on('FrostFreezeRefresh',ev=>{
      if(!live)return;
      const t=tracks.find(t=>t.f?.id===ev.payload?.shooterFighterId&&t.hero==='FROST');
      if(t)t.refreshes++;
@@ -100,24 +172,38 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        a.fateHandDelay=Math.max(0,now()-a.lastPickupAt);
    }
    const type=weapon?'weapon':'skill';
-   const other=type==='weapon'?'skill':'weapon';
-   if(a.lastAttack[other]!==null&&now()-a.lastAttack[other]<=2
-     &&now()-a.lastComboAt>=2){a.comboChains++;a.lastComboAt=now();}
    a.lastAttack[type]=now();
+   const family=weapon?weaponFamily(id):null;
+   let skillAssisted=false;
+   if(weapon){
+     a.damagingWeapons.add(id);
+     if(a.pendingFastPickup&&a.pendingFastPickup.weaponId===id){
+       if(now()-a.pendingFastPickup.at<=2)a.swapFast++;
+       a.pendingFastPickup=null;
+     }else if(a.pendingFastPickup&&now()-a.pendingFastPickup.at>2)a.pendingFastPickup=null;
+     skillAssisted=consumeSkillAssist(a);
+     if(Number(weaponConfig?.CRIT_CHANCE?.[id])>0)a.critEligibleHits++;
+     const vx=Number(source?.vx),vy=Number(source?.vy);
+     const impactSpeed=finite(vx)&&finite(vy)&&(vx!==0||vy!==0)?Math.hypot(vx,vy):a.speedNow;
+     if(impactSpeed>=150){a.movingDamage+=actual;a.movingDamageSpeed=Math.max(a.movingDamageSpeed,impactSpeed);}
+     if(isRangedWeapon(id))resolveRangedHit(a,id);
+   }
+   a.lastDealtDamageAt=now();a.distanceAtLastDamage=a.distance;
+   if(a.lastChainDamageAt===null||now()-a.lastChainDamageAt>1.2)a.chainDamage=0;
+   a.chainDamage+=actual;a.maxChainDamage=Math.max(a.maxChainDamage,a.chainDamage);a.lastChainDamageAt=now();
    const hunterExpiry=a.trapPending.get(victim.id);
    if(a.hero==='HUNTER'&&hunterExpiry!==undefined&&now()<=hunterExpiry){
      a.traps++;a.trapPending.delete(victim.id);
    }
    const controlUntil=a.pendingControls.get(victim.id);
    if(controlUntil!==undefined&&now()<=controlUntil){a.followups++;a.pendingControls.delete(victim.id)}
-   a.chaosEvents.push({t:now(),kind:type,id});
+   a.chaosEvents.push({t:now(),kind:type,id,assisted:skillAssisted});
    while(a.chaosEvents.length&&(now()-a.chaosEvents[0].t>20||a.chaosEvents.length>256))a.chaosEvents.shift();
    if(new Set(a.chaosEvents.filter(e=>e.kind==='weapon').map(e=>e.id)).size>=3
-      &&a.chaosEvents.some(e=>e.kind==='skill'))a.chaosQualified=true;
+      &&a.chaosEvents.some(e=>e.assisted))a.chaosQualified=true;
    const record=a.sourceMap.get(key)||{id:key,label:id,kind:weapon?'weapon':'skill',weaponId:weapon?id:undefined,damage:0};
    record.damage+=actual;a.sourceMap.set(key,record);a.dealt+=actual;
    if(!weapon)a.skillDamage+=actual;
-   const family=weaponConfig?.WEAPONS?.[id]?.family||((weaponConfig?.MELEE_WEAPON_IDS||[]).includes(id)?'MELEE':null);
    if(family)a.familyDamage.set(family,(a.familyDamage.get(family)||0)+actual);
    a.maxHit=Math.max(a.maxHit,actual);
    if(critical)a.critHits++;
@@ -139,17 +225,30 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
  }
  function onShot(f,weaponId){const x=track(f);if(!live||!x)return;x.shots++;
    x.weaponShots.set(String(weaponId),(x.weaponShots.get(String(weaponId))||0)+1);
+   const id=normalizeWeaponId(weaponId);
+   if(isRangedWeapon(id)){
+     expirePendingShots(x);x.rangedShots++;
+     const life=Number(weaponConfig?.WEAPONS?.[id]?.bulletLife);
+     x.pendingShots.push({seq:++x.shotSequence,weaponId:id,at:now(),
+       expiresAt:now()+Math.max(.25,(finite(life)&&life>0?life:1)+.12)});
+     if(x.pendingShots.length>512){x.pendingShots.shift();x.rangedHitStreak=0;}
+   }
    x.lastShotAt=now();x.lastWeapon=weaponId}
- function onMiss(f){const x=track(f);if(x&&live)x.hitStreak=0}
- function onPickup(f,weaponId,slot,holder){const x=track(f);if(!live||!x)return; x.pickups++;x.weapons.add(String(weaponId));
-   if(x.lastPickupAt!==null&&now()-x.lastPickupAt<=2)x.swapFast++;x.lastPickupAt=now();x.lastPickupWeapon=String(weaponId);
+ function onMiss(f){const x=track(f);if(x&&live){x.hitStreak=0;x.rangedHitStreak=0}}
+ function onPickup(f,weaponId,slot,holder){const x=track(f);if(!live||!x)return;
+   const id=normalizeWeaponId(weaponId);x.pickups++;x.weapons.add(id);
+   x.pendingFastPickup={weaponId:id,at:now()};x.lastPickupAt=now();x.lastPickupWeapon=id;
    if(x.hero==='MAGNET'&&slot?.__resultMagnetA1Owners?.size===1
       &&slot.__resultMagnetA1Owners.has(f.id)&&holder)x.magnetHolders.add(holder)}
  function onHeal(f,actual){const x=track(f);if(!live||!x||!(actual>0))return;x.healing+=actual;
    if(f.hp/Math.max(1,f.maxHp)<=.25+actual/Math.max(1,f.maxHp))x.healsFromDanger+=actual}
  function onMagnetQualifiedHolder(f,holder){const t=track(f);return !!(live&&t?.hero==='MAGNET'&&holder&&t.magnetHolders.has(holder));}
- function onCast(f,slot){const x=track(f);if(x&&live){x.casts++;
-   if(slot==='A1'||slot==='A2')x.cooldownCycle[slot]++;}}
+ function onCast(f,slot){const x=track(f);if(!x||!live)return;
+   if(slot!=='A1'&&slot!=='A2')return;
+   x.casts++;x.cooldownCycle[slot]++;
+   while(x.pendingSkillAssists.length&&now()-x.pendingSkillAssists[0].at>2)x.pendingSkillAssists.shift();
+   x.pendingSkillAssists.push({seq:++x.castSequence,slot,at:now()});
+   if(x.pendingSkillAssists.length>8)x.pendingSkillAssists.shift();}
  function onRicochet(f){const x=track(f);if(x&&live)x.ricochets++}
  function onRicochetHit(f){const x=track(f);if(x&&live)x.ricochetHits++}
  function onControl(source,victim){const a=track(source),v=track(victim);
@@ -158,10 +257,20 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
  function tick(dt){if(!live||!(dt>0)||!finite(dt))return;elapsed+=dt;
    for(const t of tracks){if(t.f?.hp==null)continue;
      const d=Math.hypot(t.f.x-t.lastX,t.f.y-t.lastY);
-     t.distance+=Math.min(d,2000*dt);t.lastX=t.f.x;t.lastY=t.f.y;
+     const cappedDistance=Math.min(d,2000*dt);
+     t.distance+=cappedDistance;t.speedNow=cappedDistance/dt;t.lastX=t.f.x;t.lastY=t.f.y;
      const hp=t.f.hp/Math.max(1,t.f.maxHp)*100;t.minHp=Math.min(t.minHp,hp);
      if(hp<=10)t.secondsLow+=dt;
+     if(hp<=10&&t.f.hp>0&&t.lowHpSince===null)t.lowHpSince=elapsed;
+     if(t.f.hp>0&&t.lowHpSince!==null)t.lowSurvivalSeconds=Math.max(t.lowSurvivalSeconds,elapsed-t.lowHpSince);
      if(t.dealt===0)t.noDamageTime+=dt;
+     const segmentSeconds=elapsed-t.lastDealtDamageAt;
+     const segmentTravel=Math.max(0,t.distance-t.distanceAtLastDamage);
+     if(!t.pacifistQualified&&segmentSeconds>=t.pacifistSeconds){
+       t.pacifistSeconds=segmentSeconds;t.pacifistTravel=segmentTravel;
+       if(segmentSeconds>=30&&segmentTravel>=500)t.pacifistQualified=true;
+     }
+     expirePendingShots(t);
      if(t.taken>0&&elapsed-t.lastDamageAt>t.maxNoDamage)t.maxNoDamage=elapsed-t.lastDamageAt;
      const o=tracks[1-t.index];
      const deficit=Math.max(0,(o.f.hp/Math.max(1,o.f.maxHp)-t.f.hp/Math.max(1,t.f.maxHp))*1000);
@@ -172,7 +281,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      damage:t.dealt,hit:t.maxHit,window:3,gap:1.2,ratio:t.taken>0?t.dealt/t.taken:0,ming:t.dealt,
      accuracy:t.shots>0?Math.min(100,100*t.hits/t.shots):0,shots:t.shots,crit:t.hits>0?100*t.critHits/t.hits:0,
      hits:t.hits,distance:t.distance,streak:t.maxStreak,delay:t.swapFast>0?0:Infinity,
-     count:t.swapFast,weapons:t.weapons.size,healing:t.healing,blocked:t.blocked,
+     count:t.swapFast,weapons:t.damagingWeapons.size,healing:t.healing,blocked:t.blocked,
      hp:h,duration:elapsed,taken:t.taken,pickups:t.pickups,danger:t.healsFromDanger>0?t.minHp:Infinity,
      heal:t.healsFromDanger,seconds:t.secondsLow,deficit:t.comebackDeficit,
      travel:t.distance,casts:t.casts,speed:elapsed>0?t.distance/elapsed:0,
@@ -187,15 +296,20 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(def.id==='executioner')generic.hp=t.executionerPreHp??Infinity;
    if(def.id==='overkill')generic.hit=t.maxHit;
    if(def.id==='burst-king')generic.damage=t.maxBurst3;
-   if(def.id==='no-escape')generic.damage=t.maxBurst1;
+   if(def.id==='no-escape'){generic.damage=t.maxChainDamage;generic.gap=1.2;}
    if(def.id==='eagle-eye'){generic.damage=t.longDamage;generic.distance=t.longMaxRange;}
    if(def.id==='point-blank'){generic.damage=t.closeDamage;generic.distance=t.closeMaxRange||Infinity;}
-   if(def.id==='mastery-shotgun')generic.damage=t.familyDamage.get('SHOTGUN')||0;
+   if(def.id==='mastery-shotgun')generic.damage=(t.familyDamage.get('SHOTGUN')||0)+(t.familyDamage.get('AUTOSHOT')||0);
    if(def.id==='mastery-auto')generic.damage=t.familyDamage.get('AUTO')||0;
    if(def.id==='mastery-burst')generic.damage=t.familyDamage.get('BURST')||0;
    if(def.id==='mastery-precision')generic.damage=t.familyDamage.get('PRECISION')||0;
    if(def.id==='mastery-semi')generic.damage=t.familyDamage.get('SEMI')||0;
    if(def.id==='mastery-melee')generic.damage=t.familyDamage.get('MELEE')||0;
+   if(def.id==='assassin'){generic.crit=t.critEligibleHits>0?100*t.critHits/t.critEligibleHits:0;generic.hits=t.critEligibleHits;}
+   if(def.id==='steady-hand')generic.streak=t.rangedMaxStreak;
+   if(def.id==='sure-shot'){generic.accuracy=t.rangedShots>0?Math.min(100,100*t.rangedHits/t.rangedShots):0;generic.shots=t.rangedShots;}
+   if(def.id==='kiter'){generic.damage=t.movingDamage;generic.speed=t.movingDamageSpeed;}
+   if(def.id==='one-breath'){generic.hp=t.minHp;generic.seconds=t.lowSurvivalSeconds;}
    if(def.id==='ricochet')generic.hits=t.ricochetHits;
    if(def.id==='signature-newbot')generic.cycles=t.heroCycles;
    if(def.id==='signature-hunter'){generic.traps=t.traps;generic.window=2;}
@@ -204,9 +318,9 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(def.id==='signature-magnet')generic.damage=t.magnetDamage;
    if(def.id==='signature-mirror')generic.damage=t.mirrorDamage;
    if(def.id==='untouchable')generic.duration=elapsed;
-   if(def.id==='pacifist')generic.seconds=t.noDamageTime;
+   if(def.id==='pacifist'){generic.seconds=t.pacifistSeconds;generic.travel=t.pacifistTravel;}
    if(def.id==='adrenaline'){generic.damage=t.damageAtLow;generic.hp=t.minHp;}
-   if(def.id==='glass-cannon')generic.min=t.dealt;
+   if(def.id==='glass-cannon'){generic.ratio=t.taken>0?t.dealt/t.taken:(t.dealt>0?2:0);generic.min=t.dealt;}
    if(def.id==='clutch'){generic.damage=t.hitsTimeline.reduce((s,x)=>s+(elapsed-x.t<=30?x.damage:0),0);generic.window=30;}
    if(def.id==='never-surrender')generic.damage=t.damageWhileBehind;
    if(def.id==='fate-hand')generic.delay=t.fateHandDelay??Infinity;
@@ -215,8 +329,51 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(def.id==='chaos-bringer'){
      if(!t.chaosQualified)return null;generic.window=20;generic.sources=3;
    }
-   if(['last-stand','comeback','speed-win'].includes(def.id)&&!winner)return null;
+   if(['last-stand','comeback','speed-win','thick-skin','untouchable'].includes(def.id)&&!winner)return null;
    return generic;
+ }
+ function awardSatisfies(def,obs){
+   if(!obs)return false;
+   if(!def.params.length)return !!obs.__event;
+   return def.params.every(p=>finite(obs[p.key])&&(p.compare==='gte'?obs[p.key]>=p.value:obs[p.key]<=p.value));
+ }
+ function awardObservedParams(def,obs){
+   const m={};
+   if(!obs)return m;
+   for(const p of def.params)if(finite(obs[p.key]))m[p.key]=obs[p.key];
+   return m;
+ }
+ function awardPrimaryValue(def,obs){
+   if(!obs)return null;
+   if(!def.params.length)return obs.__event?1:0;
+   const value=obs[def.params[0].key];
+   return finite(value)?value:null;
+ }
+ function achievementBestsFor(t,winner){
+   const bests={};
+   for(const def of catalog){
+     if(def.heroId&&def.heroId!==t.hero)continue;
+     const obs=observed(t,def,winner);
+     bests[def.id]={value:awardPrimaryValue(def,obs),observedParams:awardObservedParams(def,obs)};
+   }
+   return bests;
+ }
+ function evaluateLive(){
+   if(!live||sealed)return [];
+   const events=[];
+   for(const t of tracks){
+     for(const def of catalog){
+       if(def.heroId&&def.heroId!==t.hero)continue;
+       if(FINAL_ONLY_LIVE_AWARDS.has(def.id)||t.announcedAwards.has(def.id))continue;
+       const obs=observed(t,def,false);
+       if(!awardSatisfies(def,obs))continue;
+       t.announcedAwards.add(def.id);
+       events.push({side:t.id,sideIndex:t.index,battleMode:mode,heroId:t.hero,achievementId:def.id,
+         value:awardPrimaryValue(def,obs),observedParams:awardObservedParams(def,obs),at:elapsed,
+         provisional:true,sealRequired:true});
+     }
+   }
+   return events;
  }
  function seal(winnerSide){
    if(sealed)return sealed;if(!live)return null;
@@ -224,6 +381,7 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
    if(wi<0)return null;
    live=false;
    const cfg=weaponConfig||{};const weapons=[];
+   const displayName=id=>cfg.weaponDisplayName?cfg.weaponDisplayName(id):String(id||'').replaceAll('_',' ');
    for(const id of new Set(tracks.flatMap(t=>[...t.weapons,...[...t.sourceMap.values()].filter(x=>x.kind==='weapon').map(x=>x.weaponId)]))){
      if(!id)continue;
      const spec=cfg.WEAPONS?.[id]||{};
@@ -231,18 +389,27 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const known=['SHOTGUN','AUTO','BURST','PRECISION','SEMI'].includes(fam)?fam:'SEMI';
      const category=known==='SHOTGUN'?'shotgun':known==='AUTO'?'smg':known==='PRECISION'?'marksman':'railgun';
      const atlas=root.APEX_ARSENAL_C_SET?.weapons?.[id]?.file;
-     const art=(cfg.V43_WEAPONS&&cfg.V43_WEAPONS[id])
-       ?'/assets/arsenal/v43/'+id+'.webp'
+     // CP5: consume the V43 spec's declared art path; never guess a filename.
+     const declaredArt=cfg.V43_WEAPONS?.[id]?.art;
+     const art=appAssetPath(declaredArt)
+       ?declaredArt
        :atlas?'/assets/arsenal/'+String(atlas).replace(/^\/+/,''):undefined;
      const shots=tracks.reduce((n,t)=>n+(t.weaponShots.get(id)||0),0);
      const hits=tracks.reduce((n,t)=>n+(t.weaponHits.get(id)||0),0);
      const best=tracks.reduce((n,t)=>Math.max(n,t.weaponMax.get(id)||0),0);
      const tier=cfg.tierOf?.(id)||cfg.WEAPON_TIER?.[id]||'T1';
      const tierColor=cfg.TIER_COLORS?.[tier]||'#C9D0D7';
-     weapons.push({id,name:id.replaceAll('_',' '),weaponClass:category,classLabel:fam,
+     const skinArtBySide={};
+     for(let sideIndex=0;sideIndex<2;sideIndex++){
+       const preview=skinPreviewSource(cosmeticSelection(sideIndex,'weapon',id));
+       if(preview)skinArtBySide[String(sideIndex+1)]=preview;
+     }
+     weapons.push({id,name:displayName(id),weaponClass:category,classLabel:fam,
        tierLabel:tier,tierColor,tierRgb:rgb(tierColor),
        tagline:'APEX ARSENAL',ownerId:tracks[0].id,
-       silhouette:'generic',artSrc:art,stats:{shotsFired:shots,shotsHit:hits,bestHit:Math.round(best)}});
+       silhouette:'generic',artSrc:art,
+       ...(Object.keys(skinArtBySide).length?{skinArtBySide}:{}),
+       stats:{shotsFired:shots,shotsHit:hits,bestHit:Math.round(best)}});
    }
    const players=tracks.map((t,i)=>{
      // Result Gold must consume the EXACT live HUD identity, never a
@@ -252,7 +419,9 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
      const liveColor=(hud?.heroId===t.hero&&hud?.color)||projected?.color||t.f?.color;
      const registeredColor=root.APEX_HERO_REWORK_REGISTRY?.HEROES?.[t.hero]?.identityColor;
      const color=/^#[0-9a-fA-F]{6}$/.test(liveColor||'')?liveColor:(registeredColor||accent[t.hero]||'#dddddd');
-     const list=[...t.sourceMap.values()];
+     const list=[...t.sourceMap.values()].map(s=>s.kind==='weapon'&&s.weaponId
+       ?{...s,label:displayName(s.weaponId)}:s);
+     const heroSkin=cosmeticSelection(i,'hero',t.hero);
      const awards=[];
      for(const def of catalog){if(def.heroId&&def.heroId!==t.hero)continue;
        const obs=observed(t,def,i===wi);if(!obs)continue;
@@ -261,14 +430,16 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        const m={};for(const p of def.params)m[p.key]=obs[p.key];
        awards.push({achievementId:def.id,value:m[def.params[0].key],observedParams:m});
      }
+     const achievementBests=achievementBestsFor(t,i===wi);
      return {id:t.id,slot:i+1,handle:'P'+(i+1),level:1,rankTitle:'CORE SIX',
        outcome:i===wi?'victory':'defeat',accent:color,accentRgb:rgb(color),
        character:{name:t.hero,className:'APEX FIGHTER',tagline:'',artKind:'generic',
-         heroId:t.hero,portraitSrc:heroPortraitSource(t.hero)},
+         heroId:t.hero,skinId:(heroSkin&&heroSkin.id)||'default',
+         portraitSrc:heroPortraitSource(t.hero)},
        damage:{dealt:t.dealt,taken:t.taken,sources:list},stats:{
-         accuracy:t.shots>0?Math.min(100,Math.round(t.hits/t.shots*100)):0,
-         critRate:t.hits>0?Math.round(t.critHits/t.hits*100):0,
-         healing:t.healing,skillCasts:t.casts},awards};
+         accuracy:t.rangedShots>0?Math.min(100,Math.round(t.rangedHits/t.rangedShots*100)):0,
+         critRate:t.critEligibleHits>0?Math.round(t.critHits/t.critEligibleHits*100):0,
+         healing:t.healing,skillCasts:t.casts},awards,achievementBests};
    });
    const ranked=new Map();
    for(const p of players)for(const s of p.damage.sources){if(s.kind!=='weapon')continue;
@@ -282,8 +453,8 @@ function create({actors,mode,startedAt=Date.now(),weaponConfig}={}){
        :{weaponId:'',ownerId:'',damage:0}};
    sealed=Object.freeze(result);close();return sealed;
  }
- return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onMagnetQualifiedHolder,onRicochet,onRicochetHit,onControl,onBlocked,tick,seal,close,
-   snapshot:()=>({live,elapsed,players:tracks.map(t=>({id:t.id,dealt:t.dealt,shots:t.shots,pickups:t.pickups}))})});
+ return Object.freeze({onDamage,onShot,onMiss,onPickup,onHeal,onCast,onMagnetQualifiedHolder,onRicochet,onRicochetHit,onControl,onBlocked,tick,evaluateLive,seal,close,
+   snapshot:()=>({live,elapsed,players:tracks.map(t=>({id:t.id,dealt:t.dealt,shots:t.shots,rangedShots:t.rangedShots,rangedHits:t.rangedHits,pickups:t.pickups,blocked:t.blocked,comboChains:t.comboChains,maxChainDamage:t.maxChainDamage}))})});
 }
 root.APEX_MATCH_RESULT_AUTHORITY=Object.freeze({create});
 root.apexMatchResultAuthority='ready';

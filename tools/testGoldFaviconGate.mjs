@@ -23,7 +23,13 @@ const profileAvatar = '<img class="avatarGameIcon" src="assets/gold/favicon-apex
 
 check('new tab favicon link exists exactly once', shell.split(newLink).length - 1 === 1);
 check('old tab favicon link is gone', !shell.includes(oldLink));
-check('profile avatar remains on the old avatar asset', shell.includes(profileAvatar));
+// Requirement A (single Account entry): the generator removed the top
+// profile identity cluster, avatar included — this check used to pin
+// the avatar's presence; it now pins its ABSENCE so the redundant
+// cluster cannot silently return. (CSS rules may remain; the DOM
+// nodes must not.)
+check('removed profile identity cluster stays absent',
+  !shell.includes(profileAvatar) && !shell.includes('class="profileIdentity"'));
 check('owner tab favicon source/public bytes match', sourceIcon.equals(publicIcon));
 check('root tab favicon uses R72 PNG', entryHtml.includes('href="/gold/assets/gold/favicon-r72-owner.png?v=r72"'));
 check('owner tab favicon is a PNG', sourceIcon.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])));

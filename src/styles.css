@@ -1,5 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
-
+/* Montserrat 900 is self-hosted via Fontsource (see main.jsx) — the
+   previous third-party @import made first paint depend on Google
+   Fonts and silently degraded offline / inside the itch iframe. */
 :root { --bg-color: #050505; --paper: #141414; --ink: #c8c0aa; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -3220,7 +3221,7 @@ body.apex-battle .combat-panel::after { display: none; }
         justify-content: center;
         gap: 0;
     }
-    body.apex-battle #game-canvas {
+    body.apex-battle #battle-shell #game-canvas {
         width: 100%;
         height: auto;
         aspect-ratio: 1;
@@ -3322,7 +3323,7 @@ body.apex-battle #game-wrapper{
     position:relative;
 }
 
-body.apex-battle #game-canvas{
+body.apex-battle #battle-shell #game-canvas{
     width:100%;
     height:100%;
     max-width:100%;
@@ -4376,4 +4377,34 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
   #apex-boot-start:hover,#apex-boot-start:focus-visible{
     animation:none!important;transform:translate(-50%,-50%) scale(1.014)!important;
   }
+}
+
+/* Owner Gold HOME: the landscape HUD used to squeeze the donor's generic
+   profile-avatar block into the real AC wallet, especially for five digits.
+   At phone landscape dimensions keep the real currency and settings, not the
+   fake donor-avatar tile or an overlapping third information panel. */
+@media (max-width:980px) and (orientation:landscape){
+  #gold-shell-host #stage .profile{
+    right:calc(var(--safeR,0px) + 1.6vw);
+    max-width:calc(100vw - 30vw);
+    gap:5px;
+  }
+  #gold-shell-host #stage .profileIdentity{display:none!important}
+  #gold-shell-host #stage .ac{flex:none;min-width:0;max-width:100%;gap:5px;
+    padding-inline:8px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  #gold-shell-host #stage .ac [data-apex-ac]{font-size:clamp(10px,1.4vw,13px)}
+  #gold-shell-host #stage .acMark{flex:0 0 auto}
+}
+
+/* Kiosk/game interaction: dragging a fighter or swiping sessions must never
+   highlight UI text. Inputs and editable fields retain native selection. */
+#root,#root *:not(input):not(textarea):not([contenteditable]),
+#gold-shell-host,#gold-shell-host *:not(input):not(textarea):not([contenteditable]){
+ -webkit-user-select:none;user-select:none;
+ -webkit-touch-callout:none;
+}
+#root input,#root textarea,#root [contenteditable],
+#gold-shell-host input,#gold-shell-host textarea,#gold-shell-host [contenteditable]{
+ -webkit-user-select:text!important;user-select:text!important;
+ -webkit-touch-callout:default!important;
 }

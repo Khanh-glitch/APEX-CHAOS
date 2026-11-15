@@ -1,0 +1,353 @@
+{
+  "viewport": "1440x900",
+  "sourceProfile": {
+    "credits": 550,
+    "total": "21/252",
+    "newbot": "21/42",
+    "recent": 8,
+    "expanded": "OFFENSE"
+  },
+  "startingState": {
+    "credits": 550,
+    "mastery": "{\"earned\":{\"NEWBOT\":{\"no-escape\":1,\"first-blood\":2,\"overkill\":3,\"burst-king\":4,\"executioner\":5,\"glass-cannon\":6,\"sure-shot\":7,\"assassin\":8,\"eagle-eye\":9,\"steady-hand\":10,\"point-blank\":11,\"final-round\":12,\"ricochet\":13,\"mastery-shotgun\":14,\"mastery-auto\":15,\"mastery-burst\":16,\"mastery-precision\":17,\"mastery-semi\":18,\"mastery-melee\":19,\"weapon-swap\":20,\"arsenal\":21}},\"best\":{},\"weaponDamage\":{\"RPG_7\":1001},\"recent\":[{\"achievementId\":\"no-escape\",\"heroId\":\"NEWBOT\",\"at\":1792682251385},{\"achievementId\":\"first-blood\",\"heroId\":\"NEWBOT\",\"at\":1792682191385},{\"achievementId\":\"overkill\",\"heroId\":\"NEWBOT\",\"at\":1792682131385},{\"achievementId\":\"burst-king\",\"heroId\":\"NEWBOT\",\"at\":1792682071385},{\"achievementId\":\"executioner\",\"heroId\":\"NEWBOT\",\"at\":1792682011385},{\"achievementId\":\"glass-cannon\",\"heroId\":\"NEWBOT\",\"at\":1792681951385},{\"achievementId\":\"sure-shot\",\"heroId\":\"NEWBOT\",\"at\":1792681891385},{\"achievementId\":\"assassin\",\"heroId\":\"NEWBOT\",\"at\":1792681831385}],\"unseenSkinUnlocks\":[]}",
+    "total": "21/252",
+    "selected": "21/42",
+    "recentCount": 8,
+    "expanded": [
+      "OFFENSE"
+    ]
+  },
+  "eng": {
+    "language": "eng",
+    "actual": {
+      "recent": [
+        "Không Thể Trốn Thoát",
+        "Máu Đầu Tiên",
+        "Dư Chấn",
+        "Vua Bùng Nổ",
+        "Đao Phủ",
+        "Pháo Thủy Tinh",
+        "Bách Phát Bách Trúng",
+        "Sát Thủ"
+      ],
+      "medals": [
+        {
+          "name": "Không Thể Trốn Thoát",
+          "aria": "Không Thể Trốn Thoát. LEGENDARY. UNLOCKED. Deal at least 500 actual damage in one chain, with no more than 1.2 seconds between hits.",
+          "title": "Deal at least 500 actual damage in one chain, with no more than 1.2 seconds between hits."
+        },
+        {
+          "name": "Máu Đầu Tiên",
+          "aria": "Máu Đầu Tiên. COMMON. UNLOCKED. Be the first to deal actual damage to the opponent.",
+          "title": "Be the first to deal actual damage to the opponent."
+        },
+        {
+          "name": "Dư Chấn",
+          "aria": "Dư Chấn. RARE. UNLOCKED. Deal at least 250 actual damage within a 0.1-second window.",
+          "title": "Deal at least 250 actual damage within a 0.1-second window."
+        },
+        {
+          "name": "Vua Bùng Nổ",
+          "aria": "Vua Bùng Nổ. EPIC. UNLOCKED. Deal at least 350 actual damage within a rolling 3-second window.",
+          "title": "Deal at least 350 actual damage within a rolling 3-second window."
+        },
+        {
+          "name": "Đao Phủ",
+          "aria": "Đao Phủ. RARE. UNLOCKED. Deliver the finishing blow while the opponent has at most 20% of maximum HP remaining.",
+          "title": "Deliver the finishing blow while the opponent has at most 20% of maximum HP remaining."
+        },
+        {
+          "name": "Pháo Thủy Tinh",
+          "aria": "Pháo Thủy Tinh. EPIC. UNLOCKED. Deal at least 2 times the damage you take, and at least 450 total damage.",
+          "title": "Deal at least 2 times the damage you take, and at least 450 total damage."
+        }
+      ],
+      "chapterNext": [
+        "PATH COMPLETE",
+        "PATH COMPLETE",
+        "PATH COMPLETE",
+        "NEXT: Sống Dai Thành Huyền Thoại",
+        "NEXT: Lội Ngược Dòng",
+        "NEXT: Cơn Sốt Adrenaline",
+        "NEXT: Cỗ Máy Không Ngủ"
+      ],
+      "nextLines": [],
+      "visibleText": "TOTAL MASTERY\n21/252\nRECENT UNLOCKS\n◎\nKhông Thể Trốn Thoát\nNEWBOT · 22 Oct 2026\n◍\nMáu Đầu Tiên\nNEWBOT · 22 Oct 2026\n⚒\nDư Chấn\nNEWBOT · 22 Oct 2026\n⚡\nVua Bùng Nổ\nNEWBOT · 22 Oct 2026\n⚔\nĐao Phủ\nNEWBOT · 22 Oct 2026\n◆\nPháo Thủy Tinh\nNEWBOT · 22 Oct 2026\n⌖\nBách Phát Bách Trúng\nNEWBOT · 22 Oct 2026\n☠\nSát Thủ\nNEWBOT · 22 Oct 2026\nNEWBOT\n21/42\nHUNTER\n0/42\nLOCKED\nCRYSTALA\n0/42\nLOCKED\nMAGNET\n0/42\nLOCKED\nFROST\n0/42\nLOCKED\nMIRROR\n0/42\nLOCKED\n21/42\nNEWBOT\n\nHERO MASTERY\n\nNEWBOT · GOLD · 50%\n\n21 ACHIEVEMENTS REMAINING\n\n11 MORE → EPIC\n\n♻\n\nHERO MASTERY\n\nECOBOT — RECYCLE CORE V17\n21/42\n\n21/42 — ECOBOT stays locked until the path is complete.\n\n01\nOFFENSE\nPATH COMPLETE\n6/6\n›\n◎\nNEW\nLEGENDARY\nUNLOCKED\nKhông Thể Trốn Thoát\n\nDeal at least 500 actual damage in one chain, with no more than 1.2 seconds between hits.\n\nUNLOCKED · 01 Jan 1970\n◍\nNEW\nCOMMON\nUNLOCKED\nMáu Đầu Tiên\n\nBe the first to deal actual damage to the opponent.\n\nUNLOCKED · 01 Jan 1970\n⚒\nNEW\nRARE\nUNLOCKED\nDư Chấn\n\nDeal at least 250 actual damage within a 0.1-second window.\n\nUNLOCKED · 01 Jan 1970\n⚡\nNEW\nEPIC\nUNLOCKED\nVua Bùng Nổ\n\nDeal at least 350 actual damage within a rolling 3-second window.\n\nUNLOCKED · 01 Jan 1970\n⚔\nNEW\nRARE\nUNLOCKED\nĐao Phủ\n\nDeliver the finishing blow while the opponent has at most 20% of maximum HP remaining.\n\nUNLOCKED · 01 Jan 1970\n◆\nNEW\nEPIC\nUNLOCKED\nPháo Thủy Tinh\n\nDeal at least 2 times the damage you take, and at least 450 total damage.\n\nUNLOCKED · 01 Jan 1970\n02\nPRECISION\nPATH COMPLETE\n7/7\n›\n03\nWEAPONS\nPATH COMPLETE\n8/8\n›\n04\nSURVIVAL\nNEXT: SỐNG DAI THÀNH HUYỀN THOẠI\n0/8\n›\n05\nTACTICS\nNEXT: LỘI NGƯỢC DÒNG\n0/6\n›\n06\nCHAOS\nNEXT: CƠN SỐT ADRENALINE\n0/6\n›\n07\nSIGNATURE\nNEXT: CỖ MÁY KHÔNG NGỦ\n0/1\n›\n♻\n\nHERO MASTERY\n\nECOBOT — RECYCLE CORE V17\n\nEarn every NEWBOT-applicable combat achievement while playing NEWBOT.\n\n21/42\n\n21/42 — ECOBOT stays locked until the path is complete.\n\n21 ACHIEVEMENTS REMAINING\nLOCKED\n\nWEAPON MASTERY\n\nVUA HỀ — THE LAST LAUGH\n\nVUA HỀ unlocks at more than 1,000 lifetime RPG-7 damage from sealed BOT/LOCAL results.\n\nLIFETIME RPG-7 DAMAGE\n1,001 / >1,000 DMG\nEQUIP FOR P1\nTOP WEAPON RECORDS\nRPG-7\n1,001 DMG"
+    },
+    "recentMatches": false,
+    "medalNamesMatch": false,
+    "ariaNamesMatch": false,
+    "chapterNamesMatch": false,
+    "nextLinesMatch": true,
+    "rawVietnameseLeaks": [
+      {
+        "id": "no-escape",
+        "name": "Không Thể Trốn Thoát"
+      },
+      {
+        "id": "first-blood",
+        "name": "Máu Đầu Tiên"
+      },
+      {
+        "id": "overkill",
+        "name": "Dư Chấn"
+      },
+      {
+        "id": "burst-king",
+        "name": "Vua Bùng Nổ"
+      },
+      {
+        "id": "executioner",
+        "name": "Đao Phủ"
+      },
+      {
+        "id": "glass-cannon",
+        "name": "Pháo Thủy Tinh"
+      },
+      {
+        "id": "sure-shot",
+        "name": "Bách Phát Bách Trúng"
+      },
+      {
+        "id": "assassin",
+        "name": "Sát Thủ"
+      },
+      {
+        "id": "legend-survivor",
+        "name": "Sống Dai Thành Huyền Thoại"
+      },
+      {
+        "id": "comeback",
+        "name": "Lội Ngược Dòng"
+      },
+      {
+        "id": "adrenaline",
+        "name": "Cơn Sốt Adrenaline"
+      },
+      {
+        "id": "signature-newbot",
+        "name": "Cỗ Máy Không Ngủ"
+      }
+    ]
+  },
+  "vie": {
+    "language": "vie",
+    "actual": {
+      "recent": [
+        "Không Thể Trốn Thoát",
+        "Máu Đầu Tiên",
+        "Dư Chấn",
+        "Vua Bùng Nổ",
+        "Đao Phủ",
+        "Pháo Thủy Tinh",
+        "Bách Phát Bách Trúng",
+        "Sát Thủ"
+      ],
+      "medals": [
+        {
+          "name": "Không Thể Trốn Thoát",
+          "aria": "Không Thể Trốn Thoát. HUYỀN THOẠI. ĐÃ MỞ. Tạo một chuỗi sát thương thực tế ≥ 500 DMG; khoảng cách giữa các lần gây damage không quá 1.2 giây.",
+          "title": "Tạo một chuỗi sát thương thực tế ≥ 500 DMG; khoảng cách giữa các lần gây damage không quá 1.2 giây."
+        },
+        {
+          "name": "Máu Đầu Tiên",
+          "aria": "Máu Đầu Tiên. THƯỜNG. ĐÃ MỞ. Là bên đầu tiên gây ra lượng sát thương thực tế lớn hơn 0 lên đối thủ.",
+          "title": "Là bên đầu tiên gây ra lượng sát thương thực tế lớn hơn 0 lên đối thủ."
+        },
+        {
+          "name": "Dư Chấn",
+          "aria": "Dư Chấn. HIẾM. ĐÃ MỞ. Gây ≥ 250 DMG thực tế trong cửa sổ 0,1 giây.",
+          "title": "Gây ≥ 250 DMG thực tế trong cửa sổ 0,1 giây."
+        },
+        {
+          "name": "Vua Bùng Nổ",
+          "aria": "Vua Bùng Nổ. SỬ THI. ĐÃ MỞ. Gây ≥ 350 DMG thực trong một cửa sổ trượt 3 giây.",
+          "title": "Gây ≥ 350 DMG thực trong một cửa sổ trượt 3 giây."
+        },
+        {
+          "name": "Đao Phủ",
+          "aria": "Đao Phủ. HIẾM. ĐÃ MỞ. Tung đòn kết liễu khi đối thủ trước đòn đánh còn ≤ 20 % HP tối đa.",
+          "title": "Tung đòn kết liễu khi đối thủ trước đòn đánh còn ≤ 20 % HP tối đa."
+        },
+        {
+          "name": "Pháo Thủy Tinh",
+          "aria": "Pháo Thủy Tinh. SỬ THI. ĐÃ MỞ. Gây ít nhất 2 lần damage đã nhận, đồng thời tổng damage gây ra ≥ 450 DMG.",
+          "title": "Gây ít nhất 2 lần damage đã nhận, đồng thời tổng damage gây ra ≥ 450 DMG."
+        }
+      ],
+      "chapterNext": [
+        "ĐÃ HOÀN THÀNH",
+        "ĐÃ HOÀN THÀNH",
+        "ĐÃ HOÀN THÀNH",
+        "KẾ TIẾP: Sống Dai Thành Huyền Thoại",
+        "KẾ TIẾP: Lội Ngược Dòng",
+        "KẾ TIẾP: Cơn Sốt Adrenaline",
+        "KẾ TIẾP: Cỗ Máy Không Ngủ"
+      ],
+      "nextLines": [],
+      "visibleText": "TỔNG TINH THÔNG\n21/252\nMỞ KHÓA GẦN ĐÂY\n◎\nKhông Thể Trốn Thoát\nNEWBOT · 22 thg 10, 2026\n◍\nMáu Đầu Tiên\nNEWBOT · 22 thg 10, 2026\n⚒\nDư Chấn\nNEWBOT · 22 thg 10, 2026\n⚡\nVua Bùng Nổ\nNEWBOT · 22 thg 10, 2026\n⚔\nĐao Phủ\nNEWBOT · 22 thg 10, 2026\n◆\nPháo Thủy Tinh\nNEWBOT · 22 thg 10, 2026\n⌖\nBách Phát Bách Trúng\nNEWBOT · 22 thg 10, 2026\n☠\nSát Thủ\nNEWBOT · 22 thg 10, 2026\nNEWBOT\n21/42\nHUNTER\n0/42\nĐANG KHÓA\nCRYSTALA\n0/42\nĐANG KHÓA\nMAGNET\n0/42\nĐANG KHÓA\nFROST\n0/42\nĐANG KHÓA\nMIRROR\n0/42\nĐANG KHÓA\n21/42\nNEWBOT\n\nTINH THÔNG TƯỚNG\n\nNEWBOT · VÀNG · 50%\n\nCÒN 21 THÀNH TỰU\n\nCÒN 11 → SỬ THI\n\n♻\n\nTINH THÔNG TƯỚNG\n\nECOBOT — LÕI TÁI CHẾ V17\n21/42\n\n21/42 — ECOBOT vẫn khóa đến khi hoàn thành toàn bộ lộ trình.\n\n01\nHỎA LỰC\nĐÃ HOÀN THÀNH\n6/6\n›\n◎\nMỚI\nHUYỀN THOẠI\nĐÃ MỞ\nKhông Thể Trốn Thoát\n\nTạo một chuỗi sát thương thực tế ≥ 500 DMG; khoảng cách giữa các lần gây damage không quá 1.2 giây.\n\nĐÃ MỞ · 01 thg 1, 1970\n◍\nMỚI\nTHƯỜNG\nĐÃ MỞ\nMáu Đầu Tiên\n\nLà bên đầu tiên gây ra lượng sát thương thực tế lớn hơn 0 lên đối thủ.\n\nĐÃ MỞ · 01 thg 1, 1970\n⚒\nMỚI\nHIẾM\nĐÃ MỞ\nDư Chấn\n\nGây ≥ 250 DMG thực tế trong cửa sổ 0,1 giây.\n\nĐÃ MỞ · 01 thg 1, 1970\n⚡\nMỚI\nSỬ THI\nĐÃ MỞ\nVua Bùng Nổ\n\nGây ≥ 350 DMG thực trong một cửa sổ trượt 3 giây.\n\nĐÃ MỞ · 01 thg 1, 1970\n⚔\nMỚI\nHIẾM\nĐÃ MỞ\nĐao Phủ\n\nTung đòn kết liễu khi đối thủ trước đòn đánh còn ≤ 20 % HP tối đa.\n\nĐÃ MỞ · 01 thg 1, 1970\n◆\nMỚI\nSỬ THI\nĐÃ MỞ\nPháo Thủy Tinh\n\nGây ít nhất 2 lần damage đã nhận, đồng thời tổng damage gây ra ≥ 450 DMG.\n\nĐÃ MỞ · 01 thg 1, 1970\n02\nCHÍNH XÁC\nĐÃ HOÀN THÀNH\n7/7\n›\n03\nVŨ KHÍ\nĐÃ HOÀN THÀNH\n8/8\n›\n04\nSINH TỒN\nKẾ TIẾP: SỐNG DAI THÀNH HUYỀN THOẠI\n0/8\n›\n05\nCHIẾN THUẬT\nKẾ TIẾP: LỘI NGƯỢC DÒNG\n0/6\n›\n06\nHỖN LOẠN\nKẾ TIẾP: CƠN SỐT ADRENALINE\n0/6\n›\n07\nDANH HIỆU RIÊNG\nKẾ TIẾP: CỖ MÁY KHÔNG NGỦ\n0/1\n›\n♻\n\nTINH THÔNG TƯỚNG\n\nECOBOT — LÕI TÁI CHẾ V17\n\nĐạt mọi thành tựu áp dụng cho NEWBOT khi chơi NEWBOT.\n\n21/42\n\n21/42 — ECOBOT vẫn khóa đến khi hoàn thành toàn bộ lộ trình.\n\nCÒN 21 THÀNH TỰU\nĐANG KHÓA\n\nTINH THÔNG VŨ KHÍ\n\nVUA HỀ — THE LAST LAUGH\n\nVUA HỀ mở khi tổng sát thương RPG-7 từ kết quả BOT/LOCAL đã chốt lớn hơn 1.000.\n\nSÁT THƯƠNG RPG-7 TRỌN ĐỜI\n1,001 / >1.000 DMG\nTRANG BỊ CHO P1\nKỶ LỤC VŨ KHÍ HÀNG ĐẦU\nRPG-7\n1,001 DMG"
+    },
+    "recentMatches": true,
+    "medalNamesMatch": true,
+    "ariaNamesMatch": true,
+    "chapterNamesMatch": true,
+    "nextLinesMatch": true,
+    "rawVietnameseLeaks": []
+  },
+  "restored": {
+    "language": "eng",
+    "actual": {
+      "recent": [
+        "Không Thể Trốn Thoát",
+        "Máu Đầu Tiên",
+        "Dư Chấn",
+        "Vua Bùng Nổ",
+        "Đao Phủ",
+        "Pháo Thủy Tinh",
+        "Bách Phát Bách Trúng",
+        "Sát Thủ"
+      ],
+      "medals": [
+        {
+          "name": "Không Thể Trốn Thoát",
+          "aria": "Không Thể Trốn Thoát. LEGENDARY. UNLOCKED. Deal at least 500 actual damage in one chain, with no more than 1.2 seconds between hits.",
+          "title": "Deal at least 500 actual damage in one chain, with no more than 1.2 seconds between hits."
+        },
+        {
+          "name": "Máu Đầu Tiên",
+          "aria": "Máu Đầu Tiên. COMMON. UNLOCKED. Be the first to deal actual damage to the opponent.",
+          "title": "Be the first to deal actual damage to the opponent."
+        },
+        {
+          "name": "Dư Chấn",
+          "aria": "Dư Chấn. RARE. UNLOCKED. Deal at least 250 actual damage within a 0.1-second window.",
+          "title": "Deal at least 250 actual damage within a 0.1-second window."
+        },
+        {
+          "name": "Vua Bùng Nổ",
+          "aria": "Vua Bùng Nổ. EPIC. UNLOCKED. Deal at least 350 actual damage within a rolling 3-second window.",
+          "title": "Deal at least 350 actual damage within a rolling 3-second window."
+        },
+        {
+          "name": "Đao Phủ",
+          "aria": "Đao Phủ. RARE. UNLOCKED. Deliver the finishing blow while the opponent has at most 20% of maximum HP remaining.",
+          "title": "Deliver the finishing blow while the opponent has at most 20% of maximum HP remaining."
+        },
+        {
+          "name": "Pháo Thủy Tinh",
+          "aria": "Pháo Thủy Tinh. EPIC. UNLOCKED. Deal at least 2 times the damage you take, and at least 450 total damage.",
+          "title": "Deal at least 2 times the damage you take, and at least 450 total damage."
+        }
+      ],
+      "chapterNext": [
+        "PATH COMPLETE",
+        "PATH COMPLETE",
+        "PATH COMPLETE",
+        "NEXT: Sống Dai Thành Huyền Thoại",
+        "NEXT: Lội Ngược Dòng",
+        "NEXT: Cơn Sốt Adrenaline",
+        "NEXT: Cỗ Máy Không Ngủ"
+      ],
+      "nextLines": [],
+      "visibleText": "TOTAL MASTERY\n21/252\nRECENT UNLOCKS\n◎\nKhông Thể Trốn Thoát\nNEWBOT · 22 Oct 2026\n◍\nMáu Đầu Tiên\nNEWBOT · 22 Oct 2026\n⚒\nDư Chấn\nNEWBOT · 22 Oct 2026\n⚡\nVua Bùng Nổ\nNEWBOT · 22 Oct 2026\n⚔\nĐao Phủ\nNEWBOT · 22 Oct 2026\n◆\nPháo Thủy Tinh\nNEWBOT · 22 Oct 2026\n⌖\nBách Phát Bách Trúng\nNEWBOT · 22 Oct 2026\n☠\nSát Thủ\nNEWBOT · 22 Oct 2026\nNEWBOT\n21/42\nHUNTER\n0/42\nLOCKED\nCRYSTALA\n0/42\nLOCKED\nMAGNET\n0/42\nLOCKED\nFROST\n0/42\nLOCKED\nMIRROR\n0/42\nLOCKED\n21/42\nNEWBOT\n\nHERO MASTERY\n\nNEWBOT · GOLD · 50%\n\n21 ACHIEVEMENTS REMAINING\n\n11 MORE → EPIC\n\n♻\n\nHERO MASTERY\n\nECOBOT — RECYCLE CORE V17\n21/42\n\n21/42 — ECOBOT stays locked until the path is complete.\n\n01\nOFFENSE\nPATH COMPLETE\n6/6\n›\n◎\nNEW\nLEGENDARY\nUNLOCKED\nKhông Thể Trốn Thoát\n\nDeal at least 500 actual damage in one chain, with no more than 1.2 seconds between hits.\n\nUNLOCKED · 01 Jan 1970\n◍\nNEW\nCOMMON\nUNLOCKED\nMáu Đầu Tiên\n\nBe the first to deal actual damage to the opponent.\n\nUNLOCKED · 01 Jan 1970\n⚒\nNEW\nRARE\nUNLOCKED\nDư Chấn\n\nDeal at least 250 actual damage within a 0.1-second window.\n\nUNLOCKED · 01 Jan 1970\n⚡\nNEW\nEPIC\nUNLOCKED\nVua Bùng Nổ\n\nDeal at least 350 actual damage within a rolling 3-second window.\n\nUNLOCKED · 01 Jan 1970\n⚔\nNEW\nRARE\nUNLOCKED\nĐao Phủ\n\nDeliver the finishing blow while the opponent has at most 20% of maximum HP remaining.\n\nUNLOCKED · 01 Jan 1970\n◆\nNEW\nEPIC\nUNLOCKED\nPháo Thủy Tinh\n\nDeal at least 2 times the damage you take, and at least 450 total damage.\n\nUNLOCKED · 01 Jan 1970\n02\nPRECISION\nPATH COMPLETE\n7/7\n›\n03\nWEAPONS\nPATH COMPLETE\n8/8\n›\n04\nSURVIVAL\nNEXT: SỐNG DAI THÀNH HUYỀN THOẠI\n0/8\n›\n05\nTACTICS\nNEXT: LỘI NGƯỢC DÒNG\n0/6\n›\n06\nCHAOS\nNEXT: CƠN SỐT ADRENALINE\n0/6\n›\n07\nSIGNATURE\nNEXT: CỖ MÁY KHÔNG NGỦ\n0/1\n›\n♻\n\nHERO MASTERY\n\nECOBOT — RECYCLE CORE V17\n\nEarn every NEWBOT-applicable combat achievement while playing NEWBOT.\n\n21/42\n\n21/42 — ECOBOT stays locked until the path is complete.\n\n21 ACHIEVEMENTS REMAINING\nLOCKED\n\nWEAPON MASTERY\n\nVUA HỀ — THE LAST LAUGH\n\nVUA HỀ unlocks at more than 1,000 lifetime RPG-7 damage from sealed BOT/LOCAL results.\n\nLIFETIME RPG-7 DAMAGE\n1,001 / >1,000 DMG\nEQUIP FOR P1\nTOP WEAPON RECORDS\nRPG-7\n1,001 DMG"
+    },
+    "recentMatches": false,
+    "medalNamesMatch": false,
+    "ariaNamesMatch": false,
+    "chapterNamesMatch": false,
+    "nextLinesMatch": true,
+    "rawVietnameseLeaks": [
+      {
+        "id": "no-escape",
+        "name": "Không Thể Trốn Thoát"
+      },
+      {
+        "id": "first-blood",
+        "name": "Máu Đầu Tiên"
+      },
+      {
+        "id": "overkill",
+        "name": "Dư Chấn"
+      },
+      {
+        "id": "burst-king",
+        "name": "Vua Bùng Nổ"
+      },
+      {
+        "id": "executioner",
+        "name": "Đao Phủ"
+      },
+      {
+        "id": "glass-cannon",
+        "name": "Pháo Thủy Tinh"
+      },
+      {
+        "id": "sure-shot",
+        "name": "Bách Phát Bách Trúng"
+      },
+      {
+        "id": "assassin",
+        "name": "Sát Thủ"
+      },
+      {
+        "id": "legend-survivor",
+        "name": "Sống Dai Thành Huyền Thoại"
+      },
+      {
+        "id": "comeback",
+        "name": "Lội Ngược Dòng"
+      },
+      {
+        "id": "adrenaline",
+        "name": "Cơn Sốt Adrenaline"
+      },
+      {
+        "id": "signature-newbot",
+        "name": "Cỗ Máy Không Ngủ"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "ok": false,
+      "name": "ENG recent achievement names use canonical English"
+    },
+    {
+      "ok": false,
+      "name": "ENG expanded OFFENSE medal headings are localized"
+    },
+    {
+      "ok": false,
+      "name": "ENG medal accessible labels use the same localized names"
+    },
+    {
+      "ok": false,
+      "name": "ENG chapter-next achievement names are localized"
+    },
+    {
+      "ok": true,
+      "name": "ENG next-objective names are localized"
+    },
+    {
+      "ok": false,
+      "name": "ENG visible and accessible award-name surfaces contain no Vietnamese source names"
+    },
+    {
+      "ok": true,
+      "name": "VIE names restore exactly on live language switch"
+    },
+    {
+      "ok": false,
+      "name": "ENG names restore after VIE toggle"
+    },
+    {
+      "ok": true,
+      "name": "locale switching does not mutate AC or mastery award data"
+    },
+    {
+      "ok": true,
+      "name": "no uncaught browser errors"
+    }
+  ],
+  "browserErrors": []
+}

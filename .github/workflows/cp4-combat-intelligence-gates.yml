@@ -1,0 +1,94 @@
+# CP4: Combat Intelligence, Premium HUD/UX and Product Polish gates.
+#
+# These are deterministic authority/decision contracts, not gameplay proof by
+# themselves: weapon display names, nested Result resolution, the pausing
+# tutorial lease, achievement ownership, SFX aliases, and observable BOT AI
+# decisions. Browser/natural-match evidence remains in the CP4 report.
+name: CP4 Combat Intelligence Gates
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'public/game/arsenal/arsenalConfig.js'
+      - 'public/game/arsenal/arsenalMetaRuntime.js'
+      - 'public/game/gold/goldProductBridge.js'
+      - 'public/game/hero-rework/ailRuntime.js'
+      - 'public/game/hero-rework/boxeBattleRuntime.js'
+      - 'public/game/hero-rework/crystalGameplayRuntime.js'
+      - 'public/game/hero-rework/heroMechanicsRuntime.js'
+      - 'public/game/hero-rework/heroReworkRuntime.js'
+      - 'public/game/hero-rework/robotPresentationRuntime.js'
+      - 'public/game/hero-rework/shuriBattleRuntime.js'
+      - 'public/game/modes/arsenalBattleRuntime.js'
+      - 'public/game/results/matchResultAuthority.js'
+      - 'public/game/ui/apexCombatHudRuntime.js'
+      - 'public/game/ui/uiSfxAuthority.js'
+      - 'result-gold/src/**'
+      - 'src/game/appRoot.js'
+      - 'src/game/cosmetics/CosmeticLocker.jsx'
+      - 'src/game/cosmetics/FieldArchiveC03.jsx'
+      - 'src/game/cosmetics/ecoNewbotV17WorldGold.js'
+      - 'src/ui/AchievementToast.jsx'
+      - 'src/ui/achievementToast.css'
+      - 'src/ui/FirstPlayGuide.jsx'
+      - 'src/ui/firstPlayGuide.css'
+      - 'src/ui/ProgressionCenter.jsx'
+      - 'src/ui/progressionCenter.css'
+      - 'src/ui/SkinUnlockCelebration.jsx'
+      - 'src/ui/masteryCatalog.js'
+      - 'tools/packItchPortable.mjs'
+      - 'tools/testArsenalBattleHeadless.mjs'
+      - 'tools/testCp3MasteryGate.mjs'
+      - 'tools/testCp4CombatIntelligenceGate.mjs'
+      - 'tools/testMagnetAiWorldRoleContract.mjs'
+      - 'tools/testResultGoldAuthority.mjs'
+      - 'tools/testUiSfxWiringGate.mjs'
+      - '.github/workflows/cp4-combat-intelligence-gates.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cp4-combat-intelligence-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  node-gates:
+    name: CP4 authority + BOT decision gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: CP4 combat-intelligence contract
+        run: pnpm test:cp4-combat-intelligence
+      - name: CP3 mastery ownership + provisional/sealed wallet law
+        run: pnpm test:cp3-mastery
+      - name: Result authority contract
+        run: node tools/testResultGoldAuthority.mjs
+      - name: UI SFX authority and call-site wiring
+        run: node tools/testUiSfxWiringGate.mjs
+      - name: MAGNET world-role contract
+        run: node tools/testMagnetAiWorldRoleContract.mjs
+      - name: Syntax — CP4 classic runtimes
+        run: |
+          node --check public/game/arsenal/arsenalConfig.js
+          node --check public/game/arsenal/arsenalMetaRuntime.js
+          node --check public/game/gold/goldProductBridge.js
+          node --check public/game/hero-rework/boxeBattleRuntime.js
+          node --check public/game/hero-rework/crystalGameplayRuntime.js
+          node --check public/game/hero-rework/heroMechanicsRuntime.js
+          node --check public/game/hero-rework/heroReworkRuntime.js
+          node --check public/game/hero-rework/robotPresentationRuntime.js
+          node --check public/game/hero-rework/shuriBattleRuntime.js
+          node --check public/game/modes/arsenalBattleRuntime.js
+          node --check public/game/results/matchResultAuthority.js
+          node --check public/game/ui/apexCombatHudRuntime.js
+          node --check public/game/ui/uiSfxAuthority.js
+      - name: Production build
+        run: pnpm build

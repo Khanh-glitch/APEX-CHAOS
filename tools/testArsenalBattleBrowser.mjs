@@ -475,7 +475,7 @@ try {
     'local-1v1-physical-route-legal-owned-picker-and-neutral-match',
     'bot-battle-physical-route-deterministic-p2-neutral-match-and-real-ai-cast',
     'fighter-shop-public-roster-twelve-core-six-law-1000-ac-and-locked-purchase-rejection',
-    'lucky-draw-physical-route-pool-core-six-and-exactly-one-350-ac-draw',
+    'lucky-draw-physical-route-pool-core-six-and-exactly-one-1000-ac-draw',
   ];
   gate('current-product-menu-routes-physical-acceptance',
     productRouteGateNames.every(name => report.arsenalProduct?.[name]?.pass === true),
@@ -1647,7 +1647,7 @@ try {
     'bot-battle-physical-exit-returns-to-product-menu',
     'fighter-shop-public-roster-twelve-core-six-law-1000-ac-and-locked-purchase-rejection',
     'fighter-shop-physical-back-returns-to-product-menu',
-    'lucky-draw-physical-route-pool-core-six-and-exactly-one-350-ac-draw',
+    'lucky-draw-physical-route-pool-core-six-and-exactly-one-1000-ac-draw',
     'admin-lab-absent-publicly-launchable-only-by-api-on-neutral-core',
     'admin-lab-physical-exit-returns-without-public-lab-link',
   ];

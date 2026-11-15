@@ -11,6 +11,7 @@ import {
 } from './runtimeManifest.js';
 import { beginPerfSpan, markBootPhase } from './performanceMetrics.js';
 import { AUDIO_WARM_BANKS } from './audioWarmBanks.generated.js';
+import { apexAppUrl } from './appRoot.js';
 
 // Audio 2B — tiered audio preparation. Runs when a group's scripts have all
 // evaluated, so lazily-constructed HTMLAudioElements / runtime
@@ -31,16 +32,15 @@ function warmGroupAudio(group) {
 }
 
 function runtimeScriptFor(src) {
-  const base = document.baseURI || 'http://localhost/';
-  let target;
-  try { target = new URL(src, base).href; } catch (error) { target = String(src); }
+  // Identity is resolved against the APP-ROOT entry base, never
+  // document.baseURI: the Gold mount retargets <base> to /gold/, which
+  // would make every deferred runtime look (and load) from <app>/gold/.
+  const target = apexAppUrl(src);
   const scripts = document.querySelectorAll('script[src]');
   for (const node of scripts) {
     const raw = node.getAttribute('src');
     if (!raw) continue;
-    let candidate;
-    try { candidate = new URL(raw, base).href; } catch (error) { candidate = raw; }
-    if (candidate === target) return node;
+    if (apexAppUrl(raw) === target) return node;
   }
   return null;
 }
@@ -59,7 +59,7 @@ const REQUIRED_CLASSIC_READY_MARKERS = new Set([
 ]);
 const classicRuntimeInflight = new Map();
 function runtimeUrl(src) {
-  return new URL(src, document.baseURI || 'http://localhost/').href;
+  return apexAppUrl(src);
 }
 function runtimeAdmissionError(src, reason) {
   return new Error(`Classic runtime admission failed [${src}]: ${reason}`);
@@ -89,7 +89,9 @@ export function loadClassicRuntime(src, dataKey) {
     }
 
     const runtime = existing || document.createElement('script');
-    if (!existing) runtime.src = src; // never restart a pre-existing script
+    // Absolute app-root URL: identity stays stable no matter which <base>
+    // the Gold mount later inserts; never restarts a pre-existing script.
+    if (!existing) runtime.src = url;
     runtime.async = false;
     runtime.dataset[dataKey] = 'true';
     let settled = false;

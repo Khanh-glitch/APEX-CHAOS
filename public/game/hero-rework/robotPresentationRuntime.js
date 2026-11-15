@@ -644,7 +644,10 @@
     const o = 1 - s;
     const tan = { x: -dir.y, y: dir.x };
     const above = hy < PIV[s].y ? 1 : -1;
-    flashState(st, worldPt.x, worldPt.y, F > 1.5);
+    // CP4: wall contact keeps stress/springs/sparks/chips (material truth)
+    // but never the radial hit flash — a filled disc at the arena edge reads
+    // as a stray colored circle unrelated to the silhouette identity.
+    if (!isWall) flashState(st, worldPt.x, worldPt.y, F > 1.5);
     st.stress.push({ x: hx, y: hy, nx: dir.x, ny: dir.y, t: 0, dur: F > 1.5 ? .2 : .14, armored: st.armor });
     if (st.armor) {
       st.R.calDx[s].kick(34 * F);
@@ -1071,7 +1074,17 @@ function renderRig(g) {
       ctx.save(); ctx.translate(q2.x, q2.y); ctx.rotate(q2.r); ctx.globalAlpha = a;
       ctx.fillStyle = '#d6a052'; ctx.fillRect(-3, -1.5, 6, 3); ctx.restore();
     } else if (q2.k === 'dust') {
-      ctx.fillStyle = 'rgba(120,118,110,' + a * .28 + ')'; ctx.beginPath(); ctx.arc(q2.x, q2.y, q2.s * (1 + q2.t * 2), 0, TAU); ctx.fill();
+      // CP4: wall dust is a short scrape streak along its own velocity, not
+      // an expanding filled disc. Same particle, same life/motion law.
+      const sp = Math.hypot(q2.vx, q2.vy);
+      const len = Math.max(6, Math.min(26, sp * .09 + q2.s));
+      ctx.save(); ctx.translate(q2.x, q2.y); ctx.rotate(Math.atan2(q2.vy, q2.vx));
+      ctx.globalAlpha = a * .5; ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(148,144,132,.55)'; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(-len / 2, 0); ctx.quadraticCurveTo(0, 1.5, len / 2, 0); ctx.stroke();
+      ctx.strokeStyle = 'rgba(96,94,88,.4)'; ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.moveTo(-len * .32, 2.4); ctx.lineTo(len * .36, 2.4); ctx.stroke();
+      ctx.restore();
     }
   }
     // Cosmetic owns the entire Gold targeting family; ORIGINAL keeps its
@@ -1179,6 +1192,174 @@ function renderRig(g) {
       }
     }
     if(ecoPose)eco?.render?.('worldFront',ctx,receipt,ecoPose);
+  }
+
+  function renderArenaTacticalOverlay(ctx) {
+    const allFighters = globalScope.fighters || [];
+    for (let li = 0; li < allFighters.length; li++) {
+      const cf = allFighters[li];
+      if (cf && cf.hp > 0 && isRobotFighter(cf)) {
+        renderRobotTacticalCues(ctx, cf, getRobotState(cf));
+      }
+    }
+  }
+
+  function pickClearPillY(anchorX, anchorY, delta, fighters) {
+    const candAbove = anchorY - delta;
+    const candBelow = anchorY + delta;
+    const score = (cy) => {
+      if (cy < 26 || cy > 974) return -1e9;
+      let minDist = 1e9;
+      for (let i = 0; i < fighters.length; i++) {
+        const f = fighters[i];
+        if (!f || f.hp <= 0) continue;
+        const d = Math.hypot(anchorX - f.x, cy - f.y);
+        if (d < minDist) minDist = d;
+      }
+      return minDist;
+    };
+    return score(candAbove) >= score(candBelow) ? candAbove : candBelow;
+  }
+
+  function renderRobotTacticalCues(ctx, fighter, st) {
+    try {
+      const hr = globalScope.APEX_HERO_REWORK;
+      const aq = globalScope.APEX_ARSENAL?.state;
+      if (!hr || !aq || aq.active !== true || aq.over || !fighter || fighter.hp <= 0) return;
+      const fighters = globalScope.fighters || [];
+      const sideIdx = fighters[0] === fighter ? 0 : fighters[1] === fighter ? 1 : -1;
+      if (sideIdx < 0) return;
+      const mode = String(aq.battleMode || aq.mode || globalScope.battleMode || '').toUpperCase();
+      // Only human-controlled Robot sides display player action callouts.
+      if (sideIdx === 1 && mode === 'BOT') return;
+      const isVie = globalScope.APEX_I18N?.getLanguage?.() === 'vie';
+      const isTouch = !!(globalScope.matchMedia && globalScope.matchMedia('(pointer: coarse)').matches);
+      const cssW = Number(ctx?.canvas?.getBoundingClientRect?.().width) || 1000;
+      const invScale = Math.min(2.05, Math.max(1, 660 / Math.max(240, cssW)));
+
+      // Live Virtual Armor duration arc synced directly to simulation clock.
+      if (typeof hr.observeAbilityActiveWindow === 'function') {
+        const armorWin = hr.observeAbilityActiveWindow(fighter, 'A2');
+        if (armorWin && armorWin.active) {
+          const totalDur = Number(fighter.__hrCombatant?.skills?.A2?.cfg?.duration) || 2.5;
+          const frac = Math.max(0.04, Math.min(1, armorWin.remainSec / Math.max(0.25, totalDur)));
+          ctx.save();
+          ctx.strokeStyle = 'rgba(86, 224, 255, 0.92)';
+          ctx.lineWidth = 4.4;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.arc(fighter.x, fighter.y, (fighter.radius || 30) + 20, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      if (typeof hr.observeAbilityCastability !== 'function' || typeof hr.observeRobotFloorTarget !== 'function') return;
+      const leg = hr.observeAbilityCastability(fighter, 'A1');
+      if (!leg || !leg.known) return;
+      const info = hr.observeRobotFloorTarget(fighter);
+
+      if (leg.castable && info.target) {
+        const tx = info.target.x;
+        const ty = info.target.y;
+        const cfg = globalScope.APEX_ARSENAL_CONFIG;
+        const rawName = (cfg && typeof cfg.weaponDisplayName === 'function' && info.target.weaponId)
+          ? cfg.weaponDisplayName(info.target.weaponId)
+          : String(info.target.weaponId || 'WEAPON').replace(/_/g, ' ');
+        const keyTag = sideIdx === 1 ? 'NUM1' : (isTouch ? (isVie ? 'CHẠM J' : 'TAP J') : 'J');
+        const pillText = `[${keyTag}] ${String(rawName).toUpperCase()}`;
+        const pulse = 0.5 + 0.5 * Math.sin((Number(st?.T) || 0) * 6.5);
+
+        ctx.save();
+        // Dashed tactical line from fighter toward real target weapon.
+        const dx = tx - fighter.x, dy = ty - fighter.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        if (dist > 84) {
+          const ux = dx / dist, uy = dy / dist;
+          ctx.strokeStyle = `rgba(86, 224, 255, ${(0.38 + 0.22 * pulse).toFixed(3)})`;
+          ctx.lineWidth = 2.6;
+          ctx.setLineDash([10, 7]);
+          ctx.beginPath();
+          ctx.moveTo(fighter.x + ux * 46, fighter.y + uy * 46);
+          ctx.lineTo(tx - ux * 40, ty - uy * 40);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Crisp electric-cyan target reticle + 4 corner lock brackets around floor gun.
+        const r = 38 + pulse * 4;
+        ctx.strokeStyle = `rgba(86, 224, 255, ${(0.84 + 0.16 * pulse).toFixed(3)})`;
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.arc(tx, ty, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        const bk = r + 6, bl = 11;
+        ctx.strokeStyle = '#ffd27a';
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.moveTo(tx - bk, ty - bk + bl); ctx.lineTo(tx - bk, ty - bk); ctx.lineTo(tx - bk + bl, ty - bk);
+        ctx.moveTo(tx + bk - bl, ty - bk); ctx.lineTo(tx + bk, ty - bk); ctx.lineTo(tx + bk, ty - bk + bl);
+        ctx.moveTo(tx - bk, ty + bk - bl); ctx.lineTo(tx - bk, ty + bk); ctx.lineTo(tx - bk + bl, ty + bk);
+        ctx.moveTo(tx + bk - bl, ty + bk); ctx.lineTo(tx + bk, ty + bk); ctx.lineTo(tx + bk, ty + bk - bl);
+        ctx.stroke();
+
+        // Fighter-avoiding & arena-clamped callout pill above/below target.
+        const pillFontPx = Math.round(18 * invScale);
+        ctx.font = `800 ${pillFontPx}px "Chakra Petch", "Barlow Condensed", sans-serif`;
+        const tw = Math.ceil(ctx.measureText(pillText).width);
+        const pw = tw + Math.round(24 * invScale);
+        const ph = Math.round(30 * invScale);
+        const px = Math.max(20 + pw / 2, Math.min(980 - pw / 2, tx));
+        const py = pickClearPillY(px, ty, Math.round(60 + (ph - 30) * 0.5), fighters);
+        ctx.fillStyle = 'rgba(7, 13, 18, 0.94)';
+        ctx.strokeStyle = 'rgba(86, 224, 255, 0.94)';
+        ctx.lineWidth = Math.max(2.0, 2.0 * invScale * 0.85);
+        ctx.beginPath();
+        ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, Math.round(5 * invScale * 0.85));
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#f0fdff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pillText, px, py + 1);
+        ctx.restore();
+      } else if (!leg.castable && leg.reason === 'condition' && info.nextSpawn) {
+        const sx = info.nextSpawn.x;
+        const sy = info.nextSpawn.y;
+        const label = isVie ? 'SÚNG SẮP RƠI' : 'NEXT GUN SPAWN';
+        ctx.save();
+        ctx.strokeStyle = 'rgba(86, 224, 255, 0.56)';
+        ctx.lineWidth = Math.max(2.2, 2.0 * invScale);
+        ctx.setLineDash([7, 6]);
+        ctx.beginPath();
+        ctx.arc(sx, sy, Math.round(30 * Math.min(1.35, invScale)), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const spawnFontPx = Math.round(15 * invScale);
+        ctx.font = `700 ${spawnFontPx}px "Chakra Petch", "Barlow Condensed", sans-serif`;
+        const tw = Math.ceil(ctx.measureText(label).width);
+        const pw = tw + Math.round(20 * invScale);
+        const ph = Math.round(26 * invScale);
+        const px = Math.max(18 + pw / 2, Math.min(982 - pw / 2, sx));
+        const py = pickClearPillY(px, sy, Math.round(56 + (ph - 26) * 0.5), fighters);
+        ctx.fillStyle = 'rgba(8, 14, 19, 0.90)';
+        ctx.strokeStyle = 'rgba(126, 232, 255, 0.68)';
+        ctx.lineWidth = Math.max(1.6, 1.6 * invScale * 0.85);
+        ctx.beginPath();
+        ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, Math.round(4 * invScale * 0.85));
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#d8f8ff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, px, py + 0.5);
+        ctx.restore();
+      }
+    } catch (_) {
+      // Tactical world cues never disrupt canonical rendering.
+    }
   }
 
   function isRobotFighter(f) {
@@ -1790,6 +1971,7 @@ function renderRig(g) {
     ensureSprites,
     getRobotState,
     renderActorImage,
+    renderArenaTacticalOverlay,
     getRobotWeaponSocketWorld,
     playRobotSfx,
     loadRobotAudio,

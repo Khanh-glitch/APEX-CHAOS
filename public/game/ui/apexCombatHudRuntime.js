@@ -85,6 +85,9 @@
       burst: null,        // { total, hits, crits, bigHit } while active
       timer: null,        // exactly ONE silence timeout per side (§7.5)
       punchRelease: null,
+      punchAnimation: null,
+      burstDirty: false,
+      punchPending: false,
       loadoutKey: null,
       loadoutPending: false,
       last: {},           // last rendered values per element (change-only writes)
@@ -238,12 +241,22 @@
       trail.style.transition = 'none';
       trail.style.left = `${visiblePct}%`;
       trail.style.width = `${previous - visiblePct}%`;
-      trail.style.opacity = '1';
-      void trail.offsetWidth;
-      trail.style.transition = 'opacity .62s ease-out';
       clearTimeout(trail.__apexFadeTimer);
-      trail.__apexFadeTimer = setTimeout(() => { trail.style.opacity = '0'; }, 70);
+      trail.__apexFadeAnimation?.cancel();
+      if (typeof trail.animate === 'function') {
+        trail.style.opacity = '0';
+        trail.__apexFadeAnimation = trail.animate([{opacity:1},{opacity:0}],
+          {duration:620,delay:70,easing:'ease-out',fill:'backwards'});
+      } else {
+        trail.style.opacity = '1';
+        trail.__apexFadeTimer = setTimeout(() => {
+          trail.style.transition = 'opacity .62s ease-out';
+          trail.style.opacity = '0';
+        }, 70);
+      }
     } else if (trail && Number.isFinite(previous) && visiblePct > previous + 0.01) {
+      clearTimeout(trail.__apexFadeTimer);
+      trail.__apexFadeAnimation?.cancel();
       trail.style.opacity = '0';
       trail.style.width = '0';
     }
@@ -264,14 +277,14 @@
     const identity = identityProjection(f);
     const vitals = vitalsProjection(f);
     if (r.name) {
-      if (r.name.innerText !== identity.name) { r.name.innerText = identity.name; stats.vitalWrites += 1; }
+      if (r.name.textContent !== identity.name) { r.name.textContent = identity.name; stats.vitalWrites += 1; }
       if (r.name.style.color !== identity.color) { r.name.style.color = identity.color; stats.vitalWrites += 1; }
     }
     if (r.hp) {
       if (r.hp.style.backgroundColor !== identity.color) { r.hp.style.backgroundColor = identity.color; stats.vitalWrites += 1; }
       updateHpLossTrail(r.hp, r.hpLoss, vitals.visiblePct);
     }
-    if (r.hpText && r.hpText.innerText !== vitals.label) { r.hpText.innerText = vitals.label; stats.vitalWrites += 1; }
+    if (r.hpText && r.hpText.textContent !== vitals.label) { r.hpText.textContent = vitals.label; stats.vitalWrites += 1; }
     if (r.rage) {
       const opacity = vitals.rage ? '1' : '0';
       const display = vitals.rage ? 'block' : 'none';
@@ -288,7 +301,7 @@
     if (next === s.energy) return;
     s.energy = next;
     stats.energyWrites += 1;
-    renderEnergy(i);
+    // Keep telemetry immediate; presentation is coalesced by flushFrame/sync.
   }
 
   function renderEnergy(i) {
@@ -376,23 +389,27 @@
   }
 
   function punch(i) {
-    cacheRefs();
-    const r = refs.sides[i];
-    const el = r && r.burstTotal;
-    if (!el) return;
-    if (sides[i].punchRelease) { clearTimeout(sides[i].punchRelease); sides[i].punchRelease = null; }
-    el.classList.remove('is-punch');
-    // restart the CSS transition so rapid consecutive hits re-punch cleanly
-    void el.offsetWidth;
-    el.classList.add('is-punch'); // fast ~45 ms attack (CSS)
-    sides[i].punchRelease = setTimeout(() => {
-      sides[i].punchRelease = null;
-      el.classList.remove('is-punch'); // settle ~120 ms (CSS) → 165 ms total
-    }, 95);
+    const el=refs.sides[i]?.burstTotal;
+    if(!el)return;
+    const side=sides[i];
+    if(side.punchAnimation)side.punchAnimation.cancel();
+    if(typeof el.animate==='function') {
+      side.punchAnimation=el.animate([
+        {transform:'translateY(0) scale(1)',offset:0},
+        {transform:'translateY(-2px) scale(1.12)',offset:.35},
+        {transform:'translateY(0) scale(1)',offset:1}
+      ],{duration:180,easing:'ease-out'});
+    } else {
+      el.classList.add('is-punch');
+      clearTimeout(side.punchRelease);
+      side.punchRelease=setTimeout(()=>{el.classList.remove('is-punch');side.punchRelease=null;},180);
+    }
   }
 
   function resetBurst(i) {
     const s = sides[i];
+    s.burstDirty = false;
+    s.punchPending = false;
     if (s.timer) { clearTimeout(s.timer); s.timer = null; }
     if (!s.burst) return;
     s.burst = null;
@@ -416,8 +433,8 @@
       resetBurst(i);
     }, SILENCE_MS);
     stats.timerArms += 1;
-    renderBurst(i);
-    punch(i);
+    s.burstDirty=true;
+    s.punchPending=true;
   }
 
   // -------------------------------------------------------------- loadout --
@@ -486,7 +503,8 @@
       if (h && h.weaponId) {
         weaponId = h.weaponId;
         const w = (CFG && CFG.WEAPONS) ? CFG.WEAPONS[weaponId] : null;
-        name = (w && w.art) || String(weaponId).replace(/_/g, ' ');
+        name = (CFG && CFG.weaponDisplayName) ? CFG.weaponDisplayName(weaponId)
+          : ((w && w.art) || String(weaponId).replace(/_/g, ' '));
         family = (w && w.family) ? String(w.family) : '';
         tier = (CFG && CFG.tierOf) ? (CFG.tierOf(weaponId) || '') : '';
         tierColor = (CFG && CFG.TIER_COLORS && tier) ? CFG.TIER_COLORS[tier] : '';
@@ -581,6 +599,20 @@
   }
 
   // ------------------------------------------------------------ sync -----
+  let framePending = true;
+  function flushBurst(i) {
+    if(sides[i].burstDirty){renderBurst(i);sides[i].burstDirty=false;}
+    if(sides[i].punchPending){punch(i);sides[i].punchPending=false;}
+  }
+  function flushFrame() {
+    if (!framePending || !cacheRefs()) return;
+    framePending = false;
+    for (let i = 0; i < 2; i++) {
+      flushBurst(i);
+      renderVitals(i);
+      renderEnergy(i);
+    }
+  }
   function sync() {
     if (!cacheRefs()) return;
     const fs = fighterList();
@@ -608,6 +640,8 @@
       if (sides[i].fighter !== fs[i]) {
         sides[i].fighter = fs[i];
         sides[i].energy = 0;
+        sides[i].burstDirty=false;sides[i].punchPending=false;
+        sides[i].punchAnimation?.cancel();sides[i].punchAnimation=null;
         if (sides[i].timer) { clearTimeout(sides[i].timer); sides[i].timer = null; }
         sides[i].burst = null;
         sides[i].loadoutKey = null;
@@ -616,6 +650,7 @@
       }
     }
     for (let i = 0; i < 2; i++) {
+      flushBurst(i);
       renderVitals(i);
       renderLoadout(i);
       renderEnergy(i);
@@ -645,7 +680,7 @@
         // burst belongs to the attacking side (authority §7).
         onHit(ai, amount, !!ev.critical);
       }
-      sync();
+      // The engine frame and existing reconciliation timer flush DOM once.
     } catch (error) {
       // A HUD failure must never break combat.
     }
@@ -656,6 +691,8 @@
       stats.matchStarts += 1;
       for (let i = 0; i < 2; i++) {
         sides[i].energy = 0;
+        sides[i].burstDirty=false;sides[i].punchPending=false;
+        sides[i].punchAnimation?.cancel();sides[i].punchAnimation=null;
         if (sides[i].timer) { clearTimeout(sides[i].timer); sides[i].timer = null; }
         sides[i].burst = null;
         sides[i].loadoutKey = null;
@@ -707,7 +744,9 @@
     onRealizedDamage,
     onMatchStart,
     onProjectionChanged() { sync(); },
-    syncVitals() { for (let i = 0; i < 2; i++) renderVitals(i); },
+    // Damage/heal callbacks only request work; the render seam flushes once.
+    syncVitals() { framePending = true; },
+    flushFrame,
     sync,
     projection,
     stats,

@@ -409,25 +409,115 @@
     st.pendingMount=null;
     st.pendingRecycle.length=0;st.disposed=true;
   }
+  function shuriVelocity(body){
+    const measured=body?.__hrVel;
+    if(measured&&Number.isFinite(measured.x)&&Number.isFinite(measured.y)){
+      return {x:Number(measured.x),y:Number(measured.y)};
+    }
+    let mult=1;
+    try{if(typeof body?.speedMult==='function')mult=Number(body.speedMult())||0;}catch(_){mult=1;}
+    const speed=(Number(body?.baseSpeed)||0)*mult;
+    return {x:(Number(body?.dir?.x)||0)*speed,y:(Number(body?.dir?.y)||0)*speed};
+  }
+  function circleInterval(center,body,radius){
+    const v=shuriVelocity(body);
+    const rx=body.x-center.x,ry=body.y-center.y;
+    const c=rx*rx+ry*ry-radius*radius;
+    const a=v.x*v.x+v.y*v.y;
+    if(!(a>1e-9))return c<=0?[0,Infinity]:null;
+    const b=2*(rx*v.x+ry*v.y),disc=b*b-4*a*c;
+    if(disc<0)return null;
+    const root=Math.sqrt(disc);
+    const enter=(-b-root)/(2*a),exit=(-b+root)/(2*a);
+    return exit>=0?[Math.max(0,enter),exit]:null;
+  }
+  function shuriA1Decision(ctx){
+    const st=stateOf(ctx.combatant),self=ctx.combatant.anchor;
+    if(!st||!self||self.hp<=0||st.bomb||st.a1Sequence){
+      return {shouldCast:false,score:0,reason:'bomb-unavailable',retryAfter:.5};
+    }
+    const cfg=a1cfgOf(ctx.combatant);
+    const anchor={x:self.x,y:self.y+50};
+    const armedAt=.47;
+    const expiresAt=armedAt+(cfg.bombArmedLifetime??5);
+    const bombRadius=cfg.bombRadius??100;
+    let best=null;
+    for(const body of ctx.api.enemyBodies(ctx.combatant)){
+      if(!body||body.hp<=0)continue;
+      const interval=circleInterval(anchor,body,bombRadius+(Number(body.radius)||75));
+      if(!interval)continue;
+      const enter=Math.max(interval[0],armedAt),exit=Math.min(interval[1],expiresAt);
+      if(exit<enter)continue;
+      const held=W()?.getHolder?.(body);
+      const stealable=!!(held&&CFG()?.isGunOrLauncher?.(held.weaponId)===true
+        &&tierNumber(held.weaponId)!=null);
+      const soon=1-Math.min(1,Math.max(0,(enter-armedAt)/Math.max(.001,expiresAt-armedAt)));
+      const score=Math.min(.96,(stealable?.84:.72)+.12*soon);
+      const candidate={shouldCast:true,score,reason:stealable?'predicted-armed-bomb-disarm':'predicted-bomb-crossing',retryAfter:.18};
+      if(!best||candidate.score>best.score)best=candidate;
+    }
+    if(best)return best;
+    const hasStructure=validStructure(st.structure);
+    if(!st.anchor&&!hasStructure&&st.scrap>=(a2cfgOf(ctx.combatant).buildScrap??20)){
+      return {shouldCast:true,score:.66,reason:'establish-build-anchor',retryAfter:.8};
+    }
+    return {shouldCast:false,score:.16,reason:'no-predicted-bomb-crossing',retryAfter:.45};
+  }
+  function shuriA2Decision(ctx){
+    const branch=resolveA2Branch(ctx);
+    if(!branch||branch==='recovery-cancel'){
+      return {shouldCast:false,score:0,reason:'no-machine-action',retryAfter:.8};
+    }
+    const st=stateOf(ctx.combatant),ct=ctx.combatant,cfg=a2cfgOf(ct);
+    if(branch==='build'){
+      return {shouldCast:true,score:.84,reason:'build-machine',retryAfter:.6};
+    }
+    if(branch==='mount'){
+      const held=W()?.getHolder?.(ct.anchor);
+      const tier=held?tierNumber(held.weaponId):null;
+      if(tier!=null&&st.scrap<tier){
+        return {shouldCast:false,score:.24,reason:'preserve-scrap-for-rack',retryAfter:.8};
+      }
+      return {shouldCast:true,score:.8,reason:'mount-rack-weapon',retryAfter:.7};
+    }
+    if(branch==='recovery'){
+      const f=ct.anchor,cap=Math.max(1,f.maxHp||1000),missing=cap-f.hp;
+      if(f.hp<=cap*.7)return {shouldCast:true,score:.78,reason:'recovery-needed',retryAfter:1};
+      if(missing>=150)return {shouldCast:true,score:.68,reason:'recovery-meaningful',retryAfter:1};
+      return {shouldCast:false,score:.2,reason:'recovery-too-small',retryAfter:1};
+    }
+    if(branch==='repair'){
+      const s=validStructure(st.structure)?st.structure:null;
+      if(!s)return {shouldCast:false,score:0,reason:'no-machine-action',retryAfter:.8};
+      const maxHp=cfg.structureHP??200,per=Math.max(1,cfg.repairPerScrap??10);
+      const missing=Math.max(0,maxHp-s.solid.hp);
+      const spend=Math.min(st.scrap,Math.ceil(missing/per));
+      const restorable=Math.min(missing,spend*per);
+      const meaningful=restorable>=40||(s.solid.hp<=maxHp*.25&&restorable>=20);
+      if(!meaningful){
+        return {shouldCast:false,score:.18,reason:'repair-too-small',retryAfter:1};
+      }
+      const reserve=s.mountedWeaponId?tierNumber(s.mountedWeaponId):null;
+      if(reserve!=null&&st.scrap-spend<reserve&&missing<80){
+        return {shouldCast:false,score:.28,reason:'preserve-rack-reload-scrap',retryAfter:1};
+      }
+      return {
+        shouldCast:true,
+        score:Math.min(.9,.68+.22*(missing/Math.max(1,maxHp))),
+        reason:'meaningful-structure-repair',
+        retryAfter:.8,
+      };
+    }
+    return {shouldCast:false,score:0,reason:'no-machine-action',retryAfter:.8};
+  }
   function install(EXECUTORS){
     EXECUTORS['shuri.shock_recoil']={
       cast:a1,
-      aiEvaluate(ctx){return {shouldCast:!stateOf(ctx.combatant).bomb,score:.7,retryAfter:1};},
+      aiEvaluate:shuriA1Decision,
     };
     EXECUTORS['shuri.machine']={
       canCast:a2can,cast:a2,
-      aiEvaluate(ctx){
-        const branch=resolveA2Branch(ctx);
-        if(!branch||branch==='recovery-cancel')
-          return {shouldCast:false,score:0,retryAfter:.8};
-        if(branch==='recovery'){
-          const f=ctx.combatant.anchor,cap=f.maxHp||1000;
-          return f.hp<=cap*.7
-            ?{shouldCast:true,score:.75,retryAfter:1}
-            :{shouldCast:false,score:.2,retryAfter:1};
-        }
-        return {shouldCast:true,score:branch==='build'?.85:.8,retryAfter:.8};
-      },
+      aiEvaluate:shuriA2Decision,
     };
     EXECUTORS['shuri.recycle']={
       onTick:tick,onTeardown:teardown,

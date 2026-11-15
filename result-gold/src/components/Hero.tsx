@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { CSSProperties } from "react";
 import { Crown } from "lucide-react";
 import type { PlayerResult } from "../data/types";
@@ -18,6 +19,7 @@ interface HeroProps {
  */
 export function HeroPanel({ player, phase, force }: HeroProps) {
   const { ref, revealed } = useReveal<HTMLElement>(phase, 2, force);
+  const [artFailed, setArtFailed] = useState(false);
   const win = player.outcome === "victory";
   const word = win ? "VICTORY" : "DEFEAT";
   const sub = win ? "CHIẾN THẮNG" : "THẤT BẠI";
@@ -53,9 +55,9 @@ export function HeroPanel({ player, phase, force }: HeroProps) {
         <div className="hero__halo" aria-hidden="true" />
         <span className="hero__shock" aria-hidden="true" />
         <div className="hero__art">
-          <HeroArt player={player} />
+          <HeroArt player={player} onArtError={() => setArtFailed(true)} />
         </div>
-        {!player.character.portraitSrc && (
+        {(!player.character.portraitSrc || artFailed) && (
           <span className="art-tag">Ảnh nhân vật · placeholder</span>
         )}
       </div>

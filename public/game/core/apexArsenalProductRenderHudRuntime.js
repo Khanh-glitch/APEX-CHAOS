@@ -43,7 +43,13 @@
 
       for (let i = 0; i < 2; i++) {
         const fighter = fighters[i];
-        if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') fighter.draw(ctx);
+        if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') {
+          window.APEX_RETAINED_PRESENTATION?.prepare(fighter);
+          fighter.draw(ctx);
+        }
+      }
+      if (window.APEX_ROBOT_PRESENTATION && typeof window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay === 'function') {
+        window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay(ctx);
       }
       for (const particle of particles) {
         if (particle && typeof particle.draw === 'function') particle.draw(ctx);
@@ -70,6 +76,8 @@
         ctx.fillStyle = `rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a})`;
         ctx.fillRect(0, 0, GAME_SIZE, GAME_SIZE);
       }
+      // CP3: no head tags after the flash — side identity is the
+      // silhouette edge composited with each fighter above.
     } finally {
       ctx.restore();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -79,6 +87,7 @@
     }
 
     updateHUD();
+    window.APEX_COMBAT_HUD?.flushFrame();
   };
 
   window.apexArsenalProductRenderHudRuntime = 'ready';

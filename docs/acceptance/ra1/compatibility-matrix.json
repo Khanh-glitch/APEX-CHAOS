@@ -1,0 +1,2062 @@
+{
+  "generatedAt": "2026-10-22T05:56:15.010Z",
+  "rows": [
+    {
+      "tag": "320x568-eng-bot",
+      "viewport": "320x568",
+      "lang": "eng",
+      "mode": "bot",
+      "home": {
+        "v": [
+          320,
+          568
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 16,
+            "y": 371,
+            "w": 288,
+            "h": 45
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          320,
+          568
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 51,
+            "y": 354,
+            "w": 284,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          320,
+          568
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 52,
+            "y": 354,
+            "w": 284,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 45,
+            "y": 508,
+            "w": 230,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "320x568-vie-bot",
+      "viewport": "320x568",
+      "lang": "vie",
+      "mode": "bot",
+      "home": {
+        "v": [
+          320,
+          568
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 16,
+            "y": 371,
+            "w": 288,
+            "h": 45
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          320,
+          568
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 52,
+            "y": 351,
+            "w": 284,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          320,
+          568
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 52,
+            "y": 354,
+            "w": 284,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 45,
+            "y": 508,
+            "w": 230,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "360x560-eng-bot",
+      "viewport": "360x560",
+      "lang": "eng",
+      "mode": "bot",
+      "home": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 18,
+            "y": 365,
+            "w": 324,
+            "h": 45
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 54,
+            "y": 343,
+            "w": 319,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 54,
+            "y": 346,
+            "w": 319,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 50,
+            "y": 500,
+            "w": 259,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "360x560-eng-local",
+      "viewport": "360x560",
+      "lang": "eng",
+      "mode": "local",
+      "home": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 18,
+            "y": 365,
+            "w": 324,
+            "h": 45
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 54,
+            "y": 343,
+            "w": 319,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 54,
+            "y": 346,
+            "w": 319,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 50,
+            "y": 500,
+            "w": 259,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "360x560-vie-bot",
+      "viewport": "360x560",
+      "lang": "vie",
+      "mode": "bot",
+      "home": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 18,
+            "y": 365,
+            "w": 324,
+            "h": 45
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 54,
+            "y": 343,
+            "w": 319,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 54,
+            "y": 346,
+            "w": 319,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 50,
+            "y": 500,
+            "w": 259,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "360x560-vie-local",
+      "viewport": "360x560",
+      "lang": "vie",
+      "mode": "local",
+      "home": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 18,
+            "y": 365,
+            "w": 324,
+            "h": 45
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 54,
+            "y": 343,
+            "w": 319,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          360,
+          560
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 54,
+            "y": 346,
+            "w": 319,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 50,
+            "y": 500,
+            "w": 259,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "390x844-eng-bot",
+      "viewport": "390x844",
+      "lang": "eng",
+      "mode": "bot",
+      "home": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 20,
+            "y": 566,
+            "w": 351,
+            "h": 60
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 55,
+            "y": 564,
+            "w": 346,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 56,
+            "y": 567,
+            "w": 346,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 55,
+            "y": 775,
+            "w": 281,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "390x844-eng-local",
+      "viewport": "390x844",
+      "lang": "eng",
+      "mode": "local",
+      "home": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 20,
+            "y": 566,
+            "w": 351,
+            "h": 60
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 56,
+            "y": 564,
+            "w": 346,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 56,
+            "y": 567,
+            "w": 346,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 55,
+            "y": 775,
+            "w": 281,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "390x844-vie-bot",
+      "viewport": "390x844",
+      "lang": "vie",
+      "mode": "bot",
+      "home": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 20,
+            "y": 566,
+            "w": 351,
+            "h": 60
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 56,
+            "y": 564,
+            "w": 346,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 56,
+            "y": 567,
+            "w": 346,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 55,
+            "y": 775,
+            "w": 281,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "390x844-vie-local",
+      "viewport": "390x844",
+      "lang": "vie",
+      "mode": "local",
+      "home": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 20,
+            "y": 566,
+            "w": 351,
+            "h": 60
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 56,
+            "y": 564,
+            "w": 346,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          390,
+          844
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 56,
+            "y": 567,
+            "w": 346,
+            "h": 59
+          },
+          "inView": false,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 55,
+            "y": 775,
+            "w": 281,
+            "h": 42
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "667x375-eng-bot",
+      "viewport": "667x375",
+      "lang": "eng",
+      "mode": "bot",
+      "home": {
+        "v": [
+          667,
+          375
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 314,
+            "y": 263,
+            "w": 198,
+            "h": 56
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          667,
+          375
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 351,
+            "y": 260,
+            "w": 195,
+            "h": 55
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          667,
+          375
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 351,
+            "y": 263,
+            "w": 195,
+            "h": 55
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 233,
+            "y": 324,
+            "w": 200,
+            "h": 34
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "667x375-vie-bot",
+      "viewport": "667x375",
+      "lang": "vie",
+      "mode": "bot",
+      "home": {
+        "v": [
+          667,
+          375
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 314,
+            "y": 263,
+            "w": 206,
+            "h": 56
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          667,
+          375
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 350,
+            "y": 260,
+            "w": 202,
+            "h": 55
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          667,
+          375
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 351,
+            "y": 263,
+            "w": 202,
+            "h": 55
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 233,
+            "y": 324,
+            "w": 200,
+            "h": 34
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "844x390-eng-bot",
+      "viewport": "844x390",
+      "lang": "eng",
+      "mode": "bot",
+      "home": {
+        "v": [
+          844,
+          390
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 398,
+            "y": 276,
+            "w": 265,
+            "h": 56
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          844,
+          390
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 433,
+            "y": 273,
+            "w": 261,
+            "h": 55
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          844,
+          390
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 435,
+            "y": 276,
+            "w": 261,
+            "h": 55
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 295,
+            "y": 338,
+            "w": 253,
+            "h": 34
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "844x390-vie-bot",
+      "viewport": "844x390",
+      "lang": "vie",
+      "mode": "bot",
+      "home": {
+        "v": [
+          844,
+          390
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 398,
+            "y": 276,
+            "w": 265,
+            "h": 56
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          844,
+          390
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 434,
+            "y": 273,
+            "w": 261,
+            "h": 55
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          844,
+          390
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 435,
+            "y": 276,
+            "w": 261,
+            "h": 55
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 295,
+            "y": 338,
+            "w": 253,
+            "h": 34
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "1284x692-eng-bot",
+      "viewport": "1284x692",
+      "lang": "eng",
+      "mode": "bot",
+      "home": {
+        "v": [
+          1284,
+          692
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 631,
+            "y": 495,
+            "w": 387,
+            "h": 72
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          1284,
+          692
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 669,
+            "y": 496,
+            "w": 381,
+            "h": 71
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          1284,
+          692
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 670,
+            "y": 496,
+            "w": 381,
+            "h": 71
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 411,
+            "y": 635,
+            "w": 462,
+            "h": 50
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "1284x692-vie-bot",
+      "viewport": "1284x692",
+      "lang": "vie",
+      "mode": "bot",
+      "home": {
+        "v": [
+          1284,
+          692
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 631,
+            "y": 495,
+            "w": 387,
+            "h": 72
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          1284,
+          692
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 670,
+            "y": 496,
+            "w": 381,
+            "h": 71
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          1284,
+          692
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 670,
+            "y": 496,
+            "w": 381,
+            "h": 71
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 411,
+            "y": 635,
+            "w": 462,
+            "h": 50
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "1440x900-eng-bot",
+      "viewport": "1440x900",
+      "lang": "eng",
+      "mode": "bot",
+      "home": {
+        "v": [
+          1440,
+          900
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 708,
+            "y": 644,
+            "w": 434,
+            "h": 88
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          1440,
+          900
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 745,
+            "y": 645,
+            "w": 428,
+            "h": 87
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          1440,
+          900
+        ],
+        "lang": "en",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 747,
+            "y": 645,
+            "w": 428,
+            "h": 87
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 485,
+            "y": 841,
+            "w": 470,
+            "h": 50
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    },
+    {
+      "tag": "1440x900-vie-bot",
+      "viewport": "1440x900",
+      "lang": "vie",
+      "mode": "bot",
+      "home": {
+        "v": [
+          1440,
+          900
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 708,
+            "y": 644,
+            "w": 434,
+            "h": 88
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 0,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "modeSnap": {
+        "v": [
+          1440,
+          900
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 746,
+            "y": 645,
+            "w": 428,
+            "h": 87
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "present": true,
+          "visible": false
+        },
+        "bots": 2,
+        "roster": 0,
+        "preview": null,
+        "hud": null
+      },
+      "pick": {
+        "v": [
+          1440,
+          900
+        ],
+        "lang": "vi",
+        "scrollOverflow": 0,
+        "clipped": [],
+        "free": {
+          "sel": "#freeBattle",
+          "visible": true,
+          "rect": {
+            "x": 747,
+            "y": 645,
+            "w": 428,
+            "h": 87
+          },
+          "inView": true,
+          "hittable": false
+        },
+        "lock": {
+          "sel": "#lockIn",
+          "visible": true,
+          "rect": {
+            "x": 485,
+            "y": 841,
+            "w": 470,
+            "h": 50
+          },
+          "inView": true,
+          "hittable": true
+        },
+        "bots": 0,
+        "roster": 6,
+        "preview": {
+          "nw": 819,
+          "src": "/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1"
+        },
+        "hud": null
+      }
+    }
+  ],
+  "netFailures": [],
+  "passes": [
+    "PASS 320x568-eng-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":16,\"y\":371,\"w\":288,\"h\":45},\"inView\":true,\"hittable\":true}}",
+    "PASS 320x568-eng-bot Home: no clipped visible text :: []",
+    "PASS 320x568-eng-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 320x568-eng-bot Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":45,\"y\":508,\"w\":230,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 320x568-eng-bot reaches a live battle :: \"1p\"",
+    "PASS 320x568-eng-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 320x568-eng-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 320x568-eng-bot zero console errors :: []",
+    "PASS 320x568-vie-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":16,\"y\":371,\"w\":288,\"h\":45},\"inView\":true,\"hittable\":true}}",
+    "PASS 320x568-vie-bot Home: no clipped visible text :: []",
+    "PASS 320x568-vie-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 320x568-vie-bot Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":45,\"y\":508,\"w\":230,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 320x568-vie-bot reaches a live battle :: \"1p\"",
+    "PASS 320x568-vie-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 320x568-vie-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 320x568-vie-bot zero console errors :: []",
+    "PASS 360x560-eng-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":18,\"y\":365,\"w\":324,\"h\":45},\"inView\":true,\"hittable\":true}}",
+    "PASS 360x560-eng-bot Home: no clipped visible text :: []",
+    "PASS 360x560-eng-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 360x560-eng-bot Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":50,\"y\":500,\"w\":259,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 360x560-eng-bot reaches a live battle :: \"1p\"",
+    "PASS 360x560-eng-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 360x560-eng-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 360x560-eng-bot zero console errors :: []",
+    "PASS 360x560-eng-local Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":18,\"y\":365,\"w\":324,\"h\":45},\"inView\":true,\"hittable\":true}}",
+    "PASS 360x560-eng-local Home: no clipped visible text :: []",
+    "PASS 360x560-eng-local Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 360x560-eng-local Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":50,\"y\":500,\"w\":259,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 360x560-eng-local zero console errors :: []",
+    "PASS 360x560-vie-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":18,\"y\":365,\"w\":324,\"h\":45},\"inView\":true,\"hittable\":true}}",
+    "PASS 360x560-vie-bot Home: no clipped visible text :: []",
+    "PASS 360x560-vie-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 360x560-vie-bot Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":50,\"y\":500,\"w\":259,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 360x560-vie-bot reaches a live battle :: \"1p\"",
+    "PASS 360x560-vie-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 360x560-vie-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 360x560-vie-bot zero console errors :: []",
+    "PASS 360x560-vie-local Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":18,\"y\":365,\"w\":324,\"h\":45},\"inView\":true,\"hittable\":true}}",
+    "PASS 360x560-vie-local Home: no clipped visible text :: []",
+    "PASS 360x560-vie-local Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 360x560-vie-local Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":50,\"y\":500,\"w\":259,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 360x560-vie-local zero console errors :: []",
+    "PASS 390x844-eng-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":20,\"y\":566,\"w\":351,\"h\":60},\"inView\":true,\"hittable\":true}}",
+    "PASS 390x844-eng-bot Home: no clipped visible text :: []",
+    "PASS 390x844-eng-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 390x844-eng-bot Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":55,\"y\":775,\"w\":281,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 390x844-eng-bot survives a live orientation change with LOCK still reachable :: {\"overflow\":0,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":295,\"y\":338,\"w\":253,\"h\":34},\"inView\":true,\"hittable\":true}}",
+    "PASS 390x844-eng-bot reaches a live battle :: \"1p\"",
+    "PASS 390x844-eng-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 390x844-eng-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 390x844-eng-bot zero console errors :: []",
+    "PASS 390x844-eng-local Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":20,\"y\":566,\"w\":351,\"h\":60},\"inView\":true,\"hittable\":true}}",
+    "PASS 390x844-eng-local Home: no clipped visible text :: []",
+    "PASS 390x844-eng-local Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 390x844-eng-local Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":55,\"y\":775,\"w\":281,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 390x844-eng-local survives a live orientation change with LOCK still reachable :: {\"overflow\":0,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":295,\"y\":338,\"w\":253,\"h\":34},\"inView\":true,\"hittable\":true}}",
+    "PASS 390x844-eng-local reaches a live battle :: \"2p\"",
+    "PASS 390x844-eng-local battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 390x844-eng-local can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 390x844-eng-local zero console errors :: []",
+    "PASS 390x844-vie-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":20,\"y\":566,\"w\":351,\"h\":60},\"inView\":true,\"hittable\":true}}",
+    "PASS 390x844-vie-bot Home: no clipped visible text :: []",
+    "PASS 390x844-vie-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 390x844-vie-bot Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":55,\"y\":775,\"w\":281,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 390x844-vie-bot survives a live orientation change with LOCK still reachable :: {\"overflow\":0,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":295,\"y\":338,\"w\":253,\"h\":34},\"inView\":true,\"hittable\":true}}",
+    "PASS 390x844-vie-bot reaches a live battle :: \"1p\"",
+    "PASS 390x844-vie-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 390x844-vie-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 390x844-vie-bot zero console errors :: []",
+    "PASS 390x844-vie-local Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":20,\"y\":566,\"w\":351,\"h\":60},\"inView\":true,\"hittable\":true}}",
+    "PASS 390x844-vie-local Home: no clipped visible text :: []",
+    "PASS 390x844-vie-local Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 390x844-vie-local Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":55,\"y\":775,\"w\":281,\"h\":42},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 390x844-vie-local survives a live orientation change with LOCK still reachable :: {\"overflow\":0,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":295,\"y\":338,\"w\":253,\"h\":34},\"inView\":true,\"hittable\":true}}",
+    "PASS 390x844-vie-local reaches a live battle :: \"2p\"",
+    "PASS 390x844-vie-local battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 390x844-vie-local can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 390x844-vie-local zero console errors :: []",
+    "PASS 667x375-eng-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":314,\"y\":263,\"w\":198,\"h\":56},\"inView\":true,\"hittable\":true}}",
+    "PASS 667x375-eng-bot Home: no clipped visible text :: []",
+    "PASS 667x375-eng-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 667x375-eng-bot Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":233,\"y\":324,\"w\":200,\"h\":34},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 667x375-eng-bot reaches a live battle :: \"1p\"",
+    "PASS 667x375-eng-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 667x375-eng-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 667x375-eng-bot zero console errors :: []",
+    "PASS 667x375-vie-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":314,\"y\":263,\"w\":206,\"h\":56},\"inView\":true,\"hittable\":true}}",
+    "PASS 667x375-vie-bot Home: no clipped visible text :: []",
+    "PASS 667x375-vie-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 667x375-vie-bot Fighter Select: a full roster page (6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":233,\"y\":324,\"w\":200,\"h\":34},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 667x375-vie-bot reaches a live battle :: \"1p\"",
+    "PASS 667x375-vie-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 667x375-vie-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 667x375-vie-bot zero console errors :: []",
+    "PASS 844x390-eng-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":398,\"y\":276,\"w\":265,\"h\":56},\"inView\":true,\"hittable\":true}}",
+    "PASS 844x390-eng-bot Home: no clipped visible text :: []",
+    "PASS 844x390-eng-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 844x390-eng-bot Fighter Select: a full roster page (>=6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":295,\"y\":338,\"w\":253,\"h\":34},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 844x390-eng-bot survives a live orientation change with LOCK still reachable :: {\"overflow\":0,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":55,\"y\":775,\"w\":281,\"h\":42},\"inView\":true,\"hittable\":true}}",
+    "PASS 844x390-eng-bot reaches a live battle :: \"1p\"",
+    "PASS 844x390-eng-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 844x390-eng-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 844x390-eng-bot zero console errors :: []",
+    "PASS 844x390-vie-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":398,\"y\":276,\"w\":265,\"h\":56},\"inView\":true,\"hittable\":true}}",
+    "PASS 844x390-vie-bot Home: no clipped visible text :: []",
+    "PASS 844x390-vie-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 844x390-vie-bot Fighter Select: a full roster page (>=6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":295,\"y\":338,\"w\":253,\"h\":34},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 844x390-vie-bot survives a live orientation change with LOCK still reachable :: {\"overflow\":0,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":55,\"y\":775,\"w\":281,\"h\":42},\"inView\":true,\"hittable\":true}}",
+    "PASS 844x390-vie-bot reaches a live battle :: \"1p\"",
+    "PASS 844x390-vie-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 844x390-vie-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 844x390-vie-bot zero console errors :: []",
+    "PASS 1284x692-eng-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":631,\"y\":495,\"w\":387,\"h\":72},\"inView\":true,\"hittable\":true}}",
+    "PASS 1284x692-eng-bot Home: no clipped visible text :: []",
+    "PASS 1284x692-eng-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 1284x692-eng-bot Fighter Select: a full roster page (>=6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":411,\"y\":635,\"w\":462,\"h\":50},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 1284x692-eng-bot reaches a live battle :: \"1p\"",
+    "PASS 1284x692-eng-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 1284x692-eng-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 1284x692-eng-bot zero console errors :: []",
+    "PASS 1284x692-vie-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":631,\"y\":495,\"w\":387,\"h\":72},\"inView\":true,\"hittable\":true}}",
+    "PASS 1284x692-vie-bot Home: no clipped visible text :: []",
+    "PASS 1284x692-vie-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 1284x692-vie-bot Fighter Select: a full roster page (>=6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":411,\"y\":635,\"w\":462,\"h\":50},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 1284x692-vie-bot reaches a live battle :: \"1p\"",
+    "PASS 1284x692-vie-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 1284x692-vie-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 1284x692-vie-bot zero console errors :: []",
+    "PASS 1440x900-eng-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":708,\"y\":644,\"w\":434,\"h\":88},\"inView\":true,\"hittable\":true}}",
+    "PASS 1440x900-eng-bot Home: no clipped visible text :: []",
+    "PASS 1440x900-eng-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 1440x900-eng-bot Fighter Select: a full roster page (>=6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":485,\"y\":841,\"w\":470,\"h\":50},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 1440x900-eng-bot reaches a live battle :: \"1p\"",
+    "PASS 1440x900-eng-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 1440x900-eng-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 1440x900-eng-bot zero console errors :: []",
+    "PASS 1440x900-vie-bot Home: no page overflow and FREE BATTLE is visible + hittable :: {\"overflow\":0,\"free\":{\"sel\":\"#freeBattle\",\"visible\":true,\"rect\":{\"x\":708,\"y\":644,\"w\":434,\"h\":88},\"inView\":true,\"hittable\":true}}",
+    "PASS 1440x900-vie-bot Home: no clipped visible text :: []",
+    "PASS 1440x900-vie-bot Mode: both mode cards render with no overflow/clipping :: {\"cards\":2,\"overflow\":0,\"clipped\":[]}",
+    "PASS 1440x900-vie-bot Fighter Select: a full roster page (>=6) is visible, LOCK visible/hittable, preview decoded :: {\"roster\":6,\"lock\":{\"sel\":\"#lockIn\",\"visible\":true,\"rect\":{\"x\":485,\"y\":841,\"w\":470,\"h\":50},\"inView\":true,\"hittable\":true},\"preview\":{\"nw\":819,\"src\":\"/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1\"}}",
+    "PASS 1440x900-vie-bot reaches a live battle :: \"1p\"",
+    "PASS 1440x900-vie-bot battle HUD: opponent identity readable, never overlapping HP :: {\"overflow\":0,\"identity\":{\"name\":\"NEWBOT\",\"shown\":true,\"overflow\":0,\"overlap\":0}}",
+    "PASS 1440x900-vie-bot can always leave the match (ESC/EXIT returns to Fighter Select)",
+    "PASS 1440x900-vie-bot zero console errors :: []",
+    "PASS no first-party request fails across the compatibility matrix :: []"
+  ],
+  "failures": []
+}

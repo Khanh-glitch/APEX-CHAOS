@@ -82,6 +82,26 @@ function duel(name1='ROBOT',name2='ROBOT'){
  else delete scope.APEX_HERO_REWORK_REGISTRY;
 }
 {
+ // RA-1: itch's portable build rewrites first-party literals to app-relative
+ // '../assets/…'. The Result identity law must accept that spelling instead of
+ // silently falling back to a Gold filename SHURI/BOXE do not have (nested-only
+ // 404 + placeholder portrait), while still rejecting traversal and protocols.
+ const priorRoster=scope.APEX_GOLD_ROSTER,priorRegistry=scope.APEX_HERO_REWORK_REGISTRY;
+ const portableStanding='../assets/dictionary/heroes/shuri/standing.webp';
+ scope.APEX_GOLD_ROSTER={shuri:{art:portableStanding,portrait:'../assets/dictionary/heroes/shuri/cover.webp'}};
+ delete scope.APEX_HERO_REWORK_REGISTRY;
+ const portable=duel('SHURI','ROBOT').ledger.seal('P1');
+ assert.equal(portable.players[0].character.portraitSrc,portableStanding,
+   'relative (portable) art spelling must be preserved, not replaced by a guessed Gold file');
+ delete scope.APEX_GOLD_ROSTER;
+ scope.APEX_GOLD_ROSTER={shuri:{art:'../assets/../../etc/passwd',portrait:'javascript:alert(1)'}};
+ assert.equal(duel('SHURI','ROBOT').ledger.seal('P1').players[0].character.portraitSrc,
+   '/assets/gold-ui/heroes/shuri/pick_selected_large.webp',
+   'traversal/protocol spellings are rejected exactly like before');
+ if(priorRoster!==undefined)scope.APEX_GOLD_ROSTER=priorRoster; else delete scope.APEX_GOLD_ROSTER;
+ if(priorRegistry!==undefined)scope.APEX_HERO_REWORK_REGISTRY=priorRegistry; else delete scope.APEX_HERO_REWORK_REGISTRY;
+}
+{
  const {f1,f2,ledger}=duel();
  ledger.onShot(f1,'PISTOL');
  f2.hp=190;ledger.onDamage(f2,f1,'arsenal-pistol',810);

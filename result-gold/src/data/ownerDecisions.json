@@ -41,13 +41,13 @@
         }
       ],
       "telemetry": "new_event",
-      "review": "locked_rule",
-      "note": "Mốc 500 DMG đã chốt. Cửa sổ chain dùng logic 1,2 giây của engine, cần khóa con số.",
+      "review": "approved_cp32",
+      "note": "CP3.2 giữ mốc 500 DMG và khoảng ngắt 1,2 giây; telemetry là chuỗi damage liên tiếp, không phải mọi damage dồn trong một cửa sổ 1,2 giây.",
       "oldGold": "no-escape",
       "icon": "Radar",
       "decision": "keep",
-      "designNote": "Mốc 500 DMG đã chốt. 1,5 giây là đề xuất trong cửa sổ chain 1–2 giây, chưa phải cấu hình khóa.",
-      "basis": "owner_locked"
+      "designNote": "Chuỗi cộng dồn damage thực tế; chỉ reset khi khoảng cách giữa hai lần gây damage liên tiếp vượt 1,2 giây.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "first-blood",
@@ -503,19 +503,19 @@
         {
           "key": "damage",
           "label": "Damage Shotgun",
-          "value": 400,
+          "value": 250,
           "unit": "DMG",
           "compare": "gte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "",
       "oldGold": "mastery-shotgun",
       "icon": "Shell",
       "decision": "keep",
       "designNote": "Chỉ sát thương từ family SHOTGUN/AUTOSHOT; cần record damage by family.",
-      "basis": "proposed"
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "mastery-auto",
@@ -532,19 +532,19 @@
         {
           "key": "damage",
           "label": "Damage AUTO",
-          "value": 400,
+          "value": 220,
           "unit": "DMG",
           "compare": "gte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "",
       "oldGold": "mastery-smg",
       "icon": "Gauge",
       "decision": "keep",
       "designNote": "Chỉ sát thương từ family AUTO; cần record damage by family.",
-      "basis": "proposed"
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "mastery-burst",
@@ -561,19 +561,19 @@
         {
           "key": "damage",
           "label": "Damage BURST",
-          "value": 350,
+          "value": 120,
           "unit": "DMG",
           "compare": "gte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "",
       "oldGold": "mastery-rail",
       "icon": "List",
       "decision": "keep",
       "designNote": "Chỉ sát thương từ family BURST; cần record damage by family.",
-      "basis": "proposed"
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "mastery-precision",
@@ -590,19 +590,19 @@
         {
           "key": "damage",
           "label": "Damage PRECISION",
-          "value": 350,
+          "value": 200,
           "unit": "DMG",
           "compare": "gte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "",
       "oldGold": "mastery-marksman",
       "icon": "Binoculars",
       "decision": "keep",
       "designNote": "Chỉ family PRECISION, không suy từ loại đạn.",
-      "basis": "proposed"
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "mastery-semi",
@@ -619,19 +619,19 @@
         {
           "key": "damage",
           "label": "Damage SEMI",
-          "value": 350,
+          "value": 160,
           "unit": "DMG",
           "compare": "gte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "",
       "oldGold": "mastery-plasma",
       "icon": "Focus",
       "decision": "keep",
       "designNote": "Chỉ family SEMI.",
-      "basis": "proposed"
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "mastery-melee",
@@ -713,19 +713,19 @@
         {
           "key": "weapons",
           "label": "Số loại súng/vũ khí",
-          "value": 10,
+          "value": 7,
           "unit": "ID",
           "compare": "gte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "",
       "oldGold": "arsenal",
       "icon": "Package",
       "decision": "keep",
-      "designNote": "3 Weapon ID đã gây damage; không chỉ tính số nhặt được.",
-      "basis": "proposed"
+      "designNote": "7 Weapon ID khác nhau đã gây damage thực tế; không chỉ tính số lần nhặt.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "legend-survivor",
@@ -742,19 +742,19 @@
         {
           "key": "healing",
           "label": "HP hồi thực",
-          "value": 500,
+          "value": 350,
           "unit": "HP",
           "compare": "gte"
         }
       ],
       "telemetry": "aggregate",
-      "review": "locked_rule",
-      "note": "Mốc 500 HP đã chốt.",
+      "review": "approved_cp32",
+      "note": "CP3.2: mốc 350 HP hồi thực đã được chủ sở hữu duyệt.",
       "oldGold": "legend-survivor",
       "icon": "HeartPulse",
       "decision": "keep",
-      "designNote": "Mốc 500 HP đã chốt. Healing thực tế không tính phần hồi vượt max HP.",
-      "basis": "owner_locked"
+      "designNote": "350 HP hồi thực tế, không tính phần hồi vượt max HP.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "iron-wall",
@@ -777,13 +777,13 @@
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "Cần instrument BEFORE/AFTER mitigation mà không làm đổi combat.",
       "oldGold": "iron-wall",
       "icon": "Shield",
       "decision": "keep",
-      "designNote": "Chỉ tính chênh lệch damage bị ngăn nhờ shield/absorb; không tính miss hoặc dodge.",
-      "basis": "proposed"
+      "designNote": "Chỉ tính damage thực tế bị ngăn bởi Virtual Armor hoặc Tower Shield GUARD; không tính đòn miss, né tránh hoặc damage chưa chạm Fighter.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "last-stand",
@@ -829,26 +829,26 @@
         {
           "key": "duration",
           "label": "Thời gian trận tối thiểu",
-          "value": 60,
+          "value": 45,
           "unit": "giây",
           "compare": "gte"
         },
         {
           "key": "taken",
           "label": "Damage nhận tối đa",
-          "value": 100,
+          "value": 150,
           "unit": "DMG",
           "compare": "lte"
         }
       ],
       "telemetry": "aggregate",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "Không giả định engine có tính năng né crit.",
       "oldGold": "untouchable",
       "icon": "Ghost",
       "decision": "keep",
-      "designNote": "Thắng trận ≥60s, nhận tối đa 100 DMG thực. Chống trận kết thúc quá sớm.",
-      "basis": "proposed"
+      "designNote": "Thắng trận ≥45s và nhận tối đa 150 DMG thực. Chống trận kết thúc quá sớm.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "scavenger",
@@ -858,26 +858,26 @@
       "name": "Kẻ Nhặt Nhạnh",
       "category": "survival",
       "rarity": "common",
-      "rule": "Nhặt ≥ {pickups} vật phẩm trên sàn trong trận.",
-      "explain": "Đếm pickup thành công (vũ khí/heal), không tính telegraph chưa được nhặt.",
-      "metric": "successful_pickups",
+      "rule": "Nhặt thành công ≥ {pickups} trang bị trên sàn trong trận.",
+      "explain": "Chỉ đếm lần trang bị vũ khí thành công; không đếm bình hồi máu hoặc vật phẩm chưa được nhặt.",
+      "metric": "successful_equipment_pickups",
       "params": [
         {
           "key": "pickups",
-          "label": "Số vật phẩm đã nhặt",
-          "value": 20,
-          "unit": "món",
+          "label": "Số trang bị đã nhặt",
+          "value": 8,
+          "unit": "lần",
           "compare": "gte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "",
       "oldGold": "scavenger",
       "icon": "Recycle",
       "decision": "keep",
-      "designNote": "Tính pickup hợp lệ, không tính đứng gần hoặc chạm telegraph chưa nhặt.",
-      "basis": "proposed"
+      "designNote": "8 lần nhặt/trang bị vũ khí thành công; heal không phải equipment pickup.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "second-wind",
@@ -966,19 +966,19 @@
         {
           "key": "seconds",
           "label": "Thời gian sống thêm",
-          "value": 8,
+          "value": 5,
           "unit": "giây",
           "compare": "gte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "Thay Thanh Tẩy chưa có nguồn telemetry chung.",
       "oldGold": "cleanser",
       "icon": "HeartCrack",
       "decision": "keep",
-      "designNote": "Từng còn ≤10% HP nhưng không bị KO trong 8 giây tiếp theo.",
-      "basis": "proposed"
+      "designNote": "Latch sinh tồn: sau lần đầu HP chạm ≤10%, còn sống thêm 5 giây là đạt, kể cả khi sau đó được hồi máu.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "comeback",
@@ -1060,19 +1060,19 @@
         {
           "key": "casts",
           "label": "Số lượt dùng skill",
-          "value": 30,
+          "value": 12,
           "unit": "lần",
           "compare": "gte"
         }
       ],
       "telemetry": "aggregate",
-      "review": "locked_rule",
-      "note": "Mốc 30 lần đã chốt.",
+      "review": "approved_cp32",
+      "note": "CP3.2: mốc 12 lần cast thành công đã được chủ sở hữu duyệt.",
       "oldGold": "skill-focus",
       "icon": "Cpu",
       "decision": "keep",
-      "designNote": "Mốc 30 lần dùng skill đã chốt, chỉ tính cast thực sự thành công, không spam input.",
-      "basis": "owner_locked"
+      "designNote": "12 lần dùng kỹ năng chủ động thành công; không tính input khi cooldown hoặc cast thất bại.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "kiter",
@@ -1190,9 +1190,9 @@
       "name": "Nghệ Sĩ Combo",
       "category": "tactics",
       "rarity": "epic",
-      "rule": "Có {chains} chuỗi mà skill và súng đều gây damage trong cùng cửa sổ {window} giây.",
-      "explain": "Một chuỗi chỉ được tính khi có ít nhất 1 hit skill và 1 hit vũ khí từ cùng Fighter; không đếm theo số frame.",
-      "metric": "skill_weapon_combo_chains",
+      "rule": "Có {chains} lần dùng kỹ năng chủ động thành công rồi gây damage bằng vũ khí trong vòng {window} giây.",
+      "explain": "Mỗi lượt cast chỉ tính tối đa một chuỗi; cast không có weapon damage thực tế trong cửa sổ không được tính.",
+      "metric": "skill_assisted_weapon_chains",
       "params": [
         {
           "key": "chains",
@@ -1210,13 +1210,13 @@
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "",
       "oldGold": "combo-artist",
       "icon": "Link",
       "decision": "keep",
-      "designNote": "3 chuỗi kết hợp nguồn skill và weapon trong cửa sổ 2 giây; không phải chỉ đếm hit.",
-      "basis": "proposed"
+      "designNote": "3 lượt cast khác nhau, mỗi lượt phải có weapon damage thực tế của cùng Fighter trong 2 giây sau đó.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "adrenaline",
@@ -1363,19 +1363,19 @@
         {
           "key": "delay",
           "label": "Thời gian từ pickup đến KO",
-          "value": 0,
+          "value": 2,
           "unit": "giây",
           "compare": "lte"
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "Thay Chúa Tể Phế Liệu vì 1v1 hiện chưa dùng scrap currency theo trận.",
       "oldGold": "scrap-lord",
       "icon": "Dices",
       "decision": "keep",
-      "designNote": "Hạ gục trong 2s kể từ khi vừa nhặt chính khẩu súng kết liễu.",
-      "basis": "proposed"
+      "designNote": "Hạ gục trong 2 giây kể từ khi vừa nhặt chính vũ khí gây đòn kết liễu.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "chaos-bringer",
@@ -1385,9 +1385,9 @@
       "name": "Sứ Giả Hỗn Loạn",
       "category": "chaos",
       "rarity": "legendary",
-      "rule": "Trong {window} giây, gây damage từ ≥ {sources} Weapon ID khác nhau VÀ ít nhất một kỹ năng.",
-      "explain": "Tối thiểu hai nguồn vũ khí nếu chọn X≥2; cần theo dõi source ID và skill riêng, không thưởng từ cosmetic effect.",
-      "metric": "multi_source_chaos_window",
+      "rule": "Trong {window} giây, gây damage bằng ≥ {sources} Weapon ID khác nhau và có ít nhất một hit vũ khí được hỗ trợ bởi kỹ năng.",
+      "explain": "Hit hỗ trợ bởi kỹ năng phải là weapon damage thực tế xảy ra trong 2 giây sau một lượt cast chủ động thành công của cùng Fighter.",
+      "metric": "skill_assisted_multi_source_window",
       "params": [
         {
           "key": "window",
@@ -1405,13 +1405,13 @@
         }
       ],
       "telemetry": "new_event",
-      "review": "draft",
+      "review": "approved_cp32",
       "note": "Đổi điều kiện 8 vụ nổ liên hoàn không khả thi trong một duel thông thường.",
       "oldGold": "chaos-bringer",
       "icon": "Siren",
       "decision": "keep",
-      "designNote": "Trong 20s dùng 3 Weapon ID và có skill hit; rất hiếm nhưng có thể xảy ra ở trận nhiều pickup.",
-      "basis": "proposed"
+      "designNote": "Trong cùng cửa sổ trượt 20 giây: ít nhất 3 Weapon ID gây damage và ít nhất một hit là skill-assisted.",
+      "basis": "owner_approved_cp32"
     },
     {
       "id": "signature-newbot",

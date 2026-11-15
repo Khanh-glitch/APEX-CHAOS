@@ -154,6 +154,8 @@ kbd {
 }
 
 /* ───────────── shell ───────────── */
+.ac-scroll-hint { display: none; }
+
 .ac-root {
   position: relative;
   min-height: 100vh;

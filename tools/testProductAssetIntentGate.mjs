@@ -46,7 +46,9 @@ check('Mode art has no eager src', !shell.includes('<img src="assets/gold/mode-s
 check('Mode art is data-src deferred', shell.includes('data-apex-src="assets/gold/mode-solo.webp"') && shell.includes('data-apex-src="assets/gold/mode-local.webp"'));
 check('Mode hydration exists', shell.includes("if(next==='mode')hydrateDeferredImages(modeScreen)"));
 check('Home does not build Fighter roster', !shell.includes("buildRoster(); renderFighter(); APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');"));
-check('Fighter roster materializes only after route intent', shell.includes("if(!roster.childElementCount)buildRoster();renderFighter();void setScreen('fighter')"));
+// #105 §3: the roster is rebuilt on every Fighter entry (lock state is production truth),
+// so the donor's build-only-when-empty guard must be gone.
+check('Fighter roster rebuilt on every Fighter entry (route intent, no stale empty guard)', shell.includes("buildRoster();renderFighter();void setScreen('fighter')") && !shell.includes("if(!roster.childElementCount)buildRoster();renderFighter();void setScreen('fighter')"));
 
 check('reference-only Pick images absent from shell', !shell.includes('pick-reference-overlay.png') && !shell.includes('pick-hidden-gold-source.png'));
 check('reference-only Pick images absent from shipping manifest', !shipping.includes('pick-reference-overlay.png') && !shipping.includes('pick-hidden-gold-source.png'));

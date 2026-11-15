@@ -127,10 +127,16 @@ gate('semantic-graph-and-admin-boundary', () => {
   const locked = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.LOCKED);
   assert.equal(graph.length, 12);
   // Bot, Local, Lucky, cosmetic shortcut and the unified Dictionary Field Archive are active.
+  // Alpha: Missions/Achievements (one-wallet progression panel) and the
+  // Account Center are live too — the bottom nav owns both entries.
   // The separate Fighter Shop remains LOCKED until its owner cutover.
-  assert.equal(active.length, 6);
-  assert.equal(locked.length, 6);
-  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'bot-wave', 'cosmetic-locker', 'lucky-draw', 'dictionary']);
+  assert.equal(active.length, 9);
+  assert.equal(locked.length, 3);
+  assert.deepEqual(active.map((surface) => surface.id), ['bot-battle', 'local-1v1', 'bot-wave', 'cosmetic-locker', 'lucky-draw', 'dictionary', 'missions', 'achievements', 'account-profile']);
+  assert.deepEqual(locked.map((surface) => surface.id), ['fighter-shop', 'quest-01', 'fighter-upgrade']);
+  assert.equal(canLaunchProductSurface('missions'), true);
+  assert.equal(canLaunchProductSurface('achievements'), true);
+  assert.equal(canLaunchProductSurface('account-profile'), true);
   assert.equal(canLaunchProductSurface('cosmetic-locker'), true);
   assert.equal(canLaunchProductSurface('bot-wave'), true);
   assert.equal(graph.find(x=>x.id==='bot-wave')?.route,'wave');
@@ -171,25 +177,31 @@ gate('economy-clean-state-and-mutation-legality', () => {
   // A1 production law: a genuinely new profile starts at exactly 350 AC.
   assert.equal(meta.getState().credits, 350);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
-  assert.equal(meta.poolLocked().length, PRODUCT_ROSTER.playableIds.length-1); // ROBOT starts owned; every other active fighter joins canonical economy pool
+  // Owner R2 P0-B: ROBOT and HUNTER start owned; every other playable fighter is in the economy pool.
+  assert.equal(meta.poolLocked().length, PRODUCT_ROSTER.playableIds.length-2);
   assert.ok(meta.poolLocked().includes('BOXE'));
-  assert.ok(meta.poolLocked().includes('HUNTER'));
+  assert.ok(!meta.poolLocked().includes('HUNTER'));
   assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));
-  // A Lucky Draw costs the real 350 AC and can only take from the unowned pool.
+  // A Lucky Draw costs the real 1000 AC (Issue #105) and can only take from the unowned pool.
+  // Labelled isolated test seed: top the fresh 350 AC up to the 1000 AC draw price.
+  meta.award('issue-105-labelled-draw-seed', 650);
+  assert.equal(meta.credits(), 1000);
   const draw = meta.spin(() => 0.999999);
   assert.equal(draw.ok, true);
   assert.ok(PRODUCT_ROSTER.playableIds.includes(draw.name));
   assert.ok(!PRODUCT_ROSTER.lockedIds.includes(draw.name));
-  assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost);
+  assert.equal(meta.credits(), 1000 - PRODUCT_ECONOMY.drawCost);
   // The shop enforces the real balance: a fresh player cannot afford 1,000 AC yet.
-  assert.equal(meta.buy('HUNTER').reason, 'need');
+  // Owner R2 P0-B: HUNTER is owned from the start, so buying it is refused as 'owned' (no debit).
+  assert.equal(meta.buy('HUNTER').reason, 'owned');
+  assert.equal(meta.buy('MIRROR').reason, 'need');
   // Earned AC (the real award path) then funds the real 1,000 AC shop cost.
   meta.award('proof', 2000);
-  const bought = meta.buy('HUNTER');
+  const bought = meta.buy('MIRROR');
   assert.equal(bought.ok, true);
-  assert.equal(bought.credits, PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost);
+  assert.equal(bought.credits, 1000 - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost);
   meta.award('proof', 1000);
-  assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost + 1000);
+  assert.equal(meta.credits(), 1000 - PRODUCT_ECONOMY.drawCost + 2000 - PRODUCT_ECONOMY.shopCost + 1000);
   return {
     credits: meta.credits(), draw: draw.name, shopCost: meta.SHOP_COST, drawCost: meta.DRAW_COST,
   };
@@ -202,7 +214,7 @@ gate('battle-result-credit-uses-player-side-and-awards-once', () => {
     { name: 'ROBOT', type: { name: 'ROBOT' } },
   ];
   // A1 reward law keys off the ACTUAL match mode: BOT loss (P2 wins) pays
-  // the provisional 25, BOT win pays 100, LOCAL completion pays 50 either way.
+  // the provisional 25, BOT win pays 200, LOCAL completion pays 50 either way.
   const p2State = { battleMode: 'BOT', resultGold: { meta: { id: 'graph-bot-1' } } };
   const p2Win = win.APEX_ARSENAL_META.awardBattleResult('P2', p2State);
   assert.equal(p2Win.ok, true);
@@ -213,7 +225,7 @@ gate('battle-result-credit-uses-player-side-and-awards-once', () => {
     'duplicate-claim', 'the sealed match id can never pay twice');
   const p1Win = win.APEX_ARSENAL_META.awardBattleResult('P1', { battleMode: 'BOT', resultGold: { meta: { id: 'graph-bot-2' } } });
   assert.equal(p1Win.ok, true);
-  assert.equal(p1Win.amount, 100);
+  assert.equal(p1Win.amount, 200);
   const localP2 = win.APEX_ARSENAL_META.awardBattleResult('P2', { battleMode: 'LOCAL', resultGold: { meta: { id: 'graph-local-1' } } });
   assert.equal(localP2.ok, true);
   assert.equal(localP2.amount, 50, 'a completed Local match pays 50 regardless of winner');
@@ -277,19 +289,27 @@ gate('shell-public-selection-and-bot-profile-seam', () => {
   assert.equal(win.__apexPendingGoldNavigation?.target, 'fighter');
   assert.equal(win.__apexPendingGoldNavigation?.options?.mode, 'local');
 
-  // Local is the accepted Free Battle handoff.
+  // Owner R2 P0-B: a Local duel never pairs a fighter with itself. The same pair is refused
+  // without starting a battle, and a pair of two different owned fighters is the accepted handoff.
+  const startsBefore = calls.starts.length;
   context.p1Selection = shells.typeFor('ROBOT');
   context.p2Selection = shells.typeFor('ROBOT');
   win.__apexArsenalSelectPending = true;
   win.__apexArsenalSelectionMode = 'local';
   win.startMatch();
-  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'ROBOT', profile: 'LOCAL' });
+  assert.equal(calls.starts.length, startsBefore, 'Local ROBOT vs ROBOT must not start');
+  context.p2Selection = shells.typeFor('HUNTER');
+  win.__apexArsenalSelectPending = true;
+  win.__apexArsenalSelectionMode = 'local';
+  win.startMatch();
+  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'HUNTER', profile: 'LOCAL' });
 
   // Bot uses the same safe handoff with the existing P2-AI profile marker.
   win.__apexArsenalSelectPending = true;
   win.__apexArsenalSelectionMode = 'bot';
   win.startMatch();
-  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'ROBOT', profile: 'BOT' });
+  // Owner R2 P0-B: the BOT CPU defaults to HUNTER when P1 holds ROBOT.
+  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'HUNTER', profile: 'BOT' });
   return { visible: shells.ids.length, selectable: shells.roster().length, starts: calls.starts };
 });
 

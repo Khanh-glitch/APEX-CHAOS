@@ -1,0 +1,160 @@
+# CP4 acceptance-only Cloudflare Pages preview.
+# Builds the pinned CP4 candidate tree and deploys ONLY to an isolated
+# preview branch. It can never deploy the production alias.
+name: CP4 Cloudflare Acceptance Preview
+
+on:
+  push:
+    branches:
+      - arena/d7ff52e8-apex-chaos
+    paths:
+      - '.github/workflows/cp4-cloudflare-acceptance-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cp4-cloudflare-acceptance-preview
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: github.ref == 'refs/heads/arena/d7ff52e8-apex-chaos'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CANDIDATE_SHA: 6d95af806330f17ff6b23c6d60e40d373c72d9fa
+      CANDIDATE_REVISION: 20261021-cp4-r2
+      SOURCE_BRANCH: arena/d7ff52e8-apex-chaos
+      PREVIEW_BRANCH: cp4-acceptance-6d95af8
+      PREVIEW_URL: https://cp4-acceptance-6d95af8.apex-chaos.pages.dev
+      PRODUCTION_URL: https://apex-chaos.pages.dev
+      CLOUDFLARE_ACCOUNT_ID: aa522f5ea2f3ab8ddf94970df6821411
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Checkout exact CP4 candidate tree
+        uses: actions/checkout@v4
+        with:
+          ref: 6d95af806330f17ff6b23c6d60e40d373c72d9fa
+          fetch-depth: 0
+
+      - name: Verify exact candidate checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git diff --quiet
+          echo "CANDIDATE TREE PASS: $(git rev-parse HEAD)"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Record pre-deploy production receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --max-time 20 "$PRODUCTION_URL/CP16_BUILD_RECEIPT.json?cp4-pre=$CANDIDATE_SHA" -o /tmp/cp4-production-before.json
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const r=JSON.parse(fs.readFileSync('/tmp/cp4-production-before.json','utf8'));
+            if(r.gitCommit===process.env.CANDIDATE_SHA)process.exit(1);
+            console.log('PRODUCTION BEFORE (must remain unchanged):',r.gitCommit,r.gitBranch,r.revision);
+          "
+
+      - name: Candidate gates before publishing anything
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm test:cp4-combat-intelligence
+          pnpm test:result-gold
+          pnpm test:runtime-revision
+          pnpm test:gold-revision-integrity
+          node tools/buildGoldCutover.mjs --check
+
+      - name: Build exact candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The receipt must identify the checked-out candidate tree, not the
+          # workflow-orchestration commit. GITHUB_SHA is reserved and cannot be
+          # truthfully overridden through step env, so remove stale SHA hints
+          # and let the receipt read the actual Git HEAD verified above.
+          env -u GITHUB_SHA -u CF_PAGES_COMMIT_SHA \
+            CF_PAGES_BRANCH="$SOURCE_BRANCH" pnpm build
+          node tools/testCP16BuildReceipt.mjs
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const r=JSON.parse(fs.readFileSync('dist/CP16_BUILD_RECEIPT.json','utf8'));
+            if(r.gitCommit!==process.env.CANDIDATE_SHA||r.revision!==process.env.CANDIDATE_REVISION)process.exit(1);
+            console.log('DIST RECEIPT PASS:',r.gitCommit,r.revision,r.goldShellSha256);
+          "
+          git diff --quiet
+
+      - name: Fail closed without Cloudflare credential or safe target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::CLOUDFLARE_API_TOKEN secret is missing; candidate built but NOT deployed"; exit 1; }
+          test "$PREVIEW_BRANCH" != "main"
+          test "$PREVIEW_BRANCH" != "$SOURCE_BRANCH"
+          test "$PREVIEW_URL" != "$PRODUCTION_URL"
+          echo "SAFE PREVIEW TARGET: $PREVIEW_BRANCH -> $PREVIEW_URL"
+
+      - name: Deploy ONLY isolated CP4 preview branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name=apex-chaos \
+            --branch="$PREVIEW_BRANCH" \
+            --commit-hash="$CANDIDATE_SHA" \
+            --commit-dirty=true
+
+      - name: Verify live preview receipt, Gold bytes and production isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          MATCHED=0
+          for attempt in $(seq 1 30); do
+            rm -f /tmp/cp4-live-receipt.json
+            curl -fLsS --max-time 20 "$PREVIEW_URL/CP16_BUILD_RECEIPT.json?sha=$CANDIDATE_SHA&attempt=$attempt" -o /tmp/cp4-live-receipt.json 2>/dev/null || true
+            if [ -s /tmp/cp4-live-receipt.json ] && node --input-type=module -e "
+              import fs from 'node:fs';
+              const r=JSON.parse(fs.readFileSync('/tmp/cp4-live-receipt.json','utf8'));
+              if(r.gitCommit!==process.env.CANDIDATE_SHA||r.revision!==process.env.CANDIDATE_REVISION||r.versionedRuntimeCount!==70)process.exit(1);
+            " >/dev/null 2>&1; then
+              MATCHED=1
+              break
+            fi
+            echo "Preview receipt not propagated yet ($attempt/30)"
+            sleep 4
+          done
+          test "$MATCHED" = "1" || { echo "::error::Isolated preview never served exact CP4 SHA/revision"; exit 1; }
+          curl -fLsS --max-time 30 "$PREVIEW_URL/gold/manifest.json" -o /tmp/cp4-live-gold-manifest.json
+          curl -fLsS --max-time 30 "$PREVIEW_URL/gold/shell.html" -o /tmp/cp4-live-shell.html
+          curl -fLsS --max-time 20 "$PRODUCTION_URL/CP16_BUILD_RECEIPT.json?cp4-post=$CANDIDATE_SHA" -o /tmp/cp4-production-after.json
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            import crypto from 'node:crypto';
+            const r=JSON.parse(fs.readFileSync('/tmp/cp4-live-receipt.json','utf8'));
+            const g=JSON.parse(fs.readFileSync('/tmp/cp4-live-gold-manifest.json','utf8'));
+            const shell=fs.readFileSync('/tmp/cp4-live-shell.html');
+            const sha=crypto.createHash('sha256').update(shell).digest('hex');
+            const before=JSON.parse(fs.readFileSync('/tmp/cp4-production-before.json','utf8'));
+            const after=JSON.parse(fs.readFileSync('/tmp/cp4-production-after.json','utf8'));
+            if(g.runtimeRevision!==r.revision||sha!==r.goldShellSha256||
+               g.files?.['shell.html']?.sha256!==sha||
+               g.files?.['shell.html']?.bytes!==shell.length)process.exit(1);
+            if(after.gitCommit!==before.gitCommit||after.gitCommit===r.gitCommit)process.exit(1);
+            console.log('CP4 LIVE PREVIEW PASS:',r.gitCommit,r.revision,sha);
+            console.log('PRODUCTION UNCHANGED:',after.gitCommit,after.gitBranch,after.revision);
+            console.log('PREVIEW URL:',process.env.PREVIEW_URL);
+          "

@@ -305,12 +305,25 @@
     return !hero.owned;
   };
   // Full production-visible roster (playable + locked) for the shell picker.
+  // Issue #105 Pick order (product rule): NEWBOT (production ROBOT) first and
+  // playable; then the remaining playable fighters alphabetically; then the six
+  // roadmap-locked fighters in roadmap order. Ownership never changes position.
+  const PICK_ROADMAP_LOCKED_ORDER = ['BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER'];
+  function pickGroupRank(entry) {
+    const pid = String(entry.productionId);
+    if (entry.playable === false) {
+      const i = PICK_ROADMAP_LOCKED_ORDER.indexOf(pid);
+      return { group: 2, index: i < 0 ? 999 : i };
+    }
+    return pid === 'ROBOT' ? { group: 0, index: 0 } : { group: 1, index: 0 };
+  }
   window.APEX_GOLD_ROSTER_ORDER = function goldRosterOrder() {
     const roster = rosterFromProduction();
     return Object.keys(roster).sort((a, b) => {
-      const pa = roster[a].playable === false ? 1 : 0;
-      const pb = roster[b].playable === false ? 1 : 0;
-      if (pa !== pb) return pa - pb;
+      const ra = pickGroupRank(roster[a]);
+      const rb = pickGroupRank(roster[b]);
+      if (ra.group !== rb.group) return ra.group - rb.group;
+      if (ra.group === 2) return ra.index - rb.index;
       return String(roster[a].productionId).localeCompare(String(roster[b].productionId));
     });
   };
@@ -322,12 +335,27 @@
         const id = shells.botOpponentId();
         if (id) return String(id).toUpperCase();
       }
-      return 'ROBOT';
+      return 'HUNTER';
     };
     const BRIDGE0 = window.APEX_GOLD || (window.APEX_GOLD = {});
     BRIDGE0.botOpponentProductionId = botProductionId;
     BRIDGE0.botOpponentShellKey = function botOpponentShellKey() {
       const id = botProductionId();
+      return GOLD_SHELL_KEY_BY_PRODUCTION_ID[id] || id.toLowerCase();
+    };
+    // Owner R2 P0-B: the effective CPU for a given P1 (production ids). Production
+    // resolves it (P1 HUNTER -> ROBOT, never a mirror). Falls back to the choice.
+    BRIDGE0.botOpponentProductionIdFor = function botOpponentProductionIdFor(p1ProductionId) {
+      const shells = window.APEX_ARSENAL_SHELLS;
+      if (shells && typeof shells.botOpponentFor === 'function') {
+        const id = shells.botOpponentFor(String(p1ProductionId || '').toUpperCase());
+        if (id) return String(id).toUpperCase();
+      }
+      return botProductionId();
+    };
+    BRIDGE0.botOpponentShellKeyFor = function botOpponentShellKeyFor(p1ShellKey) {
+      const p1Prod = PRODUCTION_ID_BY_SHELL_KEY[String(p1ShellKey || '').toLowerCase()] || '';
+      const id = BRIDGE0.botOpponentProductionIdFor(p1Prod);
       return GOLD_SHELL_KEY_BY_PRODUCTION_ID[id] || id.toLowerCase();
     };
     // The player's BOT choice (owner law 2026-10-06) is written through the ONE
@@ -550,69 +578,17 @@
     parkedIdElements.length = 0;
   }
 
-  // Battle HUD donor is a full-page document. When mounted same-document its
-  // head CSS must come with it, but never as global CSS: broad donor rules
-  // (:root, html/body, *, button, .side, .skill...) would otherwise leak into
-  // Home/Pick. Keep keyframes global by name, and scope every normal/conditional
-  // rule to #battleHudHost. The current donor has no @font-face/import rules.
-  function extractKeyframeBlocks(cssText) {
-    const src = String(cssText || '');
-    const frames = [];
-    let rules = '';
-    let cursor = 0;
-    while (cursor < src.length) {
-      const a = src.indexOf('@keyframes', cursor);
-      const b = src.indexOf('@-webkit-keyframes', cursor);
-      let start = -1;
-      if (a >= 0 && b >= 0) start = Math.min(a, b);
-      else start = Math.max(a, b);
-      if (start < 0) { rules += src.slice(cursor); break; }
-      rules += src.slice(cursor, start);
-      const open = src.indexOf('{', start);
-      if (open < 0) { rules += src.slice(start); break; }
-      let depth = 0, quote = '', comment = false, end = open;
-      for (let i = open; i < src.length; i++) {
-        const ch = src[i], next = src[i + 1];
-        if (comment) {
-          if (ch === '*' && next === '/') { comment = false; i++; }
-          continue;
-        }
-        if (!quote && ch === '/' && next === '*') { comment = true; i++; continue; }
-        if (quote) {
-          if (ch === '\\') { i++; continue; }
-          if (ch === quote) quote = '';
-          continue;
-        }
-        if (ch === '"' || ch === "'") { quote = ch; continue; }
-        if (ch === '{') depth++;
-        else if (ch === '}') {
-          depth--;
-          if (depth === 0) { end = i + 1; break; }
-        }
-      }
-      if (!end || end <= open) { rules += src.slice(start); break; }
-      frames.push(src.slice(start, end));
-      cursor = end;
-    }
-    return { rules, frames };
-  }
-  function scopedBattleHudCss(doc) {
-    const raw = Array.from(doc.querySelectorAll('style'))
-      .map((node) => node.textContent || '')
-      .filter((text) => text.trim())
-      .join('\n');
-    if (!raw.trim()) return '';
-    const split = extractKeyframeBlocks(raw);
-    const scopedRules = split.rules
-      .replace(/:root\b/g, ':scope')
-      .replace(/html\s*,\s*body/g, ':scope');
-    return '@scope (#battleHudHost){\n' + scopedRules + '\n}\n' + split.frames.join('\n');
+  // Gold CSS is a compiled shell component, never transformed at runtime.
+  function requireBattleComponent() {
+    if (!document.getElementById('apex-battle-component-css'))
+      throw Error('Gold Battle component stylesheet missing; rebuild the shell');
   }
 
   BRIDGE.mountBattleHud = function mountBattleHud(html, onready) {
     const host = document.getElementById('battleHudHost');
     if (!host) return;
     BRIDGE.unmountBattleHud();
+    requireBattleComponent();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const root = doc.body.firstElementChild || doc.documentElement;
     if (root) host.appendChild(document.importNode(root, true));
@@ -621,13 +597,6 @@
     captureLegacyBattleUi();
     // Park BEFORE the donor scripts run so their lookups hit their own DOM.
     parkCollidingIds();
-    const hudCss = scopedBattleHudCss(doc);
-    if (hudCss) {
-      const style = document.createElement('style');
-      style.setAttribute('data-apex-gold-hud-style', 'true');
-      style.textContent = hudCss;
-      host.insertBefore(style, host.firstChild);
-    }
     // The production seam closes over donor-local renderer state. A remount
     // must create a FRESH seam; retaining window.APEX_GOLD_HUD would preserve
     // functions bound to the removed previous donor DOM.
@@ -669,6 +638,7 @@
     // before removing the donor so it cannot resume against detached DOM.
     battleSessionToken += 1;
     if (battleLiveRunning || window.__apexGoldBattleHosted === true) BRIDGE.exitBattle?.();
+    try { window.APEX_GOLD_HUD?.dispose?.(); } catch (error) { console.warn('[Gold HUD] disposal failed', error); }
     restoreArena();
     showLegacyBattleUi();
     stopEventTranslation();
@@ -676,7 +646,7 @@
       if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pumpId);
       pumpId = 0;
     }
-    if (hudHost) hudHost.textContent = '';
+    if (hudHost) { hudHost.textContent = ''; delete hudHost.dataset.layoutReady; }
     hudHost = null;
     hudMounted = false;
     restoreParkedIds();
@@ -700,33 +670,73 @@
     const legacyHud = legacyUiElement('hud');
     if (legacyHud) legacyHud.style.opacity = 0;
   }
+  // This owner alone sizes the live engine canvas while hosted by Gold.
+  // Gold defines the arena slot; engine owns its drawing buffer, never CSS size.
+  const arenaViewport = {
+    canvas:null, slot:null, observer:null, originalStyle:null,
+    fit() {
+      if(!this.canvas||!this.slot)return false;
+      const size=Math.floor(Math.min(this.slot.clientWidth,this.slot.clientHeight));
+      if(size<2)return false;
+      const px=size+'px';
+      if(this.canvas.style.width!==px)this.canvas.style.setProperty('width',px,'important');
+      if(this.canvas.style.height!==px)this.canvas.style.setProperty('height',px,'important');
+      return true;
+    },
+    attach(canvas,slot) {
+      this.release();this.canvas=canvas;this.slot=slot;
+      this.originalStyle=canvas.getAttribute('style');
+      canvas.setAttribute('data-apex-live-arena','');
+      this.observer=new ResizeObserver(()=>this.fit());
+      this.observer.observe(slot);this.fit();
+    },
+    release() {
+      this.observer?.disconnect();this.observer=null;
+      if(this.canvas){
+        this.canvas.removeAttribute('data-apex-live-arena');
+        if(this.originalStyle===null)this.canvas.removeAttribute('style');
+        else this.canvas.setAttribute('style',this.originalStyle);
+      }
+      this.canvas=null;this.slot=null;this.originalStyle=null;
+    },
+    ready() {
+      if(!this.fit())return false;
+      const {canvas,slot}=this;
+      return canvas.parentElement===slot && Math.abs(slot.clientWidth-slot.clientHeight)<=1
+        &&canvas.offsetWidth>1&&Math.abs(canvas.offsetWidth-canvas.offsetHeight)<=1;
+    }
+  };
   function relocateArena() {
-    const canvas = arenaCanvas();
-    const arena = arenaElement();
-    if (!canvas || !arena) return false;
-    if (canvas.parentElement === arena) return true;
-    arenaOriginParent = canvas.parentElement;
-    arenaOriginNext = canvas.nextElementSibling;
-    arena.appendChild(canvas);
-    // Move ONLY the 1000×1000 gameplay canvas. #game-wrapper is engine/combat
-    // infrastructure; public product surfaces belong exclusively to Gold.
-    canvas.style.position = 'absolute';
-    canvas.style.inset = 'auto';
-    canvas.style.left = '50%';
-    canvas.style.top = '50%';
-    canvas.style.transform = 'translate(-50%,-50%)';
-    canvas.style.aspectRatio = '1 / 1';
-    canvas.style.height = '100%';
-    canvas.style.width = 'auto';
-    canvas.style.maxWidth = '100%';
-    canvas.style.maxHeight = '100%';
-    canvas.style.display = 'block';
+    const canvas=arenaCanvas(),arena=arenaElement();
+    if(!canvas||!arena)return false;
+    if(canvas.parentElement===arena)return arenaViewport.canvas===canvas;
+    arenaOriginParent=canvas.parentElement;arenaOriginNext=canvas.nextElementSibling;
+    arena.appendChild(canvas);arenaViewport.attach(canvas,arena);
     return true;
   }
+  async function awaitBattleLayout(token) {
+    const host=document.getElementById('battleHudHost');
+    const deadline=performance.now()+5000;
+    let consecutive=0;
+    host.dataset.layoutReady='pending';
+    while(performance.now()<deadline){
+      if(token!==battleSessionToken||!hudMounted||!battleLiveRunning)
+        throw Error('Gold Battle layout preparation cancelled');
+      const stage=host.querySelector('#stage'),hud=host.querySelector('#hud');
+      const valid=getComputedStyle(host).getPropertyValue('--apex-battle-component').trim()==='1'
+        &&stage&&hud&&getComputedStyle(stage).containerType==='size'
+        &&getComputedStyle(hud).display==='grid'&&arenaViewport.ready();
+      consecutive=valid?consecutive+1:0;
+      if(consecutive>=2){host.dataset.layoutReady='ready';return;}
+      await new Promise(resolve=>setTimeout(resolve,16));
+    }
+    host.dataset.layoutReady='failed';
+    throw Error('Gold Battle layout is not ready; match was not started');
+  }
   function restoreArena() {
+    arenaViewport.release();
     const canvas = arenaCanvas();
     if (!canvas || !arenaOriginParent) return;
-    canvas.style.cssText = '';
     if (arenaOriginNext && arenaOriginNext.parentElement === arenaOriginParent) {
       arenaOriginParent.insertBefore(canvas, arenaOriginNext);
     } else {
@@ -978,11 +988,13 @@
     // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
     // hardcoded presentation identity.
     const p2Shell = questPreview ? 'newbot'
-      : mode === 'BOT' ? BRIDGE.botOpponentShellKey()
+      : mode === 'BOT' ? BRIDGE.botOpponentShellKeyFor(p1Shell)
       : String((pick && pick.p2) || 'newbot').toLowerCase();
     const p1 = PRODUCTION_ID_BY_SHELL_KEY[p1Shell] || 'ROBOT';
     const p2 = PRODUCTION_ID_BY_SHELL_KEY[p2Shell] || 'ROBOT';
     if (window.APEX_GOLD_LOCKED && (window.APEX_GOLD_LOCKED(p1Shell) || window.APEX_GOLD_LOCKED(p2Shell))) return false;
+    // Owner R2 P0-B: no battle may pair a fighter with itself. Quest is the only exception.
+    if (!questPreview && p1 === p2) return false;
     clearGoldResult();
     battleLiveRunning = true;
     try {
@@ -1040,6 +1052,8 @@
         restoreArena();
         return false;
       }
+
+      await awaitBattleLayout(sessionToken);
 
       // Gold-hosted status is set BEFORE startMatch so every fallback branch
       // knows it must never resurrect the legacy selection surface.
@@ -1099,12 +1113,17 @@
       const first = projection();
       if (typeof seam.applyState === 'function') seam.applyState(first.state);
       if (typeof seam.syncFighters === 'function') seam.syncFighters(first.fighters);
+      // The host owns presentation now: finish the first skill/FX frame before
+      // READY, rather than waiting for the removed donor RAF to do that work.
+      seam.tick?.(0, performance.now());
       // Audio was already awaited before startMatch; projection can begin with
       // no first-trigger network/decode debt.
       startPump();
       return true;
     } catch (error) {
       console.warn('[gold-bridge] battle live failed.', error);
+      // A cancelled session must not tear down a subsequently mounted match.
+      if (sessionToken !== battleSessionToken) return false;
       battleLiveRunning = false;
       window.__apexGoldBattleHosted = false;
       restoreArena();
@@ -1115,6 +1134,7 @@
   // Gold shell owns the destination. The engine runtime only tears the live
   // match down; it must not open the legacy product menu or restart BGM.
   BRIDGE.exitBattle = function exitBattle() {
+    window.dispatchEvent(new Event('apex:gold-battle-exited'));
     const hadBattle = battleLiveRunning || window.__apexGoldBattleHosted === true;
     // Always invalidate a deferred launch, even when startMatch has not been
     // reached yet. This makes ESC-during-load a real cancellation.
@@ -1311,6 +1331,21 @@
             activeFor: meta.kind === 'duration' ? meta.duration : 0,
             kind: meta.kind,
           });
+        } catch (e) {}
+      });
+      ail.bus.on('CastFailCue', (evt) => {
+        if (!hudMounted) return;
+        const seam = window.APEX_GOLD_HUD;
+        const payload = evt && evt.payload;
+        if (!seam || !payload || payload.source === 'p2-ai') return;
+        let targetIndex = payload.side === 'p2' || payload.combatantId === 'p2' ? 1
+          : (payload.side === 'p1' || payload.combatantId === 'p1' ? 0 : -1);
+        if (targetIndex < 0) return;
+        const slot = payload.slot === 'A2' ? 1 : 0;
+        try {
+          if (typeof seam.castFail === 'function') {
+            seam.castFail(targetIndex, slot, String(payload.reason || 'condition'));
+          }
         } catch (e) {}
       });
     }
@@ -1567,6 +1602,11 @@
         nextIn: 0,
         castUntil: false,
         truth: false,
+        castable: false,
+        castReason: 'syncing',
+        mechanic: '',
+        activeRemainSec: 0,
+        mitigationPct: 0,
         kind: meta.kind,
         duration: meta.duration,
         icon: meta.icon,
@@ -1589,7 +1629,9 @@
     const spec = (cfg && cfg.WEAPONS && cfg.WEAPONS[weaponId]) || null;
     const shots = Number(def.shots) || Number(spec && spec.shots) || 0;
     const fired = Number(holder.shotsFired) || 0;
-    const name = def.art || (spec && spec.art) || weaponId.replace(/_/g, ' ') || 'UNARMED';
+    const name = (cfg && cfg.weaponDisplayName && weaponId)
+      ? cfg.weaponDisplayName(weaponId)
+      : (def.art || (spec && spec.art) || weaponId.replace(/_/g, ' ') || 'UNARMED');
     const family = def.family || (spec && spec.family) || (def.category === 'ranged' ? 'RANGED' : 'MELEE');
     let asset = '';
     try {
@@ -1647,13 +1689,59 @@
       const art = heroUiArt(shellKey) || {};
       const copy = GOLD_HERO_COPY[shellKey] || {};
       const skills = skillProjection(f);
+      // Read-only legality + real simulation active duration come strictly from
+      // heroReworkRuntime authorities (zero side effects, zero wall-clock drift).
+      if (f && window.APEX_HERO_REWORK) {
+        const hr = window.APEX_HERO_REWORK;
+        const cfg = window.APEX_ARSENAL_CONFIG;
+        for (let k = 0; k < skills.length; k++) {
+          const slot = k ? 'A2' : 'A1';
+          if (typeof hr.observeAbilityCastability === 'function') {
+            const legality = hr.observeAbilityCastability(f, slot);
+            if (legality) {
+              skills[k].castable = legality.known !== false && legality.castable === true;
+              skills[k].castReason = legality.reason || 'condition';
+              skills[k].mechanic = legality.mechanic || '';
+              if (legality.targetWeaponId) {
+                skills[k].targetWeaponId = legality.targetWeaponId;
+                const disp = (cfg && typeof cfg.weaponDisplayName === 'function')
+                  ? cfg.weaponDisplayName(legality.targetWeaponId)
+                  : String(legality.targetWeaponId).replace(/_/g, ' ');
+                skills[k].targetName = String(disp || legality.targetWeaponId).toUpperCase();
+              } else {
+                skills[k].targetWeaponId = '';
+                skills[k].targetName = '';
+              }
+              if (legality.targetSlotId != null) skills[k].targetSlotId = legality.targetSlotId;
+            }
+          }
+          if (typeof hr.observeAbilityActiveWindow === 'function') {
+            const activeWin = hr.observeAbilityActiveWindow(f, slot);
+            if (activeWin) {
+              skills[k].activeRemainSec = activeWin.active ? activeWin.remainSec : 0;
+              skills[k].mitigationPct = activeWin.active ? (activeWin.mitigationPct || 0) : 0;
+            }
+          }
+        }
+      }
       // E01 J unlock after R2, K unlock only on successful J Cast.
       if(state?.questReflex===true&&i===0){
         const phase=state.questReflexGate?.snapshot()?.phase;
         skills[0].locked=!['J_CAST','K_CAST','BOTH_HALF'].includes(phase);
         skills[1].locked=!['K_CAST','BOTH_HALF'].includes(phase);
       }
-      const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'UNARMED', asset: '', tier: '', tierColor: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
+      const isVie = window.APEX_I18N?.getLanguage?.() === 'vie';
+      const battleMode = String(state?.battleMode || '').toUpperCase();
+      const isBotMode = battleMode === 'BOT' || !!state?.questMultiActor;
+      const roleHint = isBotMode
+        ? (i === 0 ? (isVie ? 'BẠN · TỰ ĐÁNH' : 'YOU · AUTO FIGHT') : (isVie ? 'BOT · TỰ ĐỘNG' : 'BOT · AUTO AI'))
+        : (i === 0 ? (isVie ? 'P1 · TỰ ĐÁNH' : 'P1 · AUTO FIGHT') : (isVie ? 'P2 · TỰ ĐÁNH' : 'P2 · AUTO FIGHT'));
+      const unarmedType = isVie ? 'TỰ ĐỘNG NHẶT' : 'AUTO PICKUP';
+      const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'AUTO PICKUP', asset: '', tier: '', tierColor: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
+      if (weapon.id === 'UNARMED') {
+        weapon.name = isVie ? 'TAY KHÔNG' : 'UNARMED';
+        weapon.type = unarmedType;
+      }
       const vitalsFallback = vitalsProjection(f) || { hp: 0, maxHp: 1000 };
       const teamVitals = group ? {
         hp: group.reduce((sum, actor) => sum + Math.max(0, Number(actor.hp) || 0), 0),
@@ -1670,6 +1758,7 @@
           heroId: liveHeroId,
           name: teamName || identity.name || (f && f.name) || '',
           tag: copy.tag || '',
+          roleHint,
           battleAvatar: art.battleAvatar || art.portrait || '',
           accent: identity.color || (f && f.color) || '#ffffff',
         },
@@ -1741,6 +1830,17 @@
     clearGoldResult();
     try{window.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');}catch(_){}
   }
+  function resultGoldUrl(){
+    // CP4: resolve through the app entry base (root and nested /html/<id>/
+    // hosting alike). An origin-root literal 404s inside itch's subpath and
+    // the 9s guard then silently returns Home with no Result at all.
+    try{
+      const base=window.APEX_APP_ENTRY_BASE;
+      if(base)return new URL('result-gold/index.html',base).href;
+    }catch(_){}
+    try{return new URL('../result-gold/index.html',document.baseURI).href;}catch(_){}
+    return '/result-gold/index.html';
+  }
   function showGoldResult(data){
     if(!data||resultFrame||!battleLiveRunning||!hudMounted)return false;
     const frame=document.createElement('iframe');
@@ -1749,9 +1849,14 @@
     frame.setAttribute('aria-label','Kết quả trận đấu');
     frame.style.cssText='position:fixed;inset:0;width:100vw;height:100dvh;'+
       'border:0;background:#07080b;z-index:2147483600;display:block';
-    frame.src='/result-gold/index.html';
+    frame.src=resultGoldUrl();
     resultFrame=frame;resultData=data;resultReady=false;
     document.body.appendChild(frame);
+    try{
+      const local=String(data?.meta?.mode||'').toUpperCase().includes('LOCAL');
+      const p1Won=data?.players?.[0]?.outcome==='victory';
+      window.apexUiSfx?.play?.(local||p1Won?'result.win':'result.loss');
+    }catch(_){/* result presentation never depends on optional UI audio */}
     // A missing build must not trap users in a black screen forever.
     resultTimeout=setTimeout(()=>{if(!resultReady&&resultFrame===frame)returnFromGoldResult()},9000);
     return true;
@@ -1761,13 +1866,16 @@
         ||event.origin!==window.location.origin)return;
     if(event.data?.type==='APEX_RESULT_GOLD_READY'){
       resultReady=true;
+      window.dispatchEvent(new Event('apex:gold-result-ready'));
       if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=0;}
       resultFrame.contentWindow.postMessage({
         type:'APEX_RESULT_GOLD_PAYLOAD',match:resultData
       },window.location.origin);
     }else if(event.data?.type==='APEX_RESULT_GOLD_CONTINUE'
       &&resultReady&&event.data.matchId===resultData?.meta?.id){
-      returnFromGoldResult();
+      if (window.APEX_OWNER_TOOLS?.isRecordingResultHold?.()) {
+        window.addEventListener('apex:owner-result-recorded',returnFromGoldResult,{once:true});
+      } else returnFromGoldResult();
     }
   });
 
@@ -1788,7 +1896,8 @@
     }
   }
 
-  function pump() {
+  let lastHudTick=0;
+  function pump(now) {
     // An already queued callback after unmount clears itself instead of
     // recreating a permanent background RAF chain.
     if (!hudMounted) { pumpId = 0; return; }
@@ -1798,6 +1907,8 @@
     const proj = projection();
     if (typeof seam.applyState === 'function') seam.applyState(proj.state);
     if (typeof seam.syncFighters === 'function') seam.syncFighters(proj.fighters);
+    const dt=lastHudTick?Math.min(.05,Math.max(0,(now-lastHudTick)/1000)):0;
+    lastHudTick=now;seam.tick?.(dt,now);
     const arsenal = window.APEX_ARSENAL;
     const state = arsenal && arsenal.state ? arsenal.state : null;
     // Quest result is owned by the Quest Director, not Gold's 1v1 win
@@ -1838,6 +1949,7 @@
     }
   }
   function startPump() {
+    lastHudTick=0;
     lastKo = null;
     if (document.body.classList.contains('battle-result')) document.body.classList.remove('battle-result');
     cancelResultReturn();

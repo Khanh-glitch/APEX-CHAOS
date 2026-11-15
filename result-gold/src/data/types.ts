@@ -90,6 +90,8 @@ export interface WeaponDef {
   silhouette: "railgun" | "generic";
   /** Replace with real art (transparent PNG/WebP, ~3:1). */
   artSrc?: string;
+  /** CP4: registered skin preview per side slot ("1"/"2"), sealed by side. */
+  skinArtBySide?: Record<string, string>;
   stats: { shotsFired: number; shotsHit: number; bestHit: number };
 }
 
@@ -128,6 +130,8 @@ export interface PlayerResult {
     heroId?: string;
     /** Replace with real portrait (transparent PNG/WebP, ~3:4). */
     portraitSrc?: string;
+    /** CP4: equipped skin id sealed for this side ('default' when none). */
+    skinId?: string;
   };
   damage: {
     dealt: number;

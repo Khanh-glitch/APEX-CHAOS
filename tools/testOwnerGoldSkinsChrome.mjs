@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import {seedCp3EntitledProfile} from './cp3MasteryFixture.mjs';
 const chrome=process.env.CHROME_PATH;
 if(!chrome)throw Error('CHROME_PATH required');
 const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
@@ -19,13 +20,12 @@ for(const caseInfo of [{name:'desktop',viewport:{width:1440,height:900}},{name:'
   // A1 production economy: a fresh profile owns NEWBOT only (proven by the
   // A1 gates). This proof fields HUNTER as the P2 fighter through the real
   // Gold roster, so its fixture is a legitimate saved profile that already
-  // owns him — the state a real player reaches via Lucky Draw/Shop.
-  await page.evaluateOnNewDocument(()=>{
-   localStorage.setItem('apexChaos.arsenalMeta.v1',JSON.stringify({
-    version:1,credits:425,ownedFighters:['ROBOT','HUNTER'],
-    lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:1,
-    unlockedAt:{ROBOT:0,HUNTER:1},arenaPaletteId:null,claimedMatchIds:[],
-   }));
+  // owns him — the state a real player reaches via Lucky Draw/Shop. CP3:
+  // the same saved wallet also carries the completed NEWBOT/RPG mastery
+  // record, so ECOBOT/VUA HỀ equip still passes through the real gate.
+  await seedCp3EntitledProfile(page,{
+   credits:425,ownedFighters:['ROBOT','HUNTER'],totalSpins:1,
+   unlockedAt:{ROBOT:0,HUNTER:1},
   });
   await page.goto(url,{waitUntil:'load',timeout:50000});
   await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:65000});

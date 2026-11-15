@@ -463,6 +463,29 @@
     matchClock += dt;
     state.time += dt;
     state.resultLedger?.tick?.(dt);
+    // CP3.2: live achievement feedback reads the SAME result ledger and the
+    // SAME observed() predicates as the sealed result, but it is provisional
+    // only. The wallet validates/deduplicates it for display and persists no
+    // earn, best, skin entitlement or AC. BOT previews the human P1 track;
+    // LOCAL previews both device players. Permanent mastery is committed
+    // only by the valid sealed-match wallet transaction. CP4 forwards both
+    // sides for presentation ownership; the meta authority marks a BOT-side
+    // feat wallet-ineligible so it is never presented as a player record.
+    // Lab/Quest have no awardable Free Battle ledger path here.
+    if (!state.over && !state.labMode && !state.questMultiActor && !state.questStage && state.resultLedger?.evaluateLive) {
+      state.__cp3MasteryLiveClock = (state.__cp3MasteryLiveClock || 0) + dt;
+      if (state.__cp3MasteryLiveClock >= 0.4) {
+        state.__cp3MasteryLiveClock = 0;
+        try {
+          const liveEvents = state.resultLedger.evaluateLive();
+          if (liveEvents.length) {
+            const recordProvisional = window.APEX_ARSENAL_META?.recordMasteryProvisional
+              || window.APEX_ARSENAL_META?.recordMasteryUnlocks;
+            recordProvisional?.(liveEvents);
+          }
+        } catch (error) { /* mastery feedback must never interrupt combat */ }
+      }
+    }
     if (!state.over) {
       if(state.questBreakerChargeProgression===true&&state.questBreakerSequence){
         const Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
@@ -1464,7 +1487,10 @@
     // baseDraw renders two primary bodies; Quest extra Fighter anchors use
     // this world-space pass, before real equipment and VFX. No HUD takeover.
     if (AQ.state?.questMultiActor) {
-      for (const f of fighters.slice(2)) if (f) f.draw(ctx);
+      for (let i = 2; i < fighters.length; i++) {
+        const f = fighters[i];
+        if (f) { window.APEX_RETAINED_PRESENTATION?.prepare(f); f.draw(ctx); }
+      }
       // The original Gold HUD already gives two team totals and one
       // independent segment per fighter. Suppress redundant developer IDs
       // above every moving head. Only show compact local HP for injury.
@@ -2656,6 +2682,7 @@
       window.removeEventListener('keydown', keyListener);
       keyListener = null; // no leaked listeners
     }
+    stopBattleFrameLoop();
     disposeArsenalDomHud();
     AQ.log('MODE_EXIT', 'mode=ARSENAL_BATTLE');
 

@@ -44,13 +44,19 @@ const PUBLIC_SURFACES = Object.freeze([
   // visible in the product graph, not launchable. The route stays declared
   // (no future-surface metadata is rewritten); only its availability changes.
   surface('fighter-shop', 'Fighter Shop', LOCKED, 'Fighter Shop is not available yet.'),
-  surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available fighter for 350 AC.', { route: 'draw' }),
+  surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available fighter for 1000 AC.', { route: 'draw' }),
   surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available yet.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available yet.'),
   surface('dictionary', 'Field Archive', ACTIVE, 'Browse playable fighters and Arsenal, inspect approved Gold art and equip cosmetic skins for P1/P2.', { route: 'skins' }),
-  surface('missions', 'Missions', LOCKED, 'Missions are not available yet.'),
-  surface('achievements', 'Achievements', LOCKED, 'Achievements are not available yet.'),
-  surface('account-profile', 'Account / Profile', LOCKED, 'Account / Profile is not available yet.'),
+  // Alpha progression (one wallet authority): sealed BOT/LOCAL matches
+  // advance these counters; each reward is a one-time AC claim into the
+  // real wallet. Both entries open the same progression panel (tabbed).
+  surface('missions', 'Missions', ACTIVE, 'Short-term battle goals that pay bonus Apex Credits.', { route: 'progress' }),
+  surface('achievements', 'Achievements', ACTIVE, 'One-time milestones that pay bonus Apex Credits.', { route: 'progress' }),
+  // The bottom-nav ACCOUNT is the single account entry (real Account
+  // Center). The old top-right identity chip duplicated it and was
+  // removed at the Gold generator.
+  surface('account-profile', 'Account / Profile', ACTIVE, 'Guest profile, Apex Credits, owned fighters and local save status.', { route: 'account' }),
 ]);
 
 const ADMIN_SURFACES = Object.freeze([
@@ -105,17 +111,17 @@ export const PRODUCT_ROSTER = Object.freeze({
 
 export const PRODUCT_ECONOMY = Object.freeze({
   shopCost: 1000,
-  drawCost: 350,
+  drawCost: 1000,
   // A1 production law: a genuinely new player profile starts at exactly
   // 350 AC with ROBOT (NEWBOT) as the only owned fighter. The r44
   // owner-playtest 12,000 AC seed is retired; existing balances are
   // preserved by the meta runtime and are never refilled.
   cleanStateCredits: 350,
   // Match rewards (committed only by the wallet authority in
-  // arsenalMetaRuntime.awardBattleResult): BOT win 100, BOT loss 25
+  // arsenalMetaRuntime.awardBattleResult): BOT win 200, BOT loss 25
   // (provisional legacy), LOCAL valid completion 50 for either winner.
   // Lab/Admin/Quest/incomplete matches pay 0.
-  matchRewards: Object.freeze({ botWin: 100, botLoss: 25, localComplete: 50 }),
+  matchRewards: Object.freeze({ botWin: 200, botLoss: 25, localComplete: 50 }),
 });
 
 function makeAuthority() {

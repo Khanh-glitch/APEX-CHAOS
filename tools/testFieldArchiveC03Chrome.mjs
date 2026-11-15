@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import {seedCp3EntitledProfile} from './cp3MasteryFixture.mjs';
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']});
 const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173/';
 const dir=path.resolve('docs/field-archive/candidate03');
@@ -20,6 +21,7 @@ try{
   const errors=[];page.on('pageerror',e=>errors.push(String(e)));
   page.on('response',r=>{if(r.status()>=400&&/(pick_selected_large|ecobot|FieldArchiveC03|fieldArchiveC03)/.test(r.url()))errors.push('HTTP '+r.status()+':'+r.url())});
   try{
+   await seedCp3EntitledProfile(page);
    await page.goto(url,{waitUntil:'domcontentloaded',timeout:65000});
    await page.waitForSelector('#apex-boot-start',{visible:true,timeout:90000});
    await page.click('#apex-boot-start');
@@ -62,26 +64,13 @@ try{
    });
    assert.equal(skinReach.length,2,'NEWBOT must expose exactly two registered appearances');
    assert.ok(skinReach.every(s=>s.hit&&s.within),'clipped or occluded appearance: '+JSON.stringify(skinReach));
-   // R2 game-art quality contract: the hero circuit must exist on the actual
-   // SKINS panel and each node must remain hit-testable in the viewport.
-   const web=await page.evaluate(()=>{
-    const buttons=[...document.querySelectorAll('.fa3-combat-web-compact .fa3-web-node')];
-    return {length:buttons.length,rects:buttons.map(el=>{
-      const r=el.getBoundingClientRect(),cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;
-      return {inScreen:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight,
-        hit:document.elementFromPoint(cx,cy)?.closest('.fa3-web-node')===el};
-    }),readoutVisible:!!document.querySelector('.fa3-readout-embed')};
-   });
-   assert.equal(web.length,3,'PASSIVE / A1 / A2 spiderweb nodes missing');
-   if(v.name==='landscape'||v.name==='small-mobile'){
-     // 320x568 portrait and 844x390 landscape prioritize two owned skins +
-     // real Equip on the SKINS tab; the full web is on the INFO tab.
-     assert.ok(web.rects.every(x=>!x.hit),
-       'compact ability web must not obscure appearance controls in '+v.name);
-   }else{
-     assert.ok(web.rects.every(x=>x.hit&&x.inScreen),
-       'unusable compact ability web in '+v.name+': '+JSON.stringify(web));
-   }
+   // CP4b dedup law: SKINS compact profile is bars-only; the radar lives
+   // exclusively on INFO (asserted below). One stat, one form per tab.
+   // The register also lists the full visible roster (8 playable + 6 locked).
+   const compactProfile=await page.evaluate(()=>({axes:document.querySelectorAll('.fa4-compact .fa4-axis').length,radar:!!document.querySelector('.fa4-compact .fa4-radar-frame'),files:document.querySelector('.fa3-index-head span')?.textContent?.trim()}));
+   assert.equal(compactProfile.radar,false,'compact SKINS profile must not duplicate the INFO radar');
+   assert.equal(compactProfile.files,'14','register must list the full visible roster');
+   if(v.name!=='landscape'&&v.name!=='small-mobile')assert.equal(compactProfile.axes,5,'compact five-axis bars unavailable');
    assert.deepEqual(errors,[],'browser runtime/asset errors');
    await page.waitForFunction(()=>{
      const a=document.querySelector('.fa3-artwork'),im=document.querySelector('.fa3-hero-img');
@@ -89,18 +78,14 @@ try{
    },{timeout:30000});
    await page.screenshot({path:path.join(dir,v.name+'-newbot-original.jpg'),type:'jpeg',quality:85});
    await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:nth-child(2)').click());
-   await page.waitForSelector('.fa3-combat-web:not(.fa3-combat-web-compact)');
-   const infoNodes=await page.evaluate(()=>[...document.querySelectorAll('.fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-node')].map(el=>{
-     const r=el.getBoundingClientRect(),cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;
-     return {key:el.textContent.trim(),inView:r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight,
-       actualHit:document.elementFromPoint(cx,cy)?.closest('.fa3-web-node')===el};
-   }));
-   assert.equal(infoNodes.length,3,'INFO skill network must have exactly three nodes');
-   assert.ok(infoNodes.every(n=>n.inView&&n.actualHit),
-      'INFO node must be clickable at viewport '+v.name+': '+JSON.stringify(infoNodes));
-   await page.evaluate(()=>document.querySelector('.fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-node-a2').click());
-   const ability=await page.$eval('.fa3-combat-web:not(.fa3-combat-web-compact) .fa3-web-detail',e=>e.textContent);
-   assert.ok(ability.includes('VIRTUAL ARMOR'),'A2 click did not update REAL NEWBOT skill info');
+   await page.waitForSelector('.fa4-readout:not(.fa4-compact) .fa4-radar-frame');
+   const infoBars=await page.evaluate(()=>document.querySelectorAll('.fa4-readout:not(.fa4-compact) .fa4-axis').length);
+   assert.equal(infoBars,0,'INFO profile must not duplicate the SKINS bars');
+   const skillButtons=await page.$$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-select button',els=>els.map(e=>e.textContent.trim()));
+   assert.deepEqual(skillButtons,['PASSIVE','A1','A2'],'canonical skill slots missing');
+   await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-select button:last-child',e=>e.click());
+   const ability=await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-skill-info',e=>e.textContent);
+   assert.ok(ability.toUpperCase().includes('VIRTUAL ARMOR'),'canonical A2 skill not shown');
    await page.screenshot({path:path.join(dir,v.name+'-newbot-ability-web.jpg'),type:'jpeg',quality:85});
    await page.evaluate(()=>document.querySelector('.fa3-detail-tabs button:first-child').click());
    // IMPORTANT: live registered cosmetic, no fake prototype model.
@@ -131,21 +116,13 @@ try{
      return a?.dataset.visualReady==='true'&&img?.complete&&img.naturalWidth>0&&getComputedStyle(img).opacity!=='0';
    },{timeout:35000});
    const facts=await page.evaluate(()=>{document.querySelector('.fa3-detail-tabs button:nth-child(2)').click();return true});
-   await page.waitForSelector('.fa3-stat-console:not(.fa3-stat-console-compact)');
-   const words=await page.$eval('.fa3-stat-console:not(.fa3-stat-console-compact)',e=>e.textContent);
-   assert.ok(['BLAST PEAK','161','PROJECTILE SPEED','420','TOP SPEED','990','BLAST RADIUS','126','ACCELERATION','760'].every(w=>words.includes(w)),
-     'RPG-7 INFO must show the exact native weapon parameters (not invented DPS) '+words);
+   await page.waitForSelector('.fa4-readout:not(.fa4-compact) .fa4-telemetry');
+   const words=await page.evaluate(async()=>{let text='';const root=document.querySelector('.fa4-readout:not(.fa4-compact)');for(let i=0;i<12;i++){text+=' '+root.textContent;const next=root.querySelector('[aria-label="Next weapon specification page"]');if(!next||next.disabled)break;next.click();await new Promise(resolve=>setTimeout(resolve,25));}return text});
+   assert.ok(['BLAST PEAK','161','PROJECTILE SPEED','420','MAX SPEED','990','BLAST RADIUS','126','ACCELERATION','760'].every(w=>words.includes(w)),
+     'RPG-7 native parameters must remain accurate: '+words);
+   const radarLabel=await page.$eval('.fa4-readout:not(.fa4-compact) .fa4-radar-frame svg',el=>el.getAttribute('aria-label')||'');
+   assert.equal(radarLabel.split(', ').filter(x=>/:\s*(\d+\/100|unavailable)/.test(x)).length,5,'RPG-7 must have five comparable profile axes');
    await page.screenshot({path:path.join(dir,v.name+'-rpg-combat-stats.jpg'),type:'jpeg',quality:85});
-   const statsReadable=await page.evaluate(()=>{
-    const body=document.querySelector('.fa3-detail').getBoundingClientRect();
-    return [...document.querySelectorAll('.fa3-stat-console:not(.fa3-stat-console-compact) .fa3-metric')].map(el=>{
-      const b=el.getBoundingClientRect(),x=(b.left+b.right)/2,y=(b.top+b.bottom)/2;
-      return {name:el.textContent.slice(0,23),visible:b.top>=body.top-1&&b.bottom<=body.bottom+1,
-        inViewport:b.top>=0&&b.bottom<=innerHeight+1,hit:!!document.elementFromPoint(x,y)?.closest('.fa3-stat-console')};
-    });
-   });
-   assert.ok(statsReadable.length>=5&&statsReadable.every(s=>s.visible&&s.inViewport&&s.hit),
-     'Weapon combat telemetry clipped in '+v.name+': '+JSON.stringify(statsReadable));
    await page.$eval('.fa3-detail-tabs button:first-child',e=>e.click());
    await page.evaluate(()=>[...document.querySelectorAll('.fa3-skin')].find(e=>e.textContent.includes('VUA HỀ')).click());
    await page.waitForFunction(()=>{

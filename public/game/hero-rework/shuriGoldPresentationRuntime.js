@@ -520,6 +520,11 @@
       }else rec.dropFlight=null;
     }
   }
+  global.APEX_RETAINED_PRESENTATION?.registerActor('SHURI', body => {
+    if (!sprites) return;
+    const rec=ensure(body);
+    if(body.hp>0 || rec.w.st || rec.w.bomb || rec.w.fx?.length) advance(rec);
+  });
   if(!global.Fighter.prototype.__shuriGoldDraw){
     global.Fighter.prototype.__shuriGoldDraw=true;
     global.Fighter.prototype.draw=function shuriGoldDraw(ctx){
@@ -528,7 +533,8 @@
       if(!sprites)return; // Never replace unfinished Gold with a generic blob.
       ctx.save();
       try{
-        advance(rec);
+        if(global.APEX_RETAINED_PRESENTATION) global.APEX_RETAINED_PRESENTATION.prepare(this);
+        else advance(rec);
         renderGold(ctx,rec.w,{
           vfx:true,hud:false,show:FX_SHOW,
         });
@@ -553,7 +559,8 @@
       if(fighter.hp>0)continue; // alive owner paints the Gold rig once
       const world=rec.w;
       if(!world.st && !world.bomb && !world.fx?.length)continue;
-      advance(rec);
+      if(global.APEX_RETAINED_PRESENTATION) global.APEX_RETAINED_PRESENTATION.prepare(fighter);
+      else advance(rec);
       ctx.save();
       try{
         renderGold(ctx,world,{

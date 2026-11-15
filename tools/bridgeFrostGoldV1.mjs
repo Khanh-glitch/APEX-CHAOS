@@ -630,6 +630,39 @@ for (const fn of ['const rnd =', 'const rng', 'const R = new Rng',
 if (!s.includes('const W=FROST_TUNE.A2_WIDTH*0.5 + this.rng.range(-2,2);')) fail('A2 authored width law missing');
 if (!s.includes('if (nd >= 9) {')) fail('A2 authored 9px resample law missing');
 
+// Retained presentation only: keep the generated runtime reproducible.
+// Each patch is anchored in this pinned Gold bridge; refuse upstream drift.
+const retainedPresentationPatches = [
+  [
+    "        // sequence without unrelated engines/lanes consuming its material RNG.\n        this.rng = new Rng(4242);\n        this.nodes = [];\n        this.carves = [];\n        this.wets = [];\n        this.facetPaths = [];\n",
+    "        // sequence without unrelated engines/lanes consuming its material RNG.\n        this.rng = new Rng(4242);\n        this.nodes = [];\n        this.nodePaths = new WeakMap();\n        this.liveRenderNodes = [];\n        this.liveRenderCarves = [];\n        this.carves = [];\n        this.wets = [];\n        this.facetPaths = [];\n"
+  ],
+  [
+    "        n.cracks.push(new Float32Array(pts));\n        n.crackAt.push(at);\n    }\n    polyNode(ctx, n, sL, sW, e, t, ox = 0, oy = 0) {\n        const d = (t - n.decayAt) / n.decayDur;\n        const g = this.growF(n, t);\n",
+    "        n.cracks.push(new Float32Array(pts));\n        n.crackAt.push(at);\n    }\n    fillNode(ctx, n, sL, sW, e, t, ox = 0, oy = 0) {\n        const stable = t - n.born >= Math.max(n.lockDur + 0.25, 0.3)\n            && t <= n.decayAt && this.growF(n,t) === 1;\n        if (!stable || typeof Path2D !== 'function') {\n            this.polyNode(ctx,n,sL,sW,e,t,ox,oy);ctx.fill();return;\n        }\n        let paths=this.nodePaths.get(n);\n        if(!paths){paths=[];this.nodePaths.set(n,paths);}\n        let entry=paths.find(p=>p.sL===sL&&p.sW===sW&&p.e===e&&p.ox===ox&&p.oy===oy\n            &&p.x===n.x&&p.y===n.y&&p.L===n.L&&p.W===n.W&&p.ca===n.ca&&p.sa===n.sa);\n        if(!entry){\n            const path=new Path2D();\n            // polyNode accepts the path subset of the Canvas2D API.\n            this.polyNode({beginPath(){},moveTo:(...v)=>path.moveTo(...v),\n                lineTo:(...v)=>path.lineTo(...v),closePath:()=>path.closePath()},n,sL,sW,e,t,ox,oy);\n            entry={sL,sW,e,ox,oy,x:n.x,y:n.y,L:n.L,W:n.W,ca:n.ca,sa:n.sa,path};\n            if(paths.length>=8)paths.shift();\n            paths.push(entry);\n        }\n        ctx.fill(entry.path);\n    }\n    polyNode(ctx, n, sL, sW, e, t, ox = 0, oy = 0) {\n        const d = (t - n.decayAt) / n.decayDur;\n        const g = this.growF(n, t);\n"
+  ],
+  [
+    "        void ctx; void t;\n    }\n    render(ctx, t, px) {\n        const live = this.nodes.filter((n) => !n.dead && t > n.born);\n        const carves = this.carves.filter((c) => !c.dead && t > c.born);\n        if (!live.length && !carves.length)\n            return false;\n        // P0: cast shadow of the ice slab (opaque, merged) – physical elevation on light floor\n        ctx.fillStyle = \"#c3cad0\";\n        for (const n of live) {\n            this.polyNode(ctx, n, 1, 1, 1.8, t, 1.2, 2.2);\n            ctx.fill();\n        }\n        // P1: steel-blue slab edge\n        ctx.fillStyle = \"#5a92c4\";\n        for (const n of live) {\n            this.polyNode(ctx, n, 1, 1, 1.5, t);\n            ctx.fill();\n        }\n        for (const c of carves)\n            if (this.carvePath(ctx, c, t, -1.5, 1))\n",
+    "        void ctx; void t;\n    }\n    render(ctx, t, px) {\n        const live = this.liveRenderNodes, carves = this.liveRenderCarves;\n        live.length=0;carves.length=0;\n        for(const n of this.nodes)if(!n.dead&&t>n.born)live.push(n);\n        for(const c of this.carves)if(!c.dead&&t>c.born)carves.push(c);\n        if (!live.length && !carves.length)\n            return false;\n        // P0: cast shadow of the ice slab (opaque, merged) – physical elevation on light floor\n        ctx.fillStyle = \"#c3cad0\";\n        for (const n of live) {\n            this.fillNode(ctx, n, 1, 1, 1.8, t, 1.2, 2.2);\n        }\n        // P1: steel-blue slab edge\n        ctx.fillStyle = \"#5a92c4\";\n        for (const n of live) {\n            this.fillNode(ctx, n, 1, 1, 1.5, t);\n        }\n        for (const c of carves)\n            if (this.carvePath(ctx, c, t, -1.5, 1))\n"
+  ],
+  [
+    "        for (const n of live) {\n            const d = (t - n.decayAt) / n.decayDur;\n            ctx.fillStyle = d > 0 ? (d > 0.3 ? \"#b4d6ec\" : \"#dcecf6\") : \"#f4f9fd\";\n            this.polyNode(ctx, n, 1, 1, 0, t);\n            ctx.fill();\n        }\n        ctx.fillStyle = \"#f4f9fd\";\n        for (const c of carves)\n",
+    "        for (const n of live) {\n            const d = (t - n.decayAt) / n.decayDur;\n            ctx.fillStyle = d > 0 ? (d > 0.3 ? \"#b4d6ec\" : \"#dcecf6\") : \"#f4f9fd\";\n            this.fillNode(ctx, n, 1, 1, 0, t);\n        }\n        ctx.fillStyle = \"#f4f9fd\";\n        for (const c of carves)\n"
+  ],
+  [
+    "            const sW = lock * Math.max(0, 1 - rim / n.W);\n            const sL = lock * Math.max(0, 1 - rim / n.L);\n            ctx.fillStyle = d > 0.25 ? \"#a0c7e2\" : lock < 0.8 ? \"#c9e6f6\" : \"#a9d2ec\";\n            this.polyNode(ctx, n, sL, sW, 0, t);\n            ctx.fill();\n        }\n        // P3b: lighter slab core -> inner edge band reads as thickness (cel banding like the source art)\n        for (const n of live) {\n",
+    "            const sW = lock * Math.max(0, 1 - rim / n.W);\n            const sL = lock * Math.max(0, 1 - rim / n.L);\n            ctx.fillStyle = d > 0.25 ? \"#a0c7e2\" : lock < 0.8 ? \"#c9e6f6\" : \"#a9d2ec\";\n            this.fillNode(ctx, n, sL, sW, 0, t);\n        }\n        // P3b: lighter slab core -> inner edge band reads as thickness (cel banding like the source art)\n        for (const n of live) {\n"
+  ],
+  [
+    "            ctx.fillStyle = d > 0.1 ? \"#b2d4ea\" : \"#bfe0f2\";\n            const strip = n.kind === \"lane\" || n.kind === \"trail\";\n            const along = strip ? 1.05 * k : Math.max(0, 1 - 4.5 / n.L) * inner * k;\n            this.polyNode(ctx, n, along + 0.001, Math.max(0, 1 - 5 / n.W) * inner * k + 0.001, 0, t);\n            ctx.fill();\n        }\n        // P4: clipped material detail\n        ctx.globalCompositeOperation = \"source-atop\";\n",
+    "            ctx.fillStyle = d > 0.1 ? \"#b2d4ea\" : \"#bfe0f2\";\n            const strip = n.kind === \"lane\" || n.kind === \"trail\";\n            const along = strip ? 1.05 * k : Math.max(0, 1 - 4.5 / n.L) * inner * k;\n            this.fillNode(ctx, n, along + 0.001, Math.max(0, 1 - 5 / n.W) * inner * k + 0.001, 0, t);\n        }\n        // P4: clipped material detail\n        ctx.globalCompositeOperation = \"source-atop\";\n"
+  ]
+];
+for (const [before, after] of retainedPresentationPatches) {
+  if (s.split(before).length !== 2) fail('retained presentation source anchor drift');
+  s = s.replace(before, after);
+}
+
 // ---------- S9: footer, compile check, write ----------
 s += `
 let loadPromise = null;

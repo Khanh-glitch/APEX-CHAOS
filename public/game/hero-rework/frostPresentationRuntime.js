@@ -153,6 +153,7 @@ const renderAudit = { frame: 0, bodyDraws: 0, iceRenders: 0, drawExceptions: 0, 
 // not pixels, and is intentionally bounded so owner-browser diagnosis can read
 // the exact first divergent frame without changing Gold choreography.
 const integrityFrames = [];
+let integrityEnabled = g.__apexFrostIntegrityTrace === true;
 const segmentMeta = new WeakMap();
 let nextSegmentId = 1;
 function segmentInfo(n, fallbackCastId) {
@@ -164,6 +165,7 @@ function segmentInfo(n, fallbackCastId) {
   return m;
 }
 function currentIntegrity(S) {
+  if (!integrityEnabled) return null;
   for (let i = integrityFrames.length - 1; i >= 0; i--) {
     if (integrityFrames[i].fighterId === (S.fighter && S.fighter.id)) return integrityFrames[i];
   }
@@ -176,6 +178,7 @@ function noteRenderSource(S, source) {
   r.renderSourceCounts[source] = (r.renderSourceCounts[source] || 0) + 1;
 }
 function captureIntegrity(S, insp, now) {
+  if (!integrityEnabled) return;
   const e = S.engine, castId = (insp && insp.a2castId) || S.a2.castId || 0;
   // kickOff's authored pad is created inside Gold; assign it to the same cast
   // here without changing Gold itself.
@@ -1998,6 +2001,11 @@ api.inspect = function (f) {
       laid: S.a2.path.laid, carry: +S.a2.path.carry.toFixed(3),
       endpoint: [S.a2.path.x, S.a2.path.y] } : null,
   };
+};
+api.setIntegrityTraceEnabled = function(enabled) {
+  integrityEnabled = enabled === true;
+  api.clearIntegrityTrace();
+  return integrityEnabled;
 };
 api.integrityTrace = function () { return integrityFrames.map((r) => ({ ...r, renderSources: r.renderSources.slice(), segments: r.segments.map((n) => ({ ...n })) })); };
 api.clearIntegrityTrace = function () {

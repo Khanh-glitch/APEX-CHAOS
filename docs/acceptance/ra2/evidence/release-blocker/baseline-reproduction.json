@@ -1,0 +1,1925 @@
+{
+  "sourceSha": "4a12ac309f2b81202c5e0d292e48d7be4dbde28a",
+  "resultFixture": {
+    "mode": "BOT",
+    "durationSeconds": 78,
+    "players": [
+      {
+        "hero": "SHURI",
+        "outcome": "victory",
+        "damage": 1448,
+        "awards": 21
+      },
+      {
+        "hero": "NEWBOT",
+        "outcome": "defeat",
+        "damage": 992,
+        "awards": 17
+      }
+    ],
+    "weaponOfTheBattle": "STORMBREAKER",
+    "authority": "APEX_MATCH_RESULT_AUTHORITY.seal(P1)",
+    "languages": [
+      "eng",
+      "vie"
+    ],
+    "phases": [
+      "early",
+      "post-skip",
+      "post-settle"
+    ],
+    "comparisonViewports": [
+      "1844x829",
+      "1440x900",
+      "1560x992",
+      "844x390",
+      "390x844"
+    ]
+  },
+  "resultBaselineMeasurements": [
+    {
+      "lang": "en",
+      "viewport": {
+        "w": 1844,
+        "h": 829
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "duration": "1:18",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "rect": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "w": 560.5,
+            "h": 160.25
+          },
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none",
+            "z": "auto"
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "rect": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "w": 560.515625,
+            "h": 175.1875
+          },
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none",
+            "z": "auto"
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "rect": {
+            "x": 746.1174926757812,
+            "y": 116.25262451171875,
+            "right": 1097.851318359375,
+            "bottom": 583.2193603515625,
+            "w": 351.73382568359375,
+            "h": 466.96673583984375
+          },
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none",
+            "z": "auto"
+          }
+        }
+      ],
+      "dais": {
+        "x": 655.75,
+        "y": 121.765625,
+        "right": 1188.234375,
+        "bottom": 261.09375,
+        "w": 532.484375,
+        "h": 139.328125
+      },
+      "tilt": {
+        "x": 747.828125,
+        "y": 121.765625,
+        "right": 1096.140625,
+        "bottom": 586.171875,
+        "w": 348.3125,
+        "h": 464.40625
+      },
+      "artTextOverlap": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 757.03125,
+              "y": 271.03125,
+              "right": 1086.953125,
+              "bottom": 326,
+              "w": 329.921875,
+              "h": 54.96875
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 881.984375,
+              "y": 332,
+              "right": 962,
+              "bottom": 347.59375,
+              "w": 80.015625,
+              "h": 15.59375
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nWEAPON DAMAGE",
+            "box": {
+              "x": 863.53125,
+              "y": 353.59375,
+              "right": 980.4375,
+              "bottom": 423.8125,
+              "w": 116.90625,
+              "h": 70.21875
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%total match damage+474hơn SPAS-12 (hạng 2)465đòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "TOP CONTRIBUTOR\nP1",
+            "box": {
+              "x": 841.90625,
+              "y": 433.8125,
+              "right": 1002.0625,
+              "bottom": 463.8125,
+              "w": 160.15625,
+              "h": 30
+            },
+            "overlap": true
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448\nDMG",
+            "box": {
+              "x": 82,
+              "y": 505.0625,
+              "right": 247.234375,
+              "bottom": 563.25,
+              "w": 165.234375,
+              "h": 58.1875
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992\nDMG",
+            "box": {
+              "x": 1634.046875,
+              "y": 505.0625,
+              "right": 1762,
+              "bottom": 563.25,
+              "w": 127.953125,
+              "h": 58.1875
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TOTAL DAMAGE DEALT\nDAMAGE GAP 456",
+            "box": {
+              "x": 846.890625,
+              "y": 509.859375,
+              "right": 997.09375,
+              "bottom": 563.25,
+              "w": 150.203125,
+              "h": 53.390625
+            },
+            "overlap": true
+          }
+        ]
+      },
+      "imagePlaceholders": [],
+      "text": "APEXCHAOS\nMATCH REPORT\nAPEX ARENA\nBOT BATTLE\n1:18\n#MATCH-1720000000000-78000\nREPLAY\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\nVICTORY\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n50%\nCRITICAL HITS\n0%\nHEALING\n0\nPLAYER 2\nD\nE\nF\nE\nA\nT\nDEFEAT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n50%\nCRITICAL HITS\n0%\nHEALING\n0\nP1\n59.3%\n▲ LEADING\n1,448\n1,448\nDMG\nTOTAL DAMAGE DEALT\nDAMAGE GAP 456\nP2\n40.7%\n992\n992\nDMG\nWEAP"
+    },
+    {
+      "language": "en",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 34.546875,
+            "y": 196.375,
+            "right": 489.5,
+            "bottom": 292.625,
+            "w": 454.953125,
+            "h": 96.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 950.484375,
+            "y": 180.40625,
+            "right": 1405.4375,
+            "bottom": 292.625,
+            "w": 454.953125,
+            "h": 112.21875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 626.8048706054688,
+            "y": 123.64090728759766,
+            "right": 813.1795043945312,
+            "bottom": 372.11328887939453,
+            "w": 186.3746337890625,
+            "h": 248.47238159179688
+          }
+        }
+      ],
+      "dais": {
+        "x": 503.890625,
+        "y": 123.765625,
+        "right": 936.09375,
+        "bottom": 198.296875,
+        "w": 432.203125,
+        "h": 74.53125
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 540.203125,
+              "y": 209.09375,
+              "right": 899.765625,
+              "bottom": 268.59375,
+              "w": 359.5625,
+              "h": 59.5
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 679.984375,
+              "y": 274.59375,
+              "right": 760,
+              "bottom": 290.1875,
+              "w": 80.015625,
+              "h": 15.59375
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nWEAPON DAMAGE",
+            "box": {
+              "x": 656.40625,
+              "y": 296.1875,
+              "right": 783.5625,
+              "bottom": 370.875,
+              "w": 127.15625,
+              "h": 74.6875
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%total match damage+474hơn SPAS-12 (hạng 2)465đòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "TOP CONTRIBUTOR\nP1",
+            "box": {
+              "x": 639.90625,
+              "y": 380.875,
+              "right": 800.0625,
+              "bottom": 410.875,
+              "w": 160.15625,
+              "h": 30
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448\nDMG",
+            "box": {
+              "x": 34.546875,
+              "y": 453.265625,
+              "right": 212.0625,
+              "bottom": 516.4375,
+              "w": 177.515625,
+              "h": 63.171875
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992\nDMG",
+            "box": {
+              "x": 1269.328125,
+              "y": 453.265625,
+              "right": 1405.4375,
+              "bottom": 516.4375,
+              "w": 136.109375,
+              "h": 63.171875
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TOTAL DAMAGE DEALT\nDAMAGE GAP 456",
+            "box": {
+              "x": 644.890625,
+              "y": 463.046875,
+              "right": 795.09375,
+              "bottom": 516.4375,
+              "w": 150.203125,
+              "h": 53.390625
+            },
+            "overlap": false
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "viewport": {
+        "width": 1560,
+        "height": 992
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 37.4375,
+            "y": 206.125,
+            "right": 530.109375,
+            "bottom": 343.5625,
+            "w": 492.671875,
+            "h": 137.4375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 1029.875,
+            "y": 188.84375,
+            "right": 1522.5625,
+            "bottom": 343.5625,
+            "w": 492.6875,
+            "h": 154.71875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 712.416748046875,
+            "y": 127.9803237915039,
+            "right": 847.552001953125,
+            "bottom": 307.89405059814453,
+            "w": 135.13525390625,
+            "h": 179.91372680664062
+          }
+        }
+      ],
+      "dais": {
+        "x": 545.96875,
+        "y": 129.578125,
+        "right": 1014.015625,
+        "bottom": 183.453125,
+        "w": 468.046875,
+        "h": 53.875
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 586.421875,
+              "y": 195.34375,
+              "right": 973.5625,
+              "bottom": 259.25,
+              "w": 387.140625,
+              "h": 63.90625
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 739.984375,
+              "y": 265.25,
+              "right": 820,
+              "bottom": 280.84375,
+              "w": 80.015625,
+              "h": 15.59375
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nWEAPON DAMAGE",
+            "box": {
+              "x": 710.25,
+              "y": 286.84375,
+              "right": 849.734375,
+              "bottom": 367.328125,
+              "w": 139.484375,
+              "h": 80.484375
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%\ntotal match damage\n+474\nhơn SPAS-12 (hạng 2)\n465\nđòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 545.96875,
+              "y": 379.328125,
+              "right": 1014.015625,
+              "bottom": 426.078125,
+              "w": 468.046875,
+              "h": 46.75
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "TOP CONTRIBUTOR\nP1",
+            "box": {
+              "x": 699.90625,
+              "y": 436.078125,
+              "right": 860.0625,
+              "bottom": 466.078125,
+              "w": 160.15625,
+              "h": 30
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448\nDMG",
+            "box": {
+              "x": 37.4375,
+              "y": 509.9375,
+              "right": 230.3125,
+              "bottom": 579.5625,
+              "w": 192.875,
+              "h": 69.625
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992\nDMG",
+            "box": {
+              "x": 1374.234375,
+              "y": 509.9375,
+              "right": 1522.5625,
+              "bottom": 579.5625,
+              "w": 148.328125,
+              "h": 69.625
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TOTAL DAMAGE DEALT\nDAMAGE GAP 456",
+            "box": {
+              "x": 704.890625,
+              "y": 526.171875,
+              "right": 855.09375,
+              "bottom": 579.5625,
+              "w": 150.203125,
+              "h": 53.390625
+            },
+            "overlap": false
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 20.25,
+            "y": 110.59375,
+            "right": 288.546875,
+            "bottom": 110.59375,
+            "w": 268.296875,
+            "h": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 555.4375,
+            "y": 102.421875,
+            "right": 823.75,
+            "bottom": 102.421875,
+            "w": 268.3125,
+            "h": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 421.984375,
+            "y": 64.44357299804688,
+            "right": 421.984375,
+            "bottom": 64.44357299804688,
+            "w": 0,
+            "h": 0
+          }
+        }
+      ],
+      "dais": {
+        "x": 294.546875,
+        "y": 70,
+        "right": 549.4375,
+        "bottom": 70,
+        "w": 254.890625,
+        "h": 0
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 335.671875,
+              "y": 73,
+              "right": 508.3125,
+              "bottom": 102.203125,
+              "w": 172.640625,
+              "h": 29.203125
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nWEAPON DAMAGE",
+            "box": {
+              "x": 358.203125,
+              "y": 105.203125,
+              "right": 485.765625,
+              "bottom": 143.984375,
+              "w": 127.5625,
+              "h": 38.78125
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%total match damage+474hơn SPAS-12 (hạng 2)465đòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "P1",
+            "box": {
+              "x": 403.46875,
+              "y": 146.984375,
+              "right": 440.515625,
+              "bottom": 165.984375,
+              "w": 37.046875,
+              "h": 19
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448",
+            "box": {
+              "x": 20.25,
+              "y": 81,
+              "right": 90.953125,
+              "bottom": 111.59375,
+              "w": 70.703125,
+              "h": 30.59375
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992",
+            "box": {
+              "x": 771.71875,
+              "y": 81,
+              "right": 823.75,
+              "bottom": 111.59375,
+              "w": 52.03125,
+              "h": 30.59375
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TOTAL DAMAGE DEALT\nDAMAGE GAP 456",
+            "box": {
+              "x": 367.6875,
+              "y": 85,
+              "right": 476.296875,
+              "bottom": 114,
+              "w": 108.609375,
+              "h": 29
+            },
+            "overlap": false
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 12,
+            "y": 132.796875,
+            "right": 190.359375,
+            "bottom": 204.90625,
+            "w": 178.359375,
+            "h": 72.109375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 199.640625,
+            "y": 122.625,
+            "right": 378,
+            "bottom": 204.90625,
+            "w": 178.359375,
+            "h": 82.28125
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 14.437787055969238,
+            "y": 375.20379638671875,
+            "right": 192.71845722198486,
+            "bottom": 611.4790649414062,
+            "w": 178.28067016601562,
+            "h": 236.2752685546875
+          }
+        }
+      ],
+      "dais": {
+        "x": 12,
+        "y": 382.09375,
+        "right": 195.171875,
+        "bottom": 480.15625,
+        "w": 183.171875,
+        "h": 98.0625
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 205.171875,
+              "y": 385,
+              "right": 361.84375,
+              "bottom": 411.46875,
+              "w": 156.671875,
+              "h": 26.46875
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nWEAPON DAMAGE",
+            "box": {
+              "x": 205.171875,
+              "y": 414.46875,
+              "right": 334.703125,
+              "bottom": 452.25,
+              "w": 129.53125,
+              "h": 37.78125
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%total match damage+474hơn SPAS-12 (hạng 2)465đòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "P1",
+            "box": {
+              "x": 205.171875,
+              "y": 455.25,
+              "right": 244.296875,
+              "bottom": 477.25,
+              "w": 39.125,
+              "h": 22
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448",
+            "box": {
+              "x": 12,
+              "y": 286.46875,
+              "right": 86.765625,
+              "bottom": 318.046875,
+              "w": 74.765625,
+              "h": 31.578125
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992",
+            "box": {
+              "x": 323.9375,
+              "y": 286.46875,
+              "right": 378,
+              "bottom": 318.046875,
+              "w": 54.0625,
+              "h": 31.578125
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TOTAL DAMAGE DEALT\nDAMAGE GAP 456",
+            "box": {
+              "x": 12,
+              "y": 269.46875,
+              "right": 378,
+              "bottom": 282.46875,
+              "w": 366,
+              "h": 13
+            },
+            "overlap": false
+          }
+        ]
+      }
+    },
+    {
+      "language": "vi",
+      "viewport": {
+        "width": 1844,
+        "height": 829
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "w": 560.5,
+            "h": 160.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "w": 560.515625,
+            "h": 175.1875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 745.8294067382812,
+            "y": 115.322509765625,
+            "right": 1098.1392822265625,
+            "bottom": 582.7192993164062,
+            "w": 352.30987548828125,
+            "h": 467.39678955078125
+          }
+        }
+      ],
+      "dais": {
+        "x": 655.75,
+        "y": 121.765625,
+        "right": 1188.234375,
+        "bottom": 261.09375,
+        "w": 532.484375,
+        "h": 139.328125
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 757.03125,
+              "y": 271.03125,
+              "right": 1086.953125,
+              "bottom": 326,
+              "w": 329.921875,
+              "h": 54.96875
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 881.984375,
+              "y": 332,
+              "right": 962,
+              "bottom": 347.59375,
+              "w": 80.015625,
+              "h": 15.59375
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+            "box": {
+              "x": 861.578125,
+              "y": 353.59375,
+              "right": 982.390625,
+              "bottom": 423.8125,
+              "w": 120.8125,
+              "h": 70.21875
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%tổng sát thương cả trận+474hơn SPAS-12 (hạng 2)465đòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "ĐÓNG GÓP CAO NHẤT\nP1",
+            "box": {
+              "x": 836.421875,
+              "y": 433.8125,
+              "right": 1007.546875,
+              "bottom": 463.8125,
+              "w": 171.125,
+              "h": 30
+            },
+            "overlap": true
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448\nSÁT THƯƠNG",
+            "box": {
+              "x": 82,
+              "y": 505.0625,
+              "right": 295.234375,
+              "bottom": 563.25,
+              "w": 213.234375,
+              "h": 58.1875
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992\nSÁT THƯƠNG",
+            "box": {
+              "x": 1586.046875,
+              "y": 505.0625,
+              "right": 1762,
+              "bottom": 563.25,
+              "w": 175.953125,
+              "h": 58.1875
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 456",
+            "box": {
+              "x": 833.09375,
+              "y": 509.859375,
+              "right": 1010.90625,
+              "bottom": 563.25,
+              "w": 177.8125,
+              "h": 53.390625
+            },
+            "overlap": true
+          }
+        ]
+      }
+    },
+    {
+      "language": "vi",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 34.546875,
+            "y": 196.375,
+            "right": 489.5,
+            "bottom": 292.625,
+            "w": 454.953125,
+            "h": 96.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 950.484375,
+            "y": 180.40625,
+            "right": 1405.4375,
+            "bottom": 292.625,
+            "w": 454.953125,
+            "h": 112.21875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 626.6941528320312,
+            "y": 123.0468521118164,
+            "right": 813.290283203125,
+            "bottom": 371.68531036376953,
+            "w": 186.59613037109375,
+            "h": 248.63845825195312
+          }
+        }
+      ],
+      "dais": {
+        "x": 503.890625,
+        "y": 123.765625,
+        "right": 936.09375,
+        "bottom": 198.296875,
+        "w": 432.203125,
+        "h": 74.53125
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 540.203125,
+              "y": 209.09375,
+              "right": 899.765625,
+              "bottom": 268.59375,
+              "w": 359.5625,
+              "h": 59.5
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 679.984375,
+              "y": 274.59375,
+              "right": 760,
+              "bottom": 290.1875,
+              "w": 80.015625,
+              "h": 15.59375
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+            "box": {
+              "x": 656.40625,
+              "y": 296.1875,
+              "right": 783.5625,
+              "bottom": 370.875,
+              "w": 127.15625,
+              "h": 74.6875
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%tổng sát thương cả trận+474hơn SPAS-12 (hạng 2)465đòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "ĐÓNG GÓP CAO NHẤT\nP1",
+            "box": {
+              "x": 634.421875,
+              "y": 380.875,
+              "right": 805.546875,
+              "bottom": 410.875,
+              "w": 171.125,
+              "h": 30
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448\nSÁT THƯƠNG",
+            "box": {
+              "x": 34.546875,
+              "y": 453.265625,
+              "right": 260.0625,
+              "bottom": 516.4375,
+              "w": 225.515625,
+              "h": 63.171875
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992\nSÁT THƯƠNG",
+            "box": {
+              "x": 1221.328125,
+              "y": 453.265625,
+              "right": 1405.4375,
+              "bottom": 516.4375,
+              "w": 184.109375,
+              "h": 63.171875
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 456",
+            "box": {
+              "x": 631.078125,
+              "y": 463.046875,
+              "right": 808.890625,
+              "bottom": 516.4375,
+              "w": 177.8125,
+              "h": 53.390625
+            },
+            "overlap": false
+          }
+        ]
+      }
+    },
+    {
+      "language": "vi",
+      "viewport": {
+        "width": 1560,
+        "height": 992
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 37.4375,
+            "y": 206.125,
+            "right": 530.109375,
+            "bottom": 343.5625,
+            "w": 492.671875,
+            "h": 137.4375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 1029.875,
+            "y": 188.84375,
+            "right": 1522.5625,
+            "bottom": 343.5625,
+            "w": 492.6875,
+            "h": 154.71875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 712.5676879882812,
+            "y": 129.057861328125,
+            "right": 847.4010620117188,
+            "bottom": 308.745361328125,
+            "w": 134.8333740234375,
+            "h": 179.6875
+          }
+        }
+      ],
+      "dais": {
+        "x": 545.96875,
+        "y": 129.578125,
+        "right": 1014.015625,
+        "bottom": 183.453125,
+        "w": 468.046875,
+        "h": 53.875
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 586.421875,
+              "y": 195.34375,
+              "right": 973.5625,
+              "bottom": 259.25,
+              "w": 387.140625,
+              "h": 63.90625
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 739.984375,
+              "y": 265.25,
+              "right": 820,
+              "bottom": 280.84375,
+              "w": 80.015625,
+              "h": 15.59375
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+            "box": {
+              "x": 710.25,
+              "y": 286.84375,
+              "right": 849.734375,
+              "bottom": 367.328125,
+              "w": 139.484375,
+              "h": 80.484375
+            },
+            "overlap": true
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%\ntổng sát thương cả trận\n+474\nhơn SPAS-12 (hạng 2)\n465\nđòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 545.96875,
+              "y": 379.328125,
+              "right": 1014.015625,
+              "bottom": 426.078125,
+              "w": 468.046875,
+              "h": 46.75
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "ĐÓNG GÓP CAO NHẤT\nP1",
+            "box": {
+              "x": 694.421875,
+              "y": 436.078125,
+              "right": 865.546875,
+              "bottom": 466.078125,
+              "w": 171.125,
+              "h": 30
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448\nSÁT THƯƠNG",
+            "box": {
+              "x": 37.4375,
+              "y": 509.9375,
+              "right": 278.3125,
+              "bottom": 579.5625,
+              "w": 240.875,
+              "h": 69.625
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992\nSÁT THƯƠNG",
+            "box": {
+              "x": 1326.234375,
+              "y": 509.9375,
+              "right": 1522.5625,
+              "bottom": 579.5625,
+              "w": 196.328125,
+              "h": 69.625
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 456",
+            "box": {
+              "x": 691.09375,
+              "y": 526.171875,
+              "right": 868.90625,
+              "bottom": 579.5625,
+              "w": 177.8125,
+              "h": 53.390625
+            },
+            "overlap": false
+          }
+        ]
+      }
+    },
+    {
+      "language": "vi",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 20.25,
+            "y": 110.59375,
+            "right": 288.546875,
+            "bottom": 110.59375,
+            "w": 268.296875,
+            "h": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 555.4375,
+            "y": 102.421875,
+            "right": 823.75,
+            "bottom": 102.421875,
+            "w": 268.3125,
+            "h": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 421.984375,
+            "y": 65.08977508544922,
+            "right": 421.984375,
+            "bottom": 65.08977508544922,
+            "w": 0,
+            "h": 0
+          }
+        }
+      ],
+      "dais": {
+        "x": 294.546875,
+        "y": 70,
+        "right": 549.4375,
+        "bottom": 70,
+        "w": 254.890625,
+        "h": 0
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 335.671875,
+              "y": 73,
+              "right": 508.3125,
+              "bottom": 102.203125,
+              "w": 172.640625,
+              "h": 29.203125
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+            "box": {
+              "x": 358.203125,
+              "y": 105.203125,
+              "right": 485.765625,
+              "bottom": 143.984375,
+              "w": 127.5625,
+              "h": 38.78125
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%tổng sát thương cả trận+474hơn SPAS-12 (hạng 2)465đòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "P1",
+            "box": {
+              "x": 403.46875,
+              "y": 146.984375,
+              "right": 440.515625,
+              "bottom": 165.984375,
+              "w": 37.046875,
+              "h": 19
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448",
+            "box": {
+              "x": 20.25,
+              "y": 81,
+              "right": 90.953125,
+              "bottom": 111.59375,
+              "w": 70.703125,
+              "h": 30.59375
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992",
+            "box": {
+              "x": 771.71875,
+              "y": 81,
+              "right": 823.75,
+              "bottom": 111.59375,
+              "w": 52.03125,
+              "h": 30.59375
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 456",
+            "box": {
+              "x": 357.296875,
+              "y": 85,
+              "right": 486.703125,
+              "bottom": 114,
+              "w": 129.40625,
+              "h": 29
+            },
+            "overlap": false
+          }
+        ]
+      }
+    },
+    {
+      "language": "vi",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "run": "ac-run is-started is-skip is-done",
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 12,
+            "y": 132.796875,
+            "right": 190.359375,
+            "bottom": 204.90625,
+            "w": 178.359375,
+            "h": 72.109375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 199.640625,
+            "y": 122.625,
+            "right": 378,
+            "bottom": 204.90625,
+            "w": 178.359375,
+            "h": 82.28125
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "opacity": "1",
+          "visibility": "visible",
+          "box": {
+            "x": 14.438867568969727,
+            "y": 375.2099304199219,
+            "right": 192.71737098693848,
+            "bottom": 611.4835815429688,
+            "w": 178.27850341796875,
+            "h": 236.27365112304688
+          }
+        }
+      ],
+      "dais": {
+        "x": 12,
+        "y": 382.09375,
+        "right": 195.171875,
+        "bottom": 480.15625,
+        "w": 183.171875,
+        "h": 98.0625
+      },
+      "artVsText": {
+        ".weapon__name": [
+          {
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 205.171875,
+              "y": 385,
+              "right": 361.84375,
+              "bottom": 411.46875,
+              "w": 156.671875,
+              "h": 26.46875
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__class": [
+          {
+            "text": "SEMIT1",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__dmg": [
+          {
+            "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+            "box": {
+              "x": 205.171875,
+              "y": 414.46875,
+              "right": 334.703125,
+              "bottom": 452.25,
+              "w": 129.53125,
+              "h": 37.78125
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__facts": [
+          {
+            "text": "44.0%tổng sát thương cả trận+474hơn SPAS-12 (hạng 2)465đòn mạnh nhất · trúng 3/0",
+            "box": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "w": 0,
+              "h": 0
+            },
+            "overlap": false
+          }
+        ],
+        ".weapon__owner": [
+          {
+            "text": "P1",
+            "box": {
+              "x": 205.171875,
+              "y": 455.25,
+              "right": 244.296875,
+              "bottom": 477.25,
+              "w": 39.125,
+              "h": 22
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__num": [
+          {
+            "text": "1,448\n1,448",
+            "box": {
+              "x": 12,
+              "y": 286.46875,
+              "right": 86.765625,
+              "bottom": 318.046875,
+              "w": 74.765625,
+              "h": 31.578125
+            },
+            "overlap": false
+          },
+          {
+            "text": "992\n992",
+            "box": {
+              "x": 323.9375,
+              "y": 286.46875,
+              "right": 378,
+              "bottom": 318.046875,
+              "w": 54.0625,
+              "h": 31.578125
+            },
+            "overlap": false
+          }
+        ],
+        ".clash__mid": [
+          {
+            "text": "TỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 456",
+            "box": {
+              "x": 12,
+              "y": 269.46875,
+              "right": 378,
+              "bottom": 282.46875,
+              "w": 366,
+              "h": 13
+            },
+            "overlap": false
+          }
+        ]
+      }
+    }
+  ],
+  "masteryFixture": {
+    "viewport": "1440x900",
+    "credits": 550,
+    "globalMastery": "21/252",
+    "newbot": "21/42",
+    "recentUnlocks": 8,
+    "expandedCategory": "OFFENSE",
+    "language": "eng",
+    "visibleEnglishNamesWereVietnamese": true,
+    "languageSwitchToViePreservedCorrectVietnameseNames": true,
+    "beforeScreenshot": "mastery-before/progressed-550ac-21of252-newbot-21of42-eng-offense-1440x900.png",
+    "vieScreenshot": "mastery-before/progressed-550ac-21of252-newbot-21of42-vie-offense-1440x900.png"
+  },
+  "toastBaseline": {
+    "sourceSha": "4a12ac309f2b81202c5e0d292e48d7be4dbde28a",
+    "achievement": "steady-hand",
+    "event": "real battle HUD, P1 provisional",
+    "value": "8/6",
+    "reproductions": [
+      {
+        "viewport": "844x390",
+        "box": {
+          "x": 8,
+          "y": 292,
+          "width": 218,
+          "height": 90
+        },
+        "skillOverlap": "K / VIRTUAL ARMOR meter lane"
+      },
+      {
+        "viewport": "320x568",
+        "box": {
+          "x": 8,
+          "y": 360,
+          "width": 248,
+          "height": 58
+        },
+        "skillOverlap": "sealed state intersects skill card bounds"
+      },
+      {
+        "viewport": "1024x768",
+        "box": {
+          "x": 8,
+          "y": 566,
+          "width": 292,
+          "height": 84
+        },
+        "overlaps": [
+          "arena canvas",
+          "skill card"
+        ]
+      }
+    ],
+    "incomplete1844x829": "toast visible but no skill/canvas overlap in measured provisional; P2 queue wait timed out in old probe; not counted as full pass"
+  },
+  "screenshots": [
+    {
+      "file": "result-before/dense-native-21v17-eng-1844x829-early.png",
+      "sha256": "d1522cf42352827d03e4cca77d0628180834c0da472c980e362faba8ab82fca0"
+    },
+    {
+      "file": "result-before/dense-native-21v17-eng-1844x829-postskip.png",
+      "sha256": "000efee814469770f0bd415c032b1b55f12b9c065b774fb10af9906abc711e87"
+    },
+    {
+      "file": "result-before/dense-native-21v17-eng-1844x829.png",
+      "sha256": "8daad49d2f8d90e7dda697da9f12de53e97227398bcf22e20f061a840d6febf1"
+    },
+    {
+      "file": "result-before/dense-native-21v17-vie-1844x829.png",
+      "sha256": "0b92763283058f2c3dd0d33a0d93497f651ac1382709f2d8c1ba207a854084c3"
+    },
+    {
+      "file": "result-before/dense-native-21v17-eng-844x390.png",
+      "sha256": "62b49b66b483cb0b5adfbf9e11e5928de6e51b8be4857c51dd8268f90d0361fd"
+    },
+    {
+      "file": "result-before/dense-native-21v17-vie-844x390.png",
+      "sha256": "0167ff5b744d9aec90e57a8dd24a541b5a35ac7952fee74310efa3a9853162ba"
+    },
+    {
+      "file": "result-before/dense-native-21v17-eng-390x844.png",
+      "sha256": "da9c6767e151dcaed85e18c9786a4f98c3e25c97efadf5e414aedd51a5d44d56"
+    },
+    {
+      "file": "result-before/dense-native-21v17-vie-390x844.png",
+      "sha256": "6d8ebd91fbe5a1756d3afc1a356aca077a249a6f191f008bd9cbc806b6bb67a1"
+    },
+    {
+      "file": "mastery-before/progressed-550ac-21of252-newbot-21of42-eng-offense-1440x900.png",
+      "sha256": "ba58349f868677d7fab3f8c7bbd3c86801bdf1bbd1adee23b551089061fa31cd"
+    },
+    {
+      "file": "mastery-before/progressed-550ac-21of252-newbot-21of42-vie-offense-1440x900.png",
+      "sha256": "2062957c18cd823b6ee8ea9d57c9d53c38a2aac02aaf52ef8d275995c73c0db6"
+    },
+    {
+      "file": "toast-before/steady-hand-eng-844x390-provisional.png",
+      "sha256": "0696911ff04bce97b76e14fb757c925fb816e43378a1e1e03df36b3a5b9fb7cb"
+    },
+    {
+      "file": "toast-before/steady-hand-eng-320x568-provisional.png",
+      "sha256": "6e34334c820ab4ec05b34700371d3ed41205ee81b46ca408cd81dcb39dc4bc79"
+    }
+  ]
+}

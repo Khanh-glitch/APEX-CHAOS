@@ -269,12 +269,76 @@ jobs:
           APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser
         run: pnpm test:arsenal:browser
 
+      - name: Issue #105 targeted browser gates (Vite 5173, real Chromium)
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173/
+          ISSUE105_OUT: /tmp/issue105-browser
+        run: |
+          npm ci --prefix tools/probe --no-audit --no-fund
+          pnpm test:issue105:browser
+
       - name: Profile Core Six cold-load phases
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
           APEX_APP_URL: http://127.0.0.1:5173
           APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser
         run: node tools/profileCoreSixColdLoad.mjs
+
+      - name: Verify Tactical Pulse HUD B atomic lock and production-preview Chromium E2E
+        shell: bash
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:4173/?goldViewport=native
+          QA_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/tactical-pulse-runtime-qa
+        run: |
+          npm ci --prefix tools/probe --no-audit --no-fund
+          node tools/testCP16AtomicRelease.mjs
+          node tools/writeCP16BuildReceipt.mjs
+          node tools/testCP16BuildReceipt.mjs
+          node tools/testGoldEmbeddedHudParity.mjs
+          node tools/testBattleHudLiveTruthGate.mjs
+          node tools/auditR90BattleHudGate.mjs
+          node tools/testBattleHudLabelFitBrowser.mjs
+          pnpm preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/tactical-pulse-preview.log 2>&1 &
+          TP_PREVIEW_PID=$!
+          trap 'kill $TP_PREVIEW_PID 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/ -o /dev/null && { ready=1; break; }
+            sleep 1
+          done
+          test "$ready" = "1" || { cat /tmp/tactical-pulse-preview.log; exit 1; }
+          node tools/auditTacticalPulseRuntimeQa.mjs
+          kill $TP_PREVIEW_PID 2>/dev/null || true
+
+      - name: Verify itch.io Guest-first 200 AC and local nested /html/apex/ Chromium E2E (no publish, no ZIP)
+        shell: bash
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          VITE_SUPABASE_URL: ''
+          VITE_SUPABASE_ANON_KEY: ''
+          VITE_APEX_DEV_ADMIN: '0'
+          VITE_APEX_GOOGLE_AUTH_ENABLED: '0'
+          VITE_APEX_EMAIL_CODE_ENABLED: '0'
+          ITCH_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser/itch-nested-candidate
+        run: |
+          set -euo pipefail
+          node tools/testItchGuestReleaseGate.mjs
+          pnpm test:owner-playtest-economy
+          pnpm test:battle-outcome-side
+          node tools/testCloudSecurityContracts.mjs
+          node tools/testCloudLifecycleRaces.mjs
+          pnpm build
+          node tools/testShippingDist.mjs
+          node tools/testCP16BuildReceipt.mjs
+          printf '%s\n' "${GITHUB_SHA}" > dist/ITCH_GUEST_BUILD_SHA.txt
+          node tools/packItchPortable.mjs
+          EXPECTED_GIT_SHA="${GITHUB_SHA}" node tools/auditItchNestedCandidateE2e.mjs
+          ISSUE105_OUT=/tmp/issue105-nested node tools/issue105/gate-archive-nested.mjs
+          ISSUE105_OUT=/tmp/issue105-result-embed node tools/issue105/gate-result-gold-embed.mjs
+          rm -rf dist-itch-html5 dist/ITCH_GUEST_BUILD_SHA.txt
+          test -z "$(find . -maxdepth 1 -iname '*itch*.zip' -print -quit)"
 
       - name: Upload build and acceptance evidence
         if: always()

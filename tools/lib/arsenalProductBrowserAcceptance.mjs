@@ -566,10 +566,11 @@ export async function runArsenalProductBrowserAcceptance({
 
   // Exact clean-state Lucky Draw law: the production-authorized clean credit
   // amount buys one draw from unowned playable fighters only.
+  // Issue #105 P0-B: a fresh Guest owns ROBOT and HUNTER (test seed of the fresh-Guest state).
   const cleanDrawSeed = {
-    version: 1, credits: economy.cleanStateCredits, ownedFighters: ['ROBOT'],
+    version: 1, credits: economy.cleanStateCredits, ownedFighters: ['ROBOT', 'HUNTER'],
     lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 0,
-    unlockedAt: { ROBOT: 0 },
+    unlockedAt: { ROBOT: 0, HUNTER: 0 },
   };
   result.drawSeed = await evaluate(`(() => {
     const M = window.APEX_ARSENAL_META;
@@ -597,7 +598,7 @@ export async function runArsenalProductBrowserAcceptance({
       futureInPool: (M?.poolLocked?.() || []).some(id => ${JSON.stringify(lockedFighterIds)}.includes(id)),
     };
   })()`, value => value && value.visible, { attempts: 80, interval: 80 });
-  evidence.push(await screenshot('arsenal-product-lucky-draw-clean-350-ac'));
+  evidence.push(await screenshot('arsenal-product-lucky-draw-clean-1000-ac'));
   const firstSpin = await clickVisible('#aq-spin');
   const drawResult = await poll(`(() => {
     const M = window.APEX_ARSENAL_META;
@@ -624,7 +625,7 @@ export async function runArsenalProductBrowserAcceptance({
   })()`);
   const drawBack = await clickVisible('#aq-draw-back');
   const drawReturned = await awaitMenu();
-  pass('lucky-draw-physical-route-pool-core-six-and-exactly-one-350-ac-draw',
+  pass('lucky-draw-physical-route-pool-core-six-and-exactly-one-1000-ac-draw',
     drawRoute.pointer.hitWithin === true && drawBefore?.visible === true
       && drawBefore.credits === economy.cleanStateCredits && drawBefore.spins === 0
       && drawBefore.drawCost === economy.drawCost && drawBefore.authorityDrawCost === economy.drawCost

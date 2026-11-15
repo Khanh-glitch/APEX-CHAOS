@@ -1,0 +1,255 @@
+{
+  "receipt": {
+    "id": "match-1720000000000-1600",
+    "damage": 1120,
+    "winner": "victory",
+    "loser": "defeat",
+    "ownerTitles": 47,
+    "portraits": [
+      "/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+      "/assets/gold-ui/heroes/hunter/pick_selected_large.webp"
+    ],
+    "gun": "/assets/arsenal/weapons/c/PISTOL.png"
+  },
+  "views": [
+    {
+      "name": "desktop-1560",
+      "viewport": {
+        "w": 1560,
+        "h": 992
+      },
+      "stage": {
+        "x": 37.4375,
+        "y": 75.859375,
+        "w": 1485.125,
+        "h": 906.140625,
+        "right": 1522.5625,
+        "bottom": 982
+      },
+      "button": {
+        "x": 624.984375,
+        "y": 853.921875,
+        "w": 310,
+        "h": 52,
+        "right": 934.984375,
+        "bottom": 905.921875
+      },
+      "done": true,
+      "enabled": true,
+      "hittable": true,
+      "heroes": 2,
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+          "ok": true
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/hunter/pick_selected_large.webp",
+          "ok": true
+        }
+      ],
+      "gun": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+        "ok": true
+      },
+      "placeholders": [],
+      "text": "PLAYER 1\nV\nI\nC\nT\nO\nR\nY\nCHIẾN THẮNG\n\nP1\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nCHÍNH XÁC\n100%\nCHÍ MẠNG\n0%\nHỒI PHỤC\n0\nPLAYER 2\nD\nE\nF\nE\nA\nT\nTHẤT BẠI\n\nP2\n\nHUNTER\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nCHÍNH XÁC\n100%\nCHÍ MẠNG\n0%\nHỒI PHỤC\n0\nP1\n89.3%\n▲ DẪN ĐẦU\n1,000\n1,000\nDMG\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 880\nP2\n10.7%\n120\n120\nDMG\nWEAPON OF THE BATTLE\nPISTOL\n\nSE",
+      "scrollW": 1560
+    },
+    {
+      "name": "tablet-land-1024",
+      "viewport": {
+        "w": 1024,
+        "h": 768
+      },
+      "stage": {
+        "x": 24.5625,
+        "y": 72.28125,
+        "w": 974.875,
+        "h": 685.71875,
+        "right": 999.4375,
+        "bottom": 758
+      },
+      "button": {
+        "x": 358.96875,
+        "y": 637.5,
+        "w": 306.046875,
+        "h": 52,
+        "right": 665.015625,
+        "bottom": 689.5
+      },
+      "done": true,
+      "enabled": true,
+      "hittable": true,
+      "heroes": 2,
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+          "ok": true
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/hunter/pick_selected_large.webp",
+          "ok": true
+        }
+      ],
+      "gun": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+        "ok": true
+      },
+      "placeholders": [],
+      "text": "PLAYER 1\nV\nI\nC\nT\nO\nR\nY\nCHIẾN THẮNG\n\nP1\n\nNEWBOT\nAPEX FIGHTER\n\nPLAYER 2\nD\nE\nF\nE\nA\nT\nTHẤT BẠI\n\nP2\n\nHUNTER\nAPEX FIGHTER\n\nP1\n89.3%\n1,000\n1,000\nDMG\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 880\nP2\n10.7%\n120\n120\nDMG\nWEAPON OF THE BATTLE\nPISTOL\n\n1,120\n1,120\nSÁT THƯƠNG VŨ KHÍ\n\nĐÓNG GÓP CAO NHẤT\nP1\n\nDANH HIỆU\n10\nBấm để xem chi tiết\nDANH HIỆU\n0\nBấm để xem chi tiết\nTI",
+      "scrollW": 1024
+    },
+    {
+      "name": "phone-port-390",
+      "viewport": {
+        "w": 390,
+        "h": 844
+      },
+      "stage": {
+        "x": 12,
+        "y": 61.28125,
+        "w": 366,
+        "h": 772.71875,
+        "right": 378,
+        "bottom": 834
+      },
+      "button": {
+        "x": 12,
+        "y": 790,
+        "w": 314,
+        "h": 44,
+        "right": 326,
+        "bottom": 834
+      },
+      "done": true,
+      "enabled": true,
+      "hittable": true,
+      "heroes": 2,
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+          "ok": true
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/hunter/pick_selected_large.webp",
+          "ok": true
+        }
+      ],
+      "gun": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+        "ok": true
+      },
+      "placeholders": [],
+      "text": "PLAYER 1\nV\nI\nC\nT\nO\nR\nY\nCHIẾN THẮNG\n\nP1\n\nNEWBOT\nAPEX FIGHTER\n\nPLAYER 2\nD\nE\nF\nE\nA\nT\nTHẤT BẠI\n\nP2\n\nHUNTER\nAPEX FIGHTER\n\n89.3%\n1,000\n1,000\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 880\n10.7%\n120\n120\nWEAPON OF THE BATTLE\nPISTOL\n\n1,120\n1,120\nSÁT THƯƠNG VŨ KHÍ\n\nP1\n\nP1\n10\nP2\n0\nTIẾP TỤC\nHỒ SƠ DANH HIỆU",
+      "scrollW": 390
+    },
+    {
+      "name": "compact-port-320",
+      "viewport": {
+        "w": 320,
+        "h": 568
+      },
+      "stage": {
+        "x": 12,
+        "y": 58,
+        "w": 296,
+        "h": 500,
+        "right": 308,
+        "bottom": 558
+      },
+      "button": {
+        "x": 12,
+        "y": 514,
+        "w": 244,
+        "h": 44,
+        "right": 256,
+        "bottom": 558
+      },
+      "done": true,
+      "enabled": true,
+      "hittable": true,
+      "heroes": 2,
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+          "ok": true
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/hunter/pick_selected_large.webp",
+          "ok": true
+        }
+      ],
+      "gun": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/PISTOL.png",
+        "ok": true
+      },
+      "placeholders": [],
+      "text": "PLAYER 1\nV\nI\nC\nT\nO\nR\nY\n\nP1\n\nNEWBOT\nAPEX FIGHTER\n\nPLAYER 2\nD\nE\nF\nE\nA\nT\n\nP2\n\nHUNTER\nAPEX FIGHTER\n\n89.3%\n1,000\n1,000\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 880\n10.7%\n120\n120\nWEAPON OF THE BATTLE\nPISTOL\n\n1,120\n1,120\nSÁT THƯƠNG VŨ KHÍ\n\nP1\n\nP1\n10\nP2\n0\nTIẾP TỤC\nHỒ SƠ DANH HIỆU",
+      "scrollW": 320
+    }
+  ],
+  "continue": [
+    {
+      "origin": "http://127.0.0.1:5173",
+      "matchId": "match-1720000000000-1600"
+    }
+  ],
+  "boxe": {
+    "id": "match-1720000000010-0",
+    "hero": {
+      "name": "BOXE",
+      "className": "APEX FIGHTER",
+      "tagline": "",
+      "artKind": "generic",
+      "heroId": "BOXE",
+      "skinId": "default",
+      "portraitSrc": "/assets/dictionary/heroes/boxe/standing.png"
+    },
+    "color": "#ffac42",
+    "portrait": "/assets/dictionary/heroes/boxe/standing.png"
+  },
+  "boxeSnap": {
+    "viewport": {
+      "w": 1560,
+      "h": 992
+    },
+    "stage": {
+      "x": 37.4375,
+      "y": 75.859375,
+      "w": 1485.125,
+      "h": 906.140625,
+      "right": 1522.5625,
+      "bottom": 982
+    },
+    "button": {
+      "x": 624.984375,
+      "y": 878,
+      "w": 310,
+      "h": 52,
+      "right": 934.984375,
+      "bottom": 930
+    },
+    "done": false,
+    "enabled": false,
+    "hittable": false,
+    "heroes": 2,
+    "images": [
+      {
+        "src": "http://127.0.0.1:5173/assets/dictionary/heroes/boxe/standing.png",
+        "ok": true
+      },
+      {
+        "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp",
+        "ok": true
+      }
+    ],
+    "gun": null,
+    "placeholders": [
+      "Không có sát thương từ vũ khí"
+    ],
+    "text": "",
+    "scrollW": 1560
+  },
+  "failures": []
+}

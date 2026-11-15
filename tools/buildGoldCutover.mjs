@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { compileGoldBattleShell } from './buildGoldBattleComponent.mjs';
+import { optimizeGoldHudRuntime } from './optimizeGoldHudRuntime.mjs';
+import { applyVisibleShellWork } from './applyVisibleShellWork.mjs';
 // ---------------------------------------------------------------------------
 // APEX CHAOS — Gold product cutover generator (canonical-preserving).
 //
@@ -44,8 +47,10 @@ import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
 import { adaptGoldBattleHudR83 } from './goldBattleHudR83.mjs';
 import { adaptGoldBattleHudR91LabelFit } from './goldBattleHudR91labelFit.mjs';
+import { adaptGoldBattleHudTacticalPulse } from './goldBattleHudTacticalPulse.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
+import { adaptGoldShellR2RosterPick } from './goldShellR2RosterPick.mjs';
 import { adaptGoldShellR83 } from './goldShellR83.mjs';
 import { adaptBreachGoldShellB6i } from './questB6iGoldShell.mjs';
 import { adaptRivetGoldShellB7 } from './questB7GoldShell.mjs';
@@ -927,7 +932,7 @@ function buildLuckyDonor() {
       find: /<div id="lab" hidden>[\s\S]*?<\/div>\n<div id="labTab"[^>]*>LAB<\/div>\n<div id="pvLabel"><\/div>\n/,
       replace: '',
     },
-    // ── L4: production economy exposes one draw (350 AC); no ×10 bundle ────
+    // ── L4: production economy exposes one draw (1000 AC, Issue #105); no ×10 bundle ────
     {
       id: 'LKY-L4',
       why: 'remove the donor ×10 draw bundle (production economy has a single draw)',
@@ -936,9 +941,9 @@ function buildLuckyDonor() {
     },
     {
       id: 'LKY-L5',
-      why: 'single draw button carries the production cost (350 AC)',
+      why: 'single draw button carries the production cost (1000 AC, Issue #105)',
       find: /aria-label="Draw one fighter, cost 160">\n      <i class="dk"><\/i><span class="dl"><span>DRAW <em>×1<\/em><\/span><span class="dc">◆ 160<\/span><\/span>/,
-      replace: 'aria-label="Draw one fighter, cost 350">\n      <i class="dk"></i><span class="dl"><span>DRAW <em>×1</em></span><span class="dc">◆ 350</span></span>',
+      replace: 'aria-label="Draw one fighter, cost 1000">\n      <i class="dk"></i><span class="dl"><span>DRAW <em>×1</em></span><span class="dc">◆ 1000</span></span>',
     },
     {
       id: 'LKY-L6',
@@ -1093,7 +1098,9 @@ function buildLuckyDonor() {
         `  const res = meta.spin();\n` +
         `  if (!res || res.ok !== true){\n` +
         `    if (res && res.reason === 'complete') showPoolTag('ROSTER COMPLETE');\n` +
-        `    else showPoolTag('NEED ' + (res && res.need ? res.need : 350) + ' AC');\n` +
+        `    else if (res && res.reason === 'spinning') showPoolTag('DRAW PENDING');\n` +
+        `    else if (res && res.reason === 'need') showPoolTag('NEED ' + (res.need || 1000) + ' AC');\n` +
+        `    else showPoolTag('DRAW UNAVAILABLE');\n` +
         `    return;\n` +
         `  }\n` +
         `  const winner = productionFighterIndex(res.name);\n` +
@@ -2192,7 +2199,7 @@ function buildShell(hudProductionHtml) {
   {
     const re = /  function renderWorldHero\(container,id,player\)\{[\s\S]*?\n  \}(?=\n\n  function renderSide\(side,id,player,locked\))/;
     if (!re.test(out)) throw new Error('R48A renderWorldHero seam mismatch');
-    out = out.replace(re, "  function mirrorOpponentHero(player){\n    if(battleMode==='bot') return null;\n    if(player==='p1'){\n      if(!p2HasPicked || p2Empty || p2Hero==='mirror') return null;\n      return p2Hero;\n    }\n    if(!p1HasPicked || p1Hero==='mirror') return null;\n    return p1Hero;\n  }\n\n  function renderWorldHero(container,id,player){\n    const h=HEROES[id];\n    const mirrorSource=id==='mirror'?mirrorOpponentHero(player):null;\n    const renderId=id==='mirror'?mirrorSource:id;\n    const sourceHero=renderId?HEROES[renderId]:null;\n    const nextKey=id==='mirror'?('mirror:'+(renderId||'empty')):id;\n    const oldKey=container.dataset.renderKey||container.dataset.hero||'';\n    const changed=oldKey!==nextKey;\n    let ghost=null;\n    if(changed&&motion){\n      const prev=container.querySelector('.worldHeroBody');\n      if(prev){ghost=prev.cloneNode(true);ghost.classList.add('worldHeroGhost');ghost.dataset.oldHero=container.dataset.hero||'';}\n    }\n    container.style.setProperty('--heroTint',h?.accent||'#ff941f');\n    container.dataset.hero=id;\n    container.dataset.renderKey=nextKey;\n    container.innerHTML='';\n    if(ghost){container.appendChild(ghost);setTimeout(()=>ghost.remove(),260)}\n    if(!renderId || !sourceHero?.art){\n      if(changed&&motion){container.classList.remove('is-changing');setTimeout(()=>container.classList.remove('is-changing'),360);}\n      return;\n    }\n    const body=document.createElement('div'); body.className='worldHeroBody';\n    const img=new Image(); img.className='worldHeroAsset'; img.alt=''; img.draggable=false; img.src=sourceHero.art;\n    if(id==='mirror') img.classList.add('mirrorOpponentAsset');\n    body.appendChild(img);\n    if(id==='hunter'||id==='frost'){const echo=img.cloneNode(); echo.className='worldHeroFxAsset '+id; body.appendChild(echo);}\n    if(id==='magnet') body.insertAdjacentHTML('beforeend','<span class=\"magnetOrbit ringA\"></span><span class=\"magnetOrbit ringB\"></span>');\n    if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class=\"crystalPulse\"></span>');\n    container.appendChild(body);\n    if(changed&&motion){container.classList.remove('is-changing'); void container.offsetWidth; container.classList.add('is-changing');setTimeout(()=>container.classList.remove('is-changing'),380);}\n  }");
+    out = out.replace(re, "  function mirrorOpponentHero(player){\n    // CP5 (owner): copy the other side once it has picked — BOT mode too; empty until then.\n    if(player==='p1'){\n      if(!p2HasPicked || p2Empty || p2Hero==='mirror') return null;\n      return p2Hero;\n    }\n    if(!p1HasPicked || p1Hero==='mirror') return null;\n    return p1Hero;\n  }\n\n  function renderWorldHero(container,id,player){\n    const h=HEROES[id];\n    const mirrorSource=id==='mirror'?mirrorOpponentHero(player):null;\n    const renderId=id==='mirror'?mirrorSource:id;\n    const sourceHero=renderId?HEROES[renderId]:null;\n    const nextKey=id==='mirror'?('mirror:'+(renderId||'empty')):id;\n    const oldKey=container.dataset.renderKey||container.dataset.hero||'';\n    const changed=oldKey!==nextKey;\n    let ghost=null;\n    if(changed&&motion){\n      const prev=container.querySelector('.worldHeroBody');\n      if(prev){ghost=prev.cloneNode(true);ghost.classList.add('worldHeroGhost');ghost.dataset.oldHero=container.dataset.hero||'';}\n    }\n    container.style.setProperty('--heroTint',h?.accent||'#ff941f');\n    container.dataset.hero=id;\n    container.dataset.renderKey=nextKey;\n    container.innerHTML='';\n    if(ghost){container.appendChild(ghost);setTimeout(()=>ghost.remove(),260)}\n    if(!renderId || !sourceHero?.art){\n      if(changed&&motion){container.classList.remove('is-changing');setTimeout(()=>container.classList.remove('is-changing'),360);}\n      return;\n    }\n    const body=document.createElement('div'); body.className='worldHeroBody';\n    const img=new Image(); img.className='worldHeroAsset'; img.alt=''; img.draggable=false; img.src=sourceHero.art;\n    if(id==='mirror') img.classList.add('mirrorOpponentAsset');\n    body.appendChild(img);\n    if(id==='hunter'||id==='frost'){const echo=img.cloneNode(); echo.className='worldHeroFxAsset '+id; body.appendChild(echo);}\n    if(id==='magnet') body.insertAdjacentHTML('beforeend','<span class=\"magnetOrbit ringA\"></span><span class=\"magnetOrbit ringB\"></span>');\n    if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class=\"crystalPulse\"></span>');\n    container.appendChild(body);\n    if(changed&&motion){container.classList.remove('is-changing'); void container.offsetWidth; container.classList.add('is-changing');setTimeout(()=>container.classList.remove('is-changing'),380);}\n  }");
   }
   {
     const re = /  function buildRoster\(\)\{[\s\S]*?\n  \}(?=\n\n  function renderFighter\(\))/;
@@ -2352,6 +2359,22 @@ function buildShell(hudProductionHtml) {
 
   out = adaptGoldShellR52PickBand(out);
   log('  R52 (shell): Fighter-Pick bottom band law derived from the canonical deck/lock rules');
+
+  out = adaptGoldShellR2RosterPick(out);
+  log('  R2 P0-B (shell): BOT follows P1 (HUNTER default, P1 HUNTER -> ROBOT); Local P1/P2 never lock the same fighter');
+
+  // ── R105 (Issue #105): Pick roster rebuilt on every Fighter entry ────────
+  // The donor built the roster only when empty, so a fighter drawn by Lucky
+  // Draw AFTER the roster was first built still showed LOCKED in Pick. Lock
+  // state is production truth (APEX_GOLD_LOCKED -> canPublicSelect), read at
+  // each Fighter entry. Every seam is counted and asserted before mutation.
+  {
+    const needle = 'if(!roster.childElementCount)buildRoster();';
+    const hits = out.split(needle).length - 1;
+    if (hits < 1) throw new Error(`R105 roster rebuild seam mismatch (${hits})`);
+    out = out.split(needle).join('buildRoster();');
+    log(`  R105 (shell): Pick roster rebuilt on every Fighter entry (${hits} seams)`);
+  }
 
 
   // R77: shipping source and generated shell must carry the same
@@ -2548,6 +2571,32 @@ function main() {
   if(rawArchiveShell.split(dictionaryBefore).length!==2)throw new Error('C03 Dictionary route source anchor drift');
   outputs.set('shell.html',Buffer.from(rawArchiveShell.replace(dictionaryBefore,dictionaryAfter),'utf8'));
   log('shell.html built (canonical shell + production patches + active C03 Dictionary route)');
+  // Alpha Home authority (pre-release acceptance): MISSIONS and ACCOUNT
+  // are live product routes, and the duplicated/dead top header controls
+  // are removed at the generator — never by runtime DOM surgery.
+  //   * The bottom-nav ACCOUNT is the ONE account entry (real Account
+  //     Center). The canonical top-right identity chip duplicated it and
+  //     was display:none on portrait phones, leaving mobile players with
+  //     no account access at all.
+  //   * The sun/gear "settings" button never implemented settings/theme.
+  //   * MISSIONS opens the one-wallet progression panel (missions +
+  //     achievements). The live AC readout is untouched.
+  const missionsBefore='<button class="route is-locked" type="button" aria-label="Missions (locked)" aria-disabled="true" data-locked-route="missions" title="COMING SOON">';
+  const missionsAfter='<button class="route" id="apexMissionsOpen" type="button" aria-label="Missions and Achievements">';
+  const accountBefore='<button class="route is-locked" type="button" aria-label="Account (locked)" aria-disabled="true" data-locked-route="account-profile" title="COMING SOON">';
+  const accountAfter='<button class="route" id="apexAccountOpen" type="button" aria-label="Account">';
+  let alphaShell=outputs.get('shell.html').toString('utf8');
+  if(alphaShell.split(missionsBefore).length!==2)throw new Error('Alpha Missions route source anchor drift');
+  if(alphaShell.split(accountBefore).length!==2)throw new Error('Alpha Account route source anchor drift');
+  alphaShell=alphaShell.replace(missionsBefore,missionsAfter).replace(accountBefore,accountAfter);
+  const settingsBtn=alphaShell.match(/\n\s*<button class="settings"[^>]*>[\s\S]*?<\/button>/);
+  if(!settingsBtn)throw new Error('Alpha settings-button anchor drift');
+  alphaShell=alphaShell.replace(settingsBtn[0],'');
+  const identityBtn=alphaShell.match(/\n\s*<button class="profileIdentity"[^>]*>[\s\S]*?<\/button>/);
+  if(!identityBtn)throw new Error('Alpha profile-identity anchor drift');
+  alphaShell=alphaShell.replace(identityBtn[0],'');
+  outputs.set('shell.html',Buffer.from(alphaShell,'utf8'));
+  log('shell.html Alpha routes live (Missions + Account); dead header controls removed');
   // R7: The live Wave iframe needs to pause the ALREADY APPROVED Gold Home
   // presentation loop while keeping Home resident across Door V4 transitions.
   // This is an explicit generated patch, never a manual output-only change.
@@ -2633,6 +2682,57 @@ function main() {
     .replace('</head>',storyLockStyle),'utf8'));
   log('F2 story lock built (status chip + Free Battle primary; entry gated by product authority)');
 
+  // Tactical Pulse HUD B: transform generated battle-hud.html deterministically
+  // and re-embed the exact matching Base64 payload into shell.html so standalone
+  // and shell-mounted HUD bytes remain 100% identical across all checks.
+  const prePulseHud = outputs.get('battle-hud.html').toString('utf8');
+  const postPulseHud = adaptGoldBattleHudTacticalPulse(prePulseHud);
+  outputs.set('battle-hud.html', Buffer.from(postPulseHud, 'utf8'));
+  const prePulseShell = outputs.get('shell.html').toString('utf8');
+  const payloadRe = /(<script id="battleHudPayload" type="text\/plain">)([\s\S]*?)(<\/script>)/;
+  if (!payloadRe.test(prePulseShell)) {
+    throw new Error('TacticalPulse expected embedded battleHudPayload in shell.html');
+  }
+  const postPulseShell = prePulseShell.replace(
+    payloadRe,
+    (_, open, _oldB64, close) => open + Buffer.from(postPulseHud, 'utf8').toString('base64') + close
+  );
+  // Generated Gold session-direct bridge: preserve the approved Lucky donor
+  // but bypass the Home scene Door only for the cross-section Gold wipe.
+  // This is built from canonical output, never hand-edited in public/gold/.
+  const luckySessionSwaps = [
+  [
+    "async function openLucky(){\n    const tr=window.APEX_SCENE_TRANSITION;",
+    "async function openLucky(direct=false){\n    const tr=window.APEX_SCENE_TRANSITION;"
+  ],
+  [
+    "if(!tr?.run){try{await prepare();commit()}catch(err){console.error('[APEX Lucky Draw] donor load failed',err)}return}",
+    "if(direct||!tr?.run){await prepare();commit();return}"
+  ],
+  [
+    "async function closeLucky(){\n    const tr=window.APEX_SCENE_TRANSITION;",
+    "async function closeLucky(direct=false){\n    const tr=window.APEX_SCENE_TRANSITION;"
+  ],
+  [
+    "if(!tr?.run){commit();openBtn?.focus?.({preventScroll:true});return}",
+    "if(direct||!tr?.run){commit();if(!direct)openBtn?.focus?.({preventScroll:true});return}"
+  ],
+  [
+    "  openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});",
+    "  // Session navigation uses the SAME real donor/authority, but skips the\n  // home-scene door. The shared Gold wipe lives above both destinations;\n  // showing Home even for one frame would violate the single-session flow.\n  // Normal HOME entry and Lucky BACK retain the original scene door.\n  window.APEX_LUCKY_SESSION=Object.freeze({\n    openFromSection:()=>openLucky(true),\n    closeToSection:()=>{\n      const busy=frame.contentDocument?.getElementById('stage')?.dataset.busy;\n      if(host.classList.contains('is-open')&&busy!=='0')return Promise.reject(Error('Paid Lucky Draw still in progress'));\n      return closeLucky(true);\n    },\n    isOpen:()=>host.classList.contains('is-open'),\n  });\n  openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});"
+  ]
+];
+  let sessionShell=postPulseShell;
+  for(const [before,after] of luckySessionSwaps){
+    if(sessionShell.split(before).length!==2)throw Error('Lucky session patch not unique in generated shell');
+    sessionShell=sessionShell.replace(before,after);
+  }
+  outputs.set('shell.html', Buffer.from(sessionShell, 'utf8'));
+  log('Tactical Pulse HUD B + direct session Lucky bridge built into shell.html');
+
+  outputs.set('shell.html', Buffer.from(applyVisibleShellWork(outputs.get('shell.html').toString('utf8')), 'utf8'));
+  outputs.set('battle-hud.html', Buffer.from(optimizeGoldHudRuntime(outputs.get('battle-hud.html').toString('utf8')), 'utf8'));
+  outputs.set('shell.html', Buffer.from(compileGoldBattleShell(outputs.get('shell.html').toString('utf8')), 'utf8'));
   const manifestFiles = {};
   for (const [rel, buf] of [...outputs.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     manifestFiles[rel] = { bytes: buf.length, sha256: sha256(buf) };

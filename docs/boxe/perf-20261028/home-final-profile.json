@@ -1,0 +1,274 @@
+{
+  "source": "real Chrome — home entry to shipping BOT WAVE game.html with V2 HUD",
+  "note": "Startup is recorded separately; measured combat begins after 2.5s settling. Refraction readback runs after the measured window. Chrome viewport emulation is not physical phone hardware; compare paired runs on the same host and scene.",
+  "results": [
+    {
+      "profile": "desktop-1440x900",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "route": "home",
+      "startup": {
+        "samples": 72,
+        "lastMs": 2.1000000000931323,
+        "maxMs": 7.300000000279397,
+        "overBudget": 0,
+        "avgMs": 0.7791666666614927,
+        "renderSamples": 128,
+        "lastRenderMs": 2.1000000000931323,
+        "maxRenderMs": 76.5,
+        "avgRenderMs": 2.672656250000727,
+        "postSamples": 128,
+        "lastPostMs": 1.3000000002793968,
+        "maxPostMs": 2.2999999998137355,
+        "avgPostMs": 0.8070312500240107,
+        "lastFrameGapMs": 42.799999999813735,
+        "lastInputQueueMs": 0,
+        "longTasks": 3,
+        "longTaskMaxMs": 355,
+        "updateP95Ms": 2.5999999046325684,
+        "renderP95Ms": 3.5,
+        "postP95Ms": 1.600000023841858,
+        "frameGapP95Ms": 155.39999389648438,
+        "fluidWork": {
+          "pairedAdvections": 0,
+          "smokeRasterReuses": 0,
+          "pairedAdvectionEnabled": true
+        },
+        "frameGapP99Ms": 157.39999389648438,
+        "inputQueueP95Ms": 0,
+        "canvasPixels": 1296000,
+        "renderDpr": 1,
+        "projectiles": 2,
+        "goldParticles": 10,
+        "livingBots": 2
+      },
+      "movementPx": 250.41,
+      "gameClockAdvanced": 0.789,
+      "updateP95Ms": 2.5,
+      "renderP95Ms": 6.3,
+      "postP95Ms": 1.6,
+      "frameGapP95Ms": 58.3,
+      "frameGapP99Ms": 80,
+      "inputQueueP95Ms": 2.8,
+      "maxRenderMs": 8.4,
+      "longTasks": 0,
+      "longTaskMaxMs": 0,
+      "canvasPixels": 1296000,
+      "renderDpr": 1,
+      "goldParticles": 10,
+      "livingBots": 2,
+      "fluidWork": {
+        "pairedAdvections": 228,
+        "smokeRasterReuses": 85,
+        "pairedAdvectionEnabled": true
+      },
+      "passCosts": {
+        "sctx": {
+          "draws": 6832,
+          "drawMs": 71.29999999795109,
+          "fillMs": 7.6000000005587935,
+          "clearMs": 1.6000000005587935,
+          "maxDrawMs": 0.900000000372529
+        },
+        "actx": {
+          "draws": 131,
+          "drawMs": 32.79999999841675,
+          "fillMs": 0,
+          "clearMs": 0.7000000001862645,
+          "maxDrawMs": 1.3999999999068677
+        },
+        "bctx": {
+          "draws": 131,
+          "drawMs": 8.400000000372529,
+          "fillMs": 0,
+          "clearMs": 1.3999999999068677,
+          "maxDrawMs": 0.20000000018626451
+        },
+        "rctx1": {
+          "draws": 0,
+          "drawMs": 0,
+          "fillMs": 0,
+          "clearMs": 0,
+          "maxDrawMs": 0
+        },
+        "rctx2": {
+          "draws": 0,
+          "drawMs": 0,
+          "fillMs": 0,
+          "clearMs": 0,
+          "maxDrawMs": 0
+        },
+        "rbctx": {
+          "draws": 0,
+          "drawMs": 0,
+          "fillMs": 0,
+          "clearMs": 0,
+          "maxDrawMs": 0
+        },
+        "cpctx": {
+          "draws": 76,
+          "drawMs": 32.70000000251457,
+          "fillMs": 0,
+          "clearMs": 1.5999999986961484,
+          "maxDrawMs": 1.8000000002793968
+        }
+      },
+      "catchup": {
+        "extraSteps": 81,
+        "recoveredSeconds": 1.5737999999986012,
+        "cappedFrameGaps": 2
+      },
+      "refractionCopy": {
+        "partialFrames": 76,
+        "fullFrames": 0,
+        "regions": 123,
+        "pixelsCopied": 695661,
+        "pixelsAvoided": 97800339
+      },
+      "refractionParity": {
+        "changedChannels": 0,
+        "maxChannelDiff": 0,
+        "meanChannelDiff": 0,
+        "totalChannels": 470400
+      }
+    },
+    {
+      "profile": "landscape-phone-844x390",
+      "viewport": {
+        "width": 844,
+        "height": 390,
+        "deviceScaleFactor": 2,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "route": "home",
+      "startup": {
+        "samples": 74,
+        "lastMs": 0.8999999999068677,
+        "maxMs": 8.100000000093132,
+        "overBudget": 0,
+        "avgMs": 0.9797297297423155,
+        "renderSamples": 134,
+        "lastRenderMs": 4.100000000093132,
+        "maxRenderMs": 62.5,
+        "avgRenderMs": 2.7813432835973813,
+        "postSamples": 134,
+        "lastPostMs": 2.2999999998137355,
+        "maxPostMs": 2.8999999999068677,
+        "avgPostMs": 0.7604477611968097,
+        "lastFrameGapMs": 65.60000000009313,
+        "lastInputQueueMs": 0,
+        "longTasks": 3,
+        "longTaskMaxMs": 160,
+        "updateP95Ms": 3.200000047683716,
+        "renderP95Ms": 5,
+        "postP95Ms": 2,
+        "frameGapP95Ms": 106.80000305175781,
+        "fluidWork": {
+          "pairedAdvections": 0,
+          "smokeRasterReuses": 0,
+          "pairedAdvectionEnabled": true
+        },
+        "frameGapP99Ms": 138.3000030517578,
+        "inputQueueP95Ms": 0,
+        "canvasPixels": 1316640,
+        "renderDpr": 2,
+        "projectiles": 1,
+        "goldParticles": 20,
+        "livingBots": 2
+      },
+      "movementPx": 244.46,
+      "gameClockAdvanced": 0.82,
+      "updateP95Ms": 3.8,
+      "renderP95Ms": 7.1,
+      "postP95Ms": 2.4,
+      "frameGapP95Ms": 77.5,
+      "frameGapP99Ms": 99,
+      "inputQueueP95Ms": 14.2,
+      "maxRenderMs": 8.5,
+      "longTasks": 0,
+      "longTaskMaxMs": 0,
+      "canvasPixels": 1316640,
+      "renderDpr": 2,
+      "goldParticles": 10,
+      "livingBots": 2,
+      "fluidWork": {
+        "pairedAdvections": 258,
+        "smokeRasterReuses": 94,
+        "pairedAdvectionEnabled": true
+      },
+      "passCosts": {
+        "sctx": {
+          "draws": 6334,
+          "drawMs": 72.59999999823049,
+          "fillMs": 6.700000001117587,
+          "clearMs": 1.6000000000931323,
+          "maxDrawMs": 0.40000000037252903
+        },
+        "actx": {
+          "draws": 113,
+          "drawMs": 42.80000000167638,
+          "fillMs": 0,
+          "clearMs": 0.6999999997206032,
+          "maxDrawMs": 2.6000000000931323
+        },
+        "bctx": {
+          "draws": 113,
+          "drawMs": 8.59999999916181,
+          "fillMs": 0,
+          "clearMs": 0.7000000001862645,
+          "maxDrawMs": 0.2999999998137355
+        },
+        "rctx1": {
+          "draws": 0,
+          "drawMs": 0,
+          "fillMs": 0,
+          "clearMs": 0,
+          "maxDrawMs": 0
+        },
+        "rctx2": {
+          "draws": 0,
+          "drawMs": 0,
+          "fillMs": 0,
+          "clearMs": 0,
+          "maxDrawMs": 0
+        },
+        "rbctx": {
+          "draws": 0,
+          "drawMs": 0,
+          "fillMs": 0,
+          "clearMs": 0,
+          "maxDrawMs": 0
+        },
+        "cpctx": {
+          "draws": 71,
+          "drawMs": 45.30000000214204,
+          "fillMs": 0,
+          "clearMs": 1.1000000000931323,
+          "maxDrawMs": 2
+        }
+      },
+      "catchup": {
+        "extraSteps": 74,
+        "recoveredSeconds": 1.440699999999066,
+        "cappedFrameGaps": 0
+      },
+      "refractionCopy": {
+        "partialFrames": 71,
+        "fullFrames": 0,
+        "regions": 94,
+        "pixelsCopied": 2699478,
+        "pixelsAvoided": 90781962
+      },
+      "refractionParity": {
+        "changedChannels": 0,
+        "maxChannelDiff": 0,
+        "meanChannelDiff": 0,
+        "totalChannels": 470400
+      }
+    }
+  ]
+}

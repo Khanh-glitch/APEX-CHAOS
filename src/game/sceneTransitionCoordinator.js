@@ -1,6 +1,10 @@
 import { GOLD_TRANSITION_URL } from './goldAssetManifest.js';
+import { apexAppUrl } from './appRoot.js';
 
-const GOLD_DOOR_RUNTIME_URL = GOLD_TRANSITION_URL;
+// Absolute app-root URL: the door loads during scene transitions, long
+// after the Gold <base> exists, so a relative/absolute-path spelling
+// would resolve into <app>/gold/gold/... under nested hosting.
+const GOLD_DOOR_RUNTIME_URL = apexAppUrl(GOLD_TRANSITION_URL);
 
 async function decodeLoadedImages(root) {
   if (!root || !root.querySelectorAll) return;
@@ -114,7 +118,7 @@ function loadGoldDoorRuntime() {
     const existing = [...document.scripts].find((s) => {
       try {
         return s.type === 'module'
-          && new URL(s.src, document.baseURI).pathname === '/gold/transition/mechanical-door-v4.gold.js';
+          && new URL(s.src, document.baseURI).pathname.endsWith('/gold/transition/mechanical-door-v4.gold.js');
       } catch (_) { return false; }
     });
     const script = existing || document.createElement('script');
@@ -264,8 +268,14 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       // doing its job) and holdTime/sitting numbers grow while it renders
       // nothing, so those must never read as progress - a dead render loop used
       // to reset the stall timer once per sample and defeat the whole guard.
+      // Stall signature = the door's WALL clock (getDebug().wallTime, the rAF
+      // timestamp in SECONDS since the state began). A frozen render loop stops
+      // that clock, which is the stall; a slow but moving door keeps advancing it.
+      // Bucketed at 50 ms (x20). The previous /50 bucket was 50 SECONDS, so any
+      // door state lasting ~6 s of wall time on a starved renderer read as dead
+      // while still moving (#105 root cause of the false fail-open trigger).
       const signature = debug
-        ? `${debug.state}|${Math.round((debug.wallTime ?? debug.stateTime ?? 0) / 50)}`
+        ? `${debug.state}|${Math.round((Number(debug.wallTime ?? debug.stateTime) || 0) * 20)}`
         : '';
       const now = performance.now();
       if (signature !== watchdogSignature) {
@@ -273,12 +283,26 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
         watchdogSignatureAt = now;
       }
       if (debug && debug.state === 'OPENING' && !tx.openingAt) tx.openingAt = now;
+      // Reveal budget measures ENGINE PROGRESS, not wall time (owner law, #105).
+      // The door's phase clock (getDebug().stateTime) advances on every rendered
+      // tick, with dt clamped per frame. On a starved renderer the authored
+      // 1.68s opening legitimately takes longer than 4s of wall time, yet it is
+      // still moving. Only a door whose phase clock stops advancing for
+      // REVEAL_GRACE_MS is a stall. Wall time alone never is.
+      if (debug && debug.state === 'OPENING') {
+        const phase = Number(debug.stateTime) || 0;
+        if (tx.openPhase == null || phase > tx.openPhase) {
+          tx.openPhase = phase;
+          tx.openAdvanceAt = now;
+        }
+      }
       // Explicit boot START is an intentional user-paced sealed hold, not a
       // stalled scene. Never consume the 30s watchdog budget while waiting.
       if (tx.boot && !bootReadySignalled) return;
       const stalledFor = now - watchdogSignatureAt;
       const age = now - tx.startedAt;
-      const revealOverdue = Boolean(tx.openingAt) && now - tx.openingAt >= REVEAL_GRACE_MS;
+      const revealOverdue = Boolean(tx.openingAt) && debug?.state === 'OPENING'
+        && tx.openAdvanceAt != null && now - tx.openAdvanceAt >= REVEAL_GRACE_MS;
       // A dead door is only recoverable once the destination could survive
       // without its cover. Releasing while prepare() is still in flight swaps
       // the player onto an unprepared surface AND loses the intent - measured
@@ -289,7 +313,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       const doorDead = stalledFor >= STALL_MS && (tx.prepared || age >= HARD_CAP_MS);
       if (doorDead || age >= HARD_CAP_MS || revealOverdue) {
         const reason = revealOverdue
-          ? `scene transaction ${tx.name} left the destination behind a still-opening door for ${Math.round(now - tx.openingAt)}ms`
+          ? `scene transaction ${tx.name} still-opening door made no OPENING phase progress for ${Math.round(now - tx.openAdvanceAt)}ms`
           : doorDead
           ? `scene transaction ${tx.name} made no progress for ${Math.round(stalledFor)}ms`
           : `scene transaction ${tx.name} exceeded ${Math.round(age)}ms`;

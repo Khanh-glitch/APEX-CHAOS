@@ -47,6 +47,27 @@
     'hud.critical.warning': ROOT + '05_HUD_STATE/hud_critical_warning.ogg',
   });
 
+  // CP4 semantic aliases. These are not new audio assets and never create a
+  // second element: every alias resolves to one of the licensed canonical
+  // files above, with bounded gain/rate/throttle treatment for its event.
+  const ALIASES = Object.freeze({
+    'tutorial.pause': Object.freeze({ key: 'ui.panel.open', gain: 0.55, rate: 0.92, throttleMs: 1200 }),
+    'tutorial.resume': Object.freeze({ key: 'ui.option.confirm', gain: 0.6, rate: 1.05, throttleMs: 600 }),
+    'achievement.provisional': Object.freeze({ key: 'ui.focus.move', gain: 0.65, rate: 1.12, throttleMs: 900 }),
+    'achievement.official': Object.freeze({ key: 'ui.option.confirm', gain: 0.8, rate: 1, throttleMs: 500 }),
+    'achievement.rare': Object.freeze({ key: 'ui.option.confirm', gain: 0.85, rate: 1.08, throttleMs: 500 }),
+    'achievement.epic': Object.freeze({ key: 'fighter.match_ready', gain: 0.55, rate: 1.03, throttleMs: 700 }),
+    'achievement.legendary': Object.freeze({ key: 'lucky.draw.reward_reveal', gain: 0.75, rate: 1, throttleMs: 900 }),
+    'achievement.bot': Object.freeze({ key: 'ui.focus.move', gain: 0.35, rate: 0.82, throttleMs: 1200 }),
+    'mission.claim': Object.freeze({ key: 'ui.option.confirm', gain: 0.85, rate: 1.05, throttleMs: 500 }),
+    'skin.unlock': Object.freeze({ key: 'lucky.draw.reward_reveal', gain: 0.8, rate: 1, throttleMs: 900 }),
+    'skin.equip': Object.freeze({ key: 'ui.option.confirm', gain: 0.7, rate: 1.02, throttleMs: 400 }),
+    'result.win': Object.freeze({ key: 'fighter.match_ready', gain: 0.8, rate: 1, throttleMs: 1500 }),
+    'result.loss': Object.freeze({ key: 'ui.back.cancel', gain: 0.65, rate: 0.9, throttleMs: 1500 }),
+    'ui.locked': Object.freeze({ key: 'ui.action.rejected', gain: 0.8, rate: 1, throttleMs: 450 }),
+    'ui.error': Object.freeze({ key: 'ui.action.rejected', gain: 0.9, rate: 0.92, throttleMs: 650 }),
+  });
+
   const UI_SFX_VOLUME = 0.7;
   const FOCUS_MOVE_DEBOUNCE_MS = 70;
   // A short "press" must never stack under a longer confirmation cue.
@@ -70,21 +91,38 @@
     let pendingFocus = null;
 
     const keys = () => Object.keys(KEYS);
-    const urlFor = (key) => (Object.prototype.hasOwnProperty.call(KEYS, key) ? KEYS[key] : null);
+    const aliases = () => Object.keys(ALIASES);
+    const canonicalFor = (key) => {
+      if (Object.prototype.hasOwnProperty.call(KEYS, key)) return key;
+      return ALIASES[key]?.key || null;
+    };
+    const aliasFor = (key) => ALIASES[key] || null;
+    const urlFor = (key) => {
+      const canonical = canonicalFor(key);
+      return canonical ? KEYS[canonical] : null;
+    };
 
-    function elementFor(key) {
-      const url = urlFor(key);
+    function applyLevel(el) {
+      const gain = Math.max(0, Math.min(1, Number(el.__apexUiSfxGain ?? 1) || 0));
+      el.volume = muted ? 0 : Math.max(0, Math.min(1, volume * gain));
+      el.muted = muted;
+    }
+
+    function elementFor(requestedKey) {
+      const key = canonicalFor(requestedKey);
+      const url = key ? KEYS[key] : null;
       if (!url || !AudioCtor) return null;
       let el = cache.get(key);
       if (!el) {
-        // Created ONCE per key, then reused forever. No per-click Audio.
+        // Created ONCE per canonical key, then reused forever. Aliases share
+        // this same cached element. No per-click Audio.
         el = new AudioCtor(url);
         el.preload = 'auto';
         el.__apexUiSfxKey = key;
+        el.__apexUiSfxGain = 1;
         cache.set(key, el);
       }
-      el.volume = muted ? 0 : volume;
-      el.muted = muted;
+      applyLevel(el);
       return el;
     }
 
@@ -103,7 +141,9 @@
     // success from preload metadata alone. A short safety fuse prevents a bad
     // asset/network from stranding a scene transition forever.
     function warm(list, timeoutMs) {
-      const requested = Array.isArray(list) && list.length ? [...new Set(list)] : keys();
+      const requested = Array.isArray(list) && list.length
+        ? [...new Set(list.map(canonicalFor).filter(Boolean))]
+        : keys();
       const timeout = Math.max(250, Number(timeoutMs) || 5000);
       const waits = [];
       const warmed = [];
@@ -179,18 +219,26 @@
 
     function play(key, options2) {
       const o = options2 || {};
-      const url = urlFor(key);
-      if (!url) return false;
+      const canonical = canonicalFor(key);
+      if (!canonical) return false;
       if (muted && !o.force) return false;
-      if (isSuppressed(key)) return false;
+      if (isSuppressed(canonical)) return false;
+      const alias = aliasFor(key);
       const now = (win.performance && win.performance.now) ? win.performance.now() : Date.now();
       if (!o.ignoreDebounce) {
         const last = lastPlayed.get(key) || -Infinity;
-        if (now - last < FOCUS_MOVE_DEBOUNCE_MS && key === 'ui.focus.move') return false;
+        const throttleMs = Math.max(
+          canonical === 'ui.focus.move' ? FOCUS_MOVE_DEBOUNCE_MS : 0,
+          Math.max(0, Number(alias?.throttleMs) || 0),
+        );
+        if (throttleMs && now - last < throttleMs) return false;
       }
       lastPlayed.set(key, now);
-      const el = elementFor(key);
+      const el = elementFor(canonical);
       if (!el) return false;
+      el.__apexUiSfxGain = Math.max(0, Math.min(1, Number(alias?.gain ?? 1) || 0));
+      try { el.playbackRate = Math.max(0.5, Math.min(2, Number(alias?.rate ?? 1) || 1)); } catch (error) { /* rate is optional */ }
+      applyLevel(el);
       try { el.currentTime = 0; } catch (error) { /* not seekable yet */ }
       const p = el.play();
       if (p && typeof p.catch === 'function') {
@@ -205,12 +253,16 @@
     // an already-running voice is a no-op, so the cue is ONE continuous sound and
     // never restarts or stacks.
     function startLoop(key) {
-      const url = urlFor(key);
-      if (!url) return false;
+      const canonical = canonicalFor(key);
+      if (!canonical) return false;
       if (muted) return false;
-      if (isSuppressed(key)) return false;
-      const el = elementFor(key);
+      if (isSuppressed(canonical)) return false;
+      const el = elementFor(canonical);
       if (!el) return false;
+      const alias = aliasFor(key);
+      el.__apexUiSfxGain = Math.max(0, Math.min(1, Number(alias?.gain ?? 1) || 0));
+      try { el.playbackRate = Math.max(0.5, Math.min(2, Number(alias?.rate ?? 1) || 1)); } catch (error) { /* rate is optional */ }
+      applyLevel(el);
       el.loop = true;
       if (!el.paused && !el.ended) return true; // already the ONE continuous voice
       try { el.currentTime = 0; } catch (error) { /* not seekable yet */ }
@@ -220,7 +272,7 @@
     }
 
     function stop(key) {
-      const el = cache.get(key);
+      const el = cache.get(canonicalFor(key));
       if (!el) return false;
       el.loop = false;
       try { el.pause(); el.currentTime = 0; } catch (error) { /* ignore */ }
@@ -244,6 +296,8 @@
 
     const api = {
       keys,
+      aliases,
+      canonicalFor,
       urlFor,
       // Semantic playback. Never creates an element per call.
       play,
@@ -251,16 +305,18 @@
       startLoop,
       stop,
       // Separate UI-SFX level/mute (MUSIC mute is untouched by these).
-      setVolume: (v) => { volume = Math.max(0, Math.min(1, Number(v))); for (const el of cache.values()) el.volume = muted ? 0 : volume; return volume; },
+      setVolume: (v) => { volume = Math.max(0, Math.min(1, Number(v))); for (const el of cache.values()) applyLevel(el); return volume; },
       volume: () => volume,
-      mute: () => { muted = true; for (const el of cache.values()) { el.muted = true; el.volume = 0; } return muted; },
-      unmute: () => { muted = false; for (const el of cache.values()) { el.muted = false; el.volume = volume; } return muted; },
+      mute: () => { muted = true; for (const el of cache.values()) applyLevel(el); return muted; },
+      unmute: () => { muted = false; for (const el of cache.values()) applyLevel(el); return muted; },
       toggleMute: () => (muted ? api.unmute() : api.mute()),
       isMuted: () => muted,
       // Lightweight legacy preload creates the SAME cached elements. Scene
       // readiness should use warm(), which also waits for media readiness.
       preload: (list) => {
-        const target = Array.isArray(list) && list.length ? list : keys();
+        const target = Array.isArray(list) && list.length
+          ? [...new Set(list.map(canonicalFor).filter(Boolean))]
+          : keys();
         let warmed = 0;
         for (const key of target) { if (elementFor(key)) warmed += 1; }
         return warmed;
@@ -268,7 +324,7 @@
       warm,
       warmStatus: () => [...warmEvidence.values()].map((rec) => ({ ...rec })),
       state: () => ({
-        volume, muted, cached: cache.size, keys: keys().length,
+        volume, muted, cached: cache.size, keys: keys().length, aliases: aliases().length,
         suppressed: Object.keys(SUPPRESSED_BY).length,
         warming: [...warmEvidence.values()].filter((rec) => rec.settledAt == null).length,
         warmReady: [...warmEvidence.values()].filter((rec) => rec.ready).length,
@@ -288,6 +344,6 @@
     }
   }
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { installUiSfxAuthority, KEYS, ROOT, UI_SFX_VOLUME };
+    module.exports = { installUiSfxAuthority, KEYS, ALIASES, ROOT, UI_SFX_VOLUME };
   }
 })();

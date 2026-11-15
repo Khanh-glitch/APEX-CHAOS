@@ -62,8 +62,12 @@ try {
     assert.equal(data.icons.length,3,name+' missing skill icon');
     assert.equal(data.slots.length,3,name+' missing skill buttons');
     if(name==='BOXE'){
-     assert.equal(data.art,'/assets/dictionary/heroes/boxe/standing.png');
-     assert.deepEqual(data.icons.map(x=>x.src),['/assets/dictionary/heroes/boxe/passive.png','/assets/dictionary/heroes/boxe/a1.png','/assets/dictionary/heroes/boxe/a2.png']);
+     // Compare the complete resolved URL, including its origin. The product
+     // loader may spell the same asset as an absolute app URL; that does not
+     // change its identity, decoded pixels, visibility or role.
+     const resolveAsset=src=>new URL(src,url).href;
+     assert.equal(resolveAsset(data.art),resolveAsset('/assets/dictionary/heroes/boxe/standing.png'));
+     assert.deepEqual(data.icons.map(x=>resolveAsset(x.src)),['/assets/dictionary/heroes/boxe/passive.png','/assets/dictionary/heroes/boxe/a1.png','/assets/dictionary/heroes/boxe/a2.png'].map(resolveAsset));
      await page.screenshot({path:path.join(dir,view.name+'-boxe-dictionary.png')});
     }
     results.push({view:view.name,...data});

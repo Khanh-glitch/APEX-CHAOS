@@ -1,0 +1,51 @@
+{
+  "baseline": "cccc6acac918e9b5f05891641f9fed2fcc044175",
+  "protocol": "Home entry; isolated contexts; baseline/candidate/candidate/baseline; 2.5s settling then 3.75s measurement including 750ms W; no pixel readback in window.",
+  "limitation": "Early-wave desktop observation on one host, not a later-wave stress test, physical-phone result or stable universal speedup. Report all rounds; GPU/compositor/host load varies.",
+  "results": [
+    {
+      "variant": "baseline",
+      "samples": 134,
+      "gapMedianMs": 25.700000000186265,
+      "gapP95Ms": 46.60000000009313,
+      "renderP95Ms": 3.7999999998137355,
+      "activeBots": 2,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "movementPx": 257.73087290474336,
+      "gameClockAdvanced": 0.8079999999991618
+    },
+    {
+      "variant": "candidate",
+      "samples": 129,
+      "gapMedianMs": 26.100000000093132,
+      "gapP95Ms": 52.89999999990687,
+      "renderP95Ms": 3.2999999998137355,
+      "activeBots": 2,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "movementPx": 247.59464647541242,
+      "gameClockAdvanced": 0.7815000000002774
+    },
+    {
+      "variant": "candidate",
+      "samples": 123,
+      "gapMedianMs": 28.300000000279397,
+      "gapP95Ms": 50.1999999997206,
+      "renderP95Ms": 3.7999999998137355,
+      "activeBots": 2,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "movementPx": 251.90283740452853,
+      "gameClockAdvanced": 0.7917000000003713
+    },
+    {
+      "variant": "baseline",
+      "samples": 139,
+      "gapMedianMs": 25.399999999906868,
+      "gapP95Ms": 47.39999999990687,
+      "renderP95Ms": 3.1000000000931323,
+      "activeBots": 2,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "movementPx": 229.15973221799365,
+      "gameClockAdvanced": 0.7561999999995339
+    }
+  ]
+}

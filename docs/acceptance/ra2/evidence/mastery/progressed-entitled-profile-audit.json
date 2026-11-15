@@ -1,0 +1,271 @@
+{
+  "base": "http://127.0.0.1:5173/",
+  "checks": 16,
+  "failures": [],
+  "seed": {
+    "earnedAchievementCount": 42,
+    "recentCount": 12,
+    "startingCredits": 350,
+    "isolatedDisposableContext": true
+  },
+  "results": {
+    "seeded": {
+      "credits": 350,
+      "progress": {
+        "botMatches": 1,
+        "botWins": 1,
+        "localMatches": 0,
+        "claimedIds": []
+      },
+      "mastery": {
+        "earned": {
+          "NEWBOT": {
+            "no-escape": 1,
+            "first-blood": 2,
+            "overkill": 3,
+            "burst-king": 4,
+            "executioner": 5,
+            "glass-cannon": 6,
+            "sure-shot": 7,
+            "assassin": 8,
+            "eagle-eye": 9,
+            "steady-hand": 10,
+            "point-blank": 11,
+            "final-round": 12,
+            "ricochet": 13,
+            "mastery-shotgun": 14,
+            "mastery-auto": 15,
+            "mastery-burst": 16,
+            "mastery-precision": 17,
+            "mastery-semi": 18,
+            "mastery-melee": 19,
+            "weapon-swap": 20,
+            "arsenal": 21,
+            "legend-survivor": 22,
+            "iron-wall": 23,
+            "last-stand": 24,
+            "untouchable": 25,
+            "scavenger": 26,
+            "second-wind": 27,
+            "thick-skin": 28,
+            "one-breath": 29,
+            "comeback": 30,
+            "pacifist": 31,
+            "skill-focus": 32,
+            "kiter": 33,
+            "trickster": 34,
+            "combo-artist": 35,
+            "adrenaline": 36,
+            "clutch": 37,
+            "never-surrender": 38,
+            "speed-win": 39,
+            "fate-hand": 40,
+            "chaos-bringer": 41,
+            "signature-newbot": 42
+          }
+        },
+        "best": {},
+        "weaponDamage": {
+          "RPG_7": 1001
+        },
+        "recent": [
+          {
+            "achievementId": "no-escape",
+            "heroId": "NEWBOT",
+            "at": 1792667324398
+          },
+          {
+            "achievementId": "first-blood",
+            "heroId": "NEWBOT",
+            "at": 1792667264398
+          },
+          {
+            "achievementId": "overkill",
+            "heroId": "NEWBOT",
+            "at": 1792667204398
+          },
+          {
+            "achievementId": "burst-king",
+            "heroId": "NEWBOT",
+            "at": 1792667144398
+          },
+          {
+            "achievementId": "executioner",
+            "heroId": "NEWBOT",
+            "at": 1792667084398
+          },
+          {
+            "achievementId": "glass-cannon",
+            "heroId": "NEWBOT",
+            "at": 1792667024398
+          },
+          {
+            "achievementId": "sure-shot",
+            "heroId": "NEWBOT",
+            "at": 1792666964398
+          },
+          {
+            "achievementId": "assassin",
+            "heroId": "NEWBOT",
+            "at": 1792666904398
+          },
+          {
+            "achievementId": "eagle-eye",
+            "heroId": "NEWBOT",
+            "at": 1792666844398
+          },
+          {
+            "achievementId": "steady-hand",
+            "heroId": "NEWBOT",
+            "at": 1792666784398
+          },
+          {
+            "achievementId": "point-blank",
+            "heroId": "NEWBOT",
+            "at": 1792666724398
+          },
+          {
+            "achievementId": "final-round",
+            "heroId": "NEWBOT",
+            "at": 1792666664398
+          }
+        ],
+        "unseenSkinUnlocks": []
+      },
+      "entitlement": {
+        "gated": true,
+        "entitled": true,
+        "key": "hero:ROBOT:ecobot",
+        "kind": "hero",
+        "baseId": "ROBOT",
+        "skinId": "ecobot",
+        "heroId": "NEWBOT",
+        "current": 42,
+        "target": 42,
+        "remainingIds": []
+      }
+    },
+    "recentStart": {
+      "count": 8,
+      "button": "XEM TẤT CẢ",
+      "title": "MỞ KHÓA GẦN ĐÂY"
+    },
+    "recentAll": {
+      "count": 12,
+      "button": "",
+      "names": [
+        "Không Thể Trốn Thoát",
+        "Máu Đầu Tiên",
+        "Dư Chấn",
+        "Vua Bùng Nổ",
+        "Đao Phủ",
+        "Pháo Thủy Tinh",
+        "Bách Phát Bách Trúng",
+        "Sát Thủ",
+        "Mắt Đại Bàng",
+        "Tay Súng Vững",
+        "Cận Chiến Tử Thần",
+        "Viên Đạn Cuối"
+      ],
+      "dates": [
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026",
+        "NEWBOT · 22 thg 10, 2026"
+      ]
+    },
+    "ecoBefore": {
+      "name": "ECOBOT — LÕI TÁI CHẾ V17",
+      "progress": "42/42",
+      "button": {
+        "text": "TRANG BỊ CHO P1",
+        "disabled": false
+      },
+      "entitled": true,
+      "selected": null
+    },
+    "equippedVie": {
+      "button": "ĐANG TRANG BỊ",
+      "disabled": true,
+      "message": "ĐÃ TRANG BỊ SKIN CHO P1",
+      "credits": 350,
+      "skin": true
+    },
+    "engRecent": {
+      "title": "RECENT UNLOCKS",
+      "count": 12
+    },
+    "initialClaims": {
+      "credits": 350,
+      "buttons": [
+        {
+          "text": "CLAIM +100",
+          "disabled": false
+        },
+        {
+          "text": "CLAIM +150",
+          "disabled": false
+        },
+        {
+          "text": "INCOMPLETE",
+          "disabled": true
+        },
+        {
+          "text": "INCOMPLETE",
+          "disabled": true
+        },
+        {
+          "text": "INCOMPLETE",
+          "disabled": true
+        }
+      ],
+      "claimed": []
+    },
+    "claimError": {
+      "message": "UNABLE TO CLAIM: test-error",
+      "credits": 350,
+      "claimed": []
+    },
+    "claimSuccess": {
+      "message": "REWARD CLAIMED",
+      "credits": 450,
+      "claimed": [
+        "first-bot"
+      ],
+      "button": {
+        "text": "CLAIMED",
+        "disabled": true
+      }
+    },
+    "reload": {
+      "credits": 450,
+      "claimed": [
+        "first-bot"
+      ],
+      "entitled": true,
+      "selected": "ROBOT"
+    },
+    "duplicate": {
+      "result": {
+        "ok": false,
+        "reason": "already-claimed"
+      },
+      "before": 450,
+      "after": 450
+    },
+    "claimedVie": {
+      "button": "ĐÃ NHẬN",
+      "disabled": true
+    }
+  },
+  "browserErrors": [],
+  "limitation": "Chromium desktop emulation. Earned mastery fixture and one mission claim are confined to a disposable browser profile; no gameplay/economy authority was changed."
+}

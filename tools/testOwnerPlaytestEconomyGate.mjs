@@ -9,12 +9,13 @@
 //     as the only owned fighter — no 12,000 AC seed, no roster override,
 //   · existing balances/ownership are preserved verbatim (no refill, no
 //     clawback, no destructive reset) and a refresh NEVER refills AC,
-//   · Lucky Draw still costs the real 350 AC against the REAL unowned pool,
+//   · Lucky Draw costs exactly 1000 AC (one charge) against the REAL unowned pool,
+//     and a fresh 350 AC profile is refused for the real reason (need 650),
 //   · normal selection requires real ownership; the playable roster is
 //     test-selectable ONLY inside an authorized Admin Test session, which
 //     still fabricates no ownership and never widens the draw pool,
 //   · match rewards follow the A1 table by ACTUAL mode+outcome
-//     (BOT win 100 / BOT loss 25 provisional / LOCAL completion 50 either
+//     (BOT win 200 / BOT loss 25 provisional / LOCAL completion 50 either
 //     winner / Lab+Admin+invalid 0) and pay exactly once per sealed match
 //     id — across duplicate callbacks AND reloads,
 //   · there is no parallel currency variable (the one AC state is the balance).
@@ -78,8 +79,9 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   const { meta, storage } = boot({});
   check('meta runtime registers', !!meta);
   check('fresh profile starts at exactly 350 AC', meta.credits() === 350, `credits=${meta.credits()}`);
-  check('fresh profile owns ROBOT (NEWBOT) only',
-    JSON.stringify(meta.getState().ownedFighters) === '["ROBOT"]',
+  // Owner R2 P0-B: a fresh Guest owns ROBOT (NEWBOT) and HUNTER, and nothing else.
+  check('fresh profile owns ROBOT (NEWBOT) and HUNTER only',
+    JSON.stringify(meta.getState().ownedFighters) === '["ROBOT","HUNTER"]',
     JSON.stringify(meta.getState().ownedFighters));
   check('fresh default selection is ROBOT on both sides',
     meta.getState().lastSelectedP1 === 'ROBOT' && meta.getState().lastSelectedP2 === 'ROBOT');
@@ -122,16 +124,74 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   check('refreshing it never refills', refreshed.meta.credits() === 11650);
 }
 
-// ── 3. ordinary refresh / re-login never refills ──────────────────────────
+// Retire the exact 12,000 AC untouched owner DEMO seed without destroying
+// a real earned balance, spent seeded balance, or legitimate current profile.
 {
-  const { meta, storage } = boot({});
+  const demo = {
+    version:1, credits:12000, ownedFighters:['ROBOT','HUNTER'],
+    lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:0,
+    ownerPlaytestAcSeed:{revision:'20261005-owner-playtest-r44',profile:KEY,at:1}
+  };
+  const {meta,storage}=boot({[KEY]:JSON.stringify(demo)});
+  check('untouched owner 12,000 AC demo wallet retires to the 350 AC production start',meta.credits()===350);
+  const after=JSON.parse(storage.getItem(KEY));
+  check('demo balance migration is recorded and idempotent',after.rosterMigrations['retired-owner-demo-wallet-20261028']===1);
+  check('reopening retired demo never refills',boot({[KEY]:storage.getItem(KEY)}).meta.credits()===350);
+}
+{
+  const staleUnmarked={version:1,credits:12000,ownedFighters:['ROBOT','HUNTER'],totalSpins:0,
+    unlockedAt:{ROBOT:0,HUNTER:0}};
+  const {meta,storage}=boot({[KEY]:JSON.stringify(staleUnmarked)});
+  check('untouched unmarked legacy 12,000 AC demo normalizes to 350 AC',meta.credits()===350);
+  check('the original 12k save is backed up on device for recovery',
+    JSON.parse(storage.getItem(KEY+'.legacyDemoWalletBackup.20261028')).credits===12000);
+  check('reloading converted legacy wallet cannot repeatedly migrate or refill',
+    boot({[KEY]:storage.getItem(KEY)}).meta.credits()===350);
+
+  const spentDemo={...staleUnmarked,totalSpins:1};
+  check('12,000 AC wallet with a Lucky draw is never reset',
+    boot({[KEY]:JSON.stringify(spentDemo)}).meta.credits()===12000);
+  const played={...staleUnmarked,progression:{botMatches:1,botWins:1,localMatches:0,claimedIds:[]}};
+  check('12,000 AC wallet with a recorded match is preserved',
+    boot({[KEY]:JSON.stringify(played)}).meta.credits()===12000);
+  const purchased={...staleUnmarked,ownedFighters:['ROBOT','HUNTER','MIRROR'],unlockedAt:{ROBOT:0,HUNTER:0,MIRROR:Date.now()}};
+  check('12,000 AC wallet with purchased fighter and unlock timestamp is preserved',
+    boot({[KEY]:JSON.stringify(purchased)}).meta.credits()===12000);
+  const sponsored={...staleUnmarked,testSeed:'explicit-12000'};
+  check('explicit independent 12,000 AC test grant is untouched',
+    boot({[KEY]:JSON.stringify(sponsored)}).meta.credits()===12000);
+  const usedTagged={...staleUnmarked,totalSpins:1,
+    ownerPlaytestAcSeed:{revision:'20261005-owner-playtest-r44',profile:KEY,at:1}};
+  check('12,000 AC tagged owner wallet with activity stays untouched',
+    boot({[KEY]:JSON.stringify(usedTagged)}).meta.credits()===12000);
+}
+
+// ── 3. Lucky Draw costs exactly 1000 AC; a refresh never refills ─────────
+{
+  // Fresh 350 AC profile cannot draw: refused for the real reason, no debit.
+  const { meta } = boot({});
+  const refused0 = meta.spin(() => 0);
+  check('fresh 350 AC profile is refused a draw for the real reason (need 650)',
+    refused0.ok === false && refused0.reason === 'need' && refused0.need === 650,
+    JSON.stringify(refused0));
+  check('a refused draw neither debits nor grants (350 stays 350, 0 spins)',
+    meta.credits() === 350 && meta.getState().totalSpins === 0, `credits=${meta.credits()}`);
+}
+{
+  // Labelled isolated test seed (NOT a player grant): exactly 1000 AC.
+  const seeded = {
+    version: 1, credits: 1000, ownedFighters: ['ROBOT'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT',
+    totalSpins: 0, unlockedAt: { ROBOT: 0 }, arenaPaletteId: null,
+    testSeed: 'issue-105-labelled-1000-ac-draw-fixture',
+  };
+  const { meta, storage } = boot({ [KEY]: JSON.stringify(seeded) });
   const spin = meta.spin(() => 0);
-  check('Lucky Draw costs the real 350 AC (fresh 350 → 0)',
-    spin.ok === true && spin.credits === 0, JSON.stringify(spin));
+  check('Lucky Draw costs exactly 1000 AC (1000 → 0), one charge',
+    spin.ok === true && spin.credits === 0 && meta.getState().totalSpins === 1, JSON.stringify(spin));
   check('the drawn fighter becomes really owned', meta.owns(spin.name) === true);
   const refused = meta.spin(() => 0);
-  check('a second draw is refused for the real reason (need 350)',
-    refused.ok === false && refused.reason === 'need' && refused.need === 350,
+  check('a second draw is refused for the real reason (need 1000)',
+    refused.ok === false && refused.reason === 'need' && refused.need === 1000,
     JSON.stringify(refused));
   const refreshed = boot({ [KEY]: storage.getItem(KEY) });
   check('an ordinary refresh does NOT refill (0 stays 0)',
@@ -145,19 +205,19 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   const { meta } = boot({});
   const pool = meta.poolLocked();
   check('Lucky Draw pool is the real unowned playable pool',
-    Array.isArray(pool) && pool.length === CORE_SIX.length - 1 && !pool.includes('ROBOT') && pool.includes('MIRROR'),
+    Array.isArray(pool) && pool.length === CORE_SIX.length - 2 && !pool.includes('ROBOT') && !pool.includes('HUNTER') && pool.includes('MIRROR'),
     JSON.stringify(pool));
   check('no override widens the Lucky Draw pool', !pool.includes(FUTURE[0]), JSON.stringify(pool));
   check('visibility never fabricates ownership',
-    meta.owns('MIRROR') === false && meta.owns('HUNTER') === false);
+    meta.owns('MIRROR') === false && meta.owns('CRYSTAL') === false);
 }
 
 // ── 5. selection: ownership for players, admin session for owner testing ──
 {
   const { meta } = boot({});
-  check('a normal new player can select NEWBOT only',
-    meta.canPublicSelect('ROBOT') === true &&
-    CORE_SIX.filter((id) => id !== 'ROBOT').every((id) => meta.canPublicSelect(id) === false),
+  check('a normal new player can select NEWBOT and HUNTER only',
+    meta.canPublicSelect('ROBOT') === true && meta.canPublicSelect('HUNTER') === true &&
+    CORE_SIX.filter((id) => id !== 'ROBOT' && id !== 'HUNTER').every((id) => meta.canPublicSelect(id) === false),
     CORE_SIX.map((id) => `${id}:${meta.canPublicSelect(id)}`).join(' '));
   check('a future visible-but-locked fighter stays locked',
     FUTURE.every((id) => meta.canPublicSelect(id) === false));
@@ -176,7 +236,7 @@ const storedOf = (storage) => JSON.parse(storage.getItem(KEY));
   check('the admin session fabricates no ownership and no credits',
     meta.owns('MIRROR') === false && meta.credits() === 350);
   check('the admin session does not widen the Lucky Draw pool',
-    meta.poolLocked().length === CORE_SIX.length - 1);
+    meta.poolLocked().length === CORE_SIX.length - 2);
 }
 
 // ── 6. match rewards: A1 table by actual mode + outcome, paid once ────────
@@ -185,30 +245,30 @@ const matchState = (mode, id) => ({ battleMode: mode, resultGold: { meta: { id }
   const { meta, storage } = boot({});
   const s1 = matchState('BOT', 'match-bot-win-1');
   const botWin = meta.awardBattleResult('P1', s1);
-  check('BOT win pays +100 AC', botWin.ok === true && botWin.amount === 100 && meta.credits() === 450,
+  check('BOT win pays +200 AC', botWin.ok === true && botWin.amount === 200 && meta.credits() === 550,
     JSON.stringify(botWin));
   check('a duplicate callback for the same match pays nothing',
-    meta.awardBattleResult('P1', s1).ok === false && meta.credits() === 450);
+    meta.awardBattleResult('P1', s1).ok === false && meta.credits() === 550);
   check('the same sealed match id under a fresh state is a duplicate claim',
     meta.awardBattleResult('P1', matchState('BOT', 'match-bot-win-1')).reason === 'duplicate-claim' &&
-    meta.credits() === 450);
+    meta.credits() === 550);
   const botLoss = meta.awardBattleResult('P2', matchState('BOT', 'match-bot-loss-1'));
   check('BOT loss pays the provisional +25 AC',
-    botLoss.ok === true && botLoss.amount === 25 && meta.credits() === 475, JSON.stringify(botLoss));
+    botLoss.ok === true && botLoss.amount === 25 && meta.credits() === 575, JSON.stringify(botLoss));
   const localP2 = meta.awardBattleResult('P2', matchState('LOCAL', 'match-local-1'));
   check('LOCAL completion pays +50 AC when P2 wins',
-    localP2.ok === true && localP2.amount === 50 && meta.credits() === 525, JSON.stringify(localP2));
+    localP2.ok === true && localP2.amount === 50 && meta.credits() === 625, JSON.stringify(localP2));
   const localP1 = meta.awardBattleResult('P1', matchState('LOCAL', 'match-local-2'));
   check('LOCAL completion pays +50 AC when P1 wins (not winner-inferred)',
-    localP1.ok === true && localP1.amount === 50 && meta.credits() === 575, JSON.stringify(localP1));
+    localP1.ok === true && localP1.amount === 50 && meta.credits() === 675, JSON.stringify(localP1));
   check('Result telemetry reports the actual committed award and balance',
-    meta.lastAward().amount === 50 && meta.lastAward().balance === 575);
+    meta.lastAward().amount === 50 && meta.lastAward().balance === 675);
   // Reload: claims persist, so a replayed result can never re-pay.
   const reloaded = boot({ [KEY]: storage.getItem(KEY) });
   check('after reload the balance and claims persist (no refill, no re-pay)',
-    reloaded.meta.credits() === 575 &&
+    reloaded.meta.credits() === 675 &&
     reloaded.meta.awardBattleResult('P1', matchState('BOT', 'match-bot-win-1')).reason === 'duplicate-claim' &&
-    reloaded.meta.credits() === 575);
+    reloaded.meta.credits() === 675);
 }
 {
   const { meta } = boot({});
@@ -230,6 +290,40 @@ const matchState = (mode, id) => ({ battleMode: mode, resultGold: { meta: { id }
     meta.credits() === 350);
 }
 
+// ── Atomic Lucky Draw save: never debit AC before ownership persists ────
+{
+  // Labelled isolated test seed at the 1000 AC draw price (not a grant).
+  const {meta, storage}=boot({[KEY]: JSON.stringify({version:1,credits:1000,ownedFighters:['ROBOT'],lastSelectedP1:'ROBOT',lastSelectedP2:'ROBOT',totalSpins:0,unlockedAt:{ROBOT:0},arenaPaletteId:null,testSeed:'issue-105-labelled-1000-ac-draw-fixture'})});
+  let writes=0;
+  const originalSet=storage.setItem;
+  storage.setItem=(key,value)=>{writes++;originalSet(key,value)};
+  const result=meta.spin(()=>0);
+  const persisted=storedOf(storage);
+  check('Lucky Draw stores debit and fighter entitlement in one write',
+    result.ok===true && writes===1 && persisted.credits===0 &&
+    persisted.ownedFighters.includes(result.name) && persisted.totalSpins===1,
+    JSON.stringify({writes,result,persisted}));
+}
+// ── ALPHA progression law: sealed match, once-per-claim and durable AC ──
+{
+  const {meta, storage} = boot({});
+  check('unsealed BOT cannot pay', meta.awardBattleResult('P1', {battleMode:'BOT',resultGold:null}).reason==='unsealed-match' && meta.credits()===350);
+  check('mission not claimable without play', meta.claimProgressReward('first-bot').reason==='not-complete');
+  const win = meta.awardBattleResult('P1', matchState('BOT','alpha-sealed-1'));
+  check('sealed BOT counts exactly once', win.ok===true && meta.getState().progression.botWins===1);
+  meta.awardBattleResult('P1',matchState('BOT','alpha-sealed-1'));
+  check('duplicate does not increment progression',meta.getState().progression.botMatches===1);
+  const first=meta.claimProgressReward('first-bot');
+  check('mission pays +100 through real wallet',first.ok===true && meta.credits()===650);
+  check('mission cannot pay twice',meta.claimProgressReward('first-bot').reason==='already-claimed' && meta.credits()===650);
+  check('first win quest pays +150',meta.claimProgressReward('first-win').ok===true && meta.credits()===800);
+  const next=boot({[KEY]:storage.getItem(KEY)});
+  check('claims and AC persist after reload',next.meta.credits()===800 && next.meta.claimProgressReward('first-win').reason==='already-claimed');
+  check('achievement not prematurely claimable',next.meta.claimProgressReward('bot-veteran').reason==='not-complete');
+  next.meta.awardBattleResult('P1',matchState('BOT','alpha-sealed-2'));
+  next.meta.awardBattleResult('P1',matchState('BOT','alpha-sealed-3'));
+  check('three wins unlock only one milestone',next.meta.claimProgressReward('bot-veteran').ok===true && next.meta.claimProgressReward('bot-veteran').reason==='already-claimed');
+}
 // ── 7. no scattered bypasses in production sources ────────────────────────
 {
   const roots = ['src', 'public'];

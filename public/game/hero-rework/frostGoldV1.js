@@ -668,6 +668,9 @@ class IceField {
         // sequence without unrelated engines/lanes consuming its material RNG.
         this.rng = new Rng(4242);
         this.nodes = [];
+        this.nodePaths = new WeakMap();
+        this.liveRenderNodes = [];
+        this.liveRenderCarves = [];
         this.carves = [];
         this.wets = [];
         this.facetPaths = [];
@@ -838,6 +841,27 @@ class IceField {
         n.cracks.push(new Float32Array(pts));
         n.crackAt.push(at);
     }
+    fillNode(ctx, n, sL, sW, e, t, ox = 0, oy = 0) {
+        const stable = t - n.born >= Math.max(n.lockDur + 0.25, 0.3)
+            && t <= n.decayAt && this.growF(n,t) === 1;
+        if (!stable || typeof Path2D !== 'function') {
+            this.polyNode(ctx,n,sL,sW,e,t,ox,oy);ctx.fill();return;
+        }
+        let paths=this.nodePaths.get(n);
+        if(!paths){paths=[];this.nodePaths.set(n,paths);}
+        let entry=paths.find(p=>p.sL===sL&&p.sW===sW&&p.e===e&&p.ox===ox&&p.oy===oy
+            &&p.x===n.x&&p.y===n.y&&p.L===n.L&&p.W===n.W&&p.ca===n.ca&&p.sa===n.sa);
+        if(!entry){
+            const path=new Path2D();
+            // polyNode accepts the path subset of the Canvas2D API.
+            this.polyNode({beginPath(){},moveTo:(...v)=>path.moveTo(...v),
+                lineTo:(...v)=>path.lineTo(...v),closePath:()=>path.closePath()},n,sL,sW,e,t,ox,oy);
+            entry={sL,sW,e,ox,oy,x:n.x,y:n.y,L:n.L,W:n.W,ca:n.ca,sa:n.sa,path};
+            if(paths.length>=8)paths.shift();
+            paths.push(entry);
+        }
+        ctx.fill(entry.path);
+    }
     polyNode(ctx, n, sL, sW, e, t, ox = 0, oy = 0) {
         const d = (t - n.decayAt) / n.decayDur;
         const g = this.growF(n, t);
@@ -895,21 +919,21 @@ class IceField {
         void ctx; void t;
     }
     render(ctx, t, px) {
-        const live = this.nodes.filter((n) => !n.dead && t > n.born);
-        const carves = this.carves.filter((c) => !c.dead && t > c.born);
+        const live = this.liveRenderNodes, carves = this.liveRenderCarves;
+        live.length=0;carves.length=0;
+        for(const n of this.nodes)if(!n.dead&&t>n.born)live.push(n);
+        for(const c of this.carves)if(!c.dead&&t>c.born)carves.push(c);
         if (!live.length && !carves.length)
             return false;
         // P0: cast shadow of the ice slab (opaque, merged) – physical elevation on light floor
         ctx.fillStyle = "#c3cad0";
         for (const n of live) {
-            this.polyNode(ctx, n, 1, 1, 1.8, t, 1.2, 2.2);
-            ctx.fill();
+            this.fillNode(ctx, n, 1, 1, 1.8, t, 1.2, 2.2);
         }
         // P1: steel-blue slab edge
         ctx.fillStyle = "#5a92c4";
         for (const n of live) {
-            this.polyNode(ctx, n, 1, 1, 1.5, t);
-            ctx.fill();
+            this.fillNode(ctx, n, 1, 1, 1.5, t);
         }
         for (const c of carves)
             if (this.carvePath(ctx, c, t, -1.5, 1))
@@ -918,8 +942,7 @@ class IceField {
         for (const n of live) {
             const d = (t - n.decayAt) / n.decayDur;
             ctx.fillStyle = d > 0 ? (d > 0.3 ? "#b4d6ec" : "#dcecf6") : "#f4f9fd";
-            this.polyNode(ctx, n, 1, 1, 0, t);
-            ctx.fill();
+            this.fillNode(ctx, n, 1, 1, 0, t);
         }
         ctx.fillStyle = "#f4f9fd";
         for (const c of carves)
@@ -936,8 +959,7 @@ class IceField {
             const sW = lock * Math.max(0, 1 - rim / n.W);
             const sL = lock * Math.max(0, 1 - rim / n.L);
             ctx.fillStyle = d > 0.25 ? "#a0c7e2" : lock < 0.8 ? "#c9e6f6" : "#a9d2ec";
-            this.polyNode(ctx, n, sL, sW, 0, t);
-            ctx.fill();
+            this.fillNode(ctx, n, sL, sW, 0, t);
         }
         // P3b: lighter slab core -> inner edge band reads as thickness (cel banding like the source art)
         for (const n of live) {
@@ -953,8 +975,7 @@ class IceField {
             ctx.fillStyle = d > 0.1 ? "#b2d4ea" : "#bfe0f2";
             const strip = n.kind === "lane" || n.kind === "trail";
             const along = strip ? 1.05 * k : Math.max(0, 1 - 4.5 / n.L) * inner * k;
-            this.polyNode(ctx, n, along + 0.001, Math.max(0, 1 - 5 / n.W) * inner * k + 0.001, 0, t);
-            ctx.fill();
+            this.fillNode(ctx, n, along + 0.001, Math.max(0, 1 - 5 / n.W) * inner * k + 0.001, 0, t);
         }
         // P4: clipped material detail
         ctx.globalCompositeOperation = "source-atop";

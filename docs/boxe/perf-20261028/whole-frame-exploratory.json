@@ -1,0 +1,52 @@
+[
+  {
+    "variant": "baseline",
+    "samples": 95,
+    "gapMedian": 35.30000001192093,
+    "gapP95": 74.30000001192093,
+    "renderP95": 3.699999988079071,
+    "updateP95": 2,
+    "longTasks": 2,
+    "activeBots": 2
+  },
+  {
+    "variant": "candidate",
+    "samples": 138,
+    "gapMedian": 25.299999982118607,
+    "gapP95": 52.30000001192093,
+    "renderP95": 4.0999999940395355,
+    "updateP95": 2.200000047683716,
+    "longTasks": 3,
+    "activeBots": 2,
+    "fluidWork": {
+      "pairedAdvections": 0,
+      "smokeRasterReuses": 0,
+      "pairedAdvectionEnabled": true
+    }
+  },
+  {
+    "variant": "candidate",
+    "samples": 129,
+    "gapMedian": 25.400000005960464,
+    "gapP95": 49,
+    "renderP95": 4.199999988079071,
+    "updateP95": 2.0999999046325684,
+    "longTasks": 3,
+    "activeBots": 2,
+    "fluidWork": {
+      "pairedAdvections": 0,
+      "smokeRasterReuses": 0,
+      "pairedAdvectionEnabled": true
+    }
+  },
+  {
+    "variant": "baseline",
+    "samples": 133,
+    "gapMedian": 24.799999982118607,
+    "gapP95": 50,
+    "renderP95": 4,
+    "updateP95": 2.200000047683716,
+    "longTasks": 2,
+    "activeBots": 2
+  }
+]

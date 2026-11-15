@@ -356,6 +356,25 @@ check('R55 adapter preserves the donor 1P family',
   && generator.includes("import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';")
   && generator.includes('out = adaptGoldBattleHudR55(out);'));
 
+check('owner-approved compact BOT HUD prioritizes readable fighter identity without changing combat state',
+  hud.includes('#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .weapon{display:none}')
+  && hud.includes('#hud[data-layout="port"][data-size="compact"][data-mode="1p"] .id-name{')
+  && hud.includes('#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Rail .vr-name{display:none}')
+  && hud.includes("R.side[0].ctrl.textContent=S.mode==='1p'?'':(desk?'LOCAL · J K':'LOCAL · TAP');"));
+check('compact BOT suppresses only the duplicate P2 rail name and keeps the opponent identity card',
+  hud.includes('#hud:not([data-quest="1"])[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Rail .vr-name{display:none}')
+  && hud.includes('#hud[data-layout="port"][data-mode="1p"] #p2Side{')
+  && hud.includes('.id-name{font-size:var(--nameF)')
+  && !hud.includes('#p2Side .id-name{display:none}'));
+check('320px compact BOT preserves the complete P2 name by removing only its redundant portrait',
+  hud.includes('@media(max-width:340px){')
+  && hud.includes('#hud:not([data-quest="1"])[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .portrait{display:none}')
+  && hud.includes('#p2Side .id-name{font-size:clamp(12px,3.6vw,14px)}'));
+check('touch BOT hides the misleading P1 LOCAL control label while retaining P2 CPU label',
+  hud.includes('#hud[data-layout="port"][data-mode="1p"] #p2Side .id-ctrl{display:none}')
+  && hud.includes('#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Side .id-ctrl{display:none}')
+  && hud.includes("R.side[1].ctrl.textContent=S.mode==='1p'?'CPU':(desk?'LOCAL · NUM 1 2':'LOCAL · TAP');"));
+
 console.log('GOLD BATTLE HUD ADAPTATION GATE (R49D + R48B production truth)');
 for (const line of pass) console.log(line);
 if (fail.length) {

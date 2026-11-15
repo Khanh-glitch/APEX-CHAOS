@@ -112,13 +112,18 @@ try{
    await cmd('Page.navigate',{url:base});
    checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-boot-start'))"),view.id+' boot loads');
    await run("(()=>{const w=window.__apexGoldFidelity?.child()||window;w.document.querySelector('#apex-boot-start')?.click()})()");
-   checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-language-select'))"),view.id+' language picker loads');
+   checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-language-eng'))"),view.id+' language picker loads');
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.querySelector('#stage')?.classList.contains('ready')})()"),view.id+' HOME ready');
    checked(await until("(()=>{const w=window.__apexGoldFidelity?.child()||window;return w.document.body?.dataset?.apexSceneTransition==='DONE'})()"),view.id+' transition fully opened');
    await sleep(200);
+   checked(await until("Boolean((window.__apexGoldFidelity?.child()||window).document.querySelector('#apex-utility-toggle'))"),
+     view.id+' accessible system command');
+   const cleanHome=await run("(()=>{const d=(window.__apexGoldFidelity?.child()||window).document;return d.querySelector('#apex-language-picker')?.hidden===true})()");
+   checked(cleanHome,view.id+' LANG and Help hidden until requested');
+   await run("(()=>{const d=(window.__apexGoldFidelity?.child()||window).document;d.querySelector('#apex-utility-toggle')?.click()})()");
    const report=await run(`(async()=>{
      const w=window.__apexGoldFidelity?.child()||window,d=w.document;
-     const picker=d.querySelector('#apex-language-select');
+     const picker=d.querySelector('#apex-language-picker');
      w.APEX_I18N.setLanguage('vie');
      await d.fonts.ready;
      await new Promise(r=>w.requestAnimationFrame(()=>w.requestAnimationFrame(r)));
@@ -136,7 +141,7 @@ try{
      const overlap=Boolean(skinVisible&&pickBox.left<skinBox.right&&
        pickBox.right>skinBox.left&&pickBox.top<skinBox.bottom&&pickBox.bottom>skinBox.top);
      return {
-       chosen:picker.value,persist:w.localStorage.getItem('apex-chaos.ui-language.v1'),
+       chosen:picker.querySelector('[aria-pressed=\"true\"]')?.dataset.apexLanguageOption,persist:w.localStorage.getItem('apex-chaos.ui-language.v1'),
        title:title.innerText,cta:button.innerText,ctaState:d.querySelector('#continueStory .storyState')?.innerText,htmlLang:d.documentElement.lang,
        font:w.getComputedStyle(title).fontFamily,
        viewport:{width:w.innerWidth,height:w.innerHeight},
@@ -159,6 +164,7 @@ try{
    checked(report.withinTitle&&report.ctaWithin&&report.pickerVisible&&report.pickerHit&&
      !report.skinOverlap&&report.skinHit&&report.skinInside,
      view.id+' glyph bounds and independent language/SKINS hit targets',report);
+   await run("(()=>{const d=(window.__apexGoldFidelity?.child()||window).document;d.querySelector('#apex-utility-toggle')?.click()})()");
    await capture(view.id+'-vie');
    await typographyAudit(view.id+'-home-vie','w.document',['.storyTitle span','.quest','.location','.cta .label','.profileText b']);
    checked((await auditAllVisibleText(view.id+'-home-vie','w.document')).clippedCount===0,view.id+' home visible text is not clipped');

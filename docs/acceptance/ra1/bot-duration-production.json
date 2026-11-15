@@ -1,0 +1,326 @@
+{
+  "generatedAt": "2026-10-22T06:01:17.884Z",
+  "capSeconds": 320,
+  "rows": [
+    {
+      "p1": "newbot",
+      "p2": "newbot",
+      "started": {
+        "time": 1.5643000000000011,
+        "hp": [
+          1000,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "NEWBOT"
+      },
+      "steps": 2130,
+      "start": 1.5809000000000015,
+      "duration": 53.2,
+      "over": "ROBOT",
+      "hp": [
+        [
+          1000,
+          0
+        ],
+        [
+          1000,
+          855
+        ]
+      ],
+      "winnerSide": "P2",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "ROBOT",
+        "result": true,
+        "winner": "P2"
+      }
+    },
+    {
+      "p1": "newbot",
+      "p2": "hunter",
+      "started": {
+        "time": 1.2444000000000006,
+        "hp": [
+          1000,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "HUNTER"
+      },
+      "steps": 3028,
+      "start": 1.2611000000000014,
+      "duration": 75.5,
+      "over": "ROBOT",
+      "hp": [
+        [
+          1000,
+          696
+        ],
+        [
+          1000,
+          0
+        ]
+      ],
+      "winnerSide": "P1",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "ROBOT",
+        "result": true,
+        "winner": "P1"
+      }
+    },
+    {
+      "p1": "newbot",
+      "p2": "crystala",
+      "started": {
+        "time": 1.3921000000000006,
+        "hp": [
+          1000,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "CRYSTALA"
+      },
+      "steps": 3649,
+      "start": 1.4088000000000014,
+      "duration": 90.8,
+      "over": "ROBOT",
+      "hp": [
+        [
+          1000,
+          920
+        ],
+        [
+          1000,
+          0
+        ]
+      ],
+      "winnerSide": "P1",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "ROBOT",
+        "result": true,
+        "winner": "P1"
+      }
+    },
+    {
+      "p1": "newbot",
+      "p2": "magnet",
+      "started": {
+        "time": 1.3919999999999983,
+        "hp": [
+          888,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "MAGNET"
+      },
+      "steps": 1738,
+      "start": 1.4249999999999983,
+      "duration": 43.2,
+      "over": "MAGNET",
+      "hp": [
+        [
+          888,
+          0
+        ],
+        [
+          1000,
+          978
+        ]
+      ],
+      "winnerSide": "P2",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "MAGNET",
+        "result": true,
+        "winner": "P2"
+      }
+    },
+    {
+      "p1": "newbot",
+      "p2": "frost",
+      "started": {
+        "time": 1.242299999999997,
+        "hp": [
+          1000,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "FROST"
+      },
+      "steps": 3414,
+      "start": 1.275299999999997,
+      "duration": 85.1,
+      "over": "ICE",
+      "hp": [
+        [
+          1000,
+          0
+        ],
+        [
+          1000,
+          545
+        ]
+      ],
+      "winnerSide": "P2",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "ICE",
+        "result": true,
+        "winner": "P2"
+      }
+    },
+    {
+      "p1": "boxe",
+      "p2": "hunter",
+      "started": {
+        "time": 1.1479,
+        "hp": [
+          1000,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "HUNTER"
+      },
+      "steps": 2292,
+      "start": 1.1479,
+      "duration": 57.1,
+      "over": "HUNTER",
+      "hp": [
+        [
+          1000,
+          0
+        ],
+        [
+          1000,
+          685
+        ]
+      ],
+      "winnerSide": "P2",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "HUNTER",
+        "result": true,
+        "winner": "P2"
+      }
+    },
+    {
+      "p1": "crystala",
+      "p2": "newbot",
+      "started": {
+        "time": 1.492600000000001,
+        "hp": [
+          1000,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "NEWBOT"
+      },
+      "steps": 1841,
+      "start": 1.5092999999999999,
+      "duration": 45.8,
+      "over": "ROBOT",
+      "hp": [
+        [
+          1000,
+          0
+        ],
+        [
+          1000,
+          1000
+        ]
+      ],
+      "winnerSide": "P2",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "ROBOT",
+        "result": true,
+        "winner": "P2"
+      }
+    },
+    {
+      "p1": "hunter",
+      "p2": "boxe",
+      "started": {
+        "time": 1.0462999999999996,
+        "hp": [
+          1000,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "BOXE"
+      },
+      "steps": 2251,
+      "start": 1.0792999999999995,
+      "duration": 55.9,
+      "over": "BOXE",
+      "hp": [
+        [
+          1000,
+          0
+        ],
+        [
+          1000,
+          494
+        ]
+      ],
+      "winnerSide": "P2",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "BOXE",
+        "result": true,
+        "winner": "P2"
+      }
+    },
+    {
+      "p1": "shuri",
+      "p2": "magnet",
+      "started": {
+        "time": 1.1966000000000023,
+        "hp": [
+          1000,
+          1000
+        ],
+        "mode": "BOT",
+        "bot": "MAGNET"
+      },
+      "steps": 3476,
+      "start": 1.2132000000000027,
+      "duration": 86.7,
+      "over": "MAGNET",
+      "hp": [
+        [
+          1000,
+          0
+        ],
+        [
+          1000,
+          299
+        ]
+      ],
+      "winnerSide": "P2",
+      "clockHud": "00:02",
+      "sealed": {
+        "over": "MAGNET",
+        "result": true,
+        "winner": "P2"
+      }
+    }
+  ],
+  "stats": {
+    "resolved": 9,
+    "unresolved": 0,
+    "median": 57.1,
+    "p90": 90.8,
+    "max": 90.8,
+    "unresolvedAt180": 0,
+    "unresolvedAt300": 0
+  },
+  "testedCommit": "856cdf48247aa752b377eb2ddb6071426cf6e494",
+  "revision": "20261021-cp5-r1",
+  "previewOrigin": "exact SHA production Vite preview (port 4173; receipt verified)",
+  "method": "Nine real BOT pairings; production AI and APEX_ARSENAL.step(0.025) advanced simulated game time; no-input P1; no gameplay or timer rule changed.",
+  "invocation": "RA1_PAIRS=newbot:newbot,newbot:hunter,newbot:crystala,newbot:magnet,newbot:frost,boxe:hunter,crystala:newbot,hunter:boxe,shuri:magnet"
+}

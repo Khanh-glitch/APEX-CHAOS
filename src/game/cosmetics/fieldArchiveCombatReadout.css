@@ -413,3 +413,15 @@
 @media(max-width:760px) and (orientation:landscape){
  #stage.screen-fighter .selectionHeadV6 .fa3-pick-equip-entry{min-height:14px;padding:1px 7px;font-size:7px}
 }
+
+/* CP3 mastery-gated Gold skins: preview remains available, equip is truth. */
+.fa3-skin.locked { filter:saturate(.48); }
+.fa3-skin.locked .fa3-skin-thumb { filter:grayscale(.72) brightness(.72); }
+.fa3-skin.locked .fa3-skin-name small { color:#ffb35c; }
+.fa3-skin.locked > strong { color:#ffb35c; font-size:15px; }
+.fa3-skin-lock {
+  display:grid; gap:4px; margin:8px 0; padding:9px 10px;
+  border:1px solid rgba(255,179,92,.55); background:rgba(63,38,17,.42); color:#f3d6b3;
+}
+.fa3-skin-lock b { font:900 10px/1.25 ui-monospace,monospace; letter-spacing:.08em; color:#ffcf8a; }
+.fa3-skin-lock span { font-size:11px; line-height:1.45; }

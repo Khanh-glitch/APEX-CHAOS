@@ -24,6 +24,7 @@
     // visual-only Gold must never register DOM events, spawn lab enemies, or
     // requestAnimationFrame; the patched constructor returns before attach().
     g.enemies=[];g.projs=[];g.ribbons=[];g.paused=true;
+    g.retainedFluid=global.APEX_GOLD_LOSSLESS_FLUID?.install(g.fluid);
     const rec={g,f,last:now(),rocket:null,flurry:null,punches:[],disposers:[]};live.set(f,rec);
     return rec;
   }
@@ -83,16 +84,21 @@
     }
     if(g.rocketCatch){g.rocketCatch.t+=dt;if(g.rocketCatch.t>=g.rocketCatch.life)g.rocketCatch=null;}
     g.rocketCatchApproach=Math.max(0,g.rocketCatchApproach-dt*4.2);
-    for(const a of [...g.pressure]){a.life-=dt;if(a.life<=0)g.pressure.splice(g.pressure.indexOf(a),1);else{
+    for(const a of g.pressure){a.life-=dt;if(a.life<=0)a.__retired=true;else{
       const k=1-a.life/a.max;a.r=6+(a.r1-6)*(1-Math.pow(1-k,2.4));}}
-    for(const a of [...g.rings]){a.life-=dt;a.r+=a.vr*dt;if(a.life<=0)g.rings.splice(g.rings.indexOf(a),1);}
-    for(const a of [...g.arcs]){a.life-=dt;if(a.life<=0)g.arcs.splice(g.arcs.indexOf(a),1);}
-    for(const a of [...g.afters]){a.life-=dt;if(a.life<=0)g.afters.splice(g.afters.indexOf(a),1);}
-    for(const a of [...g.particles]){
+    for(const a of g.rings){a.life-=dt;a.r+=a.vr*dt;if(a.life<=0)a.__retired=true;}
+    for(const a of g.arcs){a.life-=dt;if(a.life<=0)a.__retired=true;}
+    for(const a of g.afters){a.life-=dt;if(a.life<=0)a.__retired=true;}
+    for(const a of g.particles){
       a.life-=dt;a.vy+=(a.grav||0)*dt;
       const drag=Math.exp(-(a.drag||0)*dt);a.vx*=drag;a.vy*=drag;
       a.x+=a.vx*dt;a.y+=a.vy*dt;a.rot+=(a.vr||0)*dt;
-      if(a.life<=0)g.particles.splice(g.particles.indexOf(a),1);
+      if(a.life<=0)a.__retired=true;
+    }
+    for(const list of [g.pressure,g.rings,g.arcs,g.afters,g.particles]) {
+      let write=0;
+      for(let i=0;i<list.length;i++) if(!list[i].__retired) list[write++]=list[i];
+      list.length=write;
     }
     for(const zone of [...g.zones]){
       zone.t+=dt;
@@ -160,6 +166,8 @@
       const fg=new lib.Engine(canvas,{visualOnly:true,materialFx:true,sound:false,
         hitstop:true,afterimage:true,shake:1});
       fg.enemies=[];fg.projs=[];fg.ribbons=[];fg.paused=true;
+      fg.retainedFluid=global.APEX_GOLD_LOSSLESS_FLUID?.install(fg.fluid);
+      rec.flurry?.g?.destroy();
       fg.player.x=toGold(body.x);fg.player.y=toGold(body.y);fg.player.aim=g.player.aim;
       fg.player.empoweredT=body.duration;
       rec.flurry={g:fg,x:toGold(body.x),y:toGold(body.y),start:now(),until:now()+body.duration,
@@ -271,6 +279,8 @@
     }
   }
   function drawLayers(ctx,g){
+    g.retainedFluid?.beginFrame();
+    try {
     // Original Gold engine's world-compositing layers in their source order.
     // Excludes Gold's alternative arena, AI, health overlays and second HUD.
     g.material.drawGround(ctx);
@@ -284,7 +294,17 @@
     g.fluid.draw(ctx,'fire');
     g.fire.draw(ctx);g.lightning.draw(ctx);
     g.drawFx(ctx);g.fx.drawTop(ctx);
+    } finally { g.retainedFluid?.endFrame(); }
   }
+  global.APEX_RETAINED_PRESENTATION?.registerActor('BOXE', body => {
+    if (body.hp <= 0) return;
+    const rec=live.get(body)||make(body);
+    if (rec.g.sprites) advance(rec,body);
+  });
+  AIL.bus.on('ReworkMatchTeardown', () => {
+    for (const rec of live.values()) { rec.g.destroy(); rec.flurry?.g?.destroy(); }
+    live.clear();
+  });
   const oldDraw=global.Fighter?.prototype?.draw;
   if(!oldDraw)throw Error('BOXE_REQUIRES_NATIVE_FIGHTER_DRAW');
   if(!global.Fighter.prototype.__boxeGoldDraw){
@@ -295,7 +315,9 @@
       if(!rec.g.sprites)return; // UI readiness gate preloads real Gold sprites; no impostor body
       ctx.save();
       try{
-        advance(rec,this);
+        // Production prepares at the actor boundary; standalone callers share the same guard.
+        if(global.APEX_RETAINED_PRESENTATION) global.APEX_RETAINED_PRESENTATION.prepare(this);
+        else advance(rec,this);
         const g=rec.g;
         ctx.translate(worldOffset(),worldOffset());
         drawLayers(ctx,g);

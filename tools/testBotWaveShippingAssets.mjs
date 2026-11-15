@@ -21,6 +21,7 @@ if(fs.existsSync(actual)){
  const game=fs.readFileSync(actual,'utf8');
  const nativeScriptPaths=['/game/arsenal/arsenalConfig.js',
   '/game/bot-wave/waveCampaign.js','/game/bot-wave/nativeArsenalGoldBridge.js',
+  '/game/bot-wave/losslessFluidRuntime.js',
   '/game/arsenal/arsenalCWeaponSet.generated.js',
   '/game/arsenal/arsenalPresentationRuntime.js',
   '/game/arsenal/arsenalWeaponRuntime.js'];

@@ -15,6 +15,14 @@ import crypto from 'node:crypto';
 
 const H = await bootHarness();
 const { win, T } = H;
+// F12 measures hero/ice sprite pixels against Gold parity baselines.
+// The combat side-marker overlay (P1/P2 rings + head tags, owner
+// Requirement C) is product-duel presentation ink the Gold original
+// never had; leaving it on shifts crop bounds by the ring/tag pixels
+// and says nothing about Frost. Disable the overlay for measurement
+// via its shipped kill-switch — marker behavior itself is covered by
+// the outcome-side gate and real-browser acceptance, not here.
+win.__apexSideMarkers = false;
 const report = { gates: {}, failures: [] };
 function gate(name, ok, detail) {
   report.gates[name] = { pass: !!ok, detail };
@@ -150,7 +158,10 @@ try {
   gate('F01.6-save-round-trip',
     again.lastSelectedP1 === 'ICE' && again.credits === 500
     && META.OWNER_PLAYTEST_AC_SEED === 0
-    && again.ownedFighters.join(',') === 'ROBOT,ICE' && again.unlockedAt.ICE === 2,
+    // Issue #105 P0-B: the additive HUNTER ownership migration runs once on a legacy save. ROBOT and ICE are kept
+    // in order, HUNTER is appended exactly once, and nothing else changes.
+    && again.ownedFighters.join(',') === 'ROBOT,ICE,HUNTER' && again.ownedFighters.filter((f) => f === 'HUNTER').length === 1
+    && again.unlockedAt.ICE === 2,
     { p1: again.lastSelectedP1, credits: again.credits, seed: META.OWNER_PLAYTEST_AC_SEED });
 } catch (e) { gate('F01.5-legacy-ice-save-loads', false, String(e && e.message)); }
 

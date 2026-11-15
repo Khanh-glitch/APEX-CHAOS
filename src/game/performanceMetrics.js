@@ -1,5 +1,11 @@
 const MAX_TIMINGS = 250;
 const MAX_FRAME_SAMPLES = 600;
+// Continuous instrumentation is opt-in; normal play owns no metrics RAF or
+// long-task observer. Boot/resource receipts remain available without sampling.
+const continuousMetrics = typeof window !== 'undefined' && (
+  window.__APEX_PERF_ENABLED === true ||
+  new URLSearchParams(window.location.search).get('apexPerf') === '1'
+);
 
 const now = () => performance.now();
 const round = (value, digits = 1) => Number(value.toFixed(digits));
@@ -48,7 +54,7 @@ export function markBootInteractive() {
   if (state.boot.interactiveAt !== null) return;
   state.boot.interactiveAt = now();
   markBootPhase('interactive');
-  startFrameMonitor();
+  if (continuousMetrics) startFrameMonitor();
 }
 
 export function markLoaderHidden() {
@@ -117,7 +123,7 @@ export function getPerformanceReport() {
       slowest: slowestTimings(),
       timings: [...state.timings],
     },
-    frames: frameSummary(),
+    frames: { ...frameSummary(), enabled: continuousMetrics },
     longTasks: {
       count: longTaskSamples.length,
       totalMs: round(longTaskSamples.reduce((sum, task) => sum + task.durationMs, 0)),
@@ -149,7 +155,7 @@ function startFrameMonitor() {
   requestAnimationFrame(sample);
 }
 
-if (typeof PerformanceObserver !== 'undefined') {
+if (continuousMetrics && typeof PerformanceObserver !== 'undefined') {
   try {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {

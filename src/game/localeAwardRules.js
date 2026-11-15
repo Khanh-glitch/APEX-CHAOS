@@ -138,8 +138,8 @@ export const AWARD_RULE_TEMPLATES=Object.freeze([
   },
   {
     "id": "scavenger",
-    "vi": "Nhặt ≥ {pickups} vật phẩm trên sàn trong trận.",
-    "en": "Pick up at least {pickups} floor items in one match."
+    "vi": "Nhặt thành công ≥ {pickups} trang bị trên sàn trong trận.",
+    "en": "Successfully pick up at least {pickups} equipment items from the floor in one match."
   },
   {
     "id": "second-wind",
@@ -188,8 +188,8 @@ export const AWARD_RULE_TEMPLATES=Object.freeze([
   },
   {
     "id": "combo-artist",
-    "vi": "Có {chains} chuỗi mà skill và súng đều gây damage trong cùng cửa sổ {window} giây.",
-    "en": "Execute {chains} chains in which a skill and a weapon both deal damage within {window} seconds."
+    "vi": "Có {chains} lần dùng kỹ năng chủ động thành công rồi gây damage bằng vũ khí trong vòng {window} giây.",
+    "en": "Successfully cast an active skill and then deal weapon damage within {window} seconds, {chains} times."
   },
   {
     "id": "adrenaline",
@@ -218,8 +218,8 @@ export const AWARD_RULE_TEMPLATES=Object.freeze([
   },
   {
     "id": "chaos-bringer",
-    "vi": "Trong {window} giây, gây damage từ ≥ {sources} Weapon ID khác nhau VÀ ít nhất một kỹ năng.",
-    "en": "Within {window} seconds, deal damage using at least {sources} weapon IDs and at least one skill."
+    "vi": "Trong {window} giây, gây damage bằng ≥ {sources} Weapon ID khác nhau và có ít nhất một hit vũ khí được hỗ trợ bởi kỹ năng.",
+    "en": "Within {window} seconds, deal damage with at least {sources} different weapon IDs, including at least one skill-assisted weapon hit."
   },
   {
     "id": "signature-newbot",

@@ -67,3 +67,10 @@ body:has(#apex-boot-start) .apex-skin-entry,body:has(#stage.screen-mode) .apex-s
 @media (max-height:600px) and (orientation:portrait) and (max-width:680px){
   .apex-skin-entry{top:calc(1.8vh + 37px + 26px + 12px + env(safe-area-inset-top))}
 }
+
+/* CP3 mastery-gated skins in the standalone locker. */
+.apex-cosmetics-skin.locked { cursor:not-allowed; filter:saturate(.5); }
+.apex-cosmetics-skin.locked .apex-cosmetics-skin-swatch { filter:grayscale(.75) brightness(.72); }
+.apex-cosmetics-skin.locked .apex-cosmetics-skin-copy small,
+.apex-cosmetics-skin.locked .apex-cosmetics-skin-status { color:#ffb35c; }
+.apex-cosmetics-skin:disabled { opacity:.82; }

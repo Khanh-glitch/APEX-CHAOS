@@ -210,10 +210,12 @@ function hasCompressedAudioSibling(abs) {
 }
 
 // Template-literal asset refs that a static scan cannot see, e.g.
-// `vfx/c/smoke_${n}.png` in arsenalPresentationRuntime.js.
+// `vfx/c/smoke_${n}.webp` in arsenalPresentationRuntime.js (the runtime
+// builders emit .webp; declaring .png here pruned the real files from
+// every production dist — RC browser proof).
 const TEMPLATE_REFS = [
-  { pattern: 'vfx/c/smoke_${n}.png', dir: '/assets/arsenal/av/vfx/c/', ext: '.png', file: 'public/game/arsenal/arsenalPresentationRuntime.js' },
-  { pattern: 'vfx/c/spark_${n}.png', dir: '/assets/arsenal/av/vfx/c/', ext: '.png', file: 'public/game/arsenal/arsenalPresentationRuntime.js' },
+  { pattern: 'vfx/c/smoke_${n}.webp', dir: '/assets/arsenal/av/vfx/c/', ext: '.webp', file: 'public/game/arsenal/arsenalPresentationRuntime.js' },
+  { pattern: 'vfx/c/spark_${n}.webp', dir: '/assets/arsenal/av/vfx/c/', ext: '.webp', file: 'public/game/arsenal/arsenalPresentationRuntime.js' },
 ];
 
 const report = [];

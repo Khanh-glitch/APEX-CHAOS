@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {PRODUCT_ROSTER} from '../productSurface.js';
+import {apexAppUrl} from '../appRoot.js';
 import {cosmetics} from './cosmeticAuthority.js';
 import {loadDeferredGameRuntimes} from '../runtimeLoader.js';
 import './approvedGoldSkins.js';
@@ -20,15 +21,15 @@ const HERO_META=Object.freeze({
 const PICTURE=(id,definition)=>{const artwork=definition?.archiveProfile?.artwork;
  const declared=(typeof artwork==='string'?artwork:artwork?.standing||artwork?.avatar)||
    definition?.artwork?.pickSelected||definition?.artwork?.selected;
- if(typeof declared==='string'&&/^\/assets\/[a-zA-Z0-9_./-]+\.(webp|png|jpg)$/.test(declared)&&!declared.includes('..'))return declared;
- const legacy=HERO_META[id];return legacy?'/assets/gold-ui/heroes/'+legacy.file+'/pick_'+(id==='MIRROR'?'roster_cover':'selected_large')+'.webp':null;
+ if(typeof declared==='string'&&/^\/assets\/[a-zA-Z0-9_./-]+\.(webp|png|jpg)$/.test(declared)&&!declared.includes('..'))return apexAppUrl(declared);
+ const legacy=HERO_META[id];return legacy?apexAppUrl('/assets/gold-ui/heroes/'+legacy.file+'/pick_'+(id==='MIRROR'?'roster_cover':'selected_large')+'.webp'):null;
 };
 const WEAPON_C_IMAGES=new Set('PISTOL SHOTGUN SMG SNIPER GRENADE SABRE BATTLE_AXE DAGGER SPEAR SPIKED_CLUB SWIRL_SHIELD TOWER_SHIELD AK_47 BERETTA_93R DESERT_DEAGLE GLOCK_17 JACKHAMMER M16 M249_SAW MAC_10 MAGNUM_500 MBR MBR2 MOSSBERG_500 P90 SAWED_OFF SZECSEI_FUCHS TEC_9 ZBROYAR_Z15'.split(' '));
 const WEAPON_V43_IMAGES=new Set('BOLT COMBAT_BOOMERANG FLAMETHROWER FLARE_GUN PLASMA_SPLITTER RPG_7 SHRAPNEL_MINE_LAUNCHER STEEL_BALL_LAUNCHER TACTICAL_CROSSBOW'.split(' '));
-function weaponImage(id,meta){if(id==='RPG_7'&&meta?.skinId==='vua-he')return '/assets/skins/rocket-vua-he/launcher.png';
- if(WEAPON_V43_IMAGES.has(id))return '/assets/arsenal/v43/'+id+'.webp';
- if(WEAPON_C_IMAGES.has(id))return '/assets/arsenal/weapons/c/'+id+'.png';
- return typeof meta?.art==='string'&&/^\/assets\/arsenal\//.test(meta.art)?meta.art:null;
+function weaponImage(id,meta){if(id==='RPG_7'&&meta?.skinId==='vua-he')return apexAppUrl('/assets/skins/rocket-vua-he/launcher.png');
+ if(WEAPON_V43_IMAGES.has(id))return apexAppUrl('/assets/arsenal/v43/'+id+'.webp');
+ if(WEAPON_C_IMAGES.has(id))return apexAppUrl('/assets/arsenal/weapons/c/'+id+'.png');
+ return typeof meta?.art==='string'&&/^\/assets\/arsenal\//.test(meta.art)?apexAppUrl(meta.art):null;
 }
 // The real Gold fighter-pick is a separate screen from HOME. Read its
 // DOM selection authority instead of copying or mutating Gold pick state.
@@ -65,7 +66,7 @@ function catalogWeapons(){
  const c=window.APEX_ARSENAL_CONFIG;
  if(!c?.WEAPONS)return [];
  return Object.entries(c.WEAPONS).filter(([id])=>id!=='T6'&&id!=='STORMBREAKER_INTERNAL').map(([id,w])=>({
-  id,name:String(w.name||id.replaceAll('_',' ')),tier:c.tierOf?.(id)||w.tier||'—',
+  id,name:String(c.weaponDisplayName?.(id)||w.name||id.replaceAll('_',' ')),tier:c.tierOf?.(id)||w.tier||'—',
   family:String(w.family||w.kind||'Equipment'),data:w
  })).sort((a,b)=>(Number(a.tier?.slice(1))||9)-(Number(b.tier?.slice(1))||9)||a.name.localeCompare(b.name));
 }
@@ -102,7 +103,7 @@ function GoldEcoActor({active,mini=false}){
  if(fallback)return <span className="fa3-render-warning">ECOBOT GOLD PREVIEW UNAVAILABLE</span>;
  return <canvas ref={ref} className={'fa3-eco'+(mini?' fa3-eco-mini':'')} aria-label="Approved ECOBOT V17 Gold actor rendering"/>;
 }
-function DisplayArtwork({kind,item,previewId}){
+function DisplayArtwork({kind,item,previewId,language='eng'}){
  const hero=kind==='hero';
  const image=hero?PICTURE(item.id,item.registry):weaponImage(item.id,{skinId:previewId,art:item.data?.art});
  const isEco=hero&&item.id==='ROBOT'&&previewId==='ecobot';
@@ -119,8 +120,8 @@ function DisplayArtwork({kind,item,previewId}){
  return <div className={'fa3-artwork '+(hero?'fa3-artwork-hero':'fa3-artwork-weapon')} data-visual-ready={ready?'true':'false'} key={kind+item.id+previewId}>
   <span className="fa3-art-code" aria-hidden="true">{hero?(item.family==='LOCKED'?'LOCKED':'PLAYABLE'):'ARSENAL / '+item.tier}</span>
   <div className="fa3-art-orbit" aria-hidden="true"/>
-  {isEco?<GoldEcoActor active/>:!broken?<img src={image} className={(hero?'fa3-hero-img':'fa3-weapon-img')+(ready?' fa3-decoded':' fa3-pending')} alt={item.name+' '+previewId+' approved asset'} decoding="async" onLoad={decodeRealImage} onError={()=>setBadSrc(image)}/>:<div className="fa3-art-missing" role="status">{item.family==='LOCKED'?<>VISUAL RECORD CLASSIFIED <small>Fighter locked — dossier incomplete</small></>:<>VISUAL RECORD UNAVAILABLE <small>Approved image could not be decoded</small></>}</div>}
-  {!ready&&!broken&&<div className="fa3-visual-progress" role="status"><span>◎</span><b>DECODING APPROVED ART</b><small>VISUAL AUTHORITY / {item.id}</small></div>}
+  {isEco?<GoldEcoActor active/>:!broken?<img src={image} className={(hero?'fa3-hero-img':'fa3-weapon-img')+(ready?' fa3-decoded':' fa3-pending')} alt={language==='vie'?`${item.name} — ${previewId==='default'?'mặc định':previewId} — hình ảnh đã duyệt`:item.name+' '+previewId+' approved asset'} decoding="async" onLoad={decodeRealImage} onError={()=>setBadSrc(image)}/>:<div className="fa3-art-missing" role="status">{item.family==='LOCKED'?<>VISUAL RECORD CLASSIFIED <small>Fighter locked — dossier incomplete</small></>:<>VISUAL RECORD UNAVAILABLE <small>Approved image could not be decoded</small></>}</div>}
+  {!ready&&!broken&&<div className="fa3-visual-progress" role="status"><span>◎</span><b>DECODING APPROVED ART</b><small>{language==='vie'?'THẨM QUYỀN HÌNH ẢNH / ':'VISUAL AUTHORITY / '}{item.id}</small></div>}
   <span className="fa3-art-underlay" aria-hidden="true">{item.id.replaceAll('_',' ').slice(0,18)}</span>
   <span className="fa3-art-label">{previewId==='default'?'ORIGINAL':previewId.toUpperCase()} / VISUAL PREVIEW</span>
  </div>;
@@ -129,6 +130,7 @@ function WeaponFacts({item,skin}){return <WeaponStatConsole item={item} skin={sk
 function HeroFacts({item}){return <AbilityWeb item={item} legacySkills={HERO_META[item.id]?.skills||[]}/>}
 export default function FieldArchiveC03(){
  const [home,setHome]=useState(false),[pick,setPick]=useState(false),[pickHost,setPickHost]=useState(null),[open,setOpen]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
+ const [language,setLanguage]=useState(()=>window.APEX_I18N?.getLanguage?.()||'eng');
  const [kind,setKind]=useState('hero'),[side,setSide]=useState('p1'),[focus,setFocus]=useState('ROBOT');
  const [weapons,setWeapons]=useState([]),[heroes,setHeroes]=useState([]),[view,setView]=useState('SKINS'),[page,setPage]=useState(0),[query,setQuery]=useState('');
  const [preview,setPreview]=useState('default'),[skinPage,setSkinPage]=useState(0),[rev,setRev]=useState(0),[warning,setWarning]=useState(false);
@@ -142,16 +144,23 @@ export default function FieldArchiveC03(){
    if(!current&&!duringPick)setOpen(false);
   };
   const resize=()=>setWindowSize({w:innerWidth,h:innerHeight});
+  const locale=event=>setLanguage(event.detail?.language==='vie'?'vie':'eng');
   const subscription=cosmetics.subscribe(()=>setRev(x=>x+1));
+  const masteryEvent=()=>setRev(x=>x+1);
   const interval=setInterval(update,400);
   const event=()=>{void launch()};
+  const closeFromSession=()=>setOpen(false);
   const homeClick=e=>{if(e.target?.closest?.('#apexDictionaryOpen'))void launch()};
+  window.addEventListener('apex:language-changed',locale);
   window.addEventListener('apex-open-cosmetics',event);
   window.addEventListener('apex-open-dictionary',event);
+  window.addEventListener('apex-close-cosmetics',closeFromSession);
+  window.addEventListener('apex:mastery-unlocked',masteryEvent);
+  window.addEventListener('apex:skin-unlocked',masteryEvent);
   document.addEventListener('click',homeClick);
   window.addEventListener('resize',resize,{passive:true});
   update();
-  return()=>{clearInterval(interval);subscription();document.removeEventListener('click',homeClick);window.removeEventListener('resize',resize);window.removeEventListener('apex-open-cosmetics',event);window.removeEventListener('apex-open-dictionary',event)};
+  return()=>{clearInterval(interval);subscription();document.removeEventListener('click',homeClick);window.removeEventListener('resize',resize);window.removeEventListener('apex:language-changed',locale);window.removeEventListener('apex-open-cosmetics',event);window.removeEventListener('apex-open-dictionary',event);window.removeEventListener('apex-close-cosmetics',closeFromSession);window.removeEventListener('apex:mastery-unlocked',masteryEvent);window.removeEventListener('apex:skin-unlocked',masteryEvent)};
  },[]);
  useEffect(()=>{if(!open)return;
   const before=document.activeElement;
@@ -199,6 +208,17 @@ export default function FieldArchiveC03(){
  const worn=current?cosmetics.selected(side,kind,current.id):null;
  const activePreview=opts.some(v=>v.id===preview)?preview:'default';
  const chosen=opts.find(v=>v.id===activePreview)||opts[0]||null;
+ const progressForSkin=(skin)=>{try{return current&&skin?window.APEX_ARSENAL_META?.skinProgress?.(kind,current.id,skin.id)||null:null}catch{return null}};
+ const entitledSkin=(skin)=>!current||!skin||skin.id==='default'||cosmetics.isEntitled(kind,current.id,skin.id);
+ const lockLabelForSkin=(skin)=>{
+   if(!skin||skin.id==='default'||entitledSkin(skin))return '';
+   const cp=progressForSkin(skin);
+   if(!cp)return 'LOCKED · MASTERY REQUIRED';
+   return cp.weaponId
+     ? `LOCKED · ${Math.round(Number(cp.current)||0).toLocaleString('en-US')} / >1,000 RPG-7 DMG`
+     : `LOCKED · ${cp.current}/${cp.target} NEWBOT MASTERY`;
+ };
+ const chosenLocked=!!chosen&&chosen.id!=='default'&&!entitledSkin(chosen);
  const skinMaxPage=Math.max(0,Math.ceil(opts.length/2)-1);
  const safeSkinPage=Math.min(skinPage,skinMaxPage);
  const visibleSkins=opts.slice(safeSkinPage*2,safeSkinPage*2+2);
@@ -220,10 +240,10 @@ export default function FieldArchiveC03(){
  },[open,current,filtered,listPageSize,pageMax]);
  function changeKind(next){setKind(next);setPage(0);setQuery('');setView('SKINS');const id=next==='hero'?'ROBOT':weapons[0]?.id||'';setFocus(id);if(id){const selected=cosmetics.selected(side,next,id).id;setPreview(selected);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(next,id).findIndex(v=>v.id===selected)/2)))}}
  function changeSide(next){setSide(next);if(current){const selected=cosmetics.selected(next,kind,current.id).id;setPreview(selected);setSkinPage(Math.max(0,Math.floor(cosmetics.variants(kind,current.id).findIndex(v=>v.id===selected)/2)))}}
- function equip(){if(!current||!chosen||activePreview===worn?.id)return;const result=cosmetics.equip(side,kind,current.id,chosen.id);if(result.ok)setWarning(result.persisted===false)}
+ function equip(){if(!current||!chosen||activePreview===worn?.id||chosenLocked)return;const result=cosmetics.equip(side,kind,current.id,chosen.id);if(result.ok)setWarning(result.persisted===false);else if(result.reason==='SKIN_LOCKED')setRev(x=>x+1)}
  return <>
   {pick&&!open&&pickHost&&createPortal(<button type="button" className="fa3-pick-equip-entry" aria-label="Open skins for selected fighter and player" onClick={()=>void launch('pick')} disabled={loading}><span>✦</span> {loading?'PREPARING':'SKINS'} <b>↗</b></button>,pickHost)}
-  {home&&!open&&error&&<div className="apex-skin-error" role="alert">Archive unavailable: {error}<button type="button" onClick={()=>setError('')}>×</button></div>}
+  {home&&!open&&error&&<div className="apex-skin-error" role="alert">{language==='vie'?'Kho hồ sơ không khả dụng: ':'Archive unavailable: '}{error}<button type="button" onClick={()=>setError('')}>×</button></div>}
   {open&&<div className="fa3-overlay apex-cosmetics-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}} onKeyDownCapture={e=>{
     e.stopPropagation();
     if(e.key==='Escape'){e.preventDefault();setOpen(false)}
@@ -236,7 +256,7 @@ export default function FieldArchiveC03(){
    }} onKeyUpCapture={e=>e.stopPropagation()}>
    <section className="fa3-shell" role="dialog" aria-modal="true" aria-labelledby="fa3-title">
     <div className="fa3-binding" aria-hidden="true"><i/><i/><i/></div>
-    <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS</small><h2 id="fa3-title"><span>THE FIELD </span><em>ARCHIVE</em></h2></div>
+    <header className="fa3-header"><div className="fa3-brand"><small>APEX CHAOS</small><h2 id="fa3-title" data-apex-no-localize="">{language==='vie'?'KHO HỒ SƠ':<>THE FIELD <em>ARCHIVE</em></>}</h2></div>
      <div className="fa3-primary" role="tablist" aria-label="Archive category"><button role="tab" aria-selected={kind==='hero'} className={kind==='hero'?'on':''} onClick={()=>changeKind('hero')}>FIGHTERS</button><button role="tab" aria-selected={kind==='weapon'} className={kind==='weapon'?'on':''} onClick={()=>changeKind('weapon')}>WEAPONS</button></div>
      <div className="fa3-players" role="group" aria-label="Choose loadout"><button aria-pressed={side==='p1'} className={side==='p1'?'on':''} onClick={()=>changeSide('p1')}>P1</button><button aria-pressed={side==='p2'} className={side==='p2'?'on':''} onClick={()=>changeSide('p2')}>P2 / BOT</button></div>
      <button className="fa3-close apex-cosmetics-close" type="button" onClick={()=>setOpen(false)} aria-label="Close archive">✕</button>
@@ -254,7 +274,7 @@ export default function FieldArchiveC03(){
       </aside>
       <main className="fa3-center">
        <div className="fa3-record-top"><div><small>{String(idx+1).padStart(2,'0')} / {String(count).padStart(2,'0')}</small><h3>{current?.name||'ARCHIVE'}</h3></div><span className="fa3-record-stamp">{kind==='hero'?'FIGHTER':'WEAPON'}</span></div>
-       {current?<DisplayArtwork kind={kind} item={current} previewId={activePreview}/>:<div className="fa3-empty">Preparing Arsenal records…</div>}
+       {current?<DisplayArtwork kind={kind} item={current} previewId={activePreview} language={language}/>:<div className="fa3-empty">Preparing Arsenal records…</div>}
        <div className="fa3-record-navigation"><button type="button" onClick={()=>shift(-1)} aria-label="Previous record">‹</button><span>{kind==='hero'?(current?.family==='LOCKED'?'LOCKED ROSTER':'ACTIVE ROSTER'):((current?.tier||'—')+' / '+(current?.family||'ARSENAL'))}</span><button type="button" onClick={()=>shift(1)} aria-label="Next record">›</button></div>
       </main>
       <section className="fa3-detail" aria-label="Appearance and record information">
@@ -264,16 +284,17 @@ export default function FieldArchiveC03(){
        <div className="fa3-detail-heading"><span>{view==='SKINS'?'SKINS / SELECT & EQUIP':view==='INFO'?'GAMEPLAY':'INDEX'}</span><i aria-hidden="true">{String(idx+1).padStart(3,'0')}</i></div>
        {view==='SKINS'&&<div className="fa3-appear">
         <p className="fa3-description">{kind==='hero'?(current?.registry?.archiveProfile?.intro||HERO_META[current?.id]?.intro||'Fighter locked — dossier incomplete.'):'Tier marks drop rarity: T1 29% · T2 29% · T3 23% · T4 12% · T5 5% · T6 2%.'}</p>
-        <div className="fa3-skin-list">{visibleSkins.map(s=><button type="button" key={s.id} className={'fa3-skin'+(s.id===activePreview?' preview':'')+(s.id===worn?.id?' equipped':'')} onClick={()=>setPreview(s.id)} aria-pressed={s.id===activePreview}>
-          <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:<img src={kind==='hero'?(s.preview||PICTURE(current.id,current.registry)):weaponImage(current.id,{skinId:s.id,art:current.data?.art})||''} alt=""/>}</span>
-          <span className="fa3-skin-name"><b>{s.label}</b><small>{s.id==='default'?'ORIGINAL PRESENTATION':s.detail||'APPROVED COSMETIC'}</small></span>
-          <strong>{s.id===worn?.id?'✓':'↗'}</strong></button>)}</div>
+        <div className="fa3-skin-list">{visibleSkins.map(s=><button type="button" key={s.id} className={'fa3-skin'+(s.id===activePreview?' preview':'')+(s.id===worn?.id?' equipped':'')+(lockLabelForSkin(s)?' locked':'')} onClick={()=>setPreview(s.id)} aria-pressed={s.id===activePreview}>
+          <span className="fa3-skin-thumb">{s.id==='ecobot'?<GoldEcoActor active mini/>:(()=>{const u=apexAppUrl(kind==='hero'?(s.preview||PICTURE(current.id,current.registry)):weaponImage(current.id,{skinId:s.id,art:current.data?.art}));return u?<img src={u} alt=""/>:<span className="fa3-thumb-empty" aria-hidden="true">{kind==='hero'?MONOGRAM(current.id):'✦'}</span>})()}</span>
+          <span className="fa3-skin-name"><b>{s.label}</b><small>{lockLabelForSkin(s)||(s.id==='default'?'ORIGINAL PRESENTATION':s.detail||'APPROVED COSMETIC')}</small></span>
+          <strong>{s.id===worn?.id?'✓':(lockLabelForSkin(s)?'▣':'↗')}</strong></button>)}</div>
         {skinMaxPage>0&&<div className="fa3-skin-pager" aria-label="Skin pages"><button disabled={safeSkinPage===0} onClick={()=>setSkinPage(p=>Math.max(0,p-1))} aria-label="Previous skin page">‹</button><span>{String(safeSkinPage+1).padStart(2,'0')} / {String(skinMaxPage+1).padStart(2,'0')}</span><button disabled={safeSkinPage===skinMaxPage} onClick={()=>setSkinPage(p=>Math.min(skinMaxPage,p+1))} aria-label="Next skin page">›</button></div>}
         {current&&<div className="fa3-readout-embed">
           {kind==='hero'?<AbilityWeb item={current} legacySkills={HERO_META[current.id]?.skills||[]} compact/>:<WeaponStatConsole item={current} skin={chosen} compact/>}
          </div>}
         <div className="fa3-equip-state"><b>{side==='p1'?'PLAYER 01':'PLAYER 02 / BOT'}</b><span>EQUIPPED / {worn?.label||'ORIGINAL'}</span></div>
-        <button type="button" className="fa3-equip" onClick={equip} disabled={!chosen||chosen.id===worn?.id}>{chosen?.id===worn?.id?'EQUIPPED ✓':'EQUIP THIS SKIN ↗'}</button>
+        {chosenLocked&&<div className="fa3-skin-lock" role="note"><b>{lockLabelForSkin(chosen)}</b><span>{kind==='hero'?'Complete every NEWBOT mastery achievement to equip ECOBOT. Preview remains available; an old stored selection renders ORIGINAL until earned.':'Deal more than 1,000 lifetime RPG-7 damage in sealed BOT/LOCAL matches to equip VUA HỀ. Preview remains available.'}</span></div>}
+        <button type="button" className="fa3-equip" onClick={equip} disabled={!chosen||chosenLocked||chosen.id===worn?.id}>{chosenLocked?'LOCKED — MASTERY REQUIRED':(chosen?.id===worn?.id?'EQUIPPED ✓':'EQUIP THIS SKIN ↗')}</button>
         {warning&&<small role="alert" className="fa3-alert">Selection active for this session; browser storage is disabled.</small>}
        </div>}
        {view==='INFO'&&current&&(kind==='hero'?<HeroFacts item={current}/>:<WeaponFacts item={current} skin={chosen}/>)}

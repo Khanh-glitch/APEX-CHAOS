@@ -1,0 +1,4339 @@
+{
+  "sealedFixture": {
+    "duration": 78,
+    "scores": [
+      1448,
+      992
+    ],
+    "outcomes": [
+      "victory",
+      "defeat"
+    ],
+    "awards": [
+      21,
+      17
+    ],
+    "weapon": "STORMBREAKER",
+    "id": "match-1720000000000-78000",
+    "actors": [
+      "SHURI",
+      "NEWBOT"
+    ]
+  },
+  "viewports": [
+    [
+      1844,
+      829
+    ],
+    [
+      1440,
+      900
+    ],
+    [
+      1560,
+      992
+    ],
+    [
+      844,
+      390
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "languages": [
+    "eng",
+    "vie"
+  ],
+  "phases": [
+    "early",
+    "post-skip",
+    "post-settle"
+  ],
+  "early": {
+    "viewport": {
+      "width": 1844,
+      "height": 829
+    },
+    "language": "en",
+    "phase": "early",
+    "run": "ac-run",
+    "duration": "1:18",
+    "scoreText": [
+      "",
+      ""
+    ],
+    "awardCounts": [
+      "21",
+      "17"
+    ],
+    "images": [
+      {
+        "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+        "complete": true,
+        "naturalWidth": 1122,
+        "naturalHeight": 1402,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "hidden",
+          "transform": "none"
+        },
+        "box": {
+          "x": 82,
+          "y": 188.859375,
+          "right": 642.5,
+          "bottom": 349.109375,
+          "width": 560.5,
+          "height": 160.25
+        }
+      },
+      {
+        "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+        "complete": true,
+        "naturalWidth": 819,
+        "naturalHeight": 1024,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "hidden",
+          "transform": "none"
+        },
+        "box": {
+          "x": 1201.484375,
+          "y": 173.921875,
+          "right": 1762,
+          "bottom": 349.109375,
+          "width": 560.515625,
+          "height": 175.1875
+        }
+      },
+      {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "hidden",
+          "transform": "none"
+        },
+        "box": {
+          "x": 747.828125,
+          "y": 121.765625,
+          "right": 1096.140625,
+          "bottom": 586.171875,
+          "width": 348.3125,
+          "height": 464.40625
+        }
+      }
+    ],
+    "playerImages": [
+      {
+        "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+        "complete": true,
+        "naturalWidth": 1122,
+        "naturalHeight": 1402,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "hidden",
+          "transform": "none"
+        },
+        "box": {
+          "x": 82,
+          "y": 188.859375,
+          "right": 642.5,
+          "bottom": 349.109375,
+          "width": 560.5,
+          "height": 160.25
+        }
+      },
+      {
+        "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+        "complete": true,
+        "naturalWidth": 819,
+        "naturalHeight": 1024,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "hidden",
+          "transform": "none"
+        },
+        "box": {
+          "x": 1201.484375,
+          "y": 173.921875,
+          "right": 1762,
+          "bottom": 349.109375,
+          "width": 560.515625,
+          "height": 175.1875
+        }
+      }
+    ],
+    "portraitTextOverlaps": [
+      false,
+      false
+    ],
+    "weaponDais": {
+      "x": 655.75,
+      "y": 121.765625,
+      "right": 1188.234375,
+      "bottom": 261.09375,
+      "width": 532.484375,
+      "height": 139.328125
+    },
+    "weaponArtContained": false,
+    "artVsText": [],
+    "pairwiseTextOverlaps": [],
+    "textOverflow": [],
+    "rootScroll": {
+      "clientWidth": 1844,
+      "scrollWidth": 1844,
+      "clientHeight": 829,
+      "scrollHeight": 829,
+      "scrollTop": 0
+    },
+    "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+    "placeholders": []
+  },
+  "checks": [
+    {
+      "ok": true,
+      "name": "native sealed fixture exactly matches owner Result scenario",
+      "detail": {
+        "duration": 78,
+        "scores": [
+          1448,
+          992
+        ],
+        "outcomes": [
+          "victory",
+          "defeat"
+        ],
+        "awards": [
+          21,
+          17
+        ],
+        "weapon": "STORMBREAKER",
+        "id": "match-1720000000000-78000",
+        "actors": [
+          "SHURI",
+          "NEWBOT"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "name": "early phase loads the two real portraits and canonical STORMBREAKER art",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "hidden",
+            "transform": "none"
+          },
+          "box": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "width": 560.5,
+            "height": 160.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "hidden",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "width": 560.515625,
+            "height": 175.1875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "hidden",
+            "transform": "none"
+          },
+          "box": {
+            "x": 747.828125,
+            "y": 121.765625,
+            "right": 1096.140625,
+            "bottom": 586.171875,
+            "width": 348.3125,
+            "height": 464.40625
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1844x829: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "width": 560.5,
+            "height": 160.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "width": 560.515625,
+            "height": 175.1875
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1844x829: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 746.6344604492188,
+          "y": 117.9206771850586,
+          "right": 1097.334228515625,
+          "bottom": 584.1147384643555,
+          "width": 350.69976806640625,
+          "height": 466.1940612792969
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 1844x829: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 746.6344604492188,
+          "y": 117.9206771850586,
+          "right": 1097.334228515625,
+          "bottom": 584.1147384643555,
+          "width": 350.69976806640625,
+          "height": 466.1940612792969
+        },
+        "dais": {
+          "x": 655.75,
+          "y": 121.765625,
+          "right": 1188.234375,
+          "bottom": 261.09375,
+          "width": 532.484375,
+          "height": 139.328125
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 1844x829: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 757.03125,
+            "y": 271.03125,
+            "right": 1086.953125,
+            "bottom": 326,
+            "width": 329.921875,
+            "height": 54.96875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 881.984375,
+            "y": 332,
+            "right": 962,
+            "bottom": 347.59375,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nWEAPON DAMAGE",
+          "box": {
+            "x": 863.53125,
+            "y": 353.59375,
+            "right": 980.4375,
+            "bottom": 423.8125,
+            "width": 116.90625,
+            "height": 70.21875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "TOP CONTRIBUTOR\nP1",
+          "box": {
+            "x": 841.90625,
+            "y": 433.8125,
+            "right": 1002.0625,
+            "bottom": 463.8125,
+            "width": 160.15625,
+            "height": 30
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1844x829: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1844x829: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "eng 1844x829: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448 DMG",
+          "992 992 DMG"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": "1:18"
+      }
+    },
+    {
+      "ok": true,
+      "name": "eng 1844x829: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 1844,
+        "scrollWidth": 1844,
+        "clientHeight": 829,
+        "scrollHeight": 829,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": true,
+      "name": "eng 1440x900: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 34.546875,
+            "y": 196.375,
+            "right": 489.5,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 96.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 950.484375,
+            "y": 180.40625,
+            "right": 1405.4375,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 112.21875
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1440x900: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 626.824462890625,
+          "y": 123.74610900878906,
+          "right": 813.159912109375,
+          "bottom": 372.1890869140625,
+          "width": 186.33544921875,
+          "height": 248.44297790527344
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 1440x900: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 626.824462890625,
+          "y": 123.74610900878906,
+          "right": 813.159912109375,
+          "bottom": 372.1890869140625,
+          "width": 186.33544921875,
+          "height": 248.44297790527344
+        },
+        "dais": {
+          "x": 503.890625,
+          "y": 123.765625,
+          "right": 936.09375,
+          "bottom": 198.296875,
+          "width": 432.203125,
+          "height": 74.53125
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 1440x900: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 540.203125,
+            "y": 209.09375,
+            "right": 899.765625,
+            "bottom": 268.59375,
+            "width": 359.5625,
+            "height": 59.5
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 679.984375,
+            "y": 274.59375,
+            "right": 760,
+            "bottom": 290.1875,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nWEAPON DAMAGE",
+          "box": {
+            "x": 656.40625,
+            "y": 296.1875,
+            "right": 783.5625,
+            "bottom": 370.875,
+            "width": 127.15625,
+            "height": 74.6875
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1440x900: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1440x900: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "eng 1440x900: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448 DMG",
+          "992 992 DMG"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": "1:18"
+      }
+    },
+    {
+      "ok": true,
+      "name": "eng 1440x900: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": true,
+      "name": "eng 1560x992: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 37.4375,
+            "y": 206.125,
+            "right": 530.109375,
+            "bottom": 343.5625,
+            "width": 492.671875,
+            "height": 137.4375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1029.875,
+            "y": 188.84375,
+            "right": 1522.5625,
+            "bottom": 343.5625,
+            "width": 492.6875,
+            "height": 154.71875
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1560x992: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 712.458984375,
+          "y": 128.28175354003906,
+          "right": 847.509765625,
+          "bottom": 308.1322326660156,
+          "width": 135.05078125,
+          "height": 179.85047912597656
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 1560x992: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 712.458984375,
+          "y": 128.28175354003906,
+          "right": 847.509765625,
+          "bottom": 308.1322326660156,
+          "width": 135.05078125,
+          "height": 179.85047912597656
+        },
+        "dais": {
+          "x": 545.96875,
+          "y": 129.578125,
+          "right": 1014.015625,
+          "bottom": 183.453125,
+          "width": 468.046875,
+          "height": 53.875
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 1560x992: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 586.421875,
+            "y": 195.34375,
+            "right": 973.5625,
+            "bottom": 259.25,
+            "width": 387.140625,
+            "height": 63.90625
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 739.984375,
+            "y": 265.25,
+            "right": 820,
+            "bottom": 280.84375,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nWEAPON DAMAGE",
+          "box": {
+            "x": 710.25,
+            "y": 286.84375,
+            "right": 849.734375,
+            "bottom": 367.328125,
+            "width": 139.484375,
+            "height": 80.484375
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1560x992: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 1560x992: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "eng 1560x992: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448 DMG",
+          "992 992 DMG"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": "1:18"
+      }
+    },
+    {
+      "ok": true,
+      "name": "eng 1560x992: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 1560,
+        "scrollWidth": 1560,
+        "clientHeight": 992,
+        "scrollHeight": 992,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 844x390: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 20.25,
+            "y": 110.59375,
+            "right": 288.546875,
+            "bottom": 110.59375,
+            "width": 268.296875,
+            "height": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 555.4375,
+            "y": 102.421875,
+            "right": 823.75,
+            "bottom": 102.421875,
+            "width": 268.3125,
+            "height": 0
+          }
+        }
+      ]
+    },
+    {
+      "ok": false,
+      "name": "eng 844x390: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 421.984375,
+          "y": 64.46668243408203,
+          "right": 421.984375,
+          "bottom": 64.46668243408203,
+          "width": 0,
+          "height": 0
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 844x390: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 421.984375,
+          "y": 64.46668243408203,
+          "right": 421.984375,
+          "bottom": 64.46668243408203,
+          "width": 0,
+          "height": 0
+        },
+        "dais": {
+          "x": 294.546875,
+          "y": 70,
+          "right": 549.4375,
+          "bottom": 70,
+          "width": 254.890625,
+          "height": 0
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 844x390: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__title",
+          "text": "WEAPON OF THE BATTLE",
+          "box": {
+            "x": 364.984375,
+            "y": 56,
+            "right": 478.984375,
+            "bottom": 67,
+            "width": 114,
+            "height": 11
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 844x390: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 844x390: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "eng 844x390: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448",
+          "992 992"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": null
+      }
+    },
+    {
+      "ok": true,
+      "name": "eng 844x390: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 844,
+        "scrollWidth": 844,
+        "clientHeight": 390,
+        "scrollHeight": 390,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": true,
+      "name": "eng 390x844: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 12,
+            "y": 132.796875,
+            "right": 190.359375,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 72.109375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 199.640625,
+            "y": 122.625,
+            "right": 378,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 82.28125
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 390x844: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 14.434333801269531,
+          "y": 375.1842041015625,
+          "right": 192.7219009399414,
+          "bottom": 611.464599609375,
+          "width": 178.28756713867188,
+          "height": 236.2803955078125
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 390x844: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 14.434333801269531,
+          "y": 375.1842041015625,
+          "right": 192.7219009399414,
+          "bottom": 611.464599609375,
+          "width": 178.28756713867188,
+          "height": 236.2803955078125
+        },
+        "dais": {
+          "x": 12,
+          "y": 382.09375,
+          "right": 195.171875,
+          "bottom": 480.15625,
+          "width": 183.171875,
+          "height": 98.0625
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "eng 390x844: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__title",
+          "text": "WEAPON OF THE BATTLE",
+          "box": {
+            "x": 127.84375,
+            "y": 366,
+            "right": 262.140625,
+            "bottom": 378.09375,
+            "width": 134.296875,
+            "height": 12.09375
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 390x844: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "eng 390x844: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "eng 390x844: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448",
+          "992 992"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": null
+      }
+    },
+    {
+      "ok": true,
+      "name": "eng 390x844: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 844,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 1844x829: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "width": 560.5,
+            "height": 160.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "width": 560.515625,
+            "height": 175.1875
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1844x829: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 745.7361450195312,
+          "y": 115.02114868164062,
+          "right": 1098.232666015625,
+          "bottom": 582.55712890625,
+          "width": 352.49652099609375,
+          "height": 467.5359802246094
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 1844x829: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 745.7361450195312,
+          "y": 115.02114868164062,
+          "right": 1098.232666015625,
+          "bottom": 582.55712890625,
+          "width": 352.49652099609375,
+          "height": 467.5359802246094
+        },
+        "dais": {
+          "x": 655.75,
+          "y": 121.765625,
+          "right": 1188.234375,
+          "bottom": 261.09375,
+          "width": 532.484375,
+          "height": 139.328125
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 1844x829: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 757.03125,
+            "y": 271.03125,
+            "right": 1086.953125,
+            "bottom": 326,
+            "width": 329.921875,
+            "height": 54.96875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 881.984375,
+            "y": 332,
+            "right": 962,
+            "bottom": 347.59375,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+          "box": {
+            "x": 861.578125,
+            "y": 353.59375,
+            "right": 982.390625,
+            "bottom": 423.8125,
+            "width": 120.8125,
+            "height": 70.21875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "ĐÓNG GÓP CAO NHẤT\nP1",
+          "box": {
+            "x": 836.421875,
+            "y": 433.8125,
+            "right": 1007.546875,
+            "bottom": 463.8125,
+            "width": 171.125,
+            "height": 30
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1844x829: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1844x829: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "vie 1844x829: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448 SÁT THƯƠNG",
+          "992 992 SÁT THƯƠNG"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": "1:18"
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 1844x829: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 1844,
+        "scrollWidth": 1844,
+        "clientHeight": 829,
+        "scrollHeight": 829,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 1440x900: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 34.546875,
+            "y": 196.375,
+            "right": 489.5,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 96.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 950.484375,
+            "y": 180.40625,
+            "right": 1405.4375,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 112.21875
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1440x900: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 626.4638671875,
+          "y": 121.81062316894531,
+          "right": 813.5205078125,
+          "bottom": 370.7940673828125,
+          "width": 187.056640625,
+          "height": 248.9834442138672
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 1440x900: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 626.4638671875,
+          "y": 121.81062316894531,
+          "right": 813.5205078125,
+          "bottom": 370.7940673828125,
+          "width": 187.056640625,
+          "height": 248.9834442138672
+        },
+        "dais": {
+          "x": 503.890625,
+          "y": 123.765625,
+          "right": 936.09375,
+          "bottom": 198.296875,
+          "width": 432.203125,
+          "height": 74.53125
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 1440x900: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 540.203125,
+            "y": 209.09375,
+            "right": 899.765625,
+            "bottom": 268.59375,
+            "width": 359.5625,
+            "height": 59.5
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 679.984375,
+            "y": 274.59375,
+            "right": 760,
+            "bottom": 290.1875,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+          "box": {
+            "x": 656.40625,
+            "y": 296.1875,
+            "right": 783.5625,
+            "bottom": 370.875,
+            "width": 127.15625,
+            "height": 74.6875
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1440x900: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1440x900: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "vie 1440x900: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448 SÁT THƯƠNG",
+          "992 992 SÁT THƯƠNG"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": "1:18"
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 1440x900: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 1560x992: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 37.4375,
+            "y": 206.125,
+            "right": 530.109375,
+            "bottom": 343.5625,
+            "width": 492.671875,
+            "height": 137.4375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1029.875,
+            "y": 188.84375,
+            "right": 1522.5625,
+            "bottom": 343.5625,
+            "width": 492.6875,
+            "height": 154.71875
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1560x992: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 712.6373291015625,
+          "y": 129.55458068847656,
+          "right": 847.3314208984375,
+          "bottom": 309.13763427734375,
+          "width": 134.694091796875,
+          "height": 179.5830535888672
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 1560x992: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 712.6373291015625,
+          "y": 129.55458068847656,
+          "right": 847.3314208984375,
+          "bottom": 309.13763427734375,
+          "width": 134.694091796875,
+          "height": 179.5830535888672
+        },
+        "dais": {
+          "x": 545.96875,
+          "y": 129.578125,
+          "right": 1014.015625,
+          "bottom": 183.453125,
+          "width": 468.046875,
+          "height": 53.875
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 1560x992: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 586.421875,
+            "y": 195.34375,
+            "right": 973.5625,
+            "bottom": 259.25,
+            "width": 387.140625,
+            "height": 63.90625
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 739.984375,
+            "y": 265.25,
+            "right": 820,
+            "bottom": 280.84375,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+          "box": {
+            "x": 710.25,
+            "y": 286.84375,
+            "right": 849.734375,
+            "bottom": 367.328125,
+            "width": 139.484375,
+            "height": 80.484375
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1560x992: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 1560x992: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "vie 1560x992: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448 SÁT THƯƠNG",
+          "992 992 SÁT THƯƠNG"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": "1:18"
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 1560x992: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 1560,
+        "scrollWidth": 1560,
+        "clientHeight": 992,
+        "scrollHeight": 992,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 844x390: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 20.25,
+            "y": 110.59375,
+            "right": 288.546875,
+            "bottom": 110.59375,
+            "width": 268.296875,
+            "height": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 555.4375,
+            "y": 102.421875,
+            "right": 823.75,
+            "bottom": 102.421875,
+            "width": 268.3125,
+            "height": 0
+          }
+        }
+      ]
+    },
+    {
+      "ok": false,
+      "name": "vie 844x390: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 421.984375,
+          "y": 66.9525146484375,
+          "right": 421.984375,
+          "bottom": 66.9525146484375,
+          "width": 0,
+          "height": 0
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 844x390: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 421.984375,
+          "y": 66.9525146484375,
+          "right": 421.984375,
+          "bottom": 66.9525146484375,
+          "width": 0,
+          "height": 0
+        },
+        "dais": {
+          "x": 294.546875,
+          "y": 70,
+          "right": 549.4375,
+          "bottom": 70,
+          "width": 254.890625,
+          "height": 0
+        }
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 844x390: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "vie 844x390: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 844x390: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "vie 844x390: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448",
+          "992 992"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": null
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 844x390: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 844,
+        "scrollWidth": 844,
+        "clientHeight": 390,
+        "scrollHeight": 390,
+        "scrollTop": 0
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 390x844: real SHURI and NEWBOT portraits are painted at non-zero size",
+      "detail": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 12,
+            "y": 132.796875,
+            "right": 190.359375,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 72.109375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 199.640625,
+            "y": 122.625,
+            "right": 378,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 82.28125
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 390x844: declared STORMBREAKER art is loaded and painted",
+      "detail": {
+        "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+        "complete": true,
+        "naturalWidth": 1086,
+        "naturalHeight": 1448,
+        "decoded": true,
+        "style": {
+          "display": "block",
+          "opacity": "1",
+          "visibility": "visible",
+          "transform": "none"
+        },
+        "box": {
+          "x": 14.606849670410156,
+          "y": 376.16229248046875,
+          "right": 192.5494155883789,
+          "bottom": 612.1854248046875,
+          "width": 177.94256591796875,
+          "height": 236.02313232421875
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 390x844: weapon art stays inside its authored dais",
+      "detail": {
+        "art": {
+          "x": 14.606849670410156,
+          "y": 376.16229248046875,
+          "right": 192.5494155883789,
+          "bottom": 612.1854248046875,
+          "width": 177.94256591796875,
+          "height": 236.02313232421875
+        },
+        "dais": {
+          "x": 12,
+          "y": 382.09375,
+          "right": 195.171875,
+          "bottom": 480.15625,
+          "width": 183.171875,
+          "height": 98.0625
+        }
+      }
+    },
+    {
+      "ok": false,
+      "name": "vie 390x844: canonical weapon art does not cover weapon names, damage, gap or contributor labels",
+      "detail": [
+        {
+          "selector": ".weapon__title",
+          "text": "VŨ KHÍ NỔI BẬT NHẤT TRẬN",
+          "box": {
+            "x": 117.4375,
+            "y": 366,
+            "right": 272.546875,
+            "bottom": 378.09375,
+            "width": 155.109375,
+            "height": 12.09375
+          },
+          "overlap": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 390x844: approved hero portraits do not cover identity or verdict copy",
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "ok": true,
+      "name": "vie 390x844: important Result labels do not clip within their authored lanes",
+      "detail": []
+    },
+    {
+      "ok": true,
+      "name": "vie 390x844: sealed owner values remain visible and unchanged wherever authored copy is shown",
+      "detail": {
+        "scoreText": [
+          "1,448 1,448",
+          "992 992"
+        ],
+        "awardCounts": [
+          "21",
+          "17"
+        ],
+        "duration": null
+      }
+    },
+    {
+      "ok": true,
+      "name": "vie 390x844: no horizontal Result overflow",
+      "detail": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 844,
+        "scrollTop": 0
+      }
+    }
+  ],
+  "measurements": [
+    {
+      "viewport": {
+        "width": 1844,
+        "height": 829
+      },
+      "language": "en",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": "1:18",
+      "scoreText": [
+        "1,448 1,448 DMG",
+        "992 992 DMG"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "width": 560.5,
+            "height": 160.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "width": 560.515625,
+            "height": 175.1875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 746.6344604492188,
+            "y": 117.9206771850586,
+            "right": 1097.334228515625,
+            "bottom": 584.1147384643555,
+            "width": 350.69976806640625,
+            "height": 466.1940612792969
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "width": 560.5,
+            "height": 160.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "width": 560.515625,
+            "height": 175.1875
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 655.75,
+        "y": 121.765625,
+        "right": 1188.234375,
+        "bottom": 261.09375,
+        "width": 532.484375,
+        "height": 139.328125
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "WEAPON OF THE BATTLE",
+          "box": {
+            "x": 787.484375,
+            "y": 89.828125,
+            "right": 1056.484375,
+            "bottom": 111.828125,
+            "width": 269,
+            "height": 22
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 757.03125,
+            "y": 271.03125,
+            "right": 1086.953125,
+            "bottom": 326,
+            "width": 329.921875,
+            "height": 54.96875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 881.984375,
+            "y": 332,
+            "right": 962,
+            "bottom": 347.59375,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nWEAPON DAMAGE",
+          "box": {
+            "x": 863.53125,
+            "y": 353.59375,
+            "right": 980.4375,
+            "bottom": 423.8125,
+            "width": 116.90625,
+            "height": 70.21875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "TOP CONTRIBUTOR\nP1",
+          "box": {
+            "x": 841.90625,
+            "y": 433.8125,
+            "right": 1002.0625,
+            "bottom": 463.8125,
+            "width": 160.15625,
+            "height": 30
+          },
+          "overlap": true
+        }
+      ],
+      "pairwiseTextOverlaps": [],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 1844,
+        "scrollWidth": 1844,
+        "clientHeight": 829,
+        "scrollHeight": 829,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "language": "en",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": "1:18",
+      "scoreText": [
+        "1,448 1,448 DMG",
+        "992 992 DMG"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 34.546875,
+            "y": 196.375,
+            "right": 489.5,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 96.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 950.484375,
+            "y": 180.40625,
+            "right": 1405.4375,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 112.21875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 626.824462890625,
+            "y": 123.74610900878906,
+            "right": 813.159912109375,
+            "bottom": 372.1890869140625,
+            "width": 186.33544921875,
+            "height": 248.44297790527344
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 34.546875,
+            "y": 196.375,
+            "right": 489.5,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 96.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 950.484375,
+            "y": 180.40625,
+            "right": 1405.4375,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 112.21875
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 503.890625,
+        "y": 123.765625,
+        "right": 936.09375,
+        "bottom": 198.296875,
+        "width": 432.203125,
+        "height": 74.53125
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "WEAPON OF THE BATTLE",
+          "box": {
+            "x": 594.875,
+            "y": 92.390625,
+            "right": 845.09375,
+            "bottom": 112.96875,
+            "width": 250.21875,
+            "height": 20.578125
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 540.203125,
+            "y": 209.09375,
+            "right": 899.765625,
+            "bottom": 268.59375,
+            "width": 359.5625,
+            "height": 59.5
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 679.984375,
+            "y": 274.59375,
+            "right": 760,
+            "bottom": 290.1875,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nWEAPON DAMAGE",
+          "box": {
+            "x": 656.40625,
+            "y": 296.1875,
+            "right": 783.5625,
+            "bottom": 370.875,
+            "width": 127.15625,
+            "height": 74.6875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "TOP CONTRIBUTOR\nP1",
+          "box": {
+            "x": 639.90625,
+            "y": 380.875,
+            "right": 800.0625,
+            "bottom": 410.875,
+            "width": 160.15625,
+            "height": 30
+          },
+          "overlap": false
+        }
+      ],
+      "pairwiseTextOverlaps": [],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 1560,
+        "height": 992
+      },
+      "language": "en",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": "1:18",
+      "scoreText": [
+        "1,448 1,448 DMG",
+        "992 992 DMG"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 37.4375,
+            "y": 206.125,
+            "right": 530.109375,
+            "bottom": 343.5625,
+            "width": 492.671875,
+            "height": 137.4375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1029.875,
+            "y": 188.84375,
+            "right": 1522.5625,
+            "bottom": 343.5625,
+            "width": 492.6875,
+            "height": 154.71875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 712.458984375,
+            "y": 128.28175354003906,
+            "right": 847.509765625,
+            "bottom": 308.1322326660156,
+            "width": 135.05078125,
+            "height": 179.85047912597656
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 37.4375,
+            "y": 206.125,
+            "right": 530.109375,
+            "bottom": 343.5625,
+            "width": 492.671875,
+            "height": 137.4375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1029.875,
+            "y": 188.84375,
+            "right": 1522.5625,
+            "bottom": 343.5625,
+            "width": 492.6875,
+            "height": 154.71875
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 545.96875,
+        "y": 129.578125,
+        "right": 1014.015625,
+        "bottom": 183.453125,
+        "width": 468.046875,
+        "height": 53.875
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "WEAPON OF THE BATTLE",
+          "box": {
+            "x": 645.484375,
+            "y": 95.6875,
+            "right": 914.484375,
+            "bottom": 117.6875,
+            "width": 269,
+            "height": 22
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 586.421875,
+            "y": 195.34375,
+            "right": 973.5625,
+            "bottom": 259.25,
+            "width": 387.140625,
+            "height": 63.90625
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 739.984375,
+            "y": 265.25,
+            "right": 820,
+            "bottom": 280.84375,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nWEAPON DAMAGE",
+          "box": {
+            "x": 710.25,
+            "y": 286.84375,
+            "right": 849.734375,
+            "bottom": 367.328125,
+            "width": 139.484375,
+            "height": 80.484375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__facts",
+          "text": "44.0%\ntotal match damage\n+474\nhơn SPAS-12 (hạng 2)\n465\nđòn mạnh nhất · trúng 3/0",
+          "box": {
+            "x": 545.96875,
+            "y": 379.328125,
+            "right": 1014.015625,
+            "bottom": 426.078125,
+            "width": 468.046875,
+            "height": 46.75
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "TOP CONTRIBUTOR\nP1",
+          "box": {
+            "x": 699.90625,
+            "y": 436.078125,
+            "right": 860.0625,
+            "bottom": 466.078125,
+            "width": 160.15625,
+            "height": 30
+          },
+          "overlap": false
+        }
+      ],
+      "pairwiseTextOverlaps": [],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 1560,
+        "scrollWidth": 1560,
+        "clientHeight": 992,
+        "scrollHeight": 992,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "language": "en",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": null,
+      "scoreText": [
+        "1,448 1,448",
+        "992 992"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 20.25,
+            "y": 110.59375,
+            "right": 288.546875,
+            "bottom": 110.59375,
+            "width": 268.296875,
+            "height": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 555.4375,
+            "y": 102.421875,
+            "right": 823.75,
+            "bottom": 102.421875,
+            "width": 268.3125,
+            "height": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 421.984375,
+            "y": 64.46668243408203,
+            "right": 421.984375,
+            "bottom": 64.46668243408203,
+            "width": 0,
+            "height": 0
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 20.25,
+            "y": 110.59375,
+            "right": 288.546875,
+            "bottom": 110.59375,
+            "width": 268.296875,
+            "height": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 555.4375,
+            "y": 102.421875,
+            "right": 823.75,
+            "bottom": 102.421875,
+            "width": 268.3125,
+            "height": 0
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 294.546875,
+        "y": 70,
+        "right": 549.4375,
+        "bottom": 70,
+        "width": 254.890625,
+        "height": 0
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "WEAPON OF THE BATTLE",
+          "box": {
+            "x": 364.984375,
+            "y": 56,
+            "right": 478.984375,
+            "bottom": 67,
+            "width": 114,
+            "height": 11
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 335.671875,
+            "y": 73,
+            "right": 508.3125,
+            "bottom": 102.203125,
+            "width": 172.640625,
+            "height": 29.203125
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nWEAPON DAMAGE",
+          "box": {
+            "x": 358.203125,
+            "y": 105.203125,
+            "right": 485.765625,
+            "bottom": 143.984375,
+            "width": 127.5625,
+            "height": 38.78125
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "P1",
+          "box": {
+            "x": 403.46875,
+            "y": 146.984375,
+            "right": 440.515625,
+            "bottom": 165.984375,
+            "width": 37.046875,
+            "height": 19
+          },
+          "overlap": false
+        }
+      ],
+      "pairwiseTextOverlaps": [
+        [
+          {
+            "selector": ".hero__who",
+            "text": "P2",
+            "box": {
+              "x": 555.4375,
+              "y": 108.421875,
+              "right": 823.75,
+              "bottom": 135.25,
+              "width": 268.3125,
+              "height": 26.828125
+            },
+            "scrollWidth": 268,
+            "clientWidth": 268
+          },
+          {
+            "selector": ".clash__num",
+            "text": "992\n992",
+            "box": {
+              "x": 771.71875,
+              "y": 81,
+              "right": 823.75,
+              "bottom": 111.59375,
+              "width": 52.03125,
+              "height": 30.59375
+            },
+            "scrollWidth": 52,
+            "clientWidth": 52
+          }
+        ],
+        [
+          {
+            "selector": ".clash__mid",
+            "text": "TOTAL DAMAGE DEALT\nDAMAGE GAP 456",
+            "box": {
+              "x": 367.6875,
+              "y": 85,
+              "right": 476.296875,
+              "bottom": 114,
+              "width": 108.609375,
+              "height": 29
+            },
+            "scrollWidth": 109,
+            "clientWidth": 109
+          },
+          {
+            "selector": ".weapon__name .mask > span",
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 336.14361572265625,
+              "y": 73.953125,
+              "right": 507.84075927734375,
+              "bottom": 101.25,
+              "width": 171.6971435546875,
+              "height": 27.296875
+            },
+            "scrollWidth": 169,
+            "clientWidth": 169
+          }
+        ],
+        [
+          {
+            "selector": ".clash__mid",
+            "text": "TOTAL DAMAGE DEALT\nDAMAGE GAP 456",
+            "box": {
+              "x": 367.6875,
+              "y": 85,
+              "right": 476.296875,
+              "bottom": 114,
+              "width": 108.609375,
+              "height": 29
+            },
+            "scrollWidth": 109,
+            "clientWidth": 109
+          },
+          {
+            "selector": ".weapon__dmg-num",
+            "text": "1,074\n1,074",
+            "box": {
+              "x": 358.203125,
+              "y": 105.203125,
+              "right": 421.765625,
+              "bottom": 133.28125,
+              "width": 63.5625,
+              "height": 28.078125
+            },
+            "scrollWidth": 64,
+            "clientWidth": 64
+          }
+        ]
+      ],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 844,
+        "scrollWidth": 844,
+        "clientHeight": 390,
+        "scrollHeight": 390,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "language": "en",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": null,
+      "scoreText": [
+        "1,448 1,448",
+        "992 992"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 12,
+            "y": 132.796875,
+            "right": 190.359375,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 72.109375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 199.640625,
+            "y": 122.625,
+            "right": 378,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 82.28125
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 14.434333801269531,
+            "y": 375.1842041015625,
+            "right": 192.7219009399414,
+            "bottom": 611.464599609375,
+            "width": 178.28756713867188,
+            "height": 236.2803955078125
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 12,
+            "y": 132.796875,
+            "right": 190.359375,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 72.109375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 199.640625,
+            "y": 122.625,
+            "right": 378,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 82.28125
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 12,
+        "y": 382.09375,
+        "right": 195.171875,
+        "bottom": 480.15625,
+        "width": 183.171875,
+        "height": 98.0625
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "WEAPON OF THE BATTLE",
+          "box": {
+            "x": 127.84375,
+            "y": 366,
+            "right": 262.140625,
+            "bottom": 378.09375,
+            "width": 134.296875,
+            "height": 12.09375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 205.171875,
+            "y": 385,
+            "right": 361.84375,
+            "bottom": 411.46875,
+            "width": 156.671875,
+            "height": 26.46875
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nWEAPON DAMAGE",
+          "box": {
+            "x": 205.171875,
+            "y": 414.46875,
+            "right": 334.703125,
+            "bottom": 452.25,
+            "width": 129.53125,
+            "height": 37.78125
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "P1",
+          "box": {
+            "x": 205.171875,
+            "y": 455.25,
+            "right": 244.296875,
+            "bottom": 477.25,
+            "width": 39.125,
+            "height": 22
+          },
+          "overlap": false
+        }
+      ],
+      "pairwiseTextOverlaps": [],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 844,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 1844,
+        "height": 829
+      },
+      "language": "vi",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": "1:18",
+      "scoreText": [
+        "1,448 1,448 SÁT THƯƠNG",
+        "992 992 SÁT THƯƠNG"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "width": 560.5,
+            "height": 160.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "width": 560.515625,
+            "height": 175.1875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 745.7361450195312,
+            "y": 115.02114868164062,
+            "right": 1098.232666015625,
+            "bottom": 582.55712890625,
+            "width": 352.49652099609375,
+            "height": 467.5359802246094
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 82,
+            "y": 188.859375,
+            "right": 642.5,
+            "bottom": 349.109375,
+            "width": 560.5,
+            "height": 160.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1201.484375,
+            "y": 173.921875,
+            "right": 1762,
+            "bottom": 349.109375,
+            "width": 560.515625,
+            "height": 175.1875
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 655.75,
+        "y": 121.765625,
+        "right": 1188.234375,
+        "bottom": 261.09375,
+        "width": 532.484375,
+        "height": 139.328125
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "VŨ KHÍ NỔI BẬT NHẤT TRẬN",
+          "box": {
+            "x": 768.484375,
+            "y": 89.828125,
+            "right": 1075.484375,
+            "bottom": 111.828125,
+            "width": 307,
+            "height": 22
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 757.03125,
+            "y": 271.03125,
+            "right": 1086.953125,
+            "bottom": 326,
+            "width": 329.921875,
+            "height": 54.96875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 881.984375,
+            "y": 332,
+            "right": 962,
+            "bottom": 347.59375,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+          "box": {
+            "x": 861.578125,
+            "y": 353.59375,
+            "right": 982.390625,
+            "bottom": 423.8125,
+            "width": 120.8125,
+            "height": 70.21875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "ĐÓNG GÓP CAO NHẤT\nP1",
+          "box": {
+            "x": 836.421875,
+            "y": 433.8125,
+            "right": 1007.546875,
+            "bottom": 463.8125,
+            "width": 171.125,
+            "height": 30
+          },
+          "overlap": true
+        }
+      ],
+      "pairwiseTextOverlaps": [],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 1844,
+        "scrollWidth": 1844,
+        "clientHeight": 829,
+        "scrollHeight": 829,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "language": "vi",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": "1:18",
+      "scoreText": [
+        "1,448 1,448 SÁT THƯƠNG",
+        "992 992 SÁT THƯƠNG"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 34.546875,
+            "y": 196.375,
+            "right": 489.5,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 96.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 950.484375,
+            "y": 180.40625,
+            "right": 1405.4375,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 112.21875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 626.4638671875,
+            "y": 121.81062316894531,
+            "right": 813.5205078125,
+            "bottom": 370.7940673828125,
+            "width": 187.056640625,
+            "height": 248.9834442138672
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 34.546875,
+            "y": 196.375,
+            "right": 489.5,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 96.25
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 950.484375,
+            "y": 180.40625,
+            "right": 1405.4375,
+            "bottom": 292.625,
+            "width": 454.953125,
+            "height": 112.21875
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 503.890625,
+        "y": 123.765625,
+        "right": 936.09375,
+        "bottom": 198.296875,
+        "width": 432.203125,
+        "height": 74.53125
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "VŨ KHÍ NỔI BẬT NHẤT TRẬN",
+          "box": {
+            "x": 575.015625,
+            "y": 92.390625,
+            "right": 864.953125,
+            "bottom": 112.96875,
+            "width": 289.9375,
+            "height": 20.578125
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 540.203125,
+            "y": 209.09375,
+            "right": 899.765625,
+            "bottom": 268.59375,
+            "width": 359.5625,
+            "height": 59.5
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 679.984375,
+            "y": 274.59375,
+            "right": 760,
+            "bottom": 290.1875,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+          "box": {
+            "x": 656.40625,
+            "y": 296.1875,
+            "right": 783.5625,
+            "bottom": 370.875,
+            "width": 127.15625,
+            "height": 74.6875
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "ĐÓNG GÓP CAO NHẤT\nP1",
+          "box": {
+            "x": 634.421875,
+            "y": 380.875,
+            "right": 805.546875,
+            "bottom": 410.875,
+            "width": 171.125,
+            "height": 30
+          },
+          "overlap": false
+        }
+      ],
+      "pairwiseTextOverlaps": [],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 1560,
+        "height": 992
+      },
+      "language": "vi",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": "1:18",
+      "scoreText": [
+        "1,448 1,448 SÁT THƯƠNG",
+        "992 992 SÁT THƯƠNG"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 37.4375,
+            "y": 206.125,
+            "right": 530.109375,
+            "bottom": 343.5625,
+            "width": 492.671875,
+            "height": 137.4375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1029.875,
+            "y": 188.84375,
+            "right": 1522.5625,
+            "bottom": 343.5625,
+            "width": 492.6875,
+            "height": 154.71875
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 712.6373291015625,
+            "y": 129.55458068847656,
+            "right": 847.3314208984375,
+            "bottom": 309.13763427734375,
+            "width": 134.694091796875,
+            "height": 179.5830535888672
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 37.4375,
+            "y": 206.125,
+            "right": 530.109375,
+            "bottom": 343.5625,
+            "width": 492.671875,
+            "height": 137.4375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 1029.875,
+            "y": 188.84375,
+            "right": 1522.5625,
+            "bottom": 343.5625,
+            "width": 492.6875,
+            "height": 154.71875
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 545.96875,
+        "y": 129.578125,
+        "right": 1014.015625,
+        "bottom": 183.453125,
+        "width": 468.046875,
+        "height": 53.875
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "VŨ KHÍ NỔI BẬT NHẤT TRẬN",
+          "box": {
+            "x": 626.484375,
+            "y": 95.6875,
+            "right": 933.484375,
+            "bottom": 117.6875,
+            "width": 307,
+            "height": 22
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 586.421875,
+            "y": 195.34375,
+            "right": 973.5625,
+            "bottom": 259.25,
+            "width": 387.140625,
+            "height": 63.90625
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__class",
+          "text": "SEMIT1",
+          "box": {
+            "x": 739.984375,
+            "y": 265.25,
+            "right": 820,
+            "bottom": 280.84375,
+            "width": 80.015625,
+            "height": 15.59375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+          "box": {
+            "x": 710.25,
+            "y": 286.84375,
+            "right": 849.734375,
+            "bottom": 367.328125,
+            "width": 139.484375,
+            "height": 80.484375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__facts",
+          "text": "44.0%\ntổng sát thương cả trận\n+474\nhơn SPAS-12 (hạng 2)\n465\nđòn mạnh nhất · trúng 3/0",
+          "box": {
+            "x": 545.96875,
+            "y": 379.328125,
+            "right": 1014.015625,
+            "bottom": 426.078125,
+            "width": 468.046875,
+            "height": 46.75
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "ĐÓNG GÓP CAO NHẤT\nP1",
+          "box": {
+            "x": 694.421875,
+            "y": 436.078125,
+            "right": 865.546875,
+            "bottom": 466.078125,
+            "width": 171.125,
+            "height": 30
+          },
+          "overlap": false
+        }
+      ],
+      "pairwiseTextOverlaps": [],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 1560,
+        "scrollWidth": 1560,
+        "clientHeight": 992,
+        "scrollHeight": 992,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "language": "vi",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": null,
+      "scoreText": [
+        "1,448 1,448",
+        "992 992"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 20.25,
+            "y": 110.59375,
+            "right": 288.546875,
+            "bottom": 110.59375,
+            "width": 268.296875,
+            "height": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 555.4375,
+            "y": 102.421875,
+            "right": 823.75,
+            "bottom": 102.421875,
+            "width": 268.3125,
+            "height": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 421.984375,
+            "y": 66.9525146484375,
+            "right": 421.984375,
+            "bottom": 66.9525146484375,
+            "width": 0,
+            "height": 0
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 20.25,
+            "y": 110.59375,
+            "right": 288.546875,
+            "bottom": 110.59375,
+            "width": 268.296875,
+            "height": 0
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 555.4375,
+            "y": 102.421875,
+            "right": 823.75,
+            "bottom": 102.421875,
+            "width": 268.3125,
+            "height": 0
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 294.546875,
+        "y": 70,
+        "right": 549.4375,
+        "bottom": 70,
+        "width": 254.890625,
+        "height": 0
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "VŨ KHÍ NỔI BẬT NHẤT TRẬN",
+          "box": {
+            "x": 356.984375,
+            "y": 56,
+            "right": 486.984375,
+            "bottom": 67,
+            "width": 130,
+            "height": 11
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 335.671875,
+            "y": 73,
+            "right": 508.3125,
+            "bottom": 102.203125,
+            "width": 172.640625,
+            "height": 29.203125
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+          "box": {
+            "x": 358.203125,
+            "y": 105.203125,
+            "right": 485.765625,
+            "bottom": 143.984375,
+            "width": 127.5625,
+            "height": 38.78125
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "P1",
+          "box": {
+            "x": 403.46875,
+            "y": 146.984375,
+            "right": 440.515625,
+            "bottom": 165.984375,
+            "width": 37.046875,
+            "height": 19
+          },
+          "overlap": false
+        }
+      ],
+      "pairwiseTextOverlaps": [
+        [
+          {
+            "selector": ".hero__who",
+            "text": "P2",
+            "box": {
+              "x": 555.4375,
+              "y": 108.421875,
+              "right": 823.75,
+              "bottom": 135.25,
+              "width": 268.3125,
+              "height": 26.828125
+            },
+            "scrollWidth": 268,
+            "clientWidth": 268
+          },
+          {
+            "selector": ".clash__num",
+            "text": "992\n992",
+            "box": {
+              "x": 771.71875,
+              "y": 81,
+              "right": 823.75,
+              "bottom": 111.59375,
+              "width": 52.03125,
+              "height": 30.59375
+            },
+            "scrollWidth": 52,
+            "clientWidth": 52
+          }
+        ],
+        [
+          {
+            "selector": ".clash__mid",
+            "text": "TỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 456",
+            "box": {
+              "x": 357.296875,
+              "y": 85,
+              "right": 486.703125,
+              "bottom": 114,
+              "width": 129.40625,
+              "height": 29
+            },
+            "scrollWidth": 129,
+            "clientWidth": 129
+          },
+          {
+            "selector": ".weapon__name .mask > span",
+            "text": "STORMBREAKER",
+            "box": {
+              "x": 336.14361572265625,
+              "y": 73.953125,
+              "right": 507.84075927734375,
+              "bottom": 101.25,
+              "width": 171.6971435546875,
+              "height": 27.296875
+            },
+            "scrollWidth": 169,
+            "clientWidth": 169
+          }
+        ],
+        [
+          {
+            "selector": ".clash__mid",
+            "text": "TỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 456",
+            "box": {
+              "x": 357.296875,
+              "y": 85,
+              "right": 486.703125,
+              "bottom": 114,
+              "width": 129.40625,
+              "height": 29
+            },
+            "scrollWidth": 129,
+            "clientWidth": 129
+          },
+          {
+            "selector": ".weapon__dmg-num",
+            "text": "1,074\n1,074",
+            "box": {
+              "x": 358.203125,
+              "y": 105.203125,
+              "right": 421.765625,
+              "bottom": 133.28125,
+              "width": 63.5625,
+              "height": 28.078125
+            },
+            "scrollWidth": 64,
+            "clientWidth": 64
+          }
+        ]
+      ],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 844,
+        "scrollWidth": 844,
+        "clientHeight": 390,
+        "scrollHeight": 390,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "language": "vi",
+      "phase": "post-settle",
+      "run": "ac-run is-started is-skip is-done",
+      "duration": null,
+      "scoreText": [
+        "1,448 1,448",
+        "992 992"
+      ],
+      "awardCounts": [
+        "21",
+        "17"
+      ],
+      "images": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 12,
+            "y": 132.796875,
+            "right": 190.359375,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 72.109375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 199.640625,
+            "y": 122.625,
+            "right": 378,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 82.28125
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+          "complete": true,
+          "naturalWidth": 1086,
+          "naturalHeight": 1448,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 14.606849670410156,
+            "y": 376.16229248046875,
+            "right": 192.5494155883789,
+            "bottom": 612.1854248046875,
+            "width": 177.94256591796875,
+            "height": 236.02313232421875
+          }
+        }
+      ],
+      "playerImages": [
+        {
+          "src": "http://127.0.0.1:5173/assets/dictionary/heroes/shuri/standing.webp",
+          "complete": true,
+          "naturalWidth": 1122,
+          "naturalHeight": 1402,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 12,
+            "y": 132.796875,
+            "right": 190.359375,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 72.109375
+          }
+        },
+        {
+          "src": "http://127.0.0.1:5173/assets/gold-ui/heroes/newbot/pick_selected_large.webp?v=20261021-cp5-r1",
+          "complete": true,
+          "naturalWidth": 819,
+          "naturalHeight": 1024,
+          "decoded": true,
+          "style": {
+            "display": "block",
+            "opacity": "1",
+            "visibility": "visible",
+            "transform": "none"
+          },
+          "box": {
+            "x": 199.640625,
+            "y": 122.625,
+            "right": 378,
+            "bottom": 204.90625,
+            "width": 178.359375,
+            "height": 82.28125
+          }
+        }
+      ],
+      "portraitTextOverlaps": [
+        false,
+        false
+      ],
+      "weaponDais": {
+        "x": 12,
+        "y": 382.09375,
+        "right": 195.171875,
+        "bottom": 480.15625,
+        "width": 183.171875,
+        "height": 98.0625
+      },
+      "weaponArtContained": false,
+      "artVsText": [
+        {
+          "selector": ".weapon__title",
+          "text": "VŨ KHÍ NỔI BẬT NHẤT TRẬN",
+          "box": {
+            "x": 117.4375,
+            "y": 366,
+            "right": 272.546875,
+            "bottom": 378.09375,
+            "width": 155.109375,
+            "height": 12.09375
+          },
+          "overlap": true
+        },
+        {
+          "selector": ".weapon__name",
+          "text": "STORMBREAKER",
+          "box": {
+            "x": 205.171875,
+            "y": 385,
+            "right": 361.84375,
+            "bottom": 411.46875,
+            "width": 156.671875,
+            "height": 26.46875
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__dmg",
+          "text": "1,074\n1,074\nSÁT THƯƠNG VŨ KHÍ",
+          "box": {
+            "x": 205.171875,
+            "y": 414.46875,
+            "right": 334.703125,
+            "bottom": 452.25,
+            "width": 129.53125,
+            "height": 37.78125
+          },
+          "overlap": false
+        },
+        {
+          "selector": ".weapon__owner",
+          "text": "P1",
+          "box": {
+            "x": 205.171875,
+            "y": 455.25,
+            "right": 244.296875,
+            "bottom": 477.25,
+            "width": 39.125,
+            "height": 22
+          },
+          "overlap": false
+        }
+      ],
+      "pairwiseTextOverlaps": [],
+      "textOverflow": [],
+      "rootScroll": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 844,
+        "scrollTop": 0
+      },
+      "sourceWeapon": "http://127.0.0.1:5173/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "placeholders": []
+    }
+  ],
+  "browserErrors": []
+}

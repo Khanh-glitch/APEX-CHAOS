@@ -12,6 +12,7 @@ import {
   ROSTER_PAGER_BAND_RULES,
   ROSTER_PAGER_MARKER,
   ROSTER_PAGER_SCRIPT_ID,
+  SHORT_LANDSCAPE_PICK_FIT,
   pickBandFor,
   pickBandGeometry,
   resolvePickBandLaw,
@@ -91,7 +92,7 @@ check('R52 remains the sole LOCK-safe bottom/height authority; R81 is guarded an
   const lawCSS = tail.slice(0, firstStyleEnd);
   const emittedDeck = [...lawCSS.matchAll(/#stage \.selectionDeckV6\{([^{}]*)\}/g)];
   if (emittedDeck.length !== law.bands.length
-      || (lawCSS.match(/\.selectionDeckV6\{/g) || []).length !== law.bands.length
+      || (lawCSS.match(/\.selectionDeckV6\{/g) || []).length !== law.bands.length + 1
       || !emittedDeck.every(([, body]) => /top:/.test(body) && /bottom:max\(/.test(body)
         && /height:auto!important/.test(body))) return false;
 
@@ -106,6 +107,15 @@ check('R52 remains the sole LOCK-safe bottom/height authority; R81 is guarded an
   if (allLate.length !== 1 || allLate[0][0] !== '.selectionDeckV6{top:70.8vh!important}') return false;
   return true;
 })());
+check('owner-approved short-landscape fit is part of the sole R52 band authority', (() => {
+  const start = shell.indexOf(PICK_BAND_MARKER);
+  const end = shell.indexOf('</style>', start);
+  const lawCss = start < 0 || end < 0 ? '' : shell.slice(start, end);
+  return lawCss.includes(SHORT_LANDSCAPE_PICK_FIT.marker)
+    && lawCss.includes(SHORT_LANDSCAPE_PICK_FIT.media)
+    && lawCss.includes(SHORT_LANDSCAPE_PICK_FIT.css)
+    && !shell.slice(end + 8).includes(SHORT_LANDSCAPE_PICK_FIT.marker);
+})());
 check('no rule after the law re-declares the lock min-height',
   shell.slice(shell.indexOf(PICK_BAND_MARKER)).split('#stage .lockMechanismV6{min-height:var(--apexLockH)!important}').join('')
     .includes('lockMechanismV6{min-height') === false);
@@ -114,7 +124,7 @@ check('no rule after the law re-declares the lock min-height',
 // composition must actually have had the defect (otherwise the law is noise) ─
 const BANDS = [
   [1920, 1080], [2560, 1440], [1440, 900], [1366, 768], [1280, 720], [1024, 768],
-  [1194, 834], [932, 430], [844, 390], [820, 1180], [768, 1024], [430, 932], [390, 844], [360, 640],
+  [1194, 834], [932, 430], [844, 390], [667, 375], [820, 1180], [768, 1024], [430, 932], [390, 844], [360, 640],
 ];
 const wasCropped = new Set();
 for (const [w, h] of BANDS) {
@@ -125,8 +135,15 @@ for (const [w, h] of BANDS) {
   check(`derived law clears the LOCK band at ${label} (${applied.band})`,
     applied.overlap === 0 && applied.deckHeight >= 40,
     `overlap=${applied.overlap.toFixed(2)} deckH=${applied.deckHeight.toFixed(1)}`);
-  check(`derived law preserves the deck top edge at ${label}`,
-    Math.abs(applied.deckTopY - canonical.deckTopY) < 0.01);
+  const shortLandscape = h < w && h <= 500 && w <= 980;
+  check(`derived law preserves or owner-fits the deck top edge at ${label}`,
+    shortLandscape ? Math.abs(applied.deckTopY - h * 0.715) < 0.01
+      : Math.abs(applied.deckTopY - canonical.deckTopY) < 0.01);
+  if (shortLandscape) {
+    check(`short-landscape lock remains 3px below the roster deck at ${label}`,
+      Math.abs(applied.lockTopY - applied.deckBottomY - 3) < 0.01,
+      `gap=${(applied.lockTopY - applied.deckBottomY).toFixed(2)}`);
+  }
   check(`derived law never moves the deck below its authored bottom at ${label}`,
     applied.deckBottomY <= canonical.deckBottomY + 0.01);
 }
@@ -164,6 +181,8 @@ check('selection track cursor scales to the live roster size (--cursor-n)',
   count(shell, '#stage .selectionCursorV6{width:calc(100%/var(--cursor-n,6))}') === 1);
 check('pager script keeps selection ownership with the canonical shell (no selectHero rewrite)',
   !rosterPagerScript().includes('selectHero') && !rosterPagerScript().includes('lockCurrent'));
+check('page starts measure from the CSS snapport inset, not the outer scrollport edge',
+  rosterPagerScript().includes('scrollPaddingLeft') && rosterPagerScript().includes('- snapInset'));
 
 console.log(['R52 PICK BAND LAW GATE', ...passes].join('\n'));
 if (failures.length) {

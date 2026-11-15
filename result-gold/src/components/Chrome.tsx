@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { ArrowRight, ChevronsRight, LayoutGrid, RotateCcw } from "lucide-react";
 import type { MatchMeta } from "../data/types";
 import { fmtDuration } from "../lib/match";
@@ -28,7 +28,9 @@ function Logo() {
   );
 }
 
-export function TopBar({ meta, onReplay }: { meta: MatchMeta; onReplay: () => void }) {
+/* The topbar is the single layout authority for top-row controls. Skip is a flex child placed
+   before Replay (Issue #105 P0-C): a fixed overlay here sat on top of Replay on first entry. */
+export function TopBar({ meta, onReplay, children }: { meta: MatchMeta; onReplay: () => void; children?: ReactNode }) {
   return (
     <header className="topbar">
       <div className="brand">
@@ -44,6 +46,7 @@ export function TopBar({ meta, onReplay }: { meta: MatchMeta; onReplay: () => vo
         <li>{fmtDuration(meta.durationSec)}</li>
         <li className="mono">#{meta.id}</li>
       </ul>
+      {children}
       <button type="button" className="iconbtn" onClick={onReplay} title="Xem lại hiệu ứng (R)" aria-label="Xem lại hiệu ứng">
         <RotateCcw size={18} aria-hidden="true" />
         <span>Xem lại</span>

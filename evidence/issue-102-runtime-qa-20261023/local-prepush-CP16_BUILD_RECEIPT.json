@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "application": "APEX CHAOS",
+  "gitCommit": "ed1dc16981e897e6599bc193444cd80789cc5a7e",
+  "gitBranch": "HEAD",
+  "revision": "20261023-tp-r1",
+  "goldShellSha256": "7ba7ea27e7240aec4936d9a8064dd5c85a615bec259dec121b9dcb1bbc5dc92d",
+  "versionedRuntimeCount": 70,
+  "provenance": "git-checkout/build: checked before publishing; not a deployment attestation"
+}

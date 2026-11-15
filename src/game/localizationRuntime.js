@@ -9,7 +9,7 @@ const roots=new WeakMap();
 const FRAME_FONT_CSS = `@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf') format('truetype');font-style:normal;font-weight:200 700;font-display:swap}html[data-apex-language='vie']{--fd:'ApexVietCondensed','Segoe UI',sans-serif;--fui:'ApexVietCondensed','Segoe UI',sans-serif;--fnum:'ApexVietCondensed','Segoe UI',sans-serif}`;
 let language='eng';
 let busy=false;
-let select=null;
+let pickerEl=null;
 
 function readLanguage(){
   try {return localStorage.getItem(KEY)==='vie'?'vie':'eng';}catch{return 'eng';}
@@ -26,11 +26,12 @@ function localizeText(node,rec){
   if(!eligible(node))return;
   const seen=rec.text.get(node);
   const raw=node.nodeValue;
+  if(seen&&seen.last===raw&&seen.language===language)return;
   // The game may rewrite translated UI content. Retain the original English
   // source while displaying Vietnamese; never treat our translation as source.
   const source=seen && (raw===seen.last || raw===seen.original)?seen.original:raw;
   const next=translateCopy(source,language);
-  rec.text.set(node,{original:source,last:next});
+  rec.text.set(node,{original:source,last:next,language});
   if(next!==raw)node.nodeValue=next;
 }
 function localizeAttrs(el,rec){
@@ -41,9 +42,10 @@ function localizeAttrs(el,rec){
     let state=rec.attrs.get(el);
     if(!state){state=new Map();rec.attrs.set(el,state);}
     const prev=state.get(attr);
+    if(prev&&prev.last===current&&prev.language===language)continue;
     const source=prev && (current===prev.last||current===prev.original)?prev.original:current;
     const next=translateCopy(source,language);
-    state.set(attr,{original:source,last:next});
+    state.set(attr,{original:source,last:next,language});
     if(next!==current)el.setAttribute(attr,next);
   }
 }
@@ -195,25 +197,88 @@ function setLanguage(next){
   if(next!=='vie' && next!=='eng')return;
   language=next;
   saveLanguage(language);
-  if(select)select.value=language;
+  syncPicker();
   document.documentElement.dataset.apexLanguage=language;
   updateAll();
   window.dispatchEvent(new window.CustomEvent('apex:language-changed',{detail:{language}}));
 }
+// Segmented ENG|VIE control: both languages are always visible in the
+// top utility cluster (no dropdown to open), and the active side is
+// unambiguous at a glance (owner Requirement A).
+function syncPicker(){
+  if(!pickerEl)return;
+  for(const btn of pickerEl.querySelectorAll('[data-apex-language-option]')){
+    const active=btn.dataset.apexLanguageOption===language;
+    btn.classList.toggle('is-active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+  }
+}
 function mountPicker(){
-  if(select?.isConnected)return;
+  if(pickerEl?.isConnected && document.getElementById('apex-utility-toggle')?.isConnected)return;
   const stage=document.querySelector('#gold-shell-host #stage');
+  const profile=stage?.querySelector('.profile');
   if(!stage)return;
+  // Store the EXISTING language controls and Help in a deliberate command
+  // drawer. No permanent 3-button toolbar floats over game art.
   const picker=document.createElement('div');
   picker.id='apex-language-picker';
   picker.dataset.apexNoLocalize='';
   picker.setAttribute('role','group');
-  picker.setAttribute('aria-label','Language / Ngôn ngữ');
-  picker.innerHTML='<span class="apex-language-caption">LANG</span><select id="apex-language-select" aria-label="Language / Ngôn ngữ"><option value="eng">ENG</option><option value="vie">VIE</option></select>';
+  picker.setAttribute('aria-label','Interface / Giao diện');
+  picker.hidden=true;
+  picker.innerHTML='<div class="apex-utility-head"><span class="apex-utility-kicker">APEX / SYSTEM</span>'
+    +'<span class="apex-utility-edition">UI SETTINGS</span></div>'
+    +'<div class="apex-utility-section"><span class="apex-language-caption">LANGUAGE</span>'
+    +'<span class="apex-language-options">'
+    +'<button type="button" id="apex-language-eng" data-apex-language-option="eng" aria-pressed="false">ENG</button>'
+    +'<button type="button" id="apex-language-vie" data-apex-language-option="vie" aria-pressed="false">VIE</button>'
+    +'</span></div>'
+    +'<div class="apex-utility-help-label">GUIDE / HƯỚNG DẪN</div>';
   stage.appendChild(picker);
-  select=picker.querySelector('select');
-  select.value=language;
-  select.addEventListener('change',()=>setLanguage(select.value));
+  pickerEl=picker;
+  const toggle=document.createElement('button');
+  toggle.type='button';
+  toggle.id='apex-utility-toggle';
+  toggle.dataset.apexNoLocalize='';
+  toggle.setAttribute('aria-label','Interface settings / Cài đặt giao diện');
+  toggle.setAttribute('aria-controls',picker.id);
+  toggle.setAttribute('aria-expanded','false');
+  toggle.setAttribute('aria-haspopup','true');
+  toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round">'
+    +'<path d="M4 7h16M4 12h16M4 17h16"/>'
+    +'<circle cx="9" cy="7" r="2" fill="#101015"/>'
+    +'<circle cx="16" cy="12" r="2" fill="#101015"/>'
+    +'<circle cx="11" cy="17" r="2" fill="#101015"/>'
+    +'</svg>';
+  (profile||stage).appendChild(toggle);
+  const collapse=()=>{
+    picker.hidden=true;
+    picker.classList.remove('is-expanded');
+    toggle.setAttribute('aria-expanded','false');
+  };
+  const expand=()=>{
+    picker.hidden=false;
+    picker.classList.add('is-expanded');
+    toggle.setAttribute('aria-expanded','true');
+  };
+  toggle.addEventListener('click',()=>{
+    if(picker.hidden)expand();
+    else collapse();
+  });
+  picker.addEventListener('click',(event)=>{
+    const btn=event.target?.closest?.('[data-apex-language-option]');
+    if(btn){setLanguage(btn.dataset.apexLanguageOption);collapse();toggle.focus({preventScroll:true});}
+    if(event.target?.closest?.('#apex-guide-open'))collapse();
+  });
+  document.addEventListener('pointerdown',(event)=>{
+    if(!picker.hidden&&!picker.contains(event.target)&&!toggle.contains(event.target))collapse();
+  },true);
+  document.addEventListener('keydown',(event)=>{
+    if(event.key==='Escape'&&!picker.hidden){
+      collapse();toggle.focus({preventScroll:true});event.stopPropagation();
+    }
+  },true);
+  syncPicker();
 }
 export function installLocalization(){
   language=readLanguage();
@@ -223,7 +288,7 @@ export function installLocalization(){
   mountPicker();
   // Gold is mounted asynchronously. A single observer discovers it,
   // including subsequent Lucky Draw / Battle HUD same-origin iframes.
-  const guard=new MutationObserver(()=>{if(!select?.isConnected)mountPicker();});
+  const guard=new MutationObserver(()=>{if(!pickerEl?.isConnected)mountPicker();});
   guard.observe(document.body,{subtree:true,childList:true});
   document.addEventListener('apex:localization-refresh',updateAll);
   window.addEventListener('storage',(event)=>{

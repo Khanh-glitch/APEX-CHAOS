@@ -2299,10 +2299,16 @@ function draw() {
                 background: true, projectiles: true, particles: true, fighters: false,
             });
         }
-        if (fighters[0]) fighters[0].draw(ctx); if (fighters[1]) fighters[1].draw(ctx);
+        // Owner R2 P0-B: playable heroes are drawn as themselves. No side outline.
+        if (fighters[0]) fighters[0].draw(ctx);
+        if (fighters[1]) fighters[1].draw(ctx);
+        if (window.APEX_ROBOT_PRESENTATION && window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay) {
+            window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay(ctx);
+        }
         for (const f of fighters) { if (f && f.name==='SNIPER' && f.data && f.data.aim>0) { const enemy = fighters.find(q=>q.id!==f.id); if(enemy){ ctx.save(); ctx.globalAlpha=.9; ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(enemy.x,enemy.y); ctx.stroke(); ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.radius+16, 0, TAU); ctx.moveTo(enemy.x-(enemy.radius+28), enemy.y); ctx.lineTo(enemy.x+(enemy.radius+28), enemy.y); ctx.moveTo(enemy.x, enemy.y-(enemy.radius+28)); ctx.lineTo(enemy.x, enemy.y+(enemy.radius+28)); ctx.stroke(); ctx.restore(); }} }
         for (const t of floatingTexts) t.draw(ctx);
         if (arenaFlash.a > 0) { ctx.fillStyle=`rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a})`; ctx.fillRect(0,0,GAME_SIZE,GAME_SIZE); }
+        // Team identity lives in the Gold HUD (plates and nameplate chips), not on the actor.
     } finally {
         ctx.restore();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2312,10 +2318,25 @@ function draw() {
     }
 }
 
+function stopBattleFrameLoop() {
+    if (reqId) cancelAnimationFrame(reqId);
+    reqId = null;
+    lastTime = 0;
+}
 function loop(timestamp) {
+    // A parked engine must not redraw the previous match behind any menu.
+    // Every match entry already resets lastTime and acquires the RAF lease.
+    if (gameState === 'MENU' || gameState === 'SELECT') {
+        stopBattleFrameLoop();
+        return;
+    }
     const rawDt = Math.min(0.033, (timestamp - lastTime) / 1000 || 0);
     lastTime = timestamp;
     update(rawDt * timeScale);
+    if (gameState === 'MENU' || gameState === 'SELECT') {
+        stopBattleFrameLoop();
+        return;
+    }
     draw();
     reqId = requestAnimationFrame(loop);
 }
@@ -2488,6 +2509,7 @@ function legacyUiElement(id) {
 }
 
 function goToMenu() {
+    stopBattleFrameLoop();
     stopBattleAudio('engine:go-to-menu');
     clearNinjaVisualArtifacts();
     autoBattlePaused = false;
@@ -2501,6 +2523,7 @@ function goToMenu() {
     gameState = 'MENU';
 }
 function goToSelect() {
+    stopBattleFrameLoop();
     stopBattleAudio('engine:go-to-select');
     autoBattlePaused = false;
     autoBattleControlsActive = false;

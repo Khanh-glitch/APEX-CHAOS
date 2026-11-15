@@ -804,9 +804,9 @@ kbd{font:inherit}
 }
 /* R91 LABEL-FIT: primary-deck skill/weapon names fit whole instead of
    eliding (audit D1/D2, browser-measured). land/port wrap to a second
-   line; desk steps size along the donor cqh curve (wrap clips the fixed
-   desk tile at short heights). Short names render unchanged; CPU 1p mini
-   readouts and Quest keep donor elision. */
+   line; desk steps size/tracking only in its dense fixed-tile band (wrap
+   clips the tile at short heights). CPU 1p mini readouts and Quest keep
+   donor elision. */
 #hud:not([data-quest="1"]):not([data-layout="desk"])[data-mode="2p"] .sk-name,
 #hud:not([data-quest="1"]):not([data-layout="desk"])[data-mode="1p"] #p1Side .sk-name{
   white-space:normal;
@@ -818,8 +818,11 @@ kbd{font:inherit}
 }
 #hud:not([data-quest="1"])[data-layout="desk"][data-mode="2p"] .sk-name,
 #hud:not([data-quest="1"])[data-layout="desk"][data-mode="1p"] #p1Side .sk-name{
-  font-size:clamp(13px,1.7cqh,18px);
-  letter-spacing:.02em;
+  font-size:clamp(12.5px,1.67cqh,18px);
+  letter-spacing:0;
+}
+#hud:not([data-quest="1"])[data-layout="land"][data-size="tablet"][data-mode="2p"] .sk-name{
+  letter-spacing:.04em;
 }
 #hud:not([data-quest="1"]):not([data-layout="desk"])[data-mode="2p"] .wp-name,
 #hud:not([data-quest="1"]):not([data-layout="desk"])[data-mode="1p"] #p1Side .wp-name{
@@ -832,12 +835,150 @@ kbd{font:inherit}
 }
 #hud:not([data-quest="1"])[data-layout="desk"][data-mode="2p"] .wp-name,
 #hud:not([data-quest="1"])[data-layout="desk"][data-mode="1p"] #p1Side .wp-name{
-  font-size:clamp(13px,1.85cqh,14.5px);
-  letter-spacing:.02em;
+  font-size:clamp(12.5px,1.8cqh,14.5px);
+  letter-spacing:0;
 }
 #hud:not([data-quest="1"])[data-layout="port"][data-mode="2p"] .wp-name{
   font-size:12.5px;
-  letter-spacing:.05em;
+  letter-spacing:0;
+}
+/* Owner-approved compact BOT fit: spend the narrow weapon mini-slot on the
+   opponent identity, the one label with no other home. Keep skill state/HP.
+   The P1 fighter name already has a readable lower identity home; suppress
+   only its redundant top-rail duplicate so it cannot collide with the live HP. */
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .weapon{display:none}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Side .id-ctrl{display:none}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p1Rail .vr-name{display:none}
+/* Compact BOT already shows the opponent's full identity in #p2Side .id-name.
+   Remove the second copy from its narrow HP rail; it overlaps HP by 12px at
+   390×844 and is never the only P2 identity source. */
+#hud:not([data-quest="1"])[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Rail .vr-name{display:none}
+/* At <=340px the P2 card's mirrored identity row cannot fit both its 34px
+   portrait and the full name beside the retained P2 skill summary; HUNTER's
+   leading letters paint outside the text column. The portrait is redundant
+   with the live fighter and P2 badge, so remove it only in this compact band
+   to give the full hero name the card width. Quest remains untouched. */
+@media(max-width:340px){
+  #hud:not([data-quest="1"])[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .portrait{display:none}
+}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] .id-name{
+  font-size:clamp(14px,4.1vw,16px);letter-spacing:0;overflow:visible;text-overflow:clip
+}
+#hud[data-layout="port"][data-size="compact"][data-mode="1p"] #p2Side .id-name{font-size:clamp(12px,3.6vw,14px)}
+/* TACTICAL PULSE HUD B: distinct STANDBY vs CASTABLE vs ACTIVE vs COOLDOWN */
+.skill[data-tp-state="standby"]{
+  border-color:rgba(138,150,164,.16);
+  background:linear-gradient(90deg,rgba(255,255,255,.02),rgba(10,13,16,.92));
+}
+.skill[data-tp-state="standby"]::before{opacity:.24;background:#7d8894}
+.skill[data-tp-state="standby"] .sk-art{opacity:.52}
+.skill[data-tp-state="standby"] .sk-name{color:rgba(226,232,238,.74)}
+.skill[data-tp-state="standby"] .sk-key{color:#9aa4ae;background:#14191e;box-shadow:inset 0 0 0 1px rgba(154,164,174,.38)}
+.skill[data-tp-state="standby"] .sk-slot{color:rgba(164,176,188,.72)}
+.skill[data-tp-state="standby"] .sk-state{color:#9aa4ae}
+.skill[data-tp-state="standby"] .sk-bar i{
+  background:repeating-linear-gradient(90deg,rgba(148,162,176,.55) 0 8px,rgba(148,162,176,.14) 8px 13px);
+}
+.skill[data-tp-reject="1"]{
+  box-shadow:inset 0 0 0 1.5px rgba(255,156,74,.78);
+}
+.skill[data-tp-reject="1"] .sk-state{color:#ffb36b}
+.skill[data-tp-castable="1"][data-state="ready"]{
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 54%,transparent),0 0 16px color-mix(in srgb,var(--acc) 14%,transparent);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 17%,#11161b),#0c0f13 78%);
+}
+.skill[data-tp-castable="1"][data-state="ready"] .sk-key{
+  background:var(--acc);
+  color:#090b0d;
+  font-weight:800;
+  box-shadow:0 0 10px color-mix(in srgb,var(--acc) 42%,transparent);
+}
+.skill[data-tp-castable="1"][data-state="ready"] .sk-state{
+  color:color-mix(in srgb,var(--acc) 76%,#ffffff);
+  font-weight:700;
+}
+.skill[data-tp-target="1"][data-state="ready"]{
+  box-shadow:inset 0 0 0 1.5px rgba(86,224,255,.78),0 0 18px rgba(86,224,255,.18);
+  background:linear-gradient(90deg,rgba(86,224,255,.17),#0b1015 78%);
+}
+.skill[data-tp-target="1"][data-state="ready"] .sk-slot{color:#7ee8ff;font-weight:700}
+.skill[data-tp-target="1"][data-state="ready"] .sk-state{color:#a8f3ff;font-weight:800}
+.skill[data-state="active"]{
+  box-shadow:inset 0 0 0 1.5px rgba(86,224,255,.72),0 0 16px rgba(86,224,255,.16);
+  background:linear-gradient(90deg,rgba(86,224,255,.16),#0b1015 80%);
+}
+.skill[data-state="active"] .sk-key{background:#56e0ff;color:#06080a;font-weight:800}
+.skill[data-state="active"] .sk-slot{color:#7ee8ff;font-weight:700}
+.skill[data-state="active"] .sk-state{color:#56e0ff;font-weight:800}
+.skill[data-state="active"] .sk-bar i{background:#56e0ff}
+/* Prevent long localized slot labels (e.g. VIE 2P) from ever shrinking key caps (NUM1/NUM2) */
+.sk-top{min-width:0}
+.sk-top .sk-key{flex:0 0 auto!important;min-width:max-content!important}
+.sk-top .sk-slot{min-width:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Mobile landscape & square P90 polish: crisp spacing around P1 identity, top HP numerals & proportional skill height */
+#hud:not([data-quest="1"])[data-layout="land"][data-mode="1p"] #p1Side .ident{
+  align-items:center;
+  min-height:42px;
+}
+#hud:not([data-quest="1"])[data-layout="land"][data-mode="1p"] #p1Side .skills{
+  max-height:264px;
+}
+#hud:not([data-quest="1"])[data-layout="land"][data-mode="1p"] .vr-top{
+  align-items:baseline;
+  padding-bottom:1px;
+}
+/* Mobile portrait 1p thumb zone: anchor J/K in thumb reach and preserve HUD-free safe band */
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p1Side .ident{
+  align-self:start;
+}
+/* Issue #105: VS BOT portrait 1P. The P1 row reserves only its content minimum
+   (ident 44 + gap 8 + J/K >=96). The square arena takes the freed height on
+   short phones; J/K sit directly under the identity row, capped, so no empty
+   band remains between them. This later rule wins the cascade over the donor 200px. */
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"]{--p1Min:150px}
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p1Side .skills{
+  align-self:start;
+  height:min(100%,280px);
+}
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p1Side .sk-art{
+  aspect-ratio:auto!important;
+  height:100%!important;
+  min-height:0;
+  overflow:hidden;
+}
+/* Scoped 1p opponent mini-skill label readability: isolate LTR reading order inside
+   mirrored #p2Side (prevents RTL left-prefix clipping such as "...TUAL ARMOR") and
+   allow 2 compact lines within the existing 64px column on portrait 1p without
+   expanding column width or shrinking the arena on 320x568 / 390x844 ENG/VIE. */
+#hud:not([data-quest="1"])[data-mode="1p"] #p2Side .sk-name{
+  direction:ltr;
+  unicode-bidi:isolate;
+}
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p2Side .skills{
+  height:44px;
+}
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p2Side .sk-info{
+  padding:2px 4px;
+  gap:2px;
+}
+#hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p2Side .sk-name{
+  text-align:right;
+  padding:2px 2px 0;
+  white-space:normal;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  line-clamp:2;
+  font-size:9px;
+  line-height:1.1;
+  letter-spacing:0;
+  max-width:66px;
+}
+@media(max-width:340px){
+  #hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p2Side .sk-name{
+    font-size:8.5px;
+    max-width:76px;
+  }
 }
 </style>
 
@@ -882,21 +1023,29 @@ kbd{font:inherit}
     const u=R.side[i]&&R.side[i].skills;if(!u)return;
     for(let k=0;k<2&&k<u.length;k++){
       const el=u[k].el&&u[k].el.querySelector('.sk-key');
-      if(el)el.textContent=(labels&&labels[k])||'';
+      const label=(labels&&labels[k])||'';
+      if(el&&el.textContent!==label)el.textContent=label;
     }
   }
 
   function applyIdentityProjection(i,identity){
     if(!identity)return;
     const side=R.side[i],rail=R.rail[i],name=String(identity.name||''),sub=String(identity.tag||'');
-    if(name){HEROES[i].name=name;if(side.name&&side.name.textContent!==name)side.name.textContent=name;if(rail.name&&rail.name.textContent!==name)rail.name.textContent=name;const rival=R.side[i^1]&&R.side[i^1].rival&&R.side[i^1].rival.name;if(rival&&rival.textContent!==name)rival.textContent=name;}
-    if(sub){HEROES[i].sub=sub;if(side.sub&&side.sub.textContent!==sub)side.sub.textContent=sub;if(rail.sub&&rail.sub.textContent!==sub)rail.sub.textContent=sub;}
-    const avatar=String(identity.battleAvatar||'');
-    // R65: hero-specific geometric field, never a scaled portrait.
+    const role=String(identity.roleHint||sub),avatar=String(identity.battleAvatar||'');
     const heroId=String(identity.id||identity.heroId||identity.key||name||'').toLowerCase();
+    const previous=side.identity;
+    // Static source identity owns these writes, not translated DOM text.
+    // This also prevents ENG -> VIE -> ENG rewrites on every projection.
+    if(previous&&previous.name===name&&previous.sub===sub&&previous.role===role
+       &&previous.avatar===avatar&&previous.heroId===heroId)return;
+    side.identity={name,sub,role,avatar,heroId};
+    if(name){HEROES[i].name=name;if(side.name&&side.name.textContent!==name)side.name.textContent=name;if(rail.name&&rail.name.textContent!==name)rail.name.textContent=name;const rival=R.side[i^1]&&R.side[i^1].rival&&R.side[i^1].rival.name;if(rival&&rival.textContent!==name)rival.textContent=name;}
+    if(sub){HEROES[i].sub=sub;const sideSub=String(identity.roleHint||sub);if(side.sub&&side.sub.textContent!==sideSub)side.sub.textContent=sideSub;if(rail.sub&&rail.sub.textContent!==sub)rail.sub.textContent=sub;}
+    // R65: hero-specific geometric field, never a scaled portrait.
     const motif=heroId.includes('frost')?'frost':heroId.includes('hunter')?'hunter':heroId.includes('crystal')?'crystala':heroId.includes('magnet')?'magnet':heroId.includes('mirror')?'mirror':'robot';
     const art=side.root.querySelector('.side-art');
-    if(art){
+    if(art && art.dataset.apexMotif!==motif){
+      art.dataset.apexMotif=motif;
       const patterns={
         robot:'<path d="M30 150L130 40 210 150 130 260Z M130 40V260 M30 150H210"/><circle cx="130" cy="150" r="49"/><circle cx="130" cy="150" r="16"/>',
         frost:'<path d="M130 15V285 M14 150H246 M40 60L220 240 M220 60L40 240"/><path d="M130 15L105 75 155 75Z M130 285L105 225 155 225Z"/>',
@@ -913,7 +1062,8 @@ kbd{font:inherit}
 
   function syncQuestRailSlots(teams) {
     const quest=Array.isArray(teams) && teams.length===2;
-    if(R.hud)R.hud.dataset.quest=quest?'1':'0';
+    const questValue=quest?'1':'0';
+    if(R.hud&&R.hud.dataset.quest!==questValue)R.hud.dataset.quest=questValue;
     for(let i=0;i<2;i++){
       const clip=R.rail[i]?.bar?.querySelector('.vr-clip');
       if(!clip)continue;
@@ -979,7 +1129,8 @@ kbd{font:inherit}
       if(Array.isArray(st.wins))S.wins=[Number(st.wins[0])||0,Number(st.wins[1])||0];
     }
     const hud=document.getElementById('hud');
-    if(hud)hud.dataset.roundAuthority=S.roundAuthority?'1':'0';
+    const roundValue=S.roundAuthority?'1':'0';
+    if(hud&&hud.dataset.roundAuthority!==roundValue)hud.dataset.roundAuthority=roundValue;
     if(typeof st.ko==='boolean')S.ko=st.ko;
     for(let i=0;i<2;i++){
       const s=st.sides&&st.sides[i];if(!s)continue;
@@ -1037,9 +1188,9 @@ kbd{font:inherit}
         for(let k=0;k<2&&k<s.skills.length;k++){
           const sk=s.skills[k],a=p.abil[k];if(!a||!sk)continue;
           const u=R.side[i].skills[k];
-          if(sk.name){a.name=sk.name;if(u.name&&u.name.textContent!==sk.name)u.name.textContent=sk.name;}
-          if(sk.desc&&u.desc&&u.desc.textContent!==sk.desc)u.desc.textContent=sk.desc;
-          if(sk.kind){a.kind=sk.kind;u.slot.textContent=sk.kind==='charges'?'CHARGES':(sk.kind==='duration'?'ACTIVE WINDOW':'ABILITY '+(k+1));}
+          if(sk.name){a.name=sk.name;if(u.name&&u.k.sourceName!==sk.name){u.name.textContent=sk.name;u.k.sourceName=sk.name;}}
+          if(sk.desc&&u.desc&&u.k.sourceDesc!==sk.desc){u.desc.textContent=sk.desc;u.k.sourceDesc=sk.desc;}
+          if(sk.kind){a.kind=sk.kind;a.__baseSlot=sk.kind==='charges'?'CHARGES':(sk.kind==='duration'?'ACTIVE WINDOW':'ABILITY '+(k+1));}
           if(Number.isFinite(sk.duration))a.duration=Math.max(0,sk.duration);
           if(sk.icon&&u.k.icon!==sk.icon){
             let img=u.art&&u.art.querySelector(':scope > .apex-skill-icon');
@@ -1058,6 +1209,13 @@ kbd{font:inherit}
           // increments charges or fabricates its own cooldown completion.
           a.next=Number.isFinite(sk.nextIn)&&sk.nextIn>0?now+sk.nextIn*1000:0;
           a.__truth=!!sk.truth;
+          a.__castable=sk.truth===true&&sk.castable===true;
+          a.__castReason=String(sk.castReason||(sk.truth?'condition':'syncing'));
+          a.__mechanic=String(sk.mechanic||'');
+          a.__targetWeaponId=String(sk.targetWeaponId||'');
+          a.__targetName=String(sk.targetName||'');
+          a.__activeRemainSec=Number.isFinite(sk.activeRemainSec)?Math.max(0,sk.activeRemainSec):0;
+          a.__mitigationPct=Number.isFinite(sk.mitigationPct)?Math.max(0,Math.round(sk.mitigationPct)):0;
           a.locked=sk.locked===true;
           if(sk.castUntil)a.castUntil=now+380;
         }
@@ -1083,6 +1241,15 @@ kbd{font:inherit}
     const p=S.players[v];if(!p)return;
     if(Number.isFinite(beforeHp))p.hp=Math.max(0,Math.min(p.max,beforeHp));
     heal(v,Math.round(amt));
+  };
+  seam.castFail=function castFailEvent(pi,ai,reason){
+    const a=S.players[pi]&&S.players[pi].abil[ai],u=R.side[pi]&&R.side[pi].skills[ai];
+    if(!a||!u)return;
+    a.__failReason=String(reason||'condition');
+    a.__failUntil=performance.now()+850;
+    if(!RM.matches){
+      u.el.animate([{translate:'0 0'},{translate:'-3px 0'},{translate:'2px 0'},{translate:'0 0'}],{duration:210,easing:'ease-out'});
+    }
   };
   seam.cast=function castEvent(pi,ai){
     const a=S.players[pi]&&S.players[pi].abil[ai],u=R.side[pi]&&R.side[pi].skills[ai];
@@ -1416,7 +1583,14 @@ function sizeFxCanvas(){const d=Math.min(2,devicePixelRatio||1),w=Math.max(1,Mat
  if(R.fxCv.width!==w||R.fxCv.height!==h){R.fxCv.width=w;R.fxCv.height=h;}
  R.fxCtx.setTransform(d,0,0,d,0,0);
 }
-new ResizeObserver(resizeCanvas).observe(R.arena);
+const hudResizeObserver=new ResizeObserver(resizeCanvas);hudResizeObserver.observe(R.arena);
+const skillSizeOwners=new WeakMap();
+const hudSkillSizeObserver=new ResizeObserver(entries=>{
+ // Geometry is sampled only after an actual card resize, never in renderSkills.
+ for(const entry of entries){const u=skillSizeOwners.get(entry.target);if(!u)continue;
+  const w=u.el.clientWidth;u.narrow=w>0&&w<240;}
+});
+R.side.forEach(side=>side.skills.forEach(u=>{skillSizeOwners.set(u.el,u);hudSkillSizeObserver.observe(u.el);}));
 addEventListener('resize',applyViewport);
 
 /* ================= RENDER (state -> UI) ================= */
@@ -1426,9 +1600,9 @@ function renderStatic(){
  // the RIGHT-HAND NUMPAD pair only (Numpad1/Numpad2) — the top-row 1/2
  // pair must not cast, so the hint names NUM. BOT P2 = CPU. No manual
  // swap command exists in production, so no swap key is advertised.
- R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TAP';
+ R.side[0].ctrl.textContent=S.mode==='1p'?'':(desk?'LOCAL · J K':'LOCAL · TAP');
  R.side[1].ctrl.textContent=S.mode==='1p'?'CPU':(desk?'LOCAL · NUM 1 2':'LOCAL · TAP');
- R.side.forEach((s,i)=>s.skills.forEach((u,k)=>{u.slot.textContent=(S.mode==='1p'&&i===1)?'ENEMY':'ABILITY '+(k+1);u.el.setAttribute('aria-disabled',S.mode==='1p'&&i===1?'true':'false');}));
+ R.side.forEach((s,i)=>s.skills.forEach((u,k)=>{u.k.sl=undefined;u.slot.textContent=(S.mode==='1p'&&i===1)?'ENEMY':'ABILITY '+(k+1);u.el.setAttribute('aria-disabled',S.mode==='1p'&&i===1?'true':'false');}));
 }
 function renderRival(viewer){
  const opp=viewer^1,p=S.players[opp],u=R.side[viewer].rival,h=HEROES[opp],t=String(Math.round(p.hp)),f=`scaleX(${(p.hp/p.max).toFixed(4)})`;
@@ -1517,29 +1691,83 @@ function renderSkills(now){
   const a=S.players[i].abil[k],u=R.side[i].skills[k];
   const remaining=a.next?Math.max(0,(a.next-now)/1000):0;
   const frac=a.next?clamp(remaining/Math.max(.05,a.cd),0,1):0;
-  const activeRemaining=a.activeUntil?Math.max(0,(a.activeUntil-now)/1000):0;
+  const activeRemaining=typeof a.__activeRemainSec==='number'?a.__activeRemainSec:(a.activeUntil?Math.max(0,(a.activeUntil-now)/1000):0);
   const activeFrac=a.duration>0?clamp(activeRemaining/a.duration,0,1):0;
   const st=a.locked===true?'locked':now<a.castUntil?'cast':activeRemaining>0?'active':a.charges>0?'ready':'cd';
+  const isStandby=(st==='ready'&&(a.__truth===false||a.__castable!==true));
+  const tpState=isStandby?'standby':st;
+  const isCastable=(tpState==='ready'&&a.__truth===true&&a.__castable===true);
+  const rejecting=(isStandby&&now<(a.__failUntil||0));
   const prevSt=u.st;
-  if(st!==prevSt){
-   if(prevSt==='cd'&&st==='ready'){u.readyAgainUntil=now+720;readyPop(u,i,k);}
-   else if(st!=='ready')u.readyAgainUntil=0;
-   u.el.dataset.state=st;u.el.disabled=st==='locked';u.st=st;
+  if(st!==prevSt||u.tpSt!==tpState){
+   if(prevSt==='cd'&&st==='ready'){if(!isStandby){u.readyAgainUntil=now+720;readyPop(u,i,k);}}
+   else if(u.tpSt==='standby'&&isCastable){u.readyAgainUntil=now+720;readyPop(u,i,k);}
+   else if(!isCastable)u.readyAgainUntil=0;
+   u.el.dataset.state=st;u.el.disabled=st==='locked';
+   u.el.dataset.tpState=tpState;
+   u.el.dataset.tpCastable=isCastable?'1':'0';
+   u.el.dataset.tpTarget=(isCastable&&a.__targetName)?'1':'0';
+   u.st=st;u.tpSt=tpState;
   }
-  u.el.dataset.kind=a.kind||'cooldown';
+  const tpTargetVal=(isCastable&&a.__targetName)?'1':'0';
+  if(u.el.dataset.tpTarget!==tpTargetVal)u.el.dataset.tpTarget=tpTargetVal;
+  const tpRejectVal=rejecting?'1':'0';
+  if(u.el.dataset.tpReject!==tpRejectVal)u.el.dataset.tpReject=tpRejectVal;
+  const kind=a.kind||'cooldown';if(u.el.dataset.kind!==kind)u.el.dataset.kind=kind;
   const maskFrac=(st==='cd'&&a.charges<=0)?frac:0;
   const m=`scaleY(${maskFrac.toFixed(3)})`;if(u.k.m!==m){u.mask.style.transform=m;u.k.m=m;}
   const meter=activeRemaining>0?activeFrac:(a.next?(1-frac):1);
   const b=`scaleX(${meter.toFixed(3)})`;if(u.k.b!==b){u.bar.style.transform=b;u.k.b=b;}
   const secs=remaining.toFixed(1),activeSecs=activeRemaining.toFixed(1);
+  const isVie=(typeof window!=='undefined'&&window.APEX_I18N?.getLanguage?.()==='vie');
+  const isTouch=(S.viewport.layout!=='desk');
+  const isNarrowCard=u.narrow===true;
+  const isBotSide=(S.mode==='1p'&&i===1);
+  const defaultKey=i===1?(k?'NUM2':'NUM1'):(k?'K':'J');
+  const liveKey=String(u.key?.textContent||'').trim()||defaultKey;
+  let slotLabel=a.__baseSlot||(a.kind==='charges'?'CHARGES':(a.kind==='duration'?'ACTIVE WINDOW':'ABILITY '+(k+1)));
   let txt='READY';
-  if(st==='locked')txt='LOCKED';
-  else if(st==='cast')txt='PRESS-CAST';
+  if(st==='locked'){txt=isVie?'KHÓA':'LOCKED';}
+  else if(st==='cast'){txt='PRESS-CAST';}
   else if(activeRemaining>0)txt='ACTIVE '+activeSecs+'s';
-  else if(st==='ready'&&now<(u.readyAgainUntil||0))txt='READY AGAIN';
-  else if(st==='cd')txt='COOLDOWN '+secs+'s';
-  else if(a.kind==='charges')txt=a.next&&a.charges<a.max?('READY · '+a.charges+'/'+a.max+' · '+secs+'s'):('READY · '+a.charges+'/'+a.max);
+  else if(isStandby){
+    const rsn=rejecting?(a.__failReason||a.__castReason):a.__castReason;
+    if(rsn==='cc'){txt=isVie?'BỊ CHOÁNG':'STUNNED';slotLabel=isVie?'KHỐNG CHẾ':'CROWD CONTROL';}
+    else if(rsn==='quest-stage-locked'){txt=isVie?'KHÓA':'LOCKED';}
+    else if(rsn==='recast-returning'){txt=isVie?'ĐANG THU':'RETURNING';}
+    else if(rsn==='syncing'){txt=isVie?'CHUẨN BỊ':'STANDBY';}
+    else if(a.__mechanic==='robot.weapon_dash'){
+      txt=rejecting?(isVie?'CHƯA CÓ SÚNG':'NO TARGET'):(isVie?'CHỜ SÚNG':'STANDBY');
+      slotLabel=rejecting?(isVie?'TỰ NHẶT SÚNG':'AUTO PICKUP'):(isVie?'CHƯA CÓ MỤC TIÊU':'NO TARGET YET');
+    }else{
+      txt=isVie?'CHỜ ĐIỀU KIỆN':'STANDBY';
+    }
+  }
+  else if(isBotSide){
+    if(st==='cd')txt='COOLDOWN '+secs+'s';
+    else txt=isVie?'SẴN SÀNG':'READY';
+  }
+  else if(isCastable&&a.__targetName){
+    slotLabel=(isVie?'MỤC TIÊU: ':'TARGET: ')+a.__targetName;
+    txt=isTouch?(isVie?'CHẠM · LƯỚT':'TAP · DASH'):((isVie?'BẤM ':'PRESS ')+(liveKey||'J'));
+  }
+  else if(st==='ready'&&now<(u.readyAgainUntil||0)){txt='READY AGAIN';}
+  else if(st==='cd'){txt='COOLDOWN '+secs+'s';}
+  else if(a.kind==='charges'){txt=a.next&&a.charges<a.max?('READY · '+a.charges+'/'+a.max+' · '+secs+'s'):('READY · '+a.charges+'/'+a.max);}
+  else if(isCastable){
+    txt=isTouch?(isVie?'CHẠM · DÙNG':'TAP · CAST'):((isVie?'BẤM ':'CAST · ')+liveKey);
+  }
+  if(activeRemaining>0&&a.__mitigationPct>0){
+    txt=isNarrowCard?('-'+a.__mitigationPct+'% · '+activeSecs+'s'):('ACTIVE '+activeSecs+'s · -'+a.__mitigationPct+'%');
+    slotLabel=isVie?('GIẢM '+a.__mitigationPct+'% SÁT THƯƠNG'):('-'+a.__mitigationPct+'% DMG SHIELD');
+  }
+  if(st==='cd'&&isNarrowCard)txt='CD '+secs+'s';
+  if(u.slot&&u.k.sl!==slotLabel){u.slot.textContent=slotLabel;u.k.sl=slotLabel;}
   if(u.k.t!==txt){u.state.textContent=txt;u.k.t=txt;}
+  const ariaParts=[String(a.name||'SKILL')+(liveKey?' ('+liveKey+')':''),txt];
+  if(slotLabel&&slotLabel.indexOf('TARGET:')===0)ariaParts.push(slotLabel);
+  const ariaLabel=ariaParts.join(' — ');
+  if(u.k.ar!==ariaLabel){u.el.setAttribute('aria-label',ariaLabel);u.k.ar=ariaLabel;}
   const cd=st==='cd'?secs:'';if(u.k.c!==cd){u.cdn.textContent=cd;u.k.c=cd;}
   if(u.k.p!==a.charges){u.pips.forEach((el,j)=>el.classList.toggle('on',j<a.charges));u.k.p=a.charges;}
  }
@@ -1562,6 +1790,7 @@ const G={f:[{x:250,y:520,vx:0,vy:0,tx:250,ty:520,aim:0,flash:0,jx:0,jy:0,dash:nu
 function cast(pi,ai,src){
  const now=performance.now(),a=S.players[pi].abil[ai],u=R.side[pi].skills[ai];
  if(S.ko)return;
+ if(a.__truth&&src&&a.__castable!==true)return;
  if(a.charges<=0){u.el.animate([{translate:'0 0'},{translate:'-4px 0'},{translate:'3px 0'},{translate:'-2px 0'},{translate:'0 0'}],{duration:240});
   u.state.animate([{color:'#ff6a58'},{color:'#ff6a58',offset:.7},{}],{duration:420});return;}
  a.charges--;if(!a.next)a.next=now+a.cd*1000;a.castUntil=now+380;
@@ -1575,11 +1804,11 @@ function setStatus(i,txt,ms){const el=R.side[i].status;el.textContent=txt;el.get
 function localDuelStat(a,v,amt,tier,impactAccent){
  if(!(S.viewport.layout==='port'&&S.mode==='2p'))return;
  const col=(tier==='crit'||tier==='heavy')?(impactAccent||ACC[a]):'var(--dmg)',label=tier==='heavy'?'HEAVY':tier==='crit'?'CRIT':'HIT';
- const write=(viewer,role)=>{const u=R.side[viewer].feed;clearTimeout(u.timer);u.root.style.setProperty('--feed',col);u.role.textContent=role;u.tier.textContent=label;u.value.textContent=String(Math.round(amt));u.root.classList.remove('pulse');void u.root.offsetWidth;u.root.classList.add('pulse');u.root.animate([{transform:'scale(.96)',opacity:.35},{transform:'scale(1.03)',opacity:1,offset:.18},{transform:'scale(1)',opacity:1}],{duration:260,easing:'ease-out'});u.timer=setTimeout(()=>{u.root.classList.remove('pulse');u.role.textContent='DUEL';u.tier.textContent='READY';u.value.textContent='—';u.root.style.removeProperty('--feed');},tier==='normal'?700:1100);};
+ const write=(viewer,role)=>{const u=R.side[viewer].feed;clearTimeout(u.timer);u.root.style.setProperty('--feed',col);u.role.textContent=role;u.tier.textContent=label;u.value.textContent=String(Math.round(amt));u.root.classList.add('pulse');u.root.animate([{transform:'scale(.96)',opacity:.35},{transform:'scale(1.03)',opacity:1,offset:.18},{transform:'scale(1)',opacity:1}],{duration:260,easing:'ease-out'});u.timer=setTimeout(()=>{u.root.classList.remove('pulse');u.role.textContent='DUEL';u.tier.textContent='READY';u.value.textContent='—';u.root.style.removeProperty('--feed');},tier==='normal'?700:1100);};
  write(a,'DEALT');write(v,'TAKEN');
 }
 function localHealStat(v,amt){
- if(!(S.viewport.layout==='port'&&S.mode==='2p'))return;const u=R.side[v].feed;clearTimeout(u.timer);u.root.style.setProperty('--feed','var(--heal)');u.role.textContent='RECOVER';u.tier.textContent='HEAL';u.value.textContent='+'+Math.round(amt);u.root.classList.remove('pulse');void u.root.offsetWidth;u.root.classList.add('pulse');u.timer=setTimeout(()=>{u.root.classList.remove('pulse');u.role.textContent='DUEL';u.tier.textContent='READY';u.value.textContent='—';u.root.style.removeProperty('--feed');},900);
+ if(!(S.viewport.layout==='port'&&S.mode==='2p'))return;const u=R.side[v].feed;clearTimeout(u.timer);u.root.style.setProperty('--feed','var(--heal)');u.role.textContent='RECOVER';u.tier.textContent='HEAL';u.value.textContent='+'+Math.round(amt);u.root.classList.add('pulse');u.timer=setTimeout(()=>{u.root.classList.remove('pulse');u.role.textContent='DUEL';u.tier.textContent='READY';u.value.textContent='—';u.root.style.removeProperty('--feed');},900);
 }
 function applyDamage(a,v,amt,tier,impactAccent){
  if(S.ko)return;const now=performance.now(),p=S.players[v];amt=Math.round(amt);
@@ -1589,7 +1818,7 @@ function applyDamage(a,v,amt,tier,impactAccent){
  const f=G.f[v],af=G.f[a],dx=f.x-af.x,dy=f.y-af.y,d=Math.hypot(dx,dy)||1,m=tier==='normal'?5:tier==='crit'?14:24;
  f.jx+=dx/d*m;f.jy+=dy/d*m;f.flash=tier==='normal'?.8:1;
  if(tier==='normal')fxNormal(a,v,amt);else if(tier==='crit')fxCrit(a,v,amt,eventAccent);else fxHeavy(a,v,amt,eventAccent);
- if(p.hp<=0)setTimeout(()=>ko(a,v),tier==='normal'?160:520);
+ if(p.hp<=0)queueFx(()=>ko(a,v),tier==='normal'?160:520);
 }
 function heal(v,amt){const p=S.players[v];localHealStat(v,amt);p.hp=Math.min(p.max,p.hp+amt);p.ghost=p.hp;renderRail(v);popup(v,amt,'heal');
  R.rail[v].heal.animate([{opacity:.55},{opacity:0}],{duration:520,easing:'ease-out'});}
@@ -1783,8 +2012,11 @@ function strokeBolt(ctx,points,color,width,alpha,glow){
  ctx.shadowColor=color;ctx.shadowBlur=glow;ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
  for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);ctx.stroke();ctx.restore();
 }
+let thunderDirty=false;
 function drawThunder(now){
+ if(!G.thunder.length&&!thunderDirty)return;
  const ctx=R.fxCtx;ctx.clearRect(0,0,S.viewport.w,S.viewport.h);
+ thunderDirty=G.thunder.length>0;
  for(let i=G.thunder.length-1;i>=0;i--){
   const e=G.thunder[i],t=now-e.t0;if(t>e.dur){G.thunder.splice(i,1);continue;}
   let f=t<72?1:t<100?.08:t<154?.82:t<176?.16:clamp(1-(t-176)/(e.dur-176),0,.48);
@@ -1805,6 +2037,8 @@ function panelImpact(v,w,h){
 }
 function makePanelSnapshot(v,w,h,extra=''){
  const clone=R.side[v].root.cloneNode(true);clone.removeAttribute('id');clone.classList.add('rupture-copy');if(extra)clone.classList.add(extra);
+ // A fracture is a frozen copy of already-localized pixels, not live UI.
+ clone.setAttribute('data-apex-no-localize','');
  clone.setAttribute('aria-hidden','true');clone.inert=true;clone.style.left='0px';clone.style.top='0px';clone.style.width=w+'px';clone.style.height=h+'px';clone.style.pointerEvents='none';
  clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
  clone.querySelectorAll('button').forEach(el=>{el.disabled=true;el.tabIndex=-1;el.style.pointerEvents='none';});
@@ -2004,15 +2238,24 @@ R.stage.addEventListener('pointercancel',e=>finishSkillPointer(e,false));
 R.stage.addEventListener('lostpointercapture',e=>{if(activeSkillPointers.has(e.pointerId))finishSkillPointer(e,false);});
 
 /* ================= PRODUCTION PUMP ================= */
-let __apexLast=performance.now();
+let __apexLast=performance.now(),hudFrame=0,hudDisposed=false;
 function frame(now){
- if(!R.stage||!R.stage.isConnected)return;
+ if(hudDisposed||!R.stage||!R.stage.isConnected)return;
  const dt=Math.min(.05,(now-__apexLast)/1000);__apexLast=now;
  try{APEX_GOLD_HUD.tick(dt,now);}catch(err){}
- requestAnimationFrame(frame);
+ hudFrame=requestAnimationFrame(frame);
 }
-
-applyViewport();requestAnimationFrame(frame);
+APEX_GOLD_HUD.dispose=function(){
+ hudDisposed=true;cancelAnimationFrame(hudFrame);hudResizeObserver.disconnect();hudSkillSizeObserver.disconnect();
+ removeEventListener('resize',applyViewport);
+ R.side.forEach(side=>clearTimeout(side.feed.timer));
+ R.fxTimers.forEach(clearTimeout);R.fxTimers.length=0;R.hitTimers.forEach(clearTimeout);
+ for(let i=0;i<2;i++)disposeRupture(i);
+ for(const animation of R.stage.getAnimations?.({subtree:true})||[])animation.cancel();
+ activeSkillPointers.clear();activeSkillSlots.clear();
+};
+applyViewport();
+if(!document.getElementById('battleHudHost')?.contains(R.stage))hudFrame=requestAnimationFrame(frame);
 </script>
 
 <style id="apex-handoff-bridge-style">
@@ -2058,7 +2301,8 @@ applyViewport();requestAnimationFrame(frame);
       }
     }
   }
-  window.addEventListener('message',e=>{
+  const receiveHandoff=e=>{
+    if(!R.stage.isConnected)return;
     const d=e.data;
     if(!d)return;
     if(d.type==='APEX_CHAOS_BATTLE_HANDOFF'){
@@ -2078,17 +2322,22 @@ applyViewport();requestAnimationFrame(frame);
     if(d.type==='APEX_CHAOS_BATTLE_PAUSE'){
       if(typeof S!=='undefined')S.paused=true;
     }
-  });
-  if(!document.__apexGoldHudExitKey){
-    document.__apexGoldHudExitKey=true;
-    document.addEventListener('keydown',e=>{
+  };
+  window.addEventListener('message',receiveHandoff);
+  const receiveExitKey=e=>{
       if(e.key!=='Escape')return;
       const host=document.getElementById('battleHudHost');
       if(!host||!host.classList.contains('is-open'))return;
       e.preventDefault();e.stopImmediatePropagation();
       parent.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');
-    },true);
-  }
+  };
+  document.addEventListener('keydown',receiveExitKey,true);
+  const disposePrevious=APEX_GOLD_HUD.dispose;
+  APEX_GOLD_HUD.dispose=()=>{
+    window.removeEventListener('message',receiveHandoff);
+    document.removeEventListener('keydown',receiveExitKey,true);
+    disposePrevious?.();
+  };
 
   try{if(typeof S!=='undefined')S.paused=true;}catch(_){}
   parent.postMessage({type:'APEX_CHAOS_HUD_READY'},'*');

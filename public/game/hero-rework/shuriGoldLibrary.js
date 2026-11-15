@@ -1477,6 +1477,22 @@ function cross(ctx, x, y, r, gap, col, w = 1) {
     ctx.restore();
 }
 function tickRing(ctx, r, n, majorEvery, lMin, lMaj, cMin, cMaj, w, rot = 0) {
+    const retained=globalThis.APEX_RETAINED_PRESENTATION;
+    const paths=retained?.geometry(`shuri-ticks:${r}:${n}:${majorEvery}:${lMin}:${lMaj}`,()=>{
+        const out=[];
+        for(let i=0;i<n;i++){
+            const a=i*TAU/n,maj=i%majorEvery===0,l=maj?lMaj:lMin;
+            const p=new Path2D();
+            p.moveTo(Math.cos(a)*(r-l),Math.sin(a)*(r-l));
+            p.lineTo(Math.cos(a)*r,Math.sin(a)*r);out.push(p);
+        }
+        return out;
+    });
+    if(paths){
+        ctx.save();ctx.rotate(rot);ctx.lineWidth=w;
+        for(let i=0;i<n;i++){ctx.strokeStyle=i%majorEvery===0?cMaj:cMin;ctx.stroke(paths[i]);}
+        ctx.restore();return;
+    }
     ctx.save();
     ctx.rotate(rot);
     ctx.lineWidth = w;
@@ -4567,6 +4583,8 @@ async function audioOn() {
     }
 }
 function accent(kind, start, amount, bus) {
+    // Portrait Studio records asset-backed cues, not procedural pitched accents.
+    if (globalThis.APEX_OWNER_TOOLS?.isPortraitStudio?.()) return;
     if (!ctx || !buses)
         return;
     const notes = {

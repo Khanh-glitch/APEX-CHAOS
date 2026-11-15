@@ -1,0 +1,401 @@
+{
+  "base": "http://127.0.0.1:5173/",
+  "setup": {
+    "id": "match-1720000000000-0",
+    "players": [
+      "SHURI",
+      "NEWBOT"
+    ],
+    "weaponCount": 1
+  },
+  "english": {
+    "lang": "en",
+    "text": "APEXCHAOS\nMATCH REPORT\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nREPLAY\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\nVICTORY\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n100%\nCRITICAL HITS\n0%\nHEALING\n0\nPLAYER 2\nD\nE\nF\nE\nA\nT\nDEFEAT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n0%\nCRITICAL HITS\n0%\nHEALING\n0\nP1\n100.0%\n▲ LEADING\n1,000\n1,000\nDMG\nTOTAL DAMAGE DEALT\nDAMAGE GAP 1,000\nP2\n0.0%\n0\n0\nDMG\nWEAPON OF THE BATTLE\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nWEAPON DAMAGE\n\nTOP CONTRIBUTOR\nP1\n\nACHIEVEMENT\n10\nSelect to view details\nACHIEVEMENT\n0\nSelect to view details\nCONTINUE\nACHIEVEMENTS ARCHIVE\nSKIP",
+    "attrs": [
+      "Match information",
+      "Replay animation",
+      "Replay animation (R)",
+      "Match results",
+      "Player 1: P1 — victory",
+      "VICTORY",
+      "SHURI — P1",
+      "Player 2: P2 — defeat",
+      "DEFEAT",
+      "NEWBOT — P2",
+      "Compare total damage dealt",
+      "Share of total damage",
+      "Share of total damage",
+      "P1 dealt 1,000 damage (100.0%). P2 dealt 0 damage (0.0%).",
+      "colt",
+      "Rarity T1",
+      "Top contributor: P1",
+      "Select a player to view earned achievements",
+      "10 achievements earned by P1. Select a badge to view details.",
+      "Achievements earned by P1",
+      "View details: No Escape, Legendary",
+      "No Escape · Legendary",
+      "View details: Burst King, Epic",
+      "Burst King · Epic",
+      "View details: Glass Cannon, Epic",
+      "Glass Cannon · Epic",
+      "View details: Clutch Finish, Epic",
+      "Clutch Finish · Epic",
+      "View details: Hand of Fate, Epic",
+      "Hand of Fate · Epic",
+      "View details: Aftershock, Rare",
+      "Aftershock · Rare",
+      "View details: Eagle Eye, Rare",
+      "Eagle Eye · Rare",
+      "View details: Semi-Automatic Mastery, Rare",
+      "Semi-Automatic Mastery · Rare",
+      "View details: Blitz Victory, Rare",
+      "Blitz Victory · Rare",
+      "View details: First Blood, Common",
+      "First Blood · Common",
+      "0 achievements earned by P2. Select a badge to view details.",
+      "Achievements earned by P2",
+      "Open the match achievement archive"
+    ],
+    "heroes": [
+      "SHURI",
+      "NEWBOT"
+    ],
+    "done": true,
+    "visible": "APEXCHAOS\nMATCH REPORT\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nREPLAY\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\nVICTORY\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n100%\nCRITICAL HITS\n0%\nHEALING\n0\nPLAYER 2\nD\nE\nF\nE\nA\nT\nDEFEAT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n0%\nCRITICAL HITS\n0%\nHEALING\n0\nP1\n100.0%\n▲ LEADING\n1,000\n1,000\nDMG\nTOTAL DAMAGE DEALT\nDAMAGE GAP 1,000\nP2\n0.0%\n0\n0\nDMG\nWEAPON OF THE BATTLE\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nWEAPON DAMAGE\n\nTOP CONTRIBUTOR\nP1\n\nACHIEVEMENT\n10\nSelect to view details\nACHIEVEMENT\n0\nSelect to view details\nCONTINUE\nACHIEVEMENTS ARCHIVE\nSKIP"
+  },
+  "vietnamese": {
+    "lang": "vi",
+    "text": "APEXCHAOS\nBÁO CÁO TRẬN ĐẤU\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nXEM LẠI\nNGƯỜI CHƠI 1\nV\nI\nC\nT\nO\nR\nY\nCHIẾN THẮNG\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nCHÍNH XÁC\n100%\nCHÍ MẠNG\n0%\nHỒI PHỤC\n0\nNGƯỜI CHƠI 2\nD\nE\nF\nE\nA\nT\nTHẤT BẠI\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nCHÍNH XÁC\n0%\nCHÍ MẠNG\n0%\nHỒI PHỤC\n0\nP1\n100.0%\n▲ DẪN ĐẦU\n1,000\n1,000\nSÁT THƯƠNG\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 1,000\nP2\n0.0%\n0\n0\nSÁT THƯƠNG\nVŨ KHÍ NỔI BẬT NHẤT TRẬN\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nSÁT THƯƠNG VŨ KHÍ\n\nĐÓNG GÓP CAO NHẤT\nP1\n\nDANH HIỆU\n10\nBấm để xem chi tiết\nDANH HIỆU\n0\nBấm để xem chi tiết\nTIẾP TỤC\nHỒ SƠ DANH HIỆU\nBỎ QUA",
+    "attrs": [
+      "Thông tin trận đấu",
+      "Xem lại hiệu ứng",
+      "Xem lại hiệu ứng (R)",
+      "Kết quả trận đấu",
+      "Người chơi 1: P1 — chiến thắng",
+      "CHIẾN THẮNG",
+      "SHURI — P1",
+      "Người chơi 2: P2 — thất bại",
+      "THẤT BẠI",
+      "NEWBOT — P2",
+      "So sánh tổng sát thương gây ra",
+      "Thị phần tổng sát thương",
+      "Thị phần tổng sát thương",
+      "P1 gây 1,000 sát thương, chiếm 100.0%. P2 gây 0 sát thương, chiếm 0.0%.",
+      "colt",
+      "Độ hiếm T1",
+      "Đóng góp cao nhất: P1",
+      "Chọn người chơi để xem danh hiệu đạt được",
+      "10 danh hiệu của P1. Bấm vào huy hiệu để xem chi tiết.",
+      "Danh hiệu của P1",
+      "Xem chi tiết: Không Thể Trốn Thoát, Huyền Thoại",
+      "Không Thể Trốn Thoát · Huyền Thoại",
+      "Xem chi tiết: Vua Bùng Nổ, Sử Thi",
+      "Vua Bùng Nổ · Sử Thi",
+      "Xem chi tiết: Pháo Thủy Tinh, Sử Thi",
+      "Pháo Thủy Tinh · Sử Thi",
+      "Xem chi tiết: Phút Chốt Hạ, Sử Thi",
+      "Phút Chốt Hạ · Sử Thi",
+      "Xem chi tiết: Bàn Tay Định Mệnh, Sử Thi",
+      "Bàn Tay Định Mệnh · Sử Thi",
+      "Xem chi tiết: Dư Chấn, Hiếm",
+      "Dư Chấn · Hiếm",
+      "Xem chi tiết: Mắt Đại Bàng, Hiếm",
+      "Mắt Đại Bàng · Hiếm",
+      "Xem chi tiết: Thông Tạo Bán Tự Động, Hiếm",
+      "Thông Tạo Bán Tự Động · Hiếm",
+      "Xem chi tiết: Tốc Chiến Tốc Thắng, Hiếm",
+      "Tốc Chiến Tốc Thắng · Hiếm",
+      "Xem chi tiết: Máu Đầu Tiên, Thường",
+      "Máu Đầu Tiên · Thường",
+      "0 danh hiệu của P2. Bấm vào huy hiệu để xem chi tiết.",
+      "Danh hiệu của P2",
+      "Mở hồ sơ và danh hiệu đang được áp dụng"
+    ],
+    "heroes": [
+      "SHURI",
+      "NEWBOT"
+    ],
+    "done": true,
+    "visible": "APEXCHAOS\nBÁO CÁO TRẬN ĐẤU\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nXEM LẠI\nNGƯỜI CHƠI 1\nV\nI\nC\nT\nO\nR\nY\nCHIẾN THẮNG\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nCHÍNH XÁC\n100%\nCHÍ MẠNG\n0%\nHỒI PHỤC\n0\nNGƯỜI CHƠI 2\nD\nE\nF\nE\nA\nT\nTHẤT BẠI\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nCHÍNH XÁC\n0%\nCHÍ MẠNG\n0%\nHỒI PHỤC\n0\nP1\n100.0%\n▲ DẪN ĐẦU\n1,000\n1,000\nSÁT THƯƠNG\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 1,000\nP2\n0.0%\n0\n0\nSÁT THƯƠNG\nVŨ KHÍ NỔI BẬT NHẤT TRẬN\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nSÁT THƯƠNG VŨ KHÍ\n\nĐÓNG GÓP CAO NHẤT\nP1\n\nDANH HIỆU\n10\nBấm để xem chi tiết\nDANH HIỆU\n0\nBấm để xem chi tiết\nTIẾP TỤC\nHỒ SƠ DANH HIỆU\nBỎ QUA"
+  },
+  "archiveVIE": {
+    "lang": "vi",
+    "text": "APEX CHAOS · match-1720000000000-0\n\nHỒ SƠ DANH HIỆU\nP1\n10\nP2\n0\nBÁCH KHOA DANH HIỆU\n47\nNGUỒN SÁT THƯƠNG\nTẤT CẢ\nHỎA LỰC\nCHÍNH XÁC\nVŨ KHÍ\nSINH TỒN\nCHIẾN THUẬT\nHỖN LOẠN\nDANH HIỆU RIÊNG\nĐÃ ĐẠT TRONG TRẬN\n\nHiển thị 47 / 47\n\nFixture nhất quán · 60/60 kiểm tra\nDữ liệu cố định, không thay đổi khi tải lại / đổi cỡ / xem lại.",
+    "attrs": [
+      "Đóng hồ sơ",
+      "Chế độ xem",
+      "Lọc danh hiệu"
+    ]
+  },
+  "codexVIE": {
+    "lang": "vi",
+    "text": "TẤT CẢ\nHỎA LỰC\nCHÍNH XÁC\nVŨ KHÍ\nSINH TỒN\nCHIẾN THUẬT\nHỖN LOẠN\nDANH HIỆU RIÊNG\nĐÃ ĐẠT TRONG TRẬN\n\nHiển thị 47 / 47",
+    "locked": 37,
+    "lockedText": "Chưa ai đạt"
+  },
+  "detailVIE": {
+    "lang": "vi",
+    "text": "APEX CHAOS / DANH HIỆU\n\nHUYỀN THOẠI / HỎA LỰC\n\nKHÔNG THỂ TRỐN THOÁT\n\nP1\n\nTạo một chuỗi sát thương thực tế ≥ 500 DMG; khoảng cách giữa các lần gây damage không quá 1.2 giây.\n\nSÁT THƯƠNG CHUỖI\n1,000 DMG\n\nĐã đạt / Yêu cầu Sát thương chuỗi: ≥ 500 DMG · Khoảng ngắt tối đa: ≤ 1.2 giây\n\n01 / 10\nĐÓNG",
+    "attrs": [
+      "Đóng chi tiết danh hiệu",
+      "Chọn danh hiệu",
+      "Danh hiệu trước",
+      "Danh hiệu tiếp theo"
+    ]
+  },
+  "restored": {
+    "lang": "en",
+    "text": "APEXCHAOS\nMATCH REPORT\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nREPLAY\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\nVICTORY\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n100%\nCRITICAL HITS\n0%\nHEALING\n0\nPLAYER 2\nD\nE\nF\nE\nA\nT\nDEFEAT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n0%\nCRITICAL HITS\n0%\nHEALING\n0\nP1\n100.0%\n▲ LEADING\n1,000\n1,000\nDMG\nTOTAL DAMAGE DEALT\nDAMAGE GAP 1,000\nP2\n0.0%\n0\n0\nDMG\nWEAPON OF THE BATTLE\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nWEAPON DAMAGE\n\nTOP CONTRIBUTOR\nP1\n\nACHIEVEMENT\n10\nSelect to view details\nACHIEVEMENT\n0\nSelect to view details\nCONTINUE\nACHIEVEMENTS ARCHIVE\nSKIP",
+    "attrs": [
+      "Match information",
+      "Replay animation",
+      "Replay animation (R)",
+      "Match results",
+      "Player 1: P1 — victory",
+      "VICTORY",
+      "SHURI — P1",
+      "Player 2: P2 — defeat",
+      "DEFEAT",
+      "NEWBOT — P2",
+      "Compare total damage dealt",
+      "Share of total damage",
+      "Share of total damage",
+      "P1 dealt 1,000 damage (100.0%). P2 dealt 0 damage (0.0%).",
+      "colt",
+      "Rarity T1",
+      "Top contributor: P1",
+      "Select a player to view earned achievements",
+      "10 achievements earned by P1. Select a badge to view details.",
+      "Achievements earned by P1",
+      "View details: No Escape, Legendary",
+      "No Escape · Legendary",
+      "View details: Burst King, Epic",
+      "Burst King · Epic",
+      "View details: Glass Cannon, Epic",
+      "Glass Cannon · Epic",
+      "View details: Clutch Finish, Epic",
+      "Clutch Finish · Epic",
+      "View details: Hand of Fate, Epic",
+      "Hand of Fate · Epic",
+      "View details: Aftershock, Rare",
+      "Aftershock · Rare",
+      "View details: Eagle Eye, Rare",
+      "Eagle Eye · Rare",
+      "View details: Semi-Automatic Mastery, Rare",
+      "Semi-Automatic Mastery · Rare",
+      "View details: Blitz Victory, Rare",
+      "Blitz Victory · Rare",
+      "View details: First Blood, Common",
+      "First Blood · Common",
+      "0 achievements earned by P2. Select a badge to view details.",
+      "Achievements earned by P2",
+      "Open the match achievement archive"
+    ],
+    "heroes": [
+      "SHURI",
+      "NEWBOT"
+    ],
+    "done": true,
+    "visible": "APEXCHAOS\nMATCH REPORT\nAPEX ARENA\nBOT BATTLE\n0:00\n#MATCH-1720000000000-0\nREPLAY\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\nVICTORY\n\nP1\n\nSHURI\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n100%\nCRITICAL HITS\n0%\nHEALING\n0\nPLAYER 2\nD\nE\nF\nE\nA\nT\nDEFEAT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\nLv 1 · CORE SIX\n\nACCURACY\n0%\nCRITICAL HITS\n0%\nHEALING\n0\nP1\n100.0%\n▲ LEADING\n1,000\n1,000\nDMG\nTOTAL DAMAGE DEALT\nDAMAGE GAP 1,000\nP2\n0.0%\n0\n0\nDMG\nWEAPON OF THE BATTLE\nCOLT\n\nSEMIT1\n\n1,000\n1,000\nWEAPON DAMAGE\n\nTOP CONTRIBUTOR\nP1\n\nACHIEVEMENT\n10\nSelect to view details\nACHIEVEMENT\n0\nSelect to view details\nCONTINUE\nACHIEVEMENTS ARCHIVE\nSKIP"
+  },
+  "archiveENG": {
+    "lang": "en",
+    "text": "APEX CHAOS · match-1720000000000-0\n\nACHIEVEMENTS ARCHIVE\nP1\n10\nP2\n0\nCODEX\n47\nDAMAGE SOURCES\nALL\nFIREPOWER\nPRECISION\nWEAPONS\nSURVIVAL\nTACTICS\nCHAOS\nSIGNATURE\nEARNED THIS MATCH\n\nShowing 47 / 47\n\nFixture consistent · 60/60 checks\nRecorded data remains unchanged when reloading, resizing, or replaying.",
+    "attrs": [
+      "Close archive",
+      "View",
+      "Filter achievements"
+    ],
+    "vietnamese": []
+  },
+  "codexENG": {
+    "lang": "en",
+    "text": "ALL\nFIREPOWER\nPRECISION\nWEAPONS\nSURVIVAL\nTACTICS\nCHAOS\nSIGNATURE\nEARNED THIS MATCH\n\nShowing 47 / 47",
+    "locked": 37,
+    "lockedText": "Not earned"
+  },
+  "detailENG": {
+    "lang": "en",
+    "text": "APEX CHAOS / ACHIEVEMENTS\n\nLEGENDARY / FIREPOWER\n\nNO ESCAPE\n\nP1\n\nDeal at least 500 actual damage in one chain, with no more than 1.2 seconds between hits.\n\nCHAIN DAMAGE\n1,000 DMG\n\nEarned / Required Chain damage: ≥ 500 DMG · Maximum gap: ≤ 1.2 seconds\n\n01 / 10\nCLOSE",
+    "attrs": [
+      "Close achievement details",
+      "Choose an achievement",
+      "Previous achievement",
+      "Next achievement"
+    ],
+    "vietnamese": []
+  },
+  "layoutLocales": [
+    {
+      "view": "portrait",
+      "locale": "eng",
+      "fit": true,
+      "localized": true,
+      "snapshot": {
+        "lang": "en",
+        "title": "",
+        "text": "APEXCHAOS\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\nVICTORY\n\nP1\n\nSHURI\nAPEX FIGHTER\n\nPLAYER 2\nD\nE\nF\nE\nA\nT\nDEFEAT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\n\n100.0%\n1,000\n1,000\nTOTAL DAMAGE DEALT\nDAMAGE GAP 1,000\n0.0%\n0\n0\nWEAPON OF THE BATTLE\nCOLT\n\n1,000\n1,000\nWEAPON DAMAGE\n\nP1\n\nP1\n10\nP2\n0\nCONTINUE\nACHIEVEMENTS ARCHIVE\nSKIP",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "scrollWidth": 390
+        },
+        "stage": {
+          "x": 12,
+          "y": 61.28125,
+          "right": 378,
+          "bottom": 834,
+          "width": 366,
+          "height": 772.71875
+        },
+        "heroes": [
+          "SHURI",
+          "NEWBOT"
+        ],
+        "done": true,
+        "placeholders": []
+      },
+      "screenshot": "docs/acceptance/ra2/evidence/result/result-locale-eng-portrait.png"
+    },
+    {
+      "view": "portrait",
+      "locale": "vie",
+      "fit": true,
+      "localized": true,
+      "snapshot": {
+        "lang": "vi",
+        "title": "",
+        "text": "APEXCHAOS\nNGƯỜI CHƠI 1\nV\nI\nC\nT\nO\nR\nY\nCHIẾN THẮNG\n\nP1\n\nSHURI\nAPEX FIGHTER\n\nNGƯỜI CHƠI 2\nD\nE\nF\nE\nA\nT\nTHẤT BẠI\n\nP2\n\nNEWBOT\nAPEX FIGHTER\n\n100.0%\n1,000\n1,000\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 1,000\n0.0%\n0\n0\nVŨ KHÍ NỔI BẬT NHẤT TRẬN\nCOLT\n\n1,000\n1,000\nSÁT THƯƠNG VŨ KHÍ\n\nP1\n\nP1\n10\nP2\n0\nTIẾP TỤC\nHỒ SƠ DANH HIỆU\nBỎ QUA",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "scrollWidth": 390
+        },
+        "stage": {
+          "x": 12,
+          "y": 61.28125,
+          "right": 378,
+          "bottom": 834,
+          "width": 366,
+          "height": 772.71875
+        },
+        "heroes": [
+          "SHURI",
+          "NEWBOT"
+        ],
+        "done": true,
+        "placeholders": []
+      },
+      "screenshot": "docs/acceptance/ra2/evidence/result/result-locale-vie-portrait.png"
+    },
+    {
+      "view": "landscape",
+      "locale": "eng",
+      "fit": true,
+      "localized": true,
+      "snapshot": {
+        "lang": "en",
+        "title": "",
+        "text": "APEXCHAOS\nREPLAY\nPLAYER 1\nV\nI\nC\nT\nO\nR\nY\n\nP1\n\nSHURI\nAPEX FIGHTER\n\nPLAYER 2\nD\nE\nF\nE\nA\nT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\n\n100.0%\n1,000\n1,000\nTOTAL DAMAGE DEALT\nDAMAGE GAP 1,000\n0.0%\n0\n0\nWEAPON OF THE BATTLE\nCOLT\n\n1,000\n1,000\nWEAPON DAMAGE\n\nP1\n\nCONTINUE\nACHIEVEMENTS ARCHIVE\nSKIP",
+        "viewport": {
+          "width": 844,
+          "height": 390,
+          "scrollWidth": 844
+        },
+        "stage": {
+          "x": 20.25,
+          "y": 56,
+          "right": 823.75,
+          "bottom": 384,
+          "width": 803.5,
+          "height": 328
+        },
+        "heroes": [
+          "SHURI",
+          "NEWBOT"
+        ],
+        "done": true,
+        "placeholders": []
+      },
+      "screenshot": "docs/acceptance/ra2/evidence/result/result-locale-eng-landscape.png"
+    },
+    {
+      "view": "landscape",
+      "locale": "vie",
+      "fit": true,
+      "localized": true,
+      "snapshot": {
+        "lang": "vi",
+        "title": "",
+        "text": "APEXCHAOS\nXEM LẠI\nNGƯỜI CHƠI 1\nV\nI\nC\nT\nO\nR\nY\n\nP1\n\nSHURI\nAPEX FIGHTER\n\nNGƯỜI CHƠI 2\nD\nE\nF\nE\nA\nT\n\nP2\n\nNEWBOT\nAPEX FIGHTER\n\n100.0%\n1,000\n1,000\nTỔNG SÁT THƯƠNG GÂY RA\nCHÊNH LỆCH 1,000\n0.0%\n0\n0\nVŨ KHÍ NỔI BẬT NHẤT TRẬN\nCOLT\n\n1,000\n1,000\nSÁT THƯƠNG VŨ KHÍ\n\nP1\n\nTIẾP TỤC\nHỒ SƠ DANH HIỆU\nBỎ QUA",
+        "viewport": {
+          "width": 844,
+          "height": 390,
+          "scrollWidth": 844
+        },
+        "stage": {
+          "x": 20.25,
+          "y": 56,
+          "right": 823.75,
+          "bottom": 384,
+          "width": 803.5,
+          "height": 328
+        },
+        "heroes": [
+          "SHURI",
+          "NEWBOT"
+        ],
+        "done": true,
+        "placeholders": []
+      },
+      "screenshot": "docs/acceptance/ra2/evidence/result/result-locale-vie-landscape.png"
+    }
+  ],
+  "emptyState": {
+    "receipt": {
+      "id": "match-1720000010000-0",
+      "weapons": 0,
+      "weaponOfTheBattle": {
+        "weaponId": "",
+        "ownerId": "",
+        "damage": 0
+      },
+      "damage": [
+        0,
+        0
+      ],
+      "awards": [
+        1,
+        0
+      ]
+    },
+    "eng": {
+      "lang": "en",
+      "text": "WEAPON OF THE BATTLE\nNO STANDOUT WEAPON",
+      "title": "NO STANDOUT WEAPON",
+      "images": 0,
+      "placeholders": [
+        "No weapon damage dealt"
+      ],
+      "awards": [
+        "1",
+        "0"
+      ]
+    },
+    "vie": {
+      "lang": "vi",
+      "text": "VŨ KHÍ NỔI BẬT NHẤT TRẬN\nKHÔNG CÓ VŨ KHÍ NỔI BẬT",
+      "title": "KHÔNG CÓ VŨ KHÍ NỔI BẬT",
+      "images": 0,
+      "placeholders": [
+        "Không có sát thương từ vũ khí"
+      ],
+      "awards": [
+        "1",
+        "0"
+      ]
+    }
+  },
+  "browserErrors": [],
+  "limitation": "Chromium desktop/mobile viewport emulation; no physical device or current exact-SHA preview claim"
+}

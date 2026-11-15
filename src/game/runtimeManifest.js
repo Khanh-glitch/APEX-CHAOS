@@ -5,7 +5,9 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261020-a1-r20';
+import { apexAppUrl } from './appRoot.js';
+
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261115-f7-portrait-ready-r5';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -50,6 +52,7 @@ export const BOT_WAVE_SPECIAL_RUNTIMES = Object.freeze([
   ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],
   ['/game/bot-wave/waveCampaign.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveCampaign'],
   ['/game/bot-wave/nativeArsenalGoldBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveNativeBridge'],
+  ['/game/bot-wave/losslessFluidRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveLosslessFluid'],
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
   ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalPresentationRuntime'],
   ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalWeaponRuntime'],
@@ -64,7 +67,8 @@ export const BOT_WAVE_PRESENTATION_RUNTIMES = Object.freeze([
 // Current-neutral combat services shared by Arsenal and the generic engine.
 export const CURRENT_COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
-  ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
+  ['/game/core/apexRenderPrimitives.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexRenderPrimitives'],
+  ['/game/bot-wave/losslessFluidRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveLosslessFluid'],
   ['/game/core/apexCombatEffectsRuntime.js', 'apexCombatEffectsRuntime'],
 ];
 
@@ -278,6 +282,10 @@ export const WARMUP_GROUP_SEQUENCE = [];
 // scripts; combat presentation and AV remain lazy until the battle is entered.
 export const ARSENAL_HUB_RUNTIMES = [
   ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
+  // CP3: Home/Archive load the wallet through this Hub graph, so the ONE
+  // owner award catalog must evaluate before arsenalMetaRuntime sanitizes
+  // or reports mastery there. Order mirrors ARSENAL_PRODUCT_RUNTIMES.
+  ['/game/results/ownerAwards.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexResultOwnerCatalog'],
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
   // A1.5: symmetrical P1/P2 SKILL DETAILS on Fighter Select. Presentation
@@ -299,7 +307,9 @@ export function hintRuntimeSources(runtimes, rel = 'preload') {
     const link = document.createElement('link');
     link.rel = rel;
     link.as = 'script';
-    link.href = src;
+    // Hint the same absolute app-root URL the loader will fetch, even
+    // after the Gold <base> retargets document-relative resolution.
+    link.href = apexAppUrl(src);
     link.dataset.apexRuntimeHint = `${rel}:${src}`;
     document.head.appendChild(link);
   }
