@@ -1,4 +1,4 @@
-import ownerDecisions from '../../result-gold/src/data/ownerDecisions.json';
+import ownerDecisions from '../data/ownerDecisions.json';
 import { AWARD_RULE_TEMPLATES } from '../game/localeAwardRules.js';
 
 // CP3 display catalog. The owner-approved 47 keep decisions remain the one
