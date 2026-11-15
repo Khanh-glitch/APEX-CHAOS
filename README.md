@@ -1,47 +1,21 @@
-# APEX CHAOS
+# APEX CHAOS — Evolution V2 experimental source
 
-Production-ready Vite/React game build.
+This branch is a clean working baseline for **APEX CHAOS Evolution V2** imported from `apex-chaos-game-evolution (1).zip` on 2026-11-15. It is intentionally isolated from `main`; do not merge without real runtime and visual acceptance.
 
-## Local development
+## What is present
 
-```powershell
-pnpm install
-pnpm dev
-```
+- `src/`: exact Evolution V2 Next.js/React application source, database API and UI.
+- `public/game/evolution/`: 7 new Evolution combat, arena, VFX, Ultimates, HUD, audio and post-processing modules.
+- `public/`: Evolution-updated classic engine/bridges plus production game runtime and original source artwork preserved from `main` (to prevent missing-asset regressions).
+- Root: Next.js project configuration only; no historical acceptance docs, stale Vite entry, PR evidence, test rigs or prebuilt output.
 
-Open `http://127.0.0.1:5173/`.
+## Critical audit limitations
 
-## Production build
+- No verified live-browser production playthrough/build yet: ZIP lacked lockfile, binary material textures, and packaged production assets.
+- Five references in `public/game/evolution/apexEvolutionArenas.js` to `/assets/evolution/materials/*.jpg` have provenance notes but the actual images are absent.
+- Source still contains old procedural Canvas visual production, multiple integration risks, and demo-seeded statistics; do **not** treat this branch as visually accepted or ready to ship.
+- User's next task is a genuinely higher-quality UI/UX, artwork/VFX and gameplay bug-fix pass **on this branch**, not a fresh remake. Preserve gameplay progress and the original production asset graph while evolving the result.
 
-```powershell
-pnpm build
-```
+## Running
 
-Deploy the generated `dist/` directory. For Netlify, use:
-
-- Build command: `pnpm build`
-- Publish directory: `dist`
-
-## Online versus rooms
-
-The Vite development server includes the room relay, so local rooms work through
-`pnpm dev`. Production needs a persistent Node host with WebSocket upgrade support:
-
-1. Deploy `server/manual-room-relay.js` (the `pnpm room-server` command starts it).
-2. Set `VITE_MANUAL_ROOM_WS_URL` on the frontend deployment to the relay URL, including
-   `/__manual-lab-room`, for example `wss://rooms.example.com/__manual-lab-room`.
-3. Rebuild the frontend because Vite embeds `VITE_*` variables at build time.
-
-The static frontend route is not the room relay. Leaving the variable empty makes the
-client try the same-origin route, which is only available from the local Vite server.
-When the production frontend opens, it also sends a non-blocking request to the relay's
-`/health` endpoint so a sleeping free instance can begin waking during game loading.
-
-## Project structure
-
-- `src/App.jsx`: React UI and game shell.
-- `src/styles.css`: responsive UI styling.
-- `public/apexEngine.js`: canonical gameplay runtime.
-- `public/assets/`: canonical production assets; all raster images use WebP.
-- `tools/generatePublicAssetManifest.cjs`: build-time asset manifest generator.
-- `tools/convertAssetsToWebp.py`: verified bulk PNG-to-WebP migration utility.
+Run `npm install`, `npm run dev` and visit localhost; provide a PostgreSQL URL only if the data APIs require it. The user-facing game must work without a mandatory external database. Production proof requires browser gameplay plus actual asset/network checks, not syntax pass alone.
