@@ -27,3 +27,7 @@ Run `npm install` then `npm run dev` or `npm run build`. The environment must su
 - `docs/EVOLUTION_PRODUCTION_AUDIT.md`
 - `docs/EVOLUTION_AUDIT_MACHINE.json`
 - `docs/EVOLUTION_NEXT_ROUND_PROMPT.md`
+
+## Verified GitHub import (2026-11-15)
+
+This snapshot was imported to `evolution/2026-11-15-cleanroom` at commit `8e09746c692b6bd0384bcc718a3871065ddd5efb`. All 219 source files (excluding four intentionally omitted `.playtest` scripts) match the original snapshot by Git blob SHA. Binary assets from `main` were retained without reupload. Of 310 literal asset references missing from the ZIP alone, 296 resolve in this Git branch. Twelve BLACK_HOLE/TIME portrait and skill UI graphics and five Evolution arena texture JPGs are still absent; supply properly authored art. Two remaining strings are documentary ellipses, not actual URLs. See `docs/evolution/REMOTE_IMPORT_VERIFICATION.md`.

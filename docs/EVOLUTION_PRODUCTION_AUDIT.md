@@ -76,4 +76,4 @@ This is **not a blanket condemnation of Canvas, SVG, or procedural rendering**. 
 5. **Performance/fallback:** WebGL2 on/off, 30/60 FPS devices, slow boot, missing asset handling, no black screens.
 6. **Evidence:** real playable preview plus screenshots/video/timecodes, errors and known limitations; no synthetic screenshots or placeholder video acceptance.
 
-**Git state:** `evolution/2026-11-15-cleanroom` was created from `main` commit `9d06036dda72eff6afe7bb1e34bc72652ae9c248`. Due this tool session's remote-write/large-file transfer limits and lack of direct git network access, the ZIP snapshot was **not pushed**. This report and local snapshot are a handoff, not evidence that GitHub branch contains Evolution.
+**Git state:** `evolution/2026-11-15-cleanroom` was created from `main` commit `9d06036dda72eff6afe7bb1e34bc72652ae9c248`. At initial audit time, the ZIP snapshot was **not yet pushed**. It has subsequently been imported and verified on GitHub at commit `8e09746c692b6bd0384bcc718a3871065ddd5efb`, preserving the main APEX production asset graph. See `docs/evolution/REMOTE_IMPORT_VERIFICATION.md`. This audit's gameplay/visual HOLD status is unchanged.
