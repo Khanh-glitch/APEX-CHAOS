@@ -32,8 +32,7 @@ let verifiedCloudAdminUserId = null;
 
 function devAdminEnabled() {
   try {
-    return !!(import.meta.env && import.meta.env.DEV === true
-      && import.meta.env.VITE_APEX_DEV_ADMIN === '1');
+    return process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_APEX_DEV_ADMIN === '1';
   } catch (error) {
     return false;
   }
