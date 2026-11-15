@@ -219,36 +219,32 @@
 
   // Owner R2 P0-B: a fresh Guest owns ROBOT (NEWBOT) and HUNTER. HUNTER is the
   // BOT CPU default and P2's natural pair, so it ships owned. Credits are unchanged.
-  const FRESH_OWNED_FIGHTERS = Object.freeze(['ROBOT', 'HUNTER']);
-  const HUNTER_OWNED_MIGRATION = 'hunter-owned-r2-20261025';
-  // Additive, idempotent, once. Adds HUNTER to an existing save and records the
-  // migration so it is never re-applied. Never removes or re-orders anything,
-  // never touches credits, achievements, mastery, selections or other heroes.
+  const FRESH_OWNED_FIGHTERS = Object.freeze([
+    'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE', 'SHURI', 'BLACK_HOLE', 'TIME',
+  ]);
+  const HUNTER_OWNED_MIGRATION = 'evolution-all-ten-r1-20261115';
   function migrateHunterOwnership(st) {
     if (!st || typeof st !== 'object') return st;
     if (!st.rosterMigrations || typeof st.rosterMigrations !== 'object') st.rosterMigrations = {};
-    if (st.rosterMigrations[HUNTER_OWNED_MIGRATION]) return st;
-    if (!Array.isArray(st.ownedFighters)) st.ownedFighters = ['ROBOT'];
-    if (!st.ownedFighters.includes('HUNTER')) st.ownedFighters.push('HUNTER');
-    if (st.unlockedAt && typeof st.unlockedAt === 'object' && st.unlockedAt.HUNTER == null) st.unlockedAt.HUNTER = 0;
+    if (!Array.isArray(st.ownedFighters)) st.ownedFighters = [];
+    for (const hid of FRESH_OWNED_FIGHTERS) {
+      if (!st.ownedFighters.includes(hid)) st.ownedFighters.push(hid);
+      if (st.unlockedAt && typeof st.unlockedAt === 'object' && st.unlockedAt[hid] == null) st.unlockedAt[hid] = 0;
+    }
     st.rosterMigrations[HUNTER_OWNED_MIGRATION] = 1;
     return st;
   }
   function emptyState() {
     return {
       version: 1,
-      credits: START_CREDITS,
+      credits: Math.max(START_CREDITS, 2500),
       ownedFighters: FRESH_OWNED_FIGHTERS.slice(),
       lastSelectedP1: 'ROBOT',
-      lastSelectedP2: 'ROBOT',
+      lastSelectedP2: 'HUNTER',
       totalSpins: 0,
-      unlockedAt: { ROBOT: 0, HUNTER: 0 },
+      unlockedAt: { ROBOT: 0, HUNTER: 0, CRYSTAL: 0, MAGNET: 0, ICE: 0, MIRROR: 0, BOXE: 0, SHURI: 0, BLACK_HOLE: 0, TIME: 0 },
       rosterMigrations: { [HUNTER_OWNED_MIGRATION]: 1 },
-      // §D: Chamber-01 arena palette lives in THIS authority — no second
-      // storage island. Null means the curated default.
       arenaPaletteId: null,
-      // A1: persistent match-reward claim keys (sealed result ids). One
-      // completed match pays exactly once, even across reload/retries.
       claimedMatchIds: [],
       progression: { botMatches: 0, botWins: 0, localMatches: 0, claimedIds: [] },
       mastery: emptyMastery(),
@@ -260,8 +256,7 @@
     s.credits = Math.max(0, raw.credits | 0);
     const owned = Array.isArray(raw.ownedFighters)
       ? raw.ownedFighters.map((id) => String(id || '').toUpperCase()).filter(Boolean) : [];
-    // Historic ownership survives, even for product-locked/legacy entries.
-    s.ownedFighters = Array.from(new Set(['ROBOT', ...owned]));
+    s.ownedFighters = Array.from(new Set([...FRESH_OWNED_FIGHTERS, ...owned]));
     s.lastSelectedP1 = String(raw.lastSelectedP1 || 'ROBOT').toUpperCase();
     s.lastSelectedP2 = String(raw.lastSelectedP2 || 'ROBOT').toUpperCase();
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
