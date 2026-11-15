@@ -210,22 +210,47 @@
       id: 'BLACK_HOLE',
       name: 'BLACK_HOLE',
       displayName: 'BLACK HOLE',
+      identityColor: '#c77dff',
       classRef: 'rework.black_hole',
+      archiveProfile: {
+        subtitle: 'Cosmic Singularity Entity',
+        intro: 'A contained relativistic singularity wrapped in fractured Scrap Basin titanium rings. Warps bullet trajectories through twin wormholes and collapses absorbed damage.',
+        artwork: {
+          avatar: '/assets/gold-ui/heroes/black_hole/battle_avatar.png',
+          standing: '/assets/gold-ui/heroes/black_hole/pick_selected_large.png',
+          cover: '/assets/gold-ui/heroes/black_hole/pick_roster_cover.png',
+        },
+        skillArt: {
+          PASSIVE: '/assets/gold-ui/heroes/black_hole/skill_passive.png',
+          A1: '/assets/gold-ui/heroes/black_hole/skill_a1.png',
+          A2: '/assets/gold-ui/heroes/black_hole/skill_a2.png',
+        },
+        traits: { damage: 88, control: 96, mobility: 58, defense: 82, field: 95 },
+      },
       skills: {
         A1: skill('black_hole.transit', 'A1', 'black_hole.transit', {
           cooldown: 14, activeDuration: 2.7, capacity: 8, transitDelay: 0.35,
           exitTargetDistance: 120, preserveVelocity: true, preserveProvenance: true,
           t6Immune: true,
-        }, ['capacity'], 'capacity_step', { displayName: 'Gravity Transit' }),
+        }, ['capacity'], 'capacity_step', {
+          displayName: 'Gravity Transit',
+          archiveProfile: { description: 'Opens a pair of relativistic wormholes that swallow up to 8 projectiles and spit them out near the rival.' },
+        }),
         A2: skill('black_hole.damage_singularity', 'A2', 'black_hole.damage_singularity', {
           cooldown: 18, escrowWindow: 1.0, storedDamageCap: 300,
           returnPct: 0.65, vulnerabilityDuration: 3, vulnerabilityIncomingMult: 2,
           t6DamageCaptured: false,
-        }, ['storedDamageCap'], 'magnitude_step', { displayName: 'Singularity' }),
+        }, ['storedDamageCap'], 'magnitude_step', {
+          displayName: 'Singularity',
+          archiveProfile: { description: 'Escrows incoming damage for 1.0s inside an accretion cage, then detonates 65% back onto the opponent.' },
+        }),
         PASSIVE: skill('black_hole.event_horizon', 'PASSIVE', 'black_hole.event_horizon', {
           radiusPerHp: 1 / 10, maxGrowth: 100, healingShrinks: false,
           countsEscrowedDamage: false, biggerIsTargetable: true,
-        }, ['radiusPerHp'], 'magnitude_step', { displayName: 'Event Horizon' }),
+        }, ['radiusPerHp'], 'magnitude_step', {
+          displayName: 'Event Horizon',
+          archiveProfile: { description: 'Lost HP expands your gravitational event horizon, widening weapon reach and presence.' },
+        }),
       },
     },
 
@@ -348,28 +373,54 @@
     },
 
     /* ---------------------------------------------------------------- *
-     * 9. TIME
+     * 9. TIME (CHRONO)
      * ---------------------------------------------------------------- */
     TIME: {
       id: 'TIME',
       name: 'TIME',
+      displayName: 'CHRONO',
+      identityColor: '#4cc9f0',
       classRef: 'rework.time',
+      archiveProfile: {
+        subtitle: 'Temporal Astrolabe Automaton',
+        intro: 'An obsidian-and-brass chronometer automaton powered by a sapphire tourbillon core. Replays lethal weapon volleys with temporal ghosts and rewinds fatal exchanges.',
+        artwork: {
+          avatar: '/assets/gold-ui/heroes/time/battle_avatar.png',
+          standing: '/assets/gold-ui/heroes/time/pick_selected_large.png',
+          cover: '/assets/gold-ui/heroes/time/pick_roster_cover.png',
+        },
+        skillArt: {
+          PASSIVE: '/assets/gold-ui/heroes/time/skill_passive.png',
+          A1: '/assets/gold-ui/heroes/time/skill_a1.png',
+          A2: '/assets/gold-ui/heroes/time/skill_a2.png',
+        },
+        traits: { damage: 84, control: 78, mobility: 92, defense: 86, field: 80 },
+      },
       skills: {
         A1: skill('time.loop', 'A1', 'time.loop', {
           cooldown: 18, recordWindow: 2, loops: 2, loopDuration: 2,
           ghostBodiesIntangible: true,
           replayWhitelist: ['bullet', 'burst', 'shotgun-fan', 'grenade-throw', 'thrown-melee'],
           replayBlacklist: ['melee-swing', 'shield', 'persistent-field', 'hero-active', 'replay-event', 't6'],
-        }, ['cooldown'], 'cooldown_step', { displayName: 'Time Loop' }),
+        }, ['cooldown'], 'cooldown_step', {
+          displayName: 'Time Loop',
+          archiveProfile: { description: 'Records 2s of weapon attacks and manifests intangible echo ghosts to replay the volley twice.' },
+        }),
         A2: skill('time.rewind', 'A2', 'time.rewind', {
           cooldown: 16, snapshotDelay: 3,
           restores: ['hp', 'position', 'velocity'],
           doesNotRewind: ['opponent', 'world', 'projectiles', 'inventory', 'ammo', 'cooldowns'],
           noRevive: true, onlyIfAlive: true,
-        }, ['cooldown'], 'cooldown_step', { displayName: 'Rewind' }),
+        }, ['cooldown'], 'cooldown_step', {
+          displayName: 'Rewind',
+          archiveProfile: { description: 'Snaps back 3 seconds along your timeline, restoring historical HP, position, and velocity.' },
+        }),
         PASSIVE: skill('time.timeline_markers', 'PASSIVE', 'time.timeline_markers', {
           markerHorizons: [1, 2], gameplayMutation: false,
-        }, ['markerHorizons', '1'], 'seconds_step', { displayName: 'Timeline Markers' }),
+        }, ['markerHorizons', '1'], 'seconds_step', {
+          displayName: 'Timeline Markers',
+          archiveProfile: { description: 'Projects live 1s, 2s, and 3s golden chronometer anchors tracing your temporal path.' },
+        }),
       },
     },
 

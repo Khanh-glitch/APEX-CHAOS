@@ -7,7 +7,7 @@
 // stale cache during owner browser verification.
 import { apexAppUrl } from './appRoot.js';
 
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261115-f7-portrait-ready-r5';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261115-total-evolution-v2';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -36,6 +36,11 @@ export const MENU_INTERACTIVE_RUNTIMES = [
   ['/game/core/apexBattleAudioRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBattleAudioRuntime'],
   ...PRODUCT_MUSIC_BOOT_RUNTIMES,
   ['/game/product/productAssetRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'productAssetRuntime'],
+  ['/game/evolution/apexEvolutionShaderCompositor.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionShaderCompositor'],
+  ['/game/evolution/apexEvolutionAudio.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionAudio'],
+  ['/game/evolution/apexEvolutionVfxLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionVfxLibrary'],
+  ['/game/evolution/apexEvolutionArenas.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionArenas'],
+  ['/game/evolution/apexEvolutionHudAndDeck.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionHudAndDeck'],
 ];
 
 // Quest Director is a distinct Gold HOME/STORY shell script, deliberately
@@ -169,18 +174,14 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&frostA1=gold-only-20261013', 'apexFrostPresentationRuntime'],
   ['/game/hero-rework/magnetPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetPresentationRuntime'],
   ['/game/hero-rework/mirrorPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorPresentationRuntime'],
-  // The ONE curated hero-SFX authority for the four newer Core Six heroes
-  // (CRYSTALA / MAGNET / FROST / MIRROR), plus its production event bridge.
-  // ROBOT and HUNTER keep their existing accepted SFX authorities untouched.
+  ['/game/hero-rework/blackHoleGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBlackHolePresentationRuntime'],
+  ['/game/hero-rework/timeGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexTimePresentationRuntime'],
   ['/game/heroes/coreSixCuratedSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCoreSixCuratedSfxAuthority'],
   ['/game/heroes/coreSixCuratedSfxBridge.js', 'apexCoreSixCuratedSfxBridge'],
+  ['/game/evolution/apexEvolutionUltimates.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionUltimates'],
+  ['/game/evolution/apexEvolutionCombatRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexEvolutionCombatRuntime'],
 ];
 
-// E4 — battle runtime selection. ARSENAL_PRODUCT_RUNTIMES above remains the
-// ONE canonical full graph (Lab/diagnostics/compatibility). Public battle entry
-// takes a filtered VIEW of that same ordered graph so only the two selected
-// fighters pay hero-specific evaluation cost. Filtering instead of concatenating
-// sub-groups preserves every historical dependency edge and script order.
 export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
   shuri: Object.freeze(['/game/hero-rework/shuriBattleRuntime.js',
     '/game/hero-rework/shuriGoldLibrary.js',
@@ -216,6 +217,12 @@ export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
     '/game/hero-rework/mirrorGoldV1.js',
     '/game/hero-rework/mirrorPresentationRuntime.js',
   ]),
+  black_hole: Object.freeze([
+    '/game/hero-rework/blackHoleGoldPresentationRuntime.js',
+  ]),
+  time: Object.freeze([
+    '/game/hero-rework/timeGoldPresentationRuntime.js',
+  ]),
 });
 
 const CORE_SIX_RUNTIME_KEY_ALIASES = Object.freeze({
@@ -227,6 +234,8 @@ const CORE_SIX_RUNTIME_KEY_ALIASES = Object.freeze({
   mirror: 'mirror',
   boxe: 'boxe',
   shuri: 'shuri',
+  black_hole: 'black_hole',
+  time: 'time', chrono: 'time',
 });
 const BATTLE_RUNTIME_OWNER_BY_PATH = new Map();
 for (const [hero, paths] of Object.entries(CORE_SIX_BATTLE_RUNTIME_PATHS)) {

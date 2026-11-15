@@ -17,14 +17,14 @@ const { ACTIVE, LOCKED, ADMIN } = PRODUCT_AVAILABILITY;
 // Hero Registry; display copy is resolved at render time rather than duplicated
 // as another naming authority here.
 const VISIBLE_ROSTER_IDS = Object.freeze([
-  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE', 'SHURI',
-  'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER',
+  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE', 'SHURI', 'BLACK_HOLE', 'TIME',
+  'MATH_V2', 'RUBBER', 'SLIME', 'SNIPER',
 ]);
 const PLAYABLE_ROSTER_IDS = Object.freeze([
-  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE', 'SHURI',
+  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BOXE', 'SHURI', 'BLACK_HOLE', 'TIME',
 ]);
 const VISIBLE_LOCKED_ROSTER_IDS = Object.freeze([
-  'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER',
+  'MATH_V2', 'RUBBER', 'SLIME', 'SNIPER',
 ]);
 
 function surface(id, title, availability, detail, extra = {}) {

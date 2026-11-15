@@ -4142,8 +4142,8 @@
       c.textAlign = 'center';
       c.fillText(g.kind === 'x2' ? 'x2' : '÷2', g.x, g.y + 7);
     }
-    // Singularities
-    for (const s of w.singularities) {
+    // Singularities (neutral debug shapes only when no Gold presentation owns them)
+    for (const s of (globalScope.APEX_BLACK_HOLE_PRESENTATION ? [] : w.singularities)) {
       c.fillStyle = 'rgba(30,10,50,0.75)';
       c.beginPath(); c.arc(s.x, s.y, s.radius * 0.5, 0, Math.PI * 2); c.fill();
       c.strokeStyle = '#b98aff';

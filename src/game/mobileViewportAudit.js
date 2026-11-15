@@ -1,7 +1,7 @@
 // Opt-in, read-only device geometry probe. Never enabled for ordinary players.
 // Visit the PREVIEW URL with ?apexViewportAudit=1 to compare a real phone
 // against laptop emulation without changing Gold CSS, gameplay or layout.
-if (new URLSearchParams(location.search).get('apexViewportAudit') === '1') {
+if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('apexViewportAudit') === '1') {
   const short = n => n ? (() => {
     const r=n.getBoundingClientRect(),s=getComputedStyle(n);
     return {x:+r.x.toFixed(1),y:+r.y.toFixed(1),w:+r.width.toFixed(1),
@@ -68,3 +68,5 @@ if (new URLSearchParams(location.search).get('apexViewportAudit') === '1') {
   setInterval(refresh,800);
   window.__apexViewportAudit=report;
 }
+
+export {};
