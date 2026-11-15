@@ -7,7 +7,7 @@
 // stale cache during owner browser verification.
 import { apexAppUrl } from './appRoot.js';
 
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261115-shared-runtime-r4';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261115-f7-portrait-ready-r5';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.

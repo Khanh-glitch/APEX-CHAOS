@@ -147,18 +147,42 @@ export function portraitFrameCrop(sourceWidth,sourceHeight,geometry) {
   if(![sourceWidth,sourceHeight,left,top,width,height,viewportWidth,viewportHeight]
       .every(Number.isFinite)
     || [sourceWidth,sourceHeight,width,height,viewportWidth,viewportHeight].some(x=>x<=0)
-    || sourceWidth<2 || sourceHeight<2 || left< -1 || top< -1)
+    || sourceWidth<2 || sourceHeight<2)
     throw new Error('Khung 9:16 chưa sẵn sàng.');
   const sx=left*sourceWidth/viewportWidth;
   const sy=top*sourceHeight/viewportHeight;
   const sw=width*sourceWidth/viewportWidth;
   const sh=height*sourceHeight/viewportHeight;
-  if(sx<-1||sy<-1||sx+sw>sourceWidth+1||sy+sh>sourceHeight+1)
+  if(left< -1||top< -1||sx<-1||sy<-1||sx+sw>sourceWidth+1||sy+sh>sourceHeight+1)
     throw new Error('Khung phone đang nằm ngoài vùng tab. Hãy mở rộng cửa sổ trình duyệt.');
   if(Math.abs(width/height-W/H)>0.008)
     throw new Error('Khung game chưa đúng tỷ lệ 9:16.');
   return {sx:Math.max(0,sx),sy:Math.max(0,sy),sw:Math.min(sw,sourceWidth-Math.max(0,sx)),
     sh:Math.min(sh,sourceHeight-Math.max(0,sy))};
+}
+
+function livePortraitCrop(studio,video,refresh=false) {
+  try {
+    return portraitFrameCrop(video.videoWidth,video.videoHeight,studio.getCropRect(refresh));
+  } catch (error) {
+    if(refresh)throw error;
+    // Repair stale geometry once; never encode a guessed or off-tab rectangle.
+    return portraitFrameCrop(video.videoWidth,video.videoHeight,studio.getCropRect(true));
+  }
+}
+
+async function preparePortraitCrop(studio,video,track) {
+  const deadline=performance.now()+1500;
+  for(;;){
+    if(track.readyState!=='live')throw new Error('Phiên chia sẻ tab đã kết thúc.');
+    try{return livePortraitCrop(studio,video,true);}
+    catch(error){
+      if(performance.now()>=deadline)throw error;
+      // Permission UI/video startup can briefly expose zero dimensions.
+      // This is startup-only; recording retains its cached 30 FPS crop path.
+      await new Promise(resolve=>setTimeout(resolve,50));
+    }
+  }
 }
 
 function standaloneRecordingPanel() {
@@ -275,6 +299,7 @@ async function startRecording(providedDisplay=null) {
   }
   starting = true;
   let display = providedDisplay;
+  let pendingVideo=null,pendingOutput=null;
   try {
     // The browser must show its real permission picker. Choose THIS TAB and
     // enable tab audio if wanted; no screen content is read before permission.
@@ -295,10 +320,11 @@ async function startRecording(providedDisplay=null) {
           || handle.origin!==window.location.origin))
       throw new Error('Đang chọn sai tab. Chỉ được chọn This Tab chứa APEX CHAOS Portrait Studio.');
     const video = document.createElement('video');
+    pendingVideo=video;
     video.muted = true; video.playsInline = true;
     video.srcObject = new MediaStream([track]);
     await video.play();
-    if (!video.videoWidth || !video.videoHeight) throw new Error('Tab chưa cung cấp video frame.');
+    await preparePortraitCrop(studio,video,track);
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d',{alpha:false,desynchronized:false});
@@ -306,6 +332,7 @@ async function startRecording(providedDisplay=null) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     const output = canvas.captureStream(30);
+    pendingOutput=output;
     // Never open a microphone, oscillator, or replacement SFX player.
     // Copy ONLY the original sound track from the verified game tab once.
     const tabAudio=display.getAudioTracks();
@@ -344,6 +371,13 @@ async function startRecording(providedDisplay=null) {
     }
     if(track.readyState!=='live'||!window.APEX_ARSENAL?.state?.active||window.APEX_ARSENAL.state.over)
       throw new Error('Phiên ghi hoặc trận đấu đã kết thúc trong lúc chuẩn bị encoder.');
+    // Codec discovery can outlive a viewport change; admit the current crop
+    // before MediaRecorder starts, not after creating an empty recording.
+    const initialCrop=await preparePortraitCrop(studio,video,track);
+    if(!window.APEX_ARSENAL?.state?.active||window.APEX_ARSENAL.state.over)
+      throw new Error('Trận đấu đã kết thúc trong lúc chuẩn bị khung ghi.');
+    ctx.fillStyle='#020304';ctx.fillRect(0,0,W,H);
+    ctx.drawImage(video,initialCrop.sx,initialCrop.sy,initialCrop.sw,initialCrop.sh,0,0,W,H);
     const rec = new MediaRecorder(output,{mimeType:mime,
       videoBitsPerSecond:22000000,audioBitsPerSecond:256000});
     const item = {display,output,video,recorder:rec,chunks:[],frame:0,tailTimer:0,title:document.title,
@@ -367,8 +401,7 @@ async function startRecording(providedDisplay=null) {
         // The source video is the browser TAB. The CROP is precisely the
         // responsive phone viewport's current rectangle within that tab.
         try{
-          const rect=studio.getCropRect();
-          const crop=portraitFrameCrop(video.videoWidth,video.videoHeight,rect);
+          const crop=livePortraitCrop(studio,video);
           ctx.drawImage(video,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H);
           if(sourceFrame>0)lastSourceFrame=sourceFrame;
         }catch(err){
@@ -409,7 +442,11 @@ async function startRecording(providedDisplay=null) {
       stale.video.pause();stale.video.srcObject=null;
       studioRecordStatus(false);
     }
-    if(display && !session) display.getTracks().forEach(t=>t.stop());
+    if(!session){
+      pendingOutput?.getTracks().forEach(t=>t.stop());
+      if(pendingVideo){pendingVideo.pause();pendingVideo.srcObject=null;}
+      display?.getTracks().forEach(t=>t.stop());
+    }
     if (isDisplayCapturePolicyError(error)) notice('Quyền display-capture bị chặn. Mở Portrait Studio ở tab riêng (không chạy trong itch iframe).',true);
     else notice('Không bắt đầu ghi: '+String(error?.message||error),true);
   } finally { starting = false; }
