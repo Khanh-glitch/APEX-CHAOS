@@ -32,10 +32,12 @@
   const GOLD_SHELL_KEY_BY_PRODUCTION_ID = {
     ROBOT: 'newbot', HUNTER: 'hunter', CRYSTAL: 'crystala',
     MAGNET: 'magnet', ICE: 'frost', MIRROR: 'mirror', BOXE: 'boxe', SHURI: 'shuri',
+    BLACK_HOLE: 'black_hole', TIME: 'time',
   };
   const PRODUCTION_ID_BY_SHELL_KEY = {
     newbot: 'ROBOT', hunter: 'HUNTER', crystala: 'CRYSTAL',
     magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR', boxe: 'BOXE', shuri: 'SHURI',
+    black_hole: 'BLACK_HOLE', time: 'TIME',
   };
   // ── immutable Git art authority (R44 owner-playtest media manifest) ─────
   // Every URL below is a gitPath recorded in
@@ -144,6 +146,26 @@
         heroUiAsset('mirror/skill_a2.webp'),
       ],
     },
+    black_hole: {
+      portrait: heroUiAsset('black_hole/pick_roster_cover.png'),
+      art: heroUiAsset('black_hole/pick_selected_large.png'),
+      battleAvatar: heroUiAsset('black_hole/battle_avatar.png'),
+      skillIcons: [
+        heroUiAsset('black_hole/skill_passive.png'),
+        heroUiAsset('black_hole/skill_a1.png'),
+        heroUiAsset('black_hole/skill_a2.png'),
+      ],
+    },
+    time: {
+      portrait: heroUiAsset('time/pick_roster_cover.png'),
+      art: heroUiAsset('time/pick_selected_large.png'),
+      battleAvatar: heroUiAsset('time/battle_avatar.png'),
+      skillIcons: [
+        heroUiAsset('time/skill_passive.png'),
+        heroUiAsset('time/skill_a1.png'),
+        heroUiAsset('time/skill_a2.png'),
+      ],
+    },
   };
   // Roles the manifest resolves for the current Core Six (mirror's selected
   // pose is intentionally absent — 5 roles, not 6).
@@ -168,22 +190,17 @@
     mirror: { name: 'MIRROR', tag: 'ECHO DUPLICATE' },
     boxe: { name: 'BOXE', tag: 'THE FIST OF DAWN' },
     shuri: { name: 'SHURI', tag: 'SCRAP ENGINEER' },
-    black_hole: { name: 'BLACK HOLE', tag: 'NOT YET AWAKENED' },
+    black_hole: { name: 'BLACK HOLE', tag: 'SINGULARITY ENTITY' },
     math_v2: { name: 'MATH V2', tag: 'NOT YET AWAKENED' },
     rubber: { name: 'RUBBER', tag: 'NOT YET AWAKENED' },
-    time: { name: 'TIME', tag: 'NOT YET AWAKENED' },
+    time: { name: 'CHRONO', tag: 'TEMPORAL ASTROLABE' },
     slime: { name: 'SLIME', tag: 'NOT YET AWAKENED' },
     sniper: { name: 'SNIPER', tag: 'NOT YET AWAKENED' },
   };
-  // ONE accent per hero. These are FALLBACKS for the case where the shell
-  // registry is not loaded yet; the live value is APEX_ARSENAL_SHELLS.typeFor()
-  // -> the fighter type's own authored colour. CRYSTALA is violet because her
-  // whole authored palette is violet (AMETHYST ramp, crystalaGoldV6.js); the
-  // former #55bfff / engine #6ed3d8 were another hero's colour language and
-  // showed up as soon as a crit/heavy slash or a rail plate took her accent.
   const FALLBACK_ACCENTS = {
     newbot: '#ff941f', hunter: '#96ca2d', crystala: '#a066f0',
     magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df', boxe: '#ffac42', shuri: '#f16c41',
+    black_hole: '#c77dff', time: '#4cc9f0',
   };
 
   // Production-visible roster authority (2026-10-05): the Gold roster is
@@ -1914,6 +1931,12 @@
     // Quest result is owned by the Quest Director, not Gold's 1v1 win
     // counter or 2600 ms auto-return. The two systems must not race.
     const over = state && !state.questMultiActor && state.over ? String(state.over) : null;
+    if (over && over !== lastKo && window.APEX_EVOLUTION_COMBAT?.interceptRoundEnd?.(state)) {
+      // Evolution Championship BO3 owns non-final round transitions: the Gold
+      // K.O. stamp / result return are reserved for the series-deciding round.
+      lastKo = null;
+      return;
+    }
     if (over && over !== lastKo) {
       lastKo = over;
       // ONE result signal for the shell: the match is over, so the backdrop tap
