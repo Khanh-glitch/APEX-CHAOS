@@ -1,0 +1,22 @@
+name: Repository hygiene inventory (temporary)
+on:
+  push:
+    branches: [maintenance/readme-repository-cleanup-20261117]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit tracked source and historical evidence usage
+        run: node tools/maintenance/repoInventory.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repository-hygiene-inventory
+          path: reports/repo-hygiene-inventory.json
+          retention-days: 3
