@@ -46,3 +46,11 @@ ARSENAL_PRODUCT_PLAYABLE_WINDOWS.zip
 /*.zip
 *.log
 *.tmp
+
+# Retired hero-rework snapshots and audit exports (archive branch retains originals).
+/docs/hero-rework/**/evidence/
+/docs/hero-rework/**/evidence-browser/
+/docs/hero-rework/**/proofs/
+/docs/hero-rework/robot-visual-cleanup-diagnostic/
+/docs/audit/
+/docs/stormbreaker/v1-port/

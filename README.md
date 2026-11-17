@@ -101,7 +101,7 @@ pnpm test:runtime-revision
 
 **Release verification:** The R5 × Total Evolution source was built and exercised in desktop and mobile Chromium, including the path from Start → Gold Home → fighter selection → live BOT Battle. The [browser acceptance run](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/44002221550) records these checks. This is **not** a blanket performance certification or a substitute for testing every stage and mode on your target hardware.
 
-For source history, integration details and maintenance decisions, see [Arena integration notes](docs/arena/ARENA-TRANSPLANT.md) and [Repository maintenance](docs/maintenance/REPOSITORY_HYGIENE.md). Historical experimental files are preserved in the [pre-cleanup archival branch](https://github.com/Khanh-glitch/APEX-CHAOS/tree/archive/main-before-hygiene-20261117), not carried into the primary shipping tree.
+For source history, integration details and maintenance decisions, see [Arena integration notes](docs/arena/ARENA-TRANSPLANT.md) and [Repository maintenance](docs/maintenance/REPOSITORY_HYGIENE.md). Historical experimental files are preserved in the [source-history archive](https://github.com/Khanh-glitch/APEX-CHAOS/tree/archive/main-pre-source-hygiene-r2-20261117), not carried into the primary shipping tree.
 
 ## Project status & rights
 
