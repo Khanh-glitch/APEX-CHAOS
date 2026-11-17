@@ -32,7 +32,20 @@ for(const p of candidates){
  else if(len>500000||p.includes('golden')){lowRefs.push({p,cat,bytes:len})}
 }
 for(const cat of Object.keys(byCategory)){let c=byCategory[cat];c.MiB=+(c.bytes/1048576).toFixed(2);c.sampleReferences=c.references.slice(0,20);delete c.references}
-const report={scannedFiles:scanFiles.length,docsFiles:candidates.length,byCategory,highRefs,lowRefs};
+
+const toolRoot=files.filter(p=>/^tools\/[^/]+\.(?:mjs|js|cjs|sh)$/.test(p));
+const references=[];
+for(const p of toolRoot){
+ const base=path.basename(p);
+ const named=[];
+ for(const s of txt){if(s.path===p)continue;if(s.text.includes(p)||s.text.includes(base))named.push(s.path)}
+ references.push({path:p,refs:named.slice(0,10)});
+}
+const unusedRootTools=references.filter(x=>x.refs.length===0);
+console.log('TOOLS_ROOT',toolRoot.length,'UNREFERENCED_TOOLS_ROOT',unusedRootTools.length);
+console.log('UNREFERENCED_TOOLS_LIST',JSON.stringify(unusedRootTools));
+
+const report={unusedRootTools,scannedFiles:scanFiles.length,docsFiles:candidates.length,byCategory,highRefs,lowRefs};
 fs.mkdirSync('reports',{recursive:true});
 fs.writeFileSync('reports/cleanup-r2-audit.json',JSON.stringify(report,null,2)+'\n');
 console.log('CANDIDATES',candidates.length,'SOURCE_FILES_SCANNED',scanFiles.length);
