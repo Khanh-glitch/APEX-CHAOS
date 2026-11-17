@@ -25,5 +25,24 @@ for(const name of botwave)assert.ok(Object.keys(l.files).some(f=>f.endsWith('/'+
 // A1 r20 registered the P1/P2 skill-details presentation runtime.
 const a1=['skillDetailsRuntime.js'];
 for(const name of a1)assert.ok(Object.keys(l.files).some(f=>f.endsWith('/'+name)),'missing A1 versioned runtime '+name);
-assert.equal(r.versionedRuntimeCount,59+boxe.length+shuri.length+botwave.length+a1.length,'unexpected runtime-graph size change');
+// Total Evolution is a versioned extension to the same product graph. The
+// historical 71-runtime ceiling is obsolete: require every new signed module,
+// and let the runtime lock remain the exact size / SHA authority.
+const arenaModules=[
+  'apexBeyondAudioEngine.js',
+  'apexEvolutionArtAtlas.js',
+  'apexEvolutionVfxLibrary.js',
+  'apexEvolutionShaderCompositor.js',
+  'apexEvolutionAudio.js',
+  'apexEvolutionArenas.js',
+  'apexBeyondArenaEngine.js',
+  'apexBeyondVfxEngine.js',
+  'apexBeyondCombatEngine.js',
+];
+for(const name of arenaModules)assert.ok(
+  Object.keys(l.files).some(f=>f.endsWith('/'+name)),
+  'missing Total Evolution versioned runtime '+name
+);
+const minimum=59+boxe.length+shuri.length+botwave.length+a1.length+arenaModules.length;
+assert.ok(r.versionedRuntimeCount>=minimum,'missing signed runtime extension in product graph');
 console.log('CP16 PACKAGED BUILD RECEIPT PASS',r.gitCommit,r.revision);
