@@ -1,0 +1,2650 @@
+{
+  "commit": "b1023d89d27a61e4321532aed80e33285aa91a23",
+  "sourceScanned": 530,
+  "tracked": 2197,
+  "distFiles": 552,
+  "masterStats": {
+    "count": 121,
+    "MiB": 60.38
+  },
+  "masterRefs": [],
+  "docsStats": {
+    "count": 338,
+    "MiB": 28.04
+  },
+  "docDirs": [
+    {
+      "name": "docs/gold-ui/current",
+      "count": 64,
+      "bytes": 8954357,
+      "refs": 2,
+      "MiB": 8.54
+    },
+    {
+      "name": "docs/hero-rework/robot-final",
+      "count": 20,
+      "bytes": 3987475,
+      "refs": 1,
+      "MiB": 3.8
+    },
+    {
+      "name": "docs/hero-rework/hunter-v1.1",
+      "count": 5,
+      "bytes": 3706622,
+      "refs": 1,
+      "MiB": 3.53
+    },
+    {
+      "name": "docs/hero-rework/magnet-v1",
+      "count": 19,
+      "bytes": 3230302,
+      "refs": 2,
+      "MiB": 3.08
+    },
+    {
+      "name": "docs/owner-locks/stormbreaker-v1",
+      "count": 11,
+      "bytes": 1869735,
+      "refs": 1,
+      "MiB": 1.78
+    },
+    {
+      "name": "docs/media/apex-chaos-home.png",
+      "count": 1,
+      "bytes": 1410506,
+      "refs": 0,
+      "MiB": 1.35
+    },
+    {
+      "name": "docs/media/apex-chaos-battle.png",
+      "count": 1,
+      "bytes": 1328639,
+      "refs": 0,
+      "MiB": 1.27
+    },
+    {
+      "name": "docs/field-archive/candidate03",
+      "count": 16,
+      "bytes": 1316303,
+      "refs": 0,
+      "MiB": 1.26
+    },
+    {
+      "name": "docs/hero-rework/frost-v1",
+      "count": 11,
+      "bytes": 1073763,
+      "refs": 3,
+      "MiB": 1.02
+    },
+    {
+      "name": "docs/gold-ui/preload",
+      "count": 12,
+      "bytes": 956607,
+      "refs": 2,
+      "MiB": 0.91
+    },
+    {
+      "name": "docs/hero-rework/mirror-v1",
+      "count": 17,
+      "bytes": 254351,
+      "refs": 1,
+      "MiB": 0.24
+    },
+    {
+      "name": "docs/quest/donors",
+      "count": 1,
+      "bytes": 208884,
+      "refs": 1,
+      "MiB": 0.2
+    },
+    {
+      "name": "docs/hero-rework/crystala-v1",
+      "count": 14,
+      "bytes": 199807,
+      "refs": 4,
+      "MiB": 0.19
+    },
+    {
+      "name": "docs/hero-rework/phase1",
+      "count": 15,
+      "bytes": 154323,
+      "refs": 4,
+      "MiB": 0.15
+    },
+    {
+      "name": "docs/hero-rework/post-playtest-2026-09-29",
+      "count": 4,
+      "bytes": 54864,
+      "refs": 0,
+      "MiB": 0.05
+    },
+    {
+      "name": "docs/maintenance/V43_BRANCH_INVENTORY_2026-10-10.json",
+      "count": 1,
+      "bytes": 35778,
+      "refs": 1,
+      "MiB": 0.03
+    },
+    {
+      "name": "docs/boxe/perf-20261028",
+      "count": 10,
+      "bytes": 32409,
+      "refs": 0,
+      "MiB": 0.03
+    },
+    {
+      "name": "docs/cp3/CP32_ACHIEVEMENT_FEASIBILITY_DESIGN.md",
+      "count": 1,
+      "bytes": 29704,
+      "refs": 0,
+      "MiB": 0.03
+    },
+    {
+      "name": "docs/quest/Q0_QUEST01_CANON_IMPLEMENTATION_CONTRACT_2026-10-08.md",
+      "count": 1,
+      "bytes": 27679,
+      "refs": 0,
+      "MiB": 0.03
+    },
+    {
+      "name": "docs/release-v1/PRE_REWORK_BASELINE_CLEANUP_TASK.md",
+      "count": 1,
+      "bytes": 27602,
+      "refs": 0,
+      "MiB": 0.03
+    },
+    {
+      "name": "docs/agent-authority/APEX_CHAOS_ZERO_CONTEXT_HANDOFF_2026-09-26.md",
+      "count": 1,
+      "bytes": 26760,
+      "refs": 0,
+      "MiB": 0.03
+    },
+    {
+      "name": "docs/architecture/content-admission",
+      "count": 4,
+      "bytes": 22842,
+      "refs": 1,
+      "MiB": 0.02
+    },
+    {
+      "name": "docs/agent-authority/VIBECODE_SKILL.md",
+      "count": 1,
+      "bytes": 19754,
+      "refs": 0,
+      "MiB": 0.02
+    },
+    {
+      "name": "docs/quest/Q5_OWNER_FEEDBACK_FORENSIC_AUDIT_AND_QUEST01_FINISH_PLAN_2026-10-09.md",
+      "count": 1,
+      "bytes": 19035,
+      "refs": 0,
+      "MiB": 0.02
+    },
+    {
+      "name": "docs/maintenance/V43_GOLD_40_PHASE_EVIDENCE_BACKLOG_2026-10-10.json",
+      "count": 1,
+      "bytes": 18757,
+      "refs": 1,
+      "MiB": 0.02
+    },
+    {
+      "name": "docs/cp3/CP3_DESIGN.md",
+      "count": 1,
+      "bytes": 16512,
+      "refs": 0,
+      "MiB": 0.02
+    },
+    {
+      "name": "docs/hero-rework/robot-visual-correction",
+      "count": 2,
+      "bytes": 15295,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/owner-locks/arsenal-lab-v1",
+      "count": 3,
+      "bytes": 15283,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/cp5/CP5_PHASE_A_AUDIT.md",
+      "count": 1,
+      "bytes": 15102,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/hero-rework/shuri",
+      "count": 2,
+      "bytes": 13613,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/a1/A1_0_ARCHITECTURE_AND_MIGRATION_AUDIT.md",
+      "count": 1,
+      "bytes": 13174,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/cp5/CP5_REPORT.md",
+      "count": 1,
+      "bytes": 12105,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/a1/A1_SECURITY_CLOSEOUT.md",
+      "count": 1,
+      "bytes": 9614,
+      "refs": 1,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/Q0_QUEST01_ENCOUNTER_LEDGER.json",
+      "count": 1,
+      "bytes": 9554,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/hero-rework/CHECKPOINT_HPHYS_HUNTER_PHYSICAL_CONTACT.md",
+      "count": 1,
+      "bytes": 9374,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/design/home-gold-58-reference-visual-review-20261028.md",
+      "count": 1,
+      "bytes": 9348,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/cp4/CP4_REPORT.md",
+      "count": 1,
+      "bytes": 8773,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/boxe/BOXE_BOT_WAVE_CONTRACT.md",
+      "count": 1,
+      "bytes": 8297,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/boxe/BOT_WAVE_LOSSLESS_20261028.md",
+      "count": 1,
+      "bytes": 7935,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/maintenance/V43_BRANCH_CLEANUP_PHASE1_2026-10-10.md",
+      "count": 1,
+      "bytes": 7766,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/Q4I_E02_FIRST_WAKE_AUTHENTIC_PROGRESS_2026-10-09.md",
+      "count": 1,
+      "bytes": 6799,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/Q2_REAL_N_ACTOR_EVIDENCE_2026-10-08.md",
+      "count": 1,
+      "bytes": 6696,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/integration/R89_QUEST01_MERGE_CONTRACT.md",
+      "count": 1,
+      "bytes": 6203,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/B6N_OWNER_REVISED_COMPANION_JK_NATIVE_2026-10-09.md",
+      "count": 1,
+      "bytes": 5986,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/B6M_COMPANION_JK_CANDIDATE_DESIGN_2026-10-09.md",
+      "count": 1,
+      "bytes": 5917,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/cp4/CP4_FINAL_ACCEPTANCE.md",
+      "count": 1,
+      "bytes": 5853,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/releases/ITCH_GUEST_200AC_ACCEPTANCE_20261020.md",
+      "count": 1,
+      "bytes": 5833,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/Q3U_GOLD_3V4_VISUAL_MOTION_ACCEPTANCE_2026-10-08.md",
+      "count": 1,
+      "bytes": 5788,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/Q3_GOLD_V12_PRESENTATION_STAGE_EVIDENCE_2026-10-08.md",
+      "count": 1,
+      "bytes": 5656,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/performance/SHARED_RUNTIME_WORK_R4.md",
+      "count": 1,
+      "bytes": 5597,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/Q4A_REFLEX_NATIVE_GOLD_OWNER_PLAYTEST_2026-10-09.md",
+      "count": 1,
+      "bytes": 5587,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/quest/Q4A_NATIVE_REFLEX_FULL_SOAK_OWNER_ACCEPTANCE_2026-10-09.md",
+      "count": 1,
+      "bytes": 5544,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/maintenance/REPOSITORY_HYGIENE.md",
+      "count": 1,
+      "bytes": 5527,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/cp4/CP4_PHASE_A_AUDIT.md",
+      "count": 1,
+      "bytes": 5368,
+      "refs": 0,
+      "MiB": 0.01
+    },
+    {
+      "name": "docs/maintenance/V43_GOLD_EVIDENCE_CLOSURE_PLAN_2026-10-10.md",
+      "count": 1,
+      "bytes": 5213,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4E3_GOLD_STORY_COMIC_R1_HOLD_2026-10-09.md",
+      "count": 1,
+      "bytes": 4886,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q1_QUEST01_DIRECTOR_EVIDENCE_2026-10-08.md",
+      "count": 1,
+      "bytes": 4829,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4C4_MOUNTED_GOLD_STORMBREAKER_FLIGHT_EVIDENCE_2026-10-09.md",
+      "count": 1,
+      "bytes": 4800,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4B_RIVET_SAFE_HOLD_NATIVE_CHROME_ACCEPTANCE_2026-10-09.md",
+      "count": 1,
+      "bytes": 4757,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/maintenance/CP5_FINAL_CUTOVER_GOLD_PREFLIGHT_2026-10-13.md",
+      "count": 1,
+      "bytes": 4566,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B8QB_GOLD_CANONICAL_ACCEPTANCE_AUDIT_2026-10-10.md",
+      "count": 1,
+      "bytes": 4554,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4G_E01_GROUNDED_RESCUE_TO_WORKSHOP_PREVIEW_2026-10-09.md",
+      "count": 1,
+      "bytes": 4540,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/performance/FREE_BATTLE_RETAINED_R1.md",
+      "count": 1,
+      "bytes": 4539,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/GOLD_SOURCE_AUDIT.md",
+      "count": 1,
+      "bytes": 4306,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/architecture/CP11_ARCHITECTURE_HARDENING_20261014.md",
+      "count": 1,
+      "bytes": 4251,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/IMPORT_R5_PLAYABLE_OWNER.md",
+      "count": 1,
+      "bytes": 4244,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/arsenal/V43_ROUND3_BALANCE_VARIANT_MATRIX.md",
+      "count": 1,
+      "bytes": 4239,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q3V_SCOPE_AND_READABILITY_AUDIT_2026-10-09.md",
+      "count": 1,
+      "bytes": 4216,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/arsenal/V43_ROUND3_GOLD_PARITY_CHECKPOINT.md",
+      "count": 1,
+      "bytes": 4061,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/integration/R90_GOLD_GATE_DEBT.md",
+      "count": 1,
+      "bytes": 4053,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/BOXE_OWNER_R3_MECHANICS_VFX_REMEDIATION.md",
+      "count": 1,
+      "bytes": 3938,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/CP04B_FIRST_WAKE_R59_SPIKE_EVIDENCE.md",
+      "count": 1,
+      "bytes": 3820,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/CP04A_R59_MULTI_ACTOR_SPIKE_STATUS.md",
+      "count": 1,
+      "bytes": 3662,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/BOT_WAVE_R4_PLAYTEST_RECEIPT.md",
+      "count": 1,
+      "bytes": 3599,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4H_REAL_QUEST_OPENING_REFLEX_WORKSHOP_AUTHORITY_2026-10-09.md",
+      "count": 1,
+      "bytes": 3573,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/architecture/WEAPON_MOTION_BASELINE_20261013.md",
+      "count": 1,
+      "bytes": 3526,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/BOXE_R4_COMBO_GOLD_SPEC.md",
+      "count": 1,
+      "bytes": 3169,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q5_OWNER_FEEDBACK_TRACEABILITY_2026-10-09.json",
+      "count": 1,
+      "bytes": 3093,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/maintenance/CP8_GOLD_SKIN_FIDELITY_CHECKPOINT_20261014.md",
+      "count": 1,
+      "bytes": 2967,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/maintenance/CLOUDFLARE_PROVENANCE_2026-10-10.md",
+      "count": 1,
+      "bytes": 2961,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q5_E03_SCRAP_SWARM_PROGRESS_2026-10-09.md",
+      "count": 1,
+      "bytes": 2769,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B8_E08_NATIVE_LAST_CHOICE_OUTSIDE_2026-10-10.md",
+      "count": 1,
+      "bytes": 2751,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/arena/ARENA-LAYOUT-FIX.md",
+      "count": 1,
+      "bytes": 2717,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/arena/ARENA-EDGE-CLEANUP.md",
+      "count": 1,
+      "bytes": 2712,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/maintenance/V43_FIRST_BRANCH_BATCH_READ_ONLY_2026-10-10.json",
+      "count": 1,
+      "bytes": 2676,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B7_E06_SIGNED_E07_NATIVE_GOLD_2026-10-09.md",
+      "count": 1,
+      "bytes": 2671,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/integration/B8QC_R90_PREPLAYTEST_AUTHORITY.md",
+      "count": 1,
+      "bytes": 2580,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/arena/ARENA-TRANSPLANT.md",
+      "count": 1,
+      "bytes": 2562,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/BOT_WAVE_R5_EXTERNAL_ASSETS_PROOF.json",
+      "count": 1,
+      "bytes": 2371,
+      "refs": 1,
+      "MiB": 0
+    },
+    {
+      "name": "docs/performance/SAFARI_CAPTURE_R2.md",
+      "count": 1,
+      "bytes": 2348,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/BOXE_NORMAL_BATTLE_HUD_PENDING.md",
+      "count": 1,
+      "bytes": 2329,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/performance/F7_PORTRAIT_READY_R5.md",
+      "count": 1,
+      "bytes": 2234,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B6E_DAMAGE_RETREAT_AUTHORITY_2026-10-09.md",
+      "count": 1,
+      "bytes": 2206,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4E_STORY_INTERLUDES_FOUNDATION_2026-10-09.md",
+      "count": 1,
+      "bytes": 2169,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B5E_REAL_FLOOR_CINEMATIC_AND_GOLD_BOOT_2026-10-09.md",
+      "count": 1,
+      "bytes": 2060,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/performance/BATTLE_COMPONENT_R3.md",
+      "count": 1,
+      "bytes": 2000,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/architecture/CROSS_SYSTEM_CI_ADMISSION_20261013.md",
+      "count": 1,
+      "bytes": 1995,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q5P_E04_WEAPON_RAIN_PROGRESS_2026-10-09.md",
+      "count": 1,
+      "bytes": 1914,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B5G_SIGNED_ROUTE_BREACH_CANON_INTEGRATION_2026-10-09.md",
+      "count": 1,
+      "bytes": 1905,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4D_E01_TECHNICAL_HANDOFF_NO_STORY_PROGRESS_2026-10-09.md",
+      "count": 1,
+      "bytes": 1849,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/BOXE_GOLD_INTAKE.json",
+      "count": 1,
+      "bytes": 1846,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4F_ONE_REAL_STORMBREAKER_FLOOR_STRIKE_2026-10-09.md",
+      "count": 1,
+      "bytes": 1681,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B8A_TOT_LAST_CHOICE_NATIVE_BOUND_CONTRACT_2026-10-09.md",
+      "count": 1,
+      "bytes": 1599,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/boxe/IMPORT_GOLD_SAFE_V2.md",
+      "count": 1,
+      "bytes": 1564,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q3_GOLD_V12_EXACT_SOURCE_PROVENANCE_2026-10-08.md",
+      "count": 1,
+      "bytes": 1532,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B6D_BREACH_STATE_MACHINE_2026-10-09.md",
+      "count": 1,
+      "bytes": 1439,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B6F_NATIVE_ARSENAL_BREACH_FIXTURE_2026-10-09.md",
+      "count": 1,
+      "bytes": 1366,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B7A_RIVET_NONLETHAL_THRESHOLD_CONTRACT_2026-10-09.md",
+      "count": 1,
+      "bytes": 1355,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B5F_E04_ISOLATED_SURVIVAL_PILOT_2026-10-09.md",
+      "count": 1,
+      "bytes": 1291,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B2C_STORMBREAKER_TRUE_FLOOR_2026-10-09.md",
+      "count": 1,
+      "bytes": 1262,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q4C_RIVET_REAL_STORMBREAKER_PREVIEW_2026-10-09.md",
+      "count": 1,
+      "bytes": 1261,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B7D_ISOLATED_RIVET_REAL_ARSENAL_2026-10-09.md",
+      "count": 1,
+      "bytes": 1220,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/gold-ui/README.md",
+      "count": 1,
+      "bytes": 1137,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B6A_BREACH_OWNER_CANON_2026-10-09.md",
+      "count": 1,
+      "bytes": 1130,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B6L_OWNER_APPROVED_PASSIVE_RIG_CUTOVER_2026-10-09.md",
+      "count": 1,
+      "bytes": 1127,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B4_TEMP_QUEST_STAGE_REPLAY_2026-10-09.md",
+      "count": 1,
+      "bytes": 1101,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/Q5W_E05_CHARGE_THE_BREAKER_PROGRESS_2026-10-09.md",
+      "count": 1,
+      "bytes": 1086,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B7E_RIVET_ADVERSARIAL_LIFECYCLE_2026-10-09.md",
+      "count": 1,
+      "bytes": 1018,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B5A_E03_DIAGNOSTIC_SCOPE_2026-10-09.md",
+      "count": 1,
+      "bytes": 918,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B8B_TOT_REAL_FIGHTER_ACCEPTED_DAMAGE_2026-10-09.md",
+      "count": 1,
+      "bytes": 830,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B5D_BALANCE_INTEGRATION_2026-10-09.md",
+      "count": 1,
+      "bytes": 812,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B6H_RETIRED_FIGHTER_LIFECYCLE_2026-10-09.md",
+      "count": 1,
+      "bytes": 711,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B5C_MODERNIZE_REAL_GOLD_ORACLE_2026-10-09.md",
+      "count": 1,
+      "bytes": 701,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/quest/B5A_TOUCH_EVENT_DIAGNOSIS_2026-10-09.md",
+      "count": 1,
+      "bytes": 650,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/SOURCE-PROVENANCE.md",
+      "count": 1,
+      "bytes": 341,
+      "refs": 0,
+      "MiB": 0
+    },
+    {
+      "name": "docs/gold-ui/APEX_CHAOS_GOLD_SOURCE_PACK.zip.sha256",
+      "count": 1,
+      "bytes": 98,
+      "refs": 0,
+      "MiB": 0
+    }
+  ],
+  "docsRefs": [
+    {
+      "path": "docs/a1/A1_SECURITY_CLOSEOUT.md",
+      "refs": [
+        "tools/testAdminEscalationNegativesBrowser.mjs",
+        "tools/testCloudLifecycleRaces.mjs",
+        "tools/testCloudSecurityContracts.mjs"
+      ]
+    },
+    {
+      "path": "docs/architecture/content-admission/extensions.json",
+      "refs": [
+        ".github/workflows/content-interaction-cp2.yml",
+        "tools/testContentAdmissionGate.mjs"
+      ]
+    },
+    {
+      "path": "docs/boxe/BOT_WAVE_R5_EXTERNAL_ASSETS_PROOF.json",
+      "refs": [
+        "tools/testBotWaveLosslessR5.mjs"
+      ]
+    },
+    {
+      "path": "docs/gold-ui/current/donors/battle-hud/index.html",
+      "refs": [
+        "tools/testGoldBattleHudAdaptationGate.mjs"
+      ]
+    },
+    {
+      "path": "docs/gold-ui/current/index.html",
+      "refs": [
+        "tools/testHomeStoryCopyAlignmentGate.mjs"
+      ]
+    },
+    {
+      "path": "docs/gold-ui/preload/CORE_SIX_CURATED_SFX_MANIFEST.json",
+      "refs": [
+        "public/game/heroes/coreSixCuratedSfxAuthority.js",
+        "tools/testCoreSixHeroAvGate.mjs"
+      ]
+    },
+    {
+      "path": "docs/gold-ui/preload/OWNER_PLAYTEST_MEDIA_R44_MANIFEST.json",
+      "refs": [
+        "public/game/gold/goldProductBridge.js",
+        "public/game/ui/uiSfxAuthority.js",
+        "tools/testBattleTransitionAuthorityGate.mjs",
+        "tools/testCoreSixArtAuthorityGate.mjs",
+        "tools/testCoreSixHeroAvGate.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/crystala-v1/00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md",
+      "refs": [
+        "public/game/hero-rework/crystalGameplayRuntime.js",
+        "public/game/hero-rework/heroRegistry.js"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/crystala-v1/01_OWNER_APPROVED_GOLD_REFERENCE.html",
+      "refs": [
+        "public/game/hero-rework/crystalaGoldV6.js",
+        "tools/testCrystalaGoldParity.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/crystala-v1/02_CRYSTALA_V2_SIX_SHARD_RESOURCE_AUTHORITY.md",
+      "refs": [
+        "public/game/hero-rework/crystalGameplayRuntime.js",
+        "tools/testCrystalaGameplayGates.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/crystala-v1/03_IMPLEMENTATION_TEST_MATRIX.md",
+      "refs": [
+        "tools/testCrystalaGameplayGates.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/frost-v1/00_FROST_IMPLEMENTATION_AUTHORITY.md",
+      "refs": [
+        "public/game/hero-rework/frostGameplayRuntime.js",
+        "tools/testFrostV1Gates.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/frost-v1/03_IMPLEMENTATION_TEST_MATRIX.md",
+      "refs": [
+        "tools/testFrostV1Gates.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html",
+      "refs": [
+        "public/game/hero-rework/frostGoldV1.js",
+        "tools/bridgeFrostGoldV1.mjs",
+        "tools/testFrostV1Gates.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/hunter-v1.1/reference/HUNTER_GOLD_V10_EXACT_ROOT_TRAP.html",
+      "refs": [
+        "tools/auditHunterA1OwnerFix.mjs",
+        "tools/bridgeHunterGoldV10.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/magnet-v1/00_MAGNET_IMPLEMENTATION_AUTHORITY.md",
+      "refs": [
+        "tools/testMagnetV1GameplayGates.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/magnet-v1/gold/MAGNET_FINAL_DONOR_MAX.html",
+      "refs": [
+        "public/game/hero-rework/magnetGoldV1.js",
+        "tools/testMagnetV1PresentationGates.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",
+      "refs": [
+        "public/game/hero-rework/mirrorGoldV1.js",
+        "tools/bridgeMirrorGoldV1.mjs",
+        "tools/testMirrorPresentationG2A2.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/phase1/01_AIL_V2_CANONICAL.md",
+      "refs": [
+        "public/game/hero-rework/ailRuntime.js"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/phase1/02_LEVEL1_CANONICAL_BASELINE_V1_2.md",
+      "refs": [
+        "public/game/hero-rework/heroRegistry.js"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/phase1/03_HERO_DEFINITION_CONTRACT_V1_FINAL.md",
+      "refs": [
+        "public/game/hero-rework/heroRegistry.js"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/phase1/05_IMPLEMENTATION_TASK_FINAL.md",
+      "refs": [
+        "tools/testHeroReworkGoldens.mjs"
+      ]
+    },
+    {
+      "path": "docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html",
+      "refs": [
+        "public/game/hero-rework/robotPresentationRuntime.js"
+      ]
+    },
+    {
+      "path": "docs/maintenance/V43_BRANCH_INVENTORY_2026-10-10.json",
+      "refs": [
+        "tools/maintenance/v43-branch-cleanup.mjs",
+        "tools/maintenance/verifyV43AuditSnapshot.mjs"
+      ]
+    },
+    {
+      "path": "docs/maintenance/V43_GOLD_40_PHASE_EVIDENCE_BACKLOG_2026-10-10.json",
+      "refs": [
+        ".github/workflows/v43-gold-fidelity.yml",
+        "tools/maintenance/v43-gold-reference-preflight.mjs",
+        "tools/maintenance/verifyV43AuditSnapshot.mjs"
+      ]
+    },
+    {
+      "path": "docs/owner-locks/stormbreaker-v1/01_STORMBREAKER_APPROVED_ASSET.png",
+      "refs": [
+        "tools/buildArsenalCAssets.mjs"
+      ]
+    },
+    {
+      "path": "docs/quest/donors/APEX_CHAOS_QUEST1_DEEPER_WEAPON_GRIP_V12.html",
+      "refs": [
+        "public/game/quest/questGoldV12Rig.js"
+      ]
+    }
+  ],
+  "publicTracked": {
+    "count": 1146,
+    "MiB": 247.59
+  },
+  "publicShipped": {
+    "count": 535,
+    "MiB": 75.67
+  },
+  "publicNonShipping": {
+    "count": 611,
+    "MiB": 171.91
+  },
+  "nonShippingPublic": [
+    "public/assets/arcade_v1/normalized/battle_idle_reference.webp",
+    "public/assets/arcade_v1/normalized/defeat_revive_victory_16.webp",
+    "public/assets/arcade_v1/normalized/idle_move_16.webp",
+    "public/assets/arcade_v1/normalized/manifest.json",
+    "public/assets/arcade_v1/normalized/optional_hit_16.webp",
+    "public/assets/arcade_v1/normalized/prop_vfx_sheet.webp",
+    "public/assets/arcade_v1/normalized/rage_jackpot_32.webp",
+    "public/assets/arcade_v1/normalized/text_multiplier_sheet.webp",
+    "public/assets/arsenal/av/sfx/impact/impactMetal_heavy_002.ogg",
+    "public/assets/arsenal/av/sfx/impact/impactMetal_light_002.ogg",
+    "public/assets/arsenal/av/sfx/impact/impactMetal_medium_002.ogg",
+    "public/assets/arsenal/av/sfx/impact/impactPlate_heavy_001.ogg",
+    "public/assets/arsenal/av/sfx/impact/impactPunch_heavy_001.ogg",
+    "public/assets/arsenal/av/sfx/impact/impactPunch_medium_001.ogg",
+    "public/assets/arsenal/av/sfx/impact/impactSoft_medium_001.ogg",
+    "public/assets/arsenal/av/sfx/rpg/chop.ogg",
+    "public/assets/arsenal/av/sfx/rpg/drawKnife1.ogg",
+    "public/assets/arsenal/av/sfx/rpg/drawKnife2.ogg",
+    "public/assets/arsenal/av/sfx/rpg/drawKnife3.ogg",
+    "public/assets/arsenal/av/sfx/rpg/knifeSlice.ogg",
+    "public/assets/arsenal/av/sfx/rpg/knifeSlice2.ogg",
+    "public/assets/arsenal/av/sfx/scifi/explosionCrunch_002.ogg",
+    "public/assets/arsenal/av/sfx/scifi/forceField_003.ogg",
+    "public/assets/arsenal/av/sfx/scifi/impactMetal_002.ogg",
+    "public/assets/arsenal/av/sfx/scifi/laserLarge_003.ogg",
+    "public/assets/arsenal/av/sfx/scifi/laserSmall_002.ogg",
+    "public/assets/arsenal/av/sfx/scifi/lowFrequency_explosion_001.ogg",
+    "public/assets/arsenal/av/vfx/kenney/smoke_01.png",
+    "public/assets/arsenal/av/vfx/kenney/smoke_03.png",
+    "public/assets/arsenal/av/vfx/kenney/spark_05.png",
+    "public/assets/arsenal/av/vfx/kenney/spark_07.png",
+    "public/assets/arsenal/av/vfx/muzzle_flash/muzzleFlash0_original_black.png",
+    "public/assets/arsenal/av/vfx/muzzle_flash/muzzleFlash0_transparent.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_01.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_02.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_03.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_04.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_05.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_06.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_07.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_08.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_09.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_10.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_11.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_12.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_13.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_14.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_15.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_16.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_17.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_18.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_19.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_20.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_21.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_22.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_23.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_24.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_25.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_26.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_27.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_28.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_29.png",
+    "public/assets/arsenal/av/vfx/slash_blue_shield/Alternative_2_30.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_01.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_02.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_03.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_04.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_05.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_06.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_07.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_08.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_09.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_10.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_11.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_12.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_13.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_14.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_15.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_16.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_17.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_18.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_19.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_20.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_21.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_22.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_23.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_24.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_25.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_26.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_27.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_28.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_29.png",
+    "public/assets/arsenal/av/vfx/slash_orange_primary/Alternative_3_30.png",
+    "public/assets/arsenal/feel/heals/heal_t1_field_dressing.png",
+    "public/assets/arsenal/feel/heals/heal_t2_medication.png",
+    "public/assets/arsenal/feel/heals/heal_t3_autoinjector.png",
+    "public/assets/arsenal/feel/heals/heal_t4_iv_pack.png",
+    "public/assets/arsenal/feel/heals/heal_t5_trauma_case.png",
+    "public/assets/arsenal/weapons/arsenal_p0_weapon_atlas.json",
+    "public/assets/arsenal/weapons/arsenal_p0_weapon_atlas.png",
+    "public/assets/arsenal/weapons/c/arsenal_c_weapon_set.json",
+    "public/assets/blade_v1/normalized/bladeCastNormal16.webp",
+    "public/assets/blade_v1/normalized/bladeCastRage16.webp",
+    "public/assets/blade_v1/normalized/bladeMainNormal.webp",
+    "public/assets/blade_v1/normalized/bladeMainRage.webp",
+    "public/assets/blade_v1/normalized/bladeWaveNormal16.webp",
+    "public/assets/blade_v1/normalized/bladeWaveRage16.webp",
+    "public/assets/blade_v1/normalized/bladeWeakText.webp",
+    "public/assets/blade_v1/normalized/bladeWeakX16.webp",
+    "public/assets/blade_v1/normalized/manifest.json",
+    "public/assets/control_map/apex_control_runtime_map.json",
+    "public/assets/control_map/charge_cyan_alpha.png",
+    "public/assets/control_map/charge_green_alpha.png",
+    "public/assets/control_map/charge_purple_alpha.png",
+    "public/assets/control_map/charge_red_alpha.png",
+    "public/assets/control_map/full_base.png",
+    "public/assets/control_map/neutral_zone.png",
+    "public/assets/control_map/overlay_cyan_alpha.png",
+    "public/assets/control_map/overlay_green_alpha.png",
+    "public/assets/control_map/overlay_purple_alpha.png",
+    "public/assets/control_map/overlay_red_alpha.png",
+    "public/assets/engineer_v1/04ed9a99-f6e8-48d6-84d1-9bb40950ed81.webp",
+    "public/assets/engineer_v1/Component 1.webp",
+    "public/assets/engineer_v1/Component 2.webp",
+    "public/assets/engineer_v1/Component 3.webp",
+    "public/assets/engineer_v1/Component 4.webp",
+    "public/assets/engineer_v1/Component 5.webp",
+    "public/assets/engineer_v1/SHIELD of RAGE.webp",
+    "public/assets/engineer_v1/SHIELD of nexus healing.webp",
+    "public/assets/engineer_v1/Turret 1.webp",
+    "public/assets/engineer_v1/Turret 2.webp",
+    "public/assets/engineer_v1/ada66438-125e-46d9-b5d0-33c9ff21226c.webp",
+    "public/assets/engineer_v1/audio/WARMACHINE_FUSHION_WITH_ENGINEER_sfx.mp3",
+    "public/assets/engineer_v1/audio/build_Construction_sound.mp3",
+    "public/assets/engineer_v1/audio/building_completed_sound.mp3",
+    "public/assets/engineer_v1/audio/construction_destroyed.mp3",
+    "public/assets/engineer_v1/audio/lv_up_and_fushion_completed_sound.mp3",
+    "public/assets/engineer_v1/audio/lv_up_or_fushion_on_processing.mp3",
+    "public/assets/engineer_v1/audio/mine_and_rocket_explosion.mp3",
+    "public/assets/engineer_v1/audio/mine_landing.mp3",
+    "public/assets/engineer_v1/audio/rocket_fire.mp3",
+    "public/assets/engineer_v1/audio/turret_firing.mp3",
+    "public/assets/engineer_v1/audio/war_machine_normal_and_fushion_fire.mp3",
+    "public/assets/engineer_v1/explosion.webp",
+    "public/assets/engineer_v1/factory lv1.webp",
+    "public/assets/engineer_v1/factory.webp",
+    "public/assets/engineer_v1/healing nexus.webp",
+    "public/assets/engineer_v1/laser of war machine.webp",
+    "public/assets/engineer_v1/linh kiện.webp",
+    "public/assets/engineer_v1/magnetic line.webp",
+    "public/assets/engineer_v1/magnetic.webp",
+    "public/assets/engineer_v1/main visual.webp",
+    "public/assets/engineer_v1/mega factory.webp",
+    "public/assets/engineer_v1/mine lv2.webp",
+    "public/assets/engineer_v1/mine.webp",
+    "public/assets/engineer_v1/repair station lv2.webp",
+    "public/assets/engineer_v1/repair station.webp",
+    "public/assets/engineer_v1/rocket bullet.webp",
+    "public/assets/engineer_v1/rocket tower already to fire.webp",
+    "public/assets/engineer_v1/rocket tower reloading.webp",
+    "public/assets/engineer_v1/the bottom of rocket tower.webp",
+    "public/assets/engineer_v1/thu linh kiện về.webp",
+    "public/assets/engineer_v1/thân súng trên trục xoay rocket nhưng đang reload.webp",
+    "public/assets/engineer_v1/thân súng war machine.webp",
+    "public/assets/engineer_v1/thân trên trục xoay rocket.webp",
+    "public/assets/engineer_v1/tia từ hút linh kiện và các vật thể hợp nhất.webp",
+    "public/assets/engineer_v1/turret bulllet.webp",
+    "public/assets/engineer_v1/upgrade circle in 0%.webp",
+    "public/assets/engineer_v1/upgrade circle in 100%.webp",
+    "public/assets/engineer_v1/vòng tròn loading xây dựng 0%.webp",
+    "public/assets/engineer_v1/vòng tròn loading xây dựng 100%.webp",
+    "public/assets/engineer_v1/war machine bullet.webp",
+    "public/assets/engineer_v1/war machine fushion with ENGINEER.webp",
+    "public/assets/engineer_v1/war machine laser strip.webp",
+    "public/assets/engineer_v1/war machine.webp",
+    "public/assets/engineer_v1/đế chung cho cả turret và rocket.webp",
+    "public/assets/engineer_v1/đế war machine.webp",
+    "public/assets/fang_v1/audio/collisionBite.mp3",
+    "public/assets/fang_v1/audio/heavyImpact.mp3",
+    "public/assets/fang_v1/audio/howl.mp3",
+    "public/assets/fang_v1/audio/huntRunStep.mp3",
+    "public/assets/fang_v1/audio/huntStart.mp3",
+    "public/assets/fang_v1/audio/huntingPounce.mp3",
+    "public/assets/fang_v1/audio/postCollisionRoar.mp3",
+    "public/assets/fang_v1/audio/sniff.mp3",
+    "public/assets/fang_v1/audio/wallRebound.mp3",
+    "public/assets/fang_v1/biteMark.webp",
+    "public/assets/fang_v1/frames/howl/frame_001.webp",
+    "public/assets/fang_v1/frames/howl/frame_002.webp",
+    "public/assets/fang_v1/frames/howl/frame_003.webp",
+    "public/assets/fang_v1/frames/howl/frame_004.webp",
+    "public/assets/fang_v1/frames/howl/frame_005.webp",
+    "public/assets/fang_v1/frames/howl/frame_006.webp",
+    "public/assets/fang_v1/frames/howl/frame_007.webp",
+    "public/assets/fang_v1/frames/howl/frame_008.webp",
+    "public/assets/fang_v1/frames/howl/frame_009.webp",
+    "public/assets/fang_v1/frames/howl/frame_010.webp",
+    "public/assets/fang_v1/frames/howl/frame_011.webp",
+    "public/assets/fang_v1/frames/howl/frame_012.webp",
+    "public/assets/fang_v1/frames/howl/frame_013.webp",
+    "public/assets/fang_v1/frames/howl/frame_014.webp",
+    "public/assets/fang_v1/frames/howl/frame_015.webp",
+    "public/assets/fang_v1/frames/howl/frame_016.webp",
+    "public/assets/fang_v1/frames/howl/frame_017.webp",
+    "public/assets/fang_v1/frames/howl/frame_018.webp",
+    "public/assets/fang_v1/frames/howl/frame_019.webp",
+    "public/assets/fang_v1/frames/howl/frame_020.webp",
+    "public/assets/fang_v1/frames/howl/frame_021.webp",
+    "public/assets/fang_v1/frames/howl/frame_022.webp",
+    "public/assets/fang_v1/frames/howl/frame_023.webp",
+    "public/assets/fang_v1/frames/howl/frame_024.webp",
+    "public/assets/fang_v1/frames/howl/frame_025.webp",
+    "public/assets/fang_v1/frames/howl/frame_026.webp",
+    "public/assets/fang_v1/frames/howl/frame_027.webp",
+    "public/assets/fang_v1/frames/howl/frame_028.webp",
+    "public/assets/fang_v1/frames/howl/frame_029.webp",
+    "public/assets/fang_v1/frames/howl/frame_030.webp",
+    "public/assets/fang_v1/frames/howl/frame_031.webp",
+    "public/assets/fang_v1/frames/howl/frame_032.webp",
+    "public/assets/fang_v1/frames/howl/frame_033.webp",
+    "public/assets/fang_v1/frames/howl/frame_034.webp",
+    "public/assets/fang_v1/frames/howl/frame_035.webp",
+    "public/assets/fang_v1/frames/howl/frame_036.webp",
+    "public/assets/fang_v1/frames/howl/frame_037.webp",
+    "public/assets/fang_v1/frames/howl/frame_038.webp",
+    "public/assets/fang_v1/frames/howl/frame_039.webp",
+    "public/assets/fang_v1/frames/howl/frame_040.webp",
+    "public/assets/fang_v1/frames/howl/frame_041.webp",
+    "public/assets/fang_v1/frames/howl/frame_042.webp",
+    "public/assets/fang_v1/frames/howl/frame_043.webp",
+    "public/assets/fang_v1/frames/howl/frame_044.webp",
+    "public/assets/fang_v1/frames/howl/frame_045.webp",
+    "public/assets/fang_v1/frames/howl/frame_046.webp",
+    "public/assets/fang_v1/frames/howl/frame_047.webp",
+    "public/assets/fang_v1/frames/howl/frame_048.webp",
+    "public/assets/fang_v1/frames/hunt/frame_001.webp",
+    "public/assets/fang_v1/frames/hunt/frame_002.webp",
+    "public/assets/fang_v1/frames/hunt/frame_003.webp",
+    "public/assets/fang_v1/frames/hunt/frame_004.webp",
+    "public/assets/fang_v1/frames/hunt/frame_005.webp",
+    "public/assets/fang_v1/frames/hunt/frame_006.webp",
+    "public/assets/fang_v1/frames/hunt/frame_007.webp",
+    "public/assets/fang_v1/frames/hunt/frame_008.webp",
+    "public/assets/fang_v1/frames/hunt/frame_009.webp",
+    "public/assets/fang_v1/frames/hunt/frame_010.webp",
+    "public/assets/fang_v1/frames/hunt/frame_011.webp",
+    "public/assets/fang_v1/frames/hunt/frame_012.webp",
+    "public/assets/fang_v1/frames/hunt/frame_013.webp",
+    "public/assets/fang_v1/frames/hunt/frame_014.webp",
+    "public/assets/fang_v1/frames/hunt/frame_015.webp",
+    "public/assets/fang_v1/frames/hunt/frame_016.webp",
+    "public/assets/fang_v1/frames/hunt/frame_017.webp",
+    "public/assets/fang_v1/frames/hunt/frame_018.webp",
+    "public/assets/fang_v1/frames/hunt/frame_019.webp",
+    "public/assets/fang_v1/frames/hunt/frame_020.webp",
+    "public/assets/fang_v1/frames/hunt/frame_021.webp",
+    "public/assets/fang_v1/frames/hunt/frame_022.webp",
+    "public/assets/fang_v1/frames/normal/frame_001.webp",
+    "public/assets/fang_v1/frames/normal/frame_002.webp",
+    "public/assets/fang_v1/frames/normal/frame_003.webp",
+    "public/assets/fang_v1/frames/normal/frame_004.webp",
+    "public/assets/fang_v1/frames/normal/frame_005.webp",
+    "public/assets/fang_v1/frames/normal/frame_006.webp",
+    "public/assets/fang_v1/frames/normal/frame_007.webp",
+    "public/assets/fang_v1/frames/normal/frame_008.webp",
+    "public/assets/fang_v1/frames/normal/frame_009.webp",
+    "public/assets/fang_v1/frames/normal/frame_010.webp",
+    "public/assets/fang_v1/frames/normal/frame_011.webp",
+    "public/assets/fang_v1/frames/normal/frame_012.webp",
+    "public/assets/fang_v1/frames/normal/frame_013.webp",
+    "public/assets/fang_v1/howlRing.webp",
+    "public/assets/fang_v1/huntMistBack.webp",
+    "public/assets/fang_v1/huntMistFront.webp",
+    "public/assets/fang_v1/huntMistMid.webp",
+    "public/assets/fang_v1/manifest.json",
+    "public/assets/fang_v1/moonIcon.webp",
+    "public/assets/fang_v1/selectionButton.webp",
+    "public/assets/fang_v1/selectionVisual.webp",
+    "public/assets/fang_v1/speckMoon.webp",
+    "public/assets/fang_v1/speckSun.webp",
+    "public/assets/fang_v1/sunIcon.webp",
+    "public/assets/fang_v1/trailMist.webp",
+    "public/assets/galaxy_v1/audio/BLUEHOLE.mp3",
+    "public/assets/galaxy_v1/audio/GALAXY_IMPACT.mp3",
+    "public/assets/galaxy_v1/audio/RAGE.mp3",
+    "public/assets/galaxy_v1/audio/Sound_effect_for_galaxy_divine.mp3",
+    "public/assets/galaxy_v1/audio/galaxy_pressure_contact.mp3",
+    "public/assets/galaxy_v1/audio/planet_explosion_sound_effect.mp3",
+    "public/assets/galaxy_v1/audio/planet_throwing_sound_effect.mp3",
+    "public/assets/galaxy_v1/audio/pressure_walking.mp3",
+    "public/assets/galaxy_v1/audio/wall touch of component when hitted by pressure. ALSO for bluehole.mp3",
+    "public/assets/galaxy_v1/images/129f515e-e273-4a57-bc3b-cc20a1232654.webp",
+    "public/assets/galaxy_v1/images/64e9fc08-8e47-4c3d-911e-99c40158a941.webp",
+    "public/assets/galaxy_v1/images/84b87c41-679b-4cfa-90e4-1602709dcc88.webp",
+    "public/assets/galaxy_v1/images/95a3fae5-da8a-4169-b2d0-1432e72dfdef.webp",
+    "public/assets/galaxy_v1/images/GALAXY DIVINE TELEPORT AND BEFORE PUNCH.webp",
+    "public/assets/galaxy_v1/images/GALAXY DIVINE.webp",
+    "public/assets/galaxy_v1/images/GALAXY IMPACT.webp",
+    "public/assets/galaxy_v1/images/PLANET THROW FRAME 2.webp",
+    "public/assets/galaxy_v1/images/TELEPORT LINE.webp",
+    "public/assets/galaxy_v1/images/VISUAL FOR FULL OF BATTLE FIELD WHEN USE GALAXY IMPACT.webp",
+    "public/assets/galaxy_v1/images/VISUAL FOR THE ZONE OF GALAXY DIVINE.webp",
+    "public/assets/galaxy_v1/images/ef504fdf-95a6-49ca-8fe7-ad23c835d0db.webp",
+    "public/assets/galaxy_v1/images/main visual.webp",
+    "public/assets/galaxy_v1/images/planet throw frame 1.webp",
+    "public/assets/galaxy_v1/images/pressure visual before touch component.webp",
+    "public/assets/galaxy_v1/images/pressure visual touch component.webp",
+    "public/assets/galaxy_v1/images/pressureWalkingRing.webp",
+    "public/assets/galaxy_v1/images/pressureWalkingRingKeyed.webp",
+    "public/assets/galaxy_v1/images/teleportLineGalaxy.webp",
+    "public/assets/galaxy_v1/images/teleportLineGalaxyKeyed.webp",
+    "public/assets/gold-ui/heroes/shuri/source/bomb.webp",
+    "public/assets/gold-ui/heroes/shuri/source/collector.webp",
+    "public/assets/gold-ui/heroes/shuri/source/core.webp",
+    "public/assets/gold-ui/heroes/shuri/source/foundation.webp",
+    "public/assets/gold-ui/heroes/shuri/source/grip.webp",
+    "public/assets/gold-ui/heroes/shuri/source/gun1.webp",
+    "public/assets/gold-ui/heroes/shuri/source/gun2.webp",
+    "public/assets/gold-ui/heroes/shuri/source/gun3.webp",
+    "public/assets/gold-ui/heroes/shuri/source/gun4.webp",
+    "public/assets/gold-ui/heroes/shuri/source/gun5.webp",
+    "public/assets/gold-ui/heroes/shuri/source/lidL.webp",
+    "public/assets/gold-ui/heroes/shuri/source/lidR.webp",
+    "public/assets/gold-ui/heroes/shuri/source/medhead.webp",
+    "public/assets/gold-ui/heroes/shuri/source/ponytail.webp",
+    "public/assets/gold-ui/heroes/shuri/source/rackhead.webp",
+    "public/assets/gold-ui/heroes/shuri/source/tool.webp",
+    "public/assets/ice_v1/audio/ambient_freeze_crack.mp3",
+    "public/assets/ice_v1/audio/ambient_ice_crack.mp3",
+    "public/assets/ice_v1/audio/ambient_wind.mp3",
+    "public/assets/ice_v1/audio/cast_freeze_hq.mp3",
+    "public/assets/ice_v1/audio/cast_haki.mp3",
+    "public/assets/ice_v1/audio/freeze_target.mp3",
+    "public/assets/ice_v1/audio/ice_age_call.mp3",
+    "public/assets/ice_v1/audio/ice_dart_fly.mp3",
+    "public/assets/ice_v1/audio/ice_dart_hit.mp3",
+    "public/assets/ice_v1/normalized/frozenText.webp",
+    "public/assets/ice_v1/normalized/fullArenaFrozenOverlay.webp",
+    "public/assets/ice_v1/normalized/iceAgeText.webp",
+    "public/assets/ice_v1/normalized/iceBlockOverlay.webp",
+    "public/assets/ice_v1/normalized/iceFingerGunPose.webp",
+    "public/assets/ice_v1/normalized/iceLaneStartSegment.webp",
+    "public/assets/ice_v1/normalized/iceMainStatic.webp",
+    "public/assets/ice_v1/normalized/iceShardProjectile.webp",
+    "public/assets/ice_v1/normalized/manifest.json",
+    "public/assets/magnet_v1/gold/manifest.json",
+    "public/assets/musician/normalized/battle_idle.webp",
+    "public/assets/musician/normalized/drop_chord_32.webp",
+    "public/assets/musician/normalized/major_chord_16.webp",
+    "public/assets/musician/normalized/minor_chord_16.webp",
+    "public/assets/musician/normalized/move_16.webp",
+    "public/assets/musician/normalized/note_shot_16.webp",
+    "public/assets/musician/normalized/rage_32.webp",
+    "public/assets/musician/normalized/solo_chord_32.webp",
+    "public/assets/musician/normalized/vfx_sheet.webp",
+    "public/assets/musician_v2/normalized/battle_idle_reference.webp",
+    "public/assets/musician_v2/normalized/drop_chord_32.webp",
+    "public/assets/musician_v2/normalized/major_chord_16.webp",
+    "public/assets/musician_v2/normalized/manifest.json",
+    "public/assets/musician_v2/normalized/minor_chord_16.webp",
+    "public/assets/musician_v2/normalized/move_16.webp",
+    "public/assets/musician_v2/normalized/note_shot_16.webp",
+    "public/assets/musician_v2/normalized/rage_32.webp",
+    "public/assets/musician_v2/normalized/solo_chord_32.webp",
+    "public/assets/musician_v2/normalized/vfx_text_sheet.webp",
+    "public/assets/ninja_v1/audio/kunai_catch.mp3",
+    "public/assets/ninja_v1/audio/kunai_throw_skill.mp3",
+    "public/assets/ninja_v1/audio/kunai_wall_bounce.mp3",
+    "public/assets/ninja_v1/audio/rasengan.mp3",
+    "public/assets/ninja_v1/audio/shuriken_hit_body.mp3",
+    "public/assets/ninja_v1/audio/shuriken_hit_wall.mp3",
+    "public/assets/ninja_v1/audio/shuriken_throw.mp3",
+    "public/assets/ninja_v1/audio/teleport.mp3",
+    "public/assets/ninja_v1/normalized/electricBallGrow16.webp",
+    "public/assets/ninja_v1/normalized/kunaiStatic.webp",
+    "public/assets/ninja_v1/normalized/manifest.json",
+    "public/assets/ninja_v1/normalized/ninjaAirPalmStatic.webp",
+    "public/assets/ninja_v1/normalized/ninjaMainStatic.webp",
+    "public/assets/ninja_v1/normalized/ninjaThrowReleasedStatic.webp",
+    "public/assets/ninja_v1/normalized/shurikenStatic.webp",
+    "public/assets/online_room/button-fill.png",
+    "public/assets/online_room/button-frame.png",
+    "public/assets/pick_ui_final/assets/02-side-frame-base.webp",
+    "public/assets/pick_ui_final/assets/03-side-frame-color-mask.webp",
+    "public/assets/pick_ui_final/assets/04-side-frame-highlight.webp",
+    "public/assets/pick_ui_final/assets/05-portrait-inner-backdrop.webp",
+    "public/assets/pick_ui_final/assets/06-stats-panel-base.webp",
+    "public/assets/pick_ui_final/assets/07-card-frame-normal.webp",
+    "public/assets/pick_ui_final/assets/08-card-frame-selected.webp",
+    "public/assets/pick_ui_final/assets/09-card-selected-color-mask.webp",
+    "public/assets/pick_ui_final/assets/10-card-back.webp",
+    "public/assets/pick_ui_final/assets/17-arrow-left-normal.webp",
+    "public/assets/pick_ui_final/assets/18-arrow-left-hover.webp",
+    "public/assets/pick_ui_final/assets/19-arrow-right-normal.webp",
+    "public/assets/pick_ui_final/assets/20-arrow-right-hover.webp",
+    "public/assets/pick_ui_final/assets/card-frame-4x3/21-card-frame-4x3-normal.webp",
+    "public/assets/pick_ui_final/assets/card-frame-4x3/22-card-frame-4x3-selected.webp",
+    "public/assets/pick_ui_final/assets/card-frame-4x3/23-card-frame-4x3-selected-color-mask.webp",
+    "public/assets/pick_ui_final/assets/card-frame-4x3/24-card-back-4x3.webp",
+    "public/assets/pick_ui_final/assets/card-frame-4x3/25-card-4x3-inner-backdrop.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/41-card-frame-imagen-portrait-3x4-base.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/42-card-frame-imagen-portrait-3x4-color-mask.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/44-card-frame-imagen-portrait-3x4-inner-backdrop.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/48-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/49-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/50-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/51-card-frame-imagen-portrait-3x4-highlight-combined-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/52-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/53-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/card-frame-imagen-portrait-3x4-exact-layers-manifest.json",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/61-card-frame-imagen-portrait-3x4-solid-base-no-holes.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/62-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/63-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/64-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/65-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/66-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/card-frame-imagen-portrait-3x4-no-hole-layers-manifest.json",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/71-card-frame-imagen-portrait-3x4-base-open-center-no-hex-hole.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/72-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/73-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/74-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/75-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/76-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/card-frame-imagen-portrait-3x4-open-center-no-hex-layers-manifest.json",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/42-card-frame-imagen-portrait-3x4-color-mask.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/43-card-frame-imagen-portrait-3x4-highlight.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/44-card-frame-imagen-portrait-3x4-inner-backdrop.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/46-card-frame-imagen-portrait-3x4-gloss-highlight.webp",
+    "public/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/47-card-frame-imagen-portrait-3x4-neutral-tint-mask.webp",
+    "public/assets/pick_ui_final/assets/card-frame-portrait-3x4/31-card-frame-portrait-3x4-base.webp",
+    "public/assets/pick_ui_final/assets/card-frame-portrait-3x4/32-card-frame-portrait-3x4-color-mask.webp",
+    "public/assets/pick_ui_final/assets/card-frame-portrait-3x4/33-card-frame-portrait-3x4-highlight.webp",
+    "public/assets/pick_ui_final/assets/card-frame-portrait-3x4/34-card-frame-portrait-3x4-inner-backdrop.webp",
+    "public/assets/pick_ui_final/assets/champions.json",
+    "public/assets/pick_ui_final/assets/generated-cards/engineer-card-normal.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/engineer-card-selected.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/galaxy-card-normal.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/galaxy-card-selected.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/ice-card-normal.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/ice-card-selected.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/katana-card-normal.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/katana-card-selected.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/ninja-card-normal.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/ninja-card-selected.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/shotgun-card-normal.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/shotgun-card-selected.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/string-card-normal.webp",
+    "public/assets/pick_ui_final/assets/generated-cards/string-card-selected.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/engineer-card.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/fang-card.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/galaxy-card.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/ice-card.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/katana-card.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/ninja-card.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/shotgun-card.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/soccer-card.webp",
+    "public/assets/pick_ui_final/assets/hero-cards/string-card.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/engineer-icon.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/fang-icon.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/galaxy-icon.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/ice-icon.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/katana-icon.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/ninja-icon.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/shotgun-icon.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/soccer-icon.webp",
+    "public/assets/pick_ui_final/assets/hero-icons/string-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/beast-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/engineer-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/galaxy-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/ice-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/katana-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/ninja-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/shotgun-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/soccer-icon.webp",
+    "public/assets/pick_ui_final/assets/icons/string-icon.webp",
+    "public/assets/pick_ui_final/assets/standing/engineer-standing.webp",
+    "public/assets/pick_ui_final/assets/standing/fang-standing.webp",
+    "public/assets/pick_ui_final/assets/standing/galaxy-standing.webp",
+    "public/assets/pick_ui_final/assets/standing/ice-standing.webp",
+    "public/assets/pick_ui_final/assets/standing/katana-standing.webp",
+    "public/assets/pick_ui_final/assets/standing/ninja-standing.webp",
+    "public/assets/pick_ui_final/assets/standing/shotgun-standing.webp",
+    "public/assets/pick_ui_final/assets/standing/soccer-standing.webp",
+    "public/assets/pick_ui_final/assets/standing/string-standing.webp",
+    "public/assets/pick_ui_final/pick-layout-card-system-v1.json",
+    "public/assets/pick_ui_final/pick-layout-final-v1.json",
+    "public/assets/puppet_v1/normalized/effigy_wall_4.webp",
+    "public/assets/puppet_v1/normalized/manifest.json",
+    "public/assets/puppet_v1/normalized/puppet_dissolve_16.webp",
+    "public/assets/puppet_v1/normalized/puppet_main_static.webp",
+    "public/assets/puppet_v1/normalized/puppet_rage_static.webp",
+    "public/assets/puppet_v1/normalized/straw_monster_attack_16.webp",
+    "public/assets/puppet_v1/normalized/straw_monster_static.webp",
+    "public/assets/puppet_v1/normalized/transfer_link_16.webp",
+    "public/assets/saitama/saitama-boss.webp",
+    "public/assets/shotgun_v1/audio/7_pellet_hit_in_one_sfx.mp3",
+    "public/assets/shotgun_v1/audio/butt-stroken.mp3",
+    "public/assets/shotgun_v1/audio/failed_fire.mp3",
+    "public/assets/shotgun_v1/audio/fire_sfx.mp3",
+    "public/assets/shotgun_v1/audio/pellet_hit_the_building_of_engineer.mp3",
+    "public/assets/shotgun_v1/audio/reloading_batch_7s.mp3",
+    "public/assets/shotgun_v1/audio/shoot_the_hook_the_pull.mp3",
+    "public/assets/shotgun_v1/audio/special_reloading_after_use_the_dash_skill.mp3",
+    "public/assets/shotgun_v1/body.webp",
+    "public/assets/shotgun_v1/gun_after.webp",
+    "public/assets/shotgun_v1/gun_pump.webp",
+    "public/assets/shotgun_v1/gun_ready.webp",
+    "public/assets/shotgun_v1/hook_head.webp",
+    "public/assets/shotgun_v1/hook_rope.webp",
+    "public/assets/shotgun_v1/manifest.json",
+    "public/assets/shotgun_v1/muzzle.webp",
+    "public/assets/shotgun_v1/pellet.webp",
+    "public/assets/shotgun_v1/pick_button.webp",
+    "public/assets/shotgun_v1/picked.webp",
+    "public/assets/shotgun_v1/ring_0.webp",
+    "public/assets/shotgun_v1/ring_1.webp",
+    "public/assets/shotgun_v1/ring_2.webp",
+    "public/assets/shotgun_v1/ring_3.webp",
+    "public/assets/shotgun_v1/ring_4.webp",
+    "public/assets/shotgun_v1/ring_5.webp",
+    "public/assets/shotgun_v1/ring_6.webp",
+    "public/assets/shotgun_v1/shell.webp",
+    "public/assets/soccer_v1/audio/ball-bounce-hit.mp3",
+    "public/assets/soccer_v1/audio/ball-catch.mp3",
+    "public/assets/soccer_v1/audio/chase-down.mp3",
+    "public/assets/soccer_v1/audio/goal-impact.mp3",
+    "public/assets/soccer_v1/audio/penalty-activation.mp3",
+    "public/assets/soccer_v1/audio/penalty-whistle.mp3",
+    "public/assets/soccer_v1/audio/possession-ambience.mp3",
+    "public/assets/soccer_v1/audio/power-kick.mp3",
+    "public/assets/soccer_v1/audio/skill-impact.mp3",
+    "public/assets/soccer_v1/images/ball.webp",
+    "public/assets/soccer_v1/images/field-overlay.webp",
+    "public/assets/soccer_v1/images/penalty-reticle.webp",
+    "public/assets/soccer_v1/kick/frame_001.webp",
+    "public/assets/soccer_v1/kick/frame_002.webp",
+    "public/assets/soccer_v1/kick/frame_003.webp",
+    "public/assets/soccer_v1/kick/frame_004.webp",
+    "public/assets/soccer_v1/kick/frame_005.webp",
+    "public/assets/soccer_v1/kick/frame_006.webp",
+    "public/assets/soccer_v1/kick/frame_007.webp",
+    "public/assets/soccer_v1/kick/frame_008.webp",
+    "public/assets/soccer_v1/kick/frame_009.webp",
+    "public/assets/soccer_v1/manifest.json",
+    "public/assets/soccer_v1/move/frame_001.webp",
+    "public/assets/soccer_v1/move/frame_002.webp",
+    "public/assets/soccer_v1/move/frame_003.webp",
+    "public/assets/soccer_v1/move/frame_004.webp",
+    "public/assets/soccer_v1/move/frame_065.webp",
+    "public/assets/soccer_v1/move/frame_066.webp",
+    "public/assets/string_v1/audio/birdcage_sound.mp3",
+    "public/assets/string_v1/audio/birdcage_voice.mp3",
+    "public/assets/string_v1/audio/claws.mp3",
+    "public/assets/string_v1/audio/fivecolor_strings_voice.mp3",
+    "public/assets/string_v1/audio/overheat.mp3",
+    "public/assets/string_v1/audio/overheat_voice.mp3",
+    "public/assets/string_v1/audio/stringshot.mp3",
+    "public/assets/string_v1/audio/stringshot_voice.mp3",
+    "public/assets/string_v1/audio/thread_break.mp3",
+    "public/assets/string_v1/audio/thread_tension.mp3",
+    "public/assets/string_v1/audio/web_lock.mp3",
+    "public/assets/string_v1/normalized/birdCage.webp",
+    "public/assets/string_v1/normalized/bodyThreadWeb.webp",
+    "public/assets/string_v1/normalized/fiveColorClawFrames.webp",
+    "public/assets/string_v1/normalized/fiveColorParasiteText.webp",
+    "public/assets/string_v1/normalized/fiveColorSlash.webp",
+    "public/assets/string_v1/normalized/fiveColorStringText.webp",
+    "public/assets/string_v1/normalized/godThreadLance.webp",
+    "public/assets/string_v1/normalized/godThreadsCircle.webp",
+    "public/assets/string_v1/normalized/godThreadsPose.webp",
+    "public/assets/string_v1/normalized/godThreadsText.webp",
+    "public/assets/string_v1/normalized/overheatPrepPose.webp",
+    "public/assets/string_v1/normalized/overheatThread.webp",
+    "public/assets/string_v1/normalized/overheatWhipPose.webp",
+    "public/assets/string_v1/normalized/parasiteStringText.webp",
+    "public/assets/string_v1/normalized/pinkThreadWeb.webp",
+    "public/assets/string_v1/normalized/silverThread.webp",
+    "public/assets/string_v1/normalized/stringIdleAltPose.webp",
+    "public/assets/string_v1/normalized/stringMainStatic.webp",
+    "public/assets/string_v1/normalized/stringShotPose.webp",
+    "public/assets/string_v1/normalized/stringShotThread.webp",
+    "public/assets/string_v1/normalized/stringshotOverheatText.webp",
+    "public/assets/ui_2026/exit-button.webp",
+    "public/assets/ui_2026/fight-button.webp",
+    "public/assets/ui_2026/fighter-engineer.webp",
+    "public/assets/ui_2026/fighter-galaxy.webp",
+    "public/assets/ui_2026/fighter-ice.webp",
+    "public/assets/ui_2026/fighter-ninja.webp",
+    "public/assets/ui_2026/fighter-pick-button.webp",
+    "public/assets/ui_2026/fighter-soccer.webp",
+    "public/assets/ui_2026/fighter-string.webp",
+    "public/assets/ui_2026/game-name-icon.webp",
+    "public/assets/ui_2026/loading-bg-landscape.webp",
+    "public/assets/ui_2026/loading-bg-portrait.webp",
+    "public/assets/ui_2026/menu-3phase.webp",
+    "public/assets/ui_2026/menu-play.webp",
+    "public/assets/ui_2026/menu-saitama-test.webp",
+    "public/assets/ui_2026/menu-solo.webp",
+    "public/assets/ui_2026/menu-tournament.webp",
+    "public/assets/ui_2026/p1-setup-vfx.webp",
+    "public/assets/ui_2026/p2-setup-vfx.webp",
+    "public/assets/ui_2026/picked-engineer.webp",
+    "public/assets/ui_2026/picked-galaxy.webp",
+    "public/assets/ui_2026/picked-ice.webp",
+    "public/assets/ui_2026/picked-ninja.webp",
+    "public/assets/ui_2026/picked-soccer.webp",
+    "public/assets/ui_2026/picked-string.webp",
+    "public/assets/ui_2026/tab-apex-update.webp",
+    "public/assets/ui_2026/tab-full-roster.webp",
+    "public/sniper_cloak_move_sprite.webp",
+    "public/sniper_cloak_sprite.webp"
+  ],
+  "nonShippingGroups": [
+    {
+      "name": "public/assets/fang_v1/frames",
+      "count": 83,
+      "bytes": 43596146,
+      "MiB": 41.58
+    },
+    {
+      "name": "public/assets/control_map/full_base.png",
+      "count": 1,
+      "bytes": 25209141,
+      "MiB": 24.04
+    },
+    {
+      "name": "public/assets/pick_ui_final/assets",
+      "count": 102,
+      "bytes": 21060362,
+      "MiB": 20.08
+    },
+    {
+      "name": "public/assets/arsenal/feel",
+      "count": 5,
+      "bytes": 8693634,
+      "MiB": 8.29
+    },
+    {
+      "name": "public/assets/control_map/neutral_zone.png",
+      "count": 1,
+      "bytes": 6559603,
+      "MiB": 6.26
+    },
+    {
+      "name": "public/assets/string_v1/normalized",
+      "count": 21,
+      "bytes": 4607866,
+      "MiB": 4.39
+    },
+    {
+      "name": "public/assets/galaxy_v1/images",
+      "count": 20,
+      "bytes": 3850892,
+      "MiB": 3.67
+    },
+    {
+      "name": "public/assets/puppet_v1/normalized",
+      "count": 8,
+      "bytes": 2763658,
+      "MiB": 2.64
+    },
+    {
+      "name": "public/assets/blade_v1/normalized",
+      "count": 9,
+      "bytes": 2408401,
+      "MiB": 2.3
+    },
+    {
+      "name": "public/assets/arcade_v1/normalized",
+      "count": 8,
+      "bytes": 2315346,
+      "MiB": 2.21
+    },
+    {
+      "name": "public/assets/control_map/overlay_purple_alpha.png",
+      "count": 1,
+      "bytes": 2001258,
+      "MiB": 1.91
+    },
+    {
+      "name": "public/assets/ice_v1/normalized",
+      "count": 9,
+      "bytes": 1999762,
+      "MiB": 1.91
+    },
+    {
+      "name": "public/assets/musician_v2/normalized",
+      "count": 10,
+      "bytes": 1956180,
+      "MiB": 1.87
+    },
+    {
+      "name": "public/assets/musician/normalized",
+      "count": 9,
+      "bytes": 1955472,
+      "MiB": 1.86
+    },
+    {
+      "name": "public/assets/online_room/button-fill.png",
+      "count": 1,
+      "bytes": 1521833,
+      "MiB": 1.45
+    },
+    {
+      "name": "public/assets/shotgun_v1/pick_button.webp",
+      "count": 1,
+      "bytes": 1440434,
+      "MiB": 1.37
+    },
+    {
+      "name": "public/assets/control_map/overlay_green_alpha.png",
+      "count": 1,
+      "bytes": 1381841,
+      "MiB": 1.32
+    },
+    {
+      "name": "public/assets/control_map/overlay_red_alpha.png",
+      "count": 1,
+      "bytes": 1336397,
+      "MiB": 1.27
+    },
+    {
+      "name": "public/assets/galaxy_v1/audio",
+      "count": 9,
+      "bytes": 1329759,
+      "MiB": 1.27
+    },
+    {
+      "name": "public/assets/fang_v1/sunIcon.webp",
+      "count": 1,
+      "bytes": 1232672,
+      "MiB": 1.18
+    },
+    {
+      "name": "public/assets/shotgun_v1/picked.webp",
+      "count": 1,
+      "bytes": 1228358,
+      "MiB": 1.17
+    },
+    {
+      "name": "public/assets/engineer_v1/main visual.webp",
+      "count": 1,
+      "bytes": 1226512,
+      "MiB": 1.17
+    },
+    {
+      "name": "public/assets/engineer_v1/audio",
+      "count": 11,
+      "bytes": 1184197,
+      "MiB": 1.13
+    },
+    {
+      "name": "public/assets/fang_v1/selectionButton.webp",
+      "count": 1,
+      "bytes": 1172842,
+      "MiB": 1.12
+    },
+    {
+      "name": "public/assets/engineer_v1/war machine fushion with ENGINEER.webp",
+      "count": 1,
+      "bytes": 1142104,
+      "MiB": 1.09
+    },
+    {
+      "name": "public/assets/soccer_v1/audio",
+      "count": 9,
+      "bytes": 1131460,
+      "MiB": 1.08
+    },
+    {
+      "name": "public/assets/fang_v1/moonIcon.webp",
+      "count": 1,
+      "bytes": 1112948,
+      "MiB": 1.06
+    },
+    {
+      "name": "public/assets/fang_v1/selectionVisual.webp",
+      "count": 1,
+      "bytes": 1030454,
+      "MiB": 0.98
+    },
+    {
+      "name": "public/assets/online_room/button-frame.png",
+      "count": 1,
+      "bytes": 1009740,
+      "MiB": 0.96
+    },
+    {
+      "name": "public/assets/engineer_v1/thân súng trên trục xoay rocket nhưng đang reload.webp",
+      "count": 1,
+      "bytes": 1007384,
+      "MiB": 0.96
+    },
+    {
+      "name": "public/assets/engineer_v1/thân trên trục xoay rocket.webp",
+      "count": 1,
+      "bytes": 1005544,
+      "MiB": 0.96
+    },
+    {
+      "name": "public/assets/control_map/overlay_cyan_alpha.png",
+      "count": 1,
+      "bytes": 988701,
+      "MiB": 0.94
+    },
+    {
+      "name": "public/assets/engineer_v1/thân súng war machine.webp",
+      "count": 1,
+      "bytes": 984954,
+      "MiB": 0.94
+    },
+    {
+      "name": "public/assets/ninja_v1/normalized",
+      "count": 7,
+      "bytes": 914452,
+      "MiB": 0.87
+    },
+    {
+      "name": "public/assets/arsenal/av",
+      "count": 85,
+      "bytes": 896645,
+      "MiB": 0.86
+    },
+    {
+      "name": "public/assets/soccer_v1/kick",
+      "count": 9,
+      "bytes": 818028,
+      "MiB": 0.78
+    },
+    {
+      "name": "public/assets/control_map/charge_purple_alpha.png",
+      "count": 1,
+      "bytes": 779155,
+      "MiB": 0.74
+    },
+    {
+      "name": "public/assets/control_map/charge_cyan_alpha.png",
+      "count": 1,
+      "bytes": 711536,
+      "MiB": 0.68
+    },
+    {
+      "name": "public/assets/shotgun_v1/ring_5.webp",
+      "count": 1,
+      "bytes": 675690,
+      "MiB": 0.64
+    },
+    {
+      "name": "public/assets/shotgun_v1/ring_6.webp",
+      "count": 1,
+      "bytes": 669270,
+      "MiB": 0.64
+    },
+    {
+      "name": "public/assets/shotgun_v1/ring_4.webp",
+      "count": 1,
+      "bytes": 662030,
+      "MiB": 0.63
+    },
+    {
+      "name": "public/assets/engineer_v1/laser of war machine.webp",
+      "count": 1,
+      "bytes": 658046,
+      "MiB": 0.63
+    },
+    {
+      "name": "public/assets/shotgun_v1/ring_3.webp",
+      "count": 1,
+      "bytes": 657780,
+      "MiB": 0.63
+    },
+    {
+      "name": "public/assets/ice_v1/audio",
+      "count": 9,
+      "bytes": 650769,
+      "MiB": 0.62
+    },
+    {
+      "name": "public/assets/shotgun_v1/ring_2.webp",
+      "count": 1,
+      "bytes": 650578,
+      "MiB": 0.62
+    },
+    {
+      "name": "public/assets/shotgun_v1/ring_1.webp",
+      "count": 1,
+      "bytes": 646026,
+      "MiB": 0.62
+    },
+    {
+      "name": "public/assets/string_v1/audio",
+      "count": 11,
+      "bytes": 629826,
+      "MiB": 0.6
+    },
+    {
+      "name": "public/assets/shotgun_v1/ring_0.webp",
+      "count": 1,
+      "bytes": 626022,
+      "MiB": 0.6
+    },
+    {
+      "name": "public/assets/shotgun_v1/muzzle.webp",
+      "count": 1,
+      "bytes": 623340,
+      "MiB": 0.59
+    },
+    {
+      "name": "public/assets/control_map/charge_red_alpha.png",
+      "count": 1,
+      "bytes": 611512,
+      "MiB": 0.58
+    },
+    {
+      "name": "public/assets/control_map/charge_green_alpha.png",
+      "count": 1,
+      "bytes": 603286,
+      "MiB": 0.58
+    },
+    {
+      "name": "public/assets/shotgun_v1/body.webp",
+      "count": 1,
+      "bytes": 585554,
+      "MiB": 0.56
+    },
+    {
+      "name": "public/assets/gold-ui/heroes",
+      "count": 16,
+      "bytes": 502556,
+      "MiB": 0.48
+    },
+    {
+      "name": "public/assets/fang_v1/biteMark.webp",
+      "count": 1,
+      "bytes": 492292,
+      "MiB": 0.47
+    },
+    {
+      "name": "public/assets/ui_2026/loading-bg-portrait.webp",
+      "count": 1,
+      "bytes": 475430,
+      "MiB": 0.45
+    },
+    {
+      "name": "public/assets/ui_2026/loading-bg-landscape.webp",
+      "count": 1,
+      "bytes": 401408,
+      "MiB": 0.38
+    },
+    {
+      "name": "public/assets/soccer_v1/move",
+      "count": 6,
+      "bytes": 394912,
+      "MiB": 0.38
+    },
+    {
+      "name": "public/assets/shotgun_v1/pellet.webp",
+      "count": 1,
+      "bytes": 372358,
+      "MiB": 0.36
+    },
+    {
+      "name": "public/assets/fang_v1/speckSun.webp",
+      "count": 1,
+      "bytes": 334272,
+      "MiB": 0.32
+    },
+    {
+      "name": "public/assets/engineer_v1/war machine.webp",
+      "count": 1,
+      "bytes": 322654,
+      "MiB": 0.31
+    },
+    {
+      "name": "public/assets/fang_v1/audio",
+      "count": 9,
+      "bytes": 313940,
+      "MiB": 0.3
+    },
+    {
+      "name": "public/assets/shotgun_v1/gun_ready.webp",
+      "count": 1,
+      "bytes": 312018,
+      "MiB": 0.3
+    },
+    {
+      "name": "public/assets/ninja_v1/audio",
+      "count": 8,
+      "bytes": 311427,
+      "MiB": 0.3
+    },
+    {
+      "name": "public/assets/engineer_v1/đế war machine.webp",
+      "count": 1,
+      "bytes": 310422,
+      "MiB": 0.3
+    },
+    {
+      "name": "public/assets/fang_v1/howlRing.webp",
+      "count": 1,
+      "bytes": 305006,
+      "MiB": 0.29
+    },
+    {
+      "name": "public/assets/fang_v1/speckMoon.webp",
+      "count": 1,
+      "bytes": 301524,
+      "MiB": 0.29
+    },
+    {
+      "name": "public/assets/shotgun_v1/gun_pump.webp",
+      "count": 1,
+      "bytes": 297872,
+      "MiB": 0.28
+    },
+    {
+      "name": "public/assets/shotgun_v1/gun_after.webp",
+      "count": 1,
+      "bytes": 292510,
+      "MiB": 0.28
+    },
+    {
+      "name": "public/assets/shotgun_v1/audio",
+      "count": 8,
+      "bytes": 290857,
+      "MiB": 0.28
+    },
+    {
+      "name": "public/assets/engineer_v1/vòng tròn loading xây dựng 0%.webp",
+      "count": 1,
+      "bytes": 269448,
+      "MiB": 0.26
+    },
+    {
+      "name": "public/assets/soccer_v1/images",
+      "count": 3,
+      "bytes": 264366,
+      "MiB": 0.25
+    },
+    {
+      "name": "public/assets/ui_2026/fighter-ice.webp",
+      "count": 1,
+      "bytes": 255010,
+      "MiB": 0.24
+    },
+    {
+      "name": "public/assets/ui_2026/fighter-engineer.webp",
+      "count": 1,
+      "bytes": 251986,
+      "MiB": 0.24
+    },
+    {
+      "name": "public/assets/engineer_v1/vòng tròn loading xây dựng 100%.webp",
+      "count": 1,
+      "bytes": 248962,
+      "MiB": 0.24
+    },
+    {
+      "name": "public/assets/ui_2026/fighter-galaxy.webp",
+      "count": 1,
+      "bytes": 243172,
+      "MiB": 0.23
+    },
+    {
+      "name": "public/assets/engineer_v1/repair station lv2.webp",
+      "count": 1,
+      "bytes": 237952,
+      "MiB": 0.23
+    },
+    {
+      "name": "public/assets/ui_2026/game-name-icon.webp",
+      "count": 1,
+      "bytes": 237708,
+      "MiB": 0.23
+    },
+    {
+      "name": "public/assets/engineer_v1/repair station.webp",
+      "count": 1,
+      "bytes": 234384,
+      "MiB": 0.22
+    },
+    {
+      "name": "public/assets/engineer_v1/mega factory.webp",
+      "count": 1,
+      "bytes": 231242,
+      "MiB": 0.22
+    },
+    {
+      "name": "public/assets/shotgun_v1/shell.webp",
+      "count": 1,
+      "bytes": 221444,
+      "MiB": 0.21
+    },
+    {
+      "name": "public/assets/engineer_v1/đế chung cho cả turret và rocket.webp",
+      "count": 1,
+      "bytes": 212190,
+      "MiB": 0.2
+    },
+    {
+      "name": "public/assets/engineer_v1/upgrade circle in 0%.webp",
+      "count": 1,
+      "bytes": 210480,
+      "MiB": 0.2
+    },
+    {
+      "name": "public/assets/ui_2026/fighter-string.webp",
+      "count": 1,
+      "bytes": 209584,
+      "MiB": 0.2
+    },
+    {
+      "name": "public/assets/ui_2026/fighter-ninja.webp",
+      "count": 1,
+      "bytes": 208130,
+      "MiB": 0.2
+    },
+    {
+      "name": "public/assets/engineer_v1/upgrade circle in 100%.webp",
+      "count": 1,
+      "bytes": 205656,
+      "MiB": 0.2
+    },
+    {
+      "name": "public/assets/ui_2026/picked-engineer.webp",
+      "count": 1,
+      "bytes": 200368,
+      "MiB": 0.19
+    },
+    {
+      "name": "public/assets/engineer_v1/thu linh kiện về.webp",
+      "count": 1,
+      "bytes": 199500,
+      "MiB": 0.19
+    },
+    {
+      "name": "public/assets/ui_2026/fighter-soccer.webp",
+      "count": 1,
+      "bytes": 192962,
+      "MiB": 0.18
+    },
+    {
+      "name": "public/assets/engineer_v1/mine.webp",
+      "count": 1,
+      "bytes": 184412,
+      "MiB": 0.18
+    },
+    {
+      "name": "public/assets/ui_2026/picked-string.webp",
+      "count": 1,
+      "bytes": 182354,
+      "MiB": 0.17
+    },
+    {
+      "name": "public/assets/engineer_v1/Turret 1.webp",
+      "count": 1,
+      "bytes": 181442,
+      "MiB": 0.17
+    },
+    {
+      "name": "public/assets/engineer_v1/mine lv2.webp",
+      "count": 1,
+      "bytes": 175584,
+      "MiB": 0.17
+    },
+    {
+      "name": "public/assets/engineer_v1/healing nexus.webp",
+      "count": 1,
+      "bytes": 173560,
+      "MiB": 0.17
+    },
+    {
+      "name": "public/assets/engineer_v1/rocket tower already to fire.webp",
+      "count": 1,
+      "bytes": 167730,
+      "MiB": 0.16
+    },
+    {
+      "name": "public/assets/arsenal/weapons",
+      "count": 3,
+      "bytes": 165862,
+      "MiB": 0.16
+    },
+    {
+      "name": "public/assets/engineer_v1/factory lv1.webp",
+      "count": 1,
+      "bytes": 158364,
+      "MiB": 0.15
+    },
+    {
+      "name": "public/assets/engineer_v1/factory.webp",
+      "count": 1,
+      "bytes": 158188,
+      "MiB": 0.15
+    },
+    {
+      "name": "public/assets/engineer_v1/magnetic.webp",
+      "count": 1,
+      "bytes": 155198,
+      "MiB": 0.15
+    },
+    {
+      "name": "public/assets/engineer_v1/the bottom of rocket tower.webp",
+      "count": 1,
+      "bytes": 150750,
+      "MiB": 0.14
+    },
+    {
+      "name": "public/assets/engineer_v1/linh kiện.webp",
+      "count": 1,
+      "bytes": 148154,
+      "MiB": 0.14
+    },
+    {
+      "name": "public/assets/engineer_v1/ada66438-125e-46d9-b5d0-33c9ff21226c.webp",
+      "count": 1,
+      "bytes": 145834,
+      "MiB": 0.14
+    },
+    {
+      "name": "public/assets/engineer_v1/explosion.webp",
+      "count": 1,
+      "bytes": 140838,
+      "MiB": 0.13
+    },
+    {
+      "name": "public/assets/ui_2026/menu-tournament.webp",
+      "count": 1,
+      "bytes": 140358,
+      "MiB": 0.13
+    },
+    {
+      "name": "public/assets/engineer_v1/rocket tower reloading.webp",
+      "count": 1,
+      "bytes": 138024,
+      "MiB": 0.13
+    },
+    {
+      "name": "public/assets/ui_2026/picked-galaxy.webp",
+      "count": 1,
+      "bytes": 133696,
+      "MiB": 0.13
+    },
+    {
+      "name": "public/assets/engineer_v1/SHIELD of RAGE.webp",
+      "count": 1,
+      "bytes": 125166,
+      "MiB": 0.12
+    },
+    {
+      "name": "public/assets/engineer_v1/war machine bullet.webp",
+      "count": 1,
+      "bytes": 117012,
+      "MiB": 0.11
+    },
+    {
+      "name": "public/assets/ui_2026/picked-ice.webp",
+      "count": 1,
+      "bytes": 113048,
+      "MiB": 0.11
+    },
+    {
+      "name": "public/assets/ui_2026/picked-ninja.webp",
+      "count": 1,
+      "bytes": 110450,
+      "MiB": 0.11
+    },
+    {
+      "name": "public/assets/ui_2026/picked-soccer.webp",
+      "count": 1,
+      "bytes": 110038,
+      "MiB": 0.1
+    },
+    {
+      "name": "public/assets/engineer_v1/SHIELD of nexus healing.webp",
+      "count": 1,
+      "bytes": 103068,
+      "MiB": 0.1
+    },
+    {
+      "name": "public/assets/engineer_v1/Turret 2.webp",
+      "count": 1,
+      "bytes": 102056,
+      "MiB": 0.1
+    },
+    {
+      "name": "public/assets/ui_2026/fight-button.webp",
+      "count": 1,
+      "bytes": 99338,
+      "MiB": 0.09
+    },
+    {
+      "name": "public/assets/saitama/saitama-boss.webp",
+      "count": 1,
+      "bytes": 95980,
+      "MiB": 0.09
+    },
+    {
+      "name": "public/assets/ui_2026/menu-saitama-test.webp",
+      "count": 1,
+      "bytes": 93730,
+      "MiB": 0.09
+    },
+    {
+      "name": "public/assets/ui_2026/menu-play.webp",
+      "count": 1,
+      "bytes": 93418,
+      "MiB": 0.09
+    },
+    {
+      "name": "public/assets/pick_ui_final/pick-layout-final-v1.json",
+      "count": 1,
+      "bytes": 86522,
+      "MiB": 0.08
+    },
+    {
+      "name": "public/assets/engineer_v1/Component 1.webp",
+      "count": 1,
+      "bytes": 84666,
+      "MiB": 0.08
+    },
+    {
+      "name": "public/assets/ui_2026/menu-3phase.webp",
+      "count": 1,
+      "bytes": 84380,
+      "MiB": 0.08
+    },
+    {
+      "name": "public/assets/shotgun_v1/hook_head.webp",
+      "count": 1,
+      "bytes": 77952,
+      "MiB": 0.07
+    },
+    {
+      "name": "public/assets/engineer_v1/Component 4.webp",
+      "count": 1,
+      "bytes": 77410,
+      "MiB": 0.07
+    },
+    {
+      "name": "public/assets/ui_2026/menu-solo.webp",
+      "count": 1,
+      "bytes": 76240,
+      "MiB": 0.07
+    },
+    {
+      "name": "public/assets/engineer_v1/Component 2.webp",
+      "count": 1,
+      "bytes": 65542,
+      "MiB": 0.06
+    },
+    {
+      "name": "public/assets/engineer_v1/rocket bullet.webp",
+      "count": 1,
+      "bytes": 60216,
+      "MiB": 0.06
+    },
+    {
+      "name": "public/assets/ui_2026/exit-button.webp",
+      "count": 1,
+      "bytes": 57490,
+      "MiB": 0.05
+    },
+    {
+      "name": "public/assets/engineer_v1/Component 3.webp",
+      "count": 1,
+      "bytes": 56908,
+      "MiB": 0.05
+    },
+    {
+      "name": "public/assets/ui_2026/fighter-pick-button.webp",
+      "count": 1,
+      "bytes": 54196,
+      "MiB": 0.05
+    },
+    {
+      "name": "public/assets/pick_ui_final/pick-layout-card-system-v1.json",
+      "count": 1,
+      "bytes": 51697,
+      "MiB": 0.05
+    },
+    {
+      "name": "public/assets/fang_v1/huntMistMid.webp",
+      "count": 1,
+      "bytes": 51424,
+      "MiB": 0.05
+    },
+    {
+      "name": "public/assets/ui_2026/p2-setup-vfx.webp",
+      "count": 1,
+      "bytes": 51008,
+      "MiB": 0.05
+    },
+    {
+      "name": "public/assets/engineer_v1/Component 5.webp",
+      "count": 1,
+      "bytes": 47902,
+      "MiB": 0.05
+    },
+    {
+      "name": "public/assets/ui_2026/p1-setup-vfx.webp",
+      "count": 1,
+      "bytes": 45932,
+      "MiB": 0.04
+    },
+    {
+      "name": "public/assets/fang_v1/huntMistFront.webp",
+      "count": 1,
+      "bytes": 44700,
+      "MiB": 0.04
+    },
+    {
+      "name": "public/assets/shotgun_v1/hook_rope.webp",
+      "count": 1,
+      "bytes": 44390,
+      "MiB": 0.04
+    },
+    {
+      "name": "public/assets/fang_v1/manifest.json",
+      "count": 1,
+      "bytes": 44361,
+      "MiB": 0.04
+    },
+    {
+      "name": "public/assets/engineer_v1/war machine laser strip.webp",
+      "count": 1,
+      "bytes": 44218,
+      "MiB": 0.04
+    },
+    {
+      "name": "public/assets/fang_v1/huntMistBack.webp",
+      "count": 1,
+      "bytes": 42120,
+      "MiB": 0.04
+    },
+    {
+      "name": "public/assets/control_map/apex_control_runtime_map.json",
+      "count": 1,
+      "bytes": 37517,
+      "MiB": 0.04
+    },
+    {
+      "name": "public/assets/ui_2026/tab-apex-update.webp",
+      "count": 1,
+      "bytes": 36000,
+      "MiB": 0.03
+    },
+    {
+      "name": "public/assets/engineer_v1/tia từ hút linh kiện và các vật thể hợp nhất.webp",
+      "count": 1,
+      "bytes": 32886,
+      "MiB": 0.03
+    },
+    {
+      "name": "public/assets/engineer_v1/04ed9a99-f6e8-48d6-84d1-9bb40950ed81.webp",
+      "count": 1,
+      "bytes": 30606,
+      "MiB": 0.03
+    },
+    {
+      "name": "public/assets/engineer_v1/magnetic line.webp",
+      "count": 1,
+      "bytes": 27492,
+      "MiB": 0.03
+    },
+    {
+      "name": "public/assets/ui_2026/tab-full-roster.webp",
+      "count": 1,
+      "bytes": 25854,
+      "MiB": 0.02
+    },
+    {
+      "name": "public/assets/engineer_v1/turret bulllet.webp",
+      "count": 1,
+      "bytes": 24728,
+      "MiB": 0.02
+    },
+    {
+      "name": "public/sniper_cloak_sprite.webp",
+      "count": 1,
+      "bytes": 15138,
+      "MiB": 0.01
+    },
+    {
+      "name": "public/assets/magnet_v1/gold",
+      "count": 1,
+      "bytes": 14311,
+      "MiB": 0.01
+    },
+    {
+      "name": "public/assets/fang_v1/trailMist.webp",
+      "count": 1,
+      "bytes": 10534,
+      "MiB": 0.01
+    },
+    {
+      "name": "public/sniper_cloak_move_sprite.webp",
+      "count": 1,
+      "bytes": 9422,
+      "MiB": 0.01
+    },
+    {
+      "name": "public/assets/shotgun_v1/manifest.json",
+      "count": 1,
+      "bytes": 5307,
+      "MiB": 0.01
+    },
+    {
+      "name": "public/assets/soccer_v1/manifest.json",
+      "count": 1,
+      "bytes": 190,
+      "MiB": 0
+    }
+  ],
+  "toolScripts": 239,
+  "unreferencedTools": [
+    "tools/applyVisibleShellWork.mjs",
+    "tools/audioDeliveryPolicy.mjs",
+    "tools/botWavePressureWasmCandidate.mjs",
+    "tools/botWaveShippingAssetRefs.mjs",
+    "tools/bridgeFrostGoldV1.mjs",
+    "tools/bridgeHunterGoldV10.mjs",
+    "tools/bridgeMirrorGoldV1.mjs",
+    "tools/buildArsenalCAssets.mjs",
+    "tools/calibrateMagnetA2Field.mjs",
+    "tools/frostGitDurabilityCheckpoint.mjs",
+    "tools/goldBattleHudR48b.mjs",
+    "tools/goldBattleHudR50c.mjs",
+    "tools/goldBattleHudR55.mjs",
+    "tools/goldBattleHudR83.mjs",
+    "tools/goldBattleHudR91labelFit.mjs",
+    "tools/goldBattleHudTacticalPulse.mjs",
+    "tools/goldShellR2RosterPick.mjs",
+    "tools/goldShellR50k.mjs",
+    "tools/goldShellR83.mjs",
+    "tools/optimizeGoldHudRuntime.mjs",
+    "tools/optimizeRuntimeAssets.mjs",
+    "tools/questB6iGoldShell.mjs",
+    "tools/questB7GoldShell.mjs",
+    "tools/questB8GoldShell.mjs",
+    "tools/recutPickupReadyAudio.mjs",
+    "tools/testBoxeDictionaryArtChrome.mjs",
+    "tools/testHeroReworkSlimeLegacySeparation.mjs",
+    "tools/testHunterPouncePhysicalContact.mjs",
+    "tools/testHunterPouncePhysicalContactRealBrowser.mjs",
+    "tools/testItchNestedChrome.mjs",
+    "tools/testMagnetA2ContinuousField.mjs",
+    "tools/testMagnetGoldMotionTrace.mjs",
+    "tools/testMirrorPresentationR2SemanticMigration.mjs",
+    "tools/testShuriArsenalFoundation.mjs",
+    "tools/testShuriBattleRuntime.mjs",
+    "tools/testShuriGoldIntegration.mjs"
+  ]
+}
