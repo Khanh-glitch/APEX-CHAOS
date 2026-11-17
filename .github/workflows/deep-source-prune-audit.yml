@@ -1,0 +1,32 @@
+name: Deep Source-Prune Audit
+on:
+  push:
+    branches: [maintenance/hard-source-prune-20261117]
+    paths:
+      - '.github/workflows/deep-source-prune-audit.yml'
+      - 'tools/maintenance/hardPruneAudit.mjs'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build actual shipping graph
+        run: pnpm build
+      - name: Inventory deployed files and source references
+        run: node tools/maintenance/hardPruneAudit.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hard-source-prune-audit
+          path: reports/hard-prune-audit.json
+          retention-days: 4
