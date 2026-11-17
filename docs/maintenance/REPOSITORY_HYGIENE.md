@@ -10,7 +10,7 @@ The complete pre-cleanup state is pinned at [`archive/main-before-hygiene-202611
 
 - Remove obsolete, branch-specific GitHub Actions workflows from `.github/workflows`. Retain the canonical R5 release acceptance pipeline and relevant product-regression gates. Old definitions remain recoverable through the archival branch.
 - Remove the former top-level `evidence/` tree (historical owner/QA screenshots and receipts). Newly generated QA evidence belongs in expiring GitHub Actions artifacts.
-- Remove **historical media exports** (`png`, `jpg`, `jpeg`, `webp`, `webm`, `mp4`) from `docs/acceptance/` and `docs/arsenal-quest/`. Keep textual specifications and logs/receipts, plus current test tools.
+- Move the retired `docs/acceptance/` and `docs/arsenal-quest/` collections out of the current tree (including screenshots, historical JSON receipts and obsolete test reports). Their complete content remains available in the archival branch; current release tests write fresh evidence to ignored `reports/` and GitHub Actions artifacts.
 - Remove the obsolete root prototype ZIP and legacy one-off planning reports, leaving only files needed to build, develop, and document the game.
 - Remove the tracked local `.env` copy; keep `.env.example` as a configuration template.
 
