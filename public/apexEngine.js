@@ -703,10 +703,25 @@ var Fighter = class Fighter {
             const hit = apexControlWalls.resolveFighterWall?.(this);
             if (hit) side = hit.side || hit.id || 'wall';
         }
-        if (this.x - this.radius < 0) { this.x = this.radius; this.dir.x = Math.abs(this.dir.x); side = 'left'; }
-        if (this.x + this.radius > GAME_SIZE) { this.x = GAME_SIZE - this.radius; this.dir.x = -Math.abs(this.dir.x); side = 'right'; }
-        if (this.y - this.radius < 0) { this.y = this.radius; this.dir.y = Math.abs(this.dir.y); side = 'top'; }
-        if (this.y + this.radius > GAME_SIZE) { this.y = GAME_SIZE - this.radius; this.dir.y = -Math.abs(this.dir.y); side = 'bottom'; }
+        // Evolution stages have a visible inner wall, *inside* the 1000x1000
+        // canvas. Only Free Battle uses this inset; Quest/legacy walls are
+        // byte-for-byte unchanged. Bounce at the visible playable boundary,
+        // not at x=0/y=0 where bodies clip into piping and HUD decorations.
+        const evolutionInset = gameState === 'ARSENAL' && window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.()
+            ? Math.max(0, Math.min(110, Number(window.APEX_BEYOND_ARENA?.getWallInset?.()) || 0)) : 0;
+        const lo = this.radius + evolutionInset, hi = GAME_SIZE - lo;
+        if (this.x < lo) { this.x = lo + (evolutionInset ? 2 : 0); this.dir.x = Math.max(0.28, Math.abs(this.dir.x)); side = 'left'; }
+        if (this.x > hi) { this.x = hi - (evolutionInset ? 2 : 0); this.dir.x = -Math.max(0.28, Math.abs(this.dir.x)); side = 'right'; }
+        if (this.y < lo) { this.y = lo + (evolutionInset ? 2 : 0); this.dir.y = Math.max(0.28, Math.abs(this.dir.y)); side = 'top'; }
+        if (this.y > hi) { this.y = hi - (evolutionInset ? 2 : 0); this.dir.y = -Math.max(0.28, Math.abs(this.dir.y)); side = 'bottom'; }
+        // Very shallow angles can result in dozens of 1px contacts when the
+        // opponent/AI keeps pushing outward. Give the rebound a measurable
+        // inward normal and a small deterministic tangent to escape corners.
+        if (evolutionInset && side) {
+            const tangent = this.id === 1 ? 0.24 : -0.24;
+            if ((side === 'left' || side === 'right') && Math.abs(this.dir.y) < 0.10) this.dir.y = tangent;
+            if ((side === 'top' || side === 'bottom') && Math.abs(this.dir.x) < 0.10) this.dir.x = tangent;
+        }
         if (side) {
             if (sawWallRage.timer > 0 && sawWallRage.owner && sawWallRage.owner !== this) {
                 const base = sawWallRage.owner.isRage ? 4.8 : 4.0;
@@ -2278,8 +2293,19 @@ function draw() {
     ctx.save();
     try {
         const shakeX=rand(-cameraShake,cameraShake), shakeY=rand(-cameraShake,cameraShake);
-        window.__apexCameraView = { shakeX, shakeY, zoom:cameraZoom };
-        ctx.translate(GAME_SIZE/2+shakeX,GAME_SIZE/2+shakeY); ctx.scale(cameraZoom,cameraZoom); ctx.translate(-GAME_SIZE/2,-GAME_SIZE/2);
+        const beyondCam = (gameState === 'ARSENAL' && window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.() && window.APEX_BEYOND_VFX?.getCameraTransform)
+            ? window.APEX_BEYOND_VFX.getCameraTransform(cameraZoom, shakeX, shakeY)
+            : { focusX: GAME_SIZE/2, focusY: GAME_SIZE/2, zoom: cameraZoom, offsetX: shakeX, offsetY: shakeY };
+        window.__apexCameraView = {
+            shakeX: beyondCam.offsetX,
+            shakeY: beyondCam.offsetY,
+            zoom: beyondCam.zoom,
+            focusX: beyondCam.focusX,
+            focusY: beyondCam.focusY,
+        };
+        ctx.translate(GAME_SIZE/2 + beyondCam.offsetX, GAME_SIZE/2 + beyondCam.offsetY);
+        ctx.scale(beyondCam.zoom, beyondCam.zoom);
+        ctx.translate(-beyondCam.focusX, -beyondCam.focusY);
         drawBackground(ctx); drawProjectiles(ctx);
         for (const f of fighters) { 
             if (f && f.hasStatus && f.hasStatus('scent')) { 
@@ -2299,9 +2325,17 @@ function draw() {
                 background: true, projectiles: true, particles: true, fighters: false,
             });
         }
+        // BEYOND grounded contact shadows, kinetic afterimages & diegetic charge arc
+        if (gameState === 'ARSENAL' && window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.() && window.APEX_BEYOND_VFX?.drawFighterUnderlay) {
+            window.APEX_BEYOND_VFX.drawFighterUnderlay(ctx);
+        }
         // Owner R2 P0-B: playable heroes are drawn as themselves. No side outline.
         if (fighters[0]) fighters[0].draw(ctx);
         if (fighters[1]) fighters[1].draw(ctx);
+        // BEYOND Perfect Deflect barrier & crisp hit-flash feedback
+        if (gameState === 'ARSENAL' && window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.() && window.APEX_BEYOND_VFX?.drawFighterOverlay) {
+            window.APEX_BEYOND_VFX.drawFighterOverlay(ctx);
+        }
         if (window.APEX_ROBOT_PRESENTATION && window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay) {
             window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay(ctx);
         }

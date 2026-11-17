@@ -1,5 +1,5 @@
 {
-  "revision": "20261115-f7-portrait-ready-r5",
+  "revision": "20261117-r5-five-arenas",
   "files": {
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
@@ -16,7 +16,7 @@
     "public/game/core/apexRenderPrimitives.js": "89c5fc2ede601939dbe46694f83f9e066fefee01c787be49ae4a4d8843022dca",
     "public/game/ui/apexCombatHudRuntime.js": "7077bd59f6c13c461f2bc2af4a29d9beb6eed3ff30676df615ef317e173d42e6",
     "public/game/ui/uiSfxAuthority.js": "d91a9c6b8d7d40ec54e36d582d54a09f176ff193f90e02edb39e5707c2b16d98",
-    "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",
+    "public/game/core/apexArsenalProductCollisionRuntime.js": "f42871f0cafcd1a6a409503f5702d04c4b44ad274e8397530db400649fabac65",
     "public/game/core/apexArsenalProductRenderHudRuntime.js": "bc43971c38a7fe7645a1b5b24d2f77440b72bb07b4eb6d9ac6e2919f78b653fc",
     "public/game/core/apexArsenalProductDrawRecoveryRuntime.js": "b8b515fe710642614a4a1a671fe0da7f2295aaff9e439e10a16ecec6cc953c71",
     "public/game/gold/goldProductBridge.js": "26eed15694ce3030cbe0e43f3ec7894440eaee8451a06ab6bc88225dc07c47ed",
@@ -49,7 +49,7 @@
     "public/game/quest/questStoryPresentation.js": "fc6bdf3177b68944be2942f9b4d03ae97d2ed141497f8dac5db8466d17f193ac",
     "public/game/quest/questGoldV12Rig.js": "f039b5033263a223d9daa76ad7989bea5180ca6a3b5c9777269feaf3be7f9a39",
     "public/game/quest/questGoldEnemyVisuals.js": "48ea964484252a0477eec340498fbfff5a3ff2a5b5cde30ddd53cdc777006274",
-    "public/game/modes/arsenalBattleRuntime.js": "0f079c8260f694f3e41fdba74068cbf12c5a82aefa790d6e4af1a9665df09e85",
+    "public/game/modes/arsenalBattleRuntime.js": "b33e6b37aff7f0abf0c670bd298c20733015d84fad079840e6b3132e0751970c",
     "public/game/hero-rework/crystalaGoldV6.js": "b97dd28d659a5c0426643227ff105bb351c261b41dce4eb8cc94353c5c40fafb",
     "public/game/hero-rework/crystalGameplayRuntime.js": "83790660c880b02c220a94c7cfa6491b80217d89c8239dba5541bffc06477b89",
     "public/game/hero-rework/frostGameplayRuntime.js": "0a011484f9ae0903d5c08f8ee3c95cb87b3451d800b3f3ae6adb1b85af7492df",
@@ -72,6 +72,15 @@
     "public/game/hero-rework/magnetPresentationRuntime.js": "606fb1cd063804cbf67589f2220a96db1ccb56a7641d7a7c9e3d2e856769b719",
     "public/game/hero-rework/mirrorPresentationRuntime.js": "3713f25305cb588042898e6137ae1c0c7d1b7214b92e32f0393a4cdf4bf96155",
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
-    "public/game/ui/skillDetailsRuntime.js": "badb4d805fd1ae043984121dd31fca7dedb7c87cc0f5ed96a15375e4a73cdc18"
+    "public/game/ui/skillDetailsRuntime.js": "badb4d805fd1ae043984121dd31fca7dedb7c87cc0f5ed96a15375e4a73cdc18",
+    "public/game/arsenal/apexBeyondAudioEngine.js": "1e019ce06618838ff74d2d69a118e0316711397081345b7f3342c29c90fabd48",
+    "public/game/evolution/apexEvolutionArtAtlas.js": "08dda254727f0bed57ab75980f0438c3f51a14fbd2556dac7eaec908950da6b4",
+    "public/game/evolution/apexEvolutionVfxLibrary.js": "fa47d2738035c0fcaefc3970b9bbea86de8f0357f9f2f48e2d719955c37b2750",
+    "public/game/evolution/apexEvolutionShaderCompositor.js": "3658f13fba11135fbc31c58868318e8014187105669b496b70aceebd8e6b5af1",
+    "public/game/evolution/apexEvolutionAudio.js": "f776a18ffdbcbfb05956380bca4f1991425824e99414cc92e2ee4a545cb76e6c",
+    "public/game/evolution/apexEvolutionArenas.js": "9f3930baf2a867e7df71f0d1155c6645fa5f25ce99ff8f3a13062f9c7912383d",
+    "public/game/arsenal/apexBeyondArenaEngine.js": "d531a41e6797c62d23784f11074f9ce32728e56948b9fad2dd72ef6533b6966b",
+    "public/game/arsenal/apexBeyondVfxEngine.js": "963367404349a7ce53c2a4197ef253b1ebe465ea4dd88088731cbc9682f37890",
+    "public/game/arsenal/apexBeyondCombatEngine.js": "3e681f3952f20ff87f7dd17ec67daa65fd707bd3e4fbfefe7d7fec1ef302a2fa"
   }
 }

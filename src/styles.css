@@ -4408,3 +4408,7 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
  -webkit-user-select:text!important;user-select:text!important;
  -webkit-touch-callout:default!important;
 }
+
+/* Evolution transplant: there is exactly ONE authoritative battle image.
+   Any stale compositor surface from an older deployment is hidden. */
+#apex-evolution-webgl { display:none!important; }

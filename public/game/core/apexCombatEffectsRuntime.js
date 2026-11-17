@@ -11,15 +11,22 @@ var FloatingText = class FloatingText {
     }
     update(dt) { this.y += this.vy * dt; this.life -= dt; }
     draw(ctx) {
+        const age = 1 - Math.max(0, this.life / this.maxLife);
+        const alpha = age > 0.65 ? Math.max(0, (1 - age) / 0.35) : 1;
+        const pop = age < 0.14 ? (0.65 + 0.52 * (age / 0.14)) : (age < 0.28 ? (1.17 - 0.17 * ((age - 0.14) / 0.14)) : 1);
         ctx.save();
-        ctx.globalAlpha = Math.max(0, this.life / this.maxLife);
-        ctx.fillStyle = this.color;
-        ctx.font = `900 ${this.size || 33}px 'Segoe UI'`;
+        ctx.translate(this.x, this.y);
+        ctx.scale(pop, pop);
+        if (window.gameState === 'ARSENAL') ctx.rotate(-0.04);
+        ctx.globalAlpha = alpha;
+        ctx.font = `900 ${this.size || 34}px "Oswald", "Montserrat", "Segoe UI", sans-serif`;
         ctx.textAlign = "center";
-        ctx.lineWidth = 5;
-        ctx.strokeStyle = "#050505";
-        ctx.strokeText(this.text, this.x, this.y);
-        ctx.fillText(this.text, this.x, this.y);
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "#080a0e";
+        ctx.strokeText(this.text, 0, 0);
+        ctx.fillStyle = age < 0.08 ? "#fff9df" : this.color;
+        ctx.fillText(this.text, 0, 0);
         ctx.restore();
     }
 };
