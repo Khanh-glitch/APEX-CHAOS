@@ -28,3 +28,21 @@ ARSENAL_PRODUCT_PLAYABLE_WINDOWS.zip
 .menu-resp-profile/
 .menu-probe-profile/
 
+
+# Keep historical browser evidence out of the current source branch.
+# Acceptance screenshots/receipts belong in CI artifacts; full history is
+# preserved at archive/main-before-hygiene-20261117.
+/evidence/
+/docs/acceptance/
+/docs/arsenal-quest/
+
+# Secrets, local configuration and developer-specific state.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Locally exported releases belong in CI / Releases, not the repository root.
+/*.zip
+*.log
+*.tmp
