@@ -54,3 +54,6 @@ ARSENAL_PRODUCT_PLAYABLE_WINDOWS.zip
 /docs/hero-rework/robot-visual-cleanup-diagnostic/
 /docs/audit/
 /docs/stormbreaker/v1-port/
+
+# Original production masters live in the archive, not the shipping source tree.
+/masters/

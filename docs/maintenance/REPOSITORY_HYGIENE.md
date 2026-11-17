@@ -21,7 +21,7 @@ The following are not disposable evidence and must be reviewed individually befo
 - `docs/gold-ui/current/` and its manifests — **canonical Gold source** consumed by the shipping generator.
 - `public/`, including `public/assets/`, `public/game/`, `public/gold/` — active game code, audio, fighters, maps, and render assets.
 - `src/`, `gold-mission-account/`, `result-gold/` — production application and Gold UI.
-- `masters/` — source audio and image provenance required for reproducibility.
+- `masters/` — original audio/image masters now retained **only in the archival branch**; the current tree keeps shipping-ready assets under `public/assets/`.
 - `docs/hero-rework/` — preserve written fighter contracts and approved Gold HTML sources; generated evidence exports are archived instead of shipped.
 - `test-fixtures/`, `tools/`, `scripts/` — maintainers' regression suites and repeatable packaging tools.
 
@@ -66,3 +66,11 @@ The operation does **not** modify game logic in `src/`, `public/game/`, `public/
 ## Known open QA debt
 
 See [issue #131](https://github.com/Khanh-glitch/APEX-CHAOS/issues/131) for inherited headless combat acceptance failures. Production HTML5/Chromium, runtime cache integrity, and localization have their own validated gates. The independent Arsenal Product Acceptance workflow remains active.
+
+## Hard production-source prune — November 17, 2026
+
+Full read-only snapshot: [`archive/main-pre-hard-source-prune-20261117`](https://github.com/Khanh-glitch/APEX-CHAOS/tree/archive/main-pre-hard-source-prune-20261117), commit `7ee38b58917dc3dbe30e560bccafb431826708ac`.
+
+This pass used the actual `pnpm build` shipping graph as its authority. It archived all 121 unreferenced `masters/` files, all 611 public asset files that the production dist excludes, and documentation not required by the current source references. It retains Gold donor/source hashes, referenced fighter Gold HTML, production media, arena docs, and exact referenced test fixtures. No `src/`, game runtime JavaScript, build script, or shipping file was changed.
+
+The archive is the recovery path for original media and excluded prototype assets. A future asset addition must be explicitly admitted into a production runtime and the shipping manifest, not merely re-added to `public/` without usage.
