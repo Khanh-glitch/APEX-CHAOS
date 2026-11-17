@@ -2,51 +2,75 @@
 
 # APEX CHAOS
 
-**Five arenas. Distinct fighters. No two battles play the same.**
+**Five arenas. Distinct fighters. Unpredictable battles.**
 
-A browser-based, top-down action arena game featuring character abilities, weapon pickups, reactive battlefields, and fast head-to-head combat.
+A playable HTML5 arena action game built around character abilities, weapon pickups, environmental hazards, and fast local combat.
 
-![APEX CHAOS — real in-game BOT Battle, Scrap Basin Foundry](docs/media/apex-chaos-battle.png)
+### [▶ PLAY APEX CHAOS — BROWSER DEMO](https://realbae.itch.io/apex-chaos)
 
-**BOT Battle** · **Local 1v1** · **BOT WAVE** · **Five Total Evolution Arenas**
+**BOT Battle · Local 1v1 · BOT WAVE · Five Total Evolution arenas**
+
+[Game on itch.io](https://realbae.itch.io/apex-chaos) · [Source code](https://github.com/Khanh-glitch/APEX-CHAOS) · [Report an issue](https://github.com/Khanh-glitch/APEX-CHAOS/issues)
+
+![APEX CHAOS — real in-game arena battle](docs/media/apex-chaos-battle.png)
 
 </div>
 
-## The game
+## Overview
 
-In **APEX CHAOS**, two fighters enter a compact arena and compete using their own skills, tactical movement, and weapons collected during the match. The battlefield itself can change the fight: vents ignite, cryogenic machinery disrupts movement, and energy structures alter projectile behavior.
+APEX CHAOS is an independently developed, top-down, browser-based arena fighter. Each fighter has a distinct ability kit; movement, timing, weapon selection, and the arena environment determine the outcome. The current `main` branch is the **R5 × Total Evolution** source integration. This is an **in-development game**, not a claim of final balance, universal device performance, or finished online multiplayer.
 
-The **R5 × Total Evolution** update brings five distinct arenas to the existing APEX CHAOS combat system while retaining the Gold interface, original fighter identities, music, and sound design.
+### Play modes
 
-### What sets it apart
-
-- **Character-led combat** — unique playable fighters and ability kits, including Newbot, Hunter, BOXE, Shuri, Crystala, Frost, and other members of the APEX CHAOS roster.
-- **Five interactive battlefields** — each stage introduces its own architecture, hazards, environmental responses, and visual atmosphere.
-- **Tactical mechanics** — impulse movement, timed deflects, overdrive, and weapon pickups create high-impact reversals.
-- **Multiple ways to play** — fight a BOT, play a local head-to-head match, or enter the separate BOT WAVE experience.
-- **Presentation built for action** — arena-focused camera, Gold battle HUD, fighter-specific visuals and audio, and an owner-only portrait recording workflow.
-
-## The arenas
-
-| Arena | Battle identity |
+| Mode | Experience |
 | --- | --- |
-| **Scrap Basin Foundry** | Furnace vents, molten-slag pressure, and electromagnetic bumpers. |
-| **Cryo-Turbine Vault** | Breakable coolant cores, slowing frost fields, and rotating machinery. |
-| **Lorentz Railyard** | Projectile-acceleration gates and periodically overloaded rails. |
-| **Obsidian Prism Sanctum** | Refraction monoliths and energy lines that influence combat. |
-| **APEX Tournament Pro** | A hazard-free competitive arena focused on direct fighter matchups. |
+| **BOT Battle** | Choose a fighter and take on an AI-controlled opponent. |
+| **Local 1v1** | Two players compete on the same device. |
+| **BOT WAVE** | A separate PvE wave-combat experience. |
+
+The game has desktop and mobile browser layouts. In-game screens provide the applicable controls; they can differ by mode and input device. **For the public game, use the itch.io link above**, not a local development server.
+
+### Five arenas
+
+| Arena | Defining feature |
+| --- | --- |
+| **Scrap Basin Foundry** | Furnace vents, molten slag, and electromagnetic bumpers. |
+| **Cryo-Turbine Vault** | Coolant cores, frost fields, and rotating machinery. |
+| **Lorentz Railyard** | Projectile-acceleration gates and overloaded rails. |
+| **Obsidian Prism Sanctum** | Refraction monoliths and energy lines that affect combat. |
+| **APEX Tournament Pro** | A competitive stage without environmental hazards. |
+
+The roster includes Newbot, Hunter, BOXE, Shuri, Crystala, Frost, and additional fighters. The game also contains a Gold-style presentation layer, fighter art, audiovisual effects, Arsenal weapon systems, and progression interfaces.
 
 <div align="center">
 
-<img src="docs/media/apex-chaos-home.png" alt="APEX CHAOS — Gold Home interface" width="78%" />
+![APEX CHAOS — in-game Home interface](docs/media/apex-chaos-home.png)
 
-<sub>Gold Home — captured from the compiled game in Chromium.</sub>
+*Home interface captured from a compiled build.*
 
 </div>
 
-## Get started
+## Source architecture
 
-**Requirements:** Node.js 22 and pnpm 9.15.9. The editable project uses React 18, Vite 5, and JavaScript. Run it through a local development server, not by opening the source `index.html` directly.
+This repository contains **editable production source**, not an already-built itch.io ZIP. The game is delivered by a Vite build with several embedded or deferred classic JavaScript runtimes.
+
+| Path | Role |
+| --- | --- |
+| `src/` | React 18 entry, Home and battle UI, runtime loading, localization, account facade, and game integration. |
+| `src/game/runtimeManifest.js` | Runtime script manifest and deferred loading order. |
+| `public/apexEngine.js` | Core arena engine. |
+| `public/game/` | Fighter combat, Arsenal, modes, BOT WAVE integration, Gold bridge, and Total Evolution arenas. |
+| `public/assets/`, `public/gold/`, `public/bot-wave/` | Production game art/audio, Gold shell, and BOT WAVE game page. |
+| `gold-mission-account/` | Isolated account and missions UI, built into the HTML5 game. |
+| `result-gold/` | Isolated match-result presentation, built into the HTML5 game. |
+| `docs/gold-ui/current/` | Canonical Gold source and manifests used by the build/acceptance toolchain; **not historical clutter**. |
+| `tools/`, `scripts/`, `.github/workflows/` | Build, package, runtime integrity, and reproducible release/QA checks. |
+
+**Why some non-game files remain:** the Gold sources, pinned audio lock, packaging scripts, test fixtures, and active acceptance workflows are prerequisites for a reproducible and auditable release. Historical experiments and detached assets belong on the archive branch instead.
+
+## Develop locally
+
+**Prerequisites:** Node.js **22**; pnpm **9.15.9** via Corepack; npm is also used automatically to build the isolated Gold UI subprojects. No cloud credentials are required for the current guest-first public build.
 
 ```bash
 corepack enable
@@ -54,20 +78,22 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open **http://localhost:5173/** in your browser.
+Open the **local development address printed by Vite**. Do not open the source `index.html` directly with `file://`, because the application needs module and asset serving. A local dev address is not the public game link.
 
-### Build for production
+### Build and validate
 
 ```bash
+node scripts/check-arena-integration.mjs
+node scripts/check-arena-boundaries.mjs
+pnpm test:runtime-revision
+node tools/buildGoldCutover.mjs --check
 pnpm build
 pnpm test:shipping-dist
 ```
 
-The optimized browser build is created in `dist/`. Original audio and image masters, rejected prototypes, and past QA captures are stored on the [archival branch](https://github.com/Khanh-glitch/APEX-CHAOS/tree/archive/main-pre-hard-source-prune-20261117), rather than bloating the current source tree.
+`pnpm build` produces `dist/` and runs the Gold compilers, audio integrity/materialization, asset audit, and shipping-prune checks. `pnpm test:shipping-dist` verifies that required production assets survived pruning and that excluded assets do not leak into the build. The production HTML5 and nested-itch Chromium acceptance workflow is [APEX CHAOS Production / HTML5 Acceptance](https://github.com/Khanh-glitch/APEX-CHAOS/actions/workflows/r5-five-arenas-source-acceptance.yml).
 
 ### Package for itch.io
-
-The packaging step adjusts first-party resource paths so the HTML5 game works when itch.io hosts it inside a nested directory.
 
 ```bash
 pnpm build
@@ -76,38 +102,28 @@ node tools/packItchPortable.mjs
 (cd dist-itch-html5 && zip -qr ../APEX-CHAOS-itch-html5.zip .)
 ```
 
-Upload `APEX-CHAOS-itch-html5.zip` as an **HTML** project on itch.io. It contains a root-level `index.html` and the local assets required by the compiled game. Test the exact uploaded package before making it public.
+Upload the ZIP as an **HTML5 project** on itch.io. The ZIP must have `index.html` at its root. The packaging script rewrites first-party URLs for itch.io's nested hosting path. Test the uploaded build in a real browser before publishing it; **pushing a GitHub commit does not automatically update the itch.io game**.
 
-## Development & architecture
+The repository also includes `netlify.toml` for the `dist/` web build. Hosting the web build and packaging for itch.io are separate distribution paths.
 
-| Directory | Purpose |
-| --- | --- |
-| `src/` | React application, Gold shell integration, UI, runtime loading and recording. |
-| `public/apexEngine.js` | Core arena combat engine. |
-| `public/game/evolution/` | Total Evolution arena simulation, shaders, VFX, audio and stage catalogue. |
-| `public/game/arsenal/` | Combat mechanics, weapon handling, and Free Battle adapters. |
-| `public/assets/` | Shipped visual and audio resources. |
-| `gold-mission-account/` | Source for the integrated Gold account and missions UI. |
-| `docs/gold-ui/current/` | Canonical Gold UI source required by the generation pipeline. |
-| `tools/`, `scripts/` | Build tooling, integrity checks, regression tests, and packaging. |
+## Quality and limitations
 
-Validate the arena integration before shipping:
+The R5 source integration has an automated production build and Chromium-based HTML5 acceptance gate. A passing gate demonstrates only the scenarios it actually exercises; it is not a guarantee of steady frame pacing on every device, arena, and fighter matchup.
 
-```bash
-node scripts/check-arena-integration.mjs
-node scripts/check-arena-boundaries.mjs
-pnpm test:runtime-revision
-```
+A separate **Arsenal Product Acceptance** workflow is retained even though it has known inherited headless combat regressions. These are tracked publicly in [issue #131](https://github.com/Khanh-glitch/APEX-CHAOS/issues/131). Do not interpret a passing packaging smoke test as closing that gameplay QA debt.
 
-**Release verification:** The R5 × Total Evolution source was built and exercised in desktop and mobile Chromium, including the path from Start → Gold Home → fighter selection → live BOT Battle. The [browser acceptance run](https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/44002221550) records these checks. This is **not** a blanket performance certification or a substitute for testing every stage and mode on your target hardware.
+The current public release is **guest-first**. Online multiplayer and production cloud-account features should not be assumed complete simply because the source contains future-facing integrations.
 
-For source history, integration details and maintenance decisions, see [Arena integration notes](docs/arena/ARENA-TRANSPLANT.md) and [Repository maintenance](docs/maintenance/REPOSITORY_HYGIENE.md). Historical experimental files are preserved in the [source-history archive](https://github.com/Khanh-glitch/APEX-CHAOS/tree/archive/main-pre-source-hygiene-r2-20261117), not carried into the primary shipping tree.
+## History, archives, and rights
 
-## Project status & rights
+Large historical evidence, reference assets, obsolete workflows, and experiments have been removed from the default checkout without rewriting Git history. The full state immediately before the latest runtime-hygiene cleanup is preserved at:
 
-**Current branch:** `main` — **APEX CHAOS R5 × Total Evolution**.
+**[archive/main-pre-runtime-hygiene-20261117](https://github.com/Khanh-glitch/APEX-CHAOS/tree/archive/main-pre-runtime-hygiene-20261117)**
 
-APEX CHAOS is an independently developed project. No open-source license is provided by this repository; viewing the code does not grant permission to redistribute the game or its assets. Third-party asset provenance is documented separately where available.
+Earlier snapshots include [pre-hard-source-prune](https://github.com/Khanh-glitch/APEX-CHAOS/tree/archive/main-pre-hard-source-prune-20261117). Archived content is recoverable without restoring it to `main`. Production assets and game logic remain on `main`; removed legacy evidence should not be mistaken for a missing game dependency.
+
+APEX CHAOS is an independent project. **No open-source license is granted by this repository.** The source being publicly viewable does not grant permission to reuse or redistribute the game, code, characters, or assets. Third-party components remain subject to their original licenses, and rights/provenance should be reviewed before any transfer or commercial redistribution.
 
 ---
+
 <div align="center"><sub>APEX CHAOS · Built for the arena.</sub></div>
