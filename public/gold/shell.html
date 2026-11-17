@@ -32,7 +32,7 @@
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--black);color:var(--ink);-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:none}
-#stage{position:fixed;inset:0;isolation:isolate;overflow:hidden;background:#090a0b;font-family:var(--fUi)}
+#stage{position:fixed;inset:0;isolation:isolate;overflow:hidden;overflow-anchor:none;background:#090a0b;font-family:var(--fUi)}
 
 /* ============================== WORLD */
 .world,.foreground{position:absolute;inset:-2.1%;pointer-events:none;will-change:transform}
@@ -2718,18 +2718,32 @@ body.battle-hud-open [data-apex-shell-stage="true"] *,body.battle-hud-open [data
 
   function commitScreen(next){
     screen=next;
+    // The decorated world can extend past #stage while the flow panels are
+    // full-viewport. Mobile scroll anchoring otherwise retains a 40–50px
+    // stage scroll offset when the viewport or visible panel changes.
+    stage.scrollTop=0;
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface(next);
     stage.classList.remove('flow-transition','match-ready');
     stage.classList.toggle('screen-mode',next==='mode');
     stage.classList.toggle('screen-fighter',next==='fighter');
     modeScreen.setAttribute('aria-hidden',next==='mode'?'false':'true');
     fighterScreen.setAttribute('aria-hidden',next==='fighter'?'false':'true');
+    stage.scrollTop=0;
     if(next!=='home'){stage.classList.remove('intent-story','intent-battle');stage.style.setProperty('--intent','0')}
   }
+  function focusFlowTarget(target){
+    if(!target)return;
+    target.focus({preventScroll:true});
+    stage.scrollTop=0;
+    // Embedded mobile browsers may scroll an overflow:hidden stage after the
+    // focus event even when preventScroll is requested. Clear that adjustment
+    // after the focus operation so the header and action rail stay in frame.
+    requestAnimationFrame(()=>{if(screen==='mode'||screen==='fighter')stage.scrollTop=0;});
+  }
   function focusScreen(next){
-    if(next==='mode')modeCards[modeFocus]?.focus({preventScroll:true});
-    else if(next==='fighter')document.querySelector(`.rosterCard[data-hero=\"${activePlayer==='p1'?p1Hero:p2Hero}\"]`)?.focus({preventScroll:true});
-    else if(next==='home')battle.focus({preventScroll:true});
+    if(next==='mode')focusFlowTarget(modeCards[modeFocus]);
+    else if(next==='fighter')focusFlowTarget(document.querySelector(`.rosterCard[data-hero=\"${activePlayer==='p1'?p1Hero:p2Hero}\"]`));
+    else if(next==='home')focusFlowTarget(battle);
   }
   // R52 no-swallowed-steps law: while the Mechanical Door owns the screen, a
   // doorless step intent is QUEUED (latest wins) and drained the moment the Door
@@ -3417,6 +3431,7 @@ body.battle-hud-open [data-apex-shell-stage="true"] *,body.battle-hud-open [data
   }
 
   function renderFighter(){
+    stage.scrollTop=0;
     stage.classList.toggle('fighter-active-p2',activePlayer==='p2');
     stage.classList.toggle('fighter-p1-locked',!!p1Locked);
     stage.classList.toggle('fighter-p2-locked',!!p2Locked);
@@ -3503,7 +3518,7 @@ body.battle-hud-open [data-apex-shell-stage="true"] *,body.battle-hud-open [data
         p1HasPicked=true;p1Locked=true;
         if(!p2Locked){
           activePlayer='p2';renderFighter();
-          setTimeout(()=>document.querySelector('.rosterCard[data-hero="'+p2Hero+'"]')?.focus({preventScroll:true}),80);
+          setTimeout(()=>focusFlowTarget(document.querySelector('.rosterCard[data-hero="'+p2Hero+'"]')),80);
           return;
         }
       } else if(p2Locked)return;
@@ -3517,7 +3532,7 @@ body.battle-hud-open [data-apex-shell-stage="true"] *,body.battle-hud-open [data
       launchBattleHud();
       return;
     }
-    if(activePlayer==='p1'&&!p1Locked){p1HasPicked=true;p1Locked=true;activePlayer='p2';p2Hero=p1Hero==='newbot'?'hunter':'newbot';p2Empty=false;p2HasPicked=false;renderFighter();setTimeout(()=>document.querySelector(`.rosterCard[data-hero="${p2Hero}"]`)?.focus({preventScroll:true}),80);return}
+    if(activePlayer==='p1'&&!p1Locked){p1HasPicked=true;p1Locked=true;activePlayer='p2';p2Hero=p1Hero==='newbot'?'hunter':'newbot';p2Empty=false;p2HasPicked=false;renderFighter();setTimeout(()=>focusFlowTarget(document.querySelector(`.rosterCard[data-hero="${p2Hero}"]`)),80);return}
     if(activePlayer==='p2'&&!p2Locked){if(p2Hero===p1Hero){uiSfx('ui.action.rejected');renderFighter();return}p2HasPicked=true;p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';
     uiSfx('fighter.match_ready');
     launchBattleHud()}
@@ -3559,7 +3574,7 @@ body.battle-hud-open [data-apex-shell-stage="true"] *,body.battle-hud-open [data
 
   function moveHero(delta){
     const current=activePlayer==='p1'?p1Hero:p2Hero; const i=HERO_ORDER.indexOf(current); selectHero(HERO_ORDER[(i+delta+HERO_ORDER.length)%HERO_ORDER.length]);
-    setTimeout(()=>document.querySelector(`.rosterCard[data-hero=\"${activePlayer==='p1'?p1Hero:p2Hero}\"]`)?.focus({preventScroll:true}),0);
+    setTimeout(()=>focusFlowTarget(document.querySelector(`.rosterCard[data-hero=\"${activePlayer==='p1'?p1Hero:p2Hero}\"]`)),0);
   }
 
   function navigateGoldShell(target,opts={}){

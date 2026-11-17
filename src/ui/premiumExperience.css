@@ -43,5 +43,6 @@ html[data-apex-quality=low] .ab-dock,html[data-apex-quality=low] .ab-popover,htm
 html[data-apex-motion=reduced] .apex-beyond-hud *,html[data-apex-motion=reduced] .gx-backdrop *,html[data-apex-motion=reduced] .ux-loading *{animation:none!important;transition:none!important}
 html[data-apex-motion=reduced] .ux-loading-track i.is-indeterminate{width:100%;opacity:.5}
 @media(max-width:430px){.gx-dialog{padding:18px 14px}.gx-dialog header{margin-bottom:18px}.gx-launch{padding:0 10px}.gx-launch span{display:none}.gx-setting{gap:10px}}
+@media(max-width:360px){.gx-presets button{font-size:11px;white-space:nowrap;overflow-wrap:normal;padding-inline:1px}}
 @media(max-height:460px){.gx-dialog{padding:14px 20px}.gx-dialog header{margin-bottom:12px}.gx-setting{padding:8px 0}.gx-description{min-height:0}.ux-loading{bottom:8px;padding:10px 14px}.ux-loading-mark{display:none}}
 @media(prefers-reduced-motion:reduce){.ux-loading-track i.is-indeterminate{animation:none;width:100%;opacity:.5}}
