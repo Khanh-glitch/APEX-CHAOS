@@ -63,7 +63,7 @@ pnpm build
 pnpm test:shipping-dist
 ```
 
-The optimized browser build is created in `dist/`.
+The optimized browser build is created in `dist/`. Original audio and image masters, rejected prototypes, and past QA captures are stored on the [archival branch](https://github.com/Khanh-glitch/APEX-CHAOS/tree/archive/main-pre-hard-source-prune-20261117), rather than bloating the current source tree.
 
 ### Package for itch.io
 
