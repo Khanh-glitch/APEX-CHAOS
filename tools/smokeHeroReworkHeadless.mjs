@@ -371,7 +371,13 @@ gate('smoke-j-a1-routing', jRes === true && busCasts.length >= 2, { jRes, busCas
   T.pushSlot({ x: 350, y: 450, weaponId: 'PISTOL' }); // due NORTH of P1
   const s0 = { x: a.x, y: a.y };
   T.step(0.6);
-  const noSeek = a.dir.x > 0.9 && Math.abs(a.dir.y) < 0.1 && (a.x - s0.x) > 250 && (s0.y - a.y) < 100;
+  // Only reject steering TOWARD the north-of-P1 pickup. The previous
+  // direction == east assertion falsely failed even when the fighter moved
+  // SOUTH (away from that pickup) due to otherwise legal arena movement.
+  // Preserve positive speed/physical movement checks; do not mask pickup seek.
+  const advancedEast = a.x - s0.x > 250;
+  const movedTowardPickup = s0.y - a.y >= 100 || a.dir.y < -0.15;
+  const noSeek = advancedEast && !movedTowardPickup;
   gate('smoke-locomotion-no-pickup-seek', noSeek && a.baseSpeed > 0 && !a.data.__hrHoldBody,
     { dir: [a.dir.x, a.dir.y], dx: +(a.x - s0.x).toFixed(1), north: +(s0.y - a.y).toFixed(1), speed: a.baseSpeed });
   // Armed no-chase: opponent far south off-heading; real equip; 0.5s window.
