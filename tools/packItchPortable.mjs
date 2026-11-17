@@ -5,14 +5,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const INPUT = path.join(ROOT, 'dist');
 const OUTPUT = path.join(ROOT, 'dist-itch-html5');
 if (!fs.existsSync(path.join(INPUT, 'index.html'))) throw Error('dist/index.html missing');
+// Stamp the itch package from HEAD without an auxiliary release tool.
+const buildSha = execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim();
+if (!/^[a-f0-9]{40}$/.test(buildSha)) throw Error('invalid Git revision');
+fs.writeFileSync(path.join(INPUT,'ITCH_GUEST_BUILD_SHA.txt'),buildSha+'\n');
 fs.rmSync(OUTPUT, { recursive: true, force: true });
 fs.cpSync(INPUT, OUTPUT, { recursive: true });
 
-const resources = '(?:assets/|game/|gold/|result-gold/|bot-wave/|favicon[.]ico|apexEngine[.]js|gold-fidelity-lab[.]html|gold-fidelity-profiles[.]mjs|sniper_cloak_(?:move_)?sprite[.]webp)';
+const resources = '(?:assets/|game/|gold/|result-gold/|bot-wave/|favicon[.]ico|apexEngine[.]js|sniper_cloak_(?:move_)?sprite[.]webp)';
 const quoted = new RegExp("([\\x22\\x27\\x60])/(" + resources + ")", 'g');
 const cssBare = new RegExp("(url\\(\\s*)/(" + resources + ")", 'gi');
 let scanned = 0, modifiedFiles = 0, replacements = 0;
@@ -36,7 +41,6 @@ function rewrite(dir) {
     // authority (apexAppUrl), which expects the './' spelling. The dev
     // fidelity lab is its own root document and also keeps './'.
     const isBundle = rel.startsWith('assets/');
-    const isLab = rel === 'gold-fidelity-profiles.mjs';
     // Boot-critical runtimes that build asset URLs BEFORE the Gold mount
     // inserts <base> (nested server-log proof): the product asset
     // preloader gates START on Home art, and the music authority preloads
@@ -45,16 +49,12 @@ function rewrite(dir) {
       || rel === 'game/product/productMusicAuthority.js';
     const base = isCSS || isHTML
       ? (depth ? '../'.repeat(depth) : './')
-      : (isBundle || isLab || isPreBaseBoot ? './' : '../');
+      : (isBundle || isPreBaseBoot ? './' : '../');
     const cssBase = depth ? '../'.repeat(depth) : './';
     let code = fs.readFileSync(full, 'utf8');
     const old = code;
     code = code.replace(quoted, (_,q,p) => { replacements++; return q+base+p; });
     code = code.replace(cssBare, (_,q,p) => { replacements++; return q+cssBase+p; });
-    // Root-based mobile redirect was authored for Pages; keep it in this
-    // nested game's directory when served by itch.io.
-    code = code.replace(/new URL\((["'])\.\/gold-fidelity-lab\.html\1,\s*location\.origin\)/g,
-      (_,q) => 'new URL(' + q + './gold-fidelity-lab.html' + q + ', location.href)');
     if (code !== old) { fs.writeFileSync(full, code); modifiedFiles++; }
     const residual = code.match(quoted);
     if (residual) unexpected.push(rel + ': ' + residual.slice(0,3).join(', '));
