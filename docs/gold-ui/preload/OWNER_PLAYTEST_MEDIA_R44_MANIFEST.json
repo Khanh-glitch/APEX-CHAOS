@@ -1,0 +1,856 @@
+{
+  "version": "20261005-owner-playtest-media-r44-preload-v1",
+  "purpose": "Git-portable production derivatives for owner-playtest Core Six UI art + selected UI/UX/HUD SFX.",
+  "sourcePolicy": {
+    "heroUi": "Owner-uploaded FINAL_ASSETS ZIPs; source bytes are not reinterpreted. Production WebP derivatives preserve role identity and aspect ratio.",
+    "uiSfx": "Owner-selected UI/UX/HUD WAV pack; production Ogg Opus derivatives generated for repository-efficient shipping.",
+    "heroAv": "NOT duplicated here. Existing Git authority remains docs/gold-ui/preload/APEX_CHAOS_CORE_SIX_AV_THEME_PRELOAD.zip."
+  },
+  "heroAvLaw": {
+    "ROBOT": {
+      "mode": "VFX_ONLY",
+      "sfx": "KEEP_EXISTING"
+    },
+    "HUNTER": {
+      "mode": "VFX_ONLY",
+      "sfx": "KEEP_EXISTING"
+    },
+    "CRYSTALA": {
+      "mode": "VFX_PLUS_CURATED_SFX",
+      "source": "existing Core Six AV preload"
+    },
+    "MAGNET": {
+      "mode": "VFX_PLUS_CURATED_SFX",
+      "source": "existing Core Six AV preload"
+    },
+    "FROST": {
+      "mode": "VFX_PLUS_CURATED_SFX",
+      "source": "existing Core Six AV preload"
+    },
+    "MIRROR": {
+      "mode": "VFX_PLUS_CURATED_SFX",
+      "source": "existing Core Six AV preload"
+    }
+  },
+  "heroes": {
+    "HUNTER": {
+      "sourceZip": "HUNTER_FINAL_ASSETS(1).zip",
+      "sourceZipSha256": "43f7754cd0258810f9d120dea6ea2ea67026f130da368c9398ff1d156f16425f",
+      "roles": {
+        "BATTLE_HUD_AVATAR": {
+          "sourceFile": "HUNTER__BATTLE_HUD_AVATAR.png",
+          "sourceSha256": "a9fd9ccdd25e0658ff1ca914a6c607a9c25217f23abceaffd65d9c5f8cc6884d",
+          "sourceBytes": 1460827,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/hunter/battle_avatar.webp",
+          "productionSha256": "945e751b61553a933d8d033098f1301a2d8d99615c5479693de18d516832bc5c",
+          "productionBytes": 42294,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/hunter/battle_avatar.webp"
+        },
+        "PICK_SELECTED_LARGE": {
+          "sourceFile": "HUNTER__PICK_SELECTED_LARGE.png",
+          "sourceSha256": "2ae6a944f1f6de8d3435eca379eb26f206e0a78af1dfe3c986dd6fdf91f089f9",
+          "sourceBytes": 2023918,
+          "sourceDimensions": [
+            1448,
+            1086
+          ],
+          "productionPathInArchive": "hero-ui/hunter/pick_selected_large.webp",
+          "productionSha256": "50d72b2a4699e35ae176aed06b0fdf24109e229fc593cce7153944fba259c893",
+          "productionBytes": 271278,
+          "productionDimensions": [
+            1024,
+            768
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/hunter/pick_selected_large.webp"
+        },
+        "PICK_ROSTER_COVER": {
+          "sourceFile": "HUNTER__PICK_ROSTER_COVER.png",
+          "sourceSha256": "83a2a0c6fa1e3cb0058b03a60fe09e80b8e6752d2883a801d43c476f284a920a",
+          "sourceBytes": 2431265,
+          "sourceDimensions": [
+            1672,
+            941
+          ],
+          "productionPathInArchive": "hero-ui/hunter/pick_roster_cover.webp",
+          "productionSha256": "58199566dc87d71e53fff2a42888e50c722d2131d0fef8dbd5eb0e0c338197e0",
+          "productionBytes": 107570,
+          "productionDimensions": [
+            1023,
+            576
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/hunter/pick_roster_cover.webp"
+        },
+        "SKILL_PASSIVE": {
+          "sourceFile": "HUNTER__SKILL_PASSIVE__WEAK_LAW.png",
+          "sourceSha256": "98406f7b6507d30313285b495bed65ba9108433c9985e9b4ee5caa9d221ac8cf",
+          "sourceBytes": 1624038,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/hunter/skill_passive.webp",
+          "productionSha256": "ec878f637b62a6bc88599620cd7ddc4c3b42ab81c92cdcb806c2473160d502d2",
+          "productionBytes": 33540,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/hunter/skill_passive.webp"
+        },
+        "SKILL_A1": {
+          "sourceFile": "HUNTER__SKILL_A1__SNARE.png",
+          "sourceSha256": "60bbb0544bc72c47d51e8c01be04f67ec20f5599f5e8c8e80a9ae60b83b66861",
+          "sourceBytes": 1583322,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/hunter/skill_a1.webp",
+          "productionSha256": "893781bac452945e1479a1478159e2e2cb64c1b31f0c411caa98a7c61a88a5ae",
+          "productionBytes": 35674,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/hunter/skill_a1.webp"
+        },
+        "SKILL_A2": {
+          "sourceFile": "HUNTER__SKILL_A2__POUNCE_WEAK.png",
+          "sourceSha256": "ec966f9bb6f5f1cf6f19ced9e24d64e7f4fd1152c18516af157798c5ebe9c17f",
+          "sourceBytes": 2193999,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/hunter/skill_a2.webp",
+          "productionSha256": "00a655dd648ed374d95dda3276ab344f957089af182dbcb8cff3af9e4aa3c8c9",
+          "productionBytes": 60750,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/hunter/skill_a2.webp"
+        }
+      }
+    },
+    "NEWBOT": {
+      "sourceZip": "NEWBOT_FINAL_ASSETS(1).zip",
+      "sourceZipSha256": "3ef78558b9ae19a2bcad58b932b04f57bab3482092498df902dc7a46dd19de6d",
+      "roles": {
+        "BATTLE_HUD_AVATAR": {
+          "sourceFile": "NEWBOT__BATTLE_HUD_AVATAR.png",
+          "sourceSha256": "c2d52d36eb39203f63c95954c6f154ccbd9477b3a8ee27b3a55ab5bcf42ad371",
+          "sourceBytes": 1564971,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/newbot/battle_avatar.webp",
+          "productionSha256": "f70db471a5578d395dd943b42c7ac41a823cdf1f75ae2d4dbc2ab3c05daac349",
+          "productionBytes": 48432,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/newbot/battle_avatar.webp"
+        },
+        "PICK_SELECTED_LARGE": {
+          "sourceFile": "NEWBOT__PICK_SELECTED_LARGE.png",
+          "sourceSha256": "09a931ec9483bb3c3888a5e422c69132112b90ff1799996a1e8904ea9913ce72",
+          "sourceBytes": 1606983,
+          "sourceDimensions": [
+            1122,
+            1402
+          ],
+          "productionPathInArchive": "hero-ui/newbot/pick_selected_large.webp",
+          "productionSha256": "17a31106a30d7dc0eff25d176d8de3163f664b546680e9d49e0569a50b8b105e",
+          "productionBytes": 145010,
+          "productionDimensions": [
+            819,
+            1024
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/newbot/pick_selected_large.webp"
+        },
+        "PICK_ROSTER_COVER": {
+          "sourceFile": "NEWBOT__PICK_ROSTER_COVER.png",
+          "sourceSha256": "d0d2a97d6d492c6193426fd5dec008cea37f8c5318083c03b53742fa2fa3ceec",
+          "sourceBytes": 2412174,
+          "sourceDimensions": [
+            1672,
+            941
+          ],
+          "productionPathInArchive": "hero-ui/newbot/pick_roster_cover.webp",
+          "productionSha256": "e67d6092c5fa5dcf64b1a9b32759f0d5b16a7ac029f9bd40d3d7c7c9ff0d3295",
+          "productionBytes": 114824,
+          "productionDimensions": [
+            1023,
+            576
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/newbot/pick_roster_cover.webp"
+        },
+        "SKILL_PASSIVE": {
+          "sourceFile": "NEWBOT__SKILL_PASSIVE__DAMAGE_MILESTONES.png",
+          "sourceSha256": "8d85b7f288cb525577aeca0ec70e7a6485151efdaf1c01488310b22b3ff2867e",
+          "sourceBytes": 2167889,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/newbot/skill_passive.webp",
+          "productionSha256": "9572f402ef2f1da329594101dcc85cf9fbd6c3fdb703de224b55bf5c4276b104",
+          "productionBytes": 56882,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/newbot/skill_passive.webp"
+        },
+        "SKILL_A1": {
+          "sourceFile": "NEWBOT__SKILL_A1__WEAPON_DASH.png",
+          "sourceSha256": "e7b3eba2e3e3757f3703ddc7c62810948a0f539f9da13e42fdf99a8cb86ba50a",
+          "sourceBytes": 2232179,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/newbot/skill_a1.webp",
+          "productionSha256": "d269984ec9b879aa1c43018c11090e25903aa97116cc9fab82b6a1fc2581d107",
+          "productionBytes": 51102,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/newbot/skill_a1.webp"
+        },
+        "SKILL_A2": {
+          "sourceFile": "NEWBOT__SKILL_A2__VIRTUAL_ARMOR.png",
+          "sourceSha256": "b1b7f0967a771e0efccb728d1315ef1e6282d1f54379c2b2ff1244c7076da26c",
+          "sourceBytes": 2118560,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/newbot/skill_a2.webp",
+          "productionSha256": "27a1d096ef9a6c5421e0236ca3909dc660288afa515e21f5fec9a534b508b194",
+          "productionBytes": 52030,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/newbot/skill_a2.webp"
+        }
+      }
+    },
+    "CRYSTALA": {
+      "sourceZip": "CRYSTALA_FINAL_ASSETS(1).zip",
+      "sourceZipSha256": "47435346acd54123dd7608ad9237f022bc5241dc0e17d017b0721bfbe94b2283",
+      "roles": {
+        "BATTLE_HUD_AVATAR": {
+          "sourceFile": "CRYSTALA__BATTLE_HUD_AVATAR.png",
+          "sourceSha256": "2037b3dbee2c402b5fd6a859fa501d0c055595135e37d098db30b75c7a1f61b1",
+          "sourceBytes": 1587189,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/crystala/battle_avatar.webp",
+          "productionSha256": "bb87b965a28ee94e95a944568234bf1a2a27e058bc2eaf02b6f0bb5662db5560",
+          "productionBytes": 77544,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/crystala/battle_avatar.webp"
+        },
+        "PICK_SELECTED_LARGE": {
+          "sourceFile": "CRYSTALA__PICK_SELECTED_LARGE.png",
+          "sourceSha256": "2625255af9b0763d86291c055743f858f14e6ea13cbc8502c6478a0b74cd2bab",
+          "sourceBytes": 2009510,
+          "sourceDimensions": [
+            1086,
+            1448
+          ],
+          "productionPathInArchive": "hero-ui/crystala/pick_selected_large.webp",
+          "productionSha256": "078894900b0bc5712b765454f98e65aa88315ab5f98c409ed7057612cf4e8e1d",
+          "productionBytes": 276054,
+          "productionDimensions": [
+            768,
+            1024
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/crystala/pick_selected_large.webp"
+        },
+        "PICK_ROSTER_COVER": {
+          "sourceFile": "CRYSTALA__PICK_ROSTER_COVER.png",
+          "sourceSha256": "2cfc9536a1fd139b9cf9d617750d6f9747008fb2b164dfeaefe38d757b7a936f",
+          "sourceBytes": 2667819,
+          "sourceDimensions": [
+            1672,
+            941
+          ],
+          "productionPathInArchive": "hero-ui/crystala/pick_roster_cover.webp",
+          "productionSha256": "0b583336eef863b4e37574d74267aa3704f089aa08508d909d07302827064dd9",
+          "productionBytes": 117504,
+          "productionDimensions": [
+            1023,
+            576
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/crystala/pick_roster_cover.webp"
+        },
+        "SKILL_PASSIVE": {
+          "sourceFile": "CRYSTALA__SKILL_PASSIVE__REFRACTION.png",
+          "sourceSha256": "085a99880c266294e0ac9a01ccf6c8d8404e60af6412b329e192c959902de015",
+          "sourceBytes": 2230881,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/crystala/skill_passive.webp",
+          "productionSha256": "9808ee8e8547ab4b488048caf6d9d0232276bec8535316b0fc30ed2260fc2c8e",
+          "productionBytes": 54916,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/crystala/skill_passive.webp"
+        },
+        "SKILL_A1": {
+          "sourceFile": "CRYSTALA__SKILL_A1__CONTEXT_CONSTRUCT.png",
+          "sourceSha256": "88171c50267efeff21afc8fff1078e8a3ed32c92c58c90cfdb63151fb93dd813",
+          "sourceBytes": 2510700,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/crystala/skill_a1.webp",
+          "productionSha256": "0b431f593c02b986abf6b7f9c5f3f6ed6789bcf20b27e3737a725b1cd9356f40",
+          "productionBytes": 72972,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/crystala/skill_a1.webp"
+        },
+        "SKILL_A2": {
+          "sourceFile": "CRYSTALA__SKILL_A2__AWAKENING.png",
+          "sourceSha256": "be3dd6684324e1f1926d8a8817c9353abc0a508cb35e4c8f27d258faa9dbbbe1",
+          "sourceBytes": 2676235,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/crystala/skill_a2.webp",
+          "productionSha256": "a556bd27757f5a7a187d58330ea3d6f8a485bcb4445152838329b16135f85a93",
+          "productionBytes": 79852,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/crystala/skill_a2.webp"
+        }
+      }
+    },
+    "MAGNET": {
+      "sourceZip": "MAGNET_FINAL_ASSETS(1).zip",
+      "sourceZipSha256": "e786907dd146b25cdf3e23b241bcf4fde0c1a3f37f2630dfd51973008e32a365",
+      "roles": {
+        "BATTLE_HUD_AVATAR": {
+          "sourceFile": "MAGNET__BATTLE_HUD_AVATAR.png",
+          "sourceSha256": "29236707ad9269a2ec19caf596f81e99a50874096e9a961c38501d60e1fe4e73",
+          "sourceBytes": 1646806,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/magnet/battle_avatar.webp",
+          "productionSha256": "7b13fcc0e3fc04cc586164c9f24aea3a7fbd07539c864bf16d9f6312c2849d24",
+          "productionBytes": 48946,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/magnet/battle_avatar.webp"
+        },
+        "PICK_SELECTED_LARGE": {
+          "sourceFile": "MAGNET__PICK_SELECTED_LARGE.png",
+          "sourceSha256": "561da488171e0f476e34c9d9bc86c862a7942c41caef6e262a2fc70e95f54299",
+          "sourceBytes": 1957293,
+          "sourceDimensions": [
+            1122,
+            1402
+          ],
+          "productionPathInArchive": "hero-ui/magnet/pick_selected_large.webp",
+          "productionSha256": "f4e2142dea2aff4f99e6ef253f1b015a6bc33f94a677419176b02342f011610f",
+          "productionBytes": 229972,
+          "productionDimensions": [
+            819,
+            1024
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/magnet/pick_selected_large.webp"
+        },
+        "PICK_ROSTER_COVER": {
+          "sourceFile": "MAGNET__PICK_ROSTER_COVER.png",
+          "sourceSha256": "eb0b18c6f8d7169b603fefb7b587f56b5615f4f56f19078763419e770b75665c",
+          "sourceBytes": 2597019,
+          "sourceDimensions": [
+            1672,
+            941
+          ],
+          "productionPathInArchive": "hero-ui/magnet/pick_roster_cover.webp",
+          "productionSha256": "4bc832ef37ec0fd7a32d42b7ba6a4d41b5f34fa778631246cf8cebb58edb0627",
+          "productionBytes": 121654,
+          "productionDimensions": [
+            1023,
+            576
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/magnet/pick_roster_cover.webp"
+        },
+        "SKILL_PASSIVE": {
+          "sourceFile": "MAGNET__SKILL_PASSIVE__ACCELERATION.png",
+          "sourceSha256": "aa8f70666a49c8b7fc50e07212b878493854bc46e9573fbd8c49dd50d52f1749",
+          "sourceBytes": 1473416,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/magnet/skill_passive.webp",
+          "productionSha256": "8c7d766797ca085bd277bc95364b9c334c47b332817153a6b95af3cb959a28ec",
+          "productionBytes": 16934,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/magnet/skill_passive.webp"
+        },
+        "SKILL_A1": {
+          "sourceFile": "MAGNET__SKILL_A1__ACQUISITION.png",
+          "sourceSha256": "f8120b4e92d752207b4a85fcfaf238aa0821debf40fee7fb7db2d6fd849e0f68",
+          "sourceBytes": 2123360,
+          "sourceDimensions": [
+            1271,
+            1238
+          ],
+          "productionPathInArchive": "hero-ui/magnet/skill_a1.webp",
+          "productionSha256": "8de37011e7fb8eacffc73af2ddfe471be98e0a5311ed9227afac7d8035affa39",
+          "productionBytes": 47272,
+          "productionDimensions": [
+            512,
+            499
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/magnet/skill_a1.webp"
+        },
+        "SKILL_A2": {
+          "sourceFile": "MAGNET__SKILL_A2__REPULSION_FIELD.png",
+          "sourceSha256": "3c1a57a22589abde79bfa72940422fa53b64c2b4fedb30f6cf7c6a58eb63ce76",
+          "sourceBytes": 1805387,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/magnet/skill_a2.webp",
+          "productionSha256": "89333853eca869f71e7354a9c81f51729ebef5d822b822aa06f4f2213c4e2998",
+          "productionBytes": 21446,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/magnet/skill_a2.webp"
+        }
+      }
+    },
+    "FROST": {
+      "sourceZip": "FROST_FINAL_ASSETS(1).zip",
+      "sourceZipSha256": "d947fea903a3640fe1d45cccebbdd205b700f02b990575f18b72eae11396a0b3",
+      "roles": {
+        "BATTLE_HUD_AVATAR": {
+          "sourceFile": "FROST__BATTLE_HUD_AVATAR.png",
+          "sourceSha256": "e9df47539171d076f8e6872feca6b1827559ef0146906e3c07f0460f4655a0cc",
+          "sourceBytes": 1162066,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/frost/battle_avatar.webp",
+          "productionSha256": "31f136ed18e5fcd6c0ec3184b79a175354659246f7edf6b6a321b1de77cdcb69",
+          "productionBytes": 51428,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/frost/battle_avatar.webp"
+        },
+        "PICK_SELECTED_LARGE": {
+          "sourceFile": "FROST__PICK_SELECTED_LARGE.png",
+          "sourceSha256": "db401c4b137c221660ea1ca3c5a30d17de26e5bb1a7e8aa3c8c2879e4f7d7a08",
+          "sourceBytes": 1031698,
+          "sourceDimensions": [
+            1080,
+            1350
+          ],
+          "productionPathInArchive": "hero-ui/frost/pick_selected_large.webp",
+          "productionSha256": "10de6615cea0ffc936f792d7cb2600a5481a796bf3273d3c88cb254af18c4601",
+          "productionBytes": 91292,
+          "productionDimensions": [
+            819,
+            1024
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/frost/pick_selected_large.webp"
+        },
+        "PICK_ROSTER_COVER": {
+          "sourceFile": "FROST__PICK_ROSTER_COVER.png",
+          "sourceSha256": "0a61b8e408dfce35ddd9d4d977cf21b1f53d88d429e5f038f1f614330000a9fc",
+          "sourceBytes": 2444801,
+          "sourceDimensions": [
+            1672,
+            940
+          ],
+          "productionPathInArchive": "hero-ui/frost/pick_roster_cover.webp",
+          "productionSha256": "10bf8d4a44e8c29f7f690b799cc92b810717f922525a89c058e9024a822e9471",
+          "productionBytes": 111200,
+          "productionDimensions": [
+            1024,
+            576
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/frost/pick_roster_cover.webp"
+        },
+        "SKILL_PASSIVE": {
+          "sourceFile": "FROST__SKILL_PASSIVE__DEEP_FROST.png",
+          "sourceSha256": "ec77456ed783c9ca27c380070e719c6a3fb0afaa099826cf56111fb0692b07a8",
+          "sourceBytes": 1716502,
+          "sourceDimensions": [
+            1024,
+            1024
+          ],
+          "productionPathInArchive": "hero-ui/frost/skill_passive.webp",
+          "productionSha256": "11b39711f1e80a732b3495ee3e9e6fbc14672a725ceb1a54e057077fc6308359",
+          "productionBytes": 20718,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/frost/skill_passive.webp"
+        },
+        "SKILL_A1": {
+          "sourceFile": "FROST__SKILL_A1__FROST_BREATH.png",
+          "sourceSha256": "40a17d80bd9ff324f5f5166b871252a6ee27a3bf2be2a74a425addd71cec7631",
+          "sourceBytes": 3511432,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/frost/skill_a1.webp",
+          "productionSha256": "6fad6a726b6e0835bfddc5f4963cdc760813d8ba4547819c0a87a78e8c114d6c",
+          "productionBytes": 71026,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/frost/skill_a1.webp"
+        },
+        "SKILL_A2": {
+          "sourceFile": "FROST__SKILL_A2__FROST_HUNT.png",
+          "sourceSha256": "08ba714ec1d971114f775d52b6db42a9f9003c05205ac438af6f63313c9f332a",
+          "sourceBytes": 3055013,
+          "sourceDimensions": [
+            1280,
+            1280
+          ],
+          "productionPathInArchive": "hero-ui/frost/skill_a2.webp",
+          "productionSha256": "649819cb453dc30a8126d6fcaed0156c5c491d0b4e0843a1a81d0390a02716b1",
+          "productionBytes": 30174,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/frost/skill_a2.webp"
+        }
+      }
+    },
+    "MIRROR": {
+      "sourceZip": "MIRROR_FINAL_ASSETS(1).zip",
+      "sourceZipSha256": "c6ddebd6e536aa9bb10e363b20576f1678609ae34fa9489bfc562c6253e1df47",
+      "roles": {
+        "BATTLE_HUD_AVATAR": {
+          "sourceFile": "MIRROR__BATTLE_HUD_AVATAR.png",
+          "sourceSha256": "050385a4a597bc20c4535857b96b3e83a0536618928d4f1d3ff9803c2c9abd7f",
+          "sourceBytes": 1865115,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/mirror/battle_avatar.webp",
+          "productionSha256": "bebbb0db1c0f4dc97bbb8e21bf1d2f17a3790c516b99fcf9133c9f59d710ae89",
+          "productionBytes": 96126,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/mirror/battle_avatar.webp"
+        },
+        "PICK_ROSTER_COVER": {
+          "sourceFile": "MIRROR__PICK_ROSTER_COVER.png",
+          "sourceSha256": "2a242c35cf3ef0585841f1ef33cc82a71bebf72b73cc7ae4984cef6091fca7ce",
+          "sourceBytes": 2089309,
+          "sourceDimensions": [
+            1672,
+            941
+          ],
+          "productionPathInArchive": "hero-ui/mirror/pick_roster_cover.webp",
+          "productionSha256": "149dac40876717098544d7a805353f6d4c0975c3b0983b771e2fab71bc696920",
+          "productionBytes": 71896,
+          "productionDimensions": [
+            1023,
+            576
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/mirror/pick_roster_cover.webp"
+        },
+        "SKILL_PASSIVE": {
+          "sourceFile": "MIRROR__SKILL_PASSIVE__SHATTERED_MIRRORS.png",
+          "sourceSha256": "a5e0d663c680d0eff311ac7472d622ece898420e2035340285835ef3dea11a57",
+          "sourceBytes": 2054179,
+          "sourceDimensions": [
+            1254,
+            1254
+          ],
+          "productionPathInArchive": "hero-ui/mirror/skill_passive.webp",
+          "productionSha256": "ea4a799bf5ee7dda3c0f6996179f890218063069f25ac0dbc4bb9b397f89ff90",
+          "productionBytes": 40694,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/mirror/skill_passive.webp"
+        },
+        "SKILL_A1": {
+          "sourceFile": "MIRROR__SKILL_A1__ARSENAL.jpeg",
+          "sourceSha256": "0270d163493ba0d3440389f3372a41014a51e652d41eff57a84bc1bc5890fe39",
+          "sourceBytes": 277277,
+          "sourceDimensions": [
+            1024,
+            1024
+          ],
+          "productionPathInArchive": "hero-ui/mirror/skill_a1.webp",
+          "productionSha256": "89767ca1593fe5fce4ad67e1b146ab9ba2c4a918596f858e26016b5bac6dc8c6",
+          "productionBytes": 35712,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/mirror/skill_a1.webp"
+        },
+        "SKILL_A2": {
+          "sourceFile": "MIRROR__SKILL_A2__EXCHANGE.png",
+          "sourceSha256": "c267c27281c3f76eb1f2c98c8c7a083272fa2b6118d775cb607426301efadebd",
+          "sourceBytes": 10226764,
+          "sourceDimensions": [
+            2048,
+            2048
+          ],
+          "productionPathInArchive": "hero-ui/mirror/skill_a2.webp",
+          "productionSha256": "fc48bca367a21e34c48832b67ed7ae0c971d16373e87594d71929be25306464d",
+          "productionBytes": 49204,
+          "productionDimensions": [
+            512,
+            512
+          ],
+          "gitPath": "public/assets/gold-ui/heroes/mirror/skill_a2.webp"
+        }
+      }
+    }
+  },
+  "uiSfx": {
+    "hud_critical_warning": {
+      "sourceFile": "05_HUD_STATE/hud_critical_warning.wav",
+      "sourceSha256": "20c3f737140257313b4e3ce4c02311802087b523d3ee23444f6aee923593874e",
+      "sourceBytes": 794530,
+      "productionPathInArchive": "ui-sfx/05_HUD_STATE/hud_critical_warning.ogg",
+      "productionSha256": "802ad0983e7f030fe702fd97a80a9cc1f19fd9378161178b9ca5996e9501e99b",
+      "productionBytes": 42915,
+      "gitPath": "public/assets/audio/ui-sfx/05_HUD_STATE/hud_critical_warning.ogg"
+    },
+    "ui_action_rejected": {
+      "sourceFile": "01_UI_CORE/ui_action_rejected.wav",
+      "sourceSha256": "d007b79c7feda43d99da74b80242fb1bf072a70df6f8e296177d8a031d0dcb11",
+      "sourceBytes": 562828,
+      "productionPathInArchive": "ui-sfx/01_UI_CORE/ui_action_rejected.ogg",
+      "productionSha256": "ab5c9722c2549d0d026826839642f333b3e046e64b3e21ddaf9d31f051e5b09f",
+      "productionBytes": 26591,
+      "gitPath": "public/assets/audio/ui-sfx/01_UI_CORE/ui_action_rejected.ogg"
+    },
+    "ui_back_cancel": {
+      "sourceFile": "01_UI_CORE/ui_back_cancel.wav",
+      "sourceSha256": "66be19b433b653739b10c257365d71d110958c8a150dc19c0948c27fec3ab5b8",
+      "sourceBytes": 222054,
+      "productionPathInArchive": "ui-sfx/01_UI_CORE/ui_back_cancel.ogg",
+      "productionSha256": "598302147092d6616ff49dd28e0ab6e7b68c7e82e5b25cc2957d617b2fab3405",
+      "productionBytes": 16180,
+      "gitPath": "public/assets/audio/ui-sfx/01_UI_CORE/ui_back_cancel.ogg"
+    },
+    "ui_button_press": {
+      "sourceFile": "01_UI_CORE/ui_button_press.wav",
+      "sourceSha256": "624aedbb1c90abf1edee9331552eeb75804a9efe72ea76f3c6835f18f4da55d4",
+      "sourceBytes": 218378,
+      "productionPathInArchive": "ui-sfx/01_UI_CORE/ui_button_press.ogg",
+      "productionSha256": "8d541a61368c295def329f5a4ac8b3ece18722305350f5917a170e2e9d0601af",
+      "productionBytes": 11604,
+      "gitPath": "public/assets/audio/ui-sfx/01_UI_CORE/ui_button_press.ogg"
+    },
+    "ui_focus_move": {
+      "sourceFile": "01_UI_CORE/ui_focus_move.wav",
+      "sourceSha256": "00270a1847195cddb82d1b10c9407880ce311f522284afaefdc218fbba70d3ed",
+      "sourceBytes": 88930,
+      "productionPathInArchive": "ui-sfx/01_UI_CORE/ui_focus_move.ogg",
+      "productionSha256": "117cc2e0e45a294a2b175cc0ee44ee729e18f2838cf8cfa235dc1a6ebdaafb24",
+      "productionBytes": 2316,
+      "gitPath": "public/assets/audio/ui-sfx/01_UI_CORE/ui_focus_move.ogg"
+    },
+    "ui_option_confirm": {
+      "sourceFile": "01_UI_CORE/ui_option_confirm.wav",
+      "sourceSha256": "8c66b12ae8d31f6a656d53b23d9eb81bde351be851b49a83677a7520e1a388a1",
+      "sourceBytes": 274068,
+      "productionPathInArchive": "ui-sfx/01_UI_CORE/ui_option_confirm.ogg",
+      "productionSha256": "2ef0fe8a46d65b4a221b80957a3db914bc5a86f1e6ec04c12600b767518cf8d0",
+      "productionBytes": 21326,
+      "gitPath": "public/assets/audio/ui-sfx/01_UI_CORE/ui_option_confirm.ogg"
+    },
+    "ui_panel_open": {
+      "sourceFile": "01_UI_CORE/ui_panel_open.wav",
+      "sourceSha256": "810ebf07e3b2aaa72e0324ed65614b42048c6023ec4bd6ecb28258eb4746ad26",
+      "sourceBytes": 201764,
+      "productionPathInArchive": "ui-sfx/01_UI_CORE/ui_panel_open.ogg",
+      "productionSha256": "75dfb253dd151a25e8047504b0c238d72c5d516be0e3479e25d0e954ffa74bf2",
+      "productionBytes": 12807,
+      "gitPath": "public/assets/audio/ui-sfx/01_UI_CORE/ui_panel_open.ogg"
+    },
+    "ui_screen_transition": {
+      "sourceFile": "01_UI_CORE/ui_screen_transition.wav",
+      "sourceSha256": "87de75447edc15e1f17473bb7303abfcef6b11fffb62f902af5b752bd82904ef",
+      "sourceBytes": 213878,
+      "productionPathInArchive": "ui-sfx/01_UI_CORE/ui_screen_transition.ogg",
+      "productionSha256": "8f4dd53dfbd89a865a9e56edb3547813293c4a95f30c4028ee08142b2cd513a4",
+      "productionBytes": 9710,
+      "gitPath": "public/assets/audio/ui-sfx/01_UI_CORE/ui_screen_transition.ogg"
+    },
+    "lucky_draw_enter_bay": {
+      "sourceFile": "04_LUCKY_DRAW/lucky_draw_enter_bay.wav",
+      "sourceSha256": "b6f580442f040b7db379251e59605b8d65f9b4baccb011d03b781c1b9ca333c1",
+      "sourceBytes": 445758,
+      "productionPathInArchive": "ui-sfx/04_LUCKY_DRAW/lucky_draw_enter_bay.ogg",
+      "productionSha256": "0483cb9e035ea80197fa31e78d92b84a5c1f9bb24488f102363dbb80b887f563",
+      "productionBytes": 27436,
+      "gitPath": "public/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_enter_bay.ogg"
+    },
+    "lucky_draw_machine_run": {
+      "sourceFile": "04_LUCKY_DRAW/lucky_draw_machine_run.wav",
+      "sourceSha256": "53c0f73d7cce9c5fcc00c098f1734d2392ee38ef8b592dc5f7eafd5623cb8b65",
+      "sourceBytes": 1694170,
+      "productionPathInArchive": "ui-sfx/04_LUCKY_DRAW/lucky_draw_machine_run.ogg",
+      "productionSha256": "29ae9f2d295cafeaa84c57b0bc9659431eb32fb8141474301ac8f9ac57dd5bb5",
+      "productionBytes": 110948,
+      "gitPath": "public/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_machine_run.ogg"
+    },
+    "lucky_draw_machine_start": {
+      "sourceFile": "04_LUCKY_DRAW/lucky_draw_machine_start.wav",
+      "sourceSha256": "3f9f6b7302417f349e31323b1f1153d089667979dfaa06e075d6bf6b7871c513",
+      "sourceBytes": 354532,
+      "productionPathInArchive": "ui-sfx/04_LUCKY_DRAW/lucky_draw_machine_start.ogg",
+      "productionSha256": "ec76aa417f702119dda658cd02b87a4c5e2bc90c293d5ba2ed712a4ea6b95f19",
+      "productionBytes": 12467,
+      "gitPath": "public/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_machine_start.ogg"
+    },
+    "lucky_draw_reveal_charge": {
+      "sourceFile": "04_LUCKY_DRAW/lucky_draw_reveal_charge.wav",
+      "sourceSha256": "81304648955817c0249091808c3724fcb77b77b9e7deaa2c4cbbc6b4fefd15ad",
+      "sourceBytes": 744266,
+      "productionPathInArchive": "ui-sfx/04_LUCKY_DRAW/lucky_draw_reveal_charge.ogg",
+      "productionSha256": "f7d764d2ca544280889106a5af4f60260695f97385884f37ecf875703a338fe7",
+      "productionBytes": 38554,
+      "gitPath": "public/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_reveal_charge.ogg"
+    },
+    "lucky_draw_reward_reveal": {
+      "sourceFile": "04_LUCKY_DRAW/lucky_draw_reward_reveal.wav",
+      "sourceSha256": "a3582c20bb580afb77c1ab8416451575c5ecb55db986c6ddb00ec2c4deab9757",
+      "sourceBytes": 265330,
+      "productionPathInArchive": "ui-sfx/04_LUCKY_DRAW/lucky_draw_reward_reveal.ogg",
+      "productionSha256": "4579a2f8972feff853b7585ed351cc9d1e408df669e8d8320113e77defe26453",
+      "productionBytes": 16780,
+      "gitPath": "public/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_reward_reveal.ogg"
+    },
+    "fighter_lock_in": {
+      "sourceFile": "02_FIGHTER_SELECT/fighter_lock_in.wav",
+      "sourceSha256": "8255e8de6596d6ca3d243df7c7817c341dc31de8c398a4b2ad04d224c9586246",
+      "sourceBytes": 193836,
+      "productionPathInArchive": "ui-sfx/02_FIGHTER_SELECT/fighter_lock_in.ogg",
+      "productionSha256": "3452b1611bee11ceaec6c63448da3de4faa2a74b4b2b5424e552d34b59184592",
+      "productionBytes": 13380,
+      "gitPath": "public/assets/audio/ui-sfx/02_FIGHTER_SELECT/fighter_lock_in.ogg"
+    },
+    "fighter_match_ready": {
+      "sourceFile": "02_FIGHTER_SELECT/fighter_match_ready.wav",
+      "sourceSha256": "7cdf6c5d5127dd7e6c66a87922fbc5698378a55b2556a8a8e74e02222d1f9103",
+      "sourceBytes": 374282,
+      "productionPathInArchive": "ui-sfx/02_FIGHTER_SELECT/fighter_match_ready.ogg",
+      "productionSha256": "e1f6b9bd2156302f797af062868cbcad26fc75b9c0e7119ba67511743bb73036",
+      "productionBytes": 20208,
+      "gitPath": "public/assets/audio/ui-sfx/02_FIGHTER_SELECT/fighter_match_ready.ogg"
+    },
+    "battle_transition_clamp_rail": {
+      "sourceFile": "03_BATTLE_TRANSITION/battle_transition_clamp_rail.wav",
+      "sourceSha256": "4c2ffc181788dbdb0a5f9af80487b454041375d1167b7c623059049ae158db21",
+      "sourceBytes": 455714,
+      "productionPathInArchive": "ui-sfx/03_BATTLE_TRANSITION/battle_transition_clamp_rail.ogg",
+      "productionSha256": "b35198abc183d0d6d35efa747a18a854471a782d3a07d0ae4be454399dc772ef",
+      "productionBytes": 20623,
+      "gitPath": "public/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_clamp_rail.ogg"
+    },
+    "battle_transition_lock_impact": {
+      "sourceFile": "03_BATTLE_TRANSITION/battle_transition_lock_impact.wav",
+      "sourceSha256": "41c54734478079c4a6c4c94de6e52644dd64f304a5a326323cdbdb237d5c629c",
+      "sourceBytes": 350732,
+      "productionPathInArchive": "ui-sfx/03_BATTLE_TRANSITION/battle_transition_lock_impact.ogg",
+      "productionSha256": "a28076b0ff2ff3371fb794147f76d3cad4985502a7425f193e1f652af84784ef",
+      "productionBytes": 25268,
+      "gitPath": "public/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_lock_impact.ogg"
+    },
+    "battle_transition_seam_open": {
+      "sourceFile": "03_BATTLE_TRANSITION/battle_transition_seam_open.wav",
+      "sourceSha256": "43964a9b142547afa8f0cfd7cb929df6482bab144ada2aecb445f3d71c688ddd",
+      "sourceBytes": 251714,
+      "productionPathInArchive": "ui-sfx/03_BATTLE_TRANSITION/battle_transition_seam_open.ogg",
+      "productionSha256": "8b5c0c17f711b1f49ea9666549ede5e015959482ae18b0ebed67a9730cef58b0",
+      "productionBytes": 12260,
+      "gitPath": "public/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_seam_open.ogg"
+    }
+  },
+  "encoding": {
+    "heroUi": {
+      "format": "WebP",
+      "quality": 80,
+      "method": 3,
+      "avatarAndSkills": "max 512x512",
+      "rosterCover": "max 1024x576",
+      "selectedLarge": "max 1024x1024",
+      "preserveAspectRatio": true,
+      "alphaPreserved": true
+    },
+    "uiSfx": {
+      "format": "Ogg Opus",
+      "bitrate": "96k",
+      "source": "18 owner-selected WAV files"
+    }
+  },
+  "gitAuthority": {
+    "branch": "arena/01a10805-apex-chaos",
+    "baseSha": "016d314fcd8465dedffeacf063f50f52e0fcfac6",
+    "heroUiRoot": "public/assets/gold-ui/heroes/",
+    "uiSfxRoot": "public/assets/audio/ui-sfx/",
+    "existingHeroAvAuthority": "docs/gold-ui/preload/APEX_CHAOS_CORE_SIX_AV_THEME_PRELOAD.zip"
+  }
+}

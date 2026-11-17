@@ -1,0 +1,45 @@
+{
+  "version": "20261004-core-six-av-theme-preload-v1",
+  "branch": "arena/01a1025a-apex-chaos",
+  "parentHead": "b5defc0bc51e98d47dca4e4672fc82a75ef14673",
+  "archive": {
+    "path": "docs/gold-ui/preload/APEX_CHAOS_CORE_SIX_AV_THEME_PRELOAD.zip",
+    "sha256": "49d8d5bf448bce7ca6475388cdf640c338bc00250fbcb577dbc7962fcfd0180f",
+    "gitBlob": "af1473a33e1979aebee4278bb070e12b6c2825aa"
+  },
+  "heroes": {
+    "ROBOT": {
+      "pack": "VFX_ONLY",
+      "runtime": "public/game/hero-rework/robotPresentationRuntime.js",
+      "sfxExisting": "public/assets/hero-rework/robot-final/sfx/"
+    },
+    "HUNTER": {
+      "pack": "VFX_ONLY",
+      "gold": "public/game/hero-rework/hunterGoldV10.js",
+      "runtime": "public/game/hero-rework/hunterPresentationRuntime.js",
+      "sfxExisting": "public/assets/hero-rework/hunter-v10/sfx/"
+    },
+    "CRYSTALA": {
+      "pack": "VFX_PLUS_CURATED_SFX"
+    },
+    "MAGNET": {
+      "pack": "VFX_PLUS_CURATED_SFX"
+    },
+    "FROST": {
+      "pack": "VFX_PLUS_CURATED_SFX"
+    },
+    "MIRROR": {
+      "pack": "VFX_PLUS_CURATED_SFX"
+    }
+  },
+  "theme": {
+    "ownerSourceName": "Forward Drive.mp3",
+    "ownerSourceSha256": "e3207b5744ad1657fd77d757bd732a71eda5a4c471e0abef7f68a121b32a2c9e",
+    "archivePath": "music/forward_drive_theme.ogg",
+    "encodedSha256": "15afd820d5ca061f374ea41ad425f795204cf2be0e1f03d641f9b1f85f6dfb9b",
+    "durationSeconds": 158.06,
+    "globalMuteKey": "M",
+    "preservePlayhead": true
+  },
+  "goldUiArtPlaceholderStatus": "UNCHANGED"
+}
