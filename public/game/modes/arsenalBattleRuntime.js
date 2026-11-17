@@ -909,8 +909,12 @@
 
   function updateArsenalBattle(dt) {
     const t0 = performance.now();
+    const rawDt = dt;
     if (hitStop > 0) { hitStop -= dt; dt *= 0.1; }
     stepSimulation(dt);
+    if (window.APEX_BEYOND_COMBAT && window.APEX_BEYOND_COMBAT.tick) {
+      window.APEX_BEYOND_COMBAT.tick(dt, rawDt);
+    }
     aqPerfMark('simulation', performance.now() - t0);
     aqPerfSampleCounts();
   }
@@ -950,6 +954,9 @@
       // Arsenal foreground; this hook moves only the surface material.
       if (window.APEX_FROST_PRESENTATION?.renderSurfaceUnderWeapons) {
         window.APEX_FROST_PRESENTATION.renderSurfaceUnderWeapons(c);
+      }
+      if (window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.() && window.APEX_BEYOND_VFX?.drawSlotEnhancements) {
+        window.APEX_BEYOND_VFX.drawSlotEnhancements(c);
       }
       SPAWN.drawSlots(c);
       aqPerfMark('pickupDraw', performance.now() - t1);
@@ -1046,6 +1053,15 @@
   function drawChamber01(c) {
     const S = GAME_SIZE;
     const t0 = performance.now();
+    if (window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.() && window.APEX_BEYOND_ARENA?.drawFloor) {
+      window.APEX_BEYOND_ARENA.drawFloor(c, S);
+      AQ_PERF.chamber.size = S;
+      AQ_PERF.chamber.draws += 1;
+      AQ_PERF.chamber.hits += 1;
+      AQ_PERF.chamber.usedCacheLast = true;
+      aqPerfMark('chamber', performance.now() - t0);
+      return;
+    }
     let usedCache = true;
     const P = window.APEX_CHAMBER_PALETTE;
     if (P && P.surface) {
@@ -1477,12 +1493,14 @@
 
   function drawForeground() {
     const t0 = performance.now();
-    const view = window.__apexCameraView || { shakeX: 0, shakeY: 0, zoom: 1 };
+    const view = window.__apexCameraView || { shakeX: 0, shakeY: 0, zoom: 1, focusX: GAME_SIZE / 2, focusY: GAME_SIZE / 2 };
+    const focusX = Number.isFinite(view.focusX) ? view.focusX : GAME_SIZE / 2;
+    const focusY = Number.isFinite(view.focusY) ? view.focusY : GAME_SIZE / 2;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.translate(GAME_SIZE / 2 + view.shakeX, GAME_SIZE / 2 + view.shakeY);
     ctx.scale(view.zoom, view.zoom);
-    ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
+    ctx.translate(-focusX, -focusY);
     const tEq = performance.now();
     // baseDraw renders two primary bodies; Quest extra Fighter anchors use
     // this world-space pass, before real equipment and VFX. No HUD takeover.
@@ -1540,7 +1558,19 @@
       window.APEX_QUEST_V12_RIG?.drawAftermath?.(ctx,fighters,AQ.state);
     AQ.state?.questBreachCompanionSkills?.draw?.(ctx);
     drawBreakerProgress(ctx,AQ.state);
+    if (window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.() && window.APEX_BEYOND_VFX?.drawForeground) {
+      window.APEX_BEYOND_VFX.drawForeground(ctx, GAME_SIZE);
+    }
+    if (window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.()) {
+      window.APEX_BEYOND_ARENA?.drawForeground?.(ctx);
+    }
     ctx.restore();
+    if (window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.() && window.APEX_BEYOND_VFX?.drawScreenForeground) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      window.APEX_BEYOND_VFX.drawScreenForeground(ctx, GAME_SIZE);
+      ctx.restore();
+    }
     syncDomHud();
     aqPerfMark('foregroundTotal', performance.now() - t0);
   }
@@ -1561,6 +1591,9 @@
     const t0 = performance.now();
     baseDraw();
     drawForeground();
+    if (window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.()) {
+      window.APEX_BEYOND_ARENA?.composite?.(1 / 60);
+    }
     aqPerfMark('arsenalFrame', performance.now() - t0);
   };
 
@@ -2350,6 +2383,10 @@
     if (window.APEX_ARSENAL_AV) { window.APEX_ARSENAL_AV.clear(); window.APEX_ARSENAL_AV.preload(); }
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     gameState = 'ARSENAL';
+    if (window.APEX_BEYOND_COMBAT) {
+      window.APEX_BEYOND_COMBAT.installHooks?.();
+      window.APEX_BEYOND_COMBAT.resetMatch?.();
+    }
     window.APEX_COMBAT_HUD?.onProjectionChanged?.();
     lastTime = performance.now();
     if (!reqId) reqId = requestAnimationFrame(loop);
@@ -2678,6 +2715,8 @@
     window.apexEndBattleAudioSession?.('arsenal:match-exit');
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
+    window.APEX_BEYOND_VFX?.reset?.();
+    window.APEX_BEYOND_ARENA?.clearScars?.();
     if (keyListener) {
       window.removeEventListener('keydown', keyListener);
       keyListener = null; // no leaked listeners

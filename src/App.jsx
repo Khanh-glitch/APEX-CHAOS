@@ -30,6 +30,7 @@ import FirstPlayGuide from './ui/FirstPlayGuide.jsx';
 import RewardToast from './ui/RewardToast.jsx';
 import AchievementToast from './ui/AchievementToast.jsx';
 import SkinUnlockCelebration from './ui/SkinUnlockCelebration.jsx';
+import FreeBattleBeyondHud from './ui/FreeBattleBeyondHud.jsx';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -1104,6 +1105,7 @@ export default function App() {
     {/* Gold is the only public product surface. The host below the Gold mount
         contains engine/combat infrastructure only; no legacy menu or picker DOM. */}
     <div id="gold-shell-host" aria-label="APEX CHAOS product surface" />
+    <FreeBattleBeyondHud />
     {/* Engine-owned battle infrastructure remains mounted for production truth.
         Gold relocates the live canvas into its authored arena during battle. */}
     <div id="battle-shell">

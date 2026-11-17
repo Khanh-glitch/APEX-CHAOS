@@ -12,7 +12,7 @@ const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261115-f7-portrait-ready-r5';
+const expectedRevision = '20261117-r5-five-arenas';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
