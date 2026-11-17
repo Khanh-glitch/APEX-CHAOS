@@ -17,7 +17,8 @@ Snapshot: `aadb387fb47c829f7749f42375b5717818c0c4fa` (17/11/2026). 1132 file đ�
 | GIỮ — Gold authority | 64 |
 | GIỮ — nguồn chạy | 57 |
 | NÊN ARCHIVE — nguồn asset | 54 |
-| GIỮ — nguồn build Gold | 53 |
+| GIỮ — nguồn build Gold | 52 |
+| NÊN ARCHIVE — fixture thiết kế | 1 |
 | GIỮ CÓ ĐIỀU KIỆN — phụ trợ QA | 46 |
 | GIỮ — Gold build | 42 |
 | GIỮ CÓ ĐIỀU KIỆN — fixture | 37 |
@@ -45,6 +46,8 @@ Snapshot: `aadb387fb47c829f7749f42375b5717818c0c4fa` (17/11/2026). 1132 file đ�
 | GIỮ — công cụ chủ game | 1 |
 
 ## Bằng chứng then chốt
+
+- **Tìm thêm file dư ngay trong Gold Result**: `result-gold/src/data/fixture.ts` chứa trận đấu mẫu cho thiết kế; `src/App.tsx` chỉ nhận payload thực và không import fixture. Subproject chạy `vite build`, nên fixture không vào runtime. Đề nghị lưu bản mẫu ở archive.
 
 - **495 shipping assets**: báo cáo CI phân loại 9 hot + 486 lazy, smoke dist PASS. Có **8 Shuri source masters** bị loại khỏi dist.
 - **73 Gold outputs**: `tools/buildGoldCutover.mjs --check` xác nhận parity từ canonical source; ZIP Gold preload thực sự được đọc/giải nén.
@@ -825,7 +828,7 @@ Snapshot: `aadb387fb47c829f7749f42375b5717818c0c4fa` (17/11/2026). 1132 file đ�
 | `result-gold/src/components/Rack.tsx` | GIỮ — nguồn build Gold | Subproject build HTML kết quả/Archive riêng, không được xóa chỉ vì không nằm trong src | tools/buildResultGold.mjs · Cao |
 | `result-gold/src/components/Weapon.tsx` | GIỮ — nguồn build Gold | Subproject build HTML kết quả/Archive riêng, không được xóa chỉ vì không nằm trong src | tools/buildResultGold.mjs · Cao |
 | `result-gold/src/data/achievements.ts` | GIỮ — nguồn build Gold | Subproject build HTML kết quả/Archive riêng, không được xóa chỉ vì không nằm trong src | tools/buildResultGold.mjs · Cao |
-| `result-gold/src/data/fixture.ts` | GIỮ — nguồn build Gold | Subproject build HTML kết quả/Archive riêng, không được xóa chỉ vì không nằm trong src | tools/buildResultGold.mjs · Cao |
+| `result-gold/src/data/fixture.ts` | NÊN ARCHIVE — fixture thiết kế | Demo match fixture không được Result Gold App import; không nằm trong Vite production entry graph | result-gold/src/App.tsx và package.json (vite build) · Cao |
 | `result-gold/src/data/ownerDecisions.json` | GIỮ — nguồn build Gold | Subproject build HTML kết quả/Archive riêng, không được xóa chỉ vì không nằm trong src | tools/buildResultGold.mjs · Cao |
 | `result-gold/src/data/types.ts` | GIỮ — nguồn build Gold | Subproject build HTML kết quả/Archive riêng, không được xóa chỉ vì không nằm trong src | tools/buildResultGold.mjs · Cao |
 | `result-gold/src/index.css` | GIỮ — nguồn build Gold | Subproject build HTML kết quả/Archive riêng, không được xóa chỉ vì không nằm trong src | tools/buildResultGold.mjs · Cao |
