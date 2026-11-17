@@ -74,3 +74,7 @@ Full read-only snapshot: [`archive/main-pre-hard-source-prune-20261117`](https:/
 This pass used the actual `pnpm build` shipping graph as its authority. It archived all 121 unreferenced `masters/` files, all 611 public asset files that the production dist excludes, and documentation not required by the current source references. It retains Gold donor/source hashes, referenced fighter Gold HTML, production media, arena docs, and exact referenced test fixtures. No `src/`, game runtime JavaScript, build script, or shipping file was changed.
 
 The archive is the recovery path for original media and excluded prototype assets. A future asset addition must be explicitly admitted into a production runtime and the shipping manifest, not merely re-added to `public/` without usage.
+
+## Active toolchain sweep
+
+Source scripts are rooted in the current GitHub Actions workflows, the local dev/build commands and their transitive relative imports. One-off tools not reachable from any active entrypoint are archived with the same pre-prune snapshot. Historical commands were also removed from `package.json`; they can be used by checking out the archival branch. The hard source prune deliberately keeps the current runtime lock, all active build/asset tooling, Gold patches and the browser-testing probe dependency.
