@@ -535,3 +535,60 @@
  .apex-beyond-hud.ab-arena-anchored .ab-ring-svg{width:22px;height:22px}
  .apex-beyond-hud.ab-arena-anchored .ab-config-btn{font-size:9px;letter-spacing:0}
 }
+
+/* Experience pass: stable targets, quiet hierarchy and viewport-safe sheets.
+   The arena stays in its original world coordinates at every quality level. */
+.apex-beyond-hud{--ab-gold:#f4cb86;--ab-paper:#eef4f8}
+.apex-beyond-hud button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.apex-beyond-hud button:focus-visible{outline:2px solid #b9e8ff;outline-offset:2px;clip-path:none}
+.apex-beyond-hud.ab-arena-anchored .ab-dock{
+  top:calc(var(--ab-arena-bottom) - 60px);bottom:auto;
+  width:min(620px,calc(var(--ab-arena-width) - 16px));max-width:none;
+  min-height:52px;padding:3px 6px;gap:6px;border-radius:7px;clip-path:none;
+  background:linear-gradient(180deg,#15212df2,#080f17f5);border:1px solid #8293a657;
+  border-top:1px solid #e4c08b8a;box-shadow:0 4px 18px #0007;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)
+}
+.apex-beyond-hud.ab-arena-anchored .ab-impulse-btn{min-height:44px;min-width:44px;flex:none;padding:5px 10px;border-radius:4px;clip-path:none}
+.apex-beyond-hud.ab-arena-anchored .ab-config-btn{min-height:44px;min-width:44px;justify-content:center;padding:5px 10px;clip-path:none;border-radius:4px;font-size:11px}
+.apex-beyond-hud .ab-settings-icon{display:none;font:24px/1 sans-serif}
+.apex-beyond-hud .ab-btn-label{font-size:11px;letter-spacing:.06em}
+.apex-beyond-hud .ab-od-head{font-size:10px;letter-spacing:0}
+.apex-beyond-hud .ab-od-track{height:4px;clip-path:none;border:0;border-radius:3px}
+.apex-beyond-hud .ab-ring-fill{transition:stroke-dashoffset .09s linear}
+.apex-beyond-hud .ab-event-banner{border-radius:5px;clip-path:none;background:#0a1219ed;gap:8px;min-height:34px}
+.apex-beyond-hud .ab-event-title{font-size:12px;letter-spacing:.04em;line-height:1.2}
+.apex-beyond-hud .ab-event-sub{font-size:10px;letter-spacing:0;line-height:1.3}
+.apex-beyond-hud .ab-hint-strip{font-size:10px;line-height:1.4;letter-spacing:0;clip-path:none;border-radius:4px;opacity:.9}
+.apex-beyond-hud.ab-compact .ab-od-meter{display:none}
+.apex-beyond-hud.ab-compact .ab-dock{width:max-content;max-width:calc(100vw - 24px)}
+.apex-beyond-hud.ab-compact .ab-od-group{flex:0 0 auto}
+.apex-beyond-hud.ab-mini .ab-btn-copy,.apex-beyond-hud.ab-mini .ab-theme-name,.apex-beyond-hud.ab-mini .ab-config-btn>.ab-swatch{display:none}
+.apex-beyond-hud.ab-mini .ab-settings-icon{display:inline}
+.apex-beyond-hud.ab-mini .ab-dock{gap:2px;padding:2px;min-height:48px;top:calc(var(--ab-arena-bottom) - 50px)}
+.apex-beyond-hud.ab-mini .ab-config-btn>span:last-child{display:none}
+.apex-beyond-hud.ab-mini .ab-impulse-btn{padding:4px 8px}
+.apex-beyond-hud.ab-mini .ab-event-sub,.apex-beyond-hud.ab-mini .ab-event-dot{display:none}
+.apex-beyond-hud.ab-mini .ab-event-banner{padding:3px 5px;gap:4px;min-height:26px}
+.apex-beyond-hud.ab-mini .ab-event-title{font-size:9px;letter-spacing:0}
+.apex-beyond-hud.ab-mini .ab-event-timer{font-size:10px;padding-left:4px}
+.apex-beyond-hud.ab-arena-anchored .ab-popover{
+  z-index:2;
+  left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%);
+  width:min(470px,calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  max-height:calc(100vh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding:16px;border-radius:8px;background:#101923fa;
+  border:1px solid #5b6e7f;border-top:2px solid #f4cb86;gap:14px;
+  overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:thin;
+  -webkit-overflow-scrolling:touch;animation:none;box-shadow:0 20px 90px #000c;
+}
+.apex-beyond-hud .ab-pop-head{gap:12px}.apex-beyond-hud .ab-pop-title{line-height:1.4;letter-spacing:.06em}
+.apex-beyond-hud .ab-pop-close{width:44px;height:44px;flex:none;background:#1e2b37;border:1px solid #62727e;border-radius:4px;color:#eef3f7}
+.apex-beyond-hud .ab-seg-btn{min-height:44px;font-size:12px;line-height:1.2;border-radius:3px}
+.apex-beyond-hud .ab-pop-label{font-size:10px;letter-spacing:.05em;color:#b6c9d6}
+.apex-beyond-hud .gx-controls{border-top:1px solid #3c4c5a;padding-top:14px}
+.apex-beyond-hud .gx-setting{font-size:14px;padding:10px 0}
+.apex-beyond-hud .gx-description{min-height:0}
+.apex-beyond-hud .ab-stat-strip{flex-wrap:wrap;gap:6px;font-size:10px;color:#b4c5d0}
+@media(prefers-reduced-motion:reduce){.apex-beyond-hud *{animation:none!important;transition:none!important}}

@@ -1,0 +1,47 @@
+/* Shared experience layer: opaque fallback first, optional blur second. */
+:root{--ux-ink:#eef4f8;--ux-muted:#9aaebb;--ux-gold:#ffc96b;--ux-line:#36434e;--ux-panel:#101820;color-scheme:dark}
+#gold-shell-host #stage #apex-display-open{display:flex;align-items:center;justify-content:space-between;min-height:48px;margin:10px 12px 0;padding:10px;border:1px solid #7b6748;background:#1c242b;color:#f7d598;font:600 12px/1.3 'Oswald','Segoe UI',sans-serif;cursor:pointer;touch-action:manipulation}
+#gold-shell-host #stage #apex-display-open:focus-visible{outline:2px solid #b9e8ff;outline-offset:2px}
+#gold-shell-host #stage #apex-language-picker.is-expanded{max-height:calc(100dvh - 90px - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain}
+#gold-shell-host #stage #apex-utility-toggle{min-width:44px;min-height:44px}
+#gold-shell-host #stage #apex-language-picker [data-apex-language-option]{min-height:44px}
+html[data-apex-motion=reduced] #battleHudHost .gfx-flash,html[data-apex-clarity=on] #battleHudHost .gfx-flash{opacity:0!important}
+html[data-apex-motion=reduced] #battleHudHost .side,html[data-apex-motion=reduced] #battleHudHost .vrail{animation:none!important}
+html[data-apex-quality=low] #battleHudHost .side-art{filter:none!important}
+.gx-launch,.gx-dialog,.gx-fps,.ux-loading{font-family:'Oswald','Segoe UI',sans-serif;box-sizing:border-box}
+.gx-launch{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:10020;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;background:#101820ed;border:1px solid #63717b;color:var(--ux-ink);font-size:11px;letter-spacing:.12em;cursor:pointer;border-radius:5px}
+.gx-launch svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7}
+body:has(#battleHudHost.is-open) .gx-launch,body:has(#apex-wave-host) .gx-launch,body.apex-scene-transition-active .gx-launch{display:none}
+.gx-fps{position:fixed;left:max(8px,env(safe-area-inset-left));top:max(4px,env(safe-area-inset-top));pointer-events:none;z-index:10022;padding:4px 7px;border-radius:3px;background:#060b10e8;color:#d5eadb;font:10px/1.4 monospace}
+.gx-backdrop{position:fixed;inset:0;z-index:2147483010;background:#03080dd9;display:grid;place-items:center;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));box-sizing:border-box;overscroll-behavior:contain}
+.gx-dialog{width:min(560px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;background:linear-gradient(135deg,#1c2933,#0d141b 70%);border:1px solid #586471;border-top:3px solid var(--ux-gold);border-radius:10px;box-shadow:0 32px 110px #000a;color:var(--ux-ink);padding:24px;scrollbar-width:thin}
+.gx-dialog header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:22px}
+.gx-eyebrow{font:10px/1.6 monospace;letter-spacing:.15em;color:var(--ux-gold)}
+.gx-dialog h2{font-size:clamp(23px,5vw,32px);line-height:1.12;letter-spacing:.025em;margin:8px 0 0;color:#f1f5f6}
+.gx-close{width:44px;height:44px;flex:none;border:1px solid #66737f;background:#0b1119;color:#dce6ed;font:28px/1 sans-serif;border-radius:5px;cursor:pointer}
+.gx-label{display:flex;justify-content:space-between;gap:10px;font:11px/1.5 monospace;letter-spacing:.08em;color:var(--ux-muted);margin-bottom:10px}
+.gx-label span{color:var(--ux-gold);text-transform:uppercase}
+.gx-presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.gx-presets button{min-width:0;min-height:46px;border:1px solid #53636e;background:#0d151d;color:#d2e0e9;border-radius:4px;font:600 13px/1.1 'Oswald','Segoe UI',sans-serif;letter-spacing:0;overflow-wrap:anywhere;padding:7px 3px;cursor:pointer}
+.gx-presets button[aria-pressed=true]{background:#ffd28a;color:#161d23;border-color:#ffe4b5;box-shadow:0 2px 12px #eab25b1a}
+.gx-description{font:12px/1.55 'Segoe UI',sans-serif;color:#b1c1cc;min-height:36px;margin:10px 0 12px}
+.gx-setting{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-top:1px solid var(--ux-line);font-size:15px;line-height:1.3;cursor:pointer}
+.gx-setting span{min-width:0}.gx-setting b{font-weight:500;color:#eff5f8}.gx-setting small{display:block;color:#adbdc8;font:11px/1.45 'Segoe UI',sans-serif;margin-top:4px}
+.gx-setting select{min-height:44px;max-width:44%;background:#080e15;color:#ecf3f7;border:1px solid #62747f;border-radius:4px;font:12px 'Segoe UI',sans-serif;padding:8px}
+.gx-setting input{appearance:none;-webkit-appearance:none;width:44px;height:26px;flex:none;border:1px solid #6b7e8c;border-radius:20px;background:#202d37;position:relative;margin:9px 0;cursor:pointer}
+.gx-setting input::after{content:'';position:absolute;left:4px;top:4px;width:16px;height:16px;border-radius:50%;background:#a4b6c1;transition:transform .16s ease}
+.gx-setting input:checked{background:#e7b762;border-color:#f3d193}.gx-setting input:checked::after{background:#1b2329;transform:translateX(18px)}
+.gx-dialog footer{font:11px/1.5 'Segoe UI',sans-serif;color:#99b1bd;border-top:1px solid var(--ux-line);padding-top:16px}
+.gx-controls button:focus-visible,.gx-controls select:focus-visible,.gx-controls input:focus-visible,.gx-close:focus-visible,.gx-launch:focus-visible,.ux-loading button:focus-visible{outline:2px solid #90dcff;outline-offset:3px}
+.ux-loading{position:fixed;z-index:2147483004;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(420px,calc(100% - 32px));padding:16px 18px;background:#0a121cf5;color:#eaf2f8;border:1px solid #465968;border-radius:8px;box-shadow:0 14px 50px #0008;pointer-events:none}
+.ux-loading-heading{display:flex;gap:12px;align-items:center}.ux-loading-mark{display:grid;place-items:center;width:36px;height:36px;flex:none;border:1px solid #f8cb76;color:#f8cb76;font-size:24px}
+.ux-loading strong{font-size:15px;font-weight:500;line-height:1.3;display:block}.ux-loading small{font:10px/1.5 'Segoe UI',sans-serif;color:#b5c5d1;display:block;margin-top:4px}
+.ux-loading-track{height:3px;background:#293a48;margin-top:13px;overflow:hidden;border-radius:4px}.ux-loading-track i{height:100%;display:block;background:#ffd08a;transition:width .2s ease}.ux-loading-track i.is-indeterminate{width:35%;animation:ux-loading 1.4s ease-in-out infinite}
+.ux-loading.is-error{pointer-events:auto;border-color:#de976c}.ux-loading button{min-height:44px;margin-top:14px;width:100%;background:#ffd08a;border:0;color:#18212a;font-weight:700;border-radius:4px;cursor:pointer}
+@keyframes ux-loading{from{transform:translateX(-100%)}to{transform:translateX(390%)}}
+html[data-apex-quality=low] .ab-dock,html[data-apex-quality=low] .ab-popover,html[data-apex-quality=low] .ab-event-banner{-webkit-backdrop-filter:none;backdrop-filter:none;background:#0a1219}
+html[data-apex-motion=reduced] .apex-beyond-hud *,html[data-apex-motion=reduced] .gx-backdrop *,html[data-apex-motion=reduced] .ux-loading *{animation:none!important;transition:none!important}
+html[data-apex-motion=reduced] .ux-loading-track i.is-indeterminate{width:100%;opacity:.5}
+@media(max-width:430px){.gx-dialog{padding:18px 14px}.gx-dialog header{margin-bottom:18px}.gx-launch{padding:0 10px}.gx-launch span{display:none}.gx-setting{gap:10px}}
+@media(max-height:460px){.gx-dialog{padding:14px 20px}.gx-dialog header{margin-bottom:12px}.gx-setting{padding:8px 0}.gx-description{min-height:0}.ux-loading{bottom:8px;padding:10px 14px}.ux-loading-mark{display:none}}
+@media(prefers-reduced-motion:reduce){.ux-loading-track i.is-indeterminate{animation:none;width:100%;opacity:.5}}

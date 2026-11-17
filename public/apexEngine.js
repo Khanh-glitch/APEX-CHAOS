@@ -2358,13 +2358,20 @@ function stopBattleFrameLoop() {
     lastTime = 0;
 }
 function loop(timestamp) {
+    if (document.hidden) {
+        lastTime = 0;
+        window.APEX_GRAPHICS?.resetFrameWindow?.();
+        reqId = requestAnimationFrame(loop);
+        return;
+    }
     // A parked engine must not redraw the previous match behind any menu.
     // Every match entry already resets lastTime and acquires the RAF lease.
     if (gameState === 'MENU' || gameState === 'SELECT') {
         stopBattleFrameLoop();
         return;
     }
-    const rawDt = Math.min(0.033, (timestamp - lastTime) / 1000 || 0);
+    if (lastTime) window.APEX_GRAPHICS?.reportFrame?.(timestamp - lastTime);
+    const rawDt = lastTime ? Math.min(0.033, (timestamp - lastTime) / 1000 || 0) : 0;
     lastTime = timestamp;
     update(rawDt * timeScale);
     if (gameState === 'MENU' || gameState === 'SELECT') {

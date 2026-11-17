@@ -13,6 +13,8 @@
   if (global.APEX_BEYOND_VFX) return;
 
   const TAU = Math.PI * 2;
+  const graphics = () => global.APEX_GRAPHICS?.getSnapshot?.();
+  const detailCount = count => Math.max(1, Math.round(count * (graphics()?.profile.density ?? 1)));
   const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
   const lerp = (a, b, t) => a + (b - a) * t;
   const easeOutCubic = (t) => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
@@ -92,6 +94,7 @@
 
   // ---- Emitters ----
   function emitSparks(x, y, count, opts = {}) {
+    count = detailCount(count);
     const color = opts.color || '#ffb84d';
     const core = opts.core || '#fff8e1';
     const baseAngle = opts.angle ?? 0;
@@ -121,6 +124,7 @@
   }
 
   function emitShards(x, y, count, opts = {}) {
+    count = detailCount(count);
     const color = opts.color || '#c7d0db';
     const edge = opts.edge || '#1a2028';
     const baseAngle = opts.angle ?? 0;
@@ -155,6 +159,7 @@
   }
 
   function emitPlumes(x, y, count, opts = {}) {
+    count = detailCount(count);
     const color = opts.color || 'rgba(182,190,200,0.42)';
     const rim = opts.rim || 'rgba(255,232,196,0.22)';
     const baseAngle = opts.angle ?? 0;
@@ -423,6 +428,7 @@
   }
 
   function getCameraTransform(baseZoom, baseShakeX, baseShakeY) {
+    if (graphics()?.reducedMotion) return { focusX: 500, focusY: 500, zoom: 1, offsetX: 0, offsetY: 0 };
     if (!cam.enabled && !ko.active) {
       return { focusX: 500, focusY: 500, zoom: baseZoom, offsetX: baseShakeX, offsetY: baseShakeY };
     }
@@ -477,7 +483,7 @@
 
     // Sample kinetic afterimage trails for fast-moving / Impulse / Overdrive fighters
     afterimageSampleAcc += dt;
-    if (afterimageSampleAcc >= 0.028 && Array.isArray(fighters)) {
+    if (afterimageSampleAcc >= 0.028 / (graphics()?.profile.density || 1) && Array.isArray(fighters) && !graphics()?.reducedMotion) {
       afterimageSampleAcc = 0;
       const combat = global.APEX_BEYOND_COMBAT?.getState?.();
       for (let i = 0; i < fighters.length; i++) {
@@ -1131,7 +1137,7 @@
     c.save();
 
     // Phase 1: Crisp 115ms Fighting-Game Impact Frame!
-    if (t < ko.impactFrameDuration) {
+    if (t < ko.impactFrameDuration && !graphics()?.reducedMotion && !graphics()?.clarity) {
       const f = 1 - t / ko.impactFrameDuration;
       // High-contrast gold/obsidian flash cut
       c.fillStyle = t < 0.05 ? `rgba(255,244,205,${(0.76 * f).toFixed(3)})` : `rgba(8,10,14,${(0.55 * f).toFixed(3)})`;

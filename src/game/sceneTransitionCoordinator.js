@@ -1,5 +1,6 @@
 import { GOLD_TRANSITION_URL } from './goldAssetManifest.js';
 import { apexAppUrl } from './appRoot.js';
+import { applyTransitionPresentation } from './transitionPresentation.js';
 
 // Absolute app-root URL: the door loads during scene transitions, long
 // after the Gold <base> exists, so a relative/absolute-path spelling
@@ -479,6 +480,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       }
       return p;
     };
+    applyTransitionPresentation(engine);
     return engine;
   };
 

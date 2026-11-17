@@ -5,6 +5,7 @@
   "packageManager": "pnpm@9.15.9",
   "type": "module",
   "scripts": {
+    "test:experience": "node --test tests/experience.test.mjs",
     "dev": "node tools/buildGoldMissionAccount.mjs && node tools/buildResultGold.mjs && node tools/buildGoldBattleComponent.mjs && vite --host 0.0.0.0 --port 5173",
     "build": "node tools/buildResultGold.mjs && node tools/buildGoldBattleComponent.mjs && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs && node tools/buildGoldMissionAccount.mjs --dist",
     "preview": "vite preview --host 0.0.0.0 --port 4173",

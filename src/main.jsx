@@ -1,4 +1,5 @@
 import React from 'react';
+import { installGraphicsQuality } from './game/graphicsQuality.js';
 import { createRoot } from 'react-dom/client';
 import { installProductSurfaceAuthority } from './game/productSurface.js';
 import { installPlayerAccountAuthority } from './game/playerAccount.js';
@@ -20,6 +21,7 @@ import './game/sideIdentity.css';
 
 // Install before React and before any deferred classic runtime can evaluate.
 installProductSurfaceAuthority(window);
+installGraphicsQuality(window);
 // A1: identity + admin authorities must exist before classic runtimes probe
 // them (economy selection override, Ctrl+Shift+F8). Cloud init is async and
 // env-gated; without Supabase env vars it reports 'cloud-unconfigured'.

@@ -169,11 +169,15 @@
   let vao = null;
   let locs = null;
   let glFailed = false;
-  let quality = 'ultra'; // 'ultra' | 'balanced' | 'off'
+  let quality = 'balanced'; // 'ultra' | 'balanced' | 'off'
   try {
     const saved = localStorage.getItem('apexEvolution.shaderQuality');
     if (saved === 'ultra' || saved === 'balanced' || saved === 'off') quality = saved;
   } catch (_) {}
+  const graphics = () => g.APEX_GRAPHICS?.getSnapshot?.();
+  function syncQuality() { if (graphics()) quality = graphics().profile.shader; }
+  g.addEventListener('apex:graphics-changed', syncQuality);
+  syncQuality();
 
   const waves = [];
   const frameLenses = [];
@@ -208,30 +212,47 @@
       // authoritative 2D game canvas at the end of the render pass.
       glCanvas = document.createElement('canvas');
       glCanvas.id = 'apex-evolution-webgl-offscreen';
+      glCanvas.addEventListener('webglcontextlost', event => {
+        event.preventDefault(); glFailed = true;
+        g.APEX_GRAPHICS?.reportGpuAvailability?.(false);
+      });
+      glCanvas.addEventListener('webglcontextrestored', () => {
+        glCanvas = null; gl = null; prog = null; tex = null; vao = null; locs = null;
+        glFailed = false; g.APEX_GRAPHICS?.reportGpuAvailability?.(true);
+      });
       const context = glCanvas.getContext('webgl2', {
         alpha: false,
         antialias: false,
         depth: false,
         stencil: false,
         premultipliedAlpha: false,
-        preserveDrawingBuffer: true,
+        preserveDrawingBuffer: false,
+        powerPreference: 'default',
       });
       if (!context) {
         glFailed = true;
+        g.APEX_GRAPHICS?.reportGpuAvailability?.(false);
         return false;
       }
       const vs = compileShader(context, context.VERTEX_SHADER, VERT_SRC);
       const fs = compileShader(context, context.FRAGMENT_SHADER, FRAG_SRC);
       if (!vs || !fs) {
         glFailed = true;
+        if (vs) context.deleteShader(vs);
+        if (fs) context.deleteShader(fs);
+        g.APEX_GRAPHICS?.reportGpuAvailability?.(false);
         return false;
       }
       const p = context.createProgram();
       context.attachShader(p, vs);
       context.attachShader(p, fs);
       context.linkProgram(p);
+      context.deleteShader(vs);
+      context.deleteShader(fs);
       if (!context.getProgramParameter(p, context.LINK_STATUS)) {
         glFailed = true;
+        context.deleteProgram(p);
+        g.APEX_GRAPHICS?.reportGpuAvailability?.(false);
         return false;
       }
       gl = context;
@@ -264,9 +285,12 @@
     // Never append the GPU surface to the Gold HUD / DOM. Its CSS cannot
     // remain aligned after Gold's ResizeObserver, scene transitions or mobile
     // layout changes. Physical pixels are matched, not CSS coordinates.
-    if (glCanvas.width !== srcCanvas.width || glCanvas.height !== srcCanvas.height) {
-      glCanvas.width = srcCanvas.width;
-      glCanvas.height = srcCanvas.height;
+    const scale = graphics()?.profile.postScale || 1;
+    const width = Math.max(16, Math.round(srcCanvas.width * scale));
+    const height = Math.max(16, Math.round(srcCanvas.height * scale));
+    if (glCanvas.width !== width || glCanvas.height !== height) {
+      glCanvas.width = width;
+      glCanvas.height = height;
     }
     return true;
   }
@@ -329,6 +353,8 @@
       overdriveTint = Math.max(0, Math.min(1, Number(val) || 0));
     },
     stepAndComposite(dt = 1 / 60) {
+      const preferences = graphics();
+      const calm = preferences?.reducedMotion || preferences?.clarity;
       for (let i = waves.length - 1; i >= 0; i--) {
         const w = waves[i];
         w.r += w.spd * dt;
@@ -358,7 +384,7 @@
         waveArr[i * 4 + 2] = w.r;
         waveArr[i * 4 + 3] = w.str;
         waveMetaArr[i * 4] = w.width;
-        waveMetaArr[i * 4 + 1] = w.chroma;
+        waveMetaArr[i * 4 + 1] = calm ? 0 : w.chroma;
         waveMetaArr[i * 4 + 2] = fade * fade;
         waveMetaArr[i * 4 + 3] = 0;
       }
@@ -396,16 +422,16 @@
         gl.uniform1i(locs.uScene, 0);
         gl.uniform2f(locs.uRes, glCanvas.width, glCanvas.height);
         gl.uniform1f(locs.uTime, performance.now() * 0.001);
-        gl.uniform1f(locs.uBloomGain, quality === 'ultra' ? 0.56 : 0.28);
+        gl.uniform1f(locs.uBloomGain, (quality === 'ultra' ? 0.56 : 0.28) * (calm ? 0.45 : 1));
         gl.uniform1f(locs.uOverdriveTint, overdriveTint);
 
-        gl.uniform1i(locs.uWaveCount, wCount);
+        gl.uniform1i(locs.uWaveCount, preferences?.reducedMotion ? 0 : wCount);
         if (wCount > 0) {
           gl.uniform4fv(locs.uWaves, waveArr);
           gl.uniform4fv(locs.uWaveMeta, waveMetaArr);
         }
 
-        gl.uniform1i(locs.uLensCount, lCount);
+        gl.uniform1i(locs.uLensCount, calm ? 0 : lCount);
         if (lCount > 0) gl.uniform4fv(locs.uLenses, lensArr);
 
         gl.uniform1i(locs.uLightCount, ltCount);
@@ -431,6 +457,7 @@
         }
       } catch (err) {
         glFailed = true;
+        g.APEX_GRAPHICS?.reportGpuAvailability?.(false);
         console.warn('[ApexEvolutionShader] GPU post-FX disabled; raw game canvas remains playable', err);
       }
 

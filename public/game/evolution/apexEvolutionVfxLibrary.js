@@ -276,6 +276,7 @@
   for (let i = 0; i < MAX_P; i++) pool.push({ on: false });
 
   function emit(opts) {
+    if (live >= (g.APEX_GRAPHICS?.getSnapshot?.().profile.particles || MAX_P)) return null;
     ensureBaked();
     let p = null;
     for (let i = 0; i < MAX_P; i++) { if (!pool[i].on) { p = pool[i]; break; } }
@@ -303,6 +304,7 @@
   }
 
   function burst(x, y, n, cfg) {
+    n = Math.max(1, Math.round(n * (g.APEX_GRAPHICS?.getSnapshot?.().profile.density ?? 1)));
     for (let i = 0; i < n; i++) {
       const a = cfg.angle == null ? Math.random() * TAU : cfg.angle + rnd(-(cfg.spread || 0.3), cfg.spread || 0.3);
       const sp = rnd(cfg.speedMin || 80, cfg.speedMax || 320);

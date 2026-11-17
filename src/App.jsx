@@ -31,6 +31,9 @@ import RewardToast from './ui/RewardToast.jsx';
 import AchievementToast from './ui/AchievementToast.jsx';
 import SkinUnlockCelebration from './ui/SkinUnlockCelebration.jsx';
 import FreeBattleBeyondHud from './ui/FreeBattleBeyondHud.jsx';
+import GraphicsSettings from './ui/GraphicsSettings.jsx';
+import LoadingStatus from './ui/LoadingStatus.jsx';
+import { connectGraphicsFrame } from './game/graphicsQuality.js';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -438,6 +441,7 @@ export default function App() {
       Object.assign(cover.style,{position:'fixed',inset:'0',zIndex:'900',background:'#090c11',
         opacity:'0',pointerEvents:'none',isolation:'isolate'});
       const frame=document.createElement('iframe');
+      const disconnectGraphics = connectGraphicsFrame(frame);
       frame.id='wave';frame.title='APEX CHAOS · BOT WAVE — BOXE / ARSENAL SURVIVAL';
       frame.allow='autoplay; fullscreen';
       Object.assign(frame.style,{position:'absolute',inset:'0',width:'100%',height:'100%',border:'0'});
@@ -488,6 +492,7 @@ export default function App() {
       window.addEventListener('popstate',onPop);
       window.addEventListener('message',onMessage);
       const cleanup=()=>{window.removeEventListener('popstate',onPop);
+        disconnectGraphics();
         window.removeEventListener('message',onMessage);
         document.body.classList.remove('apex-bot-wave-active')};
       const waitReady=()=>new Promise((resolve,reject)=>{
@@ -1030,6 +1035,7 @@ export default function App() {
             retireStart();
           }, { capture: true });
           document.body.appendChild(start);
+          window.dispatchEvent(new CustomEvent('apex:start-ready'));
           stopStartGuard = attachBootStartViewportGuard(start);
           // Fallback for a hard-reloaded/deep-linked Wave route. The normal
           // Wave entry never reloads React; this one-shot resume prevents
@@ -1106,6 +1112,8 @@ export default function App() {
         contains engine/combat infrastructure only; no legacy menu or picker DOM. */}
     <div id="gold-shell-host" aria-label="APEX CHAOS product surface" />
     <FreeBattleBeyondHud />
+    <GraphicsSettings />
+    <LoadingStatus />
     {/* Engine-owned battle infrastructure remains mounted for production truth.
         Gold relocates the live canvas into its authored arena during battle. */}
     <div id="battle-shell">

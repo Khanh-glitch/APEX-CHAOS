@@ -233,6 +233,7 @@ function mountPicker(){
     +'<button type="button" id="apex-language-eng" data-apex-language-option="eng" aria-pressed="false">ENG</button>'
     +'<button type="button" id="apex-language-vie" data-apex-language-option="vie" aria-pressed="false">VIE</button>'
     +'</span></div>'
+    +'<button type="button" id="apex-display-open" aria-label="Display settings / Cài đặt hình ảnh">DISPLAY / HÌNH ẢNH <span aria-hidden="true">↗</span></button>'
     +'<div class="apex-utility-help-label">GUIDE / HƯỚNG DẪN</div>';
   stage.appendChild(picker);
   pickerEl=picker;
@@ -269,6 +270,10 @@ function mountPicker(){
     const btn=event.target?.closest?.('[data-apex-language-option]');
     if(btn){setLanguage(btn.dataset.apexLanguageOption);collapse();toggle.focus({preventScroll:true});}
     if(event.target?.closest?.('#apex-guide-open'))collapse();
+    if(event.target?.closest?.('#apex-display-open')){
+      collapse(); toggle.focus({preventScroll:true});
+      window.dispatchEvent(new CustomEvent('apex:open-graphics'));
+    }
   });
   document.addEventListener('pointerdown',(event)=>{
     if(!picker.hidden&&!picker.contains(event.target)&&!toggle.contains(event.target))collapse();

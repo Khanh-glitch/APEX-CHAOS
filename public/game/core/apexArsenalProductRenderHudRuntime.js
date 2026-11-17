@@ -23,11 +23,19 @@
     ctx.save();
 
     try {
-      const shakeX = rand(-cameraShake, cameraShake);
-      const shakeY = rand(-cameraShake, cameraShake);
-      ctx.translate(GAME_SIZE / 2 + shakeX, GAME_SIZE / 2 + shakeY);
-      ctx.scale(cameraZoom, cameraZoom);
-      ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
+      const preferences = window.APEX_GRAPHICS?.getSnapshot?.();
+      const freeBattle = window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.();
+      const shakeX = preferences?.reducedMotion ? 0 : rand(-cameraShake, cameraShake);
+      const shakeY = preferences?.reducedMotion ? 0 : rand(-cameraShake, cameraShake);
+      const view = freeBattle && window.APEX_BEYOND_VFX?.getCameraTransform
+        ? window.APEX_BEYOND_VFX.getCameraTransform(cameraZoom, shakeX, shakeY)
+        : { focusX: GAME_SIZE / 2, focusY: GAME_SIZE / 2, zoom: preferences?.reducedMotion ? 1 : cameraZoom, offsetX: shakeX, offsetY: shakeY };
+      // The equipment/foreground pass must consume the EXACT camera that drew
+      // the bodies. The previous core renderer never published this transform.
+      window.__apexCameraView = { focusX: view.focusX, focusY: view.focusY, zoom: view.zoom, shakeX: view.offsetX, shakeY: view.offsetY };
+      ctx.translate(GAME_SIZE / 2 + view.offsetX, GAME_SIZE / 2 + view.offsetY);
+      ctx.scale(view.zoom, view.zoom);
+      ctx.translate(-view.focusX, -view.focusY);
 
       drawBackground(ctx);
       drawProjectiles(ctx);
@@ -41,6 +49,7 @@
         });
       }
 
+      if (freeBattle) window.APEX_BEYOND_VFX?.drawFighterUnderlay?.(ctx);
       for (let i = 0; i < 2; i++) {
         const fighter = fighters[i];
         if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') {
@@ -48,6 +57,7 @@
           fighter.draw(ctx);
         }
       }
+      if (freeBattle) window.APEX_BEYOND_VFX?.drawFighterOverlay?.(ctx);
       if (window.APEX_ROBOT_PRESENTATION && typeof window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay === 'function') {
         window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay(ctx);
       }
@@ -73,7 +83,8 @@
         if (text && typeof text.draw === 'function') text.draw(ctx);
       }
       if (arenaFlash.a > 0) {
-        ctx.fillStyle = `rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a})`;
+        const flashScale = preferences?.reducedMotion ? 0 : preferences?.clarity ? 0.25 : 1;
+        ctx.fillStyle = `rgba(${arenaFlash.r},${arenaFlash.g},${arenaFlash.b},${arenaFlash.a * flashScale})`;
         ctx.fillRect(0, 0, GAME_SIZE, GAME_SIZE);
       }
       // CP3: no head tags after the flash — side identity is the

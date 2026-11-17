@@ -381,7 +381,8 @@
     c.restore();
     // motes
     const mc = activeArena.id === 'cryo_vault' ? '140,238,255' : activeArena.id === 'prism_sanctum' ? '205,148,255' : activeArena.id === 'lorentz_railyard' ? '114,239,255' : activeArena.id === 'tournament_pro' ? '255,255,255' : '255,158,64';
-    for (const m of R.motes) { c.fillStyle = `rgba(${mc},${m.a * 0.42})`; c.beginPath(); c.arc(m.x, m.y, m.sz, 0, TAU); c.fill(); }
+    if (g.APEX_GRAPHICS?.getSnapshot?.().profile.ambience !== false)
+      for (const m of R.motes) { c.fillStyle = `rgba(${mc},${m.a * 0.42})`; c.beginPath(); c.arc(m.x, m.y, m.sz, 0, TAU); c.fill(); }
     c.restore();
   }
 

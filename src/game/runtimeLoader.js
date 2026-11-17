@@ -12,6 +12,7 @@ import {
 import { beginPerfSpan, markBootPhase } from './performanceMetrics.js';
 import { AUDIO_WARM_BANKS } from './audioWarmBanks.generated.js';
 import { apexAppUrl } from './appRoot.js';
+import { beginLoading } from './loadingProgress.js';
 
 // Audio 2B — tiered audio preparation. Runs when a group's scripts have all
 // evaluated, so lazily-constructed HTMLAudioElements / runtime
@@ -105,6 +106,7 @@ export function loadClassicRuntime(src, dataKey) {
       } catch (_) {}
     };
     const cleanup = () => {
+      clearTimeout(timeout);
       runtime.removeEventListener('load', handleLoad);
       runtime.removeEventListener('error', handleError);
       window.removeEventListener('error', onEvaluationError, true);
@@ -131,6 +133,7 @@ export function loadClassicRuntime(src, dataKey) {
       finish();
     };
     const handleError = () => finish(runtimeAdmissionError(src, 'script network/load error'));
+    const timeout = setTimeout(() => finish(runtimeAdmissionError(src, 'script load timed out')), 30000);
     window.addEventListener('error', onEvaluationError, true);
     runtime.addEventListener('load', handleLoad, { once: true });
     runtime.addEventListener('error', handleError, { once: true });
@@ -146,7 +149,9 @@ export function loadClassicRuntime(src, dataKey) {
   return gate;
 }
 
-async function loadRuntimeList(runtimes) {
+async function loadRuntimeList(runtimes, { track = true } = {}) {
+  const progress = track ? beginLoading('boot', runtimes.length) : null;
+  try {
   for (const [src, dataKey, options = {}] of runtimes) {
     try {
       await loadClassicRuntime(src, dataKey);
@@ -154,7 +159,10 @@ async function loadRuntimeList(runtimes) {
       if (!options.optional) throw error;
       console.warn(`[asset-loader] Optional runtime failed: ${src}`);
     }
+    progress?.step();
   }
+  progress?.finish();
+  } catch (error) { progress?.fail(); throw error; }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +229,7 @@ async function pumpQueue() {
 // entries the group also needs are adopted (moved, keeping their settle
 // promise) so patch chains keep their relative order and the click waits only
 // for its own dependencies — never for unrelated background work.
-function enqueueGroup(runtimes, { priority = false } = {}) {
+function enqueueGroup(runtimes, { priority = false, label = 'surface' } = {}) {
   if (fatalRuntimeFailure) return Promise.reject(fatalRuntimeFailure);
   const entries = [];
   for (const tuple of runtimes) {
@@ -270,14 +278,16 @@ function enqueueGroup(runtimes, { priority = false } = {}) {
       if (!loadQueue.includes(entry)) loadQueue.push(entry);
     }
   }
+  const progress = priority ? beginLoading(label, entries.length) : null;
   void pumpQueue();
-  return Promise.all(entries.map((e) => e.promise));
+  return Promise.all(entries.map((e) => e.promise.then(value => { progress?.step(); return value; })))
+    .then(value => { progress?.finish(); return value; }, error => { progress?.fail(); throw error; });
 }
 
 let productMusicBootPromise = null;
 export function loadProductMusicBootRuntime() {
   if (productMusicBootPromise) return productMusicBootPromise;
-  productMusicBootPromise = loadRuntimeList(PRODUCT_MUSIC_BOOT_RUNTIMES).catch((error) => {
+  productMusicBootPromise = loadRuntimeList(PRODUCT_MUSIC_BOOT_RUNTIMES, { track: false }).catch((error) => {
     productMusicBootPromise = null;
     throw error;
   });
@@ -359,7 +369,7 @@ export function loadBattleGameRuntimes(heroIds) {
   }
   if (battleRuntimePromises.has(key)) return battleRuntimePromises.get(key);
   publishBattleRuntimeState(key, heroIds, false);
-  const gate = enqueueGroup(runtimes, { priority: true })
+  const gate = enqueueGroup(runtimes, { priority: true, label: 'battle' })
     .then(() => {
       battleRuntimeReadyKeys.add(key);
       publishBattleRuntimeState(key, heroIds, true);
@@ -403,6 +413,8 @@ function yieldToIdleBudget() {
   });
 }
 export async function scheduleDeferredGameRuntimes() {
+  // Do not spend a metered connection on speculative script downloads.
+  if (navigator.connection?.saveData || /(^|-)2g$/.test(navigator.connection?.effectiveType || '')) return;
   const start = () => {
     markBootPhase('warmup-start');
     // Prefetch the Arsenal hub critical path scripts immediately so a cold
@@ -410,6 +422,10 @@ export async function scheduleDeferredGameRuntimes() {
     try { hintRuntimeSources(ARSENAL_HUB_RUNTIMES, 'prefetch'); } catch (error) {}
     (async () => {
       for (let i = 0; i < WARMUP_GROUP_SEQUENCE.length; i++) {
+        if (document.hidden) await new Promise(resolve => {
+          const visible = () => { if (!document.hidden) { document.removeEventListener('visibilitychange', visible); resolve(); } };
+          document.addEventListener('visibilitychange', visible);
+        });
         try {
           // Background warmup never preempts an in-flight route intent.
           await loadDeferredGameRuntimes(WARMUP_GROUP_SEQUENCE[i], { priority: false });
