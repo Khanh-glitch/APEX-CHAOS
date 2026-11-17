@@ -1,0 +1,57 @@
+name: Maintenance - regenerate Gold and import verified screenshots
+on:
+  push:
+    branches: [maintenance/readme-repository-cleanup-20261117]
+    paths: ['tools/maintenance/reconcile-gold.trigger']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - name: Restore pinned dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Regenerate canonical Gold output
+        run: |
+          node tools/buildGoldCutover.mjs
+          node tools/buildGoldCutover.mjs --check
+          git diff --stat
+          # A deterministic generator may only rewrite the Gold output and its source manifest.
+          git diff --name-only | while IFS= read -r changed; do
+            case "$changed" in
+              public/gold/*|src/game/goldAssetManifest.js) ;;
+              *) echo "Unexpected generator side effect: $changed"; exit 1 ;;
+            esac
+          done
+      - uses: actions/download-artifact@v4
+        with:
+          name: apex-chaos-five-arenas-chrome-evidence-5ae65ac8a78f15a3e961b7c46c6f7de49aee5084
+          github-token: ${{ github.token }}
+          run-id: 44002221550
+          path: .tmp/accepted-chrome-evidence
+      - name: Promote actual verified game screenshots
+        run: |
+          test -s .tmp/accepted-chrome-evidence/desktop-04-live-bot.png
+          test -s .tmp/accepted-chrome-evidence/desktop-02-home.png
+          mkdir -p docs/media
+          cp .tmp/accepted-chrome-evidence/desktop-04-live-bot.png docs/media/apex-chaos-battle.png
+          cp .tmp/accepted-chrome-evidence/desktop-02-home.png docs/media/apex-chaos-home.png
+      - name: Commit deterministic outputs on maintenance branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/gold src/game/goldAssetManifest.js docs/media/
+          if git diff --cached --quiet; then echo "No changed files"; exit 1; fi
+          git commit -m "chore(gold): reconcile generated Gold shell and attach verified game captures"
+          git push origin HEAD:maintenance/readme-repository-cleanup-20261117
