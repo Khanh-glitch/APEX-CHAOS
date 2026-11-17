@@ -1,5 +1,4 @@
-# ⚡ APEX CHAOS
-
+# APEX CHAOS
 <p align="center">
   <strong>Fast-paced Top-Down HTML5 Arena Action • Distinct Fighters • Five Dynamic Battlefields</strong>
 </p>
@@ -7,7 +6,7 @@
 <p align="center">
   <a href="https://realbae.itch.io/apex-chaos"><img src="https://img.shields.io/badge/🎮_Play_Now-itch.io-fa5c5c?style=for-the-badge&logo=itchdotio&logoColor=white" alt="Play on itch.io" /></a>
   <img src="https://img.shields.io/badge/Platform-Desktop_%7C_Mobile_Web-blue?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Platform" />
-  <img src="https://img.shields.io/badge/Engine-HTML5_Canvas_+_React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 18" />
+  <img src="https://img.shields.io/badge/Engine-HTML5_Canvas_%2B_React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 18" />
   <img src="https://img.shields.io/badge/Bundler-Vite_5-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
   <img src="https://img.shields.io/badge/Access-Guest--First_(No_Login)-2ea44f?style=for-the-badge" alt="Guest First" />
 </p>
@@ -19,7 +18,9 @@
 </p>
 
 <p align="center">
-  👉 <strong><a href="https://realbae.itch.io/apex-chaos">▶ PLAY APEX CHAOS INSTANTLY IN YOUR BROWSER</a></strong> 👈
+  <a href="https://realbae.itch.io/apex-chaos">
+    <img src="https://img.shields.io/badge/▶%20CLICK%20TO%20PLAY%20INSTANTLY%20IN%20YOUR%20BROWSER-FA5C5C?style=for-the-badge&logo=googlechrome&logoColor=white" height="42" alt="Play in Browser" />
+  </a>
 </p>
 
 ---
@@ -124,6 +125,8 @@ The archive branch preserves canonical Gold design files, QA test suites, origin
 ---
 
 <p align="center">
-  Crafted with passion for fast-paced arcade brawling. Ready to enter the arena? <br>
-  👉 <strong><a href="https://realbae.itch.io/apex-chaos">Play APEX CHAOS on itch.io</a></strong>
+  <em>Crafted with passion for fast-paced arcade brawling. Ready to enter the arena?</em><br><br>
+  <a href="https://realbae.itch.io/apex-chaos">
+    <img src="https://img.shields.io/badge/🎮%20PLAY%20APEX%20CHAOS%20ON%20ITCH.IO-FF2449?style=for-the-badge&logo=itchdotio&logoColor=white" height="42" alt="Play APEX CHAOS on itch.io" />
+  </a>
 </p>
