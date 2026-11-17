@@ -6778,9 +6778,10 @@ const _ownerStageStyle=document.createElement('style');_ownerStageStyle.textCont
    const go=UI['w-go'],oldText=go.textContent;
    go.disabled=true;go.textContent='ARMING · NATIVE ARSENAL SFX';
    try{
-    await ARMORY.ensureAudio();
+    const audioReadiness=await ARMORY.ensureAudio();
     if(state.phase==='intro'||state.phase==='intermission'){
      engine.paused=false;UI['wave-modal'].hidden=true;startWave();
+     if(audioReadiness?.silent)setWaveToast('AUDIO OFF · CHƠI Ở CHẾ ĐỘ YÊN LẶNG',5);
     }
    }catch(error){
     console.error('[BOT WAVE] Native SFX admission failed; no silent fallback',error);

@@ -1,8 +1,32 @@
 // Extracted verbatim from apexEngine.js; keep classic-script globals available.
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-var battleAudioMaster = audioCtx.createGain();
+var AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+var audioCtx = null;
+try {
+    if (typeof AudioContextConstructor === 'function') audioCtx = new AudioContextConstructor();
+} catch (error) {
+    // Some embedded hosts expose the constructor but deny context creation.
+}
+var battleAudioUnavailable = !audioCtx;
+if (battleAudioUnavailable) {
+    // A few embedded WebKit hosts omit Web Audio entirely. Keep gameplay
+    // available there and reuse the existing silent-audio policy so combat
+    // cues become no-ops instead of aborting the app during boot.
+    window.__apexAudioUnavailable = true;
+    window.__apexStatsSilent = true;
+}
+var silentAudioParam = {
+    value: 1,
+    setValueAtTime: function () {},
+    cancelScheduledValues: function () {},
+    exponentialRampToValueAtTime: function () {},
+};
+var battleAudioMaster = audioCtx ? audioCtx.createGain() : {
+    gain: silentAudioParam,
+    connect: function () {},
+    disconnect: function () {},
+};
 battleAudioMaster.gain.value = 1;
-battleAudioMaster.connect(audioCtx.destination);
+if (audioCtx) battleAudioMaster.connect(audioCtx.destination);
 var battleAudioFadeTimer = null;
 var battleMediaElements = new Set();
 var activeBattleMediaElements = new Set();
@@ -52,7 +76,7 @@ function armBattleAudioUnlock() {
     window.addEventListener('keydown', unlockBattleAudioFromGesture, true);
 }
 armBattleAudioUnlock();
-if (audioCtx.addEventListener) {
+if (audioCtx && audioCtx.addEventListener) {
     audioCtx.addEventListener('statechange', () => {
         if (audioCtx.state === 'running') removeBattleAudioUnlockListeners();
         else armBattleAudioUnlock();
@@ -60,11 +84,11 @@ if (audioCtx.addEventListener) {
 }
 if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && audioCtx.state !== 'running') armBattleAudioUnlock();
+        if (!document.hidden && (!audioCtx || audioCtx.state !== 'running')) armBattleAudioUnlock();
     });
 }
 window.addEventListener('pageshow', () => {
-    if (audioCtx.state !== 'running') armBattleAudioUnlock();
+    if (!audioCtx || audioCtx.state !== 'running') armBattleAudioUnlock();
 });
 
 function registerBattleMediaElement(audio) {
@@ -75,7 +99,7 @@ function registerBattleMediaElement(audio) {
     }
     audio.__apexBattleRegistered = true;
     try {
-        if (!audio.__apexBattleMediaSource) {
+        if (audioCtx && !audio.__apexBattleMediaSource) {
             audio.__apexBattleMediaSource = audioCtx.createMediaElementSource(audio);
             audio.__apexBattleMediaSource.connect(battleAudioMaster);
         }
@@ -191,6 +215,7 @@ function restoreBattleAudio() {
     battleAudioMaster.gain.setValueAtTime(1, now);
 }
 function fadeBattleAudio(duration = .85, stopAfter = false) {
+    if (!audioCtx) return;
     if (battleAudioFadeTimer) {
         clearInterval(battleAudioFadeTimer);
         battleAudioFadeTimer = null;
@@ -271,7 +296,7 @@ function beginBattleAudioSession(reason) {
     // Do not manufacture playback. If the browser suspended WebAudio, the
     // existing trusted-gesture bridge owns resume() and the probe below makes
     // that state visible instead of silently guessing.
-    if (audioCtx.state !== 'running') armBattleAudioUnlock();
+    if (!audioCtx || audioCtx.state !== 'running') armBattleAudioUnlock();
 }
 function endBattleAudioSession(reason) {
     terminateBattleAudioPlayback();
@@ -283,7 +308,7 @@ function endBattleAudioSession(reason) {
     };
     // No auto-restore timer: the master stays silent until the next explicit
     // beginBattleAudioSession().
-    const now = audioCtx.currentTime;
+    const now = audioCtx?.currentTime ?? 0;
     battleAudioMaster.gain.cancelScheduledValues(now);
     battleAudioMaster.gain.setValueAtTime(.001, now);
 }
@@ -305,8 +330,8 @@ function apexBattleAudioSessionState() {
     try { masterGain = battleAudioMaster.gain.value; } catch (error) {}
     const session = window.apexBattleAudioSessionInfo ? window.apexBattleAudioSessionInfo() : null;
     return {
-        contextState: audioCtx.state,
-        contextTime: audioCtx.currentTime,
+        contextState: audioCtx?.state || 'unavailable',
+        contextTime: audioCtx?.currentTime || 0,
         unlockArmed: battleAudioUnlockArmed,
         masterGain,
         activeMediaElements: activeBattleMediaElements.size,

@@ -226,7 +226,15 @@ function build({engine,config,campaign,cue,rand}){
   // wave shots to have no audible sample until fetch/decode completed.
   // Do not trim or substitute clips: retain every original sample.
   engine.initAudio();
-  if(!engine.actx)return Promise.reject(Error('WAVE_AUDIO_CONTEXT_UNAVAILABLE'));
+  if(!engine.actx){
+   // Embedded WebKit hosts without Web Audio can still run the campaign.
+   // Keep the authored clip policy intact by playing silently instead of
+   // inventing substitute weapon sounds or trapping the player at the intro.
+   engine.opts.sound=false;
+   window.__apexAudioUnavailable=true;
+   window.__apexStatsSilent=true;
+   return Promise.resolve({silent:true,reason:'WAVE_AUDIO_CONTEXT_UNAVAILABLE'});
+  }
   if(!native.av?.warmAudio)return Promise.reject(Error('WAVE_ARSENAL_SFX_UNAVAILABLE'));
   if(!audioWarmPromise){
    audioWarmPromise=native.av.warmAudio().catch(error=>{

@@ -7,7 +7,7 @@
 // stale cache during owner browser verification.
 import { apexAppUrl } from './appRoot.js';
 
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261117-r6-adaptive-experience';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261117-r7-webkit-audio-fallback';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
