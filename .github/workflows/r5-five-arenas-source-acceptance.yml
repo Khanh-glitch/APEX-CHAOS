@@ -1,8 +1,11 @@
-name: R5 Five Arenas Source Acceptance
+name: APEX CHAOS Production / HTML5 Acceptance
 on:
   push:
     branches:
-      - release/r5-five-arenas-source-20261117
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,6 +29,7 @@ jobs:
           node scripts/check-arena-integration.mjs
           node scripts/check-arena-boundaries.mjs
           node tools/testRuntimeRevisionGate.mjs
+          node tools/buildGoldCutover.mjs --check
           node --check public/apexEngine.js
           node --check public/game/modes/arsenalBattleRuntime.js
       - name: Build production Gold HTML5
