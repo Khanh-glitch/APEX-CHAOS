@@ -4,7 +4,17 @@
 
 **[▶ Play APEX CHAOS on itch.io](https://realbae.itch.io/apex-chaos)**
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Khanh-glitch/APEX-CHAOS/aadb387fb47c829f7749f42375b5717818c0c4fa/docs/media/apex-chaos-home.png" alt="APEX CHAOS — actual in-game Home screen" width="900" />
+</p>
+
 APEX CHAOS is a top-down HTML5 action game with BOT Battle, Local 1v1 and BOT WAVE. Combat includes character-specific skills, arsenal weapon pickups and five Total Evolution arenas: Scrap Basin Foundry, Cryo-Turbine Vault, Lorentz Railyard, Obsidian Prism Sanctum and APEX Tournament Pro. The game runs in desktop and mobile browsers. The public build is **guest-first**.
+
+## Gameplay preview
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Khanh-glitch/APEX-CHAOS/aadb387fb47c829f7749f42375b5717818c0c4fa/docs/media/apex-chaos-battle.png" alt="APEX CHAOS — actual arena battle screenshot" width="900" />
+</p>
 
 ## This branch contains only the shipping game and its minimum build inputs
 
