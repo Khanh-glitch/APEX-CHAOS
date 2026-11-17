@@ -1,0 +1,20 @@
+name: Source hygiene R2 dependency inventory
+on:
+  push:
+    branches: [maintenance/source-hygiene-r2-20261117]
+    paths: ['tools/maintenance/cleanupR2Audit.mjs', '.github/workflows/source-hygiene-r2-inventory.yml']
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: node tools/maintenance/cleanupR2Audit.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-hygiene-r2-audit
+          path: reports/cleanup-r2-audit.json
+          retention-days: 5
