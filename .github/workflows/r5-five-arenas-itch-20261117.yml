@@ -1,0 +1,31 @@
+name: R5 verified itch base transfer (isolated)
+on:
+  push:
+    branches: [fix/r5-five-arenas-itch-20261117]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r5-base:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve exact verified R5 release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download owner-html5-f7-f8-20261101-r5 \
+            --repo Khanh-glitch/APEX-CHAOS \
+            --pattern 'APEX-CHAOS-owner-F7-F8-HTML5-r5.zip' \
+            --dir .
+          echo 'c36510a4cf32e0f8dd73b7c685cddae94eccb17beddd954a43465625eda34b24  APEX-CHAOS-owner-F7-F8-HTML5-r5.zip' | sha256sum --check
+          unzip -t APEX-CHAOS-owner-F7-F8-HTML5-r5.zip >/dev/null
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r5.zip | grep -Fx 'index.html'
+          unzip -Z1 APEX-CHAOS-owner-F7-F8-HTML5-r5.zip | grep -Fx 'portrait-studio.html'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-verified-r5-base
+          path: APEX-CHAOS-owner-F7-F8-HTML5-r5.zip
+          compression-level: 0
+          retention-days: 7
