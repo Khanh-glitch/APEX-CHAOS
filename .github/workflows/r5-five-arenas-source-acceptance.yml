@@ -43,6 +43,20 @@ jobs:
           done
           (cd dist-itch-html5 && zip -qr -9 ../APEX-CHAOS-R5-5-ARENAS-SOURCE-BUILD-ITCH.zip .)
           unzip -t APEX-CHAOS-R5-5-ARENAS-SOURCE-BUILD-ITCH.zip >/dev/null
+      - name: Real Chromium nested itch + Gold battle smoke
+        run: |
+          npm ci --prefix tools/probe --ignore-scripts
+          CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_PATH"
+          CHROME_PATH="$CHROME_PATH" node tools/testOwnerItchPackagedChrome.mjs
+      - name: Preserve Chrome evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-five-arenas-chrome-evidence-${{ github.sha }}
+          path: reports/owner-itch-qa/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload candidate and source receipt
         if: success()
         uses: actions/upload-artifact@v4
