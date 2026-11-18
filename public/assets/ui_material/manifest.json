@@ -1,0 +1,90 @@
+{
+  "generatedBy": "tools/buildApexMaterialChrome.mjs",
+  "files": [
+    {
+      "name": "frame_idle.webp",
+      "w": 192,
+      "h": 192
+    },
+    {
+      "name": "frame_p1.webp",
+      "w": 192,
+      "h": 192
+    },
+    {
+      "name": "frame_p2.webp",
+      "w": 192,
+      "h": 192
+    },
+    {
+      "name": "frame_locked.webp",
+      "w": 192,
+      "h": 192
+    },
+    {
+      "name": "btn_lock_gold.webp",
+      "w": 1024,
+      "h": 160
+    },
+    {
+      "name": "btn_lock_cryo.webp",
+      "w": 1024,
+      "h": 160
+    },
+    {
+      "name": "btn_steel.webp",
+      "w": 768,
+      "h": 96
+    },
+    {
+      "name": "rail_brass.webp",
+      "w": 512,
+      "h": 40
+    },
+    {
+      "name": "tile_obsidian.webp",
+      "w": 512,
+      "h": 512
+    },
+    {
+      "name": "tile_gunmetal.webp",
+      "w": 512,
+      "h": 512
+    },
+    {
+      "name": "tile_hazard.webp",
+      "w": 160,
+      "h": 160
+    },
+    {
+      "name": "tile_ember.webp",
+      "w": 512,
+      "h": 512
+    },
+    {
+      "name": "tile_ember_cryo.webp",
+      "w": 512,
+      "h": 512
+    },
+    {
+      "name": "tile_gold.webp",
+      "w": 128,
+      "h": 128
+    },
+    {
+      "name": "tile_gold_cryo.webp",
+      "w": 128,
+      "h": 128
+    },
+    {
+      "name": "icon_padlock.webp",
+      "w": 123,
+      "h": 160
+    },
+    {
+      "name": "ornament_corner_gold.webp",
+      "w": 127,
+      "h": 128
+    }
+  ]
+}

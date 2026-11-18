@@ -138,6 +138,7 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['Deal more than 1,000 lifetime RPG-7 damage in sealed BOT/LOCAL matches to equip VUA HỀ. Preview remains available.','Gây tổng cộng hơn 1.000 sát thương bằng RPG-7 trong các trận BOT/LOCAL đã niêm phong để mở VUA HỀ. Vẫn có thể xem trước.'],
   ['The laughing warhead keeps its full face in frame, trailing thick theatrical smoke.','Đầu đạn mặt cười hiện trọn khuôn mặt, kéo theo làn khói sân khấu dày đặc.'],
   ['Forest-jade mechanical layers over a spring-driven NEWBOT frame.','Các lớp cơ khí xanh ngọc rừng phủ trên khung NEWBOT vận hành bằng lò xo.'],
+  ['CHOOSE FIGHTER','CHỌN ĐẤU SĨ'],['MODE','CHẾ ĐỘ'],['BATTLE','TRẬN ĐẤU'],['1 PLAYER','1 NGƯỜI CHƠI'],['2 PLAYERS','2 NGƯỜI CHƠI'],['AI OPPONENT','ĐỐI THỦ AI'],['SHARED DEVICE','CHUNG MỘT MÁY'],['Progress','Tiến trình'],
   ['COMING SOON','SẮP RA MẮT'],
   ['SPECIAL EVENT','SỰ KIỆN ĐẶC BIỆT'],
   ['BOXE / ARSENAL SURVIVAL','BOXE / ĐẤU SINH TỒN'],
