@@ -71,6 +71,7 @@
   }
   function tick(dt) {
     if (!active()) { matchStarted = false; return; }
+    if (g.__apexBattlePaused || g.APEX_ARSENAL?.state?.over) return;
     if (!matchStarted) resetMatch();
     const d = Math.min(Math.max(Number(dt) || 0,0),0.05);
     if (eventsEnabled) original.stepArenaMechanics(d);
@@ -86,6 +87,7 @@
     for (const f of g.fighters || []) {
       if (!f || f.hp <= 0 || !(f.__evoSpeedBoost > 0) || !f.dir) continue;
       f.__evoSpeedBoost = Math.max(0, f.__evoSpeedBoost-d);
+      if (typeof f.hardCC === 'function' && f.hardCC()) continue;
       const sp = f.baseSpeed || f.speed || 520;
       const {min,max}=playableBounds(f);
       f.x=Math.max(min,Math.min(max,f.x+f.dir.x*sp*0.3*d));
@@ -101,8 +103,8 @@
     const camera = ctx.getTransform();
     g.APEX_EVOLUTION_VFX?.drawInCamera?.(ctx,'over',c => c.setTransform(camera));
   }
-  function composite(dt) {
-    if (active()) g.APEX_EVOLUTION_SHADER?.stepAndComposite?.(dt);
+  function composite(dt, rawFrameMs) {
+    if (active()) g.APEX_EVOLUTION_SHADER?.stepAndComposite?.(dt, rawFrameMs);
     else g.APEX_EVOLUTION_SHADER?.hide?.();
   }
   function toColorRgb(color) {

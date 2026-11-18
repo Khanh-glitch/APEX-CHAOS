@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Compass, Sparkles, X } from './ApexIcons.jsx';
 import './firstPlayGuide.css';
 
 // APEX CHAOS — Learn by Playing Coach (Tactical Pulse Non-Blocking Edition).
@@ -418,6 +419,11 @@ function computeBattleFrame(anchor, measuredChipHeight, prev = null) {
     rectOf('#p2Side .ident'),
     p2Skills,
     p2Weapon,
+    rectOf('.apex-beyond-hud .ab-pod.is-p1'),
+    rectOf('.apex-beyond-hud .ab-pod.is-p2'),
+    rectOf('.apex-beyond-hud .ab-port-bar'),
+    rectOf('.apex-beyond-hud .ab-event-banner'),
+    rectOf('.apex-battle-pause-btn'),
   ].filter(Boolean);
 
   const candidates = [];
@@ -802,21 +808,48 @@ function FirstPlayGuideCoach() {
         guideBtn.id = 'apex-guide-open';
         guideBtn.dataset.apexNoLocalize = '';
         guideBtn.setAttribute('aria-label', 'How to play / Hướng dẫn chơi');
-        guideBtn.textContent = 'OPEN PLAY GUIDE';
         guideBtn.addEventListener('click', () => {
+          try { window.apexUiSfx?.play?.('ui.option.confirm'); } catch { /* optional */ }
           try { window.dispatchEvent(new CustomEvent('apex:help-open')); } catch { /* no CustomEvent */ }
         });
       }
+      const setGuideLabel = (btn) => {
+        const label = currentLanguage() === 'vie' ? 'MỞ HƯỚNG DẪN CHƠI' : 'OPEN PLAY GUIDE';
+        btn.innerHTML =
+          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>' +
+          '<span>' + label + '</span>';
+      };
+      setGuideLabel(guideBtn);
       picker.appendChild(guideBtn);
     };
+    const syncBtnCopy = () => {
+      if (guideBtn) {
+        const label = currentLanguage() === 'vie' ? 'MỞ HƯỚNG DẪN CHƠI' : 'OPEN PLAY GUIDE';
+        guideBtn.innerHTML =
+          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>' +
+          '<span>' + label + '</span>';
+      }
+    };
     mountBtn();
-    const guard = new MutationObserver(mountBtn);
-    guard.observe(document.body, { subtree: true, childList: true });
+    const host = document.getElementById('gold-shell-host') || document.body;
+    const guard = new MutationObserver(() => {
+      mountBtn();
+      if (guideBtn?.isConnected && host === document.getElementById('gold-shell-host')) {
+        guard.disconnect();
+      }
+    });
+    if (!guideBtn?.isConnected) {
+      guard.observe(host, { childList: true, subtree: host === document.body });
+    }
+    window.addEventListener('apex:utility-mounted', mountBtn);
+    window.addEventListener('apex:language-changed', syncBtnCopy);
 
     return () => {
       if (typeof unsubI18n === 'function') unsubI18n();
       window.removeEventListener('apex:guide-open', onOpen);
       window.removeEventListener('apex:language-changed', onLanguage);
+      window.removeEventListener('apex:language-changed', syncBtnCopy);
+      window.removeEventListener('apex:utility-mounted', mountBtn);
       guard.disconnect();
       guideBtn?.remove();
     };
@@ -1015,10 +1048,12 @@ function FirstPlayGuideCoach() {
       }
     };
     bindBus();
+    // Only poll at 10Hz while the interactive tutorial coach is actively running.
+    if (!active) return undefined;
     const interval = window.setInterval(() => {
       bindBus();
       syncCoach();
-    }, 100);
+    }, 120);
     const onResize = () => syncCoach();
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
@@ -1027,16 +1062,22 @@ function FirstPlayGuideCoach() {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
     };
-  }, [syncCoach]);
+  }, [active, syncCoach]);
 
   // Brief non-blocking side-color intro badge on HUD identity headers.
   useEffect(() => {
+    let interval = 0;
     const poll = () => {
+      const ref = sideIntroRef.current;
+      const seenNow = readSideIntroSeen();
+      if (seenNow.bot && seenNow.local && !ref.applied && Date.now() >= ref.activeUntil) {
+        if (interval) { window.clearInterval(interval); interval = 0; }
+        return;
+      }
       const scene = currentScene();
       const state = battleState();
       const mode = String(state?.battleMode || '').toUpperCase();
       const validMode = mode === 'BOT' ? 'bot' : mode === 'LOCAL' ? 'local' : null;
-      const ref = sideIntroRef.current;
       if (scene !== 'battle' || !validMode) {
         if (ref.applied) {
           setSideIntroLabels(null);
@@ -1049,10 +1090,9 @@ function FirstPlayGuideCoach() {
       }
       if (ref.mode !== validMode || Number(state?.time || 0) + 0.5 < ref.lastTime) {
         ref.mode = validMode;
-        const seen = readSideIntroSeen();
-        if (!seen[validMode]) {
+        if (!seenNow[validMode]) {
           ref.activeUntil = Date.now() + 4200;
-          writeSideIntroSeen({ ...seen, [validMode]: 1 });
+          writeSideIntroSeen({ ...seenNow, [validMode]: 1 });
         } else {
           ref.activeUntil = 0;
         }
@@ -1067,10 +1107,13 @@ function FirstPlayGuideCoach() {
         ref.applied = false;
       }
     };
-    poll();
-    const interval = window.setInterval(poll, 200);
+    const initialSeen = readSideIntroSeen();
+    if (!(initialSeen.bot && initialSeen.local)) {
+      poll();
+      interval = window.setInterval(poll, 250);
+    }
     return () => {
-      window.clearInterval(interval);
+      if (interval) window.clearInterval(interval);
       setSideIntroLabels(null);
     };
   }, []);
@@ -1167,7 +1210,10 @@ function FirstPlayGuideCoach() {
         }}
       >
         <div className="apex-coach-copy">
-          <p className="apex-guide-kicker">{(isBattleStep ? copy.actionKicker : copy.kicker)} · {coach.step + 1}/{LAST_STEP + 1}</p>
+          <p className="apex-guide-kicker">
+            <Compass size={11} strokeWidth={2.5} style={{ display: 'inline', verticalAlign: '-1.5px', marginRight: '4px' }} />
+            {(isBattleStep ? copy.actionKicker : copy.kicker)} · {coach.step + 1}/{LAST_STEP + 1}
+          </p>
           <div className="apex-guide-steps" aria-hidden="true">
             {Array.from({ length: LAST_STEP + 1 }, (_, index) => (
               <i key={index} className={index <= coach.step ? 'is-done' : ''} />
@@ -1272,28 +1318,45 @@ function TutorialPreference() {
   const askRef = useRef(null);
 
   useEffect(() => {
+    let interval = 0;
+    const stopPoll = () => {
+      if (interval) { window.clearInterval(interval); interval = 0; }
+    };
+    const startPollIfNeeded = () => {
+      if (!interval && readPref() === null) {
+        interval = window.setInterval(sync, 450);
+      }
+    };
     const sync = () => {
       const nextPref = readPref();
-      setPref(nextPref);
-      setLang(tutorialLang());
+      setPref((prev) => (prev === nextPref ? prev : nextPref));
+      const nextLang = tutorialLang();
+      setLang((prev) => (prev === nextLang ? prev : nextLang));
+      if (nextPref !== null) {
+        // User already answered: never keep polling the menu geometry.
+        stopPoll();
+        setAskOpen((prev) => (prev ? false : prev));
+        setAskPos((prev) => (prev ? null : prev));
+        return;
+      }
+      startPollIfNeeded();
       // Ask only once: while no answer is stored and a coach record exists (so the
       // coach finished bootstrapping), and only at a safe menu.
-      const wantAsk = nextPref === null && !!readCoach() && safeMenuNow();
-      setAskOpen(wantAsk);
-      if (!wantAsk) { setAskPos(null); return; }
+      const wantAsk = !!readCoach() && safeMenuNow();
+      setAskOpen((prev) => (prev === wantAsk ? prev : wantAsk));
+      if (!wantAsk) { setAskPos((prev) => (prev ? null : prev)); return; }
       const rect = askRef.current?.getBoundingClientRect();
       const width = Math.min(rect?.width || 340, (window.innerWidth || 360) - 16);
       const height = rect?.height || 56;
       setAskPos(freeStripPlacement(width, height));
     };
     sync();
-    const interval = window.setInterval(sync, 300);
     const onHelp = () => setHelpOpen(true);
     window.addEventListener('apex:tutorial-pref-changed', sync);
     window.addEventListener('apex:language-changed', sync);
     window.addEventListener('apex:help-open', onHelp);
     return () => {
-      window.clearInterval(interval);
+      stopPoll();
       window.removeEventListener('apex:tutorial-pref-changed', sync);
       window.removeEventListener('apex:language-changed', sync);
       window.removeEventListener('apex:help-open', onHelp);
@@ -1330,8 +1393,14 @@ function TutorialPreference() {
       {helpOpen ? (
         <section className="apex-help-sheet" role="dialog" aria-modal="false" aria-label={copy.helpTitle} data-apex-no-localize="">
           <div className="apex-help-head">
-            <span className="apex-help-title">{copy.helpTitle}</span>
-            <button type="button" className="apex-help-close" onClick={() => setHelpOpen(false)}>{copy.close}</button>
+            <span className="apex-help-title">
+              <Compass size={15} strokeWidth={2.4} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px', color: '#ffc857' }} />
+              {copy.helpTitle}
+            </span>
+            <button type="button" className="apex-help-close" onClick={() => setHelpOpen(false)}>
+              <X size={14} strokeWidth={2.5} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '4px' }} />
+              {copy.close}
+            </button>
           </div>
           <button
             type="button"
@@ -1352,6 +1421,7 @@ function TutorialPreference() {
             className="apex-help-replay"
             onClick={() => { setHelpOpen(false); window.dispatchEvent(new CustomEvent('apex:guide-open')); }}
           >
+            <Sparkles size={14} strokeWidth={2.4} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px', color: '#ffc857' }} />
             {copy.replay}
           </button>
         </section>

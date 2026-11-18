@@ -2241,20 +2241,12 @@ function createBloomSystem(opts = {}) {
       targetCtx.globalAlpha = 0.56;
       targetCtx.drawImage(glowB, dx, dy, dw, dh);
 
-      // Wide Gold halo: the old path blurred glowB into a third half-res
-      // surface, then scaled that surface back to destination size. On modern
-      // Canvas2D the mathematically equivalent wide blur can be applied while
-      // drawing the already-small-blurred glowB into destination pixels.
-      // This preserves the two authored blur radii and blend weights while
-      // removing one full offscreen filter/copy pass.
-      let directWide = false;
-      try { directWide = !forceLegacyWide && typeof targetCtx.filter === 'string'; } catch (e) { directWide = false; }
-      if (directWide) {
-        targetCtx.filter = 'blur(' + (9 * dpr).toFixed(2) + 'px)';
-        targetCtx.globalAlpha = 0.25;
-        targetCtx.drawImage(glowB, dx, dy, dw, dh);
-        targetCtx.filter = 'none';
-      } else {
+      // Always perform the wide halo blur in downscaled glowC space (1/16th the
+      // Gaussian kernel cost of blurring directly on full-res targetCtx), and
+      // skip the secondary halo pass on balanced/off graphics tiers.
+      const allowWide = !forceLegacyWide
+        && (!window.APEX_GFX_QUALITY || window.APEX_GFX_QUALITY.allowHeavyBlur());
+      if (allowWide) {
         gcx.setTransform(1, 0, 0, 1, 0, 0);
         gcx.globalCompositeOperation = 'copy';
         gcx.filter = 'blur(' + (9 * dpr * GS).toFixed(2) + 'px)';

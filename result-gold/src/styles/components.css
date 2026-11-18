@@ -1181,8 +1181,11 @@
   width: min(100%, 1000px);
   height: min(92vh, 900px);
   height: min(92dvh, 900px);
-  background: linear-gradient(180deg, #161a21, #0d1014);
+  background:
+    radial-gradient(ellipse 80% 35% at 50% 0%, rgb(244 190 72 / 0.1), transparent 68%),
+    linear-gradient(175deg, #1a1e26 0%, #0d1016 58%, #080a0e 100%);
   border-top: 3px solid var(--hazard);
+  box-shadow: 0 -28px 80px rgb(0 0 0 / 0.84), inset 0 1px 0 rgb(255 248 228 / 0.18), inset 0 0 0 1px rgb(244 196 92 / 0.22);
   animation: sheet-in 0.45s var(--ease-expo);
 }
 .arch__head {

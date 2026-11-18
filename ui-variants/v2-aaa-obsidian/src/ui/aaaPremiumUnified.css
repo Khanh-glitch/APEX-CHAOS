@@ -1,0 +1,622 @@
+/* =============================================================================
+ * APEX CHAOS — AAA PREMIUM UNIFIED DESIGN SYSTEM (2026 EDITION)
+ * "APEX GOLD OBSIDIAN · TACTICAL TITANIUM"
+ * Synchronizes and elevates every visible UI/UX surface:
+ *   1. Global Tokens, Specular Bevels & Tactile Micro-Interactions
+ *   2. Home Stage: Brand, 3D AC Chip, Utility Drawer, CTAs, Route Dock & BOT WAVE
+ *   3. Mode Select & Fighter Select: Cards, Roster, Skill Details & Quick Skins
+ *   4. Floating Notifications: Achievement Toast, Skin Unlock, Locked Route Toast
+ *   5. Tactical Pulse Coach, Help Sheet & Tutorial Bar
+ *   6. Free Battle Beyond HUD & Universal Combat Panels / Countdown
+ *   7. Field Archive / Cosmetic Locker Dossier
+ * ========================================================================== */
+
+:root {
+  --aaa-gold-hi: #ffe49e;
+  --aaa-gold: #ffc247;
+  --aaa-gold-mid: #e89c24;
+  --aaa-gold-lo: #9c5b08;
+  --aaa-amber: #ff941f;
+  --aaa-cyan: #56e0ff;
+  --aaa-cyan-hi: #a8f0ff;
+  --aaa-lime: #b2ff3a;
+  --aaa-obsidian-950: rgba(6, 8, 11, 0.98);
+  --aaa-obsidian-900: rgba(11, 15, 21, 0.96);
+  --aaa-obsidian-800: rgba(19, 25, 34, 0.94);
+  --aaa-border-gold: rgba(255, 198, 88, 0.62);
+  --aaa-border-subtle: rgba(240, 232, 214, 0.16);
+  --aaa-bevel-top: inset 0 1px 0 rgba(255, 245, 218, 0.22);
+  --aaa-bevel-bottom: inset 0 -1px 0 rgba(0, 0, 0, 0.75);
+  --aaa-shadow-deep: 0 22px 58px rgba(0, 0, 0, 0.74);
+  --aaa-shadow-gold: 0 0 26px rgba(255, 180, 48, 0.22);
+}
+
+/* ── 1. GLOBAL TYPOGRAPHY & SVG ICON PRECISION ────────────────────────────── */
+.apex-vector-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+/* ── 2. HOME STAGE: AC WALLET CHIP, UTILITY COMMAND DOCK & ROUTES ─────────── */
+#gold-shell-host #stage .profile .ac {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 15px 6px 9px;
+  background:
+    radial-gradient(circle at 18% 50%, rgba(255, 196, 61, 0.22), transparent 64%),
+    linear-gradient(160deg, rgba(28, 24, 16, 0.95) 0%, rgba(10, 12, 16, 0.97) 100%) !important;
+  border: 1px solid rgba(255, 200, 92, 0.58) !important;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.62),
+    0 0 18px rgba(255, 174, 42, 0.16),
+    inset 0 1px 0 rgba(255, 242, 204, 0.24),
+    inset 3px 0 0 #ffb838 !important;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+#gold-shell-host #stage .profile .ac .acMark {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  background: linear-gradient(145deg, #fff3c4 0%, #ffc247 45%, #b86b0b 100%) !important;
+  color: #1a0f02 !important;
+  font-weight: 900 !important;
+  font-size: 13px !important;
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  text-shadow: none !important;
+}
+
+#gold-shell-host #stage .profile .ac [data-apex-ac] {
+  color: #fff3d6 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85), 0 0 12px rgba(255, 184, 56, 0.28);
+}
+
+/* Utility Toggle Button next to AC Chip */
+#gold-shell-host #stage #apex-utility-toggle {
+  background: linear-gradient(160deg, rgba(28, 31, 38, 0.95), rgba(11, 13, 18, 0.98)) !important;
+  border: 1px solid rgba(255, 198, 92, 0.45) !important;
+  color: #ffe2a8 !important;
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 240, 200, 0.18) !important;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
+  transition: filter 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.14s ease;
+}
+
+#gold-shell-host #stage #apex-utility-toggle:hover,
+#gold-shell-host #stage #apex-utility-toggle[aria-expanded="true"] {
+  border-color: rgba(255, 208, 104, 0.92) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.7),
+    0 0 16px rgba(255, 184, 56, 0.32),
+    inset 0 1px 0 rgba(255, 246, 220, 0.35) !important;
+}
+
+#gold-shell-host #stage #apex-utility-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Utility Command Drawer (#apex-language-picker) */
+#gold-shell-host #stage #apex-language-picker.is-expanded {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 188, 66, 0.16), transparent 60%),
+    linear-gradient(165deg, rgba(22, 26, 34, 0.98) 0%, rgba(9, 11, 15, 0.99) 100%) !important;
+  border: 1px solid rgba(255, 198, 88, 0.62) !important;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.82),
+    0 0 28px rgba(255, 174, 42, 0.16),
+    inset 0 1px 0 rgba(255, 244, 214, 0.2),
+    inset 3px 0 0 #ffb838 !important;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px) !important;
+  backdrop-filter: blur(16px) saturate(1.3);
+}
+
+#gold-shell-host #stage #apex-language-picker [data-apex-language-option].is-active {
+  background: linear-gradient(180deg, #ffd26a 0%, #e09124 100%) !important;
+  color: #160d02 !important;
+  box-shadow: 0 2px 10px rgba(255, 178, 46, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Home Primary CTAs (#freeBattle, #continueStory) */
+#gold-shell-host #stage #freeBattle.cta.primary {
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.68),
+    0 0 28px rgba(255, 148, 31, 0.26) !important;
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1), filter 0.18s ease, box-shadow 0.18s ease;
+}
+
+#gold-shell-host #stage #freeBattle.cta.primary:hover {
+  filter: brightness(1.09) saturate(1.08);
+  box-shadow:
+    0 22px 52px rgba(0, 0, 0, 0.78),
+    0 0 38px rgba(255, 166, 48, 0.44) !important;
+}
+
+/* Home Bottom 6-Route Dock (.routes .route) */
+#gold-shell-host #stage .routes .route {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1), filter 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+#gold-shell-host #stage .routes .route:not(.is-locked)::before {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 198, 88, 0.85), transparent);
+  opacity: 0.45;
+  transition: opacity 0.2s ease, left 0.2s ease, right 0.2s ease;
+  pointer-events: none;
+}
+
+#gold-shell-host #stage .routes .route:not(.is-locked):hover::before {
+  left: 4%;
+  right: 4%;
+  opacity: 1;
+}
+
+#gold-shell-host #stage .routes .route:not(.is-locked):hover {
+  filter: brightness(1.14);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 18px rgba(255, 168, 46, 0.2);
+}
+
+#gold-shell-host #stage .routes .route svg {
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.65));
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+#gold-shell-host #stage .routes .route:not(.is-locked):hover svg {
+  transform: translateY(-1.5px) scale(1.06);
+  color: #ffd479;
+}
+
+/* Home Special Event BOT WAVE Emblem (#botWaveEntry) */
+#stage #botWaveEntry .apex-wave-entry-copy {
+  padding: 5px 12px 7px !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 152, 56, 0.24), transparent 70%),
+    linear-gradient(180deg, rgba(20, 16, 14, 0.92), rgba(8, 10, 14, 0.96)) !important;
+  border: 1px solid rgba(255, 174, 82, 0.52) !important;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.72),
+    0 0 20px rgba(255, 118, 36, 0.2),
+    inset 0 1px 0 rgba(255, 236, 196, 0.2) !important;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+
+/* ── 3. LOCKED ROUTE TOAST (#apex-locked-route-toast) ─────────────────────── */
+#apex-locked-route-toast {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 10px 18px 10px 13px !important;
+  background:
+    radial-gradient(circle at 15% 50%, rgba(255, 178, 62, 0.2), transparent 60%),
+    linear-gradient(155deg, rgba(26, 22, 16, 0.97), rgba(8, 10, 14, 0.98)) !important;
+  border: 1px solid rgba(255, 192, 82, 0.68) !important;
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.75),
+    0 0 24px rgba(255, 168, 44, 0.2),
+    inset 0 1px 0 rgba(255, 240, 200, 0.22),
+    inset 4px 0 0 #ffad33 !important;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  color: #fff0d1 !important;
+  font-family: 'Oswald', 'ApexVietCondensed', system-ui, sans-serif !important;
+  backdrop-filter: blur(12px);
+}
+
+.apex-locked-toast-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 180, 54, 0.16);
+  border: 1px solid rgba(255, 196, 86, 0.48);
+  color: #ffc857;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  flex-shrink: 0;
+}
+
+.apex-locked-toast-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+
+.apex-locked-toast-kicker {
+  font: 800 8px/1.1 ui-monospace, 'JetBrains Mono', monospace;
+  letter-spacing: 0.18em;
+  color: #e8b45a;
+}
+
+.apex-locked-toast-title {
+  font: 900 13px/1.1 'Oswald', 'ApexVietCondensed', sans-serif;
+  letter-spacing: 0.12em;
+  color: #fff6e0;
+}
+
+/* ── 4. FIGHTER SELECT: SKILL DETAILS & QUICK SKINS BUTTONS ───────────────── */
+.apex-skill-details-btn {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--heroAccent, #e8b45a) 68%, rgba(255, 236, 190, 0.28)) !important;
+  background:
+    linear-gradient(160deg, rgba(30, 34, 42, 0.94), rgba(10, 12, 16, 0.96)) !important;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 3px 0 0 var(--heroAccent, #e8b45a) !important;
+  font-family: 'Oswald', 'ApexVietCondensed', sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.apex-skill-details-btn:hover {
+  filter: brightness(1.16) !important;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.68),
+    0 0 16px color-mix(in srgb, var(--heroAccent, #e8b45a) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 3px 0 0 var(--heroAccent, #e8b45a) !important;
+}
+
+.fa3-pick-equip-entry {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 6px 14px !important;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(255, 196, 72, 0.22), transparent 65%),
+    linear-gradient(160deg, rgba(32, 26, 16, 0.95), rgba(12, 14, 18, 0.97)) !important;
+  border: 1px solid rgba(255, 200, 92, 0.68) !important;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.58),
+    0 0 14px rgba(255, 180, 48, 0.2),
+    inset 0 1px 0 rgba(255, 242, 204, 0.22) !important;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  color: #ffe8b6 !important;
+  font-family: 'Oswald', 'ApexVietCondensed', sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.fa3-pick-equip-entry:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.7),
+    0 0 20px rgba(255, 188, 58, 0.35),
+    inset 0 1px 0 rgba(255, 248, 224, 0.35) !important;
+}
+
+/* Skill Details Modal (#apex-skill-details) */
+#apex-skill-details {
+  background: rgba(4, 6, 9, 0.8) !important;
+  backdrop-filter: blur(10px) saturate(1.2) !important;
+}
+
+#apex-skill-details .apex-sd-panel {
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--sd-accent, #d7bd72) 18%, transparent), transparent 55%),
+    linear-gradient(165deg, #171e27 0%, #0b0e14 78%) !important;
+  border: 1px solid color-mix(in srgb, var(--sd-accent, #d7bd72) 62%, #3a424c) !important;
+  box-shadow:
+    0 32px 88px rgba(0, 0, 0, 0.82),
+    0 0 32px color-mix(in srgb, var(--sd-accent, #d7bd72) 18%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+#apex-skill-details .apex-sd-skill {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-left: 3px solid var(--sd-accent, #d7bd72) !important;
+  background: linear-gradient(165deg, rgba(22, 28, 37, 0.95), rgba(11, 15, 20, 0.98)) !important;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#apex-skill-details .apex-sd-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px !important;
+}
+
+#apex-skill-details .apex-sd-esc {
+  padding: 2px 7px;
+  border: 1px solid rgba(255, 214, 126, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffe09e;
+  font: 800 9px/1.2 ui-monospace, monospace;
+  border-radius: 2px;
+}
+
+/* ── 5. ACHIEVEMENT TOAST & SKIN UNLOCK CELEBRATION AAA UPGRADES ──────────── */
+.apex-achievement-toast {
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+
+.apex-achievement-toast-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    112deg,
+    transparent 20%,
+    rgba(255, 240, 195, 0.18) 46%,
+    rgba(255, 255, 255, 0.32) 50%,
+    rgba(255, 240, 195, 0.12) 54%,
+    transparent 78%
+  );
+  transform: translateX(-130%);
+  animation: apex-aaa-sheen-sweep 1.25s cubic-bezier(0.22, 0.8, 0.26, 1) 0.15s forwards;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.apex-achievement-toast-glyph {
+  display: grid;
+  place-items: center;
+  transform: translateY(-2px) !important;
+}
+
+.apex-skin-unlock-card {
+  backdrop-filter: blur(16px);
+}
+
+.apex-skin-unlock-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 22%,
+    rgba(255, 236, 179, 0.18) 47%,
+    rgba(255, 255, 255, 0.32) 50%,
+    transparent 76%
+  );
+  transform: translateX(-130%);
+  animation: apex-aaa-sheen-sweep 1.4s cubic-bezier(0.22, 0.8, 0.26, 1) 0.2s forwards;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.apex-skin-unlock-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.apex-skin-unlock-actions button.is-primary {
+  box-shadow: 0 10px 26px rgba(255, 168, 38, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.apex-skin-unlock-actions button:not(:disabled):hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* ── 6. FIRST PLAY GUIDE / TACTICAL PULSE COACH & HELP MODAL ─────────────── */
+.apex-guide-card.apex-coach-chip {
+  background:
+    radial-gradient(circle at 0% 50%, rgba(86, 224, 255, 0.18), transparent 62%),
+    linear-gradient(165deg, rgba(14, 21, 30, 0.97), rgba(7, 10, 15, 0.99)) !important;
+  border: 1px solid rgba(86, 224, 255, 0.64) !important;
+  border-left: 3.5px solid #56e0ff !important;
+  border-radius: 0 !important;
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.72),
+    0 0 22px rgba(86, 224, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  font-family: 'Oswald', 'ApexVietCondensed', system-ui, sans-serif !important;
+}
+
+.apex-coach-skip {
+  border-radius: 0 !important;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  background: linear-gradient(180deg, rgba(32, 38, 48, 0.96), rgba(16, 20, 27, 0.98)) !important;
+  border: 1px solid rgba(255, 204, 106, 0.58) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  font-family: 'Oswald', 'ApexVietCondensed', sans-serif !important;
+  transition: filter 0.15s ease, border-color 0.15s ease;
+}
+
+#gold-shell-host #stage .apex-help-sheet,
+.apex-help-sheet {
+  border-radius: 0 !important;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 190, 68, 0.16), transparent 60%),
+    linear-gradient(165deg, rgba(20, 24, 32, 0.98), rgba(8, 10, 14, 0.99)) !important;
+  border: 1px solid rgba(255, 198, 90, 0.62) !important;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.82),
+    0 0 28px rgba(255, 178, 48, 0.18),
+    inset 0 1px 0 rgba(255, 244, 214, 0.2),
+    inset 3px 0 0 #ffb838 !important;
+  font-family: 'Oswald', 'ApexVietCondensed', sans-serif !important;
+  backdrop-filter: blur(16px);
+}
+
+.apex-tutorial-ask {
+  border-radius: 0 !important;
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  background:
+    linear-gradient(160deg, rgba(20, 24, 32, 0.97), rgba(8, 10, 15, 0.99)) !important;
+  border: 1px solid rgba(255, 198, 90, 0.62) !important;
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 244, 214, 0.18),
+    inset 3px 0 0 #ffb838 !important;
+  font-family: 'Oswald', 'ApexVietCondensed', sans-serif !important;
+}
+
+/* ── 7. FREE BATTLE BEYOND HUD ENHANCEMENTS ──────────────────────────────── */
+.ab-event-badge {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid currentColor;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  box-shadow: 0 0 12px color-mix(in srgb, currentColor 35%, transparent);
+  flex-shrink: 0;
+}
+
+.ab-hint-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(160deg, rgba(14, 19, 26, 0.92), rgba(7, 10, 14, 0.95)) !important;
+  border: 1px solid rgba(86, 224, 255, 0.46) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.ab-kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: linear-gradient(180deg, #273240, #141b24);
+  border: 1px solid rgba(255, 224, 124, 0.55);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  color: #ffe28a;
+  font: 800 9.5px/1.2 ui-monospace, 'JetBrains Mono', monospace;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.ab-hint-sep {
+  color: rgba(86, 224, 255, 0.6);
+  font-weight: 900;
+}
+
+.ab-od-ticks {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 18px,
+    rgba(6, 8, 12, 0.55) 18px 20px
+  );
+  pointer-events: none;
+}
+
+.ab-pop-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ab-pop-close {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ab-pop-close:hover {
+  background: rgba(255, 184, 56, 0.18) !important;
+  border-color: rgba(255, 200, 92, 0.65) !important;
+}
+
+.ab-stat-strip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ab-stat-strip > span b {
+  color: #ffe294;
+}
+
+/* ── 8. FIELD ARCHIVE / COSMETIC LOCKER AAA REFINEMENTS ──────────────────── */
+.fa3-shell {
+  box-shadow:
+    0 36px 96px rgba(0, 0, 0, 0.85),
+    0 0 42px rgba(232, 180, 90, 0.12),
+    inset 0 1px 0 rgba(255, 244, 214, 0.14) !important;
+}
+
+.fa3-close.apex-cosmetics-close {
+  display: inline-grid !important;
+  place-items: center !important;
+  transition: filter 0.15s ease, border-color 0.15s ease, transform 0.14s ease;
+}
+
+.fa3-close.apex-cosmetics-close:hover {
+  filter: brightness(1.18);
+  border-color: #e8b45a !important;
+}
+
+.fa3-pager button,
+.fa3-record-navigation button,
+.fa3-skin-pager button {
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+.fa3-equip:not(:disabled) {
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.55),
+    0 0 20px rgba(232, 180, 90, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fa3-equip:not(:disabled):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* ── 9. COUNTDOWN OVERLAY & SESSION WIPE AAA POLISH ──────────────────────── */
+#countdown-overlay .count-num {
+  text-shadow:
+    0 10px 34px rgba(0, 0, 0, 0.85),
+    0 0 36px rgba(255, 168, 44, 0.52) !important;
+}
+
+.apex-session-wipe-plate {
+  box-shadow: 0 0 64px rgba(255, 148, 31, 0.65);
+}
+
+@keyframes apex-aaa-sheen-sweep {
+  to {
+    transform: translateX(135%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apex-achievement-toast-sheen,
+  .apex-skin-unlock-sheen {
+    animation: none !important;
+  }
+}
+
+html[data-apex-motion="reduced"] .apex-achievement-toast-sheen,
+html[data-apex-motion="reduced"] .apex-skin-unlock-sheen {
+  animation: none !important;
+}

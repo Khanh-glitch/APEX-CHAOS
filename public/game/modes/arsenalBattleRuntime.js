@@ -900,7 +900,12 @@
       state.over = winner.name;
       // Commit once, while BOTH real Fighters and native hit telemetry exist.
       // Quest and Lab never create this ledger or acquire a match result.
-      state.resultGold=state.resultLedger?.seal?.(winnerSide)||null;
+      try {
+        state.resultGold = state.resultLedger?.seal?.(winnerSide) || null;
+      } catch (sealErr) {
+        console.error('[arsenal] resultLedger.seal failed:', sealErr);
+        state.resultGold = null;
+      }
       AQ.log('KO', `winnerSide=${winnerSide} winner=${winner.name}`);
       window.APEX_ARSENAL_META?.awardBattleResult?.(winnerSide, state);
       updateHUD();
@@ -1571,7 +1576,14 @@
       window.APEX_BEYOND_VFX.drawScreenForeground(ctx, GAME_SIZE);
       ctx.restore();
     }
-    syncDomHud();
+    // Skip hidden legacy #aq-dom-hud reconciliation when Gold Battle HUD owns
+    // the screen (Lab mode and explicit debug overlay keep full access).
+    const goldBattleOwnsHud = !!(document.body
+      && (document.body.classList.contains('battle-hud-open') || document.body.classList.contains('battle-open'))
+      && window.APEX_GOLD_HUD);
+    if (!goldBattleOwnsHud || AQ.state?.labMode || AQ.state?.debugOverlay) {
+      syncDomHud();
+    }
     aqPerfMark('foregroundTotal', performance.now() - t0);
   }
 
@@ -1592,7 +1604,8 @@
     baseDraw();
     drawForeground();
     if (window.APEX_BEYOND_COMBAT?.isFreeBattleEligible?.()) {
-      window.APEX_BEYOND_ARENA?.composite?.(1 / 60);
+      const compositeDt = window.__apexLastRawDt || (1 / 60);
+      window.APEX_BEYOND_ARENA?.composite?.(compositeDt, window.__apexFrameDeltaMs);
     }
     aqPerfMark('arsenalFrame', performance.now() - t0);
   };
@@ -1645,6 +1658,7 @@
       return;
     }
     if (gameState !== 'ARSENAL') return;
+    if (window.__apexBattlePaused) return;
     if((e.code==='KeyJ'||e.code==='KeyK')&&!e.repeat
        &&AQ.state?.questBreachEncounter===true
        &&AQ.state?.questBreachCompanionSkills?.currentRecipient?.()!=='NEWBOT'){
@@ -1655,10 +1669,16 @@
       return;
     }
     if (e.code === 'KeyJ' && !e.repeat) {
+      if (AQ.state?.over) return;
       const gate = window.APEX_ARSENAL_SKILL_GATE;
       if (gate && fighters[0] && !(AQ.state?.questMultiActor && fighters[0].withdrawn===true)) gate.pressJ(fighters[0]);
       return;
     }
+    // When hosted inside the Gold Battle HUD, lifecycle keys (Pause, Rematch,
+    // Post-Match Result Summary, Exit) belong exclusively to Gold + Pause
+    // overlays. Legacy Lab shortcuts KeyB / KeyT / raw Escape MUST NOT abort a
+    // live match (KeyB sits right next to Space/J!) or skip resultGold.
+    if (window.__apexGoldBattleHosted && !(AQ.state && AQ.state.labMode)) return;
     if (e.code === 'KeyT' && AQ.state && AQ.state.over) {
       window.startArsenalBattleMode();
       return;

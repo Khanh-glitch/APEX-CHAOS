@@ -1,12 +1,18 @@
 import {translateCopy} from './localeCatalog.js';
+import {apexAppUrl} from './appRoot.js';
 
 const KEY='apex-chaos.ui-language.v1';
 const ATTRS=['aria-label','title','placeholder','alt'];
 const IGNORED='script,style,noscript,code,pre,textarea,svg title[data-id], [data-apex-no-localize]';
+// Pure whitespace / digits / timers / damage counters (e.g. "0:48", "+120", "850", "2.4s", "—")
+// never need dictionary/regex lookup or DOM ancestor .closest() traversal during 60 FPS combat.
+const NON_WORD_FAST_RE=/^[\s0-9.,:%+\-–—/×·•()[\]|!?#*°~_=$€₫]*$/;
 const roots=new WeakMap();
+const canvasCopyCache=new Map();
 // Inject only into authored Gold documents. The native Result Gold is already
 // designed in Vietnamese and must retain its own layout/fonts without overrides.
-const FRAME_FONT_CSS = `@font-face{font-family:'ApexVietCondensed';src:url('/gold/fonts/apex-oswald-vietnamese.ttf') format('truetype');font-style:normal;font-weight:200 700;font-display:swap}html[data-apex-language='vie']{--fd:'ApexVietCondensed','Segoe UI',sans-serif;--fui:'ApexVietCondensed','Segoe UI',sans-serif;--fnum:'ApexVietCondensed','Segoe UI',sans-serif}`;
+const VIET_FONT_URL=apexAppUrl('/gold/fonts/apex-oswald-vietnamese.ttf');
+const FRAME_FONT_CSS = `@font-face{font-family:'ApexVietCondensed';src:url('${VIET_FONT_URL}') format('truetype');font-style:normal;font-weight:200 700;font-display:swap}html[data-apex-language='vie']{--fd:'ApexVietCondensed','Segoe UI',sans-serif;--fui:'ApexVietCondensed','Segoe UI',sans-serif;--fnum:'ApexVietCondensed','Segoe UI',sans-serif}`;
 let language='eng';
 let busy=false;
 let pickerEl=null;
@@ -23,28 +29,40 @@ function eligible(node){
   return !host.closest(IGNORED);
 }
 function localizeText(node,rec){
-  if(!eligible(node))return;
-  const seen=rec.text.get(node);
   const raw=node.nodeValue;
+  if(!raw)return;
+  const seen=rec.text.get(node);
   if(seen&&seen.last===raw&&seen.language===language)return;
+  if(!seen&&(language==='eng'||NON_WORD_FAST_RE.test(raw)))return;
+  if(seen&&language==='eng'&&raw!==seen.last)return;
+  if(!seen||raw!==seen.last){
+    if(NON_WORD_FAST_RE.test(raw)){
+      if(seen)rec.text.delete(node);
+      return;
+    }
+  }
+  if(!eligible(node))return;
   // The game may rewrite translated UI content. Retain the original English
   // source while displaying Vietnamese; never treat our translation as source.
   const source=seen && (raw===seen.last || raw===seen.original)?seen.original:raw;
-  const next=translateCopy(source,language);
+  const next=language==='eng'?source:translateCopy(source,language);
   rec.text.set(node,{original:source,last:next,language});
   if(next!==raw)node.nodeValue=next;
 }
 function localizeAttrs(el,rec){
-  if(!eligible(el))return;
+  let checkedEligible=false;
   for(const attr of ATTRS){
     if(!el.hasAttribute?.(attr))continue;
     const current=el.getAttribute(attr);
+    if(!current)continue;
     let state=rec.attrs.get(el);
-    if(!state){state=new Map();rec.attrs.set(el,state);}
-    const prev=state.get(attr);
+    const prev=state?.get(attr);
     if(prev&&prev.last===current&&prev.language===language)continue;
+    if(!prev&&(language==='eng'||NON_WORD_FAST_RE.test(current)))continue;
+    if(!checkedEligible){if(!eligible(el))return;checkedEligible=true;}
+    if(!state){state=new Map();rec.attrs.set(el,state);}
     const source=prev && (current===prev.last||current===prev.original)?prev.original:current;
-    const next=translateCopy(source,language);
+    const next=language==='eng'?source:translateCopy(source,language);
     state.set(attr,{original:source,last:next,language});
     if(next!==current)el.setAttribute(attr,next);
   }
@@ -63,7 +81,8 @@ function setDocLanguage(doc){
   doc.documentElement.dataset.apexLanguage=language;
   if(doc!==document){
     const path=doc.defaultView?.location?.pathname||'';
-    const embeddedId=doc.defaultView?.frameElement?.id||'';
+    let embeddedId='';
+    try{embeddedId=doc.defaultView?.frameElement?.id||'';}catch(_){}
     const goldDoc=path.includes('/gold/') || embeddedId==='battleHudFrame' || embeddedId==='luckyDonorFrame';
     let css=doc.getElementById('apex-locale-frame-font');
     if(!goldDoc){
@@ -78,19 +97,29 @@ function setDocLanguage(doc){
 }
 
 function canvasCopy(source){
-  if(typeof source!=='string')return source;
-  const direct=translateCopy(source,language);
-  if(direct!==source)return direct;
-  if(language!=='vie')return source;
-  const swarm=source.match(/^SWARM\s*\/\s*(.+)$/);
-  if(swarm)return 'BẦY PHẾ LIỆU / '+swarm[1];
-  const lock=source.match(/^LOCK (.+?)(\s+·\s+.+)$/);
-  if(lock)return 'KHÓA '+lock[1]+lock[2];
-  const fail=source.match(/^A1 FAILED:\s*(.+)$/);
-  if(fail)return 'KỸ NĂNG 1 THẤT BẠI: '+fail[1];
-  const milestone=source.match(/^BURST M(\d+)$/);
-  if(milestone)return 'BÙNG NỔ M'+milestone[1];
-  return source;
+  if(typeof source!=='string'||!source||language!=='vie'||NON_WORD_FAST_RE.test(source))return source;
+  const cached=canvasCopyCache.get(source);
+  if(cached!==undefined)return cached;
+  let out=translateCopy(source,'vie');
+  if(out===source){
+    const swarm=source.match(/^SWARM\s*\/\s*(.+)$/);
+    if(swarm)out='BẦY PHẾ LIỆU / '+swarm[1];
+    else{
+      const lock=source.match(/^LOCK (.+?)(\s+·\s+.+)$/);
+      if(lock)out='KHÓA '+lock[1]+lock[2];
+      else{
+        const fail=source.match(/^A1 FAILED:\s*(.+)$/);
+        if(fail)out='KỸ NĂNG 1 THẤT BẠI: '+fail[1];
+        else{
+          const milestone=source.match(/^BURST M(\d+)$/);
+          if(milestone)out='BÙNG NỔ M'+milestone[1];
+        }
+      }
+    }
+  }
+  if(canvasCopyCache.size>=256)canvasCopyCache.clear();
+  canvasCopyCache.set(source,out);
+  return out;
 }
 // Local presentation decorator. It is installed on the ONE actual game
 // canvas's existing 2D context, never the global Canvas prototype, offscreen
@@ -202,15 +231,76 @@ function setLanguage(next){
   updateAll();
   window.dispatchEvent(new window.CustomEvent('apex:language-changed',{detail:{language}}));
 }
-// Segmented ENG|VIE control: both languages are always visible in the
-// top utility cluster (no dropdown to open), and the active side is
-// unambiguous at a glance (owner Requirement A).
+function readSettingsSnap(){
+  try{
+    const s=window.APEX_SETTINGS?.get?.();
+    if(s)return s;
+  }catch(_){}
+  return {gfxMode:'auto',gfxEffective:'ultra',musicMuted:false,sfxMuted:false,reducedMotion:false,language};
+}
 function syncPicker(){
   if(!pickerEl)return;
+  const vie=language==='vie';
+  const snap=readSettingsSnap();
+  const setText=(sel,val)=>{const el=pickerEl.querySelector(sel);if(el&&el.textContent!==val)el.textContent=val;};
+  setText('.apex-utility-edition',vie?'CÀI ĐẶT':'SETTINGS');
+  setText('.apex-language-caption',vie?'NGÔN NGỮ':'LANGUAGE');
+  const effLabel={ultra:vie?'CAO':'HIGH',balanced:vie?'CÂN':'BAL',off:vie?'THẤP':'LOW'}[snap.gfxEffective]||'HIGH';
+  setText('[data-apex-cap="gfx"]',snap.gfxMode==='auto'
+    ? (vie?`ĐỒ HỌA · TỰ ĐỘNG (${effLabel})`:`GRAPHICS · AUTO (${effLabel})`)
+    : (vie?'CHẤT LƯỢNG ĐỒ HỌA':'GRAPHICS QUALITY'));
+  setText('[data-apex-cap="audio"]',vie?'ÂM THANH':'AUDIO');
+  setText('[data-apex-cap="motion"]',vie?'HIỆU ỨNG CHUYỂN ĐỘNG':'INTERFACE MOTION');
+  setText('.apex-utility-help-label',vie?'TRỢ GIÚP & TÂN THỦ':'GUIDE & TUTORIAL');
+
   for(const btn of pickerEl.querySelectorAll('[data-apex-language-option]')){
     const active=btn.dataset.apexLanguageOption===language;
     btn.classList.toggle('is-active',active);
     btn.setAttribute('aria-pressed',active?'true':'false');
+  }
+  const gfxLabels={
+    auto:'AUTO',
+    ultra:vie?'CAO':'HIGH',
+    balanced:vie?'CÂN':'BAL',
+    off:vie?'THẤP':'LOW',
+  };
+  for(const btn of pickerEl.querySelectorAll('[data-apex-gfx-option]')){
+    const mode=btn.dataset.apexGfxOption;
+    const active=mode===snap.gfxMode;
+    btn.classList.toggle('is-active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+    if(gfxLabels[mode]&&btn.textContent!==gfxLabels[mode])btn.textContent=gfxLabels[mode];
+  }
+  const musicBtn=pickerEl.querySelector('[data-apex-audio-toggle="music"]');
+  if(musicBtn){
+    const on=!snap.musicMuted;
+    musicBtn.classList.toggle('is-active',on);
+    musicBtn.setAttribute('aria-pressed',on?'true':'false');
+    const lbl=musicBtn.querySelector('span');
+    const st=musicBtn.querySelector('b');
+    if(lbl)lbl.textContent=vie?'NHẠC (M)':'MUSIC (M)';
+    if(st)st.textContent=on?(vie?'BẬT':'ON'):(vie?'TẮT':'OFF');
+  }
+  const sfxBtn=pickerEl.querySelector('[data-apex-audio-toggle="sfx"]');
+  if(sfxBtn){
+    const on=!snap.sfxMuted;
+    sfxBtn.classList.toggle('is-active',on);
+    sfxBtn.setAttribute('aria-pressed',on?'true':'false');
+    const lbl=sfxBtn.querySelector('span');
+    const st=sfxBtn.querySelector('b');
+    if(lbl)lbl.textContent='SFX';
+    if(st)st.textContent=on?(vie?'BẬT':'ON'):(vie?'TẮT':'OFF');
+  }
+  for(const btn of pickerEl.querySelectorAll('[data-apex-motion-option]')){
+    const reducedOpt=btn.dataset.apexMotionOption==='reduced';
+    const active=reducedOpt===Boolean(snap.reducedMotion);
+    btn.classList.toggle('is-active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+    btn.textContent=reducedOpt?(vie?'GIẢM RUNG':'REDUCED'):(vie?'ĐẦY ĐỦ':'FULL');
+  }
+  const guideBtn=pickerEl.querySelector('#apex-guide-open');
+  if(guideBtn){
+    guideBtn.textContent=vie?'MỞ HƯỚNG DẪN CHƠI':'OPEN PLAY GUIDE';
   }
 }
 function mountPicker(){
@@ -218,32 +308,53 @@ function mountPicker(){
   const stage=document.querySelector('#gold-shell-host #stage');
   const profile=stage?.querySelector('.profile');
   if(!stage)return;
-  // Store the EXISTING language controls and Help in a deliberate command
-  // drawer. No permanent 3-button toolbar floats over game art.
+  // Unified Gold Tactical command drawer: Language, Graphics Quality,
+  // Music/SFX audio toggles, Motion comfort, and Play Guide in one clean sheet.
   const picker=document.createElement('div');
   picker.id='apex-language-picker';
   picker.dataset.apexNoLocalize='';
-  picker.setAttribute('role','group');
-  picker.setAttribute('aria-label','Interface / Giao diện');
+  picker.setAttribute('role','dialog');
+  picker.setAttribute('aria-modal','false');
+  picker.setAttribute('aria-label','System Settings / Cài đặt hệ thống');
   picker.hidden=true;
-  picker.innerHTML='<div class="apex-utility-head"><span class="apex-utility-kicker">APEX / SYSTEM</span>'
-    +'<span class="apex-utility-edition">UI SETTINGS</span></div>'
+  picker.innerHTML='<div class="apex-utility-head">'
+    +'<span class="apex-utility-kicker">APEX // SYSTEM</span>'
+    +'<span class="apex-utility-edition">SETTINGS</span>'
+    +'<button type="button" class="apex-utility-close" data-apex-utility-close aria-label="Close / Đóng">✕</button>'
+    +'</div>'
     +'<div class="apex-utility-section"><span class="apex-language-caption">LANGUAGE</span>'
     +'<span class="apex-language-options">'
     +'<button type="button" id="apex-language-eng" data-apex-language-option="eng" aria-pressed="false">ENG</button>'
     +'<button type="button" id="apex-language-vie" data-apex-language-option="vie" aria-pressed="false">VIE</button>'
     +'</span></div>'
-    +'<div class="apex-utility-help-label">GUIDE / HƯỚNG DẪN</div>';
+    +'<div class="apex-utility-section"><span class="apex-utility-caption" data-apex-cap="gfx">GRAPHICS QUALITY</span>'
+    +'<span class="apex-utility-grid cols-4">'
+    +'<button type="button" data-apex-gfx-option="auto" aria-pressed="true">AUTO</button>'
+    +'<button type="button" data-apex-gfx-option="ultra" aria-pressed="false">HIGH</button>'
+    +'<button type="button" data-apex-gfx-option="balanced" aria-pressed="false">BAL</button>'
+    +'<button type="button" data-apex-gfx-option="off" aria-pressed="false">LOW</button>'
+    +'</span></div>'
+    +'<div class="apex-utility-section"><span class="apex-utility-caption" data-apex-cap="audio">AUDIO</span>'
+    +'<span class="apex-utility-grid cols-2">'
+    +'<button type="button" class="apex-utility-pill" data-apex-audio-toggle="music" aria-pressed="true"><span>MUSIC (M)</span><b>ON</b></button>'
+    +'<button type="button" class="apex-utility-pill" data-apex-audio-toggle="sfx" aria-pressed="true"><span>SFX</span><b>ON</b></button>'
+    +'</span></div>'
+    +'<div class="apex-utility-section"><span class="apex-utility-caption" data-apex-cap="motion">INTERFACE MOTION</span>'
+    +'<span class="apex-utility-grid cols-2">'
+    +'<button type="button" data-apex-motion-option="full" aria-pressed="true">FULL</button>'
+    +'<button type="button" data-apex-motion-option="reduced" aria-pressed="false">REDUCED</button>'
+    +'</span></div>'
+    +'<div class="apex-utility-help-label">GUIDE & TUTORIAL</div>';
   stage.appendChild(picker);
   pickerEl=picker;
   const toggle=document.createElement('button');
   toggle.type='button';
   toggle.id='apex-utility-toggle';
   toggle.dataset.apexNoLocalize='';
-  toggle.setAttribute('aria-label','Interface settings / Cài đặt giao diện');
+  toggle.setAttribute('aria-label','System settings / Cài đặt hệ thống');
   toggle.setAttribute('aria-controls',picker.id);
   toggle.setAttribute('aria-expanded','false');
-  toggle.setAttribute('aria-haspopup','true');
+  toggle.setAttribute('aria-haspopup','dialog');
   toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round">'
     +'<path d="M4 7h16M4 12h16M4 17h16"/>'
     +'<circle cx="9" cy="7" r="2" fill="#101015"/>'
@@ -251,34 +362,79 @@ function mountPicker(){
     +'<circle cx="11" cy="17" r="2" fill="#101015"/>'
     +'</svg>';
   (profile||stage).appendChild(toggle);
-  const collapse=()=>{
+  const playUi=(key)=>{try{window.apexUiSfx?.play?.(key);}catch(_){}};
+  const collapse=(restoreFocus=false)=>{
+    if(picker.hidden)return;
     picker.hidden=true;
     picker.classList.remove('is-expanded');
     toggle.setAttribute('aria-expanded','false');
+    if(restoreFocus)toggle.focus({preventScroll:true});
   };
   const expand=()=>{
+    syncPicker();
     picker.hidden=false;
     picker.classList.add('is-expanded');
     toggle.setAttribute('aria-expanded','true');
+    playUi('ui.button.press');
   };
   toggle.addEventListener('click',()=>{
     if(picker.hidden)expand();
-    else collapse();
+    else {playUi('ui.back.cancel');collapse(false);}
   });
   picker.addEventListener('click',(event)=>{
-    const btn=event.target?.closest?.('[data-apex-language-option]');
-    if(btn){setLanguage(btn.dataset.apexLanguageOption);collapse();toggle.focus({preventScroll:true});}
-    if(event.target?.closest?.('#apex-guide-open'))collapse();
+    if(event.target?.closest?.('[data-apex-utility-close]')){
+      playUi('ui.back.cancel');collapse(true);return;
+    }
+    const langBtn=event.target?.closest?.('[data-apex-language-option]');
+    if(langBtn){
+      setLanguage(langBtn.dataset.apexLanguageOption);
+      playUi('ui.option.confirm');
+      syncPicker();
+      return;
+    }
+    const gfxBtn=event.target?.closest?.('[data-apex-gfx-option]');
+    if(gfxBtn){
+      window.APEX_SETTINGS?.setGfxMode?.(gfxBtn.dataset.apexGfxOption);
+      playUi('ui.option.confirm');
+      syncPicker();
+      return;
+    }
+    const audBtn=event.target?.closest?.('[data-apex-audio-toggle]');
+    if(audBtn){
+      const kind=audBtn.dataset.apexAudioToggle;
+      if(kind==='music')window.APEX_SETTINGS?.toggleMusic?.();
+      else window.APEX_SETTINGS?.toggleSfx?.();
+      if(kind==='music'||!window.APEX_SETTINGS?.get?.()?.sfxMuted)playUi('ui.option.confirm');
+      syncPicker();
+      return;
+    }
+    const motBtn=event.target?.closest?.('[data-apex-motion-option]');
+    if(motBtn){
+      window.APEX_SETTINGS?.setReducedMotion?.(motBtn.dataset.apexMotionOption==='reduced');
+      playUi('ui.option.confirm');
+      syncPicker();
+      return;
+    }
+    if(event.target?.closest?.('#apex-guide-open')){collapse(false);}
   });
+  // Auto-collapse drawer when leaving Home for Mode/Fighter/Battle/Draw
+  const stageObs=new MutationObserver(()=>{
+    if(!picker.hidden&&(stage.classList.contains('screen-mode')||stage.classList.contains('screen-fighter')||stage.classList.contains('screen-battle')||stage.classList.contains('screen-draw'))){
+      collapse(false);
+    }
+  });
+  stageObs.observe(stage,{attributes:true,attributeFilter:['class']});
   document.addEventListener('pointerdown',(event)=>{
-    if(!picker.hidden&&!picker.contains(event.target)&&!toggle.contains(event.target))collapse();
+    if(!picker.hidden&&!picker.contains(event.target)&&!toggle.contains(event.target))collapse(false);
   },true);
   document.addEventListener('keydown',(event)=>{
     if(event.key==='Escape'&&!picker.hidden){
-      collapse();toggle.focus({preventScroll:true});event.stopPropagation();
+      event.preventDefault();event.stopImmediatePropagation();
+      playUi('ui.back.cancel');collapse(true);
     }
   },true);
   syncPicker();
+  try{window.dispatchEvent(new CustomEvent('apex:utility-mounted'));}catch(_){}
 }
 export function installLocalization(){
   language=readLanguage();
@@ -286,11 +442,21 @@ export function installLocalization(){
   document.documentElement.dataset.apexLanguage=language;
   installDocument(document);
   mountPicker();
-  // Gold is mounted asynchronously. A single observer discovers it,
-  // including subsequent Lucky Draw / Battle HUD same-origin iframes.
-  const guard=new MutationObserver(()=>{if(!pickerEl?.isConnected)mountPicker();});
-  guard.observe(document.body,{subtree:true,childList:true});
+  // Watch the Gold shell host until #stage mounts; disconnect once mounted so
+  // live combat DOM updates never trigger drawer discovery callbacks.
+  const bindHostObserver=()=>{
+    if(pickerEl?.isConnected)return null;
+    const host=document.getElementById('gold-shell-host')||document.body;
+    const obs=new MutationObserver(()=>{
+      if(!pickerEl?.isConnected)mountPicker();
+      if(pickerEl?.isConnected&&host===document.getElementById('gold-shell-host'))obs.disconnect();
+    });
+    obs.observe(host,{childList:true,subtree:host===document.body});
+    return obs;
+  };
+  bindHostObserver();
   document.addEventListener('apex:localization-refresh',updateAll);
+  window.addEventListener('apex:settings-changed',syncPicker);
   window.addEventListener('storage',(event)=>{
     if(event.key!==KEY)return;
     const incoming=event.newValue==='vie'?'vie':'eng';

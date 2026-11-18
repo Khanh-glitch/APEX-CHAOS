@@ -1006,11 +1006,22 @@ class TransitionEngine {
         this.grainPat = null;
         this.rays = [];
         this.fps = 60;
+        this.bakedW = 0;
+        this.bakedH = 0;
+        this.bakedDpr = 0;
+        this.needsBake = true;
         this.onResize = () => {
             window.clearTimeout(this.resizeTimer);
-            this.resizeTimer = window.setTimeout(() => this.resize(), 200);
+            const active = this.state !== 'IDLE' && this.state !== 'DONE';
+            this.resizeTimer = window.setTimeout(() => this.resize(active), active ? 140 : 280);
+        };
+        this.startLoop = () => {
+            if (this.raf) return;
+            this.last = performance.now() / 1000;
+            this.raf = requestAnimationFrame(this.tick);
         };
         this.tick = (ms) => {
+            this.raf = 0;
             const now = ms / 1000;
             let dt = now - this.last;
             this.last = now;
@@ -1025,23 +1036,39 @@ class TransitionEngine {
             this.fxQuality = lerp(this.fxQuality, qTarget, 1 - Math.exp(-dt * qRate));
             this.update(dt);
             this.render();
-            this.raf = requestAnimationFrame(this.tick);
+            // Sleep completely when IDLE or once DONE afterglow finishes — never run
+            // a 60fps fullscreen clearRect compositor layer over live battles or Home.
+            if (this.state !== 'IDLE' && (this.state !== 'DONE' || this.dirty)) {
+                this.raf = requestAnimationFrame(this.tick);
+            }
+            else {
+                this.canvas.style.display = 'none';
+            }
         };
         this.ctx = canvas.getContext('2d', { alpha: true });
         this.grainPat = this.ctx.createPattern(assets.grain, 'repeat');
         for (let i = 0; i < 72; i++) {
             this.rays.push({ a: hash(i) * TAU, o: hash(i + 100), w: 0.6 + hash(i + 200) * 2.2, l: 0.4 + hash(i + 300) });
         }
-        this.resize();
+        this.canvas.style.display = 'none';
+        this.resize(false);
         window.addEventListener('resize', this.onResize);
         this.last = performance.now() / 1000;
-        this.raf = requestAnimationFrame(this.tick);
+    }
+    ensureBaked() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        if (Math.abs(w - this.W) > 4 || Math.abs(h - this.H) > 4 || this.needsBake || !this.baked) {
+            this.resize(true);
+        }
     }
     open(opts) {
         if (this.state !== 'IDLE' && this.state !== 'DONE')
             return;
+        this.ensureBaked();
         this.fromImage = opts.from;
-        this.openStartedAt = this.now || performance.now() / 1000;
+        this.openStartedAt = performance.now() / 1000;
+        this.now = this.openStartedAt;
         this.readyLatency = null;
         this.timingProfile = opts.autoReadyAfter == null ? 'INFINITE / MANUAL' : 'WAITING';
         this.openSpeed = 1;
@@ -1061,6 +1088,7 @@ class TransitionEngine {
         this.pressureVentTimer = 0;
         this.canvas.style.display = '';
         this.setState('CLOSING');
+        this.startLoop();
     }
     ready() {
         if (!this.readyRequested) {
@@ -1083,7 +1111,11 @@ class TransitionEngine {
         this.embers.clear();
         this.shaker.clear();
         this.autoReadyAt = null;
-        this.dirty = true;
+        if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.canvas.style.display = 'none';
+        this.dirty = false;
     }
     getDebug() {
         return {
@@ -1106,21 +1138,36 @@ class TransitionEngine {
         window.removeEventListener('resize', this.onResize);
         window.clearTimeout(this.resizeTimer);
     }
-    resize() {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
+    resize(bakeNow = true) {
+        const w = Math.max(1, window.innerWidth);
+        const h = Math.max(1, window.innerHeight);
         let dpr = Math.min(window.devicePixelRatio || 1, 1.5);
         if (w * h * dpr * dpr > 3.2e6)
             dpr = Math.max(1, Math.sqrt(3.2e6 / (w * h)));
         this.dpr = dpr;
         this.W = w;
         this.H = h;
-        this.canvas.width = Math.round(w * dpr);
-        this.canvas.height = Math.round(h * dpr);
         this.canvas.style.width = w + 'px';
         this.canvas.style.height = h + 'px';
         this.geo = computeGeo(w, h);
-        this.baked = bake(this.geo, this.assets, dpr);
+        if (!bakeNow) {
+            // Defer heavy texture bake & 3.2MP canvas alloc until door actually opens.
+            if (Math.abs(w - this.bakedW) > 6 || Math.abs(h - this.bakedH) > 6 || Math.abs(dpr - this.bakedDpr) > 0.02) {
+                this.needsBake = true;
+            }
+            return;
+        }
+        const cw = Math.round(w * dpr);
+        const ch = Math.round(h * dpr);
+        if (this.canvas.width !== cw) this.canvas.width = cw;
+        if (this.canvas.height !== ch) this.canvas.height = ch;
+        if (this.needsBake || !this.baked || Math.abs(w - this.bakedW) > 6 || Math.abs(h - this.bakedH) > 6 || Math.abs(dpr - this.bakedDpr) > 0.02) {
+            this.baked = bake(this.geo, this.assets, dpr);
+            this.bakedW = w;
+            this.bakedH = h;
+            this.bakedDpr = dpr;
+            this.needsBake = false;
+        }
         const rw = this.geo.railW * 0.42;
         const g = this.ctx.createLinearGradient(0, -rw / 2, 0, rw / 2);
         g.addColorStop(0, '#3b3d42');

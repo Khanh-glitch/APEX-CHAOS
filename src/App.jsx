@@ -31,6 +31,8 @@ import RewardToast from './ui/RewardToast.jsx';
 import AchievementToast from './ui/AchievementToast.jsx';
 import SkinUnlockCelebration from './ui/SkinUnlockCelebration.jsx';
 import FreeBattleBeyondHud from './ui/FreeBattleBeyondHud.jsx';
+import BattlePauseOverlay from './ui/BattlePauseOverlay.jsx';
+import AaaVisualPolishController from './ui/AaaVisualPolishController.jsx';
 import './game/botWave/wavePreviewEntry.css';
 
 const once = { loaded: false };
@@ -75,6 +77,7 @@ function injectApexEngine(scriptRef, engineSrc) {
         await loadMenuInteractiveRuntimes();
         markBootPhase('menu-runtime-ready');
         window.__apexEnsureDeferredRuntimes = loadDeferredGameRuntimes;
+        window.APEX_ARSENAL_RUNTIME_REVISION = APEX_ARSENAL_RUNTIME_REVISION;
         window.__apexEnsureBattleRuntimes = loadBattleGameRuntimes;
         finishRuntimeLoad();
       } catch (error) {
@@ -453,9 +456,15 @@ export default function App() {
         padding:'6px 13px',border:'1px solid #c68c58',borderRadius:'4px',
         font:'850 11px system-ui',background:'#0b1019ee',color:'#ffe1af',cursor:'pointer'});
       const status=document.createElement('div');
-      status.id='status';status.textContent='PREPARING · BOT WAVE';
-      Object.assign(status.style,{position:'absolute',inset:'0',display:'grid',placeItems:'center',
-        background:'#090c11',color:'#ffca8a',font:'800 12px system-ui',letterSpacing:'.14em'});
+      status.id='status';
+      status.className='apex-surface-loader';
+      status.dataset.apexNoLocalize='';
+      const isVie=window.APEX_I18N?.getLanguage?.()==='vie';
+      status.innerHTML='<div class="apex-surface-loader-plate">'
+        +`<span class="apex-surface-loader-kicker">${isVie?'ĐẤU TRƯỜNG SINH TỒN':'SURVIVAL ARENA'}</span>`
+        +'<span class="apex-surface-loader-title">BOT WAVE</span>'
+        +'<span class="apex-surface-loader-bar" aria-hidden="true"></span>'
+        +'</div>';
       cover.append(frame,status,close);
       const goHome=async()=>{
         if(waveReturnBusyRef.current || waveOverlayRef.current!==cover)return;
@@ -503,15 +512,16 @@ export default function App() {
           if(!doc?.getElementById('wave-hud')||!doc.querySelector('#wave-modal .w-dialog'))return;
           if(!doc.getElementById('bw-v2-styles')){
             const css=doc.createElement('link');css.rel='stylesheet';css.id='bw-v2-styles';
-            css.href=apexAppUrl('/game/bot-wave/botWavePresentationV2.css?v=20261028-lossless-fluid-r2');doc.head.append(css);
+            css.href=apexAppUrl('/game/bot-wave/botWavePresentationV2.css?v='+APEX_ARSENAL_RUNTIME_REVISION);doc.head.append(css);
           }
           if(!doc.getElementById('bw-v2-script')){
             const script=doc.createElement('script');script.id='bw-v2-script';
-            script.src=apexAppUrl('/game/bot-wave/botWavePresentationV2.js?v=20261028-lossless-fluid-r2');doc.head.append(script);
+            script.src=apexAppUrl('/game/bot-wave/botWavePresentationV2.js?v='+APEX_ARSENAL_RUNTIME_REVISION);doc.head.append(script);
           }
           const win=frame.contentWindow;
           if(win?.BOXE_WAVE_PILOT&&win?.APEX_BOT_WAVE_INTERFACE_V2?.installed &&
              doc.getElementById('bw-v2-styles')?.sheet){
+            try{window.APEX_SETTINGS?.sync?.();}catch(_){}
             status.remove();finish();
           }
         };
@@ -527,7 +537,8 @@ export default function App() {
           prepare:()=>{frame.src=apexAppUrl('/bot-wave/game.html');return waitReady();},
           commit:()=>{cover.style.opacity='1';cover.style.pointerEvents='auto';status.remove();
             history.pushState({apexWave:true},'',apexAppUrl('/bot-wave/index.html'));
-            window.APEX_GOLD_PARENT_RUNTIME?.pause?.();stopMenuMusic();},
+            window.APEX_GOLD_PARENT_RUNTIME?.pause?.();stopMenuMusic();
+            try{frame.focus?.({preventScroll:true});frame.contentWindow?.focus?.();}catch(_){}},
           rollback:()=>{window.APEX_GOLD_PARENT_RUNTIME?.resume?.();cover.remove();waveOverlayRef.current=null;cleanup();}
         });
         if(result?.ok===false && waveOverlayRef.current!==cover)return false;
@@ -596,23 +607,31 @@ export default function App() {
         toast.id = 'apex-locked-route-toast';
         toast.setAttribute('role', 'status');
         toast.setAttribute('aria-live', 'polite');
+        toast.dataset.apexNoLocalize = '';
         Object.assign(toast.style, {
           position: 'fixed', left: '50%', bottom: 'max(18px, env(safe-area-inset-bottom))',
-          transform: 'translate(-50%, 16px)', zIndex: '1200', padding: '10px 18px',
-          border: '1px solid #c68c58', background: '#0b1019ee', color: '#ffe1af',
-          font: '850 11px Oswald, system-ui, sans-serif', letterSpacing: '.16em',
-          opacity: '0', pointerEvents: 'none', transition: 'opacity .18s ease, transform .18s ease'
+          transform: 'translate(-50%, 16px)', zIndex: '1200',
+          opacity: '0', pointerEvents: 'none', transition: 'opacity .22s ease, transform .22s cubic-bezier(.16,1,.3,1)',
         });
         document.body.appendChild(toast);
       }
-      toast.textContent = 'COMING SOON';
+      const isVie = window.APEX_I18N?.getLanguage?.() === 'vie';
+      toast.innerHTML =
+        '<span class="apex-locked-toast-icon" aria-hidden="true">' +
+          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+        '</span>' +
+        '<span class="apex-locked-toast-copy">' +
+          '<span class="apex-locked-toast-kicker">' + (isVie ? 'KHU VỰC KHÓA // ĐANG PHÁT TRIỂN' : 'SECTOR LOCKED // DEVELOPMENT') + '</span>' +
+          '<span class="apex-locked-toast-title">' + (isVie ? 'SẮP RA MẮT' : 'COMING SOON') + '</span>' +
+        '</span>';
+      try { window.apexUiSfx?.play?.('ui.locked'); } catch (_) {}
       toast.style.opacity = '1';
       toast.style.transform = 'translate(-50%, 0)';
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translate(-50%, 16px)';
-      }, 1800);
+      }, 1900);
     };
     const onLockedRouteClick = (event) => {
       const route = event.target?.closest?.('[data-locked-route]');
@@ -824,11 +843,15 @@ export default function App() {
               document.elementFromPoint(e.clientX,e.clientY)?.className, geometry:d });
           };
           window.__apexHomeInputDiagnostics={snapshot};
-          window.addEventListener('resize',measure,{passive:true});
-          window.visualViewport?.addEventListener('resize',measure,{passive:true});
-          window.visualViewport?.addEventListener('scroll',measure,{passive:true});
-          document.addEventListener('pointerdown',tap,{capture:true,passive:true});
-          requestAnimationFrame(measure);
+          const diagEnabled = Boolean(import.meta.env?.DEV)
+            || new URLSearchParams(window.location.search).get('apexHitTest') === '1';
+          if (diagEnabled) {
+            window.addEventListener('resize',measure,{passive:true});
+            window.visualViewport?.addEventListener('resize',measure,{passive:true});
+            window.visualViewport?.addEventListener('scroll',measure,{passive:true});
+            document.addEventListener('pointerdown',tap,{capture:true,passive:true});
+            requestAnimationFrame(measure);
+          }
         }
         // R78: production-only Home geometry authority.
         // The donor shell is imported into React's document, so viewport units
@@ -1064,7 +1087,7 @@ export default function App() {
     const entry=document.createElement('button');
     entry.id='botWaveEntry';entry.type='button';entry.className='apex-special-wave-emblem';
     entry.setAttribute('aria-label','BOT WAVE — chế độ sinh tồn đặc biệt');
-    entry.innerHTML='<span class="apex-wave-entry-art" aria-hidden="true"><img src="'+apexAppUrl('/assets/dictionary/heroes/boxe/avatar.png')+'" alt="" decoding="async" draggable="false"></span><span class="apex-wave-entry-copy"><span class="apex-special-wave-top">SPECIAL EVENT <i></i></span><strong>BOT WAVE</strong><small>BOXE / ARSENAL SURVIVAL</small><span class="apex-wave-entry-go" aria-hidden="true">↗</span></span>';
+    entry.innerHTML='<span class="apex-wave-entry-art" aria-hidden="true"><img src="'+apexAppUrl('/assets/dictionary/heroes/boxe/avatar.webp')+'" alt="" decoding="async" draggable="false"></span><span class="apex-wave-entry-copy"><span class="apex-special-wave-top">SPECIAL EVENT <i></i></span><strong>BOT WAVE</strong><small>BOXE / ARSENAL SURVIVAL</small><span class="apex-wave-entry-go" aria-hidden="true">↗</span></span>';
     const onClick=async ()=>{
       if(window.APEX_SCENE_TRANSITION?.active?.())return;
       entry.disabled=true;
@@ -1093,6 +1116,7 @@ export default function App() {
 
   return (
     <>
+    <AaaVisualPolishController />
     <CosmeticLocker />
     <GoldMissionAccountHost />
     <ProductSessionNavigator />
@@ -1106,6 +1130,7 @@ export default function App() {
         contains engine/combat infrastructure only; no legacy menu or picker DOM. */}
     <div id="gold-shell-host" aria-label="APEX CHAOS product surface" />
     <FreeBattleBeyondHud />
+    <BattlePauseOverlay />
     {/* Engine-owned battle infrastructure remains mounted for production truth.
         Gold relocates the live canvas into its authored arena during battle. */}
     <div id="battle-shell">

@@ -1,0 +1,235 @@
+/* =============================================================================
+ * APEX CHAOS — Canonical Gold Tactical Design Tokens (Phase 2)
+ * Single source of truth for typography (ENG + Vietnamese diacritic fidelity),
+ * chamfered gunmetal/brass/gold surfaces, side identity colors, motion curves,
+ * accessible focus rings, and the cross-surface z-index hierarchy.
+ *
+ * Owner-locked donor surfaces (gold-mission-account/{ui,fx,index}, result-gold,
+ * and Gold shell hero composition) remain intact; all product overlays, drawers,
+ * pause sheets, HUD extensions, and toasts consume these shared tokens.
+ * ========================================================================== */
+
+:root {
+  /* ---- Typography (Self-Hosted Offline & Itch-Safe) ---- */
+  --apex-font-display: 'Oswald', 'ApexVietCondensed', 'Montserrat', 'Arial Narrow', sans-serif;
+  --apex-font-ui: 'Oswald', 'ApexVietCondensed', 'Segoe UI', system-ui, sans-serif;
+  --apex-font-prose: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --apex-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  /* ---- Core Palette (Forged Gunmetal, Warm Brass & Combat Gold) ---- */
+  --apex-ink-0: #040507;
+  --apex-ink-1: #090c10;
+  --apex-ink-2: #12171e;
+  --apex-ink-3: #1b222c;
+
+  --apex-gold-hi: #ffe29a;
+  --apex-gold: #f0b958;
+  --apex-gold-mid: #d79c3f;
+  --apex-gold-deep: #8f5f1e;
+  --apex-ember: #ff7a24;
+
+  --apex-p1: #ff941f;
+  --apex-p2: #3aa7ff;
+  --apex-cyan: #5ce1ff;
+  --apex-lime: #b2ff3a;
+  --apex-danger: #ff4d4f;
+  --apex-ok: #7ef7a8;
+
+  --apex-bone: #f4efe4;
+  --apex-text: #e9eef4;
+  --apex-muted: #b8c2ce;
+  --apex-dim: #8894a2;
+
+  /* ---- Surfaces & Hairlines ---- */
+  --apex-surface-modal: linear-gradient(155deg, rgba(28, 24, 18, 0.97) 0%, rgba(12, 15, 20, 0.98) 46%, rgba(6, 8, 12, 0.99) 100%);
+  --apex-surface-card: linear-gradient(155deg, rgba(25, 22, 16, 0.96) 0%, rgba(9, 11, 15, 0.97) 100%);
+  --apex-surface-hud: linear-gradient(180deg, rgba(16, 20, 26, 0.92) 0%, rgba(8, 10, 14, 0.94) 100%);
+  --apex-surface-control: linear-gradient(180deg, rgba(31, 36, 44, 0.92), rgba(14, 17, 22, 0.95));
+  --apex-surface-control-hover: linear-gradient(180deg, rgba(50, 41, 29, 0.96), rgba(22, 20, 18, 0.98));
+  --apex-surface-gold-cta: linear-gradient(180deg, #ffd47e 0%, #f0a93b 56%, #c87b1c 100%);
+  --apex-surface-scrim: radial-gradient(ellipse at 50% 24%, rgba(28, 22, 15, 0.78), rgba(3, 5, 8, 0.88) 72%);
+
+  --apex-line-subtle: rgba(238, 231, 219, 0.13);
+  --apex-line-gold: rgba(236, 182, 90, 0.44);
+  --apex-line-gold-strong: rgba(255, 204, 108, 0.82);
+  --apex-line-cyan: rgba(92, 225, 255, 0.52);
+  --apex-line-danger: rgba(255, 88, 88, 0.62);
+
+  /* ---- Chamfered Tactical Geometry ---- */
+  --apex-cut-xs: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  --apex-cut-sm: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  --apex-cut-md: polygon(13px 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 0 100%, 0 13px);
+  --apex-cut-lg: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  --apex-cut-slant: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+
+  /* ---- Elevation & Focus ---- */
+  --apex-shadow-hud: 0 10px 28px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255, 243, 214, 0.08);
+  --apex-shadow-card: 0 18px 46px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 243, 214, 0.09);
+  --apex-shadow-modal: 0 28px 80px rgba(0, 0, 0, 0.78), 0 0 42px rgba(240, 169, 59, 0.1), inset 0 1px 0 rgba(255, 243, 214, 0.1);
+  --apex-focus-color: #ffd26b;
+
+  /* ---- Motion ---- */
+  --apex-ease-out: cubic-bezier(0.18, 0.88, 0.26, 1);
+  --apex-ease-snap: cubic-bezier(0.2, 1.24, 0.34, 1);
+  --apex-ease-wipe: cubic-bezier(0.7, 0, 0.3, 1);
+  --apex-dur-fast: 130ms;
+  --apex-dur-med: 220ms;
+
+  /* ---- Canonical Z-Index Hierarchy ----
+   *  battleHudHost:      10000
+   *  hud-tactical:       10200  (FreeBattleBeyondHud + pause trigger)
+   *  quest-stage:        13500  (Quest 01 checkpoint sheet)
+   *  archive:            14500  (Field Archive / Cosmetics)
+   *  battle-pause:       2147478500 (Tactical Battle Pause modal)
+   *  help-sheet:         2147479000 (First-Play Help & one-time prompt)
+   *  coach:              2147480650 (Non-blocking Learn-by-Playing beacon)
+   *  toast-achievement:  2147480700 (Achievement unlock toast)
+   *  toast-reward:       2147480800 (AC wallet reward toast)
+   *  toast-status:       2147480820 (System / Coming-Soon status chip)
+   *  skin-unlock:        2147480850 (Post-match skin unlock card)
+   *  modal:              2147481000 (Skill details / modal sheets)
+   *  session-rail:       2147481900 (5-section swipe rail & coach)
+   *  wipe:               2147483000 (Gold cross-section wipe & scene door)
+   *  result:             2147483600 (Result Gold iframe)
+   *  fatal:              2147483620 (Root recovery boundary)
+   */
+  --apex-z-hud-tactical: 10200;
+  --apex-z-quest: 13500;
+  --apex-z-archive: 14500;
+  --apex-z-battle-pause: 2147478500;
+  --apex-z-help: 2147479000;
+  --apex-z-coach: 2147480650;
+  --apex-z-toast-achievement: 2147480700;
+  --apex-z-toast-reward: 2147480800;
+  --apex-z-toast-status: 2147480820;
+  --apex-z-skin-unlock: 2147480850;
+  --apex-z-modal: 2147481000;
+  --apex-z-session-rail: 2147481900;
+  --apex-z-wipe: 2147483000;
+  --apex-z-result: 2147483600;
+  --apex-z-fatal: 2147483620;
+}
+
+/* Automatic Vietnamese condensed-display switch across every token consumer */
+html[data-apex-language="vie"] {
+  --apex-font-display: 'ApexVietCondensed', 'Oswald', 'Montserrat', 'Segoe UI', sans-serif;
+  --apex-font-ui: 'ApexVietCondensed', 'Oswald', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* User-selected Reduced Motion in APEX_SETTINGS mirrors OS reduced-motion */
+html[data-apex-motion="reduced"] .apex-beyond-hud *,
+html[data-apex-motion="reduced"] .apex-battle-pause *,
+html[data-apex-motion="reduced"] .apex-achievement-toast,
+html[data-apex-motion="reduced"] .apex-reward-toast,
+html[data-apex-motion="reduced"] .apex-skin-unlock-card,
+html[data-apex-motion="reduced"] .apex-skin-unlock-card::before,
+html[data-apex-motion="reduced"] .apex-coach-beacon,
+html[data-apex-motion="reduced"] .apex-guide-card,
+html[data-apex-motion="reduced"] .apex-session-coach,
+html[data-apex-motion="reduced"] .apex-session-coach-hand,
+html[data-apex-motion="reduced"] .fa3-art-orbit,
+html[data-apex-motion="reduced"] .fa3-hero-img,
+html[data-apex-motion="reduced"] .fa3-weapon-img {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Unified Gold Tactical status toast (locked routes & brief feedback) */
+.apex-status-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(22px, calc(env(safe-area-inset-bottom, 0px) + 18px));
+  transform: translate(-50%, 12px);
+  z-index: var(--apex-z-toast-status);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 18px 10px;
+  background: var(--apex-surface-card);
+  border: 1px solid var(--apex-line-gold-strong);
+  border-top: 2px solid var(--apex-gold);
+  box-shadow: var(--apex-shadow-card);
+  clip-path: var(--apex-cut-sm);
+  color: var(--apex-gold-hi);
+  font-family: var(--apex-font-display);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--apex-dur-fast) ease, transform var(--apex-dur-med) var(--apex-ease-out);
+}
+.apex-status-toast::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  background: var(--apex-gold);
+  transform: rotate(45deg);
+  box-shadow: 0 0 8px rgba(240, 185, 88, 0.7);
+}
+.apex-status-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Unified Gold Tactical surface-loading plaque (e.g. BOT WAVE entry) */
+.apex-surface-loader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 38%, #1c1711 0%, #07090d 68%);
+  color: var(--apex-gold-hi);
+  font-family: var(--apex-font-display);
+  user-select: none;
+  pointer-events: none;
+}
+.apex-surface-loader-plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 32px 18px;
+  background: var(--apex-surface-card);
+  border: 1px solid var(--apex-line-gold);
+  border-top: 2px solid var(--apex-gold);
+  clip-path: var(--apex-cut-md);
+  box-shadow: var(--apex-shadow-card);
+}
+.apex-surface-loader-kicker {
+  font: 700 9.5px/1 var(--apex-font-mono);
+  letter-spacing: 0.2em;
+  color: var(--apex-gold);
+}
+.apex-surface-loader-title {
+  font: 700 clamp(18px, 3vw, 24px)/1.05 var(--apex-font-display);
+  letter-spacing: 0.12em;
+  color: var(--apex-bone);
+}
+.apex-surface-loader-bar {
+  width: 148px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  position: relative;
+}
+.apex-surface-loader-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -45%;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, var(--apex-gold), var(--apex-gold-hi), transparent);
+  animation: apex-loader-sweep 1.15s ease-in-out infinite;
+}
+@keyframes apex-loader-sweep {
+  from { left: -45%; }
+  to { left: 105%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .apex-status-toast { transition: none; }
+  .apex-surface-loader-bar::after { animation: none; left: 27%; }
+}

@@ -332,17 +332,25 @@ function createForgeFire(glCanvas,particleCanvas,reducedMotion){
    state.smokeSpawn+=dt*1.1*intensity;
    while(state.smokeSpawn>=1){state.smokeSpawn--;spawn('smoke',size.width,size.height,fill,intensity);}
   }
-  for(const particle of state.particles){
+  const pArr=state.particles;
+  let pw=0;
+  for(let pi=0;pi<pArr.length;pi++){
+   const particle=pArr[pi];
    particle.px=particle.x;particle.py=particle.y;particle.age+=dt;
+   if(particle.age>=particle.life)continue;
    const curl=Math.sin(particle.seed+particle.age*4.6+particle.y*.085)*10;
    particle.x+=(particle.vx+curl*(particle.kind==='ember'?.32:1))*dt;
    particle.y+=particle.vy*dt*(particle.kind==='flame'?1+particle.age*.22:1);
    if(particle.kind==='ember')particle.vy-=9*dt;
+   if(particle.y<=-14)continue;
+   pArr[pw++]=particle;
   }
-  state.particles=state.particles.filter(particle=>particle.age<particle.life&&particle.y>-14);
+  pArr.length=pw;
   if(smokeSprite){
    pctx.globalCompositeOperation='source-over';
-   for(const particle of state.particles.filter(item=>item.kind==='smoke')){
+   for(let pi=0;pi<pw;pi++){
+    const particle=pArr[pi];
+    if(particle.kind!=='smoke')continue;
     const t=particle.age/particle.life,size=particle.size*(.55+t*1.15);
     pctx.globalAlpha=.055*Math.sin(Math.PI*Math.min(1,t));
     pctx.drawImage(smokeSprite,particle.x-size/2,particle.y-size/2,size,size);
@@ -545,7 +553,7 @@ function install(){
  pauseMenu.setAttribute('aria-labelledby','bw-pause-title');
  pauseMenu.innerHTML='<section class="bw-pause-card">'
   +'<header class="bw-pause-head"><span>RING COMMAND // BX-07</span><strong id="bw-pause-title">TẠM DỪNG</strong><small id="bw-pause-summary">WAVE 01 · CLUSTER 01 · LV 1</small></header>'
-  +'<div class="bw-pause-stats"><div><small>K.O.</small><strong id="bw-pause-kills">0</strong></div><div><small>SÁT THƯƠNG</small><strong id="bw-pause-damage">0</strong></div><div><small>THỜI GIAN</small><strong id="bw-pause-time">00:00</strong></div><div><small>THẺ BUILD</small><strong id="bw-pause-cards-count">0</strong></div></div>'
+  +'<div class="bw-pause-stats"><div><small data-bw-stat="ko">K.O.</small><strong id="bw-pause-kills">0</strong></div><div><small data-bw-stat="dmg">SÁT THƯƠNG</small><strong id="bw-pause-damage">0</strong></div><div><small data-bw-stat="time">THỜI GIAN</small><strong id="bw-pause-time">00:00</strong></div><div><small data-bw-stat="cards">THẺ BUILD</small><strong id="bw-pause-cards-count">0</strong></div></div>'
   +'<nav class="bw-pause-actions" aria-label="Tùy chọn tạm dừng">'
   +'<button type="button" data-pause-action="resume" class="is-primary"><strong>TIẾP TỤC</strong><small>Quay lại sàn đấu</small></button>'
   +'<button type="button" data-pause-action="save-exit"><strong>LƯU & THOÁT</strong><small id="bw-pause-save-copy">Lưu tại đầu wave hiện tại</small></button>'
@@ -553,7 +561,24 @@ function install(){
   +'<button type="button" data-pause-action="replay-cluster"><strong>CHƠI LẠI CỤM 10</strong><small>Khôi phục build lúc vào cụm</small></button>'
   +'<button type="button" data-pause-action="restart-run" class="is-danger"><strong>CHƠI LẠI TỪ ĐẦU</strong><small>Xóa run và bắt đầu Wave 01</small></button>'
   +'</nav>'
-  +'<div class="bw-pause-build-wrap"><span>BUILD HIỆN TẠI</span><div class="bw-pause-build" id="bw-pause-build"><em>CHƯA CÓ THẺ</em></div></div>'
+  +'<div class="bw-pause-prefs" id="bw-pause-prefs">'
+  +'<div class="bw-pref-group"><span data-bw-pref-cap="gfx">ĐỒ HỌA</span><div class="bw-pref-seg is-4">'
+  +'<button type="button" data-bw-gfx="auto">AUTO</button>'
+  +'<button type="button" data-bw-gfx="ultra">CAO</button>'
+  +'<button type="button" data-bw-gfx="balanced">CÂN</button>'
+  +'<button type="button" data-bw-gfx="off">THẤP</button>'
+  +'</div></div>'
+  +'<div class="bw-pref-split">'
+  +'<div class="bw-pref-group"><span data-bw-pref-cap="sfx">ÂM THANH SFX</span><div class="bw-pref-seg is-2">'
+  +'<button type="button" data-bw-sfx="on">BẬT</button>'
+  +'<button type="button" data-bw-sfx="off">TẮT</button>'
+  +'</div></div>'
+  +'<div class="bw-pref-group"><span data-bw-pref-cap="lang">NGÔN NGỮ</span><div class="bw-pref-seg is-2">'
+  +'<button type="button" data-bw-lang="eng">ENG</button>'
+  +'<button type="button" data-bw-lang="vie">VIE</button>'
+  +'</div></div>'
+  +'</div></div>'
+  +'<div class="bw-pause-build-wrap"><span data-bw-build-head>BUILD HIỆN TẠI</span><div class="bw-pause-build" id="bw-pause-build"><em>CHƯA CÓ THẺ</em></div></div>'
   +'<p class="bw-pause-note" id="bw-pause-note">Tiến độ được lưu ở đầu mỗi wave. Thoát giữa wave vẫn giữ nguyên snapshot gần nhất.</p>'
   +'</section>';
  // R17 wave announcement: replaces Gold's center-screen canvas banner in
@@ -588,7 +613,7 @@ function install(){
  if(!modal.querySelector('.bw-cover')){
   const art=node('aside','bw-cover');
   const image=node('img','bw-cover-art');
-  image.src='/assets/dictionary/heroes/boxe/cover.png';
+  image.src='/assets/dictionary/heroes/boxe/cover.webp';
   image.alt='BOXE — The Fist of Dawn';
   image.decoding='async';
   const frame=node('div','bw-cover-frame');
@@ -661,9 +686,14 @@ function install(){
  let lastPulseWave=0,lastPulseLevel=0,lastBossPulse=false,lastIgnitedPulse=false;
  const minimapTrail=[];
  const eventTimers=new Map();
+ const restartClassAnim=(el,className)=>{
+  if(!el.classList.contains(className)){el.classList.add(className);return;}
+  el.classList.remove(className);
+  window.requestAnimationFrame(()=>{if(el.isConnected)el.classList.add(className);});
+ };
  const pulseDeck=(className,duration=950)=>{
   if(prefersReducedMotion)return;
-  deck.classList.remove(className);void deck.offsetWidth;deck.classList.add(className);
+  restartClassAnim(deck,className);
   const old=eventTimers.get(className);if(old)window.clearTimeout(old);
   eventTimers.set(className,window.setTimeout(()=>deck.classList.remove(className),duration));
  };
@@ -681,7 +711,7 @@ function install(){
  const flashAction=(button,className,duration,timerKey)=>{
   if(prefersReducedMotion)return;
   const motion=actionMotion.get(button);if(!motion)return;
-  button.classList.remove(className);void button.offsetWidth;button.classList.add(className);
+  restartClassAnim(button,className);
   if(motion[timerKey])window.clearTimeout(motion[timerKey]);
   motion[timerKey]=window.setTimeout(()=>button.classList.remove(className),duration);
  };
@@ -700,7 +730,7 @@ function install(){
  let lastHeroHp=null,heroHitTimer=0;
  const pulseHeroHit=()=>{
   if(prefersReducedMotion)return;
-  hero.classList.remove('bw-took-hit');void hero.offsetWidth;hero.classList.add('bw-took-hit');
+  restartClassAnim(hero,'bw-took-hit');
   if(heroHitTimer)window.clearTimeout(heroHitTimer);
   heroHitTimer=window.setTimeout(()=>hero.classList.remove('bw-took-hit'),310);
  };
@@ -713,12 +743,109 @@ function install(){
    const label=button.querySelector('strong');if(label&&button.dataset.label)label.textContent=button.dataset.label;
   }
  };
+ const getHostWin=()=>{try{const p=window.parent;if(p&&p!==window&&p.location.origin===window.location.origin)return p;}catch(_){}return window;};
+ const readWavePrefs=()=>{
+  const hw=getHostWin();
+  try{
+   const s=hw.APEX_SETTINGS?.get?.();
+   if(s)return s;
+  }catch(_){}
+  let lang='vie',gfxMode='auto';
+  try{
+   const l=hw.APEX_I18N?.getLanguage?.()||localStorage.getItem('apex.language.v1');
+   if(l==='eng'||l==='vie')lang=l;
+   const g=localStorage.getItem('apex.gfxQuality.v1');
+   if(['auto','ultra','balanced','off'].includes(g))gfxMode=g;
+  }catch(_){}
+  const sfxMuted=window.handLab?.opts?window.handLab.opts.sound===false:Boolean(window.__apexSfxMuted);
+  return {gfxMode,gfxEffective:gfxMode==='auto'?'ultra':gfxMode,sfxMuted,reducedMotion:Boolean(window.__apexReducedMotion),language:lang};
+ };
+ const applyWaveEnginePrefs=snap=>{
+  if(!snap)return;
+  const eff=snap.gfxMode==='auto'?(snap.gfxEffective||'ultra'):snap.gfxMode;
+  const eng=window.handLab||window.BOXE_WAVE_PILOT?.engine;
+  if(eng?.setOptions){
+   eng.setOptions({
+    sound:!snap.sfxMuted,
+    afterimage:eff!=='off',
+    materialFx:eff==='ultra',
+    shake:snap.reducedMotion?0.22:1
+   });
+  }
+  const soundBtn=doc.getElementById('sound');
+  if(soundBtn)soundBtn.textContent=snap.sfxMuted?'♩':'♫';
+  deck.classList.toggle('bw-reduced-motion',Boolean(snap.reducedMotion));
+  doc.documentElement.dataset.apexLanguage=snap.language==='eng'?'eng':'vie';
+ };
+ const syncPausePrefsUi=()=>{
+  const snap=readWavePrefs();
+  const eng=snap.language==='eng';
+  setText(pauseMenu.querySelector('#bw-pause-title'),eng?'PAUSED':'TẠM DỪNG');
+  setText(pauseMenu.querySelector('[data-bw-stat="dmg"]'),eng?'DAMAGE':'SÁT THƯƠNG');
+  setText(pauseMenu.querySelector('[data-bw-stat="time"]'),eng?'TIME':'THỜI GIAN');
+  setText(pauseMenu.querySelector('[data-bw-stat="cards"]'),eng?'RELICS':'THẺ BUILD');
+  setText(pauseMenu.querySelector('[data-bw-pref-cap="gfx"]'),eng?'GRAPHICS':'ĐỒ HỌA');
+  setText(pauseMenu.querySelector('[data-bw-pref-cap="sfx"]'),eng?'COMBAT SFX':'ÂM THANH SFX');
+  setText(pauseMenu.querySelector('[data-bw-pref-cap="lang"]'),eng?'LANGUAGE':'NGÔN NGỮ');
+  setText(pauseMenu.querySelector('[data-bw-build-head]'),eng?'ACTIVE BUILD':'BUILD HIỆN TẠI');
+  const setAct=(act,lbl,sub)=>{
+   const b=pauseButtons.find(x=>x.dataset.pauseAction===act);if(!b)return;
+   b.dataset.label=lbl;
+   if(pauseConfirmAction!==act)setText(b.querySelector('strong'),lbl);
+   if(sub!=null)setText(b.querySelector('small'),sub);
+  };
+  setAct('resume',eng?'RESUME FIGHT':'TIẾP TỤC',eng?'Return to the arena (Esc)':'Quay lại sàn đấu (Esc)');
+  setAct('save-exit',eng?'SAVE & EXIT':'LƯU & THOÁT',null);
+  setAct('replay-cluster',eng?'REPLAY CLUSTER 10':'CHƠI LẠI CỤM 10',eng?'Restore cluster-entry build':'Khôi phục build lúc vào cụm');
+  setAct('restart-run',eng?'RESTART RUN':'CHƠI LẠI TỪ ĐẦU',eng?'Clear run & start from Wave 01':'Xóa run và bắt đầu Wave 01');
+  const gfxLbl={auto:'AUTO',ultra:eng?'HIGH':'CAO',balanced:eng?'BAL':'CÂN',off:eng?'LOW':'THẤP'};
+  for(const b of pauseMenu.querySelectorAll('[data-bw-gfx]')){
+   const m=b.dataset.bwGfx,on=m===snap.gfxMode;
+   b.classList.toggle('is-active',on);b.setAttribute('aria-pressed',on?'true':'false');
+   setText(b,gfxLbl[m]||m.toUpperCase());
+  }
+  for(const b of pauseMenu.querySelectorAll('[data-bw-sfx]')){
+   const wantOn=b.dataset.bwSfx==='on',on=wantOn===!snap.sfxMuted;
+   b.classList.toggle('is-active',on);b.setAttribute('aria-pressed',on?'true':'false');
+   setText(b,wantOn?(eng?'ON':'BẬT'):(eng?'OFF':'TẮT'));
+  }
+  for(const b of pauseMenu.querySelectorAll('[data-bw-lang]')){
+   const on=b.dataset.bwLang===(eng?'eng':'vie');
+   b.classList.toggle('is-active',on);b.setAttribute('aria-pressed',on?'true':'false');
+  }
+  return snap;
+ };
+ const updateWavePrefs=patch=>{
+  const hw=getHostWin();
+  let snap=null;
+  try{if(hw.APEX_SETTINGS?.update)snap=hw.APEX_SETTINGS.update(patch);}catch(_){}
+  if(!snap)snap=Object.assign(readWavePrefs(),patch);
+  applyWaveEnginePrefs(snap);
+  lastPauseSignature='';
+  if(pauseMenuOpen)updatePauseMenu();else syncPausePrefsUi();
+ };
+ window.apexWaveApplySettings=snap=>{
+  applyWaveEnginePrefs(snap);
+  lastPauseSignature='';
+  if(pauseMenuOpen)updatePauseMenu();
+ };
+ pauseMenu.querySelector('#bw-pause-prefs')?.addEventListener('click',event=>{
+  const gfx=event.target?.closest?.('[data-bw-gfx]');
+  if(gfx){updateWavePrefs({gfxMode:gfx.dataset.bwGfx});return;}
+  const sfx=event.target?.closest?.('[data-bw-sfx]');
+  if(sfx){updateWavePrefs({sfxMuted:sfx.dataset.bwSfx==='off'});return;}
+  const lg=event.target?.closest?.('[data-bw-lang]');
+  if(lg){updateWavePrefs({language:lg.dataset.bwLang});}
+ });
+ applyWaveEnginePrefs(readWavePrefs());
+
  const updatePauseMenu=()=>{
+  const snap=syncPausePrefsUi(),eng=snap.language==='eng';
   const pilot=window.BOXE_WAVE_PILOT,s=pilot?.state||{},wave=Math.max(1,Number(s.wave)||1);
   const cluster=Math.floor((wave-1)/10)+1,level=Math.max(1,Number(s.level)||1);
   const stacks=s.stacks&&typeof s.stacks==='object'?Object.entries(s.stacks).filter(([,count])=>Number(count)>0):[];
   const cardTotal=stacks.reduce((sum,[,count])=>sum+(Number(count)||0),0);
-  const signature=[wave,level,s.kills||0,Math.round(s.waveDamageDealt||0),Math.floor(s.aliveTime||0),cardTotal,
+  const signature=[snap.language,wave,level,s.kills||0,Math.round(s.waveDamageDealt||0),Math.floor(s.aliveTime||0),cardTotal,
    s.waveSnapshot?.wave||0,s.clusterSnapshot?.wave||0].join(':');
   setText(pauseSummary,'WAVE '+String(wave).padStart(2,'0')+' · CLUSTER '+String(cluster).padStart(2,'0')+' · LV '+level);
   setText(pauseKills,formatInt(s.kills));
@@ -727,23 +854,33 @@ function install(){
   setText(pauseTime,String(Math.floor(alive/60)).padStart(2,'0')+':'+String(alive%60).padStart(2,'0'));
   setText(pauseCardsCount,String(cardTotal));
   const savedWave=Number(s.waveSnapshot?.wave)||0,clusterWave=Number(s.clusterSnapshot?.wave)||0;
-  setText(pauseSaveCopy,savedWave?'Đã khóa snapshot đầu Wave '+String(savedWave).padStart(2,'0'):'Chưa có snapshot để lưu');
+  setText(pauseSaveCopy,savedWave
+   ?(eng?'Snapshot locked at Wave '+String(savedWave).padStart(2,'0'):'Đã khóa snapshot đầu Wave '+String(savedWave).padStart(2,'0'))
+   :(eng?'No snapshot saved yet':'Chưa có snapshot để lưu'));
   for(const button of pauseButtons){
    const action=button.dataset.pauseAction;
    button.disabled=action==='save-exit'? !savedWave : action==='replay-wave'? !savedWave : action==='replay-cluster'? !clusterWave : false;
   }
   const replayWaveButton=pauseButtons.find(button=>button.dataset.pauseAction==='replay-wave');
   if(replayWaveButton){
-   replayWaveButton.dataset.label=s.autoNextWave&&savedWave?'VÀO WAVE '+String(savedWave).padStart(2,'0'):'CHƠI LẠI WAVE';
+   replayWaveButton.dataset.label=s.autoNextWave&&savedWave
+    ?(eng?'ENTER WAVE '+String(savedWave).padStart(2,'0'):'VÀO WAVE '+String(savedWave).padStart(2,'0'))
+    :(eng?'REPLAY WAVE':'CHƠI LẠI WAVE');
    if(pauseConfirmAction!=='replay-wave')setText(replayWaveButton.querySelector('strong'),replayWaveButton.dataset.label);
-   setText(replayWaveButton.querySelector('small'),s.autoNextWave?'Bắt đầu ngay từ snapshot wave kế tiếp':'Dùng snapshot đầu wave');
+   setText(replayWaveButton.querySelector('small'),s.autoNextWave
+    ?(eng?'Start immediately from next wave snapshot':'Bắt đầu ngay từ snapshot wave kế tiếp')
+    :(eng?'Restore wave-start snapshot':'Dùng snapshot đầu wave'));
   }
-  if(!pauseConfirmAction)setText(pauseNote,savedWave?
-   'Thoát lúc này sẽ tiếp tục từ đầu Wave '+savedWave+'. Nếu thua trong cụm, snapshot cụm ở Wave '+clusterWave+' vẫn được giữ nguyên.':
-   'Hãy bắt đầu wave đầu tiên để tạo snapshot. Từ thời điểm đó, thoát game không làm mất tiến độ.');
+  if(!pauseConfirmAction)setText(pauseNote,savedWave
+   ?(eng
+     ?'Leaving now resumes at Wave '+savedWave+'. Cluster snapshot at Wave '+clusterWave+' stays protected.'
+     :'Thoát lúc này sẽ tiếp tục từ đầu Wave '+savedWave+'. Nếu thua trong cụm, snapshot cụm ở Wave '+clusterWave+' vẫn được giữ nguyên.')
+   :(eng
+     ?'Enter Wave 01 to lock your first snapshot. Once locked, leaving never loses run progress.'
+     :'Hãy bắt đầu wave đầu tiên để tạo snapshot. Từ thời điểm đó, thoát game không làm mất tiến độ.'));
   if(signature===lastPauseSignature)return;
   lastPauseSignature=signature;
-  if(!stacks.length){pauseBuild.innerHTML='<em>CHƯA CÓ THẺ</em>';return;}
+  if(!stacks.length){pauseBuild.innerHTML=eng?'<em>NO RELICS YET</em>':'<em>CHƯA CÓ THẺ</em>';return;}
   pauseBuild.replaceChildren(...stacks.sort((a,b)=>(Number(b[1])||0)-(Number(a[1])||0)||a[0].localeCompare(b[0])).map(([id,count])=>{
    const chip=node('span','bw-pause-chip',String(id).replaceAll('_',' ').toUpperCase()+(Number(count)>1?' ×'+count:''));
    chip.dataset.cardId=id;chip.dataset.code=CARD_CODES[id]||'APX';
@@ -774,16 +911,22 @@ function install(){
   const action=button.dataset.pauseAction,pilot=window.BOXE_WAVE_PILOT;
   if(action==='resume'){setPauseFromInterface(false);return;}
   if(action==='save-exit'){
+   const eng=readWavePrefs().language==='eng';
    const result=pilot?.saveAndExit?.();
-   if(!result?.saved)setText(pauseNote,'Chưa thể lưu vì snapshot đầu wave chưa tồn tại. Hãy vào wave trước khi thoát.');
+   if(!result?.saved)setText(pauseNote,eng
+    ?'Cannot save before the first wave snapshot exists. Enter a wave first.'
+    :'Chưa thể lưu vì snapshot đầu wave chưa tồn tại. Hãy vào wave trước khi thoát.');
    return;
   }
   if(pauseConfirmAction!==action){
+   const eng=readWavePrefs().language==='eng';
    resetPauseConfirm();pauseConfirmAction=action;button.classList.add('is-confirming');
-   const label=button.querySelector('strong');if(label)label.textContent='ẤN LẦN NỮA ĐỂ XÁC NHẬN';
-   setText(pauseNote,action==='restart-run'?'Hành động này xóa toàn bộ run hiện tại và snapshot đã lưu.':
-    action==='replay-cluster'?'Toàn bộ thẻ và tiến triển kiếm được trong cụm hiện tại sẽ bị thu hồi.':
-    'Wave hiện tại sẽ bắt đầu lại từ snapshot đầu wave.');
+   const label=button.querySelector('strong');if(label)label.textContent=eng?'TAP AGAIN TO CONFIRM':'ẤN LẦN NỮA ĐỂ XÁC NHẬN';
+   setText(pauseNote,action==='restart-run'
+    ?(eng?'This wipes the active run and saved snapshots.':'Hành động này xóa toàn bộ run hiện tại và snapshot đã lưu.')
+    :action==='replay-cluster'
+     ?(eng?'All relics and progress earned in the active cluster will revert.':'Toàn bộ thẻ và tiến triển kiếm được trong cụm hiện tại sẽ bị thu hồi.')
+     :(eng?'The current wave will restart from its entry snapshot.':'Wave hiện tại sẽ bắt đầu lại từ snapshot đầu wave.'));
    pauseConfirmTimer=window.setTimeout(()=>{resetPauseConfirm();updatePauseMenu();},3400);
    return;
   }
@@ -794,11 +937,14 @@ function install(){
   syncPauseMenu();
  });
  window.addEventListener('keydown',event=>{
-  if(event.code!=='Escape'||event.repeat)return;
+  if((event.code!=='Escape'&&event.code!=='KeyP')||event.repeat||event.ctrlKey||event.metaKey||event.altKey)return;
+  const tag=String(event.target?.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select')return;
   const phase=window.BOXE_WAVE_PILOT?.state?.phase;
   if(!['combat','intermission'].includes(phase))return;
-  event.preventDefault();setPauseFromInterface(!window.handLab?.paused);
- });
+  event.preventDefault();event.stopImmediatePropagation();
+  setPauseFromInterface(!window.handLab?.paused);
+ },true);
  // Static geometry and the gradient are rasterized once per exact pixel size.
  // Dynamic sweep, bots, trails, threat arcs and FX still paint every spatial frame.
  let minimapBackdrop=null;
@@ -932,21 +1078,40 @@ function install(){
   ctx.fillStyle='rgba(255,231,194,.88)';ctx.font='600 9px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('N',cx,11);ctx.fillText('S',cx,size-11);ctx.fillText('W',11,cy);ctx.fillText('E',size-11,cy);
  };
+ let cachedFrame=null,cachedPanels=[],cachedLayoutAt=0,cachedAnnounce=false,cachedWidth=0,cachedHeight=0,layoutDirty=true;
+ const markLayoutDirty=()=>{layoutDirty=true;};
+ window.addEventListener('resize',markLayoutDirty,{passive:true});
+ const isLowGfx=()=>{
+  try{
+   const q=window.APEX_GFX_QUALITY||(window.parent&&window.parent!==window&&window.parent.APEX_GFX_QUALITY);
+   return q?.getEffective?.()==='off';
+  }catch(_){return false;}
+ };
  const updateSpatial=()=>{
   const pilot=window.BOXE_WAVE_PILOT,lab=window.handLab,s=pilot?.state||{},player=lab?.player;
   if(!pilot||!lab||!player){
    for(const marker of spatialMarkers)marker.style.opacity='0';
    peripheral.style.opacity='0';return;
   }
-  const width=spatial.clientWidth||window.innerWidth||lab.w||960,height=spatial.clientHeight||window.innerHeight||lab.h||540;
-  const frame=refreshScreenFrame(spatial),frameRight=frame.left+(frame.width||width),frameBottom=frame.top+(frame.height||height);
-  const layerRect=spatial.getBoundingClientRect?.(),panelRects=[];
-  if(layerRect)for(const el of [hero,center,threat,move,skill,bossPanel,...(announce.classList.contains('is-show')?[announce]:[])]){
-   const rect=el?.getBoundingClientRect?.();
-   if(rect&&rect.width>0&&rect.height>0)panelRects.push({
-    left:rect.left-layerRect.left-7,top:rect.top-layerRect.top-7,
-    right:rect.right-layerRect.left+7,bottom:rect.bottom-layerRect.top+7});
+  const nowMs=performance.now();
+  const announceOpen=announce.classList.contains('is-show');
+  if(layoutDirty||!cachedFrame||announceOpen!==cachedAnnounce||nowMs-cachedLayoutAt>750){
+   layoutDirty=false;cachedLayoutAt=nowMs;cachedAnnounce=announceOpen;
+   cachedWidth=spatial.clientWidth||window.innerWidth||lab.w||960;
+   cachedHeight=spatial.clientHeight||window.innerHeight||lab.h||540;
+   cachedFrame=refreshScreenFrame(spatial);
+   const layerRect=spatial.getBoundingClientRect?.();
+   cachedPanels=[];
+   if(layerRect)for(const el of [hero,center,threat,move,skill,bossPanel,...(announceOpen?[announce]:[])]){
+    const rect=el?.getBoundingClientRect?.();
+    if(rect&&rect.width>0&&rect.height>0)cachedPanels.push({
+     left:rect.left-layerRect.left-7,top:rect.top-layerRect.top-7,
+     right:rect.right-layerRect.left+7,bottom:rect.bottom-layerRect.top+7});
+   }
   }
+  const width=cachedWidth,height=cachedHeight;
+  const frame=cachedFrame,frameRight=frame.left+(frame.width||width),frameBottom=frame.top+(frame.height||height);
+  const panelRects=cachedPanels;
   const pointInPanel=point=>panelRects.some(rect=>point.x>=rect.left&&point.x<=rect.right&&point.y>=rect.top&&point.y<=rect.bottom);
   const avoidPanels=point=>{
    const result={x:point.x,y:point.y};
@@ -1009,8 +1174,10 @@ function install(){
   // moving/updating marker DOM, so those writes cannot force another layout
   // during this spatial frame. Cadence, sizes and all drawing remain identical.
   drawMinimap(lab,s,live);
-  const hpPct=player.maxHp?clamp(player.hp/player.maxHp):1;
-  forgeFire.render({fury:s.empowered?1:clamp((Number(s.passiveProgress)||0)/300),hp:hpPct});
+  if(!isLowGfx()){
+   const hpPct=player.maxHp?clamp(player.hp/player.maxHp):1;
+   forgeFire.render({fury:s.empowered?1:clamp((Number(s.passiveProgress)||0)/300),hp:hpPct});
+  }
   const placedMarkers=[];
   spatialMarkers.forEach((marker,index)=>{
    const entry=entries[index];
@@ -1068,7 +1235,7 @@ function install(){
   if(ann&&ann.at!==lastAnnounceAt){lastAnnounceAt=ann.at;
    const aText=announce.querySelector('#bw-announce-text'),aSub=announce.querySelector('#bw-announce-sub');
    if(aText)aText.textContent=ann.text||'';if(aSub)aSub.textContent=ann.sub||'';
-   announce.classList.remove('is-show');void announce.offsetWidth;announce.classList.add('is-show');
+   restartClassAnim(announce,'is-show');
    window.clearTimeout(announceTimer);
    announceTimer=window.setTimeout(()=>announce.classList.remove('is-show'),1900);
   }
@@ -1173,15 +1340,34 @@ function install(){
   // No-RAF DOM (and legacy browsers) still needs the spatial paint via timer.
   if(typeof window.requestAnimationFrame!=='function')updateSpatial();
  };
+ let pausedSpatialPainted=false;
  const spatialLoop=timestamp=>{
+  if(doc.hidden){spatialFrame=window.requestAnimationFrame(spatialLoop);return;}
+  const isPaused=!!window.handLab?.paused;
+  if(isPaused){
+   if(!pausedSpatialPainted){pausedSpatialPainted=true;try{updateSpatial();}catch(_){}lastSpatialAt=timestamp;}
+   spatialFrame=window.requestAnimationFrame(spatialLoop);
+   return;
+  }
+  pausedSpatialPainted=false;
   if(!lastSpatialAt||timestamp-lastSpatialAt>=33){try{updateSpatial();}catch(_){}lastSpatialAt=timestamp;}
   spatialFrame=window.requestAnimationFrame(spatialLoop);
  };
  update();
  updateSpatial(); // initial full-fidelity spatial paint, before RAF owns subsequent frames
  if(typeof window.requestAnimationFrame==='function')spatialFrame=window.requestAnimationFrame(spatialLoop);
- refresh=window.setInterval(update,90);
- window.addEventListener('pagehide',()=>{if(refresh)clearInterval(refresh);if(spatialFrame)window.cancelAnimationFrame?.(spatialFrame);if(heroHitTimer)clearTimeout(heroHitTimer);if(pauseConfirmTimer)clearTimeout(pauseConfirmTimer);for(const timer of eventTimers.values())clearTimeout(timer);for(const motion of actionMotion.values()){if(motion.readyTimer)clearTimeout(motion.readyTimer);if(motion.unlockTimer)clearTimeout(motion.unlockTimer);}cardObserver?.disconnect?.();forgeFire.dispose();},{once:true});
+ let lastPausedUpdateKey='';
+ refresh=window.setInterval(()=>{
+  if(doc.hidden)return;
+  const lab=window.handLab,s=window.BOXE_WAVE_PILOT?.state;
+  if(lab?.paused){
+   const key=`${s?.phase||''}:${s?.wave||0}:${s?.level||0}:${pauseMenuOpen?1:0}:${pauseConfirmAction}`;
+   if(key===lastPausedUpdateKey)return;
+   lastPausedUpdateKey=key;
+  }else{lastPausedUpdateKey='';}
+  update();
+ },90);
+ window.addEventListener('pagehide',()=>{if(refresh)clearInterval(refresh);if(spatialFrame)window.cancelAnimationFrame?.(spatialFrame);window.removeEventListener('resize',markLayoutDirty);if(heroHitTimer)clearTimeout(heroHitTimer);if(pauseConfirmTimer)clearTimeout(pauseConfirmTimer);for(const timer of eventTimers.values())clearTimeout(timer);for(const motion of actionMotion.values()){if(motion.readyTimer)clearTimeout(motion.readyTimer);if(motion.unlockTimer)clearTimeout(motion.unlockTimer);}cardObserver?.disconnect?.();forgeFire.dispose();},{once:true});
  installed=true;
  window.APEX_BOT_WAVE_INTERFACE_V2=Object.freeze({installed:true,version:VERSION,
   fireRenderer:()=>forgeFire.mode,

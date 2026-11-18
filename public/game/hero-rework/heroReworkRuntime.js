@@ -3982,7 +3982,8 @@
       HR.__keyKInstalled = true;
       globalScope.addEventListener('keydown', (e) => {
         if (e.code !== 'KeyK' || e.repeat) return;
-        if (globalScope.gameState !== 'ARSENAL' || !M) return;
+        if (globalScope.__apexBattlePaused || globalScope.gameState !== 'ARSENAL' || !M) return;
+        if (globalScope.APEX_ARSENAL?.state?.over) return;
         const f = globalScope.fighters && globalScope.fighters[0];
         if (f && !(globalScope.APEX_ARSENAL?.state?.questMultiActor && f.withdrawn===true)
             && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2', { side: sideOfFighter(f), source: 'keyboard', key: 'KeyK' });
@@ -4008,11 +4009,11 @@
         if (e.repeat) return;
         const slot = LOCAL_P2_ABILITY_KEYS[e.code];
         if (!slot) return;
-        if (globalScope.gameState !== 'ARSENAL' || !M) return;
+        if (globalScope.__apexBattlePaused || globalScope.gameState !== 'ARSENAL' || !M) return;
         const AQS = globalScope.APEX_ARSENAL;
         // Production truth owns the profile: only a real LOCAL match hands P2
         // to a human. BOT matches keep the CPU on P2.
-        if (!AQS || !AQS.state || AQS.state.battleMode !== 'LOCAL') return;
+        if (!AQS || !AQS.state || AQS.state.over || AQS.state.battleMode !== 'LOCAL') return;
         const f = globalScope.fighters && globalScope.fighters[1];
         if (f && HR.isReworkFighter(f)) HR.pressAbility(f, slot, { side: sideOfFighter(f), source: 'keyboard', key: e.code });
       });

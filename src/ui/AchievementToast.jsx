@@ -10,6 +10,7 @@ import {
   primaryProgress,
 } from './masteryCatalog.js';
 import { isLiveBattleActive } from './liveBattle.js';
+import { MasteryVectorIcon } from './ApexIcons.jsx';
 import './achievementToast.css';
 
 // CP3.2 mastery feedback. This component displays provisional live
@@ -363,8 +364,10 @@ export default function AchievementToast() {
   }, [current?.key, dock?.safe, dock?.visualFallback]);
 
   // Owner R2 P0-D: a toast already on screen when a battle starts is dismissed at once.
+  // Scoped to the lifetime of an active toast + body class transitions (zero idle polling).
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    if (!current) return undefined;
+    const dismissIfBattle = () => {
       if (!activeRef.current || !isLiveBattleActive()) return;
       window.clearTimeout(hideTimerRef.current);
       window.clearTimeout(nextTimerRef.current);
@@ -374,9 +377,18 @@ export default function AchievementToast() {
       overflowRef.current = 0;
       setCurrent(null);
       setOverflow(0);
-    }, 200);
-    return () => window.clearInterval(timer);
-  }, []);
+    };
+    dismissIfBattle();
+    const bodyObs = typeof MutationObserver !== 'undefined' && document.body
+      ? new MutationObserver(dismissIfBattle)
+      : null;
+    bodyObs?.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    const timer = window.setInterval(dismissIfBattle, 250);
+    return () => {
+      bodyObs?.disconnect();
+      window.clearInterval(timer);
+    };
+  }, [current]);
 
   useEffect(() => {
     const enqueue = (event) => {
@@ -510,12 +522,15 @@ export default function AchievementToast() {
       aria-live="polite"
       data-apex-no-localize=""
     >
+      <span className="apex-achievement-toast-sheen" aria-hidden="true" />
       <div
         className={`apex-achievement-toast-medal shape-${presentation.shape || 'circle'} pattern-${presentation.pattern || 'plain'}`}
         data-rarity-shape={presentation.shape || 'circle'}
         aria-hidden="true"
       >
-        <span className="apex-achievement-toast-glyph">{achievement.iconGlyph}</span>
+        <span className="apex-achievement-toast-glyph">
+          <MasteryVectorIcon name={achievement.icon} size={isBotFeat ? 16 : 23} strokeWidth={2.35} />
+        </span>
         <RarityPips count={presentation.pips} />
       </div>
       <div className="apex-achievement-toast-copy">

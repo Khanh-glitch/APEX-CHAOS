@@ -1,0 +1,165 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   APEX PREMIUM UI SYSTEM — design tokens + global player-facing polish.
+   One shared language for every floating surface: Oswald caps, amber alloy,
+   beveled "cut-corner" plates, cyan tactical accent, rarity palette.
+   Loaded LAST so it unifies (never replaces) the Gold shell / HUD art.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* palette */
+  --apx-ink-0: #05070a;
+  --apx-ink-1: #0a0d12;
+  --apx-ink-2: #11161d;
+  --apx-ink-3: #1a212b;
+  --apx-line: rgba(255, 255, 255, .09);
+  --apx-text: #f4efe4;
+  --apx-text-dim: #b6beca;
+  --apx-text-mute: #7d8794;
+  --apx-amber-100: #fff0cc;
+  --apx-amber-200: #ffd98a;
+  --apx-amber-300: #ffc24a;
+  --apx-amber-400: #ffa51f;
+  --apx-amber-500: #e8870c;
+  --apx-amber-700: #7a420a;
+  --apx-cyan: #56e0ff;
+  --apx-green: #7dff9a;
+  --apx-red: #ff5a4d;
+  --apx-violet: #b985ff;
+
+  /* rarity */
+  --apx-r-common: #aab4c0;
+  --apx-r-rare: #4fd6ff;
+  --apx-r-epic: #b985ff;
+  --apx-r-legendary: #ffc24a;
+
+  /* type */
+  --apx-font: 'Oswald', 'ApexVietCondensed', 'Teko', 'Arial Narrow', sans-serif;
+  --apx-font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* motion */
+  --apx-ease-out: cubic-bezier(.16, .9, .24, 1);
+  --apx-ease-snap: cubic-bezier(.34, 1.56, .64, 1);
+  --apx-ease-io: cubic-bezier(.65, 0, .35, 1);
+
+  /* bevel shapes (cut-corner plates) */
+  --apx-cut-sm: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+  --apx-cut-md: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  --apx-cut-lg: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+
+  /* surfaces */
+  --apx-plate: linear-gradient(158deg, rgba(30, 27, 19, .97) 0%, rgba(12, 14, 18, .98) 46%, rgba(5, 7, 10, .985) 100%);
+  --apx-plate-cyan: linear-gradient(158deg, rgba(13, 24, 31, .97) 0%, rgba(8, 12, 17, .98) 55%, rgba(4, 6, 9, .985) 100%);
+  --apx-bevel: inset 0 1px 0 rgba(255, 255, 255, .11), inset 0 -1px 0 rgba(0, 0, 0, .6);
+  --apx-drop: 0 18px 44px rgba(0, 0, 0, .6), 0 3px 10px rgba(0, 0, 0, .45);
+}
+
+/* ── global: selection, scrollbars, tap highlight ───────────────────────── */
+::selection { background: rgba(255, 178, 56, .38); color: #fff; }
+html { -webkit-tap-highlight-color: transparent; scrollbar-color: rgba(255, 178, 56, .55) rgba(8, 10, 14, .9); scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: rgba(8, 10, 14, .9); }
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ffc24a, #c9700a);
+  border: 2px solid rgba(8, 10, 14, .9);
+  border-radius: 6px;
+}
+*::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #ffd98a, #ffa51f); }
+*::-webkit-scrollbar-corner { background: transparent; }
+
+/* ── global: one focus language for keyboard / gamepad users ───────────── */
+:where(button, [role="button"], a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--apx-amber-300);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(255, 194, 74, .16), 0 0 22px rgba(255, 178, 56, .35);
+  transition: outline-offset .12s var(--apx-ease-out), box-shadow .18s var(--apx-ease-out);
+}
+
+/* ── global: premium press / hover feedback for every shell button ────── */
+:where(#gold-shell-host) :where(button, [role="button"]):not(:disabled) {
+  transition: transform .14s var(--apx-ease-out), filter .18s ease, box-shadow .2s ease;
+  -webkit-user-select: none; user-select: none;
+}
+:where(#gold-shell-host) :where(button, [role="button"]):not(:disabled):active {
+  transform: translateY(1px) scale(.985);
+  filter: brightness(1.14) saturate(1.1);
+}
+:where(button):disabled { cursor: not-allowed; }
+
+/* ── global: cursor spotlight + click shockwave (driven by premiumFx.js) ── */
+.apx-shock {
+  position: fixed; z-index: 2147483300; pointer-events: none;
+  width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
+  border: 2px solid rgba(255, 198, 90, .95);
+  box-shadow: 0 0 18px rgba(255, 170, 40, .55), inset 0 0 8px rgba(255, 210, 120, .5);
+  animation: apx-shock .52s var(--apx-ease-out) forwards;
+}
+.apx-shock::after {
+  content: ""; position: absolute; inset: -2px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 214, 130, .45), transparent 62%);
+}
+@keyframes apx-shock {
+  0% { transform: scale(.3); opacity: 1; }
+  100% { transform: scale(5.2); opacity: 0; }
+}
+
+/* ── shared primitives reused by all premium surfaces ──────────────────── */
+.apx-corners { position: relative; }
+.apx-corners::after {
+  content: ""; position: absolute; inset: 3px; pointer-events: none;
+  background:
+    linear-gradient(var(--apx-accent, #ffc24a), var(--apx-accent, #ffc24a)) left top / 10px 1.5px no-repeat,
+    linear-gradient(var(--apx-accent, #ffc24a), var(--apx-accent, #ffc24a)) left top / 1.5px 10px no-repeat,
+    linear-gradient(var(--apx-accent, #ffc24a), var(--apx-accent, #ffc24a)) right bottom / 10px 1.5px no-repeat,
+    linear-gradient(var(--apx-accent, #ffc24a), var(--apx-accent, #ffc24a)) right bottom / 1.5px 10px no-repeat;
+  opacity: .85;
+}
+
+.apx-btn {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 20px; cursor: pointer;
+  font: 700 13px/1 var(--apx-font); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--apx-text); border: 1px solid rgba(255, 255, 255, .2);
+  background: linear-gradient(180deg, rgba(40, 46, 56, .96), rgba(15, 18, 23, .98));
+  clip-path: var(--apx-cut-sm);
+  transition: transform .14s var(--apx-ease-out), filter .18s ease, border-color .18s ease;
+}
+.apx-btn::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, .28) 50%, transparent 70%);
+  transform: translateX(-120%); transition: opacity .2s;
+}
+.apx-btn:hover:not(:disabled)::before { opacity: 1; animation: apx-sheen .7s var(--apx-ease-out); }
+.apx-btn:hover:not(:disabled) { border-color: rgba(255, 210, 130, .7); filter: brightness(1.12); }
+.apx-btn:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+.apx-btn.is-primary {
+  color: #1c1100; border-color: #ffe2aa;
+  background: linear-gradient(180deg, #ffd27a 0%, #ffab2a 52%, #e8870c 100%);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -3px 0 rgba(120, 60, 0, .35);
+}
+.apx-btn.is-cyan { color: #021720; border-color: #b9f1ff; background: linear-gradient(180deg, #8aeaff, #2ec1ec 55%, #138fb6); }
+@keyframes apx-sheen { to { transform: translateX(120%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .apx-shock { display: none; }
+  .apx-btn::before { animation: none !important; }
+}
+html[data-apex-motion="reduced"] .apx-shock { display: none; }
+html[data-apex-motion="reduced"] .apx-btn::before { animation: none !important; }
+
+/* ── unified icon duotone ─────────────────────────────────────────────── */
+.apx-icon { display: inline-block; flex: none; overflow: visible; vertical-align: middle; }
+.apx-icon .apx-i-soft { opacity: .55; }
+.apx-icon .apx-i-accent { stroke: var(--apx-icon-accent, #fff); }
+
+/* ── battle cinematic grade (element injected by premiumFx.js) ────────── */
+.apx-battle-grade {
+  position: fixed; inset: 0; z-index: 2147479500; pointer-events: none; opacity: 0;
+  transition: opacity .6s var(--apx-ease-io);
+  background:
+    radial-gradient(ellipse 85% 80% at 50% 50%, transparent 58%, rgba(0, 0, 0, .38) 100%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .018) 0 1px, transparent 1px 3px);
+}
+.apx-battle-grade.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .apx-battle-grade { transition: none; } }
+html[data-apex-motion="reduced"] .apx-battle-grade { transition: none; }

@@ -398,6 +398,163 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .haze,.hero-inner,.fx-crystala,.fx-magnet,.fx-mirror{animation-duration:0s!important;animation:none!important}
 }
 #stage[data-rm="1"] .haze,#stage[data-rm="1"] .hero-inner,#stage[data-rm="1"] .h-fx{animation:none!important}
+
+/* =====================================================================
+   PHASE 3 — APEX GOLD OBSIDIAN · DIRECTOR'S CUT (LUCKY DRAW ELEVATION)
+   Unifies Draw Bay controls, AC wallet chip, BACK navigation, lock plate
+   and fighter-pool dossier with Gold Shell — zero change to stage layout.
+   ===================================================================== */
+.hbtn{
+  background:linear-gradient(165deg,rgba(32,27,21,.92),rgba(12,13,17,.96));
+  box-shadow:0 8px 22px rgba(0,0,0,.56),inset 0 0 0 1px rgba(242,188,88,.44),inset 0 1px 0 rgba(255,244,214,.18);
+  color:#f0e7d8;
+  transition:color .15s ease,box-shadow .15s ease,transform .12s ease,background .15s ease;
+}
+#backBtn{
+  box-shadow:0 8px 22px rgba(0,0,0,.56),inset 2.5px 0 0 #f5b64c,inset 0 0 0 1px rgba(242,188,88,.48),inset 0 1px 0 rgba(255,244,214,.2);
+}
+.hbtn:hover,.hbtn:focus-visible{
+  color:#fffaf0;
+  background:linear-gradient(165deg,rgba(54,40,22,.96),rgba(18,16,15,.98));
+  box-shadow:0 10px 26px rgba(0,0,0,.68),0 0 18px rgba(255,168,42,.24),inset 0 0 0 1px rgba(255,216,128,.9),inset 0 1px 0 rgba(255,248,224,.32);
+  transform:translateY(-1px);
+}
+.hbtn:active{transform:scale(.96)}
+.hbtn:focus-visible{outline:2px solid #ffd26b;outline-offset:2px}
+.title strong{
+  text-shadow:0 1px 0 rgba(255,248,228,.14),0 4px 16px rgba(0,0,0,.85);
+}
+.title small{color:rgba(240,214,168,.68)}
+
+/* Forged AC Wallet & Operator Chips (matches Home Stage) */
+.chip{
+  background:
+    radial-gradient(circle at 16% 50%,rgba(255,190,64,.16),transparent 62%),
+    linear-gradient(165deg,rgba(28,24,18,.94),rgba(10,12,16,.97));
+  box-shadow:0 10px 26px rgba(0,0,0,.58),inset 0 0 0 1px rgba(242,190,92,.46),inset 0 1px 0 rgba(255,244,214,.2);
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+}
+.chip.scrap{
+  box-shadow:0 10px 26px rgba(0,0,0,.6),0 0 16px rgba(255,168,42,.14),inset 2.5px 0 0 #ffb838,inset 0 0 0 1px rgba(255,202,96,.58),inset 0 1px 0 rgba(255,244,214,.24);
+}
+.chip .gem{
+  background:linear-gradient(145deg,#fff3c8,#ffb838 55%,#d46810);
+  filter:drop-shadow(0 0 6px rgba(255,168,42,.6));
+}
+.chip.scrap b{
+  color:#fff4da;font-variant-numeric:tabular-nums;
+  text-shadow:0 2px 8px rgba(0,0,0,.85),0 0 12px rgba(255,180,52,.25);
+}
+.chip.scrap small{color:#f0c272}
+
+/* Lock Plate & Console Conduit */
+.plate{
+  box-shadow:0 10px 26px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,240,204,.14);
+}
+.console::before{
+  height:2.5px;
+  background:linear-gradient(90deg,transparent,rgba(255,188,68,.78) 50%,transparent);
+  box-shadow:0 0 14px rgba(255,148,32,.4);
+}
+
+/* Forged Mechanical Draw Triggers */
+.draw{
+  overflow:hidden;
+  box-shadow:0 14px 32px rgba(0,0,0,.62);
+  transition:transform .11s cubic-bezier(.2,.88,.26,1),filter .18s ease,box-shadow .18s ease;
+}
+.draw::before{
+  content:"";position:absolute;top:0;bottom:0;left:-44%;width:34%;z-index:2;pointer-events:none;
+  transform:skewX(-22deg);
+  background:linear-gradient(90deg,transparent,rgba(255,248,224,.3),transparent);
+  transition:left .44s cubic-bezier(.2,.84,.2,1);
+}
+#stage[data-busy="0"] .draw:hover::before,
+#stage[data-busy="0"] .draw:focus-visible::before{left:122%}
+.d1{
+  background:
+    radial-gradient(ellipse 85% 95% at 50% 0%,rgba(255,186,62,.24),transparent 66%),
+    linear-gradient(175deg,#382d1f 0%,#1c1712 52%,#0d0c0e 100%);
+  color:#fff5e2;
+  box-shadow:
+    0 14px 32px rgba(0,0,0,.68),
+    0 0 22px rgba(255,152,32,.18),
+    inset 0 0 0 1.5px rgba(245,186,84,.58),
+    inset 0 1.5px 0 rgba(255,246,218,.34);
+}
+.d1 .dk{
+  background:linear-gradient(180deg,#ffe49e,#ff9220);
+  box-shadow:0 0 10px rgba(255,162,40,.55);
+}
+.d1 .dc{color:#ffd280;opacity:.95}
+#stage[data-busy="0"] .d1:hover,
+#stage[data-busy="0"] .d1:focus-visible{
+  transform:translateY(-2px);
+  filter:brightness(1.09);
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.74),
+    0 0 30px rgba(255,164,38,.36),
+    inset 0 0 0 1.5px rgba(255,222,144,.95),
+    inset 0 1.5px 0 rgba(255,252,236,.52);
+}
+#stage[data-layout="desk"] .info-d{
+  padding:0 .95em;
+  background:linear-gradient(165deg,rgba(26,22,18,.78),rgba(10,11,14,.86));
+  box-shadow:inset 0 0 0 1px rgba(240,188,92,.28);
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+  transition:color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+#stage[data-layout="desk"] .info-d:hover{
+  color:#fff8ea;
+  background:linear-gradient(165deg,rgba(46,35,20,.9),rgba(16,14,13,.94));
+  box-shadow:0 0 16px rgba(255,168,42,.2),inset 0 0 0 1px rgba(255,212,122,.72);
+}
+.info-d b{color:#ffc452}
+
+/* Possible Fighters Armory Drawer */
+.drawer{
+  background:
+    radial-gradient(ellipse 90% 40% at 100% 0%,rgba(255,180,58,.12),transparent 65%),
+    linear-gradient(165deg,rgba(20,18,16,.97) 0%,rgba(10,11,15,.99) 100%);
+  border-left:1.5px solid rgba(245,190,88,.48);
+  box-shadow:-28px 0 70px rgba(0,0,0,.84),inset 1px 0 0 rgba(255,244,214,.14);
+  backdrop-filter:blur(10px);
+}
+#stage[data-layout="port"] .drawer{
+  border-left:0;
+  border-top:1.5px solid rgba(245,190,88,.52);
+}
+.drawer h3{
+  padding-bottom:.7em;
+  border-bottom:1px solid rgba(245,190,88,.24);
+  color:#fff4de;
+}
+.drawer h3 button{
+  padding:.35em .75em;
+  background:rgba(32,28,24,.9);
+  box-shadow:inset 0 0 0 1px rgba(242,188,88,.38);
+  color:#f2dfc0;
+  clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);
+  transition:color .14s ease,box-shadow .14s ease,background .14s ease;
+}
+.drawer h3 button:hover{
+  color:#fff;background:rgba(58,42,22,.95);
+  box-shadow:inset 0 0 0 1px rgba(255,214,124,.88);
+}
+.drow{
+  padding:.62em .55em;
+  border-bottom:1px solid rgba(240,210,158,.1);
+  transition:background .14s ease;
+}
+.drow:hover{background:rgba(255,188,68,.07)}
+.drow img{
+  box-shadow:0 4px 12px rgba(0,0,0,.55),inset 0 0 0 1px rgba(245,192,96,.32);
+}
+.drow .n{color:#ffba48;text-shadow:0 0 12px rgba(255,158,36,.28)}
+@media (prefers-reduced-motion: reduce){
+  .hbtn,.draw,.draw::before,.info-d,.drow{transition:none!important}
+}
+#stage[data-rm="1"] .draw::before{display:none}
 </style>
 </head>
 <body>
@@ -943,7 +1100,15 @@ function updateReel(dt){
   // Owner law 2026-10-05: ONE semantic UI-SFX authority for the whole
   // product. The donor lives in an iframe, so it reaches the shell's
   // authority through window.parent and never builds a second manager.
-  const LD_UI_SFX=()=>window.apexUiSfx||(window.parent&&window.parent.apexUiSfx)||null;
+  const LD_UI_SFX=()=>{
+    if(window.apexUiSfx)return window.apexUiSfx;
+    try{
+      if(window.parent&&window.parent!==window&&window.parent.location.origin===window.location.origin){
+        return window.parent.apexUiSfx||null;
+      }
+    }catch(_){}
+    return null;
+  };
   function ldSfx(key){try{const s=LD_UI_SFX();if(s&&typeof s.play==='function')s.play(key);}catch(_){ }}
   function ldLoopStart(key){try{const s=LD_UI_SFX();if(s&&typeof s.startLoop==='function')s.startLoop(key);}catch(_){ }}
   function ldLoopStop(key){try{const s=LD_UI_SFX();if(s&&typeof s.stop==='function')s.stop(key);}catch(_){ }}
@@ -1082,7 +1247,7 @@ function reveal(){
   // the ONLY point the reward cue may fire.
   ldSfx('lucky.draw.reward_reveal');
   const oldS = heroSlots[heroFront], newS = heroSlots[1 - heroFront];
-  oldS.getAnimations().forEach(a => a.cancel()); newS.getAnimations().forEach(a => a.cancel());
+  oldS.getAnimations?.().forEach(a => a.cancel()); newS.getAnimations?.().forEach(a => a.cancel());
   oldS.style.opacity = 1; newS.style.opacity = 0;
   setHeroContent(newS, w);
   const W = heroZone.offsetWidth, H = heroZone.offsetHeight;
@@ -1129,11 +1294,11 @@ function showTag(w){
   const F = FIGHTERS[w];
   $('#tagN').textContent = F.name||F.id;
   $('#tagS').innerHTML = `CH ${pad2(w + 1)} · <i>${F.tag}</i>`;
-  tagEl.getAnimations().forEach(a => a.cancel());
+  tagEl.getAnimations?.().forEach(a => a.cancel());
   anim(tagEl, [{ opacity: 0, clipPath: 'inset(0 100% 0 0)', transform: 'translateY(6px)' }, { opacity: 1, clipPath: 'inset(0 0 0 0)', transform: 'translateY(0)' }],
     { duration: S.rm ? 200 : 520, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
 }
-function hideTag(){ tagEl.getAnimations().forEach(a => a.cancel()); anim(tagEl, [{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' }); }
+function hideTag(){ tagEl.getAnimations?.().forEach(a => a.cancel()); anim(tagEl, [{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' }); }
 
 /* =====================================================================
    INDEX CELLS / ARROWS — functional, driven by reel position & velocity
@@ -1497,7 +1662,16 @@ function arm(on, n){
   b.addEventListener('pointerup', () => { b.dataset.press = '0'; });
   b.addEventListener('click', () => { startDraw(n); stage.dataset.arm = '0'; S.armed = false; });
 });
-$('#backBtn').addEventListener('click', () => { shake($('#backBtn'), 3, 0, 160); if (window.parent !== window) window.parent.postMessage({type:'APEX_CHAOS_LUCKY_DRAW_EXIT'}, '*'); });
+$('#backBtn').addEventListener('click', () => {
+  shake($('#backBtn'), 3, 0, 160);
+  try {
+    if (window.parent && window.parent !== window && window.parent.location.origin === window.location.origin) {
+      window.parent.postMessage({ type: 'APEX_CHAOS_LUCKY_DRAW_EXIT' }, window.location.origin);
+      return;
+    }
+  } catch (_) {}
+  window.location.assign('/');
+});
 const openDrawer = () => { stage.dataset.drawer = '1'; };
 $('#infoD').addEventListener('click', openDrawer); $('#infoM').addEventListener('click', openDrawer);
 $('#drawerX').addEventListener('click', () => stage.dataset.drawer = '0');
@@ -1517,8 +1691,10 @@ if (document.fonts) document.fonts.ready.then(() => { scheduleCovers(); A.chevW 
 onStageResize();
 
 const heroSpill = $('#heroSpill'), spillEl = document.querySelector('.layer.spill');
-let last = performance.now();
+let last = performance.now(), luckyRaf = 0, luckySuspended = false;
 function frame(now){
+  luckyRaf = 0;
+  if (luckySuspended || document.hidden) return;
   const rdt = Math.min(.05, (now - last) / 1000); last = now;
   const dt = rdt * S.timeScale;
   tickTimers(dt);
@@ -1528,11 +1704,32 @@ function frame(now){
   drawLED(dt);
   updateFX(dt);
   const sp = S.busy ? clamp(.4 + Math.abs(R.vel) / M().vmax * .6, .4, 1) : (S.armed ? .5 : .35);
-  heroSpill.style.opacity = sp.toFixed(2);
-  spillEl.style.opacity = (.35 + sp * .5).toFixed(2);
-  requestAnimationFrame(frame);
+  const spCss = sp.toFixed(2), spillCss = (.35 + sp * .5).toFixed(2);
+  if (heroSpill.style.opacity !== spCss) heroSpill.style.opacity = spCss;
+  if (spillEl.style.opacity !== spillCss) spillEl.style.opacity = spillCss;
+  luckyRaf = requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+function setLuckySuspended(flag){
+  const next = !!flag;
+  if (luckySuspended === next) return;
+  luckySuspended = next;
+  if (next) {
+    if (luckyRaf) { cancelAnimationFrame(luckyRaf); luckyRaf = 0; }
+  } else if (!luckyRaf && !document.hidden) {
+    last = performance.now();
+    luckyRaf = requestAnimationFrame(frame);
+  }
+}
+window.APEX_LUCKY_SET_SUSPENDED = setLuckySuspended;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (luckyRaf) { cancelAnimationFrame(luckyRaf); luckyRaf = 0; }
+  } else if (!luckySuspended && !luckyRaf) {
+    last = performance.now();
+    luckyRaf = requestAnimationFrame(frame);
+  }
+});
+luckyRaf = requestAnimationFrame(frame);
 })();
 </script>
 </body>

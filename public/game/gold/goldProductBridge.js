@@ -125,13 +125,13 @@
       ],
     },
     boxe: {
-      portrait: '/assets/dictionary/heroes/boxe/cover.png',
-      art: '/assets/dictionary/heroes/boxe/standing.png',
-      battleAvatar: '/assets/dictionary/heroes/boxe/avatar.png',
+      portrait: '/assets/dictionary/heroes/boxe/cover.webp',
+      art: '/assets/dictionary/heroes/boxe/standing.webp',
+      battleAvatar: '/assets/dictionary/heroes/boxe/avatar.webp',
       skillIcons: [
-        '/assets/dictionary/heroes/boxe/passive.png',
-        '/assets/dictionary/heroes/boxe/a1.png',
-        '/assets/dictionary/heroes/boxe/a2.png',
+        '/assets/dictionary/heroes/boxe/passive.webp',
+        '/assets/dictionary/heroes/boxe/a1.webp',
+        '/assets/dictionary/heroes/boxe/a2.webp',
       ],
     },
     // Mirror: no PICK_SELECTED_LARGE by owner decision.
@@ -486,8 +486,9 @@
     const tasks = [];
 
     if (surface === 'battle' || surface === 'transition') {
+      const quest = Boolean(context.quest);
       tasks.push(
-        ensureSelectedBattleRuntimes(heroIds).then(async (ok) => {
+        ensureSelectedBattleRuntimes(heroIds, { quest }).then(async (ok) => {
           if (ok !== true) throw new Error('selected battle runtime set did not reach READY');
           // R58: transition HOLD includes audio readiness. The destination is
           // not "ready" while first-use SFX can still be downloading/decoding.
@@ -891,11 +892,11 @@
   // E4 selected-runtime seam. Current App publishes this as soon as the menu
   // runtime is ready. Standalone/older hosts fail open to the canonical full
   // arsenalProduct graph; optimization must never become a boot dependency.
-  function ensureSelectedBattleRuntimes(heroIds) {
+  function ensureSelectedBattleRuntimes(heroIds, options = {}) {
     const loader = window.__apexEnsureBattleRuntimes;
     if (typeof loader !== 'function') return ensureDeferredRuntimes('arsenalProduct');
     try {
-      return Promise.resolve(loader(heroIds)).then(() => true, () => false);
+      return Promise.resolve(loader(heroIds, options)).then(() => true, () => false);
     } catch (error) {
       return Promise.resolve(false);
     }
@@ -1006,7 +1007,7 @@
       // load arsenalShellSelectRuntime creates APEX_ARSENAL_SHELLS and its
       // pending-selection state. Writing those fields before the script exists
       // makes the flow timing-dependent and lets slow loads erase the handoff.
-      const loaded = await ensureSelectedBattleRuntimes([p1Shell, p2Shell]);
+      const loaded = await ensureSelectedBattleRuntimes([p1Shell, p2Shell], { quest: Boolean(questPreview) });
       if (!loaded || sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
         battleLiveRunning = false;
         return false;
@@ -1134,6 +1135,8 @@
   // Gold shell owns the destination. The engine runtime only tears the live
   // match down; it must not open the legacy product menu or restart BGM.
   BRIDGE.exitBattle = function exitBattle() {
+    window.__apexBattlePaused = false;
+    window.APEX_BATTLE_PAUSE?.close?.(true);
     window.dispatchEvent(new Event('apex:gold-battle-exited'));
     const hadBattle = battleLiveRunning || window.__apexGoldBattleHosted === true;
     // Always invalidate a deferred launch, even when startMatch has not been
@@ -1155,31 +1158,83 @@
     return true;
   };
 
+  // Instant Free Battle rematch from Tactical Pause without leaving Gold HUD.
+  BRIDGE.rematchBattle = async function rematchBattle() {
+    window.__apexBattlePaused = false;
+    window.APEX_BATTLE_PAUSE?.close?.(true);
+    const st = window.APEX_ARSENAL?.state;
+    const isQuest = Boolean(st?.questMultiActor || st?.questStage || st?.questBreachEncounter);
+    if (isQuest || !battleLiveRunning || !hudMounted || typeof window.startMatch !== 'function') return false;
+    cancelResultReturn();
+    clearGoldResult();
+    lastKo = null;
+    lastKoAt = 0;
+    try {
+      document.body?.classList?.remove('battle-result');
+      window.dispatchEvent(new Event('apex:battle-result-changed'));
+    } catch (_) {}
+    try {
+      // Re-arm the production shell-select match-start token consumed by Match 1.
+      window.__apexArsenalSelectPending = true;
+      const ok = await Promise.resolve(window.startMatch());
+      if (ok !== true || !battleLiveRunning || !hudMounted) {
+        window.__apexArsenalSelectPending = false;
+        return false;
+      }
+      hideLegacyProductScreens();
+      captureLegacyBattleUi(false);
+      hideLegacyBattleUi();
+      const seam = window.APEX_GOLD_HUD;
+      if (seam) {
+        seam.resetForMatch?.();
+        const first = projection();
+        seam.applyState?.(first.state);
+        seam.syncFighters?.(first.fighters);
+        seam.tick?.(0, performance.now());
+      }
+      try {
+        window.dispatchEvent(new CustomEvent('apex:beyond-state', { detail: { active: true, rematch: true } }));
+      } catch (_) {}
+      startPump();
+      return true;
+    } catch (error) {
+      window.__apexArsenalSelectPending = false;
+      console.warn('[gold-bridge] rematch failed.', error);
+      return false;
+    }
+  };
+
   // ── mobile skill cards / weapon panel through the production adapter ────
   BRIDGE.pressSkill = function pressSkill(pi, ai, sourceMeta) {
+    if (window.__apexBattlePaused) return false;
     const quest=window.APEX_ARSENAL?.state;
+    if (quest?.over) return false;
     if(quest?.questBreachEncounter===true){
       // Only one human skill pair during Quest. Gold touch cards follow the
       // same recipient/skill executor as keyboard J/K after a withdrawal.
-      if(pi!==0)return;
+      if(pi!==0)return false;
       const kit=quest.questBreachCompanionSkills;
       if(kit?.currentRecipient?.()!=='NEWBOT'){
-        kit?.press?.(ai===1?'K':'J','pointer');
-        return;
+        return Boolean(kit?.press?.(ai===1?'K':'J','pointer'));
       }
     }
     const heroRework = window.APEX_HERO_REWORK;
     const fighters = window.fighters;
-    if (!heroRework || typeof heroRework.pressAbility !== 'function') return;
-    if (!Array.isArray(fighters) || !fighters[pi]) return;
+    if (!heroRework || typeof heroRework.pressAbility !== 'function') return false;
+    if (!Array.isArray(fighters) || !fighters[pi]) return false;
     // A withdrawn 100HP Quest ally is still a Fighter for the HP rail,
     // but neither it nor an old Gold touch lease may activate a skill.
     if(window.APEX_ARSENAL?.state?.questMultiActor===true
-       &&fighters[pi].withdrawn===true)return;
+       &&fighters[pi].withdrawn===true)return false;
     const side = pi === 1 ? 'p2' : 'p1';
     const meta = Object.assign({ side, source: 'pointer' }, sourceMeta || {});
     meta.side = side; // caller may describe the pointer, never reassign ownership
-    try { heroRework.pressAbility(fighters[pi], ai === 1 ? 'A2' : 'A1', meta); } catch (e) {}
+    try {
+      const res = heroRework.pressAbility(fighters[pi], ai === 1 ? 'A2' : 'A1', meta);
+      return Boolean(res && res.ok);
+    } catch (e) {
+      return false;
+    }
   };
   BRIDGE.pressSwap = function pressSwap() {
     // Production weapons are acquired by real pickup; there is no manual swap
@@ -1810,47 +1865,89 @@
 
   let pumpId = 0;
   let lastKo = null;
+  let lastKoAt = 0;
   // ── result / return ─────────────────────────────────────────────────────
   // The Gold HUD owns the result presentation (canonical K.O./TIME stamp +
-  // win counter). Once that presentation has played out, the REAL production
-  // battle is exited (exitArsenalBattleMode: session teardown, AV/storm
-  // clear, listener removal, menu restore) and the shell is told to return to
-  // the fighter screen. Nothing synthetic is invented; the engine stays the
-  // only match authority, and the whole sequence is idempotent per match.
-  const RESULT_HOLD_MS = 2600; // donor K.O. stamp (1700ms) + read-out margin
-  let resultFrame=null,resultData=null,resultReady=false,resultTimeout=0;
+  // win counter). Once that presentation has played out (or the player taps /
+  // presses Escape/Enter/Space after the brief K.O. impact grace window), the
+  // six-phase owner Gold Result Summary mounts inside #apex-real-match-result.
+  const RESULT_HOLD_MS = 2400; // donor K.O. stamp (1700ms) + crisp readout margin
+  const RESULT_SKIP_GRACE_MS = 600; // protects against accidental last-hit taps
+  let resultFrame=null,resultData=null,resultReady=false,resultTimeout=0,resultRetryTimer=0;
   // No route guessed: the real game bridge owns the only 1v1 outcome and
   // keeps the six-phase owner Gold inside an isolated iframe.
   function clearGoldResult(){
     if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=0;}
+    if(resultRetryTimer){clearTimeout(resultRetryTimer);resultRetryTimer=0;}
     if(resultFrame){resultFrame.remove();resultFrame=null;}
     resultData=null;resultReady=false;
   }
   function returnFromGoldResult(){
     clearGoldResult();
-    try{window.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');}catch(_){}
+    // Leaving the match ends the result hold; a stale battle-result class would
+    // otherwise keep Escape/Enter/Space and pause gating in the post-match state.
+    try{
+      if(document.body?.classList?.contains('battle-result')){
+        document.body.classList.remove('battle-result');
+        window.dispatchEvent(new Event('apex:battle-result-changed'));
+      }
+    }catch(_){}
+    try{window.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},window.location.origin);}catch(_){
+      try{window.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');}catch(__){}
+    }
   }
   function resultGoldUrl(){
     // CP4: resolve through the app entry base (root and nested /html/<id>/
-    // hosting alike). An origin-root literal 404s inside itch's subpath and
-    // the 9s guard then silently returns Home with no Result at all.
+    // hosting alike). Append runtime revision to prevent stale browser caches.
+    const rev=typeof window.APEX_ARSENAL_RUNTIME_REVISION==='string'&&window.APEX_ARSENAL_RUNTIME_REVISION
+      ?('?v='+encodeURIComponent(window.APEX_ARSENAL_RUNTIME_REVISION)):'';
     try{
       const base=window.APEX_APP_ENTRY_BASE;
-      if(base)return new URL('result-gold/index.html',base).href;
+      if(base)return new URL('result-gold/index.html'+rev,base).href;
     }catch(_){}
-    try{return new URL('../result-gold/index.html',document.baseURI).href;}catch(_){}
-    return '/result-gold/index.html';
+    try{return new URL('../result-gold/index.html'+rev,document.baseURI).href;}catch(_){}
+    return '/result-gold/index.html'+rev;
+  }
+  function postResultPayload(frame,data){
+    try{
+      if(!frame||!frame.contentWindow||!data)return;
+      frame.contentWindow.postMessage({
+        type:'APEX_RESULT_GOLD_PAYLOAD',match:data
+      },window.location.origin);
+      try{frame.focus?.({preventScroll:true});frame.contentWindow.focus?.();}catch(_){}
+    }catch(_){}
   }
   function showGoldResult(data){
-    if(!data||resultFrame||!battleLiveRunning||!hudMounted)return false;
+    if(!data||!battleLiveRunning||!hudMounted)return false;
+    if(resultFrame&&resultFrame.isConnected)return true;
+    clearGoldResult();
+    // Ensure Tactical Pause is closed and inactive before mounting Result Summary.
+    window.__apexBattlePaused=false;
+    try{window.APEX_BATTLE_PAUSE?.close?.(true);}catch(_){}
     const frame=document.createElement('iframe');
     frame.id='apex-real-match-result';
     frame.title='APEX CHAOS — Kết quả trận đấu';
     frame.setAttribute('aria-label','Kết quả trận đấu');
     frame.style.cssText='position:fixed;inset:0;width:100vw;height:100dvh;'+
       'border:0;background:#07080b;z-index:2147483600;display:block';
-    frame.src=resultGoldUrl();
     resultFrame=frame;resultData=data;resultReady=false;
+    frame.addEventListener('load',()=>{
+      if(resultFrame!==frame||!resultData)return;
+      // Defensive handshake retry: if the iframe mounted and sent READY cleanly,
+      // onGoldResultMessage handles it immediately; if a slow script tick settles
+      // right after load, resend the payload so the summary never stalls blank.
+      if(resultRetryTimer)clearTimeout(resultRetryTimer);
+      resultRetryTimer=setTimeout(()=>{
+        resultRetryTimer=0;
+        if(resultFrame===frame&&resultData&&!resultReady){
+          resultReady=true;
+          if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=0;}
+          postResultPayload(frame,resultData);
+          try{window.dispatchEvent(new Event('apex:gold-result-ready'));}catch(_){}
+        }
+      },320);
+    });
+    frame.src=resultGoldUrl();
     document.body.appendChild(frame);
     try{
       const local=String(data?.meta?.mode||'').toUpperCase().includes('LOCAL');
@@ -1858,21 +1955,37 @@
       window.apexUiSfx?.play?.(local||p1Won?'result.win':'result.loss');
     }catch(_){/* result presentation never depends on optional UI audio */}
     // A missing build must not trap users in a black screen forever.
-    resultTimeout=setTimeout(()=>{if(!resultReady&&resultFrame===frame)returnFromGoldResult()},9000);
+    resultTimeout=setTimeout(()=>{if(!resultReady&&resultFrame===frame)returnFromGoldResult()},12000);
     return true;
   }
+  BRIDGE.isResultOpen=function isResultOpen(){
+    return Boolean(resultFrame&&resultFrame.isConnected);
+  };
+  BRIDGE.presentResultNow=function presentResultNow(opts){
+    if(resultFrame&&resultFrame.isConnected)return 'open';
+    const state=window.APEX_ARSENAL?.state;
+    if(!hudMounted||!battleLiveRunning||!state||state.questMultiActor||!state.over)return false;
+    const force=Boolean(opts&&opts.force===true);
+    if(!force&&lastKoAt>0&&(performance.now()-lastKoAt)<RESULT_SKIP_GRACE_MS){
+      return 'grace';
+    }
+    cancelResultReturn();
+    const resolved=state.resultGold||null;
+    if(showGoldResult(resolved))return 'shown';
+    returnFromGoldResult();
+    return 'exited';
+  };
   window.addEventListener('message',function onGoldResultMessage(event){
     if(!resultFrame||event.source!==resultFrame.contentWindow
         ||event.origin!==window.location.origin)return;
     if(event.data?.type==='APEX_RESULT_GOLD_READY'){
       resultReady=true;
-      window.dispatchEvent(new Event('apex:gold-result-ready'));
       if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=0;}
-      resultFrame.contentWindow.postMessage({
-        type:'APEX_RESULT_GOLD_PAYLOAD',match:resultData
-      },window.location.origin);
+      if(resultRetryTimer){clearTimeout(resultRetryTimer);resultRetryTimer=0;}
+      postResultPayload(resultFrame,resultData);
+      window.dispatchEvent(new Event('apex:gold-result-ready'));
     }else if(event.data?.type==='APEX_RESULT_GOLD_CONTINUE'
-      &&resultReady&&event.data.matchId===resultData?.meta?.id){
+      &&resultData&&(!event.data.matchId||event.data.matchId===resultData?.meta?.id)){
       if (window.APEX_OWNER_TOOLS?.isRecordingResultHold?.()) {
         window.addEventListener('apex:owner-result-recorded',returnFromGoldResult,{once:true});
       } else returnFromGoldResult();
@@ -1902,6 +2015,12 @@
     // recreating a permanent background RAF chain.
     if (!hudMounted) { pumpId = 0; return; }
     pumpId = requestAnimationFrame(pump);
+    // Pause HUD telemetry projection only when Tactical Pause is active.
+    // (__apexParentRuntimePaused belongs to the suspended Home #stage behind battle.)
+    if (window.__apexBattlePaused) {
+      lastHudTick = now;
+      return;
+    }
     const seam = window.APEX_GOLD_HUD;
     if (!seam) return;
     const proj = projection();
@@ -1912,15 +2031,18 @@
     const arsenal = window.APEX_ARSENAL;
     const state = arsenal && arsenal.state ? arsenal.state : null;
     // Quest result is owned by the Quest Director, not Gold's 1v1 win
-    // counter or 2600 ms auto-return. The two systems must not race.
+    // counter or 2400 ms auto-return. The two systems must not race.
     const over = state && !state.questMultiActor && state.over ? String(state.over) : null;
     if (over && over !== lastKo) {
       lastKo = over;
-      // ONE result signal for the shell: the match is over, so the backdrop tap
-      // may leave immediately instead of waiting out the K.O. hold. It is set
-      // here (the seam that already owns `state.over`) and cleared by the next
-      // match start / teardown — never by a second observer.
-      try { document.body.classList.add('battle-result'); } catch (error) {}
+      lastKoAt = performance.now();
+      // ONE result signal for the shell: once the brief K.O. impact grace
+      // window passes, any tap/Escape/Enter/Space fast-forwards straight into
+      // the Gold Result Summary (never skipping or deleting resultGold).
+      try {
+        document.body.classList.add('battle-result');
+        window.dispatchEvent(new Event('apex:battle-result-changed'));
+      } catch (error) {}
       // Production truth: winnerSide is combatant identity and survives
       // same-hero Local matches. state.over is legacy display copy only.
       const fighters = window.fighters;
@@ -1945,7 +2067,11 @@
     }
     if (!over) {
       lastKo = null;
-      if (document.body.classList.contains('battle-result')) document.body.classList.remove('battle-result');
+      lastKoAt = 0;
+      if (document.body.classList.contains('battle-result')) {
+        document.body.classList.remove('battle-result');
+        try { window.dispatchEvent(new Event('apex:battle-result-changed')); } catch (_) {}
+      }
     }
   }
   function startPump() {

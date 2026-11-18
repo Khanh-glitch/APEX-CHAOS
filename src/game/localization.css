@@ -183,59 +183,107 @@ html[data-apex-language="vie"] #gold-shell-host #stage .fighterSide.is-locked .p
 #gold-shell-host #stage #apex-language-picker.is-expanded {
  display:flex!important;flex-direction:column;align-items:stretch;justify-content:flex-start;
  position:absolute;z-index:120;box-sizing:border-box;
- width:214px;max-width:calc(100% - 18px);min-height:unset;
+ width:min(264px,calc(100% - 18px));max-width:calc(100% - 18px);
+ max-height:calc(100dvh - var(--safeT,0px) - 74px);min-height:unset;
  top:calc(var(--safeT,0px) + 2.55vh + 52px);
  right:calc(var(--safeR,0px) + 2.55vw);
  margin:0;padding:0;gap:0;
- border:1px solid rgba(232,169,70,.52);border-radius:0;
- clip-path:none;background:linear-gradient(155deg,#24201b 0%,#111317 43%,#0b0e11 100%);
- box-shadow:0 18px 38px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07);
- color:#eaddc8;overflow:hidden;
- animation:apex-utility-enter .13s ease-out both;
+ border:1px solid var(--apex-line-gold,rgba(232,169,70,.52));border-radius:0;
+ clip-path:var(--apex-cut-sm,polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px));
+ background:var(--apex-surface-modal,linear-gradient(155deg,#24201b 0%,#111317 43%,#0b0e11 100%));
+ box-shadow:var(--apex-shadow-modal,0 18px 38px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07));
+ color:var(--apex-bone,#eaddc8);overflow-x:hidden;overflow-y:auto;
+ overscroll-behavior:contain;
+ font-family:var(--apex-font-display,'Oswald',sans-serif);
+ animation:apex-utility-enter .15s var(--apex-ease-out,ease-out) both;
 }
 #gold-shell-host #stage #apex-language-picker.is-expanded::before{
  content:"";position:absolute;left:0;right:0;top:0;height:2px;pointer-events:none;
- background:linear-gradient(90deg,#ff9a29,#ffd580 45%,transparent);
+ background:linear-gradient(90deg,#ff9a29,#ffd580 52%,transparent);
 }
 #gold-shell-host #stage #apex-language-picker .apex-utility-head{
- width:100%;box-sizing:border-box;display:flex;justify-content:space-between;
- padding:11px 12px 9px;align-items:baseline;
- border-bottom:1px solid rgba(240,183,91,.15);gap:8px;
+ width:100%;box-sizing:border-box;display:flex;align-items:center;
+ padding:9px 10px 8px 12px;
+ border-bottom:1px solid rgba(240,183,91,.16);gap:6px;
 }
 #gold-shell-host #stage #apex-language-picker .apex-utility-kicker{
- font:800 10px/1.1 "Oswald","Chakra Petch",sans-serif;
- letter-spacing:.11em;color:#ffd08a;
+ font:700 10.5px/1.1 var(--apex-font-display,'Oswald',sans-serif);
+ letter-spacing:.12em;color:var(--apex-gold-hi,#ffd08a);
 }
 #gold-shell-host #stage #apex-language-picker .apex-utility-edition{
- font:700 8px/1.1 "Oswald",sans-serif;letter-spacing:.13em;color:#8b8174;
+ margin-left:auto;
+ font:600 8px/1.1 var(--apex-font-mono,monospace);letter-spacing:.13em;color:#9b9182;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-close{
+ appearance:none;-webkit-appearance:none;flex:0 0 28px;width:28px;height:28px;
+ min-width:28px;min-height:28px;padding:0;margin-left:2px;
+ display:grid;place-items:center;cursor:pointer;
+ border:1px solid rgba(238,231,219,.16);background:rgba(255,255,255,.04);
+ color:#c9c2b4;font:700 11px/1 sans-serif;
+ transition:border-color .12s,color .12s,background .12s;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-close:hover{
+ border-color:rgba(246,183,60,.7);color:#fff;background:rgba(246,183,60,.14);
 }
 #gold-shell-host #stage #apex-language-picker .apex-utility-section{
- display:flex;flex-direction:column;align-items:stretch;gap:7px;
- padding:12px 12px 11px;border-bottom:1px solid rgba(240,183,91,.12);
+ display:flex;flex-direction:column;align-items:stretch;gap:6px;
+ padding:9px 12px;border-bottom:1px solid rgba(240,183,91,.11);
 }
-#gold-shell-host #stage #apex-language-picker .apex-language-caption{
- display:block!important;font:700 9px/1 "Oswald",sans-serif;
- letter-spacing:.12em;color:#a8a19a;
+#gold-shell-host #stage #apex-language-picker .apex-language-caption,
+#gold-shell-host #stage #apex-language-picker .apex-utility-caption{
+ display:block!important;font:600 8.5px/1.15 var(--apex-font-mono,monospace);
+ letter-spacing:.11em;color:#b8b0a4;
 }
-#gold-shell-host #stage #apex-language-picker .apex-language-options{
- display:flex;gap:4px;padding:0;background:transparent;border:0;width:100%;
+#gold-shell-host #stage #apex-language-picker .apex-language-options,
+#gold-shell-host #stage #apex-language-picker .apex-utility-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;
+ padding:0;background:transparent;border:0;width:100%;
 }
-#gold-shell-host #stage #apex-language-picker [data-apex-language-option]{
- display:grid;place-items:center;flex:1;min-width:0;min-height:38px;
- padding:0 8px;border:1px solid rgba(188,165,130,.28);
- background:rgba(0,0,0,.18);color:#c8c5ba;
- font:700 12px/1 "Oswald","Chakra Petch",sans-serif;letter-spacing:.08em;
+#gold-shell-host #stage #apex-language-picker .apex-utility-grid.cols-4{
+ grid-template-columns:repeat(4,minmax(0,1fr));
 }
-#gold-shell-host #stage #apex-language-picker [data-apex-language-option].is-active{
+#gold-shell-host #stage #apex-language-picker :is([data-apex-language-option],[data-apex-gfx-option],[data-apex-audio-toggle],[data-apex-motion-option]){
+ appearance:none;-webkit-appearance:none;box-sizing:border-box;
+ display:flex;align-items:center;justify-content:center;gap:5px;
+ min-width:0;min-height:36px;padding:4px 6px;cursor:pointer;
+ border:1px solid rgba(188,165,130,.26);border-radius:0;
+ background:rgba(7,9,13,.55);color:#cfc9bd;
+ font:700 11.5px/1 var(--apex-font-display,'Oswald',sans-serif);letter-spacing:.07em;
+ transition:background .12s,border-color .12s,color .12s;
+ touch-action:manipulation;
+}
+#gold-shell-host #stage #apex-language-picker [data-apex-gfx-option]{
+ font-size:10.5px;letter-spacing:.05em;padding:4px 3px;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-pill{
+ justify-content:space-between;padding:4px 8px;font-size:10.5px;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-pill b{
+ font:700 9px/1 var(--apex-font-mono,monospace);padding:2px 5px;
+ background:rgba(255,255,255,.07);color:#98a1ac;letter-spacing:.06em;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-pill.is-active{
+ border-color:rgba(232,180,90,.62);background:rgba(240,175,68,.13);color:#f7eedc;
+}
+#gold-shell-host #stage #apex-language-picker .apex-utility-pill.is-active b{
  background:linear-gradient(180deg,#f4c475,#bf8530);color:#19130c;
- border-color:#e2aa50;box-shadow:inset 0 1px rgba(255,255,255,.18);
+}
+#gold-shell-host #stage #apex-language-picker :is([data-apex-language-option],[data-apex-gfx-option],[data-apex-audio-toggle],[data-apex-motion-option]):hover{
+ border-color:rgba(246,192,96,.68);color:#fff;
+}
+#gold-shell-host #stage #apex-language-picker :is([data-apex-language-option],[data-apex-gfx-option],[data-apex-motion-option]).is-active{
+ background:linear-gradient(180deg,#f4c475,#bf8530);color:#19130c;
+ border-color:#e2aa50;box-shadow:inset 0 1px rgba(255,255,255,.22);
+}
+#gold-shell-host #stage #apex-language-picker :is([data-apex-language-option],[data-apex-gfx-option],[data-apex-audio-toggle],[data-apex-motion-option],.apex-utility-close):focus-visible{
+ outline:2px solid var(--apex-focus-color,#ffd26b);outline-offset:2px;
 }
 #gold-shell-host #stage #apex-language-picker .apex-utility-help-label{
- padding:10px 12px 5px;font:700 9px/1 "Oswald",sans-serif;
- letter-spacing:.12em;color:#a8a19a;
+ padding:8px 12px 5px;font:600 8.5px/1.15 var(--apex-font-mono,monospace);
+ letter-spacing:.11em;color:#b8b0a4;
 }
 @keyframes apex-utility-enter{
- from{opacity:1;transform:translateY(-5px)}
+ from{opacity:0;transform:translateY(-6px)}
  to{opacity:1;transform:translateY(0)}
 }
 @media(max-height:480px) and (orientation:landscape){

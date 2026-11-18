@@ -1,8 +1,73 @@
-.apex-fatal-error{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:clamp(24px,6vw,64px);overflow:auto;background:radial-gradient(ellipse at 50% 18%,#2b2118 0,#0b0d10 68%);color:#f2eee7;text-align:center;font:500 16px/1.5 system-ui,sans-serif}
-.apex-fatal-error>*{max-width:min(680px,100%);margin:0}
-.apex-fatal-mark{color:#f7a34a;font:900 clamp(18px,3vw,28px)/1 Impact,"Arial Narrow",sans-serif;letter-spacing:.18em}
-.apex-fatal-kicker{color:#d4a56d;font:800 11px/1 ui-monospace,monospace;letter-spacing:.2em}
-.apex-fatal-error h1{font:800 clamp(26px,5vw,46px)/1.08 system-ui,sans-serif}
-.apex-fatal-error button{min-height:48px;padding:12px 24px;border:1px solid #ffb060;background:linear-gradient(180deg,#ffb454,#db762d);color:#1a110a;font:900 14px/1 system-ui,sans-serif;letter-spacing:.08em;cursor:pointer}
-.apex-fatal-error button:focus-visible{outline:3px solid #fff;outline-offset:4px}
-@media(prefers-reduced-motion:reduce){.apex-fatal-error *{animation:none!important;transition:none!important}}
+/* =============================================================================
+ * APEX CHAOS — Root Recovery Boundary (Phase 2 Gold Tactical Unified)
+ * ========================================================================== */
+
+.apex-fatal-error {
+  position: fixed;
+  inset: 0;
+  z-index: var(--apex-z-fatal, 2147483620);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(ellipse at 50% 24%, #241c13 0%, #06080c 70%);
+  color: var(--apex-bone, #f4efe4);
+  font-family: var(--apex-font-display, 'Oswald', 'ApexVietCondensed', system-ui, sans-serif);
+}
+
+.apex-fatal-card {
+  width: min(460px, calc(100vw - 32px));
+  padding: 26px 26px 24px;
+  border: 1px solid var(--apex-line-gold-strong, rgba(242, 193, 99, 0.76));
+  border-top: 2px solid var(--apex-gold, #f0b958);
+  clip-path: var(--apex-cut-lg, polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px));
+  background: var(--apex-surface-modal, linear-gradient(155deg, rgba(28, 24, 18, 0.97), rgba(9, 11, 16, 0.98)));
+  box-shadow: var(--apex-shadow-modal, 0 28px 80px rgba(0, 0, 0, 0.8));
+}
+
+.apex-fatal-mark {
+  margin-bottom: 4px;
+  font: 700 13px/1 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.22em;
+  color: var(--apex-dim, #8d97a4);
+}
+
+.apex-fatal-kicker {
+  margin: 0 0 8px;
+  font: 700 10px/1.2 var(--apex-font-mono, monospace);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--apex-gold, #f0b958);
+}
+
+.apex-fatal-card h1 {
+  margin: 0 0 10px;
+  font: 700 clamp(21px, 4vw, 27px)/1.14 var(--apex-font-display, 'Oswald', 'ApexVietCondensed', sans-serif);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff8eb;
+}
+
+.apex-fatal-body {
+  margin: 0 0 18px;
+  font: 500 14px/1.5 var(--apex-font-prose, 'Segoe UI', system-ui, sans-serif);
+  color: #d6cec0;
+}
+
+.apex-fatal-reload {
+  appearance: none;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 1px solid #ffe29a;
+  clip-path: var(--apex-cut-xs, polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px));
+  background: var(--apex-surface-gold-cta, linear-gradient(180deg, #ffd47e, #e89b2d));
+  color: #191105;
+  font: 700 13px/1 var(--apex-font-display, 'Oswald', 'ApexVietCondensed', sans-serif);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.apex-fatal-reload:focus-visible {
+  outline: 2px solid var(--apex-focus-color, #ffd26b);
+  outline-offset: 2px;
+}

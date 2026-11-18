@@ -1,11 +1,11 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261117-r5-five-arenas",
+  "runtimeRevision": "20261117-phase3-directors-cut",
   "files": {
-    "assets/gold/apex-chaos-wordmark.png": {
-      "bytes": 496066,
-      "sha256": "b0a852c614a2d3bce5f29fad58ce24f304874cb0e325646f4947746f464cede3"
+    "assets/gold/apex-chaos-wordmark.webp": {
+      "bytes": 127444,
+      "sha256": "8f99f07aba70722cfa0d720e3e56f147643f908befc9c4ff133b3509076d4a65"
     },
     "assets/gold/favicon-apex-chaos.png": {
       "bytes": 32526,
@@ -19,25 +19,25 @@
       "bytes": 5283,
       "sha256": "445449459179376e824b4be53fdb286fb023d9ec52c52953d070284d53724ee8"
     },
-    "assets/gold/home-foreground.png": {
-      "bytes": 378049,
-      "sha256": "54fa2af92d0fd121ddece3e8654ee7ee60f5a585de9e6d6f70e45022c20355ca"
+    "assets/gold/home-foreground.webp": {
+      "bytes": 59898,
+      "sha256": "7edaa4e74994a384f87393babcef17f6550bd3c0c20036ba1357f38b731d185c"
     },
-    "assets/gold/home-robot-body.png": {
-      "bytes": 1583426,
-      "sha256": "b8ea38b450158cb417b9ee7c03f5d98f934755e9e58bb67d2db82315062caac4"
+    "assets/gold/home-robot-body.webp": {
+      "bytes": 240038,
+      "sha256": "f53f492ab8e43cab3da41636b272ef9a1c92c2fecdc071336043e5038e0ae4f3"
     },
-    "assets/gold/home-robot-core.png": {
-      "bytes": 616346,
-      "sha256": "d39d3c4f7c290d132fc1572e8e4193585485831fe72962f738a6a399a824f252"
+    "assets/gold/home-robot-core.webp": {
+      "bytes": 75408,
+      "sha256": "dfb5246f6f76f7785d6f906da71acd7e4cf25126f96aab83487e40991ed33ff3"
     },
-    "assets/gold/home-robot-eye.png": {
-      "bytes": 118272,
-      "sha256": "0898a99ec4c8598a1dcf9d6dc018e902dcfa7c699021f630d79177c917db3a90"
+    "assets/gold/home-robot-eye.webp": {
+      "bytes": 28220,
+      "sha256": "926aa3f2a0103fadde5c47d7a3c50dcba8eff5265542c64913f7ae976b7b86b7"
     },
-    "assets/gold/home-world-background.png": {
-      "bytes": 1848695,
-      "sha256": "b94a40c404bd5e0d5de84a381192141fbf585f6004be97374fe42104f607e23c"
+    "assets/gold/home-world-background.webp": {
+      "bytes": 138164,
+      "sha256": "a0b1ec52cca15f20a149646eecb0348b73a58570c722d6244f5f9d719c411453"
     },
     "assets/gold/mode-local.webp": {
       "bytes": 10048,
@@ -200,8 +200,8 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 159304,
-      "sha256": "2ccc9431752246191d66ffc77c26695ccb1bb3e9d3c641481979a086df3305d8"
+      "bytes": 169260,
+      "sha256": "0d496e7e4d84ff25383a4233ed055b6cb408e43d409af935a7326fd97f729bb6"
     },
     "fonts.css": {
       "bytes": 6552,
@@ -280,21 +280,16 @@
       "sha256": "60d64d7bbba149b12b6dff1a81cb9d25fc4d24cc123a6dfef23b8f7d39298e8b"
     },
     "lucky-draw.html": {
-      "bytes": 100398,
-      "sha256": "7026992a6c056af1dd900700166df44ce6b77971b7d3aedab957c6cef92c612e"
+      "bytes": 107710,
+      "sha256": "80c24cf02885a82efb4cda5bac2a76d676c9525b831b396c861c77528fbdc06f"
     },
     "shell.html": {
-      "bytes": 560147,
-      "sha256": "c7dab40fe03dc2ab0f069d826db0cb67b8feee740b8dac6af51cfa6dcc731713"
+      "bytes": 387042,
+      "sha256": "42694fa3d94deaa37b9941fe976449bb7d44e30b6dc374ab7a492b297344672c"
     },
     "transition/mechanical-door-v4.gold.js": {
-      "bytes": 2666593,
-      "sha256": "6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2"
-    },
-    "../assets/audio/forward_drive_theme.ogg": {
-      "bytes": 618594,
-      "sha256": "15afd820d5ca061f374ea41ad425f795204cf2be0e1f03d641f9b1f85f6dfb9b",
-      "note": "owner Forward Drive theme, repository Ogg Opus encode (AV preload)"
+      "bytes": 2668684,
+      "sha256": "5beab5e33c42c98790cdd849036fc18c9113a257619de875950894a13246c624"
     }
   }
 }

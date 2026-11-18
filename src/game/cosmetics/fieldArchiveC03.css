@@ -2,7 +2,7 @@
 /* FIELD ARCHIVE C03 — a single real game modal, never a scrolling document.
    Cut metal, weathered record leaf and war-room seals; no generic panel cards. */
 body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
-.fa3-overlay.apex-cosmetics-overlay{position:fixed;inset:0;z-index:14500;margin:0;padding:clamp(0px,1vw,14px);display:grid;place-items:center;background:radial-gradient(ellipse at 50% 24%,#352a20f2,#080a0df7 80%);backdrop-filter:blur(13px);overflow:hidden;font-family:"ApcKanit","Arial Narrow",Impact,system-ui,sans-serif;color:#27211a}
+.fa3-overlay.apex-cosmetics-overlay{position:fixed;inset:0;z-index:var(--apex-z-archive,14500);margin:0;padding:clamp(0px,1vw,14px);display:grid;place-items:center;background:radial-gradient(ellipse at 50% 24%,#352a20f2,#080a0df7 80%);backdrop-filter:blur(13px);overflow:hidden;font-family:var(--apex-font-display,"Oswald","ApexVietCondensed",system-ui,sans-serif);color:#27211a}
 .fa3-overlay *{box-sizing:border-box}
 .fa3-overlay button{font-family:inherit;cursor:pointer}
 .fa3-overlay button:disabled{cursor:default}
@@ -20,7 +20,9 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
 .fa3-primary,.fa3-players{display:flex;flex:none;gap:2px;border:1px solid #78644f;padding:3px}
 .fa3-primary button,.fa3-players button{white-space:nowrap;border:0;background:#26292a;color:#c7b6a2;padding:clamp(7px,.9vw,12px) clamp(8px,1vw,17px);font-weight:900;font-size:clamp(9px,.88vw,12px);letter-spacing:.06em;transition:background .16s,color .16s}
 .fa3-primary button.on,.fa3-players button.on{background:#ec8b32;color:#22180f;box-shadow:inset 0 1px #ffd49a}
-.fa3-close.apex-cosmetics-close{border:1px solid #77634d;min-width:37px;height:37px;font:900 20px/1 Impact,sans-serif;color:#eccda2;background:#1c1e1d;padding:0}
+.fa3-close.apex-cosmetics-close{position:relative;border:1px solid #77634d;min-width:40px;height:40px;font:700 18px/1 var(--apex-font-display,"Oswald",sans-serif);color:#eccda2;background:#1c1e1d;padding:0;touch-action:manipulation}
+.fa3-close.apex-cosmetics-close::before{content:"";position:absolute;inset:-5px}
+.fa3-close.apex-cosmetics-close:focus-visible,.fa3-primary button:focus-visible,.fa3-players button:focus-visible{outline:2px solid var(--apex-focus-color,#ffd26b);outline-offset:2px}
 .fa3-close:hover,.fa3-primary button:hover:not(.on),.fa3-players button:hover:not(.on){background:#58442f;color:#fff}
 .fa3-body{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(180px,22%) minmax(0,42%) minmax(260px,36%);overflow:hidden}
 .fa3-index,.fa3-center,.fa3-detail{min-width:0;min-height:0;position:relative;overflow:hidden}
@@ -125,7 +127,7 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
  .fa3-brand small{font-size:6px;letter-spacing:0}
  .fa3-primary,.fa3-players{gap:1px;padding:1px}
  .fa3-primary button,.fa3-players button{font-size:clamp(7px,2vw,9px);letter-spacing:0;padding:6px 5px}
- .fa3-close.apex-cosmetics-close{min-width:26px;width:26px;height:28px;font-size:15px}
+ .fa3-close.apex-cosmetics-close{min-width:34px;width:34px;height:34px;font-size:15px}
  .fa3-body{grid-template-columns:1fr;grid-template-rows:minmax(0,45%) minmax(0,55%);position:relative}
  .fa3-center{grid-row:1;border-right:none;border-bottom:3px solid #aa7549}
  .fa3-record-top{padding:clamp(7px,1.5vh,14px) 12px 0}
@@ -210,7 +212,7 @@ body.fa3-locked{overflow:hidden!important;overscroll-behavior:none}
  .fa3-brand h2{font-size:15px}
  .fa3-header{gap:3px;padding:3px 5px}
  .fa3-primary button,.fa3-players button{padding:5px 4px;font-size:7px}
- .fa3-close.apex-cosmetics-close{min-width:23px;width:23px}
+ .fa3-close.apex-cosmetics-close{min-width:32px;width:32px;height:32px}
  .fa3-skin-name small{font-size:7px}
  .fa3-insight{min-height:37px}
 }

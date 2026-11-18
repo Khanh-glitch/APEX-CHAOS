@@ -9,7 +9,7 @@
 .apex-skin-error button{background:none;color:inherit;border:0;float:right;cursor:pointer;font-size:18px}
 body:has(#apex-boot-start) .apex-skin-entry,body:has(#stage.screen-mode) .apex-skin-entry,body:has(#stage.screen-fighter) .apex-skin-entry,body:has(#stage:not(.ready)) .apex-skin-entry,body.apex-scene-transition-active .apex-skin-entry,body:has(#battleHudHost.is-preloading) .apex-skin-entry,body:has(#battleHudHost.is-transitioning) .apex-skin-entry,body:has(#battleHudHost.is-open) .apex-skin-entry{display:none}
 .apex-cosmetic-locker-open #stage{pointer-events:none}
-.apex-cosmetics-overlay{position:fixed;inset:0;z-index:14000;background:rgba(4,8,12,.88);backdrop-filter:blur(9px);display:grid;place-items:center;padding:clamp(12px,3vw,30px);font-family:"ApcKanit","Segoe UI",system-ui,sans-serif;color:#ece6dc}
+.apex-cosmetics-overlay{position:fixed;inset:0;z-index:var(--apex-z-archive,14500);background:rgba(4,8,12,.88);backdrop-filter:blur(9px);display:grid;place-items:center;padding:clamp(12px,3vw,30px);font-family:var(--apex-font-display,"Oswald","ApexVietCondensed","Segoe UI",system-ui,sans-serif);color:#ece6dc}
 .apex-cosmetics{width:min(1180px,100%);max-height:min(92dvh,880px);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #8d7655;background:linear-gradient(155deg,#182028,#0e131a 72%);box-shadow:0 35px 100px #000b, inset 0 1px #fff1}
 .apex-cosmetics *{box-sizing:border-box}
 .apex-cosmetics button{font-family:inherit}

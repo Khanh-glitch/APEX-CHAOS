@@ -139,6 +139,12 @@ export const COPY = Object.freeze(Object.fromEntries([
   ['The laughing warhead keeps its full face in frame, trailing thick theatrical smoke.','Đầu đạn mặt cười hiện trọn khuôn mặt, kéo theo làn khói sân khấu dày đặc.'],
   ['Forest-jade mechanical layers over a spring-driven NEWBOT frame.','Các lớp cơ khí xanh ngọc rừng phủ trên khung NEWBOT vận hành bằng lò xo.'],
   ['COMING SOON','SẮP RA MẮT'],
+  ['SPECIAL EVENT','SỰ KIỆN ĐẶC BIỆT'],
+  ['BOXE / ARSENAL SURVIVAL','BOXE / ĐẤU SINH TỒN'],
+  ['FIGHT','CHIẾN ĐẤU'],
+  ['SCRAP BASIN','THUNG LŨNG PHẾ LIỆU'],
+  ['THE FIELD','CHIẾN TRƯỜNG'],
+  ['Fighter locked — dossier incomplete','Đấu sĩ chưa mở — hồ sơ chưa hoàn chỉnh'],
   ['Fighter locked — dossier incomplete.','Đấu sĩ chưa mở — hồ sơ chưa hoàn chỉnh.'],
   ['Tier marks drop rarity: T1 29% · T2 29% · T3 23% · T4 12% · T5 5% · T6 2%.','Cấp thể hiện độ hiếm khi rơi: T1 29% · T2 29% · T3 23% · T4 12% · T5 5% · T6 2%.'],
   ['Every 300 damage dealt or taken grants 3s of Heat: empowered casts and double cooldown recovery.','Mỗi 300 sát thương gây ra hoặc nhận vào cho 3 giây Nhiệt: chiêu được cường hóa và hồi chiêu nhanh gấp đôi.'],
@@ -431,6 +437,9 @@ const QUEST_EXTRA=Object.freeze({
  'WORKSHOP // NETWORK IDENTITIES':'XƯỞNG // DANH TÍNH MẠNG',
  'PISTOL // CONTACT':'SÚNG NGẮN // TRÚNG ĐÍCH',
  'PISTOL // RETALIATION':'SÚNG NGẮN // BẮN TRẢ',
+ 'PASSIVE · CORE':'NỘI TẠI · CỐT LÕI',
+ 'ABILITY 1 · KEY J':'KỸ NĂNG 1 · PHÍM J',
+ 'ABILITY 2 · KEY K':'KỸ NĂNG 2 · PHÍM K',
 });
 
 export const VIETNAMESE_DIALOGUE_EN = Object.freeze({

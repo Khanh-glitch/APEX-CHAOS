@@ -604,7 +604,16 @@
     if(sides[i].burstDirty){renderBurst(i);sides[i].burstDirty=false;}
     if(sides[i].punchPending){punch(i);sides[i].punchPending=false;}
   }
+  function goldHudOwnsPresentation() {
+    try {
+      const b = document.body;
+      return !!(b && (b.classList.contains('battle-open') || document.getElementById('stage')) && window.APEX_GOLD_HUD);
+    } catch (e) {
+      return false;
+    }
+  }
   function flushFrame() {
+    if (goldHudOwnsPresentation()) { framePending = false; return; }
     if (!framePending || !cacheRefs()) return;
     framePending = false;
     for (let i = 0; i < 2; i++) {
@@ -615,12 +624,39 @@
   }
   function sync() {
     if (!cacheRefs()) return;
+    // When Gold shell/HUD owns presentation, never run getComputedStyle or
+    // write into hidden legacy #hud panels (telemetry state stays authoritative).
+    if (goldHudOwnsPresentation()) {
+      const fs = fighterList();
+      if (fs && fs[0] && fs[1]) {
+        for (let i = 0; i < 2; i++) {
+          if (sides[i].fighter !== fs[i]) {
+            sides[i].fighter = fs[i];
+            sides[i].energy = 0;
+            sides[i].burstDirty = false;
+            sides[i].punchPending = false;
+            sides[i].punchAnimation?.cancel();
+            sides[i].punchAnimation = null;
+            if (sides[i].timer) { clearTimeout(sides[i].timer); sides[i].timer = null; }
+            sides[i].burst = null;
+            sides[i].loadoutKey = null;
+            sides[i].last = {};
+            stats.resets += 1;
+          }
+        }
+      }
+      return;
+    }
     const fs = fighterList();
     const hud = refs.hud;
     let visible = false;
     if (fs && fs[0] && fs[1] && hud) {
-      const op = hud.style && hud.style.opacity !== '' ? parseFloat(hud.style.opacity) : (parseFloat(getComputedStyle(hud).opacity) || 0);
-      visible = !!(Number.isFinite(op) && op > 0.5);
+      if (hud.style && hud.style.display === 'none') {
+        visible = false;
+      } else {
+        const op = hud.style && hud.style.opacity !== '' ? parseFloat(hud.style.opacity) : 0;
+        visible = !!(Number.isFinite(op) && op > 0.5);
+      }
     }
     if (refs._visible !== visible) {
       refs._visible = visible;

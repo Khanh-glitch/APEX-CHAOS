@@ -43,7 +43,7 @@
  background:linear-gradient(90deg,transparent,#ef7235,#ffba70,transparent);
 }
 #stage #botWaveEntry .apex-special-wave-top{
- display:flex;align-items:center;gap:6px;font:900 7.5px/1 ui-monospace,Consolas,monospace;
+ display:flex;align-items:center;gap:6px;font:700 7.5px/1 var(--apex-font-mono,ui-monospace,Consolas,monospace);
  color:#ffb477;letter-spacing:.16em;white-space:nowrap;text-shadow:0 2px 7px #000c;
 }
 #stage #botWaveEntry .apex-special-wave-top i{
@@ -51,11 +51,11 @@
  box-shadow:0 0 11px #ffab52;animation:waveBeacon 2.2s ease-in-out infinite;
 }
 #stage #botWaveEntry strong{
- font:italic 1000 clamp(19px,1.55vw,24px)/.98 Impact,"Arial Narrow",system-ui;
- letter-spacing:.045em;color:#fff0d4;white-space:nowrap;text-shadow:0 3px 10px #000d,0 0 16px rgba(255,122,46,.35);
+ font:700 clamp(19px,1.55vw,24px)/.98 var(--apex-font-display,"Oswald","ApexVietCondensed",sans-serif);
+ letter-spacing:.06em;color:#fff0d4;white-space:nowrap;text-shadow:0 3px 10px #000d,0 0 16px rgba(255,122,46,.35);
 }
 #stage #botWaveEntry small{
- font:800 6.8px/1.25 ui-monospace,Consolas,monospace;
+ font:600 7px/1.25 var(--apex-font-mono,ui-monospace,Consolas,monospace);
  color:#dcb995;letter-spacing:.07em;white-space:nowrap;text-shadow:0 2px 7px #000c;
 }
 #stage #botWaveEntry .apex-wave-entry-go{display:none}
@@ -71,16 +71,28 @@
 #stage.screen-story #botWaveEntry,#stage.screen-lucky #botWaveEntry,
 #stage:not(.ready) #botWaveEntry{opacity:0;visibility:hidden;pointer-events:none}
 @keyframes waveBeacon{50%{opacity:.36;box-shadow:0 0 3px #ffab52}}
-/* The Wave close command is the same DOM button (and same native return). */
+/* The Wave close command is the same DOM button (and same native return),
+   forged in unified Gold Obsidian + molten brass. */
 #apex-wave-host > #return{
  top:max(13px,env(safe-area-inset-top))!important;left:auto!important;right:max(17px,env(safe-area-inset-right))!important;
- transform:none!important;min-height:37px;padding:8px 17px!important;
- background:linear-gradient(115deg,#1c242cf2,#101821f5)!important;
- border:1px solid #b8885f!important;border-left:3px solid #ffb35d!important;
- border-radius:2px!important;font:900 11px/1.25 ui-monospace,monospace!important;
- letter-spacing:.09em;box-shadow:0 7px 22px #000a;cursor:pointer;
+ transform:none!important;min-height:40px;padding:8px 18px!important;
+ background:linear-gradient(160deg,rgba(32,28,22,.94),rgba(11,14,20,.97))!important;
+ border:1px solid rgba(242,188,88,.54)!important;border-top-color:rgba(255,230,166,.82)!important;
+ border-left:3px solid #ffc058!important;color:#fff4e0!important;
+ clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)!important;
+ border-radius:0!important;font:700 12px/1.2 var(--apex-font-display,"Oswald","ApexVietCondensed",sans-serif)!important;
+ letter-spacing:.13em;text-transform:uppercase;
+ box-shadow:0 10px 26px rgba(0,0,0,.68),0 0 18px rgba(255,168,44,.14),inset 0 1px 0 rgba(255,246,220,.18);
+ cursor:pointer;transition:transform .12s ease,border-color .15s ease,box-shadow .15s ease,background .15s ease;
 }
-#apex-wave-host > #return:focus-visible{outline:3px solid #ffe0a0;outline-offset:3px}
+#apex-wave-host > #return:hover{
+ background:linear-gradient(160deg,rgba(56,42,24,.97),rgba(18,17,16,.99))!important;
+ border-color:rgba(255,218,132,.95)!important;
+ box-shadow:0 12px 30px rgba(0,0,0,.76),0 0 24px rgba(255,176,48,.3),inset 0 1px 0 rgba(255,250,232,.32);
+ transform:translateY(-1px)!important;
+}
+#apex-wave-host > #return:active{transform:scale(.96)!important}
+#apex-wave-host > #return:focus-visible{outline:2px solid #ffe0a0;outline-offset:3px}
 @media(max-width:980px) and (orientation:landscape){
  #stage #botWaveEntry{--wave-art-h:clamp(74px,23vh,94px);
   right:10px;top:52%;transform:translateY(-54%);width:clamp(90px,13.5vw,114px)}
