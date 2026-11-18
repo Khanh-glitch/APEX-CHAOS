@@ -1865,6 +1865,34 @@ html[data-apex-motion="reduced"] #stage .route:not(.is-locked)::before,
 html[data-apex-motion="reduced"] .flowBackBtn,
 html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
 </style>
+<style id="apex-phase4-flow-polish">
+/* PHASE 4 — FLOW SCREEN POLISH (from live review of Fighter Select + Free Battle Mode Select).
+   1. Mode cards stop the footer nav clipping the 1 VS 1 card and its copy.
+   2. Idle VS BOT card reads as selectable, not disabled.
+   3. Locked footer routes keep legible contrast.
+   4. Fighter skill chips sit on a scrim instead of floating over robot art.
+   5. Locked roster cards: one clean LOCKED strip, no ghost name bleed.
+   6. Hint keycaps reach a readable size. */
+@media (min-width:900px){
+  #stage.screen-mode .modeSelectScreen{bottom:calc(var(--safeB) + 1.95vh + 58px + 2.6vh)!important}
+  #stage.screen-mode .modeCard{min-height:clamp(108px,17vh,146px)}
+}
+.modeCard:not(.is-focus){filter:none!important}
+.modeCard:not(.is-focus)::before{background:linear-gradient(90deg,rgba(0,0,0,.10),rgba(0,0,0,.66) 50%,rgba(7,8,10,.90))!important}
+.modeCard:not(.is-focus) .modeArt img{filter:grayscale(.22) brightness(.74) contrast(1.08)!important}
+.modeCard:not(.is-focus) .modeName{color:#f4eee4!important}
+.modeCard:not(.is-focus) .modeSub,.modeCard:not(.is-focus) .modeIndex{color:rgba(235,228,218,.74)!important}
+.modeCard:not(.is-focus) .modeArrow{opacity:.7!important}
+.route.is-locked{color:rgba(235,228,218,.56)!important;filter:saturate(.6)!important}
+.route.is-locked svg{opacity:.78!important}
+.fighterIdentity{background:linear-gradient(90deg,rgba(6,7,9,.86),rgba(6,7,9,.48) 72%,rgba(6,7,9,.10))!important;border-radius:2px}
+.fighterSide.p2 .fighterIdentity{background:linear-gradient(270deg,rgba(6,7,9,.86),rgba(6,7,9,.48) 72%,rgba(6,7,9,.10))!important}
+.skillChip{background:rgba(6,7,9,.78)!important;border-color:rgba(238,231,219,.12)!important;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.rosterCard.is-locked .rosterName{visibility:hidden}
+.rosterCard.is-locked .rosterLock{bottom:0!important;top:auto!important;height:30%!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(5,6,7,.96);z-index:2}
+.fighterHintsV6,.fighterHints{font-size:clamp(10px,.85vw,13px)!important}
+.fighterHintsV6 .keycap,.fighterHints .keycap{min-width:26px;height:24px;font-size:clamp(10px,.8vw,12px)}
+</style>
 <style id="apex-battle-component-css" data-source-sha256="c401716db7b4d2eb1e8526e1b9ea8dd5eee0b437e2ab1e5f5c3a7fe5797cf5ef">
 
 /* =====================================================================
