@@ -3250,9 +3250,9 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
   </div>
 
   <nav class="routes e-routes" aria-label="Main routes">
-    <button class="route is-locked" type="button" aria-label="Fighter Shop (locked)" aria-disabled="true" data-locked-route="fighter-shop" title="COMING SOON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2.5 4h3l2.2 10h10.1l2.2-7H6.2"/><circle cx="9" cy="19" r="1.4"/><circle cx="16.5" cy="19" r="1.4"/></svg><span>Fighter Shop</span></button>
+    <button class="route is-locked" type="button" aria-label="Fighter Shop (locked)" aria-disabled="true" data-locked-route="fighter-shop" title="COMING SOON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2.5 4h3l2.2 10h10.1l2.2-7H6.2"/><circle cx="9" cy="19" r="1.4"/><circle cx="16.5" cy="19" r="1.4"/></svg><span>Fighter Shop</span><span class="routeReason">COMING SOON</span></button>
     <button class="route" id="openLuckyDraw" type="button" aria-label="Lucky Draw"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l8 4.6v9.4l-8 4.8-8-4.8V7.2z"/><g fill="#111317"><circle cx="9" cy="8.7" r="1.1"/><circle cx="15.3" cy="11" r="1.1"/><circle cx="9.4" cy="15.6" r="1.1"/><circle cx="15.7" cy="17" r="1.1"/></g></svg><span>Lucky Draw</span></button>
-    <button class="route is-locked" type="button" aria-label="Upgrade (locked)" aria-disabled="true" data-locked-route="fighter-upgrade" title="COMING SOON"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 7.2a5.3 5.3 0 0 1-7.1 5L6.2 20a2.1 2.1 0 1 1-3-3l7.8-7.8A5.3 5.3 0 0 1 17.4 2.5l-3.1 3.1 1.1 2.8 2.8 1z"/></svg><span>Upgrade</span></button>
+    <button class="route is-locked" type="button" aria-label="Upgrade (locked)" aria-disabled="true" data-locked-route="fighter-upgrade" title="COMING SOON"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 7.2a5.3 5.3 0 0 1-7.1 5L6.2 20a2.1 2.1 0 1 1-3-3l7.8-7.8A5.3 5.3 0 0 1 17.4 2.5l-3.1 3.1 1.1 2.8 2.8 1z"/></svg><span>Upgrade</span><span class="routeReason">COMING SOON</span></button>
     <button class="route" id="apexDictionaryOpen" type="button" aria-label="Open Field Archive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 5.3c3.1-1.1 6-.8 9 1 3-1.8 5.9-2.1 9-1v13.4c-3.1-1.1-6-.8-9 1-3-1.8-5.9-2.1-9-1z"/><path d="M12 6.3v13.4M5.3 9.3h4M14.7 9.3h4M5.3 12.4h4M14.7 12.4h4"/></svg><span>Archive</span></button>
     <button class="route" id="apexMissionsOpen" type="button" aria-label="Missions and Achievements"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3.7h3a3 3 0 0 1 6 0h3a1.5 1.5 0 0 1 1.5 1.5v15.2A1.5 1.5 0 0 1 18 21.9H6a1.5 1.5 0 0 1-1.5-1.5V5.2A1.5 1.5 0 0 1 6 3.7z"/><path d="M8 13l3 3 5.5-6" fill="none" stroke="#111317" stroke-width="2"/></svg><span>Missions</span></button>
     <button class="route" id="apexAccountOpen" type="button" aria-label="Account"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.4" r="4.3"/><path d="M3.7 21.3c.7-4.8 3.9-7.2 8.3-7.2s7.6 2.4 8.3 7.2z"/></svg><span>Account</span></button>
@@ -3262,7 +3262,7 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
   <section id="modeSelectScreen" class="flowScreen modeSelectScreen" aria-label="Free Battle mode select" aria-hidden="true">
     <button class="flowBackBtn" data-flow-back type="button" aria-label="Back"><span class="flowBackChev" aria-hidden="true">‹</span><span class="flowBackText">BACK</span></button>
     <div class="modeHeader">
-      <div class="modeKicker">MODE SELECT</div>
+      <div class="modeKicker"><span>MODE SELECT</span><ol class="dcSteps" aria-label="Progress"><li class="is-on" aria-current="step"><i>1</i><span>MODE</span></li><li class=""><i>2</i><span>FIGHTER</span></li><li class=""><i>3</i><span>BATTLE</span></li></ol></div>
       <h2 class="modeTitle">FREE BATTLE</h2>
       <p class="modeLead">Choose how the next fight begins. Same arena. Different opponent.</p>
     </div>
@@ -3270,14 +3270,14 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
       <button class="modeCard is-focus" data-mode="bot" role="radio" aria-checked="true" type="button">
         <span class="modeSweep"></span><span class="modeShock"></span><span class="modeClamp clampA"></span><span class="modeClamp clampB"></span>
         <span class="modeArt"><img data-apex-src="assets/gold/mode-solo.webp" alt="" draggable="false"></span>
-        <span class="modeCopy"><span class="modeIndex">01 / SOLO</span><span class="modeName">VS BOT</span><span class="modeSub">Fight against an AI opponent</span></span>
-        <span class="modeArrow" aria-hidden="true">›</span>
+        <span class="modeCopy"><span class="modeIndex">01 / SOLO</span><span class="modeName">VS BOT</span><span class="modeSub">Fight against an AI opponent</span><span class="modeMeta"><span><span class="pips"><b></b></span>1 PLAYER</span><span>AI OPPONENT</span></span></span>
+        <span class="modeCue" aria-hidden="true"><kbd>ENTER</kbd><span>CHOOSE FIGHTER</span></span><span class="modeArrow" aria-hidden="true">›</span>
       </button>
       <button class="modeCard" data-mode="local1v1" role="radio" aria-checked="false" type="button">
         <span class="modeSweep"></span><span class="modeShock"></span><span class="modeClamp clampA"></span><span class="modeClamp clampB"></span>
         <span class="modeArt"><img data-apex-src="assets/gold/mode-local.webp" alt="" draggable="false"></span>
-        <span class="modeCopy"><span class="modeIndex">02 / LOCAL</span><span class="modeName">1 VS 1</span><span class="modeSub">Two players. One device.</span></span>
-        <span class="modeArrow" aria-hidden="true">›</span>
+        <span class="modeCopy"><span class="modeIndex">02 / LOCAL</span><span class="modeName">1 VS 1</span><span class="modeSub">Two players. One device.</span><span class="modeMeta"><span><span class="pips"><b></b><b></b></span>2 PLAYERS</span><span>SHARED DEVICE</span></span></span>
+        <span class="modeCue" aria-hidden="true"><kbd>ENTER</kbd><span>CHOOSE FIGHTER</span></span><span class="modeArrow" aria-hidden="true">›</span>
       </button>
     </div>
     <div class="flowHints"><span><span class="keycap">ESC</span>BACK</span><span><span class="keycap">ENTER</span>SELECT</span></div>
@@ -3290,7 +3290,7 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
         <div class="fighterKicker">FIGHTER SELECT</div>
         <h2>CHOOSE YOUR FIGHTER</h2>
       </div>
-      <div class="fighterModeBadge" id="fighterModeBadge">VS BOT</div>
+      <div class="dcHeaderRow"><div class="fighterModeBadge" id="fighterModeBadge">VS BOT</div><ol class="dcSteps" aria-label="Progress"><li class="is-done"><i>1</i><span>MODE</span></li><li class="is-on" aria-current="step"><i>2</i><span>FIGHTER</span></li><li class=""><i>3</i><span>BATTLE</span></li></ol></div>
     </div>
 
     <div class="fighterArena duelHudV6">
@@ -4313,11 +4313,12 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
       b.type='button';
       b.className='rosterCard'+(locked?' is-locked':'');
       b.dataset.hero=id;
+      b.style.setProperty('--i',idx%6);
       b.setAttribute('aria-label',h.name||id);
       const portrait=h.portrait
         ? `<img src="${h.portrait}" alt="" draggable="false">`
         : '<span class="rosterLockedVisual" aria-hidden="true"></span>';
-      b.innerHTML=`<span class="rosterMarker p1">P1</span><span class="rosterMarker p2">P2</span>${portrait}<span class="rosterName">${h.name||id}</span>`+(locked?'<span class="rosterLock" aria-hidden="true"><i></i><b>LOCKED</b></span>':'');
+      b.innerHTML=`<span class="rosterMarker p1">P1</span><span class="rosterMarker p2">P2</span>${portrait}<span class="rosterName">${h.name||id}</span>`+(locked?'<span class="rosterLock" aria-hidden="true"><svg class="dcLock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><b>LOCKED</b><em>COMING SOON</em></span>':'');
       if(!playable){b.disabled=true;b.title='LOCKED';}
       const img=b.querySelector('img');
       if(img)img.addEventListener('error',()=>{
@@ -4365,6 +4366,7 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
       else if(!p2Locked) selectionPrompt.textContent='P2 SELECTING';
       else selectionPrompt.textContent='DUEL LOCKED';
     }
+    fighterScreen.classList.toggle('is-p2-turn',activePlayer==='p2'&&!p2Locked);
     if(selectionCursorV6){const activeHero=activePlayer==='p2'?p2Hero:p1Hero;const ci=Math.max(0,HERO_ORDER.indexOf(activeHero));selectionCursorV6.style.setProperty('--cursor-i',ci);selectionCursorV6.style.setProperty('--cursor-color',activePlayer==='p2'?'var(--p2)':'var(--p1)')}
   
     stage.style.setProperty('--p1HeroTint',HEROES[p1Hero]?.accent||'#ff941f');
@@ -5068,5 +5070,278 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
   } catch (e) { /* pager is an aid; canonical picking must never depend on it */ }
 })();
 </script>
+<!--APEX-DC:START-->
+<style id="apex-directors-cut">
+/* ============================================================================
+ * APEX CHAOS — DIRECTOR'S CUT  ·  consolidated surface layer
+ * One material language for Mode Select, Fighter Select, Home actions and the
+ * dock: OBSIDIAN SLAB  +  WORN GOLD-LEAF EDGE  +  EMBER STATE LIGHT.
+ *
+ *  - slab      : near-black chamfered plate, brushed-metal grain, 1px top bevel
+ *  - leaf      : worn gold hairline (never a full glow); full-strength = "this one"
+ *  - ember     : the only light that moves; it marks *live / selected / pressable*
+ *  - locked    : desaturated + hatch + padlock glyph + written reason (not colour only)
+ *
+ * This block is appended LAST in shell.html (see tools/applyDirectorsCut.mjs).
+ * It intentionally wins by id-specificity instead of adding more !important
+ * layers on top of the legacy ones; legacy rules for these components are
+ * neutralised here once, in one place.
+ * ========================================================================== */
+
+#stage{
+  --dc-slab-0:#07080a; --dc-slab-1:#0e1013; --dc-slab-2:#171a1f; --dc-slab-3:#22262d;
+  --dc-leaf:#e9b24c; --dc-leaf-hi:#ffe5a3; --dc-leaf-dim:rgba(233,178,76,.34); --dc-leaf-faint:rgba(255,229,163,.14);
+  --dc-ember:#ff7a24; --dc-ember-hot:#ffa347;
+  --dc-bone:#f6efe1; --dc-bone-2:rgba(246,239,225,.82); --dc-bone-3:rgba(246,239,225,.62);
+  --dc-p1:#ff9a2e; --dc-p2:#43b0ff;
+  --dc-grain:repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,transparent 1px 3px),repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 4px);
+  --dc-ease:cubic-bezier(.16,.86,.22,1);
+}
+
+/* ---------------------------------------------------------------- shared */
+#stage .dcSteps{display:flex;align-items:center;gap:10px;font:700 clamp(10px,.78vw,13px)/1 var(--fUi,inherit);letter-spacing:.2em;text-transform:uppercase;color:var(--dc-bone-3)}
+#stage .dcSteps li{list-style:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+#stage .dcSteps{margin:0;padding:0}
+#stage .dcSteps li i{font-style:normal;display:grid;place-items:center;width:1.75em;height:1.75em;border:1px solid var(--dc-leaf-dim);clip-path:polygon(25% 0,100% 0,75% 100%,0 100%);font-size:.92em;letter-spacing:0;color:var(--dc-bone-3)}
+#stage .dcSteps li.is-done{color:var(--dc-bone-2)}
+#stage .dcSteps li.is-done i{background:var(--dc-leaf-dim);color:#16110a;border-color:transparent}
+#stage .dcSteps li.is-on{color:var(--dc-leaf-hi)}
+#stage .dcSteps li.is-on i{background:linear-gradient(180deg,var(--dc-leaf-hi),var(--dc-leaf));border-color:transparent;color:#1a1208;font-weight:900}
+#stage .dcSteps li+li::before{content:"";width:clamp(14px,2vw,34px);height:1px;background:linear-gradient(90deg,var(--dc-leaf-dim),transparent)}
+
+#stage .flowBackBtn{background:linear-gradient(180deg,var(--dc-slab-2),var(--dc-slab-0))!important;border:0!important;box-shadow:inset 0 0 0 1px var(--dc-leaf-dim),inset 0 1px 0 rgba(255,255,255,.08)!important;color:var(--dc-bone)!important;min-height:44px}
+#stage .flowBackBtn:hover{box-shadow:inset 0 0 0 1px var(--dc-leaf),inset 0 1px 0 rgba(255,255,255,.12)!important}
+#stage .flowBackBtn .flowBackText{letter-spacing:.2em;color:var(--dc-bone)}
+#stage :is(.modeCard,.rosterCard,.lockIn,.flowBackBtn,.route,.cta):focus-visible{outline:2px solid var(--dc-leaf-hi)!important;outline-offset:3px!important}
+
+/* keycaps: same object everywhere — a physical key */
+#stage .keycap{background:linear-gradient(180deg,#2a2e35,#14171b)!important;border:0!important;box-shadow:inset 0 0 0 1px rgba(255,229,163,.28),0 2px 0 #050607!important;color:var(--dc-bone)!important;border-radius:3px;padding:3px 7px 2px;font-weight:800;letter-spacing:.08em}
+#stage .flowHints,#stage .fighterHints{color:var(--dc-bone-2)!important;text-shadow:0 1px 2px #000}
+
+/* ------------------------------------------- base (all viewports): additions are inert unless a rule below turns them on */
+#stage .modeCue{display:none}
+#stage .modeMeta{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+#stage .modeMeta>span{display:inline-flex;align-items:center;gap:6px;font:700 9px/1 var(--fUi,inherit);letter-spacing:.14em;color:var(--dc-bone-3);text-transform:uppercase;white-space:nowrap}
+#stage .modeMeta .pips{display:inline-flex;gap:3px}
+#stage .modeMeta .pips b{width:.8em;height:.8em;background:var(--dc-leaf);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+#stage .rosterLock{flex-direction:column;align-items:center;justify-content:center;gap:1px;text-align:center}
+#stage .rosterLock em{font-style:normal;font:700 8px/1.1 var(--fUi,inherit);letter-spacing:.12em;color:var(--dc-leaf);white-space:nowrap}
+@media (max-aspect-ratio:1/1),(max-width:899px){
+  #stage .dcSteps{display:none}
+  #stage .dcHeaderRow{display:contents}
+  #stage .modeCard.is-focus{box-shadow:inset 0 0 0 1px var(--dc-leaf),inset 5px 0 0 var(--dc-ember)!important}
+  #stage .modeMeta{display:none}
+  #stage .modeCard:not(.is-focus) .modeArt img{filter:grayscale(.8) brightness(.62)!important}
+  #stage .modeCard.is-focus .modeArt img{filter:none!important}
+  #stage .rosterLock{padding:0 2px}
+  #stage .rosterLock em{font-size:7px;letter-spacing:.06em}
+  #stage .modeKicker{margin-bottom:8px}
+  #stage .modeTitle{margin-top:10px!important;line-height:1!important}
+}
+@media (max-width:500px){#stage .fighterTitleBlock{padding-top:46px}}
+/* one padlock glyph everywhere (legacy <i> padlock is clipped on small cards) */
+#stage .rosterLock i{display:none!important}
+#stage .rosterLock .dcLock{width:clamp(14px,1.3vw,22px);height:auto;aspect-ratio:1;color:var(--dc-bone);flex:none}
+#stage .rosterLock em{display:block!important;visibility:visible!important;opacity:1!important}
+
+/* ================================================================== MODE SELECT */
+@media (min-width:900px) and (min-aspect-ratio:1/1){
+  /* the veil gives every word a dark, calm ground — measured, not decorative */
+  #stage #modeSelectScreen{--veil-l:7vw}
+  #stage #modeSelectScreen::before{content:"";position:absolute;z-index:-1;pointer-events:none;left:calc(var(--veil-l) * -1);right:-2.8vw;top:-10.8vh;bottom:-12.8vh;
+    background:linear-gradient(90deg,transparent 0,rgba(6,7,9,.78) var(--veil-l),rgba(6,7,9,.9) 100%),var(--dc-grain)}
+  #stage #modeSelectScreen::after{content:"";position:absolute;z-index:-1;pointer-events:none;left:0;top:-10.8vh;bottom:-12.8vh;width:1px;background:linear-gradient(180deg,transparent,var(--dc-leaf-dim) 18%,var(--dc-leaf-dim) 78%,transparent)}
+  #stage #modeSelectScreen{padding-left:clamp(14px,1.6vw,30px);top:7.4vh;bottom:13.6vh;gap:0}
+  #stage #modeSelectScreen .flowBackBtn{position:static;align-self:flex-start;margin:0 0 clamp(10px,2vh,22px)}
+  #stage #modeSelectScreen .modeHeader{margin:0}
+  #stage #modeSelectScreen .modeKicker{display:flex;align-items:center;gap:14px;justify-content:space-between;color:var(--dc-leaf)!important;font-size:clamp(10px,.8vw,13px);letter-spacing:.34em}
+  #stage #modeSelectScreen .modeKicker::before{display:none}
+  #stage #modeSelectScreen .modeTitle{font-size:clamp(46px,5.2vw,92px)!important;line-height:.98!important;margin:clamp(8px,1.4vh,16px) 0 0!important;color:var(--dc-bone)!important;letter-spacing:-.01em;text-shadow:0 2px 0 #000,0 10px 28px rgba(0,0,0,.6)}
+  #stage #modeSelectScreen .modeLead{margin:clamp(8px,1.4vh,14px) 0 clamp(14px,2.4vh,26px)!important;color:var(--dc-bone-2)!important;max-width:34em;font-size:clamp(12px,1.02vw,17px);text-shadow:0 1px 2px #000}
+  #stage #modeSelectScreen .modeChoices{gap:clamp(10px,1.6vh,18px)!important;margin:0!important}
+
+  #stage #modeSelectScreen .modeCard{
+    --edge:var(--dc-leaf-faint);
+    min-height:clamp(112px,17.4vh,170px)!important;height:auto;overflow:hidden!important;
+    clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,22px 100%,0 calc(100% - 22px))!important;
+    border:0!important;color:var(--dc-bone)!important;
+    background:var(--dc-grain),linear-gradient(100deg,var(--dc-slab-2) 0,var(--dc-slab-0) 70%)!important;
+    box-shadow:inset 0 0 0 1px var(--edge),inset 0 1px 0 rgba(255,255,255,.06)!important;
+    grid-template-columns:40% 60%!important;
+    transition:box-shadow 180ms ease,transform 260ms var(--dc-ease),background 200ms ease!important;
+    transform:none;cursor:pointer}
+  #stage #modeSelectScreen .modeCard::before,#stage #modeSelectScreen .modeCard::after{display:none!important}
+  /* press rail: the left spine is the "selected" tell (shape + colour + a word) */
+  #stage #modeSelectScreen .modeCard .modeCopy::after{content:"";position:absolute;left:-1px;top:0;bottom:0;width:6px;background:linear-gradient(180deg,var(--dc-ember-hot),var(--dc-ember));transform:scaleY(0);transform-origin:50% 100%;transition:transform 260ms var(--dc-ease)}
+  #stage #modeSelectScreen .modeCard.is-focus .modeCopy::after{transform:scaleY(1)}
+  #stage #modeSelectScreen .modeCard .modeCopy::before{display:none!important}
+  #stage #modeSelectScreen .modeCard.is-focus{--edge:var(--dc-leaf);transform:translate3d(-14px,0,0);background:var(--dc-grain),linear-gradient(100deg,#2a2013 0,#100d09 55%,var(--dc-slab-0) 100%)!important}
+  #stage #modeSelectScreen .modeCard:not(.is-focus):hover{--edge:var(--dc-leaf-dim)}
+  #stage #modeSelectScreen .modeCard:active{transform:translate3d(-14px,2px,0) scale(.992)}
+  #stage #modeSelectScreen .modeCard :is(.modeSweep,.modeShock,.modeClamp){display:none!important}
+  #stage #modeSelectScreen .modeCard.is-selected .modeShock{display:block!important}
+
+  #stage #modeSelectScreen .modeArt{min-height:0!important;background:#000}
+  #stage #modeSelectScreen .modeArt img{filter:grayscale(.85) brightness(.5) contrast(1.05)!important;transform:scale(1.02)!important;transition:filter 320ms ease,transform 600ms var(--dc-ease)!important}
+  #stage #modeSelectScreen .modeCard.is-focus .modeArt img{filter:none!important;animation:dcArtDrift 16s ease-in-out infinite alternate}
+  #stage #modeSelectScreen .modeArt::after{background:linear-gradient(90deg,transparent 40%,rgba(10,9,8,.96) 100%),linear-gradient(0deg,rgba(0,0,0,.4),transparent 40%)!important}
+  @keyframes dcArtDrift{from{transform:scale(1.02) translate3d(0,0,0)}to{transform:scale(1.09) translate3d(-1.6%,0,0)}}
+
+  #stage #modeSelectScreen .modeCopy{padding:clamp(12px,2vh,22px) clamp(18px,2vw,34px) clamp(12px,2vh,22px) clamp(14px,1.4vw,26px)!important;gap:0;justify-content:center}
+  #stage #modeSelectScreen .modeIndex{color:var(--dc-leaf)!important;font-size:clamp(10px,.8vw,13px)!important;letter-spacing:.3em!important;opacity:1!important}
+  #stage #modeSelectScreen .modeName{color:var(--dc-bone-2)!important;margin-top:clamp(2px,.6vh,8px)!important;font-size:clamp(34px,3.9vw,66px)!important;text-shadow:0 2px 0 #000!important}
+  #stage #modeSelectScreen .modeCard.is-focus .modeName{color:#fff8e8!important}
+  #stage #modeSelectScreen .modeSub{color:var(--dc-bone-2)!important;opacity:1!important;margin-top:clamp(4px,.8vh,10px)!important;font-size:clamp(11px,.86vw,14px)!important;letter-spacing:.14em!important}
+  #stage #modeSelectScreen .modeArrow{display:none!important}
+
+  #stage #modeSelectScreen .modeMeta{display:flex;gap:clamp(8px,1vw,16px);margin-top:clamp(8px,1.4vh,16px);align-items:center;flex-wrap:wrap}
+  #stage #modeSelectScreen .modeMeta span{display:inline-flex;align-items:center;gap:7px;font:700 clamp(10px,.76vw,12px)/1 var(--fUi,inherit);letter-spacing:.16em;color:var(--dc-bone-3);text-transform:uppercase}
+  #stage #modeSelectScreen .modeMeta .pips{display:inline-flex;gap:3px}
+  #stage #modeSelectScreen .modeMeta .pips b{width:.8em;height:.8em;background:var(--dc-leaf);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  #stage #modeSelectScreen .modeCard:not(.is-focus) .modeMeta .pips b{background:var(--dc-bone-3)}
+
+  /* the cue: tells you what to press, only on the thing that will respond */
+  #stage #modeSelectScreen .modeCue{position:absolute;right:clamp(26px,2.4vw,40px);bottom:clamp(12px,2vh,20px);display:inline-flex;align-items:center;gap:9px;padding:7px 12px 6px 9px;
+    font:800 clamp(10px,.8vw,13px)/1 var(--fUi,inherit);letter-spacing:.2em;color:#1a1208;background:linear-gradient(180deg,var(--dc-leaf-hi),var(--dc-leaf));
+    clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);opacity:0;transform:translate3d(10px,0,0);transition:opacity 180ms ease,transform 260ms var(--dc-ease);pointer-events:none}
+  #stage #modeSelectScreen .modeCard.is-focus .modeCue{opacity:1;transform:none}
+  #stage #modeSelectScreen .modeCue kbd{font:inherit;background:#1a1208;color:var(--dc-leaf-hi);padding:3px 5px 2px;clip-path:none;border-radius:2px;letter-spacing:.1em}
+  #stage #modeSelectScreen .flowHints{margin-top:auto}
+
+  /* dock under Mode Select: present but visibly "not now" */
+  #stage.screen-mode .routes{opacity:.5!important;filter:saturate(.7)}
+}
+
+/* ================================================================ FIGHTER SELECT */
+@media (min-width:900px) and (min-aspect-ratio:1/1){
+  #stage #fighterSelectScreen{--roster-h:clamp(116px,17vh,180px);--deck-b:clamp(66px,10.6vh,110px)}
+  /* header: one centered title block, steps below it */
+  #stage #fighterSelectScreen .fighterHeader{top:1.8vh!important;gap:6px}
+  #stage #fighterSelectScreen .fighterKicker{color:var(--dc-leaf)!important;letter-spacing:.38em}
+  #stage #fighterSelectScreen .fighterTitleBlock h2{text-shadow:0 2px 0 #000,0 10px 26px rgba(0,0,0,.7)}
+  #stage #fighterSelectScreen .fighterModeBadge{background:linear-gradient(180deg,var(--dc-slab-2),var(--dc-slab-0))!important;box-shadow:inset 0 0 0 1px var(--dc-leaf-dim)!important;border:0!important;color:var(--dc-leaf-hi)!important;letter-spacing:.24em}
+
+  /* identity plates: slabs with a side rail + a word, readable on any art */
+  #stage #fighterSelectScreen .fighterIdentity{
+    background:var(--dc-grain),linear-gradient(180deg,rgba(23,26,31,.94),rgba(7,8,10,.96))!important;border:0!important;
+    box-shadow:inset 0 0 0 1px var(--dc-leaf-faint),inset 0 1px 0 rgba(255,255,255,.07)!important;
+    clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+  #stage #fighterSelectScreen .fighterSide.p1 .fighterIdentity{border-left:5px solid var(--dc-p1)!important}
+  #stage #fighterSelectScreen .fighterSide.p2 .fighterIdentity{border-right:5px solid var(--dc-p2)!important}
+  #stage #fighterSelectScreen .fighterSide.is-active .fighterIdentity{box-shadow:inset 0 0 0 1px var(--dc-leaf),inset 0 1px 0 rgba(255,255,255,.1)!important}
+  #stage #fighterSelectScreen .fighterName{color:#fff8e8!important;text-shadow:0 2px 0 #000}
+  #stage #fighterSelectScreen .fighterTag{color:var(--dc-leaf-hi)!important;opacity:1!important;letter-spacing:.24em}
+  #stage #fighterSelectScreen .playerFlag{font-weight:900;letter-spacing:.14em;color:#120c05!important;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);border:0!important}
+  #stage #fighterSelectScreen .p1 .playerFlag{background:var(--dc-p1)!important}
+  #stage #fighterSelectScreen .p2 .playerFlag{background:var(--dc-p2)!important}
+
+  /* the turn tab: who is choosing right now — word + shape + side colour */
+  #stage #fighterSelectScreen .selectionHeadV6{display:flex!important;align-items:center;justify-content:space-between;left:0!important;right:0!important;top:calc(-1 * clamp(24px,3.4vh,34px))!important;height:clamp(24px,3.2vh,32px)!important;font-size:clamp(11px,.9vw,14px)!important}
+  #stage #fighterSelectScreen #selectionPrompt{display:inline-flex;align-items:center;gap:10px;height:100%;padding:0 22px 0 14px;color:#140d05;font-weight:900;letter-spacing:.2em;background:linear-gradient(180deg,#ffbf6a,var(--dc-p1));clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+  #stage #fighterSelectScreen #selectionPrompt::before{content:"";width:0;height:0;border-left:8px solid #140d05;border-top:5px solid transparent;border-bottom:5px solid transparent;animation:dcNudge 1.1s var(--dc-ease) infinite}
+  #stage #fighterSelectScreen.is-p2-turn #selectionPrompt{background:linear-gradient(180deg,#8fd0ff,var(--dc-p2))}
+  @keyframes dcNudge{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
+  #stage #fighterSelectScreen .selectionPulse{display:none!important}
+  #stage #fighterSelectScreen .selectionMeta{display:block!important;color:var(--dc-bone-2)!important;letter-spacing:.2em}
+
+  /* roster */
+  #stage #fighterSelectScreen .selectionDeckV6{bottom:var(--deck-b)!important;height:var(--roster-h)!important;min-height:0!important}
+  #stage #fighterSelectScreen .selectionTrackV6{display:none!important}
+  #stage #fighterSelectScreen .rosterCard{
+    border:0!important;background:linear-gradient(180deg,var(--dc-slab-2),var(--dc-slab-0))!important;
+    box-shadow:inset 0 0 0 1px var(--dc-leaf-faint),inset 0 1px 0 rgba(255,255,255,.07)!important;
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))!important;
+    transition:transform 220ms var(--dc-ease),box-shadow 160ms ease,filter 200ms ease!important;transform-origin:50% 100%;cursor:pointer}
+  #stage #fighterSelectScreen .rosterCard img{filter:saturate(.8) brightness(.8)!important;transition:filter 220ms ease,transform 500ms var(--dc-ease)!important;object-position:50% 25%}
+  #stage #fighterSelectScreen .rosterCard:not(.is-locked):hover{transform:translateY(-6px)!important;box-shadow:inset 0 0 0 1px var(--dc-leaf),inset 0 1px 0 rgba(255,255,255,.1)!important}
+  #stage #fighterSelectScreen .rosterCard:not(.is-locked):hover img{filter:none!important;transform:scale(1.05)}
+  #stage #fighterSelectScreen .rosterName{background:linear-gradient(0deg,rgba(0,0,0,.92),rgba(0,0,0,.55))!important;color:var(--dc-bone)!important;letter-spacing:.14em;font-weight:800}
+  /* ready LED on every pickable card: a quiet standby pulse, staggered (idle life) */
+  #stage #fighterSelectScreen .rosterCard:not(.is-locked)::before{content:"";position:absolute;z-index:3;top:9px;right:20px;width:7px;height:7px;background:var(--dc-ember);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);animation:dcLed 2.6s ease-in-out infinite;animation-delay:calc(var(--i,0) * 340ms)}
+  @keyframes dcLed{0%,100%{opacity:.35}50%{opacity:1}}
+  /* selected: lifted, gold-framed, tab on top, bar below */
+  #stage #fighterSelectScreen .rosterCard.p1-selected,#stage #fighterSelectScreen .rosterCard.p2-selected{transform:translateY(-8px)!important;filter:none!important}
+  #stage #fighterSelectScreen .rosterCard.p1-selected{box-shadow:inset 0 0 0 2px var(--dc-p1),0 0 0 0 transparent!important}
+  #stage #fighterSelectScreen .rosterCard.p2-selected{box-shadow:inset 0 0 0 2px var(--dc-p2)!important}
+  #stage #fighterSelectScreen .rosterCard.p1-selected img,#stage #fighterSelectScreen .rosterCard.p2-selected img{filter:none!important}
+  #stage #fighterSelectScreen .rosterCard.p1-selected .rosterName{background:linear-gradient(180deg,#ffbf6a,var(--dc-p1))!important;color:#140d05!important}
+  #stage #fighterSelectScreen .rosterCard.p2-selected .rosterName{background:linear-gradient(180deg,#9bd5ff,var(--dc-p2))!important;color:#05121c!important}
+  #stage #fighterSelectScreen .rosterMarker{font-weight:900;border:0!important;color:#120c05!important;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)}
+  #stage #fighterSelectScreen .rosterMarker.p1{background:var(--dc-p1)!important}
+  #stage #fighterSelectScreen .rosterMarker.p2{background:var(--dc-p2)!important}
+
+  /* locked: hatch + padlock + reason. Never reads as "just dark". */
+  #stage #fighterSelectScreen .rosterCard.is-locked{cursor:not-allowed;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)!important}
+  #stage #fighterSelectScreen .rosterCard.is-locked img,#stage #fighterSelectScreen .rosterCard.is-locked .rosterLockedVisual{filter:grayscale(1) brightness(.42) contrast(1.1)!important}
+  #stage #fighterSelectScreen .rosterCard.is-locked::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(0,0,0,.0) 0 7px,rgba(0,0,0,.4) 7px 8px)}
+  #stage #fighterSelectScreen .rosterLock{background:linear-gradient(0deg,rgba(0,0,0,.94),rgba(0,0,0,.6))!important;flex-direction:column;gap:1px;justify-content:center;height:auto!important;min-height:40%;z-index:3}
+  #stage #fighterSelectScreen .rosterLock b{color:var(--dc-bone)!important;letter-spacing:.2em;font-size:clamp(10px,.78vw,12px)!important}
+  #stage #fighterSelectScreen .rosterLock em{font-style:normal;font:700 clamp(8px,.62vw,10px)/1.1 var(--fUi,inherit);letter-spacing:.16em;color:var(--dc-leaf)}
+  #stage #fighterSelectScreen .rosterLock i{color:var(--dc-bone)!important}
+
+  /* LOCK IN: the one big pressable thing on this screen */
+  #stage #fighterSelectScreen .lockIn{bottom:clamp(10px,1.8vh,22px)!important;height:clamp(46px,7vh,68px)!important;min-width:clamp(280px,26vw,460px)!important;background:none!important}
+  #stage #fighterSelectScreen .lockIn .lockCoreV6{background:linear-gradient(180deg,var(--dc-leaf-hi) 0,var(--dc-leaf) 56%,#b07a22 100%)!important;color:#150e04!important;clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 50%,calc(100% - 18px) 100%,18px 100%,0 50%);box-shadow:none!important;border:0!important;font-weight:900;letter-spacing:.22em;text-shadow:none!important}
+  #stage #fighterSelectScreen .lockIn .lockCoreV6 *{color:#150e04!important;border-color:#150e04!important}
+  #stage #fighterSelectScreen .lockIn:hover:not(:disabled) .lockCoreV6{background:linear-gradient(180deg,#fff2c9 0,var(--dc-leaf-hi) 56%,var(--dc-leaf) 100%)!important}
+  #stage #fighterSelectScreen .lockIn:active:not(:disabled){transform:translateY(2px) scale(.99)}
+  #stage #fighterSelectScreen .lockIn:disabled,#stage #fighterSelectScreen .lockIn[aria-disabled="true"]{filter:grayscale(1) brightness(.6)}
+}
+
+/* ------------------------------------------------ pass 2: measured fixes */
+@media (min-width:900px) and (min-aspect-ratio:1/1){
+  #stage #modeSelectScreen .modeLead{padding:0!important;text-indent:0!important;text-align:left!important;margin-left:0!important;align-self:flex-start}
+  #stage #modeSelectScreen .modeCue{bottom:auto;top:clamp(14px,2.2vh,22px);right:clamp(34px,3vw,52px)}
+  #stage #fighterSelectScreen .dcHeaderRow{display:flex;align-items:center;justify-content:center;gap:clamp(12px,1.4vw,22px);margin-top:4px}
+  #stage #fighterSelectScreen .dcHeaderRow .fighterModeBadge{position:static!important;margin:0!important;transform:none!important}
+  /* plates sit above the turn tab, never under it */
+  #stage #fighterSelectScreen .fighterIdentity{translate:0 -4.2vh}
+  /* the side that is NOT choosing steps back: the eye goes where the decision is */
+  #stage #fighterSelectScreen .fighterSide .fighterArtMedia{transition:filter 420ms ease}
+  #stage #fighterSelectScreen .fighterSide:not(.is-active) .fighterArtMedia{filter:brightness(.62) saturate(.7)}
+  #stage #fighterSelectScreen .fighterSide:not(.is-active) .fighterIdentity{opacity:.86}
+  #stage #fighterSelectScreen .selectionHeadV6 .selectionMeta{margin-left:auto;font-size:clamp(9px,.7vw,11px)!important}
+  #stage #fighterSelectScreen .dcHeaderRow .fighterModeBadge{order:-1}
+  /* exactly six cards per page: no sliver of the next page leaking in at the edge */
+  #stage.screen-fighter #fighterSelectScreen .selectionDeckV6 .roster{column-gap:5px!important;padding-inline:0!important;scroll-padding-inline:0!important;grid-auto-columns:calc((100% - 25px)/6)!important}
+  #stage.screen-fighter #fighterSelectScreen .selectionDeckV6 .roster .rosterCard{width:auto!important;min-width:0!important}
+  #stage #modeSelectScreen .modeCard:not(.is-focus) .modeArt img{filter:grayscale(.8) brightness(.62) contrast(1.05)!important}
+  /* spotlight: the fighter being chosen for is lit, the other waits in the dark */
+  #stage.screen-fighter .worldHeroSlot{transition:filter 480ms ease,opacity 480ms ease}
+  #stage.screen-fighter:has(#fighterSelectScreen:not(.is-p2-turn)) .worldHeroSlot.p2{filter:brightness(.62) saturate(.7)!important}
+  #stage.screen-fighter:has(#fighterSelectScreen.is-p2-turn) .worldHeroSlot.p1{filter:brightness(.62) saturate(.7)!important}
+  /* idle life: a standby breath on the displayed fighters (independent `translate`, so legacy transforms stay intact) */
+  #stage.screen-fighter .worldHeroSlot .worldHeroBody{animation:dcFloat 7s ease-in-out infinite!important}
+  #stage.screen-fighter .worldHeroSlot.p2 .worldHeroBody{animation-delay:-3.2s!important}
+  @keyframes dcFloat{0%,100%{translate:0 0}50%{translate:0 -.9vh}}
+}
+@media (prefers-reduced-motion:reduce){#stage .worldHeroSlot .worldHeroBody{animation:none!important}}
+html[data-apex-motion="reduced"] #stage .worldHeroSlot .worldHeroBody{animation:none!important}
+
+/* ====================================================== HOME: actions + dock */
+/* story copy gets the same calm ground as Mode Select: it sits on sky + scaffolding, so it needs a floor */
+#stage .story{isolation:isolate}
+#stage .story::before{content:"";position:absolute;z-index:-1;pointer-events:none;inset:-3vh -3vw -2vh -2.4vw;background:radial-gradient(120% 100% at 18% 42%,rgba(6,7,9,.66) 0,rgba(6,7,9,.42) 52%,transparent 78%)}
+#stage .story .copy{color:var(--dc-bone)!important;text-shadow:0 1px 2px #000,0 0 14px rgba(0,0,0,.85);font-weight:600}
+#stage .story .location{color:var(--dc-leaf-hi)!important;text-shadow:0 1px 2px #000,0 0 12px rgba(0,0,0,.9)}
+#stage .story .quest{color:var(--dc-leaf-hi)!important;text-shadow:0 1px 2px #000}
+#stage .cta.primary .label{letter-spacing:.14em}
+#stage .route .routeReason{display:none}
+#stage .route.is-locked{opacity:1;color:rgba(235,228,218,.5)}
+#stage .route.is-locked svg{opacity:.5}
+#stage .route.is-locked .routeReason{display:inline-flex;align-items:center;gap:5px;margin-left:2px;padding:4px 7px 3px;font:800 clamp(7px,.6vw,9px)/1 var(--fUi,inherit);letter-spacing:.14em;color:var(--dc-leaf);background:rgba(233,178,76,.1);box-shadow:inset 0 0 0 1px var(--dc-leaf-dim);clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);white-space:nowrap}
+@media (max-aspect-ratio:1/1),(max-width:899px){#stage .route .routeReason{display:none!important}}
+
+/* ================================================================ REDUCED MOTION */
+@media (prefers-reduced-motion:reduce){
+  #stage .modeCard.is-focus .modeArt img,#stage #selectionPrompt::before,#stage .rosterCard::before{animation:none!important}
+  #stage .modeCard,#stage .rosterCard,#stage .modeCue{transition-duration:.01ms!important}
+}
+html[data-apex-motion="reduced"] #stage .modeCard.is-focus .modeArt img,
+html[data-apex-motion="reduced"] #stage #selectionPrompt::before,
+html[data-apex-motion="reduced"] #stage .rosterCard::before{animation:none!important}
+
+</style>
+<!--APEX-DC:END-->
 </body>
 </html>
