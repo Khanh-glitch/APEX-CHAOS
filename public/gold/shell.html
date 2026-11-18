@@ -1928,6 +1928,14 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
 .fighterHintsV6 .keycap{box-shadow:inset 0 -2px 0 rgba(0,0,0,.45)}
 .modeCard:not(.is-focus){opacity:.93!important;filter:brightness(.84) saturate(.78)!important}
 .modeCard:not(.is-focus) .modeSub,.modeCard:not(.is-focus) .modeIndex{color:rgba(240,234,224,.82)!important}
+/* PHASE 6 — fighter tools no longer collide: SKINS sits inside the roster header lane,
+   clear of P2 SKILL DETAILS (measured overlap 16x14px at 1568x878 before this change). */
+.selectionHeadV6 .fa3-pick-equip-entry{margin-right:26px!important}
+.fighterSide.p2 .apex-skill-details-btn{margin-top:4px!important}
+@media (max-height:820px){
+  .selectionHeadV6 .fa3-pick-equip-entry{margin-right:52px!important}
+  .fighterSide.p2 .apex-skill-details-btn{margin-top:0!important}
+}
 </style>
 <style id="apex-battle-component-css" data-source-sha256="c401716db7b4d2eb1e8526e1b9ea8dd5eee0b437e2ab1e5f5c3a7fe5797cf5ef">
 
