@@ -60,3 +60,4 @@ ARSENAL_PRODUCT_PLAYABLE_WINDOWS.zip
 
 # Original hero source AV drafts are preserved in archive.
 /tools/hero-rework/source/
+artifacts/phase4/*.png
