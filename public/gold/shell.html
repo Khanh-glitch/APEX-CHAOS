@@ -1932,6 +1932,13 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
    clear of P2 SKILL DETAILS (measured overlap 16x14px at 1568x878 before this change). */
 .selectionHeadV6 .fa3-pick-equip-entry{margin-right:26px!important}
 .fighterSide.p2 .apex-skill-details-btn{margin-top:4px!important}
+/* PHASE 6b — roster reads as a duel tray: the chosen card is framed, its name plate is legible,
+   and the P1 SELECTING prompt sits on its own dark chip so it never blends into the identity panel. */
+.selectionHeadV6 #selectionPrompt{display:inline-flex;align-items:center;padding:4px 10px;background:rgba(6,7,9,.86);border-left:3px solid #ff941f}
+.rosterCard.p1-selected::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:#ff941f;z-index:3}
+.rosterCard.p1-selected .rosterName{color:#fff4e0;font-size:clamp(13px,1.2vw,17px)!important;font-weight:700}
+.rosterCard .rosterName{font-size:clamp(12px,1.12vw,16px)}
+.rosterCard.is-locked{filter:grayscale(.45) brightness(.82)!important}
 @media (max-height:820px){
   .selectionHeadV6 .fa3-pick-equip-entry{margin-right:52px!important}
   .fighterSide.p2 .apex-skill-details-btn{margin-top:0!important}
