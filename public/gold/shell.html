@@ -1928,6 +1928,9 @@ html[data-apex-motion="reduced"] .flowBackBtn::after{transition:none!important}
 .fighterHintsV6 .keycap{box-shadow:inset 0 -2px 0 rgba(0,0,0,.45)}
 .modeCard:not(.is-focus){opacity:.93!important;filter:brightness(.84) saturate(.78)!important}
 .modeCard:not(.is-focus) .modeSub,.modeCard:not(.is-focus) .modeIndex{color:rgba(240,234,224,.82)!important}
+/* TEMPORARY (owner request): hide the floating A1/A2 skill panels on Fighter Select.
+   DOM is kept intact; delete this rule to restore them. */
+#fighterSelectScreen .skillRows{display:none!important}
 /* PHASE 6 — fighter tools no longer collide: SKINS sits inside the roster header lane,
    clear of P2 SKILL DETAILS (measured overlap 16x14px at 1568x878 before this change). */
 .selectionHeadV6 .fa3-pick-equip-entry{margin-right:26px!important}
