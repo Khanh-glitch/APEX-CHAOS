@@ -3,17 +3,25 @@ import {heroProfile,weaponProfile,skillRecords} from './fieldArchiveProfiles.js'
 import {apexAppUrl} from '../appRoot.js';
 import './fieldArchiveCombatReadout.css';
 import './fieldArchiveC04.css';
+import { ChevronLeft, ChevronRight, Shield, Zap } from '../../ui/ApexIcons.jsx';
 
 function Radar({profile}){
  const axes=profile.axes,points=(scale=1)=>axes.map((a,i)=>{const t=-Math.PI/2+2*Math.PI*i/5,r=90*(a.value==null?0:a.value/100)*scale;return [120+Math.cos(t)*r,113+Math.sin(t)*r]});
  const coord=p=>p.map(x=>x.join(',')).join(' ');
  return <div className="fa4-radar-frame" aria-label="Five-axis combat role radar">
   <svg viewBox="0 0 240 230" role="img" aria-label={axes.map(a=>a.label+': '+(a.value==null?'unavailable':a.value+'/100')).join(', ')}>
-   {[.25,.5,.75,1].map(x=><polygon key={x} points={coord(axes.map((_,i)=>{const t=-Math.PI/2+i*Math.PI*2/5;return [120+Math.cos(t)*90*x,113+Math.sin(t)*90*x]}))} fill="none" stroke="#92724a" strokeWidth="1" opacity=".58"/>)}
-   {axes.map((a,i)=>{const t=-Math.PI/2+i*Math.PI*2/5;return <line key={a.key} x1="120" y1="113" x2={120+Math.cos(t)*90} y2={113+Math.sin(t)*90} stroke="#b79b74" opacity=".5"/>})}
-   <polygon points={coord(points())} stroke="#f6ac59" strokeWidth="2.5" strokeLinejoin="round" fill="#da863b" fillOpacity=".27"/>
-   {points().map((p,i)=><circle key={axes[i].key} cx={p[0]} cy={p[1]} r="3.5" fill="#ffcb81"/>)}
-   {axes.map((a,i)=>{const t=-Math.PI/2+i*Math.PI*2/5;return <text key={a.key} x={120+Math.cos(t)*112} y={113+Math.sin(t)*110+4} textAnchor="middle" fill="#e5c69a" fontSize="9" fontWeight="bold">{a.label}</text>})}
+   <defs>
+    <radialGradient id="fa4RadarFill" cx="50%" cy="50%" r="50%">
+     <stop offset="0%" stopColor="#ffc866" stopOpacity="0.46"/>
+     <stop offset="100%" stopColor="#d97b24" stopOpacity="0.18"/>
+    </radialGradient>
+   </defs>
+   {[.25,.5,.75,1].map(x=><polygon key={x} points={coord(axes.map((_,i)=>{const t=-Math.PI/2+i*Math.PI*2/5;return [120+Math.cos(t)*90*x,113+Math.sin(t)*90*x]}))} fill="none" stroke="#92724a" strokeWidth={x===1?'1.35':'0.9'} opacity={x===1?'.75':'.45'}/>)}
+   {axes.map((a,i)=>{const t=-Math.PI/2+i*Math.PI*2/5;return <line key={a.key} x1="120" y1="113" x2={120+Math.cos(t)*90} y2={113+Math.sin(t)*90} stroke="#b79b74" opacity=".48" strokeDasharray="2 2"/>})}
+   <polygon points={coord(points())} stroke="#ffb754" strokeWidth="2.5" strokeLinejoin="round" fill="url(#fa4RadarFill)"/>
+   <circle cx="120" cy="113" r="2.2" fill="#ffe29a" opacity=".7"/>
+   {points().map((p,i)=><circle key={axes[i].key} cx={p[0]} cy={p[1]} r="3.8" fill="#ffe29a" stroke="#18120a" strokeWidth="1.2"/>)}
+   {axes.map((a,i)=>{const t=-Math.PI/2+i*Math.PI*2/5;return <text key={a.key} x={120+Math.cos(t)*112} y={113+Math.sin(t)*110+4} textAnchor="middle" fill="#f0d5a8" fontSize="9" fontWeight="bold">{a.label}</text>})}
   </svg>
   <small>{profile.status==='unclassified'?'UNCLASSIFIED MECHANICS':'TACTICAL AFFINITY'}</small>
  </div>;
@@ -38,7 +46,7 @@ function skillArtwork(item,slot){
 function SkillThumbnail({src,slot}){
  const [failed,setFailed]=useState(false);
  useEffect(()=>setFailed(false),[src]);
- return !src||failed?<span className="fa4-skill-fallback" aria-hidden="true">{slot==='PASSIVE'?'P':slot}</span>
+ return !src||failed?<span className="fa4-skill-fallback" aria-hidden="true">{slot==='PASSIVE'?<Shield size={16} strokeWidth={2.3}/>:<Zap size={16} strokeWidth={2.3}/>}</span>
    :<img src={src} alt="" loading="lazy" onError={()=>setFailed(true)}/>;
 }
 export function AbilityWeb({item,legacySkills=[],compact=false}){
@@ -92,7 +100,7 @@ export function WeaponStatConsole({item,skin,compact=false}){
   <Profile profile={profile} form={compact?'bars':'radar'}/>
   {!compact&&<div className="fa4-telemetry"><div className="fa4-telemetry-heading">{kind} / {item?.family||'EQUIPMENT'} <small>SPECS</small></div>
    <div className="fa4-telemetry-list">{metrics.length?visibleMetrics.map(m=><div className="fa4-spec" key={m.title}><span>{m.title}</span><b>{m.value}<small> {m.unit}</small></b></div>):<div>NO SPECS</div>}</div>
-   {pages>1&&<div className="fa4-spec-pages"><button type="button" disabled={safePage===0} onClick={()=>setPage(v=>Math.max(0,v-1))} aria-label="Previous weapon specification page">‹</button><span>SPECS {safePage+1} / {pages}</span><button type="button" disabled={safePage===pages-1} onClick={()=>setPage(v=>Math.min(pages-1,v+1))} aria-label="Next weapon specification page">›</button></div>}
+   {pages>1&&<div className="fa4-spec-pages"><button type="button" disabled={safePage===0} onClick={()=>setPage(v=>Math.max(0,v-1))} aria-label="Previous weapon specification page"><ChevronLeft size={14} strokeWidth={2.5}/></button><span>SPECS {safePage+1} / {pages}</span><button type="button" disabled={safePage===pages-1} onClick={()=>setPage(v=>Math.min(pages-1,v+1))} aria-label="Next weapon specification page"><ChevronRight size={14} strokeWidth={2.5}/></button></div>}
   </div>}
  </section>;
 }

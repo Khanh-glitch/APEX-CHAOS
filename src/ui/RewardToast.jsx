@@ -1,22 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ApexCreditCoinIcon } from './ApexIcons.jsx';
 import './rewardToast.css';
 
-// APEX CHAOS — AC reward toast (presentation only).
-// The canonical Result Gold report never prints the match payout, so a
-// new player could win +200 AC without ever seeing the number land. The
-// wallet authority announces every balance through 'apex:credits'; this
-// toast derives the positive delta from consecutive announcements and
-// shows it briefly ("+200 AC"). It reads nothing else and writes
-// nothing: no economy state lives here. Spends (Lucky Draw) decrease the
-// balance and never toast. Sits below the modal layer, so mission
-// claims keep their in-panel feedback without double-signalling.
+function currentLanguage() {
+  try { return window.APEX_I18N?.getLanguage?.() === 'vie' ? 'vie' : 'eng'; }
+  catch { return 'eng'; }
+}
+
+// APEX CHAOS — AAA Premium AC Reward Toast (presentation only).
+// Announces positive AC deltas from 'apex:credits' with a 3D Hexagonal
+// Apex Coin, tactical telemetry kicker, and live balance badge.
 export default function RewardToast() {
   const [toast, setToast] = useState(null); // { delta, balance, seq }
+  const [lang, setLang] = useState(currentLanguage);
   const prevCredits = useRef(null);
   const timer = useRef(0);
   const seq = useRef(0);
 
   useEffect(() => {
+    const onLanguage = () => setLang(currentLanguage());
     const readBalance = (detail) => {
       if (detail && Number.isFinite(detail.credits)) return detail.credits;
       try { return window.APEX_ARSENAL_META?.getState?.()?.credits ?? null; } catch { return null; }
@@ -26,7 +28,7 @@ export default function RewardToast() {
       if (!Number.isFinite(next)) return;
       const prev = prevCredits.current;
       prevCredits.current = next;
-      if (prev === null) return; // first announcement only seeds the baseline
+      if (prev === null) return;
       const delta = next - prev;
       if (delta <= 0) return;
       seq.current += 1;
@@ -34,29 +36,60 @@ export default function RewardToast() {
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setToast(null), 3600);
     };
-    // Seed as soon as the wallet authority exists so the boot-time seed
-    // write is never mistaken for a reward.
+    let seedPoll = 0;
     const seed = () => {
       if (prevCredits.current === null) {
         const now = readBalance(null);
         if (Number.isFinite(now)) prevCredits.current = now;
       }
+      if (prevCredits.current !== null && seedPoll) {
+        window.clearInterval(seedPoll);
+        seedPoll = 0;
+      }
     };
     seed();
-    const seedPoll = window.setInterval(seed, 800);
+    if (prevCredits.current === null) {
+      seedPoll = window.setInterval(seed, 800);
+    }
     window.addEventListener('apex:credits', onCredits);
+    window.addEventListener('apex:language-changed', onLanguage);
     return () => {
       window.clearInterval(seedPoll);
       window.clearTimeout(timer.current);
       window.removeEventListener('apex:credits', onCredits);
+      window.removeEventListener('apex:language-changed', onLanguage);
     };
   }, []);
 
   if (!toast) return null;
+  const isVie = lang === 'vie';
+
   return (
-    <div className="apex-reward-toast" key={toast.seq} role="status" aria-live="polite">
-      <span className="apex-reward-toast-delta">+{toast.delta} AC</span>
-      <span className="apex-reward-toast-balance">{toast.balance} AC</span>
+    <div
+      className="apex-reward-toast"
+      key={toast.seq}
+      role="status"
+      aria-live="polite"
+      data-apex-no-localize=""
+    >
+      <span className="apex-reward-toast-sheen" aria-hidden="true" />
+      <div className="apex-reward-toast-emblem" aria-hidden="true">
+        <span className="apex-reward-toast-halo" />
+        <ApexCreditCoinIcon size={34} />
+      </div>
+      <div className="apex-reward-toast-body">
+        <span className="apex-reward-toast-kicker">
+          {isVie ? 'ĐÃ NHẬN THƯỞNG // ĐỒNG BỘ VÍ' : 'REWARD CREDITED // WALLET SYNC'}
+        </span>
+        <div className="apex-reward-toast-row">
+          <span className="apex-reward-toast-delta">+{toast.delta} AC</span>
+          <span className="apex-reward-toast-sep" aria-hidden="true" />
+          <span className="apex-reward-toast-balance">
+            {isVie ? 'SỐ DƯ' : 'TOTAL'} <b>{toast.balance} AC</b>
+          </span>
+        </div>
+      </div>
+      <span className="apex-reward-toast-timer" aria-hidden="true" />
     </div>
   );
 }

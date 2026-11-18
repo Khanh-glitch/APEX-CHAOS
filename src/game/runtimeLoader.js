@@ -17,13 +17,38 @@ import { apexAppUrl } from './appRoot.js';
 // evaluated, so lazily-constructed HTMLAudioElements / runtime
 // fetch+decodeAudioData paths start from the HTTP cache (no trigger-time
 // network). The Arsenal AV HOT bank is decoded by its own runtime preload.
-function warmGroupAudio(group) {
+const AUDIO_BANK_HERO_MATCHERS = Object.freeze([
+  ['assets/hero-rework/crystala-', ['crystal', 'crystala']],
+  ['assets/hero-rework/frost-', ['ice', 'frost']],
+  ['assets/hero-rework/magnet-', ['magnet']],
+  ['assets/hero-rework/mirror-', ['mirror']],
+  ['assets/hero-rework/robot-', ['robot', 'newbot']],
+]);
+
+function filterAudioWarmUrls(urls, heroIds) {
+  if (!Array.isArray(urls) || !urls.length) return [];
+  const selected = Array.isArray(heroIds) && heroIds.length
+    ? new Set(heroIds.map((id) => String(id || '').trim().toLowerCase()).filter(Boolean))
+    : null;
+  return urls.filter((url) => {
+    const s = String(url || '');
+    // forward_drive_theme.ogg is already owned/loaded by productMusicAuthority.
+    if (s.endsWith('assets/audio/forward_drive_theme.ogg')) return false;
+    if (!selected) return true;
+    for (const [marker, keys] of AUDIO_BANK_HERO_MATCHERS) {
+      if (s.includes(marker)) return keys.some((k) => selected.has(k));
+    }
+    return true;
+  });
+}
+
+function warmGroupAudio(group, heroIds = null) {
   try {
     if (group === 'arsenalProduct') {
       window.APEX_ARSENAL_AV?.preload?.();
     }
-    const urls = AUDIO_WARM_BANKS[group];
-    if (urls?.length && typeof window.apexWarmAudioUrls === 'function') {
+    const urls = filterAudioWarmUrls(AUDIO_WARM_BANKS[group], heroIds);
+    if (urls.length && typeof window.apexWarmAudioUrls === 'function') {
       window.apexWarmAudioUrls(urls);
     }
   } catch (error) {
@@ -155,6 +180,7 @@ async function loadRuntimeList(runtimes) {
       console.warn(`[asset-loader] Optional runtime failed: ${src}`);
     }
   }
+  try { window.APEX_SETTINGS?.sync?.(); } catch (_) {}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -350,8 +376,8 @@ function publishBattleRuntimeState(key, heroIds, ready) {
     ready: ready === true,
   };
 }
-export function loadBattleGameRuntimes(heroIds) {
-  const runtimes = arsenalBattleRuntimesFor(heroIds);
+export function loadBattleGameRuntimes(heroIds, options = {}) {
+  const runtimes = arsenalBattleRuntimesFor(heroIds, options);
   const key = runtimes.map(([src]) => src).join('\n');
   if (battleRuntimeReadyKeys.has(key)) {
     publishBattleRuntimeState(key, heroIds, true);
@@ -371,10 +397,7 @@ export function loadBattleGameRuntimes(heroIds) {
       throw error;
     });
   battleRuntimePromises.set(key, gate);
-  // Audio scoping is a separate optimization seam. Preserve the accepted
-  // arsenalProduct audio warm contract in E5; this change owns runtime
-  // readiness only.
-  warmGroupAudioWhenReady('arsenalProduct', gate);
+  void gate.then(() => warmGroupAudio('arsenalProduct', heroIds), () => {});
   hintRuntimeSources(runtimes, 'prefetch');
   return gate;
 }

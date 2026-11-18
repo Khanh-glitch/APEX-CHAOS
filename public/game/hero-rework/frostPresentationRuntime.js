@@ -1680,8 +1680,20 @@ function drawFrostBody(ctx, f, S) {
   const px = pxFromCtx(ctx);
   if (f.hasStatus && f.hasStatus('immune')) ctx.globalAlpha = 0.55;
   if (f.isRage) {
-    const glow = f.color || '#ffffff';
-    try { ctx.filter = 'drop-shadow(0 0 5px ' + glow + ') drop-shadow(0 0 11px ' + glow + ')'; } catch (err) {}
+    const glow = f.color || '#7ae8ff';
+    const rr = (f.radius || 75) * 1.18;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha *= 0.34;
+    ctx.strokeStyle = glow;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, rr * 0.86, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha *= 0.45;
+    ctx.lineWidth = 11;
+    ctx.stroke();
+    ctx.restore();
   }
   ctx.save();
   ctx.translate(f.x, f.y);
@@ -1694,7 +1706,6 @@ function drawFrostBody(ctx, f, S) {
   if (e.breath.on && !behind) e.drawBreathCore(ctx, px);
   if (e.mode === 'a1' && e.modeT > 0.08 && e.modeT < 0.23) e.drawPreCore(ctx, px);
   ctx.restore();
-  if (f.isRage) { try { ctx.filter = 'none'; } catch (err) {} }
   // Production status rings, verbatim law in the dir-rotated frame.
   drawStatusRings(ctx, f);
 }

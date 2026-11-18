@@ -27,7 +27,7 @@ const APPROVED_PORTRAITS = Object.freeze({
   MAGNET:'/assets/gold-ui/heroes/magnet/pick_selected_large.webp',
   ICE:'/assets/gold-ui/heroes/frost/pick_selected_large.webp',
   MIRROR:'/assets/gold-ui/heroes/mirror/pick_roster_cover.webp',
-  BOXE:'/assets/dictionary/heroes/boxe/standing.png',
+  BOXE:'/assets/dictionary/heroes/boxe/standing.webp',
   SHURI:'/assets/dictionary/heroes/shuri/standing.webp',
 });
 function safeSnapshot(displayHero) {
@@ -123,12 +123,18 @@ export default function GoldMissionAccountHost() {
   // iframe-focused Escape itself), never leave a trapped overlay.
   useEffect(()=>{
     if(view===null)return;
+    const rt=window.APEX_GOLD_PARENT_RUNTIME;
+    const ownPause=Boolean(rt&&typeof rt.pause==='function'&&!rt.paused?.());
+    if(ownPause){try{rt.pause();}catch{}}
     const onEscape=e=>{
       if(e.key!=='Escape')return;
       e.preventDefault();e.stopPropagation();close();
     };
     window.addEventListener('keydown',onEscape,true);
-    return()=>window.removeEventListener('keydown',onEscape,true);
+    return()=>{
+      window.removeEventListener('keydown',onEscape,true);
+      if(ownPause){try{rt.resume?.();}catch{}}
+    };
   },[view,close]);
   useEffect(()=>{
     const api=Object.freeze({

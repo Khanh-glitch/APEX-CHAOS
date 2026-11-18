@@ -4,8 +4,14 @@
 // used by the current product. Collision and draw-error recovery remain on
 // their transitional owners until their dedicated Phase 2A slices.
 (function installArsenalProductRenderHud() {
+  function isGoldBattleHudActive() {
+    const body = document.body;
+    return !!(body && (body.classList.contains('battle-hud-open') || body.classList.contains('battle-open')) && window.APEX_GOLD_HUD);
+  }
+
   function syncArsenalPlayerHud() {
-    // Current-product HUD DOM has one owner: APEX_COMBAT_HUD.
+    // When Gold Battle HUD owns presentation, skip hidden legacy DOM dirtying.
+    if (isGoldBattleHudActive()) return;
     if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.syncVitals) window.APEX_COMBAT_HUD.syncVitals();
   }
 
@@ -17,17 +23,37 @@
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     ctx.filter = 'none';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();
 
     try {
-      const shakeX = rand(-cameraShake, cameraShake);
-      const shakeY = rand(-cameraShake, cameraShake);
-      ctx.translate(GAME_SIZE / 2 + shakeX, GAME_SIZE / 2 + shakeY);
-      ctx.scale(cameraZoom, cameraZoom);
-      ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
+      const shakeX = cameraShake > 0.01 ? rand(-cameraShake, cameraShake) : 0;
+      const shakeY = cameraShake > 0.01 ? rand(-cameraShake, cameraShake) : 0;
+      const freeBattleActive = gameState === 'ARSENAL'
+        && !!(window.APEX_BEYOND_COMBAT && window.APEX_BEYOND_COMBAT.isFreeBattleEligible && window.APEX_BEYOND_COMBAT.isFreeBattleEligible());
+      const beyondVfx = freeBattleActive ? window.APEX_BEYOND_VFX : null;
+      const cam = (beyondVfx && typeof beyondVfx.getCameraTransform === 'function')
+        ? beyondVfx.getCameraTransform(cameraZoom, shakeX, shakeY)
+        : null;
+      const focusX = cam && Number.isFinite(cam.focusX) ? cam.focusX : GAME_SIZE * 0.5;
+      const focusY = cam && Number.isFinite(cam.focusY) ? cam.focusY : GAME_SIZE * 0.5;
+      const zoom = cam && Number.isFinite(cam.zoom) ? cam.zoom : cameraZoom;
+      const offsetX = cam && Number.isFinite(cam.offsetX) ? cam.offsetX : shakeX;
+      const offsetY = cam && Number.isFinite(cam.offsetY) ? cam.offsetY : shakeY;
+
+      // Publish live world-to-screen camera authority so Frost ice, Mirror
+      // distortion, and weapon foregrounds never desync during shake or zoom.
+      const camView = window.__apexCameraView || (window.__apexCameraView = {});
+      camView.shakeX = offsetX;
+      camView.shakeY = offsetY;
+      camView.zoom = zoom;
+      camView.focusX = focusX;
+      camView.focusY = focusY;
+
+      ctx.translate(GAME_SIZE * 0.5 + offsetX, GAME_SIZE * 0.5 + offsetY);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-focusX, -focusY);
 
       drawBackground(ctx);
       drawProjectiles(ctx);
@@ -41,6 +67,10 @@
         });
       }
 
+      if (beyondVfx && typeof beyondVfx.drawFighterUnderlay === 'function') {
+        beyondVfx.drawFighterUnderlay(ctx);
+      }
+
       for (let i = 0; i < 2; i++) {
         const fighter = fighters[i];
         if (fighter && fighter.hp > 0 && typeof fighter.draw === 'function') {
@@ -48,13 +78,20 @@
           fighter.draw(ctx);
         }
       }
+
+      if (beyondVfx && typeof beyondVfx.drawFighterOverlay === 'function') {
+        beyondVfx.drawFighterOverlay(ctx);
+      }
+
       if (window.APEX_ROBOT_PRESENTATION && typeof window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay === 'function') {
         window.APEX_ROBOT_PRESENTATION.renderArenaTacticalOverlay(ctx);
       }
-      for (const particle of particles) {
+      for (let i = 0, len = particles.length; i < len; i++) {
+        const particle = particles[i];
         if (particle && typeof particle.draw === 'function') particle.draw(ctx);
       }
-      for (const shockwave of shockwaves) {
+      for (let i = 0, len = shockwaves.length; i < len; i++) {
+        const shockwave = shockwaves[i];
         if (!shockwave) continue;
         if (typeof shockwave.draw === 'function') {
           shockwave.draw(ctx);
@@ -69,7 +106,8 @@
           ctx.restore();
         }
       }
-      for (const text of floatingTexts) {
+      for (let i = 0, len = floatingTexts.length; i < len; i++) {
+        const text = floatingTexts[i];
         if (text && typeof text.draw === 'function') text.draw(ctx);
       }
       if (arenaFlash.a > 0) {
@@ -86,8 +124,10 @@
       ctx.filter = 'none';
     }
 
-    updateHUD();
-    window.APEX_COMBAT_HUD?.flushFrame();
+    if (!isGoldBattleHudActive()) {
+      updateHUD();
+      window.APEX_COMBAT_HUD?.flushFrame();
+    }
   };
 
   window.apexArsenalProductRenderHudRuntime = 'ready';

@@ -2697,7 +2697,16 @@ const PI = Math.PI;
 /* ------------------------------------------------------------ utils */
 function poly(ctx, pts) { ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++)
     ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath(); }
-function setBright(ctx, b) { ctx.filter = b < 0.985 ? `brightness(${Math.max(0.05, b).toFixed(2)})` : 'none'; }
+function setBright(ctx, b) {
+    // Only invoke CPU/GPU ctx.filter when a body part is noticeably darkened (<0.86)
+    // and heavy filters are allowed — eliminates dozens of per-frame filter state flushes.
+    if (b >= 0.86 || (typeof window !== 'undefined' && window.APEX_GFX_QUALITY && !window.APEX_GFX_QUALITY.allowHeavyBlur())) {
+        if (ctx.filter !== 'none') ctx.filter = 'none';
+        return;
+    }
+    const next = `brightness(${Math.max(0.05, Math.round(b * 20) / 20).toFixed(2)})`;
+    if (ctx.filter !== next) ctx.filter = next;
+}
 function part(ctx, img, pts, piv, ang, dx = 0, dy = 0) {
     ctx.save();
     ctx.translate(piv[0] + dx, piv[1] + dy);
@@ -3988,10 +3997,9 @@ function drawLens(ctx, w, s) {
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        if (wash) {
+        if (wash && (!window.APEX_GFX_QUALITY || window.APEX_GFX_QUALITY.allowHeavyBlur())) {
             ctx.save();
-            ctx.filter = 'blur(1.4px)';
-            ctx.globalAlpha = 0.8 * wash.a;
+            ctx.globalAlpha = 0.42 * wash.a;
             for (const h of s.hud)
                 hudItem(ctx, h, i, cx, cy, r, t, s);
             ctx.restore();

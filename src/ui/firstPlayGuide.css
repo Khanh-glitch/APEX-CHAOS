@@ -1,293 +1,321 @@
-/* APEX CHAOS — Learn by Playing Coach (Tactical Pulse Non-Blocking Edition) */
-#gold-shell-host #stage #apex-guide-open{
-  position:absolute;
-  /* #105 §5: the home bottom nav owns the bottom-right corner (ACCOUNT tile),
-     so Help sits in the header, left of the balance chip, at every viewport. */
-  right:110px;
-  top:max(10px,env(safe-area-inset-top));
-  z-index:48;
-  min-width:44px;
-  min-height:44px;
-  border-radius:6px;
-  border:1px solid rgba(232,180,90,.34);
-  background:rgba(10,12,16,.88);
-  color:#efe6d5;
-  font:800 16px/1 "Chakra Petch","Barlow Condensed",sans-serif;
-  cursor:pointer;
-  display:grid;
-  place-items:center;
-}
-#gold-shell-host #stage #apex-guide-open:hover{color:#ffd27a;border-color:rgba(232,180,90,.55)}
-#gold-shell-host #stage #apex-guide-open:focus-visible{outline:2px solid #ffad3d;outline-offset:2px}
-#gold-shell-host #stage.screen-mode #apex-guide-open,
-#gold-shell-host #stage.screen-fighter #apex-guide-open,
-#gold-shell-host #stage.screen-draw #apex-guide-open,
-#gold-shell-host #stage.screen-battle #apex-guide-open{visibility:hidden;pointer-events:none}
+/* =============================================================================
+ * APEX CHAOS — First-Play Learn-by-Playing Coach & Help Sheet (Phase 2 Gold Unified)
+ * Deduplicated single cascade consuming canonical Gold Tactical tokens,
+ * self-hosted Oswald/ApexVietCondensed typography, and safe focus/touch rules.
+ * ========================================================================== */
 
-/* Strictly below .apex-achievement-toast (2147480700) so rewards/mastery win */
-.apex-guide-dock.apex-coach-layer{
-  position:fixed;
-  inset:0;
-  z-index:2147480650;
-  pointer-events:none;
+/* Unified command-drawer Guide action inside #apex-language-picker */
+#apex-guide-open,
+#gold-shell-host #stage #apex-language-picker #apex-guide-open {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% - 24px);
+  min-height: 38px;
+  height: auto;
+  margin: 0 12px 11px;
+  padding: 6px 10px;
+  border: 1px solid rgba(235, 178, 83, 0.5);
+  border-radius: 0;
+  clip-path: var(--apex-cut-xs, polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px));
+  background: linear-gradient(180deg, rgba(240, 175, 68, 0.2), rgba(240, 175, 68, 0.08));
+  color: var(--apex-gold-hi, #ffe29a);
+  font: 700 11px/1 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: background 130ms ease, border-color 130ms ease, color 130ms ease;
 }
-.apex-coach-beacon{
-  position:fixed;
-  border:1.5px solid rgba(86,224,255,.88);
-  border-radius:4px;
-  box-shadow:0 0 18px rgba(86,224,255,.26),inset 0 0 12px rgba(86,224,255,.12);
-  pointer-events:none;
-  animation:apex-coach-beacon-pulse 1.45s ease-in-out infinite;
+#apex-guide-open:hover,
+#gold-shell-host #stage #apex-language-picker #apex-guide-open:hover {
+  border-color: var(--apex-line-gold-strong, rgba(255, 204, 108, 0.88));
+  background: linear-gradient(180deg, rgba(240, 175, 68, 0.34), rgba(240, 175, 68, 0.16));
+  color: #fffaf0;
 }
-.apex-coach-beacon::before,
-.apex-coach-beacon::after{
-  content:"";
-  position:absolute;
-  width:10px;
-  height:10px;
-  border-color:#ffd27a;
-  border-style:solid;
-}
-.apex-coach-beacon::before{left:-2px;top:-2px;border-width:3px 0 0 3px}
-.apex-coach-beacon::after{right:-2px;bottom:-2px;border-width:0 3px 3px 0}
-
-.apex-guide-card.apex-coach-chip{
-  position:fixed;
-  box-sizing:border-box;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:9px 10px;
-  border:1px solid rgba(86,224,255,.52);
-  border-left:3px solid #56e0ff;
-  border-radius:5px;
-  background:linear-gradient(180deg,rgba(11,16,22,.95),rgba(7,10,14,.97));
-  box-shadow:0 12px 28px rgba(0,0,0,.55);
-  color:#eef4f8;
-  font-family:"Chakra Petch","Barlow Condensed",sans-serif;
-  pointer-events:none;
-  animation:apex-coach-chip-in .2s ease-out;
-}
-.apex-guide-card.apex-coach-chip.is-compact{
-  padding:6px 8px;
-  gap:7px;
-}
-.apex-guide-card.apex-coach-chip.is-narrow{
-  flex-direction:column;
-  align-items:stretch;
-  padding:6px 7px;
-  gap:4px;
-}
-.apex-coach-copy{flex:1;min-width:0}
-.apex-guide-kicker{
-  margin:0 0 3px;
-  color:#7ee8ff;
-  font:800 9.5px/1.15 "Chakra Petch",sans-serif;
-  letter-spacing:.1em;
-  text-transform:uppercase;
-}
-.apex-guide-steps{display:flex;gap:4px;margin:0 0 4px}
-.apex-guide-steps i{display:block;width:12px;height:2.5px;background:rgba(255,255,255,.16)}
-.apex-guide-steps i.is-done{background:#56e0ff}
-.apex-guide-card.apex-coach-chip.is-narrow .apex-guide-steps{display:none}
-.apex-guide-card.apex-coach-chip h2{
-  margin:0 0 2px;
-  color:#ffffff;
-  font:800 13px/1.12 "Chakra Petch",sans-serif;
-  letter-spacing:.05em;
-  text-transform:uppercase;
-}
-.apex-guide-card.apex-coach-chip.is-compact h2{font-size:11.5px}
-.apex-guide-card.apex-coach-chip.is-narrow h2{font-size:11px}
-.apex-guide-body{
-  margin:0;
-  color:#d7e3ee;
-  font:600 11.5px/1.28 "Chakra Petch",sans-serif;
-}
-.apex-guide-card.apex-coach-chip.is-compact .apex-guide-body{font-size:10.5px;line-height:1.2}
-.apex-guide-card.apex-coach-chip.is-narrow .apex-guide-body{font-size:10px;line-height:1.18}
-
-/* WCAG / mobile touch requirement: >= 44x44px hit target everywhere */
-.apex-coach-skip{
-  pointer-events:auto;
-  flex:0 0 auto;
-  min-width:56px;
-  min-height:44px;
-  padding:8px 10px;
-  border:1px solid rgba(255,201,102,.46);
-  border-radius:4px;
-  background:rgba(19,25,33,.96);
-  color:#ffe0a3;
-  font:800 11px/1 "Chakra Petch",sans-serif;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  cursor:pointer;
-  display:grid;
-  place-items:center;
-  touch-action:manipulation;
-}
-.apex-guide-card.apex-coach-chip.is-narrow .apex-coach-skip{
-  width:100%;
-  min-height:44px;
-  padding:6px 8px;
-}
-.apex-coach-skip:hover{border-color:rgba(255,201,102,.85);color:#ffffff;background:rgba(30,40,52,.98)}
-.apex-coach-skip:focus-visible{outline:2px solid #56e0ff;outline-offset:2px}
-
-.apex-guide-pickup-prompt{
-  position:fixed;
-  box-sizing:border-box;
-  display:flex;
-  align-items:center;
-  padding:3px 7px;
-  border:1px solid rgba(86,224,255,.45);
-  border-left:2.5px solid #56e0ff;
-  border-radius:4px;
-  background:linear-gradient(90deg,rgba(9,16,23,.95),rgba(8,12,17,.94));
-  color:#dff5ff;
-  font:700 10.5px/1.18 "Chakra Petch","Barlow Condensed",sans-serif;
-  letter-spacing:.02em;
-  overflow:hidden;
-  pointer-events:none;
-}
-.apex-guide-pickup-prompt.is-compact{
-  padding:2px 5px;
-  font-size:8.5px;
-  line-height:1.1;
-  letter-spacing:0;
+#apex-guide-open:focus-visible,
+#gold-shell-host #stage #apex-language-picker #apex-guide-open:focus-visible {
+  outline: 2px solid var(--apex-focus-color, #ffd26b);
+  outline-offset: 2px;
 }
 
-.apex-coach-taught{
-  outline:1.5px solid rgba(86,224,255,.82)!important;
-  outline-offset:1px;
+body:is(.battle-hud-open, .battle-open, .battle-result) #apex-guide-open,
+body:has(#gold-shell-host #stage:is(.screen-mode, .screen-fighter, .screen-battle, .screen-draw)) #apex-guide-open,
+body:has(#apex-real-match-result) #apex-guide-open {
+  display: none !important;
+  pointer-events: none !important;
 }
 
-#hud.apex-side-intro-on .id-ctrl{display:none!important}
-#hud.apex-side-intro-on .id-row[data-intro-role]::after{
-  content:attr(data-intro-role);
-  display:inline-block;
-  margin-top:0;
-  padding:1px 4px;
-  border-radius:3px;
-  white-space:nowrap;
-  font:800 7.5px/1.2 "Chakra Petch",sans-serif;
-  letter-spacing:.04em;
-  background:rgba(255,148,31,.16);
-  border:1px solid rgba(255,148,31,.55);
-  color:#ffd09b;
+/* Non-blocking target pulse ring */
+.apex-coach-beacon {
+  position: fixed;
+  z-index: var(--apex-z-coach, 2147480650);
+  pointer-events: none;
+  border: 2px solid rgba(255, 201, 104, 0.92);
+  box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.88), 0 0 22px rgba(240, 169, 59, 0.34);
+  animation: apexCoachBeacon 1.6s ease-in-out infinite;
 }
-#hud.apex-side-intro-on .id-row[data-intro-edge="blue"]::after{
-  background:rgba(58,167,255,.16);
-  border-color:rgba(58,167,255,.55);
-  color:#b6e1ff;
+.apex-coach-beacon.is-complete {
+  border-color: rgba(154, 232, 128, 0.94);
+  box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.88), 0 0 18px rgba(154, 232, 128, 0.3);
+}
+@keyframes apexCoachBeacon {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
 }
 
-@keyframes apex-coach-beacon-pulse{
-  0%,100%{opacity:.95;transform:scale(1)}
-  50%{opacity:.62;transform:scale(.992)}
+/* Non-blocking floating coach chip */
+.apex-coach-chip {
+  position: fixed;
+  z-index: calc(var(--apex-z-coach, 2147480650) + 10);
+  pointer-events: none;
+  box-sizing: border-box;
+  width: min(296px, calc(100vw - 24px));
+  padding: 9px 12px 10px;
+  border: 1px solid var(--apex-line-gold, rgba(240, 185, 88, 0.56));
+  border-left: 3px solid var(--apex-gold, #f0b958);
+  clip-path: var(--apex-cut-sm, polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px));
+  background: var(--apex-surface-card, linear-gradient(160deg, rgba(24, 21, 16, 0.96), rgba(9, 11, 15, 0.97)));
+  box-shadow: var(--apex-shadow-hud, 0 12px 30px rgba(0, 0, 0, 0.62));
+  color: var(--apex-bone, #f4efe4);
+  font-family: var(--apex-font-display, 'Oswald', sans-serif);
 }
-@keyframes apex-coach-chip-in{
-  from{opacity:.96;transform:translateY(3px)}
-  to{opacity:1;transform:translateY(0)}
+.apex-coach-chip.is-complete {
+  border-color: rgba(154, 232, 128, 0.72);
+  border-left-color: #9ae880;
 }
-@media (prefers-reduced-motion:reduce){
-  .apex-coach-beacon,.apex-guide-card.apex-coach-chip{animation:none!important}
+.apex-coach-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.apex-coach-kicker {
+  margin: 0;
+  font: 700 9px/1.15 var(--apex-font-mono, monospace);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--apex-gold-hi, #ffe29a);
+}
+.apex-coach-chip.is-complete .apex-coach-kicker {
+  color: #b9f5a5;
+}
+.apex-coach-title {
+  margin: 4px 0 0;
+  font: 700 13.5px/1.14 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff7eb;
+}
+.apex-coach-body {
+  margin: 4px 0 0;
+  font: 500 11.5px/1.34 var(--apex-font-prose, 'Segoe UI', system-ui, sans-serif);
+  color: #dcd6ca;
+}
+.apex-coach-skip {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  min-width: 36px;
+  min-height: 36px;
+  margin: -5px -6px -4px 0;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: #b9b1a3;
+  font: 700 11px/1 var(--apex-font-mono, monospace);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.apex-coach-skip:hover { color: #fff7eb; }
+.apex-coach-skip:focus-visible { outline: 2px solid var(--apex-focus-color, #ffd26b); outline-offset: 1px; }
+
+/* Subtle combat cue (never covers HUD gauges or arena center) */
+.apex-coach-combat {
+  position: fixed;
+  z-index: calc(var(--apex-z-coach, 2147480650) + 10);
+  pointer-events: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(268px, calc(100vw - 24px));
+  padding: 6px 10px;
+  border: 1px solid var(--apex-line-gold, rgba(240, 185, 88, 0.56));
+  border-left: 3px solid var(--apex-gold, #f0b958);
+  clip-path: var(--apex-cut-xs, polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px));
+  background: var(--apex-surface-hud, rgba(12, 14, 18, 0.92));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.56);
+  color: var(--apex-bone, #f4efe4);
+  font: 600 11px/1.22 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.04em;
+}
+.apex-coach-combat.is-complete { border-color: rgba(154, 232, 128, 0.72); border-left-color: #9ae880; }
+.apex-coach-combat-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: var(--apex-gold, #f0b958);
+}
+.apex-coach-combat.is-complete .apex-coach-combat-dot { background: #9ae880; }
+
+/* Target-anchored badge */
+.apex-coach-target-badge {
+  position: fixed;
+  z-index: calc(var(--apex-z-coach, 2147480650) + 8);
+  pointer-events: none;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 206, 114, 0.72);
+  background: rgba(12, 14, 18, 0.94);
+  color: var(--apex-gold-hi, #ffe29a);
+  font: 700 8px/1.2 var(--apex-font-mono, monospace);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-/* Issue #105: Help sheet (opened by `?`) holds the tutorial toggle. */
-#gold-shell-host #stage .apex-help-sheet,
-.apex-help-sheet{
-  position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  top:max(12px,env(safe-area-inset-top));
-  z-index:2147479000;
-  width:min(calc(100vw - 24px),340px);
-  box-sizing:border-box;
-  padding:12px;
-  border-radius:8px;
-  border:1px solid rgba(232,180,90,.45);
-  background:rgba(10,12,16,.96);
-  color:#efe6d5;
-  font-family:"Chakra Petch","Barlow Condensed",sans-serif;
-  box-shadow:0 8px 24px rgba(0,0,0,.45);
-  display:grid;
-  gap:8px;
-}
-.apex-help-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.apex-help-title{font-weight:800;font-size:14px;letter-spacing:.03em}
-.apex-help-close,.apex-help-replay,.apex-help-toggle,.apex-tutorial-ask button{
-  min-height:44px;
-  min-width:44px;
-  border-radius:6px;
-  font:800 13px/1.2 "Chakra Petch","Barlow Condensed",sans-serif;
-  letter-spacing:.03em;
-  cursor:pointer;
-  border:1px solid rgba(232,180,90,.4);
-  background:rgba(255,255,255,.04);
-  color:#efe6d5;
-  padding:0 12px;
-}
-.apex-help-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left}
-.apex-help-toggle .apex-tt-state{flex:none;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.08);color:#9aa3ad}
-.apex-help-toggle[aria-checked="true"] .apex-tt-state{background:rgba(232,180,90,.22);color:#ffd27a}
-.apex-help-replay{width:100%}
-.apex-help-close:focus-visible,.apex-help-replay:focus-visible,.apex-help-toggle:focus-visible,.apex-tutorial-ask button:focus-visible{outline:2px solid #ffad3d;outline-offset:2px}
-
-/* Issue #105: one-time question. One compact row, placed only over free space
-   (see freeStripPlacement); never covers an interactive control. */
-.apex-tutorial-ask{
-  position:fixed;
-  z-index:2147479000;
-  width:min(calc(100vw - 16px),340px);
-  box-sizing:border-box;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 8px;
-  border-radius:8px;
-  border:1px solid rgba(232,180,90,.45);
-  background:rgba(10,12,16,.94);
-  color:#efe6d5;
-  font-family:"Chakra Petch","Barlow Condensed",sans-serif;
-}
-.apex-tutorial-ask-title{flex:1 1 auto;min-width:0;font-weight:800;font-size:13px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.apex-tutorial-ask button{flex:none;min-width:56px;padding:0 10px}
-.apex-tutorial-ask-yes{background:rgba(232,180,90,.2)!important;color:#ffd27a!important}
-
-/* Issue #105 owner option B: cramped-portrait instructions live in Help, not over the arena. */
-.apex-help-portrait-note{margin:0;font-size:12px;line-height:1.45;color:#c9d1d9;max-width:100%;overflow-wrap:anywhere}
-
-/* R77 short-phone hard stop: the one-time Battle tutorial question must not
-   cover the primary FREE BATTLE hitbox. Help retains the tutorial toggle and
-   the portrait guidance; Gold's first-entry section swipe hand is separate. */
-@media (max-width:420px) and (max-height:600px) and (orientation:portrait) {
-  .apex-tutorial-ask {display:none!important;pointer-events:none!important;}
+@media (max-width: 560px), (max-height: 460px) {
+  .apex-coach-chip { width: min(252px, calc(100vw - 20px)); padding: 8px 10px 9px; }
+  .apex-coach-title { font-size: 12.5px; }
+  .apex-coach-body { font-size: 10.5px; line-height: 1.28; }
+  .apex-coach-combat { max-width: min(232px, calc(100vw - 20px)); font-size: 10.5px; padding: 5px 8px; }
 }
 
-/* On all viewports Help belongs to the compact language utility strip.
-   It must never float above the currency coin (old right:110px rule). */
-#gold-shell-host #stage #apex-language-picker #apex-guide-open{
- position:relative;inset:auto;top:auto;right:auto;left:auto;bottom:auto;
- z-index:auto;display:grid;place-items:center;flex:0 0 44px;
- min-width:44px;min-height:44px;width:44px;height:44px;
- padding:0;border:1px solid rgba(232,180,90,.3);
- border-radius:0;background:rgba(255,255,255,.035);
- color:#ffd18e;font:700 10px/1 "Oswald","Chakra Petch",sans-serif;
- letter-spacing:.03em;cursor:pointer;
+/* On-demand Help Sheet & First-Time Tutorial Prompt (Gold Tactical Modal) */
+.apex-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--apex-z-help, 2147479000);
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: var(--apex-surface-scrim, rgba(5, 7, 10, 0.8));
+  backdrop-filter: blur(7px);
+}
+.apex-help-card,
+.apex-first-prompt {
+  box-sizing: border-box;
+  width: min(440px, calc(100vw - 24px));
+  max-height: min(620px, calc(100dvh - 28px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 18px 17px;
+  border: 1px solid var(--apex-line-gold, rgba(240, 185, 88, 0.54));
+  border-top: 2px solid var(--apex-gold, #f0b958);
+  clip-path: var(--apex-cut-md, polygon(13px 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 0 100%, 0 13px));
+  background: var(--apex-surface-modal, linear-gradient(155deg, #1c1812, #0b0e14 52%, #06080c));
+  box-shadow: var(--apex-shadow-modal, 0 26px 72px rgba(0, 0, 0, 0.78));
+  color: var(--apex-bone, #f4efe4);
+  font-family: var(--apex-font-display, 'Oswald', sans-serif);
+}
+.apex-first-prompt {
+  width: min(378px, calc(100vw - 24px));
+}
+.apex-help-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(240, 185, 88, 0.16);
+}
+.apex-help-title,
+.apex-first-prompt h2 {
+  margin: 0;
+  font: 700 15px/1.15 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--apex-gold-hi, #ffe29a);
+}
+.apex-first-prompt h2 { font-size: 16.5px; }
+.apex-help-close {
+  appearance: none;
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid rgba(238, 231, 219, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--apex-bone, #f4efe4);
+  font: 700 13px/1 sans-serif;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.apex-help-close:hover {
+  border-color: var(--apex-gold, #f0b958);
+  background: rgba(240, 185, 88, 0.16);
+}
+.apex-help-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.apex-help-list li {
+  padding: 8px 10px;
+  border-left: 2px solid rgba(240, 185, 88, 0.58);
+  background: rgba(255, 255, 255, 0.035);
+  font: 500 12.5px/1.38 var(--apex-font-prose, 'Segoe UI', system-ui, sans-serif);
+  color: #e6dfd2;
+}
+.apex-help-list strong {
+  color: var(--apex-gold-hi, #ffe29a);
+  font-weight: 700;
+}
+.apex-first-prompt p {
+  margin: 8px 0 0;
+  font: 500 13px/1.44 var(--apex-font-prose, 'Segoe UI', system-ui, sans-serif);
+  color: #dfd8ca;
+}
+.apex-help-actions,
+.apex-first-prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.apex-help-btn,
+.apex-first-prompt-actions button {
+  appearance: none;
+  flex: 1 1 132px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(240, 185, 88, 0.44);
+  clip-path: var(--apex-cut-xs, polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px));
+  background: var(--apex-surface-control, rgba(22, 26, 33, 0.92));
+  color: var(--apex-bone, #f4efe4);
+  font: 700 12px/1 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: filter 120ms ease, border-color 120ms ease;
+}
+.apex-help-btn.is-primary,
+.apex-first-prompt-actions .is-primary {
+  background: var(--apex-surface-gold-cta, linear-gradient(180deg, #ffd47e, #e89b2d));
+  border-color: #ffe29a;
+  color: #191105;
+}
+.apex-help-btn:hover,
+.apex-first-prompt-actions button:hover {
+  filter: brightness(1.08);
+  border-color: var(--apex-gold-hi, #ffe29a);
+}
+.apex-help-btn:focus-visible,
+.apex-help-close:focus-visible,
+.apex-first-prompt-actions button:focus-visible {
+  outline: 2px solid var(--apex-focus-color, #ffd26b);
+  outline-offset: 2px;
 }
 
-
-/* Drawer-only Guide action. Never an independent black 44px HUD box. */
-#gold-shell-host #stage #apex-language-picker #apex-guide-open{
- box-sizing:border-box;display:flex;align-items:center;justify-content:center;
- flex:0 0 auto;width:auto;height:40px;min-width:0;min-height:40px;
- margin:0 12px 12px;padding:0 10px;
- border:1px solid rgba(232,180,90,.38);
- background:linear-gradient(180deg,#29241d,#141514);
- color:#ffda99;font:700 11px/1 "Oswald",sans-serif;
- letter-spacing:.085em;
-}
-#gold-shell-host #stage #apex-language-picker #apex-guide-open:hover{
- border-color:rgba(255,200,115,.8);background:#382a1d;
+@media (prefers-reduced-motion: reduce) {
+  .apex-coach-beacon { animation: none; opacity: 0.92; }
+  .apex-help-btn, .apex-first-prompt-actions button, #apex-guide-open { transition: none; }
 }

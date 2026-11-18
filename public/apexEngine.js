@@ -2364,14 +2364,36 @@ function loop(timestamp) {
         stopBattleFrameLoop();
         return;
     }
-    const rawDt = Math.min(0.033, (timestamp - lastTime) / 1000 || 0);
-    lastTime = timestamp;
-    update(rawDt * timeScale);
-    if (gameState === 'MENU' || gameState === 'SELECT') {
-        stopBattleFrameLoop();
+    // Note: __apexParentRuntimePaused suspends the Gold HOME shell (#stage) while
+    // battle, BOT WAVE, Lucky Draw, or Mission overlays are active — it is ALWAYS
+    // true during a live Gold battle. Only __apexBattlePaused pauses active combat.
+    const suspendedOutsideBattle = Boolean(window.__apexParentRuntimePaused)
+        && !window.__apexGoldBattleHosted
+        && gameState !== 'ARSENAL';
+    if (window.__apexBattlePaused || suspendedOutsideBattle) {
+        lastTime = timestamp;
+        reqId = requestAnimationFrame(loop);
         return;
     }
-    draw();
+    const frameDeltaSec = lastTime > 0 ? (timestamp - lastTime) / 1000 : (1 / 60);
+    window.__apexFrameDeltaMs = frameDeltaSec > 0 && frameDeltaSec < 0.5 ? frameDeltaSec * 1000 : 16.67;
+    const rawDt = Math.min(0.033, frameDeltaSec > 0 ? frameDeltaSec : 0);
+    window.__apexLastRawDt = rawDt || (1 / 60);
+    lastTime = timestamp;
+    try {
+        window.APEX_LOSSLESS_FLUID?.beginFrame?.(timestamp);
+        update(rawDt * timeScale);
+        if (gameState === 'MENU' || gameState === 'SELECT') {
+            stopBattleFrameLoop();
+            return;
+        }
+        draw();
+    } catch (frameError) {
+        if (!window.__apexLastLoopWarnAt || timestamp - window.__apexLastLoopWarnAt > 2000) {
+            window.__apexLastLoopWarnAt = timestamp;
+            console.warn('[apex-engine] recovered from frame error:', frameError);
+        }
+    }
     reqId = requestAnimationFrame(loop);
 }
 
@@ -2391,10 +2413,11 @@ function updateHpLossTrail(fill,trail,visiblePct){
         trail.style.left=`${visiblePct}%`;
         trail.style.width=`${previous-visiblePct}%`;
         trail.style.opacity='1';
-        void trail.offsetWidth;
-        trail.style.transition='opacity .62s ease-out';
         clearTimeout(trail.__apexFadeTimer);
-        trail.__apexFadeTimer=setTimeout(()=>{trail.style.opacity='0';},70);
+        trail.__apexFadeTimer=setTimeout(()=>{
+            trail.style.transition='opacity .62s ease-out';
+            trail.style.opacity='0';
+        },70);
     }else if(trail&&Number.isFinite(previous)&&visiblePct>previous+.01){
         trail.style.opacity='0';trail.style.width='0';
     }

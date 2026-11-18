@@ -20,47 +20,68 @@
   const CSS = `
     /* The Gold fighter sides are pointer-events:none stages; interactive
        children must explicitly opt back in (same law as the roster cards). */
-    .apex-skill-details-btn{pointer-events:auto;display:inline-flex;align-items:center;gap:7px;margin-top:9px;min-height:34px;
-      padding:6px 12px;border:1px solid color-mix(in srgb,var(--heroAccent,#d7bd72) 55%,rgba(238,231,219,.14));
-      background:linear-gradient(180deg,rgba(22,24,28,.88),rgba(9,10,13,.9));color:#f2e9d5;cursor:pointer;
-      font:800 10px/1 "ApcKanit","Segoe UI",sans-serif;letter-spacing:.16em;text-transform:uppercase;
+    .apex-skill-details-btn{pointer-events:auto;position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:8px;margin-top:9px;min-height:34px;
+      padding:6px 14px;border:1px solid color-mix(in srgb,var(--heroAccent,#f0b958) 62%,rgba(255,244,214,.18));
+      border-top-color:color-mix(in srgb,var(--heroAccent,#f0b958) 78%,#fff5dc);
+      background:linear-gradient(165deg,rgba(28,32,40,.92),rgba(10,12,17,.96));color:#f8f0e0;cursor:pointer;
+      box-shadow:0 8px 20px rgba(0,0,0,.55),0 0 14px color-mix(in srgb,var(--heroAccent,#f0b958) 18%,transparent),inset 0 1px 0 rgba(255,248,228,.16);
+      font:700 10.5px/1 var(--apex-font-display,"Oswald","ApexVietCondensed",sans-serif);letter-spacing:.15em;text-transform:uppercase;
       clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+      transition:transform .13s cubic-bezier(.2,.88,.26,1),filter .15s ease,box-shadow .16s ease,border-color .16s ease;
       touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-    .apex-skill-details-btn::before{content:"";width:7px;height:7px;flex:0 0 auto;background:var(--heroAccent,#d7bd72);
-      clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+    .apex-skill-details-btn::before{content:"";width:7px;height:7px;flex:0 0 auto;background:var(--heroAccent,#f0b958);
+      box-shadow:0 0 8px var(--heroAccent,#f0b958);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+    .apex-skill-details-btn::after{content:"";position:absolute;top:0;bottom:0;left:-45%;width:36%;pointer-events:none;transform:skewX(-22deg);
+      background:linear-gradient(90deg,transparent,rgba(255,248,228,.26),transparent);transition:left .38s cubic-bezier(.2,.84,.2,1)}
     .fighterSide.p2 .apex-skill-details-btn{margin-left:auto}
-    @media(hover:hover){.apex-skill-details-btn:hover{filter:brightness(1.18)}}
-    .apex-skill-details-btn:active{transform:scale(.98)}
-    .apex-skill-details-btn:focus-visible{outline:2px solid #f0d67e;outline-offset:2px}
+    @media(hover:hover){
+      .apex-skill-details-btn:hover{transform:translateY(-1px);filter:brightness(1.12);
+        border-color:color-mix(in srgb,var(--heroAccent,#f0b958) 88%,#fff);
+        box-shadow:0 10px 24px rgba(0,0,0,.64),0 0 20px color-mix(in srgb,var(--heroAccent,#f0b958) 34%,transparent),inset 0 1px 0 rgba(255,252,238,.28)}
+      .apex-skill-details-btn:hover::after{left:122%}
+    }
+    .apex-skill-details-btn:active{transform:scale(.965)}
+    .apex-skill-details-btn:focus-visible{outline:2px solid var(--apex-focus-color,#ffd26b);outline-offset:2px}
     .apex-skill-details-btn[hidden]{display:none}
-    #apex-skill-details{position:fixed;inset:0;z-index:2147481000;display:none;place-items:center;padding:14px;text-align:left;
-      background:rgba(3,4,6,.72);backdrop-filter:blur(3px);font-family:"ApcKanit","Segoe UI",sans-serif;color:#f4f0e6}
-    #apex-skill-details.is-open{display:grid}
-    .apex-sd-panel{width:min(580px,calc(100vw - 20px));max-height:min(88dvh,760px);overflow:auto;overscroll-behavior:contain;
-      border:1px solid color-mix(in srgb,var(--sd-accent,#d7bd72) 46%,#3a424c);
-      background:linear-gradient(180deg,#141a21,#0a0e13 78%);box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px rgba(255,255,255,.04);
-      clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px)}
-    .apex-sd-head{position:relative;display:flex;gap:16px;align-items:center;padding:18px 20px 14px;border-bottom:1px solid rgba(238,231,219,.1)}
-    .apex-sd-head::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sd-accent,#d7bd72)}
+    #apex-skill-details{position:fixed;inset:0;z-index:var(--apex-z-modal,2147481000);display:none;place-items:center;padding:14px;text-align:left;
+      background:var(--apex-surface-scrim,rgba(3,4,6,.84));backdrop-filter:blur(8px);
+      font-family:var(--apex-font-display,"Oswald","ApexVietCondensed",sans-serif);color:var(--apex-bone,#f4f0e6)}
+    #apex-skill-details.is-open{display:grid;animation:apexSdFade .16s ease-out both}
+    @keyframes apexSdFade{from{opacity:0}to{opacity:1}}
+    @keyframes apexSdRise{from{opacity:0;transform:translateY(10px) scale(.982)}to{opacity:1;transform:none}}
+    .apex-sd-panel{width:min(588px,calc(100vw - 20px));max-height:min(88dvh,760px);overflow:auto;overscroll-behavior:contain;
+      border:1px solid color-mix(in srgb,var(--sd-accent,#f0b958) 62%,#3a424c);
+      border-top:2px solid color-mix(in srgb,var(--sd-accent,#f0b958) 82%,#fff2cc);
+      background:
+        radial-gradient(ellipse 85% 42% at 18% 0%,color-mix(in srgb,var(--sd-accent,#f0b958) 16%,transparent),transparent 66%),
+        linear-gradient(158deg,rgba(26,24,20,.98) 0%,rgba(11,14,20,.99) 52%,rgba(6,8,12,1) 100%);
+      box-shadow:0 32px 86px rgba(0,0,0,.84),0 0 42px color-mix(in srgb,var(--sd-accent,#f0b958) 18%,transparent),inset 0 1px 0 rgba(255,248,228,.22);
+      clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+      animation:apexSdRise .2s cubic-bezier(.18,.88,.26,1) both}
+    .apex-sd-head{position:relative;display:flex;gap:16px;align-items:center;padding:18px 20px 14px;border-bottom:1px solid rgba(240,185,88,.14)}
+    .apex-sd-head::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sd-accent,#f0b958)}
     .apex-sd-portrait{width:72px;height:72px;flex:0 0 auto;object-fit:contain;object-position:center bottom;
-      border:1px solid color-mix(in srgb,var(--sd-accent,#d7bd72) 40%,#39424c);background:#0d1217}
-    .apex-sd-kicker{color:var(--sd-accent,#d7bd72);font:800 9px/1 ui-monospace,monospace;letter-spacing:.22em}
-    .apex-sd-name{margin:5px 0 0;font-size:clamp(24px,5vw,34px);line-height:.92;font-style:italic;font-weight:900}
-    .apex-sd-tag{margin-top:5px;color:#9aa6b1;font:800 9px/1.3 ui-monospace,monospace;letter-spacing:.18em}
+      border:1px solid color-mix(in srgb,var(--sd-accent,#f0b958) 44%,#39424c);background:#0d1217}
+    .apex-sd-kicker{color:var(--sd-accent,#f0b958);font:700 9px/1 var(--apex-font-mono,ui-monospace,monospace);letter-spacing:.2em}
+    .apex-sd-name{margin:5px 0 0;font-size:clamp(24px,5vw,34px);line-height:.98;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+    .apex-sd-tag{margin-top:5px;color:#b2bcc7;font:600 9px/1.3 var(--apex-font-mono,ui-monospace,monospace);letter-spacing:.16em}
     .apex-sd-close{margin-left:auto;align-self:flex-start;min-width:44px;min-height:44px;display:grid;place-items:center;
-      border:1px solid #4a5057;background:linear-gradient(180deg,#2b3138,#151a20);color:#f4f0e6;cursor:pointer;
-      font:900 15px/1 sans-serif;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
-    @media(hover:hover){.apex-sd-close:hover{filter:brightness(1.16)}}
-    .apex-sd-close:focus-visible{outline:2px solid #f0d67e;outline-offset:2px}
+      border:1px solid rgba(240,185,88,.36);background:linear-gradient(180deg,#252830,#12151b);color:#f4f0e6;cursor:pointer;
+      font:700 15px/1 sans-serif;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+    @media(hover:hover){.apex-sd-close:hover{filter:brightness(1.16);border-color:rgba(255,210,122,.78)}}
+    .apex-sd-close:focus-visible{outline:2px solid var(--apex-focus-color,#ffd26b);outline-offset:2px}
     .apex-sd-body{padding:14px 20px 20px;display:grid;gap:10px}
     .apex-sd-skill{display:grid;grid-template-columns:52px minmax(0,1fr);gap:13px;padding:13px 14px;
-      border:1px solid #2e3741;background:linear-gradient(180deg,#12181f,#0b0f14)}
-    .apex-sd-icon{width:52px;height:52px;object-fit:cover;border:1px solid color-mix(in srgb,var(--sd-accent,#d7bd72) 38%,#39424c);background:#0d1217}
-    .apex-sd-icon.is-empty{display:grid;place-items:center;color:var(--sd-accent,#d7bd72);font:900 15px/1 "ApcKanit",sans-serif;font-style:italic}
-    .apex-sd-slot{color:var(--sd-accent,#d7bd72);font:800 8.5px/1 ui-monospace,monospace;letter-spacing:.2em}
-    .apex-sd-skillname{margin:4px 0 0;font-size:17px;line-height:1.05;font-style:italic;font-weight:900}
-    .apex-sd-meta{margin-top:5px;color:#d9c57f;font:800 9.5px/1.3 ui-monospace,monospace;letter-spacing:.1em}
-    .apex-sd-desc{margin:7px 0 0;color:#c3ccd4;font:600 13px/1.5 "Segoe UI",sans-serif}
+      border:1px solid rgba(242,196,112,.16);border-left:2.5px solid color-mix(in srgb,var(--sd-accent,#f0b958) 72%,transparent);
+      background:radial-gradient(ellipse 80% 100% at 0% 50%,color-mix(in srgb,var(--sd-accent,#f0b958) 9%,transparent),transparent 65%),linear-gradient(165deg,rgba(24,28,36,.9),rgba(10,13,18,.96));
+      box-shadow:0 8px 18px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,248,228,.1);
+      clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+    .apex-sd-icon{width:52px;height:52px;object-fit:cover;border:1px solid color-mix(in srgb,var(--sd-accent,#f0b958) 52%,#39424c);background:#0d1217;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+    .apex-sd-icon.is-empty{display:grid;place-items:center;color:var(--sd-accent,#f0b958);font:700 15px/1 var(--apex-font-display,"Oswald",sans-serif)}
+    .apex-sd-slot{color:var(--sd-accent,#f0b958);font:700 8.5px/1 var(--apex-font-mono,ui-monospace,monospace);letter-spacing:.18em}
+    .apex-sd-skillname{margin:4px 0 0;font-size:17px;line-height:1.1;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+    .apex-sd-meta{margin-top:5px;color:#e6cb86;font:700 9.5px/1.3 var(--apex-font-mono,ui-monospace,monospace);letter-spacing:.09em}
+    .apex-sd-desc{margin:7px 0 0;color:#cfd7df;font:500 13px/1.5 var(--apex-font-prose,"Segoe UI",system-ui,sans-serif)}
     .apex-sd-desc.is-none{color:#7d8894;font-style:italic}
     .apex-sd-state{padding:0 20px 16px;color:#8e99a4;font:800 9px/1.4 ui-monospace,monospace;letter-spacing:.16em}
     @media(max-width:560px){
@@ -72,6 +93,13 @@
       .apex-sd-desc{font-size:12.5px}
       .apex-sd-state{padding:0 14px 12px}
     }
+    @media(prefers-reduced-motion:reduce){
+      .apex-skill-details-btn,.apex-skill-details-btn::after,#apex-skill-details.is-open,.apex-sd-panel{animation:none!important;transition:none!important}
+    }
+    html[data-apex-motion="reduced"] .apex-skill-details-btn,
+    html[data-apex-motion="reduced"] .apex-skill-details-btn::after,
+    html[data-apex-motion="reduced"] #apex-skill-details.is-open,
+    html[data-apex-motion="reduced"] .apex-sd-panel{animation:none!important;transition:none!important}
   `;
 
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (ch) => ({
@@ -148,12 +176,15 @@
     const panel = root.querySelector('.apex-sd-panel');
     if (!data) { close(); return false; }
     panel.style.setProperty('--sd-accent', data.accent || '#d7bd72');
-    const slotLabels = { PASSIVE: 'PASSIVE', A1: 'ABILITY 1', A2: 'ABILITY 2' };
+    const slotLabels = { PASSIVE: 'PASSIVE · CORE', A1: 'ABILITY 1 · KEY J', A2: 'ABILITY 2 · KEY K' };
+    const slotSvg = (slot) => slot === 'PASSIVE'
+      ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 21 7 21 17 12 22 3 17 3 7"/><circle cx="12" cy="12" r="3.5"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>';
     const skillsHtml = data.skills.map((s) => `
       <article class="apex-sd-skill" data-slot="${esc(s.slot)}">
         ${s.icon
           ? `<img class="apex-sd-icon" src="${esc(s.icon)}" alt=""/>`
-          : `<span class="apex-sd-icon is-empty" aria-hidden="true">${esc(s.slot === 'PASSIVE' ? 'P' : s.slot)}</span>`}
+          : `<span class="apex-sd-icon is-empty" aria-hidden="true">${slotSvg(s.slot)}</span>`}
         <div>
           <div class="apex-sd-slot">${esc(tr(slotLabels[s.slot] || s.slot))}</div>
           <h3 class="apex-sd-skillname">${esc(tr(s.name))}</h3>
@@ -171,10 +202,12 @@
           <h2 class="apex-sd-name" id="apex-sd-title">${esc(data.name)}</h2>
           <div class="apex-sd-tag">${esc(tr(data.tag || ''))}</div>
         </div>
-        <button type="button" class="apex-sd-close" data-sd-close aria-label="${esc(tr('CLOSE'))}">✕</button>
+        <button type="button" class="apex-sd-close" data-sd-close aria-label="${esc(tr('CLOSE'))}">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
       </header>
       <div class="apex-sd-body">${skillsHtml}</div>
-      <div class="apex-sd-state">${data.playable ? (data.owned ? esc(tr('OWNED')) : esc(tr('LOCKED'))) : esc(tr('LOCKED'))}</div>`;
+      <div class="apex-sd-state"><span>${data.playable ? (data.owned ? esc(tr('OWNED')) : esc(tr('LOCKED'))) : esc(tr('LOCKED'))}</span><kbd class="apex-sd-esc">ESC</kbd></div>`;
     root.setAttribute('aria-labelledby', 'apex-sd-title');
     const closeBtn = panel.querySelector('[data-sd-close]');
     if (closeBtn) closeBtn.addEventListener('click', (e) => { e.stopPropagation(); close(); });
@@ -251,7 +284,7 @@
     btn.type = 'button';
     btn.className = 'apex-skill-details-btn';
     btn.dataset.side = cfg.side;
-    btn.innerHTML = '<span>SKILL DETAILS</span>';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true" style="opacity:.9"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>SKILL DETAILS</span>';
     // Inspecting is not selecting: never let the event reach shell handlers.
     btn.addEventListener('pointerdown', (e) => e.stopPropagation(), true);
     btn.addEventListener('click', (e) => {

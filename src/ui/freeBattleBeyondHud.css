@@ -1,187 +1,236 @@
 /* =============================================================================
- * APEX CHAOS — BEYOND Free Battle Tactical HUD
- * Authored to match Gold Battle HUD's industrial chamfered-titanium design
- * language (Oswald / JetBrains Mono / warm gold & cyan side accents).
+ * APEX CHAOS — BEYOND Free Battle Tactical HUD (Side-Rail Docked)
+ * Strictly docked inside Gold Battle HUD's P1/P2 side territories (#p1Side /
+ * #p2Side) with ZERO overlap over the live square combat arena (#arena).
  * ========================================================================== */
+
+/* ---- Dedicated Gold HUD rail reservations across ALL layouts (arena size unchanged) ----
+   CRITICAL: Both P1 and P2 .side grids MUST reserve an explicit "." spacer row between
+   "sk" (.skills) and "wp" (.weapon) on every desktop & landscape viewport height so
+   .ab-pod NEVER overlaps Skill 2 or Weapon buttons by even 1px. */
+body.apex-beyond-live #battleHudHost.is-open #hud:not([data-quest="1"])[data-layout="desk"][data-mode="1p"] .side {
+  grid-template-rows: auto minmax(0, 1fr) 44px minmax(0, var(--botWpH, clamp(72px, 11cqh, 104px)));
+  grid-template-areas: "id" "sk" "." "wp";
+  row-gap: 8px;
+}
+
+body.apex-beyond-live #battleHudHost.is-open #hud:not([data-quest="1"])[data-layout="desk"][data-mode="2p"] .side {
+  grid-template-rows: auto minmax(0, 1fr) 44px minmax(0, var(--wpH, 76px));
+  grid-template-areas: "id" "sk" "." "wp";
+  row-gap: 8px;
+}
+
+body.apex-beyond-live #battleHudHost.is-open #hud:not([data-quest="1"])[data-layout="land"][data-mode="1p"] #p1Side {
+  grid-template-rows: auto minmax(0, 1fr) 38px minmax(0, var(--botWpH, 64px));
+  grid-template-areas: "id" "sk" "." "wp";
+}
+
+body.apex-beyond-live #battleHudHost.is-open #hud:not([data-quest="1"])[data-layout="land"][data-mode="1p"] #p2Side {
+  grid-template-rows: auto auto minmax(0, 1fr) 38px minmax(0, var(--botWpH, 58px));
+  grid-template-areas: "id" "rival" "sk" "." "wp";
+}
+
+body.apex-beyond-live #battleHudHost.is-open #hud:not([data-quest="1"])[data-layout="land"][data-mode="2p"] .side {
+  grid-template-rows: auto minmax(0, 1fr) 38px minmax(0, var(--wpH, 64px));
+  grid-template-areas: "id" "sk" "." "wp";
+}
+
+body.apex-beyond-live #battleHudHost.is-open #hud:not([data-quest="1"])[data-layout="port"][data-mode="1p"] #p1Side {
+  grid-template-rows: auto minmax(0, 1fr) 40px;
+  grid-template-areas: "id wp" "sk sk" ". .";
+  row-gap: 6px;
+}
+
+body.apex-beyond-live #battleHudHost.is-open #hud:not([data-quest="1"])[data-layout="port"][data-mode="2p"] .side {
+  grid-template-rows: auto auto auto auto minmax(0, var(--wpH, 56px)) 36px;
+  grid-template-areas: "id sk" "hp sk" "rival sk" "feed sk" "wp sk" ". .";
+  row-gap: 2px;
+}
+
+@media (orientation: portrait) and (max-height: 720px) {
+  body.apex-beyond-live #battleHudHost.is-open #hud:not([data-quest="1"])[data-layout="port"][data-size="compact"][data-mode="2p"] .side {
+    grid-template-rows: var(--shortIdH, 28px) var(--shortHpH, 18px) minmax(0, 1fr) 34px;
+    grid-template-areas: "id sk" "hp sk" "wp sk" ". .";
+    row-gap: 2px;
+  }
+}
 
 .apex-beyond-hud {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9999;
-  font-family: 'Oswald', 'Montserrat', system-ui, sans-serif;
+  z-index: var(--apex-z-beyond-hud, 9999);
+  font-family: var(--apex-font-display, 'Oswald', 'ApexVietCondensed', system-ui, sans-serif);
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* ---- Top-Center Live Arena Event Telemetry Pill ---- */
-.ab-event-banner {
+/* ---- Zero-Occlusion Diegetic Outer #arena Perimeter State (0 px inside canvas) ---- */
+body[data-apex-od="p1"] #battleHudHost.is-open #arena {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.95),
+    0 0 0 2px rgba(178, 255, 58, 0.55),
+    -14px 0 34px -8px rgba(178, 255, 58, 0.34),
+    0 22px 62px rgba(0, 0, 0, 0.74);
+}
+body[data-apex-od="p2"] #battleHudHost.is-open #arena {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.95),
+    0 0 0 2px rgba(134, 220, 255, 0.55),
+    14px 0 34px -8px rgba(134, 220, 255, 0.34),
+    0 22px 62px rgba(0, 0, 0, 0.74);
+}
+body[data-apex-od="both"] #battleHudHost.is-open #arena {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.95),
+    0 0 0 2px rgba(255, 214, 118, 0.68),
+    -16px 0 36px -8px rgba(178, 255, 58, 0.36),
+    16px 0 36px -8px rgba(134, 220, 255, 0.36),
+    0 22px 62px rgba(0, 0, 0, 0.76);
+}
+body[data-apex-event="live"]:not([data-apex-od]) #battleHudHost.is-open #arena {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.95),
+    0 0 0 2px color-mix(in srgb, var(--apex-arena-ev, #f0b958) 52%, transparent),
+    0 0 32px -6px color-mix(in srgb, var(--apex-arena-ev, #f0b958) 32%, transparent),
+    0 22px 62px rgba(0, 0, 0, 0.74);
+}
+
+/* ---- Side-Rail Tactical Pods (#p1Side & #p2Side — Native Gold HUD Forging) ---- */
+.ab-pod,
+.ab-port-bar {
   position: fixed;
-  top: clamp(58px, 8.8vh, 84px);
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 16px 6px;
-  background: rgba(9, 12, 17, 0.88);
-  border: 1px solid rgba(255, 212, 94, 0.45);
-  border-top-width: 2px;
-  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
-  pointer-events: none;
-  animation: abPopIn 220ms cubic-bezier(0.2, 1.3, 0.35, 1);
-}
-
-.ab-event-banner.is-telegraph {
-  border-color: rgba(255, 200, 72, 0.8);
-  animation: abPulseBorder 0.7s ease-in-out infinite alternate;
-}
-
-.ab-event-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  box-shadow: 0 0 10px currentColor;
-  flex-shrink: 0;
-}
-
-.ab-event-copy {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.05;
-}
-
-.ab-event-title {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #fff6dc;
-}
-
-.ab-event-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: rgba(214, 224, 236, 0.82);
-  margin-top: 2px;
-}
-
-.ab-event-timer {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding-left: 8px;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---- First-Match Auto-Fading Tactical Hint ---- */
-.ab-hint-strip {
-  position: fixed;
-  bottom: 58px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 5px 14px;
-  background: rgba(8, 11, 16, 0.84);
-  border: 1px solid rgba(99, 226, 255, 0.36);
-  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: #d7eef8;
-  white-space: nowrap;
-  pointer-events: none;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-}
-
-.ab-hint-strip b {
-  color: #ffe07c;
-  font-weight: 700;
-}
-
-/* ---- Bottom Compact Tactical Control Dock ---- */
-.ab-dock {
-  position: fixed;
-  left: 50%;
-  bottom: max(8px, env(safe-area-inset-bottom, 8px));
-  transform: translateX(-50%);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 10px;
-  background: rgba(8, 11, 15, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-top: 2px solid rgba(240, 166, 66, 0.55);
-  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 100%, 0 100%);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65);
+  padding: 4px 8px;
+  background:
+    radial-gradient(85% 120% at 0% 50%, rgba(178, 255, 58, 0.065), transparent 64%),
+    linear-gradient(108deg, rgba(26, 33, 40, 0.95) 0%, rgba(16, 21, 27, 0.94) 55%, rgba(10, 13, 17, 0.96) 100%);
+  border: 1px solid rgba(255, 248, 232, 0.11);
+  border-top-color: rgba(255, 248, 232, 0.18);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.54), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   pointer-events: auto;
-  max-width: calc(100vw - 16px);
+  min-width: 0;
+}
+
+.ab-pod.is-p1 {
+  border-right: 2.5px solid rgba(178, 255, 58, 0.85);
+  border-left: 1px solid rgba(178, 255, 58, 0.26);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.ab-pod.is-p2 {
+  background:
+    radial-gradient(85% 120% at 100% 50%, rgba(134, 220, 255, 0.065), transparent 64%),
+    linear-gradient(252deg, rgba(26, 33, 42, 0.95) 0%, rgba(16, 21, 28, 0.94) 55%, rgba(10, 13, 18, 0.96) 100%);
+  border-left: 2.5px solid rgba(134, 220, 255, 0.85);
+  border-right: 1px solid rgba(134, 220, 255, 0.26);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+
+.ab-pod.is-p2.is-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 7px;
+}
+
+.ab-pod.is-flipped {
+  transform: rotate(180deg);
+}
+
+.ab-pod.is-compact,
+.ab-port-bar {
+  gap: 6px;
+  padding: 3px 6px;
+}
+
+.ab-port-bar {
+  border-left: 2px solid rgba(178, 255, 58, 0.72);
+  border-top: 1px solid rgba(240, 185, 88, 0.36);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
 }
 
 /* ---- Kinetic Impulse Interactive Button ---- */
 .ab-impulse-btn {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 12px 5px 8px;
-  background: linear-gradient(180deg, #16201a 0%, #0c120e 100%);
-  border: 1px solid rgba(178, 255, 58, 0.34);
+  gap: 7px;
+  height: 100%;
+  padding: 2px 10px 2px 6px;
+  background: linear-gradient(180deg, #162119 0%, #0b110d 100%);
+  border: 1px solid rgba(178, 255, 58, 0.36);
   color: #f3ffe2;
   cursor: pointer;
-  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-  transition: transform 0.1s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  flex: 0 0 auto;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: transform 0.1s ease, border-color 0.16s ease, box-shadow 0.16s ease;
   outline: none;
 }
 
+.ab-impulse-btn.is-compact {
+  gap: 5px;
+  padding: 2px 7px 2px 5px;
+}
+
 .ab-impulse-btn.is-p2 {
-  background: linear-gradient(180deg, #14212a 0%, #0b1318 100%);
-  border-color: rgba(134, 220, 255, 0.34);
+  background: linear-gradient(180deg, #13212b 0%, #0a1218 100%);
+  border-color: rgba(134, 220, 255, 0.36);
   color: #e8f8ff;
 }
 
 .ab-impulse-btn.is-ready {
-  border-color: rgba(178, 255, 58, 0.90);
-  box-shadow: 0 0 14px rgba(178, 255, 58, 0.26), inset 0 0 10px rgba(178, 255, 58, 0.14);
+  border-color: rgba(178, 255, 58, 0.9);
+  box-shadow: 0 0 12px rgba(178, 255, 58, 0.24), inset 0 0 8px rgba(178, 255, 58, 0.14);
 }
 
 .ab-impulse-btn.is-p2.is-ready {
-  border-color: rgba(134, 220, 255, 0.90);
-  box-shadow: 0 0 14px rgba(134, 220, 255, 0.26), inset 0 0 10px rgba(134, 220, 255, 0.14);
+  border-color: rgba(134, 220, 255, 0.9);
+  box-shadow: 0 0 12px rgba(134, 220, 255, 0.24), inset 0 0 8px rgba(134, 220, 255, 0.14);
 }
 
 .ab-impulse-btn.is-deflect {
   border-color: #6effd3 !important;
-  box-shadow: 0 0 18px rgba(110, 255, 211, 0.55) !important;
+  box-shadow: 0 0 16px rgba(110, 255, 211, 0.52) !important;
 }
 
 .ab-impulse-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
+}
+
+.ab-impulse-btn:focus-visible,
+.ab-config-btn:focus-visible,
+.ab-seg-btn:focus-visible,
+.ab-pop-close:focus-visible {
+  outline: 2px solid var(--apex-focus-color, #ffd26b);
+  outline-offset: 2px;
 }
 
 .ab-ring-wrap {
   position: relative;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
 }
 
+.ab-impulse-btn.is-compact .ab-ring-wrap {
+  width: 20px;
+  height: 20px;
+}
+
 .ab-ring-svg {
-  width: 26px;
-  height: 26px;
+  width: 100%;
+  height: 100%;
   transform: rotate(-90deg);
 }
 
 .ab-ring-bg {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.12);
+  stroke: rgba(255, 255, 255, 0.14);
   stroke-width: 3;
 }
 
@@ -206,8 +255,6 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 11px;
-  font-weight: 900;
   color: #ffffff;
 }
 
@@ -215,36 +262,38 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  line-height: 1.05;
+  line-height: 1;
+  min-width: 0;
 }
 
 .ab-btn-label {
-  font-size: 11px;
+  font-family: var(--apex-font-display, 'Oswald', 'ApexVietCondensed', sans-serif);
+  font-size: 10.5px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.ab-impulse-btn.is-compact .ab-btn-label {
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
 }
 
 .ab-btn-key {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 8.5px;
-  font-weight: 600;
+  font-family: var(--apex-font-mono, 'JetBrains Mono', monospace);
+  font-size: 8px;
+  font-weight: 700;
   letter-spacing: 0.06em;
-  color: rgba(196, 214, 228, 0.78);
+  color: rgba(196, 214, 228, 0.76);
   margin-top: 2px;
 }
 
-/* ---- Compact Dual Overdrive Momentum Rails ---- */
-.ab-od-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 4px;
-}
-
+/* ---- Overdrive Momentum Gauge ---- */
 .ab-od-meter {
   display: flex;
   flex-direction: column;
-  width: 82px;
+  flex: 1 1 56px;
+  min-width: 48px;
   gap: 3px;
 }
 
@@ -252,11 +301,20 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-family: 'JetBrains Mono', monospace;
+  gap: 4px;
+  font-family: var(--apex-font-mono, 'JetBrains Mono', monospace);
   font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: rgba(220, 228, 236, 0.78);
+  letter-spacing: 0.04em;
+  color: rgba(220, 228, 236, 0.84);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ab-pod.is-compact .ab-od-head,
+.ab-port-bar .ab-od-head {
+  font-size: 8px;
+  letter-spacing: 0.02em;
 }
 
 .ab-od-meter.is-active .ab-od-head {
@@ -265,9 +323,10 @@
 
 .ab-od-track {
   position: relative;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  height: 6.5px;
+  background: linear-gradient(180deg, #070a0e, #0d1218);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.78);
   overflow: hidden;
   clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
 }
@@ -276,68 +335,185 @@
   position: absolute;
   inset: 0;
   transform-origin: 0 50%;
-  background: linear-gradient(90deg, #86cc22, #b2ff3a);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0 1.5px, transparent 2px),
+    linear-gradient(90deg, #3c6c0a 0%, #8ed820 62%, #d8ff72 94%, #ffffff 100%);
   transition: transform 0.09s linear;
 }
 
 .ab-od-meter.is-p2 .ab-od-bar {
-  background: linear-gradient(90deg, #4fb0e2, #86dcff);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0 1.5px, transparent 2px),
+    linear-gradient(90deg, #104970 0%, #4db4e8 62%, #c6f1ff 94%, #ffffff 100%);
 }
 
 .ab-od-meter.is-active .ab-od-bar {
-  background: linear-gradient(90deg, #ff9d2e, #fff2a6);
-  box-shadow: 0 0 10px rgba(255, 214, 92, 0.85);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0 1.5px, transparent 2px),
+    linear-gradient(90deg, #ff7e18 0%, #ffc84a 65%, #fff6c2 100%);
+  box-shadow: 0 0 12px rgba(255, 214, 92, 0.88);
 }
 
-/* ---- Arena & Tactical Config Trigger Chip ---- */
+.ab-od-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), rgba(0, 0, 0, 0.58) calc(25% - 1px) 25%);
+}
+
+/* ---- Arena Stage & Tactical Config Trigger ---- */
 .ab-config-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 100%;
+  min-height: 24px;
+  padding: 3px 9px;
+  background: rgba(24, 30, 38, 0.94);
+  border: 1px solid rgba(240, 185, 88, 0.44);
+  color: #f4dfae;
+  font-family: var(--apex-font-display, 'Oswald', 'ApexVietCondensed', sans-serif);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  cursor: pointer;
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.ab-config-btn.is-icon-only {
+  padding: 3px 7px;
+  gap: 3px;
+}
+
+.ab-pod.is-stacked .ab-config-btn {
+  width: 100%;
+  height: 24px;
+  font-size: 9.5px;
+}
+
+.ab-config-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 92px;
+}
+
+.ab-config-chevron {
+  display: inline-grid;
+  place-items: center;
+}
+
+.ab-config-btn:hover,
+.ab-config-btn.is-open {
+  background: rgba(42, 48, 58, 0.98);
+  border-color: rgba(240, 185, 88, 0.9);
+  color: #fff6dc;
+}
+
+/* ---- Side-Rail Live Arena Event Readout (never inside #arena) ---- */
+.ab-event-banner {
+  position: fixed;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: rgba(26, 32, 40, 0.92);
-  border: 1px solid rgba(240, 166, 66, 0.38);
-  color: #f4dfae;
-  font-family: 'Oswald', sans-serif;
+  gap: 8px;
+  padding: 5px 10px;
+  background: rgba(10, 13, 18, 0.94);
+  border: 1px solid rgba(255, 212, 94, 0.52);
+  border-right-width: 2.5px;
+  clip-path: polygon(7px 0, 100% 0, 100% 100%, 0 100%);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  animation: abFadeSlide 180ms ease-out;
+}
+
+.ab-event-banner.is-telegraph {
+  animation: abPulseBorder 0.7s ease-in-out infinite alternate;
+}
+
+.ab-event-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+  line-height: 1.1;
+}
+
+.ab-event-title {
   font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #fff6dc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ab-event-sub {
+  font-family: var(--apex-font-mono, 'JetBrains Mono', monospace);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: rgba(214, 224, 236, 0.8);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ab-event-timer {
+  font-family: var(--apex-font-mono, 'JetBrains Mono', monospace);
+  font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: 0.09em;
-  cursor: pointer;
-  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  padding-left: 7px;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
-.ab-config-btn:hover {
-  background: rgba(40, 48, 58, 0.96);
-  border-color: rgba(240, 166, 66, 0.82);
+.ab-inline-event {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 1px solid currentColor;
+  background: rgba(12, 16, 22, 0.9);
+  font-family: var(--apex-font-mono, 'JetBrains Mono', monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
-.ab-swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  box-shadow: 0 0 8px currentColor;
+/* ---- Side-Rail Tactical Config Popover + Tap-Outside Dismiss ---- */
+.ab-pop-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  pointer-events: auto;
 }
 
-/* ---- Compact Upward Tactical Config Popover ---- */
 .ab-popover {
   position: fixed;
-  bottom: 58px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(368px, calc(100vw - 24px));
-  padding: 12px 14px;
-  background: rgba(9, 12, 17, 0.95);
-  border: 1px solid rgba(240, 166, 66, 0.48);
-  border-top: 2px solid #f0a642;
-  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.78);
-  backdrop-filter: blur(12px);
+  box-sizing: border-box;
+  padding: 11px 12px;
+  background: var(--apex-surface-modal, rgba(9, 12, 17, 0.97));
+  border: 1px solid rgba(240, 185, 88, 0.54);
+  border-top: 2px solid var(--apex-gold, #f0b958);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   color: #edf2f7;
-  animation: abPopIn 180ms ease-out;
+  animation: abFadeSlide 160ms ease-out;
 }
 
 .ab-pop-head {
@@ -349,9 +525,9 @@
 }
 
 .ab-pop-title {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   color: #ffd875;
 }
 
@@ -359,9 +535,8 @@
   background: transparent;
   border: none;
   color: #9ba8b6;
-  font-size: 14px;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 2px 5px;
 }
 .ab-pop-close:hover { color: #ffffff; }
 
@@ -372,16 +547,16 @@
 }
 
 .ab-pop-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-family: var(--apex-font-mono, 'JetBrains Mono', monospace);
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: rgba(196, 208, 220, 0.72);
+  letter-spacing: 0.08em;
+  color: rgba(196, 208, 220, 0.76);
 }
 
 .ab-seg-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
 }
 
@@ -389,52 +564,67 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.ab-seg-grid.cols-2 {
+.ab-arena-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ab-popover:not(.is-compact) .ab-arena-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .ab-seg-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 6px 5px;
+  gap: 4px;
+  min-height: 32px;
+  padding: 5px 5px;
   background: rgba(24, 30, 38, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #cad5e2;
-  font-family: 'Oswald', sans-serif;
-  font-size: 10.5px;
+  font-family: var(--apex-font-display, 'Oswald', 'ApexVietCondensed', sans-serif);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
+  text-align: center;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .ab-seg-btn:hover {
-  border-color: rgba(255, 214, 102, 0.5);
+  border-color: rgba(255, 214, 102, 0.55);
   color: #ffffff;
 }
 
 .ab-seg-btn.is-active {
-  background: rgba(240, 166, 66, 0.18);
-  border-color: #f0a642;
+  background: rgba(240, 185, 88, 0.18);
+  border-color: var(--apex-gold, #f0b958);
   color: #fff2c6;
-  box-shadow: inset 0 0 10px rgba(240, 166, 66, 0.22);
+  box-shadow: inset 0 0 10px rgba(240, 185, 88, 0.22);
 }
 
 .ab-stat-strip {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 6px;
   padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  color: rgba(186, 200, 214, 0.78);
+  font-family: var(--apex-font-mono, 'JetBrains Mono', monospace);
+  font-size: 8.5px;
+  color: rgba(186, 200, 214, 0.82);
+  font-variant-numeric: tabular-nums;
 }
 
-@keyframes abPopIn {
-  from { opacity: 0; transform: translate(-50%, 8px) scale(0.96); }
-  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.ab-stat-strip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+@keyframes abFadeSlide {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes abPulseBorder {
@@ -442,96 +632,33 @@
   to   { border-color: rgba(255, 224, 118, 0.95); }
 }
 
-/* ---- Mobile Portrait Compact Adaptation ---- */
-@media (max-width: 700px) {
-  .ab-dock {
-    gap: 5px;
-    padding: 4px 7px;
-    bottom: max(4px, env(safe-area-inset-bottom, 4px));
+@media (prefers-reduced-motion: reduce) {
+  .ab-od-bar,
+  .ab-burst-btn,
+  .ab-config-btn,
+  .ab-event-banner,
+  .ab-event-banner.is-telegraph,
+  .ab-popover,
+  #battleHudHost.is-open #arena {
+    animation: none !important;
+    transition: none !important;
   }
-  .ab-od-meter {
-    width: 58px;
-  }
-  .ab-btn-key {
-    display: none;
-  }
-  .ab-impulse-btn {
-    padding: 4px 8px 4px 6px;
-    gap: 5px;
-  }
-  .ab-hint-strip {
-    font-size: 8.5px;
-    bottom: 50px;
-    padding: 4px 10px;
-    max-width: calc(100vw - 16px);
-    white-space: normal;
-    text-align: center;
-  }
-  .ab-event-banner {
-    top: 52px;
-    padding: 4px 11px;
-  }
-  .ab-event-title { font-size: 11px; }
-  .ab-event-sub { font-size: 8px; }
 }
 
-/* Original Total Evolution: five complete arena stages, no BEYOND themes. */
-.ab-arena-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.ab-arena-grid .ab-seg-btn { min-height: 34px; text-align: center; letter-spacing: 0.015em; }
-@media (max-width: 430px) {
-  .ab-arena-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/* GOLD HUD LAYOUT CONTRACT — keep tactical controls inside the actual arena,
-   not over the independent versus rails and player panels. Values are read
-   from #arena.getBoundingClientRect by the React HUD. */
-.apex-beyond-hud.ab-arena-anchored .ab-dock {
-  left:var(--ab-arena-center);
-  top:auto;
-  bottom:calc(100dvh - var(--ab-arena-bottom) + 8px);
-  transform:translateX(-50%);
-  width:min(660px,calc(var(--ab-arena-width) - 12px));
-  max-width:calc(var(--ab-arena-width) - 12px);
-  min-width:0;
-  box-sizing:border-box;
-  gap:4px;
-  padding:4px 6px;
-  justify-content:center;
-}
-.apex-beyond-hud.ab-arena-anchored .ab-impulse-btn {gap:4px;padding:4px 6px;flex-shrink:1;min-width:0}
-.apex-beyond-hud.ab-arena-anchored .ab-od-group {gap:4px;min-width:0;flex:1 1 auto;justify-content:center;padding:0}
-.apex-beyond-hud.ab-arena-anchored .ab-od-meter {min-width:0;width:min(82px,calc(var(--ab-arena-width) * .13));flex-shrink:1}
-.apex-beyond-hud.ab-arena-anchored .ab-config-btn {min-width:0;gap:3px;padding:4px 5px;white-space:nowrap}
-.apex-beyond-hud.ab-arena-anchored .ab-btn-copy {min-width:0}
-.apex-beyond-hud.ab-arena-anchored .ab-btn-key {display:none}
-.apex-beyond-hud.ab-arena-anchored .ab-event-banner {
-  top:calc(var(--ab-arena-top) + 8px);
-  left:var(--ab-arena-center);
-  max-width:calc(var(--ab-arena-width) - 16px);
-  box-sizing:border-box;
-}
-.apex-beyond-hud.ab-arena-anchored .ab-hint-strip {
-  top:calc(var(--ab-arena-top) + 52px);
-  bottom:auto;
-  left:var(--ab-arena-center);
-  max-width:calc(var(--ab-arena-width) - 16px);
-  white-space:normal;
-  text-align:center;
-  box-sizing:border-box;
-}
-.apex-beyond-hud.ab-arena-anchored .ab-popover {
-  left:var(--ab-arena-center);
-  bottom:calc(100dvh - var(--ab-arena-bottom) + 55px);
-  width:min(368px,calc(var(--ab-arena-width) - 16px));
-  max-height:max(140px,calc(var(--ab-arena-height) - 70px));
-  overflow-y:auto;
-  box-sizing:border-box;
-}
-@media(max-width:600px){
- .apex-beyond-hud.ab-arena-anchored .ab-dock{bottom:calc(100dvh - var(--ab-arena-bottom) + 6px)}
- .apex-beyond-hud.ab-arena-anchored .ab-btn-label{font-size:9px}
- .apex-beyond-hud.ab-arena-anchored .ab-od-head{font-size:7px;letter-spacing:0}
- .apex-beyond-hud.ab-arena-anchored .ab-ring-wrap,
- .apex-beyond-hud.ab-arena-anchored .ab-ring-svg{width:22px;height:22px}
- .apex-beyond-hud.ab-arena-anchored .ab-config-btn{font-size:9px;letter-spacing:0}
+html[data-apex-motion="reduced"] .ab-od-bar,
+html[data-apex-motion="reduced"] .ab-burst-btn,
+html[data-apex-motion="reduced"] .ab-config-btn,
+html[data-apex-motion="reduced"] .ab-event-banner,
+html[data-apex-motion="reduced"] .ab-event-banner.is-telegraph,
+html[data-apex-motion="reduced"] .ab-popover,
+html[data-apex-motion="reduced"] #battleHudHost.is-open #arena,
+html[data-apex-motion="reduced"] #battleHudHost #matchCenter,
+html[data-apex-motion="reduced"] #battleHudHost .mc-plate,
+html[data-apex-motion="reduced"] #battleHudHost .mc-time.urgent,
+html[data-apex-motion="reduced"] #battleHudHost .vrail.low,
+html[data-apex-motion="reduced"] #battleHudHost .skill,
+html[data-apex-motion="reduced"] #battleHudHost .skill::after,
+html[data-apex-motion="reduced"] #battleHudHost .wp-swap {
+  animation: none !important;
+  transition: none !important;
 }

@@ -7,7 +7,7 @@
 // stale cache during owner browser verification.
 import { apexAppUrl } from './appRoot.js';
 
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261117-r5-five-arenas';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261117-phase4-flow';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -43,7 +43,7 @@ export const MENU_INTERACTIVE_RUNTIMES = [
 // Inventory it here for strict production source-hygiene ownership without
 // duplicating its load, changing Gold readiness or affecting BOT/Local boot.
 export const GOLD_QUEST_SHELL_RUNTIMES = Object.freeze([
-  ['/game/quest/quest01Director.js?v=20261010-quest-fixed-robot-02', 'apexQuest01Director'],
+  ['/game/quest/quest01Director.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuest01Director'],
 ]);
 
 // BOT WAVE special Home route: separate intent-loaded scripts only.
@@ -66,10 +66,10 @@ export const BOT_WAVE_PRESENTATION_RUNTIMES = Object.freeze([
 
 // Current-neutral combat services shared by Arsenal and the generic engine.
 export const CURRENT_COMBAT_CORE_RUNTIMES = [
-  ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
+  ['/game/core/apexBattleSfxRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBattleSfxRuntime'],
   ['/game/core/apexRenderPrimitives.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexRenderPrimitives'],
   ['/game/bot-wave/losslessFluidRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBotWaveLosslessFluid'],
-  ['/game/core/apexCombatEffectsRuntime.js', 'apexCombatEffectsRuntime'],
+  ['/game/core/apexCombatEffectsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCombatEffectsRuntime'],
 ];
 
 // Universal combat HUD state adapter + renderer.
@@ -113,13 +113,13 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ...ARSENAL_SHARED_ENGINE_RUNTIMES,
   ['/game/gold/goldProductBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGoldProductBridge'],
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
-  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
+  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
   ['/game/results/ownerAwards.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexResultOwnerCatalog'],
   ['/game/results/matchResultAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMatchResultAuthority'],
   ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],
-  ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalWeaponRuntime'],
-  ['/game/arsenal/arsenalSpawnRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalSpawnRuntime'],
-  ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalPresentationRuntime'],
+  ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalWeaponRuntime'],
+  ['/game/arsenal/arsenalSpawnRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalSpawnRuntime'],
+  ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalPresentationRuntime'],
   ['/game/arsenal/arsenalFeelRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalFeelRuntime'],
   ['/game/arsenal/arsenalStormbreakerVfxRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalStormbreakerVfxRuntime'],
   ['/game/arsenal/arsenalManualSkillGate.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalManualSkillGate'],
@@ -159,9 +159,9 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/quest/questGoldEnemyVisuals.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestGoldEnemyVisuals'],
   ['/game/modes/arsenalBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalBattleRuntime'],
   ['/game/hero-rework/crystalaGoldV6.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaGoldV6'],
-  ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexCrystalGameplayRuntime'],
+  ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalGameplayRuntime'],
   ['/game/hero-rework/frostGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGameplayRuntime'],
-  ['/game/hero-rework/magnetGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexMagnetGameplayRuntime'],
+  ['/game/hero-rework/magnetGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGameplayRuntime'],
   ['/game/hero-rework/magnetGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGoldV1'],
   ['/game/hero-rework/mirrorGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorGoldV1'],
   ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
@@ -171,19 +171,19 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/boxeGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBoxeGoldPresentationRuntime'],
   ['/game/hero-rework/shuriGoldLibrary.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldLibrary'],
   ['/game/hero-rework/shuriGoldPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexShuriGoldPresentationRuntime'],
-  ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&cp8Socket=vua-he-held', 'apexRobotPresentationRuntime'],
+  ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexRobotPresentationRuntime'],
   ['/game/hero-rework/hunterGoldV10.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterGoldV10'],
   ['/game/hero-rework/hunterPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterPresentationRuntime'],
   ['/game/hero-rework/crystalaPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaPresentationRuntime'],
   ['/game/hero-rework/frostGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGoldV1'],
-  ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&frostA1=gold-only-20261013', 'apexFrostPresentationRuntime'],
+  ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostPresentationRuntime'],
   ['/game/hero-rework/magnetPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetPresentationRuntime'],
   ['/game/hero-rework/mirrorPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorPresentationRuntime'],
   // The ONE curated hero-SFX authority for the four newer Core Six heroes
   // (CRYSTALA / MAGNET / FROST / MIRROR), plus its production event bridge.
   // ROBOT and HUNTER keep their existing accepted SFX authorities untouched.
   ['/game/heroes/coreSixCuratedSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCoreSixCuratedSfxAuthority'],
-  ['/game/heroes/coreSixCuratedSfxBridge.js', 'apexCoreSixCuratedSfxBridge'],
+  ['/game/heroes/coreSixCuratedSfxBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCoreSixCuratedSfxBridge'],
 ];
 
 // E4 — battle runtime selection. ARSENAL_PRODUCT_RUNTIMES above remains the
@@ -245,7 +245,27 @@ for (const [hero, paths] of Object.entries(CORE_SIX_BATTLE_RUNTIME_PATHS)) {
 function battleRuntimeHeroKey(value) {
   return CORE_SIX_RUNTIME_KEY_ALIASES[String(value || '').trim().toLowerCase()] || null;
 }
-export function arsenalBattleRuntimesFor(heroIds) {
+export const QUEST_BATTLE_RUNTIME_PATHS = Object.freeze(new Set([
+  '/game/quest/questMultiActorCore.js',
+  '/game/quest/questBreachWavesCore.js',
+  '/game/quest/questBreachRetreatAuthority.js',
+  '/game/quest/questBreachRigAuthority.js',
+  '/game/quest/questCompanionNativeRuntime.js',
+  '/game/quest/questRivetThresholdAuthority.js',
+  '/game/quest/questRivetRealDamageAdapter.js',
+  '/game/quest/questTotLastChoiceAuthority.js',
+  '/game/quest/questTotRealDamageAdapter.js',
+  '/game/quest/questTotNativeStormRuntime.js',
+  '/game/quest/questEnemyAbilities.js',
+  '/game/quest/questReflexReceipts.js',
+  '/game/quest/questStoryInterludes.js',
+  '/game/quest/questStoryPresentation.js',
+  '/game/quest/questGoldV12Rig.js',
+  '/game/quest/questGoldEnemyVisuals.js',
+]));
+
+export function arsenalBattleRuntimesFor(heroIds, options = {}) {
+  const includeQuest = options?.quest === true;
   const raw = Array.isArray(heroIds) ? heroIds.filter(Boolean) : [];
   // Fail open to the canonical full graph when a caller supplies no selection
   // or a future/unknown fighter. Optimization may never break future content.
@@ -255,6 +275,7 @@ export function arsenalBattleRuntimesFor(heroIds) {
   const selected = new Set(normalized);
   return ARSENAL_PRODUCT_RUNTIMES.filter(([src]) => {
     const path = String(src).split(/[?#]/, 1)[0];
+    if (!includeQuest && QUEST_BATTLE_RUNTIME_PATHS.has(path)) return false;
     const owner = BATTLE_RUNTIME_OWNER_BY_PATH.get(path);
     return !owner || selected.has(owner);
   });
@@ -291,7 +312,7 @@ export const WARMUP_GROUP_SEQUENCE = [];
 // Product meta's critical path. Shop/Draw/selection needs save/config/shell
 // scripts; combat presentation and AV remain lazy until the battle is entered.
 export const ARSENAL_HUB_RUNTIMES = [
-  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION + '&ownerR3=20261010', 'apexArsenalConfig'],
+  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
   // CP3: Home/Archive load the wallet through this Hub graph, so the ONE
   // owner award catalog must evaluate before arsenalMetaRuntime sanitizes
   // or reports mastery there. Order mirrors ARSENAL_PRODUCT_RUNTIMES.

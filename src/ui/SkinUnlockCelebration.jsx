@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { cosmetics } from '../game/cosmetics/cosmeticAuthority.js';
 import '../game/cosmetics/approvedGoldSkins.js';
 import { formatMasteryValue } from './masteryCatalog.js';
+import { ApexSkinEmblemIcon, Sparkles, Check } from './ApexIcons.jsx';
 import './skinUnlockCelebration.css';
 
 // CP3 skin unlock celebration. The wallet records a transition into the
@@ -116,6 +117,32 @@ export default function SkinUnlockCelebration() {
   }, []);
 
   useEffect(() => {
+    let rafSync = 0;
+    const scheduleSync = () => {
+      if (rafSync) return;
+      rafSync = window.requestAnimationFrame(() => {
+        rafSync = 0;
+        sync();
+      });
+    };
+    let observedStage = null;
+    let observedHud = null;
+    const observer = typeof MutationObserver !== 'undefined'
+      ? new MutationObserver(scheduleSync)
+      : null;
+    const attachSurfaceTargets = () => {
+      if (!observer) return;
+      const stage = document.getElementById('stage');
+      if (stage && stage !== observedStage) {
+        observedStage = stage;
+        observer.observe(stage, { attributes: true, attributeFilter: ['class', 'hidden'] });
+      }
+      const hudHost = document.getElementById('battleHudHost');
+      if (hudHost && hudHost !== observedHud) {
+        observedHud = hudHost;
+        observer.observe(hudHost, { attributes: true, attributeFilter: ['class'] });
+      }
+    };
     const onSkin = (event) => {
       const key = event?.detail?.skin?.key;
       if (SKINS[key]) {
@@ -125,19 +152,27 @@ export default function SkinUnlockCelebration() {
     };
     const onLanguage = () => setLanguage(currentLanguage());
     sync();
-    const poll = window.setInterval(sync, 700);
-    const observer = typeof MutationObserver !== 'undefined'
-      ? new MutationObserver(sync)
-      : null;
-    observer?.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+    if (observer && document.body) {
+      // Root-only class watch (never subtree:true — avoids running on every 60fps combat HUD mutation).
+      observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      attachSurfaceTargets();
+    }
+    const targetBootstrap = window.setInterval(() => {
+      attachSurfaceTargets();
+      if (observedStage && observedHud) window.clearInterval(targetBootstrap);
+      else if (!document.body?.classList.contains('battle-hud-open') && !document.body?.classList.contains('battle-open')) scheduleSync();
+    }, 1500);
     window.addEventListener('apex:skin-unlocked', onSkin);
-    window.addEventListener('apex:mastery-unlocked', sync);
+    window.addEventListener('apex:mastery-unlocked', scheduleSync);
+    window.addEventListener('apex:credits', scheduleSync);
     window.addEventListener('apex:language-changed', onLanguage);
     return () => {
-      window.clearInterval(poll);
+      if (rafSync) window.cancelAnimationFrame(rafSync);
+      window.clearInterval(targetBootstrap);
       observer?.disconnect();
       window.removeEventListener('apex:skin-unlocked', onSkin);
-      window.removeEventListener('apex:mastery-unlocked', sync);
+      window.removeEventListener('apex:mastery-unlocked', scheduleSync);
+      window.removeEventListener('apex:credits', scheduleSync);
       window.removeEventListener('apex:language-changed', onLanguage);
     };
   }, [sync]);
@@ -180,13 +215,17 @@ export default function SkinUnlockCelebration() {
   return (
     <div className="apex-skin-unlock-dock" data-apex-no-localize="">
       <section className="apex-skin-unlock-card" role="dialog" aria-modal="false" aria-labelledby="apex-skin-unlock-title">
+        <span className="apex-skin-unlock-sheen" aria-hidden="true" />
         <div className="apex-skin-unlock-visual" aria-hidden="true">
           {variant?.preview
             ? <img src={variant.preview} alt="" />
-            : <span>{skin.mark}</span>}
+            : <span><ApexSkinEmblemIcon skinId={skin.skinId} kind={skin.kind} size={30} /></span>}
         </div>
         <div className="apex-skin-unlock-copy">
-          <p>{t.kicker}{progress ? ` · ${progress}` : ''}{pending.length > 1 ? ` · ${t.more(pending.length)}` : ''}</p>
+          <p>
+            <Sparkles size={11} strokeWidth={2.5} style={{ display: 'inline', verticalAlign: '-1px', marginRight: '5px' }} />
+            {t.kicker}{progress ? ` · ${progress}` : ''}{pending.length > 1 ? ` · ${t.more(pending.length)}` : ''}
+          </p>
           <h2 id="apex-skin-unlock-title">{variant?.label || skin.fallbackLabel}</h2>
           <span>{skin.condition[lang]}</span>
           {message && <small role="alert">{message}</small>}
@@ -194,7 +233,8 @@ export default function SkinUnlockCelebration() {
         <div className="apex-skin-unlock-actions">
           <button type="button" className="is-ghost" onClick={finish}>{t.later}</button>
           <button type="button" className="is-primary" onClick={equip} disabled={equipped}>
-            {equipped ? t.equipped : t.equip}
+            {equipped ? <Check size={14} strokeWidth={2.6} /> : <Sparkles size={14} strokeWidth={2.4} />}
+            <span>{equipped ? t.equipped : t.equip}</span>
           </button>
         </div>
       </section>

@@ -1,0 +1,340 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   APEX PREMIUM — surface unification layer.
+   Re-skins every floating player-facing panel (achievement toast, skin unlock,
+   tutorial ask, help sheet, coach chips, section wipe, fatal screen) into the
+   shared token language. Behaviour, placement and ids are untouched — this is
+   purely presentation, loaded after every legacy sheet.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ───────────────────────── ACHIEVEMENT TOAST ───────────────────────────── */
+.apex-achievement-toast {
+  --apx-accent-rgb: 232, 180, 90;
+  --apx-accent: rgb(232, 180, 90);
+  isolation: isolate;
+  font-family: var(--apx-font);
+  background:
+    radial-gradient(110% 150% at 0% 50%, rgba(var(--apx-accent-rgb), .2), transparent 58%),
+    var(--apx-plate);
+  border-color: rgba(var(--apx-accent-rgb), .7);
+  clip-path: var(--apx-cut-md);
+  box-shadow: var(--apx-bevel), var(--apx-drop), inset 4px 0 0 rgb(var(--apx-accent-rgb));
+  animation: apx-ach-in .5s var(--apx-ease-snap) both;
+}
+.apex-achievement-toast.rarity-rare { --apx-accent-rgb: 79, 214, 255; }
+.apex-achievement-toast.rarity-epic { --apx-accent-rgb: 185, 133, 255; }
+.apex-achievement-toast.rarity-legendary { --apx-accent-rgb: 255, 194, 74; }
+.apex-achievement-toast.owner-bot { --apx-accent-rgb: 142, 160, 181; }
+.apex-achievement-toast.rarity-legendary,
+.apex-achievement-toast.rarity-legendary.is-sealed {
+  border-color: rgba(255, 210, 120, .95);
+  box-shadow: var(--apx-bevel), var(--apx-drop), inset 4px 0 0 #ffc24a, inset 0 0 38px rgba(255, 178, 56, .12);
+  animation: apx-ach-in .5s var(--apx-ease-snap) both, apx-ach-pulse 1.4s ease-in-out .5s 2;
+}
+.apex-achievement-toast::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .55;
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, .03) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, rgba(255, 255, 255, .07), transparent 40%);
+}
+.apex-achievement-toast::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 44%; pointer-events: none;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .24) 50%, transparent);
+  transform: skewX(-18deg);
+  animation: apx-notice-sheen 1.1s .25s var(--apx-ease-out) both;
+}
+.apex-achievement-toast-medal { filter: drop-shadow(0 0 8px rgba(var(--apx-accent-rgb), .55)); }
+.apex-achievement-toast.rarity-epic .apex-achievement-toast-medal,
+.apex-achievement-toast.rarity-legendary .apex-achievement-toast-medal {
+  animation: apx-medal-pop .7s var(--apx-ease-snap) both;
+}
+.apex-achievement-toast-copy > span {
+  color: rgb(var(--apx-accent-rgb));
+  font: 600 10px/1.25 var(--apx-font);
+  letter-spacing: .11em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 0 10px rgba(var(--apx-accent-rgb), .55);
+}
+.apex-achievement-toast-copy strong {
+  font: 700 clamp(18px, 3.8vw, 22px)/1.08 var(--apx-font);
+  font-style: italic; letter-spacing: .04em; text-transform: uppercase;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .6);
+}
+.apex-achievement-toast-copy small {
+  color: var(--apx-text-dim);
+  font: 500 10.5px/1.3 var(--apx-font); letter-spacing: .12em; text-transform: uppercase;
+}
+.apex-achievement-toast-copy .apex-achievement-toast-more { color: var(--apx-amber-200); }
+.apex-achievement-toast-meter i { height: 5px; background: rgba(0, 0, 0, .55); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+.apex-achievement-toast-meter i b {
+  background: linear-gradient(90deg, rgba(var(--apx-accent-rgb), .55), rgb(var(--apx-accent-rgb)) 70%, #fff);
+  box-shadow: 0 0 10px rgba(var(--apx-accent-rgb), .8);
+  animation: apx-meter-fill .9s .2s var(--apx-ease-out) both; transform-origin: left center;
+}
+.apex-achievement-toast-meter em { font: 600 10.5px/1 var(--apx-font-mono); color: rgb(var(--apx-accent-rgb)); letter-spacing: .04em; }
+.apex-achievement-toast.owner-bot .apex-achievement-toast-meter i b { background: linear-gradient(90deg, #5d6f86, #b9c9dc); box-shadow: none; }
+.apex-achievement-toast.is-provisional { border-style: dashed; }
+.apex-achievement-toast:not(.is-compact) { width: min(330px, calc(100vw - 24px)); }
+
+@keyframes apx-ach-in {
+  0% { opacity: 0; transform: translateX(-26px) scale(.94); filter: blur(4px); }
+  60% { filter: blur(0); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes apx-ach-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.28) saturate(1.15); }
+}
+@keyframes apx-medal-pop { 0% { transform: scale(.2) rotate(-70deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes apx-meter-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ───────────────────────── SKIN UNLOCK CELEBRATION ─────────────────────── */
+.apex-skin-unlock-dock { font-family: var(--apx-font); }
+.apex-skin-unlock-dock::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 42% at 50% 100%, rgba(255, 170, 40, .22), transparent 70%);
+  animation: apx-fade-in .6s ease both;
+}
+.apex-skin-unlock-card {
+  --apx-accent: #ffc24a;
+  background:
+    radial-gradient(90% 120% at 0% 0%, rgba(255, 178, 56, .22), transparent 60%),
+    var(--apx-plate);
+  border: 1px solid rgba(255, 210, 120, .9);
+  clip-path: var(--apx-cut-lg);
+  box-shadow: var(--apx-bevel), var(--apx-drop), 0 0 60px rgba(255, 170, 40, .22);
+  animation: apx-skin-card-in .62s var(--apx-ease-snap) both;
+}
+.apex-skin-unlock-card::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -50%; width: 36%; pointer-events: none; z-index: 2;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .2) 50%, transparent);
+  transform: skewX(-18deg); animation: apx-notice-sheen 1.3s .35s var(--apx-ease-out) both;
+}
+.apex-skin-unlock-visual {
+  border-color: rgba(255, 214, 117, .85);
+  box-shadow: inset 0 0 26px rgba(255, 178, 56, .25), 0 0 20px rgba(255, 170, 40, .25);
+  animation: apx-medal-pop .8s .15s var(--apx-ease-snap) both;
+}
+.apex-skin-unlock-copy p {
+  font: 600 11px/1.3 var(--apx-font); letter-spacing: .32em; text-transform: uppercase; color: var(--apx-amber-300);
+  text-shadow: 0 0 12px rgba(255, 178, 56, .55);
+}
+.apex-skin-unlock-copy h2 {
+  font: 700 clamp(24px, 5vw, 34px)/1.02 var(--apx-font); font-style: italic; text-transform: uppercase; letter-spacing: .03em;
+  background: linear-gradient(180deg, #fff 0%, var(--apx-amber-200) 60%, var(--apx-amber-300));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .6));
+}
+.apex-skin-unlock-copy > span { font: 500 14px/1.4 var(--apx-font); letter-spacing: .06em; color: var(--apx-text-dim); }
+.apex-skin-unlock-copy small { font: 600 11px/1.3 var(--apx-font); letter-spacing: .14em; color: #ff9d8a; }
+.apex-skin-unlock-actions button {
+  position: relative; overflow: hidden; min-height: 46px; padding: 0 24px;
+  font: 700 13px/1 var(--apx-font); letter-spacing: .18em; text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, .22); color: var(--apx-text);
+  background: linear-gradient(180deg, rgba(40, 46, 56, .96), rgba(15, 18, 23, .98));
+  clip-path: var(--apx-cut-sm);
+  transition: transform .14s var(--apx-ease-out), filter .18s ease;
+}
+.apex-skin-unlock-actions button:hover:not(:disabled) { filter: brightness(1.15); }
+.apex-skin-unlock-actions button:active:not(:disabled) { transform: translateY(1px) scale(.97); }
+.apex-skin-unlock-actions button.is-primary {
+  color: #1c1100; border-color: #ffe2aa;
+  background: linear-gradient(180deg, #ffd27a 0%, #ffab2a 52%, #e8870c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -3px 0 rgba(120, 60, 0, .35);
+  animation: apx-cta-glow 1.8s ease-in-out infinite;
+}
+@keyframes apx-skin-card-in {
+  0% { opacity: 0; transform: translateY(34px) scale(.9); filter: blur(5px); }
+  60% { filter: blur(0); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes apx-cta-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.18) drop-shadow(0 0 8px rgba(255, 170, 40, .7)); } }
+@keyframes apx-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ───────────────────────── TUTORIAL ASK + HELP ─────────────────────────── */
+.apex-tutorial-ask {
+  --apx-accent: #56e0ff;
+  gap: 10px; padding: 8px 10px 8px 16px; border-radius: 0;
+  font-family: var(--apx-font); color: var(--apx-text);
+  background: radial-gradient(120% 220% at 0% 50%, rgba(86, 224, 255, .16), transparent 55%), var(--apx-plate-cyan);
+  border: 1px solid rgba(86, 224, 255, .55);
+  box-shadow: var(--apx-bevel), var(--apx-drop), 0 0 28px rgba(86, 224, 255, .12);
+  clip-path: var(--apx-cut-md);
+  animation: apx-ask-in .55s var(--apx-ease-snap) both;
+}
+.apex-tutorial-ask::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #fff, #56e0ff 25%, #56e0ff 75%, rgba(0, 0, 0, .4));
+  box-shadow: 0 0 14px rgba(86, 224, 255, .9);
+}
+.apex-tutorial-ask-title {
+  font: 600 15px/1.1 var(--apx-font); letter-spacing: .12em; text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .6);
+}
+.apex-tutorial-ask button,
+.apex-help-close, .apex-help-replay, .apex-help-toggle {
+  position: relative; overflow: hidden;
+  font: 700 13px/1.1 var(--apx-font); letter-spacing: .16em; text-transform: uppercase;
+  border-radius: 0; color: var(--apx-text);
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: linear-gradient(180deg, rgba(40, 46, 56, .96), rgba(15, 18, 23, .98));
+  clip-path: var(--apx-cut-sm);
+  transition: transform .14s var(--apx-ease-out), filter .18s ease, border-color .18s ease;
+}
+.apex-tutorial-ask button:hover, .apex-help-close:hover, .apex-help-replay:hover, .apex-help-toggle:hover {
+  filter: brightness(1.18); border-color: rgba(255, 210, 130, .75);
+}
+.apex-tutorial-ask button:active, .apex-help-close:active, .apex-help-replay:active, .apex-help-toggle:active {
+  transform: translateY(1px) scale(.97);
+}
+.apex-tutorial-ask .apex-tutorial-ask-yes {
+  color: #1c1100 !important; border-color: #ffe2aa;
+  background: linear-gradient(180deg, #ffd27a 0%, #ffab2a 52%, #e8870c 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -3px 0 rgba(120, 60, 0, .35);
+}
+
+#gold-shell-host #stage .apex-help-sheet, .apex-help-sheet {
+  border-radius: 0; padding: 16px 16px 14px; gap: 10px;
+  font-family: var(--apx-font); color: var(--apx-text);
+  background:
+    radial-gradient(100% 70% at 50% 0%, rgba(255, 178, 56, .14), transparent 65%),
+    var(--apx-plate);
+  border: 1px solid rgba(255, 194, 74, .6);
+  box-shadow: var(--apx-bevel), var(--apx-drop), 0 0 46px rgba(255, 170, 40, .12);
+  clip-path: var(--apx-cut-lg);
+  animation: apx-sheet-in .46s var(--apx-ease-snap) both;
+}
+.apex-help-head { padding-bottom: 10px; border-bottom: 1px solid var(--apx-line); position: relative; }
+.apex-help-head::after {
+  content: ""; position: absolute; left: 0; bottom: -1px; width: 64px; height: 2px;
+  background: linear-gradient(90deg, #ffc24a, transparent); box-shadow: 0 0 10px rgba(255, 178, 56, .8);
+}
+.apex-help-title { font: 700 17px/1.1 var(--apx-font); letter-spacing: .2em; text-transform: uppercase; color: var(--apx-amber-200); }
+.apex-help-toggle .apex-tt-state {
+  min-width: 46px; text-align: center; padding: 5px 10px; border-radius: 0;
+  font: 700 11px/1 var(--apx-font); letter-spacing: .18em;
+  background: rgba(0, 0, 0, .5); border: 1px solid rgba(255, 255, 255, .15); color: var(--apx-text-mute);
+}
+.apex-help-toggle[aria-checked="true"] .apex-tt-state {
+  background: linear-gradient(180deg, rgba(255, 194, 74, .35), rgba(255, 140, 20, .22));
+  border-color: rgba(255, 210, 130, .8); color: #fff3d0; text-shadow: 0 0 10px rgba(255, 178, 56, .8);
+}
+.apex-help-portrait-note { font: 500 13px/1.5 var(--apx-font); letter-spacing: .05em; color: var(--apx-text-dim); }
+
+#gold-shell-host #stage #apex-guide-open,
+#gold-shell-host #stage #apex-language-picker #apex-guide-open {
+  border-radius: 0; font: 700 12px/1 var(--apx-font); letter-spacing: .12em; color: var(--apx-amber-200);
+  border: 1px solid rgba(255, 194, 74, .5);
+  background: linear-gradient(180deg, rgba(34, 30, 20, .94), rgba(8, 10, 14, .96));
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  box-shadow: var(--apx-bevel);
+  transition: color .18s, border-color .18s, filter .18s, transform .14s var(--apx-ease-out);
+}
+#gold-shell-host #stage #apex-guide-open:hover,
+#gold-shell-host #stage #apex-language-picker #apex-guide-open:hover { color: #fff; border-color: #ffd98a; filter: drop-shadow(0 0 8px rgba(255, 178, 56, .7)); }
+#gold-shell-host #stage #apex-guide-open:active,
+#gold-shell-host #stage #apex-language-picker #apex-guide-open:active { transform: scale(.97); }
+
+@keyframes apx-ask-in { 0% { opacity: 0; transform: translateY(-14px) scale(.94); } 100% { opacity: 1; transform: none; } }
+@keyframes apx-sheet-in { 0% { opacity: 0; transform: translateX(-50%) translateY(-18px) scale(.95); } 100% { opacity: 1; transform: translateX(-50%); } }
+
+/* ───────────────────────── COACH CHIPS (tactical pulse) ────────────────── */
+.apex-guide-card.apex-coach-chip {
+  font-family: var(--apx-font); border-radius: 0; padding: 10px 12px 10px 14px; gap: 12px;
+  border: 1px solid rgba(86, 224, 255, .6); border-left-width: 4px;
+  background: radial-gradient(120% 200% at 0% 50%, rgba(86, 224, 255, .15), transparent 58%), var(--apx-plate-cyan);
+  box-shadow: var(--apx-bevel), var(--apx-drop), 0 0 24px rgba(86, 224, 255, .14);
+  clip-path: var(--apx-cut-md);
+  animation: apx-chip-in .38s var(--apx-ease-snap) both;
+}
+.apex-guide-kicker { font: 600 10.5px/1.15 var(--apx-font); letter-spacing: .28em; color: var(--apx-cyan); text-shadow: 0 0 10px rgba(86, 224, 255, .55); }
+.apex-guide-steps { gap: 5px; margin-bottom: 6px; }
+.apex-guide-steps i { width: 16px; height: 3px; background: rgba(255, 255, 255, .14); transform: skewX(-24deg); }
+.apex-guide-steps i.is-done { background: var(--apx-cyan); box-shadow: 0 0 8px rgba(86, 224, 255, .9); }
+.apex-guide-card.apex-coach-chip h2 { font: 700 15px/1.1 var(--apx-font); letter-spacing: .08em; text-shadow: 0 2px 0 rgba(0, 0, 0, .6); }
+.apex-guide-body { font: 500 13px/1.3 var(--apx-font); letter-spacing: .04em; color: #d7e7f2; }
+.apex-guide-card.apex-coach-chip.is-compact h2 { font-size: 13px; }
+.apex-guide-card.apex-coach-chip.is-compact .apex-guide-body { font-size: 11.5px; }
+.apex-guide-card.apex-coach-chip.is-narrow h2 { font-size: 12px; }
+.apex-guide-card.apex-coach-chip.is-narrow .apex-guide-body { font-size: 10.5px; }
+.apex-coach-skip {
+  border-radius: 0; font: 700 11px/1 var(--apx-font); letter-spacing: .2em; color: var(--apx-amber-200);
+  border: 1px solid rgba(255, 194, 74, .55);
+  background: linear-gradient(180deg, rgba(40, 46, 56, .96), rgba(15, 18, 23, .98));
+  clip-path: var(--apx-cut-sm); transition: filter .18s, transform .14s var(--apx-ease-out);
+}
+.apex-coach-skip:hover { filter: brightness(1.2); color: #fff; }
+.apex-coach-skip:active { transform: scale(.95); }
+.apex-coach-beacon {
+  border-radius: 2px; border-color: rgba(86, 224, 255, .95);
+  box-shadow: 0 0 22px rgba(86, 224, 255, .4), inset 0 0 16px rgba(86, 224, 255, .16);
+}
+.apex-guide-pickup-prompt {
+  border-radius: 0; font-family: var(--apx-font); font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  background: linear-gradient(90deg, rgba(9, 18, 26, .96), rgba(8, 12, 17, .92));
+  border-color: rgba(86, 224, 255, .6); box-shadow: 0 0 16px rgba(86, 224, 255, .18);
+}
+@keyframes apx-chip-in { 0% { opacity: 0; transform: scale(.9) translateY(8px); } 100% { opacity: 1; transform: none; } }
+
+/* ───────────────────────── SECTION WIPE + PAGER ────────────────────────── */
+.apex-session-wipe-plate {
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .18) 0 2px, transparent 2px 22px),
+    linear-gradient(100deg, #ff6a0a 0%, #ffb21f 50%, #ff6a0a 100%);
+  box-shadow: 0 0 0 10px #0a0d12, 0 0 0 13px #ffc24a, 0 0 90px rgba(255, 150, 20, .7);
+}
+.apex-session-wipe-plate::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, .12) 0 18px, transparent 18px 42px);
+}
+.apex-session-wipe-plate span {
+  position: relative; font-family: var(--apx-font); font-weight: 700; font-style: italic; letter-spacing: .14em;
+  text-transform: uppercase; text-shadow: 0 3px 0 rgba(255, 255, 255, .25);
+}
+.apex-session-position { gap: 7px; }
+.apex-session-position span { width: 16px; height: 4px; border-radius: 0; transform: skewX(-24deg); background: rgba(255, 255, 255, .22); transition: width .3s var(--apx-ease-out), background .3s; }
+.apex-session-position span.is-current { width: 32px; background: linear-gradient(90deg, #ffc24a, #fff); box-shadow: 0 0 12px rgba(255, 178, 56, .95); }
+.apex-session-coach-copy { font-family: var(--apx-font); font-weight: 600; letter-spacing: .24em; text-transform: uppercase; }
+
+/* ───────────────────────── FATAL / RECOVERY SCREEN ─────────────────────── */
+.apex-fatal-error {
+  font-family: var(--apx-font);
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 20%, rgba(255, 140, 30, .2), transparent 70%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, .02) 0 2px, transparent 2px 12px),
+    radial-gradient(ellipse at 50% 30%, #1c1610 0, #07090c 75%);
+}
+.apex-fatal-card {
+  position: relative; display: grid; justify-items: center; gap: 14px; text-align: center;
+  padding: clamp(28px, 5vw, 48px) clamp(24px, 6vw, 64px);
+  background: var(--apx-plate); border: 1px solid rgba(255, 90, 77, .65);
+  box-shadow: var(--apx-bevel), var(--apx-drop), 0 0 60px rgba(255, 90, 77, .16);
+  clip-path: var(--apx-cut-lg); animation: apx-skin-card-in .6s var(--apx-ease-snap) both;
+}
+.apex-fatal-icon { color: var(--apx-red); filter: drop-shadow(0 0 14px rgba(255, 90, 77, .8)); animation: apx-cta-glow 1.8s ease-in-out infinite; }
+.apex-fatal-error .apex-fatal-mark { font: 700 clamp(16px, 2.6vw, 22px)/1 var(--apx-font); letter-spacing: .5em; color: var(--apx-amber-300); }
+.apex-fatal-error .apex-fatal-kicker { font: 600 12px/1 var(--apx-font); letter-spacing: .34em; color: var(--apx-red); }
+.apex-fatal-error h1 { font: 700 clamp(26px, 4.6vw, 42px)/1.08 var(--apx-font); text-transform: uppercase; letter-spacing: .04em; }
+.apex-fatal-error p { font: 500 16px/1.5 var(--apx-font); letter-spacing: .05em; color: var(--apx-text-dim); }
+.apex-fatal-error button {
+  font: 700 15px/1 var(--apx-font); letter-spacing: .2em; min-height: 52px; padding: 0 34px;
+  display: inline-flex; align-items: center; gap: 10px;
+  clip-path: var(--apx-cut-sm); border: 1px solid #ffe2aa; color: #1c1100;
+  background: linear-gradient(180deg, #ffd27a 0%, #ffab2a 52%, #e8870c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -3px 0 rgba(120, 60, 0, .35);
+  transition: transform .14s var(--apx-ease-out), filter .18s;
+}
+.apex-fatal-error button:hover { filter: brightness(1.12); }
+.apex-fatal-error button:active { transform: scale(.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .apex-achievement-toast, .apex-achievement-toast::after, .apex-skin-unlock-card, .apex-skin-unlock-card::after,
+  .apex-tutorial-ask, .apex-help-sheet, .apex-guide-card.apex-coach-chip, .apex-skin-unlock-visual,
+  .apex-skin-unlock-actions button.is-primary, .apex-fatal-card, .apex-fatal-icon,
+  .apex-achievement-toast-meter i b { animation: none !important; }
+}
+html[data-apex-motion="reduced"] :is(
+  .apex-achievement-toast, .apex-skin-unlock-card, .apex-tutorial-ask, .apex-help-sheet,
+  .apex-guide-card.apex-coach-chip, .apex-skin-unlock-visual, .apex-skin-unlock-actions button.is-primary,
+  .apex-fatal-card, .apex-fatal-icon, .apex-achievement-toast-meter i b
+),
+html[data-apex-motion="reduced"] .apex-achievement-toast::after,
+html[data-apex-motion="reduced"] .apex-skin-unlock-card::after { animation: none !important; }

@@ -34,13 +34,51 @@
   let activeArena = ARENA_CATALOG[0];
   let deckCanvas = null, deckKey = '';
   let scarCanvas = null, scarCtx = null, scarSize = 0;
+  let shadowSprite = null;
+  let reflSprite = null;
   const matImgs = {};
+  function materialUrl(name) {
+    const base = typeof g.__APEX_APP_ROOT__ === 'string' && g.__APEX_APP_ROOT__
+      ? g.__APEX_APP_ROOT__.replace(/\/$/, '')
+      : '';
+    return base + MAT + name;
+  }
   function material(name) {
+    if (!name) return null;
     if (matImgs[name]) return matImgs[name];
-    const im = new Image(); im.decoding = 'async'; im.src = MAT + name; im.onload = () => { deckKey = ''; };
+    const im = new Image(); im.decoding = 'async'; im.src = materialUrl(name); im.onload = () => { deckKey = ''; };
     matImgs[name] = im; return im;
   }
-  for (const a of ARENA_CATALOG) material(a.material);
+  function ensureFighterFloorSprites() {
+    if (!shadowSprite) {
+      shadowSprite = mk(128, 96);
+      const sc = shadowSprite.getContext('2d');
+      sc.save();
+      sc.translate(64, 48);
+      sc.scale(1, 0.7);
+      const sg = sc.createRadialGradient(0, 0, 6, 0, 0, 58);
+      sg.addColorStop(0, 'rgba(0,0,0,0.56)');
+      sg.addColorStop(0.65, 'rgba(0,0,0,0.22)');
+      sg.addColorStop(1, 'rgba(0,0,0,0)');
+      sc.fillStyle = sg;
+      sc.beginPath(); sc.arc(0, 0, 58, 0, TAU); sc.fill();
+      sc.restore();
+    }
+    if (!reflSprite) {
+      reflSprite = mk(96, 64);
+      const rc = reflSprite.getContext('2d');
+      const rg = rc.createLinearGradient(0, 6, 0, 60);
+      rg.addColorStop(0, 'rgba(255,170,70,0.10)');
+      rg.addColorStop(1, 'rgba(255,170,70,0)');
+      rc.fillStyle = rg;
+      rc.beginPath(); rc.ellipse(48, 32, 44, 24, 0, 0, TAU); rc.fill();
+    }
+  }
+  // Lazy-load ONLY the selected arena texture (never all 5 JPGs upfront on boot).
+  if (selectedArenaId !== 'random') {
+    const initial = ARENA_CATALOG.find(a => a.id === selectedArenaId) || ARENA_CATALOG[0];
+    activeArena = initial;
+  }
 
   let R = null; // runtime state
   function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -168,9 +206,31 @@
     return cv;
   }
 
+  let atmosCanvas = null, atmosSize = 0;
+  function ensureAtmosCanvas(S) {
+    if (atmosCanvas && atmosSize === S) return atmosCanvas;
+    atmosCanvas = mk(S, S);
+    atmosSize = S;
+    const ac = atmosCanvas.getContext('2d');
+    const arenaKey = ac.createRadialGradient(S * 0.5, S * 0.34, 20, S * 0.5, S * 0.34, S * 0.72);
+    arenaKey.addColorStop(0, 'rgba(255,236,205,0.10)');
+    arenaKey.addColorStop(0.55, 'rgba(160,180,205,0.035)');
+    arenaKey.addColorStop(1, 'rgba(0,0,0,0)');
+    ac.fillStyle = arenaKey;
+    ac.fillRect(0, 0, S, S);
+    const vig = ac.createRadialGradient(S * 0.5, S * 0.5, S * 0.30, S * 0.5, S * 0.5, S * 0.78);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(0.72, 'rgba(0,0,0,0.16)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.52)');
+    ac.fillStyle = vig;
+    ac.fillRect(0, 0, S, S);
+    return atmosCanvas;
+  }
+
   // ── match init ────────────────────────────────────────────────────────────
   function initMatchArena(S) {
     activeArena = resolveArena(selectedArenaId);
+    material(activeArena.material);
     clearScars();
     R = { t: 0, wallPulses: [], pylons: [], gates: [], vents: [], cores: [], motes: [], slagTide: { cycle: 0, active: false, warn: false }, railOverload: { cycle: 5, active: false, warn: false, y: 0 }, leySurge: { cycle: 4, active: false, warn: false }, gust: { cycle: 6, active: false, warn: false, ang: 0 }, ledHits: [] };
     for (let i = 0; i < 30; i++) R.motes.push({ x: rnd(60, S - 60), y: rnd(60, S - 60), vx: rnd(-14, 14), vy: rnd(-34, -10), sz: rnd(1.2, 3.2), a: rnd(0.2, 0.7) });
@@ -204,8 +264,8 @@
     if (!R) return;
     const S = g.GAME_SIZE || 1000; R.t += dt;
     for (const m of R.motes) { m.x += m.vx * dt; m.y += m.vy * dt; if (m.y < 45) { m.y = S - 50; m.x = rnd(60, S - 60); } if (m.x < 45) m.x = S - 50; if (m.x > S - 45) m.x = 50; }
-    for (let i = R.wallPulses.length - 1; i >= 0; i--) { R.wallPulses[i].life -= dt; if (R.wallPulses[i].life <= 0) R.wallPulses.splice(i, 1); }
-    for (let i = R.ledHits.length - 1; i >= 0; i--) { R.ledHits[i].life -= dt; if (R.ledHits[i].life <= 0) R.ledHits.splice(i, 1); }
+    for (let i = R.wallPulses.length - 1; i >= 0; i--) { R.wallPulses[i].life -= dt; if (R.wallPulses[i].life <= 0) { R.wallPulses[i] = R.wallPulses[R.wallPulses.length - 1]; R.wallPulses.pop(); } }
+    for (let i = R.ledHits.length - 1; i >= 0; i--) { R.ledHits[i].life -= dt; if (R.ledHits[i].life <= 0) { R.ledHits[i] = R.ledHits[R.ledHits.length - 1]; R.ledHits.pop(); } }
     const fighters = g.fighters || [], projs = g.projectiles || [],
       wm = Number(g.APEX_BEYOND_ARENA?.getWallInset?.()) || 46;
 
@@ -299,7 +359,8 @@
 
   // ── render ────────────────────────────────────────────────────────────────
   function drawArenaFloor(c, S) {
-    const key = `${S}:${activeArena.id}:${matImgs[activeArena.material]?.complete ? 1 : 0}`;
+    const im = material(activeArena.material);
+    const key = `${S}:${activeArena.id}:${im && im.complete && im.naturalWidth > 0 ? 1 : 0}`;
     if (!deckCanvas || deckKey !== key) { deckCanvas = buildDeck(S, activeArena); deckKey = key; }
     ensureScar(S);
     const t = R ? R.t : 0;
@@ -361,34 +422,55 @@
     for (const wp of R.wallPulses) { const a = clamp(wp.life / 0.45, 0, 1); c.save(); c.globalAlpha = a * 0.9; c.strokeStyle = wp.col; c.lineWidth = 5; c.beginPath(); if (wp.side === 'L') { c.moveTo(wallW + 2, wp.pos - 75 * a); c.lineTo(wallW + 2, wp.pos + 75 * a); } else if (wp.side === 'R') { c.moveTo(S - wallW - 2, wp.pos - 75 * a); c.lineTo(S - wallW - 2, wp.pos + 75 * a); } else if (wp.side === 'T') { c.moveTo(wp.pos - 75 * a, wallW + 2); c.lineTo(wp.pos + 75 * a, wallW + 2); } else { c.moveTo(wp.pos - 75 * a, S - wallW - 2); c.lineTo(wp.pos + 75 * a, S - wallW - 2); } c.stroke(); c.restore(); }
     if (activeArena.id === 'tournament_pro') { const st = CB()?.getState?.(); const r0 = st ? Math.max(st.sides[0].styleScore, st.sides[1].styleScore) / 155 : 0; c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(255,148,31,${0.2 + r0 * 0.6})`; c.lineWidth = 3; c.strokeRect(wallW + 8, wallW + 8, S - (wallW + 8) * 2, S - (wallW + 8) * 2); c.restore(); }
 
-    // contact shadows
-    for (const f of g.fighters || []) { if (!f || f.hp <= 0) continue; const Rr = f.radius || 75; const lift = f.__evoAirborne ? 0.5 : 1; const sg = c.createRadialGradient(f.x, f.y + Rr * 0.22, Rr * 0.12, f.x, f.y + Rr * 0.22, Rr * 1.15); sg.addColorStop(0, `rgba(0,0,0,${0.56 * lift})`); sg.addColorStop(0.65, `rgba(0,0,0,${0.22 * lift})`); sg.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = sg; c.beginPath(); c.ellipse(f.x, f.y + Rr * 0.22, Rr * 1.05 * lift, Rr * 0.72 * lift, 0, 0, TAU); c.fill(); }
-    // ── atmosphere & light hierarchy ───────────────────────────────────────
-    // Key light pools under active hazard sources, shallow floor reflection,
-    // and a corner vignette bind floor, FX glow and fighters into one space.
-    c.save();
-    c.globalCompositeOperation='lighter';
-    const arenaKey = c.createRadialGradient(S*.5,S*.34,20,S*.5,S*.34,S*.72);
-    arenaKey.addColorStop(0,"rgba(255,236,205,.10)");arenaKey.addColorStop(.55,"rgba(160,180,205,.035)");arenaKey.addColorStop(1,"rgba(0,0,0,0)");
-    c.fillStyle=arenaKey;c.fillRect(0,0,S,S);
-    for (const v of R.vents) if (v.active||v.warn) { const a=v.active?.20:.08; const lp=c.createRadialGradient(v.x,v.y,4,v.x,v.y,v.r*2.1); lp.addColorStop(0,`rgba(255,164,64,${a})`); lp.addColorStop(1,'rgba(255,90,20,0)'); c.fillStyle=lp;c.fillRect(v.x-v.r*2.1,v.y-v.r*2.1,v.r*4.2,v.r*4.2); }
-    c.restore();
-    c.save();
-    const vig=c.createRadialGradient(S*.5,S*.5,S*.30,S*.5,S*.5,S*.78);
-    vig.addColorStop(0,'rgba(0,0,0,0)');vig.addColorStop(.72,'rgba(0,0,0,.16)');vig.addColorStop(1,'rgba(0,0,0,.52)');
-    c.fillStyle=vig;c.fillRect(0,0,S,S);
-    for (const f of g.fighters||[]) if (f&&f.hp>0) { const Rr=f.radius||75; const refl=c.createLinearGradient(f.x,f.y+Rr*.6,f.x,f.y+Rr*2.1); refl.addColorStop(0,'rgba(255,170,70,.10)');refl.addColorStop(1,'rgba(255,170,70,0)'); c.fillStyle=refl;c.beginPath();c.ellipse(f.x,f.y+Rr*1.15,Rr*.62,Rr*.34,0,0,TAU);c.fill(); }
-    c.restore();
+    // contact shadows & floor reflections (pre-baked sprites — zero per-frame gradient alloc)
+    ensureFighterFloorSprites();
+    const fighterArr = g.fighters || [];
+    for (let fi = 0; fi < fighterArr.length; fi++) {
+      const f = fighterArr[fi];
+      if (!f || f.hp <= 0) continue;
+      const Rr = f.radius || 75;
+      const lift = f.__evoAirborne ? 0.5 : 1;
+      const sw = Rr * 2.2 * lift, sh = Rr * 1.54 * lift;
+      if (lift < 0.99) {
+        c.globalAlpha = lift;
+        c.drawImage(shadowSprite, f.x - sw * 0.5, f.y + Rr * 0.22 - sh * 0.5, sw, sh);
+        c.globalAlpha = 1;
+      } else {
+        c.drawImage(shadowSprite, f.x - sw * 0.5, f.y + Rr * 0.22 - sh * 0.5, sw, sh);
+      }
+      const rw = Rr * 1.35, rh = Rr * 0.76;
+      c.drawImage(reflSprite, f.x - rw * 0.5, f.y + Rr * 1.15 - rh * 0.5, rw, rh);
+    }
+    // ── atmosphere & light hierarchy (pre-baked static key + vignette canvas) ──
+    for (let vi = 0; vi < R.vents.length; vi++) {
+      const v = R.vents[vi];
+      if (v.active || v.warn) {
+        c.save();
+        c.globalCompositeOperation = 'lighter';
+        const a = v.active ? 0.20 : 0.08;
+        const lp = c.createRadialGradient(v.x, v.y, 4, v.x, v.y, v.r * 2.1);
+        lp.addColorStop(0, `rgba(255,164,64,${a})`);
+        lp.addColorStop(1, 'rgba(255,90,20,0)');
+        c.fillStyle = lp;
+        c.fillRect(v.x - v.r * 2.1, v.y - v.r * 2.1, v.r * 4.2, v.r * 4.2);
+        c.restore();
+      }
+    }
+    c.drawImage(ensureAtmosCanvas(S), 0, 0);
     // motes
     const mc = activeArena.id === 'cryo_vault' ? '140,238,255' : activeArena.id === 'prism_sanctum' ? '205,148,255' : activeArena.id === 'lorentz_railyard' ? '114,239,255' : activeArena.id === 'tournament_pro' ? '255,255,255' : '255,158,64';
-    for (const m of R.motes) { c.fillStyle = `rgba(${mc},${m.a * 0.42})`; c.beginPath(); c.arc(m.x, m.y, m.sz, 0, TAU); c.fill(); }
+    for (let mi = 0; mi < R.motes.length; mi++) {
+      const m = R.motes[mi];
+      c.fillStyle = `rgba(${mc},${(m.a * 0.42).toFixed(2)})`;
+      c.fillRect(m.x - m.sz, m.y - m.sz, m.sz * 2, m.sz * 2);
+    }
     c.restore();
   }
 
   g.APEX_EVOLUTION_ARENAS = {
     catalog: () => ARENA_CATALOG.slice(),
     getSelectedId: () => selectedArenaId,
-    setSelectedId(id) { if (id !== 'random' && !ARENA_CATALOG.some(a => a.id === id)) return selectedArenaId; selectedArenaId = id; try { localStorage.setItem('apexEvolution.arenaId', id); } catch (_) {} if (id !== 'random') activeArena = resolveArena(id); return selectedArenaId; },
+    setSelectedId(id) { if (id !== 'random' && !ARENA_CATALOG.some(a => a.id === id)) return selectedArenaId; selectedArenaId = id; try { localStorage.setItem('apexEvolution.arenaId', id); } catch (_) {} if (id !== 'random') { activeArena = resolveArena(id); material(activeArena.material); } return selectedArenaId; },
     getActiveArena: () => activeArena,
     initMatchArena, stepArenaMechanics, drawArenaFloor, addScar, clearScars, hazardVector,
     runtime: () => R,

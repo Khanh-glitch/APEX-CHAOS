@@ -13,7 +13,8 @@
   let noiseBuffer = null;
 
   function getAudioGraph() {
-    if (global.apexSfxMuted || global.apexBattleAudioMuted) return null;
+    if (global.__apexStatsSilent || global.__apexSfxMuted || global.apexSfxMuted || global.apexBattleAudioMuted) return null;
+    if (typeof global.apexIsBattleSfxMuted === 'function' && global.apexIsBattleSfxMuted()) return null;
     const ac = global.audioCtx;
     if (!ac || ac.state === 'closed') return null;
     if (ac.state === 'suspended') {

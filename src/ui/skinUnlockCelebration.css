@@ -3,14 +3,14 @@
 .apex-skin-unlock-dock {
   position: fixed;
   inset: 0;
-  z-index: 2147480850;
+  z-index: var(--apex-z-skin-unlock, 2147480850);
   pointer-events: none;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 112px);
-  font-family: 'Oswald', Arial, sans-serif;
-  color: #f4f0e6;
+  font-family: var(--apex-font-display, 'Oswald', 'ApexVietCondensed', sans-serif);
+  color: var(--apex-bone, #f4f0e6);
 }
 .apex-skin-unlock-card {
   position: relative;

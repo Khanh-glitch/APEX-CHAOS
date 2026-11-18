@@ -15,36 +15,65 @@
 
   function isMuted() {
     try {
+      if (g.__apexStatsSilent || g.__apexSfxMuted) return true;
+      if (typeof g.apexIsBattleSfxMuted === 'function' && g.apexIsBattleSfxMuted()) return true;
       if (g.APEX_BATTLE_AUDIO?.isMuted?.()) return true;
-      if (g.apexProductMusic?.state?.()?.muted) return true;
     } catch (_) {}
     return false;
   }
 
+  let gestureUnlockArmed = false;
+  function disarmGestureUnlock() {
+    if (!gestureUnlockArmed || typeof document === 'undefined') return;
+    gestureUnlockArmed = false;
+    document.removeEventListener('pointerdown', unlockOnGesture);
+    document.removeEventListener('keydown', unlockOnGesture);
+  }
+
   function ensureContext() {
     if (isMuted()) return null;
+    // Share the canonical battle AudioContext + battleAudioMaster when present
+    // so zero duplicate audio threads exist and SFX mute/session end apply cleanly.
     if (!ctx) {
-      const AC = g.AudioContext || g.webkitAudioContext;
-      if (!AC) return null;
-      try {
-        ctx = new AC();
-        masterGain = ctx.createGain();
-        masterGain.gain.value = 0.36;
-        masterGain.connect(ctx.destination);
-      } catch (_) {
-        return null;
+      if (g.audioCtx && typeof g.audioCtx.createGain === 'function') {
+        try {
+          ctx = g.audioCtx;
+          masterGain = ctx.createGain();
+          masterGain.gain.value = 0.36;
+          masterGain.connect(g.battleAudioMaster || ctx.destination);
+        } catch (_) {
+          ctx = null;
+          masterGain = null;
+        }
+      }
+      if (!ctx) {
+        const AC = g.AudioContext || g.webkitAudioContext;
+        if (!AC) return null;
+        try {
+          ctx = new AC();
+          masterGain = ctx.createGain();
+          masterGain.gain.value = 0.36;
+          masterGain.connect(ctx.destination);
+        } catch (_) {
+          return null;
+        }
       }
     }
     if (ctx.state === 'suspended') {
       try { ctx.resume(); } catch (_) {}
     }
-    return ctx.state === 'running' ? ctx : null;
+    if (ctx.state === 'running') {
+      disarmGestureUnlock();
+      return ctx;
+    }
+    return null;
   }
 
   function unlockOnGesture() {
     ensureContext();
   }
   if (typeof document !== 'undefined') {
+    gestureUnlockArmed = true;
     document.addEventListener('pointerdown', unlockOnGesture, { passive: true });
     document.addEventListener('keydown', unlockOnGesture, { passive: true });
   }

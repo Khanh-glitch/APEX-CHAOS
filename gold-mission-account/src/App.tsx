@@ -42,7 +42,7 @@ function Hud({ g }: { g: Game }) {
               </svg>
               <span>{g.lang === "vie" ? "VỀ" : "BACK"}</span>
             </button>
-            <button type="button" aria-label={tr(g.lang,"back")} title={tr(g.lang,"back")} onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }} className="gold-hud-wordmark shrink-0 min-w-0 bg-transparent border-0 p-0 text-left"><img className="block w-full h-auto max-h-[54px] object-contain object-left" src="./assets/gold/apex-chaos-wordmark.png" alt="APEX CHAOS" draggable={false} /></button>
+            <button type="button" aria-label={tr(g.lang,"back")} title={tr(g.lang,"back")} onClick={() => { try { (window.parent as any).__APEX_GOLD_BRIDGE__?.close(); } catch {} }} className="gold-hud-wordmark shrink-0 min-w-0 bg-transparent border-0 p-0 text-left"><img className="block w-full h-auto max-h-[54px] object-contain object-left" src="./assets/gold/apex-chaos-wordmark.webp" alt="APEX CHAOS" draggable={false} /></button>
           </div>
           <div className="gold-hud-identity flex min-w-0 items-center gap-2 sm:gap-3">
             <div id="ac-chip" className={`gold-ac-chip slant-r flex shrink-0 items-center gap-1.5 sm:gap-2 pl-2 pr-3 sm:pr-5 py-1 bg-black/70 border-b-2 border-gold ${hit ? "anim-hit" : ""}`}>

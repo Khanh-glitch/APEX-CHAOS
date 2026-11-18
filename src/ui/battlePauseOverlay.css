@@ -1,0 +1,356 @@
+/* =============================================================================
+ * APEX CHAOS — Gold Tactical Battle Pause Overlay (Phase 2)
+ * Matches Gold Battle HUD & BOT WAVE Ring Command language: chamfered gunmetal,
+ * warm brass hairlines, side-identity matchup readout, and synced quick settings.
+ * ========================================================================== */
+
+.apex-battle-pause-btn {
+  position: fixed;
+  z-index: var(--apex-z-hud-tactical, 10200);
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: linear-gradient(180deg, rgba(28, 30, 36, 0.84), rgba(9, 11, 15, 0.9));
+  border: 1px solid rgba(236, 182, 90, 0.42);
+  border-top-color: rgba(255, 222, 148, 0.68);
+  clip-path: var(--apex-cut-xs, polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  opacity: 0.78;
+  touch-action: manipulation;
+  transition: opacity 130ms ease, border-color 130ms ease, transform 100ms ease, background 130ms ease;
+}
+/* Invisible 44x44px ergonomic touch pad without occluding arena art */
+.apex-battle-pause-btn::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+}
+.apex-battle-pause-btn i {
+  display: block;
+  width: 3.5px;
+  height: 13px;
+  background: linear-gradient(180deg, #fff3d2, #e2a44c);
+  box-shadow: 0 0 6px rgba(240, 185, 88, 0.45);
+}
+.apex-battle-pause-btn:hover,
+.apex-battle-pause-btn:focus-visible {
+  opacity: 1;
+  border-color: var(--apex-line-gold-strong, rgba(255, 204, 108, 0.88));
+  background: linear-gradient(180deg, rgba(50, 39, 25, 0.94), rgba(16, 15, 14, 0.96));
+}
+.apex-battle-pause-btn:active {
+  transform: scale(0.94);
+}
+.apex-battle-pause-btn:focus-visible {
+  outline: 2px solid var(--apex-focus-color, #ffd26b);
+  outline-offset: 2px;
+}
+
+.apex-battle-pause {
+  position: fixed;
+  inset: 0;
+  z-index: var(--apex-z-battle-pause, 2147478500);
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top, 12px)) max(12px, env(safe-area-inset-right, 12px))
+    max(12px, env(safe-area-inset-bottom, 12px)) max(12px, env(safe-area-inset-left, 12px));
+  background: var(--apex-surface-scrim, rgba(4, 6, 10, 0.82));
+  backdrop-filter: blur(8px);
+  font-family: var(--apex-font-display, 'Oswald', sans-serif);
+  color: var(--apex-bone, #f4efe4);
+  user-select: none;
+  animation: apex-bp-fade 150ms ease-out both;
+}
+
+.apex-bp-card {
+  position: relative;
+  width: min(454px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 19px 21px 17px;
+  background:
+    radial-gradient(ellipse 85% 45% at 50% 0%, rgba(255, 192, 76, 0.14), transparent 68%),
+    linear-gradient(158deg, rgba(28, 25, 20, 0.98) 0%, rgba(12, 15, 21, 0.99) 48%, rgba(5, 7, 11, 1) 100%);
+  border: 1px solid rgba(255, 202, 98, 0.56);
+  border-top: 2px solid #ffd884;
+  clip-path: var(--apex-cut-lg, polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px));
+  box-shadow:
+    0 32px 86px rgba(0, 0, 0, 0.86),
+    0 0 44px rgba(255, 174, 48, 0.16),
+    inset 0 1px 0 rgba(255, 248, 224, 0.24);
+  animation: apex-bp-rise 190ms var(--apex-ease-out, ease-out) both;
+}
+
+.apex-bp-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(240, 185, 88, 0.16);
+}
+.apex-bp-head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.apex-bp-kicker {
+  font: 700 9px/1.2 var(--apex-font-mono, monospace);
+  letter-spacing: 0.16em;
+  color: var(--apex-gold, #f0b958);
+}
+.apex-bp-mode {
+  padding: 2px 7px;
+  background: rgba(240, 185, 88, 0.12);
+  border: 1px solid rgba(240, 185, 88, 0.34);
+  font: 700 8.5px/1.2 var(--apex-font-mono, monospace);
+  letter-spacing: 0.1em;
+  color: var(--apex-gold-hi, #ffe29a);
+  white-space: nowrap;
+}
+.apex-bp-title {
+  margin: 2px 0 0;
+  font: 700 clamp(28px, 5vw, 36px)/0.98 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.08em;
+  color: #fff8e8;
+  text-transform: uppercase;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.65);
+}
+.apex-bp-matchup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: linear-gradient(90deg, rgba(178, 255, 58, 0.07), rgba(10, 13, 18, 0.72) 50%, rgba(134, 220, 255, 0.07));
+  border: 1px solid rgba(255, 244, 214, 0.1);
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+  font: 700 12.5px/1.2 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.08em;
+}
+.apex-bp-matchup .is-p1 { color: #c8ff6e; text-shadow: 0 0 10px rgba(178, 255, 58, 0.28); }
+.apex-bp-matchup .is-p2 { color: #96e2ff; text-shadow: 0 0 10px rgba(134, 220, 255, 0.28); }
+.apex-bp-matchup em {
+  font: 700 9px/1 var(--apex-font-mono, monospace);
+  font-style: normal;
+  color: var(--apex-gold, #f0b958);
+}
+.apex-bp-clock {
+  margin-left: auto;
+  font: 700 11.5px/1 var(--apex-font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: #f4efe4;
+}
+
+.apex-bp-actions {
+  display: grid;
+  gap: 7px;
+}
+.apex-bp-act {
+  position: relative;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-height: 48px;
+  padding: 9px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  text-align: left;
+  cursor: pointer;
+  background: linear-gradient(160deg, rgba(30, 36, 45, 0.95), rgba(13, 16, 22, 0.98));
+  border: 1px solid rgba(242, 232, 212, 0.16);
+  border-left: 3px solid rgba(245, 190, 92, 0.68);
+  clip-path: var(--apex-cut-sm, polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 248, 228, 0.1);
+  color: var(--apex-bone, #f4efe4);
+  touch-action: manipulation;
+  transition: transform 110ms ease, filter 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+.apex-bp-act::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 32%;
+  pointer-events: none;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 250, 232, 0.28), transparent);
+  transition: left 400ms cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+.apex-bp-act:hover::after {
+  left: 120%;
+}
+.apex-bp-act strong {
+  font: 700 14.5px/1.1 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.apex-bp-act small {
+  font: 600 10px/1.25 var(--apex-font-mono, monospace);
+  letter-spacing: 0.03em;
+  color: var(--apex-muted, #b8c2ce);
+}
+.apex-bp-act.is-primary {
+  background: linear-gradient(110deg, #ffe299 0%, #f5b03e 52%, #d48216 100%);
+  border-color: #fff0c4;
+  border-left-color: #ffffff;
+  color: #160e03;
+  box-shadow: 0 10px 26px rgba(245, 174, 56, 0.3), inset 0 1.5px 0 rgba(255, 255, 255, 0.62);
+}
+.apex-bp-act.is-primary small {
+  color: rgba(28, 17, 4, 0.78);
+}
+.apex-bp-act.is-danger {
+  border-left-color: rgba(255, 92, 92, 0.68);
+}
+.apex-bp-act.is-confirming {
+  background: linear-gradient(180deg, rgba(84, 24, 24, 0.95), rgba(38, 11, 13, 0.98));
+  border-color: rgba(255, 110, 96, 0.85);
+  border-left-color: #ff6e60;
+  color: #fff2ee;
+}
+.apex-bp-act.is-confirming small {
+  color: #ffc8be;
+}
+.apex-bp-act:hover {
+  filter: brightness(1.1);
+  border-color: rgba(255, 210, 122, 0.7);
+}
+.apex-bp-act:active {
+  transform: scale(0.988);
+}
+.apex-bp-act:focus-visible {
+  outline: 2px solid var(--apex-focus-color, #ffd26b);
+  outline-offset: 2px;
+}
+
+.apex-bp-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(240, 185, 88, 0.14);
+}
+.apex-bp-sec-head {
+  font: 700 8.5px/1 var(--apex-font-mono, monospace);
+  letter-spacing: 0.16em;
+  color: var(--apex-gold, #f0b958);
+}
+.apex-bp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.apex-bp-label {
+  font: 600 8.5px/1.15 var(--apex-font-mono, monospace);
+  letter-spacing: 0.1em;
+  color: var(--apex-muted, #b8c2ce);
+}
+.apex-bp-split {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 8px;
+}
+.apex-bp-seg {
+  display: grid;
+  gap: 4px;
+}
+.apex-bp-seg.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.apex-bp-seg.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.apex-bp-seg button {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 0;
+  min-height: 36px;
+  padding: 4px 5px;
+  border: 1px solid rgba(238, 231, 219, 0.16);
+  background: rgba(12, 16, 22, 0.85);
+  color: #cfd8e3;
+  font: 700 11px/1 var(--apex-font-display, 'Oswald', sans-serif);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.apex-bp-seg button:hover {
+  border-color: rgba(240, 185, 88, 0.65);
+  color: #ffffff;
+}
+.apex-bp-seg button.is-active {
+  background: rgba(240, 185, 88, 0.2);
+  border-color: var(--apex-gold, #f0b958);
+  color: var(--apex-gold-hi, #ffe29a);
+  box-shadow: inset 0 0 10px rgba(240, 185, 88, 0.2);
+}
+.apex-bp-seg button:focus-visible {
+  outline: 2px solid var(--apex-focus-color, #ffd26b);
+  outline-offset: 2px;
+}
+
+.apex-bp-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+.apex-bp-controls p {
+  margin: 0;
+  font: 600 9.5px/1.35 var(--apex-font-mono, monospace);
+  letter-spacing: 0.03em;
+  color: var(--apex-dim, #96a2b0);
+}
+
+@keyframes apex-bp-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes apex-bp-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 520px), (max-height: 500px) {
+  .apex-bp-card {
+    padding: 13px 14px 12px;
+    gap: 9px;
+  }
+  .apex-bp-title { font-size: 24px; }
+  .apex-bp-act { min-height: 44px; padding: 7px 11px; }
+  .apex-bp-act strong { font-size: 13px; }
+  .apex-bp-split { grid-template-columns: 1fr; gap: 6px; }
+  .apex-bp-controls { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apex-battle-pause, .apex-bp-card, .apex-bp-act, .apex-bp-act.is-primary::after, .apex-battle-pause-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+html[data-apex-motion="reduced"] .apex-battle-pause,
+html[data-apex-motion="reduced"] .apex-bp-card,
+html[data-apex-motion="reduced"] .apex-bp-act,
+html[data-apex-motion="reduced"] .apex-bp-act.is-primary::after,
+html[data-apex-motion="reduced"] .apex-battle-pause-btn {
+  animation: none !important;
+  transition: none !important;
+}

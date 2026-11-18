@@ -49,6 +49,7 @@
     audio.loop = true;
     audio.preload = 'auto';
     audio.volume = VOLUME;
+    if (win.__apexGoldMusicMuted === true) audio.muted = true;
     audio.__apexMenuMusic = true;
     if (!audio.src) audio.src = SOURCE;
     try { audio.load(); } catch (error) { /* preload is best-effort */ }
@@ -216,11 +217,27 @@
       }
     };
 
-    const toggleMute = () => {
-      audio.muted = !audio.muted; // MUSIC ONLY — battle SFX are a separate graph
-      win.__apexGoldMusicMuted = audio.muted;
+    const emitMute = () => {
+      try {
+        if (typeof win.CustomEvent === 'function' && typeof win.dispatchEvent === 'function') {
+          win.dispatchEvent(new win.CustomEvent('apex:music-mute-changed', { detail: { muted: audio.muted } }));
+        }
+      } catch (error) { /* optional */ }
+    };
+
+    const setMuted = (muted) => {
+      const next = Boolean(muted);
+      if (audio.muted === next) {
+        win.__apexGoldMusicMuted = next;
+        return next;
+      }
+      audio.muted = next; // MUSIC ONLY — battle SFX are a separate graph
+      win.__apexGoldMusicMuted = next;
+      emitMute();
       return audio.muted;
     };
+
+    const toggleMute = () => setMuted(!audio.muted);
 
     const api = {
       source: audio.currentSrc || audio.src || SOURCE,
@@ -238,6 +255,7 @@
       },
       fadeOut: (ms) => fadeOut(ms),
       fadeIn: (ms) => fadeIn(ms),
+      setMuted,
       toggleMute,
       // No-spam browser diagnostics: counters and the honest blocked state.
       diagnostics: () => ({

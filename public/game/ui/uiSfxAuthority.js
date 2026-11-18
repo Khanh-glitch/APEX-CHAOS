@@ -332,6 +332,7 @@
     };
 
     win.apexUiSfx = api;
+    if (win.__apexSfxMuted === true) api.mute();
     return api;
   }
 

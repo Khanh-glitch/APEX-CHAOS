@@ -656,7 +656,7 @@
  background:linear-gradient(105deg,transparent 22%,#ffffff10 44%,transparent 62%);transform:translateX(-75%);transition:transform .45s ease}
 #wave-hud .bw-pause-actions button strong{display:block;font:700 16px/1 var(--bw-font-display);letter-spacing:.065em;text-shadow:0 2px 5px #000}
 #wave-hud .bw-pause-actions button small{display:block;margin-top:4px;color:#dccdb7;
- font:500 9px/1.3 "Oswald","Segoe UI",system-ui,sans-serif}
+ font:500 9.5px/1.3 var(--bw-font-display)}
 #wave-hud .bw-pause-actions button:hover{filter:brightness(1.18) saturate(1.08);transform:translateY(-2px);box-shadow:inset 0 1px 0 #fff3d44d,inset 0 -14px 22px #0008,0 16px 30px #000b,0 0 18px #ff9b5724}
 #wave-hud .bw-pause-actions button:hover:after{transform:translateX(75%)}
 #wave-hud .bw-pause-actions button:active{transform:translateY(1px)}
@@ -668,7 +668,23 @@
 #wave-hud .bw-pause-actions .is-danger{border-left-color:#ff5964}
 #wave-hud .bw-pause-actions .is-confirming{border-color:#ff8a7a!important;background:linear-gradient(140deg,#5c1d28,#21131e 62%,#120b12)!important;
  animation:bw-danger-pulse .55s ease-in-out infinite alternate}
-#wave-hud .bw-pause-build-wrap{position:relative;margin-top:15px}
+#wave-hud .bw-pause-prefs{position:relative;display:flex;flex-direction:column;gap:8px;margin-top:13px;padding-top:11px;border-top:1px solid #ffcf8b2e}
+#wave-hud .bw-pref-group{display:flex;flex-direction:column;gap:5px;min-width:0}
+#wave-hud .bw-pref-group>span{color:#adbfcc;font:600 8.5px/1 var(--bw-font-data);letter-spacing:.15em}
+#wave-hud .bw-pref-split{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#wave-hud .bw-pref-seg{display:grid;gap:4px}
+#wave-hud .bw-pref-seg.is-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+#wave-hud .bw-pref-seg.is-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+#wave-hud .bw-pref-seg button{appearance:none;min-height:34px;padding:4px 5px;cursor:pointer;
+ color:#d6c8b6;background:linear-gradient(160deg,#1a1f2b,#0a0e16);border:1px solid #c99a5f4d;
+ font:700 11px/1 var(--bw-font-display);letter-spacing:.07em;touch-action:manipulation;
+ transition:border-color .12s,background .12s,color .12s}
+#wave-hud .bw-pref-seg button:hover{border-color:#ffdf93aa;color:#fff5e0}
+#wave-hud .bw-pref-seg button.is-active{color:#231105;background:linear-gradient(100deg,#d87639,#ffbb71 52%,#ffe5a4);
+ border-color:#ffe4a8;box-shadow:inset 0 1px 0 #fff6,0 4px 12px #0008}
+#wave-hud .bw-pref-seg button:focus-visible{outline:2px solid #ffe2aa;outline-offset:2px}
+#wave-hud .bw-pause-card{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+#wave-hud .bw-pause-build-wrap{position:relative;margin-top:12px}
 #wave-hud .bw-pause-build-wrap>span{color:#adbfcc;font:600 8.5px/1 var(--bw-font-data);letter-spacing:.16em}
 #wave-hud .bw-pause-build{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 #wave-hud .bw-pause-chip,#wave-hud .bw-pause-build em{display:inline-flex;align-items:center;min-height:21px;padding:4px 8px 4px 6px;color:#ffe4bb;
@@ -679,8 +695,8 @@
  background:radial-gradient(circle at 34% 28%,#fff7cf,#ffbb71 62%,#9a6336);clip-path:polygon(50% 0,93% 25%,100% 50%,93% 75%,50% 100%,7% 75%,0 50%,7% 25%);
  font:600 7px/1 var(--bw-font-data);letter-spacing:-.02em;filter:drop-shadow(0 2px 3px #0009)}
 #wave-hud .bw-pause-chip[data-kind="unlock"]{border-color:#ffe1a1aa;box-shadow:inset 0 1px 0 #fff3,0 0 14px #ff9b5726,0 7px 14px #0008}
-#wave-hud .bw-pause-note{position:relative;margin:14px 0 0;padding-left:11px;color:#cdbca6;
- border-left:2px solid #ffcf8b66;font:500 10px/1.5 "Oswald","Segoe UI",system-ui,sans-serif}
+#wave-hud .bw-pause-note{position:relative;margin:12px 0 0;padding-left:11px;color:#cdbca6;
+ border-left:2px solid #ffcf8b66;font:500 10.5px/1.5 var(--bw-font-display)}
 #arena-experience-hud #arena-message{top:29%!important;padding:8px 24px!important;
  background:linear-gradient(90deg,transparent,#160e13e8 18%,#111827f2 50%,#160e13e8 82%,transparent)!important;
  color:#ffe4b0!important;border-top:1px solid #ffcf8b9e!important;border-bottom:1px solid #ffcf8b9e!important;
@@ -1252,4 +1268,41 @@
  #wave-hud .bw-beat-markers i.active,
  #wave-hud .bw-pause-actions .is-confirming,
  #arena-experience-hud #r2-boss-panel .boss-r2-meter b{animation:none!important}
+}
+
+/* Phase 3 — Gold Obsidian Ring Command Unification (R13 clarity preserved) */
+#wave-hud .bw-pause-trigger:focus-visible,
+#wave-hud .w-action:focus-visible,
+#wave-hud .bw-pause-actions button:focus-visible,
+#wave-modal .w-card:focus-visible,
+#wave-modal .w-dialog>#w-go:focus-visible{
+ outline:2px solid #ffd26b!important;outline-offset:2px!important;
+}
+#wave-hud .bw-pause-trigger{
+ transition:transform .12s ease,filter .15s ease,box-shadow .15s ease;
+}
+#wave-hud .bw-pause-trigger:hover{
+ filter:brightness(1.16);
+ box-shadow:0 0 18px rgba(255,186,72,.34);
+}
+#wave-hud .bw-pause-trigger:active{transform:scale(.94)}
+#wave-modal .w-card{
+ transition:transform .16s cubic-bezier(.18,.88,.26,1),border-color .16s ease,box-shadow .18s ease,filter .16s ease;
+}
+#wave-modal .w-card:hover{
+ filter:brightness(1.06);
+ box-shadow:0 22px 46px rgba(0,0,0,.78),0 0 28px rgba(255,176,58,.24),inset 0 1.5px 0 rgba(255,248,224,.36);
+}
+#wave-modal .w-dialog>#w-go:not(:disabled){
+ box-shadow:0 14px 32px rgba(0,0,0,.68),0 0 26px rgba(255,174,48,.32),inset 0 1.5px 0 rgba(255,252,238,.58);
+}
+html[data-apex-motion="reduced"] #wave-hud .bw-hero,
+html[data-apex-motion="reduced"] #wave-hud .bw-encounter,
+html[data-apex-motion="reduced"] #wave-hud .bw-minimap,
+html[data-apex-motion="reduced"] #wave-hud .bw-skill-deck,
+html[data-apex-motion="reduced"] #wave-hud .bw-movement,
+html[data-apex-motion="reduced"] #wave-hud .w-action,
+html[data-apex-motion="reduced"] #wave-modal .w-dialog,
+html[data-apex-motion="reduced"] #wave-modal .w-card{
+ animation:none!important;transition:none!important;
 }

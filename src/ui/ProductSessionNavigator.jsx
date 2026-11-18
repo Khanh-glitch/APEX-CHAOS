@@ -4,12 +4,13 @@ import './productSessionNavigation.css';
 // Single ordered registry. Upgrade and Fighter Shop can join here once they
 // expose real game-owned open/close contracts; no speculative screen or wallet.
 const SECTIONS=[
- {id:'missions',label:'Missions'},
- {id:'mastery',label:'Mastery'},
- {id:'account',label:'Account'},
- {id:'lucky',label:'Lucky Draw'},
- {id:'archive',label:'Archive'},
+ {id:'missions',label:'Missions',vie:'Nhiệm Vụ'},
+ {id:'mastery',label:'Mastery',vie:'Tinh Thông'},
+ {id:'account',label:'Account',vie:'Tài Khoản'},
+ {id:'lucky',label:'Lucky Draw',vie:'Vòng Quay'},
+ {id:'archive',label:'Archive',vie:'Kho Lưu Trữ'},
 ];
+const isVieLang=()=>{try{return window.APEX_I18N?.getLanguage?.()==='vie';}catch{return false;}};
  // HOME toolbar visual order (unavailable Fighter Shop/Upgrade are reserved).
  // Route indices are fixed by existing Gold bridges, not reordered here.
  const VISUAL_ORDER=[3,4,0,1,2];
@@ -60,7 +61,7 @@ export default function ProductSessionNavigator(){
   if(document.getElementById('apex-wave-host')||busyDraw())return false;
   moving.current=true;
   const external=current>=3||index>=3;
-  const label=SECTIONS[index].label.toUpperCase();
+  const label=(isVieLang()?SECTIONS[index].vie:SECTIONS[index].label).toUpperCase();
   try{
    // Never discard gestures while the Home scene Door is still opening.
    if(window.APEX_SCENE_TRANSITION?.active?.()){
@@ -158,7 +159,12 @@ export default function ProductSessionNavigator(){
   document.addEventListener('pointerup',onArchiveUp,true);
   document.addEventListener('pointercancel',cancel,true);
   window.addEventListener('keydown',onKeys);
-  const interval=window.setInterval(()=>{
+  const syncSurface=()=>{
+   if(document.body?.classList.contains('battle-hud-open')||document.body?.classList.contains('battle-open')){
+    setVisible(old=>old===-1?old:-1);
+    setCoach(old=>old?false:old);
+    return;
+   }
    const current=activeSurface();
    setVisible(old=>old===current?old:current);
    // One unified first-entry instruction for the complete five-section rail.
@@ -175,7 +181,7 @@ export default function ProductSessionNavigator(){
      hintTimer.current=window.setTimeout(()=>setCoach(false),6000);
     }
    }
-   if(current<3)setCoach(false);
+   if(current<3)setCoach(old=>old?false:old);
    const frame=luckyFrame();
    let doc=null;
    try{doc=frame?.contentDocument?.getElementById('stage')?frame.contentDocument:null;}catch{}
@@ -204,11 +210,37 @@ export default function ProductSessionNavigator(){
     doc.addEventListener('pointerup',onLuckyUp,true);
     doc.documentElement.dataset.apexSectionSwipeReady='1';
    }
-  },125);
+  };
+  let rafId=0;
+  const scheduleSync=()=>{
+   if(rafId)return;
+   rafId=window.requestAnimationFrame(()=>{rafId=0;syncSurface();});
+  };
+  const bodyObs=typeof MutationObserver!=='undefined'&&document.body?new MutationObserver(scheduleSync):null;
+  bodyObs?.observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('apex-open-cosmetics',scheduleSync);
+  window.addEventListener('apex-open-dictionary',scheduleSync);
+  window.addEventListener('apex-close-cosmetics',scheduleSync);
+  window.addEventListener('apex:session-navigate',scheduleSync);
+  window.addEventListener('apex-parent-runtime-pause',scheduleSync);
+  window.addEventListener('apex-parent-runtime-resume',scheduleSync);
+  const interval=window.setInterval(()=>{
+   if(document.body?.classList.contains('battle-hud-open')||document.body?.classList.contains('battle-open'))return;
+   syncSurface();
+  },600);
+  syncSurface();
   return()=>{
+   if(rafId)window.cancelAnimationFrame(rafId);
+   bodyObs?.disconnect();
    window.clearInterval(interval);
    if(hintTimer.current)window.clearTimeout(hintTimer.current);
    window.removeEventListener('keydown',onKeys);
+   window.removeEventListener('apex-open-cosmetics',scheduleSync);
+   window.removeEventListener('apex-open-dictionary',scheduleSync);
+   window.removeEventListener('apex-close-cosmetics',scheduleSync);
+   window.removeEventListener('apex:session-navigate',scheduleSync);
+   window.removeEventListener('apex-parent-runtime-pause',scheduleSync);
+   window.removeEventListener('apex-parent-runtime-resume',scheduleSync);
    document.removeEventListener('pointerdown',onArchiveDown,true);
    document.removeEventListener('pointerup',onArchiveUp,true);
    document.removeEventListener('pointercancel',cancel,true);
@@ -229,8 +261,8 @@ export default function ProductSessionNavigator(){
       className={visible===index?'is-current':''} aria-current={visible===index?'step':undefined}/>)}
   </div>}
   {visible>=3&&coach&&<div className="apex-session-coach" data-testid="apex-session-swipe-coach"
-    role="status" aria-live="polite">
-    <div className="apex-session-coach-copy">VUỐT TRÁI / PHẢI · SWIPE LEFT / RIGHT</div>
+    data-apex-no-localize="" role="status" aria-live="polite">
+    <div className="apex-session-coach-copy">{isVieLang()?'VUỐT TRÁI / PHẢI ĐỂ CHUYỂN MỤC':'SWIPE LEFT / RIGHT TO SWITCH'}</div>
     <div className="apex-session-coach-track" aria-hidden="true">
       <span>‹</span>
       <svg className="apex-session-coach-hand" viewBox="0 0 56 68" width="46" height="56" fill="none">

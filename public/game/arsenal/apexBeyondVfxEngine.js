@@ -102,12 +102,15 @@
     const lifeMax = opts.lifeMax ?? 0.52;
     const width = opts.width ?? 2.4;
 
-    for (let i = 0; i < count; i++) {
-      if (sparks.length >= MAX_SPARKS) sparks.shift();
+    const pScale = global.APEX_GFX_QUALITY ? global.APEX_GFX_QUALITY.particleScale() : 1.0;
+    const scaledCount = Math.max(1, Math.round(count * pScale));
+    const cap = Math.max(24, Math.round(MAX_SPARKS * pScale));
+
+    for (let i = 0; i < scaledCount; i++) {
       const a = baseAngle + (Math.random() - 0.5) * spread;
       const spd = speedMin + Math.random() * (speedMax - speedMin);
       const life = lifeMin + Math.random() * (lifeMax - lifeMin);
-      sparks.push({
+      const item = {
         x, y,
         px: x, py: y,
         vx: Math.cos(a) * spd,
@@ -116,7 +119,9 @@
         color, core,
         width: width * (0.7 + Math.random() * 0.6),
         drag: opts.drag ?? 0.91,
-      });
+      };
+      if (sparks.length >= cap) sparks[(Math.random() * sparks.length) | 0] = item;
+      else sparks.push(item);
     }
   }
 
@@ -128,9 +133,11 @@
     const speedMin = opts.speedMin ?? 140;
     const speedMax = opts.speedMax ?? 460;
     const size = opts.size ?? 8;
+    const pScale = global.APEX_GFX_QUALITY ? global.APEX_GFX_QUALITY.particleScale() : 1.0;
+    const scaledCount = Math.max(1, Math.round(count * pScale));
+    const cap = Math.max(12, Math.round(MAX_SHARDS * pScale));
 
-    for (let i = 0; i < count; i++) {
-      if (shards.length >= MAX_SHARDS) shards.shift();
+    for (let i = 0; i < scaledCount; i++) {
       const a = baseAngle + (Math.random() - 0.5) * spread;
       const spd = speedMin + Math.random() * (speedMax - speedMin);
       const life = 0.35 + Math.random() * 0.45;
@@ -142,7 +149,7 @@
         const kr = r * (0.55 + Math.random() * 0.55);
         pts.push([Math.cos(ka) * kr, Math.sin(ka) * kr]);
       }
-      shards.push({
+      const item = {
         x, y,
         vx: Math.cos(a) * spd,
         vy: Math.sin(a) * spd,
@@ -150,7 +157,9 @@
         vrot: (Math.random() - 0.5) * 20,
         life, maxLife: life,
         color, edge, pts,
-      });
+      };
+      if (shards.length >= cap) shards[(Math.random() * shards.length) | 0] = item;
+      else shards.push(item);
     }
   }
 
@@ -161,13 +170,15 @@
     const spread = opts.spread ?? TAU;
     const speed = opts.speed ?? 150;
     const radius = opts.radius ?? 24;
+    const pScale = global.APEX_GFX_QUALITY ? global.APEX_GFX_QUALITY.particleScale() : 1.0;
+    const scaledCount = Math.max(1, Math.round(count * pScale));
+    const cap = Math.max(10, Math.round(MAX_PLUMES * pScale));
 
-    for (let i = 0; i < count; i++) {
-      if (plumes.length >= MAX_PLUMES) plumes.shift();
+    for (let i = 0; i < scaledCount; i++) {
       const a = baseAngle + (Math.random() - 0.5) * spread;
       const spd = speed * (0.35 + Math.random() * 0.85);
       const life = 0.32 + Math.random() * 0.36;
-      plumes.push({
+      const item = {
         x: x + (Math.random() - 0.5) * 14,
         y: y + (Math.random() - 0.5) * 14,
         vx: Math.cos(a) * spd,
@@ -176,7 +187,9 @@
         r1: radius * (1.25 + Math.random() * 0.75),
         life, maxLife: life,
         color, rim,
-      });
+      };
+      if (plumes.length >= cap) plumes[(Math.random() * plumes.length) | 0] = item;
+      else plumes.push(item);
     }
   }
 
@@ -730,16 +743,18 @@
       c.save();
       c.translate(f.x, f.y);
 
-      // Grounded directional ambient-occlusion contact shadow
-      const shR = f.radius * 1.06;
-      const sg = c.createRadialGradient(-4, f.radius * 0.34, 4, -4, f.radius * 0.34, shR);
-      sg.addColorStop(0, 'rgba(4,6,10,0.48)');
-      sg.addColorStop(0.62, 'rgba(4,6,10,0.22)');
-      sg.addColorStop(1, 'rgba(4,6,10,0)');
-      c.fillStyle = sg;
-      c.beginPath();
-      c.ellipse(-4, f.radius * 0.34, shR, shR * 0.56, 0, 0, TAU);
-      c.fill();
+      // Contact shadow is owned by APEX_EVOLUTION_ARENAS when active (avoids double shadow + 2 gradients/frame).
+      if (!global.APEX_EVOLUTION_ARENAS) {
+        const shR = f.radius * 1.06;
+        const sg = c.createRadialGradient(-4, f.radius * 0.34, 4, -4, f.radius * 0.34, shR);
+        sg.addColorStop(0, 'rgba(4,6,10,0.48)');
+        sg.addColorStop(0.62, 'rgba(4,6,10,0.22)');
+        sg.addColorStop(1, 'rgba(4,6,10,0)');
+        c.fillStyle = sg;
+        c.beginPath();
+        c.ellipse(-4, f.radius * 0.34, shR, shR * 0.56, 0, 0, TAU);
+        c.fill();
+      }
 
       // Diegetic Kinetic Impulse charge ring (subtle clean segmented rim beneath fighter)
       if (st) {

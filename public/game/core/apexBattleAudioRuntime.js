@@ -177,8 +177,32 @@ if (typeof HTMLMediaElement !== 'undefined' && !HTMLMediaElement.prototype.__ape
         return result;
     };
 }
+var battleSfxMuted = Boolean(window.__apexSfxMuted);
+window.apexSetBattleSfxMuted = function (muted) {
+    battleSfxMuted = Boolean(muted);
+    window.__apexSfxMuted = battleSfxMuted;
+    try {
+        if (battleAudioFadeTimer && battleSfxMuted) {
+            clearInterval(battleAudioFadeTimer);
+            battleAudioFadeTimer = null;
+        }
+        const now = audioCtx.currentTime;
+        battleAudioMaster.gain.cancelScheduledValues(now);
+        const target = (window.__apexStatsSilent || battleSfxMuted)
+            ? 0
+            : (battleAudioSessionActiveFlag ? 1 : .001);
+        battleAudioMaster.gain.setValueAtTime(target, now);
+    } catch (error) {}
+    return battleSfxMuted;
+};
+window.apexIsBattleSfxMuted = function () {
+    return Boolean(battleSfxMuted || window.__apexSfxMuted || window.__apexStatsSilent);
+};
+if (battleSfxMuted) {
+    try { battleAudioMaster.gain.setValueAtTime(0, audioCtx.currentTime); } catch (error) {}
+}
 function restoreBattleAudio() {
-    if (window.__apexStatsSilent) {
+    if (window.__apexStatsSilent || battleSfxMuted || window.__apexSfxMuted) {
         try { battleAudioMaster.gain.setValueAtTime(0, audioCtx.currentTime); } catch (error) {}
         return;
     }

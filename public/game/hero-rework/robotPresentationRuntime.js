@@ -1020,6 +1020,23 @@ function renderRig(g) {
     };
   }
 
+  function drawFastRageHalo(c, fighter) {
+    const glow = fighter.color || '#ffb84d';
+    const rr = (fighter.radius || 75) * 1.02;
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    c.globalAlpha *= 0.34;
+    c.strokeStyle = glow;
+    c.lineWidth = 5;
+    c.beginPath();
+    c.arc(0, 0, rr, 0, Math.PI * 2);
+    c.stroke();
+    c.globalAlpha *= 0.45;
+    c.lineWidth = 11;
+    c.stroke();
+    c.restore();
+  }
+
   function renderActorImage(ctx, fighter, x, y) {
     if (!ctx || !isRobotFighter(fighter)) return false;
     const st = getRobotState(fighter);
@@ -1030,16 +1047,12 @@ function renderRig(g) {
     try {
       if (fighter.hasStatus && fighter.hasStatus('immune')) ctx.globalAlpha *= 0.55;
       ctx.translate(Number.isFinite(x) ? x : fighter.x, Number.isFinite(y) ? y : fighter.y);
-      if (fighter.isRage) {
-        const glow = fighter.color || '#ffffff';
-        try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (error) {}
-      }
+      if (fighter.isRage) drawFastRageHalo(ctx, fighter);
       const cosmetic=globalScope.APEX_COSMETICS;
       const receipt=cosmetic?.capture?.(cosmetic.sideOf(fighter,globalScope),'hero','ROBOT')||null;
       if (!cosmetic?.render?.('actor',ctx,receipt,{x:0,y:0,kind:'ROBOT',robot:receipt?.skinId!=='default'?robotCosmeticMotion(st):null}))
         renderRobotLocal(ctx, fighter, st);
     } finally {
-      if (fighter.isRage) { try { ctx.filter = 'none'; } catch (error) {} }
       ctx.restore();
     }
     return true;
@@ -1306,7 +1319,7 @@ function renderRig(g) {
 
         // Fighter-avoiding & arena-clamped callout pill above/below target.
         const pillFontPx = Math.round(18 * invScale);
-        ctx.font = `800 ${pillFontPx}px "Chakra Petch", "Barlow Condensed", sans-serif`;
+        ctx.font = `700 ${pillFontPx}px "Oswald", "ApexVietCondensed", sans-serif`;
         const tw = Math.ceil(ctx.measureText(pillText).width);
         const pw = tw + Math.round(24 * invScale);
         const ph = Math.round(30 * invScale);
@@ -1338,7 +1351,7 @@ function renderRig(g) {
         ctx.setLineDash([]);
 
         const spawnFontPx = Math.round(15 * invScale);
-        ctx.font = `700 ${spawnFontPx}px "Chakra Petch", "Barlow Condensed", sans-serif`;
+        ctx.font = `700 ${spawnFontPx}px "Oswald", "ApexVietCondensed", sans-serif`;
         const tw = Math.ceil(ctx.measureText(label).width);
         const pw = tw + Math.round(20 * invScale);
         const ph = Math.round(26 * invScale);
@@ -1779,17 +1792,13 @@ function renderRig(g) {
             tc.globalAlpha = this.hasStatus('immune') ? 0.55 : 1;
             tc.translate(this.x, this.y);
             // Fixed HTML-facing world orientation.
-            if (this.isRage) {
-              const glow = this.color || '#ffffff';
-              try { tc.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (e) {}
-            }
+            if (this.isRage) drawFastRageHalo(tc, this);
             try {
               const cosmetic=globalScope.APEX_COSMETICS;
               const receipt=cosmetic?.capture?.(cosmetic.sideOf(this,globalScope),'hero','ROBOT')||null;
               if(!cosmetic?.render?.('actor',tc,receipt,{x:0,y:0,kind:'ROBOT',robot:receipt?.skinId!=='default'?robotCosmeticMotion(st):null}))
                 renderRobotLocal(tc,this,st);
             } catch(e) { console.warn('[robot-presentation] render failed',e); }
-            if (this.isRage) { try { tc.filter = 'none'; } catch (e) {} }
             tc.restore();
           };
           // Gold V17 wall smoke, dash ribbon AND living target ring belong

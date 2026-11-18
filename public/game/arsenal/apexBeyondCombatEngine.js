@@ -95,6 +95,7 @@
     global.APEX_BEYOND_ARENA?.resetMatch?.();
     global.APEX_BEYOND_VFX?.reset?.();
     global.APEX_BEYOND_VFX?.setCameraDirectorEnabled?.(settings.cameraDirector);
+    try { global.dispatchEvent(new CustomEvent('apex:beyond-state', { detail: { active: state.active } })); } catch (_) {}
   }
 
   function sideIndexOf(fighter) {
@@ -290,6 +291,10 @@
       for (let pIdx = 0; pIdx < projs.length; pIdx++) {
         const p = projs[pIdx];
         if (!p || p.life <= 0 || p.owner === f || p.__beyondDeflectedBy === f.id) continue;
+        // Never deflect projectiles owned by the fighter's own deployed turret/drone/clone
+        // or persistent world constructs / beams.
+        if (p.owner && (p.owner.owner === f || p.owner.anchor === f)) continue;
+        if (p.noDeflect || p.isZone || p.isBeam) continue;
         if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
         // Reflect ballistic & thrown projectiles (skip static floor zones / walls)
         const hasVel = Number.isFinite(p.vx) && Number.isFinite(p.vy) && Math.hypot(p.vx, p.vy) > 40;
@@ -519,14 +524,11 @@
 
   // ---- Per-Frame Main Tick ----
   function tick(dt, rawDt) {
+    if (global.__apexBattlePaused) return;
     const eligible = isFreeBattleEligible();
     state.active = eligible;
-    global.APEX_BEYOND_ARENA?.tick?.(rawDt || dt);
-    global.APEX_BEYOND_VFX?.tick?.(dt, rawDt || dt);
-    if (!eligible) return;
-
     const aq = global.APEX_ARSENAL?.state;
-    if (aq && aq.over) {
+    if (eligible && aq && aq.over) {
       if (!state.koTriggered) {
         state.koTriggered = true;
         const fs = global.fighters || [];
@@ -534,8 +536,13 @@
         const winner = loser === fs[0] ? fs[1] : fs[0];
         if (loser) global.APEX_BEYOND_VFX?.triggerKoCinema?.(loser, winner);
       }
+      // Advance passive K.O. camera/particles only; freeze arena hazards after K.O.!
+      global.APEX_BEYOND_VFX?.tick?.(dt, rawDt || dt);
       return;
     }
+    global.APEX_BEYOND_ARENA?.tick?.(rawDt || dt);
+    global.APEX_BEYOND_VFX?.tick?.(dt, rawDt || dt);
+    if (!eligible) return;
 
     state.matchTime += dt;
     if (state.clashCooldown > 0) state.clashCooldown = Math.max(0, state.clashCooldown - dt);
@@ -565,10 +572,12 @@
       // Overdrive duration & speed/cooldown haste bonus
       if (st.overdriveTimer > 0) {
         st.overdriveTimer = Math.max(0, st.overdriveTimer - dt);
-        // Subtle passive speed nudge along movement dir during Overdrive (+18%)
+        // Subtle passive speed nudge along movement dir during Overdrive (+16%), clamped inside walls
         if (f.hp > 0 && !f.hardCC?.() && f.dir) {
-          f.x += f.dir.x * (f.baseSpeed || 520) * 0.16 * dt;
-          f.y += f.dir.y * (f.baseSpeed || 520) * 0.16 * dt;
+          const S = global.GAME_SIZE || 1000;
+          const pad = (f.radius || 34) + 12;
+          f.x = Math.max(pad, Math.min(S - pad, f.x + f.dir.x * (f.baseSpeed || 520) * 0.16 * dt));
+          f.y = Math.max(pad, Math.min(S - pad, f.y + f.dir.y * (f.baseSpeed || 520) * 0.16 * dt));
         }
       } else if (inZone && f.hp > 0) {
         // Fighting inside Overclock Zone steadily fills Overdrive!
@@ -578,12 +587,17 @@
       // Cooldown haste bonus from Overdrive or Overclock Zone on rework hero skills
       if ((st.overdriveTimer > 0 || inZone) && f.hp > 0) {
         const extraDt = dt * (st.overdriveTimer > 0 ? 0.28 : 0.35);
-        const hrc = global.APEX_HERO_REWORK?.combatantFor?.(f);
+        const hrc = f.__hrCombatant || global.APEX_HERO_REWORK?.combatantFor?.(f);
         if (hrc?.skills) {
           for (const key of ['A1', 'A2']) {
             const sk = hrc.skills[key];
-            if (sk && typeof sk.cooldown === 'number' && sk.cooldown > 0) {
-              sk.cooldown = Math.max(0, sk.cooldown - extraDt);
+            if (!sk) continue;
+            if (typeof sk.cdLeft === 'number' && sk.cdLeft > 0) {
+              sk.cdLeft = Math.max(0, sk.cdLeft - extraDt);
+            }
+            const maxCh = Number(sk.cfg?.maxCharges) || 1;
+            if (maxCh > 1 && Number(sk.charges) < maxCh && typeof sk.rechargeLeft === 'number' && sk.rechargeLeft > 0) {
+              sk.rechargeLeft = Math.max(0, sk.rechargeLeft - extraDt);
             }
           }
         }
@@ -715,13 +729,23 @@
     }
 
     // 4. Keyboard & Canvas Tap/Click listeners for Kinetic Impulse!
+    const clearHeldKeys = () => heldKeys.clear();
+    global.addEventListener('blur', clearHeldKeys);
+    global.addEventListener('apex:battle-pause-changed', clearHeldKeys);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) clearHeldKeys(); });
+
     global.addEventListener('keydown', (e) => {
+      if (global.__apexBattlePaused || global.APEX_GOLD?.isResultOpen?.()) return;
+      const aq = global.APEX_ARSENAL?.state;
+      if (!isFreeBattleEligible() || aq?.over) return;
       heldKeys.add(e.code);
-      if (!isFreeBattleEligible() || e.repeat) return;
+      if (e.repeat) return;
+      const tag = String(e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'KeyL') {
         if (triggerImpulse(0)) e.preventDefault();
       } else if (e.code === 'Enter' || e.code === 'ShiftRight' || e.code === 'Numpad0' || e.code === 'Numpad3') {
-        if (global.APEX_ARSENAL?.state?.battleMode !== 'BOT') {
+        if (aq?.battleMode !== 'BOT') {
           if (triggerImpulse(1)) e.preventDefault();
         }
       }
@@ -732,7 +756,9 @@
 
     // Event-delegated Click / Tap directly on #game-canvas to fire P1 Kinetic Impulse toward that exact spot!
     document.addEventListener('pointerdown', (e) => {
-      if (!isFreeBattleEligible()) return;
+      if (global.__apexBattlePaused || global.APEX_GOLD?.isResultOpen?.()) return;
+      if (document.body?.classList?.contains('battle-result')) return;
+      if (!isFreeBattleEligible() || global.APEX_ARSENAL?.state?.over) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       const cv = e.target && e.target.id === 'game-canvas' ? e.target : null;
       if (!cv) return;
@@ -756,6 +782,8 @@
       matchTime: state.matchTime,
       theme,
       themes: global.APEX_BEYOND_ARENA?.THEMES || [],
+      gfxMode: global.APEX_GFX_QUALITY?.getMode?.() || 'auto',
+      gfxEffective: global.APEX_GFX_QUALITY?.getEffective?.() || 'ultra',
       settings: { ...settings },
       p1ImpulseUsed: state.p1ImpulseUsed,
       showHint: active && !state.p1ImpulseUsed && state.matchTime < 10.0,

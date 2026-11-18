@@ -159,15 +159,25 @@
       g.material.fracture(toGold(body.x),toGold(body.y)+20,36,2,.55);
       g.fx.flash(toGold(body.x),toGold(body.y)-10,40,'#ffd23c',.10);
     }else if(ev.type==='boxe:flurry-start'){
-      // Two fists stay at the physical impact site. Native BOXE is NEVER
-      // teleported or slowed; a second *visual-only* Gold instance draws only
-      // gloves and original six-jab FX, not another fighter body.
-      const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;
-      const fg=new lib.Engine(canvas,{visualOnly:true,materialFx:true,sound:false,
-        hitstop:true,afterimage:true,shake:1});
+      // Two fists stay at the physical impact site. Reuse ONE pooled visual-only
+      // Gold Engine per BOXE combatant instead of allocating five 158x158 fluid
+      // grids + canvases on every J cast.
+      let fg=rec.flurryPool;
+      if(!fg){
+        const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;
+        fg=new lib.Engine(canvas,{visualOnly:true,materialFx:true,sound:false,
+          hitstop:true,afterimage:true,shake:1});
+        fg.paused=true;
+        fg.retainedFluid=global.APEX_GOLD_LOSSLESS_FLUID?.install(fg.fluid);
+        rec.flurryPool=fg;
+      }else{
+        fg.timeline.length=0;fg.afters.length=0;fg.pressure.length=0;
+        fg.fx?.clear?.();fg.material?.clear?.();fg.fluid?.clear?.();
+        fg.fire?.clear?.();fg.lightning?.clear?.();
+      }
+      if(!fg.sprites&&g.sprites)fg.sprites=g.sprites;
       fg.enemies=[];fg.projs=[];fg.ribbons=[];fg.paused=true;
-      fg.retainedFluid=global.APEX_GOLD_LOSSLESS_FLUID?.install(fg.fluid);
-      rec.flurry?.g?.destroy();
+      fg.hands.L.missing=fg.hands.R.missing=false;
       fg.player.x=toGold(body.x);fg.player.y=toGold(body.y);fg.player.aim=g.player.aim;
       fg.player.empoweredT=body.duration;
       rec.flurry={g:fg,x:toGold(body.x),y:toGold(body.y),start:now(),until:now()+body.duration,
@@ -275,7 +285,7 @@
       }
       const fdt=Math.min(.05,Math.max(0,clock-f.last));f.last=clock;
       advanceGoldFx(e,fdt);
-      if(f.endAt&&clock-f.endAt>.32){e.destroy();rec.flurry=null;}
+      if(f.endAt&&clock-f.endAt>.32){e.timeline.length=0;rec.flurry=null;}
     }
   }
   function drawLayers(ctx,g){
@@ -302,7 +312,7 @@
     if (rec.g.sprites) advance(rec,body);
   });
   AIL.bus.on('ReworkMatchTeardown', () => {
-    for (const rec of live.values()) { rec.g.destroy(); rec.flurry?.g?.destroy(); }
+    for (const rec of live.values()) { rec.g.destroy(); rec.flurryPool?.destroy(); }
     live.clear();
   });
   const oldDraw=global.Fighter?.prototype?.draw;

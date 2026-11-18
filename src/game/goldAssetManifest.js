@@ -6,15 +6,15 @@
 // SHIPPING_LAZY (route-intent assets), never LEGACY_NON_SHIPPING.
 // ---------------------------------------------------------------------------
 export const GOLD_SHIPPING_ASSETS = Object.freeze([
-  '/gold/assets/gold/apex-chaos-wordmark.png',
+  '/gold/assets/gold/apex-chaos-wordmark.webp',
   '/gold/assets/gold/favicon-apex-chaos.png',
   '/gold/assets/gold/favicon-r72-owner.png',
   '/gold/assets/gold/favicon-tab-apex.svg',
-  '/gold/assets/gold/home-foreground.png',
-  '/gold/assets/gold/home-robot-body.png',
-  '/gold/assets/gold/home-robot-core.png',
-  '/gold/assets/gold/home-robot-eye.png',
-  '/gold/assets/gold/home-world-background.png',
+  '/gold/assets/gold/home-foreground.webp',
+  '/gold/assets/gold/home-robot-body.webp',
+  '/gold/assets/gold/home-robot-core.webp',
+  '/gold/assets/gold/home-robot-eye.webp',
+  '/gold/assets/gold/home-world-background.webp',
   '/gold/assets/gold/mode-local.webp',
   '/gold/assets/gold/mode-solo.webp',
   '/gold/assets/placeholders/battle/avatar/crystala.svg',
@@ -289,7 +289,7 @@ export const HERO_BATTLE_RIG_ASSETS = Object.freeze(
   Object.values(HERO_BATTLE_RIGS).flat(),
 );
 
-export const GOLD_SHELL_URL = '/gold/shell.html?v=20261117-r5-five-arenas&fieldArchive=c03';
-export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261117-r5-five-arenas';
-export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261117-r5-five-arenas';
-export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261117-r5-five-arenas';
+export const GOLD_SHELL_URL = '/gold/shell.html?v=20261117-phase4-flow';
+export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261117-phase4-flow';
+export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261117-phase4-flow';
+export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261117-phase4-flow';

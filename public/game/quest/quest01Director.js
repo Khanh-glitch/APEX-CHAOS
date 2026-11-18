@@ -415,36 +415,36 @@
     const style = d.createElement('style');
     style.id='apexQuest01StageStyles';
     style.textContent=[
-      '#apexQuest01Stage{position:fixed;inset:0;z-index:9200;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:rgba(3,5,8,.95);color:#e8e9e5;font-family:Arial,sans-serif;}',
+      '#apexQuest01Stage{position:fixed;inset:0;z-index:var(--apex-z-quest,13500);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:var(--apex-surface-scrim,rgba(3,5,8,.92));backdrop-filter:blur(7px);color:var(--apex-bone,#f4efe4);font-family:var(--apex-font-display,"Oswald","ApexVietCondensed",sans-serif);}',
       '#apexQuest01Stage[hidden]{display:none;}',
-      '#apexQuest01Stage .q1-panel{position:relative;width:min(620px,100%);max-height:min(88dvh,900px);overflow:auto;border:1px solid #84613b;border-top:3px solid #e4a858;background:radial-gradient(ellipse at 95% 6%,#48321b77,transparent 43%),linear-gradient(145deg,#1a1d21,#080c10 78%);box-shadow:0 18px 75px #000d,0 0 55px #b16a1a12;padding:clamp(20px,5vw,42px);animation:q1Enter .42s cubic-bezier(.18,.82,.25,1) both;}',
-      '@keyframes q1Enter{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}',
-      '#apexQuest01Stage .q1-panel::before{content:"";pointer-events:none;position:absolute;inset:0;opacity:.09;background:repeating-linear-gradient(0deg,transparent 0 3px,#ddd 4px 4.5px)}',
-      '#apexQuest01Stage .q1-progress{height:3px;background:#34312b;margin:18px 0 4px;position:relative;overflow:hidden}',
+      '#apexQuest01Stage .q1-panel{position:relative;width:min(620px,100%);max-height:min(88dvh,900px);overflow:auto;overscroll-behavior:contain;border:1px solid rgba(236,182,90,.48);border-top:3px solid #f0b958;clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);background:radial-gradient(ellipse at 95% 6%,#48321b77,transparent 43%),linear-gradient(145deg,#1a1d21,#080c10 78%);box-shadow:0 24px 80px #000d,0 0 55px #b16a1a18;padding:clamp(20px,5vw,40px);animation:q1Enter .32s cubic-bezier(.18,.82,.25,1) both;}',
+      '@keyframes q1Enter{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}',
+      '#apexQuest01Stage .q1-panel::before{content:"";pointer-events:none;position:absolute;inset:0;opacity:.07;background:repeating-linear-gradient(0deg,transparent 0 3px,#ddd 4px 4.5px)}',
+      '#apexQuest01Stage .q1-progress{height:3px;background:#34312b;margin:16px 0 4px;position:relative;overflow:hidden}',
       '#apexQuest01Stage .q1-progress::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--quest-progress,9.1%);background:linear-gradient(90deg,#8d5926,#ffc174);box-shadow:0 0 12px #efa448}',
-      '#apexQuest01Stage .q1-eyebrow{font-size:11px;letter-spacing:.22em;color:#c5a069;font-weight:700;}',
-      '#apexQuest01Stage h2{font-family:Impact,"Arial Narrow",Arial,sans-serif;font-size:clamp(36px,7vw,72px);line-height:.93;margin:18px 0 16px;letter-spacing:.045em;text-transform:uppercase;text-shadow:0 4px 19px #0008;}',
-      '#apexQuest01Stage .q1-sub{font-size:13px;line-height:1.7;color:#c9cbd0;max-width:48ch;}',
-      '#apexQuest01Stage .q1-cause{margin-top:14px;padding:12px 14px;border-left:2px solid #c18a48;background:#e7a65d0c;display:grid;gap:6px;}',
-      '#apexQuest01Stage .q1-cause-kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#d7ac72;}',
-      '#apexQuest01Stage .q1-cause-text{font:500 12px/1.6 Arial,sans-serif;color:#d4d6d5;max-width:52ch;}',
-      '#apexQuest01Stage .q1-status{margin:24px 0 12px;color:#c4a777;font-size:11px;letter-spacing:.13em;}',
-      '#apexQuest01Stage .q1-actions{display:grid;gap:10px;margin-top:22px;}',
-      '#apexQuest01Stage button{font:700 13px Arial,sans-serif;letter-spacing:.1em;min-height:48px;padding:12px 15px;border:1px solid #9a8259;color:#f6eee0;background:#403725;cursor:pointer;}',
-      '#apexQuest01Stage button:focus-visible{outline:3px solid #f6c981;outline-offset:3px;}',
-      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay,#apexQuest01Stage #q5ScrapSwarmPlay,#apexQuest01Stage #q5WeaponRainPlay,#apexQuest01Stage #q5BreakerChargePlay,#apexQuest01Stage #q6BreachPlay,#apexQuest01Stage #q7RivetPlay,#apexQuest01Stage #q8TotPlay{background:linear-gradient(120deg,#98672a,#ebae59);color:#13100c;border-color:#e7b66e;box-shadow:0 8px 24px #0008;transition:transform .18s,filter .18s,box-shadow .18s;}',
-      '#apexQuest01Stage button:where(:hover,:focus-visible){filter:brightness(1.13);box-shadow:0 8px 24px #b9742644;}',
-      '#apexQuest01Stage button:active{transform:scale(.985)}',
-      '@media(max-height:520px){#apexQuest01Stage{padding:8px}#apexQuest01Stage .q1-panel{padding:14px;max-height:calc(100dvh - 16px)}#apexQuest01Stage h2{font-size:clamp(28px,7vh,48px);margin:8px 0}#apexQuest01Stage .q1-status{margin:10px 0 4px}}',
+      '#apexQuest01Stage .q1-eyebrow{font:700 10.5px/1.2 var(--apex-font-mono,monospace);letter-spacing:.2em;color:#d7ac72;}',
+      '#apexQuest01Stage h2{font-family:var(--apex-font-display,"Oswald","ApexVietCondensed",sans-serif);font-weight:700;font-size:clamp(32px,6.5vw,64px);line-height:.96;margin:16px 0 14px;letter-spacing:.04em;text-transform:uppercase;color:#fff7e8;text-shadow:0 4px 19px #0008;}',
+      '#apexQuest01Stage .q1-sub{font:500 13.5px/1.65 var(--apex-font-prose,"Segoe UI",system-ui,sans-serif);color:#d4d6da;max-width:48ch;}',
+      '#apexQuest01Stage .q1-cause{margin-top:14px;padding:12px 14px;border-left:2px solid #d49a52;background:#e7a65d0f;display:grid;gap:6px;}',
+      '#apexQuest01Stage .q1-cause-kicker{font:700 9.5px/1.2 var(--apex-font-mono,monospace);letter-spacing:.16em;color:#e3b97c;}',
+      '#apexQuest01Stage .q1-cause-text{font:500 12.5px/1.6 var(--apex-font-prose,"Segoe UI",system-ui,sans-serif);color:#dadcd9;max-width:52ch;}',
+      '#apexQuest01Stage .q1-status{margin:20px 0 10px;color:#d4b580;font:600 10.5px/1.3 var(--apex-font-mono,monospace);letter-spacing:.12em;}',
+      '#apexQuest01Stage .q1-actions{display:grid;gap:9px;margin-top:18px;}',
+      '#apexQuest01Stage button{font:700 13px/1.1 var(--apex-font-display,"Oswald","ApexVietCondensed",sans-serif);letter-spacing:.1em;text-transform:uppercase;min-height:48px;padding:12px 15px;border:1px solid #9a8259;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);color:#f6eee0;background:#352e20;cursor:pointer;touch-action:manipulation;}',
+      '#apexQuest01Stage button:focus-visible{outline:2px solid #ffd26b;outline-offset:2px;}',
+      '#apexQuest01Stage #q4hQuestPlay,#apexQuest01Stage #q4iFirstWakePlay,#apexQuest01Stage #q5ScrapSwarmPlay,#apexQuest01Stage #q5WeaponRainPlay,#apexQuest01Stage #q5BreakerChargePlay,#apexQuest01Stage #q6BreachPlay,#apexQuest01Stage #q7RivetPlay,#apexQuest01Stage #q8TotPlay{background:linear-gradient(120deg,#b0752c,#f0b660);color:#151008;border-color:#f2c780;box-shadow:0 8px 24px #0008;transition:transform .16s,filter .16s,box-shadow .16s;}',
+      '#apexQuest01Stage button:where(:hover,:focus-visible){filter:brightness(1.12);box-shadow:0 8px 24px #b9742644;}',
+      '#apexQuest01Stage button:active{transform:scale(.988)}',
+      '@media(max-height:520px){#apexQuest01Stage{padding:8px}#apexQuest01Stage .q1-panel{padding:14px;max-height:calc(100dvh - 16px)}#apexQuest01Stage h2{font-size:clamp(26px,7vh,44px);margin:8px 0}#apexQuest01Stage .q1-status{margin:10px 0 4px}}',
       '@media(prefers-reduced-motion:reduce){#apexQuest01Stage .q1-panel,#apexQuest01Stage button{animation:none;transition:none}}',
-      '#apexQuest01Stage button.q1-back{background:transparent;border-color:#61666b;color:#d1d1cf;}',
-      '#apexQuest01Stage .q1-fine{margin-top:16px;font-size:11px;color:#9fa5ad;line-height:1.5;}',
+      '#apexQuest01Stage button.q1-back{background:rgba(255,255,255,.03);border-color:#697078;color:#d8d8d6;}',
+      '#apexQuest01Stage .q1-fine{margin-top:16px;font:500 11.5px/1.5 var(--apex-font-prose,"Segoe UI",system-ui,sans-serif);color:#a7aeb7;}',
       '#apexQuest01Stage .q1-hub{margin-top:16px;padding-top:14px;border-top:1px solid #6e5535;display:grid;gap:8px}',
-      '#apexQuest01Stage .q1-hub h3{font:800 11px/1.4 Arial,sans-serif;letter-spacing:.17em;color:#caa674;margin:0 0 4px}',
+      '#apexQuest01Stage .q1-hub h3{font:700 10.5px/1.4 var(--apex-font-mono,monospace);letter-spacing:.16em;color:#d6b27e;margin:0 0 4px}',
       '#apexQuest01Stage .q1-hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:7px}',
-      '#apexQuest01Stage .q1-hub button{min-height:40px;text-align:left;padding:8px 10px;font-size:10px;letter-spacing:.05em}',
+      '#apexQuest01Stage .q1-hub button{min-height:42px;text-align:left;padding:8px 10px;font-size:11px;letter-spacing:.06em}',
       '#apexQuest01Stage .q1-hub button[disabled]{opacity:.42;cursor:default;filter:none}',
-      '#apexQuest01Stage .q1-replay-note{font:600 11px/1.55 Arial,sans-serif;color:#cbb18a}'
+      '#apexQuest01Stage .q1-replay-note{font:500 11.5px/1.55 var(--apex-font-prose,"Segoe UI",system-ui,sans-serif);color:#d2b992}'
     ].join('\n');
     d.head.appendChild(style);
     overlay = d.createElement('section');
@@ -457,6 +457,15 @@
     overlay.querySelector('#q1Exit').addEventListener('click',()=>{
       if(replaySession)exitReplay();else hide();
     });
+    overlay.addEventListener('click',ev=>{
+      if(ev.target===overlay){if(replaySession)exitReplay();else hide();}
+    });
+    d.addEventListener('keydown',ev=>{
+      if(ev.key==='Escape'&&overlay&&!overlay.hidden){
+        ev.preventDefault();ev.stopImmediatePropagation();
+        if(replaySession)exitReplay();else hide();
+      }
+    },true);
     overlay.querySelector('#q1Preview').addEventListener('click',()=>{const cb=callbacks && callbacks.onPreview;hide(); if(typeof cb==='function')cb();});
     overlay.querySelector('#q4ReflexPreview').addEventListener('click',()=>{const cb=callbacks && callbacks.onReflexPreview;hide();root.__APEX_QUEST_STORY_PLAYBACK=false;if(typeof cb==='function')cb();});
     overlay.querySelector('#q4iFirstWakePlay').addEventListener('click',()=>{

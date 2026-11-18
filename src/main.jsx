@@ -12,11 +12,14 @@ import AppErrorBoundary from './ui/AppErrorBoundary.jsx';
 // identically offline and inside the itch.io iframe — no third-party
 // font request may gate first paint.
 import '@fontsource/montserrat/900.css';
+import './styles/goldTokens.css';
 import './styles.css';
 import './game/mobileViewportAudit.js';
 import { installLocalization } from './game/localizationRuntime.js';
+import { installSettingsAuthority } from './game/settingsAuthority.js';
 import './game/localization.css';
 import './game/sideIdentity.css';
+import './ui/aaaPremiumUnified.css';
 
 // Install before React and before any deferred classic runtime can evaluate.
 installProductSurfaceAuthority(window);
@@ -31,6 +34,7 @@ installOwnerPlaytestCapture(window);
 // tests, but never open a network Auth session in the itch Guest release.
 installCloudAccount(window);
 if (!GUEST_ONLY_RELEASE) void initCloudAccount();
+installSettingsAuthority(window);
 installLocalization();
 
 createRoot(document.getElementById('root')).render(

@@ -1809,8 +1809,11 @@ class VFX {
         const dec = (arr) => {
             for (let i = arr.length - 1; i >= 0; i--) {
                 arr[i].life -= dt;
-                if (arr[i].life <= 0)
-                    arr.splice(i, 1);
+                if (arr[i].life <= 0) {
+                    const last = arr.length - 1;
+                    if (i !== last) arr[i] = arr[last];
+                    arr.pop();
+                }
             }
         };
         dec(this.impacts);
@@ -1829,7 +1832,9 @@ class VFX {
             const s = this.smokes[i];
             s.life -= dt;
             if (s.life <= 0) {
-                this.smokes.splice(i, 1);
+                const last = this.smokes.length - 1;
+                if (i !== last) this.smokes[i] = this.smokes[last];
+                this.smokes.pop();
                 continue;
             }
             const k = 1 - s.life / s.max;
@@ -1849,7 +1854,9 @@ class VFX {
             const s = this.sparks[i];
             s.life -= dt;
             if (s.life <= 0) {
-                this.sparks.splice(i, 1);
+                const last = this.sparks.length - 1;
+                if (i !== last) this.sparks[i] = this.sparks[last];
+                this.sparks.pop();
                 continue;
             }
             s.vy += 1500 * dt;
@@ -1876,7 +1883,9 @@ class VFX {
             const e = this.embers[i];
             e.life -= dt;
             if (e.life <= 0) {
-                this.embers.splice(i, 1);
+                const last = this.embers.length - 1;
+                if (i !== last) this.embers[i] = this.embers[last];
+                this.embers.pop();
                 continue;
             }
             e.vx += Math.sin(this.t * 6 + e.seed) * 40 * dt;
@@ -1888,7 +1897,9 @@ class VFX {
             const s = this.streaks[i];
             s.life -= dt;
             if (s.life <= 0) {
-                this.streaks.splice(i, 1);
+                const last = this.streaks.length - 1;
+                if (i !== last) this.streaks[i] = this.streaks[last];
+                this.streaks.pop();
                 continue;
             }
             s.x += s.vx * dt;
@@ -2303,6 +2314,19 @@ class Post {
         this.grainPattern = null;
         this.cp = mk();
         this.cpctx = this.cp.getContext('2d'); // scene copy for refraction
+        this.vigCvs = mk();
+        this.vigCtx = this.vigCvs.getContext('2d');
+        this.vigKey = '';
+        this.qualityTier = 'ultra'; // 'ultra' | 'balanced' | 'low'
+    }
+    resolveQuality() {
+        try {
+            const q = window.APEX_GFX_QUALITY || (window.parent && window.parent !== window && window.parent.APEX_GFX_QUALITY);
+            const eff = q && typeof q.getEffective === 'function' ? q.getEffective() : '';
+            if (eff === 'off') return 'low';
+            if (eff === 'balanced') return 'balanced';
+        } catch { /* cross-origin safe */ }
+        return this.qualityTier || 'ultra';
     }
     /** returns a context to draw the world into, already scaled by dpr */
     begin(w, h, dpr) {
@@ -2322,21 +2346,24 @@ class Post {
             c.width = w;
             c.height = h;
         }
-        else
+        else {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, w, h);
+            ctx.clearRect(0, 0, w, h);
+        }
     }
     /* ---- refraction: shockwaves & heat haze bend the rendered scene ---- */
-    distort(w, h, dpr, o) {
-        // Only refract regions that intersect the viewport. Each refractive region
-        // is a costly offscreen scene read/copy, so cap simultaneous passes on
-        // impact frames while leaving *all* source VFX and particles intact.
+    distort(w, h, dpr, o, tier) {
+        if (tier === 'low') return;
+        const maxShocks = tier === 'balanced' ? 3 : 4;
+        const maxHeat = tier === 'balanced' ? 0 : 6;
         const shocks = (o.shocks ?? [])
-            .filter((s) => s.strength > 0.002 && s.x + s.r > -40 && s.x - s.r < w + 40 && s.y + s.r > -40 && s.y - s.r < h + 40)
-            .sort((a, b) => b.strength - a.strength).slice(0, 5);
-        const heat = (o.heat ?? [])
-            .filter((hr) => hr.heat > 0.22 && hr.x + hr.w > 0 && hr.x < w && hr.y + hr.h > 0 && hr.y - hr.h < h)
-            .sort((a, b) => b.heat - a.heat).slice(0, 14);
+            .filter((s) => s.strength > 0.003 && s.x + s.r > -40 && s.x - s.r < w + 40 && s.y + s.r > -40 && s.y - s.r < h + 40)
+            .sort((a, b) => b.strength - a.strength).slice(0, maxShocks);
+        const heat = maxHeat > 0
+            ? (o.heat ?? [])
+                .filter((hr) => hr.heat > 0.30 && hr.x + hr.w > 0 && hr.x < w && hr.y + hr.h > 0 && hr.y - hr.h < h)
+                .sort((a, b) => b.heat - a.heat).slice(0, maxHeat)
+            : [];
         if (!shocks.length && !heat.length)
             return;
         const pw = this.scene.width, ph = this.scene.height;
@@ -2346,8 +2373,6 @@ class Post {
         s.save();
         s.setTransform(dpr, 0, 0, dpr, 0, 0);
         for (const sh of shocks) {
-            // annulus clip; inside it the scene is magnified about the centre, so
-            // everything behind the wave front bulges outward like a pressure lens
             const r0 = Math.max(1, sh.r - sh.width), r1 = sh.r + sh.width * 0.6;
             s.save();
             s.beginPath();
@@ -2359,83 +2384,89 @@ class Post {
             s.scale(mag, mag);
             s.translate(-sh.x, -sh.y);
             s.drawImage(this.cp, 0, 0, pw, ph, 0, 0, w, h);
-            // thin compression rim: slightly brighter band at the front
             s.globalCompositeOperation = 'lighter';
             s.globalAlpha = Math.min(0.35, sh.strength * 4);
             s.fillStyle = '#ffffff';
             s.beginPath();
             s.ellipse(sh.x, sh.y, sh.r + sh.width * 0.25, (sh.r + sh.width * 0.25) * sh.squash, 0, 0, Math.PI * 2);
-            // A new pressure wave can have r < width * 0.1. Canvas.ellipse()
-            // throws IndexSizeError for negative radii; the old render would then
-            // abort every frame as the ultimate spawned overlapping shocks.
             const innerRim = Math.max(0.25, sh.r - sh.width * 0.1);
             s.ellipse(sh.x, sh.y, innerRim, innerRim * sh.squash, 0, 0, Math.PI * 2, true);
             s.fill();
             s.restore();
         }
-        // heat shimmer: horizontal slices above hot cells shift sideways with a
-        // travelling wave; amplitude scales with temperature
         const t = o.time ?? 0;
         for (const hr of heat) {
-            const slices = 6;
+            const slices = 3;
             const sh = hr.h / slices;
-            const amp = 1.2 + hr.heat * 2.6;
+            const amp = 1.2 + hr.heat * 2.5;
             for (let i = 0; i < slices; i++) {
-                const sy = hr.y - hr.h * 0.9 + i * sh; // shimmer rises above the flame
-                const off = Math.sin(t * 11 + i * 1.7 + hr.x * 0.03) * amp + Math.sin(t * 23 + i * 0.9) * amp * 0.5;
+                const sy = hr.y - hr.h * 0.9 + i * sh;
+                const off = Math.sin(t * 11 + i * 2.6 + hr.x * 0.03) * amp;
                 s.drawImage(this.cp, hr.x * dpr, sy * dpr, hr.w * dpr, sh * dpr, hr.x + off, sy, hr.w, sh);
             }
         }
         s.restore();
     }
     end(dst, w, h, dpr, o) {
+        const tier = this.resolveQuality();
         const pw = Math.max(2, Math.round(w * dpr));
         const ph = Math.max(2, Math.round(h * dpr));
-        const bw = Math.max(2, Math.round(pw / 4));
-        const bh = Math.max(2, Math.round(ph / 4));
-        this.distort(w, h, dpr, o);
-        /* ---- bloom: bright pass with contrast so only light survives ---- */
-        this.fit(this.a, this.actx, bw, bh);
-        this.actx.filter = 'brightness(1.06) contrast(2.05) saturate(1.18) blur(1.1px)';
-        this.actx.drawImage(this.scene, 0, 0, bw, bh);
-        this.actx.filter = 'none';
-        this.fit(this.b, this.bctx, bw, bh);
-        this.bctx.filter = 'blur(3.4px)';
-        this.bctx.drawImage(this.a, 0, 0, bw, bh);
-        this.bctx.filter = 'none';
-        /* ---- impact RGB split, done on quarter-res channel copies ---- */
-        const chroma = o.chroma ?? 0;
-        if (chroma > 0.01) {
+        const bw = Math.max(2, Math.round(pw / 5));
+        const bh = Math.max(2, Math.round(ph / 5));
+        const sw = Math.max(2, Math.round(bw / 2));
+        const sh = Math.max(2, Math.round(bh / 2));
+        this.distort(w, h, dpr, o, tier);
+        /* ---- fast downsampled dual bloom (zero full-res filter passes) ---- */
+        const bloom = tier === 'low' ? 0 : (o.bloom ?? 1);
+        if (bloom > 0.02) {
+            this.fit(this.a, this.actx, bw, bh);
+            if (tier === 'ultra') {
+                this.actx.filter = 'contrast(1.9) saturate(1.16)';
+                this.actx.drawImage(this.scene, 0, 0, bw, bh);
+                this.actx.filter = 'none';
+            }
+            else {
+                this.actx.drawImage(this.scene, 0, 0, bw, bh);
+            }
+            this.fit(this.b, this.bctx, sw, sh);
+            this.bctx.filter = 'blur(1.8px)';
+            this.bctx.drawImage(this.a, 0, 0, sw, sh);
+            this.bctx.filter = 'none';
+        }
+        /* ---- impact RGB split (ultra tier only) ---- */
+        const chroma = tier === 'ultra' ? (o.chroma ?? 0) : 0;
+        if (chroma > 0.015) {
             const offs = Math.round(1 + chroma * 5);
-            this.fit(this.r1, this.rctx1, bw, bh);
-            this.rctx1.drawImage(this.scene, 0, 0, bw, bh);
+            this.fit(this.r1, this.rctx1, sw, sh);
+            this.rctx1.drawImage(this.scene, 0, 0, sw, sh);
             this.rctx1.globalCompositeOperation = 'multiply';
             this.rctx1.fillStyle = '#ff3b30';
-            this.rctx1.fillRect(0, 0, bw, bh);
+            this.rctx1.fillRect(0, 0, sw, sh);
             this.rctx1.globalCompositeOperation = 'source-over';
-            this.fit(this.r2, this.rctx2, bw, bh);
-            this.rctx2.drawImage(this.scene, 0, 0, bw, bh);
+            this.fit(this.r2, this.rctx2, sw, sh);
+            this.rctx2.drawImage(this.scene, 0, 0, sw, sh);
             this.rctx2.globalCompositeOperation = 'multiply';
             this.rctx2.fillStyle = '#2bffff';
-            this.rctx2.fillRect(0, 0, bw, bh);
+            this.rctx2.fillRect(0, 0, sw, sh);
             this.rctx2.globalCompositeOperation = 'source-over';
             dst.setTransform(1, 0, 0, 1, 0, 0);
             dst.globalCompositeOperation = 'lighter';
-            dst.globalAlpha = Math.min(0.6, chroma * 0.55);
+            dst.globalAlpha = Math.min(0.55, chroma * 0.5);
             dst.drawImage(this.r1, offs, 0, pw, ph);
             dst.drawImage(this.r2, -offs, 0, pw, ph);
             dst.globalAlpha = 1;
             dst.globalCompositeOperation = 'source-over';
         }
         /* ---- radial streak blur during the ultimate ---- */
-        const radial = o.radial ?? 0;
-        if (radial > 0.01) {
-            this.fit(this.rb, this.rbctx, bw, bh);
-            const cx = (o.fx / w) * bw, cy = (o.fy / h) * bh;
-            for (let i = 1; i <= 5; i++) {
-                const s = 1 + i * 0.022 * radial;
+        const radial = tier === 'low' ? 0 : (o.radial ?? 0);
+        if (radial > 0.015) {
+            this.fit(this.rb, this.rbctx, sw, sh);
+            const cx = (o.fx / w) * sw, cy = (o.fy / h) * sh;
+            const taps = tier === 'balanced' ? 3 : 4;
+            for (let i = 1; i <= taps; i++) {
+                const sc = 1 + i * 0.025 * radial;
                 this.rbctx.globalAlpha = 1 / (i + 1.2);
-                this.rbctx.drawImage(this.scene, cx - cx * s, cy - cy * s, bw * s, bh * s);
+                this.rbctx.drawImage(this.scene, cx - cx * sc, cy - cy * sc, sw * sc, sh * sc);
             }
             this.rbctx.globalAlpha = 1;
             dst.setTransform(1, 0, 0, 1, 0, 0);
@@ -2451,37 +2482,45 @@ class Post {
         dst.globalAlpha = 1;
         dst.drawImage(this.scene, 0, 0);
         /* ---- bloom composite ---- */
-        const bloom = o.bloom ?? 1;
-        dst.globalCompositeOperation = 'lighter';
-        dst.globalAlpha = 0.34 * bloom;
-        dst.drawImage(this.b, 0, 0, pw, ph);
-        dst.globalAlpha = 0.42 * bloom;
-        dst.drawImage(this.a, 0, 0, pw, ph);
-        dst.globalAlpha = 1;
-        dst.globalCompositeOperation = 'source-over';
-        /* ---- vignette ---- */
+        if (bloom > 0.02) {
+            dst.globalCompositeOperation = 'lighter';
+            dst.globalAlpha = (tier === 'balanced' ? 0.34 : 0.48) * bloom;
+            dst.drawImage(this.b, 0, 0, pw, ph);
+            if (tier === 'ultra') {
+                dst.globalAlpha = 0.28 * bloom;
+                dst.drawImage(this.a, 0, 0, pw, ph);
+            }
+            dst.globalAlpha = 1;
+            dst.globalCompositeOperation = 'source-over';
+        }
+        /* ---- cached quarter-res vignette (zero per-frame gradient allocation) ---- */
         const vig = o.vignette ?? 0.45;
         if (vig > 0.01) {
-            const fx = o.fx * dpr, fy = o.fy * dpr;
-            const inner = Math.min(pw, ph) * 0.2;
-            const outer = Math.hypot(pw, ph) * 0.62;
-            const g = dst.createRadialGradient(fx, fy, inner, fx, fy, outer);
-            g.addColorStop(0, 'rgba(0,0,0,0)');
-            g.addColorStop(0.62, `rgba(4,2,6,${0.24 * vig})`);
-            g.addColorStop(1, `rgba(2,1,3,${0.82 * vig})`);
-            dst.fillStyle = g;
-            dst.fillRect(0, 0, pw, ph);
+            const vw = Math.max(64, Math.min(320, bw));
+            const vh = Math.max(48, Math.min(200, bh));
+            const vKey = `${vw}x${vh}:${Math.round(vig * 20)}`;
+            if (this.vigKey !== vKey) {
+                this.vigKey = vKey;
+                this.fit(this.vigCvs, this.vigCtx, vw, vh);
+                const vcx = vw * 0.5, vcy = vh * 0.5;
+                const g = this.vigCtx.createRadialGradient(vcx, vcy, Math.min(vw, vh) * 0.2, vcx, vcy, Math.hypot(vw, vh) * 0.62);
+                g.addColorStop(0, 'rgba(0,0,0,0)');
+                g.addColorStop(0.62, `rgba(4,2,6,${(0.24 * vig).toFixed(3)})`);
+                g.addColorStop(1, `rgba(2,1,3,${(0.82 * vig).toFixed(3)})`);
+                this.vigCtx.fillStyle = g;
+                this.vigCtx.fillRect(0, 0, vw, vh);
+            }
+            dst.drawImage(this.vigCvs, 0, 0, pw, ph);
         }
-        /* ---- film grain ---- */
-        const grain = o.grain ?? 0;
-        if (grain > 0.001) {
+        /* ---- film grain (skip expensive full-DPR overlay blend under load) ---- */
+        const grain = tier === 'ultra' ? (o.grain ?? 0) : 0;
+        if (grain > 0.02) {
             if (!this.grainPattern)
                 this.grainPattern = dst.createPattern((0, textures_1.grainTex)(), 'repeat');
             if (this.grainPattern) {
                 const ox = (Math.random() * 128) | 0, oy = (Math.random() * 128) | 0;
                 dst.save();
-                dst.globalCompositeOperation = 'overlay';
-                dst.globalAlpha = grain;
+                dst.globalAlpha = grain * 0.65;
                 dst.translate(-ox, -oy);
                 dst.fillStyle = this.grainPattern;
                 dst.fillRect(0, 0, pw + 128, ph + 128);
@@ -2634,8 +2673,11 @@ class MaterialFX {
         const step = (arr) => {
             for (let i = arr.length - 1; i >= 0; i--) {
                 arr[i].age += dt;
-                if (arr[i].age > arr[i].life)
-                    arr.splice(i, 1);
+                if (arr[i].age > arr[i].life) {
+                    const last = arr.length - 1;
+                    if (i !== last) arr[i] = arr[last];
+                    arr.pop();
+                }
             }
         };
         step(this.marks);
@@ -2644,7 +2686,9 @@ class MaterialFX {
             const f = this.formations[i];
             f.age += dt;
             if (f.age > f.life) {
-                this.formations.splice(i, 1);
+                const last = this.formations.length - 1;
+                if (i !== last) this.formations[i] = this.formations[last];
+                this.formations.pop();
                 continue;
             }
             if (!f.collapsed && f.age > f.life * 0.72) {
@@ -2666,7 +2710,9 @@ class MaterialFX {
             const c = this.chunks[i];
             c.age += dt;
             if (c.age > c.life) {
-                this.chunks.splice(i, 1);
+                const last = this.chunks.length - 1;
+                if (i !== last) this.chunks[i] = this.chunks[last];
+                this.chunks.pop();
                 continue;
             }
             c.x += c.vx * dt;
@@ -2698,7 +2744,9 @@ class MaterialFX {
             const p = this.puffs[i];
             p.age += dt;
             if (p.age > p.life) {
-                this.puffs.splice(i, 1);
+                const last = this.puffs.length - 1;
+                if (i !== last) this.puffs[i] = this.puffs[last];
+                this.puffs.pop();
                 continue;
             }
             // Curl and buoyancy keep dust billowing instead of translating rigidly.
@@ -2940,9 +2988,10 @@ class Engine {
             this.keys.add(e.code);
             if (e.code === 'Space' || e.code.startsWith('Arrow'))
                 e.preventDefault();
-            if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight')
-                this.dash();
-            if (e.code === 'KeyP')
+            if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                if (!this.paused) this.dash();
+            }
+            if (e.code === 'KeyP' && !window.APEX_BOT_WAVE_INTERFACE_V2?.installed)
                 this.paused = !this.paused;
             const digitMap = {
                 Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4,
@@ -3009,13 +3058,56 @@ class Engine {
         this.spawn('bot', 1);
         this.log('Phòng lab sẵn sàng — WASD di chuyển, chuột ngắm, 1–0 tung chiêu!', '#f6b73c');
         this.lastTs = performance.now();
+        this._pauseDirty = true;
+        this._slowStreak = 0;
+        this._fastStreak = 0;
+        this._dprScale = 1;
         const loop = (ts) => {
             this.raf = requestAnimationFrame(loop);
-            const rawDt = Math.min(0.05, (ts - this.lastTs) / 1000 || 0.016);
+            if (document.hidden) {
+                this.lastTs = ts;
+                return;
+            }
+            const rawMs = ts - this.lastTs;
+            const rawDt = Math.min(0.05, rawMs / 1000 || 0.016);
             this.lastTs = ts;
+            if (this.paused) {
+                if (this._pauseDirty) {
+                    this._pauseDirty = false;
+                    this.render();
+                }
+                return;
+            }
+            this._pauseDirty = true;
             this.fpsEma = lerp(this.fpsEma, 1 / Math.max(rawDt, 1e-4), 0.05);
-            if (!this.paused)
-                this.update(rawDt);
+            // Adaptive hysteresis quality + DPR governor for sustained 60fps on late waves.
+            if (rawMs > 20 && rawMs < 120) {
+                this._slowStreak++;
+                this._fastStreak = 0;
+                if (this._slowStreak === 24 && this.post && this.post.qualityTier === 'ultra') {
+                    this.post.qualityTier = 'balanced';
+                }
+                else if (this._slowStreak >= 55 && this._dprScale > 0.78) {
+                    this._dprScale = 0.78;
+                    this._slowStreak = 0;
+                    this.resize();
+                }
+            }
+            else if (rawMs < 14.5) {
+                this._fastStreak++;
+                this._slowStreak = Math.max(0, this._slowStreak - 1);
+                if (this._fastStreak >= 240) {
+                    this._fastStreak = 0;
+                    if (this._dprScale < 1) {
+                        this._dprScale = 1;
+                        this.resize();
+                    }
+                    else if (this.post && this.post.qualityTier === 'balanced') {
+                        this.post.qualityTier = 'ultra';
+                    }
+                }
+            }
+            this.update(rawDt);
             this.render();
         };
         this.raf = requestAnimationFrame(loop);
@@ -3026,8 +3118,8 @@ class Engine {
         this.ro?.disconnect();
     }
     /* -------------------------------------------------------------- public */
-    setOptions(o) { Object.assign(this.opts, o); }
-    setPaused(v) { this.paused = v; }
+    setOptions(o) { Object.assign(this.opts, o); this._pauseDirty = true; }
+    setPaused(v) { const next = !!v; if (this.paused !== next) { this.paused = next; this._pauseDirty = true; } }
     resetAll() {
         this.enemies = [];
         this.projs = [];
@@ -3111,16 +3203,27 @@ class Engine {
         const parent = this.canvas.parentElement;
         if (!parent)
             return;
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
-        this.w = parent.clientWidth;
-        this.h = parent.clientHeight;
-        this.canvas.width = Math.max(2, Math.floor(this.w * dpr));
-        this.canvas.height = Math.max(2, Math.floor(this.h * dpr));
-        this.canvas.style.width = `${this.w}px`;
-        this.canvas.style.height = `${this.h}px`;
-        this.dpr = dpr;
+        const w = parent.clientWidth;
+        const h = parent.clientHeight;
+        if (w <= 0 || h <= 0)
+            return;
+        const scale = this._dprScale || 1;
+        let dpr = Math.min(1.75, window.devicePixelRatio || 1) * scale;
+        // Cap total pixel budget to ~2.8MP so 4K/HiDPI screens never stall Post.
+        if (w * h * dpr * dpr > 2.8e6)
+            dpr = Math.sqrt(2.8e6 / (w * h));
+        dpr = Math.max(0.85, dpr);
+        this.w = w;
+        this.h = h;
+        const cw = Math.max(2, Math.floor(w * dpr));
+        const ch = Math.max(2, Math.floor(h * dpr));
+        if (this.canvas.width !== cw) this.canvas.width = cw;
+        if (this.canvas.height !== ch) this.canvas.height = ch;
+        this.canvas.style.width = `${w}px`;
+        this.canvas.style.height = `${h}px`;
         this.dpr = dpr;
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this._pauseDirty = true;
     }
     /* -------------------------------------------------------------- audio */
     initAudio() {
@@ -4730,15 +4833,20 @@ class Engine {
                     kill = true;
                 }
             }
-            if (kill)
-                this.projs.splice(i, 1);
+            if (kill) {
+                const last = this.projs.length - 1;
+                if (i !== last) this.projs[i] = this.projs[last];
+                this.projs.pop();
+            }
         }
         /* fx pools */
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const pt = this.particles[i];
             pt.life -= dt;
             if (pt.life <= 0) {
-                this.particles.splice(i, 1);
+                const last = this.particles.length - 1;
+                if (i !== last) this.particles[i] = this.particles[last];
+                this.particles.pop();
                 continue;
             }
             pt.vy += pt.grav * dt;
@@ -4767,25 +4875,37 @@ class Engine {
             const r = this.rings[i];
             r.life -= dt;
             r.r += r.vr * dt;
-            if (r.life <= 0)
-                this.rings.splice(i, 1);
+            if (r.life <= 0) {
+                const last = this.rings.length - 1;
+                if (i !== last) this.rings[i] = this.rings[last];
+                this.rings.pop();
+            }
         }
         for (let i = this.arcs.length - 1; i >= 0; i--) {
             this.arcs[i].life -= dt;
-            if (this.arcs[i].life <= 0)
-                this.arcs.splice(i, 1);
+            if (this.arcs[i].life <= 0) {
+                const last = this.arcs.length - 1;
+                if (i !== last) this.arcs[i] = this.arcs[last];
+                this.arcs.pop();
+            }
         }
         for (let i = this.texts.length - 1; i >= 0; i--) {
             const t = this.texts[i];
             t.life -= dt;
             t.y -= 56 * dt;
-            if (t.life <= 0)
-                this.texts.splice(i, 1);
+            if (t.life <= 0) {
+                const last = this.texts.length - 1;
+                if (i !== last) this.texts[i] = this.texts[last];
+                this.texts.pop();
+            }
         }
         for (let i = this.afters.length - 1; i >= 0; i--) {
             this.afters[i].life -= dt;
-            if (this.afters[i].life <= 0)
-                this.afters.splice(i, 1);
+            if (this.afters[i].life <= 0) {
+                const last = this.afters.length - 1;
+                if (i !== last) this.afters[i] = this.afters[last];
+                this.afters.pop();
+            }
         }
         this.fx.update(dt, rawDt);
         /* camera */
@@ -5262,10 +5382,15 @@ class Engine {
             ctx.translate(0, Math.sin(this.time * 3 + e.id) * 3);
         const size = e.r * 2.9;
         if (spr) {
-            if (e.flash > 0.15)
-                ctx.filter = `brightness(${1 + e.flash * 1.8}) saturate(0.6)`;
             ctx.drawImage(spr, -size / 2, -size / 2, size, size);
-            ctx.filter = 'none';
+            if (e.flash > 0.15) {
+                // Zero-filter additive impact flash (avoids per-enemy Skia filter stall on multi-hits).
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = Math.min(0.68, e.flash * 0.65);
+                ctx.drawImage(spr, -size / 2, -size / 2, size, size);
+                ctx.restore();
+            }
         }
         else {
             ctx.fillStyle = e.kind === 'bot' ? '#3f3f46' : '#b08954';
@@ -6307,7 +6432,16 @@ function refresh(){
  if(s.log.length&&s.log[0].id!==lastLogId){lastLogId=s.log[0].id;
   const list=by('log');list.replaceChildren(...s.log.slice(0,12).map(l=>{const d=ele('div','',l.msg);d.style.color=l.color;return d;}));
  }
-}refresh();window.setInterval(refresh,140);
+}let legacyHudTimer=0;
+function stopLegacyHudIfV2(){
+ if(window.APEX_BOT_WAVE_INTERFACE_V2||document.documentElement.dataset.botWavePresentation==='gold-v2'){
+  if(legacyHudTimer){clearInterval(legacyHudTimer);legacyHudTimer=0;}
+  return true;
+ }
+ return false;
+}
+refresh();
+legacyHudTimer=window.setInterval(()=>{if(!stopLegacyHudIfV2()&&!document.hidden)refresh();},140);
 window.addEventListener('keydown',e=>{if(e.code.startsWith('Digit')){const i=e.code==='Digit0'?9:Number(e.code.slice(-1))-1;if(i>=0&&i<10){selectedRef.skill=SKILLS[i];showInspector();highlightSkill();}}});
 window.addEventListener('error',e=>{console.error('Standalone runtime error:',e.error||e.message);});
 
@@ -6336,8 +6470,22 @@ window.addEventListener('error',e=>{console.error('Standalone runtime error:',e.
 })();
 
 // Separate owner Gold animation from native Arsenal & encounter policies.
+const resolveWaveAppUrl=(src,withRev=false)=>{
+ let root='/';
+ let rev='20261117-phase3-battlefix';
+ try{
+  const p=window.parent&&window.parent!==window?window.parent:window;
+  if(typeof p.__APEX_APP_ROOT__==='string'&&p.__APEX_APP_ROOT__)root=p.__APEX_APP_ROOT__;
+  if(typeof p.APEX_ARSENAL_RUNTIME_REVISION==='string'&&p.APEX_ARSENAL_RUNTIME_REVISION)rev=p.APEX_ARSENAL_RUNTIME_REVISION;
+ }catch(_){}
+ const s=String(src||'');
+ const suffix=withRev?(s.includes('?')?'&':'?')+'v='+encodeURIComponent(rev):'';
+ if(s.startsWith('.'))return s+suffix;
+ if(!root.endsWith('/'))root+='/';
+ return root+s.replace(/^\/+/,'')+suffix;
+};
 const loadWaveDependency=src=>new Promise((resolve,reject)=>{
- const el=document.createElement('script');el.src=src+'?v=20261021-cp31-r1';el.onload=resolve;
+ const el=document.createElement('script');el.src=resolveWaveAppUrl(src,true);el.onload=resolve;
  el.onerror=()=>reject(Error('BOT_WAVE_DEPENDENCY_FAILED '+src));document.head.appendChild(el);
 });
 await loadWaveDependency('/game/arsenal/arsenalConfig.js');
@@ -6685,15 +6833,21 @@ window.BOXE_WAVE_PILOT={state,guns:WAVE_GUNS,compositions:COMPOSITIONS,planWave:
   if(!['combat','intermission'].includes(state.phase))return false;
   const next=!!value;
   if(next===!!engine.paused)return true;
-  if(next){finishGuard('pause');engine.mouse.down=false;}
+  if(next){finishGuard('pause');engine.mouse.down=false;engine.keys?.clear?.();}
   engine.paused=next;engine.combatCue('PAUSE',.7);refreshUI();return true;
  },
  saveAndExit:()=>{
   const saved=persistRun(),wave=state.waveSnapshot?.wave||0;
   if(!saved)return {saved:false,wave};
   const detail={type:'APEX_BOT_WAVE_EXIT',saved,wave};
-  if(window.parent&&window.parent!==window)window.parent.postMessage(detail,window.location.origin);
-  else window.setTimeout(()=>window.location.assign('/'),30);
+  let hostedInApp=false;
+  try{
+   hostedInApp=Boolean(window.parent&&window.parent!==window
+    &&window.parent.location.origin===window.location.origin
+    &&window.parent.document?.getElementById('apex-wave-host'));
+  }catch(_){hostedInApp=false;}
+  if(hostedInApp)window.parent.postMessage(detail,window.location.origin);
+  else window.setTimeout(()=>window.location.assign(resolveWaveAppUrl('/')),30);
   return {saved,wave};
  },
  replayWave:()=>{
@@ -7305,7 +7459,10 @@ engine.damageEnemy=function(e,raw,opts){
 };
 const nativeDamagePlayer=engine.damagePlayer.bind(engine);
 engine.damagePlayer=function(dmg,fromAngle){if(state.phase!=='combat')return;
- const p=engine.player;const before=p.hp;const effective=Math.max(0,dmg*(1-(state.armor||0)));
+ const p=engine.player;
+ // Respect active Dash i-frames and Ultimate Leap invulnerability on lethal hits too!
+ if(p.invulnT>0||engine.leap)return;
+ const before=p.hp;const effective=Math.max(0,dmg*(1-(state.armor||0)));
  const sourceAngle=Number.isFinite(fromAngle)?fromAngle+Math.PI:0;
  if(effective>=p.hp){state.lastDamageAt=engine.time;state.lastDamageAngle=sourceAngle;state.lastDamageAmount=effective;p.hp=effective+1;nativeDamagePlayer(effective,fromAngle);p.hp=0;lose();return}
  nativeDamagePlayer(effective,fromAngle);const realized=Math.max(0,before-p.hp);
@@ -7721,9 +7878,9 @@ window.__BOXE_WAVE_PLAYTEST_DIAGNOSTICS__={snapshot:()=>({phase:state.phase,wave
 createUI();refreshUI();presentRunIntro();engine.paused=true;
 // Native combat already refreshes the HUD and handles defeat in updateWave.
  // Avoid duplicated DOM churn from a second independent timer.
- window.addEventListener('blur',()=>{finishGuard('focus-loss');engine.mouse.down=false;document.querySelector('[data-act="K"]')?.classList.remove('on');});
- window.addEventListener('pagehide',()=>{finishGuard('pagehide');persistRun();engine.mouse.down=false;ARMORY.reset()},{once:true});
- document.addEventListener('visibilitychange',()=>{if(document.hidden){finishGuard('hidden');persistRun();}});
+ window.addEventListener('blur',()=>{finishGuard('focus-loss');engine.mouse.down=false;engine.keys?.clear?.();document.querySelector('[data-act="K"]')?.classList.remove('on');});
+ window.addEventListener('pagehide',()=>{finishGuard('pagehide');persistRun();engine.mouse.down=false;engine.keys?.clear?.();ARMORY.reset()},{once:true});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){finishGuard('hidden');engine.mouse.down=false;engine.keys?.clear?.();persistRun();}});
 })();
 
 

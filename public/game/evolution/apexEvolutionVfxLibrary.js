@@ -181,36 +181,53 @@
   }
 
   // ── STRUCTURED PRIMITIVES ────────────────────────────────────────────────
+  let boltA = new Float32Array(260);
+  let boltB = new Float32Array(260);
   function drawLightningPath(c, x0, y0, x1, y1, depth, color, width, jitter, branchLeft) {
-    const pts = [[x0, y0], [x1, y1]];
+    const maxDepth = Math.min(6, Math.max(1, depth | 0));
+    const needed = ((1 << maxDepth) + 1) * 2;
+    if (boltA.length < needed) { boltA = new Float32Array(needed); boltB = new Float32Array(needed); }
+    let src = boltA, dst = boltB;
+    src[0] = x0; src[1] = y0; src[2] = x1; src[3] = y1;
+    let count = 2;
     const len = Math.hypot(x1 - x0, y1 - y0);
     let disp = len * jitter;
-    for (let d = 0; d < depth; d++) {
-      for (let i = pts.length - 2; i >= 0; i--) {
-        const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
-        const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    for (let d = 0; d < maxDepth; d++) {
+      let w = 0;
+      for (let i = 0; i < count - 1; i++) {
+        const ax = src[i * 2], ay = src[i * 2 + 1];
+        const bx = src[(i + 1) * 2], by = src[(i + 1) * 2 + 1];
+        const mx = (ax + bx) * 0.5, my = (ay + by) * 0.5;
         const nx = -(by - ay), ny = bx - ax;
-        const nl = Math.hypot(nx, ny) || 1;
+        const inv = 1 / (Math.hypot(nx, ny) || 1);
         const off = rnd(-disp, disp);
-        pts.splice(i + 1, 0, [mx + (nx / nl) * off, my + (ny / nl) * off]);
+        dst[w++] = ax; dst[w++] = ay;
+        dst[w++] = mx + nx * inv * off; dst[w++] = my + ny * inv * off;
       }
+      dst[w++] = src[(count - 1) * 2];
+      dst[w++] = src[(count - 1) * 2 + 1];
+      count = w >> 1;
+      const tmp = src; src = dst; dst = tmp;
       disp *= 0.5;
+    }
+    let bx = 0, by = 0;
+    if (branchLeft > 0) {
+      const bi = Math.floor(count * rnd(0.3, 0.7));
+      bx = src[bi * 2]; by = src[bi * 2 + 1];
     }
     c.save();
     c.lineCap = 'round'; c.lineJoin = 'round';
-    c.strokeStyle = color; c.lineWidth = width * 2.6; c.globalAlpha = 0.28;
-    c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.stroke();
-    c.globalAlpha = 1; c.lineWidth = width; c.strokeStyle = color;
-    c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.stroke();
-    c.lineWidth = Math.max(0.8, width * 0.4); c.strokeStyle = '#ffffff';
-    c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.stroke();
+    c.beginPath();
+    c.moveTo(src[0], src[1]);
+    for (let i = 1; i < count; i++) c.lineTo(src[i * 2], src[i * 2 + 1]);
+    c.strokeStyle = color; c.lineWidth = width * 2.6; c.globalAlpha = 0.28; c.stroke();
+    c.globalAlpha = 1; c.lineWidth = width; c.stroke();
+    c.lineWidth = Math.max(0.8, width * 0.4); c.strokeStyle = '#ffffff'; c.stroke();
     c.restore();
     if (branchLeft > 0) {
-      const bi = Math.floor(pts.length * rnd(0.3, 0.7));
-      const [bx, by] = pts[bi];
       const ang = Math.atan2(y1 - y0, x1 - x0) + rnd(-0.9, 0.9);
       const bl = len * rnd(0.25, 0.45);
-      drawLightningPath(c, bx, by, bx + Math.cos(ang) * bl, by + Math.sin(ang) * bl, Math.max(1, depth - 1), color, width * 0.6, jitter, branchLeft - 1);
+      drawLightningPath(c, bx, by, bx + Math.cos(ang) * bl, by + Math.sin(ang) * bl, Math.max(1, maxDepth - 1), color, width * 0.6, jitter, branchLeft - 1);
     }
   }
 
@@ -269,18 +286,32 @@
     c.restore();
   }
 
-  // ── PARTICLE SYSTEM (pooled) ─────────────────────────────────────────────
-  const MAX_P = 900;
-  const pool = [];
+  // ── PARTICLE SYSTEM (O(1) compacted pool — zero scan, zero per-particle alloc) ──
+  const MAX_P = 640;
+  const pool = new Array(MAX_P);
   let live = 0;
-  for (let i = 0; i < MAX_P; i++) pool.push({ on: false });
+  for (let i = 0; i < MAX_P; i++) pool[i] = { on: false };
+
+  function qualityScale() {
+    return g.APEX_GFX_QUALITY ? g.APEX_GFX_QUALITY.particleScale() : 1.0;
+  }
+
+  function effectiveCap() {
+    const sc = qualityScale();
+    return sc >= 0.99 ? MAX_P : sc >= 0.6 ? 380 : 220;
+  }
+
+  function allocSlot() {
+    if (live >= effectiveCap() || live >= MAX_P) return null;
+    const p = pool[live++];
+    p.on = true;
+    return p;
+  }
 
   function emit(opts) {
     ensureBaked();
-    let p = null;
-    for (let i = 0; i < MAX_P; i++) { if (!pool[i].on) { p = pool[i]; break; } }
+    const p = allocSlot();
     if (!p) return null;
-    p.on = true; live++;
     p.tex = opts.tex || 'glow';
     p.x = opts.x || 0; p.y = opts.y || 0;
     p.vx = opts.vx || 0; p.vy = opts.vy || 0;
@@ -303,34 +334,76 @@
   }
 
   function burst(x, y, n, cfg) {
-    for (let i = 0; i < n; i++) {
-      const a = cfg.angle == null ? Math.random() * TAU : cfg.angle + rnd(-(cfg.spread || 0.3), cfg.spread || 0.3);
-      const sp = rnd(cfg.speedMin || 80, cfg.speedMax || 320);
-      emit(Object.assign({}, cfg, {
-        x: x + rnd(-(cfg.jitter || 0), cfg.jitter || 0), y: y + rnd(-(cfg.jitter || 0), cfg.jitter || 0),
-        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: rnd(cfg.lifeMin || 0.3, cfg.lifeMax || 0.8),
-        s0: rnd(cfg.sMin || 10, cfg.sMax || 28),
-        s1: cfg.s1,
-        spin: rnd(-(cfg.spinMax || 3), cfg.spinMax || 3),
-      }));
+    ensureBaked();
+    const count = Math.max(1, Math.round(n * qualityScale()));
+    const jitter = cfg.jitter || 0;
+    const spread = cfg.spread || 0.3;
+    const spMin = cfg.speedMin || 80, spMax = cfg.speedMax || 320;
+    const lMin = cfg.lifeMin || 0.3, lMax = cfg.lifeMax || 0.8;
+    const sMin = cfg.sMin || 10, sMax = cfg.sMax || 28;
+    const spinMax = cfg.spinMax || 3;
+    const tex = cfg.tex || 'glow';
+    const ax = cfg.ax || 0, ay = cfg.ay || 0;
+    const drag = cfg.drag == null ? 1 : cfg.drag;
+    const a0 = cfg.a0 == null ? 1 : cfg.a0;
+    const a1 = cfg.a1 == null ? 0 : cfg.a1;
+    const tint = cfg.tint || null;
+    const blend = cfg.blend || 'lighter';
+    const floorY = cfg.floorY == null ? null : cfg.floorY;
+    const bounce = cfg.bounce == null ? 0.42 : cfg.bounce;
+    const stretch = cfg.stretch || 0;
+    const layer = cfg.layer || 'over';
+    for (let i = 0; i < count; i++) {
+      const p = allocSlot();
+      if (!p) break;
+      const a = cfg.angle == null ? Math.random() * TAU : cfg.angle + rnd(-spread, spread);
+      const sp = rnd(spMin, spMax);
+      const s0 = rnd(sMin, sMax);
+      p.tex = tex;
+      p.x = jitter ? x + rnd(-jitter, jitter) : x;
+      p.y = jitter ? y + rnd(-jitter, jitter) : y;
+      p.vx = Math.cos(a) * sp;
+      p.vy = Math.sin(a) * sp;
+      p.ax = ax; p.ay = ay;
+      p.drag = drag;
+      p.life = p.maxLife = Math.max(0.02, rnd(lMin, lMax));
+      p.s0 = s0;
+      p.s1 = cfg.s1 == null ? s0 * 0.4 : cfg.s1;
+      p.a0 = a0; p.a1 = a1;
+      p.rot = cfg.rot == null ? Math.random() * TAU : cfg.rot;
+      p.spin = rnd(-spinMax, spinMax);
+      p.tint = tint;
+      p.blend = blend;
+      p.floorY = floorY;
+      p.bounce = bounce;
+      p.stretch = stretch;
+      p.layer = layer;
     }
   }
 
   function step(dt) {
-    if (!live) return;
-    for (let i = 0; i < MAX_P; i++) {
+    let i = 0;
+    while (i < live) {
       const p = pool[i];
-      if (!p.on) continue;
       p.life -= dt;
-      if (p.life <= 0) { p.on = false; live--; continue; }
-      p.vx += p.ax * dt; p.vy += p.ay * dt;
-      p.vx *= p.drag; p.vy *= p.drag;
+      if (p.life <= 0) {
+        p.on = false;
+        live--;
+        if (i < live) {
+          const last = pool[live];
+          pool[live] = p;
+          pool[i] = last;
+        }
+        continue;
+      }
+      p.vx = (p.vx + p.ax * dt) * p.drag;
+      p.vy = (p.vy + p.ay * dt) * p.drag;
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.rot += p.spin * dt;
       if (p.floorY != null && p.y > p.floorY && p.vy > 0) {
         p.y = p.floorY; p.vy = -p.vy * p.bounce; p.vx *= 0.7; p.spin *= 0.6;
       }
+      i++;
     }
   }
 
@@ -341,6 +414,7 @@
     let cv = tintCache.get(key);
     if (cv) return cv;
     const src = TEX[name];
+    if (!src) return null;
     cv = mk(src.width, src.height);
     const c = cv.getContext('2d');
     c.drawImage(src, 0, 0);
@@ -348,61 +422,60 @@
     c.fillStyle = tint; c.fillRect(0, 0, cv.width, cv.height);
     c.globalCompositeOperation = 'destination-in';
     c.drawImage(src, 0, 0);
+    if (tintCache.size >= 96) tintCache.clear();
     tintCache.set(key, cv);
     return cv;
+  }
+
+  function renderActiveBatch(c, layer, baseMatrix) {
+    let curBlend = '';
+    const ma = baseMatrix.a, mb = baseMatrix.b, mc = baseMatrix.c, md = baseMatrix.d, me = baseMatrix.e, mf = baseMatrix.f;
+    for (let i = 0; i < live; i++) {
+      const p = pool[i];
+      if (p.layer !== layer) continue;
+      const u = 1 - p.life / p.maxLife;
+      const s = lerp(p.s0, p.s1, u);
+      const a = lerp(p.a0, p.a1, u);
+      if (a <= 0.005 || s <= 0.5) continue;
+      const tex = tintedTex(p.tex, p.tint);
+      if (!tex) continue;
+      if (p.blend !== curBlend) {
+        c.globalCompositeOperation = p.blend;
+        curBlend = p.blend;
+      }
+      c.globalAlpha = clamp(a, 0, 1);
+      const rot = p.stretch ? Math.atan2(p.vy, p.vx) : p.rot;
+      const cos = Math.cos(rot), sin = Math.sin(rot);
+      // Direct combined camera * translate(x,y) * rotate(rot) — zero save/restore churn.
+      c.setTransform(
+        ma * cos + mc * sin,
+        mb * cos + md * sin,
+        mc * cos - ma * sin,
+        md * cos - mb * sin,
+        ma * p.x + mc * p.y + me,
+        mb * p.x + md * p.y + mf
+      );
+      const sx = p.stretch ? s * (1 + Math.min(2.5, Math.hypot(p.vx, p.vy) * p.stretch)) : s;
+      c.drawImage(tex, -sx * 0.5, -s * 0.5, sx, s);
+    }
   }
 
   function draw(c, layer = 'over') {
     if (!live) return;
     ensureBaked();
     c.save();
-    for (let i = 0; i < MAX_P; i++) {
-      const p = pool[i];
-      if (!p.on || p.layer !== layer) continue;
-      const u = 1 - p.life / p.maxLife;
-      const s = lerp(p.s0, p.s1, u);
-      const a = lerp(p.a0, p.a1, u);
-      if (a <= 0.005 || s <= 0.5) continue;
-      const tex = tintedTex(p.tex, p.tint);
-      if (!tex) continue;
-      c.globalCompositeOperation = p.blend;
-      c.globalAlpha = clamp(a, 0, 1);
-      c.translate(p.x, p.y);
-      const rot = p.stretch ? Math.atan2(p.vy, p.vx) : p.rot;
-      c.rotate(rot);
-      const sx = p.stretch ? s * (1 + Math.min(2.5, Math.hypot(p.vx, p.vy) * p.stretch)) : s;
-      c.drawImage(tex, -sx / 2, -s / 2, sx, s);
-      c.setTransform(1, 0, 0, 1, 0, 0);
-      // restore camera transform is caller's job: we re-apply via save/restore pattern
-      c.restore(); c.save();
-    }
+    renderActiveBatch(c, layer, c.getTransform());
     c.restore();
   }
 
-  // Camera-safe draw: callers pass a function that re-applies the camera matrix.
+  // Camera-safe draw: applies camera matrix ONCE for the entire batch.
   function drawInCamera(c, layer, applyCamera) {
     if (!live) return;
     ensureBaked();
-    for (let i = 0; i < MAX_P; i++) {
-      const p = pool[i];
-      if (!p.on || p.layer !== layer) continue;
-      const u = 1 - p.life / p.maxLife;
-      const s = lerp(p.s0, p.s1, u);
-      const a = lerp(p.a0, p.a1, u);
-      if (a <= 0.005 || s <= 0.5) continue;
-      const tex = tintedTex(p.tex, p.tint);
-      if (!tex) continue;
-      c.save();
-      applyCamera(c);
-      c.globalCompositeOperation = p.blend;
-      c.globalAlpha = clamp(a, 0, 1);
-      c.translate(p.x, p.y);
-      const rot = p.stretch ? Math.atan2(p.vy, p.vx) : p.rot;
-      c.rotate(rot);
-      const sx = p.stretch ? s * (1 + Math.min(2.5, Math.hypot(p.vx, p.vy) * p.stretch)) : s;
-      c.drawImage(tex, -sx / 2, -s / 2, sx, s);
-      c.restore();
-    }
+    c.save();
+    if (applyCamera) applyCamera(c);
+    renderActiveBatch(c, layer, c.getTransform());
+    c.restore();
   }
 
   // ── high-level recipes ────────────────────────────────────────────────────

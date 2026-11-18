@@ -224,8 +224,20 @@
       const dir = fighter.dir;
       ctx.rotate(Math.atan2(Number(dir && dir.y) || 0, Number(dir && dir.x) || 1));
       if (fighter.isRage) {
-        const glow = fighter.color || '#ffffff';
-        try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (error) {}
+        const glow = fighter.color || '#d8b4fe';
+        const rr = (fighter.radius || 75) * 1.02;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha *= 0.34;
+        ctx.strokeStyle = glow;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha *= 0.45;
+        ctx.lineWidth = 11;
+        ctx.stroke();
+        ctx.restore();
       }
       type.draw(ctx, fighter);
       return true;
