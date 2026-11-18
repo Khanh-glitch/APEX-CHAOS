@@ -289,7 +289,7 @@ export const HERO_BATTLE_RIG_ASSETS = Object.freeze(
   Object.values(HERO_BATTLE_RIGS).flat(),
 );
 
-export const GOLD_SHELL_URL = '/gold/shell.html?v=20261117-phase2-ui';
-export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261117-phase2-ui';
-export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261117-phase2-ui';
-export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261117-phase2-ui';
+export const GOLD_SHELL_URL = '/gold/shell.html?v=20261117-phase4-flow';
+export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261117-phase4-flow';
+export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261117-phase4-flow';
+export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261117-phase4-flow';
