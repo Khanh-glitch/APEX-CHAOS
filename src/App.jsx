@@ -34,10 +34,7 @@ import FreeBattleBeyondHud from './ui/FreeBattleBeyondHud.jsx';
 import BattlePauseOverlay from './ui/BattlePauseOverlay.jsx';
 import AaaVisualPolishController from './ui/AaaVisualPolishController.jsx';
 import './game/botWave/wavePreviewEntry.css';
-import { MATERIAL_CHROME_ASSETS } from './game/materialChromeAssets.js';
 
-// Phase 7: material chrome sprites are consumed by the Gold shell CSS; referenced here so the asset audit ships them.
-void MATERIAL_CHROME_ASSETS;
 const once = { loaded: false };
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
 // The single existing menu-media element IS the product theme element: there
